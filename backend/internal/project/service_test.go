@@ -276,6 +276,38 @@ func (m *mockRepo) DeleteInvite(_ context.Context, inviteID uuid.UUID) error {
 	return nil
 }
 
+func (m *mockRepo) CreateTeam(_ context.Context, name, description string) (*ent.Team, error) {
+	return &ent.Team{ID: uuid.New(), Name: name, Description: description}, nil
+}
+
+func (m *mockRepo) ListTeams(_ context.Context) ([]*ent.Team, error) {
+	return nil, nil
+}
+
+func (m *mockRepo) FindTeamByID(_ context.Context, id uuid.UUID) (*ent.Team, error) {
+	return nil, notFoundErr()
+}
+
+func (m *mockRepo) AddTeamMember(_ context.Context, _, _ uuid.UUID) (*ent.TeamMember, error) {
+	return &ent.TeamMember{ID: uuid.New(), JoinedAt: time.Now()}, nil
+}
+
+func (m *mockRepo) RemoveTeamMember(_ context.Context, _, _ uuid.UUID) error {
+	return nil
+}
+
+func (m *mockRepo) TeamMemberCount(_ context.Context, _ uuid.UUID) (int, error) {
+	return 0, nil
+}
+
+func (m *mockRepo) ListTeamMembers(_ context.Context, _ uuid.UUID) ([]*ent.TeamMember, error) {
+	return nil, nil
+}
+
+func (m *mockRepo) AddTeamToProject(_ context.Context, _, _ uuid.UUID) error {
+	return nil
+}
+
 // mockCache implements CacheInvalidator for testing.
 type mockCache struct {
 	invalidated []string

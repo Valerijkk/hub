@@ -311,6 +311,72 @@ func toInviteResponse(inv *ent.Invite, frontendURL string) *InviteResponse {
 	}
 }
 
+// CreateTeam creates a new team and returns its response representation.
+func (s *ProjectService) CreateTeam(ctx context.Context, name, description string) (*TeamResponse, error) {
+	t, err := s.repo.CreateTeam(ctx, name, description)
+	if err != nil {
+		if ent.IsConstraintError(err) {
+			return nil, apperrors.NewConflict("team name already exists")
+		}
+		return nil, apperrors.NewInternal("failed to create team")
+	}
+	return toTeamResponse(t, 0), nil
+}
+
+// ListTeams returns all teams with their member counts.
+func (s *ProjectService) ListTeams(ctx context.Context) ([]TeamResponse, error) {
+	teams, err := s.repo.ListTeams(ctx)
+	if err != nil {
+		return nil, apperrors.NewInternal("failed to list teams")
+	}
+	result := make([]TeamResponse, 0, len(teams))
+	for _, t := range teams {
+		result = append(result, *toTeamResponse(t, len(t.Edges.Members)))
+	}
+	return result, nil
+}
+
+// AddTeamMember adds a user to a team.
+func (s *ProjectService) AddTeamMember(ctx context.Context, teamID, userID uuid.UUID) error {
+	_, err := s.repo.AddTeamMember(ctx, teamID, userID)
+	if err != nil {
+		if ent.IsConstraintError(err) {
+			return apperrors.NewConflict("user is already a member of this team")
+		}
+		return apperrors.NewInternal("failed to add team member")
+	}
+	return nil
+}
+
+// RemoveTeamMember removes a user from a team.
+func (s *ProjectService) RemoveTeamMember(ctx context.Context, teamID, userID uuid.UUID) error {
+	if err := s.repo.RemoveTeamMember(ctx, teamID, userID); err != nil {
+		return apperrors.NewInternal("failed to remove team member")
+	}
+	return nil
+}
+
+// AddTeamToProject links a team to a project and bulk-adds all team members as project members.
+func (s *ProjectService) AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error {
+	if err := s.repo.AddTeamToProject(ctx, teamID, projectID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("team or project not found")
+		}
+		return apperrors.NewInternal("failed to add team to project")
+	}
+	return nil
+}
+
+// toTeamResponse converts an Ent Team entity to a response DTO.
+func toTeamResponse(t *ent.Team, memberCount int) *TeamResponse {
+	return &TeamResponse{
+		ID:          t.ID.String(),
+		Name:        t.Name,
+		Description: t.Description,
+		MemberCount: memberCount,
+	}
+}
+
 // ListInvites returns all invites for a project.
 func (s *ProjectService) ListInvites(ctx context.Context, projectID uuid.UUID) ([]InviteResponse, error) {
 	invites, err := s.repo.ListInvites(ctx, projectID)

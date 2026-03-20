@@ -9,6 +9,8 @@ import (
 	"github.com/valerii/hub/backend/ent/invite"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
+	"github.com/valerii/hub/backend/ent/team"
+	"github.com/valerii/hub/backend/ent/teammember"
 	"github.com/valerii/hub/backend/ent/user"
 )
 
@@ -35,6 +37,16 @@ type Repository interface {
 	IncrementInviteUseCount(ctx context.Context, inviteID uuid.UUID) error
 	ListInvites(ctx context.Context, projectID uuid.UUID) ([]*ent.Invite, error)
 	DeleteInvite(ctx context.Context, inviteID uuid.UUID) error
+
+	// Team operations
+	CreateTeam(ctx context.Context, name, description string) (*ent.Team, error)
+	ListTeams(ctx context.Context) ([]*ent.Team, error)
+	FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Team, error)
+	AddTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error)
+	RemoveTeamMember(ctx context.Context, teamID, userID uuid.UUID) error
+	TeamMemberCount(ctx context.Context, teamID uuid.UUID) (int, error)
+	ListTeamMembers(ctx context.Context, teamID uuid.UUID) ([]*ent.TeamMember, error)
+	AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error
 }
 
 // CacheInvalidator abstracts RBAC cache invalidation for testability.
@@ -279,4 +291,87 @@ func (r *EntRepository) ListInvites(ctx context.Context, projectID uuid.UUID) ([
 
 func (r *EntRepository) DeleteInvite(ctx context.Context, inviteID uuid.UUID) error {
 	return r.client.Invite.DeleteOneID(inviteID).Exec(ctx)
+}
+
+// CreateTeam creates a new team with the given name and description.
+func (r *EntRepository) CreateTeam(ctx context.Context, name, description string) (*ent.Team, error) {
+	create := r.client.Team.Create().SetName(name)
+	if description != "" {
+		create = create.SetDescription(description)
+	}
+	return create.Save(ctx)
+}
+
+// ListTeams returns all teams with their members eagerly loaded.
+func (r *EntRepository) ListTeams(ctx context.Context) ([]*ent.Team, error) {
+	return r.client.Team.Query().WithMembers().All(ctx)
+}
+
+// FindTeamByID returns a team by ID with members eagerly loaded.
+func (r *EntRepository) FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Team, error) {
+	return r.client.Team.Query().
+		Where(team.IDEQ(id)).
+		WithMembers().
+		Only(ctx)
+}
+
+// AddTeamMember adds a user to a team, returning the created TeamMember.
+func (r *EntRepository) AddTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error) {
+	return r.client.TeamMember.Create().
+		SetTeamID(teamID).
+		SetUserID(userID).
+		Save(ctx)
+}
+
+// RemoveTeamMember removes a user from a team.
+func (r *EntRepository) RemoveTeamMember(ctx context.Context, teamID, userID uuid.UUID) error {
+	_, err := r.client.TeamMember.Delete().
+		Where(
+			teammember.HasTeamWith(team.IDEQ(teamID)),
+			teammember.HasUserWith(user.IDEQ(userID)),
+		).
+		Exec(ctx)
+	return err
+}
+
+// TeamMemberCount returns the number of members in a team.
+func (r *EntRepository) TeamMemberCount(ctx context.Context, teamID uuid.UUID) (int, error) {
+	return r.client.TeamMember.Query().
+		Where(teammember.HasTeamWith(team.IDEQ(teamID))).
+		Count(ctx)
+}
+
+// ListTeamMembers returns all members of a team with user edges eagerly loaded.
+func (r *EntRepository) ListTeamMembers(ctx context.Context, teamID uuid.UUID) ([]*ent.TeamMember, error) {
+	return r.client.TeamMember.Query().
+		Where(teammember.HasTeamWith(team.IDEQ(teamID))).
+		WithUser().
+		All(ctx)
+}
+
+// AddTeamToProject links a team to a project and bulk-adds all team members as project members.
+func (r *EntRepository) AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error {
+	// Link team to project
+	err := r.client.Project.UpdateOneID(projectID).
+		AddTeamIDs(teamID).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Bulk-add team members as project members with "developer" role
+	members, err := r.ListTeamMembers(ctx, teamID)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range members {
+		if m.Edges.User == nil {
+			continue
+		}
+		// Ignore constraint errors (user already a project member)
+		_, _ = r.AddMember(ctx, projectID, m.Edges.User.ID, projectmember.ProjectRoleDeveloper)
+	}
+
+	return nil
 }
