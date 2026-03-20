@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_PASSWORD: hub
+      POSTGRES_DB: hub
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hub"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mongo:
+    image: mongo:8
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: hub
+      MONGO_INITDB_ROOT_PASSWORD: hub
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+
+  nats:
+    image: nats:2.11
+    ports:
+      - "4222:4222"
+    command: ["-js"]

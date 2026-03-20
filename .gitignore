@@ -1,0 +1,42 @@
+# Go
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+vendor/
+*.test
+*.out
+tmp/
+
+# Node
+node_modules/
+dist/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Generated - Ent ORM
+backend/ent/*
+!backend/ent/schema
+!backend/ent/generate.go
+
+# Build artifacts
+coverage/
+*.prof
