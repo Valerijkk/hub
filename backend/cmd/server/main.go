@@ -17,6 +17,7 @@ import (
 	"github.com/valerii/hub/backend/internal/platform/outbox"
 	projectmod "github.com/valerii/hub/backend/internal/project"
 	"github.com/valerii/hub/backend/internal/rbac"
+	storagemod "github.com/valerii/hub/backend/internal/storage"
 	redisclient "github.com/valerii/hub/backend/internal/platform/redis"
 	wsmod "github.com/valerii/hub/backend/internal/ws"
 )
@@ -110,6 +111,20 @@ func main() {
 	projectSvc := projectmod.NewProjectService(projectRepo, rbacCache)
 	projectHandler := projectmod.NewHandler(projectSvc)
 	projectHandler.RegisterRoutes(api, requireAuth)
+
+	// RBAC service (permission checks with Redis cache)
+	rbacSvc := rbac.NewRBACService(db, rbacCache)
+
+	// Storage service (SeaweedFS / S3-compatible)
+	storageSvc, err := storagemod.NewStorageService(cfg.S3, db)
+	if err != nil {
+		slog.Error("failed to create storage service", "error", err)
+		os.Exit(1)
+	}
+
+	// Storage routes (/api/files/*)
+	storageHandler := storagemod.NewHandler(storageSvc)
+	storageHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// --- WebSocket gateway ---
 
