@@ -1,230 +1,230 @@
-# Requirements: Hub
+# Требования: Hub
 
-**Defined:** 2026-03-20
-**Core Value:** Unified environment for development teams where task tracker, testing, communication, and calls are connected in one interface -- no switching between a dozen separate tools.
+**Определены:** 2026-03-20
+**Основная ценность:** Единая среда для команд разработки, где трекер задач, тестирование, общение и звонки объединены в одном интерфейсе -- без переключения между десятком отдельных инструментов.
 
-## v1 Requirements
+## Требования v1
 
-Requirements for initial release. Each maps to roadmap phases.
+Требования для первого релиза. Каждое соответствует фазам дорожной карты.
 
-### Authentication & Users
+### Аутентификация и пользователи
 
-- [ ] **AUTH-01**: User can sign in via Magic Link (email) without password
-- [ ] **AUTH-02**: User can sign in via Telegram without password
-- [ ] **AUTH-03**: Admin can configure registration mode: open or invite-only
-- [ ] **AUTH-04**: User can edit profile: name, avatar, email, Telegram handle, position, department, phone, timezone, language, birthday
-- [ ] **AUTH-05**: System supports two roles: Admin and Member
-- [ ] **AUTH-06**: User can have multiple active sessions (desktop + mobile), view session list, and terminate individual sessions
-- [ ] **AUTH-07**: User receives notification when a new session is created on their account
-- [ ] **AUTH-08**: New user goes through onboarding flow: fill profile, overview tour, choose theme/language, create or join a project
+- [ ] **AUTH-01**: Пользователь может войти через Magic Link (email) без пароля
+- [ ] **AUTH-02**: Пользователь может войти через Telegram без пароля
+- [ ] **AUTH-03**: Администратор может настроить режим регистрации: открытый или только по приглашению
+- [ ] **AUTH-04**: Пользователь может редактировать профиль: имя, аватар, email, Telegram, должность, отдел, телефон, часовой пояс, язык, день рождения
+- [ ] **AUTH-05**: Система поддерживает две роли: Admin и Member
+- [ ] **AUTH-06**: Пользователь может иметь несколько активных сессий (десктоп + мобильное устройство), просматривать список сессий и завершать отдельные сессии
+- [ ] **AUTH-07**: Пользователь получает уведомление при создании новой сессии в его аккаунте
+- [ ] **AUTH-08**: Новый пользователь проходит онбординг: заполнение профиля, обзорный тур, выбор темы/языка, создание или присоединение к проекту
 
-### Projects
+### Проекты
 
-- [ ] **PROJ-01**: Admin and Member can create projects; creation auto-generates a tracker board, TMS space, project chat, channel, and dashboard
-- [ ] **PROJ-02**: Project Owner can manage participant roles, workflow/statuses, teams, and access controls
-- [ ] **PROJ-03**: Projects have fixed roles (Owner, Developer, Tester, Viewer) plus custom roles with granular RBAC permissions
-- [ ] **PROJ-04**: Users can be invited via link; teams (groups of people) can be added as a unit
-- [ ] **PROJ-05**: Project templates available: Empty, Software Dev, QA, Kanban Simple, plus custom templates and saving a project as template
-- [ ] **PROJ-06**: Projects can be archived (read-only alternative to deletion)
-- [ ] **PROJ-07**: Deleted projects go to trash (30-day retention) with option to export backup before permanent deletion
+- [ ] **PROJ-01**: Admin и Member могут создавать проекты; при создании автоматически генерируются доска трекера, пространство TMS, чат проекта, канал и дашборд
+- [ ] **PROJ-02**: Владелец проекта может управлять ролями участников, рабочим процессом/статусами, командами и правами доступа
+- [ ] **PROJ-03**: В проектах есть фиксированные роли (Owner, Developer, Tester, Viewer) и настраиваемые роли с детальными RBAC-правами
+- [ ] **PROJ-04**: Пользователей можно приглашать по ссылке; команды (группы людей) можно добавлять целиком
+- [ ] **PROJ-05**: Доступны шаблоны проектов: Пустой, Разработка ПО, QA, Kanban Simple, а также пользовательские шаблоны и сохранение проекта как шаблона
+- [ ] **PROJ-06**: Проекты можно архивировать (альтернатива удалению с доступом только на чтение)
+- [ ] **PROJ-07**: Удаленные проекты попадают в корзину (хранение 30 дней) с возможностью экспорта резервной копии перед окончательным удалением
 
-### Task Tracker
+### Трекер задач
 
-- [ ] **TASK-01**: 9 issue templates: Bug, Task, Story, Epic, Sub-task, Improvement, Tech Debt, Spike, Release
-- [ ] **TASK-02**: Issues support fixed fields plus custom fields
-- [ ] **TASK-03**: Unlimited nesting depth for parent/child task hierarchy
-- [ ] **TASK-04**: Issue links: parent/child, blocks, relates to, duplicates, clones, causes, plus custom link types
-- [ ] **TASK-05**: Project-prefixed sequential numbering (HUB-1, MOBILE-1); prefix set at project creation
-- [ ] **TASK-06**: Project Owner can create custom workflow with statuses and transitions
-- [ ] **TASK-07**: Comments on issues support @mentions, internal comments (role-restricted visibility), quoting, and reactions
-- [ ] **TASK-08**: Full change log on every issue (who changed what and when)
-- [ ] **TASK-09**: Time tracking: estimate, actual, start/stop timer
-- [ ] **TASK-10**: Labels at project level with colors, label groups; unified label system shared across issues, test cases, and messages
-- [ ] **TASK-11**: File attachments on issues with image/PDF/video preview, Ctrl+V paste, drag-and-drop upload
+- [ ] **TASK-01**: 9 шаблонов задач: Bug, Task, Story, Epic, Sub-task, Improvement, Tech Debt, Spike, Release
+- [ ] **TASK-02**: Задачи поддерживают фиксированные поля и пользовательские поля
+- [ ] **TASK-03**: Неограниченная глубина вложенности для иерархии родительских/дочерних задач
+- [ ] **TASK-04**: Связи задач: родитель/потомок, блокирует, связана с, дублирует, клонирует, является причиной, а также пользовательские типы связей
+- [ ] **TASK-05**: Последовательная нумерация с префиксом проекта (HUB-1, MOBILE-1); префикс задается при создании проекта
+- [ ] **TASK-06**: Владелец проекта может создавать пользовательский рабочий процесс со статусами и переходами
+- [ ] **TASK-07**: Комментарии к задачам поддерживают @упоминания, внутренние комментарии (видимость ограничена ролью), цитирование и реакции
+- [ ] **TASK-08**: Полный журнал изменений по каждой задаче (кто, что и когда изменил)
+- [ ] **TASK-09**: Учет времени: оценка, фактическое время, старт/стоп таймер
+- [ ] **TASK-10**: Метки на уровне проекта с цветами, группы меток; единая система меток для задач, тест-кейсов и сообщений
+- [ ] **TASK-11**: Вложения файлов к задачам с предпросмотром изображений/PDF/видео, вставка через Ctrl+V, загрузка перетаскиванием
 
 ### Kanban
 
-- [ ] **KANB-01**: Kanban board columns map to workflow statuses
-- [ ] **KANB-02**: WIP limits per column
-- [ ] **KANB-03**: Swimlanes (by assignee, priority, or type)
-- [ ] **KANB-04**: Multiple boards per project
-- [ ] **KANB-05**: Board filters: my tasks, bugs only, by priority
+- [ ] **KANB-01**: Колонки Kanban-доски соответствуют статусам рабочего процесса
+- [ ] **KANB-02**: WIP-лимиты на колонку
+- [ ] **KANB-03**: Swimlanes (по исполнителю, приоритету или типу)
+- [ ] **KANB-04**: Несколько досок на проект
+- [ ] **KANB-05**: Фильтры доски: мои задачи, только баги, по приоритету
 
 ### Scrum
 
-- [ ] **SCRM-01**: Create sprints with start/end dates, drag tasks from backlog, start/complete sprint
-- [ ] **SCRM-02**: Burndown chart and velocity chart
-- [ ] **SCRM-03**: Sprint retrospective notes attached to sprint
-- [ ] **SCRM-04**: Auto-carry incomplete tasks to next sprint
-- [ ] **SCRM-05**: Planning Poker: Fibonacci scale, votes hidden until reveal
+- [ ] **SCRM-01**: Создание спринтов с датами начала/окончания, перетаскивание задач из бэклога, запуск/завершение спринта
+- [ ] **SCRM-02**: Диаграмма сгорания и диаграмма скорости
+- [ ] **SCRM-03**: Заметки ретроспективы, привязанные к спринту
+- [ ] **SCRM-04**: Автоперенос незавершенных задач в следующий спринт
+- [ ] **SCRM-05**: Planning Poker: шкала Фибоначчи, голоса скрыты до раскрытия
 
-### Messenger
+### Мессенджер
 
-- [ ] **MSG-01**: Direct messages (1-on-1) and group chats
-- [ ] **MSG-02**: Public channels (anyone can join) and private channels (invite-only)
-- [ ] **MSG-03**: Auto-created project channels (#project-hub) plus topic channels (#hub-backend, #hub-bugs)
-- [ ] **MSG-04**: Read-only channels (bot posts, users read -- e.g., #hub-ci)
-- [ ] **MSG-05**: Threaded replies (reply opens a conversation branch)
-- [ ] **MSG-06**: Emoji reactions on messages
-- [ ] **MSG-07**: Rich text formatting: bold, italic, code, lists, links
-- [ ] **MSG-08**: Edit and delete own messages; channel Owner/Admin can delete any message
-- [ ] **MSG-09**: Message forwarding, pinning, and bookmarks (saved messages)
-- [ ] **MSG-10**: Voice messages (audio recording in chat)
-- [ ] **MSG-11**: Link previews: issues, test cases, test runs, GitHub PR/Issue plus external URL previews (OG meta)
-- [ ] **MSG-12**: Global and per-channel message search
-- [ ] **MSG-13**: User status: online/offline/away (auto-detected) plus custom status text
+- [ ] **MSG-01**: Личные сообщения (1-на-1) и групповые чаты
+- [ ] **MSG-02**: Публичные каналы (любой может присоединиться) и приватные каналы (только по приглашению)
+- [ ] **MSG-03**: Автоматически создаваемые каналы проекта (#project-hub) и тематические каналы (#hub-backend, #hub-bugs)
+- [ ] **MSG-04**: Каналы только для чтения (бот публикует, пользователи читают -- например, #hub-ci)
+- [ ] **MSG-05**: Ответы в тредах (ответ открывает ветку обсуждения)
+- [ ] **MSG-06**: Emoji-реакции на сообщения
+- [ ] **MSG-07**: Форматирование текста: жирный, курсив, код, списки, ссылки
+- [ ] **MSG-08**: Редактирование и удаление своих сообщений; Owner/Admin канала может удалить любое сообщение
+- [ ] **MSG-09**: Пересылка сообщений, закрепление и закладки (сохраненные сообщения)
+- [ ] **MSG-10**: Голосовые сообщения (аудиозапись в чате)
+- [ ] **MSG-11**: Превью ссылок: задачи, тест-кейсы, тест-раны, GitHub PR/Issue, а также превью внешних URL (OG meta)
+- [ ] **MSG-12**: Глобальный поиск и поиск по каналу
+- [ ] **MSG-13**: Статус пользователя: онлайн/офлайн/отошел (автоопределение) и пользовательский текст статуса
 
-### TMS (Test Management)
+### TMS (Управление тестированием)
 
-- [ ] **TMS-01**: Test cases with classic format (steps + expected result) and BDD format (Given/When/Then)
-- [ ] **TMS-02**: Test case structure: folders/sections, tags, components, versioning with history and rollback
-- [ ] **TMS-03**: GitHub linking: match by annotation ID (@TestCase("HUB-TC-42")), display linked code, sync status, webhook on change
-- [ ] **TMS-04**: Test runs: manual, automatic (Allure), mixed; re-open failed; assign to testers
-- [ ] **TMS-05**: Screenshot and comment per test result step
-- [ ] **TMS-06**: Bidirectional issue linking: create bug from failed test case, requirements coverage, traceability matrix
-- [ ] **TMS-07**: Test environments: label (dev/staging/prod), configurations (browser/OS), cross-environment comparison, filtered history
-- [ ] **TMS-08**: Allure-level reporting: trends, flaky tests, defect categories, run comparison, dashboards
-- [ ] **TMS-09**: Import test cases: CSV, JSON, XML, Excel with universal field mapping
-- [ ] **TMS-10**: Export test cases and results: CSV, JSON, XML, PDF
+- [ ] **TMS-01**: Тест-кейсы в классическом формате (шаги + ожидаемый результат) и BDD-формате (Given/When/Then)
+- [ ] **TMS-02**: Структура тест-кейсов: папки/секции, теги, компоненты, версионирование с историей и откатом
+- [ ] **TMS-03**: Связь с GitHub: сопоставление по ID аннотации (@TestCase("HUB-TC-42")), отображение связанного кода, синхронизация статуса, вебхук при изменении
+- [ ] **TMS-04**: Тест-раны: ручные, автоматические (Allure), смешанные; повторное открытие упавших; назначение тестировщикам
+- [ ] **TMS-05**: Скриншот и комментарий к каждому шагу результата теста
+- [ ] **TMS-06**: Двусторонняя связь с задачами: создание бага из упавшего тест-кейса, покрытие требований, матрица трассировки
+- [ ] **TMS-07**: Тестовые окружения: метка (dev/staging/prod), конфигурации (браузер/ОС), сравнение между окружениями, фильтрованная история
+- [ ] **TMS-08**: Отчетность уровня Allure: тренды, нестабильные тесты, категории дефектов, сравнение запусков, дашборды
+- [ ] **TMS-09**: Импорт тест-кейсов: CSV, JSON, XML, Excel с универсальным маппингом полей
+- [ ] **TMS-10**: Экспорт тест-кейсов и результатов: CSV, JSON, XML, PDF
 
-### Allure Integration
+### Интеграция с Allure
 
-- [ ] **ALLU-01**: CI generates Allure Report HTML; Hub provides parser that reads allure-results JSON and POSTs to TMS API
-- [ ] **ALLU-02**: Matching test results to test cases by Allure ID or test name
-- [ ] **ALLU-03**: Run history, statistics, and Telegram notifications for test run completion
+- [ ] **ALLU-01**: CI генерирует Allure Report HTML; Hub предоставляет парсер, который читает allure-results JSON и отправляет POST в TMS API
+- [ ] **ALLU-02**: Сопоставление результатов тестов с тест-кейсами по Allure ID или имени теста
+- [ ] **ALLU-03**: История запусков, статистика и Telegram-уведомления о завершении тест-рана
 
-### Voice Calls
+### Голосовые звонки
 
-- [ ] **CALL-01**: Audio-only calls plus screen sharing (no webcams), up to 50 participants
-- [ ] **CALL-02**: Scheduled and recurring calls (e.g., daily standup)
-- [ ] **CALL-03**: Mute/unmute, raise hand, screen/window picker, multiple simultaneous screen shares
-- [ ] **CALL-04**: Recording by button press (audio + screen share); all participants notified; saved to SeaweedFS; link posted to channel
-- [ ] **CALL-05**: Recordings attached to project (dedicated Recordings section)
-- [ ] **CALL-06**: Ephemeral call chat (disappears after call ends)
+- [ ] **CALL-01**: Аудиозвонки и демонстрация экрана (без веб-камер), до 50 участников
+- [ ] **CALL-02**: Запланированные и повторяющиеся звонки (например, ежедневный стендап)
+- [ ] **CALL-03**: Включение/выключение микрофона, поднятие руки, выбор экрана/окна, одновременная демонстрация нескольких экранов
+- [ ] **CALL-04**: Запись по нажатию кнопки (аудио + демонстрация экрана); все участники уведомлены; сохранение в SeaweedFS; ссылка публикуется в канале
+- [ ] **CALL-05**: Записи привязаны к проекту (отдельный раздел Записи)
+- [ ] **CALL-06**: Эфемерный чат звонка (исчезает после завершения звонка)
 
-### Dashboards
+### Дашборды
 
-- [ ] **DASH-01**: Personal dashboard: my tasks, unread messages, upcoming calls, test runs, deadlines, activity, quick actions, filters, chats, time tracking -- customizable widgets with drag-and-drop and resizing
-- [ ] **DASH-02**: Project dashboard: task statuses, burndown, velocity, bugs, team activity, tests, trends, coverage, flaky tests, unassigned, overdue, commits -- customizable with templates (Dev/QA/Manager)
-- [ ] **DASH-03**: Admin dashboard: users, projects, tasks, activity (DAU/WAU/MAU), storage usage, service health, top projects/users, error logs
+- [ ] **DASH-01**: Личный дашборд: мои задачи, непрочитанные сообщения, предстоящие звонки, тест-раны, дедлайны, активность, быстрые действия, фильтры, чаты, учет времени -- настраиваемые виджеты с перетаскиванием и изменением размера
+- [ ] **DASH-02**: Дашборд проекта: статусы задач, сгорание, скорость, баги, активность команды, тесты, тренды, покрытие, нестабильные тесты, неназначенные, просроченные, коммиты -- настраиваемый с шаблонами (Dev/QA/Manager)
+- [ ] **DASH-03**: Дашборд администратора: пользователи, проекты, задачи, активность (DAU/WAU/MAU), использование хранилища, состояние сервисов, топ проектов/пользователей, логи ошибок
 
-### Notifications
+### Уведомления
 
-- [ ] **NOTF-01**: Triggers: assignment, update, @mention, status change, chat message, call, test run, sprint, deadline, blocker
-- [ ] **NOTF-02**: Channels: in-app (bell icon) plus Telegram bot
-- [ ] **NOTF-03**: Preferences: configure by type, by channel, and by project
-- [ ] **NOTF-04**: Quiet hours with urgent notifications breaking through
+- [ ] **NOTF-01**: Триггеры: назначение, обновление, @упоминание, смена статуса, сообщение в чате, звонок, тест-ран, спринт, дедлайн, блокировщик
+- [ ] **NOTF-02**: Каналы доставки: в приложении (иконка колокольчика) и Telegram-бот
+- [ ] **NOTF-03**: Настройки: конфигурация по типу, по каналу доставки и по проекту
+- [ ] **NOTF-04**: Тихие часы с возможностью прорыва для срочных уведомлений
 
-### GitHub Integration
+### Интеграция с GitHub
 
-- [ ] **GHUB-01**: Link PRs and commits to issues with preview cards
-- [ ] **GHUB-02**: Auto-link: "HUB-123" in commit message auto-attaches to issue
-- [ ] **GHUB-03**: PR status displayed on issue (open/merged/closed)
-- [ ] **GHUB-04**: Auto-transition issue status when PR is merged
-- [ ] **GHUB-05**: Create branch from issue (hub-123-fix-login naming)
+- [ ] **GHUB-01**: Привязка PR и коммитов к задачам с карточками предпросмотра
+- [ ] **GHUB-02**: Автопривязка: "HUB-123" в сообщении коммита автоматически прикрепляется к задаче
+- [ ] **GHUB-03**: Статус PR отображается на задаче (open/merged/closed)
+- [ ] **GHUB-04**: Автоматическая смена статуса задачи при мерже PR
+- [ ] **GHUB-05**: Создание ветки из задачи (именование hub-123-fix-login)
 
-### Filters & Search
+### Фильтры и поиск
 
-- [ ] **SRCH-01**: Filters on issues: status, priority, assignee, type; saved and shareable filters
-- [ ] **SRCH-02**: Ctrl+K global search: issues, test cases, users, projects, channels, files
-- [ ] **SRCH-03**: JQL-like query language for advanced filtering
+- [ ] **SRCH-01**: Фильтры задач: статус, приоритет, исполнитель, тип; сохраняемые и общие фильтры
+- [ ] **SRCH-02**: Ctrl+K глобальный поиск: задачи, тест-кейсы, пользователи, проекты, каналы, файлы
+- [ ] **SRCH-03**: JQL-подобный язык запросов для расширенной фильтрации
 
-### API & Integrations
+### API и интеграции
 
-- [ ] **API-01**: REST API with Swagger documentation
-- [ ] **API-02**: API key generation in user profile
-- [ ] **API-03**: Webhooks (POST to external URL on events)
-- [ ] **API-04**: hub-cli: CLI tool for CI/CD (push-results, create-bug, update-task)
+- [ ] **API-01**: REST API с документацией Swagger
+- [ ] **API-02**: Генерация API-ключей в профиле пользователя
+- [ ] **API-03**: Вебхуки (POST на внешний URL по событиям)
+- [ ] **API-04**: hub-cli: CLI-инструмент для CI/CD (push-results, create-bug, update-task)
 
-### Import/Export
+### Импорт/Экспорт
 
-- [ ] **IMEX-01**: Universal CSV/JSON import for issues with field mapping
-- [ ] **IMEX-02**: Import test cases from Excel
-- [ ] **IMEX-03**: Export: issues (CSV/Excel), test runs (PDF), sprints (PDF), full project backup (ZIP)
+- [ ] **IMEX-01**: Универсальный CSV/JSON импорт задач с маппингом полей
+- [ ] **IMEX-02**: Импорт тест-кейсов из Excel
+- [ ] **IMEX-03**: Экспорт: задачи (CSV/Excel), тест-раны (PDF), спринты (PDF), полная резервная копия проекта (ZIP)
 
-### Audit & Security
+### Аудит и безопасность
 
-- [ ] **AUDT-01**: Full audit log: login/logout, issues, projects, TMS, messenger -- Admin can view with filters
-- [ ] **AUDT-02**: Configurable limits: file size, projects per user, storage per project -- Admin manages
-- [ ] **AUDT-03**: 30-day trash for issues, test cases, projects, files; Admin/Owner can restore
-- [ ] **AUDT-04**: User deletion: deactivation, task reassignment, full data deletion (GDPR option)
+- [ ] **AUDT-01**: Полный журнал аудита: вход/выход, задачи, проекты, TMS, мессенджер -- администратор может просматривать с фильтрами
+- [ ] **AUDT-02**: Настраиваемые лимиты: размер файла, количество проектов на пользователя, хранилище на проект -- управляет администратор
+- [ ] **AUDT-03**: 30-дневная корзина для задач, тест-кейсов, проектов, файлов; Admin/Owner может восстановить
+- [ ] **AUDT-04**: Удаление пользователя: деактивация, переназначение задач, полное удаление данных (опция GDPR)
 
-### Backups
+### Резервное копирование
 
-- [ ] **BKUP-01**: Weekly automatic backups (PostgreSQL + MongoDB + SeaweedFS)
-- [ ] **BKUP-02**: Retain last N backups (configurable)
-- [ ] **BKUP-03**: Restore from backup via Admin panel
+- [ ] **BKUP-01**: Еженедельное автоматическое резервное копирование (PostgreSQL + MongoDB + SeaweedFS)
+- [ ] **BKUP-02**: Хранение последних N резервных копий (настраивается)
+- [ ] **BKUP-03**: Восстановление из резервной копии через панель администратора
 
 ### UI/UX
 
-- [ ] **UI-01**: Collapsible left sidebar plus top bar (search, notifications, profile)
-- [ ] **UI-02**: Mobile layout: bottom navigation, simplified Kanban (list view), mobile dashboards, mobile call UI
-- [ ] **UI-03**: Dark, light, and system theme plus custom accent color
-- [ ] **UI-04**: Russian and English with language switcher in profile
-- [ ] **UI-05**: Keyboard shortcuts: Ctrl+K (search), Ctrl+N (new issue)
-- [ ] **UI-06**: PWA: install to phone, offline cache, Web Push notifications
-- [ ] **UI-07**: Error handling: toast notifications, request ID, retry, offline mode, 404/500/403 pages
-- [ ] **UI-08**: File attachments everywhere: any file type, image/PDF/video preview, Ctrl+V paste, drag-and-drop
-- [ ] **UI-09**: Pagination: pages for issues, infinite scroll for chat, virtualization for large lists, server-side filtering
+- [ ] **UI-01**: Сворачиваемая левая боковая панель и верхняя панель (поиск, уведомления, профиль)
+- [ ] **UI-02**: Мобильная верстка: нижняя навигация, упрощенный Kanban (вид списком), мобильные дашборды, мобильный интерфейс звонков
+- [ ] **UI-03**: Темная, светлая и системная тема, а также пользовательский акцентный цвет
+- [ ] **UI-04**: Русский и английский языки с переключателем в профиле
+- [ ] **UI-05**: Горячие клавиши: Ctrl+K (поиск), Ctrl+N (новая задача)
+- [ ] **UI-06**: PWA: установка на телефон, офлайн-кеш, Web Push уведомления
+- [ ] **UI-07**: Обработка ошибок: toast-уведомления, ID запроса, повтор, офлайн-режим, страницы 404/500/403
+- [ ] **UI-08**: Вложения файлов повсюду: любой тип файла, предпросмотр изображений/PDF/видео, вставка через Ctrl+V, перетаскивание
+- [ ] **UI-09**: Пагинация: постраничная для задач, бесконечная прокрутка для чата, виртуализация для больших списков, серверная фильтрация
 
-## v2 Requirements
+## Требования v2
 
-Deferred to future release. Tracked but not in current roadmap.
+Отложены до будущего релиза. Отслеживаются, но не входят в текущую дорожную карту.
 
-### Advanced Query
+### Расширенные запросы
 
-- **V2-01**: JQL-like query language with autocomplete and saved queries
-- **V2-02**: Traceability matrix view (requirements to test cases to results)
+- **V2-01**: JQL-подобный язык запросов с автодополнением и сохраненными запросами
+- **V2-02**: Представление матрицы трассировки (требования к тест-кейсам к результатам)
 
-### Advanced Project Management
+### Расширенное управление проектами
 
-- **V2-03**: Project templates marketplace (import/export templates across instances)
-- **V2-04**: Import from Jira (project structure, issues, attachments)
-- **V2-05**: Import from TestRail (test cases, suites, runs)
+- **V2-03**: Маркетплейс шаблонов проектов (импорт/экспорт шаблонов между инстансами)
+- **V2-04**: Импорт из Jira (структура проекта, задачи, вложения)
+- **V2-05**: Импорт из TestRail (тест-кейсы, наборы, запуски)
 
-### Advanced Admin
+### Расширенное администрирование
 
-- **V2-06**: Admin dashboard with DAU/WAU/MAU analytics, service health monitoring
-- **V2-07**: CLI tool for CI/CD automation (hub-cli)
+- **V2-06**: Дашборд администратора с аналитикой DAU/WAU/MAU, мониторинг состояния сервисов
+- **V2-07**: CLI-инструмент для автоматизации CI/CD (hub-cli)
 
-### Advanced TMS
+### Расширенный TMS
 
-- **V2-08**: Test environments with browser/OS configurations and cross-environment comparison
-- **V2-09**: Custom fields on issues
+- **V2-08**: Тестовые окружения с конфигурациями браузер/ОС и сравнением между окружениями
+- **V2-09**: Пользовательские поля в задачах
 
-### Advanced Kanban
+### Расширенный Kanban
 
-- **V2-10**: Swimlanes by assignee, priority, or type
-- **V2-11**: WIP limits per column
+- **V2-10**: Swimlanes по исполнителю, приоритету или типу
+- **V2-11**: WIP-лимиты на колонку
 
-### PWA & Offline
+### PWA и офлайн
 
-- **V2-12**: Full PWA offline mode with sync on reconnect
+- **V2-12**: Полный офлайн-режим PWA с синхронизацией при восстановлении соединения
 
-## Out of Scope
+## Вне области охвата
 
-Explicitly excluded. Documented to prevent scope creep.
+Явно исключено. Задокументировано для предотвращения расширения объема работ.
 
-| Feature | Reason |
-|---------|--------|
-| Video calls with webcams | Deliberate constraint -- voice + screen share covers 90% of needs |
-| Native mobile apps (App Store/Google Play) | PWA is sufficient for internal tools |
-| Email notifications | Telegram bot replaces this for target audience |
-| Billing/subscriptions | Internal tool, not SaaS |
-| SSO/LDAP/OAuth | Magic Link + Telegram sufficient for v1 |
-| Gantt charts | Kanban + Scrum cover project management needs |
-| Video/audio messages in messenger (beyond voice) | Excessive for v1 |
-| Remote control (control someone else's screen) | High complexity, not critical |
-| Real-time collaborative editing | High complexity, not critical for v1 |
-| AI features | Out of scope for initial product |
-| Plugin marketplace | Not needed for internal tool |
-| Wiki/knowledge base | Separate concern, not core value |
+| Функция | Причина |
+|---------|---------|
+| Видеозвонки с веб-камерами | Осознанное ограничение -- голос + демонстрация экрана покрывают 90% потребностей |
+| Нативные мобильные приложения (App Store/Google Play) | PWA достаточно для внутренних инструментов |
+| Email-уведомления | Telegram-бот заменяет их для целевой аудитории |
+| Биллинг/подписки | Внутренний инструмент, не SaaS |
+| SSO/LDAP/OAuth | Magic Link + Telegram достаточно для v1 |
+| Диаграммы Ганта | Kanban + Scrum покрывают потребности управления проектами |
+| Видео/аудиосообщения в мессенджере (кроме голосовых) | Избыточно для v1 |
+| Удаленное управление (управление чужим экраном) | Высокая сложность, не критично |
+| Совместное редактирование в реальном времени | Высокая сложность, не критично для v1 |
+| AI-функции | Вне области охвата для первоначального продукта |
+| Маркетплейс плагинов | Не нужен для внутреннего инструмента |
+| Wiki/база знаний | Отдельная задача, не основная ценность |
 
-## Traceability
+## Трассировка
 
-Which phases cover which requirements. Updated during roadmap creation.
+Какие фазы покрывают какие требования. Обновляется при создании дорожной карты.
 
-| Requirement | Phase | Status |
+| Требование | Фаза | Статус |
 |-------------|-------|--------|
 | AUTH-01 | Phase 1 | Pending |
 | AUTH-02 | Phase 1 | Pending |
@@ -333,11 +333,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-08 | Phase 1 | Pending |
 | UI-09 | Phase 2 | Pending |
 
-**Coverage:**
-- v1 requirements: 95 total
-- Mapped to phases: 95
-- Unmapped: 0
+**Покрытие:**
+- Требования v1: 95 всего
+- Привязано к фазам: 95
+- Не привязано: 0
 
 ---
-*Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after initial definition*
+*Требования определены: 2026-03-20*
+*Последнее обновление: 2026-03-20 после первоначального определения*

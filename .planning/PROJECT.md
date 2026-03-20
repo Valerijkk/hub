@@ -1,20 +1,20 @@
 # Hub
 
-## What This Is
+## Что это
 
 Hub — единая платформа для команд разработки и тестирования (10-50 человек), объединяющая трекер задач (Kanban+Scrum), мессенджер с каналами и тредами, систему управления тестированием (TMS) с Allure-интеграцией и голосовые созвоны с демонстрацией экрана. Все модули связаны между собой: задачи привязаны к тест-кейсам, результаты прогонов автотестов из CI попадают в TMS, уведомления о событиях приходят в мессенджер и Telegram.
 
-## Core Value
+## Основная ценность
 
 Единая среда для команды, где трекер задач, тестирование, общение и созвоны связаны в одном интерфейсе — без переключения между десятком разрозненных инструментов.
 
-## Requirements
+## Требования
 
-### Validated
+### Подтверждённые
 
-(None yet — ship to validate)
+(Пока нет — нужно выпустить для валидации)
 
-### Active
+### Активные
 
 **Авторизация и пользователи:**
 - [ ] Magic Link (email) + Telegram авторизация (без паролей)
@@ -91,7 +91,7 @@ Hub — единая платформа для команд разработки
 - [ ] Импорт: CSV, JSON, XML, Excel + универсальный маппинг полей
 - [ ] Экспорт: CSV, JSON, XML, PDF
 
-**Allure интеграция:**
+**Интеграция с Allure:**
 - [ ] Allure Report (HTML) генерируется в CI
 - [ ] Свой парсер читает allure-results JSON → POST в TMS Hub API
 - [ ] Матчинг с тест-кейсами по allure ID/имени
@@ -116,7 +116,7 @@ Hub — единая платформа для команд разработки
 - [ ] Настройка: по типам + по каналам + по проектам
 - [ ] Quiet hours + срочные пробивают quiet hours
 
-**GitHub интеграция:**
+**Интеграция с GitHub:**
 - [ ] Ссылки на PR/коммиты в задачах (карточка превью)
 - [ ] Автопривязка: "HUB-123" в коммите → задача получает ссылку
 - [ ] Статус PR в задаче (open/merged/closed)
@@ -156,7 +156,7 @@ Hub — единая платформа для команд разработки
 - [ ] Вложения: любые файлы, превью картинок/PDF/видео, Ctrl+V вставка, drag & drop
 - [ ] Пагинация: задачи — страницы, чат — infinite scroll, виртуализация для больших списков, серверная фильтрация
 
-### Out of Scope
+### За рамками проекта
 
 - Видеозвонки с вебкамерами — осознанное ограничение, только голос + screen share
 - Мобильные нативные приложения (App Store/Google Play) — PWA достаточно
@@ -167,7 +167,7 @@ Hub — единая платформа для команд разработки
 - Видео/аудио сообщения в мессенджере (кроме голосовых) — избыточно для v1
 - Remote control (управление чужим экраном) — сложная фича, не критична
 
-## Context
+## Контекст
 
 Hub создаётся как внутренний инструмент для средних команд разработки (10-50 человек). Основная мотивация — объединить в одном месте трекер (Jira), мессенджер (Slack), TMS (Allure TestOps/TestRail) и созвоны (Google Meet) с глубокой интеграцией между модулями.
 
@@ -177,49 +177,64 @@ Hub создаётся как внутренний инструмент для �
 
 Бюджет: минимальный (self-hosted решения, бесплатные инструменты, студенческий GitHub пакет ~3000 мин CI).
 
-## Constraints
+## Ограничения
 
-- **Tech Stack Backend**: Go + Fiber — выбрано для производительности и конкурентности (горутины для real-time)
-- **Tech Stack Frontend**: React 19 + TypeScript + Vite — знакомый стек, максимум экосистемы
-- **Database**: PostgreSQL (задачи, TMS, юзеры) + MongoDB (чаты, Allure-отчёты) — гибридный подход
+- **Бэкенд**: Go + Fiber — выбрано для производительности и конкурентности (горутины для real-time)
+- **Фронтенд**: React 19 + TypeScript + Vite — знакомый стек, максимум экосистемы
+- **Базы данных**: PostgreSQL (задачи, TMS, юзеры) + MongoDB (чаты, Allure-отчёты) — гибридный подход
 - **ORM**: Ent + Atlas миграции — кодогенерация, типобезопасность, граф сущностей для иерархий
 - **Real-time**: NATS + JetStream — pub/sub + фоновые задачи без дублирования Redis
-- **Cache**: Redis — только кеш, сессии, magic link токены, онлайн-статусы
-- **Calls**: LiveKit (self-hosted) — Go-native, WebRTC из коробки, запись через Egress
-- **Storage**: SeaweedFS (self-hosted S3) — бесплатно, MinIO архивирован Feb 2026, SeaweedFS S3-compatible замена
+- **Кеш**: Redis — только кеш, сессии, magic link токены, онлайн-статусы
+- **Созвоны**: LiveKit (self-hosted) — Go-native, WebRTC из коробки, запись через Egress
+- **Хранилище**: SeaweedFS (self-hosted S3) — бесплатно, MinIO архивирован Feb 2026, SeaweedFS S3-compatible замена
 - **Telegram**: telego — 100% Bot API, кодогенерация, типобезопасность
 - **CSS/UI**: Shadcn/ui + Tailwind CSS 4 — компоненты копируются, полный контроль
-- **Editor**: Plate (Shadcn-native rich-text) — бесплатный, @упоминания, slash-команды
-- **DnD**: pragmatic-drag-and-drop + framer-motion — от Atlassian, tree adapter для иерархий
-- **Charts**: Tremor — Tailwind-native дашборд компоненты
-- **Proxy**: Caddy — автоHTTPS, WebSocket из коробки, 15 строк конфига
+- **Редактор**: Plate (Shadcn-native rich-text) — бесплатный, @упоминания, slash-команды
+- **DnD**: pragmatic-drag-and-drop + motion (ex framer-motion) — от Atlassian, tree adapter для иерархий
+- **Роутинг**: TanStack Router — type-safe, file-based routes, единая экосистема с TanStack Query
+- **WebSocket**: Fiber встроенный middleware — один стек с бэкендом, без смешивания fasthttp/net-http
+- **S3 SDK**: aws-sdk-go-v2 — стандарт, миграция на любой S3-compatible провайдер
+- **Email**: Resend — 3000 писем/мес бесплатно для Magic Link
+- **Сессии**: JWT access (15 мин) + refresh в Redis (30 дней) — мгновенный отзыв сессий
+- **Графики**: Tremor — Tailwind-native дашборд компоненты
+- **Прокси**: Caddy — автоHTTPS, WebSocket из коробки, 15 строк конфига
 - **CI/CD**: GitHub Actions — студенческий пакет ~3000 мин, self-hosted runner как fallback
-- **Orchestration**: Docker Compose (dev) + K3s (prod) — лёгкий Kubernetes, 500MB RAM
-- **Monitoring**: Slog + Loki + Prometheus + Grafana — логи + метрики в одном UI
-- **Testing Backend**: testing + testify + testcontainers + mockery
-- **Testing Frontend**: Vitest + RTL + Playwright + MSW
-- **Budget**: Минимальный — все self-hosted, бесплатные инструменты
+- **Оркестрация**: Docker Compose (dev) + K3s (prod) — лёгкий Kubernetes, 500MB RAM
+- **Мониторинг**: Slog + Loki + Prometheus + Grafana — логи + метрики в одном UI
+- **Тестирование бэкенда**: testing + testify + testcontainers + mockery
+- **Тестирование фронтенда**: Vitest + RTL + Playwright + MSW
+- **Бюджет**: Минимальный — все self-hosted, бесплатные инструменты
 
-## Key Decisions
+## Ключевые решения
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Go + Fiber вместо Python + FastAPI | Максимальная производительность, горутины для real-time (мессенджер, 50 участников звонка) | — Pending |
-| PostgreSQL + MongoDB гибрид | PG для реляционных данных (задачи, TMS), Mongo для документных (чаты, Allure JSON) | — Pending |
-| NATS вместо RabbitMQ | Легче (10MB RAM), Go-native, JetStream покрывает и pub/sub и очереди | — Pending |
-| Redis только кеш (не pub/sub) | NATS взял на себя pub/sub и очереди, Redis остался для кеша/сессий | — Pending |
-| Ent вместо GORM | Кодогенерация, граф сущностей (иерархия задач), Privacy layer для RBAC | — Pending |
-| LiveKit вместо Jitsi/mediasoup | Go-native, React SDK, запись из коробки, один Docker контейнер | — Pending |
-| MinIO вместо файловой системы | S3 API (миграция на облако одной строкой), presigned URLs, веб-консоль | — Pending |
-| Caddy вместо Nginx | АвтоHTTPS, WebSocket автоматически, конфиг 15 строк vs 60+ | — Pending |
-| Shadcn/ui вместо Ant Design/MUI | Код копируется (полный контроль), Radix UI (доступность), единый Tailwind стиль | — Pending |
-| Plate вместо Tiptap | Shadcn-native, всё бесплатно (таблицы у Tiptap платные), @упоминания из коробки | — Pending |
-| pragmatic-dnd вместо dnd-kit | От Atlassian (Jira/Trello), tree adapter из коробки, 0 лишних рендеров | — Pending |
-| Tremor вместо Recharts | Дашборд-фреймворк (не просто графики), Tailwind-native, KPI карточки | — Pending |
-| Magic Link + Telegram (без паролей) | Современный UX, не нужно помнить пароли, Telegram бот и для входа и для нотификаций | — Pending |
-| K3s вместо Docker Compose на проде | Zero downtime deploy (звонки/чаты), auto-healing, масштабирование replicas | — Pending |
-| Allure Report + свой парсер вместо TestOps | TestOps $30k/год, свой парсер бесплатен, данные в своей TMS | — Pending |
-| telego вместо telebot/go-telegram-bot-api | 100% Bot API кодогенерация, полная типизация, middleware | — Pending |
+| Решение | Обоснование | Результат |
+|---------|-------------|-----------|
+| Go + Fiber вместо Python + FastAPI | Максимальная производительность, горутины для real-time (мессенджер, 50 участников звонка) | Ожидает проверки |
+| PostgreSQL + MongoDB гибрид | PG для реляционных данных (задачи, TMS), Mongo для документных (чаты, Allure JSON) | Ожидает проверки |
+| NATS вместо RabbitMQ | Легче (10MB RAM), Go-native, JetStream покрывает и pub/sub и очереди | Ожидает проверки |
+| Redis только кеш (не pub/sub) | NATS взял на себя pub/sub и очереди, Redis остался для кеша/сессий | Ожидает проверки |
+| Ent вместо GORM | Кодогенерация, граф сущностей (иерархия задач), Privacy layer для RBAC | Ожидает проверки |
+| LiveKit вместо Jitsi/mediasoup | Go-native, React SDK, запись из коробки, один Docker контейнер | Ожидает проверки |
+| MinIO вместо файловой системы | S3 API (миграция на облако одной строкой), presigned URLs, веб-консоль | Ожидает проверки |
+| Caddy вместо Nginx | АвтоHTTPS, WebSocket автоматически, конфиг 15 строк vs 60+ | Ожидает проверки |
+| Shadcn/ui вместо Ant Design/MUI | Код копируется (полный контроль), Radix UI (доступность), единый Tailwind стиль | Ожидает проверки |
+| Plate вместо Tiptap | Shadcn-native, всё бесплатно (таблицы у Tiptap платные), @упоминания из коробки | Ожидает проверки |
+| pragmatic-dnd вместо dnd-kit | От Atlassian (Jira/Trello), tree adapter из коробки, 0 лишних рендеров | Ожидает проверки |
+| Tremor вместо Recharts | Дашборд-фреймворк (не просто графики), Tailwind-native, KPI карточки | Ожидает проверки |
+| Magic Link + Telegram (без паролей) | Современный UX, не нужно помнить пароли, Telegram бот и для входа и для нотификаций | Ожидает проверки |
+| K3s вместо Docker Compose на проде | Zero downtime deploy (звонки/чаты), auto-healing, масштабирование replicas | Ожидает проверки |
+| Allure Report + свой парсер вместо TestOps | TestOps $30k/год, свой парсер бесплатен, данные в своей TMS | Ожидает проверки |
+| telego вместо telebot/go-telegram-bot-api | 100% Bot API кодогенерация, полная типизация, middleware | Ожидает проверки |
+| Resend вместо своего SMTP | Бесплатно 3000/мес, настройка 5 минут, DKIM/SPF из коробки | Ожидает проверки |
+| JWT access + Redis refresh вместо opaque sessions | Мгновенный отзыв сессий, список активных сессий, 15 мин автономности при падении Redis | Ожидает проверки |
+| Кастомные поля: таблица + JSONB | Метаданные в реляционной таблице, значения в JSONB — гибко, нет EAV оверхеда | Ожидает проверки |
+| Оптимистичная блокировка + черновик | Не блокируем, не теряем данные, версия в БД для конфликтов | Ожидает проверки |
+| TanStack Router вместо React Router | Type-safe search params, единая экосистема с TanStack Query | Ожидает проверки |
+| Fiber WebSocket вместо coder/websocket | Один стек fasthttp, совместимость с Fiber middleware (auth, RBAC) | Ожидает проверки |
+| aws-sdk-go-v2 вместо minio-go | Стандарт S3, MinIO мёртв, миграция на любой S3 без изменений кода | Ожидает проверки |
+| Шаги тест-кейса в JSONB + таблица версий | Шаги = единое целое с кейсом, версионирование снимками, UX как Allure TestOps | Ожидает проверки |
+| Параллельный поиск PG + MongoDB | PG tsvector + MongoDB text index, без отдельного поискового движка для 50 юзеров | Ожидает проверки |
+| Retention policy настраиваемый Admin | Дефолты: чат 2 года, Allure 1 год, записи 6 мес, Admin меняет | Ожидает проверки |
 
 ---
-*Last updated: 2026-03-20 after initialization*
+*Последнее обновление: 2026-03-20 после доработки серых зон*

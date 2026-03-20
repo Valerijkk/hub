@@ -1,164 +1,164 @@
-# Roadmap: Hub
+# Дорожная карта: Hub
 
-## Overview
+## Обзор
 
-Hub delivers a unified platform for development teams by building five integrated modules (auth/projects, task tracker, messenger, TMS, voice calls) plus cross-cutting features (notifications, search, dashboards) on a shared foundation. The roadmap follows dependency chains: foundation infrastructure first, then the four core modules in order of value and dependency (tracker, messenger, TMS, calls), then cross-cutting aggregation features, and finally polish and extended capabilities. Each phase delivers a complete, verifiable capability that builds on the previous phases.
+Hub предоставляет единую платформу для команд разработки, объединяя пять интегрированных модулей (аутентификация/проекты, трекер задач, мессенджер, TMS, голосовые звонки) и сквозные функции (уведомления, поиск, дашборды) на общем фундаменте. Дорожная карта следует цепочке зависимостей: сначала базовая инфраструктура, затем четыре основных модуля в порядке ценности и зависимостей (трекер, мессенджер, TMS, звонки), далее сквозные агрегирующие функции, и наконец доработка и расширенные возможности. Каждая фаза поставляет завершённую, проверяемую функциональность, основанную на предыдущих фазах.
 
-## Phases
+## Фазы
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+**Нумерация фаз:**
+- Целые номера фаз (1, 2, 3): Запланированные этапы работы
+- Десятичные номера фаз (2.1, 2.2): Срочные вставки (помечены как INSERTED)
 
-Decimal phases appear between their surrounding integers in numeric order.
+Десятичные фазы располагаются между окружающими целыми номерами в числовом порядке.
 
-- [ ] **Phase 1: Foundation & Infrastructure** - Auth, projects, RBAC, real-time infra, storage, dev environment
-- [ ] **Phase 2: Task Tracker** - Issue CRUD, Kanban boards, workflows, comments, activity log, time tracking
-- [ ] **Phase 3: Messenger** - DMs, channels, threads, reactions, voice messages, presence, search
-- [ ] **Phase 4: TMS & Allure** - Test cases, test runs, Allure ingestion, issue linking, reporting, import/export
-- [ ] **Phase 5: Voice Calls** - Audio calls, screen sharing, call management, ephemeral chat
-- [ ] **Phase 6: Notifications, Search & Dashboards** - In-app notifications, global search, personal/project/admin dashboards, audit
-- [ ] **Phase 7: Polish & Extended Features** - Sprints, GitHub integration, recording, i18n, themes, PWA, API, backups
+- [ ] **Фаза 1: Фундамент и инфраструктура (Foundation & Infrastructure)** - Аутентификация, проекты, RBAC, инфраструктура реального времени, хранилище, среда разработки
+- [ ] **Фаза 2: Трекер задач (Task Tracker)** - CRUD задач, Kanban-доски, рабочие процессы, комментарии, лог активности, учёт времени
+- [ ] **Фаза 3: Мессенджер (Messenger)** - Личные сообщения, каналы, треды, реакции, голосовые сообщения, присутствие, поиск
+- [ ] **Фаза 4: TMS и Allure (TMS & Allure)** - Тест-кейсы, тестовые прогоны, загрузка Allure-отчётов, связь с задачами, отчётность, импорт/экспорт
+- [ ] **Фаза 5: Голосовые звонки (Voice Calls)** - Аудиозвонки, демонстрация экрана, управление звонками, эфемерный чат
+- [ ] **Фаза 6: Уведомления, поиск и дашборды (Notifications, Search & Dashboards)** - Уведомления в приложении, глобальный поиск, персональные/проектные/административные дашборды, аудит
+- [ ] **Фаза 7: Доработка и расширенные функции (Polish & Extended Features)** - Спринты, интеграция с GitHub, запись звонков, интернационализация, темы, PWA, API, резервное копирование
 
-## Phase Details
+## Детали фаз
 
-### Phase 1: Foundation & Infrastructure
-**Goal**: Users can authenticate, create projects with teams and roles, and the platform has working real-time infrastructure, file storage, and CI pipeline -- the substrate every module depends on
-**Depends on**: Nothing (first phase)
-**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-08, PROJ-01, PROJ-02, PROJ-03, PROJ-04, PROJ-06, PROJ-07, UI-01, UI-07, UI-08
-**Success Criteria** (what must be TRUE):
-  1. User can sign in via Magic Link email and via Telegram, land on a working dashboard shell, and sign out
-  2. User can create a project and see auto-generated tracker board, TMS space, project chat, and channel stubs
-  3. Project Owner can invite users by link, assign roles (Owner/Developer/Tester/Viewer), and role-restricted actions are enforced
-  4. Files can be uploaded via drag-and-drop or paste and are stored in SeaweedFS with working previews
-  5. WebSocket connection delivers real-time events from NATS to the browser (verified with a test event)
-**Plans**: TBD
+### Фаза 1: Фундамент и инфраструктура (Foundation & Infrastructure)
+**Цель**: Пользователи могут аутентифицироваться, создавать проекты с командами и ролями, а платформа имеет работающую инфраструктуру реального времени, файловое хранилище и CI-пайплайн -- субстрат, от которого зависит каждый модуль
+**Зависит от**: Ничего (первая фаза)
+**Требования**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-08, PROJ-01, PROJ-02, PROJ-03, PROJ-04, PROJ-06, PROJ-07, UI-01, UI-07, UI-08
+**Критерии успеха** (что должно быть ИСТИННО):
+  1. Пользователь может войти через Magic Link по email и через Telegram, попасть на рабочую оболочку дашборда и выйти
+  2. Пользователь может создать проект и увидеть автоматически сгенерированные доску трекера, пространство TMS, чат проекта и заглушки каналов
+  3. Владелец проекта может приглашать пользователей по ссылке, назначать роли (Owner/Developer/Tester/Viewer), и ограничения по ролям применяются
+  4. Файлы можно загружать перетаскиванием или вставкой, они сохраняются в SeaweedFS с рабочим предпросмотром
+  5. WebSocket-соединение доставляет события реального времени из NATS в браузер (проверено тестовым событием)
+**Планы**: TBD
 
-Plans:
-- [ ] 01-01: Dev environment, project structure, CI pipeline, Docker Compose with all services
-- [ ] 01-02: Database schemas (Ent + MongoDB), NATS setup, Redis, SeaweedFS integration
-- [ ] 01-03: Auth module (Magic Link + Telegram login, sessions, RBAC middleware)
-- [ ] 01-04: Projects module (CRUD, membership, roles, teams, archive/trash)
-- [ ] 01-05: Frontend shell (React app, routing, sidebar, top bar, error handling, WebSocket gateway)
+Планы:
+- [ ] 01-01: Среда разработки, структура проекта, CI-пайплайн, Docker Compose со всеми сервисами
+- [ ] 01-02: Схемы базы данных (Ent + MongoDB), настройка NATS, Redis, интеграция с SeaweedFS
+- [ ] 01-03: Модуль аутентификации (Magic Link + вход через Telegram, сессии, RBAC-мидлвара)
+- [ ] 01-04: Модуль проектов (CRUD, членство, роли, команды, архив/корзина)
+- [ ] 01-05: Фронтенд-оболочка (React-приложение, маршрутизация, боковая панель, верхняя панель, обработка ошибок, WebSocket-шлюз)
 
-### Phase 2: Task Tracker
-**Goal**: Users can manage project work through a full-featured issue tracker with Kanban boards, custom workflows, rich comments, and time tracking
-**Depends on**: Phase 1
-**Requirements**: TASK-01, TASK-02, TASK-03, TASK-04, TASK-05, TASK-06, TASK-07, TASK-08, TASK-09, TASK-10, TASK-11, KANB-01, KANB-04, KANB-05, UI-09
-**Success Criteria** (what must be TRUE):
-  1. User can create issues of all 9 types with rich text descriptions, file attachments, and project-prefixed IDs (HUB-123)
-  2. User can drag issues on a Kanban board between columns that map to workflow statuses, with real-time updates visible to other users
-  3. Project Owner can customize workflow by adding/removing statuses and defining allowed transitions
-  4. User can create parent-child hierarchies and cross-issue links (blocks, relates to, duplicates, etc.)
-  5. User can comment with @mentions and reactions, view full change history, and track time with start/stop timer
-**Plans**: TBD
+### Фаза 2: Трекер задач (Task Tracker)
+**Цель**: Пользователи могут управлять работой над проектом через полнофункциональный трекер задач с Kanban-досками, настраиваемыми рабочими процессами, расширенными комментариями и учётом времени
+**Зависит от**: Фаза 1
+**Требования**: TASK-01, TASK-02, TASK-03, TASK-04, TASK-05, TASK-06, TASK-07, TASK-08, TASK-09, TASK-10, TASK-11, KANB-01, KANB-04, KANB-05, UI-09
+**Критерии успеха** (что должно быть ИСТИННО):
+  1. Пользователь может создавать задачи всех 9 типов с описаниями в формате rich text, вложениями файлов и ID с префиксом проекта (HUB-123)
+  2. Пользователь может перетаскивать задачи на Kanban-доске между колонками, соответствующими статусам рабочего процесса, с обновлениями в реальном времени, видимыми другим пользователям
+  3. Владелец проекта может настраивать рабочий процесс, добавляя/удаляя статусы и определяя допустимые переходы
+  4. Пользователь может создавать иерархии родитель-потомок и межзадачные связи (блокирует, связан с, дублирует и т.д.)
+  5. Пользователь может комментировать с @упоминаниями и реакциями, просматривать полную историю изменений и вести учёт времени с таймером старт/стоп
+**Планы**: TBD
 
-Plans:
-- [ ] 02-01: Issue CRUD backend (Ent schemas, 9 types, custom fields, hierarchy, linking, numbering)
-- [ ] 02-02: Workflow engine (custom statuses, transitions, validation)
-- [ ] 02-03: Kanban board frontend (drag-and-drop, multiple boards, filters, real-time sync)
-- [ ] 02-04: Comments, activity log, time tracking, labels, attachments
+Планы:
+- [ ] 02-01: Бэкенд CRUD задач (Ent-схемы, 9 типов, пользовательские поля, иерархия, связи, нумерация)
+- [ ] 02-02: Движок рабочих процессов (пользовательские статусы, переходы, валидация)
+- [ ] 02-03: Фронтенд Kanban-доски (drag-and-drop, множественные доски, фильтры, синхронизация в реальном времени)
+- [ ] 02-04: Комментарии, лог активности, учёт времени, метки, вложения
 
-### Phase 3: Messenger
-**Goal**: Users can communicate in real time through DMs, channels, and threads with rich text, reactions, voice messages, and presence indicators
-**Depends on**: Phase 1, Phase 2 (for cross-module entity references in chat)
-**Requirements**: MSG-01, MSG-02, MSG-03, MSG-04, MSG-05, MSG-06, MSG-07, MSG-08, MSG-09, MSG-10, MSG-12, MSG-13
-**Success Criteria** (what must be TRUE):
-  1. User can send and receive messages in real time via DMs, group chats, public channels, and private channels
-  2. User can reply in threads, react with emoji, format text (bold/italic/code/lists), and record voice messages
-  3. Project channels are auto-created when a project is created; read-only channels work for bot posts
-  4. User can edit/delete own messages, pin messages, bookmark messages, and search across all conversations
-  5. Online/offline/away status is visible in real time and unread counts update correctly across channels
-**Plans**: TBD
+### Фаза 3: Мессенджер (Messenger)
+**Цель**: Пользователи могут общаться в реальном времени через личные сообщения, каналы и треды с форматированным текстом, реакциями, голосовыми сообщениями и индикаторами присутствия
+**Зависит от**: Фаза 1, Фаза 2 (для кросс-модульных ссылок на сущности в чате)
+**Требования**: MSG-01, MSG-02, MSG-03, MSG-04, MSG-05, MSG-06, MSG-07, MSG-08, MSG-09, MSG-10, MSG-12, MSG-13
+**Критерии успеха** (что должно быть ИСТИННО):
+  1. Пользователь может отправлять и получать сообщения в реальном времени через личные сообщения, групповые чаты, публичные и приватные каналы
+  2. Пользователь может отвечать в тредах, ставить реакции эмодзи, форматировать текст (жирный/курсив/код/списки) и записывать голосовые сообщения
+  3. Каналы проекта создаются автоматически при создании проекта; каналы только для чтения работают для сообщений ботов
+  4. Пользователь может редактировать/удалять свои сообщения, закреплять сообщения, добавлять в закладки и искать по всем беседам
+  5. Статус онлайн/офлайн/отошёл виден в реальном времени, и счётчики непрочитанных корректно обновляются по каналам
+**Планы**: TBD
 
-Plans:
-- [ ] 03-01: Chat backend (MongoDB schemas, channel/DM CRUD, message delivery via NATS, read receipts)
-- [ ] 03-02: Channel management (public/private, auto-channels, read-only, membership, permissions)
-- [ ] 03-03: Chat frontend (message list with virtualization, rich text input, threads, reactions, voice messages)
-- [ ] 03-04: Presence system, unread counts, message search, pins, bookmarks, forwarding
+Планы:
+- [ ] 03-01: Бэкенд чата (MongoDB-схемы, CRUD каналов/ЛС, доставка сообщений через NATS, отметки о прочтении)
+- [ ] 03-02: Управление каналами (публичные/приватные, автоканалы, только для чтения, членство, права доступа)
+- [ ] 03-03: Фронтенд чата (список сообщений с виртуализацией, ввод rich text, треды, реакции, голосовые сообщения)
+- [ ] 03-04: Система присутствия, счётчики непрочитанных, поиск по сообщениям, закрепление, закладки, пересылка
 
-### Phase 4: TMS & Allure Integration
-**Goal**: Users can manage test cases, execute manual and automated test runs, ingest Allure CI results, and see bidirectional links between tests and issues
-**Depends on**: Phase 1, Phase 2 (for issue linking)
-**Requirements**: TMS-01, TMS-02, TMS-03, TMS-04, TMS-05, TMS-06, TMS-08, TMS-09, TMS-10, ALLU-01, ALLU-02, ALLU-03, IMEX-02
-**Success Criteria** (what must be TRUE):
-  1. User can create test cases in classic (steps + expected) and BDD (Given/When/Then) formats with folder hierarchy and versioning
-  2. User can create and execute manual test runs with pass/fail/blocked/skipped per step, attach screenshots and comments per result
-  3. Allure results JSON from CI are ingested via API, matched to test cases by ID or name, and appear in run history
-  4. Test cases link bidirectionally to issues: user can create a bug from a failed test, and coverage is tracked
-  5. Reports show pass rates, trends, flaky test detection, and run comparisons at Allure-quality level
-**Plans**: TBD
+### Фаза 4: TMS и интеграция с Allure (TMS & Allure Integration)
+**Цель**: Пользователи могут управлять тест-кейсами, выполнять ручные и автоматизированные тестовые прогоны, загружать результаты Allure из CI и видеть двусторонние связи между тестами и задачами
+**Зависит от**: Фаза 1, Фаза 2 (для связи с задачами)
+**Требования**: TMS-01, TMS-02, TMS-03, TMS-04, TMS-05, TMS-06, TMS-08, TMS-09, TMS-10, ALLU-01, ALLU-02, ALLU-03, IMEX-02
+**Критерии успеха** (что должно быть ИСТИННО):
+  1. Пользователь может создавать тест-кейсы в классическом (шаги + ожидаемый результат) и BDD (Given/When/Then) форматах с иерархией папок и версионированием
+  2. Пользователь может создавать и выполнять ручные тестовые прогоны с результатами пройден/не пройден/заблокирован/пропущен по каждому шагу, прикреплять скриншоты и комментарии к результатам
+  3. JSON-результаты Allure из CI загружаются через API, сопоставляются с тест-кейсами по ID или имени и отображаются в истории прогонов
+  4. Тест-кейсы двусторонне связаны с задачами: пользователь может создать баг из упавшего теста, и покрытие отслеживается
+  5. Отчёты показывают процент прохождения, тренды, обнаружение нестабильных тестов и сравнение прогонов на уровне качества Allure
+**Планы**: TBD
 
-Plans:
-- [ ] 04-01: Test case CRUD backend (classic + BDD, folders, tags, components, versioning, Ent schemas)
-- [ ] 04-02: Test runs (manual execution, evidence, statuses, assignment, re-open)
-- [ ] 04-03: Allure integration (parser for allure-results JSON, API endpoint, matching, run history, Telegram notifications)
-- [ ] 04-04: Cross-module linking (test-to-issue bidirectional, coverage tracking, GitHub test linking), reporting, import/export
+Планы:
+- [ ] 04-01: Бэкенд CRUD тест-кейсов (классический + BDD, папки, теги, компоненты, версионирование, Ent-схемы)
+- [ ] 04-02: Тестовые прогоны (ручное выполнение, доказательства, статусы, назначение, переоткрытие)
+- [ ] 04-03: Интеграция с Allure (парсер allure-results JSON, API-эндпоинт, сопоставление, история прогонов, уведомления в Telegram)
+- [ ] 04-04: Кросс-модульные связи (двусторонняя связь тест-задача, отслеживание покрытия, связь тестов с GitHub), отчётность, импорт/экспорт
 
-### Phase 5: Voice Calls
-**Goal**: Users can join audio calls with screen sharing for standups, demos, and ad-hoc discussions
-**Depends on**: Phase 1 (auth, projects), Phase 3 (call events posted to messenger channels)
-**Requirements**: CALL-01, CALL-03, CALL-06
-**Success Criteria** (what must be TRUE):
-  1. User can start or join an audio call with up to 50 participants via a link or from within a channel
-  2. User can mute/unmute, raise hand, and share their screen or a specific window (multiple simultaneous shares supported)
-  3. Ephemeral call chat is available during the call and disappears after the call ends
-  4. Call start/end events appear in the associated messenger channel
-**Plans**: TBD
+### Фаза 5: Голосовые звонки (Voice Calls)
+**Цель**: Пользователи могут присоединяться к аудиозвонкам с демонстрацией экрана для стендапов, демо и спонтанных обсуждений
+**Зависит от**: Фаза 1 (аутентификация, проекты), Фаза 3 (события звонков публикуются в каналы мессенджера)
+**Требования**: CALL-01, CALL-03, CALL-06
+**Критерии успеха** (что должно быть ИСТИННО):
+  1. Пользователь может начать или присоединиться к аудиозвонку с участием до 50 человек по ссылке или из канала
+  2. Пользователь может включать/выключать микрофон, поднимать руку и демонстрировать свой экран или конкретное окно (поддерживается одновременная демонстрация несколькими участниками)
+  3. Эфемерный чат звонка доступен во время звонка и исчезает после его завершения
+  4. События начала/окончания звонка отображаются в связанном канале мессенджера
+**Планы**: TBD
 
-Plans:
-- [ ] 05-01: LiveKit integration (server setup, room management, token generation, Caddy config)
-- [ ] 05-02: Call UI (participant list, mute/unmute, raise hand, screen share picker)
-- [ ] 05-03: Call lifecycle (start/join/leave/end events, NATS integration, ephemeral chat, messenger notifications)
+Планы:
+- [ ] 05-01: Интеграция с LiveKit (настройка сервера, управление комнатами, генерация токенов, конфигурация Caddy)
+- [ ] 05-02: UI звонков (список участников, включение/выключение микрофона, поднятие руки, выбор экрана для демонстрации)
+- [ ] 05-03: Жизненный цикл звонка (события начала/присоединения/выхода/завершения, интеграция с NATS, эфемерный чат, уведомления в мессенджер)
 
-### Phase 6: Notifications, Search & Dashboards
-**Goal**: Users have a unified notification center, can find anything instantly via global search, and see project health at a glance on dashboards
-**Depends on**: Phase 1-5 (aggregates data from all modules)
-**Requirements**: NOTF-01, NOTF-02, NOTF-03, NOTF-04, SRCH-01, SRCH-02, DASH-01, DASH-02, DASH-03, AUDT-01, AUDT-02, AUDT-03, AUDT-04, UI-05
-**Success Criteria** (what must be TRUE):
-  1. User receives in-app notifications (bell icon) for assignments, @mentions, status changes, and other configured triggers across all modules
-  2. User can configure notification preferences by type, channel, and project; quiet hours suppress non-urgent notifications
-  3. Ctrl+K opens global search that finds issues, test cases, users, projects, channels, and files across the entire platform
-  4. Personal dashboard shows user's tasks, unreads, calls, runs, and deadlines with customizable drag-and-drop widgets
-  5. Project dashboard shows task statuses, burndown, velocity, test trends, and team activity; Admin dashboard shows system-wide metrics
-**Plans**: TBD
+### Фаза 6: Уведомления, поиск и дашборды (Notifications, Search & Dashboards)
+**Цель**: Пользователи имеют единый центр уведомлений, могут мгновенно найти что угодно через глобальный поиск и видеть состояние проекта на дашбордах
+**Зависит от**: Фазы 1-5 (агрегирует данные из всех модулей)
+**Требования**: NOTF-01, NOTF-02, NOTF-03, NOTF-04, SRCH-01, SRCH-02, DASH-01, DASH-02, DASH-03, AUDT-01, AUDT-02, AUDT-03, AUDT-04, UI-05
+**Критерии успеха** (что должно быть ИСТИННО):
+  1. Пользователь получает уведомления в приложении (иконка колокольчика) о назначениях, @упоминаниях, сменах статуса и других настроенных триггерах во всех модулях
+  2. Пользователь может настраивать предпочтения уведомлений по типу, каналу и проекту; тихие часы подавляют несрочные уведомления
+  3. Ctrl+K открывает глобальный поиск, который находит задачи, тест-кейсы, пользователей, проекты, каналы и файлы по всей платформе
+  4. Персональный дашборд показывает задачи пользователя, непрочитанные, звонки, прогоны и дедлайны с настраиваемыми drag-and-drop виджетами
+  5. Дашборд проекта показывает статусы задач, burndown, velocity, тренды тестов и активность команды; административный дашборд показывает метрики всей системы
+**Планы**: TBD
 
-Plans:
-- [ ] 06-01: Notification system (NATS consumers, triggers from all modules, in-app delivery, Telegram bot, preferences, quiet hours)
-- [ ] 06-02: Global search (PostgreSQL full-text search with tsvector/GIN, cross-module indexing, Ctrl+K UI), saved/shared filters
-- [ ] 06-03: Dashboards (personal, project, admin) with Tremor widgets, drag-and-drop layout, templates
-- [ ] 06-04: Audit log, resource limits, trash/restore system, user deletion with GDPR compliance
+Планы:
+- [ ] 06-01: Система уведомлений (NATS-консьюмеры, триггеры из всех модулей, доставка в приложении, Telegram-бот, предпочтения, тихие часы)
+- [ ] 06-02: Глобальный поиск (полнотекстовый поиск PostgreSQL с tsvector/GIN, кросс-модульная индексация, UI Ctrl+K), сохранённые/общие фильтры
+- [ ] 06-03: Дашборды (персональный, проектный, административный) с Tremor-виджетами, drag-and-drop раскладка, шаблоны
+- [ ] 06-04: Журнал аудита, лимиты ресурсов, система корзины/восстановления, удаление пользователей с соответствием GDPR
 
-### Phase 7: Polish & Extended Features
-**Goal**: The platform gains sprint management, GitHub integration, call recording, internationalization, themes, and operational hardening that deepen each module beyond table stakes
-**Depends on**: Phase 1-6
-**Requirements**: PROJ-05, KANB-02, KANB-03, SCRM-01, SCRM-02, SCRM-03, SCRM-04, SCRM-05, MSG-11, TMS-07, CALL-02, CALL-04, CALL-05, GHUB-01, GHUB-02, GHUB-03, GHUB-04, GHUB-05, SRCH-03, API-01, API-02, API-03, API-04, IMEX-01, IMEX-03, BKUP-01, BKUP-02, BKUP-03, UI-02, UI-03, UI-04, UI-06
-**Success Criteria** (what must be TRUE):
-  1. Scrum teams can create sprints, drag tasks from backlog, run Planning Poker, and view burndown/velocity charts
-  2. GitHub PRs/commits auto-link to issues by ID mention, PR status appears on issue cards, and merging a PR can auto-transition issue status
-  3. Users can record calls (audio + screen share), recordings are saved to the project, and a link is posted to the channel
-  4. The app works in Russian and English with theme switching (dark/light/system + accent color) and basic PWA install capability
-  5. REST API is documented via Swagger, API keys can be generated, webhooks fire on events, and automated backups run weekly
-**Plans**: TBD
+### Фаза 7: Доработка и расширенные функции (Polish & Extended Features)
+**Цель**: Платформа получает управление спринтами, интеграцию с GitHub, запись звонков, интернационализацию, темы и операционное укрепление, углубляющие каждый модуль за пределы базовых возможностей
+**Зависит от**: Фазы 1-6
+**Требования**: PROJ-05, KANB-02, KANB-03, SCRM-01, SCRM-02, SCRM-03, SCRM-04, SCRM-05, MSG-11, TMS-07, CALL-02, CALL-04, CALL-05, GHUB-01, GHUB-02, GHUB-03, GHUB-04, GHUB-05, SRCH-03, API-01, API-02, API-03, API-04, IMEX-01, IMEX-03, BKUP-01, BKUP-02, BKUP-03, UI-02, UI-03, UI-04, UI-06
+**Критерии успеха** (что должно быть ИСТИННО):
+  1. Scrum-команды могут создавать спринты, перетаскивать задачи из бэклога, проводить Planning Poker и просматривать графики burndown/velocity
+  2. PR/коммиты GitHub автоматически связываются с задачами по упоминанию ID, статус PR отображается на карточках задач, и мерж PR может автоматически переводить задачу в другой статус
+  3. Пользователи могут записывать звонки (аудио + демонстрация экрана), записи сохраняются в проекте, и ссылка публикуется в канал
+  4. Приложение работает на русском и английском языках с переключением тем (тёмная/светлая/системная + акцентный цвет) и базовой возможностью установки PWA
+  5. REST API документирован через Swagger, можно генерировать API-ключи, вебхуки срабатывают на события, и автоматические резервные копии создаются еженедельно
+**Планы**: TBD
 
-Plans:
-- [ ] 07-01: Sprint management (create/start/complete sprints, backlog, auto-carry, burndown, velocity, retrospective, Planning Poker)
-- [ ] 07-02: GitHub integration (webhook receiver, PR/commit linking, auto-status, branch creation from issue)
-- [ ] 07-03: Call recording (LiveKit Egress, storage, project binding, channel link), scheduled/recurring calls
-- [ ] 07-04: i18n (RU/EN), theming (dark/light/system/accent), mobile layout, PWA, link previews in messenger
-- [ ] 07-05: REST API (Swagger), API keys, webhooks, hub-cli, import/export, project templates, backups, WIP limits, swimlanes, test environments, JQL
+Планы:
+- [ ] 07-01: Управление спринтами (создание/старт/завершение спринтов, бэклог, автоперенос, burndown, velocity, ретроспектива, Planning Poker)
+- [ ] 07-02: Интеграция с GitHub (приёмник вебхуков, связь PR/коммитов, автостатус, создание ветки из задачи)
+- [ ] 07-03: Запись звонков (LiveKit Egress, хранение, привязка к проекту, ссылка в канале), запланированные/повторяющиеся звонки
+- [ ] 07-04: Интернационализация (RU/EN), темизация (тёмная/светлая/системная/акцент), мобильная раскладка, PWA, предпросмотр ссылок в мессенджере
+- [ ] 07-05: REST API (Swagger), API-ключи, вебхуки, hub-cli, импорт/экспорт, шаблоны проектов, резервное копирование, WIP-лимиты, swimlanes, тестовые окружения, JQL
 
-## Progress
+## Прогресс
 
-**Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+**Порядок выполнения:**
+Фазы выполняются в числовом порядке: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
-| Phase | Plans Complete | Status | Completed |
+| Фаза | Планы завершены | Статус | Завершено |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Infrastructure | 0/5 | Not started | - |
-| 2. Task Tracker | 0/4 | Not started | - |
-| 3. Messenger | 0/4 | Not started | - |
-| 4. TMS & Allure | 0/4 | Not started | - |
-| 5. Voice Calls | 0/3 | Not started | - |
-| 6. Notifications, Search & Dashboards | 0/4 | Not started | - |
-| 7. Polish & Extended Features | 0/5 | Not started | - |
+| 1. Фундамент и инфраструктура (Foundation & Infrastructure) | 0/5 | Not started | - |
+| 2. Трекер задач (Task Tracker) | 0/4 | Not started | - |
+| 3. Мессенджер (Messenger) | 0/4 | Not started | - |
+| 4. TMS и Allure (TMS & Allure) | 0/4 | Not started | - |
+| 5. Голосовые звонки (Voice Calls) | 0/3 | Not started | - |
+| 6. Уведомления, поиск и дашборды (Notifications, Search & Dashboards) | 0/4 | Not started | - |
+| 7. Доработка и расширенные функции (Polish & Extended Features) | 0/5 | Not started | - |
