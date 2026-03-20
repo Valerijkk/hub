@@ -388,28 +388,83 @@ func (h *Handler) JoinByInvite(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateTeam handles POST /api/teams
-// TODO: Implement team CRUD when team service is added
+// CreateTeam handles POST /api/teams.
 func (h *Handler) CreateTeam(c fiber.Ctx) error {
-	return fiber.NewError(fiber.StatusNotImplemented, "team management coming soon")
+	var req CreateTeamRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+	}
+	if req.Name == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "team name is required")
+	}
+	resp, err := h.service.CreateTeam(c.Context(), req.Name, req.Description)
+	if err != nil {
+		return err
+	}
+	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListTeams handles GET /api/teams
+// ListTeams handles GET /api/teams.
 func (h *Handler) ListTeams(c fiber.Ctx) error {
-	return fiber.NewError(fiber.StatusNotImplemented, "team management coming soon")
+	resp, err := h.service.ListTeams(c.Context())
+	if err != nil {
+		return err
+	}
+	return c.JSON(resp)
 }
 
-// AddTeamMember handles POST /api/teams/:teamId/members
+// AddTeamMember handles POST /api/teams/:teamId/members.
 func (h *Handler) AddTeamMember(c fiber.Ctx) error {
-	return fiber.NewError(fiber.StatusNotImplemented, "team management coming soon")
+	teamIDStr := utils.CopyString(c.Params("teamId"))
+	teamID, err := uuid.Parse(teamIDStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid team ID")
+	}
+	var req AddTeamMemberRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+	}
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
+	}
+	if err := h.service.AddTeamMember(c.Context(), teamID, userID); err != nil {
+		return err
+	}
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "member added to team"})
 }
 
-// RemoveTeamMember handles DELETE /api/teams/:teamId/members/:userId
+// RemoveTeamMember handles DELETE /api/teams/:teamId/members/:userId.
 func (h *Handler) RemoveTeamMember(c fiber.Ctx) error {
-	return fiber.NewError(fiber.StatusNotImplemented, "team management coming soon")
+	teamIDStr := utils.CopyString(c.Params("teamId"))
+	teamID, err := uuid.Parse(teamIDStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid team ID")
+	}
+	userIDStr := utils.CopyString(c.Params("userId"))
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
+	}
+	if err := h.service.RemoveTeamMember(c.Context(), teamID, userID); err != nil {
+		return err
+	}
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// AddTeamToProject handles POST /api/teams/:teamId/projects/:projectId
+// AddTeamToProject handles POST /api/teams/:teamId/projects/:projectId.
 func (h *Handler) AddTeamToProject(c fiber.Ctx) error {
-	return fiber.NewError(fiber.StatusNotImplemented, "team management coming soon")
+	teamIDStr := utils.CopyString(c.Params("teamId"))
+	teamID, err := uuid.Parse(teamIDStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid team ID")
+	}
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid project ID")
+	}
+	if err := h.service.AddTeamToProject(c.Context(), teamID, projectID); err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"message": "team added to project"})
 }
