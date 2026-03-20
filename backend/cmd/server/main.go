@@ -18,6 +18,7 @@ import (
 	projectmod "github.com/valerii/hub/backend/internal/project"
 	"github.com/valerii/hub/backend/internal/rbac"
 	redisclient "github.com/valerii/hub/backend/internal/platform/redis"
+	wsmod "github.com/valerii/hub/backend/internal/ws"
 )
 
 func main() {
@@ -109,6 +110,22 @@ func main() {
 	projectSvc := projectmod.NewProjectService(projectRepo, rbacCache)
 	projectHandler := projectmod.NewHandler(projectSvc)
 	projectHandler.RegisterRoutes(api, requireAuth)
+
+	// --- WebSocket gateway ---
+
+	wsHub := wsmod.NewHub()
+	wsCtx, wsCancel := context.WithCancel(ctx)
+	defer wsCancel()
+	go wsHub.Run(wsCtx)
+
+	wsBridge := wsmod.NewBridge(wsHub, nc)
+	if err := wsBridge.Start(); err != nil {
+		slog.Error("failed to start ws bridge", "error", err)
+		os.Exit(1)
+	}
+	defer wsBridge.Stop()
+
+	app.Get("/ws", wsmod.Handler(wsHub, authSvc))
 
 	// --- Start server ---
 
