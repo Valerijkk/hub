@@ -1,0 +1,21 @@
+name: Frontend CI
+on:
+  push:
+    paths: ['frontend/**']
+  pull_request:
+    paths: ['frontend/**']
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: cd frontend && npm ci
+      - run: cd frontend && npx biome check ./src
+      - run: cd frontend && npx vitest run
+      - run: cd frontend && npm run build
