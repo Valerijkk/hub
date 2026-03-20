@@ -37,7 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01: Среда разработки, структура проекта, CI-пайплайн, Docker Compose со всеми сервисами
 - [x] 01-02: Схемы базы данных (Ent + MongoDB), настройка NATS, Redis, интеграция с SeaweedFS
-- [ ] 01-03: Модуль аутентификации (Magic Link + вход через Telegram, сессии, RBAC-мидлвара)
+- [x] 01-03: Модуль аутентификации (Magic Link + вход через Telegram, сессии, RBAC-мидлвара)
 - [ ] 01-04: Модуль проектов (CRUD, членство, роли, команды, архив/корзина)
 - [ ] 01-05: WebSocket gateway (NATS bridge) + frontend API client, stores, hooks, permissions
 - [ ] 01-07: React UI оболочка (маршрутизация, sidebar, topbar, login, проекты, файлы)
