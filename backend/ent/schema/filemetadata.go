@@ -1,0 +1,65 @@
+package schema
+
+import (
+	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
+	"github.com/google/uuid"
+	"time"
+)
+
+// FileMetadata holds the schema definition for the FileMetadata entity.
+type FileMetadata struct {
+	ent.Schema
+}
+
+// Fields of the FileMetadata.
+func (FileMetadata) Fields() []ent.Field {
+	return []ent.Field{
+		field.UUID("id", uuid.UUID{}).
+			Default(uuid.New).
+			Immutable(),
+		field.String("filename").
+			NotEmpty(),
+		field.String("content_type").
+			NotEmpty(),
+		field.Int64("size"),
+		field.String("s3_key").
+			NotEmpty(),
+		field.String("s3_bucket").
+			NotEmpty(),
+		field.String("entity_type").
+			Optional().
+			Comment("task, message, testcase, avatar, etc."),
+		field.String("entity_id").
+			Optional(),
+		field.Enum("status").
+			Values("pending", "confirmed", "deleted").
+			Default("pending"),
+		field.Time("created_at").
+			Default(time.Now).
+			Immutable(),
+	}
+}
+
+// Edges of the FileMetadata.
+func (FileMetadata) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("uploader", User.Type).
+			Ref("files").
+			Unique(),
+		edge.From("project", Project.Type).
+			Ref("files").
+			Unique(),
+	}
+}
+
+// Indexes of the FileMetadata.
+func (FileMetadata) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("entity_type", "entity_id"),
+		index.Fields("status"),
+		index.Fields("s3_key"),
+	}
+}
