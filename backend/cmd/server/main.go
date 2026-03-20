@@ -15,6 +15,8 @@ import (
 	"github.com/valerii/hub/backend/internal/platform/middleware"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 	"github.com/valerii/hub/backend/internal/platform/outbox"
+	projectmod "github.com/valerii/hub/backend/internal/project"
+	"github.com/valerii/hub/backend/internal/rbac"
 	redisclient "github.com/valerii/hub/backend/internal/platform/redis"
 )
 
@@ -96,8 +98,17 @@ func main() {
 	})
 
 	// Auth routes
+	requireAuth := auth.RequireAuth(authSvc)
 	authHandler := auth.NewHandler(authSvc, db)
-	authHandler.RegisterRoutes(api, auth.RequireAuth(authSvc))
+	authHandler.RegisterRoutes(api, requireAuth)
+
+	// Project routes
+	rbacCache := rbac.NewPermissionCache(rdb)
+	outboxPublisher := outbox.NewPublisher()
+	projectRepo := projectmod.NewEntRepository(db, outboxPublisher)
+	projectSvc := projectmod.NewProjectService(projectRepo, rbacCache)
+	projectHandler := projectmod.NewHandler(projectSvc)
+	projectHandler.RegisterRoutes(api, requireAuth)
 
 	// --- Start server ---
 
