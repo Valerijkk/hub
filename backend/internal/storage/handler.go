@@ -6,21 +6,26 @@ import (
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
-// Handler provides HTTP handlers for file operations.
+// Handler provides HTTP handlers for file operations including upload URL
+// generation, upload confirmation, download URL generation, and file deletion.
 type Handler struct {
 	storage *StorageService
 }
 
-// NewHandler creates a new storage handler.
+// NewHandler creates a new storage Handler backed by the given StorageService.
 func NewHandler(storage *StorageService) *Handler {
 	return &Handler{storage: storage}
 }
 
 // RegisterRoutes registers file storage routes on the given router group.
-// All routes require authentication; upload/delete routes require file permissions.
-func (h *Handler) RegisterRoutes(api fiber.Router, rbacSvc *rbac.RBACService) {
+// The authMw parameter is the JWT authentication middleware (auth.RequireAuth)
+// that validates Bearer tokens and sets c.Locals("userID") and c.Locals("sessionID").
+// The rbacSvc parameter is used for per-route permission checks (upload/delete).
+// All /files/* routes require authentication; upload and delete additionally
+// require PermFileUpload and PermFileDelete RBAC permissions respectively.
+func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
 	files := api.Group("/files")
-	files.Use(rbac.RequireAuth())
+	files.Use(authMw)
 
 	files.Post("/upload-url", rbac.RequirePermission(rbac.PermFileUpload, rbacSvc), h.GenerateUploadURL)
 	files.Post("/:fileId/confirm", h.ConfirmUpload)
@@ -34,7 +39,8 @@ type uploadRequest struct {
 	ProjectID   string `json:"projectId"`
 }
 
-// GenerateUploadURL handles POST /api/files/upload-url
+// GenerateUploadURL handles POST /api/files/upload-url.
+// It generates a presigned S3 upload URL and creates a pending FileMetadata record.
 func (h *Handler) GenerateUploadURL(c fiber.Ctx) error {
 	var req uploadRequest
 	if err := c.Bind().JSON(&req); err != nil {
@@ -45,7 +51,12 @@ func (h *Handler) GenerateUploadURL(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "filename, contentType, and projectId are required")
 	}
 
-	userID, err := uuid.Parse(rbac.UserIDFromCtx(c))
+	userIDStr, ok := c.Locals("userID").(string)
+	if !ok || userIDStr == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
+	}
+
+	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
 	}
