@@ -40,7 +40,7 @@ Plans:
 - [x] 01-03: Модуль аутентификации (Magic Link + вход через Telegram, сессии, RBAC-мидлвара)
 - [x] 01-04: Модуль проектов (CRUD, членство, роли, команды, архив/корзина)
 - [x] 01-05: WebSocket gateway (NATS bridge) + frontend API client, stores, hooks, permissions
-- [ ] 01-07: React UI оболочка (маршрутизация, sidebar, topbar, login, проекты, файлы)
+- [x] 01-07: React UI оболочка (маршрутизация, sidebar, topbar, login, проекты, файлы)
 - [ ] 01-06: Документация фазы 1 (бизнес-дока, тестовая дока, техническая дока)
 
 ### Phase 2: Task Tracker
