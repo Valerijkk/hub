@@ -69,6 +69,10 @@ func (User) Edges() []ent.Edge {
 		edge.To("files", FileMetadata.Type).
 			StorageKey(edge.Column("uploader_id")),
 		edge.To("invites", Invite.Type),
+		edge.To("comments", Comment.Type),
+		edge.To("reactions", Reaction.Type),
+		edge.To("activity_logs", ActivityLog.Type),
+		edge.To("time_logs", TimeLog.Type),
 	}
 }
 

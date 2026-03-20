@@ -58,6 +58,12 @@ func (Project) Edges() []ent.Edge {
 		edge.To("teams", Team.Type),
 		edge.To("invites", Invite.Type),
 		edge.To("files", FileMetadata.Type),
+		edge.To("issues", Issue.Type),
+		edge.To("workflow_statuses", WorkflowStatus.Type),
+		edge.To("labels", Label.Type),
+		edge.To("label_groups", LabelGroup.Type),
+		edge.To("boards", Board.Type),
+		edge.To("custom_fields", CustomFieldDefinition.Type),
 	}
 }
 
