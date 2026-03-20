@@ -18,6 +18,7 @@ import (
 	projectmod "github.com/valerii/hub/backend/internal/project"
 	"github.com/valerii/hub/backend/internal/rbac"
 	storagemod "github.com/valerii/hub/backend/internal/storage"
+	trackermod "github.com/valerii/hub/backend/internal/tracker"
 	redisclient "github.com/valerii/hub/backend/internal/platform/redis"
 	wsmod "github.com/valerii/hub/backend/internal/ws"
 )
@@ -125,6 +126,12 @@ func main() {
 	// Storage routes (/api/files/*)
 	storageHandler := storagemod.NewHandler(storageSvc)
 	storageHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+
+	// Tracker routes
+	trackerRepo := trackermod.NewEntRepository(db, outboxPublisher)
+	trackerSvc := trackermod.NewTrackerService(trackerRepo)
+	trackerHandler := trackermod.NewHandler(trackerSvc)
+	trackerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// --- WebSocket gateway ---
 
