@@ -186,7 +186,7 @@ Hub создаётся как внутренний инструмент для �
 - **Real-time**: NATS + JetStream — pub/sub + фоновые задачи без дублирования Redis
 - **Cache**: Redis — только кеш, сессии, magic link токены, онлайн-статусы
 - **Calls**: LiveKit (self-hosted) — Go-native, WebRTC из коробки, запись через Egress
-- **Storage**: MinIO (self-hosted S3) — бесплатно, миграция на облачный S3 одной строкой
+- **Storage**: SeaweedFS (self-hosted S3) — бесплатно, MinIO архивирован Feb 2026, SeaweedFS S3-compatible замена
 - **Telegram**: telego — 100% Bot API, кодогенерация, типобезопасность
 - **CSS/UI**: Shadcn/ui + Tailwind CSS 4 — компоненты копируются, полный контроль
 - **Editor**: Plate (Shadcn-native rich-text) — бесплатный, @упоминания, slash-команды
