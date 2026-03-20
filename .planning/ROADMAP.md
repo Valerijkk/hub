@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Владелец проекта может приглашать пользователей по ссылке, назначать роли (Owner/Developer/Tester/Viewer), и ограничения по ролям применяются
   4. Файлы можно загружать перетаскиванием или вставкой, они сохраняются в SeaweedFS с рабочим предпросмотром
   5. WebSocket-соединение доставляет события реального времени из NATS в браузер (проверено тестовым событием)
-**Plans**: 7 plans
+**Plans**: 9 plans
 
 Plans:
 - [x] 01-01: Среда разработки, структура проекта, CI-пайплайн, Docker Compose со всеми сервисами
@@ -42,6 +42,8 @@ Plans:
 - [x] 01-05: WebSocket gateway (NATS bridge) + frontend API client, stores, hooks, permissions
 - [x] 01-07: React UI оболочка (маршрутизация, sidebar, topbar, login, проекты, файлы)
 - [x] 01-06: Документация фазы 1 (бизнес-дока, тестовая дока, техническая дока)
+- [ ] 01-08: [GAP] Подключение модуля хранилища в main.go, исправление auth middleware в storage handler
+- [ ] 01-09: [GAP] Реализация CRUD команд (teams) вместо заглушек 501
 
 ### Phase 2: Task Tracker
 **Goal**: Пользователи могут управлять работой над проектом через полнофункциональный трекер задач с Kanban-досками, настраиваемыми рабочими процессами, расширенными комментариями и учётом времени
@@ -163,7 +165,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Infrastructure | 0/6 | Not started | - |
+| 1. Foundation & Infrastructure | 7/9 | Gap closure | - |
 | 2. Task Tracker | 0/5 | Not started | - |
 | 3. Messenger | 0/5 | Not started | - |
 | 4. TMS & Allure | 0/5 | Not started | - |
