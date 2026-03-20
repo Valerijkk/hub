@@ -42,7 +42,7 @@ Plans:
 - [x] 01-05: WebSocket gateway (NATS bridge) + frontend API client, stores, hooks, permissions
 - [x] 01-07: React UI оболочка (маршрутизация, sidebar, topbar, login, проекты, файлы)
 - [x] 01-06: Документация фазы 1 (бизнес-дока, тестовая дока, техническая дока)
-- [ ] 01-08: [GAP] Подключение модуля хранилища в main.go, исправление auth middleware в storage handler
+- [x] 01-08: [GAP] Подключение модуля хранилища в main.go, исправление auth middleware в storage handler
 - [ ] 01-09: [GAP] Реализация CRUD команд (teams) вместо заглушек 501
 
 ### Phase 2: Task Tracker
