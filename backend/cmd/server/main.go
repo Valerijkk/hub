@@ -162,6 +162,9 @@ func main() {
 
 	// RBAC service (permission checks with Redis cache)
 	rbacSvc := rbac.NewRBACService(db, rbacCache)
+	// Custom RBAC roles handler
+	customRoleHandler := rbac.NewCustomRoleHandler(rbacSvc)
+	customRoleHandler.RegisterRoutes(api, requireAuth)
 
 	// Storage service (SeaweedFS / S3-compatible)
 	storageSvc, err := storagemod.NewStorageService(cfg.S3, db)
