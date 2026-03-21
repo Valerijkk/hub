@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-03-21T01:13:17.308Z"
+stopped_at: Completed 03-04-PLAN.md
+last_updated: "2026-03-21T01:23:26.579Z"
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 19
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 03 (Messenger) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Plan: 4 of 5
 | Phase 03 P01 | 10min | 2 tasks | 17 files |
 | Phase 03 P02 | 5min | 2 tasks | 6 files |
 | Phase 03 P03 | 7min | 2 tasks | 21 files |
+| Phase 03 P04 | 7min | 2 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,9 @@ Recent decisions affecting current work:
 - [Phase 03]: AddMembersInternal method bypasses permission checks for system-level operations
 - [Phase 03]: Inline Plate JSON renderer for read-only message display instead of PlateStatic
 - [Phase 03]: useRef pattern for WS event handlers to avoid stale closures
+- [Phase 03]: miniredis for Redis unit tests (fast in-process, no Docker)
+- [Phase 03]: Presence: 5min away threshold, 90s stale cleanup, 60s cleanup interval
+- [Phase 03]: Bookmarks via dialog button (not separate route) in channel list header
 
 ### Pending Todos
 
@@ -121,6 +125,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T01:13:17.304Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-03-21T01:23:26.575Z
+Stopped at: Completed 03-04-PLAN.md
 Resume file: None
