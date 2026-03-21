@@ -1,10 +1,9 @@
 /**
- * Верхняя панель приложения — чистый дизайн с градиентным акцентом.
+ * Верхняя панель приложения — чистый, минимальный дизайн.
  *
- * Тонкая градиентная линия снизу, стеклянная кнопка поиска,
- * аватар с градиентной рамкой.
- * На мобильных устройствах показывается hamburger-кнопка для открытия sidebar.
- * Все строки локализованы через i18next (common namespace).
+ * Тонкий бордер снизу, кнопка поиска с kbd-хинтом,
+ * аватар пользователя с выпадающим меню.
+ * На мобильных — hamburger для открытия sidebar.
  */
 import { useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
@@ -52,14 +51,14 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
     try {
       await apiLogout();
     } catch {
-      // Выходим даже при ошибке API
+      /* Выходим даже при ошибке API */
     }
     storeLogout();
     void navigate({ to: "/login" });
   }
 
   return (
-    <header className="relative flex h-14 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-sm px-4 gradient-border-bottom">
+    <header className="flex h-14 items-center justify-between border-b bg-card/80 backdrop-blur-sm px-4 lg:px-6">
       {/* Левая часть */}
       <div className="flex items-center gap-2">
         {/* Hamburger для мобильных */}
@@ -67,7 +66,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 md:hidden"
+            className="h-8 w-8 md:hidden text-muted-foreground"
             onClick={onMenuToggle}
             aria-label={t("topbar.menu")}
           >
@@ -77,19 +76,19 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
       </div>
 
       {/* Правая часть */}
-      <div className="flex items-center gap-2">
-        {/* Кнопка глобального поиска — стиль glass */}
+      <div className="flex items-center gap-1.5">
+        {/* Кнопка глобального поиска */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
-              className="hidden gap-2 text-muted-foreground sm:flex rounded-xl border border-border/50 bg-muted/50 hover:bg-muted hover:border-border"
+              className="hidden gap-2 text-muted-foreground sm:flex rounded-lg border border-border bg-muted/40 hover:bg-muted px-3 h-8"
               onClick={() => setSearchOpen(true)}
             >
               <Search className="h-3.5 w-3.5" />
               <span className="text-xs">{t("btn.search")}</span>
-              <kbd className="pointer-events-none ml-2 inline-flex h-5 items-center gap-1 rounded-md border border-border/50 bg-background px-1.5 text-[10px] font-medium text-muted-foreground">
+              <kbd className="pointer-events-none ml-2 inline-flex h-5 items-center rounded border border-border bg-background px-1.5 text-[10px] font-mono font-medium text-muted-foreground">
                 {t("search.hint")}
               </kbd>
             </Button>
@@ -103,29 +102,32 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
         {/* Уведомления */}
         <NotificationBell />
 
-        {/* Меню пользователя — аватар с градиентной рамкой */}
+        {/* Меню пользователя */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full p-0">
-              <div className="rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 p-[2px]">
-                <Avatar className="h-8 w-8 border-2 border-background">
-                  <AvatarImage src={user?.avatar_url ?? undefined} alt={user?.name ?? t("auth.user")} />
-                  <AvatarFallback className="text-xs font-semibold bg-muted">{initials}</AvatarFallback>
-                </Avatar>
-              </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full p-0 ml-1">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={user?.avatar_url ?? undefined} alt={user?.name ?? t("auth.user")} />
+                <AvatarFallback className="text-[11px] font-semibold bg-primary/10 text-primary">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-card">
-            <div className="px-2 py-1.5">
+          <DropdownMenuContent align="end" className="w-52 rounded-lg">
+            <div className="px-3 py-2">
               <p className="text-sm font-medium">{user?.name ?? t("auth.user")}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => void navigate({ to: "/settings/profile" })}>
               {t("auth.profile")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="text-destructive focus:text-destructive"
+            >
               {t("auth.signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>

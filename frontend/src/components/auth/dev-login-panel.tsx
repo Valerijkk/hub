@@ -1,8 +1,8 @@
 /**
  * Панель быстрого входа для разработки.
  *
- * Карточки пользователей с градиентными акцентами по ролям.
- * Эффект подъёма при наведении, анимация нажатия.
+ * Сетка карточек пользователей с цветными акцентами по ролям.
+ * Чистый дизайн — тонкие бордеры, подъём при наведении, аватары с инициалами.
  */
 import { useState, useEffect } from "react";
 import { api } from "@/api/client";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { UserResponse, TokenPairResponse } from "@/api/auth";
 
-// --- Типы ---
+/* --- Типы --- */
 
 interface DevLoginResponse extends TokenPairResponse {
   user: UserResponse;
@@ -29,7 +29,7 @@ interface DevSeedResponse {
   project: { id: string; name: string; key: string };
 }
 
-// --- Демо-пользователи ---
+/* --- Демо-пользователи --- */
 
 interface DemoUser {
   email: string;
@@ -37,12 +37,11 @@ interface DemoUser {
   role: string;
   projectRole?: string;
   description: string;
-  /** Градиент для аватара */
-  avatarGradient: string;
-  /** Градиент для левой рамки карточки */
-  borderGradient: string;
-  /** Цвет бейджа роли */
-  badgeClass: string;
+  /** Цвет аватара */
+  color: string;
+  /** Цвет бейджа */
+  badgeBg: string;
+  badgeText: string;
 }
 
 const DEMO_USERS: DemoUser[] = [
@@ -51,9 +50,9 @@ const DEMO_USERS: DemoUser[] = [
     name: "Админ Хабов",
     role: "Admin",
     description: "Полный доступ",
-    avatarGradient: "from-red-500 to-rose-600",
-    borderGradient: "from-red-500 to-rose-600",
-    badgeClass: "bg-red-500/20 text-red-300 border-red-500/30",
+    color: "bg-red-500",
+    badgeBg: "bg-red-500/10",
+    badgeText: "text-red-600 dark:text-red-400",
   },
   {
     email: "pm@hub.local",
@@ -61,9 +60,9 @@ const DEMO_USERS: DemoUser[] = [
     role: "Owner",
     projectRole: "owner",
     description: "Project Manager",
-    avatarGradient: "from-purple-500 to-violet-600",
-    borderGradient: "from-purple-500 to-violet-600",
-    badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    color: "bg-purple-500",
+    badgeBg: "bg-purple-500/10",
+    badgeText: "text-purple-600 dark:text-purple-400",
   },
   {
     email: "dev1@hub.local",
@@ -71,9 +70,9 @@ const DEMO_USERS: DemoUser[] = [
     role: "Developer",
     projectRole: "developer",
     description: "Frontend разработчик",
-    avatarGradient: "from-blue-500 to-blue-600",
-    borderGradient: "from-blue-500 to-blue-600",
-    badgeClass: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    color: "bg-blue-500",
+    badgeBg: "bg-blue-500/10",
+    badgeText: "text-blue-600 dark:text-blue-400",
   },
   {
     email: "dev2@hub.local",
@@ -81,9 +80,9 @@ const DEMO_USERS: DemoUser[] = [
     role: "Developer",
     projectRole: "developer",
     description: "Backend разработчик",
-    avatarGradient: "from-blue-400 to-cyan-500",
-    borderGradient: "from-blue-400 to-cyan-500",
-    badgeClass: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    color: "bg-cyan-500",
+    badgeBg: "bg-blue-500/10",
+    badgeText: "text-blue-600 dark:text-blue-400",
   },
   {
     email: "tester1@hub.local",
@@ -91,9 +90,9 @@ const DEMO_USERS: DemoUser[] = [
     role: "Tester",
     projectRole: "tester",
     description: "QA инженер",
-    avatarGradient: "from-emerald-500 to-green-600",
-    borderGradient: "from-emerald-500 to-green-600",
-    badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    color: "bg-emerald-500",
+    badgeBg: "bg-emerald-500/10",
+    badgeText: "text-emerald-600 dark:text-emerald-400",
   },
   {
     email: "tester2@hub.local",
@@ -101,9 +100,9 @@ const DEMO_USERS: DemoUser[] = [
     role: "Tester",
     projectRole: "tester",
     description: "Автоматизатор",
-    avatarGradient: "from-green-400 to-emerald-500",
-    borderGradient: "from-green-400 to-emerald-500",
-    badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    color: "bg-green-500",
+    badgeBg: "bg-emerald-500/10",
+    badgeText: "text-emerald-600 dark:text-emerald-400",
   },
   {
     email: "viewer@hub.local",
@@ -111,22 +110,22 @@ const DEMO_USERS: DemoUser[] = [
     role: "Viewer",
     projectRole: "viewer",
     description: "Только просмотр",
-    avatarGradient: "from-slate-400 to-slate-500",
-    borderGradient: "from-slate-400 to-slate-500",
-    badgeClass: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+    color: "bg-slate-400",
+    badgeBg: "bg-slate-500/10",
+    badgeText: "text-slate-600 dark:text-slate-400",
   },
   {
     email: "newbie@hub.local",
     name: "Новичок Первовходов",
     role: "Member",
     description: "Не прошел онбординг",
-    avatarGradient: "from-amber-400 to-yellow-500",
-    borderGradient: "from-amber-400 to-yellow-500",
-    badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    color: "bg-amber-500",
+    badgeBg: "bg-amber-500/10",
+    badgeText: "text-amber-600 dark:text-amber-400",
   },
 ];
 
-// --- Утилиты ---
+/* --- Утилиты --- */
 
 function getInitials(name: string): string {
   return name
@@ -137,7 +136,7 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-// --- Компонент ---
+/* --- Компонент --- */
 
 interface DevLoginPanelProps {
   onSuccess: () => void;
@@ -151,7 +150,7 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
   const setTokens = useAuthStore((s) => s.setTokens);
   const setUser = useAuthStore((s) => s.setUser);
 
-  // Проверяем доступность dev-режима через GET /api/dev/status
+  /* Проверяем доступность dev-режима */
   useEffect(() => {
     api
       .get<{ dev_mode: boolean }>("/dev/status")
@@ -181,7 +180,6 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
     setLoading(email);
     setError(null);
     try {
-      // Сначала seed, если ещё не делали
       if (!seeded) {
         await api.post<DevSeedResponse>("/dev/seed");
         setSeeded(true);
@@ -202,22 +200,22 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
   return (
     <div className="space-y-4">
       {/* Разделитель Dev Mode */}
-      <div className="flex items-center gap-2">
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
-        <span className="text-xs font-bold uppercase tracking-wider text-orange-400">
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
           Dev Mode
         </span>
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
+        <div className="h-px flex-1 bg-border" />
       </div>
 
-      {/* Кнопка создания данных */}
+      {/* Кнопка создания демо-данных */}
       <div className="flex justify-center">
         <Button
           variant="outline"
           size="sm"
           onClick={handleSeed}
           disabled={loading === "seed" || seeded}
-          className="border-white/20 text-slate-300 hover:bg-white/10 hover:text-white rounded-xl"
+          className="text-xs"
         >
           {seeded
             ? "Данные созданы"
@@ -228,7 +226,7 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
       </div>
 
       {error && (
-        <p className="text-center text-sm text-red-400">{error}</p>
+        <p className="text-center text-xs text-destructive">{error}</p>
       )}
 
       {/* Сетка карточек пользователей */}
@@ -238,37 +236,38 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
             key={user.email}
             onClick={() => handleLogin(user.email)}
             disabled={loading !== null}
-            className="group relative flex items-start gap-3 rounded-xl border border-white/10 p-3 text-left transition-all duration-200 hover:bg-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5 active:scale-[0.97] disabled:opacity-50 disabled:hover:translate-y-0 overflow-hidden"
+            className="group relative flex items-center gap-2.5 rounded-lg border border-border bg-card p-2.5 text-left
+              transition-all duration-150
+              hover:border-primary/30 hover:shadow-sm hover:-translate-y-px
+              active:scale-[0.98] active:shadow-none
+              disabled:opacity-50 disabled:pointer-events-none"
           >
-            {/* Градиентная левая полоска */}
-            <div className={`absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b ${user.borderGradient} opacity-60 group-hover:opacity-100 transition-opacity`} />
-
-            {/* Аватар с градиентным фоном */}
+            {/* Аватар с инициалами */}
             <div
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${user.avatarGradient} text-xs font-bold text-white shadow-lg`}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${user.color} text-[11px] font-semibold text-white`}
             >
               {getInitials(user.name)}
             </div>
 
-            <div className="min-w-0 space-y-1">
-              <p className="text-sm font-medium leading-tight truncate text-slate-200 group-hover:text-white">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium leading-tight truncate text-foreground">
                 {user.name}
               </p>
-              <Badge
-                className={`${user.badgeClass} text-[10px] px-1.5 py-0 border rounded-md`}
-              >
-                {user.role}
-              </Badge>
-              <p className="text-[11px] text-slate-500 leading-tight">
-                {user.description}
-              </p>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <Badge
+                  variant="secondary"
+                  className={`${user.badgeBg} ${user.badgeText} text-[10px] leading-none px-1.5 py-0.5 border-0 font-medium`}
+                >
+                  {user.role}
+                </Badge>
+              </div>
             </div>
           </button>
         ))}
       </div>
 
       {loading && loading !== "seed" && (
-        <p className="text-center text-sm text-slate-400">
+        <p className="text-center text-xs text-muted-foreground">
           Вход как {DEMO_USERS.find((u) => u.email === loading)?.name}...
         </p>
       )}

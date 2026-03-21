@@ -6,6 +6,12 @@ import { MagicLinkForm } from "@/components/auth/magic-link-form";
 import { TelegramButton } from "@/components/auth/telegram-button";
 import { DevLoginPanel } from "@/components/auth/dev-login-panel";
 
+/**
+ * Страница входа — split-layout с hero-областью и формой.
+ *
+ * Левая часть: градиентный фон с брендингом Hub.
+ * Правая часть: форма входа на чистом фоне.
+ */
 function LoginPage() {
   const navigate = useNavigate();
   const setUser = useAuthStore((s) => s.setUser);
@@ -34,52 +40,88 @@ function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-4 overflow-hidden">
-      {/* Градиентный mesh-фон с анимацией */}
-      <div
-        className="absolute inset-0 animate-mesh"
-        style={{
-          background: "linear-gradient(-45deg, #0F172A, #1E293B, #1E1B4B, #0F172A, #164E63, #0F172A)",
-          backgroundSize: "400% 400%",
-        }}
-      />
+    <div className="flex min-h-screen">
+      {/* Левая hero-область — скрыта на мобильных */}
+      <div className="relative hidden lg:flex lg:w-[55%] flex-col justify-between overflow-hidden">
+        {/* Анимированный mesh-фон */}
+        <div
+          className="absolute inset-0 animate-mesh"
+          style={{
+            background: "linear-gradient(-45deg, #0C1222, #1E293B, #1E1B4B, #0C1222, #164E63, #0C1222)",
+            backgroundSize: "400% 400%",
+          }}
+        />
 
-      {/* Декоративные градиентные пятна */}
-      <div className="absolute top-1/4 -left-20 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
-      <div className="absolute bottom-1/4 -right-20 h-80 w-80 rounded-full bg-purple-500/20 blur-3xl" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-pink-500/10 blur-3xl" />
+        {/* Тонкие градиентные пятна */}
+        <div className="absolute top-1/4 -left-20 h-[500px] w-[500px] rounded-full bg-blue-500/15 blur-[120px]" />
+        <div className="absolute bottom-1/4 right-0 h-[400px] w-[400px] rounded-full bg-purple-500/15 blur-[120px]" />
+        <div className="absolute bottom-0 left-1/3 h-[300px] w-[300px] rounded-full bg-cyan-500/10 blur-[100px]" />
 
-      {/* Карточка входа — эффект матового стекла */}
-      <div className="relative z-10 w-full max-w-md">
-        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-8 shadow-2xl shadow-black/20">
-          {/* Логотип и заголовок */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold gradient-text mb-2">Hub</h1>
-            <p className="text-slate-400 text-sm">
-              Единая платформа для команд
+        {/* Контент hero */}
+        <div className="relative z-10 flex flex-1 flex-col justify-center px-12 xl:px-16">
+          <div className="max-w-md">
+            <div className="mb-8 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600">
+                <span className="text-lg font-bold text-white">H</span>
+              </div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">Hub</h1>
+            </div>
+            <p className="text-xl font-medium text-white/90 leading-relaxed mb-4">
+              Единая платформа для управления проектами и командой
+            </p>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Трекер задач, мессенджер, тест-менеджмент и видеозвонки — все инструменты в одном месте.
+            </p>
+          </div>
+        </div>
+
+        {/* Декоративные точки внизу */}
+        <div className="relative z-10 px-12 pb-8">
+          <div className="flex items-center gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-blue-400/60" />
+            <div className="h-1.5 w-1.5 rounded-full bg-purple-400/60" />
+            <div className="h-1.5 w-1.5 rounded-full bg-pink-400/60" />
+            <div className="h-1.5 w-1.5 rounded-full bg-cyan-400/60" />
+          </div>
+        </div>
+      </div>
+
+      {/* Правая часть — форма входа */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 lg:px-12 bg-background">
+        <div className="w-full max-w-sm">
+          {/* Логотип — только на мобильных */}
+          <div className="mb-8 text-center lg:text-left">
+            <div className="mb-6 flex items-center justify-center gap-3 lg:hidden">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600">
+                <span className="text-lg font-bold text-white">H</span>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight gradient-text">Hub</h1>
+            </div>
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">
+              Войти в аккаунт
+            </h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Введите email для получения кода доступа
             </p>
           </div>
 
-          {/* Форма входа */}
+          {/* Форма */}
           <div className="space-y-6">
-            <div className="[&_label]:text-slate-300 [&_input]:bg-white/10 [&_input]:border-white/20 [&_input]:text-white [&_input]:placeholder:text-slate-500 [&_input]:focus:border-blue-500/50 [&_input]:focus:ring-blue-500/20 [&_button[type=submit]]:gradient-tracker [&_button[type=submit]]:text-white [&_button[type=submit]]:border-0 [&_button[type=submit]]:hover:opacity-90 [&_button[type=submit]]:shadow-lg [&_button[type=submit]]:shadow-blue-500/25 [&_p]:text-slate-400">
-              <MagicLinkForm onSuccess={handleLoginSuccess} />
-            </div>
+            <MagicLinkForm onSuccess={handleLoginSuccess} />
 
+            {/* Разделитель */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full h-px bg-white/10" />
+                <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="px-3 text-slate-500 bg-transparent backdrop-blur-sm">
+                <span className="px-3 text-muted-foreground bg-background">
                   или
                 </span>
               </div>
             </div>
 
-            <div className="[&_button]:border-white/20 [&_button]:text-slate-300 [&_button]:hover:bg-white/10">
-              <TelegramButton />
-            </div>
+            <TelegramButton />
 
             <DevLoginPanel onSuccess={handleDevLoginSuccess} />
           </div>

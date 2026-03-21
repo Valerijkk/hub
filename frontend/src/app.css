@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 /* ===================================================
- * Цветовая система Hub — Figma-inspired дизайн
- * Тёмный сайдбар, светлый контент, градиентные акценты
+ * Дизайн-система Hub — продакшн-качество
+ * Чистый, просторный, дышащий дизайн уровня Linear/Vercel
+ * Глубина через тени и бордеры, градиенты только на CTA
  * =================================================== */
 
 @theme inline {
@@ -33,22 +34,22 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Светлая тема — чистый, современный вид */
+/* Светлая тема — чистый, прохладный, современный */
 :root {
-  --background: #FAFBFC;
-  --foreground: #0F172A;
+  --background: #FAFBFD;
+  --foreground: #0C1222;
   --card: #FFFFFF;
-  --card-foreground: #0F172A;
+  --card-foreground: #0C1222;
   --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
+  --popover-foreground: #0C1222;
   --primary: #3B82F6;
   --primary-foreground: #FFFFFF;
   --secondary: #F1F5F9;
-  --secondary-foreground: #1E293B;
+  --secondary-foreground: #334155;
   --muted: #F1F5F9;
-  --muted-foreground: #94A3B8;
+  --muted-foreground: #64748B;
   --accent: #F1F5F9;
-  --accent-foreground: #1E293B;
+  --accent-foreground: #334155;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
   --border: #E2E8F0;
@@ -56,36 +57,38 @@
   --ring: #3B82F6;
   --radius: 0.75rem;
   /* Сайдбар всегда тёмный */
-  --sidebar: #0F172A;
+  --sidebar: #0C1222;
   --sidebar-foreground: #CBD5E1;
 }
 
-/* Тёмная тема — глубокий тёмный фон */
+/* Тёмная тема — глубокий, насыщенный тёмный фон */
 .dark {
-  --background: #0B0F1A;
+  --background: #0B0F19;
   --foreground: #F1F5F9;
-  --card: #1E293B;
+  --card: #141B2D;
   --card-foreground: #F1F5F9;
-  --popover: #1E293B;
+  --popover: #141B2D;
   --popover-foreground: #F1F5F9;
-  --primary: #60A5FA;
-  --primary-foreground: #0F172A;
+  --primary: #3B82F6;
+  --primary-foreground: #FFFFFF;
   --secondary: #1E293B;
   --secondary-foreground: #F1F5F9;
   --muted: #1E293B;
-  --muted-foreground: #64748B;
+  --muted-foreground: #94A3B8;
   --accent: #1E293B;
   --accent-foreground: #F1F5F9;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #334155;
-  --input: #334155;
-  --ring: #60A5FA;
-  --sidebar: #0F172A;
+  --border: #1E293B;
+  --input: #1E293B;
+  --ring: #3B82F6;
+  --sidebar: #0C1222;
   --sidebar-foreground: #CBD5E1;
 }
 
-/* Акцентные цвета модулей (data-accent на html) */
+/* ===================================================
+ * Акцентные цвета модулей (data-accent на html)
+ * =================================================== */
 [data-accent="red"] {
   --primary: #EF4444;
   --primary-foreground: #FFFFFF;
@@ -114,35 +117,35 @@
 
 .dark[data-accent="red"] {
   --primary: #F87171;
-  --primary-foreground: #0F172A;
+  --primary-foreground: #0C1222;
   --ring: #F87171;
 }
 .dark[data-accent="blue"] {
   --primary: #60A5FA;
-  --primary-foreground: #0F172A;
+  --primary-foreground: #0C1222;
   --ring: #60A5FA;
 }
 .dark[data-accent="green"] {
   --primary: #34D399;
-  --primary-foreground: #0F172A;
+  --primary-foreground: #0C1222;
   --ring: #34D399;
 }
 .dark[data-accent="purple"] {
   --primary: #A78BFA;
-  --primary-foreground: #0F172A;
+  --primary-foreground: #0C1222;
   --ring: #A78BFA;
 }
 .dark[data-accent="orange"] {
   --primary: #FB923C;
-  --primary-foreground: #0F172A;
+  --primary-foreground: #0C1222;
   --ring: #FB923C;
 }
 
 /* ===================================================
- * Градиенты модулей — каждый модуль имеет свой цвет
+ * Градиенты модулей — для CTA-кнопок и активных элементов
  * =================================================== */
 .gradient-tracker {
-  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
 }
 .gradient-messenger {
   background: linear-gradient(135deg, #10B981, #059669);
@@ -160,7 +163,7 @@
   background: linear-gradient(135deg, #64748B, #475569);
 }
 
-/* Градиентный текст */
+/* Градиентный текст — только для логотипа и ключевых заголовков */
 .gradient-text {
   background: linear-gradient(135deg, #3B82F6, #8B5CF6, #EC4899);
   -webkit-background-clip: text;
@@ -169,49 +172,49 @@
 }
 
 /* ===================================================
- * Глобальные утилиты — стеклянный эффект, тени, анимации
+ * Утилиты — тени, подъём, анимации, стекло
  * =================================================== */
 
-/* Эффект стекла (glass morphism) */
+/* Эффект стекла (glass morphism) — для оверлеев и login */
 .glass {
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .dark .glass {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* Мягкая тень для карточек */
+/* Мягкая тень карточки — минимальная, элегантная */
 .shadow-card {
   box-shadow:
-    0 1px 3px rgba(15, 23, 42, 0.04),
-    0 4px 12px rgba(15, 23, 42, 0.06);
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .dark .shadow-card {
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.2),
-    0 4px 12px rgba(0, 0, 0, 0.3);
+    0 1px 2px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Подъём карточки при наведении */
+/* Подъём карточки при наведении — лёгкий, не агрессивный */
 .hover-lift {
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
 .hover-lift:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow:
-    0 4px 16px rgba(15, 23, 42, 0.08),
-    0 8px 24px rgba(15, 23, 42, 0.1);
+    0 4px 12px rgba(15, 23, 42, 0.06),
+    0 8px 24px rgba(15, 23, 42, 0.08);
 }
 .dark .hover-lift:hover {
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    0 8px 24px rgba(0, 0, 0, 0.4);
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 /* Анимация нажатия */
@@ -230,7 +233,7 @@
     0 0 0 4px var(--ring);
 }
 
-/* Анимация мерцающего фона для логин-страницы */
+/* Анимация сдвига фона — для login-страницы */
 @keyframes mesh-shift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -238,22 +241,29 @@
 
 .animate-mesh {
   background-size: 400% 400%;
-  animation: mesh-shift 15s ease infinite;
+  animation: mesh-shift 20s ease infinite;
 }
 
-/* Тонкая градиентная линия */
-.gradient-border-bottom {
-  position: relative;
+/* Анимация мерцания — для скелетон-загрузки */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
-.gradient-border-bottom::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #3B82F6, #8B5CF6, #EC4899, #F97316);
-  opacity: 0.6;
+
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--muted) 25%, var(--accent) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Анимация появления — fade-in при загрузке */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }
 
 /* ===================================================
@@ -265,67 +275,73 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
-  /* Плавные переходы для всех интерактивных элементов */
+  /* Плавные переходы для интерактивных элементов */
   button, a, input, select, textarea {
-    transition: all 200ms ease;
+    transition: all 150ms ease;
+  }
+
+  /* Хединги — semibold, tight tracking */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
   }
 }
 
 /* ===================================================
- * Premium form elements — Figma-inspired дизайн
- * Селекты, инпуты, текстареа, кнопки, Radix-дропдауны
+ * Форм-элементы — чистый, минимальный стиль
+ * Без агрессивных градиентов, с тонкими фокус-кольцами
  * =================================================== */
 
-/* --- Селекты и нативные дропдауны --- */
+/* --- Селекты и Radix-триггеры --- */
 select,
 [data-radix-select-trigger],
 [role="listbox"] {
   background: var(--card) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 0.75rem !important;
+  border-radius: 0.5rem !important;
   color: var(--foreground) !important;
   padding: 0.5rem 0.75rem !important;
   font-size: 0.875rem !important;
   line-height: 1.25rem !important;
-  transition: border-color 0.2s, box-shadow 0.2s !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
 }
 
 select:focus,
 [data-radix-select-trigger]:focus,
 [data-radix-select-trigger][data-state="open"] {
-  border-color: #3B82F6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  border-color: var(--ring) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
   outline: none !important;
 }
 
-/* --- Контент Radix-дропдаунов (выпадающие списки) --- */
+/* --- Контент выпадающих списков Radix --- */
 [data-radix-select-content],
 [data-radix-popper-content-wrapper] [role="listbox"],
 [data-radix-menu-content],
 [data-radix-dropdown-menu-content] {
   background: var(--card) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.3) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
   overflow: hidden !important;
   padding: 0.25rem !important;
 }
 
-/* --- Hover на опциях Radix --- */
+/* --- Hover на опциях Radix — тонкий, не градиентный --- */
 [data-radix-select-item]:hover,
 [data-radix-select-item][data-highlighted],
 [data-radix-menu-item]:hover,
 [data-radix-menu-item][data-highlighted],
 [data-radix-dropdown-menu-item]:hover,
 [data-radix-dropdown-menu-item][data-highlighted] {
-  background: linear-gradient(135deg, #3B82F6, #1D4ED8) !important;
-  color: white !important;
-  border-radius: 0.5rem !important;
+  background: var(--accent) !important;
+  color: var(--accent-foreground) !important;
+  border-radius: 0.375rem !important;
   outline: none !important;
 }
 
@@ -334,83 +350,39 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
 textarea {
   background: var(--card) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 0.75rem !important;
+  border-radius: 0.5rem !important;
   color: var(--foreground) !important;
-  transition: border-color 0.2s, box-shadow 0.2s !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
 }
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([role="switch"]):focus,
 textarea:focus {
-  border-color: #3B82F6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  border-color: var(--ring) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
   outline: none !important;
 }
 
 input::placeholder,
 textarea::placeholder {
   color: var(--muted-foreground) !important;
-  opacity: 0.7 !important;
-}
-
-/* --- Кнопки primary (градиентный акцент) --- */
-button[data-variant="default"],
-.btn-primary {
-  background: linear-gradient(135deg, #3B82F6, #1D4ED8) !important;
-  border: none !important;
-  border-radius: 0.75rem !important;
-  color: white !important;
-  font-weight: 600 !important;
-  transition: transform 0.1s, box-shadow 0.2s !important;
-}
-
-button[data-variant="default"]:hover,
-.btn-primary:hover {
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
-}
-
-button[data-variant="default"]:active,
-.btn-primary:active {
-  transform: translateY(0) scale(0.98) !important;
-}
-
-/* --- Кнопки outline (стеклянный эффект) --- */
-button[data-variant="outline"] {
-  border: 1px solid var(--border) !important;
-  border-radius: 0.75rem !important;
-  background: transparent !important;
-  transition: background 0.2s, border-color 0.2s !important;
-}
-
-button[data-variant="outline"]:hover {
-  background: var(--accent) !important;
-  border-color: var(--ring) !important;
-}
-
-/* --- Кнопки ghost (минимальные) --- */
-button[data-variant="ghost"] {
-  border-radius: 0.75rem !important;
-}
-
-button[data-variant="ghost"]:hover {
-  background: var(--accent) !important;
+  opacity: 0.6 !important;
 }
 
 /* --- Чекбоксы и радио (Radix) --- */
 button[role="checkbox"],
 button[role="radio"] {
-  border-radius: 0.375rem !important;
+  border-radius: 0.25rem !important;
   border: 1.5px solid var(--border) !important;
   transition: background 0.15s, border-color 0.15s !important;
 }
 
 button[role="checkbox"][data-state="checked"],
 button[role="radio"][data-state="checked"] {
-  background: linear-gradient(135deg, #3B82F6, #1D4ED8) !important;
-  border-color: #3B82F6 !important;
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
 }
 
-/* --- Скроллбар (тонкий, элегантный) --- */
+/* --- Скроллбар — тонкий, невидимый пока не нужен --- */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -435,16 +407,16 @@ button[role="radio"][data-state="checked"] {
 .dark [data-radix-menu-content],
 .dark [data-radix-dropdown-menu-content] {
   box-shadow:
-    0 20px 60px -15px rgba(0, 0, 0, 0.5),
+    0 8px 30px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.05) !important;
 }
 
-/* --- Тёмная тема: фокус-кольцо чуть ярче --- */
+/* --- Тёмная тема: фокус-кольцо --- */
 .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([role="switch"]):focus,
 .dark textarea:focus,
 .dark select:focus,
 .dark [data-radix-select-trigger]:focus,
 .dark [data-radix-select-trigger][data-state="open"] {
-  border-color: #60A5FA !important;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
+  border-color: var(--ring) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
 }
