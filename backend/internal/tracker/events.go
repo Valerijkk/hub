@@ -57,6 +57,15 @@ type CommentCreatedEvent struct {
 	Mentions  []string `json:"mentions,omitempty"`
 }
 
+// IssueLinkCreatedEvent is published when a link between two issues is created.
+type IssueLinkCreatedEvent struct {
+	SourceID  string `json:"source_id"`
+	TargetID  string `json:"target_id"`
+	LinkType  string `json:"link_type"`
+	ProjectID string `json:"project_id"`
+	CreatedBy string `json:"created_by"`
+}
+
 // TimerStartedEvent is published when a user starts a timer on an issue.
 type TimerStartedEvent struct {
 	IssueID   string `json:"issue_id"`

@@ -206,6 +206,8 @@ type CreateCustomFieldInput struct {
 // OutboxPublisher abstracts outbox event publishing for the repository.
 type OutboxPublisher interface {
 	PublishInTx(ctx context.Context, tx *ent.Tx, eventType string, payload any) error
+	// Publish записывает событие в outbox-таблицу без внешней транзакции.
+	Publish(ctx context.Context, client *ent.Client, eventType string, payload any) error
 }
 
 // EntRepository implements Repository using Ent ORM with outbox event publishing.

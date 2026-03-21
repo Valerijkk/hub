@@ -107,7 +107,7 @@ func (r *EntRepository) CreateIssue(ctx context.Context, projectID uuid.UUID, in
 
 	// Публикуем outbox-событие
 	if r.publisher != nil {
-		err = r.publisher.PublishInTx(ctx, tx, "tracker.issue.created", IssueCreatedEvent{
+		err = r.publisher.PublishInTx(ctx, tx, fmt.Sprintf("project.%s.issue.created", projectID.String()), IssueCreatedEvent{
 			IssueID:     created.ID.String(),
 			IssueKey:    issueKey,
 			ProjectID:   projectID.String(),
@@ -140,9 +140,10 @@ func (r *EntRepository) findDefaultStatusTx(ctx context.Context, tx *ent.Tx, pro
 }
 
 // FindIssueByKey возвращает задачу по её ключу (например "HUB-1") с eager loading связей.
+// Исключает мягко удалённые задачи.
 func (r *EntRepository) FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error) {
 	return r.client.Issue.Query().
-		Where(issue.IssueKeyEQ(issueKey)).
+		Where(issue.IssueKeyEQ(issueKey), issue.DeletedAtIsNil()).
 		WithAssignee().
 		WithReporter().
 		WithStatus().
@@ -154,9 +155,10 @@ func (r *EntRepository) FindIssueByKey(ctx context.Context, issueKey string) (*e
 }
 
 // FindIssueByID возвращает задачу по UUID с eager loading связей.
+// Исключает мягко удалённые задачи.
 func (r *EntRepository) FindIssueByID(ctx context.Context, id uuid.UUID) (*ent.Issue, error) {
 	return r.client.Issue.Query().
-		Where(issue.IDEQ(id)).
+		Where(issue.IDEQ(id), issue.DeletedAtIsNil()).
 		WithAssignee().
 		WithReporter().
 		WithStatus().
@@ -170,9 +172,9 @@ func (r *EntRepository) FindIssueByID(ctx context.Context, id uuid.UUID) (*ent.I
 // ListIssues возвращает пагинированный список задач проекта с фильтрами.
 // Использует курсорную пагинацию по issue_key.
 func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, params ListIssuesParams) ([]*ent.Issue, int, error) {
-	// Базовый запрос с фильтром по проекту
+	// Базовый запрос с фильтром по проекту (исключаем мягко удалённые)
 	query := r.client.Issue.Query().
-		Where(issue.HasProjectWith(project.IDEQ(projectID)))
+		Where(issue.HasProjectWith(project.IDEQ(projectID)), issue.DeletedAtIsNil())
 
 	// Фильтры
 	if len(params.Status) > 0 {
@@ -284,24 +286,81 @@ func (r *EntRepository) UpdateIssue(ctx context.Context, issueID uuid.UUID, inpu
 		return nil, apperrors.NewConflict("version mismatch: задача была изменена другим пользователем")
 	}
 
-	return r.FindIssueByID(ctx, issueID)
+	updated, err := r.FindIssueByID(ctx, issueID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Публикуем outbox-событие обновления задачи.
+	if r.publisher != nil && updated.Edges.Project != nil {
+		projectID := updated.Edges.Project.ID.String()
+		_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.updated", projectID), IssueUpdatedEvent{
+			IssueID:   issueID.String(),
+			IssueKey:  updated.IssueKey,
+			ProjectID: projectID,
+		})
+
+		// Отдельное событие при смене назначенного.
+		if input.AssigneeID != nil {
+			_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.assigned", projectID), IssueAssignedEvent{
+				IssueID:    issueID.String(),
+				IssueKey:   updated.IssueKey,
+				ProjectID:  projectID,
+				AssigneeID: input.AssigneeID.String(),
+			})
+		}
+	}
+
+	return updated, nil
 }
 
-// DeleteIssue удаляет задачу по ID.
+// DeleteIssue выполняет мягкое удаление задачи (устанавливает deleted_at).
 func (r *EntRepository) DeleteIssue(ctx context.Context, issueID uuid.UUID) error {
-	return r.client.Issue.DeleteOneID(issueID).Exec(ctx)
+	return r.client.Issue.UpdateOneID(issueID).
+		SetDeletedAt(time.Now()).
+		Exec(ctx)
 }
 
 // MoveIssue перемещает задачу в другой статус и обновляет ранг (для Kanban drag-and-drop).
+// Публикует outbox-событие project.{projectID}.issue.moved.
 func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string) (*ent.Issue, error) {
-	err := r.client.Issue.UpdateOneID(issueID).
+	// Получаем текущий статус до обновления для события.
+	current, err := r.FindIssueByID(ctx, issueID)
+	if err != nil {
+		return nil, fmt.Errorf("получение текущей задачи: %w", err)
+	}
+	oldStatusID := ""
+	if current.Edges.Status != nil {
+		oldStatusID = current.Edges.Status.ID.String()
+	}
+
+	err = r.client.Issue.UpdateOneID(issueID).
 		SetStatusID(statusID).
 		SetRank(rank).
 		Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("перемещение задачи: %w", err)
 	}
-	return r.FindIssueByID(ctx, issueID)
+
+	moved, err := r.FindIssueByID(ctx, issueID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Публикуем outbox-событие перемещения задачи.
+	if r.publisher != nil && moved.Edges.Project != nil {
+		projectID := moved.Edges.Project.ID.String()
+		_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.moved", projectID), IssueMovedEvent{
+			IssueID:     issueID.String(),
+			IssueKey:    moved.IssueKey,
+			ProjectID:   projectID,
+			OldStatusID: oldStatusID,
+			NewStatusID: statusID.String(),
+			NewRank:     rank,
+		})
+	}
+
+	return moved, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -309,7 +368,7 @@ func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, status
 // ---------------------------------------------------------------------------
 
 // CreateIssueLink создаёт направленную связь между двумя задачами.
-// Проверяет отсутствие дубликата.
+// Проверяет отсутствие дубликата. Публикует outbox-событие project.{projectID}.issue.link_created.
 func (r *EntRepository) CreateIssueLink(ctx context.Context, sourceID, targetID uuid.UUID, linkType string, customType string) (*ent.IssueLink, error) {
 	// Проверяем дубликат
 	exists, err := r.client.IssueLink.Query().
@@ -334,7 +393,29 @@ func (r *EntRepository) CreateIssueLink(ctx context.Context, sourceID, targetID 
 		create = create.SetCustomType(customType)
 	}
 
-	return create.Save(ctx)
+	link, err := create.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("создание связи: %w", err)
+	}
+
+	// Публикуем outbox-событие создания связи.
+	if r.publisher != nil {
+		source, qErr := r.client.Issue.Query().
+			Where(issue.IDEQ(sourceID)).
+			WithProject().
+			Only(ctx)
+		if qErr == nil && source.Edges.Project != nil {
+			projectID := source.Edges.Project.ID.String()
+			_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.link_created", projectID), IssueLinkCreatedEvent{
+				SourceID:  sourceID.String(),
+				TargetID:  targetID.String(),
+				LinkType:  linkType,
+				ProjectID: projectID,
+			})
+		}
+	}
+
+	return link, nil
 }
 
 // ListIssueLinks возвращает все связи (входящие и исходящие) для задачи.
@@ -547,6 +628,7 @@ func (r *EntRepository) SeedDefaultWorkflow(ctx context.Context, projectID uuid.
 // ---------------------------------------------------------------------------
 
 // CreateComment добавляет комментарий к задаче.
+// Публикует outbox-событие project.{projectID}.issue.comment_created.
 func (r *EntRepository) CreateComment(ctx context.Context, issueID, authorID uuid.UUID, input CreateCommentInput) (*ent.Comment, error) {
 	create := r.client.Comment.Create().
 		SetIssueID(issueID).
@@ -562,6 +644,25 @@ func (r *EntRepository) CreateComment(ctx context.Context, issueID, authorID uui
 	c, err := create.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("создание комментария: %w", err)
+	}
+
+	// Публикуем outbox-событие создания комментария.
+	if r.publisher != nil {
+		iss, err := r.client.Issue.Query().
+			Where(issue.IDEQ(issueID)).
+			WithProject().
+			Only(ctx)
+		if err == nil && iss.Edges.Project != nil {
+			projectID := iss.Edges.Project.ID.String()
+			_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.comment_created", projectID), CommentCreatedEvent{
+				CommentID: c.ID.String(),
+				IssueID:   issueID.String(),
+				IssueKey:  iss.IssueKey,
+				ProjectID: projectID,
+				AuthorID:  authorID.String(),
+				Mentions:  input.Mentions,
+			})
+		}
 	}
 
 	// Перезагружаем с автором
@@ -856,6 +957,7 @@ func (r *EntRepository) GetBoardData(ctx context.Context, boardID uuid.UUID) (*e
 			q.WithWorkflowStatuses(func(sq *ent.WorkflowStatusQuery) {
 				sq.Order(ent.Asc(workflowstatus.FieldSortOrder))
 				sq.WithIssues(func(iq *ent.IssueQuery) {
+					iq.Where(issue.DeletedAtIsNil())
 					iq.WithAssignee()
 					iq.WithLabels()
 					iq.Order(ent.Asc(issue.FieldRank))

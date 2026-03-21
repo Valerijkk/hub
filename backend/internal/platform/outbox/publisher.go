@@ -29,3 +29,17 @@ func (p *Publisher) PublishInTx(ctx context.Context, tx *ent.Tx, eventType strin
 		Save(ctx)
 	return err
 }
+
+// Publish записывает событие в outbox-таблицу в автономной транзакции.
+// Используется когда вызывающий код не управляет транзакцией явно.
+func (p *Publisher) Publish(ctx context.Context, client *ent.Client, eventType string, payload any) error {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	_, err = client.OutboxEvent.Create().
+		SetEventType(eventType).
+		SetPayload(data).
+		Save(ctx)
+	return err
+}

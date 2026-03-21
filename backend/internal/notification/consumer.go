@@ -342,6 +342,8 @@ func (c *Consumer) handleBlockerAdded(ctx context.Context, data []byte, _ string
 }
 
 // handleMessageReceived обрабатывает событие нового сообщения.
+// Для DM — уведомляем второго участника.
+// Для любого типа канала — уведомляем @упомянутых пользователей.
 func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subject string) {
 	// Извлекаем channelID из subject: messenger.channel.{channelID}.message_sent
 	parts := strings.Split(subject, ".")
@@ -350,10 +352,11 @@ func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subje
 	}
 
 	var evt struct {
-		MessageID   string `json:"message_id"`
-		ChannelID   string `json:"channel_id"`
-		SenderID    string `json:"sender_id"`
-		ContentText string `json:"content_text"`
+		MessageID        string   `json:"message_id"`
+		ChannelID        string   `json:"channel_id"`
+		SenderID         string   `json:"sender_id"`
+		ContentText      string   `json:"content_text"`
+		MentionedUserIDs []string `json:"mentioned_user_ids"`
 	}
 	if err := json.Unmarshal(data, &evt); err != nil {
 		return
@@ -365,14 +368,37 @@ func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subje
 		return
 	}
 
-	// Для DM — уведомляем второго участника.
 	channel, err := c.repo.db.Channel.Get(ctx, channelID)
 	if err != nil {
 		return
 	}
 
+	truncated := evt.ContentText
+	if len(truncated) > 100 {
+		truncated = truncated[:100] + "..."
+	}
+
+	// Уведомляем @упомянутых пользователей в любом типе канала.
+	for _, mentionStr := range evt.MentionedUserIDs {
+		mentionID, err := uuid.Parse(mentionStr)
+		if err != nil || mentionID == senderID {
+			continue
+		}
+
+		if !c.shouldDispatch(mentionID.String(), TypeMentioned, evt.MessageID) {
+			continue
+		}
+
+		_ = c.service.Dispatch(ctx, mentionID, TypeMentioned,
+			"Вас упомянули в сообщении",
+			truncated,
+			"channel", parts[2],
+			nil, &senderID, false)
+	}
+
+	// Для DM — дополнительно уведомляем второго участника.
 	if string(channel.ChannelType) != "dm" {
-		return // Уведомления только для DM.
+		return
 	}
 
 	members, err := channel.QueryMembers().All(ctx)
@@ -388,11 +414,6 @@ func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subje
 
 		if !c.shouldDispatch(recipientID.String(), TypeMessageReceived, evt.MessageID) {
 			continue
-		}
-
-		truncated := evt.ContentText
-		if len(truncated) > 100 {
-			truncated = truncated[:100] + "..."
 		}
 
 		_ = c.service.Dispatch(ctx, recipientID, TypeMessageReceived,
