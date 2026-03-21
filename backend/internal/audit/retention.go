@@ -10,8 +10,8 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/recording"
 	"github.com/valerii/hub/backend/ent/systemsetting"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 const (

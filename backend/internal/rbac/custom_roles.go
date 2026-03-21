@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -100,7 +101,7 @@ func (s *RBACService) DeleteCustomRole(ctx context.Context, roleID uuid.UUID) er
 		return err
 	}
 	if r.IsSystem {
-		return ent.NewValidationError("system roles cannot be deleted", nil)
+		return fmt.Errorf("system roles cannot be deleted")
 	}
 
 	// Очищаем custom_role у всех участников с этой ролью
