@@ -46,6 +46,15 @@ func (b *Bridge) Start() error {
 	}
 	b.subs = append(b.subs, authSub)
 
+	// messenger.channel.{channelID}.{event} -> room "channel:{channelID}"
+	messengerSub, err := b.nats.Subscribe("messenger.channel.>", func(msg *nats.Msg) {
+		b.handleMessengerEvent(msg)
+	})
+	if err != nil {
+		return err
+	}
+	b.subs = append(b.subs, messengerSub)
+
 	slog.Info("ws bridge started", "subscriptions", len(b.subs))
 	return nil
 }
@@ -73,6 +82,36 @@ func (b *Bridge) handleProjectEvent(msg *nats.Msg) {
 	event := msg.Subject
 	if len(parts) >= 3 {
 		event = parts[2]
+	}
+
+	var payload any
+	if len(msg.Data) > 0 {
+		_ = json.Unmarshal(msg.Data, &payload)
+	}
+
+	b.hub.BroadcastToRoom(room, ServerMessage{
+		Type:    TypeEvent,
+		Event:   event,
+		Room:    room,
+		Payload: payload,
+	})
+}
+
+// handleMessengerEvent маршрутизирует NATS-события мессенджера в соответствующую WS-комнату.
+// Формат subject: messenger.channel.{channelID}.{event}
+// Формат room: channel:{channelID}
+func (b *Bridge) handleMessengerEvent(msg *nats.Msg) {
+	parts := strings.SplitN(msg.Subject, ".", 4)
+	if len(parts) < 3 {
+		return
+	}
+
+	channelID := parts[2]
+	room := "channel:" + channelID
+
+	event := msg.Subject
+	if len(parts) >= 4 {
+		event = parts[3]
 	}
 
 	var payload any

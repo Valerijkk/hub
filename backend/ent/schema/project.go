@@ -64,6 +64,7 @@ func (Project) Edges() []ent.Edge {
 		edge.To("label_groups", LabelGroup.Type),
 		edge.To("boards", Board.Type),
 		edge.To("custom_fields", CustomFieldDefinition.Type),
+		edge.To("channels", Channel.Type),
 	}
 }
 

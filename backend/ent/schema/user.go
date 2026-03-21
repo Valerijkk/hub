@@ -73,6 +73,9 @@ func (User) Edges() []ent.Edge {
 		edge.To("reactions", Reaction.Type),
 		edge.To("activity_logs", ActivityLog.Type),
 		edge.To("time_logs", TimeLog.Type),
+		edge.To("created_channels", Channel.Type),
+		edge.To("channel_memberships", ChannelMember.Type),
+		edge.To("bookmarks", Bookmark.Type),
 	}
 }
 
