@@ -1,6 +1,16 @@
 import { create } from "zustand";
 
-import type { Channel } from "@/api/messenger";
+import type { Channel, Message } from "@/api/messenger";
+
+/** Информация о печатающем пользователе. */
+interface TypingUser {
+  /** ID пользователя. */
+  userId: string;
+  /** Имя пользователя для отображения. */
+  displayName: string;
+  /** Время начала печати (для автоочистки). */
+  timestamp: number;
+}
 
 /** Состояние стора мессенджера. */
 interface MessengerState {
@@ -12,6 +22,10 @@ interface MessengerState {
   unreadCounts: Record<string, number>;
   /** ID сообщения, для которого открыт тред. */
   activeThreadMessageId: string | null;
+  /** Сообщение, на которое отвечает пользователь (reply). */
+  replyToMessage: Message | null;
+  /** Печатающие пользователи по каналам. */
+  typingUsers: Record<string, TypingUser[]>;
 
   /** Установить активный канал. */
   setActiveChannel: (channelId: string | null) => void;
@@ -31,6 +45,12 @@ interface MessengerState {
   openThread: (messageId: string) => void;
   /** Закрыть тред. */
   closeThread: () => void;
+  /** Установить сообщение для ответа (reply). */
+  setReplyTo: (message: Message | null) => void;
+  /** Добавить печатающего пользователя в канал. */
+  addTypingUser: (channelId: string, userId: string, displayName: string) => void;
+  /** Убрать печатающего пользователя из канала. */
+  removeTypingUser: (channelId: string, userId: string) => void;
 }
 
 /** Стор управления состоянием мессенджера. */
@@ -39,6 +59,8 @@ export const useMessengerStore = create<MessengerState>()((set) => ({
   channels: [],
   unreadCounts: {},
   activeThreadMessageId: null,
+  replyToMessage: null,
+  typingUsers: {},
 
   setActiveChannel: (channelId) => set({ activeChannelId: channelId }),
 
@@ -75,4 +97,29 @@ export const useMessengerStore = create<MessengerState>()((set) => ({
   openThread: (messageId) => set({ activeThreadMessageId: messageId }),
 
   closeThread: () => set({ activeThreadMessageId: null }),
+
+  setReplyTo: (message) => set({ replyToMessage: message }),
+
+  addTypingUser: (channelId, userId, displayName) =>
+    set((state) => {
+      const current = state.typingUsers[channelId] ?? [];
+      const filtered = current.filter((u) => u.userId !== userId);
+      return {
+        typingUsers: {
+          ...state.typingUsers,
+          [channelId]: [...filtered, { userId, displayName, timestamp: Date.now() }],
+        },
+      };
+    }),
+
+  removeTypingUser: (channelId, userId) =>
+    set((state) => {
+      const current = state.typingUsers[channelId] ?? [];
+      return {
+        typingUsers: {
+          ...state.typingUsers,
+          [channelId]: current.filter((u) => u.userId !== userId),
+        },
+      };
+    }),
 }));
