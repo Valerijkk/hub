@@ -1,5 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
+import { Search } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
+import { useSearchStore } from "@/stores/search-store";
 import { logout as apiLogout } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 interface TopbarProps {
   onMenuToggle?: () => void;
@@ -23,6 +26,7 @@ interface TopbarProps {
 export function Topbar({ onMenuToggle }: TopbarProps) {
   const navigate = useNavigate();
   const { user, logout: storeLogout } = useAuthStore();
+  const setSearchOpen = useSearchStore((s) => s.setOpen);
 
   const initials = user?.name
     ? user.name
@@ -63,29 +67,27 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
 
       {/* Right side */}
       <div className="flex items-center gap-2">
-        {/* Search placeholder */}
+        {/* Кнопка глобального поиска */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" className="hidden gap-2 text-muted-foreground sm:flex" disabled>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="6" cy="6" r="4.5" /><path d="M12.5 12.5l-3-3" /></svg>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden gap-2 text-muted-foreground sm:flex"
+              onClick={() => setSearchOpen(true)}
+            >
+              <Search className="h-3.5 w-3.5" />
               <span className="text-xs">Поиск</span>
               <kbd className="pointer-events-none ml-2 inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
                 Ctrl+K
               </kbd>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Поиск (скоро)</TooltipContent>
+          <TooltipContent>Глобальный поиск (Ctrl+K)</TooltipContent>
         </Tooltip>
 
-        {/* Notifications placeholder */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13.3a2 2 0 01-4 0M12 5.3a4 4 0 00-8 0c0 4.7-2 6-2 6h12s-2-1.3-2-6" /></svg>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Уведомления (скоро)</TooltipContent>
-        </Tooltip>
+        {/* Уведомления */}
+        <NotificationBell />
 
         {/* User menu */}
         <DropdownMenu>

@@ -75,6 +75,9 @@ class ApiClient {
   put<T>(path: string, body?: unknown) {
     return this.request<T>("PUT", path, body);
   }
+  patch<T>(path: string, body?: unknown) {
+    return this.request<T>("PATCH", path, body);
+  }
   delete<T>(path: string) {
     return this.request<T>("DELETE", path);
   }
