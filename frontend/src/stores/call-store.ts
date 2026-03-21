@@ -17,6 +17,12 @@ interface CallState {
   error: string | null;
   /** Рука поднята. */
   handRaised: boolean;
+  /** Идёт запись звонка. */
+  isRecording: boolean;
+  /** ID текущей записи. */
+  recordingId: string | null;
+  /** ID пользователя, начавшего запись. */
+  recordingStartedBy: string | null;
 
   /** Начать новый звонок в канале. */
   startCall: (channelId: string) => Promise<void>;
@@ -32,6 +38,12 @@ interface CallState {
   checkActiveCall: (channelId: string) => Promise<CallResponse | null>;
   /** Поднять/опустить руку. */
   toggleHand: () => Promise<void>;
+  /** Установить состояние записи. */
+  setRecordingState: (
+    isRecording: boolean,
+    recordingId: string | null,
+    startedBy: string | null,
+  ) => void;
   /** Сбросить состояние звонка. */
   reset: () => void;
 }
@@ -44,6 +56,9 @@ const initialState = {
   isConnecting: false,
   error: null,
   handRaised: false,
+  isRecording: false,
+  recordingId: null,
+  recordingStartedBy: null,
 };
 
 /** Стор управления состоянием голосовых звонков. */
@@ -130,6 +145,13 @@ export const useCallStore = create<CallState>()((set, get) => ({
       // Игнорируем ошибку
     }
   },
+
+  setRecordingState: (isRecording, recordingId, startedBy) =>
+    set({
+      isRecording,
+      recordingId,
+      recordingStartedBy: startedBy,
+    }),
 
   reset: () => set(initialState),
 }));

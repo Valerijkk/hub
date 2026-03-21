@@ -145,3 +145,191 @@ export function sendChatMessage(callId: string, text: string) {
 export function listChatMessages(callId: string) {
   return api.get<CallChatMessage[]>(`/calls/${callId}/chat`);
 }
+
+// ---------------------------------------------------------------------------
+// Запись звонков (CALL-04, CALL-05)
+// ---------------------------------------------------------------------------
+
+/** Статус записи звонка. */
+export type RecordingStatus = "recording" | "processing" | "ready" | "failed";
+
+/** Запись звонка. */
+export interface RecordingResponse {
+  /** ID записи. */
+  id: string;
+  /** ID egress-процесса LiveKit. */
+  egress_id: string;
+  /** Статус записи. */
+  status: RecordingStatus;
+  /** Путь файла в S3. */
+  file_path?: string;
+  /** Размер файла в байтах. */
+  file_size: number;
+  /** Длительность в секундах. */
+  duration_seconds: number;
+  /** Время начала записи. */
+  started_at: string;
+  /** Время окончания записи. */
+  ended_at?: string;
+  /** ID звонка. */
+  call_id: string;
+  /** ID проекта. */
+  project_id: string;
+  /** ID пользователя, начавшего запись. */
+  started_by: string;
+  /** Дата создания. */
+  created_at: string;
+}
+
+/** Ответ со ссылкой на скачивание записи. */
+export interface RecordingDownloadResponse {
+  /** Presigned URL для скачивания. */
+  url: string;
+  /** Время истечения URL. */
+  expires_at: string;
+}
+
+/**
+ * Начать запись звонка.
+ * @param callId - ID звонка
+ */
+export function startRecording(callId: string) {
+  return api.post<RecordingResponse>(`/calls/${callId}/recording/start`);
+}
+
+/**
+ * Остановить запись звонка.
+ * @param callId - ID звонка
+ * @param recordingId - ID записи
+ */
+export function stopRecording(callId: string, recordingId: string) {
+  return api.post<void>(`/calls/${callId}/recording/stop`, {
+    recording_id: recordingId,
+  });
+}
+
+/**
+ * Получить список записей проекта.
+ * @param projectId - ID проекта
+ * @param offset - смещение для пагинации
+ * @param limit - лимит записей
+ */
+export function listProjectRecordings(
+  projectId: string,
+  offset = 0,
+  limit = 20,
+) {
+  return api.get<{ recordings: RecordingResponse[]; total: number }>(
+    `/projects/${projectId}/recordings?offset=${offset}&limit=${limit}`,
+  );
+}
+
+/**
+ * Получить URL для скачивания записи.
+ * @param recordingId - ID записи
+ */
+export function getRecordingDownloadURL(recordingId: string) {
+  return api.get<RecordingDownloadResponse>(
+    `/recordings/${recordingId}/download`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Запланированные звонки (CALL-02)
+// ---------------------------------------------------------------------------
+
+/** Запланированный звонок. */
+export interface ScheduledCallResponse {
+  /** ID запланированного звонка. */
+  id: string;
+  /** Название. */
+  title: string;
+  /** Описание. */
+  description?: string;
+  /** Время следующего звонка. */
+  scheduled_at: string;
+  /** RFC 5545 RRULE для повторяющихся звонков. */
+  rrule?: string;
+  /** ID канала. */
+  channel_id: string;
+  /** ID проекта. */
+  project_id: string;
+  /** ID создателя. */
+  created_by: string;
+  /** Активен ли звонок. */
+  is_active: boolean;
+  /** Дата создания. */
+  created_at: string;
+  /** Дата обновления. */
+  updated_at: string;
+}
+
+/** Данные для создания запланированного звонка. */
+export interface CreateScheduledCallData {
+  /** Название звонка. */
+  title: string;
+  /** Описание. */
+  description?: string;
+  /** Время звонка. */
+  scheduled_at: string;
+  /** RRULE для повторяющихся звонков. */
+  rrule?: string;
+  /** ID канала. */
+  channel_id: string;
+}
+
+/** Данные для обновления запланированного звонка. */
+export interface UpdateScheduledCallData {
+  /** Название. */
+  title?: string;
+  /** Описание. */
+  description?: string;
+  /** Время звонка. */
+  scheduled_at?: string;
+  /** RRULE. */
+  rrule?: string;
+  /** Активность. */
+  is_active?: boolean;
+}
+
+/**
+ * Создать запланированный звонок.
+ * @param projectId - ID проекта
+ * @param data - данные звонка
+ */
+export function createScheduledCall(
+  projectId: string,
+  data: CreateScheduledCallData,
+) {
+  return api.post<ScheduledCallResponse>(
+    `/projects/${projectId}/scheduled-calls`,
+    data,
+  );
+}
+
+/**
+ * Получить запланированные звонки канала.
+ * @param channelId - ID канала
+ */
+export function listScheduledCalls(channelId: string) {
+  return api.get<{ scheduled_calls: ScheduledCallResponse[] }>(
+    `/channels/${channelId}/scheduled-calls`,
+  );
+}
+
+/**
+ * Обновить запланированный звонок.
+ * @param id - ID запланированного звонка
+ * @param data - данные для обновления
+ */
+export function updateScheduledCall(id: string, data: UpdateScheduledCallData) {
+  return api.put<ScheduledCallResponse>(`/scheduled-calls/${id}`, data);
+}
+
+/**
+ * Удалить запланированный звонок.
+ * @param id - ID запланированного звонка
+ */
+export function deleteScheduledCall(id: string) {
+  return api.delete<void>(`/scheduled-calls/${id}`);
+}
