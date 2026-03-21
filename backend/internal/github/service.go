@@ -211,11 +211,26 @@ func (s *GitHubService) handlePRWebhook(ctx context.Context, payload []byte) err
 			if pr.GetMerged() {
 				err = s.repo.UpdateGitHubLinkStatus(ctx, existing.ID, "merged")
 
-				// GHUB-04: автосмена статуса при мерже
+				// GHUB-04: автосмена статуса при мерже PR.
+				// Используем merge_status_id из интеграции, либо ищем статус категории "done".
+				var targetStatusID *uuid.UUID
 				if integration.MergeStatusID != nil {
-					if updateErr := s.repo.UpdateIssueStatus(ctx, issue.ID, *integration.MergeStatusID); updateErr != nil {
+					targetStatusID = integration.MergeStatusID
+				} else if issue.Edges.Project != nil {
+					doneStatus, findErr := s.repo.FindDoneStatus(ctx, issue.Edges.Project.ID)
+					if findErr == nil && doneStatus != nil {
+						targetStatusID = &doneStatus.ID
+					}
+				}
+
+				if targetStatusID != nil {
+					if updateErr := s.repo.UpdateIssueStatus(ctx, issue.ID, *targetStatusID); updateErr != nil {
 						slog.Error("не удалось обновить статус задачи при мерже PR",
 							"issue", key, "error", updateErr)
+					} else {
+						// Записываем активность автосмены статуса.
+						_ = s.repo.LogActivity(ctx, issue.ID,
+							fmt.Sprintf("Статус изменён автоматически (PR #%s merged)", prNumber))
 					}
 				}
 

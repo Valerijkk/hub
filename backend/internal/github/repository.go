@@ -9,6 +9,7 @@ import (
 	"github.com/valerii/hub/backend/ent/githublink"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
 // Repository определяет интерфейс доступа к данным для модуля GitHub-интеграции.
@@ -29,6 +30,11 @@ type Repository interface {
 	// Задачи (используется для поиска по ключу)
 	FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error)
 	UpdateIssueStatus(ctx context.Context, issueID, statusID uuid.UUID) error
+
+	// FindDoneStatus возвращает первый статус категории "done" для проекта.
+	FindDoneStatus(ctx context.Context, projectID uuid.UUID) (*ent.WorkflowStatus, error)
+	// LogActivity записывает событие в лог активности задачи.
+	LogActivity(ctx context.Context, issueID uuid.UUID, action string) error
 
 	// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
 	ListAllWebhookSecrets(ctx context.Context) ([]string, error)
@@ -159,11 +165,13 @@ func (r *EntRepository) ListGitHubLinks(ctx context.Context, issueID uuid.UUID) 
 }
 
 // FindIssueByKey ищет задачу по ключу (например "HUB-1").
+// Загружает связи status, assignee, project для использования в webhook-обработчиках.
 func (r *EntRepository) FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error) {
 	return r.client.Issue.Query().
 		Where(issue.IssueKey(issueKey)).
 		WithStatus().
 		WithAssignee().
+		WithProject().
 		Only(ctx)
 }
 
@@ -172,6 +180,25 @@ func (r *EntRepository) UpdateIssueStatus(ctx context.Context, issueID, statusID
 	return r.client.Issue.UpdateOneID(issueID).
 		SetStatusID(statusID).
 		Exec(ctx)
+}
+
+// FindDoneStatus возвращает первый статус категории "done" для проекта.
+func (r *EntRepository) FindDoneStatus(ctx context.Context, projectID uuid.UUID) (*ent.WorkflowStatus, error) {
+	return r.client.WorkflowStatus.Query().
+		Where(
+			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+			workflowstatus.CategoryEQ(workflowstatus.CategoryDone),
+		).
+		First(ctx)
+}
+
+// LogActivity записывает событие в лог активности задачи.
+func (r *EntRepository) LogActivity(ctx context.Context, issueID uuid.UUID, action string) error {
+	_, err := r.client.ActivityLog.Create().
+		SetIssueID(issueID).
+		SetAction(action).
+		Save(ctx)
+	return err
 }
 
 // ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
