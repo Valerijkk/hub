@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { cn } from "@/lib/utils";
+import { CallPanel } from "@/components/calls/CallPanel";
 
+/** Основная оболочка приложения: sidebar + topbar + content + панель звонка. */
 export function AppShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -40,6 +42,8 @@ export function AppShell() {
           </main>
         </div>
       </div>
+      {/* Панель активного звонка (фиксированная, если звонок активен) */}
+      <CallPanel />
     </TooltipProvider>
   );
 }

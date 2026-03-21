@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { ChatView } from "@/components/messenger/chat-view";
+import { CallButton } from "@/components/calls/CallButton";
 import { useMessengerStore } from "@/stores/messenger-store";
 
 /**
@@ -19,7 +20,17 @@ function ChannelPage() {
     };
   }, [channelId, setActiveChannel, resetUnread]);
 
-  return <ChatView channelId={channelId} />;
+  return (
+    <div className="flex h-full flex-col">
+      {/* Кнопка звонка в верхней панели канала */}
+      <div className="flex items-center justify-end border-b px-4 py-2">
+        <CallButton channelId={channelId} />
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <ChatView channelId={channelId} />
+      </div>
+    </div>
+  );
 }
 
 export const Route = createFileRoute(

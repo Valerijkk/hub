@@ -44,7 +44,7 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
     );
 
   /** Текущий пользователь — создатель звонка. */
-  const isCreator = activeCall?.creator_id === currentUserId;
+  const isCreator = activeCall?.created_by === currentUserId;
 
   /** Переключить микрофон. */
   const handleMicToggle = async () => {

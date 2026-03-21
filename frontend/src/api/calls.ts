@@ -18,7 +18,7 @@ export interface CallResponse {
   /** Статус звонка. */
   status: CallStatus;
   /** ID создателя звонка. */
-  creator_id: string;
+  created_by: string;
   /** Количество участников. */
   participant_count: number;
   /** JWT-токен для подключения к LiveKit (присутствует при create/join). */
@@ -107,4 +107,41 @@ export async function getActiveCall(
  */
 export function raiseHand(callId: string, raised: boolean) {
   return api.post<void>(`/calls/${callId}/raise-hand`, { raised });
+}
+
+// ---------------------------------------------------------------------------
+// Эфемерный чат звонка
+// ---------------------------------------------------------------------------
+
+/** Сообщение чата звонка. */
+export interface CallChatMessage {
+  /** ID сообщения. */
+  id: string;
+  /** ID звонка. */
+  call_id: string;
+  /** ID отправителя. */
+  sender_id: string;
+  /** Имя отправителя. */
+  sender_name: string;
+  /** Текст сообщения. */
+  text: string;
+  /** Дата отправки. */
+  created_at: string;
+}
+
+/**
+ * Отправить сообщение в чат звонка.
+ * @param callId - ID звонка
+ * @param text - текст сообщения
+ */
+export function sendChatMessage(callId: string, text: string) {
+  return api.post<CallChatMessage>(`/calls/${callId}/chat`, { text });
+}
+
+/**
+ * Получить историю чата звонка.
+ * @param callId - ID звонка
+ */
+export function listChatMessages(callId: string) {
+  return api.get<CallChatMessage[]>(`/calls/${callId}/chat`);
 }
