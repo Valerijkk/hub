@@ -24,6 +24,7 @@ type ServerConfig struct {
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	Immutable    bool // true in dev to catch Fiber RequestCtx reuse (Pitfall 1)
+	DevMode      bool // DevMode включает dev-эндпоинты (seed, login без Magic Link)
 }
 
 type PostgresConfig struct {
@@ -81,6 +82,7 @@ func Load() *Config {
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			Immutable:    getEnvBool("FIBER_IMMUTABLE", true),
+			DevMode:      getEnvBool("DEV_MODE", false),
 		},
 		Postgres: PostgresConfig{
 			URL: getEnv("DATABASE_URL", "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"),

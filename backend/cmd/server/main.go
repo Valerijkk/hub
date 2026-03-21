@@ -33,6 +33,7 @@ import (
 	githubmod "github.com/valerii/hub/backend/internal/github"
 	apigatewaymod "github.com/valerii/hub/backend/internal/apigateway"
 	backupmod "github.com/valerii/hub/backend/internal/backup"
+	devmod "github.com/valerii/hub/backend/internal/dev"
 	imexmod "github.com/valerii/hub/backend/internal/imex"
 
 	// fiberswagger "github.com/gofiber/swagger" // TODO: несовместим с Fiber v3
@@ -139,6 +140,10 @@ func main() {
 	requireAuth := auth.RequireAuth(authSvc)
 	authHandler := auth.NewHandler(authSvc, db)
 	authHandler.RegisterRoutes(api, requireAuth)
+
+	// Dev routes (seed, login без Magic Link — только при DEV_MODE=true)
+	devHandler := devmod.NewHandler(db, authSvc)
+	devHandler.RegisterRoutes(api, cfg.Server.DevMode)
 
 	// Project routes
 	rbacCache := rbac.NewPermissionCache(rdb)
