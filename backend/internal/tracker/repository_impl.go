@@ -600,23 +600,20 @@ func (r *EntRepository) SeedDefaultWorkflow(ctx context.Context, projectID uuid.
 		return fmt.Errorf("создание статуса Done: %w", err)
 	}
 
-	// Создаём переходы
-	transitions := [][2]uuid.UUID{
-		{todo.ID, inProgress.ID},     // ToDo -> In Progress
-		{inProgress.ID, inReview.ID}, // In Progress -> In Review
-		{inReview.ID, done.ID},       // In Review -> Done
-		{inProgress.ID, todo.ID},     // In Progress -> ToDo (назад)
-		{inReview.ID, inProgress.ID}, // In Review -> In Progress (назад)
-	}
-
-	for _, t := range transitions {
-		_, err := tx.WorkflowTransition.Create().
-			SetFromStatusID(t[0]).
-			SetToStatusID(t[1]).
-			Save(ctx)
-		if err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("создание перехода: %w", err)
+	// Создаём переходы any-to-any (Kanban — свободное перемещение между любыми статусами)
+	allStatuses := []*ent.WorkflowStatus{todo, inProgress, inReview, done}
+	for _, from := range allStatuses {
+		for _, to := range allStatuses {
+			if from.ID != to.ID {
+				_, err := tx.WorkflowTransition.Create().
+					SetFromStatusID(from.ID).
+					SetToStatusID(to.ID).
+					Save(ctx)
+				if err != nil {
+					_ = tx.Rollback()
+					return fmt.Errorf("создание перехода: %w", err)
+				}
+			}
 		}
 	}
 

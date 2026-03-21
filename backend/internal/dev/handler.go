@@ -25,6 +25,7 @@ import (
 	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
+	"github.com/valerii/hub/backend/ent/workflowtransition"
 	"github.com/valerii/hub/backend/internal/auth"
 )
 
@@ -354,6 +355,14 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		summary["statuses"] = len(statusMap)
 	}
 
+	// Workflow-переходы (any-to-any для Kanban)
+	transCount, err := h.seedWorkflowTransitions(ctx, proj.ID, statusMap)
+	if err != nil {
+		slog.Error("dev seed: ошибка создания переходов", "error", err)
+	} else {
+		summary["transitions"] = transCount
+	}
+
 	// Метки
 	labelCount, err := h.seedLabels(ctx, proj.ID)
 	if err != nil {
@@ -491,6 +500,56 @@ func (h *Handler) seedWorkflowStatuses(ctx context.Context, projectID uuid.UUID)
 	}
 
 	return result, nil
+}
+
+// seedWorkflowTransitions создаёт переходы между всеми статусами (any-to-any).
+// Позволяет перемещать задачи между любыми колонками Kanban-доски.
+// Идемпотентный — пропускает уже существующие переходы.
+func (h *Handler) seedWorkflowTransitions(ctx context.Context, projectID uuid.UUID, statusMap map[string]uuid.UUID) (int, error) {
+	if len(statusMap) < 2 {
+		return 0, nil
+	}
+
+	// Проверяем, есть ли уже переходы для этого проекта
+	existingCount, err := h.db.WorkflowTransition.Query().
+		Where(
+			workflowtransition.HasFromStatusWith(
+				workflowstatus.HasProjectWith(project.ID(projectID)),
+			),
+		).
+		Count(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("запрос переходов: %w", err)
+	}
+	if existingCount > 0 {
+		return existingCount, nil
+	}
+
+	// Собираем все ID статусов
+	statusIDs := make([]uuid.UUID, 0, len(statusMap))
+	for _, id := range statusMap {
+		statusIDs = append(statusIDs, id)
+	}
+
+	// Создаём переходы между всеми статусами (any-to-any для Kanban)
+	created := 0
+	for _, from := range statusIDs {
+		for _, to := range statusIDs {
+			if from != to {
+				_, err := h.db.WorkflowTransition.Create().
+					SetFromStatusID(from).
+					SetToStatusID(to).
+					Save(ctx)
+				if err != nil {
+					slog.Error("dev seed: ошибка создания перехода", "from", from, "to", to, "error", err)
+					continue
+				}
+				created++
+			}
+		}
+	}
+
+	return created, nil
 }
 
 // seedLabels создаёт метки для проекта DEMO. Идемпотентный.
