@@ -8,6 +8,7 @@ import {
 import { useMessengerStore } from "@/stores/messenger-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { ReactionPicker } from "./reaction-picker";
+import { ForwardDialog } from "./forward-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -115,6 +116,7 @@ function RenderNode({ node }: { node: Record<string, unknown> }) {
 export function MessageItem({ message, channelId }: MessageItemProps) {
   const [showActions, setShowActions] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [showForwardDialog, setShowForwardDialog] = useState(false);
   const openThread = useMessengerStore((s) => s.openThread);
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isAuthor = currentUserId === message.sender_id;
@@ -298,6 +300,18 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
             </svg>
           </Button>
 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            title="Переслать"
+            onClick={() => setShowForwardDialog(true)}
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+          </Button>
+
           {isAuthor && (
             <Button
               variant="ghost"
@@ -313,6 +327,14 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
           )}
         </div>
       )}
+
+      {/* Forward dialog */}
+      <ForwardDialog
+        message={message}
+        channelId={channelId}
+        open={showForwardDialog}
+        onOpenChange={setShowForwardDialog}
+      />
     </div>
   );
 }

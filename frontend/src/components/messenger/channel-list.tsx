@@ -1,7 +1,10 @@
-import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useMatchRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useChannels } from "@/hooks/use-channels";
+import { useUnread } from "@/hooks/use-unread";
+import { usePresence } from "@/hooks/use-presence";
 import { useMessengerStore } from "@/stores/messenger-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { createChannel } from "@/api/messenger";
 import type { Channel, ChannelType } from "@/api/messenger";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +18,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PresenceIndicator } from "./presence-indicator";
+import { BookmarksPanel } from "./bookmarks-panel";
 import { cn } from "@/lib/utils";
 
 /** Иконка типа канала. */
@@ -124,14 +129,67 @@ function CreateChannelDialog() {
   );
 }
 
+/** Кнопка открытия панели закладок в диалоге. */
+function BookmarksButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+        title="Закладки"
+        onClick={() => setOpen(true)}
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+        </svg>
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Закладки</DialogTitle>
+          </DialogHeader>
+          <BookmarksList />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/** Содержимое панели закладок. */
+function BookmarksList() {
+  return (
+    <div className="py-2">
+      <BookmarksPanel />
+    </div>
+  );
+}
+
 /**
  * ChannelList отображает список каналов пользователя с группировкой по типу,
  * badge непрочитанных и кнопкой создания нового канала.
  */
 export function ChannelList() {
   const { data: channels, isLoading } = useChannels();
+  useUnread();
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const unreadCounts = useMessengerStore((s) => s.unreadCounts);
   const matchRoute = useMatchRoute();
+
+  // Собираем ID собеседников DM для отслеживания присутствия.
+  const dmUserIds = (channels ?? [])
+    .filter((ch) => ch.channel_type === "dm" && ch.members)
+    .flatMap((ch) =>
+      (ch.members ?? [])
+        .filter((m) => m.user_id !== currentUserId)
+        .map((m) => m.user_id),
+    );
+  const { getStatus } = usePresence(dmUserIds);
+
+  /** Получить ID собеседника в DM. */
+  function getDmPartnerId(channel: Channel): string | undefined {
+    return channel.members?.find((m) => m.user_id !== currentUserId)?.user_id;
+  }
 
   if (isLoading) {
     return (
@@ -148,7 +206,10 @@ export function ChannelList() {
       {/* Заголовок */}
       <div className="flex h-12 items-center justify-between border-b px-4">
         <span className="text-sm font-semibold">Каналы</span>
-        <CreateChannelDialog />
+        <div className="flex items-center gap-1">
+          <BookmarksButton />
+          <CreateChannelDialog />
+        </div>
       </div>
 
       {/* Список каналов */}
@@ -179,6 +240,12 @@ export function ChannelList() {
                       )}
                     >
                       <ChannelIcon type={channel.channel_type} />
+                      {channel.channel_type === "dm" && (() => {
+                        const partnerId = getDmPartnerId(channel);
+                        return partnerId ? (
+                          <PresenceIndicator status={getStatus(partnerId)} />
+                        ) : null;
+                      })()}
                       <span className="flex-1 truncate">{channel.name}</span>
                       {unread > 0 && (
                         <Badge

@@ -260,9 +260,66 @@ export function createOrGetDM(targetUserId: string) {
 
 /** Поиск сообщений по тексту. */
 export function searchMessages(query: string, channelId?: string) {
-  const params = new URLSearchParams({ q: query });
+  const params = new URLSearchParams({ query });
   if (channelId) params.set("channel_id", channelId);
   return api.get<Message[]>(`/messenger/search?${params.toString()}`);
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Присутствие (Presence)
+// ---------------------------------------------------------------------------
+
+/** Статус присутствия: online, offline или away. */
+export type PresenceStatus = "online" | "offline" | "away";
+
+/** Получить статусы присутствия для списка пользователей. */
+export function getPresence(userIds: string[]) {
+  const params = new URLSearchParams({ user_ids: userIds.join(",") });
+  return api.get<Record<string, PresenceStatus>>(
+    `/messenger/presence?${params.toString()}`,
+  );
+}
+
+/** Отправить heartbeat присутствия. */
+export function sendHeartbeat() {
+  return api.post<void>("/messenger/presence/heartbeat");
+}
+
+/** Установить кастомный текст статуса. */
+export function setCustomStatus(text: string) {
+  return api.put<void>("/messenger/presence/status", { text });
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Непрочитанные (Unread)
+// ---------------------------------------------------------------------------
+
+/** Получить счётчики непрочитанных для всех каналов. */
+export function getUnreadCounts() {
+  return api.get<Record<string, number>>("/messenger/unread");
+}
+
+/** Отметить канал как прочитанный. */
+export function markChannelRead(channelId: string) {
+  return api.post<void>(`/messenger/channels/${channelId}/read`);
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Закреплённые сообщения (Pins)
+// ---------------------------------------------------------------------------
+
+/** Закреплённое сообщение. */
+export interface PinnedMessage {
+  id: string;
+  message_id: string;
+  channel_id: string;
+  pinned_by: string;
+  pinned_at: string;
+}
+
+/** Получить список закреплённых сообщений канала. */
+export function getChannelPins(channelId: string) {
+  return api.get<PinnedMessage[]>(`/messenger/channels/${channelId}/pins`);
 }
 
 // ---------------------------------------------------------------------------

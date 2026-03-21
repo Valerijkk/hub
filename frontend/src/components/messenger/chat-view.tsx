@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMessages } from "@/hooks/use-messages";
+import { useMarkRead } from "@/hooks/use-unread";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { getChannel } from "@/api/messenger";
 import type { Channel } from "@/api/messenger";
@@ -8,6 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import { MessageItem } from "./message-item";
 import { MessageComposer } from "./message-composer";
 import { ThreadPanel } from "./thread-panel";
+import { SearchDialog } from "./search-dialog";
+import { PinnedMessages } from "./pinned-messages";
 import { cn } from "@/lib/utils";
 
 /** Пропсы компонента ChatView. */
@@ -23,10 +26,18 @@ interface ChatViewProps {
  */
 export function ChatView({ channelId }: ChatViewProps) {
   const { messages, loadMore, hasMore, isLoading } = useMessages(channelId);
+  const markRead = useMarkRead();
   const activeThreadMessageId = useMessengerStore(
     (s) => s.activeThreadMessageId,
   );
   const closeThread = useMessengerStore((s) => s.closeThread);
+
+  // Пометить канал как прочитанный при открытии.
+  useEffect(() => {
+    if (channelId) {
+      void markRead(channelId);
+    }
+  }, [channelId, markRead]);
 
   const { data: channel } = useQuery<Channel>({
     queryKey: ["messenger", "channel", channelId],
@@ -87,6 +98,10 @@ export function ChatView({ channelId }: ChatViewProps) {
               {channel.members_count} участников
             </span>
           )}
+        </div>
+        <div className="flex items-center gap-1">
+          <SearchDialog channelId={channelId} />
+          <PinnedMessages channelId={channelId} />
         </div>
       </div>
 
