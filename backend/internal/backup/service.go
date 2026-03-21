@@ -175,9 +175,17 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 		slog.Info("MongoDB восстановлен из бэкапа")
 	}
 
+	// Обновляем статус записи бэкапа — фиксируем факт восстановления.
+	_, _ = s.db.BackupRecord.UpdateOneID(backupID).
+		SetNillableErrorMessage(strPtr("restored at " + time.Now().UTC().Format(time.RFC3339))).
+		Save(ctx)
+
 	slog.Info("восстановление завершено", "s3_key", record.S3Key)
 	return nil
 }
+
+// strPtr возвращает указатель на строку.
+func strPtr(s string) *string { return &s }
 
 // setMaintenanceMode устанавливает/снимает режим обслуживания.
 // Логирует переключение для наблюдаемости.
