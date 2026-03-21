@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/activitylog"
@@ -194,7 +195,14 @@ func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, par
 		query = query.Where(issue.IssueTypeEQ(issue.IssueType(params.IssueType)))
 	}
 	if params.Search != "" {
-		query = query.Where(issue.TitleContainsFold(params.Search))
+		// Используем tsvector полнотекстовый поиск (search_vector создаётся индексатором).
+		// Fallback на ContainsFold если search_vector отсутствует.
+		query = query.Where(func(s *sql.Selector) {
+			s.Where(sql.ExprP(
+				"to_tsvector('simple', title || ' ' || COALESCE(description_text, '')) @@ plainto_tsquery('simple', $1)",
+				params.Search,
+			))
+		})
 	}
 
 	// Общее количество (до пагинации)

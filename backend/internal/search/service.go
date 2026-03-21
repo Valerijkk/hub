@@ -391,21 +391,34 @@ func (s *SearchService) searchFiles(ctx context.Context, query string, projectID
 	return results, rows.Err()
 }
 
-// searchChannels ищет каналы по имени (ILIKE) с фильтрацией по проектам.
+// searchChannels ищет каналы по tsvector с фильтрацией по проектам.
+// Fallback на ILIKE если tsvector-колонка отсутствует.
 func (s *SearchService) searchChannels(ctx context.Context, query string, projectIDs []uuid.UUID) ([]SearchResult, error) {
 	if len(projectIDs) == 0 {
 		return nil, nil
 	}
 
+	// Пробуем tsvector поиск (если search_vector создан через indexer)
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, name, channel_type, channel_project
+		`SELECT id, name, channel_type, channel_project,
+			ts_rank(to_tsvector('simple', name), plainto_tsquery('simple', $1)) AS rank
 		FROM channels
-		WHERE name ILIKE '%' || $1 || '%'
+		WHERE to_tsvector('simple', name) @@ plainto_tsquery('simple', $1)
 			AND channel_project = ANY($2)
-		ORDER BY name ASC LIMIT 10`,
+		ORDER BY rank DESC LIMIT 10`,
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
-		return nil, fmt.Errorf("поиск каналов: %w", err)
+		// Fallback на ILIKE если tsvector не работает
+		rows, err = s.sqlDB.QueryContext(ctx,
+			`SELECT id, name, channel_type, channel_project, 0.5::float8 AS rank
+			FROM channels
+			WHERE name ILIKE '%' || $1 || '%'
+				AND channel_project = ANY($2)
+			ORDER BY name ASC LIMIT 10`,
+			query, uuidSliceToPgArray(projectIDs))
+		if err != nil {
+			return nil, fmt.Errorf("поиск каналов: %w", err)
+		}
 	}
 	defer rows.Close()
 
@@ -413,7 +426,8 @@ func (s *SearchService) searchChannels(ctx context.Context, query string, projec
 	for rows.Next() {
 		var id, name, channelType string
 		var projID *string
-		if err := rows.Scan(&id, &name, &channelType, &projID); err != nil {
+		var rank float64
+		if err := rows.Scan(&id, &name, &channelType, &projID, &rank); err != nil {
 			continue
 		}
 		pid := ""
@@ -427,7 +441,7 @@ func (s *SearchService) searchChannels(ctx context.Context, query string, projec
 			Subtitle:  channelType,
 			ProjectID: pid,
 			URL:       fmt.Sprintf("/messenger/channels/%s", id),
-			Score:     0.5,
+			Score:     rank,
 		})
 	}
 	return results, rows.Err()
