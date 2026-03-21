@@ -3,6 +3,9 @@
 
 FROM golang:1.24-alpine AS builder
 
+# Позволяем Go автоматически скачать нужную версию toolchain
+ENV GOTOOLCHAIN=auto
+
 WORKDIR /app
 
 # Зависимости (кешируем слой)
