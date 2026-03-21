@@ -1,3 +1,9 @@
+/**
+ * Панель быстрого входа для разработки.
+ *
+ * Карточки пользователей с градиентными акцентами по ролям.
+ * Эффект подъёма при наведении, анимация нажатия.
+ */
 import { useState, useEffect } from "react";
 import { api } from "@/api/client";
 import { useAuthStore } from "@/stores/auth-store";
@@ -31,7 +37,12 @@ interface DemoUser {
   role: string;
   projectRole?: string;
   description: string;
-  color: string;
+  /** Градиент для аватара */
+  avatarGradient: string;
+  /** Градиент для левой рамки карточки */
+  borderGradient: string;
+  /** Цвет бейджа роли */
+  badgeClass: string;
 }
 
 const DEMO_USERS: DemoUser[] = [
@@ -40,7 +51,9 @@ const DEMO_USERS: DemoUser[] = [
     name: "Админ Хабов",
     role: "Admin",
     description: "Полный доступ",
-    color: "bg-red-500/15 text-red-700 border-red-200",
+    avatarGradient: "from-red-500 to-rose-600",
+    borderGradient: "from-red-500 to-rose-600",
+    badgeClass: "bg-red-500/20 text-red-300 border-red-500/30",
   },
   {
     email: "pm@hub.local",
@@ -48,7 +61,9 @@ const DEMO_USERS: DemoUser[] = [
     role: "Owner",
     projectRole: "owner",
     description: "Project Manager",
-    color: "bg-purple-500/15 text-purple-700 border-purple-200",
+    avatarGradient: "from-purple-500 to-violet-600",
+    borderGradient: "from-purple-500 to-violet-600",
+    badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/30",
   },
   {
     email: "dev1@hub.local",
@@ -56,7 +71,9 @@ const DEMO_USERS: DemoUser[] = [
     role: "Developer",
     projectRole: "developer",
     description: "Frontend разработчик",
-    color: "bg-blue-500/15 text-blue-700 border-blue-200",
+    avatarGradient: "from-blue-500 to-blue-600",
+    borderGradient: "from-blue-500 to-blue-600",
+    badgeClass: "bg-blue-500/20 text-blue-300 border-blue-500/30",
   },
   {
     email: "dev2@hub.local",
@@ -64,7 +81,9 @@ const DEMO_USERS: DemoUser[] = [
     role: "Developer",
     projectRole: "developer",
     description: "Backend разработчик",
-    color: "bg-blue-500/15 text-blue-700 border-blue-200",
+    avatarGradient: "from-blue-400 to-cyan-500",
+    borderGradient: "from-blue-400 to-cyan-500",
+    badgeClass: "bg-blue-500/20 text-blue-300 border-blue-500/30",
   },
   {
     email: "tester1@hub.local",
@@ -72,7 +91,9 @@ const DEMO_USERS: DemoUser[] = [
     role: "Tester",
     projectRole: "tester",
     description: "QA инженер",
-    color: "bg-green-500/15 text-green-700 border-green-200",
+    avatarGradient: "from-emerald-500 to-green-600",
+    borderGradient: "from-emerald-500 to-green-600",
+    badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
   },
   {
     email: "tester2@hub.local",
@@ -80,7 +101,9 @@ const DEMO_USERS: DemoUser[] = [
     role: "Tester",
     projectRole: "tester",
     description: "Автоматизатор",
-    color: "bg-green-500/15 text-green-700 border-green-200",
+    avatarGradient: "from-green-400 to-emerald-500",
+    borderGradient: "from-green-400 to-emerald-500",
+    badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
   },
   {
     email: "viewer@hub.local",
@@ -88,14 +111,18 @@ const DEMO_USERS: DemoUser[] = [
     role: "Viewer",
     projectRole: "viewer",
     description: "Только просмотр",
-    color: "bg-gray-500/15 text-gray-700 border-gray-200",
+    avatarGradient: "from-slate-400 to-slate-500",
+    borderGradient: "from-slate-400 to-slate-500",
+    badgeClass: "bg-slate-500/20 text-slate-300 border-slate-500/30",
   },
   {
     email: "newbie@hub.local",
     name: "Новичок Первовходов",
     role: "Member",
     description: "Не прошел онбординг",
-    color: "bg-yellow-500/15 text-yellow-700 border-yellow-200",
+    avatarGradient: "from-amber-400 to-yellow-500",
+    borderGradient: "from-amber-400 to-yellow-500",
+    badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/30",
   },
 ];
 
@@ -109,17 +136,6 @@ function getInitials(name: string): string {
     .toUpperCase()
     .slice(0, 2);
 }
-
-const AVATAR_COLORS = [
-  "bg-red-500",
-  "bg-purple-500",
-  "bg-blue-500",
-  "bg-blue-400",
-  "bg-green-500",
-  "bg-green-400",
-  "bg-gray-500",
-  "bg-yellow-500",
-];
 
 // --- Компонент ---
 
@@ -185,20 +201,23 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
 
   return (
     <div className="space-y-4">
+      {/* Разделитель Dev Mode */}
       <div className="flex items-center gap-2">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-xs font-medium uppercase text-orange-600">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
+        <span className="text-xs font-bold uppercase tracking-wider text-orange-400">
           Dev Mode
         </span>
-        <div className="h-px flex-1 bg-border" />
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
       </div>
 
+      {/* Кнопка создания данных */}
       <div className="flex justify-center">
         <Button
           variant="outline"
           size="sm"
           onClick={handleSeed}
           disabled={loading === "seed" || seeded}
+          className="border-white/20 text-slate-300 hover:bg-white/10 hover:text-white rounded-xl"
         >
           {seeded
             ? "Данные созданы"
@@ -209,32 +228,38 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
       </div>
 
       {error && (
-        <p className="text-center text-sm text-destructive">{error}</p>
+        <p className="text-center text-sm text-red-400">{error}</p>
       )}
 
+      {/* Сетка карточек пользователей */}
       <div className="grid grid-cols-2 gap-2">
-        {DEMO_USERS.map((user, i) => (
+        {DEMO_USERS.map((user) => (
           <button
             key={user.email}
             onClick={() => handleLogin(user.email)}
             disabled={loading !== null}
-            className="flex items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent disabled:opacity-50"
+            className="group relative flex items-start gap-3 rounded-xl border border-white/10 p-3 text-left transition-all duration-200 hover:bg-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5 active:scale-[0.97] disabled:opacity-50 disabled:hover:translate-y-0 overflow-hidden"
           >
+            {/* Градиентная левая полоска */}
+            <div className={`absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b ${user.borderGradient} opacity-60 group-hover:opacity-100 transition-opacity`} />
+
+            {/* Аватар с градиентным фоном */}
             <div
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${AVATAR_COLORS[i]}`}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${user.avatarGradient} text-xs font-bold text-white shadow-lg`}
             >
               {getInitials(user.name)}
             </div>
+
             <div className="min-w-0 space-y-1">
-              <p className="text-sm font-medium leading-tight truncate">
+              <p className="text-sm font-medium leading-tight truncate text-slate-200 group-hover:text-white">
                 {user.name}
               </p>
               <Badge
-                className={`${user.color} text-[10px] px-1.5 py-0`}
+                className={`${user.badgeClass} text-[10px] px-1.5 py-0 border rounded-md`}
               >
                 {user.role}
               </Badge>
-              <p className="text-[11px] text-muted-foreground leading-tight">
+              <p className="text-[11px] text-slate-500 leading-tight">
                 {user.description}
               </p>
             </div>
@@ -243,7 +268,7 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
       </div>
 
       {loading && loading !== "seed" && (
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-slate-400">
           Вход как {DEMO_USERS.find((u) => u.email === loading)?.name}...
         </p>
       )}

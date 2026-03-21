@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* ===================================================
+ * Цветовая система Hub — Figma-inspired дизайн
+ * Тёмный сайдбар, светлый контент, градиентные акценты
+ * =================================================== */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -28,114 +33,243 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Светлая тема — чистый, современный вид */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --background: #FAFBFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #3B82F6;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #1E293B;
+  --muted: #F1F5F9;
+  --muted-foreground: #94A3B8;
+  --accent: #F1F5F9;
+  --accent-foreground: #1E293B;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #3B82F6;
+  --radius: 0.75rem;
+  /* Сайдбар всегда тёмный */
+  --sidebar: #0F172A;
+  --sidebar-foreground: #CBD5E1;
 }
 
+/* Тёмная тема — глубокий тёмный фон */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --background: #0B0F1A;
+  --foreground: #F1F5F9;
+  --card: #1E293B;
+  --card-foreground: #F1F5F9;
+  --popover: #1E293B;
+  --popover-foreground: #F1F5F9;
+  --primary: #60A5FA;
+  --primary-foreground: #0F172A;
+  --secondary: #1E293B;
+  --secondary-foreground: #F1F5F9;
+  --muted: #1E293B;
+  --muted-foreground: #64748B;
+  --accent: #1E293B;
+  --accent-foreground: #F1F5F9;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #334155;
+  --input: #334155;
+  --ring: #60A5FA;
+  --sidebar: #0F172A;
+  --sidebar-foreground: #CBD5E1;
 }
 
-/* Акцентные цвета (data-accent на html) */
+/* Акцентные цвета модулей (data-accent на html) */
 [data-accent="red"] {
-  --primary: oklch(0.577 0.245 27.325);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.577 0.245 27.325);
+  --primary: #EF4444;
+  --primary-foreground: #FFFFFF;
+  --ring: #EF4444;
 }
 [data-accent="blue"] {
-  --primary: oklch(0.546 0.245 262.881);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.546 0.245 262.881);
+  --primary: #3B82F6;
+  --primary-foreground: #FFFFFF;
+  --ring: #3B82F6;
 }
 [data-accent="green"] {
-  --primary: oklch(0.627 0.194 149.214);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.627 0.194 149.214);
+  --primary: #10B981;
+  --primary-foreground: #FFFFFF;
+  --ring: #10B981;
 }
 [data-accent="purple"] {
-  --primary: oklch(0.553 0.261 293.541);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.553 0.261 293.541);
+  --primary: #8B5CF6;
+  --primary-foreground: #FFFFFF;
+  --ring: #8B5CF6;
 }
 [data-accent="orange"] {
-  --primary: oklch(0.705 0.213 47.604);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.705 0.213 47.604);
+  --primary: #F97316;
+  --primary-foreground: #FFFFFF;
+  --ring: #F97316;
 }
 
 .dark[data-accent="red"] {
-  --primary: oklch(0.637 0.237 25.331);
-  --primary-foreground: oklch(0.145 0 0);
-  --ring: oklch(0.637 0.237 25.331);
+  --primary: #F87171;
+  --primary-foreground: #0F172A;
+  --ring: #F87171;
 }
 .dark[data-accent="blue"] {
-  --primary: oklch(0.623 0.214 259.815);
-  --primary-foreground: oklch(0.145 0 0);
-  --ring: oklch(0.623 0.214 259.815);
+  --primary: #60A5FA;
+  --primary-foreground: #0F172A;
+  --ring: #60A5FA;
 }
 .dark[data-accent="green"] {
-  --primary: oklch(0.696 0.17 150.019);
-  --primary-foreground: oklch(0.145 0 0);
-  --ring: oklch(0.696 0.17 150.019);
+  --primary: #34D399;
+  --primary-foreground: #0F172A;
+  --ring: #34D399;
 }
 .dark[data-accent="purple"] {
-  --primary: oklch(0.627 0.235 292.717);
-  --primary-foreground: oklch(0.145 0 0);
-  --ring: oklch(0.627 0.235 292.717);
+  --primary: #A78BFA;
+  --primary-foreground: #0F172A;
+  --ring: #A78BFA;
 }
 .dark[data-accent="orange"] {
-  --primary: oklch(0.762 0.204 50.001);
-  --primary-foreground: oklch(0.145 0 0);
-  --ring: oklch(0.762 0.204 50.001);
+  --primary: #FB923C;
+  --primary-foreground: #0F172A;
+  --ring: #FB923C;
 }
 
+/* ===================================================
+ * Градиенты модулей — каждый модуль имеет свой цвет
+ * =================================================== */
+.gradient-tracker {
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+}
+.gradient-messenger {
+  background: linear-gradient(135deg, #10B981, #059669);
+}
+.gradient-tms {
+  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+}
+.gradient-calls {
+  background: linear-gradient(135deg, #F97316, #EA580C);
+}
+.gradient-dashboard {
+  background: linear-gradient(135deg, #EC4899, #DB2777);
+}
+.gradient-settings {
+  background: linear-gradient(135deg, #64748B, #475569);
+}
+
+/* Градиентный текст */
+.gradient-text {
+  background: linear-gradient(135deg, #3B82F6, #8B5CF6, #EC4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===================================================
+ * Глобальные утилиты — стеклянный эффект, тени, анимации
+ * =================================================== */
+
+/* Эффект стекла (glass morphism) */
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dark .glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Мягкая тень для карточек */
+.shadow-card {
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.dark .shadow-card {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Подъём карточки при наведении */
+.hover-lift {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 16px rgba(15, 23, 42, 0.08),
+    0 8px 24px rgba(15, 23, 42, 0.1);
+}
+.dark .hover-lift:hover {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Анимация нажатия */
+.click-scale {
+  transition: transform 100ms ease;
+}
+.click-scale:active {
+  transform: scale(0.97);
+}
+
+/* Градиентная рамка фокуса */
+.focus-gradient:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--ring);
+}
+
+/* Анимация мерцающего фона для логин-страницы */
+@keyframes mesh-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-mesh {
+  background-size: 400% 400%;
+  animation: mesh-shift 15s ease infinite;
+}
+
+/* Тонкая градиентная линия */
+.gradient-border-bottom {
+  position: relative;
+}
+.gradient-border-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3B82F6, #8B5CF6, #EC4899, #F97316);
+  opacity: 0.6;
+}
+
+/* ===================================================
+ * Базовые стили
+ * =================================================== */
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Плавные переходы для всех интерактивных элементов */
+  button, a, input, select, textarea {
+    transition: all 200ms ease;
   }
 }
