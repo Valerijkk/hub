@@ -1,15 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getTestCase,
+  updateTestCase,
   listVersions,
   rollbackVersion,
   linkTestCaseToIssue,
   unlinkTestCaseFromIssue,
   type TestCaseVersionResponse,
+  type TestStep,
+  type TestCasePriority,
+  type TestCaseStatus,
 } from "@/api/tms";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -31,15 +36,42 @@ const STATUS_COLORS: Record<string, string> = {
   deprecated: "bg-red-100 text-red-800",
 };
 
+/** Лейблы приоритетов. */
+const PRIORITY_LABELS: Record<string, string> = {
+  critical: "Критический",
+  high: "Высокий",
+  medium: "Средний",
+  low: "Низкий",
+  trivial: "Тривиальный",
+};
+
+/** Лейблы статусов. */
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Черновик",
+  active: "Активный",
+  deprecated: "Устаревший",
+};
+
 /**
  * Страница деталей тест-кейса.
  * Отображает заголовок, шаги, метаданные и историю версий.
+ * Поддерживает редактирование всех полей тест-кейса.
  */
 function TestCaseDetailPage() {
   const { projectId, caseKey } = Route.useParams();
   const queryClient = useQueryClient();
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [linkIssueId, setLinkIssueId] = useState("");
+  const [editing, setEditing] = useState(false);
+
+  // Поля редактирования
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPrecondition, setEditPrecondition] = useState("");
+  const [editPostcondition, setEditPostcondition] = useState("");
+  const [editPriority, setEditPriority] = useState<TestCasePriority>("medium");
+  const [editStatus, setEditStatus] = useState<TestCaseStatus>("draft");
+  const [editSteps, setEditSteps] = useState<TestStep[]>([]);
 
   // Загрузка тест-кейса
   const { data: tc, isLoading } = useQuery({
@@ -47,11 +79,46 @@ function TestCaseDetailPage() {
     queryFn: () => getTestCase(projectId, caseKey),
   });
 
+  // Инициализация формы при загрузке данных
+  useEffect(() => {
+    if (tc) {
+      setEditTitle(tc.title);
+      setEditDescription(tc.description ?? "");
+      setEditPrecondition(tc.precondition ?? "");
+      setEditPostcondition(tc.postcondition ?? "");
+      setEditPriority(tc.priority);
+      setEditStatus(tc.status);
+      setEditSteps(tc.steps ? tc.steps.map((s) => ({ ...s })) : []);
+    }
+  }, [tc]);
+
   // Загрузка версий
   const { data: versions } = useQuery({
     queryKey: ["tms-case-versions", projectId, caseKey],
     queryFn: () => listVersions(projectId, caseKey),
     enabled: versionsOpen,
+  });
+
+  // Обновление тест-кейса
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      updateTestCase(projectId, caseKey, {
+        title: editTitle,
+        description: editDescription || undefined,
+        precondition: editPrecondition || undefined,
+        postcondition: editPostcondition || undefined,
+        priority: editPriority,
+        status: editStatus,
+        steps: editSteps.length > 0 ? editSteps : undefined,
+        version: tc!.version,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["tms-case", projectId, caseKey] });
+      void queryClient.invalidateQueries({ queryKey: ["tms-cases", projectId] });
+      setEditing(false);
+      toast.success("Тест-кейс обновлён");
+    },
+    onError: () => toast.error("Ошибка обновления тест-кейса"),
   });
 
   // Привязка к задаче
@@ -89,6 +156,47 @@ function TestCaseDetailPage() {
     onError: () => toast.error("Ошибка отката"),
   });
 
+  /** Начать редактирование — инициализировать форму из текущих данных. */
+  const startEditing = () => {
+    if (!tc) return;
+    setEditTitle(tc.title);
+    setEditDescription(tc.description ?? "");
+    setEditPrecondition(tc.precondition ?? "");
+    setEditPostcondition(tc.postcondition ?? "");
+    setEditPriority(tc.priority);
+    setEditStatus(tc.status);
+    setEditSteps(tc.steps ? tc.steps.map((s) => ({ ...s })) : []);
+    setEditing(true);
+  };
+
+  /** Отменить редактирование. */
+  const cancelEditing = () => {
+    setEditing(false);
+  };
+
+  /** Добавить шаг в конец списка. */
+  const addStep = () => {
+    setEditSteps([
+      ...editSteps,
+      { order: editSteps.length + 1, action: "", expected_result: "" },
+    ]);
+  };
+
+  /** Удалить шаг и пересчитать порядок. */
+  const removeStep = (index: number) => {
+    const updated = editSteps.filter((_, i) => i !== index);
+    setEditSteps(updated.map((s, i) => ({ ...s, order: i + 1 })));
+  };
+
+  /** Обновить поле шага. */
+  const updateStep = (index: number, field: "action" | "expected_result", value: string) => {
+    setEditSteps((prev) =>
+      prev.map((s, i) =>
+        i === index ? { order: s.order, action: field === "action" ? value : s.action, expected_result: field === "expected_result" ? value : s.expected_result, keyword: s.keyword } : s,
+      ),
+    );
+  };
+
   if (isLoading || !tc) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -100,16 +208,46 @@ function TestCaseDetailPage() {
   return (
     <div className="mx-auto max-w-5xl">
       {/* Навигация */}
-      <div className="mb-4">
-        <Link
-          to="/projects/$projectId/tms/cases"
-          params={{ projectId }}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          Тест-кейсы
-        </Link>
-        <span className="mx-2 text-muted-foreground">/</span>
-        <span className="text-sm font-medium">{tc.case_key}</span>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <Link
+            to="/projects/$projectId/tms/cases"
+            params={{ projectId }}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            Тест-кейсы
+          </Link>
+          <span className="mx-2 text-muted-foreground">/</span>
+          <span className="text-sm font-medium">{tc.case_key}</span>
+        </div>
+        <div className="flex gap-2">
+          {editing ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={cancelEditing}
+                disabled={updateMutation.isPending}
+              >
+                Отмена
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => updateMutation.mutate()}
+                disabled={!editTitle.trim() || updateMutation.isPending}
+              >
+                {updateMutation.isPending ? "Сохранение..." : "Сохранить"}
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={startEditing}>
+              <svg className="mr-1.5 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Редактировать
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-6">
@@ -119,101 +257,229 @@ function TestCaseDetailPage() {
           <div>
             <div className="mb-2 flex items-center gap-3">
               <span className="text-lg font-bold text-primary">{tc.case_key}</span>
-              <Badge
-                variant="secondary"
-                className={cn("text-xs", PRIORITY_COLORS[tc.priority])}
-              >
-                {tc.priority}
-              </Badge>
-              <Badge
-                variant="secondary"
-                className={cn("text-xs", STATUS_COLORS[tc.status])}
-              >
-                {tc.status}
-              </Badge>
+              {editing ? (
+                <>
+                  <select
+                    className="rounded-md border bg-card px-2 py-1 text-xs"
+                    value={editPriority}
+                    onChange={(e) => setEditPriority(e.target.value as TestCasePriority)}
+                  >
+                    {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="rounded-md border bg-card px-2 py-1 text-xs"
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as TestCaseStatus)}
+                  >
+                    {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </>
+              ) : (
+                <>
+                  <Badge
+                    variant="secondary"
+                    className={cn("text-xs", PRIORITY_COLORS[tc.priority])}
+                  >
+                    {PRIORITY_LABELS[tc.priority] ?? tc.priority}
+                  </Badge>
+                  <Badge
+                    variant="secondary"
+                    className={cn("text-xs", STATUS_COLORS[tc.status])}
+                  >
+                    {STATUS_LABELS[tc.status] ?? tc.status}
+                  </Badge>
+                </>
+              )}
               <Badge variant="outline" className="text-xs">
                 {tc.case_type === "bdd" ? "BDD" : "Classic"}
               </Badge>
             </div>
-            <h2 className="text-xl font-semibold">{tc.title}</h2>
-            {tc.description && (
-              <p className="mt-2 text-sm text-muted-foreground">{tc.description}</p>
+            {editing ? (
+              <Input
+                className="text-xl font-semibold"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Название тест-кейса"
+              />
+            ) : (
+              <h2 className="text-xl font-semibold">{tc.title}</h2>
+            )}
+            {editing ? (
+              <textarea
+                className="mt-2 w-full rounded-lg border bg-card px-3 py-2 text-sm"
+                placeholder="Описание (необязательно)"
+                rows={3}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            ) : (
+              tc.description && (
+                <p className="mt-2 text-sm text-muted-foreground">{tc.description}</p>
+              )
             )}
           </div>
 
           {/* Предусловия */}
-          {tc.precondition && (
+          {editing ? (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Предусловие</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm">{tc.precondition}</p>
+                <textarea
+                  className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
+                  placeholder="Предусловие (необязательно)"
+                  rows={2}
+                  value={editPrecondition}
+                  onChange={(e) => setEditPrecondition(e.target.value)}
+                />
               </CardContent>
             </Card>
+          ) : (
+            tc.precondition && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Предусловие</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm">{tc.precondition}</p>
+                </CardContent>
+              </Card>
+            )
           )}
 
           {/* Шаги */}
-          {tc.steps && tc.steps.length > 0 && (
+          {editing ? (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Шаги</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Шаги</CardTitle>
+                  <Button variant="outline" size="sm" onClick={addStep}>
+                    + Добавить шаг
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                        #
-                      </th>
-                      {tc.case_type === "bdd" && (
-                        <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                          Ключевое слово
-                        </th>
-                      )}
-                      <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                        Действие
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                        Ожидаемый результат
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tc.steps.map((step) => (
-                      <tr key={step.order} className="border-b last:border-0">
-                        <td className="px-2 py-2 text-sm text-muted-foreground">
+                {editSteps.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Нет шагов. Нажмите "Добавить шаг".
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {editSteps.map((step, idx) => (
+                      <div key={idx} className="flex gap-2 items-start rounded border p-2">
+                        <span className="mt-2 text-sm font-medium text-muted-foreground w-6 shrink-0">
                           {step.order}
-                        </td>
-                        {tc.case_type === "bdd" && (
-                          <td className="px-2 py-2">
-                            <Badge variant="outline" className="text-xs">
-                              {step.keyword}
-                            </Badge>
-                          </td>
-                        )}
-                        <td className="px-2 py-2 text-sm">{step.action}</td>
-                        <td className="px-2 py-2 text-sm text-muted-foreground">
-                          {step.expected_result}
-                        </td>
-                      </tr>
+                        </span>
+                        <div className="flex-1 space-y-2">
+                          <Input
+                            placeholder="Действие"
+                            value={step.action}
+                            onChange={(e) => updateStep(idx, "action", e.target.value)}
+                          />
+                          <Input
+                            placeholder="Ожидаемый результат"
+                            value={step.expected_result ?? ""}
+                            onChange={(e) => updateStep(idx, "expected_result", e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-1 h-7 px-2 text-xs text-destructive"
+                          onClick={() => removeStep(idx)}
+                        >
+                          x
+                        </Button>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
+          ) : (
+            tc.steps && tc.steps.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Шаги</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                          #
+                        </th>
+                        {tc.case_type === "bdd" && (
+                          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                            Ключевое слово
+                          </th>
+                        )}
+                        <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Действие
+                        </th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Ожидаемый результат
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tc.steps.map((step) => (
+                        <tr key={step.order} className="border-b last:border-0">
+                          <td className="px-2 py-2 text-sm text-muted-foreground">
+                            {step.order}
+                          </td>
+                          {tc.case_type === "bdd" && (
+                            <td className="px-2 py-2">
+                              <Badge variant="outline" className="text-xs">
+                                {step.keyword}
+                              </Badge>
+                            </td>
+                          )}
+                          <td className="px-2 py-2 text-sm">{step.action}</td>
+                          <td className="px-2 py-2 text-sm text-muted-foreground">
+                            {step.expected_result}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )
           )}
 
           {/* Постусловие */}
-          {tc.postcondition && (
+          {editing ? (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Постусловие</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm">{tc.postcondition}</p>
+                <textarea
+                  className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
+                  placeholder="Постусловие (необязательно)"
+                  rows={2}
+                  value={editPostcondition}
+                  onChange={(e) => setEditPostcondition(e.target.value)}
+                />
               </CardContent>
             </Card>
+          ) : (
+            tc.postcondition && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Постусловие</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm">{tc.postcondition}</p>
+                </CardContent>
+              </Card>
+            )
           )}
 
           {/* История версий */}
