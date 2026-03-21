@@ -494,6 +494,61 @@ func (s *DashboardService) GetAdminStats(ctx context.Context) (*AdminStats, erro
 	return stats, nil
 }
 
+// ---------------------------------------------------------------------------
+// Шаблоны дашбордов
+// ---------------------------------------------------------------------------
+
+// templatePresets содержит предустановленные раскладки дашбордов для ролей.
+var templatePresets = map[string][]LayoutItem{
+	"dev": {
+		{I: "my-tasks", X: 0, Y: 0, W: 6, H: 4, WidgetType: "my-tasks", Config: map[string]interface{}{"limit": 20}},
+		{I: "recent-activity", X: 6, Y: 0, W: 6, H: 4, WidgetType: "recent-activity", Config: map[string]interface{}{"limit": 20}},
+		{I: "burndown", X: 0, Y: 4, W: 6, H: 3, WidgetType: "burndown", Config: map[string]interface{}{"days": 30}},
+		{I: "velocity", X: 6, Y: 4, W: 6, H: 3, WidgetType: "velocity", Config: map[string]interface{}{"weeks": 10}},
+	},
+	"qa": {
+		{I: "test-runs", X: 0, Y: 0, W: 6, H: 4, WidgetType: "test-runs", Config: map[string]interface{}{"limit": 10}},
+		{I: "flaky-tests", X: 6, Y: 0, W: 6, H: 4, WidgetType: "flaky-tests", Config: map[string]interface{}{"limit": 10}},
+		{I: "coverage", X: 0, Y: 4, W: 6, H: 3, WidgetType: "coverage", Config: map[string]interface{}{}},
+		{I: "my-assigned-runs", X: 6, Y: 4, W: 6, H: 3, WidgetType: "my-assigned-runs", Config: map[string]interface{}{"limit": 10}},
+	},
+	"manager": {
+		{I: "project-stats", X: 0, Y: 0, W: 6, H: 3, WidgetType: "project-stats", Config: map[string]interface{}{}},
+		{I: "team-activity", X: 6, Y: 0, W: 6, H: 3, WidgetType: "team-activity", Config: map[string]interface{}{"limit": 20}},
+		{I: "overdue", X: 0, Y: 3, W: 6, H: 3, WidgetType: "overdue", Config: map[string]interface{}{"limit": 15}},
+		{I: "burndown", X: 6, Y: 3, W: 6, H: 3, WidgetType: "burndown", Config: map[string]interface{}{"days": 30}},
+	},
+}
+
+// GetTemplates возвращает список доступных шаблонов дашбордов.
+// Каждый шаблон — преднастроенный набор виджетов для определённой роли.
+func (s *DashboardService) GetTemplates() map[string][]LayoutItem {
+	// Возвращаем копию, чтобы вызывающий код не мог изменить пресеты.
+	result := make(map[string][]LayoutItem, len(templatePresets))
+	for name, items := range templatePresets {
+		copied := make([]LayoutItem, len(items))
+		copy(copied, items)
+		result[name] = copied
+	}
+	return result
+}
+
+// ApplyTemplate применяет шаблон дашборда для пользователя в проекте.
+// Перезаписывает существующую раскладку типа "project" для указанного пользователя.
+func (s *DashboardService) ApplyTemplate(ctx context.Context, userID uuid.UUID, projectID uuid.UUID, templateName string) error {
+	items, ok := templatePresets[templateName]
+	if !ok {
+		return fmt.Errorf("шаблон %q не найден", templateName)
+	}
+
+	req := SaveLayoutRequest{
+		DashboardType: "project",
+		ProjectID:     &projectID,
+		Items:         items,
+	}
+	return s.SaveLayout(ctx, userID, req)
+}
+
 // GetLayout возвращает сохранённую раскладку дашборда пользователя.
 func (s *DashboardService) GetLayout(ctx context.Context, userID uuid.UUID, dashboardType string, projectID *uuid.UUID) (*LayoutDTO, error) {
 	q := s.db.DashboardLayout.Query().

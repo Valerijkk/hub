@@ -25,6 +25,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	dash.Get("/admin", h.Admin)
 	dash.Get("/layout", h.GetLayout)
 	dash.Put("/layout", h.SaveLayout)
+	dash.Get("/templates", h.ListTemplates)
+	dash.Post("/templates/apply", h.ApplyTemplate)
 }
 
 // Personal возвращает агрегированные данные персонального дашборда.
@@ -135,6 +137,45 @@ func (h *Handler) SaveLayout(c fiber.Ctx) error {
 
 	if err := h.service.SaveLayout(c.Context(), userID, req); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка сохранения раскладки")
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// ListTemplates возвращает список доступных шаблонов дашбордов.
+func (h *Handler) ListTemplates(c fiber.Ctx) error {
+	return c.JSON(h.service.GetTemplates())
+}
+
+// applyTemplateRequest — тело запроса на применение шаблона.
+type applyTemplateRequest struct {
+	ProjectID string `json:"project_id"`
+	Template  string `json:"template"`
+}
+
+// ApplyTemplate применяет выбранный шаблон дашборда.
+func (h *Handler) ApplyTemplate(c fiber.Ctx) error {
+	userID, err := getUserID(c)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+	}
+
+	var req applyTemplateRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "невалидное тело запроса")
+	}
+
+	if req.Template == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "template обязателен")
+	}
+
+	projectID, err := uuid.Parse(req.ProjectID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "невалидный project_id")
+	}
+
+	if err := h.service.ApplyTemplate(c.Context(), userID, projectID, req.Template); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
