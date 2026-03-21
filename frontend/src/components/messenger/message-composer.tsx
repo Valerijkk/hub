@@ -129,8 +129,8 @@ export function MessageComposer({
             </svg>
           </button>
 
-          {/* Поле ввода -- полная ширина, скруглённое */}
-          <div className="flex-1 rounded-xl border bg-background shadow-sm transition-shadow focus-within:shadow-md focus-within:border-ring/50">
+          {/* Поле ввода — полная ширина, скруглённое, стеклянный эффект */}
+          <div className="flex-1 rounded-xl border bg-background/80 backdrop-blur-sm shadow-sm transition-all duration-200 focus-within:shadow-md focus-within:border-ring/50 focus-within:bg-background">
             <textarea
               ref={textareaRef}
               value={text}

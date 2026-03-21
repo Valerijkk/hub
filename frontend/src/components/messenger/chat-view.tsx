@@ -89,7 +89,7 @@ export function ChatView({ channelId }: ChatViewProps) {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Заголовок канала */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b bg-card/50 px-5">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b bg-card/60 backdrop-blur-sm px-5">
         <div className="flex items-center gap-3">
           {/* Иконка канала */}
           {channel && (
@@ -193,8 +193,9 @@ export function ChatView({ channelId }: ChatViewProps) {
           )}
 
           {/* Composer — фиксированный внизу */}
+          {/* Композер — стеклянный фон */}
           {!channel?.is_read_only && (
-            <div className="shrink-0 border-t bg-card/30 px-4 py-3">
+            <div className="shrink-0 border-t glass-subtle px-4 py-3">
               <MessageComposer channelId={channelId} />
             </div>
           )}

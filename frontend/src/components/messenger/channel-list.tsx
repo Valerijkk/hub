@@ -248,9 +248,9 @@ export function ChannelList() {
                       to="/messenger/$channelId"
                       params={{ channelId: channel.id }}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-                        "text-sidebar-foreground/70 hover:bg-white/8 hover:text-sidebar-foreground",
-                        isActive && "bg-primary/15 text-sidebar-foreground border-l-2 border-primary font-medium",
+                        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
+                        "text-sidebar-foreground/70 hover:bg-white/[0.08] hover:text-sidebar-foreground hover:translate-x-0.5",
+                        isActive && "bg-primary/15 text-sidebar-foreground border-l-[3px] border-primary font-medium shadow-[0_0_10px_rgba(59,130,246,0.1)]",
                       )}
                     >
                       <ChannelIcon type={channel.channel_type} />
