@@ -44,21 +44,21 @@ type SetRegistrationModeRequest struct {
 	Mode string `json:"mode" validate:"required,oneof=open invite_only"`
 }
 
-// OnboardingCompleteRequest is the request body for POST /auth/me/onboarding.
+// OnboardingCompleteRequest — тело запроса для POST /auth/me/onboarding.
 type OnboardingCompleteRequest struct {
 	ProfileData UpdateProfileRequest `json:"profile"`
 }
 
 // --- Response DTOs ---
 
-// TokenPairResponse is the response for login/refresh endpoints.
+// TokenPairResponse — ответ для эндпоинтов login/refresh.
 type TokenPairResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    int64  `json:"expires_in"`
 }
 
-// UserResponse is the response for GET /auth/me and profile updates.
+// UserResponse — ответ для GET /auth/me и обновления профиля.
 type UserResponse struct {
 	ID                  string                 `json:"id"`
 	Email               string                 `json:"email"`
@@ -77,7 +77,7 @@ type UserResponse struct {
 	CustomFields        map[string]interface{} `json:"custom_fields,omitempty"`
 }
 
-// SessionResponse is a single session in the list returned by GET /auth/sessions.
+// SessionResponse — одна сессия в списке, возвращаемом GET /auth/sessions.
 type SessionResponse struct {
 	ID           string    `json:"id"`
 	Device       string    `json:"device"`

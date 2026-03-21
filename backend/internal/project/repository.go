@@ -71,16 +71,19 @@ func NewEntRepository(client *ent.Client, publisher OutboxPublisher) *EntReposit
 	return &EntRepository{client: client, publisher: publisher}
 }
 
+// FindByID возвращает проект по ID.
 func (r *EntRepository) FindByID(ctx context.Context, id uuid.UUID) (*ent.Project, error) {
 	return r.client.Project.Get(ctx, id)
 }
 
+// FindByKey ищет проект по уникальному ключу (например, "HUB").
 func (r *EntRepository) FindByKey(ctx context.Context, key string) (*ent.Project, error) {
 	return r.client.Project.Query().
 		Where(project.KeyEQ(key)).
 		Only(ctx)
 }
 
+// ListByUserID возвращает проекты пользователя (исключая удалённые, опционально архивные).
 func (r *EntRepository) ListByUserID(ctx context.Context, userID uuid.UUID, includeArchived bool) ([]*ent.Project, error) {
 	query := r.client.Project.Query().
 		Where(
@@ -97,6 +100,7 @@ func (r *EntRepository) ListByUserID(ctx context.Context, userID uuid.UUID, incl
 	return query.All(ctx)
 }
 
+// ListTrash возвращает удалённые проекты пользователя (status=deleted).
 func (r *EntRepository) ListTrash(ctx context.Context, userID uuid.UUID) ([]*ent.Project, error) {
 	return r.client.Project.Query().
 		Where(
@@ -108,6 +112,7 @@ func (r *EntRepository) ListTrash(ctx context.Context, userID uuid.UUID) ([]*ent
 		All(ctx)
 }
 
+// Create создаёт проект в транзакции: запись проекта, добавление владельца, outbox-событие.
 func (r *EntRepository) Create(ctx context.Context, name, key, description string, ownerID uuid.UUID) (*ent.Project, error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
@@ -156,6 +161,7 @@ func (r *EntRepository) Create(ctx context.Context, name, key, description strin
 	return p, nil
 }
 
+// Update обновляет поля проекта (имя, описание, аватар).
 func (r *EntRepository) Update(ctx context.Context, id uuid.UUID, name, description, avatarURL *string) (*ent.Project, error) {
 	update := r.client.Project.UpdateOneID(id)
 	if name != nil {
@@ -170,6 +176,7 @@ func (r *EntRepository) Update(ctx context.Context, id uuid.UUID, name, descript
 	return update.Save(ctx)
 }
 
+// UpdateStatus обновляет статус проекта и опционально устанавливает deleted_at.
 func (r *EntRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status project.Status, setDeletedAt bool) (*ent.Project, error) {
 	update := r.client.Project.UpdateOneID(id).SetStatus(status)
 	if setDeletedAt {

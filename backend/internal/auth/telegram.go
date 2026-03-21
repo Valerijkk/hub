@@ -15,7 +15,7 @@ import (
 
 const telegramAuthMaxAge = 5 * time.Minute
 
-// TelegramUser represents the user data extracted from Telegram initData.
+// TelegramUser представляет данные пользователя, извлечённые из Telegram initData.
 type TelegramUser struct {
 	ID        int64  `json:"id"`
 	FirstName string `json:"first_name"`
@@ -23,7 +23,7 @@ type TelegramUser struct {
 	Username  string `json:"username"`
 }
 
-// VerifyTelegramAuth verifies the HMAC-SHA256 signature of Telegram Web App initData.
+// VerifyTelegramAuth проверяет HMAC-SHA256 подпись Telegram Web App initData.
 //
 // Steps:
 //  1. Parse initData as URL query params.
