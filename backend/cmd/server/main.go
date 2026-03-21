@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/valerii/hub/backend/internal/auth"
@@ -23,6 +24,9 @@ import (
 	tmsmod "github.com/valerii/hub/backend/internal/tms"
 	trackermod "github.com/valerii/hub/backend/internal/tracker"
 	redisclient "github.com/valerii/hub/backend/internal/platform/redis"
+	auditmod "github.com/valerii/hub/backend/internal/audit"
+	notifmod "github.com/valerii/hub/backend/internal/notification"
+	searchmod "github.com/valerii/hub/backend/internal/search"
 	wsmod "github.com/valerii/hub/backend/internal/ws"
 )
 
@@ -164,6 +168,66 @@ func main() {
 	tmsSvc := tmsmod.NewTMSService(tmsRepo, nc)
 	tmsHandler := tmsmod.NewHandler(tmsSvc)
 	tmsHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+
+	// Search routes (глобальный поиск + сохранённые фильтры)
+	rawDB, err := database.OpenRawDB(cfg.Postgres.URL)
+	if err != nil {
+		slog.Error("failed to open raw DB for search", "error", err)
+		os.Exit(1)
+	}
+	defer rawDB.Close()
+	if err := searchmod.EnsureSearchIndexes(ctx, rawDB); err != nil {
+		slog.Error("failed to ensure search indexes", "error", err)
+	}
+	searchSvc := searchmod.NewSearchService(db, rawDB, mongoDB)
+	searchHandler := searchmod.NewHandler(searchSvc)
+	searchHandler.RegisterRoutes(api, requireAuth)
+
+	// Notification routes (уведомления: in-app + Telegram)
+	notifRepo := notifmod.NewRepository(db)
+	telegramSender := notifmod.NewTelegramSender(cfg.Telegram.BotToken)
+	notifSvc := notifmod.NewNotificationService(notifRepo, nc, telegramSender, db)
+	notifConsumer := notifmod.NewConsumer(nc, notifRepo, notifSvc)
+	notifCtx, notifCancel := context.WithCancel(ctx)
+	defer notifCancel()
+	if err := notifConsumer.Start(notifCtx); err != nil {
+		slog.Error("failed to start notification consumer", "error", err)
+	}
+	if telegramSender != nil {
+		telegramSender.Start(notifCtx)
+	}
+	notifHandler := notifmod.NewHandler(notifSvc)
+	notifHandler.RegisterRoutes(api, requireAuth)
+
+	// Audit routes (журнал аудита, лимиты, корзина, управление пользователями)
+	auditRepo := auditmod.NewRepository(db)
+	auditSvc := auditmod.NewAuditService(db, auditRepo)
+	auditConsumer := auditmod.NewAuditConsumer(nc, auditRepo)
+	auditCtx, auditCancel := context.WithCancel(ctx)
+	defer auditCancel()
+	if err := auditConsumer.Start(auditCtx); err != nil {
+		slog.Error("failed to start audit consumer", "error", err)
+	}
+	auditHandler := auditmod.NewHandler(auditSvc)
+	auditHandler.RegisterRoutesSimple(api, requireAuth)
+
+	// Запуск фоновой очистки корзины (каждые 24 часа)
+	purgeCtx, purgeCancel := context.WithCancel(ctx)
+	defer purgeCancel()
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := auditSvc.PurgeExpired(purgeCtx); err != nil {
+					slog.Error("purge expired items failed", "error", err)
+				}
+			case <-purgeCtx.Done():
+				return
+			}
+		}
+	}()
 
 	// Calls routes (голосовые звонки через LiveKit)
 	callsRepo := callsmod.NewEntRepository(db)

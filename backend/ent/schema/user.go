@@ -49,11 +49,23 @@ func (User) Fields() []ent.Field {
 		field.Enum("system_role").
 			Values("admin", "member").
 			Default("member"),
+		field.Enum("status").
+			Values("active", "deactivated").
+			Default("active").
+			Comment("Статус пользователя: active или deactivated"),
 		field.Bool("onboarding_completed").
 			Default(false),
 		field.Time("created_at").
 			Default(time.Now).
 			Immutable(),
+		field.String("quiet_hours_start").
+			Optional().
+			Nillable().
+			Comment("Начало тихих часов в формате HH:MM"),
+		field.String("quiet_hours_end").
+			Optional().
+			Nillable().
+			Comment("Конец тихих часов в формате HH:MM"),
 		field.Time("updated_at").
 			Default(time.Now).
 			UpdateDefault(time.Now),
@@ -82,6 +94,9 @@ func (User) Edges() []ent.Edge {
 		edge.To("test_case_versions", TestCaseVersion.Type),
 		edge.To("created_calls", Call.Type),
 		edge.To("call_participations", CallParticipant.Type),
+		edge.To("saved_filters", SavedFilter.Type),
+		edge.To("notifications", Notification.Type),
+		edge.To("notification_preferences", NotificationPreference.Type),
 	}
 }
 

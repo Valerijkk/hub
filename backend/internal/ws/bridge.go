@@ -75,6 +75,16 @@ func (b *Bridge) Start() error {
 	}
 	b.subs = append(b.subs, callChatSub)
 
+	// notification.user.{userID} -> send to specific user
+	// Маршрутизирует уведомления конкретному пользователю через WS.
+	notifSub, err := b.nats.Subscribe("notification.user.>", func(msg *nats.Msg) {
+		b.handleNotificationEvent(msg)
+	})
+	if err != nil {
+		return err
+	}
+	b.subs = append(b.subs, notifSub)
+
 	slog.Info("ws bridge started", "subscriptions", len(b.subs))
 	return nil
 }
@@ -225,6 +235,28 @@ func (b *Bridge) handleAuthSessionEvent(msg *nats.Msg) {
 	b.hub.SendToUser(userID, ServerMessage{
 		Type:    TypeEvent,
 		Event:   event,
+		Payload: payload,
+	})
+}
+
+// handleNotificationEvent маршрутизирует уведомления конкретному пользователю.
+// Формат subject: notification.user.{userID}
+func (b *Bridge) handleNotificationEvent(msg *nats.Msg) {
+	parts := strings.SplitN(msg.Subject, ".", 3)
+	if len(parts) < 3 {
+		return
+	}
+
+	userID := parts[2]
+
+	var payload any
+	if len(msg.Data) > 0 {
+		_ = json.Unmarshal(msg.Data, &payload)
+	}
+
+	b.hub.SendToUser(userID, ServerMessage{
+		Type:    TypeEvent,
+		Event:   "notification.new",
 		Payload: payload,
 	})
 }
