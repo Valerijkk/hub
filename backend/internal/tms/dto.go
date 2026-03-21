@@ -109,6 +109,57 @@ type UpdateTestResultRequest struct {
 	Comment     *string              `json:"comment,omitempty"`
 	StepResults *[]schema.StepResult `json:"step_results,omitempty"`
 	IsFlaky     *bool                `json:"is_flaky,omitempty"`
+	FileIDs     []string             `json:"file_ids,omitempty"`
+}
+
+// AddTestCasesToRunRequest — тело запроса на добавление тест-кейсов в прогон.
+type AddTestCasesToRunRequest struct {
+	CaseIDs []string `json:"case_ids" validate:"required,min=1"`
+}
+
+// AssignTestersRequest — тело запроса на назначение тестировщиков прогону.
+type AssignTestersRequest struct {
+	UserIDs []string `json:"user_ids" validate:"required,min=1"`
+}
+
+// TestRunDetailResponse — полная информация о прогоне с результатами и назначенными.
+type TestRunDetailResponse struct {
+	TestRunResponse
+	Results   []TestResultDetailResponse `json:"results"`
+	Assignees []UserBriefResponse        `json:"assignees"`
+}
+
+// TestResultDetailResponse — результат с полной информацией о тест-кейсе и файлах.
+type TestResultDetailResponse struct {
+	ID            string              `json:"id"`
+	Status        string              `json:"status"`
+	Comment       string              `json:"comment,omitempty"`
+	StepResults   []schema.StepResult `json:"step_results,omitempty"`
+	DurationMs    *int64              `json:"duration_ms,omitempty"`
+	IsFlaky       bool                `json:"is_flaky"`
+	TestCase      *TestCaseBriefDTO   `json:"test_case,omitempty"`
+	ExecutedBy    *UserBriefResponse  `json:"executed_by,omitempty"`
+	Files         []FileBriefResponse `json:"files,omitempty"`
+	StartedAt     *time.Time          `json:"started_at,omitempty"`
+	CompletedAt   *time.Time          `json:"completed_at,omitempty"`
+	CreatedAt     time.Time           `json:"created_at"`
+}
+
+// TestCaseBriefDTO — краткое представление тест-кейса для результата.
+type TestCaseBriefDTO struct {
+	ID       string `json:"id"`
+	CaseKey  string `json:"case_key"`
+	Title    string `json:"title"`
+	CaseType string `json:"case_type"`
+	Priority string `json:"priority"`
+}
+
+// FileBriefResponse — краткое представление файла-вложения.
+type FileBriefResponse struct {
+	ID       string `json:"id"`
+	FileName string `json:"file_name"`
+	FileSize int64  `json:"file_size"`
+	MimeType string `json:"mime_type"`
 }
 
 // ListTestCasesRequest — параметры запроса списка тест-кейсов.

@@ -11,6 +11,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/schema"
 	"github.com/valerii/hub/backend/ent/testcase"
+	"github.com/valerii/hub/backend/ent/testresult"
 	"github.com/valerii/hub/backend/ent/testrun"
 )
 
@@ -288,6 +289,10 @@ func (m *mockRepository) UpdateTestRunStats(_ context.Context, id uuid.UUID, sta
 	}
 	run.TotalCount = stats.TotalCount
 	run.PassedCount = stats.PassedCount
+	run.FailedCount = stats.FailedCount
+	run.SkippedCount = stats.SkippedCount
+	run.BrokenCount = stats.BrokenCount
+	run.UnknownCount = stats.UnknownCount
 	return run, nil
 }
 
@@ -298,10 +303,16 @@ func (m *mockRepository) CreateTestResult(_ context.Context, _ uuid.UUID, input 
 	return r, nil
 }
 
-func (m *mockRepository) UpdateTestResult(_ context.Context, id uuid.UUID, _ UpdateTestResultInput) (*ent.TestResult, error) {
+func (m *mockRepository) UpdateTestResult(_ context.Context, id uuid.UUID, input UpdateTestResultInput) (*ent.TestResult, error) {
 	r, ok := m.results[id]
 	if !ok {
 		return nil, &ent.NotFoundError{}
+	}
+	if input.Status != nil {
+		r.Status = testresult.Status(*input.Status)
+	}
+	if input.Comment != nil {
+		r.Comment = *input.Comment
 	}
 	return r, nil
 }
@@ -336,6 +347,60 @@ func (m *mockRepository) LinkTestCaseToIssue(_ context.Context, _, _ uuid.UUID) 
 
 func (m *mockRepository) UnlinkTestCaseFromIssue(_ context.Context, _, _ uuid.UUID) error {
 	return nil
+}
+
+func (m *mockRepository) AddTestCasesToRun(_ context.Context, runID uuid.UUID, caseIDs []uuid.UUID) error {
+	for _, caseID := range caseIDs {
+		id := uuid.New()
+		r := &ent.TestResult{
+			ID:     id,
+			Status: "unknown",
+			Edges: ent.TestResultEdges{
+				TestCase: m.testCases[caseID],
+			},
+			CreatedAt: time.Now(),
+		}
+		m.results[id] = r
+	}
+	return nil
+}
+
+func (m *mockRepository) GetTestResult(_ context.Context, resultID uuid.UUID) (*ent.TestResult, error) {
+	r, ok := m.results[resultID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	return r, nil
+}
+
+func (m *mockRepository) ListTestRunResults(_ context.Context, _ uuid.UUID) ([]*ent.TestResult, error) {
+	return m.listResultsSlice(), nil
+}
+
+func (m *mockRepository) AssignTestersToRun(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	return nil
+}
+
+func (m *mockRepository) GetTestRunWithResults(_ context.Context, runID uuid.UUID) (*ent.TestRun, error) {
+	run, ok := m.runs[runID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	results := m.listResultsSlice()
+	run.Edges.Results = results
+	return run, nil
+}
+
+func (m *mockRepository) AddFilesToResult(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	return nil
+}
+
+func (m *mockRepository) listResultsSlice() []*ent.TestResult {
+	items := make([]*ent.TestResult, 0, len(m.results))
+	for _, r := range m.results {
+		items = append(items, r)
+	}
+	return items
 }
 
 // ---------------------------------------------------------------------------
@@ -527,4 +592,117 @@ func TestReopenTestRun(t *testing.T) {
 	reopened, err := svc.ReopenTestRun(ctx, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "in_progress", reopened.Status)
+}
+
+func TestAddTestCasesToRun(t *testing.T) {
+	repo := newMockRepo()
+	svc := NewTMSService(repo)
+	ctx := context.Background()
+
+	// Создаём тест-кейсы
+	tc1, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), CreateTestCaseRequest{
+		Title: "Кейс 1",
+	})
+	require.NoError(t, err)
+	tc2, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), CreateTestCaseRequest{
+		Title: "Кейс 2",
+	})
+	require.NoError(t, err)
+
+	// Создаём прогон
+	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), CreateTestRunRequest{
+		Title: "Прогон с кейсами",
+	})
+	require.NoError(t, err)
+	runID, _ := uuid.Parse(run.ID)
+
+	// Добавляем кейсы
+	detail, err := svc.AddTestCasesToRun(ctx, runID, AddTestCasesToRunRequest{
+		CaseIDs: []string{tc1.ID, tc2.ID},
+	})
+	require.NoError(t, err)
+	assert.Len(t, detail.Results, 2)
+}
+
+func TestExecuteTestResult_UpdatesStats(t *testing.T) {
+	repo := newMockRepo()
+	svc := NewTMSService(repo)
+	ctx := context.Background()
+
+	// Создаём прогон и переводим в in_progress
+	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), CreateTestRunRequest{
+		Title: "Прогон для выполнения",
+	})
+	require.NoError(t, err)
+	runID, _ := uuid.Parse(run.ID)
+
+	_, err = svc.UpdateRunStatus(ctx, runID, "in_progress")
+	require.NoError(t, err)
+
+	// Создаём результат вручную
+	resultID := uuid.New()
+	repo.results[resultID] = &ent.TestResult{
+		ID:        resultID,
+		Status:    "unknown",
+		CreatedAt: time.Now(),
+	}
+
+	// Выполняем результат
+	passedStatus := "passed"
+	comment := "Тест пройден"
+	resp, err := svc.ExecuteTestResult(ctx, runID, resultID, uuid.New(), UpdateTestResultRequest{
+		Status:  &passedStatus,
+		Comment: &comment,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, resp)
+
+	// Проверяем что статистика обновилась
+	updatedRun := repo.runs[runID]
+	assert.Equal(t, 1, updatedRun.TotalCount)
+	assert.Equal(t, 1, updatedRun.PassedCount)
+}
+
+func TestCompleteTestRun(t *testing.T) {
+	repo := newMockRepo()
+	svc := NewTMSService(repo)
+	ctx := context.Background()
+
+	// Создаём и стартуем прогон
+	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), CreateTestRunRequest{
+		Title: "Прогон для завершения",
+	})
+	require.NoError(t, err)
+	runID, _ := uuid.Parse(run.ID)
+
+	_, err = svc.StartTestRun(ctx, runID)
+	require.NoError(t, err)
+
+	// Завершаем
+	completed, err := svc.CompleteTestRun(ctx, runID)
+	require.NoError(t, err)
+	assert.Equal(t, "completed", completed.Status)
+}
+
+func TestStartTestRun_InvalidTransition(t *testing.T) {
+	repo := newMockRepo()
+	svc := NewTMSService(repo)
+	ctx := context.Background()
+
+	// Создаём прогон, стартуем, завершаем
+	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), CreateTestRunRequest{
+		Title: "Прогон",
+	})
+	require.NoError(t, err)
+	runID, _ := uuid.Parse(run.ID)
+
+	_, err = svc.StartTestRun(ctx, runID)
+	require.NoError(t, err)
+	_, err = svc.CompleteTestRun(ctx, runID)
+	require.NoError(t, err)
+
+	// Попытка стартовать завершённый (без reopen) должна провалиться
+	_, err = svc.StartTestRun(ctx, runID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "недопустимый переход статуса")
 }

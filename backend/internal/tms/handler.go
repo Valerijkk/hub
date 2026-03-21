@@ -59,9 +59,16 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	runs.Put("/:runId/status", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.UpdateRunStatus)
 	runs.Post("/:runId/reopen", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.ReopenTestRun)
 
+	// Управление прогоном
+	runs.Post("/:runId/cases", rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc), h.AddTestCasesToRun)
+	runs.Post("/:runId/assignees", rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc), h.AssignTestersToRun)
+	runs.Post("/:runId/start", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.StartTestRun)
+	runs.Post("/:runId/complete", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.CompleteTestRun)
+	runs.Get("/:runId/detail", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestRunDetail)
+
 	// Результаты
 	runs.Post("/:runId/results", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.CreateTestResult)
-	runs.Put("/:runId/results/:resultId", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.UpdateTestResult)
+	runs.Put("/:runId/results/:resultId", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.ExecuteTestResult)
 	runs.Get("/:runId/results", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListTestResults)
 }
 
@@ -728,19 +735,28 @@ func (h *Handler) CreateTestResult(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// UpdateTestResult обрабатывает PUT /api/projects/:projectId/tms/runs/:runId/results/:resultId
-// @Summary Обновить результат теста
+// ExecuteTestResult обрабатывает PUT /api/projects/:projectId/tms/runs/:runId/results/:resultId
+// @Summary Выполнить результат теста (обновить статус, шаги, комментарий, файлы)
 // @Tags TMS
 // @Accept json
 // @Produce json
 // @Param projectId path string true "ID проекта"
 // @Param runId path string true "ID прогона"
 // @Param resultId path string true "ID результата"
-// @Param body body UpdateTestResultRequest true "Данные обновления"
+// @Param body body UpdateTestResultRequest true "Данные выполнения"
 // @Success 200 {object} TestResultResponse
+// @Failure 400 {object} errors.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/results/{resultId} [put]
-func (h *Handler) UpdateTestResult(c fiber.Ctx) error {
+func (h *Handler) ExecuteTestResult(c fiber.Ctx) error {
+	runID, err := parseUUIDParam(c, "runId")
+	if err != nil {
+		return err
+	}
 	resultID, err := parseUUIDParam(c, "resultId")
+	if err != nil {
+		return err
+	}
+	userID, err := userIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -750,7 +766,7 @@ func (h *Handler) UpdateTestResult(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
 	}
 
-	resp, err := h.service.UpdateTestResult(c.Context(), resultID, req)
+	resp, err := h.service.ExecuteTestResult(c.Context(), runID, resultID, userID, req)
 	if err != nil {
 		return err
 	}
@@ -773,6 +789,139 @@ func (h *Handler) ListTestResults(c fiber.Ctx) error {
 	}
 
 	resp, err := h.service.ListTestResults(c.Context(), runID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// ---------------------------------------------------------------------------
+// Расширенные операции прогонов
+// ---------------------------------------------------------------------------
+
+// AddTestCasesToRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/cases
+// @Summary Добавить тест-кейсы в прогон
+// @Tags TMS
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param runId path string true "ID прогона"
+// @Param body body AddTestCasesToRunRequest true "Список ID тест-кейсов"
+// @Success 200 {object} TestRunDetailResponse
+// @Failure 400 {object} errors.AppError
+// @Router /api/projects/{projectId}/tms/runs/{runId}/cases [post]
+func (h *Handler) AddTestCasesToRun(c fiber.Ctx) error {
+	runID, err := parseUUIDParam(c, "runId")
+	if err != nil {
+		return err
+	}
+
+	var req AddTestCasesToRunRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+
+	resp, err := h.service.AddTestCasesToRun(c.Context(), runID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// AssignTestersToRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/assignees
+// @Summary Назначить тестировщиков на прогон
+// @Tags TMS
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param runId path string true "ID прогона"
+// @Param body body AssignTestersRequest true "Список ID пользователей"
+// @Success 200 {object} TestRunDetailResponse
+// @Failure 400 {object} errors.AppError
+// @Router /api/projects/{projectId}/tms/runs/{runId}/assignees [post]
+func (h *Handler) AssignTestersToRun(c fiber.Ctx) error {
+	runID, err := parseUUIDParam(c, "runId")
+	if err != nil {
+		return err
+	}
+
+	var req AssignTestersRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+
+	resp, err := h.service.AssignTestersToRun(c.Context(), runID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// StartTestRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/start
+// @Summary Запустить прогон (переход created -> in_progress)
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param runId path string true "ID прогона"
+// @Success 200 {object} TestRunResponse
+// @Failure 400 {object} errors.AppError
+// @Router /api/projects/{projectId}/tms/runs/{runId}/start [post]
+func (h *Handler) StartTestRun(c fiber.Ctx) error {
+	runID, err := parseUUIDParam(c, "runId")
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.StartTestRun(c.Context(), runID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// CompleteTestRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/complete
+// @Summary Завершить прогон (переход in_progress -> completed)
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param runId path string true "ID прогона"
+// @Success 200 {object} TestRunResponse
+// @Failure 400 {object} errors.AppError
+// @Router /api/projects/{projectId}/tms/runs/{runId}/complete [post]
+func (h *Handler) CompleteTestRun(c fiber.Ctx) error {
+	runID, err := parseUUIDParam(c, "runId")
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.CompleteTestRun(c.Context(), runID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// GetTestRunDetail обрабатывает GET /api/projects/:projectId/tms/runs/:runId/detail
+// @Summary Получить детали прогона с результатами и назначенными
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param runId path string true "ID прогона"
+// @Success 200 {object} TestRunDetailResponse
+// @Failure 404 {object} errors.AppError
+// @Router /api/projects/{projectId}/tms/runs/{runId}/detail [get]
+func (h *Handler) GetTestRunDetail(c fiber.Ctx) error {
+	runID, err := parseUUIDParam(c, "runId")
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.GetTestRunDetail(c.Context(), runID)
 	if err != nil {
 		return err
 	}

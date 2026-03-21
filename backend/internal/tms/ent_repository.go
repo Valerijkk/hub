@@ -719,3 +719,75 @@ func (r *EntRepository) UnlinkTestCaseFromIssue(ctx context.Context, testCaseID,
 		RemoveLinkedIssueIDs(issueID).
 		Exec(ctx)
 }
+
+// ---------------------------------------------------------------------------
+// Расширенные операции прогонов
+// ---------------------------------------------------------------------------
+
+// AddTestCasesToRun массово создаёт TestResult записи (со статусом "unknown") для каждого тест-кейса.
+func (r *EntRepository) AddTestCasesToRun(ctx context.Context, runID uuid.UUID, caseIDs []uuid.UUID) error {
+	bulk := make([]*ent.TestResultCreate, 0, len(caseIDs))
+	for _, caseID := range caseIDs {
+		create := r.client.TestResult.Create().
+			SetRunID(runID).
+			SetTestCaseID(caseID).
+			SetStatus(testresult.StatusUnknown)
+		bulk = append(bulk, create)
+	}
+	_, err := r.client.TestResult.CreateBulk(bulk...).Save(ctx)
+	if err != nil {
+		return fmt.Errorf("массовое создание результатов: %w", err)
+	}
+	return nil
+}
+
+// GetTestResult возвращает результат по ID с подгруженными связями.
+func (r *EntRepository) GetTestResult(ctx context.Context, resultID uuid.UUID) (*ent.TestResult, error) {
+	return r.client.TestResult.Query().
+		Where(testresult.ID(resultID)).
+		WithTestCase().
+		WithExecutedBy().
+		WithFiles().
+		Only(ctx)
+}
+
+// ListTestRunResults возвращает результаты прогона с подгруженными тест-кейсами и файлами.
+func (r *EntRepository) ListTestRunResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error) {
+	return r.client.TestResult.Query().
+		Where(testresult.HasRunWith(testrun.ID(runID))).
+		WithTestCase().
+		WithExecutedBy().
+		WithFiles().
+		Order(ent.Asc(testresult.FieldCreatedAt)).
+		All(ctx)
+}
+
+// AssignTestersToRun устанавливает M2M связь прогона с назначенными тестировщиками.
+func (r *EntRepository) AssignTestersToRun(ctx context.Context, runID uuid.UUID, userIDs []uuid.UUID) error {
+	return r.client.TestRun.UpdateOneID(runID).
+		ClearAssignees().
+		AddAssigneeIDs(userIDs...).
+		Exec(ctx)
+}
+
+// GetTestRunWithResults возвращает прогон с результатами, тест-кейсами, файлами и назначенными.
+func (r *EntRepository) GetTestRunWithResults(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error) {
+	return r.client.TestRun.Query().
+		Where(testrun.ID(runID)).
+		WithCreatedBy().
+		WithAssignees().
+		WithResults(func(q *ent.TestResultQuery) {
+			q.WithTestCase().
+				WithExecutedBy().
+				WithFiles().
+				Order(ent.Asc(testresult.FieldCreatedAt))
+		}).
+		Only(ctx)
+}
+
+// AddFilesToResult привязывает файлы к результату теста.
+func (r *EntRepository) AddFilesToResult(ctx context.Context, resultID uuid.UUID, fileIDs []uuid.UUID) error {
+	return r.client.TestResult.UpdateOneID(resultID).
+		AddFileIDs(fileIDs...).
+		Exec(ctx)
+}

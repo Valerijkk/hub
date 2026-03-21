@@ -576,6 +576,155 @@ func (s *TMSService) ListTestResults(ctx context.Context, runID uuid.UUID) ([]Te
 }
 
 // ---------------------------------------------------------------------------
+// Расширенные операции прогонов
+// ---------------------------------------------------------------------------
+
+// AddTestCasesToRun добавляет тест-кейсы в прогон, создавая записи TestResult со статусом unknown.
+// Обновляет total_count и unknown_count прогона.
+func (s *TMSService) AddTestCasesToRun(ctx context.Context, runID uuid.UUID, req AddTestCasesToRunRequest) (*TestRunDetailResponse, error) {
+	caseIDs, err := parseUUIDs(req.CaseIDs)
+	if err != nil {
+		return nil, apperrors.NewBadRequest("некорректный ID тест-кейса")
+	}
+
+	if err := s.repo.AddTestCasesToRun(ctx, runID, caseIDs); err != nil {
+		return nil, apperrors.NewInternal("ошибка добавления тест-кейсов в прогон")
+	}
+
+	// Пересчитываем статистику прогона
+	if err := s.recomputeRunStats(ctx, runID); err != nil {
+		return nil, err
+	}
+
+	return s.GetTestRunDetail(ctx, runID)
+}
+
+// ExecuteTestResult обновляет результат теста с проверкой статуса прогона.
+// Устанавливает статус, комментарий, результаты шагов, файлы-вложения и исполнителя.
+func (s *TMSService) ExecuteTestResult(ctx context.Context, runID, resultID, userID uuid.UUID, req UpdateTestResultRequest) (*TestResultResponse, error) {
+	// Проверяем что прогон в статусе in_progress
+	run, err := s.repo.GetTestRun(ctx, runID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("прогон не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона")
+	}
+	if string(run.Status) != "in_progress" {
+		return nil, apperrors.NewBadRequest("выполнять результаты можно только в прогоне со статусом in_progress")
+	}
+
+	// Обновляем результат
+	input := UpdateTestResultInput{
+		Status:      req.Status,
+		Comment:     req.Comment,
+		StepResults: req.StepResults,
+		IsFlaky:     req.IsFlaky,
+	}
+
+	result, err := s.repo.UpdateTestResult(ctx, resultID, input)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("результат не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка обновления результата")
+	}
+
+	// Привязываем файлы
+	if len(req.FileIDs) > 0 {
+		fileUUIDs, err := parseUUIDs(req.FileIDs)
+		if err != nil {
+			return nil, apperrors.NewBadRequest("некорректный ID файла")
+		}
+		if err := s.repo.AddFilesToResult(ctx, resultID, fileUUIDs); err != nil {
+			return nil, apperrors.NewInternal("ошибка привязки файлов к результату")
+		}
+	}
+
+	// Пересчитываем статистику прогона
+	if err := s.recomputeRunStats(ctx, runID); err != nil {
+		return nil, err
+	}
+
+	_ = result
+	// Перезагружаем результат с полными связями
+	updated, err := s.repo.GetTestResult(ctx, resultID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения обновлённого результата")
+	}
+
+	return toTestResultResponse(updated), nil
+}
+
+// AssignTestersToRun назначает тестировщиков на прогон.
+func (s *TMSService) AssignTestersToRun(ctx context.Context, runID uuid.UUID, req AssignTestersRequest) (*TestRunDetailResponse, error) {
+	userIDs, err := parseUUIDs(req.UserIDs)
+	if err != nil {
+		return nil, apperrors.NewBadRequest("некорректный ID пользователя")
+	}
+
+	if err := s.repo.AssignTestersToRun(ctx, runID, userIDs); err != nil {
+		return nil, apperrors.NewInternal("ошибка назначения тестировщиков")
+	}
+
+	return s.GetTestRunDetail(ctx, runID)
+}
+
+// GetTestRunDetail возвращает полную информацию о прогоне с результатами и назначенными.
+func (s *TMSService) GetTestRunDetail(ctx context.Context, runID uuid.UUID) (*TestRunDetailResponse, error) {
+	run, err := s.repo.GetTestRunWithResults(ctx, runID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("прогон не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона с результатами")
+	}
+
+	return toTestRunDetailResponse(run), nil
+}
+
+// StartTestRun переводит прогон из статуса created в in_progress, устанавливая started_at.
+func (s *TMSService) StartTestRun(ctx context.Context, runID uuid.UUID) (*TestRunResponse, error) {
+	return s.UpdateRunStatus(ctx, runID, "in_progress")
+}
+
+// CompleteTestRun переводит прогон из in_progress в completed, устанавливая completed_at.
+func (s *TMSService) CompleteTestRun(ctx context.Context, runID uuid.UUID) (*TestRunResponse, error) {
+	return s.UpdateRunStatus(ctx, runID, "completed")
+}
+
+// recomputeRunStats пересчитывает статистику прогона на основе текущих результатов.
+func (s *TMSService) recomputeRunStats(ctx context.Context, runID uuid.UUID) error {
+	results, err := s.repo.ListTestResults(ctx, runID)
+	if err != nil {
+		return apperrors.NewInternal("ошибка получения результатов для пересчёта статистики")
+	}
+
+	stats := TestRunStats{TotalCount: len(results)}
+	for _, r := range results {
+		switch string(r.Status) {
+		case "passed":
+			stats.PassedCount++
+		case "failed":
+			stats.FailedCount++
+		case "broken":
+			stats.BrokenCount++
+		case "skipped":
+			stats.SkippedCount++
+		case "unknown":
+			stats.UnknownCount++
+		}
+	}
+
+	_, err = s.repo.UpdateTestRunStats(ctx, runID, stats)
+	if err != nil {
+		return apperrors.NewInternal("ошибка обновления статистики прогона")
+	}
+
+	return nil
+}
+
+// ---------------------------------------------------------------------------
 // Стейт-машина прогонов
 // ---------------------------------------------------------------------------
 
@@ -879,6 +1028,72 @@ func toTestResultResponse(r *ent.TestResult) *TestResultResponse {
 			AvatarURL: r.Edges.ExecutedBy.AvatarURL,
 		}
 	}
+	return resp
+}
+
+// toTestRunDetailResponse конвертирует Ent TestRun (с результатами и назначенными) в DTO.
+func toTestRunDetailResponse(run *ent.TestRun) *TestRunDetailResponse {
+	resp := &TestRunDetailResponse{
+		TestRunResponse: *toTestRunResponse(run),
+	}
+
+	// Результаты
+	resp.Results = make([]TestResultDetailResponse, 0, len(run.Edges.Results))
+	for _, r := range run.Edges.Results {
+		detail := TestResultDetailResponse{
+			ID:          r.ID.String(),
+			Status:      string(r.Status),
+			Comment:     r.Comment,
+			StepResults: r.StepResults,
+			DurationMs:  r.DurationMs,
+			IsFlaky:     r.IsFlaky,
+			StartedAt:   r.StartedAt,
+			CompletedAt: r.CompletedAt,
+			CreatedAt:   r.CreatedAt,
+		}
+		if r.Edges.TestCase != nil {
+			tc := r.Edges.TestCase
+			detail.TestCase = &TestCaseBriefDTO{
+				ID:       tc.ID.String(),
+				CaseKey:  tc.CaseKey,
+				Title:    tc.Title,
+				CaseType: string(tc.CaseType),
+				Priority: string(tc.Priority),
+			}
+		}
+		if r.Edges.ExecutedBy != nil {
+			detail.ExecutedBy = &UserBriefResponse{
+				ID:        r.Edges.ExecutedBy.ID.String(),
+				Name:      r.Edges.ExecutedBy.Name,
+				Email:     r.Edges.ExecutedBy.Email,
+				AvatarURL: r.Edges.ExecutedBy.AvatarURL,
+			}
+		}
+		if r.Edges.Files != nil {
+			detail.Files = make([]FileBriefResponse, 0, len(r.Edges.Files))
+			for _, f := range r.Edges.Files {
+				detail.Files = append(detail.Files, FileBriefResponse{
+					ID:       f.ID.String(),
+					FileName: f.Filename,
+					FileSize: f.Size,
+					MimeType: f.ContentType,
+				})
+			}
+		}
+		resp.Results = append(resp.Results, detail)
+	}
+
+	// Назначенные тестировщики
+	resp.Assignees = make([]UserBriefResponse, 0, len(run.Edges.Assignees))
+	for _, u := range run.Edges.Assignees {
+		resp.Assignees = append(resp.Assignees, UserBriefResponse{
+			ID:        u.ID.String(),
+			Name:      u.Name,
+			Email:     u.Email,
+			AvatarURL: u.AvatarURL,
+		})
+	}
+
 	return resp
 }
 

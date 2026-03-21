@@ -1,0 +1,477 @@
+import { api } from "./client";
+
+// ---------------------------------------------------------------------------
+// Типы перечислений TMS
+// ---------------------------------------------------------------------------
+
+/** Тип тест-кейса. */
+export type TestCaseType = "classic" | "bdd";
+
+/** Приоритет тест-кейса. */
+export type TestCasePriority = "critical" | "high" | "medium" | "low" | "trivial";
+
+/** Статус тест-кейса. */
+export type TestCaseStatus = "draft" | "active" | "deprecated";
+
+/** Тип прогона. */
+export type TestRunType = "manual" | "automatic" | "mixed";
+
+/** Статус прогона. */
+export type TestRunStatus = "created" | "in_progress" | "completed" | "aborted";
+
+/** Статус результата теста. */
+export type TestResultStatus = "passed" | "failed" | "broken" | "skipped" | "unknown";
+
+// ---------------------------------------------------------------------------
+// Интерфейсы ответов
+// ---------------------------------------------------------------------------
+
+/** Обёртка пагинированного ответа. */
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+/** Краткая информация о пользователе. */
+export interface UserBriefResponse {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url?: string;
+}
+
+/** Краткое представление папки. */
+export interface SuiteBriefResponse {
+  id: string;
+  name: string;
+}
+
+/** Метка. */
+export interface LabelResponse {
+  id: string;
+  name: string;
+  color: string;
+}
+
+/** Компонент. */
+export interface ComponentResponse {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+}
+
+/** Краткое представление задачи. */
+export interface IssueBriefResponse {
+  id: string;
+  issue_key: string;
+  title: string;
+}
+
+/** Шаг тест-кейса. */
+export interface TestStep {
+  order: number;
+  action: string;
+  expected_result?: string;
+  keyword?: string;
+}
+
+/** Результат выполнения шага. */
+export interface StepResult {
+  step_order: number;
+  status: string;
+  comment?: string;
+  file_ids?: string[];
+}
+
+/** Тест-кейс в ответе API. */
+export interface TestCaseResponse {
+  id: string;
+  case_number: number;
+  case_key: string;
+  title: string;
+  description?: string;
+  precondition?: string;
+  postcondition?: string;
+  case_type: TestCaseType;
+  priority: TestCasePriority;
+  status: TestCaseStatus;
+  steps?: TestStep[];
+  full_name?: string;
+  class_name?: string;
+  method_name?: string;
+  external_id?: string;
+  version: number;
+  suite?: SuiteBriefResponse;
+  created_by?: UserBriefResponse;
+  labels?: LabelResponse[];
+  components?: ComponentResponse[];
+  linked_issues?: IssueBriefResponse[];
+  created_at: string;
+  updated_at: string;
+}
+
+/** Версия тест-кейса. */
+export interface TestCaseVersionResponse {
+  id: string;
+  version_number: number;
+  snapshot: Record<string, unknown>;
+  change_description?: string;
+  created_by?: UserBriefResponse;
+  created_at: string;
+}
+
+/** Папка/секция тест-кейсов. */
+export interface SuiteResponse {
+  id: string;
+  name: string;
+  description?: string;
+  sort_order: number;
+  parent_id?: string;
+  children?: SuiteResponse[];
+  created_at: string;
+  updated_at: string;
+}
+
+/** Краткое представление файла. */
+export interface FileBriefResponse {
+  id: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+}
+
+/** Краткое представление тест-кейса в результате. */
+export interface TestCaseBriefDTO {
+  id: string;
+  case_key: string;
+  title: string;
+  case_type: TestCaseType;
+  priority: TestCasePriority;
+}
+
+/** Прогон тестов. */
+export interface TestRunResponse {
+  id: string;
+  title: string;
+  description?: string;
+  run_type: TestRunType;
+  status: TestRunStatus;
+  total_count: number;
+  passed_count: number;
+  failed_count: number;
+  skipped_count: number;
+  broken_count: number;
+  unknown_count: number;
+  allure_run_id?: string;
+  created_by?: UserBriefResponse;
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Результат теста. */
+export interface TestResultResponse {
+  id: string;
+  status: TestResultStatus;
+  comment?: string;
+  step_results?: StepResult[];
+  duration_ms?: number;
+  allure_uuid?: string;
+  error_message?: string;
+  error_trace?: string;
+  is_flaky: boolean;
+  match_strategy: string;
+  test_case_key?: string;
+  executed_by?: UserBriefResponse;
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
+}
+
+/** Детальный результат теста (с информацией о кейсе и файлах). */
+export interface TestResultDetailResponse {
+  id: string;
+  status: TestResultStatus;
+  comment?: string;
+  step_results?: StepResult[];
+  duration_ms?: number;
+  is_flaky: boolean;
+  test_case?: TestCaseBriefDTO;
+  executed_by?: UserBriefResponse;
+  files?: FileBriefResponse[];
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
+}
+
+/** Детали прогона с результатами и назначенными. */
+export interface TestRunDetailResponse extends TestRunResponse {
+  results: TestResultDetailResponse[];
+  assignees: UserBriefResponse[];
+}
+
+// ---------------------------------------------------------------------------
+// Интерфейсы запросов
+// ---------------------------------------------------------------------------
+
+/** Создание тест-кейса. */
+export interface CreateTestCaseRequest {
+  title: string;
+  description?: string;
+  precondition?: string;
+  postcondition?: string;
+  case_type?: TestCaseType;
+  priority?: TestCasePriority;
+  status?: TestCaseStatus;
+  steps?: TestStep[];
+  suite_id?: string;
+  labels?: string[];
+  components?: string[];
+}
+
+/** Обновление тест-кейса. */
+export interface UpdateTestCaseRequest {
+  title?: string;
+  description?: string;
+  precondition?: string;
+  postcondition?: string;
+  case_type?: TestCaseType;
+  priority?: TestCasePriority;
+  status?: TestCaseStatus;
+  steps?: TestStep[];
+  suite_id?: string;
+  labels?: string[];
+  components?: string[];
+  version: number;
+}
+
+/** Параметры списка тест-кейсов. */
+export interface ListTestCasesParams {
+  offset?: number;
+  limit?: number;
+  suite_id?: string;
+  status?: TestCaseStatus;
+  priority?: TestCasePriority;
+  search?: string;
+}
+
+/** Создание папки. */
+export interface CreateSuiteRequest {
+  name: string;
+  description?: string;
+  sort_order?: number;
+  parent_id?: string;
+}
+
+/** Обновление папки. */
+export interface UpdateSuiteRequest {
+  name?: string;
+  description?: string;
+  sort_order?: number;
+}
+
+/** Создание компонента. */
+export interface CreateComponentRequest {
+  name: string;
+  description?: string;
+}
+
+/** Создание прогона. */
+export interface CreateTestRunRequest {
+  title: string;
+  description?: string;
+  run_type?: TestRunType;
+}
+
+/** Параметры списка прогонов. */
+export interface ListTestRunsParams {
+  offset?: number;
+  limit?: number;
+  status?: TestRunStatus;
+}
+
+/** Обновление результата теста. */
+export interface UpdateTestResultRequest {
+  status?: TestResultStatus;
+  comment?: string;
+  step_results?: StepResult[];
+  is_flaky?: boolean;
+  file_ids?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Тест-кейсы
+// ---------------------------------------------------------------------------
+
+/** Создать тест-кейс в проекте. */
+export function createTestCase(projectId: string, data: CreateTestCaseRequest) {
+  return api.post<TestCaseResponse>(`/projects/${projectId}/tms/cases`, data);
+}
+
+/** Получить список тест-кейсов проекта. */
+export function listTestCases(projectId: string, params?: ListTestCasesParams) {
+  const qs = params
+    ? "?" +
+      new URLSearchParams(
+        Object.entries(params)
+          .filter(([, v]) => v != null)
+          .map(([k, v]) => [k, String(v)]),
+      ).toString()
+    : "";
+  return api.get<PaginatedResponse<TestCaseResponse>>(
+    `/projects/${projectId}/tms/cases${qs}`,
+  );
+}
+
+/** Получить тест-кейс по ключу. */
+export function getTestCase(projectId: string, caseKey: string) {
+  return api.get<TestCaseResponse>(`/projects/${projectId}/tms/cases/${caseKey}`);
+}
+
+/** Обновить тест-кейс. */
+export function updateTestCase(projectId: string, caseKey: string, data: UpdateTestCaseRequest) {
+  return api.put<TestCaseResponse>(`/projects/${projectId}/tms/cases/${caseKey}`, data);
+}
+
+/** Удалить тест-кейс. */
+export function deleteTestCase(projectId: string, caseKey: string) {
+  return api.delete<void>(`/projects/${projectId}/tms/cases/${caseKey}`);
+}
+
+/** Получить список версий тест-кейса. */
+export function listVersions(projectId: string, caseKey: string) {
+  return api.get<TestCaseVersionResponse[]>(
+    `/projects/${projectId}/tms/cases/${caseKey}/versions`,
+  );
+}
+
+/** Откатить тест-кейс к указанной версии. */
+export function rollbackVersion(projectId: string, caseKey: string, versionId: string) {
+  return api.post<TestCaseResponse>(
+    `/projects/${projectId}/tms/cases/${caseKey}/rollback/${versionId}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Папки/сьюты
+// ---------------------------------------------------------------------------
+
+/** Создать папку тест-кейсов. */
+export function createSuite(projectId: string, data: CreateSuiteRequest) {
+  return api.post<SuiteResponse>(`/projects/${projectId}/tms/suites`, data);
+}
+
+/** Получить дерево папок. */
+export function listSuites(projectId: string) {
+  return api.get<SuiteResponse[]>(`/projects/${projectId}/tms/suites`);
+}
+
+/** Обновить папку. */
+export function updateSuite(projectId: string, suiteId: string, data: UpdateSuiteRequest) {
+  return api.put<SuiteResponse>(`/projects/${projectId}/tms/suites/${suiteId}`, data);
+}
+
+/** Удалить папку. */
+export function deleteSuite(projectId: string, suiteId: string) {
+  return api.delete<void>(`/projects/${projectId}/tms/suites/${suiteId}`);
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Компоненты
+// ---------------------------------------------------------------------------
+
+/** Создать компонент. */
+export function createComponent(projectId: string, data: CreateComponentRequest) {
+  return api.post<ComponentResponse>(`/projects/${projectId}/tms/components`, data);
+}
+
+/** Получить список компонентов. */
+export function listComponents(projectId: string) {
+  return api.get<ComponentResponse[]>(`/projects/${projectId}/tms/components`);
+}
+
+/** Удалить компонент. */
+export function deleteComponent(projectId: string, componentId: string) {
+  return api.delete<void>(`/projects/${projectId}/tms/components/${componentId}`);
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Прогоны
+// ---------------------------------------------------------------------------
+
+/** Создать прогон тестов. */
+export function createTestRun(projectId: string, data: CreateTestRunRequest) {
+  return api.post<TestRunResponse>(`/projects/${projectId}/tms/runs`, data);
+}
+
+/** Получить список прогонов. */
+export function listTestRuns(projectId: string, params?: ListTestRunsParams) {
+  const qs = params
+    ? "?" +
+      new URLSearchParams(
+        Object.entries(params)
+          .filter(([, v]) => v != null)
+          .map(([k, v]) => [k, String(v)]),
+      ).toString()
+    : "";
+  return api.get<PaginatedResponse<TestRunResponse>>(
+    `/projects/${projectId}/tms/runs${qs}`,
+  );
+}
+
+/** Получить детали прогона с результатами и назначенными. */
+export function getTestRunDetail(projectId: string, runId: string) {
+  return api.get<TestRunDetailResponse>(`/projects/${projectId}/tms/runs/${runId}/detail`);
+}
+
+/** Запустить прогон (created -> in_progress). */
+export function startRun(projectId: string, runId: string) {
+  return api.post<TestRunResponse>(`/projects/${projectId}/tms/runs/${runId}/start`);
+}
+
+/** Завершить прогон (in_progress -> completed). */
+export function completeRun(projectId: string, runId: string) {
+  return api.post<TestRunResponse>(`/projects/${projectId}/tms/runs/${runId}/complete`);
+}
+
+/** Переоткрыть прогон (completed -> in_progress). */
+export function reopenRun(projectId: string, runId: string) {
+  return api.post<TestRunResponse>(`/projects/${projectId}/tms/runs/${runId}/reopen`);
+}
+
+/** Добавить тест-кейсы в прогон. */
+export function addCasesToRun(projectId: string, runId: string, caseIds: string[]) {
+  return api.post<TestRunDetailResponse>(
+    `/projects/${projectId}/tms/runs/${runId}/cases`,
+    { case_ids: caseIds },
+  );
+}
+
+/** Назначить тестировщиков на прогон. */
+export function assignTesters(projectId: string, runId: string, userIds: string[]) {
+  return api.post<TestRunDetailResponse>(
+    `/projects/${projectId}/tms/runs/${runId}/assignees`,
+    { user_ids: userIds },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Результаты
+// ---------------------------------------------------------------------------
+
+/** Обновить результат теста (выполнение с данными шагов). */
+export function updateTestResult(
+  projectId: string,
+  runId: string,
+  resultId: string,
+  data: UpdateTestResultRequest,
+) {
+  return api.put<TestResultResponse>(
+    `/projects/${projectId}/tms/runs/${runId}/results/${resultId}`,
+    data,
+  );
+}

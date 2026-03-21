@@ -103,6 +103,21 @@ type Repository interface {
 	LinkTestCaseToIssue(ctx context.Context, testCaseID, issueID uuid.UUID) error
 	// UnlinkTestCaseFromIssue отвязывает тест-кейс от задачи.
 	UnlinkTestCaseFromIssue(ctx context.Context, testCaseID, issueID uuid.UUID) error
+
+	// --- Расширенные операции прогонов ---
+
+	// AddTestCasesToRun массово создаёт TestResult записи для каждого тест-кейса.
+	AddTestCasesToRun(ctx context.Context, runID uuid.UUID, caseIDs []uuid.UUID) error
+	// GetTestResult возвращает результат по ID с подгруженными связями.
+	GetTestResult(ctx context.Context, resultID uuid.UUID) (*ent.TestResult, error)
+	// ListTestRunResults возвращает результаты прогона с подгруженными тест-кейсами и файлами.
+	ListTestRunResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error)
+	// AssignTestersToRun устанавливает M2M связь прогона с назначенными тестировщиками.
+	AssignTestersToRun(ctx context.Context, runID uuid.UUID, userIDs []uuid.UUID) error
+	// GetTestRunWithResults возвращает прогон с результатами, тест-кейсами, файлами и назначенными.
+	GetTestRunWithResults(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error)
+	// AddFilesToResult привязывает файлы к результату теста.
+	AddFilesToResult(ctx context.Context, resultID uuid.UUID, fileIDs []uuid.UUID) error
 }
 
 // ---------------------------------------------------------------------------
