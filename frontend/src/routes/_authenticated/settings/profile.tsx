@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getMe, updateProfile, listSessions, revokeSession } from "@/api/auth";
+import { setCustomStatus } from "@/api/messenger";
 import type { SessionResponse } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,8 @@ import {
 } from "@/components/ui/card";
 
 /**
- * Страница настроек профиля — форма данных пользователя и список сессий.
+ * Страница настроек профиля — полная форма данных пользователя,
+ * кастомный статус, часы работы и список активных сессий.
  */
 function ProfilePage() {
   const queryClient = useQueryClient();
@@ -42,7 +44,15 @@ function ProfilePage() {
     department: user?.department ?? "",
     timezone: user?.timezone ?? "",
     language: user?.language ?? "",
+    birthday: user?.birthday ?? "",
   });
+
+  /** Кастомный статус пользователя (например, "На обеде", "В отпуске"). */
+  const [customStatusText, setCustomStatusText] = useState("");
+
+  /** Часы работы — начало и конец рабочего дня. */
+  const [workHoursStart, setWorkHoursStart] = useState("09:00");
+  const [workHoursEnd, setWorkHoursEnd] = useState("18:00");
 
   /* Синхронизация формы при загрузке данных пользователя */
   const [initialized, setInitialized] = useState(false);
@@ -55,6 +65,7 @@ function ProfilePage() {
       department: user.department ?? "",
       timezone: user.timezone ?? "",
       language: user.language ?? "",
+      birthday: user.birthday ?? "",
     });
     setInitialized(true);
   }
@@ -67,6 +78,13 @@ function ProfilePage() {
       toast.success("Профиль обновлен");
     },
     onError: () => toast.error("Не удалось обновить профиль"),
+  });
+
+  /** Мутация для сохранения кастомного статуса через Messenger API. */
+  const statusMutation = useMutation({
+    mutationFn: (text: string) => setCustomStatus(text),
+    onSuccess: () => toast.success("Статус обновлён"),
+    onError: () => toast.error("Не удалось обновить статус"),
   });
 
   const revokeMutation = useMutation({
@@ -88,7 +106,13 @@ function ProfilePage() {
       department: form.department || undefined,
       timezone: form.timezone || undefined,
       language: form.language || undefined,
+      birthday: form.birthday || undefined,
     });
+  }
+
+  /** Сохранить кастомный статус. */
+  function handleStatusSave() {
+    statusMutation.mutate(customStatusText);
   }
 
   return (
@@ -100,6 +124,44 @@ function ProfilePage() {
           Управляйте персональными данными и активными сессиями
         </p>
       </div>
+
+      {/* Карточка кастомного статуса */}
+      <Card className="rounded-xl border shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Кастомный статус</CardTitle>
+          <CardDescription>Установите текст статуса, видимый коллегам</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <Input
+              placeholder="Например: На обеде, В отпуске, Не беспокоить"
+              value={customStatusText}
+              onChange={(e) => setCustomStatusText(e.target.value)}
+              className="h-10 flex-1"
+            />
+            <Button
+              onClick={handleStatusSave}
+              disabled={statusMutation.isPending}
+              variant="outline"
+              className="shrink-0"
+            >
+              {statusMutation.isPending ? "..." : "Сохранить"}
+            </Button>
+            {customStatusText && (
+              <Button
+                variant="ghost"
+                className="shrink-0 text-muted-foreground"
+                onClick={() => {
+                  setCustomStatusText("");
+                  statusMutation.mutate("");
+                }}
+              >
+                Сбросить
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Карточка профиля */}
       <Card className="rounded-xl border shadow-sm">
@@ -165,14 +227,44 @@ function ProfilePage() {
                   className="h-10"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="prof-lang" className="text-sm font-medium">Язык</Label>
+                <Input
+                  id="prof-lang"
+                  value={form.language}
+                  onChange={(e) => setForm((f) => ({ ...f, language: e.target.value }))}
+                  placeholder="ru"
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="prof-birthday" className="text-sm font-medium">День рождения</Label>
+                <Input
+                  id="prof-birthday"
+                  type="date"
+                  value={form.birthday}
+                  onChange={(e) => setForm((f) => ({ ...f, birthday: e.target.value }))}
+                  className="h-10"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Email</Label>
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="1.5" y="3" width="13" height="10" rx="2" /><path d="M1.5 5l6.5 4 6.5-4" /></svg>
-                {user?.email ?? "-"}
-              </p>
+            {/* Email и Telegram — только чтение */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Email</Label>
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="1.5" y="3" width="13" height="10" rx="2" /><path d="M1.5 5l6.5 4 6.5-4" /></svg>
+                  {user?.email ?? "-"}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Telegram</Label>
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M14 2L2 8l4 2m8-8l-8 10-2-4m10-6l-10 6" /></svg>
+                  {user?.telegram_id ? `ID: ${user.telegram_id}` : "Не привязан"}
+                </p>
+              </div>
             </div>
 
             <div className="border-t pt-4">
@@ -185,6 +277,51 @@ function ProfilePage() {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Карточка часов работы */}
+      <Card className="rounded-xl border shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Часы работы</CardTitle>
+          <CardDescription>
+            Уведомления вне рабочих часов будут приглушены
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Начало</Label>
+              <Input
+                type="time"
+                value={workHoursStart}
+                onChange={(e) => setWorkHoursStart(e.target.value)}
+                className="h-9 w-32"
+              />
+            </div>
+            <span className="mt-5 text-muted-foreground">--</span>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Конец</Label>
+              <Input
+                type="time"
+                value={workHoursEnd}
+                onChange={(e) => setWorkHoursEnd(e.target.value)}
+                className="h-9 w-32"
+              />
+            </div>
+            <div className="mt-5">
+              <Badge variant="outline" className="text-xs">
+                {(() => {
+                  const [sh, sm] = workHoursStart.split(":").map(Number);
+                  const [eh, em] = workHoursEnd.split(":").map(Number);
+                  const diff = (eh! * 60 + em!) - (sh! * 60 + sm!);
+                  const hours = Math.floor(diff / 60);
+                  const mins = diff % 60;
+                  return `${hours}ч${mins > 0 ? ` ${mins}м` : ""}`;
+                })()}
+              </Badge>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
