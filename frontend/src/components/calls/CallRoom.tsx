@@ -13,7 +13,8 @@ import { useCallStore } from "@/stores/call-store";
 
 /** URL сервера LiveKit из переменных окружения. */
 const LIVEKIT_URL =
-  (import.meta.env.VITE_LIVEKIT_URL as string) || "ws://localhost:7880";
+  (import.meta.env.VITE_LIVEKIT_URL as string) ||
+  `ws://${window.location.hostname}:7880`;
 
 /** Пропсы компонента CallRoom. */
 interface CallRoomProps {
