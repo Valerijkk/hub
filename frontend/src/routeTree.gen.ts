@@ -21,6 +21,10 @@ import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_auth
 import { Route as AuthenticatedProjectsNewRouteImport } from './routes/_authenticated/projects/new'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects/$projectId'
 import { Route as AuthenticatedMessengerChannelIdRouteImport } from './routes/_authenticated/messenger/$channelId'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
+import { Route as AuthenticatedAdminTrashRouteImport } from './routes/_authenticated/admin/trash'
+import { Route as AuthenticatedAdminLimitsRouteImport } from './routes/_authenticated/admin/limits'
+import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
 import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects/$projectId/index'
 import { Route as AuthenticatedProjectsProjectIdTmsRouteImport } from './routes/_authenticated/projects/$projectId/tms'
 import { Route as AuthenticatedProjectsProjectIdIssuesIndexRouteImport } from './routes/_authenticated/projects/$projectId/issues/index'
@@ -99,6 +103,27 @@ const AuthenticatedMessengerChannelIdRoute =
     path: '/$channelId',
     getParentRoute: () => AuthenticatedMessengerRoute,
   } as any)
+const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdminTrashRoute = AuthenticatedAdminTrashRouteImport.update({
+  id: '/admin/trash',
+  path: '/admin/trash',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdminLimitsRoute =
+  AuthenticatedAdminLimitsRouteImport.update({
+    id: '/admin/limits',
+    path: '/admin/limits',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
+  id: '/admin/audit',
+  path: '/admin/audit',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedProjectsProjectIdIndexRoute =
   AuthenticatedProjectsProjectIdIndexRouteImport.update({
     id: '/',
@@ -178,6 +203,10 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/trash': typeof AuthenticatedTrashRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/limits': typeof AuthenticatedAdminLimitsRoute
+  '/admin/trash': typeof AuthenticatedAdminTrashRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/new': typeof AuthenticatedProjectsNewRoute
@@ -202,6 +231,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/trash': typeof AuthenticatedTrashRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/limits': typeof AuthenticatedAdminLimitsRoute
+  '/admin/trash': typeof AuthenticatedAdminTrashRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/projects/new': typeof AuthenticatedProjectsNewRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
@@ -228,6 +261,10 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/_authenticated/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/_authenticated/trash': typeof AuthenticatedTrashRoute
+  '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/limits': typeof AuthenticatedAdminLimitsRoute
+  '/_authenticated/admin/trash': typeof AuthenticatedAdminTrashRoute
+  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/new': typeof AuthenticatedProjectsNewRoute
@@ -255,6 +292,10 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/messenger'
     | '/trash'
+    | '/admin/audit'
+    | '/admin/limits'
+    | '/admin/trash'
+    | '/admin/users'
     | '/messenger/$channelId'
     | '/projects/$projectId'
     | '/projects/new'
@@ -279,6 +320,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/trash'
+    | '/admin/audit'
+    | '/admin/limits'
+    | '/admin/trash'
+    | '/admin/users'
     | '/messenger/$channelId'
     | '/projects/new'
     | '/settings/profile'
@@ -304,6 +349,10 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/_authenticated/messenger'
     | '/_authenticated/trash'
+    | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/limits'
+    | '/_authenticated/admin/trash'
+    | '/_authenticated/admin/users'
     | '/_authenticated/messenger/$channelId'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/projects/new'
@@ -416,6 +465,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/messenger/$channelId'
       preLoaderRoute: typeof AuthenticatedMessengerChannelIdRouteImport
       parentRoute: typeof AuthenticatedMessengerRoute
+    }
+    '/_authenticated/admin/users': {
+      id: '/_authenticated/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/trash': {
+      id: '/_authenticated/admin/trash'
+      path: '/admin/trash'
+      fullPath: '/admin/trash'
+      preLoaderRoute: typeof AuthenticatedAdminTrashRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/limits': {
+      id: '/_authenticated/admin/limits'
+      path: '/admin/limits'
+      fullPath: '/admin/limits'
+      preLoaderRoute: typeof AuthenticatedAdminLimitsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/audit': {
+      id: '/_authenticated/admin/audit'
+      path: '/admin/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/projects/$projectId/': {
       id: '/_authenticated/projects/$projectId/'
@@ -583,6 +660,10 @@ const AuthenticatedProjectsProjectIdRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedMessengerRoute: typeof AuthenticatedMessengerRouteWithChildren
   AuthenticatedTrashRoute: typeof AuthenticatedTrashRoute
+  AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminLimitsRoute: typeof AuthenticatedAdminLimitsRoute
+  AuthenticatedAdminTrashRoute: typeof AuthenticatedAdminTrashRoute
+  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRouteWithChildren
   AuthenticatedProjectsNewRoute: typeof AuthenticatedProjectsNewRoute
   AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
@@ -592,6 +673,10 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMessengerRoute: AuthenticatedMessengerRouteWithChildren,
   AuthenticatedTrashRoute: AuthenticatedTrashRoute,
+  AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+  AuthenticatedAdminLimitsRoute: AuthenticatedAdminLimitsRoute,
+  AuthenticatedAdminTrashRoute: AuthenticatedAdminTrashRoute,
+  AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedProjectsProjectIdRoute:
     AuthenticatedProjectsProjectIdRouteWithChildren,
   AuthenticatedProjectsNewRoute: AuthenticatedProjectsNewRoute,
