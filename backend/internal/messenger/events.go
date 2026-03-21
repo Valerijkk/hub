@@ -42,13 +42,16 @@ const (
 // ---------------------------------------------------------------------------
 
 // MessageSentEvent — данные события отправки сообщения.
+// MentionedUserIDs содержит уже разрешённые ID пользователей
+// из @all, @online, @role и индивидуальных упоминаний.
 type MessageSentEvent struct {
-	MessageID   string    `json:"message_id"`
-	ChannelID   uuid.UUID `json:"channel_id"`
-	SenderID    uuid.UUID `json:"sender_id"`
-	ContentText string    `json:"content_text"`
-	ThreadID    string    `json:"thread_id,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
+	MessageID        string    `json:"message_id"`
+	ChannelID        uuid.UUID `json:"channel_id"`
+	SenderID         uuid.UUID `json:"sender_id"`
+	ContentText      string    `json:"content_text"`
+	ThreadID         string    `json:"thread_id,omitempty"`
+	MentionedUserIDs []string  `json:"mentioned_user_ids,omitempty"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 // MessageEditedEvent — данные события редактирования сообщения.

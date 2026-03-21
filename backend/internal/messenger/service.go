@@ -10,6 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
@@ -22,11 +24,17 @@ type MessengerService struct {
 	nats     *natsclient.Client
 	presence *PresenceService
 	unread   *UnreadService
+	db       *ent.Client
 }
 
 // NewMessengerService создаёт новый сервис мессенджера.
 func NewMessengerService(repo Repository, nats *natsclient.Client, presence *PresenceService, unread *UnreadService) *MessengerService {
 	return &MessengerService{repo: repo, nats: nats, presence: presence, unread: unread}
+}
+
+// SetDB устанавливает Ent-клиент для разрешения групповых упоминаний (@role).
+func (s *MessengerService) SetDB(db *ent.Client) {
+	s.db = db
 }
 
 // ---------------------------------------------------------------------------
@@ -356,14 +364,18 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 		}
 	}
 
+	// Разрешаем групповые упоминания (@all, @online, @role) в конкретные user ID.
+	resolvedMentions := s.resolveGroupMentions(ctx, channelID, ch.ProjectID, req.MentionGroups, req.Mentions, senderID)
+
 	// Публикуем NATS-событие
 	s.publishEvent(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
-		MessageID:   messageID,
-		ChannelID:   channelID,
-		SenderID:    senderID,
-		ContentText: req.ContentText,
-		ThreadID:    req.ThreadID,
-		CreatedAt:   doc.CreatedAt,
+		MessageID:        messageID,
+		ChannelID:        channelID,
+		SenderID:         senderID,
+		ContentText:      req.ContentText,
+		ThreadID:         req.ThreadID,
+		MentionedUserIDs: resolvedMentions,
+		CreatedAt:        doc.CreatedAt,
 	})
 
 	return toMessageResponse(doc), nil
@@ -708,6 +720,104 @@ func (s *MessengerService) MarkChannelRead(ctx context.Context, userID, channelI
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// resolveGroupMentions разрешает групповые упоминания (@all, @online, @role)
+// в конкретные user ID. Объединяет с индивидуальными упоминаниями из поля Mentions.
+// Исключает отправителя из результата.
+func (s *MessengerService) resolveGroupMentions(ctx context.Context, channelID uuid.UUID, projectID *uuid.UUID, groups []string, individualMentions []string, senderID uuid.UUID) []string {
+	seen := make(map[string]struct{})
+	senderStr := senderID.String()
+
+	// Добавляем индивидуальные упоминания.
+	for _, uid := range individualMentions {
+		if uid != senderStr {
+			seen[uid] = struct{}{}
+		}
+	}
+
+	if len(groups) == 0 {
+		return mapKeys(seen)
+	}
+
+	// Получаем участников канала (нужно для @all и пересечения с @online).
+	memberIDs, err := s.repo.GetChannelMemberIDs(ctx, channelID)
+	if err != nil {
+		slog.Error("не удалось получить участников канала для упоминаний", "error", err)
+		return mapKeys(seen)
+	}
+
+	memberSet := make(map[string]struct{}, len(memberIDs))
+	for _, m := range memberIDs {
+		memberSet[m.String()] = struct{}{}
+	}
+
+	for _, g := range groups {
+		switch g {
+		case "all":
+			// @all — все участники канала.
+			for _, m := range memberIDs {
+				uid := m.String()
+				if uid != senderStr {
+					seen[uid] = struct{}{}
+				}
+			}
+
+		case "online":
+			// @online — онлайн-пользователи, пересечённые с участниками канала.
+			if s.presence == nil {
+				continue
+			}
+			onlineIDs, pErr := s.presence.GetOnlineUserIDs(ctx)
+			if pErr != nil {
+				slog.Error("не удалось получить онлайн-пользователей", "error", pErr)
+				continue
+			}
+			for _, oid := range onlineIDs {
+				if _, ok := memberSet[oid]; ok && oid != senderStr {
+					seen[oid] = struct{}{}
+				}
+			}
+
+		default:
+			// Предполагаем имя роли проекта (owner, developer, tester, viewer).
+			if s.db == nil || projectID == nil {
+				continue
+			}
+			members, qErr := s.db.ProjectMember.Query().
+				Where(
+					projectmember.HasProjectWith(project.IDEQ(*projectID)),
+					projectmember.ProjectRoleEQ(projectmember.ProjectRole(g)),
+				).
+				WithUser().
+				All(ctx)
+			if qErr != nil {
+				slog.Error("не удалось получить участников по роли", "role", g, "error", qErr)
+				continue
+			}
+			for _, m := range members {
+				if m.Edges.User == nil {
+					continue
+				}
+				uid := m.Edges.User.ID.String()
+				// Учитываем только тех, кто является участником канала.
+				if _, ok := memberSet[uid]; ok && uid != senderStr {
+					seen[uid] = struct{}{}
+				}
+			}
+		}
+	}
+
+	return mapKeys(seen)
+}
+
+// mapKeys возвращает ключи map[string]struct{} как срез строк.
+func mapKeys(m map[string]struct{}) []string {
+	result := make([]string, 0, len(m))
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
+}
 
 // publishEvent публикует событие в NATS (fire-and-forget).
 // Безопасен при nil NATS-клиенте (пропускает публикацию).

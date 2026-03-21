@@ -204,6 +204,7 @@ func main() {
 	presenceSvc := messengermod.NewPresenceService(rdb)
 	unreadSvc := messengermod.NewUnreadService(rdb)
 	messengerSvc := messengermod.NewMessengerService(messengerRepo, nc, presenceSvc, unreadSvc)
+	messengerSvc.SetDB(db)
 	messengerHandler := messengermod.NewHandler(messengerSvc)
 	messengerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 

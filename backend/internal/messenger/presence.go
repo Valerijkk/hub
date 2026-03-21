@@ -110,6 +110,17 @@ func (s *PresenceService) GetCustomStatus(ctx context.Context, userID string) (s
 	return val, err
 }
 
+// GetOnlineUserIDs возвращает ID всех пользователей со статусом "online"
+// (heartbeat менее 5 минут назад).
+func (s *PresenceService) GetOnlineUserIDs(ctx context.Context) ([]string, error) {
+	minScore := fmt.Sprintf("%d", time.Now().Add(-presenceAwayThreshold).Unix())
+	maxScore := "+inf"
+	return s.rdb.ZRangeByScore(ctx, presenceOnlineKey, &redis.ZRangeBy{
+		Min: minScore,
+		Max: maxScore,
+	}).Result()
+}
+
 // CleanupStale удаляет из sorted set записи старше presenceStaleThreshold.
 func (s *PresenceService) CleanupStale(ctx context.Context) error {
 	maxScore := fmt.Sprintf("%d", time.Now().Add(-presenceStaleThreshold).Unix())
