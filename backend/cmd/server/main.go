@@ -130,9 +130,7 @@ func main() {
 	api.Use("/files", middleware.RateLimitByUser(middleware.FileUploadRateLimit))
 	// Rate limit для отправки сообщений: 60/мин на пользователя
 	api.Use("/messenger", middleware.RateLimitByUser(middleware.MessageSendRateLimit))
-	api.Get("/health", func(c fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok"})
-	})
+	// Health endpoint registered after all infrastructure clients are initialized (see below)
 
 	// API-документация: динамическая страница со списком всех эндпоинтов.
 	// gofiber/swagger несовместим с Fiber v3, поэтому генерируем HTML из зарегистрированных маршрутов.
@@ -228,6 +226,55 @@ func main() {
 		slog.Error("failed to connect to MongoDB", "error", err)
 		os.Exit(1)
 	}
+	// Health endpoint: checks PostgreSQL, Redis, MongoDB connectivity (unauthenticated)
+	api.Get("/health", func(c fiber.Ctx) error {
+		healthCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		services := fiber.Map{}
+		overall := "ok"
+
+		// PostgreSQL
+		rawPgDB, pgErr := database.OpenRawDB(cfg.Postgres.URL)
+		if pgErr != nil {
+			services["postgres"] = "error"
+			overall = "degraded"
+		} else {
+			if pingErr := rawPgDB.PingContext(healthCtx); pingErr != nil {
+				services["postgres"] = "error"
+				overall = "degraded"
+			} else {
+				services["postgres"] = "ok"
+			}
+			rawPgDB.Close()
+		}
+
+		// Redis
+		if pingErr := rdb.Ping(healthCtx).Err(); pingErr != nil {
+			services["redis"] = "error"
+			overall = "degraded"
+		} else {
+			services["redis"] = "ok"
+		}
+
+		// MongoDB
+		if pingErr := mongoDB.Client().Ping(healthCtx, nil); pingErr != nil {
+			services["mongo"] = "error"
+			overall = "degraded"
+		} else {
+			services["mongo"] = "ok"
+		}
+
+		status := fiber.StatusOK
+		if overall != "ok" {
+			status = fiber.StatusServiceUnavailable
+		}
+		return c.Status(status).JSON(fiber.Map{
+			"status":   overall,
+			"services": services,
+		})
+	})
+
 	messengerEntRepo := messengermod.NewEntRepository(db)
 	messengerMongoRepo := messengermod.NewMongoRepository(mongoDB)
 	if err := messengerMongoRepo.EnsureIndexes(ctx); err != nil {
