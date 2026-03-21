@@ -463,6 +463,175 @@ export function assignTesters(projectId: string, runId: string, userIds: string[
 // API-функции: Результаты
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Интерфейсы: Отчёты и покрытие
+// ---------------------------------------------------------------------------
+
+/** Покрытие тест-кейса. */
+export interface TestCaseCoverage {
+  case_key: string;
+  case_title: string;
+  last_status: string;
+}
+
+/** Покрытие задачи тест-кейсами. */
+export interface IssueCoverage {
+  issue_id: string;
+  issue_key: string;
+  issue_title: string;
+  test_cases: TestCaseCoverage[];
+}
+
+/** Отчёт о покрытии. */
+export interface CoverageReport {
+  issues: IssueCoverage[];
+}
+
+/** Точка тренда. */
+export interface TrendPoint {
+  run_id: string;
+  title: string;
+  total: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  broken: number;
+  pass_rate: number;
+  created_at: string;
+}
+
+/** Изменение статуса при сравнении прогонов. */
+export interface ResultChange {
+  case_key: string;
+  case_title: string;
+  status_run1: string;
+  status_run2: string;
+}
+
+/** Краткая информация о прогоне. */
+export interface TestRunSummary {
+  run_id: string;
+  title: string;
+  total: number;
+  passed: number;
+  failed: number;
+  pass_rate: number;
+  created_at: string;
+}
+
+/** Сравнение двух прогонов. */
+export interface RunComparison {
+  run1: TestRunSummary;
+  run2: TestRunSummary;
+  changes: ResultChange[];
+}
+
+/** Результат импорта. */
+export interface ImportResult {
+  created: number;
+  skipped: number;
+  errors: number;
+  validation_errors?: { row: number; field: string; message: string }[];
+}
+
+/** Запрос создания бага. */
+export interface CreateBugRequest {
+  title?: string;
+  description?: string;
+  priority?: string;
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Привязка к задачам
+// ---------------------------------------------------------------------------
+
+/** Привязать тест-кейс к задаче. */
+export function linkTestCaseToIssue(projectId: string, caseKey: string, issueId: string) {
+  return api.post<void>(`/projects/${projectId}/tms/cases/${caseKey}/links`, {
+    issue_id: issueId,
+  });
+}
+
+/** Отвязать тест-кейс от задачи. */
+export function unlinkTestCaseFromIssue(projectId: string, caseKey: string, issueId: string) {
+  return api.delete<void>(
+    `/projects/${projectId}/tms/cases/${caseKey}/links/${issueId}`,
+  );
+}
+
+/** Получить привязанные задачи тест-кейса. */
+export function getTestCaseLinks(projectId: string, caseKey: string) {
+  return api.get<IssueBriefResponse[]>(
+    `/projects/${projectId}/tms/cases/${caseKey}/links`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Создание бага из результата
+// ---------------------------------------------------------------------------
+
+/** Создать баг из упавшего результата теста. */
+export function createBugFromResult(
+  projectId: string,
+  runId: string,
+  resultId: string,
+  data?: CreateBugRequest,
+) {
+  return api.post<IssueBriefResponse>(
+    `/projects/${projectId}/tms/runs/${runId}/results/${resultId}/bug`,
+    data ?? {},
+  );
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Отчёты
+// ---------------------------------------------------------------------------
+
+/** Получить отчёт о покрытии задач тестами. */
+export function getCoverageReport(projectId: string) {
+  return api.get<CoverageReport>(`/projects/${projectId}/tms/reports/coverage`);
+}
+
+/** Получить тренды прогонов. */
+export function getTestTrends(projectId: string, limit?: number) {
+  const qs = limit ? `?limit=${limit}` : "";
+  return api.get<TrendPoint[]>(
+    `/projects/${projectId}/tms/reports/trends${qs}`,
+  );
+}
+
+/** Сравнить два прогона. */
+export function getRunComparison(projectId: string, run1: string, run2: string) {
+  return api.get<RunComparison>(
+    `/projects/${projectId}/tms/reports/comparison?run1=${run1}&run2=${run2}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Импорт/экспорт
+// ---------------------------------------------------------------------------
+
+/** Импортировать тест-кейсы из файла (multipart). */
+export function importTestCases(projectId: string, file: File, format?: string, mapping?: Record<string, string>) {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (format) formData.append("format", format);
+  if (mapping) formData.append("mapping", JSON.stringify(mapping));
+  return api.post<ImportResult>(`/projects/${projectId}/tms/import`, formData);
+}
+
+/** Экспортировать тест-кейсы (возвращает blob URL). */
+export function exportTestCases(projectId: string, format: string = "csv") {
+  return api.get<Blob>(`/projects/${projectId}/tms/export?format=${format}`);
+}
+
+/** Экспортировать отчёт прогона (возвращает blob URL). */
+export function exportTestRunReport(projectId: string, runId: string, format: string = "csv") {
+  return api.get<Blob>(
+    `/projects/${projectId}/tms/runs/${runId}/export?format=${format}`,
+  );
+}
+
 /** Обновить результат теста (выполнение с данными шагов). */
 export function updateTestResult(
   projectId: string,

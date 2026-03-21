@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/schema"
@@ -303,6 +305,270 @@ func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, caseKey string
 		return apperrors.NewInternal("ошибка получения тест-кейса")
 	}
 	return s.repo.UnlinkTestCaseFromIssue(ctx, tc.ID, issueID)
+}
+
+// GetTestCaseLinks возвращает задачи, привязанные к тест-кейсу.
+func (s *TMSService) GetTestCaseLinks(ctx context.Context, caseKey string) ([]IssueBriefResponse, error) {
+	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("тест-кейс не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения тест-кейса")
+	}
+
+	issues, err := s.repo.GetTestCaseLinkedIssues(ctx, tc.ID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения привязанных задач")
+	}
+
+	result := make([]IssueBriefResponse, 0, len(issues))
+	for _, i := range issues {
+		result = append(result, IssueBriefResponse{
+			ID:       i.ID.String(),
+			IssueKey: i.IssueKey,
+			Title:    i.Title,
+		})
+	}
+	return result, nil
+}
+
+// CreateBugFromFailedResult создаёт баг из упавшего результата теста.
+// Создаёт задачу типа bug через shared Ent client (без импорта tracker пакета),
+// привязывает к тест-кейсу и возвращает краткую информацию о созданном баге.
+func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, userID uuid.UUID, resultID uuid.UUID, req CreateBugRequest) (*IssueBriefResponse, error) {
+	// Получаем результат с тест-кейсом
+	result, err := s.repo.GetTestResult(ctx, resultID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("результат не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения результата")
+	}
+
+	// Определяем тест-кейс
+	var testCaseID uuid.UUID
+	title := req.Title
+	if result.Edges.TestCase != nil {
+		testCaseID = result.Edges.TestCase.ID
+		if title == "" {
+			title = "FAILED: " + result.Edges.TestCase.Title
+		}
+	} else {
+		if title == "" {
+			title = "FAILED: тест без привязки (результат " + resultID.String()[:8] + ")"
+		}
+	}
+
+	description := req.Description
+	if description == "" && result.ErrorMessage != "" {
+		description = result.ErrorMessage
+	}
+
+	issue, err := s.repo.CreateBugIssue(ctx, projectID, userID, testCaseID, title, description, req.Priority)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка создания бага: " + err.Error())
+	}
+
+	return &IssueBriefResponse{
+		ID:       issue.ID.String(),
+		IssueKey: issue.IssueKey,
+		Title:    issue.Title,
+	}, nil
+}
+
+// GetCoverageReport возвращает отчёт о покрытии задач тестами.
+// Для каждой задачи проекта, имеющей привязанные тест-кейсы,
+// показывает последний статус результата каждого тест-кейса.
+func (s *TMSService) GetCoverageReport(ctx context.Context, projectID uuid.UUID) (*CoverageReport, error) {
+	issues, err := s.repo.GetProjectIssuesWithTestCases(ctx, projectID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения задач для покрытия")
+	}
+
+	report := &CoverageReport{
+		Issues: make([]IssueCoverage, 0),
+	}
+
+	for _, issue := range issues {
+		if len(issue.Edges.LinkedTestCases) == 0 {
+			continue
+		}
+
+		cov := IssueCoverage{
+			IssueID:    issue.ID.String(),
+			IssueKey:   issue.IssueKey,
+			IssueTitle: issue.Title,
+			TestCases:  make([]TestCaseCoverage, 0, len(issue.Edges.LinkedTestCases)),
+		}
+
+		for _, tc := range issue.Edges.LinkedTestCases {
+			lastStatus := "no_results"
+			lastResult, err := s.repo.GetLastResultForTestCase(ctx, tc.ID)
+			if err == nil && lastResult != nil {
+				lastStatus = string(lastResult.Status)
+			}
+
+			cov.TestCases = append(cov.TestCases, TestCaseCoverage{
+				CaseKey:    tc.CaseKey,
+				CaseTitle:  tc.Title,
+				LastStatus: lastStatus,
+			})
+		}
+
+		report.Issues = append(report.Issues, cov)
+	}
+
+	return report, nil
+}
+
+// GetTestTrends возвращает тренды прогонов (pass/fail/skip) за последние N прогонов.
+func (s *TMSService) GetTestTrends(ctx context.Context, projectID uuid.UUID, lastN int) ([]TrendPoint, error) {
+	if lastN <= 0 || lastN > 100 {
+		lastN = 20
+	}
+
+	params := ListTestRunsParams{Offset: 0, Limit: lastN}
+	runs, _, err := s.repo.ListTestRuns(ctx, projectID, params)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения прогонов для трендов")
+	}
+
+	trends := make([]TrendPoint, 0, len(runs))
+	// Реверсируем порядок (от старых к новым для графика)
+	for i := len(runs) - 1; i >= 0; i-- {
+		run := runs[i]
+		passRate := float64(0)
+		if run.TotalCount > 0 {
+			passRate = float64(run.PassedCount) / float64(run.TotalCount) * 100
+		}
+		trends = append(trends, TrendPoint{
+			RunID:     run.ID.String(),
+			Title:     run.Title,
+			Total:     run.TotalCount,
+			Passed:    run.PassedCount,
+			Failed:    run.FailedCount,
+			Skipped:   run.SkippedCount,
+			Broken:    run.BrokenCount,
+			PassRate:  passRate,
+			CreatedAt: run.CreatedAt,
+		})
+	}
+
+	return trends, nil
+}
+
+// GetRunComparison сравнивает два прогона, показывая изменения статусов тест-кейсов.
+func (s *TMSService) GetRunComparison(ctx context.Context, runID1, runID2 uuid.UUID) (*RunComparison, error) {
+	// Получаем оба прогона
+	run1, err := s.repo.GetTestRun(ctx, runID1)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("прогон 1 не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона 1")
+	}
+	run2, err := s.repo.GetTestRun(ctx, runID2)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("прогон 2 не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона 2")
+	}
+
+	// Получаем результаты обоих прогонов
+	results1, err := s.repo.ListTestResults(ctx, runID1)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения результатов прогона 1")
+	}
+	results2, err := s.repo.ListTestResults(ctx, runID2)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения результатов прогона 2")
+	}
+
+	// Строим карту: caseKey -> status для каждого прогона
+	map1 := make(map[string]statusInfo)
+	for _, r := range results1 {
+		if r.Edges.TestCase != nil {
+			map1[r.Edges.TestCase.CaseKey] = statusInfo{
+				status: string(r.Status),
+				title:  r.Edges.TestCase.Title,
+			}
+		}
+	}
+	map2 := make(map[string]statusInfo)
+	for _, r := range results2 {
+		if r.Edges.TestCase != nil {
+			map2[r.Edges.TestCase.CaseKey] = statusInfo{
+				status: string(r.Status),
+				title:  r.Edges.TestCase.Title,
+			}
+		}
+	}
+
+	// Собираем изменения
+	changes := make([]ResultChange, 0)
+	allKeys := make(map[string]bool)
+	for k := range map1 {
+		allKeys[k] = true
+	}
+	for k := range map2 {
+		allKeys[k] = true
+	}
+
+	for key := range allKeys {
+		s1 := map1[key]
+		s2 := map2[key]
+		if s1.status != s2.status {
+			title := s1.title
+			if title == "" {
+				title = s2.title
+			}
+			changes = append(changes, ResultChange{
+				CaseKey:    key,
+				CaseTitle:  title,
+				StatusRun1: s1.status,
+				StatusRun2: s2.status,
+			})
+		}
+	}
+
+	passRate1 := float64(0)
+	if run1.TotalCount > 0 {
+		passRate1 = float64(run1.PassedCount) / float64(run1.TotalCount) * 100
+	}
+	passRate2 := float64(0)
+	if run2.TotalCount > 0 {
+		passRate2 = float64(run2.PassedCount) / float64(run2.TotalCount) * 100
+	}
+
+	return &RunComparison{
+		Run1: TestRunSummary{
+			RunID:     run1.ID.String(),
+			Title:     run1.Title,
+			Total:     run1.TotalCount,
+			Passed:    run1.PassedCount,
+			Failed:    run1.FailedCount,
+			PassRate:  passRate1,
+			CreatedAt: run1.CreatedAt,
+		},
+		Run2: TestRunSummary{
+			RunID:     run2.ID.String(),
+			Title:     run2.Title,
+			Total:     run2.TotalCount,
+			Passed:    run2.PassedCount,
+			Failed:    run2.FailedCount,
+			PassRate:  passRate2,
+			CreatedAt: run2.CreatedAt,
+		},
+		Changes: changes,
+	}, nil
+}
+
+// statusInfo — вспомогательная структура для сравнения прогонов.
+type statusInfo struct {
+	status string
+	title  string
 }
 
 // ---------------------------------------------------------------------------
@@ -1012,6 +1278,26 @@ func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) ([]
 		flakyTests = make([]TestCaseResponse, 0)
 	}
 	return flakyTests, nil
+}
+
+// ---------------------------------------------------------------------------
+// Импорт/экспорт (реализация в importer.go / exporter.go)
+// ---------------------------------------------------------------------------
+
+// ImportTestCases импортирует тест-кейсы из загруженного файла.
+// Парсит файл, автоматически определяет формат, выполняет маппинг полей и создаёт тест-кейсы.
+func (s *TMSService) ImportTestCases(c fiber.Ctx, projectID, userID uuid.UUID) (*ImportResult, error) {
+	return handleImport(s, c, projectID, userID)
+}
+
+// ExportTestCases экспортирует тест-кейсы проекта в указанном формате.
+func (s *TMSService) ExportTestCases(ctx context.Context, projectID uuid.UUID, format string) (io.Reader, string, error) {
+	return handleExportTestCases(s, ctx, projectID, format)
+}
+
+// ExportTestRunReport экспортирует отчёт прогона в указанном формате.
+func (s *TMSService) ExportTestRunReport(ctx context.Context, runID uuid.UUID, format string) (io.Reader, string, error) {
+	return handleExportTestRunReport(s, ctx, runID, format)
 }
 
 // publishEvent публикует событие в NATS (fire-and-forget).

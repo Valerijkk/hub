@@ -8,12 +8,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/component"
+	entissue "github.com/valerii/hub/backend/ent/issue"
 	entproject "github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/testcaseversion"
 	"github.com/valerii/hub/backend/ent/testresult"
 	"github.com/valerii/hub/backend/ent/testrun"
 	"github.com/valerii/hub/backend/ent/testsuite"
+	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
 // EntRepository реализует интерфейс Repository с помощью Ent ORM.
@@ -718,6 +720,120 @@ func (r *EntRepository) UnlinkTestCaseFromIssue(ctx context.Context, testCaseID,
 	return r.client.TestCase.UpdateOneID(testCaseID).
 		RemoveLinkedIssueIDs(issueID).
 		Exec(ctx)
+}
+
+// GetTestCaseLinkedIssues возвращает задачи, привязанные к тест-кейсу.
+func (r *EntRepository) GetTestCaseLinkedIssues(ctx context.Context, testCaseID uuid.UUID) ([]*ent.Issue, error) {
+	tc, err := r.client.TestCase.Query().
+		Where(testcase.ID(testCaseID)).
+		WithLinkedIssues().
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("получение привязанных задач: %w", err)
+	}
+	return tc.Edges.LinkedIssues, nil
+}
+
+// GetIssueLinkedTestCases возвращает тест-кейсы, привязанные к задаче (обратная связь).
+func (r *EntRepository) GetIssueLinkedTestCases(ctx context.Context, issueID uuid.UUID) ([]*ent.TestCase, error) {
+	issue, err := r.client.Issue.Query().
+		Where(entissue.ID(issueID)).
+		WithLinkedTestCases().
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("получение привязанных тест-кейсов: %w", err)
+	}
+	return issue.Edges.LinkedTestCases, nil
+}
+
+// GetProjectIssuesWithTestCases возвращает задачи проекта с привязанными тест-кейсами.
+func (r *EntRepository) GetProjectIssuesWithTestCases(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error) {
+	return r.client.Issue.Query().
+		Where(entissue.HasProjectWith(entproject.ID(projectID))).
+		WithLinkedTestCases().
+		All(ctx)
+}
+
+// CreateBugIssue создаёт задачу типа bug и привязывает к тест-кейсу.
+func (r *EntRepository) CreateBugIssue(ctx context.Context, projectID, userID, testCaseID uuid.UUID, title, description, priority string) (*ent.Issue, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("начало транзакции: %w", err)
+	}
+
+	// Инкрементируем счётчик задач проекта
+	p, err := tx.Project.UpdateOneID(projectID).
+		AddTaskCounter(1).
+		Save(ctx)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, fmt.Errorf("инкремент счётчика задач: %w", err)
+	}
+
+	issueKey := fmt.Sprintf("%s-%d", p.Key, p.TaskCounter)
+
+	// Получаем дефолтный статус проекта
+	statuses, err := tx.WorkflowStatus.Query().
+		Where(workflowstatus.HasProjectWith(entproject.ID(projectID))).
+		All(ctx)
+	if err != nil || len(statuses) == 0 {
+		_ = tx.Rollback()
+		return nil, fmt.Errorf("получение дефолтного статуса: %w", err)
+	}
+	defaultStatusID := statuses[0].ID
+	for _, st := range statuses {
+		if st.IsDefault {
+			defaultStatusID = st.ID
+			break
+		}
+	}
+
+	if priority == "" {
+		priority = "high"
+	}
+
+	create := tx.Issue.Create().
+		SetIssueNumber(p.TaskCounter).
+		SetIssueKey(issueKey).
+		SetTitle(title).
+		SetIssueType(entissue.IssueType("bug")).
+		SetPriority(entissue.Priority(priority)).
+		SetProjectID(projectID).
+		SetStatusID(defaultStatusID).
+		SetReporterID(userID)
+
+	if description != "" {
+		create = create.SetDescriptionText(description)
+	}
+
+	issue, err := create.Save(ctx)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, fmt.Errorf("создание бага: %w", err)
+	}
+
+	// Привязываем к тест-кейсу
+	err = tx.TestCase.UpdateOneID(testCaseID).
+		AddLinkedIssueIDs(issue.ID).
+		Exec(ctx)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, fmt.Errorf("привязка бага к тест-кейсу: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("коммит транзакции: %w", err)
+	}
+
+	return issue, nil
+}
+
+// GetLastResultForTestCase возвращает последний результат для тест-кейса.
+func (r *EntRepository) GetLastResultForTestCase(ctx context.Context, testCaseID uuid.UUID) (*ent.TestResult, error) {
+	return r.client.TestResult.Query().
+		Where(testresult.HasTestCaseWith(testcase.ID(testCaseID))).
+		Order(ent.Desc(testresult.FieldCreatedAt)).
+		First(ctx)
 }
 
 // ---------------------------------------------------------------------------

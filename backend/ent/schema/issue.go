@@ -93,6 +93,8 @@ func (Issue) Edges() []ent.Edge {
 		edge.To("outgoing_links", IssueLink.Type),
 		edge.From("incoming_links", IssueLink.Type).
 			Ref("target"),
+		edge.From("linked_test_cases", TestCase.Type).
+			Ref("linked_issues"),
 	}
 }
 

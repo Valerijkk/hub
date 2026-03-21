@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/valerii/hub/backend/ent"
+	entissue "github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/schema"
 	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/testresult"
@@ -20,25 +21,30 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockRepository struct {
-	testCases map[uuid.UUID]*ent.TestCase
-	versions  map[uuid.UUID]*ent.TestCaseVersion
-	runs      map[uuid.UUID]*ent.TestRun
-	results   map[uuid.UUID]*ent.TestResult
-	suites    map[uuid.UUID]*ent.TestSuite
-	components map[uuid.UUID]*ent.Component
+	testCases    map[uuid.UUID]*ent.TestCase
+	versions     map[uuid.UUID]*ent.TestCaseVersion
+	runs         map[uuid.UUID]*ent.TestRun
+	results      map[uuid.UUID]*ent.TestResult
+	suites       map[uuid.UUID]*ent.TestSuite
+	components   map[uuid.UUID]*ent.Component
+	issues       map[uuid.UUID]*ent.Issue
+	linkedIssues map[uuid.UUID][]uuid.UUID // testCaseID -> issueIDs
 
 	caseCounter int
+	issueCounter int
 	lastVersion *ent.TestCaseVersion
 }
 
 func newMockRepo() *mockRepository {
 	return &mockRepository{
-		testCases:  make(map[uuid.UUID]*ent.TestCase),
-		versions:   make(map[uuid.UUID]*ent.TestCaseVersion),
-		runs:       make(map[uuid.UUID]*ent.TestRun),
-		results:    make(map[uuid.UUID]*ent.TestResult),
-		suites:     make(map[uuid.UUID]*ent.TestSuite),
-		components: make(map[uuid.UUID]*ent.Component),
+		testCases:    make(map[uuid.UUID]*ent.TestCase),
+		versions:     make(map[uuid.UUID]*ent.TestCaseVersion),
+		runs:         make(map[uuid.UUID]*ent.TestRun),
+		results:      make(map[uuid.UUID]*ent.TestResult),
+		suites:       make(map[uuid.UUID]*ent.TestSuite),
+		components:   make(map[uuid.UUID]*ent.Component),
+		issues:       make(map[uuid.UUID]*ent.Issue),
+		linkedIssues: make(map[uuid.UUID][]uuid.UUID),
 	}
 }
 
@@ -341,12 +347,98 @@ func (m *mockRepository) IncrementTestCaseCounter(_ context.Context, _ uuid.UUID
 	return m.caseCounter, nil
 }
 
-func (m *mockRepository) LinkTestCaseToIssue(_ context.Context, _, _ uuid.UUID) error {
+func (m *mockRepository) LinkTestCaseToIssue(_ context.Context, testCaseID, issueID uuid.UUID) error {
+	m.linkedIssues[testCaseID] = append(m.linkedIssues[testCaseID], issueID)
 	return nil
 }
 
-func (m *mockRepository) UnlinkTestCaseFromIssue(_ context.Context, _, _ uuid.UUID) error {
+func (m *mockRepository) UnlinkTestCaseFromIssue(_ context.Context, testCaseID, issueID uuid.UUID) error {
+	ids := m.linkedIssues[testCaseID]
+	for i, id := range ids {
+		if id == issueID {
+			m.linkedIssues[testCaseID] = append(ids[:i], ids[i+1:]...)
+			break
+		}
+	}
 	return nil
+}
+
+func (m *mockRepository) GetTestCaseLinkedIssues(_ context.Context, testCaseID uuid.UUID) ([]*ent.Issue, error) {
+	issueIDs := m.linkedIssues[testCaseID]
+	result := make([]*ent.Issue, 0, len(issueIDs))
+	for _, id := range issueIDs {
+		if issue, ok := m.issues[id]; ok {
+			result = append(result, issue)
+		}
+	}
+	return result, nil
+}
+
+func (m *mockRepository) GetIssueLinkedTestCases(_ context.Context, issueID uuid.UUID) ([]*ent.TestCase, error) {
+	result := make([]*ent.TestCase, 0)
+	for tcID, issueIDs := range m.linkedIssues {
+		for _, id := range issueIDs {
+			if id == issueID {
+				if tc, ok := m.testCases[tcID]; ok {
+					result = append(result, tc)
+				}
+			}
+		}
+	}
+	return result, nil
+}
+
+func (m *mockRepository) GetProjectIssuesWithTestCases(_ context.Context, _ uuid.UUID) ([]*ent.Issue, error) {
+	result := make([]*ent.Issue, 0, len(m.issues))
+	for _, issue := range m.issues {
+		// Подгружаем связанные тест-кейсы
+		linkedTCs := make([]*ent.TestCase, 0)
+		for tcID, issueIDs := range m.linkedIssues {
+			for _, iid := range issueIDs {
+				if iid == issue.ID {
+					if tc, ok := m.testCases[tcID]; ok {
+						linkedTCs = append(linkedTCs, tc)
+					}
+				}
+			}
+		}
+		issue.Edges.LinkedTestCases = linkedTCs
+		result = append(result, issue)
+	}
+	return result, nil
+}
+
+func (m *mockRepository) CreateBugIssue(_ context.Context, _ , _, testCaseID uuid.UUID, title, _ , _ string) (*ent.Issue, error) {
+	m.issueCounter++
+	id := uuid.New()
+	issue := &ent.Issue{
+		ID:          id,
+		IssueNumber: m.issueCounter,
+		IssueKey:    "HUB-" + itoa(m.issueCounter),
+		Title:       title,
+		IssueType:   entissue.IssueType("bug"),
+		Priority:    entissue.Priority("high"),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	m.issues[id] = issue
+	m.linkedIssues[testCaseID] = append(m.linkedIssues[testCaseID], id)
+	return issue, nil
+}
+
+func (m *mockRepository) GetLastResultForTestCase(_ context.Context, testCaseID uuid.UUID) (*ent.TestResult, error) {
+	var latest *ent.TestResult
+	for _, r := range m.results {
+		if r.Edges.TestCase != nil && r.Edges.TestCase.ID == testCaseID {
+			if latest == nil || r.CreatedAt.After(latest.CreatedAt) {
+				latest = r
+			}
+		}
+	}
+	if latest == nil {
+		return nil, &ent.NotFoundError{}
+	}
+	return latest, nil
 }
 
 func (m *mockRepository) AddTestCasesToRun(_ context.Context, runID uuid.UUID, caseIDs []uuid.UUID) error {
@@ -690,6 +782,117 @@ func TestCompleteTestRun(t *testing.T) {
 	completed, err := svc.CompleteTestRun(ctx, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "completed", completed.Status)
+}
+
+func TestLinkTestCaseToIssue(t *testing.T) {
+	repo := newMockRepo()
+	svc := NewTMSService(repo, nil)
+	ctx := context.Background()
+
+	// Создаём тест-кейс
+	tc, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), CreateTestCaseRequest{
+		Title: "Кейс для привязки",
+	})
+	require.NoError(t, err)
+
+	// Создаём задачу в mock
+	issueID := uuid.New()
+	repo.issues[issueID] = &ent.Issue{
+		ID:       issueID,
+		IssueKey: "HUB-100",
+		Title:    "Задача для привязки",
+	}
+
+	// Привязываем
+	err = svc.LinkTestCaseToIssue(ctx, tc.CaseKey, issueID)
+	require.NoError(t, err)
+
+	// Проверяем привязку
+	links, err := svc.GetTestCaseLinks(ctx, tc.CaseKey)
+	require.NoError(t, err)
+	assert.Len(t, links, 1)
+	assert.Equal(t, "HUB-100", links[0].IssueKey)
+
+	// Отвязываем
+	err = svc.UnlinkTestCaseFromIssue(ctx, tc.CaseKey, issueID)
+	require.NoError(t, err)
+
+	links, err = svc.GetTestCaseLinks(ctx, tc.CaseKey)
+	require.NoError(t, err)
+	assert.Len(t, links, 0)
+}
+
+func TestCreateBugFromFailedResult(t *testing.T) {
+	repo := newMockRepo()
+	svc := NewTMSService(repo, nil)
+	ctx := context.Background()
+
+	// Создаём тест-кейс
+	tc, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), CreateTestCaseRequest{
+		Title: "Кейс с провалом",
+	})
+	require.NoError(t, err)
+	tcID, _ := uuid.Parse(tc.ID)
+
+	// Создаём результат с привязкой к тест-кейсу
+	resultID := uuid.New()
+	repo.results[resultID] = &ent.TestResult{
+		ID:           resultID,
+		Status:       "failed",
+		ErrorMessage: "NullPointerException",
+		CreatedAt:    time.Now(),
+		Edges: ent.TestResultEdges{
+			TestCase: repo.testCases[tcID],
+		},
+	}
+
+	// Создаём баг
+	bug, err := svc.CreateBugFromFailedResult(ctx, uuid.New(), uuid.New(), resultID, CreateBugRequest{})
+	require.NoError(t, err)
+	assert.NotEmpty(t, bug.ID)
+	assert.Contains(t, bug.Title, "FAILED:")
+	assert.Contains(t, bug.Title, "Кейс с провалом")
+}
+
+func TestGetCoverageReport(t *testing.T) {
+	repo := newMockRepo()
+	svc := NewTMSService(repo, nil)
+	ctx := context.Background()
+	projectID := uuid.New()
+
+	// Создаём тест-кейс
+	tc, err := svc.CreateTestCase(ctx, projectID, uuid.New(), CreateTestCaseRequest{
+		Title: "Кейс покрытия",
+	})
+	require.NoError(t, err)
+	tcID, _ := uuid.Parse(tc.ID)
+
+	// Создаём задачу и привязываем
+	issueID := uuid.New()
+	repo.issues[issueID] = &ent.Issue{
+		ID:       issueID,
+		IssueKey: "HUB-200",
+		Title:    "Задача покрытия",
+	}
+	repo.linkedIssues[tcID] = []uuid.UUID{issueID}
+
+	// Создаём результат для кейса
+	resultID := uuid.New()
+	repo.results[resultID] = &ent.TestResult{
+		ID:     resultID,
+		Status: "passed",
+		Edges: ent.TestResultEdges{
+			TestCase: repo.testCases[tcID],
+		},
+		CreatedAt: time.Now(),
+	}
+
+	report, err := svc.GetCoverageReport(ctx, projectID)
+	require.NoError(t, err)
+	assert.Len(t, report.Issues, 1)
+	assert.Equal(t, "HUB-200", report.Issues[0].IssueKey)
+	assert.Len(t, report.Issues[0].TestCases, 1)
+	assert.Equal(t, "passed", report.Issues[0].TestCases[0].LastStatus)
 }
 
 func TestStartTestRun_InvalidTransition(t *testing.T) {

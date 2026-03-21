@@ -327,6 +327,82 @@ type IssueBriefResponse struct {
 	Title    string `json:"title"`
 }
 
+// CreateBugRequest — тело запроса на создание бага из упавшего теста.
+type CreateBugRequest struct {
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
+	Priority    string `json:"priority,omitempty" validate:"omitempty,oneof=critical high medium low trivial"`
+}
+
+// CoverageReport — отчёт о покрытии задач тестами.
+type CoverageReport struct {
+	Issues []IssueCoverage `json:"issues"`
+}
+
+// IssueCoverage — покрытие одной задачи тест-кейсами.
+type IssueCoverage struct {
+	IssueID    string             `json:"issue_id"`
+	IssueKey   string             `json:"issue_key"`
+	IssueTitle string             `json:"issue_title"`
+	TestCases  []TestCaseCoverage `json:"test_cases"`
+}
+
+// TestCaseCoverage — покрытие тест-кейса с последним статусом результата.
+type TestCaseCoverage struct {
+	CaseKey    string `json:"case_key"`
+	CaseTitle  string `json:"case_title"`
+	LastStatus string `json:"last_status"`
+}
+
+// TrendPoint — точка данных для графика трендов прогонов.
+type TrendPoint struct {
+	RunID     string    `json:"run_id"`
+	Title     string    `json:"title"`
+	Total     int       `json:"total"`
+	Passed    int       `json:"passed"`
+	Failed    int       `json:"failed"`
+	Skipped   int       `json:"skipped"`
+	Broken    int       `json:"broken"`
+	PassRate  float64   `json:"pass_rate"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// RunComparison — сравнение двух прогонов.
+type RunComparison struct {
+	Run1    TestRunSummary `json:"run1"`
+	Run2    TestRunSummary `json:"run2"`
+	Changes []ResultChange `json:"changes"`
+}
+
+// ResultChange — изменение статуса тест-кейса между прогонами.
+type ResultChange struct {
+	CaseKey    string `json:"case_key"`
+	CaseTitle  string `json:"case_title"`
+	StatusRun1 string `json:"status_run1"`
+	StatusRun2 string `json:"status_run2"`
+}
+
+// ImportRequest — тело запроса на импорт тест-кейсов.
+type ImportRequest struct {
+	Format  string            `json:"format" validate:"required,oneof=csv json xml excel"`
+	Mapping map[string]string `json:"mapping,omitempty"`
+}
+
+// ImportResult — результат импорта тест-кейсов.
+type ImportResult struct {
+	Created          int                     `json:"created"`
+	Skipped          int                     `json:"skipped"`
+	Errors           int                     `json:"errors"`
+	ValidationErrors []ImportValidationError `json:"validation_errors,omitempty"`
+}
+
+// ImportValidationError — ошибка валидации строки при импорте.
+type ImportValidationError struct {
+	Row     int    `json:"row"`
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
 // PaginatedResponse — обёртка для пагинированного ответа.
 type PaginatedResponse[T any] struct {
 	Items  []T `json:"items"`

@@ -5,6 +5,8 @@ import {
   getTestCase,
   listVersions,
   rollbackVersion,
+  linkTestCaseToIssue,
+  unlinkTestCaseFromIssue,
   type TestCaseVersionResponse,
 } from "@/api/tms";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,7 @@ function TestCaseDetailPage() {
   const { projectId, caseKey } = Route.useParams();
   const queryClient = useQueryClient();
   const [versionsOpen, setVersionsOpen] = useState(false);
+  const [linkIssueId, setLinkIssueId] = useState("");
 
   // Загрузка тест-кейса
   const { data: tc, isLoading } = useQuery({
@@ -49,6 +52,29 @@ function TestCaseDetailPage() {
     queryKey: ["tms-case-versions", projectId, caseKey],
     queryFn: () => listVersions(projectId, caseKey),
     enabled: versionsOpen,
+  });
+
+  // Привязка к задаче
+  const linkMutation = useMutation({
+    mutationFn: (issueId: string) =>
+      linkTestCaseToIssue(projectId, caseKey, issueId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["tms-case", projectId, caseKey] });
+      setLinkIssueId("");
+      toast.success("Задача привязана");
+    },
+    onError: () => toast.error("Ошибка привязки"),
+  });
+
+  // Отвязка от задачи
+  const unlinkMutation = useMutation({
+    mutationFn: (issueId: string) =>
+      unlinkTestCaseFromIssue(projectId, caseKey, issueId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["tms-case", projectId, caseKey] });
+      toast.success("Задача отвязана");
+    },
+    onError: () => toast.error("Ошибка отвязки"),
   });
 
   // Откат
@@ -311,29 +337,69 @@ function TestCaseDetailPage() {
                   </div>
                 </div>
               )}
-              {tc.linked_issues && tc.linked_issues.length > 0 && (
-                <div>
-                  <div className="text-xs text-muted-foreground">
+              {/* Связанные задачи */}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
                     Связанные задачи
-                  </div>
-                  <div className="space-y-1">
+                  </span>
+                </div>
+                {tc.linked_issues && tc.linked_issues.length > 0 && (
+                  <div className="mb-2 space-y-1">
                     {tc.linked_issues.map((issue) => (
-                      <div key={issue.id} className="text-sm">
-                        <Link
-                          to="/projects/$projectId/issues/$issueKey"
-                          params={{ projectId, issueKey: issue.issue_key }}
-                          className="text-primary hover:underline"
+                      <div
+                        key={issue.id}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <div>
+                          <Link
+                            to="/projects/$projectId/issues/$issueKey"
+                            params={{ projectId, issueKey: issue.issue_key }}
+                            className="text-primary hover:underline"
+                          >
+                            {issue.issue_key}
+                          </Link>
+                          <span className="ml-1 text-muted-foreground">
+                            {issue.title}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1 text-xs text-muted-foreground"
+                          disabled={unlinkMutation.isPending}
+                          onClick={() => unlinkMutation.mutate(issue.id)}
                         >
-                          {issue.issue_key}
-                        </Link>
-                        <span className="ml-1 text-muted-foreground">
-                          {issue.title}
-                        </span>
+                          x
+                        </Button>
                       </div>
                     ))}
                   </div>
+                )}
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    className="flex-1 rounded-md border bg-background px-2 py-1 text-xs"
+                    placeholder="ID задачи"
+                    value={linkIssueId}
+                    onChange={(e) => setLinkIssueId(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && linkIssueId.trim()) {
+                        linkMutation.mutate(linkIssueId.trim());
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    disabled={!linkIssueId.trim() || linkMutation.isPending}
+                    onClick={() => linkMutation.mutate(linkIssueId.trim())}
+                  >
+                    +
+                  </Button>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </div>

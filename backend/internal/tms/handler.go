@@ -39,6 +39,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	// Привязка к задачам
 	cases.Post("/:caseKey/links", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.LinkTestCaseToIssue)
 	cases.Delete("/:caseKey/links/:issueId", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.UnlinkTestCaseFromIssue)
+	cases.Get("/:caseKey/links", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestCaseLinks)
 
 	// Папки/сьюты
 	suites := tms.Group("/suites")
@@ -80,10 +81,21 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	allure := tms.Group("/allure")
 	allure.Post("/import", rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc), h.ImportAllureResults)
 
+	// Создание бага из результата
+	runs.Post("/:runId/results/:resultId/bug", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.CreateBugFromResult)
+
 	// Отчёты
 	reports := tms.Group("/reports")
 	reports.Get("/history", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestRunHistory)
 	reports.Get("/flaky", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetFlakyTests)
+	reports.Get("/coverage", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetCoverageReport)
+	reports.Get("/trends", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestTrends)
+	reports.Get("/comparison", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetRunComparison)
+
+	// Импорт/экспорт
+	tms.Post("/import", rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc), h.ImportTestCases)
+	tms.Get("/export", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ExportTestCases)
+	runs.Get("/:runId/export", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ExportTestRunReport)
 }
 
 // ---------------------------------------------------------------------------
@@ -1071,4 +1083,244 @@ func (h *Handler) GetFlakyTests(c fiber.Ctx) error {
 	}
 
 	return c.JSON(resp)
+}
+
+// ---------------------------------------------------------------------------
+// Привязанные задачи (GET)
+// ---------------------------------------------------------------------------
+
+// GetTestCaseLinks обрабатывает GET /api/projects/:projectId/tms/cases/:caseKey/links
+// @Summary Получить привязанные задачи тест-кейса
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param caseKey path string true "Ключ тест-кейса"
+// @Success 200 {array} IssueBriefResponse
+// @Router /api/projects/{projectId}/tms/cases/{caseKey}/links [get]
+func (h *Handler) GetTestCaseLinks(c fiber.Ctx) error {
+	caseKey := parseCaseKey(c)
+	if caseKey == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "case key обязателен")
+	}
+
+	resp, err := h.service.GetTestCaseLinks(c.Context(), caseKey)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// ---------------------------------------------------------------------------
+// Создание бага из результата
+// ---------------------------------------------------------------------------
+
+// CreateBugFromResult обрабатывает POST /api/projects/:projectId/tms/runs/:runId/results/:resultId/bug
+// @Summary Создать баг из упавшего результата теста
+// @Tags TMS
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param runId path string true "ID прогона"
+// @Param resultId path string true "ID результата"
+// @Param body body CreateBugRequest true "Данные бага"
+// @Success 201 {object} IssueBriefResponse
+// @Failure 400 {object} errors.AppError
+// @Router /api/projects/{projectId}/tms/runs/{runId}/results/{resultId}/bug [post]
+func (h *Handler) CreateBugFromResult(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+	resultID, err := parseUUIDParam(c, "resultId")
+	if err != nil {
+		return err
+	}
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	var req CreateBugRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+
+	resp, err := h.service.CreateBugFromFailedResult(c.Context(), projectID, userID, resultID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
+// ---------------------------------------------------------------------------
+// Отчёты: покрытие, тренды, сравнение
+// ---------------------------------------------------------------------------
+
+// GetCoverageReport обрабатывает GET /api/projects/:projectId/tms/reports/coverage
+// @Summary Отчёт о покрытии задач тестами
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {object} CoverageReport
+// @Router /api/projects/{projectId}/tms/reports/coverage [get]
+func (h *Handler) GetCoverageReport(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.GetCoverageReport(c.Context(), projectID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// GetTestTrends обрабатывает GET /api/projects/:projectId/tms/reports/trends
+// @Summary Тренды прогонов тестов (pass/fail/skip по прогонам)
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param limit query int false "Количество последних прогонов (по умолчанию 20)"
+// @Success 200 {array} TrendPoint
+// @Router /api/projects/{projectId}/tms/reports/trends [get]
+func (h *Handler) GetTestTrends(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	limit := 20
+	if l := c.Query("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil {
+			limit = parsed
+		}
+	}
+
+	resp, err := h.service.GetTestTrends(c.Context(), projectID, limit)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// GetRunComparison обрабатывает GET /api/projects/:projectId/tms/reports/comparison
+// @Summary Сравнение двух прогонов
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param run1 query string true "ID первого прогона"
+// @Param run2 query string true "ID второго прогона"
+// @Success 200 {object} RunComparison
+// @Failure 400 {object} errors.AppError
+// @Router /api/projects/{projectId}/tms/reports/comparison [get]
+func (h *Handler) GetRunComparison(c fiber.Ctx) error {
+	run1Str := c.Query("run1")
+	run2Str := c.Query("run2")
+	if run1Str == "" || run2Str == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "параметры run1 и run2 обязательны")
+	}
+
+	runID1, err := uuid.Parse(run1Str)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный run1")
+	}
+	runID2, err := uuid.Parse(run2Str)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный run2")
+	}
+
+	resp, err := h.service.GetRunComparison(c.Context(), runID1, runID2)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// ---------------------------------------------------------------------------
+// Импорт/экспорт (заглушки — полная реализация в Task 2)
+// ---------------------------------------------------------------------------
+
+// ImportTestCases обрабатывает POST /api/projects/:projectId/tms/import
+// @Summary Импортировать тест-кейсы из файла
+// @Tags TMS
+// @Accept multipart/form-data
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {object} ImportResult
+// @Router /api/projects/{projectId}/tms/import [post]
+func (h *Handler) ImportTestCases(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.ImportTestCases(c, projectID, userID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// ExportTestCases обрабатывает GET /api/projects/:projectId/tms/export
+// @Summary Экспортировать тест-кейсы в файл
+// @Tags TMS
+// @Produce application/octet-stream
+// @Param projectId path string true "ID проекта"
+// @Param format query string false "Формат (csv, json, xml, excel)"
+// @Success 200 {file} binary
+// @Router /api/projects/{projectId}/tms/export [get]
+func (h *Handler) ExportTestCases(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	format := c.Query("format", "csv")
+
+	reader, filename, err := h.service.ExportTestCases(c.Context(), projectID, format)
+	if err != nil {
+		return err
+	}
+
+	c.Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	c.Set("Content-Type", "application/octet-stream")
+	return c.SendStream(reader)
+}
+
+// ExportTestRunReport обрабатывает GET /api/projects/:projectId/tms/runs/:runId/export
+// @Summary Экспортировать отчёт прогона
+// @Tags TMS
+// @Produce application/octet-stream
+// @Param projectId path string true "ID проекта"
+// @Param runId path string true "ID прогона"
+// @Param format query string false "Формат (pdf, csv, json)"
+// @Success 200 {file} binary
+// @Router /api/projects/{projectId}/tms/runs/{runId}/export [get]
+func (h *Handler) ExportTestRunReport(c fiber.Ctx) error {
+	runID, err := parseUUIDParam(c, "runId")
+	if err != nil {
+		return err
+	}
+
+	format := c.Query("format", "csv")
+
+	reader, filename, err := h.service.ExportTestRunReport(c.Context(), runID, format)
+	if err != nil {
+		return err
+	}
+
+	c.Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	c.Set("Content-Type", "application/octet-stream")
+	return c.SendStream(reader)
 }

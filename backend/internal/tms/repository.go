@@ -110,6 +110,16 @@ type Repository interface {
 	LinkTestCaseToIssue(ctx context.Context, testCaseID, issueID uuid.UUID) error
 	// UnlinkTestCaseFromIssue отвязывает тест-кейс от задачи.
 	UnlinkTestCaseFromIssue(ctx context.Context, testCaseID, issueID uuid.UUID) error
+	// GetTestCaseLinkedIssues возвращает задачи, привязанные к тест-кейсу.
+	GetTestCaseLinkedIssues(ctx context.Context, testCaseID uuid.UUID) ([]*ent.Issue, error)
+	// GetIssueLinkedTestCases возвращает тест-кейсы, привязанные к задаче (обратная связь).
+	GetIssueLinkedTestCases(ctx context.Context, issueID uuid.UUID) ([]*ent.TestCase, error)
+	// GetProjectIssuesWithTestCases возвращает задачи проекта с привязанными тест-кейсами.
+	GetProjectIssuesWithTestCases(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error)
+	// CreateBugIssue создаёт задачу типа bug и привязывает к тест-кейсу.
+	CreateBugIssue(ctx context.Context, projectID, userID, testCaseID uuid.UUID, title, description, priority string) (*ent.Issue, error)
+	// GetLastResultForTestCase возвращает последний результат для тест-кейса.
+	GetLastResultForTestCase(ctx context.Context, testCaseID uuid.UUID) (*ent.TestResult, error)
 
 	// --- Расширенные операции прогонов ---
 
