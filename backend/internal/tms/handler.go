@@ -91,6 +91,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	reports.Get("/coverage", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetCoverageReport)
 	reports.Get("/trends", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestTrends)
 	reports.Get("/comparison", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetRunComparison)
+	reports.Get("/traceability", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTraceabilityMatrix)
+	reports.Get("/defect-categories", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetDefectCategories)
 
 	// Импорт/экспорт
 	tms.Post("/import", rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc), h.ImportTestCases)
@@ -1242,6 +1244,48 @@ func (h *Handler) GetRunComparison(c fiber.Ctx) error {
 	}
 
 	resp, err := h.service.GetRunComparison(c.Context(), runID1, runID2)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// GetTraceabilityMatrix обрабатывает GET /api/projects/:projectId/tms/reports/traceability
+// @Summary Матрица трассировки задач и тест-кейсов
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {object} TraceabilityMatrix
+// @Router /api/projects/{projectId}/tms/reports/traceability [get]
+func (h *Handler) GetTraceabilityMatrix(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.GetTraceabilityMatrix(c.Context(), projectID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// GetDefectCategories обрабатывает GET /api/projects/:projectId/tms/reports/defect-categories
+// @Summary Категории дефектов (группировка failed-тестов по ошибке)
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} DefectCategory
+// @Router /api/projects/{projectId}/tms/reports/defect-categories [get]
+func (h *Handler) GetDefectCategories(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.GetDefectCategories(c.Context(), projectID)
 	if err != nil {
 		return err
 	}

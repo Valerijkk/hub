@@ -1280,6 +1280,102 @@ func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) ([]
 	return flakyTests, nil
 }
 
+// GetTraceabilityMatrix строит матрицу трассировки: строки = задачи, колонки = тест-кейсы, ячейки = последний статус.
+func (s *TMSService) GetTraceabilityMatrix(ctx context.Context, projectID uuid.UUID) (*TraceabilityMatrix, error) {
+	issues, err := s.repo.GetProjectIssuesWithTestCases(ctx, projectID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения задач для матрицы трассировки")
+	}
+
+	rows := make([]TraceabilityRow, 0, len(issues))
+	for _, iss := range issues {
+		if iss.Edges.LinkedTestCases == nil || len(iss.Edges.LinkedTestCases) == 0 {
+			continue
+		}
+		row := TraceabilityRow{
+			IssueKey:   iss.IssueKey,
+			IssueTitle: iss.Title,
+		}
+		for _, tc := range iss.Edges.LinkedTestCases {
+			lastStatus := "no_results"
+			lastResult, err := s.repo.GetLastResultForTestCase(ctx, tc.ID)
+			if err == nil && lastResult != nil {
+				lastStatus = string(lastResult.Status)
+			}
+			row.TestCases = append(row.TestCases, TraceabilityCell{
+				CaseKey:    tc.CaseKey,
+				CaseTitle:  tc.Title,
+				LastStatus: lastStatus,
+			})
+		}
+		rows = append(rows, row)
+	}
+
+	return &TraceabilityMatrix{Rows: rows}, nil
+}
+
+// GetDefectCategories группирует failed-тесты из последних прогонов по паттерну сообщения об ошибке.
+func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUID) ([]DefectCategory, error) {
+	params := ListTestRunsParams{Offset: 0, Limit: 10}
+	runs, _, err := s.repo.ListTestRuns(ctx, projectID, params)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения прогонов для анализа дефектов")
+	}
+
+	// Собираем failed-результаты и группируем по паттерну ошибки
+	categories := make(map[string][]string) // pattern -> []caseKey
+	for _, run := range runs {
+		results, err := s.repo.ListTestResults(ctx, run.ID)
+		if err != nil {
+			continue
+		}
+		for _, r := range results {
+			if string(r.Status) != "failed" && string(r.Status) != "broken" {
+				continue
+			}
+			pattern := "unknown"
+			if r.ErrorMessage != "" {
+				pattern = normalizeErrorPattern(r.ErrorMessage)
+			}
+			caseKey := ""
+			if r.Edges.TestCase != nil {
+				caseKey = r.Edges.TestCase.CaseKey
+			}
+			if caseKey != "" {
+				categories[pattern] = append(categories[pattern], caseKey)
+			}
+		}
+	}
+
+	result := make([]DefectCategory, 0, len(categories))
+	for pattern, keys := range categories {
+		// Дедупликация ключей
+		seen := make(map[string]bool)
+		unique := make([]string, 0)
+		for _, k := range keys {
+			if !seen[k] {
+				seen[k] = true
+				unique = append(unique, k)
+			}
+		}
+		result = append(result, DefectCategory{
+			Pattern:  pattern,
+			Count:    len(unique),
+			CaseKeys: unique,
+		})
+	}
+
+	return result, nil
+}
+
+// normalizeErrorPattern извлекает основной паттерн из сообщения об ошибке (первые 100 символов).
+func normalizeErrorPattern(msg string) string {
+	if len(msg) > 100 {
+		return msg[:100]
+	}
+	return msg
+}
+
 // ---------------------------------------------------------------------------
 // Импорт/экспорт (реализация в importer.go / exporter.go)
 // ---------------------------------------------------------------------------

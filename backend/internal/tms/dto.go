@@ -382,6 +382,32 @@ type ResultChange struct {
 	StatusRun2 string `json:"status_run2"`
 }
 
+// TraceabilityCell — ячейка матрицы трассировки: связь задачи с тест-кейсом.
+type TraceabilityCell struct {
+	CaseKey    string `json:"case_key"`
+	CaseTitle  string `json:"case_title"`
+	LastStatus string `json:"last_status"`
+}
+
+// TraceabilityRow — строка матрицы трассировки: задача и привязанные тест-кейсы.
+type TraceabilityRow struct {
+	IssueKey   string             `json:"issue_key"`
+	IssueTitle string             `json:"issue_title"`
+	TestCases  []TraceabilityCell `json:"test_cases"`
+}
+
+// TraceabilityMatrix — полная матрица трассировки проекта.
+type TraceabilityMatrix struct {
+	Rows []TraceabilityRow `json:"rows"`
+}
+
+// DefectCategory — категория дефектов (группировка failed-тестов по паттерну ошибки).
+type DefectCategory struct {
+	Pattern   string   `json:"pattern"`
+	Count     int      `json:"count"`
+	CaseKeys  []string `json:"case_keys"`
+}
+
 // ImportRequest — тело запроса на импорт тест-кейсов.
 type ImportRequest struct {
 	Format  string            `json:"format" validate:"required,oneof=csv json xml excel"`
