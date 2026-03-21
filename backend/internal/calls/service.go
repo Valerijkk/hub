@@ -18,22 +18,25 @@ import (
 
 // CallService реализует бизнес-логику модуля голосовых звонков.
 // Управляет жизненным циклом комнат LiveKit, генерирует токены доступа,
-// обрабатывает webhook-события и публикует NATS-уведомления.
+// обрабатывает webhook-события, публикует NATS-уведомления и управляет эфемерным чатом.
 type CallService struct {
 	roomClient *lksdk.RoomServiceClient
 	cfg        config.LiveKitConfig
 	repo       *EntRepository
+	chatRepo   *ChatRepository
 	nats       *natsclient.Client
 }
 
 // NewCallService создаёт новый сервис звонков.
 // Инициализирует клиент LiveKit RoomService для управления комнатами.
-func NewCallService(cfg config.LiveKitConfig, repo *EntRepository, nc *natsclient.Client) *CallService {
+// chatRepo может быть nil если MongoDB не сконфигурирован.
+func NewCallService(cfg config.LiveKitConfig, repo *EntRepository, nc *natsclient.Client, chatRepo *ChatRepository) *CallService {
 	roomClient := lksdk.NewRoomServiceClient(cfg.URL, cfg.APIKey, cfg.APISecret)
 	return &CallService{
 		roomClient: roomClient,
 		cfg:        cfg,
 		repo:       repo,
+		chatRepo:   chatRepo,
 		nats:       nc,
 	}
 }
@@ -199,7 +202,7 @@ func (s *CallService) OnRoomStarted(ctx context.Context, roomName string) error 
 }
 
 // OnRoomFinished обрабатывает webhook room_finished от LiveKit.
-// Завершает звонок и обновляет статус.
+// Завершает звонок, обновляет статус и удаляет эфемерный чат (CALL-06).
 func (s *CallService) OnRoomFinished(ctx context.Context, roomName string) error {
 	callEnt, err := s.repo.GetCallByRoomName(ctx, roomName)
 	if err != nil {
@@ -210,12 +213,65 @@ func (s *CallService) OnRoomFinished(ctx context.Context, roomName string) error
 		return err
 	}
 
+	// Удаляем эфемерный чат звонка (CALL-06)
+	if s.chatRepo != nil {
+		if delErr := s.chatRepo.DeleteCallChat(ctx, callEnt.ID.String()); delErr != nil {
+			slog.Error("не удалось удалить чат звонка", "call_id", callEnt.ID, "error", delErr)
+		}
+	}
+
 	s.publishEvent(fmt.Sprintf("calls.channel.%s.ended", callEnt.ChannelID.String()), map[string]interface{}{
 		"call_id":           callEnt.ID,
 		"participant_count": callEnt.ParticipantCount,
 	})
 
 	return nil
+}
+
+// SendChatMessage отправляет сообщение в эфемерный чат звонка.
+// Проверяет что звонок активен, сохраняет сообщение в MongoDB и публикует событие в NATS.
+func (s *CallService) SendChatMessage(ctx context.Context, callID string, userID, userName, text string) (*CallChatMessage, error) {
+	// Проверяем что звонок существует и активен
+	callUUID, err := uuid.Parse(callID)
+	if err != nil {
+		return nil, fmt.Errorf("некорректный call ID: %w", err)
+	}
+	callEnt, err := s.repo.GetCall(ctx, callUUID)
+	if err != nil {
+		return nil, fmt.Errorf("звонок не найден: %w", err)
+	}
+	if callEnt.Status != "active" {
+		return nil, fmt.Errorf("звонок уже завершён")
+	}
+
+	if s.chatRepo == nil {
+		return nil, fmt.Errorf("чат звонков не настроен")
+	}
+
+	msg, err := s.chatRepo.SendMessage(ctx, callID, userID, userName, text)
+	if err != nil {
+		return nil, err
+	}
+
+	// Публикуем событие для real-time доставки через NATS -> WS bridge
+	s.publishEvent("calls.chat."+callID, map[string]interface{}{
+		"id":         msg.ID.Hex(),
+		"call_id":    msg.CallID,
+		"user_id":    msg.UserID,
+		"user_name":  msg.UserName,
+		"text":       msg.Text,
+		"created_at": msg.CreatedAt,
+	})
+
+	return msg, nil
+}
+
+// ListChatMessages возвращает последние N сообщений эфемерного чата звонка.
+func (s *CallService) ListChatMessages(ctx context.Context, callID string, limit int) ([]CallChatMessage, error) {
+	if s.chatRepo == nil {
+		return nil, fmt.Errorf("чат звонков не настроен")
+	}
+	return s.chatRepo.ListMessages(ctx, callID, limit)
 }
 
 // OnParticipantJoined обрабатывает webhook participant_joined от LiveKit.

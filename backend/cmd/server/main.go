@@ -167,7 +167,11 @@ func main() {
 
 	// Calls routes (голосовые звонки через LiveKit)
 	callsRepo := callsmod.NewEntRepository(db)
-	callsSvc := callsmod.NewCallService(cfg.LiveKit, callsRepo, nc)
+	callsChatRepo := callsmod.NewChatRepository(mongoDB)
+	if err := callsChatRepo.EnsureIndexes(ctx); err != nil {
+		slog.Error("failed to ensure calls chat indexes", "error", err)
+	}
+	callsSvc := callsmod.NewCallService(cfg.LiveKit, callsRepo, nc, callsChatRepo)
 	callsHandler := callsmod.NewHandler(callsSvc, cfg.LiveKit)
 	callsHandler.RegisterRoutes(api, requireAuth)
 

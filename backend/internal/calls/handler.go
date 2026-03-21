@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
@@ -36,6 +37,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	calls.Post("/:callId/leave", h.LeaveCall)
 	calls.Post("/:callId/end", h.EndCall)
 	calls.Post("/:callId/raise-hand", h.RaiseHand)
+	calls.Post("/:callId/chat", h.SendChatMessage)
+	calls.Get("/:callId/chat", h.ListChatMessages)
 
 	// Webhook без аутентификации (LiveKit вызывает напрямую)
 	api.Post("/calls/webhook", h.HandleWebhook)
@@ -206,6 +209,64 @@ func (h *Handler) RaiseHand(c fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"raised": req.Raised})
+}
+
+// SendChatMessage обрабатывает POST /api/calls/:callId/chat — отправка сообщения в чат звонка.
+func (h *Handler) SendChatMessage(c fiber.Ctx) error {
+	callID, err := parseCallID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	var req struct {
+		Text string `json:"text"`
+	}
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+	if req.Text == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "текст сообщения обязателен")
+	}
+
+	userName := userNameFromCtx(c)
+	msg, err := h.service.SendChatMessage(c.Context(), callID.String(), userID.String(), userName, req.Text)
+	if err != nil {
+		slog.Error("ошибка отправки сообщения чата звонка", "error", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось отправить сообщение")
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(msg)
+}
+
+// ListChatMessages обрабатывает GET /api/calls/:callId/chat — получение сообщений чата звонка.
+func (h *Handler) ListChatMessages(c fiber.Ctx) error {
+	callID, err := parseCallID(c)
+	if err != nil {
+		return err
+	}
+
+	limit := 50
+	if l := c.Query("limit"); l != "" {
+		if parsed, parseErr := strconv.Atoi(l); parseErr == nil && parsed > 0 && parsed <= 200 {
+			limit = parsed
+		}
+	}
+
+	msgs, err := h.service.ListChatMessages(c.Context(), callID.String(), limit)
+	if err != nil {
+		slog.Error("ошибка получения сообщений чата звонка", "error", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось получить сообщения")
+	}
+
+	if msgs == nil {
+		msgs = []CallChatMessage{}
+	}
+
+	return c.JSON(fiber.Map{"messages": msgs})
 }
 
 // webhookEvent представляет структуру webhook-события от LiveKit.
