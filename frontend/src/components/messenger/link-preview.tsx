@@ -127,7 +127,7 @@ function GenericPreview({ url }: { url: string }) {
           </span>
         )}
         <span className="text-[10px] text-muted-foreground/60 truncate mt-0.5">
-          {new URL(url).hostname}
+          {(() => { try { return new URL(url).hostname; } catch { return url; } })()}
         </span>
       </div>
     </a>

@@ -9,26 +9,8 @@ export default defineConfig({
     TanStackRouterVite(),
     react(),
     tailwindcss(),
-    VitePWA({
-      registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "robots.txt"],
-      manifest: false,
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-        navigateFallback: "/index.html",
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif)$/,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "images",
-              expiration: { maxEntries: 50 },
-            },
-          },
-        ],
-      },
-    }),
+    // PWA отключен для dev-тестирования (кеширует старые JS файлы)
+    // VitePWA({ ... }),
   ],
   resolve: {
     alias: {
