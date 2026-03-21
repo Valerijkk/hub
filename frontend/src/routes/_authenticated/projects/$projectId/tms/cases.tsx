@@ -457,21 +457,40 @@ function TestCasesPage() {
           </div>
         ) : cases.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
-            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-muted/50 border border-dashed border-muted-foreground/20">
-              <svg className="h-10 w-10 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/60 to-muted/30 border border-dashed border-muted-foreground/20 shadow-sm">
+              {filters.suiteId && !filters.search && !filters.status && !filters.priority ? (
+                <svg className="h-10 w-10 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              ) : (
+                <svg className="h-10 w-10 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+              )}
             </div>
-            <h3 className="text-lg font-semibold mb-1">Нет тест-кейсов</h3>
-            <p className="text-sm text-muted-foreground mb-5 max-w-xs text-center">
-              {hasActiveFilters
-                ? "По вашим фильтрам ничего не найдено. Попробуйте изменить параметры поиска."
-                : "Создайте первый тест-кейс, чтобы начать управление тестированием"}
+            <h3 className="text-lg font-semibold mb-2">
+              {filters.suiteId && !filters.search && !filters.status && !filters.priority
+                ? "В этой папке пока нет тест-кейсов"
+                : "Нет тест-кейсов"}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-5 max-w-sm text-center leading-relaxed">
+              {filters.suiteId && !filters.search && !filters.status && !filters.priority
+                ? "Создайте новый тест-кейс в выбранной папке или перенесите существующие"
+                : hasActiveFilters
+                  ? "По вашим фильтрам ничего не найдено. Попробуйте изменить параметры поиска."
+                  : "Создайте первый тест-кейс, чтобы начать управление тестированием"}
             </p>
             {hasActiveFilters ? (
-              <Button variant="outline" onClick={() => { resetFilters(); setOffset(0); }}>
-                Сбросить фильтры
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => { resetFilters(); setOffset(0); }}>
+                  Сбросить фильтры
+                </Button>
+                {filters.suiteId && (
+                  <Button className="gradient-tms text-white" onClick={() => setCreateOpen(true)}>
+                    Создать кейс
+                  </Button>
+                )}
+              </div>
             ) : (
               <Button className="gradient-tms text-white" onClick={() => setCreateOpen(true)}>
                 Создать первый кейс
