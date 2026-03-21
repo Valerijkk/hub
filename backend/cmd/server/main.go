@@ -204,6 +204,10 @@ func main() {
 	trackerHandler := trackermod.NewHandler(trackerSvc)
 	trackerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
+	// Автопровизия трекера при создании проекта (workflow + доска "Main Board")
+	trackerProv := trackermod.NewTrackerProjectProvisioner(trackerRepo)
+	projectSvc.SetTrackerProvisioner(trackerProv)
+
 	// Sprint routes (Scrum: спринты, Planning Poker, burndown, velocity)
 	sprintRepo := sprintmod.NewEntRepository(db)
 	sprintSvc := sprintmod.NewSprintService(sprintRepo, rdb, nc)
