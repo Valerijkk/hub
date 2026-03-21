@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-21T02:03:16.428Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-21T02:16:27.128Z"
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 24
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 04 (TMS & Allure) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Plan: 2 of 5
 | Phase 03 P04 | 7min | 2 tasks | 20 files |
 | Phase 03 P05 | 5min | 2 tasks | 3 files |
 | Phase 04 P01 | 10min | 2 tasks | 13 files |
+| Phase 04 P02 | 10min | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,9 @@ Recent decisions affecting current work:
 - [Phase 03]: Presence: 5min away threshold, 90s stale cleanup, 60s cleanup interval
 - [Phase 03]: Bookmarks via dialog button (not separate route) in channel list header
 - [Phase 04]: TMS EntRepository without OutboxPublisher; offset pagination for TMS; suite tree built in-memory; snapshot versioning with JSON map
+- [Phase 04]: Frontend TMS files in src/api/ and src/stores/ (not src/shared/) following project structure
+- [Phase 04]: TMS route layout with tabs under $projectId/tms/; execution panel as inline Card (not modal)
+- [Phase 04]: recomputeRunStats queries all results after each update for accuracy
 
 ### Pending Todos
 
@@ -128,6 +132,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T02:03:16.424Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-21T02:16:27.125Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
