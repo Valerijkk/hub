@@ -26,34 +26,36 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-/** Цвета статусов результата. */
-const RESULT_STATUS_COLORS: Record<string, string> = {
-  passed: "bg-green-100 text-green-800",
-  failed: "bg-red-100 text-red-800",
-  broken: "bg-orange-100 text-orange-800",
-  skipped: "bg-gray-200 text-gray-700",
-  unknown: "bg-gray-100 text-gray-500",
+/** Конфигурация статусов результата — цвета и лейблы. */
+const RESULT_STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; dotColor: string }> = {
+  passed: { bg: "bg-green-500/10", text: "text-green-700 dark:text-green-400", label: "Passed", dotColor: "bg-green-500" },
+  failed: { bg: "bg-red-500/10", text: "text-red-700 dark:text-red-400", label: "Failed", dotColor: "bg-red-500" },
+  broken: { bg: "bg-orange-500/10", text: "text-orange-700 dark:text-orange-400", label: "Broken", dotColor: "bg-orange-500" },
+  skipped: { bg: "bg-gray-200 dark:bg-gray-700/50", text: "text-gray-600 dark:text-gray-400", label: "Skipped", dotColor: "bg-gray-400" },
+  unknown: { bg: "bg-gray-100 dark:bg-gray-800/50", text: "text-gray-500", label: "Unknown", dotColor: "bg-gray-300" },
 };
 
-/** Цвета статусов прогона. */
-const RUN_STATUS_COLORS: Record<string, string> = {
-  created: "bg-gray-200 text-gray-700",
-  in_progress: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  aborted: "bg-red-100 text-red-800",
-};
-
-/** Лейблы статусов прогона. */
-const RUN_STATUS_LABELS: Record<string, string> = {
-  created: "Создан",
-  in_progress: "Выполняется",
-  completed: "Завершён",
-  aborted: "Прерван",
+/** Конфигурация статусов прогона. */
+const RUN_STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
+  created: { bg: "bg-gray-500/10", text: "text-gray-600 dark:text-gray-400", label: "Создан" },
+  in_progress: { bg: "bg-blue-500/10", text: "text-blue-700 dark:text-blue-400", label: "Выполняется" },
+  completed: { bg: "bg-green-500/10", text: "text-green-700 dark:text-green-400", label: "Завершён" },
+  aborted: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", label: "Прерван" },
 };
 
 /**
- * Панель выполнения тест-кейса.
- * Отображает шаги с кнопками Pass/Fail/Skip, поле комментария и отправку результата.
+ * Форматирует длительность в человекочитаемый формат.
+ */
+function formatDuration(ms?: number): string {
+  if (!ms) return "--";
+  if (ms < 1000) return `${ms}мс`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}с`;
+  return `${Math.floor(ms / 60000)}м ${Math.floor((ms % 60000) / 1000)}с`;
+}
+
+/**
+ * Панель выполнения тест-кейса — профессиональный дизайн.
+ * Отображает информацию о кейсе, кнопки статусов, комментарий.
  */
 function ExecutionPanel({
   result,
@@ -100,58 +102,55 @@ function ExecutionPanel({
     onError: () => toast.error("Ошибка сохранения результата"),
   });
 
+  /** Конфигурация кнопок статусов выполнения. */
+  const statusButtons: { status: TestResultStatus; label: string; color: string; activeColor: string }[] = [
+    { status: "passed", label: "Passed", color: "hover:bg-green-500/10 hover:text-green-700 hover:border-green-500/30", activeColor: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { status: "failed", label: "Failed", color: "hover:bg-red-500/10 hover:text-red-700 hover:border-red-500/30", activeColor: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30" },
+    { status: "broken", label: "Broken", color: "hover:bg-orange-500/10 hover:text-orange-700 hover:border-orange-500/30", activeColor: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30" },
+    { status: "skipped", label: "Skip", color: "hover:bg-gray-500/10 hover:text-gray-700 hover:border-gray-500/30", activeColor: "bg-gray-500/15 text-gray-700 dark:text-gray-400 border-gray-500/30" },
+  ];
+
   return (
     <div className="space-y-4">
       {/* Информация о тест-кейсе */}
       {tc && (
-        <div className="rounded border p-3">
-          <div className="mb-1 text-sm font-medium">
-            {tc.case_key}: {tc.title}
-          </div>
-          <div className="flex gap-2">
-            <Badge variant="outline" className="text-xs">
+        <div className="rounded-lg border bg-muted/20 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono text-xs font-bold text-primary">{tc.case_key}</span>
+            <Badge variant="outline" className="text-[10px]">
               {tc.case_type === "bdd" ? "BDD" : "Classic"}
             </Badge>
-            <Badge variant="outline" className="text-xs">
-              {tc.priority}
-            </Badge>
           </div>
+          <div className="text-sm font-medium leading-tight">{tc.title}</div>
         </div>
       )}
 
-      {/* Общий статус */}
+      {/* Кнопки статусов */}
       <div>
-        <div className="mb-2 text-sm font-medium">Общий результат</div>
-        <div className="flex gap-2">
-          {(["passed", "failed", "broken", "skipped"] as TestResultStatus[]).map(
-            (s) => (
-              <Button
-                key={s}
-                size="sm"
-                variant={overallStatus === s ? "default" : "outline"}
-                className={cn(
-                  overallStatus === s && RESULT_STATUS_COLORS[s],
-                )}
-                onClick={() => setOverallStatus(s)}
-              >
-                {s === "passed"
-                  ? "Passed"
-                  : s === "failed"
-                    ? "Failed"
-                    : s === "broken"
-                      ? "Broken"
-                      : "Skipped"}
-              </Button>
-            ),
-          )}
+        <div className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Результат</div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {statusButtons.map((btn) => (
+            <button
+              key={btn.status}
+              className={cn(
+                "rounded-lg border px-3 py-2 text-xs font-semibold transition-all duration-150",
+                overallStatus === btn.status
+                  ? btn.activeColor
+                  : cn("border-border text-muted-foreground", btn.color),
+              )}
+              onClick={() => setOverallStatus(btn.status)}
+            >
+              {btn.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Комментарий */}
       <div>
-        <div className="mb-1 text-sm font-medium">Комментарий</div>
+        <div className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Комментарий</div>
         <textarea
-          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+          className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
           rows={3}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -162,13 +161,13 @@ function ExecutionPanel({
       {/* Кнопки управления */}
       <div className="flex gap-2">
         <Button
-          className="flex-1"
+          className="flex-1 gradient-tms text-white"
           disabled={submitMutation.isPending}
           onClick={() => submitMutation.mutate()}
         >
-          {submitMutation.isPending ? "Сохранение..." : "Сохранить результат"}
+          {submitMutation.isPending ? "Сохранение..." : "Сохранить"}
         </Button>
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" onClick={onClose} className="shrink-0">
           Закрыть
         </Button>
       </div>
@@ -177,9 +176,9 @@ function ExecutionPanel({
 }
 
 /**
- * Страница деталей прогона тестов.
- * Отображает заголовок, статистику, действия и таблицу результатов.
- * Клик по строке результата открывает панель выполнения.
+ * Страница деталей прогона тестов — дизайн уровня Allure TestOps.
+ * Заголовок с прогресс-баром, 4 цветных карточки статистики,
+ * дерево результатов слева и панель выполнения справа.
  */
 function TestRunDetailPage() {
   const { projectId, runId } = Route.useParams();
@@ -205,9 +204,7 @@ function TestRunDetailPage() {
   const startMutation = useMutation({
     mutationFn: () => startRun(projectId, runId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["tms-run-detail", projectId, runId],
-      });
+      void queryClient.invalidateQueries({ queryKey: ["tms-run-detail", projectId, runId] });
       toast.success("Прогон запущен");
     },
     onError: () => toast.error("Ошибка запуска прогона"),
@@ -216,9 +213,7 @@ function TestRunDetailPage() {
   const completeMutation = useMutation({
     mutationFn: () => completeRun(projectId, runId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["tms-run-detail", projectId, runId],
-      });
+      void queryClient.invalidateQueries({ queryKey: ["tms-run-detail", projectId, runId] });
       toast.success("Прогон завершён");
     },
     onError: () => toast.error("Ошибка завершения прогона"),
@@ -227,9 +222,7 @@ function TestRunDetailPage() {
   const reopenMutation = useMutation({
     mutationFn: () => reopenRun(projectId, runId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["tms-run-detail", projectId, runId],
-      });
+      void queryClient.invalidateQueries({ queryKey: ["tms-run-detail", projectId, runId] });
       toast.success("Прогон переоткрыт");
     },
     onError: () => toast.error("Ошибка переоткрытия прогона"),
@@ -238,9 +231,7 @@ function TestRunDetailPage() {
   const addCasesMutation = useMutation({
     mutationFn: () => addCasesToRun(projectId, runId, selectedCaseIds),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["tms-run-detail", projectId, runId],
-      });
+      void queryClient.invalidateQueries({ queryKey: ["tms-run-detail", projectId, runId] });
       setAddCasesOpen(false);
       setSelectedCaseIds([]);
       toast.success("Тест-кейсы добавлены");
@@ -248,9 +239,7 @@ function TestRunDetailPage() {
     onError: () => toast.error("Ошибка добавления тест-кейсов"),
   });
 
-  /**
-   * Переходит к следующему невыполненному результату.
-   */
+  /** Переходит к следующему невыполненному результату. */
   const handleNext = useCallback(() => {
     if (!run) {
       setExecutingResultId(null);
@@ -266,9 +255,7 @@ function TestRunDetailPage() {
     }
   }, [run, executingResultId]);
 
-  /**
-   * Переключает выбор тест-кейса для добавления.
-   */
+  /** Переключает выбор тест-кейса для добавления. */
   const toggleCaseSelection = useCallback((caseId: string) => {
     setSelectedCaseIds((prev) =>
       prev.includes(caseId)
@@ -279,8 +266,19 @@ function TestRunDetailPage() {
 
   if (isLoading || !run) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Загрузка...</p>
+      <div className="mx-auto max-w-6xl animate-fade-in">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="h-4 w-16 rounded animate-shimmer" />
+          <div className="h-4 w-4 rounded animate-shimmer" />
+          <div className="h-4 w-40 rounded animate-shimmer" />
+        </div>
+        <div className="h-8 w-64 rounded animate-shimmer mb-4" />
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-20 rounded-xl animate-shimmer" />
+          ))}
+        </div>
+        <div className="h-64 w-full rounded-xl animate-shimmer" />
       </div>
     );
   }
@@ -294,64 +292,105 @@ function TestRunDetailPage() {
       ? Math.round((run.passed_count / run.total_count) * 100)
       : 0;
 
+  const statusCfg = (RUN_STATUS_CONFIG[run.status] ?? RUN_STATUS_CONFIG.created)!;
+
+  /** Конфигурация карточек статистики. */
+  const statCards = [
+    { label: "Passed", count: run.passed_count, color: "text-green-600 dark:text-green-400", bgColor: "bg-green-500/10", borderColor: "border-green-500/20" },
+    { label: "Failed", count: run.failed_count, color: "text-red-600 dark:text-red-400", bgColor: "bg-red-500/10", borderColor: "border-red-500/20" },
+    { label: "Broken", count: run.broken_count, color: "text-orange-600 dark:text-orange-400", bgColor: "bg-orange-500/10", borderColor: "border-orange-500/20" },
+    { label: "Skipped", count: run.skipped_count, color: "text-gray-500", bgColor: "bg-gray-500/10", borderColor: "border-gray-500/20" },
+  ];
+
   return (
-    <div className="mx-auto max-w-5xl">
-      {/* Навигация */}
-      <div className="mb-4">
+    <div className="mx-auto max-w-6xl animate-fade-in">
+      {/* Навигация (breadcrumb) */}
+      <div className="mb-4 flex items-center gap-1.5 text-sm">
         <Link
           to="/projects/$projectId/tms/runs"
           params={{ projectId }}
-          className="text-sm text-muted-foreground hover:underline"
+          className="text-muted-foreground hover:text-foreground transition-colors"
         >
           Прогоны
         </Link>
-        <span className="mx-2 text-muted-foreground">/</span>
-        <span className="text-sm font-medium">{run.title}</span>
+        <svg className="h-3.5 w-3.5 text-muted-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+        <span className="font-medium line-clamp-1">{run.title}</span>
       </div>
 
       {/* Заголовок и действия */}
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">{run.title}</h2>
-          {run.description && (
-            <p className="mt-1 text-sm text-muted-foreground">{run.description}</p>
-          )}
-          <div className="mt-2 flex items-center gap-3">
-            <Badge
-              variant="secondary"
-              className={cn("text-xs", RUN_STATUS_COLORS[run.status])}
-            >
-              {RUN_STATUS_LABELS[run.status] ?? run.status}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3 mb-2">
+            <h2 className="text-xl font-semibold leading-tight">{run.title}</h2>
+            <Badge variant="secondary" className={cn("text-[10px] font-semibold shrink-0", statusCfg.bg, statusCfg.text)}>
+              {statusCfg.label}
             </Badge>
-            {run.total_count > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-32 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-green-500 transition-all"
-                    style={{ width: `${passRate}%` }}
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground">{passRate}%</span>
-              </div>
-            )}
           </div>
+          {run.description && (
+            <p className="text-sm text-muted-foreground mb-2">{run.description}</p>
+          )}
+          {/* Прогресс-бар в заголовке */}
+          {run.total_count > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-48 overflow-hidden rounded-full bg-muted">
+                {run.passed_count > 0 && (
+                  <div className="h-full bg-green-500 float-left transition-all duration-500"
+                    style={{ width: `${(run.passed_count / run.total_count) * 100}%` }} />
+                )}
+                {run.failed_count > 0 && (
+                  <div className="h-full bg-red-500 float-left transition-all duration-500"
+                    style={{ width: `${(run.failed_count / run.total_count) * 100}%` }} />
+                )}
+                {run.broken_count > 0 && (
+                  <div className="h-full bg-orange-500 float-left transition-all duration-500"
+                    style={{ width: `${(run.broken_count / run.total_count) * 100}%` }} />
+                )}
+                {run.skipped_count > 0 && (
+                  <div className="h-full bg-gray-400 float-left transition-all duration-500"
+                    style={{ width: `${(run.skipped_count / run.total_count) * 100}%` }} />
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground tabular-nums font-medium">{passRate}% passed</span>
+            </div>
+          )}
+          {/* Назначенные */}
+          {run.assignees.length > 0 && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Назначены:</span>
+              {run.assignees.map((u) => (
+                <Badge key={u.id} variant="outline" className="text-[10px] font-medium">
+                  {u.name}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           {run.status === "created" && (
             <>
               <Button
                 variant="outline"
                 size="sm"
+                className="h-8"
                 onClick={() => setAddCasesOpen(true)}
               >
+                <svg className="mr-1 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
                 Добавить кейсы
               </Button>
               <Button
                 size="sm"
-                disabled={startMutation.isPending}
+                className="h-8 gradient-tms text-white"
+                disabled={startMutation.isPending || run.results.length === 0}
                 onClick={() => startMutation.mutate()}
               >
+                <svg className="mr-1 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                </svg>
                 Запустить
               </Button>
             </>
@@ -359,9 +398,13 @@ function TestRunDetailPage() {
           {run.status === "in_progress" && (
             <Button
               size="sm"
+              className="h-8"
               disabled={completeMutation.isPending}
               onClick={() => completeMutation.mutate()}
             >
+              <svg className="mr-1 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
               Завершить
             </Button>
           )}
@@ -369,6 +412,7 @@ function TestRunDetailPage() {
             <Button
               variant="outline"
               size="sm"
+              className="h-8"
               disabled={reopenMutation.isPending}
               onClick={() => reopenMutation.mutate()}
             >
@@ -378,133 +422,129 @@ function TestRunDetailPage() {
         </div>
       </div>
 
-      {/* Статистика */}
-      <div className="mb-6 grid grid-cols-6 gap-3">
-        <Card>
-          <CardContent className="p-3 text-center">
-            <div className="text-lg font-bold">{run.total_count}</div>
-            <div className="text-xs text-muted-foreground">Всего</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 text-center">
-            <div className="text-lg font-bold text-green-600">{run.passed_count}</div>
-            <div className="text-xs text-muted-foreground">Passed</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 text-center">
-            <div className="text-lg font-bold text-red-600">{run.failed_count}</div>
-            <div className="text-xs text-muted-foreground">Failed</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 text-center">
-            <div className="text-lg font-bold text-orange-600">{run.broken_count}</div>
-            <div className="text-xs text-muted-foreground">Broken</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 text-center">
-            <div className="text-lg font-bold text-gray-500">{run.skipped_count}</div>
-            <div className="text-xs text-muted-foreground">Skipped</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 text-center">
-            <div className="text-lg font-bold text-gray-400">{run.unknown_count}</div>
-            <div className="text-xs text-muted-foreground">Unknown</div>
-          </CardContent>
-        </Card>
+      {/* Карточки статистики — 4 больших числа */}
+      <div className="mb-6 grid grid-cols-4 gap-3">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className={cn(
+              "rounded-xl border p-4 text-center transition-all",
+              card.bgColor, card.borderColor,
+            )}
+          >
+            <div className={cn("text-2xl font-bold tabular-nums", card.color)}>
+              {card.count}
+            </div>
+            <div className="text-[11px] font-medium text-muted-foreground mt-0.5">
+              {card.label}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Назначенные */}
-      {run.assignees.length > 0 && (
-        <div className="mb-4">
-          <span className="text-xs text-muted-foreground">Назначены: </span>
-          {run.assignees.map((u) => (
-            <Badge key={u.id} variant="outline" className="mr-1 text-xs">
-              {u.name}
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      <div className="flex gap-6">
+      {/* Основной контент: таблица + панель выполнения */}
+      <div className="flex gap-4">
         {/* Таблица результатов */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {run.results.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              Нет результатов. Добавьте тест-кейсы в прогон.
+            <div className="flex flex-col items-center justify-center py-16 text-center border rounded-xl border-dashed">
+              <svg className="h-12 w-12 text-muted-foreground/20 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <p className="text-sm text-muted-foreground mb-3">Нет результатов. Добавьте тест-кейсы в прогон.</p>
+              {run.status === "created" && (
+                <Button variant="outline" size="sm" onClick={() => setAddCasesOpen(true)}>
+                  Добавить тест-кейсы
+                </Button>
+              )}
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-xl border shadow-card overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                  <tr className="border-b bg-muted/30">
+                    <th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                       Тест-кейс
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                    <th className="w-24 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                       Статус
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                    <th className="w-24 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Время
+                    </th>
+                    <th className="w-28 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                       Исполнитель
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {run.results.map((r) => (
-                    <tr
-                      key={r.id}
-                      className={cn(
-                        "cursor-pointer border-b transition-colors hover:bg-muted/50",
-                        executingResultId === r.id && "bg-blue-50",
-                      )}
-                      onClick={() => {
-                        if (run.status === "in_progress") {
-                          setExecutingResultId(r.id);
-                        }
-                      }}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-medium">
-                          {r.test_case?.case_key ?? "N/A"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {r.test_case?.title}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "text-xs",
-                            RESULT_STATUS_COLORS[r.status],
-                          )}
-                        >
-                          {r.status}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {r.executed_by?.name ?? "-"}
-                      </td>
-                    </tr>
-                  ))}
+                  {run.results.map((r) => {
+                    const resultCfg = (RESULT_STATUS_CONFIG[r.status] ?? RESULT_STATUS_CONFIG.unknown)!;
+                    const isExecuting = executingResultId === r.id;
+                    const isClickable = run.status === "in_progress";
+
+                    return (
+                      <tr
+                        key={r.id}
+                        className={cn(
+                          "border-b transition-all duration-150 last:border-0",
+                          isClickable && "cursor-pointer hover:bg-muted/30",
+                          isExecuting && "bg-primary/5 border-l-2 border-l-primary",
+                        )}
+                        onClick={() => {
+                          if (isClickable) setExecutingResultId(r.id);
+                        }}
+                      >
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className={cn("h-2 w-2 rounded-full shrink-0", resultCfg.dotColor)} />
+                            <div className="min-w-0">
+                              <span className="font-mono text-xs font-bold text-primary">
+                                {r.test_case?.case_key ?? "N/A"}
+                              </span>
+                              <div className="text-xs text-muted-foreground truncate max-w-xs">
+                                {r.test_case?.title}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <Badge
+                            variant="secondary"
+                            className={cn("text-[10px] font-semibold", resultCfg.bg, resultCfg.text)}
+                          >
+                            {resultCfg.label}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            {formatDuration(r.duration_ms)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="text-xs text-muted-foreground">
+                            {r.executed_by?.name ?? "--"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </div>
 
-        {/* Панель выполнения */}
+        {/* Панель выполнения — фиксированная справа */}
         {executingResult && run.status === "in_progress" && (
-          <div className="w-96 shrink-0">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Выполнение теста</CardTitle>
+          <div className="w-80 shrink-0">
+            <Card className="shadow-card sticky top-4">
+              <CardHeader className="pb-2 px-4 pt-4">
+                <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Выполнение теста
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 pb-4">
                 <ExecutionPanel
                   result={executingResult}
                   projectId={projectId}
@@ -524,7 +564,7 @@ function TestRunDetailPage() {
           <DialogHeader>
             <DialogTitle>Добавить тест-кейсы в прогон</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {casesData?.items.map((tc) => {
               const existingIds = new Set(
                 run.results
@@ -532,28 +572,29 @@ function TestRunDetailPage() {
                   .filter(Boolean),
               );
               const alreadyAdded = existingIds.has(tc.id);
+              const isSelected = selectedCaseIds.includes(tc.id);
               return (
                 <label
                   key={tc.id}
                   className={cn(
-                    "flex items-center gap-3 rounded border p-2 text-sm",
-                    alreadyAdded && "opacity-50",
+                    "flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-colors cursor-pointer",
+                    alreadyAdded && "opacity-40 cursor-not-allowed",
+                    isSelected && !alreadyAdded && "bg-primary/5 border-primary/30",
+                    !alreadyAdded && !isSelected && "hover:bg-muted/50",
                   )}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedCaseIds.includes(tc.id)}
+                    checked={isSelected}
                     disabled={alreadyAdded}
                     onChange={() => toggleCaseSelection(tc.id)}
                     className="rounded"
                   />
-                  <div>
-                    <span className="font-medium">{tc.case_key}</span>
-                    <span className="ml-2">{tc.title}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="font-mono text-xs font-bold text-primary">{tc.case_key}</span>
+                    <span className="ml-2 text-sm">{tc.title}</span>
                     {alreadyAdded && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        (уже добавлен)
-                      </span>
+                      <span className="ml-2 text-[10px] text-muted-foreground">(уже добавлен)</span>
                     )}
                   </div>
                 </label>
@@ -561,7 +602,7 @@ function TestRunDetailPage() {
             })}
           </div>
           <Button
-            className="mt-4 w-full"
+            className="mt-4 w-full gradient-tms text-white"
             disabled={selectedCaseIds.length === 0 || addCasesMutation.isPending}
             onClick={() => addCasesMutation.mutate()}
           >
