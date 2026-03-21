@@ -132,10 +132,10 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Система уведомлений (Ent-схемы, NATS JetStream consumer, WS bridge, Telegram-бот, предпочтения, тихие часы, фронтенд bell+panel+settings)
-- [ ] 06-02-PLAN.md — Глобальный поиск (PG tsvector + MongoDB text, Ctrl+K command palette cmdk, SavedFilter, горячие клавиши Ctrl+K/Ctrl+N)
+- [x] 06-01-PLAN.md — Система уведомлений (Ent-схемы, NATS JetStream consumer, WS bridge, Telegram-бот, предпочтения, тихие часы, фронтенд bell+panel+settings)
+- [x] 06-02-PLAN.md — Глобальный поиск (PG tsvector + MongoDB text, Ctrl+K command palette cmdk, SavedFilter, горячие клавиши Ctrl+K/Ctrl+N)
 - [ ] 06-03-PLAN.md — Дашборды (персональный, проектный, административный) с Tremor Raw + react-grid-layout, 12 виджетов, шаблоны Dev/QA/Manager
-- [ ] 06-04-PLAN.md — Журнал аудита (JetStream consumer), лимиты ресурсов, soft-delete корзина 30 дней, деактивация/GDPR удаление пользователей
+- [x] 06-04-PLAN.md — Журнал аудита (JetStream consumer), лимиты ресурсов, soft-delete корзина 30 дней, деактивация/GDPR удаление пользователей
 - [ ] 06-05-PLAN.md — Документация фазы 6 (бизнес-дока, тестовая дока, техническая дока) на русском
 
 ### Phase 7: Polish & Extended Features

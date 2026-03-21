@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-03-21T03:40:47.978Z"
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-03-21T04:12:27.265Z"
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 28
-  completed_plans: 28
+  total_plans: 33
+  completed_plans: 31
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** Unified environment for dev teams -- tracker, TMS, messenger, and calls connected in one interface
-**Current focus:** Phase 05 — Voice Calls
+**Current focus:** Phase 06 — Notifications, Search & Dashboards
 
 ## Current Position
 
-Phase: 6
-Plan: Not started
+Phase: 06 (Notifications, Search & Dashboards) — EXECUTING
+Plan: 4 of 5
 
 ## Performance Metrics
 
@@ -74,6 +74,8 @@ Plan: Not started
 | Phase 05 P02 | 4min | 2 tasks | 11 files |
 | Phase 05 P03 | 5min | 2 tasks | 6 files |
 | Phase 05 P04 | 4min | 2 tasks | 3 files |
+| Phase 06 P01 | 12min | 2 tasks | 22 files |
+| Phase 06 P02 | 12min | 2 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -139,6 +141,10 @@ Recent decisions affecting current work:
 - [Phase 05]: Ephemeral call chat: MongoDB with auto-delete on room_finished via ChatRepository.DeleteCallChat
 - [Phase 05]: Call events routed to channel:{channelID} WS rooms with call.* prefix; chat to call:{callID} rooms
 - [Phase 05]: Russian documentation following established Phase 1-4 pattern with TC-CALL-{ID}-{NN} test case naming for Phase 5
+- [Phase 06]: JetStream durable consumer for notification delivery with 2s debounce dedup; nil-safe TelegramSender; quiet hours with midnight crossover; reuse auth bot for notifications
+- [Phase 06]: Raw SQL via database.OpenRawDB() for tsvector queries (Ent ORM limitation)
+- [Phase 06]: Parallel PG tsvector + MongoDB text search with sort-by-score merge
+- [Phase 06]: cmdk for command palette with shouldFilter=false (server-side filtering)
 
 ### Pending Todos
 
@@ -152,6 +158,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T03:34:28.376Z
-Stopped at: Completed 05-04-PLAN.md
+Last session: 2026-03-21T04:12:22.830Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
