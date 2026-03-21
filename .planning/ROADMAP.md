@@ -114,7 +114,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Интеграция с LiveKit (Ent-схемы, сервис, handler, Docker Compose, Caddy, unit-тесты)
+- [x] 05-01-PLAN.md — Интеграция с LiveKit (Ent-схемы, сервис, handler, Docker Compose, Caddy, unit-тесты)
 - [ ] 05-02-PLAN.md — UI звонков (LiveKit React компоненты, список участников, mute/unmute, raise hand, screen share, Zustand store)
 - [ ] 05-03-PLAN.md — Жизненный цикл звонка (эфемерный чат MongoDB, NATS bridge подписки, WS-доставка событий в каналы)
 - [ ] 05-04-PLAN.md — Документация фазы 5 (бизнес-дока, тестовая дока, техническая дока) на русском
@@ -169,6 +169,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Task Tracker | 5/5 | Complete   | 2026-03-21 |
 | 3. Messenger | 0/5 | Planned | - |
 | 4. TMS & Allure | 0/5 | Planned | - |
-| 5. Voice Calls | 0/4 | Planned | - |
+| 5. Voice Calls | 1/4 | In Progress|  |
 | 6. Notifications, Search & Dashboards | 0/5 | Not started | - |
 | 7. Polish & Extended Features | 0/6 | Not started | - |
