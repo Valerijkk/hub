@@ -324,8 +324,8 @@ func (s *AuthService) LoginWithTelegram(ctx context.Context, initData, device, i
 	return s.CreateSession(ctx, u.ID, device, ip)
 }
 
-// findOrCreateUserByEmail looks up a user by email. If not found, creates one.
-// The very first user in the system is made admin.
+// findOrCreateUserByEmail ищет пользователя по email. Если не найден — создаёт нового.
+// Самый первый пользователь в системе получает роль admin.
 func (s *AuthService) findOrCreateUserByEmail(ctx context.Context, email string) (*ent.User, bool, error) {
 	u, err := s.db.User.Query().Where(user.EmailEQ(email)).Only(ctx)
 	if err == nil {
@@ -355,7 +355,7 @@ func (s *AuthService) findOrCreateUserByEmail(ctx context.Context, email string)
 	return u, true, nil
 }
 
-// findOrCreateUserByTelegram looks up a user by telegram_id. If not found, creates one.
+// findOrCreateUserByTelegram ищет пользователя по telegram_id. Если не найден — создаёт нового.
 func (s *AuthService) findOrCreateUserByTelegram(ctx context.Context, telegramID string, tg *TelegramUser) (*ent.User, bool, error) {
 	u, err := s.db.User.Query().Where(user.TelegramIDEQ(telegramID)).Only(ctx)
 	if err == nil {
@@ -396,6 +396,7 @@ func (s *AuthService) findOrCreateUserByTelegram(ctx context.Context, telegramID
 	return u, true, nil
 }
 
+// isFirstUser проверяет, является ли текущая регистрация первой (для назначения admin).
 func (s *AuthService) isFirstUser(ctx context.Context) bool {
 	count, err := s.db.User.Query().Count(ctx)
 	if err != nil {
@@ -404,6 +405,7 @@ func (s *AuthService) isFirstUser(ctx context.Context) bool {
 	return count == 0
 }
 
+// checkRegistrationAllowed проверяет, разрешена ли регистрация в текущем режиме.
 func (s *AuthService) checkRegistrationAllowed(ctx context.Context) error {
 	mode, _ := s.GetRegistrationMode(ctx)
 	if mode == "invite_only" {
@@ -414,7 +416,7 @@ func (s *AuthService) checkRegistrationAllowed(ctx context.Context) error {
 
 // ---- Profile ----
 
-// UpdateProfile updates user profile fields. system_role is never changed.
+// UpdateProfile обновляет поля профиля пользователя. system_role никогда не изменяется.
 func (s *AuthService) UpdateProfile(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) (*ent.User, error) {
 	update := s.db.User.UpdateOneID(userID)
 
@@ -452,7 +454,7 @@ func (s *AuthService) UpdateProfile(ctx context.Context, userID uuid.UUID, req U
 	return update.Save(ctx)
 }
 
-// CompleteOnboarding updates the profile and marks onboarding as completed.
+// CompleteOnboarding обновляет профиль и помечает онбординг как завершённый.
 func (s *AuthService) CompleteOnboarding(ctx context.Context, userID uuid.UUID, req OnboardingCompleteRequest) (*ent.User, error) {
 	if _, err := s.UpdateProfile(ctx, userID, req.ProfileData); err != nil {
 		return nil, err
@@ -462,14 +464,14 @@ func (s *AuthService) CompleteOnboarding(ctx context.Context, userID uuid.UUID, 
 		Save(ctx)
 }
 
-// GetMe returns the user by ID.
+// GetMe возвращает пользователя по ID.
 func (s *AuthService) GetMe(ctx context.Context, userID uuid.UUID) (*ent.User, error) {
 	return s.db.User.Get(ctx, userID)
 }
 
 // ---- Registration mode ----
 
-// GetRegistrationMode reads the "registration_mode" system setting. Defaults to "open".
+// GetRegistrationMode читает системную настройку "registration_mode". По умолчанию "open".
 func (s *AuthService) GetRegistrationMode(ctx context.Context) (string, error) {
 	setting, err := s.db.SystemSetting.Query().
 		Where(systemsetting.KeyEQ("registration_mode")).
@@ -483,7 +485,7 @@ func (s *AuthService) GetRegistrationMode(ctx context.Context) (string, error) {
 	return setting.Value, nil
 }
 
-// SetRegistrationMode updates the registration mode (admin only).
+// SetRegistrationMode обновляет режим регистрации (только для администратора).
 func (s *AuthService) SetRegistrationMode(ctx context.Context, mode string) error {
 	// Upsert: try update first, create if not found.
 	n, err := s.db.SystemSetting.Update().
@@ -508,7 +510,7 @@ func (s *AuthService) SetRegistrationMode(ctx context.Context, mode string) erro
 
 // ---- UserResponse builder ----
 
-// UserToResponse converts an Ent User to a UserResponse DTO.
+// UserToResponse конвертирует Ent User в DTO UserResponse.
 func UserToResponse(u *ent.User) *UserResponse {
 	resp := &UserResponse{
 		ID:                  u.ID.String(),
