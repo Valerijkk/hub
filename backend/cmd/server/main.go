@@ -134,12 +134,14 @@ func main() {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
 
-	// Swagger UI — документация API
-	// TODO: gofiber/swagger несовместим с Fiber v3, нужен swagger middleware для v3
-	// Пока отдаём docs.json напрямую
+	// API-документация: динамическая страница со списком всех эндпоинтов.
+	// gofiber/swagger несовместим с Fiber v3, поэтому генерируем HTML из зарегистрированных маршрутов.
+	api.Get("/docs", func(c fiber.Ctx) error {
+		return c.Type("html").SendString(devmod.BuildAPIDocsHTML(app))
+	})
 	api.Get("/docs/doc.json", func(c fiber.Ctx) error {
 		c.Set("Content-Type", "application/json")
-		return c.SendString(`{"openapi":"3.0.0","info":{"title":"Hub API","version":"1.0.0"},"paths":{}}`)
+		return c.SendString(devmod.BuildAPIDocsJSON(app))
 	})
 
 	// Auth routes (rate limit: 3 запроса / 10 мин на IP для защиты от брутфорса)
