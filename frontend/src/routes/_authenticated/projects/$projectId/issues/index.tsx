@@ -54,7 +54,7 @@ function IssueListPage() {
     search: search || undefined,
     status: statusFilter ? [statusFilter] : undefined,
     priority: priorityFilter ? [priorityFilter] : undefined,
-    type: typeFilter || undefined,
+    issue_type: typeFilter || undefined,
   };
 
   const { data, isLoading } = useQuery({

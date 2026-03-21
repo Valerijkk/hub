@@ -111,9 +111,9 @@ export function ChatView({ channelId }: ChatViewProps) {
             <h2 className="text-sm font-semibold leading-tight">
               {channel?.name ?? "Загрузка..."}
             </h2>
-            {channel && (
+            {channel && channel.channel_type !== "dm" && (
               <span className="text-[11px] text-muted-foreground">
-                {channel.members_count} участников
+                {channel.channel_type === "public" ? "Публичный" : "Группа"}
               </span>
             )}
           </div>

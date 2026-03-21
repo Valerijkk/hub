@@ -4,7 +4,7 @@ import { useChannels } from "@/hooks/use-channels";
 import { useUnread } from "@/hooks/use-unread";
 import { usePresence } from "@/hooks/use-presence";
 import { useMessengerStore } from "@/stores/messenger-store";
-import { useAuthStore } from "@/stores/auth-store";
+
 import { createChannel } from "@/api/messenger";
 import type { Channel, ChannelType } from "@/api/messenger";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -174,23 +174,16 @@ function BookmarksList() {
 export function ChannelList() {
   const { data: channels, isLoading } = useChannels();
   useUnread();
-  const currentUserId = useAuthStore((s) => s.user?.id);
   const unreadCounts = useMessengerStore((s) => s.unreadCounts);
   const matchRoute = useMatchRoute();
 
-  // Собираем ID собеседников DM для отслеживания присутствия.
-  const dmUserIds = (channels ?? [])
-    .filter((ch) => ch.channel_type === "dm" && ch.members)
-    .flatMap((ch) =>
-      (ch.members ?? [])
-        .filter((m) => m.user_id !== currentUserId)
-        .map((m) => m.user_id),
-    );
+  // DM presence tracking not available -- backend ChannelResponse does not include members list.
+  const dmUserIds: string[] = [];
   const { getStatus } = usePresence(dmUserIds);
 
-  /** Получить ID собеседника в DM. */
-  function getDmPartnerId(channel: Channel): string | undefined {
-    return channel.members?.find((m) => m.user_id !== currentUserId)?.user_id;
+  /** Получить ID собеседника в DM (not available with current backend). */
+  function getDmPartnerId(_channel: Channel): string | undefined {
+    return undefined;
   }
 
   if (isLoading) {

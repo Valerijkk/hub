@@ -14,75 +14,60 @@ export type AttachmentType = "file" | "image" | "voice";
 // Интерфейсы ответов (Response DTOs)
 // ---------------------------------------------------------------------------
 
-/** Краткая информация об участнике канала. */
-export interface ChannelMemberBrief {
-  user_id: string;
-  name: string;
-  avatar_url?: string;
-}
-
-/** Канал мессенджера. */
+/** Канал мессенджера (соответствует backend ChannelResponse). */
 export interface Channel {
   id: string;
-  name: string;
   channel_type: ChannelType;
+  name: string;
   description?: string;
-  avatar_url?: string;
-  /** Backend sends `is_readonly` (no underscore between read/only). */
   is_readonly: boolean;
   project_id?: string;
-  members_count: number;
-  members?: ChannelMemberBrief[];
-  last_message_at?: string;
+  created_by: string;
   created_at: string;
   updated_at: string;
 }
 
-/** Реакция на сообщение. */
+/** Реакция на сообщение (raw от backend — содержит user_ids). */
 export interface MessageReaction {
   emoji: string;
-  count: number;
-  users: string[];
-  has_reacted: boolean;
+  user_ids: string[];
 }
 
-/** Сообщение мессенджера. */
+/** Вложение сообщения (raw от backend). */
+export interface AttachmentRef {
+  file_id: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  url: string;
+}
+
+/** Сообщение мессенджера (соответствует backend MessageResponse). */
 export interface Message {
   id: string;
   channel_id: string;
   sender_id: string;
-  sender_name: string;
-  sender_avatar_url?: string;
   content_json?: Record<string, unknown>;
   content_text?: string;
   voice_url?: string;
   voice_duration_ms?: number;
-  attachments?: Array<{
-    id: string;
-    filename: string;
-    url: string;
-    content_type: string;
-    size: number;
-    type: AttachmentType;
-  }>;
+  attachments?: AttachmentRef[];
   thread_id?: string;
   reply_count: number;
-  reactions: MessageReaction[];
+  reactions?: MessageReaction[];
   forwarded_from_id?: string;
-  forwarded_from_name?: string;
-  is_pinned: boolean;
+  mentions?: string[];
+  mention_groups?: string[];
   edited_at?: string;
+  deleted_at?: string;
   created_at: string;
-  updated_at: string;
 }
 
-/** Закладка на сообщение. */
+/** Закладка на сообщение (соответствует backend BookmarkResponse). */
 export interface Bookmark {
   id: string;
   message_id: string;
   channel_id: string;
-  channel_name: string;
-  message_preview: string;
   created_at: string;
 }
 
@@ -101,7 +86,7 @@ export interface CreateChannelRequest {
 
 /** Запрос на отправку сообщения. */
 export interface SendMessageRequest {
-  content_json?: Record<string, unknown>;
+  content_json: Record<string, unknown>;
   content_text?: string;
   voice_url?: string;
   voice_duration_ms?: number;

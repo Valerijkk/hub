@@ -40,6 +40,7 @@ export function MessageComposer({
     setIsSending(true);
     try {
       await sendMessage(channelId, {
+        content_json: { type: "doc", children: [{ type: "p", children: [{ text: trimmed }] }] },
         content_text: trimmed,
         thread_id: threadId,
       });
@@ -89,6 +90,7 @@ export function MessageComposer({
     async (voiceUrl: string, durationMs: number) => {
       try {
         await sendMessage(channelId, {
+          content_json: { type: "doc", children: [{ type: "p", children: [{ text: "" }] }] },
           voice_url: voiceUrl,
           voice_duration_ms: durationMs,
           thread_id: threadId,

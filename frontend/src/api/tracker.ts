@@ -255,7 +255,7 @@ export interface ListIssuesParams {
   status?: string[];
   priority?: string[];
   assignee?: string;
-  type?: string;
+  issue_type?: string;
   search?: string;
   order_by?: string;
 }

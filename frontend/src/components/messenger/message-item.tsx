@@ -9,7 +9,7 @@ import { useMessengerStore } from "@/stores/messenger-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { ReactionPicker } from "./reaction-picker";
 import { ForwardDialog } from "./forward-dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -147,9 +147,8 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
     >
       {/* Аватар */}
       <Avatar className="h-9 w-9 shrink-0 mt-0.5 shadow-sm">
-        <AvatarImage src={message.sender_avatar_url} />
         <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
-          {message.sender_name?.charAt(0)?.toUpperCase() ?? "?"}
+          {message.sender_id?.charAt(0)?.toUpperCase() ?? "?"}
         </AvatarFallback>
       </Avatar>
 
@@ -157,30 +156,23 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
       <div className="flex-1 min-w-0">
         {/* Заголовок: имя + время */}
         <div className="flex items-baseline gap-2 mb-0.5">
-          <span className="text-sm font-semibold">{message.sender_name}</span>
+          <span className="text-sm font-semibold">{message.sender_id}</span>
           <span className="text-[11px] text-muted-foreground">
             {formatTime(message.created_at)}
           </span>
           {message.edited_at && (
             <span className="text-[11px] text-muted-foreground italic">(изменено)</span>
           )}
-          {message.is_pinned && (
-            <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-500">
-              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
-              </svg>
-              закреплено
-            </span>
-          )}
+          {/* pinned indicator removed -- backend does not include is_pinned on MessageResponse */}
         </div>
 
         {/* Forwarded badge */}
-        {message.forwarded_from_name && (
+        {message.forwarded_from_id && (
           <div className="mb-1.5 flex items-center gap-1 text-xs text-muted-foreground">
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
             </svg>
-            <span className="italic">Переслано от {message.forwarded_from_name}</span>
+            <span className="italic">Переслано</span>
           </div>
         )}
 
@@ -211,7 +203,7 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
           <div className="mt-2 flex flex-wrap gap-2">
             {message.attachments.map((att) => (
               <a
-                key={att.id}
+                key={att.file_id}
                 href={att.url}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -220,7 +212,7 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
                 <svg className="h-3.5 w-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
-                <span className="font-medium">{att.filename}</span>
+                <span className="font-medium">{att.file_name}</span>
               </a>
             ))}
           </div>
@@ -229,24 +221,27 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
         {/* Реакции */}
         {message.reactions && message.reactions.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
-            {message.reactions.map((reaction) => (
-              <button
-                key={reaction.emoji}
-                type="button"
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent",
-                  reaction.has_reacted && "border-primary/50 bg-primary/10 text-primary",
-                )}
-                onClick={() =>
-                  void import("@/api/messenger").then((m) =>
-                    m.toggleReaction(channelId, message.id, reaction.emoji),
-                  )
-                }
-              >
-                <span>{reaction.emoji}</span>
-                <span className="font-medium">{reaction.count}</span>
-              </button>
-            ))}
+            {message.reactions.map((reaction) => {
+              const hasReacted = currentUserId ? reaction.user_ids.includes(currentUserId) : false;
+              return (
+                <button
+                  key={reaction.emoji}
+                  type="button"
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent",
+                    hasReacted && "border-primary/50 bg-primary/10 text-primary",
+                  )}
+                  onClick={() =>
+                    void import("@/api/messenger").then((m) =>
+                      m.toggleReaction(channelId, message.id, reaction.emoji),
+                    )
+                  }
+                >
+                  <span>{reaction.emoji}</span>
+                  <span className="font-medium">{reaction.user_ids.length}</span>
+                </button>
+              );
+            })}
           </div>
         )}
 

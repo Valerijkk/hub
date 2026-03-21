@@ -144,7 +144,7 @@ export function SearchDialog({ channelId }: SearchDialogProps) {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">
-                        {msg.sender_name}
+                        {msg.sender_id}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {formatDate(msg.created_at)}

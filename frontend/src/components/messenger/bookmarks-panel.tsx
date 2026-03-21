@@ -64,9 +64,9 @@ export function BookmarksPanel() {
                   className="min-w-0 flex-1 text-left"
                   onClick={() => handleNavigate(bm)}
                 >
-                  <p className="text-sm font-medium">{bm.channel_name}</p>
+                  <p className="text-sm font-medium">{bm.channel_id}</p>
                   <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                    {bm.message_preview || "---"}
+                    {bm.message_id}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {new Date(bm.created_at).toLocaleDateString("ru-RU")}
