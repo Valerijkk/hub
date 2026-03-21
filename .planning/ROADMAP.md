@@ -77,7 +77,7 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Бэкенд ядра мессенджера (Ent-схемы каналов, MongoDB сообщения, handler/service/repository, NATS bridge, unit-тесты)
+- [x] 03-01-PLAN.md — Бэкенд ядра мессенджера (Ent-схемы каналов, MongoDB сообщения, handler/service/repository, NATS bridge, unit-тесты)
 - [ ] 03-02-PLAN.md — Управление каналами (public/private join, автоканалы проекта, readonly, права доступа, тесты)
 - [ ] 03-03-PLAN.md — Фронтенд чата (API-клиент, Zustand store, виртуализация, Plate composer, треды, реакции, голосовые)
 - [ ] 03-04-PLAN.md — Присутствие (Redis), непрочитанные (Redis), поиск (MongoDB text), пины, закладки, пересылка
