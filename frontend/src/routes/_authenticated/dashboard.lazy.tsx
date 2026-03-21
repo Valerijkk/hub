@@ -1,6 +1,6 @@
 /**
- * Personal dashboard page.
- * Displays widgets with tasks, unread messages, calls, deadlines and time tracking.
+ * Персональный дашборд пользователя.
+ * Отображает виджеты с задачами, непрочитанными сообщениями, звонками, дедлайнами и трекингом времени.
  */
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
@@ -13,7 +13,7 @@ export const Route = createLazyFileRoute("/_authenticated/dashboard")({
   component: PersonalDashboard,
 });
 
-/** Returns a Russian greeting based on the current hour. */
+/** Возвращает приветствие на русском в зависимости от текущего часа. */
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 12) return "Доброе утро";
@@ -22,7 +22,7 @@ function getGreeting(): string {
   return "Доброй ночи";
 }
 
-/** Formats today's date in Russian locale. */
+/** Форматирует сегодняшнюю дату в русской локали. */
 function formatTodayDate(): string {
   return new Date().toLocaleDateString("ru-RU", {
     weekday: "long",

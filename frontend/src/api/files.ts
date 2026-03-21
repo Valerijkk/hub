@@ -1,18 +1,25 @@
 import { api } from "./client";
 
-// --- Response types ---
+// ---------------------------------------------------------------------------
+// Типы ответов (Response DTOs)
+// ---------------------------------------------------------------------------
 
+/** Ответ с presigned URL для загрузки файла. */
 interface UploadUrlResponse {
   file_id: string;
   upload_url: string;
 }
 
+/** Ответ с URL для скачивания файла. */
 interface DownloadUrlResponse {
   downloadUrl: string;
 }
 
-// --- API functions ---
+// ---------------------------------------------------------------------------
+// API-функции: Файлы
+// ---------------------------------------------------------------------------
 
+/** Endpoint: POST /files/upload-url — получить presigned URL для загрузки файла в хранилище. */
 export function getUploadUrl(
   filename: string,
   contentType: string,
@@ -25,6 +32,7 @@ export function getUploadUrl(
   });
 }
 
+/** Endpoint: POST /files/:id/confirm — подтвердить загрузку файла и привязать к сущности. */
 export function confirmUpload(
   fileId: string,
   entityType: string,
@@ -36,16 +44,18 @@ export function confirmUpload(
   });
 }
 
+/** Endpoint: GET /files/:id/url — получить URL для скачивания файла. */
 export function getDownloadUrl(fileId: string) {
   return api.get<DownloadUrlResponse>(`/files/${fileId}/url`);
 }
 
+/** Endpoint: DELETE /files/:id — удалить файл. */
 export function deleteFile(fileId: string) {
   return api.delete<{ status: string }>(`/files/${fileId}`);
 }
 
 /**
- * Upload a file end-to-end: get presigned URL, PUT file, confirm upload.
+ * Полный цикл загрузки файла: получение presigned URL, PUT файла в хранилище, подтверждение.
  */
 export async function uploadFile(
   file: File,

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { formatRelativeTime } from "@/lib/format-time";
 import { api } from "@/api/client";
 
+/** Запись о звонке (активном или завершённом). */
 interface CallRecord {
   id: string;
   channel_id: string;
