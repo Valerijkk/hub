@@ -10,12 +10,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/activitylog"
+	"github.com/valerii/hub/backend/ent/comment"
 	"github.com/valerii/hub/backend/ent/filemetadata"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/reaction"
 	"github.com/valerii/hub/backend/ent/session"
 	"github.com/valerii/hub/backend/ent/systemsetting"
 	"github.com/valerii/hub/backend/ent/testcase"
+	"github.com/valerii/hub/backend/ent/timelog"
 	"github.com/valerii/hub/backend/ent/user"
 )
 
@@ -407,19 +411,52 @@ func (s *AuditService) ReassignTasks(ctx context.Context, fromUserID, toUserID u
 }
 
 // DeleteUserGDPR выполняет каскадное удаление пользователя в соответствии с GDPR:
-// 1. Переназначает задачи на системного пользователя (или очищает assignee)
-// 2. Удаляет запись пользователя из БД
-func (s *AuditService) DeleteUserGDPR(ctx context.Context, userID uuid.UUID) error {
-	// Очищаем assignee у всех задач пользователя
-	_, err := s.db.Issue.Update().
-		Where(issue.HasAssigneeWith(user.IDEQ(userID))).
-		ClearAssignee().
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("очистка задач пользователя (GDPR): %w", err)
+// 1. Переназначает задачи на указанного пользователя (или очищает assignee)
+// 2. Удаляет комментарии пользователя
+// 3. Удаляет все сессии
+// 4. Hard-delete записи пользователя
+// 5. Записывает аудит-лог "GDPR deletion"
+func (s *AuditService) DeleteUserGDPR(ctx context.Context, userID uuid.UUID, reassignTo *uuid.UUID) error {
+	// 1. Переназначаем или очищаем задачи
+	if reassignTo != nil {
+		_, err := s.db.Issue.Update().
+			Where(issue.HasAssigneeWith(user.IDEQ(userID))).
+			SetAssigneeID(*reassignTo).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("переназначение задач (GDPR): %w", err)
+		}
+		// Также переназначаем задачи где пользователь reporter
+		_, _ = s.db.Issue.Update().
+			Where(issue.HasReporterWith(user.IDEQ(userID))).
+			SetReporterID(*reassignTo).
+			Save(ctx)
+	} else {
+		_, err := s.db.Issue.Update().
+			Where(issue.HasAssigneeWith(user.IDEQ(userID))).
+			ClearAssignee().
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("очистка задач пользователя (GDPR): %w", err)
+		}
 	}
 
-	// Удаляем все сессии
+	// 2. Удаляем комментарии пользователя
+	n, err := s.db.Comment.Delete().
+		Where(comment.HasAuthorWith(user.IDEQ(userID))).
+		Exec(ctx)
+	if err != nil {
+		slog.Error("delete comments (GDPR)", "error", err, "user_id", userID)
+	} else if n > 0 {
+		slog.Info("deleted user comments (GDPR)", "count", n, "user_id", userID)
+	}
+
+	// 3. Удаляем реакции пользователя
+	_, _ = s.db.Reaction.Delete().
+		Where(reaction.HasUserWith(user.IDEQ(userID))).
+		Exec(ctx)
+
+	// 4. Удаляем все сессии
 	_, err = s.db.Session.Delete().
 		Where(session.HasUserWith(user.IDEQ(userID))).
 		Exec(ctx)
@@ -427,7 +464,23 @@ func (s *AuditService) DeleteUserGDPR(ctx context.Context, userID uuid.UUID) err
 		slog.Error("delete sessions (GDPR)", "error", err, "user_id", userID)
 	}
 
-	// Удаляем пользователя
+	// 5. Удаляем логи активности пользователя
+	_, _ = s.db.ActivityLog.Delete().
+		Where(activitylog.HasUserWith(user.IDEQ(userID))).
+		Exec(ctx)
+
+	// 6. Удаляем записи времени пользователя
+	_, _ = s.db.TimeLog.Delete().
+		Where(timelog.HasUserWith(user.IDEQ(userID))).
+		Exec(ctx)
+
+	// 7. Записываем аудит-лог перед удалением пользователя
+	if s.repo != nil {
+		_, _ = s.repo.CreateAuditLog(ctx, "gdpr_deletion", "user", userID.String(),
+			&userID, nil, map[string]interface{}{"deleted_user_id": userID.String()}, "", "")
+	}
+
+	// 8. Hard-delete пользователя
 	err = s.db.User.DeleteOneID(userID).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("удаление пользователя (GDPR): %w", err)

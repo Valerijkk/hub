@@ -216,6 +216,7 @@ func (h *Handler) ReassignTasks(c fiber.Ctx) error {
 }
 
 // DeleteUserGDPR обрабатывает DELETE /api/admin/users/:id/gdpr.
+// Опциональный query-параметр reassign_to — UUID пользователя для переназначения задач.
 func (h *Handler) DeleteUserGDPR(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	userID, err := uuid.Parse(idStr)
@@ -223,7 +224,16 @@ func (h *Handler) DeleteUserGDPR(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный ID пользователя")
 	}
 
-	if err := h.service.DeleteUserGDPR(c.Context(), userID); err != nil {
+	var reassignTo *uuid.UUID
+	if reassignStr := c.Query("reassign_to"); reassignStr != "" {
+		id, err := uuid.Parse(reassignStr)
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "некорректный reassign_to ID")
+		}
+		reassignTo = &id
+	}
+
+	if err := h.service.DeleteUserGDPR(c.Context(), userID, reassignTo); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
