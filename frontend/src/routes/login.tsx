@@ -11,6 +11,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { MagicLinkForm } from "@/components/auth/magic-link-form";
 import { TelegramButton } from "@/components/auth/telegram-button";
+import { DevLoginPanel } from "@/components/auth/dev-login-panel";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -26,6 +27,15 @@ function LoginPage() {
         void navigate({ to: "/projects" });
       }
     } catch {
+      void navigate({ to: "/projects" });
+    }
+  }
+
+  function handleDevLoginSuccess() {
+    const user = useAuthStore.getState().user;
+    if (user && !user.onboarding_completed) {
+      void navigate({ to: "/onboarding" });
+    } else {
       void navigate({ to: "/projects" });
     }
   }
@@ -50,6 +60,7 @@ function LoginPage() {
             </div>
           </div>
           <TelegramButton />
+          <DevLoginPanel onSuccess={handleDevLoginSuccess} />
         </CardContent>
       </Card>
     </div>
