@@ -161,14 +161,16 @@ function TestCasesPage() {
 
   // Загрузка тест-кейсов
   const { data, isLoading } = useQuery({
-    queryKey: ["tms-cases", projectId, params],
+    queryKey: ["tms-cases", projectId, offset, filters.suiteId, filters.status, filters.priority, filters.search],
     queryFn: () => listTestCases(projectId, params),
+    enabled: !!projectId,
   });
 
   // Загрузка дерева папок
   const { data: suites } = useQuery({
     queryKey: ["tms-suites", projectId],
     queryFn: () => listSuites(projectId),
+    enabled: !!projectId,
   });
 
   // Создание тест-кейса

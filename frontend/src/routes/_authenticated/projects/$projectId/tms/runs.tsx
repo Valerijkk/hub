@@ -58,8 +58,9 @@ function TestRunsPage() {
 
   // Загрузка прогонов
   const { data, isLoading } = useQuery({
-    queryKey: ["tms-runs", projectId, params],
+    queryKey: ["tms-runs", projectId, offset, statusFilter],
     queryFn: () => listTestRuns(projectId, params),
+    enabled: !!projectId,
   });
 
   // Создание прогона
