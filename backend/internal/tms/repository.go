@@ -121,6 +121,11 @@ type Repository interface {
 	// GetLastResultForTestCase возвращает последний результат для тест-кейса.
 	GetLastResultForTestCase(ctx context.Context, testCaseID uuid.UUID) (*ent.TestResult, error)
 
+	// --- Прямой доступ к Ent клиенту (для Environment CRUD) ---
+
+	// EntClient возвращает Ent клиент для прямых операций с БД.
+	EntClient() *ent.Client
+
 	// --- Расширенные операции прогонов ---
 
 	// AddTestCasesToRun массово создаёт TestResult записи для каждого тест-кейса.

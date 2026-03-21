@@ -96,6 +96,13 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	tms.Post("/import", rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc), h.ImportTestCases)
 	tms.Get("/export", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ExportTestCases)
 	runs.Get("/:runId/export", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ExportTestRunReport)
+
+	// Тестовые окружения
+	envs := api.Group("/projects/:projectId/environments", authMw)
+	envs.Post("/", rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc), h.CreateEnvironmentHandler)
+	envs.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListEnvironmentsHandler)
+	envs.Put("/:envId", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.UpdateEnvironmentHandler)
+	envs.Delete("/:envId", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.DeleteEnvironmentHandler)
 }
 
 // ---------------------------------------------------------------------------

@@ -33,9 +33,13 @@ type mockRepository struct {
 	issues       map[uuid.UUID]*ent.Issue
 	linkedIssues map[uuid.UUID][]uuid.UUID // testCaseID -> issueIDs
 
-	caseCounter int
+	caseCounter  int
 	issueCounter int
-	lastVersion *ent.TestCaseVersion
+	lastVersion  *ent.TestCaseVersion
+}
+
+func (m *mockRepository) EntClient() *ent.Client {
+	return nil
 }
 
 func newMockRepo() *mockRepository {

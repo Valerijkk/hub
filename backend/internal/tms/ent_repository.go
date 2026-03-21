@@ -28,6 +28,11 @@ func NewEntRepository(client *ent.Client) *EntRepository {
 	return &EntRepository{client: client}
 }
 
+// EntClient возвращает Ent клиент для прямых операций с БД.
+func (r *EntRepository) EntClient() *ent.Client {
+	return r.client
+}
+
 // ---------------------------------------------------------------------------
 // Счётчики
 // ---------------------------------------------------------------------------
@@ -133,7 +138,7 @@ func (r *EntRepository) CreateTestCase(ctx context.Context, projectID uuid.UUID,
 // GetTestCase возвращает тест-кейс по ID с подгруженными связями.
 func (r *EntRepository) GetTestCase(ctx context.Context, id uuid.UUID) (*ent.TestCase, error) {
 	return r.client.TestCase.Query().
-		Where(testcase.ID(id)).
+		Where(testcase.ID(id), testcase.DeletedAtIsNil()).
 		WithSuite().
 		WithCreatedBy().
 		WithLabels().
@@ -145,7 +150,7 @@ func (r *EntRepository) GetTestCase(ctx context.Context, id uuid.UUID) (*ent.Tes
 // FindTestCaseByKey возвращает тест-кейс по ключу (например "HUB-TC-42").
 func (r *EntRepository) FindTestCaseByKey(ctx context.Context, caseKey string) (*ent.TestCase, error) {
 	return r.client.TestCase.Query().
-		Where(testcase.CaseKey(caseKey)).
+		Where(testcase.CaseKey(caseKey), testcase.DeletedAtIsNil()).
 		WithSuite().
 		WithCreatedBy().
 		WithLabels().
@@ -188,7 +193,7 @@ func (r *EntRepository) FindTestCaseByClassMethod(ctx context.Context, projectID
 // ListTestCases возвращает пагинированный список тест-кейсов с фильтрацией.
 func (r *EntRepository) ListTestCases(ctx context.Context, projectID uuid.UUID, params ListTestCasesParams) ([]*ent.TestCase, int, error) {
 	query := r.client.TestCase.Query().
-		Where(testcase.HasProjectWith(entproject.ID(projectID)))
+		Where(testcase.HasProjectWith(entproject.ID(projectID)), testcase.DeletedAtIsNil())
 
 	if params.SuiteID != nil {
 		query = query.Where(testcase.HasSuiteWith(testsuite.ID(*params.SuiteID)))
@@ -293,9 +298,11 @@ func (r *EntRepository) UpdateTestCase(ctx context.Context, id uuid.UUID, input 
 	return r.GetTestCase(ctx, id)
 }
 
-// DeleteTestCase удаляет тест-кейс по ID.
+// DeleteTestCase выполняет мягкое удаление тест-кейса (устанавливает deleted_at).
 func (r *EntRepository) DeleteTestCase(ctx context.Context, id uuid.UUID) error {
-	return r.client.TestCase.DeleteOneID(id).Exec(ctx)
+	return r.client.TestCase.UpdateOneID(id).
+		SetDeletedAt(time.Now()).
+		Exec(ctx)
 }
 
 // ---------------------------------------------------------------------------

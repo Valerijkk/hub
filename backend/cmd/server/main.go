@@ -31,6 +31,9 @@ import (
 	sprintmod "github.com/valerii/hub/backend/internal/sprint"
 	wsmod "github.com/valerii/hub/backend/internal/ws"
 	githubmod "github.com/valerii/hub/backend/internal/github"
+	apigatewaymod "github.com/valerii/hub/backend/internal/apigateway"
+	backupmod "github.com/valerii/hub/backend/internal/backup"
+	imexmod "github.com/valerii/hub/backend/internal/imex"
 )
 
 func main() {
@@ -295,6 +298,58 @@ func main() {
 		os.Exit(1)
 	}
 	defer autoChannelSvc.Stop()
+
+	// API Gateway (API keys + Webhooks)
+	apiKeySvc := apigatewaymod.NewAPIKeyService(db)
+	webhookSvc := apigatewaymod.NewWebhookService(db)
+	webhookDispatcher := apigatewaymod.NewWebhookDispatcher(db, nc)
+	dispatcherCtx, dispatcherCancel := context.WithCancel(ctx)
+	defer dispatcherCancel()
+	if err := webhookDispatcher.Start(dispatcherCtx); err != nil {
+		slog.Error("failed to start webhook dispatcher", "error", err)
+	}
+	apiGatewayHandler := apigatewaymod.NewHandler(apiKeySvc, webhookSvc)
+	apiGatewayHandler.RegisterRoutes(api, requireAuth)
+
+	// API key auth middleware (параллельно с JWT)
+	app.Use(apigatewaymod.APIKeyAuth(apiKeySvc))
+
+	// Backup module (автоматическое еженедельное резервное копирование)
+	backupSvc := backupmod.NewBackupService(db, nil, "hub-backups", cfg.Postgres.URL, cfg.MongoDB.URL)
+	backupHandler := backupmod.NewHandler(backupSvc)
+	backupHandler.RegisterRoutes(api, requireAuth)
+
+	// Еженедельный автоматический бэкап (каждые 7 дней)
+	backupCtx, backupCancel := context.WithCancel(ctx)
+	defer backupCancel()
+	go func() {
+		ticker := time.NewTicker(7 * 24 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				slog.Info("запуск автоматического еженедельного бэкапа")
+				if _, err := backupSvc.PerformBackup(backupCtx); err != nil {
+					slog.Error("автоматический бэкап не удался", "error", err)
+				}
+			case <-backupCtx.Done():
+				return
+			}
+		}
+	}()
+
+	// Import/Export module
+	imexSvc := imexmod.NewImExService(db)
+	imexHandler := imexmod.NewHandler(imexSvc)
+	imexHandler.RegisterRoutes(api, requireAuth)
+
+	// Project Templates
+	templateSvc := projectmod.NewTemplateService(db)
+	if err := templateSvc.SeedSystemTemplates(ctx); err != nil {
+		slog.Error("failed to seed system templates", "error", err)
+	}
+	templateHandler := projectmod.NewTemplateHandler(templateSvc)
+	templateHandler.RegisterRoutes(api, requireAuth)
 
 	// --- WebSocket gateway ---
 

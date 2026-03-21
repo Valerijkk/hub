@@ -21,6 +21,11 @@ func NewCombinedRepository(entRepo *EntRepository, mongoRepo *MongoRepository) *
 	return &CombinedRepository{ent: entRepo, mongo: mongoRepo}
 }
 
+// EntClient возвращает Ent клиент для прямых операций с БД.
+func (r *CombinedRepository) EntClient() *ent.Client {
+	return r.ent.EntClient()
+}
+
 // --- Тест-кейсы (делегируем в EntRepository) ---
 
 func (r *CombinedRepository) CreateTestCase(ctx context.Context, projectID uuid.UUID, input CreateTestCaseInput) (*ent.TestCase, error) {
