@@ -15,10 +15,12 @@ type RateLimitConfig struct {
 	Window time.Duration // Time window for the limit
 }
 
-// Predefined rate limit configurations.
+// Предопределённые конфигурации лимитов.
 var (
-	AuthRateLimit = RateLimitConfig{Max: 3, Window: 10 * time.Minute}
-	APIRateLimit  = RateLimitConfig{Max: 100, Window: 1 * time.Second}
+	AuthRateLimit        = RateLimitConfig{Max: 3, Window: 10 * time.Minute}
+	APIRateLimit         = RateLimitConfig{Max: 100, Window: 1 * time.Second}
+	FileUploadRateLimit  = RateLimitConfig{Max: 10, Window: 1 * time.Minute}
+	MessageSendRateLimit = RateLimitConfig{Max: 60, Window: 1 * time.Minute}
 )
 
 type slidingWindowEntry struct {
@@ -41,6 +43,28 @@ func RateLimit(config RateLimitConfig) fiber.Handler {
 
 	return func(c fiber.Ctx) error {
 		key := c.IP()
+
+		if !limiter.allow(key) {
+			return apperrors.NewRateLimited("too many requests, please try again later")
+		}
+
+		return c.Next()
+	}
+}
+
+// RateLimitByUser возвращает middleware ограничения частоты запросов по userID из Locals.
+// Если userID не задан, фолбэк на IP-адрес клиента.
+func RateLimitByUser(config RateLimitConfig) fiber.Handler {
+	limiter := &rateLimiter{config: config}
+	go limiter.cleanup()
+
+	return func(c fiber.Ctx) error {
+		key := ""
+		if uid, ok := c.Locals("userID").(string); ok && uid != "" {
+			key = "user:" + uid
+		} else {
+			key = "ip:" + c.IP()
+		}
 
 		if !limiter.allow(key) {
 			return apperrors.NewRateLimited("too many requests, please try again later")

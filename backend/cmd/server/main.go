@@ -122,8 +122,15 @@ func main() {
 	app.Use(middleware.RequestID())
 	app.Use(middleware.Logger())
 	app.Use(middleware.CORS())
+	// Глобальный rate limit: 100 req/sec на IP
+	app.Use(middleware.RateLimit(middleware.APIRateLimit))
 
 	api := app.Group("/api")
+
+	// Rate limit для загрузки файлов: 10/мин на пользователя
+	api.Use("/files", middleware.RateLimitByUser(middleware.FileUploadRateLimit))
+	// Rate limit для отправки сообщений: 60/мин на пользователя
+	api.Use("/messenger", middleware.RateLimitByUser(middleware.MessageSendRateLimit))
 	api.Get("/health", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
