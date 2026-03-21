@@ -115,7 +115,7 @@ function TestRunsPage() {
       {/* Верхняя панель */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <select
-          className="rounded-lg border bg-card px-2.5 py-1.5 text-xs h-8"
+          className="rounded-lg border bg-card px-2.5 py-1.5 text-xs h-8 shadow-sm cursor-pointer hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
           value={statusFilter}
           onChange={(e) => {
             setStatusFilter(e.target.value);
@@ -217,19 +217,30 @@ function TestRunsPage() {
           ))}
         </div>
       ) : runs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
-          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-muted/50 border border-dashed border-muted-foreground/20">
-            <svg className="h-10 w-10 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div className="flex flex-col items-center justify-center py-24 animate-fade-in">
+          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-muted/60 to-muted/30 border border-dashed border-muted-foreground/20 shadow-sm">
+            <svg className="h-12 w-12 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold mb-1">Нет прогонов</h3>
-          <p className="text-sm text-muted-foreground mb-5 max-w-xs text-center">
-            Создайте первый прогон, чтобы начать выполнение тестов
+          <h3 className="text-xl font-semibold mb-2">Нет тестовых прогонов</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-sm text-center leading-relaxed">
+            {statusFilter
+              ? "По выбранному фильтру прогоны не найдены. Попробуйте изменить статус."
+              : "Создайте первый прогон для проверки тест-кейсов и отслеживания качества продукта"}
           </p>
-          <Button className="gradient-tms text-white" onClick={() => setCreateOpen(true)}>
-            Создать первый прогон
-          </Button>
+          {statusFilter ? (
+            <Button variant="outline" onClick={() => { setStatusFilter(""); setOffset(0); }}>
+              Сбросить фильтр
+            </Button>
+          ) : (
+            <Button className="gradient-tms text-white shadow-md" onClick={() => setCreateOpen(true)}>
+              <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Создать прогон
+            </Button>
+          )}
         </div>
       ) : (
         <>
@@ -248,7 +259,7 @@ function TestRunsPage() {
                   params={{ projectId, runId: run.id }}
                   className="block group"
                 >
-                  <div className="rounded-xl border bg-card p-4 shadow-card hover-lift transition-all space-y-3">
+                  <div className="rounded-xl border bg-card p-4 shadow-card hover-lift transition-all space-y-3 hover:border-primary/20 hover:shadow-md">
                     {/* Заголовок + статус */}
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="text-sm font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
@@ -284,28 +295,28 @@ function TestRunsPage() {
                           {run.passed_count > 0 && (
                             <div
                               className="h-full bg-green-500 transition-all duration-500"
-                              style={{ width: `${(run.passed_count / run.total_count) * 100}%` }}
+                              style={{ width: `${Math.max((run.passed_count / run.total_count) * 100, 4)}%` }}
                               title={`Passed: ${run.passed_count}`}
                             />
                           )}
                           {run.failed_count > 0 && (
                             <div
                               className="h-full bg-red-500 transition-all duration-500"
-                              style={{ width: `${(run.failed_count / run.total_count) * 100}%` }}
+                              style={{ width: `${Math.max((run.failed_count / run.total_count) * 100, 4)}%` }}
                               title={`Failed: ${run.failed_count}`}
                             />
                           )}
                           {run.broken_count > 0 && (
                             <div
                               className="h-full bg-orange-500 transition-all duration-500"
-                              style={{ width: `${(run.broken_count / run.total_count) * 100}%` }}
+                              style={{ width: `${Math.max((run.broken_count / run.total_count) * 100, 4)}%` }}
                               title={`Broken: ${run.broken_count}`}
                             />
                           )}
                           {run.skipped_count > 0 && (
                             <div
                               className="h-full bg-gray-400 transition-all duration-500"
-                              style={{ width: `${(run.skipped_count / run.total_count) * 100}%` }}
+                              style={{ width: `${Math.max((run.skipped_count / run.total_count) * 100, 4)}%` }}
                               title={`Skipped: ${run.skipped_count}`}
                             />
                           )}
