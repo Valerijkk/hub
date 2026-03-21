@@ -187,16 +187,19 @@ func (r *EntRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status p
 	return update.Save(ctx)
 }
 
+// Delete выполняет жёсткое удаление проекта из базы данных.
 func (r *EntRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.client.Project.DeleteOneID(id).Exec(ctx)
 }
 
+// MemberCount возвращает количество участников проекта.
 func (r *EntRepository) MemberCount(ctx context.Context, projectID uuid.UUID) (int, error) {
 	return r.client.ProjectMember.Query().
 		Where(projectmember.HasProjectWith(project.IDEQ(projectID))).
 		Count(ctx)
 }
 
+// ListMembers возвращает всех участников проекта с загруженными данными пользователя.
 func (r *EntRepository) ListMembers(ctx context.Context, projectID uuid.UUID) ([]*ent.ProjectMember, error) {
 	return r.client.ProjectMember.Query().
 		Where(projectmember.HasProjectWith(project.IDEQ(projectID))).
@@ -204,6 +207,7 @@ func (r *EntRepository) ListMembers(ctx context.Context, projectID uuid.UUID) ([
 		All(ctx)
 }
 
+// AddMember добавляет пользователя в проект с указанной ролью и возвращает участника с данными пользователя.
 func (r *EntRepository) AddMember(ctx context.Context, projectID, userID uuid.UUID, role projectmember.ProjectRole) (*ent.ProjectMember, error) {
 	mem, err := r.client.ProjectMember.Create().
 		SetProjectID(projectID).
@@ -220,6 +224,7 @@ func (r *EntRepository) AddMember(ctx context.Context, projectID, userID uuid.UU
 		Only(ctx)
 }
 
+// RemoveMember удаляет пользователя из проекта.
 func (r *EntRepository) RemoveMember(ctx context.Context, projectID, userID uuid.UUID) error {
 	mem, err := r.FindMember(ctx, projectID, userID)
 	if err != nil {
@@ -228,6 +233,7 @@ func (r *EntRepository) RemoveMember(ctx context.Context, projectID, userID uuid
 	return r.client.ProjectMember.DeleteOneID(mem.ID).Exec(ctx)
 }
 
+// UpdateMemberRole обновляет роль участника проекта.
 func (r *EntRepository) UpdateMemberRole(ctx context.Context, projectID, userID uuid.UUID, role projectmember.ProjectRole) (*ent.ProjectMember, error) {
 	mem, err := r.FindMember(ctx, projectID, userID)
 	if err != nil {
@@ -245,6 +251,7 @@ func (r *EntRepository) UpdateMemberRole(ctx context.Context, projectID, userID 
 		Only(ctx)
 }
 
+// FindMember ищет участника проекта по ID проекта и пользователя.
 func (r *EntRepository) FindMember(ctx context.Context, projectID, userID uuid.UUID) (*ent.ProjectMember, error) {
 	return r.client.ProjectMember.Query().
 		Where(
@@ -255,6 +262,7 @@ func (r *EntRepository) FindMember(ctx context.Context, projectID, userID uuid.U
 		Only(ctx)
 }
 
+// CountOwners возвращает количество владельцев проекта.
 func (r *EntRepository) CountOwners(ctx context.Context, projectID uuid.UUID) (int, error) {
 	return r.client.ProjectMember.Query().
 		Where(
