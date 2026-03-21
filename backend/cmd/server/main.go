@@ -92,12 +92,11 @@ func main() {
 
 	// --- Services ---
 
-	// Magic link (nil ResendClient = dev mode, logs code instead of sending email)
+	// Magic link: при наличии API-ключа Resend — отправка email; иначе — dev-режим (код в логах).
 	var resendClient auth.ResendClient
 	if cfg.Resend.APIKey != "" {
-		// Production Resend client would be created here.
-		// For now, leave nil to use dev-mode logging.
-		_ = cfg.Resend.APIKey
+		resendClient = auth.NewResendEmailClient(cfg.Resend.APIKey, cfg.Resend.FromEmail)
+		slog.Info("resend email client initialized")
 	}
 	magicLinkSvc := auth.NewMagicLinkService(rdb, resendClient, cfg.Resend.FromEmail)
 
@@ -143,7 +142,8 @@ func main() {
 		return c.SendString(`{"openapi":"3.0.0","info":{"title":"Hub API","version":"1.0.0"},"paths":{}}`)
 	})
 
-	// Auth routes
+	// Auth routes (rate limit: 3 запроса / 10 мин на IP для защиты от брутфорса)
+	api.Use("/auth", middleware.RateLimit(middleware.AuthRateLimit))
 	requireAuth := auth.RequireAuth(authSvc)
 	authHandler := auth.NewHandler(authSvc, db)
 	authHandler.RegisterRoutes(api, requireAuth)
