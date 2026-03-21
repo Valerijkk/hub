@@ -38,6 +38,7 @@ func (w *Worker) ProcessLoop(ctx context.Context) {
 	}
 }
 
+// processBatch обрабатывает пачку ожидающих событий (до 50 за раз).
 func (w *Worker) processBatch(ctx context.Context) {
 	events, err := w.client.OutboxEvent.Query().
 		Where(

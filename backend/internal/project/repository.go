@@ -272,6 +272,7 @@ func (r *EntRepository) CountOwners(ctx context.Context, projectID uuid.UUID) (i
 		Count(ctx)
 }
 
+// FindInviteByCode ищет приглашение по коду с загруженным проектом.
 func (r *EntRepository) FindInviteByCode(ctx context.Context, code string) (*ent.Invite, error) {
 	return r.client.Invite.Query().
 		Where(invite.CodeEQ(code)).
@@ -279,6 +280,7 @@ func (r *EntRepository) FindInviteByCode(ctx context.Context, code string) (*ent
 		Only(ctx)
 }
 
+// CreateInvite создаёт приглашение в проект с указанной ролью и ограничениями.
 func (r *EntRepository) CreateInvite(ctx context.Context, projectID, creatorID uuid.UUID, code string, role invite.ProjectRole, maxUses int, expiresAt *time.Time) (*ent.Invite, error) {
 	create := r.client.Invite.Create().
 		SetProjectID(projectID).
@@ -292,18 +294,21 @@ func (r *EntRepository) CreateInvite(ctx context.Context, projectID, creatorID u
 	return create.Save(ctx)
 }
 
+// IncrementInviteUseCount увеличивает счётчик использований приглашения на 1.
 func (r *EntRepository) IncrementInviteUseCount(ctx context.Context, inviteID uuid.UUID) error {
 	return r.client.Invite.UpdateOneID(inviteID).
 		AddUseCount(1).
 		Exec(ctx)
 }
 
+// ListInvites возвращает все приглашения проекта.
 func (r *EntRepository) ListInvites(ctx context.Context, projectID uuid.UUID) ([]*ent.Invite, error) {
 	return r.client.Invite.Query().
 		Where(invite.HasProjectWith(project.IDEQ(projectID))).
 		All(ctx)
 }
 
+// DeleteInvite удаляет приглашение по ID.
 func (r *EntRepository) DeleteInvite(ctx context.Context, inviteID uuid.UUID) error {
 	return r.client.Invite.DeleteOneID(inviteID).Exec(ctx)
 }

@@ -19,6 +19,7 @@ func NewPermissionCache(rdb *redis.Client) *PermissionCache {
 	return &PermissionCache{rdb: rdb}
 }
 
+// cacheKey формирует Redis-ключ кеша разрешений для пользователя в проекте.
 func cacheKey(userID, projectID string) string {
 	return fmt.Sprintf("rbac:%s:%s", userID, projectID)
 }
