@@ -7,12 +7,12 @@ import type { IssueBriefResponse } from "@/api/tracker";
 import { cn } from "@/lib/utils";
 
 /** Конфигурация цветов и меток приоритетов задач. */
-const PRIORITY_CONFIG: Record<string, { dot: string; bg: string; text: string; label: string }> = {
-  critical: { dot: "bg-red-500", bg: "bg-red-500/15", text: "text-red-700 dark:text-red-400", label: "Критический" },
-  high: { dot: "bg-orange-500", bg: "bg-orange-500/15", text: "text-orange-700 dark:text-orange-400", label: "Высокий" },
-  medium: { dot: "bg-yellow-500", bg: "bg-yellow-500/15", text: "text-yellow-700 dark:text-yellow-400", label: "Средний" },
-  low: { dot: "bg-blue-500", bg: "bg-blue-500/15", text: "text-blue-700 dark:text-blue-400", label: "Низкий" },
-  trivial: { dot: "bg-gray-400", bg: "bg-gray-400/15", text: "text-gray-600 dark:text-gray-400", label: "Тривиальный" },
+const PRIORITY_CONFIG: Record<string, { dot: string; bg: string; text: string; label: string; borderColor: string }> = {
+  critical: { dot: "bg-red-500", bg: "bg-red-500/15", text: "text-red-700 dark:text-red-400", label: "Критический", borderColor: "#ef4444" },
+  high: { dot: "bg-orange-500", bg: "bg-orange-500/15", text: "text-orange-700 dark:text-orange-400", label: "Высокий", borderColor: "#f97316" },
+  medium: { dot: "bg-yellow-500", bg: "bg-yellow-500/15", text: "text-yellow-700 dark:text-yellow-400", label: "Средний", borderColor: "#eab308" },
+  low: { dot: "bg-blue-500", bg: "bg-blue-500/15", text: "text-blue-700 dark:text-blue-400", label: "Низкий", borderColor: "#3b82f6" },
+  trivial: { dot: "bg-gray-400", bg: "bg-gray-400/15", text: "text-gray-600 dark:text-gray-400", label: "Тривиальный", borderColor: "#9ca3af" },
 };
 
 /** Конфигурация типов задач — SVG-иконки с цветами для лучшей читаемости. */
@@ -85,11 +85,14 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
         draggable={false}
       >
         <div className={cn(
-          "rounded-lg border bg-card p-3 transition-all duration-150",
+          "rounded-lg border bg-card p-3 transition-all duration-200",
           "border-border/50 shadow-sm",
-          "hover:shadow-md hover:border-primary/30 hover:-translate-y-[1px]",
+          "border-l-[3px]",
+          "hover:shadow-md hover:border-primary/30 hover:-translate-y-[2px]",
           "group-focus-visible:ring-2 group-focus-visible:ring-primary/30",
-        )}>
+        )}
+        style={{ borderLeftColor: priority.borderColor }}
+        >
           {/* Верхняя строка: тип + ключ */}
           <div className="flex items-center gap-1.5 mb-1.5">
             <span className={cn("text-sm leading-none", typeConfig.color)} title={issue.issue_type}>

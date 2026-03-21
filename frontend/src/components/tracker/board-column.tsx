@@ -72,17 +72,17 @@ export function BoardColumn({
       )}
       style={!isOver ? columnBgStyle : undefined}
     >
-      {/* Заголовок колонки */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/30">
-        <div className="flex items-center gap-2">
+      {/* Заголовок колонки — с тонким фоном */}
+      <div className="flex items-center justify-between px-3.5 py-3 border-b border-border/30 bg-muted/20">
+        <div className="flex items-center gap-2.5">
           <div
-            className="h-2.5 w-2.5 rounded-full shadow-sm"
+            className="h-3 w-3 rounded-full shadow-sm ring-2 ring-white/10"
             style={{ backgroundColor: status.color || "#6b7280" }}
           />
-          <span className="text-[13px] font-semibold tracking-tight">{status.name}</span>
+          <span className="text-[13px] font-bold tracking-tight">{status.name}</span>
           <Badge
             variant="secondary"
-            className="h-5 min-w-[20px] justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums bg-muted/80"
+            className="h-5 min-w-[22px] justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums bg-muted/80"
           >
             {issues.length}
           </Badge>
