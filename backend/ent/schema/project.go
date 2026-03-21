@@ -38,6 +38,9 @@ func (Project) Fields() []ent.Field {
 			Default("active"),
 		field.Int("task_counter").
 			Default(0),
+		field.Int("test_case_counter").
+			Default(0).
+			Comment("Счётчик тест-кейсов для генерации ключей"),
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
@@ -65,6 +68,10 @@ func (Project) Edges() []ent.Edge {
 		edge.To("boards", Board.Type),
 		edge.To("custom_fields", CustomFieldDefinition.Type),
 		edge.To("channels", Channel.Type),
+		edge.To("test_cases", TestCase.Type),
+		edge.To("test_runs", TestRun.Type),
+		edge.To("test_suites", TestSuite.Type),
+		edge.To("components", Component.Type),
 	}
 }
 

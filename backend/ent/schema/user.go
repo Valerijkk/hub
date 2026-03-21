@@ -76,6 +76,10 @@ func (User) Edges() []ent.Edge {
 		edge.To("created_channels", Channel.Type),
 		edge.To("channel_memberships", ChannelMember.Type),
 		edge.To("bookmarks", Bookmark.Type),
+		edge.To("created_test_cases", TestCase.Type),
+		edge.To("created_runs", TestRun.Type),
+		edge.To("executed_results", TestResult.Type),
+		edge.To("test_case_versions", TestCaseVersion.Type),
 	}
 }
 
