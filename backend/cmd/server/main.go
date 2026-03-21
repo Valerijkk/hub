@@ -279,6 +279,25 @@ func main() {
 		}
 	}()
 
+	// Retention policy: ежедневная очистка устаревших данных
+	retentionSvc := auditmod.NewRetentionService(db, mongoDB)
+	retentionCtx, retentionCancel := context.WithCancel(ctx)
+	defer retentionCancel()
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := retentionSvc.RunRetentionCleanup(retentionCtx); err != nil {
+					slog.Error("retention cleanup failed", "error", err)
+				}
+			case <-retentionCtx.Done():
+				return
+			}
+		}
+	}()
+
 	// Dashboard routes (дашборды: персональный, проектный, админский)
 	dashSvc := dashboardmod.NewDashboardService(db, rdb, mongoDB)
 	dashHandler := dashboardmod.NewHandler(dashSvc)
