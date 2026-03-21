@@ -19,6 +19,7 @@ import (
 	"github.com/valerii/hub/backend/internal/rbac"
 	storagemod "github.com/valerii/hub/backend/internal/storage"
 	messengermod "github.com/valerii/hub/backend/internal/messenger"
+	tmsmod "github.com/valerii/hub/backend/internal/tms"
 	trackermod "github.com/valerii/hub/backend/internal/tracker"
 	redisclient "github.com/valerii/hub/backend/internal/platform/redis"
 	wsmod "github.com/valerii/hub/backend/internal/ws"
@@ -133,6 +134,12 @@ func main() {
 	trackerSvc := trackermod.NewTrackerService(trackerRepo)
 	trackerHandler := trackermod.NewHandler(trackerSvc)
 	trackerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+
+	// TMS routes
+	tmsRepo := tmsmod.NewEntRepository(db)
+	tmsSvc := tmsmod.NewTMSService(tmsRepo)
+	tmsHandler := tmsmod.NewHandler(tmsSvc)
+	tmsHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// Messenger routes
 	mongoDB, err := database.NewMongoClient(ctx, cfg.MongoDB.URL, cfg.MongoDB.Database)
