@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-03-21T04:12:37.914Z"
+stopped_at: Completed 06-04-PLAN.md
+last_updated: "2026-03-21T04:12:48.374Z"
 progress:
   total_phases: 7
   completed_phases: 5
@@ -146,6 +146,9 @@ Recent decisions affecting current work:
 - [Phase 06]: Raw SQL via database.OpenRawDB() for tsvector queries (Ent ORM limitation)
 - [Phase 06]: Parallel PG tsvector + MongoDB text search with sort-by-score merge
 - [Phase 06]: cmdk for command palette with shouldFilter=false (server-side filtering)
+- [Phase 06]: JetStream durable consumer audit-logger on AUDIT stream for at-least-once audit recording
+- [Phase 06]: Soft delete via deleted_at field for Issue/TestCase/FileMetadata; all queries filter DeletedAtIsNil()
+- [Phase 06]: Auth middleware checks user.Status to reject deactivated users
 
 ### Pending Todos
 
@@ -159,6 +162,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T04:12:22.830Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-03-21T04:12:48.370Z
+Stopped at: Completed 06-04-PLAN.md
 Resume file: None
