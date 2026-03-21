@@ -34,8 +34,22 @@ import (
 	apigatewaymod "github.com/valerii/hub/backend/internal/apigateway"
 	backupmod "github.com/valerii/hub/backend/internal/backup"
 	imexmod "github.com/valerii/hub/backend/internal/imex"
+
+	fiberswagger "github.com/gofiber/swagger"
+	_ "github.com/valerii/hub/backend/docs"
 )
 
+// @title Hub Platform API
+// @version 1.0
+// @description Единая платформа для команд разработки и тестирования: трекер задач, мессенджер, TMS, созвоны.
+// @host localhost:3000
+// @BasePath /api
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @securityDefinitions.apikey APIKeyAuth
+// @in header
+// @name X-API-Key
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
@@ -112,6 +126,9 @@ func main() {
 	api.Get("/health", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
+
+	// Swagger UI — документация API
+	api.Get("/docs/*", fiberswagger.HandlerDefault)
 
 	// Auth routes
 	requireAuth := auth.RequireAuth(authSvc)

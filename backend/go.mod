@@ -27,6 +27,8 @@ require (
 	github.com/teambition/rrule-go v1.8.2
 	github.com/valyala/fasthttp v1.69.0
 	github.com/xuri/excelize/v2 v2.10.1
+	github.com/swaggo/swag v1.16.4
+	github.com/gofiber/swagger v1.2.0
 	go.mongodb.org/mongo-driver/v2 v2.5.0
 )
 

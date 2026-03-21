@@ -1,4 +1,4 @@
-.PHONY: dev dev-up dev-down dev-backend dev-frontend test build lint
+.PHONY: dev dev-up dev-down dev-backend dev-frontend test build lint swagger
 
 dev-up:
 	docker compose -f deployments/docker-compose.yml up -d
@@ -26,3 +26,6 @@ build:
 lint:
 	cd backend && golangci-lint run ./...
 	cd frontend && npx biome check ./src
+
+swagger:
+	cd backend && swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
