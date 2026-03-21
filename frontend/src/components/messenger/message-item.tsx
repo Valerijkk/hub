@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { Message } from "@/api/messenger";
 import {
   deleteMessage,
@@ -9,9 +9,16 @@ import { useMessengerStore } from "@/stores/messenger-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { ReactionPicker } from "./reaction-picker";
 import { ForwardDialog } from "./forward-dialog";
+import { LinkPreview } from "./link-preview";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+/**
+ * Регулярное выражение для обнаружения URL в тексте сообщения.
+ * Поддерживает http/https ссылки.
+ */
+const URL_REGEX = /https?:\/\/[^\s<>"')\]]+/g;
 
 /** Пропсы компонента MessageItem. */
 interface MessageItemProps {
@@ -121,6 +128,41 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isAuthor = currentUserId === message.sender_id;
 
+  /**
+   * Извлекает уникальные URL из текстового содержимого сообщения.
+   * Ищет в content_text и рекурсивно в текстовых нодах content_json.
+   */
+  const extractedUrls = useMemo(() => {
+    const urls = new Set<string>();
+
+    // Извлекаем из plain text
+    if (message.content_text) {
+      const matches = message.content_text.match(URL_REGEX);
+      if (matches) matches.forEach((u) => urls.add(u));
+    }
+
+    // Извлекаем из content_json (рекурсивный обход текстовых нод)
+    if (message.content_json) {
+      const extractFromNode = (node: unknown) => {
+        if (!node || typeof node !== "object") return;
+        const n = node as Record<string, unknown>;
+        if (n.type === "a" && typeof n.url === "string") {
+          urls.add(n.url);
+        }
+        if (typeof n.text === "string") {
+          const matches = n.text.match(URL_REGEX);
+          if (matches) matches.forEach((u) => urls.add(u));
+        }
+        if (Array.isArray(n.children)) {
+          n.children.forEach(extractFromNode);
+        }
+      };
+      extractFromNode(message.content_json);
+    }
+
+    return Array.from(urls);
+  }, [message.content_text, message.content_json]);
+
   const handleDelete = useCallback(async () => {
     await deleteMessage(channelId, message.id);
   }, [channelId, message.id]);
@@ -214,6 +256,15 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
                 </svg>
                 <span className="font-medium">{att.file_name}</span>
               </a>
+            ))}
+          </div>
+        )}
+
+        {/* Превью ссылок */}
+        {extractedUrls.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {extractedUrls.slice(0, 3).map((url) => (
+              <LinkPreview key={url} url={url} />
             ))}
           </div>
         )}

@@ -329,3 +329,25 @@ export function addBookmark(messageId: string, channelId: string) {
 export function removeBookmark(bookmarkId: string) {
   return api.delete<void>(`/messenger/bookmarks/${bookmarkId}`);
 }
+
+// ---------------------------------------------------------------------------
+// API-функции: Превью ссылок (Link Preview)
+// ---------------------------------------------------------------------------
+
+/** Данные превью ссылки, полученные из OG-тегов страницы. */
+export interface LinkPreviewData {
+  /** Заголовок страницы (og:title). */
+  title?: string;
+  /** Описание страницы (og:description). */
+  description?: string;
+  /** URL изображения превью (og:image). */
+  image?: string;
+  /** Имя сайта (og:site_name). */
+  site_name?: string;
+}
+
+/** Получить превью ссылки по URL (OG-теги). */
+export function fetchLinkPreview(url: string) {
+  const params = new URLSearchParams({ url });
+  return api.get<LinkPreviewData>(`/link-preview?${params.toString()}`);
+}
