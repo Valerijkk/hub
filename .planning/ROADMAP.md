@@ -115,7 +115,7 @@ Plans:
 
 Plans:
 - [x] 05-01-PLAN.md — Интеграция с LiveKit (Ent-схемы, сервис, handler, Docker Compose, Caddy, unit-тесты)
-- [ ] 05-02-PLAN.md — UI звонков (LiveKit React компоненты, список участников, mute/unmute, raise hand, screen share, Zustand store)
+- [x] 05-02-PLAN.md — UI звонков (LiveKit React компоненты, список участников, mute/unmute, raise hand, screen share, Zustand store)
 - [ ] 05-03-PLAN.md — Жизненный цикл звонка (эфемерный чат MongoDB, NATS bridge подписки, WS-доставка событий в каналы)
 - [ ] 05-04-PLAN.md — Документация фазы 5 (бизнес-дока, тестовая дока, техническая дока) на русском
 
