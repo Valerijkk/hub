@@ -49,7 +49,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
   }
 
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-card/80 backdrop-blur-sm px-4 lg:px-6">
+    <header className="flex h-14 items-center justify-between border-b bg-card/70 backdrop-blur-md px-4 lg:px-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
       {/* Левая часть */}
       <div className="flex items-center gap-2">
         {/* Hamburger для мобильных */}
@@ -80,7 +80,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full p-0 ml-1">
               <Avatar className="h-7 w-7">
                 <AvatarImage src={user?.avatar_url ?? undefined} alt={user?.name ?? t("auth.user")} />
-                <AvatarFallback className="text-[11px] font-semibold bg-primary/10 text-primary">
+                <AvatarFallback className="text-[11px] font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                   {initials}
                 </AvatarFallback>
               </Avatar>
