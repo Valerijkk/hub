@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/predicate"
+	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
 // JQLQuery представляет разобранный JQL-запрос.
@@ -65,9 +66,13 @@ func conditionToPredicate(c JQLCondition, currentUserID uuid.UUID) predicate.Iss
 	case "status":
 		switch c.Operator {
 		case "=":
-			return issue.HasStatusWith()
+			return issue.HasStatusWith(workflowstatus.NameEqualFold(value))
 		case "!=":
-			return issue.HasStatusWith()
+			return issue.HasStatusWith(workflowstatus.NameNEQ(value))
+		case "IN":
+			return issue.HasStatusWith(workflowstatus.NameIn(c.Values...))
+		case "NOT IN":
+			return issue.HasStatusWith(workflowstatus.NameNotIn(c.Values...))
 		}
 	case "priority":
 		switch c.Operator {
