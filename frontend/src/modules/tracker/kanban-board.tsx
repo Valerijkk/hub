@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import { getBoardData, moveIssue, type BoardDataResponse, type IssueBriefResponse, type BoardColumnResponse } from "@/api/tracker";
 import { useBoardStore } from "@/stores/board-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -188,7 +188,7 @@ interface KanbanColumnProps {
   onDrop: (issueKey: string, statusId: string, rank: string) => void;
 }
 
-function KanbanColumn({
+const KanbanColumn = memo(function KanbanColumn({
   column,
   issues,
   wipLimit,
@@ -244,7 +244,7 @@ function KanbanColumn({
       </div>
     </div>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Компонент карточки задачи
@@ -254,7 +254,7 @@ interface KanbanCardProps {
   issue: IssueBriefResponse;
 }
 
-function KanbanCard({ issue }: KanbanCardProps) {
+const KanbanCard = memo(function KanbanCard({ issue }: KanbanCardProps) {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("text/plain", issue.issue_key);
   };
@@ -293,4 +293,4 @@ function KanbanCard({ issue }: KanbanCardProps) {
       )}
     </Card>
   );
-}
+});

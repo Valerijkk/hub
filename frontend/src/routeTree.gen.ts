@@ -81,7 +81,9 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_authenticated/dashboard.lazy').then((d) => d.Route),
+)
 const AuthenticatedCallsRoute = AuthenticatedCallsRouteImport.update({
   id: '/calls',
   path: '/calls',
@@ -173,7 +175,11 @@ const AuthenticatedProjectsProjectIdDashboardRoute =
     id: '/dashboard',
     path: '/dashboard',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/dashboard.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedProjectsProjectIdBacklogRoute =
   AuthenticatedProjectsProjectIdBacklogRouteImport.update({
     id: '/backlog',
@@ -209,7 +215,11 @@ const AuthenticatedProjectsProjectIdTmsRunsRoute =
     id: '/runs',
     path: '/runs',
     getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/tms/runs.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedProjectsProjectIdTmsEnvironmentsRoute =
   AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport.update({
     id: '/environments',

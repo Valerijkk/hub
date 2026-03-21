@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, memo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   CheckCircle2,
@@ -184,7 +184,7 @@ export function NotificationPanel() {
 }
 
 /** Один элемент уведомления. */
-function NotificationItem({
+const NotificationItem = memo(function NotificationItem({
   notification,
   onClick,
   onDelete,
@@ -245,4 +245,4 @@ function NotificationItem({
       </div>
     </button>
   );
-}
+});
