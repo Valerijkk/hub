@@ -14,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/internal/platform/config"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // Handler предоставляет HTTP-обработчики для модуля голосовых звонков.
@@ -67,19 +68,6 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	api.Post("/calls/webhook", h.HandleWebhook)
 }
 
-// userIDFromCtx извлекает user ID из Fiber Locals.
-func userIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
-	idStr, ok := c.Locals("userID").(string)
-	if !ok || idStr == "" {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "пользователь не аутентифицирован")
-	}
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "некорректный user ID")
-	}
-	return id, nil
-}
-
 // parseCallID извлекает и валидирует callId из параметров пути.
 func parseCallID(c fiber.Ctx) (uuid.UUID, error) {
 	idStr := utils.CopyString(c.Params("callId"))
@@ -104,7 +92,7 @@ func userNameFromCtx(c fiber.Ctx) string {
 
 // CreateCall обрабатывает POST /api/calls — создание нового звонка.
 func (h *Handler) CreateCall(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -155,7 +143,7 @@ func (h *Handler) JoinCall(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -176,7 +164,7 @@ func (h *Handler) LeaveCall(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -206,7 +194,7 @@ func (h *Handler) EndCall(c fiber.Ctx) error {
 
 // RaiseHand обрабатывает POST /api/calls/:callId/raise-hand — поднять/опустить руку.
 func (h *Handler) RaiseHand(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -240,7 +228,7 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -302,7 +290,7 @@ func (h *Handler) StartRecording(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -398,7 +386,7 @@ func (h *Handler) CreateScheduledCall(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный project ID")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}

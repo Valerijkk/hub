@@ -401,6 +401,21 @@ type TraceabilityMatrix struct {
 	Rows []TraceabilityRow `json:"rows"`
 }
 
+// EnvironmentComparisonItem — элемент сравнения результатов по окружениям.
+type EnvironmentComparisonItem struct {
+	CaseKey    string `json:"case_key"`
+	CaseTitle  string `json:"case_title"`
+	StatusEnv1 string `json:"status_env1"`
+	StatusEnv2 string `json:"status_env2"`
+}
+
+// EnvironmentComparisonResponse — ответ сравнения двух окружений.
+type EnvironmentComparisonResponse struct {
+	Env1  EnvironmentResponse          `json:"env1"`
+	Env2  EnvironmentResponse          `json:"env2"`
+	Items []EnvironmentComparisonItem  `json:"items"`
+}
+
 // DefectCategory — категория дефектов (группировка failed-тестов по паттерну ошибки).
 type DefectCategory struct {
 	Pattern   string   `json:"pattern"`

@@ -176,6 +176,9 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userI
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный status_id")
 		}
+		if existing.Edges.Status == nil {
+			return nil, apperrors.NewBadRequest("задача не имеет статуса")
+		}
 		currentStatusID := existing.Edges.Status.ID
 		if newStatusID != currentStatusID {
 			if err := s.workflow.ValidateTransition(ctx, currentStatusID, newStatusID); err != nil {
@@ -272,6 +275,9 @@ func (s *TrackerService) MoveIssue(ctx context.Context, issueKey string, userID 
 	}
 
 	// Валидируем переход
+	if existing.Edges.Status == nil {
+		return nil, apperrors.NewBadRequest("задача не имеет статуса")
+	}
 	currentStatusID := existing.Edges.Status.ID
 	if newStatusID != currentStatusID {
 		if err := s.workflow.ValidateTransition(ctx, currentStatusID, newStatusID); err != nil {
@@ -334,7 +340,10 @@ func (s *TrackerService) CreateIssueLink(ctx context.Context, issueKey string, u
 	}
 
 	// Подгружаем target для ответа
-	target, _ := s.repo.FindIssueByID(ctx, targetID)
+	target, err := s.repo.FindIssueByID(ctx, targetID)
+	if err != nil {
+		slog.Error("не удалось подгрузить target для ответа", "error", err)
+	}
 	return toIssueLinkResponse(link, target), nil
 }
 

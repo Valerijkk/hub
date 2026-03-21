@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
@@ -50,7 +51,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 
 // CreateSprint обрабатывает POST /api/projects/:projectId/sprints.
 func (h *Handler) CreateSprint(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -70,7 +71,7 @@ func (h *Handler) CreateSprint(c fiber.Ctx) error {
 
 // ListSprints обрабатывает GET /api/projects/:projectId/sprints.
 func (h *Handler) ListSprints(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ func (h *Handler) ListSprints(c fiber.Ctx) error {
 
 // GetSprint обрабатывает GET /api/projects/:projectId/sprints/:sprintId.
 func (h *Handler) GetSprint(c fiber.Ctx) error {
-	sprintID, err := parseUUID(c, "sprintId")
+	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
 		return err
 	}
@@ -100,7 +101,7 @@ func (h *Handler) GetSprint(c fiber.Ctx) error {
 
 // UpdateSprint обрабатывает PUT /api/projects/:projectId/sprints/:sprintId.
 func (h *Handler) UpdateSprint(c fiber.Ctx) error {
-	sprintID, err := parseUUID(c, "sprintId")
+	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
 		return err
 	}
@@ -120,11 +121,11 @@ func (h *Handler) UpdateSprint(c fiber.Ctx) error {
 
 // StartSprint обрабатывает POST /api/projects/:projectId/sprints/:sprintId/start.
 func (h *Handler) StartSprint(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
-	sprintID, err := parseUUID(c, "sprintId")
+	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
 		return err
 	}
@@ -139,11 +140,11 @@ func (h *Handler) StartSprint(c fiber.Ctx) error {
 
 // CompleteSprint обрабатывает POST /api/projects/:projectId/sprints/:sprintId/complete.
 func (h *Handler) CompleteSprint(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
-	sprintID, err := parseUUID(c, "sprintId")
+	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
 		return err
 	}
@@ -158,7 +159,7 @@ func (h *Handler) CompleteSprint(c fiber.Ctx) error {
 
 // UpdateRetroNotes обрабатывает PUT /api/projects/:projectId/sprints/:sprintId/retro.
 func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
-	sprintID, err := parseUUID(c, "sprintId")
+	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
 		return err
 	}
@@ -178,7 +179,7 @@ func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 
 // GetBurndown обрабатывает GET /api/projects/:projectId/sprints/:sprintId/burndown.
 func (h *Handler) GetBurndown(c fiber.Ctx) error {
-	sprintID, err := parseUUID(c, "sprintId")
+	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
 		return err
 	}
@@ -193,7 +194,7 @@ func (h *Handler) GetBurndown(c fiber.Ctx) error {
 
 // GetVelocity обрабатывает GET /api/projects/:projectId/velocity.
 func (h *Handler) GetVelocity(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -208,7 +209,7 @@ func (h *Handler) GetVelocity(c fiber.Ctx) error {
 
 // AddIssuesToSprint обрабатывает POST /api/projects/:projectId/sprints/:sprintId/issues.
 func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
-	sprintID, err := parseUUID(c, "sprintId")
+	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
 		return err
 	}
@@ -240,7 +241,7 @@ func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 
 // StartPokerSession обрабатывает POST /api/projects/:projectId/sprints/:sprintId/poker.
 func (h *Handler) StartPokerSession(c fiber.Ctx) error {
-	sprintID, err := parseUUID(c, "sprintId")
+	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
 		return err
 	}
@@ -270,7 +271,7 @@ func (h *Handler) CastVote(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "session_id обязателен")
 	}
 
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -317,37 +318,3 @@ func (h *Handler) GetPokerSession(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-// userIDFromCtx извлекает user ID из Fiber Locals.
-func userIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
-	idStr, ok := c.Locals("userID").(string)
-	if !ok || idStr == "" {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "пользователь не аутентифицирован")
-	}
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "некорректный user ID")
-	}
-	return id, nil
-}
-
-// parseProjectID извлекает projectId из параметров пути.
-func parseProjectID(c fiber.Ctx) (uuid.UUID, error) {
-	return parseUUID(c, "projectId")
-}
-
-// parseUUID парсит UUID из параметра пути.
-func parseUUID(c fiber.Ctx, name string) (uuid.UUID, error) {
-	idStr := utils.CopyString(c.Params(name))
-	if idStr == "" {
-		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, name+" обязателен")
-	}
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "некорректный "+name)
-	}
-	return id, nil
-}

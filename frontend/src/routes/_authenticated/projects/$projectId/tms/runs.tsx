@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatRelativeTime } from "@/lib/format-time";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,26 +35,6 @@ const RUN_TYPE_CONFIG: Record<string, { bg: string; text: string; label: string 
   automatic: { bg: "bg-purple-500/10", text: "text-purple-700 dark:text-purple-400", label: "Авто" },
   mixed: { bg: "bg-orange-500/10", text: "text-orange-700 dark:text-orange-400", label: "Смешанный" },
 };
-
-/**
- * Форматирует относительное время на русском языке.
- */
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMin < 1) return "только что";
-  if (diffMin < 60) return `${diffMin} мин. назад`;
-  if (diffHours < 24) return `${diffHours} ч. назад`;
-  if (diffDays === 1) return "вчера";
-  if (diffDays < 7) return `${diffDays} дн. назад`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} нед. назад`;
-  return date.toLocaleDateString("ru-RU");
-}
 
 /**
  * Страница списка прогонов тестов — дизайн уровня Allure TestOps.

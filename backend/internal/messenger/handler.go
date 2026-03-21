@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
@@ -103,19 +104,6 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // Helpers
 // ---------------------------------------------------------------------------
 
-// userIDFromCtx извлекает user ID из Fiber Locals.
-func userIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
-	idStr, ok := c.Locals("userID").(string)
-	if !ok || idStr == "" {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "пользователь не аутентифицирован")
-	}
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "некорректный user ID")
-	}
-	return id, nil
-}
-
 // parseChannelID извлекает и валидирует channelId из параметров пути.
 func parseChannelID(c fiber.Ctx) (uuid.UUID, error) {
 	idStr := utils.CopyString(c.Params("channelId"))
@@ -140,7 +128,7 @@ func parseMessageID(c fiber.Ctx) string {
 
 // CreateChannel обрабатывает POST /api/messenger/channels
 func (h *Handler) CreateChannel(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -160,7 +148,7 @@ func (h *Handler) CreateChannel(c fiber.Ctx) error {
 
 // ListMyChannels обрабатывает GET /api/messenger/channels
 func (h *Handler) ListMyChannels(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -194,7 +182,7 @@ func (h *Handler) UpdateChannel(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -218,7 +206,7 @@ func (h *Handler) DeleteChannel(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -236,7 +224,7 @@ func (h *Handler) JoinChannel(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -254,7 +242,7 @@ func (h *Handler) LeaveChannel(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -272,7 +260,7 @@ func (h *Handler) AddMembers(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -314,7 +302,7 @@ func (h *Handler) SendMessage(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -365,7 +353,7 @@ func (h *Handler) EditMessage(c fiber.Ctx) error {
 	if messageID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -393,7 +381,7 @@ func (h *Handler) DeleteMessage(c fiber.Ctx) error {
 	if messageID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -411,7 +399,7 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 	if messageID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -439,7 +427,7 @@ func (h *Handler) TogglePin(c fiber.Ctx) error {
 	if messageID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -462,7 +450,7 @@ func (h *Handler) ForwardMessage(c fiber.Ctx) error {
 	if messageID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -534,7 +522,7 @@ func (h *Handler) SearchMessages(c fiber.Ctx) error {
 
 // ListBookmarks обрабатывает GET /api/messenger/bookmarks
 func (h *Handler) ListBookmarks(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -549,7 +537,7 @@ func (h *Handler) ListBookmarks(c fiber.Ctx) error {
 
 // AddBookmark обрабатывает POST /api/messenger/bookmarks
 func (h *Handler) AddBookmark(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -611,7 +599,7 @@ func (h *Handler) GetPresence(c fiber.Ctx) error {
 
 // SetCustomStatus обрабатывает PUT /api/messenger/presence/status
 func (h *Handler) SetCustomStatus(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -632,7 +620,7 @@ func (h *Handler) SetCustomStatus(c fiber.Ctx) error {
 
 // Heartbeat обрабатывает POST /api/messenger/presence/heartbeat
 func (h *Handler) Heartbeat(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -650,7 +638,7 @@ func (h *Handler) Heartbeat(c fiber.Ctx) error {
 
 // GetUnreadCounts обрабатывает GET /api/messenger/unread
 func (h *Handler) GetUnreadCounts(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -669,7 +657,7 @@ func (h *Handler) MarkChannelRead(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -706,7 +694,7 @@ func (h *Handler) ListPins(c fiber.Ctx) error {
 
 // CreateOrGetDM обрабатывает POST /api/messenger/dm
 func (h *Handler) CreateOrGetDM(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}

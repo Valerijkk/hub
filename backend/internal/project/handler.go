@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // Handler provides HTTP handlers for the project module.
@@ -56,35 +57,9 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	teams.Post("/:teamId/projects/:projectId", h.AddTeamToProject)
 }
 
-// userIDFromCtx extracts user ID from Fiber Locals, using CopyString for safety.
-func userIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
-	idStr, ok := c.Locals("userID").(string)
-	if !ok || idStr == "" {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
-	}
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "invalid user ID")
-	}
-	return id, nil
-}
-
-// parseProjectID extracts and validates the projectId path parameter.
-func parseProjectID(c fiber.Ctx) (uuid.UUID, error) {
-	idStr := utils.CopyString(c.Params("projectId"))
-	if idStr == "" {
-		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "project ID required")
-	}
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "invalid project ID")
-	}
-	return id, nil
-}
-
 // CreateProject handles POST /api/projects
 func (h *Handler) CreateProject(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -104,7 +79,7 @@ func (h *Handler) CreateProject(c fiber.Ctx) error {
 
 // ListProjects handles GET /api/projects
 func (h *Handler) ListProjects(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -120,7 +95,7 @@ func (h *Handler) ListProjects(c fiber.Ctx) error {
 
 // GetProject handles GET /api/projects/:projectId
 func (h *Handler) GetProject(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -135,7 +110,7 @@ func (h *Handler) GetProject(c fiber.Ctx) error {
 
 // UpdateProject handles PUT /api/projects/:projectId
 func (h *Handler) UpdateProject(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -155,7 +130,7 @@ func (h *Handler) UpdateProject(c fiber.Ctx) error {
 
 // ArchiveProject handles POST /api/projects/:projectId/archive
 func (h *Handler) ArchiveProject(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -170,7 +145,7 @@ func (h *Handler) ArchiveProject(c fiber.Ctx) error {
 
 // UnarchiveProject handles POST /api/projects/:projectId/unarchive
 func (h *Handler) UnarchiveProject(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -185,7 +160,7 @@ func (h *Handler) UnarchiveProject(c fiber.Ctx) error {
 
 // DeleteProject handles DELETE /api/projects/:projectId
 func (h *Handler) DeleteProject(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -199,7 +174,7 @@ func (h *Handler) DeleteProject(c fiber.Ctx) error {
 
 // RestoreProject handles POST /api/projects/:projectId/restore
 func (h *Handler) RestoreProject(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -214,7 +189,7 @@ func (h *Handler) RestoreProject(c fiber.Ctx) error {
 
 // ListTrash handles GET /api/projects/trash
 func (h *Handler) ListTrash(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -229,7 +204,7 @@ func (h *Handler) ListTrash(c fiber.Ctx) error {
 
 // ListMembers handles GET /api/projects/:projectId/members
 func (h *Handler) ListMembers(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -244,7 +219,7 @@ func (h *Handler) ListMembers(c fiber.Ctx) error {
 
 // AddMember handles POST /api/projects/:projectId/members
 func (h *Handler) AddMember(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -269,7 +244,7 @@ func (h *Handler) AddMember(c fiber.Ctx) error {
 
 // UpdateMemberRole handles PUT /api/projects/:projectId/members/:userId
 func (h *Handler) UpdateMemberRole(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -295,7 +270,7 @@ func (h *Handler) UpdateMemberRole(c fiber.Ctx) error {
 
 // RemoveMember handles DELETE /api/projects/:projectId/members/:userId
 func (h *Handler) RemoveMember(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -315,12 +290,12 @@ func (h *Handler) RemoveMember(c fiber.Ctx) error {
 
 // CreateInvite handles POST /api/projects/:projectId/invites
 func (h *Handler) CreateInvite(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
 
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -340,7 +315,7 @@ func (h *Handler) CreateInvite(c fiber.Ctx) error {
 
 // ListInvites handles GET /api/projects/:projectId/invites
 func (h *Handler) ListInvites(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -370,7 +345,7 @@ func (h *Handler) RevokeInvite(c fiber.Ctx) error {
 
 // JoinByInvite handles POST /api/invites/join
 func (h *Handler) JoinByInvite(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -459,7 +434,7 @@ func (h *Handler) AddTeamToProject(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid team ID")
 	}
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid project ID")
 	}

@@ -628,6 +628,10 @@ func (m *mockRepo) getDefaultStatusID() uuid.UUID {
 	return uuid.Nil
 }
 
+func (m *mockRepo) GetDB() *ent.Client {
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Helper для создания сервиса с мок-репозиторием
 // ---------------------------------------------------------------------------
@@ -941,7 +945,7 @@ func TestBoardData(t *testing.T) {
 	// Получаем данные доски
 	boardID, _ := uuid.Parse(board.ID)
 	_ = repo
-	data, err := svc.GetBoardData(ctx, boardID)
+	data, err := svc.GetBoardData(ctx, boardID, "")
 	require.NoError(t, err)
 	assert.Equal(t, "Sprint Board", data.Board.Name)
 	assert.NotEmpty(t, data.Columns)

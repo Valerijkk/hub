@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useNotificationStore } from "@/stores/notification-store";
 import type { NotificationDTO } from "@/api/notifications";
+import { formatRelativeTime } from "@/lib/format-time";
 
 /** Карта иконок по типу уведомления. */
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -44,24 +45,6 @@ const TYPE_LABELS: Record<string, string> = {
   deadline_approaching: "Дедлайн",
   blocker_added: "Блокировщик",
 };
-
-/**
- * Форматирует относительное время (простая реализация без date-fns).
- */
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMin < 1) return "только что";
-  if (diffMin < 60) return `${diffMin} мин. назад`;
-  if (diffHours < 24) return `${diffHours} ч. назад`;
-  if (diffDays < 7) return `${diffDays} дн. назад`;
-  return date.toLocaleDateString("ru-RU");
-}
 
 /**
  * NotificationPanel — содержимое панели уведомлений.

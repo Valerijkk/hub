@@ -35,7 +35,9 @@ import { Route as AuthenticatedProjectsProjectIdBacklogRouteImport } from './rou
 import { Route as AuthenticatedProjectsProjectIdSprintsIndexRouteImport } from './routes/_authenticated/projects/$projectId/sprints/index'
 import { Route as AuthenticatedProjectsProjectIdIssuesIndexRouteImport } from './routes/_authenticated/projects/$projectId/issues/index'
 import { Route as AuthenticatedProjectsProjectIdBoardIndexRouteImport } from './routes/_authenticated/projects/$projectId/board/index'
+import { Route as AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport } from './routes/_authenticated/projects/$projectId/tms/traceability'
 import { Route as AuthenticatedProjectsProjectIdTmsRunsRouteImport } from './routes/_authenticated/projects/$projectId/tms/runs'
+import { Route as AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport } from './routes/_authenticated/projects/$projectId/tms/environments'
 import { Route as AuthenticatedProjectsProjectIdTmsCasesRouteImport } from './routes/_authenticated/projects/$projectId/tms/cases'
 import { Route as AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport } from './routes/_authenticated/projects/$projectId/sprints/$sprintId'
 import { Route as AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport } from './routes/_authenticated/projects/$projectId/settings/workflow'
@@ -190,10 +192,22 @@ const AuthenticatedProjectsProjectIdBoardIndexRoute =
     path: '/board/',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
+const AuthenticatedProjectsProjectIdTmsTraceabilityRoute =
+  AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport.update({
+    id: '/traceability',
+    path: '/traceability',
+    getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTmsRunsRoute =
   AuthenticatedProjectsProjectIdTmsRunsRouteImport.update({
     id: '/runs',
     path: '/runs',
+    getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdTmsEnvironmentsRoute =
+  AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport.update({
+    id: '/environments',
+    path: '/environments',
     getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
   } as any)
 const AuthenticatedProjectsProjectIdTmsCasesRoute =
@@ -274,7 +288,9 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
   '/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
   '/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
+  '/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
   '/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
+  '/projects/$projectId/tms/traceability': typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
   '/projects/$projectId/board/': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
   '/projects/$projectId/issues/': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
   '/projects/$projectId/sprints/': typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
@@ -308,7 +324,9 @@ export interface FileRoutesByTo {
   '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
   '/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
   '/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
+  '/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
   '/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
+  '/projects/$projectId/tms/traceability': typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
   '/projects/$projectId/board': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
   '/projects/$projectId/issues': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
   '/projects/$projectId/sprints': typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
@@ -346,7 +364,9 @@ export interface FileRoutesById {
   '/_authenticated/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
   '/_authenticated/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
   '/_authenticated/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
+  '/_authenticated/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
   '/_authenticated/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
+  '/_authenticated/projects/$projectId/tms/traceability': typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
   '/_authenticated/projects/$projectId/board/': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
   '/_authenticated/projects/$projectId/issues/': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
   '/_authenticated/projects/$projectId/sprints/': typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
@@ -384,7 +404,9 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/workflow'
     | '/projects/$projectId/sprints/$sprintId'
     | '/projects/$projectId/tms/cases'
+    | '/projects/$projectId/tms/environments'
     | '/projects/$projectId/tms/runs'
+    | '/projects/$projectId/tms/traceability'
     | '/projects/$projectId/board/'
     | '/projects/$projectId/issues/'
     | '/projects/$projectId/sprints/'
@@ -418,7 +440,9 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/workflow'
     | '/projects/$projectId/sprints/$sprintId'
     | '/projects/$projectId/tms/cases'
+    | '/projects/$projectId/tms/environments'
     | '/projects/$projectId/tms/runs'
+    | '/projects/$projectId/tms/traceability'
     | '/projects/$projectId/board'
     | '/projects/$projectId/issues'
     | '/projects/$projectId/sprints'
@@ -455,7 +479,9 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$projectId/settings/workflow'
     | '/_authenticated/projects/$projectId/sprints/$sprintId'
     | '/_authenticated/projects/$projectId/tms/cases'
+    | '/_authenticated/projects/$projectId/tms/environments'
     | '/_authenticated/projects/$projectId/tms/runs'
+    | '/_authenticated/projects/$projectId/tms/traceability'
     | '/_authenticated/projects/$projectId/board/'
     | '/_authenticated/projects/$projectId/issues/'
     | '/_authenticated/projects/$projectId/sprints/'
@@ -654,11 +680,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdBoardIndexRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
+    '/_authenticated/projects/$projectId/tms/traceability': {
+      id: '/_authenticated/projects/$projectId/tms/traceability'
+      path: '/traceability'
+      fullPath: '/projects/$projectId/tms/traceability'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
     '/_authenticated/projects/$projectId/tms/runs': {
       id: '/_authenticated/projects/$projectId/tms/runs'
       path: '/runs'
       fullPath: '/projects/$projectId/tms/runs'
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
+    '/_authenticated/projects/$projectId/tms/environments': {
+      id: '/_authenticated/projects/$projectId/tms/environments'
+      path: '/environments'
+      fullPath: '/projects/$projectId/tms/environments'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
     }
     '/_authenticated/projects/$projectId/tms/cases': {
@@ -738,7 +778,9 @@ const AuthenticatedMessengerRouteWithChildren =
 
 interface AuthenticatedProjectsProjectIdTmsRouteChildren {
   AuthenticatedProjectsProjectIdTmsCasesRoute: typeof AuthenticatedProjectsProjectIdTmsCasesRoute
+  AuthenticatedProjectsProjectIdTmsEnvironmentsRoute: typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
   AuthenticatedProjectsProjectIdTmsRunsRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRoute
+  AuthenticatedProjectsProjectIdTmsTraceabilityRoute: typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
   AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute: typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute
   AuthenticatedProjectsProjectIdTmsRunsRunIdRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute
 }
@@ -747,8 +789,12 @@ const AuthenticatedProjectsProjectIdTmsRouteChildren: AuthenticatedProjectsProje
   {
     AuthenticatedProjectsProjectIdTmsCasesRoute:
       AuthenticatedProjectsProjectIdTmsCasesRoute,
+    AuthenticatedProjectsProjectIdTmsEnvironmentsRoute:
+      AuthenticatedProjectsProjectIdTmsEnvironmentsRoute,
     AuthenticatedProjectsProjectIdTmsRunsRoute:
       AuthenticatedProjectsProjectIdTmsRunsRoute,
+    AuthenticatedProjectsProjectIdTmsTraceabilityRoute:
+      AuthenticatedProjectsProjectIdTmsTraceabilityRoute,
     AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute:
       AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute,
     AuthenticatedProjectsProjectIdTmsRunsRunIdRoute:

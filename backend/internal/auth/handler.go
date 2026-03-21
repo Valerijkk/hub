@@ -10,6 +10,7 @@ import (
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/user"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // Handler is the HTTP handler for all auth-related endpoints.
@@ -211,7 +212,7 @@ func (h *Handler) Logout(c fiber.Ctx) error {
 // @Failure 401 {object} map[string]string "Не аутентифицирован"
 // @Router /auth/me [get]
 func (h *Handler) GetMe(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
 	}
@@ -226,7 +227,7 @@ func (h *Handler) GetMe(c fiber.Ctx) error {
 
 // UpdateProfile handles PUT /api/auth/me.
 func (h *Handler) UpdateProfile(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
 	}
@@ -246,7 +247,7 @@ func (h *Handler) UpdateProfile(c fiber.Ctx) error {
 
 // CompleteOnboarding handles POST /api/auth/me/onboarding.
 func (h *Handler) CompleteOnboarding(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
 	}
@@ -266,7 +267,7 @@ func (h *Handler) CompleteOnboarding(c fiber.Ctx) error {
 
 // ListSessions handles GET /api/auth/sessions.
 func (h *Handler) ListSessions(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
 	}
@@ -295,7 +296,7 @@ func (h *Handler) ListSessions(c fiber.Ctx) error {
 
 // RevokeSession handles DELETE /api/auth/sessions/:sessionId.
 func (h *Handler) RevokeSession(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
 	}
@@ -353,14 +354,6 @@ func (h *Handler) SetRegistrationMode(c fiber.Ctx) error {
 
 // ---- Helpers ----
 
-func userIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
-	idStr, ok := c.Locals("userID").(string)
-	if !ok || idStr == "" {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
-	}
-	return uuid.Parse(idStr)
-}
-
 func sessionIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
 	idStr, ok := c.Locals("sessionID").(string)
 	if !ok || idStr == "" {
@@ -371,7 +364,7 @@ func sessionIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
 
 // requireAdmin checks that the current user has system_role "admin".
 func (h *Handler) requireAdmin(c fiber.Ctx) error {
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
 	}

@@ -13,6 +13,8 @@ function TmsLayout() {
   /** Определяет активный таб по текущему пути. */
   const getActiveTab = () => {
     if (location.pathname.includes("/tms/runs")) return "runs";
+    if (location.pathname.includes("/tms/traceability")) return "traceability";
+    if (location.pathname.includes("/tms/environments")) return "environments";
     return "cases";
   };
 
@@ -37,6 +39,26 @@ function TmsLayout() {
       icon: (
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+    },
+    {
+      id: "traceability",
+      label: "Трассировка",
+      to: "/projects/$projectId/tms/traceability" as const,
+      icon: (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+        </svg>
+      ),
+    },
+    {
+      id: "environments",
+      label: "Окружения",
+      to: "/projects/$projectId/tms/environments" as const,
+      icon: (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       ),
     },

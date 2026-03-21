@@ -3,9 +3,9 @@ package tracker
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
-	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 	"github.com/valerii/hub/backend/internal/rbac"
 	"github.com/valerii/hub/backend/internal/search"
 )
@@ -93,48 +93,9 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // Helpers
 // ---------------------------------------------------------------------------
 
-// userIDFromCtx извлекает user ID из Fiber Locals.
-func userIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
-	idStr, ok := c.Locals("userID").(string)
-	if !ok || idStr == "" {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "пользователь не аутентифицирован")
-	}
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "некорректный user ID")
-	}
-	return id, nil
-}
-
-// parseProjectID извлекает и валидирует projectId из параметров пути.
-func parseProjectID(c fiber.Ctx) (uuid.UUID, error) {
-	idStr := utils.CopyString(c.Params("projectId"))
-	if idStr == "" {
-		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "project ID обязателен")
-	}
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "некорректный project ID")
-	}
-	return id, nil
-}
-
 // parseIssueKey извлекает issueKey из параметров пути.
 func parseIssueKey(c fiber.Ctx) string {
 	return utils.CopyString(c.Params("issueKey"))
-}
-
-// parseUUIDParam парсит UUID из параметра пути.
-func parseUUIDParam(c fiber.Ctx, name string) (uuid.UUID, error) {
-	idStr := utils.CopyString(c.Params(name))
-	if idStr == "" {
-		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, name+" обязателен")
-	}
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "некорректный "+name)
-	}
-	return id, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -143,11 +104,11 @@ func parseUUIDParam(c fiber.Ctx, name string) (uuid.UUID, error) {
 
 // CreateIssue обрабатывает POST /api/projects/:projectId/issues
 func (h *Handler) CreateIssue(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -167,7 +128,7 @@ func (h *Handler) CreateIssue(c fiber.Ctx) error {
 
 // ListIssues обрабатывает GET /api/projects/:projectId/issues
 func (h *Handler) ListIssues(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -206,7 +167,7 @@ func (h *Handler) UpdateIssue(c fiber.Ctx) error {
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -230,7 +191,7 @@ func (h *Handler) DeleteIssue(c fiber.Ctx) error {
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -248,7 +209,7 @@ func (h *Handler) MoveIssue(c fiber.Ctx) error {
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -276,7 +237,7 @@ func (h *Handler) CreateIssueLink(c fiber.Ctx) error {
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -311,7 +272,7 @@ func (h *Handler) ListIssueLinks(c fiber.Ctx) error {
 
 // DeleteIssueLink обрабатывает DELETE /api/projects/:projectId/issues/:issueKey/links/:linkId
 func (h *Handler) DeleteIssueLink(c fiber.Ctx) error {
-	linkID, err := parseUUIDParam(c, "linkId")
+	linkID, err := httputil.ParseUUIDParam(c, "linkId")
 	if err != nil {
 		return err
 	}
@@ -333,7 +294,7 @@ func (h *Handler) CreateComment(c fiber.Ctx) error {
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -368,7 +329,7 @@ func (h *Handler) ListComments(c fiber.Ctx) error {
 
 // UpdateComment обрабатывает PUT /api/projects/:projectId/issues/:issueKey/comments/:commentId
 func (h *Handler) UpdateComment(c fiber.Ctx) error {
-	commentID, err := parseUUIDParam(c, "commentId")
+	commentID, err := httputil.ParseUUIDParam(c, "commentId")
 	if err != nil {
 		return err
 	}
@@ -388,7 +349,7 @@ func (h *Handler) UpdateComment(c fiber.Ctx) error {
 
 // DeleteComment обрабатывает DELETE /api/projects/:projectId/issues/:issueKey/comments/:commentId
 func (h *Handler) DeleteComment(c fiber.Ctx) error {
-	commentID, err := parseUUIDParam(c, "commentId")
+	commentID, err := httputil.ParseUUIDParam(c, "commentId")
 	if err != nil {
 		return err
 	}
@@ -402,11 +363,11 @@ func (h *Handler) DeleteComment(c fiber.Ctx) error {
 
 // ToggleReaction обрабатывает POST /api/projects/:projectId/issues/:issueKey/comments/:commentId/reactions
 func (h *Handler) ToggleReaction(c fiber.Ctx) error {
-	commentID, err := parseUUIDParam(c, "commentId")
+	commentID, err := httputil.ParseUUIDParam(c, "commentId")
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -453,7 +414,7 @@ func (h *Handler) LogTime(c fiber.Ctx) error {
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -477,7 +438,7 @@ func (h *Handler) StartTimer(c fiber.Ctx) error {
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -496,7 +457,7 @@ func (h *Handler) StopTimer(c fiber.Ctx) error {
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -530,7 +491,7 @@ func (h *Handler) ListTimeLogs(c fiber.Ctx) error {
 
 // ListBoards обрабатывает GET /api/projects/:projectId/boards
 func (h *Handler) ListBoards(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -545,7 +506,7 @@ func (h *Handler) ListBoards(c fiber.Ctx) error {
 
 // CreateBoard обрабатывает POST /api/projects/:projectId/boards
 func (h *Handler) CreateBoard(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -565,7 +526,7 @@ func (h *Handler) CreateBoard(c fiber.Ctx) error {
 
 // GetBoardData обрабатывает GET /api/projects/:projectId/boards/:boardId
 func (h *Handler) GetBoardData(c fiber.Ctx) error {
-	boardID, err := parseUUIDParam(c, "boardId")
+	boardID, err := httputil.ParseUUIDParam(c, "boardId")
 	if err != nil {
 		return err
 	}
@@ -586,7 +547,7 @@ func (h *Handler) GetBoardData(c fiber.Ctx) error {
 
 // ListWorkflowStatuses обрабатывает GET /api/projects/:projectId/workflow/statuses
 func (h *Handler) ListWorkflowStatuses(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -601,7 +562,7 @@ func (h *Handler) ListWorkflowStatuses(c fiber.Ctx) error {
 
 // CreateWorkflowStatus обрабатывает POST /api/projects/:projectId/workflow/statuses
 func (h *Handler) CreateWorkflowStatus(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -621,7 +582,7 @@ func (h *Handler) CreateWorkflowStatus(c fiber.Ctx) error {
 
 // UpdateWorkflowStatus обрабатывает PUT /api/projects/:projectId/workflow/statuses/:statusId
 func (h *Handler) UpdateWorkflowStatus(c fiber.Ctx) error {
-	statusID, err := parseUUIDParam(c, "statusId")
+	statusID, err := httputil.ParseUUIDParam(c, "statusId")
 	if err != nil {
 		return err
 	}
@@ -641,7 +602,7 @@ func (h *Handler) UpdateWorkflowStatus(c fiber.Ctx) error {
 
 // DeleteWorkflowStatus обрабатывает DELETE /api/projects/:projectId/workflow/statuses/:statusId
 func (h *Handler) DeleteWorkflowStatus(c fiber.Ctx) error {
-	statusID, err := parseUUIDParam(c, "statusId")
+	statusID, err := httputil.ParseUUIDParam(c, "statusId")
 	if err != nil {
 		return err
 	}
@@ -655,7 +616,7 @@ func (h *Handler) DeleteWorkflowStatus(c fiber.Ctx) error {
 
 // ListWorkflowTransitions обрабатывает GET /api/projects/:projectId/workflow/transitions
 func (h *Handler) ListWorkflowTransitions(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -685,7 +646,7 @@ func (h *Handler) CreateWorkflowTransition(c fiber.Ctx) error {
 
 // DeleteWorkflowTransition обрабатывает DELETE /api/projects/:projectId/workflow/transitions/:transitionId
 func (h *Handler) DeleteWorkflowTransition(c fiber.Ctx) error {
-	transitionID, err := parseUUIDParam(c, "transitionId")
+	transitionID, err := httputil.ParseUUIDParam(c, "transitionId")
 	if err != nil {
 		return err
 	}
@@ -703,7 +664,7 @@ func (h *Handler) DeleteWorkflowTransition(c fiber.Ctx) error {
 
 // ListLabels обрабатывает GET /api/projects/:projectId/labels
 func (h *Handler) ListLabels(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -718,7 +679,7 @@ func (h *Handler) ListLabels(c fiber.Ctx) error {
 
 // CreateLabel обрабатывает POST /api/projects/:projectId/labels
 func (h *Handler) CreateLabel(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -738,7 +699,7 @@ func (h *Handler) CreateLabel(c fiber.Ctx) error {
 
 // DeleteLabel обрабатывает DELETE /api/projects/:projectId/labels/:labelId
 func (h *Handler) DeleteLabel(c fiber.Ctx) error {
-	labelID, err := parseUUIDParam(c, "labelId")
+	labelID, err := httputil.ParseUUIDParam(c, "labelId")
 	if err != nil {
 		return err
 	}
@@ -752,7 +713,7 @@ func (h *Handler) DeleteLabel(c fiber.Ctx) error {
 
 // ListLabelGroups обрабатывает GET /api/projects/:projectId/labels/groups
 func (h *Handler) ListLabelGroups(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -767,7 +728,7 @@ func (h *Handler) ListLabelGroups(c fiber.Ctx) error {
 
 // CreateLabelGroup обрабатывает POST /api/projects/:projectId/labels/groups
 func (h *Handler) CreateLabelGroup(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -791,7 +752,7 @@ func (h *Handler) CreateLabelGroup(c fiber.Ctx) error {
 
 // ListCustomFields обрабатывает GET /api/projects/:projectId/custom-fields
 func (h *Handler) ListCustomFields(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -806,7 +767,7 @@ func (h *Handler) ListCustomFields(c fiber.Ctx) error {
 
 // CreateCustomField обрабатывает POST /api/projects/:projectId/custom-fields
 func (h *Handler) CreateCustomField(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
@@ -826,7 +787,7 @@ func (h *Handler) CreateCustomField(c fiber.Ctx) error {
 
 // DeleteCustomField обрабатывает DELETE /api/projects/:projectId/custom-fields/:fieldId
 func (h *Handler) DeleteCustomField(c fiber.Ctx) error {
-	fieldID, err := parseUUIDParam(c, "fieldId")
+	fieldID, err := httputil.ParseUUIDParam(c, "fieldId")
 	if err != nil {
 		return err
 	}
@@ -850,11 +811,11 @@ type jqlRequest struct {
 // SearchIssuesJQL обрабатывает POST /api/projects/:projectId/issues/jql.
 // Парсит JQL-строку, конвертирует в Ent-предикаты и возвращает отфильтрованные задачи.
 func (h *Handler) SearchIssuesJQL(c fiber.Ctx) error {
-	projectID, err := parseProjectID(c)
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
 		return err
 	}
-	userID, err := userIDFromCtx(c)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}

@@ -88,3 +88,36 @@ export function shareFilter(
 ): Promise<SavedFilter> {
   return api.patch<SavedFilter>(`/filters/${id}/share`, { shared });
 }
+
+// ---------------------------------------------------------------------------
+// JQL-поиск
+// ---------------------------------------------------------------------------
+
+/** Элемент результата JQL-поиска. */
+export interface JQLResultItem {
+  key: string;
+  title: string;
+  type: string;
+  priority: string;
+  status?: string;
+  assignee?: string;
+  created_at: string;
+}
+
+/** Ответ JQL-поиска. */
+export interface JQLSearchResponse {
+  query: string;
+  total: number;
+  results: JQLResultItem[];
+}
+
+/** Выполнить JQL-запрос в проекте. */
+export function searchJQL(
+  projectId: string,
+  query: string,
+): Promise<JQLSearchResponse> {
+  return api.post<JQLSearchResponse>(
+    `/projects/${projectId}/issues/jql`,
+    { query },
+  );
+}

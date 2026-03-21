@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { formatRelativeTime } from "@/lib/format-time";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -45,27 +46,6 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }>
   active: { label: "Активный", bg: "bg-green-500/10", text: "text-green-700 dark:text-green-400" },
   deprecated: { label: "Устаревший", bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400" },
 };
-
-/**
- * Форматирует относительное время на русском языке.
- * Например: "2 часа назад", "вчера", "3 дня назад".
- */
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMin < 1) return "только что";
-  if (diffMin < 60) return `${diffMin} мин. назад`;
-  if (diffHours < 24) return `${diffHours} ч. назад`;
-  if (diffDays === 1) return "вчера";
-  if (diffDays < 7) return `${diffDays} дн. назад`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} нед. назад`;
-  return date.toLocaleDateString("ru-RU");
-}
 
 /**
  * Рекурсивный компонент дерева папок.

@@ -8,7 +8,6 @@ import {
   rollbackVersion,
   linkTestCaseToIssue,
   unlinkTestCaseFromIssue,
-  type TestCaseVersionResponse,
   type TestStep,
   type TestCasePriority,
   type TestCaseStatus,
@@ -16,27 +15,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { StepEditor } from "@/modules/tms/components/step-editor";
+import { TestCaseMetadata, PRIORITY_CONFIG, STATUS_CONFIG } from "@/modules/tms/components/test-case-metadata";
+import { VersionHistory } from "@/modules/tms/components/version-history";
 
-/** Цвета приоритетов — бейджи. */
-const PRIORITY_CONFIG: Record<string, { dot: string; bg: string; text: string; label: string }> = {
-  critical: { dot: "bg-red-500", bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", label: "Критический" },
-  high: { dot: "bg-orange-500", bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", label: "Высокий" },
-  medium: { dot: "bg-yellow-500", bg: "bg-yellow-500/10", text: "text-yellow-700 dark:text-yellow-400", label: "Средний" },
-  low: { dot: "bg-blue-500", bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", label: "Низкий" },
-  trivial: { dot: "bg-gray-400", bg: "bg-gray-500/10", text: "text-gray-500", label: "Тривиальный" },
-};
-
-/** Конфигурация статусов. */
-const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  draft: { bg: "bg-gray-500/10", text: "text-gray-600 dark:text-gray-400", label: "Черновик" },
-  active: { bg: "bg-green-500/10", text: "text-green-700 dark:text-green-400", label: "Активный" },
-  deprecated: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", label: "Устаревший" },
-};
-
-/** Лейблы приоритетов. */
+/** Priority labels. */
 const PRIORITY_LABELS: Record<string, string> = {
   critical: "Критический",
   high: "Высокий",
@@ -45,45 +30,17 @@ const PRIORITY_LABELS: Record<string, string> = {
   trivial: "Тривиальный",
 };
 
-/** Лейблы статусов. */
+/** Status labels. */
 const STATUS_LABELS: Record<string, string> = {
   draft: "Черновик",
   active: "Активный",
   deprecated: "Устаревший",
 };
 
-/** Цвета ключевых слов BDD. */
-const BDD_KEYWORD_COLORS: Record<string, string> = {
-  Given: "text-blue-600 dark:text-blue-400 bg-blue-500/10",
-  When: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
-  Then: "text-green-600 dark:text-green-400 bg-green-500/10",
-  And: "text-gray-600 dark:text-gray-400 bg-gray-500/10",
-  But: "text-red-600 dark:text-red-400 bg-red-500/10",
-};
-
 /**
- * Форматирует относительное время на русском языке.
- */
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMin < 1) return "только что";
-  if (diffMin < 60) return `${diffMin} мин. назад`;
-  if (diffHours < 24) return `${diffHours} ч. назад`;
-  if (diffDays === 1) return "вчера";
-  if (diffDays < 7) return `${diffDays} дн. назад`;
-  return date.toLocaleDateString("ru-RU");
-}
-
-/**
- * Страница деталей тест-кейса — дизайн уровня Allure TestOps.
- * Заголовок с ключом и статусами, табы (Шаги / Связанные задачи / Автотест),
- * правый сайдбар с метаданными и историей версий.
+ * Test case detail page -- Allure TestOps level design.
+ * Header with key and statuses, tabs (Steps / Linked Issues / Autotest),
+ * right sidebar with metadata and version history.
  */
 function TestCaseDetailPage() {
   const { projectId, caseKey } = Route.useParams();
@@ -93,7 +50,7 @@ function TestCaseDetailPage() {
   const [linkIssueId, setLinkIssueId] = useState("");
   const [editing, setEditing] = useState(false);
 
-  // Поля редактирования
+  // Edit fields
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editPrecondition, setEditPrecondition] = useState("");
@@ -102,13 +59,13 @@ function TestCaseDetailPage() {
   const [editStatus, setEditStatus] = useState<TestCaseStatus>("draft");
   const [editSteps, setEditSteps] = useState<TestStep[]>([]);
 
-  // Загрузка тест-кейса
+  // Load test case
   const { data: tc, isLoading } = useQuery({
     queryKey: ["tms-case", projectId, caseKey],
     queryFn: () => getTestCase(projectId, caseKey),
   });
 
-  // Инициализация формы при загрузке данных
+  // Initialize form when data loads
   useEffect(() => {
     if (tc) {
       setEditTitle(tc.title);
@@ -121,14 +78,14 @@ function TestCaseDetailPage() {
     }
   }, [tc]);
 
-  // Загрузка версий
+  // Load versions
   const { data: versions } = useQuery({
     queryKey: ["tms-case-versions", projectId, caseKey],
     queryFn: () => listVersions(projectId, caseKey),
     enabled: versionsOpen,
   });
 
-  // Обновление тест-кейса
+  // Update test case
   const updateMutation = useMutation({
     mutationFn: () =>
       updateTestCase(projectId, caseKey, {
@@ -150,7 +107,7 @@ function TestCaseDetailPage() {
     onError: () => toast.error("Ошибка обновления тест-кейса"),
   });
 
-  // Привязка к задаче
+  // Link to issue
   const linkMutation = useMutation({
     mutationFn: (issueId: string) =>
       linkTestCaseToIssue(projectId, caseKey, issueId),
@@ -162,7 +119,7 @@ function TestCaseDetailPage() {
     onError: () => toast.error("Ошибка привязки"),
   });
 
-  // Отвязка от задачи
+  // Unlink from issue
   const unlinkMutation = useMutation({
     mutationFn: (issueId: string) =>
       unlinkTestCaseFromIssue(projectId, caseKey, issueId),
@@ -173,7 +130,7 @@ function TestCaseDetailPage() {
     onError: () => toast.error("Ошибка отвязки"),
   });
 
-  // Откат версии
+  // Rollback version
   const rollbackMutation = useMutation({
     mutationFn: (versionId: string) =>
       rollbackVersion(projectId, caseKey, versionId),
@@ -185,7 +142,7 @@ function TestCaseDetailPage() {
     onError: () => toast.error("Ошибка отката"),
   });
 
-  /** Начать редактирование. */
+  /** Start editing. */
   const startEditing = () => {
     if (!tc) return;
     setEditTitle(tc.title);
@@ -198,10 +155,10 @@ function TestCaseDetailPage() {
     setEditing(true);
   };
 
-  /** Отменить редактирование. */
+  /** Cancel editing. */
   const cancelEditing = () => setEditing(false);
 
-  /** Добавить шаг в конец списка. */
+  /** Add step to end of list. */
   const addStep = () => {
     setEditSteps([
       ...editSteps,
@@ -209,13 +166,13 @@ function TestCaseDetailPage() {
     ]);
   };
 
-  /** Удалить шаг и пересчитать порядок. */
+  /** Remove step and recalculate order. */
   const removeStep = (index: number) => {
     const updated = editSteps.filter((_, i) => i !== index);
     setEditSteps(updated.map((s, i) => ({ ...s, order: i + 1 })));
   };
 
-  /** Обновить поле шага. */
+  /** Update step field. */
   const updateStep = (index: number, field: "action" | "expected_result", value: string) => {
     setEditSteps((prev) =>
       prev.map((s, i) =>
@@ -250,7 +207,7 @@ function TestCaseDetailPage() {
   const statusCfg = (STATUS_CONFIG[tc.status] ?? STATUS_CONFIG.draft)!;
   const hasAutotest = !!(tc.full_name || tc.class_name || tc.external_id);
 
-  /** Конфигурация табов детальной страницы. */
+  /** Detail page tab configuration. */
   const detailTabs = [
     { id: "steps" as const, label: "Шаги", count: tc.steps?.length ?? 0 },
     { id: "links" as const, label: "Связанные задачи", count: tc.linked_issues?.length ?? 0 },
@@ -259,7 +216,7 @@ function TestCaseDetailPage() {
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-in">
-      {/* Навигация (breadcrumb) */}
+      {/* Breadcrumb navigation */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-sm">
           <Link
@@ -306,9 +263,9 @@ function TestCaseDetailPage() {
       </div>
 
       <div className="flex gap-6">
-        {/* Основная секция */}
+        {/* Main section */}
         <div className="flex-1 min-w-0 space-y-5">
-          {/* Заголовок кейса */}
+          {/* Case header */}
           <div>
             <div className="mb-2 flex items-center gap-2.5 flex-wrap">
               <span className="font-mono text-lg font-bold text-primary">{tc.case_key}</span>
@@ -373,7 +330,7 @@ function TestCaseDetailPage() {
             )}
           </div>
 
-          {/* Предусловия (только в режиме редактирования или если заполнены) */}
+          {/* Precondition */}
           {editing ? (
             <div className="rounded-lg border bg-card/50 p-3">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Предусловие</div>
@@ -394,7 +351,7 @@ function TestCaseDetailPage() {
             )
           )}
 
-          {/* Табы */}
+          {/* Tabs */}
           <div className="border-b">
             <div className="flex gap-0.5">
               {detailTabs.map((tab) => {
@@ -429,132 +386,26 @@ function TestCaseDetailPage() {
             </div>
           </div>
 
-          {/* Таб: Шаги */}
+          {/* Tab: Steps */}
           {activeTab === "steps" && (
             <div className="space-y-4">
               {editing ? (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold">Шаги теста</span>
-                    <Button variant="outline" size="sm" onClick={addStep} className="h-7 text-xs">
-                      <svg className="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                      </svg>
-                      Добавить шаг
-                    </Button>
-                  </div>
-                  {editSteps.length === 0 ? (
-                    <div className="text-center py-8 text-sm text-muted-foreground border rounded-lg border-dashed">
-                      Нет шагов. Нажмите "Добавить шаг".
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {editSteps.map((step, idx) => (
-                        <div key={idx} className="flex gap-2 items-start rounded-lg border p-3 bg-card/50 hover:bg-card transition-colors">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary mt-1">
-                            {step.order}
-                          </span>
-                          <div className="flex-1 space-y-2">
-                            <Input
-                              placeholder="Действие"
-                              value={step.action}
-                              onChange={(e) => updateStep(idx, "action", e.target.value)}
-                              className="text-sm"
-                            />
-                            <Input
-                              placeholder="Ожидаемый результат"
-                              value={step.expected_result ?? ""}
-                              onChange={(e) => updateStep(idx, "expected_result", e.target.value)}
-                              className="text-sm"
-                            />
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="mt-1 h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                            onClick={() => removeStep(idx)}
-                          >
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <StepEditor
+                  editing={true}
+                  editSteps={editSteps}
+                  onAddStep={addStep}
+                  onRemoveStep={removeStep}
+                  onUpdateStep={updateStep}
+                />
               ) : (
-                <>
-                  {tc.steps && tc.steps.length > 0 ? (
-                    <div className="rounded-xl border overflow-hidden shadow-card">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b bg-muted/30">
-                            <th className="w-12 px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                              #
-                            </th>
-                            {tc.case_type === "bdd" && (
-                              <th className="w-24 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Keyword
-                              </th>
-                            )}
-                            <th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                              Действие
-                            </th>
-                            <th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                              Ожидаемый результат
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tc.steps.map((step) => (
-                            <tr key={step.order} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                              <td className="px-3 py-2.5 text-center">
-                                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
-                                  {step.order}
-                                </span>
-                              </td>
-                              {tc.case_type === "bdd" && (
-                                <td className="px-3 py-2.5">
-                                  {step.keyword && (
-                                    <Badge
-                                      variant="secondary"
-                                      className={cn(
-                                        "text-[10px] font-bold font-mono",
-                                        BDD_KEYWORD_COLORS[step.keyword] ?? "text-gray-600 bg-gray-500/10",
-                                      )}
-                                    >
-                                      {step.keyword}
-                                    </Badge>
-                                  )}
-                                </td>
-                              )}
-                              <td className="px-3 py-2.5 text-sm">{step.action}</td>
-                              <td className="px-3 py-2.5 text-sm text-muted-foreground">
-                                {step.expected_result || (
-                                  <span className="italic text-muted-foreground/40">--</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center border rounded-xl border-dashed">
-                      <svg className="h-10 w-10 text-muted-foreground/20 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      <p className="text-sm text-muted-foreground mb-2">Шаги не заданы</p>
-                      <Button variant="outline" size="sm" onClick={startEditing}>
-                        Добавить шаги
-                      </Button>
-                    </div>
-                  )}
-                </>
+                <StepEditor
+                  editing={false}
+                  tc={tc}
+                  onStartEditing={startEditing}
+                />
               )}
 
-              {/* Постусловие */}
+              {/* Postcondition */}
               {editing ? (
                 <div className="rounded-lg border bg-card/50 p-3">
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Постусловие</div>
@@ -577,7 +428,7 @@ function TestCaseDetailPage() {
             </div>
           )}
 
-          {/* Таб: Связанные задачи */}
+          {/* Tab: Linked Issues */}
           {activeTab === "links" && (
             <div className="space-y-3">
               {tc.linked_issues && tc.linked_issues.length > 0 ? (
@@ -658,7 +509,7 @@ function TestCaseDetailPage() {
             </div>
           )}
 
-          {/* Таб: Автотест */}
+          {/* Tab: Autotest */}
           {activeTab === "autotest" && (
             <div className="space-y-3">
               {hasAutotest ? (
@@ -703,166 +554,16 @@ function TestCaseDetailPage() {
           )}
         </div>
 
-        {/* Правый сайдбар — метаданные */}
+        {/* Right sidebar -- metadata */}
         <div className="w-72 shrink-0 space-y-4">
-          {/* Метаданные */}
-          <Card className="shadow-card">
-            <CardHeader className="pb-2 px-4 pt-4">
-              <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Метаданные</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 px-4 pb-4">
-              <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
-                <div>
-                  <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">Приоритет</div>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span className={cn("h-2 w-2 rounded-full", priorityCfg.dot)} />
-                    <span className="text-xs font-medium">{priorityCfg.label}</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">Статус</div>
-                  <Badge variant="secondary" className={cn("text-[10px] font-medium mt-0.5", statusCfg.bg, statusCfg.text)}>
-                    {statusCfg.label}
-                  </Badge>
-                </div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">Тип</div>
-                  <span className="text-xs font-medium mt-0.5">{tc.case_type === "bdd" ? "BDD" : "Classic"}</span>
-                </div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">Версия</div>
-                  <span className="text-xs font-medium mt-0.5 tabular-nums">v{tc.version}</span>
-                </div>
-              </div>
-
-              <div className="border-t pt-2.5 space-y-2.5">
-                {tc.created_by && (
-                  <div>
-                    <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">Автор</div>
-                    <div className="text-xs font-medium mt-0.5">{tc.created_by.name}</div>
-                  </div>
-                )}
-                <div>
-                  <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">Создан</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{formatRelativeTime(tc.created_at)}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">Обновлён</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{formatRelativeTime(tc.updated_at)}</div>
-                </div>
-                {tc.suite && (
-                  <div>
-                    <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">Папка</div>
-                    <div className="text-xs font-medium mt-0.5 flex items-center gap-1">
-                      <svg className="h-3 w-3 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                      {tc.suite.name}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Компоненты */}
-          {tc.components && tc.components.length > 0 && (
-            <Card className="shadow-card">
-              <CardHeader className="pb-2 px-4 pt-4">
-                <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Компоненты</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="flex flex-wrap gap-1.5">
-                  {tc.components.map((c) => (
-                    <Badge key={c.id} variant="outline" className="text-[10px] font-medium">
-                      {c.name}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Метки */}
-          {tc.labels && tc.labels.length > 0 && (
-            <Card className="shadow-card">
-              <CardHeader className="pb-2 px-4 pt-4">
-                <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Метки</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="flex flex-wrap gap-1.5">
-                  {tc.labels.map((l) => (
-                    <Badge
-                      key={l.id}
-                      variant="secondary"
-                      className="text-[10px] font-medium"
-                      style={{ backgroundColor: l.color + "20", color: l.color }}
-                    >
-                      {l.name}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* История версий */}
-          <Card className="shadow-card">
-            <CardHeader className="pb-2 px-4 pt-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  История версий
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-[11px] px-2"
-                  onClick={() => setVersionsOpen(!versionsOpen)}
-                >
-                  {versionsOpen ? "Скрыть" : "Показать"}
-                </Button>
-              </div>
-            </CardHeader>
-            {versionsOpen && versions && (
-              <CardContent className="px-4 pb-4">
-                {versions.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    Нет предыдущих версий
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {versions.map((v: TestCaseVersionResponse) => (
-                      <div
-                        key={v.id}
-                        className="rounded-lg border p-2.5 hover:bg-muted/30 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold tabular-nums">
-                            v{v.version_number}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-5 text-[10px] px-1.5"
-                            disabled={rollbackMutation.isPending}
-                            onClick={() => rollbackMutation.mutate(v.id)}
-                          >
-                            Откатить
-                          </Button>
-                        </div>
-                        {v.change_description && (
-                          <p className="text-[11px] text-muted-foreground mt-0.5">{v.change_description}</p>
-                        )}
-                        <div className="text-[10px] text-muted-foreground/60 mt-1">
-                          {v.created_by?.name} -- {formatRelativeTime(v.created_at)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            )}
-          </Card>
+          <TestCaseMetadata tc={tc} />
+          <VersionHistory
+            versionsOpen={versionsOpen}
+            onToggle={() => setVersionsOpen(!versionsOpen)}
+            versions={versions}
+            onRollback={(versionId) => rollbackMutation.mutate(versionId)}
+            isRollingBack={rollbackMutation.isPending}
+          />
         </div>
       </div>
     </div>

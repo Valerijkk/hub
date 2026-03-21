@@ -38,51 +38,47 @@ export function useWebSocket() {
     [addListener, removeListener],
   );
 
-  /**
-   * Subscribe to a list of rooms. Automatically unsubscribes when the
-   * rooms change or the component unmounts.
-   */
-  const useRooms = useCallback(
-    (rooms: string[]) => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const prevRooms = useRef<string[]>([]);
-
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      useEffect(() => {
-        if (!connected) return;
-
-        // Unsubscribe from rooms no longer needed.
-        for (const room of prevRooms.current) {
-          if (!rooms.includes(room)) {
-            unsubscribe(room);
-          }
-        }
-
-        // Subscribe to new rooms.
-        for (const room of rooms) {
-          if (!prevRooms.current.includes(room)) {
-            subscribe(room);
-          }
-        }
-
-        prevRooms.current = rooms;
-
-        return () => {
-          for (const room of rooms) {
-            unsubscribe(room);
-          }
-          prevRooms.current = [];
-        };
-      }, [rooms, connected]); // eslint-disable-line react-hooks/exhaustive-deps
-    },
-    [connected, subscribe, unsubscribe],
-  );
-
   return {
     connected,
     subscribe,
     unsubscribe,
     onEvent,
-    useRooms,
   };
+}
+
+/**
+ * useRooms subscribes to a list of WebSocket rooms.
+ * Automatically unsubscribes when rooms change or component unmounts.
+ * Must be called as a hook (not inside callbacks).
+ */
+export function useRooms(rooms: string[]) {
+  const { connected, subscribe, unsubscribe } = useWsStore();
+  const prevRooms = useRef<string[]>([]);
+
+  useEffect(() => {
+    if (!connected) return;
+
+    // Unsubscribe from rooms no longer needed.
+    for (const room of prevRooms.current) {
+      if (!rooms.includes(room)) {
+        unsubscribe(room);
+      }
+    }
+
+    // Subscribe to new rooms.
+    for (const room of rooms) {
+      if (!prevRooms.current.includes(room)) {
+        subscribe(room);
+      }
+    }
+
+    prevRooms.current = rooms;
+
+    return () => {
+      for (const room of rooms) {
+        unsubscribe(room);
+      }
+      prevRooms.current = [];
+    };
+  }, [rooms, connected, subscribe, unsubscribe]);
 }

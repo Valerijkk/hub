@@ -37,12 +37,20 @@ class ApiClient {
     }
 
     if (!response.ok) {
-      const error: ApiError = await response.json();
+      let error: ApiError;
+      try {
+        error = await response.json();
+      } catch {
+        error = { code: response.status, message: response.statusText };
+      }
       throw error;
     }
 
     if (response.status === 204) return undefined as T;
-    return response.json() as Promise<T>;
+
+    const text = await response.text();
+    if (!text) return undefined as T;
+    return JSON.parse(text) as T;
   }
 
   private async tryRefresh(): Promise<boolean> {

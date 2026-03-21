@@ -1,4 +1,8 @@
 import { api } from "./client";
+import type { PaginatedResponse } from "./types";
+
+// Re-export for backward compatibility.
+export type { PaginatedResponse } from "./types";
 
 // ---------------------------------------------------------------------------
 // Типы перечислений
@@ -27,14 +31,6 @@ export type IssuePriority =
 // ---------------------------------------------------------------------------
 // Интерфейсы ответов (Response DTOs)
 // ---------------------------------------------------------------------------
-
-/** Обёртка пагинированного ответа API. */
-export interface PaginatedResponse<T> {
-  items: T[];
-  next_cursor?: string;
-  has_more: boolean;
-  total: number;
-}
 
 /** Краткая информация о пользователе для отображения в карточках и списках. */
 export interface UserBriefResponse {

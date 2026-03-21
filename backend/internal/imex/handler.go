@@ -22,6 +22,7 @@ func NewHandler(svc *ImExService) *Handler {
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	projects := api.Group("/projects/:projectId", authMw)
 	projects.Post("/import/issues", h.ImportIssues)
+	projects.Post("/import/jira", h.ImportJira)
 	projects.Get("/export/issues", h.ExportIssues)
 	projects.Get("/export/full", h.ExportProjectZIP)
 

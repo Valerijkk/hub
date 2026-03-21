@@ -39,7 +39,7 @@ func TestSendMagicLink_InvalidEmail(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/auth/magic-link", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})
+	resp, err := app.Test(req, 5 * time.Second)
 	if err != nil {
 		t.Fatalf("test request failed: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestSendMagicLink_EmptyBody(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/auth/magic-link", nil)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})
+	resp, err := app.Test(req, 5 * time.Second)
 	if err != nil {
 		t.Fatalf("test request failed: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestVerifyMagicLink_ShortCode(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/auth/magic-link/verify", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})
+	resp, err := app.Test(req, 5 * time.Second)
 	if err != nil {
 		t.Fatalf("test request failed: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestGetMe_Unauthenticated(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/auth/me", nil)
 
-	resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})
+	resp, err := app.Test(req, 5 * time.Second)
 	if err != nil {
 		t.Fatalf("test request failed: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestLogout_Unauthenticated(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/logout", nil)
 
-	resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})
+	resp, err := app.Test(req, 5 * time.Second)
 	if err != nil {
 		t.Fatalf("test request failed: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestRefreshToken_EmptyBody(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})
+	resp, err := app.Test(req, 5 * time.Second)
 	if err != nil {
 		t.Fatalf("test request failed: %v", err)
 	}

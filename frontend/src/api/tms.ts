@@ -1,4 +1,8 @@
 import { api } from "./client";
+import type { PaginatedResponse } from "./types";
+
+// Re-export for backward compatibility.
+export type { PaginatedResponse } from "./types";
 
 // ---------------------------------------------------------------------------
 // Типы перечислений TMS
@@ -25,14 +29,6 @@ export type TestResultStatus = "passed" | "failed" | "broken" | "skipped" | "unk
 // ---------------------------------------------------------------------------
 // Интерфейсы ответов
 // ---------------------------------------------------------------------------
-
-/** Обёртка пагинированного ответа. */
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  offset: number;
-  limit: number;
-}
 
 /** Краткая информация о пользователе. */
 export interface UserBriefResponse {
@@ -629,6 +625,86 @@ export function exportTestCases(projectId: string, format: string = "csv") {
 export function exportTestRunReport(projectId: string, runId: string, format: string = "csv") {
   return api.get<Blob>(
     `/projects/${projectId}/tms/runs/${runId}/export?format=${format}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Интерфейсы: Матрица трассировки
+// ---------------------------------------------------------------------------
+
+/** Ячейка матрицы трассировки. */
+export interface TraceabilityCell {
+  case_key: string;
+  case_title: string;
+  last_status: string;
+}
+
+/** Строка матрицы трассировки (задача + привязанные тест-кейсы). */
+export interface TraceabilityRow {
+  issue_key: string;
+  issue_title: string;
+  test_cases: TraceabilityCell[];
+}
+
+/** Полная матрица трассировки. */
+export interface TraceabilityMatrix {
+  rows: TraceabilityRow[];
+}
+
+/** Получить матрицу трассировки проекта. */
+export function getTraceabilityMatrix(projectId: string) {
+  return api.get<TraceabilityMatrix>(
+    `/projects/${projectId}/tms/reports/traceability`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Интерфейсы: Окружения
+// ---------------------------------------------------------------------------
+
+/** Тестовое окружение. */
+export interface EnvironmentResponse {
+  id: string;
+  name: string;
+  label: string;
+  config?: Record<string, unknown>;
+  created_at: string;
+}
+
+/** Получить список окружений проекта. */
+export function listEnvironments(projectId: string) {
+  return api.get<EnvironmentResponse[]>(
+    `/projects/${projectId}/environments`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Интерфейсы: Сравнение окружений
+// ---------------------------------------------------------------------------
+
+/** Элемент сравнения результатов по окружениям. */
+export interface EnvironmentComparisonItem {
+  case_key: string;
+  case_title: string;
+  status_env1: string;
+  status_env2: string;
+}
+
+/** Ответ сравнения окружений. */
+export interface EnvironmentComparisonResponse {
+  env1: EnvironmentResponse;
+  env2: EnvironmentResponse;
+  items: EnvironmentComparisonItem[];
+}
+
+/** Сравнить результаты двух окружений. */
+export function compareEnvironments(
+  projectId: string,
+  envId1: string,
+  envId2: string,
+) {
+  return api.get<EnvironmentComparisonResponse>(
+    `/projects/${projectId}/tms/reports/env-comparison?env1=${envId1}&env2=${envId2}`,
   );
 }
 

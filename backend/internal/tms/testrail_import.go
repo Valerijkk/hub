@@ -1,0 +1,415 @@
+package tms
+
+import (
+	"bytes"
+	"context"
+	"encoding/csv"
+	"encoding/xml"
+	"fmt"
+	"io"
+	"log/slog"
+	"regexp"
+	"strings"
+
+	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent/schema"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
+)
+
+// ---------------------------------------------------------------------------
+// TestRail import types
+// ---------------------------------------------------------------------------
+
+// TestRailCase represents a TestRail test case from CSV/XML export.
+type TestRailCase struct {
+	ID             string `json:"id" xml:"id"`
+	Title          string `json:"title" xml:"title"`
+	SectionName    string `json:"section" xml:"section"`
+	Type           string `json:"type" xml:"type"`         // Automated, Manual, etc.
+	Priority       string `json:"priority" xml:"priority"` // Critical, High, Medium, Low
+	Estimate       string `json:"estimate" xml:"estimate"` // e.g., "30s", "1m", "1h"
+	Preconditions  string `json:"preconditions" xml:"preconditions"`
+	Steps          string `json:"steps" xml:"steps"`           // HTML or plain text steps
+	ExpectedResult string `json:"expected" xml:"expected"`
+	References     string `json:"refs" xml:"refs"` // comma-separated issue IDs
+}
+
+// TestRailXMLRoot is the root element for TestRail XML export.
+type TestRailXMLRoot struct {
+	XMLName xml.Name       `xml:"cases"`
+	Cases   []TestRailCase `xml:"case"`
+}
+
+// ---------------------------------------------------------------------------
+// Priority mapping
+// ---------------------------------------------------------------------------
+
+// mapTestRailPriority maps a TestRail priority to Hub TMS priority.
+func mapTestRailPriority(trPriority string) string {
+	switch strings.ToLower(strings.TrimSpace(trPriority)) {
+	case "critical", "1 - critical", "p1":
+		return "critical"
+	case "high", "2 - high", "p2":
+		return "high"
+	case "medium", "3 - medium", "p3":
+		return "medium"
+	case "low", "4 - low", "p4":
+		return "low"
+	case "trivial", "5 - trivial":
+		return "trivial"
+	default:
+		return "medium"
+	}
+}
+
+// mapTestRailType maps a TestRail case type to Hub TMS case type.
+func mapTestRailType(trType string) string {
+	switch strings.ToLower(strings.TrimSpace(trType)) {
+	case "automated", "automation":
+		return "automated"
+	case "manual":
+		return "manual"
+	case "functional":
+		return "functional"
+	case "regression":
+		return "regression"
+	case "smoke":
+		return "smoke"
+	default:
+		return "manual"
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Step parsing
+// ---------------------------------------------------------------------------
+
+// htmlTagRegexp is used to strip HTML tags from TestRail steps.
+var htmlTagRegexp = regexp.MustCompile(`<[^>]*>`)
+
+// stripHTML removes HTML tags and trims whitespace.
+func stripHTML(s string) string {
+	text := htmlTagRegexp.ReplaceAllString(s, "")
+	return strings.TrimSpace(text)
+}
+
+// parseTestRailSteps converts TestRail steps text (possibly HTML) into structured steps.
+// TestRail steps are typically numbered lines or separated by newlines.
+func parseTestRailSteps(stepsText, expectedText string) []schema.TestStep {
+	if stepsText == "" {
+		return nil
+	}
+
+	plain := stripHTML(stepsText)
+	lines := strings.Split(plain, "\n")
+
+	expectedPlain := stripHTML(expectedText)
+	expectedLines := strings.Split(expectedPlain, "\n")
+
+	var steps []schema.TestStep
+	order := 1
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		// Remove leading numbering like "1. ", "1) ", "Step 1: "
+		line = trimStepNumbering(line)
+		if line == "" {
+			continue
+		}
+
+		expected := ""
+		if order-1 < len(expectedLines) {
+			exp := strings.TrimSpace(expectedLines[order-1])
+			exp = trimStepNumbering(exp)
+			expected = exp
+		}
+
+		steps = append(steps, schema.TestStep{
+			Order:          order,
+			Action:         line,
+			ExpectedResult: expected,
+		})
+		order++
+	}
+
+	// If no structured steps were found but we have expected text, create a single step.
+	if len(steps) == 0 && expectedText != "" {
+		steps = append(steps, schema.TestStep{
+			Order:          1,
+			Action:         stripHTML(stepsText),
+			ExpectedResult: stripHTML(expectedText),
+		})
+	}
+
+	return steps
+}
+
+// trimStepNumbering removes common step prefixes like "1. ", "1) ", "Step 1: ".
+func trimStepNumbering(s string) string {
+	// "1. text" or "1) text"
+	re := regexp.MustCompile(`^\d+[\.\)]\s*`)
+	s = re.ReplaceAllString(s, "")
+	// "Step N: text"
+	re2 := regexp.MustCompile(`(?i)^step\s*\d+[:\s]*`)
+	s = re2.ReplaceAllString(s, "")
+	return strings.TrimSpace(s)
+}
+
+// ---------------------------------------------------------------------------
+// CSV import
+// ---------------------------------------------------------------------------
+
+// testRailCSVHeaders maps known TestRail CSV column names to our internal field names.
+var testRailCSVHeaders = map[string]string{
+	"id":             "id",
+	"case id":        "id",
+	"title":          "title",
+	"name":           "title",
+	"section":        "section",
+	"suite":          "section",
+	"section name":   "section",
+	"type":           "type",
+	"case type":      "type",
+	"priority":       "priority",
+	"estimate":       "estimate",
+	"preconditions":  "preconditions",
+	"precondition":   "preconditions",
+	"steps":          "steps",
+	"steps (text)":   "steps",
+	"expected result": "expected",
+	"expected":       "expected",
+	"references":     "refs",
+	"refs":           "refs",
+}
+
+// ImportTestRailCSV imports test cases from a TestRail CSV export.
+func (s *TMSService) ImportTestRailCSV(ctx context.Context, projectID uuid.UUID, userID uuid.UUID, data []byte) (*ImportResult, error) {
+	cases, err := parseTestRailCSV(data)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing TestRail CSV: %w", err)
+	}
+	return s.importTestRailCases(ctx, projectID, userID, cases)
+}
+
+// ImportTestRailXML imports test cases from a TestRail XML export.
+func (s *TMSService) ImportTestRailXML(ctx context.Context, projectID uuid.UUID, userID uuid.UUID, data []byte) (*ImportResult, error) {
+	cases, err := parseTestRailXML(data)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing TestRail XML: %w", err)
+	}
+	return s.importTestRailCases(ctx, projectID, userID, cases)
+}
+
+// importTestRailCases creates test suites and cases from parsed TestRail data.
+func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUID, userID uuid.UUID, cases []TestRailCase) (*ImportResult, error) {
+	result := &ImportResult{}
+
+	if len(cases) == 0 {
+		return result, nil
+	}
+
+	// Create suites from unique section names.
+	suiteName2ID := make(map[string]*uuid.UUID)
+	for _, tc := range cases {
+		section := strings.TrimSpace(tc.SectionName)
+		if section == "" {
+			continue
+		}
+		if _, exists := suiteName2ID[section]; exists {
+			continue
+		}
+		suite, err := s.repo.CreateSuite(ctx, projectID, CreateSuiteInput{
+			Name:      section,
+			SortOrder: len(suiteName2ID),
+		})
+		if err != nil {
+			slog.Error("failed to create suite for TestRail import", "section", section, "error", err)
+			continue
+		}
+		suiteName2ID[section] = &suite.ID
+	}
+
+	// Create test cases.
+	for i, tc := range cases {
+		title := strings.TrimSpace(tc.Title)
+		if title == "" {
+			result.Skipped++
+			result.Errors++
+			result.ValidationErrors = append(result.ValidationErrors, ImportValidationError{
+				Row:     i + 2,
+				Field:   "title",
+				Message: "title is required",
+			})
+			continue
+		}
+
+		steps := parseTestRailSteps(tc.Steps, tc.ExpectedResult)
+
+		input := CreateTestCaseInput{
+			Title:        title,
+			Precondition: stripHTML(tc.Preconditions),
+			Priority:     mapTestRailPriority(tc.Priority),
+			CaseType:     mapTestRailType(tc.Type),
+			Steps:        steps,
+			CreatedByID:  userID,
+		}
+
+		section := strings.TrimSpace(tc.SectionName)
+		if suiteID, ok := suiteName2ID[section]; ok {
+			input.SuiteID = suiteID
+		}
+
+		_, err := s.repo.CreateTestCase(ctx, projectID, input)
+		if err != nil {
+			result.Errors++
+			slog.Error("failed to create test case during TestRail import",
+				"row", i+2, "title", title, "error", err)
+			continue
+		}
+		result.Created++
+	}
+
+	return result, nil
+}
+
+// ---------------------------------------------------------------------------
+// Parsers
+// ---------------------------------------------------------------------------
+
+// parseTestRailCSV parses a TestRail CSV export into TestRailCase structs.
+func parseTestRailCSV(data []byte) ([]TestRailCase, error) {
+	reader := csv.NewReader(bytes.NewReader(data))
+	reader.LazyQuotes = true
+	reader.TrimLeadingSpace = true
+
+	// Try comma first, then semicolon, then tab.
+	records, err := tryReadCSV(data, ',')
+	if err != nil || len(records) < 2 {
+		records, err = tryReadCSV(data, ';')
+		if err != nil || len(records) < 2 {
+			records, err = tryReadCSV(data, '\t')
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse CSV with any separator: %w", err)
+			}
+		}
+	}
+
+	if len(records) < 2 {
+		return nil, fmt.Errorf("CSV file is empty or contains only headers")
+	}
+
+	// Build column index.
+	headers := records[0]
+	colMap := make(map[string]int) // field -> column index
+	for i, h := range headers {
+		lower := strings.ToLower(strings.TrimSpace(h))
+		if field, ok := testRailCSVHeaders[lower]; ok {
+			colMap[field] = i
+		}
+	}
+
+	var cases []TestRailCase
+	for _, row := range records[1:] {
+		tc := TestRailCase{
+			ID:             csvField(row, colMap, "id"),
+			Title:          csvField(row, colMap, "title"),
+			SectionName:    csvField(row, colMap, "section"),
+			Type:           csvField(row, colMap, "type"),
+			Priority:       csvField(row, colMap, "priority"),
+			Estimate:       csvField(row, colMap, "estimate"),
+			Preconditions:  csvField(row, colMap, "preconditions"),
+			Steps:          csvField(row, colMap, "steps"),
+			ExpectedResult: csvField(row, colMap, "expected"),
+			References:     csvField(row, colMap, "refs"),
+		}
+		cases = append(cases, tc)
+	}
+
+	return cases, nil
+}
+
+// tryReadCSV attempts to read all records from CSV data with a given separator.
+func tryReadCSV(data []byte, sep rune) ([][]string, error) {
+	reader := csv.NewReader(bytes.NewReader(data))
+	reader.Comma = sep
+	reader.LazyQuotes = true
+	reader.TrimLeadingSpace = true
+	return reader.ReadAll()
+}
+
+// csvField extracts a field value from a CSV row by mapped column name.
+func csvField(row []string, colMap map[string]int, field string) string {
+	if idx, ok := colMap[field]; ok && idx < len(row) {
+		return row[idx]
+	}
+	return ""
+}
+
+// parseTestRailXML parses a TestRail XML export into TestRailCase structs.
+func parseTestRailXML(data []byte) ([]TestRailCase, error) {
+	var root TestRailXMLRoot
+	if err := xml.Unmarshal(data, &root); err != nil {
+		return nil, fmt.Errorf("error parsing TestRail XML: %w", err)
+	}
+	return root.Cases, nil
+}
+
+// ---------------------------------------------------------------------------
+// HTTP handler
+// ---------------------------------------------------------------------------
+
+// ImportTestRailCases handles POST /api/projects/:projectId/tms/import/testrail.
+func (h *Handler) ImportTestRailCases(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "file is required")
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "error opening file")
+	}
+	defer f.Close()
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "error reading file")
+	}
+
+	// Detect format by file extension or form field.
+	format := c.FormValue("format", "")
+	if format == "" {
+		name := file.Filename
+		switch {
+		case strings.HasSuffix(name, ".xml"):
+			format = "xml"
+		default:
+			format = "csv"
+		}
+	}
+
+	var result *ImportResult
+	switch format {
+	case "xml":
+		result, err = h.service.ImportTestRailXML(c.Context(), projectID, userID, data)
+	default:
+		result, err = h.service.ImportTestRailCSV(c.Context(), projectID, userID, data)
+	}
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	return c.JSON(result)
+}

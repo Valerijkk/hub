@@ -228,6 +228,8 @@ func (h *TemplateHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler)
 	templates := api.Group("/project-templates", authMw)
 	templates.Get("/", h.ListTemplates)
 	templates.Post("/", h.SaveAsTemplate)
+	templates.Post("/import", h.ImportTemplateHandler)
+	templates.Get("/:id/export", h.ExportTemplateHandler)
 	templates.Delete("/:id", h.DeleteTemplate)
 }
 
