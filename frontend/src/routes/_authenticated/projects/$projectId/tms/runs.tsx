@@ -20,32 +20,24 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-/** Цвета статусов прогона. */
-const RUN_STATUS_COLORS: Record<string, string> = {
-  created: "bg-gray-200 text-gray-700",
-  in_progress: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  aborted: "bg-red-100 text-red-800",
+/** Конфигурация статусов прогона. */
+const RUN_STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
+  created: { bg: "bg-gray-500/10", text: "text-gray-600 dark:text-gray-400", label: "Создан" },
+  in_progress: { bg: "bg-blue-500/10", text: "text-blue-700 dark:text-blue-400", label: "Выполняется" },
+  completed: { bg: "bg-green-500/10", text: "text-green-700 dark:text-green-400", label: "Завершён" },
+  aborted: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", label: "Прерван" },
 };
 
-/** Лейблы статусов. */
-const RUN_STATUS_LABELS: Record<string, string> = {
-  created: "Создан",
-  in_progress: "Выполняется",
-  completed: "Завершён",
-  aborted: "Прерван",
-};
-
-/** Бейдж типа прогона. */
-const RUN_TYPE_LABELS: Record<string, { label: string; class: string }> = {
-  manual: { label: "Ручной", class: "bg-blue-100 text-blue-800" },
-  automatic: { label: "Авто", class: "bg-purple-100 text-purple-800" },
-  mixed: { label: "Смешанный", class: "bg-orange-100 text-orange-800" },
+/** Конфигурация типов прогона. */
+const RUN_TYPE_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
+  manual: { bg: "bg-blue-500/10", text: "text-blue-700 dark:text-blue-400", label: "Ручной" },
+  automatic: { bg: "bg-purple-500/10", text: "text-purple-700 dark:text-purple-400", label: "Авто" },
+  mixed: { bg: "bg-orange-500/10", text: "text-orange-700 dark:text-orange-400", label: "Смешанный" },
 };
 
 /**
  * Страница списка прогонов тестов.
- * Отображает таблицу прогонов со статусами и статистикой.
+ * Отображает карточки прогонов со статусами, прогресс-барами и статистикой.
  */
 function TestRunsPage() {
   const { projectId } = Route.useParams();
@@ -103,7 +95,7 @@ function TestRunsPage() {
       {/* Верхняя панель */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <select
-          className="rounded-md border bg-background px-3 py-1.5 text-sm"
+          className="rounded-lg border bg-card px-3 py-2 text-sm"
           value={statusFilter}
           onChange={(e) => {
             setStatusFilter(e.target.value);
@@ -130,10 +122,18 @@ function TestRunsPage() {
           </Button>
         )}
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {total} прогонов
+          </span>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button>Создать прогон</Button>
+              <Button className="gradient-tms text-white shadow-sm">
+                <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Создать прогон
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -146,7 +146,7 @@ function TestRunsPage() {
                   onChange={(e) => setNewTitle(e.target.value)}
                 />
                 <select
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
                   value={newType}
                   onChange={(e) => setNewType(e.target.value as TestRunType)}
                 >
@@ -155,7 +155,7 @@ function TestRunsPage() {
                   <option value="mixed">Смешанный</option>
                 </select>
                 <textarea
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
                   placeholder="Описание (необязательно)"
                   rows={3}
                   value={newDescription}
@@ -174,110 +174,127 @@ function TestRunsPage() {
         </div>
       </div>
 
-      {/* Таблица прогонов */}
+      {/* Список прогонов */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Загрузка...</p>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-xl border p-4 space-y-3">
+              <div className="h-5 w-3/4 rounded animate-shimmer" />
+              <div className="h-3 w-1/2 rounded animate-shimmer" />
+              <div className="h-2 w-full rounded-full animate-shimmer" />
+            </div>
+          ))}
         </div>
       ) : runs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <p className="mb-4 text-lg text-muted-foreground">
-            Прогоны не найдены
+        <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <svg className="h-8 w-8 text-muted-foreground/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold mb-1">Нет прогонов</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Создайте первый прогон, чтобы начать тестирование
           </p>
+          <Button onClick={() => setCreateOpen(true)}>
+            Создать первый прогон
+          </Button>
         </div>
       ) : (
         <>
-          <div className="rounded-md border">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                    Название
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                    Тип
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                    Статус
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                    Прогресс
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                    Создан
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {runs.map((run) => {
-                  const rate = passRate(run);
-                  const typeBadge = RUN_TYPE_LABELS[run.run_type];
-                  return (
-                    <tr
-                      key={run.id}
-                      className="border-b transition-colors hover:bg-muted/50"
-                    >
-                      <td className="px-4 py-3">
-                        <Link
-                          to="/projects/$projectId/tms/runs/$runId"
-                          params={{ projectId, runId: run.id }}
-                          className="text-sm font-medium text-primary hover:underline"
-                        >
-                          {run.title}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        {typeBadge && (
-                          <Badge
-                            variant="secondary"
-                            className={cn("text-xs", typeBadge.class)}
-                          >
-                            {typeBadge.label}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
+          {/* Карточки прогонов */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {runs.map((run) => {
+              const rate = passRate(run);
+              const statusCfg = RUN_STATUS_CONFIG[run.status] ?? RUN_STATUS_CONFIG.created;
+              const typeCfg = RUN_TYPE_CONFIG[run.run_type];
+
+              return (
+                <Link
+                  key={run.id}
+                  to="/projects/$projectId/tms/runs/$runId"
+                  params={{ projectId, runId: run.id }}
+                  className="block"
+                >
+                  <div className="rounded-xl border bg-card p-4 shadow-card hover-lift transition-all space-y-3">
+                    {/* Заголовок */}
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-sm font-semibold leading-tight line-clamp-2">{run.title}</h3>
+                      <Badge
+                        variant="secondary"
+                        className={cn("text-[10px] font-semibold shrink-0", statusCfg.bg, statusCfg.text)}
+                      >
+                        {statusCfg.label}
+                      </Badge>
+                    </div>
+
+                    {/* Мета: тип + дата */}
+                    <div className="flex items-center gap-2">
+                      {typeCfg && (
                         <Badge
                           variant="secondary"
-                          className={cn(
-                            "text-xs",
-                            RUN_STATUS_COLORS[run.status],
-                          )}
+                          className={cn("text-[10px] font-medium", typeCfg.bg, typeCfg.text)}
                         >
-                          {RUN_STATUS_LABELS[run.status] ?? run.status}
+                          {typeCfg.label}
                         </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        {run.total_count > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
-                              <div
-                                className="h-full rounded-full bg-green-500 transition-all"
-                                style={{ width: `${rate}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {rate}% ({run.passed_count}/{run.total_count})
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            Нет кейсов
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                      )}
+                      <span className="text-[11px] text-muted-foreground">
                         {new Date(run.created_at).toLocaleDateString("ru-RU")}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </span>
+                    </div>
+
+                    {/* Прогресс-бар */}
+                    {run.total_count > 0 ? (
+                      <div className="space-y-1.5">
+                        <div className="flex h-2 overflow-hidden rounded-full bg-muted">
+                          {/* Пройденные — зелёный */}
+                          {run.passed_count > 0 && (
+                            <div
+                              className="h-full bg-green-500 transition-all"
+                              style={{ width: `${(run.passed_count / run.total_count) * 100}%` }}
+                            />
+                          )}
+                          {/* Проваленные — красный */}
+                          {run.failed_count > 0 && (
+                            <div
+                              className="h-full bg-red-500 transition-all"
+                              style={{ width: `${(run.failed_count / run.total_count) * 100}%` }}
+                            />
+                          )}
+                          {/* Заблокированные — жёлтый */}
+                          {run.blocked_count > 0 && (
+                            <div
+                              className="h-full bg-yellow-500 transition-all"
+                              style={{ width: `${(run.blocked_count / run.total_count) * 100}%` }}
+                            />
+                          )}
+                          {/* Пропущенные — серый */}
+                          {run.skipped_count > 0 && (
+                            <div
+                              className="h-full bg-gray-400 transition-all"
+                              style={{ width: `${(run.skipped_count / run.total_count) * 100}%` }}
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>{rate}% пройдено</span>
+                          <span>{run.passed_count}/{run.total_count}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground/60 italic">
+                        Нет кейсов в прогоне
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
+          {/* Пагинация */}
           {total > 50 && (
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-6 flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
                 {offset + 1}-{Math.min(offset + 50, total)} из {total}
               </span>
