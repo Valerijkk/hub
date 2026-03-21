@@ -1,16 +1,36 @@
-import { Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Loader2, Maximize2, Minimize2 } from "lucide-react";
 
 import { useCallStore } from "@/stores/call-store";
 import { CallRoom } from "./CallRoom";
+import { cn } from "@/lib/utils";
 
 /**
- * Обёртка звонка, отображается когда пользователь в звонке.
- * Показывает CallRoom с токеном из стора или индикатор загрузки.
- * Позиционируется фиксированно в правом нижнем углу экрана.
+ * Обёртка звонка в стиле Tinkoff Talk.
+ * Поддерживает компактный режим (floating внизу справа) и
+ * развёрнутый режим (большая панель). Показывает CallRoom
+ * с токеном из стора или индикатор загрузки.
  */
 export function CallPanel() {
-  const { isInCall, isConnecting, token, leaveCall, error, setError } =
+  const { isInCall, isConnecting, token, leaveCall, error, setError, activeCall } =
     useCallStore();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval>>(null);
+
+  /** Таймер для компактного вида. */
+  useEffect(() => {
+    if (isInCall) {
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds((s) => s + 1);
+      }, 1000);
+    } else {
+      setElapsedSeconds(0);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isInCall]);
 
   /** Не показывать панель если не в звонке, не подключаемся и нет ошибки. */
   if (!isInCall && !isConnecting && !error) return null;
@@ -20,28 +40,60 @@ export function CallPanel() {
     void leaveCall();
   };
 
+  /** Форматирование времени. */
+  const formatDuration = (seconds: number): string => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
   return (
-    <div className="fixed bottom-0 right-0 z-50 flex h-[500px] w-[420px] flex-col overflow-hidden rounded-tl-xl border bg-background shadow-2xl">
+    <div
+      className={cn(
+        "fixed z-50 overflow-hidden border bg-[#0B0F19] shadow-2xl transition-all duration-300",
+        isExpanded
+          ? "bottom-4 right-4 h-[600px] w-[700px] rounded-2xl"
+          : "bottom-4 right-4 h-[500px] w-[420px] rounded-2xl",
+      )}
+    >
       {/* Ошибка */}
       {error && (
-        <div className="flex items-center justify-between bg-destructive/10 px-4 py-2 text-sm text-destructive">
+        <div className="flex items-center justify-between bg-red-500/10 border-b border-red-500/20 px-4 py-2 text-sm text-red-400">
           <span>{error}</span>
           <button
             onClick={() => setError(null)}
-            className="ml-2 text-xs underline"
+            className="ml-2 text-xs underline hover:text-red-300 transition-colors"
           >
             Закрыть
           </button>
         </div>
       )}
 
+      {/* Кнопка expand/collapse */}
+      {isInCall && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
+          title={isExpanded ? "Свернуть" : "Развернуть"}
+        >
+          {isExpanded ? (
+            <Minimize2 className="h-4 w-4" />
+          ) : (
+            <Maximize2 className="h-4 w-4" />
+          )}
+        </button>
+      )}
+
       {/* Загрузка */}
       {isConnecting && (
-        <div className="flex flex-1 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <span className="ml-3 text-sm text-muted-foreground">
-            Подключение к звонку...
-          </span>
+        <div className="flex flex-1 h-full items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-white/60" />
+            <span className="text-sm text-white/60">
+              Подключение к звонку...
+            </span>
+          </div>
         </div>
       )}
 
