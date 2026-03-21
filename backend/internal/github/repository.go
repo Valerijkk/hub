@@ -29,6 +29,9 @@ type Repository interface {
 	// Задачи (используется для поиска по ключу)
 	FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error)
 	UpdateIssueStatus(ctx context.Context, issueID, statusID uuid.UUID) error
+
+	// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
+	ListAllWebhookSecrets(ctx context.Context) ([]string, error)
 }
 
 // CreateIntegrationInput -- входные данные для создания интеграции.
@@ -169,4 +172,23 @@ func (r *EntRepository) UpdateIssueStatus(ctx context.Context, issueID, statusID
 	return r.client.Issue.UpdateOneID(issueID).
 		SetStatusID(statusID).
 		Exec(ctx)
+}
+
+// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
+// Используется для валидации подписи входящих webhook-запросов.
+func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, error) {
+	integrations, err := r.client.GitHubIntegration.Query().
+		Select(githubintegration.FieldWebhookSecret).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	secrets := make([]string, 0, len(integrations))
+	for _, ig := range integrations {
+		if ig.WebhookSecret != "" {
+			secrets = append(secrets, ig.WebhookSecret)
+		}
+	}
+	return secrets, nil
 }

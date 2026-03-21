@@ -1,7 +1,11 @@
 package github
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
+	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
@@ -42,6 +46,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 }
 
 // HandleWebhook обрабатывает POST /api/github/webhook.
+// Валидирует HMAC-SHA256 подпись из заголовка X-Hub-Signature-256,
+// сравнивая с секретами всех зарегистрированных интеграций.
 func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	eventType := utils.CopyString(c.Get("X-GitHub-Event"))
 	signature := utils.CopyString(c.Get("X-Hub-Signature-256"))
@@ -55,11 +61,9 @@ func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 		body = c.Body()
 	}
 
-	// Валидируем подпись для всех зарегистрированных интеграций
-	// (в production стоит определять интеграцию по repo из payload)
-	if signature != "" {
-		// Подпись будет валидироваться в сервисе при необходимости
-		_ = signature
+	// Валидируем HMAC-SHA256 подпись по секретам всех зарегистрированных интеграций.
+	if err := h.validateWebhookSignature(c, body, signature); err != nil {
+		return err
 	}
 
 	if err := h.service.HandleWebhook(c.Context(), eventType, body); err != nil {
@@ -67,6 +71,42 @@ func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusOK)
+}
+
+// validateWebhookSignature проверяет HMAC-SHA256 подпись webhook-запроса.
+// Перебирает все зарегистрированные секреты интеграций и возвращает 403,
+// если ни один не совпал. Формат подписи: "sha256=<hex>".
+func (h *Handler) validateWebhookSignature(c fiber.Ctx, body []byte, signature string) error {
+	if signature == "" {
+		return fiber.NewError(fiber.StatusForbidden, "отсутствует заголовок X-Hub-Signature-256")
+	}
+
+	// Извлекаем hex-часть из "sha256=<hex>".
+	const prefix = "sha256="
+	if !strings.HasPrefix(signature, prefix) {
+		return fiber.NewError(fiber.StatusForbidden, "некорректный формат подписи")
+	}
+	receivedMAC, err := hex.DecodeString(signature[len(prefix):])
+	if err != nil {
+		return fiber.NewError(fiber.StatusForbidden, "некорректная hex-подпись")
+	}
+
+	secrets, err := h.service.repo.ListAllWebhookSecrets(c.Context())
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "ошибка получения секретов интеграций")
+	}
+
+	// Проверяем подпись по каждому секрету — хотя бы один должен совпасть.
+	for _, secret := range secrets {
+		mac := hmac.New(sha256.New, []byte(secret))
+		mac.Write(body)
+		expectedMAC := mac.Sum(nil)
+		if hmac.Equal(receivedMAC, expectedMAC) {
+			return nil
+		}
+	}
+
+	return fiber.NewError(fiber.StatusForbidden, "невалидная подпись webhook")
 }
 
 // CreateIntegration обрабатывает POST /api/projects/:projectId/github/integrations.
