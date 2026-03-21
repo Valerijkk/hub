@@ -22,6 +22,8 @@ const (
 	TypeDeadlineApproaching = "deadline_approaching"
 	// TypeBlockerAdded — добавлена блокирующая связь.
 	TypeBlockerAdded = "blocker_added"
+	// TypeNewLogin — новый вход в аккаунт (другое устройство/IP).
+	TypeNewLogin = "new_login"
 )
 
 // Константы каналов доставки уведомлений.
@@ -64,6 +66,10 @@ func SubjectToType(subject string) string {
 	// tms.testrun.completed
 	if subject == "tms.testrun.completed" {
 		return TypeRunCompleted
+	}
+	// auth.session.created
+	if subject == "auth.session.created" {
+		return TypeNewLogin
 	}
 
 	return ""

@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/valerii/hub/backend/internal/auth"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 	"github.com/valerii/hub/backend/internal/tracker"
 	"github.com/valerii/hub/backend/internal/tms"
@@ -57,6 +58,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 			"messenger.channel.>",
 			"tms.>",
 			"calls.channel.>",
+			"auth.session.>",
 		},
 		Retention: jetstream.WorkQueuePolicy,
 		MaxAge:    7 * 24 * time.Hour,
@@ -164,6 +166,8 @@ func (c *Consumer) processEvent(ctx context.Context, msg jetstream.Msg) {
 		c.handleCallStarted(ctx, msg.Data(), subject)
 	case TypeRunCompleted:
 		c.handleRunCompleted(ctx, msg.Data(), subject)
+	case TypeNewLogin:
+		c.handleNewLogin(ctx, msg.Data())
 	}
 }
 
@@ -514,6 +518,38 @@ func (c *Consumer) handleRunCompleted(ctx context.Context, data []byte, _ string
 			"testrun", evt.RunID,
 			&projectID, &completedByID, false)
 	}
+}
+
+// handleNewLogin обрабатывает событие нового входа в аккаунт.
+// Уведомляет пользователя о логине с информацией об устройстве и IP-адресе.
+func (c *Consumer) handleNewLogin(ctx context.Context, data []byte) {
+	var evt auth.SessionCreatedEvent
+	if err := json.Unmarshal(data, &evt); err != nil {
+		slog.Error("ошибка десериализации SessionCreatedEvent", "error", err)
+		return
+	}
+
+	userID, err := uuid.Parse(evt.UserID)
+	if err != nil {
+		return
+	}
+
+	if !c.shouldDispatch(userID.String(), TypeNewLogin, evt.SessionID) {
+		return
+	}
+
+	device := evt.Device
+	if device == "" {
+		device = "неизвестное устройство"
+	}
+
+	body := fmt.Sprintf("Устройство: %s, IP: %s", device, evt.IPAddress)
+
+	_ = c.service.Dispatch(ctx, userID, TypeNewLogin,
+		"Новый вход в аккаунт",
+		body,
+		"session", evt.SessionID,
+		nil, nil, false)
 }
 
 // shouldDispatch проверяет 2-секундное окно дебаунса.
