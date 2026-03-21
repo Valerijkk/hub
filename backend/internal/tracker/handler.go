@@ -570,7 +570,9 @@ func (h *Handler) GetBoardData(c fiber.Ctx) error {
 		return err
 	}
 
-	resp, err := h.service.GetBoardData(c.Context(), boardID)
+	swimlane := c.Query("swimlane") // assignee|priority|type
+
+	resp, err := h.service.GetBoardData(c.Context(), boardID, swimlane)
 	if err != nil {
 		return err
 	}

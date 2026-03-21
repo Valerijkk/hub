@@ -270,7 +270,15 @@ type BoardResponse struct {
 
 // BoardDataResponse represents full board data including columns and issues.
 type BoardDataResponse struct {
-	Board   BoardResponse         `json:"board"`
+	Board     BoardResponse          `json:"board"`
+	Columns   []BoardColumnResponse  `json:"columns"`
+	Swimlanes []SwimlaneGroup        `json:"swimlanes,omitempty"`
+}
+
+// SwimlaneGroup — группа задач в swimlane (по assignee/priority/type).
+type SwimlaneGroup struct {
+	Key     string                `json:"key"`
+	Label   string                `json:"label"`
 	Columns []BoardColumnResponse `json:"columns"`
 }
 
