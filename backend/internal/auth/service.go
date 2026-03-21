@@ -203,7 +203,7 @@ func (s *AuthService) publishSessionCreated(userID, sessionID, device, ip string
 	}
 }
 
-// RefreshToken validates a refresh token, rotates it, and returns a new token pair.
+// RefreshToken валидирует refresh-токен, выполняет ротацию и возвращает новую пару токенов.
 func (s *AuthService) RefreshToken(ctx context.Context, oldRefreshToken string) (*TokenPairResponse, error) {
 	payload, err := s.getRefreshPayload(ctx, oldRefreshToken)
 	if err != nil {
@@ -245,7 +245,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, oldRefreshToken string) 
 	}, nil
 }
 
-// Logout deletes the refresh token from Redis and the session from Ent.
+// Logout удаляет refresh-токен из Redis и сессию из базы данных.
 func (s *AuthService) Logout(ctx context.Context, sessionID uuid.UUID) error {
 	sess, err := s.db.Session.Get(ctx, sessionID)
 	if err != nil {
@@ -258,7 +258,7 @@ func (s *AuthService) Logout(ctx context.Context, sessionID uuid.UUID) error {
 	return s.db.Session.DeleteOneID(sessionID).Exec(ctx)
 }
 
-// ListSessions returns all sessions for a user.
+// ListSessions возвращает все сессии пользователя, отсортированные по дате создания.
 func (s *AuthService) ListSessions(ctx context.Context, userID uuid.UUID) ([]*ent.Session, error) {
 	return s.db.Session.Query().
 		Where(session.HasUserWith(user.ID(userID))).
@@ -266,7 +266,7 @@ func (s *AuthService) ListSessions(ctx context.Context, userID uuid.UUID) ([]*en
 		All(ctx)
 }
 
-// RevokeSession revokes a specific session after verifying ownership.
+// RevokeSession отзывает указанную сессию после проверки принадлежности пользователю.
 func (s *AuthService) RevokeSession(ctx context.Context, userID, sessionID uuid.UUID) error {
 	sess, err := s.db.Session.Query().
 		Where(
@@ -286,7 +286,7 @@ func (s *AuthService) RevokeSession(ctx context.Context, userID, sessionID uuid.
 
 // ---- Login flows ----
 
-// LoginWithMagicLink verifies the code, finds or creates the user, and returns a token pair.
+// LoginWithMagicLink проверяет код, находит или создаёт пользователя и возвращает пару токенов.
 func (s *AuthService) LoginWithMagicLink(ctx context.Context, email, code, device, ip string) (*TokenPairResponse, error) {
 	if err := s.magicLink.VerifyCode(ctx, email, code); err != nil {
 		return nil, err
@@ -304,7 +304,7 @@ func (s *AuthService) LoginWithMagicLink(ctx context.Context, email, code, devic
 	return s.CreateSession(ctx, u.ID, device, ip)
 }
 
-// LoginWithTelegram verifies initData, finds or creates user, returns token pair.
+// LoginWithTelegram проверяет initData Telegram, находит или создаёт пользователя, возвращает пару токенов.
 func (s *AuthService) LoginWithTelegram(ctx context.Context, initData, device, ip string) (*TokenPairResponse, error) {
 	tgUser, err := VerifyTelegramAuth(s.botToken, initData)
 	if err != nil {

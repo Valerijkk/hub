@@ -1,0 +1,227 @@
+package messenger
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+
+	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+)
+
+// CreateChannel creates a new channel and adds the creator as owner.
+func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, req CreateChannelRequest) (*ChannelResponse, error) {
+	input := CreateChannelInput{
+		ChannelType: req.ChannelType,
+		Name:        req.Name,
+		Description: req.Description,
+		IsReadonly:  req.IsReadonly,
+		CreatedBy:   userID,
+	}
+
+	if req.ProjectID != "" {
+		pid, err := uuid.Parse(req.ProjectID)
+		if err != nil {
+			return nil, apperrors.NewBadRequest("некорректный project_id")
+		}
+		input.ProjectID = &pid
+	}
+
+	ch, err := s.repo.CreateChannel(ctx, input)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка создания канала")
+	}
+
+	// Add creator as owner
+	if err := s.repo.AddMembers(ctx, ch.ID, []uuid.UUID{userID}, "owner"); err != nil {
+		slog.Error("не удалось добавить создателя в канал", "error", err)
+	}
+
+	// Add extra members
+	if len(req.MemberIDs) > 0 {
+		memberUUIDs := make([]uuid.UUID, 0, len(req.MemberIDs))
+		for _, mid := range req.MemberIDs {
+			uid, err := uuid.Parse(mid)
+			if err != nil {
+				continue
+			}
+			if uid != userID {
+				memberUUIDs = append(memberUUIDs, uid)
+			}
+		}
+		if len(memberUUIDs) > 0 {
+			if err := s.repo.AddMembers(ctx, ch.ID, memberUUIDs, "member"); err != nil {
+				slog.Error("не удалось добавить участников в канал", "error", err)
+			}
+		}
+	}
+
+	return toChannelResponse(ch), nil
+}
+
+// GetChannel returns a channel by ID.
+func (s *MessengerService) GetChannel(ctx context.Context, channelID uuid.UUID) (*ChannelResponse, error) {
+	ch, err := s.repo.GetChannel(ctx, channelID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("канал не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения канала")
+	}
+	return toChannelResponse(ch), nil
+}
+
+// ListMyChannels returns all channels the user belongs to.
+func (s *MessengerService) ListMyChannels(ctx context.Context, userID uuid.UUID) ([]ChannelResponse, error) {
+	channels, err := s.repo.ListUserChannels(ctx, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения каналов")
+	}
+	result := make([]ChannelResponse, 0, len(channels))
+	for _, ch := range channels {
+		result = append(result, *toChannelResponse(ch))
+	}
+	return result, nil
+}
+
+// UpdateChannel updates a channel (owner/admin only).
+func (s *MessengerService) UpdateChannel(ctx context.Context, channelID, userID uuid.UUID, req CreateChannelRequest) (*ChannelResponse, error) {
+	role, err := s.repo.GetMemberRole(ctx, channelID, userID)
+	if err != nil {
+		return nil, apperrors.NewForbidden("нет доступа к каналу")
+	}
+	if role != "owner" && role != "admin" {
+		return nil, apperrors.NewForbidden("только owner или admin может редактировать канал")
+	}
+
+	input := UpdateChannelInput{}
+	if req.Name != "" {
+		input.Name = &req.Name
+	}
+	if req.Description != "" {
+		input.Description = &req.Description
+	}
+	input.IsReadonly = &req.IsReadonly
+
+	ch, err := s.repo.UpdateChannel(ctx, channelID, input)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка обновления канала")
+	}
+	return toChannelResponse(ch), nil
+}
+
+// DeleteChannel deletes a channel (owner only).
+func (s *MessengerService) DeleteChannel(ctx context.Context, channelID, userID uuid.UUID) error {
+	role, err := s.repo.GetMemberRole(ctx, channelID, userID)
+	if err != nil {
+		return apperrors.NewForbidden("нет доступа к каналу")
+	}
+	if role != "owner" {
+		return apperrors.NewForbidden("только owner может удалить канал")
+	}
+	return s.repo.DeleteChannel(ctx, channelID)
+}
+
+// JoinChannel allows joining a public channel.
+func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uuid.UUID) error {
+	ch, err := s.repo.GetChannel(ctx, channelID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("канал не найден")
+		}
+		return apperrors.NewInternal("ошибка получения канала")
+	}
+	switch ch.ChannelType.String() {
+	case "public":
+		// Public channel — free to join
+	case "private":
+		return apperrors.NewForbidden("канал приватный, требуется приглашение")
+	case "dm":
+		return apperrors.NewForbidden("нельзя присоединиться к DM, используйте CreateOrGetDM")
+	default:
+		return apperrors.NewForbidden("можно присоединиться только к публичному каналу")
+	}
+
+	// Check if already a member
+	isMember, _ := s.repo.IsMember(ctx, channelID, userID)
+	if isMember {
+		return nil
+	}
+
+	if err := s.repo.AddMembers(ctx, channelID, []uuid.UUID{userID}, "member"); err != nil {
+		return apperrors.NewInternal("ошибка вступления в канал")
+	}
+
+	// Publish NATS event
+	s.publishEvent(fmt.Sprintf(SubjectMemberJoined, channelID.String()), map[string]interface{}{
+		"channel_id": channelID,
+		"user_id":    userID,
+	})
+
+	return nil
+}
+
+// LeaveChannel allows leaving a channel.
+func (s *MessengerService) LeaveChannel(ctx context.Context, channelID, userID uuid.UUID) error {
+	if err := s.repo.RemoveMember(ctx, channelID, userID); err != nil {
+		return apperrors.NewInternal("ошибка выхода из канала")
+	}
+
+	s.publishEvent(fmt.Sprintf(SubjectMemberLeft, channelID.String()), map[string]interface{}{
+		"channel_id": channelID,
+		"user_id":    userID,
+	})
+
+	return nil
+}
+
+// AddMembers adds members to a channel (admin/owner only).
+func (s *MessengerService) AddMembers(ctx context.Context, channelID, userID uuid.UUID, memberIDs []string) error {
+	role, err := s.repo.GetMemberRole(ctx, channelID, userID)
+	if err != nil {
+		return apperrors.NewForbidden("нет доступа к каналу")
+	}
+	if role != "owner" && role != "admin" {
+		return apperrors.NewForbidden("только owner или admin может добавлять участников")
+	}
+
+	uuids := make([]uuid.UUID, 0, len(memberIDs))
+	for _, mid := range memberIDs {
+		uid, err := uuid.Parse(mid)
+		if err != nil {
+			return apperrors.NewBadRequest("некорректный member ID: " + mid)
+		}
+		uuids = append(uuids, uid)
+	}
+
+	return s.repo.AddMembers(ctx, channelID, uuids, "member")
+}
+
+// AddMembersInternal adds members without permission checks.
+// Used by internal services (e.g. AutoChannelService).
+func (s *MessengerService) AddMembersInternal(ctx context.Context, channelID uuid.UUID, memberIDs []uuid.UUID) error {
+	return s.repo.AddMembers(ctx, channelID, memberIDs, "member")
+}
+
+// ListMembers returns all members of a channel.
+func (s *MessengerService) ListMembers(ctx context.Context, channelID uuid.UUID) ([]ChannelMemberResponse, error) {
+	members, err := s.repo.ListMembers(ctx, channelID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения участников")
+	}
+	result := make([]ChannelMemberResponse, 0, len(members))
+	for _, m := range members {
+		resp := ChannelMemberResponse{
+			ID:       m.ID.String(),
+			UserID:   m.UserID.String(),
+			Role:     string(m.Role),
+			JoinedAt: m.JoinedAt,
+		}
+		if m.Edges.User != nil {
+			resp.UserName = m.Edges.User.Name
+		}
+		result = append(result, resp)
+	}
+	return result, nil
+}
