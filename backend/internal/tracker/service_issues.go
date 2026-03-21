@@ -1,0 +1,284 @@
+package tracker
+
+import (
+	"context"
+	"log/slog"
+
+	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+)
+
+// ---------------------------------------------------------------------------
+// Issues
+// ---------------------------------------------------------------------------
+
+// CreateIssue создаёт новую задачу в проекте.
+func (s *TrackerService) CreateIssue(ctx context.Context, projectID, userID uuid.UUID, req CreateIssueRequest) (*IssueResponse, error) {
+	input := CreateIssueInput{
+		Title:       req.Title,
+		IssueType:   req.IssueType,
+		Priority:    req.Priority,
+		ReporterID:  userID,
+		CustomFields: req.CustomFields,
+		EstimateMinutes: req.EstimateMinutes,
+		DueDate:     req.DueDate,
+	}
+
+	if req.DescriptionJSON != nil {
+		input.DescriptionJSON = *req.DescriptionJSON
+	}
+
+	if req.AssigneeID != "" {
+		id, err := uuid.Parse(req.AssigneeID)
+		if err != nil {
+			return nil, apperrors.NewBadRequest("некорректный assignee_id")
+		}
+		input.AssigneeID = &id
+	}
+	if req.ParentID != "" {
+		id, err := uuid.Parse(req.ParentID)
+		if err != nil {
+			return nil, apperrors.NewBadRequest("некорректный parent_id")
+		}
+		input.ParentID = &id
+	}
+	if req.StatusID != "" {
+		id, err := uuid.Parse(req.StatusID)
+		if err != nil {
+			return nil, apperrors.NewBadRequest("некорректный status_id")
+		}
+		input.StatusID = &id
+	}
+	if len(req.Labels) > 0 {
+		labelIDs := make([]uuid.UUID, 0, len(req.Labels))
+		for _, l := range req.Labels {
+			id, err := uuid.Parse(l)
+			if err != nil {
+				return nil, apperrors.NewBadRequest("некорректный label ID: " + l)
+			}
+			labelIDs = append(labelIDs, id)
+		}
+		input.Labels = labelIDs
+	}
+
+	created, err := s.repo.CreateIssue(ctx, projectID, input)
+	if err != nil {
+		return nil, err
+	}
+
+	// Логируем активность
+	_, err = s.repo.LogActivity(ctx, created.ID, userID, "created", nil)
+	if err != nil {
+		slog.Error("не удалось записать активность", "error", err)
+	}
+
+	return toIssueResponse(created), nil
+}
+
+// GetIssue возвращает задачу по ключу (например "HUB-1").
+func (s *TrackerService) GetIssue(ctx context.Context, issueKey string) (*IssueResponse, error) {
+	i, err := s.repo.FindIssueByKey(ctx, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
+		return nil, apperrors.NewInternal("ошибка получения задачи")
+	}
+	return toIssueResponse(i), nil
+}
+
+// ListIssues возвращает пагинированный список задач проекта.
+func (s *TrackerService) ListIssues(ctx context.Context, projectID uuid.UUID, req ListIssuesRequest) (*PaginatedResponse[IssueResponse], error) {
+	params := ListIssuesParams{
+		Cursor:    req.Cursor,
+		Limit:     req.Limit,
+		Status:    req.Status,
+		Priority:  req.Priority,
+		IssueType: req.IssueType,
+		Search:    req.Search,
+		OrderBy:   req.OrderBy,
+	}
+	if req.Assignee != "" {
+		id, err := uuid.Parse(req.Assignee)
+		if err != nil {
+			return nil, apperrors.NewBadRequest("некорректный assignee ID")
+		}
+		params.Assignee = &id
+	}
+
+	items, total, err := s.repo.ListIssues(ctx, projectID, params)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения списка задач")
+	}
+
+	responses := make([]IssueResponse, 0, len(items))
+	for _, item := range items {
+		responses = append(responses, *toIssueResponse(item))
+	}
+
+	var nextCursor string
+	if len(items) > 0 {
+		nextCursor = items[len(items)-1].IssueKey
+	}
+
+	limit := req.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+
+	return &PaginatedResponse[IssueResponse]{
+		Items:      responses,
+		NextCursor: nextCursor,
+		HasMore:    len(items) == limit,
+		Total:      total,
+	}, nil
+}
+
+// UpdateIssue обновляет задачу с проверкой workflow-переходов и оптимистичной блокировкой.
+func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userID uuid.UUID, req UpdateIssueRequest) (*IssueResponse, error) {
+	// Находим задачу
+	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
+		return nil, apperrors.NewInternal("ошибка получения задачи")
+	}
+
+	// Если меняется статус — валидируем переход
+	if req.StatusID != nil {
+		newStatusID, err := uuid.Parse(*req.StatusID)
+		if err != nil {
+			return nil, apperrors.NewBadRequest("некорректный status_id")
+		}
+		if existing.Edges.Status == nil {
+			return nil, apperrors.NewBadRequest("задача не имеет статуса")
+		}
+		currentStatusID := existing.Edges.Status.ID
+		if newStatusID != currentStatusID {
+			if err := s.workflow.ValidateTransition(ctx, currentStatusID, newStatusID); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// Собираем изменения для лога активности
+	changes := buildFieldChanges(existing, req)
+
+	// Формируем input для обновления
+	input := UpdateIssueInput{
+		Title:           req.Title,
+		DescriptionJSON: req.DescriptionJSON,
+		Priority:        req.Priority,
+		CustomFields:    req.CustomFields,
+		EstimateMinutes: req.EstimateMinutes,
+		DueDate:         req.DueDate,
+		Version:         req.Version,
+	}
+
+	if req.DescriptionJSON != nil {
+		text := extractPlainText(*req.DescriptionJSON)
+		input.DescriptionText = &text
+	}
+	if req.AssigneeID != nil {
+		id, err := uuid.Parse(*req.AssigneeID)
+		if err != nil {
+			return nil, apperrors.NewBadRequest("некорректный assignee_id")
+		}
+		input.AssigneeID = &id
+	}
+	if req.StatusID != nil {
+		id, err := uuid.Parse(*req.StatusID)
+		if err != nil {
+			return nil, apperrors.NewBadRequest("некорректный status_id")
+		}
+		input.StatusID = &id
+	}
+	if req.Labels != nil {
+		labelIDs := make([]uuid.UUID, 0, len(*req.Labels))
+		for _, l := range *req.Labels {
+			id, err := uuid.Parse(l)
+			if err != nil {
+				return nil, apperrors.NewBadRequest("некорректный label ID")
+			}
+			labelIDs = append(labelIDs, id)
+		}
+		input.Labels = &labelIDs
+	}
+
+	updated, err := s.repo.UpdateIssue(ctx, existing.ID, input)
+	if err != nil {
+		return nil, err
+	}
+
+	// Логируем активность
+	if len(changes) > 0 {
+		_, err = s.repo.LogActivity(ctx, existing.ID, userID, "updated", changes)
+		if err != nil {
+			slog.Error("не удалось записать активность", "error", err)
+		}
+	}
+
+	return toIssueResponse(updated), nil
+}
+
+// DeleteIssue удаляет задачу по ключу.
+func (s *TrackerService) DeleteIssue(ctx context.Context, issueKey string, userID uuid.UUID) error {
+	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("задача не найдена")
+		}
+		return apperrors.NewInternal("ошибка получения задачи")
+	}
+	return s.repo.DeleteIssue(ctx, existing.ID)
+}
+
+// MoveIssue перемещает задачу в другой статус на Kanban-доске.
+func (s *TrackerService) MoveIssue(ctx context.Context, issueKey string, userID uuid.UUID, req MoveIssueRequest) (*IssueResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
+		return nil, apperrors.NewInternal("ошибка получения задачи")
+	}
+
+	newStatusID, err := uuid.Parse(req.StatusID)
+	if err != nil {
+		return nil, apperrors.NewBadRequest("некорректный status_id")
+	}
+
+	// Валидируем переход
+	if existing.Edges.Status == nil {
+		return nil, apperrors.NewBadRequest("задача не имеет статуса")
+	}
+	currentStatusID := existing.Edges.Status.ID
+	if newStatusID != currentStatusID {
+		if err := s.workflow.ValidateTransition(ctx, currentStatusID, newStatusID); err != nil {
+			return nil, err
+		}
+		// Проверяем WIP-лимит целевого статуса (KANB-02)
+		if s.wipChecker != nil {
+			if err := s.wipChecker.CheckWIPLimit(ctx, newStatusID); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	moved, err := s.repo.MoveIssue(ctx, existing.ID, newStatusID, req.Rank)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка перемещения задачи")
+	}
+
+	// Логируем активность
+	_, err = s.repo.LogActivity(ctx, existing.ID, userID, "status_changed", []FieldChange{
+		{Field: "status", OldValue: currentStatusID.String(), NewValue: newStatusID.String()},
+	})
+	if err != nil {
+		slog.Error("не удалось записать активность", "error", err)
+	}
+
+	return toIssueResponse(moved), nil
+}
