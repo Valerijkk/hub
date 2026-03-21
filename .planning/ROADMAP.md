@@ -96,7 +96,7 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Ent-схемы TMS (6 схем), Repository interface, DTOs, events, handler/service, unit-тесты, Swagger
+- [x] 04-01-PLAN.md — Ent-схемы TMS (6 схем), Repository interface, DTOs, events, handler/service, unit-тесты, Swagger
 - [ ] 04-02-PLAN.md — Тестовые прогоны (ручное выполнение, доказательства, статусы, назначение, переоткрытие) + фронтенд TMS UI
 - [ ] 04-03-PLAN.md — Интеграция с Allure (парсер allure-results JSON, матчинг, MongoDB хранилище, CombinedRepository, история)
 - [ ] 04-04-PLAN.md — Кросс-модульные связи (тест-задача, покрытие, баг из теста, GitHub), отчётность (тренды, flaky), импорт/экспорт

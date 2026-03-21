@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-05-PLAN.md
-last_updated: "2026-03-21T01:35:22.873Z"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-21T02:03:16.428Z"
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 24
+  completed_plans: 20
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** Unified environment for dev teams -- tracker, TMS, messenger, and calls connected in one interface
-**Current focus:** Phase 03 — Messenger
+**Current focus:** Phase 04 — TMS & Allure
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
+Phase: 04 (TMS & Allure) — EXECUTING
+Plan: 2 of 5
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Plan: Not started
 | Phase 03 P03 | 7min | 2 tasks | 21 files |
 | Phase 03 P04 | 7min | 2 tasks | 20 files |
 | Phase 03 P05 | 5min | 2 tasks | 3 files |
+| Phase 04 P01 | 10min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,7 @@ Recent decisions affecting current work:
 - [Phase 03]: miniredis for Redis unit tests (fast in-process, no Docker)
 - [Phase 03]: Presence: 5min away threshold, 90s stale cleanup, 60s cleanup interval
 - [Phase 03]: Bookmarks via dialog button (not separate route) in channel list header
+- [Phase 04]: TMS EntRepository without OutboxPublisher; offset pagination for TMS; suite tree built in-memory; snapshot versioning with JSON map
 
 ### Pending Todos
 
@@ -126,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T01:31:24.354Z
-Stopped at: Completed 03-05-PLAN.md
+Last session: 2026-03-21T02:03:16.424Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None
