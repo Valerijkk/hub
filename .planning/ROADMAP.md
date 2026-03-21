@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Task Tracker** - CRUD задач, Kanban-доски, рабочие процессы, комментарии, лог активности, учёт времени (completed 2026-03-21)
 - [ ] **Phase 3: Messenger** - Личные сообщения, каналы, треды, реакции, голосовые сообщения, присутствие, поиск
 - [ ] **Phase 4: TMS & Allure** - Тест-кейсы, тестовые прогоны, загрузка Allure-отчётов, связь с задачами, отчётность, импорт/экспорт
-- [ ] **Phase 5: Voice Calls** - Аудиозвонки, демонстрация экрана, управление звонками, эфемерный чат
+- [x] **Phase 5: Voice Calls** - Аудиозвонки, демонстрация экрана, управление звонками, эфемерный чат (completed 2026-03-21)
 - [ ] **Phase 6: Notifications, Search & Dashboards** - Уведомления в приложении, глобальный поиск, персональные/проектные/административные дашборды, аудит
 - [ ] **Phase 7: Polish & Extended Features** - Спринты, интеграция с GitHub, запись звонков, интернационализация, темы, PWA, API, резервное копирование
 
@@ -117,7 +117,7 @@ Plans:
 - [x] 05-01-PLAN.md — Интеграция с LiveKit (Ent-схемы, сервис, handler, Docker Compose, Caddy, unit-тесты)
 - [x] 05-02-PLAN.md — UI звонков (LiveKit React компоненты, список участников, mute/unmute, raise hand, screen share, Zustand store)
 - [x] 05-03-PLAN.md — Жизненный цикл звонка (эфемерный чат MongoDB, NATS bridge подписки, WS-доставка событий в каналы)
-- [ ] 05-04-PLAN.md — Документация фазы 5 (бизнес-дока, тестовая дока, техническая дока) на русском
+- [x] 05-04-PLAN.md — Документация фазы 5 (бизнес-дока, тестовая дока, техническая дока) на русском
 
 ### Phase 6: Notifications, Search & Dashboards
 **Goal**: Пользователи имеют единый центр уведомлений, могут мгновенно найти что угодно через глобальный поиск и видеть состояние проекта на дашбордах
@@ -169,6 +169,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Task Tracker | 5/5 | Complete   | 2026-03-21 |
 | 3. Messenger | 0/5 | Planned | - |
 | 4. TMS & Allure | 0/5 | Planned | - |
-| 5. Voice Calls | 3/4 | In Progress|  |
+| 5. Voice Calls | 4/4 | Complete   | 2026-03-21 |
 | 6. Notifications, Search & Dashboards | 0/5 | Not started | - |
 | 7. Polish & Extended Features | 0/6 | Not started | - |
