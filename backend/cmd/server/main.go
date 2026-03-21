@@ -18,6 +18,7 @@ import (
 	projectmod "github.com/valerii/hub/backend/internal/project"
 	"github.com/valerii/hub/backend/internal/rbac"
 	storagemod "github.com/valerii/hub/backend/internal/storage"
+	callsmod "github.com/valerii/hub/backend/internal/calls"
 	messengermod "github.com/valerii/hub/backend/internal/messenger"
 	tmsmod "github.com/valerii/hub/backend/internal/tms"
 	trackermod "github.com/valerii/hub/backend/internal/tracker"
@@ -163,6 +164,12 @@ func main() {
 	tmsSvc := tmsmod.NewTMSService(tmsRepo, nc)
 	tmsHandler := tmsmod.NewHandler(tmsSvc)
 	tmsHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+
+	// Calls routes (голосовые звонки через LiveKit)
+	callsRepo := callsmod.NewEntRepository(db)
+	callsSvc := callsmod.NewCallService(cfg.LiveKit, callsRepo, nc)
+	callsHandler := callsmod.NewHandler(callsSvc, cfg.LiveKit)
+	callsHandler.RegisterRoutes(api, requireAuth)
 
 	// Запуск фоновой очистки устаревших записей присутствия
 	presenceCtx, presenceCancel := context.WithCancel(ctx)
