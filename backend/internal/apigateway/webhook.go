@@ -14,6 +14,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/webhookdelivery"
@@ -26,6 +27,7 @@ import (
 type WebhookDispatcher struct {
 	db   *ent.Client
 	nats *natsclient.Client
+	cons jetstream.ConsumeContext
 }
 
 // NewWebhookDispatcher создаёт новый диспетчер вебхуков.
@@ -34,19 +36,86 @@ func NewWebhookDispatcher(db *ent.Client, nats *natsclient.Client) *WebhookDispa
 }
 
 // Start запускает JetStream consumer для обработки событий вебхуков.
+// Подписывается на стрим WEBHOOKS с субъектами всех модулей и вызывает
+// dispatchEvent для каждого входящего сообщения.
 func (d *WebhookDispatcher) Start(ctx context.Context) error {
 	if d.nats == nil {
 		slog.Info("NATS не подключен, вебхук-диспетчер не запущен")
 		return nil
 	}
 
-	go func() {
-		slog.Info("webhook dispatcher запущен")
-		<-ctx.Done()
-		slog.Info("webhook dispatcher остановлен")
-	}()
+	js := d.nats.JetStream
 
+	// Создаём или обновляем стрим WEBHOOKS для агрегации событий всех модулей.
+	_, err := js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
+		Name: "WEBHOOKS",
+		Subjects: []string{
+			"project.>",
+			"tracker.>",
+			"tms.>",
+			"messenger.channel.>",
+			"calls.channel.>",
+			"sprint.>",
+		},
+		Retention: jetstream.InterestPolicy,
+		MaxAge:    24 * time.Hour,
+	})
+	if err != nil {
+		return fmt.Errorf("не удалось создать стрим WEBHOOKS: %w", err)
+	}
+
+	stream, err := js.Stream(ctx, "WEBHOOKS")
+	if err != nil {
+		return fmt.Errorf("не удалось получить стрим WEBHOOKS: %w", err)
+	}
+
+	// Durable consumer — гарантирует at-least-once доставку.
+	consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
+		Durable:       "webhook-dispatcher",
+		AckPolicy:     jetstream.AckExplicitPolicy,
+		MaxDeliver:    3,
+		AckWait:       30 * time.Second,
+		FilterSubject: ">",
+	})
+	if err != nil {
+		return fmt.Errorf("не удалось создать consumer WEBHOOKS: %w", err)
+	}
+
+	// Запуск асинхронного потребления сообщений.
+	cons, err := consumer.Consume(func(msg jetstream.Msg) {
+		d.handleMessage(ctx, msg)
+		if ackErr := msg.Ack(); ackErr != nil {
+			slog.Error("ack webhook event failed", "error", ackErr)
+		}
+	})
+	if err != nil {
+		return fmt.Errorf("не удалось запустить consume WEBHOOKS: %w", err)
+	}
+	d.cons = cons
+
+	slog.Info("webhook dispatcher запущен")
 	return nil
+}
+
+// Stop останавливает JetStream consumer вебхуков.
+func (d *WebhookDispatcher) Stop() {
+	if d.cons != nil {
+		d.cons.Stop()
+	}
+}
+
+// handleMessage разбирает входящее JetStream-сообщение и передаёт в dispatchEvent.
+func (d *WebhookDispatcher) handleMessage(ctx context.Context, msg jetstream.Msg) {
+	subject := msg.Subject()
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal(msg.Data(), &payload); err != nil {
+		slog.Error("не удалось разобрать payload вебхук-события", "error", err, "subject", subject)
+		return
+	}
+
+	// Subject NATS используется как тип события (например: tracker.{projID}.issue.created).
+	d.dispatchEvent(ctx, subject, payload)
 }
 
 // dispatchEvent находит все активные эндпоинты, подписанные на событие,
