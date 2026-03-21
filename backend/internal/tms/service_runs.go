@@ -2,6 +2,7 @@ package tms
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -294,9 +295,22 @@ func (s *TMSService) StartTestRun(ctx context.Context, runID uuid.UUID) (*TestRu
 	return s.UpdateRunStatus(ctx, runID, "in_progress")
 }
 
-// CompleteTestRun transitions a run from in_progress to completed.
+// CompleteTestRun transitions a run from in_progress to completed and publishes NATS event.
 func (s *TMSService) CompleteTestRun(ctx context.Context, runID uuid.UUID) (*TestRunResponse, error) {
-	return s.UpdateRunStatus(ctx, runID, "completed")
+	resp, err := s.UpdateRunStatus(ctx, runID, "completed")
+	if err != nil {
+		return nil, err
+	}
+
+	// Публикуем событие завершения прогона для уведомлений.
+	s.publishEvent(fmt.Sprintf(SubjectTestRunCompleted, runID.String()), map[string]interface{}{
+		"run_id": runID,
+		"title":  resp.Title,
+		"total":  resp.TotalCount,
+		"passed": resp.PassedCount,
+	})
+
+	return resp, nil
 }
 
 // recomputeRunStats recomputes run statistics based on current results.

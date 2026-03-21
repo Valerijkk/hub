@@ -63,8 +63,8 @@ func SubjectToType(subject string) string {
 	if len(parts) >= 4 && parts[0] == "calls" && parts[3] == "started" {
 		return TypeCallStarted
 	}
-	// tms.testrun.completed
-	if subject == "tms.testrun.completed" {
+	// tms.run.completed.{runID}
+	if len(parts) >= 3 && parts[0] == "tms" && parts[1] == "run" && parts[2] == "completed" {
 		return TypeRunCompleted
 	}
 	// auth.session.created

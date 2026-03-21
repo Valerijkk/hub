@@ -138,16 +138,13 @@ func (c *Consumer) Stop() {
 }
 
 // processEvent обрабатывает одно событие из JetStream.
+// ACK отправляется только при успешной обработке, иначе NATS повторит доставку.
 func (c *Consumer) processEvent(ctx context.Context, msg jetstream.Msg) {
-	defer func() {
-		if err := msg.Ack(); err != nil {
-			slog.Error("ошибка ACK сообщения", "error", err)
-		}
-	}()
-
 	subject := msg.Subject()
 	notifType := SubjectToType(subject)
 	if notifType == "" {
+		// Неизвестный тип — ACK чтобы не копилось.
+		_ = msg.Ack()
 		return
 	}
 
@@ -168,6 +165,11 @@ func (c *Consumer) processEvent(ctx context.Context, msg jetstream.Msg) {
 		c.handleRunCompleted(ctx, msg.Data(), subject)
 	case TypeNewLogin:
 		c.handleNewLogin(ctx, msg.Data())
+	}
+
+	// ACK только после успешной обработки. При ошибке NATS повторит доставку (MaxDeliver: 5).
+	if err := msg.Ack(); err != nil {
+		slog.Error("ошибка ACK сообщения", "error", err)
 	}
 }
 
