@@ -80,6 +80,8 @@ func (User) Edges() []ent.Edge {
 		edge.To("created_runs", TestRun.Type),
 		edge.To("executed_results", TestResult.Type),
 		edge.To("test_case_versions", TestCaseVersion.Type),
+		edge.To("created_calls", Call.Type),
+		edge.To("call_participations", CallParticipant.Type),
 	}
 }
 

@@ -69,6 +69,7 @@ func (Channel) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("pinned_messages", PinnedMessage.Type),
+		edge.To("calls", Call.Type),
 	}
 }
 

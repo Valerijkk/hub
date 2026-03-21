@@ -16,6 +16,7 @@ type Config struct {
 	JWT      JWTConfig
 	Resend   ResendConfig
 	Telegram TelegramConfig
+	LiveKit  LiveKitConfig
 }
 
 type ServerConfig struct {
@@ -66,6 +67,13 @@ type TelegramConfig struct {
 	BotToken string
 }
 
+// LiveKitConfig содержит параметры подключения к серверу LiveKit.
+type LiveKitConfig struct {
+	URL       string // URL сервера LiveKit (например, "http://localhost:7880")
+	APIKey    string // Ключ API для аутентификации
+	APISecret string // Секрет API для подписи токенов
+}
+
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
@@ -106,6 +114,11 @@ func Load() *Config {
 		},
 		Telegram: TelegramConfig{
 			BotToken: getEnv("TELEGRAM_BOT_TOKEN", ""),
+		},
+		LiveKit: LiveKitConfig{
+			URL:       getEnv("LIVEKIT_URL", "http://localhost:7880"),
+			APIKey:    getEnv("LIVEKIT_API_KEY", "devkey"),
+			APISecret: getEnv("LIVEKIT_API_SECRET", "devsecret"),
 		},
 	}
 }
