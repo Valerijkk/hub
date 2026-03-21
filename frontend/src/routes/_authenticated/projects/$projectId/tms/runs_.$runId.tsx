@@ -186,6 +186,7 @@ function TestRunDetailPage() {
   const [executingResultId, setExecutingResultId] = useState<string | null>(null);
   const [addCasesOpen, setAddCasesOpen] = useState(false);
   const [selectedCaseIds, setSelectedCaseIds] = useState<string[]>([]);
+  const [resultStatusFilter, setResultStatusFilter] = useState("");
 
   // Загрузка деталей прогона
   const { data: run, isLoading } = useQuery({
@@ -334,22 +335,22 @@ function TestRunDetailPage() {
           {/* Прогресс-бар в заголовке */}
           {run.total_count > 0 && (
             <div className="flex items-center gap-3">
-              <div className="h-2 w-48 overflow-hidden rounded-full bg-muted">
+              <div className="flex h-2.5 w-56 overflow-hidden rounded-full bg-muted">
                 {run.passed_count > 0 && (
-                  <div className="h-full bg-green-500 float-left transition-all duration-500"
-                    style={{ width: `${(run.passed_count / run.total_count) * 100}%` }} />
+                  <div className="h-full bg-green-500 transition-all duration-500"
+                    style={{ width: `${Math.max((run.passed_count / run.total_count) * 100, 4)}%` }} />
                 )}
                 {run.failed_count > 0 && (
-                  <div className="h-full bg-red-500 float-left transition-all duration-500"
-                    style={{ width: `${(run.failed_count / run.total_count) * 100}%` }} />
+                  <div className="h-full bg-red-500 transition-all duration-500"
+                    style={{ width: `${Math.max((run.failed_count / run.total_count) * 100, 4)}%` }} />
                 )}
                 {run.broken_count > 0 && (
-                  <div className="h-full bg-orange-500 float-left transition-all duration-500"
-                    style={{ width: `${(run.broken_count / run.total_count) * 100}%` }} />
+                  <div className="h-full bg-orange-500 transition-all duration-500"
+                    style={{ width: `${Math.max((run.broken_count / run.total_count) * 100, 4)}%` }} />
                 )}
                 {run.skipped_count > 0 && (
-                  <div className="h-full bg-gray-400 float-left transition-all duration-500"
-                    style={{ width: `${(run.skipped_count / run.total_count) * 100}%` }} />
+                  <div className="h-full bg-gray-400 transition-all duration-500"
+                    style={{ width: `${Math.max((run.skipped_count / run.total_count) * 100, 4)}%` }} />
                 )}
               </div>
               <span className="text-xs text-muted-foreground tabular-nums font-medium">{passRate}% passed</span>
@@ -423,21 +424,26 @@ function TestRunDetailPage() {
       </div>
 
       {/* Карточки статистики — 4 больших числа */}
-      <div className="mb-6 grid grid-cols-4 gap-3">
+      <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
         {statCards.map((card) => (
           <div
             key={card.label}
             className={cn(
-              "rounded-xl border p-4 text-center transition-all",
+              "rounded-xl border p-4 text-center transition-all shadow-sm hover:shadow-md",
               card.bgColor, card.borderColor,
             )}
           >
-            <div className={cn("text-2xl font-bold tabular-nums", card.color)}>
+            <div className={cn("text-3xl font-bold tabular-nums leading-none", card.color)}>
               {card.count}
             </div>
-            <div className="text-[11px] font-medium text-muted-foreground mt-0.5">
+            <div className="text-[11px] font-semibold text-muted-foreground mt-1.5 uppercase tracking-wider">
               {card.label}
             </div>
+            {run.total_count > 0 && (
+              <div className="text-[10px] text-muted-foreground/60 tabular-nums mt-0.5">
+                {Math.round((card.count / run.total_count) * 100)}%
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -446,6 +452,42 @@ function TestRunDetailPage() {
       <div className="flex gap-4">
         {/* Таблица результатов */}
         <div className="flex-1 min-w-0">
+          {/* Фильтр по статусу результатов */}
+          {run.results.length > 0 && (
+            <div className="mb-3 flex items-center gap-2">
+              <select
+                className="rounded-lg border bg-card px-2.5 py-1.5 text-xs h-8 shadow-sm cursor-pointer hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
+                value={resultStatusFilter}
+                onChange={(e) => setResultStatusFilter(e.target.value)}
+              >
+                <option value="">Все результаты</option>
+                <option value="passed">Passed</option>
+                <option value="failed">Failed</option>
+                <option value="broken">Broken</option>
+                <option value="skipped">Skipped</option>
+                <option value="unknown">Unknown</option>
+              </select>
+              {resultStatusFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => setResultStatusFilter("")}
+                >
+                  <svg className="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Сбросить
+                </Button>
+              )}
+              <span className="ml-auto text-[11px] text-muted-foreground tabular-nums">
+                {resultStatusFilter
+                  ? `${run.results.filter((r) => r.status === resultStatusFilter).length} из ${run.results.length}`
+                  : `${run.results.length} результатов`}
+              </span>
+            </div>
+          )}
+
           {run.results.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center border rounded-xl border-dashed">
               <svg className="h-12 w-12 text-muted-foreground/20 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -460,6 +502,29 @@ function TestRunDetailPage() {
             </div>
           ) : (
             <div className="rounded-xl border shadow-card overflow-hidden">
+              {(() => {
+                const filteredResults = resultStatusFilter
+                  ? run.results.filter((r) => r.status === resultStatusFilter)
+                  : run.results;
+
+                if (filteredResults.length === 0 && resultStatusFilter) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-14 text-center">
+                      <svg className="h-10 w-10 text-muted-foreground/20 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                      </svg>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Нет результатов с выбранным статусом</p>
+                      <p className="text-xs text-muted-foreground/60 mb-3">
+                        Статус "{(RESULT_STATUS_CONFIG[resultStatusFilter] ?? { label: resultStatusFilter }).label}" не найден среди результатов
+                      </p>
+                      <Button variant="outline" size="sm" onClick={() => setResultStatusFilter("")}>
+                        Показать все результаты
+                      </Button>
+                    </div>
+                  );
+                }
+
+                return (
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/30">
@@ -478,7 +543,7 @@ function TestRunDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {run.results.map((r) => {
+                  {filteredResults.map((r) => {
                     const resultCfg = (RESULT_STATUS_CONFIG[r.status] ?? RESULT_STATUS_CONFIG.unknown)!;
                     const isExecuting = executingResultId === r.id;
                     const isClickable = run.status === "in_progress";
@@ -531,6 +596,8 @@ function TestRunDetailPage() {
                   })}
                 </tbody>
               </table>
+                );
+              })()}
             </div>
           )}
         </div>
