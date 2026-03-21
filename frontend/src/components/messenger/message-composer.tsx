@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, type KeyboardEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { sendMessage } from "@/api/messenger";
+import { useMessengerStore } from "@/stores/messenger-store";
 import { VoiceRecorder } from "./voice-recorder";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,9 +18,9 @@ interface MessageComposerProps {
 }
 
 /**
- * MessageComposer -- редактор сообщений.
- * Полноширинный textarea с отправкой по Enter (Shift+Enter -- перенос строки).
- * Поддерживает голосовые сообщения и показывает ошибки через toast.
+ * MessageComposer -- редактор сообщений в стиле Tinkoff Talk.
+ * Поддерживает reply preview, автоподгонку высоты (макс 5 строк),
+ * голосовые сообщения, кнопку эмодзи и плавные анимации.
  */
 export function MessageComposer({
   channelId,
@@ -32,6 +33,9 @@ export function MessageComposer({
   const [showVoice, setShowVoice] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const replyToMessage = useMessengerStore((s) => s.replyToMessage);
+  const setReplyTo = useMessengerStore((s) => s.setReplyTo);
+
   /** Отправка текстового сообщения. */
   const handleSend = useCallback(async () => {
     const trimmed = text.trim();
@@ -40,17 +44,18 @@ export function MessageComposer({
     setIsSending(true);
     try {
       await sendMessage(channelId, {
-        content_json: { type: "doc", children: [{ type: "p", children: [{ text: trimmed }] }] },
+        content_json: {
+          type: "doc",
+          children: [{ type: "p", children: [{ text: trimmed }] }],
+        },
         content_text: trimmed,
         thread_id: threadId,
       });
-      // Инвалидация кеша сообщений — страховка на случай отсутствия WS.
       void queryClient.invalidateQueries({
         queryKey: ["messenger", "messages", channelId],
       });
-      // Очистка поля после успешной отправки.
       setText("");
-      // Сброс высоты textarea.
+      setReplyTo(null);
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
@@ -61,7 +66,7 @@ export function MessageComposer({
     } finally {
       setIsSending(false);
     }
-  }, [channelId, threadId, text, queryClient]);
+  }, [channelId, threadId, text, queryClient, setReplyTo]);
 
   /** Обработка клавиш: Enter -- отправить, Shift+Enter -- перенос строки. */
   const handleKeyDown = useCallback(
@@ -74,13 +79,13 @@ export function MessageComposer({
     [handleSend],
   );
 
-  /** Автоматическая подгонка высоты textarea. */
+  /** Автоматическая подгонка высоты textarea (макс 5 строк ~120px). */
   const handleInput = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setText(e.target.value);
       const el = e.target;
       el.style.height = "auto";
-      el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+      el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
     },
     [],
   );
@@ -90,12 +95,14 @@ export function MessageComposer({
     async (voiceUrl: string, durationMs: number) => {
       try {
         await sendMessage(channelId, {
-          content_json: { type: "doc", children: [{ type: "p", children: [{ text: "" }] }] },
+          content_json: {
+            type: "doc",
+            children: [{ type: "p", children: [{ text: "" }] }],
+          },
           voice_url: voiceUrl,
           voice_duration_ms: durationMs,
           thread_id: threadId,
         });
-        // Инвалидация кеша сообщений — страховка на случай отсутствия WS.
         void queryClient.invalidateQueries({
           queryKey: ["messenger", "messages", channelId],
         });
@@ -111,8 +118,49 @@ export function MessageComposer({
     [channelId, threadId, queryClient],
   );
 
+  /** Текст превью сообщения для reply. */
+  const replyPreviewText = replyToMessage?.content_text
+    ? replyToMessage.content_text.slice(0, 80) +
+      (replyToMessage.content_text.length > 80 ? "..." : "")
+    : "Вложение";
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-0">
+      {/* Reply preview */}
+      {replyToMessage && (
+        <div className="flex items-center gap-2 px-1 py-2 mb-1.5 animate-fade-in">
+          <div className="w-0.5 h-8 rounded-full bg-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-primary truncate">
+              {replyToMessage.sender_id}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              {replyPreviewText}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReplyTo(null)}
+            className="shrink-0 h-6 w-6 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+            title="Отменить ответ"
+          >
+            <svg
+              className="h-3.5 w-3.5 text-muted-foreground"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {showVoice ? (
         <VoiceRecorder
           onSend={handleVoiceSend}
@@ -141,7 +189,7 @@ export function MessageComposer({
             </svg>
           </button>
 
-          {/* Поле ввода — полная ширина, скруглённое, стеклянный эффект */}
+          {/* Поле ввода */}
           <div className="flex-1 rounded-xl border bg-background/80 backdrop-blur-sm shadow-sm transition-all duration-200 focus-within:shadow-md focus-within:border-ring/50 focus-within:bg-background">
             <textarea
               ref={textareaRef}
@@ -153,11 +201,32 @@ export function MessageComposer({
               disabled={isSending}
               className={cn(
                 "w-full resize-none bg-transparent px-4 py-3 text-sm focus:outline-none",
-                "min-h-[44px] max-h-[200px]",
+                "min-h-[44px] max-h-[120px]",
                 "placeholder:text-muted-foreground/50",
               )}
             />
           </div>
+
+          {/* Кнопка эмодзи */}
+          <button
+            type="button"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            title="Эмодзи"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </button>
 
           {/* Кнопка голосового сообщения */}
           <button
@@ -181,16 +250,24 @@ export function MessageComposer({
             </svg>
           </button>
 
-          {/* Кнопка отправки -- градиент */}
+          {/* Кнопка отправки -- градиент, анимация нажатия */}
           <Button
             size="icon"
-            className="h-10 w-10 shrink-0 rounded-xl gradient-messenger text-white shadow-sm hover:opacity-90"
+            className={cn(
+              "h-10 w-10 shrink-0 rounded-xl text-white shadow-sm transition-all duration-200",
+              text.trim()
+                ? "gradient-messenger hover:opacity-90 click-scale"
+                : "bg-muted text-muted-foreground cursor-not-allowed",
+            )}
             onClick={() => void handleSend()}
             disabled={isSending || !text.trim()}
             title="Отправить"
           >
             <svg
-              className="h-5 w-5"
+              className={cn(
+                "h-5 w-5 transition-transform duration-200",
+                text.trim() && "translate-x-0.5 -translate-y-0.5",
+              )}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
