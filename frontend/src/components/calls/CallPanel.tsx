@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Loader2, Maximize2, Minimize2 } from "lucide-react";
 
 import { useCallStore } from "@/stores/call-store";
@@ -12,25 +12,9 @@ import { cn } from "@/lib/utils";
  * с токеном из стора или индикатор загрузки.
  */
 export function CallPanel() {
-  const { isInCall, isConnecting, token, leaveCall, error, setError, activeCall } =
+  const { isInCall, isConnecting, token, leaveCall, error, setError } =
     useCallStore();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>(null);
-
-  /** Таймер для компактного вида. */
-  useEffect(() => {
-    if (isInCall) {
-      timerRef.current = setInterval(() => {
-        setElapsedSeconds((s) => s + 1);
-      }, 1000);
-    } else {
-      setElapsedSeconds(0);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isInCall]);
 
   /** Не показывать панель если не в звонке, не подключаемся и нет ошибки. */
   if (!isInCall && !isConnecting && !error) return null;
@@ -38,13 +22,6 @@ export function CallPanel() {
   /** Обработчик отключения. */
   const handleDisconnect = () => {
     void leaveCall();
-  };
-
-  /** Форматирование времени. */
-  const formatDuration = (seconds: number): string => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
   return (

@@ -1,6 +1,6 @@
 import { useParticipants, useIsSpeaking } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
-import { Hand, Mic, MicOff, Monitor } from "lucide-react";
+import { Hand, MicOff, Monitor } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
