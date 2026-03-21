@@ -12,7 +12,7 @@ import (
 // Test cases CRUD
 // ---------------------------------------------------------------------------
 
-// CreateTestCase creates a new test case in a project.
+// CreateTestCase создаёт новый тест-кейс в проекте.
 func (s *TMSService) CreateTestCase(ctx context.Context, projectID, userID uuid.UUID, req CreateTestCaseRequest) (*TestCaseResponse, error) {
 	input := CreateTestCaseInput{
 		Title:         req.Title,
@@ -60,7 +60,7 @@ func (s *TMSService) CreateTestCase(ctx context.Context, projectID, userID uuid.
 	return toTestCaseResponse(tc), nil
 }
 
-// GetTestCase returns a test case by key.
+// GetTestCase возвращает тест-кейс по ключу (например, "HUB-TC-1").
 func (s *TMSService) GetTestCase(ctx context.Context, caseKey string) (*TestCaseResponse, error) {
 	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
 	if err != nil {
@@ -72,7 +72,7 @@ func (s *TMSService) GetTestCase(ctx context.Context, caseKey string) (*TestCase
 	return toTestCaseResponse(tc), nil
 }
 
-// ListTestCases returns a paginated list of test cases.
+// ListTestCases возвращает пагинированный список тест-кейсов проекта.
 func (s *TMSService) ListTestCases(ctx context.Context, projectID uuid.UUID, req ListTestCasesRequest) (*PaginatedResponse[TestCaseResponse], error) {
 	params := ListTestCasesParams{
 		Offset:   req.Offset,
@@ -112,7 +112,7 @@ func (s *TMSService) ListTestCases(ctx context.Context, projectID uuid.UUID, req
 	}, nil
 }
 
-// UpdateTestCase updates a test case, creating a version snapshot first.
+// UpdateTestCase обновляет тест-кейс, предварительно создавая снимок текущей версии.
 func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID uuid.UUID, req UpdateTestCaseRequest) (*TestCaseResponse, error) {
 	existing, err := s.repo.FindTestCaseByKey(ctx, caseKey)
 	if err != nil {
@@ -122,14 +122,14 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID 
 		return nil, apperrors.NewInternal("ошибка получения тест-кейса")
 	}
 
-	// Create snapshot of current version before updating
+	// Создаём снимок текущей версии перед обновлением
 	snapshot := buildSnapshot(existing)
 	_, err = s.repo.CreateTestCaseVersion(ctx, existing.ID, userID, existing.Version, snapshot, "")
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка создания версии")
 	}
 
-	// Build update input
+	// Формируем input для обновления
 	input := UpdateTestCaseInput{
 		Title:         req.Title,
 		Description:   req.Description,
@@ -180,7 +180,7 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID 
 	return toTestCaseResponse(updated), nil
 }
 
-// DeleteTestCase deletes a test case by key.
+// DeleteTestCase удаляет тест-кейс по ключу.
 func (s *TMSService) DeleteTestCase(ctx context.Context, caseKey string) error {
 	existing, err := s.repo.FindTestCaseByKey(ctx, caseKey)
 	if err != nil {
@@ -192,7 +192,7 @@ func (s *TMSService) DeleteTestCase(ctx context.Context, caseKey string) error {
 	return s.repo.DeleteTestCase(ctx, existing.ID)
 }
 
-// RollbackTestCase rolls back a test case to a specified version.
+// RollbackTestCase откатывает тест-кейс к указанной версии.
 func (s *TMSService) RollbackTestCase(ctx context.Context, caseKey string, versionID, userID uuid.UUID) (*TestCaseResponse, error) {
 	existing, err := s.repo.FindTestCaseByKey(ctx, caseKey)
 	if err != nil {
@@ -210,14 +210,14 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, caseKey string, versi
 		return nil, apperrors.NewInternal("ошибка получения версии")
 	}
 
-	// Create snapshot of current state before rollback
+	// Создаём снимок текущего состояния перед откатом
 	currentSnapshot := buildSnapshot(existing)
 	_, err = s.repo.CreateTestCaseVersion(ctx, existing.ID, userID, existing.Version, currentSnapshot, "перед откатом к версии")
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка создания снимка перед откатом")
 	}
 
-	// Apply snapshot as update
+	// Применяем снимок как обновление
 	input := snapshotToUpdateInput(version.Snapshot)
 	updated, err := s.repo.UpdateTestCase(ctx, existing.ID, input)
 	if err != nil {
@@ -231,7 +231,7 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, caseKey string, versi
 // Versions
 // ---------------------------------------------------------------------------
 
-// ListTestCaseVersions returns all versions of a test case.
+// ListTestCaseVersions возвращает все версии тест-кейса.
 func (s *TMSService) ListTestCaseVersions(ctx context.Context, caseKey string) ([]TestCaseVersionResponse, error) {
 	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
 	if err != nil {
@@ -257,7 +257,7 @@ func (s *TMSService) ListTestCaseVersions(ctx context.Context, caseKey string) (
 // Issue linking
 // ---------------------------------------------------------------------------
 
-// LinkTestCaseToIssue links a test case to an issue.
+// LinkTestCaseToIssue привязывает тест-кейс к задаче трекера.
 func (s *TMSService) LinkTestCaseToIssue(ctx context.Context, caseKey string, issueID uuid.UUID) error {
 	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
 	if err != nil {
@@ -269,7 +269,7 @@ func (s *TMSService) LinkTestCaseToIssue(ctx context.Context, caseKey string, is
 	return s.repo.LinkTestCaseToIssue(ctx, tc.ID, issueID)
 }
 
-// UnlinkTestCaseFromIssue unlinks a test case from an issue.
+// UnlinkTestCaseFromIssue отвязывает тест-кейс от задачи трекера.
 func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, caseKey string, issueID uuid.UUID) error {
 	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
 	if err != nil {
@@ -281,7 +281,7 @@ func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, caseKey string
 	return s.repo.UnlinkTestCaseFromIssue(ctx, tc.ID, issueID)
 }
 
-// GetTestCaseLinks returns issues linked to a test case.
+// GetTestCaseLinks возвращает задачи, привязанные к тест-кейсу.
 func (s *TMSService) GetTestCaseLinks(ctx context.Context, caseKey string) ([]IssueBriefResponse, error) {
 	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
 	if err != nil {
@@ -307,7 +307,7 @@ func (s *TMSService) GetTestCaseLinks(ctx context.Context, caseKey string) ([]Is
 	return result, nil
 }
 
-// CreateBugFromFailedResult creates a bug from a failed test result.
+// CreateBugFromFailedResult создаёт баг из упавшего результата теста.
 func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, userID uuid.UUID, resultID uuid.UUID, req CreateBugRequest) (*IssueBriefResponse, error) {
 	// Get result with test case
 	result, err := s.repo.GetTestResult(ctx, resultID)

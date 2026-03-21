@@ -16,28 +16,28 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 /**
- * Regular expression for detecting URLs in message text.
- * Supports http/https links.
+ * Регулярное выражение для обнаружения URL в тексте сообщения.
+ * Поддерживает http/https ссылки.
  */
 const URL_REGEX = /https?:\/\/[^\s<>"')\]]+/g;
 
-/** Props for the MessageItem component. */
+/** Пропсы компонента MessageItem. */
 interface MessageItemProps {
-  /** Message to display. */
+  /** Сообщение для отображения. */
   message: Message;
-  /** Channel ID. */
+  /** ID канала. */
   channelId: string;
-  /** Previous message (for grouping). */
+  /** Предыдущее сообщение (для группировки). */
   previousMessage?: Message;
-  /** Show date separator before the message. */
+  /** Показать разделитель даты перед сообщением. */
   showDateSeparator?: boolean;
-  /** Date separator text. */
+  /** Текст разделителя даты. */
   dateSeparatorText?: string;
-  /** Show new messages divider. */
+  /** Показать разделитель новых сообщений. */
   showNewMessagesDivider?: boolean;
 }
 
-/** Format time from ISO string. */
+/** Форматирует время из ISO-строки в "ЧЧ:ММ". */
 function formatTime(iso: string): string {
   const date = new Date(iso);
   return date.toLocaleTimeString("ru-RU", {
@@ -47,8 +47,8 @@ function formatTime(iso: string): string {
 }
 
 /**
- * Check if a message should be grouped with the previous one.
- * Grouping: same sender, less than 2 minutes apart.
+ * Проверяет, нужно ли группировать сообщение с предыдущим.
+ * Группировка: один отправитель, менее 2 минут разницы.
  */
 function shouldGroupWithPrevious(
   message: Message,
@@ -63,9 +63,9 @@ function shouldGroupWithPrevious(
 }
 
 /**
- * MessageItem displays a single chat message in Tinkoff Talk style.
- * Own messages are on the right with gradient background, others on the left with card background.
- * Supports grouping, reactions, hover actions, replies and attachments.
+ * MessageItem отображает одно сообщение чата в стиле Tinkoff Talk.
+ * Свои сообщения — справа с градиентным фоном, чужие — слева с фоном карточки.
+ * Поддерживает группировку, реакции, hover-действия, ответы и вложения.
  */
 function MessageItemInner({
   message,
@@ -85,8 +85,8 @@ function MessageItemInner({
   const isGrouped = shouldGroupWithPrevious(message, previousMessage);
 
   /**
-   * Extracts unique URLs from message text content.
-   * Searches content_text and recursively in content_json text nodes.
+   * Извлекает уникальные URL из текста сообщения.
+   * Ищет в content_text и рекурсивно в текстовых узлах content_json.
    */
   const extractedUrls = useMemo(() => {
     const urls = new Set<string>();
@@ -126,7 +126,7 @@ function MessageItemInner({
     await addBookmark(message.id, channelId);
   }, [channelId, message.id]);
 
-  /** Reply to message (set reply-to). */
+  /** Ответить на сообщение (установить reply-to). */
   const handleReply = useCallback(() => {
     setReplyTo(message);
   }, [message, setReplyTo]);

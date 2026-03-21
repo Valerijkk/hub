@@ -1,6 +1,9 @@
 /**
- * Formats a date string as relative time in Russian.
- * Returns "Только что", "5 мин", "2 ч", "Вчера", or date.
+ * Форматирует дату как относительное время на русском языке.
+ * Возвращает "Только что", "5 мин", "2 ч", "Вчера" или дату (15 мар).
+ *
+ * @param dateStr - ISO-строка даты
+ * @returns Отформатированная строка относительного времени
  */
 export function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
