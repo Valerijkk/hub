@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 import { listChatMessages, sendChatMessage, type CallChatMessage } from "@/api/calls";
 import { useAuthStore } from "@/stores/auth-store";
-import { useWebSocket } from "@/hooks/use-websocket";
+import { useWsStore } from "@/stores/ws-store";
 
 /** Пропсы компонента эфемерного чата звонка. */
 interface CallChatProps {
@@ -28,14 +28,22 @@ export function CallChat({ callId }: CallChatProps) {
   });
 
   /** Подписка на новые сообщения через WebSocket. */
-  useWebSocket(`calls.chat.${callId}`, (event) => {
-    if (event.type === "chat_message_sent") {
-      queryClient.setQueryData<CallChatMessage[]>(
-        ["call-chat", callId],
-        (old = []) => [...old, event.payload as CallChatMessage]
-      );
-    }
-  });
+  const addListener = useWsStore((s) => s.addListener);
+  const removeListener = useWsStore((s) => s.removeListener);
+
+  useEffect(() => {
+    const handler = (_event: string, payload: unknown) => {
+      const msg = payload as CallChatMessage;
+      if (msg.call_id === callId) {
+        queryClient.setQueryData<CallChatMessage[]>(
+          ["call-chat", callId],
+          (old = []) => [...old, msg]
+        );
+      }
+    };
+    addListener(handler);
+    return () => removeListener(handler);
+  }, [callId, queryClient, addListener, removeListener]);
 
   /** Отправка сообщения. */
   const sendMutation = useMutation({
