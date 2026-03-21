@@ -18,6 +18,13 @@ import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings/profile'
 import { Route as AuthenticatedProjectsNewRouteImport } from './routes/_authenticated/projects/new'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects/$projectId'
+import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects/$projectId/index'
+import { Route as AuthenticatedProjectsProjectIdIssuesIndexRouteImport } from './routes/_authenticated/projects/$projectId/issues/index'
+import { Route as AuthenticatedProjectsProjectIdBoardIndexRouteImport } from './routes/_authenticated/projects/$projectId/board/index'
+import { Route as AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport } from './routes/_authenticated/projects/$projectId/settings/workflow'
+import { Route as AuthenticatedProjectsProjectIdSettingsLabelsRouteImport } from './routes/_authenticated/projects/$projectId/settings/labels'
+import { Route as AuthenticatedProjectsProjectIdIssuesNewRouteImport } from './routes/_authenticated/projects/$projectId/issues/new'
+import { Route as AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport } from './routes/_authenticated/projects/$projectId/issues/$issueKey'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -67,26 +74,81 @@ const AuthenticatedProjectsProjectIdRoute =
     path: '/projects/$projectId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedProjectsProjectIdIndexRoute =
+  AuthenticatedProjectsProjectIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdIssuesIndexRoute =
+  AuthenticatedProjectsProjectIdIssuesIndexRouteImport.update({
+    id: '/issues/',
+    path: '/issues/',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdBoardIndexRoute =
+  AuthenticatedProjectsProjectIdBoardIndexRouteImport.update({
+    id: '/board/',
+    path: '/board/',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdSettingsWorkflowRoute =
+  AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport.update({
+    id: '/settings/workflow',
+    path: '/settings/workflow',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdSettingsLabelsRoute =
+  AuthenticatedProjectsProjectIdSettingsLabelsRouteImport.update({
+    id: '/settings/labels',
+    path: '/settings/labels',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdIssuesNewRoute =
+  AuthenticatedProjectsProjectIdIssuesNewRouteImport.update({
+    id: '/issues/new',
+    path: '/issues/new',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdIssuesIssueKeyRoute =
+  AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport.update({
+    id: '/issues/$issueKey',
+    path: '/issues/$issueKey',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/trash': typeof AuthenticatedTrashRoute
-  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/new': typeof AuthenticatedProjectsNewRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
+  '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
+  '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  '/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
+  '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  '/projects/$projectId/board/': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
+  '/projects/$projectId/issues/': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/trash': typeof AuthenticatedTrashRoute
-  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/projects/new': typeof AuthenticatedProjectsNewRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
+  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
+  '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
+  '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  '/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
+  '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  '/projects/$projectId/board': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
+  '/projects/$projectId/issues': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,10 +157,17 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/_authenticated/trash': typeof AuthenticatedTrashRoute
-  '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/new': typeof AuthenticatedProjectsNewRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
+  '/_authenticated/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
+  '/_authenticated/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  '/_authenticated/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
+  '/_authenticated/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  '/_authenticated/projects/$projectId/board/': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
+  '/_authenticated/projects/$projectId/issues/': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,16 +180,29 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/settings/profile'
     | '/projects/'
+    | '/projects/$projectId/'
+    | '/projects/$projectId/issues/$issueKey'
+    | '/projects/$projectId/issues/new'
+    | '/projects/$projectId/settings/labels'
+    | '/projects/$projectId/settings/workflow'
+    | '/projects/$projectId/board/'
+    | '/projects/$projectId/issues/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/onboarding'
     | '/trash'
-    | '/projects/$projectId'
     | '/projects/new'
     | '/settings/profile'
     | '/projects'
+    | '/projects/$projectId'
+    | '/projects/$projectId/issues/$issueKey'
+    | '/projects/$projectId/issues/new'
+    | '/projects/$projectId/settings/labels'
+    | '/projects/$projectId/settings/workflow'
+    | '/projects/$projectId/board'
+    | '/projects/$projectId/issues'
   id:
     | '__root__'
     | '/'
@@ -132,6 +214,13 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/new'
     | '/_authenticated/settings/profile'
     | '/_authenticated/projects/'
+    | '/_authenticated/projects/$projectId/'
+    | '/_authenticated/projects/$projectId/issues/$issueKey'
+    | '/_authenticated/projects/$projectId/issues/new'
+    | '/_authenticated/projects/$projectId/settings/labels'
+    | '/_authenticated/projects/$projectId/settings/workflow'
+    | '/_authenticated/projects/$projectId/board/'
+    | '/_authenticated/projects/$projectId/issues/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -206,12 +295,94 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/projects/$projectId/': {
+      id: '/_authenticated/projects/$projectId/'
+      path: '/'
+      fullPath: '/projects/$projectId/'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIndexRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/issues/': {
+      id: '/_authenticated/projects/$projectId/issues/'
+      path: '/issues'
+      fullPath: '/projects/$projectId/issues/'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIssuesIndexRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/board/': {
+      id: '/_authenticated/projects/$projectId/board/'
+      path: '/board'
+      fullPath: '/projects/$projectId/board/'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdBoardIndexRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/settings/workflow': {
+      id: '/_authenticated/projects/$projectId/settings/workflow'
+      path: '/settings/workflow'
+      fullPath: '/projects/$projectId/settings/workflow'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/settings/labels': {
+      id: '/_authenticated/projects/$projectId/settings/labels'
+      path: '/settings/labels'
+      fullPath: '/projects/$projectId/settings/labels'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdSettingsLabelsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/issues/new': {
+      id: '/_authenticated/projects/$projectId/issues/new'
+      path: '/issues/new'
+      fullPath: '/projects/$projectId/issues/new'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIssuesNewRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/issues/$issueKey': {
+      id: '/_authenticated/projects/$projectId/issues/$issueKey'
+      path: '/issues/$issueKey'
+      fullPath: '/projects/$projectId/issues/$issueKey'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
   }
 }
 
+interface AuthenticatedProjectsProjectIdRouteChildren {
+  AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute
+  AuthenticatedProjectsProjectIdIssuesIssueKeyRoute: typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
+  AuthenticatedProjectsProjectIdIssuesNewRoute: typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  AuthenticatedProjectsProjectIdSettingsLabelsRoute: typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
+  AuthenticatedProjectsProjectIdSettingsWorkflowRoute: typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  AuthenticatedProjectsProjectIdBoardIndexRoute: typeof AuthenticatedProjectsProjectIdBoardIndexRoute
+  AuthenticatedProjectsProjectIdIssuesIndexRoute: typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
+}
+
+const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectIdRouteChildren =
+  {
+    AuthenticatedProjectsProjectIdIndexRoute:
+      AuthenticatedProjectsProjectIdIndexRoute,
+    AuthenticatedProjectsProjectIdIssuesIssueKeyRoute:
+      AuthenticatedProjectsProjectIdIssuesIssueKeyRoute,
+    AuthenticatedProjectsProjectIdIssuesNewRoute:
+      AuthenticatedProjectsProjectIdIssuesNewRoute,
+    AuthenticatedProjectsProjectIdSettingsLabelsRoute:
+      AuthenticatedProjectsProjectIdSettingsLabelsRoute,
+    AuthenticatedProjectsProjectIdSettingsWorkflowRoute:
+      AuthenticatedProjectsProjectIdSettingsWorkflowRoute,
+    AuthenticatedProjectsProjectIdBoardIndexRoute:
+      AuthenticatedProjectsProjectIdBoardIndexRoute,
+    AuthenticatedProjectsProjectIdIssuesIndexRoute:
+      AuthenticatedProjectsProjectIdIssuesIndexRoute,
+  }
+
+const AuthenticatedProjectsProjectIdRouteWithChildren =
+  AuthenticatedProjectsProjectIdRoute._addFileChildren(
+    AuthenticatedProjectsProjectIdRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedTrashRoute: typeof AuthenticatedTrashRoute
-  AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRoute
+  AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRouteWithChildren
   AuthenticatedProjectsNewRoute: typeof AuthenticatedProjectsNewRoute
   AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
@@ -219,7 +390,8 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedTrashRoute: AuthenticatedTrashRoute,
-  AuthenticatedProjectsProjectIdRoute: AuthenticatedProjectsProjectIdRoute,
+  AuthenticatedProjectsProjectIdRoute:
+    AuthenticatedProjectsProjectIdRouteWithChildren,
   AuthenticatedProjectsNewRoute: AuthenticatedProjectsNewRoute,
   AuthenticatedSettingsProfileRoute: AuthenticatedSettingsProfileRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
