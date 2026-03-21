@@ -37,6 +37,10 @@ func (FileMetadata) Fields() []ent.Field {
 		field.Enum("status").
 			Values("pending", "confirmed", "deleted").
 			Default("pending"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(time.Now).
 			Immutable(),
@@ -61,5 +65,6 @@ func (FileMetadata) Indexes() []ent.Index {
 		index.Fields("entity_type", "entity_id"),
 		index.Fields("status"),
 		index.Fields("s3_key"),
+		index.Fields("deleted_at"),
 	}
 }

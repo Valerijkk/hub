@@ -97,6 +97,7 @@ func (User) Edges() []ent.Edge {
 		edge.To("saved_filters", SavedFilter.Type),
 		edge.To("notifications", Notification.Type),
 		edge.To("notification_preferences", NotificationPreference.Type),
+		edge.To("dashboard_layouts", DashboardLayout.Type),
 	}
 }
 

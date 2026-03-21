@@ -72,6 +72,10 @@ func (TestCase) Fields() []ent.Field {
 		field.Int("version").
 			Default(1).
 			Comment("Версия тест-кейса"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(time.Now).
 			Immutable(),
@@ -112,5 +116,6 @@ func (TestCase) Indexes() []ent.Index {
 		index.Fields("class_name", "method_name"),
 		index.Fields("status"),
 		index.Fields("priority"),
+		index.Fields("deleted_at"),
 	}
 }

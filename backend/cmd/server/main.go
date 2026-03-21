@@ -26,6 +26,7 @@ import (
 	redisclient "github.com/valerii/hub/backend/internal/platform/redis"
 	auditmod "github.com/valerii/hub/backend/internal/audit"
 	notifmod "github.com/valerii/hub/backend/internal/notification"
+	dashboardmod "github.com/valerii/hub/backend/internal/dashboard"
 	searchmod "github.com/valerii/hub/backend/internal/search"
 	wsmod "github.com/valerii/hub/backend/internal/ws"
 )
@@ -228,6 +229,11 @@ func main() {
 			}
 		}
 	}()
+
+	// Dashboard routes (дашборды: персональный, проектный, админский)
+	dashSvc := dashboardmod.NewDashboardService(db, rdb, mongoDB)
+	dashHandler := dashboardmod.NewHandler(dashSvc)
+	dashHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// Calls routes (голосовые звонки через LiveKit)
 	callsRepo := callsmod.NewEntRepository(db)

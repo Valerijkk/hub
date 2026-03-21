@@ -58,6 +58,10 @@ func (Issue) Fields() []ent.Field {
 		field.Time("due_date").
 			Optional().
 			Nillable(),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(time.Now).
 			Immutable(),
@@ -107,5 +111,6 @@ func (Issue) Indexes() []ent.Index {
 		index.Fields("created_at"),
 		index.Fields("priority"),
 		index.Fields("due_date"),
+		index.Fields("deleted_at"),
 	}
 }
