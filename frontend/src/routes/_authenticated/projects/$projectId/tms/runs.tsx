@@ -206,7 +206,7 @@ function TestRunsPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {runs.map((run) => {
               const rate = passRate(run);
-              const statusCfg = RUN_STATUS_CONFIG[run.status] ?? RUN_STATUS_CONFIG.created;
+              const statusCfg = RUN_STATUS_CONFIG[run.status] || { bg: "bg-gray-500/10", text: "text-gray-600 dark:text-gray-400", label: run.status };
               const typeCfg = RUN_TYPE_CONFIG[run.run_type];
 
               return (
@@ -261,11 +261,11 @@ function TestRunsPage() {
                               style={{ width: `${(run.failed_count / run.total_count) * 100}%` }}
                             />
                           )}
-                          {/* Заблокированные — жёлтый */}
-                          {run.blocked_count > 0 && (
+                          {/* Сломанные — жёлтый */}
+                          {run.broken_count > 0 && (
                             <div
                               className="h-full bg-yellow-500 transition-all"
-                              style={{ width: `${(run.blocked_count / run.total_count) * 100}%` }}
+                              style={{ width: `${(run.broken_count / run.total_count) * 100}%` }}
                             />
                           )}
                           {/* Пропущенные — серый */}

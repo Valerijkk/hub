@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { ChatView } from "@/components/messenger/chat-view";
-import { CallButton } from "@/components/calls/CallButton";
 import { useMessengerStore } from "@/stores/messenger-store";
 
 /**

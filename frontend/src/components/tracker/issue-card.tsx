@@ -63,7 +63,7 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
     });
   }, [issue.issue_key, issue.id, issue.status, issue.rank]);
 
-  const priority = PRIORITY_CONFIG[issue.priority] ?? PRIORITY_CONFIG.medium;
+  const priority = PRIORITY_CONFIG[issue.priority] || { bg: "bg-yellow-500/10", text: "text-yellow-700 dark:text-yellow-400", label: "Средний" };
 
   return (
     <div ref={cardRef} className={cn("cursor-grab active:cursor-grabbing", isDragging && "opacity-40")}>
@@ -98,11 +98,6 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
               >
                 {priority.label}
               </Badge>
-              {issue.labels?.map((label) => (
-                <Badge key={label} variant="outline" className="text-[10px] px-1.5 py-0 h-5">
-                  {label}
-                </Badge>
-              ))}
             </div>
 
             {issue.assignee && (

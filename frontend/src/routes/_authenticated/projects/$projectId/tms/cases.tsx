@@ -404,7 +404,7 @@ function TestCasesPage() {
                 </thead>
                 <tbody>
                   {cases.map((tc) => {
-                    const priority = PRIORITY_CONFIG[tc.priority] ?? PRIORITY_CONFIG.medium;
+                    const priority = PRIORITY_CONFIG[tc.priority] || { bg: "bg-yellow-500/10", text: "text-yellow-700 dark:text-yellow-400", label: "Средний" };
                     const typeBadge = TYPE_BADGE[tc.case_type];
                     return (
                       <tr
