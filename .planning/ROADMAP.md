@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 4: TMS & Allure** - Тест-кейсы, тестовые прогоны, загрузка Allure-отчётов, связь с задачами, отчётность, импорт/экспорт
 - [x] **Phase 5: Voice Calls** - Аудиозвонки, демонстрация экрана, управление звонками, эфемерный чат (completed 2026-03-21)
 - [ ] **Phase 6: Notifications, Search & Dashboards** - Уведомления в приложении, глобальный поиск, персональные/проектные/административные дашборды, аудит
-- [ ] **Phase 7: Polish & Extended Features** - Спринты, интеграция с GitHub, запись звонков, интернационализация, темы, PWA, API, резервное копирование
+- [x] **Phase 7: Polish & Extended Features** - Спринты, интеграция с GitHub, запись звонков, интернационализация, темы, PWA, API, резервное копирование (completed 2026-03-21)
 
 ## Phase Details
 
@@ -156,7 +156,7 @@ Plans:
 - [x] 07-03-PLAN.md — Запись звонков (LiveKit Egress, хранение, привязка к проекту, ссылка в канале), запланированные/повторяющиеся звонки
 - [x] 07-04-PLAN.md — Интернационализация (RU/EN), темизация (тёмная/светлая/системная/акцент), мобильная раскладка, PWA, предпросмотр ссылок в мессенджере
 - [x] 07-05-PLAN.md — REST API (Swagger), API-ключи, вебхуки, hub-cli, импорт/экспорт, шаблоны проектов, резервное копирование, WIP-лимиты, swimlanes, тестовые окружения, JQL
-- [ ] 07-06-PLAN.md — Документация фазы 7 (бизнес-дока, тестовая дока, техническая дока)
+- [x] 07-06-PLAN.md — Документация фазы 7 (бизнес-дока, тестовая дока, техническая дока)
 
 ## Progress
 
@@ -171,4 +171,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. TMS & Allure | 0/5 | Planned | - |
 | 5. Voice Calls | 4/4 | Complete   | 2026-03-21 |
 | 6. Notifications, Search & Dashboards | 0/5 | Planned | - |
-| 7. Polish & Extended Features | 3/6 | In Progress|  |
+| 7. Polish & Extended Features | 6/6 | Complete   | 2026-03-21 |
