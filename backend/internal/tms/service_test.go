@@ -1,7 +1,10 @@
 package tms
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
+	"strings"
 	"testing"
 	"time"
 
@@ -893,6 +896,64 @@ func TestGetCoverageReport(t *testing.T) {
 	assert.Equal(t, "HUB-200", report.Issues[0].IssueKey)
 	assert.Len(t, report.Issues[0].TestCases, 1)
 	assert.Equal(t, "passed", report.Issues[0].TestCases[0].LastStatus)
+}
+
+func TestImportFromCSV(t *testing.T) {
+	csvData := "Title,Priority,Status\nКейс 1,high,active\nКейс 2,medium,draft\nКейс 3,low,active\n"
+	reader := strings.NewReader(csvData)
+
+	inputs, err := ImportFromCSV(reader, nil)
+	require.NoError(t, err)
+	assert.Len(t, inputs, 3)
+	assert.Equal(t, "Кейс 1", inputs[0].Title)
+	assert.Equal(t, "high", inputs[0].Priority)
+	assert.Equal(t, "active", inputs[0].Status)
+	assert.Equal(t, "Кейс 3", inputs[2].Title)
+}
+
+func TestAutoDetectMapping(t *testing.T) {
+	headers := []string{"Title", "Описание", "Priority", "Шаги", "Тип"}
+	mapping := AutoDetectMapping(headers)
+
+	assert.Equal(t, "title", mapping["Title"])
+	assert.Equal(t, "description", mapping["Описание"])
+	assert.Equal(t, "priority", mapping["Priority"])
+	assert.Equal(t, "steps", mapping["Шаги"])
+	assert.Equal(t, "case_type", mapping["Тип"])
+}
+
+func TestExportToCSV(t *testing.T) {
+	cases := []TestCaseExportData{
+		{Key: "HUB-TC-1", Title: "Тест 1", Type: "classic", Priority: "high", Status: "active"},
+		{Key: "HUB-TC-2", Title: "Тест 2", Type: "bdd", Priority: "medium", Status: "draft"},
+	}
+
+	var buf bytes.Buffer
+	err := ExportTestCasesToCSV(&buf, cases)
+	require.NoError(t, err)
+
+	// Парсим обратно
+	reader := csv.NewReader(strings.NewReader(buf.String()))
+	records, err := reader.ReadAll()
+	require.NoError(t, err)
+	assert.Len(t, records, 3) // заголовок + 2 строки
+	assert.Equal(t, "HUB-TC-1", records[1][0])
+	assert.Equal(t, "HUB-TC-2", records[2][0])
+}
+
+func TestValidateImportData(t *testing.T) {
+	inputs := []CreateTestCaseInput{
+		{Title: "Валидный кейс", Priority: "high"},
+		{Title: "", Priority: "medium"}, // нет названия
+		{Title: "Кейс с неверным приоритетом", Priority: "invalid"},
+	}
+
+	errors := ValidateImportData(inputs)
+	assert.Len(t, errors, 2)
+	assert.Equal(t, 3, errors[0].Row) // строка 3 (индекс 1 + 2)
+	assert.Equal(t, "title", errors[0].Field)
+	assert.Equal(t, 4, errors[1].Row) // строка 4 (индекс 2 + 2)
+	assert.Equal(t, "priority", errors[1].Field)
 }
 
 func TestStartTestRun_InvalidTransition(t *testing.T) {

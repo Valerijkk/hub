@@ -12,6 +12,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/xuri/excelize/v2"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -176,16 +177,56 @@ func ImportFromXML(reader io.Reader) ([]CreateTestCaseInput, error) {
 
 // ImportFromExcel парсит XLSX-файл и возвращает входные данные для создания тест-кейсов.
 // Использует библиотеку excelize для чтения Excel.
+// Первая строка — заголовки. По умолчанию читает первый лист.
 func ImportFromExcel(reader io.Reader, sheetName string, mapping FieldMapping) ([]CreateTestCaseInput, error) {
-	data, err := io.ReadAll(reader)
+	f, err := excelize.OpenReader(reader)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения файла: %w", err)
+		return nil, fmt.Errorf("ошибка открытия Excel: %w", err)
+	}
+	defer f.Close()
+
+	// Определяем лист
+	sheet := sheetName
+	if sheet == "" {
+		sheet = f.GetSheetName(0)
 	}
 
-	// Ленивая загрузка excelize для избежания зависимости при отсутствии Excel файлов
-	_ = data
-	_ = sheetName
-	return nil, fmt.Errorf("Excel импорт: установите github.com/xuri/excelize/v2")
+	rows, err := f.GetRows(sheet)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения листа %s: %w", sheet, err)
+	}
+
+	if len(rows) < 2 {
+		return nil, fmt.Errorf("Excel файл пуст или содержит только заголовки")
+	}
+
+	headers := rows[0]
+	if len(mapping) == 0 {
+		mapping = AutoDetectMapping(headers)
+	}
+
+	// Строим индекс: номер колонки -> поле TMS
+	colToField := make(map[int]string)
+	for i, header := range headers {
+		if field, ok := mapping[header]; ok {
+			colToField[i] = field
+		}
+	}
+
+	var inputs []CreateTestCaseInput
+	for _, row := range rows[1:] {
+		input := CreateTestCaseInput{}
+		for i, val := range row {
+			field, ok := colToField[i]
+			if !ok {
+				continue
+			}
+			applyFieldToInput(&input, field, val)
+		}
+		inputs = append(inputs, input)
+	}
+
+	return inputs, nil
 }
 
 // ValidateImportData проверяет корректность входных данных импорта.
@@ -404,6 +445,9 @@ func handleExportTestCases(svc *TMSService, ctx context.Context, projectID uuid.
 	case "xml":
 		filename = "test-cases.xml"
 		err = ExportTestCasesToXML(&buf, exportData)
+	case "excel":
+		filename = "test-cases.xlsx"
+		err = ExportTestCasesToExcel(&buf, exportData)
 	default:
 		filename = "test-cases.csv"
 		err = ExportTestCasesToCSV(&buf, exportData)
@@ -469,6 +513,9 @@ func handleExportTestRunReport(svc *TMSService, ctx context.Context, runID uuid.
 	case "csv":
 		filename = "run-report.csv"
 		err = ExportRunResultsToCSV(&buf, exportData)
+	case "pdf":
+		filename = "run-report.pdf"
+		err = ExportTestRunToPDF(&buf, exportData)
 	default:
 		filename = "run-report.csv"
 		err = ExportRunResultsToCSV(&buf, exportData)
