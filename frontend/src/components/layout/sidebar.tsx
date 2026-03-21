@@ -52,16 +52,16 @@ function SidebarLink({
       to={to}
       params={params}
       className={cn(
-        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
-        "text-slate-400 hover:text-white hover:bg-white/[0.06]",
-        isActive && "text-white bg-white/[0.08]",
+        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+        "text-slate-400 hover:text-white hover:bg-white/[0.07]",
+        isActive && "text-white bg-white/[0.1] shadow-[0_0_12px_rgba(59,130,246,0.08)]",
         collapsed && "justify-center px-2",
         indent && !collapsed && "pl-9 text-[13px]",
       )}
     >
-      {/* Активный индикатор -- тонкая полоска слева */}
+      {/* Активный индикатор — яркая полоска слева со свечением */}
       {isActive && (
-        <div className="absolute left-0 h-5 w-[2px] rounded-r-full bg-primary" />
+        <div className="absolute left-0 h-5 w-[3px] rounded-r-full bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
       )}
       {icon}
       {!collapsed && <span className="truncate">{label}</span>}
@@ -163,7 +163,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col border-r border-white/[0.06] transition-all duration-200",
+        "flex h-screen flex-col border-r border-white/[0.06] transition-all duration-300 ease-in-out",
         "bg-[#0C1222] text-slate-300",
         collapsed ? "w-[68px]" : "w-[260px]",
       )}
@@ -295,8 +295,10 @@ export function Sidebar() {
                       label={project.name}
                       collapsed={collapsed}
                       icon={
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-blue-500/20 text-[10px] font-bold text-blue-400">
+                        <span className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-blue-500/20 text-[10px] font-bold text-blue-400">
                           {project.key.charAt(0)}
+                          {/* Цветной индикатор активности проекта */}
+                          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[#0C1222]" />
                         </span>
                       }
                     />
