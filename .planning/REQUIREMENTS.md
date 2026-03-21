@@ -45,18 +45,18 @@
 ### Kanban
 
 - [x] **KANB-01**: Колонки Kanban-доски соответствуют статусам рабочего процесса
-- [ ] **KANB-02**: WIP-лимиты на колонку
-- [ ] **KANB-03**: Swimlanes (по исполнителю, приоритету или типу)
+- [x] **KANB-02**: WIP-лимиты на колонку
+- [x] **KANB-03**: Swimlanes (по исполнителю, приоритету или типу)
 - [x] **KANB-04**: Несколько досок на проект
 - [x] **KANB-05**: Фильтры доски: мои задачи, только баги, по приоритету
 
 ### Scrum
 
-- [ ] **SCRM-01**: Создание спринтов с датами начала/окончания, перетаскивание задач из бэклога, запуск/завершение спринта
-- [ ] **SCRM-02**: Диаграмма сгорания и диаграмма скорости
-- [ ] **SCRM-03**: Заметки ретроспективы, привязанные к спринту
-- [ ] **SCRM-04**: Автоперенос незавершенных задач в следующий спринт
-- [ ] **SCRM-05**: Planning Poker: шкала Фибоначчи, голоса скрыты до раскрытия
+- [x] **SCRM-01**: Создание спринтов с датами начала/окончания, перетаскивание задач из бэклога, запуск/завершение спринта
+- [x] **SCRM-02**: Диаграмма сгорания и диаграмма скорости
+- [x] **SCRM-03**: Заметки ретроспективы, привязанные к спринту
+- [x] **SCRM-04**: Автоперенос незавершенных задач в следующий спринт
+- [x] **SCRM-05**: Planning Poker: шкала Фибоначчи, голоса скрыты до раскрытия
 
 ### Мессенджер
 
@@ -253,15 +253,15 @@
 | TASK-10 | Phase 2 | Complete |
 | TASK-11 | Phase 2 | Complete |
 | KANB-01 | Phase 2 | Complete |
-| KANB-02 | Phase 7 | Pending |
-| KANB-03 | Phase 7 | Pending |
+| KANB-02 | Phase 7 | Complete |
+| KANB-03 | Phase 7 | Complete |
 | KANB-04 | Phase 2 | Complete |
 | KANB-05 | Phase 2 | Complete |
-| SCRM-01 | Phase 7 | Pending |
-| SCRM-02 | Phase 7 | Pending |
-| SCRM-03 | Phase 7 | Pending |
-| SCRM-04 | Phase 7 | Pending |
-| SCRM-05 | Phase 7 | Pending |
+| SCRM-01 | Phase 7 | Complete |
+| SCRM-02 | Phase 7 | Complete |
+| SCRM-03 | Phase 7 | Complete |
+| SCRM-04 | Phase 7 | Complete |
+| SCRM-05 | Phase 7 | Complete |
 | MSG-01 | Phase 3 | Complete |
 | MSG-02 | Phase 3 | Complete |
 | MSG-03 | Phase 3 | Complete |
