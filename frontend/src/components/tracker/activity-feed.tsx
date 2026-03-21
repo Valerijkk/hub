@@ -71,9 +71,9 @@ function ActivityItem({ activity }: ActivityItemProps) {
         </div>
 
         {/* Изменения полей */}
-        {activity.changes.length > 0 && (
+        {(activity.changes ?? []).length > 0 && (
           <div className="mt-1 space-y-1">
-            {activity.changes.map((change, idx) => (
+            {(activity.changes ?? []).map((change, idx) => (
               <div key={idx} className="flex items-center gap-2 text-xs">
                 <span className="font-medium text-muted-foreground">
                   {getFieldLabel(change.field)}:

@@ -5,6 +5,7 @@ import {
   getUnreadCount,
   markRead as apiMarkRead,
   markAllRead as apiMarkAllRead,
+  deleteNotification as apiDeleteNotification,
   type NotificationDTO,
 } from "@/api/notifications";
 
@@ -31,6 +32,8 @@ interface NotificationState {
   addNotification: (notif: NotificationDTO) => void;
   /** Пометить прочитанным. */
   markRead: (id: string) => Promise<void>;
+  /** Удалить уведомление. */
+  deleteNotification: (id: string) => Promise<void>;
   /** Пометить все прочитанными. */
   markAllRead: () => Promise<void>;
   /** Загрузить количество непрочитанных. */
@@ -109,6 +112,22 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       }));
     } catch {
       // Ошибка — игнорируем.
+    }
+  },
+
+  deleteNotification: async (id: string) => {
+    try {
+      await apiDeleteNotification(id);
+      set((state) => {
+        const notif = state.notifications.find((n) => n.id === id);
+        return {
+          notifications: state.notifications.filter((n) => n.id !== id),
+          total: Math.max(0, state.total - 1),
+          unreadCount: notif && !notif.is_read ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
+        };
+      });
+    } catch {
+      // Ошибка удаления — игнорируем.
     }
   },
 

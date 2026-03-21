@@ -25,6 +25,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	notifs.Get("/unread-count", h.UnreadCount)
 	notifs.Patch("/:id/read", h.MarkRead)
 	notifs.Patch("/read-all", h.MarkAllRead)
+	notifs.Delete("/:id", h.Delete)
 	notifs.Get("/preferences", h.GetPreferences)
 	notifs.Put("/preferences", h.UpdatePreference)
 }
@@ -105,6 +106,25 @@ func (h *Handler) MarkAllRead(c fiber.Ctx) error {
 
 	if err := h.service.MarkAllRead(c.Context(), userID); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка отметки всех прочитанными")
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// Delete удаляет уведомление пользователя.
+func (h *Handler) Delete(c fiber.Ctx) error {
+	userID, err := getUserID(c)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+	}
+
+	notifID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "невалидный ID уведомления")
+	}
+
+	if err := h.service.DeleteNotification(c.Context(), notifID, userID); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "ошибка удаления уведомления")
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)

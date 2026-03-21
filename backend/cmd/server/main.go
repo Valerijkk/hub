@@ -143,7 +143,10 @@ func main() {
 	})
 
 	// Auth routes (rate limit: 3 запроса / 10 мин на IP для защиты от брутфорса)
-	api.Use("/auth", middleware.RateLimit(middleware.AuthRateLimit))
+	// В dev-режиме пропускаем строгий auth rate limit, чтобы не блокировать разработку.
+	if !cfg.Server.DevMode {
+		api.Use("/auth", middleware.RateLimit(middleware.AuthRateLimit))
+	}
 	requireAuth := auth.RequireAuth(authSvc)
 	authHandler := auth.NewHandler(authSvc, db)
 	authHandler.RegisterRoutes(api, requireAuth)

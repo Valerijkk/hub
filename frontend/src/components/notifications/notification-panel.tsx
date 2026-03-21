@@ -10,7 +10,9 @@ import {
   Link2,
   AtSign,
   ClipboardList,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -71,6 +73,7 @@ export function NotificationPanel() {
   const hasMore = useNotificationStore((s) => s.hasMore);
   const markRead = useNotificationStore((s) => s.markRead);
   const markAllRead = useNotificationStore((s) => s.markAllRead);
+  const deleteNotification = useNotificationStore((s) => s.deleteNotification);
   const fetchMore = useNotificationStore((s) => s.fetchMore);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -132,10 +135,25 @@ export function NotificationPanel() {
 
       const route = resolveNotificationRoute(notif);
       if (route) {
-        void navigate({ to: route });
+        try {
+          void navigate({ to: route });
+        } catch {
+          toast.error("Объект не найден");
+        }
+      } else if (notif.entity_type) {
+        toast.error("Объект не найден");
       }
     },
     [markRead, navigate, resolveNotificationRoute],
+  );
+
+  /** Обработчик удаления уведомления. */
+  const handleDelete = useCallback(
+    (e: React.MouseEvent, notifId: string) => {
+      e.stopPropagation();
+      void deleteNotification(notifId);
+    },
+    [deleteNotification],
   );
 
   return (
@@ -167,6 +185,7 @@ export function NotificationPanel() {
                 key={notif.id}
                 notification={notif}
                 onClick={() => handleItemClick(notif)}
+                onDelete={(e) => handleDelete(e, notif.id)}
               />
             ))}
             {loading && (
@@ -185,9 +204,11 @@ export function NotificationPanel() {
 function NotificationItem({
   notification,
   onClick,
+  onDelete,
 }: {
   notification: NotificationDTO;
   onClick: () => void;
+  onDelete: (e: React.MouseEvent) => void;
 }) {
   const Icon = TYPE_ICONS[notification.type] ?? AlertTriangle;
   const typeLabel = TYPE_LABELS[notification.type] ?? notification.type;
@@ -195,7 +216,7 @@ function NotificationItem({
   return (
     <button
       type="button"
-      className={`flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 ${
+      className={`group flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 ${
         !notification.is_read ? "bg-muted/30" : ""
       }`}
       onClick={onClick}
@@ -212,10 +233,23 @@ function NotificationItem({
             <span className="mr-1 text-xs text-muted-foreground">{typeLabel}</span>
             {notification.title}
           </p>
-          {/* Индикатор непрочитанного */}
-          {!notification.is_read && (
-            <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
-          )}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Кнопка удаления — видна при hover */}
+            <span
+              role="button"
+              tabIndex={0}
+              className="mt-0.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+              onClick={onDelete}
+              onKeyDown={(e) => { if (e.key === "Enter") onDelete(e as unknown as React.MouseEvent); }}
+              title="Удалить"
+            >
+              <X className="h-3 w-3" />
+            </span>
+            {/* Индикатор непрочитанного */}
+            {!notification.is_read && (
+              <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
+            )}
+          </div>
         </div>
         {notification.body && (
           <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">

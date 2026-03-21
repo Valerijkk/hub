@@ -97,7 +97,7 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
     if (!data || swimlaneMode === "none") return ["all"];
     const keys = new Set<string>();
     for (const col of data.columns) {
-      const lanes = getSwimlanes(col.issues, swimlaneMode);
+      const lanes = getSwimlanes(col.issues ?? [], swimlaneMode);
       for (const k of lanes.keys()) {
         keys.add(k);
       }
@@ -147,12 +147,13 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
             )}
             <div className="flex gap-4">
               {data.columns.map((col) => {
-                const lanes = getSwimlanes(col.issues, swimlaneMode);
+                const colIssues = col.issues ?? [];
+                const lanes = getSwimlanes(colIssues, swimlaneMode);
                 const laneIssues = lanes.get(laneKey) ?? [];
                 const wipLimit = (col.status as { wip_limit?: number })
                   .wip_limit ?? 0;
                 const isOverLimit =
-                  wipLimit > 0 && col.issues.length >= wipLimit;
+                  wipLimit > 0 && colIssues.length >= wipLimit;
 
                 return (
                   <KanbanColumn
@@ -160,7 +161,7 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
                     column={col}
                     issues={laneIssues}
                     wipLimit={wipLimit}
-                    totalCount={col.issues.length}
+                    totalCount={colIssues.length}
                     isOverLimit={isOverLimit}
                     onDrop={handleDrop}
                   />

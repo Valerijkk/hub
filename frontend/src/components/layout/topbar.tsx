@@ -18,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
-import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface TopbarProps {
   onMenuToggle?: () => void;
@@ -68,9 +67,6 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
 
       {/* Правая часть */}
       <div className="flex items-center gap-1.5">
-        {/* Переключатель языка */}
-        <LanguageSwitcher compact className="hidden sm:flex" />
-
         {/* Уведомления */}
         <NotificationBell />
 

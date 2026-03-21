@@ -114,6 +114,17 @@ func (r *Repository) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
 		Exec(ctx)
 }
 
+// DeleteNotification удаляет уведомление пользователя.
+func (r *Repository) DeleteNotification(ctx context.Context, notifID, userID uuid.UUID) error {
+	_, err := r.db.Notification.Delete().
+		Where(
+			notification.ID(notifID),
+			notification.UserID(userID),
+		).
+		Exec(ctx)
+	return err
+}
+
 // CountUnread возвращает количество непрочитанных уведомлений пользователя.
 func (r *Repository) CountUnread(ctx context.Context, userID uuid.UUID) (int, error) {
 	return r.db.Notification.Query().

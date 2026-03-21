@@ -142,7 +142,7 @@ function BoardPage() {
     if (!boardData?.columns) return [];
     return boardData.columns.map((col) => ({
       ...col,
-      issues: col.issues.filter((issue) => {
+      issues: (col.issues ?? []).filter((issue) => {
         if (filters.search) {
           const q = filters.search.toLowerCase();
           if (
@@ -311,7 +311,7 @@ function reorderBoard(
 ): BoardDataResponse {
   const columns = board.columns.map((col) => ({
     ...col,
-    issues: [...col.issues],
+    issues: [...(col.issues ?? [])],
   }));
 
   let movedIssue = null;

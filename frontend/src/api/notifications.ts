@@ -78,6 +78,11 @@ export function markAllRead() {
   return api.patch<void>("/notifications/read-all");
 }
 
+/** Удалить уведомление. */
+export function deleteNotification(id: string) {
+  return api.delete<void>(`/notifications/${id}`);
+}
+
 /** Получить настройки уведомлений. */
 export function getPreferences() {
   return api.get<PreferenceDTO[]>("/notifications/preferences");

@@ -208,6 +208,11 @@ func (s *NotificationService) MarkAllRead(ctx context.Context, userID uuid.UUID)
 	return s.repo.MarkAllRead(ctx, userID)
 }
 
+// DeleteNotification удаляет уведомление пользователя.
+func (s *NotificationService) DeleteNotification(ctx context.Context, notifID, userID uuid.UUID) error {
+	return s.repo.DeleteNotification(ctx, notifID, userID)
+}
+
 // GetUnreadCount возвращает количество непрочитанных уведомлений.
 func (s *NotificationService) GetUnreadCount(ctx context.Context, userID uuid.UUID) (int, error) {
 	return s.repo.CountUnread(ctx, userID)

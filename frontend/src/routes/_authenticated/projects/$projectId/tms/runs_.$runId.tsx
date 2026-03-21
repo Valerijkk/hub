@@ -246,7 +246,7 @@ function TestRunDetailPage() {
       setExecutingResultId(null);
       return;
     }
-    const nextUnknown = run.results.find(
+    const nextUnknown = (run.results ?? []).find(
       (r) => r.status === "unknown" && r.id !== executingResultId,
     );
     if (nextUnknown) {
@@ -285,7 +285,7 @@ function TestRunDetailPage() {
   }
 
   const executingResult = executingResultId
-    ? run.results.find((r) => r.id === executingResultId)
+    ? (run.results ?? []).find((r) => r.id === executingResultId)
     : null;
 
   const passRate =
@@ -357,10 +357,10 @@ function TestRunDetailPage() {
             </div>
           )}
           {/* Назначенные */}
-          {run.assignees.length > 0 && (
+          {(run.assignees ?? []).length > 0 && (
             <div className="mt-2 flex items-center gap-1.5">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Назначены:</span>
-              {run.assignees.map((u) => (
+              {(run.assignees ?? []).map((u) => (
                 <Badge key={u.id} variant="outline" className="text-[10px] font-medium">
                   {u.name}
                 </Badge>
@@ -386,7 +386,7 @@ function TestRunDetailPage() {
               <Button
                 size="sm"
                 className="h-8 gradient-tms text-white"
-                disabled={startMutation.isPending || run.results.length === 0}
+                disabled={startMutation.isPending || (run.results ?? []).length === 0}
                 onClick={() => startMutation.mutate()}
               >
                 <svg className="mr-1 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -453,7 +453,7 @@ function TestRunDetailPage() {
         {/* Таблица результатов */}
         <div className="flex-1 min-w-0">
           {/* Фильтр по статусу результатов */}
-          {run.results.length > 0 && (
+          {(run.results ?? []).length > 0 && (
             <div className="mb-3 flex items-center gap-2">
               <select
                 className="rounded-lg border bg-card px-2.5 py-1.5 text-xs h-8 shadow-sm cursor-pointer hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
@@ -482,13 +482,13 @@ function TestRunDetailPage() {
               )}
               <span className="ml-auto text-[11px] text-muted-foreground tabular-nums">
                 {resultStatusFilter
-                  ? `${run.results.filter((r) => r.status === resultStatusFilter).length} из ${run.results.length}`
-                  : `${run.results.length} результатов`}
+                  ? `${(run.results ?? []).filter((r) => r.status === resultStatusFilter).length} из ${(run.results ?? []).length}`
+                  : `${(run.results ?? []).length} результатов`}
               </span>
             </div>
           )}
 
-          {run.results.length === 0 ? (
+          {(run.results ?? []).length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center border rounded-xl border-dashed">
               <svg className="h-12 w-12 text-muted-foreground/20 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -503,9 +503,10 @@ function TestRunDetailPage() {
           ) : (
             <div className="rounded-xl border shadow-card overflow-hidden">
               {(() => {
+                const allResults = run.results ?? [];
                 const filteredResults = resultStatusFilter
-                  ? run.results.filter((r) => r.status === resultStatusFilter)
-                  : run.results;
+                  ? allResults.filter((r) => r.status === resultStatusFilter)
+                  : allResults;
 
                 if (filteredResults.length === 0 && resultStatusFilter) {
                   return (
@@ -632,9 +633,9 @@ function TestRunDetailPage() {
             <DialogTitle>Добавить тест-кейсы в прогон</DialogTitle>
           </DialogHeader>
           <div className="space-y-1.5">
-            {casesData?.items.map((tc) => {
+            {(casesData?.items ?? []).map((tc) => {
               const existingIds = new Set(
-                run.results
+                (run.results ?? [])
                   .map((r) => r.test_case?.id)
                   .filter(Boolean),
               );
