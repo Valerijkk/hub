@@ -89,9 +89,9 @@
 
 ### Интеграция с Allure
 
-- [ ] **ALLU-01**: CI генерирует Allure Report HTML; Hub предоставляет парсер, который читает allure-results JSON и отправляет POST в TMS API
-- [ ] **ALLU-02**: Сопоставление результатов тестов с тест-кейсами по Allure ID или имени теста
-- [ ] **ALLU-03**: История запусков, статистика и Telegram-уведомления о завершении тест-рана
+- [x] **ALLU-01**: CI генерирует Allure Report HTML; Hub предоставляет парсер, который читает allure-results JSON и отправляет POST в TMS API
+- [x] **ALLU-02**: Сопоставление результатов тестов с тест-кейсами по Allure ID или имени теста
+- [x] **ALLU-03**: История запусков, статистика и Telegram-уведомления о завершении тест-рана
 
 ### Голосовые звонки
 
@@ -285,9 +285,9 @@
 | TMS-08 | Phase 4 | Pending |
 | TMS-09 | Phase 4 | Pending |
 | TMS-10 | Phase 4 | Pending |
-| ALLU-01 | Phase 4 | Pending |
-| ALLU-02 | Phase 4 | Pending |
-| ALLU-03 | Phase 4 | Pending |
+| ALLU-01 | Phase 4 | Complete |
+| ALLU-02 | Phase 4 | Complete |
+| ALLU-03 | Phase 4 | Complete |
 | CALL-01 | Phase 5 | Pending |
 | CALL-02 | Phase 7 | Pending |
 | CALL-03 | Phase 5 | Pending |
