@@ -19,7 +19,7 @@ import (
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
-// AuthService contains the business logic for authentication and user management.
+// AuthService содержит бизнес-логику аутентификации и управления пользователями.
 type AuthService struct {
 	db        *ent.Client
 	redis     *redis.Client
@@ -31,7 +31,7 @@ type AuthService struct {
 	botToken  string
 }
 
-// NewAuthService creates a new AuthService.
+// NewAuthService создаёт новый сервис аутентификации.
 func NewAuthService(
 	db *ent.Client,
 	rdb *redis.Client,
@@ -55,13 +55,14 @@ func NewAuthService(
 
 // ---- JWT helpers ----
 
-// JWTClaims are the custom claims embedded in access tokens.
+// JWTClaims — пользовательские claims, встроенные в access-токены.
 type JWTClaims struct {
 	jwt.RegisteredClaims
 	UserID    string `json:"uid"`
 	SessionID string `json:"sid"`
 }
 
+// generateAccessToken генерирует JWT access-токен для указанного пользователя и сессии.
 func (s *AuthService) generateAccessToken(userID, sessionID uuid.UUID) (string, error) {
 	now := time.Now()
 	claims := JWTClaims{
@@ -77,7 +78,7 @@ func (s *AuthService) generateAccessToken(userID, sessionID uuid.UUID) (string, 
 	return token.SignedString(s.jwtSecret)
 }
 
-// ParseAccessToken validates and parses a JWT access token string.
+// ParseAccessToken валидирует и парсит строку JWT access-токена.
 func (s *AuthService) ParseAccessToken(tokenStr string) (*JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &JWTClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -97,16 +98,19 @@ func (s *AuthService) ParseAccessToken(tokenStr string) (*JWTClaims, error) {
 
 // ---- Refresh token Redis helpers ----
 
+// refreshPayload — данные refresh-токена, хранящиеся в Redis.
 type refreshPayload struct {
 	UserID    string `json:"user_id"`
 	SessionID string `json:"session_id"`
 	Device    string `json:"device"`
 }
 
+// refreshKey возвращает Redis-ключ для refresh-токена.
 func refreshKey(token string) string {
 	return "refresh:" + token
 }
 
+// storeRefreshToken сохраняет refresh-токен в Redis с TTL.
 func (s *AuthService) storeRefreshToken(ctx context.Context, token string, payload refreshPayload) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -115,6 +119,7 @@ func (s *AuthService) storeRefreshToken(ctx context.Context, token string, paylo
 	return s.redis.Set(ctx, refreshKey(token), data, s.refreshTTL).Err()
 }
 
+// getRefreshPayload извлекает данные refresh-токена из Redis.
 func (s *AuthService) getRefreshPayload(ctx context.Context, token string) (*refreshPayload, error) {
 	data, err := s.redis.Get(ctx, refreshKey(token)).Bytes()
 	if err == redis.Nil {
@@ -130,13 +135,14 @@ func (s *AuthService) getRefreshPayload(ctx context.Context, token string) (*ref
 	return &p, nil
 }
 
+// deleteRefreshToken удаляет refresh-токен из Redis.
 func (s *AuthService) deleteRefreshToken(ctx context.Context, token string) {
 	s.redis.Del(ctx, refreshKey(token))
 }
 
 // ---- Core session operations ----
 
-// CreateSession generates JWT + refresh token, persists the session, and publishes a NATS event.
+// CreateSession генерирует JWT + refresh-токен, сохраняет сессию в БД и публикует NATS-событие.
 func (s *AuthService) CreateSession(ctx context.Context, userID uuid.UUID, device, ip string) (*TokenPairResponse, error) {
 	sessionID := uuid.New()
 	refreshToken := uuid.New().String()
@@ -179,6 +185,7 @@ func (s *AuthService) CreateSession(ctx context.Context, userID uuid.UUID, devic
 	}, nil
 }
 
+// publishSessionCreated публикует событие создания сессии в NATS (fire-and-forget).
 func (s *AuthService) publishSessionCreated(userID, sessionID, device, ip string) {
 	evt := SessionCreatedEvent{
 		UserID:    userID,
