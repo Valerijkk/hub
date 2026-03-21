@@ -92,11 +92,16 @@ export async function getActiveCall(
   channelId: string,
 ): Promise<CallResponse | null> {
   try {
-    return await api.get<CallResponse>(`/calls/channel/${channelId}`);
+    // Бэкенд возвращает {"call": null} когда нет активного звонка,
+    // или {"id": "...", ...} когда звонок активен
+    const raw = await api.get<CallResponse | { call: null }>(`/calls/channel/${channelId}`);
+    if (!raw || ('call' in raw && raw.call === null)) return null;
+    if (!('id' in raw) || !raw.id) return null;
+    return raw as CallResponse;
   } catch (err: unknown) {
     const apiErr = err as { code?: number };
     if (apiErr.code === 404) return null;
-    throw err;
+    return null;
   }
 }
 
