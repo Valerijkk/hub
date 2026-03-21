@@ -50,7 +50,18 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler)
 
 // ---- Public handlers ----
 
-// SendMagicLink handles POST /api/auth/magic-link.
+// SendMagicLink обрабатывает отправку magic-link для аутентификации.
+// @Summary Отправить magic-link на email
+// @Description Отправляет одноразовый код на указанный email для входа в систему
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body MagicLinkRequest true "Email пользователя"
+// @Success 200 {object} map[string]string "Magic link sent"
+// @Failure 400 {object} map[string]string "Некорректный email"
+// @Failure 403 {object} map[string]string "Регистрация только по приглашению"
+// @Failure 429 {object} map[string]string "Слишком много запросов"
+// @Router /auth/magic-link [post]
 func (h *Handler) SendMagicLink(c fiber.Ctx) error {
 	var req MagicLinkRequest
 	if err := c.Bind().JSON(&req); err != nil {
@@ -80,7 +91,17 @@ func (h *Handler) SendMagicLink(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Magic link sent"})
 }
 
-// VerifyMagicLink handles POST /api/auth/magic-link/verify.
+// VerifyMagicLink проверяет одноразовый код и выдаёт JWT-токены.
+// @Summary Верификация magic-link кода
+// @Description Проверяет 6-значный код, создаёт сессию и возвращает access/refresh токены
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body VerifyMagicLinkRequest true "Email и код верификации"
+// @Success 200 {object} TokenPairResponse "JWT-токены"
+// @Failure 400 {object} map[string]string "Некорректный запрос"
+// @Failure 401 {object} map[string]string "Неверный или просроченный код"
+// @Router /auth/magic-link/verify [post]
 func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 	var req VerifyMagicLinkRequest
 	if err := c.Bind().JSON(&req); err != nil {
@@ -132,7 +153,16 @@ func (h *Handler) LoginTelegram(c fiber.Ctx) error {
 	return c.JSON(tokens)
 }
 
-// RefreshToken handles POST /api/auth/refresh.
+// RefreshToken обновляет пару JWT-токенов по refresh-токену.
+// @Summary Обновить JWT-токены
+// @Description Принимает refresh-токен и возвращает новую пару access/refresh
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body RefreshRequest true "Refresh-токен"
+// @Success 200 {object} TokenPair "Новые JWT-токены"
+// @Failure 401 {object} map[string]string "Невалидный refresh-токен"
+// @Router /auth/refresh [post]
 func (h *Handler) RefreshToken(c fiber.Ctx) error {
 	var req RefreshRequest
 	if err := c.Bind().JSON(&req); err != nil {
@@ -149,7 +179,15 @@ func (h *Handler) RefreshToken(c fiber.Ctx) error {
 
 // ---- Protected handlers ----
 
-// Logout handles POST /api/auth/logout.
+// Logout завершает текущую сессию пользователя.
+// @Summary Выход из системы
+// @Description Инвалидирует текущую сессию и refresh-токен
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "Logged out"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Router /auth/logout [post]
 func (h *Handler) Logout(c fiber.Ctx) error {
 	sessionID, err := sessionIDFromCtx(c)
 	if err != nil {
@@ -163,7 +201,15 @@ func (h *Handler) Logout(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Logged out"})
 }
 
-// GetMe handles GET /api/auth/me.
+// GetMe возвращает профиль текущего аутентифицированного пользователя.
+// @Summary Получить профиль текущего пользователя
+// @Description Возвращает данные профиля по JWT-токену
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} UserResponse "Профиль пользователя"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Router /auth/me [get]
 func (h *Handler) GetMe(c fiber.Ctx) error {
 	userID, err := userIDFromCtx(c)
 	if err != nil {
