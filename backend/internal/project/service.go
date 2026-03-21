@@ -2,28 +2,45 @@ package project
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/issuelink"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
-// ProjectService implements the business logic for project management.
+// ProjectService реализует бизнес-логику управления проектами.
 type ProjectService struct {
-	repo  Repository
-	cache CacheInvalidator
+	repo         Repository
+	cache        CacheInvalidator
+	db           *ent.Client
+	nats         *natsclient.Client
+	trackerProv  TrackerProvisioner
 }
 
-// NewProjectService creates a new project service.
+// NewProjectService создаёт новый сервис проектов.
 func NewProjectService(repo Repository, cache CacheInvalidator) *ProjectService {
 	return &ProjectService{
 		repo:  repo,
 		cache: cache,
 	}
+}
+
+// SetDB устанавливает Ent-клиент для очистки кросс-проектных связей.
+func (s *ProjectService) SetDB(db *ent.Client) {
+	s.db = db
+}
+
+// SetNATS устанавливает NATS-клиент для нотификации при удалении связей.
+func (s *ProjectService) SetNATS(nats *natsclient.Client) {
+	s.nats = nats
 }
 
 // CreateProject creates a new project with the given user as owner.
@@ -45,6 +62,9 @@ func (s *ProjectService) CreateProject(ctx context.Context, userID uuid.UUID, na
 		}
 		return nil, apperrors.NewInternal("failed to create project")
 	}
+
+	// Автопровизия: создаём workflow по умолчанию и доску "Main Board"
+	s.provisionProject(ctx, p.ID)
 
 	count, err := s.repo.MemberCount(ctx, p.ID)
 	if err != nil {
@@ -121,9 +141,21 @@ func (s *ProjectService) UnarchiveProject(ctx context.Context, projectID uuid.UU
 	return toProjectResponse(p, count, ""), nil
 }
 
-// DeleteProject performs a soft delete: sets status to deleted and deleted_at to now.
+// DeleteProject выполняет мягкое удаление проекта: статус = deleted, deleted_at = now.
+// Также удаляет кросс-проектные связи задач и уведомляет исполнителей.
 func (s *ProjectService) DeleteProject(ctx context.Context, projectID uuid.UUID) error {
-	_, err := s.repo.UpdateStatus(ctx, projectID, project.StatusDeleted, true)
+	p, err := s.repo.FindByID(ctx, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("project not found")
+		}
+		return apperrors.NewInternal("failed to find project")
+	}
+
+	// Удаляем кросс-проектные связи до soft-delete.
+	s.cleanupCrossProjectLinks(ctx, projectID, p.Name)
+
+	_, err = s.repo.UpdateStatus(ctx, projectID, project.StatusDeleted, true)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("project not found")
@@ -131,6 +163,93 @@ func (s *ProjectService) DeleteProject(ctx context.Context, projectID uuid.UUID)
 		return apperrors.NewInternal("failed to delete project")
 	}
 	return nil
+}
+
+// cleanupCrossProjectLinks удаляет связи задач, где одна сторона принадлежит
+// удаляемому проекту, а другая — другому проекту. Отправляет NATS-уведомление
+// исполнителю задачи из другого проекта.
+func (s *ProjectService) cleanupCrossProjectLinks(ctx context.Context, projectID uuid.UUID, projectName string) {
+	if s.db == nil {
+		return
+	}
+
+	// Связи, где source принадлежит этому проекту, а target — другому.
+	outgoing, err := s.db.IssueLink.Query().
+		Where(
+			issuelink.HasSourceWith(issue.HasProjectWith(project.IDEQ(projectID))),
+			issuelink.HasTargetWith(issue.HasProjectWith(project.IDNEQ(projectID))),
+		).
+		WithSource().
+		WithTarget(func(q *ent.IssueQuery) { q.WithAssignee() }).
+		All(ctx)
+	if err != nil {
+		slog.Error("ошибка поиска исходящих кросс-проектных связей", "error", err)
+	}
+
+	// Связи, где target принадлежит этому проекту, а source — другому.
+	incoming, err := s.db.IssueLink.Query().
+		Where(
+			issuelink.HasTargetWith(issue.HasProjectWith(project.IDEQ(projectID))),
+			issuelink.HasSourceWith(issue.HasProjectWith(project.IDNEQ(projectID))),
+		).
+		WithTarget().
+		WithSource(func(q *ent.IssueQuery) { q.WithAssignee() }).
+		All(ctx)
+	if err != nil {
+		slog.Error("ошибка поиска входящих кросс-проектных связей", "error", err)
+	}
+
+	// Обрабатываем исходящие: уведомляем assignee target-задачи.
+	for _, link := range outgoing {
+		if dErr := s.db.IssueLink.DeleteOneID(link.ID).Exec(ctx); dErr != nil {
+			slog.Error("ошибка удаления кросс-проектной связи", "link_id", link.ID, "error", dErr)
+			continue
+		}
+		if link.Edges.Source != nil && link.Edges.Target != nil {
+			s.notifyLinkDeleted(ctx, link.Edges.Target, link.Edges.Source.IssueKey, projectName)
+		}
+	}
+
+	// Обрабатываем входящие: уведомляем assignee source-задачи.
+	for _, link := range incoming {
+		if dErr := s.db.IssueLink.DeleteOneID(link.ID).Exec(ctx); dErr != nil {
+			slog.Error("ошибка удаления кросс-проектной связи", "link_id", link.ID, "error", dErr)
+			continue
+		}
+		if link.Edges.Target != nil && link.Edges.Source != nil {
+			s.notifyLinkDeleted(ctx, link.Edges.Source, link.Edges.Target.IssueKey, projectName)
+		}
+	}
+}
+
+// notifyLinkDeleted отправляет NATS-уведомление исполнителю задачи о том,
+// что связь удалена из-за удаления проекта.
+func (s *ProjectService) notifyLinkDeleted(ctx context.Context, otherIssue *ent.Issue, deletedIssueKey, deletedProjectName string) {
+	if s.nats == nil || otherIssue == nil {
+		return
+	}
+
+	assignee := otherIssue.Edges.Assignee
+	if assignee == nil {
+		return
+	}
+
+	payload := map[string]interface{}{
+		"user_id": assignee.ID.String(),
+		"type":    "link_deleted",
+		"title":   fmt.Sprintf("Связь с %s удалена — проект %s удалён", deletedIssueKey, deletedProjectName),
+		"entity":  "issue",
+		"entity_id": otherIssue.ID.String(),
+	}
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+
+	if pErr := s.nats.Publish("project.link_deleted", data); pErr != nil {
+		slog.Error("не удалось отправить уведомление об удалении связи", "error", pErr)
+	}
 }
 
 // RestoreProject restores a project from the trash (sets status to active, clears deleted_at).

@@ -157,6 +157,8 @@ func main() {
 	outboxPublisher := outbox.NewPublisher()
 	projectRepo := projectmod.NewEntRepository(db, outboxPublisher)
 	projectSvc := projectmod.NewProjectService(projectRepo, rbacCache)
+	projectSvc.SetDB(db)
+	projectSvc.SetNATS(nc)
 	projectHandler := projectmod.NewHandler(projectSvc)
 	projectHandler.RegisterRoutes(api, requireAuth)
 
