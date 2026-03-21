@@ -124,6 +124,9 @@ type Repository interface {
 	ListCustomFields(ctx context.Context, projectID uuid.UUID) ([]*ent.CustomFieldDefinition, error)
 	// DeleteCustomField removes a custom field definition by ID.
 	DeleteCustomField(ctx context.Context, fieldID uuid.UUID) error
+
+	// GetDB возвращает Ent-клиент для прямых запросов (JQL и др.).
+	GetDB() *ent.Client
 }
 
 // ---------------------------------------------------------------------------
@@ -214,4 +217,9 @@ type EntRepository struct {
 // NewEntRepository creates a new Ent-backed tracker repository.
 func NewEntRepository(client *ent.Client, publisher OutboxPublisher) *EntRepository {
 	return &EntRepository{client: client, publisher: publisher}
+}
+
+// GetDB возвращает Ent-клиент для прямых запросов (JQL и др.).
+func (r *EntRepository) GetDB() *ent.Client {
+	return r.client
 }
