@@ -181,10 +181,19 @@ func (c *Consumer) handleAssigned(ctx context.Context, data []byte, _ string) {
 
 	assigneeID, err := uuid.Parse(evt.AssigneeID)
 	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "assignee_id", "value", evt.AssigneeID, "error", err)
 		return
 	}
-	actorID, _ := uuid.Parse(evt.AssignedByID)
-	projectID, _ := uuid.Parse(evt.ProjectID)
+	actorID, err := uuid.Parse(evt.AssignedByID)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "assigned_by_id", "value", evt.AssignedByID, "error", err)
+		return
+	}
+	projectID, err := uuid.Parse(evt.ProjectID)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "project_id", "value", evt.ProjectID, "error", err)
+		return
+	}
 
 	if assigneeID == actorID {
 		return // Не уведомляем о самоназначении.
@@ -194,11 +203,13 @@ func (c *Consumer) handleAssigned(ctx context.Context, data []byte, _ string) {
 		return
 	}
 
-	_ = c.service.Dispatch(ctx, assigneeID, TypeAssigned,
+	if err := c.service.Dispatch(ctx, assigneeID, TypeAssigned,
 		"Вам назначена задача "+evt.IssueKey,
 		"",
 		"issue", evt.IssueID,
-		&projectID, &actorID, false)
+		&projectID, &actorID, false); err != nil {
+		slog.Error("не удалось отправить уведомление", "event", "assigned", "error", err)
+	}
 }
 
 // handleStatusChanged обрабатывает событие смены статуса задачи.
@@ -209,21 +220,25 @@ func (c *Consumer) handleStatusChanged(ctx context.Context, data []byte, _ strin
 		return
 	}
 
-	projectID, _ := uuid.Parse(evt.ProjectID)
-	actorID, _ := uuid.Parse(evt.MovedByID)
+	projectID, err := uuid.Parse(evt.ProjectID)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "project_id", "value", evt.ProjectID, "error", err)
+		return
+	}
+	actorID, err := uuid.Parse(evt.MovedByID)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "moved_by_id", "value", evt.MovedByID, "error", err)
+		return
+	}
 
 	// Уведомляем назначенного пользователя (если есть) — загрузим из БД.
 	issueID, err := uuid.Parse(evt.IssueID)
 	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "issue_id", "value", evt.IssueID, "error", err)
 		return
 	}
 
-	issue, err := c.repo.db.Issue.Get(ctx, issueID)
-	if err != nil {
-		return
-	}
-
-	assignee, err := issue.QueryAssignee().First(ctx)
+	assignee, err := c.repo.GetIssueAssignee(ctx, issueID)
 	if err != nil || assignee == nil {
 		return
 	}
@@ -236,11 +251,13 @@ func (c *Consumer) handleStatusChanged(ctx context.Context, data []byte, _ strin
 		return
 	}
 
-	_ = c.service.Dispatch(ctx, assignee.ID, TypeStatusChanged,
+	if err := c.service.Dispatch(ctx, assignee.ID, TypeStatusChanged,
 		"Статус задачи "+evt.IssueKey+" изменён",
 		"",
 		"issue", evt.IssueID,
-		&projectID, &actorID, false)
+		&projectID, &actorID, false); err != nil {
+		slog.Error("не удалось отправить уведомление", "event", "status_changed", "error", err)
+	}
 }
 
 // handleCommentAdded обрабатывает событие добавления комментария.
@@ -251,8 +268,16 @@ func (c *Consumer) handleCommentAdded(ctx context.Context, data []byte, _ string
 		return
 	}
 
-	projectID, _ := uuid.Parse(evt.ProjectID)
-	actorID, _ := uuid.Parse(evt.AuthorID)
+	projectID, err := uuid.Parse(evt.ProjectID)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "project_id", "value", evt.ProjectID, "error", err)
+		return
+	}
+	actorID, err := uuid.Parse(evt.AuthorID)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "author_id", "value", evt.AuthorID, "error", err)
+		return
+	}
 
 	// Уведомляем упомянутых пользователей.
 	for _, mentionStr := range evt.Mentions {
@@ -265,23 +290,22 @@ func (c *Consumer) handleCommentAdded(ctx context.Context, data []byte, _ string
 			continue
 		}
 
-		_ = c.service.Dispatch(ctx, mentionID, TypeMentioned,
+		if err := c.service.Dispatch(ctx, mentionID, TypeMentioned,
 			"Вас упомянули в задаче "+evt.IssueKey,
 			"",
 			"issue", evt.IssueID,
-			&projectID, &actorID, false)
+			&projectID, &actorID, false); err != nil {
+			slog.Error("не удалось отправить уведомление", "event", "mentioned", "error", err)
+		}
 	}
 
 	// Уведомляем назначенного пользователя о новом комментарии.
 	issueID, err := uuid.Parse(evt.IssueID)
 	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "issue_id", "value", evt.IssueID, "error", err)
 		return
 	}
-	issue, err := c.repo.db.Issue.Get(ctx, issueID)
-	if err != nil {
-		return
-	}
-	assignee, err := issue.QueryAssignee().First(ctx)
+	assignee, err := c.repo.GetIssueAssignee(ctx, issueID)
 	if err != nil || assignee == nil {
 		return
 	}
@@ -293,11 +317,13 @@ func (c *Consumer) handleCommentAdded(ctx context.Context, data []byte, _ string
 		return
 	}
 
-	_ = c.service.Dispatch(ctx, assignee.ID, TypeCommentAdded,
+	if err := c.service.Dispatch(ctx, assignee.ID, TypeCommentAdded,
 		"Новый комментарий к задаче "+evt.IssueKey,
 		"",
 		"issue", evt.IssueID,
-		&projectID, &actorID, false)
+		&projectID, &actorID, false); err != nil {
+		slog.Error("не удалось отправить уведомление", "event", "comment_added", "error", err)
+	}
 }
 
 // handleBlockerAdded обрабатывает событие добавления блокирующей связи.
@@ -320,29 +346,36 @@ func (c *Consumer) handleBlockerAdded(ctx context.Context, data []byte, _ string
 	// Уведомляем назначенного на заблокированную задачу.
 	targetID, err := uuid.Parse(evt.TargetID)
 	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "target_id", "value", evt.TargetID, "error", err)
 		return
 	}
-	issue, err := c.repo.db.Issue.Get(ctx, targetID)
-	if err != nil {
-		return
-	}
-	assignee, err := issue.QueryAssignee().First(ctx)
+	assignee, err := c.repo.GetIssueAssignee(ctx, targetID)
 	if err != nil || assignee == nil {
 		return
 	}
 
-	actorID, _ := uuid.Parse(evt.CreatedBy)
-	projectID, _ := uuid.Parse(evt.ProjectID)
+	actorID, err := uuid.Parse(evt.CreatedBy)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "created_by", "value", evt.CreatedBy, "error", err)
+		return
+	}
+	projectID, err := uuid.Parse(evt.ProjectID)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "project_id", "value", evt.ProjectID, "error", err)
+		return
+	}
 
 	if assignee.ID == actorID {
 		return
 	}
 
-	_ = c.service.Dispatch(ctx, assignee.ID, TypeBlockerAdded,
+	if err := c.service.Dispatch(ctx, assignee.ID, TypeBlockerAdded,
 		"Задача заблокирована",
 		"",
 		"issue", evt.TargetID,
-		&projectID, &actorID, true)
+		&projectID, &actorID, true); err != nil {
+		slog.Error("не удалось отправить уведомление", "event", "blocker_added", "error", err)
+	}
 }
 
 // handleMessageReceived обрабатывает событие нового сообщения.
@@ -366,13 +399,18 @@ func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subje
 		return
 	}
 
-	senderID, _ := uuid.Parse(evt.SenderID)
+	senderID, err := uuid.Parse(evt.SenderID)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "sender_id", "value", evt.SenderID, "error", err)
+		return
+	}
 	channelID, err := uuid.Parse(parts[2])
 	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "channel_id", "value", parts[2], "error", err)
 		return
 	}
 
-	channel, err := c.repo.db.Channel.Get(ctx, channelID)
+	ch, err := c.repo.GetChannel(ctx, channelID)
 	if err != nil {
 		return
 	}
@@ -393,19 +431,21 @@ func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subje
 			continue
 		}
 
-		_ = c.service.Dispatch(ctx, mentionID, TypeMentioned,
+		if err := c.service.Dispatch(ctx, mentionID, TypeMentioned,
 			"Вас упомянули в сообщении",
 			truncated,
 			"channel", parts[2],
-			nil, &senderID, false)
+			nil, &senderID, false); err != nil {
+			slog.Error("не удалось отправить уведомление", "event", "mentioned_message", "error", err)
+		}
 	}
 
 	// Для DM — дополнительно уведомляем второго участника.
-	if string(channel.ChannelType) != "dm" {
+	if string(ch.ChannelType) != "dm" {
 		return
 	}
 
-	members, err := channel.QueryMembers().All(ctx)
+	members, err := c.repo.GetChannelMembers(ctx, channelID)
 	if err != nil {
 		return
 	}
@@ -420,11 +460,13 @@ func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subje
 			continue
 		}
 
-		_ = c.service.Dispatch(ctx, recipientID, TypeMessageReceived,
+		if err := c.service.Dispatch(ctx, recipientID, TypeMessageReceived,
 			"Новое сообщение",
 			truncated,
 			"channel", parts[2],
-			nil, &senderID, false)
+			nil, &senderID, false); err != nil {
+			slog.Error("не удалось отправить уведомление", "event", "message_received", "error", err)
+		}
 	}
 }
 
@@ -444,17 +486,18 @@ func (c *Consumer) handleCallStarted(ctx context.Context, data []byte, subject s
 		return
 	}
 
-	starterID, _ := uuid.Parse(evt.StartedBy)
+	starterID, err := uuid.Parse(evt.StartedBy)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "started_by", "value", evt.StartedBy, "error", err)
+		return
+	}
 	channelID, err := uuid.Parse(parts[2])
 	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "channel_id", "value", parts[2], "error", err)
 		return
 	}
 
-	members, err := c.repo.db.Channel.Get(ctx, channelID)
-	if err != nil {
-		return
-	}
-	channelMembers, err := members.QueryMembers().All(ctx)
+	channelMembers, err := c.repo.GetChannelMembers(ctx, channelID)
 	if err != nil {
 		return
 	}
@@ -469,11 +512,13 @@ func (c *Consumer) handleCallStarted(ctx context.Context, data []byte, subject s
 			continue
 		}
 
-		_ = c.service.Dispatch(ctx, recipientID, TypeCallStarted,
+		if err := c.service.Dispatch(ctx, recipientID, TypeCallStarted,
 			"Звонок начался",
 			"",
 			"call", evt.CallID,
-			nil, &starterID, false)
+			nil, &starterID, false); err != nil {
+			slog.Error("не удалось отправить уведомление", "event", "call_started", "error", err)
+		}
 	}
 }
 
@@ -484,15 +529,19 @@ func (c *Consumer) handleRunCompleted(ctx context.Context, data []byte, _ string
 		return
 	}
 
-	completedByID, _ := uuid.Parse(evt.CompletedBy)
-	projectID, _ := uuid.Parse(evt.ProjectID)
-
-	// Уведомляем участников проекта через edge-запрос.
-	project, err := c.repo.db.Project.Get(ctx, projectID)
+	completedByID, err := uuid.Parse(evt.CompletedBy)
 	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "completed_by", "value", evt.CompletedBy, "error", err)
 		return
 	}
-	members, err := project.QueryMembers().WithUser().All(ctx)
+	projectID, err := uuid.Parse(evt.ProjectID)
+	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "project_id", "value", evt.ProjectID, "error", err)
+		return
+	}
+
+	// Уведомляем участников проекта через edge-запрос.
+	members, err := c.repo.GetProjectMembersWithUser(ctx, projectID)
 	if err != nil {
 		return
 	}
@@ -512,11 +561,13 @@ func (c *Consumer) handleRunCompleted(ctx context.Context, data []byte, _ string
 			continue
 		}
 
-		_ = c.service.Dispatch(ctx, recipientID, TypeRunCompleted,
+		if err := c.service.Dispatch(ctx, recipientID, TypeRunCompleted,
 			"Прогон завершён: "+evt.Title,
 			body,
 			"testrun", evt.RunID,
-			&projectID, &completedByID, false)
+			&projectID, &completedByID, false); err != nil {
+			slog.Error("не удалось отправить уведомление", "event", "run_completed", "error", err)
+		}
 	}
 }
 
@@ -531,6 +582,7 @@ func (c *Consumer) handleNewLogin(ctx context.Context, data []byte) {
 
 	userID, err := uuid.Parse(evt.UserID)
 	if err != nil {
+		slog.Error("некорректный UUID в событии", "field", "user_id", "value", evt.UserID, "error", err)
 		return
 	}
 
@@ -545,11 +597,13 @@ func (c *Consumer) handleNewLogin(ctx context.Context, data []byte) {
 
 	body := fmt.Sprintf("Устройство: %s, IP: %s", device, evt.IPAddress)
 
-	_ = c.service.Dispatch(ctx, userID, TypeNewLogin,
+	if err := c.service.Dispatch(ctx, userID, TypeNewLogin,
 		"Новый вход в аккаунт",
 		body,
 		"session", evt.SessionID,
-		nil, nil, false)
+		nil, nil, false); err != nil {
+		slog.Error("не удалось отправить уведомление", "event", "new_login", "error", err)
+	}
 }
 
 // shouldDispatch проверяет 2-секундное окно дебаунса.

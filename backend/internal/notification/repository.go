@@ -182,6 +182,48 @@ func (r *Repository) UpsertPreference(ctx context.Context, userID uuid.UUID, not
 	return builder.Save(ctx)
 }
 
+// --- Helper methods for consumer (avoid direct DB access) ---
+
+// GetIssueAssignee возвращает назначенного пользователя задачи по ID задачи.
+// Возвращает nil, nil если задача не найдена или назначенный не задан.
+func (r *Repository) GetIssueAssignee(ctx context.Context, issueID uuid.UUID) (*ent.User, error) {
+	issue, err := r.db.Issue.Get(ctx, issueID)
+	if err != nil {
+		return nil, err
+	}
+	assignee, err := issue.QueryAssignee().First(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return assignee, nil
+}
+
+// GetChannel возвращает канал по ID.
+func (r *Repository) GetChannel(ctx context.Context, channelID uuid.UUID) (*ent.Channel, error) {
+	return r.db.Channel.Get(ctx, channelID)
+}
+
+// GetChannelMembers возвращает список участников канала.
+func (r *Repository) GetChannelMembers(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelMember, error) {
+	ch, err := r.db.Channel.Get(ctx, channelID)
+	if err != nil {
+		return nil, err
+	}
+	return ch.QueryMembers().All(ctx)
+}
+
+// GetProjectMembersWithUser возвращает участников проекта с загруженными данными пользователя.
+func (r *Repository) GetProjectMembersWithUser(ctx context.Context, projectID uuid.UUID) ([]*ent.ProjectMember, error) {
+	proj, err := r.db.Project.Get(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return proj.QueryMembers().WithUser().All(ctx)
+}
+
 // IsEnabled проверяет, включено ли уведомление данного типа для канала и пользователя.
 // Сначала проверяет per-project настройку, потом глобальную. По умолчанию — включено.
 func (r *Repository) IsEnabled(ctx context.Context, userID uuid.UUID, notifType, channel string, projectID *uuid.UUID) (bool, error) {
