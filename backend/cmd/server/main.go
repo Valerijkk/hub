@@ -18,6 +18,7 @@ import (
 	projectmod "github.com/valerii/hub/backend/internal/project"
 	"github.com/valerii/hub/backend/internal/rbac"
 	storagemod "github.com/valerii/hub/backend/internal/storage"
+	messengermod "github.com/valerii/hub/backend/internal/messenger"
 	trackermod "github.com/valerii/hub/backend/internal/tracker"
 	redisclient "github.com/valerii/hub/backend/internal/platform/redis"
 	wsmod "github.com/valerii/hub/backend/internal/ws"
@@ -132,6 +133,22 @@ func main() {
 	trackerSvc := trackermod.NewTrackerService(trackerRepo)
 	trackerHandler := trackermod.NewHandler(trackerSvc)
 	trackerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+
+	// Messenger routes
+	mongoDB, err := database.NewMongoClient(ctx, cfg.MongoDB.URL, cfg.MongoDB.Database)
+	if err != nil {
+		slog.Error("failed to connect to MongoDB", "error", err)
+		os.Exit(1)
+	}
+	messengerEntRepo := messengermod.NewEntRepository(db)
+	messengerMongoRepo := messengermod.NewMongoRepository(mongoDB)
+	if err := messengerMongoRepo.EnsureIndexes(ctx); err != nil {
+		slog.Error("failed to ensure messenger indexes", "error", err)
+	}
+	messengerRepo := messengermod.NewCombinedRepository(messengerEntRepo, messengerMongoRepo)
+	messengerSvc := messengermod.NewMessengerService(messengerRepo, nc)
+	messengerHandler := messengermod.NewHandler(messengerSvc)
+	messengerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// --- WebSocket gateway ---
 

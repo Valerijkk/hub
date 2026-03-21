@@ -1,0 +1,138 @@
+package messenger
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
+)
+
+// CombinedRepository объединяет EntRepository и MongoRepository
+// в единую реализацию интерфейса Repository.
+type CombinedRepository struct {
+	ent   *EntRepository
+	mongo *MongoRepository
+}
+
+// NewCombinedRepository создаёт комбинированный репозиторий из Ent и MongoDB частей.
+func NewCombinedRepository(entRepo *EntRepository, mongoRepo *MongoRepository) *CombinedRepository {
+	return &CombinedRepository{ent: entRepo, mongo: mongoRepo}
+}
+
+// --- Каналы (делегируем в EntRepository) ---
+
+func (r *CombinedRepository) CreateChannel(ctx context.Context, input CreateChannelInput) (*ent.Channel, error) {
+	return r.ent.CreateChannel(ctx, input)
+}
+func (r *CombinedRepository) GetChannel(ctx context.Context, channelID uuid.UUID) (*ent.Channel, error) {
+	return r.ent.GetChannel(ctx, channelID)
+}
+func (r *CombinedRepository) ListUserChannels(ctx context.Context, userID uuid.UUID) ([]*ent.Channel, error) {
+	return r.ent.ListUserChannels(ctx, userID)
+}
+func (r *CombinedRepository) UpdateChannel(ctx context.Context, channelID uuid.UUID, input UpdateChannelInput) (*ent.Channel, error) {
+	return r.ent.UpdateChannel(ctx, channelID, input)
+}
+func (r *CombinedRepository) DeleteChannel(ctx context.Context, channelID uuid.UUID) error {
+	return r.ent.DeleteChannel(ctx, channelID)
+}
+func (r *CombinedRepository) IsMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+	return r.ent.IsMember(ctx, channelID, userID)
+}
+func (r *CombinedRepository) GetMemberRole(ctx context.Context, channelID, userID uuid.UUID) (string, error) {
+	return r.ent.GetMemberRole(ctx, channelID, userID)
+}
+func (r *CombinedRepository) GetChannelMemberIDs(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
+	return r.ent.GetChannelMemberIDs(ctx, channelID)
+}
+func (r *CombinedRepository) AddMembers(ctx context.Context, channelID uuid.UUID, userIDs []uuid.UUID, role string) error {
+	return r.ent.AddMembers(ctx, channelID, userIDs, role)
+}
+func (r *CombinedRepository) RemoveMember(ctx context.Context, channelID, userID uuid.UUID) error {
+	return r.ent.RemoveMember(ctx, channelID, userID)
+}
+func (r *CombinedRepository) FindDMChannel(ctx context.Context, dmKey string) (*ent.Channel, error) {
+	return r.ent.FindDMChannel(ctx, dmKey)
+}
+func (r *CombinedRepository) ListMembers(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelMember, error) {
+	return r.ent.ListMembers(ctx, channelID)
+}
+
+// --- Сообщения (делегируем в MongoRepository) ---
+
+func (r *CombinedRepository) InsertMessage(ctx context.Context, doc *MessageDocument) (string, error) {
+	return r.mongo.InsertMessage(ctx, doc)
+}
+func (r *CombinedRepository) FindMessageByID(ctx context.Context, messageID string) (*MessageDocument, error) {
+	return r.mongo.FindMessageByID(ctx, messageID)
+}
+func (r *CombinedRepository) ListMessages(ctx context.Context, channelID uuid.UUID, before *time.Time, limit int) ([]*MessageDocument, error) {
+	return r.mongo.ListMessages(ctx, channelID, before, limit)
+}
+func (r *CombinedRepository) UpdateMessage(ctx context.Context, messageID string, contentJSON map[string]interface{}, contentText string) (*MessageDocument, error) {
+	return r.mongo.UpdateMessage(ctx, messageID, contentJSON, contentText)
+}
+func (r *CombinedRepository) SoftDeleteMessage(ctx context.Context, messageID string) error {
+	return r.mongo.SoftDeleteMessage(ctx, messageID)
+}
+func (r *CombinedRepository) IncrementReplyCount(ctx context.Context, messageID string) error {
+	return r.mongo.IncrementReplyCount(ctx, messageID)
+}
+func (r *CombinedRepository) DecrementReplyCount(ctx context.Context, messageID string) error {
+	return r.mongo.DecrementReplyCount(ctx, messageID)
+}
+func (r *CombinedRepository) ListThreadReplies(ctx context.Context, threadID string, before *time.Time, limit int) ([]*MessageDocument, error) {
+	return r.mongo.ListThreadReplies(ctx, threadID, before, limit)
+}
+
+// --- Реакции (делегируем в MongoRepository) ---
+
+func (r *CombinedRepository) AddReaction(ctx context.Context, messageID, userID, emoji string) error {
+	return r.mongo.AddReaction(ctx, messageID, userID, emoji)
+}
+func (r *CombinedRepository) RemoveReaction(ctx context.Context, messageID, userID, emoji string) error {
+	return r.mongo.RemoveReaction(ctx, messageID, userID, emoji)
+}
+func (r *CombinedRepository) FindReaction(ctx context.Context, messageID, userID, emoji string) (bool, error) {
+	return r.mongo.FindReaction(ctx, messageID, userID, emoji)
+}
+
+// --- Поиск (делегируем в MongoRepository) ---
+
+func (r *CombinedRepository) SearchMessages(ctx context.Context, query string, channelID *uuid.UUID, limit int) ([]*MessageDocument, error) {
+	return r.mongo.SearchMessages(ctx, query, channelID, limit)
+}
+
+// --- Закреплённые сообщения (делегируем в EntRepository) ---
+
+func (r *CombinedRepository) AddPin(ctx context.Context, channelID uuid.UUID, messageID string, pinnedBy uuid.UUID) error {
+	return r.ent.AddPin(ctx, channelID, messageID, pinnedBy)
+}
+func (r *CombinedRepository) RemovePin(ctx context.Context, channelID uuid.UUID, messageID string) error {
+	return r.ent.RemovePin(ctx, channelID, messageID)
+}
+func (r *CombinedRepository) FindPin(ctx context.Context, channelID uuid.UUID, messageID string) (*ent.PinnedMessage, error) {
+	return r.ent.FindPin(ctx, channelID, messageID)
+}
+func (r *CombinedRepository) ListPins(ctx context.Context, channelID uuid.UUID) ([]*ent.PinnedMessage, error) {
+	return r.ent.ListPins(ctx, channelID)
+}
+
+// --- Закладки (делегируем в EntRepository) ---
+
+func (r *CombinedRepository) AddBookmark(ctx context.Context, userID uuid.UUID, messageID string, channelID uuid.UUID) (*ent.Bookmark, error) {
+	return r.ent.AddBookmark(ctx, userID, messageID, channelID)
+}
+func (r *CombinedRepository) RemoveBookmark(ctx context.Context, bookmarkID uuid.UUID) error {
+	return r.ent.RemoveBookmark(ctx, bookmarkID)
+}
+func (r *CombinedRepository) ListBookmarks(ctx context.Context, userID uuid.UUID) ([]*ent.Bookmark, error) {
+	return r.ent.ListBookmarks(ctx, userID)
+}
+
+// --- Инициализация ---
+
+func (r *CombinedRepository) EnsureIndexes(ctx context.Context) error {
+	return r.mongo.EnsureIndexes(ctx)
+}
