@@ -173,8 +173,28 @@ function BoardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Загрузка доски...</p>
+      <div className="flex h-full flex-col">
+        {/* Скелетон панели фильтров */}
+        <div className="mb-4 flex items-center gap-3">
+          <div className="h-9 w-48 rounded-lg animate-shimmer" />
+          <div className="h-9 w-24 rounded-lg animate-shimmer" />
+          <div className="ml-auto h-9 w-32 rounded-lg animate-shimmer" />
+        </div>
+        {/* Скелетон колонок */}
+        <div className="flex flex-1 gap-4 overflow-x-auto pb-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex min-w-[300px] flex-col rounded-xl border border-border/30 bg-muted/20">
+              <div className="px-4 py-3">
+                <div className="h-5 w-24 rounded animate-shimmer" />
+              </div>
+              <div className="space-y-2 px-2 pb-2">
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="h-24 rounded-lg animate-shimmer" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -186,7 +206,7 @@ function BoardPage() {
         {/* Выбор доски */}
         {boards && boards.length > 1 && (
           <select
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
+            className="rounded-lg border bg-card px-3 py-2 text-sm font-medium"
             value={activeBoardId ?? ""}
             onChange={(e) => setActiveBoard(e.target.value)}
           >
@@ -200,7 +220,7 @@ function BoardPage() {
 
         <Input
           placeholder="Поиск задач..."
-          className="w-48"
+          className="w-52"
           value={filters.search ?? ""}
           onChange={(e) => setFilters({ search: e.target.value || undefined })}
         />
@@ -224,11 +244,14 @@ function BoardPage() {
         )}
 
         <div className="ml-auto">
-          <Button asChild>
+          <Button asChild className="gradient-tracker text-white shadow-sm">
             <Link
               to="/projects/$projectId/issues/new"
               params={{ projectId }}
             >
+              <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
               Новая задача
             </Link>
           </Button>
@@ -250,9 +273,15 @@ function BoardPage() {
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center">
-          <div className="text-center">
-            <p className="mb-4 text-lg text-muted-foreground">
-              Нет задач на этой доске
+          <div className="text-center max-w-sm animate-fade-in">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <svg className="h-8 w-8 text-primary/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Нет задач на доске</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Создайте первую задачу, чтобы начать работу с доской
             </p>
             <Button asChild>
               <Link

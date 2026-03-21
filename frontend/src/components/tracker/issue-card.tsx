@@ -8,12 +8,12 @@ import type { IssueBriefResponse } from "@/api/tracker";
 import { cn } from "@/lib/utils";
 
 /** Конфигурация цветов приоритетов задач. */
-const PRIORITY_COLORS: Record<string, string> = {
-  critical: "bg-red-500 text-white",
-  high: "bg-orange-500 text-white",
-  medium: "bg-yellow-500 text-black",
-  low: "bg-blue-500 text-white",
-  trivial: "bg-gray-400 text-white",
+const PRIORITY_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
+  critical: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", label: "Критический" },
+  high: { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", label: "Высокий" },
+  medium: { bg: "bg-yellow-500/10", text: "text-yellow-700 dark:text-yellow-400", label: "Средний" },
+  low: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", label: "Низкий" },
+  trivial: { bg: "bg-gray-500/10", text: "text-gray-500", label: "Тривиальный" },
 };
 
 /** Конфигурация иконок типов задач. */
@@ -63,8 +63,10 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
     });
   }, [issue.issue_key, issue.id, issue.status, issue.rank]);
 
+  const priority = PRIORITY_CONFIG[issue.priority] ?? PRIORITY_CONFIG.medium;
+
   return (
-    <div ref={cardRef} className={cn("cursor-grab", isDragging && "opacity-50")}>
+    <div ref={cardRef} className={cn("cursor-grab active:cursor-grabbing", isDragging && "opacity-40")}>
       <Link
         to="/projects/$projectId/issues/$issueKey"
         params={{ projectId, issueKey: issue.issue_key }}
@@ -73,30 +75,40 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
           if (isDragging) e.preventDefault();
         }}
       >
-        <Card className="gap-2 p-3 transition-shadow hover:shadow-md">
+        <Card className="gap-2.5 p-3 shadow-card hover-lift bg-card border-border/50">
+          {/* Верхняя строка: тип + ключ */}
           <div className="flex items-center gap-2">
             <span className="text-sm" title={issue.issue_type}>
               {TYPE_ICONS[issue.issue_type] ?? "\u{1F4CB}"}
             </span>
-            <span className="text-xs font-bold text-muted-foreground">
+            <span className="font-mono text-[11px] font-bold text-muted-foreground tracking-wide">
               {issue.issue_key}
             </span>
           </div>
 
-          <p className="text-sm font-medium leading-tight">{issue.title}</p>
+          {/* Название */}
+          <p className="text-sm font-medium leading-snug line-clamp-2">{issue.title}</p>
 
+          {/* Нижняя строка: приоритет + лейблы + аватар */}
           <div className="flex items-center justify-between">
-            <Badge
-              variant="secondary"
-              className={cn("text-xs", PRIORITY_COLORS[issue.priority])}
-            >
-              {issue.priority}
-            </Badge>
+            <div className="flex items-center gap-1.5">
+              <Badge
+                variant="secondary"
+                className={cn("text-[10px] font-semibold px-1.5 py-0 h-5", priority.bg, priority.text)}
+              >
+                {priority.label}
+              </Badge>
+              {issue.labels?.map((label) => (
+                <Badge key={label} variant="outline" className="text-[10px] px-1.5 py-0 h-5">
+                  {label}
+                </Badge>
+              ))}
+            </div>
 
             {issue.assignee && (
-              <Avatar className="h-5 w-5">
+              <Avatar className="h-6 w-6 ring-2 ring-background">
                 <AvatarImage src={issue.assignee.avatar_url} />
-                <AvatarFallback className="text-[10px]">
+                <AvatarFallback className="text-[10px] font-medium bg-primary/10 text-primary">
                   {issue.assignee.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
