@@ -14,10 +14,13 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTrashRouteImport } from './routes/_authenticated/trash'
+import { Route as AuthenticatedMessengerRouteImport } from './routes/_authenticated/messenger'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
+import { Route as AuthenticatedMessengerIndexRouteImport } from './routes/_authenticated/messenger/index'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings/profile'
 import { Route as AuthenticatedProjectsNewRouteImport } from './routes/_authenticated/projects/new'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects/$projectId'
+import { Route as AuthenticatedMessengerChannelIdRouteImport } from './routes/_authenticated/messenger/$channelId'
 import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects/$projectId/index'
 import { Route as AuthenticatedProjectsProjectIdIssuesIndexRouteImport } from './routes/_authenticated/projects/$projectId/issues/index'
 import { Route as AuthenticatedProjectsProjectIdBoardIndexRouteImport } from './routes/_authenticated/projects/$projectId/board/index'
@@ -50,11 +53,22 @@ const AuthenticatedTrashRoute = AuthenticatedTrashRouteImport.update({
   path: '/trash',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMessengerRoute = AuthenticatedMessengerRouteImport.update({
+  id: '/messenger',
+  path: '/messenger',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedProjectsIndexRoute =
   AuthenticatedProjectsIndexRouteImport.update({
     id: '/projects/',
     path: '/projects/',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMessengerIndexRoute =
+  AuthenticatedMessengerIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedMessengerRoute,
   } as any)
 const AuthenticatedSettingsProfileRoute =
   AuthenticatedSettingsProfileRouteImport.update({
@@ -73,6 +87,12 @@ const AuthenticatedProjectsProjectIdRoute =
     id: '/projects/$projectId',
     path: '/projects/$projectId',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMessengerChannelIdRoute =
+  AuthenticatedMessengerChannelIdRouteImport.update({
+    id: '/$channelId',
+    path: '/$channelId',
+    getParentRoute: () => AuthenticatedMessengerRoute,
   } as any)
 const AuthenticatedProjectsProjectIdIndexRoute =
   AuthenticatedProjectsProjectIdIndexRouteImport.update({
@@ -121,10 +141,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/trash': typeof AuthenticatedTrashRoute
+  '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/new': typeof AuthenticatedProjectsNewRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/messenger/': typeof AuthenticatedMessengerIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
   '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
@@ -139,8 +162,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/trash': typeof AuthenticatedTrashRoute
+  '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/projects/new': typeof AuthenticatedProjectsNewRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/messenger': typeof AuthenticatedMessengerIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
   '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
@@ -156,10 +181,13 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/_authenticated/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/_authenticated/trash': typeof AuthenticatedTrashRoute
+  '/_authenticated/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/new': typeof AuthenticatedProjectsNewRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/_authenticated/messenger/': typeof AuthenticatedMessengerIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
   '/_authenticated/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
@@ -175,10 +203,13 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/onboarding'
+    | '/messenger'
     | '/trash'
+    | '/messenger/$channelId'
     | '/projects/$projectId'
     | '/projects/new'
     | '/settings/profile'
+    | '/messenger/'
     | '/projects/'
     | '/projects/$projectId/'
     | '/projects/$projectId/issues/$issueKey'
@@ -193,8 +224,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/trash'
+    | '/messenger/$channelId'
     | '/projects/new'
     | '/settings/profile'
+    | '/messenger'
     | '/projects'
     | '/projects/$projectId'
     | '/projects/$projectId/issues/$issueKey'
@@ -209,10 +242,13 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/onboarding'
+    | '/_authenticated/messenger'
     | '/_authenticated/trash'
+    | '/_authenticated/messenger/$channelId'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/projects/new'
     | '/_authenticated/settings/profile'
+    | '/_authenticated/messenger/'
     | '/_authenticated/projects/'
     | '/_authenticated/projects/$projectId/'
     | '/_authenticated/projects/$projectId/issues/$issueKey'
@@ -267,12 +303,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTrashRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/messenger': {
+      id: '/_authenticated/messenger'
+      path: '/messenger'
+      fullPath: '/messenger'
+      preLoaderRoute: typeof AuthenticatedMessengerRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/projects/': {
       id: '/_authenticated/projects/'
       path: '/projects'
       fullPath: '/projects/'
       preLoaderRoute: typeof AuthenticatedProjectsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/messenger/': {
+      id: '/_authenticated/messenger/'
+      path: '/'
+      fullPath: '/messenger/'
+      preLoaderRoute: typeof AuthenticatedMessengerIndexRouteImport
+      parentRoute: typeof AuthenticatedMessengerRoute
     }
     '/_authenticated/settings/profile': {
       id: '/_authenticated/settings/profile'
@@ -294,6 +344,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/projects/$projectId'
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/messenger/$channelId': {
+      id: '/_authenticated/messenger/$channelId'
+      path: '/$channelId'
+      fullPath: '/messenger/$channelId'
+      preLoaderRoute: typeof AuthenticatedMessengerChannelIdRouteImport
+      parentRoute: typeof AuthenticatedMessengerRoute
     }
     '/_authenticated/projects/$projectId/': {
       id: '/_authenticated/projects/$projectId/'
@@ -347,6 +404,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedMessengerRouteChildren {
+  AuthenticatedMessengerChannelIdRoute: typeof AuthenticatedMessengerChannelIdRoute
+  AuthenticatedMessengerIndexRoute: typeof AuthenticatedMessengerIndexRoute
+}
+
+const AuthenticatedMessengerRouteChildren: AuthenticatedMessengerRouteChildren =
+  {
+    AuthenticatedMessengerChannelIdRoute: AuthenticatedMessengerChannelIdRoute,
+    AuthenticatedMessengerIndexRoute: AuthenticatedMessengerIndexRoute,
+  }
+
+const AuthenticatedMessengerRouteWithChildren =
+  AuthenticatedMessengerRoute._addFileChildren(
+    AuthenticatedMessengerRouteChildren,
+  )
+
 interface AuthenticatedProjectsProjectIdRouteChildren {
   AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute
   AuthenticatedProjectsProjectIdIssuesIssueKeyRoute: typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
@@ -381,6 +454,7 @@ const AuthenticatedProjectsProjectIdRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedMessengerRoute: typeof AuthenticatedMessengerRouteWithChildren
   AuthenticatedTrashRoute: typeof AuthenticatedTrashRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRouteWithChildren
   AuthenticatedProjectsNewRoute: typeof AuthenticatedProjectsNewRoute
@@ -389,6 +463,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedMessengerRoute: AuthenticatedMessengerRouteWithChildren,
   AuthenticatedTrashRoute: AuthenticatedTrashRoute,
   AuthenticatedProjectsProjectIdRoute:
     AuthenticatedProjectsProjectIdRouteWithChildren,

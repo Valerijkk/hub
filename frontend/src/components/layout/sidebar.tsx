@@ -137,6 +137,14 @@ export function Sidebar() {
       {/* Bottom navigation */}
       <div className="space-y-1 px-2 py-2">
         <SidebarLink
+          to="/messenger"
+          label="Мессенджер"
+          collapsed={collapsed}
+          icon={
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 12.5l1.5-4L2 4a1 1 0 01.9-1.4h10.2A1 1 0 0114 4l-2 4.5 1.5 4a1 1 0 01-.9 1.4H2.4a1 1 0 01-.9-1.4z" /><path d="M6 7h4M6 9.5h2.5" /></svg>
+          }
+        />
+        <SidebarLink
           to="/projects"
           label="Все проекты"
           collapsed={collapsed}
