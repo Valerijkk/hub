@@ -1,32 +1,31 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { IssueBriefResponse } from "@/api/tracker";
 import { cn } from "@/lib/utils";
 
-/** Конфигурация цветов приоритетов задач. */
-const PRIORITY_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  critical: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", label: "Критический" },
-  high: { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", label: "Высокий" },
-  medium: { bg: "bg-yellow-500/10", text: "text-yellow-700 dark:text-yellow-400", label: "Средний" },
-  low: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", label: "Низкий" },
-  trivial: { bg: "bg-gray-500/10", text: "text-gray-500", label: "Тривиальный" },
+/** Конфигурация цветов и меток приоритетов задач. */
+const PRIORITY_CONFIG: Record<string, { dot: string; bg: string; text: string; label: string }> = {
+  critical: { dot: "bg-red-500", bg: "bg-red-500/15", text: "text-red-700 dark:text-red-400", label: "Критический" },
+  high: { dot: "bg-orange-500", bg: "bg-orange-500/15", text: "text-orange-700 dark:text-orange-400", label: "Высокий" },
+  medium: { dot: "bg-yellow-500", bg: "bg-yellow-500/15", text: "text-yellow-700 dark:text-yellow-400", label: "Средний" },
+  low: { dot: "bg-blue-500", bg: "bg-blue-500/15", text: "text-blue-700 dark:text-blue-400", label: "Низкий" },
+  trivial: { dot: "bg-gray-400", bg: "bg-gray-400/15", text: "text-gray-600 dark:text-gray-400", label: "Тривиальный" },
 };
 
-/** Конфигурация иконок типов задач. */
-const TYPE_ICONS: Record<string, string> = {
-  bug: "\u{1F41B}",
-  task: "\u{2705}",
-  story: "\u{1F4D6}",
-  epic: "\u{26A1}",
-  sub_task: "\u{1F4CB}",
-  improvement: "\u{1F680}",
-  tech_debt: "\u{1F527}",
-  spike: "\u{1F50D}",
-  release: "\u{1F3F7}\uFE0F",
+/** Конфигурация типов задач — SVG-иконки с цветами для лучшей читаемости. */
+const TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
+  bug: { icon: "\u{1F41B}", color: "text-red-500" },
+  task: { icon: "\u{2705}", color: "text-blue-500" },
+  story: { icon: "\u{1F4D6}", color: "text-green-500" },
+  epic: { icon: "\u{26A1}", color: "text-purple-500" },
+  sub_task: { icon: "\u{1F4CB}", color: "text-gray-500" },
+  improvement: { icon: "\u{1F680}", color: "text-cyan-500" },
+  tech_debt: { icon: "\u{1F527}", color: "text-amber-500" },
+  spike: { icon: "\u{1F50D}", color: "text-indigo-500" },
+  release: { icon: "\u{1F3F7}\uFE0F", color: "text-pink-500" },
 };
 
 /** Пропсы компонента IssueCard. */
@@ -40,7 +39,8 @@ interface IssueCardProps {
 /**
  * Карточка задачи для Kanban-доски.
  * Поддерживает drag-and-drop перетаскивание между колонками.
- * Отображает ключ, название, приоритет, тип и исполнителя.
+ * Кликабельна — переход на страницу детальной информации о задаче.
+ * Отображает тип, ключ, название (до 2 строк), приоритет и аватар исполнителя.
  */
 export function IssueCard({ issue, projectId }: IssueCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -63,53 +63,73 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
     });
   }, [issue.issue_key, issue.id, issue.status, issue.rank]);
 
-  const priority = PRIORITY_CONFIG[issue.priority] || { bg: "bg-yellow-500/10", text: "text-yellow-700 dark:text-yellow-400", label: "Средний" };
+  const priority = PRIORITY_CONFIG[issue.priority] ?? PRIORITY_CONFIG.medium!;
+  const typeConfig = TYPE_CONFIG[issue.issue_type] ?? { icon: "\u{1F4CB}", color: "text-gray-500" };
 
   return (
-    <div ref={cardRef} className={cn("cursor-grab active:cursor-grabbing", isDragging && "opacity-40")}>
+    <div
+      ref={cardRef}
+      className={cn(
+        "cursor-grab active:cursor-grabbing select-none",
+        isDragging && "opacity-30",
+      )}
+    >
       <Link
         to="/projects/$projectId/issues/$issueKey"
         params={{ projectId, issueKey: issue.issue_key }}
-        className="block"
+        className="block group"
         onClick={(e) => {
+          // Не переходить по ссылке если карточка перетаскивается
           if (isDragging) e.preventDefault();
         }}
+        draggable={false}
       >
-        <Card className="gap-2.5 p-3 shadow-card hover-lift bg-card border-border/50">
+        <div className={cn(
+          "rounded-lg border bg-card p-3 transition-all duration-150",
+          "border-border/50 shadow-sm",
+          "hover:shadow-md hover:border-primary/30 hover:-translate-y-[1px]",
+          "group-focus-visible:ring-2 group-focus-visible:ring-primary/30",
+        )}>
           {/* Верхняя строка: тип + ключ */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm" title={issue.issue_type}>
-              {TYPE_ICONS[issue.issue_type] ?? "\u{1F4CB}"}
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className={cn("text-sm leading-none", typeConfig.color)} title={issue.issue_type}>
+              {typeConfig.icon}
             </span>
-            <span className="font-mono text-[11px] font-bold text-muted-foreground tracking-wide">
+            <span className="font-mono text-[11px] font-semibold text-muted-foreground/80 tracking-wide">
               {issue.issue_key}
             </span>
           </div>
 
-          {/* Название */}
-          <p className="text-sm font-medium leading-snug line-clamp-2">{issue.title}</p>
+          {/* Название — до 2 строк */}
+          <p className="text-[13px] font-medium leading-snug line-clamp-2 mb-2.5 text-foreground/90">
+            {issue.title}
+          </p>
 
-          {/* Нижняя строка: приоритет + лейблы + аватар */}
+          {/* Нижняя строка: приоритет + аватар исполнителя */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Badge
-                variant="secondary"
-                className={cn("text-[10px] font-semibold px-1.5 py-0 h-5", priority.bg, priority.text)}
-              >
-                {priority.label}
-              </Badge>
-            </div>
+            <Badge
+              variant="secondary"
+              className={cn(
+                "text-[10px] font-semibold px-1.5 py-0 h-[18px] rounded-md border-0",
+                priority.bg,
+                priority.text,
+              )}
+            >
+              {priority.label}
+            </Badge>
 
-            {issue.assignee && (
-              <Avatar className="h-6 w-6 ring-2 ring-background">
+            {issue.assignee ? (
+              <Avatar className="h-5 w-5 ring-1 ring-border/50">
                 <AvatarImage src={issue.assignee.avatar_url} />
-                <AvatarFallback className="text-[10px] font-medium bg-primary/10 text-primary">
+                <AvatarFallback className="text-[9px] font-medium bg-primary/10 text-primary">
                   {issue.assignee.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
+            ) : (
+              <div className="h-5 w-5 rounded-full border border-dashed border-border/40" />
             )}
           </div>
-        </Card>
+        </div>
       </Link>
     </div>
   );

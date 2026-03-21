@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
  * Страница Kanban-доски проекта.
  * Отображает колонки по статусам workflow с drag-and-drop перемещением.
  * Поддерживает фильтрацию, выбор доски и оптимистичные обновления.
+ * Занимает всю доступную высоту с горизонтальной прокруткой колонок.
  */
 function BoardPage() {
   const { projectId } = Route.useParams();
@@ -173,23 +174,23 @@ function BoardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full flex-col">
+      <div className="board-page-root flex flex-col">
         {/* Скелетон панели фильтров */}
-        <div className="mb-4 flex items-center gap-3">
+        <div className="flex items-center gap-3 px-2 pb-4">
           <div className="h-9 w-48 rounded-lg animate-shimmer" />
           <div className="h-9 w-24 rounded-lg animate-shimmer" />
           <div className="ml-auto h-9 w-32 rounded-lg animate-shimmer" />
         </div>
         {/* Скелетон колонок */}
         <div className="flex flex-1 gap-4 overflow-x-auto pb-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex min-w-[300px] flex-col rounded-xl border border-border/30 bg-muted/20">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex w-[300px] min-w-[300px] flex-shrink-0 flex-col rounded-xl border border-border/40 bg-muted/30">
               <div className="px-4 py-3">
                 <div className="h-5 w-24 rounded animate-shimmer" />
               </div>
               <div className="space-y-2 px-2 pb-2">
                 {[1, 2, 3].map((j) => (
-                  <div key={j} className="h-24 rounded-lg animate-shimmer" />
+                  <div key={j} className="h-28 rounded-lg animate-shimmer" />
                 ))}
               </div>
             </div>
@@ -200,9 +201,9 @@ function BoardPage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="board-page-root flex flex-col">
       {/* Панель фильтров */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 px-2 pb-4">
         {/* Выбор доски */}
         {boards && boards.length > 1 && (
           <select
@@ -258,18 +259,20 @@ function BoardPage() {
         </div>
       </div>
 
-      {/* Колонки доски */}
+      {/* Колонки доски с горизонтальной прокруткой */}
       {filteredColumns.length > 0 ? (
-        <div className="flex flex-1 gap-4 overflow-x-auto pb-4">
-          {filteredColumns.map((col) => (
-            <BoardColumn
-              key={col.status.id}
-              status={col.status}
-              issues={col.issues}
-              projectId={projectId}
-              onDrop={handleDrop}
-            />
-          ))}
+        <div className="flex-1 overflow-x-auto overflow-y-hidden pb-2">
+          <div className="inline-flex h-full gap-4 px-2">
+            {filteredColumns.map((col) => (
+              <BoardColumn
+                key={col.status.id}
+                status={col.status}
+                issues={col.issues}
+                projectId={projectId}
+                onDrop={handleDrop}
+              />
+            ))}
+          </div>
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center">

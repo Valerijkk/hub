@@ -420,3 +420,29 @@ button[role="radio"][data-state="checked"] {
   border-color: var(--ring) !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
 }
+
+/* ===================================================
+ * Kanban-доска — полная высота, горизонтальная прокрутка
+ * Доска занимает всё доступное пространство контентной области.
+ * Колонки отображаются в горизонтальном ряду с прокруткой.
+ * =================================================== */
+.board-page-root {
+  /* Растянуть на всю доступную высоту main (viewport минус topbar и padding) */
+  min-height: calc(100vh - 7rem);
+  height: calc(100vh - 7rem);
+  margin: -0.5rem -0.25rem 0;
+}
+
+/* Тонкий скроллбар для колонок доски */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
