@@ -70,7 +70,7 @@
 - [x] **MSG-08**: Редактирование и удаление своих сообщений; Owner/Admin канала может удалить любое сообщение
 - [x] **MSG-09**: Пересылка сообщений, закрепление и закладки (сохраненные сообщения)
 - [x] **MSG-10**: Голосовые сообщения (аудиозапись в чате)
-- [ ] **MSG-11**: Превью ссылок: задачи, тест-кейсы, тест-раны, GitHub PR/Issue, а также превью внешних URL (OG meta)
+- [x] **MSG-11**: Превью ссылок: задачи, тест-кейсы, тест-раны, GitHub PR/Issue, а также превью внешних URL (OG meta)
 - [x] **MSG-12**: Глобальный поиск и поиск по каналу
 - [x] **MSG-13**: Статус пользователя: онлайн/офлайн/отошел (автоопределение) и пользовательский текст статуса
 
@@ -117,11 +117,11 @@
 
 ### Интеграция с GitHub
 
-- [ ] **GHUB-01**: Привязка PR и коммитов к задачам с карточками предпросмотра
-- [ ] **GHUB-02**: Автопривязка: "HUB-123" в сообщении коммита автоматически прикрепляется к задаче
-- [ ] **GHUB-03**: Статус PR отображается на задаче (open/merged/closed)
-- [ ] **GHUB-04**: Автоматическая смена статуса задачи при мерже PR
-- [ ] **GHUB-05**: Создание ветки из задачи (именование hub-123-fix-login)
+- [x] **GHUB-01**: Привязка PR и коммитов к задачам с карточками предпросмотра
+- [x] **GHUB-02**: Автопривязка: "HUB-123" в сообщении коммита автоматически прикрепляется к задаче
+- [x] **GHUB-03**: Статус PR отображается на задаче (open/merged/closed)
+- [x] **GHUB-04**: Автоматическая смена статуса задачи при мерже PR
+- [x] **GHUB-05**: Создание ветки из задачи (именование hub-123-fix-login)
 
 ### Фильтры и поиск
 
@@ -272,7 +272,7 @@
 | MSG-08 | Phase 3 | Complete |
 | MSG-09 | Phase 3 | Complete |
 | MSG-10 | Phase 3 | Complete |
-| MSG-11 | Phase 7 | Pending |
+| MSG-11 | Phase 7 | Complete |
 | MSG-12 | Phase 3 | Complete |
 | MSG-13 | Phase 3 | Complete |
 | TMS-01 | Phase 4 | Complete |
@@ -301,11 +301,11 @@
 | NOTF-02 | Phase 6 | Complete |
 | NOTF-03 | Phase 6 | Complete |
 | NOTF-04 | Phase 6 | Complete |
-| GHUB-01 | Phase 7 | Pending |
-| GHUB-02 | Phase 7 | Pending |
-| GHUB-03 | Phase 7 | Pending |
-| GHUB-04 | Phase 7 | Pending |
-| GHUB-05 | Phase 7 | Pending |
+| GHUB-01 | Phase 7 | Complete |
+| GHUB-02 | Phase 7 | Complete |
+| GHUB-03 | Phase 7 | Complete |
+| GHUB-04 | Phase 7 | Complete |
+| GHUB-05 | Phase 7 | Complete |
 | SRCH-01 | Phase 6 | Complete |
 | SRCH-02 | Phase 6 | Complete |
 | SRCH-03 | Phase 7 | Pending |
