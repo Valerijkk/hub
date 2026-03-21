@@ -566,3 +566,93 @@ button[role="radio"][data-state="checked"] {
 .stagger-2 { animation-delay: 100ms; }
 .stagger-3 { animation-delay: 150ms; }
 .stagger-4 { animation-delay: 200ms; }
+
+/* ===================================================
+ * Анимация появления сообщения -- плавный вход снизу
+ * =================================================== */
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-message-in {
+  animation: message-in 0.25s ease-out;
+}
+
+/* ===================================================
+ * Анимация точек печати (typing indicator)
+ * Три точки с каскадным подпрыгиванием
+ * =================================================== */
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.typing-dots .dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--muted-foreground);
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+
+.typing-dots .dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing-dots .dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes typing-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* ===================================================
+ * Пульсация аватара говорящего участника (calls)
+ * =================================================== */
+@keyframes pulse-subtle {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 1.5s ease-in-out infinite;
+}
+
+/* ===================================================
+ * Анимация slide-in для hover-действий
+ * =================================================== */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.15s ease-out;
+}
