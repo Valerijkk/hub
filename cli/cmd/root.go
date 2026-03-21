@@ -30,7 +30,20 @@ var rootCmd = &cobra.Command{
 }
 
 // Execute запускает корневую команду.
+// Перед выполнением загружает API-ключ из конфига, если не задан через флаг/env.
 func Execute() error {
+	// Подгружаем конфиг до выполнения команды.
+	cobra.OnInitialize(func() {
+		if apiKey == "" {
+			cfg := loadConfig()
+			if cfg.APIKey != "" {
+				apiKey = cfg.APIKey
+			}
+			if cfg.APIURL != "" && apiURL == "http://localhost:3000" {
+				apiURL = cfg.APIURL
+			}
+		}
+	})
 	return rootCmd.Execute()
 }
 
