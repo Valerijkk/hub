@@ -31,10 +31,13 @@ import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects/$projectId/index'
 import { Route as AuthenticatedProjectsProjectIdTmsRouteImport } from './routes/_authenticated/projects/$projectId/tms'
 import { Route as AuthenticatedProjectsProjectIdDashboardRouteImport } from './routes/_authenticated/projects/$projectId/dashboard'
+import { Route as AuthenticatedProjectsProjectIdBacklogRouteImport } from './routes/_authenticated/projects/$projectId/backlog'
+import { Route as AuthenticatedProjectsProjectIdSprintsIndexRouteImport } from './routes/_authenticated/projects/$projectId/sprints/index'
 import { Route as AuthenticatedProjectsProjectIdIssuesIndexRouteImport } from './routes/_authenticated/projects/$projectId/issues/index'
 import { Route as AuthenticatedProjectsProjectIdBoardIndexRouteImport } from './routes/_authenticated/projects/$projectId/board/index'
 import { Route as AuthenticatedProjectsProjectIdTmsRunsRouteImport } from './routes/_authenticated/projects/$projectId/tms/runs'
 import { Route as AuthenticatedProjectsProjectIdTmsCasesRouteImport } from './routes/_authenticated/projects/$projectId/tms/cases'
+import { Route as AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport } from './routes/_authenticated/projects/$projectId/sprints/$sprintId'
 import { Route as AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport } from './routes/_authenticated/projects/$projectId/settings/workflow'
 import { Route as AuthenticatedProjectsProjectIdSettingsLabelsRouteImport } from './routes/_authenticated/projects/$projectId/settings/labels'
 import { Route as AuthenticatedProjectsProjectIdIssuesNewRouteImport } from './routes/_authenticated/projects/$projectId/issues/new'
@@ -163,6 +166,18 @@ const AuthenticatedProjectsProjectIdDashboardRoute =
     path: '/dashboard',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
+const AuthenticatedProjectsProjectIdBacklogRoute =
+  AuthenticatedProjectsProjectIdBacklogRouteImport.update({
+    id: '/backlog',
+    path: '/backlog',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdSprintsIndexRoute =
+  AuthenticatedProjectsProjectIdSprintsIndexRouteImport.update({
+    id: '/sprints/',
+    path: '/sprints/',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdIssuesIndexRoute =
   AuthenticatedProjectsProjectIdIssuesIndexRouteImport.update({
     id: '/issues/',
@@ -186,6 +201,12 @@ const AuthenticatedProjectsProjectIdTmsCasesRoute =
     id: '/cases',
     path: '/cases',
     getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdSprintsSprintIdRoute =
+  AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport.update({
+    id: '/sprints/$sprintId',
+    path: '/sprints/$sprintId',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
 const AuthenticatedProjectsProjectIdSettingsWorkflowRoute =
   AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport.update({
@@ -243,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/messenger/': typeof AuthenticatedMessengerIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
   '/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
   '/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
   '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
@@ -250,10 +272,12 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
   '/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  '/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
   '/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   '/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
   '/projects/$projectId/board/': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
   '/projects/$projectId/issues/': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
+  '/projects/$projectId/sprints/': typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
   '/projects/$projectId/tms/cases/$caseKey': typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute
   '/projects/$projectId/tms/runs/$runId': typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute
 }
@@ -274,6 +298,7 @@ export interface FileRoutesByTo {
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/messenger': typeof AuthenticatedMessengerIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
+  '/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
   '/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
   '/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
@@ -281,10 +306,12 @@ export interface FileRoutesByTo {
   '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
   '/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  '/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
   '/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   '/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
   '/projects/$projectId/board': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
   '/projects/$projectId/issues': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
+  '/projects/$projectId/sprints': typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
   '/projects/$projectId/tms/cases/$caseKey': typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute
   '/projects/$projectId/tms/runs/$runId': typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute
 }
@@ -309,6 +336,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_authenticated/messenger/': typeof AuthenticatedMessengerIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/_authenticated/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
   '/_authenticated/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
   '/_authenticated/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
   '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
@@ -316,10 +344,12 @@ export interface FileRoutesById {
   '/_authenticated/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
   '/_authenticated/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   '/_authenticated/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  '/_authenticated/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
   '/_authenticated/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   '/_authenticated/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
   '/_authenticated/projects/$projectId/board/': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
   '/_authenticated/projects/$projectId/issues/': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
+  '/_authenticated/projects/$projectId/sprints/': typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
   '/_authenticated/projects/$projectId/tms/cases_/$caseKey': typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute
   '/_authenticated/projects/$projectId/tms/runs_/$runId': typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute
 }
@@ -344,6 +374,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/messenger/'
     | '/projects/'
+    | '/projects/$projectId/backlog'
     | '/projects/$projectId/dashboard'
     | '/projects/$projectId/tms'
     | '/projects/$projectId/'
@@ -351,10 +382,12 @@ export interface FileRouteTypes {
     | '/projects/$projectId/issues/new'
     | '/projects/$projectId/settings/labels'
     | '/projects/$projectId/settings/workflow'
+    | '/projects/$projectId/sprints/$sprintId'
     | '/projects/$projectId/tms/cases'
     | '/projects/$projectId/tms/runs'
     | '/projects/$projectId/board/'
     | '/projects/$projectId/issues/'
+    | '/projects/$projectId/sprints/'
     | '/projects/$projectId/tms/cases/$caseKey'
     | '/projects/$projectId/tms/runs/$runId'
   fileRoutesByTo: FileRoutesByTo
@@ -375,6 +408,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/messenger'
     | '/projects'
+    | '/projects/$projectId/backlog'
     | '/projects/$projectId/dashboard'
     | '/projects/$projectId/tms'
     | '/projects/$projectId'
@@ -382,10 +416,12 @@ export interface FileRouteTypes {
     | '/projects/$projectId/issues/new'
     | '/projects/$projectId/settings/labels'
     | '/projects/$projectId/settings/workflow'
+    | '/projects/$projectId/sprints/$sprintId'
     | '/projects/$projectId/tms/cases'
     | '/projects/$projectId/tms/runs'
     | '/projects/$projectId/board'
     | '/projects/$projectId/issues'
+    | '/projects/$projectId/sprints'
     | '/projects/$projectId/tms/cases/$caseKey'
     | '/projects/$projectId/tms/runs/$runId'
   id:
@@ -409,6 +445,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/profile'
     | '/_authenticated/messenger/'
     | '/_authenticated/projects/'
+    | '/_authenticated/projects/$projectId/backlog'
     | '/_authenticated/projects/$projectId/dashboard'
     | '/_authenticated/projects/$projectId/tms'
     | '/_authenticated/projects/$projectId/'
@@ -416,10 +453,12 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$projectId/issues/new'
     | '/_authenticated/projects/$projectId/settings/labels'
     | '/_authenticated/projects/$projectId/settings/workflow'
+    | '/_authenticated/projects/$projectId/sprints/$sprintId'
     | '/_authenticated/projects/$projectId/tms/cases'
     | '/_authenticated/projects/$projectId/tms/runs'
     | '/_authenticated/projects/$projectId/board/'
     | '/_authenticated/projects/$projectId/issues/'
+    | '/_authenticated/projects/$projectId/sprints/'
     | '/_authenticated/projects/$projectId/tms/cases_/$caseKey'
     | '/_authenticated/projects/$projectId/tms/runs_/$runId'
   fileRoutesById: FileRoutesById
@@ -587,6 +626,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdDashboardRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
+    '/_authenticated/projects/$projectId/backlog': {
+      id: '/_authenticated/projects/$projectId/backlog'
+      path: '/backlog'
+      fullPath: '/projects/$projectId/backlog'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdBacklogRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/sprints/': {
+      id: '/_authenticated/projects/$projectId/sprints/'
+      path: '/sprints'
+      fullPath: '/projects/$projectId/sprints/'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdSprintsIndexRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
     '/_authenticated/projects/$projectId/issues/': {
       id: '/_authenticated/projects/$projectId/issues/'
       path: '/issues'
@@ -614,6 +667,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/projects/$projectId/tms/cases'
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsCasesRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
+    '/_authenticated/projects/$projectId/sprints/$sprintId': {
+      id: '/_authenticated/projects/$projectId/sprints/$sprintId'
+      path: '/sprints/$sprintId'
+      fullPath: '/projects/$projectId/sprints/$sprintId'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
     '/_authenticated/projects/$projectId/settings/workflow': {
       id: '/_authenticated/projects/$projectId/settings/workflow'
@@ -701,6 +761,7 @@ const AuthenticatedProjectsProjectIdTmsRouteWithChildren =
   )
 
 interface AuthenticatedProjectsProjectIdRouteChildren {
+  AuthenticatedProjectsProjectIdBacklogRoute: typeof AuthenticatedProjectsProjectIdBacklogRoute
   AuthenticatedProjectsProjectIdDashboardRoute: typeof AuthenticatedProjectsProjectIdDashboardRoute
   AuthenticatedProjectsProjectIdTmsRoute: typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
   AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute
@@ -708,12 +769,16 @@ interface AuthenticatedProjectsProjectIdRouteChildren {
   AuthenticatedProjectsProjectIdIssuesNewRoute: typeof AuthenticatedProjectsProjectIdIssuesNewRoute
   AuthenticatedProjectsProjectIdSettingsLabelsRoute: typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   AuthenticatedProjectsProjectIdSettingsWorkflowRoute: typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  AuthenticatedProjectsProjectIdSprintsSprintIdRoute: typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
   AuthenticatedProjectsProjectIdBoardIndexRoute: typeof AuthenticatedProjectsProjectIdBoardIndexRoute
   AuthenticatedProjectsProjectIdIssuesIndexRoute: typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
+  AuthenticatedProjectsProjectIdSprintsIndexRoute: typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
 }
 
 const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectIdRouteChildren =
   {
+    AuthenticatedProjectsProjectIdBacklogRoute:
+      AuthenticatedProjectsProjectIdBacklogRoute,
     AuthenticatedProjectsProjectIdDashboardRoute:
       AuthenticatedProjectsProjectIdDashboardRoute,
     AuthenticatedProjectsProjectIdTmsRoute:
@@ -728,10 +793,14 @@ const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectI
       AuthenticatedProjectsProjectIdSettingsLabelsRoute,
     AuthenticatedProjectsProjectIdSettingsWorkflowRoute:
       AuthenticatedProjectsProjectIdSettingsWorkflowRoute,
+    AuthenticatedProjectsProjectIdSprintsSprintIdRoute:
+      AuthenticatedProjectsProjectIdSprintsSprintIdRoute,
     AuthenticatedProjectsProjectIdBoardIndexRoute:
       AuthenticatedProjectsProjectIdBoardIndexRoute,
     AuthenticatedProjectsProjectIdIssuesIndexRoute:
       AuthenticatedProjectsProjectIdIssuesIndexRoute,
+    AuthenticatedProjectsProjectIdSprintsIndexRoute:
+      AuthenticatedProjectsProjectIdSprintsIndexRoute,
   }
 
 const AuthenticatedProjectsProjectIdRouteWithChildren =
