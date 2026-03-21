@@ -1,18 +1,29 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { uploadFile } from "@/api/files";
 
+/** Параметры хука useFileUpload. */
 interface UseFileUploadOptions {
+  /** ID проекта для привязки файла. */
   projectId: string;
+  /** Тип сущности (issue, comment, test_case и т.д.). */
   entityType: string;
+  /** ID сущности, к которой привязывается файл. */
   entityId: string;
+  /** Callback после успешной загрузки файла. */
   onUpload?: (fileId: string, file: File) => void;
+  /** Callback при ошибке загрузки. */
   onError?: (error: unknown) => void;
 }
 
+/** Возвращаемое значение хука useFileUpload. */
 interface UseFileUploadReturn {
+  /** Файл перетаскивается над зоной. */
   isDragging: boolean;
+  /** Идёт загрузка файлов. */
   isUploading: boolean;
+  /** Функция загрузки файлов программно. */
   upload: (files: FileList | File[]) => Promise<void>;
+  /** Пропсы для зоны перетаскивания (drag-and-drop). */
   dropZoneProps: {
     onDragOver: (e: React.DragEvent) => void;
     onDragLeave: (e: React.DragEvent) => void;
@@ -21,10 +32,13 @@ interface UseFileUploadReturn {
 }
 
 /**
- * useFileUpload provides drag-and-drop and paste upload functionality.
+ * useFileUpload предоставляет функциональность drag-and-drop и вставки файлов (Ctrl+V).
  *
- * Handles dragover, drop events, and Ctrl+V paste events. Uploads files
- * via the presigned URL flow (get URL -> PUT -> confirm).
+ * Обрабатывает события dragover, drop и paste. Загружает файлы
+ * через presigned URL (получить URL -> PUT -> подтвердить).
+ *
+ * @param options - параметры: проект, тип сущности, ID сущности, callbacks
+ * @returns isDragging, isUploading, upload, dropZoneProps
  */
 export function useFileUpload(
   options: UseFileUploadOptions,
@@ -54,7 +68,7 @@ export function useFileUpload(
     [projectId, entityType, entityId, onUpload, onError],
   );
 
-  // Handle Ctrl+V paste events globally.
+  // Обработка глобальных событий вставки (Ctrl+V).
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;

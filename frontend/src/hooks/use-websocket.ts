@@ -5,8 +5,11 @@ import { useAuthStore } from "@/stores/auth-store";
 type EventHandler = (event: string, payload: unknown) => void;
 
 /**
- * useWebSocket connects to the WebSocket gateway when authenticated,
- * manages room subscriptions, and provides an event listener interface.
+ * useWebSocket подключается к WebSocket-шлюзу при аутентификации,
+ * управляет подписками на комнаты и предоставляет интерфейс для слушателей событий.
+ *
+ * @returns connected — статус подключения, subscribe/unsubscribe — управление комнатами,
+ *          onEvent — подписка на события (возвращает функцию отписки)
  */
 export function useWebSocket() {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -16,7 +19,7 @@ export function useWebSocket() {
   const addListener = useWsStore((s) => s.addListener);
   const removeListener = useWsStore((s) => s.removeListener);
 
-  // Connect when authenticated, disconnect on unmount or logout.
+  // Подключаемся при аутентификации, отключаемся при размонтировании или logout.
   useEffect(() => {
     if (isAuthenticated && accessToken) {
       connect(accessToken);
@@ -27,8 +30,8 @@ export function useWebSocket() {
   }, [isAuthenticated, accessToken, connect, disconnect]);
 
   /**
-   * Subscribe to an event handler. The handler receives (event, payload)
-   * for every server event. Automatically cleaned up on unmount.
+   * Подписка на обработчик событий. Обработчик получает (event, payload)
+   * для каждого серверного события. Автоматически отписывается при размонтировании.
    */
   const onEvent = useCallback(
     (handler: EventHandler) => {
@@ -47,9 +50,11 @@ export function useWebSocket() {
 }
 
 /**
- * useRooms subscribes to a list of WebSocket rooms.
- * Automatically unsubscribes when rooms change or component unmounts.
- * Must be called as a hook (not inside callbacks).
+ * useRooms подписывается на список WebSocket-комнат.
+ * Автоматически отписывается при изменении списка комнат или размонтировании компонента.
+ * Должен вызываться как хук (не внутри callbacks).
+ *
+ * @param rooms - массив имён комнат (например, ["channel:abc", "project:xyz"])
  */
 export function useRooms(rooms: string[]) {
   const { connected, subscribe, unsubscribe } = useWsStore();
@@ -58,14 +63,14 @@ export function useRooms(rooms: string[]) {
   useEffect(() => {
     if (!connected) return;
 
-    // Unsubscribe from rooms no longer needed.
+    // Отписываемся от комнат, которые больше не нужны.
     for (const room of prevRooms.current) {
       if (!rooms.includes(room)) {
         unsubscribe(room);
       }
     }
 
-    // Subscribe to new rooms.
+    // Подписываемся на новые комнаты.
     for (const room of rooms) {
       if (!prevRooms.current.includes(room)) {
         subscribe(room);

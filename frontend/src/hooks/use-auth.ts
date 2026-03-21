@@ -3,9 +3,13 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getMe, type UserResponse } from "@/api/auth";
 
 /**
- * useAuth provides authentication state and actions.
+ * useAuth предоставляет состояние аутентификации и действия (login/logout).
  *
- * Automatically fetches the current user profile when authenticated.
+ * Автоматически загружает профиль текущего пользователя при наличии токена.
+ * Если токен невалиден — выполняет logout.
+ *
+ * @returns user — текущий пользователь, isAuthenticated — авторизован ли,
+ *          isLoading — идёт загрузка профиля, login/logout — действия
  */
 export function useAuth() {
   const {
@@ -17,13 +21,13 @@ export function useAuth() {
     logout: storeLogout,
   } = useAuthStore();
 
-  // Fetch user profile when authenticated but user data is missing.
+  // Загрузка профиля при наличии токена, но отсутствии данных пользователя.
   useEffect(() => {
     if (isAuthenticated && accessToken && !user) {
       getMe()
         .then((data: UserResponse) => setUser(data))
         .catch(() => {
-          // Token might be invalid; logout.
+          // Токен невалиден — выходим.
           storeLogout();
         });
     }
