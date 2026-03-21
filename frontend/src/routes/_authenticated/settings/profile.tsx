@@ -132,33 +132,62 @@ function ProfilePage() {
           <CardDescription>Установите текст статуса, видимый коллегам</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-3">
-            <Input
-              placeholder="Например: На обеде, В отпуске, Не беспокоить"
-              value={customStatusText}
-              onChange={(e) => setCustomStatusText(e.target.value)}
-              className="h-10 flex-1"
-            />
-            <Button
-              onClick={handleStatusSave}
-              disabled={statusMutation.isPending}
-              variant="outline"
-              className="shrink-0"
-            >
-              {statusMutation.isPending ? "..." : "Сохранить"}
-            </Button>
-            {customStatusText && (
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <Input
+                placeholder="Например: На обеде, В отпуске, Не беспокоить"
+                value={customStatusText}
+                onChange={(e) => setCustomStatusText(e.target.value)}
+                className="h-10 flex-1"
+              />
               <Button
-                variant="ghost"
-                className="shrink-0 text-muted-foreground"
-                onClick={() => {
-                  setCustomStatusText("");
-                  statusMutation.mutate("");
-                }}
+                onClick={handleStatusSave}
+                disabled={statusMutation.isPending}
+                variant="outline"
+                className="shrink-0"
               >
-                Сбросить
+                {statusMutation.isPending ? "..." : "Сохранить"}
               </Button>
-            )}
+              {customStatusText && (
+                <Button
+                  variant="ghost"
+                  className="shrink-0 text-muted-foreground"
+                  onClick={() => {
+                    setCustomStatusText("");
+                    statusMutation.mutate("");
+                  }}
+                >
+                  Сбросить
+                </Button>
+              )}
+            </div>
+            {/* Быстрый выбор статуса с эмодзи */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { emoji: "\uD83D\uDCBB", label: "На работе" },
+                { emoji: "\uD83C\uDF54", label: "На обеде" },
+                { emoji: "\uD83C\uDFE0", label: "Удалённо" },
+                { emoji: "\u2708\uFE0F", label: "В командировке" },
+                { emoji: "\uD83C\uDFD6\uFE0F", label: "В отпуске" },
+                { emoji: "\uD83E\uDD12", label: "На больничном" },
+                { emoji: "\uD83D\uDD07", label: "Не беспокоить" },
+                { emoji: "\uD83D\uDCDE", label: "На звонке" },
+                { emoji: "\uD83D\uDCA1", label: "Мозговой штурм" },
+                { emoji: "\uD83D\uDE80", label: "Релиз" },
+                { emoji: "\uD83C\uDF93", label: "Обучение" },
+                { emoji: "\u2615", label: "Перерыв" },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors hover:bg-accent"
+                  onClick={() => setCustomStatusText(`${preset.emoji} ${preset.label}`)}
+                >
+                  <span>{preset.emoji}</span>
+                  <span>{preset.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>

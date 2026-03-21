@@ -49,7 +49,7 @@ export function CallButton({ channelId }: CallButtonProps) {
   /** Обработчик клика: начать или присоединиться. */
   const handleClick = useCallback(async () => {
     try {
-      if (existingCall) {
+      if (existingCall?.id) {
         await joinCall(existingCall.id);
       } else {
         await startCall(channelId);
@@ -69,7 +69,7 @@ export function CallButton({ channelId }: CallButtonProps) {
   if (isInCall) return null;
 
   const loading = isConnecting || checking;
-  const label = existingCall ? "Присоединиться к звонку" : "Начать звонок";
+  const label = existingCall?.id ? "Присоединиться к звонку" : "Начать звонок";
 
   return (
     <TooltipProvider>

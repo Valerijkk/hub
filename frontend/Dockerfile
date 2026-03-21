@@ -22,7 +22,7 @@ RUN echo 'server { \
     root /usr/share/nginx/html; \
     index index.html; \
     location /api/ { proxy_pass http://backend:3000; } \
-    location /ws { proxy_pass http://backend:3000; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "upgrade"; } \
+    location /ws { proxy_pass http://backend:3000; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "upgrade"; proxy_set_header Host $host; proxy_read_timeout 86400s; proxy_send_timeout 86400s; } \
     location / { try_files $uri $uri/ /index.html; } \
 }' > /etc/nginx/conf.d/default.conf
 

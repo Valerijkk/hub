@@ -1,5 +1,6 @@
 import { useMatchRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useChannels } from "@/hooks/use-channels";
 import { useUnread } from "@/hooks/use-unread";
 import { usePresence } from "@/hooks/use-presence";
@@ -78,6 +79,10 @@ function ChannelIcon({ type }: { type: ChannelType }) {
       return (
         <span className="shrink-0 text-sm opacity-70 font-medium">#</span>
       );
+    default:
+      return (
+        <span className="shrink-0 text-sm opacity-70 font-medium">#</span>
+      );
   }
 }
 
@@ -130,12 +135,14 @@ function CreateChannelDialog() {
   const [name, setName] = useState("");
   const [type, setType] = useState<ChannelType>("group");
   const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleCreate = async () => {
     if (!name.trim()) return;
     setIsLoading(true);
     try {
       await createChannel({ name: name.trim(), channel_type: type });
+      void queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
       setOpen(false);
       setName("");
     } finally {
@@ -272,6 +279,7 @@ function NewDmDialog() {
   const [creating, setCreating] = useState<string | null>(null);
   const navigate = useNavigate();
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!open) return;
@@ -311,6 +319,7 @@ function NewDmDialog() {
     setCreating(userId);
     try {
       const channel = await createOrGetDM(userId);
+      void queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
       setOpen(false);
       setSearch("");
       void navigate({
@@ -607,12 +616,14 @@ function CreateChannelDialogContent() {
   const [name, setName] = useState("");
   const [type, setType] = useState<ChannelType>("group");
   const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleCreate = async () => {
     if (!name.trim()) return;
     setIsLoading(true);
     try {
       await createChannel({ name: name.trim(), channel_type: type });
+      void queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
       setName("");
     } finally {
       setIsLoading(false);

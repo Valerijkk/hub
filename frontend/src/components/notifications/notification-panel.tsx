@@ -117,8 +117,8 @@ export function NotificationPanel() {
             ? `/projects/${project_id}/tms/runs/${entity_id}`
             : null;
         case "call":
-          // Звонки не имеют отдельной детальной страницы — переходим к дашборду
-          return "/dashboard";
+          // Для звонков переходим к каналу, в котором начался звонок
+          return entity_id ? `/messenger/${entity_id}` : null;
         default:
           return null;
       }
