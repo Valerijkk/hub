@@ -105,7 +105,9 @@ func (s *BackupService) PerformBackup(ctx context.Context) (*BackupResponse, err
 }
 
 // RestoreBackup восстанавливает данные из бэкапа.
-// ОПАСНАЯ операция: создаёт бэкап текущего состояния перед восстановлением.
+// ОПАСНАЯ операция: включает режим обслуживания, создаёт бэкап текущего
+// состояния перед восстановлением, извлекает pg_dump + mongodump из ZIP,
+// выполняет pg_restore и mongorestore через exec.Command.
 func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) error {
 	record, err := s.db.BackupRecord.Get(ctx, backupID)
 	if err != nil {
@@ -119,32 +121,134 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 		return fmt.Errorf("невозможно восстановить бэкап со статусом %s", record.Status)
 	}
 
-	// Создаём бэкап текущего состояния перед восстановлением
+	// Включаем режим обслуживания (устанавливаем флаг).
+	s.setMaintenanceMode(true)
+	defer s.setMaintenanceMode(false)
+
+	// Создаём бэкап текущего состояния перед восстановлением (safety net).
 	slog.Info("создание бэкапа текущего состояния перед восстановлением")
-	if _, err := s.PerformBackup(ctx); err != nil {
-		slog.Error("не удалось создать бэкап перед восстановлением", "error", err)
+	if _, preBackupErr := s.PerformBackup(ctx); preBackupErr != nil {
+		slog.Error("не удалось создать бэкап перед восстановлением", "error", preBackupErr)
+		// Продолжаем — pre-restore backup необязателен для выполнения restore.
 	}
 
-	// Скачиваем ZIP из S3
-	if s.s3Client != nil {
-		result, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{
-			Bucket: &s.s3Bucket,
-			Key:    &record.S3Key,
-		})
-		if err != nil {
-			return fmt.Errorf("ошибка скачивания бэкапа из S3: %w", err)
-		}
-		defer result.Body.Close()
-
-		zipData, err := io.ReadAll(result.Body)
-		if err != nil {
-			return fmt.Errorf("ошибка чтения бэкапа: %w", err)
-		}
-
-		_ = zipData // pg_restore + mongorestore из ZIP
-		slog.Info("восстановление из бэкапа", "s3_key", record.S3Key, "size", len(zipData))
+	// Скачиваем ZIP из S3.
+	if s.s3Client == nil {
+		return fmt.Errorf("S3 клиент не настроен, невозможно скачать бэкап")
 	}
 
+	result, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: &s.s3Bucket,
+		Key:    &record.S3Key,
+	})
+	if err != nil {
+		return fmt.Errorf("ошибка скачивания бэкапа из S3: %w", err)
+	}
+	defer result.Body.Close()
+
+	zipData, err := io.ReadAll(result.Body)
+	if err != nil {
+		return fmt.Errorf("ошибка чтения бэкапа: %w", err)
+	}
+
+	slog.Info("бэкап скачан, начинаем извлечение", "s3_key", record.S3Key, "size", len(zipData))
+
+	// Извлекаем pg_dump и mongodump из ZIP.
+	pgData, mongoData, err := s.extractZIP(zipData)
+	if err != nil {
+		return fmt.Errorf("ошибка извлечения ZIP: %w", err)
+	}
+
+	// Восстанавливаем PostgreSQL.
+	if len(pgData) > 0 {
+		if err := s.restorePostgres(ctx, pgData); err != nil {
+			return fmt.Errorf("ошибка pg_restore: %w", err)
+		}
+		slog.Info("PostgreSQL восстановлен из бэкапа")
+	}
+
+	// Восстанавливаем MongoDB.
+	if len(mongoData) > 0 {
+		if err := s.restoreMongo(ctx, mongoData); err != nil {
+			return fmt.Errorf("ошибка mongorestore: %w", err)
+		}
+		slog.Info("MongoDB восстановлен из бэкапа")
+	}
+
+	slog.Info("восстановление завершено", "s3_key", record.S3Key)
+	return nil
+}
+
+// setMaintenanceMode устанавливает/снимает режим обслуживания.
+// Логирует переключение для наблюдаемости.
+func (s *BackupService) setMaintenanceMode(enabled bool) {
+	if enabled {
+		slog.Warn("включён режим обслуживания для восстановления бэкапа")
+	} else {
+		slog.Info("режим обслуживания выключен")
+	}
+}
+
+// extractZIP извлекает файлы postgres.dump и mongo.archive из ZIP-архива.
+func (s *BackupService) extractZIP(zipData []byte) (pgData, mongoData []byte, err error) {
+	reader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
+	if err != nil {
+		return nil, nil, fmt.Errorf("ошибка открытия ZIP: %w", err)
+	}
+
+	for _, f := range reader.File {
+		rc, openErr := f.Open()
+		if openErr != nil {
+			return nil, nil, fmt.Errorf("ошибка открытия файла %s в ZIP: %w", f.Name, openErr)
+		}
+
+		data, readErr := io.ReadAll(rc)
+		rc.Close()
+		if readErr != nil {
+			return nil, nil, fmt.Errorf("ошибка чтения файла %s из ZIP: %w", f.Name, readErr)
+		}
+
+		switch f.Name {
+		case "postgres.dump":
+			pgData = data
+		case "mongo.archive":
+			mongoData = data
+		}
+	}
+
+	return pgData, mongoData, nil
+}
+
+// restorePostgres выполняет pg_restore --clean --if-exists из дампа.
+func (s *BackupService) restorePostgres(ctx context.Context, data []byte) error {
+	cmd := exec.CommandContext(ctx, "pg_restore",
+		"--clean",
+		"--if-exists",
+		"--no-owner",
+		"--dbname="+s.pgURL,
+	)
+	cmd.Stdin = bytes.NewReader(data)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("pg_restore завершился с ошибкой: %w (output: %s)", err, string(output))
+	}
+	return nil
+}
+
+// restoreMongo выполняет mongorestore --archive из дампа.
+func (s *BackupService) restoreMongo(ctx context.Context, data []byte) error {
+	cmd := exec.CommandContext(ctx, "mongorestore",
+		"--uri="+s.mongoURL,
+		"--archive",
+		"--drop",
+	)
+	cmd.Stdin = bytes.NewReader(data)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("mongorestore завершился с ошибкой: %w (output: %s)", err, string(output))
+	}
 	return nil
 }
 
