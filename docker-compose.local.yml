@@ -118,6 +118,7 @@ services:
       LIVEKIT_URL: "http://livekit:7880"
       LIVEKIT_API_KEY: "devkey-hub-local-development-2026"
       LIVEKIT_API_SECRET: "devsecret-hub-local-minimum-32-chars-ok"
+      DEV_MODE: "true"
     depends_on:
       postgres:
         condition: service_healthy
