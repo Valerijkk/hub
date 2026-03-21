@@ -1,3 +1,10 @@
+/**
+ * Основная оболочка приложения: sidebar + topbar + content + панель звонка.
+ *
+ * На десктопе (md+): стандартный sidebar layout.
+ * На мобильных (< md): sidebar скрыт, нижняя навигация, sidebar открывается как overlay.
+ * Регистрирует глобальные горячие клавиши: Ctrl+K (поиск), Ctrl+N (новая задача).
+ */
 import { useEffect, useState } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,11 +14,8 @@ import { cn } from "@/lib/utils";
 import { CallPanel } from "@/components/calls/CallPanel";
 import { CommandPalette } from "@/components/search/command-palette";
 import { useSearchStore } from "@/stores/search-store";
+import { MobileNav } from "@/components/mobile-nav";
 
-/**
- * Основная оболочка приложения: sidebar + topbar + content + панель звонка.
- * Регистрирует глобальные горячие клавиши: Ctrl+K (поиск), Ctrl+N (новая задача).
- */
 export function AppShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const setSearchOpen = useSearchStore((s) => s.setOpen);
@@ -20,12 +24,12 @@ export function AppShell() {
   // Глобальные горячие клавиши
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Ctrl+K / Cmd+K — открыть/закрыть палитру поиска
+      // Ctrl+K / Cmd+K -- открыть/закрыть палитру поиска
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         setSearchOpen(!searchIsOpen);
       }
-      // Ctrl+N / Cmd+N — создание новой задачи (dispatch custom event)
+      // Ctrl+N / Cmd+N -- создание новой задачи (dispatch custom event)
       if ((e.ctrlKey || e.metaKey) && e.key === "n") {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent("hub:create-issue"));
@@ -39,7 +43,7 @@ export function AppShell() {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex h-screen overflow-hidden">
-        {/* Mobile overlay */}
+        {/* Mobile overlay для sidebar */}
         {mobileMenuOpen && (
           <div
             className="fixed inset-0 z-40 bg-black/50 md:hidden"
@@ -50,24 +54,28 @@ export function AppShell() {
           />
         )}
 
-        {/* Sidebar */}
+        {/* Sidebar: на мобильных -- slide-over, на десктопе -- всегда видим */}
         <div
           className={cn(
-            "fixed inset-y-0 left-0 z-50 md:relative md:z-auto",
-            mobileMenuOpen ? "block" : "hidden md:block"
+            "fixed inset-y-0 left-0 z-50 transition-transform duration-200 md:relative md:z-auto md:translate-x-0",
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           )}
         >
           <Sidebar />
         </div>
 
-        {/* Main content */}
+        {/* Основной контент */}
         <div className="flex flex-1 flex-col overflow-hidden">
           <Topbar onMenuToggle={() => setMobileMenuOpen((v) => !v)} />
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6">
             <Outlet />
           </main>
         </div>
       </div>
+
+      {/* Нижняя навигация для мобильных */}
+      <MobileNav />
+
       {/* Палитра команд (Ctrl+K) */}
       <CommandPalette />
       {/* Панель активного звонка (фиксированная, если звонок активен) */}

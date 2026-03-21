@@ -2,12 +2,33 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   plugins: [
     TanStackRouterVite(),
     react(),
     tailwindcss(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.ico", "robots.txt"],
+      manifest: false,
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        navigateFallback: "/index.html",
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif)$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "images",
+              expiration: { maxEntries: 50 },
+            },
+          },
+        ],
+      },
+    }),
   ],
   resolve: {
     alias: {
