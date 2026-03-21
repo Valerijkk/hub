@@ -1,13 +1,19 @@
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 
+/** Пропсы компонента FileUpload. */
 interface FileUploadProps {
+  /** Колбэк при выборе файлов. */
   onFiles: (files: FileList) => void;
+  /** Допустимые MIME-типы/расширения файлов. */
   accept?: string;
+  /** Разрешить выбор нескольких файлов. */
   multiple?: boolean;
+  /** Заблокировать кнопку. */
   disabled?: boolean;
 }
 
+/** Кнопка загрузки файла со скрытым input[type=file]. */
 export function FileUpload({
   onFiles,
   accept,

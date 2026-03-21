@@ -12,10 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+/** Пропсы компонента MagicLinkForm. */
 interface MagicLinkFormProps {
+  /** Колбэк при успешной авторизации. */
   onSuccess: () => void;
 }
 
+/** Форма входа через magic link с двумя шагами: ввод email и подтверждение кодом. */
 export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");

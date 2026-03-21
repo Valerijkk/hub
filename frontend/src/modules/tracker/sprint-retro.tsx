@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
+/** Пропсы компонента ретроспективы спринта. */
 interface SprintRetroProps {
   /** ID проекта. */
   projectId: string;

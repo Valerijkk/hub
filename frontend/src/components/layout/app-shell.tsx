@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { CallPanel } from "@/components/calls/CallPanel";
 import { MobileNav } from "@/components/mobile-nav";
 
+/** Основная оболочка приложения: sidebar, topbar, content, панель звонка и мобильная навигация. */
 export function AppShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

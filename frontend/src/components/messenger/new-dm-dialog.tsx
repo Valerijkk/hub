@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-/** User for selection in DM creation dialog. */
+/** Пользователь для выбора в диалоге создания личного сообщения. */
 interface PickerUser {
   id: string;
   email: string;
@@ -22,14 +22,14 @@ interface PickerUser {
   display_name?: string;
 }
 
-/** Response from /admin/users list endpoint. */
+/** Ответ от эндпоинта /admin/users для получения списка пользователей. */
 interface UsersListResponse {
   items?: PickerUser[];
   users?: PickerUser[];
 }
 
 /**
- * "New DM" dialog -- select a user and open/create a DM channel.
+ * Диалог "Написать" -- выбор пользователя и открытие/создание ЛС-канала.
  */
 export function NewDmDialog() {
   const [open, setOpen] = useState(false);

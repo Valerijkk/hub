@@ -53,6 +53,7 @@ function StatusBar({ point }: { point: TrendPoint }) {
  * Отображает стековые полоски с pass/fail/broken/skipped для каждого прогона.
  * X-ось: прогоны (от старых к новым).
  */
+/** График трендов прогонов тестов с горизонтальными полосками pass/fail/broken/skipped. */
 export function TrendsChart({
   projectId,
   limit = 20,

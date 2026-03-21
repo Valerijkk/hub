@@ -19,10 +19,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 
+/** Пропсы компонента Topbar. */
 interface TopbarProps {
+  /** Колбэк переключения мобильного меню. */
   onMenuToggle?: () => void;
 }
 
+/** Верхняя панель приложения с аватаром пользователя, уведомлениями и hamburger-меню. */
 export function Topbar({ onMenuToggle }: TopbarProps) {
   const navigate = useNavigate();
   const { user, logout: storeLogout } = useAuthStore();

@@ -2,7 +2,7 @@ import type { TestCaseVersionResponse } from "@/api/tms";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-/** Format relative time in Russian. */
+/** Форматирует относительное время на русском языке. */
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -19,15 +19,21 @@ function formatRelativeTime(dateStr: string): string {
   return date.toLocaleDateString("ru-RU");
 }
 
+/** Пропсы компонента VersionHistory. */
 interface VersionHistoryProps {
+  /** Раскрыта ли панель истории. */
   versionsOpen: boolean;
+  /** Переключение видимости панели. */
   onToggle: () => void;
+  /** Список версий тест-кейса. */
   versions?: TestCaseVersionResponse[];
+  /** Колбэк отката к указанной версии. */
   onRollback: (versionId: string) => void;
+  /** Процесс отката в данный момент. */
   isRollingBack: boolean;
 }
 
-/** Version history panel for test cases. */
+/** Панель истории версий тест-кейса с возможностью отката. */
 export function VersionHistory({
   versionsOpen,
   onToggle,

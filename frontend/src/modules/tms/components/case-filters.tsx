@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ListTestCasesParams } from "@/api/tms";
 
+/** Пропсы панели фильтров тест-кейсов. */
 interface CaseFiltersProps {
   filters: {
     search?: string;
@@ -22,6 +23,7 @@ interface CaseFiltersProps {
   createButton: React.ReactNode;
 }
 
+/** Панель фильтров: поиск, статус, приоритет, bulk-действия и кнопка создания. */
 export function CaseFilters({
   filters,
   updateFilter,

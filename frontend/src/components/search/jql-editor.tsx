@@ -14,6 +14,7 @@ interface JQLFieldDef {
   values?: string[];
 }
 
+/** Список поддерживаемых полей JQL с допустимыми операторами и значениями. */
 const JQL_FIELDS: JQLFieldDef[] = [
   {
     name: "status",
@@ -51,6 +52,7 @@ const JQL_FIELDS: JQLFieldDef[] = [
   },
 ];
 
+/** Ключевые слова JQL для соединения условий и сортировки. */
 const JQL_KEYWORDS = ["AND", "OR", "ORDER BY"];
 
 /** Определяет контекст текущей позиции ввода в JQL-строке. */

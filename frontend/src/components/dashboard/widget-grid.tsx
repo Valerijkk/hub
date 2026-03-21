@@ -62,6 +62,7 @@ const WIDGET_NAMES: Record<string, string> = {
   deadlines: "Дедлайны",
 };
 
+/** Пропсы компонента WidgetGrid. */
 interface WidgetGridProps {
   /** Элементы раскладки. */
   items: LayoutItem[];

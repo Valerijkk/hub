@@ -14,6 +14,7 @@ export const RUN_STATUS_CONFIG: Record<string, { bg: string; text: string; label
   aborted: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", label: "Прерван" },
 };
 
+/** Пропсы компонента RunHeader. */
 interface RunHeaderProps {
   projectId: string;
   run: {
@@ -37,6 +38,7 @@ interface RunHeaderProps {
   isReopening: boolean;
 }
 
+/** Заголовок прогона тестов: breadcrumb, название, статус, прогресс-бар, кнопки управления. */
 export function RunHeader({
   projectId,
   run,

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
+/** Пропсы диалога создания тест-кейса. */
 interface CreateCaseDialogProps {
   projectId: string;
   suites?: SuiteResponse[];
@@ -28,6 +29,7 @@ interface CreateCaseDialogProps {
   trigger: React.ReactNode;
 }
 
+/** Диалог создания нового тест-кейса с выбором типа, приоритета и папки. */
 export function CreateCaseDialog({
   projectId,
   suites,

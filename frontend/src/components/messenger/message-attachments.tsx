@@ -1,20 +1,18 @@
 import type { Message } from "@/api/messenger";
 import { cn } from "@/lib/utils";
 
-/**
- * Checks if an attachment is an image by MIME type.
- */
+/** Проверяет, является ли вложение изображением по MIME-типу. */
 function isImageAttachment(mimeType: string): boolean {
   return mimeType.startsWith("image/");
 }
 
-/** Props for MessageAttachments component. */
+/** Пропсы компонента MessageAttachments. */
 interface MessageAttachmentsProps {
   attachments: NonNullable<Message["attachments"]>;
   isOwn: boolean;
 }
 
-/** Renders file attachments: inline image previews and file download links. */
+/** Отображает вложения сообщения: превью изображений и ссылки для скачивания файлов. */
 export function MessageAttachments({ attachments, isOwn }: MessageAttachmentsProps) {
   if (attachments.length === 0) return null;
 

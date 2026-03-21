@@ -84,7 +84,9 @@ function MatrixCell({ status }: { status: string }) {
 // Основной компонент
 // ---------------------------------------------------------------------------
 
+/** Пропсы компонента TraceabilityMatrix. */
 interface TraceabilityMatrixProps {
+  /** ID проекта. */
   projectId: string;
 }
 

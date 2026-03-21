@@ -3,7 +3,7 @@ import { ReactionPicker } from "./reaction-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Props for the MessageActions floating action bar. */
+/** Пропсы плавающей панели действий над сообщением. */
 interface MessageActionsProps {
   message: Message;
   channelId: string;
@@ -18,7 +18,7 @@ interface MessageActionsProps {
   onDelete: () => void;
 }
 
-/** Floating action buttons that appear on message hover (reply, thread, pin, bookmark, forward, delete). */
+/** Плавающие кнопки действий при наведении на сообщение (ответ, тред, закрепить, сохранить, переслать, удалить). */
 export function MessageActions({
   message,
   channelId,

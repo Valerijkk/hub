@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-/** Конфигурация кнопок статусов выполнения. */
+/** Конфигурация кнопок статусов выполнения (passed, failed, broken, skipped). */
 const STATUS_BUTTONS: { status: TestResultStatus; label: string; color: string; activeColor: string }[] = [
   { status: "passed", label: "Passed", color: "hover:bg-green-500/10 hover:text-green-700 hover:border-green-500/30", activeColor: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
   { status: "failed", label: "Failed", color: "hover:bg-red-500/10 hover:text-red-700 hover:border-red-500/30", activeColor: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30" },
@@ -23,6 +23,7 @@ const STATUS_BUTTONS: { status: TestResultStatus; label: string; color: string; 
   { status: "skipped", label: "Skip", color: "hover:bg-gray-500/10 hover:text-gray-700 hover:border-gray-500/30", activeColor: "bg-gray-500/15 text-gray-700 dark:text-gray-400 border-gray-500/30" },
 ];
 
+/** Панель выполнения тест-кейса: выбор статуса, комментарий, сохранение результата. */
 export function RunExecutionPanel({
   result,
   projectId,

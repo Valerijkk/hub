@@ -22,7 +22,7 @@ import { NewDmDialog } from "./new-dm-dialog";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/format-time";
 
-/** Group channels by type. */
+/** Группирует каналы по типу (личные, групповые, проекты, публичные). */
 function groupChannels(channels: Channel[]) {
   const groups: Record<string, { label: string; channels: Channel[] }> = {
     dm: { label: "ЛИЧНЫЕ", channels: [] },
@@ -36,7 +36,7 @@ function groupChannels(channels: Channel[]) {
   return Object.entries(groups).filter(([, g]) => g.channels.length > 0);
 }
 
-/** Bookmarks button that opens a dialog. */
+/** Кнопка закладок, открывающая диалог со списком сохранённых сообщений. */
 function BookmarksButton() {
   const [open, setOpen] = useState(false);
   return (
@@ -73,7 +73,7 @@ function BookmarksButton() {
   );
 }
 
-/** Bookmarks panel content. */
+/** Содержимое панели закладок. */
 function BookmarksList() {
   return (
     <div className="py-2">
@@ -83,9 +83,9 @@ function BookmarksList() {
 }
 
 /**
- * ChannelList displays the channel list in Tinkoff Talk style.
- * Each channel shows: icon, name, last message preview,
- * relative time, unread badge and online dot for DM.
+ * ChannelList отображает список каналов в стиле Tinkoff Talk.
+ * Каждый канал показывает: иконку, название, превью последнего сообщения,
+ * относительное время, badge непрочитанных и индикатор онлайна для ЛС.
  */
 export function ChannelList() {
   const { data: channels, isLoading } = useChannels();
@@ -97,7 +97,7 @@ export function ChannelList() {
   const dmUserIds: string[] = [];
   const { getStatus } = usePresence(dmUserIds);
 
-  /** Get DM partner ID (not available with current backend). */
+  /** Получить ID собеседника в ЛС (пока недоступно на бэкенде). */
   function getDmPartnerId(_channel: Channel): string | undefined {
     return undefined;
   }

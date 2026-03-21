@@ -3,6 +3,7 @@
  */
 import { Button } from "@/components/ui/button";
 
+/** Кнопка развернуть сайдбар, отображаемая только в свёрнутом состоянии. */
 export function SidebarExpandButton({
   collapsed,
   toggle,

@@ -71,6 +71,7 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
   ];
 }
 
+/** Секция проектов в сайдбаре с раскрывающимися подменю модулей. */
 export function SidebarProjects({
   collapsed,
   t,

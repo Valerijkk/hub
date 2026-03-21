@@ -3,12 +3,17 @@ import { useFileUpload } from "@/hooks/use-file-upload";
 import { cn } from "@/lib/utils";
 import { FileUpload } from "./file-upload";
 
+/** Пропсы компонента Dropzone. */
 interface DropzoneProps {
+  /** ID проекта. */
   projectId: string;
+  /** Тип сущности для привязки файла. */
   entityType: string;
+  /** ID сущности для привязки файла. */
   entityId: string;
 }
 
+/** Зона перетаскивания файлов с индикатором загрузки и поддержкой Ctrl+V. */
 export function Dropzone({ projectId, entityType, entityId }: DropzoneProps) {
   const { isDragging, isUploading, upload, dropZoneProps } = useFileUpload({
     projectId,

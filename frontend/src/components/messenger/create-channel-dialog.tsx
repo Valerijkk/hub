@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-/** Channel creation dialog (header button variant). */
+/** Диалог создания канала (вариант с кнопкой в заголовке). */
 export function CreateChannelDialog() {
   const [open, setOpen] = useState(false);
 
@@ -49,7 +49,7 @@ export function CreateChannelDialog() {
   );
 }
 
-/** Channel creation dialog content (for bottom panel button). */
+/** Содержимое диалога создания канала (для кнопки нижней панели). */
 export function CreateChannelDialogContent() {
   const [name, setName] = useState("");
   const [type, setType] = useState<ChannelType>("group");

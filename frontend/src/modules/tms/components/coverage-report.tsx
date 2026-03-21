@@ -101,6 +101,7 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
  * Таблица: Задача -> Кол-во тестов -> Процент покрытия.
  * Раскрываемые строки показывают отдельные тест-кейсы с последним статусом.
  */
+/** Отчёт о покрытии задач тестами с раскрывающимися строками и прогресс-барами. */
 export function CoverageReport({ projectId }: { projectId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["tms-coverage", projectId],

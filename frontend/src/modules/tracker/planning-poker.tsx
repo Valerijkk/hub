@@ -20,6 +20,7 @@ const FIBONACCI_VALUES = [
   "?",
 ];
 
+/** Пропсы компонента PlanningPoker. */
 interface PlanningPokerProps {
   /** ID сессии Planning Poker. */
   sessionId: string;

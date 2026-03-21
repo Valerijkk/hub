@@ -16,6 +16,7 @@ import { toast } from "sonner";
 // Конфигурация отображения
 // ---------------------------------------------------------------------------
 
+/** Цвета бейджей приоритетов задач. */
 const PRIORITY_COLORS: Record<string, string> = {
   low: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
   medium: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
@@ -23,6 +24,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   critical: "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
+/** Цвета бейджей типов задач. */
 const TYPE_COLORS: Record<string, string> = {
   task: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
   bug: "bg-red-500/10 text-red-600 dark:text-red-400",

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-/** Конфигурация статусов результата -- цвета и лейблы. */
+/** Конфигурация статусов результата -- цвета, лейблы и цвет точки-индикатора. */
 export const RESULT_STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; dotColor: string }> = {
   passed: { bg: "bg-green-500/10", text: "text-green-700 dark:text-green-400", label: "Passed", dotColor: "bg-green-500" },
   failed: { bg: "bg-red-500/10", text: "text-red-700 dark:text-red-400", label: "Failed", dotColor: "bg-red-500" },
@@ -25,6 +25,7 @@ export function formatDuration(ms?: number): string {
   return `${Math.floor(ms / 60000)}м ${Math.floor((ms % 60000) / 1000)}с`;
 }
 
+/** Строка результата прогона для таблицы. */
 interface ResultRow {
   id: string;
   status: string;
@@ -33,6 +34,7 @@ interface ResultRow {
   executed_by?: { name: string } | null;
 }
 
+/** Пропсы таблицы результатов прогона. */
 interface RunResultsTableProps {
   results: ResultRow[];
   runStatus: string;
@@ -41,6 +43,7 @@ interface RunResultsTableProps {
   onAddCases: () => void;
 }
 
+/** Таблица результатов прогона тестов с фильтрацией по статусу и подсветкой текущего. */
 export function RunResultsTable({
   results,
   runStatus,

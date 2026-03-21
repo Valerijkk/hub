@@ -1,6 +1,6 @@
-/** Plate JSON renderer for message content. */
+/** Рендерер Plate JSON для содержимого сообщений. */
 
-/** Render one Plate JSON node. */
+/** Рендерит один узел Plate JSON (текст, параграф, заголовок, список, цитату, ссылку, код). */
 export function RenderNode({ node }: { node: Record<string, unknown> }) {
   // Text node.
   if ("text" in node && typeof node.text === "string") {
@@ -64,7 +64,7 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
   }
 }
 
-/** Render message content from Plate JSON (simplified). */
+/** Рендерит содержимое сообщения из Plate JSON (упрощённый вариант). */
 export function RenderContent({
   contentJson,
 }: {

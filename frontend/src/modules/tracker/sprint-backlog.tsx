@@ -4,6 +4,7 @@ import { listIssues, type IssueResponse } from "@/api/tracker";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
+/** Пропсы компонента SprintBacklog. */
 interface SprintBacklogProps {
   /** ID проекта. */
   projectId: string;

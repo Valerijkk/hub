@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import type { SprintResponse } from "@/api/sprint";
 
+/** Пропсы компонента SprintBoard. */
 interface SprintBoardProps {
   /** ID проекта. */
   projectId: string;

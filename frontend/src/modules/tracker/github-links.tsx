@@ -11,6 +11,7 @@ import {
 // Типы
 // ---------------------------------------------------------------------------
 
+/** Пропсы компонента GitHubLinks. */
 interface GitHubLinksProps {
   /** Ключ задачи (например "HUB-123"). */
   issueKey: string;
@@ -82,6 +83,7 @@ function GitCommitIcon({ className }: { className?: string }) {
 // Диалог создания ветки
 // ---------------------------------------------------------------------------
 
+/** Пропсы диалога создания ветки из задачи. */
 interface CreateBranchDialogProps {
   issueKey: string;
   integrations: IntegrationResponse[];

@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
+/** Кнопка входа через Telegram (заглушка до настройки бота). */
 export function TelegramButton() {
   function handleClick() {
     toast.info("Telegram вход будет доступен после настройки бота");

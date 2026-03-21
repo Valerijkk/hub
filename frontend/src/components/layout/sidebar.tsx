@@ -15,6 +15,7 @@ import { SidebarProjects } from "./sidebar-projects";
 import { SidebarNav } from "./sidebar-nav";
 import { SidebarExpandButton } from "./sidebar-user";
 
+/** Боковая панель навигации с логотипом, проектами и ссылками на разделы. */
 export function Sidebar() {
   const { collapsed, toggle } = useSidebarStore();
   const { t } = useTranslation("common");

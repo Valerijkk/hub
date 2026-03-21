@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 /** Режим swimlanes на Kanban-доске. */
 type SwimlaneMode = "none" | "assignee" | "priority" | "type";
 
+/** Пропсы компонента KanbanBoard. */
 interface KanbanBoardProps {
   /** ID проекта. */
   projectId: string;
@@ -179,6 +180,7 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 // Компонент колонки
 // ---------------------------------------------------------------------------
 
+/** Пропсы колонки Kanban-доски. */
 interface KanbanColumnProps {
   column: BoardColumnResponse;
   issues: IssueBriefResponse[];
@@ -188,6 +190,7 @@ interface KanbanColumnProps {
   onDrop: (issueKey: string, statusId: string, rank: string) => void;
 }
 
+/** Колонка Kanban-доски с заголовком, WIP-лимитом и списком карточек задач. */
 const KanbanColumn = memo(function KanbanColumn({
   column,
   issues,
@@ -250,10 +253,12 @@ const KanbanColumn = memo(function KanbanColumn({
 // Компонент карточки задачи
 // ---------------------------------------------------------------------------
 
+/** Пропсы карточки задачи на Kanban-доске. */
 interface KanbanCardProps {
   issue: IssueBriefResponse;
 }
 
+/** Перетаскиваемая карточка задачи на Kanban-доске с ключом, приоритетом и исполнителем. */
 const KanbanCard = memo(function KanbanCard({ issue }: KanbanCardProps) {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("text/plain", issue.issue_key);

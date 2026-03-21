@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-/** Priority configuration for badges. */
+/** Конфигурация приоритетов для бейджей (цвет точки, фон, текст, подпись). */
 const PRIORITY_CONFIG: Record<string, { dot: string; bg: string; text: string; label: string }> = {
   critical: { dot: "bg-red-500", bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", label: "Критический" },
   high: { dot: "bg-orange-500", bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", label: "Высокий" },
@@ -12,14 +12,14 @@ const PRIORITY_CONFIG: Record<string, { dot: string; bg: string; text: string; l
   trivial: { dot: "bg-gray-400", bg: "bg-gray-500/10", text: "text-gray-500", label: "Тривиальный" },
 };
 
-/** Status configuration. */
+/** Конфигурация статусов тест-кейса (черновик, активный, устаревший). */
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
   draft: { bg: "bg-gray-500/10", text: "text-gray-600 dark:text-gray-400", label: "Черновик" },
   active: { bg: "bg-green-500/10", text: "text-green-700 dark:text-green-400", label: "Активный" },
   deprecated: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", label: "Устаревший" },
 };
 
-/** Format relative time in Russian. */
+/** Форматирует относительное время на русском языке ("5 мин. назад", "вчера"). */
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -36,14 +36,16 @@ function formatRelativeTime(dateStr: string): string {
   return date.toLocaleDateString("ru-RU");
 }
 
-/** Re-export configs for use by the parent route. */
+/** Реэкспорт конфигураций для использования в родительском роуте. */
 export { PRIORITY_CONFIG, STATUS_CONFIG };
 
+/** Пропсы компонента TestCaseMetadata. */
 interface TestCaseMetadataProps {
+  /** Данные тест-кейса. */
   tc: TestCaseResponse;
 }
 
-/** Metadata sidebar: type, priority, status, author, dates, suite, components, labels. */
+/** Боковая панель метаданных тест-кейса: тип, приоритет, статус, автор, даты, папка, компоненты, метки. */
 export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
   const priorityCfg = (PRIORITY_CONFIG[tc.priority] ?? PRIORITY_CONFIG.medium)!;
   const statusCfg = (STATUS_CONFIG[tc.status] ?? STATUS_CONFIG.draft)!;

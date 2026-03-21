@@ -19,6 +19,7 @@ export const NAV_ICON_COLORS: Record<string, string> = {
   "/trash": "text-slate-500",
 };
 
+/** Элемент навигации сайдбара с tooltip при свёрнутом режиме и индикатором активности. */
 export function SidebarLink({
   to,
   label,

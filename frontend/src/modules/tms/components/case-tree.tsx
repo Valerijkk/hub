@@ -8,6 +8,7 @@ import type { SuiteResponse } from "@/api/tms";
 /**
  * Рекурсивный компонент дерева папок.
  */
+/** Рекурсивный элемент дерева сьютов с раскрытием/свёртыванием и выбором. */
 export function SuiteTreeItem({
   suite,
   selectedId,
@@ -91,6 +92,7 @@ export function SuiteTreeItem({
 /**
  * Боковая панель с деревом сьютов.
  */
+/** Боковая панель с деревом тест-сьютов и кнопкой "Все кейсы". */
 export function CaseTreePanel({
   suites,
   selectedSuiteId,

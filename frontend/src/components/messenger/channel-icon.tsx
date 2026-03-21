@@ -1,6 +1,6 @@
 import type { ChannelType } from "@/api/messenger";
 
-/** Channel type icon -- styled for dark sidebar. */
+/** Иконка типа канала -- стилизована для тёмного сайдбара. */
 export function ChannelIcon({ type }: { type: ChannelType }) {
   switch (type) {
     case "dm":

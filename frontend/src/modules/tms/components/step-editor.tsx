@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-/** BDD keyword colors for badges. */
+/** Цвета BDD-ключевых слов для бейджей (Given, When, Then, And, But). */
 const BDD_KEYWORD_COLORS: Record<string, string> = {
   Given: "text-blue-600 dark:text-blue-400 bg-blue-500/10",
   When: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
@@ -13,7 +13,7 @@ const BDD_KEYWORD_COLORS: Record<string, string> = {
   But: "text-red-600 dark:text-red-400 bg-red-500/10",
 };
 
-/** Props for step editor in edit mode. */
+/** Пропсы редактора шагов в режиме редактирования. */
 interface StepEditorEditProps {
   editing: true;
   editSteps: TestStep[];
@@ -22,7 +22,7 @@ interface StepEditorEditProps {
   onUpdateStep: (index: number, field: "action" | "expected_result", value: string) => void;
 }
 
-/** Props for step display in read mode. */
+/** Пропсы отображения шагов в режиме чтения. */
 interface StepEditorReadProps {
   editing: false;
   tc: TestCaseResponse;
@@ -31,7 +31,7 @@ interface StepEditorReadProps {
 
 export type StepEditorProps = StepEditorEditProps | StepEditorReadProps;
 
-/** Step editing and display UI for test cases. */
+/** Редактор и отображение шагов тест-кейса (режим редактирования и чтения). */
 export function StepEditor(props: StepEditorProps) {
   if (props.editing) {
     return (

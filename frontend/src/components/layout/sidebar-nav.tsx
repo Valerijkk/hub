@@ -3,6 +3,7 @@
  */
 import { SidebarLink, NAV_ICON_COLORS } from "./sidebar-link";
 
+/** Блок навигации сайдбара: ссылки на дашборд, мессенджер, звонки, проекты, настройки, корзину. */
 export function SidebarNav({
   collapsed,
   t,

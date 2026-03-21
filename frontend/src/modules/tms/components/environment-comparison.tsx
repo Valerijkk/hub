@@ -54,7 +54,9 @@ function StatusBadge({ status }: { status: string }) {
 // Основной компонент
 // ---------------------------------------------------------------------------
 
+/** Пропсы компонента EnvironmentComparison. */
 interface EnvironmentComparisonProps {
+  /** ID проекта. */
   projectId: string;
 }
 

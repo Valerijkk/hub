@@ -12,6 +12,7 @@ import {
 import { useSprintStore } from "@/stores/sprint-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+/** Пропсы компонента BurndownChart. */
 interface BurndownChartProps {
   /** ID проекта. */
   projectId: string;
