@@ -259,7 +259,7 @@ function TestRunsPage() {
                   params={{ projectId, runId: run.id }}
                   className="block group"
                 >
-                  <div className="rounded-xl border bg-card p-4 shadow-card hover-lift transition-all space-y-3 hover:border-primary/20 hover:shadow-md">
+                  <div className="rounded-xl border bg-card/80 backdrop-blur-sm p-4 shadow-card hover-lift transition-all duration-200 space-y-3 hover:border-primary/20 hover:shadow-lg">
                     {/* Заголовок + статус */}
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="text-sm font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
@@ -291,10 +291,10 @@ function TestRunsPage() {
                     {/* Мультисегментный прогресс-бар */}
                     {hasResults ? (
                       <div className="space-y-2">
-                        <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
+                        <div className="flex h-2.5 overflow-hidden rounded-full bg-muted/60">
                           {run.passed_count > 0 && (
                             <div
-                              className="h-full bg-green-500 transition-all duration-500"
+                              className="h-full bg-green-500 animate-progress-fill transition-all duration-500"
                               style={{ width: `${Math.max((run.passed_count / run.total_count) * 100, 4)}%` }}
                               title={`Passed: ${run.passed_count}`}
                             />
@@ -348,7 +348,12 @@ function TestRunsPage() {
                               {run.skipped_count}
                             </span>
                           )}
-                          <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-medium">
+                          <span className={cn(
+                            "ml-auto text-[11px] tabular-nums font-bold",
+                            rate >= 80 ? "text-green-600 dark:text-green-400" :
+                            rate >= 50 ? "text-yellow-600 dark:text-yellow-400" :
+                            "text-red-600 dark:text-red-400",
+                          )}>
                             {rate}%
                           </span>
                         </div>

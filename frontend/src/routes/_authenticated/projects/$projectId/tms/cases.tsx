@@ -500,9 +500,9 @@ function TestCasesPage() {
         ) : (
           <>
             <div className="rounded-xl border shadow-card overflow-hidden flex-1">
-              <table className="w-full">
+              <table className="w-full table-striped">
                 <thead>
-                  <tr className="border-b bg-muted/30">
+                  <tr className="border-b bg-muted/40">
                     <th className="w-10 px-3 py-2.5">
                       <input
                         type="checkbox"
@@ -546,8 +546,8 @@ function TestCasesPage() {
                       <tr
                         key={tc.id}
                         className={cn(
-                          "border-b transition-colors hover:bg-muted/30 group",
-                          isSelected && "bg-primary/5",
+                          "border-b transition-colors duration-150 hover:bg-primary/[0.03] group",
+                          isSelected && "bg-primary/5 hover:bg-primary/[0.07]",
                         )}
                       >
                         <td className="w-10 px-3 py-2.5">
