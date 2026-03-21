@@ -59,7 +59,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Ent-схемы трекера (15 схем), Repository interface, DTOs, events
-- [ ] 02-02-PLAN.md — Issue CRUD backend (handler/service/repository), workflow engine, тесты
+- [x] 02-02-PLAN.md — Issue CRUD backend (handler/service/repository), workflow engine, тесты
 - [x] 02-03-PLAN.md — Frontend API client, Zustand stores, Plate editor wrapper
 - [ ] 02-04-PLAN.md — Kanban-доска (drag-and-drop), списки задач, детальный вид, комментарии, настройки
 - [ ] 02-05-PLAN.md — Документация фазы 2 (бизнес, тестовая, техническая) на русском
