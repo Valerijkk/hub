@@ -6,7 +6,7 @@ import "time"
 // Request DTOs
 // ---------------------------------------------------------------------------
 
-// CreateIssueRequest is the request body for creating a new issue.
+// CreateIssueRequest — тело запроса на создание новой задачи.
 type CreateIssueRequest struct {
 	Title           string                  `json:"title" validate:"required,min=1,max=500"`
 	IssueType       string                  `json:"issue_type" validate:"required,oneof=bug task story epic sub_task improvement tech_debt spike release"`
@@ -21,7 +21,7 @@ type CreateIssueRequest struct {
 	DueDate         *time.Time              `json:"due_date,omitempty"`
 }
 
-// UpdateIssueRequest is the request body for updating an existing issue.
+// UpdateIssueRequest — тело запроса на обновление существующей задачи.
 type UpdateIssueRequest struct {
 	Title           *string                 `json:"title,omitempty" validate:"omitempty,min=1,max=500"`
 	DescriptionJSON *map[string]interface{} `json:"description_json,omitempty"`
@@ -35,13 +35,13 @@ type UpdateIssueRequest struct {
 	Version         int                     `json:"version" validate:"required"`
 }
 
-// MoveIssueRequest is the request body for moving an issue on a board.
+// MoveIssueRequest — тело запроса на перемещение задачи на доске.
 type MoveIssueRequest struct {
 	StatusID string `json:"status_id" validate:"required"`
 	Rank     string `json:"rank" validate:"required"`
 }
 
-// ListIssuesRequest contains filter and pagination parameters for listing issues.
+// ListIssuesRequest — параметры фильтрации и пагинации для списка задач.
 type ListIssuesRequest struct {
 	Cursor    string   `json:"cursor,omitempty" query:"cursor"`
 	Limit     int      `json:"limit,omitempty" query:"limit" validate:"omitempty,min=1,max=100"`
@@ -53,14 +53,14 @@ type ListIssuesRequest struct {
 	OrderBy   string   `json:"order_by,omitempty" query:"order_by" validate:"omitempty,oneof=created_at priority updated_at"`
 }
 
-// CreateIssueLinkRequest is the request body for linking two issues.
+// CreateIssueLinkRequest — тело запроса на создание связи между двумя задачами.
 type CreateIssueLinkRequest struct {
 	TargetIssueID string `json:"target_issue_id" validate:"required"`
 	LinkType      string `json:"link_type" validate:"required"`
 	CustomType    string `json:"custom_type,omitempty"`
 }
 
-// CreateCommentRequest is the request body for adding a comment to an issue.
+// CreateCommentRequest — тело запроса на добавление комментария к задаче.
 type CreateCommentRequest struct {
 	BodyJSON   map[string]interface{} `json:"body_json" validate:"required"`
 	BodyText   string                 `json:"body_text" validate:"required"`
@@ -68,31 +68,31 @@ type CreateCommentRequest struct {
 	Mentions   []string               `json:"mentions,omitempty"`
 }
 
-// UpdateCommentRequest is the request body for editing a comment.
+// UpdateCommentRequest — тело запроса на редактирование комментария.
 type UpdateCommentRequest struct {
 	BodyJSON map[string]interface{} `json:"body_json" validate:"required"`
 	BodyText string                 `json:"body_text" validate:"required"`
 }
 
-// LogTimeRequest is the request body for logging time on an issue.
+// LogTimeRequest — тело запроса на списание времени на задачу.
 type LogTimeRequest struct {
 	Minutes     int    `json:"minutes" validate:"required,min=1"`
 	Description string `json:"description,omitempty" validate:"omitempty,max=500"`
 }
 
-// CreateLabelRequest is the request body for creating a label.
+// CreateLabelRequest — тело запроса на создание метки.
 type CreateLabelRequest struct {
 	Name    string `json:"name" validate:"required,min=1,max=50"`
 	Color   string `json:"color" validate:"required"`
 	GroupID string `json:"group_id,omitempty"`
 }
 
-// CreateLabelGroupRequest is the request body for creating a label group.
+// CreateLabelGroupRequest — тело запроса на создание группы меток.
 type CreateLabelGroupRequest struct {
 	Name string `json:"name" validate:"required,min=1,max=50"`
 }
 
-// CreateWorkflowStatusRequest is the request body for creating a workflow status.
+// CreateWorkflowStatusRequest — тело запроса на создание статуса workflow.
 type CreateWorkflowStatusRequest struct {
 	Name      string `json:"name" validate:"required,min=1,max=100"`
 	Category  string `json:"category" validate:"required,oneof=todo in_progress done"`
@@ -100,19 +100,19 @@ type CreateWorkflowStatusRequest struct {
 	SortOrder int    `json:"sort_order,omitempty"`
 }
 
-// CreateWorkflowTransitionRequest is the request body for creating a workflow transition.
+// CreateWorkflowTransitionRequest — тело запроса на создание перехода workflow.
 type CreateWorkflowTransitionRequest struct {
 	FromStatusID string `json:"from_status_id" validate:"required"`
 	ToStatusID   string `json:"to_status_id" validate:"required"`
 }
 
-// CreateBoardRequest is the request body for creating a board.
+// CreateBoardRequest — тело запроса на создание доски.
 type CreateBoardRequest struct {
 	Name    string                 `json:"name" validate:"required,min=1,max=100"`
 	Filters map[string]interface{} `json:"filters,omitempty"`
 }
 
-// CreateCustomFieldRequest is the request body for creating a custom field definition.
+// CreateCustomFieldRequest — тело запроса на создание определения кастомного поля.
 type CreateCustomFieldRequest struct {
 	Name      string   `json:"name" validate:"required,min=1,max=100"`
 	FieldType string   `json:"field_type" validate:"required,oneof=text number date checkbox select multi_select user url"`
@@ -120,13 +120,13 @@ type CreateCustomFieldRequest struct {
 	Required  bool     `json:"required,omitempty"`
 }
 
-// StartTimerRequest is the request body for starting a timer on an issue.
+// StartTimerRequest — тело запроса на запуск таймера на задаче.
 type StartTimerRequest struct{}
 
-// StopTimerRequest is the request body for stopping a running timer on an issue.
+// StopTimerRequest — тело запроса на остановку запущенного таймера на задаче.
 type StopTimerRequest struct{}
 
-// CreateReactionRequest is the request body for toggling a reaction on a comment.
+// CreateReactionRequest — тело запроса на переключение реакции на комментарий.
 type CreateReactionRequest struct {
 	Emoji string `json:"emoji" validate:"required,max=32"`
 }
@@ -135,7 +135,7 @@ type CreateReactionRequest struct {
 // Response DTOs
 // ---------------------------------------------------------------------------
 
-// IssueResponse represents an issue in API responses.
+// IssueResponse — полное представление задачи в API-ответах.
 type IssueResponse struct {
 	ID               string                  `json:"id"`
 	IssueNumber      int                     `json:"issue_number"`
@@ -161,7 +161,7 @@ type IssueResponse struct {
 	UpdatedAt        time.Time               `json:"updated_at"`
 }
 
-// IssueBriefResponse is a compact issue representation used in references and lists.
+// IssueBriefResponse — краткое представление задачи для ссылок и списков.
 type IssueBriefResponse struct {
 	ID        string `json:"id"`
 	IssueKey  string `json:"issue_key"`
@@ -171,7 +171,7 @@ type IssueBriefResponse struct {
 	Status    string `json:"status"`
 }
 
-// UserBriefResponse is a compact user representation for embedded references.
+// UserBriefResponse — краткое представление пользователя для встроенных ссылок.
 type UserBriefResponse struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
@@ -179,7 +179,7 @@ type UserBriefResponse struct {
 	AvatarURL string `json:"avatar_url,omitempty"`
 }
 
-// WorkflowStatusResponse represents a workflow status in API responses.
+// WorkflowStatusResponse — представление статуса workflow в API-ответах.
 type WorkflowStatusResponse struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
@@ -189,14 +189,14 @@ type WorkflowStatusResponse struct {
 	IsDefault bool   `json:"is_default"`
 }
 
-// WorkflowTransitionResponse represents a workflow transition in API responses.
+// WorkflowTransitionResponse — представление перехода workflow в API-ответах.
 type WorkflowTransitionResponse struct {
 	ID           string `json:"id"`
 	FromStatusID string `json:"from_status_id"`
 	ToStatusID   string `json:"to_status_id"`
 }
 
-// CommentResponse represents a comment in API responses.
+// CommentResponse — представление комментария в API-ответах.
 type CommentResponse struct {
 	ID         string                 `json:"id"`
 	BodyJSON   map[string]interface{} `json:"body_json"`
@@ -209,7 +209,7 @@ type CommentResponse struct {
 	UpdatedAt  time.Time              `json:"updated_at"`
 }
 
-// ReactionResponse represents an aggregated reaction in API responses.
+// ReactionResponse — агрегированная реакция в API-ответах (emoji + количество + пользователи).
 type ReactionResponse struct {
 	Emoji      string              `json:"emoji"`
 	Count      int                 `json:"count"`
@@ -217,7 +217,7 @@ type ReactionResponse struct {
 	HasReacted bool                `json:"has_reacted"`
 }
 
-// ActivityLogResponse represents an activity log entry in API responses.
+// ActivityLogResponse — запись лога активности в API-ответах.
 type ActivityLogResponse struct {
 	ID        string            `json:"id"`
 	Action    string            `json:"action"`
@@ -226,14 +226,14 @@ type ActivityLogResponse struct {
 	CreatedAt time.Time         `json:"created_at"`
 }
 
-// FieldChange represents a single field-level diff in an activity log entry.
+// FieldChange — изменение одного поля задачи (старое и новое значения) для лога активности.
 type FieldChange struct {
 	Field    string `json:"field"`
 	OldValue any    `json:"old_value"`
 	NewValue any    `json:"new_value"`
 }
 
-// TimeLogResponse represents a time log entry in API responses.
+// TimeLogResponse — запись учёта времени в API-ответах.
 type TimeLogResponse struct {
 	ID          string            `json:"id"`
 	Minutes     int               `json:"minutes"`
@@ -244,7 +244,7 @@ type TimeLogResponse struct {
 	CreatedAt   time.Time         `json:"created_at"`
 }
 
-// LabelResponse represents a label in API responses.
+// LabelResponse — представление метки в API-ответах.
 type LabelResponse struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
@@ -252,14 +252,14 @@ type LabelResponse struct {
 	GroupName string `json:"group_name,omitempty"`
 }
 
-// LabelGroupResponse represents a label group with its labels in API responses.
+// LabelGroupResponse — представление группы меток с вложенными метками в API-ответах.
 type LabelGroupResponse struct {
 	ID     string          `json:"id"`
 	Name   string          `json:"name"`
 	Labels []LabelResponse `json:"labels,omitempty"`
 }
 
-// BoardResponse represents a board in API responses.
+// BoardResponse — представление доски в API-ответах.
 type BoardResponse struct {
 	ID        string                 `json:"id"`
 	Name      string                 `json:"name"`
@@ -268,7 +268,7 @@ type BoardResponse struct {
 	CreatedAt time.Time              `json:"created_at"`
 }
 
-// BoardDataResponse represents full board data including columns and issues.
+// BoardDataResponse — полные данные доски включая колонки и задачи.
 type BoardDataResponse struct {
 	Board     BoardResponse          `json:"board"`
 	Columns   []BoardColumnResponse  `json:"columns"`
@@ -282,13 +282,13 @@ type SwimlaneGroup struct {
 	Columns []BoardColumnResponse `json:"columns"`
 }
 
-// BoardColumnResponse represents a single column on a board.
+// BoardColumnResponse — одна колонка доски (статус + задачи в этом статусе).
 type BoardColumnResponse struct {
 	Status WorkflowStatusResponse `json:"status"`
 	Issues []IssueBriefResponse   `json:"issues"`
 }
 
-// CustomFieldDefinitionResponse represents a custom field definition in API responses.
+// CustomFieldDefinitionResponse — определение кастомного поля в API-ответах.
 type CustomFieldDefinitionResponse struct {
 	ID        string   `json:"id"`
 	Name      string   `json:"name"`
@@ -298,7 +298,7 @@ type CustomFieldDefinitionResponse struct {
 	SortOrder int      `json:"sort_order"`
 }
 
-// IssueLinkResponse represents an issue link in API responses.
+// IssueLinkResponse — представление связи между задачами в API-ответах.
 type IssueLinkResponse struct {
 	ID         string             `json:"id"`
 	LinkType   string             `json:"link_type"`
@@ -306,7 +306,7 @@ type IssueLinkResponse struct {
 	Issue      IssueBriefResponse `json:"issue"`
 }
 
-// PaginatedResponse is a generic paginated response wrapper.
+// PaginatedResponse — обёртка для пагинированного ответа с курсором.
 type PaginatedResponse[T any] struct {
 	Items      []T    `json:"items"`
 	NextCursor string `json:"next_cursor,omitempty"`

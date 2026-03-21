@@ -9,6 +9,7 @@ import (
 
 // WIPChecker проверяет WIP-лимиты для статусов на Kanban-доске.
 type WIPChecker interface {
+	// CheckWIPLimit проверяет, не превышен ли WIP-лимит для указанного статуса.
 	CheckWIPLimit(ctx context.Context, statusID uuid.UUID) error
 }
 

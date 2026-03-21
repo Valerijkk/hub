@@ -8,121 +8,121 @@ import (
 	"github.com/valerii/hub/backend/ent"
 )
 
-// Repository defines the data access interface for the tracker module.
-// This allows the service layer to be tested with mock implementations.
+// Repository определяет интерфейс доступа к данным для модуля трекера задач.
+// Позволяет тестировать сервисный слой с помощью моков.
 type Repository interface {
 	// Issue CRUD
 
-	// CreateIssue creates a new issue in the given project.
+	// CreateIssue создаёт новую задачу в указанном проекте.
 	CreateIssue(ctx context.Context, projectID uuid.UUID, input CreateIssueInput) (*ent.Issue, error)
-	// FindIssueByKey returns an issue by its project-prefixed key (e.g. "HUB-1").
+	// FindIssueByKey возвращает задачу по проектному ключу (например "HUB-1").
 	FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error)
-	// FindIssueByID returns an issue by its UUID.
+	// FindIssueByID возвращает задачу по UUID.
 	FindIssueByID(ctx context.Context, id uuid.UUID) (*ent.Issue, error)
-	// ListIssues returns a paginated list of issues for a project, with total count.
+	// ListIssues возвращает пагинированный список задач проекта с общим количеством.
 	ListIssues(ctx context.Context, projectID uuid.UUID, params ListIssuesParams) ([]*ent.Issue, int, error)
-	// UpdateIssue applies partial updates to an issue.
+	// UpdateIssue применяет частичное обновление задачи.
 	UpdateIssue(ctx context.Context, issueID uuid.UUID, input UpdateIssueInput) (*ent.Issue, error)
-	// DeleteIssue permanently removes an issue by ID.
+	// DeleteIssue удаляет задачу по ID.
 	DeleteIssue(ctx context.Context, issueID uuid.UUID) error
-	// MoveIssue changes the status and rank of an issue (Kanban board move).
+	// MoveIssue изменяет статус и ранг задачи (перемещение на Kanban-доске).
 	MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string) (*ent.Issue, error)
 
 	// Issue links
 
-	// CreateIssueLink creates a directional link between two issues.
+	// CreateIssueLink создаёт направленную связь между двумя задачами.
 	CreateIssueLink(ctx context.Context, sourceID, targetID uuid.UUID, linkType string, customType string) (*ent.IssueLink, error)
-	// ListIssueLinks returns all links (incoming and outgoing) for an issue.
+	// ListIssueLinks возвращает все связи (входящие и исходящие) для задачи.
 	ListIssueLinks(ctx context.Context, issueID uuid.UUID) ([]*ent.IssueLink, error)
-	// DeleteIssueLink removes a link between two issues.
+	// DeleteIssueLink удаляет связь между задачами.
 	DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error
 
 	// Workflow
 
-	// ListWorkflowStatuses returns all workflow statuses for a project, ordered by sort_order.
+	// ListWorkflowStatuses возвращает все статусы workflow проекта, отсортированные по sort_order.
 	ListWorkflowStatuses(ctx context.Context, projectID uuid.UUID) ([]*ent.WorkflowStatus, error)
-	// CreateWorkflowStatus creates a new workflow status in a project.
+	// CreateWorkflowStatus создаёт новый статус workflow в проекте.
 	CreateWorkflowStatus(ctx context.Context, projectID uuid.UUID, name, category, color string, sortOrder int) (*ent.WorkflowStatus, error)
-	// UpdateWorkflowStatus applies partial updates to a workflow status.
+	// UpdateWorkflowStatus применяет частичное обновление статуса workflow.
 	UpdateWorkflowStatus(ctx context.Context, statusID uuid.UUID, name, color *string, sortOrder *int) (*ent.WorkflowStatus, error)
-	// DeleteWorkflowStatus removes a workflow status by ID.
+	// DeleteWorkflowStatus удаляет статус workflow по ID.
 	DeleteWorkflowStatus(ctx context.Context, statusID uuid.UUID) error
-	// FindDefaultStatus returns the default workflow status for a project.
+	// FindDefaultStatus возвращает статус workflow по умолчанию для проекта.
 	FindDefaultStatus(ctx context.Context, projectID uuid.UUID) (*ent.WorkflowStatus, error)
-	// ListWorkflowTransitions returns all allowed transitions for a project.
+	// ListWorkflowTransitions возвращает все разрешённые переходы workflow проекта.
 	ListWorkflowTransitions(ctx context.Context, projectID uuid.UUID) ([]*ent.WorkflowTransition, error)
-	// CreateWorkflowTransition creates a new allowed transition between two statuses.
+	// CreateWorkflowTransition создаёт новый разрешённый переход между статусами.
 	CreateWorkflowTransition(ctx context.Context, fromStatusID, toStatusID uuid.UUID) (*ent.WorkflowTransition, error)
-	// DeleteWorkflowTransition removes a workflow transition by ID.
+	// DeleteWorkflowTransition удаляет переход workflow по ID.
 	DeleteWorkflowTransition(ctx context.Context, transitionID uuid.UUID) error
-	// FindTransition checks whether a transition between two statuses is allowed.
+	// FindTransition проверяет, разрешён ли переход между двумя статусами.
 	FindTransition(ctx context.Context, fromStatusID, toStatusID uuid.UUID) (*ent.WorkflowTransition, error)
-	// SeedDefaultWorkflow creates the default workflow statuses and transitions for a new project.
+	// SeedDefaultWorkflow создаёт стандартные статусы и переходы workflow для нового проекта.
 	SeedDefaultWorkflow(ctx context.Context, projectID uuid.UUID) error
 
 	// Comments
 
-	// CreateComment adds a new comment to an issue.
+	// CreateComment добавляет новый комментарий к задаче.
 	CreateComment(ctx context.Context, issueID, authorID uuid.UUID, input CreateCommentInput) (*ent.Comment, error)
-	// ListComments returns all comments for an issue.
+	// ListComments возвращает все комментарии задачи.
 	ListComments(ctx context.Context, issueID uuid.UUID) ([]*ent.Comment, error)
-	// UpdateComment edits a comment's content.
+	// UpdateComment обновляет содержимое комментария.
 	UpdateComment(ctx context.Context, commentID uuid.UUID, input UpdateCommentInput) (*ent.Comment, error)
-	// DeleteComment removes a comment by ID.
+	// DeleteComment удаляет комментарий по ID.
 	DeleteComment(ctx context.Context, commentID uuid.UUID) error
 
 	// Reactions
 
-	// ToggleReaction adds or removes a reaction. Returns true if added, false if removed.
+	// ToggleReaction добавляет или удаляет реакцию. Возвращает true если добавлена, false если удалена.
 	ToggleReaction(ctx context.Context, commentID, userID uuid.UUID, emoji string) (bool, error)
 
 	// Activity log
 
-	// LogActivity records an activity entry for an issue.
+	// LogActivity записывает событие активности для задачи.
 	LogActivity(ctx context.Context, issueID, userID uuid.UUID, action string, changes []FieldChange) (*ent.ActivityLog, error)
-	// ListActivities returns all activity log entries for an issue.
+	// ListActivities возвращает все записи лога активности задачи.
 	ListActivities(ctx context.Context, issueID uuid.UUID) ([]*ent.ActivityLog, error)
 
 	// Time tracking
 
-	// LogTime records manually entered time on an issue.
+	// LogTime записывает вручную введённое время на задачу.
 	LogTime(ctx context.Context, issueID, userID uuid.UUID, minutes int, description string) (*ent.TimeLog, error)
-	// StartTimer starts a running timer on an issue for a user.
+	// StartTimer запускает таймер на задаче для пользователя.
 	StartTimer(ctx context.Context, issueID, userID uuid.UUID) (*ent.TimeLog, error)
-	// StopTimer stops a running timer and records elapsed minutes.
+	// StopTimer останавливает таймер и фиксирует затраченное время.
 	StopTimer(ctx context.Context, issueID, userID uuid.UUID) (*ent.TimeLog, error)
-	// ListTimeLogs returns all time log entries for an issue.
+	// ListTimeLogs возвращает все записи учёта времени для задачи.
 	ListTimeLogs(ctx context.Context, issueID uuid.UUID) ([]*ent.TimeLog, error)
 
 	// Labels
 
-	// CreateLabel creates a new label in a project, optionally in a group.
+	// CreateLabel создаёт новую метку в проекте, опционально в группе.
 	CreateLabel(ctx context.Context, projectID uuid.UUID, name, color string, groupID *uuid.UUID) (*ent.Label, error)
-	// ListLabels returns all labels for a project.
+	// ListLabels возвращает все метки проекта.
 	ListLabels(ctx context.Context, projectID uuid.UUID) ([]*ent.Label, error)
-	// DeleteLabel removes a label by ID.
+	// DeleteLabel удаляет метку по ID.
 	DeleteLabel(ctx context.Context, labelID uuid.UUID) error
-	// CreateLabelGroup creates a new label group in a project.
+	// CreateLabelGroup создаёт новую группу меток в проекте.
 	CreateLabelGroup(ctx context.Context, projectID uuid.UUID, name string) (*ent.LabelGroup, error)
-	// ListLabelGroups returns all label groups for a project, with their labels.
+	// ListLabelGroups возвращает все группы меток проекта с вложенными метками.
 	ListLabelGroups(ctx context.Context, projectID uuid.UUID) ([]*ent.LabelGroup, error)
 
 	// Boards
 
-	// CreateBoard creates a new board in a project with optional saved filters.
+	// CreateBoard создаёт новую доску в проекте с опциональными сохранёнными фильтрами.
 	CreateBoard(ctx context.Context, projectID uuid.UUID, name string, filters map[string]interface{}) (*ent.Board, error)
-	// ListBoards returns all boards for a project.
+	// ListBoards возвращает все доски проекта.
 	ListBoards(ctx context.Context, projectID uuid.UUID) ([]*ent.Board, error)
-	// GetBoardData returns a board by ID with its data for rendering.
+	// GetBoardData возвращает доску по ID с данными для рендеринга.
 	GetBoardData(ctx context.Context, boardID uuid.UUID) (*ent.Board, error)
 
 	// Custom fields
 
-	// CreateCustomField creates a new custom field definition in a project.
+	// CreateCustomField создаёт новое определение кастомного поля в проекте.
 	CreateCustomField(ctx context.Context, projectID uuid.UUID, input CreateCustomFieldInput) (*ent.CustomFieldDefinition, error)
-	// ListCustomFields returns all custom field definitions for a project.
+	// ListCustomFields возвращает все определения кастомных полей проекта.
 	ListCustomFields(ctx context.Context, projectID uuid.UUID) ([]*ent.CustomFieldDefinition, error)
-	// DeleteCustomField removes a custom field definition by ID.
+	// DeleteCustomField удаляет определение кастомного поля по ID.
 	DeleteCustomField(ctx context.Context, fieldID uuid.UUID) error
 
 	// GetDB возвращает Ent-клиент для прямых запросов (JQL и др.).
@@ -133,7 +133,7 @@ type Repository interface {
 // Repository input structs (use uuid.UUID, not string)
 // ---------------------------------------------------------------------------
 
-// CreateIssueInput holds parsed and validated data for creating an issue.
+// CreateIssueInput — распарсенные и валидированные данные для создания задачи.
 type CreateIssueInput struct {
 	Title           string
 	IssueType       string
@@ -150,7 +150,7 @@ type CreateIssueInput struct {
 	DueDate         *time.Time
 }
 
-// UpdateIssueInput holds parsed and validated data for updating an issue.
+// UpdateIssueInput — распарсенные и валидированные данные для обновления задачи.
 type UpdateIssueInput struct {
 	Title           *string
 	DescriptionJSON *map[string]interface{}
@@ -165,7 +165,7 @@ type UpdateIssueInput struct {
 	Version         int
 }
 
-// ListIssuesParams holds parsed filter and pagination parameters for listing issues.
+// ListIssuesParams — распарсенные параметры фильтрации и пагинации для списка задач.
 type ListIssuesParams struct {
 	Cursor    string
 	Limit     int
@@ -177,7 +177,7 @@ type ListIssuesParams struct {
 	OrderBy   string
 }
 
-// CreateCommentInput holds parsed data for creating a comment.
+// CreateCommentInput — распарсенные данные для создания комментария.
 type CreateCommentInput struct {
 	BodyJSON   map[string]interface{}
 	BodyText   string
@@ -185,13 +185,13 @@ type CreateCommentInput struct {
 	Mentions   []string
 }
 
-// UpdateCommentInput holds parsed data for updating a comment.
+// UpdateCommentInput — распарсенные данные для обновления комментария.
 type UpdateCommentInput struct {
 	BodyJSON map[string]interface{}
 	BodyText string
 }
 
-// CreateCustomFieldInput holds parsed data for creating a custom field definition.
+// CreateCustomFieldInput — распарсенные данные для создания определения кастомного поля.
 type CreateCustomFieldInput struct {
 	Name      string
 	FieldType string
@@ -203,20 +203,21 @@ type CreateCustomFieldInput struct {
 // OutboxPublisher + EntRepository skeleton
 // ---------------------------------------------------------------------------
 
-// OutboxPublisher abstracts outbox event publishing for the repository.
+// OutboxPublisher абстрагирует публикацию событий через outbox-таблицу для репозитория.
 type OutboxPublisher interface {
+	// PublishInTx записывает событие в outbox-таблицу внутри транзакции.
 	PublishInTx(ctx context.Context, tx *ent.Tx, eventType string, payload any) error
 	// Publish записывает событие в outbox-таблицу без внешней транзакции.
 	Publish(ctx context.Context, client *ent.Client, eventType string, payload any) error
 }
 
-// EntRepository implements Repository using Ent ORM with outbox event publishing.
+// EntRepository реализует Repository на основе Ent ORM с публикацией событий через outbox.
 type EntRepository struct {
 	client    *ent.Client
 	publisher OutboxPublisher
 }
 
-// NewEntRepository creates a new Ent-backed tracker repository.
+// NewEntRepository создаёт новый Ent-репозиторий трекера задач.
 func NewEntRepository(client *ent.Client, publisher OutboxPublisher) *EntRepository {
 	return &EntRepository{client: client, publisher: publisher}
 }
