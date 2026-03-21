@@ -3,7 +3,7 @@
  *
  * На десктопе (md+): sidebar всегда видим, контент рядом.
  * На мобильных: sidebar скрыт, открывается как overlay. Нижняя навигация.
- * Регистрирует глобальные горячие клавиши: Ctrl+K (поиск), Ctrl+N (новая задача).
+ * Регистрирует глобальную горячую клавишу: Ctrl+N (новая задача).
  */
 import { useEffect, useState } from "react";
 import { Outlet } from "@tanstack/react-router";
@@ -12,22 +12,14 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { cn } from "@/lib/utils";
 import { CallPanel } from "@/components/calls/CallPanel";
-import { CommandPalette } from "@/components/search/command-palette";
-import { useSearchStore } from "@/stores/search-store";
 import { MobileNav } from "@/components/mobile-nav";
 
 export function AppShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const setSearchOpen = useSearchStore((s) => s.setOpen);
-  const searchIsOpen = useSearchStore((s) => s.isOpen);
 
   /* Глобальные горячие клавиши */
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
-        setSearchOpen(!searchIsOpen);
-      }
       if ((e.ctrlKey || e.metaKey) && e.key === "n") {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent("hub:create-issue"));
@@ -36,7 +28,7 @@ export function AppShell() {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [setSearchOpen, searchIsOpen]);
+  }, []);
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -74,8 +66,6 @@ export function AppShell() {
       {/* Нижняя навигация для мобильных */}
       <MobileNav />
 
-      {/* Палитра команд (Ctrl+K) */}
-      <CommandPalette />
       {/* Панель активного звонка */}
       <CallPanel />
     </TooltipProvider>

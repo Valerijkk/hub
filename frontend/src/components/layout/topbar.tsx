@@ -1,15 +1,12 @@
 /**
  * Верхняя панель приложения — чистый, минимальный дизайн.
  *
- * Тонкий бордер снизу, кнопка поиска с kbd-хинтом,
- * аватар пользователя с выпадающим меню.
+ * Тонкий бордер снизу, аватар пользователя с выпадающим меню.
  * На мобильных — hamburger для открытия sidebar.
  */
 import { useNavigate } from "@tanstack/react-router";
-import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/stores/auth-store";
-import { useSearchStore } from "@/stores/search-store";
 import { logout as apiLogout } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,11 +17,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
@@ -35,7 +27,6 @@ interface TopbarProps {
 export function Topbar({ onMenuToggle }: TopbarProps) {
   const navigate = useNavigate();
   const { user, logout: storeLogout } = useAuthStore();
-  const setSearchOpen = useSearchStore((s) => s.setOpen);
   const { t } = useTranslation("common");
 
   const initials = user?.name
@@ -77,25 +68,6 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
 
       {/* Правая часть */}
       <div className="flex items-center gap-1.5">
-        {/* Кнопка глобального поиска */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden gap-2 text-muted-foreground sm:flex rounded-lg border border-border bg-muted/40 hover:bg-muted px-3 h-8"
-              onClick={() => setSearchOpen(true)}
-            >
-              <Search className="h-3.5 w-3.5" />
-              <span className="text-xs">{t("btn.search")}</span>
-              <kbd className="pointer-events-none ml-2 inline-flex h-5 items-center rounded border border-border bg-background px-1.5 text-[10px] font-mono font-medium text-muted-foreground">
-                {t("search.hint")}
-              </kbd>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t("search.globalSearch")} ({t("search.hint")})</TooltipContent>
-        </Tooltip>
-
         {/* Переключатель языка */}
         <LanguageSwitcher compact className="hidden sm:flex" />
 
