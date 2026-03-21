@@ -1,6 +1,6 @@
 package ws
 
-// MessageType identifies the kind of WebSocket message.
+// MessageType — тип WebSocket-сообщения (subscribe, event, ping и т.д.).
 type MessageType string
 
 const (
@@ -11,14 +11,14 @@ const (
 	TypePong        MessageType = "pong"
 )
 
-// ClientMessage is a message sent from the client to the server.
+// ClientMessage — сообщение, отправляемое клиентом на сервер через WebSocket.
 type ClientMessage struct {
 	Type    MessageType `json:"type"`
 	Room    string      `json:"room,omitempty"`    // "project:{id}", "channel:{id}"
 	Payload any         `json:"payload,omitempty"`
 }
 
-// ServerMessage is a message sent from the server to the client.
+// ServerMessage — сообщение, отправляемое сервером клиенту через WebSocket.
 type ServerMessage struct {
 	Type    MessageType `json:"type"`
 	Event   string      `json:"event,omitempty"` // NATS subject

@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
+// messagesCollection — имя коллекции MongoDB для хранения сообщений.
 const messagesCollection = "messages"
 
 // MongoRepository реализует MongoDB-часть интерфейса Repository.

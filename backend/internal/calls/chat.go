@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
+// callChatCollection — имя коллекции MongoDB для эфемерного чата звонков.
 const callChatCollection = "call_chat_messages"
 
 // CallChatMessage представляет сообщение эфемерного чата звонка.

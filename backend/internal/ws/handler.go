@@ -12,23 +12,29 @@ import (
 	"github.com/valerii/hub/backend/internal/auth"
 )
 
+// Константы таймаутов и лимитов WebSocket-соединения.
 const (
-	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
+	// writeWait — максимальное время ожидания записи сообщения.
+	writeWait = 10 * time.Second
+	// pongWait — максимальное время ожидания pong-ответа от клиента.
+	pongWait = 60 * time.Second
+	// pingPeriod — интервал отправки ping-сообщений (90% от pongWait).
+	pingPeriod = (pongWait * 9) / 10
+	// maxMessageSize — максимальный размер входящего WebSocket-сообщения в байтах.
 	maxMessageSize = 4096
 )
 
+// upgrader — апгрейдер FastHTTP для преобразования HTTP-соединения в WebSocket.
 var upgrader = websocket.FastHTTPUpgrader{
 	CheckOrigin: func(_ *fasthttp.RequestCtx) bool { return true },
 }
 
-// Handler returns a Fiber handler that upgrades HTTP connections to WebSocket.
-// JWT token is passed via query parameter ?token= because WebSocket does not
-// support custom headers during the handshake.
+// Handler возвращает Fiber-обработчик для апгрейда HTTP-соединения в WebSocket.
+// JWT-токен передаётся через query-параметр ?token=, так как WebSocket
+// не поддерживает кастомные заголовки при рукопожатии.
 //
-// CRITICAL (Pitfall 1): All values are extracted from fiber.Ctx BEFORE the
-// upgrade, using utils.CopyString to prevent fasthttp RequestCtx reuse issues.
+// ВАЖНО (Pitfall 1): Все значения извлекаются из fiber.Ctx ДО апгрейда
+// через utils.CopyString для предотвращения проблем переиспользования fasthttp RequestCtx.
 func Handler(hub *Hub, authSvc *auth.AuthService) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		// Extract and validate JWT from query param BEFORE upgrade (Pitfall 1).
@@ -64,7 +70,7 @@ func Handler(hub *Hub, authSvc *auth.AuthService) fiber.Handler {
 	}
 }
 
-// readPump reads messages from the WebSocket connection and dispatches them.
+// readPump читает сообщения из WebSocket-соединения и диспетчеризирует их.
 func readPump(conn *websocket.Conn, client *Client, hub *Hub) {
 	conn.SetReadLimit(maxMessageSize)
 	_ = conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -108,7 +114,7 @@ func readPump(conn *websocket.Conn, client *Client, hub *Hub) {
 	}
 }
 
-// writePump writes messages from the client send channel to the WebSocket connection.
+// writePump записывает сообщения из канала отправки клиента в WebSocket-соединение.
 func writePump(conn *websocket.Conn, client *Client) {
 	ticker := time.NewTicker(pingPeriod)
 	defer ticker.Stop()

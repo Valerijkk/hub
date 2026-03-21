@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-// Client represents a single WebSocket connection.
+// Client — представляет одно WebSocket-соединение пользователя.
 type Client struct {
 	UserID    string
 	SessionID string
@@ -16,7 +16,7 @@ type Client struct {
 	mu        sync.Mutex
 }
 
-// NewClient creates a new client for the given user and session.
+// NewClient создаёт нового клиента для указанного пользователя и сессии.
 func NewClient(userID, sessionID string) *Client {
 	return &Client{
 		UserID:    userID,
@@ -26,24 +26,24 @@ func NewClient(userID, sessionID string) *Client {
 	}
 }
 
-// Send returns the channel used to push messages to the client.
+// Send возвращает канал для отправки сообщений клиенту.
 func (c *Client) Send() chan []byte {
 	return c.send
 }
 
-// Hub manages all active WebSocket clients and room subscriptions.
+// Hub — управляет активными WebSocket-клиентами и подписками на комнаты.
 type Hub struct {
-	// clients maps userID -> *Client. sync.Map for concurrent access.
+	// clients хранит соответствие userID -> *Client. sync.Map для потокобезопасного доступа.
 	clients sync.Map
 
-	// rooms maps roomKey -> (sync.Map of userID -> *Client).
+	// rooms хранит соответствие roomKey -> (sync.Map: userID -> *Client).
 	rooms sync.Map
 
 	register   chan *Client
 	unregister chan *Client
 }
 
-// NewHub creates a new Hub.
+// NewHub создаёт новый Hub.
 func NewHub() *Hub {
 	return &Hub{
 		register:   make(chan *Client, 64),
@@ -51,7 +51,7 @@ func NewHub() *Hub {
 	}
 }
 
-// Run starts the hub event loop. It blocks until ctx is cancelled.
+// Run запускает цикл обработки событий Hub. Блокирует до отмены контекста.
 func (h *Hub) Run(ctx context.Context) {
 	for {
 		select {
@@ -67,17 +67,17 @@ func (h *Hub) Run(ctx context.Context) {
 	}
 }
 
-// Register adds a client to the hub.
+// Register добавляет клиента в Hub.
 func (h *Hub) Register(client *Client) {
 	h.register <- client
 }
 
-// Unregister removes a client from the hub and all its rooms.
+// Unregister удаляет клиента из Hub и всех его комнат.
 func (h *Hub) Unregister(client *Client) {
 	h.unregister <- client
 }
 
-// Subscribe adds a client to a room.
+// Subscribe подписывает клиента на комнату.
 func (h *Hub) Subscribe(client *Client, room string) {
 	client.mu.Lock()
 	client.rooms[room] = true
@@ -90,7 +90,7 @@ func (h *Hub) Subscribe(client *Client, room string) {
 	slog.Debug("ws client subscribed", "userID", client.UserID, "room", room)
 }
 
-// Unsubscribe removes a client from a room.
+// Unsubscribe отписывает клиента от комнаты.
 func (h *Hub) Unsubscribe(client *Client, room string) {
 	client.mu.Lock()
 	delete(client.rooms, room)
@@ -102,7 +102,7 @@ func (h *Hub) Unsubscribe(client *Client, room string) {
 	}
 }
 
-// BroadcastToRoom sends a message to all clients in the given room.
+// BroadcastToRoom рассылает сообщение всем клиентам в указанной комнате.
 func (h *Hub) BroadcastToRoom(room string, msg ServerMessage) {
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -129,7 +129,7 @@ func (h *Hub) BroadcastToRoom(room string, msg ServerMessage) {
 	})
 }
 
-// SendToUser sends a message to a specific user if connected.
+// SendToUser отправляет сообщение конкретному пользователю, если он подключён.
 func (h *Hub) SendToUser(userID string, msg ServerMessage) {
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -150,7 +150,7 @@ func (h *Hub) SendToUser(userID string, msg ServerMessage) {
 	}
 }
 
-// removeClient removes a client from the clients map and all rooms.
+// removeClient удаляет клиента из карты клиентов и всех комнат.
 func (h *Hub) removeClient(client *Client) {
 	h.clients.Delete(client.UserID)
 

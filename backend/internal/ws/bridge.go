@@ -9,15 +9,15 @@ import (
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
-// Bridge connects NATS subjects to WebSocket rooms, fanning out events
-// from NATS to all connected WebSocket clients in the corresponding room.
+// Bridge — связывает NATS-субъекты с WebSocket-комнатами, рассылая события
+// из NATS всем подключённым WebSocket-клиентам в соответствующей комнате.
 type Bridge struct {
 	hub  *Hub
 	nats *natsclient.Client
 	subs []*nats.Subscription
 }
 
-// NewBridge creates a new Bridge linking the given Hub and NATS client.
+// NewBridge создаёт новый Bridge, связывающий Hub и NATS-клиент.
 func NewBridge(hub *Hub, nc *natsclient.Client) *Bridge {
 	return &Bridge{
 		hub:  hub,
@@ -25,8 +25,8 @@ func NewBridge(hub *Hub, nc *natsclient.Client) *Bridge {
 	}
 }
 
-// Start subscribes to NATS subjects and routes events to WebSocket rooms.
-// Call Stop() to clean up subscriptions.
+// Start подписывается на NATS-субъекты и маршрутизирует события в WebSocket-комнаты.
+// Для освобождения подписок вызовите Stop().
 func (b *Bridge) Start() error {
 	// project.{projectID}.{event} -> room "project:{projectID}"
 	projectSub, err := b.nats.Subscribe("project.>", func(msg *nats.Msg) {
@@ -89,7 +89,7 @@ func (b *Bridge) Start() error {
 	return nil
 }
 
-// Stop unsubscribes all NATS subscriptions.
+// Stop отписывается от всех NATS-подписок.
 func (b *Bridge) Stop() {
 	for _, sub := range b.subs {
 		_ = sub.Unsubscribe()
@@ -97,9 +97,9 @@ func (b *Bridge) Stop() {
 	b.subs = nil
 }
 
-// handleProjectEvent routes a NATS project event to the corresponding WS room.
-// Subject format: project.{projectID}.{event}
-// Room format: project:{projectID}
+// handleProjectEvent маршрутизирует NATS-событие проекта в соответствующую WS-комнату.
+// Формат subject: project.{projectID}.{event}
+// Формат room: project:{projectID}
 func (b *Bridge) handleProjectEvent(msg *nats.Msg) {
 	parts := strings.SplitN(msg.Subject, ".", 3)
 	if len(parts) < 2 {
@@ -212,8 +212,8 @@ func (b *Bridge) handleCallChatEvent(msg *nats.Msg) {
 	})
 }
 
-// handleAuthSessionEvent routes a NATS auth session event to a specific user.
-// Subject format: auth.session.{userID}.{event}
+// handleAuthSessionEvent маршрутизирует NATS-событие авторизационной сессии конкретному пользователю.
+// Формат subject: auth.session.{userID}.{event}
 func (b *Bridge) handleAuthSessionEvent(msg *nats.Msg) {
 	parts := strings.SplitN(msg.Subject, ".", 4)
 	if len(parts) < 3 {
