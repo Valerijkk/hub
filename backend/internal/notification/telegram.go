@@ -99,7 +99,7 @@ func (t *TelegramSender) sendMessage(msg telegramMessage) {
 	params := tu.Message(tu.ID(msg.chatID), text)
 	params.WithParseMode(telego.ModeMarkdownV2)
 
-	_, err := t.bot.SendMessage(context.Background(), params)
+	_, err := t.bot.SendMessage(params)
 	if err != nil {
 		slog.Error("ошибка отправки telegram сообщения", "error", err, "chat_id", msg.chatID)
 	}

@@ -46,7 +46,7 @@ func Handler(hub *Hub, authSvc *auth.AuthService) fiber.Handler {
 		userID := utils.CopyString(claims.UserID)
 		sessionID := utils.CopyString(claims.SessionID)
 
-		return upgrader.Upgrade(c.RequestCtx(), func(conn *websocket.Conn) {
+		return upgrader.Upgrade(c.Context(), func(conn *websocket.Conn) {
 			client := NewClient(userID, sessionID)
 			hub.Register(client)
 

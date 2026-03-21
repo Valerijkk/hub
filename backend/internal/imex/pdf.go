@@ -1,7 +1,6 @@
 package imex
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -70,11 +69,7 @@ func (s *ImExService) ExportRunPDF(ctx context.Context, projectID, runID uuid.UU
 		return nil, fmt.Errorf("ошибка генерации PDF: %w", err)
 	}
 
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(doc.GetReader()); err != nil {
-		return nil, fmt.Errorf("ошибка чтения PDF: %w", err)
-	}
-	return buf.Bytes(), nil
+	return doc.GetBytes(), nil
 }
 
 // ExportSprintPDF генерирует PDF-отчёт по спринту.
@@ -154,11 +149,7 @@ func (s *ImExService) ExportSprintPDF(ctx context.Context, projectID, sprintID u
 		return nil, fmt.Errorf("ошибка генерации PDF: %w", err)
 	}
 
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(doc.GetReader()); err != nil {
-		return nil, fmt.Errorf("ошибка чтения PDF: %w", err)
-	}
-	return buf.Bytes(), nil
+	return doc.GetBytes(), nil
 }
 
 // ---------------------------------------------------------------------------
