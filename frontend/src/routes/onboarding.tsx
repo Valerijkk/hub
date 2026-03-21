@@ -182,40 +182,70 @@ function OnboardingPage() {
   ];
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-lg animate-fade-in">
+    <div className="relative flex min-h-screen items-center justify-center px-4 overflow-hidden">
+      {/* Animated gradient background */}
+      <div
+        className="absolute inset-0 animate-mesh"
+        style={{
+          background: "linear-gradient(-45deg, #0C1222, #1E293B, #1E1B4B, #0C1222, #164E63, #0C1222)",
+          backgroundSize: "400% 400%",
+        }}
+      />
+      {/* Subtle gradient blobs */}
+      <div className="absolute top-1/3 -left-32 h-[400px] w-[400px] rounded-full bg-blue-500/10 blur-[120px]" />
+      <div className="absolute bottom-1/4 right-0 h-[300px] w-[300px] rounded-full bg-purple-500/10 blur-[100px]" />
+
+      <div className="relative z-10 w-full max-w-lg animate-fade-in">
         {/* Логотип */}
         <div className="mb-8 flex items-center justify-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
-            <span className="text-sm font-bold text-white">H</span>
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-xl shadow-blue-500/25">
+            <span className="text-lg font-bold text-white">H</span>
           </div>
-          <span className="text-xl font-bold tracking-tight">Hub</span>
+          <span className="text-2xl font-bold tracking-tight text-white">Hub</span>
         </div>
 
-        <Card className="rounded-xl border shadow-sm">
+        <Card className="rounded-xl border shadow-lg glass" style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.1)' }}>
           <CardHeader className="text-center pb-4">
-            {/* Индикатор шагов */}
-            <div className="mb-4 flex justify-center gap-2">
+            {/* Step indicator with numbers and connecting lines */}
+            <div className="mb-6 flex items-center justify-center">
               {steps.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i <= step
-                      ? "w-8 bg-primary"
-                      : "w-8 bg-muted"
-                  }`}
-                />
+                <div key={i} className="flex items-center">
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${
+                      i < step
+                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
+                        : i === step
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/40 ring-4 ring-primary/20"
+                          : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {i < step ? (
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      i + 1
+                    )}
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div
+                      className={`mx-2 h-0.5 w-10 rounded-full transition-all duration-300 ${
+                        i < step ? "bg-primary" : "bg-muted"
+                      }`}
+                    />
+                  )}
+                </div>
               ))}
             </div>
-            <CardTitle className="text-xl">{currentStep?.title}</CardTitle>
-            <CardDescription>{currentStep?.description}</CardDescription>
+            <CardTitle className="text-xl text-white">{currentStep?.title}</CardTitle>
+            <CardDescription className="text-slate-400">{currentStep?.description}</CardDescription>
           </CardHeader>
           <CardContent>
             {/* Шаг 1: Профиль */}
             {step === 0 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="onb-name" className="text-sm font-medium">Имя</Label>
+                  <Label htmlFor="onb-name" className="text-sm font-medium text-slate-200">Имя</Label>
                   <Input
                     id="onb-name"
                     placeholder="Ваше имя"
@@ -228,7 +258,7 @@ function OnboardingPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="onb-position" className="text-sm font-medium">Должность</Label>
+                  <Label htmlFor="onb-position" className="text-sm font-medium text-slate-200">Должность</Label>
                   <Input
                     id="onb-position"
                     placeholder="Например: Frontend Developer"
@@ -240,7 +270,7 @@ function OnboardingPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="onb-department" className="text-sm font-medium">Отдел</Label>
+                  <Label htmlFor="onb-department" className="text-sm font-medium text-slate-200">Отдел</Label>
                   <Input
                     id="onb-department"
                     placeholder="Например: Engineering"
@@ -260,14 +290,14 @@ function OnboardingPage() {
                 {MODULES.map((module) => (
                   <div
                     key={module.key}
-                    className="flex items-start gap-3 rounded-lg border bg-card p-4"
+                    className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4"
                   >
                     <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${module.color}`}>
                       {MODULE_ICONS[module.key]}
                     </div>
                     <div>
-                      <h3 className="text-sm font-medium">{module.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{module.desc}</p>
+                      <h3 className="text-sm font-medium text-slate-100">{module.title}</h3>
+                      <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{module.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -279,7 +309,7 @@ function OnboardingPage() {
               <div className="space-y-6">
                 {/* Выбор темы */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Тема оформления</Label>
+                  <Label className="text-sm font-medium text-slate-200">Тема оформления</Label>
                   <div className="grid grid-cols-3 gap-2">
                     {themeOptions.map((opt) => (
                       <button
@@ -287,15 +317,15 @@ function OnboardingPage() {
                         type="button"
                         className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-all ${
                           theme === opt.value
-                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                            : "hover:bg-muted/50"
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                            : "border-white/10 hover:bg-white/5"
                         }`}
                         onClick={() => setTheme(opt.value)}
                       >
-                        <span className={theme === opt.value ? "text-primary" : "text-muted-foreground"}>
+                        <span className={theme === opt.value ? "text-primary" : "text-slate-400"}>
                           {opt.icon}
                         </span>
-                        <span className="text-xs font-medium">{opt.label}</span>
+                        <span className="text-xs font-medium text-slate-200">{opt.label}</span>
                       </button>
                     ))}
                   </div>
@@ -303,7 +333,7 @@ function OnboardingPage() {
 
                 {/* Выбор языка */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Язык интерфейса</Label>
+                  <Label className="text-sm font-medium text-slate-200">Язык интерфейса</Label>
                   <div className="grid grid-cols-2 gap-2">
                     {(
                       [
@@ -316,23 +346,23 @@ function OnboardingPage() {
                         type="button"
                         className={`flex items-center gap-2 rounded-lg border p-3 transition-all ${
                           lang === opt.value
-                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                            : "hover:bg-muted/50"
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                            : "border-white/10 hover:bg-white/5"
                         }`}
                         onClick={() => setLang(opt.value)}
                       >
                         <span className="flex h-6 w-6 items-center justify-center rounded bg-muted text-[10px] font-bold">
                           {opt.flag}
                         </span>
-                        <span className="text-sm font-medium">{opt.label}</span>
+                        <span className="text-sm font-medium text-slate-200">{opt.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Создание / присоединение к проекту */}
-                <div className="space-y-3 border-t pt-4">
-                  <Label className="text-sm font-medium">Начало работы</Label>
+                <div className="space-y-3 border-t border-white/10 pt-4">
+                  <Label className="text-sm font-medium text-slate-200">Начало работы</Label>
                   <div className="flex flex-col gap-2">
                     <Button
                       variant="outline"
@@ -361,7 +391,7 @@ function OnboardingPage() {
             )}
 
             {/* Навигация */}
-            <div className="mt-6 flex justify-between border-t pt-4">
+            <div className="mt-6 flex justify-between border-t border-white/10 pt-4">
               <Button
                 variant="ghost"
                 onClick={() => setStep((s) => s - 1)}
@@ -391,6 +421,13 @@ function OnboardingPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Step labels below card */}
+        <div className="mt-4 flex justify-center">
+          <p className="text-xs text-slate-500">
+            Шаг {step + 1} из {steps.length}
+          </p>
+        </div>
       </div>
     </div>
   );

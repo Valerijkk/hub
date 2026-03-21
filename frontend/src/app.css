@@ -154,10 +154,10 @@
   background: linear-gradient(135deg, #8B5CF6, #7C3AED);
 }
 .gradient-calls {
-  background: linear-gradient(135deg, #F97316, #EA580C);
+  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
 }
 .gradient-dashboard {
-  background: linear-gradient(135deg, #EC4899, #DB2777);
+  background: linear-gradient(135deg, #F59E0B, #D97706);
 }
 .gradient-settings {
   background: linear-gradient(135deg, #64748B, #475569);
@@ -655,4 +655,103 @@ button[role="radio"][data-state="checked"] {
 
 .animate-slide-in-right {
   animation: slide-in-right 0.15s ease-out;
+}
+
+/* ===================================================
+ * Smooth scroll behavior globally
+ * =================================================== */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ===================================================
+ * Module gradient header strips
+ * Thin gradient bar at top of module header area.
+ * =================================================== */
+.module-header-gradient {
+  position: relative;
+}
+.module-header-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 0 0 2px 2px;
+}
+
+.module-header-gradient.gradient-strip-tracker::before {
+  background: linear-gradient(90deg, #3B82F6, #60A5FA);
+}
+.module-header-gradient.gradient-strip-tms::before {
+  background: linear-gradient(90deg, #8B5CF6, #A78BFA);
+}
+.module-header-gradient.gradient-strip-messenger::before {
+  background: linear-gradient(90deg, #10B981, #34D399);
+}
+.module-header-gradient.gradient-strip-calls::before {
+  background: linear-gradient(90deg, #8B5CF6, #A78BFA);
+}
+.module-header-gradient.gradient-strip-dashboard::before {
+  background: linear-gradient(90deg, #F59E0B, #FBBF24);
+}
+
+/* ===================================================
+ * Onboarding step indicator
+ * =================================================== */
+.step-connector {
+  position: relative;
+}
+.step-connector::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  width: 32px;
+  height: 2px;
+  background: var(--border);
+  transform: translateY(-50%);
+}
+.step-connector.step-completed::after {
+  background: var(--primary);
+}
+
+/* ===================================================
+ * Dashboard greeting gradient text
+ * =================================================== */
+.greeting-gradient {
+  background: linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===================================================
+ * Widget card hover glow
+ * =================================================== */
+.widget-card {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.widget-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  border-color: color-mix(in srgb, var(--primary) 15%, transparent);
+}
+.dark .widget-card:hover {
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12), 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ===================================================
+ * Login page mobile gradient background
+ * =================================================== */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.login-mobile-bg {
+  background: linear-gradient(-45deg, #0C1222, #1E293B, #1E1B4B, #164E63);
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
 }

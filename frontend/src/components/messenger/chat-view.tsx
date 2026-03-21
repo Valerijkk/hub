@@ -231,9 +231,9 @@ export function ChatView({ channelId }: ChatViewProps) {
             /* Пустое состояние */
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center max-w-xs animate-fade-in">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10">
                   <svg
-                    className="h-8 w-8 text-muted-foreground/50"
+                    className="h-8 w-8 text-emerald-500/50"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -257,7 +257,7 @@ export function ChatView({ channelId }: ChatViewProps) {
           ) : (
             <div
               ref={parentRef}
-              className="flex-1 overflow-y-auto"
+              className="flex-1 overflow-y-auto scroll-smooth"
               onScroll={handleScroll}
             >
               <div

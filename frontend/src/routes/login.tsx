@@ -87,8 +87,8 @@ function LoginPage() {
       </div>
 
       {/* Правая часть — форма входа с увеличенным паддингом */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 lg:px-16 bg-background">
-        <div className="w-full max-w-[400px]">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 lg:px-16 bg-background max-lg:login-mobile-bg">
+        <div className="w-full max-w-[400px] animate-fade-in">
           {/* Логотип — только на мобильных */}
           <div className="mb-10 text-center lg:text-left">
             <div className="mb-8 flex items-center justify-center gap-3 lg:hidden">
