@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "hub",
+      "credentials": [
+        {
+          "accessKey": "hub",
+          "secretKey": "hubsecret"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

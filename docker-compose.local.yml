@@ -1,0 +1,154 @@
+# docker-compose.local.yml
+# Полный локальный стек Hub — всё в Docker, одна команда
+# Запуск: docker compose -f docker-compose.local.yml up --build
+# Доступ: http://localhost:8080
+
+services:
+
+  # ========================================
+  # Инфраструктура
+  # ========================================
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_PASSWORD: hub
+      POSTGRES_DB: hub
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hub"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo:
+    image: mongo:8
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: hub
+      MONGO_INITDB_ROOT_PASSWORD: hub
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  nats:
+    image: nats:2.11
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["-js", "--store_dir", "/data"]
+    volumes:
+      - natsdata:/data
+    healthcheck:
+      test: ["CMD", "nats-server", "--signal", "ldm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    command: ["server", "-s3", "-dir=/data", "-s3.config=/etc/seaweedfs/s3.json"]
+    ports:
+      - "9333:9333"
+      - "8333:8333"
+    volumes:
+      - seaweeddata:/data
+      - ./deployments/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+
+  livekit:
+    image: livekit/livekit-server:v1.8
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50100:50000-50100/udp"
+    volumes:
+      - ./deployments/livekit.yaml:/etc/livekit.yaml:ro
+    command: ["--config", "/etc/livekit.yaml"]
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ========================================
+  # Приложение
+  # ========================================
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      SERVER_PORT: "3000"
+      FIBER_IMMUTABLE: "true"
+      DATABASE_URL: "postgresql://hub:hub@postgres:5432/hub?sslmode=disable"
+      MONGODB_URL: "mongodb://hub:hub@mongo:27017"
+      MONGODB_DATABASE: "hub"
+      REDIS_URL: "redis://redis:6379/0"
+      NATS_URL: "nats://nats:4222"
+      S3_ENDPOINT: "http://seaweedfs:8333"
+      S3_ACCESS_KEY: "hub"
+      S3_SECRET_KEY: "hubsecret"
+      S3_BUCKET: "hub"
+      S3_REGION: "us-east-1"
+      S3_USE_SSL: "false"
+      JWT_SECRET: "local-dev-secret-change-in-production"
+      RESEND_API_KEY: ""
+      RESEND_FROM_EMAIL: "noreply@hub.local"
+      TELEGRAM_BOT_TOKEN: ""
+      LIVEKIT_URL: "http://livekit:7880"
+      LIVEKIT_API_KEY: "devkey"
+      LIVEKIT_API_SECRET: "devsecret"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      seaweedfs:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  mongodata:
+  natsdata:
+  seaweeddata:
