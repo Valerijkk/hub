@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -49,10 +49,11 @@ interface IssueCardProps {
 export function IssueCard({ issue, projectId }: IssueCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const navigate = useNavigate();
 
   /** Координаты указателя при нажатии — для отличия клика от перетаскивания. */
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+  /** Флаг: было ли реальное перетаскивание (не просто клик). */
+  const wasDragged = useRef(false);
 
   useEffect(() => {
     const el = cardRef.current;
@@ -66,8 +67,17 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
         currentStatusId: issue.status,
         rank: issue.rank ?? "",
       }),
-      onDragStart: () => setIsDragging(true),
-      onDrop: () => setIsDragging(false),
+      onDragStart: () => {
+        setIsDragging(true);
+        wasDragged.current = true;
+      },
+      onDrop: () => {
+        setIsDragging(false);
+        // Сбросим флаг с задержкой, чтобы Link.onClick мог его проверить.
+        requestAnimationFrame(() => {
+          wasDragged.current = false;
+        });
+      },
     });
   }, [issue.issue_key, issue.id, issue.status, issue.rank]);
 
@@ -76,33 +86,42 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 
   /**
    * Запоминаем начальную позицию указателя при mousedown.
-   * Используется для определения: был ли это клик или начало drag.
    */
   const handlePointerDown = (e: React.PointerEvent) => {
     pointerDownPos.current = { x: e.clientX, y: e.clientY };
   };
 
   /**
-   * При отпускании указателя — если смещение <= 5px и не было drag,
-   * выполняем навигацию на страницу задачи.
+   * Предотвращаем переход по ссылке если произошёл drag.
+   * Используем onClick на Link-обёртке для перехвата.
    */
-  const handleClick = (e: React.MouseEvent) => {
-    if (isDragging) return;
-
+  const handleLinkClick = (e: React.MouseEvent) => {
+    // Если было реальное перетаскивание — отменяем навигацию.
+    if (wasDragged.current || isDragging) {
+      e.preventDefault();
+      return;
+    }
+    // Если указатель сместился более чем на 5 px — тоже отменяем.
     const start = pointerDownPos.current;
     if (start) {
       const dx = Math.abs(e.clientX - start.x);
       const dy = Math.abs(e.clientY - start.y);
-      if (dx > 5 || dy > 5) return;
+      if (dx > 5 || dy > 5) {
+        e.preventDefault();
+        return;
+      }
     }
-
-    void navigate({
-      to: "/projects/$projectId/issues/$issueKey",
-      params: { projectId, issueKey: issue.issue_key },
-    });
+    // Иначе: обычный клик — Link выполнит навигацию.
   };
 
   return (
+    <Link
+      to="/projects/$projectId/issues/$issueKey"
+      params={{ projectId, issueKey: issue.issue_key }}
+      onClick={handleLinkClick}
+      draggable={false}
+      className="block no-underline text-inherit"
+    >
     <div
       ref={cardRef}
       role="button"
@@ -112,16 +131,6 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
         isDragging && "opacity-30",
       )}
       onPointerDown={handlePointerDown}
-      onClick={handleClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          void navigate({
-            to: "/projects/$projectId/issues/$issueKey",
-            params: { projectId, issueKey: issue.issue_key },
-          });
-        }
-      }}
     >
       <div className={cn(
         "rounded-lg border bg-card p-3 transition-all duration-200",
@@ -173,5 +182,6 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
         </div>
       </div>
     </div>
+    </Link>
   );
 }

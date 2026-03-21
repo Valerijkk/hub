@@ -23,7 +23,8 @@ export function useMessages(channelId: string | undefined) {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => {
       if (lastPage.length < PAGE_SIZE) return undefined;
-      return lastPage[0]?.id;
+      // Backend expects RFC3339 timestamp for cursor-based pagination.
+      return lastPage[0]?.created_at;
     },
     enabled: !!channelId,
   });
@@ -162,7 +163,8 @@ export function useThreadMessages(
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => {
       if (lastPage.length < PAGE_SIZE) return undefined;
-      return lastPage[0]?.id;
+      // Backend expects RFC3339 timestamp for cursor-based pagination.
+      return lastPage[0]?.created_at;
     },
     enabled: !!channelId && !!messageId,
   });

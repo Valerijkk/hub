@@ -28,7 +28,8 @@ export interface Channel {
   channel_type: ChannelType;
   description?: string;
   avatar_url?: string;
-  is_read_only: boolean;
+  /** Backend sends `is_readonly` (no underscore between read/only). */
+  is_readonly: boolean;
   project_id?: string;
   members_count: number;
   members?: ChannelMemberBrief[];

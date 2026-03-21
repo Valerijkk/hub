@@ -227,7 +227,7 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
         )}
 
         {/* Реакции */}
-        {message.reactions.length > 0 && (
+        {message.reactions && message.reactions.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {message.reactions.map((reaction) => (
               <button

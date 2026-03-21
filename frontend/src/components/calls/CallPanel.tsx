@@ -12,8 +12,8 @@ export function CallPanel() {
   const { isInCall, isConnecting, token, leaveCall, error, setError } =
     useCallStore();
 
-  /** Не показывать панель если не в звонке и не подключаемся. */
-  if (!isInCall && !isConnecting) return null;
+  /** Не показывать панель если не в звонке, не подключаемся и нет ошибки. */
+  if (!isInCall && !isConnecting && !error) return null;
 
   /** Обработчик отключения. */
   const handleDisconnect = () => {

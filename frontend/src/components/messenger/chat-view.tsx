@@ -194,7 +194,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 
           {/* Composer — фиксированный внизу */}
           {/* Композер — стеклянный фон */}
-          {!channel?.is_read_only && (
+          {!channel?.is_readonly && (
             <div className="shrink-0 border-t glass-subtle px-4 py-3">
               <MessageComposer channelId={channelId} />
             </div>

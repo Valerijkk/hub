@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Phone } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -47,10 +48,20 @@ export function CallButton({ channelId }: CallButtonProps) {
 
   /** Обработчик клика: начать или присоединиться. */
   const handleClick = useCallback(async () => {
-    if (existingCall) {
-      await joinCall(existingCall.id);
-    } else {
-      await startCall(channelId);
+    try {
+      if (existingCall) {
+        await joinCall(existingCall.id);
+      } else {
+        await startCall(channelId);
+      }
+      // Проверяем, не произошла ли ошибка в store (startCall/joinCall ловят ошибки внутри).
+      const error = useCallStore.getState().error;
+      if (error) {
+        toast.error(error);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Не удалось выполнить звонок";
+      toast.error(msg);
     }
   }, [existingCall, joinCall, startCall, channelId]);
 

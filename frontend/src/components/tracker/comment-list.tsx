@@ -201,7 +201,7 @@ function CommentItem({ comment, onDelete, onReaction }: CommentItemProps) {
       />
 
       {/* Реакции */}
-      {comment.reactions.length > 0 && (
+      {comment.reactions && comment.reactions.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {comment.reactions.map((reaction) => (
             <button
