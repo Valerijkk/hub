@@ -398,7 +398,7 @@ function IssueDetailPage() {
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Метки</Label>
             <div className="flex flex-wrap gap-1">
-              {issue.labels.length > 0 ? (
+              {issue.labels && issue.labels.length > 0 ? (
                 issue.labels.map((label) => (
                   <Badge
                     key={label.id}
