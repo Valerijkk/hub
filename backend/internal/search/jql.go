@@ -3,6 +3,7 @@ package search
 import (
 	"fmt"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/google/uuid"
@@ -106,10 +107,50 @@ func conditionToPredicate(c JQLCondition, currentUserID uuid.UUID) predicate.Iss
 		}
 		return issue.HasAssignee()
 	case "created":
-		// Обрабатываем операторы сравнения дат через строковое сравнение
-		return nil
+		return dateFieldPredicate(value, c.Operator, "created")
 	case "updated":
+		return dateFieldPredicate(value, c.Operator, "updated")
+	}
+
+	return nil
+}
+
+// dateFieldPredicate конвертирует условие на дату в Ent predicate.
+// Поддерживает поля "created" и "updated" с операторами =, >, <, >=, <=.
+// Для оператора = возвращает диапазон [date, date+24h) — весь день.
+func dateFieldPredicate(value, op, field string) predicate.Issue {
+	t, err := time.Parse("2006-01-02", value)
+	if err != nil {
 		return nil
+	}
+
+	switch field {
+	case "created":
+		switch op {
+		case "=":
+			return issue.And(issue.CreatedAtGTE(t), issue.CreatedAtLT(t.Add(24*time.Hour)))
+		case ">":
+			return issue.CreatedAtGT(t.Add(24*time.Hour - time.Second))
+		case "<":
+			return issue.CreatedAtLT(t)
+		case ">=":
+			return issue.CreatedAtGTE(t)
+		case "<=":
+			return issue.CreatedAtLTE(t.Add(24*time.Hour - time.Second))
+		}
+	case "updated":
+		switch op {
+		case "=":
+			return issue.And(issue.UpdatedAtGTE(t), issue.UpdatedAtLT(t.Add(24*time.Hour)))
+		case ">":
+			return issue.UpdatedAtGT(t.Add(24*time.Hour - time.Second))
+		case "<":
+			return issue.UpdatedAtLT(t)
+		case ">=":
+			return issue.UpdatedAtGTE(t)
+		case "<=":
+			return issue.UpdatedAtLTE(t.Add(24*time.Hour - time.Second))
+		}
 	}
 
 	return nil
