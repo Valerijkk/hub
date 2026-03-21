@@ -674,7 +674,7 @@ func TestJoinChannel_PublicOnly(t *testing.T) {
 	privateID := setupChannelWithMembers(repo, "private", false, ownerID)
 	err = svc.JoinChannel(ctx, privateID, joinerID)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "публичному")
+	assert.Contains(t, err.Error(), "приватный")
 }
 
 // TestForwardMessage_CreatesNewMessage проверяет, что пересылка создаёт новое сообщение.
@@ -769,4 +769,155 @@ func TestDeleteMessage_ThreadReplyDecrementsCount(t *testing.T) {
 
 	// reply_count должен уменьшиться
 	assert.Equal(t, 0, mainDoc.ReplyCount, "reply_count должен быть декрементирован")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 03-02: Тесты управления каналами
+// ---------------------------------------------------------------------------
+
+// TestJoinChannel_PublicAllowed проверяет, что любой пользователь может присоединиться к публичному каналу.
+func TestJoinChannel_PublicAllowed(t *testing.T) {
+	svc, repo, _ := newTestService()
+	ctx := context.Background()
+	ownerID := uuid.New()
+	joinerID := uuid.New()
+
+	publicID := setupChannelWithMembers(repo, "public", false, ownerID)
+	err := svc.JoinChannel(ctx, publicID, joinerID)
+	require.NoError(t, err)
+
+	isMember, _ := repo.IsMember(ctx, publicID, joinerID)
+	assert.True(t, isMember, "пользователь должен стать участником публичного канала")
+}
+
+// TestJoinChannel_PrivateBlocked проверяет, что нельзя присоединиться к приватному каналу без приглашения.
+func TestJoinChannel_PrivateBlocked(t *testing.T) {
+	svc, repo, _ := newTestService()
+	ctx := context.Background()
+	ownerID := uuid.New()
+	joinerID := uuid.New()
+
+	privateID := setupChannelWithMembers(repo, "private", false, ownerID)
+	err := svc.JoinChannel(ctx, privateID, joinerID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "приватный")
+}
+
+// TestJoinChannel_DMBlocked проверяет, что нельзя присоединиться к DM через JoinChannel.
+func TestJoinChannel_DMBlocked(t *testing.T) {
+	svc, repo, _ := newTestService()
+	ctx := context.Background()
+	ownerID := uuid.New()
+	joinerID := uuid.New()
+
+	dmID := setupChannelWithMembers(repo, "dm", false, ownerID)
+	err := svc.JoinChannel(ctx, dmID, joinerID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DM")
+}
+
+// TestSendMessage_ReadOnlyBlocked_RegularUser проверяет, что обычный участник не может писать в readonly канал.
+func TestSendMessage_ReadOnlyBlocked_RegularUser(t *testing.T) {
+	svc, repo, _ := newTestService()
+	ctx := context.Background()
+	ownerID := uuid.New()
+	memberID := uuid.New()
+
+	channelID := setupChannelWithMembers(repo, "public", true, ownerID, memberID)
+
+	req := SendMessageRequest{
+		ContentJSON: map[string]interface{}{"text": "test"},
+		ContentText: "test",
+	}
+
+	_, err := svc.SendMessage(ctx, channelID, memberID, req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "только для чтения")
+}
+
+// TestSendMessage_ReadOnlyAllowed_Admin проверяет, что owner/admin может писать в readonly канал.
+func TestSendMessage_ReadOnlyAllowed_Admin(t *testing.T) {
+	svc, repo, _ := newTestService()
+	ctx := context.Background()
+	ownerID := uuid.New()
+	memberID := uuid.New()
+
+	channelID := setupChannelWithMembers(repo, "public", true, ownerID, memberID)
+
+	req := SendMessageRequest{
+		ContentJSON: map[string]interface{}{"text": "admin message"},
+		ContentText: "admin message",
+	}
+
+	// Owner может писать в readonly канал
+	resp, err := svc.SendMessage(ctx, channelID, ownerID, req)
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.ID)
+}
+
+// TestAddMembers_RequiresAdmin проверяет, что обычный участник не может добавлять других.
+func TestAddMembers_RequiresAdmin(t *testing.T) {
+	svc, repo, _ := newTestService()
+	ctx := context.Background()
+	ownerID := uuid.New()
+	memberID := uuid.New()
+	newUserID := uuid.New()
+
+	channelID := setupChannelWithMembers(repo, "public", false, ownerID, memberID)
+
+	// Обычный member не может добавлять участников
+	err := svc.AddMembers(ctx, channelID, memberID, []string{newUserID.String()})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "owner или admin")
+}
+
+// TestAddMembers_AdminAllowed проверяет, что admin/owner может добавлять участников.
+func TestAddMembers_AdminAllowed(t *testing.T) {
+	svc, repo, _ := newTestService()
+	ctx := context.Background()
+	ownerID := uuid.New()
+	newUserID := uuid.New()
+
+	channelID := setupChannelWithMembers(repo, "private", false, ownerID)
+
+	// Owner может добавлять участников
+	err := svc.AddMembers(ctx, channelID, ownerID, []string{newUserID.String()})
+	require.NoError(t, err)
+
+	// Проверяем, что новый участник добавлен
+	isMember, _ := repo.IsMember(ctx, channelID, newUserID)
+	assert.True(t, isMember, "новый участник должен быть добавлен")
+}
+
+// TestCreateChannel_WithProjectID проверяет создание канала с привязкой к проекту.
+func TestCreateChannel_WithProjectID(t *testing.T) {
+	svc, _, _ := newTestService()
+	ctx := context.Background()
+	userID := uuid.New()
+	projectID := uuid.New()
+
+	resp, err := svc.CreateChannel(ctx, userID, CreateChannelRequest{
+		ChannelType: "public",
+		Name:        "#project-hub",
+		ProjectID:   projectID.String(),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, projectID.String(), resp.ProjectID, "канал должен быть привязан к проекту")
+	assert.Equal(t, "#project-hub", resp.Name)
+}
+
+// TestCreateChannel_ReadOnlyFlag проверяет создание канала с флагом is_readonly.
+func TestCreateChannel_ReadOnlyFlag(t *testing.T) {
+	svc, _, _ := newTestService()
+	ctx := context.Background()
+	userID := uuid.New()
+
+	resp, err := svc.CreateChannel(ctx, userID, CreateChannelRequest{
+		ChannelType: "public",
+		Name:        "#hub-ci",
+		IsReadonly:  true,
+	})
+	require.NoError(t, err)
+	assert.True(t, resp.IsReadonly, "канал должен быть readonly")
+	assert.Equal(t, "#hub-ci", resp.Name)
 }
