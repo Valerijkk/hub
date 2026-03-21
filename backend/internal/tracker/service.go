@@ -9,17 +9,28 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
+// WIPChecker проверяет WIP-лимиты для статусов на Kanban-доске.
+type WIPChecker interface {
+	CheckWIPLimit(ctx context.Context, statusID uuid.UUID) error
+}
+
 // TrackerService реализует бизнес-логику модуля трекера задач.
 // Оркестрирует вызовы репозитория, workflow-движка, логирование активности и outbox-события.
 type TrackerService struct {
-	repo     Repository
-	workflow *WorkflowEngine
+	repo       Repository
+	workflow   *WorkflowEngine
+	wipChecker WIPChecker
 }
 
 // NewTrackerService создаёт новый сервис трекера.
 func NewTrackerService(repo Repository) *TrackerService {
 	wf := NewWorkflowEngine(repo)
 	return &TrackerService{repo: repo, workflow: wf}
+}
+
+// SetWIPChecker устанавливает проверку WIP-лимитов (внедряется из модуля sprint).
+func (s *TrackerService) SetWIPChecker(checker WIPChecker) {
+	s.wipChecker = checker
 }
 
 // ---------------------------------------------------------------------------
@@ -265,6 +276,12 @@ func (s *TrackerService) MoveIssue(ctx context.Context, issueKey string, userID 
 	if newStatusID != currentStatusID {
 		if err := s.workflow.ValidateTransition(ctx, currentStatusID, newStatusID); err != nil {
 			return nil, err
+		}
+		// Проверяем WIP-лимит целевого статуса (KANB-02)
+		if s.wipChecker != nil {
+			if err := s.wipChecker.CheckWIPLimit(ctx, newStatusID); err != nil {
+				return nil, err
+			}
 		}
 	}
 

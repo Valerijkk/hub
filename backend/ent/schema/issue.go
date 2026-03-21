@@ -99,6 +99,10 @@ func (Issue) Edges() []ent.Edge {
 			Ref("target"),
 		edge.From("linked_test_cases", TestCase.Type).
 			Ref("linked_issues"),
+		edge.To("github_links", GitHubLink.Type),
+		edge.From("sprint", Sprint.Type).
+			Ref("issues").
+			Unique(),
 	}
 }
 

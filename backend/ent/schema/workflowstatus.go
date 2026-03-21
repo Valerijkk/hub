@@ -32,6 +32,9 @@ func (WorkflowStatus) Fields() []ent.Field {
 			Default(0),
 		field.Bool("is_default").
 			Default(false),
+		field.Int("wip_limit").
+			Default(0).
+			Comment("WIP лимит: 0 = без лимита"),
 		field.Time("created_at").
 			Default(time.Now).
 			Immutable(),

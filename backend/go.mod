@@ -13,12 +13,20 @@ require (
 	github.com/gofiber/fiber/v3 v3.1.0
 	github.com/gofiber/utils/v2 v2.0.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/google/go-github/v68 v68.0.0
 	github.com/google/uuid v1.6.0
+	github.com/johnfercher/maroto/v2 v2.4.0
 	github.com/lib/pq v1.12.0
+	github.com/livekit/protocol v1.44.1-0.20260223055551-e05f7b7a6146
+	github.com/livekit/server-sdk-go/v2 v2.16.0
+	github.com/mymmrac/telego v1.7.0
 	github.com/nats-io/nats.go v1.49.0
+	github.com/otiai10/opengraph/v2 v2.2.0
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/stretchr/testify v1.11.1
+	github.com/teambition/rrule-go v1.8.2
 	github.com/valyala/fasthttp v1.69.0
+	github.com/xuri/excelize/v2 v2.10.1
 	go.mongodb.org/mongo-driver/v2 v2.5.0
 )
 
@@ -71,6 +79,7 @@ require (
 	github.com/gofiber/schema v1.7.0 // indirect
 	github.com/google/cel-go v0.27.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/grbit/go-json v0.11.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.18.1 // indirect
@@ -78,22 +87,19 @@ require (
 	github.com/hhrutter/pkcs7 v0.2.0 // indirect
 	github.com/hhrutter/tiff v1.0.2 // indirect
 	github.com/johnfercher/go-tree v1.1.0 // indirect
-	github.com/johnfercher/maroto/v2 v2.4.0 // indirect
 	github.com/jxskiss/base62 v1.1.0 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/lithammer/shortuuid/v4 v4.2.0 // indirect
 	github.com/livekit/mageutil v0.0.0-20250511045019-0f1ff63f7731 // indirect
 	github.com/livekit/mediatransportutil v0.0.0-20251128105421-19c7a7b81c22 // indirect
-	github.com/livekit/protocol v1.44.1-0.20260223055551-e05f7b7a6146 // indirect
 	github.com/livekit/psrpc v0.7.1 // indirect
-	github.com/livekit/server-sdk-go/v2 v2.16.0 // indirect
 	github.com/magefile/mage v1.15.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.21 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/mymmrac/telego v1.7.0 // indirect
+	github.com/moby/sys/user v0.4.0 // indirect
 	github.com/nats-io/nkeys v0.4.15 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/pdfcpu/pdfcpu v0.11.1 // indirect
@@ -133,7 +139,6 @@ require (
 	github.com/xdg-go/scram v1.2.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/xuri/efp v0.0.1 // indirect
-	github.com/xuri/excelize/v2 v2.10.1 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect

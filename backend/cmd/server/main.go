@@ -28,7 +28,9 @@ import (
 	notifmod "github.com/valerii/hub/backend/internal/notification"
 	dashboardmod "github.com/valerii/hub/backend/internal/dashboard"
 	searchmod "github.com/valerii/hub/backend/internal/search"
+	sprintmod "github.com/valerii/hub/backend/internal/sprint"
 	wsmod "github.com/valerii/hub/backend/internal/ws"
+	githubmod "github.com/valerii/hub/backend/internal/github"
 )
 
 func main() {
@@ -141,6 +143,15 @@ func main() {
 	trackerHandler := trackermod.NewHandler(trackerSvc)
 	trackerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
+	// Sprint routes (Scrum: спринты, Planning Poker, burndown, velocity)
+	sprintRepo := sprintmod.NewEntRepository(db)
+	sprintSvc := sprintmod.NewSprintService(sprintRepo, rdb, nc)
+	pokerSvc := sprintmod.NewPokerService(rdb, nc)
+	sprintHandler := sprintmod.NewHandler(sprintSvc, pokerSvc)
+	sprintHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+	// Внедряем WIP-лимиты в трекер
+	trackerSvc.SetWIPChecker(sprintSvc)
+
 	// Messenger routes
 	mongoDB, err := database.NewMongoClient(ctx, cfg.MongoDB.URL, cfg.MongoDB.Database)
 	if err != nil {
@@ -235,6 +246,13 @@ func main() {
 	dashHandler := dashboardmod.NewHandler(dashSvc)
 	dashHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
+	// GitHub integration routes (webhook, PR/commit linking, branch creation, link preview)
+	githubRepo := githubmod.NewEntRepository(db)
+	githubSvc := githubmod.NewGitHubService(githubRepo, nc)
+	linkPreviewSvc := githubmod.NewLinkPreviewService(githubRepo, rdb)
+	githubHandler := githubmod.NewHandler(githubSvc, linkPreviewSvc)
+	githubHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+
 	// Calls routes (голосовые звонки через LiveKit)
 	callsRepo := callsmod.NewEntRepository(db)
 	callsChatRepo := callsmod.NewChatRepository(mongoDB)
@@ -242,8 +260,28 @@ func main() {
 		slog.Error("failed to ensure calls chat indexes", "error", err)
 	}
 	callsSvc := callsmod.NewCallService(cfg.LiveKit, callsRepo, nc, callsChatRepo)
-	callsHandler := callsmod.NewHandler(callsSvc, cfg.LiveKit)
+	recordingSvc := callsmod.NewRecordingService(cfg.LiveKit, cfg.S3, callsRepo, nc)
+	scheduledCallSvc := callsmod.NewScheduledCallService(callsRepo, nc)
+	callsHandler := callsmod.NewHandler(callsSvc, recordingSvc, scheduledCallSvc, cfg.LiveKit)
 	callsHandler.RegisterRoutes(api, requireAuth)
+
+	// Cron: обработка запланированных звонков (каждые 60 секунд)
+	scheduledCtx, scheduledCancel := context.WithCancel(ctx)
+	defer scheduledCancel()
+	go func() {
+		ticker := time.NewTicker(60 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := scheduledCallSvc.ProcessDueScheduledCalls(scheduledCtx); err != nil {
+					slog.Error("scheduled calls processing failed", "error", err)
+				}
+			case <-scheduledCtx.Done():
+				return
+			}
+		}
+	}()
 
 	// Запуск фоновой очистки устаревших записей присутствия
 	presenceCtx, presenceCancel := context.WithCancel(ctx)

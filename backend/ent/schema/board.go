@@ -27,6 +27,10 @@ func (Board) Fields() []ent.Field {
 			Comment("Saved filter config: status, assignee, priority, type"),
 		field.Bool("is_default").
 			Default(false),
+		field.Enum("swimlane_mode").
+			Values("none", "assignee", "priority", "type").
+			Default("none").
+			Comment("Режим swimlanes на доске"),
 		field.Time("created_at").
 			Default(time.Now).
 			Immutable(),

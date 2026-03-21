@@ -66,6 +66,7 @@ func (Call) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("participants", CallParticipant.Type),
+		edge.To("recordings", Recording.Type),
 	}
 }
 

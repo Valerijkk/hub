@@ -74,6 +74,9 @@ func (TestRun) Edges() []ent.Edge {
 			Required(),
 		edge.To("results", TestResult.Type),
 		edge.To("assignees", User.Type),
+		edge.From("environment", Environment.Type).
+			Ref("test_runs").
+			Unique(),
 	}
 }
 

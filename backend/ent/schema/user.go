@@ -98,6 +98,10 @@ func (User) Edges() []ent.Edge {
 		edge.To("notifications", Notification.Type),
 		edge.To("notification_preferences", NotificationPreference.Type),
 		edge.To("dashboard_layouts", DashboardLayout.Type),
+		edge.To("api_keys", APIKey.Type),
+		edge.To("recordings", Recording.Type),
+		edge.To("scheduled_calls", ScheduledCall.Type),
+		edge.To("project_templates", ProjectTemplate.Type),
 	}
 }
 
