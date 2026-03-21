@@ -2,6 +2,7 @@ package errors
 
 import "fmt"
 
+// AppError — структурированная ошибка приложения с HTTP-кодом, сообщением и ID запроса.
 type AppError struct {
 	Code      int    `json:"code"`
 	Message   string `json:"message"`
@@ -9,34 +10,42 @@ type AppError struct {
 	Details   any    `json:"details,omitempty"`
 }
 
+// Error возвращает строковое представление ошибки в формате "[код] сообщение".
 func (e *AppError) Error() string {
 	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
 }
 
+// NewBadRequest создаёт ошибку 400 Bad Request.
 func NewBadRequest(msg string) *AppError {
 	return &AppError{Code: 400, Message: msg}
 }
 
+// NewUnauthorized создаёт ошибку 401 Unauthorized.
 func NewUnauthorized(msg string) *AppError {
 	return &AppError{Code: 401, Message: msg}
 }
 
+// NewForbidden создаёт ошибку 403 Forbidden.
 func NewForbidden(msg string) *AppError {
 	return &AppError{Code: 403, Message: msg}
 }
 
+// NewNotFound создаёт ошибку 404 Not Found.
 func NewNotFound(msg string) *AppError {
 	return &AppError{Code: 404, Message: msg}
 }
 
+// NewConflict создаёт ошибку 409 Conflict.
 func NewConflict(msg string) *AppError {
 	return &AppError{Code: 409, Message: msg}
 }
 
+// NewRateLimited создаёт ошибку 429 Too Many Requests.
 func NewRateLimited(msg string) *AppError {
 	return &AppError{Code: 429, Message: msg}
 }
 
+// NewInternal создаёт ошибку 500 Internal Server Error.
 func NewInternal(msg string) *AppError {
 	return &AppError{Code: 500, Message: msg}
 }

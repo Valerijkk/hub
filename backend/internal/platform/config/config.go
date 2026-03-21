@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Config — главная конфигурация приложения, загружаемая из переменных окружения.
 type Config struct {
 	Server   ServerConfig
 	Postgres PostgresConfig
@@ -19,6 +20,7 @@ type Config struct {
 	LiveKit  LiveKitConfig
 }
 
+// ServerConfig — параметры HTTP-сервера (порт, таймауты, режим разработки).
 type ServerConfig struct {
 	Port         int
 	ReadTimeout  time.Duration
@@ -27,23 +29,28 @@ type ServerConfig struct {
 	DevMode      bool // DevMode включает dev-эндпоинты (seed, login без Magic Link)
 }
 
+// PostgresConfig — параметры подключения к PostgreSQL.
 type PostgresConfig struct {
 	URL string
 }
 
+// MongoDBConfig — параметры подключения к MongoDB.
 type MongoDBConfig struct {
 	URL      string
 	Database string
 }
 
+// RedisConfig — параметры подключения к Redis.
 type RedisConfig struct {
 	URL string
 }
 
+// NATSConfig — параметры подключения к NATS.
 type NATSConfig struct {
 	URL string
 }
 
+// S3Config — параметры подключения к S3-совместимому хранилищу (SeaweedFS).
 type S3Config struct {
 	Endpoint  string
 	AccessKey string
@@ -53,17 +60,20 @@ type S3Config struct {
 	UseSSL    bool
 }
 
+// JWTConfig — параметры JWT-токенов (секрет, TTL access/refresh).
 type JWTConfig struct {
 	Secret          string
 	AccessTokenTTL  time.Duration
 	RefreshTokenTTL time.Duration
 }
 
+// ResendConfig — параметры сервиса отправки email через Resend API.
 type ResendConfig struct {
 	APIKey    string
 	FromEmail string
 }
 
+// TelegramConfig — параметры Telegram-бота для аутентификации и уведомлений.
 type TelegramConfig struct {
 	BotToken string
 }
@@ -75,6 +85,7 @@ type LiveKitConfig struct {
 	APISecret string // Секрет API для подписи токенов
 }
 
+// Load загружает конфигурацию из переменных окружения с значениями по умолчанию.
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
@@ -125,6 +136,7 @@ func Load() *Config {
 	}
 }
 
+// getEnv возвращает значение переменной окружения или fallback, если не задана.
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -132,6 +144,7 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
+// getEnvInt возвращает целочисленное значение переменной окружения или fallback.
 func getEnvInt(key string, fallback int) int {
 	if v := os.Getenv(key); v != "" {
 		if i, err := strconv.Atoi(v); err == nil {
@@ -141,6 +154,7 @@ func getEnvInt(key string, fallback int) int {
 	return fallback
 }
 
+// getEnvBool возвращает булево значение переменной окружения или fallback.
 func getEnvBool(key string, fallback bool) bool {
 	if v := os.Getenv(key); v != "" {
 		if b, err := strconv.ParseBool(v); err == nil {

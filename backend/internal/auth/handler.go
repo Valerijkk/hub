@@ -13,28 +13,28 @@ import (
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
-// Handler is the HTTP handler for all auth-related endpoints.
+// Handler предоставляет HTTP-обработчики для всех эндпоинтов аутентификации.
 type Handler struct {
 	service *AuthService
 	db      *ent.Client
 }
 
-// NewHandler creates a new auth Handler.
+// NewHandler создаёт новый обработчик аутентификации.
 func NewHandler(service *AuthService, db *ent.Client) *Handler {
 	return &Handler{service: service, db: db}
 }
 
-// RegisterRoutes registers all auth routes on the given Fiber router.
+// RegisterRoutes регистрирует все маршруты аутентификации на указанном Fiber-роутере.
 func (h *Handler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler) {
 	auth := api.Group("/auth")
 
-	// Public endpoints (no auth middleware).
+	// Публичные эндпоинты (без аутентификации).
 	auth.Post("/magic-link", h.SendMagicLink)
 	auth.Post("/magic-link/verify", h.VerifyMagicLink)
 	auth.Post("/telegram", h.LoginTelegram)
 	auth.Post("/refresh", h.RefreshToken)
 
-	// Protected endpoints.
+	// Защищённые эндпоинты (требуют аутентификации).
 	authGroup := auth.Group("", authMiddleware)
 	authGroup.Post("/logout", h.Logout)
 	authGroup.Get("/me", h.GetMe)
@@ -43,13 +43,13 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler)
 	authGroup.Get("/sessions", h.ListSessions)
 	authGroup.Delete("/sessions/:sessionId", h.RevokeSession)
 
-	// Admin-only endpoints.
+	// Эндпоинты только для администраторов.
 	admin := api.Group("/admin", authMiddleware)
 	admin.Get("/registration-mode", h.GetRegistrationMode)
 	admin.Put("/registration-mode", h.SetRegistrationMode)
 }
 
-// ---- Public handlers ----
+// ---- Публичные обработчики ----
 
 // SendMagicLink обрабатывает отправку magic-link для аутентификации.
 // @Summary Отправить magic-link на email
@@ -130,7 +130,7 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 	return c.JSON(tokens)
 }
 
-// LoginTelegram handles POST /api/auth/telegram.
+// LoginTelegram обрабатывает POST /api/auth/telegram — вход через Telegram Web App.
 func (h *Handler) LoginTelegram(c fiber.Ctx) error {
 	var req TelegramAuthRequest
 	if err := c.Bind().JSON(&req); err != nil {
@@ -225,7 +225,7 @@ func (h *Handler) GetMe(c fiber.Ctx) error {
 	return c.JSON(UserToResponse(u))
 }
 
-// UpdateProfile handles PUT /api/auth/me.
+// UpdateProfile обрабатывает PUT /api/auth/me — обновление профиля текущего пользователя.
 func (h *Handler) UpdateProfile(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -245,7 +245,7 @@ func (h *Handler) UpdateProfile(c fiber.Ctx) error {
 	return c.JSON(UserToResponse(u))
 }
 
-// CompleteOnboarding handles POST /api/auth/me/onboarding.
+// CompleteOnboarding обрабатывает POST /api/auth/me/onboarding — завершение онбординга.
 func (h *Handler) CompleteOnboarding(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -265,7 +265,7 @@ func (h *Handler) CompleteOnboarding(c fiber.Ctx) error {
 	return c.JSON(UserToResponse(u))
 }
 
-// ListSessions handles GET /api/auth/sessions.
+// ListSessions обрабатывает GET /api/auth/sessions — список активных сессий пользователя.
 func (h *Handler) ListSessions(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -294,7 +294,7 @@ func (h *Handler) ListSessions(c fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-// RevokeSession handles DELETE /api/auth/sessions/:sessionId.
+// RevokeSession обрабатывает DELETE /api/auth/sessions/:sessionId — отзыв сессии.
 func (h *Handler) RevokeSession(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -317,7 +317,7 @@ func (h *Handler) RevokeSession(c fiber.Ctx) error {
 
 // ---- Admin handlers ----
 
-// GetRegistrationMode handles GET /api/admin/registration-mode.
+// GetRegistrationMode обрабатывает GET /api/admin/registration-mode — получение режима регистрации.
 func (h *Handler) GetRegistrationMode(c fiber.Ctx) error {
 	if err := h.requireAdmin(c); err != nil {
 		return err
@@ -331,7 +331,7 @@ func (h *Handler) GetRegistrationMode(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"mode": mode})
 }
 
-// SetRegistrationMode handles PUT /api/admin/registration-mode.
+// SetRegistrationMode обрабатывает PUT /api/admin/registration-mode — установка режима регистрации.
 func (h *Handler) SetRegistrationMode(c fiber.Ctx) error {
 	if err := h.requireAdmin(c); err != nil {
 		return err
@@ -354,6 +354,7 @@ func (h *Handler) SetRegistrationMode(c fiber.Ctx) error {
 
 // ---- Helpers ----
 
+// sessionIDFromCtx извлекает ID сессии из контекста Fiber.
 func sessionIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
 	idStr, ok := c.Locals("sessionID").(string)
 	if !ok || idStr == "" {
@@ -362,7 +363,7 @@ func sessionIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
 	return uuid.Parse(idStr)
 }
 
-// requireAdmin checks that the current user has system_role "admin".
+// requireAdmin проверяет, что текущий пользователь имеет system_role "admin".
 func (h *Handler) requireAdmin(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {

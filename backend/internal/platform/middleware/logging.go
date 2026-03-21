@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// Logger logs each request with method, path, status, duration, and request_id using slog.
+// Logger логирует каждый запрос: метод, путь, статус, длительность и request_id через slog.
 func Logger() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		start := time.Now()

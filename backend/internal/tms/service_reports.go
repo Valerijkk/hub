@@ -15,7 +15,7 @@ import (
 // Reports
 // ---------------------------------------------------------------------------
 
-// GetCoverageReport returns a report on issue coverage by test cases.
+// GetCoverageReport возвращает отчёт о покрытии задач тест-кейсами.
 func (s *TMSService) GetCoverageReport(ctx context.Context, projectID uuid.UUID) (*CoverageReport, error) {
 	issues, err := s.repo.GetProjectIssuesWithTestCases(ctx, projectID)
 	if err != nil {
@@ -58,7 +58,7 @@ func (s *TMSService) GetCoverageReport(ctx context.Context, projectID uuid.UUID)
 	return report, nil
 }
 
-// GetTestTrends returns run trends (pass/fail/skip) for the last N runs.
+// GetTestTrends возвращает тренды прогонов (pass/fail/skip) за последние N прогонов.
 func (s *TMSService) GetTestTrends(ctx context.Context, projectID uuid.UUID, lastN int) ([]TrendPoint, error) {
 	if lastN <= 0 || lastN > 100 {
 		lastN = 20
@@ -71,7 +71,7 @@ func (s *TMSService) GetTestTrends(ctx context.Context, projectID uuid.UUID, las
 	}
 
 	trends := make([]TrendPoint, 0, len(runs))
-	// Reverse order (oldest to newest for charting)
+	// Обратный порядок (от старых к новым для графиков)
 	for i := len(runs) - 1; i >= 0; i-- {
 		run := runs[i]
 		passRate := float64(0)
@@ -94,9 +94,9 @@ func (s *TMSService) GetTestTrends(ctx context.Context, projectID uuid.UUID, las
 	return trends, nil
 }
 
-// GetRunComparison compares two test runs, showing status changes.
+// GetRunComparison сравнивает два прогона, показывая изменения статусов.
 func (s *TMSService) GetRunComparison(ctx context.Context, runID1, runID2 uuid.UUID) (*RunComparison, error) {
-	// Get both runs
+	// Получаем оба прогона
 	run1, err := s.repo.GetTestRun(ctx, runID1)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -112,7 +112,7 @@ func (s *TMSService) GetRunComparison(ctx context.Context, runID1, runID2 uuid.U
 		return nil, apperrors.NewInternal("ошибка получения прогона 2")
 	}
 
-	// Get results for both runs
+	// Получаем результаты обоих прогонов
 	results1, err := s.repo.ListTestResults(ctx, runID1)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения результатов прогона 1")
@@ -122,7 +122,7 @@ func (s *TMSService) GetRunComparison(ctx context.Context, runID1, runID2 uuid.U
 		return nil, apperrors.NewInternal("ошибка получения результатов прогона 2")
 	}
 
-	// Build map: caseKey -> status for each run
+	// Строим карту: caseKey -> статус для каждого прогона
 	map1 := make(map[string]statusInfo)
 	for _, r := range results1 {
 		if r.Edges.TestCase != nil {
@@ -142,7 +142,7 @@ func (s *TMSService) GetRunComparison(ctx context.Context, runID1, runID2 uuid.U
 		}
 	}
 
-	// Collect changes
+	// Собираем изменения
 	changes := make([]ResultChange, 0)
 	allKeys := make(map[string]bool)
 	for k := range map1 {
@@ -201,13 +201,13 @@ func (s *TMSService) GetRunComparison(ctx context.Context, runID1, runID2 uuid.U
 	}, nil
 }
 
-// statusInfo is a helper struct for run comparison.
+// statusInfo — вспомогательная структура для сравнения прогонов.
 type statusInfo struct {
 	status string
 	title  string
 }
 
-// GetTestRunHistory returns the history of the last N runs for a project.
+// GetTestRunHistory возвращает историю последних N прогонов проекта.
 func (s *TMSService) GetTestRunHistory(ctx context.Context, projectID uuid.UUID, limit int) ([]TestRunSummary, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
@@ -240,16 +240,16 @@ func (s *TMSService) GetTestRunHistory(ctx context.Context, projectID uuid.UUID,
 	return summaries, nil
 }
 
-// GetFlakyTests returns test cases with flaky results from recent runs.
+// GetFlakyTests возвращает тест-кейсы с нестабильными (flaky) результатами из последних прогонов.
 func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) ([]TestCaseResponse, error) {
-	// Get recent runs
+	// Получаем последние прогоны
 	params := ListTestRunsParams{Offset: 0, Limit: 10}
 	runs, _, err := s.repo.ListTestRuns(ctx, projectID, params)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения прогонов для flaky-анализа")
 	}
 
-	// Collect status history per test case
+	// Собираем историю статусов по каждому тест-кейсу
 	tcStatuses := make(map[uuid.UUID][]string)
 	tcMap := make(map[uuid.UUID]*ent.TestCase)
 	for _, run := range runs {
@@ -268,7 +268,7 @@ func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) ([]
 		}
 	}
 
-	// Determine flaky: test case has different statuses
+	// Определяем flaky: тест-кейс имеет разные статусы в разных прогонах
 	var flakyTests []TestCaseResponse
 	for tcID, statuses := range tcStatuses {
 		if len(statuses) < 2 {
@@ -295,7 +295,7 @@ func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) ([]
 	return flakyTests, nil
 }
 
-// GetTraceabilityMatrix builds a traceability matrix: rows = issues, columns = test cases, cells = last status.
+// GetTraceabilityMatrix строит матрицу трассировки: строки = задачи, столбцы = тест-кейсы, ячейки = последний статус.
 func (s *TMSService) GetTraceabilityMatrix(ctx context.Context, projectID uuid.UUID) (*TraceabilityMatrix, error) {
 	issues, err := s.repo.GetProjectIssuesWithTestCases(ctx, projectID)
 	if err != nil {
@@ -329,7 +329,7 @@ func (s *TMSService) GetTraceabilityMatrix(ctx context.Context, projectID uuid.U
 	return &TraceabilityMatrix{Rows: rows}, nil
 }
 
-// GetDefectCategories groups failed tests from recent runs by error message pattern.
+// GetDefectCategories группирует упавшие тесты из последних прогонов по паттерну сообщения об ошибке.
 func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUID) ([]DefectCategory, error) {
 	params := ListTestRunsParams{Offset: 0, Limit: 10}
 	runs, _, err := s.repo.ListTestRuns(ctx, projectID, params)
@@ -337,7 +337,7 @@ func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUI
 		return nil, apperrors.NewInternal("ошибка получения прогонов для анализа дефектов")
 	}
 
-	// Collect failed results and group by error pattern
+	// Собираем упавшие результаты и группируем по паттерну ошибки
 	categories := make(map[string][]string) // pattern -> []caseKey
 	for _, run := range runs {
 		results, err := s.repo.ListTestResults(ctx, run.ID)
@@ -364,7 +364,7 @@ func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUI
 
 	result := make([]DefectCategory, 0, len(categories))
 	for pattern, keys := range categories {
-		// Deduplicate keys
+		// Дедупликация ключей
 		seen := make(map[string]bool)
 		unique := make([]string, 0)
 		for _, k := range keys {
@@ -383,12 +383,12 @@ func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUI
 	return result, nil
 }
 
-// CompareEnvironments compares test results between two environments.
-// For each environment, gets the latest test run and its results, then merges by test case key.
+// CompareEnvironments сравнивает результаты тестов между двумя окружениями.
+// Для каждого окружения получает последний прогон и его результаты, затем объединяет по ключу тест-кейса.
 func (s *TMSService) CompareEnvironments(ctx context.Context, projectID uuid.UUID, envID1, envID2 uuid.UUID) (*EnvironmentComparisonResponse, error) {
 	client := s.repo.EntClient()
 
-	// Fetch environments
+	// Получаем окружения
 	env1, err := client.Environment.Get(ctx, envID1)
 	if err != nil {
 		return nil, apperrors.NewNotFound("окружение 1 не найдено")
@@ -398,9 +398,9 @@ func (s *TMSService) CompareEnvironments(ctx context.Context, projectID uuid.UUI
 		return nil, apperrors.NewNotFound("окружение 2 не найдено")
 	}
 
-	// Helper: get latest results for an environment
+	// Вспомогательная функция: получить последние результаты для окружения
 	getLatestResults := func(envID uuid.UUID) (map[string]string, map[string]string, error) {
-		// Get latest run for this environment
+		// Получаем последний прогон для этого окружения
 		runs, err := client.TestRun.Query().
 			Where(
 				testrun.HasProjectWith(entproject.ID(projectID)),
@@ -438,7 +438,7 @@ func (s *TMSService) CompareEnvironments(ctx context.Context, projectID uuid.UUI
 		return nil, apperrors.NewInternal("ошибка получения результатов окружения 2")
 	}
 
-	// Merge all case keys
+	// Объединяем все ключи тест-кейсов
 	allKeys := make(map[string]bool)
 	for k := range status1 {
 		allKeys[k] = true

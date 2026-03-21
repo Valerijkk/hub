@@ -10,9 +10,9 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
-// RequireAuth returns middleware that validates JWT tokens and stores userID in Locals.
-// JWT validation details (signing method, claims parsing) will be implemented in the auth module.
-// This middleware extracts the token from the Authorization header and sets "userID" in Locals.
+// RequireAuth возвращает middleware для валидации JWT-токенов и сохранения userID в Locals.
+// Детали валидации JWT (метод подписи, парсинг claims) реализованы в модуле auth.
+// Извлекает токен из заголовка Authorization и устанавливает "userID" в Locals.
 func RequireAuth() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		authHeader := utils.CopyString(c.Get("Authorization"))
@@ -43,7 +43,7 @@ func RequireAuth() fiber.Handler {
 	}
 }
 
-// RequireSystemRole returns middleware that checks the user's system role.
+// RequireSystemRole возвращает middleware, проверяющий системную роль пользователя.
 func RequireSystemRole(role string, client *ent.Client) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		userIDStr, ok := c.Locals("userID").(string)
@@ -69,9 +69,9 @@ func RequireSystemRole(role string, client *ent.Client) fiber.Handler {
 	}
 }
 
-// RequirePermission returns middleware that checks the user has a specific permission
-// in the project identified by the "projectId" route parameter.
-// Uses utils.CopyString for Fiber ctx safety (Pitfall 1).
+// RequirePermission возвращает middleware, проверяющий наличие у пользователя указанного
+// разрешения в проекте, определяемом параметром пути "projectId".
+// Использует utils.CopyString для безопасности контекста Fiber (Pitfall 1).
 func RequirePermission(perm Permission, svc *RBACService) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		userIDStr, ok := c.Locals("userID").(string)
@@ -111,12 +111,12 @@ func RequirePermission(perm Permission, svc *RBACService) fiber.Handler {
 	}
 }
 
-// RequireAdmin is a convenience middleware that checks for system admin role.
+// RequireAdmin — вспомогательный middleware, проверяющий роль системного администратора.
 func RequireAdmin(client *ent.Client) fiber.Handler {
 	return RequireSystemRole(string(user.SystemRoleAdmin), client)
 }
 
-// UserIDFromCtx extracts the userID string from Fiber Locals.
+// UserIDFromCtx извлекает строку userID из Fiber Locals.
 func UserIDFromCtx(c fiber.Ctx) string {
 	if id, ok := c.Locals("userID").(string); ok {
 		return id

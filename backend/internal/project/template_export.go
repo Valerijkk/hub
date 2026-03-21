@@ -13,10 +13,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Template export/import data structures
+// Структуры данных для экспорта/импорта шаблонов
 // ---------------------------------------------------------------------------
 
-// TemplateExport is the JSON representation of a shareable template.
+// TemplateExport — JSON-представление шаблона для обмена между инстансами.
 type TemplateExport struct {
 	Name         string                 `json:"name"`
 	Description  string                 `json:"description,omitempty"`
@@ -28,10 +28,10 @@ type TemplateExport struct {
 const templateExportVersion = 1
 
 // ---------------------------------------------------------------------------
-// Service methods
+// Методы сервиса
 // ---------------------------------------------------------------------------
 
-// ExportTemplate exports a project template as JSON for sharing between instances.
+// ExportTemplate экспортирует шаблон проекта как JSON для обмена между инстансами.
 func (s *TemplateService) ExportTemplate(ctx context.Context, templateID uuid.UUID) ([]byte, error) {
 	t, err := s.db.ProjectTemplate.Get(ctx, templateID)
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *TemplateService) ExportTemplate(ctx context.Context, templateID uuid.UU
 	return data, nil
 }
 
-// ImportTemplate imports a template from JSON. Creates it as a custom template.
+// ImportTemplate импортирует шаблон из JSON. Создаёт его как кастомный шаблон.
 func (s *TemplateService) ImportTemplate(ctx context.Context, userID uuid.UUID, data []byte) (*TemplateResponse, error) {
 	var export TemplateExport
 	if err := json.Unmarshal(data, &export); err != nil {
@@ -88,10 +88,10 @@ func (s *TemplateService) ImportTemplate(ctx context.Context, userID uuid.UUID, 
 }
 
 // ---------------------------------------------------------------------------
-// HTTP handlers
+// HTTP-обработчики
 // ---------------------------------------------------------------------------
 
-// ExportTemplateHandler handles GET /api/project-templates/:id/export.
+// ExportTemplateHandler обрабатывает GET /api/project-templates/:id/export.
 func (h *TemplateHandler) ExportTemplateHandler(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	id, err := uuid.Parse(idStr)
@@ -109,7 +109,7 @@ func (h *TemplateHandler) ExportTemplateHandler(c fiber.Ctx) error {
 	return c.Send(data)
 }
 
-// ImportTemplateHandler handles POST /api/project-templates/import.
+// ImportTemplateHandler обрабатывает POST /api/project-templates/import.
 func (h *TemplateHandler) ImportTemplateHandler(c fiber.Ctx) error {
 	userID, err := templateUserID(c)
 	if err != nil {

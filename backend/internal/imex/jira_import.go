@@ -15,16 +15,16 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Jira JSON import types
+// Типы для импорта Jira JSON
 // ---------------------------------------------------------------------------
 
-// JiraIssue represents a Jira issue from JSON export.
+// JiraIssue представляет задачу Jira из JSON-экспорта.
 type JiraIssue struct {
-	Key    string     `json:"key"`    // e.g., "PROJ-123"
+	Key    string     `json:"key"`    // например, "PROJ-123"
 	Fields JiraFields `json:"fields"`
 }
 
-// JiraFields holds all Jira issue fields.
+// JiraFields содержит все поля задачи Jira.
 type JiraFields struct {
 	Summary     string          `json:"summary"`
 	Description interface{}     `json:"description"` // ADF or string
@@ -41,39 +41,39 @@ type JiraFields struct {
 	Comment     *JiraComments   `json:"comment"`
 }
 
-// JiraNamedField is a common Jira object with a name property.
+// JiraNamedField — общий объект Jira со свойством name.
 type JiraNamedField struct {
 	Name string `json:"name"`
 }
 
-// JiraUser represents a Jira user reference.
+// JiraUser представляет ссылку на пользователя Jira.
 type JiraUser struct {
 	DisplayName  string `json:"displayName"`
 	EmailAddress string `json:"emailAddress"`
 }
 
-// JiraComments wraps the Jira comment list.
+// JiraComments оборачивает список комментариев Jira.
 type JiraComments struct {
 	Comments []JiraComment `json:"comments"`
 }
 
-// JiraComment represents a single Jira comment.
+// JiraComment представляет один комментарий Jira.
 type JiraComment struct {
 	Body    interface{} `json:"body"` // ADF or string
 	Author  JiraUser    `json:"author"`
 	Created string      `json:"created"`
 }
 
-// JiraSearchResponse is the top-level response from Jira search API.
+// JiraSearchResponse — ответ верхнего уровня от Jira search API.
 type JiraSearchResponse struct {
 	Issues []JiraIssue `json:"issues"`
 }
 
 // ---------------------------------------------------------------------------
-// Mapping helpers
+// Вспомогательные функции маппинга
 // ---------------------------------------------------------------------------
 
-// mapJiraIssueType maps a Jira issue type name to Hub IssueType.
+// mapJiraIssueType преобразует название типа задачи Jira в тип Hub IssueType.
 func mapJiraIssueType(jiraType string) string {
 	switch strings.ToLower(jiraType) {
 	case "bug":
@@ -97,7 +97,7 @@ func mapJiraIssueType(jiraType string) string {
 	}
 }
 
-// mapJiraPriority maps a Jira priority name to Hub Priority.
+// mapJiraPriority преобразует название приоритета Jira в приоритет Hub.
 func mapJiraPriority(jiraPriority string) string {
 	switch strings.ToLower(jiraPriority) {
 	case "highest", "blocker":
@@ -115,8 +115,8 @@ func mapJiraPriority(jiraPriority string) string {
 	}
 }
 
-// jiraDescriptionToText extracts plain text from a Jira description field.
-// The description may be a string or an Atlassian Document Format (ADF) object.
+// jiraDescriptionToText извлекает обычный текст из поля описания Jira.
+// Описание может быть строкой или объектом Atlassian Document Format (ADF).
 func jiraDescriptionToText(desc interface{}) string {
 	if desc == nil {
 		return ""
@@ -132,7 +132,7 @@ func jiraDescriptionToText(desc interface{}) string {
 	}
 }
 
-// extractADFText recursively extracts text from an Atlassian Document Format node.
+// extractADFText рекурсивно извлекает текст из узла Atlassian Document Format.
 func extractADFText(node map[string]interface{}) string {
 	var sb strings.Builder
 
@@ -156,11 +156,11 @@ func extractADFText(node map[string]interface{}) string {
 }
 
 // ---------------------------------------------------------------------------
-// Import logic
+// Логика импорта
 // ---------------------------------------------------------------------------
 
-// ImportJiraJSON imports issues from a Jira JSON export.
-// Accepts either an array of JiraIssue or a Jira search response {"issues": [...]}.
+// ImportJiraJSON импортирует задачи из JSON-экспорта Jira.
+// Принимает массив JiraIssue или ответ Jira search {"issues": [...]}.
 func (s *ImExService) ImportJiraJSON(ctx context.Context, projectID uuid.UUID, userID uuid.UUID, data []byte) (*ImportResultResponse, error) {
 	issues, err := parseJiraJSON(data)
 	if err != nil {
@@ -175,7 +175,7 @@ func (s *ImExService) ImportJiraJSON(ctx context.Context, projectID uuid.UUID, u
 	skipped := 0
 	var errs []string
 
-	// First pass: create all issues and build a key-to-ID map for parent linking.
+	// Первый проход: создаём все задачи и строим карту key->ID для связывания родителей.
 	keyToID := make(map[string]uuid.UUID)
 
 	for i, ji := range issues {
@@ -261,7 +261,7 @@ func (s *ImExService) ImportJiraJSON(ctx context.Context, projectID uuid.UUID, u
 		imported++
 	}
 
-	// Second pass: link parent/subtask relationships.
+	// Второй проход: связываем родительские/дочерние задачи.
 	for _, ji := range issues {
 		myID, ok := keyToID[ji.Key]
 		if !ok {
@@ -302,8 +302,8 @@ func (s *ImExService) ImportJiraJSON(ctx context.Context, projectID uuid.UUID, u
 	}, nil
 }
 
-// parseJiraJSON parses Jira JSON data, accepting either an array of issues
-// or a search response object {"issues": [...]}.
+// parseJiraJSON парсит JSON-данные Jira, принимая массив задач
+// или объект ответа поиска {"issues": [...]}.
 func parseJiraJSON(data []byte) ([]JiraIssue, error) {
 	// Try array first.
 	var issues []JiraIssue
@@ -327,10 +327,10 @@ func parseJiraJSON(data []byte) ([]JiraIssue, error) {
 }
 
 // ---------------------------------------------------------------------------
-// HTTP handler
+// HTTP-обработчик
 // ---------------------------------------------------------------------------
 
-// ImportJira handles POST /api/projects/:projectId/import/jira (multipart).
+// ImportJira обрабатывает POST /api/projects/:projectId/import/jira (multipart).
 func (h *Handler) ImportJira(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {

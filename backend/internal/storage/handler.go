@@ -6,23 +6,22 @@ import (
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
-// Handler provides HTTP handlers for file operations including upload URL
-// generation, upload confirmation, download URL generation, and file deletion.
+// Handler предоставляет HTTP-обработчики для файловых операций: генерация URL загрузки,
+// подтверждение загрузки, генерация URL скачивания и удаление файлов.
 type Handler struct {
 	storage *StorageService
 }
 
-// NewHandler creates a new storage Handler backed by the given StorageService.
+// NewHandler создаёт новый обработчик файлового хранилища на основе StorageService.
 func NewHandler(storage *StorageService) *Handler {
 	return &Handler{storage: storage}
 }
 
-// RegisterRoutes registers file storage routes on the given router group.
-// The authMw parameter is the JWT authentication middleware (auth.RequireAuth)
-// that validates Bearer tokens and sets c.Locals("userID") and c.Locals("sessionID").
-// The rbacSvc parameter is used for per-route permission checks (upload/delete).
-// All /files/* routes require authentication; upload and delete additionally
-// require PermFileUpload and PermFileDelete RBAC permissions respectively.
+// RegisterRoutes регистрирует маршруты файлового хранилища.
+// authMw — JWT middleware аутентификации (auth.RequireAuth), валидирующий Bearer-токены.
+// rbacSvc используется для проверки прав на загрузку и удаление файлов.
+// Все маршруты /files/* требуют аутентификации; загрузка и удаление дополнительно
+// требуют разрешений PermFileUpload и PermFileDelete соответственно.
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
 	files := api.Group("/files")
 	files.Use(authMw)
@@ -39,8 +38,8 @@ type uploadRequest struct {
 	ProjectID   string `json:"projectId"`
 }
 
-// GenerateUploadURL handles POST /api/files/upload-url.
-// It generates a presigned S3 upload URL and creates a pending FileMetadata record.
+// GenerateUploadURL обрабатывает POST /api/files/upload-url.
+// Генерирует presigned S3 URL для загрузки и создаёт pending-запись FileMetadata.
 func (h *Handler) GenerateUploadURL(c fiber.Ctx) error {
 	var req uploadRequest
 	if err := c.Bind().JSON(&req); err != nil {
@@ -79,7 +78,7 @@ type confirmRequest struct {
 	EntityID   string `json:"entityId"`
 }
 
-// ConfirmUpload handles POST /api/files/:fileId/confirm
+// ConfirmUpload обрабатывает POST /api/files/:fileId/confirm — подтверждение загрузки файла.
 func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 	fileID, err := uuid.Parse(c.Params("fileId"))
 	if err != nil {
@@ -98,7 +97,7 @@ func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"status": "confirmed"})
 }
 
-// GetDownloadURL handles GET /api/files/:fileId/url
+// GetDownloadURL обрабатывает GET /api/files/:fileId/url — генерация presigned URL для скачивания.
 func (h *Handler) GetDownloadURL(c fiber.Ctx) error {
 	fileID, err := uuid.Parse(c.Params("fileId"))
 	if err != nil {
@@ -113,7 +112,7 @@ func (h *Handler) GetDownloadURL(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"downloadUrl": downloadURL})
 }
 
-// DeleteFile handles DELETE /api/files/:fileId
+// DeleteFile обрабатывает DELETE /api/files/:fileId — мягкое удаление файла.
 func (h *Handler) DeleteFile(c fiber.Ctx) error {
 	fileID, err := uuid.Parse(c.Params("fileId"))
 	if err != nil {

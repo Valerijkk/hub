@@ -13,14 +13,14 @@ import (
 
 const defaultCacheTTL = 5 * time.Minute
 
-// RBACService provides permission checking with Redis caching.
+// RBACService предоставляет проверку разрешений с кешированием в Redis.
 type RBACService struct {
 	client *ent.Client
 	cache  *PermissionCache
 	ttl    time.Duration
 }
 
-// NewRBACService creates a new RBAC service.
+// NewRBACService создаёт новый RBAC-сервис.
 func NewRBACService(client *ent.Client, cache *PermissionCache) *RBACService {
 	return &RBACService{
 		client: client,
@@ -29,9 +29,9 @@ func NewRBACService(client *ent.Client, cache *PermissionCache) *RBACService {
 	}
 }
 
-// GetEffectivePermissions returns the effective permissions for a user in a project.
-// It checks Redis cache first, then falls back to database lookup.
-// System admins receive all permissions.
+// GetEffectivePermissions возвращает эффективные разрешения пользователя в проекте.
+// Сначала проверяет кеш Redis, затем обращается к базе данных.
+// Системные администраторы получают все разрешения.
 func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, projectID uuid.UUID) (Permission, error) {
 	userStr := userID.String()
 	projectStr := projectID.String()
@@ -78,7 +78,7 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 	return perm, nil
 }
 
-// InvalidateCache removes cached permissions for a user in a project.
+// InvalidateCache удаляет кешированные разрешения пользователя в проекте.
 func (s *RBACService) InvalidateCache(ctx context.Context, userID, projectID string) error {
 	return s.cache.Invalidate(ctx, userID, projectID)
 }

@@ -21,7 +21,7 @@ import (
 // TestRail import types
 // ---------------------------------------------------------------------------
 
-// TestRailCase represents a TestRail test case from CSV/XML export.
+// TestRailCase представляет тест-кейс TestRail из CSV/XML экспорта.
 type TestRailCase struct {
 	ID             string `json:"id" xml:"id"`
 	Title          string `json:"title" xml:"title"`
@@ -35,7 +35,7 @@ type TestRailCase struct {
 	References     string `json:"refs" xml:"refs"` // comma-separated issue IDs
 }
 
-// TestRailXMLRoot is the root element for TestRail XML export.
+// TestRailXMLRoot — корневой элемент XML-экспорта TestRail.
 type TestRailXMLRoot struct {
 	XMLName xml.Name       `xml:"cases"`
 	Cases   []TestRailCase `xml:"case"`
@@ -45,7 +45,7 @@ type TestRailXMLRoot struct {
 // Priority mapping
 // ---------------------------------------------------------------------------
 
-// mapTestRailPriority maps a TestRail priority to Hub TMS priority.
+// mapTestRailPriority преобразует приоритет TestRail в приоритет Hub TMS.
 func mapTestRailPriority(trPriority string) string {
 	switch strings.ToLower(strings.TrimSpace(trPriority)) {
 	case "critical", "1 - critical", "p1":
@@ -63,7 +63,7 @@ func mapTestRailPriority(trPriority string) string {
 	}
 }
 
-// mapTestRailType maps a TestRail case type to Hub TMS case type.
+// mapTestRailType преобразует тип тест-кейса TestRail в тип Hub TMS.
 func mapTestRailType(trType string) string {
 	switch strings.ToLower(strings.TrimSpace(trType)) {
 	case "automated", "automation":
@@ -85,17 +85,17 @@ func mapTestRailType(trType string) string {
 // Step parsing
 // ---------------------------------------------------------------------------
 
-// htmlTagRegexp is used to strip HTML tags from TestRail steps.
+// htmlTagRegexp используется для удаления HTML-тегов из шагов TestRail.
 var htmlTagRegexp = regexp.MustCompile(`<[^>]*>`)
 
-// stripHTML removes HTML tags and trims whitespace.
+// stripHTML удаляет HTML-теги и обрезает пробелы.
 func stripHTML(s string) string {
 	text := htmlTagRegexp.ReplaceAllString(s, "")
 	return strings.TrimSpace(text)
 }
 
-// parseTestRailSteps converts TestRail steps text (possibly HTML) into structured steps.
-// TestRail steps are typically numbered lines or separated by newlines.
+// parseTestRailSteps конвертирует текст шагов TestRail (возможно HTML) в структурированные шаги.
+// Шаги TestRail обычно пронумерованы или разделены переносами строк.
 func parseTestRailSteps(stepsText, expectedText string) []schema.TestStep {
 	if stepsText == "" {
 		return nil
@@ -147,7 +147,7 @@ func parseTestRailSteps(stepsText, expectedText string) []schema.TestStep {
 	return steps
 }
 
-// trimStepNumbering removes common step prefixes like "1. ", "1) ", "Step 1: ".
+// trimStepNumbering удаляет типичные префиксы нумерации шагов: "1. ", "1) ", "Step 1: ".
 func trimStepNumbering(s string) string {
 	// "1. text" or "1) text"
 	re := regexp.MustCompile(`^\d+[\.\)]\s*`)
@@ -162,7 +162,7 @@ func trimStepNumbering(s string) string {
 // CSV import
 // ---------------------------------------------------------------------------
 
-// testRailCSVHeaders maps known TestRail CSV column names to our internal field names.
+// testRailCSVHeaders маппит известные названия столбцов CSV TestRail в наши внутренние имена полей.
 var testRailCSVHeaders = map[string]string{
 	"id":             "id",
 	"case id":        "id",
@@ -185,7 +185,7 @@ var testRailCSVHeaders = map[string]string{
 	"refs":           "refs",
 }
 
-// ImportTestRailCSV imports test cases from a TestRail CSV export.
+// ImportTestRailCSV импортирует тест-кейсы из CSV-экспорта TestRail.
 func (s *TMSService) ImportTestRailCSV(ctx context.Context, projectID uuid.UUID, userID uuid.UUID, data []byte) (*ImportResult, error) {
 	cases, err := parseTestRailCSV(data)
 	if err != nil {
@@ -194,7 +194,7 @@ func (s *TMSService) ImportTestRailCSV(ctx context.Context, projectID uuid.UUID,
 	return s.importTestRailCases(ctx, projectID, userID, cases)
 }
 
-// ImportTestRailXML imports test cases from a TestRail XML export.
+// ImportTestRailXML импортирует тест-кейсы из XML-экспорта TestRail.
 func (s *TMSService) ImportTestRailXML(ctx context.Context, projectID uuid.UUID, userID uuid.UUID, data []byte) (*ImportResult, error) {
 	cases, err := parseTestRailXML(data)
 	if err != nil {
@@ -203,7 +203,7 @@ func (s *TMSService) ImportTestRailXML(ctx context.Context, projectID uuid.UUID,
 	return s.importTestRailCases(ctx, projectID, userID, cases)
 }
 
-// importTestRailCases creates test suites and cases from parsed TestRail data.
+// importTestRailCases создаёт папки и тест-кейсы из распарсенных данных TestRail.
 func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUID, userID uuid.UUID, cases []TestRailCase) (*ImportResult, error) {
 	result := &ImportResult{}
 
@@ -279,7 +279,7 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 // Parsers
 // ---------------------------------------------------------------------------
 
-// parseTestRailCSV parses a TestRail CSV export into TestRailCase structs.
+// parseTestRailCSV парсит CSV-экспорт TestRail в структуры TestRailCase.
 func parseTestRailCSV(data []byte) ([]TestRailCase, error) {
 	reader := csv.NewReader(bytes.NewReader(data))
 	reader.LazyQuotes = true
@@ -331,7 +331,7 @@ func parseTestRailCSV(data []byte) ([]TestRailCase, error) {
 	return cases, nil
 }
 
-// tryReadCSV attempts to read all records from CSV data with a given separator.
+// tryReadCSV пытается прочитать все записи из CSV-данных с указанным разделителем.
 func tryReadCSV(data []byte, sep rune) ([][]string, error) {
 	reader := csv.NewReader(bytes.NewReader(data))
 	reader.Comma = sep
@@ -340,7 +340,7 @@ func tryReadCSV(data []byte, sep rune) ([][]string, error) {
 	return reader.ReadAll()
 }
 
-// csvField extracts a field value from a CSV row by mapped column name.
+// csvField извлекает значение поля из CSV-строки по маппированному имени столбца.
 func csvField(row []string, colMap map[string]int, field string) string {
 	if idx, ok := colMap[field]; ok && idx < len(row) {
 		return row[idx]
@@ -348,7 +348,7 @@ func csvField(row []string, colMap map[string]int, field string) string {
 	return ""
 }
 
-// parseTestRailXML parses a TestRail XML export into TestRailCase structs.
+// parseTestRailXML парсит XML-экспорт TestRail в структуры TestRailCase.
 func parseTestRailXML(data []byte) ([]TestRailCase, error) {
 	var root TestRailXMLRoot
 	if err := xml.Unmarshal(data, &root); err != nil {
@@ -361,7 +361,7 @@ func parseTestRailXML(data []byte) ([]TestRailCase, error) {
 // HTTP handler
 // ---------------------------------------------------------------------------
 
-// ImportTestRailCases handles POST /api/projects/:projectId/tms/import/testrail.
+// ImportTestRailCases обрабатывает POST /api/projects/:projectId/tms/import/testrail.
 func (h *Handler) ImportTestRailCases(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

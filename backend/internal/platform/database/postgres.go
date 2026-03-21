@@ -11,8 +11,8 @@ import (
 	"github.com/valerii/hub/backend/ent"
 )
 
-// NewPostgresClient creates an Ent client connected to PostgreSQL.
-// It runs auto-migration in development; use Atlas for production migrations.
+// NewPostgresClient создаёт Ent-клиент, подключённый к PostgreSQL.
+// Выполняет автомиграцию в режиме разработки; для продакшена используйте Atlas.
 func NewPostgresClient(ctx context.Context, url string) (*ent.Client, error) {
 	drv, err := sql.Open("postgres", url)
 	if err != nil {

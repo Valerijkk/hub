@@ -1,7 +1,7 @@
 package rbac
 
-// Permission represents a bitmap of permissions using uint64.
-// Each permission is a single bit, allowing up to 64 distinct permissions.
+// Permission представляет битовую маску разрешений (uint64).
+// Каждое разрешение — один бит, что позволяет хранить до 64 различных разрешений.
 type Permission uint64
 
 const (
@@ -33,7 +33,7 @@ const (
 	PermTeamManage                                  // 33554432
 )
 
-// DefaultRolePermissions maps fixed project roles to their default permission sets.
+// DefaultRolePermissions сопоставляет фиксированные роли проекта с наборами разрешений по умолчанию.
 var DefaultRolePermissions = map[string]Permission{
 	"owner":     ^Permission(0), // all permissions (0xFFFFFFFFFFFFFFFF)
 	"developer": PermProjectView | PermTaskCreate | PermTaskEdit | PermTaskAssign | PermTaskComment | PermFileUpload | PermFileDelete | PermChannelCreate | PermMessageEdit | PermTestCaseCreate | PermTestCaseEdit | PermTestRunCreate | PermTestRunExecute | PermInviteCreate,
@@ -41,17 +41,17 @@ var DefaultRolePermissions = map[string]Permission{
 	"viewer":    PermProjectView,
 }
 
-// Has checks whether the permission set contains the given permission.
+// Has проверяет, содержит ли набор разрешений указанное разрешение.
 func (p Permission) Has(perm Permission) bool {
 	return p&perm == perm
 }
 
-// Add adds a permission to the set.
+// Add добавляет разрешение в набор.
 func (p Permission) Add(perm Permission) Permission {
 	return p | perm
 }
 
-// Remove removes a permission from the set.
+// Remove удаляет разрешение из набора.
 func (p Permission) Remove(perm Permission) Permission {
 	return p &^ perm
 }

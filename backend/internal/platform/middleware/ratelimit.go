@@ -9,7 +9,7 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
-// RateLimitConfig defines the rate limit parameters.
+// RateLimitConfig определяет параметры ограничения частоты запросов.
 type RateLimitConfig struct {
 	Max    int           // Maximum number of requests
 	Window time.Duration // Time window for the limit
@@ -33,8 +33,8 @@ type rateLimiter struct {
 	config  RateLimitConfig
 }
 
-// RateLimit returns a rate limiting middleware using in-memory sliding window.
-// Does not depend on Redis at startup.
+// RateLimit возвращает middleware ограничения частоты запросов на основе in-memory sliding window.
+// Не зависит от Redis при старте.
 func RateLimit(config RateLimitConfig) fiber.Handler {
 	limiter := &rateLimiter{config: config}
 

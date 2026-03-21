@@ -8,13 +8,13 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 )
 
-// Client wraps a NATS connection with JetStream support.
+// Client оборачивает NATS-соединение с поддержкой JetStream.
 type Client struct {
 	Conn      *nats.Conn
 	JetStream jetstream.JetStream
 }
 
-// NewClient connects to NATS and initializes JetStream.
+// NewClient подключается к NATS и инициализирует JetStream.
 func NewClient(ctx context.Context, url string) (*Client, error) {
 	nc, err := nats.Connect(url,
 		nats.Name("hub-backend"),
@@ -34,18 +34,18 @@ func NewClient(ctx context.Context, url string) (*Client, error) {
 	return &Client{Conn: nc, JetStream: js}, nil
 }
 
-// Close closes the NATS connection.
+// Close закрывает NATS-соединение.
 func (c *Client) Close() {
 	c.Conn.Close()
 }
 
-// Publish publishes an event to core NATS (ephemeral, fire-and-forget).
-// Use for: typing indicators, presence, real-time UI updates.
+// Publish публикует событие в core NATS (эфемерное, fire-and-forget).
+// Используется для: индикаторов набора, присутствия, обновлений UI в реальном времени.
 func (c *Client) Publish(subject string, data []byte) error {
 	return c.Conn.Publish(subject, data)
 }
 
-// Subscribe subscribes to a core NATS subject (ephemeral).
+// Subscribe подписывается на core NATS subject (эфемерная подписка).
 func (c *Client) Subscribe(subject string, handler nats.MsgHandler) (*nats.Subscription, error) {
 	return c.Conn.Subscribe(subject, handler)
 }

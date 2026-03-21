@@ -20,14 +20,14 @@ const (
 	downloadURLTTL = 1 * time.Hour
 )
 
-// UploadResult contains the result of generating an upload URL.
+// UploadResult содержит результат генерации presigned URL для загрузки файла.
 type UploadResult struct {
 	FileID    uuid.UUID `json:"fileId"`
 	UploadURL string    `json:"uploadUrl"`
 	S3Key     string    `json:"s3Key"`
 }
 
-// StorageService manages file uploads and downloads via S3-compatible storage (SeaweedFS).
+// StorageService управляет загрузкой и скачиванием файлов через S3-совместимое хранилище (SeaweedFS).
 type StorageService struct {
 	s3Client      *s3.Client
 	presignClient *s3.PresignClient
@@ -35,7 +35,7 @@ type StorageService struct {
 	bucket        string
 }
 
-// NewStorageService creates a storage service configured for SeaweedFS (S3-compatible).
+// NewStorageService создаёт сервис хранилища, настроенный для SeaweedFS (S3-совместимый).
 func NewStorageService(cfg config.S3Config, entClient *ent.Client) (*StorageService, error) {
 	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
 		awsconfig.WithRegion(cfg.Region),
@@ -61,8 +61,8 @@ func NewStorageService(cfg config.S3Config, entClient *ent.Client) (*StorageServ
 	}, nil
 }
 
-// GenerateUploadURL creates a presigned PUT URL for file upload.
-// It creates a FileMetadata record with status=pending and returns the upload URL.
+// GenerateUploadURL создаёт presigned PUT URL для загрузки файла.
+// Создаёт запись FileMetadata со статусом pending и возвращает URL загрузки.
 func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, contentType string, uploaderID, projectID uuid.UUID) (*UploadResult, error) {
 	fileID := uuid.New()
 	s3Key := fmt.Sprintf("%s/files/%s/%s", projectID.String(), fileID.String(), filename)
@@ -102,7 +102,7 @@ func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, conten
 	}, nil
 }
 
-// ConfirmUpload marks a file as confirmed and sets entity type and ID.
+// ConfirmUpload помечает файл как подтверждённый и устанавливает тип и ID сущности.
 func (s *StorageService) ConfirmUpload(ctx context.Context, fileID uuid.UUID, entityType, entityID string) error {
 	return s.entClient.FileMetadata.UpdateOneID(fileID).
 		SetStatus(filemetadata.StatusConfirmed).
@@ -111,7 +111,7 @@ func (s *StorageService) ConfirmUpload(ctx context.Context, fileID uuid.UUID, en
 		Exec(ctx)
 }
 
-// GenerateDownloadURL creates a presigned GET URL for file download.
+// GenerateDownloadURL создаёт presigned GET URL для скачивания файла.
 func (s *StorageService) GenerateDownloadURL(ctx context.Context, fileID uuid.UUID) (string, error) {
 	fileMeta, err := s.entClient.FileMetadata.Query().
 		Where(filemetadata.IDEQ(fileID), filemetadata.DeletedAtIsNil()).
@@ -131,7 +131,7 @@ func (s *StorageService) GenerateDownloadURL(ctx context.Context, fileID uuid.UU
 	return presignResult.URL, nil
 }
 
-// NewOrphanCleanupFromService создаёт OrphanCleanupService, используя S3-клиент и bucket из StorageService.
+// NewOrphanCleanupFromService создаёт OrphanCleanupService из S3-клиента и bucket текущего StorageService.
 func (s *StorageService) NewOrphanCleanupFromService() *OrphanCleanupService {
 	return NewOrphanCleanupService(s.entClient, s.s3Client, s.bucket)
 }

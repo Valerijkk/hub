@@ -5,8 +5,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// RequestID generates a unique X-Request-ID for each request and stores it in c.Locals.
-// Uses uuid.NewString() which returns a copy-safe string (Pitfall 1: Fiber RequestCtx reuse).
+// RequestID генерирует уникальный X-Request-ID для каждого запроса и сохраняет в c.Locals.
+// Использует uuid.NewString(), возвращающий copy-safe строку (Pitfall 1: переиспользование Fiber RequestCtx).
 func RequestID() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		requestID := c.Get("X-Request-ID")

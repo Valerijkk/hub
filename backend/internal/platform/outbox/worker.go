@@ -10,20 +10,20 @@ import (
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
-// Worker polls the outbox table for pending events and publishes them to NATS.
-// Events that fail after 10 attempts are marked as failed.
+// Worker опрашивает outbox-таблицу на наличие ожидающих событий и публикует их в NATS.
+// События, не обработанные после 10 попыток, помечаются как failed.
 type Worker struct {
 	client *ent.Client
 	nats   *natsclient.Client
 }
 
-// NewWorker creates a new outbox worker.
+// NewWorker создаёт новый outbox-воркер.
 func NewWorker(client *ent.Client, nats *natsclient.Client) *Worker {
 	return &Worker{client: client, nats: nats}
 }
 
-// ProcessLoop polls the outbox table every 100ms and publishes pending events to NATS.
-// It runs until the context is cancelled.
+// ProcessLoop опрашивает outbox-таблицу каждые 100мс и публикует ожидающие события в NATS.
+// Работает до отмены контекста.
 func (w *Worker) ProcessLoop(ctx context.Context) {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()

@@ -8,9 +8,9 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/cors"
 )
 
-// CORS returns a configured CORS middleware.
-// In production, set CORS_ORIGINS env var (comma-separated).
-// Defaults to localhost dev server.
+// CORS возвращает настроенный middleware для обработки CORS-заголовков.
+// В продакшене задаётся через переменную окружения CORS_ORIGINS (через запятую).
+// По умолчанию разрешает localhost dev-сервер.
 func CORS() fiber.Handler {
 	origins := []string{"http://localhost:5173", "http://localhost:8080"}
 	if env := os.Getenv("CORS_ORIGINS"); env != "" {

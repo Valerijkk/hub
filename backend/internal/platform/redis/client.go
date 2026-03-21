@@ -7,7 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// NewClient creates a Redis client from a URL string (e.g. "redis://localhost:6379/0").
+// NewClient создаёт Redis-клиент из URL-строки (например, "redis://localhost:6379/0").
 func NewClient(ctx context.Context, url string) (*redis.Client, error) {
 	opts, err := redis.ParseURL(url)
 	if err != nil {

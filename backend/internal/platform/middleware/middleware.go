@@ -8,8 +8,8 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
-// ErrorHandler is the centralized error handler for Fiber.
-// It checks error types (AppError, fiber.Error, generic) and returns JSON with code, message, request_id.
+// ErrorHandler — централизованный обработчик ошибок Fiber.
+// Проверяет тип ошибки (AppError, fiber.Error, generic) и возвращает JSON с кодом, сообщением и request_id.
 func ErrorHandler(c fiber.Ctx, err error) error {
 	requestID, _ := c.Locals("requestID").(string)
 

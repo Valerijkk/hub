@@ -309,7 +309,7 @@ func (s *TMSService) GetTestCaseLinks(ctx context.Context, caseKey string) ([]Is
 
 // CreateBugFromFailedResult создаёт баг из упавшего результата теста.
 func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, userID uuid.UUID, resultID uuid.UUID, req CreateBugRequest) (*IssueBriefResponse, error) {
-	// Get result with test case
+	// Получаем результат с привязанным тест-кейсом
 	result, err := s.repo.GetTestResult(ctx, resultID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -318,7 +318,7 @@ func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, u
 		return nil, apperrors.NewInternal("ошибка получения результата")
 	}
 
-	// Determine test case
+	// Определяем тест-кейс для заголовка бага
 	var testCaseID uuid.UUID
 	title := req.Title
 	if result.Edges.TestCase != nil {

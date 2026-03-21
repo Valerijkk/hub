@@ -7,17 +7,17 @@ import (
 	"github.com/valerii/hub/backend/ent"
 )
 
-// Publisher writes events to the outbox table within an existing database transaction.
-// This ensures events are published atomically with the primary data changes.
+// Publisher записывает события в outbox-таблицу внутри существующей транзакции.
+// Гарантирует атомарность публикации событий с основными изменениями данных.
 type Publisher struct{}
 
-// NewPublisher creates a new outbox publisher.
+// NewPublisher создаёт новый outbox-публикатор.
 func NewPublisher() *Publisher {
 	return &Publisher{}
 }
 
-// PublishInTx records an event in the outbox table inside an existing Ent transaction.
-// The event will be picked up by the Worker and published to NATS.
+// PublishInTx записывает событие в outbox-таблицу внутри существующей Ent-транзакции.
+// Событие будет подхвачено Worker и опубликовано в NATS.
 func (p *Publisher) PublishInTx(ctx context.Context, tx *ent.Tx, eventType string, payload any) error {
 	data, err := json.Marshal(payload)
 	if err != nil {

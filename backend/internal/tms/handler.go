@@ -6,18 +6,18 @@ import (
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
-// Handler provides HTTP handlers for the TMS module.
+// Handler предоставляет HTTP-обработчики для модуля TMS (управление тестированием).
 type Handler struct {
 	service *TMSService
 }
 
-// NewHandler creates a new TMS handler.
+// NewHandler создаёт новый обработчик TMS.
 func NewHandler(service *TMSService) *Handler {
 	return &Handler{service: service}
 }
 
-// RegisterRoutes registers all TMS routes under /api/projects/:projectId/tms.
-// authMw is the authentication middleware, rbacSvc is used for permission checks.
+// RegisterRoutes регистрирует все маршруты TMS под /api/projects/:projectId/tms.
+// authMw — middleware аутентификации, rbacSvc используется для проверки прав доступа.
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
 	tms := api.Group("/projects/:projectId/tms", authMw)
 

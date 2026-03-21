@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-// NewMongoClient creates a MongoDB client and returns the specified database.
+// NewMongoClient создаёт клиент MongoDB и возвращает указанную базу данных.
 func NewMongoClient(ctx context.Context, url, dbName string) (*mongo.Database, error) {
 	client, err := mongo.Connect(options.Client().ApplyURI(url))
 	if err != nil {

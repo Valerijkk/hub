@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// UserIDFromCtx extracts the authenticated user ID from the Fiber context.
-// It reads c.Locals("userID") and parses it as a UUID.
+// UserIDFromCtx извлекает ID аутентифицированного пользователя из контекста Fiber.
+// Читает c.Locals("userID") и парсит как UUID.
 func UserIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
 	idStr, ok := c.Locals("userID").(string)
 	if !ok || idStr == "" {
@@ -20,12 +20,12 @@ func UserIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
 	return id, nil
 }
 
-// ParseProjectID extracts and validates the projectId path parameter.
+// ParseProjectID извлекает и валидирует параметр пути projectId.
 func ParseProjectID(c fiber.Ctx) (uuid.UUID, error) {
 	return ParseUUIDParam(c, "projectId")
 }
 
-// ParseUUIDParam extracts and validates a UUID path parameter by name.
+// ParseUUIDParam извлекает и валидирует UUID-параметр пути по имени.
 func ParseUUIDParam(c fiber.Ctx, name string) (uuid.UUID, error) {
 	idStr := utils.CopyString(c.Params(name))
 	if idStr == "" {
