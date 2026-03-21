@@ -24,6 +24,10 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	projects.Post("/import/issues", h.ImportIssues)
 	projects.Get("/export/issues", h.ExportIssues)
 	projects.Get("/export/full", h.ExportProjectZIP)
+
+	// PDF-экспорт прогонов и спринтов
+	api.Get("/projects/:projectId/test-runs/:runId/export/pdf", authMw, h.ExportRunPDF)
+	api.Get("/projects/:projectId/sprints/:sprintId/export/pdf", authMw, h.ExportSprintPDF)
 }
 
 // ImportIssues обрабатывает POST /api/projects/:projectId/import/issues (multipart).
@@ -109,6 +113,52 @@ func (h *Handler) ExportProjectZIP(c fiber.Ctx) error {
 
 	c.Set("Content-Type", "application/zip")
 	c.Set("Content-Disposition", "attachment; filename=project-export.zip")
+	return c.Send(data)
+}
+
+// ExportRunPDF обрабатывает GET /api/projects/:projectId/test-runs/:runId/export/pdf.
+func (h *Handler) ExportRunPDF(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	runIDStr := utils.CopyString(c.Params("runId"))
+	runID, err := uuid.Parse(runIDStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный run ID")
+	}
+
+	data, err := h.svc.ExportRunPDF(c.Context(), projectID, runID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	c.Set("Content-Type", "application/pdf")
+	c.Set("Content-Disposition", "attachment; filename=test-run-report.pdf")
+	return c.Send(data)
+}
+
+// ExportSprintPDF обрабатывает GET /api/projects/:projectId/sprints/:sprintId/export/pdf.
+func (h *Handler) ExportSprintPDF(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	sprintIDStr := utils.CopyString(c.Params("sprintId"))
+	sprintID, err := uuid.Parse(sprintIDStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный sprint ID")
+	}
+
+	data, err := h.svc.ExportSprintPDF(c.Context(), projectID, sprintID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	c.Set("Content-Type", "application/pdf")
+	c.Set("Content-Disposition", "attachment; filename=sprint-report.pdf")
 	return c.Send(data)
 }
 
