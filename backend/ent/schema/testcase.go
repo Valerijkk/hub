@@ -72,6 +72,10 @@ func (TestCase) Fields() []ent.Field {
 		field.Int("version").
 			Default(1).
 			Comment("Версия тест-кейса"),
+		field.Enum("sync_status").
+			Values("synced", "outdated", "unlinked").
+			Default("unlinked").
+			Comment("Статус синхронизации с GitHub: synced/outdated/unlinked"),
 		field.Time("deleted_at").
 			Optional().
 			Nillable().

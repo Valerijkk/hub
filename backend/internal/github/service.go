@@ -14,6 +14,8 @@ import (
 
 	gh "github.com/google/go-github/v68/github"
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/testcase"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
@@ -25,13 +27,19 @@ var issueKeyRegex = regexp.MustCompile(`\b([A-Z]+-\d+)\b`)
 // Обрабатывает webhook-события, автоматически связывает PR/коммиты с задачами,
 // управляет интеграциями и создаёт ветки через GitHub API.
 type GitHubService struct {
-	repo Repository
-	nats *natsclient.Client
+	repo   Repository
+	nats   *natsclient.Client
+	entDB  *ent.Client
 }
 
 // NewGitHubService создаёт новый сервис GitHub-интеграции.
-func NewGitHubService(repo Repository, nats *natsclient.Client) *GitHubService {
-	return &GitHubService{repo: repo, nats: nats}
+// entDB используется для TMS sync_status обновлений при push-событиях.
+func NewGitHubService(repo Repository, nats *natsclient.Client, entDB ...*ent.Client) *GitHubService {
+	svc := &GitHubService{repo: repo, nats: nats}
+	if len(entDB) > 0 {
+		svc.entDB = entDB[0]
+	}
+	return svc
 }
 
 // ---------------------------------------------------------------------------
@@ -115,6 +123,9 @@ func (s *GitHubService) handlePushWebhook(ctx context.Context, payload []byte) e
 		return nil
 	}
 
+	// Сбор изменённых файлов для TMS sync_status
+	var changedFiles []string
+
 	for _, commit := range event.Commits {
 		message := commit.GetMessage()
 		keys := issueKeyRegex.FindAllString(message, -1)
@@ -138,7 +149,14 @@ func (s *GitHubService) handlePushWebhook(ctx context.Context, payload []byte) e
 					"commit", commit.GetSHA(), "issue", key, "error", err)
 			}
 		}
+
+		// Собираем изменённые файлы для проверки TMS sync_status
+		changedFiles = append(changedFiles, commit.Added...)
+		changedFiles = append(changedFiles, commit.Modified...)
 	}
+
+	// Обновляем sync_status тест-кейсов, чьи файлы изменились
+	s.markTestCasesOutdated(ctx, integration, changedFiles)
 
 	return nil
 }
@@ -389,6 +407,63 @@ func slugify(s string) string {
 	}
 	out := result.String()
 	return strings.TrimRight(out, "-")
+}
+
+// markTestCasesOutdated проверяет изменённые файлы и помечает sync_status = "outdated"
+// для тест-кейсов, чьи class_name или full_name совпадают с путём файла.
+func (s *GitHubService) markTestCasesOutdated(ctx context.Context, integration *ent.GitHubIntegration, changedFiles []string) {
+	if s.entDB == nil || len(changedFiles) == 0 {
+		return
+	}
+
+	// Ищем тест-кейсы с заполненным class_name или full_name и статусом synced
+	cases, err := s.entDB.TestCase.Query().
+		Where(
+			testcase.Or(
+				testcase.ClassNameNotNil(),
+				testcase.FullNameNotNil(),
+			),
+			testcase.SyncStatusEQ(testcase.SyncStatusSynced),
+		).
+		All(ctx)
+	if err != nil {
+		slog.Error("ошибка получения тест-кейсов для sync_status", "error", err)
+		return
+	}
+
+	for _, tc := range cases {
+		for _, file := range changedFiles {
+			if matchTestCaseFile(tc, file) {
+				if err := s.entDB.TestCase.UpdateOneID(tc.ID).
+					SetSyncStatus(testcase.SyncStatusOutdated).
+					Exec(ctx); err != nil {
+					slog.Error("ошибка обновления sync_status", "case_key", tc.CaseKey, "error", err)
+				}
+				// Публикуем уведомление
+				s.publishEvent("tms.test_case.outdated", map[string]interface{}{
+					"case_key":  tc.CaseKey,
+					"file_path": file,
+				})
+				break
+			}
+		}
+	}
+}
+
+// matchTestCaseFile проверяет, соответствует ли изменённый файл тест-кейсу
+// по class_name или full_name (с учётом паттернов Java/Python-пакетов).
+func matchTestCaseFile(tc *ent.TestCase, filePath string) bool {
+	// Преобразуем путь файла: src/test/java/com/example/MyTest.java -> com.example.MyTest
+	normalized := strings.ReplaceAll(filePath, "/", ".")
+	normalized = strings.ReplaceAll(normalized, "\\", ".")
+
+	if tc.ClassName != "" && strings.Contains(normalized, tc.ClassName) {
+		return true
+	}
+	if tc.FullName != "" && strings.Contains(normalized, tc.FullName) {
+		return true
+	}
+	return false
 }
 
 // truncate обрезает строку до maxLen символов.
