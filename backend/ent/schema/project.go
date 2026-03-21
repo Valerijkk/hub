@@ -72,6 +72,7 @@ func (Project) Edges() []ent.Edge {
 		edge.To("test_runs", TestRun.Type),
 		edge.To("test_suites", TestSuite.Type),
 		edge.To("components", Component.Type),
+		edge.To("saved_filters", SavedFilter.Type),
 	}
 }
 

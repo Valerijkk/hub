@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	dbsql "database/sql"
 	"log/slog"
 
 	"entgo.io/ent/dialect/sql"
@@ -27,4 +28,10 @@ func NewPostgresClient(ctx context.Context, url string) (*ent.Client, error) {
 
 	slog.Info("connected to PostgreSQL")
 	return client, nil
+}
+
+// OpenRawDB открывает прямое подключение к PostgreSQL для raw SQL-запросов.
+// Используется модулем поиска для tsvector-запросов, которые не поддерживает Ent ORM.
+func OpenRawDB(url string) (*dbsql.DB, error) {
+	return dbsql.Open("postgres", url)
 }
