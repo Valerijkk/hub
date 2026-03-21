@@ -334,6 +334,14 @@ func main() {
 	dashHandler := dashboardmod.NewHandler(dashSvc)
 	dashHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
+	// Автопровизия TMS: создаём папку "Общие тесты" при создании проекта
+	tmsProv := tmsmod.NewTMSProjectProvisioner(tmsRepo)
+	projectSvc.SetTMSProvisioner(tmsProv)
+
+	// Автопровизия дашборда: применяем шаблон "dev" при создании проекта
+	dashProv := dashboardmod.NewDashboardProjectProvisioner(dashSvc)
+	projectSvc.SetDashboardProvisioner(dashProv)
+
 	// GitHub integration routes (webhook, PR/commit linking, branch creation, link preview)
 	githubRepo := githubmod.NewEntRepository(db)
 	githubSvc := githubmod.NewGitHubService(githubRepo, nc)

@@ -23,6 +23,8 @@ type ProjectService struct {
 	db           *ent.Client
 	nats         *natsclient.Client
 	trackerProv  TrackerProvisioner
+	tmsProv      TMSProvisioner
+	dashProv     DashboardProvisioner
 }
 
 // NewProjectService создаёт новый сервис проектов.
@@ -63,8 +65,8 @@ func (s *ProjectService) CreateProject(ctx context.Context, userID uuid.UUID, na
 		return nil, apperrors.NewInternal("failed to create project")
 	}
 
-	// Автопровизия: создаём workflow по умолчанию и доску "Main Board"
-	s.provisionProject(ctx, p.ID)
+	// Автопровизия: создаём workflow, доску, тест-сьют и дашборд
+	s.provisionProject(ctx, p.ID, userID)
 
 	count, err := s.repo.MemberCount(ctx, p.ID)
 	if err != nil {
