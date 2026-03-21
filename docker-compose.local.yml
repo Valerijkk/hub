@@ -116,8 +116,8 @@ services:
       RESEND_FROM_EMAIL: "noreply@hub.local"
       TELEGRAM_BOT_TOKEN: ""
       LIVEKIT_URL: "http://livekit:7880"
-      LIVEKIT_API_KEY: "devkey"
-      LIVEKIT_API_SECRET: "devsecret"
+      LIVEKIT_API_KEY: "devkey-hub-local-development-2026"
+      LIVEKIT_API_SECRET: "devsecret-hub-local-minimum-32-chars-ok"
     depends_on:
       postgres:
         condition: service_healthy

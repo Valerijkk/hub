@@ -5,8 +5,9 @@ rtc:
   port_range_end: 50100
   use_external_ip: false
 keys:
-  devkey: devsecret
+  devkey-hub-local-development-2026: devsecret-hub-local-minimum-32-chars-ok
 webhook:
+  api_key: devkey-hub-local-development-2026
   urls:
     - "http://backend:3000/api/calls/webhook"
 logging:
