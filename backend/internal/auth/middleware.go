@@ -5,6 +5,8 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
+	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent/user"
 )
 
 // RequireAuth returns Fiber middleware that validates JWT access tokens and
@@ -29,6 +31,15 @@ func RequireAuth(svc *AuthService) fiber.Handler {
 		claims, err := svc.ParseAccessToken(tokenStr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid or expired token")
+		}
+
+		// Проверяем, не деактивирован ли пользователь
+		uid, parseErr := uuid.Parse(claims.UserID)
+		if parseErr == nil {
+			u, uErr := svc.db.User.Get(c.Context(), uid)
+			if uErr == nil && u.Status == user.StatusDeactivated {
+				return fiber.NewError(fiber.StatusForbidden, "user account is deactivated")
+			}
 		}
 
 		c.Locals("userID", claims.UserID)

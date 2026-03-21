@@ -113,7 +113,9 @@ func (s *StorageService) ConfirmUpload(ctx context.Context, fileID uuid.UUID, en
 
 // GenerateDownloadURL creates a presigned GET URL for file download.
 func (s *StorageService) GenerateDownloadURL(ctx context.Context, fileID uuid.UUID) (string, error) {
-	fileMeta, err := s.entClient.FileMetadata.Get(ctx, fileID)
+	fileMeta, err := s.entClient.FileMetadata.Query().
+		Where(filemetadata.IDEQ(fileID), filemetadata.DeletedAtIsNil()).
+		Only(ctx)
 	if err != nil {
 		return "", fmt.Errorf("file not found: %w", err)
 	}
@@ -129,9 +131,10 @@ func (s *StorageService) GenerateDownloadURL(ctx context.Context, fileID uuid.UU
 	return presignResult.URL, nil
 }
 
-// DeleteFile performs a soft delete by setting status to deleted.
+// DeleteFile выполняет мягкое удаление файла (устанавливает статус deleted и deleted_at).
 func (s *StorageService) DeleteFile(ctx context.Context, fileID uuid.UUID) error {
 	return s.entClient.FileMetadata.UpdateOneID(fileID).
 		SetStatus(filemetadata.StatusDeleted).
+		SetDeletedAt(time.Now()).
 		Exec(ctx)
 }
