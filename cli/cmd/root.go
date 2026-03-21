@@ -1,4 +1,15 @@
 // Package cmd содержит все команды hub-cli.
+//
+// Доступные команды:
+//   - auth          — сохранить API-ключ для авторизации
+//   - push-results  — загрузить результаты тестов (Allure) в Hub TMS
+//   - create-bug    — создать баг-репорт в трекере Hub
+//   - update-task   — обновить статус задачи в трекере Hub
+//
+// Глобальные флаги:
+//   - --api-url  — URL сервера Hub API (по умолчанию http://localhost:3000)
+//   - --api-key  — API-ключ для авторизации (или env HUB_API_KEY)
+//   - --json     — вывод в JSON-формате
 package cmd
 
 import (
@@ -14,23 +25,33 @@ import (
 )
 
 var (
+	// apiURL — базовый URL сервера Hub API.
 	apiURL string
+	// apiKey — API-ключ для авторизации запросов.
 	apiKey string
+	// jsonOutput — выводить результат в JSON-формате.
 	jsonOutput bool
 )
 
 // rootCmd — корневая команда hub-cli.
+// Содержит описание всех доступных подкоманд и глобальные флаги.
 var rootCmd = &cobra.Command{
 	Use:   "hub-cli",
 	Short: "Hub CLI — утилита для интеграции Hub с CI/CD",
 	Long: `hub-cli позволяет из CI/CD пайплайнов:
   - push-results — загрузить результаты тестов (Allure)
   - create-bug   — создать баг-репорт
-  - update-task   — обновить статус задачи`,
+  - update-task   — обновить статус задачи
+
+Авторизация:
+  hub-cli auth --token <API_KEY>
+  # или через переменную окружения:
+  export HUB_API_KEY=<API_KEY>`,
 }
 
 // Execute запускает корневую команду.
-// Перед выполнением загружает API-ключ из конфига, если не задан через флаг/env.
+// Перед выполнением загружает API-ключ из конфига ~/.hub/config.json,
+// если не задан через флаг --api-key или переменную окружения HUB_API_KEY.
 func Execute() error {
 	// Подгружаем конфиг до выполнения команды.
 	cobra.OnInitialize(func() {
@@ -62,9 +83,11 @@ func getEnv(key, defaultVal string) string {
 }
 
 // apiRequest выполняет HTTP-запрос к Hub API с авторизацией через X-API-Key.
+// Автоматически сериализует body в JSON и устанавливает необходимые заголовки.
+// Возвращает тело ответа, HTTP-статус и ошибку.
 func apiRequest(method, path string, body interface{}) ([]byte, int, error) {
 	if apiKey == "" {
-		return nil, 0, fmt.Errorf("API-ключ не задан (--api-key или HUB_API_KEY)")
+		return nil, 0, fmt.Errorf("API-ключ не задан (--api-key, HUB_API_KEY или hub-cli auth --token)")
 	}
 
 	var reqBody io.Reader
@@ -100,7 +123,8 @@ func apiRequest(method, path string, body interface{}) ([]byte, int, error) {
 	return respBody, resp.StatusCode, nil
 }
 
-// printResult выводит результат в зависимости от формата (text/JSON).
+// printResult выводит результат в зависимости от формата.
+// При --json выводит структурированный JSON, иначе — человекочитаемый текст.
 func printResult(message string, data interface{}) {
 	if jsonOutput {
 		out, _ := json.MarshalIndent(data, "", "  ")
@@ -110,7 +134,7 @@ func printResult(message string, data interface{}) {
 	}
 }
 
-// printError выводит ошибку.
+// printError выводит сообщение об ошибке в stderr.
 func printError(msg string) {
 	fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
 }
