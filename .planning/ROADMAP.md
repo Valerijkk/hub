@@ -13,7 +13,7 @@ Hub предоставляет единую платформу для коман
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Foundation & Infrastructure** - Аутентификация, проекты, RBAC, инфраструктура реального времени, хранилище, среда разработки
-- [ ] **Phase 2: Task Tracker** - CRUD задач, Kanban-доски, рабочие процессы, комментарии, лог активности, учёт времени
+- [x] **Phase 2: Task Tracker** - CRUD задач, Kanban-доски, рабочие процессы, комментарии, лог активности, учёт времени (completed 2026-03-21)
 - [ ] **Phase 3: Messenger** - Личные сообщения, каналы, треды, реакции, голосовые сообщения, присутствие, поиск
 - [ ] **Phase 4: TMS & Allure** - Тест-кейсы, тестовые прогоны, загрузка Allure-отчётов, связь с задачами, отчётность, импорт/экспорт
 - [ ] **Phase 5: Voice Calls** - Аудиозвонки, демонстрация экрана, управление звонками, эфемерный чат
@@ -62,7 +62,7 @@ Plans:
 - [x] 02-02-PLAN.md — Issue CRUD backend (handler/service/repository), workflow engine, тесты
 - [x] 02-03-PLAN.md — Frontend API client, Zustand stores, Plate editor wrapper
 - [x] 02-04-PLAN.md — Kanban-доска (drag-and-drop), списки задач, детальный вид, комментарии, настройки
-- [ ] 02-05-PLAN.md — Документация фазы 2 (бизнес, тестовая, техническая) на русском
+- [x] 02-05-PLAN.md — Документация фазы 2 (бизнес, тестовая, техническая) на русском
 
 ### Phase 3: Messenger
 **Goal**: Пользователи могут общаться в реальном времени через личные сообщения, каналы и треды с форматированным текстом, реакциями, голосовыми сообщениями и индикаторами присутствия
@@ -166,7 +166,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Infrastructure | 7/9 | Gap closure | - |
-| 2. Task Tracker | 0/5 | Not started | - |
+| 2. Task Tracker | 5/5 | Complete   | 2026-03-21 |
 | 3. Messenger | 0/5 | Not started | - |
 | 4. TMS & Allure | 0/5 | Not started | - |
 | 5. Voice Calls | 0/4 | Not started | - |
