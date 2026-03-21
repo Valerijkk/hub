@@ -43,12 +43,13 @@ function extractText(value: Value): string {
 
 /**
  * MessageComposer -- редактор сообщений на базе Plate.
+ * Полноширинный ввод с кнопками, фиксирован внизу чата.
  * Поддерживает rich text, отправку по Enter, голосовые сообщения.
  */
 export function MessageComposer({
   channelId,
   threadId,
-  placeholder = "Напишите сообщение...",
+  placeholder = "Написать сообщение...",
 }: MessageComposerProps) {
   const [isSending, setIsSending] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
@@ -100,7 +101,19 @@ export function MessageComposer({
         />
       ) : (
         <div className="flex items-end gap-2">
-          <div className="flex-1 rounded-md border bg-background">
+          {/* Кнопка вложения */}
+          <button
+            type="button"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            title="Прикрепить файл"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            </svg>
+          </button>
+
+          {/* Поле ввода — полная ширина, скруглённое */}
+          <div className="flex-1 rounded-xl border bg-background shadow-sm transition-shadow focus-within:shadow-md focus-within:border-ring/50">
             <Plate
               editor={editor}
               onValueChange={({ value }) => {
@@ -110,7 +123,8 @@ export function MessageComposer({
               <PlateContent
                 placeholder={placeholder}
                 className={cn(
-                  "min-h-[40px] max-h-[200px] overflow-y-auto p-2 text-sm focus:outline-none",
+                  "min-h-[44px] max-h-[200px] overflow-y-auto px-4 py-3 text-sm focus:outline-none",
+                  "[&_[data-slate-placeholder]]:!text-muted-foreground/50",
                 )}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -123,27 +137,26 @@ export function MessageComposer({
           </div>
 
           {/* Кнопка голосового сообщения */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0"
+          <button
+            type="button"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             title="Голосовое сообщение"
             onClick={() => setShowVoice(true)}
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
-          </Button>
+          </button>
 
-          {/* Кнопка отправки */}
+          {/* Кнопка отправки — градиент */}
           <Button
             size="icon"
-            className="h-9 w-9 shrink-0"
+            className="h-10 w-10 shrink-0 rounded-xl gradient-messenger text-white shadow-sm hover:opacity-90"
             onClick={() => void handleSend()}
             disabled={isSending}
             title="Отправить"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </Button>

@@ -11,6 +11,7 @@ import { MessageComposer } from "./message-composer";
 import { ThreadPanel } from "./thread-panel";
 import { SearchDialog } from "./search-dialog";
 import { PinnedMessages } from "./pinned-messages";
+import { CallButton } from "@/components/calls/CallButton";
 import { cn } from "@/lib/utils";
 
 /** Пропсы компонента ChatView. */
@@ -88,18 +89,37 @@ export function ChatView({ channelId }: ChatViewProps) {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Заголовок канала */}
-      <div className="flex h-12 shrink-0 items-center justify-between border-b px-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold">
-            {channel?.name ?? "Загрузка..."}
-          </h2>
+      <div className="flex h-14 shrink-0 items-center justify-between border-b bg-card/50 px-5">
+        <div className="flex items-center gap-3">
+          {/* Иконка канала */}
           {channel && (
-            <span className="text-xs text-muted-foreground">
-              {channel.members_count} участников
-            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              {channel.channel_type === "public" ? (
+                <span className="text-sm font-bold">#</span>
+              ) : channel.channel_type === "dm" ? (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              )}
+            </div>
           )}
+          <div>
+            <h2 className="text-sm font-semibold leading-tight">
+              {channel?.name ?? "Загрузка..."}
+            </h2>
+            {channel && (
+              <span className="text-[11px] text-muted-foreground">
+                {channel.members_count} участников
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1">
+          <CallButton channelId={channelId} />
           <SearchDialog channelId={channelId} />
           <PinnedMessages channelId={channelId} />
         </div>
@@ -109,16 +129,34 @@ export function ChatView({ channelId }: ChatViewProps) {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden">
           {isLoading ? (
-            <div className="flex flex-1 items-center justify-center">
-              <span className="text-sm text-muted-foreground">
-                Загрузка сообщений...
-              </span>
+            /* Скелетон загрузки сообщений */
+            <div className="flex flex-1 flex-col justify-end p-4 space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="h-8 w-8 rounded-full animate-shimmer shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-3 w-24 rounded animate-shimmer" />
+                    <div className="h-4 w-3/4 rounded animate-shimmer" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : messages.length === 0 ? (
+            /* Пустое состояние — центрированное, приятное */
             <div className="flex flex-1 items-center justify-center">
-              <span className="text-sm text-muted-foreground">
-                Нет сообщений. Начните общение!
-              </span>
+              <div className="text-center max-w-xs">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+                  <svg className="h-8 w-8 text-muted-foreground/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-medium text-foreground mb-1">
+                  Нет сообщений
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Начните общение! Напишите первое сообщение в этом канале.
+                </p>
+              </div>
             </div>
           ) : (
             <div
@@ -154,9 +192,9 @@ export function ChatView({ channelId }: ChatViewProps) {
             </div>
           )}
 
-          {/* Composer */}
+          {/* Composer — фиксированный внизу */}
           {!channel?.is_read_only && (
-            <div className="shrink-0 border-t p-3">
+            <div className="shrink-0 border-t bg-card/30 px-4 py-3">
               <MessageComposer channelId={channelId} />
             </div>
           )}

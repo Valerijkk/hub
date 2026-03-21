@@ -4,17 +4,18 @@ import { ChannelList } from "@/components/messenger/channel-list";
 /**
  * Лейаут-маршрут мессенджера.
  * Sidebar с каналами слева, контент (Outlet) справа.
+ * Полная высота, без overflow-проблем.
  */
 function MessengerLayout() {
   return (
     <div className="flex h-full -m-6 overflow-hidden">
-      {/* Sidebar каналов */}
-      <div className="w-72 shrink-0 border-r bg-muted/30">
+      {/* Sidebar каналов — тёмный стиль, соответствует основному сайдбару */}
+      <div className="w-72 shrink-0 border-r border-border/50 bg-sidebar text-sidebar-foreground">
         <ChannelList />
       </div>
 
       {/* Основной контент */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
         <Outlet />
       </div>
     </div>

@@ -6,6 +6,7 @@ import { useMessengerStore } from "@/stores/messenger-store";
 
 /**
  * Маршрут для отображения конкретного канала мессенджера.
+ * CallButton интегрирован в заголовок ChatView для единообразия.
  */
 function ChannelPage() {
   const { channelId } = Route.useParams();
@@ -21,14 +22,8 @@ function ChannelPage() {
   }, [channelId, setActiveChannel, resetUnread]);
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Кнопка звонка в верхней панели канала */}
-      <div className="flex items-center justify-end border-b px-4 py-2">
-        <CallButton channelId={channelId} />
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <ChatView channelId={channelId} />
-      </div>
+    <div className="flex h-full flex-col overflow-hidden">
+      <ChatView channelId={channelId} />
     </div>
   );
 }

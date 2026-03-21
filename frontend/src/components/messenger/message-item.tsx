@@ -57,7 +57,7 @@ function RenderNode({ node }: { node: Record<string, unknown> }) {
     let el: React.ReactNode = node.text;
     if (node.bold) el = <strong>{el}</strong>;
     if (node.italic) el = <em>{el}</em>;
-    if (node.code) el = <code className="rounded bg-muted px-1 py-0.5 text-xs">{el}</code>;
+    if (node.code) el = <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">{el}</code>;
     if (node.strikethrough) el = <s>{el}</s>;
     return <>{el}</>;
   }
@@ -69,7 +69,7 @@ function RenderNode({ node }: { node: Record<string, unknown> }) {
 
   switch (node.type) {
     case "p":
-      return <p className="mb-1">{renderedChildren}</p>;
+      return <p className="mb-1 leading-relaxed">{renderedChildren}</p>;
     case "h1":
       return <h1 className="text-lg font-bold">{renderedChildren}</h1>;
     case "h2":
@@ -82,7 +82,7 @@ function RenderNode({ node }: { node: Record<string, unknown> }) {
       return <li>{renderedChildren}</li>;
     case "blockquote":
       return (
-        <blockquote className="border-l-2 border-muted-foreground/30 pl-3 italic">
+        <blockquote className="border-l-2 border-primary/30 pl-3 italic text-muted-foreground">
           {renderedChildren}
         </blockquote>
       );
@@ -90,7 +90,7 @@ function RenderNode({ node }: { node: Record<string, unknown> }) {
       return (
         <a
           href={node.url as string}
-          className="text-primary underline"
+          className="text-primary underline decoration-primary/30 hover:decoration-primary"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -99,7 +99,7 @@ function RenderNode({ node }: { node: Record<string, unknown> }) {
       );
     case "code_block":
       return (
-        <pre className="rounded bg-muted p-2 text-xs">
+        <pre className="rounded-lg bg-muted p-3 text-xs font-mono overflow-x-auto">
           <code>{renderedChildren}</code>
         </pre>
       );
@@ -136,7 +136,8 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
   return (
     <div
       className={cn(
-        "group relative flex gap-3 px-4 py-2 hover:bg-muted/50 transition-colors",
+        "group relative flex gap-3 px-5 py-2.5 transition-colors",
+        "hover:bg-muted/40",
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => {
@@ -145,9 +146,9 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
       }}
     >
       {/* Аватар */}
-      <Avatar className="h-8 w-8 shrink-0 mt-0.5">
+      <Avatar className="h-9 w-9 shrink-0 mt-0.5 shadow-sm">
         <AvatarImage src={message.sender_avatar_url} />
-        <AvatarFallback className="text-xs">
+        <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
           {message.sender_name?.charAt(0)?.toUpperCase() ?? "?"}
         </AvatarFallback>
       </Avatar>
@@ -155,23 +156,31 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
       {/* Контент */}
       <div className="flex-1 min-w-0">
         {/* Заголовок: имя + время */}
-        <div className="flex items-baseline gap-2">
-          <span className="text-sm font-medium">{message.sender_name}</span>
-          <span className="text-xs text-muted-foreground">
+        <div className="flex items-baseline gap-2 mb-0.5">
+          <span className="text-sm font-semibold">{message.sender_name}</span>
+          <span className="text-[11px] text-muted-foreground">
             {formatTime(message.created_at)}
           </span>
           {message.edited_at && (
-            <span className="text-xs text-muted-foreground">(изменено)</span>
+            <span className="text-[11px] text-muted-foreground italic">(изменено)</span>
           )}
           {message.is_pinned && (
-            <span className="text-xs text-yellow-500">закреплено</span>
+            <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-500">
+              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+              </svg>
+              закреплено
+            </span>
           )}
         </div>
 
         {/* Forwarded badge */}
         {message.forwarded_from_name && (
-          <div className="mb-1 text-xs text-muted-foreground italic">
-            Переслано от {message.forwarded_from_name}
+          <div className="mb-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+            <span className="italic">Переслано от {message.forwarded_from_name}</span>
           </div>
         )}
 
@@ -180,12 +189,12 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
           <RenderContent contentJson={message.content_json} />
         )}
         {!message.content_json && message.content_text && (
-          <p className="text-sm whitespace-pre-wrap">{message.content_text}</p>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content_text}</p>
         )}
 
         {/* Голосовое сообщение */}
         {message.voice_url && (
-          <div className="mt-1 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-2 rounded-lg bg-muted/50 p-2">
             <audio controls preload="metadata" className="h-8 max-w-xs">
               <source src={message.voice_url} type="audio/webm" />
             </audio>
@@ -199,19 +208,19 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
 
         {/* Вложения */}
         {message.attachments && message.attachments.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             {message.attachments.map((att) => (
               <a
                 key={att.id}
                 href={att.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 rounded bg-muted px-2 py-1 text-xs hover:bg-muted/80"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-xs hover:bg-muted transition-colors shadow-sm"
               >
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="h-3.5 w-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
-                {att.filename}
+                <span className="font-medium">{att.filename}</span>
               </a>
             ))}
           </div>
@@ -219,14 +228,14 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
 
         {/* Реакции */}
         {message.reactions.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
+          <div className="mt-2 flex flex-wrap gap-1">
             {message.reactions.map((reaction) => (
               <button
                 key={reaction.emoji}
                 type="button"
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors hover:bg-accent",
-                  reaction.has_reacted && "border-primary bg-primary/10",
+                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent",
+                  reaction.has_reacted && "border-primary/50 bg-primary/10 text-primary",
                 )}
                 onClick={() =>
                   void import("@/api/messenger").then((m) =>
@@ -235,7 +244,7 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
                 }
               >
                 <span>{reaction.emoji}</span>
-                <span>{reaction.count}</span>
+                <span className="font-medium">{reaction.count}</span>
               </button>
             ))}
           </div>
@@ -245,18 +254,21 @@ export function MessageItem({ message, channelId }: MessageItemProps) {
         {message.reply_count > 0 && (
           <button
             type="button"
-            className="mt-1 text-xs text-primary hover:underline"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
             onClick={() => openThread(message.id)}
           >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
             {message.reply_count}{" "}
             {message.reply_count === 1 ? "ответ" : "ответов"}
           </button>
         )}
       </div>
 
-      {/* Hover actions */}
+      {/* Hover actions — плавающая панель */}
       {showActions && (
-        <div className="absolute -top-3 right-4 flex items-center gap-0.5 rounded-md border bg-background p-0.5 shadow-sm">
+        <div className="absolute -top-3 right-4 flex items-center gap-0.5 rounded-lg border bg-card p-1 shadow-md animate-fade-in">
           <Button
             variant="ghost"
             size="icon"
