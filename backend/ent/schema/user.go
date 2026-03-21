@@ -66,6 +66,9 @@ func (User) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("Конец тихих часов в формате HH:MM"),
+		field.JSON("custom_fields", map[string]interface{}{}).
+			Optional().
+			Comment("Пользовательские кастомные поля профиля (JSONB)"),
 		field.Time("updated_at").
 			Default(time.Now).
 			UpdateDefault(time.Now),

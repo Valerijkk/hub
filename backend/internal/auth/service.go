@@ -438,6 +438,9 @@ func (s *AuthService) UpdateProfile(ctx context.Context, userID uuid.UUID, req U
 	if req.Birthday != nil {
 		update.SetBirthday(*req.Birthday)
 	}
+	if req.CustomFields != nil {
+		update.SetCustomFields(req.CustomFields)
+	}
 
 	return update.Save(ctx)
 }
@@ -514,6 +517,7 @@ func UserToResponse(u *ent.User) *UserResponse {
 		Birthday:            u.Birthday,
 		SystemRole:          string(u.SystemRole),
 		OnboardingCompleted: u.OnboardingCompleted,
+		CustomFields:        u.CustomFields,
 	}
 	if u.TelegramID != nil {
 		resp.TelegramID = *u.TelegramID
