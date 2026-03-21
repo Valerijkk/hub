@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -23,6 +24,8 @@ import (
 	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/schema"
 	"github.com/valerii/hub/backend/ent/testcase"
+	"github.com/valerii/hub/backend/ent/testresult"
+	"github.com/valerii/hub/backend/ent/testrun"
 	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	"github.com/valerii/hub/backend/ent/workflowtransition"
@@ -287,6 +290,54 @@ var demoChannels = []demoChannel{
 	},
 }
 
+// --- Демо тестовые прогоны ---
+
+// demoTestRun описывает демо-прогон тестов для seed.
+type demoTestRun struct {
+	Title       string
+	Status      testrun.Status
+	RunType     testrun.RunType
+	TotalCount  int
+	PassedCount int
+	FailedCount int
+	SkippedCount int
+	BrokenCount int
+	UnknownCount int
+	// Results — результаты для каждого тест-кейса (по индексу из demoTestCases).
+	Results []demoTestResult
+}
+
+// demoTestResult описывает результат теста в демо-прогоне.
+type demoTestResult struct {
+	CaseIdx    int                 // индекс тест-кейса в demoTestCases
+	Status     testresult.Status
+	DurationMs int64
+	Comment    string
+}
+
+var demoTestRuns = []demoTestRun{
+	{
+		Title: "Регрессия v0.1.0", Status: testrun.StatusCompleted, RunType: testrun.RunTypeManual,
+		TotalCount: 5, PassedCount: 3, FailedCount: 1, SkippedCount: 1,
+		Results: []demoTestResult{
+			{CaseIdx: 0, Status: testresult.StatusPassed, DurationMs: 12000, Comment: "Вход выполнен успешно"},
+			{CaseIdx: 1, Status: testresult.StatusPassed, DurationMs: 8000, Comment: "Telegram верификация пройдена"},
+			{CaseIdx: 2, Status: testresult.StatusPassed, DurationMs: 15000, Comment: "Проект создан корректно"},
+			{CaseIdx: 3, Status: testresult.StatusFailed, DurationMs: 23000, Comment: "Карточка не переместилась — drag event не срабатывает"},
+			{CaseIdx: 4, Status: testresult.StatusSkipped, DurationMs: 0, Comment: "Пропущено — SeaweedFS не запущен"},
+		},
+	},
+	{
+		Title: "Smoke тест Sprint 1", Status: testrun.StatusInProgress, RunType: testrun.RunTypeManual,
+		TotalCount: 3, PassedCount: 1, FailedCount: 0, SkippedCount: 0, UnknownCount: 2,
+		Results: []demoTestResult{
+			{CaseIdx: 0, Status: testresult.StatusPassed, DurationMs: 9500, Comment: "Быстрая проверка входа — ОК"},
+			{CaseIdx: 1, Status: testresult.StatusUnknown, DurationMs: 0, Comment: ""},
+			{CaseIdx: 2, Status: testresult.StatusUnknown, DurationMs: 0, Comment: ""},
+		},
+	},
+}
+
 // --- Handlers ---
 
 // Status возвращает 200 если dev-режим активен. Используется фронтендом для определения доступности.
@@ -401,6 +452,14 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		slog.Error("dev seed: ошибка создания тест-кейсов", "error", err)
 	} else {
 		summary["test_cases"] = tcCount
+	}
+
+	// Тестовые прогоны с результатами
+	runCount, err := h.seedTestRuns(ctx, proj.ID, userIDs)
+	if err != nil {
+		slog.Error("dev seed: ошибка создания тестовых прогонов", "error", err)
+	} else {
+		summary["test_runs"] = runCount
 	}
 
 	// Каналы мессенджера
@@ -805,6 +864,101 @@ func (h *Handler) seedTestCases(ctx context.Context, projectID uuid.UUID, userID
 	}
 
 	return len(demoTestCases), nil
+}
+
+// seedTestRuns создаёт демо-прогоны тестов с результатами. Идемпотентный.
+// Для каждого прогона создаёт TestRun и набор TestResult, привязанных к тест-кейсам.
+func (h *Handler) seedTestRuns(ctx context.Context, projectID uuid.UUID, userIDs map[string]uuid.UUID) (int, error) {
+	// Проверяем, есть ли уже прогоны для проекта
+	existingCount, err := h.db.TestRun.Query().
+		Where(testrun.HasProjectWith(project.ID(projectID))).
+		Count(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("запрос прогонов: %w", err)
+	}
+	if existingCount > 0 {
+		return existingCount, nil
+	}
+
+	// Загружаем тест-кейсы проекта для привязки результатов
+	cases, err := h.db.TestCase.Query().
+		Where(testcase.HasProjectWith(project.ID(projectID))).
+		All(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("запрос тест-кейсов для прогонов: %w", err)
+	}
+	if len(cases) == 0 {
+		return 0, nil
+	}
+
+	testerID := userIDs["tester1@hub.local"]
+	now := time.Now()
+
+	created := 0
+	for _, dr := range demoTestRuns {
+		// Определяем временные метки в зависимости от статуса
+		startedAt := now.Add(-2 * time.Hour)
+		var completedAt *time.Time
+		if dr.Status == testrun.StatusCompleted {
+			t := now.Add(-1 * time.Hour)
+			completedAt = &t
+		}
+
+		run, err := h.db.TestRun.Create().
+			SetTitle(dr.Title).
+			SetStatus(dr.Status).
+			SetRunType(dr.RunType).
+			SetTotalCount(dr.TotalCount).
+			SetPassedCount(dr.PassedCount).
+			SetFailedCount(dr.FailedCount).
+			SetSkippedCount(dr.SkippedCount).
+			SetBrokenCount(dr.BrokenCount).
+			SetUnknownCount(dr.UnknownCount).
+			SetStartedAt(startedAt).
+			SetNillableCompletedAt(completedAt).
+			SetProjectID(projectID).
+			SetCreatedByID(testerID).
+			Save(ctx)
+		if err != nil {
+			return created, fmt.Errorf("создание прогона %q: %w", dr.Title, err)
+		}
+
+		// Создаём результаты для прогона
+		for _, res := range dr.Results {
+			if res.CaseIdx >= len(cases) {
+				continue
+			}
+			tc := cases[res.CaseIdx]
+
+			builder := h.db.TestResult.Create().
+				SetStatus(res.Status).
+				SetComment(res.Comment).
+				SetRunID(run.ID).
+				SetTestCaseID(tc.ID).
+				SetExecutedByID(testerID)
+
+			if res.DurationMs > 0 {
+				builder.SetDurationMs(res.DurationMs)
+			}
+
+			// Для завершённых результатов ставим временные метки
+			if res.Status != testresult.StatusUnknown {
+				resultStart := startedAt.Add(time.Duration(res.CaseIdx) * 30 * time.Second)
+				resultEnd := resultStart.Add(time.Duration(res.DurationMs) * time.Millisecond)
+				builder.SetStartedAt(resultStart).SetCompletedAt(resultEnd)
+			}
+
+			_, err := builder.Save(ctx)
+			if err != nil {
+				slog.Error("dev seed: ошибка создания результата теста",
+					"run", dr.Title, "case", tc.CaseKey, "error", err)
+			}
+		}
+
+		created++
+	}
+
+	return created, nil
 }
 
 // seedChannels создаёт демо-каналы мессенджера. Идемпотентный.
