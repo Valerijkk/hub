@@ -446,3 +446,123 @@ button[role="radio"][data-state="checked"] {
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: var(--muted-foreground);
 }
+
+/* ===================================================
+ * Премиум-карточки — элегантный подъём и свечение
+ * Используется для проектов, прогонов, канбан-карточек.
+ * =================================================== */
+.card-premium {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.card-premium:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+  transform: translateY(-1px);
+}
+.dark .card-premium:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Градиентный заголовок страницы — для основных экранов */
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  background: linear-gradient(135deg, var(--foreground), var(--primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===================================================
+ * Цветные бейджи статусов — TMS, трекер
+ * Светлая и тёмная тема с поддержкой бордеров.
+ * =================================================== */
+.badge-passed { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.badge-failed { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.badge-skipped { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+.badge-broken { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+.badge-blocked { background: #faf5ff; color: #9333ea; border: 1px solid #e9d5ff; }
+
+.dark .badge-passed { background: #052e16; color: #4ade80; border-color: #14532d; }
+.dark .badge-failed { background: #450a0a; color: #f87171; border-color: #7f1d1d; }
+.dark .badge-skipped { background: #1e293b; color: #94a3b8; border-color: #334155; }
+.dark .badge-broken { background: #431407; color: #fb923c; border-color: #7c2d12; }
+.dark .badge-blocked { background: #2e1065; color: #c084fc; border-color: #581c87; }
+
+/* ===================================================
+ * Анимация заполнения прогресс-бара — при загрузке
+ * =================================================== */
+@keyframes progress-fill {
+  from { width: 0%; }
+}
+
+.animate-progress-fill {
+  animation: progress-fill 0.8s ease-out forwards;
+}
+
+/* Анимация пульса — для CTA-кнопок при наведении */
+@keyframes subtle-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+}
+
+.hover-pulse:hover {
+  animation: subtle-pulse 1.5s ease-in-out infinite;
+}
+
+/* ===================================================
+ * Стеклянный эффект для композера и оверлеев
+ * =================================================== */
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .glass-subtle {
+  background: rgba(20, 27, 45, 0.7);
+}
+
+/* ===================================================
+ * Чередование строк таблицы — для TMS и списков
+ * =================================================== */
+.table-striped tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
+}
+
+.dark .table-striped tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* ===================================================
+ * Градиентная полоска сверху карточки — декоративная
+ * =================================================== */
+.card-accent-top {
+  position: relative;
+  overflow: hidden;
+}
+.card-accent-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 60%, #8B5CF6));
+  border-radius: 12px 12px 0 0;
+}
+
+/* Анимация плавного появления с задержкой — для каскадных элементов */
+.animate-fade-in-up {
+  animation: fade-in 0.4s ease-out backwards;
+}
+
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
