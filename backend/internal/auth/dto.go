@@ -4,28 +4,28 @@ import "time"
 
 // --- Request DTOs ---
 
-// MagicLinkRequest is the request body for POST /auth/magic-link.
+// MagicLinkRequest — тело запроса для POST /auth/magic-link.
 type MagicLinkRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
-// VerifyMagicLinkRequest is the request body for POST /auth/magic-link/verify.
+// VerifyMagicLinkRequest — тело запроса для POST /auth/magic-link/verify.
 type VerifyMagicLinkRequest struct {
 	Email string `json:"email" validate:"required,email"`
 	Code  string `json:"code" validate:"required,len=6"`
 }
 
-// TelegramAuthRequest is the request body for POST /auth/telegram.
+// TelegramAuthRequest — тело запроса для POST /auth/telegram.
 type TelegramAuthRequest struct {
 	InitData string `json:"init_data" validate:"required"`
 }
 
-// RefreshRequest is the request body for POST /auth/refresh.
+// RefreshRequest — тело запроса для POST /auth/refresh.
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
-// UpdateProfileRequest is the request body for PUT /auth/me.
+// UpdateProfileRequest — тело запроса для PUT /auth/me.
 type UpdateProfileRequest struct {
 	Name         *string                 `json:"name"`
 	DisplayName  *string                 `json:"display_name"`
@@ -39,7 +39,7 @@ type UpdateProfileRequest struct {
 	CustomFields map[string]interface{}  `json:"custom_fields,omitempty"`
 }
 
-// SetRegistrationModeRequest is the request body for PUT /admin/registration-mode.
+// SetRegistrationModeRequest — тело запроса для PUT /admin/registration-mode.
 type SetRegistrationModeRequest struct {
 	Mode string `json:"mode" validate:"required,oneof=open invite_only"`
 }
