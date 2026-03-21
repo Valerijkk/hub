@@ -1,6 +1,7 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -14,8 +15,10 @@ const queryClient = new QueryClient({
 function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster position="top-right" richColors closeButton />
+      <ThemeProvider>
+        <Outlet />
+        <Toaster position="top-right" richColors closeButton />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

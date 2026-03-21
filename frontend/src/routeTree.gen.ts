@@ -19,6 +19,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
 import { Route as AuthenticatedMessengerIndexRouteImport } from './routes/_authenticated/messenger/index'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings/profile'
+import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
 import { Route as AuthenticatedProjectsNewRouteImport } from './routes/_authenticated/projects/new'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects/$projectId'
 import { Route as AuthenticatedMessengerChannelIdRouteImport } from './routes/_authenticated/messenger/$channelId'
@@ -91,6 +92,12 @@ const AuthenticatedSettingsProfileRoute =
   AuthenticatedSettingsProfileRouteImport.update({
     id: '/settings/profile',
     path: '/settings/profile',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSettingsAppearanceRoute =
+  AuthenticatedSettingsAppearanceRouteImport.update({
+    id: '/settings/appearance',
+    path: '/settings/appearance',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedProjectsNewRoute =
@@ -232,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/new': typeof AuthenticatedProjectsNewRoute
+  '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/messenger/': typeof AuthenticatedMessengerIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
@@ -262,6 +270,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/projects/new': typeof AuthenticatedProjectsNewRoute
+  '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/messenger': typeof AuthenticatedMessengerIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
@@ -296,6 +305,7 @@ export interface FileRoutesById {
   '/_authenticated/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/new': typeof AuthenticatedProjectsNewRoute
+  '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_authenticated/messenger/': typeof AuthenticatedMessengerIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
     | '/messenger/$channelId'
     | '/projects/$projectId'
     | '/projects/new'
+    | '/settings/appearance'
     | '/settings/profile'
     | '/messenger/'
     | '/projects/'
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/messenger/$channelId'
     | '/projects/new'
+    | '/settings/appearance'
     | '/settings/profile'
     | '/messenger'
     | '/projects'
@@ -393,6 +405,7 @@ export interface FileRouteTypes {
     | '/_authenticated/messenger/$channelId'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/projects/new'
+    | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/profile'
     | '/_authenticated/messenger/'
     | '/_authenticated/projects/'
@@ -488,6 +501,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/profile'
       fullPath: '/settings/profile'
       preLoaderRoute: typeof AuthenticatedSettingsProfileRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings/appearance': {
+      id: '/_authenticated/settings/appearance'
+      path: '/settings/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof AuthenticatedSettingsAppearanceRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/projects/new': {
@@ -730,6 +750,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRouteWithChildren
   AuthenticatedProjectsNewRoute: typeof AuthenticatedProjectsNewRoute
+  AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
   AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
 }
@@ -746,6 +767,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProjectsProjectIdRoute:
     AuthenticatedProjectsProjectIdRouteWithChildren,
   AuthenticatedProjectsNewRoute: AuthenticatedProjectsNewRoute,
+  AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
   AuthenticatedSettingsProfileRoute: AuthenticatedSettingsProfileRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
 }

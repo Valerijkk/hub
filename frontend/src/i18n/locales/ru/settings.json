@@ -1,0 +1,63 @@
+{
+  "settings": "Настройки",
+  "profile": "Профиль",
+  "appearance": "Внешний вид",
+  "language": "Язык",
+  "notifications": "Уведомления",
+  "security": "Безопасность",
+  "personalData": "Персональные данные",
+  "theme": {
+    "title": "Тема",
+    "light": "Светлая",
+    "dark": "Тёмная",
+    "system": "Системная",
+    "description": "Выберите тему оформления"
+  },
+  "accent": {
+    "title": "Акцентный цвет",
+    "description": "Основной цвет интерфейса",
+    "red": "Красный",
+    "blue": "Синий",
+    "green": "Зелёный",
+    "purple": "Фиолетовый",
+    "orange": "Оранжевый"
+  },
+  "lang": {
+    "title": "Язык интерфейса",
+    "description": "Выберите язык отображения",
+    "ru": "Русский",
+    "en": "English"
+  },
+  "profileFields": {
+    "name": "Имя",
+    "displayName": "Отображаемое имя",
+    "email": "Email",
+    "phone": "Телефон",
+    "position": "Должность",
+    "department": "Отдел",
+    "timezone": "Часовой пояс",
+    "birthday": "Дата рождения"
+  },
+  "sessions": {
+    "title": "Активные сессии",
+    "description": "Управляйте сессиями на своих устройствах",
+    "current": "Текущая",
+    "endSession": "Завершить",
+    "unknownDevice": "Неизвестное устройство",
+    "lastActive": "Последняя активность",
+    "noSessions": "Нет активных сессий"
+  },
+  "notificationSettings": {
+    "title": "Настройки уведомлений",
+    "description": "Управляйте каналами и типами уведомлений",
+    "inApp": "В приложении",
+    "telegram": "Telegram",
+    "quietHours": "Тихие часы",
+    "quietHoursDesc": "Не беспокоить в указанные часы",
+    "urgentOverride": "Срочные пробивают тихие часы"
+  },
+  "profileUpdated": "Профиль обновлён",
+  "updateFailed": "Не удалось обновить профиль",
+  "sessionEnded": "Сессия завершена",
+  "sessionEndFailed": "Не удалось завершить сессию"
+}

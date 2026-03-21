@@ -1,0 +1,63 @@
+{
+  "settings": "Settings",
+  "profile": "Profile",
+  "appearance": "Appearance",
+  "language": "Language",
+  "notifications": "Notifications",
+  "security": "Security",
+  "personalData": "Personal data",
+  "theme": {
+    "title": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "description": "Choose your preferred theme"
+  },
+  "accent": {
+    "title": "Accent color",
+    "description": "Primary interface color",
+    "red": "Red",
+    "blue": "Blue",
+    "green": "Green",
+    "purple": "Purple",
+    "orange": "Orange"
+  },
+  "lang": {
+    "title": "Interface language",
+    "description": "Choose display language",
+    "ru": "Русский",
+    "en": "English"
+  },
+  "profileFields": {
+    "name": "Name",
+    "displayName": "Display name",
+    "email": "Email",
+    "phone": "Phone",
+    "position": "Position",
+    "department": "Department",
+    "timezone": "Timezone",
+    "birthday": "Birthday"
+  },
+  "sessions": {
+    "title": "Active sessions",
+    "description": "Manage your device sessions",
+    "current": "Current",
+    "endSession": "End session",
+    "unknownDevice": "Unknown device",
+    "lastActive": "Last active",
+    "noSessions": "No active sessions"
+  },
+  "notificationSettings": {
+    "title": "Notification settings",
+    "description": "Manage notification channels and types",
+    "inApp": "In-app",
+    "telegram": "Telegram",
+    "quietHours": "Quiet hours",
+    "quietHoursDesc": "Do not disturb during specified hours",
+    "urgentOverride": "Urgent notifications bypass quiet hours"
+  },
+  "profileUpdated": "Profile updated",
+  "updateFailed": "Failed to update profile",
+  "sessionEnded": "Session ended",
+  "sessionEndFailed": "Failed to end session"
+}

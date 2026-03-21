@@ -1,0 +1,109 @@
+{
+  "nav": {
+    "projects": "Проекты",
+    "allProjects": "Все проекты",
+    "dashboard": "Дашборд",
+    "settings": "Настройки",
+    "messenger": "Мессенджер",
+    "calls": "Звонки",
+    "trash": "Корзина",
+    "more": "Ещё",
+    "tracker": "Трекер"
+  },
+  "btn": {
+    "create": "Создать",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "close": "Закрыть",
+    "back": "Назад",
+    "next": "Далее",
+    "confirm": "Подтвердить",
+    "search": "Поиск",
+    "apply": "Применить",
+    "reset": "Сбросить",
+    "retry": "Повторить",
+    "refresh": "Обновить",
+    "upload": "Загрузить",
+    "download": "Скачать",
+    "export": "Экспорт",
+    "import": "Импорт",
+    "add": "Добавить",
+    "remove": "Убрать",
+    "select": "Выбрать",
+    "selectAll": "Выбрать все",
+    "copy": "Копировать",
+    "paste": "Вставить",
+    "saving": "Сохранение..."
+  },
+  "status": {
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "success": "Успешно",
+    "noData": "Нет данных",
+    "empty": "Пусто",
+    "pending": "Ожидание",
+    "active": "Активен",
+    "inactive": "Неактивен",
+    "online": "В сети",
+    "offline": "Не в сети",
+    "away": "Отошёл"
+  },
+  "auth": {
+    "signIn": "Войти",
+    "signOut": "Выйти",
+    "profile": "Профиль",
+    "user": "Пользователь",
+    "sessions": "Сессии",
+    "currentSession": "Текущая",
+    "endSession": "Завершить",
+    "unknownDevice": "Неизвестное устройство",
+    "lastActive": "Последняя активность",
+    "noSessions": "Нет активных сессий"
+  },
+  "search": {
+    "globalSearch": "Глобальный поиск",
+    "placeholder": "Поиск...",
+    "noResults": "Ничего не найдено",
+    "hint": "Ctrl+K"
+  },
+  "sidebar": {
+    "expand": "Развернуть",
+    "collapse": "Свернуть",
+    "createProject": "Создать проект",
+    "noProjects": "Нет проектов"
+  },
+  "topbar": {
+    "menu": "Меню"
+  },
+  "error": {
+    "pageNotFound": "Страница не найдена",
+    "somethingWrong": "Что-то пошло не так",
+    "tryRefresh": "Попробуйте обновить страницу",
+    "goHome": "На главную",
+    "updateFailed": "Не удалось обновить",
+    "saveFailed": "Не удалось сохранить",
+    "loadFailed": "Не удалось загрузить"
+  },
+  "confirm": {
+    "areYouSure": "Вы уверены?",
+    "cannotUndo": "Это действие нельзя отменить"
+  },
+  "time": {
+    "today": "Сегодня",
+    "yesterday": "Вчера",
+    "daysAgo": "{{count}} дн. назад",
+    "hoursAgo": "{{count}} ч. назад",
+    "minutesAgo": "{{count}} мин. назад",
+    "justNow": "Только что"
+  },
+  "pagination": {
+    "previous": "Назад",
+    "next": "Далее",
+    "page": "Страница",
+    "of": "из",
+    "showing": "Показано",
+    "total": "всего"
+  }
+}

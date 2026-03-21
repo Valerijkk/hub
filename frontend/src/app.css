@@ -77,6 +77,59 @@
   --sidebar-foreground: oklch(0.985 0 0);
 }
 
+/* Акцентные цвета (data-accent на html) */
+[data-accent="red"] {
+  --primary: oklch(0.577 0.245 27.325);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.577 0.245 27.325);
+}
+[data-accent="blue"] {
+  --primary: oklch(0.546 0.245 262.881);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.546 0.245 262.881);
+}
+[data-accent="green"] {
+  --primary: oklch(0.627 0.194 149.214);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.627 0.194 149.214);
+}
+[data-accent="purple"] {
+  --primary: oklch(0.553 0.261 293.541);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.553 0.261 293.541);
+}
+[data-accent="orange"] {
+  --primary: oklch(0.705 0.213 47.604);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.705 0.213 47.604);
+}
+
+.dark[data-accent="red"] {
+  --primary: oklch(0.637 0.237 25.331);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.637 0.237 25.331);
+}
+.dark[data-accent="blue"] {
+  --primary: oklch(0.623 0.214 259.815);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.623 0.214 259.815);
+}
+.dark[data-accent="green"] {
+  --primary: oklch(0.696 0.17 150.019);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.696 0.17 150.019);
+}
+.dark[data-accent="purple"] {
+  --primary: oklch(0.627 0.235 292.717);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.627 0.235 292.717);
+}
+.dark[data-accent="orange"] {
+  --primary: oklch(0.762 0.204 50.001);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.762 0.204 50.001);
+}
+
 @layer base {
   * {
     @apply border-border;
