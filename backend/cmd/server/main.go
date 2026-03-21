@@ -146,9 +146,16 @@ func main() {
 		slog.Error("failed to ensure messenger indexes", "error", err)
 	}
 	messengerRepo := messengermod.NewCombinedRepository(messengerEntRepo, messengerMongoRepo)
-	messengerSvc := messengermod.NewMessengerService(messengerRepo, nc)
+	presenceSvc := messengermod.NewPresenceService(rdb)
+	unreadSvc := messengermod.NewUnreadService(rdb)
+	messengerSvc := messengermod.NewMessengerService(messengerRepo, nc, presenceSvc, unreadSvc)
 	messengerHandler := messengermod.NewHandler(messengerSvc)
 	messengerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+
+	// Запуск фоновой очистки устаревших записей присутствия
+	presenceCtx, presenceCancel := context.WithCancel(ctx)
+	defer presenceCancel()
+	go presenceSvc.StartCleanupLoop(presenceCtx)
 
 	// Auto-channel service (создаёт каналы при создании проектов)
 	autoChannelSvc := messengermod.NewAutoChannelService(messengerSvc, messengerEntRepo)

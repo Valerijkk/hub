@@ -18,13 +18,15 @@ import (
 // Оркестрирует операции с каналами, сообщениями, реакциями,
 // публикует NATS-события для real-time доставки.
 type MessengerService struct {
-	repo Repository
-	nats *natsclient.Client
+	repo     Repository
+	nats     *natsclient.Client
+	presence *PresenceService
+	unread   *UnreadService
 }
 
 // NewMessengerService создаёт новый сервис мессенджера.
-func NewMessengerService(repo Repository, nats *natsclient.Client) *MessengerService {
-	return &MessengerService{repo: repo, nats: nats}
+func NewMessengerService(repo Repository, nats *natsclient.Client, presence *PresenceService, unread *UnreadService) *MessengerService {
+	return &MessengerService{repo: repo, nats: nats, presence: presence, unread: unread}
 }
 
 // ---------------------------------------------------------------------------
@@ -340,6 +342,20 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 		}
 	}
 
+	// Инкрементируем непрочитанные для участников канала
+	if s.unread != nil {
+		memberIDs, mErr := s.repo.GetChannelMemberIDs(ctx, channelID)
+		if mErr == nil {
+			memberStrs := make([]string, len(memberIDs))
+			for i, m := range memberIDs {
+				memberStrs[i] = m.String()
+			}
+			if uErr := s.unread.Increment(ctx, channelID.String(), memberStrs, senderID.String()); uErr != nil {
+				slog.Error("не удалось инкрементировать непрочитанные", "error", uErr)
+			}
+		}
+	}
+
 	// Публикуем NATS-событие
 	s.publishEvent(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
 		MessageID:   messageID,
@@ -575,6 +591,29 @@ func (s *MessengerService) SearchMessages(ctx context.Context, query, channelID 
 }
 
 // ---------------------------------------------------------------------------
+// Закреплённые сообщения
+// ---------------------------------------------------------------------------
+
+// ListPins возвращает все закреплённые сообщения канала.
+func (s *MessengerService) ListPins(ctx context.Context, channelID uuid.UUID) ([]PinnedMessageResponse, error) {
+	pins, err := s.repo.ListPins(ctx, channelID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения закреплённых сообщений")
+	}
+	result := make([]PinnedMessageResponse, 0, len(pins))
+	for _, p := range pins {
+		result = append(result, PinnedMessageResponse{
+			ID:        p.ID.String(),
+			MessageID: p.MessageID,
+			ChannelID: p.ChannelID.String(),
+			PinnedBy:  p.PinnedBy.String(),
+			PinnedAt:  p.PinnedAt,
+		})
+	}
+	return result, nil
+}
+
+// ---------------------------------------------------------------------------
 // Закладки
 // ---------------------------------------------------------------------------
 
@@ -608,6 +647,62 @@ func (s *MessengerService) AddBookmark(ctx context.Context, userID uuid.UUID, me
 // RemoveBookmark удаляет закладку по ID.
 func (s *MessengerService) RemoveBookmark(ctx context.Context, bookmarkID uuid.UUID) error {
 	return s.repo.RemoveBookmark(ctx, bookmarkID)
+}
+
+// ---------------------------------------------------------------------------
+// Присутствие (Presence)
+// ---------------------------------------------------------------------------
+
+// Heartbeat обновляет время активности пользователя.
+func (s *MessengerService) Heartbeat(ctx context.Context, userID string) error {
+	if s.presence == nil {
+		return nil
+	}
+	return s.presence.Heartbeat(ctx, userID)
+}
+
+// GetPresence возвращает статусы присутствия для списка пользователей.
+func (s *MessengerService) GetPresence(ctx context.Context, userIDs []string) (map[string]string, error) {
+	if s.presence == nil {
+		return map[string]string{}, nil
+	}
+	return s.presence.GetBulkStatus(ctx, userIDs)
+}
+
+// SetCustomStatus устанавливает кастомный текст статуса пользователя.
+func (s *MessengerService) SetCustomStatus(ctx context.Context, userID, text string) error {
+	if s.presence == nil {
+		return nil
+	}
+	return s.presence.SetCustomStatus(ctx, userID, text)
+}
+
+// GetCustomStatus возвращает кастомный текст статуса пользователя.
+func (s *MessengerService) GetCustomStatus(ctx context.Context, userID string) (string, error) {
+	if s.presence == nil {
+		return "", nil
+	}
+	return s.presence.GetCustomStatus(ctx, userID)
+}
+
+// ---------------------------------------------------------------------------
+// Непрочитанные (Unread)
+// ---------------------------------------------------------------------------
+
+// GetUnreadCounts возвращает счётчики непрочитанных для пользователя.
+func (s *MessengerService) GetUnreadCounts(ctx context.Context, userID string) (map[string]int64, error) {
+	if s.unread == nil {
+		return map[string]int64{}, nil
+	}
+	return s.unread.GetAll(ctx, userID)
+}
+
+// MarkChannelRead сбрасывает счётчик непрочитанных для канала.
+func (s *MessengerService) MarkChannelRead(ctx context.Context, userID, channelID string) error {
+	if s.unread == nil {
+		return nil
+	}
+	return s.unread.MarkRead(ctx, userID, channelID)
 }
 
 // ---------------------------------------------------------------------------

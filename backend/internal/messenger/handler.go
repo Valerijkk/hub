@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -9,6 +10,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
+
+// splitComma разделяет строку по запятым, убирая пробелы.
+func splitComma(s string) []string {
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			result = append(result, p)
+		}
+	}
+	return result
+}
 
 // queryInt извлекает целочисленный параметр из строки запроса с дефолтным значением.
 func queryInt(c fiber.Ctx, key string, defaultVal int) int {
@@ -60,6 +74,18 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	messages.Post("/:messageId/pin", h.TogglePin)
 	messages.Post("/:messageId/forward", h.ForwardMessage)
 	messages.Get("/:messageId/replies", h.ListThreadReplies)
+
+	// Присутствие
+	msg.Get("/presence", h.GetPresence)
+	msg.Put("/presence/status", h.SetCustomStatus)
+	msg.Post("/presence/heartbeat", h.Heartbeat)
+
+	// Непрочитанные
+	msg.Get("/unread", h.GetUnreadCounts)
+	channels.Post("/:channelId/read", h.MarkChannelRead)
+
+	// Закреплённые сообщения
+	channels.Get("/:channelId/pins", h.ListPins)
 
 	// Поиск
 	msg.Get("/search", h.SearchMessages)
@@ -561,6 +587,117 @@ func (h *Handler) RemoveBookmark(c fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// ---------------------------------------------------------------------------
+// Presence handlers
+// ---------------------------------------------------------------------------
+
+// GetPresence обрабатывает GET /api/messenger/presence?user_ids=id1,id2,...
+func (h *Handler) GetPresence(c fiber.Ctx) error {
+	userIDsStr := c.Query("user_ids")
+	if userIDsStr == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "параметр user_ids обязателен")
+	}
+
+	userIDs := splitComma(userIDsStr)
+	statuses, err := h.service.GetPresence(c.Context(), userIDs)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(statuses)
+}
+
+// SetCustomStatus обрабатывает PUT /api/messenger/presence/status
+func (h *Handler) SetCustomStatus(c fiber.Ctx) error {
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	var req struct {
+		Text string `json:"text"`
+	}
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+
+	if err := h.service.SetCustomStatus(c.Context(), userID.String(), req.Text); err != nil {
+		return err
+	}
+
+	return c.SendStatus(fiber.StatusOK)
+}
+
+// Heartbeat обрабатывает POST /api/messenger/presence/heartbeat
+func (h *Handler) Heartbeat(c fiber.Ctx) error {
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.Heartbeat(c.Context(), userID.String()); err != nil {
+		return err
+	}
+
+	return c.SendStatus(fiber.StatusOK)
+}
+
+// ---------------------------------------------------------------------------
+// Unread handlers
+// ---------------------------------------------------------------------------
+
+// GetUnreadCounts обрабатывает GET /api/messenger/unread
+func (h *Handler) GetUnreadCounts(c fiber.Ctx) error {
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	counts, err := h.service.GetUnreadCounts(c.Context(), userID.String())
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(counts)
+}
+
+// MarkChannelRead обрабатывает POST /api/messenger/channels/:channelId/read
+func (h *Handler) MarkChannelRead(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.MarkChannelRead(c.Context(), userID.String(), channelID.String()); err != nil {
+		return err
+	}
+
+	return c.SendStatus(fiber.StatusOK)
+}
+
+// ---------------------------------------------------------------------------
+// Pinned messages handlers
+// ---------------------------------------------------------------------------
+
+// ListPins обрабатывает GET /api/messenger/channels/:channelId/pins
+func (h *Handler) ListPins(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
+
+	pins, err := h.service.ListPins(c.Context(), channelID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(pins)
 }
 
 // ---------------------------------------------------------------------------
