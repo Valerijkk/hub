@@ -153,7 +153,14 @@ func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uu
 		}
 		return apperrors.NewInternal("ошибка получения канала")
 	}
-	if ch.ChannelType.String() != "public" {
+	switch ch.ChannelType.String() {
+	case "public":
+		// Публичный канал — свободное присоединение
+	case "private":
+		return apperrors.NewForbidden("канал приватный, требуется приглашение")
+	case "dm":
+		return apperrors.NewForbidden("нельзя присоединиться к DM, используйте CreateOrGetDM")
+	default:
 		return apperrors.NewForbidden("можно присоединиться только к публичному каналу")
 	}
 
@@ -210,6 +217,12 @@ func (s *MessengerService) AddMembers(ctx context.Context, channelID, userID uui
 	}
 
 	return s.repo.AddMembers(ctx, channelID, uuids, "member")
+}
+
+// AddMembersInternal добавляет участников в канал без проверки прав.
+// Используется внутренними сервисами (например, AutoChannelService).
+func (s *MessengerService) AddMembersInternal(ctx context.Context, channelID uuid.UUID, memberIDs []uuid.UUID) error {
+	return s.repo.AddMembers(ctx, channelID, memberIDs, "member")
 }
 
 // ListMembers возвращает всех участников канала.

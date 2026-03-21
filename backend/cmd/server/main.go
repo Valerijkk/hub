@@ -150,6 +150,14 @@ func main() {
 	messengerHandler := messengermod.NewHandler(messengerSvc)
 	messengerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
+	// Auto-channel service (создаёт каналы при создании проектов)
+	autoChannelSvc := messengermod.NewAutoChannelService(messengerSvc, messengerEntRepo)
+	if err := autoChannelSvc.Start(nc); err != nil {
+		slog.Error("failed to start auto-channel service", "error", err)
+		os.Exit(1)
+	}
+	defer autoChannelSvc.Stop()
+
 	// --- WebSocket gateway ---
 
 	wsHub := wsmod.NewHub()

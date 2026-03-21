@@ -9,6 +9,8 @@ import (
 	"github.com/valerii/hub/backend/ent/channel"
 	"github.com/valerii/hub/backend/ent/channelmember"
 	"github.com/valerii/hub/backend/ent/pinnedmessage"
+	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 )
 
 // EntRepository реализует Ent/PG-часть интерфейса Repository.
@@ -217,4 +219,28 @@ func (r *EntRepository) ListBookmarks(ctx context.Context, userID uuid.UUID) ([]
 	return r.client.Bookmark.Query().
 		Where(bookmark.UserID(userID)).
 		All(ctx)
+}
+
+// ListProjectMembers возвращает ID всех участников проекта.
+// Используется AutoChannelService для добавления участников в авто-канал.
+func (r *EntRepository) ListProjectMembers(ctx context.Context, projectID uuid.UUID) ([]uuid.UUID, error) {
+	members, err := r.client.ProjectMember.Query().
+		Where(projectmember.HasProjectWith(project.IDEQ(projectID))).
+		WithUser().
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]uuid.UUID, 0, len(members))
+	for _, m := range members {
+		if m.Edges.User != nil {
+			ids = append(ids, m.Edges.User.ID)
+		}
+	}
+	return ids, nil
+}
+
+// GetProjectByID возвращает проект по ID для получения ключа проекта.
+func (r *EntRepository) GetProjectByID(ctx context.Context, projectID uuid.UUID) (*ent.Project, error) {
+	return r.client.Project.Get(ctx, projectID)
 }
