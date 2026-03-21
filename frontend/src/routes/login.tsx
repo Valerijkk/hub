@@ -60,16 +60,16 @@ function LoginPage() {
         {/* Контент hero */}
         <div className="relative z-10 flex flex-1 flex-col justify-center px-12 xl:px-16">
           <div className="max-w-md">
-            <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600">
-                <span className="text-lg font-bold text-white">H</span>
+            <div className="mb-10 flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-xl shadow-blue-500/30">
+                <span className="text-2xl font-bold text-white">H</span>
               </div>
-              <h1 className="text-3xl font-bold text-white tracking-tight">Hub</h1>
+              <h1 className="text-4xl font-bold text-white tracking-tight">Hub</h1>
             </div>
-            <p className="text-xl font-medium text-white/90 leading-relaxed mb-4">
+            <p className="text-2xl font-medium text-white/90 leading-relaxed mb-5">
               Единая платформа для управления проектами и командой
             </p>
-            <p className="text-sm text-slate-400 leading-relaxed">
+            <p className="text-base text-slate-400 leading-relaxed max-w-sm">
               Трекер задач, мессенджер, тест-менеджмент и видеозвонки — все инструменты в одном месте.
             </p>
           </div>
@@ -86,27 +86,27 @@ function LoginPage() {
         </div>
       </div>
 
-      {/* Правая часть — форма входа */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 lg:px-12 bg-background">
-        <div className="w-full max-w-sm">
+      {/* Правая часть — форма входа с увеличенным паддингом */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 lg:px-16 bg-background">
+        <div className="w-full max-w-[400px]">
           {/* Логотип — только на мобильных */}
-          <div className="mb-8 text-center lg:text-left">
-            <div className="mb-6 flex items-center justify-center gap-3 lg:hidden">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600">
-                <span className="text-lg font-bold text-white">H</span>
+          <div className="mb-10 text-center lg:text-left">
+            <div className="mb-8 flex items-center justify-center gap-3 lg:hidden">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-lg shadow-blue-500/25">
+                <span className="text-xl font-bold text-white">H</span>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight gradient-text">Hub</h1>
+              <h1 className="text-3xl font-bold tracking-tight gradient-text">Hub</h1>
             </div>
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
               Войти в аккаунт
             </h2>
-            <p className="mt-1.5 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
               Введите email для получения кода доступа
             </p>
           </div>
 
           {/* Форма */}
-          <div className="space-y-6">
+          <div className="space-y-7">
             <MagicLinkForm onSuccess={handleLoginSuccess} />
 
             {/* Разделитель */}
@@ -115,7 +115,7 @@ function LoginPage() {
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="px-3 text-muted-foreground bg-background">
+                <span className="px-4 text-muted-foreground/70 bg-background font-medium tracking-wider">
                   или
                 </span>
               </div>

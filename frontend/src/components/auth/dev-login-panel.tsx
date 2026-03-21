@@ -229,31 +229,35 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
         <p className="text-center text-xs text-destructive">{error}</p>
       )}
 
-      {/* Сетка карточек пользователей */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Сетка карточек пользователей — с градиентными акцентами */}
+      <div className="grid grid-cols-2 gap-2.5">
         {DEMO_USERS.map((user) => (
           <button
             key={user.email}
             onClick={() => handleLogin(user.email)}
             disabled={loading !== null}
-            className="group relative flex items-center gap-2.5 rounded-lg border border-border bg-card p-2.5 text-left
-              transition-all duration-150
-              hover:border-primary/30 hover:shadow-sm hover:-translate-y-px
-              active:scale-[0.98] active:shadow-none
-              disabled:opacity-50 disabled:pointer-events-none"
+            className="group relative flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-left
+              transition-all duration-200
+              hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5
+              active:scale-[0.97] active:shadow-none
+              disabled:opacity-50 disabled:pointer-events-none
+              overflow-hidden"
           >
-            {/* Аватар с инициалами */}
+            {/* Тонкая градиентная полоска слева */}
+            <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${user.color} opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-l-xl`} />
+
+            {/* Аватар с инициалами — увеличенный */}
             <div
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${user.color} text-[11px] font-semibold text-white`}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${user.color} text-[11px] font-bold text-white shadow-sm`}
             >
               {getInitials(user.name)}
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium leading-tight truncate text-foreground">
+              <p className="text-[13px] font-semibold leading-tight truncate text-foreground">
                 {user.name}
               </p>
-              <div className="mt-0.5 flex items-center gap-1.5">
+              <div className="mt-1 flex items-center gap-1.5">
                 <Badge
                   variant="secondary"
                   className={`${user.badgeBg} ${user.badgeText} text-[10px] leading-none px-1.5 py-0.5 border-0 font-medium`}
