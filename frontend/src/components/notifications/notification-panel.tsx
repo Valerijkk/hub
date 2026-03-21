@@ -1,4 +1,5 @@
 import { useCallback, useRef } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   CheckCircle2,
   MessageSquare,
@@ -89,15 +90,52 @@ export function NotificationPanel() {
     [hasMore, loading, fetchMore],
   );
 
-  /** Обработчик клика по уведомлению. */
+  const navigate = useNavigate();
+
+  /**
+   * Определяет маршрут навигации по типу и связанной сущности уведомления.
+   * Поддерживает переход к задачам, каналам, тест-прогонам и звонкам.
+   */
+  const resolveNotificationRoute = useCallback(
+    (notif: NotificationDTO): string | null => {
+      const { entity_type, entity_id, project_id } = notif;
+      if (!entity_id) return null;
+
+      switch (entity_type) {
+        case "issue":
+          // entity_id содержит issueKey (например "HUB-1")
+          return project_id
+            ? `/projects/${project_id}/issues/${entity_id}`
+            : null;
+        case "channel":
+          return `/messenger/${entity_id}`;
+        case "test_run":
+          return project_id
+            ? `/projects/${project_id}/tms/runs/${entity_id}`
+            : null;
+        case "call":
+          // Звонки не имеют отдельной детальной страницы — переходим к дашборду
+          return "/dashboard";
+        default:
+          return null;
+      }
+    },
+    [],
+  );
+
+  /** Обработчик клика по уведомлению — помечает прочитанным и переходит к сущности. */
   const handleItemClick = useCallback(
     (notif: NotificationDTO) => {
       if (!notif.is_read) {
         void markRead(notif.id);
       }
-      // TODO: навигация к сущности (issue, channel, testrun).
+
+      const route = resolveNotificationRoute(notif);
+      if (route) {
+        void navigate({ to: route });
+      }
     },
-    [markRead],
+    [markRead, navigate, resolveNotificationRoute],
   );
 
   return (
