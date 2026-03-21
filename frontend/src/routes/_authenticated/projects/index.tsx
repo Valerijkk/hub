@@ -23,17 +23,17 @@ function ProjectsPage() {
 
   return (
     <div className="mx-auto max-w-5xl animate-fade-in">
-      {/* Заголовок страницы */}
+      {/* Заголовок страницы — градиентный */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Проекты</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="page-title">Проекты</h1>
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
             Управляйте проектами вашей команды
           </p>
         </div>
         <Button
           asChild
-          className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-sm shadow-blue-500/20"
+          className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-md shadow-blue-500/25 hover-pulse"
         >
           <Link to="/projects/new">
             <svg className="mr-2 h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 2v12M2 8h12" /></svg>
@@ -87,16 +87,22 @@ function ProjectsPage() {
               params={{ projectId: project.id }}
               className="group block"
             >
-              <Card className="h-full rounded-xl border bg-card transition-all duration-150 hover:shadow-md hover:border-primary/20 hover:-translate-y-px">
-                <CardHeader className="pb-3">
+              <Card className="h-full rounded-xl border bg-card transition-all duration-200 hover:shadow-lg hover:border-primary/20 hover:-translate-y-1 card-accent-top">
+                <CardHeader className="pb-3 pt-5">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <CardTitle className="text-base truncate">{project.name}</CardTitle>
-                      <CardDescription className="mt-0.5">
-                        <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-xs font-mono font-medium text-muted-foreground">
-                          {project.key}
-                        </span>
-                      </CardDescription>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* Иконка проекта — первая буква ключа */}
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm">
+                        {project.key.charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-base font-semibold truncate">{project.name}</CardTitle>
+                        <CardDescription className="mt-0.5">
+                          <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-xs font-mono font-medium text-muted-foreground">
+                            {project.key}
+                          </span>
+                        </CardDescription>
+                      </div>
                     </div>
                     <Badge
                       variant={project.status === "active" ? "default" : "secondary"}
