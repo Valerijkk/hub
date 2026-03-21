@@ -9,8 +9,8 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
-// RequireAuth returns Fiber middleware that validates JWT access tokens and
-// stores userID and sessionID in Locals for downstream handlers.
+// RequireAuth возвращает Fiber middleware для валидации JWT access-токенов.
+// Сохраняет userID и sessionID в Locals для последующих обработчиков.
 func RequireAuth(svc *AuthService) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		authHeader := utils.CopyString(c.Get("Authorization"))
