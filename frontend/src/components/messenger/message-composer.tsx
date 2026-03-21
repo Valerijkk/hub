@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, type KeyboardEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { sendMessage } from "@/api/messenger";
 import { VoiceRecorder } from "./voice-recorder";
@@ -25,6 +26,7 @@ export function MessageComposer({
   threadId,
   placeholder = "Написать сообщение...",
 }: MessageComposerProps) {
+  const queryClient = useQueryClient();
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
@@ -41,6 +43,10 @@ export function MessageComposer({
         content_text: trimmed,
         thread_id: threadId,
       });
+      // Инвалидация кеша сообщений — страховка на случай отсутствия WS.
+      void queryClient.invalidateQueries({
+        queryKey: ["messenger", "messages", channelId],
+      });
       // Очистка поля после успешной отправки.
       setText("");
       // Сброс высоты textarea.
@@ -54,7 +60,7 @@ export function MessageComposer({
     } finally {
       setIsSending(false);
     }
-  }, [channelId, threadId, text]);
+  }, [channelId, threadId, text, queryClient]);
 
   /** Обработка клавиш: Enter -- отправить, Shift+Enter -- перенос строки. */
   const handleKeyDown = useCallback(
@@ -87,6 +93,10 @@ export function MessageComposer({
           voice_duration_ms: durationMs,
           thread_id: threadId,
         });
+        // Инвалидация кеша сообщений — страховка на случай отсутствия WS.
+        void queryClient.invalidateQueries({
+          queryKey: ["messenger", "messages", channelId],
+        });
       } catch (err) {
         const message =
           err instanceof Error
@@ -96,7 +106,7 @@ export function MessageComposer({
       }
       setShowVoice(false);
     },
-    [channelId, threadId],
+    [channelId, threadId, queryClient],
   );
 
   return (
