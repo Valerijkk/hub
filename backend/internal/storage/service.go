@@ -131,6 +131,11 @@ func (s *StorageService) GenerateDownloadURL(ctx context.Context, fileID uuid.UU
 	return presignResult.URL, nil
 }
 
+// NewOrphanCleanupFromService создаёт OrphanCleanupService, используя S3-клиент и bucket из StorageService.
+func (s *StorageService) NewOrphanCleanupFromService() *OrphanCleanupService {
+	return NewOrphanCleanupService(s.entClient, s.s3Client, s.bucket)
+}
+
 // DeleteFile выполняет мягкое удаление файла (устанавливает статус deleted и deleted_at).
 func (s *StorageService) DeleteFile(ctx context.Context, fileID uuid.UUID) error {
 	return s.entClient.FileMetadata.UpdateOneID(fileID).

@@ -174,6 +174,25 @@ func main() {
 	storageHandler := storagemod.NewHandler(storageSvc)
 	storageHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
+	// Cron: очистка осиротевших файлов (pending > 24h) — ежедневно
+	orphanCleanupSvc := storageSvc.NewOrphanCleanupFromService()
+	orphanCtx, orphanCancel := context.WithCancel(ctx)
+	defer orphanCancel()
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := orphanCleanupSvc.Cleanup(orphanCtx); err != nil {
+					slog.Error("orphan file cleanup failed", "error", err)
+				}
+			case <-orphanCtx.Done():
+				return
+			}
+		}
+	}()
+
 	// Tracker routes
 	trackerRepo := trackermod.NewEntRepository(db, outboxPublisher)
 	trackerSvc := trackermod.NewTrackerService(trackerRepo)
