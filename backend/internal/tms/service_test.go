@@ -395,6 +395,14 @@ func (m *mockRepository) AddFilesToResult(_ context.Context, _ uuid.UUID, _ []uu
 	return nil
 }
 
+func (m *mockRepository) StoreAllureResults(_ context.Context, _ uuid.UUID, _ []AllureResult) error {
+	return nil
+}
+
+func (m *mockRepository) GetAllureResultsByRunID(_ context.Context, _ uuid.UUID) ([]AllureResult, error) {
+	return nil, nil
+}
+
 func (m *mockRepository) listResultsSlice() []*ent.TestResult {
 	items := make([]*ent.TestResult, 0, len(m.results))
 	for _, r := range m.results {
@@ -424,7 +432,7 @@ func orDefault(val, def string) string {
 
 func TestCreateTestCase_Classic(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	resp, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), CreateTestCaseRequest{
@@ -448,7 +456,7 @@ func TestCreateTestCase_Classic(t *testing.T) {
 
 func TestCreateTestCase_BDD(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	resp, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), CreateTestCaseRequest{
@@ -471,7 +479,7 @@ func TestCreateTestCase_BDD(t *testing.T) {
 
 func TestUpdateTestCase_CreatesVersion(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	// Создаём тест-кейс
@@ -499,7 +507,7 @@ func TestUpdateTestCase_CreatesVersion(t *testing.T) {
 
 func TestRollbackTestCase(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	// Создаём тест-кейс
@@ -528,7 +536,7 @@ func TestRollbackTestCase(t *testing.T) {
 
 func TestUpdateRunStatus_ValidTransitions(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	// Создаём прогон (status = created)
@@ -553,7 +561,7 @@ func TestUpdateRunStatus_ValidTransitions(t *testing.T) {
 
 func TestUpdateRunStatus_InvalidTransition(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	// Создаём прогон (status = created)
@@ -572,7 +580,7 @@ func TestUpdateRunStatus_InvalidTransition(t *testing.T) {
 
 func TestReopenTestRun(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	// Создаём и завершаем прогон
@@ -596,7 +604,7 @@ func TestReopenTestRun(t *testing.T) {
 
 func TestAddTestCasesToRun(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	// Создаём тест-кейсы
@@ -626,7 +634,7 @@ func TestAddTestCasesToRun(t *testing.T) {
 
 func TestExecuteTestResult_UpdatesStats(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	// Создаём прогон и переводим в in_progress
@@ -665,7 +673,7 @@ func TestExecuteTestResult_UpdatesStats(t *testing.T) {
 
 func TestCompleteTestRun(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	// Создаём и стартуем прогон
@@ -686,7 +694,7 @@ func TestCompleteTestRun(t *testing.T) {
 
 func TestStartTestRun_InvalidTransition(t *testing.T) {
 	repo := newMockRepo()
-	svc := NewTMSService(repo)
+	svc := NewTMSService(repo, nil)
 	ctx := context.Background()
 
 	// Создаём прогон, стартуем, завершаем

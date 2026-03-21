@@ -135,12 +135,6 @@ func main() {
 	trackerHandler := trackermod.NewHandler(trackerSvc)
 	trackerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
-	// TMS routes
-	tmsRepo := tmsmod.NewEntRepository(db)
-	tmsSvc := tmsmod.NewTMSService(tmsRepo)
-	tmsHandler := tmsmod.NewHandler(tmsSvc)
-	tmsHandler.RegisterRoutes(api, requireAuth, rbacSvc)
-
 	// Messenger routes
 	mongoDB, err := database.NewMongoClient(ctx, cfg.MongoDB.URL, cfg.MongoDB.Database)
 	if err != nil {
@@ -158,6 +152,17 @@ func main() {
 	messengerSvc := messengermod.NewMessengerService(messengerRepo, nc, presenceSvc, unreadSvc)
 	messengerHandler := messengermod.NewHandler(messengerSvc)
 	messengerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+
+	// TMS routes (Ent + MongoDB combined repository)
+	tmsEntRepo := tmsmod.NewEntRepository(db)
+	tmsMongoRepo := tmsmod.NewMongoRepository(mongoDB)
+	if err := tmsMongoRepo.EnsureIndexes(ctx); err != nil {
+		slog.Error("failed to ensure TMS indexes", "error", err)
+	}
+	tmsRepo := tmsmod.NewCombinedRepository(tmsEntRepo, tmsMongoRepo)
+	tmsSvc := tmsmod.NewTMSService(tmsRepo, nc)
+	tmsHandler := tmsmod.NewHandler(tmsSvc)
+	tmsHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// Запуск фоновой очистки устаревших записей присутствия
 	presenceCtx, presenceCancel := context.WithCancel(ctx)

@@ -1,6 +1,7 @@
 package tms
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/valerii/hub/backend/ent/schema"
@@ -120,6 +121,24 @@ type AddTestCasesToRunRequest struct {
 // AssignTestersRequest — тело запроса на назначение тестировщиков прогону.
 type AssignTestersRequest struct {
 	UserIDs []string `json:"user_ids" validate:"required,min=1"`
+}
+
+// ImportAllureRequest — тело запроса на импорт результатов Allure.
+type ImportAllureRequest struct {
+	Results     json.RawMessage `json:"results" validate:"required"`
+	Title       string          `json:"title,omitempty"`
+	AllureRunID string          `json:"allure_run_id,omitempty"`
+}
+
+// TestRunSummary — краткая информация о прогоне для истории.
+type TestRunSummary struct {
+	RunID     string    `json:"run_id"`
+	Title     string    `json:"title"`
+	Total     int       `json:"total"`
+	Passed    int       `json:"passed"`
+	Failed    int       `json:"failed"`
+	PassRate  float64   `json:"pass_rate"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // TestRunDetailResponse — полная информация о прогоне с результатами и назначенными.

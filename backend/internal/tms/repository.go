@@ -97,6 +97,13 @@ type Repository interface {
 	// IncrementTestCaseCounter атомарно увеличивает счётчик тест-кейсов проекта.
 	IncrementTestCaseCounter(ctx context.Context, projectID uuid.UUID) (int, error)
 
+	// --- MongoDB (Allure raw storage) ---
+
+	// StoreAllureResults сохраняет сырые результаты Allure в MongoDB.
+	StoreAllureResults(ctx context.Context, runID uuid.UUID, results []AllureResult) error
+	// GetAllureResultsByRunID возвращает сырые результаты Allure для прогона.
+	GetAllureResultsByRunID(ctx context.Context, runID uuid.UUID) ([]AllureResult, error)
+
 	// --- Привязка к задачам ---
 
 	// LinkTestCaseToIssue привязывает тест-кейс к задаче.

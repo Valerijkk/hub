@@ -3,23 +3,33 @@ package tms
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/schema"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
 // TMSService реализует бизнес-логику модуля управления тестированием.
-// Оркестрирует вызовы репозитория, версионирование, стейт-машину прогонов.
+// Оркестрирует вызовы репозитория, версионирование, стейт-машину прогонов,
+// импорт результатов Allure и публикацию NATS-событий.
 type TMSService struct {
-	repo Repository
+	repo    Repository
+	nats    *natsclient.Client
+	matcher *Matcher
 }
 
 // NewTMSService создаёт новый сервис TMS.
-func NewTMSService(repo Repository) *TMSService {
-	return &TMSService{repo: repo}
+func NewTMSService(repo Repository, nats *natsclient.Client) *TMSService {
+	return &TMSService{
+		repo:    repo,
+		nats:    nats,
+		matcher: NewMatcher(repo),
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -722,6 +732,302 @@ func (s *TMSService) recomputeRunStats(ctx context.Context, runID uuid.UUID) err
 	}
 
 	return nil
+}
+
+// ---------------------------------------------------------------------------
+// Импорт Allure
+// ---------------------------------------------------------------------------
+
+// SubjectTestRunCompleted — NATS-тема для события завершения автоматического прогона.
+const SubjectTestRunCompleted = "tms.run.completed.%s"
+
+// ImportAllureResults импортирует результаты Allure в TMS.
+// Создаёт автоматический прогон, сопоставляет результаты с тест-кейсами,
+// сохраняет сырой JSON в MongoDB, структурированные результаты в PostgreSQL.
+func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID uuid.UUID, req ImportAllureRequest) (*TestRunDetailResponse, error) {
+	// 1. Парсим allure-results JSON
+	allureResults, err := ParseAllureResults(req.Results)
+	if err != nil {
+		return nil, apperrors.NewBadRequest("некорректный allure JSON: " + err.Error())
+	}
+	if len(allureResults) == 0 {
+		return nil, apperrors.NewBadRequest("пустой массив результатов Allure")
+	}
+
+	// 2. Создаём прогон
+	title := req.Title
+	if title == "" {
+		title = fmt.Sprintf("Allure Import %s", time.Now().Format("2006-01-02 15:04"))
+	}
+	runInput := CreateTestRunInput{
+		Title:       title,
+		RunType:     "automatic",
+		CreatedByID: userID,
+		AllureRunID: req.AllureRunID,
+	}
+	run, err := s.repo.CreateTestRun(ctx, projectID, runInput)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка создания прогона")
+	}
+
+	// 3. Сохраняем сырые результаты в MongoDB
+	if err := s.repo.StoreAllureResults(ctx, run.ID, allureResults); err != nil {
+		slog.Error("ошибка сохранения allure результатов в MongoDB", "error", err, "run_id", run.ID)
+		// Не прерываем — PG-результаты важнее
+	}
+
+	// 4. Сопоставляем каждый результат с тест-кейсом и создаём TestResult
+	resultInputs := make([]CreateTestResultInput, 0, len(allureResults))
+	for _, ar := range allureResults {
+		tc, strategy, matchErr := s.matcher.MatchTestCase(ctx, projectID, &ar)
+		if matchErr != nil {
+			slog.Error("ошибка матчинга allure результата", "error", matchErr, "uuid", ar.UUID)
+			continue
+		}
+
+		input := CreateTestResultInput{
+			Status:     allureStatusToTMS(ar.Status),
+			AllureUUID: ar.UUID,
+		}
+
+		// Длительность из start/stop
+		if ar.Start != nil && ar.Stop != nil {
+			duration := *ar.Stop - *ar.Start
+			input.DurationMs = &duration
+			startTime := time.UnixMilli(*ar.Start)
+			stopTime := time.UnixMilli(*ar.Stop)
+			input.StartedAt = &startTime
+			input.CompletedAt = &stopTime
+		}
+
+		// Сообщение об ошибке
+		if ar.StatusDetails != nil {
+			input.ErrorMessage = ar.StatusDetails.Message
+			input.ErrorTrace = ar.StatusDetails.Trace
+		}
+
+		// Привязка к тест-кейсу
+		if tc != nil {
+			input.TestCaseID = &tc.ID
+			input.MatchStrategy = strategy.String()
+		} else {
+			input.MatchStrategy = "unmapped"
+		}
+
+		resultInputs = append(resultInputs, input)
+	}
+
+	// 5. Пакетная вставка результатов
+	if len(resultInputs) > 0 {
+		_, err = s.repo.BatchCreateTestResults(ctx, run.ID, resultInputs)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка пакетного создания результатов")
+		}
+	}
+
+	// 6. Пересчитываем статистику
+	if err := s.recomputeRunStats(ctx, run.ID); err != nil {
+		return nil, err
+	}
+
+	// 7. Переводим прогон: created -> in_progress -> completed
+	now := time.Now()
+	_, err = s.repo.UpdateTestRunStatus(ctx, run.ID, "in_progress", &now)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка старта прогона")
+	}
+	_, err = s.repo.UpdateTestRunStatus(ctx, run.ID, "completed", &now)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка завершения прогона")
+	}
+
+	// 8. Публикуем NATS-событие завершения
+	s.publishEvent(fmt.Sprintf(SubjectTestRunCompleted, run.ID.String()), map[string]interface{}{
+		"run_id":     run.ID,
+		"project_id": projectID,
+		"title":      title,
+		"total":      len(resultInputs),
+	})
+
+	// 9. Возвращаем детальный ответ
+	return s.GetTestRunDetail(ctx, run.ID)
+}
+
+// ImportAllureToExistingRun импортирует результаты Allure в существующий прогон.
+func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, runID, userID uuid.UUID, req ImportAllureRequest) (*TestRunDetailResponse, error) {
+	// Проверяем существование прогона
+	run, err := s.repo.GetTestRun(ctx, runID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("прогон не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона")
+	}
+
+	// Парсим результаты
+	allureResults, err := ParseAllureResults(req.Results)
+	if err != nil {
+		return nil, apperrors.NewBadRequest("некорректный allure JSON: " + err.Error())
+	}
+	if len(allureResults) == 0 {
+		return nil, apperrors.NewBadRequest("пустой массив результатов Allure")
+	}
+
+	// Сохраняем в MongoDB
+	if err := s.repo.StoreAllureResults(ctx, run.ID, allureResults); err != nil {
+		slog.Error("ошибка сохранения allure результатов в MongoDB", "error", err, "run_id", run.ID)
+	}
+
+	// Матчим и создаём результаты
+	resultInputs := make([]CreateTestResultInput, 0, len(allureResults))
+	for _, ar := range allureResults {
+		tc, strategy, matchErr := s.matcher.MatchTestCase(ctx, projectID, &ar)
+		if matchErr != nil {
+			slog.Error("ошибка матчинга allure результата", "error", matchErr, "uuid", ar.UUID)
+			continue
+		}
+
+		input := CreateTestResultInput{
+			Status:     allureStatusToTMS(ar.Status),
+			AllureUUID: ar.UUID,
+		}
+		if ar.Start != nil && ar.Stop != nil {
+			duration := *ar.Stop - *ar.Start
+			input.DurationMs = &duration
+			startTime := time.UnixMilli(*ar.Start)
+			stopTime := time.UnixMilli(*ar.Stop)
+			input.StartedAt = &startTime
+			input.CompletedAt = &stopTime
+		}
+		if ar.StatusDetails != nil {
+			input.ErrorMessage = ar.StatusDetails.Message
+			input.ErrorTrace = ar.StatusDetails.Trace
+		}
+		if tc != nil {
+			input.TestCaseID = &tc.ID
+			input.MatchStrategy = strategy.String()
+		} else {
+			input.MatchStrategy = "unmapped"
+		}
+		resultInputs = append(resultInputs, input)
+	}
+
+	if len(resultInputs) > 0 {
+		_, err = s.repo.BatchCreateTestResults(ctx, run.ID, resultInputs)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка пакетного создания результатов")
+		}
+	}
+
+	if err := s.recomputeRunStats(ctx, run.ID); err != nil {
+		return nil, err
+	}
+
+	return s.GetTestRunDetail(ctx, run.ID)
+}
+
+// GetTestRunHistory возвращает историю последних N прогонов проекта.
+func (s *TMSService) GetTestRunHistory(ctx context.Context, projectID uuid.UUID, limit int) ([]TestRunSummary, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	params := ListTestRunsParams{
+		Offset: 0,
+		Limit:  limit,
+	}
+	runs, _, err := s.repo.ListTestRuns(ctx, projectID, params)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения истории прогонов")
+	}
+
+	summaries := make([]TestRunSummary, 0, len(runs))
+	for _, run := range runs {
+		passRate := float64(0)
+		if run.TotalCount > 0 {
+			passRate = float64(run.PassedCount) / float64(run.TotalCount) * 100
+		}
+		summaries = append(summaries, TestRunSummary{
+			RunID:     run.ID.String(),
+			Title:     run.Title,
+			Total:     run.TotalCount,
+			Passed:    run.PassedCount,
+			Failed:    run.FailedCount,
+			PassRate:  passRate,
+			CreatedAt: run.CreatedAt,
+		})
+	}
+	return summaries, nil
+}
+
+// GetFlakyTests возвращает тест-кейсы с flaky-результатами из последних прогонов.
+func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) ([]TestCaseResponse, error) {
+	// Получаем последние прогоны
+	params := ListTestRunsParams{Offset: 0, Limit: 10}
+	runs, _, err := s.repo.ListTestRuns(ctx, projectID, params)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения прогонов для flaky-анализа")
+	}
+
+	// Собираем историю статусов по тест-кейсам
+	tcStatuses := make(map[uuid.UUID][]string)
+	tcMap := make(map[uuid.UUID]*ent.TestCase)
+	for _, run := range runs {
+		results, err := s.repo.ListTestResults(ctx, run.ID)
+		if err != nil {
+			continue
+		}
+		for _, r := range results {
+			if r.Edges.TestCase != nil {
+				tcID := r.Edges.TestCase.ID
+				tcStatuses[tcID] = append(tcStatuses[tcID], string(r.Status))
+				if _, ok := tcMap[tcID]; !ok {
+					tcMap[tcID] = r.Edges.TestCase
+				}
+			}
+		}
+	}
+
+	// Определяем flaky: если у тест-кейса есть разные статусы
+	var flakyTests []TestCaseResponse
+	for tcID, statuses := range tcStatuses {
+		if len(statuses) < 2 {
+			continue
+		}
+		first := statuses[0]
+		isFlaky := false
+		for _, s := range statuses[1:] {
+			if s != first {
+				isFlaky = true
+				break
+			}
+		}
+		if isFlaky {
+			if tc, ok := tcMap[tcID]; ok {
+				flakyTests = append(flakyTests, *toTestCaseResponse(tc))
+			}
+		}
+	}
+
+	if flakyTests == nil {
+		flakyTests = make([]TestCaseResponse, 0)
+	}
+	return flakyTests, nil
+}
+
+// publishEvent публикует событие в NATS (fire-and-forget).
+// Безопасен при nil NATS-клиенте (пропускает публикацию).
+func (s *TMSService) publishEvent(subject string, payload interface{}) {
+	if s.nats == nil {
+		return
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		slog.Error("не удалось сериализовать TMS событие", "subject", subject, "error", err)
+		return
+	}
+	if err := s.nats.Publish(subject, data); err != nil {
+		slog.Error("не удалось опубликовать TMS событие", "subject", subject, "error", err)
+	}
 }
 
 // ---------------------------------------------------------------------------

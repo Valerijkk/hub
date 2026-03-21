@@ -1,6 +1,8 @@
 package tms
 
 import (
+	"strconv"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
@@ -70,6 +72,18 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	runs.Post("/:runId/results", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.CreateTestResult)
 	runs.Put("/:runId/results/:resultId", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.ExecuteTestResult)
 	runs.Get("/:runId/results", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListTestResults)
+
+	// Allure-импорт результатов
+	runs.Post("/:runId/allure", rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc), h.ImportAllureToExistingRun)
+
+	// Allure-импорт (создание нового прогона)
+	allure := tms.Group("/allure")
+	allure.Post("/import", rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc), h.ImportAllureResults)
+
+	// Отчёты
+	reports := tms.Group("/reports")
+	reports.Get("/history", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestRunHistory)
+	reports.Get("/flaky", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetFlakyTests)
 }
 
 // ---------------------------------------------------------------------------
@@ -922,6 +936,136 @@ func (h *Handler) GetTestRunDetail(c fiber.Ctx) error {
 	}
 
 	resp, err := h.service.GetTestRunDetail(c.Context(), runID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// ---------------------------------------------------------------------------
+// Allure-импорт
+// ---------------------------------------------------------------------------
+
+// ImportAllureResults обрабатывает POST /api/projects/:projectId/tms/allure/import
+// @Summary Импортировать результаты Allure (создать автоматический прогон)
+// @Tags TMS
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body ImportAllureRequest true "Allure результаты"
+// @Success 201 {object} TestRunDetailResponse
+// @Failure 400 {object} errors.AppError
+// @Router /api/projects/{projectId}/tms/allure/import [post]
+func (h *Handler) ImportAllureResults(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	var req ImportAllureRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+
+	resp, err := h.service.ImportAllureResults(c.Context(), projectID, userID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
+// ImportAllureToExistingRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/allure
+// @Summary Добавить результаты Allure в существующий прогон
+// @Tags TMS
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param runId path string true "ID прогона"
+// @Param body body ImportAllureRequest true "Allure результаты"
+// @Success 200 {object} TestRunDetailResponse
+// @Failure 400 {object} errors.AppError
+// @Failure 404 {object} errors.AppError
+// @Router /api/projects/{projectId}/tms/runs/{runId}/allure [post]
+func (h *Handler) ImportAllureToExistingRun(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+	runID, err := parseUUIDParam(c, "runId")
+	if err != nil {
+		return err
+	}
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	var req ImportAllureRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+
+	resp, err := h.service.ImportAllureToExistingRun(c.Context(), projectID, runID, userID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// ---------------------------------------------------------------------------
+// Отчёты
+// ---------------------------------------------------------------------------
+
+// GetTestRunHistory обрабатывает GET /api/projects/:projectId/tms/reports/history
+// @Summary История прогонов тестов
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param limit query int false "Лимит (по умолчанию 20)"
+// @Success 200 {array} TestRunSummary
+// @Router /api/projects/{projectId}/tms/reports/history [get]
+func (h *Handler) GetTestRunHistory(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	limit := 20
+	if l := c.Query("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil {
+			limit = parsed
+		}
+	}
+
+	resp, err := h.service.GetTestRunHistory(c.Context(), projectID, limit)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// GetFlakyTests обрабатывает GET /api/projects/:projectId/tms/reports/flaky
+// @Summary Список flaky тестов
+// @Tags TMS
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} TestCaseResponse
+// @Router /api/projects/{projectId}/tms/reports/flaky [get]
+func (h *Handler) GetFlakyTests(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.GetFlakyTests(c.Context(), projectID)
 	if err != nil {
 		return err
 	}
