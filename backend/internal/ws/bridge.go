@@ -55,6 +55,26 @@ func (b *Bridge) Start() error {
 	}
 	b.subs = append(b.subs, messengerSub)
 
+	// calls.channel.{channelID}.{event} -> room "channel:{channelID}"
+	// Маршрутизирует события звонков (started/ended/joined/left) в WS-комнаты каналов мессенджера.
+	callSub, err := b.nats.Subscribe("calls.channel.>", func(msg *nats.Msg) {
+		b.handleCallEvent(msg)
+	})
+	if err != nil {
+		return err
+	}
+	b.subs = append(b.subs, callSub)
+
+	// calls.chat.{callID} -> room "call:{callID}"
+	// Маршрутизирует сообщения эфемерного чата звонка для real-time доставки.
+	callChatSub, err := b.nats.Subscribe("calls.chat.>", func(msg *nats.Msg) {
+		b.handleCallChatEvent(msg)
+	})
+	if err != nil {
+		return err
+	}
+	b.subs = append(b.subs, callChatSub)
+
 	slog.Info("ws bridge started", "subscriptions", len(b.subs))
 	return nil
 }
@@ -122,6 +142,61 @@ func (b *Bridge) handleMessengerEvent(msg *nats.Msg) {
 	b.hub.BroadcastToRoom(room, ServerMessage{
 		Type:    TypeEvent,
 		Event:   event,
+		Room:    room,
+		Payload: payload,
+	})
+}
+
+// handleCallEvent маршрутизирует NATS-события звонков в соответствующую WS-комнату канала.
+// Формат subject: calls.channel.{channelID}.{event} (started/ended/joined/left)
+// Формат room: channel:{channelID} (те же WS-комнаты что у мессенджера)
+func (b *Bridge) handleCallEvent(msg *nats.Msg) {
+	parts := strings.SplitN(msg.Subject, ".", 4)
+	if len(parts) < 3 {
+		return
+	}
+
+	channelID := parts[2]
+	room := "channel:" + channelID
+
+	event := msg.Subject
+	if len(parts) >= 4 {
+		event = "call." + parts[3]
+	}
+
+	var payload any
+	if len(msg.Data) > 0 {
+		_ = json.Unmarshal(msg.Data, &payload)
+	}
+
+	b.hub.BroadcastToRoom(room, ServerMessage{
+		Type:    TypeEvent,
+		Event:   event,
+		Room:    room,
+		Payload: payload,
+	})
+}
+
+// handleCallChatEvent маршрутизирует сообщения эфемерного чата звонка в WS-комнату звонка.
+// Формат subject: calls.chat.{callID}
+// Формат room: call:{callID}
+func (b *Bridge) handleCallChatEvent(msg *nats.Msg) {
+	parts := strings.SplitN(msg.Subject, ".", 3)
+	if len(parts) < 3 {
+		return
+	}
+
+	callID := parts[2]
+	room := "call:" + callID
+
+	var payload any
+	if len(msg.Data) > 0 {
+		_ = json.Unmarshal(msg.Data, &payload)
+	}
+
+	b.hub.BroadcastToRoom(room, ServerMessage{
+		Type:    TypeEvent,
+		Event:   "chat.message",
 		Room:    room,
 		Payload: payload,
 	})
