@@ -168,6 +168,33 @@ func (r *CombinedRepository) AddFilesToResult(ctx context.Context, resultID uuid
 	return r.ent.AddFilesToResult(ctx, resultID, fileIDs)
 }
 
+// --- Кросс-модульные связи (делегируем в EntRepository) ---
+
+// GetTestCaseLinkedIssues возвращает задачи, привязанные к тест-кейсу.
+func (r *CombinedRepository) GetTestCaseLinkedIssues(ctx context.Context, testCaseID uuid.UUID) ([]*ent.Issue, error) {
+	return r.ent.GetTestCaseLinkedIssues(ctx, testCaseID)
+}
+
+// GetIssueLinkedTestCases возвращает тест-кейсы, привязанные к задаче.
+func (r *CombinedRepository) GetIssueLinkedTestCases(ctx context.Context, issueID uuid.UUID) ([]*ent.TestCase, error) {
+	return r.ent.GetIssueLinkedTestCases(ctx, issueID)
+}
+
+// GetProjectIssuesWithTestCases возвращает задачи проекта с привязанными тест-кейсами.
+func (r *CombinedRepository) GetProjectIssuesWithTestCases(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error) {
+	return r.ent.GetProjectIssuesWithTestCases(ctx, projectID)
+}
+
+// CreateBugIssue создаёт задачу типа bug и привязывает к тест-кейсу.
+func (r *CombinedRepository) CreateBugIssue(ctx context.Context, projectID, userID, testCaseID uuid.UUID, title, description, priority string) (*ent.Issue, error) {
+	return r.ent.CreateBugIssue(ctx, projectID, userID, testCaseID, title, description, priority)
+}
+
+// GetLastResultForTestCase возвращает последний результат для тест-кейса.
+func (r *CombinedRepository) GetLastResultForTestCase(ctx context.Context, testCaseID uuid.UUID) (*ent.TestResult, error) {
+	return r.ent.GetLastResultForTestCase(ctx, testCaseID)
+}
+
 // --- MongoDB (делегируем в MongoRepository) ---
 
 func (r *CombinedRepository) StoreAllureResults(ctx context.Context, runID uuid.UUID, results []AllureResult) error {
