@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTrashRouteImport } from './routes/_authenticated/trash'
 import { Route as AuthenticatedMessengerRouteImport } from './routes/_authenticated/messenger'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCallsRouteImport } from './routes/_authenticated/calls'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
 import { Route as AuthenticatedMessengerIndexRouteImport } from './routes/_authenticated/messenger/index'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings/profile'
@@ -79,6 +80,11 @@ const AuthenticatedMessengerRoute = AuthenticatedMessengerRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCallsRoute = AuthenticatedCallsRouteImport.update({
+  id: '/calls',
+  path: '/calls',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedProjectsIndexRoute =
@@ -215,7 +221,11 @@ const AuthenticatedProjectsProjectIdTmsCasesRoute =
     id: '/cases',
     path: '/cases',
     getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/tms/cases.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedProjectsProjectIdSprintsSprintIdRoute =
   AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport.update({
     id: '/sprints/$sprintId',
@@ -263,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/calls': typeof AuthenticatedCallsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/trash': typeof AuthenticatedTrashRoute
@@ -301,6 +312,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/calls': typeof AuthenticatedCallsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/trash': typeof AuthenticatedTrashRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
@@ -339,6 +351,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/_authenticated/calls': typeof AuthenticatedCallsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/_authenticated/trash': typeof AuthenticatedTrashRoute
@@ -379,6 +392,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/onboarding'
+    | '/calls'
     | '/dashboard'
     | '/messenger'
     | '/trash'
@@ -417,6 +431,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/onboarding'
+    | '/calls'
     | '/dashboard'
     | '/trash'
     | '/admin/audit'
@@ -454,6 +469,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/onboarding'
+    | '/_authenticated/calls'
     | '/_authenticated/dashboard'
     | '/_authenticated/messenger'
     | '/_authenticated/trash'
@@ -545,6 +561,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/calls': {
+      id: '/_authenticated/calls'
+      path: '/calls'
+      fullPath: '/calls'
+      preLoaderRoute: typeof AuthenticatedCallsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/projects/': {
@@ -855,6 +878,7 @@ const AuthenticatedProjectsProjectIdRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedCallsRoute: typeof AuthenticatedCallsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedMessengerRoute: typeof AuthenticatedMessengerRouteWithChildren
   AuthenticatedTrashRoute: typeof AuthenticatedTrashRoute
@@ -871,6 +895,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedCallsRoute: AuthenticatedCallsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedMessengerRoute: AuthenticatedMessengerRouteWithChildren,
   AuthenticatedTrashRoute: AuthenticatedTrashRoute,

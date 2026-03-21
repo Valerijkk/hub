@@ -24,6 +24,7 @@ import {
 const NAV_ICON_COLORS: Record<string, string> = {
   "/dashboard": "text-amber-400",
   "/messenger": "text-emerald-400",
+  "/calls": "text-violet-400",
   "/projects": "text-blue-400",
   "/settings/profile": "text-slate-400",
   "/trash": "text-slate-500",
@@ -380,6 +381,26 @@ export function Sidebar() {
             >
               <path d="M2.5 12.5l1.5-4L2 4a1 1 0 01.9-1.4h10.2A1 1 0 0114 4l-2 4.5 1.5 4a1 1 0 01-.9 1.4H2.4a1 1 0 01-.9-1.4z" />
               <path d="M6 7h4M6 9.5h2.5" />
+            </svg>
+          }
+        />
+        <SidebarLink
+          to="/calls"
+          label={t("nav.calls", { defaultValue: "Созвоны" })}
+          collapsed={collapsed}
+          icon={
+            <svg
+              className={NAV_ICON_COLORS["/calls"]}
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2 3.5A1.5 1.5 0 013.5 2h2.13a1 1 0 01.97.76l.45 1.83a1 1 0 01-.5 1.1L5.1 6.5a8 8 0 004.4 4.4l.81-1.45a1 1 0 011.1-.5l1.83.45a1 1 0 01.76.97v2.13a1.5 1.5 0 01-1.5 1.5A11.5 11.5 0 012 3.5z" />
             </svg>
           }
         />
