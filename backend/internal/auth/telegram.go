@@ -23,16 +23,10 @@ type TelegramUser struct {
 	Username  string `json:"username"`
 }
 
-// VerifyTelegramAuth проверяет HMAC-SHA256 подпись Telegram Web App initData.
-//
-// Steps:
-//  1. Parse initData as URL query params.
-//  2. Extract and remove the "hash" parameter.
-//  3. Sort remaining params alphabetically by key.
-//  4. Build data_check_string as "key=value\n..." (without trailing newline).
-//  5. secret = HMAC-SHA256("WebAppData", botToken).
-//  6. Compute HMAC-SHA256(secret, dataCheckString) and compare with hash.
-//  7. Verify auth_date is not older than 5 minutes.
+// VerifyTelegramAuth проверяет подпись Telegram-данных.
+// Поддерживает два формата:
+//   - Web App initData (user=JSON, secret = HMAC-SHA256("WebAppData", botToken))
+//   - Login Widget (id/first_name/... напрямую, secret = SHA256(botToken))
 func VerifyTelegramAuth(botToken, initData string) (*TelegramUser, error) {
 	params, err := url.ParseQuery(initData)
 	if err != nil {
@@ -62,10 +56,20 @@ func VerifyTelegramAuth(botToken, initData string) (*TelegramUser, error) {
 		dataCheckString.WriteString(params.Get(k))
 	}
 
-	// secret = HMAC-SHA256("WebAppData", botToken)
-	secretKey := hmac.New(sha256.New, []byte("WebAppData"))
-	secretKey.Write([]byte(botToken))
-	secret := secretKey.Sum(nil)
+	// Определяем формат по наличию поля "user" (Web App) или "id" (Login Widget).
+	isWebApp := params.Get("user") != ""
+
+	var secret []byte
+	if isWebApp {
+		// Web App: secret = HMAC-SHA256("WebAppData", botToken)
+		secretKey := hmac.New(sha256.New, []byte("WebAppData"))
+		secretKey.Write([]byte(botToken))
+		secret = secretKey.Sum(nil)
+	} else {
+		// Login Widget: secret = SHA256(botToken)
+		h := sha256.Sum256([]byte(botToken))
+		secret = h[:]
+	}
 
 	// hash = HMAC-SHA256(secret, dataCheckString)
 	h := hmac.New(sha256.New, secret)
@@ -90,14 +94,26 @@ func VerifyTelegramAuth(botToken, initData string) (*TelegramUser, error) {
 		return nil, ErrTelegramAuthExpired
 	}
 
-	// Parse user JSON from "user" param.
-	userJSON := params.Get("user")
-	if userJSON == "" {
-		return nil, fmt.Errorf("telegram auth: missing user data")
-	}
+	// Parse user data.
 	var tgUser TelegramUser
-	if err := json.Unmarshal([]byte(userJSON), &tgUser); err != nil {
-		return nil, fmt.Errorf("telegram auth: parse user: %w", err)
+	if isWebApp {
+		userJSON := params.Get("user")
+		if err := json.Unmarshal([]byte(userJSON), &tgUser); err != nil {
+			return nil, fmt.Errorf("telegram auth: parse user: %w", err)
+		}
+	} else {
+		// Login Widget: поля напрямую в params.
+		idStr := params.Get("id")
+		if idStr == "" {
+			return nil, fmt.Errorf("telegram auth: missing id")
+		}
+		tgUser.ID, err = strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("telegram auth: invalid id: %w", err)
+		}
+		tgUser.FirstName = params.Get("first_name")
+		tgUser.LastName = params.Get("last_name")
+		tgUser.Username = params.Get("username")
 	}
 
 	return &tgUser, nil
