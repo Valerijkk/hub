@@ -115,16 +115,23 @@ func readPump(conn *websocket.Conn, client *Client, hub *Hub) {
 }
 
 // writePump записывает сообщения из канала отправки клиента в WebSocket-соединение.
+// Защищён от panic при записи в закрытый fasthttp hijackConn.
 func writePump(conn *websocket.Conn, client *Client) {
 	ticker := time.NewTicker(pingPeriod)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		if r := recover(); r != nil {
+			slog.Warn("writePump recovered from panic", "error", r, "userID", client.UserID)
+		}
+	}()
 
 	for {
 		select {
 		case message, ok := <-client.send:
-			_ = conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				return
+			}
 			if !ok {
-				// Hub closed the channel.
 				_ = conn.WriteMessage(websocket.CloseMessage, nil)
 				return
 			}
@@ -132,7 +139,9 @@ func writePump(conn *websocket.Conn, client *Client) {
 				return
 			}
 		case <-ticker.C:
-			_ = conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				return
+			}
 			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
