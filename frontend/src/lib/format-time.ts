@@ -5,8 +5,10 @@
  * @param dateStr - ISO-строка даты
  * @returns Отформатированная строка относительного времени
  */
-export function formatRelativeTime(dateStr: string): string {
+export function formatRelativeTime(dateStr: string | undefined | null): string {
+	if (!dateStr || typeof dateStr !== "string") return "";
 	const date = new Date(dateStr);
+	if (Number.isNaN(date.getTime())) return "";
 	const now = new Date();
 	const diffMs = now.getTime() - date.getTime();
 	const diffMin = Math.floor(diffMs / 60000);

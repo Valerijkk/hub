@@ -5,7 +5,7 @@ import { api } from "./client";
 // ---------------------------------------------------------------------------
 
 /** Тип канала мессенджера. */
-export type ChannelType = "dm" | "group" | "project" | "public";
+export type ChannelType = "dm" | "group" | "private" | "public";
 
 /** Тип вложения сообщения. */
 export type AttachmentType = "file" | "image" | "voice";

@@ -48,14 +48,27 @@ export function useChannels() {
 	);
 	const handleEvent = useCallback(
 		(event: string, payload: unknown) => {
+			if (!payload || typeof payload !== "object") return;
 			const data = payload as Record<string, unknown>;
 			switch (event) {
-				case "channel_created":
-					addChannel(data as unknown as Channel);
+				case "channel_created": {
+					// Ensure required fields exist before adding
+					const ch = data as unknown as Channel;
+					if (ch && typeof ch.id === "string" && typeof ch.name === "string") {
+						addChannel(ch);
+					}
 					break;
+				}
 				case "channel_updated":
 					if (typeof data.id === "string") {
-						updateChannel(data.id, data as Partial<Channel>);
+						// Only pass safe string fields to avoid objects in render
+						const partial: Partial<Channel> = {};
+						if (typeof data.name === "string") partial.name = data.name;
+						if (typeof data.description === "string") partial.description = data.description;
+						if (typeof data.channel_type === "string") partial.channel_type = data.channel_type as Channel["channel_type"];
+						if (typeof data.is_readonly === "boolean") partial.is_readonly = data.is_readonly;
+						if (typeof data.updated_at === "string") partial.updated_at = data.updated_at;
+						updateChannel(data.id, partial);
 					}
 					break;
 				case "new_message_notification":

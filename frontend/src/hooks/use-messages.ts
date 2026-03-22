@@ -57,10 +57,35 @@ export function useMessages(channelId: string | undefined) {
 
 			switch (event) {
 				case "message_sent": {
-					const message = data as unknown as Message;
+					// WS event is MessageSentEvent (partial), not full Message.
+					// Build a safe Message from available fields.
+					const evt = data as Record<string, unknown>;
+					const message: Message = {
+						id: (evt.message_id ?? evt.id ?? "") as string,
+						channel_id: (evt.channel_id ?? channelId) as string,
+						sender_id: (evt.sender_id ?? "") as string,
+						content_text: (evt.content_text as string) ?? undefined,
+						content_json: (evt.content_json as Record<string, unknown>) ?? undefined,
+						reply_count: (evt.reply_count as number) ?? 0,
+						created_at: (evt.created_at as string) ?? new Date().toISOString(),
+						thread_id: (evt.thread_id as string) ?? undefined,
+						reactions: (evt.reactions as Message["reactions"]) ?? undefined,
+						attachments: (evt.attachments as Message["attachments"]) ?? undefined,
+						forwarded_from_id: (evt.forwarded_from_id as string) ?? undefined,
+						edited_at: (evt.edited_at as string) ?? undefined,
+						deleted_at: (evt.deleted_at as string) ?? undefined,
+						voice_url: (evt.voice_url as string) ?? undefined,
+						voice_duration_ms: (evt.voice_duration_ms as number) ?? undefined,
+						mentions: (evt.mentions as string[]) ?? undefined,
+						mention_groups: (evt.mention_groups as string[]) ?? undefined,
+					};
+					if (!message.id) break; // Skip malformed events
 					queryClient.setQueryData(queryKey, (old: unknown) => {
 						if (!old) return old;
 						const typed = old as { pages: Message[][]; pageParams: unknown[] };
+						// Deduplicate: skip if message already exists
+						const exists = typed.pages.some((page) => page.some((m) => m.id === message.id));
+						if (exists) return old;
 						const lastPage = typed.pages[typed.pages.length - 1] ?? [];
 						return {
 							...typed,
@@ -70,21 +95,34 @@ export function useMessages(channelId: string | undefined) {
 					break;
 				}
 				case "message_edited": {
-					const updated = data as unknown as Message;
+					const evt = data as Record<string, unknown>;
+					const editedId = (evt.message_id ?? evt.id) as string;
+					if (!editedId) break;
 					queryClient.setQueryData(queryKey, (old: unknown) => {
 						if (!old) return old;
 						const typed = old as { pages: Message[][]; pageParams: unknown[] };
 						return {
 							...typed,
 							pages: typed.pages.map((page) =>
-								page.map((msg) => (msg.id === updated.id ? updated : msg)),
+								page.map((msg) =>
+									msg.id === editedId
+										? {
+												...msg,
+												content_json: (evt.content_json as Record<string, unknown>) ?? msg.content_json,
+												content_text: (evt.content_text as string) ?? msg.content_text,
+												edited_at: (evt.edited_at as string) ?? new Date().toISOString(),
+											}
+										: msg,
+								),
 							),
 						};
 					});
 					break;
 				}
 				case "message_deleted": {
-					const deletedId = data.message_id as string;
+					const deletedEvt = data as Record<string, unknown>;
+					const deletedId = (deletedEvt.message_id ?? deletedEvt.id) as string;
+					if (!deletedId) break;
 					queryClient.setQueryData(queryKey, (old: unknown) => {
 						if (!old) return old;
 						const typed = old as { pages: Message[][]; pageParams: unknown[] };
@@ -98,8 +136,9 @@ export function useMessages(channelId: string | undefined) {
 					break;
 				}
 				case "reaction_toggled": {
-					const msgId = data.message_id as string;
-					const reactions = data.reactions as Message["reactions"];
+					const reactEvt = data as Record<string, unknown>;
+					const msgId = (reactEvt.message_id ?? reactEvt.id) as string;
+					const reactions = reactEvt.reactions as Message["reactions"];
 					queryClient.setQueryData(queryKey, (old: unknown) => {
 						if (!old) return old;
 						const typed = old as { pages: Message[][]; pageParams: unknown[] };
@@ -183,10 +222,33 @@ export function useThreadMessages(
 			const queryKey = ["messenger", "thread", channelId, messageId];
 
 			if (event === "message_sent") {
-				const message = data as unknown as Message;
+				// Build safe Message from WS event
+				const evt = data;
+				const message: Message = {
+					id: (evt.message_id ?? evt.id ?? "") as string,
+					channel_id: (evt.channel_id ?? channelId) as string,
+					sender_id: (evt.sender_id ?? "") as string,
+					content_text: (evt.content_text as string) ?? undefined,
+					content_json: (evt.content_json as Record<string, unknown>) ?? undefined,
+					reply_count: (evt.reply_count as number) ?? 0,
+					created_at: (evt.created_at as string) ?? new Date().toISOString(),
+					thread_id: (evt.thread_id as string) ?? undefined,
+					reactions: (evt.reactions as Message["reactions"]) ?? undefined,
+					attachments: (evt.attachments as Message["attachments"]) ?? undefined,
+					forwarded_from_id: (evt.forwarded_from_id as string) ?? undefined,
+					edited_at: (evt.edited_at as string) ?? undefined,
+					deleted_at: (evt.deleted_at as string) ?? undefined,
+					voice_url: (evt.voice_url as string) ?? undefined,
+					voice_duration_ms: (evt.voice_duration_ms as number) ?? undefined,
+					mentions: (evt.mentions as string[]) ?? undefined,
+					mention_groups: (evt.mention_groups as string[]) ?? undefined,
+				};
+				if (!message.id) return;
 				queryClient.setQueryData(queryKey, (old: unknown) => {
 					if (!old) return old;
 					const typed = old as { pages: Message[][]; pageParams: unknown[] };
+					const exists = typed.pages.some((page) => page.some((m) => m.id === message.id));
+					if (exists) return old;
 					const lastPage = typed.pages[typed.pages.length - 1] ?? [];
 					return {
 						...typed,

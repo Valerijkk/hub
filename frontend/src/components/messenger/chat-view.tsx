@@ -22,8 +22,10 @@ interface ChatViewProps {
  * Возвращает текст разделителя даты на русском языке.
  * "Сегодня", "Вчера" или "15 марта 2026".
  */
-function getDateSeparatorText(dateStr: string): string {
+function getDateSeparatorText(dateStr: string | undefined | null): string {
+	if (!dateStr || typeof dateStr !== "string") return "";
 	const date = new Date(dateStr);
+	if (Number.isNaN(date.getTime())) return "";
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const yesterday = new Date(today);
@@ -45,9 +47,11 @@ function getDateSeparatorText(dateStr: string): string {
  */
 function needsDateSeparator(current: Message, previous?: Message): boolean {
 	if (!previous) return true;
-	const curDate = new Date(current.created_at).toDateString();
-	const prevDate = new Date(previous.created_at).toDateString();
-	return curDate !== prevDate;
+	if (!current.created_at || !previous.created_at) return true;
+	const curDate = new Date(current.created_at);
+	const prevDate = new Date(previous.created_at);
+	if (Number.isNaN(curDate.getTime()) || Number.isNaN(prevDate.getTime())) return true;
+	return curDate.toDateString() !== prevDate.toDateString();
 }
 
 /**
@@ -185,7 +189,11 @@ export function ChatView({ channelId }: ChatViewProps) {
 						</h2>
 						{channel && channel.channel_type !== "dm" && (
 							<span className="text-[11px] text-muted-foreground">
-								{channel.channel_type === "public" ? "Публичный" : "Группа"}
+								{channel.channel_type === "public"
+									? "Публичный"
+									: channel.channel_type === "private"
+										? "Приватный"
+										: "Группа"}
 							</span>
 						)}
 					</div>

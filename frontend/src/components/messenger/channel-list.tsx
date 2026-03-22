@@ -29,11 +29,17 @@ function groupChannels(channels: Channel[]) {
 	const groups: Record<string, { label: string; channels: Channel[] }> = {
 		dm: { label: "ЛИЧНЫЕ", channels: [] },
 		group: { label: "ГРУППОВЫЕ", channels: [] },
-		project: { label: "ПРОЕКТЫ", channels: [] },
+		private: { label: "ПРИВАТНЫЕ", channels: [] },
 		public: { label: "ПУБЛИЧНЫЕ", channels: [] },
 	};
 	for (const ch of channels) {
-		groups[ch.channel_type]?.channels.push(ch);
+		const group = groups[ch.channel_type];
+		if (group) {
+			group.channels.push(ch);
+		} else {
+			// Unknown channel type -- put in group to avoid losing it
+			groups.group?.channels.push(ch);
+		}
 	}
 	return Object.entries(groups).filter(([, g]) => g.channels.length > 0);
 }

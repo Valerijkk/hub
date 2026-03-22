@@ -8,930 +8,930 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
-import { Route as AuthenticatedAdminAuditRouteImport } from "./routes/_authenticated/admin/audit";
-import { Route as AuthenticatedAdminDashboardRouteImport } from "./routes/_authenticated/admin/dashboard";
-import { Route as AuthenticatedAdminLimitsRouteImport } from "./routes/_authenticated/admin/limits";
-import { Route as AuthenticatedAdminTrashRouteImport } from "./routes/_authenticated/admin/trash";
-import { Route as AuthenticatedAdminUsersRouteImport } from "./routes/_authenticated/admin/users";
-import { Route as AuthenticatedCallsRouteImport } from "./routes/_authenticated/calls";
-import { Route as AuthenticatedDashboardRouteImport } from "./routes/_authenticated/dashboard";
-import { Route as AuthenticatedMessengerRouteImport } from "./routes/_authenticated/messenger";
-import { Route as AuthenticatedMessengerChannelIdRouteImport } from "./routes/_authenticated/messenger/$channelId";
-import { Route as AuthenticatedMessengerIndexRouteImport } from "./routes/_authenticated/messenger/index";
-import { Route as AuthenticatedProjectsProjectIdRouteImport } from "./routes/_authenticated/projects/$projectId";
-import { Route as AuthenticatedProjectsProjectIdBacklogRouteImport } from "./routes/_authenticated/projects/$projectId/backlog";
-import { Route as AuthenticatedProjectsProjectIdBoardIndexRouteImport } from "./routes/_authenticated/projects/$projectId/board/index";
-import { Route as AuthenticatedProjectsProjectIdDashboardRouteImport } from "./routes/_authenticated/projects/$projectId/dashboard";
-import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from "./routes/_authenticated/projects/$projectId/index";
-import { Route as AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport } from "./routes/_authenticated/projects/$projectId/issues/$issueKey";
-import { Route as AuthenticatedProjectsProjectIdIssuesIndexRouteImport } from "./routes/_authenticated/projects/$projectId/issues/index";
-import { Route as AuthenticatedProjectsProjectIdIssuesNewRouteImport } from "./routes/_authenticated/projects/$projectId/issues/new";
-import { Route as AuthenticatedProjectsProjectIdSettingsLabelsRouteImport } from "./routes/_authenticated/projects/$projectId/settings/labels";
-import { Route as AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport } from "./routes/_authenticated/projects/$projectId/settings/workflow";
-import { Route as AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport } from "./routes/_authenticated/projects/$projectId/sprints/$sprintId";
-import { Route as AuthenticatedProjectsProjectIdSprintsIndexRouteImport } from "./routes/_authenticated/projects/$projectId/sprints/index";
-import { Route as AuthenticatedProjectsProjectIdTmsRouteImport } from "./routes/_authenticated/projects/$projectId/tms";
-import { Route as AuthenticatedProjectsProjectIdTmsCasesRouteImport } from "./routes/_authenticated/projects/$projectId/tms/cases";
-import { Route as AuthenticatedProjectsProjectIdTmsCasesCaseKeyRouteImport } from "./routes/_authenticated/projects/$projectId/tms/cases_.$caseKey";
-import { Route as AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport } from "./routes/_authenticated/projects/$projectId/tms/environments";
-import { Route as AuthenticatedProjectsProjectIdTmsRunsRouteImport } from "./routes/_authenticated/projects/$projectId/tms/runs";
-import { Route as AuthenticatedProjectsProjectIdTmsRunsRunIdRouteImport } from "./routes/_authenticated/projects/$projectId/tms/runs_.$runId";
-import { Route as AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport } from "./routes/_authenticated/projects/$projectId/tms/traceability";
-import { Route as AuthenticatedProjectsIndexRouteImport } from "./routes/_authenticated/projects/index";
-import { Route as AuthenticatedProjectsNewRouteImport } from "./routes/_authenticated/projects/new";
-import { Route as AuthenticatedSettingsAppearanceRouteImport } from "./routes/_authenticated/settings/appearance";
-import { Route as AuthenticatedSettingsProfileRouteImport } from "./routes/_authenticated/settings/profile";
-import { Route as AuthenticatedTrashRouteImport } from "./routes/_authenticated/trash";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as LoginRouteImport } from "./routes/login";
-import { Route as OnboardingRouteImport } from "./routes/onboarding";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedTrashRouteImport } from './routes/_authenticated/trash'
+import { Route as AuthenticatedMessengerRouteImport } from './routes/_authenticated/messenger'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCallsRouteImport } from './routes/_authenticated/calls'
+import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
+import { Route as AuthenticatedMessengerIndexRouteImport } from './routes/_authenticated/messenger/index'
+import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings/profile'
+import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
+import { Route as AuthenticatedProjectsNewRouteImport } from './routes/_authenticated/projects/new'
+import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects/$projectId'
+import { Route as AuthenticatedMessengerChannelIdRouteImport } from './routes/_authenticated/messenger/$channelId'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
+import { Route as AuthenticatedAdminTrashRouteImport } from './routes/_authenticated/admin/trash'
+import { Route as AuthenticatedAdminLimitsRouteImport } from './routes/_authenticated/admin/limits'
+import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/admin/dashboard'
+import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
+import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects/$projectId/index'
+import { Route as AuthenticatedProjectsProjectIdTmsRouteImport } from './routes/_authenticated/projects/$projectId/tms'
+import { Route as AuthenticatedProjectsProjectIdDashboardRouteImport } from './routes/_authenticated/projects/$projectId/dashboard'
+import { Route as AuthenticatedProjectsProjectIdBacklogRouteImport } from './routes/_authenticated/projects/$projectId/backlog'
+import { Route as AuthenticatedProjectsProjectIdSprintsIndexRouteImport } from './routes/_authenticated/projects/$projectId/sprints/index'
+import { Route as AuthenticatedProjectsProjectIdIssuesIndexRouteImport } from './routes/_authenticated/projects/$projectId/issues/index'
+import { Route as AuthenticatedProjectsProjectIdBoardIndexRouteImport } from './routes/_authenticated/projects/$projectId/board/index'
+import { Route as AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport } from './routes/_authenticated/projects/$projectId/tms/traceability'
+import { Route as AuthenticatedProjectsProjectIdTmsRunsRouteImport } from './routes/_authenticated/projects/$projectId/tms/runs'
+import { Route as AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport } from './routes/_authenticated/projects/$projectId/tms/environments'
+import { Route as AuthenticatedProjectsProjectIdTmsCasesRouteImport } from './routes/_authenticated/projects/$projectId/tms/cases'
+import { Route as AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport } from './routes/_authenticated/projects/$projectId/sprints/$sprintId'
+import { Route as AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport } from './routes/_authenticated/projects/$projectId/settings/workflow'
+import { Route as AuthenticatedProjectsProjectIdSettingsLabelsRouteImport } from './routes/_authenticated/projects/$projectId/settings/labels'
+import { Route as AuthenticatedProjectsProjectIdIssuesNewRouteImport } from './routes/_authenticated/projects/$projectId/issues/new'
+import { Route as AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport } from './routes/_authenticated/projects/$projectId/issues/$issueKey'
+import { Route as AuthenticatedProjectsProjectIdTmsRunsRunIdRouteImport } from './routes/_authenticated/projects/$projectId/tms/runs_.$runId'
+import { Route as AuthenticatedProjectsProjectIdTmsCasesCaseKeyRouteImport } from './routes/_authenticated/projects/$projectId/tms/cases_.$caseKey'
 
 const OnboardingRoute = OnboardingRouteImport.update({
-	id: "/onboarding",
-	path: "/onboarding",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
-	id: "/login",
-	path: "/login",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
-	id: "/_authenticated",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
-	id: "/",
-	path: "/",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedTrashRoute = AuthenticatedTrashRouteImport.update({
-	id: "/trash",
-	path: "/trash",
-	getParentRoute: () => AuthenticatedRoute,
-} as any);
+  id: '/trash',
+  path: '/trash',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedMessengerRoute = AuthenticatedMessengerRouteImport.update({
-	id: "/messenger",
-	path: "/messenger",
-	getParentRoute: () => AuthenticatedRoute,
-} as any);
+  id: '/messenger',
+  path: '/messenger',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-	id: "/dashboard",
-	path: "/dashboard",
-	getParentRoute: () => AuthenticatedRoute,
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
 } as any).lazy(() =>
-	import("./routes/_authenticated/dashboard.lazy").then((d) => d.Route),
-);
+  import('./routes/_authenticated/dashboard.lazy').then((d) => d.Route),
+)
 const AuthenticatedCallsRoute = AuthenticatedCallsRouteImport.update({
-	id: "/calls",
-	path: "/calls",
-	getParentRoute: () => AuthenticatedRoute,
-} as any);
+  id: '/calls',
+  path: '/calls',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedProjectsIndexRoute =
-	AuthenticatedProjectsIndexRouteImport.update({
-		id: "/projects/",
-		path: "/projects/",
-		getParentRoute: () => AuthenticatedRoute,
-	} as any);
+  AuthenticatedProjectsIndexRouteImport.update({
+    id: '/projects/',
+    path: '/projects/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMessengerIndexRoute =
-	AuthenticatedMessengerIndexRouteImport.update({
-		id: "/",
-		path: "/",
-		getParentRoute: () => AuthenticatedMessengerRoute,
-	} as any);
+  AuthenticatedMessengerIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedMessengerRoute,
+  } as any)
 const AuthenticatedSettingsProfileRoute =
-	AuthenticatedSettingsProfileRouteImport.update({
-		id: "/settings/profile",
-		path: "/settings/profile",
-		getParentRoute: () => AuthenticatedRoute,
-	} as any);
+  AuthenticatedSettingsProfileRouteImport.update({
+    id: '/settings/profile',
+    path: '/settings/profile',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSettingsAppearanceRoute =
-	AuthenticatedSettingsAppearanceRouteImport.update({
-		id: "/settings/appearance",
-		path: "/settings/appearance",
-		getParentRoute: () => AuthenticatedRoute,
-	} as any);
+  AuthenticatedSettingsAppearanceRouteImport.update({
+    id: '/settings/appearance',
+    path: '/settings/appearance',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedProjectsNewRoute =
-	AuthenticatedProjectsNewRouteImport.update({
-		id: "/projects/new",
-		path: "/projects/new",
-		getParentRoute: () => AuthenticatedRoute,
-	} as any);
+  AuthenticatedProjectsNewRouteImport.update({
+    id: '/projects/new',
+    path: '/projects/new',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdRoute =
-	AuthenticatedProjectsProjectIdRouteImport.update({
-		id: "/projects/$projectId",
-		path: "/projects/$projectId",
-		getParentRoute: () => AuthenticatedRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdRouteImport.update({
+    id: '/projects/$projectId',
+    path: '/projects/$projectId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMessengerChannelIdRoute =
-	AuthenticatedMessengerChannelIdRouteImport.update({
-		id: "/$channelId",
-		path: "/$channelId",
-		getParentRoute: () => AuthenticatedMessengerRoute,
-	} as any);
+  AuthenticatedMessengerChannelIdRouteImport.update({
+    id: '/$channelId',
+    path: '/$channelId',
+    getParentRoute: () => AuthenticatedMessengerRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
-	id: "/admin/users",
-	path: "/admin/users",
-	getParentRoute: () => AuthenticatedRoute,
-} as any);
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAdminTrashRoute = AuthenticatedAdminTrashRouteImport.update({
-	id: "/admin/trash",
-	path: "/admin/trash",
-	getParentRoute: () => AuthenticatedRoute,
-} as any);
+  id: '/admin/trash',
+  path: '/admin/trash',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAdminLimitsRoute =
-	AuthenticatedAdminLimitsRouteImport.update({
-		id: "/admin/limits",
-		path: "/admin/limits",
-		getParentRoute: () => AuthenticatedRoute,
-	} as any);
+  AuthenticatedAdminLimitsRouteImport.update({
+    id: '/admin/limits',
+    path: '/admin/limits',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminDashboardRoute =
-	AuthenticatedAdminDashboardRouteImport.update({
-		id: "/admin/dashboard",
-		path: "/admin/dashboard",
-		getParentRoute: () => AuthenticatedRoute,
-	} as any);
+  AuthenticatedAdminDashboardRouteImport.update({
+    id: '/admin/dashboard',
+    path: '/admin/dashboard',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
-	id: "/admin/audit",
-	path: "/admin/audit",
-	getParentRoute: () => AuthenticatedRoute,
-} as any);
+  id: '/admin/audit',
+  path: '/admin/audit',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedProjectsProjectIdIndexRoute =
-	AuthenticatedProjectsProjectIdIndexRouteImport.update({
-		id: "/",
-		path: "/",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTmsRoute =
-	AuthenticatedProjectsProjectIdTmsRouteImport.update({
-		id: "/tms",
-		path: "/tms",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdTmsRouteImport.update({
+    id: '/tms',
+    path: '/tms',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdDashboardRoute =
-	AuthenticatedProjectsProjectIdDashboardRouteImport.update({
-		id: "/dashboard",
-		path: "/dashboard",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any).lazy(() =>
-		import("./routes/_authenticated/projects/$projectId/dashboard.lazy").then(
-			(d) => d.Route,
-		),
-	);
+  AuthenticatedProjectsProjectIdDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/dashboard.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedProjectsProjectIdBacklogRoute =
-	AuthenticatedProjectsProjectIdBacklogRouteImport.update({
-		id: "/backlog",
-		path: "/backlog",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdBacklogRouteImport.update({
+    id: '/backlog',
+    path: '/backlog',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdSprintsIndexRoute =
-	AuthenticatedProjectsProjectIdSprintsIndexRouteImport.update({
-		id: "/sprints/",
-		path: "/sprints/",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdSprintsIndexRouteImport.update({
+    id: '/sprints/',
+    path: '/sprints/',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdIssuesIndexRoute =
-	AuthenticatedProjectsProjectIdIssuesIndexRouteImport.update({
-		id: "/issues/",
-		path: "/issues/",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdIssuesIndexRouteImport.update({
+    id: '/issues/',
+    path: '/issues/',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdBoardIndexRoute =
-	AuthenticatedProjectsProjectIdBoardIndexRouteImport.update({
-		id: "/board/",
-		path: "/board/",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdBoardIndexRouteImport.update({
+    id: '/board/',
+    path: '/board/',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTmsTraceabilityRoute =
-	AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport.update({
-		id: "/traceability",
-		path: "/traceability",
-		getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport.update({
+    id: '/traceability',
+    path: '/traceability',
+    getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTmsRunsRoute =
-	AuthenticatedProjectsProjectIdTmsRunsRouteImport.update({
-		id: "/runs",
-		path: "/runs",
-		getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
-	} as any).lazy(() =>
-		import("./routes/_authenticated/projects/$projectId/tms/runs.lazy").then(
-			(d) => d.Route,
-		),
-	);
+  AuthenticatedProjectsProjectIdTmsRunsRouteImport.update({
+    id: '/runs',
+    path: '/runs',
+    getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/tms/runs.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedProjectsProjectIdTmsEnvironmentsRoute =
-	AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport.update({
-		id: "/environments",
-		path: "/environments",
-		getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport.update({
+    id: '/environments',
+    path: '/environments',
+    getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTmsCasesRoute =
-	AuthenticatedProjectsProjectIdTmsCasesRouteImport.update({
-		id: "/cases",
-		path: "/cases",
-		getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
-	} as any).lazy(() =>
-		import("./routes/_authenticated/projects/$projectId/tms/cases.lazy").then(
-			(d) => d.Route,
-		),
-	);
+  AuthenticatedProjectsProjectIdTmsCasesRouteImport.update({
+    id: '/cases',
+    path: '/cases',
+    getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/tms/cases.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedProjectsProjectIdSprintsSprintIdRoute =
-	AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport.update({
-		id: "/sprints/$sprintId",
-		path: "/sprints/$sprintId",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport.update({
+    id: '/sprints/$sprintId',
+    path: '/sprints/$sprintId',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdSettingsWorkflowRoute =
-	AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport.update({
-		id: "/settings/workflow",
-		path: "/settings/workflow",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport.update({
+    id: '/settings/workflow',
+    path: '/settings/workflow',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdSettingsLabelsRoute =
-	AuthenticatedProjectsProjectIdSettingsLabelsRouteImport.update({
-		id: "/settings/labels",
-		path: "/settings/labels",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdSettingsLabelsRouteImport.update({
+    id: '/settings/labels',
+    path: '/settings/labels',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdIssuesNewRoute =
-	AuthenticatedProjectsProjectIdIssuesNewRouteImport.update({
-		id: "/issues/new",
-		path: "/issues/new",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdIssuesNewRouteImport.update({
+    id: '/issues/new',
+    path: '/issues/new',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdIssuesIssueKeyRoute =
-	AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport.update({
-		id: "/issues/$issueKey",
-		path: "/issues/$issueKey",
-		getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport.update({
+    id: '/issues/$issueKey',
+    path: '/issues/$issueKey',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTmsRunsRunIdRoute =
-	AuthenticatedProjectsProjectIdTmsRunsRunIdRouteImport.update({
-		id: "/runs_/$runId",
-		path: "/runs/$runId",
-		getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdTmsRunsRunIdRouteImport.update({
+    id: '/runs_/$runId',
+    path: '/runs/$runId',
+    getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute =
-	AuthenticatedProjectsProjectIdTmsCasesCaseKeyRouteImport.update({
-		id: "/cases_/$caseKey",
-		path: "/cases/$caseKey",
-		getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
-	} as any);
+  AuthenticatedProjectsProjectIdTmsCasesCaseKeyRouteImport.update({
+    id: '/cases_/$caseKey',
+    path: '/cases/$caseKey',
+    getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-	"/": typeof IndexRoute;
-	"/login": typeof LoginRoute;
-	"/onboarding": typeof OnboardingRoute;
-	"/calls": typeof AuthenticatedCallsRoute;
-	"/dashboard": typeof AuthenticatedDashboardRoute;
-	"/messenger": typeof AuthenticatedMessengerRouteWithChildren;
-	"/trash": typeof AuthenticatedTrashRoute;
-	"/admin/audit": typeof AuthenticatedAdminAuditRoute;
-	"/admin/dashboard": typeof AuthenticatedAdminDashboardRoute;
-	"/admin/limits": typeof AuthenticatedAdminLimitsRoute;
-	"/admin/trash": typeof AuthenticatedAdminTrashRoute;
-	"/admin/users": typeof AuthenticatedAdminUsersRoute;
-	"/messenger/$channelId": typeof AuthenticatedMessengerChannelIdRoute;
-	"/projects/$projectId": typeof AuthenticatedProjectsProjectIdRouteWithChildren;
-	"/projects/new": typeof AuthenticatedProjectsNewRoute;
-	"/settings/appearance": typeof AuthenticatedSettingsAppearanceRoute;
-	"/settings/profile": typeof AuthenticatedSettingsProfileRoute;
-	"/messenger/": typeof AuthenticatedMessengerIndexRoute;
-	"/projects/": typeof AuthenticatedProjectsIndexRoute;
-	"/projects/$projectId/backlog": typeof AuthenticatedProjectsProjectIdBacklogRoute;
-	"/projects/$projectId/dashboard": typeof AuthenticatedProjectsProjectIdDashboardRoute;
-	"/projects/$projectId/tms": typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren;
-	"/projects/$projectId/": typeof AuthenticatedProjectsProjectIdIndexRoute;
-	"/projects/$projectId/issues/$issueKey": typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute;
-	"/projects/$projectId/issues/new": typeof AuthenticatedProjectsProjectIdIssuesNewRoute;
-	"/projects/$projectId/settings/labels": typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute;
-	"/projects/$projectId/settings/workflow": typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute;
-	"/projects/$projectId/sprints/$sprintId": typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute;
-	"/projects/$projectId/tms/cases": typeof AuthenticatedProjectsProjectIdTmsCasesRoute;
-	"/projects/$projectId/tms/environments": typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute;
-	"/projects/$projectId/tms/runs": typeof AuthenticatedProjectsProjectIdTmsRunsRoute;
-	"/projects/$projectId/tms/traceability": typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute;
-	"/projects/$projectId/board/": typeof AuthenticatedProjectsProjectIdBoardIndexRoute;
-	"/projects/$projectId/issues/": typeof AuthenticatedProjectsProjectIdIssuesIndexRoute;
-	"/projects/$projectId/sprints/": typeof AuthenticatedProjectsProjectIdSprintsIndexRoute;
-	"/projects/$projectId/tms/cases/$caseKey": typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute;
-	"/projects/$projectId/tms/runs/$runId": typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute;
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/calls': typeof AuthenticatedCallsRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/messenger': typeof AuthenticatedMessengerRouteWithChildren
+  '/trash': typeof AuthenticatedTrashRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/admin/limits': typeof AuthenticatedAdminLimitsRoute
+  '/admin/trash': typeof AuthenticatedAdminTrashRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
+  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
+  '/projects/new': typeof AuthenticatedProjectsNewRoute
+  '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/messenger/': typeof AuthenticatedMessengerIndexRoute
+  '/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
+  '/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
+  '/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
+  '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
+  '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
+  '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  '/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
+  '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  '/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
+  '/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
+  '/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
+  '/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
+  '/projects/$projectId/tms/traceability': typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
+  '/projects/$projectId/board/': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
+  '/projects/$projectId/issues/': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
+  '/projects/$projectId/sprints/': typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
+  '/projects/$projectId/tms/cases/$caseKey': typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute
+  '/projects/$projectId/tms/runs/$runId': typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute
 }
 export interface FileRoutesByTo {
-	"/": typeof IndexRoute;
-	"/login": typeof LoginRoute;
-	"/onboarding": typeof OnboardingRoute;
-	"/calls": typeof AuthenticatedCallsRoute;
-	"/dashboard": typeof AuthenticatedDashboardRoute;
-	"/trash": typeof AuthenticatedTrashRoute;
-	"/admin/audit": typeof AuthenticatedAdminAuditRoute;
-	"/admin/dashboard": typeof AuthenticatedAdminDashboardRoute;
-	"/admin/limits": typeof AuthenticatedAdminLimitsRoute;
-	"/admin/trash": typeof AuthenticatedAdminTrashRoute;
-	"/admin/users": typeof AuthenticatedAdminUsersRoute;
-	"/messenger/$channelId": typeof AuthenticatedMessengerChannelIdRoute;
-	"/projects/new": typeof AuthenticatedProjectsNewRoute;
-	"/settings/appearance": typeof AuthenticatedSettingsAppearanceRoute;
-	"/settings/profile": typeof AuthenticatedSettingsProfileRoute;
-	"/messenger": typeof AuthenticatedMessengerIndexRoute;
-	"/projects": typeof AuthenticatedProjectsIndexRoute;
-	"/projects/$projectId/backlog": typeof AuthenticatedProjectsProjectIdBacklogRoute;
-	"/projects/$projectId/dashboard": typeof AuthenticatedProjectsProjectIdDashboardRoute;
-	"/projects/$projectId/tms": typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren;
-	"/projects/$projectId": typeof AuthenticatedProjectsProjectIdIndexRoute;
-	"/projects/$projectId/issues/$issueKey": typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute;
-	"/projects/$projectId/issues/new": typeof AuthenticatedProjectsProjectIdIssuesNewRoute;
-	"/projects/$projectId/settings/labels": typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute;
-	"/projects/$projectId/settings/workflow": typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute;
-	"/projects/$projectId/sprints/$sprintId": typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute;
-	"/projects/$projectId/tms/cases": typeof AuthenticatedProjectsProjectIdTmsCasesRoute;
-	"/projects/$projectId/tms/environments": typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute;
-	"/projects/$projectId/tms/runs": typeof AuthenticatedProjectsProjectIdTmsRunsRoute;
-	"/projects/$projectId/tms/traceability": typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute;
-	"/projects/$projectId/board": typeof AuthenticatedProjectsProjectIdBoardIndexRoute;
-	"/projects/$projectId/issues": typeof AuthenticatedProjectsProjectIdIssuesIndexRoute;
-	"/projects/$projectId/sprints": typeof AuthenticatedProjectsProjectIdSprintsIndexRoute;
-	"/projects/$projectId/tms/cases/$caseKey": typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute;
-	"/projects/$projectId/tms/runs/$runId": typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute;
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/calls': typeof AuthenticatedCallsRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/trash': typeof AuthenticatedTrashRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/admin/limits': typeof AuthenticatedAdminLimitsRoute
+  '/admin/trash': typeof AuthenticatedAdminTrashRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
+  '/projects/new': typeof AuthenticatedProjectsNewRoute
+  '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/messenger': typeof AuthenticatedMessengerIndexRoute
+  '/projects': typeof AuthenticatedProjectsIndexRoute
+  '/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
+  '/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
+  '/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
+  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
+  '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
+  '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  '/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
+  '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  '/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
+  '/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
+  '/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
+  '/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
+  '/projects/$projectId/tms/traceability': typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
+  '/projects/$projectId/board': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
+  '/projects/$projectId/issues': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
+  '/projects/$projectId/sprints': typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
+  '/projects/$projectId/tms/cases/$caseKey': typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute
+  '/projects/$projectId/tms/runs/$runId': typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute
 }
 export interface FileRoutesById {
-	__root__: typeof rootRouteImport;
-	"/": typeof IndexRoute;
-	"/_authenticated": typeof AuthenticatedRouteWithChildren;
-	"/login": typeof LoginRoute;
-	"/onboarding": typeof OnboardingRoute;
-	"/_authenticated/calls": typeof AuthenticatedCallsRoute;
-	"/_authenticated/dashboard": typeof AuthenticatedDashboardRoute;
-	"/_authenticated/messenger": typeof AuthenticatedMessengerRouteWithChildren;
-	"/_authenticated/trash": typeof AuthenticatedTrashRoute;
-	"/_authenticated/admin/audit": typeof AuthenticatedAdminAuditRoute;
-	"/_authenticated/admin/dashboard": typeof AuthenticatedAdminDashboardRoute;
-	"/_authenticated/admin/limits": typeof AuthenticatedAdminLimitsRoute;
-	"/_authenticated/admin/trash": typeof AuthenticatedAdminTrashRoute;
-	"/_authenticated/admin/users": typeof AuthenticatedAdminUsersRoute;
-	"/_authenticated/messenger/$channelId": typeof AuthenticatedMessengerChannelIdRoute;
-	"/_authenticated/projects/$projectId": typeof AuthenticatedProjectsProjectIdRouteWithChildren;
-	"/_authenticated/projects/new": typeof AuthenticatedProjectsNewRoute;
-	"/_authenticated/settings/appearance": typeof AuthenticatedSettingsAppearanceRoute;
-	"/_authenticated/settings/profile": typeof AuthenticatedSettingsProfileRoute;
-	"/_authenticated/messenger/": typeof AuthenticatedMessengerIndexRoute;
-	"/_authenticated/projects/": typeof AuthenticatedProjectsIndexRoute;
-	"/_authenticated/projects/$projectId/backlog": typeof AuthenticatedProjectsProjectIdBacklogRoute;
-	"/_authenticated/projects/$projectId/dashboard": typeof AuthenticatedProjectsProjectIdDashboardRoute;
-	"/_authenticated/projects/$projectId/tms": typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren;
-	"/_authenticated/projects/$projectId/": typeof AuthenticatedProjectsProjectIdIndexRoute;
-	"/_authenticated/projects/$projectId/issues/$issueKey": typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute;
-	"/_authenticated/projects/$projectId/issues/new": typeof AuthenticatedProjectsProjectIdIssuesNewRoute;
-	"/_authenticated/projects/$projectId/settings/labels": typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute;
-	"/_authenticated/projects/$projectId/settings/workflow": typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute;
-	"/_authenticated/projects/$projectId/sprints/$sprintId": typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute;
-	"/_authenticated/projects/$projectId/tms/cases": typeof AuthenticatedProjectsProjectIdTmsCasesRoute;
-	"/_authenticated/projects/$projectId/tms/environments": typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute;
-	"/_authenticated/projects/$projectId/tms/runs": typeof AuthenticatedProjectsProjectIdTmsRunsRoute;
-	"/_authenticated/projects/$projectId/tms/traceability": typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute;
-	"/_authenticated/projects/$projectId/board/": typeof AuthenticatedProjectsProjectIdBoardIndexRoute;
-	"/_authenticated/projects/$projectId/issues/": typeof AuthenticatedProjectsProjectIdIssuesIndexRoute;
-	"/_authenticated/projects/$projectId/sprints/": typeof AuthenticatedProjectsProjectIdSprintsIndexRoute;
-	"/_authenticated/projects/$projectId/tms/cases_/$caseKey": typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute;
-	"/_authenticated/projects/$projectId/tms/runs_/$runId": typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/_authenticated/calls': typeof AuthenticatedCallsRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/messenger': typeof AuthenticatedMessengerRouteWithChildren
+  '/_authenticated/trash': typeof AuthenticatedTrashRoute
+  '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/_authenticated/admin/limits': typeof AuthenticatedAdminLimitsRoute
+  '/_authenticated/admin/trash': typeof AuthenticatedAdminTrashRoute
+  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
+  '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
+  '/_authenticated/projects/new': typeof AuthenticatedProjectsNewRoute
+  '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/_authenticated/messenger/': typeof AuthenticatedMessengerIndexRoute
+  '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/_authenticated/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
+  '/_authenticated/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
+  '/_authenticated/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
+  '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
+  '/_authenticated/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
+  '/_authenticated/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  '/_authenticated/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
+  '/_authenticated/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  '/_authenticated/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
+  '/_authenticated/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
+  '/_authenticated/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
+  '/_authenticated/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
+  '/_authenticated/projects/$projectId/tms/traceability': typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
+  '/_authenticated/projects/$projectId/board/': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
+  '/_authenticated/projects/$projectId/issues/': typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
+  '/_authenticated/projects/$projectId/sprints/': typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
+  '/_authenticated/projects/$projectId/tms/cases_/$caseKey': typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute
+  '/_authenticated/projects/$projectId/tms/runs_/$runId': typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute
 }
 export interface FileRouteTypes {
-	fileRoutesByFullPath: FileRoutesByFullPath;
-	fullPaths:
-		| "/"
-		| "/login"
-		| "/onboarding"
-		| "/calls"
-		| "/dashboard"
-		| "/messenger"
-		| "/trash"
-		| "/admin/audit"
-		| "/admin/dashboard"
-		| "/admin/limits"
-		| "/admin/trash"
-		| "/admin/users"
-		| "/messenger/$channelId"
-		| "/projects/$projectId"
-		| "/projects/new"
-		| "/settings/appearance"
-		| "/settings/profile"
-		| "/messenger/"
-		| "/projects/"
-		| "/projects/$projectId/backlog"
-		| "/projects/$projectId/dashboard"
-		| "/projects/$projectId/tms"
-		| "/projects/$projectId/"
-		| "/projects/$projectId/issues/$issueKey"
-		| "/projects/$projectId/issues/new"
-		| "/projects/$projectId/settings/labels"
-		| "/projects/$projectId/settings/workflow"
-		| "/projects/$projectId/sprints/$sprintId"
-		| "/projects/$projectId/tms/cases"
-		| "/projects/$projectId/tms/environments"
-		| "/projects/$projectId/tms/runs"
-		| "/projects/$projectId/tms/traceability"
-		| "/projects/$projectId/board/"
-		| "/projects/$projectId/issues/"
-		| "/projects/$projectId/sprints/"
-		| "/projects/$projectId/tms/cases/$caseKey"
-		| "/projects/$projectId/tms/runs/$runId";
-	fileRoutesByTo: FileRoutesByTo;
-	to:
-		| "/"
-		| "/login"
-		| "/onboarding"
-		| "/calls"
-		| "/dashboard"
-		| "/trash"
-		| "/admin/audit"
-		| "/admin/dashboard"
-		| "/admin/limits"
-		| "/admin/trash"
-		| "/admin/users"
-		| "/messenger/$channelId"
-		| "/projects/new"
-		| "/settings/appearance"
-		| "/settings/profile"
-		| "/messenger"
-		| "/projects"
-		| "/projects/$projectId/backlog"
-		| "/projects/$projectId/dashboard"
-		| "/projects/$projectId/tms"
-		| "/projects/$projectId"
-		| "/projects/$projectId/issues/$issueKey"
-		| "/projects/$projectId/issues/new"
-		| "/projects/$projectId/settings/labels"
-		| "/projects/$projectId/settings/workflow"
-		| "/projects/$projectId/sprints/$sprintId"
-		| "/projects/$projectId/tms/cases"
-		| "/projects/$projectId/tms/environments"
-		| "/projects/$projectId/tms/runs"
-		| "/projects/$projectId/tms/traceability"
-		| "/projects/$projectId/board"
-		| "/projects/$projectId/issues"
-		| "/projects/$projectId/sprints"
-		| "/projects/$projectId/tms/cases/$caseKey"
-		| "/projects/$projectId/tms/runs/$runId";
-	id:
-		| "__root__"
-		| "/"
-		| "/_authenticated"
-		| "/login"
-		| "/onboarding"
-		| "/_authenticated/calls"
-		| "/_authenticated/dashboard"
-		| "/_authenticated/messenger"
-		| "/_authenticated/trash"
-		| "/_authenticated/admin/audit"
-		| "/_authenticated/admin/dashboard"
-		| "/_authenticated/admin/limits"
-		| "/_authenticated/admin/trash"
-		| "/_authenticated/admin/users"
-		| "/_authenticated/messenger/$channelId"
-		| "/_authenticated/projects/$projectId"
-		| "/_authenticated/projects/new"
-		| "/_authenticated/settings/appearance"
-		| "/_authenticated/settings/profile"
-		| "/_authenticated/messenger/"
-		| "/_authenticated/projects/"
-		| "/_authenticated/projects/$projectId/backlog"
-		| "/_authenticated/projects/$projectId/dashboard"
-		| "/_authenticated/projects/$projectId/tms"
-		| "/_authenticated/projects/$projectId/"
-		| "/_authenticated/projects/$projectId/issues/$issueKey"
-		| "/_authenticated/projects/$projectId/issues/new"
-		| "/_authenticated/projects/$projectId/settings/labels"
-		| "/_authenticated/projects/$projectId/settings/workflow"
-		| "/_authenticated/projects/$projectId/sprints/$sprintId"
-		| "/_authenticated/projects/$projectId/tms/cases"
-		| "/_authenticated/projects/$projectId/tms/environments"
-		| "/_authenticated/projects/$projectId/tms/runs"
-		| "/_authenticated/projects/$projectId/tms/traceability"
-		| "/_authenticated/projects/$projectId/board/"
-		| "/_authenticated/projects/$projectId/issues/"
-		| "/_authenticated/projects/$projectId/sprints/"
-		| "/_authenticated/projects/$projectId/tms/cases_/$caseKey"
-		| "/_authenticated/projects/$projectId/tms/runs_/$runId";
-	fileRoutesById: FileRoutesById;
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/onboarding'
+    | '/calls'
+    | '/dashboard'
+    | '/messenger'
+    | '/trash'
+    | '/admin/audit'
+    | '/admin/dashboard'
+    | '/admin/limits'
+    | '/admin/trash'
+    | '/admin/users'
+    | '/messenger/$channelId'
+    | '/projects/$projectId'
+    | '/projects/new'
+    | '/settings/appearance'
+    | '/settings/profile'
+    | '/messenger/'
+    | '/projects/'
+    | '/projects/$projectId/backlog'
+    | '/projects/$projectId/dashboard'
+    | '/projects/$projectId/tms'
+    | '/projects/$projectId/'
+    | '/projects/$projectId/issues/$issueKey'
+    | '/projects/$projectId/issues/new'
+    | '/projects/$projectId/settings/labels'
+    | '/projects/$projectId/settings/workflow'
+    | '/projects/$projectId/sprints/$sprintId'
+    | '/projects/$projectId/tms/cases'
+    | '/projects/$projectId/tms/environments'
+    | '/projects/$projectId/tms/runs'
+    | '/projects/$projectId/tms/traceability'
+    | '/projects/$projectId/board/'
+    | '/projects/$projectId/issues/'
+    | '/projects/$projectId/sprints/'
+    | '/projects/$projectId/tms/cases/$caseKey'
+    | '/projects/$projectId/tms/runs/$runId'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/login'
+    | '/onboarding'
+    | '/calls'
+    | '/dashboard'
+    | '/trash'
+    | '/admin/audit'
+    | '/admin/dashboard'
+    | '/admin/limits'
+    | '/admin/trash'
+    | '/admin/users'
+    | '/messenger/$channelId'
+    | '/projects/new'
+    | '/settings/appearance'
+    | '/settings/profile'
+    | '/messenger'
+    | '/projects'
+    | '/projects/$projectId/backlog'
+    | '/projects/$projectId/dashboard'
+    | '/projects/$projectId/tms'
+    | '/projects/$projectId'
+    | '/projects/$projectId/issues/$issueKey'
+    | '/projects/$projectId/issues/new'
+    | '/projects/$projectId/settings/labels'
+    | '/projects/$projectId/settings/workflow'
+    | '/projects/$projectId/sprints/$sprintId'
+    | '/projects/$projectId/tms/cases'
+    | '/projects/$projectId/tms/environments'
+    | '/projects/$projectId/tms/runs'
+    | '/projects/$projectId/tms/traceability'
+    | '/projects/$projectId/board'
+    | '/projects/$projectId/issues'
+    | '/projects/$projectId/sprints'
+    | '/projects/$projectId/tms/cases/$caseKey'
+    | '/projects/$projectId/tms/runs/$runId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/login'
+    | '/onboarding'
+    | '/_authenticated/calls'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/messenger'
+    | '/_authenticated/trash'
+    | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/dashboard'
+    | '/_authenticated/admin/limits'
+    | '/_authenticated/admin/trash'
+    | '/_authenticated/admin/users'
+    | '/_authenticated/messenger/$channelId'
+    | '/_authenticated/projects/$projectId'
+    | '/_authenticated/projects/new'
+    | '/_authenticated/settings/appearance'
+    | '/_authenticated/settings/profile'
+    | '/_authenticated/messenger/'
+    | '/_authenticated/projects/'
+    | '/_authenticated/projects/$projectId/backlog'
+    | '/_authenticated/projects/$projectId/dashboard'
+    | '/_authenticated/projects/$projectId/tms'
+    | '/_authenticated/projects/$projectId/'
+    | '/_authenticated/projects/$projectId/issues/$issueKey'
+    | '/_authenticated/projects/$projectId/issues/new'
+    | '/_authenticated/projects/$projectId/settings/labels'
+    | '/_authenticated/projects/$projectId/settings/workflow'
+    | '/_authenticated/projects/$projectId/sprints/$sprintId'
+    | '/_authenticated/projects/$projectId/tms/cases'
+    | '/_authenticated/projects/$projectId/tms/environments'
+    | '/_authenticated/projects/$projectId/tms/runs'
+    | '/_authenticated/projects/$projectId/tms/traceability'
+    | '/_authenticated/projects/$projectId/board/'
+    | '/_authenticated/projects/$projectId/issues/'
+    | '/_authenticated/projects/$projectId/sprints/'
+    | '/_authenticated/projects/$projectId/tms/cases_/$caseKey'
+    | '/_authenticated/projects/$projectId/tms/runs_/$runId'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-	IndexRoute: typeof IndexRoute;
-	AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
-	LoginRoute: typeof LoginRoute;
-	OnboardingRoute: typeof OnboardingRoute;
+  IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
 }
 
-declare module "@tanstack/react-router" {
-	interface FileRoutesByPath {
-		"/onboarding": {
-			id: "/onboarding";
-			path: "/onboarding";
-			fullPath: "/onboarding";
-			preLoaderRoute: typeof OnboardingRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/login": {
-			id: "/login";
-			path: "/login";
-			fullPath: "/login";
-			preLoaderRoute: typeof LoginRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/_authenticated": {
-			id: "/_authenticated";
-			path: "";
-			fullPath: "/";
-			preLoaderRoute: typeof AuthenticatedRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/": {
-			id: "/";
-			path: "/";
-			fullPath: "/";
-			preLoaderRoute: typeof IndexRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/_authenticated/trash": {
-			id: "/_authenticated/trash";
-			path: "/trash";
-			fullPath: "/trash";
-			preLoaderRoute: typeof AuthenticatedTrashRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/messenger": {
-			id: "/_authenticated/messenger";
-			path: "/messenger";
-			fullPath: "/messenger";
-			preLoaderRoute: typeof AuthenticatedMessengerRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/dashboard": {
-			id: "/_authenticated/dashboard";
-			path: "/dashboard";
-			fullPath: "/dashboard";
-			preLoaderRoute: typeof AuthenticatedDashboardRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/calls": {
-			id: "/_authenticated/calls";
-			path: "/calls";
-			fullPath: "/calls";
-			preLoaderRoute: typeof AuthenticatedCallsRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/projects/": {
-			id: "/_authenticated/projects/";
-			path: "/projects";
-			fullPath: "/projects/";
-			preLoaderRoute: typeof AuthenticatedProjectsIndexRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/messenger/": {
-			id: "/_authenticated/messenger/";
-			path: "/";
-			fullPath: "/messenger/";
-			preLoaderRoute: typeof AuthenticatedMessengerIndexRouteImport;
-			parentRoute: typeof AuthenticatedMessengerRoute;
-		};
-		"/_authenticated/settings/profile": {
-			id: "/_authenticated/settings/profile";
-			path: "/settings/profile";
-			fullPath: "/settings/profile";
-			preLoaderRoute: typeof AuthenticatedSettingsProfileRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/settings/appearance": {
-			id: "/_authenticated/settings/appearance";
-			path: "/settings/appearance";
-			fullPath: "/settings/appearance";
-			preLoaderRoute: typeof AuthenticatedSettingsAppearanceRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/projects/new": {
-			id: "/_authenticated/projects/new";
-			path: "/projects/new";
-			fullPath: "/projects/new";
-			preLoaderRoute: typeof AuthenticatedProjectsNewRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/projects/$projectId": {
-			id: "/_authenticated/projects/$projectId";
-			path: "/projects/$projectId";
-			fullPath: "/projects/$projectId";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/messenger/$channelId": {
-			id: "/_authenticated/messenger/$channelId";
-			path: "/$channelId";
-			fullPath: "/messenger/$channelId";
-			preLoaderRoute: typeof AuthenticatedMessengerChannelIdRouteImport;
-			parentRoute: typeof AuthenticatedMessengerRoute;
-		};
-		"/_authenticated/admin/users": {
-			id: "/_authenticated/admin/users";
-			path: "/admin/users";
-			fullPath: "/admin/users";
-			preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/admin/trash": {
-			id: "/_authenticated/admin/trash";
-			path: "/admin/trash";
-			fullPath: "/admin/trash";
-			preLoaderRoute: typeof AuthenticatedAdminTrashRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/admin/limits": {
-			id: "/_authenticated/admin/limits";
-			path: "/admin/limits";
-			fullPath: "/admin/limits";
-			preLoaderRoute: typeof AuthenticatedAdminLimitsRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/admin/dashboard": {
-			id: "/_authenticated/admin/dashboard";
-			path: "/admin/dashboard";
-			fullPath: "/admin/dashboard";
-			preLoaderRoute: typeof AuthenticatedAdminDashboardRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/admin/audit": {
-			id: "/_authenticated/admin/audit";
-			path: "/admin/audit";
-			fullPath: "/admin/audit";
-			preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport;
-			parentRoute: typeof AuthenticatedRoute;
-		};
-		"/_authenticated/projects/$projectId/": {
-			id: "/_authenticated/projects/$projectId/";
-			path: "/";
-			fullPath: "/projects/$projectId/";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdIndexRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/tms": {
-			id: "/_authenticated/projects/$projectId/tms";
-			path: "/tms";
-			fullPath: "/projects/$projectId/tms";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/dashboard": {
-			id: "/_authenticated/projects/$projectId/dashboard";
-			path: "/dashboard";
-			fullPath: "/projects/$projectId/dashboard";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdDashboardRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/backlog": {
-			id: "/_authenticated/projects/$projectId/backlog";
-			path: "/backlog";
-			fullPath: "/projects/$projectId/backlog";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdBacklogRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/sprints/": {
-			id: "/_authenticated/projects/$projectId/sprints/";
-			path: "/sprints";
-			fullPath: "/projects/$projectId/sprints/";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdSprintsIndexRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/issues/": {
-			id: "/_authenticated/projects/$projectId/issues/";
-			path: "/issues";
-			fullPath: "/projects/$projectId/issues/";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdIssuesIndexRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/board/": {
-			id: "/_authenticated/projects/$projectId/board/";
-			path: "/board";
-			fullPath: "/projects/$projectId/board/";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdBoardIndexRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/tms/traceability": {
-			id: "/_authenticated/projects/$projectId/tms/traceability";
-			path: "/traceability";
-			fullPath: "/projects/$projectId/tms/traceability";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute;
-		};
-		"/_authenticated/projects/$projectId/tms/runs": {
-			id: "/_authenticated/projects/$projectId/tms/runs";
-			path: "/runs";
-			fullPath: "/projects/$projectId/tms/runs";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute;
-		};
-		"/_authenticated/projects/$projectId/tms/environments": {
-			id: "/_authenticated/projects/$projectId/tms/environments";
-			path: "/environments";
-			fullPath: "/projects/$projectId/tms/environments";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute;
-		};
-		"/_authenticated/projects/$projectId/tms/cases": {
-			id: "/_authenticated/projects/$projectId/tms/cases";
-			path: "/cases";
-			fullPath: "/projects/$projectId/tms/cases";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsCasesRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute;
-		};
-		"/_authenticated/projects/$projectId/sprints/$sprintId": {
-			id: "/_authenticated/projects/$projectId/sprints/$sprintId";
-			path: "/sprints/$sprintId";
-			fullPath: "/projects/$projectId/sprints/$sprintId";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/settings/workflow": {
-			id: "/_authenticated/projects/$projectId/settings/workflow";
-			path: "/settings/workflow";
-			fullPath: "/projects/$projectId/settings/workflow";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/settings/labels": {
-			id: "/_authenticated/projects/$projectId/settings/labels";
-			path: "/settings/labels";
-			fullPath: "/projects/$projectId/settings/labels";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdSettingsLabelsRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/issues/new": {
-			id: "/_authenticated/projects/$projectId/issues/new";
-			path: "/issues/new";
-			fullPath: "/projects/$projectId/issues/new";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdIssuesNewRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/issues/$issueKey": {
-			id: "/_authenticated/projects/$projectId/issues/$issueKey";
-			path: "/issues/$issueKey";
-			fullPath: "/projects/$projectId/issues/$issueKey";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdRoute;
-		};
-		"/_authenticated/projects/$projectId/tms/runs_/$runId": {
-			id: "/_authenticated/projects/$projectId/tms/runs_/$runId";
-			path: "/runs/$runId";
-			fullPath: "/projects/$projectId/tms/runs/$runId";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute;
-		};
-		"/_authenticated/projects/$projectId/tms/cases_/$caseKey": {
-			id: "/_authenticated/projects/$projectId/tms/cases_/$caseKey";
-			path: "/cases/$caseKey";
-			fullPath: "/projects/$projectId/tms/cases/$caseKey";
-			preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRouteImport;
-			parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute;
-		};
-	}
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/trash': {
+      id: '/_authenticated/trash'
+      path: '/trash'
+      fullPath: '/trash'
+      preLoaderRoute: typeof AuthenticatedTrashRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/messenger': {
+      id: '/_authenticated/messenger'
+      path: '/messenger'
+      fullPath: '/messenger'
+      preLoaderRoute: typeof AuthenticatedMessengerRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/calls': {
+      id: '/_authenticated/calls'
+      path: '/calls'
+      fullPath: '/calls'
+      preLoaderRoute: typeof AuthenticatedCallsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/projects/': {
+      id: '/_authenticated/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof AuthenticatedProjectsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/messenger/': {
+      id: '/_authenticated/messenger/'
+      path: '/'
+      fullPath: '/messenger/'
+      preLoaderRoute: typeof AuthenticatedMessengerIndexRouteImport
+      parentRoute: typeof AuthenticatedMessengerRoute
+    }
+    '/_authenticated/settings/profile': {
+      id: '/_authenticated/settings/profile'
+      path: '/settings/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AuthenticatedSettingsProfileRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings/appearance': {
+      id: '/_authenticated/settings/appearance'
+      path: '/settings/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof AuthenticatedSettingsAppearanceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/projects/new': {
+      id: '/_authenticated/projects/new'
+      path: '/projects/new'
+      fullPath: '/projects/new'
+      preLoaderRoute: typeof AuthenticatedProjectsNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/projects/$projectId': {
+      id: '/_authenticated/projects/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/messenger/$channelId': {
+      id: '/_authenticated/messenger/$channelId'
+      path: '/$channelId'
+      fullPath: '/messenger/$channelId'
+      preLoaderRoute: typeof AuthenticatedMessengerChannelIdRouteImport
+      parentRoute: typeof AuthenticatedMessengerRoute
+    }
+    '/_authenticated/admin/users': {
+      id: '/_authenticated/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/trash': {
+      id: '/_authenticated/admin/trash'
+      path: '/admin/trash'
+      fullPath: '/admin/trash'
+      preLoaderRoute: typeof AuthenticatedAdminTrashRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/limits': {
+      id: '/_authenticated/admin/limits'
+      path: '/admin/limits'
+      fullPath: '/admin/limits'
+      preLoaderRoute: typeof AuthenticatedAdminLimitsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/dashboard': {
+      id: '/_authenticated/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AuthenticatedAdminDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/audit': {
+      id: '/_authenticated/admin/audit'
+      path: '/admin/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/projects/$projectId/': {
+      id: '/_authenticated/projects/$projectId/'
+      path: '/'
+      fullPath: '/projects/$projectId/'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIndexRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/tms': {
+      id: '/_authenticated/projects/$projectId/tms'
+      path: '/tms'
+      fullPath: '/projects/$projectId/tms'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/dashboard': {
+      id: '/_authenticated/projects/$projectId/dashboard'
+      path: '/dashboard'
+      fullPath: '/projects/$projectId/dashboard'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdDashboardRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/backlog': {
+      id: '/_authenticated/projects/$projectId/backlog'
+      path: '/backlog'
+      fullPath: '/projects/$projectId/backlog'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdBacklogRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/sprints/': {
+      id: '/_authenticated/projects/$projectId/sprints/'
+      path: '/sprints'
+      fullPath: '/projects/$projectId/sprints/'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdSprintsIndexRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/issues/': {
+      id: '/_authenticated/projects/$projectId/issues/'
+      path: '/issues'
+      fullPath: '/projects/$projectId/issues/'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIssuesIndexRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/board/': {
+      id: '/_authenticated/projects/$projectId/board/'
+      path: '/board'
+      fullPath: '/projects/$projectId/board/'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdBoardIndexRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/tms/traceability': {
+      id: '/_authenticated/projects/$projectId/tms/traceability'
+      path: '/traceability'
+      fullPath: '/projects/$projectId/tms/traceability'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
+    '/_authenticated/projects/$projectId/tms/runs': {
+      id: '/_authenticated/projects/$projectId/tms/runs'
+      path: '/runs'
+      fullPath: '/projects/$projectId/tms/runs'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
+    '/_authenticated/projects/$projectId/tms/environments': {
+      id: '/_authenticated/projects/$projectId/tms/environments'
+      path: '/environments'
+      fullPath: '/projects/$projectId/tms/environments'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
+    '/_authenticated/projects/$projectId/tms/cases': {
+      id: '/_authenticated/projects/$projectId/tms/cases'
+      path: '/cases'
+      fullPath: '/projects/$projectId/tms/cases'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsCasesRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
+    '/_authenticated/projects/$projectId/sprints/$sprintId': {
+      id: '/_authenticated/projects/$projectId/sprints/$sprintId'
+      path: '/sprints/$sprintId'
+      fullPath: '/projects/$projectId/sprints/$sprintId'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/settings/workflow': {
+      id: '/_authenticated/projects/$projectId/settings/workflow'
+      path: '/settings/workflow'
+      fullPath: '/projects/$projectId/settings/workflow'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/settings/labels': {
+      id: '/_authenticated/projects/$projectId/settings/labels'
+      path: '/settings/labels'
+      fullPath: '/projects/$projectId/settings/labels'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdSettingsLabelsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/issues/new': {
+      id: '/_authenticated/projects/$projectId/issues/new'
+      path: '/issues/new'
+      fullPath: '/projects/$projectId/issues/new'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIssuesNewRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/issues/$issueKey': {
+      id: '/_authenticated/projects/$projectId/issues/$issueKey'
+      path: '/issues/$issueKey'
+      fullPath: '/projects/$projectId/issues/$issueKey'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/tms/runs_/$runId': {
+      id: '/_authenticated/projects/$projectId/tms/runs_/$runId'
+      path: '/runs/$runId'
+      fullPath: '/projects/$projectId/tms/runs/$runId'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
+    '/_authenticated/projects/$projectId/tms/cases_/$caseKey': {
+      id: '/_authenticated/projects/$projectId/tms/cases_/$caseKey'
+      path: '/cases/$caseKey'
+      fullPath: '/projects/$projectId/tms/cases/$caseKey'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
+  }
 }
 
 interface AuthenticatedMessengerRouteChildren {
-	AuthenticatedMessengerChannelIdRoute: typeof AuthenticatedMessengerChannelIdRoute;
-	AuthenticatedMessengerIndexRoute: typeof AuthenticatedMessengerIndexRoute;
+  AuthenticatedMessengerChannelIdRoute: typeof AuthenticatedMessengerChannelIdRoute
+  AuthenticatedMessengerIndexRoute: typeof AuthenticatedMessengerIndexRoute
 }
 
 const AuthenticatedMessengerRouteChildren: AuthenticatedMessengerRouteChildren =
-	{
-		AuthenticatedMessengerChannelIdRoute: AuthenticatedMessengerChannelIdRoute,
-		AuthenticatedMessengerIndexRoute: AuthenticatedMessengerIndexRoute,
-	};
+  {
+    AuthenticatedMessengerChannelIdRoute: AuthenticatedMessengerChannelIdRoute,
+    AuthenticatedMessengerIndexRoute: AuthenticatedMessengerIndexRoute,
+  }
 
 const AuthenticatedMessengerRouteWithChildren =
-	AuthenticatedMessengerRoute._addFileChildren(
-		AuthenticatedMessengerRouteChildren,
-	);
+  AuthenticatedMessengerRoute._addFileChildren(
+    AuthenticatedMessengerRouteChildren,
+  )
 
 interface AuthenticatedProjectsProjectIdTmsRouteChildren {
-	AuthenticatedProjectsProjectIdTmsCasesRoute: typeof AuthenticatedProjectsProjectIdTmsCasesRoute;
-	AuthenticatedProjectsProjectIdTmsEnvironmentsRoute: typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute;
-	AuthenticatedProjectsProjectIdTmsRunsRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRoute;
-	AuthenticatedProjectsProjectIdTmsTraceabilityRoute: typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute;
-	AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute: typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute;
-	AuthenticatedProjectsProjectIdTmsRunsRunIdRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute;
+  AuthenticatedProjectsProjectIdTmsCasesRoute: typeof AuthenticatedProjectsProjectIdTmsCasesRoute
+  AuthenticatedProjectsProjectIdTmsEnvironmentsRoute: typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
+  AuthenticatedProjectsProjectIdTmsRunsRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRoute
+  AuthenticatedProjectsProjectIdTmsTraceabilityRoute: typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
+  AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute: typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute
+  AuthenticatedProjectsProjectIdTmsRunsRunIdRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRunIdRoute
 }
 
 const AuthenticatedProjectsProjectIdTmsRouteChildren: AuthenticatedProjectsProjectIdTmsRouteChildren =
-	{
-		AuthenticatedProjectsProjectIdTmsCasesRoute:
-			AuthenticatedProjectsProjectIdTmsCasesRoute,
-		AuthenticatedProjectsProjectIdTmsEnvironmentsRoute:
-			AuthenticatedProjectsProjectIdTmsEnvironmentsRoute,
-		AuthenticatedProjectsProjectIdTmsRunsRoute:
-			AuthenticatedProjectsProjectIdTmsRunsRoute,
-		AuthenticatedProjectsProjectIdTmsTraceabilityRoute:
-			AuthenticatedProjectsProjectIdTmsTraceabilityRoute,
-		AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute:
-			AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute,
-		AuthenticatedProjectsProjectIdTmsRunsRunIdRoute:
-			AuthenticatedProjectsProjectIdTmsRunsRunIdRoute,
-	};
+  {
+    AuthenticatedProjectsProjectIdTmsCasesRoute:
+      AuthenticatedProjectsProjectIdTmsCasesRoute,
+    AuthenticatedProjectsProjectIdTmsEnvironmentsRoute:
+      AuthenticatedProjectsProjectIdTmsEnvironmentsRoute,
+    AuthenticatedProjectsProjectIdTmsRunsRoute:
+      AuthenticatedProjectsProjectIdTmsRunsRoute,
+    AuthenticatedProjectsProjectIdTmsTraceabilityRoute:
+      AuthenticatedProjectsProjectIdTmsTraceabilityRoute,
+    AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute:
+      AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute,
+    AuthenticatedProjectsProjectIdTmsRunsRunIdRoute:
+      AuthenticatedProjectsProjectIdTmsRunsRunIdRoute,
+  }
 
 const AuthenticatedProjectsProjectIdTmsRouteWithChildren =
-	AuthenticatedProjectsProjectIdTmsRoute._addFileChildren(
-		AuthenticatedProjectsProjectIdTmsRouteChildren,
-	);
+  AuthenticatedProjectsProjectIdTmsRoute._addFileChildren(
+    AuthenticatedProjectsProjectIdTmsRouteChildren,
+  )
 
 interface AuthenticatedProjectsProjectIdRouteChildren {
-	AuthenticatedProjectsProjectIdBacklogRoute: typeof AuthenticatedProjectsProjectIdBacklogRoute;
-	AuthenticatedProjectsProjectIdDashboardRoute: typeof AuthenticatedProjectsProjectIdDashboardRoute;
-	AuthenticatedProjectsProjectIdTmsRoute: typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren;
-	AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute;
-	AuthenticatedProjectsProjectIdIssuesIssueKeyRoute: typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute;
-	AuthenticatedProjectsProjectIdIssuesNewRoute: typeof AuthenticatedProjectsProjectIdIssuesNewRoute;
-	AuthenticatedProjectsProjectIdSettingsLabelsRoute: typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute;
-	AuthenticatedProjectsProjectIdSettingsWorkflowRoute: typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute;
-	AuthenticatedProjectsProjectIdSprintsSprintIdRoute: typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute;
-	AuthenticatedProjectsProjectIdBoardIndexRoute: typeof AuthenticatedProjectsProjectIdBoardIndexRoute;
-	AuthenticatedProjectsProjectIdIssuesIndexRoute: typeof AuthenticatedProjectsProjectIdIssuesIndexRoute;
-	AuthenticatedProjectsProjectIdSprintsIndexRoute: typeof AuthenticatedProjectsProjectIdSprintsIndexRoute;
+  AuthenticatedProjectsProjectIdBacklogRoute: typeof AuthenticatedProjectsProjectIdBacklogRoute
+  AuthenticatedProjectsProjectIdDashboardRoute: typeof AuthenticatedProjectsProjectIdDashboardRoute
+  AuthenticatedProjectsProjectIdTmsRoute: typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
+  AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute
+  AuthenticatedProjectsProjectIdIssuesIssueKeyRoute: typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
+  AuthenticatedProjectsProjectIdIssuesNewRoute: typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  AuthenticatedProjectsProjectIdSettingsLabelsRoute: typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
+  AuthenticatedProjectsProjectIdSettingsWorkflowRoute: typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
+  AuthenticatedProjectsProjectIdSprintsSprintIdRoute: typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
+  AuthenticatedProjectsProjectIdBoardIndexRoute: typeof AuthenticatedProjectsProjectIdBoardIndexRoute
+  AuthenticatedProjectsProjectIdIssuesIndexRoute: typeof AuthenticatedProjectsProjectIdIssuesIndexRoute
+  AuthenticatedProjectsProjectIdSprintsIndexRoute: typeof AuthenticatedProjectsProjectIdSprintsIndexRoute
 }
 
 const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectIdRouteChildren =
-	{
-		AuthenticatedProjectsProjectIdBacklogRoute:
-			AuthenticatedProjectsProjectIdBacklogRoute,
-		AuthenticatedProjectsProjectIdDashboardRoute:
-			AuthenticatedProjectsProjectIdDashboardRoute,
-		AuthenticatedProjectsProjectIdTmsRoute:
-			AuthenticatedProjectsProjectIdTmsRouteWithChildren,
-		AuthenticatedProjectsProjectIdIndexRoute:
-			AuthenticatedProjectsProjectIdIndexRoute,
-		AuthenticatedProjectsProjectIdIssuesIssueKeyRoute:
-			AuthenticatedProjectsProjectIdIssuesIssueKeyRoute,
-		AuthenticatedProjectsProjectIdIssuesNewRoute:
-			AuthenticatedProjectsProjectIdIssuesNewRoute,
-		AuthenticatedProjectsProjectIdSettingsLabelsRoute:
-			AuthenticatedProjectsProjectIdSettingsLabelsRoute,
-		AuthenticatedProjectsProjectIdSettingsWorkflowRoute:
-			AuthenticatedProjectsProjectIdSettingsWorkflowRoute,
-		AuthenticatedProjectsProjectIdSprintsSprintIdRoute:
-			AuthenticatedProjectsProjectIdSprintsSprintIdRoute,
-		AuthenticatedProjectsProjectIdBoardIndexRoute:
-			AuthenticatedProjectsProjectIdBoardIndexRoute,
-		AuthenticatedProjectsProjectIdIssuesIndexRoute:
-			AuthenticatedProjectsProjectIdIssuesIndexRoute,
-		AuthenticatedProjectsProjectIdSprintsIndexRoute:
-			AuthenticatedProjectsProjectIdSprintsIndexRoute,
-	};
+  {
+    AuthenticatedProjectsProjectIdBacklogRoute:
+      AuthenticatedProjectsProjectIdBacklogRoute,
+    AuthenticatedProjectsProjectIdDashboardRoute:
+      AuthenticatedProjectsProjectIdDashboardRoute,
+    AuthenticatedProjectsProjectIdTmsRoute:
+      AuthenticatedProjectsProjectIdTmsRouteWithChildren,
+    AuthenticatedProjectsProjectIdIndexRoute:
+      AuthenticatedProjectsProjectIdIndexRoute,
+    AuthenticatedProjectsProjectIdIssuesIssueKeyRoute:
+      AuthenticatedProjectsProjectIdIssuesIssueKeyRoute,
+    AuthenticatedProjectsProjectIdIssuesNewRoute:
+      AuthenticatedProjectsProjectIdIssuesNewRoute,
+    AuthenticatedProjectsProjectIdSettingsLabelsRoute:
+      AuthenticatedProjectsProjectIdSettingsLabelsRoute,
+    AuthenticatedProjectsProjectIdSettingsWorkflowRoute:
+      AuthenticatedProjectsProjectIdSettingsWorkflowRoute,
+    AuthenticatedProjectsProjectIdSprintsSprintIdRoute:
+      AuthenticatedProjectsProjectIdSprintsSprintIdRoute,
+    AuthenticatedProjectsProjectIdBoardIndexRoute:
+      AuthenticatedProjectsProjectIdBoardIndexRoute,
+    AuthenticatedProjectsProjectIdIssuesIndexRoute:
+      AuthenticatedProjectsProjectIdIssuesIndexRoute,
+    AuthenticatedProjectsProjectIdSprintsIndexRoute:
+      AuthenticatedProjectsProjectIdSprintsIndexRoute,
+  }
 
 const AuthenticatedProjectsProjectIdRouteWithChildren =
-	AuthenticatedProjectsProjectIdRoute._addFileChildren(
-		AuthenticatedProjectsProjectIdRouteChildren,
-	);
+  AuthenticatedProjectsProjectIdRoute._addFileChildren(
+    AuthenticatedProjectsProjectIdRouteChildren,
+  )
 
 interface AuthenticatedRouteChildren {
-	AuthenticatedCallsRoute: typeof AuthenticatedCallsRoute;
-	AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute;
-	AuthenticatedMessengerRoute: typeof AuthenticatedMessengerRouteWithChildren;
-	AuthenticatedTrashRoute: typeof AuthenticatedTrashRoute;
-	AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute;
-	AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute;
-	AuthenticatedAdminLimitsRoute: typeof AuthenticatedAdminLimitsRoute;
-	AuthenticatedAdminTrashRoute: typeof AuthenticatedAdminTrashRoute;
-	AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute;
-	AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRouteWithChildren;
-	AuthenticatedProjectsNewRoute: typeof AuthenticatedProjectsNewRoute;
-	AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute;
-	AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute;
-	AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute;
+  AuthenticatedCallsRoute: typeof AuthenticatedCallsRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedMessengerRoute: typeof AuthenticatedMessengerRouteWithChildren
+  AuthenticatedTrashRoute: typeof AuthenticatedTrashRoute
+  AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
+  AuthenticatedAdminLimitsRoute: typeof AuthenticatedAdminLimitsRoute
+  AuthenticatedAdminTrashRoute: typeof AuthenticatedAdminTrashRoute
+  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
+  AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRouteWithChildren
+  AuthenticatedProjectsNewRoute: typeof AuthenticatedProjectsNewRoute
+  AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
+  AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
+  AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-	AuthenticatedCallsRoute: AuthenticatedCallsRoute,
-	AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-	AuthenticatedMessengerRoute: AuthenticatedMessengerRouteWithChildren,
-	AuthenticatedTrashRoute: AuthenticatedTrashRoute,
-	AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
-	AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
-	AuthenticatedAdminLimitsRoute: AuthenticatedAdminLimitsRoute,
-	AuthenticatedAdminTrashRoute: AuthenticatedAdminTrashRoute,
-	AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
-	AuthenticatedProjectsProjectIdRoute:
-		AuthenticatedProjectsProjectIdRouteWithChildren,
-	AuthenticatedProjectsNewRoute: AuthenticatedProjectsNewRoute,
-	AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
-	AuthenticatedSettingsProfileRoute: AuthenticatedSettingsProfileRoute,
-	AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
-};
+  AuthenticatedCallsRoute: AuthenticatedCallsRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedMessengerRoute: AuthenticatedMessengerRouteWithChildren,
+  AuthenticatedTrashRoute: AuthenticatedTrashRoute,
+  AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+  AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
+  AuthenticatedAdminLimitsRoute: AuthenticatedAdminLimitsRoute,
+  AuthenticatedAdminTrashRoute: AuthenticatedAdminTrashRoute,
+  AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
+  AuthenticatedProjectsProjectIdRoute:
+    AuthenticatedProjectsProjectIdRouteWithChildren,
+  AuthenticatedProjectsNewRoute: AuthenticatedProjectsNewRoute,
+  AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
+  AuthenticatedSettingsProfileRoute: AuthenticatedSettingsProfileRoute,
+  AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
+}
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
-	AuthenticatedRouteChildren,
-);
+  AuthenticatedRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
-	IndexRoute: IndexRoute,
-	AuthenticatedRoute: AuthenticatedRouteWithChildren,
-	LoginRoute: LoginRoute,
-	OnboardingRoute: OnboardingRoute,
-};
+  IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
+}
 export const routeTree = rootRouteImport
-	._addFileChildren(rootRouteChildren)
-	._addFileTypes<FileRouteTypes>();
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()

@@ -1,12 +1,24 @@
 /** Рендерер Plate JSON для содержимого сообщений. */
 
+/**
+ * Safely converts any value to a React-renderable string.
+ * Prevents "Objects are not valid as React child" errors.
+ */
+function safeString(value: unknown): string {
+	if (value === null || value === undefined) return "";
+	if (typeof value === "string") return value;
+	if (typeof value === "number" || typeof value === "boolean") return String(value);
+	// Prevent rendering objects/arrays as React children
+	return "";
+}
+
 /** Рендерит один узел Plate JSON (текст, параграф, заголовок, список, цитату, ссылку, код). */
 export function RenderNode({ node }: { node: Record<string, unknown> }) {
-	if (!node || typeof node !== "object") return null;
+	if (!node || typeof node !== "object" || Array.isArray(node)) return null;
 
 	// Text node.
 	if ("text" in node) {
-		const text = typeof node.text === "string" ? node.text : String(node.text ?? "");
+		const text = safeString(node.text);
 		if (!text) return null;
 		let el: React.ReactNode = text;
 		if (node.bold) el = <strong>{el}</strong>;
@@ -23,9 +35,10 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 
 	const children =
 		(Array.isArray(node.children) ? node.children : []) as Record<string, unknown>[];
-	const renderedChildren = children.map((child, i) => (
-		<RenderNode key={i} node={child as Record<string, unknown>} />
-	));
+	const renderedChildren = children.map((child, i) => {
+		if (!child || typeof child !== "object" || Array.isArray(child)) return null;
+		return <RenderNode key={i} node={child as Record<string, unknown>} />;
+	});
 
 	switch (node.type) {
 		case "p":
@@ -49,7 +62,7 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 		case "a":
 			return (
 				<a
-					href={node.url as string}
+					href={typeof node.url === "string" ? node.url : "#"}
 					className="text-primary underline decoration-primary/30 hover:decoration-primary"
 					target="_blank"
 					rel="noopener noreferrer"
@@ -72,19 +85,33 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 export function RenderContent({
 	contentJson,
 }: {
-	contentJson?: Record<string, unknown>;
+	contentJson?: Record<string, unknown> | null;
 }) {
 	if (!contentJson || typeof contentJson !== "object") return null;
 
-	// Если contentJson это строка (plain text), рендерим напрямую.
+	// Safety: if contentJson is somehow a string at runtime, render directly.
 	if (typeof contentJson === "string") {
 		return <p className="mb-1 leading-relaxed">{contentJson}</p>;
+	}
+
+	// Handle array-shaped content_json (some Plate editors emit arrays directly).
+	if (Array.isArray(contentJson)) {
+		const nodes = contentJson as unknown[];
+		if (nodes.length === 0) return null;
+		return (
+			<div className="prose prose-sm dark:prose-invert max-w-none">
+				{nodes.map((node, i) => {
+					if (!node || typeof node !== "object" || Array.isArray(node)) return null;
+					return <RenderNode key={i} node={node as Record<string, unknown>} />;
+				})}
+			</div>
+		);
 	}
 
 	const children = (contentJson as { children?: unknown[] }).children;
 	if (!Array.isArray(children)) {
 		// Fallback: если нет children, попробуем отрендерить как текст.
-		const text = (contentJson as { text?: string }).text;
+		const text = (contentJson as { text?: unknown }).text;
 		if (typeof text === "string") return <p>{text}</p>;
 		return null;
 	}
@@ -92,7 +119,7 @@ export function RenderContent({
 	return (
 		<div className="prose prose-sm dark:prose-invert max-w-none">
 			{children.map((node, i) => {
-				if (!node || typeof node !== "object") return null;
+				if (!node || typeof node !== "object" || Array.isArray(node)) return null;
 				return <RenderNode key={i} node={node as Record<string, unknown>} />;
 			})}
 		</div>

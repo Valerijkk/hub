@@ -35,7 +35,7 @@ export function ChannelIcon({ type }: { type: ChannelType }) {
 					/>
 				</svg>
 			);
-		case "project":
+		case "private":
 			return (
 				<svg
 					className="h-4 w-4 shrink-0 opacity-70"
@@ -47,7 +47,7 @@ export function ChannelIcon({ type }: { type: ChannelType }) {
 					<path
 						strokeLinecap="round"
 						strokeLinejoin="round"
-						d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+						d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
 					/>
 				</svg>
 			);

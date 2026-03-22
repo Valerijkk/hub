@@ -34,8 +34,10 @@ interface MessageItemProps {
 }
 
 /** Форматирует время из ISO-строки в "ЧЧ:ММ". */
-function formatTime(iso: string): string {
+function formatTime(iso: string | undefined | null): string {
+	if (!iso || typeof iso !== "string") return "";
 	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return "";
 	return date.toLocaleTimeString("ru-RU", {
 		hour: "2-digit",
 		minute: "2-digit",
@@ -52,10 +54,11 @@ function shouldGroupWithPrevious(
 ): boolean {
 	if (!previous) return false;
 	if (previous.sender_id !== message.sender_id) return false;
-	const diff =
-		new Date(message.created_at).getTime() -
-		new Date(previous.created_at).getTime();
-	return diff < 2 * 60 * 1000; // 2 minutes
+	if (!message.created_at || !previous.created_at) return false;
+	const curTime = new Date(message.created_at).getTime();
+	const prevTime = new Date(previous.created_at).getTime();
+	if (Number.isNaN(curTime) || Number.isNaN(prevTime)) return false;
+	return curTime - prevTime < 2 * 60 * 1000; // 2 minutes
 }
 
 /**
@@ -77,6 +80,12 @@ function MessageItemInner({
 	const openThread = useMessengerStore((s) => s.openThread);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
 	const currentUserId = useAuthStore((s) => s.user?.id);
+
+	// Defensive: skip rendering if message is malformed (e.g. partial WS event)
+	if (!message || !message.id || typeof message.id !== "string") {
+		return null;
+	}
+
 	const isOwn = currentUserId === message.sender_id;
 	const isGrouped = shouldGroupWithPrevious(message, previousMessage);
 
