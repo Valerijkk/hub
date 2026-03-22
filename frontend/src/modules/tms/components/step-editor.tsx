@@ -20,6 +20,7 @@ interface StepEditorEditProps {
   onAddStep: () => void;
   onRemoveStep: (index: number) => void;
   onUpdateStep: (index: number, field: "action" | "expected_result", value: string) => void;
+  onMoveStep: (index: number, direction: "up" | "down") => void;
 }
 
 /** Пропсы отображения шагов в режиме чтения. */
@@ -53,9 +54,39 @@ export function StepEditor(props: StepEditorProps) {
           <div className="space-y-2">
             {props.editSteps.map((step, idx) => (
               <div key={idx} className="flex gap-2 items-start rounded-lg border p-3 bg-card/50 hover:bg-card transition-colors">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary mt-1">
-                  {step.order}
-                </span>
+                <div className="flex flex-col items-center gap-0.5 shrink-0 mt-1">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => props.onMoveStep(idx, "up")}
+                    className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded text-[10px] leading-none transition-colors",
+                      idx === 0
+                        ? "text-muted-foreground/30 cursor-not-allowed"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                    )}
+                    title="Переместить вверх"
+                  >
+                    ▲
+                  </button>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+                    {step.order}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={idx === props.editSteps.length - 1}
+                    onClick={() => props.onMoveStep(idx, "down")}
+                    className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded text-[10px] leading-none transition-colors",
+                      idx === props.editSteps.length - 1
+                        ? "text-muted-foreground/30 cursor-not-allowed"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                    )}
+                    title="Переместить вниз"
+                  >
+                    ▼
+                  </button>
+                </div>
                 <div className="flex-1 space-y-2">
                   <Input
                     placeholder="Действие"

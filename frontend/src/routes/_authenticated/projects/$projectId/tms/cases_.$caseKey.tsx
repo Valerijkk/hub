@@ -181,6 +181,17 @@ function TestCaseDetailPage() {
     );
   };
 
+  /** Move step up or down and recalculate order. */
+  const moveStep = (index: number, direction: "up" | "down") => {
+    setEditSteps((prev) => {
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target]!, next[index]!];
+      return next.map((s, i) => ({ ...s, order: i + 1 }));
+    });
+  };
+
   if (isLoading || !tc) {
     return (
       <div className="mx-auto max-w-6xl animate-fade-in">
@@ -396,6 +407,7 @@ function TestCaseDetailPage() {
                   onAddStep={addStep}
                   onRemoveStep={removeStep}
                   onUpdateStep={updateStep}
+                  onMoveStep={moveStep}
                 />
               ) : (
                 <StepEditor
