@@ -65,6 +65,9 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	channels.Post("/:channelId/members", h.AddMembers)
 	channels.Get("/:channelId/members", h.ListMembers)
 
+	// Индикатор набора текста
+	channels.Post("/:channelId/typing", h.SendTyping)
+
 	// Сообщения
 	messages := channels.Group("/:channelId/messages")
 	messages.Post("/", h.SendMessage)
@@ -571,6 +574,28 @@ func (h *Handler) RemoveBookmark(c fiber.Ctx) error {
 	}
 
 	if err := h.service.RemoveBookmark(c.Context(), id); err != nil {
+		return err
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// ---------------------------------------------------------------------------
+// Typing handler
+// ---------------------------------------------------------------------------
+
+// SendTyping обрабатывает POST /api/messenger/channels/:channelId/typing
+func (h *Handler) SendTyping(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.PublishTyping(c.Context(), channelID.String(), userID); err != nil {
 		return err
 	}
 

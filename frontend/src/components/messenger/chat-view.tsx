@@ -7,6 +7,7 @@ import { CallButton } from "@/components/calls/CallButton";
 import { PinnedMessages } from "./pinned-messages";
 import { SearchDialog } from "./search-dialog";
 import { useMessages } from "@/hooks/use-messages";
+import { useTypingIndicator } from "@/hooks/use-typing";
 import { useMarkRead } from "@/hooks/use-unread";
 import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
@@ -69,6 +70,9 @@ export function ChatView({ channelId }: ChatViewProps) {
 	);
 	const closeThread = useMessengerStore((s) => s.closeThread);
 	const typingUsers = useMessengerStore((s) => s.typingUsers[channelId]) ?? [];
+
+	// Подписка на typing-события для текущего канала.
+	useTypingIndicator(channelId);
 
 	// Пометить канал как прочитанный при открытии.
 	useEffect(() => {

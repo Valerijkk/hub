@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { sendMessage } from "@/api/messenger";
+import { sendMessage, sendTypingIndicator } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
@@ -35,6 +35,9 @@ export function MessageComposer({
 
 	const replyToMessage = useMessengerStore((s) => s.replyToMessage);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
+
+	/** Время последней отправки typing-индикатора (троттлинг 3 сек). */
+	const lastTypingSentRef = useRef(0);
 
 	/** Отправка текстового сообщения. */
 	const handleSend = useCallback(async () => {
@@ -82,12 +85,22 @@ export function MessageComposer({
 	/** Автоматическая подгонка высоты textarea (макс 5 строк ~120px). */
 	const handleInput = useCallback(
 		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-			setText(e.target.value);
+			const value = e.target.value;
+			setText(value);
 			const el = e.target;
 			el.style.height = "auto";
 			el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+
+			// Отправка typing-индикатора (троттлинг: не чаще 1 раза в 3 сек).
+			if (value.trim()) {
+				const now = Date.now();
+				if (now - lastTypingSentRef.current > 3000) {
+					lastTypingSentRef.current = now;
+					void sendTypingIndicator(channelId);
+				}
+			}
 		},
-		[],
+		[channelId],
 	);
 
 	/** Отправка голосового сообщения. */

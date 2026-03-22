@@ -3,6 +3,7 @@ package messenger
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -67,6 +68,34 @@ func (s *MessengerService) GetCustomStatus(ctx context.Context, userID string) (
 		return "", nil
 	}
 	return s.presence.GetCustomStatus(ctx, userID)
+}
+
+// ---------------------------------------------------------------------------
+// Typing
+// ---------------------------------------------------------------------------
+
+// PublishTyping публикует событие набора текста в NATS (ephemeral, без записи в БД).
+func (s *MessengerService) PublishTyping(ctx context.Context, channelID string, userID uuid.UUID) error {
+	// Определяем отображаемое имя пользователя.
+	userName := "user"
+	if s.db != nil {
+		u, err := s.db.User.Get(ctx, userID)
+		if err == nil {
+			if u.DisplayName != "" {
+				userName = u.DisplayName
+			} else if u.Name != "" {
+				userName = u.Name
+			}
+		}
+	}
+
+	subject := fmt.Sprintf(SubjectTyping, channelID)
+	s.publishEvent(subject, TypingEvent{
+		ChannelID: channelID,
+		UserID:    userID.String(),
+		UserName:  userName,
+	})
+	return nil
 }
 
 // ---------------------------------------------------------------------------

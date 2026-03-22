@@ -1,6 +1,8 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Check, X } from "lucide-react";
 import type { Message } from "@/api/messenger";
-import { addBookmark, deleteMessage, togglePin } from "@/api/messenger";
+import { addBookmark, deleteMessage, editMessage, togglePin } from "@/api/messenger";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -77,6 +79,11 @@ function MessageItemInner({
 	const [showActions, setShowActions] = useState(false);
 	const [showReactionPicker, setShowReactionPicker] = useState(false);
 	const [showForwardDialog, setShowForwardDialog] = useState(false);
+	const [isEditing, setIsEditing] = useState(false);
+	const [editText, setEditText] = useState("");
+	const [editSaving, setEditSaving] = useState(false);
+	const editInputRef = useRef<HTMLTextAreaElement>(null);
+	const queryClient = useQueryClient();
 	const openThread = useMessengerStore((s) => s.openThread);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
 	const currentUserId = useAuthStore((s) => s.user?.id);
@@ -135,6 +142,89 @@ function MessageItemInner({
 	const handleReply = useCallback(() => {
 		setReplyTo(message);
 	}, [message, setReplyTo]);
+
+	/** Начать редактирование сообщения. */
+	const handleStartEdit = useCallback(() => {
+		const text = message.content_text ?? "";
+		setEditText(text);
+		setIsEditing(true);
+		setShowActions(false);
+		// Фокус на textarea после рендера
+		requestAnimationFrame(() => {
+			editInputRef.current?.focus();
+			editInputRef.current?.setSelectionRange(text.length, text.length);
+		});
+	}, [message.content_text]);
+
+	/** Сохранить отредактированное сообщение. */
+	const handleSaveEdit = useCallback(async () => {
+		const trimmed = editText.trim();
+		if (!trimmed || trimmed === (message.content_text ?? "").trim()) {
+			setIsEditing(false);
+			return;
+		}
+		setEditSaving(true);
+		try {
+			// Создаём простой Plate JSON из текста
+			const contentJson = {
+				type: "doc",
+				children: [{ type: "p", children: [{ text: trimmed }] }],
+			};
+			// Оптимистичное обновление кэша react-query
+			const queryKey = ["messenger", "messages", channelId];
+			queryClient.setQueryData(queryKey, (old: unknown) => {
+				if (!old) return old;
+				const typed = old as { pages: Message[][]; pageParams: unknown[] };
+				return {
+					...typed,
+					pages: typed.pages.map((page) =>
+						page.map((msg) =>
+							msg.id === message.id
+								? {
+										...msg,
+										content_json: contentJson,
+										content_text: trimmed,
+										edited_at: new Date().toISOString(),
+									}
+								: msg,
+						),
+					),
+				};
+			});
+			setIsEditing(false);
+			await editMessage(channelId, message.id, {
+				content_json: contentJson,
+				content_text: trimmed,
+			});
+		} catch {
+			// При ошибке — откатываем через рефетч
+			queryClient.invalidateQueries({
+				queryKey: ["messenger", "messages", channelId],
+			});
+		} finally {
+			setEditSaving(false);
+		}
+	}, [editText, message.content_text, message.id, channelId, queryClient]);
+
+	/** Отменить редактирование. */
+	const handleCancelEdit = useCallback(() => {
+		setIsEditing(false);
+		setEditText("");
+	}, []);
+
+	/** Обработка клавиш в поле редактирования. */
+	const handleEditKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+			if (e.key === "Enter" && !e.shiftKey) {
+				e.preventDefault();
+				void handleSaveEdit();
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				handleCancelEdit();
+			}
+		},
+		[handleSaveEdit, handleCancelEdit],
+	);
 
 	return (
 		<>
@@ -254,21 +344,60 @@ function MessageItemInner({
 								</div>
 							)}
 
-							{/* Message content */}
-							{message.content_json && (
-								<div
-									className={cn(
-										isOwn &&
-											"[&_p]:text-primary-foreground [&_a]:text-primary-foreground/90 [&_a]:underline",
-									)}
-								>
-									<RenderContent contentJson={message.content_json} />
+							{/* Message content (or inline edit) */}
+							{isEditing ? (
+								<div className="flex flex-col gap-1.5">
+									<textarea
+										ref={editInputRef}
+										value={editText}
+										onChange={(e) => setEditText(e.target.value)}
+										onKeyDown={handleEditKeyDown}
+										disabled={editSaving}
+										className="w-full resize-none rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+										rows={Math.min(
+											editText.split("\n").length + 1,
+											6,
+										)}
+									/>
+									<div className="flex items-center gap-1 justify-end">
+										<button
+											type="button"
+											className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+											title="Отменить (Esc)"
+											onClick={handleCancelEdit}
+											disabled={editSaving}
+										>
+											<X className="h-3.5 w-3.5" />
+										</button>
+										<button
+											type="button"
+											className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-accent text-primary hover:text-primary transition-colors"
+											title="Сохранить (Enter)"
+											onClick={() => void handleSaveEdit()}
+											disabled={editSaving || !editText.trim()}
+										>
+											<Check className="h-3.5 w-3.5" />
+										</button>
+									</div>
 								</div>
-							)}
-							{!message.content_json && message.content_text && (
-								<p className="whitespace-pre-wrap leading-relaxed">
-									{message.content_text}
-								</p>
+							) : (
+								<>
+									{message.content_json && (
+										<div
+											className={cn(
+												isOwn &&
+													"[&_p]:text-primary-foreground [&_a]:text-primary-foreground/90 [&_a]:underline",
+											)}
+										>
+											<RenderContent contentJson={message.content_json} />
+										</div>
+									)}
+									{!message.content_json && message.content_text && (
+										<p className="whitespace-pre-wrap leading-relaxed">
+											{message.content_text}
+										</p>
+									)}
+								</>
 							)}
 
 							{/* Voice message */}
@@ -391,8 +520,8 @@ function MessageItemInner({
 					</div>
 				</div>
 
-				{/* Hover actions -- floating panel */}
-				{showActions && (
+				{/* Hover actions -- floating panel (скрыты в режиме редактирования) */}
+				{showActions && !isEditing && (
 					<MessageActions
 						message={message}
 						channelId={channelId}
@@ -404,6 +533,7 @@ function MessageItemInner({
 						onPin={handlePin}
 						onBookmark={handleBookmark}
 						onForward={() => setShowForwardDialog(true)}
+						onEdit={handleStartEdit}
 						onDelete={handleDelete}
 					/>
 				)}

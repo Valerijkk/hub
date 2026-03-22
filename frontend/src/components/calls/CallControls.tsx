@@ -1,7 +1,22 @@
 import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
 import { Track } from "livekit-client";
-import { Hand, Mic, MicOff, Monitor, MonitorOff, PhoneOff } from "lucide-react";
+import {
+	Camera,
+	CameraOff,
+	Hand,
+	Mic,
+	MicOff,
+	Monitor,
+	MonitorOff,
+	PhoneOff,
+	Settings,
+} from "lucide-react";
 
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import {
 	Tooltip,
 	TooltipContent,
@@ -11,6 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCallStore } from "@/stores/call-store";
+import { DeviceSelector } from "./DeviceSelector";
 
 /** Пропсы компонента CallControls. */
 interface CallControlsProps {
@@ -41,6 +57,9 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 				pub.source === Track.Source.ScreenShare && pub.track !== undefined,
 		);
 
+	/** Камера включена. */
+	const isCameraEnabled = localParticipant.isCameraEnabled;
+
 	/** Текущий пользователь -- создатель звонка. */
 	const isCreator = activeCall?.created_by === currentUserId;
 
@@ -52,6 +71,11 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 	/** Переключить демонстрацию экрана. */
 	const handleScreenShareToggle = async () => {
 		await room.localParticipant.setScreenShareEnabled(!isScreenSharing);
+	};
+
+	/** Переключить камеру. */
+	const handleCameraToggle = async () => {
+		await localParticipant.setCameraEnabled(!isCameraEnabled);
 	};
 
 	/** Покинуть звонок. */
@@ -94,6 +118,34 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 					</TooltipTrigger>
 					<TooltipContent>
 						{isMicEnabled ? "Выключить микрофон" : "Включить микрофон"}
+					</TooltipContent>
+				</Tooltip>
+
+				{/* Камера */}
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleCameraToggle}
+							aria-label={
+								isCameraEnabled ? "Выключить камеру" : "Включить камеру"
+							}
+							className={cn(
+								"relative flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200",
+								isCameraEnabled
+									? "bg-white/10 text-white hover:bg-white/20 ring-2 ring-green-500/50"
+									: "bg-white/10 text-white/70 hover:bg-white/20",
+							)}
+						>
+							{isCameraEnabled ? (
+								<Camera className="h-5 w-5" />
+							) : (
+								<CameraOff className="h-5 w-5" />
+							)}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent>
+						{isCameraEnabled ? "Выключить камеру" : "Включить камеру"}
 					</TooltipContent>
 				</Tooltip>
 
@@ -150,6 +202,31 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 						{handRaised ? "Опустить руку" : "Поднять руку"}
 					</TooltipContent>
 				</Tooltip>
+
+				{/* Настройки устройств */}
+				<Popover>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<PopoverTrigger asChild>
+								<button
+									type="button"
+									aria-label="Настройки устройств"
+									className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 transition-all duration-200"
+								>
+									<Settings className="h-5 w-5" />
+								</button>
+							</PopoverTrigger>
+						</TooltipTrigger>
+						<TooltipContent>Настройки устройств</TooltipContent>
+					</Tooltip>
+					<PopoverContent
+						side="top"
+						sideOffset={12}
+						className="w-80 rounded-xl border border-white/10 bg-[#1a1f2e] p-4 shadow-2xl"
+					>
+						<DeviceSelector />
+					</PopoverContent>
+				</Popover>
 
 				{/* Разделитель */}
 				<div className="w-px h-8 bg-white/10 mx-1" />

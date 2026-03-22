@@ -79,3 +79,10 @@ type ReactionToggledEvent struct {
 	Emoji     string    `json:"emoji"`
 	Added     bool      `json:"added"`
 }
+
+// TypingEvent — данные события индикатора набора текста.
+type TypingEvent struct {
+	ChannelID string `json:"channel_id"`
+	UserID    string `json:"user_id"`
+	UserName  string `json:"user_name"`
+}

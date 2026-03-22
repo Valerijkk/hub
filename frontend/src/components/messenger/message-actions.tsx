@@ -1,4 +1,5 @@
 import type { Message } from "@/api/messenger";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ReactionPicker } from "./reaction-picker";
@@ -15,6 +16,7 @@ interface MessageActionsProps {
 	onPin: () => void;
 	onBookmark: () => void;
 	onForward: () => void;
+	onEdit: () => void;
 	onDelete: () => void;
 }
 
@@ -30,6 +32,7 @@ export function MessageActions({
 	onPin,
 	onBookmark,
 	onForward,
+	onEdit,
 	onDelete,
 }: MessageActionsProps) {
 	return (
@@ -155,6 +158,18 @@ export function MessageActions({
 					/>
 				</svg>
 			</Button>
+
+			{isOwn && (
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-7 w-7"
+					title="Редактировать"
+					onClick={onEdit}
+				>
+					<Pencil className="h-3.5 w-3.5" />
+				</Button>
+			)}
 
 			{isOwn && (
 				<Button
