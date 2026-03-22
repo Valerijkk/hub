@@ -148,7 +148,11 @@ func main() {
 		api.Use("/auth", middleware.RateLimit(middleware.AuthRateLimit))
 	}
 	requireAuth := auth.RequireAuth(authSvc)
-	authHandler := auth.NewHandler(authSvc, db)
+	tgBotAuth := auth.NewTelegramBotAuth(cfg.Telegram.BotToken, rdb)
+	if tgBotAuth != nil {
+		tgBotAuth.StartPolling(ctx)
+	}
+	authHandler := auth.NewHandler(authSvc, db, tgBotAuth)
 	authHandler.RegisterRoutes(api, requireAuth)
 
 	// Dev routes (seed, login без Magic Link — только при DEV_MODE=true)

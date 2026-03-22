@@ -17,11 +17,12 @@ import (
 type Handler struct {
 	service *AuthService
 	db      *ent.Client
+	tgBot   *TelegramBotAuth
 }
 
 // NewHandler создаёт новый обработчик аутентификации.
-func NewHandler(service *AuthService, db *ent.Client) *Handler {
-	return &Handler{service: service, db: db}
+func NewHandler(service *AuthService, db *ent.Client, tgBot *TelegramBotAuth) *Handler {
+	return &Handler{service: service, db: db, tgBot: tgBot}
 }
 
 // RegisterRoutes регистрирует все маршруты аутентификации на указанном Fiber-роутере.
@@ -32,6 +33,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler)
 	auth.Post("/magic-link", h.SendMagicLink)
 	auth.Post("/magic-link/verify", h.VerifyMagicLink)
 	auth.Post("/telegram", h.LoginTelegram)
+	auth.Post("/telegram-code", h.LoginTelegramCode)
 	auth.Post("/refresh", h.RefreshToken)
 
 	// Защищённые эндпоинты (требуют аутентификации).
@@ -149,6 +151,38 @@ func (h *Handler) LoginTelegram(c fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
 		}
 		return fiber.NewError(fiber.StatusUnauthorized, "telegram auth failed")
+	}
+
+	return c.JSON(tokens)
+}
+
+// LoginTelegramCode обрабатывает POST /api/auth/telegram-code — вход по коду из Telegram-бота.
+func (h *Handler) LoginTelegramCode(c fiber.Ctx) error {
+	var req struct {
+		Code string `json:"code"`
+	}
+	if err := c.Bind().JSON(&req); err != nil || req.Code == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "code is required")
+	}
+
+	if h.tgBot == nil {
+		return fiber.NewError(fiber.StatusServiceUnavailable, "telegram bot not configured")
+	}
+
+	tgUser, err := h.tgBot.VerifyCode(c.Context(), req.Code)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
+	}
+
+	device := utils.CopyString(c.Get("User-Agent"))
+	ip := c.IP()
+
+	tokens, err := h.service.LoginWithTelegramUser(c.Context(), tgUser, device, ip)
+	if err != nil {
+		if err == ErrRegistrationInviteOnly {
+			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "login failed")
 	}
 
 	return c.JSON(tokens)

@@ -324,6 +324,19 @@ func (s *AuthService) LoginWithTelegram(ctx context.Context, initData, device, i
 	return s.CreateSession(ctx, u.ID, device, ip)
 }
 
+// LoginWithTelegramUser находит или создаёт пользователя по TelegramUser и возвращает пару токенов.
+func (s *AuthService) LoginWithTelegramUser(ctx context.Context, tgUser *TelegramUser, device, ip string) (*TokenPairResponse, error) {
+	telegramID := strconv.FormatInt(tgUser.ID, 10)
+	u, isNew, err := s.findOrCreateUserByTelegram(ctx, telegramID, tgUser)
+	if err != nil {
+		return nil, err
+	}
+	if isNew {
+		slog.Info("new user registered via telegram bot code", "user_id", u.ID.String(), "telegram_id", telegramID)
+	}
+	return s.CreateSession(ctx, u.ID, device, ip)
+}
+
 // findOrCreateUserByEmail ищет пользователя по email. Если не найден — создаёт нового.
 // Самый первый пользователь в системе получает роль admin.
 func (s *AuthService) findOrCreateUserByEmail(ctx context.Context, email string) (*ent.User, bool, error) {
