@@ -43,7 +43,7 @@ export function CallButton({ channelId }: CallButtonProps) {
 		return () => {
 			cancelled = true;
 		};
-	}, [channelId, checkActiveCall]);
+	}, [channelId, checkActiveCall, isInCall]);
 
 	/** Обработчик клика: начать или присоединиться. */
 	const handleClick = useCallback(async () => {
