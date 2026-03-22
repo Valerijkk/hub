@@ -20,7 +20,7 @@ var (
 	AuthRateLimit        = RateLimitConfig{Max: 3, Window: 10 * time.Minute}
 	APIRateLimit         = RateLimitConfig{Max: 100, Window: 1 * time.Second}
 	FileUploadRateLimit  = RateLimitConfig{Max: 10, Window: 1 * time.Minute}
-	MessageSendRateLimit = RateLimitConfig{Max: 60, Window: 1 * time.Minute}
+	MessageSendRateLimit = RateLimitConfig{Max: 300, Window: 1 * time.Minute}
 )
 
 type slidingWindowEntry struct {

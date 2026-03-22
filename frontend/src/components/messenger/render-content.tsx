@@ -2,9 +2,13 @@
 
 /** Рендерит один узел Plate JSON (текст, параграф, заголовок, список, цитату, ссылку, код). */
 export function RenderNode({ node }: { node: Record<string, unknown> }) {
+	if (!node || typeof node !== "object") return null;
+
 	// Text node.
-	if ("text" in node && typeof node.text === "string") {
-		let el: React.ReactNode = node.text;
+	if ("text" in node) {
+		const text = typeof node.text === "string" ? node.text : String(node.text ?? "");
+		if (!text) return null;
+		let el: React.ReactNode = text;
 		if (node.bold) el = <strong>{el}</strong>;
 		if (node.italic) el = <em>{el}</em>;
 		if (node.code)
@@ -18,9 +22,9 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 	}
 
 	const children =
-		(node.children as Record<string, unknown>[] | undefined) ?? [];
+		(Array.isArray(node.children) ? node.children : []) as Record<string, unknown>[];
 	const renderedChildren = children.map((child, i) => (
-		<RenderNode key={i} node={child} />
+		<RenderNode key={i} node={child as Record<string, unknown>} />
 	));
 
 	switch (node.type) {
@@ -70,16 +74,27 @@ export function RenderContent({
 }: {
 	contentJson?: Record<string, unknown>;
 }) {
-	if (!contentJson) return null;
+	if (!contentJson || typeof contentJson !== "object") return null;
+
+	// Если contentJson это строка (plain text), рендерим напрямую.
+	if (typeof contentJson === "string") {
+		return <p className="mb-1 leading-relaxed">{contentJson}</p>;
+	}
 
 	const children = (contentJson as { children?: unknown[] }).children;
-	if (!Array.isArray(children)) return null;
+	if (!Array.isArray(children)) {
+		// Fallback: если нет children, попробуем отрендерить как текст.
+		const text = (contentJson as { text?: string }).text;
+		if (typeof text === "string") return <p>{text}</p>;
+		return null;
+	}
 
 	return (
 		<div className="prose prose-sm dark:prose-invert max-w-none">
-			{children.map((node, i) => (
-				<RenderNode key={i} node={node as Record<string, unknown>} />
-			))}
+			{children.map((node, i) => {
+				if (!node || typeof node !== "object") return null;
+				return <RenderNode key={i} node={node as Record<string, unknown>} />;
+			})}
 		</div>
 	);
 }
