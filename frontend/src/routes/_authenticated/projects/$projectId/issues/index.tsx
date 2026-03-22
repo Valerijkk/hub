@@ -154,8 +154,27 @@ function IssueListPage() {
 
       {/* Таблица задач */}
       {isLoading && !cursor ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Загрузка...</p>
+        <div className="animate-fade-in rounded-md border">
+          {/* Table header skeleton */}
+          <div className="flex items-center gap-4 border-b bg-muted/30 px-4 py-3">
+            <div className="h-4 w-20 rounded animate-shimmer" />
+            <div className="h-4 w-12 rounded animate-shimmer" />
+            <div className="h-4 w-48 rounded animate-shimmer flex-1" />
+            <div className="h-4 w-20 rounded animate-shimmer" />
+            <div className="h-4 w-20 rounded animate-shimmer" />
+            <div className="h-4 w-16 rounded animate-shimmer" />
+          </div>
+          {/* Table rows skeleton */}
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex items-center gap-4 border-b last:border-b-0 px-4 py-3">
+              <div className="h-4 w-20 rounded animate-shimmer" />
+              <div className="h-5 w-5 rounded animate-shimmer" />
+              <div className="h-4 rounded animate-shimmer flex-1" style={{ width: `${40 + (i * 7) % 30}%` }} />
+              <div className="h-5 w-16 rounded-full animate-shimmer" />
+              <div className="h-5 w-16 rounded-full animate-shimmer" />
+              <div className="h-6 w-6 rounded-full animate-shimmer" />
+            </div>
+          ))}
         </div>
       ) : displayIssues.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12">

@@ -61,8 +61,25 @@ function ProjectPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Загрузка...</p>
+      <div className="animate-fade-in space-y-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl animate-shimmer" />
+            <div className="space-y-2">
+              <div className="h-6 w-48 rounded animate-shimmer" />
+              <div className="h-4 w-24 rounded animate-shimmer" />
+            </div>
+          </div>
+          <div className="h-9 w-32 rounded-lg animate-shimmer" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="rounded-xl border bg-card p-5 space-y-2">
+              <div className="h-4 w-20 rounded animate-shimmer" />
+              <div className="h-8 w-16 rounded animate-shimmer" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
