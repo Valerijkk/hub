@@ -10,8 +10,6 @@ import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { MessageComposer } from "./message-composer";
 import { MessageItem } from "./message-item";
-import { PinnedMessages } from "./pinned-messages";
-import { SearchDialog } from "./search-dialog";
 import { ThreadPanel } from "./thread-panel";
 
 /** Пропсы компонента ChatView. */
@@ -194,8 +192,6 @@ export function ChatView({ channelId }: ChatViewProps) {
 				</div>
 				<div className="flex items-center gap-1">
 					<CallButton channelId={channelId} />
-					<SearchDialog channelId={channelId} />
-					<PinnedMessages channelId={channelId} />
 				</div>
 			</div>
 
