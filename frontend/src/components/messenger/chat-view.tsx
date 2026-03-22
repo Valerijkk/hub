@@ -3,7 +3,9 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Channel, Message } from "@/api/messenger";
 import { getChannel } from "@/api/messenger";
-// import { CallButton } from "@/components/calls/CallButton";
+import { CallButton } from "@/components/calls/CallButton";
+import { PinnedMessages } from "./pinned-messages";
+import { SearchDialog } from "./search-dialog";
 import { useMessages } from "@/hooks/use-messages";
 import { useMarkRead } from "@/hooks/use-unread";
 import { cn } from "@/lib/utils";
@@ -66,7 +68,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 		(s) => s.activeThreadMessageId,
 	);
 	const closeThread = useMessengerStore((s) => s.closeThread);
-	const typingUsers = useMessengerStore((s) => s.typingUsers[channelId] ?? []);
+	const typingUsers = useMessengerStore((s) => s.typingUsers[channelId]) ?? [];
 
 	// Пометить канал как прочитанный при открытии.
 	useEffect(() => {
@@ -198,7 +200,11 @@ export function ChatView({ channelId }: ChatViewProps) {
 						)}
 					</div>
 				</div>
-				<div className="flex items-center gap-1" />
+				<div className="flex items-center gap-1">
+					<CallButton channelId={channelId} />
+					<SearchDialog channelId={channelId} />
+					<PinnedMessages channelId={channelId} />
+				</div>
 			</div>
 
 			{/* Область сообщений */}
