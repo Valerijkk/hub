@@ -8,7 +8,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-// import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChannels } from "@/hooks/use-channels";
 import { usePresence } from "@/hooks/use-presence";
 import { useUnread } from "@/hooks/use-unread";
@@ -27,17 +26,16 @@ import { PresenceIndicator } from "./presence-indicator";
 /** Группирует каналы по типу (личные, групповые, проекты, публичные). */
 function groupChannels(channels: Channel[]) {
 	const groups: Record<string, { label: string; channels: Channel[] }> = {
-		dm: { label: "ЛИЧНЫЕ", channels: [] },
-		group: { label: "ГРУППОВЫЕ", channels: [] },
-		private: { label: "ПРИВАТНЫЕ", channels: [] },
-		public: { label: "ПУБЛИЧНЫЕ", channels: [] },
+		dm: { label: "Личные сообщения", channels: [] },
+		group: { label: "Групповые", channels: [] },
+		private: { label: "Приватные", channels: [] },
+		public: { label: "Каналы", channels: [] },
 	};
 	for (const ch of channels) {
 		const group = groups[ch.channel_type];
 		if (group) {
 			group.channels.push(ch);
 		} else {
-			// Unknown channel type -- put in group to avoid losing it
 			groups.group?.channels.push(ch);
 		}
 	}
@@ -90,8 +88,61 @@ function BookmarksList() {
 	);
 }
 
+/** Кнопка "+" для создания канала рядом с заголовком секции. */
+function SectionAddButton({ type }: { type: string }) {
+	if (type === "dm") return <NewDmDialog />;
+	return <CreateChannelDialog />;
+}
+
+/** Сворачиваемая секция каналов. */
+function ChannelSection({
+	type,
+	label,
+	children,
+}: {
+	type: string;
+	label: string;
+	children: React.ReactNode;
+}) {
+	const [collapsed, setCollapsed] = useState(false);
+
+	return (
+		<div>
+			<div className="flex items-center justify-between px-3 py-1.5 group/section">
+				<button
+					type="button"
+					className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors"
+					onClick={() => setCollapsed(!collapsed)}
+				>
+					<svg
+						className={cn(
+							"h-3 w-3 transition-transform duration-200",
+							collapsed && "-rotate-90",
+						)}
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						strokeWidth={2}
+					>
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							d="M19 9l-7 7-7-7"
+						/>
+					</svg>
+					{label}
+				</button>
+				<div className="opacity-0 group-hover/section:opacity-100 transition-opacity">
+					<SectionAddButton type={type} />
+				</div>
+			</div>
+			{!collapsed && <div className="space-y-px">{children}</div>}
+		</div>
+	);
+}
+
 /**
- * ChannelList отображает список каналов в стиле Tinkoff Talk.
+ * ChannelList отображает список каналов в стиле Slack / Tinkoff Talk.
  * Каждый канал показывает: иконку, название, превью последнего сообщения,
  * относительное время, badge непрочитанных и индикатор онлайна для ЛС.
  */
@@ -115,17 +166,16 @@ export function ChannelList() {
 			<div className="flex h-full flex-col">
 				<div className="flex h-14 items-center justify-between border-b border-white/10 px-4">
 					<span className="text-sm font-semibold text-sidebar-foreground">
-						Каналы
+						Мессенджер
 					</span>
 				</div>
 				<div className="flex flex-1 items-center justify-center">
-					<div className="space-y-2 w-full px-3">
+					<div className="space-y-1 w-full px-2">
 						{[1, 2, 3, 4, 5].map((i) => (
-							<div key={i} className="flex items-center gap-3 px-3 py-2.5">
-								<div className="h-10 w-10 rounded-full animate-shimmer shrink-0" />
-								<div className="flex-1 space-y-1.5">
+							<div key={i} className="flex items-center gap-2.5 px-3 py-2">
+								<div className="h-5 w-5 rounded animate-shimmer shrink-0" />
+								<div className="flex-1 space-y-1">
 									<div className="h-3 w-24 rounded animate-shimmer" />
-									<div className="h-2.5 w-36 rounded animate-shimmer" />
 								</div>
 							</div>
 						))}
@@ -142,92 +192,86 @@ export function ChannelList() {
 			{/* Header */}
 			<div className="flex h-14 items-center justify-between border-b border-white/10 px-4">
 				<span className="text-sm font-semibold tracking-wide text-sidebar-foreground">
-					Каналы
+					Мессенджер
 				</span>
 				<div className="flex items-center gap-0.5">
-					<NewDmDialog />
 					<BookmarksButton />
-					<CreateChannelDialog />
 				</div>
 			</div>
 
 			{/* Channel list */}
 			<div className="flex-1 overflow-y-auto">
-				<div className="p-2 space-y-5">
+				<div className="py-3 space-y-4">
 					{grouped.map(([type, group]) => (
-						<div key={type}>
-							<p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">
-								{group.label}
-							</p>
-							<div className="space-y-0.5">
-								{group.channels.map((channel) => {
-									const isActive = matchRoute({
-										to: "/messenger/$channelId",
-										params: { channelId: channel.id },
-										fuzzy: true,
-									});
-									const unread = unreadCounts[channel.id] ?? 0;
+						<ChannelSection key={type} type={type} label={group.label}>
+							{group.channels.map((channel) => {
+								const isActive = matchRoute({
+									to: "/messenger/$channelId",
+									params: { channelId: channel.id },
+									fuzzy: true,
+								});
+								const unread = unreadCounts[channel.id] ?? 0;
+								const partnerId = getDmPartnerId(channel);
 
-									return (
-										<Link
-											key={channel.id}
-											to="/messenger/$channelId"
-											params={{ channelId: channel.id }}
-											className={cn(
-												"flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
-												"text-sidebar-foreground/70 hover:bg-white/[0.08] hover:text-sidebar-foreground",
-												isActive &&
-													"bg-primary/15 text-sidebar-foreground border-l-[3px] border-primary font-medium shadow-[0_0_10px_rgba(59,130,246,0.1)]",
-											)}
-										>
-											{/* Icon with online dot for DM */}
-											<div className="relative shrink-0">
-												<ChannelIcon type={channel.channel_type} />
-												{channel.channel_type === "dm" &&
-													(() => {
-														const partnerId = getDmPartnerId(channel);
-														return partnerId ? (
-															<span className="absolute -bottom-0.5 -right-0.5">
-																<PresenceIndicator
-																	status={getStatus(partnerId)}
-																	size="sm"
-																	className="ring-2 ring-sidebar"
-																/>
-															</span>
-														) : null;
-													})()}
-											</div>
+								return (
+									<Link
+										key={channel.id}
+										to="/messenger/$channelId"
+										params={{ channelId: channel.id }}
+										className={cn(
+											"group/item relative flex items-center gap-2.5 mx-2 rounded-md px-2.5 py-1.5 text-sm transition-all duration-150",
+											"text-sidebar-foreground/70 hover:bg-white/[0.06] hover:text-sidebar-foreground",
+											isActive &&
+												"bg-primary/10 text-sidebar-foreground font-medium",
+										)}
+									>
+										{/* Left accent bar for active channel */}
+										{isActive && (
+											<div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
+										)}
 
-											{/* Name + last message preview */}
-											<div className="flex-1 min-w-0">
-												<div className="flex items-center justify-between gap-2">
-													<span
-														className={cn(
-															"truncate text-[13px]",
-															unread > 0 &&
-																"font-semibold text-sidebar-foreground",
-														)}
-													>
-														{channel.name}
-													</span>
-													{/* Relative time */}
-													<span className="shrink-0 text-[10px] text-sidebar-foreground/40">
-														{formatRelativeTime(channel.updated_at)}
-													</span>
-												</div>
-											</div>
-
-											{/* Unread badge -- gradient pill */}
-											{unread > 0 && (
-												<span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full gradient-messenger px-1.5 text-[10px] font-bold text-white shadow-sm">
-													{unread > 99 ? "99+" : unread}
+										{/* Icon with online dot for DM */}
+										<div className="relative shrink-0">
+											<ChannelIcon type={channel.channel_type} />
+											{channel.channel_type === "dm" && partnerId && (
+												<span className="absolute -bottom-0.5 -right-0.5">
+													<PresenceIndicator
+														status={getStatus(partnerId)}
+														size="sm"
+														className="ring-2 ring-sidebar"
+													/>
 												</span>
 											)}
-										</Link>
-									);
-								})}
-							</div>
-						</div>
+										</div>
+
+										{/* Name + time */}
+										<div className="flex-1 min-w-0">
+											<div className="flex items-center justify-between gap-2">
+												<span
+													className={cn(
+														"truncate text-[13px]",
+														unread > 0 &&
+															"font-semibold text-sidebar-foreground",
+													)}
+												>
+													{channel.name}
+												</span>
+												<span className="shrink-0 text-[10px] text-sidebar-foreground/35">
+													{formatRelativeTime(channel.updated_at)}
+												</span>
+											</div>
+										</div>
+
+										{/* Unread dot / count */}
+										{unread > 0 && (
+											<span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+												{unread > 99 ? "99+" : unread}
+											</span>
+										)}
+									</Link>
+								);
+							})}
+						</ChannelSection>
 					))}
 
 					{grouped.length === 0 && (

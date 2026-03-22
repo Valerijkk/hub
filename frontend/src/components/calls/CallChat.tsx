@@ -6,8 +6,7 @@ import {
 	listChatMessages,
 	sendChatMessage,
 } from "@/api/calls";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useWsStore } from "@/stores/ws-store";
 
@@ -17,7 +16,22 @@ interface CallChatProps {
 	callId: string;
 }
 
-/** Эфемерный чат звонка — исчезает после завершения звонка. */
+/**
+ * Форматирование времени сообщения.
+ */
+function formatTime(dateStr: string): string {
+	try {
+		const d = new Date(dateStr);
+		return d.toLocaleTimeString("ru-RU", {
+			hour: "2-digit",
+			minute: "2-digit",
+		});
+	} catch {
+		return "";
+	}
+}
+
+/** Эфемерный чат звонка — сворачиваемая панель справа, 280px. */
 export function CallChat({ callId }: CallChatProps) {
 	const [text, setText] = useState("");
 	const scrollRef = useRef<HTMLDivElement>(null);
@@ -66,39 +80,101 @@ export function CallChat({ callId }: CallChatProps) {
 		if (text.trim()) sendMutation.mutate(text.trim());
 	};
 
+	const isOwn = (msg: CallChatMessage) => msg.user_id === user?.id;
+
 	return (
-		<div className="flex h-full flex-col border-l">
+		<div className="flex h-full w-[280px] flex-shrink-0 flex-col border-l border-white/5 bg-black/20">
 			{/* Заголовок */}
-			<div className="border-b px-3 py-2 text-sm font-medium">Чат звонка</div>
+			<div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+				<span className="text-sm font-semibold text-white/80">
+					Чат звонка
+				</span>
+				<span className="text-[10px] text-white/30">
+					{messages.length} сообщ.
+				</span>
+			</div>
 
 			{/* Сообщения */}
-			<div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-2">
-				{messages.map((msg) => (
-					<div
-						key={msg.id}
-						className={`text-sm ${msg.user_id === user?.id ? "text-right" : ""}`}
-					>
-						<span className="text-xs text-muted-foreground">
-							{msg.user_name}
-						</span>
-						<p className="rounded-md bg-muted px-2 py-1 inline-block max-w-[80%]">
-							{msg.text}
-						</p>
-					</div>
-				))}
+			<div
+				ref={scrollRef}
+				className="flex-1 overflow-y-auto px-3 py-3 space-y-3"
+			>
+				{messages.length === 0 && (
+					<p className="text-center text-xs text-white/20 mt-8">
+						Нет сообщений
+					</p>
+				)}
+				{messages.map((msg) => {
+					const own = isOwn(msg);
+					return (
+						<div
+							key={msg.id}
+							className={cn(
+								"flex flex-col gap-0.5",
+								own ? "items-end" : "items-start",
+							)}
+						>
+							{/* Имя + время */}
+							<div
+								className={cn(
+									"flex items-center gap-2 px-1",
+									own ? "flex-row-reverse" : "",
+								)}
+							>
+								<span className="text-[10px] font-medium text-white/40">
+									{own ? "Вы" : msg.user_name}
+								</span>
+								{msg.created_at && (
+									<span className="text-[10px] text-white/20">
+										{formatTime(msg.created_at)}
+									</span>
+								)}
+							</div>
+
+							{/* Пузырёк сообщения */}
+							<div
+								className={cn(
+									"max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
+									own
+										? "bg-blue-500/20 text-blue-100 rounded-br-md"
+										: "bg-white/[0.06] text-white/80 rounded-bl-md",
+								)}
+							>
+								{msg.text}
+							</div>
+						</div>
+					);
+				})}
 			</div>
 
 			{/* Ввод сообщения */}
-			<form onSubmit={handleSubmit} className="flex gap-2 border-t p-2">
-				<Input
+			<form
+				onSubmit={handleSubmit}
+				className="flex items-center gap-2 border-t border-white/5 px-3 py-2.5"
+			>
+				<input
 					value={text}
 					onChange={(e) => setText(e.target.value)}
 					placeholder="Сообщение..."
-					className="flex-1 h-8 text-sm"
+					className={cn(
+						"flex-1 h-9 rounded-xl bg-white/5 border-0 px-3 text-sm text-white/90",
+						"placeholder:text-white/25",
+						"focus:outline-none focus:ring-1 focus:ring-blue-500/40",
+						"transition-all duration-200",
+					)}
 				/>
-				<Button type="submit" size="sm" variant="ghost" disabled={!text.trim()}>
+				<button
+					type="submit"
+					disabled={!text.trim()}
+					className={cn(
+						"flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200",
+						text.trim()
+							? "bg-blue-500 text-white hover:bg-blue-600 hover:scale-105"
+							: "bg-white/5 text-white/20 cursor-not-allowed",
+					)}
+				>
 					<Send className="h-4 w-4" />
-				</Button>
+				</button>
 			</form>
 		</div>
 	);

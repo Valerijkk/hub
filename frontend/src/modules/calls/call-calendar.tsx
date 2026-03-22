@@ -34,6 +34,8 @@ interface CalendarEvent {
 	colorClass: string;
 }
 
+type CalendarView = "month" | "week";
+
 // ---------------------------------------------------------------------------
 // Color palette for call types
 // ---------------------------------------------------------------------------
@@ -47,6 +49,7 @@ const CALL_COLORS = [
 	"bg-cyan-400/20 border-cyan-400/40 text-cyan-700 dark:text-cyan-300",
 ] as const;
 
+
 function getColorForEvent(id: string): string {
 	let hash = 0;
 	for (let i = 0; i < id.length; i++) {
@@ -54,6 +57,8 @@ function getColorForEvent(id: string): string {
 	}
 	return CALL_COLORS[Math.abs(hash) % CALL_COLORS.length] as string;
 }
+
+
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -67,11 +72,12 @@ const HOURS = Array.from(
 );
 const DEFAULT_DURATION = 60; // minutes
 
+const WEEKDAY_NAMES_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
 /** Get the Monday of the week containing `date`. */
 function getWeekStart(date: Date): Date {
 	const d = new Date(date);
 	const day = d.getDay();
-	// Sunday = 0, so shift to make Monday = 0
 	const diff = day === 0 ? -6 : 1 - day;
 	d.setDate(d.getDate() + diff);
 	d.setHours(0, 0, 0, 0);
@@ -95,6 +101,12 @@ function isSameDay(a: Date, b: Date): boolean {
 	);
 }
 
+function isSameMonth(a: Date, b: Date): boolean {
+	return (
+		a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()
+	);
+}
+
 function formatDayHeader(
 	date: Date,
 	locale: string,
@@ -102,6 +114,41 @@ function formatDayHeader(
 	const weekday = date.toLocaleDateString(locale, { weekday: "short" });
 	const day = date.getDate().toString();
 	return { weekday, day };
+}
+
+/** Get all days to display in a month grid (including padding days from prev/next months). */
+function getMonthGridDays(year: number, month: number): Date[] {
+	const firstDay = new Date(year, month, 1);
+	const lastDay = new Date(year, month + 1, 0);
+
+	// Find Monday before or on the 1st
+	let startDay = firstDay.getDay(); // 0=Sun
+	// Convert to Mon=0 format
+	startDay = startDay === 0 ? 6 : startDay - 1;
+
+	const days: Date[] = [];
+
+	// Add padding days from previous month
+	for (let i = startDay - 1; i >= 0; i--) {
+		const d = new Date(year, month, 1);
+		d.setDate(d.getDate() - i - 1);
+		days.push(d);
+	}
+
+	// Add all days of the month
+	for (let d = 1; d <= lastDay.getDate(); d++) {
+		days.push(new Date(year, month, d));
+	}
+
+	// Pad to complete the last week (fill to 35 or 42 cells)
+	while (days.length % 7 !== 0) {
+		const last = days[days.length - 1]!;
+		const next = new Date(last);
+		next.setDate(next.getDate() + 1);
+		days.push(next);
+	}
+
+	return days;
 }
 
 /**
@@ -119,12 +166,10 @@ function expandRRule(
 	const isWeekly = rrule.includes("FREQ=WEEKLY");
 
 	if (!isDaily && !isWeekly) {
-		// Unknown frequency; just use the base date if it falls in range
 		if (baseDate >= rangeStart && baseDate <= rangeEnd) dates.push(baseDate);
 		return dates;
 	}
 
-	// Parse BYDAY if present
 	const byDayMatch = rrule.match(/BYDAY=([A-Z,]+)/);
 	const byDays = byDayMatch
 		? byDayMatch[1]!.split(",").map((d) => {
@@ -163,17 +208,282 @@ function expandRRule(
 }
 
 // ---------------------------------------------------------------------------
+// Month View
+// ---------------------------------------------------------------------------
+
+function MonthView({
+	year,
+	month,
+	today,
+	events,
+	onDayClick,
+	onEventClick,
+}: {
+	year: number;
+	month: number;
+	today: Date;
+	events: CalendarEvent[];
+	onDayClick: (day: Date) => void;
+	onEventClick: (ev: CalendarEvent) => void;
+}) {
+	const gridDays = useMemo(() => getMonthGridDays(year, month), [year, month]);
+	const currentMonth = new Date(year, month, 1);
+
+	// Group events by day key for quick lookup
+	const eventsByDay = useMemo(() => {
+		const map = new Map<string, CalendarEvent[]>();
+		for (const ev of events) {
+			const key = `${ev.date.getFullYear()}-${ev.date.getMonth()}-${ev.date.getDate()}`;
+			const arr = map.get(key) ?? [];
+			arr.push(ev);
+			map.set(key, arr);
+		}
+		return map;
+	}, [events]);
+
+	return (
+		<div className="rounded-xl border bg-card overflow-hidden">
+			{/* Weekday headers */}
+			<div className="grid grid-cols-7 border-b">
+				{WEEKDAY_NAMES_SHORT.map((name) => (
+					<div
+						key={name}
+						className="py-2 text-center text-xs font-medium uppercase text-muted-foreground"
+					>
+						{name}
+					</div>
+				))}
+			</div>
+
+			{/* Day cells */}
+			<div className="grid grid-cols-7">
+				{gridDays.map((day, idx) => {
+					const isToday = isSameDay(day, today);
+					const isCurrentMonth = isSameMonth(day, currentMonth);
+					const dayKey = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+					const dayEvents = eventsByDay.get(dayKey) ?? [];
+
+					return (
+						<div
+							key={idx}
+							className={`relative min-h-[80px] border-b border-r p-1.5 cursor-pointer transition-colors hover:bg-muted/50 ${
+								!isCurrentMonth ? "opacity-40" : ""
+							} ${idx % 7 === 6 ? "border-r-0" : ""}`}
+							onClick={() => onDayClick(day)}
+						>
+							{/* Day number */}
+							<div className="flex items-center justify-center">
+								<span
+									className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm ${
+										isToday
+											? "bg-primary text-primary-foreground font-semibold"
+											: "text-foreground"
+									}`}
+								>
+									{day.getDate()}
+								</span>
+							</div>
+
+							{/* Event indicators */}
+							{dayEvents.length > 0 && (
+								<div className="mt-0.5 space-y-0.5">
+									{dayEvents.slice(0, 3).map((ev) => (
+										<div
+											key={ev.id}
+											className={`truncate rounded px-1 py-0.5 text-[10px] leading-tight cursor-pointer transition-opacity hover:opacity-80 ${ev.colorClass}`}
+											title={`${ev.title} ${ev.date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`}
+											onClick={(e) => {
+												e.stopPropagation();
+												onEventClick(ev);
+											}}
+										>
+											{ev.date.toLocaleTimeString("ru-RU", {
+												hour: "2-digit",
+												minute: "2-digit",
+											})}{" "}
+											{ev.title}
+										</div>
+									))}
+									{dayEvents.length > 3 && (
+										<div className="px-1 text-[10px] text-muted-foreground">
+											+{dayEvents.length - 3}
+										</div>
+									)}
+								</div>
+							)}
+						</div>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Week View (extracted from old CallCalendar)
+// ---------------------------------------------------------------------------
+
+function WeekView({
+	weekDays,
+	today,
+	events,
+	isCurrentWeek,
+	onSlotClick,
+	onEventClick,
+}: {
+	weekDays: Date[];
+	today: Date;
+	events: CalendarEvent[];
+	isCurrentWeek: boolean;
+	onSlotClick: (day: Date, hour: number) => void;
+	onEventClick: (ev: CalendarEvent) => void;
+}) {
+	const currentTimeRef = useRef<HTMLDivElement>(null);
+
+	const now = new Date();
+	const currentHour = now.getHours();
+	const currentMinute = now.getMinutes();
+
+	useEffect(() => {
+		currentTimeRef.current?.scrollIntoView({
+			block: "center",
+			behavior: "smooth",
+		});
+	}, []);
+
+	return (
+		<div className="overflow-auto rounded-xl border bg-card">
+			<div
+				className="grid min-w-[700px]"
+				style={{
+					gridTemplateColumns: "60px repeat(7, 1fr)",
+					gridTemplateRows: `40px repeat(${HOURS.length}, 60px)`,
+				}}
+			>
+				{/* Header: empty top-left corner */}
+				<div className="sticky top-0 z-20 border-b border-r bg-card" />
+
+				{/* Day headers */}
+				{weekDays.map((day, i) => {
+					const { weekday, day: dayNum } = formatDayHeader(day, "ru-RU");
+					const isToday = isSameDay(day, today);
+					return (
+						<div
+							key={i}
+							className={`sticky top-0 z-20 flex flex-col items-center justify-center border-b bg-card text-xs ${
+								i < 6 ? "border-r" : ""
+							} ${isToday ? "bg-primary/5" : ""}`}
+						>
+							<span className="uppercase text-muted-foreground">
+								{weekday}
+							</span>
+							<span
+								className={`text-sm font-semibold ${
+									isToday
+										? "flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground"
+										: ""
+								}`}
+							>
+								{dayNum}
+							</span>
+						</div>
+					);
+				})}
+
+				{/* Time rows */}
+				{HOURS.map((hour) => (
+					<>
+						{/* Time label */}
+						<div
+							key={`label-${hour}`}
+							className="relative flex items-start justify-end border-r border-b pr-2 pt-0.5 text-[11px] text-muted-foreground"
+						>
+							{String(hour).padStart(2, "0")}:00
+						</div>
+
+						{/* Day cells for this hour */}
+						{weekDays.map((day, dayIdx) => {
+							const isToday = isCurrentWeek && isSameDay(day, today);
+							const dayEvents = events.filter(
+								(ev) =>
+									isSameDay(ev.date, day) && ev.date.getHours() === hour,
+							);
+
+							return (
+								<div
+									key={`cell-${hour}-${dayIdx}`}
+									className={`relative border-b cursor-pointer transition-colors hover:bg-muted/50 ${
+										dayIdx < 6 ? "border-r" : ""
+									} ${isToday ? "bg-primary/[0.02]" : ""}`}
+									onClick={() => onSlotClick(day, hour)}
+								>
+									{/* Current time indicator */}
+									{isToday && hour === currentHour && (
+										<div
+											ref={currentTimeRef}
+											className="pointer-events-none absolute left-0 right-0 z-10 border-t-2 border-red-500"
+											style={{ top: `${(currentMinute / 60) * 100}%` }}
+										>
+											<div className="absolute -left-1 -top-1.5 h-3 w-3 rounded-full bg-red-500" />
+										</div>
+									)}
+
+									{/* Event blocks */}
+									{dayEvents.map((ev) => {
+										const topOffset = (ev.date.getMinutes() / 60) * 100;
+										const height = (ev.durationMinutes / 60) * 100;
+										return (
+											<div
+												key={ev.id}
+												className={`absolute left-0.5 right-0.5 z-[5] overflow-hidden rounded-md border px-1.5 py-0.5 text-xs cursor-pointer transition-opacity hover:opacity-80 ${ev.colorClass}`}
+												style={{
+													top: `${topOffset}%`,
+													height: `${Math.min(height, 100 - topOffset)}%`,
+													minHeight: "20px",
+												}}
+												onClick={(e) => {
+													e.stopPropagation();
+													onEventClick(ev);
+												}}
+											>
+												<span className="font-medium leading-tight line-clamp-2">
+													{ev.title}
+												</span>
+												{ev.durationMinutes >= 30 && (
+													<span className="opacity-70">
+														{ev.date.toLocaleTimeString("ru-RU", {
+															hour: "2-digit",
+															minute: "2-digit",
+														})}
+													</span>
+												)}
+											</div>
+										);
+									})}
+								</div>
+							);
+						})}
+					</>
+				))}
+			</div>
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
 // CallCalendar component
 // ---------------------------------------------------------------------------
 
 /**
- * CallCalendar -- weekly calendar view for scheduled calls.
- * Shows scheduled and recurring calls as colored blocks in a CSS grid.
+ * CallCalendar -- calendar view for scheduled calls.
+ * Supports month (default) and week views with a view switcher.
  */
 export function CallCalendar() {
 	const { t } = useTranslation("calls");
 
+	const [view, setView] = useState<CalendarView>("month");
 	const [weekOffset, setWeekOffset] = useState(0);
+	const [monthOffset, setMonthOffset] = useState(0);
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [dialogDefaults, setDialogDefaults] = useState<{
 		date?: string;
@@ -182,10 +492,29 @@ export function CallCalendar() {
 	const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
 		null,
 	);
-	const currentTimeRef = useRef<HTMLDivElement>(null);
 
 	const today = useMemo(() => new Date(), []);
 
+	// --- Month view state ---
+	const displayMonth = useMemo(() => {
+		const d = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+		return { year: d.getFullYear(), month: d.getMonth() };
+	}, [today, monthOffset]);
+
+	const monthRangeStart = useMemo(() => {
+		const days = getMonthGridDays(displayMonth.year, displayMonth.month);
+		return days[0]!;
+	}, [displayMonth]);
+
+	const monthRangeEnd = useMemo(() => {
+		const days = getMonthGridDays(displayMonth.year, displayMonth.month);
+		const last = days[days.length - 1]!;
+		const end = new Date(last);
+		end.setHours(23, 59, 59, 999);
+		return end;
+	}, [displayMonth]);
+
+	// --- Week view state ---
 	const weekStart = useMemo(() => {
 		const base = getWeekStart(today);
 		base.setDate(base.getDate() + weekOffset * 7);
@@ -194,17 +523,21 @@ export function CallCalendar() {
 
 	const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
 
-	const rangeEnd = useMemo(() => {
+	const weekRangeEnd = useMemo(() => {
 		const end = new Date(weekDays[6]!);
 		end.setHours(23, 59, 59, 999);
 		return end;
 	}, [weekDays]);
 
-	// Scheduled calls — пока нет глобального endpoint, используем пустой массив.
-	// TODO: подключить к реальному API когда будет endpoint /api/calls/scheduled
+	// --- Compute visible range based on active view ---
+	const rangeStart = view === "month" ? monthRangeStart : weekStart;
+	const rangeEnd = view === "month" ? monthRangeEnd : weekRangeEnd;
+
+	// Scheduled calls -- placeholder until API endpoint is connected
+	// TODO: connect to real API when endpoint /api/calls/scheduled is available
 	const scheduledCalls: ScheduledCallRecord[] = [];
 
-	// Expand calls into calendar events for the current week
+	// Expand calls into calendar events for the visible range
 	const events = useMemo<CalendarEvent[]>(() => {
 		if (!scheduledCalls) return [];
 
@@ -218,7 +551,7 @@ export function CallCalendar() {
 				const occurrences = expandRRule(
 					baseDate,
 					call.rrule,
-					weekStart,
+					rangeStart,
 					rangeEnd,
 				);
 				for (const occ of occurrences) {
@@ -234,7 +567,7 @@ export function CallCalendar() {
 					});
 				}
 			} else {
-				if (baseDate >= weekStart && baseDate <= rangeEnd) {
+				if (baseDate >= rangeStart && baseDate <= rangeEnd) {
 					result.push({
 						id: call.id,
 						title: call.title,
@@ -249,21 +582,26 @@ export function CallCalendar() {
 		}
 
 		return result;
-	}, [scheduledCalls, weekStart, rangeEnd]);
+	}, [scheduledCalls, rangeStart, rangeEnd]);
 
-	// Scroll current time into view on mount
-	useEffect(() => {
-		currentTimeRef.current?.scrollIntoView({
-			block: "center",
-			behavior: "smooth",
+	// --- Handlers ---
+
+	const handleDayClick = useCallback((day: Date) => {
+		const d = new Date(day);
+		d.setHours(10, 0, 0, 0);
+		setDialogDefaults({
+			date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+			time: "10:00",
 		});
+		setSelectedEvent(null);
+		setDialogOpen(true);
 	}, []);
 
 	const handleSlotClick = useCallback((day: Date, hour: number) => {
 		const d = new Date(day);
 		d.setHours(hour, 0, 0, 0);
 		setDialogDefaults({
-			date: d.toISOString().split("T")[0],
+			date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
 			time: `${String(hour).padStart(2, "0")}:00`,
 		});
 		setSelectedEvent(null);
@@ -274,177 +612,138 @@ export function CallCalendar() {
 		setSelectedEvent(ev);
 	}, []);
 
-	const now = new Date();
-	const currentHour = now.getHours();
-	const currentMinute = now.getMinutes();
+	const handleNavigateToday = useCallback(() => {
+		if (view === "month") {
+			setMonthOffset(0);
+		} else {
+			setWeekOffset(0);
+		}
+	}, [view]);
+
+	const handleNavigatePrev = useCallback(() => {
+		if (view === "month") {
+			setMonthOffset((m) => m - 1);
+		} else {
+			setWeekOffset((w) => w - 1);
+		}
+	}, [view]);
+
+	const handleNavigateNext = useCallback(() => {
+		if (view === "month") {
+			setMonthOffset((m) => m + 1);
+		} else {
+			setWeekOffset((w) => w + 1);
+		}
+	}, [view]);
+
+	// --- Header text ---
+	const headerText = useMemo(() => {
+		if (view === "month") {
+			const d = new Date(displayMonth.year, displayMonth.month, 1);
+			return d.toLocaleDateString("ru-RU", {
+				month: "long",
+				year: "numeric",
+			});
+		}
+		return `${weekDays[0]!.toLocaleDateString("ru-RU", {
+			day: "numeric",
+			month: "long",
+		})} \u2014 ${weekDays[6]!.toLocaleDateString("ru-RU", {
+			day: "numeric",
+			month: "long",
+			year: "numeric",
+		})}`;
+	}, [view, displayMonth, weekDays]);
+
 	const isCurrentWeek = weekOffset === 0;
 
 	return (
 		<div className="space-y-4">
-			{/* Week navigation */}
+			{/* Navigation bar */}
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-2">
 					<Button
 						variant="outline"
 						size="icon"
-						onClick={() => setWeekOffset((w) => w - 1)}
+						onClick={handleNavigatePrev}
 					>
 						<ChevronLeft className="h-4 w-4" />
 					</Button>
-					<Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>
+					<Button variant="outline" size="sm" onClick={handleNavigateToday}>
 						{t("calendarToday", { defaultValue: "Сегодня" })}
 					</Button>
 					<Button
 						variant="outline"
 						size="icon"
-						onClick={() => setWeekOffset((w) => w + 1)}
+						onClick={handleNavigateNext}
 					>
 						<ChevronRight className="h-4 w-4" />
 					</Button>
+
+					<span className="ml-2 text-sm font-medium text-foreground capitalize">
+						{headerText}
+					</span>
 				</div>
 
-				<span className="text-sm font-medium text-muted-foreground">
-					{weekDays[0]!.toLocaleDateString("ru-RU", {
-						day: "numeric",
-						month: "long",
-					})}
-					{" \u2014 "}
-					{weekDays[6]!.toLocaleDateString("ru-RU", {
-						day: "numeric",
-						month: "long",
-						year: "numeric",
-					})}
-				</span>
+				<div className="flex items-center gap-2">
+					{/* View switcher */}
+					<div className="inline-flex h-9 items-center rounded-lg border bg-muted p-1">
+						<button
+							className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+								view === "month"
+									? "bg-background text-foreground shadow-sm"
+									: "text-muted-foreground hover:text-foreground"
+							}`}
+							onClick={() => setView("month")}
+						>
+							{t("calendarMonth", { defaultValue: "Месяц" })}
+						</button>
+						<button
+							className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+								view === "week"
+									? "bg-background text-foreground shadow-sm"
+									: "text-muted-foreground hover:text-foreground"
+							}`}
+							onClick={() => setView("week")}
+						>
+							{t("calendarWeek", { defaultValue: "Неделя" })}
+						</button>
+					</div>
 
-				<Button
-					size="sm"
-					onClick={() => {
-						setDialogDefaults({});
-						setSelectedEvent(null);
-						setDialogOpen(true);
-					}}
-				>
-					<Plus className="mr-1 h-4 w-4" />
-					{t("calendarNewCall", { defaultValue: "Запланировать" })}
-				</Button>
-			</div>
-
-			{/* Calendar grid */}
-			<div className="overflow-auto rounded-xl border bg-card">
-				<div
-					className="grid min-w-[700px]"
-					style={{
-						gridTemplateColumns: "60px repeat(7, 1fr)",
-						gridTemplateRows: `40px repeat(${HOURS.length}, 60px)`,
-					}}
-				>
-					{/* Header: empty top-left corner */}
-					<div className="sticky top-0 z-20 border-b border-r bg-card" />
-
-					{/* Day headers */}
-					{weekDays.map((day, i) => {
-						const { weekday, day: dayNum } = formatDayHeader(day, "ru-RU");
-						const isToday = isSameDay(day, today);
-						return (
-							<div
-								key={i}
-								className={`sticky top-0 z-20 flex flex-col items-center justify-center border-b bg-card text-xs ${
-									i < 6 ? "border-r" : ""
-								} ${isToday ? "bg-primary/5" : ""}`}
-							>
-								<span className="uppercase text-muted-foreground">
-									{weekday}
-								</span>
-								<span
-									className={`text-sm font-semibold ${
-										isToday
-											? "flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground"
-											: ""
-									}`}
-								>
-									{dayNum}
-								</span>
-							</div>
-						);
-					})}
-
-					{/* Time rows */}
-					{HOURS.map((hour) => (
-						<>
-							{/* Time label */}
-							<div
-								key={`label-${hour}`}
-								className="relative flex items-start justify-end border-r border-b pr-2 pt-0.5 text-[11px] text-muted-foreground"
-							>
-								{String(hour).padStart(2, "0")}:00
-							</div>
-
-							{/* Day cells for this hour */}
-							{weekDays.map((day, dayIdx) => {
-								const isToday = isCurrentWeek && isSameDay(day, today);
-								const dayEvents = events.filter(
-									(ev) =>
-										isSameDay(ev.date, day) && ev.date.getHours() === hour,
-								);
-
-								return (
-									<div
-										key={`cell-${hour}-${dayIdx}`}
-										className={`relative border-b cursor-pointer transition-colors hover:bg-muted/50 ${
-											dayIdx < 6 ? "border-r" : ""
-										} ${isToday ? "bg-primary/[0.02]" : ""}`}
-										onClick={() => handleSlotClick(day, hour)}
-									>
-										{/* Current time indicator */}
-										{isToday && hour === currentHour && (
-											<div
-												ref={currentTimeRef}
-												className="pointer-events-none absolute left-0 right-0 z-10 border-t-2 border-red-500"
-												style={{ top: `${(currentMinute / 60) * 100}%` }}
-											>
-												<div className="absolute -left-1 -top-1.5 h-3 w-3 rounded-full bg-red-500" />
-											</div>
-										)}
-
-										{/* Event blocks */}
-										{dayEvents.map((ev) => {
-											const topOffset = (ev.date.getMinutes() / 60) * 100;
-											const height = (ev.durationMinutes / 60) * 100;
-											return (
-												<div
-													key={ev.id}
-													className={`absolute left-0.5 right-0.5 z-[5] overflow-hidden rounded-md border px-1.5 py-0.5 text-xs cursor-pointer transition-opacity hover:opacity-80 ${ev.colorClass}`}
-													style={{
-														top: `${topOffset}%`,
-														height: `${Math.min(height, 100 - topOffset)}%`,
-														minHeight: "20px",
-													}}
-													onClick={(e) => {
-														e.stopPropagation();
-														handleEventClick(ev);
-													}}
-												>
-													<span className="font-medium leading-tight line-clamp-2">
-														{ev.title}
-													</span>
-													{ev.durationMinutes >= 30 && (
-														<span className="opacity-70">
-															{ev.date.toLocaleTimeString("ru-RU", {
-																hour: "2-digit",
-																minute: "2-digit",
-															})}
-														</span>
-													)}
-												</div>
-											);
-										})}
-									</div>
-								);
-							})}
-						</>
-					))}
+					<Button
+						size="sm"
+						onClick={() => {
+							setDialogDefaults({});
+							setSelectedEvent(null);
+							setDialogOpen(true);
+						}}
+					>
+						<Plus className="mr-1 h-4 w-4" />
+						{t("calendarNewCall", { defaultValue: "Запланировать" })}
+					</Button>
 				</div>
 			</div>
+
+			{/* Calendar views */}
+			{view === "month" ? (
+				<MonthView
+					year={displayMonth.year}
+					month={displayMonth.month}
+					today={today}
+					events={events}
+					onDayClick={handleDayClick}
+					onEventClick={handleEventClick}
+				/>
+			) : (
+				<WeekView
+					weekDays={weekDays}
+					today={today}
+					events={events}
+					isCurrentWeek={isCurrentWeek}
+					onSlotClick={handleSlotClick}
+					onEventClick={handleEventClick}
+				/>
+			)}
 
 			{/* Event detail popover */}
 			{selectedEvent && (

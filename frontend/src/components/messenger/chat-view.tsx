@@ -57,8 +57,64 @@ function needsDateSeparator(current: Message, previous?: Message): boolean {
 	return curDate.toDateString() !== prevDate.toDateString();
 }
 
+/** Иконка типа канала для заголовка. */
+function ChannelHeaderIcon({ type }: { type: string }) {
+	if (type === "public") {
+		return <span className="text-base font-bold text-muted-foreground">#</span>;
+	}
+	if (type === "dm") {
+		return (
+			<svg
+				className="h-5 w-5 text-muted-foreground"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				strokeWidth={1.5}
+			>
+				<path
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+				/>
+			</svg>
+		);
+	}
+	if (type === "private") {
+		return (
+			<svg
+				className="h-5 w-5 text-muted-foreground"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				strokeWidth={1.5}
+			>
+				<path
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+				/>
+			</svg>
+		);
+	}
+	return (
+		<svg
+			className="h-5 w-5 text-muted-foreground"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			strokeWidth={1.5}
+		>
+			<path
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+			/>
+		</svg>
+	);
+}
+
 /**
- * ChatView -- основной компонент чата в стиле Tinkoff Talk.
+ * ChatView -- основной компонент чата в стиле Slack / Tinkoff Talk.
  * Виртуализация, разделители дат, индикатор печати,
  * кнопка прокрутки вниз со счётчиком.
  */
@@ -151,102 +207,55 @@ export function ChatView({ channelId }: ChatViewProps) {
 
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
-			{/* Заголовок канала */}
+			{/* Channel header */}
 			<div className="flex h-14 shrink-0 items-center justify-between border-b bg-card/60 backdrop-blur-sm px-5">
-				<div className="flex items-center gap-3">
-					{channel && (
-						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-							{channel.channel_type === "public" ? (
-								<span className="text-sm font-bold">#</span>
-							) : channel.channel_type === "dm" ? (
-								<svg
-									className="h-4 w-4"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									strokeWidth={2}
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-									/>
-								</svg>
-							) : (
-								<svg
-									className="h-4 w-4"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									strokeWidth={2}
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-									/>
-								</svg>
-							)}
-						</div>
-					)}
-					<div>
-						<h2 className="text-sm font-semibold leading-tight">
+				<div className="flex items-center gap-2.5 min-w-0">
+					{channel && <ChannelHeaderIcon type={channel.channel_type} />}
+					<div className="min-w-0">
+						<h2 className="text-sm font-semibold leading-tight truncate">
 							{channel?.name ?? "Загрузка..."}
 						</h2>
 						{channel && channel.channel_type !== "dm" && (
 							<span className="text-[11px] text-muted-foreground">
 								{channel.channel_type === "public"
-									? "Публичный"
+									? "Публичный канал"
 									: channel.channel_type === "private"
-										? "Приватный"
+										? "Приватный канал"
 										: "Группа"}
 							</span>
 						)}
 					</div>
 				</div>
-				<div className="flex items-center gap-1">
+				<div className="flex items-center gap-0.5">
 					<CallButton channelId={channelId} />
 					<SearchDialog channelId={channelId} />
 					<PinnedMessages channelId={channelId} />
 				</div>
 			</div>
 
-			{/* Область сообщений */}
+			{/* Message area */}
 			<div className="flex flex-1 overflow-hidden">
 				<div className="flex flex-1 flex-col overflow-hidden relative">
 					{isLoading ? (
-						/* Скелетон загрузки -- имитация пузырей */
-						<div className="flex flex-1 flex-col justify-end p-4 space-y-4">
+						/* Loading skeleton */
+						<div className="flex flex-1 flex-col justify-end p-4 space-y-3">
 							{[1, 2, 3, 4, 5].map((i) => (
-								<div
-									key={i}
-									className={cn(
-										"flex gap-3",
-										i % 3 === 0 ? "justify-end" : "justify-start",
-									)}
-								>
-									{i % 3 !== 0 && (
-										<div className="h-9 w-9 rounded-full animate-shimmer shrink-0" />
-									)}
-									<div className="space-y-1.5">
-										<div className="h-3 w-20 rounded animate-shimmer" />
-										<div
-											className={cn(
-												"rounded-2xl animate-shimmer",
-												i % 3 === 0 ? "h-10 w-48" : "h-12 w-56",
-											)}
-										/>
+								<div key={i} className="flex gap-3">
+									<div className="h-9 w-9 rounded-full animate-shimmer shrink-0" />
+									<div className="space-y-1.5 flex-1">
+										<div className="h-3 w-24 rounded animate-shimmer" />
+										<div className="h-4 w-56 rounded animate-shimmer" />
 									</div>
 								</div>
 							))}
 						</div>
 					) : messages.length === 0 ? (
-						/* Пустое состояние */
+						/* Empty state */
 						<div className="flex flex-1 items-center justify-center">
 							<div className="text-center max-w-xs animate-fade-in">
-								<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10">
+								<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5">
 									<svg
-										className="h-8 w-8 text-emerald-500/50"
+										className="h-8 w-8 text-primary/40"
 										fill="none"
 										viewBox="0 0 24 24"
 										stroke="currentColor"
@@ -260,10 +269,10 @@ export function ChatView({ channelId }: ChatViewProps) {
 									</svg>
 								</div>
 								<h3 className="text-base font-medium text-foreground mb-1">
-									Нет сообщений
+									Начните общение
 								</h3>
 								<p className="text-sm text-muted-foreground">
-									Начните общение! Напишите первое сообщение в этом канале.
+									Напишите первое сообщение в этом канале.
 								</p>
 							</div>
 						</div>
@@ -313,15 +322,22 @@ export function ChatView({ channelId }: ChatViewProps) {
 						</div>
 					)}
 
-					{/* Кнопка "Прокрутить вниз" -- плавающая */}
+					{/* Scroll-to-bottom FAB */}
 					{!isAtBottom && messages.length > 0 && (
 						<button
 							type="button"
 							onClick={scrollToBottom}
-							className="absolute bottom-20 right-6 z-20 flex items-center gap-1.5 rounded-full bg-card border shadow-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-accent transition-all animate-fade-in"
+							className={cn(
+								"absolute bottom-20 right-6 z-20",
+								"flex items-center justify-center",
+								"h-10 w-10 rounded-full",
+								"bg-card/90 backdrop-blur-md border border-border/60 shadow-lg",
+								"text-foreground hover:bg-accent",
+								"transition-all animate-fade-in",
+							)}
 						>
 							<svg
-								className="h-4 w-4"
+								className="h-5 w-5"
 								fill="none"
 								viewBox="0 0 24 24"
 								stroke="currentColor"
@@ -334,14 +350,14 @@ export function ChatView({ channelId }: ChatViewProps) {
 								/>
 							</svg>
 							{unreadBelowCount > 0 && (
-								<span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1.5">
+								<span className="absolute -top-1.5 -right-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
 									{unreadBelowCount > 99 ? "99+" : unreadBelowCount}
 								</span>
 							)}
 						</button>
 					)}
 
-					{/* Индикатор печати */}
+					{/* Typing indicator */}
 					{typingText && (
 						<div className="shrink-0 px-5 py-1.5 text-xs text-muted-foreground flex items-center gap-1.5">
 							<span className="typing-dots">
@@ -353,10 +369,17 @@ export function ChatView({ channelId }: ChatViewProps) {
 						</div>
 					)}
 
-					{/* Композер */}
+					{/* Composer */}
 					{!channel?.is_readonly && (
-						<div className="shrink-0 border-t glass-subtle px-4 py-3">
-							<MessageComposer channelId={channelId} />
+						<div className="shrink-0 px-4 py-3">
+							<MessageComposer
+								channelId={channelId}
+								placeholder={
+									channel
+										? `Написать в ${channel.channel_type === "dm" ? channel.name : `#${channel.name}`}...`
+										: "Написать сообщение..."
+								}
+							/>
 						</div>
 					)}
 				</div>

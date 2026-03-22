@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { sendMessage, sendTypingIndicator } from "@/api/messenger";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { VoiceRecorder } from "./voice-recorder";
@@ -18,9 +17,9 @@ interface MessageComposerProps {
 }
 
 /**
- * MessageComposer -- редактор сообщений в стиле Tinkoff Talk.
- * Поддерживает reply preview, автоподгонку высоты (макс 5 строк),
- * голосовые сообщения, кнопку эмодзи и плавные анимации.
+ * MessageComposer -- редактор сообщений в стиле Slack / Tinkoff Talk.
+ * Округлённый контейнер с кнопками внутри, reply preview сверху,
+ * автоподгонка высоты, голосовые сообщения.
  */
 export function MessageComposer({
 	channelId,
@@ -82,14 +81,14 @@ export function MessageComposer({
 		[handleSend],
 	);
 
-	/** Автоматическая подгонка высоты textarea (макс 5 строк ~120px). */
+	/** Автоматическая подгонка высоты textarea (макс 200px). */
 	const handleInput = useCallback(
 		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
 			const value = e.target.value;
 			setText(value);
 			const el = e.target;
 			el.style.height = "auto";
-			el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+			el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
 
 			// Отправка typing-индикатора (троттлинг: не чаще 1 раза в 3 сек).
 			if (value.trim()) {
@@ -137,6 +136,8 @@ export function MessageComposer({
 			(replyToMessage.content_text.length > 80 ? "..." : "")
 		: "Вложение";
 
+	const hasText = text.trim().length > 0;
+
 	return (
 		<div className="space-y-0">
 			{/* Reply preview */}
@@ -180,11 +181,18 @@ export function MessageComposer({
 					onCancel={() => setShowVoice(false)}
 				/>
 			) : (
-				<div className="flex items-end gap-2">
-					{/* Кнопка вложения */}
+				/* Rounded container with all controls inside */
+				<div
+					className={cn(
+						"flex items-end rounded-2xl border bg-background/80 backdrop-blur-sm shadow-sm",
+						"transition-all duration-200",
+						"focus-within:shadow-md focus-within:border-ring/50 focus-within:bg-background",
+					)}
+				>
+					{/* Attachment button */}
 					<button
 						type="button"
-						className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+						className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
 						title="Прикрепить файл"
 					>
 						<svg
@@ -202,28 +210,26 @@ export function MessageComposer({
 						</svg>
 					</button>
 
-					{/* Поле ввода */}
-					<div className="flex-1 rounded-xl border bg-background/80 backdrop-blur-sm shadow-sm transition-all duration-200 focus-within:shadow-md focus-within:border-ring/50 focus-within:bg-background">
-						<textarea
-							ref={textareaRef}
-							value={text}
-							onChange={handleInput}
-							onKeyDown={handleKeyDown}
-							placeholder={placeholder}
-							rows={1}
-							disabled={isSending}
-							className={cn(
-								"w-full resize-none bg-transparent px-4 py-3 text-sm focus:outline-none",
-								"min-h-[44px] max-h-[120px]",
-								"placeholder:text-muted-foreground/50",
-							)}
-						/>
-					</div>
+					{/* Text input */}
+					<textarea
+						ref={textareaRef}
+						value={text}
+						onChange={handleInput}
+						onKeyDown={handleKeyDown}
+						placeholder={placeholder}
+						rows={1}
+						disabled={isSending}
+						className={cn(
+							"flex-1 resize-none bg-transparent py-3 text-sm focus:outline-none",
+							"min-h-[44px] max-h-[200px]",
+							"placeholder:text-muted-foreground/40",
+						)}
+					/>
 
-					{/* Кнопка эмодзи */}
+					{/* Emoji button */}
 					<button
 						type="button"
-						className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+						className="flex h-11 w-9 shrink-0 items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
 						title="Эмодзи"
 					>
 						<svg
@@ -241,10 +247,10 @@ export function MessageComposer({
 						</svg>
 					</button>
 
-					{/* Кнопка голосового сообщения */}
+					{/* Voice recorder button */}
 					<button
 						type="button"
-						className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+						className="flex h-11 w-9 shrink-0 items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
 						title="Голосовое сообщение"
 						onClick={() => setShowVoice(true)}
 					>
@@ -263,23 +269,23 @@ export function MessageComposer({
 						</svg>
 					</button>
 
-					{/* Кнопка отправки -- градиент, анимация нажатия */}
-					<Button
-						size="icon"
+					{/* Send button */}
+					<button
+						type="button"
 						className={cn(
-							"h-10 w-10 shrink-0 rounded-xl text-white shadow-sm transition-all duration-200",
-							text.trim()
-								? "gradient-messenger hover:opacity-90 click-scale"
-								: "bg-muted text-muted-foreground cursor-not-allowed",
+							"flex h-11 w-11 shrink-0 items-center justify-center rounded-r-2xl transition-all duration-200",
+							hasText
+								? "text-primary hover:bg-primary/10"
+								: "text-muted-foreground/30 cursor-not-allowed",
 						)}
 						onClick={() => void handleSend()}
-						disabled={isSending || !text.trim()}
+						disabled={isSending || !hasText}
 						title="Отправить"
 					>
 						<svg
 							className={cn(
 								"h-5 w-5 transition-transform duration-200",
-								text.trim() && "translate-x-0.5 -translate-y-0.5",
+								hasText && "translate-x-0.5 -translate-y-0.5",
 							)}
 							fill="none"
 							viewBox="0 0 24 24"
@@ -292,7 +298,7 @@ export function MessageComposer({
 								d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
 							/>
 						</svg>
-					</Button>
+					</button>
 				</div>
 			)}
 		</div>

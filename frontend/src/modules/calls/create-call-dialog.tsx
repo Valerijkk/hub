@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
-	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
@@ -15,14 +13,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 // ---------------------------------------------------------------------------
+// Duration presets
+// ---------------------------------------------------------------------------
+
+const DURATION_OPTIONS = [
+	{ label: "30 мин", value: "30" },
+	{ label: "1 час", value: "60" },
+	{ label: "1.5 часа", value: "90" },
+	{ label: "2 часа", value: "120" },
+] as const;
+
+// ---------------------------------------------------------------------------
 // Recurrence presets
 // ---------------------------------------------------------------------------
 
 const RECURRENCE_OPTIONS = [
-	{ label: "Без повторения", value: "" },
-	{ label: "Ежедневно", value: "FREQ=DAILY;BYHOUR=10;BYMINUTE=0;BYSECOND=0" },
+	{ label: "Нет", value: "" },
+	{ label: "Каждый день", value: "FREQ=DAILY;BYHOUR=10;BYMINUTE=0;BYSECOND=0" },
 	{
-		label: "Еженедельно",
+		label: "Каждую неделю",
 		value: "FREQ=WEEKLY;BYHOUR=10;BYMINUTE=0;BYSECOND=0",
 	},
 	{
@@ -49,8 +58,9 @@ interface CreateCallDialogProps {
 // ---------------------------------------------------------------------------
 
 /**
- * CreateCallDialog -- modal dialog for creating a new scheduled call.
- * Uses shadcn Dialog, Input, Label, Button components.
+ * CreateCallDialog -- simplified quick-create dialog for scheduling calls.
+ * Pre-fills selected date, uses quick-select buttons for duration,
+ * and clean minimal dark design inspired by Tinkoff Talk.
  */
 export function CreateCallDialog({
 	open,
@@ -62,7 +72,6 @@ export function CreateCallDialog({
 	const queryClient = useQueryClient();
 
 	const [title, setTitle] = useState("");
-	const [description, setDescription] = useState("");
 	const [date, setDate] = useState("");
 	const [time, setTime] = useState("10:00");
 	const [duration, setDuration] = useState("60");
@@ -72,7 +81,6 @@ export function CreateCallDialog({
 	useEffect(() => {
 		if (open) {
 			setTitle("");
-			setDescription("");
 			setDate(defaultDate ?? "");
 			setTime(defaultTime ?? "10:00");
 			setDuration("60");
@@ -82,9 +90,6 @@ export function CreateCallDialog({
 
 	const mutation = useMutation({
 		mutationFn: (data: CreateScheduledCallData) => {
-			// Use a placeholder projectId -- the actual project context
-			// will be resolved by the route/layout that provides it.
-			// For now we use "current" which the API proxy resolves.
 			return createScheduledCall("current", data);
 		},
 		onSuccess: () => {
@@ -105,7 +110,6 @@ export function CreateCallDialog({
 			channel_id: "", // Will be set by server or channel context
 		};
 
-		if (description.trim()) data.description = description.trim();
 		if (recurrence) data.rrule = recurrence;
 
 		mutation.mutate(data);
@@ -113,138 +117,135 @@ export function CreateCallDialog({
 
 	const isValid = title.trim().length > 0 && date && time;
 
+	// Format the selected date for display
+	const dateDisplay = date
+		? new Date(date + "T00:00:00").toLocaleDateString("ru-RU", {
+				weekday: "short",
+				day: "numeric",
+				month: "long",
+			})
+		: null;
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent className="sm:max-w-[420px] gap-0 p-0 overflow-hidden">
 				<form onSubmit={handleSubmit}>
-					<DialogHeader>
-						<DialogTitle>
-							{t("createCallTitle", { defaultValue: "Запланировать звонок" })}
+					<DialogHeader className="px-6 pt-6 pb-4">
+						<DialogTitle className="text-lg">
+							{t("createCallTitle", { defaultValue: "Новый звонок" })}
 						</DialogTitle>
-						<DialogDescription>
-							{t("createCallDesc", {
-								defaultValue:
-									"Создайте новый запланированный звонок или встречу",
-							})}
-						</DialogDescription>
+						{dateDisplay && (
+							<p className="text-sm text-muted-foreground capitalize mt-1">
+								{dateDisplay}
+							</p>
+						)}
 					</DialogHeader>
 
-					<div className="mt-4 space-y-4">
+					<div className="px-6 space-y-5">
 						{/* Title */}
 						<div className="space-y-2">
-							<Label htmlFor="call-title">
+							<Label htmlFor="call-title" className="text-sm font-medium">
 								{t("callTitleLabel", { defaultValue: "Название" })}
 							</Label>
 							<Input
 								id="call-title"
 								placeholder={t("callTitlePlaceholder", {
-									defaultValue: "Ежедневный стендап",
+									defaultValue: "Стендап, ретро, планирование...",
 								})}
 								value={title}
 								onChange={(e) => setTitle(e.target.value)}
 								maxLength={255}
 								required
+								autoFocus
+								className="h-11"
 							/>
 						</div>
 
-						{/* Description */}
+						{/* Time */}
 						<div className="space-y-2">
-							<Label htmlFor="call-desc">
-								{t("callDescLabel", { defaultValue: "Описание" })}
+							<Label htmlFor="call-time" className="text-sm font-medium">
+								{t("callTimeLabel", { defaultValue: "Время начала" })}
 							</Label>
-							<Input
-								id="call-desc"
-								placeholder={t("callDescPlaceholder", {
-									defaultValue: "Необязательно",
-								})}
-								value={description}
-								onChange={(e) => setDescription(e.target.value)}
-								maxLength={2000}
-							/>
-						</div>
-
-						{/* Date & Time row */}
-						<div className="grid grid-cols-2 gap-3">
-							<div className="space-y-2">
-								<Label htmlFor="call-date">
-									{t("callDateLabel", { defaultValue: "Дата" })}
-								</Label>
-								<Input
-									id="call-date"
-									type="date"
-									value={date}
-									onChange={(e) => setDate(e.target.value)}
-									required
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="call-time">
-									{t("callTimeLabel", { defaultValue: "Время" })}
-								</Label>
+							<div className="flex gap-3">
 								<Input
 									id="call-time"
 									type="time"
 									value={time}
 									onChange={(e) => setTime(e.target.value)}
 									required
+									className="h-11 w-32"
+								/>
+								{/* Hidden date input -- always present for form submission */}
+								<Input
+									type="date"
+									value={date}
+									onChange={(e) => setDate(e.target.value)}
+									required
+									className="h-11 flex-1"
 								/>
 							</div>
 						</div>
 
-						{/* Duration */}
+						{/* Duration -- quick select buttons */}
 						<div className="space-y-2">
-							<Label htmlFor="call-duration">
-								{t("callDurationLabel", { defaultValue: "Длительность (мин)" })}
+							<Label className="text-sm font-medium">
+								{t("callDurationLabel", { defaultValue: "Длительность" })}
 							</Label>
-							<select
-								id="call-duration"
-								value={duration}
-								onChange={(e) => setDuration(e.target.value)}
-								className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-							>
-								<option value="15">15 min</option>
-								<option value="30">30 min</option>
-								<option value="45">45 min</option>
-								<option value="60">1 hour</option>
-								<option value="90">1.5 hours</option>
-								<option value="120">2 hours</option>
-							</select>
+							<div className="flex gap-2">
+								{DURATION_OPTIONS.map((opt) => (
+									<button
+										key={opt.value}
+										type="button"
+										className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+											duration === opt.value
+												? "border-primary bg-primary/10 text-primary"
+												: "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+										}`}
+										onClick={() => setDuration(opt.value)}
+									>
+										{opt.label}
+									</button>
+								))}
+							</div>
 						</div>
 
 						{/* Recurrence */}
 						<div className="space-y-2">
-							<Label htmlFor="call-recurrence">
-								{t("callRecurrenceLabel", { defaultValue: "Повторение" })}
+							<Label className="text-sm font-medium">
+								{t("callRecurrenceLabel", { defaultValue: "Повтор" })}
 							</Label>
-							<select
-								id="call-recurrence"
-								value={recurrence}
-								onChange={(e) => setRecurrence(e.target.value)}
-								className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-							>
+							<div className="flex flex-wrap gap-2">
 								{RECURRENCE_OPTIONS.map((opt) => (
-									<option key={opt.value} value={opt.value}>
+									<button
+										key={opt.value}
+										type="button"
+										className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+											recurrence === opt.value
+												? "border-primary bg-primary/10 text-primary"
+												: "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+										}`}
+										onClick={() => setRecurrence(opt.value)}
+									>
 										{opt.label}
-									</option>
+									</button>
 								))}
-							</select>
+							</div>
 						</div>
 					</div>
 
-					<DialogFooter className="mt-6">
+					{/* Footer */}
+					<div className="px-6 py-5 mt-2">
 						<Button
-							type="button"
-							variant="outline"
-							onClick={() => onOpenChange(false)}
+							type="submit"
+							disabled={!isValid || mutation.isPending}
+							className="w-full h-11 text-base font-semibold"
+							size="lg"
 						>
-							{t("cancel", { defaultValue: "Отмена" })}
-						</Button>
-						<Button type="submit" disabled={!isValid || mutation.isPending}>
 							{mutation.isPending
 								? t("creating", { defaultValue: "Создание..." })
 								: t("create", { defaultValue: "Создать" })}
 						</Button>
-					</DialogFooter>
+					</div>
 				</form>
 			</DialogContent>
 		</Dialog>

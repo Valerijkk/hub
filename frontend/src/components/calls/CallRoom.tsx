@@ -1,7 +1,9 @@
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import { LiveKitRoom, RoomAudioRenderer, useParticipants } from "@livekit/components-react";
+import { MessageSquare, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import "@livekit/components-styles";
 
+import { cn } from "@/lib/utils";
 import { useCallStore } from "@/stores/call-store";
 import { CallChat } from "./CallChat";
 import { CallControls } from "./CallControls";
@@ -24,13 +26,14 @@ interface CallRoomProps {
 }
 
 /**
- * Главный контейнер звонка в стиле Tinkoff Talk.
- * Тёмный фон, таймер длительности, сетка участников,
- * демонстрация экрана и панель управления.
+ * Внутренний контент комнаты — используется внутри LiveKitRoom,
+ * чтобы хуки LiveKit (useParticipants) имели доступ к контексту.
  */
-export function CallRoom({ token, onDisconnect }: CallRoomProps) {
+function CallRoomContent({ onDisconnect }: { onDisconnect: () => void }) {
 	const activeCall = useCallStore((s) => s.activeCall);
+	const participants = useParticipants();
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
+	const [chatVisible, setChatVisible] = useState(false);
 	const timerRef = useRef<ReturnType<typeof setInterval>>(null);
 
 	/** Таймер длительности звонка. */
@@ -52,6 +55,82 @@ export function CallRoom({ token, onDisconnect }: CallRoomProps) {
 		return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 	};
 
+	const roomName = activeCall?.room_name ?? "Звонок";
+
+	return (
+		<>
+			{/* Воспроизведение аудио всех участников */}
+			<RoomAudioRenderer />
+
+			{/* Заголовок звонка */}
+			<div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+				<div className="flex items-center gap-3">
+					{/* Пульсирующий индикатор */}
+					<span className="relative flex h-2.5 w-2.5">
+						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+						<span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+					</span>
+
+					{/* Название комнаты */}
+					<span className="text-sm font-semibold text-white/90 truncate max-w-[200px]">
+						{roomName}
+					</span>
+
+					{/* Бейдж количества участников */}
+					<span className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/60">
+						<Users className="h-3 w-3" />
+						{participants.length}
+					</span>
+				</div>
+
+				<div className="flex items-center gap-3">
+					{/* Таймер */}
+					<span className="text-sm font-mono text-white/50 tabular-nums tracking-wider">
+						{formatDuration(elapsedSeconds)}
+					</span>
+
+					{/* Кнопка чата */}
+					{activeCall && (
+						<button
+							type="button"
+							onClick={() => setChatVisible(!chatVisible)}
+							className={cn(
+								"flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200",
+								chatVisible
+									? "bg-blue-500/20 text-blue-400"
+									: "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70",
+							)}
+							title={chatVisible ? "Скрыть чат" : "Показать чат"}
+						>
+							<MessageSquare className="h-4 w-4" />
+						</button>
+					)}
+				</div>
+			</div>
+
+			{/* Основная область: участники + демонстрация экрана + чат */}
+			<div className="flex flex-1 overflow-hidden">
+				<div className="flex flex-1 gap-2 overflow-hidden p-3">
+					<ParticipantList />
+					<ScreenShareView />
+				</div>
+				{activeCall && chatVisible && (
+					<CallChat callId={activeCall.id} />
+				)}
+			</div>
+
+			{/* Панель управления звонком */}
+			<CallControls onDisconnect={onDisconnect} />
+		</>
+	);
+}
+
+/**
+ * Главный контейнер звонка.
+ * Тёмный фон, таймер длительности, сетка участников,
+ * демонстрация экрана и панель управления.
+ */
+export function CallRoom({ token, onDisconnect }: CallRoomProps) {
 	return (
 		<LiveKitRoom
 			token={token}
@@ -63,34 +142,7 @@ export function CallRoom({ token, onDisconnect }: CallRoomProps) {
 			data-lk-theme="default"
 			className="flex h-full w-full flex-col bg-[#0B0F19]"
 		>
-			{/* Воспроизведение аудио всех участников */}
-			<RoomAudioRenderer />
-
-			{/* Заголовок звонка с таймером */}
-			<div className="flex items-center justify-center gap-3 py-3 border-b border-white/10">
-				<div className="flex items-center gap-2">
-					<span className="relative flex h-2.5 w-2.5">
-						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-						<span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-					</span>
-					<span className="text-sm font-medium text-white/90">
-						{activeCall?.channel_id ? "Звонок" : "Звонок"}
-					</span>
-				</div>
-				<span className="text-sm font-mono text-white/60">
-					{formatDuration(elapsedSeconds)}
-				</span>
-			</div>
-
-			{/* Основная область: участники + демонстрация экрана + чат */}
-			<div className="flex flex-1 gap-2 overflow-hidden p-3">
-				<ParticipantList />
-				<ScreenShareView />
-				{activeCall && <CallChat callId={activeCall.id} />}
-			</div>
-
-			{/* Панель управления звонком */}
-			<CallControls onDisconnect={onDisconnect} />
+			<CallRoomContent onDisconnect={onDisconnect} />
 		</LiveKitRoom>
 	);
 }

@@ -20,7 +20,10 @@ interface MessageActionsProps {
 	onDelete: () => void;
 }
 
-/** Плавающие кнопки действий при наведении на сообщение (ответ, тред, закрепить, сохранить, переслать, удалить). */
+/**
+ * Плавающая горизонтальная панель действий при наведении на сообщение.
+ * Отображается справа от сообщения в виде pill-shaped toolbar с glass-эффектом.
+ */
 export function MessageActions({
 	message,
 	channelId,
@@ -38,14 +41,18 @@ export function MessageActions({
 	return (
 		<div
 			className={cn(
-				"absolute -top-3 flex items-center gap-0.5 rounded-lg border bg-card p-1 shadow-lg animate-fade-in z-10",
-				isOwn ? "left-4" : "right-4",
+				"absolute -top-3 right-4 z-10",
+				"flex items-center gap-0.5 rounded-full",
+				"border border-border/60 bg-card/90 backdrop-blur-md",
+				"px-1 py-0.5 shadow-lg",
+				"animate-fade-in",
 			)}
 		>
+			{/* Ответить */}
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7"
+				className="h-7 w-7 rounded-full hover:bg-muted"
 				title="Ответить"
 				onClick={onReply}
 			>
@@ -64,10 +71,19 @@ export function MessageActions({
 				</svg>
 			</Button>
 
+			{/* Реакция */}
+			<ReactionPicker
+				channelId={channelId}
+				messageId={message.id}
+				open={showReactionPicker}
+				onOpenChange={onReactionPickerChange}
+			/>
+
+			{/* Тред */}
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7"
+				className="h-7 w-7 rounded-full hover:bg-muted"
 				title="Тред"
 				onClick={onOpenThread}
 			>
@@ -86,17 +102,11 @@ export function MessageActions({
 				</svg>
 			</Button>
 
-			<ReactionPicker
-				channelId={channelId}
-				messageId={message.id}
-				open={showReactionPicker}
-				onOpenChange={onReactionPickerChange}
-			/>
-
+			{/* Закрепить */}
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7"
+				className="h-7 w-7 rounded-full hover:bg-muted"
 				title="Закрепить"
 				onClick={onPin}
 			>
@@ -115,10 +125,11 @@ export function MessageActions({
 				</svg>
 			</Button>
 
+			{/* Сохранить */}
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7"
+				className="h-7 w-7 rounded-full hover:bg-muted"
 				title="Сохранить"
 				onClick={onBookmark}
 			>
@@ -137,10 +148,11 @@ export function MessageActions({
 				</svg>
 			</Button>
 
+			{/* Переслать */}
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7"
+				className="h-7 w-7 rounded-full hover:bg-muted"
 				title="Переслать"
 				onClick={onForward}
 			>
@@ -159,11 +171,12 @@ export function MessageActions({
 				</svg>
 			</Button>
 
+			{/* Редактировать (только свои) */}
 			{isOwn && (
 				<Button
 					variant="ghost"
 					size="icon"
-					className="h-7 w-7"
+					className="h-7 w-7 rounded-full hover:bg-muted"
 					title="Редактировать"
 					onClick={onEdit}
 				>
@@ -171,11 +184,12 @@ export function MessageActions({
 				</Button>
 			)}
 
+			{/* Удалить (только свои) */}
 			{isOwn && (
 				<Button
 					variant="ghost"
 					size="icon"
-					className="h-7 w-7 text-destructive hover:text-destructive"
+					className="h-7 w-7 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
 					title="Удалить"
 					onClick={onDelete}
 				>

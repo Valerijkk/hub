@@ -64,8 +64,8 @@ function shouldGroupWithPrevious(
 }
 
 /**
- * MessageItem отображает одно сообщение чата в стиле Tinkoff Talk.
- * Свои сообщения — справа с градиентным фоном, чужие — слева с фоном карточки.
+ * MessageItem отображает одно сообщение чата в стиле Slack / Tinkoff Talk.
+ * Flat layout без пузырей: аватар слева, имя + время + контент справа.
  * Поддерживает группировку, реакции, hover-действия, ответы и вложения.
  */
 function MessageItemInner({
@@ -98,7 +98,6 @@ function MessageItemInner({
 
 	/**
 	 * Извлекает уникальные URL из текста сообщения.
-	 * Ищет в content_text и рекурсивно в текстовых узлах content_json.
 	 */
 	const extractedUrls = useMemo(() => {
 		const urls = new Set<string>();
@@ -149,7 +148,6 @@ function MessageItemInner({
 		setEditText(text);
 		setIsEditing(true);
 		setShowActions(false);
-		// Фокус на textarea после рендера
 		requestAnimationFrame(() => {
 			editInputRef.current?.focus();
 			editInputRef.current?.setSelectionRange(text.length, text.length);
@@ -165,12 +163,10 @@ function MessageItemInner({
 		}
 		setEditSaving(true);
 		try {
-			// Создаём простой Plate JSON из текста
 			const contentJson = {
 				type: "doc",
 				children: [{ type: "p", children: [{ text: trimmed }] }],
 			};
-			// Оптимистичное обновление кэша react-query
 			const queryKey = ["messenger", "messages", channelId];
 			queryClient.setQueryData(queryKey, (old: unknown) => {
 				if (!old) return old;
@@ -197,7 +193,6 @@ function MessageItemInner({
 				content_text: trimmed,
 			});
 		} catch {
-			// При ошибке — откатываем через рефетч
 			queryClient.invalidateQueries({
 				queryKey: ["messenger", "messages", channelId],
 			});
@@ -228,15 +223,13 @@ function MessageItemInner({
 
 	return (
 		<>
-			{/* Date separator */}
+			{/* Date separator -- centered pill */}
 			{showDateSeparator && dateSeparatorText && (
-				<div className="flex items-center justify-center py-3 px-5">
-					<div className="flex items-center gap-3 w-full">
-						<div className="flex-1 h-px bg-border" />
-						<span className="text-xs font-medium text-muted-foreground px-2 select-none">
+				<div className="flex items-center justify-center py-4 px-5">
+					<div className="rounded-full border border-border/50 bg-card/80 backdrop-blur-sm px-3 py-1">
+						<span className="text-xs font-medium text-muted-foreground select-none">
 							{dateSeparatorText}
 						</span>
-						<div className="flex-1 h-px bg-border" />
 					</div>
 				</div>
 			)}
@@ -245,21 +238,20 @@ function MessageItemInner({
 			{showNewMessagesDivider && (
 				<div className="flex items-center justify-center py-2 px-5">
 					<div className="flex items-center gap-3 w-full">
-						<div className="flex-1 h-px bg-primary" />
-						<span className="text-xs font-semibold text-primary px-2 select-none">
+						<div className="flex-1 h-px bg-red-500/50" />
+						<span className="text-xs font-semibold text-red-500 px-2 select-none">
 							Новые сообщения
 						</span>
-						<div className="flex-1 h-px bg-primary" />
+						<div className="flex-1 h-px bg-red-500/50" />
 					</div>
 				</div>
 			)}
 
-			{/* Message */}
+			{/* Message -- flat Slack-style layout */}
 			<div
 				className={cn(
-					"group relative flex px-5 transition-colors animate-message-in",
-					isOwn ? "justify-end" : "justify-start",
-					isGrouped ? "pt-0.5" : "pt-3",
+					"group relative flex px-5 transition-colors",
+					isGrouped ? "py-px" : "pt-4 pb-0.5",
 					"hover:bg-muted/30",
 				)}
 				onMouseEnter={() => setShowActions(true)}
@@ -268,197 +260,146 @@ function MessageItemInner({
 					setShowReactionPicker(false);
 				}}
 			>
-				<div
-					className={cn(
-						"flex gap-2.5 max-w-[75%] min-w-0",
-						isOwn ? "flex-row-reverse" : "flex-row",
-					)}
-				>
-					{/* Avatar -- only for others, hidden when grouped */}
-					{!isOwn && (
-						<div className="w-9 shrink-0">
-							{!isGrouped && (
-								<Avatar className="h-9 w-9 shadow-sm">
-									<AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
-										{message.sender_id?.charAt(0)?.toUpperCase() ?? "?"}
-									</AvatarFallback>
-								</Avatar>
-							)}
-						</div>
-					)}
-
-					{/* Message bubble */}
-					<div className="min-w-0 flex-1">
-						{/* Name + time -- hidden when grouped */}
+				<div className="flex gap-3 w-full min-w-0">
+					{/* Avatar column -- 36px, shown only on first message in group */}
+					<div className="w-9 shrink-0 pt-0.5">
 						{!isGrouped && (
-							<div
-								className={cn(
-									"flex items-baseline gap-2 mb-1",
-									isOwn ? "justify-end" : "justify-start",
-								)}
-							>
-								{!isOwn && (
-									<span className="text-[13px] font-semibold text-foreground">
-										{message.sender_id}
-									</span>
-								)}
+							<Avatar className="h-9 w-9">
+								<AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+									{message.sender_id?.charAt(0)?.toUpperCase() ?? "?"}
+								</AvatarFallback>
+							</Avatar>
+						)}
+						{/* Show time on hover for grouped messages */}
+						{isGrouped && (
+							<span className="hidden group-hover:flex items-center justify-center h-full text-[10px] text-muted-foreground/60">
+								{formatTime(message.created_at)}
+							</span>
+						)}
+					</div>
+
+					{/* Content */}
+					<div className="min-w-0 flex-1">
+						{/* Name + time -- shown only on first message in group */}
+						{!isGrouped && (
+							<div className="flex items-baseline gap-2 mb-0.5">
+								<span className="text-[13px] font-semibold text-foreground hover:underline cursor-pointer">
+									{message.sender_id}
+								</span>
 								<span className="text-[11px] text-muted-foreground">
 									{formatTime(message.created_at)}
 								</span>
 								{message.edited_at && (
-									<span className="text-[11px] text-muted-foreground italic">
+									<span className="text-[11px] text-muted-foreground/60 italic">
 										(изм.)
 									</span>
 								)}
 							</div>
 						)}
 
-						{/* Bubble container */}
-						<div
-							className={cn(
-								"relative rounded-2xl px-3.5 py-2 text-sm shadow-sm transition-shadow",
-								isOwn
-									? "bg-primary text-primary-foreground rounded-tr-md"
-									: "bg-card border border-border/50 rounded-tl-md",
-								isGrouped && isOwn && "rounded-tr-2xl",
-								isGrouped && !isOwn && "rounded-tl-2xl",
-							)}
-						>
-							{/* Forwarded badge */}
-							{message.forwarded_from_id && (
-								<div className="mb-1.5 flex items-center gap-1 text-xs opacity-70">
-									<svg
-										className="h-3 w-3"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										strokeWidth={2}
-									>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											d="M13 5l7 7-7 7M5 5l7 7-7 7"
-										/>
-									</svg>
-									<span className="italic">Переслано</span>
-								</div>
-							)}
-
-							{/* Message content (or inline edit) */}
-							{isEditing ? (
-								<div className="flex flex-col gap-1.5">
-									<textarea
-										ref={editInputRef}
-										value={editText}
-										onChange={(e) => setEditText(e.target.value)}
-										onKeyDown={handleEditKeyDown}
-										disabled={editSaving}
-										className="w-full resize-none rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-										rows={Math.min(
-											editText.split("\n").length + 1,
-											6,
-										)}
-									/>
-									<div className="flex items-center gap-1 justify-end">
-										<button
-											type="button"
-											className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-											title="Отменить (Esc)"
-											onClick={handleCancelEdit}
-											disabled={editSaving}
-										>
-											<X className="h-3.5 w-3.5" />
-										</button>
-										<button
-											type="button"
-											className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-accent text-primary hover:text-primary transition-colors"
-											title="Сохранить (Enter)"
-											onClick={() => void handleSaveEdit()}
-											disabled={editSaving || !editText.trim()}
-										>
-											<Check className="h-3.5 w-3.5" />
-										</button>
-									</div>
-								</div>
-							) : (
-								<>
-									{message.content_json && (
-										<div
-											className={cn(
-												isOwn &&
-													"[&_p]:text-primary-foreground [&_a]:text-primary-foreground/90 [&_a]:underline",
-											)}
-										>
-											<RenderContent contentJson={message.content_json} />
-										</div>
-									)}
-									{!message.content_json && message.content_text && (
-										<p className="whitespace-pre-wrap leading-relaxed">
-											{message.content_text}
-										</p>
-									)}
-								</>
-							)}
-
-							{/* Voice message */}
-							{message.voice_url && (
-								<div className="mt-1.5 flex items-center gap-2 rounded-lg bg-black/5 dark:bg-white/5 p-2">
-									<audio controls preload="metadata" className="h-8 max-w-xs">
-										<source src={message.voice_url} type="audio/webm" />
-									</audio>
-									{message.voice_duration_ms && (
-										<span className="text-xs opacity-70">
-											{Math.floor(message.voice_duration_ms / 1000)}с
-										</span>
-									)}
-								</div>
-							)}
-
-							{/* Attachments */}
-							{message.attachments && message.attachments.length > 0 && (
-								<MessageAttachments
-									attachments={message.attachments}
-									isOwn={isOwn}
-								/>
-							)}
-
-							{/* Time inside bubble (for grouped messages) */}
-							{isGrouped && (
-								<span
-									className={cn(
-										"mt-0.5 block text-[10px] text-right",
-										isOwn
-											? "text-primary-foreground/60"
-											: "text-muted-foreground",
-									)}
+						{/* Forwarded badge */}
+						{message.forwarded_from_id && (
+							<div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground/70">
+								<svg
+									className="h-3 w-3"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									strokeWidth={2}
 								>
-									{formatTime(message.created_at)}
-								</span>
-							)}
-						</div>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										d="M13 5l7 7-7 7M5 5l7 7-7 7"
+									/>
+								</svg>
+								<span className="italic">Переслано</span>
+							</div>
+						)}
+
+						{/* Message content (or inline edit) */}
+						{isEditing ? (
+							<div className="flex flex-col gap-1.5">
+								<textarea
+									ref={editInputRef}
+									value={editText}
+									onChange={(e) => setEditText(e.target.value)}
+									onKeyDown={handleEditKeyDown}
+									disabled={editSaving}
+									className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+									rows={Math.min(
+										editText.split("\n").length + 1,
+										6,
+									)}
+								/>
+								<div className="flex items-center gap-1 justify-end">
+									<button
+										type="button"
+										className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+										title="Отменить (Esc)"
+										onClick={handleCancelEdit}
+										disabled={editSaving}
+									>
+										<X className="h-3.5 w-3.5" />
+									</button>
+									<button
+										type="button"
+										className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-primary hover:text-primary transition-colors"
+										title="Сохранить (Enter)"
+										onClick={() => void handleSaveEdit()}
+										disabled={editSaving || !editText.trim()}
+									>
+										<Check className="h-3.5 w-3.5" />
+									</button>
+								</div>
+							</div>
+						) : (
+							<div className="text-sm leading-relaxed break-words">
+								{message.content_json && (
+									<RenderContent contentJson={message.content_json} />
+								)}
+								{!message.content_json && message.content_text && (
+									<p className="whitespace-pre-wrap">
+										{message.content_text}
+									</p>
+								)}
+							</div>
+						)}
+
+						{/* Voice message */}
+						{message.voice_url && (
+							<div className="mt-1.5 flex items-center gap-2 rounded-lg bg-muted/50 p-2 max-w-sm">
+								<audio controls preload="metadata" className="h-8 max-w-xs">
+									<source src={message.voice_url} type="audio/webm" />
+								</audio>
+								{message.voice_duration_ms && (
+									<span className="text-xs text-muted-foreground">
+										{Math.floor(message.voice_duration_ms / 1000)}с
+									</span>
+								)}
+							</div>
+						)}
+
+						{/* Attachments */}
+						{message.attachments && message.attachments.length > 0 && (
+							<MessageAttachments
+								attachments={message.attachments}
+								isOwn={isOwn}
+							/>
+						)}
 
 						{/* Link previews */}
 						{extractedUrls.length > 0 && (
-							<div
-								className={cn(
-									"mt-1.5 space-y-1.5",
-									isOwn && "flex flex-col items-end",
-								)}
-							>
+							<div className="mt-1.5 space-y-1.5">
 								{extractedUrls.slice(0, 2).map((url) => (
 									<LinkPreview key={url} url={url} />
 								))}
 							</div>
 						)}
 
-						{/* Reactions */}
+						{/* Reactions -- small emoji chips */}
 						{message.reactions && message.reactions.length > 0 && (
-							<div
-								className={cn(
-									"mt-1.5 flex flex-wrap gap-1",
-									isOwn ? "justify-end" : "justify-start",
-								)}
-							>
+							<div className="mt-1.5 flex flex-wrap gap-1">
 								{message.reactions.map((reaction) => {
 									const hasReacted = currentUserId
 										? reaction.user_ids.includes(currentUserId)
@@ -471,7 +412,7 @@ function MessageItemInner({
 												"inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-all hover:scale-105",
 												hasReacted
 													? "border-primary/50 bg-primary/10 text-primary"
-													: "border-border bg-card hover:bg-accent",
+													: "border-border/50 bg-muted/50 hover:bg-accent",
 											)}
 											onClick={() =>
 												void import("@/api/messenger").then((m) =>
@@ -514,13 +455,17 @@ function MessageItemInner({
 									/>
 								</svg>
 								{message.reply_count}{" "}
-								{message.reply_count === 1 ? "ответ" : "ответов"}
+								{message.reply_count === 1
+									? "ответ"
+									: message.reply_count < 5
+										? "ответа"
+										: "ответов"}
 							</button>
 						)}
 					</div>
 				</div>
 
-				{/* Hover actions -- floating panel (скрыты в режиме редактирования) */}
+				{/* Hover actions -- floating pill toolbar on the right */}
 				{showActions && !isEditing && (
 					<MessageActions
 						message={message}
