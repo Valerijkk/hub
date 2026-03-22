@@ -36,139 +36,139 @@
 
 /* Светлая тема — чистый, прохладный, современный */
 :root {
-  --background: #FAFBFD;
-  --foreground: #0C1222;
-  --card: #FFFFFF;
-  --card-foreground: #0C1222;
-  --popover: #FFFFFF;
-  --popover-foreground: #0C1222;
-  --primary: #3B82F6;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F1F5F9;
-  --secondary-foreground: #334155;
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
-  --accent: #F1F5F9;
-  --accent-foreground: #334155;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #3B82F6;
-  --radius: 0.75rem;
-  /* Сайдбар всегда тёмный */
-  --sidebar: #0C1222;
-  --sidebar-foreground: #CBD5E1;
+	--background: #fafbfd;
+	--foreground: #0c1222;
+	--card: #ffffff;
+	--card-foreground: #0c1222;
+	--popover: #ffffff;
+	--popover-foreground: #0c1222;
+	--primary: #3b82f6;
+	--primary-foreground: #ffffff;
+	--secondary: #f1f5f9;
+	--secondary-foreground: #334155;
+	--muted: #f1f5f9;
+	--muted-foreground: #64748b;
+	--accent: #f1f5f9;
+	--accent-foreground: #334155;
+	--destructive: #ef4444;
+	--destructive-foreground: #ffffff;
+	--border: #e2e8f0;
+	--input: #e2e8f0;
+	--ring: #3b82f6;
+	--radius: 0.75rem;
+	/* Сайдбар всегда тёмный */
+	--sidebar: #0c1222;
+	--sidebar-foreground: #cbd5e1;
 }
 
 /* Тёмная тема — глубокий, насыщенный тёмный фон */
 .dark {
-  --background: #0B0F19;
-  --foreground: #F1F5F9;
-  --card: #141B2D;
-  --card-foreground: #F1F5F9;
-  --popover: #141B2D;
-  --popover-foreground: #F1F5F9;
-  --primary: #3B82F6;
-  --primary-foreground: #FFFFFF;
-  --secondary: #1E293B;
-  --secondary-foreground: #F1F5F9;
-  --muted: #1E293B;
-  --muted-foreground: #94A3B8;
-  --accent: #1E293B;
-  --accent-foreground: #F1F5F9;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: #1E293B;
-  --input: #1E293B;
-  --ring: #3B82F6;
-  --sidebar: #0C1222;
-  --sidebar-foreground: #CBD5E1;
+	--background: #0b0f19;
+	--foreground: #f1f5f9;
+	--card: #141b2d;
+	--card-foreground: #f1f5f9;
+	--popover: #141b2d;
+	--popover-foreground: #f1f5f9;
+	--primary: #3b82f6;
+	--primary-foreground: #ffffff;
+	--secondary: #1e293b;
+	--secondary-foreground: #f1f5f9;
+	--muted: #1e293b;
+	--muted-foreground: #94a3b8;
+	--accent: #1e293b;
+	--accent-foreground: #f1f5f9;
+	--destructive: #ef4444;
+	--destructive-foreground: #ffffff;
+	--border: #1e293b;
+	--input: #1e293b;
+	--ring: #3b82f6;
+	--sidebar: #0c1222;
+	--sidebar-foreground: #cbd5e1;
 }
 
 /* ===================================================
  * Акцентные цвета модулей (data-accent на html)
  * =================================================== */
 [data-accent="red"] {
-  --primary: #EF4444;
-  --primary-foreground: #FFFFFF;
-  --ring: #EF4444;
+	--primary: #ef4444;
+	--primary-foreground: #ffffff;
+	--ring: #ef4444;
 }
 [data-accent="blue"] {
-  --primary: #3B82F6;
-  --primary-foreground: #FFFFFF;
-  --ring: #3B82F6;
+	--primary: #3b82f6;
+	--primary-foreground: #ffffff;
+	--ring: #3b82f6;
 }
 [data-accent="green"] {
-  --primary: #10B981;
-  --primary-foreground: #FFFFFF;
-  --ring: #10B981;
+	--primary: #10b981;
+	--primary-foreground: #ffffff;
+	--ring: #10b981;
 }
 [data-accent="purple"] {
-  --primary: #8B5CF6;
-  --primary-foreground: #FFFFFF;
-  --ring: #8B5CF6;
+	--primary: #8b5cf6;
+	--primary-foreground: #ffffff;
+	--ring: #8b5cf6;
 }
 [data-accent="orange"] {
-  --primary: #F97316;
-  --primary-foreground: #FFFFFF;
-  --ring: #F97316;
+	--primary: #f97316;
+	--primary-foreground: #ffffff;
+	--ring: #f97316;
 }
 
 .dark[data-accent="red"] {
-  --primary: #F87171;
-  --primary-foreground: #0C1222;
-  --ring: #F87171;
+	--primary: #f87171;
+	--primary-foreground: #0c1222;
+	--ring: #f87171;
 }
 .dark[data-accent="blue"] {
-  --primary: #60A5FA;
-  --primary-foreground: #0C1222;
-  --ring: #60A5FA;
+	--primary: #60a5fa;
+	--primary-foreground: #0c1222;
+	--ring: #60a5fa;
 }
 .dark[data-accent="green"] {
-  --primary: #34D399;
-  --primary-foreground: #0C1222;
-  --ring: #34D399;
+	--primary: #34d399;
+	--primary-foreground: #0c1222;
+	--ring: #34d399;
 }
 .dark[data-accent="purple"] {
-  --primary: #A78BFA;
-  --primary-foreground: #0C1222;
-  --ring: #A78BFA;
+	--primary: #a78bfa;
+	--primary-foreground: #0c1222;
+	--ring: #a78bfa;
 }
 .dark[data-accent="orange"] {
-  --primary: #FB923C;
-  --primary-foreground: #0C1222;
-  --ring: #FB923C;
+	--primary: #fb923c;
+	--primary-foreground: #0c1222;
+	--ring: #fb923c;
 }
 
 /* ===================================================
  * Градиенты модулей — для CTA-кнопок и активных элементов
  * =================================================== */
 .gradient-tracker {
-  background: linear-gradient(135deg, #3B82F6, #2563EB);
+	background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 .gradient-messenger {
-  background: linear-gradient(135deg, #10B981, #059669);
+	background: linear-gradient(135deg, #10b981, #059669);
 }
 .gradient-tms {
-  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+	background: linear-gradient(135deg, #8b5cf6, #7c3aed);
 }
 .gradient-calls {
-  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+	background: linear-gradient(135deg, #8b5cf6, #7c3aed);
 }
 .gradient-dashboard {
-  background: linear-gradient(135deg, #F59E0B, #D97706);
+	background: linear-gradient(135deg, #f59e0b, #d97706);
 }
 .gradient-settings {
-  background: linear-gradient(135deg, #64748B, #475569);
+	background: linear-gradient(135deg, #64748b, #475569);
 }
 
 /* Градиентный текст — только для логотипа и ключевых заголовков */
 .gradient-text {
-  background: linear-gradient(135deg, #3B82F6, #8B5CF6, #EC4899);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+	background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
 }
 
 /* ===================================================
@@ -177,119 +177,152 @@
 
 /* Эффект стекла (glass morphism) — для оверлеев и login */
 .glass {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.08);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+	border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .dark .glass {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Мягкая тень карточки — минимальная, элегантная */
 .shadow-card {
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.03),
-    0 2px 8px rgba(15, 23, 42, 0.04);
+	box-shadow:
+		0 1px 2px rgba(15, 23, 42, 0.03),
+		0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .dark .shadow-card {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.2);
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.15),
+		0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Подъём карточки при наведении — лёгкий, не агрессивный */
 .hover-lift {
-  transition: transform 200ms ease, box-shadow 200ms ease;
+	transition:
+		transform 200ms ease,
+		box-shadow 200ms ease;
 }
 .hover-lift:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 4px 12px rgba(15, 23, 42, 0.06),
-    0 8px 24px rgba(15, 23, 42, 0.08);
+	transform: translateY(-1px);
+	box-shadow:
+		0 4px 12px rgba(15, 23, 42, 0.06),
+		0 8px 24px rgba(15, 23, 42, 0.08);
 }
 .dark .hover-lift:hover {
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.25),
-    0 8px 24px rgba(0, 0, 0, 0.35);
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.25),
+		0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 /* Анимация нажатия */
 .click-scale {
-  transition: transform 100ms ease;
+	transition: transform 100ms ease;
 }
 .click-scale:active {
-  transform: scale(0.97);
+	transform: scale(0.97);
 }
 
 /* Градиентная рамка фокуса */
 .focus-gradient:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 2px var(--background),
-    0 0 0 4px var(--ring);
+	outline: none;
+	box-shadow:
+		0 0 0 2px var(--background),
+		0 0 0 4px var(--ring);
 }
 
 /* Анимация сдвига фона — для login-страницы */
 @keyframes mesh-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+	0%,
+	100% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
 }
 
 .animate-mesh {
-  background-size: 400% 400%;
-  animation: mesh-shift 20s ease infinite;
+	background-size: 400% 400%;
+	animation: mesh-shift 20s ease infinite;
 }
 
 /* Анимация мерцания — для скелетон-загрузки */
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, var(--muted) 25%, var(--accent) 50%, var(--muted) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+	background: linear-gradient(
+		90deg,
+		var(--muted) 25%,
+		var(--accent) 50%,
+		var(--muted) 75%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s ease-in-out infinite;
 }
 
 /* Анимация появления — fade-in при загрузке */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out;
+	animation: fade-in 0.3s ease-out;
 }
 
 /* ===================================================
  * Базовые стили
  * =================================================== */
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
+	* {
+		@apply border-border;
+	}
+	body {
+		@apply bg-background text-foreground;
+		font-family:
+			"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+			sans-serif;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		text-rendering: optimizeLegibility;
+	}
 
-  /* Плавные переходы для интерактивных элементов */
-  button, a, input, select, textarea {
-    transition: all 150ms ease;
-  }
+	/* Плавные переходы для интерактивных элементов */
+	button,
+	a,
+	input,
+	select,
+	textarea {
+		transition: all 150ms ease;
+	}
 
-  /* Хединги — semibold, tight tracking */
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
-  }
+	/* Хединги — semibold, tight tracking */
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		@apply font-semibold tracking-tight;
+	}
 }
 
 /* ===================================================
@@ -301,22 +334,24 @@
 select,
 [data-radix-select-trigger],
 [role="listbox"] {
-  background: var(--card) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 0.5rem !important;
-  color: var(--foreground) !important;
-  padding: 0.5rem 0.75rem !important;
-  font-size: 0.875rem !important;
-  line-height: 1.25rem !important;
-  transition: border-color 0.15s, box-shadow 0.15s !important;
+	background: var(--card) !important;
+	border: 1px solid var(--border) !important;
+	border-radius: 0.5rem !important;
+	color: var(--foreground) !important;
+	padding: 0.5rem 0.75rem !important;
+	font-size: 0.875rem !important;
+	line-height: 1.25rem !important;
+	transition:
+		border-color 0.15s,
+		box-shadow 0.15s !important;
 }
 
 select:focus,
 [data-radix-select-trigger]:focus,
 [data-radix-select-trigger][data-state="open"] {
-  border-color: var(--ring) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
-  outline: none !important;
+	border-color: var(--ring) !important;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+	outline: none !important;
 }
 
 /* --- Контент выпадающих списков Radix --- */
@@ -324,12 +359,12 @@ select:focus,
 [data-radix-popper-content-wrapper] [role="listbox"],
 [data-radix-menu-content],
 [data-radix-dropdown-menu-content] {
-  background: var(--card) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 0.5rem !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
-  overflow: hidden !important;
-  padding: 0.25rem !important;
+	background: var(--card) !important;
+	border: 1px solid var(--border) !important;
+	border-radius: 0.5rem !important;
+	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+	overflow: hidden !important;
+	padding: 0.25rem !important;
 }
 
 /* --- Hover на опциях Radix — тонкий, не градиентный --- */
@@ -339,66 +374,74 @@ select:focus,
 [data-radix-menu-item][data-highlighted],
 [data-radix-dropdown-menu-item]:hover,
 [data-radix-dropdown-menu-item][data-highlighted] {
-  background: var(--accent) !important;
-  color: var(--accent-foreground) !important;
-  border-radius: 0.375rem !important;
-  outline: none !important;
+	background: var(--accent) !important;
+	color: var(--accent-foreground) !important;
+	border-radius: 0.375rem !important;
+	outline: none !important;
 }
 
 /* --- Инпуты и текстареа --- */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([role="switch"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+		[type="file"]
+	):not([type="hidden"]):not([role="switch"]),
 textarea {
-  background: var(--card) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 0.5rem !important;
-  color: var(--foreground) !important;
-  transition: border-color 0.15s, box-shadow 0.15s !important;
+	background: var(--card) !important;
+	border: 1px solid var(--border) !important;
+	border-radius: 0.5rem !important;
+	color: var(--foreground) !important;
+	transition:
+		border-color 0.15s,
+		box-shadow 0.15s !important;
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([role="switch"]):focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+		[type="file"]
+	):not([type="hidden"]):not([role="switch"]):focus,
 textarea:focus {
-  border-color: var(--ring) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
-  outline: none !important;
+	border-color: var(--ring) !important;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+	outline: none !important;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--muted-foreground) !important;
-  opacity: 0.6 !important;
+	color: var(--muted-foreground) !important;
+	opacity: 0.6 !important;
 }
 
 /* --- Чекбоксы и радио (Radix) --- */
 button[role="checkbox"],
 button[role="radio"] {
-  border-radius: 0.25rem !important;
-  border: 1.5px solid var(--border) !important;
-  transition: background 0.15s, border-color 0.15s !important;
+	border-radius: 0.25rem !important;
+	border: 1.5px solid var(--border) !important;
+	transition:
+		background 0.15s,
+		border-color 0.15s !important;
 }
 
 button[role="checkbox"][data-state="checked"],
 button[role="radio"][data-state="checked"] {
-  background: var(--primary) !important;
-  border-color: var(--primary) !important;
+	background: var(--primary) !important;
+	border-color: var(--primary) !important;
 }
 
 /* --- Скроллбар — тонкий, невидимый пока не нужен --- */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+	width: 6px;
+	height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+	background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
+	background: var(--border);
+	border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+	background: var(--muted-foreground);
 }
 
 /* --- Тёмная тема: усиленные тени для дропдаунов --- */
@@ -406,19 +449,22 @@ button[role="radio"][data-state="checked"] {
 .dark [data-radix-popper-content-wrapper] [role="listbox"],
 .dark [data-radix-menu-content],
 .dark [data-radix-dropdown-menu-content] {
-  box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+	box-shadow:
+		0 8px 30px rgba(0, 0, 0, 0.4),
+		0 0 0 1px rgba(255, 255, 255, 0.05) !important;
 }
 
 /* --- Тёмная тема: фокус-кольцо --- */
-.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([role="switch"]):focus,
+.dark
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+	[type="file"]
+):not([type="hidden"]):not([role="switch"]):focus,
 .dark textarea:focus,
 .dark select:focus,
 .dark [data-radix-select-trigger]:focus,
 .dark [data-radix-select-trigger][data-state="open"] {
-  border-color: var(--ring) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+	border-color: var(--ring) !important;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
 }
 
 /* ===================================================
@@ -427,24 +473,24 @@ button[role="radio"][data-state="checked"] {
  * Колонки отображаются в горизонтальном ряду с прокруткой.
  * =================================================== */
 .board-page-root {
-  /* Растянуть на всю доступную высоту main (viewport минус topbar и padding) */
-  min-height: calc(100vh - 7rem);
-  height: calc(100vh - 7rem);
-  margin: -0.5rem -0.25rem 0;
+	/* Растянуть на всю доступную высоту main (viewport минус topbar и padding) */
+	min-height: calc(100vh - 7rem);
+	height: calc(100vh - 7rem);
+	margin: -0.5rem -0.25rem 0;
 }
 
 /* Тонкий скроллбар для колонок доски */
 .scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
+	width: 4px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
+	background: var(--border);
+	border-radius: 2px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+	background: var(--muted-foreground);
 }
 
 /* ===================================================
@@ -452,137 +498,205 @@ button[role="radio"][data-state="checked"] {
  * Используется для проектов, прогонов, канбан-карточек.
  * =================================================== */
 .card-premium {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	box-shadow:
+		0 1px 3px rgba(0, 0, 0, 0.04),
+		0 1px 2px rgba(0, 0, 0, 0.06);
+	transition:
+		box-shadow 0.2s ease,
+		border-color 0.2s ease,
+		transform 0.2s ease;
 }
 .card-premium:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  border-color: color-mix(in srgb, var(--primary) 20%, transparent);
-  transform: translateY(-1px);
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.08),
+		0 2px 4px rgba(0, 0, 0, 0.04);
+	border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+	transform: translateY(-1px);
 }
 .dark .card-premium:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
+	box-shadow:
+		0 4px 16px rgba(0, 0, 0, 0.3),
+		0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* Градиентный заголовок страницы — для основных экранов */
 .page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  background: linear-gradient(135deg, var(--foreground), var(--primary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+	font-size: 1.75rem;
+	font-weight: 700;
+	letter-spacing: -0.025em;
+	background: linear-gradient(135deg, var(--foreground), var(--primary));
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
 }
 
 /* ===================================================
  * Цветные бейджи статусов — TMS, трекер
  * Светлая и тёмная тема с поддержкой бордеров.
  * =================================================== */
-.badge-passed { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-.badge-failed { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.badge-skipped { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
-.badge-broken { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
-.badge-blocked { background: #faf5ff; color: #9333ea; border: 1px solid #e9d5ff; }
+.badge-passed {
+	background: #dcfce7;
+	color: #15803d;
+	border: 1px solid #bbf7d0;
+}
+.badge-failed {
+	background: #fef2f2;
+	color: #dc2626;
+	border: 1px solid #fecaca;
+}
+.badge-skipped {
+	background: #f1f5f9;
+	color: #64748b;
+	border: 1px solid #e2e8f0;
+}
+.badge-broken {
+	background: #fff7ed;
+	color: #ea580c;
+	border: 1px solid #fed7aa;
+}
+.badge-blocked {
+	background: #faf5ff;
+	color: #9333ea;
+	border: 1px solid #e9d5ff;
+}
 
-.dark .badge-passed { background: #052e16; color: #4ade80; border-color: #14532d; }
-.dark .badge-failed { background: #450a0a; color: #f87171; border-color: #7f1d1d; }
-.dark .badge-skipped { background: #1e293b; color: #94a3b8; border-color: #334155; }
-.dark .badge-broken { background: #431407; color: #fb923c; border-color: #7c2d12; }
-.dark .badge-blocked { background: #2e1065; color: #c084fc; border-color: #581c87; }
+.dark .badge-passed {
+	background: #052e16;
+	color: #4ade80;
+	border-color: #14532d;
+}
+.dark .badge-failed {
+	background: #450a0a;
+	color: #f87171;
+	border-color: #7f1d1d;
+}
+.dark .badge-skipped {
+	background: #1e293b;
+	color: #94a3b8;
+	border-color: #334155;
+}
+.dark .badge-broken {
+	background: #431407;
+	color: #fb923c;
+	border-color: #7c2d12;
+}
+.dark .badge-blocked {
+	background: #2e1065;
+	color: #c084fc;
+	border-color: #581c87;
+}
 
 /* ===================================================
  * Анимация заполнения прогресс-бара — при загрузке
  * =================================================== */
 @keyframes progress-fill {
-  from { width: 0%; }
+	from {
+		width: 0%;
+	}
 }
 
 .animate-progress-fill {
-  animation: progress-fill 0.8s ease-out forwards;
+	animation: progress-fill 0.8s ease-out forwards;
 }
 
 /* Анимация пульса — для CTA-кнопок при наведении */
 @keyframes subtle-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+	}
+	50% {
+		box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+	}
 }
 
 .hover-pulse:hover {
-  animation: subtle-pulse 1.5s ease-in-out infinite;
+	animation: subtle-pulse 1.5s ease-in-out infinite;
 }
 
 /* ===================================================
  * Стеклянный эффект для композера и оверлеев
  * =================================================== */
 .glass-subtle {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+	background: rgba(255, 255, 255, 0.6);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
 }
 
 .dark .glass-subtle {
-  background: rgba(20, 27, 45, 0.7);
+	background: rgba(20, 27, 45, 0.7);
 }
 
 /* ===================================================
  * Чередование строк таблицы — для TMS и списков
  * =================================================== */
 .table-striped tbody tr:nth-child(even) {
-  background: color-mix(in srgb, var(--muted) 40%, transparent);
+	background: color-mix(in srgb, var(--muted) 40%, transparent);
 }
 
 .dark .table-striped tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.02);
+	background: rgba(255, 255, 255, 0.02);
 }
 
 /* ===================================================
  * Градиентная полоска сверху карточки — декоративная
  * =================================================== */
 .card-accent-top {
-  position: relative;
-  overflow: hidden;
+	position: relative;
+	overflow: hidden;
 }
 .card-accent-top::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 60%, #8B5CF6));
-  border-radius: 12px 12px 0 0;
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(
+		90deg,
+		var(--primary),
+		color-mix(in srgb, var(--primary) 60%, #8b5cf6)
+	);
+	border-radius: 12px 12px 0 0;
 }
 
 /* Анимация плавного появления с задержкой — для каскадных элементов */
 .animate-fade-in-up {
-  animation: fade-in 0.4s ease-out backwards;
+	animation: fade-in 0.4s ease-out backwards;
 }
 
-.stagger-1 { animation-delay: 50ms; }
-.stagger-2 { animation-delay: 100ms; }
-.stagger-3 { animation-delay: 150ms; }
-.stagger-4 { animation-delay: 200ms; }
+.stagger-1 {
+	animation-delay: 50ms;
+}
+.stagger-2 {
+	animation-delay: 100ms;
+}
+.stagger-3 {
+	animation-delay: 150ms;
+}
+.stagger-4 {
+	animation-delay: 200ms;
+}
 
 /* ===================================================
  * Анимация появления сообщения -- плавный вход снизу
  * =================================================== */
 @keyframes message-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+	from {
+		opacity: 0;
+		transform: translateY(12px) scale(0.97);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
 }
 
 .animate-message-in {
-  animation: message-in 0.25s ease-out;
+	animation: message-in 0.25s ease-out;
 }
 
 /* ===================================================
@@ -590,78 +704,81 @@ button[role="radio"][data-state="checked"] {
  * Три точки с каскадным подпрыгиванием
  * =================================================== */
 .typing-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
 }
 
 .typing-dots .dot {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--muted-foreground);
-  animation: typing-bounce 1.2s ease-in-out infinite;
+	display: inline-block;
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: var(--muted-foreground);
+	animation: typing-bounce 1.2s ease-in-out infinite;
 }
 
 .typing-dots .dot:nth-child(2) {
-  animation-delay: 0.15s;
+	animation-delay: 0.15s;
 }
 
 .typing-dots .dot:nth-child(3) {
-  animation-delay: 0.3s;
+	animation-delay: 0.3s;
 }
 
 @keyframes typing-bounce {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  30% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
+	0%,
+	60%,
+	100% {
+		transform: translateY(0);
+		opacity: 0.4;
+	}
+	30% {
+		transform: translateY(-4px);
+		opacity: 1;
+	}
 }
 
 /* ===================================================
  * Пульсация аватара говорящего участника (calls)
  * =================================================== */
 @keyframes pulse-subtle {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
-  }
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+	}
+	50% {
+		box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+	}
 }
 
 .animate-pulse-subtle {
-  animation: pulse-subtle 1.5s ease-in-out infinite;
+	animation: pulse-subtle 1.5s ease-in-out infinite;
 }
 
 /* ===================================================
  * Анимация slide-in для hover-действий
  * =================================================== */
 @keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+	from {
+		opacity: 0;
+		transform: translateX(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 0.15s ease-out;
+	animation: slide-in-right 0.15s ease-out;
 }
 
 /* ===================================================
  * Smooth scroll behavior globally
  * =================================================== */
 html {
-  scroll-behavior: smooth;
+	scroll-behavior: smooth;
 }
 
 /* ===================================================
@@ -669,89 +786,105 @@ html {
  * Thin gradient bar at top of module header area.
  * =================================================== */
 .module-header-gradient {
-  position: relative;
+	position: relative;
 }
 .module-header-gradient::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: 0 0 2px 2px;
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	border-radius: 0 0 2px 2px;
 }
 
 .module-header-gradient.gradient-strip-tracker::before {
-  background: linear-gradient(90deg, #3B82F6, #60A5FA);
+	background: linear-gradient(90deg, #3b82f6, #60a5fa);
 }
 .module-header-gradient.gradient-strip-tms::before {
-  background: linear-gradient(90deg, #8B5CF6, #A78BFA);
+	background: linear-gradient(90deg, #8b5cf6, #a78bfa);
 }
 .module-header-gradient.gradient-strip-messenger::before {
-  background: linear-gradient(90deg, #10B981, #34D399);
+	background: linear-gradient(90deg, #10b981, #34d399);
 }
 .module-header-gradient.gradient-strip-calls::before {
-  background: linear-gradient(90deg, #8B5CF6, #A78BFA);
+	background: linear-gradient(90deg, #8b5cf6, #a78bfa);
 }
 .module-header-gradient.gradient-strip-dashboard::before {
-  background: linear-gradient(90deg, #F59E0B, #FBBF24);
+	background: linear-gradient(90deg, #f59e0b, #fbbf24);
 }
 
 /* ===================================================
  * Onboarding step indicator
  * =================================================== */
 .step-connector {
-  position: relative;
+	position: relative;
 }
 .step-connector::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 100%;
-  width: 32px;
-  height: 2px;
-  background: var(--border);
-  transform: translateY(-50%);
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 100%;
+	width: 32px;
+	height: 2px;
+	background: var(--border);
+	transform: translateY(-50%);
 }
 .step-connector.step-completed::after {
-  background: var(--primary);
+	background: var(--primary);
 }
 
 /* ===================================================
  * Dashboard greeting gradient text
  * =================================================== */
 .greeting-gradient {
-  background: linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+	background: linear-gradient(
+		135deg,
+		var(--foreground) 0%,
+		var(--primary) 100%
+	);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
 }
 
 /* ===================================================
  * Widget card hover glow
  * =================================================== */
 .widget-card {
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+	transition:
+		box-shadow 0.2s ease,
+		border-color 0.2s ease,
+		transform 0.2s ease;
 }
 .widget-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  border-color: color-mix(in srgb, var(--primary) 15%, transparent);
+	transform: translateY(-1px);
+	box-shadow:
+		0 4px 16px rgba(59, 130, 246, 0.08),
+		0 2px 4px rgba(0, 0, 0, 0.04);
+	border-color: color-mix(in srgb, var(--primary) 15%, transparent);
 }
 .dark .widget-card:hover {
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12), 0 2px 4px rgba(0, 0, 0, 0.2);
+	box-shadow:
+		0 4px 16px rgba(59, 130, 246, 0.12),
+		0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* ===================================================
  * Login page mobile gradient background
  * =================================================== */
 @keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+	0%,
+	100% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
 }
 
 .login-mobile-bg {
-  background: linear-gradient(-45deg, #0C1222, #1E293B, #1E1B4B, #164E63);
-  background-size: 400% 400%;
-  animation: gradient-shift 15s ease infinite;
+	background: linear-gradient(-45deg, #0c1222, #1e293b, #1e1b4b, #164e63);
+	background-size: 400% 400%;
+	animation: gradient-shift 15s ease infinite;
 }

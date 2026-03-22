@@ -6,17 +6,17 @@ import { SprintBoard } from "@/modules/tracker/sprint-board";
  * Отображает список спринтов с управлением жизненным циклом.
  */
 function SprintsPage() {
-  const { projectId } = Route.useParams();
+	const { projectId } = Route.useParams();
 
-  return (
-    <div className="container mx-auto p-6">
-      <SprintBoard projectId={projectId} />
-    </div>
-  );
+	return (
+		<div className="container mx-auto p-6">
+			<SprintBoard projectId={projectId} />
+		</div>
+	);
 }
 
 export const Route = createFileRoute(
-  "/_authenticated/projects/$projectId/sprints/",
+	"/_authenticated/projects/$projectId/sprints/",
 )({
-  component: SprintsPage,
+	component: SprintsPage,
 });

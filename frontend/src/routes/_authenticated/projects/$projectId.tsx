@@ -5,9 +5,9 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
  * Оборачивает дочерние маршруты (доска, задачи, настройки).
  */
 function ProjectLayout() {
-  return <Outlet />;
+	return <Outlet />;
 }
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId")({
-  component: ProjectLayout,
+	component: ProjectLayout,
 });

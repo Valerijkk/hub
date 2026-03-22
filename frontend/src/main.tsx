@@ -1,6 +1,6 @@
+import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import "./i18n";
 import "./app.css";
@@ -8,18 +8,18 @@ import "./app.css";
 const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
-  interface Register {
-    router: typeof router;
-  }
+	interface Register {
+		router: typeof router;
+	}
 }
 
 const root = document.getElementById("root");
 if (!root) {
-  throw new Error("Root element not found");
+	throw new Error("Root element not found");
 }
 
 createRoot(root).render(
-  <StrictMode>
-    <RouterProvider router={router} />
-  </StrictMode>,
+	<StrictMode>
+		<RouterProvider router={router} />
+	</StrictMode>,
 );

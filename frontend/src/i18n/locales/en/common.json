@@ -1,109 +1,109 @@
 {
-  "nav": {
-    "projects": "Projects",
-    "allProjects": "All Projects",
-    "dashboard": "Dashboard",
-    "settings": "Settings",
-    "messenger": "Messenger",
-    "calls": "Calls",
-    "trash": "Trash",
-    "more": "More",
-    "tracker": "Tracker"
-  },
-  "btn": {
-    "create": "Create",
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "close": "Close",
-    "back": "Back",
-    "next": "Next",
-    "confirm": "Confirm",
-    "search": "Search",
-    "apply": "Apply",
-    "reset": "Reset",
-    "retry": "Retry",
-    "refresh": "Refresh",
-    "upload": "Upload",
-    "download": "Download",
-    "export": "Export",
-    "import": "Import",
-    "add": "Add",
-    "remove": "Remove",
-    "select": "Select",
-    "selectAll": "Select All",
-    "copy": "Copy",
-    "paste": "Paste",
-    "saving": "Saving..."
-  },
-  "status": {
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success",
-    "noData": "No data",
-    "empty": "Empty",
-    "pending": "Pending",
-    "active": "Active",
-    "inactive": "Inactive",
-    "online": "Online",
-    "offline": "Offline",
-    "away": "Away"
-  },
-  "auth": {
-    "signIn": "Sign in",
-    "signOut": "Sign out",
-    "profile": "Profile",
-    "user": "User",
-    "sessions": "Sessions",
-    "currentSession": "Current",
-    "endSession": "End session",
-    "unknownDevice": "Unknown device",
-    "lastActive": "Last active",
-    "noSessions": "No active sessions"
-  },
-  "search": {
-    "globalSearch": "Global search",
-    "placeholder": "Search...",
-    "noResults": "No results found",
-    "hint": "Ctrl+K"
-  },
-  "sidebar": {
-    "expand": "Expand",
-    "collapse": "Collapse",
-    "createProject": "Create project",
-    "noProjects": "No projects"
-  },
-  "topbar": {
-    "menu": "Menu"
-  },
-  "error": {
-    "pageNotFound": "Page not found",
-    "somethingWrong": "Something went wrong",
-    "tryRefresh": "Try refreshing the page",
-    "goHome": "Go to home",
-    "updateFailed": "Update failed",
-    "saveFailed": "Save failed",
-    "loadFailed": "Load failed"
-  },
-  "confirm": {
-    "areYouSure": "Are you sure?",
-    "cannotUndo": "This action cannot be undone"
-  },
-  "time": {
-    "today": "Today",
-    "yesterday": "Yesterday",
-    "daysAgo": "{{count}} days ago",
-    "hoursAgo": "{{count}} hours ago",
-    "minutesAgo": "{{count}} min ago",
-    "justNow": "Just now"
-  },
-  "pagination": {
-    "previous": "Previous",
-    "next": "Next",
-    "page": "Page",
-    "of": "of",
-    "showing": "Showing",
-    "total": "total"
-  }
+	"nav": {
+		"projects": "Projects",
+		"allProjects": "All Projects",
+		"dashboard": "Dashboard",
+		"settings": "Settings",
+		"messenger": "Messenger",
+		"calls": "Calls",
+		"trash": "Trash",
+		"more": "More",
+		"tracker": "Tracker"
+	},
+	"btn": {
+		"create": "Create",
+		"save": "Save",
+		"cancel": "Cancel",
+		"delete": "Delete",
+		"edit": "Edit",
+		"close": "Close",
+		"back": "Back",
+		"next": "Next",
+		"confirm": "Confirm",
+		"search": "Search",
+		"apply": "Apply",
+		"reset": "Reset",
+		"retry": "Retry",
+		"refresh": "Refresh",
+		"upload": "Upload",
+		"download": "Download",
+		"export": "Export",
+		"import": "Import",
+		"add": "Add",
+		"remove": "Remove",
+		"select": "Select",
+		"selectAll": "Select All",
+		"copy": "Copy",
+		"paste": "Paste",
+		"saving": "Saving..."
+	},
+	"status": {
+		"loading": "Loading...",
+		"error": "Error",
+		"success": "Success",
+		"noData": "No data",
+		"empty": "Empty",
+		"pending": "Pending",
+		"active": "Active",
+		"inactive": "Inactive",
+		"online": "Online",
+		"offline": "Offline",
+		"away": "Away"
+	},
+	"auth": {
+		"signIn": "Sign in",
+		"signOut": "Sign out",
+		"profile": "Profile",
+		"user": "User",
+		"sessions": "Sessions",
+		"currentSession": "Current",
+		"endSession": "End session",
+		"unknownDevice": "Unknown device",
+		"lastActive": "Last active",
+		"noSessions": "No active sessions"
+	},
+	"search": {
+		"globalSearch": "Global search",
+		"placeholder": "Search...",
+		"noResults": "No results found",
+		"hint": "Ctrl+K"
+	},
+	"sidebar": {
+		"expand": "Expand",
+		"collapse": "Collapse",
+		"createProject": "Create project",
+		"noProjects": "No projects"
+	},
+	"topbar": {
+		"menu": "Menu"
+	},
+	"error": {
+		"pageNotFound": "Page not found",
+		"somethingWrong": "Something went wrong",
+		"tryRefresh": "Try refreshing the page",
+		"goHome": "Go to home",
+		"updateFailed": "Update failed",
+		"saveFailed": "Save failed",
+		"loadFailed": "Load failed"
+	},
+	"confirm": {
+		"areYouSure": "Are you sure?",
+		"cannotUndo": "This action cannot be undone"
+	},
+	"time": {
+		"today": "Today",
+		"yesterday": "Yesterday",
+		"daysAgo": "{{count}} days ago",
+		"hoursAgo": "{{count}} hours ago",
+		"minutesAgo": "{{count}} min ago",
+		"justNow": "Just now"
+	},
+	"pagination": {
+		"previous": "Previous",
+		"next": "Next",
+		"page": "Page",
+		"of": "of",
+		"showing": "Showing",
+		"total": "total"
+	}
 }

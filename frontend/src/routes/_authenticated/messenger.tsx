@@ -7,21 +7,21 @@ import { ChannelList } from "@/components/messenger/channel-list";
  * Полная высота, без overflow-проблем.
  */
 function MessengerLayout() {
-  return (
-    <div className="flex h-full -m-6 overflow-hidden">
-      {/* Sidebar каналов — тёмный стиль, соответствует основному сайдбару */}
-      <div className="w-72 shrink-0 border-r border-border/50 bg-sidebar text-sidebar-foreground">
-        <ChannelList />
-      </div>
+	return (
+		<div className="flex h-full -m-6 overflow-hidden">
+			{/* Sidebar каналов — тёмный стиль, соответствует основному сайдбару */}
+			<div className="w-72 shrink-0 border-r border-border/50 bg-sidebar text-sidebar-foreground">
+				<ChannelList />
+			</div>
 
-      {/* Основной контент */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Outlet />
-      </div>
-    </div>
-  );
+			{/* Основной контент */}
+			<div className="flex flex-1 flex-col overflow-hidden">
+				<Outlet />
+			</div>
+		</div>
+	);
 }
 
 export const Route = createFileRoute("/_authenticated/messenger")({
-  component: MessengerLayout,
+	component: MessengerLayout,
 });

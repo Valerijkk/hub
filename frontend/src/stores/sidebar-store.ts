@@ -6,19 +6,19 @@ import { persist } from "zustand/middleware";
  * Персистится в localStorage под ключом "hub-sidebar".
  */
 interface SidebarState {
-  /** Свёрнута ли боковая панель (только иконки). */
-  collapsed: boolean;
-  /** Переключить состояние свёрнутости. */
-  toggle: () => void;
+	/** Свёрнута ли боковая панель (только иконки). */
+	collapsed: boolean;
+	/** Переключить состояние свёрнутости. */
+	toggle: () => void;
 }
 
 /** Стор боковой панели навигации с персистом. */
 export const useSidebarStore = create<SidebarState>()(
-  persist(
-    (set) => ({
-      collapsed: false,
-      toggle: () => set((state) => ({ collapsed: !state.collapsed })),
-    }),
-    { name: "hub-sidebar" },
-  ),
+	persist(
+		(set) => ({
+			collapsed: false,
+			toggle: () => set((state) => ({ collapsed: !state.collapsed })),
+		}),
+		{ name: "hub-sidebar" },
+	),
 );

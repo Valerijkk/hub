@@ -8,27 +8,25 @@ import { useMessengerStore } from "@/stores/messenger-store";
  * CallButton интегрирован в заголовок ChatView для единообразия.
  */
 function ChannelPage() {
-  const { channelId } = Route.useParams();
-  const setActiveChannel = useMessengerStore((s) => s.setActiveChannel);
-  const resetUnread = useMessengerStore((s) => s.resetUnread);
+	const { channelId } = Route.useParams();
+	const setActiveChannel = useMessengerStore((s) => s.setActiveChannel);
+	const resetUnread = useMessengerStore((s) => s.resetUnread);
 
-  useEffect(() => {
-    setActiveChannel(channelId);
-    resetUnread(channelId);
-    return () => {
-      setActiveChannel(null);
-    };
-  }, [channelId, setActiveChannel, resetUnread]);
+	useEffect(() => {
+		setActiveChannel(channelId);
+		resetUnread(channelId);
+		return () => {
+			setActiveChannel(null);
+		};
+	}, [channelId, setActiveChannel, resetUnread]);
 
-  return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <ChatView channelId={channelId} />
-    </div>
-  );
+	return (
+		<div className="flex h-full flex-col overflow-hidden">
+			<ChatView channelId={channelId} />
+		</div>
+	);
 }
 
-export const Route = createFileRoute(
-  "/_authenticated/messenger/$channelId",
-)({
-  component: ChannelPage,
+export const Route = createFileRoute("/_authenticated/messenger/$channelId")({
+	component: ChannelPage,
 });

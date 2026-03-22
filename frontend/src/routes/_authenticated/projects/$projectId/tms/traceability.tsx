@@ -7,13 +7,13 @@ import { TraceabilityMatrix } from "@/modules/tms/components/traceability-matrix
  * и статус последнего выполнения в каждой ячейке.
  */
 function TraceabilityPage() {
-  const { projectId } = Route.useParams();
+	const { projectId } = Route.useParams();
 
-  return <TraceabilityMatrix projectId={projectId} />;
+	return <TraceabilityMatrix projectId={projectId} />;
 }
 
 export const Route = createFileRoute(
-  "/_authenticated/projects/$projectId/tms/traceability",
+	"/_authenticated/projects/$projectId/tms/traceability",
 )({
-  component: TraceabilityPage,
+	component: TraceabilityPage,
 });

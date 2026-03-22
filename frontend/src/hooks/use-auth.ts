@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react";
-import { useAuthStore } from "@/stores/auth-store";
 import { getMe, type UserResponse } from "@/api/auth";
+import { useAuthStore } from "@/stores/auth-store";
 
 /**
  * useAuth предоставляет состояние аутентификации и действия (login/logout).
@@ -12,43 +12,43 @@ import { getMe, type UserResponse } from "@/api/auth";
  *          isLoading — идёт загрузка профиля, login/logout — действия
  */
 export function useAuth() {
-  const {
-    user,
-    isAuthenticated,
-    accessToken,
-    setUser,
-    setTokens,
-    logout: storeLogout,
-  } = useAuthStore();
+	const {
+		user,
+		isAuthenticated,
+		accessToken,
+		setUser,
+		setTokens,
+		logout: storeLogout,
+	} = useAuthStore();
 
-  // Загрузка профиля при наличии токена, но отсутствии данных пользователя.
-  useEffect(() => {
-    if (isAuthenticated && accessToken && !user) {
-      getMe()
-        .then((data: UserResponse) => setUser(data))
-        .catch(() => {
-          // Токен невалиден — выходим.
-          storeLogout();
-        });
-    }
-  }, [isAuthenticated, accessToken, user, setUser, storeLogout]);
+	// Загрузка профиля при наличии токена, но отсутствии данных пользователя.
+	useEffect(() => {
+		if (isAuthenticated && accessToken && !user) {
+			getMe()
+				.then((data: UserResponse) => setUser(data))
+				.catch(() => {
+					// Токен невалиден — выходим.
+					storeLogout();
+				});
+		}
+	}, [isAuthenticated, accessToken, user, setUser, storeLogout]);
 
-  const login = useCallback(
-    (accessToken: string, refreshToken: string) => {
-      setTokens(accessToken, refreshToken);
-    },
-    [setTokens],
-  );
+	const login = useCallback(
+		(accessToken: string, refreshToken: string) => {
+			setTokens(accessToken, refreshToken);
+		},
+		[setTokens],
+	);
 
-  const logout = useCallback(() => {
-    storeLogout();
-  }, [storeLogout]);
+	const logout = useCallback(() => {
+		storeLogout();
+	}, [storeLogout]);
 
-  return {
-    user,
-    isAuthenticated,
-    isLoading: isAuthenticated && !user,
-    login,
-    logout,
-  };
+	return {
+		user,
+		isAuthenticated,
+		isLoading: isAuthenticated && !user,
+		login,
+		logout,
+	};
 }
