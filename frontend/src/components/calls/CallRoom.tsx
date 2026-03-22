@@ -8,10 +8,12 @@ import { CallControls } from "./CallControls";
 import { ParticipantList } from "./ParticipantList";
 import { ScreenShareView } from "./ScreenShareView";
 
-/** URL сервера LiveKit из переменных окружения. */
+/** URL сервера LiveKit: через Caddy reverse proxy на HTTPS, напрямую на HTTP. */
 const LIVEKIT_URL =
 	(import.meta.env.VITE_LIVEKIT_URL as string) ||
-	`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:7880`;
+	(window.location.protocol === "https:"
+		? `wss://${window.location.host}/lk`
+		: `ws://${window.location.hostname}:7880`);
 
 /** Пропсы компонента CallRoom. */
 interface CallRoomProps {
