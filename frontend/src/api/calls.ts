@@ -127,9 +127,9 @@ export interface CallChatMessage {
 	/** ID звонка. */
 	call_id: string;
 	/** ID отправителя. */
-	sender_id: string;
+	user_id: string;
 	/** Имя отправителя. */
-	sender_name: string;
+	user_name: string;
 	/** Текст сообщения. */
 	text: string;
 	/** Дата отправки. */
@@ -149,8 +149,13 @@ export function sendChatMessage(callId: string, text: string) {
  * Получить историю чата звонка.
  * @param callId - ID звонка
  */
-export function listChatMessages(callId: string) {
-	return api.get<CallChatMessage[]>(`/calls/${callId}/chat`);
+export async function listChatMessages(
+	callId: string,
+): Promise<CallChatMessage[]> {
+	const res = await api.get<{ messages: CallChatMessage[] }>(
+		`/calls/${callId}/chat`,
+	);
+	return res.messages ?? [];
 }
 
 // ---------------------------------------------------------------------------

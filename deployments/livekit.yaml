@@ -1,3 +1,5 @@
+## Конфигурация LiveKit для ЛОКАЛЬНОЙ разработки.
+## В production конфиг генерируется из env vars (см. docker-compose.prod.yml).
 port: 7880
 rtc:
   tcp_port: 7881

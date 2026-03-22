@@ -89,6 +89,7 @@ func (s *CallService) CreateCall(ctx context.Context, channelID, userID uuid.UUI
 		"call_id":    callEnt.ID,
 		"room_name":  roomName,
 		"created_by": userID,
+		"started_by": userID,
 	})
 
 	return toCallResponse(callEnt, token), nil

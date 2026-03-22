@@ -76,10 +76,10 @@ export function CallChat({ callId }: CallChatProps) {
 				{messages.map((msg) => (
 					<div
 						key={msg.id}
-						className={`text-sm ${msg.sender_id === user?.id ? "text-right" : ""}`}
+						className={`text-sm ${msg.user_id === user?.id ? "text-right" : ""}`}
 					>
 						<span className="text-xs text-muted-foreground">
-							{msg.sender_name}
+							{msg.user_name}
 						</span>
 						<p className="rounded-md bg-muted px-2 py-1 inline-block max-w-[80%]">
 							{msg.text}
