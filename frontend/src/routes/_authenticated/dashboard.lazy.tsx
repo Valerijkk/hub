@@ -35,7 +35,7 @@ function PersonalDashboard() {
 	const fetchPersonal = useDashboardStore((s) => s.fetchPersonal);
 	const loadLayout = useDashboardStore((s) => s.loadLayout);
 	const personalData = useDashboardStore((s) => s.personalData);
-	const layouts = useDashboardStore((s) => s.layouts);
+	const personalItems = useDashboardStore((s) => s.layouts["personal"]);
 	const setLayout = useDashboardStore((s) => s.setLayout);
 	const loading = useDashboardStore((s) => s.loading);
 	const user = useAuthStore((s) => s.user);
@@ -47,15 +47,15 @@ function PersonalDashboard() {
 
 	useEffect(() => {
 		fetchPersonal();
-		loadLayout("personal").then(() => {
-			const current = useDashboardStore.getState().layouts["personal"];
+		void loadLayout("personal").then(() => {
+			const current = useDashboardStore.getState().layouts.personal;
 			if (!current || current.length === 0) {
 				setLayout("personal", personalDefault);
 			}
 		});
 	}, [fetchPersonal, loadLayout, setLayout]);
 
-	const items = layouts["personal"] ?? personalDefault;
+	const items = personalItems ?? personalDefault;
 
 	return (
 		<div className="animate-fade-in">
