@@ -3,7 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Channel, Message } from "@/api/messenger";
 import { getChannel } from "@/api/messenger";
-import { CallButton } from "@/components/calls/CallButton";
+// import { CallButton } from "@/components/calls/CallButton";
 import { useMessages } from "@/hooks/use-messages";
 import { useMarkRead } from "@/hooks/use-unread";
 import { cn } from "@/lib/utils";
@@ -198,9 +198,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 						)}
 					</div>
 				</div>
-				<div className="flex items-center gap-1">
-					<CallButton channelId={channelId} />
-				</div>
+				<div className="flex items-center gap-1" />
 			</div>
 
 			{/* Область сообщений */}
