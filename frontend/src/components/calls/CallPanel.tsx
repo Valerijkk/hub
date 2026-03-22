@@ -5,20 +5,19 @@ import { useCallStore } from "@/stores/call-store";
 import { CallRoom } from "./CallRoom";
 
 /**
- * Обёртка звонка — floating-панель внизу справа.
- * Компактный и развёрнутый режимы с плавными анимациями
- * и градиентным свечением по краю.
+ * Обёртка звонка.
+ * По умолчанию — большая панель (800x650) внизу справа.
+ * Развёрнутый режим — полный экран поверх всего.
  */
 export function CallPanel() {
 	const { isInCall, isConnecting, token, leaveCall, error, setError } =
 		useCallStore();
-	const [isExpanded, setIsExpanded] = useState(false);
+	const [isFullscreen, setIsFullscreen] = useState(false);
 
-	/** Не показывать панель если не в звонке, не подключаемся и нет ошибки. */
 	if (!isInCall && !isConnecting && !error) return null;
 
-	/** Обработчик отключения. */
 	const handleDisconnect = () => {
+		setIsFullscreen(false);
 		void leaveCall();
 	};
 
@@ -26,19 +25,16 @@ export function CallPanel() {
 		<div
 			className={cn(
 				"fixed z-50 overflow-hidden shadow-2xl transition-all duration-500 ease-out",
-				"rounded-2xl",
-				/* Gradient border glow */
-				"ring-1 ring-white/10",
-				"shadow-[0_0_40px_rgba(59,130,246,0.15),0_0_80px_rgba(59,130,246,0.05)]",
-				isExpanded
-					? "bottom-4 right-4 h-[650px] w-[800px]"
-					: "bottom-4 right-4 h-[560px] w-[480px]",
+				isFullscreen
+					? "inset-0 rounded-none"
+					: "bottom-4 right-4 h-[650px] w-[800px] rounded-2xl ring-1 ring-white/10 shadow-[0_0_40px_rgba(59,130,246,0.15)]",
 			)}
 		>
-			{/* Inner container with background */}
-			<div className="relative h-full w-full bg-[#0B0F19] rounded-2xl overflow-hidden">
-				{/* Subtle top gradient accent */}
-				<div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
+			<div className="relative h-full w-full bg-[#0B0F19] overflow-hidden">
+				{/* Градиентный акцент сверху */}
+				{!isFullscreen && (
+					<div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
+				)}
 
 				{/* Ошибка */}
 				{error && (
@@ -53,21 +49,20 @@ export function CallPanel() {
 					</div>
 				)}
 
-				{/* Кнопка expand/collapse */}
+				{/* Кнопка fullscreen/minimize */}
 				{isInCall && (
 					<button
 						type="button"
-						onClick={() => setIsExpanded(!isExpanded)}
+						onClick={() => setIsFullscreen(!isFullscreen)}
 						className={cn(
 							"absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center",
 							"rounded-lg bg-white/5 text-white/60",
 							"hover:bg-white/15 hover:text-white hover:scale-105",
-							"transition-all duration-200",
-							"backdrop-blur-sm",
+							"transition-all duration-200 backdrop-blur-sm",
 						)}
-						title={isExpanded ? "Свернуть" : "Развернуть"}
+						title={isFullscreen ? "Свернуть" : "На весь экран"}
 					>
-						{isExpanded ? (
+						{isFullscreen ? (
 							<Minimize2 className="h-4 w-4" />
 						) : (
 							<Maximize2 className="h-4 w-4" />

@@ -81,9 +81,10 @@ func (r *EntRepository) GetCallByRoomName(ctx context.Context, roomName string) 
 }
 
 // AddParticipant добавляет участника в звонок.
+// Если участник уже был (left_at != nil), обнуляет left_at для повторного входа.
 func (r *EntRepository) AddParticipant(ctx context.Context, callID, userID uuid.UUID) error {
 	// Проверяем, нет ли уже активного участника (без left_at)
-	exists, err := r.db.CallParticipant.Query().
+	activeExists, err := r.db.CallParticipant.Query().
 		Where(
 			callparticipant.CallID(callID),
 			callparticipant.UserID(userID),
@@ -93,10 +94,31 @@ func (r *EntRepository) AddParticipant(ctx context.Context, callID, userID uuid.
 	if err != nil {
 		return err
 	}
-	if exists {
-		return nil // Уже участник
+	if activeExists {
+		return nil // Уже активный участник
 	}
 
+	// Проверяем, есть ли бывший участник (с left_at) — повторный вход
+	former, err := r.db.CallParticipant.Query().
+		Where(
+			callparticipant.CallID(callID),
+			callparticipant.UserID(userID),
+		).
+		Only(ctx)
+	if err == nil {
+		// Обнуляем left_at для повторного входа
+		if err := r.db.CallParticipant.UpdateOne(former).ClearLeftAt().Exec(ctx); err != nil {
+			return err
+		}
+		return r.db.Call.UpdateOneID(callID).
+			AddParticipantCount(1).
+			Exec(ctx)
+	}
+	if !ent.IsNotFound(err) {
+		return err
+	}
+
+	// Новый участник
 	_, err = r.db.CallParticipant.Create().
 		SetCallID(callID).
 		SetUserID(userID).
