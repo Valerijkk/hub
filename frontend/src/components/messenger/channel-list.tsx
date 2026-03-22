@@ -8,7 +8,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+// import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChannels } from "@/hooks/use-channels";
 import { usePresence } from "@/hooks/use-presence";
 import { useUnread } from "@/hooks/use-unread";
@@ -152,7 +152,7 @@ export function ChannelList() {
 			</div>
 
 			{/* Channel list */}
-			<ScrollArea className="flex-1">
+			<div className="flex-1 overflow-y-auto">
 				<div className="p-2 space-y-5">
 					{grouped.map(([type, group]) => (
 						<div key={type}>
@@ -251,7 +251,7 @@ export function ChannelList() {
 						</div>
 					)}
 				</div>
-			</ScrollArea>
+			</div>
 
 			{/* Bottom panel -- create channel */}
 			<div className="border-t border-white/10 p-3">
