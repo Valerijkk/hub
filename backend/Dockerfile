@@ -15,6 +15,9 @@ RUN go mod download
 # Копируем весь код
 COPY . .
 
+# Генерируем Ent ORM код
+RUN go generate ./ent
+
 # Собираем бинарник
 RUN CGO_ENABLED=0 GOOS=linux go build -o /hub-server ./cmd/server
 
