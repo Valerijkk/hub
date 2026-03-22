@@ -1,8 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { CreateCallDialog } from "./create-call-dialog";
 
@@ -202,11 +200,9 @@ export function CallCalendar() {
 		return end;
 	}, [weekDays]);
 
-	// Fetch scheduled calls
-	const { data: scheduledCalls } = useQuery({
-		queryKey: ["calls", "scheduled"],
-		queryFn: () => api.get<ScheduledCallRecord[]>("/calls/scheduled"),
-	});
+	// Scheduled calls — пока нет глобального endpoint, используем пустой массив.
+	// TODO: подключить к реальному API когда будет endpoint /api/calls/scheduled
+	const scheduledCalls: ScheduledCallRecord[] = [];
 
 	// Expand calls into calendar events for the current week
 	const events = useMemo<CalendarEvent[]>(() => {
