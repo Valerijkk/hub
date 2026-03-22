@@ -1,6 +1,7 @@
 /**
- * Виджет "Статусы задач" -- кольцевая диаграмма распределения задач по статусам.
+ * Widget "Task Statuses" -- donut chart of task distribution by status.
  */
+import { Layers } from "lucide-react";
 import {
 	Cell,
 	Legend,
@@ -11,7 +12,7 @@ import {
 } from "recharts";
 import type { ProjectStats } from "@/api/dashboard";
 
-/** Цвета для статусов. */
+/** Status colors. */
 const STATUS_COLORS = [
 	"#3b82f6",
 	"#10b981",
@@ -27,7 +28,34 @@ interface Props {
 	data?: unknown;
 }
 
-/** Виджет диаграммы статусов задач. */
+/** Custom tooltip. */
+function ChartTooltip({
+	active,
+	payload,
+}: {
+	active?: boolean;
+	payload?: Array<{ name: string; value: number; payload: { fill: string } }>;
+}) {
+	if (!active || !payload?.length) return null;
+	const entry = payload?.[0];
+	if (!entry) return null;
+	return (
+		<div className="rounded-lg border border-border/50 bg-popover px-3 py-2 shadow-md">
+			<div className="flex items-center gap-2">
+				<span
+					className="h-2.5 w-2.5 rounded-full"
+					style={{ backgroundColor: entry.payload?.fill }}
+				/>
+				<span className="text-sm font-medium">{entry.name}</span>
+			</div>
+			<p className="text-xs text-muted-foreground mt-0.5">
+				{entry.value} задач
+			</p>
+		</div>
+	);
+}
+
+/** Task status chart widget. */
 export function TaskStatusChartWidget({ data }: Props) {
 	const projectData = data as ProjectStats | undefined;
 	const statusMap = projectData?.tasks_by_status ?? {};
@@ -39,7 +67,10 @@ export function TaskStatusChartWidget({ data }: Props) {
 
 	if (chartData.length === 0) {
 		return (
-			<p className="text-sm text-muted-foreground">Нет данных о задачах</p>
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+				<Layers className="h-8 w-8 opacity-40" />
+				<p className="text-sm">Нет данных о задачах</p>
+			</div>
 		);
 	}
 
@@ -54,7 +85,8 @@ export function TaskStatusChartWidget({ data }: Props) {
 					outerRadius={70}
 					dataKey="value"
 					nameKey="name"
-					paddingAngle={2}
+					paddingAngle={3}
+					strokeWidth={0}
 				>
 					{chartData.map((_, index) => (
 						<Cell
@@ -63,8 +95,14 @@ export function TaskStatusChartWidget({ data }: Props) {
 						/>
 					))}
 				</Pie>
-				<Tooltip />
-				<Legend />
+				<Tooltip content={<ChartTooltip />} />
+				<Legend
+					iconType="circle"
+					iconSize={8}
+					formatter={(value) => (
+						<span className="text-xs text-muted-foreground">{value}</span>
+					)}
+				/>
 			</PieChart>
 		</ResponsiveContainer>
 	);

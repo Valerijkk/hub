@@ -41,7 +41,7 @@ export function TelegramButton() {
 			<Button
 				type="button"
 				variant="outline"
-				className="w-full"
+				className="w-full h-12 rounded-xl text-base font-medium border-border/80 hover:bg-accent/60 transition-all duration-200"
 				onClick={handleGetCode}
 			>
 				<svg

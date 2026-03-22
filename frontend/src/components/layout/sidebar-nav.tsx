@@ -1,5 +1,6 @@
 /**
- * Нижняя навигация сайдбара -- ссылки на основные разделы.
+ * Навигация сайдбара -- Slack-style ссылки на основные разделы.
+ * Иконки 20px (viewBox 20x20), высота элемента 32px.
  */
 import { NAV_ICON_COLORS, SidebarLink } from "./sidebar-link";
 
@@ -12,7 +13,7 @@ export function SidebarNav({
 	t: (key: string, options?: Record<string, string>) => string;
 }) {
 	return (
-		<div className="space-y-0.5 px-3 py-3">
+		<div className="space-y-0.5 px-3 py-2">
 			<SidebarLink
 				to="/dashboard"
 				label={t("nav.dashboard", { defaultValue: "Дашборд" })}
@@ -20,19 +21,19 @@ export function SidebarNav({
 				icon={
 					<svg
 						className={NAV_ICON_COLORS["/dashboard"]}
-						width="16"
-						height="16"
-						viewBox="0 0 16 16"
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
 						fill="none"
 						stroke="currentColor"
 						strokeWidth="1.5"
 						strokeLinecap="round"
 						strokeLinejoin="round"
 					>
-						<rect x="1" y="1" width="6" height="6" rx="1" />
-						<rect x="9" y="1" width="6" height="3" rx="1" />
-						<rect x="9" y="6" width="6" height="9" rx="1" />
-						<rect x="1" y="9" width="6" height="6" rx="1" />
+						<rect x="2" y="2" width="7" height="7" rx="1.5" />
+						<rect x="11" y="2" width="7" height="4" rx="1.5" />
+						<rect x="11" y="8" width="7" height="10" rx="1.5" />
+						<rect x="2" y="11" width="7" height="7" rx="1.5" />
 					</svg>
 				}
 			/>
@@ -43,17 +44,17 @@ export function SidebarNav({
 				icon={
 					<svg
 						className={NAV_ICON_COLORS["/messenger"]}
-						width="16"
-						height="16"
-						viewBox="0 0 16 16"
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
 						fill="none"
 						stroke="currentColor"
 						strokeWidth="1.5"
 						strokeLinecap="round"
 						strokeLinejoin="round"
 					>
-						<path d="M2.5 12.5l1.5-4L2 4a1 1 0 01.9-1.4h10.2A1 1 0 0114 4l-2 4.5 1.5 4a1 1 0 01-.9 1.4H2.4a1 1 0 01-.9-1.4z" />
-						<path d="M6 7h4M6 9.5h2.5" />
+						<path d="M3 14.5l1.8-4.5L3 5a1.2 1.2 0 011.1-1.7h11.8A1.2 1.2 0 0117 5l-2.3 5 1.8 4.5a1.2 1.2 0 01-1.1 1.7H4.1A1.2 1.2 0 013 14.5z" />
+						<path d="M7.5 8.5h5M7.5 11.5h3" />
 					</svg>
 				}
 			/>
@@ -64,16 +65,16 @@ export function SidebarNav({
 				icon={
 					<svg
 						className={NAV_ICON_COLORS["/calls"]}
-						width="16"
-						height="16"
-						viewBox="0 0 16 16"
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
 						fill="none"
 						stroke="currentColor"
 						strokeWidth="1.5"
 						strokeLinecap="round"
 						strokeLinejoin="round"
 					>
-						<path d="M2 3.5A1.5 1.5 0 013.5 2h2.13a1 1 0 01.97.76l.45 1.83a1 1 0 01-.5 1.1L5.1 6.5a8 8 0 004.4 4.4l.81-1.45a1 1 0 011.1-.5l1.83.45a1 1 0 01.76.97v2.13a1.5 1.5 0 01-1.5 1.5A11.5 11.5 0 012 3.5z" />
+						<path d="M3 4.5A1.5 1.5 0 014.5 3h2.6a1 1 0 01.97.76l.55 2.2a1 1 0 01-.5 1.1L6.5 8.2a9.5 9.5 0 005.3 5.3l1.14-.62a1 1 0 011.1-.5l2.2.55a1 1 0 01.76.97v2.6a1.5 1.5 0 01-1.5 1.5A14 14 0 013 4.5z" />
 					</svg>
 				}
 			/>
@@ -84,19 +85,19 @@ export function SidebarNav({
 				icon={
 					<svg
 						className={NAV_ICON_COLORS["/projects"]}
-						width="16"
-						height="16"
-						viewBox="0 0 16 16"
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
 						fill="none"
 						stroke="currentColor"
 						strokeWidth="1.5"
 						strokeLinecap="round"
 						strokeLinejoin="round"
 					>
-						<rect x="2" y="2" width="5" height="5" rx="1" />
-						<rect x="9" y="2" width="5" height="5" rx="1" />
-						<rect x="2" y="9" width="5" height="5" rx="1" />
-						<rect x="9" y="9" width="5" height="5" rx="1" />
+						<rect x="2.5" y="2.5" width="6" height="6" rx="1.5" />
+						<rect x="11.5" y="2.5" width="6" height="6" rx="1.5" />
+						<rect x="2.5" y="11.5" width="6" height="6" rx="1.5" />
+						<rect x="11.5" y="11.5" width="6" height="6" rx="1.5" />
 					</svg>
 				}
 			/>
@@ -107,17 +108,17 @@ export function SidebarNav({
 				icon={
 					<svg
 						className={NAV_ICON_COLORS["/settings/profile"]}
-						width="16"
-						height="16"
-						viewBox="0 0 16 16"
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
 						fill="none"
 						stroke="currentColor"
 						strokeWidth="1.5"
 						strokeLinecap="round"
 						strokeLinejoin="round"
 					>
-						<circle cx="8" cy="8" r="2.5" />
-						<path d="M13.5 8a5.5 5.5 0 01-.3 1.8l1.1.6a.5.5 0 01.2.7l-1 1.7a.5.5 0 01-.6.2l-1.1-.6a5.5 5.5 0 01-1.5.9v1.2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-1.2a5.5 5.5 0 01-1.5-.9l-1.1.6a.5.5 0 01-.6-.2l-1-1.7a.5.5 0 01.2-.7l1.1-.6A5.5 5.5 0 012.5 8c0-.6.1-1.2.3-1.8l-1.1-.6a.5.5 0 01-.2-.7l1-1.7a.5.5 0 01.6-.2l1.1.6a5.5 5.5 0 011.5-.9V1.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1.2a5.5 5.5 0 011.5.9l1.1-.6a.5.5 0 01.6.2l1 1.7a.5.5 0 01-.2.7l-1.1.6c.2.6.3 1.2.3 1.8z" />
+						<circle cx="10" cy="10" r="3" />
+						<path d="M16.5 10a6.5 6.5 0 01-.35 2.1l1.3.75a.6.6 0 01.22.82l-1.2 2.06a.6.6 0 01-.72.26l-1.3-.75a6.5 6.5 0 01-1.8 1.04v1.5a.6.6 0 01-.6.6h-2.1a.6.6 0 01-.6-.6v-1.5a6.5 6.5 0 01-1.8-1.04l-1.3.75a.6.6 0 01-.72-.26l-1.2-2.06a.6.6 0 01.22-.82l1.3-.75A6.5 6.5 0 013.5 10c0-.72.12-1.42.35-2.1l-1.3-.75a.6.6 0 01-.22-.82l1.2-2.06a.6.6 0 01.72-.26l1.3.75A6.5 6.5 0 017.35 3.72v-1.5a.6.6 0 01.6-.6h2.1a.6.6 0 01.6.6v1.5a6.5 6.5 0 011.8 1.04l1.3-.75a.6.6 0 01.72.26l1.2 2.06a.6.6 0 01-.22.82l-1.3.75c.23.68.35 1.38.35 2.1z" />
 					</svg>
 				}
 			/>
@@ -128,16 +129,16 @@ export function SidebarNav({
 				icon={
 					<svg
 						className={NAV_ICON_COLORS["/trash"]}
-						width="16"
-						height="16"
-						viewBox="0 0 16 16"
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
 						fill="none"
 						stroke="currentColor"
 						strokeWidth="1.5"
 						strokeLinecap="round"
 						strokeLinejoin="round"
 					>
-						<path d="M2 4h12M5.3 4V2.7a1.3 1.3 0 011.4-1.4h2.6a1.3 1.3 0 011.4 1.4V4M12.7 4v9.3a1.3 1.3 0 01-1.4 1.4H4.7a1.3 1.3 0 01-1.4-1.4V4" />
+						<path d="M3 5h14M7 5V3.5A1.5 1.5 0 018.5 2h3A1.5 1.5 0 0113 3.5V5M15.5 5v11a1.5 1.5 0 01-1.5 1.5H6A1.5 1.5 0 014.5 16V5" />
 					</svg>
 				}
 			/>

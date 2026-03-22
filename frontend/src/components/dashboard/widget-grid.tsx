@@ -1,7 +1,24 @@
 /**
- * WidgetGrid -- обёртка над react-grid-layout v2 для drag-and-drop виджетов.
- * Поддерживает адаптивные breakpoints, изменение размеров и режим редактирования.
+ * WidgetGrid -- wrapper over react-grid-layout v2 for drag-and-drop widgets.
+ * Supports adaptive breakpoints, resizing and edit mode.
  */
+import {
+	CalendarClock,
+	ChartBar,
+	Clock,
+	Ellipsis,
+	GripVertical,
+	HardDrive,
+	Layers,
+	Mail,
+	Phone,
+	Server,
+	SquareCheck,
+	TestTube,
+	TrendingUp,
+	Users,
+	type LucideIcon,
+} from "lucide-react";
 import { useCallback, useMemo } from "react";
 import {
 	GridLayout,
@@ -26,7 +43,7 @@ import { UnreadMessagesWidget } from "./widgets/unread-messages";
 import { UpcomingCallsWidget } from "./widgets/upcoming-calls";
 import { VelocityChartWidget } from "./widgets/velocity-chart";
 
-/** Реестр виджетов: тип -> компонент. */
+/** Widget registry: type -> component. */
 const WIDGET_REGISTRY: Record<
 	string,
 	React.ComponentType<{ data?: unknown }>
@@ -45,7 +62,7 @@ const WIDGET_REGISTRY: Record<
 	deadlines: DeadlinesWidget,
 };
 
-/** Названия виджетов на русском. */
+/** Widget names in Russian. */
 const WIDGET_NAMES: Record<string, string> = {
 	"my-tasks": "Мои задачи",
 	"unread-messages": "Непрочитанные",
@@ -61,20 +78,52 @@ const WIDGET_NAMES: Record<string, string> = {
 	deadlines: "Дедлайны",
 };
 
-/** Пропсы компонента WidgetGrid. */
+/** Widget icons. */
+const WIDGET_ICONS: Record<string, LucideIcon> = {
+	"my-tasks": SquareCheck,
+	"unread-messages": Mail,
+	"upcoming-calls": Phone,
+	"task-status-chart": Layers,
+	"burndown-chart": TrendingUp,
+	"velocity-chart": ChartBar,
+	"test-trends": TestTube,
+	"team-activity": Users,
+	"system-health": Server,
+	"storage-usage": HardDrive,
+	"time-tracking": Clock,
+	deadlines: CalendarClock,
+};
+
+/** Accent color per widget (top border gradient). */
+const WIDGET_ACCENT: Record<string, string> = {
+	"my-tasks": "from-blue-500 to-blue-600",
+	"unread-messages": "from-amber-500 to-orange-500",
+	"upcoming-calls": "from-violet-500 to-purple-600",
+	"task-status-chart": "from-indigo-500 to-blue-500",
+	"burndown-chart": "from-sky-500 to-cyan-500",
+	"velocity-chart": "from-emerald-500 to-green-500",
+	"test-trends": "from-purple-500 to-violet-600",
+	"team-activity": "from-teal-500 to-emerald-500",
+	"system-health": "from-green-500 to-emerald-500",
+	"storage-usage": "from-slate-500 to-zinc-600",
+	"time-tracking": "from-rose-500 to-pink-500",
+	deadlines: "from-red-500 to-orange-500",
+};
+
+/** WidgetGrid component props. */
 interface WidgetGridProps {
-	/** Элементы раскладки. */
+	/** Layout items. */
 	items: LayoutItem[];
-	/** Тип дашборда. */
+	/** Dashboard type. */
 	dashboardType: string;
-	/** ID проекта (для проектных дашбордов). */
+	/** Project ID (for project dashboards). */
 	projectId?: string;
-	/** Данные для виджетов. */
+	/** Data for widgets. */
 	data?: unknown;
 }
 
 /**
- * Сетка виджетов с поддержкой drag-and-drop и изменения размеров.
+ * Widget grid with drag-and-drop and resize support.
  */
 export function WidgetGrid({
 	items,
@@ -148,31 +197,41 @@ export function WidgetGrid({
 
 	return (
 		<div ref={containerRef}>
-			{/* Панель управления */}
+			{/* Control panel */}
 			<div className="mb-4 flex items-center gap-2">
-				<Button variant="outline" size="sm" onClick={toggleEditing}>
+				<Button
+					variant={editing ? "default" : "outline"}
+					size="sm"
+					onClick={toggleEditing}
+					className="transition-all duration-200"
+				>
 					{editing ? "Готово" : "Редактировать"}
 				</Button>
 
 				{editing && (
-					<div className="flex flex-wrap gap-1">
+					<div className="flex flex-wrap gap-1.5 animate-fade-in">
 						{Object.keys(WIDGET_REGISTRY)
 							.filter((type) => !existingTypes.has(type))
-							.map((type) => (
-								<Button
-									key={type}
-									variant="outline"
-									size="sm"
-									onClick={() => handleAddWidget(type)}
-								>
-									+ {WIDGET_NAMES[type] ?? type}
-								</Button>
-							))}
+							.map((type) => {
+								const Icon = WIDGET_ICONS[type];
+								return (
+									<Button
+										key={type}
+										variant="outline"
+										size="sm"
+										onClick={() => handleAddWidget(type)}
+										className="gap-1.5 transition-all duration-200 hover:bg-accent"
+									>
+										{Icon && <Icon className="h-3.5 w-3.5" />}
+										{WIDGET_NAMES[type] ?? type}
+									</Button>
+								);
+							})}
 					</div>
 				)}
 			</div>
 
-			{/* Сетка виджетов */}
+			{/* Widget grid */}
 			{width > 0 && (
 				<GridLayout
 					layout={layout}
@@ -200,22 +259,51 @@ export function WidgetGrid({
 						const WidgetComponent = WIDGET_REGISTRY[item.widget_type];
 						if (!WidgetComponent) return <div key={item.i} />;
 
+						const Icon = WIDGET_ICONS[item.widget_type];
+						const accent =
+							WIDGET_ACCENT[item.widget_type] ?? "from-gray-500 to-gray-600";
+
 						return (
 							<div
 								key={item.i}
-								className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden"
+								className={`
+									group/widget relative rounded-xl bg-card text-card-foreground
+									ring-1 ring-border/50 shadow-sm overflow-hidden
+									transition-all duration-200 ease-out
+									hover:shadow-md hover:-translate-y-px
+									${editing ? "ring-dashed ring-2 ring-primary/30" : ""}
+								`}
 							>
-								{/* Заголовок виджета */}
-								<div className="widget-drag-handle flex items-center justify-between border-b px-4 py-2 cursor-move">
-									<span className="text-sm font-medium">
-										{WIDGET_NAMES[item.widget_type] ?? item.widget_type}
-									</span>
-									{editing && (
-										<span className="text-xs text-muted-foreground">:::</span>
-									)}
+								{/* Accent top border */}
+								<div
+									className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${accent} opacity-60 group-hover/widget:opacity-100 transition-opacity duration-200`}
+								/>
+
+								{/* Widget header */}
+								<div className="widget-drag-handle flex items-center justify-between border-b border-border/50 px-4 py-2.5 cursor-move">
+									<div className="flex items-center gap-2">
+										{Icon && (
+											<Icon className="h-4 w-4 text-muted-foreground" />
+										)}
+										<span className="text-sm font-medium">
+											{WIDGET_NAMES[item.widget_type] ?? item.widget_type}
+										</span>
+									</div>
+									<div className="flex items-center gap-1">
+										{editing && (
+											<GripVertical className="h-4 w-4 text-muted-foreground/50" />
+										)}
+										<button
+											type="button"
+											className="rounded-md p-0.5 text-muted-foreground/50 opacity-0 group-hover/widget:opacity-100 hover:text-foreground hover:bg-accent transition-all duration-150"
+										>
+											<Ellipsis className="h-4 w-4" />
+										</button>
+									</div>
 								</div>
-								{/* Содержимое виджета */}
-								<div className="p-4 overflow-auto h-[calc(100%-40px)]">
+
+								{/* Widget content */}
+								<div className="p-4 overflow-auto h-[calc(100%-44px)]">
 									<WidgetComponent data={data} />
 								</div>
 							</div>

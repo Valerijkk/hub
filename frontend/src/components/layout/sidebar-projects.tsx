@@ -1,16 +1,12 @@
 /**
- * Секция проектов сайдбара — список с expand/collapse подменю модулей.
+ * Секция проектов сайдбара -- Slack-style список с expand/collapse подменю.
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useMatchRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { listProjects } from "@/api/projects";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
+
 import { cn } from "@/lib/utils";
 import { SidebarLink } from "./sidebar-link";
 
@@ -29,7 +25,9 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
 			label: "Доска",
 			icon: (
 				<svg
-					className="h-3.5 w-3.5 text-amber-400"
+					className="text-amber-400"
+					width="16"
+					height="16"
 					fill="none"
 					viewBox="0 0 16 16"
 					stroke="currentColor"
@@ -48,7 +46,9 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
 			label: "Задачи",
 			icon: (
 				<svg
-					className="h-3.5 w-3.5 text-blue-400"
+					className="text-blue-400"
+					width="16"
+					height="16"
 					fill="none"
 					viewBox="0 0 16 16"
 					stroke="currentColor"
@@ -66,7 +66,9 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
 			label: "TMS",
 			icon: (
 				<svg
-					className="h-3.5 w-3.5 text-green-400"
+					className="text-green-400"
+					width="16"
+					height="16"
 					fill="none"
 					viewBox="0 0 16 16"
 					stroke="currentColor"
@@ -83,7 +85,9 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
 			label: "Бэклог",
 			icon: (
 				<svg
-					className="h-3.5 w-3.5 text-slate-400"
+					className="text-slate-400"
+					width="16"
+					height="16"
 					fill="none"
 					viewBox="0 0 16 16"
 					stroke="currentColor"
@@ -100,7 +104,9 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
 			label: "Спринты",
 			icon: (
 				<svg
-					className="h-3.5 w-3.5 text-purple-400"
+					className="text-purple-400"
+					width="16"
+					height="16"
 					fill="none"
 					viewBox="0 0 16 16"
 					stroke="currentColor"
@@ -142,36 +148,14 @@ export function SidebarProjects({
 	};
 
 	return (
-		<div className="flex-1 overflow-y-auto px-3 py-3">
-			<div className="mb-2 flex items-center justify-between px-2">
+		<div className="flex-1 overflow-y-auto px-3 py-2">
+			{/* Заголовок секции */}
+			<div className="mb-1.5 flex items-center justify-between px-2">
 				{!collapsed && (
-					<span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+					<span className="text-[11px] font-semibold uppercase tracking-wider text-[#D1D2D3]/40">
 						{t("nav.projects")}
 					</span>
 				)}
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Link
-							to="/projects/new"
-							className="inline-flex h-5 w-5 items-center justify-center rounded-md text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors"
-						>
-							<svg
-								width="12"
-								height="12"
-								viewBox="0 0 14 14"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-							>
-								<path d="M7 1v12M1 7h12" />
-							</svg>
-						</Link>
-					</TooltipTrigger>
-					<TooltipContent side="right">
-						{t("sidebar.createProject")}
-					</TooltipContent>
-				</Tooltip>
 			</div>
 
 			<div className="space-y-0.5">
@@ -188,14 +172,18 @@ export function SidebarProjects({
 						<div key={project.id}>
 							{/* Основная ссылка проекта с кнопкой раскрытия */}
 							<div className="flex items-center">
-								{/* Кнопка раскрытия подменю (только в развёрнутом режиме) */}
+								{/* Кнопка раскрытия подменю */}
 								{!collapsed && (
 									<button
 										type="button"
-										onClick={() => toggleProject(project.id)}
-										className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-500 hover:text-white transition-colors"
+										onClick={() =>
+											toggleProject(project.id)
+										}
+										className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[#D1D2D3]/40 hover:text-white transition-colors duration-150"
 										aria-label={
-											isExpanded ? "Свернуть модули" : "Развернуть модули"
+											isExpanded
+												? "Свернуть модули"
+												: "Развернуть модули"
 										}
 									>
 										<svg
@@ -224,8 +212,8 @@ export function SidebarProjects({
 										icon={
 											<span className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-blue-500/20 text-[10px] font-bold text-blue-400">
 												{project.key.charAt(0)}
-												{/* Цветной индикатор активности проекта */}
-												<span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[#0C1222]" />
+												{/* Индикатор активности */}
+												<span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[#19171D]" />
 											</span>
 										}
 									/>
@@ -235,17 +223,21 @@ export function SidebarProjects({
 							{/* Подменю модулей проекта */}
 							{isExpanded && !collapsed && (
 								<div className="space-y-0.5 mt-0.5 mb-1">
-									{getProjectSubNav(project.id).map((item) => (
-										<SidebarLink
-											key={item.to}
-											to={item.to}
-											label={item.label}
-											collapsed={collapsed}
-											params={{ projectId: project.id }}
-											indent
-											icon={item.icon}
-										/>
-									))}
+									{getProjectSubNav(project.id).map(
+										(item) => (
+											<SidebarLink
+												key={item.to}
+												to={item.to}
+												label={item.label}
+												collapsed={collapsed}
+												params={{
+													projectId: project.id,
+												}}
+												indent
+												icon={item.icon}
+											/>
+										),
+									)}
 								</div>
 							)}
 						</div>
@@ -254,7 +246,7 @@ export function SidebarProjects({
 			</div>
 
 			{projects?.length === 0 && !collapsed && (
-				<p className="px-3 py-2 text-xs text-slate-600">
+				<p className="px-3 py-2 text-xs text-[#D1D2D3]/30">
 					{t("sidebar.noProjects")}
 				</p>
 			)}

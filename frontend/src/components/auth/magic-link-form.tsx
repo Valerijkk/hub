@@ -74,7 +74,7 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 
 	if (step === "email") {
 		return (
-			<form onSubmit={handleSendCode} className="space-y-4">
+			<form onSubmit={handleSendCode} className="space-y-5">
 				<div className="space-y-2">
 					<Label htmlFor="email" className="text-sm font-medium">
 						Email
@@ -87,12 +87,12 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 						onChange={(e) => setEmail(e.target.value)}
 						autoComplete="email"
 						autoFocus
-						className="h-10"
+						className="h-12 rounded-xl text-base transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
 					/>
 				</div>
 				<Button
 					type="submit"
-					className="w-full h-10 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium shadow-sm shadow-blue-500/20"
+					className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold text-base shadow-md shadow-blue-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30"
 					disabled={loading || !isEmailValid}
 				>
 					{loading ? (
@@ -117,7 +117,7 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 	}
 
 	return (
-		<form onSubmit={handleVerifyCode} className="space-y-4">
+		<form onSubmit={handleVerifyCode} className="space-y-5">
 			<div className="space-y-2">
 				<Label htmlFor="code" className="text-sm font-medium">
 					Код подтверждения
@@ -131,7 +131,7 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 					value={code}
 					onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
 					autoFocus
-					className="h-10 text-center text-lg tracking-[0.3em] font-mono"
+					className="h-12 rounded-xl text-center text-lg tracking-[0.3em] font-mono transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
 				/>
 				<p className="text-xs text-muted-foreground">
 					Код отправлен на {email}
@@ -139,7 +139,7 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 			</div>
 			<Button
 				type="submit"
-				className="w-full h-10 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium shadow-sm shadow-blue-500/20"
+				className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold text-base shadow-md shadow-blue-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30"
 				disabled={loading || !code.trim()}
 			>
 				{loading ? "Проверка..." : "Войти"}

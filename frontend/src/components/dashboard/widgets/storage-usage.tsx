@@ -1,13 +1,14 @@
 /**
- * Виджет "Хранилище" -- визуализация использования хранилища.
+ * Widget "Storage" -- storage usage visualization.
  */
+import { HardDrive } from "lucide-react";
 import type { AdminStats } from "@/api/dashboard";
 
 interface Props {
 	data?: unknown;
 }
 
-/** Форматирует байты в человекочитаемый вид. */
+/** Format bytes to human-readable form. */
 function formatBytes(bytes: number): string {
 	if (bytes === 0) return "0 B";
 	const k = 1024;
@@ -16,24 +17,35 @@ function formatBytes(bytes: number): string {
 	return `${(bytes / k ** i).toFixed(1)} ${sizes[i]}`;
 }
 
-/** Виджет использования хранилища. */
+/** Storage usage widget. */
 export function StorageUsageWidget({ data }: Props) {
 	const adminData = data as AdminStats | undefined;
 	const storageUsed = adminData?.storage_used ?? 0;
 
 	return (
-		<div className="flex flex-col items-center justify-center h-full gap-2">
-			<span className="text-3xl font-bold">{formatBytes(storageUsed)}</span>
-			<span className="text-sm text-muted-foreground">Использовано</span>
+		<div className="flex flex-col items-center justify-center h-full gap-3">
+			<div className="relative">
+				<HardDrive className="h-10 w-10 text-muted-foreground opacity-60" />
+			</div>
+			<div className="text-center">
+				<span className="text-3xl font-bold tabular-nums">
+					{formatBytes(storageUsed)}
+				</span>
+				<p className="text-sm text-muted-foreground mt-0.5">Использовано</p>
+			</div>
 			{adminData?.top_projects && adminData.top_projects.length > 0 && (
-				<div className="mt-2 w-full space-y-1">
+				<div className="mt-1 w-full space-y-1.5 pt-2 border-t border-border/50">
 					{adminData.top_projects.slice(0, 3).map((project) => (
 						<div
 							key={project.id}
-							className="flex justify-between text-xs text-muted-foreground"
+							className="flex justify-between text-xs px-1"
 						>
-							<span className="truncate">{project.name}</span>
-							<span>{project.issue_count} задач</span>
+							<span className="truncate text-muted-foreground">
+								{project.name}
+							</span>
+							<span className="tabular-nums text-muted-foreground/80 shrink-0 ml-2">
+								{project.issue_count} задач
+							</span>
 						</div>
 					))}
 				</div>

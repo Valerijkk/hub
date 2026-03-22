@@ -1,6 +1,7 @@
 /**
- * Виджет "Burndown" -- график завершённых задач по дням (ideal vs actual).
+ * Widget "Burndown" -- chart of completed tasks by day (ideal vs actual).
  */
+import { TrendingDown } from "lucide-react";
 import {
 	Area,
 	AreaChart,
@@ -16,14 +17,40 @@ interface Props {
 	data?: unknown;
 }
 
-/** Виджет burndown-графика. */
+/** Custom tooltip for charts. */
+function ChartTooltip({
+	active,
+	payload,
+	label,
+}: {
+	active?: boolean;
+	payload?: Array<{ value: number; name: string; color: string }>;
+	label?: string;
+}) {
+	if (!active || !payload?.length) return null;
+	return (
+		<div className="rounded-lg border border-border/50 bg-popover px-3 py-2 shadow-md">
+			<p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
+			{payload.map((entry) => (
+				<p key={entry.name} className="text-sm font-medium" style={{ color: entry.color }}>
+					{entry.name}: {entry.value}
+				</p>
+			))}
+		</div>
+	);
+}
+
+/** Burndown chart widget. */
 export function BurndownChartWidget({ data }: Props) {
 	const projectData = data as ProjectStats | undefined;
 	const burndownData = projectData?.burndown_data ?? [];
 
 	if (burndownData.length === 0) {
 		return (
-			<p className="text-sm text-muted-foreground">Нет данных для burndown</p>
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+				<TrendingDown className="h-8 w-8 opacity-40" />
+				<p className="text-sm">Нет данных для burndown</p>
+			</div>
 		);
 	}
 
@@ -34,16 +61,32 @@ export function BurndownChartWidget({ data }: Props) {
 
 	return (
 		<ResponsiveContainer width="100%" height="100%">
-			<AreaChart data={chartData}>
-				<CartesianGrid strokeDasharray="3 3" />
-				<XAxis dataKey="label" tick={{ fontSize: 10 }} />
-				<YAxis tick={{ fontSize: 10 }} />
-				<Tooltip />
+			<AreaChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
+				<defs>
+					<linearGradient id="burndownGradient" x1="0" y1="0" x2="0" y2="1">
+						<stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+						<stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+					</linearGradient>
+				</defs>
+				<CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} vertical={false} />
+				<XAxis
+					dataKey="label"
+					tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+					axisLine={false}
+					tickLine={false}
+				/>
+				<YAxis
+					tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+					axisLine={false}
+					tickLine={false}
+				/>
+				<Tooltip content={<ChartTooltip />} />
 				<Area
 					type="monotone"
 					dataKey="completed"
 					stroke="#3b82f6"
-					fill="#3b82f680"
+					strokeWidth={2}
+					fill="url(#burndownGradient)"
 					name="Завершено"
 				/>
 			</AreaChart>

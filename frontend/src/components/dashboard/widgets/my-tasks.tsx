@@ -1,48 +1,93 @@
 /**
- * Виджет "Мои задачи" -- отображает список назначенных задач с приоритетом и статусом.
+ * Widget "My Tasks" -- displays a list of assigned tasks with priority and status.
  */
+import { CircleCheck, Circle, Clock, Inbox } from "lucide-react";
 import type { PersonalData, TaskSummary } from "@/api/dashboard";
 import { Badge } from "@/components/ui/badge";
 
-/** Иконки приоритетов. */
-const PRIORITY_ICONS: Record<number, string> = {
-	5: "!!!",
-	4: "!!",
-	3: "!",
-	2: "-",
-	1: ".",
+/** Priority color dots. */
+const PRIORITY_COLORS: Record<number, string> = {
+	5: "bg-red-500",
+	4: "bg-orange-500",
+	3: "bg-yellow-500",
+	2: "bg-blue-400",
+	1: "bg-slate-400",
 };
+
+const PRIORITY_LABELS: Record<number, string> = {
+	5: "Критический",
+	4: "Высокий",
+	3: "Средний",
+	2: "Низкий",
+	1: "Минимальный",
+};
+
+/** Status badge styling. */
+function getStatusVariant(
+	status: string,
+): "default" | "secondary" | "destructive" | "outline" {
+	const s = status.toLowerCase();
+	if (s.includes("done") || s.includes("закрыт") || s.includes("готов"))
+		return "default";
+	if (s.includes("progress") || s.includes("работ")) return "secondary";
+	if (s.includes("block") || s.includes("блок")) return "destructive";
+	return "outline";
+}
+
+/** Status icon. */
+function StatusIcon({ status }: { status: string }) {
+	const s = status.toLowerCase();
+	if (s.includes("done") || s.includes("закрыт") || s.includes("готов"))
+		return <CircleCheck className="h-3 w-3" />;
+	if (s.includes("progress") || s.includes("работ"))
+		return <Clock className="h-3 w-3" />;
+	return <Circle className="h-3 w-3" />;
+}
 
 interface Props {
 	data?: unknown;
 }
 
-/** Виджет списка задач пользователя. */
+/** User task list widget. */
 export function MyTasksWidget({ data }: Props) {
 	const personalData = data as PersonalData | undefined;
 	const tasks = personalData?.my_tasks ?? [];
 
 	if (tasks.length === 0) {
-		return <p className="text-sm text-muted-foreground">Нет активных задач</p>;
+		return (
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+				<Inbox className="h-8 w-8 opacity-40" />
+				<p className="text-sm">Нет активных задач</p>
+				<p className="text-xs opacity-60">
+					Все задачи выполнены
+				</p>
+			</div>
+		);
 	}
 
 	return (
-		<div className="space-y-2">
+		<div className="space-y-1.5">
 			{tasks.slice(0, 10).map((task: TaskSummary) => (
 				<div
 					key={task.id}
-					className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"
+					className="group flex items-center justify-between gap-2 rounded-lg border border-border/50 p-2.5 text-sm transition-colors duration-150 hover:bg-accent/50"
 				>
-					<div className="flex items-center gap-2 min-w-0">
-						<span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-							{PRIORITY_ICONS[task.priority] ?? ""}
-						</span>
-						<span className="font-mono text-xs text-muted-foreground">
+					<div className="flex items-center gap-2.5 min-w-0">
+						{/* Priority dot */}
+						<div
+							className={`h-2 w-2 rounded-full shrink-0 ${PRIORITY_COLORS[task.priority] ?? "bg-slate-400"}`}
+							title={PRIORITY_LABELS[task.priority] ?? ""}
+						/>
+						<span className="font-mono text-xs text-muted-foreground shrink-0">
 							{task.key}
 						</span>
 						<span className="truncate">{task.title}</span>
 					</div>
-					<Badge variant="outline" className="shrink-0">
+					<Badge
+						variant={getStatusVariant(task.status)}
+						className="shrink-0 gap-1 text-xs"
+					>
+						<StatusIcon status={task.status} />
 						{task.status}
 					</Badge>
 				</div>
