@@ -11,7 +11,17 @@ import {
 	PhoneOff,
 	Settings,
 } from "lucide-react";
+import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	Popover,
 	PopoverContent,
@@ -45,6 +55,7 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 	const { activeCall, handRaised, toggleHand, leaveCall, endCall } =
 		useCallStore();
 	const currentUserId = useAuthStore((s) => s.user?.id);
+	const [cameraDialogOpen, setCameraDialogOpen] = useState(false);
 
 	/** Микрофон включён. */
 	const isMicEnabled = localParticipant.isMicrophoneEnabled;
@@ -73,9 +84,19 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 		await room.localParticipant.setScreenShareEnabled(!isScreenSharing);
 	};
 
-	/** Переключить камеру. */
+	/** Переключить камеру (с подтверждением при включении). */
 	const handleCameraToggle = async () => {
-		await localParticipant.setCameraEnabled(!isCameraEnabled);
+		if (isCameraEnabled) {
+			await localParticipant.setCameraEnabled(false);
+		} else {
+			setCameraDialogOpen(true);
+		}
+	};
+
+	/** Подтвердить включение камеры. */
+	const handleCameraConfirm = async () => {
+		setCameraDialogOpen(false);
+		await localParticipant.setCameraEnabled(true);
 	};
 
 	/** Покинуть звонок. */
@@ -312,6 +333,33 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 					)}
 				</div>
 			</div>
+
+			{/* Диалог подтверждения включения камеры */}
+			<Dialog open={cameraDialogOpen} onOpenChange={setCameraDialogOpen}>
+				<DialogContent className="border-white/10 bg-[#1a1f2e] text-white sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Включить камеру?</DialogTitle>
+						<DialogDescription className="text-white/60">
+							Все участники звонка увидят вас.
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter className="gap-2 sm:gap-0">
+						<Button
+							variant="ghost"
+							className="text-white/70 hover:text-white hover:bg-white/10"
+							onClick={() => setCameraDialogOpen(false)}
+						>
+							Отмена
+						</Button>
+						<Button
+							className="bg-blue-600 text-white hover:bg-blue-700"
+							onClick={handleCameraConfirm}
+						>
+							Включить
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</TooltipProvider>
 	);
 }

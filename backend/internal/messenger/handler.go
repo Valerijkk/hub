@@ -630,13 +630,14 @@ func (h *Handler) SetCustomStatus(c fiber.Ctx) error {
 	}
 
 	var req struct {
-		Text string `json:"text"`
+		Text     string `json:"text"`
+		Duration string `json:"duration"`
 	}
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
 	}
 
-	if err := h.service.SetCustomStatus(c.Context(), userID.String(), req.Text); err != nil {
+	if err := h.service.SetCustomStatus(c.Context(), userID.String(), req.Text, req.Duration); err != nil {
 		return err
 	}
 

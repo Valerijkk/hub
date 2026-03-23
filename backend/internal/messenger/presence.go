@@ -92,13 +92,45 @@ func (s *PresenceService) GetBulkStatus(ctx context.Context, userIDs []string) (
 	return result, nil
 }
 
+// ParseStatusDuration преобразует строковое значение длительности в time.Duration.
+// Поддерживаемые значения: "30m", "1h", "4h", "today", "1d", "1w", "0" (без ограничения).
+// Пустая строка или неизвестное значение возвращает 24 часа (по умолчанию).
+func ParseStatusDuration(duration string) time.Duration {
+	switch duration {
+	case "30m":
+		return 30 * time.Minute
+	case "1h":
+		return time.Hour
+	case "4h":
+		return 4 * time.Hour
+	case "today":
+		now := time.Now()
+		midnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+		remaining := time.Until(midnight)
+		if remaining < time.Minute {
+			remaining = time.Minute
+		}
+		return remaining
+	case "1d":
+		return 24 * time.Hour
+	case "1w":
+		return 7 * 24 * time.Hour
+	case "0":
+		return 365 * 24 * time.Hour
+	default:
+		return 24 * time.Hour
+	}
+}
+
 // SetCustomStatus устанавливает кастомный текстовый статус пользователя.
-func (s *PresenceService) SetCustomStatus(ctx context.Context, userID, text string) error {
+// duration — строковое значение длительности ("30m", "1h", "4h", "today", "1d", "1w", "0").
+func (s *PresenceService) SetCustomStatus(ctx context.Context, userID, text, duration string) error {
 	key := presenceStatusKeyPrefix + userID
 	if text == "" {
 		return s.rdb.Del(ctx, key).Err()
 	}
-	return s.rdb.Set(ctx, key, text, 24*time.Hour).Err()
+	ttl := ParseStatusDuration(duration)
+	return s.rdb.Set(ctx, key, text, ttl).Err()
 }
 
 // GetCustomStatus возвращает кастомный текстовый статус пользователя.

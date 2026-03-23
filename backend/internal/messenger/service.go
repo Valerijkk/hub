@@ -55,11 +55,12 @@ func (s *MessengerService) GetPresence(ctx context.Context, userIDs []string) (m
 }
 
 // SetCustomStatus устанавливает кастомный текст статуса пользователя.
-func (s *MessengerService) SetCustomStatus(ctx context.Context, userID, text string) error {
+// duration — строковое значение длительности ("30m", "1h", "4h", "today", "1d", "1w", "0").
+func (s *MessengerService) SetCustomStatus(ctx context.Context, userID, text, duration string) error {
 	if s.presence == nil {
 		return nil
 	}
-	return s.presence.SetCustomStatus(ctx, userID, text)
+	return s.presence.SetCustomStatus(ctx, userID, text, duration)
 }
 
 // GetCustomStatus возвращает кастомный текст статуса пользователя.

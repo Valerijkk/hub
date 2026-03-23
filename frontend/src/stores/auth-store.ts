@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 import type { UserResponse } from "@/api/auth";
 
 /**
  * Состояние стора аутентификации.
- * Персистится в localStorage под ключом "hub-auth".
+ * Персистится в sessionStorage под ключом "hub-auth".
+ * Сессия завершается при закрытии вкладки/браузера.
  */
 interface AuthState {
 	/** JWT access-токен для авторизации API-запросов. */
@@ -24,7 +25,7 @@ interface AuthState {
 	logout: () => void;
 }
 
-/** Стор аутентификации с персистом в localStorage. */
+/** Стор аутентификации с персистом в sessionStorage. */
 export const useAuthStore = create<AuthState>()(
 	persist(
 		(set) => ({
@@ -47,6 +48,6 @@ export const useAuthStore = create<AuthState>()(
 					isAuthenticated: false,
 				}),
 		}),
-		{ name: "hub-auth" },
+		{ name: "hub-auth", storage: createJSONStorage(() => sessionStorage) },
 	),
 );

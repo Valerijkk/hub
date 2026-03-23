@@ -25,12 +25,12 @@ export const personalDefault: LayoutItem[] = [
 	},
 	{ i: "deadlines-1", x: 0, y: 4, w: 6, h: 3, widget_type: "deadlines" },
 	{
-		i: "time-tracking-1",
+		i: "team-activity-1",
 		x: 6,
 		y: 4,
 		w: 6,
 		h: 3,
-		widget_type: "time-tracking",
+		widget_type: "team-activity",
 	},
 ];
 

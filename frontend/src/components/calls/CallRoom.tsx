@@ -136,7 +136,7 @@ export function CallRoom({ token, onDisconnect }: CallRoomProps) {
 			token={token}
 			serverUrl={LIVEKIT_URL}
 			connect={true}
-			audio={true}
+			audio={false}
 			video={false}
 			onDisconnected={onDisconnect}
 			data-lk-theme="default"

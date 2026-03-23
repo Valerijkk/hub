@@ -28,8 +28,6 @@ interface DashboardState {
 	layouts: Record<string, LayoutItem[]>;
 	/** Флаг загрузки. */
 	loading: boolean;
-	/** Режим редактирования раскладки. */
-	editing: boolean;
 
 	/** Загрузить данные персонального дашборда. */
 	fetchPersonal: () => Promise<void>;
@@ -47,8 +45,6 @@ interface DashboardState {
 	) => void;
 	/** Установить раскладку локально. */
 	setLayout: (type: string, items: LayoutItem[]) => void;
-	/** Переключить режим редактирования. */
-	toggleEditing: () => void;
 }
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -59,7 +55,6 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
 	adminData: null,
 	layouts: {},
 	loading: false,
-	editing: false,
 
 	fetchPersonal: async () => {
 		set({ loading: true });
@@ -131,9 +126,5 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
 		set((state) => ({
 			layouts: { ...state.layouts, [type]: items },
 		}));
-	},
-
-	toggleEditing: () => {
-		set((state) => ({ editing: !state.editing }));
 	},
 }));

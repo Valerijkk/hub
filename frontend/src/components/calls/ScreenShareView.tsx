@@ -5,18 +5,14 @@ import { Monitor } from "lucide-react";
 /**
  * Отображение демонстраций экрана участников.
  * Поддерживает несколько одновременных демонстраций (CALL-03).
- * Если нет активных демонстраций — показывает placeholder.
+ * Если нет активных демонстраций — компонент не рендерится,
+ * ParticipantList занимает всю ширину.
  */
 export function ScreenShareView() {
 	const tracks = useTracks([Track.Source.ScreenShare]);
 
 	if (tracks.length === 0) {
-		return (
-			<div className="flex flex-1 flex-col items-center justify-center text-white/30">
-				<Monitor className="mb-3 h-14 w-14 opacity-20" />
-				<p className="text-sm font-medium">Нет демонстрации экрана</p>
-			</div>
-		);
+		return null;
 	}
 
 	/** Grid: 1 share = full width, 2+ = grid cols-2. */

@@ -280,9 +280,9 @@ export function sendHeartbeat() {
 	return api.post<void>("/messenger/presence/heartbeat");
 }
 
-/** Установить кастомный текст статуса. */
-export function setCustomStatus(text: string) {
-	return api.put<void>("/messenger/presence/status", { text });
+/** Установить кастомный текст статуса с длительностью. */
+export function setCustomStatus(text: string, duration?: string) {
+	return api.put<void>("/messenger/presence/status", { text, duration });
 }
 
 // ---------------------------------------------------------------------------

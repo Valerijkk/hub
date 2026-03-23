@@ -1,17 +1,18 @@
 /**
  * WidgetGrid -- wrapper over react-grid-layout v2 for drag-and-drop widgets.
- * Supports adaptive breakpoints, resizing and edit mode.
+ * Widgets are always draggable and resizable with per-widget size constraints.
  */
 import {
 	CalendarClock,
 	ChartBar,
-	Clock,
 	Ellipsis,
+	EyeOff,
 	GripVertical,
 	HardDrive,
 	Layers,
 	Mail,
 	Phone,
+	RefreshCw,
 	Server,
 	SquareCheck,
 	TestTube,
@@ -19,7 +20,7 @@ import {
 	Users,
 	type LucideIcon,
 } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
 	GridLayout,
 	type LayoutItem as RGLLayoutItem,
@@ -28,7 +29,12 @@ import {
 } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import type { LayoutItem } from "@/api/dashboard";
-import { Button } from "@/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { BurndownChartWidget } from "./widgets/burndown-chart";
 import { DeadlinesWidget } from "./widgets/deadlines";
@@ -38,7 +44,6 @@ import { SystemHealthWidget } from "./widgets/system-health";
 import { TaskStatusChartWidget } from "./widgets/task-status-chart";
 import { TeamActivityWidget } from "./widgets/team-activity";
 import { TestTrendsWidget } from "./widgets/test-trends";
-import { TimeTrackingWidget } from "./widgets/time-tracking";
 import { UnreadMessagesWidget } from "./widgets/unread-messages";
 import { UpcomingCallsWidget } from "./widgets/upcoming-calls";
 import { VelocityChartWidget } from "./widgets/velocity-chart";
@@ -58,7 +63,6 @@ const WIDGET_REGISTRY: Record<
 	"team-activity": TeamActivityWidget,
 	"system-health": SystemHealthWidget,
 	"storage-usage": StorageUsageWidget,
-	"time-tracking": TimeTrackingWidget,
 	deadlines: DeadlinesWidget,
 };
 
@@ -74,7 +78,6 @@ const WIDGET_NAMES: Record<string, string> = {
 	"team-activity": "Активность команды",
 	"system-health": "Здоровье системы",
 	"storage-usage": "Хранилище",
-	"time-tracking": "Тайм-трекинг",
 	deadlines: "Дедлайны",
 };
 
@@ -90,7 +93,6 @@ const WIDGET_ICONS: Record<string, LucideIcon> = {
 	"team-activity": Users,
 	"system-health": Server,
 	"storage-usage": HardDrive,
-	"time-tracking": Clock,
 	deadlines: CalendarClock,
 };
 
@@ -106,9 +108,29 @@ const WIDGET_ACCENT: Record<string, string> = {
 	"team-activity": "from-teal-500 to-emerald-500",
 	"system-health": "from-green-500 to-emerald-500",
 	"storage-usage": "from-slate-500 to-zinc-600",
-	"time-tracking": "from-rose-500 to-pink-500",
 	deadlines: "from-red-500 to-orange-500",
 };
+
+/** Per-widget min/max size constraints. */
+const WIDGET_SIZE_CONSTRAINTS: Record<
+	string,
+	{ minW: number; maxW: number; minH: number; maxH: number }
+> = {
+	"my-tasks": { minW: 3, maxW: 12, minH: 3, maxH: 6 },
+	"unread-messages": { minW: 2, maxW: 6, minH: 2, maxH: 4 },
+	"upcoming-calls": { minW: 2, maxW: 6, minH: 2, maxH: 4 },
+	"task-status-chart": { minW: 3, maxW: 6, minH: 3, maxH: 6 },
+	"burndown-chart": { minW: 4, maxW: 12, minH: 3, maxH: 6 },
+	"velocity-chart": { minW: 4, maxW: 12, minH: 3, maxH: 6 },
+	"test-trends": { minW: 4, maxW: 12, minH: 3, maxH: 6 },
+	"team-activity": { minW: 3, maxW: 12, minH: 3, maxH: 6 },
+	"system-health": { minW: 2, maxW: 6, minH: 2, maxH: 4 },
+	"storage-usage": { minW: 2, maxW: 6, minH: 2, maxH: 4 },
+	deadlines: { minW: 3, maxW: 12, minH: 2, maxH: 6 },
+};
+
+/** Default size constraints for unknown widget types. */
+const DEFAULT_CONSTRAINTS = { minW: 2, maxW: 6, minH: 2, maxH: 6 };
 
 /** WidgetGrid component props. */
 interface WidgetGridProps {
@@ -124,6 +146,7 @@ interface WidgetGridProps {
 
 /**
  * Widget grid with drag-and-drop and resize support.
+ * Widgets are always draggable -- no edit mode required.
  */
 export function WidgetGrid({
 	items,
@@ -131,22 +154,30 @@ export function WidgetGrid({
 	projectId,
 	data,
 }: WidgetGridProps) {
-	const editing = useDashboardStore((s) => s.editing);
-	const toggleEditing = useDashboardStore((s) => s.toggleEditing);
 	const saveLayoutDebounced = useDashboardStore((s) => s.saveLayoutDebounced);
-	const setLayout = useDashboardStore((s) => s.setLayout);
 
 	const { width, containerRef } = useContainerWidth({ initialWidth: 1200 });
 
+	/** Key that increments to force re-render of individual widget content. */
+	const [refreshKeys, setRefreshKeys] = useState<Record<string, number>>({});
+
 	const layout = useMemo(
 		() =>
-			items.map((item) => ({
-				i: item.i,
-				x: item.x,
-				y: item.y,
-				w: item.w,
-				h: item.h,
-			})),
+			items.map((item) => {
+				const constraints =
+					WIDGET_SIZE_CONSTRAINTS[item.widget_type] ?? DEFAULT_CONSTRAINTS;
+				return {
+					i: item.i,
+					x: item.x,
+					y: item.y,
+					w: item.w,
+					h: item.h,
+					minW: constraints.minW,
+					maxW: constraints.maxW,
+					minH: constraints.minH,
+					maxH: constraints.maxH,
+				};
+			}),
 		[items],
 	);
 
@@ -165,14 +196,25 @@ export function WidgetGrid({
 				};
 			});
 
-			if (editing) {
-				saveLayoutDebounced(dashboardType, updatedItems, projectId);
-			} else {
-				setLayout(dashboardType, updatedItems);
-			}
+			saveLayoutDebounced(dashboardType, updatedItems, projectId);
 		},
-		[items, editing, dashboardType, projectId, saveLayoutDebounced, setLayout],
+		[items, dashboardType, projectId, saveLayoutDebounced],
 	);
+
+	const handleHideWidget = useCallback(
+		(itemId: string) => {
+			const updatedItems = items.filter((item) => item.i !== itemId);
+			saveLayoutDebounced(dashboardType, updatedItems, projectId);
+		},
+		[items, dashboardType, projectId, saveLayoutDebounced],
+	);
+
+	const handleRefreshWidget = useCallback((itemId: string) => {
+		setRefreshKeys((prev) => ({
+			...prev,
+			[itemId]: (prev[itemId] ?? 0) + 1,
+		}));
+	}, []);
 
 	const handleAddWidget = useCallback(
 		(widgetType: string) => {
@@ -195,41 +237,44 @@ export function WidgetGrid({
 		[items],
 	);
 
+	/** Widget types not currently on the grid. */
+	const hiddenWidgetTypes = useMemo(
+		() => Object.keys(WIDGET_REGISTRY).filter((type) => !existingTypes.has(type)),
+		[existingTypes],
+	);
+
 	return (
 		<div ref={containerRef}>
-			{/* Control panel */}
-			<div className="mb-4 flex items-center gap-2">
-				<Button
-					variant={editing ? "default" : "outline"}
-					size="sm"
-					onClick={toggleEditing}
-					className="transition-all duration-200"
-				>
-					{editing ? "Готово" : "Редактировать"}
-				</Button>
-
-				{editing && (
-					<div className="flex flex-wrap gap-1.5 animate-fade-in">
-						{Object.keys(WIDGET_REGISTRY)
-							.filter((type) => !existingTypes.has(type))
-							.map((type) => {
+			{/* Add hidden widgets back */}
+			{hiddenWidgetTypes.length > 0 && (
+				<div className="mb-4">
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<button
+								type="button"
+								className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-card px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+							>
+								<Layers className="h-3.5 w-3.5" />
+								Добавить виджет
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="start">
+							{hiddenWidgetTypes.map((type) => {
 								const Icon = WIDGET_ICONS[type];
 								return (
-									<Button
+									<DropdownMenuItem
 										key={type}
-										variant="outline"
-										size="sm"
 										onClick={() => handleAddWidget(type)}
-										className="gap-1.5 transition-all duration-200 hover:bg-accent"
 									>
-										{Icon && <Icon className="h-3.5 w-3.5" />}
+										{Icon && <Icon className="h-4 w-4" />}
 										{WIDGET_NAMES[type] ?? type}
-									</Button>
+									</DropdownMenuItem>
 								);
 							})}
-					</div>
-				)}
-			</div>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
+			)}
 
 			{/* Widget grid */}
 			{width > 0 && (
@@ -244,12 +289,12 @@ export function WidgetGrid({
 						maxRows: Infinity,
 					}}
 					dragConfig={{
-						enabled: editing,
+						enabled: true,
 						handle: ".widget-drag-handle",
 						bounded: false,
 					}}
 					resizeConfig={{
-						enabled: editing,
+						enabled: true,
 						handles: ["se"] as const,
 					}}
 					compactor={verticalCompactor}
@@ -266,13 +311,7 @@ export function WidgetGrid({
 						return (
 							<div
 								key={item.i}
-								className={`
-									group/widget relative rounded-xl bg-card text-card-foreground
-									ring-1 ring-border/50 shadow-sm overflow-hidden
-									transition-all duration-200 ease-out
-									hover:shadow-md hover:-translate-y-px
-									${editing ? "ring-dashed ring-2 ring-primary/30" : ""}
-								`}
+								className="group/widget relative rounded-xl bg-card text-card-foreground ring-1 ring-border/50 shadow-sm overflow-hidden transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-px"
 							>
 								{/* Accent top border */}
 								<div
@@ -282,6 +321,7 @@ export function WidgetGrid({
 								{/* Widget header */}
 								<div className="widget-drag-handle flex items-center justify-between border-b border-border/50 px-4 py-2.5 cursor-move">
 									<div className="flex items-center gap-2">
+										<GripVertical className="h-3.5 w-3.5 text-muted-foreground/40" />
 										{Icon && (
 											<Icon className="h-4 w-4 text-muted-foreground" />
 										)}
@@ -290,21 +330,39 @@ export function WidgetGrid({
 										</span>
 									</div>
 									<div className="flex items-center gap-1">
-										{editing && (
-											<GripVertical className="h-4 w-4 text-muted-foreground/50" />
-										)}
-										<button
-											type="button"
-											className="rounded-md p-0.5 text-muted-foreground/50 opacity-0 group-hover/widget:opacity-100 hover:text-foreground hover:bg-accent transition-all duration-150"
-										>
-											<Ellipsis className="h-4 w-4" />
-										</button>
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<button
+													type="button"
+													className="rounded-md p-0.5 text-muted-foreground/50 opacity-0 group-hover/widget:opacity-100 hover:text-foreground hover:bg-accent transition-all duration-150"
+												>
+													<Ellipsis className="h-4 w-4" />
+												</button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent align="end">
+												<DropdownMenuItem
+													onClick={() => handleRefreshWidget(item.i)}
+												>
+													<RefreshCw className="h-4 w-4" />
+													Обновить
+												</DropdownMenuItem>
+												<DropdownMenuItem
+													onClick={() => handleHideWidget(item.i)}
+												>
+													<EyeOff className="h-4 w-4" />
+													Скрыть виджет
+												</DropdownMenuItem>
+											</DropdownMenuContent>
+										</DropdownMenu>
 									</div>
 								</div>
 
 								{/* Widget content */}
 								<div className="p-4 overflow-auto h-[calc(100%-44px)]">
-									<WidgetComponent data={data} />
+									<WidgetComponent
+										key={refreshKeys[item.i] ?? 0}
+										data={data}
+									/>
 								</div>
 							</div>
 						);

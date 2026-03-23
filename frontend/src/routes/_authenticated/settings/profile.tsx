@@ -50,6 +50,9 @@ function ProfilePage() {
 	/** Кастомный статус пользователя (например, "На обеде", "В отпуске"). */
 	const [customStatusText, setCustomStatusText] = useState("");
 
+	/** Длительность кастомного статуса. */
+	const [statusDuration, setStatusDuration] = useState("1d");
+
 	/** Часы работы — начало и конец рабочего дня. */
 	const [workHoursStart, setWorkHoursStart] = useState("09:00");
 	const [workHoursEnd, setWorkHoursEnd] = useState("18:00");
@@ -82,7 +85,8 @@ function ProfilePage() {
 
 	/** Мутация для сохранения кастомного статуса через Messenger API. */
 	const statusMutation = useMutation({
-		mutationFn: (text: string) => setCustomStatus(text),
+		mutationFn: (params: { text: string; duration: string }) =>
+			setCustomStatus(params.text, params.duration),
 		onSuccess: () => toast.success("Статус обновлён"),
 		onError: () => toast.error("Не удалось обновить статус"),
 	});
@@ -110,9 +114,23 @@ function ProfilePage() {
 		});
 	}
 
+	/** Варианты длительности статуса. */
+	const durationOptions = [
+		{ value: "30m", label: "30 минут" },
+		{ value: "1h", label: "1 час" },
+		{ value: "4h", label: "4 часа" },
+		{ value: "today", label: "Сегодня" },
+		{ value: "1d", label: "1 день" },
+		{ value: "1w", label: "1 неделя" },
+		{ value: "0", label: "Пока не уберу" },
+	] as const;
+
 	/** Сохранить кастомный статус. */
 	function handleStatusSave() {
-		statusMutation.mutate(customStatusText);
+		statusMutation.mutate({
+			text: customStatusText,
+			duration: statusDuration,
+		});
 	}
 
 	return (
@@ -158,12 +176,29 @@ function ProfilePage() {
 									className="shrink-0 text-muted-foreground"
 									onClick={() => {
 										setCustomStatusText("");
-										statusMutation.mutate("");
+										statusMutation.mutate({ text: "", duration: "" });
 									}}
 								>
 									Сбросить
 								</Button>
 							)}
+						</div>
+						{/* Выбор длительности статуса */}
+						<div className="flex items-center gap-2">
+							<Label className="text-sm text-muted-foreground shrink-0">
+								Убрать через:
+							</Label>
+							<select
+								value={statusDuration}
+								onChange={(e) => setStatusDuration(e.target.value)}
+								className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+							>
+								{durationOptions.map((opt) => (
+									<option key={opt.value} value={opt.value}>
+										{opt.label}
+									</option>
+								))}
+							</select>
 						</div>
 						{/* Быстрый выбор статуса с эмодзи */}
 						<div className="flex flex-wrap gap-1.5">
