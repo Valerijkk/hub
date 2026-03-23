@@ -1,8 +1,7 @@
-:80 {
+770470.cloud4box.ru {
 	handle /api/* {
 		reverse_proxy backend:3000
 	}
-
 	handle /ws {
 		reverse_proxy backend:3000 {
 			transport http {
@@ -10,7 +9,10 @@
 			}
 		}
 	}
-
+	handle /lk/* {
+		uri strip_prefix /lk
+		reverse_proxy livekit:7880
+	}
 	handle {
 		reverse_proxy frontend:80
 	}
