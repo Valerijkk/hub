@@ -1,9 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import type { SessionResponse } from "@/api/auth";
-import { getMe, listSessions, revokeSession, updateProfile } from "@/api/auth";
+import {
+	getMe,
+	listSessions,
+	logout,
+	revokeSession,
+	updateProfile,
+} from "@/api/auth";
 import { setCustomStatus } from "@/api/messenger";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +37,9 @@ import { useAuthStore } from "@/stores/auth-store";
  */
 function ProfilePage() {
 	const queryClient = useQueryClient();
+	const navigate = useNavigate();
 	const setUser = useAuthStore((s) => s.setUser);
+	const logoutStore = useAuthStore((s) => s.logout);
 
 	const { data: user } = useQuery({
 		queryKey: ["me"],
@@ -532,6 +540,25 @@ function ProfilePage() {
 					</div>
 				</CardContent>
 			</Card>
+
+			{/* Выход из аккаунта */}
+			<div className="border-t pt-6">
+				<Button
+					variant="destructive"
+					className="w-full"
+					onClick={async () => {
+						try {
+							await logout();
+						} catch {
+							// ignore API error — clear local state regardless
+						}
+						logoutStore();
+						void navigate({ to: "/login" });
+					}}
+				>
+					Выйти из аккаунта
+				</Button>
+			</div>
 		</div>
 	);
 }

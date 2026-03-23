@@ -357,11 +357,15 @@ select,
 [role="listbox"] {
 	background: var(--card) !important;
 	border: 1px solid var(--border) !important;
-	border-radius: 0.75rem !important;
+	border-radius: 1rem !important;
 	color: var(--foreground) !important;
 	padding: 0.5rem 2rem 0.5rem 0.75rem !important;
 	font-size: 0.875rem !important;
 	line-height: 1.25rem !important;
+	min-width: 0 !important;
+	text-overflow: ellipsis !important;
+	overflow: hidden !important;
+	white-space: nowrap !important;
 	-webkit-appearance: none !important;
 	-moz-appearance: none !important;
 	appearance: none !important;
@@ -373,6 +377,11 @@ select,
 	transition:
 		border-color 0.15s,
 		box-shadow 0.15s !important;
+}
+
+select option {
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
 }
 
 select:focus,
@@ -387,10 +396,11 @@ select:focus,
 [data-radix-select-content],
 [data-radix-popper-content-wrapper] [role="listbox"],
 [data-radix-menu-content],
-[data-radix-dropdown-menu-content] {
+[data-radix-dropdown-menu-content],
+[data-radix-popover-content] {
 	background: var(--card) !important;
 	border: 1px solid var(--border) !important;
-	border-radius: 0.5rem !important;
+	border-radius: 0.75rem !important;
 	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
 	overflow: hidden !important;
 	padding: 0.25rem !important;

@@ -172,26 +172,6 @@ export function IssueSidebarMeta({
 				</select>
 			</div>
 
-			{/* Оценка и срок */}
-			<div className="grid grid-cols-2 gap-3">
-				<div className="space-y-1">
-					<Label className="text-xs text-muted-foreground">Оценка</Label>
-					<p className="text-sm">
-						{issue.estimate_minutes
-							? `${Math.floor(issue.estimate_minutes / 60)}ч ${issue.estimate_minutes % 60}м`
-							: "--"}
-					</p>
-				</div>
-				<div className="space-y-1">
-					<Label className="text-xs text-muted-foreground">Потрачено</Label>
-					<p className="text-sm">
-						{issue.time_spent_minutes
-							? `${Math.floor(issue.time_spent_minutes / 60)}ч ${issue.time_spent_minutes % 60}м`
-							: "0м"}
-					</p>
-				</div>
-			</div>
-
 			{issue.due_date && (
 				<div className="space-y-1">
 					<Label className="text-xs text-muted-foreground">Срок</Label>
