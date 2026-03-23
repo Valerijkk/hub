@@ -50,41 +50,46 @@ func generateCode() (string, error) {
 
 // SendMagicLink generates a code, stores it in Redis, and sends the email.
 // Rate-limited to 3 requests per 10 minutes per email.
-func (s *MagicLinkService) SendMagicLink(ctx context.Context, email string) error {
+// IsDevMode returns true when Resend is not configured (dev mode — code logged, not emailed).
+func (s *MagicLinkService) IsDevMode() bool {
+	return s.resend == nil
+}
+
+func (s *MagicLinkService) SendMagicLink(ctx context.Context, email string) (string, error) {
 	// Check rate limit
 	rateKey := fmt.Sprintf("magiclink_rate:%s", email)
 	count, err := s.redis.Incr(ctx, rateKey).Result()
 	if err != nil {
-		return fmt.Errorf("magic link rate check: %w", err)
+		return "", fmt.Errorf("magic link rate check: %w", err)
 	}
 	if count == 1 {
 		// First request -- set the TTL for the rate limit window.
 		s.redis.Expire(ctx, rateKey, magicLinkRateTTL)
 	}
 	if count > magicLinkRateMax {
-		return ErrMagicLinkRateLimited
+		return "", ErrMagicLinkRateLimited
 	}
 
 	code, err := generateCode()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	codeKey := fmt.Sprintf("magiclink:%s", email)
 	if err := s.redis.Set(ctx, codeKey, code, magicLinkTTL).Err(); err != nil {
-		return fmt.Errorf("store magic link code: %w", err)
+		return "", fmt.Errorf("store magic link code: %w", err)
 	}
 
 	// Send email (or log in dev mode)
 	if s.resend != nil {
 		if err := s.resend.SendMagicLinkEmail(ctx, email, code); err != nil {
-			return fmt.Errorf("send magic link email: %w", err)
+			return "", fmt.Errorf("send magic link email: %w", err)
 		}
 	} else {
 		slog.Info("magic link code (dev mode)", "email", email, "code", code)
 	}
 
-	return nil
+	return code, nil
 }
 
 // VerifyCode checks the code stored in Redis. On match the key is deleted so

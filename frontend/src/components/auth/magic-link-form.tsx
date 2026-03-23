@@ -36,9 +36,15 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 		}
 		setLoading(true);
 		try {
-			await sendMagicLink({ email });
+			const res = await sendMagicLink({ email });
 			setStep("code");
-			toast.success("Код отправлен на " + email);
+			// В dev mode бэкенд возвращает код в ответе (email не настроен)
+			if (res?.code) {
+				setCode(res.code);
+				toast.success("Код подставлен автоматически (dev mode)");
+			} else {
+				toast.success("Код отправлен на " + email);
+			}
 		} catch (err: unknown) {
 			const message =
 				err && typeof err === "object" && "message" in err

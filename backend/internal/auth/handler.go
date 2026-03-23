@@ -84,14 +84,19 @@ func (h *Handler) SendMagicLink(c fiber.Ctx) error {
 		}
 	}
 
-	if err := h.service.magicLink.SendMagicLink(c.Context(), req.Email); err != nil {
+	code, err := h.service.magicLink.SendMagicLink(c.Context(), req.Email)
+	if err != nil {
 		if err == ErrMagicLinkRateLimited {
 			return fiber.NewError(fiber.StatusTooManyRequests, "too many requests, try again later")
 		}
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to send magic link")
 	}
 
-	return c.JSON(fiber.Map{"message": "Magic link sent"})
+	resp := fiber.Map{"message": "Magic link sent"}
+	if h.service.magicLink.IsDevMode() {
+		resp["code"] = code
+	}
+	return c.JSON(resp)
 }
 
 // VerifyMagicLink проверяет одноразовый код и выдаёт JWT-токены.

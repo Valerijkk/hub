@@ -78,7 +78,7 @@ export interface SessionResponse {
 
 /** Endpoint: POST /auth/magic-link — отправить magic-link на email. */
 export function sendMagicLink(data: MagicLinkRequest) {
-	return api.post<{ message: string }>("/auth/magic-link", data);
+	return api.post<{ message: string; code?: string }>("/auth/magic-link", data);
 }
 
 /** Endpoint: POST /auth/magic-link/verify — верифицировать код из magic-link. */
