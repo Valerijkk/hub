@@ -1,4 +1,4 @@
-import { LiveKitRoom, RoomAudioRenderer, useParticipants } from "@livekit/components-react";
+import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useParticipants } from "@livekit/components-react";
 import { MessageSquare, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import "@livekit/components-styles";
@@ -33,9 +33,19 @@ interface CallRoomProps {
 function CallRoomContent({ onDisconnect }: { onDisconnect: () => void }) {
 	const activeCall = useCallStore((s) => s.activeCall);
 	const participants = useParticipants();
+	const { localParticipant } = useLocalParticipant();
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
 	const [chatVisible, setChatVisible] = useState(false);
 	const timerRef = useRef<ReturnType<typeof setInterval>>(null);
+	const didMuteRef = useRef(false);
+
+	/** Автоматически мьютим микрофон после подключения (по умолчанию OFF). */
+	useEffect(() => {
+		if (!didMuteRef.current && localParticipant.isMicrophoneEnabled) {
+			didMuteRef.current = true;
+			localParticipant.setMicrophoneEnabled(false);
+		}
+	}, [localParticipant, localParticipant.isMicrophoneEnabled]);
 
 	/** Таймер длительности звонка. */
 	useEffect(() => {
@@ -140,7 +150,7 @@ export function CallRoom({ token, onDisconnect }: CallRoomProps) {
 			token={token}
 			serverUrl={LIVEKIT_URL}
 			connect={true}
-			audio={false}
+			audio={true}
 			video={false}
 			onDisconnected={onDisconnect}
 			data-lk-theme="default"
