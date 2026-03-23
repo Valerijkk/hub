@@ -47,11 +47,18 @@ func (Issue) Fields() []ent.Field {
 		field.Int("version").
 			Default(1).
 			Comment("Optimistic locking"),
+		field.Int("story_points").
+			Optional().
+			Nillable().
+			Comment("Story points (Fibonacci: 1,2,3,5,8,13,21)"),
 		field.Int("estimate_minutes").
 			Optional().
 			Nillable(),
 		field.Int("time_spent_minutes").
 			Default(0),
+		field.JSON("checklist", []map[string]interface{}{}).
+			Optional().
+			Comment("JSONB: [{id, text, checked}]"),
 		field.JSON("custom_fields", map[string]interface{}{}).
 			Optional().
 			Comment("JSONB: custom_field_def_id -> value"),

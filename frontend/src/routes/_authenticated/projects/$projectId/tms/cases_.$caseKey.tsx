@@ -236,7 +236,12 @@ function TestCaseDetailPage() {
 
 	const priorityCfg = (PRIORITY_CONFIG[tc.priority] ?? PRIORITY_CONFIG.medium)!;
 	const statusCfg = (STATUS_CONFIG[tc.status] ?? STATUS_CONFIG.draft)!;
-	const hasAutotest = !!(tc.full_name || tc.class_name || tc.external_id);
+	const hasAutotest = !!(
+		tc.full_name ||
+		tc.class_name ||
+		tc.external_id ||
+		tc.automation_id
+	);
 
 	/** Detail page tab configuration. */
 	const detailTabs = [
@@ -649,75 +654,123 @@ function TestCaseDetailPage() {
 
 					{/* Tab: Autotest */}
 					{activeTab === "autotest" && (
-						<div className="space-y-3">
-							{hasAutotest ? (
-								<div className="rounded-xl border overflow-hidden shadow-card">
-									<div className="p-4 space-y-3">
-										{tc.full_name && (
-											<div>
-												<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-													Полное имя
-												</div>
-												<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
-													{tc.full_name}
-												</code>
-											</div>
-										)}
-										{tc.class_name && (
-											<div>
-												<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-													Класс
-												</div>
-												<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
-													{tc.class_name}
-												</code>
-											</div>
-										)}
-										{tc.method_name && (
-											<div>
-												<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-													Метод
-												</div>
-												<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
-													{tc.method_name}
-												</code>
-											</div>
-										)}
-										{tc.external_id && (
-											<div>
-												<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-													External ID
-												</div>
-												<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
-													{tc.external_id}
-												</code>
-											</div>
-										)}
+						<div className="space-y-4">
+							{/* Бейдж статуса автоматизации */}
+							<div className="flex items-center gap-2">
+								{hasAutotest ? (
+									<span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 px-3 py-1 text-xs font-semibold text-green-700 dark:text-green-400">
+										<svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 16 16">
+											<path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z" />
+										</svg>
+										Автоматизирован
+									</span>
+								) : (
+									<span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
+										<svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 16 16">
+											<path d="M2 7.75A.75.75 0 0 1 2.75 7h10a.75.75 0 0 1 0 1.5h-10A.75.75 0 0 1 2 7.75Z" />
+										</svg>
+										Не автоматизирован
+									</span>
+								)}
+							</div>
+
+							{/* ID для автотестов */}
+							<div className="rounded-xl border overflow-hidden shadow-card">
+								<div className="p-4 space-y-4">
+									<div>
+										<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+											ID для автотестов
+										</div>
+										<div className="flex items-center gap-2">
+											<code className="flex-1 text-sm font-mono bg-muted/50 px-3 py-1.5 rounded border select-all">
+												{tc.case_key}
+											</code>
+											<Button
+												variant="outline"
+												size="sm"
+												className="h-8 px-2.5"
+												onClick={() => {
+													void navigator.clipboard.writeText(tc.case_key);
+													toast.success("ID скопирован");
+												}}
+											>
+												<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+													<path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+												</svg>
+											</Button>
+										</div>
+										<p className="mt-2 text-xs text-muted-foreground/70 leading-relaxed">
+											Используйте этот ID в названии или аннотации автотеста для автоматической привязки результатов.
+										</p>
 									</div>
+
+									{tc.automation_id && (
+										<div>
+											<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+												Automation ID
+											</div>
+											<div className="flex items-center gap-2">
+												<code className="flex-1 text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+													{tc.automation_id}
+												</code>
+												<Button
+													variant="ghost"
+													size="sm"
+													className="h-7 w-7 p-0"
+													onClick={() => {
+														void navigator.clipboard.writeText(tc.automation_id!);
+														toast.success("Automation ID скопирован");
+													}}
+												>
+													<svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+														<path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+													</svg>
+												</Button>
+											</div>
+										</div>
+									)}
+									{tc.full_name && (
+										<div>
+											<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+												Полное имя
+											</div>
+											<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+												{tc.full_name}
+											</code>
+										</div>
+									)}
+									{tc.class_name && (
+										<div>
+											<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+												Класс
+											</div>
+											<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+												{tc.class_name}
+											</code>
+										</div>
+									)}
+									{tc.method_name && (
+										<div>
+											<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+												Метод
+											</div>
+											<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+												{tc.method_name}
+											</code>
+										</div>
+									)}
+									{tc.external_id && (
+										<div>
+											<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+												External ID
+											</div>
+											<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+												{tc.external_id}
+											</code>
+										</div>
+									)}
 								</div>
-							) : (
-								<div className="flex flex-col items-center justify-center py-12 text-center border rounded-xl border-dashed">
-									<svg
-										className="h-10 w-10 text-muted-foreground/20 mb-3"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										strokeWidth={1.5}
-									>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-										/>
-									</svg>
-									<p className="text-sm text-muted-foreground">
-										Автотест не привязан
-									</p>
-									<p className="text-xs text-muted-foreground/60 mt-1">
-										Свяжите автотест через импорт результатов
-									</p>
-								</div>
-							)}
+							</div>
 						</div>
 					)}
 				</div>

@@ -64,6 +64,9 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	channels.Post("/:channelId/leave", h.LeaveChannel)
 	channels.Post("/:channelId/members", h.AddMembers)
 	channels.Get("/:channelId/members", h.ListMembers)
+	channels.Post("/:channelId/star", h.ToggleStar)
+	channels.Post("/:channelId/mute", h.MuteChannel)
+	channels.Post("/:channelId/unmute", h.UnmuteChannel)
 
 	// Индикатор набора текста
 	channels.Post("/:channelId/typing", h.SendTyping)
@@ -712,6 +715,77 @@ func (h *Handler) ListPins(c fiber.Ctx) error {
 	}
 
 	return c.JSON(pins)
+}
+
+// ---------------------------------------------------------------------------
+// Star / Mute handlers
+// ---------------------------------------------------------------------------
+
+// ToggleStar обрабатывает POST /api/messenger/channels/:channelId/star
+// Переключает флаг is_starred для текущего пользователя.
+func (h *Handler) ToggleStar(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	starred, err := h.service.ToggleStar(c.Context(), channelID, userID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{"starred": starred})
+}
+
+// MuteChannelRequest — тело запроса на мьют канала.
+type MuteChannelRequest struct {
+	Duration string `json:"duration"` // "1h", "2h", "8h", "1d", "forever"
+}
+
+// MuteChannel обрабатывает POST /api/messenger/channels/:channelId/mute
+func (h *Handler) MuteChannel(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	var req MuteChannelRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+
+	mutedUntil, err := h.service.MuteChannel(c.Context(), channelID, userID, req.Duration)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{"muted_until": mutedUntil})
+}
+
+// UnmuteChannel обрабатывает POST /api/messenger/channels/:channelId/unmute
+func (h *Handler) UnmuteChannel(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.UnmuteChannel(c.Context(), channelID, userID); err != nil {
+		return err
+	}
+
+	return c.SendStatus(fiber.StatusOK)
 }
 
 // ---------------------------------------------------------------------------

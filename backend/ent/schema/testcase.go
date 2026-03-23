@@ -69,6 +69,9 @@ func (TestCase) Fields() []ent.Field {
 		field.String("external_id").
 			Optional().
 			Comment("Внешний ID для @TestCase аннотации"),
+		field.String("automation_id").
+			Optional().
+			Comment("Явный ID для привязки автотестов. QA-инженер задаёт вручную, автотест включает этот ID в имя или аннотацию для автоматического сопоставления результатов"),
 		field.Int("version").
 			Default(1).
 			Comment("Версия тест-кейса"),
@@ -116,6 +119,7 @@ func (TestCase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("case_key"),
 		index.Fields("external_id"),
+		index.Fields("automation_id"),
 		index.Fields("full_name"),
 		index.Fields("class_name", "method_name"),
 		index.Fields("status"),

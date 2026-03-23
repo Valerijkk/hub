@@ -22,6 +22,8 @@ type Repository interface {
 	FindTestCaseByKey(ctx context.Context, caseKey string) (*ent.TestCase, error)
 	// FindTestCaseByExternalID возвращает тест-кейс по внешнему ID аннотации.
 	FindTestCaseByExternalID(ctx context.Context, projectID uuid.UUID, externalID string) (*ent.TestCase, error)
+	// FindTestCaseByAutomationID возвращает тест-кейс по automation_id (явная привязка автотестов).
+	FindTestCaseByAutomationID(ctx context.Context, projectID uuid.UUID, automationID string) (*ent.TestCase, error)
 	// FindTestCaseByFullName возвращает тест-кейс по полному имени (Allure matching).
 	FindTestCaseByFullName(ctx context.Context, projectID uuid.UUID, fullName string) (*ent.TestCase, error)
 	// FindTestCaseByClassMethod возвращает тест-кейс по имени класса и метода.
@@ -160,6 +162,7 @@ type CreateTestCaseInput struct {
 	ClassName     string
 	MethodName    string
 	ExternalID    string
+	AutomationID  string
 	SuiteID       *uuid.UUID
 	CreatedByID   uuid.UUID
 	LabelIDs      []uuid.UUID
@@ -180,6 +183,7 @@ type UpdateTestCaseInput struct {
 	ClassName     *string
 	MethodName    *string
 	ExternalID    *string
+	AutomationID  *string
 	SuiteID       *uuid.UUID
 	ClearSuite    bool
 	LabelIDs      *[]uuid.UUID

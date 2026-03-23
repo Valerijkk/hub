@@ -16,13 +16,23 @@ import (
 // CreateIssue создаёт новую задачу в проекте.
 func (s *TrackerService) CreateIssue(ctx context.Context, projectID, userID uuid.UUID, req CreateIssueRequest) (*IssueResponse, error) {
 	input := CreateIssueInput{
-		Title:       req.Title,
-		IssueType:   req.IssueType,
-		Priority:    req.Priority,
-		ReporterID:  userID,
-		CustomFields: req.CustomFields,
+		Title:           req.Title,
+		IssueType:       req.IssueType,
+		Priority:        req.Priority,
+		ReporterID:      userID,
+		CustomFields:    req.CustomFields,
 		EstimateMinutes: req.EstimateMinutes,
-		DueDate:     req.DueDate,
+		StoryPoints:     req.StoryPoints,
+		DueDate:         req.DueDate,
+	}
+
+	// Конвертируем чеклист из DTO в JSONB-формат
+	if len(req.Checklist) > 0 {
+		cl := make([]map[string]interface{}, len(req.Checklist))
+		for i, item := range req.Checklist {
+			cl[i] = map[string]interface{}{"id": item.ID, "text": item.Text, "checked": item.Checked}
+		}
+		input.Checklist = cl
 	}
 
 	if req.DescriptionJSON != nil {
@@ -173,8 +183,18 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userI
 		Priority:        req.Priority,
 		CustomFields:    req.CustomFields,
 		EstimateMinutes: req.EstimateMinutes,
+		StoryPoints:     req.StoryPoints,
 		DueDate:         req.DueDate,
 		Version:         req.Version,
+	}
+
+	// Конвертируем чеклист из DTO в JSONB-формат
+	if req.Checklist != nil {
+		cl := make([]map[string]interface{}, len(*req.Checklist))
+		for i, item := range *req.Checklist {
+			cl[i] = map[string]interface{}{"id": item.ID, "text": item.Text, "checked": item.Checked}
+		}
+		input.Checklist = &cl
 	}
 
 	if req.DescriptionJSON != nil {

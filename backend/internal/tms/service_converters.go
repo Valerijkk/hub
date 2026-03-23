@@ -30,6 +30,7 @@ func toTestCaseResponse(tc *ent.TestCase) *TestCaseResponse {
 		ClassName:     tc.ClassName,
 		MethodName:    tc.MethodName,
 		ExternalID:    tc.ExternalID,
+		AutomationID:  tc.AutomationID,
 		Version:       tc.Version,
 		CreatedAt:     tc.CreatedAt,
 		UpdatedAt:     tc.UpdatedAt,

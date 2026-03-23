@@ -77,15 +77,17 @@ type CreateDMRequest struct {
 
 // ChannelResponse — ответ с данными канала.
 type ChannelResponse struct {
-	ID          string    `json:"id"`
-	ChannelType string    `json:"channel_type"`
-	Name        string    `json:"name,omitempty"`
-	Description string    `json:"description,omitempty"`
-	IsReadonly  bool      `json:"is_readonly"`
-	ProjectID   string    `json:"project_id,omitempty"`
-	CreatedBy   string    `json:"created_by"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string     `json:"id"`
+	ChannelType string     `json:"channel_type"`
+	Name        string     `json:"name,omitempty"`
+	Description string     `json:"description,omitempty"`
+	IsReadonly  bool       `json:"is_readonly"`
+	ProjectID   string     `json:"project_id,omitempty"`
+	CreatedBy   string     `json:"created_by"`
+	IsStarred   bool       `json:"is_starred"`
+	MutedUntil  *time.Time `json:"muted_until,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 // ChannelMemberResponse — ответ с данными участника канала.

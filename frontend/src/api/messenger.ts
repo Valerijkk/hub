@@ -23,8 +23,19 @@ export interface Channel {
 	is_readonly: boolean;
 	project_id?: string;
 	created_by: string;
+	is_starred: boolean;
+	muted_until?: string;
 	created_at: string;
 	updated_at: string;
+}
+
+/** Участник канала (соответствует backend ChannelMemberResponse). */
+export interface ChannelMember {
+	id: string;
+	user_id: string;
+	user_name?: string;
+	role: string;
+	joined_at: string;
 }
 
 /** Реакция на сообщение (raw от backend — содержит user_ids). */
@@ -92,6 +103,10 @@ export interface SendMessageRequest {
 	voice_duration_ms?: number;
 	thread_id?: string;
 	attachment_ids?: string[];
+	/** ID упомянутых пользователей (@mentions). */
+	mentions?: string[];
+	/** Групповые упоминания (@all, @online, @role). */
+	mention_groups?: string[];
 }
 
 /** Запрос на редактирование сообщения. */
@@ -117,6 +132,36 @@ export function getChannel(id: string) {
 /** Создать новый канал. */
 export function createChannel(data: CreateChannelRequest) {
 	return api.post<Channel>("/messenger/channels", data);
+}
+
+/** Переключить закрепление (star) канала. */
+export function starChannel(channelId: string) {
+	return api.post<{ starred: boolean }>(
+		`/messenger/channels/${channelId}/star`,
+	);
+}
+
+/** Замьютить канал на указанную длительность. */
+export function muteChannel(
+	channelId: string,
+	duration: "1h" | "2h" | "8h" | "1d" | "forever",
+) {
+	return api.post<{ muted_until: string }>(
+		`/messenger/channels/${channelId}/mute`,
+		{ duration },
+	);
+}
+
+/** Снять мьют с канала. */
+export function unmuteChannel(channelId: string) {
+	return api.post<void>(`/messenger/channels/${channelId}/unmute`);
+}
+
+/** Получить список участников канала. */
+export function getChannelMembers(channelId: string) {
+	return api.get<ChannelMember[]>(
+		`/messenger/channels/${channelId}/members`,
+	);
 }
 
 // ---------------------------------------------------------------------------

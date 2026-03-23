@@ -10,6 +10,7 @@ import {
 	MonitorOff,
 	PhoneOff,
 	Settings,
+	Smile,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -23,11 +24,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
-import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
@@ -36,7 +32,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCallStore } from "@/stores/call-store";
-import { DeviceSelector } from "./DeviceSelector";
+import { CallReactionBar } from "./CallReactions";
+import { CallSettingsModal } from "./CallSettingsModal";
 
 /** Пропсы компонента CallControls. */
 interface CallControlsProps {
@@ -56,6 +53,8 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 		useCallStore();
 	const currentUserId = useAuthStore((s) => s.user?.id);
 	const [cameraDialogOpen, setCameraDialogOpen] = useState(false);
+	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [reactionsOpen, setReactionsOpen] = useState(false);
 
 	/** Микрофон включён. */
 	const isMicEnabled = localParticipant.isMicrophoneEnabled;
@@ -113,7 +112,12 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 
 	return (
 		<TooltipProvider>
-			<div className="flex items-center justify-center gap-2 border-t border-white/5 bg-black/50 backdrop-blur-xl px-4 py-3">
+			<div className="relative flex items-center justify-center gap-2 border-t border-white/5 bg-black/50 backdrop-blur-xl px-4 py-3">
+				{/* Панель реакций — всплывает над кнопкой */}
+				{reactionsOpen && (
+					<CallReactionBar onClose={() => setReactionsOpen(false)} />
+				)}
+
 				{/* Группа: Микрофон + Камера */}
 				<div className="flex items-center gap-2">
 					{/* Микрофон */}
@@ -184,7 +188,7 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 				{/* Разделитель */}
 				<div className="w-px h-10 bg-white/10 mx-1" />
 
-				{/* Группа: Экран + Рука + Настройки */}
+				{/* Группа: Экран + Рука + Реакции + Настройки */}
 				<div className="flex items-center gap-2">
 					{/* Демонстрация экрана */}
 					<Tooltip>
@@ -248,39 +252,53 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 						</TooltipContent>
 					</Tooltip>
 
+					{/* Реакции */}
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<div className="flex flex-col items-center gap-1">
+								<button
+									type="button"
+									onClick={() => setReactionsOpen(!reactionsOpen)}
+									aria-label="Реакции"
+									className={cn(
+										"flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200",
+										"hover:scale-105 active:scale-95",
+										reactionsOpen
+											? "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 ring-1 ring-purple-500/40"
+											: "bg-white/10 text-white/60 hover:bg-white/15",
+									)}
+								>
+									<Smile className="h-5 w-5" />
+								</button>
+								<span className="text-[10px] text-white/40">Реакции</span>
+							</div>
+						</TooltipTrigger>
+						<TooltipContent>Реакции</TooltipContent>
+					</Tooltip>
+
 					{/* Настройки устройств */}
-					<Popover>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<PopoverTrigger asChild>
-									<div className="flex flex-col items-center gap-1">
-										<button
-											type="button"
-											aria-label="Настройки устройств"
-											className={cn(
-												"flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200",
-												"bg-white/10 text-white/60 hover:bg-white/15",
-												"hover:scale-105 active:scale-95",
-											)}
-										>
-											<Settings className="h-5 w-5" />
-										</button>
-										<span className="text-[10px] text-white/40">
-											Настройки
-										</span>
-									</div>
-								</PopoverTrigger>
-							</TooltipTrigger>
-							<TooltipContent>Настройки устройств</TooltipContent>
-						</Tooltip>
-						<PopoverContent
-							side="top"
-							sideOffset={12}
-							className="w-80 rounded-xl border border-white/10 bg-[#1a1f2e] p-4 shadow-2xl"
-						>
-							<DeviceSelector />
-						</PopoverContent>
-					</Popover>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<div className="flex flex-col items-center gap-1">
+								<button
+									type="button"
+									onClick={() => setSettingsOpen(true)}
+									aria-label="Настройки устройств"
+									className={cn(
+										"flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200",
+										"bg-white/10 text-white/60 hover:bg-white/15",
+										"hover:scale-105 active:scale-95",
+									)}
+								>
+									<Settings className="h-5 w-5" />
+								</button>
+								<span className="text-[10px] text-white/40">
+									Настройки
+								</span>
+							</div>
+						</TooltipTrigger>
+						<TooltipContent>Настройки устройств</TooltipContent>
+					</Tooltip>
 				</div>
 
 				{/* Разделитель */}
@@ -360,6 +378,9 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
+
+			{/* Модальное окно настроек устройств */}
+			<CallSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
 		</TooltipProvider>
 	);
 }

@@ -23,6 +23,13 @@ export type IssueType =
 /** Приоритет задачи. */
 export type IssuePriority = "critical" | "high" | "medium" | "low" | "trivial";
 
+/** Элемент чеклиста задачи. */
+export interface ChecklistItem {
+	id: string;
+	text: string;
+	checked: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Интерфейсы ответов (Response DTOs)
 // ---------------------------------------------------------------------------
@@ -76,6 +83,8 @@ export interface IssueBriefResponse {
 	priority: IssuePriority;
 	status: string;
 	rank?: string;
+	story_points?: number;
+	checklist?: ChecklistItem[];
 	assignee?: UserBriefResponse;
 }
 
@@ -92,7 +101,9 @@ export interface IssueResponse {
 	rank?: string;
 	version: number;
 	estimate_minutes?: number;
+	story_points?: number;
 	time_spent_minutes: number;
+	checklist?: ChecklistItem[];
 	custom_fields?: Record<string, unknown>;
 	due_date?: string;
 	status: WorkflowStatusResponse;
@@ -216,6 +227,8 @@ export interface CreateIssueRequest {
 	labels?: string[];
 	custom_fields?: Record<string, unknown>;
 	estimate_minutes?: number;
+	story_points?: number;
+	checklist?: ChecklistItem[];
 	due_date?: string;
 }
 
@@ -229,6 +242,8 @@ export interface UpdateIssueRequest {
 	labels?: string[];
 	custom_fields?: Record<string, unknown>;
 	estimate_minutes?: number;
+	story_points?: number;
+	checklist?: ChecklistItem[];
 	due_date?: string;
 	version: number;
 }

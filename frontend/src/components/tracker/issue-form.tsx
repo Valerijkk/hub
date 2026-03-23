@@ -76,6 +76,9 @@ export function IssueForm({
 	const [estimateMinutes, setEstimateMinutes] = useState<string>(
 		initialData?.estimate_minutes?.toString() ?? "",
 	);
+	const [storyPoints, setStoryPoints] = useState<string>(
+		initialData?.story_points?.toString() ?? "",
+	);
 	const [dueDate, setDueDate] = useState(initialData?.due_date ?? "");
 
 	const createMutation = useMutation({
@@ -100,6 +103,7 @@ export function IssueForm({
 				priority,
 				assignee_id: assigneeId || undefined,
 				estimate_minutes: estimateMinutes ? Number(estimateMinutes) : undefined,
+				story_points: storyPoints ? Number(storyPoints) : undefined,
 				due_date: dueDate || undefined,
 				version: initialData.version,
 			});
@@ -130,6 +134,7 @@ export function IssueForm({
 				description_json: description as Record<string, unknown> | undefined,
 				assignee_id: assigneeId || undefined,
 				estimate_minutes: estimateMinutes ? Number(estimateMinutes) : undefined,
+				story_points: storyPoints ? Number(storyPoints) : undefined,
 				due_date: dueDate || undefined,
 			});
 		} else {
@@ -208,8 +213,8 @@ export function IssueForm({
 				/>
 			</div>
 
-			{/* Оценка и срок */}
-			<div className="grid grid-cols-2 gap-4">
+			{/* Оценка, story points и срок */}
+			<div className="grid grid-cols-3 gap-4">
 				<div className="space-y-2">
 					<Label htmlFor="estimate">Оценка (минуты)</Label>
 					<Input
@@ -220,6 +225,22 @@ export function IssueForm({
 						onChange={(e) => setEstimateMinutes(e.target.value)}
 						placeholder="0"
 					/>
+				</div>
+				<div className="space-y-2">
+					<Label htmlFor="story_points">Story Points</Label>
+					<select
+						id="story_points"
+						className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+						value={storyPoints}
+						onChange={(e) => setStoryPoints(e.target.value)}
+					>
+						<option value="">--</option>
+						{[1, 2, 3, 5, 8, 13, 21].map((sp) => (
+							<option key={sp} value={sp}>
+								{sp}
+							</option>
+						))}
+					</select>
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor="due_date">Срок</Label>

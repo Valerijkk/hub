@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -73,14 +74,32 @@ func (s *MessengerService) GetChannel(ctx context.Context, channelID uuid.UUID) 
 }
 
 // ListMyChannels returns all channels the user belongs to.
+// Обогащает ответ данными membership: is_starred, muted_until.
 func (s *MessengerService) ListMyChannels(ctx context.Context, userID uuid.UUID) ([]ChannelResponse, error) {
 	channels, err := s.repo.ListUserChannels(ctx, userID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения каналов")
 	}
+
+	// Загружаем membership-данные для обогащения ответа.
+	memberships, mErr := s.repo.GetUserChannelMemberships(ctx, userID)
+	membershipMap := make(map[string]*ent.ChannelMember)
+	if mErr == nil {
+		for _, m := range memberships {
+			membershipMap[m.ChannelID.String()] = m
+		}
+	}
+
 	result := make([]ChannelResponse, 0, len(channels))
 	for _, ch := range channels {
-		result = append(result, *toChannelResponse(ch))
+		resp := toChannelResponse(ch)
+		if m, ok := membershipMap[ch.ID.String()]; ok {
+			resp.IsStarred = m.IsStarred
+			if m.MutedUntil != nil && m.MutedUntil.After(time.Now()) {
+				resp.MutedUntil = m.MutedUntil
+			}
+		}
+		result = append(result, *resp)
 	}
 	return result, nil
 }
@@ -202,6 +221,38 @@ func (s *MessengerService) AddMembers(ctx context.Context, channelID, userID uui
 // Used by internal services (e.g. AutoChannelService).
 func (s *MessengerService) AddMembersInternal(ctx context.Context, channelID uuid.UUID, memberIDs []uuid.UUID) error {
 	return s.repo.AddMembers(ctx, channelID, memberIDs, "member")
+}
+
+// ToggleStar переключает флаг is_starred для пользователя в канале.
+func (s *MessengerService) ToggleStar(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+	starred, err := s.repo.ToggleStar(ctx, channelID, userID)
+	if err != nil {
+		return false, apperrors.NewInternal("ошибка переключения закрепления")
+	}
+	return starred, nil
+}
+
+// MuteChannel устанавливает muted_until для пользователя в канале.
+// duration: "1h", "2h", "8h", "1d", "forever".
+func (s *MessengerService) MuteChannel(ctx context.Context, channelID, userID uuid.UUID, duration string) (string, error) {
+	mutedUntil, err := s.repo.MuteChannel(ctx, channelID, userID, duration)
+	if err != nil {
+		return "", apperrors.NewInternal("ошибка мьюта канала")
+	}
+	return mutedUntil.Format("2006-01-02T15:04:05Z07:00"), nil
+}
+
+// UnmuteChannel сбрасывает muted_until для пользователя в канале.
+func (s *MessengerService) UnmuteChannel(ctx context.Context, channelID, userID uuid.UUID) error {
+	if err := s.repo.UnmuteChannel(ctx, channelID, userID); err != nil {
+		return apperrors.NewInternal("ошибка снятия мьюта канала")
+	}
+	return nil
+}
+
+// IsChannelMuted проверяет, замьючен ли канал для пользователя.
+func (s *MessengerService) IsChannelMuted(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+	return s.repo.IsChannelMuted(ctx, channelID, userID)
 }
 
 // ListMembers returns all members of a channel.

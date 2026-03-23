@@ -27,6 +27,7 @@ func (s *TMSService) CreateTestCase(ctx context.Context, projectID, userID uuid.
 		ClassName:     req.ClassName,
 		MethodName:    req.MethodName,
 		ExternalID:    req.ExternalID,
+		AutomationID:  req.AutomationID,
 		CreatedByID:   userID,
 	}
 
@@ -143,6 +144,7 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID 
 		ClassName:     req.ClassName,
 		MethodName:    req.MethodName,
 		ExternalID:    req.ExternalID,
+		AutomationID:  req.AutomationID,
 		Version:       req.Version,
 	}
 

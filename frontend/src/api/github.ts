@@ -113,6 +113,65 @@ export function createBranch(issueKey: string, data: CreateBranchRequest) {
 }
 
 // ---------------------------------------------------------------------------
+// Типы: CI/CD Pipeline
+// ---------------------------------------------------------------------------
+
+/** Ответ с данными запуска workflow (CI/CD пайплайна). */
+export interface WorkflowRunResponse {
+	id: number;
+	name: string;
+	status: "queued" | "in_progress" | "completed";
+	conclusion:
+		| "success"
+		| "failure"
+		| "cancelled"
+		| "skipped"
+		| "timed_out"
+		| "action_required"
+		| "";
+	branch: string;
+	event: string;
+	html_url: string;
+	created_at: string;
+	updated_at: string;
+	head_sha: string;
+	run_number: number;
+}
+
+/** Джоб внутри workflow run. */
+export interface WorkflowJobResponse {
+	id: number;
+	name: string;
+	status: string;
+	conclusion: string;
+	started_at: string;
+	completed_at?: string;
+}
+
+/** Детальный ответ запуска workflow с джобами. */
+export interface WorkflowRunDetailResponse extends WorkflowRunResponse {
+	jobs: WorkflowJobResponse[];
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: CI/CD Pipeline
+// ---------------------------------------------------------------------------
+
+/** Получить последние запуски workflow для проекта. */
+export function listWorkflowRuns(projectId: string) {
+	return api.get<WorkflowRunResponse[]>(
+		`/projects/${projectId}/github/workflows`,
+	);
+}
+
+/** Получить детали запуска workflow. */
+export function getWorkflowRunDetail(projectId: string, runId: number) {
+	return api.get<WorkflowRunDetailResponse>(
+		`/projects/${projectId}/github/workflows/${runId}`,
+	);
+}
+
+// ---------------------------------------------------------------------------
 // API-функции: Превью ссылок
 // ---------------------------------------------------------------------------
 

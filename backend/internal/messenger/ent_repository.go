@@ -2,6 +2,8 @@ package messenger
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -159,6 +161,111 @@ func (r *EntRepository) ListMembers(ctx context.Context, channelID uuid.UUID) ([
 	return r.client.ChannelMember.Query().
 		Where(channelmember.ChannelID(channelID)).
 		WithUser().
+		All(ctx)
+}
+
+// ToggleStar переключает is_starred для участника канала.
+// Возвращает новое значение is_starred.
+func (r *EntRepository) ToggleStar(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+	m, err := r.client.ChannelMember.Query().
+		Where(
+			channelmember.ChannelID(channelID),
+			channelmember.UserID(userID),
+		).
+		Only(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	newVal := !m.IsStarred
+	_, err = r.client.ChannelMember.UpdateOneID(m.ID).
+		SetIsStarred(newVal).
+		Save(ctx)
+	if err != nil {
+		return false, err
+	}
+	return newVal, nil
+}
+
+// MuteChannel устанавливает muted_until для участника канала.
+// duration: "1h", "2h", "8h", "1d", "forever".
+func (r *EntRepository) MuteChannel(ctx context.Context, channelID, userID uuid.UUID, duration string) (time.Time, error) {
+	m, err := r.client.ChannelMember.Query().
+		Where(
+			channelmember.ChannelID(channelID),
+			channelmember.UserID(userID),
+		).
+		Only(ctx)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	var mutedUntil time.Time
+	switch duration {
+	case "1h":
+		mutedUntil = time.Now().Add(1 * time.Hour)
+	case "2h":
+		mutedUntil = time.Now().Add(2 * time.Hour)
+	case "8h":
+		mutedUntil = time.Now().Add(8 * time.Hour)
+	case "1d":
+		mutedUntil = time.Now().Add(24 * time.Hour)
+	case "forever":
+		// Далёкая дата в будущем (100 лет).
+		mutedUntil = time.Now().Add(100 * 365 * 24 * time.Hour)
+	default:
+		return time.Time{}, fmt.Errorf("некорректная длительность: %s", duration)
+	}
+
+	_, err = r.client.ChannelMember.UpdateOneID(m.ID).
+		SetMutedUntil(mutedUntil).
+		Save(ctx)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return mutedUntil, nil
+}
+
+// UnmuteChannel сбрасывает muted_until для участника канала.
+func (r *EntRepository) UnmuteChannel(ctx context.Context, channelID, userID uuid.UUID) error {
+	m, err := r.client.ChannelMember.Query().
+		Where(
+			channelmember.ChannelID(channelID),
+			channelmember.UserID(userID),
+		).
+		Only(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.client.ChannelMember.UpdateOneID(m.ID).
+		ClearMutedUntil().
+		Save(ctx)
+	return err
+}
+
+// IsChannelMuted проверяет, замьючен ли канал для пользователя.
+// Возвращает true если muted_until не nil и > текущего времени.
+func (r *EntRepository) IsChannelMuted(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+	m, err := r.client.ChannelMember.Query().
+		Where(
+			channelmember.ChannelID(channelID),
+			channelmember.UserID(userID),
+		).
+		Only(ctx)
+	if err != nil {
+		return false, err
+	}
+	if m.MutedUntil == nil {
+		return false, nil
+	}
+	return m.MutedUntil.After(time.Now()), nil
+}
+
+// GetUserChannelMemberships возвращает membership-записи пользователя.
+func (r *EntRepository) GetUserChannelMemberships(ctx context.Context, userID uuid.UUID) ([]*ent.ChannelMember, error) {
+	return r.client.ChannelMember.Query().
+		Where(channelmember.UserID(userID)).
 		All(ctx)
 }
 

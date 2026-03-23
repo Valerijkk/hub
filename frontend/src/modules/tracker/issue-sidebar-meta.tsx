@@ -26,6 +26,7 @@ interface IssueSidebarMetaProps {
 		reporter?: { name: string; avatar_url?: string } | null;
 		labels?: { id: string; name: string; color: string }[];
 		estimate_minutes?: number | null;
+		story_points?: number | null;
 		time_spent_minutes?: number | null;
 		due_date?: string | null;
 		parent?: { issue_key: string; title: string } | null;
@@ -149,6 +150,27 @@ export function IssueSidebarMeta({
 			</div>
 
 			<Separator />
+
+			{/* Story Points */}
+			<div className="space-y-1">
+				<Label className="text-xs text-muted-foreground">Story Points</Label>
+				<select
+					className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+					value={issue.story_points ?? ""}
+					onChange={(e) =>
+						onUpdateField({
+							story_points: e.target.value ? Number(e.target.value) : undefined,
+						})
+					}
+				>
+					<option value="">--</option>
+					{[1, 2, 3, 5, 8, 13, 21].map((sp) => (
+						<option key={sp} value={sp}>
+							{sp}
+						</option>
+					))}
+				</select>
+			</div>
 
 			{/* Оценка и срок */}
 			<div className="grid grid-cols-2 gap-3">

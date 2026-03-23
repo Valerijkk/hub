@@ -147,6 +147,8 @@ type CreateIssueInput struct {
 	Labels          []uuid.UUID
 	CustomFields    map[string]interface{}
 	EstimateMinutes *int
+	StoryPoints     *int
+	Checklist       []map[string]interface{}
 	DueDate         *time.Time
 }
 
@@ -161,6 +163,8 @@ type UpdateIssueInput struct {
 	Labels          *[]uuid.UUID
 	CustomFields    *map[string]interface{}
 	EstimateMinutes *int
+	StoryPoints     *int
+	Checklist       *[]map[string]interface{}
 	DueDate         *time.Time
 	Version         int
 }

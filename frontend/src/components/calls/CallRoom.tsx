@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useCallStore } from "@/stores/call-store";
 import { CallChat } from "./CallChat";
 import { CallControls } from "./CallControls";
+import { CallReactionsOverlay } from "./CallReactions";
 import { ParticipantList } from "./ParticipantList";
 import { ScreenShareView } from "./ScreenShareView";
 
@@ -109,7 +110,10 @@ function CallRoomContent({ onDisconnect }: { onDisconnect: () => void }) {
 			</div>
 
 			{/* Основная область: участники + демонстрация экрана + чат */}
-			<div className="flex flex-1 overflow-hidden">
+			<div className="relative flex flex-1 overflow-hidden">
+				{/* Оверлей плавающих реакций */}
+				<CallReactionsOverlay />
+
 				<div className="flex flex-1 gap-2 overflow-hidden p-3">
 					<ParticipantList />
 					<ScreenShareView />

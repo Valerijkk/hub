@@ -40,6 +40,9 @@ func (r *CombinedRepository) FindTestCaseByKey(ctx context.Context, caseKey stri
 func (r *CombinedRepository) FindTestCaseByExternalID(ctx context.Context, projectID uuid.UUID, externalID string) (*ent.TestCase, error) {
 	return r.ent.FindTestCaseByExternalID(ctx, projectID, externalID)
 }
+func (r *CombinedRepository) FindTestCaseByAutomationID(ctx context.Context, projectID uuid.UUID, automationID string) (*ent.TestCase, error) {
+	return r.ent.FindTestCaseByAutomationID(ctx, projectID, automationID)
+}
 func (r *CombinedRepository) FindTestCaseByFullName(ctx context.Context, projectID uuid.UUID, fullName string) (*ent.TestCase, error) {
 	return r.ent.FindTestCaseByFullName(ctx, projectID, fullName)
 }

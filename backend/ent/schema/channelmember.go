@@ -32,6 +32,13 @@ func (ChannelMember) Fields() []ent.Field {
 		field.Time("joined_at").
 			Default(time.Now).
 			Comment("Время вступления в канал"),
+		field.Bool("is_starred").
+			Default(false).
+			Comment("Флаг закрепления (starred) канала пользователем"),
+		field.Time("muted_until").
+			Optional().
+			Nillable().
+			Comment("Канал замьючен до этого времени (nil = не замьючен)"),
 	}
 }
 

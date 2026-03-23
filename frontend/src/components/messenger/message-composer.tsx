@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
+import { MentionAutocomplete } from "./mention-autocomplete";
 import { VoiceRecorder } from "./voice-recorder";
 
 /** Набор популярных эмодзи для быстрого выбора в композере. */
@@ -147,8 +148,16 @@ export function MessageComposer({
 		PendingAttachment[]
 	>([]);
 	const [isUploading, setIsUploading] = useState(false);
+	/** Позиция курсора для @mention автокомплита. */
+	const [cursorPosition, setCursorPosition] = useState(0);
+	/** Накопленные user_id упоминаний для отправки с сообщением. */
+	const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	/** Ref на обработчик клавиш MentionAutocomplete. */
+	const mentionKeyHandlerRef = useRef<
+		((e: KeyboardEvent<HTMLTextAreaElement>) => boolean) | null
+	>(null);
 
 	const replyToMessage = useMessengerStore((s) => s.replyToMessage);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
@@ -251,12 +260,15 @@ export function MessageComposer({
 					pendingAttachments.length > 0
 						? pendingAttachments.map((a) => a.fileId)
 						: undefined,
+				mentions:
+					mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
 			});
 			void queryClient.invalidateQueries({
 				queryKey: ["messenger", "messages", channelId],
 			});
 			setText("");
 			setPendingAttachments([]);
+			setMentionedUserIds([]);
 			setReplyTo(null);
 			if (textareaRef.current) {
 				textareaRef.current.style.height = "auto";
@@ -268,11 +280,35 @@ export function MessageComposer({
 		} finally {
 			setIsSending(false);
 		}
-	}, [channelId, threadId, text, pendingAttachments, queryClient, setReplyTo]);
+	}, [channelId, threadId, text, pendingAttachments, mentionedUserIds, queryClient, setReplyTo]);
 
-	/** Обработка клавиш: Enter -- отправить, Shift+Enter -- перенос строки. */
+	/** Обработка выбора упоминания из автокомплита. */
+	const handleMentionSelect = useCallback(
+		(newText: string, newCursorPos: number, userId: string) => {
+			setText(newText);
+			setCursorPosition(newCursorPos);
+			// Добавляем user_id в список упоминаний (без дубликатов).
+			setMentionedUserIds((prev) =>
+				prev.includes(userId) ? prev : [...prev, userId],
+			);
+			// Восстанавливаем фокус и курсор в textarea.
+			requestAnimationFrame(() => {
+				const ta = textareaRef.current;
+				if (ta) {
+					ta.focus();
+					ta.setSelectionRange(newCursorPos, newCursorPos);
+				}
+			});
+		},
+		[],
+	);
+
+	/** Обработка клавиш: сначала проверяем @mention, затем Enter -- отправить. */
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent<HTMLTextAreaElement>) => {
+			// Если автокомплит @mention обработал клавишу — не делаем ничего.
+			if (mentionKeyHandlerRef.current?.(e)) return;
+
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
 				void handleSend();
@@ -286,6 +322,7 @@ export function MessageComposer({
 		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
 			const value = e.target.value;
 			setText(value);
+			setCursorPosition(e.target.selectionStart);
 			const el = e.target;
 			el.style.height = "auto";
 			el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
@@ -433,11 +470,21 @@ export function MessageComposer({
 				/* Rounded container with all controls inside */
 				<div
 					className={cn(
-						"flex items-end rounded-2xl border bg-background/80 backdrop-blur-sm shadow-sm",
+						"relative flex items-end rounded-2xl border bg-background/80 backdrop-blur-sm shadow-sm",
 						"transition-all duration-200",
 						"focus-within:shadow-md focus-within:border-ring/50 focus-within:bg-background",
 					)}
 				>
+					{/* @Mention автокомплит */}
+					<MentionAutocomplete
+						channelId={channelId}
+						text={text}
+						cursorPosition={cursorPosition}
+						textareaRef={textareaRef}
+						onSelect={handleMentionSelect}
+						keyHandlerRef={mentionKeyHandlerRef}
+					/>
+
 					{/* Attachment button */}
 					<button
 						type="button"
@@ -479,6 +526,7 @@ export function MessageComposer({
 						value={text}
 						onChange={handleInput}
 						onKeyDown={handleKeyDown}
+						onSelect={(e) => setCursorPosition(e.currentTarget.selectionStart)}
 						placeholder={placeholder}
 						rows={1}
 						disabled={isSending}

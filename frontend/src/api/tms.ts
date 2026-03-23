@@ -109,6 +109,7 @@ export interface TestCaseResponse {
 	class_name?: string;
 	method_name?: string;
 	external_id?: string;
+	automation_id?: string;
 	version: number;
 	suite?: SuiteBriefResponse;
 	created_by?: UserBriefResponse;
@@ -234,6 +235,7 @@ export interface CreateTestCaseRequest {
 	priority?: TestCasePriority;
 	status?: TestCaseStatus;
 	steps?: TestStep[];
+	automation_id?: string;
 	suite_id?: string;
 	labels?: string[];
 	components?: string[];
@@ -249,6 +251,7 @@ export interface UpdateTestCaseRequest {
 	priority?: TestCasePriority;
 	status?: TestCaseStatus;
 	steps?: TestStep[];
+	automation_id?: string;
 	suite_id?: string;
 	labels?: string[];
 	components?: string[];

@@ -84,6 +84,12 @@ func (r *EntRepository) CreateIssue(ctx context.Context, projectID uuid.UUID, in
 	if input.EstimateMinutes != nil {
 		create = create.SetEstimateMinutes(*input.EstimateMinutes)
 	}
+	if input.StoryPoints != nil {
+		create = create.SetStoryPoints(*input.StoryPoints)
+	}
+	if input.Checklist != nil {
+		create = create.SetChecklist(input.Checklist)
+	}
 	if input.DueDate != nil {
 		create = create.SetDueDate(*input.DueDate)
 	}
@@ -269,6 +275,12 @@ func (r *EntRepository) UpdateIssue(ctx context.Context, issueID uuid.UUID, inpu
 	}
 	if input.EstimateMinutes != nil {
 		update = update.SetEstimateMinutes(*input.EstimateMinutes)
+	}
+	if input.StoryPoints != nil {
+		update = update.SetStoryPoints(*input.StoryPoints)
+	}
+	if input.Checklist != nil {
+		update = update.SetChecklist(*input.Checklist)
 	}
 	if input.DueDate != nil {
 		update = update.SetDueDate(*input.DueDate)

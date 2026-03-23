@@ -25,6 +25,7 @@ type CreateTestCaseRequest struct {
 	ClassName     string            `json:"class_name,omitempty"`
 	MethodName    string            `json:"method_name,omitempty"`
 	ExternalID    string            `json:"external_id,omitempty"`
+	AutomationID  string            `json:"automation_id,omitempty"`
 	SuiteID       string            `json:"suite_id,omitempty"`
 	Labels        []string          `json:"labels,omitempty"`
 	Components    []string          `json:"components,omitempty"`
@@ -44,6 +45,7 @@ type UpdateTestCaseRequest struct {
 	ClassName     *string            `json:"class_name,omitempty"`
 	MethodName    *string            `json:"method_name,omitempty"`
 	ExternalID    *string            `json:"external_id,omitempty"`
+	AutomationID  *string            `json:"automation_id,omitempty"`
 	SuiteID       *string            `json:"suite_id,omitempty"`
 	Labels        *[]string          `json:"labels,omitempty"`
 	Components    *[]string          `json:"components,omitempty"`
@@ -219,6 +221,7 @@ type TestCaseResponse struct {
 	ClassName     string              `json:"class_name,omitempty"`
 	MethodName    string              `json:"method_name,omitempty"`
 	ExternalID    string              `json:"external_id,omitempty"`
+	AutomationID  string              `json:"automation_id,omitempty"`
 	Version       int                 `json:"version"`
 	Suite         *SuiteBriefResponse `json:"suite,omitempty"`
 	CreatedBy     *UserBriefResponse  `json:"created_by,omitempty"`

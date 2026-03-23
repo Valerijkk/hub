@@ -38,6 +38,19 @@ type Repository interface {
 	// ListMembers возвращает всех участников канала.
 	ListMembers(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelMember, error)
 
+	// --- Starred / Mute ---
+
+	// ToggleStar переключает is_starred для пользователя в канале.
+	ToggleStar(ctx context.Context, channelID, userID uuid.UUID) (bool, error)
+	// MuteChannel устанавливает muted_until для пользователя в канале.
+	MuteChannel(ctx context.Context, channelID, userID uuid.UUID, duration string) (time.Time, error)
+	// UnmuteChannel сбрасывает muted_until для пользователя в канале.
+	UnmuteChannel(ctx context.Context, channelID, userID uuid.UUID) error
+	// IsChannelMuted проверяет, замьючен ли канал для пользователя.
+	IsChannelMuted(ctx context.Context, channelID, userID uuid.UUID) (bool, error)
+	// GetUserChannelMemberships возвращает membership-данные пользователя (starred, muted).
+	GetUserChannelMemberships(ctx context.Context, userID uuid.UUID) ([]*ent.ChannelMember, error)
+
 	// --- Сообщения (MongoDB) ---
 
 	// InsertMessage сохраняет сообщение в MongoDB.

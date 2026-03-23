@@ -73,7 +73,8 @@ interface IssueCardProps {
  * Карточка задачи для Kanban-доски.
  * Поддерживает drag-and-drop перетаскивание между колонками.
  * Кликабельна — переход на страницу детальной информации о задаче.
- * Отображает тип, ключ, название (до 2 строк), приоритет и аватар исполнителя.
+ * Отображает тип, ключ, название (до 2 строк), приоритет, story points,
+ * прогресс чеклиста и аватар исполнителя.
  *
  * Навигация реализована через useNavigate + отслеживание координат указателя,
  * чтобы избежать конфликта между pragmatic-drag-and-drop и обычным кликом.
@@ -150,6 +151,11 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 		// Иначе: обычный клик — Link выполнит навигацию.
 	};
 
+	/** Прогресс чеклиста (количество выполненных / всего). */
+	const checklistTotal = issue.checklist?.length ?? 0;
+	const checklistDone = issue.checklist?.filter((c) => c.checked).length ?? 0;
+	const checklistPct = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
+
 	return (
 		<Link
 			to="/projects/$projectId/issues/$issueKey"
@@ -196,18 +202,49 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 						{issue.title}
 					</p>
 
-					{/* Нижняя строка: приоритет + аватар исполнителя */}
+					{/* Прогресс чеклиста */}
+					{checklistTotal > 0 && (
+						<div className="mb-2">
+							<div className="flex items-center justify-between mb-0.5">
+								<span className="text-[10px] text-muted-foreground">
+									{checklistDone}/{checklistTotal}
+								</span>
+							</div>
+							<div className="h-1 w-full rounded-full bg-muted">
+								<div
+									className={cn(
+										"h-1 rounded-full transition-all",
+										checklistPct === 100 ? "bg-green-500" : "bg-primary",
+									)}
+									style={{ width: `${checklistPct}%` }}
+								/>
+							</div>
+						</div>
+					)}
+
+					{/* Нижняя строка: приоритет + story points + аватар исполнителя */}
 					<div className="flex items-center justify-between">
-						<Badge
-							variant="secondary"
-							className={cn(
-								"text-[10px] font-semibold px-1.5 py-0 h-[18px] rounded-md border-0",
-								priority.bg,
-								priority.text,
+						<div className="flex items-center gap-1.5">
+							<Badge
+								variant="secondary"
+								className={cn(
+									"text-[10px] font-semibold px-1.5 py-0 h-[18px] rounded-md border-0",
+									priority.bg,
+									priority.text,
+								)}
+							>
+								{priority.label}
+							</Badge>
+
+							{issue.story_points != null && (
+								<Badge
+									variant="outline"
+									className="text-[10px] font-semibold px-1.5 py-0 h-[18px] rounded-md"
+								>
+									{issue.story_points} SP
+								</Badge>
 							)}
-						>
-							{priority.label}
-						</Badge>
+						</div>
 
 						{issue.assignee ? (
 							<Avatar className="h-5 w-5 ring-1 ring-border/50">

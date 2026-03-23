@@ -53,6 +53,41 @@ type CreateBranchResponse struct {
 	BranchName string `json:"branch_name"`
 }
 
+// ---------------------------------------------------------------------------
+// CI/CD Pipeline DTOs
+// ---------------------------------------------------------------------------
+
+// WorkflowRunResponse -- ответ с данными запуска workflow (CI/CD пайплайна).
+type WorkflowRunResponse struct {
+	ID         int64     `json:"id"`
+	Name       string    `json:"name"`
+	Status     string    `json:"status"`     // queued, in_progress, completed
+	Conclusion string    `json:"conclusion"` // success, failure, cancelled, skipped, timed_out, action_required, ""
+	Branch     string    `json:"branch"`
+	Event      string    `json:"event"`      // push, pull_request, schedule, etc.
+	HTMLURL    string    `json:"html_url"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	HeadSHA    string    `json:"head_sha"`
+	RunNumber  int       `json:"run_number"`
+}
+
+// WorkflowRunDetailResponse -- детальный ответ запуска workflow с джобами.
+type WorkflowRunDetailResponse struct {
+	WorkflowRunResponse
+	Jobs []WorkflowJobResponse `json:"jobs"`
+}
+
+// WorkflowJobResponse -- джоб внутри workflow run.
+type WorkflowJobResponse struct {
+	ID         int64     `json:"id"`
+	Name       string    `json:"name"`
+	Status     string    `json:"status"`
+	Conclusion string    `json:"conclusion"`
+	StartedAt  time.Time `json:"started_at"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+}
+
 // LinkPreviewResponse -- ответ с данными превью ссылки.
 type LinkPreviewResponse struct {
 	URL         string `json:"url"`

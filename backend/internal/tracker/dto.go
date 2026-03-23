@@ -6,6 +6,13 @@ import "time"
 // Request DTOs
 // ---------------------------------------------------------------------------
 
+// ChecklistItem — один элемент чеклиста задачи.
+type ChecklistItem struct {
+	ID      string `json:"id"`
+	Text    string `json:"text"`
+	Checked bool   `json:"checked"`
+}
+
 // CreateIssueRequest — тело запроса на создание новой задачи.
 type CreateIssueRequest struct {
 	Title           string                  `json:"title" validate:"required,min=1,max=500"`
@@ -18,6 +25,8 @@ type CreateIssueRequest struct {
 	Labels          []string                `json:"labels,omitempty"`
 	CustomFields    map[string]interface{}  `json:"custom_fields,omitempty"`
 	EstimateMinutes *int                    `json:"estimate_minutes,omitempty"`
+	StoryPoints     *int                    `json:"story_points,omitempty" validate:"omitempty,oneof=1 2 3 5 8 13 21"`
+	Checklist       []ChecklistItem         `json:"checklist,omitempty"`
 	DueDate         *time.Time              `json:"due_date,omitempty"`
 }
 
@@ -31,6 +40,8 @@ type UpdateIssueRequest struct {
 	Labels          *[]string               `json:"labels,omitempty"`
 	CustomFields    *map[string]interface{} `json:"custom_fields,omitempty"`
 	EstimateMinutes *int                    `json:"estimate_minutes,omitempty"`
+	StoryPoints     *int                    `json:"story_points,omitempty" validate:"omitempty,oneof=1 2 3 5 8 13 21"`
+	Checklist       *[]ChecklistItem        `json:"checklist,omitempty"`
 	DueDate         *time.Time              `json:"due_date,omitempty"`
 	Version         int                     `json:"version" validate:"required"`
 }
@@ -148,7 +159,9 @@ type IssueResponse struct {
 	Rank             string                  `json:"rank,omitempty"`
 	Version          int                     `json:"version"`
 	EstimateMinutes  *int                    `json:"estimate_minutes,omitempty"`
+	StoryPoints      *int                    `json:"story_points,omitempty"`
 	TimeSpentMinutes int                     `json:"time_spent_minutes"`
+	Checklist        []ChecklistItem         `json:"checklist,omitempty"`
 	CustomFields     map[string]interface{}  `json:"custom_fields,omitempty"`
 	DueDate          *time.Time              `json:"due_date,omitempty"`
 	Status           WorkflowStatusResponse  `json:"status"`
@@ -163,12 +176,14 @@ type IssueResponse struct {
 
 // IssueBriefResponse — краткое представление задачи для ссылок и списков.
 type IssueBriefResponse struct {
-	ID        string `json:"id"`
-	IssueKey  string `json:"issue_key"`
-	Title     string `json:"title"`
-	IssueType string `json:"issue_type"`
-	Priority  string `json:"priority"`
-	Status    string `json:"status"`
+	ID          string          `json:"id"`
+	IssueKey    string          `json:"issue_key"`
+	Title       string          `json:"title"`
+	IssueType   string          `json:"issue_type"`
+	Priority    string          `json:"priority"`
+	Status      string          `json:"status"`
+	StoryPoints *int            `json:"story_points,omitempty"`
+	Checklist   []ChecklistItem `json:"checklist,omitempty"`
 }
 
 // UserBriefResponse — краткое представление пользователя для встроенных ссылок.

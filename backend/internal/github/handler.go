@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -34,6 +35,10 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	proj.Post("/github/integrations", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.CreateIntegration)
 	proj.Get("/github/integrations", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListIntegrations)
 	proj.Delete("/github/integrations/:integrationId", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.DeleteIntegration)
+
+	// CI/CD Pipeline Status (workflow runs)
+	proj.Get("/github/workflows", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListWorkflowRuns)
+	proj.Get("/github/workflows/:runId", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetWorkflowRunDetail)
 
 	// GitHub ссылки для задачи
 	api.Get("/issues/:issueKey/github-links", authMw, h.ListGitHubLinks)
@@ -192,6 +197,44 @@ func (h *Handler) CreateBranch(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
+// ListWorkflowRuns обрабатывает GET /api/projects/:projectId/github/workflows.
+// Возвращает последние запуски CI/CD пайплайнов для всех интеграций проекта.
+func (h *Handler) ListWorkflowRuns(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	runs, err := h.service.ListWorkflowRuns(c.Context(), projectID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(runs)
+}
+
+// GetWorkflowRunDetail обрабатывает GET /api/projects/:projectId/github/workflows/:runId.
+// Возвращает детали запуска workflow, включая список джобов.
+func (h *Handler) GetWorkflowRunDetail(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	runIDStr := utils.CopyString(c.Params("runId"))
+	runID, err := strconv.ParseInt(runIDStr, 10, 64)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный run ID")
+	}
+
+	detail, err := h.service.GetWorkflowRunDetail(c.Context(), projectID, runID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(detail)
 }
 
 // GetLinkPreview обрабатывает GET /api/link-preview?url=... (MSG-11).

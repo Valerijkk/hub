@@ -111,6 +111,9 @@ func (r *EntRepository) CreateTestCase(ctx context.Context, projectID uuid.UUID,
 	if input.ExternalID != "" {
 		create = create.SetExternalID(input.ExternalID)
 	}
+	if input.AutomationID != "" {
+		create = create.SetAutomationID(input.AutomationID)
+	}
 	if input.SuiteID != nil {
 		create = create.SetSuiteID(*input.SuiteID)
 	}
@@ -164,6 +167,16 @@ func (r *EntRepository) FindTestCaseByExternalID(ctx context.Context, projectID 
 	return r.client.TestCase.Query().
 		Where(
 			testcase.ExternalID(externalID),
+			testcase.HasProjectWith(entproject.ID(projectID)),
+		).
+		Only(ctx)
+}
+
+// FindTestCaseByAutomationID возвращает тест-кейс по automation_id (явная привязка автотестов).
+func (r *EntRepository) FindTestCaseByAutomationID(ctx context.Context, projectID uuid.UUID, automationID string) (*ent.TestCase, error) {
+	return r.client.TestCase.Query().
+		Where(
+			testcase.AutomationID(automationID),
 			testcase.HasProjectWith(entproject.ID(projectID)),
 		).
 		Only(ctx)
@@ -273,6 +286,9 @@ func (r *EntRepository) UpdateTestCase(ctx context.Context, id uuid.UUID, input 
 	}
 	if input.ExternalID != nil {
 		update = update.SetExternalID(*input.ExternalID)
+	}
+	if input.AutomationID != nil {
+		update = update.SetAutomationID(*input.AutomationID)
 	}
 	if input.SuiteID != nil {
 		update = update.SetSuiteID(*input.SuiteID)

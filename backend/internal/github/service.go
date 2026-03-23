@@ -328,6 +328,107 @@ func (s *GitHubService) CreateBranch(ctx context.Context, issueKey string, req C
 }
 
 // ---------------------------------------------------------------------------
+// CI/CD Pipeline Status (Workflow Runs)
+// ---------------------------------------------------------------------------
+
+// ListWorkflowRuns возвращает последние запуски workflow для всех интеграций проекта.
+// Для каждой интеграции запрашивает GitHub API /repos/{owner}/{repo}/actions/runs
+// и объединяет результаты, сортируя по дате создания (новые первые).
+func (s *GitHubService) ListWorkflowRuns(ctx context.Context, projectID uuid.UUID) ([]WorkflowRunResponse, error) {
+	integrations, err := s.repo.ListIntegrations(ctx, projectID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения интеграций")
+	}
+
+	var allRuns []WorkflowRunResponse
+
+	for _, integration := range integrations {
+		client := gh.NewClient(nil).WithAuthToken(integration.AccessToken)
+
+		opts := &gh.ListWorkflowRunsOptions{
+			ListOptions: gh.ListOptions{PerPage: 20},
+		}
+		runs, _, err := client.Actions.ListRepositoryWorkflowRuns(ctx, integration.RepoOwner, integration.RepoName, opts)
+		if err != nil {
+			slog.Error("ошибка получения workflow runs из GitHub",
+				"owner", integration.RepoOwner, "repo", integration.RepoName, "error", err)
+			continue
+		}
+
+		for _, run := range runs.WorkflowRuns {
+			allRuns = append(allRuns, toWorkflowRunResponse(run))
+		}
+	}
+
+	return allRuns, nil
+}
+
+// GetWorkflowRunDetail возвращает детали конкретного запуска workflow, включая джобы.
+// Ищет интеграцию проекта, подходящую для данного runID, и запрашивает GitHub API.
+func (s *GitHubService) GetWorkflowRunDetail(ctx context.Context, projectID uuid.UUID, runID int64) (*WorkflowRunDetailResponse, error) {
+	integrations, err := s.repo.ListIntegrations(ctx, projectID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения интеграций")
+	}
+
+	// Пробуем каждую интеграцию — runID может принадлежать любому из репозиториев.
+	for _, integration := range integrations {
+		client := gh.NewClient(nil).WithAuthToken(integration.AccessToken)
+
+		run, _, err := client.Actions.GetWorkflowRunByID(ctx, integration.RepoOwner, integration.RepoName, runID)
+		if err != nil {
+			continue // Пробуем следующую интеграцию
+		}
+
+		resp := &WorkflowRunDetailResponse{
+			WorkflowRunResponse: toWorkflowRunResponse(run),
+		}
+
+		// Загружаем джобы для данного run
+		jobs, _, err := client.Actions.ListWorkflowJobs(ctx, integration.RepoOwner, integration.RepoName, runID, &gh.ListWorkflowJobsOptions{
+			ListOptions: gh.ListOptions{PerPage: 50},
+		})
+		if err == nil && jobs != nil {
+			for _, job := range jobs.Jobs {
+				j := WorkflowJobResponse{
+					ID:         job.GetID(),
+					Name:       job.GetName(),
+					Status:     job.GetStatus(),
+					Conclusion: job.GetConclusion(),
+					StartedAt:  job.GetStartedAt().Time,
+				}
+				if job.CompletedAt != nil {
+					t := job.GetCompletedAt().Time
+					j.CompletedAt = &t
+				}
+				resp.Jobs = append(resp.Jobs, j)
+			}
+		}
+
+		return resp, nil
+	}
+
+	return nil, apperrors.NewNotFound("workflow run не найден")
+}
+
+// toWorkflowRunResponse конвертирует GitHub API WorkflowRun в DTO ответа.
+func toWorkflowRunResponse(run *gh.WorkflowRun) WorkflowRunResponse {
+	return WorkflowRunResponse{
+		ID:         run.GetID(),
+		Name:       run.GetName(),
+		Status:     run.GetStatus(),
+		Conclusion: run.GetConclusion(),
+		Branch:     run.GetHeadBranch(),
+		Event:      run.GetEvent(),
+		HTMLURL:    run.GetHTMLURL(),
+		CreatedAt:  run.GetCreatedAt().Time,
+		UpdatedAt:  run.GetUpdatedAt().Time,
+		HeadSHA:    run.GetHeadSHA(),
+		RunNumber:  run.GetRunNumber(),
+	}
+}
+
+// ---------------------------------------------------------------------------
 // GitHub-ссылки
 // ---------------------------------------------------------------------------
 

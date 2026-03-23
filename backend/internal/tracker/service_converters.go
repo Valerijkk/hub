@@ -20,11 +20,31 @@ func toIssueResponse(i *ent.Issue) *IssueResponse {
 		Rank:             i.Rank,
 		Version:          i.Version,
 		EstimateMinutes:  i.EstimateMinutes,
+		StoryPoints:      i.StoryPoints,
 		TimeSpentMinutes: i.TimeSpentMinutes,
 		CustomFields:     i.CustomFields,
 		DueDate:          i.DueDate,
 		CreatedAt:        i.CreatedAt,
 		UpdatedAt:        i.UpdatedAt,
+	}
+
+	// Конвертируем чеклист из JSONB в DTO
+	if i.Checklist != nil {
+		cl := make([]ChecklistItem, 0, len(i.Checklist))
+		for _, raw := range i.Checklist {
+			item := ChecklistItem{}
+			if id, ok := raw["id"].(string); ok {
+				item.ID = id
+			}
+			if text, ok := raw["text"].(string); ok {
+				item.Text = text
+			}
+			if checked, ok := raw["checked"].(bool); ok {
+				item.Checked = checked
+			}
+			cl = append(cl, item)
+		}
+		resp.Checklist = cl
 	}
 
 	if i.DescriptionJSON != nil {
@@ -66,14 +86,36 @@ func toIssueBriefResponse(i *ent.Issue) *IssueBriefResponse {
 	if i.Edges.Status != nil {
 		status = i.Edges.Status.Name
 	}
-	return &IssueBriefResponse{
-		ID:        i.ID.String(),
-		IssueKey:  i.IssueKey,
-		Title:     i.Title,
-		IssueType: string(i.IssueType),
-		Priority:  string(i.Priority),
-		Status:    status,
+	resp := &IssueBriefResponse{
+		ID:          i.ID.String(),
+		IssueKey:    i.IssueKey,
+		Title:       i.Title,
+		IssueType:   string(i.IssueType),
+		Priority:    string(i.Priority),
+		Status:      status,
+		StoryPoints: i.StoryPoints,
 	}
+
+	// Конвертируем чеклист из JSONB в DTO
+	if i.Checklist != nil {
+		cl := make([]ChecklistItem, 0, len(i.Checklist))
+		for _, raw := range i.Checklist {
+			item := ChecklistItem{}
+			if id, ok := raw["id"].(string); ok {
+				item.ID = id
+			}
+			if text, ok := raw["text"].(string); ok {
+				item.Text = text
+			}
+			if checked, ok := raw["checked"].(bool); ok {
+				item.Checked = checked
+			}
+			cl = append(cl, item)
+		}
+		resp.Checklist = cl
+	}
+
+	return resp
 }
 
 // toUserBriefResponse конвертирует Ent User в краткий DTO.

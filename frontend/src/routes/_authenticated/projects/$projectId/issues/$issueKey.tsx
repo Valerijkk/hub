@@ -8,6 +8,7 @@ import {
 	updateIssue,
 } from "@/api/tracker";
 import { ActivityFeed } from "@/components/tracker/activity-feed";
+import { Checklist } from "@/components/tracker/checklist";
 import { CommentList } from "@/components/tracker/comment-list";
 import { TimeTracker } from "@/components/tracker/time-tracker";
 import { Separator } from "@/components/ui/separator";
@@ -155,6 +156,15 @@ function IssueDetailPage() {
 								description_json: value as Record<string, unknown> | undefined,
 							})
 						}
+					/>
+
+					<Separator />
+
+					{/* Чеклист */}
+					<Checklist
+						items={issue.checklist ?? []}
+						onChange={(checklist) => updateMutation.mutate({ checklist })}
+						disabled={updateMutation.isPending}
 					/>
 
 					<Separator />

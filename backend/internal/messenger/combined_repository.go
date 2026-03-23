@@ -82,6 +82,33 @@ func (r *CombinedRepository) ListMembers(ctx context.Context, channelID uuid.UUI
 	return r.ent.ListMembers(ctx, channelID)
 }
 
+// --- Star / Mute (делегируем в EntRepository) ---
+
+// ToggleStar делегирует переключение star в EntRepository.
+func (r *CombinedRepository) ToggleStar(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+	return r.ent.ToggleStar(ctx, channelID, userID)
+}
+
+// MuteChannel делегирует мьют канала в EntRepository.
+func (r *CombinedRepository) MuteChannel(ctx context.Context, channelID, userID uuid.UUID, duration string) (time.Time, error) {
+	return r.ent.MuteChannel(ctx, channelID, userID, duration)
+}
+
+// UnmuteChannel делегирует снятие мьюта канала в EntRepository.
+func (r *CombinedRepository) UnmuteChannel(ctx context.Context, channelID, userID uuid.UUID) error {
+	return r.ent.UnmuteChannel(ctx, channelID, userID)
+}
+
+// IsChannelMuted делегирует проверку мьюта канала в EntRepository.
+func (r *CombinedRepository) IsChannelMuted(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+	return r.ent.IsChannelMuted(ctx, channelID, userID)
+}
+
+// GetUserChannelMemberships делегирует получение membership-данных пользователя в EntRepository.
+func (r *CombinedRepository) GetUserChannelMemberships(ctx context.Context, userID uuid.UUID) ([]*ent.ChannelMember, error) {
+	return r.ent.GetUserChannelMemberships(ctx, userID)
+}
+
 // --- Сообщения (делегируем в MongoRepository) ---
 
 // InsertMessage делегирует сохранение сообщения в MongoRepository.
