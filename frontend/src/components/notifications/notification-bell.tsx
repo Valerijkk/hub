@@ -51,7 +51,7 @@ export function NotificationBell() {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="relative h-8 w-8"
+					className="relative h-7 w-7 text-[#D1D2D3]/40 hover:text-white hover:bg-white/[0.05]"
 					onClick={() => void fetchNotifications()}
 					aria-label="Уведомления"
 				>
