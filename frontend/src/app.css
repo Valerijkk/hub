@@ -357,11 +357,19 @@ select,
 [role="listbox"] {
 	background: var(--card) !important;
 	border: 1px solid var(--border) !important;
-	border-radius: 0.5rem !important;
+	border-radius: 0.75rem !important;
 	color: var(--foreground) !important;
-	padding: 0.5rem 0.75rem !important;
+	padding: 0.5rem 2rem 0.5rem 0.75rem !important;
 	font-size: 0.875rem !important;
 	line-height: 1.25rem !important;
+	-webkit-appearance: none !important;
+	-moz-appearance: none !important;
+	appearance: none !important;
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+	background-repeat: no-repeat !important;
+	background-position: right 0.5rem center !important;
+	background-size: 16px !important;
+	cursor: pointer !important;
 	transition:
 		border-color 0.15s,
 		box-shadow 0.15s !important;

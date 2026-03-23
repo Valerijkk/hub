@@ -10,7 +10,6 @@ import {
 import { ActivityFeed } from "@/components/tracker/activity-feed";
 import { Checklist } from "@/components/tracker/checklist";
 import { CommentList } from "@/components/tracker/comment-list";
-import { TimeTracker } from "@/components/tracker/time-tracker";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -174,7 +173,6 @@ function IssueDetailPage() {
 						<TabsList>
 							<TabsTrigger value="comments">Комментарии</TabsTrigger>
 							<TabsTrigger value="activity">Активность</TabsTrigger>
-							<TabsTrigger value="time">Время</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="comments" className="mt-4">
@@ -185,14 +183,6 @@ function IssueDetailPage() {
 							<ActivityFeed projectId={projectId} issueKey={issueKey} />
 						</TabsContent>
 
-						<TabsContent value="time" className="mt-4">
-							<TimeTracker
-								projectId={projectId}
-								issueKey={issueKey}
-								estimateMinutes={issue.estimate_minutes}
-								timeSpentMinutes={issue.time_spent_minutes}
-							/>
-						</TabsContent>
 					</Tabs>
 				</div>
 
