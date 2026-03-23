@@ -42,23 +42,27 @@ const MUTE_OPTIONS = [
 // Утилиты
 // ---------------------------------------------------------------------------
 
-/** Группирует каналы по типу (личные, групповые, проекты, публичные). */
+/** Группирует каналы: закреплённые → личные → каналы (pub+priv+group). */
 function groupChannels(channels: Channel[]) {
-	const groups: Record<string, { label: string; channels: Channel[] }> = {
-		dm: { label: "Личные сообщения", channels: [] },
-		group: { label: "Групповые", channels: [] },
-		private: { label: "Приватные", channels: [] },
-		public: { label: "Каналы", channels: [] },
-	};
+	const starred: Channel[] = [];
+	const dm: Channel[] = [];
+	const rest: Channel[] = [];
+
 	for (const ch of channels) {
-		const group = groups[ch.channel_type];
-		if (group) {
-			group.channels.push(ch);
+		if (ch.is_starred) {
+			starred.push(ch);
+		} else if (ch.channel_type === "dm") {
+			dm.push(ch);
 		} else {
-			groups.group?.channels.push(ch);
+			rest.push(ch);
 		}
 	}
-	return Object.entries(groups).filter(([, g]) => g.channels.length > 0);
+
+	const groups: [string, { label: string; channels: Channel[] }][] = [];
+	if (starred.length > 0) groups.push(["starred", { label: "Закреплённые", channels: starred }]);
+	if (dm.length > 0) groups.push(["dm", { label: "Личные", channels: dm }]);
+	if (rest.length > 0) groups.push(["channels", { label: "Каналы", channels: rest }]);
+	return groups;
 }
 
 /** Проверяет, замьючен ли канал (muted_until в будущем). */
