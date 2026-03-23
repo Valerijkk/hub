@@ -36,6 +36,7 @@ interface NotificationState {
 	deleteNotification: (id: string) => Promise<void>;
 	/** Пометить все прочитанными. */
 	markAllRead: () => Promise<void>;
+	clearAll: () => Promise<void>;
 	/** Загрузить количество непрочитанных. */
 	fetchUnreadCount: () => Promise<void>;
 }
@@ -144,6 +145,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 				})),
 				unreadCount: 0,
 			}));
+		} catch {
+			// Ошибка — игнорируем.
+		}
+	},
+
+	clearAll: async () => {
+		try {
+			await apiMarkAllRead();
+			set({ notifications: [], unreadCount: 0 });
 		} catch {
 			// Ошибка — игнорируем.
 		}

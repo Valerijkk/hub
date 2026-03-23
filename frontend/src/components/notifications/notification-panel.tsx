@@ -56,6 +56,7 @@ export function NotificationPanel() {
 	const hasMore = useNotificationStore((s) => s.hasMore);
 	const markRead = useNotificationStore((s) => s.markRead);
 	const markAllRead = useNotificationStore((s) => s.markAllRead);
+	const clearAll = useNotificationStore((s) => s.clearAll);
 	const deleteNotification = useNotificationStore((s) => s.deleteNotification);
 	const fetchMore = useNotificationStore((s) => s.fetchMore);
 
@@ -157,7 +158,7 @@ export function NotificationPanel() {
 						variant="ghost"
 						size="sm"
 						className="h-auto px-2 py-1 text-xs text-destructive/70 hover:text-destructive"
-						onClick={() => void markAllRead()}
+						onClick={() => void clearAll()}
 					>
 						Удалить все
 					</Button>
