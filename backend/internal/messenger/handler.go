@@ -111,6 +111,102 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	polls.Post("/:pollId/vote", h.VotePoll)
 	polls.Post("/:pollId/close", h.ClosePoll)
 	polls.Get("/:pollId", h.GetPollResults)
+
+	// Пригласительные ссылки
+	channels.Post("/:channelId/invites", h.CreateInviteLink)
+	channels.Get("/:channelId/invites", h.ListChannelInvites)
+	channels.Delete("/:channelId/invites/:inviteId", h.RevokeInvite)
+	invites := msg.Group("/invites")
+	invites.Get("/:token", h.ValidateInvite)
+	invites.Post("/:token/accept", h.AcceptInvite)
+}
+
+// ---------------------------------------------------------------------------
+// Invite Link Handlers
+// ---------------------------------------------------------------------------
+
+func (h *Handler) CreateInviteLink(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	var req CreateInviteLinkRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+	}
+	resp, err := h.service.CreateInviteLink(c.Context(), channelID, userID, req)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
+func (h *Handler) ListChannelInvites(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	invites, err := h.service.ListChannelInvites(c.Context(), channelID, userID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(invites)
+}
+
+func (h *Handler) ValidateInvite(c fiber.Ctx) error {
+	token := c.Params("token")
+	if token == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "token required")
+	}
+	resp, err := h.service.ValidateInvite(c.Context(), token)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, err.Error())
+	}
+	return c.JSON(resp)
+}
+
+func (h *Handler) AcceptInvite(c fiber.Ctx) error {
+	token := c.Params("token")
+	if token == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "token required")
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	resp, err := h.service.AcceptInvite(c.Context(), token, userID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	return c.JSON(resp)
+}
+
+func (h *Handler) RevokeInvite(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
+	inviteIDStr := c.Params("inviteId")
+	inviteID, err := uuid.Parse(inviteIDStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid invite ID")
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	if err := h.service.RevokeInvite(c.Context(), channelID, inviteID, userID); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.SendStatus(fiber.StatusOK)
 }
 
 // ---------------------------------------------------------------------------
