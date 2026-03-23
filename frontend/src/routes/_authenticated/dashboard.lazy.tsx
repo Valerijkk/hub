@@ -8,7 +8,7 @@ import {
 	Plus,
 	Search,
 } from "lucide-react";
-import { createLazyFileRoute } from "@tanstack/react-router";
+import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { personalDefault } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
@@ -47,6 +47,7 @@ function formatTime(): string {
 }
 
 function PersonalDashboard() {
+	const navigate = useNavigate();
 	const fetchPersonal = useDashboardStore((s) => s.fetchPersonal);
 	const loadLayout = useDashboardStore((s) => s.loadLayout);
 	const personalData = useDashboardStore((s) => s.personalData);
@@ -113,6 +114,7 @@ function PersonalDashboard() {
 							variant="outline"
 							size="sm"
 							className="gap-1.5 transition-all duration-200 hover:shadow-sm"
+							onClick={() => navigate({ to: "/projects" })}
 						>
 							<Plus className="h-3.5 w-3.5" />
 							Новая задача
@@ -121,6 +123,7 @@ function PersonalDashboard() {
 							variant="outline"
 							size="sm"
 							className="gap-1.5 transition-all duration-200 hover:shadow-sm"
+							onClick={() => navigate({ to: "/messenger" })}
 						>
 							<MessageSquarePlus className="h-3.5 w-3.5" />
 							Написать
@@ -129,6 +132,7 @@ function PersonalDashboard() {
 							variant="outline"
 							size="sm"
 							className="gap-1.5 transition-all duration-200 hover:shadow-sm"
+							onClick={() => navigate({ to: "/calls" })}
 						>
 							<CalendarPlus className="h-3.5 w-3.5" />
 							Событие
