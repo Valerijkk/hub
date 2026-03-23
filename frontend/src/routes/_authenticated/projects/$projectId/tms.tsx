@@ -2,6 +2,7 @@ import {
 	createFileRoute,
 	Link,
 	Outlet,
+	redirect,
 	useLocation,
 } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
@@ -175,5 +176,10 @@ function TmsLayout() {
 export const Route = createFileRoute("/_authenticated/projects/$projectId/tms")(
 	{
 		component: TmsLayout,
+		beforeLoad: ({ location, params }) => {
+			if (location.pathname.endsWith("/tms") || location.pathname.endsWith("/tms/")) {
+				throw redirect({ to: "/projects/$projectId/tms/cases", params: { projectId: params.projectId } });
+			}
+		},
 	},
 );
