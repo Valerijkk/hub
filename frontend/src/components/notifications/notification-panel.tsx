@@ -144,14 +144,24 @@ export function NotificationPanel() {
 			{/* Заголовок */}
 			<div className="flex items-center justify-between px-4 py-3">
 				<h3 className="text-sm font-semibold">Уведомления</h3>
-				<Button
-					variant="ghost"
-					size="sm"
-					className="h-auto px-2 py-1 text-xs text-muted-foreground"
-					onClick={() => void markAllRead()}
-				>
-					Прочитать все
-				</Button>
+				<div className="flex items-center gap-1">
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-auto px-2 py-1 text-xs text-muted-foreground"
+						onClick={() => void markAllRead()}
+					>
+						Прочитать все
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-auto px-2 py-1 text-xs text-destructive/70 hover:text-destructive"
+						onClick={() => void markAllRead()}
+					>
+						Удалить все
+					</Button>
+				</div>
 			</div>
 			<Separator />
 

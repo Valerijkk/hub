@@ -3,6 +3,7 @@
  * Аватар 28px + имя + шестерёнка настроек. Зелёная точка online.
  */
 import { Link } from "@tanstack/react-router";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import {
 	Tooltip,
 	TooltipContent,
@@ -78,6 +79,9 @@ export function SidebarUserProfile({
 						</p>
 					)}
 				</div>
+				{/* Уведомления */}
+				<NotificationBell />
+
 				{/* Настройки */}
 				<Tooltip>
 					<TooltipTrigger asChild>

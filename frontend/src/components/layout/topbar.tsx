@@ -1,67 +1,24 @@
 /**
- * Верхняя панель приложения — чистый, минимальный дизайн.
- *
- * Тонкий бордер снизу, аватар пользователя с выпадающим меню.
- * На мобильных — hamburger для открытия sidebar.
+ * Верхняя панель — минимальная, только hamburger для мобильных.
+ * Профиль и уведомления перенесены в sidebar.
  */
-import { useNavigate } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
-import { logout as apiLogout } from "@/api/auth";
-import { NotificationBell } from "@/components/notifications/notification-bell";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAuthStore } from "@/stores/auth-store";
 
-/** Пропсы компонента Topbar. */
 interface TopbarProps {
-	/** Колбэк переключения мобильного меню. */
 	onMenuToggle?: () => void;
 }
 
-/** Верхняя панель приложения с аватаром пользователя, уведомлениями и hamburger-меню. */
 export function Topbar({ onMenuToggle }: TopbarProps) {
-	const navigate = useNavigate();
-	const { user, logout: storeLogout } = useAuthStore();
-	const { t } = useTranslation("common");
-
-	const initials = user?.name
-		? user.name
-				.split(" ")
-				.map((n) => n[0])
-				.join("")
-				.toUpperCase()
-				.slice(0, 2)
-		: (user?.email?.charAt(0)?.toUpperCase() ?? "U");
-
-	async function handleLogout() {
-		try {
-			await apiLogout();
-		} catch {
-			/* Выходим даже при ошибке API */
-		}
-		storeLogout();
-		void navigate({ to: "/login" });
-	}
-
 	return (
 		<header className="flex h-14 items-center justify-between border-b bg-card/70 backdrop-blur-md px-4 lg:px-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-			{/* Левая часть */}
 			<div className="flex items-center gap-2">
-				{/* Hamburger для мобильных */}
 				{onMenuToggle && (
 					<Button
 						variant="ghost"
 						size="icon"
 						className="h-8 w-8 md:hidden text-muted-foreground"
 						onClick={onMenuToggle}
-						aria-label={t("topbar.menu")}
+						aria-label="Меню"
 					>
 						<svg
 							width="16"
@@ -77,56 +34,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
 					</Button>
 				)}
 			</div>
-
-			{/* Правая часть */}
-			<div className="flex items-center gap-1.5">
-				{/* Уведомления */}
-				<NotificationBell />
-
-				{/* Меню пользователя */}
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-8 w-8 rounded-full p-0 ml-1"
-						>
-							<Avatar className="h-7 w-7">
-								<AvatarImage
-									src={user?.avatar_url ?? undefined}
-									alt={user?.name ?? t("auth.user")}
-								/>
-								<AvatarFallback className="text-[11px] font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-									{initials}
-								</AvatarFallback>
-							</Avatar>
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end" className="w-52 rounded-lg">
-						<div className="px-3 py-2">
-							<p className="text-sm font-medium">
-								{user?.name ?? t("auth.user")}
-							</p>
-							<p className="text-xs text-muted-foreground truncate">
-								{user?.email}
-							</p>
-						</div>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							onClick={() => void navigate({ to: "/settings/profile" })}
-						>
-							{t("auth.profile")}
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							onClick={handleLogout}
-							className="text-destructive focus:text-destructive"
-						>
-							{t("auth.signOut")}
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			</div>
+			<div />
 		</header>
 	);
 }
