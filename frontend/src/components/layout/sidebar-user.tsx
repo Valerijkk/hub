@@ -67,18 +67,14 @@ export function SidebarUserProfile({
 
 	return (
 		<div className="shrink-0 border-t border-white/[0.06] px-3 py-2.5">
-			<div className="flex items-center gap-2.5">
+			<div className="flex items-center gap-2">
 				{avatarBlock}
 				<div className="flex-1 min-w-0">
 					<p className="truncate text-[13px] font-medium text-white leading-tight">
 						{displayName}
 					</p>
-					{user?.position && (
-						<p className="truncate text-[11px] text-[#D1D2D3]/50 leading-tight">
-							{user.position}
-						</p>
-					)}
 				</div>
+				<div className="flex items-center gap-0.5 shrink-0">
 				{/* Уведомления */}
 				<NotificationBell />
 
@@ -109,6 +105,7 @@ export function SidebarUserProfile({
 					</TooltipTrigger>
 					<TooltipContent side="top">Настройки</TooltipContent>
 				</Tooltip>
+				</div>
 			</div>
 		</div>
 	);
