@@ -1,7 +1,8 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { type IssueResponse, listIssues } from "@/api/tracker";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import { useSprintStore } from "@/stores/sprint-store";
 
 /** Пропсы компонента SprintBacklog. */
@@ -13,7 +14,7 @@ interface SprintBacklogProps {
 /**
  * SprintBacklog отображает задачи без спринта (бэклог)
  * и задачи в спринтах со статусом planning.
- * Поддерживает перетаскивание задач в спринт.
+ * Поддерживает выбор задач и перемещение в спринт.
  */
 export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	const { sprints, fetchSprints, moveIssueToSprint } = useSprintStore();
@@ -107,16 +108,21 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 									<span className="text-xs font-mono text-muted-foreground">
 										{issue.issue_key}
 									</span>
-									<CardTitle className="text-sm font-normal">
+									<Link
+										to="/projects/$projectId/issues/$issueKey"
+										params={{ projectId, issueKey: issue.issue_key }}
+										className="text-sm hover:text-primary hover:underline transition-colors"
+										onClick={(e) => e.stopPropagation()}
+									>
 										{issue.title}
-									</CardTitle>
+									</Link>
 									<span
 										className={`ml-auto rounded px-2 py-0.5 text-xs ${
 											issue.priority === "critical"
-												? "bg-red-100 text-red-800"
+												? "bg-red-500/20 text-red-400"
 												: issue.priority === "high"
-													? "bg-orange-100 text-orange-800"
-													: "bg-gray-100 text-gray-600"
+													? "bg-orange-500/20 text-orange-400"
+													: "bg-muted text-muted-foreground"
 										}`}
 									>
 										{issue.priority}
