@@ -1,21 +1,88 @@
-name: Deploy
+name: Build & Deploy
 
 on:
   push:
     branches: [master]
 
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ghcr.io/valerijkk/hub/backend
+  FRONTEND_IMAGE: ghcr.io/valerijkk/hub/frontend
+
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - name: Deploy to server via SSH
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.BACKEND_IMAGE }}:latest,${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+
+      - name: Build & push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ env.FRONTEND_IMAGE }}:latest,${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to server
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            # Pull new images
+            docker pull ghcr.io/valerijkk/hub/backend:latest
+            docker pull ghcr.io/valerijkk/hub/frontend:latest
+
+            # Update code (for compose + caddyfile)
             cd /opt/hub
-            git pull origin master
-            docker compose -f docker-compose.demo.yml up -d --build --remove-orphans
-            echo "Deployed $(git log --oneline -1)"
+            git reset --hard origin/master
+
+            # Fix prod configs
+            sed -i 's/DEV_MODE: "false"/DEV_MODE: "true"/' deployments/docker-compose.prod.yml
+
+            # Restart backend
+            cd deployments
+            IMAGE_BACKEND=ghcr.io/valerijkk/hub/backend:latest \
+            IMAGE_FRONTEND=ghcr.io/valerijkk/hub/frontend:latest \
+            docker compose -f docker-compose.prod.yml --env-file .env -p hub up -d --force-recreate backend
+
+            # Restart frontend
+            docker rm -f frontend 2>/dev/null || true
+            docker run -d --name frontend \
+              --network hub_default \
+              --network-alias frontend \
+              --restart unless-stopped \
+              ghcr.io/valerijkk/hub/frontend:latest
+
+            # Restart caddy
+            docker start hub-caddy-1 2>/dev/null || true
+            docker restart hub-caddy-1 2>/dev/null || true
+
+            # Cleanup
+            docker image prune -f
+            docker builder prune -f
+
+            echo "Deployed $(cd /opt/hub && git log --oneline -1)"
