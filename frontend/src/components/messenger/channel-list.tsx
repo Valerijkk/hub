@@ -553,28 +553,19 @@ export function ChannelList() {
 				</div>
 			</div>
 
-			{/* Bottom panel -- create channel */}
-			<div className="border-t border-white/10 p-3">
+			{/* Bottom panel -- create channel + new DM */}
+			<div className="border-t border-white/[0.06] px-3 py-2 flex gap-2">
+				<NewDmDialog />
 				<Dialog>
 					<DialogTrigger asChild>
 						<button
 							type="button"
-							className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-sidebar-foreground/50 hover:bg-white/8 hover:text-sidebar-foreground transition-colors"
+							className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-sidebar-foreground/40 hover:bg-white/[0.06] hover:text-sidebar-foreground/70 transition-colors"
 						>
-							<svg
-								className="h-3.5 w-3.5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={2}
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M12 4v16m8-8H4"
-								/>
+							<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+								<path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
 							</svg>
-							Создать канал
+							Канал
 						</button>
 					</DialogTrigger>
 					<DialogContent>
