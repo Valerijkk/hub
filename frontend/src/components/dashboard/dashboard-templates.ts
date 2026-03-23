@@ -6,31 +6,31 @@ import type { LayoutItem } from "@/api/dashboard";
 
 /** Персональный дашборд по умолчанию. */
 export const personalDefault: LayoutItem[] = [
-	{ i: "my-tasks-1", x: 0, y: 0, w: 8, h: 4, widget_type: "my-tasks" },
+	{ i: "my-tasks-1", x: 0, y: 0, w: 6, h: 3, widget_type: "my-tasks" },
+	{
+		i: "team-activity-1",
+		x: 6,
+		y: 0,
+		w: 6,
+		h: 3,
+		widget_type: "team-activity",
+	},
+	{ i: "deadlines-1", x: 0, y: 3, w: 3, h: 2, widget_type: "deadlines" },
 	{
 		i: "unread-messages-1",
-		x: 8,
-		y: 0,
-		w: 4,
+		x: 3,
+		y: 3,
+		w: 3,
 		h: 2,
 		widget_type: "unread-messages",
 	},
 	{
 		i: "upcoming-calls-1",
-		x: 8,
-		y: 2,
-		w: 4,
-		h: 2,
-		widget_type: "upcoming-calls",
-	},
-	{ i: "deadlines-1", x: 0, y: 4, w: 6, h: 3, widget_type: "deadlines" },
-	{
-		i: "team-activity-1",
 		x: 6,
-		y: 4,
-		w: 6,
+		y: 3,
+		w: 3,
 		h: 3,
-		widget_type: "team-activity",
+		widget_type: "upcoming-calls",
 	},
 ];
 

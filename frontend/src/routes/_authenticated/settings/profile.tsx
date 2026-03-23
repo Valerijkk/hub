@@ -16,6 +16,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { useAuthStore } from "@/stores/auth-store";
 
 /**
@@ -188,17 +195,18 @@ function ProfilePage() {
 							<Label className="text-sm text-muted-foreground shrink-0">
 								Убрать через:
 							</Label>
-							<select
-								value={statusDuration}
-								onChange={(e) => setStatusDuration(e.target.value)}
-								className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-							>
-								{durationOptions.map((opt) => (
-									<option key={opt.value} value={opt.value}>
-										{opt.label}
-									</option>
-								))}
-							</select>
+							<Select value={statusDuration} onValueChange={setStatusDuration}>
+								<SelectTrigger className="w-44">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{durationOptions.map((opt) => (
+										<SelectItem key={opt.value} value={opt.value}>
+											{opt.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 						{/* Быстрый выбор статуса с эмодзи */}
 						<div className="flex flex-wrap gap-1.5">

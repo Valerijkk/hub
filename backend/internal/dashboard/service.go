@@ -121,11 +121,13 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 		for _, c := range activeCalls {
 			cs := CallSummary{
 				ID:          c.ID,
-				Title:       c.RoomName,
 				ScheduledAt: c.CreatedAt,
 			}
 			if c.Edges.Channel != nil {
 				cs.ChannelName = c.Edges.Channel.Name
+				cs.Title = c.Edges.Channel.Name
+			} else {
+				cs.Title = c.RoomName
 			}
 			data.UpcomingCalls = append(data.UpcomingCalls, cs)
 		}
