@@ -326,9 +326,9 @@ func (s *MessengerService) ListChannelInvites(ctx context.Context, channelID, us
 // toChannelInviteResponse конвертирует Ent ChannelInvite в DTO ответа.
 func toChannelInviteResponse(inv *ent.ChannelInvite) *ChannelInviteResponse {
 	resp := &ChannelInviteResponse{
-		ID:        inv.ID.String(),
-		ChannelID: inv.ChannelID.String(),
-		CreatorID: inv.CreatorID.String(),
+		ID:        inv.ID,
+		ChannelID: inv.ChannelID,
+		CreatorID: inv.CreatorID,
 		Token:     inv.Token,
 		InviteURL: "/invite/" + inv.Token,
 		MaxUses:   inv.MaxUses,

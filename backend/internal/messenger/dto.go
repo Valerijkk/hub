@@ -248,3 +248,37 @@ func toMessageResponse(doc *MessageDocument) *MessageResponse {
 		CreatedAt:       doc.CreatedAt,
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Channel Invite DTOs
+// ---------------------------------------------------------------------------
+
+// CreateInviteLinkRequest — тело запроса для создания пригласительной ссылки.
+type CreateInviteLinkRequest struct {
+	MaxUses   int    `json:"max_uses"`
+	ExpiresIn string `json:"expires_in"`
+}
+
+// ChannelInviteResponse — ответ с данными пригласительной ссылки.
+type ChannelInviteResponse struct {
+	ID        uuid.UUID  `json:"id"`
+	ChannelID uuid.UUID  `json:"channel_id"`
+	CreatorID uuid.UUID  `json:"creator_id"`
+	Token     string     `json:"token"`
+	InviteURL string     `json:"invite_url"`
+	MaxUses   int        `json:"max_uses"`
+	UseCount  int        `json:"use_count"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	IsRevoked bool       `json:"is_revoked"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+// InviteValidationResponse — результат валидации пригласительной ссылки.
+type InviteValidationResponse struct {
+	Valid       bool   `json:"valid"`
+	ChannelName string `json:"channel_name,omitempty"`
+	ChannelType string `json:"channel_type,omitempty"`
+	ChannelID   string `json:"channel_id,omitempty"`
+	MemberCount int    `json:"member_count,omitempty"`
+	Message     string `json:"message,omitempty"`
+}

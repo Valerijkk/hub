@@ -72,6 +72,7 @@ func (Channel) Edges() []ent.Edge {
 		edge.To("calls", Call.Type),
 		edge.To("scheduled_calls", ScheduledCall.Type),
 		edge.To("polls", Poll.Type),
+		edge.To("invites", ChannelInvite.Type),
 	}
 }
 
