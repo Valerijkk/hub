@@ -554,7 +554,7 @@ export function ChannelList() {
 			</div>
 
 			{/* Bottom panel -- create channel + new DM */}
-			<div className="border-t border-white/[0.06] px-3 py-2 flex gap-2">
+			<div className="border-t border-white/[0.06] px-3 h-12 flex items-center gap-2">
 				<NewDmDialog />
 				<Dialog>
 					<DialogTrigger asChild>

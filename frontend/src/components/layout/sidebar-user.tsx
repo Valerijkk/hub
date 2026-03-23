@@ -66,7 +66,7 @@ export function SidebarUserProfile({
 	}
 
 	return (
-		<div className="shrink-0 border-t border-white/[0.06] px-3 py-2.5">
+		<div className="shrink-0 border-t border-white/[0.06] px-3 h-12 flex items-center">
 			<div className="flex items-center gap-2">
 				{avatarBlock}
 				<div className="flex-1 min-w-0">
