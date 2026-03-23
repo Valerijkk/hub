@@ -104,6 +104,13 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 
 	// DM
 	msg.Post("/dm", h.CreateOrGetDM)
+
+	// Опросы
+	channels.Post("/:channelId/polls", h.CreatePoll)
+	polls := msg.Group("/polls")
+	polls.Post("/:pollId/vote", h.VotePoll)
+	polls.Post("/:pollId/close", h.ClosePoll)
+	polls.Get("/:pollId", h.GetPollResults)
 }
 
 // ---------------------------------------------------------------------------
@@ -786,6 +793,113 @@ func (h *Handler) UnmuteChannel(c fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusOK)
+}
+
+// ---------------------------------------------------------------------------
+// DM handlers
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Poll handlers
+// ---------------------------------------------------------------------------
+
+// parsePollID извлекает и валидирует pollId из параметров пути.
+func parsePollID(c fiber.Ctx) (uuid.UUID, error) {
+	idStr := utils.CopyString(c.Params("pollId"))
+	if idStr == "" {
+		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "poll ID обязателен")
+	}
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "некорректный poll ID")
+	}
+	return id, nil
+}
+
+// CreatePoll обрабатывает POST /api/messenger/channels/:channelId/polls
+func (h *Handler) CreatePoll(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	var req CreatePollRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+
+	resp, err := h.service.CreatePoll(c.Context(), channelID, userID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
+// VotePoll обрабатывает POST /api/messenger/polls/:pollId/vote
+func (h *Handler) VotePoll(c fiber.Ctx) error {
+	pollID, err := parsePollID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	var req VotePollRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+
+	resp, err := h.service.VotePoll(c.Context(), pollID, userID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// ClosePoll обрабатывает POST /api/messenger/polls/:pollId/close
+func (h *Handler) ClosePoll(c fiber.Ctx) error {
+	pollID, err := parsePollID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.ClosePoll(c.Context(), pollID, userID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
+}
+
+// GetPollResults обрабатывает GET /api/messenger/polls/:pollId
+func (h *Handler) GetPollResults(c fiber.Ctx) error {
+	pollID, err := parsePollID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.GetPollResults(c.Context(), pollID, userID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
 }
 
 // ---------------------------------------------------------------------------

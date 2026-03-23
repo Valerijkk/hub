@@ -105,6 +105,8 @@ func (User) Edges() []ent.Edge {
 		edge.To("recordings", Recording.Type),
 		edge.To("scheduled_calls", ScheduledCall.Type),
 		edge.To("project_templates", ProjectTemplate.Type),
+		edge.To("polls", Poll.Type),
+		edge.To("poll_votes", PollVote.Type),
 	}
 }
 

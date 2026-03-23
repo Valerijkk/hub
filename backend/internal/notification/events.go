@@ -32,6 +32,8 @@ const (
 	ChannelInApp = "in_app"
 	// ChannelTelegram — доставка через Telegram-бот.
 	ChannelTelegram = "telegram"
+	// ChannelPush — доставка через браузерные Web Push уведомления.
+	ChannelPush = "push"
 )
 
 // SubjectToType сопоставляет NATS subject с типом уведомления.

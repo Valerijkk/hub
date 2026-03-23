@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Channel, Message } from "@/api/messenger";
 import { getChannel } from "@/api/messenger";
 import { CallButton } from "@/components/calls/CallButton";
+import { InviteLinkDialog } from "./invite-link-dialog";
 import { PinnedMessages } from "./pinned-messages";
 import { SearchDialog } from "./search-dialog";
 import { useMessages } from "@/hooks/use-messages";
@@ -227,6 +228,9 @@ export function ChatView({ channelId }: ChatViewProps) {
 					</div>
 				</div>
 				<div className="flex items-center gap-0.5">
+					{channel && channel.channel_type !== "dm" && (
+						<InviteLinkDialog channelId={channelId} />
+					)}
 					<CallButton channelId={channelId} />
 					<SearchDialog channelId={channelId} />
 					<PinnedMessages channelId={channelId} />

@@ -19,6 +19,7 @@ type NotificationService struct {
 	repo     *Repository
 	nats     *natsclient.Client
 	telegram *TelegramSender
+	push     *PushSender
 	db       *ent.Client
 }
 
@@ -30,6 +31,16 @@ func NewNotificationService(repo *Repository, nc *natsclient.Client, telegram *T
 		telegram: telegram,
 		db:       db,
 	}
+}
+
+// SetPushSender устанавливает отправителя push-уведомлений.
+func (s *NotificationService) SetPushSender(push *PushSender) {
+	s.push = push
+}
+
+// PushSender возвращает отправителя push-уведомлений (для handler).
+func (s *NotificationService) PushSender() *PushSender {
+	return s.push
 }
 
 // Dispatch создаёт и отправляет уведомление пользователю.
@@ -75,7 +86,34 @@ func (s *NotificationService) Dispatch(ctx context.Context, userID uuid.UUID, no
 		s.sendTelegram(ctx, userID, title, body)
 	}
 
+	// Отправляем через Web Push если канал включён и есть подписки.
+	pushEnabled, err := s.repo.IsEnabled(ctx, userID, notifType, ChannelPush, projectID)
+	if err != nil {
+		slog.Error("ошибка проверки предпочтений push", "error", err, "user_id", userID)
+	}
+	if pushEnabled && s.push != nil {
+		// URL для навигации при клике на уведомление.
+		pushURL := buildPushURL(entityType, entityID)
+		s.push.Send(userID, title, body, pushURL)
+	}
+
 	return nil
+}
+
+// buildPushURL формирует URL для навигации при клике на push-уведомление.
+func buildPushURL(entityType, entityID string) string {
+	switch entityType {
+	case "issue":
+		return "/tracker/issues/" + entityID
+	case "channel":
+		return "/messenger/channels/" + entityID
+	case "testrun":
+		return "/tms/runs/" + entityID
+	case "call":
+		return "/calls/" + entityID
+	default:
+		return "/"
+	}
 }
 
 // publishToWS публикует уведомление в NATS для доставки через WS bridge.

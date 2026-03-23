@@ -92,3 +92,32 @@ export function getPreferences() {
 export function updatePreference(data: PreferenceUpdateRequest) {
 	return api.put<PreferenceDTO>("/notifications/preferences", data);
 }
+
+// --- Web Push API ---
+
+/** Ответ с публичным VAPID-ключом. */
+export interface VAPIDKeyResponse {
+	vapid_public_key: string;
+}
+
+/** Запрос на подписку push-уведомлений. */
+export interface PushSubscribeRequest {
+	endpoint: string;
+	p256dh_key: string;
+	auth_key: string;
+}
+
+/** Получить публичный VAPID-ключ. */
+export function getVAPIDKey() {
+	return api.get<VAPIDKeyResponse>("/notifications/push/vapid-key");
+}
+
+/** Подписаться на push-уведомления. */
+export function subscribeToPush(data: PushSubscribeRequest) {
+	return api.post<void>("/notifications/push/subscribe", data);
+}
+
+/** Отписаться от push-уведомлений. */
+export function unsubscribeFromPush(endpoint: string) {
+	return api.request<void>("DELETE", "/notifications/push/unsubscribe", { endpoint });
+}

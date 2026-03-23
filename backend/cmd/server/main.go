@@ -317,10 +317,12 @@ func main() {
 	searchHandler := searchmod.NewHandler(searchSvc)
 	searchHandler.RegisterRoutes(api, requireAuth)
 
-	// Notification routes (уведомления: in-app + Telegram)
+	// Notification routes (уведомления: in-app + Telegram + Web Push)
 	notifRepo := notifmod.NewRepository(db)
 	telegramSender := notifmod.NewTelegramSender(cfg.Telegram.BotToken)
+	pushSender := notifmod.NewPushSender(db, cfg.WebPush)
 	notifSvc := notifmod.NewNotificationService(notifRepo, nc, telegramSender, db)
+	notifSvc.SetPushSender(pushSender)
 	notifConsumer := notifmod.NewConsumer(nc, notifRepo, notifSvc)
 	notifCtx, notifCancel := context.WithCancel(ctx)
 	defer notifCancel()
@@ -329,6 +331,9 @@ func main() {
 	}
 	if telegramSender != nil {
 		telegramSender.Start(notifCtx)
+	}
+	if pushSender != nil {
+		pushSender.Start(notifCtx)
 	}
 	notifHandler := notifmod.NewHandler(notifSvc)
 	notifHandler.RegisterRoutes(api, requireAuth)

@@ -58,6 +58,10 @@ export interface Message {
 	id: string;
 	channel_id: string;
 	sender_id: string;
+	/** Тип сообщения: обычное (пусто) или "poll". */
+	message_type?: string;
+	/** ID опроса (только для message_type="poll"). */
+	poll_id?: string;
 	content_json?: Record<string, unknown>;
 	content_text?: string;
 	voice_url?: string;
@@ -404,4 +408,136 @@ export interface LinkPreviewData {
 export function fetchLinkPreview(url: string) {
 	const params = new URLSearchParams({ url });
 	return api.get<LinkPreviewData>(`/link-preview?${params.toString()}`);
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Опросы (Polls)
+// ---------------------------------------------------------------------------
+
+/** Вариант ответа в опросе. */
+export interface PollOption {
+	id: string;
+	text: string;
+	position: number;
+	count: number;
+	/** ID проголосовавших (пусто при анонимном голосовании). */
+	voter_ids?: string[];
+	/** Проголосовал ли текущий пользователь за этот вариант. */
+	voted: boolean;
+}
+
+/** Опрос (соответствует backend PollResponse). */
+export interface Poll {
+	id: string;
+	channel_id: string;
+	creator_id: string;
+	question: string;
+	is_anonymous: boolean;
+	is_multi_choice: boolean;
+	is_closed: boolean;
+	total_votes: number;
+	options: PollOption[];
+	created_at: string;
+}
+
+/** Запрос на создание опроса. */
+export interface CreatePollRequest {
+	question: string;
+	options: string[];
+	is_anonymous?: boolean;
+	is_multi_choice?: boolean;
+}
+
+/** Создать опрос в канале. */
+export function createPoll(channelId: string, data: CreatePollRequest) {
+	return api.post<Poll>(
+		`/messenger/channels/${channelId}/polls`,
+		data,
+	);
+}
+
+/** Проголосовать в опросе. */
+export function votePoll(pollId: string, optionIds: string[]) {
+	return api.post<Poll>(`/messenger/polls/${pollId}/vote`, {
+		option_ids: optionIds,
+	});
+}
+
+/** Закрыть опрос (только создатель). */
+export function closePoll(pollId: string) {
+	return api.post<Poll>(`/messenger/polls/${pollId}/close`);
+}
+
+/** Получить результаты опроса. */
+export function getPollResults(pollId: string) {
+	return api.get<Poll>(`/messenger/polls/${pollId}`);
+}
+
+// ---------------------------------------------------------------------------
+// API-функции: Пригласительные ссылки (Channel Invites)
+// ---------------------------------------------------------------------------
+
+/** Пригласительная ссылка канала. */
+export interface ChannelInvite {
+	id: string;
+	channel_id: string;
+	creator_id: string;
+	token: string;
+	invite_url: string;
+	max_uses: number;
+	use_count: number;
+	expires_at?: string;
+	is_revoked: boolean;
+	created_at: string;
+}
+
+/** Результат валидации пригласительной ссылки. */
+export interface InviteValidation {
+	valid: boolean;
+	channel_name?: string;
+	channel_type?: string;
+	channel_id?: string;
+	member_count?: number;
+	message?: string;
+}
+
+/** Запрос на создание пригласительной ссылки. */
+export interface CreateInviteLinkRequest {
+	max_uses?: number;
+	expires_in?: string;
+}
+
+/** Создать пригласительную ссылку для канала. */
+export function createInviteLink(
+	channelId: string,
+	data: CreateInviteLinkRequest,
+) {
+	return api.post<ChannelInvite>(
+		`/messenger/channels/${channelId}/invites`,
+		data,
+	);
+}
+
+/** Получить список пригласительных ссылок канала. */
+export function getChannelInvites(channelId: string) {
+	return api.get<ChannelInvite[]>(
+		`/messenger/channels/${channelId}/invites`,
+	);
+}
+
+/** Валидировать пригласительную ссылку по токену. */
+export function validateInvite(token: string) {
+	return api.get<InviteValidation>(`/messenger/invites/${token}`);
+}
+
+/** Принять пригласительную ссылку и вступить в канал. */
+export function acceptInvite(token: string) {
+	return api.post<Channel>(`/messenger/invites/${token}/accept`);
+}
+
+/** Отозвать пригласительную ссылку. */
+export function revokeInvite(channelId: string, inviteId: string) {
+	return api.delete<void>(
+		`/messenger/channels/${channelId}/invites/${inviteId}`,
+	);
 }

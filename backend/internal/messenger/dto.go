@@ -104,6 +104,8 @@ type MessageResponse struct {
 	ID              string                 `json:"id"`
 	ChannelID       string                 `json:"channel_id"`
 	SenderID        string                 `json:"sender_id"`
+	MessageType     string                 `json:"message_type,omitempty"`
+	PollID          string                 `json:"poll_id,omitempty"`
 	ContentJSON     map[string]interface{} `json:"content_json"`
 	ContentText     string                 `json:"content_text,omitempty"`
 	ThreadID        string                 `json:"thread_id,omitempty"`
@@ -146,6 +148,8 @@ type MessageDocument struct {
 	ID              string                 `bson:"_id,omitempty"`
 	ChannelID       uuid.UUID              `bson:"channel_id"`
 	SenderID        uuid.UUID              `bson:"sender_id"`
+	MessageType     string                 `bson:"message_type,omitempty"`
+	PollID          string                 `bson:"poll_id,omitempty"`
 	ContentJSON     map[string]interface{} `bson:"content_json"`
 	ContentText     string                 `bson:"content_text,omitempty"`
 	ThreadID        string                 `bson:"thread_id,omitempty"`
@@ -177,12 +181,57 @@ type AttachmentRef struct {
 	URL      string `json:"url" bson:"url"`
 }
 
+// ---------------------------------------------------------------------------
+// Poll DTOs
+// ---------------------------------------------------------------------------
+
+// CreatePollRequest — запрос на создание опроса.
+type CreatePollRequest struct {
+	Question      string   `json:"question" validate:"required,min=1,max=500"`
+	Options       []string `json:"options" validate:"required,min=2,max=10"`
+	IsAnonymous   bool     `json:"is_anonymous"`
+	IsMultiChoice bool     `json:"is_multi_choice"`
+}
+
+// VotePollRequest — запрос на голосование в опросе.
+type VotePollRequest struct {
+	OptionIDs []string `json:"option_ids" validate:"required,min=1"`
+}
+
+// PollOptionResponse — вариант ответа в опросе.
+type PollOptionResponse struct {
+	ID       string   `json:"id"`
+	Text     string   `json:"text"`
+	Position int      `json:"position"`
+	Count    int      `json:"count"`
+	// VoterIDs содержит ID проголосовавших (пусто при анонимном голосовании).
+	VoterIDs []string `json:"voter_ids,omitempty"`
+	// Voted — проголосовал ли текущий пользователь за этот вариант.
+	Voted bool `json:"voted"`
+}
+
+// PollResponse — ответ с данными опроса.
+type PollResponse struct {
+	ID            string               `json:"id"`
+	ChannelID     string               `json:"channel_id"`
+	CreatorID     string               `json:"creator_id"`
+	Question      string               `json:"question"`
+	IsAnonymous   bool                 `json:"is_anonymous"`
+	IsMultiChoice bool                 `json:"is_multi_choice"`
+	IsClosed      bool                 `json:"is_closed"`
+	TotalVotes    int                  `json:"total_votes"`
+	Options       []PollOptionResponse `json:"options"`
+	CreatedAt     time.Time            `json:"created_at"`
+}
+
 // toMessageResponse конвертирует MongoDB-документ в DTO ответа.
 func toMessageResponse(doc *MessageDocument) *MessageResponse {
 	return &MessageResponse{
 		ID:              doc.ID,
 		ChannelID:       doc.ChannelID.String(),
 		SenderID:        doc.SenderID.String(),
+		MessageType:     doc.MessageType,
+		PollID:          doc.PollID,
 		ContentJSON:     doc.ContentJSON,
 		ContentText:     doc.ContentText,
 		ThreadID:        doc.ThreadID,

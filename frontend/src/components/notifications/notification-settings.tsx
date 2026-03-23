@@ -25,6 +25,7 @@ const NOTIFICATION_TYPES = [
 const CHANNELS = [
 	{ key: "in_app", label: "В приложении" },
 	{ key: "telegram", label: "Telegram" },
+	{ key: "push", label: "Push в браузере" },
 ] as const;
 
 /**

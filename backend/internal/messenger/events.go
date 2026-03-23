@@ -35,6 +35,15 @@ const (
 
 	// SubjectPresenceChanged — тема NATS для события изменения статуса присутствия.
 	SubjectPresenceChanged = "messenger.presence.%s.changed"
+
+	// SubjectPollCreated — тема NATS для события создания опроса.
+	SubjectPollCreated = "messenger.channel.%s.poll_created"
+
+	// SubjectPollVoted — тема NATS для события голосования в опросе.
+	SubjectPollVoted = "messenger.channel.%s.poll_voted"
+
+	// SubjectPollClosed — тема NATS для события закрытия опроса.
+	SubjectPollClosed = "messenger.channel.%s.poll_closed"
 )
 
 // ---------------------------------------------------------------------------
@@ -48,6 +57,8 @@ type MessageSentEvent struct {
 	MessageID        string    `json:"message_id"`
 	ChannelID        uuid.UUID `json:"channel_id"`
 	SenderID         uuid.UUID `json:"sender_id"`
+	MessageType      string    `json:"message_type,omitempty"`
+	PollID           string    `json:"poll_id,omitempty"`
 	ContentText      string    `json:"content_text"`
 	ThreadID         string    `json:"thread_id,omitempty"`
 	MentionedUserIDs []string  `json:"mentioned_user_ids,omitempty"`
@@ -85,4 +96,27 @@ type TypingEvent struct {
 	ChannelID string `json:"channel_id"`
 	UserID    string `json:"user_id"`
 	UserName  string `json:"user_name"`
+}
+
+// PollCreatedEvent — данные события создания опроса.
+type PollCreatedEvent struct {
+	PollID    string    `json:"poll_id"`
+	ChannelID uuid.UUID `json:"channel_id"`
+	CreatorID uuid.UUID `json:"creator_id"`
+	Question  string    `json:"question"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// PollVotedEvent — данные события голосования в опросе.
+type PollVotedEvent struct {
+	PollID    string    `json:"poll_id"`
+	ChannelID uuid.UUID `json:"channel_id"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
+// PollClosedEvent — данные события закрытия опроса.
+type PollClosedEvent struct {
+	PollID    string    `json:"poll_id"`
+	ChannelID uuid.UUID `json:"channel_id"`
+	ClosedBy  uuid.UUID `json:"closed_by"`
 }

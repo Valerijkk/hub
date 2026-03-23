@@ -64,6 +64,8 @@ export function useMessages(channelId: string | undefined) {
 						id: (evt.message_id ?? evt.id ?? "") as string,
 						channel_id: (evt.channel_id ?? channelId) as string,
 						sender_id: (evt.sender_id ?? "") as string,
+						message_type: (evt.message_type as string) ?? undefined,
+						poll_id: (evt.poll_id as string) ?? undefined,
 						content_text: (evt.content_text as string) ?? undefined,
 						content_json: (evt.content_json as Record<string, unknown>) ?? undefined,
 						reply_count: (evt.reply_count as number) ?? 0,

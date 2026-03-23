@@ -18,6 +18,7 @@ type Config struct {
 	Resend   ResendConfig
 	Telegram TelegramConfig
 	LiveKit  LiveKitConfig
+	WebPush  WebPushConfig
 }
 
 // ServerConfig — параметры HTTP-сервера (порт, таймауты, режим разработки).
@@ -85,6 +86,13 @@ type LiveKitConfig struct {
 	APISecret string // Секрет API для подписи токенов
 }
 
+// WebPushConfig — параметры Web Push (VAPID) для браузерных push-уведомлений.
+type WebPushConfig struct {
+	VAPIDPublicKey  string // Публичный VAPID-ключ (base64url)
+	VAPIDPrivateKey string // Приватный VAPID-ключ (base64url)
+	VAPIDSubject    string // Контактный email (mailto:admin@example.com)
+}
+
 // Load загружает конфигурацию из переменных окружения с значениями по умолчанию.
 func Load() *Config {
 	return &Config{
@@ -132,6 +140,11 @@ func Load() *Config {
 			URL:       getEnv("LIVEKIT_URL", "http://localhost:7880"),
 			APIKey:    getEnv("LIVEKIT_API_KEY", "devkey"),
 			APISecret: getEnv("LIVEKIT_API_SECRET", "devsecret"),
+		},
+		WebPush: WebPushConfig{
+			VAPIDPublicKey:  getEnv("VAPID_PUBLIC_KEY", ""),
+			VAPIDPrivateKey: getEnv("VAPID_PRIVATE_KEY", ""),
+			VAPIDSubject:    getEnv("VAPID_SUBJECT", "mailto:admin@hub.local"),
 		},
 	}
 }

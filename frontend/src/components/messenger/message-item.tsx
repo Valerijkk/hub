@@ -11,6 +11,7 @@ import { ForwardDialog } from "./forward-dialog";
 import { LinkPreview } from "./link-preview";
 import { MessageActions } from "./message-actions";
 import { MessageAttachments } from "./message-attachments";
+import { PollMessage } from "./poll-message";
 import { RenderContent } from "./render-content";
 
 /**
@@ -317,53 +318,63 @@ function MessageItemInner({
 							</div>
 						)}
 
-						{/* Message content (or inline edit) */}
-						{isEditing ? (
-							<div className="flex flex-col gap-1.5">
-								<textarea
-									ref={editInputRef}
-									value={editText}
-									onChange={(e) => setEditText(e.target.value)}
-									onKeyDown={handleEditKeyDown}
-									disabled={editSaving}
-									className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
-									rows={Math.min(
-										editText.split("\n").length + 1,
-										6,
-									)}
-								/>
-								<div className="flex items-center gap-1 justify-end">
-									<button
-										type="button"
-										className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-										title="Отменить (Esc)"
-										onClick={handleCancelEdit}
+						{/* Опрос — специальная карточка вместо обычного текста */}
+						{message.message_type === "poll" && message.poll_id && (
+							<PollMessage
+								pollId={message.poll_id}
+								channelId={channelId}
+							/>
+						)}
+
+						{/* Message content (or inline edit) — не показываем для опросов */}
+						{message.message_type !== "poll" && (
+							isEditing ? (
+								<div className="flex flex-col gap-1.5">
+									<textarea
+										ref={editInputRef}
+										value={editText}
+										onChange={(e) => setEditText(e.target.value)}
+										onKeyDown={handleEditKeyDown}
 										disabled={editSaving}
-									>
-										<X className="h-3.5 w-3.5" />
-									</button>
-									<button
-										type="button"
-										className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-primary hover:text-primary transition-colors"
-										title="Сохранить (Enter)"
-										onClick={() => void handleSaveEdit()}
-										disabled={editSaving || !editText.trim()}
-									>
-										<Check className="h-3.5 w-3.5" />
-									</button>
+										className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+										rows={Math.min(
+											editText.split("\n").length + 1,
+											6,
+										)}
+									/>
+									<div className="flex items-center gap-1 justify-end">
+										<button
+											type="button"
+											className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+											title="Отменить (Esc)"
+											onClick={handleCancelEdit}
+											disabled={editSaving}
+										>
+											<X className="h-3.5 w-3.5" />
+										</button>
+										<button
+											type="button"
+											className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-primary hover:text-primary transition-colors"
+											title="Сохранить (Enter)"
+											onClick={() => void handleSaveEdit()}
+											disabled={editSaving || !editText.trim()}
+										>
+											<Check className="h-3.5 w-3.5" />
+										</button>
+									</div>
 								</div>
-							</div>
-						) : (
-							<div className="text-sm leading-relaxed break-words">
-								{message.content_json && (
-									<RenderContent contentJson={message.content_json} />
-								)}
-								{!message.content_json && message.content_text && (
-									<p className="whitespace-pre-wrap">
-										{message.content_text}
-									</p>
-								)}
-							</div>
+							) : (
+								<div className="text-sm leading-relaxed break-words">
+									{message.content_json && (
+										<RenderContent contentJson={message.content_json} />
+									)}
+									{!message.content_json && message.content_text && (
+										<p className="whitespace-pre-wrap">
+											{message.content_text}
+										</p>
+									)}
+								</div>
+							)
 						)}
 
 						{/* Voice message */}
