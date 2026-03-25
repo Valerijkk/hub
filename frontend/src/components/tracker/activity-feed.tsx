@@ -1,26 +1,35 @@
 import { useQuery } from "@tanstack/react-query";
-import { type ActivityLogResponse, listActivities } from "@/api/tracker";
+import {
+	type ActivityLogResponse,
+	listActivities,
+	listWorkflowStatuses,
+} from "@/api/tracker";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
-/** Пропсы компонента ActivityFeed. */
 interface ActivityFeedProps {
-	/** ID проекта. */
 	projectId: string;
-	/** Ключ задачи (например, "HUB-42"). */
 	issueKey: string;
 }
 
-/**
- * Лента активности задачи.
- * Отображает хронологический список изменений с аватарами и diff-ами полей.
- * Поддерживает цветовое кодирование для статусов.
- */
 export function ActivityFeed({ projectId, issueKey }: ActivityFeedProps) {
 	const { data: activities, isLoading } = useQuery({
 		queryKey: ["activities", projectId, issueKey],
 		queryFn: () => listActivities(projectId, issueKey),
 	});
+
+	const { data: statuses } = useQuery({
+		queryKey: ["workflow-statuses", projectId],
+		queryFn: () => listWorkflowStatuses(projectId),
+	});
+
+	// Маппинг UUID статуса → имя
+	const statusMap = new Map<string, string>();
+	if (statuses) {
+		for (const s of statuses) {
+			statusMap.set(s.id, s.name);
+		}
+	}
 
 	if (isLoading) {
 		return (
@@ -35,21 +44,33 @@ export function ActivityFeed({ projectId, issueKey }: ActivityFeedProps) {
 	return (
 		<div className="space-y-3">
 			{activities.map((activity) => (
-				<ActivityItem key={activity.id} activity={activity} />
+				<ActivityItem
+					key={activity.id}
+					activity={activity}
+					statusMap={statusMap}
+				/>
 			))}
 		</div>
 	);
 }
 
-/** Пропсы элемента активности. */
-interface ActivityItemProps {
-	/** Данные записи лога активности. */
+function ActivityItem({
+	activity,
+	statusMap,
+}: {
 	activity: ActivityLogResponse;
-}
-
-/** Элемент лога активности с описанием изменений. */
-function ActivityItem({ activity }: ActivityItemProps) {
+	statusMap: Map<string, string>;
+}) {
 	const timeAgo = getTimeAgo(activity.created_at);
+
+	/** Резолвит значение — если это UUID статуса, возвращает имя. */
+	const resolveValue = (field: string, value: unknown): string => {
+		const str = String(value ?? "—");
+		if (field === "status" && statusMap.has(str)) {
+			return statusMap.get(str)!;
+		}
+		return str;
+	};
 
 	return (
 		<div className="flex gap-3 rounded-md border p-3">
@@ -69,7 +90,6 @@ function ActivityItem({ activity }: ActivityItemProps) {
 					<span className="text-xs text-muted-foreground">{timeAgo}</span>
 				</div>
 
-				{/* Изменения полей */}
 				{(activity.changes ?? []).length > 0 && (
 					<div className="mt-1 space-y-1">
 						{(activity.changes ?? []).map((change, idx) => (
@@ -80,20 +100,20 @@ function ActivityItem({ activity }: ActivityItemProps) {
 								{change.field === "status" ? (
 									<>
 										<Badge variant="outline" className="text-xs">
-											{String(change.old_value ?? "—")}
+											{resolveValue(change.field, change.old_value)}
 										</Badge>
 										<span className="text-muted-foreground">&rarr;</span>
 										<Badge variant="default" className="text-xs">
-											{String(change.new_value)}
+											{resolveValue(change.field, change.new_value)}
 										</Badge>
 									</>
 								) : (
 									<span>
 										<span className="text-muted-foreground line-through">
-											{String(change.old_value ?? "—")}
+											{resolveValue(change.field, change.old_value)}
 										</span>
 										{" \u2192 "}
-										{String(change.new_value)}
+										{resolveValue(change.field, change.new_value)}
 									</span>
 								)}
 							</div>
@@ -105,7 +125,6 @@ function ActivityItem({ activity }: ActivityItemProps) {
 	);
 }
 
-/** Получить русский ярлык действия. */
 function getActionLabel(action: string): string {
 	const labels: Record<string, string> = {
 		created: "создал задачу",
@@ -119,7 +138,6 @@ function getActionLabel(action: string): string {
 	return labels[action] ?? action;
 }
 
-/** Получить русский ярлык поля. */
 function getFieldLabel(field: string): string {
 	const labels: Record<string, string> = {
 		status: "Статус",
@@ -127,14 +145,12 @@ function getFieldLabel(field: string): string {
 		assignee: "Исполнитель",
 		title: "Название",
 		description: "Описание",
-		estimate_minutes: "Оценка",
 		due_date: "Срок",
 		labels: "Метки",
 	};
 	return labels[field] ?? field;
 }
 
-/** Вычисляет относительное время. */
 function getTimeAgo(dateStr: string): string {
 	const now = Date.now();
 	const then = new Date(dateStr).getTime();
