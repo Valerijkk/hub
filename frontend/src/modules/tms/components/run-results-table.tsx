@@ -4,6 +4,13 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 /** Конфигурация статусов результата -- цвета, лейблы и цвет точки-индикатора. */
@@ -117,18 +124,22 @@ export function RunResultsTable({
 		<>
 			{/* Фильтр по статусу результатов */}
 			<div className="mb-3 flex items-center gap-2">
-				<select
-					className="rounded-lg border bg-card px-2.5 py-1.5 text-xs h-8 shadow-sm cursor-pointer hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
-					value={statusFilter}
-					onChange={(e) => setStatusFilter(e.target.value)}
+				<Select
+					value={statusFilter || "all"}
+					onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}
 				>
-					<option value="">Все результаты</option>
-					<option value="passed">Passed</option>
-					<option value="failed">Failed</option>
-					<option value="broken">Broken</option>
-					<option value="skipped">Skipped</option>
-					<option value="unknown">Unknown</option>
-				</select>
+					<SelectTrigger className="rounded-xl border bg-card px-2.5 py-1.5 text-xs h-8 w-auto min-w-[140px] shadow-sm cursor-pointer hover:border-primary/40 transition-colors">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">Все результаты</SelectItem>
+						<SelectItem value="passed">Passed</SelectItem>
+						<SelectItem value="failed">Failed</SelectItem>
+						<SelectItem value="broken">Broken</SelectItem>
+						<SelectItem value="skipped">Skipped</SelectItem>
+						<SelectItem value="unknown">Unknown</SelectItem>
+					</SelectContent>
+				</Select>
 				{statusFilter && (
 					<Button
 						variant="ghost"

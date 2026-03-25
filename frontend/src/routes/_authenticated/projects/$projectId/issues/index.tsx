@@ -10,6 +10,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 /** Конфигурация цветов приоритетов. */
@@ -105,42 +112,50 @@ function IssueListPage() {
 						setAllIssues([]);
 					}}
 				/>
-				<select
-					className="rounded-md border bg-background px-3 py-1.5 text-sm"
-					value={priorityFilter}
-					onChange={(e) => {
-						setPriorityFilter(e.target.value);
+				<Select
+					value={priorityFilter || "all"}
+					onValueChange={(v) => {
+						setPriorityFilter(v === "all" ? "" : v);
 						setCursor(undefined);
 						setAllIssues([]);
 					}}
 				>
-					<option value="">Все приоритеты</option>
-					<option value="critical">Критический</option>
-					<option value="high">Высокий</option>
-					<option value="medium">Средний</option>
-					<option value="low">Низкий</option>
-					<option value="trivial">Тривиальный</option>
-				</select>
-				<select
-					className="rounded-md border bg-background px-3 py-1.5 text-sm"
-					value={typeFilter}
-					onChange={(e) => {
-						setTypeFilter(e.target.value);
+					<SelectTrigger className="rounded-xl border bg-background px-3 py-1.5 text-sm w-auto min-w-[140px]">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">Все приоритеты</SelectItem>
+						<SelectItem value="critical">Критический</SelectItem>
+						<SelectItem value="high">Высокий</SelectItem>
+						<SelectItem value="medium">Средний</SelectItem>
+						<SelectItem value="low">Низкий</SelectItem>
+						<SelectItem value="trivial">Тривиальный</SelectItem>
+					</SelectContent>
+				</Select>
+				<Select
+					value={typeFilter || "all"}
+					onValueChange={(v) => {
+						setTypeFilter(v === "all" ? "" : v);
 						setCursor(undefined);
 						setAllIssues([]);
 					}}
 				>
-					<option value="">Все типы</option>
-					<option value="bug">Баг</option>
-					<option value="task">Задача</option>
-					<option value="story">История</option>
-					<option value="epic">Эпик</option>
-					<option value="sub_task">Подзадача</option>
-					<option value="improvement">Улучшение</option>
-					<option value="tech_debt">Техдолг</option>
-					<option value="spike">Исследование</option>
-					<option value="release">Релиз</option>
-				</select>
+					<SelectTrigger className="rounded-xl border bg-background px-3 py-1.5 text-sm w-auto min-w-[120px]">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">Все типы</SelectItem>
+						<SelectItem value="bug">Баг</SelectItem>
+						<SelectItem value="task">Задача</SelectItem>
+						<SelectItem value="story">История</SelectItem>
+						<SelectItem value="epic">Эпик</SelectItem>
+						<SelectItem value="sub_task">Подзадача</SelectItem>
+						<SelectItem value="improvement">Улучшение</SelectItem>
+						<SelectItem value="tech_debt">Техдолг</SelectItem>
+						<SelectItem value="spike">Исследование</SelectItem>
+						<SelectItem value="release">Релиз</SelectItem>
+					</SelectContent>
+				</Select>
 
 				{(search || statusFilter || priorityFilter || typeFilter) && (
 					<Button variant="ghost" size="sm" onClick={resetFilters}>

@@ -16,6 +16,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { StepEditor } from "@/modules/tms/components/step-editor";
 import {
@@ -339,32 +346,40 @@ function TestCaseDetailPage() {
 							</span>
 							{editing ? (
 								<div className="flex items-center gap-2">
-									<select
-										className="rounded-md border bg-card px-2 py-1 text-xs"
+									<Select
 										value={editPriority}
-										onChange={(e) =>
-											setEditPriority(e.target.value as TestCasePriority)
+										onValueChange={(v) =>
+											setEditPriority(v as TestCasePriority)
 										}
 									>
-										{Object.entries(PRIORITY_LABELS).map(([value, label]) => (
-											<option key={value} value={value}>
-												{label}
-											</option>
-										))}
-									</select>
-									<select
-										className="rounded-md border bg-card px-2 py-1 text-xs"
+										<SelectTrigger className="rounded-xl border bg-card px-2 py-1 text-xs h-auto w-auto min-w-[100px]">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+												<SelectItem key={value} value={value}>
+													{label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<Select
 										value={editStatus}
-										onChange={(e) =>
-											setEditStatus(e.target.value as TestCaseStatus)
+										onValueChange={(v) =>
+											setEditStatus(v as TestCaseStatus)
 										}
 									>
-										{Object.entries(STATUS_LABELS).map(([value, label]) => (
-											<option key={value} value={value}>
-												{label}
-											</option>
-										))}
-									</select>
+										<SelectTrigger className="rounded-xl border bg-card px-2 py-1 text-xs h-auto w-auto min-w-[100px]">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{Object.entries(STATUS_LABELS).map(([value, label]) => (
+												<SelectItem key={value} value={value}>
+													{label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 								</div>
 							) : (
 								<>

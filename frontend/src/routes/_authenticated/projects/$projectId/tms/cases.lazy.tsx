@@ -489,41 +489,53 @@ function TestCasesPage() {
 										onChange={(e) => setNewTitle(e.target.value)}
 									/>
 									<div className="grid grid-cols-2 gap-3">
-										<select
-											className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
+										<Select
 											value={newType}
-											onChange={(e) =>
-												setNewType(e.target.value as TestCaseType)
+											onValueChange={(v) =>
+												setNewType(v as TestCaseType)
 											}
 										>
-											<option value="classic">Classic</option>
-											<option value="bdd">BDD</option>
-										</select>
-										<select
-											className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
+											<SelectTrigger className="w-full rounded-xl border bg-card px-3 py-2 text-sm">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="classic">Classic</SelectItem>
+												<SelectItem value="bdd">BDD</SelectItem>
+											</SelectContent>
+										</Select>
+										<Select
 											value={newPriority}
-											onChange={(e) => setNewPriority(e.target.value)}
+											onValueChange={(v) => setNewPriority(v)}
 										>
-											<option value="critical">Критический</option>
-											<option value="high">Высокий</option>
-											<option value="medium">Средний</option>
-											<option value="low">Низкий</option>
-											<option value="trivial">Тривиальный</option>
-										</select>
+											<SelectTrigger className="w-full rounded-xl border bg-card px-3 py-2 text-sm">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="critical">Критический</SelectItem>
+												<SelectItem value="high">Высокий</SelectItem>
+												<SelectItem value="medium">Средний</SelectItem>
+												<SelectItem value="low">Низкий</SelectItem>
+												<SelectItem value="trivial">Тривиальный</SelectItem>
+											</SelectContent>
+										</Select>
 									</div>
 									{suites && suites.length > 0 && (
-										<select
-											className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
-											value={newSuiteId}
-											onChange={(e) => setNewSuiteId(e.target.value)}
+										<Select
+											value={newSuiteId || "none"}
+											onValueChange={(v) => setNewSuiteId(v === "none" ? "" : v)}
 										>
-											<option value="">Без папки</option>
-											{suites.map((s) => (
-												<option key={s.id} value={s.id}>
-													{s.name}
-												</option>
-											))}
-										</select>
+											<SelectTrigger className="w-full rounded-xl border bg-card px-3 py-2 text-sm">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="none">Без папки</SelectItem>
+												{suites.map((s) => (
+													<SelectItem key={s.id} value={s.id}>
+														{s.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									)}
 									<textarea
 										className="w-full rounded-lg border bg-card px-3 py-2 text-sm"

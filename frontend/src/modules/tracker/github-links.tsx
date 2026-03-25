@@ -6,6 +6,13 @@ import {
 	listGitHubLinks,
 	listIntegrations,
 } from "@/api/github";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 // ---------------------------------------------------------------------------
 // Типы
@@ -131,17 +138,21 @@ function CreateBranchDialog({
 
 				<div className="mb-4">
 					<label className="mb-1 block text-sm font-medium">Репозиторий</label>
-					<select
-						className="w-full rounded-md border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700"
+					<Select
 						value={selectedIntegration}
-						onChange={(e) => setSelectedIntegration(e.target.value)}
+						onValueChange={(v) => setSelectedIntegration(v)}
 					>
-						{integrations.map((ig) => (
-							<option key={ig.id} value={ig.id}>
-								{ig.repo_owner}/{ig.repo_name}
-							</option>
-						))}
-					</select>
+						<SelectTrigger className="w-full rounded-xl border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{integrations.map((ig) => (
+								<SelectItem key={ig.id} value={ig.id}>
+									{ig.repo_owner}/{ig.repo_name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 
 				<div className="mb-4">

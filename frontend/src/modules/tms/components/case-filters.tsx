@@ -5,6 +5,13 @@
 import type { ListTestCasesParams } from "@/api/tms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 /** Пропсы панели фильтров тест-кейсов. */
 interface CaseFiltersProps {
@@ -69,41 +76,47 @@ export function CaseFilters({
 				/>
 			</div>
 
-			<select
-				className="rounded-lg border bg-card px-2.5 py-1.5 text-xs h-8"
-				value={filters.status ?? ""}
-				onChange={(e) => {
+			<Select
+				value={filters.status || "all"}
+				onValueChange={(v) => {
 					updateFilter({
-						status: (e.target.value ||
-							undefined) as ListTestCasesParams["status"],
+						status: (v === "all" ? undefined : v) as ListTestCasesParams["status"],
 					});
 					resetOffset();
 				}}
 			>
-				<option value="">Все статусы</option>
-				<option value="draft">Черновик</option>
-				<option value="active">Активный</option>
-				<option value="deprecated">Устаревший</option>
-			</select>
+				<SelectTrigger className="rounded-xl border bg-card px-2.5 py-1.5 text-xs h-8 w-auto min-w-[120px]">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="all">Все статусы</SelectItem>
+					<SelectItem value="draft">Черновик</SelectItem>
+					<SelectItem value="active">Активный</SelectItem>
+					<SelectItem value="deprecated">Устаревший</SelectItem>
+				</SelectContent>
+			</Select>
 
-			<select
-				className="rounded-lg border bg-card px-2.5 py-1.5 text-xs h-8"
-				value={filters.priority ?? ""}
-				onChange={(e) => {
+			<Select
+				value={filters.priority || "all"}
+				onValueChange={(v) => {
 					updateFilter({
-						priority: (e.target.value ||
-							undefined) as ListTestCasesParams["priority"],
+						priority: (v === "all" ? undefined : v) as ListTestCasesParams["priority"],
 					});
 					resetOffset();
 				}}
 			>
-				<option value="">Все приоритеты</option>
-				<option value="critical">Критический</option>
-				<option value="high">Высокий</option>
-				<option value="medium">Средний</option>
-				<option value="low">Низкий</option>
-				<option value="trivial">Тривиальный</option>
-			</select>
+				<SelectTrigger className="rounded-xl border bg-card px-2.5 py-1.5 text-xs h-8 w-auto min-w-[130px]">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="all">Все приоритеты</SelectItem>
+					<SelectItem value="critical">Критический</SelectItem>
+					<SelectItem value="high">Высокий</SelectItem>
+					<SelectItem value="medium">Средний</SelectItem>
+					<SelectItem value="low">Низкий</SelectItem>
+					<SelectItem value="trivial">Тривиальный</SelectItem>
+				</SelectContent>
+			</Select>
 
 			{hasActiveFilters && (
 				<Button

@@ -6,6 +6,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 /** Конфигурация цветов приоритетов. */
@@ -50,36 +57,44 @@ export function IssueSidebarMeta({
 			{/* Статус */}
 			<div className="space-y-1">
 				<Label className="text-xs text-muted-foreground">Статус</Label>
-				<select
-					className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+				<Select
 					value={issue.status.id}
-					onChange={(e) => onUpdateField({ status_id: e.target.value })}
+					onValueChange={(v) => onUpdateField({ status_id: v })}
 				>
-					{statuses?.map((s) => (
-						<option key={s.id} value={s.id}>
-							{s.name}
-						</option>
-					))}
-					{!statuses && (
-						<option value={issue.status.id}>{issue.status.name}</option>
-					)}
-				</select>
+					<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{statuses?.map((s) => (
+							<SelectItem key={s.id} value={s.id}>
+								{s.name}
+							</SelectItem>
+						))}
+						{!statuses && (
+							<SelectItem value={issue.status.id}>{issue.status.name}</SelectItem>
+						)}
+					</SelectContent>
+				</Select>
 			</div>
 
 			{/* Приоритет */}
 			<div className="space-y-1">
 				<Label className="text-xs text-muted-foreground">Приоритет</Label>
-				<select
-					className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+				<Select
 					value={issue.priority}
-					onChange={(e) => onUpdateField({ priority: e.target.value })}
+					onValueChange={(v) => onUpdateField({ priority: v })}
 				>
-					<option value="critical">Критический</option>
-					<option value="high">Высокий</option>
-					<option value="medium">Средний</option>
-					<option value="low">Низкий</option>
-					<option value="trivial">Тривиальный</option>
-				</select>
+					<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="critical">Критический</SelectItem>
+						<SelectItem value="high">Высокий</SelectItem>
+						<SelectItem value="medium">Средний</SelectItem>
+						<SelectItem value="low">Низкий</SelectItem>
+						<SelectItem value="trivial">Тривиальный</SelectItem>
+					</SelectContent>
+				</Select>
 				<Badge
 					variant="secondary"
 					className={cn("text-xs", PRIORITY_COLORS[issue.priority])}
@@ -154,22 +169,26 @@ export function IssueSidebarMeta({
 			{/* Story Points */}
 			<div className="space-y-1">
 				<Label className="text-xs text-muted-foreground">Story Points</Label>
-				<select
-					className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-					value={issue.story_points ?? ""}
-					onChange={(e) =>
+				<Select
+					value={issue.story_points != null ? String(issue.story_points) : "none"}
+					onValueChange={(v) =>
 						onUpdateField({
-							story_points: e.target.value ? Number(e.target.value) : undefined,
+							story_points: v === "none" ? undefined : Number(v),
 						})
 					}
 				>
-					<option value="">--</option>
-					{[1, 2, 3, 5, 8, 13, 21].map((sp) => (
-						<option key={sp} value={sp}>
-							{sp}
-						</option>
-					))}
-				</select>
+					<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="none">--</SelectItem>
+						{[1, 2, 3, 5, 8, 13, 21].map((sp) => (
+							<SelectItem key={sp} value={String(sp)}>
+								{sp}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
 			</div>
 
 			{issue.due_date && (

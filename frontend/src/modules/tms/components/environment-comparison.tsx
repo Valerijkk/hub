@@ -4,6 +4,13 @@ import { compareEnvironments, listEnvironments } from "@/api/tms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -214,28 +221,32 @@ export function EnvironmentComparison({
 					<label className="text-xs font-medium text-muted-foreground">
 						Окружение 1
 					</label>
-					<select
-						className="rounded-lg border bg-card px-3 py-2 text-sm min-w-[200px]"
-						value={envId1}
-						onChange={(e) => {
-							setEnvId1(e.target.value);
+					<Select
+						value={envId1 || "placeholder"}
+						onValueChange={(v) => {
+							setEnvId1(v === "placeholder" ? "" : v);
 							setSubmitted(false);
 						}}
 					>
-						<option value="">Выберите окружение</option>
-						{envs.map((env) => {
-							const labelCfg = ENV_LABEL_CONFIG[env.label];
-							return (
-								<option
-									key={env.id}
-									value={env.id}
-									disabled={env.id === envId2}
-								>
-									{env.name} ({labelCfg?.label ?? env.label})
-								</option>
-							);
-						})}
-					</select>
+						<SelectTrigger className="rounded-xl border bg-card px-3 py-2 text-sm min-w-[200px]">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="placeholder">Выберите окружение</SelectItem>
+							{envs.map((env) => {
+								const labelCfg = ENV_LABEL_CONFIG[env.label];
+								return (
+									<SelectItem
+										key={env.id}
+										value={env.id}
+										disabled={env.id === envId2}
+									>
+										{env.name} ({labelCfg?.label ?? env.label})
+									</SelectItem>
+								);
+							})}
+						</SelectContent>
+					</Select>
 				</div>
 
 				<div className="flex items-center pb-2">
@@ -258,28 +269,32 @@ export function EnvironmentComparison({
 					<label className="text-xs font-medium text-muted-foreground">
 						Окружение 2
 					</label>
-					<select
-						className="rounded-lg border bg-card px-3 py-2 text-sm min-w-[200px]"
-						value={envId2}
-						onChange={(e) => {
-							setEnvId2(e.target.value);
+					<Select
+						value={envId2 || "placeholder"}
+						onValueChange={(v) => {
+							setEnvId2(v === "placeholder" ? "" : v);
 							setSubmitted(false);
 						}}
 					>
-						<option value="">Выберите окружение</option>
-						{envs.map((env) => {
-							const labelCfg = ENV_LABEL_CONFIG[env.label];
-							return (
-								<option
-									key={env.id}
-									value={env.id}
-									disabled={env.id === envId1}
-								>
-									{env.name} ({labelCfg?.label ?? env.label})
-								</option>
-							);
-						})}
-					</select>
+						<SelectTrigger className="rounded-xl border bg-card px-3 py-2 text-sm min-w-[200px]">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="placeholder">Выберите окружение</SelectItem>
+							{envs.map((env) => {
+								const labelCfg = ENV_LABEL_CONFIG[env.label];
+								return (
+									<SelectItem
+										key={env.id}
+										value={env.id}
+										disabled={env.id === envId1}
+									>
+										{env.name} ({labelCfg?.label ?? env.label})
+									</SelectItem>
+								);
+							})}
+						</SelectContent>
+					</Select>
 				</div>
 
 				<Button

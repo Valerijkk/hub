@@ -15,6 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 
 /** Предустановленные цвета Tailwind для меток. */
@@ -219,19 +226,22 @@ function LabelsSettingsPage() {
 							</div>
 							<div className="space-y-1">
 								<Label htmlFor="label_group">Группа (опционально)</Label>
-								<select
-									id="label_group"
-									className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-									value={labelGroupId}
-									onChange={(e) => setLabelGroupId(e.target.value)}
+								<Select
+									value={labelGroupId || "none"}
+									onValueChange={(v) => setLabelGroupId(v === "none" ? "" : v)}
 								>
-									<option value="">Без группы</option>
-									{groups?.map((g) => (
-										<option key={g.id} value={g.id}>
-											{g.name}
-										</option>
-									))}
-								</select>
+									<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="none">Без группы</SelectItem>
+										{groups?.map((g) => (
+											<SelectItem key={g.id} value={g.id}>
+												{g.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
 						</div>
 						<div className="space-y-1">

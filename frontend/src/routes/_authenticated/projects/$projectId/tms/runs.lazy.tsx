@@ -18,6 +18,13 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { formatRelativeTime } from "@/lib/format-time";
 import { cn } from "@/lib/utils";
 
@@ -127,20 +134,24 @@ function TestRunsPage() {
 		<div>
 			{/* Top bar */}
 			<div className="mb-4 flex flex-wrap items-center gap-2">
-				<select
-					className="rounded-lg border bg-card px-2.5 py-1.5 text-xs h-8 shadow-sm cursor-pointer hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
-					value={statusFilter}
-					onChange={(e) => {
-						setStatusFilter(e.target.value);
+				<Select
+					value={statusFilter || "all"}
+					onValueChange={(v) => {
+						setStatusFilter(v === "all" ? "" : v);
 						setOffset(0);
 					}}
 				>
-					<option value="">Все статусы</option>
-					<option value="created">Создан</option>
-					<option value="in_progress">Выполняется</option>
-					<option value="completed">Завершён</option>
-					<option value="aborted">Прерван</option>
-				</select>
+					<SelectTrigger className="rounded-xl border bg-card px-2.5 py-1.5 text-xs h-8 w-auto min-w-[130px] shadow-sm cursor-pointer hover:border-primary/40 transition-colors">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">Все статусы</SelectItem>
+						<SelectItem value="created">Создан</SelectItem>
+						<SelectItem value="in_progress">Выполняется</SelectItem>
+						<SelectItem value="completed">Завершён</SelectItem>
+						<SelectItem value="aborted">Прерван</SelectItem>
+					</SelectContent>
+				</Select>
 
 				{statusFilter && (
 					<Button
@@ -206,15 +217,19 @@ function TestRunsPage() {
 									value={newTitle}
 									onChange={(e) => setNewTitle(e.target.value)}
 								/>
-								<select
-									className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
+								<Select
 									value={newType}
-									onChange={(e) => setNewType(e.target.value as TestRunType)}
+									onValueChange={(v) => setNewType(v as TestRunType)}
 								>
-									<option value="manual">Ручной</option>
-									<option value="automatic">Автоматический</option>
-									<option value="mixed">Смешанный</option>
-								</select>
+									<SelectTrigger className="w-full rounded-xl border bg-card px-3 py-2 text-sm">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="manual">Ручной</SelectItem>
+										<SelectItem value="automatic">Автоматический</SelectItem>
+										<SelectItem value="mixed">Смешанный</SelectItem>
+									</SelectContent>
+								</Select>
 								<textarea
 									className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
 									placeholder="Описание (необязательно)"

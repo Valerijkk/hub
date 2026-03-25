@@ -4,6 +4,13 @@ import {
 	type AuditLogFilters,
 	getAuditLogs,
 } from "@/api/admin";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 /** Типы действий для фильтра. */
 const ACTION_OPTIONS = [
@@ -107,36 +114,44 @@ export function AuditLogViewer() {
 
 			{/* Фильтры */}
 			<div className="flex flex-wrap gap-3">
-				<select
-					value={filters.action ?? ""}
-					onChange={(e) =>
-						setFilters((f) => ({ ...f, action: e.target.value || undefined }))
+				<Select
+					value={filters.action || "all"}
+					onValueChange={(v) =>
+						setFilters((f) => ({ ...f, action: v === "all" ? undefined : v }))
 					}
-					className="rounded border px-2 py-1.5 text-sm"
 				>
-					{ACTION_OPTIONS.map((o) => (
-						<option key={o.value} value={o.value}>
-							{o.label}
-						</option>
-					))}
-				</select>
+					<SelectTrigger className="rounded-xl border px-2 py-1.5 text-sm w-auto min-w-[140px]">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{ACTION_OPTIONS.map((o) => (
+							<SelectItem key={o.value || "all"} value={o.value || "all"}>
+								{o.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
 
-				<select
-					value={filters.entity_type ?? ""}
-					onChange={(e) =>
+				<Select
+					value={filters.entity_type || "all"}
+					onValueChange={(v) =>
 						setFilters((f) => ({
 							...f,
-							entity_type: e.target.value || undefined,
+							entity_type: v === "all" ? undefined : v,
 						}))
 					}
-					className="rounded border px-2 py-1.5 text-sm"
 				>
-					{ENTITY_TYPE_OPTIONS.map((o) => (
-						<option key={o.value} value={o.value}>
-							{o.label}
-						</option>
-					))}
-				</select>
+					<SelectTrigger className="rounded-xl border px-2 py-1.5 text-sm w-auto min-w-[140px]">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{ENTITY_TYPE_OPTIONS.map((o) => (
+							<SelectItem key={o.value || "all"} value={o.value || "all"}>
+								{o.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
 
 				<input
 					type="date"

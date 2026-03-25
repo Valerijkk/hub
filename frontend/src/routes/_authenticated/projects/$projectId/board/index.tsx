@@ -12,6 +12,13 @@ import {
 import { BoardColumn } from "@/components/tracker/board-column";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { useBoardStore } from "@/stores/board-store";
 
 /**
@@ -190,17 +197,21 @@ function BoardPage() {
 			<div className="flex flex-wrap items-center gap-3 px-2 pb-4">
 				{/* Выбор доски */}
 				{boards && boards.length > 1 && (
-					<select
-						className="rounded-lg border bg-card px-3 py-2 text-sm font-medium"
+					<Select
 						value={activeBoardId ?? ""}
-						onChange={(e) => setActiveBoard(e.target.value)}
+						onValueChange={(v) => setActiveBoard(v)}
 					>
-						{boards.map((b) => (
-							<option key={b.id} value={b.id}>
-								{b.name}
-							</option>
-						))}
-					</select>
+						<SelectTrigger className="rounded-xl border bg-card px-3 py-2 text-sm font-medium w-auto min-w-[140px]">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{boards.map((b) => (
+								<SelectItem key={b.id} value={b.id}>
+									{b.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				)}
 
 				<Input

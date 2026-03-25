@@ -1,5 +1,12 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	type BoardColumnResponse,
 	type BoardDataResponse,
 	getBoardData,
@@ -127,16 +134,20 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 			{/* Переключатель swimlanes */}
 			<div className="flex items-center gap-3">
 				<label className="text-sm font-medium">Swimlanes:</label>
-				<select
+				<Select
 					value={swimlaneMode}
-					onChange={(e) => setSwimlaneMode(e.target.value as SwimlaneMode)}
-					className="rounded-md border bg-background px-3 py-1.5 text-sm"
+					onValueChange={(v) => setSwimlaneMode(v as SwimlaneMode)}
 				>
-					<option value="none">Без группировки</option>
-					<option value="assignee">По исполнителю</option>
-					<option value="priority">По приоритету</option>
-					<option value="type">По типу</option>
-				</select>
+					<SelectTrigger className="rounded-xl border bg-background px-3 py-1.5 text-sm w-auto min-w-[160px]">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="none">Без группировки</SelectItem>
+						<SelectItem value="assignee">По исполнителю</SelectItem>
+						<SelectItem value="priority">По приоритету</SelectItem>
+						<SelectItem value="type">По типу</SelectItem>
+					</SelectContent>
+				</Select>
 			</div>
 
 			{/* Kanban-доска */}

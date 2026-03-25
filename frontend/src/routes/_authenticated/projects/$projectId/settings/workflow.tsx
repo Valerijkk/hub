@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 
 /** Предустановленные цвета для статусов. */
@@ -180,22 +187,25 @@ function WorkflowSettingsPage() {
 							</div>
 							<div className="space-y-1">
 								<Label htmlFor="status_category">Категория</Label>
-								<select
-									id="status_category"
-									className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+								<Select
 									value={statusCategory}
-									onChange={(e) =>
+									onValueChange={(v) =>
 										setStatusCategory(
-											e.target.value as "todo" | "in_progress" | "done",
+											v as "todo" | "in_progress" | "done",
 										)
 									}
 								>
-									{CATEGORIES.map((c) => (
-										<option key={c.value} value={c.value}>
-											{c.label}
-										</option>
-									))}
-								</select>
+									<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										{CATEGORIES.map((c) => (
+											<SelectItem key={c.value} value={c.value}>
+												{c.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
 						</div>
 						<div className="grid grid-cols-2 gap-3">
@@ -273,35 +283,41 @@ function WorkflowSettingsPage() {
 						<div className="grid grid-cols-2 gap-3">
 							<div className="space-y-1">
 								<Label htmlFor="from_status">Из статуса</Label>
-								<select
-									id="from_status"
-									className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-									value={fromStatusId}
-									onChange={(e) => setFromStatusId(e.target.value)}
+								<Select
+									value={fromStatusId || "placeholder"}
+									onValueChange={(v) => setFromStatusId(v === "placeholder" ? "" : v)}
 								>
-									<option value="">Выберите...</option>
-									{statuses?.map((s) => (
-										<option key={s.id} value={s.id}>
-											{s.name}
-										</option>
-									))}
-								</select>
+									<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="placeholder">Выберите...</SelectItem>
+										{statuses?.map((s) => (
+											<SelectItem key={s.id} value={s.id}>
+												{s.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
 							<div className="space-y-1">
 								<Label htmlFor="to_status">В статус</Label>
-								<select
-									id="to_status"
-									className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-									value={toStatusId}
-									onChange={(e) => setToStatusId(e.target.value)}
+								<Select
+									value={toStatusId || "placeholder"}
+									onValueChange={(v) => setToStatusId(v === "placeholder" ? "" : v)}
 								>
-									<option value="">Выберите...</option>
-									{statuses?.map((s) => (
-										<option key={s.id} value={s.id}>
-											{s.name}
-										</option>
-									))}
-								</select>
+									<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="placeholder">Выберите...</SelectItem>
+										{statuses?.map((s) => (
+											<SelectItem key={s.id} value={s.id}>
+												{s.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
 						</div>
 						<Button

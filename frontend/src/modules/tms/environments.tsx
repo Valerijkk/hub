@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/api/client";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 /** Тестовое окружение. */
 interface Environment {
@@ -102,17 +109,21 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 							placeholder="Название (например, Chrome Linux)"
 							className="w-full rounded-md border p-2 dark:border-gray-600 dark:bg-gray-800"
 						/>
-						<select
+						<Select
 							value={label}
-							onChange={(e) => setLabel(e.target.value)}
-							className="w-full rounded-md border p-2 dark:border-gray-600 dark:bg-gray-800"
+							onValueChange={(v) => setLabel(v)}
 						>
-							{LABELS.map((l) => (
-								<option key={l} value={l}>
-									{l}
-								</option>
-							))}
-						</select>
+							<SelectTrigger className="w-full rounded-xl border p-2 dark:border-gray-600 dark:bg-gray-800">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{LABELS.map((l) => (
+									<SelectItem key={l} value={l}>
+										{l}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 						<input
 							type="text"
 							value={configBrowser}

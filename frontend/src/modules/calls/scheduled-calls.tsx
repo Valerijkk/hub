@@ -5,6 +5,13 @@ import type {
 	ScheduledCallResponse,
 } from "@/api/calls";
 import * as callsApi from "@/api/calls";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 // ---------------------------------------------------------------------------
 // ScheduledCalls -- запланированные и повторяющиеся звонки (CALL-02)
@@ -237,19 +244,22 @@ function CreateScheduledCallForm({
 				aria-label="Дата и время звонка"
 			/>
 
-			<select
-				value={recurrence}
-				onChange={(e) => setRecurrence(e.target.value)}
-				className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-				aria-label="Повторение"
+			<Select
+				value={recurrence || "no_repeat"}
+				onValueChange={(v) => setRecurrence(v === "no_repeat" ? "" : v)}
 			>
-				{RECURRENCE_OPTIONS.map((opt) => (
-					<option key={opt.value} value={opt.value}>
-						{opt.label}
-					</option>
-				))}
-				<option value="custom">Custom RRULE</option>
-			</select>
+				<SelectTrigger className="rounded-xl border border-border bg-background px-3 py-1.5 text-sm" aria-label="Повторение">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{RECURRENCE_OPTIONS.map((opt) => (
+						<SelectItem key={opt.value || "no_repeat"} value={opt.value || "no_repeat"}>
+							{opt.label}
+						</SelectItem>
+					))}
+					<SelectItem value="custom">Custom RRULE</SelectItem>
+				</SelectContent>
+			</Select>
 
 			{recurrence === "custom" && (
 				<input

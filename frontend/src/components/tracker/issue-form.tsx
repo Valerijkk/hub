@@ -14,6 +14,13 @@ import { PlateEditor } from "@/components/tracker/plate-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 /** Типы задач для выбора. */
 const ISSUE_TYPES: { value: IssueType; label: string }[] = [
@@ -162,33 +169,39 @@ export function IssueForm({
 			<div className="grid grid-cols-2 gap-4">
 				<div className="space-y-2">
 					<Label htmlFor="issue_type">Тип</Label>
-					<select
-						id="issue_type"
-						className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+					<Select
 						value={issueType}
-						onChange={(e) => setIssueType(e.target.value as IssueType)}
+						onValueChange={(v) => setIssueType(v as IssueType)}
 					>
-						{ISSUE_TYPES.map((t) => (
-							<option key={t.value} value={t.value}>
-								{t.label}
-							</option>
-						))}
-					</select>
+						<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{ISSUE_TYPES.map((t) => (
+								<SelectItem key={t.value} value={t.value}>
+									{t.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor="priority">Приоритет</Label>
-					<select
-						id="priority"
-						className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+					<Select
 						value={priority}
-						onChange={(e) => setPriority(e.target.value as IssuePriority)}
+						onValueChange={(v) => setPriority(v as IssuePriority)}
 					>
-						{PRIORITIES.map((p) => (
-							<option key={p.value} value={p.value}>
-								{p.label}
-							</option>
-						))}
-					</select>
+						<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{PRIORITIES.map((p) => (
+								<SelectItem key={p.value} value={p.value}>
+									{p.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 			</div>
 
@@ -228,19 +241,22 @@ export function IssueForm({
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor="story_points">Story Points</Label>
-					<select
-						id="story_points"
-						className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-						value={storyPoints}
-						onChange={(e) => setStoryPoints(e.target.value)}
+					<Select
+						value={storyPoints || "none"}
+						onValueChange={(v) => setStoryPoints(v === "none" ? "" : v)}
 					>
-						<option value="">--</option>
-						{[1, 2, 3, 5, 8, 13, 21].map((sp) => (
-							<option key={sp} value={sp}>
-								{sp}
-							</option>
-						))}
-					</select>
+						<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="none">--</SelectItem>
+							{[1, 2, 3, 5, 8, 13, 21].map((sp) => (
+								<SelectItem key={sp} value={String(sp)}>
+									{sp}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor="due_date">Срок</Label>

@@ -1,6 +1,13 @@
 import { useRoomContext } from "@livekit/components-react";
 import { Mic, Volume2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 /** Информация об аудиоустройстве. */
 interface DeviceInfo {
@@ -99,20 +106,24 @@ export function DeviceSelector() {
 					<Mic className="h-3.5 w-3.5" />
 					Микрофон
 				</label>
-				<select
-					value={selectedInput}
-					onChange={(e) => void handleInputChange(e.target.value)}
-					className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none transition-colors hover:bg-white/10 focus:border-white/30 focus:ring-1 focus:ring-white/20"
+				<Select
+					value={selectedInput || "none"}
+					onValueChange={(v) => void handleInputChange(v === "none" ? "" : v)}
 				>
-					{audioInputs.length === 0 && (
-						<option value="">Нет доступных устройств</option>
-					)}
-					{audioInputs.map((d) => (
-						<option key={d.deviceId} value={d.deviceId}>
-							{d.label}
-						</option>
-					))}
-				</select>
+					<SelectTrigger className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{audioInputs.length === 0 && (
+							<SelectItem value="none">Нет доступных устройств</SelectItem>
+						)}
+						{audioInputs.map((d) => (
+							<SelectItem key={d.deviceId} value={d.deviceId}>
+								{d.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
 			</div>
 
 			{/* Динамик */}
@@ -121,20 +132,24 @@ export function DeviceSelector() {
 					<Volume2 className="h-3.5 w-3.5" />
 					Динамик
 				</label>
-				<select
-					value={selectedOutput}
-					onChange={(e) => void handleOutputChange(e.target.value)}
-					className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none transition-colors hover:bg-white/10 focus:border-white/30 focus:ring-1 focus:ring-white/20"
+				<Select
+					value={selectedOutput || "none"}
+					onValueChange={(v) => void handleOutputChange(v === "none" ? "" : v)}
 				>
-					{audioOutputs.length === 0 && (
-						<option value="">Нет доступных устройств</option>
-					)}
-					{audioOutputs.map((d) => (
-						<option key={d.deviceId} value={d.deviceId}>
-							{d.label}
-						</option>
-					))}
-				</select>
+					<SelectTrigger className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{audioOutputs.length === 0 && (
+							<SelectItem value="none">Нет доступных устройств</SelectItem>
+						)}
+						{audioOutputs.map((d) => (
+							<SelectItem key={d.deviceId} value={d.deviceId}>
+								{d.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
 			</div>
 		</div>
 	);
