@@ -74,6 +74,7 @@ func (Project) Edges() []ent.Edge {
 		edge.To("components", Component.Type),
 		edge.To("saved_filters", SavedFilter.Type),
 		edge.To("github_integrations", GitHubIntegration.Type),
+		edge.To("gitlab_integrations", GitLabIntegration.Type),
 		edge.To("recordings", Recording.Type),
 		edge.To("scheduled_calls", ScheduledCall.Type),
 		edge.To("webhook_endpoints", WebhookEndpoint.Type),

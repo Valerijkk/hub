@@ -54,6 +54,27 @@ type UpdateScheduledCallRequest struct {
 	IsActive    *bool      `json:"is_active,omitempty"`
 }
 
+// ConflictCheckRequest содержит параметры для проверки конфликтов расписания.
+type ConflictCheckRequest struct {
+	Time           time.Time   `json:"time" query:"time"`
+	Duration       int         `json:"duration" query:"duration"`
+	ParticipantIDs []uuid.UUID `json:"participant_ids" query:"participant_ids"`
+}
+
+// ConflictResponse содержит результат проверки конфликтов.
+type ConflictResponse struct {
+	HasConflict bool               `json:"has_conflict"`
+	Conflicts   []ConflictDetail   `json:"conflicts"`
+}
+
+// ConflictDetail описывает конкретный конфликт расписания.
+type ConflictDetail struct {
+	ParticipantID uuid.UUID `json:"participant_id"`
+	CallTitle     string    `json:"call_title"`
+	ScheduledAt   time.Time `json:"scheduled_at"`
+	ChannelID     uuid.UUID `json:"channel_id"`
+}
+
 // ScheduledCallResponse содержит данные запланированного звонка для ответа API.
 type ScheduledCallResponse struct {
 	ID          uuid.UUID `json:"id"`

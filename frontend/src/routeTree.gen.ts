@@ -44,6 +44,7 @@ import { Route as AuthenticatedProjectsProjectIdTmsAutotestRouteImport } from '.
 import { Route as AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport } from './routes/_authenticated/projects/$projectId/sprints/$sprintId'
 import { Route as AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport } from './routes/_authenticated/projects/$projectId/settings/workflow'
 import { Route as AuthenticatedProjectsProjectIdSettingsLabelsRouteImport } from './routes/_authenticated/projects/$projectId/settings/labels'
+import { Route as AuthenticatedProjectsProjectIdSettingsIntegrationsRouteImport } from './routes/_authenticated/projects/$projectId/settings/integrations'
 import { Route as AuthenticatedProjectsProjectIdIssuesNewRouteImport } from './routes/_authenticated/projects/$projectId/issues/new'
 import { Route as AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport } from './routes/_authenticated/projects/$projectId/issues/$issueKey'
 import { Route as AuthenticatedProjectsProjectIdTmsRunsRunIdRouteImport } from './routes/_authenticated/projects/$projectId/tms/runs_.$runId'
@@ -261,6 +262,12 @@ const AuthenticatedProjectsProjectIdSettingsLabelsRoute =
     path: '/settings/labels',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
+const AuthenticatedProjectsProjectIdSettingsIntegrationsRoute =
+  AuthenticatedProjectsProjectIdSettingsIntegrationsRouteImport.update({
+    id: '/settings/integrations',
+    path: '/settings/integrations',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdIssuesNewRoute =
   AuthenticatedProjectsProjectIdIssuesNewRouteImport.update({
     id: '/issues/new',
@@ -312,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
   '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  '/projects/$projectId/settings/integrations': typeof AuthenticatedProjectsProjectIdSettingsIntegrationsRoute
   '/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
   '/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
@@ -350,6 +358,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
   '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  '/projects/$projectId/settings/integrations': typeof AuthenticatedProjectsProjectIdSettingsIntegrationsRoute
   '/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
   '/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
@@ -392,6 +401,7 @@ export interface FileRoutesById {
   '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
   '/_authenticated/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   '/_authenticated/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  '/_authenticated/projects/$projectId/settings/integrations': typeof AuthenticatedProjectsProjectIdSettingsIntegrationsRoute
   '/_authenticated/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   '/_authenticated/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
   '/_authenticated/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
@@ -434,6 +444,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/'
     | '/projects/$projectId/issues/$issueKey'
     | '/projects/$projectId/issues/new'
+    | '/projects/$projectId/settings/integrations'
     | '/projects/$projectId/settings/labels'
     | '/projects/$projectId/settings/workflow'
     | '/projects/$projectId/sprints/$sprintId'
@@ -472,6 +483,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/projects/$projectId/issues/$issueKey'
     | '/projects/$projectId/issues/new'
+    | '/projects/$projectId/settings/integrations'
     | '/projects/$projectId/settings/labels'
     | '/projects/$projectId/settings/workflow'
     | '/projects/$projectId/sprints/$sprintId'
@@ -513,6 +525,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$projectId/'
     | '/_authenticated/projects/$projectId/issues/$issueKey'
     | '/_authenticated/projects/$projectId/issues/new'
+    | '/_authenticated/projects/$projectId/settings/integrations'
     | '/_authenticated/projects/$projectId/settings/labels'
     | '/_authenticated/projects/$projectId/settings/workflow'
     | '/_authenticated/projects/$projectId/sprints/$sprintId'
@@ -782,6 +795,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdSettingsLabelsRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
+    '/_authenticated/projects/$projectId/settings/integrations': {
+      id: '/_authenticated/projects/$projectId/settings/integrations'
+      path: '/settings/integrations'
+      fullPath: '/projects/$projectId/settings/integrations'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdSettingsIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
     '/_authenticated/projects/$projectId/issues/new': {
       id: '/_authenticated/projects/$projectId/issues/new'
       path: '/issues/new'
@@ -869,6 +889,7 @@ interface AuthenticatedProjectsProjectIdRouteChildren {
   AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute
   AuthenticatedProjectsProjectIdIssuesIssueKeyRoute: typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   AuthenticatedProjectsProjectIdIssuesNewRoute: typeof AuthenticatedProjectsProjectIdIssuesNewRoute
+  AuthenticatedProjectsProjectIdSettingsIntegrationsRoute: typeof AuthenticatedProjectsProjectIdSettingsIntegrationsRoute
   AuthenticatedProjectsProjectIdSettingsLabelsRoute: typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   AuthenticatedProjectsProjectIdSettingsWorkflowRoute: typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
   AuthenticatedProjectsProjectIdSprintsSprintIdRoute: typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
@@ -891,6 +912,8 @@ const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectI
       AuthenticatedProjectsProjectIdIssuesIssueKeyRoute,
     AuthenticatedProjectsProjectIdIssuesNewRoute:
       AuthenticatedProjectsProjectIdIssuesNewRoute,
+    AuthenticatedProjectsProjectIdSettingsIntegrationsRoute:
+      AuthenticatedProjectsProjectIdSettingsIntegrationsRoute,
     AuthenticatedProjectsProjectIdSettingsLabelsRoute:
       AuthenticatedProjectsProjectIdSettingsLabelsRoute,
     AuthenticatedProjectsProjectIdSettingsWorkflowRoute:

@@ -9,6 +9,7 @@ import (
 	"github.com/valerii/hub/backend/ent/call"
 	"github.com/valerii/hub/backend/ent/callparticipant"
 	"github.com/valerii/hub/backend/ent/channel"
+	"github.com/valerii/hub/backend/ent/channelmember"
 	"github.com/valerii/hub/backend/ent/recording"
 	"github.com/valerii/hub/backend/ent/scheduledcall"
 )
@@ -341,6 +342,41 @@ func (r *EntRepository) DeactivateScheduledCall(ctx context.Context, id uuid.UUI
 	return r.db.ScheduledCall.UpdateOneID(id).
 		SetIsActive(false).
 		Exec(ctx)
+}
+
+// FindConflictingCalls ищет запланированные звонки, которые пересекаются с заданным временным окном
+// для каналов, в которых состоят указанные участники.
+func (r *EntRepository) FindConflictingCalls(ctx context.Context, participantIDs []uuid.UUID, windowStart, windowEnd time.Time) ([]*ent.ScheduledCall, error) {
+	// Сначала находим все каналы, в которых состоят указанные участники
+	members, err := r.db.ChannelMember.Query().
+		Where(
+			channelmember.UserIDIn(participantIDs...),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(members) == 0 {
+		return nil, nil
+	}
+
+	channelIDs := make([]uuid.UUID, 0, len(members))
+	for _, m := range members {
+		channelIDs = append(channelIDs, m.ChannelID)
+	}
+
+	// Ищем активные запланированные звонки в этих каналах, пересекающиеся с окном
+	// Пересечение: call_start < windowEnd AND call_start + duration > windowStart
+	// Поскольку у нас нет поля длительности в БД, считаем DEFAULT_DURATION = 60 мин
+	return r.db.ScheduledCall.Query().
+		Where(
+			scheduledcall.IsActive(true),
+			scheduledcall.ChannelIDIn(channelIDs...),
+			scheduledcall.ScheduledAtLT(windowEnd),
+			scheduledcall.ScheduledAtGTE(windowStart.Add(-60*time.Minute)),
+		).
+		All(ctx)
 }
 
 // UpdateScheduledCallTime обновляет время следующего запланированного звонка.

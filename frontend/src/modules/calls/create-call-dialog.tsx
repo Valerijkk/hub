@@ -1,8 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, X } from "lucide-react";
+import { AlertTriangle, Check, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { type CreateScheduledCallData, createScheduledCall } from "@/api/calls";
+import {
+	type CreateScheduledCallData,
+	checkCallConflicts,
+	createScheduledCall,
+} from "@/api/calls";
 import { getChannels } from "@/api/messenger";
 import { type MemberResponse, listMembers, listProjects } from "@/api/projects";
 import { Button } from "@/components/ui/button";
@@ -108,6 +112,35 @@ export function CreateCallDialog({
 		enabled: !!projectId,
 	});
 
+	// --- Conflict checking ---
+	const conflictQueryEnabled =
+		!!date && !!time && participantIds.length > 0 && open;
+
+	const scheduledAtISO = useMemo(() => {
+		if (!date || !time) return "";
+		try {
+			return new Date(`${date}T${time}:00`).toISOString();
+		} catch {
+			return "";
+		}
+	}, [date, time]);
+
+	const { data: conflictData } = useQuery({
+		queryKey: [
+			"calls",
+			"conflicts",
+			scheduledAtISO,
+			duration,
+			participantIds,
+		],
+		queryFn: () =>
+			checkCallConflicts(scheduledAtISO, Number(duration), participantIds),
+		enabled: conflictQueryEnabled && !!scheduledAtISO,
+		staleTime: 10_000,
+	});
+
+	const hasConflict = conflictData?.has_conflict ?? false;
+
 	const filteredMembers = useMemo(() => {
 		const all = (members ?? []) as MemberResponse[];
 		if (!participantSearch.trim()) return all;
@@ -172,7 +205,8 @@ export function CreateCallDialog({
 		mutation.mutate(data);
 	};
 
-	const isValid = title.trim().length > 0 && date && time && channelId;
+	const isValid =
+		title.trim().length > 0 && date && time && channelId && !hasConflict;
 
 	// Format the selected date for display
 	const dateDisplay = date
@@ -408,6 +442,34 @@ export function CreateCallDialog({
 							</div>
 						</div>
 					</div>
+
+					{/* Conflict warning */}
+					{hasConflict && conflictData && (
+						<div className="px-6 mt-3">
+							<div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+								<AlertTriangle className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
+								<div className="space-y-1">
+									{conflictData.conflicts.map((c, i) => {
+										const member = (members ?? []).find(
+											(m: MemberResponse) => m.user_id === c.participant_id,
+										);
+										const name = member?.name ?? c.participant_id.slice(0, 8);
+										return (
+											<p
+												key={`${c.participant_id}-${i}`}
+												className="text-xs text-amber-200"
+											>
+												У участника{" "}
+												<span className="font-medium">{name}</span>{" "}
+												уже есть звонок в это время:{" "}
+												<span className="font-medium">{c.call_title}</span>
+											</p>
+										);
+									})}
+								</div>
+							</div>
+						</div>
+					)}
 
 					{/* Footer */}
 					<div className="px-6 py-5 mt-2">

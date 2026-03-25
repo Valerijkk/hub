@@ -348,6 +348,49 @@ export function deleteScheduledCall(id: string) {
 	return api.delete<void>(`/scheduled-calls/${id}`);
 }
 
+// ---------------------------------------------------------------------------
+// Проверка конфликтов расписания
+// ---------------------------------------------------------------------------
+
+/** Детали конфликта расписания. */
+export interface ConflictDetail {
+	/** ID участника с конфликтом. */
+	participant_id: string;
+	/** Название конфликтующего звонка. */
+	call_title: string;
+	/** Время конфликтующего звонка. */
+	scheduled_at: string;
+	/** ID канала конфликтующего звонка. */
+	channel_id: string;
+}
+
+/** Ответ проверки конфликтов. */
+export interface ConflictResponse {
+	/** Есть ли конфликт. */
+	has_conflict: boolean;
+	/** Список конфликтов. */
+	conflicts: ConflictDetail[];
+}
+
+/**
+ * Проверить конфликты расписания для указанного времени и участников.
+ * @param time - время начала (ISO 8601)
+ * @param duration - длительность в минутах
+ * @param participantIds - массив ID участников
+ */
+export function checkCallConflicts(
+	time: string,
+	duration: number,
+	participantIds: string[],
+) {
+	const params = new URLSearchParams({
+		time,
+		duration: String(duration),
+		participant_ids: participantIds.join(","),
+	});
+	return api.get<ConflictResponse>(`/calls/conflicts?${params.toString()}`);
+}
+
 /**
  * Получить все запланированные звонки по списку каналов.
  * Используется для календаря, который показывает звонки из всех каналов.

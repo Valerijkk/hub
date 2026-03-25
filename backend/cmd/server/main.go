@@ -31,6 +31,7 @@ import (
 	sprintmod "github.com/valerii/hub/backend/internal/sprint"
 	wsmod "github.com/valerii/hub/backend/internal/ws"
 	githubmod "github.com/valerii/hub/backend/internal/github"
+	gitlabmod "github.com/valerii/hub/backend/internal/gitlab"
 	apigatewaymod "github.com/valerii/hub/backend/internal/apigateway"
 	backupmod "github.com/valerii/hub/backend/internal/backup"
 	devmod "github.com/valerii/hub/backend/internal/dev"
@@ -406,6 +407,12 @@ func main() {
 	linkPreviewSvc := githubmod.NewLinkPreviewService(githubRepo, rdb)
 	githubHandler := githubmod.NewHandler(githubSvc, linkPreviewSvc)
 	githubHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+
+	// GitLab integration routes (webhook, MR/commit linking, pipelines, branch creation)
+	gitlabRepo := gitlabmod.NewEntRepository(db)
+	gitlabSvc := gitlabmod.NewGitLabService(gitlabRepo, nc)
+	gitlabHandler := gitlabmod.NewHandler(gitlabSvc)
+	gitlabHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// Calls routes (голосовые звонки через LiveKit)
 	callsRepo := callsmod.NewEntRepository(db)

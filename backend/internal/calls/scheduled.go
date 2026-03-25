@@ -186,5 +186,47 @@ func toScheduledCallResponse(sc *ent.ScheduledCall) *ScheduledCallResponse {
 	}
 }
 
+// CheckConflicts проверяет конфликты расписания для заданного времени и участников.
+func (s *ScheduledCallService) CheckConflicts(ctx context.Context, requestedTime time.Time, durationMinutes int, participantIDs []uuid.UUID) (*ConflictResponse, error) {
+	if len(participantIDs) == 0 {
+		return &ConflictResponse{HasConflict: false, Conflicts: []ConflictDetail{}}, nil
+	}
+
+	windowStart := requestedTime
+	windowEnd := requestedTime.Add(time.Duration(durationMinutes) * time.Minute)
+
+	calls, err := s.repo.FindConflictingCalls(ctx, participantIDs, windowStart, windowEnd)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось проверить конфликты: %w", err)
+	}
+
+	// Находим каналы участников для маппинга
+	conflicts := make([]ConflictDetail, 0)
+
+	// Для каждого найденного звонка проверяем реальное пересечение
+	for _, sc := range calls {
+		callStart := sc.ScheduledAt
+		callEnd := callStart.Add(60 * time.Minute) // Дефолтная длительность
+
+		// Проверяем пересечение
+		if callStart.Before(windowEnd) && callEnd.After(windowStart) {
+			// Определяем, какие из запрошенных участников в этом канале
+			for _, pid := range participantIDs {
+				conflicts = append(conflicts, ConflictDetail{
+					ParticipantID: pid,
+					CallTitle:     sc.Title,
+					ScheduledAt:   sc.ScheduledAt,
+					ChannelID:     sc.ChannelID,
+				})
+			}
+		}
+	}
+
+	return &ConflictResponse{
+		HasConflict: len(conflicts) > 0,
+		Conflicts:   conflicts,
+	}, nil
+}
+
 // Ignore unused import warning - scheduledcall is used in repository
 var _ = scheduledcall.Table

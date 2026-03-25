@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
@@ -55,6 +57,9 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	// Recording download
 	recordings := api.Group("/recordings", authMw)
 	recordings.Get("/:recordingId/download", h.GetRecordingDownloadURL)
+
+	// Conflict check
+	calls.Get("/conflicts", h.CheckConflicts)
 
 	// Scheduled calls (CALL-02)
 	channels := api.Group("/channels", authMw)
@@ -458,6 +463,52 @@ func (h *Handler) DeleteScheduledCall(c fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusOK)
+}
+
+// CheckConflicts обрабатывает GET /api/calls/conflicts — проверка конфликтов расписания.
+// Query params: time (ISO 8601), duration (минуты), participant_ids (через запятую).
+func (h *Handler) CheckConflicts(c fiber.Ctx) error {
+	timeStr := c.Query("time")
+	if timeStr == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "параметр time обязателен")
+	}
+	requestedTime, err := time.Parse(time.RFC3339, timeStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный формат time (ожидается ISO 8601)")
+	}
+
+	durationStr := c.Query("duration", "60")
+	duration, err := strconv.Atoi(durationStr)
+	if err != nil || duration <= 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный duration")
+	}
+
+	participantIDsStr := c.Query("participant_ids")
+	if participantIDsStr == "" {
+		return c.JSON(ConflictResponse{HasConflict: false, Conflicts: []ConflictDetail{}})
+	}
+
+	idParts := strings.Split(participantIDsStr, ",")
+	participantIDs := make([]uuid.UUID, 0, len(idParts))
+	for _, idStr := range idParts {
+		id, err := uuid.Parse(strings.TrimSpace(idStr))
+		if err != nil {
+			continue
+		}
+		participantIDs = append(participantIDs, id)
+	}
+
+	if len(participantIDs) == 0 {
+		return c.JSON(ConflictResponse{HasConflict: false, Conflicts: []ConflictDetail{}})
+	}
+
+	resp, err := h.scheduledSvc.CheckConflicts(c.Context(), requestedTime, duration, participantIDs)
+	if err != nil {
+		slog.Error("ошибка проверки конфликтов", "error", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось проверить конфликты")
+	}
+
+	return c.JSON(resp)
 }
 
 // webhookEvent представляет структуру webhook-события от LiveKit.

@@ -37,7 +37,7 @@ interface CalendarEvent {
 	colorClass: string;
 }
 
-type CalendarView = "month" | "week";
+type CalendarView = "month" | "week" | "day" | "agenda";
 
 // ---------------------------------------------------------------------------
 // Color palette for call types
@@ -73,6 +73,7 @@ const HOURS = Array.from(
 	{ length: HOUR_END - HOUR_START },
 	(_, i) => HOUR_START + i,
 );
+const HOURS_FULL = Array.from({ length: 24 }, (_, i) => i);
 const DEFAULT_DURATION = 60; // minutes
 
 const WEEKDAY_NAMES_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -474,6 +475,220 @@ function WeekView({
 }
 
 // ---------------------------------------------------------------------------
+// Day View (single day, 24-hour grid)
+// ---------------------------------------------------------------------------
+
+function DayView({
+	day,
+	today,
+	events,
+	onSlotClick,
+	onEventClick,
+}: {
+	day: Date;
+	today: Date;
+	events: CalendarEvent[];
+	onSlotClick: (day: Date, hour: number) => void;
+	onEventClick: (ev: CalendarEvent) => void;
+}) {
+	const currentTimeRef = useRef<HTMLDivElement>(null);
+	const isToday = isSameDay(day, today);
+	const now = new Date();
+	const currentHour = now.getHours();
+	const currentMinute = now.getMinutes();
+
+	const dayEvents = useMemo(
+		() => events.filter((ev) => isSameDay(ev.date, day)),
+		[events, day],
+	);
+
+	useEffect(() => {
+		currentTimeRef.current?.scrollIntoView({
+			block: "center",
+			behavior: "smooth",
+		});
+	}, []);
+
+	return (
+		<div className="overflow-auto rounded-xl border bg-card">
+			<div
+				className="grid min-w-[300px]"
+				style={{
+					gridTemplateColumns: "60px 1fr",
+					gridTemplateRows: `repeat(${HOURS_FULL.length}, 60px)`,
+				}}
+			>
+				{HOURS_FULL.map((hour) => {
+					const hourEvents = dayEvents.filter(
+						(ev) => ev.date.getHours() === hour,
+					);
+					return (
+						<>
+							{/* Time label */}
+							<div
+								key={`label-${hour}`}
+								className="relative flex items-start justify-end border-r border-b pr-2 pt-0.5 text-[11px] text-muted-foreground"
+							>
+								{String(hour).padStart(2, "0")}:00
+							</div>
+
+							{/* Hour cell */}
+							<div
+								key={`cell-${hour}`}
+								className={`relative border-b cursor-pointer transition-colors hover:bg-muted/50 ${
+									isToday ? "bg-primary/[0.02]" : ""
+								}`}
+								onClick={() => onSlotClick(day, hour)}
+							>
+								{/* Current time indicator */}
+								{isToday && hour === currentHour && (
+									<div
+										ref={currentTimeRef}
+										className="pointer-events-none absolute left-0 right-0 z-10 border-t-2 border-red-500"
+										style={{ top: `${(currentMinute / 60) * 100}%` }}
+									>
+										<div className="absolute -left-1 -top-1.5 h-3 w-3 rounded-full bg-red-500" />
+									</div>
+								)}
+
+								{/* Event blocks */}
+								{hourEvents.map((ev) => {
+									const topOffset = (ev.date.getMinutes() / 60) * 100;
+									const height = (ev.durationMinutes / 60) * 100;
+									return (
+										<div
+											key={ev.id}
+											className={`absolute left-1 right-1 z-[5] overflow-hidden rounded-md border px-2 py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 ${ev.colorClass}`}
+											style={{
+												top: `${topOffset}%`,
+												height: `${Math.min(height, 100 - topOffset)}%`,
+												minHeight: "24px",
+											}}
+											onClick={(e) => {
+												e.stopPropagation();
+												onEventClick(ev);
+											}}
+										>
+											<span className="font-medium leading-tight line-clamp-2">
+												{ev.title}
+											</span>
+											{ev.durationMinutes >= 30 && (
+												<span className="opacity-70 ml-1">
+													{ev.date.toLocaleTimeString("ru-RU", {
+														hour: "2-digit",
+														minute: "2-digit",
+													})}
+												</span>
+											)}
+										</div>
+									);
+								})}
+							</div>
+						</>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Agenda View (chronological list of upcoming events)
+// ---------------------------------------------------------------------------
+
+function AgendaView({
+	events,
+	onEventClick,
+}: {
+	events: CalendarEvent[];
+	onEventClick: (ev: CalendarEvent) => void;
+}) {
+	// Group events by day, sorted chronologically
+	const groupedByDay = useMemo(() => {
+		const sorted = [...events].sort(
+			(a, b) => a.date.getTime() - b.date.getTime(),
+		);
+		const groups = new Map<string, CalendarEvent[]>();
+		for (const ev of sorted) {
+			const key = `${ev.date.getFullYear()}-${ev.date.getMonth()}-${ev.date.getDate()}`;
+			const arr = groups.get(key) ?? [];
+			arr.push(ev);
+			groups.set(key, arr);
+		}
+		return groups;
+	}, [events]);
+
+	if (groupedByDay.size === 0) {
+		return (
+			<div className="rounded-xl border bg-card p-8 text-center">
+				<p className="text-muted-foreground">
+					Нет запланированных звонков
+				</p>
+			</div>
+		);
+	}
+
+	return (
+		<div className="space-y-4">
+			{Array.from(groupedByDay.entries()).map(([key, dayEvents]) => {
+				const dayDate = dayEvents[0]!.date;
+				const dayHeader = dayDate.toLocaleDateString("ru-RU", {
+					weekday: "long",
+					day: "numeric",
+					month: "long",
+					year: "numeric",
+				});
+
+				return (
+					<div key={key} className="rounded-xl border bg-card overflow-hidden">
+						{/* Day header */}
+						<div className="border-b bg-muted/30 px-4 py-2">
+							<span className="text-sm font-medium capitalize">
+								{dayHeader}
+							</span>
+						</div>
+
+						{/* Events for this day */}
+						<div className="divide-y">
+							{dayEvents.map((ev) => (
+								<div
+									key={ev.id}
+									className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-muted/50"
+									onClick={() => onEventClick(ev)}
+								>
+									{/* Color dot */}
+									<div
+										className={`h-3 w-3 shrink-0 rounded-full border ${ev.colorClass}`}
+									/>
+
+									{/* Time */}
+									<span className="w-14 shrink-0 text-sm font-medium tabular-nums">
+										{ev.date.toLocaleTimeString("ru-RU", {
+											hour: "2-digit",
+											minute: "2-digit",
+										})}
+									</span>
+
+									{/* Title */}
+									<span className="flex-1 truncate text-sm font-medium">
+										{ev.title}
+									</span>
+
+									{/* Duration badge */}
+									<span className="shrink-0 text-xs text-muted-foreground">
+										{ev.durationMinutes} мин
+									</span>
+								</div>
+							))}
+						</div>
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
 // CallCalendar component
 // ---------------------------------------------------------------------------
 
@@ -487,6 +702,7 @@ export function CallCalendar() {
 	const [view, setView] = useState<CalendarView>("month");
 	const [weekOffset, setWeekOffset] = useState(0);
 	const [monthOffset, setMonthOffset] = useState(0);
+	const [dayOffset, setDayOffset] = useState(0);
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [dialogDefaults, setDialogDefaults] = useState<{
 		date?: string;
@@ -532,9 +748,52 @@ export function CallCalendar() {
 		return end;
 	}, [weekDays]);
 
+	// --- Day view state ---
+	const displayDay = useMemo(() => {
+		const d = new Date(today);
+		d.setDate(d.getDate() + dayOffset);
+		d.setHours(0, 0, 0, 0);
+		return d;
+	}, [today, dayOffset]);
+
+	const dayRangeEnd = useMemo(() => {
+		const end = new Date(displayDay);
+		end.setHours(23, 59, 59, 999);
+		return end;
+	}, [displayDay]);
+
+	// --- Agenda view state (next 30 days from today) ---
+	const agendaRangeStart = useMemo(() => {
+		const d = new Date(today);
+		d.setHours(0, 0, 0, 0);
+		return d;
+	}, [today]);
+
+	const agendaRangeEnd = useMemo(() => {
+		const d = new Date(today);
+		d.setDate(d.getDate() + 30);
+		d.setHours(23, 59, 59, 999);
+		return d;
+	}, [today]);
+
 	// --- Compute visible range based on active view ---
-	const rangeStart = view === "month" ? monthRangeStart : weekStart;
-	const rangeEnd = view === "month" ? monthRangeEnd : weekRangeEnd;
+	const rangeStart = useMemo(() => {
+		switch (view) {
+			case "month": return monthRangeStart;
+			case "week": return weekStart;
+			case "day": return displayDay;
+			case "agenda": return agendaRangeStart;
+		}
+	}, [view, monthRangeStart, weekStart, displayDay, agendaRangeStart]);
+
+	const rangeEnd = useMemo(() => {
+		switch (view) {
+			case "month": return monthRangeEnd;
+			case "week": return weekRangeEnd;
+			case "day": return dayRangeEnd;
+			case "agenda": return agendaRangeEnd;
+		}
+	}, [view, monthRangeEnd, weekRangeEnd, dayRangeEnd, agendaRangeEnd]);
 
 	// Загружаем каналы для получения списка их ID
 	const { data: channels } = useQuery({
@@ -646,27 +905,21 @@ export function CallCalendar() {
 	}, []);
 
 	const handleNavigateToday = useCallback(() => {
-		if (view === "month") {
-			setMonthOffset(0);
-		} else {
-			setWeekOffset(0);
-		}
+		if (view === "month") setMonthOffset(0);
+		else if (view === "week") setWeekOffset(0);
+		else if (view === "day") setDayOffset(0);
 	}, [view]);
 
 	const handleNavigatePrev = useCallback(() => {
-		if (view === "month") {
-			setMonthOffset((m) => m - 1);
-		} else {
-			setWeekOffset((w) => w - 1);
-		}
+		if (view === "month") setMonthOffset((m) => m - 1);
+		else if (view === "week") setWeekOffset((w) => w - 1);
+		else if (view === "day") setDayOffset((d) => d - 1);
 	}, [view]);
 
 	const handleNavigateNext = useCallback(() => {
-		if (view === "month") {
-			setMonthOffset((m) => m + 1);
-		} else {
-			setWeekOffset((w) => w + 1);
-		}
+		if (view === "month") setMonthOffset((m) => m + 1);
+		else if (view === "week") setWeekOffset((w) => w + 1);
+		else if (view === "day") setDayOffset((d) => d + 1);
 	}, [view]);
 
 	// --- Header text ---
@@ -678,6 +931,17 @@ export function CallCalendar() {
 				year: "numeric",
 			});
 		}
+		if (view === "day") {
+			return displayDay.toLocaleDateString("ru-RU", {
+				weekday: "long",
+				day: "numeric",
+				month: "long",
+				year: "numeric",
+			});
+		}
+		if (view === "agenda") {
+			return "Ближайшие 30 дней";
+		}
 		return `${weekDays[0]!.toLocaleDateString("ru-RU", {
 			day: "numeric",
 			month: "long",
@@ -686,7 +950,7 @@ export function CallCalendar() {
 			month: "long",
 			year: "numeric",
 		})}`;
-	}, [view, displayMonth, weekDays]);
+	}, [view, displayMonth, weekDays, displayDay]);
 
 	const isCurrentWeek = weekOffset === 0;
 
@@ -695,23 +959,27 @@ export function CallCalendar() {
 			{/* Navigation bar */}
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={handleNavigatePrev}
-					>
-						<ChevronLeft className="h-4 w-4" />
-					</Button>
-					<Button variant="outline" size="sm" onClick={handleNavigateToday}>
-						{t("calendarToday", { defaultValue: "Сегодня" })}
-					</Button>
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={handleNavigateNext}
-					>
-						<ChevronRight className="h-4 w-4" />
-					</Button>
+					{view !== "agenda" && (
+						<>
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={handleNavigatePrev}
+							>
+								<ChevronLeft className="h-4 w-4" />
+							</Button>
+							<Button variant="outline" size="sm" onClick={handleNavigateToday}>
+								{t("calendarToday", { defaultValue: "Сегодня" })}
+							</Button>
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={handleNavigateNext}
+							>
+								<ChevronRight className="h-4 w-4" />
+							</Button>
+						</>
+					)}
 
 					<span className="ml-2 text-sm font-medium text-foreground capitalize">
 						{headerText}
@@ -721,26 +989,26 @@ export function CallCalendar() {
 				<div className="flex items-center gap-2">
 					{/* View switcher */}
 					<div className="inline-flex h-9 items-center rounded-lg border bg-muted p-1">
-						<button
-							className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-								view === "month"
-									? "bg-background text-foreground shadow-sm"
-									: "text-muted-foreground hover:text-foreground"
-							}`}
-							onClick={() => setView("month")}
-						>
-							{t("calendarMonth", { defaultValue: "Месяц" })}
-						</button>
-						<button
-							className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-								view === "week"
-									? "bg-background text-foreground shadow-sm"
-									: "text-muted-foreground hover:text-foreground"
-							}`}
-							onClick={() => setView("week")}
-						>
-							{t("calendarWeek", { defaultValue: "Неделя" })}
-						</button>
+						{(
+							[
+								{ key: "month" as const, label: t("calendarMonth", { defaultValue: "Месяц" }) },
+								{ key: "week" as const, label: t("calendarWeek", { defaultValue: "Неделя" }) },
+								{ key: "day" as const, label: t("calendarDay", { defaultValue: "День" }) },
+								{ key: "agenda" as const, label: t("calendarAgenda", { defaultValue: "Повестка" }) },
+							] as const
+						).map((tab) => (
+							<button
+								key={tab.key}
+								className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+									view === tab.key
+										? "bg-background text-foreground shadow-sm"
+										: "text-muted-foreground hover:text-foreground"
+								}`}
+								onClick={() => setView(tab.key)}
+							>
+								{tab.label}
+							</button>
+						))}
 					</div>
 
 					<Button
@@ -758,7 +1026,7 @@ export function CallCalendar() {
 			</div>
 
 			{/* Calendar views */}
-			{view === "month" ? (
+			{view === "month" && (
 				<MonthView
 					year={displayMonth.year}
 					month={displayMonth.month}
@@ -767,13 +1035,29 @@ export function CallCalendar() {
 					onDayClick={handleDayClick}
 					onEventClick={handleEventClick}
 				/>
-			) : (
+			)}
+			{view === "week" && (
 				<WeekView
 					weekDays={weekDays}
 					today={today}
 					events={events}
 					isCurrentWeek={isCurrentWeek}
 					onSlotClick={handleSlotClick}
+					onEventClick={handleEventClick}
+				/>
+			)}
+			{view === "day" && (
+				<DayView
+					day={displayDay}
+					today={today}
+					events={events}
+					onSlotClick={handleSlotClick}
+					onEventClick={handleEventClick}
+				/>
+			)}
+			{view === "agenda" && (
+				<AgendaView
+					events={events}
 					onEventClick={handleEventClick}
 				/>
 			)}
