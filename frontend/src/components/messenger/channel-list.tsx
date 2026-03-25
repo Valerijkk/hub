@@ -2,7 +2,7 @@ import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import type { Channel, PresenceStatus } from "@/api/messenger";
-import { muteChannel, starChannel, unmuteChannel } from "@/api/messenger";
+import { deleteChannel, muteChannel, starChannel, unmuteChannel } from "@/api/messenger";
 import {
 	Dialog,
 	DialogContent,
@@ -279,6 +279,22 @@ function MuteContextMenu({
 						))}
 					</>
 				)}
+
+				{/* Разделитель + удаление */}
+				<div className="my-1 h-px bg-border/50" />
+				<button
+					type="button"
+					className="flex w-full items-center rounded-sm px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+					onClick={async () => {
+						if (confirm("Удалить канал? Это действие необратимо.")) {
+							await deleteChannel(channelId);
+							void queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
+							onClose();
+						}
+					}}
+				>
+					Удалить канал
+				</button>
 			</div>
 		</>
 	);

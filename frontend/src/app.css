@@ -382,6 +382,16 @@ select,
 select option {
 	overflow: hidden !important;
 	text-overflow: ellipsis !important;
+	padding: 0.5rem 0.75rem !important;
+	background: var(--card) !important;
+	color: var(--foreground) !important;
+}
+
+/* Стилизация нативного dropdown на Firefox */
+@-moz-document url-prefix() {
+	select {
+		scrollbar-color: var(--border) transparent;
+	}
 }
 
 select:focus,

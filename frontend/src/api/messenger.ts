@@ -161,6 +161,11 @@ export function unmuteChannel(channelId: string) {
 	return api.post<void>(`/messenger/channels/${channelId}/unmute`);
 }
 
+/** Удалить канал. */
+export function deleteChannel(channelId: string) {
+	return api.delete<void>(`/messenger/channels/${channelId}`);
+}
+
 /** Получить список участников канала. */
 export function getChannelMembers(channelId: string) {
 	return api.get<ChannelMember[]>(
