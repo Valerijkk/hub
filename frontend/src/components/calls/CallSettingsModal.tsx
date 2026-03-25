@@ -8,6 +8,13 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
@@ -184,11 +191,9 @@ export function CallSettingsModal({
 		localStorage.setItem(LS_KEY_NOISE_SUPPRESSION, String(next));
 	};
 
-	/** Стили для select-элемента устройств. */
-	const selectClasses =
-		"w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-10 text-sm text-white/90 outline-none transition-all hover:bg-white/10 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/30 cursor-pointer bg-[length:16px] bg-[right_12px_center] bg-no-repeat" +
-		" bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')]" +
-		" [-webkit-appearance:none] [-moz-appearance:none] [appearance:none]";
+	/** Стили для Radix Select trigger в тёмной теме настроек. */
+	const selectTriggerClasses =
+		"w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90 transition-all hover:bg-white/10 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/30 h-auto";
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -225,20 +230,29 @@ export function CallSettingsModal({
 								<Volume2 className="h-3.5 w-3.5" />
 								Динамик
 							</label>
-							<select
+							<Select
 								value={selectedOutput}
-								onChange={(e) => void handleOutputChange(e.target.value)}
-								className={selectClasses}
+								onValueChange={(v) => void handleOutputChange(v)}
 							>
-								{audioOutputs.length === 0 && (
-									<option value="">Нет доступных устройств</option>
-								)}
-								{audioOutputs.map((d) => (
-									<option key={d.deviceId} value={d.deviceId}>
-										{d.label}
-									</option>
-								))}
-							</select>
+								<SelectTrigger className={selectTriggerClasses}>
+									<SelectValue
+										placeholder="Нет доступных устройств"
+									/>
+								</SelectTrigger>
+								<SelectContent>
+									{audioOutputs.length === 0 ? (
+										<SelectItem value="__none" disabled>
+											Нет доступных устройств
+										</SelectItem>
+									) : (
+										audioOutputs.map((d) => (
+											<SelectItem key={d.deviceId} value={d.deviceId}>
+												{d.label}
+											</SelectItem>
+										))
+									)}
+								</SelectContent>
+							</Select>
 						</div>
 
 						{/* Микрофон */}
@@ -247,20 +261,29 @@ export function CallSettingsModal({
 								<Mic className="h-3.5 w-3.5" />
 								Микрофон
 							</label>
-							<select
+							<Select
 								value={selectedInput}
-								onChange={(e) => void handleInputChange(e.target.value)}
-								className={selectClasses}
+								onValueChange={(v) => void handleInputChange(v)}
 							>
-								{audioInputs.length === 0 && (
-									<option value="">Нет доступных устройств</option>
-								)}
-								{audioInputs.map((d) => (
-									<option key={d.deviceId} value={d.deviceId}>
-										{d.label}
-									</option>
-								))}
-							</select>
+								<SelectTrigger className={selectTriggerClasses}>
+									<SelectValue
+										placeholder="Нет доступных устройств"
+									/>
+								</SelectTrigger>
+								<SelectContent>
+									{audioInputs.length === 0 ? (
+										<SelectItem value="__none" disabled>
+											Нет доступных устройств
+										</SelectItem>
+									) : (
+										audioInputs.map((d) => (
+											<SelectItem key={d.deviceId} value={d.deviceId}>
+												{d.label}
+											</SelectItem>
+										))
+									)}
+								</SelectContent>
+							</Select>
 						</div>
 
 						{/* Разделитель */}
@@ -291,20 +314,29 @@ export function CallSettingsModal({
 								<Camera className="h-3.5 w-3.5" />
 								Камера
 							</label>
-							<select
+							<Select
 								value={selectedCamera}
-								onChange={(e) => void handleCameraChange(e.target.value)}
-								className={selectClasses}
+								onValueChange={(v) => void handleCameraChange(v)}
 							>
-								{videoInputs.length === 0 && (
-									<option value="">Нет доступных устройств</option>
-								)}
-								{videoInputs.map((d) => (
-									<option key={d.deviceId} value={d.deviceId}>
-										{d.label}
-									</option>
-								))}
-							</select>
+								<SelectTrigger className={selectTriggerClasses}>
+									<SelectValue
+										placeholder="Нет доступных устройств"
+									/>
+								</SelectTrigger>
+								<SelectContent>
+									{videoInputs.length === 0 ? (
+										<SelectItem value="__none" disabled>
+											Нет доступных устройств
+										</SelectItem>
+									) : (
+										videoInputs.map((d) => (
+											<SelectItem key={d.deviceId} value={d.deviceId}>
+												{d.label}
+											</SelectItem>
+										))
+									)}
+								</SelectContent>
+							</Select>
 						</div>
 
 						{/* Разделитель */}

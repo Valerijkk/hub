@@ -288,6 +288,8 @@ export interface CreateScheduledCallData {
 	rrule?: string;
 	/** ID канала. */
 	channel_id: string;
+	/** ID участников звонка. */
+	participant_ids?: string[];
 }
 
 /** Данные для обновления запланированного звонка. */
@@ -344,4 +346,25 @@ export function updateScheduledCall(id: string, data: UpdateScheduledCallData) {
  */
 export function deleteScheduledCall(id: string) {
 	return api.delete<void>(`/scheduled-calls/${id}`);
+}
+
+/**
+ * Получить все запланированные звонки по списку каналов.
+ * Используется для календаря, который показывает звонки из всех каналов.
+ * @param channelIds - массив ID каналов
+ */
+export async function listScheduledCallsForChannels(
+	channelIds: string[],
+): Promise<ScheduledCallResponse[]> {
+	if (channelIds.length === 0) return [];
+
+	const results = await Promise.all(
+		channelIds.map((id) =>
+			listScheduledCalls(id)
+				.then((res) => res.scheduled_calls ?? [])
+				.catch(() => [] as ScheduledCallResponse[]),
+		),
+	);
+
+	return results.flat();
 }

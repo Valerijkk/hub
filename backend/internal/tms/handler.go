@@ -97,6 +97,12 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	tms.Get("/export", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ExportTestCases)
 	runs.Get("/:runId/export", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ExportTestRunReport)
 
+	// CI/CD Webhooks — используют тот же authMw (поддержка X-API-Key / JWT).
+	// Упрощённый интерфейс для пайплайнов: POST файл или JSON → автоматический прогон.
+	webhook := tms.Group("/webhook")
+	webhook.Post("/", h.WebhookAllure)
+	webhook.Post("/junit", h.WebhookJUnit)
+
 	// Test environments
 	envs := api.Group("/projects/:projectId/environments", authMw)
 	envs.Post("/", rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc), h.CreateEnvironmentHandler)

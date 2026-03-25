@@ -1,6 +1,9 @@
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { listScheduledCallsForChannels } from "@/api/calls";
+import { getChannels } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import { CreateCallDialog } from "./create-call-dialog";
 
@@ -533,9 +536,39 @@ export function CallCalendar() {
 	const rangeStart = view === "month" ? monthRangeStart : weekStart;
 	const rangeEnd = view === "month" ? monthRangeEnd : weekRangeEnd;
 
-	// Scheduled calls -- placeholder until API endpoint is connected
-	// TODO: connect to real API when endpoint /api/calls/scheduled is available
-	const scheduledCalls: ScheduledCallRecord[] = [];
+	// Загружаем каналы для получения списка их ID
+	const { data: channels } = useQuery({
+		queryKey: ["messenger", "channels"],
+		queryFn: getChannels,
+	});
+
+	const channelIds = useMemo(
+		() => (channels ?? []).map((ch) => ch.id),
+		[channels],
+	);
+
+	// Загружаем запланированные звонки из всех каналов
+	const { data: scheduledCallsData } = useQuery({
+		queryKey: ["calls", "scheduled", channelIds],
+		queryFn: () => listScheduledCallsForChannels(channelIds),
+		enabled: channelIds.length > 0,
+	});
+
+	const scheduledCalls = useMemo<ScheduledCallRecord[]>(
+		() =>
+			(scheduledCallsData ?? []).map((c) => ({
+				id: c.id,
+				title: c.title,
+				description: c.description,
+				scheduled_at: c.scheduled_at,
+				rrule: c.rrule,
+				channel_id: c.channel_id,
+				project_id: c.project_id,
+				created_by: c.created_by,
+				is_active: c.is_active,
+			})),
+		[scheduledCallsData],
+	);
 
 	// Expand calls into calendar events for the visible range
 	const events = useMemo<CalendarEvent[]>(() => {

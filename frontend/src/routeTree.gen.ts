@@ -40,6 +40,7 @@ import { Route as AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport } fro
 import { Route as AuthenticatedProjectsProjectIdTmsRunsRouteImport } from './routes/_authenticated/projects/$projectId/tms/runs'
 import { Route as AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport } from './routes/_authenticated/projects/$projectId/tms/environments'
 import { Route as AuthenticatedProjectsProjectIdTmsCasesRouteImport } from './routes/_authenticated/projects/$projectId/tms/cases'
+import { Route as AuthenticatedProjectsProjectIdTmsAutotestRouteImport } from './routes/_authenticated/projects/$projectId/tms/autotest'
 import { Route as AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport } from './routes/_authenticated/projects/$projectId/sprints/$sprintId'
 import { Route as AuthenticatedProjectsProjectIdSettingsWorkflowRouteImport } from './routes/_authenticated/projects/$projectId/settings/workflow'
 import { Route as AuthenticatedProjectsProjectIdSettingsLabelsRouteImport } from './routes/_authenticated/projects/$projectId/settings/labels'
@@ -236,6 +237,12 @@ const AuthenticatedProjectsProjectIdTmsCasesRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedProjectsProjectIdTmsAutotestRoute =
+  AuthenticatedProjectsProjectIdTmsAutotestRouteImport.update({
+    id: '/autotest',
+    path: '/autotest',
+    getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdSprintsSprintIdRoute =
   AuthenticatedProjectsProjectIdSprintsSprintIdRouteImport.update({
     id: '/sprints/$sprintId',
@@ -308,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
   '/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
+  '/projects/$projectId/tms/autotest': typeof AuthenticatedProjectsProjectIdTmsAutotestRoute
   '/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   '/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
   '/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
@@ -345,6 +353,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   '/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
   '/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
+  '/projects/$projectId/tms/autotest': typeof AuthenticatedProjectsProjectIdTmsAutotestRoute
   '/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   '/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
   '/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
@@ -386,6 +395,7 @@ export interface FileRoutesById {
   '/_authenticated/projects/$projectId/settings/labels': typeof AuthenticatedProjectsProjectIdSettingsLabelsRoute
   '/_authenticated/projects/$projectId/settings/workflow': typeof AuthenticatedProjectsProjectIdSettingsWorkflowRoute
   '/_authenticated/projects/$projectId/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdSprintsSprintIdRoute
+  '/_authenticated/projects/$projectId/tms/autotest': typeof AuthenticatedProjectsProjectIdTmsAutotestRoute
   '/_authenticated/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   '/_authenticated/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
   '/_authenticated/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
@@ -427,6 +437,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/labels'
     | '/projects/$projectId/settings/workflow'
     | '/projects/$projectId/sprints/$sprintId'
+    | '/projects/$projectId/tms/autotest'
     | '/projects/$projectId/tms/cases'
     | '/projects/$projectId/tms/environments'
     | '/projects/$projectId/tms/runs'
@@ -464,6 +475,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/settings/labels'
     | '/projects/$projectId/settings/workflow'
     | '/projects/$projectId/sprints/$sprintId'
+    | '/projects/$projectId/tms/autotest'
     | '/projects/$projectId/tms/cases'
     | '/projects/$projectId/tms/environments'
     | '/projects/$projectId/tms/runs'
@@ -504,6 +516,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$projectId/settings/labels'
     | '/_authenticated/projects/$projectId/settings/workflow'
     | '/_authenticated/projects/$projectId/sprints/$sprintId'
+    | '/_authenticated/projects/$projectId/tms/autotest'
     | '/_authenticated/projects/$projectId/tms/cases'
     | '/_authenticated/projects/$projectId/tms/environments'
     | '/_authenticated/projects/$projectId/tms/runs'
@@ -741,6 +754,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsCasesRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
     }
+    '/_authenticated/projects/$projectId/tms/autotest': {
+      id: '/_authenticated/projects/$projectId/tms/autotest'
+      path: '/autotest'
+      fullPath: '/projects/$projectId/tms/autotest'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsAutotestRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
     '/_authenticated/projects/$projectId/sprints/$sprintId': {
       id: '/_authenticated/projects/$projectId/sprints/$sprintId'
       path: '/sprints/$sprintId'
@@ -810,6 +830,7 @@ const AuthenticatedMessengerRouteWithChildren =
   )
 
 interface AuthenticatedProjectsProjectIdTmsRouteChildren {
+  AuthenticatedProjectsProjectIdTmsAutotestRoute: typeof AuthenticatedProjectsProjectIdTmsAutotestRoute
   AuthenticatedProjectsProjectIdTmsCasesRoute: typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   AuthenticatedProjectsProjectIdTmsEnvironmentsRoute: typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
   AuthenticatedProjectsProjectIdTmsRunsRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRoute
@@ -820,6 +841,8 @@ interface AuthenticatedProjectsProjectIdTmsRouteChildren {
 
 const AuthenticatedProjectsProjectIdTmsRouteChildren: AuthenticatedProjectsProjectIdTmsRouteChildren =
   {
+    AuthenticatedProjectsProjectIdTmsAutotestRoute:
+      AuthenticatedProjectsProjectIdTmsAutotestRoute,
     AuthenticatedProjectsProjectIdTmsCasesRoute:
       AuthenticatedProjectsProjectIdTmsCasesRoute,
     AuthenticatedProjectsProjectIdTmsEnvironmentsRoute:

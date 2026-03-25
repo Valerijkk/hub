@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { Check, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type CreateScheduledCallData, createScheduledCall } from "@/api/calls";
 import { getChannels } from "@/api/messenger";
-import { listProjects } from "@/api/projects";
+import { type MemberResponse, listMembers, listProjects } from "@/api/projects";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -86,6 +87,8 @@ export function CreateCallDialog({
 	const [duration, setDuration] = useState("60");
 	const [recurrence, setRecurrence] = useState("");
 	const [channelId, setChannelId] = useState("");
+	const [participantIds, setParticipantIds] = useState<string[]>([]);
+	const [participantSearch, setParticipantSearch] = useState("");
 
 	const { data: channels } = useQuery({
 		queryKey: ["messenger", "channels"],
@@ -99,6 +102,35 @@ export function CreateCallDialog({
 
 	const projectId = (projects as { id: string }[] | undefined)?.[0]?.id ?? "";
 
+	const { data: members } = useQuery({
+		queryKey: ["project-members", projectId],
+		queryFn: () => listMembers(projectId),
+		enabled: !!projectId,
+	});
+
+	const filteredMembers = useMemo(() => {
+		const all = (members ?? []) as MemberResponse[];
+		if (!participantSearch.trim()) return all;
+		const q = participantSearch.toLowerCase();
+		return all.filter(
+			(m) =>
+				m.name.toLowerCase().includes(q) ||
+				m.email.toLowerCase().includes(q),
+		);
+	}, [members, participantSearch]);
+
+	const toggleParticipant = (userId: string) => {
+		setParticipantIds((prev) =>
+			prev.includes(userId)
+				? prev.filter((id) => id !== userId)
+				: [...prev, userId],
+		);
+	};
+
+	const removeParticipant = (userId: string) => {
+		setParticipantIds((prev) => prev.filter((id) => id !== userId));
+	};
+
 	// Reset form when dialog opens with defaults
 	useEffect(() => {
 		if (open) {
@@ -107,6 +139,8 @@ export function CreateCallDialog({
 			setTime(defaultTime ?? "10:00");
 			setDuration("60");
 			setRecurrence("");
+			setParticipantIds([]);
+			setParticipantSearch("");
 		}
 	}, [open, defaultDate, defaultTime]);
 
@@ -133,6 +167,7 @@ export function CreateCallDialog({
 		};
 
 		if (recurrence) data.rrule = recurrence;
+		if (participantIds.length > 0) data.participant_ids = participantIds;
 
 		mutation.mutate(data);
 	};
@@ -198,6 +233,108 @@ export function CreateCallDialog({
 									))}
 								</SelectContent>
 							</Select>
+						</div>
+
+						{/* Participants */}
+						<div className="space-y-2">
+							<Label className="text-sm font-medium">
+								{t("callParticipantsLabel", { defaultValue: "Участники" })}
+							</Label>
+
+							{/* Selected participants chips */}
+							{participantIds.length > 0 && (
+								<div className="flex flex-wrap gap-1.5">
+									{participantIds.map((uid) => {
+										const member = (members ?? []).find(
+											(m: MemberResponse) => m.user_id === uid,
+										);
+										if (!member) return null;
+										return (
+											<span
+												key={uid}
+												className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium"
+											>
+												{member.avatar_url ? (
+													<img
+														src={member.avatar_url}
+														alt=""
+														className="h-4 w-4 rounded-full object-cover"
+													/>
+												) : (
+													<span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary">
+														{member.name.charAt(0).toUpperCase()}
+													</span>
+												)}
+												{member.name}
+												<button
+													type="button"
+													onClick={() => removeParticipant(uid)}
+													className="ml-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-destructive/20 hover:text-destructive transition-colors"
+												>
+													<X className="h-3 w-3" />
+												</button>
+											</span>
+										);
+									})}
+								</div>
+							)}
+
+							{/* Search input */}
+							<Input
+								placeholder={t("searchParticipants", {
+									defaultValue: "Поиск участников...",
+								})}
+								value={participantSearch}
+								onChange={(e) => setParticipantSearch(e.target.value)}
+								className="h-10"
+							/>
+
+							{/* Members list */}
+							<div className="max-h-32 overflow-y-auto rounded-lg border">
+								{filteredMembers.length === 0 ? (
+									<div className="px-3 py-2 text-xs text-muted-foreground">
+										{t("noParticipantsFound", {
+											defaultValue: "Участники не найдены",
+										})}
+									</div>
+								) : (
+									filteredMembers.map((member: MemberResponse) => {
+										const isSelected = participantIds.includes(
+											member.user_id,
+										);
+										return (
+											<button
+												key={member.user_id}
+												type="button"
+												className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-muted/50 ${
+													isSelected ? "bg-primary/5" : ""
+												}`}
+												onClick={() =>
+													toggleParticipant(member.user_id)
+												}
+											>
+												{member.avatar_url ? (
+													<img
+														src={member.avatar_url}
+														alt=""
+														className="h-6 w-6 rounded-full object-cover"
+													/>
+												) : (
+													<span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
+														{member.name.charAt(0).toUpperCase()}
+													</span>
+												)}
+												<span className="flex-1 text-left truncate">
+													{member.name}
+												</span>
+												{isSelected && (
+													<Check className="h-4 w-4 text-primary shrink-0" />
+												)}
+											</button>
+										);
+									})
+								)}
+							</div>
 						</div>
 
 						{/* Time */}
