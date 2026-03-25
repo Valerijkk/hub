@@ -21,6 +21,13 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { formatRelativeTime } from "@/lib/format-time";
 import { cn } from "@/lib/utils";
 import { useTmsStore } from "@/stores/tms-store";
@@ -363,41 +370,43 @@ function TestCasesPage() {
 						/>
 					</div>
 
-					<select
-						className="rounded-lg border bg-card px-2.5 py-1.5 text-xs h-8"
-						value={filters.status ?? ""}
-						onChange={(e) => {
-							updateFilter({
-								status: (e.target.value ||
-									undefined) as ListTestCasesParams["status"],
-							});
+					<Select
+						value={filters.status ?? "all"}
+						onValueChange={(v) => {
+							updateFilter({ status: (v === "all" ? undefined : v) as ListTestCasesParams["status"] });
 							setOffset(0);
 						}}
 					>
-						<option value="">Все статусы</option>
-						<option value="draft">Черновик</option>
-						<option value="active">Активный</option>
-						<option value="deprecated">Устаревший</option>
-					</select>
+						<SelectTrigger className="w-[140px] h-8 text-xs rounded-xl">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">Все статусы</SelectItem>
+							<SelectItem value="draft">Черновик</SelectItem>
+							<SelectItem value="active">Активный</SelectItem>
+							<SelectItem value="deprecated">Устаревший</SelectItem>
+						</SelectContent>
+					</Select>
 
-					<select
-						className="rounded-lg border bg-card px-2.5 py-1.5 text-xs h-8"
-						value={filters.priority ?? ""}
-						onChange={(e) => {
-							updateFilter({
-								priority: (e.target.value ||
-									undefined) as ListTestCasesParams["priority"],
-							});
+					<Select
+						value={filters.priority ?? "all"}
+						onValueChange={(v) => {
+							updateFilter({ priority: (v === "all" ? undefined : v) as ListTestCasesParams["priority"] });
 							setOffset(0);
 						}}
 					>
-						<option value="">Все приоритеты</option>
-						<option value="critical">Критический</option>
-						<option value="high">Высокий</option>
-						<option value="medium">Средний</option>
-						<option value="low">Низкий</option>
-						<option value="trivial">Тривиальный</option>
-					</select>
+						<SelectTrigger className="w-[160px] h-8 text-xs rounded-xl">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">Все приоритеты</SelectItem>
+							<SelectItem value="critical">Критический</SelectItem>
+							<SelectItem value="high">Высокий</SelectItem>
+							<SelectItem value="medium">Средний</SelectItem>
+							<SelectItem value="low">Низкий</SelectItem>
+							<SelectItem value="trivial">Тривиальный</SelectItem>
+						</SelectContent>
+					</Select>
 
 					{hasActiveFilters && (
 						<Button

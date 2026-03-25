@@ -287,8 +287,13 @@ function MuteContextMenu({
 					className="flex w-full items-center rounded-sm px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors"
 					onClick={async () => {
 						if (confirm("Удалить канал? Это действие необратимо.")) {
-							await deleteChannel(channelId);
-							void queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
+							try {
+								await deleteChannel(channelId);
+								void queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
+								window.location.href = "/messenger";
+							} catch {
+								// канал уже удалён
+							}
 							onClose();
 						}
 					}}
