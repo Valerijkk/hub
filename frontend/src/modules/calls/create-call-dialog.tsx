@@ -1,7 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type CreateScheduledCallData, createScheduledCall } from "@/api/calls";
+import { getChannels } from "@/api/messenger";
+import { listProjects } from "@/api/projects";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -11,6 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 // ---------------------------------------------------------------------------
 // Duration presets
@@ -76,6 +85,19 @@ export function CreateCallDialog({
 	const [time, setTime] = useState("10:00");
 	const [duration, setDuration] = useState("60");
 	const [recurrence, setRecurrence] = useState("");
+	const [channelId, setChannelId] = useState("");
+
+	const { data: channels } = useQuery({
+		queryKey: ["messenger", "channels"],
+		queryFn: getChannels,
+	});
+
+	const { data: projects } = useQuery({
+		queryKey: ["projects"],
+		queryFn: listProjects,
+	});
+
+	const projectId = (projects as { id: string }[] | undefined)?.[0]?.id ?? "";
 
 	// Reset form when dialog opens with defaults
 	useEffect(() => {
@@ -90,7 +112,7 @@ export function CreateCallDialog({
 
 	const mutation = useMutation({
 		mutationFn: (data: CreateScheduledCallData) => {
-			return createScheduledCall("current", data);
+			return createScheduledCall(projectId, data);
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["calls", "scheduled"] });
@@ -100,14 +122,14 @@ export function CreateCallDialog({
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!title.trim() || !date || !time) return;
+		if (!title.trim() || !date || !time || !channelId) return;
 
 		const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
 
 		const data: CreateScheduledCallData = {
 			title: title.trim(),
 			scheduled_at: scheduledAt,
-			channel_id: "", // Will be set by server or channel context
+			channel_id: channelId,
 		};
 
 		if (recurrence) data.rrule = recurrence;
@@ -115,7 +137,7 @@ export function CreateCallDialog({
 		mutation.mutate(data);
 	};
 
-	const isValid = title.trim().length > 0 && date && time;
+	const isValid = title.trim().length > 0 && date && time && channelId;
 
 	// Format the selected date for display
 	const dateDisplay = date
@@ -159,6 +181,23 @@ export function CreateCallDialog({
 								autoFocus
 								className="h-11"
 							/>
+						</div>
+
+						{/* Channel */}
+						<div className="space-y-2">
+							<Label className="text-sm font-medium">Канал</Label>
+							<Select value={channelId} onValueChange={setChannelId}>
+								<SelectTrigger className="h-11 rounded-xl">
+									<SelectValue placeholder="Выберите канал" />
+								</SelectTrigger>
+								<SelectContent>
+									{(channels ?? []).map((ch) => (
+										<SelectItem key={ch.id} value={ch.id}>
+											{ch.name || ch.id.slice(0, 8)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 
 						{/* Time */}
