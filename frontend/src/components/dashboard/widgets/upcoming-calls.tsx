@@ -1,69 +1,81 @@
 /**
- * Widget "Upcoming Calls" -- list of scheduled calls.
+ * Widget "Upcoming Calls" -- compact list matching Gemini prototype.
+ * Shows up to 3 calls: time left | name | "Войти" button.
  */
 import { Phone, PhoneOff } from "lucide-react";
 import type { CallSummary, PersonalData } from "@/api/dashboard";
-import { Button } from "@/components/ui/button";
 
 interface Props {
 	data?: unknown;
 }
 
-/** UUID/generated-ID pattern (e.g. "call-d69b75ce-..." or raw UUIDs). */
 const GENERATED_ID_RE = /^(call-)?[0-9a-f]{8}-/i;
 
-/** Returns a human-readable call name, preferring channel_name over raw IDs. */
 function getCallDisplayName(call: CallSummary): string {
 	const titleIsRaw = !call.title || GENERATED_ID_RE.test(call.title);
-	if (titleIsRaw && call.channel_name) {
-		return call.channel_name;
-	}
+	if (titleIsRaw && call.channel_name) return call.channel_name;
 	return call.title || call.channel_name || "Звонок";
 }
 
-/** Upcoming calls widget. */
+function formatCallTime(isoDate: string): string {
+	const d = new Date(isoDate);
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const tomorrow = new Date(today);
+	tomorrow.setDate(tomorrow.getDate() + 1);
+	const callDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+	const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+
+	if (callDay.getTime() === today.getTime()) return time;
+	if (callDay.getTime() === tomorrow.getTime()) return "Завтра";
+	return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+}
+
 export function UpcomingCallsWidget({ data }: Props) {
 	const personalData = data as PersonalData | undefined;
-	const nextCall = (personalData?.upcoming_calls ?? [])[0];
+	const calls = (personalData?.upcoming_calls ?? []).slice(0, 3);
 
-	if (!nextCall) {
+	if (calls.length === 0) {
 		return (
 			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
-				<PhoneOff className="h-8 w-8 opacity-40" />
-				<p className="text-sm">Нет предстоящих звонков</p>
-				<p className="text-xs opacity-60">Запланированные звонки появятся здесь</p>
+				<PhoneOff className="h-6 w-6 opacity-40" />
+				<p className="text-xs">Нет предстоящих звонков</p>
 			</div>
 		);
 	}
 
-	const displayName = getCallDisplayName(nextCall);
-	const scheduledDate = new Date(nextCall.scheduled_at);
-	const timeStr = scheduledDate.toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-	const dateStr = scheduledDate.toLocaleString("ru-RU", { day: "numeric", month: "long" });
-
 	return (
-		<div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-			<div className="h-12 w-12 rounded-full bg-violet-500/10 flex items-center justify-center">
-				<Phone className="h-6 w-6 text-violet-500" />
-			</div>
-			<div>
-				<p className="font-semibold text-[15px]">{displayName}</p>
-				<p className="text-[13px] text-muted-foreground mt-0.5">
-					{dateStr} в {timeStr}
-				</p>
-				{nextCall.channel_name && (
-					<p className="text-[11px] text-muted-foreground/60 mt-0.5">
-						{nextCall.channel_name}
-					</p>
-				)}
-			</div>
-			<Button
-				size="sm"
-				className="btn-glow gap-1.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white border-0 hover:from-violet-500 hover:to-purple-500 mt-1"
-			>
-				<Phone className="h-3.5 w-3.5" />
-				Войти в звонок
-			</Button>
+		<div className="space-y-1">
+			{calls.map((call: CallSummary, i: number) => (
+				<div
+					key={call.id}
+					className="flex items-center gap-2.5 py-1.5 px-1 rounded-md hover:bg-white/[0.04] transition-colors"
+				>
+					<span className="text-[12px] text-muted-foreground shrink-0 w-[52px] tabular-nums">
+						{formatCallTime(call.scheduled_at)}
+					</span>
+					<div className="h-6 w-6 rounded-full bg-violet-500/15 flex items-center justify-center shrink-0">
+						<Phone className="h-3 w-3 text-violet-400" />
+					</div>
+					<span className="text-[13px] truncate flex-1">
+						{getCallDisplayName(call)}
+					</span>
+					<button
+						type="button"
+						className={`shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-md transition-all ${
+							i === 0
+								? "bg-gradient-to-r from-violet-600 to-purple-600 text-white btn-glow"
+								: "border border-white/[0.10] text-muted-foreground hover:text-white hover:border-white/20"
+						}`}
+					>
+						<span className="flex items-center gap-1">
+							<Phone className="h-2.5 w-2.5" />
+							Войти
+						</span>
+					</button>
+				</div>
+			))}
 		</div>
 	);
 }

@@ -358,7 +358,7 @@ export function WidgetGrid({
 								</div>
 
 								{/* Widget content */}
-								<div className="p-4 overflow-auto h-[calc(100%-44px)]">
+								<div className="p-4 overflow-hidden h-[calc(100%-44px)]">
 									<WidgetComponent
 										key={refreshKeys[item.i] ?? 0}
 										data={data}
