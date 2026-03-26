@@ -32,6 +32,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 
 	// Пайплайны
 	proj.Get("/gitlab/pipelines", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListPipelines)
+	proj.Post("/gitlab/pipelines/trigger", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.TriggerPipeline)
 
 	// Создание ветки из задачи
 	api.Post("/issues/:issueKey/gitlab/create-branch", authMw, h.CreateBranch)
@@ -157,6 +158,30 @@ func (h *Handler) ListPipelines(c fiber.Ctx) error {
 	}
 
 	return c.JSON(pipelines)
+}
+
+// TriggerPipeline обрабатывает POST /api/projects/:projectId/gitlab/pipelines/trigger.
+func (h *Handler) TriggerPipeline(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	var req TriggerPipelineRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+	}
+
+	if req.IntegrationID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "integration_id обязателен")
+	}
+
+	resp, err := h.service.TriggerPipeline(c.Context(), projectID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
 // CreateBranch обрабатывает POST /api/issues/:issueKey/gitlab/create-branch.

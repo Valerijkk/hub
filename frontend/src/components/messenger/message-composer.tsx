@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { CreatePollDialog } from "./create-poll-dialog";
 import { MentionAutocomplete } from "./mention-autocomplete";
+import { type StickerData, StickerPicker, buildStickerContentJson } from "./sticker-picker";
 import { VoiceRecorder } from "./voice-recorder";
 
 /** Набор популярных эмодзи для быстрого выбора в композере. */
@@ -341,6 +342,30 @@ export function MessageComposer({
 		[channelId],
 	);
 
+	/** Отправка стикера. */
+	const handleStickerSend = useCallback(
+		async (sticker: StickerData) => {
+			try {
+				const contentJson = buildStickerContentJson(sticker);
+				await sendMessage(channelId, {
+					content_json: contentJson,
+					content_text: `[sticker: ${sticker.label}]`,
+					thread_id: threadId,
+				});
+				void queryClient.invalidateQueries({
+					queryKey: ["messenger", "messages", channelId],
+				});
+			} catch (err) {
+				const message =
+					err instanceof Error
+						? err.message
+						: "Не удалось отправить стикер";
+				toast.error(message);
+			}
+		},
+		[channelId, threadId, queryClient],
+	);
+
 	/** Отправка голосового сообщения. */
 	const handleVoiceSend = useCallback(
 		async (voiceUrl: string, durationMs: number) => {
@@ -582,6 +607,9 @@ export function MessageComposer({
 							</div>
 						</PopoverContent>
 					</Popover>
+
+					{/* Sticker picker */}
+					<StickerPicker onSelect={(s) => void handleStickerSend(s)} />
 
 					{/* Poll button */}
 					<button

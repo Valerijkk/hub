@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TriggerCIPanel } from "./trigger-ci-dialog";
 
 // ---------------------------------------------------------------------------
 // Autotest Integration Setup Page
@@ -97,6 +98,9 @@ export function AutotestSetup({ projectId }: Props) {
 				</p>
 			</div>
 
+			{/* Запуск тестов из Hub */}
+			<TriggerCIPanel projectId={projectId} />
+
 			{/* 1. Webhook URL */}
 			<Card>
 				<CardHeader>
@@ -149,11 +153,32 @@ export function AutotestSetup({ projectId }: Props) {
 						API-токен для аутентификации
 					</CardTitle>
 				</CardHeader>
-				<CardContent className="space-y-3">
+				<CardContent className="space-y-4">
 					<p className="text-sm text-muted-foreground">
 						Для аутентификации CI/CD используйте API-ключ. Его можно создать
 						в разделе <strong>Профиль &rarr; API-ключи</strong>.
 					</p>
+
+					<CollapsibleSection title="Как создать API-ключ" defaultOpen>
+						<ol className="list-decimal pl-4 space-y-2 text-sm text-muted-foreground">
+							<li>
+								Перейдите в <strong>Профиль</strong> (аватар в левом нижнем углу)
+							</li>
+							<li>
+								Откройте вкладку <strong>API-ключи</strong>
+							</li>
+							<li>
+								Нажмите <strong>Создать ключ</strong>, укажите название (например,{" "}
+								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">ci-autotest</code>)
+							</li>
+							<li>
+								Скопируйте ключ — он показывается только один раз
+							</li>
+							<li>
+								Добавьте ключ в секреты CI/CD вашего репозитория
+							</li>
+						</ol>
+					</CollapsibleSection>
 
 					<p className="text-sm text-muted-foreground">
 						Передавайте ключ одним из способов:
@@ -164,12 +189,100 @@ export function AutotestSetup({ projectId }: Props) {
 						<CodeBlock code="X-API-Key: your-api-key-here" />
 					</div>
 
+					<div className="space-y-2">
+						<p className="text-sm font-medium">Query-параметр (альтернативный):</p>
+						<CodeBlock code={`${webhookUrl}?token=your-api-key-here`} />
+					</div>
+
+					<CollapsibleSection title="Необходимые права доступа">
+						<div className="space-y-3">
+							<p className="text-sm text-muted-foreground">
+								API-ключ наследует права пользователя, который его создал.
+								Для работы автотестов требуются следующие права в проекте:
+							</p>
+							<div className="overflow-x-auto">
+								<table className="w-full text-sm">
+									<thead>
+										<tr className="border-b dark:border-gray-700">
+											<th className="p-2 text-left font-medium">Действие</th>
+											<th className="p-2 text-left font-medium">Минимальная роль</th>
+											<th className="p-2 text-left font-medium">Описание</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr className="border-b dark:border-gray-700">
+											<td className="p-2">Загрузка результатов</td>
+											<td className="p-2">
+												<Badge variant="outline">Tester</Badge>
+											</td>
+											<td className="p-2 text-muted-foreground">
+												Отправка результатов через webhook (Allure / JUnit)
+											</td>
+										</tr>
+										<tr className="border-b dark:border-gray-700">
+											<td className="p-2">Создание прогонов</td>
+											<td className="p-2">
+												<Badge variant="outline">Tester</Badge>
+											</td>
+											<td className="p-2 text-muted-foreground">
+												Автоматическое создание test run при импорте
+											</td>
+										</tr>
+										<tr className="border-b dark:border-gray-700">
+											<td className="p-2">Запуск пайплайна</td>
+											<td className="p-2">
+												<Badge variant="outline">Developer</Badge>
+											</td>
+											<td className="p-2 text-muted-foreground">
+												Триггер CI/CD через Hub (кнопка "Запуск тестов")
+											</td>
+										</tr>
+										<tr className="dark:border-gray-700">
+											<td className="p-2">Управление интеграциями</td>
+											<td className="p-2">
+												<Badge variant="outline">Admin</Badge>
+											</td>
+											<td className="p-2 text-muted-foreground">
+												Подключение/отключение GitLab-репозиториев
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</CollapsibleSection>
+
+					<CollapsibleSection title="Настройка секретов в CI/CD">
+						<div className="space-y-3">
+							<p className="text-sm font-medium">GitHub Actions:</p>
+							<p className="text-sm text-muted-foreground">
+								<strong>Settings &rarr; Secrets and variables &rarr; Actions</strong> &rarr;
+								создайте секрет <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_API_KEY</code> и
+								переменную <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_URL</code>.
+							</p>
+							<p className="text-sm font-medium">GitLab CI:</p>
+							<p className="text-sm text-muted-foreground">
+								<strong>Settings &rarr; CI/CD &rarr; Variables</strong> &rarr;
+								создайте переменные{" "}
+								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_API_KEY</code> (masked) и{" "}
+								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_URL</code>.
+							</p>
+							<p className="text-sm font-medium">Jenkins:</p>
+							<p className="text-sm text-muted-foreground">
+								<strong>Manage Jenkins &rarr; Credentials</strong> &rarr;
+								добавьте Secret text с ID{" "}
+								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">hub-api-key</code>.
+							</p>
+						</div>
+					</CollapsibleSection>
+
 					<div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-200">
 						<strong>Важно:</strong> Храните API-ключ в секретах CI/CD (например,{" "}
 						<code className="rounded bg-yellow-100 px-1 dark:bg-yellow-900">
 							$HUB_API_KEY
 						</code>
-						). Никогда не фиксируйте его в репозитории.
+						). Никогда не фиксируйте его в репозитории. Регулярно ротируйте ключи —
+						при увольнении сотрудника отзовите его ключи в <strong>Профиль &rarr; API-ключи</strong>.
 					</div>
 				</CardContent>
 			</Card>
@@ -575,6 +688,136 @@ upload_results:
 						</code>{" "}
 						к каждому тесту.
 					</div>
+				</CardContent>
+			</Card>
+
+			{/* 7. Запуск из Hub */}
+			<Card>
+				<CardHeader>
+					<CardTitle className="flex items-center gap-2 text-base">
+						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+							7
+						</span>
+						Запуск тестов из Hub
+					</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-3">
+					<p className="text-sm text-muted-foreground">
+						При запуске тестов через панель выше Hub передаёт переменные CI/CD в пайплайн:
+					</p>
+
+					<div className="overflow-x-auto">
+						<table className="w-full text-sm">
+							<thead>
+								<tr className="border-b dark:border-gray-700">
+									<th className="p-2 text-left font-medium">Переменная</th>
+									<th className="p-2 text-left font-medium">Пример</th>
+									<th className="p-2 text-left font-medium">Описание</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr className="border-b dark:border-gray-700">
+									<td className="p-2">
+										<code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+											HUB_TEST_CASE_IDS
+										</code>
+									</td>
+									<td className="p-2 text-muted-foreground">
+										<code className="text-xs">HUB-TC-1,HUB-TC-5,HUB-TC-12</code>
+									</td>
+									<td className="p-2 text-muted-foreground">
+										Ключи выбранных тест-кейсов (через запятую)
+									</td>
+								</tr>
+								<tr className="border-b dark:border-gray-700">
+									<td className="p-2">
+										<code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+											HUB_RUN_SOURCE
+										</code>
+									</td>
+									<td className="p-2 text-muted-foreground">
+										<code className="text-xs">hub_trigger</code>
+									</td>
+									<td className="p-2 text-muted-foreground">
+										Источник запуска (для фильтрации в пайплайне)
+									</td>
+								</tr>
+								<tr className="dark:border-gray-700">
+									<td className="p-2">
+										<code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
+											HUB_PROJECT_ID
+										</code>
+									</td>
+									<td className="p-2 text-muted-foreground">
+										<code className="text-xs">uuid</code>
+									</td>
+									<td className="p-2 text-muted-foreground">
+										ID проекта в Hub (для обратной привязки)
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<CollapsibleSection title="Пример использования в pytest">
+						<CodeBlock
+							language="python"
+							code={`import os
+import pytest
+
+# Получаем список кейсов из переменной CI
+hub_case_ids = os.environ.get("HUB_TEST_CASE_IDS", "")
+
+def filter_by_hub_ids(items):
+    """Фильтрует тесты по HUB_TEST_CASE_IDS, если переменная задана."""
+    if not hub_case_ids:
+        return  # Запускаем все тесты
+
+    allowed = set(hub_case_ids.split(","))
+    selected = []
+    deselected = []
+
+    for item in items:
+        # Ищем @allure.id() маркер или ID в имени теста
+        markers = [m for m in item.iter_markers("allure_id")]
+        test_id = markers[0].args[0] if markers else None
+
+        if test_id and test_id in allowed:
+            selected.append(item)
+        else:
+            deselected.append(item)
+
+    items[:] = selected
+    config = items[0].config if items else None
+    if config and deselected:
+        config.hook.pytest_deselected(items=deselected)
+
+def pytest_collection_modifyitems(items):
+    filter_by_hub_ids(items)`}
+						/>
+					</CollapsibleSection>
+
+					<CollapsibleSection title="Пример использования в GitLab CI">
+						<CodeBlock
+							language="yaml"
+							code={`test:
+  stage: test
+  script:
+    - |
+      if [ -n "$HUB_TEST_CASE_IDS" ]; then
+        echo "Running selected cases: $HUB_TEST_CASE_IDS"
+        pytest --alluredir=allure-results tests/ -k "$HUB_TEST_CASE_IDS"
+      else
+        echo "Running all tests"
+        pytest --alluredir=allure-results tests/
+      fi
+  rules:
+    # Запуск по триггеру из Hub
+    - if: $HUB_RUN_SOURCE == "hub_trigger"
+    # Обычный запуск по push
+    - if: $CI_PIPELINE_SOURCE == "push"`}
+						/>
+					</CollapsibleSection>
 				</CardContent>
 			</Card>
 		</div>

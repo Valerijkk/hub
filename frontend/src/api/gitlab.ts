@@ -99,6 +99,32 @@ export function listGitLabPipelines(projectId: string) {
 	);
 }
 
+/** Запрос на запуск пайплайна GitLab CI/CD. */
+export interface TriggerPipelineRequest {
+	integration_id: string;
+	ref?: string;
+	variables?: Record<string, string>;
+}
+
+/** Ответ при запуске пайплайна. */
+export interface TriggerPipelineResponse {
+	pipeline_id: number;
+	web_url: string;
+	status: string;
+	ref: string;
+}
+
+/** Запустить пайплайн GitLab CI/CD с переменными. */
+export function triggerPipeline(
+	projectId: string,
+	data: TriggerPipelineRequest,
+) {
+	return api.post<TriggerPipelineResponse>(
+		`/projects/${projectId}/gitlab/pipelines/trigger`,
+		data,
+	);
+}
+
 // ---------------------------------------------------------------------------
 // API-функции: Ветки
 // ---------------------------------------------------------------------------

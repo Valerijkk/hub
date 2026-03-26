@@ -305,6 +305,101 @@ func (s *GitLabService) fetchPipelines(ctx context.Context, integration *ent.Git
 }
 
 // ---------------------------------------------------------------------------
+// Запуск пайплайна (GitLab API)
+// ---------------------------------------------------------------------------
+
+// TriggerPipeline запускает пайплайн в GitLab-репозитории через API.
+// Использует POST /projects/:id/pipeline с переменными CI/CD.
+func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID, req TriggerPipelineRequest) (*TriggerPipelineResponse, error) {
+	integrationID, err := uuid.Parse(req.IntegrationID)
+	if err != nil {
+		return nil, apperrors.NewBadRequest("некорректный integration_id")
+	}
+
+	integration, err := s.repo.GetIntegration(ctx, integrationID)
+	if err != nil {
+		return nil, apperrors.NewNotFound("интеграция не найдена")
+	}
+
+	ref := req.Ref
+	if ref == "" {
+		ref = "main"
+	}
+
+	// Формируем тело запроса для GitLab API: POST /projects/:id/pipeline
+	baseURL := strings.TrimRight(integration.GitlabURL, "/")
+	encodedPath := strings.ReplaceAll(integration.ProjectPath, "/", "%2F")
+	apiURL := fmt.Sprintf("%s/api/v4/projects/%s/pipeline", baseURL, encodedPath)
+
+	body := map[string]interface{}{
+		"ref": ref,
+	}
+
+	// Добавляем переменные CI/CD
+	if len(req.Variables) > 0 {
+		vars := make([]map[string]string, 0, len(req.Variables))
+		for k, v := range req.Variables {
+			vars = append(vars, map[string]string{
+				"key":           k,
+				"value":         v,
+				"variable_type": "env_var",
+			})
+		}
+		body["variables"] = vars
+	}
+
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка сериализации запроса")
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, strings.NewReader(string(bodyBytes)))
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка создания запроса к GitLab API")
+	}
+	httpReq.Header.Set("PRIVATE-TOKEN", integration.AccessToken)
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка вызова GitLab API: " + err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка запуска пайплайна GitLab: %d %s", resp.StatusCode, string(respBody)))
+	}
+
+	var pipeline struct {
+		ID     int64  `json:"id"`
+		WebURL string `json:"web_url"`
+		Status string `json:"status"`
+		Ref    string `json:"ref"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&pipeline); err != nil {
+		return nil, apperrors.NewInternal("ошибка разбора ответа GitLab API")
+	}
+
+	// Публикуем NATS-событие о запуске пайплайна
+	s.publishEvent("gitlab.pipeline.triggered", map[string]interface{}{
+		"pipeline_id":  pipeline.ID,
+		"status":       pipeline.Status,
+		"ref":          pipeline.Ref,
+		"web_url":      pipeline.WebURL,
+		"project_path": integration.ProjectPath,
+		"variables":    req.Variables,
+	})
+
+	return &TriggerPipelineResponse{
+		PipelineID: pipeline.ID,
+		WebURL:     pipeline.WebURL,
+		Status:     pipeline.Status,
+		Ref:        pipeline.Ref,
+	}, nil
+}
+
+// ---------------------------------------------------------------------------
 // Создание ветки (GitLab API)
 // ---------------------------------------------------------------------------
 

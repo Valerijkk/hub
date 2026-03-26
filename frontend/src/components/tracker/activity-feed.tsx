@@ -4,6 +4,7 @@ import {
 	listActivities,
 	listWorkflowStatuses,
 } from "@/api/tracker";
+import { listMembers } from "@/api/projects";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
@@ -23,11 +24,24 @@ export function ActivityFeed({ projectId, issueKey }: ActivityFeedProps) {
 		queryFn: () => listWorkflowStatuses(projectId),
 	});
 
+	const { data: members } = useQuery({
+		queryKey: ["project-members", projectId],
+		queryFn: () => listMembers(projectId),
+	});
+
 	// Маппинг UUID статуса → имя
 	const statusMap = new Map<string, string>();
 	if (statuses) {
 		for (const s of statuses) {
 			statusMap.set(s.id, s.name);
+		}
+	}
+
+	// Маппинг UUID пользователя → имя
+	const userMap = new Map<string, string>();
+	if (members) {
+		for (const m of members) {
+			userMap.set(m.user_id, m.name);
 		}
 	}
 
@@ -48,6 +62,7 @@ export function ActivityFeed({ projectId, issueKey }: ActivityFeedProps) {
 					key={activity.id}
 					activity={activity}
 					statusMap={statusMap}
+					userMap={userMap}
 				/>
 			))}
 		</div>
@@ -57,17 +72,22 @@ export function ActivityFeed({ projectId, issueKey }: ActivityFeedProps) {
 function ActivityItem({
 	activity,
 	statusMap,
+	userMap,
 }: {
 	activity: ActivityLogResponse;
 	statusMap: Map<string, string>;
+	userMap: Map<string, string>;
 }) {
 	const timeAgo = getTimeAgo(activity.created_at);
 
-	/** Резолвит значение — если это UUID статуса, возвращает имя. */
+	/** Резолвит значение — если это UUID статуса/пользователя, возвращает имя. */
 	const resolveValue = (field: string, value: unknown): string => {
 		const str = String(value ?? "—");
 		if (field === "status" && statusMap.has(str)) {
 			return statusMap.get(str)!;
+		}
+		if (field === "assignee" && userMap.has(str)) {
+			return userMap.get(str)!;
 		}
 		return str;
 	};

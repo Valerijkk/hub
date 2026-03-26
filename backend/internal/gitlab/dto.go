@@ -38,6 +38,21 @@ type CreateBranchResponse struct {
 	BranchName string `json:"branch_name"`
 }
 
+// TriggerPipelineRequest -- запрос на запуск пайплайна GitLab CI/CD.
+type TriggerPipelineRequest struct {
+	IntegrationID string            `json:"integration_id" validate:"required"`
+	Ref           string            `json:"ref,omitempty"`       // Ветка (по умолчанию default branch)
+	Variables     map[string]string `json:"variables,omitempty"` // Переменные CI/CD (например, TEST_CASE_IDS)
+}
+
+// TriggerPipelineResponse -- ответ при запуске пайплайна.
+type TriggerPipelineResponse struct {
+	PipelineID int64  `json:"pipeline_id"`
+	WebURL     string `json:"web_url"`
+	Status     string `json:"status"`
+	Ref        string `json:"ref"`
+}
+
 // ---------------------------------------------------------------------------
 // Pipeline DTOs
 // ---------------------------------------------------------------------------

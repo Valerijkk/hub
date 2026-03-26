@@ -41,6 +41,20 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 	});
 
 	switch (node.type) {
+		case "sticker": {
+			const emoji = typeof node.emoji === "string" ? node.emoji : "";
+			const label = typeof node.label === "string" ? node.label : "";
+			return (
+				<span
+					className="inline-block text-7xl leading-none select-none"
+					title={label}
+					role="img"
+					aria-label={label}
+				>
+					{emoji}
+				</span>
+			);
+		}
 		case "p":
 			return <p className="mb-1 leading-relaxed">{renderedChildren}</p>;
 		case "h1":
