@@ -32,6 +32,10 @@ func (ScheduledCall) Fields() []ent.Field {
 			Comment("Описание звонка"),
 		field.Time("scheduled_at").
 			Comment("Следующее запланированное время звонка"),
+		field.Int("duration_minutes").
+			Optional().
+			Default(60).
+			Comment("Длительность звонка в минутах"),
 		field.String("rrule").
 			Optional().
 			Comment("RFC 5545 RRULE для повторяющихся звонков"),
@@ -71,6 +75,8 @@ func (ScheduledCall) Edges() []ent.Edge {
 			Field("created_by").
 			Unique().
 			Required(),
+		edge.To("participants", User.Type).
+			Comment("Приглашённые участники звонка"),
 	}
 }
 

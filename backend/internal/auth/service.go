@@ -460,6 +460,12 @@ func (s *AuthService) UpdateProfile(ctx context.Context, userID uuid.UUID, req U
 	if req.Birthday != nil {
 		update.SetBirthday(*req.Birthday)
 	}
+	if req.QuietHoursStart != nil {
+		update.SetQuietHoursStart(*req.QuietHoursStart)
+	}
+	if req.QuietHoursEnd != nil {
+		update.SetQuietHoursEnd(*req.QuietHoursEnd)
+	}
 	if req.CustomFields != nil {
 		update.SetCustomFields(req.CustomFields)
 	}

@@ -260,6 +260,8 @@ export interface ScheduledCallResponse {
 	description?: string;
 	/** Время следующего звонка. */
 	scheduled_at: string;
+	/** Длительность в минутах. */
+	duration_minutes: number;
 	/** RFC 5545 RRULE для повторяющихся звонков. */
 	rrule?: string;
 	/** ID канала. */
@@ -270,6 +272,8 @@ export interface ScheduledCallResponse {
 	created_by: string;
 	/** Активен ли звонок. */
 	is_active: boolean;
+	/** ID приглашённых участников. */
+	participant_ids?: string[];
 	/** Дата создания. */
 	created_at: string;
 	/** Дата обновления. */
@@ -284,6 +288,8 @@ export interface CreateScheduledCallData {
 	description?: string;
 	/** Время звонка. */
 	scheduled_at: string;
+	/** Длительность в минутах. */
+	duration_minutes?: number;
 	/** RRULE для повторяющихся звонков. */
 	rrule?: string;
 	/** ID канала. */

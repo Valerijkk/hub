@@ -1,12 +1,84 @@
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
 	getPreferences,
 	type PreferenceDTO,
 	updatePreference,
 } from "@/api/notifications";
+import { updateProfile } from "@/api/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+/** Карточка настройки тихих часов с сохранением в профиль. */
+function QuietHoursCard() {
+	const [start, setStart] = useState("");
+	const [end, setEnd] = useState("");
+	const [saving, setSaving] = useState(false);
+
+	const handleSave = useCallback(async () => {
+		setSaving(true);
+		try {
+			await updateProfile({
+				quiet_hours_start: start || undefined,
+				quiet_hours_end: end || undefined,
+			});
+			toast.success("Тихие часы сохранены");
+		} catch {
+			toast.error("Не удалось сохранить тихие часы");
+		} finally {
+			setSaving(false);
+		}
+	}, [start, end]);
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-base">Тихие часы</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<p className="mb-4 text-sm text-muted-foreground">
+					Во время тихих часов несрочные уведомления подавляются. Срочные
+					уведомления (блокировки) всегда доставляются.
+				</p>
+				<div className="flex items-center gap-4">
+					<div className="space-y-1">
+						<Label htmlFor="quiet-start">Начало</Label>
+						<Input
+							id="quiet-start"
+							type="time"
+							className="w-32"
+							value={start}
+							onChange={(e) => setStart(e.target.value)}
+							placeholder="23:00"
+						/>
+					</div>
+					<span className="mt-5 text-muted-foreground">&mdash;</span>
+					<div className="space-y-1">
+						<Label htmlFor="quiet-end">Конец</Label>
+						<Input
+							id="quiet-end"
+							type="time"
+							className="w-32"
+							value={end}
+							onChange={(e) => setEnd(e.target.value)}
+							placeholder="07:00"
+						/>
+					</div>
+					<Button
+						size="sm"
+						className="mt-5"
+						onClick={() => void handleSave()}
+						disabled={saving || (!start && !end)}
+					>
+						{saving ? "Сохранение..." : "Сохранить"}
+					</Button>
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
 
 /** Типы уведомлений с русскими названиями. */
 const NOTIFICATION_TYPES = [
@@ -151,38 +223,7 @@ export function NotificationSettings() {
 				</CardContent>
 			</Card>
 
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-base">Тихие часы</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<p className="mb-4 text-sm text-muted-foreground">
-						Во время тихих часов несрочные уведомления подавляются. Срочные
-						уведомления (блокировки) всегда доставляются.
-					</p>
-					<div className="flex items-center gap-4">
-						<div className="space-y-1">
-							<Label htmlFor="quiet-start">Начало</Label>
-							<Input
-								id="quiet-start"
-								type="time"
-								className="w-32"
-								placeholder="23:00"
-							/>
-						</div>
-						<span className="mt-5 text-muted-foreground">&mdash;</span>
-						<div className="space-y-1">
-							<Label htmlFor="quiet-end">Конец</Label>
-							<Input
-								id="quiet-end"
-								type="time"
-								className="w-32"
-								placeholder="07:00"
-							/>
-						</div>
-					</div>
-				</CardContent>
-			</Card>
+			<QuietHoursCard />
 		</div>
 	);
 }

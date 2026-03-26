@@ -38,11 +38,13 @@ type RecordingDownloadResponse struct {
 
 // CreateScheduledCallRequest содержит данные для создания запланированного звонка.
 type CreateScheduledCallRequest struct {
-	Title       string    `json:"title"`
-	Description string    `json:"description,omitempty"`
-	ScheduledAt time.Time `json:"scheduled_at"`
-	RRule       string    `json:"rrule,omitempty"`
-	ChannelID   uuid.UUID `json:"channel_id"`
+	Title           string      `json:"title"`
+	Description     string      `json:"description,omitempty"`
+	ScheduledAt     time.Time   `json:"scheduled_at"`
+	DurationMinutes int         `json:"duration_minutes,omitempty"`
+	RRule           string      `json:"rrule,omitempty"`
+	ChannelID       uuid.UUID   `json:"channel_id"`
+	ParticipantIDs  []uuid.UUID `json:"participant_ids,omitempty"`
 }
 
 // UpdateScheduledCallRequest содержит данные для обновления запланированного звонка.
@@ -77,15 +79,17 @@ type ConflictDetail struct {
 
 // ScheduledCallResponse содержит данные запланированного звонка для ответа API.
 type ScheduledCallResponse struct {
-	ID          uuid.UUID `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description,omitempty"`
-	ScheduledAt time.Time `json:"scheduled_at"`
-	RRule       string    `json:"rrule,omitempty"`
-	ChannelID   uuid.UUID `json:"channel_id"`
-	ProjectID   uuid.UUID `json:"project_id"`
-	CreatedBy   uuid.UUID `json:"created_by"`
-	IsActive    bool      `json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID              uuid.UUID   `json:"id"`
+	Title           string      `json:"title"`
+	Description     string      `json:"description,omitempty"`
+	ScheduledAt     time.Time   `json:"scheduled_at"`
+	DurationMinutes int         `json:"duration_minutes"`
+	RRule           string      `json:"rrule,omitempty"`
+	ChannelID       uuid.UUID   `json:"channel_id"`
+	ProjectID       uuid.UUID   `json:"project_id"`
+	CreatedBy       uuid.UUID   `json:"created_by"`
+	IsActive        bool        `json:"is_active"`
+	ParticipantIDs  []uuid.UUID `json:"participant_ids,omitempty"`
+	CreatedAt       time.Time   `json:"created_at"`
+	UpdatedAt       time.Time   `json:"updated_at"`
 }

@@ -27,16 +27,18 @@ type RefreshRequest struct {
 
 // UpdateProfileRequest — тело запроса для PUT /auth/me.
 type UpdateProfileRequest struct {
-	Name         *string                 `json:"name"`
-	DisplayName  *string                 `json:"display_name"`
-	AvatarURL    *string                 `json:"avatar_url"`
-	Phone        *string                 `json:"phone"`
-	Position     *string                 `json:"position"`
-	Department   *string                 `json:"department"`
-	Timezone     *string                 `json:"timezone"`
-	Language     *string                 `json:"language"`
-	Birthday     *time.Time              `json:"birthday"`
-	CustomFields map[string]interface{}  `json:"custom_fields,omitempty"`
+	Name            *string                 `json:"name"`
+	DisplayName     *string                 `json:"display_name"`
+	AvatarURL       *string                 `json:"avatar_url"`
+	Phone           *string                 `json:"phone"`
+	Position        *string                 `json:"position"`
+	Department      *string                 `json:"department"`
+	Timezone        *string                 `json:"timezone"`
+	Language        *string                 `json:"language"`
+	Birthday        *time.Time              `json:"birthday"`
+	QuietHoursStart *string                 `json:"quiet_hours_start,omitempty"`
+	QuietHoursEnd   *string                 `json:"quiet_hours_end,omitempty"`
+	CustomFields    map[string]interface{}  `json:"custom_fields,omitempty"`
 }
 
 // SetRegistrationModeRequest — тело запроса для PUT /admin/registration-mode.

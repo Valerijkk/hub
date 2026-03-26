@@ -21,7 +21,7 @@ interface TelegramAuthRequest {
 }
 
 /** Запрос на обновление профиля пользователя. */
-interface UpdateProfileRequest {
+export interface UpdateProfileRequest {
 	name?: string;
 	display_name?: string;
 	avatar_url?: string;
@@ -31,6 +31,8 @@ interface UpdateProfileRequest {
 	timezone?: string;
 	language?: string;
 	birthday?: string;
+	quiet_hours_start?: string;
+	quiet_hours_end?: string;
 }
 
 // ---------------------------------------------------------------------------
