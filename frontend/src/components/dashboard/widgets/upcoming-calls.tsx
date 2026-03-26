@@ -24,9 +24,9 @@ function getCallDisplayName(call: CallSummary): string {
 /** Upcoming calls widget. */
 export function UpcomingCallsWidget({ data }: Props) {
 	const personalData = data as PersonalData | undefined;
-	const calls = personalData?.upcoming_calls ?? [];
+	const nextCall = (personalData?.upcoming_calls ?? [])[0];
 
-	if (calls.length === 0) {
+	if (!nextCall) {
 		return (
 			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
 				<PhoneOff className="h-8 w-8 opacity-40" />
@@ -36,54 +36,34 @@ export function UpcomingCallsWidget({ data }: Props) {
 		);
 	}
 
-	return (
-		<div className="space-y-0.5">
-			{calls.map((call: CallSummary) => {
-				const displayName = getCallDisplayName(call);
-				const titleIsRaw = !call.title || GENERATED_ID_RE.test(call.title);
+	const displayName = getCallDisplayName(nextCall);
+	const scheduledDate = new Date(nextCall.scheduled_at);
+	const timeStr = scheduledDate.toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+	const dateStr = scheduledDate.toLocaleString("ru-RU", { day: "numeric", month: "long" });
 
-				return (
-					<div
-						key={call.id}
-						className="group flex items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors duration-150 hover:bg-white/[0.04]"
-					>
-						<div className="flex items-center gap-3 min-w-0">
-							{/* Time label left-aligned */}
-							<span className="text-[11px] font-mono text-muted-foreground/70 shrink-0 w-10 text-left">
-								{new Date(call.scheduled_at).toLocaleString("ru-RU", {
-									hour: "2-digit",
-									minute: "2-digit",
-								})}
-							</span>
-							<div className="h-7 w-7 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
-								<Phone className="h-3.5 w-3.5 text-violet-500" />
-							</div>
-							<div className="min-w-0">
-								<p className="truncate font-medium text-[13px]">{displayName}</p>
-								<p className="text-[11px] text-muted-foreground/60">
-									{!titleIsRaw && call.channel_name && (
-										<>
-											{call.channel_name}
-											<span className="mx-1 text-border">|</span>
-										</>
-									)}
-									{new Date(call.scheduled_at).toLocaleString("ru-RU", {
-										day: "numeric",
-										month: "short",
-									})}
-								</p>
-							</div>
-						</div>
-						<Button
-							size="sm"
-							className="btn-glow shrink-0 gap-1.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white border-0 hover:from-violet-500 hover:to-purple-500"
-						>
-							<Phone className="h-3 w-3" />
-							Войти
-						</Button>
-					</div>
-				);
-			})}
+	return (
+		<div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+			<div className="h-12 w-12 rounded-full bg-violet-500/10 flex items-center justify-center">
+				<Phone className="h-6 w-6 text-violet-500" />
+			</div>
+			<div>
+				<p className="font-semibold text-[15px]">{displayName}</p>
+				<p className="text-[13px] text-muted-foreground mt-0.5">
+					{dateStr} в {timeStr}
+				</p>
+				{nextCall.channel_name && (
+					<p className="text-[11px] text-muted-foreground/60 mt-0.5">
+						{nextCall.channel_name}
+					</p>
+				)}
+			</div>
+			<Button
+				size="sm"
+				className="btn-glow gap-1.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white border-0 hover:from-violet-500 hover:to-purple-500 mt-1"
+			>
+				<Phone className="h-3.5 w-3.5" />
+				Войти в звонок
+			</Button>
 		</div>
 	);
 }

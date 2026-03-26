@@ -536,7 +536,7 @@ export function MessageComposer({
 				/* Rounded container with all controls inside */
 				<div
 					className={cn(
-						"relative flex items-end rounded-2xl border border-border bg-card",
+						"relative flex items-end rounded-2xl border border-white/[0.10] bg-card",
 						"transition-all duration-200 composer-glow",
 					)}
 				>
