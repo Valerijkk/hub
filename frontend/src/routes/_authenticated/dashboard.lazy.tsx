@@ -3,6 +3,7 @@
  * Displays widgets with tasks, unread messages, calls, deadlines and time tracking.
  */
 import {
+	Bell,
 	CalendarPlus,
 	MessageSquarePlus,
 	Plus,
@@ -12,7 +13,6 @@ import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { personalDefault } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
-import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 
@@ -75,104 +75,112 @@ function PersonalDashboard() {
 	const items = personalItems ?? personalDefault;
 
 	return (
-		<div className="animate-fade-in">
-			{/* Greeting header */}
-			<div className="mb-8">
-				<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-					<div className="flex items-center gap-3">
-						<div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-dashboard text-white shadow-sm">
-							<svg
-								className="h-5 w-5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={2}
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-								/>
-							</svg>
-						</div>
-						<div>
-							<h1 className="text-[28px] font-bold tracking-[-0.015em] greeting-gradient">
-								{greeting}
-								{displayName ? `, ${displayName}` : ""}
-							</h1>
-							<p className="text-sm text-muted-foreground capitalize">
-								{todayDate}
-								<span className="mx-1.5 text-border">|</span>
-								{currentTime}
-							</p>
-						</div>
-					</div>
-
-					{/* Quick action buttons */}
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							className="gap-1.5 rounded-lg border bg-card transition-all duration-200 hover:-translate-y-[2px] hover:shadow-lg"
-							onClick={() => navigate({ to: "/projects" })}
-						>
-							<Plus className="h-3.5 w-3.5" />
-							Новая задача
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							className="gap-1.5 rounded-lg border bg-card transition-all duration-200 hover:-translate-y-[2px] hover:shadow-lg"
-							onClick={() => navigate({ to: "/messenger" })}
-						>
-							<MessageSquarePlus className="h-3.5 w-3.5" />
-							Написать
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							className="gap-1.5 rounded-lg border bg-card transition-all duration-200 hover:-translate-y-[2px] hover:shadow-lg"
-							onClick={() => navigate({ to: "/calls" })}
-						>
-							<CalendarPlus className="h-3.5 w-3.5" />
-							Событие
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="rounded-lg transition-all duration-200 hover:-translate-y-[2px] hover:shadow-lg"
-						>
-							<Search className="h-4 w-4" />
-						</Button>
-					</div>
+		<div className="flex flex-col h-full animate-fade-in">
+			{/* Sticky page header */}
+			<div className="page-header-blur flex items-center h-[49px] px-5 shrink-0">
+				<span className="text-[15px] font-semibold">Главная</span>
+				<div className="ml-auto flex items-center gap-2">
+					<button
+						type="button"
+						className="w-[34px] h-[34px] rounded-lg bg-transparent text-muted-foreground hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-all"
+						title="Поиск (Ctrl+K)"
+					>
+						<Search className="h-4 w-4" />
+					</button>
+					<button
+						type="button"
+						className="w-[34px] h-[34px] rounded-lg bg-transparent text-muted-foreground hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-all"
+						title="Уведомления"
+					>
+						<Bell className="h-4 w-4" />
+					</button>
+					<button
+						type="button"
+						className="btn-glow bg-gradient-to-br from-blue-500 to-blue-600 text-white text-[13px] font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+						onClick={() => navigate({ to: "/projects" })}
+					>
+						<Plus className="h-3.5 w-3.5" />
+						Новая задача
+					</button>
 				</div>
 			</div>
 
-			{loading && !personalData ? (
-				/* Loading skeletons */
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{[1, 2, 3, 4, 5, 6].map((i) => (
-						<div
-							key={i}
-							className="rounded-2xl border border-white/[0.06] bg-card p-5 space-y-3 shadow-sm"
-							style={{ animationDelay: `${i * 80}ms` }}
-						>
-							<div className="flex items-center gap-3">
-								<div className="h-8 w-8 rounded-lg animate-shimmer" />
-								<div className="h-4 w-24 rounded animate-shimmer" />
-							</div>
-							<div className="h-10 w-full rounded animate-shimmer" />
-							<div className="h-3 w-3/4 rounded animate-shimmer" />
-						</div>
-					))}
+			{/* Scrollable content */}
+			<div className="flex-1 overflow-y-auto p-6">
+				{/* Greeting */}
+				<div className="mb-6">
+					<h1 className="text-[28px] font-bold tracking-[-0.015em] greeting-gradient">
+						{greeting}
+						{displayName ? `, ${displayName}` : ""} <span>👋</span>
+					</h1>
+					<p className="text-sm text-muted-foreground capitalize mt-1">
+						{todayDate}
+						<span className="mx-1.5 text-border">|</span>
+						{currentTime}
+					</p>
 				</div>
-			) : (
-				<WidgetGrid
-					items={items}
-					dashboardType="personal"
-					data={personalData}
-				/>
-			)}
+
+				{/* Quick actions */}
+				<div className="flex gap-2 mb-6 flex-wrap">
+					<button
+						type="button"
+						className="flex items-center gap-2 px-3.5 py-2 bg-card border border-white/[0.06] rounded-lg text-[13px] text-muted-foreground hover:text-white hover:bg-white/[0.07] hover:-translate-y-[2px] hover:shadow-lg transition-all duration-200"
+						onClick={() => navigate({ to: "/projects" })}
+					>
+						<Plus className="h-3.5 w-3.5" />
+						Новая задача
+					</button>
+					<button
+						type="button"
+						className="flex items-center gap-2 px-3.5 py-2 bg-card border border-white/[0.06] rounded-lg text-[13px] text-muted-foreground hover:text-white hover:bg-white/[0.07] hover:-translate-y-[2px] hover:shadow-lg transition-all duration-200"
+						onClick={() => navigate({ to: "/messenger" })}
+					>
+						<MessageSquarePlus className="h-3.5 w-3.5" />
+						Написать
+					</button>
+					<button
+						type="button"
+						className="flex items-center gap-2 px-3.5 py-2 bg-card border border-white/[0.06] rounded-lg text-[13px] text-muted-foreground hover:text-white hover:bg-white/[0.07] hover:-translate-y-[2px] hover:shadow-lg transition-all duration-200"
+						onClick={() => navigate({ to: "/calls" })}
+					>
+						<CalendarPlus className="h-3.5 w-3.5" />
+						Событие
+					</button>
+					<button
+						type="button"
+						className="flex items-center gap-2 px-3.5 py-2 bg-card border border-white/[0.06] rounded-lg text-[13px] text-muted-foreground hover:text-white hover:bg-white/[0.07] hover:-translate-y-[2px] hover:shadow-lg transition-all duration-200"
+					>
+						<Search className="h-3.5 w-3.5" />
+						Поиск
+					</button>
+				</div>
+
+				{/* Widget grid */}
+				{loading && !personalData ? (
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+						{[1, 2, 3, 4, 5, 6].map((i) => (
+							<div
+								key={i}
+								className="rounded-2xl border border-white/[0.06] bg-card p-5 space-y-3 shadow-sm"
+								style={{ animationDelay: `${i * 80}ms` }}
+							>
+								<div className="flex items-center gap-3">
+									<div className="h-8 w-8 rounded-lg animate-shimmer" />
+									<div className="h-4 w-24 rounded animate-shimmer" />
+								</div>
+								<div className="h-10 w-full rounded animate-shimmer" />
+								<div className="h-3 w-3/4 rounded animate-shimmer" />
+							</div>
+						))}
+					</div>
+				) : (
+					<WidgetGrid
+						items={items}
+						dashboardType="personal"
+						data={personalData}
+					/>
+				)}
+			</div>
 		</div>
 	);
 }
