@@ -63,13 +63,16 @@ export function SidebarUserProfile({
 	}
 
 	return (
-		<div className="shrink-0 border-t border-white/[0.06] px-3 h-12 flex items-center">
+		<div className="shrink-0 border-t border-white/[0.06] px-3 h-14 flex items-center">
 			<div className="flex items-center gap-2 w-full">
 				{avatarBlock}
 				<div className="flex-1 min-w-0">
 					<p className="truncate text-[13px] font-medium text-white leading-tight">
 						{displayName}
 					</p>
+					<div className="text-[11px] text-white/40">
+						{user?.position || "Участник"} · <span className="text-emerald-400">Онлайн</span>
+					</div>
 				</div>
 				<div className="flex items-center shrink-0">
 					<NotificationBell />
