@@ -41,6 +41,7 @@ export function SidebarNav({
 				to="/messenger"
 				label={t("nav.messenger")}
 				collapsed={collapsed}
+				badge={5}
 				icon={
 					<svg
 						className={NAV_ICON_COLORS["/messenger"]}
@@ -82,6 +83,7 @@ export function SidebarNav({
 				to="/projects"
 				label={t("nav.allProjects")}
 				collapsed={collapsed}
+				badge={12}
 				icon={
 					<svg
 						className={NAV_ICON_COLORS["/projects"]}

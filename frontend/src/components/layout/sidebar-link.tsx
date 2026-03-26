@@ -31,6 +31,7 @@ export function SidebarLink({
 	params,
 	indent,
 	unread,
+	badge,
 }: {
 	to: string;
 	label: string;
@@ -41,6 +42,8 @@ export function SidebarLink({
 	indent?: boolean;
 	/** Непрочитанные -- жирный текст. */
 	unread?: boolean;
+	/** Числовой бейдж (кол-во непрочитанных, задач и т.д.). */
+	badge?: number;
 }) {
 	const matchRoute = useMatchRoute();
 	const isActive = matchRoute({ to, fuzzy: true });
@@ -59,11 +62,19 @@ export function SidebarLink({
 				unread && "font-bold",
 			)}
 		>
-			<span className="flex h-5 w-5 shrink-0 items-center justify-center">
+			<span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
 				{icon}
+				{collapsed && badge != null && badge > 0 && (
+					<span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500" />
+				)}
 			</span>
 			{!collapsed && (
 				<span className="truncate leading-tight">{label}</span>
+			)}
+			{badge != null && badge > 0 && !collapsed && (
+				<span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+					{badge}
+				</span>
 			)}
 		</Link>
 	);
