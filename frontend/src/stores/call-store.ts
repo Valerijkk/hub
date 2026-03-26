@@ -26,6 +26,10 @@ interface CallState {
 
 	/** Начать новый звонок в канале. */
 	startCall: (channelId: string) => Promise<void>;
+	/** Создать быстрый звонок без канала. */
+	startInstantCall: (title?: string) => Promise<string | null>;
+	/** Присоединиться по invite-коду. */
+	joinByCode: (code: string) => Promise<void>;
 	/** Присоединиться к существующему звонку. */
 	joinCall: (callId: string) => Promise<void>;
 	/** Покинуть текущий звонок. */
@@ -78,6 +82,42 @@ export const useCallStore = create<CallState>()((set, get) => ({
 		} catch (err: unknown) {
 			const msg =
 				err instanceof Error ? err.message : "Не удалось начать звонок";
+			set({ isConnecting: false, error: msg });
+		}
+	},
+
+	startInstantCall: async (title?: string) => {
+		set({ isConnecting: true, error: null });
+		try {
+			const call = await callsApi.createInstantCall(title);
+			set({
+				activeCall: call,
+				token: call.token ?? null,
+				isInCall: true,
+				isConnecting: false,
+			});
+			return call.invite_code ?? null;
+		} catch (err: unknown) {
+			const msg =
+				err instanceof Error ? err.message : "Не удалось создать звонок";
+			set({ isConnecting: false, error: msg });
+			return null;
+		}
+	},
+
+	joinByCode: async (code: string) => {
+		set({ isConnecting: true, error: null });
+		try {
+			const call = await callsApi.joinByInviteCode(code);
+			set({
+				activeCall: call,
+				token: call.token ?? null,
+				isInCall: true,
+				isConnecting: false,
+			});
+		} catch (err: unknown) {
+			const msg =
+				err instanceof Error ? err.message : "Звонок не найден";
 			set({ isConnecting: false, error: msg });
 		}
 	},

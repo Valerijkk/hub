@@ -28,7 +28,18 @@ func (Call) Fields() []ent.Field {
 			NotEmpty().
 			Comment("Уникальное имя комнаты LiveKit"),
 		field.UUID("channel_id", uuid.UUID{}).
-			Comment("ID канала мессенджера, к которому привязан звонок"),
+			Optional().
+			Nillable().
+			Comment("ID канала мессенджера (nil для instant-звонков)"),
+		field.String("invite_code").
+			Optional().
+			Unique().
+			MaxLen(12).
+			Comment("Код приглашения для instant-звонка (например hub-abc123)"),
+		field.String("title").
+			Optional().
+			MaxLen(255).
+			Comment("Название звонка (для instant-звонков без канала)"),
 		field.UUID("created_by", uuid.UUID{}).
 			Comment("ID пользователя, создавшего звонок"),
 		field.Enum("status").
@@ -58,8 +69,7 @@ func (Call) Edges() []ent.Edge {
 		edge.From("channel", Channel.Type).
 			Ref("calls").
 			Field("channel_id").
-			Unique().
-			Required(),
+			Unique(),
 		edge.From("creator", User.Type).
 			Ref("created_calls").
 			Field("created_by").
@@ -75,5 +85,6 @@ func (Call) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id", "status"),
 		index.Fields("room_name"),
+		index.Fields("invite_code"),
 	}
 }

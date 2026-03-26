@@ -25,13 +25,15 @@ type RaiseHandRequest struct {
 type CallResponse struct {
 	ID               uuid.UUID  `json:"id"`
 	RoomName         string     `json:"room_name"`
-	ChannelID        uuid.UUID  `json:"channel_id"`
+	ChannelID        *uuid.UUID `json:"channel_id,omitempty"`
 	Status           string     `json:"status"`
 	CreatedBy        uuid.UUID  `json:"created_by"`
 	StartedAt        *time.Time `json:"started_at,omitempty"`
 	EndedAt          *time.Time `json:"ended_at,omitempty"`
 	ParticipantCount int        `json:"participant_count"`
-	Token            string     `json:"token,omitempty"` // LiveKit JWT-токен (заполняется при create/join)
+	Token            string     `json:"token,omitempty"`
+	InviteCode       string     `json:"invite_code,omitempty"`
+	Title            string     `json:"title,omitempty"`
 }
 
 // CallParticipantResponse содержит данные участника звонка.

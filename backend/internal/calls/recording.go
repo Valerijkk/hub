@@ -56,7 +56,10 @@ func (s *RecordingService) StartRecording(ctx context.Context, callID, userID uu
 	}
 
 	// Получаем project_id через канал
-	projectID, err := s.repo.GetProjectIDByChannel(ctx, callEnt.ChannelID)
+	if callEnt.ChannelID == nil {
+		return nil, fmt.Errorf("instant-звонки пока не поддерживают запись")
+	}
+	projectID, err := s.repo.GetProjectIDByChannel(ctx, *callEnt.ChannelID)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить проект канала: %w", err)
 	}

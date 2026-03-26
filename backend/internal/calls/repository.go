@@ -33,6 +33,26 @@ func (r *EntRepository) CreateCall(ctx context.Context, roomName string, channel
 		Save(ctx)
 }
 
+// CreateInstantCall создаёт звонок без привязки к каналу с invite-кодом.
+func (r *EntRepository) CreateInstantCall(ctx context.Context, roomName string, createdBy uuid.UUID, inviteCode, title string) (*ent.Call, error) {
+	return r.db.Call.Create().
+		SetRoomName(roomName).
+		SetCreatedBy(createdBy).
+		SetInviteCode(inviteCode).
+		SetTitle(title).
+		Save(ctx)
+}
+
+// GetCallByInviteCode возвращает активный звонок по invite-коду.
+func (r *EntRepository) GetCallByInviteCode(ctx context.Context, code string) (*ent.Call, error) {
+	return r.db.Call.Query().
+		Where(
+			call.InviteCode(code),
+			call.StatusEQ(call.StatusActive),
+		).
+		Only(ctx)
+}
+
 // GetCall возвращает звонок по идентификатору.
 func (r *EntRepository) GetCall(ctx context.Context, id uuid.UUID) (*ent.Call, error) {
 	return r.db.Call.Get(ctx, id)

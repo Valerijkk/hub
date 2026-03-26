@@ -37,6 +37,8 @@ func NewHandler(service *CallService, recSvc *RecordingService, scheduledSvc *Sc
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	calls := api.Group("/calls", authMw)
 	calls.Post("/", h.CreateCall)
+	calls.Post("/instant", h.CreateInstantCall)
+	calls.Get("/invite/:code", h.JoinByInviteCode)
 	calls.Get("/channel/:channelId", h.GetActiveCall)
 	calls.Post("/:callId/join", h.JoinCall)
 	calls.Post("/:callId/leave", h.LeaveCall)
@@ -119,6 +121,50 @@ func (h *Handler) CreateCall(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
+// CreateInstantCall обрабатывает POST /api/calls/instant — создание быстрого звонка без канала.
+// Генерирует invite_code для шаринга ссылки.
+func (h *Handler) CreateInstantCall(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	var req struct {
+		Title string `json:"title"`
+	}
+	_ = c.Bind().JSON(&req)
+
+	userName := userNameFromCtx(c)
+	resp, err := h.service.CreateInstantCall(c.Context(), userID, userName, req.Title)
+	if err != nil {
+		slog.Error("ошибка создания instant звонка", "error", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось создать звонок")
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
+// JoinByInviteCode обрабатывает GET /api/calls/invite/:code — join по invite-ссылке.
+func (h *Handler) JoinByInviteCode(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	code := utils.CopyString(c.Params("code"))
+	if code == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "invite code обязателен")
+	}
+
+	userName := userNameFromCtx(c)
+	resp, err := h.service.JoinByInviteCode(c.Context(), code, userID, userName)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "звонок не найден или уже завершён")
+	}
+
+	return c.JSON(resp)
 }
 
 // GetActiveCall обрабатывает GET /api/calls/channel/:channelId — получение активного звонка.

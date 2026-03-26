@@ -23,6 +23,10 @@ export interface CallResponse {
 	participant_count: number;
 	/** JWT-токен для подключения к LiveKit (присутствует при create/join). */
 	token?: string;
+	/** Invite-код для шаринга ссылки (instant calls). */
+	invite_code?: string;
+	/** Название звонка. */
+	title?: string;
 	/** Дата создания. */
 	created_at: string;
 	/** Дата обновления. */
@@ -56,6 +60,16 @@ export interface CallParticipantResponse {
  */
 export function createCall(channelId: string) {
 	return api.post<CallResponse>("/calls", { channel_id: channelId });
+}
+
+/** Создать быстрый звонок без канала (instant call с invite-ссылкой). */
+export function createInstantCall(title?: string) {
+	return api.post<CallResponse>("/calls/instant", { title: title || "" });
+}
+
+/** Присоединиться к звонку по invite-коду. */
+export function joinByInviteCode(code: string) {
+	return api.get<CallResponse>(`/calls/invite/${code}`);
 }
 
 /**

@@ -85,14 +85,80 @@ func (s *CallService) CreateCall(ctx context.Context, channelID, userID uuid.UUI
 		slog.Error("не удалось добавить создателя как участника", "error", err)
 	}
 
-	s.publishEvent(fmt.Sprintf("calls.channel.%s.started", channelID.String()), map[string]interface{}{
-		"call_id":    callEnt.ID,
-		"room_name":  roomName,
-		"created_by": userID,
-		"started_by": userID,
-	})
+	if channelID != uuid.Nil {
+		s.publishEvent(fmt.Sprintf("calls.channel.%s.started", channelID.String()), map[string]interface{}{
+			"call_id":    callEnt.ID,
+			"room_name":  roomName,
+			"created_by": userID,
+			"started_by": userID,
+		})
+	}
 
 	return toCallResponse(callEnt, token), nil
+}
+
+// CreateInstantCall создаёт быстрый звонок без привязки к каналу.
+// Генерирует invite_code для шаринга ссылки.
+func (s *CallService) CreateInstantCall(ctx context.Context, userID uuid.UUID, userName, title string) (*CallResponse, error) {
+	roomName := "call-" + uuid.New().String()
+
+	_, err := s.roomClient.CreateRoom(ctx, &livekit.CreateRoomRequest{
+		Name:            roomName,
+		MaxParticipants: 50,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("не удалось создать комнату LiveKit: %w", err)
+	}
+
+	// Генерируем короткий invite code
+	inviteCode := uuid.New().String()[:8]
+
+	if title == "" {
+		title = userName + " — быстрый звонок"
+	}
+
+	callEnt, err := s.repo.CreateInstantCall(ctx, roomName, userID, inviteCode, title)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось сохранить звонок: %w", err)
+	}
+
+	token, err := s.GenerateToken(roomName, userID.String(), userName)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось сгенерировать токен: %w", err)
+	}
+
+	if err := s.repo.AddParticipant(ctx, callEnt.ID, userID); err != nil {
+		slog.Error("не удалось добавить создателя как участника", "error", err)
+	}
+
+	resp := toCallResponse(callEnt, token)
+	resp.InviteCode = inviteCode
+	return resp, nil
+}
+
+// JoinByInviteCode присоединяет пользователя к звонку по invite-коду.
+func (s *CallService) JoinByInviteCode(ctx context.Context, code string, userID uuid.UUID, userName string) (*CallResponse, error) {
+	callEnt, err := s.repo.GetCallByInviteCode(ctx, code)
+	if err != nil {
+		return nil, fmt.Errorf("звонок не найден: %w", err)
+	}
+
+	if callEnt.Status != "active" {
+		return nil, fmt.Errorf("звонок уже завершён")
+	}
+
+	if err := s.repo.AddParticipant(ctx, callEnt.ID, userID); err != nil {
+		return nil, fmt.Errorf("не удалось добавить участника: %w", err)
+	}
+
+	token, err := s.GenerateToken(callEnt.RoomName, userID.String(), userName)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось сгенерировать токен: %w", err)
+	}
+
+	resp := toCallResponse(callEnt, token)
+	resp.InviteCode = code
+	return resp, nil
 }
 
 // JoinCall присоединяет пользователя к существующему звонку.
@@ -329,11 +395,19 @@ func toCallResponse(c *ent.Call, token string) *CallResponse {
 	resp := &CallResponse{
 		ID:               c.ID,
 		RoomName:         c.RoomName,
-		ChannelID:        c.ChannelID,
 		Status:           string(c.Status),
 		CreatedBy:        c.CreatedBy,
 		ParticipantCount: c.ParticipantCount,
 		Token:            token,
+	}
+	if c.ChannelID != nil {
+		resp.ChannelID = c.ChannelID
+	}
+	if c.InviteCode != "" {
+		resp.InviteCode = c.InviteCode
+	}
+	if c.Title != "" {
+		resp.Title = c.Title
 	}
 	if c.StartedAt != nil {
 		resp.StartedAt = c.StartedAt
