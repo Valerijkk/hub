@@ -158,6 +158,17 @@ function NewProjectPage() {
 							/>
 						</div>
 
+						{/* Подсказка */}
+						<div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200">
+							<p className="font-medium mb-1">После создания проекта вы сможете:</p>
+							<ul className="list-disc pl-4 text-xs space-y-0.5">
+								<li>Подключить <strong>GitHub / GitLab</strong> репозиторий в Настройки &rarr; Интеграции</li>
+								<li>Настроить <strong>Webhook</strong> для автоматической привязки коммитов и PR/MR к задачам</li>
+								<li>Подключить <strong>CI/CD</strong> для импорта результатов автотестов</li>
+								<li>Добавить участников и настроить <strong>роли и права</strong></li>
+							</ul>
+						</div>
+
 						{/* Разделитель */}
 						<div className="border-t pt-5">
 							<div className="flex gap-3 justify-end">
