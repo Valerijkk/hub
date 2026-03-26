@@ -109,6 +109,8 @@ func (User) Edges() []ent.Edge {
 		edge.To("poll_votes", PollVote.Type),
 		edge.To("push_subscriptions", PushSubscription.Type),
 		edge.To("channel_invites", ChannelInvite.Type),
+		edge.To("blocks_created", UserBlock.Type),
+		edge.To("blocks_received", UserBlock.Type),
 	}
 }
 

@@ -47,6 +47,7 @@ func (GitLabIntegration) Edges() []ent.Edge {
 			Ref("gitlab_integrations").
 			Unique().
 			Required(),
+		edge.To("gitlab_links", GitLabLink.Type),
 	}
 }
 
