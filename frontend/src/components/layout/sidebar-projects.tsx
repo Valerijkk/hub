@@ -10,6 +10,9 @@ import { listProjects } from "@/api/projects";
 import { cn } from "@/lib/utils";
 import { SidebarLink } from "./sidebar-link";
 
+/** Цвета точек проектов. */
+const PROJECT_DOT_COLORS = ["#3B82F6", "#8B5CF6", "#10B981", "#F59E0B"] as const;
+
 /** Подменю модулей проекта (Доска, Задачи, TMS, Бэклог, Спринты). */
 interface ProjectSubNavItem {
 	to: string;
@@ -159,7 +162,7 @@ export function SidebarProjects({
 			</div>
 
 			<div className="space-y-0.5">
-				{projects?.map((project) => {
+				{projects?.map((project, index) => {
 					const isProjectActive = matchRoute({
 						to: "/projects/$projectId",
 						fuzzy: true,
@@ -210,11 +213,10 @@ export function SidebarProjects({
 										label={project.name}
 										collapsed={collapsed}
 										icon={
-											<span className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-blue-500/20 text-[10px] font-bold text-blue-400">
-												{project.key.charAt(0)}
-												{/* Индикатор активности */}
-												<span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[#19171D]" />
-											</span>
+											<div
+												className="w-[7px] h-[7px] rounded-full shrink-0"
+												style={{ background: PROJECT_DOT_COLORS[index % PROJECT_DOT_COLORS.length] }}
+											/>
 										}
 									/>
 								</div>
