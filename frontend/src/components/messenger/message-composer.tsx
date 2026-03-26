@@ -536,9 +536,8 @@ export function MessageComposer({
 				/* Rounded container with all controls inside */
 				<div
 					className={cn(
-						"relative flex items-end rounded-2xl border bg-background/80 backdrop-blur-sm shadow-sm",
-						"transition-all duration-200",
-						"focus-within:shadow-md focus-within:border-ring/50 focus-within:bg-background",
+						"relative flex items-end rounded-2xl border border-border bg-card",
+						"transition-all duration-200 composer-glow",
 					)}
 				>
 					{/* @Mention автокомплит */}
@@ -701,9 +700,9 @@ export function MessageComposer({
 					<button
 						type="button"
 						className={cn(
-							"flex h-11 w-11 shrink-0 items-center justify-center rounded-r-2xl transition-all duration-200",
+							"flex h-9 w-9 shrink-0 items-center justify-center rounded-lg mr-1 mb-1 transition-all duration-150",
 							hasContent
-								? "text-primary hover:bg-primary/10"
+								? "bg-gradient-to-br from-blue-500 to-blue-600 text-white send-glow"
 								: "text-muted-foreground/30 cursor-not-allowed",
 						)}
 						onClick={() => void handleSend()}

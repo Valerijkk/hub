@@ -209,7 +209,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
 			{/* Channel header */}
-			<div className="flex h-14 shrink-0 items-center justify-between border-b bg-card/60 backdrop-blur-sm px-5">
+			<div className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.06] px-5 page-header-blur">
 				<div className="flex items-center gap-2.5 min-w-0">
 					{channel && <ChannelHeaderIcon type={channel.channel_type} />}
 					<div className="min-w-0">

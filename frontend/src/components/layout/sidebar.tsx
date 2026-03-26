@@ -26,9 +26,9 @@ export function Sidebar() {
 	return (
 		<aside
 			className={cn(
-				"flex h-screen flex-col border-r border-white/[0.06] transition-all duration-150 ease-in-out",
-				"bg-[#19171D] text-[#D1D2D3]",
-				collapsed ? "w-[68px]" : "w-[260px]",
+				"flex h-screen flex-col border-r border-white/[0.06] transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
+				"bg-[hsl(220,16%,8%)] text-[#ECEDEF]",
+				collapsed ? "w-[64px]" : "w-[260px]",
 			)}
 		>
 			{/* Лого и compose/collapse */}
@@ -39,12 +39,12 @@ export function Sidebar() {
 							to="/projects"
 							className="flex items-center gap-2.5 group"
 						>
-							<div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 transition-transform duration-150 group-hover:scale-105">
-								<span className="text-xs font-bold text-white select-none">
+							<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 logo-glow transition-transform duration-150 group-hover:scale-105">
+								<span className="text-sm font-bold text-white select-none">
 									H
 								</span>
 							</div>
-							<span className="text-[15px] font-bold text-white tracking-tight">
+							<span className="text-[16px] font-bold tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
 								Hub
 							</span>
 						</Link>

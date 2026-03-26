@@ -176,10 +176,11 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 			>
 				<div
 					className={cn(
-						"rounded-lg border bg-card p-3 transition-all duration-200",
-						"border-border/50 shadow-sm",
+						"rounded-lg border bg-card p-3",
+						"border-white/[0.06]",
 						"border-l-[3px]",
-						"hover:shadow-md hover:border-primary/30 hover:-translate-y-[2px]",
+						"transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
+						"hover:shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:border-[rgba(59,130,246,0.2)] hover:-translate-y-[2px]",
 						"focus-visible:ring-2 focus-visible:ring-primary/30",
 					)}
 					style={{ borderLeftColor: priority.borderColor }}

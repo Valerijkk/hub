@@ -29,14 +29,14 @@ export function SidebarUserProfile({
 				<img
 					src={user.avatar_url}
 					alt={displayName}
-					className="h-7 w-7 rounded-md object-cover group-hover:ring-1 group-hover:ring-white/20 transition-all"
+					className="h-8 w-8 rounded-full object-cover group-hover:ring-1 group-hover:ring-white/20 transition-all"
 				/>
 			) : (
-				<div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/[0.08] text-xs font-semibold text-white group-hover:bg-white/[0.15] transition-all">
+				<div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-xs font-semibold text-white group-hover:brightness-110 transition-all">
 					{initials}
 				</div>
 			)}
-			<span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#19171D]" />
+			<span className="absolute bottom-0 right-0 h-[9px] w-[9px] rounded-full bg-emerald-400 ring-[1.5px] ring-[hsl(220,16%,8%)] animate-pulse-online" />
 		</Link>
 	);
 

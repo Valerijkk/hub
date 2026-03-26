@@ -50,18 +50,15 @@ export function SidebarLink({
 			to={to}
 			params={params}
 			className={cn(
-				"group relative flex h-8 items-center gap-[10px] rounded-md px-3 text-[15px] transition-all duration-150",
-				"text-[#D1D2D3] hover:bg-white/[0.05] hover:text-white",
-				isActive && "bg-[#35373B] text-white",
-				collapsed && "justify-center px-0",
+				"group relative flex h-8 items-center gap-[10px] rounded-lg px-2 text-[13.5px] font-medium transition-all duration-150",
+				"border-l-2 border-transparent",
+				"text-[#979A9F] hover:bg-white/[0.05] hover:text-white",
+				isActive && "bg-white/[0.07] text-white border-l-blue-500",
+				collapsed && "justify-center px-0 border-l-0",
 				indent && !collapsed && "pl-[42px] text-[13px]",
 				unread && "font-bold",
 			)}
 		>
-			{/* Активный индикатор — 3px blue bar слева */}
-			{isActive && (
-				<div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-blue-500" />
-			)}
 			<span className="flex h-5 w-5 shrink-0 items-center justify-center">
 				{icon}
 			</span>
