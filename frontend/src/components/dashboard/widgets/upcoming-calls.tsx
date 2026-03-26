@@ -4,6 +4,7 @@
  */
 import { Phone, PhoneOff } from "lucide-react";
 import type { CallSummary, PersonalData } from "@/api/dashboard";
+import { useCallStore } from "@/stores/call-store";
 
 interface Props {
 	data?: unknown;
@@ -13,7 +14,9 @@ const GENERATED_ID_RE = /^(call-)?[0-9a-f]{8}-/i;
 
 function getCallDisplayName(call: CallSummary): string {
 	const titleIsRaw = !call.title || GENERATED_ID_RE.test(call.title);
+	// Prefer channel_name for short/numeric/raw titles
 	if (titleIsRaw && call.channel_name) return call.channel_name;
+	if (call.title && call.title.length <= 2 && call.channel_name) return call.channel_name;
 	return call.title || call.channel_name || "Звонок";
 }
 
@@ -35,6 +38,7 @@ function formatCallTime(isoDate: string): string {
 export function UpcomingCallsWidget({ data }: Props) {
 	const personalData = data as PersonalData | undefined;
 	const calls = (personalData?.upcoming_calls ?? []).slice(0, 3);
+	const startCall = useCallStore((s) => s.startCall);
 
 	if (calls.length === 0) {
 		return (
@@ -68,6 +72,9 @@ export function UpcomingCallsWidget({ data }: Props) {
 								? "bg-gradient-to-r from-violet-600 to-purple-600 text-white btn-glow"
 								: "border border-white/[0.10] text-muted-foreground hover:text-white hover:border-white/20"
 						}`}
+						onClick={() => {
+							if (call.channel_id) void startCall(call.channel_id);
+						}}
 					>
 						<span className="flex items-center gap-1">
 							<Phone className="h-2.5 w-2.5" />

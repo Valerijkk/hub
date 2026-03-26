@@ -37,6 +37,7 @@ export interface CallSummary {
 	id: string;
 	title: string;
 	scheduled_at: string;
+	channel_id?: string;
 	channel_name: string;
 }
 

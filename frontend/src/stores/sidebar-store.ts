@@ -10,6 +10,8 @@ interface SidebarState {
 	collapsed: boolean;
 	/** Переключить состояние свёрнутости. */
 	toggle: () => void;
+	/** Развернуть боковую панель. */
+	expand: () => void;
 }
 
 /** Стор боковой панели навигации с персистом. */
@@ -18,6 +20,7 @@ export const useSidebarStore = create<SidebarState>()(
 		(set) => ({
 			collapsed: false,
 			toggle: () => set((state) => ({ collapsed: !state.collapsed })),
+			expand: () => set({ collapsed: false }),
 		}),
 		{ name: "hub-sidebar" },
 	),

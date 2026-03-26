@@ -289,8 +289,8 @@ function MuteContextMenu({
 						if (confirm("Удалить канал? Это действие необратимо.")) {
 							try {
 								await deleteChannel(channelId);
-								void queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
-								window.location.href = "/messenger";
+								await queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
+								await queryClient.invalidateQueries({ queryKey: ["messenger"] });
 							} catch {
 								// канал уже удалён
 							}

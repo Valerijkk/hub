@@ -8,6 +8,7 @@ import { useState } from "react";
 import { listProjects } from "@/api/projects";
 
 import { cn } from "@/lib/utils";
+import { useSidebarStore } from "@/stores/sidebar-store";
 import { SidebarLink } from "./sidebar-link";
 
 /** Цвета точек проектов. */
@@ -145,8 +146,13 @@ export function SidebarProjects({
 		queryFn: listProjects,
 	});
 
+	const expandSidebar = useSidebarStore((s) => s.expand);
+
 	/** Переключение раскрытия подменю проекта. */
 	const toggleProject = (projectId: string) => {
+		if (collapsed) {
+			expandSidebar();
+		}
 		setExpandedProjectId((prev) => (prev === projectId ? null : projectId));
 	};
 
