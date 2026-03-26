@@ -152,9 +152,7 @@ function ProfilePage() {
 		<div className="mx-auto max-w-2xl space-y-6 animate-fade-in">
 			{/* Заголовок страницы */}
 			<div className="mb-2">
-				<h1 className="text-2xl font-semibold tracking-tight">
-					Настройки профиля
-				</h1>
+				<h1 className="text-2xl font-semibold tracking-tight">Профиль</h1>
 				<p className="mt-1 text-sm text-muted-foreground">
 					Управляйте персональными данными и активными сессиями
 				</p>
