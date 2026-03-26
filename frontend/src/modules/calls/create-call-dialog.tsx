@@ -89,6 +89,7 @@ export function CreateCallDialog({
 	const [date, setDate] = useState("");
 	const [time, setTime] = useState("10:00");
 	const [duration, setDuration] = useState("60");
+	const [reminder, setReminder] = useState("15");
 	const [recurrence, setRecurrence] = useState("");
 	const [channelId, setChannelId] = useState("");
 	const [participantIds, setParticipantIds] = useState<string[]>([]);
@@ -171,6 +172,7 @@ export function CreateCallDialog({
 			setDate(defaultDate ?? "");
 			setTime(defaultTime ?? "10:00");
 			setDuration("60");
+			setReminder("15");
 			setRecurrence("");
 			setParticipantIds([]);
 			setParticipantSearch("");
@@ -196,11 +198,13 @@ export function CreateCallDialog({
 		const data: CreateScheduledCallData = {
 			title: title.trim(),
 			scheduled_at: scheduledAt,
+			duration_minutes: Number.parseInt(duration, 10) || 60,
 			channel_id: channelId,
 		};
 
 		if (recurrence) data.rrule = recurrence;
 		if (participantIds.length > 0) data.participant_ids = participantIds;
+		if (reminder && reminder !== "0") data.reminder_minutes = Number.parseInt(reminder, 10);
 
 		mutation.mutate(data);
 	};
@@ -412,6 +416,35 @@ export function CreateCallDialog({
 												: "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
 										}`}
 										onClick={() => setDuration(opt.value)}
+									>
+										{opt.label}
+									</button>
+								))}
+							</div>
+						</div>
+
+						{/* Reminder */}
+						<div className="space-y-2">
+							<Label className="text-sm font-medium">
+								{t("callReminderLabel", { defaultValue: "Напоминание" })}
+							</Label>
+							<div className="flex gap-2">
+								{[
+									{ label: "Нет", value: "0" },
+									{ label: "5 мин", value: "5" },
+									{ label: "15 мин", value: "15" },
+									{ label: "30 мин", value: "30" },
+									{ label: "1 час", value: "60" },
+								].map((opt) => (
+									<button
+										key={opt.value}
+										type="button"
+										className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+											reminder === opt.value
+												? "border-primary bg-primary/10 text-primary"
+												: "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+										}`}
+										onClick={() => setReminder(opt.value)}
 									>
 										{opt.label}
 									</button>

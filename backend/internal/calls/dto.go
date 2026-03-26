@@ -42,6 +42,7 @@ type CreateScheduledCallRequest struct {
 	Description     string      `json:"description,omitempty"`
 	ScheduledAt     time.Time   `json:"scheduled_at"`
 	DurationMinutes int         `json:"duration_minutes,omitempty"`
+	ReminderMinutes *int        `json:"reminder_minutes,omitempty"`
 	RRule           string      `json:"rrule,omitempty"`
 	ChannelID       uuid.UUID   `json:"channel_id"`
 	ParticipantIDs  []uuid.UUID `json:"participant_ids,omitempty"`
@@ -84,6 +85,7 @@ type ScheduledCallResponse struct {
 	Description     string      `json:"description,omitempty"`
 	ScheduledAt     time.Time   `json:"scheduled_at"`
 	DurationMinutes int         `json:"duration_minutes"`
+	ReminderMinutes *int        `json:"reminder_minutes,omitempty"`
 	RRule           string      `json:"rrule,omitempty"`
 	ChannelID       uuid.UUID   `json:"channel_id"`
 	ProjectID       uuid.UUID   `json:"project_id"`

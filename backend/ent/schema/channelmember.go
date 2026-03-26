@@ -39,6 +39,10 @@ func (ChannelMember) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("Канал замьючен до этого времени (nil = не замьючен)"),
+		field.Enum("notify_mode").
+			Values("all", "mentions", "nothing").
+			Default("all").
+			Comment("Режим уведомлений: all=всё, mentions=только @упоминания, nothing=ничего"),
 	}
 }
 

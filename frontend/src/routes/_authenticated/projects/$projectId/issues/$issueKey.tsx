@@ -10,6 +10,7 @@ import {
 import { ActivityFeed } from "@/components/tracker/activity-feed";
 import { Checklist } from "@/components/tracker/checklist";
 import { CommentList } from "@/components/tracker/comment-list";
+import { IssueAttachments } from "@/components/tracker/issue-attachments";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -164,6 +165,20 @@ function IssueDetailPage() {
 						items={issue.checklist ?? []}
 						onChange={(checklist) => updateMutation.mutate({ checklist })}
 						disabled={updateMutation.isPending}
+					/>
+
+					<Separator />
+
+					{/* Вложения */}
+					<IssueAttachments
+						projectId={projectId}
+						issueId={issue.id}
+						attachments={issue.attachments ?? []}
+						onAttachmentAdded={() =>
+							queryClient.invalidateQueries({
+								queryKey: ["issue", projectId, issueKey],
+							})
+						}
 					/>
 
 					<Separator />

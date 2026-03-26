@@ -36,6 +36,10 @@ func (ScheduledCall) Fields() []ent.Field {
 			Optional().
 			Default(60).
 			Comment("Длительность звонка в минутах"),
+		field.Int("reminder_minutes").
+			Optional().
+			Nillable().
+			Comment("За сколько минут до звонка отправить напоминание (null = без напоминания)"),
 		field.String("rrule").
 			Optional().
 			Comment("RFC 5545 RRULE для повторяющихся звонков"),

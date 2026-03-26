@@ -262,6 +262,8 @@ export interface ScheduledCallResponse {
 	scheduled_at: string;
 	/** Длительность в минутах. */
 	duration_minutes: number;
+	/** За сколько минут напомнить. */
+	reminder_minutes?: number | null;
 	/** RFC 5545 RRULE для повторяющихся звонков. */
 	rrule?: string;
 	/** ID канала. */
@@ -290,6 +292,8 @@ export interface CreateScheduledCallData {
 	scheduled_at: string;
 	/** Длительность в минутах. */
 	duration_minutes?: number;
+	/** За сколько минут напомнить (null = без напоминания). */
+	reminder_minutes?: number | null;
 	/** RRULE для повторяющихся звонков. */
 	rrule?: string;
 	/** ID канала. */
