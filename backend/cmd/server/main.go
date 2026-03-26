@@ -388,6 +388,24 @@ func main() {
 		}
 	}()
 
+	// Крон проверки приближающихся дедлайнов (каждый час)
+	deadlineCtx, deadlineCancel := context.WithCancel(ctx)
+	defer deadlineCancel()
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := notifSvc.CheckDeadlines(deadlineCtx); err != nil {
+					slog.Error("deadline check failed", "error", err)
+				}
+			case <-deadlineCtx.Done():
+				return
+			}
+		}
+	}()
+
 	// Dashboard routes (дашборды: персональный, проектный, админский)
 	dashSvc := dashboardmod.NewDashboardService(db, rdb, mongoDB)
 	dashHandler := dashboardmod.NewHandler(dashSvc)

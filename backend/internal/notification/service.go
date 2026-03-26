@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/issue"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
@@ -205,6 +206,52 @@ func (s *NotificationService) isQuietHours(ctx context.Context, userID uuid.UUID
 		return currentMinutes >= startMinutes && currentMinutes < endMinutes
 	}
 	return currentMinutes >= startMinutes || currentMinutes < endMinutes
+}
+
+// CheckDeadlines находит задачи с приближающимся дедлайном (24ч) и отправляет уведомления.
+// Запускается по крону из main.go.
+func (s *NotificationService) CheckDeadlines(ctx context.Context) error {
+	now := time.Now()
+	deadline := now.Add(24 * time.Hour)
+
+	// Запрашиваем задачи с due_date, не удалённые, с assignee и project.
+	issues, err := s.db.Issue.Query().
+		Where(
+			issue.DueDateNotNil(),
+			issue.DueDateGTE(now),
+			issue.DueDateLTE(deadline),
+			issue.DeletedAtIsNil(),
+		).
+		WithAssignee().
+		WithProject().
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("ошибка запроса задач: %w", err)
+	}
+
+	count := 0
+	for _, iss := range issues {
+		assignee := iss.Edges.Assignee
+		if assignee == nil {
+			continue
+		}
+		proj := iss.Edges.Project
+		var projectID *uuid.UUID
+		if proj != nil {
+			projectID = &proj.ID
+		}
+		title := fmt.Sprintf("Дедлайн приближается: %s", iss.Title)
+		body := fmt.Sprintf("Задача #%d должна быть завершена до %s",
+			iss.IssueNumber, iss.DueDate.Format("02.01.2006 15:04"))
+
+		if dispErr := s.Dispatch(ctx, assignee.ID, TypeDeadlineApproaching, title, body,
+			"issue", iss.ID.String(), projectID, nil, false); dispErr != nil {
+			slog.Error("ошибка отправки deadline уведомления", "error", dispErr, "issue_id", iss.ID)
+		}
+		count++
+	}
+	slog.Info("проверка дедлайнов завершена", "notifications_sent", count)
+	return nil
 }
 
 // parseTimeMinutes парсит строку "HH:MM" в минуты с начала дня.
