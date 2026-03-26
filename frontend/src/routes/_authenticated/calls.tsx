@@ -21,9 +21,24 @@ function CallsPage() {
 		setCreatingCall(false);
 		if (inviteCode) {
 			const url = `${window.location.origin}/call/${inviteCode}`;
-			await navigator.clipboard.writeText(url);
-			toast.success("Звонок создан! Ссылка скопирована", {
+			// Fallback для HTTP (clipboard API требует HTTPS)
+			try {
+				await navigator.clipboard.writeText(url);
+			} catch {
+				// fallback: prompt
+				window.prompt("Скопируйте ссылку:", url);
+			}
+			toast.success("Звонок создан!", {
 				description: url,
+				action: {
+					label: "Копировать",
+					onClick: () => {
+						navigator.clipboard.writeText(url).catch(() => {
+							window.prompt("Скопируйте ссылку:", url);
+						});
+					},
+				},
+				duration: 15000,
 			});
 		}
 	}, [startInstantCall]);

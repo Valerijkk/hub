@@ -314,14 +314,14 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 								onClick={handleLeave}
 								aria-label="Покинуть звонок"
 								className={cn(
-									"flex h-12 w-14 items-center justify-center gap-2 rounded-full",
+									"flex h-12 min-w-[72px] items-center justify-center gap-2 rounded-full px-5",
 									"bg-red-500 text-white hover:bg-red-600",
 									"transition-all duration-200 hover:scale-105 active:scale-95",
 									"shadow-lg shadow-red-500/25",
-									"text-sm font-medium",
+									"text-sm font-semibold",
 								)}
 							>
-								<PhoneOff className="h-4 w-4" />
+								<PhoneOff className="h-5 w-5" />
 								<span>Выйти</span>
 							</button>
 						</TooltipTrigger>
