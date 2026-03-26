@@ -131,11 +131,11 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 										isMicEnabled ? "Выключить микрофон" : "Включить микрофон"
 									}
 									className={cn(
-										"relative flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200",
+										"relative flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200",
 										"hover:scale-105 active:scale-95",
 										isMicEnabled
-											? "bg-white/10 text-white hover:bg-white/15 ring-1 ring-green-500/40"
-											: "bg-red-500/20 text-red-400 hover:bg-red-500/30 ring-1 ring-red-500/40",
+											? "bg-white/10 text-white hover:bg-white/15"
+											: "bg-red-500/15 text-red-500 hover:bg-red-500/25",
 									)}
 								>
 									{isMicEnabled ? (
@@ -163,11 +163,11 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 										isCameraEnabled ? "Выключить камеру" : "Включить камеру"
 									}
 									className={cn(
-										"relative flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200",
+										"relative flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200",
 										"hover:scale-105 active:scale-95",
 										isCameraEnabled
-											? "bg-white/10 text-white hover:bg-white/15 ring-1 ring-green-500/40"
-											: "bg-white/10 text-white/60 hover:bg-white/15",
+											? "bg-white/10 text-white hover:bg-white/15"
+											: "bg-red-500/15 text-red-500 hover:bg-red-500/25",
 									)}
 								>
 									{isCameraEnabled ? (
@@ -203,10 +203,10 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 											: "Демонстрация экрана"
 									}
 									className={cn(
-										"flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200",
+										"flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200",
 										"hover:scale-105 active:scale-95",
 										isScreenSharing
-											? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 ring-1 ring-blue-500/40"
+											? "bg-white/10 text-blue-400 hover:bg-white/15"
 											: "bg-white/10 text-white/60 hover:bg-white/15",
 									)}
 								>
@@ -235,10 +235,10 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 									onClick={toggleHand}
 									aria-label={handRaised ? "Опустить руку" : "Поднять руку"}
 									className={cn(
-										"flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200",
+										"flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200",
 										"hover:scale-105 active:scale-95",
 										handRaised
-											? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 ring-1 ring-amber-500/40"
+											? "bg-white/10 text-amber-400 hover:bg-white/15"
 											: "bg-white/10 text-white/60 hover:bg-white/15",
 									)}
 								>
@@ -261,10 +261,10 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 									onClick={() => setReactionsOpen(!reactionsOpen)}
 									aria-label="Реакции"
 									className={cn(
-										"flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200",
+										"flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200",
 										"hover:scale-105 active:scale-95",
 										reactionsOpen
-											? "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 ring-1 ring-purple-500/40"
+											? "bg-white/10 text-purple-400 hover:bg-white/15"
 											: "bg-white/10 text-white/60 hover:bg-white/15",
 									)}
 								>
@@ -285,7 +285,7 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 									onClick={() => setSettingsOpen(true)}
 									aria-label="Настройки устройств"
 									className={cn(
-										"flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200",
+										"flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200",
 										"bg-white/10 text-white/60 hover:bg-white/15",
 										"hover:scale-105 active:scale-95",
 									)}
@@ -314,7 +314,7 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 								onClick={handleLeave}
 								aria-label="Покинуть звонок"
 								className={cn(
-									"flex h-12 items-center gap-2 rounded-full px-5",
+									"flex h-12 w-14 items-center justify-center gap-2 rounded-full",
 									"bg-red-500 text-white hover:bg-red-600",
 									"transition-all duration-200 hover:scale-105 active:scale-95",
 									"shadow-lg shadow-red-500/25",

@@ -55,16 +55,16 @@ export function AppearanceSettings() {
 					<CardDescription>{t("theme.description")}</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<div className="grid grid-cols-3 gap-3">
+					<div className="flex gap-[10px]">
 						{THEME_OPTIONS.map((opt) => (
 							<button
 								key={opt.value}
 								type="button"
 								onClick={() => setTheme(opt.value)}
 								className={cn(
-									"flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors hover:bg-accent/50",
+									"flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-colors hover:bg-accent/50",
 									theme === opt.value
-										? "border-primary bg-accent/30"
+										? "border-blue-500 bg-blue-500/[0.08]"
 										: "border-transparent",
 								)}
 							>
@@ -92,11 +92,12 @@ export function AppearanceSettings() {
 								type="button"
 								onClick={() => setAccent(color)}
 								className={cn(
-									"flex h-10 w-10 items-center justify-center rounded-full border-2 transition-transform hover:scale-110",
+									"flex items-center justify-center rounded-full transition-transform hover:scale-110",
 									accent === color
-										? "border-foreground scale-110"
-										: "border-transparent",
+										? "ring-2 ring-white ring-offset-2 ring-offset-background"
+										: "",
 								)}
+								style={accent === color ? { boxShadow: `0 0 12px ${ACCENT_PREVIEWS[color]}` } : undefined}
 								title={t(`accent.${color}`)}
 							>
 								<span

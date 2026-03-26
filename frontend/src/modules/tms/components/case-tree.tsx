@@ -27,9 +27,9 @@ export function SuiteTreeItem({
 		<div>
 			<button
 				className={cn(
-					"group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-all duration-150",
+					"group flex w-full items-center gap-1.5 rounded-sm py-[5px] px-[6px] text-left text-sm transition-all duration-150",
 					"hover:bg-muted/80",
-					selectedId === suite.id && "bg-primary/10 text-primary font-medium",
+					selectedId === suite.id && "bg-purple-500/10 text-purple-500 font-medium",
 				)}
 				style={{ paddingLeft: `${depth * 16 + 8}px` }}
 				onClick={() => onSelect(selectedId === suite.id ? undefined : suite.id)}
@@ -68,7 +68,7 @@ export function SuiteTreeItem({
 				<svg
 					className={cn(
 						"h-3.5 w-3.5 shrink-0 transition-colors",
-						selectedId === suite.id ? "text-primary" : "text-muted-foreground",
+						selectedId === suite.id ? "text-purple-500" : "text-muted-foreground",
 					)}
 					fill="none"
 					viewBox="0 0 24 24"
@@ -125,9 +125,9 @@ export function CaseTreePanel({
 			<div className="flex-1 overflow-y-auto p-1.5">
 				<button
 					className={cn(
-						"mb-1 flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-all duration-150",
+						"mb-1 flex w-full items-center gap-1.5 rounded-sm py-[5px] px-[6px] text-left text-sm transition-all duration-150",
 						"hover:bg-muted/80",
-						!selectedSuiteId && "bg-primary/10 text-primary font-medium",
+						!selectedSuiteId && "bg-purple-500/10 text-purple-500 font-medium",
 					)}
 					onClick={() => onSelectSuite(undefined)}
 				>
@@ -145,7 +145,7 @@ export function CaseTreePanel({
 						/>
 					</svg>
 					<span className="flex-1">Все кейсы</span>
-					<span className="text-[10px] text-muted-foreground tabular-nums">
+					<span className="text-[10px] text-muted-foreground tabular-nums bg-muted rounded-sm px-1.5 py-0.5">
 						{total}
 					</span>
 				</button>

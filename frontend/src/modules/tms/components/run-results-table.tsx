@@ -16,35 +16,30 @@ import { cn } from "@/lib/utils";
 /** Конфигурация статусов результата -- цвета, лейблы и цвет точки-индикатора. */
 export const RESULT_STATUS_CONFIG: Record<
 	string,
-	{ bg: string; text: string; label: string; dotColor: string }
+	{ badgeClass: string; label: string; dotColor: string }
 > = {
 	passed: {
-		bg: "bg-green-500/10",
-		text: "text-green-700 dark:text-green-400",
+		badgeClass: "badge-passed",
 		label: "Passed",
 		dotColor: "bg-green-500",
 	},
 	failed: {
-		bg: "bg-red-500/10",
-		text: "text-red-700 dark:text-red-400",
+		badgeClass: "badge-failed",
 		label: "Failed",
 		dotColor: "bg-red-500",
 	},
 	broken: {
-		bg: "bg-orange-500/10",
-		text: "text-orange-700 dark:text-orange-400",
+		badgeClass: "badge-broken",
 		label: "Broken",
 		dotColor: "bg-orange-500",
 	},
 	skipped: {
-		bg: "bg-gray-200 dark:bg-gray-700/50",
-		text: "text-gray-600 dark:text-gray-400",
+		badgeClass: "badge-skipped",
 		label: "Skipped",
 		dotColor: "bg-gray-400",
 	},
 	unknown: {
-		bg: "bg-gray-100 dark:bg-gray-800/50",
-		text: "text-gray-500",
+		badgeClass: "badge-blocked",
 		label: "Unknown",
 		dotColor: "bg-gray-300",
 	},
@@ -209,16 +204,16 @@ export function RunResultsTable({
 					<table className="w-full table-striped">
 						<thead>
 							<tr className="border-b bg-muted/40">
-								<th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground sticky top-0 bg-muted/40">
 									Тест-кейс
 								</th>
-								<th className="w-24 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<th className="w-24 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground sticky top-0 bg-muted/40">
 									Статус
 								</th>
-								<th className="w-24 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<th className="w-24 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground sticky top-0 bg-muted/40">
 									Время
 								</th>
-								<th className="w-28 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<th className="w-28 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground sticky top-0 bg-muted/40">
 									Исполнитель
 								</th>
 							</tr>
@@ -235,7 +230,7 @@ export function RunResultsTable({
 										key={r.id}
 										className={cn(
 											"border-b transition-all duration-150 last:border-0",
-											isClickable && "cursor-pointer hover:bg-muted/30",
+											isClickable && "cursor-pointer hover:bg-card",
 											isExecuting && "bg-primary/5 border-l-2 border-l-primary",
 										)}
 										onClick={() => {
@@ -265,8 +260,7 @@ export function RunResultsTable({
 												variant="secondary"
 												className={cn(
 													"text-[10px] font-semibold",
-													resultCfg.bg,
-													resultCfg.text,
+													resultCfg.badgeClass,
 												)}
 											>
 												{resultCfg.label}

@@ -1,8 +1,14 @@
 import { Link } from "@tanstack/react-router";
+import {
+	ArrowRight,
+	CheckSquare,
+	Inbox,
+	ListTodo,
+	Square,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { type IssueResponse, listIssues } from "@/api/tracker";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
 import { useSprintStore } from "@/stores/sprint-store";
 
 /** Пропсы компонента SprintBacklog. */
@@ -19,7 +25,9 @@ interface SprintBacklogProps {
 export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	const { sprints, fetchSprints, moveIssueToSprint } = useSprintStore();
 	const [backlogIssues, setBacklogIssues] = useState<IssueResponse[]>([]);
-	const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
+	const [selectedIssues, setSelectedIssues] = useState<Set<string>>(
+		new Set(),
+	);
 	const [loading, setLoading] = useState(false);
 
 	useEffect(() => {
@@ -58,21 +66,35 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	const planningSprints = sprints.filter((s) => s.status === "planning");
 
 	return (
-		<div className="space-y-4">
+		<div className="space-y-6 animate-fade-in">
+			{/* Page header */}
 			<div className="flex items-center justify-between">
-				<h2 className="text-lg font-semibold">Бэклог</h2>
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-blue-500/20 text-violet-500 shadow-sm">
+						<Inbox className="h-5 w-5" />
+					</div>
+					<div>
+						<h1 className="page-title">Бэклог</h1>
+						<p className="mt-0.5 text-sm text-muted-foreground">
+							{backlogIssues.length} задач без спринта
+						</p>
+					</div>
+				</div>
+
+				{/* Move to sprint action bar */}
 				{selectedIssues.size > 0 && planningSprints.length > 0 && (
-					<div className="flex items-center gap-2">
-						<span className="text-sm text-muted-foreground">
+					<div className="flex items-center gap-3">
+						<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-400 border border-blue-500/20">
 							Выбрано: {selectedIssues.size}
 						</span>
 						{planningSprints.map((s) => (
 							<Button
 								key={s.id}
 								size="sm"
-								variant="outline"
+								className="btn-glow bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/20 hover:from-blue-500 hover:to-blue-400"
 								onClick={() => handleMoveToSprint(s.id)}
 							>
+								<ArrowRight className="mr-1.5 h-3.5 w-3.5" />
 								В {s.name}
 							</Button>
 						))}
@@ -80,57 +102,95 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 				)}
 			</div>
 
+			{/* Backlog issues */}
 			{loading ? (
-				<p className="text-muted-foreground">Загрузка...</p>
+				<div className="flex items-center justify-center p-12">
+					<div className="flex flex-col items-center gap-3">
+						<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+						<p className="text-sm text-muted-foreground">
+							Загрузка бэклога...
+						</p>
+					</div>
+				</div>
 			) : backlogIssues.length === 0 ? (
-				<p className="text-muted-foreground">Бэклог пуст</p>
+				<div className="flex flex-col items-center justify-center py-16 text-center">
+					<div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-blue-500/20">
+						<ListTodo className="h-8 w-8 text-violet-400" />
+					</div>
+					<h3 className="text-lg font-semibold text-foreground">
+						Бэклог пуст
+					</h3>
+					<p className="mt-1 max-w-sm text-sm text-muted-foreground">
+						Все задачи распределены по спринтам
+					</p>
+				</div>
 			) : (
-				<div className="space-y-2">
-					{backlogIssues.map((issue) => (
-						<Card
-							key={issue.id}
-							className={`cursor-pointer transition-colors ${
-								selectedIssues.has(issue.id)
-									? "border-primary bg-primary/5"
-									: "hover:bg-muted/50"
-							}`}
-							onClick={() => toggleSelect(issue.id)}
-						>
-							<CardHeader className="py-3">
-								<div className="flex items-center gap-3">
-									<input
-										type="checkbox"
-										checked={selectedIssues.has(issue.id)}
-										onChange={() => toggleSelect(issue.id)}
-										className="h-4 w-4"
-										onClick={(e) => e.stopPropagation()}
-									/>
-									<span className="text-xs font-mono text-muted-foreground">
+				<div className="rounded-2xl border border-white/[0.06] bg-card/50 p-1">
+					<div className="space-y-1">
+						{backlogIssues.map((issue) => {
+							const isSelected = selectedIssues.has(issue.id);
+							return (
+								<div
+									key={issue.id}
+									className={`card-premium group flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition-all ${
+										isSelected
+											? "border-blue-500/20 bg-blue-500/5 ring-1 ring-blue-500/20"
+											: "border-transparent hover:bg-white/[0.02]"
+									}`}
+									onClick={() => toggleSelect(issue.id)}
+								>
+									{/* Checkbox */}
+									<button
+										type="button"
+										className="flex-shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+										onClick={(e) => {
+											e.stopPropagation();
+											toggleSelect(issue.id);
+										}}
+									>
+										{isSelected ? (
+											<CheckSquare className="h-4 w-4 text-blue-400" />
+										) : (
+											<Square className="h-4 w-4" />
+										)}
+									</button>
+
+									{/* Issue key */}
+									<span className="flex-shrink-0 rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
 										{issue.issue_key}
 									</span>
+
+									{/* Title */}
 									<Link
 										to="/projects/$projectId/issues/$issueKey"
-										params={{ projectId, issueKey: issue.issue_key }}
-										className="text-sm hover:text-primary hover:underline transition-colors"
+										params={{
+											projectId,
+											issueKey: issue.issue_key,
+										}}
+										className="min-w-0 flex-1 truncate text-sm text-foreground transition-colors hover:text-blue-400"
 										onClick={(e) => e.stopPropagation()}
 									>
 										{issue.title}
 									</Link>
+
+									{/* Priority badge */}
 									<span
-										className={`ml-auto rounded px-2 py-0.5 text-xs ${
+										className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
 											issue.priority === "critical"
-												? "bg-red-500/20 text-red-400"
+												? "bg-red-500/10 text-red-400 border border-red-500/20"
 												: issue.priority === "high"
-													? "bg-orange-500/20 text-orange-400"
-													: "bg-muted text-muted-foreground"
+													? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
+													: issue.priority === "medium"
+														? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+														: "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20"
 										}`}
 									>
 										{issue.priority}
 									</span>
 								</div>
-							</CardHeader>
-						</Card>
-					))}
+							);
+						})}
+					</div>
 				</div>
 			)}
 		</div>

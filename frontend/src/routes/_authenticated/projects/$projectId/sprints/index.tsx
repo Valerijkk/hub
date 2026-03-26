@@ -9,7 +9,7 @@ function SprintsPage() {
 	const { projectId } = Route.useParams();
 
 	return (
-		<div className="container mx-auto p-6">
+		<div className="mx-auto max-w-5xl px-4 py-6">
 			<SprintBoard projectId={projectId} />
 		</div>
 	);

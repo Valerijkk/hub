@@ -96,7 +96,7 @@ function PersonalDashboard() {
 							</svg>
 						</div>
 						<div>
-							<h1 className="text-2xl font-bold tracking-tight greeting-gradient">
+							<h1 className="text-[28px] font-bold tracking-[-0.015em] greeting-gradient">
 								{greeting}
 								{displayName ? `, ${displayName}` : ""}
 							</h1>
@@ -113,7 +113,7 @@ function PersonalDashboard() {
 						<Button
 							variant="outline"
 							size="sm"
-							className="gap-1.5 transition-all duration-200 hover:shadow-sm"
+							className="gap-1.5 rounded-lg border bg-card transition-all duration-200 hover:-translate-y-[2px] hover:shadow-lg"
 							onClick={() => navigate({ to: "/projects" })}
 						>
 							<Plus className="h-3.5 w-3.5" />
@@ -122,7 +122,7 @@ function PersonalDashboard() {
 						<Button
 							variant="outline"
 							size="sm"
-							className="gap-1.5 transition-all duration-200 hover:shadow-sm"
+							className="gap-1.5 rounded-lg border bg-card transition-all duration-200 hover:-translate-y-[2px] hover:shadow-lg"
 							onClick={() => navigate({ to: "/messenger" })}
 						>
 							<MessageSquarePlus className="h-3.5 w-3.5" />
@@ -131,7 +131,7 @@ function PersonalDashboard() {
 						<Button
 							variant="outline"
 							size="sm"
-							className="gap-1.5 transition-all duration-200 hover:shadow-sm"
+							className="gap-1.5 rounded-lg border bg-card transition-all duration-200 hover:-translate-y-[2px] hover:shadow-lg"
 							onClick={() => navigate({ to: "/calls" })}
 						>
 							<CalendarPlus className="h-3.5 w-3.5" />
@@ -140,7 +140,7 @@ function PersonalDashboard() {
 						<Button
 							variant="ghost"
 							size="sm"
-							className="transition-all duration-200"
+							className="rounded-lg transition-all duration-200 hover:-translate-y-[2px] hover:shadow-lg"
 						>
 							<Search className="h-4 w-4" />
 						</Button>
@@ -154,7 +154,7 @@ function PersonalDashboard() {
 					{[1, 2, 3, 4, 5, 6].map((i) => (
 						<div
 							key={i}
-							className="rounded-xl ring-1 ring-border/50 bg-card p-5 space-y-3 shadow-sm"
+							className="rounded-2xl border border-white/[0.06] bg-card p-5 space-y-3 shadow-sm"
 							style={{ animationDelay: `${i * 80}ms` }}
 						>
 							<div className="flex items-center gap-3">

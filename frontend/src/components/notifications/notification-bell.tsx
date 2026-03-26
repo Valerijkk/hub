@@ -57,13 +57,17 @@ export function NotificationBell() {
 				>
 					<Bell className="h-4 w-4" />
 					{unreadCount > 0 && (
-						<span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-medium text-destructive-foreground">
+						<span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 animate-scale-in items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
 							{unreadCount > 99 ? "99+" : unreadCount}
 						</span>
 					)}
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent align="end" className="w-96 p-0" sideOffset={8}>
+			<PopoverContent
+				align="end"
+				className="w-[380px] max-h-[500px] overflow-hidden rounded-2xl border-white/10 bg-popover p-0 shadow-[0_16px_48px_rgba(0,0,0,0.4)]"
+				sideOffset={8}
+			>
 				<NotificationPanel />
 			</PopoverContent>
 		</Popover>

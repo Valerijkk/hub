@@ -160,6 +160,25 @@ function ProfilePage() {
 				</p>
 			</div>
 
+			{/* Аватар профиля */}
+			<div className="flex items-center gap-5">
+				<div className="group relative h-[72px] w-[72px] shrink-0">
+					<div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-2xl font-bold text-white">
+						{user?.display_name?.[0] ?? user?.name?.[0] ?? "?"}
+					</div>
+					<div className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+						<svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+							<path d="M4 5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1.586a1 1 0 0 1-.707-.293l-1.121-1.121A2 2 0 0 0 11.172 3H8.828a2 2 0 0 0-1.414.586L6.293 4.707A1 1 0 0 1 5.586 5H4z" />
+							<circle cx="10" cy="10" r="3" />
+						</svg>
+					</div>
+				</div>
+				<div>
+					<p className="text-lg font-semibold">{user?.display_name ?? user?.name ?? ""}</p>
+					<p className="text-sm text-muted-foreground">{user?.email ?? ""}</p>
+				</div>
+			</div>
+
 			{/* Карточка кастомного статуса */}
 			<Card className="rounded-xl border shadow-sm">
 				<CardHeader className="pb-4">
@@ -258,8 +277,8 @@ function ProfilePage() {
 				<CardContent>
 					<form onSubmit={handleSubmit} className="space-y-5">
 						<div className="grid gap-4 sm:grid-cols-2">
-							<div className="space-y-2">
-								<Label htmlFor="prof-name" className="text-sm font-medium">
+							<div className="form-group space-y-1.5">
+								<Label htmlFor="prof-name" className="text-xs font-medium text-muted-foreground">
 									Имя
 								</Label>
 								<Input
@@ -268,11 +287,11 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, name: e.target.value }))
 									}
-									className="h-10"
+									className="h-10 rounded-lg bg-card border-white/10"
 								/>
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor="prof-display" className="text-sm font-medium">
+							<div className="form-group space-y-1.5">
+								<Label htmlFor="prof-display" className="text-xs font-medium text-muted-foreground">
 									Отображаемое имя
 								</Label>
 								<Input
@@ -281,11 +300,11 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, display_name: e.target.value }))
 									}
-									className="h-10"
+									className="h-10 rounded-lg bg-card border-white/10"
 								/>
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor="prof-phone" className="text-sm font-medium">
+							<div className="form-group space-y-1.5">
+								<Label htmlFor="prof-phone" className="text-xs font-medium text-muted-foreground">
 									Телефон
 								</Label>
 								<Input
@@ -294,11 +313,11 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, phone: e.target.value }))
 									}
-									className="h-10"
+									className="h-10 rounded-lg bg-card border-white/10"
 								/>
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor="prof-position" className="text-sm font-medium">
+							<div className="form-group space-y-1.5">
+								<Label htmlFor="prof-position" className="text-xs font-medium text-muted-foreground">
 									Должность
 								</Label>
 								<Input
@@ -307,13 +326,13 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, position: e.target.value }))
 									}
-									className="h-10"
+									className="h-10 rounded-lg bg-card border-white/10"
 								/>
 							</div>
-							<div className="space-y-2">
+							<div className="form-group space-y-1.5">
 								<Label
 									htmlFor="prof-department"
-									className="text-sm font-medium"
+									className="text-xs font-medium text-muted-foreground"
 								>
 									Отдел
 								</Label>
@@ -323,11 +342,11 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, department: e.target.value }))
 									}
-									className="h-10"
+									className="h-10 rounded-lg bg-card border-white/10"
 								/>
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor="prof-tz" className="text-sm font-medium">
+							<div className="form-group space-y-1.5">
+								<Label htmlFor="prof-tz" className="text-xs font-medium text-muted-foreground">
 									Часовой пояс
 								</Label>
 								<Input
@@ -337,11 +356,11 @@ function ProfilePage() {
 										setForm((f) => ({ ...f, timezone: e.target.value }))
 									}
 									placeholder="Europe/Moscow"
-									className="h-10"
+									className="h-10 rounded-lg bg-card border-white/10"
 								/>
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor="prof-lang" className="text-sm font-medium">
+							<div className="form-group space-y-1.5">
+								<Label htmlFor="prof-lang" className="text-xs font-medium text-muted-foreground">
 									Язык
 								</Label>
 								<Input
@@ -351,11 +370,11 @@ function ProfilePage() {
 										setForm((f) => ({ ...f, language: e.target.value }))
 									}
 									placeholder="ru"
-									className="h-10"
+									className="h-10 rounded-lg bg-card border-white/10"
 								/>
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor="prof-birthday" className="text-sm font-medium">
+							<div className="form-group space-y-1.5">
+								<Label htmlFor="prof-birthday" className="text-xs font-medium text-muted-foreground">
 									День рождения
 								</Label>
 								<Input
@@ -365,7 +384,7 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, birthday: e.target.value }))
 									}
-									className="h-10"
+									className="h-10 rounded-lg bg-card border-white/10"
 								/>
 							</div>
 						</div>
@@ -413,7 +432,7 @@ function ProfilePage() {
 							<Button
 								type="submit"
 								disabled={profileMutation.isPending}
-								className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-sm shadow-blue-500/20"
+								className="btn-glow bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-sm shadow-blue-500/20"
 							>
 								{profileMutation.isPending
 									? "Сохранение..."

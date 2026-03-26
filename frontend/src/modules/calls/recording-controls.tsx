@@ -94,7 +94,7 @@ export function RecordingControls({ callId }: RecordingControlsProps) {
 			{/* Индикатор записи -- виден ВСЕМ участникам */}
 			{isRecording && (
 				<div className="flex items-center gap-1.5 rounded-full bg-red-500/10 px-3 py-1 text-red-500">
-					<span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+					<span className="h-2 w-2 animate-blink rounded-full bg-red-500" />
 					<span className="text-xs font-medium">REC</span>
 					<span className="text-xs tabular-nums">{formatTime(elapsed)}</span>
 				</div>

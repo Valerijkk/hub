@@ -36,9 +36,9 @@ function ParticipantTile({ participant }: { participant: Participant }) {
 	return (
 		<div
 			className={cn(
-				"relative flex flex-col items-center justify-center rounded-xl overflow-hidden",
-				"bg-[#2a2f3e]",
-				isSpeaking && "ring-2 ring-green-500/60",
+				"relative flex flex-col items-center justify-center rounded-2xl overflow-hidden",
+				"bg-[#2a2f3e] border border-white/[0.06]",
+				isSpeaking && "border-green-500 shadow-[0_0_16px_rgba(34,197,94,0.35)]",
 			)}
 		>
 			{/* Рука */}
@@ -51,13 +51,13 @@ function ParticipantTile({ participant }: { participant: Participant }) {
 			{/* Аватар — крупный, адаптивный */}
 			<div className="relative">
 				{isSpeaking && (
-					<div className="absolute -inset-3 rounded-full border-2 border-green-500/50 animate-[pulse_1.5s_ease-in-out_infinite]" />
+					<div className="absolute -inset-3 rounded-full border-2 border-green-500/50 animate-speaking" />
 				)}
 
 				<div
 					className={cn(
 						"relative flex items-center justify-center rounded-full font-bold",
-						"h-24 w-24 text-4xl md:h-28 md:w-28 md:text-5xl",
+						"h-20 w-20 text-3xl",
 						isSpeaking
 							? "bg-green-500/15 text-green-300"
 							: "bg-white/10 text-white/70",
@@ -74,7 +74,7 @@ function ParticipantTile({ participant }: { participant: Participant }) {
 			</div>
 
 			{/* Имя */}
-			<span className="mt-3 text-sm font-medium text-white/80 truncate max-w-[90%]">
+			<span className="mt-3 text-[13px] font-medium text-white/80 truncate max-w-[90%]">
 				{name}
 			</span>
 		</div>
@@ -105,18 +105,15 @@ export function ParticipantList() {
 	if (count <= 1) {
 		cols = 1;
 		rows = 1;
-	} else if (count <= 2) {
-		cols = 2;
-		rows = 1;
 	} else if (count <= 4) {
 		cols = 2;
-		rows = 2;
+		rows = Math.ceil(count / 2);
 	} else if (count <= 6) {
 		cols = 3;
 		rows = 2;
 	} else if (count <= 9) {
 		cols = 3;
-		rows = 3;
+		rows = Math.ceil(count / 3);
 	} else {
 		cols = 4;
 		rows = Math.ceil(count / 4);

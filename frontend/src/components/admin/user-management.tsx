@@ -133,20 +133,20 @@ export function UserManagement() {
 					value={search}
 					onChange={(e) => setSearch(e.target.value)}
 					placeholder="Поиск по имени или email..."
-					className="w-64 rounded border px-3 py-1.5 text-sm"
+					className="w-64 rounded-lg bg-card border-white/10 px-3 py-1.5 text-sm"
 				/>
 			</div>
 
 			{/* Таблица пользователей */}
-			<div className="overflow-x-auto rounded border">
+			<div className="overflow-x-auto rounded-xl border border-white/[0.06]">
 				<table className="w-full text-sm">
 					<thead className="bg-muted/50">
 						<tr>
-							<th className="px-3 py-2 text-left font-medium">Имя</th>
-							<th className="px-3 py-2 text-left font-medium">Email</th>
-							<th className="px-3 py-2 text-left font-medium">Роль</th>
-							<th className="px-3 py-2 text-left font-medium">Статус</th>
-							<th className="px-3 py-2 text-right font-medium">Действия</th>
+							<th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Имя</th>
+							<th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Email</th>
+							<th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Роль</th>
+							<th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Статус</th>
+							<th className="px-3 py-2.5 text-right text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Действия</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -170,30 +170,38 @@ export function UserManagement() {
 							</tr>
 						) : (
 							filtered.map((user) => (
-								<tr key={user.id} className="border-t hover:bg-muted/30">
-									<td className="px-3 py-2 font-medium">
-										{user.name || user.display_name || "-"}
+								<tr key={user.id} className="border-t border-white/[0.06] hover:bg-muted/30">
+									<td className="px-3 py-2.5">
+										<div className="flex items-center gap-2.5">
+											<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[11px] font-semibold text-white">
+												{(user.name?.[0] ?? user.email[0] ?? "?").toUpperCase()}
+											</div>
+											<span className="font-medium">{user.name || user.display_name || "-"}</span>
+										</div>
 									</td>
-									<td className="px-3 py-2">{user.email}</td>
-									<td className="px-3 py-2">
+									<td className="px-3 py-2.5 text-muted-foreground">{user.email}</td>
+									<td className="px-3 py-2.5">
 										<span
-											className={`rounded px-1.5 py-0.5 text-xs ${
+											className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
 												user.system_role === "admin"
-													? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-													: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
+													? "bg-purple-500/15 text-purple-400"
+													: user.system_role === "moderator"
+														? "bg-blue-500/15 text-blue-400"
+														: "bg-emerald-500/15 text-emerald-400"
 											}`}
 										>
 											{user.system_role}
 										</span>
 									</td>
-									<td className="px-3 py-2">
+									<td className="px-3 py-2.5">
 										<span
-											className={`rounded px-1.5 py-0.5 text-xs ${
+											className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
 												user.status === "deactivated"
-													? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-													: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+													? "bg-red-500/15 text-red-400"
+													: "bg-emerald-500/15 text-emerald-400"
 											}`}
 										>
+											<span className={`h-1.5 w-1.5 rounded-full ${user.status === "deactivated" ? "bg-red-400" : "bg-emerald-400"}`} />
 											{user.status === "deactivated"
 												? "Деактивирован"
 												: "Активен"}

@@ -311,7 +311,7 @@ export function WidgetGrid({
 						return (
 							<div
 								key={item.i}
-								className="group/widget relative rounded-xl bg-card text-card-foreground ring-1 ring-border/50 shadow-sm overflow-hidden transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-px"
+								className="group/widget widget-card relative rounded-2xl bg-card text-card-foreground border border-white/[0.06] shadow-sm overflow-hidden"
 							>
 								{/* Accent top border */}
 								<div
@@ -319,13 +319,13 @@ export function WidgetGrid({
 								/>
 
 								{/* Widget header */}
-								<div className="widget-drag-handle flex items-center justify-between border-b border-border/50 px-4 py-2.5 cursor-move">
+								<div className="widget-drag-handle flex items-center justify-between border-b border-white/[0.06] px-4 py-2.5 cursor-move">
 									<div className="flex items-center gap-2">
 										<GripVertical className="h-3.5 w-3.5 text-muted-foreground/40" />
 										{Icon && (
 											<Icon className="h-4 w-4 text-muted-foreground" />
 										)}
-										<span className="text-sm font-medium">
+										<span className="text-[11px] uppercase font-semibold tracking-[0.04em] text-muted-foreground">
 											{WIDGET_NAMES[item.widget_type] ?? item.widget_type}
 										</span>
 									</div>

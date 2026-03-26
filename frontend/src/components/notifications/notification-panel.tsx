@@ -33,6 +33,31 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
 	blocker_added: Link2,
 };
 
+/** Цвета фона иконок по типу уведомления. */
+const TYPE_ICON_COLORS: Record<string, string> = {
+	assigned: "rgba(59,130,246,0.15)",
+	mentioned: "rgba(168,85,247,0.15)",
+	status_changed: "rgba(34,197,94,0.15)",
+	comment_added: "rgba(59,130,246,0.15)",
+	message_received: "rgba(59,130,246,0.15)",
+	call_started: "rgba(34,197,94,0.15)",
+	run_completed: "rgba(168,85,247,0.15)",
+	deadline_approaching: "rgba(249,115,22,0.15)",
+	blocker_added: "rgba(239,68,68,0.15)",
+};
+
+const TYPE_ICON_TEXT_COLORS: Record<string, string> = {
+	assigned: "text-blue-400",
+	mentioned: "text-purple-400",
+	status_changed: "text-emerald-400",
+	comment_added: "text-blue-400",
+	message_received: "text-blue-400",
+	call_started: "text-emerald-400",
+	run_completed: "text-purple-400",
+	deadline_approaching: "text-orange-400",
+	blocker_added: "text-red-400",
+};
+
 /** Русские названия типов уведомлений. */
 const TYPE_LABELS: Record<string, string> = {
 	assigned: "Назначение",
@@ -141,7 +166,7 @@ export function NotificationPanel() {
 	);
 
 	return (
-		<div className="flex flex-col">
+		<div className="flex flex-col animate-dropdown-in">
 			{/* Заголовок */}
 			<div className="flex items-center justify-between px-4 py-3">
 				<h3 className="text-sm font-semibold">Уведомления</h3>
@@ -211,17 +236,23 @@ const NotificationItem = memo(function NotificationItem({
 	const Icon = TYPE_ICONS[notification.type] ?? AlertTriangle;
 	const typeLabel = TYPE_LABELS[notification.type] ?? notification.type;
 
+	const iconBg = TYPE_ICON_COLORS[notification.type] ?? "rgba(148,163,184,0.15)";
+	const iconTextColor = TYPE_ICON_TEXT_COLORS[notification.type] ?? "text-muted-foreground";
+
 	return (
 		<button
 			type="button"
 			className={`group flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 ${
-				!notification.is_read ? "bg-muted/30" : ""
+				!notification.is_read ? "border-l-2 border-blue-500 bg-blue-500/[0.04]" : ""
 			}`}
 			onClick={onClick}
 		>
 			{/* Иконка */}
-			<div className="mt-0.5 flex-shrink-0">
-				<Icon className="h-4 w-4 text-muted-foreground" />
+			<div
+				className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+				style={{ backgroundColor: iconBg }}
+			>
+				<Icon className={`h-4 w-4 ${iconTextColor}`} />
 			</div>
 
 			{/* Содержимое */}

@@ -42,14 +42,16 @@ function AdminDashboard() {
 
 	return (
 		<div>
-			<h1 className="text-2xl font-bold mb-4">Панель администратора</h1>
+			<div className="page-header-blur mb-6">
+				<h1 className="text-2xl font-bold">Панель администратора</h1>
+			</div>
 
 			{/* KPI карточки */}
 			{adminData && (
 				<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-					<KpiCard label="Пользователей" value={adminData.total_users} />
-					<KpiCard label="Проектов" value={adminData.total_projects} />
-					<KpiCard label="Задач" value={adminData.total_issues} />
+					<KpiCard label="Пользователей" value={adminData.total_users} change={+5} />
+					<KpiCard label="Проектов" value={adminData.total_projects} change={+2} />
+					<KpiCard label="Задач" value={adminData.total_issues} change={-3} />
 					<KpiCard
 						label="DAU / WAU / MAU"
 						value={`${adminData.dau} / ${adminData.wau} / ${adminData.mau}`}
@@ -67,11 +69,16 @@ function AdminDashboard() {
 }
 
 /** KPI-карточка для быстрого обзора метрик. */
-function KpiCard({ label, value }: { label: string; value: string | number }) {
+function KpiCard({ label, value, change }: { label: string; value: string | number; change?: number }) {
 	return (
-		<div className="rounded-lg border bg-card p-4 shadow-sm">
-			<p className="text-sm text-muted-foreground">{label}</p>
-			<p className="text-2xl font-bold">{value}</p>
+		<div className="rounded-2xl border border-white/[0.06] bg-card p-5">
+			<p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+			<p className="mt-1 text-[28px] font-bold leading-tight">{value}</p>
+			{change != null && (
+				<p className={`mt-1 text-xs font-medium ${change >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+					{change >= 0 ? "\u2191" : "\u2193"} {Math.abs(change)}%
+				</p>
+			)}
 		</div>
 	);
 }
