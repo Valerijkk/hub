@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { CreatePollDialog } from "./create-poll-dialog";
+import { GifPicker } from "./gif-picker";
 import { MentionAutocomplete } from "./mention-autocomplete";
 import { type StickerData, StickerPicker, buildStickerContentJson } from "./sticker-picker";
 import { VoiceRecorder } from "./voice-recorder";
@@ -342,6 +343,44 @@ export function MessageComposer({
 		[channelId],
 	);
 
+	/** Отправка GIF. */
+	const handleGifSend = useCallback(
+		async (gifUrl: string) => {
+			try {
+				const contentJson = {
+					type: "doc",
+					children: [
+						{
+							type: "p",
+							children: [
+								{
+									type: "a",
+									url: gifUrl,
+									children: [{ text: gifUrl }],
+								},
+							],
+						},
+					],
+				} as unknown as Record<string, unknown>;
+				await sendMessage(channelId, {
+					content_json: contentJson,
+					content_text: gifUrl,
+					thread_id: threadId,
+				});
+				void queryClient.invalidateQueries({
+					queryKey: ["messenger", "messages", channelId],
+				});
+			} catch (err) {
+				const message =
+					err instanceof Error
+						? err.message
+						: "Не удалось отправить GIF";
+				toast.error(message);
+			}
+		},
+		[channelId, threadId, queryClient],
+	);
+
 	/** Отправка стикера. */
 	const handleStickerSend = useCallback(
 		async (sticker: StickerData) => {
@@ -607,6 +646,9 @@ export function MessageComposer({
 							</div>
 						</PopoverContent>
 					</Popover>
+
+					{/* GIF picker */}
+					<GifPicker onSelect={(url) => void handleGifSend(url)} />
 
 					{/* Sticker picker */}
 					<StickerPicker onSelect={(s) => void handleStickerSend(s)} />

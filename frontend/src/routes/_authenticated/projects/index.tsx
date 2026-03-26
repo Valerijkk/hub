@@ -10,6 +10,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 /**
  * Страница списка проектов — сетка карточек, пустое состояние,
@@ -25,11 +26,21 @@ function ProjectsPage() {
 		<div className="mx-auto max-w-5xl animate-fade-in">
 			{/* Заголовок страницы — градиентный */}
 			<div className="mb-8 flex items-center justify-between">
-				<div>
-					<h1 className="page-title">Проекты</h1>
-					<p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-						Управляйте проектами вашей команды
-					</p>
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-blue-500 shadow-sm">
+						<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+							<rect x="3" y="3" width="7" height="7" rx="2" />
+							<rect x="14" y="3" width="7" height="7" rx="2" />
+							<rect x="3" y="14" width="7" height="7" rx="2" />
+							<rect x="14" y="14" width="7" height="7" rx="2" />
+						</svg>
+					</div>
+					<div>
+						<h1 className="page-title">Проекты</h1>
+						<p className="mt-0.5 text-sm text-muted-foreground leading-relaxed">
+							Управляйте проектами вашей команды
+						</p>
+					</div>
 				</div>
 				<Button
 					asChild
@@ -50,6 +61,57 @@ function ProjectsPage() {
 					</Link>
 				</Button>
 			</div>
+
+			<Tabs defaultValue="list">
+				<TabsList>
+					<TabsTrigger value="list">Проекты</TabsTrigger>
+					<TabsTrigger value="info">О проектах</TabsTrigger>
+				</TabsList>
+
+				<TabsContent value="info">
+					<section className="rounded-xl border bg-card p-6 space-y-6">
+						<div>
+							<h2 className="text-lg font-semibold mb-4">Как создать проект</h2>
+							<div className="grid gap-4 md:grid-cols-3">
+								{[
+									{ n: "1", color: "blue", title: "Нажмите \"Создать проект\"", desc: "Укажите название и ключ (KEY-1)" },
+									{ n: "2", color: "green", title: "Настройте команду", desc: "Добавьте участников и роли" },
+									{ n: "3", color: "violet", title: "Начинайте работать!", desc: "Задачи, тесты, мессенджер и звонки" },
+								].map((s) => (
+									<div key={s.n} className="flex gap-3">
+										<div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-${s.color}-500/10 text-${s.color}-500 text-sm font-bold`}>
+											{s.n}
+										</div>
+										<div>
+											<p className="font-medium text-sm">{s.title}</p>
+											<p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+						<div className="grid gap-3 md:grid-cols-2">
+							{[
+								{ icon: "\u{1F4CB}", title: "Трекер задач", desc: "Kanban-доска, бэклог, спринты" },
+								{ icon: "\u{1F9EA}", title: "Тест-менеджмент", desc: "Тест-кейсы, прогоны, отчёты" },
+								{ icon: "\u{1F4AC}", title: "Мессенджер", desc: "Каналы, DM, голосовые, стикеры" },
+								{ icon: "\u{1F4DE}", title: "Созвоны", desc: "Аудио, screen share, запись" },
+								{ icon: "\u{1F517}", title: "GitLab / GitHub", desc: "Ветки, MR, пайплайны из Hub" },
+								{ icon: "\u{1F4CA}", title: "Дашборды", desc: "Виджеты, графики, метрики" },
+							].map((f) => (
+								<div key={f.title} className="flex gap-3 rounded-xl border p-3 hover:bg-muted/50 transition-colors">
+									<span className="text-xl">{f.icon}</span>
+									<div>
+										<p className="font-medium text-sm">{f.title}</p>
+										<p className="text-xs text-muted-foreground">{f.desc}</p>
+									</div>
+								</div>
+							))}
+						</div>
+					</section>
+				</TabsContent>
+
+				<TabsContent value="list" className="space-y-0">
 
 			{/* Скелетон-загрузка */}
 			{isLoading && (
@@ -198,6 +260,8 @@ function ProjectsPage() {
 					))}
 				</div>
 			)}
+				</TabsContent>
+			</Tabs>
 		</div>
 	);
 }

@@ -5,6 +5,7 @@ import type { ProjectResponse } from "@/api/projects";
 import { listProjects, restoreProject } from "@/api/projects";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 /**
  * Страница корзины — список удалённых/архивных проектов с возможностью восстановления.
@@ -33,13 +34,70 @@ function TrashPage() {
 	return (
 		<div className="mx-auto max-w-3xl animate-fade-in">
 			{/* Заголовок */}
-			<div className="mb-8">
-				<h1 className="text-2xl font-semibold tracking-tight">Корзина</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Удаленные проекты хранятся 30 дней. После этого удаляются
-					безвозвратно.
-				</p>
+			<div className="mb-8 flex items-center gap-3">
+				<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500/20 to-orange-500/20 text-red-500 shadow-sm">
+					<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+						<path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+					</svg>
+				</div>
+				<div>
+					<h1 className="text-2xl font-semibold tracking-tight">Корзина</h1>
+					<p className="mt-0.5 text-sm text-muted-foreground">
+						Удаленные элементы хранятся 30 дней
+					</p>
+				</div>
 			</div>
+
+			<Tabs defaultValue="items">
+				<TabsList>
+					<TabsTrigger value="items">Удалённое</TabsTrigger>
+					<TabsTrigger value="info">О корзине</TabsTrigger>
+				</TabsList>
+
+				<TabsContent value="info">
+					<section className="rounded-xl border bg-card p-6 space-y-6">
+						<div>
+							<h2 className="text-lg font-semibold mb-4">Как работает корзина</h2>
+							<div className="grid gap-4 md:grid-cols-3">
+								{[
+									{ n: "1", color: "red", title: "Удаление", desc: "Элемент перемещается в корзину" },
+									{ n: "2", color: "yellow", title: "30 дней хранения", desc: "Можно восстановить в любой момент" },
+									{ n: "3", color: "green", title: "Авто-очистка", desc: "Через 30 дней удаляется навсегда" },
+								].map((s) => (
+									<div key={s.n} className="flex gap-3">
+										<div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-${s.color}-500/10 text-${s.color}-500 text-sm font-bold`}>
+											{s.n}
+										</div>
+										<div>
+											<p className="font-medium text-sm">{s.title}</p>
+											<p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+						<div className="grid gap-3 md:grid-cols-2">
+							{[
+								{ icon: "\u{1F4CB}", title: "Задачи", desc: "Удалённые задачи из трекера" },
+								{ icon: "\u{1F4AC}", title: "Сообщения", desc: "Удалённые сообщения из чатов" },
+								{ icon: "\u{1F4C1}", title: "Файлы", desc: "Удалённые вложения и документы" },
+								{ icon: "\u{1F4C2}", title: "Проекты", desc: "Архивированные и удалённые проекты" },
+								{ icon: "\u{1F9EA}", title: "Тест-кейсы", desc: "Удалённые тестовые сценарии" },
+								{ icon: "\u267B\uFE0F", title: "Восстановление", desc: "Один клик — элемент на месте" },
+							].map((f) => (
+								<div key={f.title} className="flex gap-3 rounded-xl border p-3 hover:bg-muted/50 transition-colors">
+									<span className="text-xl">{f.icon}</span>
+									<div>
+										<p className="font-medium text-sm">{f.title}</p>
+										<p className="text-xs text-muted-foreground">{f.desc}</p>
+									</div>
+								</div>
+							))}
+						</div>
+					</section>
+				</TabsContent>
+
+				<TabsContent value="items">
 
 			{/* Загрузка */}
 			{isLoading && (
@@ -131,6 +189,8 @@ function TrashPage() {
 					))}
 				</div>
 			)}
+				</TabsContent>
+			</Tabs>
 		</div>
 	);
 }
