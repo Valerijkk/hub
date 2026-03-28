@@ -11,52 +11,57 @@ import { useAuthStore } from "@/stores/auth-store";
 interface FeatureCard {
 	label: string;
 	icon: string;
-	x: string;
-	y: string;
+	desc: string;
+	iconBg: string;
+	iconColor: string;
 	delay: string;
 	duration: string;
 }
 
 const FLOATING_FEATURES: FeatureCard[] = [
 	{
-		label: "Трекер задач",
-		icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
-		x: "8%",
-		y: "18%",
+		label: "Tracker",
+		icon: "M4 5a1 1 0 011-1h6v16H5a1 1 0 01-1-1V5zM14 4h6a1 1 0 011 1v9a1 1 0 01-1 1h-6V4z",
+		desc: "Kanban-доски, спринты, бэклог — полный agile-цикл",
+		iconBg: "rgba(91,156,245,.1)",
+		iconColor: "#5B9CF5",
 		delay: "0s",
 		duration: "7s",
 	},
 	{
-		label: "Мессенджер",
-		icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z",
-		x: "72%",
-		y: "12%",
-		delay: "1.5s",
+		label: "Messenger",
+		icon: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
+		desc: "Каналы, личные сообщения, реакции, файлы и медиа",
+		iconBg: "rgba(52,211,153,.1)",
+		iconColor: "#34D399",
+		delay: "0.5s",
 		duration: "8s",
 	},
 	{
-		label: "Видеозвонки",
-		icon: "M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z",
-		x: "65%",
-		y: "68%",
-		delay: "3s",
+		label: "Calls",
+		icon: "M22 16.92v3a2 2 0 01-2.18 2A19.79 19.79 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z",
+		desc: "Видеозвонки до 50 человек с демонстрацией экрана",
+		iconBg: "rgba(167,139,250,.1)",
+		iconColor: "#A78BFA",
+		delay: "1s",
 		duration: "9s",
 	},
 	{
-		label: "Тест-менеджмент",
-		icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
-		x: "12%",
-		y: "72%",
-		delay: "4.5s",
+		label: "TMS",
+		icon: "M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11",
+		desc: "Тест-кейсы, прогоны, отчёты — управление качеством",
+		iconBg: "rgba(251,191,36,.08)",
+		iconColor: "#FBBF24",
+		delay: "1.5s",
 		duration: "7.5s",
 	},
 ];
 
 /**
- * Страница входа — split-layout с hero-областью и формой.
+ * Страница входа — split-layout с animated mesh gradient и формой.
  *
- * Левая часть: градиентный фон с брендингом Hub и плавающими карточками.
- * Правая часть: форма входа на чистом фоне с карточным контейнером.
+ * Левая часть (55%): mesh gradient, grid lines, 2x2 feature cards, tagline.
+ * Правая часть (45%): clean form panel with logo, email/code form, Telegram.
  */
 function LoginPage() {
 	const navigate = useNavigate();
@@ -87,148 +92,108 @@ function LoginPage() {
 
 	return (
 		<div className="flex min-h-screen">
-			{/* Левая hero-область — скрыта на мобильных */}
-			<div className="relative hidden lg:flex lg:w-[55%] flex-col justify-between overflow-hidden">
-				{/* Анимированный mesh-фон — замедленный */}
-				<div
-					className="absolute inset-0 login-mesh-bg"
-					style={{
-						background:
-							"linear-gradient(-45deg, #0C1222, #1E293B, #1E1B4B, #0C1222, #164E63, #0C1222)",
-						backgroundSize: "400% 400%",
-					}}
-				/>
+			{/* Левая панель — animated mesh gradient + feature cards */}
+			<div className="relative hidden lg:flex lg:w-[55%] flex-col items-center justify-center overflow-hidden">
+				{/* Mesh gradient background */}
+				<div className="absolute inset-0 login-mesh" />
+				{/* Grid lines overlay */}
+				<div className="absolute inset-0 login-grid-lines" />
 
-				{/* Сетка-паттерн */}
-				<div
-					className="absolute inset-0 opacity-[0.04]"
-					style={{
-						backgroundImage:
-							"linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-						backgroundSize: "48px 48px",
-					}}
-				/>
-
-				{/* Тонкие градиентные пятна */}
-				<div className="absolute top-1/4 -left-20 h-[500px] w-[500px] rounded-full bg-blue-500/15 blur-[120px]" />
-				<div className="absolute bottom-1/4 right-0 h-[400px] w-[400px] rounded-full bg-purple-500/15 blur-[120px]" />
-				<div className="absolute bottom-0 left-1/3 h-[300px] w-[300px] rounded-full bg-cyan-500/10 blur-[100px]" />
-
-				{/* Плавающие карточки фич */}
-				{FLOATING_FEATURES.map((f) => (
-					<div
-						key={f.label}
-						className="login-float-card absolute z-[5]"
-						style={{
-							left: f.x,
-							top: f.y,
-							animationDelay: f.delay,
-							animationDuration: f.duration,
-						}}
-					>
-						<div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3.5 py-2 backdrop-blur-md shadow-lg shadow-black/10">
-							<svg
-								className="h-4 w-4 text-blue-400/80"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={1.5}
-								aria-hidden="true"
+				{/* 2x2 Feature cards grid */}
+				<div className="relative z-[2] grid grid-cols-2 gap-5 max-w-[440px] p-10">
+					{FLOATING_FEATURES.map((f) => (
+						<div
+							key={f.label}
+							className="rounded-[var(--r4)] border border-white/[0.06] bg-white/[0.03] backdrop-blur-[20px] p-6 cursor-default transition-all duration-300 relative overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.1] hover:-translate-y-1.5"
+							style={{
+								animation: `cardFloat ${f.duration} ease-in-out ${f.delay} infinite`,
+							}}
+						>
+							{/* Top highlight line */}
+							<div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+							{/* Icon */}
+							<div
+								className="w-[42px] h-[42px] rounded-[var(--r3)] flex items-center justify-center mb-3.5"
+								style={{ background: f.iconBg }}
 							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d={f.icon}
-								/>
-							</svg>
-							<span className="text-xs font-medium text-white/70 whitespace-nowrap">
-								{f.label}
-							</span>
-						</div>
-					</div>
-				))}
-
-				{/* Контент hero */}
-				<div className="relative z-10 flex flex-1 flex-col justify-center px-12 xl:px-16">
-					<div className="max-w-lg">
-						<div className="mb-10 flex items-center gap-4">
-							<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-xl shadow-blue-500/30">
-								<span className="text-2xl font-bold text-white">
-									H
-								</span>
+								<svg
+									className="w-[22px] h-[22px]"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke={f.iconColor}
+									strokeWidth={1.8}
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										d={f.icon}
+									/>
+								</svg>
 							</div>
-							<h1 className="text-4xl font-bold text-white tracking-tight">
-								Hub
-							</h1>
+							<h4 className="text-[15px] font-bold tracking-[-0.01em] mb-1.5">
+								{f.label}
+							</h4>
+							<p className="text-xs text-[var(--t2)] leading-relaxed">
+								{f.desc}
+							</p>
 						</div>
-						<p className="text-4xl xl:text-5xl font-bold text-white leading-[1.15] mb-5 tracking-tight">
-							Единая платформа для управления проектами
-						</p>
-						<p className="text-base text-slate-400/90 leading-relaxed max-w-md">
-							Трекер задач, мессенджер, тест-менеджмент и
-							видеозвонки — все инструменты в одном месте.
-						</p>
-					</div>
+					))}
 				</div>
 
-				{/* Декоративные точки внизу */}
-				<div className="relative z-10 px-12 pb-8">
-					<div className="flex items-center gap-1.5">
-						<div className="h-1.5 w-1.5 rounded-full bg-blue-400/60" />
-						<div className="h-1.5 w-1.5 rounded-full bg-purple-400/60" />
-						<div className="h-1.5 w-1.5 rounded-full bg-pink-400/60" />
-						<div className="h-1.5 w-1.5 rounded-full bg-cyan-400/60" />
-					</div>
+				{/* Tagline — bottom-left */}
+				<div className="absolute bottom-12 left-12 z-[2]">
+					<h1 className="text-[30px] font-black tracking-[-0.04em] leading-tight bg-gradient-to-br from-[var(--blue)] via-[var(--purple)] to-pink-500 bg-clip-text text-transparent mb-2">
+						Единая платформа
+					</h1>
+					<p className="text-[15px] text-[var(--t2)] max-w-[360px] leading-relaxed">
+						Проекты, общение, звонки и тестирование — в одном месте
+						для всей команды
+					</p>
 				</div>
 			</div>
 
-			{/* Правая часть — форма входа */}
-			<div className="flex flex-1 flex-col items-center justify-center px-6 py-12 lg:px-16 bg-background max-lg:login-mobile-bg">
-				<div className="w-full max-w-[420px] login-form-enter">
-					{/* Логотип — только на мобильных */}
-					<div className="mb-8 flex items-center justify-center gap-3 lg:hidden">
-						<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-lg shadow-blue-500/25">
-							<span className="text-xl font-bold text-white">
-								H
-							</span>
-						</div>
-						<h1 className="text-3xl font-bold tracking-tight gradient-text">
+			{/* Правая панель — форма входа */}
+			<div className="flex flex-1 items-center justify-center bg-[var(--base)] relative">
+				{/* Left border separator */}
+				<div className="absolute top-0 left-0 bottom-0 w-px bg-gradient-to-b from-transparent via-[rgba(91,156,245,.06)] to-transparent" />
+
+				<div className="w-full max-w-[380px] px-10 login-form-animate">
+					{/* Logo area */}
+					<div className="text-center mb-9">
+						<div className="text-4xl font-black tracking-[-0.05em] bg-gradient-to-br from-[var(--blue)] via-[var(--purple)] to-pink-500 bg-clip-text text-transparent">
 							Hub
-						</h1>
-					</div>
-
-					{/* Карточный контейнер формы */}
-					<div className="rounded-2xl border border-border/60 bg-card p-8 shadow-lg shadow-black/[0.03] dark:shadow-black/20">
-						<div className="mb-8 text-center lg:text-left">
-							<h2 className="text-3xl font-bold tracking-tight text-foreground">
-								Войти в аккаунт
-							</h2>
-							<p className="mt-2.5 text-sm text-muted-foreground leading-relaxed">
-								Введите email для получения кода доступа
-							</p>
 						</div>
-
-						{/* Форма */}
-						<div className="space-y-6">
-							<MagicLinkForm onSuccess={handleLoginSuccess} />
-
-							{/* Разделитель */}
-							<div className="relative">
-								<div className="absolute inset-0 flex items-center">
-									<div className="w-full border-t border-border" />
-								</div>
-								<div className="relative flex justify-center text-xs uppercase">
-									<span className="px-4 text-muted-foreground/70 bg-card font-medium tracking-wider">
-										или
-									</span>
-								</div>
-							</div>
-
-							<TelegramButton />
+						<div className="text-sm text-[var(--t2)] mt-2">
+							Войдите в свой аккаунт
 						</div>
 					</div>
 
-					{/* Dev login panel — вынесен за карточку */}
+					{/* Form */}
+					<MagicLinkForm onSuccess={handleLoginSuccess} />
+
+					{/* Divider */}
+					<div className="flex items-center my-7 gap-4">
+						<div className="flex-1 h-px bg-[var(--b1)]" />
+						<span className="text-xs text-[var(--t3)] font-medium">
+							или
+						</span>
+						<div className="flex-1 h-px bg-[var(--b1)]" />
+					</div>
+
+					<TelegramButton />
+
+					{/* Footer link */}
+					<div className="text-center mt-7 text-sm text-[var(--t2)]">
+						Нет аккаунта?{" "}
+						<a
+							href="#"
+							className="text-[var(--blue)] font-semibold hover:text-[var(--t1)] transition-colors"
+						>
+							Зарегистрироваться
+						</a>
+					</div>
+
+					{/* Dev login panel */}
 					<div className="mt-6">
 						<DevLoginPanel onSuccess={handleDevLoginSuccess} />
 					</div>

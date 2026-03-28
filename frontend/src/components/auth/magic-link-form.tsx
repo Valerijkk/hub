@@ -1,15 +1,12 @@
 /**
- * Форма входа через magic link — чистый, минимальный дизайн.
+ * Форма входа через magic link — mockup-matching design.
  *
- * Два шага: ввод email → ввод кода подтверждения.
- * Кнопки с градиентом, тонкие фокус-кольца на инпутах.
+ * Два шага: ввод email -> ввод кода подтверждения.
+ * Inputs and buttons match 01-login mockup CSS values exactly.
  */
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { sendMagicLink, verifyMagicLink } from "@/api/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/stores/auth-store";
 
 /** Пропсы компонента MagicLinkForm. */
@@ -80,29 +77,32 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 
 	if (step === "email") {
 		return (
-			<form onSubmit={handleSendCode} className="space-y-5">
-				<div className="space-y-2">
-					<Label htmlFor="email" className="text-sm font-medium">
+			<form onSubmit={handleSendCode}>
+				<div className="mb-4">
+					<label
+						htmlFor="email"
+						className="block text-xs font-semibold text-[var(--t2)] mb-1.5"
+					>
 						Email
-					</Label>
-					<Input
+					</label>
+					<input
 						id="email"
 						type="email"
-						placeholder="you@example.com"
+						placeholder="name@company.com"
 						value={email}
 						onChange={(e) => setEmail(e.target.value)}
 						autoComplete="email"
 						autoFocus
-						className="h-12 rounded-xl text-base transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
+						className="w-full h-[50px] px-[18px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r3)] text-[15px] text-[var(--t1)] placeholder:text-[var(--t3)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08),0_0_20px_rgba(91,156,245,.04)] focus:scale-[1.005] transition-all outline-none"
 					/>
 				</div>
-				<Button
+				<button
 					type="submit"
-					className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold text-base shadow-md shadow-blue-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30"
+					className="w-full h-[50px] bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white rounded-[var(--r3)] text-[15px] font-bold shadow-[0_2px_16px_var(--gB)] hover:shadow-[0_4px_28px_rgba(91,156,245,.35)] hover:-translate-y-px active:scale-[.97] transition-all relative overflow-hidden mt-2"
 					disabled={loading || !isEmailValid}
 				>
 					{loading ? (
-						<span className="flex items-center gap-2">
+						<span className="flex items-center justify-center gap-2">
 							<svg
 								className="h-4 w-4 animate-spin"
 								viewBox="0 0 24 24"
@@ -117,18 +117,25 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 					) : (
 						"Получить код"
 					)}
-				</Button>
+				</button>
 			</form>
 		);
 	}
 
 	return (
-		<form onSubmit={handleVerifyCode} className="space-y-5">
-			<div className="space-y-2">
-				<Label htmlFor="code" className="text-sm font-medium">
+		<form onSubmit={handleVerifyCode}>
+			<p className="text-sm text-[var(--t2)] text-center mb-2">
+				Код отправлен на{" "}
+				<strong className="text-[var(--t1)]">{email}</strong>
+			</p>
+			<div className="mb-4">
+				<label
+					htmlFor="code"
+					className="block text-xs font-semibold text-[var(--t2)] mb-1.5"
+				>
 					Код подтверждения
-				</Label>
-				<Input
+				</label>
+				<input
 					id="code"
 					type="text"
 					inputMode="numeric"
@@ -137,30 +144,26 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 					value={code}
 					onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
 					autoFocus
-					className="h-12 rounded-xl text-center text-lg tracking-[0.3em] font-mono transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
+					className="w-12 h-[58px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r2)] text-center text-2xl font-bold font-mono text-[var(--t1)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08)] transition-all outline-none w-full"
 				/>
-				<p className="text-xs text-muted-foreground">
-					Код отправлен на {email}
-				</p>
 			</div>
-			<Button
+			<button
 				type="submit"
-				className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold text-base shadow-md shadow-blue-500/25 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30"
+				className="w-full h-[50px] bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white rounded-[var(--r3)] text-[15px] font-bold shadow-[0_2px_16px_var(--gB)] hover:shadow-[0_4px_28px_rgba(91,156,245,.35)] hover:-translate-y-px active:scale-[.97] transition-all relative overflow-hidden mt-2"
 				disabled={loading || !code.trim()}
 			>
 				{loading ? "Проверка..." : "Войти"}
-			</Button>
-			<Button
+			</button>
+			<button
 				type="button"
-				variant="ghost"
-				className="w-full text-sm text-muted-foreground hover:text-foreground"
+				className="block w-full text-center mt-3 text-[13px] text-[var(--t3)] hover:text-[var(--t2)] transition-colors cursor-pointer bg-transparent border-none"
 				onClick={() => {
 					setStep("email");
 					setCode("");
 				}}
 			>
-				Изменить email
-			</Button>
+				&larr; Изменить email
+			</button>
 		</form>
 	);
 }
