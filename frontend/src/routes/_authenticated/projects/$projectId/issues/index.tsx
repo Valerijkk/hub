@@ -207,7 +207,7 @@ function IssueListPage() {
 				</div>
 			) : (
 				<>
-					<div className="rounded-md border">
+					<div className="rounded-md border overflow-x-auto">
 						<table className="w-full">
 							<thead>
 								<tr className="border-b bg-raised/50">

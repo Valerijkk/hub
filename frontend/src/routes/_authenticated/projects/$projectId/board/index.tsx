@@ -216,7 +216,7 @@ function BoardPage() {
 
 				<Input
 					placeholder="Поиск задач..."
-					className="w-[220px] h-[34px] pl-9 pr-3 bg-[var(--input)] border border-transparent rounded-[var(--r2)] text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] focus:border-[rgba(91,156,245,.25)] focus:bg-[var(--card)] transition-colors outline-none"
+					className="w-full sm:w-[220px] h-[34px] pl-9 pr-3 bg-[var(--input)] border border-transparent rounded-[var(--r2)] text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] focus:border-[rgba(91,156,245,.25)] focus:bg-[var(--card)] transition-colors outline-none"
 					value={filters.search ?? ""}
 					onChange={(e) => setFilters({ search: e.target.value || undefined })}
 				/>

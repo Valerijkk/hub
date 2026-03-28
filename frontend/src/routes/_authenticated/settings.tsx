@@ -29,7 +29,7 @@ function SettingsLayout() {
 	return (
 		<div className="flex flex-1 overflow-hidden animate-[eu_400ms_var(--spring)] -mx-4 -my-4 md:-mx-6 md:-my-4">
 			{/* Left sidebar nav */}
-			<nav className="w-60 min-w-60 border-r border-b1 py-4 px-3 overflow-y-auto">
+			<nav className="w-full md:w-60 md:min-w-60 border-r border-b1 py-4 px-3 overflow-y-auto">
 				<div className="text-[10px] font-bold uppercase tracking-[0.08em] text-t4 px-[10px] pt-[14px] pb-[6px]">
 					{"\u0410\u043A\u043A\u0430\u0443\u043D\u0442"}
 				</div>

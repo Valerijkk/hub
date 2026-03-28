@@ -157,7 +157,7 @@ function LoginPage() {
 				{/* Left border separator */}
 				<div className="absolute top-0 left-0 bottom-0 w-px bg-gradient-to-b from-transparent via-[rgba(91,156,245,.06)] to-transparent" />
 
-				<div className="w-full max-w-[380px] px-10 login-form-animate">
+				<div className="w-full max-w-[380px] px-4 sm:px-10 login-form-animate">
 					{/* Logo area */}
 					<div className="text-center mb-9">
 						<div className="text-4xl font-black tracking-[-0.05em] bg-gradient-to-br from-[var(--blue)] via-[var(--purple)] to-pink-500 bg-clip-text text-transparent">

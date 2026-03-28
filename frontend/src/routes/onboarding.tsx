@@ -301,7 +301,7 @@ function OnboardingPage() {
 						</div>
 
 						{/* Form grid */}
-						<div className="grid grid-cols-2 gap-[14px]">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-[14px]">
 							<div>
 								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
 									Имя
@@ -398,7 +398,7 @@ function OnboardingPage() {
 							{currentStep?.description}
 						</div>
 
-						<div className="grid grid-cols-3 gap-[14px]">
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px]">
 							{MODULES.map((module, idx) => (
 								<div
 									key={module.key}

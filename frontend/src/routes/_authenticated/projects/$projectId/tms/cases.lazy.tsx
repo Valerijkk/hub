@@ -299,9 +299,9 @@ function TestCasesPage() {
 	);
 
 	return (
-		<div className="flex flex-1 overflow-hidden">
+		<div className="flex flex-col md:flex-row flex-1 overflow-hidden">
 			{/* Suite tree sidebar */}
-			<div className="w-[290px] min-w-[290px] border-r border-b1 flex flex-col bg-void animate-[enterRight_400ms_var(--spring)_both]">
+			<div className="w-full md:w-[290px] md:min-w-[290px] border-r border-b1 flex flex-col bg-void animate-[enterRight_400ms_var(--spring)_both]">
 				<div className="px-[18px] py-4 border-b border-b1 flex items-center justify-between">
 					<span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-t4">
 						Тест-сьюты

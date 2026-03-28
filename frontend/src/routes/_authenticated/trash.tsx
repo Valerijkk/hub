@@ -254,7 +254,7 @@ function TrashPage() {
 
 					{/* Type cards */}
 					<h3 className="text-[16px] font-bold mb-4">Что можно удалить</h3>
-					<div className="grid grid-cols-3 gap-[14px]">
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px]">
 						{[
 							{
 								title: "Задачи",
