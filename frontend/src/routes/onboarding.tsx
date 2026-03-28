@@ -2,16 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { completeOnboarding } from "@/api/auth";
-import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/stores/auth-store";
 
 /**
@@ -26,81 +16,79 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 	/** Иконка трекера задач (Kanban-доска). */
 	tracker: (
 		<svg
-			className="h-5 w-5"
+			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
 			stroke="currentColor"
-			strokeWidth={1.5}
+			strokeWidth={1.8}
 		>
-			<path
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-			/>
+			<rect x="4" y="4" width="6" height="16" rx="1" />
+			<rect x="14" y="4" width="6" height="10" rx="1" />
 		</svg>
 	),
 	/** Иконка мессенджера (чат). */
 	messenger: (
 		<svg
-			className="h-5 w-5"
+			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
 			stroke="currentColor"
-			strokeWidth={1.5}
+			strokeWidth={1.8}
 		>
-			<path
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-			/>
+			<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
 		</svg>
 	),
 	/** Иконка TMS (тестирование). */
 	tms: (
 		<svg
-			className="h-5 w-5"
+			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
 			stroke="currentColor"
-			strokeWidth={1.5}
+			strokeWidth={1.8}
 		>
-			<path
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
+			<path d="M9 11l3 3L22 4" />
+			<path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
 		</svg>
 	),
 	/** Иконка звонков (телефон). */
 	calls: (
 		<svg
-			className="h-5 w-5"
+			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
 			stroke="currentColor"
-			strokeWidth={1.5}
+			strokeWidth={1.8}
 		>
-			<path
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-			/>
+			<path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
 		</svg>
 	),
 	/** Иконка дашбордов (графики). */
 	dashboards: (
 		<svg
-			className="h-5 w-5"
+			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
 			stroke="currentColor"
-			strokeWidth={1.5}
+			strokeWidth={1.8}
 		>
-			<path
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-			/>
+			<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+			<line x1="16" y1="2" x2="16" y2="6" />
+			<line x1="8" y1="2" x2="8" y2="6" />
+			<line x1="3" y1="10" x2="21" y2="10" />
+		</svg>
+	),
+	/** Иконка интеграций. */
+	integrations: (
+		<svg
+			className="w-6 h-6"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			strokeWidth={1.8}
+		>
+			<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+			<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
 		</svg>
 	),
 };
@@ -109,33 +97,45 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 const MODULES = [
 	{
 		key: "tracker",
-		title: "Трекер задач",
-		desc: "Kanban и Scrum доски, кастомные workflow, спринты и бэклог.",
-		color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+		title: "Трекер",
+		desc: "Kanban-доски, спринты, бэклог. Полный agile-цикл.",
+		iconBg: "rgba(91,156,245,.08)",
+		iconColor: "var(--blue)",
 	},
 	{
 		key: "messenger",
 		title: "Мессенджер",
-		desc: "Каналы, треды, реакции, файлы. Интегрирован с задачами и тестами.",
-		color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-	},
-	{
-		key: "tms",
-		title: "TMS",
-		desc: "Тест-кейсы, прогоны, интеграция с Allure. Связь задач и тестов.",
-		color: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+		desc: "Каналы, ЛС, реакции, файлы, опросы.",
+		iconBg: "rgba(52,211,153,.08)",
+		iconColor: "var(--green)",
 	},
 	{
 		key: "calls",
 		title: "Звонки",
-		desc: "Голосовые и видеозвонки, демонстрация экрана, запись. До 50 участников.",
-		color: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+		desc: "Видеозвонки до 50 чел, шейринг, запись.",
+		iconBg: "rgba(167,139,250,.08)",
+		iconColor: "var(--purple)",
+	},
+	{
+		key: "tms",
+		title: "TMS",
+		desc: "Тест-кейсы, прогоны, отчеты, автотесты.",
+		iconBg: "rgba(251,191,36,.06)",
+		iconColor: "var(--amber)",
 	},
 	{
 		key: "dashboards",
-		title: "Дашборды",
-		desc: "Виджеты, метрики проекта, графики скорости и качества. Кастомные панели.",
-		color: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
+		title: "Календарь",
+		desc: "Планирование встреч и событий команды.",
+		iconBg: "rgba(251,146,60,.06)",
+		iconColor: "var(--orange)",
+	},
+	{
+		key: "integrations",
+		title: "Интеграции",
+		desc: "GitHub, GitLab, CI/CD в одном месте.",
+		iconBg: "rgba(248,113,113,.06)",
+		iconColor: "var(--red)",
 	},
 ];
 
@@ -144,6 +144,9 @@ type ThemeOption = "light" | "dark" | "system";
 
 /** Варианты языка интерфейса. */
 type LangOption = "ru" | "en";
+
+/** Step labels for progress indicator */
+const STEP_LABELS = ["Профиль", "Обзор", "Настройки"];
 
 function OnboardingPage() {
 	const navigate = useNavigate();
@@ -159,18 +162,21 @@ function OnboardingPage() {
 	});
 
 	/** Выбранная тема (шаг 3). */
-	const [theme, setTheme] = useState<ThemeOption>("system");
+	const [theme, setTheme] = useState<ThemeOption>("dark");
 
 	/** Выбранный язык (шаг 3). */
 	const [lang, setLang] = useState<LangOption>("ru");
 
+	/** Selected accent color index */
+	const [accent, setAccent] = useState(0);
+
 	const steps = [
-		{ title: "Заполните профиль", description: "Расскажите о себе" },
+		{ title: "Настройте профиль", description: "Расскажите о себе, так коллеги будут узнавать вас" },
 		{
-			title: "Обзор платформы",
-			description: "Познакомьтесь с возможностями Hub",
+			title: "Знакомство с Hub",
+			description: "Вот что вы сможете делать на платформе",
 		},
-		{ title: "Настройки", description: "Тема, язык и первый проект" },
+		{ title: "Выберите оформление", description: "Можно изменить позже в настройках" },
 	];
 
 	const currentStep = steps[step];
@@ -203,416 +209,322 @@ function OnboardingPage() {
 		}
 	}
 
-	/** Конфигурация тем для выбора. */
-	const themeOptions: {
-		value: ThemeOption;
-		label: string;
-		icon: React.ReactNode;
-	}[] = [
-		{
-			value: "light",
-			label: "Светлая",
-			icon: (
-				<svg
-					className="h-5 w-5"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					strokeWidth={1.5}
-				>
-					<path
-						strokeLinecap="round"
-						strokeLinejoin="round"
-						d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-					/>
-				</svg>
-			),
-		},
-		{
-			value: "dark",
-			label: "Тёмная",
-			icon: (
-				<svg
-					className="h-5 w-5"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					strokeWidth={1.5}
-				>
-					<path
-						strokeLinecap="round"
-						strokeLinejoin="round"
-						d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-					/>
-				</svg>
-			),
-		},
-		{
-			value: "system",
-			label: "Системная",
-			icon: (
-				<svg
-					className="h-5 w-5"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					strokeWidth={1.5}
-				>
-					<path
-						strokeLinecap="round"
-						strokeLinejoin="round"
-						d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-					/>
-				</svg>
-			),
-		},
+	const accentColors = [
+		{ color: "var(--blue)", cssColor: "var(--blue)" },
+		{ color: "var(--purple)", cssColor: "var(--purple)" },
+		{ color: "var(--green)", cssColor: "var(--green)" },
+		{ color: "var(--orange)", cssColor: "var(--orange)" },
+		{ color: "var(--red)", cssColor: "var(--red)" },
 	];
 
 	return (
-		<div className="relative flex min-h-screen items-center justify-center px-4 overflow-hidden">
-			{/* Animated gradient background */}
-			<div
-				className="absolute inset-0 animate-mesh"
-				style={{
-					background:
-						"linear-gradient(-45deg, #0C1222, #1E293B, #1E1B4B, #0C1222, #164E63, #0C1222)",
-					backgroundSize: "400% 400%",
-				}}
-			/>
-			{/* Subtle gradient blobs */}
-			<div className="absolute top-1/3 -left-32 h-[400px] w-[400px] rounded-full bg-blue-500/10 blur-[120px]" />
-			<div className="absolute bottom-1/4 right-0 h-[300px] w-[300px] rounded-full bg-purple-500/10 blur-[100px]" />
-
-			<div className="relative z-10 w-full max-w-lg animate-fade-in">
-				{/* Логотип */}
-				<div className="mb-8 flex items-center justify-center gap-2.5">
-					<div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-xl shadow-blue-500/25">
-						<span className="text-lg font-bold text-white">H</span>
-					</div>
-					<span className="text-2xl font-bold tracking-tight text-white">
-						Hub
-					</span>
+		<div className="min-h-screen flex items-center justify-center bg-void">
+			<div className="w-full max-w-[680px] px-10 py-10 relative z-[1]">
+				{/* Progress indicator */}
+				<div className="flex items-center justify-center mb-11 gap-0">
+					{STEP_LABELS.map((label, i) => (
+						<div key={i} className="flex items-center">
+							<div className="flex items-center gap-3">
+								<div
+									className={`w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-extrabold border-2 transition-all duration-350 ${
+										i < step
+											? "border-green bg-green text-white shadow-[0_0_12px_var(--gG)]"
+											: i === step
+												? "border-blue text-blue bg-blue/[0.08] shadow-[0_0_16px_var(--gB)]"
+												: "border-b2 text-t3"
+									}`}
+								>
+									{i < step ? (
+										<svg
+											className="w-5 h-5"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											strokeWidth={3}
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M5 13l4 4L19 7"
+											/>
+										</svg>
+									) : (
+										i + 1
+									)}
+								</div>
+								<span
+									className={`text-[13px] font-semibold transition-colors duration-300 ${
+										i === step ? "text-t1" : "text-t4"
+									}`}
+								>
+									{label}
+								</span>
+							</div>
+							{i < STEP_LABELS.length - 1 && (
+								<div
+									className={`w-[60px] h-[2px] mx-[10px] transition-[background] duration-300 rounded-[1px] ${
+										i < step
+											? "bg-green shadow-[0_0_6px_var(--gG)]"
+											: "bg-b2"
+									}`}
+								/>
+							)}
+						</div>
+					))}
 				</div>
 
-				<Card
-					className="rounded-xl border shadow-lg glass"
-					style={{
-						background: "rgba(255,255,255,0.06)",
-						borderColor: "rgba(255,255,255,0.1)",
-					}}
-				>
-					<CardHeader className="text-center pb-4">
-						{/* Step indicator with numbers and connecting lines */}
-						<div className="mb-6 flex items-center justify-center">
-							{steps.map((_, i) => (
-								<div key={i} className="flex items-center">
+				{/* Step 1: Profile form */}
+				{step === 0 && (
+					<div className="animate-[eu_400ms_var(--spring)]">
+						<div className="text-[26px] font-black tracking-[-0.04em] text-center mb-2">
+							{currentStep?.title}
+						</div>
+						<div className="text-[14px] text-t2 text-center mb-9">
+							{currentStep?.description}
+						</div>
+
+						{/* Avatar upload */}
+						<div className="flex flex-col items-center mb-[30px]">
+							<div className="w-24 h-24 rounded-full bg-input border-2 border-dashed border-b2 flex items-center justify-center cursor-pointer transition-all duration-250 mb-2 hover:border-blue hover:bg-blue/[0.04] hover:scale-105">
+								<svg
+									className="w-8 h-8 text-t3"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="1.5"
+								>
+									<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+									<circle cx="12" cy="13" r="4" />
+								</svg>
+							</div>
+							<span className="text-[12px] text-t3">Нажмите чтобы загрузить</span>
+						</div>
+
+						{/* Form grid */}
+						<div className="grid grid-cols-2 gap-[14px]">
+							<div>
+								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
+									Имя
+								</label>
+								<input
+									id="onb-name"
+									placeholder="Алексей"
+									value={profile.name}
+									onChange={(e) =>
+										setProfile((p) => ({ ...p, name: e.target.value }))
+									}
+									autoFocus
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+								/>
+							</div>
+							<div>
+								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
+									Фамилия
+								</label>
+								<input
+									placeholder="Иванов"
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+								/>
+							</div>
+							<div>
+								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
+									Должность
+								</label>
+								<input
+									id="onb-position"
+									placeholder="Senior Developer"
+									value={profile.position}
+									onChange={(e) =>
+										setProfile((p) => ({ ...p, position: e.target.value }))
+									}
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+								/>
+							</div>
+							<div>
+								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
+									Отдел
+								</label>
+								<input
+									id="onb-department"
+									placeholder="Backend Engineering"
+									value={profile.department}
+									onChange={(e) =>
+										setProfile((p) => ({ ...p, department: e.target.value }))
+									}
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+								/>
+							</div>
+							<div>
+								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
+									Часовой пояс
+								</label>
+								<select className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 appearance-none outline-none">
+									<option>Europe/Moscow (UTC+3)</option>
+									<option>Europe/Warsaw (UTC+1)</option>
+								</select>
+							</div>
+							<div>
+								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
+									Язык
+								</label>
+								<select className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 appearance-none outline-none">
+									<option>Русский</option>
+									<option>English</option>
+								</select>
+							</div>
+						</div>
+
+						{/* Navigation */}
+						<div className="flex justify-between items-center mt-10 pt-[22px] border-t border-b1">
+							<div />
+							<button
+								type="button"
+								onClick={() => setStep((s) => s + 1)}
+								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-all duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
+							>
+								Далее &rarr;
+							</button>
+						</div>
+					</div>
+				)}
+
+				{/* Step 2: Feature tour */}
+				{step === 1 && (
+					<div className="animate-[eu_400ms_var(--spring)]">
+						<div className="text-[26px] font-black tracking-[-0.04em] text-center mb-2">
+							{currentStep?.title}
+						</div>
+						<div className="text-[14px] text-t2 text-center mb-9">
+							{currentStep?.description}
+						</div>
+
+						<div className="grid grid-cols-3 gap-[14px]">
+							{MODULES.map((module, idx) => (
+								<div
+									key={module.key}
+									className="onb-tour-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-6 text-center transition-all duration-250 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)] hover:border-b2 animate-[eu_400ms_var(--spring)_both]"
+									style={{ animationDelay: `${idx * 60}ms` }}
+								>
 									<div
-										className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${
-											i < step
-												? "bg-primary text-primary-foreground shadow-sm shadow-primary/30"
-												: i === step
-													? "bg-primary text-primary-foreground shadow-md shadow-primary/40 ring-4 ring-primary/20"
-													: "bg-muted text-muted-foreground"
-										}`}
+										className="w-[52px] h-[52px] rounded-[var(--r3)] flex items-center justify-center mx-auto mb-[14px]"
+										style={{ background: module.iconBg, color: module.iconColor }}
 									>
-										{i < step ? (
-											<svg
-												className="h-4 w-4"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke="currentColor"
-												strokeWidth={3}
-											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M5 13l4 4L19 7"
-												/>
-											</svg>
-										) : (
-											i + 1
-										)}
+										{MODULE_ICONS[module.key]}
 									</div>
-									{i < steps.length - 1 && (
-										<div
-											className={`mx-2 h-0.5 w-10 rounded-full transition-all duration-300 ${
-												i < step ? "bg-primary" : "bg-muted"
-											}`}
-										/>
-									)}
+									<h4 className="text-[14px] font-bold mb-[5px] tracking-[-0.01em]">
+										{module.title}
+									</h4>
+									<p className="text-[12px] text-t2 leading-[1.5]">
+										{module.desc}
+									</p>
 								</div>
 							))}
 						</div>
-						<CardTitle className="text-xl text-white">
-							{currentStep?.title}
-						</CardTitle>
-						<CardDescription className="text-slate-400">
-							{currentStep?.description}
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{/* Шаг 1: Профиль */}
-						{step === 0 && (
-							<div className="space-y-4">
-								<div className="space-y-2">
-									<Label
-										htmlFor="onb-name"
-										className="text-sm font-medium text-slate-200"
-									>
-										Имя
-									</Label>
-									<Input
-										id="onb-name"
-										placeholder="Ваше имя"
-										value={profile.name}
-										onChange={(e) =>
-											setProfile((p) => ({ ...p, name: e.target.value }))
-										}
-										autoFocus
-										className="h-10"
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label
-										htmlFor="onb-position"
-										className="text-sm font-medium text-slate-200"
-									>
-										Должность
-									</Label>
-									<Input
-										id="onb-position"
-										placeholder="Например: Frontend Developer"
-										value={profile.position}
-										onChange={(e) =>
-											setProfile((p) => ({ ...p, position: e.target.value }))
-										}
-										className="h-10"
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label
-										htmlFor="onb-department"
-										className="text-sm font-medium text-slate-200"
-									>
-										Отдел
-									</Label>
-									<Input
-										id="onb-department"
-										placeholder="Например: Engineering"
-										value={profile.department}
-										onChange={(e) =>
-											setProfile((p) => ({ ...p, department: e.target.value }))
-										}
-										className="h-10"
-									/>
-								</div>
-							</div>
-						)}
 
-						{/* Шаг 2: Обзор модулей платформы (5 модулей с иконками) */}
-						{step === 1 && (
-							<div className="space-y-3">
-								{MODULES.map((module) => (
-									<div
-										key={module.key}
-										className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4"
-									>
-										<div
-											className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${module.color}`}
-										>
-											{MODULE_ICONS[module.key]}
-										</div>
-										<div>
-											<h3 className="text-sm font-medium text-slate-100">
-												{module.title}
-											</h3>
-											<p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-												{module.desc}
-											</p>
-										</div>
-									</div>
-								))}
-							</div>
-						)}
-
-						{/* Шаг 3: Тема, Язык, Проект */}
-						{step === 2 && (
-							<div className="space-y-6">
-								{/* Выбор темы */}
-								<div className="space-y-2">
-									<Label className="text-sm font-medium text-slate-200">
-										Тема оформления
-									</Label>
-									<div className="grid grid-cols-3 gap-2">
-										{themeOptions.map((opt) => (
-											<button
-												key={opt.value}
-												type="button"
-												className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-all ${
-													theme === opt.value
-														? "border-primary bg-primary/10 ring-1 ring-primary/30"
-														: "border-white/10 hover:bg-white/5"
-												}`}
-												onClick={() => setTheme(opt.value)}
-											>
-												<span
-													className={
-														theme === opt.value
-															? "text-primary"
-															: "text-slate-400"
-													}
-												>
-													{opt.icon}
-												</span>
-												<span className="text-xs font-medium text-slate-200">
-													{opt.label}
-												</span>
-											</button>
-										))}
-									</div>
-								</div>
-
-								{/* Выбор языка */}
-								<div className="space-y-2">
-									<Label className="text-sm font-medium text-slate-200">
-										Язык интерфейса
-									</Label>
-									<div className="grid grid-cols-2 gap-2">
-										{(
-											[
-												{
-													value: "ru" as LangOption,
-													label: "Русский",
-													flag: "RU",
-												},
-												{
-													value: "en" as LangOption,
-													label: "English",
-													flag: "EN",
-												},
-											] as const
-										).map((opt) => (
-											<button
-												key={opt.value}
-												type="button"
-												className={`flex items-center gap-2 rounded-lg border p-3 transition-all ${
-													lang === opt.value
-														? "border-primary bg-primary/10 ring-1 ring-primary/30"
-														: "border-white/10 hover:bg-white/5"
-												}`}
-												onClick={() => setLang(opt.value)}
-											>
-												<span className="flex h-6 w-6 items-center justify-center rounded bg-muted text-[10px] font-bold">
-													{opt.flag}
-												</span>
-												<span className="text-sm font-medium text-slate-200">
-													{opt.label}
-												</span>
-											</button>
-										))}
-									</div>
-								</div>
-
-								{/* Создание / присоединение к проекту */}
-								<div className="space-y-3 border-t border-white/10 pt-4">
-									<Label className="text-sm font-medium text-slate-200">
-										Начало работы
-									</Label>
-									<div className="flex flex-col gap-2">
-										<Button
-											variant="outline"
-											className="justify-start gap-2 h-11"
-											onClick={() => {
-												void handleComplete();
-											}}
-										>
-											<svg
-												className="h-4 w-4 text-primary"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke="currentColor"
-												strokeWidth={2}
-											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M12 4v16m8-8H4"
-												/>
-											</svg>
-											Создать проект
-										</Button>
-										<button
-											type="button"
-											className="text-xs text-muted-foreground hover:text-primary text-left px-1 transition-colors"
-											onClick={() => {
-												void handleComplete();
-											}}
-										>
-											Присоединиться по инвайту
-										</button>
-									</div>
-								</div>
-							</div>
-						)}
-
-						{/* Навигация */}
-						<div className="mt-6 flex justify-between border-t border-white/10 pt-4">
-							<Button
-								variant="ghost"
+						{/* Navigation */}
+						<div className="flex justify-between items-center mt-10 pt-[22px] border-t border-b1">
+							<button
+								type="button"
 								onClick={() => setStep((s) => s - 1)}
-								disabled={step === 0}
-								className="text-muted-foreground"
+								className="px-5 py-[10px] rounded-[var(--r2)] text-[14px] font-semibold text-t2 border border-b2 transition-all duration-200 hover:bg-[var(--hover)] hover:text-t1"
 							>
-								<svg
-									className="mr-1.5 h-4 w-4"
-									viewBox="0 0 16 16"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-								>
-									<path d="M10 12L6 8l4-4" />
-								</svg>
-								Назад
-							</Button>
-							{step < steps.length - 1 ? (
-								<Button
-									onClick={() => setStep((s) => s + 1)}
-									className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-sm shadow-blue-500/20"
-								>
-									Далее
-									<svg
-										className="ml-1.5 h-4 w-4"
-										viewBox="0 0 16 16"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									>
-										<path d="M6 12l4-4-4-4" />
-									</svg>
-								</Button>
-							) : (
-								<Button
-									onClick={handleComplete}
-									disabled={loading}
-									className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-sm shadow-blue-500/20"
-								>
-									{loading ? "Сохранение..." : "Завершить"}
-								</Button>
-							)}
+								&larr; Назад
+							</button>
+							<button
+								type="button"
+								onClick={() => setStep((s) => s + 1)}
+								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-all duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
+							>
+								Далее &rarr;
+							</button>
 						</div>
-					</CardContent>
-				</Card>
+					</div>
+				)}
 
-				{/* Step labels below card */}
-				<div className="mt-4 flex justify-center">
-					<p className="text-xs text-slate-500">
-						Шаг {step + 1} из {steps.length}
-					</p>
-				</div>
+				{/* Step 3: Theme + Accent */}
+				{step === 2 && (
+					<div className="animate-[eu_400ms_var(--spring)]">
+						<div className="text-[26px] font-black tracking-[-0.04em] text-center mb-2">
+							{currentStep?.title}
+						</div>
+						<div className="text-[14px] text-t2 text-center mb-9">
+							{currentStep?.description}
+						</div>
+
+						{/* Theme label */}
+						<h3 className="text-[14px] font-bold text-center mb-[14px]">Тема</h3>
+
+						{/* Theme cards */}
+						<div className="flex gap-[14px] mb-[30px]">
+							{(
+								[
+									{ value: "light" as ThemeOption, label: "Светлая", preview: "bg-white border border-[#ddd]" },
+									{ value: "dark" as ThemeOption, label: "Тёмная", preview: "bg-void border border-b1" },
+									{ value: "system" as ThemeOption, label: "Системная", preview: "border border-[#ddd]" },
+								] as const
+							).map((opt) => (
+								<button
+									key={opt.value}
+									type="button"
+									className={`flex-1 p-[18px] bg-card border-2 rounded-[var(--r3)] text-center cursor-pointer transition-all duration-250 hover:border-b2 ${
+										theme === opt.value
+											? "border-blue shadow-[0_0_0_3px_rgba(91,156,245,0.1),_0_0_20px_rgba(91,156,245,0.06)]"
+											: "border-b1"
+									}`}
+									onClick={() => setTheme(opt.value)}
+								>
+									<div
+										className={`w-full h-[52px] rounded-[var(--r2)] mb-[10px] ${opt.preview}`}
+										style={
+											opt.value === "system"
+												? { background: "linear-gradient(135deg, #fff 50%, var(--void) 50%)" }
+												: undefined
+										}
+									/>
+									<span className="text-[13px] font-semibold">{opt.label}</span>
+								</button>
+							))}
+						</div>
+
+						{/* Accent label */}
+						<h3 className="text-[14px] font-bold text-center mb-[14px]">Акцентный цвет</h3>
+
+						{/* Accent dots */}
+						<div className="flex gap-4 justify-center mb-[30px]">
+							{accentColors.map((ac, idx) => (
+								<div
+									key={idx}
+									className={`w-11 h-11 rounded-full cursor-pointer transition-all duration-220 border-[3px] hover:scale-[1.18] ${
+										accent === idx
+											? "border-white/40 shadow-[0_0_0_3px_currentColor,_0_0_20px_currentColor]"
+											: "border-transparent"
+									}`}
+									style={{ background: ac.color, color: ac.cssColor }}
+									onClick={() => setAccent(idx)}
+								/>
+							))}
+						</div>
+
+						{/* Navigation */}
+						<div className="flex justify-between items-center mt-10 pt-[22px] border-t border-b1">
+							<button
+								type="button"
+								onClick={() => setStep((s) => s - 1)}
+								className="px-5 py-[10px] rounded-[var(--r2)] text-[14px] font-semibold text-t2 border border-b2 transition-all duration-200 hover:bg-[var(--hover)] hover:text-t1"
+							>
+								&larr; Назад
+							</button>
+							<button
+								type="button"
+								onClick={handleComplete}
+								disabled={loading}
+								className="onb-btn-go px-8 py-3 rounded-[var(--r2)] text-[15px] font-extrabold bg-gradient-to-br from-[var(--greenS)] to-[#047857] text-white shadow-[0_0_24px_var(--gG)] transition-all duration-220 relative overflow-hidden hover:shadow-[0_0_36px_rgba(52,211,153,0.3)] hover:-translate-y-px active:scale-[0.96]"
+							>
+								{loading ? "Сохранение..." : "Начать работу →"}
+							</button>
+						</div>
+					</div>
+				)}
 			</div>
 		</div>
 	);

@@ -1224,3 +1224,44 @@ html {
 	box-shadow: var(--sh2);
 	transform: translateY(-2px);
 }
+
+/* ===================================================
+ * Onboarding — tour card + button highlights (ONBD)
+ * =================================================== */
+@keyframes eu {
+	from { opacity: 0; transform: translateY(14px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.onb-tour-card { position: relative; overflow: hidden; }
+.onb-tour-card::before {
+	content: '';
+	position: absolute;
+	top: 0; left: 0; right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+}
+.onb-btn-next { position: relative; overflow: hidden; }
+.onb-btn-next::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(180deg, rgba(255,255,255,0.1), transparent 60%);
+	border-radius: inherit;
+}
+.onb-btn-go { position: relative; overflow: hidden; }
+.onb-btn-go::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(180deg, rgba(255,255,255,0.12), transparent 60%);
+	border-radius: inherit;
+}
+
+/* ===================================================
+ * Trash — confirm dialog scale-in (TRSH)
+ * =================================================== */
+@keyframes scIn {
+	from { transform: scale(0.95); opacity: 0; }
+	to { transform: scale(1); opacity: 1; }
+}
