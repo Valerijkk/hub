@@ -1,8 +1,8 @@
 /**
- * Боковая панель навигации -- Slack-style тёмная тема.
+ * Боковая панель навигации -- redesigned v2.0.
  *
- * Лого Hub слева, compose-кнопка справа, навигация со Slack-style
- * активными индикаторами (3px blue bar), проекты, профиль внизу.
+ * Лого Hub слева, compose-кнопка справа, навигация со
+ * активными индикаторами (accent bar + glow), проекты, профиль внизу.
  * Сворачивается до иконок. На мобильных -- overlay.
  */
 import { Link } from "@tanstack/react-router";
@@ -26,25 +26,28 @@ export function Sidebar() {
 	return (
 		<aside
 			className={cn(
-				"flex h-screen flex-col border-r border-white/[0.06] transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
-				"bg-[hsl(220,16%,8%)] text-[#ECEDEF]",
+				"flex h-screen flex-col border-r border-b1 transition-all duration-200 ease-[var(--ease)] relative",
+				"bg-sidebar text-t1",
 				collapsed ? "w-[64px]" : "w-[260px]",
 			)}
 		>
+			{/* Gradient edge line */}
+			<div className="pointer-events-none absolute top-0 right-[-1px] bottom-0 w-px bg-[linear-gradient(180deg,transparent_5%,rgba(251,191,36,.05)_30%,rgba(91,156,245,.04)_60%,transparent_95%)] z-10" aria-hidden="true" />
+
 			{/* Лого и compose/collapse */}
-			<div className="flex h-[49px] shrink-0 items-center justify-between px-3">
+			<div className="flex h-14 shrink-0 items-center justify-between px-[18px]">
 				{!collapsed ? (
 					<>
 						<Link
 							to="/projects"
 							className="flex items-center gap-2.5 group"
 						>
-							<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 logo-glow transition-transform duration-150 group-hover:scale-105">
+							<div className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] bg-gradient-to-br from-blue-500 to-purple-600 shadow-[0_2px_16px_var(--gB)] logo-glow transition-transform duration-150 group-hover:scale-105">
 								<span className="text-sm font-bold text-white select-none">
 									H
 								</span>
 							</div>
-							<span className="text-[16px] font-bold tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
+							<span className="text-[18px] font-[800] tracking-[-0.04em] bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
 								Hub
 							</span>
 						</Link>
@@ -54,7 +57,7 @@ export function Sidebar() {
 								<TooltipTrigger asChild>
 									<Link
 										to="/projects/new"
-										className="flex h-7 w-7 items-center justify-center rounded-full text-[#D1D2D3] hover:text-white hover:bg-white/[0.08] transition-all duration-150"
+										className="flex h-7 w-7 items-center justify-center rounded-full text-t2 hover:text-t1 hover:bg-[var(--hover)] transition-all duration-150"
 									>
 										<svg
 											width="16"
@@ -81,7 +84,7 @@ export function Sidebar() {
 									<button
 										type="button"
 										onClick={toggle}
-										className="flex h-7 w-7 items-center justify-center rounded-md text-[#D1D2D3]/50 hover:text-white hover:bg-white/[0.05] transition-all duration-150"
+										className="flex h-7 w-7 items-center justify-center rounded-md text-t3 hover:text-t1 hover:bg-[var(--hover)] transition-all duration-150"
 										aria-label={t("sidebar.collapse")}
 									>
 										<svg
@@ -112,7 +115,7 @@ export function Sidebar() {
 							<button
 								type="button"
 								onClick={toggle}
-								className="mx-auto flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 transition-transform duration-150 hover:scale-105"
+								className="mx-auto flex h-[30px] w-[30px] items-center justify-center rounded-[9px] bg-gradient-to-br from-blue-500 to-purple-600 shadow-[0_2px_16px_var(--gB)] transition-transform duration-150 hover:scale-105"
 								aria-label={t("sidebar.expand")}
 							>
 								<span className="text-xs font-bold text-white select-none">
@@ -130,13 +133,13 @@ export function Sidebar() {
 			</div>
 
 			{/* Разделитель */}
-			<div className="mx-3 h-px bg-white/[0.06]" />
+			<div className="mx-[18px] h-px bg-b1" />
 
 			{/* Навигация */}
 			<SidebarNav collapsed={collapsed} t={t} />
 
 			{/* Разделитель */}
-			<div className="mx-3 h-px bg-white/[0.06]" />
+			<div className="mx-[18px] h-px bg-b1" />
 
 			{/* Секция проектов */}
 			<SidebarProjects collapsed={collapsed} t={t} />
