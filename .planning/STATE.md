@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Hub Redesign
 status: executing
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-03-28T13:27:11.140Z"
+stopped_at: Completed 12-05-PLAN.md
+last_updated: "2026-03-28T13:32:47.607Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 13
   completed_phases: 11
   total_plans: 55
-  completed_plans: 54
+  completed_plans: 55
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 ## Current Position
 
 Phase: 12 (remaining-mockup-pages-unmocked-pages) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-03-28
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 12 P04 | 4min | 2 tasks | 3 files |
 | Phase 12 P01 | 7min | 2 tasks | 11 files |
 | Phase 12 P02 | 8min | 2 tasks | 9 files |
+| Phase 12 P05 | 14min | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,9 @@ Recent decisions affecting current work:
 - [Phase 12]: Comment layout: flex gap-14 rows with gradient avatar fallbacks instead of bordered cards
 - [Phase 12]: Sidebar meta: direct void bg + pixel-exact padding matching mockup 05
 - [Phase 12]: Used CSS utility classes (tms-run-card, tms-precond-card) for ::before pseudo-element effects in TMS
+- [Phase 12]: Removed Card/CardHeader Shadcn components in favor of plain divs with design system gradient classes
+- [Phase 12]: Velocity chart restyled from Shadcn Card wrapper to inline gradient container
+- [Phase 12]: Planning poker uses border-blue glow shadow for selected state
 
 ### Pending Todos
 
@@ -106,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T13:27:11.135Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-03-28T13:32:47.602Z
+Stopped at: Completed 12-05-PLAN.md
 Resume file: None
