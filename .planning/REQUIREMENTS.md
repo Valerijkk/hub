@@ -93,10 +93,10 @@
 
 ### TMS Page (TMSP)
 
-- [ ] **TMSP-01**: User sees redesigned test management interface
-- [ ] **TMSP-02**: User sees redesigned test case grid/list with new card styling
-- [ ] **TMSP-03**: User sees redesigned execution status tracking
-- [ ] **TMSP-04**: All TMS functionality works without regression (cases, runs, environments, traceability)
+- [x] **TMSP-01**: User sees redesigned test management interface
+- [x] **TMSP-02**: User sees redesigned test case grid/list with new card styling
+- [x] **TMSP-03**: User sees redesigned execution status tracking
+- [x] **TMSP-04**: All TMS functionality works without regression (cases, runs, environments, traceability)
 
 ### Settings Page (STNG)
 
@@ -218,10 +218,10 @@
 | CALL-02 | Phase 12 | Complete |
 | CALL-03 | Phase 12 | Complete |
 | CALL-04 | Phase 12 | Complete |
-| TMSP-01 | Phase 12 | Pending |
-| TMSP-02 | Phase 12 | Pending |
-| TMSP-03 | Phase 12 | Pending |
-| TMSP-04 | Phase 12 | Pending |
+| TMSP-01 | Phase 12 | Complete |
+| TMSP-02 | Phase 12 | Complete |
+| TMSP-03 | Phase 12 | Complete |
+| TMSP-04 | Phase 12 | Complete |
 | STNG-01 | Phase 12 | Pending |
 | STNG-02 | Phase 12 | Pending |
 | STNG-03 | Phase 12 | Pending |
