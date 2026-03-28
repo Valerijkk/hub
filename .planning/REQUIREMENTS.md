@@ -38,9 +38,9 @@
 - [x] **PRIM-02**: User sees redesigned Card with gradient bg, top-edge highlight, hover glow
 - [x] **PRIM-03**: User sees redesigned Input with blue focus glow ring and subtle scale on focus
 - [x] **PRIM-04**: User sees redesigned Badge with status-specific glow backgrounds
-- [ ] **PRIM-05**: User sees redesigned Dialog/Popover with entrance animation and backdrop blur
-- [ ] **PRIM-06**: User sees redesigned Tabs with active indicator matching section color
-- [ ] **PRIM-07**: User sees redesigned DropdownMenu matching new design language
+- [x] **PRIM-05**: User sees redesigned Dialog/Popover with entrance animation and backdrop blur
+- [x] **PRIM-06**: User sees redesigned Tabs with active indicator matching section color
+- [x] **PRIM-07**: User sees redesigned DropdownMenu matching new design language
 - [x] **PRIM-08**: User sees redesigned ScrollArea with slim 5px scrollbar
 - [x] **PRIM-09**: User sees redesigned Avatar with online indicator glow
 - [x] **PRIM-10**: User sees redesigned Tooltip matching new palette and radius
@@ -184,9 +184,9 @@
 | PRIM-02 | Phase 10 | Complete |
 | PRIM-03 | Phase 10 | Complete |
 | PRIM-04 | Phase 10 | Complete |
-| PRIM-05 | Phase 10 | Pending |
-| PRIM-06 | Phase 10 | Pending |
-| PRIM-07 | Phase 10 | Pending |
+| PRIM-05 | Phase 10 | Complete |
+| PRIM-06 | Phase 10 | Complete |
+| PRIM-07 | Phase 10 | Complete |
 | PRIM-08 | Phase 10 | Complete |
 | PRIM-09 | Phase 10 | Complete |
 | PRIM-10 | Phase 10 | Complete |
