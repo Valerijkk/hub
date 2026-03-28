@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Hub Redesign
-status: verifying
-stopped_at: Completed 10-03-PLAN.md
-last_updated: "2026-03-28T12:45:08.732Z"
+status: executing
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-28T12:58:02.103Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 13
   completed_phases: 10
-  total_plans: 46
-  completed_plans: 47
+  total_plans: 50
+  completed_plans: 49
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Unified environment for dev teams -- tracker, TMS, messenger, and calls connected in one interface
-**Current focus:** Phase 10 — ui-primitives
+**Current focus:** Phase 11 — core-mockup-pages
 
 ## Current Position
 
-Phase: 11
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 11 (core-mockup-pages) — EXECUTING
+Plan: 3 of 4
+Status: Ready to execute
 Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
@@ -54,6 +54,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 10 P02 | 3min | 2 tasks | 4 files |
 | Phase 10 P01 | 1min | 3 tasks | 3 files |
 | Phase 10 P03 | 2min | 3 tasks | 3 files |
+| Phase 11 P02 | 2min | 2 tasks | 3 files |
+| Phase 11 P01 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -75,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase 09]: Gradient edge line uses absolute div instead of ::after pseudo for cleaner Tailwind
 - [Phase 10]: className-only changes -- no React/Radix behavioral code modified in primitives
 - [Phase 10]: className-only changes, zero Radix behavioral modifications for Dialog/Tabs/DropdownMenu
+- [Phase 11]: Used CSS utility classes (dash-*) for dashboard-specific gradient/animation styles
+- [Phase 11]: Removed Shadcn Button/Input deps from auth forms for exact mockup CSS match
 
 ### Pending Todos
 
@@ -89,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T12:41:08.672Z
-Stopped at: Completed 10-03-PLAN.md
+Last session: 2026-03-28T12:58:02.098Z
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None
