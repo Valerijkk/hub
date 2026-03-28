@@ -4,6 +4,11 @@
 
 Hub предоставляет единую платформу для команд разработки, объединяя пять интегрированных модулей (аутентификация/проекты, трекер задач, мессенджер, TMS, голосовые звонки) и сквозные функции (уведомления, поиск, дашборды) на общем фундаменте. Дорожная карта следует цепочке зависимостей: сначала базовая инфраструктура, затем четыре основных модуля в порядке ценности и зависимостей (трекер, мессенджер, TMS, звонки), далее сквозные агрегирующие функции, и наконец доработка и расширенные возможности. Каждая фаза поставляет завершённую, проверяемую функциональность, основанную на предыдущих фазах.
 
+## Milestones
+
+- :white_check_mark: **v1.0 MVP** - Phases 1-7 (shipped 2026-03-21)
+- :construction: **v2.0 Hub Redesign** - Phases 8-13 (in progress)
+
 ## Phases
 
 **Phase Numbering:**
@@ -12,15 +17,34 @@ Hub предоставляет единую платформу для коман
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Infrastructure** - Аутентификация, проекты, RBAC, инфраструктура реального времени, хранилище, среда разработки
+<details>
+<summary>v1.0 MVP (Phases 1-7) - SHIPPED 2026-03-21</summary>
+
+- [x] **Phase 1: Foundation & Infrastructure** - Аутентификация, проекты, RBAC, инфраструктура реального времени, хранилище, среда разработки
 - [x] **Phase 2: Task Tracker** - CRUD задач, Kanban-доски, рабочие процессы, комментарии, лог активности, учёт времени (completed 2026-03-21)
-- [ ] **Phase 3: Messenger** - Личные сообщения, каналы, треды, реакции, голосовые сообщения, присутствие, поиск
-- [ ] **Phase 4: TMS & Allure** - Тест-кейсы, тестовые прогоны, загрузка Allure-отчётов, связь с задачами, отчётность, импорт/экспорт
+- [x] **Phase 3: Messenger** - Личные сообщения, каналы, треды, реакции, голосовые сообщения, присутствие, поиск
+- [x] **Phase 4: TMS & Allure** - Тест-кейсы, тестовые прогоны, загрузка Allure-отчётов, связь с задачами, отчётность, импорт/экспорт
 - [x] **Phase 5: Voice Calls** - Аудиозвонки, демонстрация экрана, управление звонками, эфемерный чат (completed 2026-03-21)
-- [ ] **Phase 6: Notifications, Search & Dashboards** - Уведомления в приложении, глобальный поиск, персональные/проектные/административные дашборды, аудит
+- [x] **Phase 6: Notifications, Search & Dashboards** - Уведомления в приложении, глобальный поиск, персональные/проектные/административные дашборды, аудит
 - [x] **Phase 7: Polish & Extended Features** - Спринты, интеграция с GitHub, запись звонков, интернационализация, темы, PWA, API, резервное копирование (completed 2026-03-21)
 
+</details>
+
+### v2.0 Hub Redesign (In Progress)
+
+**Milestone Goal:** Pixel-perfect редизайн всего фронтенда Hub по 11 HTML-макетам без ломания существующего функционала
+
+- [ ] **Phase 8: Design System Foundation** - CSS-токены, шрифты, !important-очистка, тёмная и светлая палитры, радиусы, тени, анимации
+- [ ] **Phase 9: Layout Shell** - Сайдбар, топбар, AppShell с новым дизайном
+- [ ] **Phase 10: UI Primitives** - Все Shadcn-компоненты рестайлированы под новый дизайн-язык
+- [ ] **Phase 11: Core Mockup Pages** - Login, Dashboard, Messenger, Kanban
+- [ ] **Phase 12: Remaining Mockup Pages + Unmocked Pages** - Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash + Projects, Sprint, JQL, Project Settings, Project Dashboard
+- [ ] **Phase 13: Polish & QA** - Финальный визуальный QA, доступность, мобильная проверка, очистка мёртвого CSS
+
 ## Phase Details
+
+<details>
+<summary>v1.0 MVP Phase Details (Phases 1-7)</summary>
 
 ### Phase 1: Foundation & Infrastructure
 **Goal**: Пользователи могут аутентифицироваться, создавать проекты с командами и ролями, а платформа имеет работающую инфраструктуру реального времени, файловое хранилище и CI-пайплайн — субстрат, от которого зависит каждый модуль
@@ -66,109 +90,190 @@ Plans:
 
 ### Phase 3: Messenger
 **Goal**: Пользователи могут общаться в реальном времени через личные сообщения, каналы и треды с форматированным текстом, реакциями, голосовыми сообщениями и индикаторами присутствия
-**Depends on**: Phase 1, Phase 2 (для кросс-модульных ссылок на сущности в чате)
+**Depends on**: Phase 1, Phase 2
 **Requirements**: MSG-01, MSG-02, MSG-03, MSG-04, MSG-05, MSG-06, MSG-07, MSG-08, MSG-09, MSG-10, MSG-12, MSG-13
 **Success Criteria** (что должно быть ИСТИННО):
   1. Пользователь может отправлять и получать сообщения в реальном времени через личные сообщения, групповые чаты, публичные и приватные каналы
-  2. Пользователь может отвечать в тредах, ставить реакции эмодзи, форматировать текст (жирный/курсив/код/списки) и записывать голосовые сообщения
+  2. Пользователь может отвечать в тредах, ставить реакции эмодзи, форматировать текст и записывать голосовые сообщения
   3. Каналы проекта создаются автоматически при создании проекта; каналы только для чтения работают для сообщений ботов
-  4. Пользователь может редактировать/удалять свои сообщения, закреплять сообщения, добавлять в закладки и искать по всем беседам
-  5. Статус онлайн/офлайн/отошёл виден в реальном времени, и счётчики непрочитанных корректно обновляются по каналам
+  4. Пользователь может редактировать/удалять свои сообщения, закреплять, добавлять в закладки и искать
+  5. Статус онлайн/офлайн/отошёл виден в реальном времени и счётчики непрочитанных корректно обновляются
 **Plans**: 5 plans
 
 Plans:
-- [x] 03-01-PLAN.md — Бэкенд ядра мессенджера (Ent-схемы каналов, MongoDB сообщения, handler/service/repository, NATS bridge, unit-тесты)
-- [x] 03-02-PLAN.md — Управление каналами (public/private join, автоканалы проекта, readonly, права доступа, тесты)
-- [x] 03-03-PLAN.md — Фронтенд чата (API-клиент, Zustand store, виртуализация, Plate composer, треды, реакции, голосовые)
-- [x] 03-04-PLAN.md — Присутствие (Redis), непрочитанные (Redis), поиск (MongoDB text), пины, закладки, пересылка
-- [x] 03-05-PLAN.md — Документация фазы 3 (бизнес, тестовая, техническая) на русском
+- [x] 03-01-PLAN.md — Бэкенд ядра мессенджера
+- [x] 03-02-PLAN.md — Управление каналами
+- [x] 03-03-PLAN.md — Фронтенд чата
+- [x] 03-04-PLAN.md — Присутствие, непрочитанные, поиск, пины, закладки, пересылка
+- [x] 03-05-PLAN.md — Документация фазы 3
 
 ### Phase 4: TMS & Allure
-**Goal**: Пользователи могут управлять тест-кейсами, выполнять ручные и автоматизированные тестовые прогоны, загружать результаты Allure из CI и видеть двусторонние связи между тестами и задачами
-**Depends on**: Phase 1, Phase 2 (для связи с задачами)
+**Goal**: Пользователи могут управлять тест-кейсами, выполнять тестовые прогоны, загружать результаты Allure и видеть связи между тестами и задачами
+**Depends on**: Phase 1, Phase 2
 **Requirements**: TMS-01, TMS-02, TMS-03, TMS-04, TMS-05, TMS-06, TMS-08, TMS-09, TMS-10, ALLU-01, ALLU-02, ALLU-03, IMEX-02
 **Success Criteria** (что должно быть ИСТИННО):
-  1. Пользователь может создавать тест-кейсы в классическом (шаги + ожидаемый результат) и BDD (Given/When/Then) форматах с иерархией папок и версионированием
-  2. Пользователь может создавать и выполнять ручные тестовые прогоны с результатами пройден/не пройден/заблокирован/пропущен по каждому шагу, прикреплять скриншоты и комментарии к результатам
-  3. JSON-результаты Allure из CI загружаются через API, сопоставляются с тест-кейсами по ID или имени и отображаются в истории прогонов
-  4. Тест-кейсы двусторонне связаны с задачами: пользователь может создать баг из упавшего теста, и покрытие отслеживается
-  5. Отчёты показывают процент прохождения, тренды, обнаружение нестабильных тестов и сравнение прогонов на уровне качества Allure
+  1. Пользователь может создавать тест-кейсы в классическом и BDD форматах с иерархией папок и версионированием
+  2. Пользователь может создавать и выполнять ручные тестовые прогоны с результатами по каждому шагу
+  3. JSON-результаты Allure загружаются через API и сопоставляются с тест-кейсами
+  4. Тест-кейсы двусторонне связаны с задачами
+  5. Отчёты показывают процент прохождения, тренды, обнаружение нестабильных тестов
 **Plans**: 5 plans
 
 Plans:
-- [x] 04-01-PLAN.md — Ent-схемы TMS (6 схем), Repository interface, DTOs, events, handler/service, unit-тесты, Swagger
-- [x] 04-02-PLAN.md — Тестовые прогоны (ручное выполнение, доказательства, статусы, назначение, переоткрытие) + фронтенд TMS UI
-- [x] 04-03-PLAN.md — Интеграция с Allure (парсер allure-results JSON, матчинг, MongoDB хранилище, CombinedRepository, история)
-- [x] 04-04-PLAN.md — Кросс-модульные связи (тест-задача, покрытие, баг из теста, GitHub), отчётность (тренды, flaky), импорт/экспорт
-- [x] 04-05-PLAN.md — Документация фазы 4 (бизнес-дока, тестовая дока, техническая дока) на русском
+- [x] 04-01-PLAN.md — Ent-схемы TMS, handler/service/repository
+- [x] 04-02-PLAN.md — Тестовые прогоны + фронтенд TMS UI
+- [x] 04-03-PLAN.md — Интеграция с Allure
+- [x] 04-04-PLAN.md — Кросс-модульные связи, отчётность, импорт/экспорт
+- [x] 04-05-PLAN.md — Документация фазы 4
 
 ### Phase 5: Voice Calls
-**Goal**: Пользователи могут присоединяться к аудиозвонкам с демонстрацией экрана для стендапов, демо и спонтанных обсуждений
-**Depends on**: Phase 1 (аутентификация, проекты), Phase 3 (события звонков публикуются в каналы мессенджера)
+**Goal**: Пользователи могут присоединяться к аудиозвонкам с демонстрацией экрана
+**Depends on**: Phase 1, Phase 3
 **Requirements**: CALL-01, CALL-03, CALL-06
 **Success Criteria** (что должно быть ИСТИННО):
-  1. Пользователь может начать или присоединиться к аудиозвонку с участием до 50 человек по ссылке или из канала
-  2. Пользователь может включать/выключать микрофон, поднимать руку и демонстрировать свой экран или конкретное окно (поддерживается одновременная демонстрация несколькими участниками)
-  3. Эфемерный чат звонка доступен во время звонка и исчезает после его завершения
-  4. События начала/окончания звонка отображаются в связанном канале мессенджера
+  1. Пользователь может начать или присоединиться к аудиозвонку с участием до 50 человек
+  2. Пользователь может включать/выключать микрофон, поднимать руку и демонстрировать экран
+  3. Эфемерный чат звонка доступен во время звонка и исчезает после завершения
+  4. События звонка отображаются в канале мессенджера
 **Plans**: 4 plans
 
 Plans:
-- [x] 05-01-PLAN.md — Интеграция с LiveKit (Ent-схемы, сервис, handler, Docker Compose, Caddy, unit-тесты)
-- [x] 05-02-PLAN.md — UI звонков (LiveKit React компоненты, список участников, mute/unmute, raise hand, screen share, Zustand store)
-- [x] 05-03-PLAN.md — Жизненный цикл звонка (эфемерный чат MongoDB, NATS bridge подписки, WS-доставка событий в каналы)
-- [x] 05-04-PLAN.md — Документация фазы 5 (бизнес-дока, тестовая дока, техническая дока) на русском
+- [x] 05-01-PLAN.md — Интеграция с LiveKit
+- [x] 05-02-PLAN.md — UI звонков
+- [x] 05-03-PLAN.md — Жизненный цикл звонка
+- [x] 05-04-PLAN.md — Документация фазы 5
 
 ### Phase 6: Notifications, Search & Dashboards
-**Goal**: Пользователи имеют единый центр уведомлений, могут мгновенно найти что угодно через глобальный поиск и видеть состояние проекта на дашбордах
-**Depends on**: Phase 1-5 (агрегирует данные из всех модулей)
+**Goal**: Пользователи имеют уведомления, глобальный поиск и дашборды
+**Depends on**: Phase 1-5
 **Requirements**: NOTF-01, NOTF-02, NOTF-03, NOTF-04, SRCH-01, SRCH-02, DASH-01, DASH-02, DASH-03, AUDT-01, AUDT-02, AUDT-03, AUDT-04, UI-05
 **Success Criteria** (что должно быть ИСТИННО):
-  1. Пользователь получает уведомления в приложении (иконка колокольчика) о назначениях, @упоминаниях, сменах статуса и других настроенных триггерах во всех модулях
-  2. Пользователь может настраивать предпочтения уведомлений по типу, каналу и проекту; тихие часы подавляют несрочные уведомления
-  3. Ctrl+K открывает глобальный поиск, который находит задачи, тест-кейсы, пользователей, проекты, каналы и файлы по всей платформе
-  4. Персональный дашборд показывает задачи пользователя, непрочитанные, звонки, прогоны и дедлайны с настраиваемыми drag-and-drop виджетами
-  5. Дашборд проекта показывает статусы задач, burndown, velocity, тренды тестов и активность команды; административный дашборд показывает метрики всей системы
+  1. Пользователь получает уведомления в приложении о назначениях, @упоминаниях и сменах статуса
+  2. Ctrl+K открывает глобальный поиск по всей платформе
+  3. Персональный дашборд показывает задачи, непрочитанные, звонки, прогоны и дедлайны
+  4. Дашборд проекта показывает метрики; административный дашборд показывает метрики системы
 **Plans**: 5 plans
 
 Plans:
-- [x] 06-01-PLAN.md — Система уведомлений (Ent-схемы, NATS JetStream consumer, WS bridge, Telegram-бот, предпочтения, тихие часы, фронтенд bell+panel+settings)
-- [x] 06-02-PLAN.md — Глобальный поиск (PG tsvector + MongoDB text, Ctrl+K command palette cmdk, SavedFilter, горячие клавиши Ctrl+K/Ctrl+N)
-- [x] 06-03-PLAN.md — Дашборды (персональный, проектный, административный) с Tremor Raw + react-grid-layout, 12 виджетов, шаблоны Dev/QA/Manager
-- [x] 06-04-PLAN.md — Журнал аудита (JetStream consumer), лимиты ресурсов, soft-delete корзина 30 дней, деактивация/GDPR удаление пользователей
-- [x] 06-05-PLAN.md — Документация фазы 6 (бизнес-дока, тестовая дока, техническая дока) на русском
+- [x] 06-01-PLAN.md — Система уведомлений
+- [x] 06-02-PLAN.md — Глобальный поиск
+- [x] 06-03-PLAN.md — Дашборды
+- [x] 06-04-PLAN.md — Журнал аудита, лимиты, корзина, GDPR
+- [x] 06-05-PLAN.md — Документация фазы 6
 
 ### Phase 7: Polish & Extended Features
-**Goal**: Платформа получает управление спринтами, интеграцию с GitHub, запись звонков, интернационализацию, темы и операционное укрепление, углубляющие каждый модуль за пределы базовых возможностей
+**Goal**: Спринты, интеграция с GitHub, запись звонков, i18n, темы, PWA, API, бэкапы
 **Depends on**: Phase 1-6
 **Requirements**: PROJ-05, KANB-02, KANB-03, SCRM-01, SCRM-02, SCRM-03, SCRM-04, SCRM-05, MSG-11, TMS-07, CALL-02, CALL-04, CALL-05, GHUB-01, GHUB-02, GHUB-03, GHUB-04, GHUB-05, SRCH-03, API-01, API-02, API-03, API-04, IMEX-01, IMEX-03, BKUP-01, BKUP-02, BKUP-03, UI-02, UI-03, UI-04, UI-06
 **Success Criteria** (что должно быть ИСТИННО):
-  1. Scrum-команды могут создавать спринты, перетаскивать задачи из бэклога, проводить Planning Poker и просматривать графики burndown/velocity
-  2. PR/коммиты GitHub автоматически связываются с задачами по упоминанию ID, статус PR отображается на карточках задач, и мерж PR может автоматически переводить задачу в другой статус
-  3. Пользователи могут записывать звонки (аудио + демонстрация экрана), записи сохраняются в проекте, и ссылка публикуется в канал
-  4. Приложение работает на русском и английском языках с переключением тем (тёмная/светлая/системная + акцентный цвет) и базовой возможностью установки PWA
-  5. REST API документирован через Swagger, можно генерировать API-ключи, вебхуки срабатывают на события, и автоматические резервные копии создаются еженедельно
+  1. Scrum-команды могут создавать спринты с Planning Poker и графиками burndown/velocity
+  2. PR/коммиты GitHub автоматически связываются с задачами по ID
+  3. Пользователи могут записывать звонки
+  4. Приложение работает на русском и английском с переключением тем и PWA
+  5. REST API документирован, API-ключи, вебхуки, автоматические бэкапы
 **Plans**: 6 plans
 
 Plans:
-- [x] 07-01-PLAN.md — Управление спринтами (создание/старт/завершение спринтов, бэклог, автоперенос, burndown, velocity, ретроспектива, Planning Poker)
-- [x] 07-02-PLAN.md — Интеграция с GitHub (приёмник вебхуков, связь PR/коммитов, автостатус, создание ветки из задачи)
-- [x] 07-03-PLAN.md — Запись звонков (LiveKit Egress, хранение, привязка к проекту, ссылка в канале), запланированные/повторяющиеся звонки
-- [x] 07-04-PLAN.md — Интернационализация (RU/EN), темизация (тёмная/светлая/системная/акцент), мобильная раскладка, PWA, предпросмотр ссылок в мессенджере
-- [x] 07-05-PLAN.md — REST API (Swagger), API-ключи, вебхуки, hub-cli, импорт/экспорт, шаблоны проектов, резервное копирование, WIP-лимиты, swimlanes, тестовые окружения, JQL
-- [x] 07-06-PLAN.md — Документация фазы 7 (бизнес-дока, тестовая дока, техническая дока)
+- [x] 07-01-PLAN.md — Управление спринтами
+- [x] 07-02-PLAN.md — Интеграция с GitHub
+- [x] 07-03-PLAN.md — Запись звонков, запланированные/повторяющиеся звонки
+- [x] 07-04-PLAN.md — Интернационализация, темизация, мобильная раскладка, PWA, превью ссылок
+- [x] 07-05-PLAN.md — REST API, API-ключи, вебхуки, hub-cli, импорт/экспорт, шаблоны, бэкапы, WIP, swimlanes, окружения, JQL
+- [x] 07-06-PLAN.md — Документация фазы 7
+
+</details>
+
+### Phase 8: Design System Foundation
+**Goal**: Приложение переходит на новую дизайн-систему — все поверхности, текст, границы, тени, радиусы, анимации и шрифты соответствуют новой палитре, а тёмная и светлая темы работают корректно
+**Depends on**: Phase 7 (v1.0 complete)
+**Requirements**: DSFN-01, DSFN-02, DSFN-03, DSFN-04, DSFN-05, DSFN-06, DSFN-07, DSFN-08, DSFN-09, THME-01, THME-02, THME-03, THME-04
+**Success Criteria** (what must be TRUE):
+  1. User sees Inter font for all UI text and JetBrains Mono for code elements across the entire application
+  2. User sees the new 5-level surface palette (void/base/raised/card/input), 4-level text hierarchy, and 3-level border system in dark mode matching mockup values
+  3. User can switch between dark/light/system themes without visual glitches, and light theme passes WCAG AA contrast ratios
+  4. User can select accent color and see it applied consistently across all themed surfaces
+  5. No !important declarations remain in app.css, and spring/bounce easing is applied on hover/focus/enter animations
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 9: Layout Shell
+**Goal**: Пользователь видит обновлённый сайдбар с градиентной линией и свечением активного пункта, топбар с backdrop blur, и вся оболочка работает на всех размерах экрана
+**Depends on**: Phase 8
+**Requirements**: LYOT-01, LYOT-02, LYOT-03, LYOT-04, LYOT-05
+**Success Criteria** (what must be TRUE):
+  1. User sees redesigned sidebar with gradient edge line, new background, and active navigation item with accent glow indicator
+  2. User sees redesigned topbar with backdrop blur effect and gradient bottom edge
+  3. Sidebar collapse/expand works without visual regression at all viewport sizes
+  4. Mobile navigation (bottom nav, overlay sidebar) works without regression
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 10: UI Primitives
+**Goal**: Все 10 базовых Shadcn-компонентов рестайлированы под новый дизайн-язык, и любая страница, использующая эти компоненты, автоматически выглядит обновлённой
+**Depends on**: Phase 8, Phase 9
+**Requirements**: PRIM-01, PRIM-02, PRIM-03, PRIM-04, PRIM-05, PRIM-06, PRIM-07, PRIM-08, PRIM-09, PRIM-10
+**Success Criteria** (what must be TRUE):
+  1. User sees redesigned Button (gradient primary, ghost/secondary variants, glow hover) and Card (gradient bg, top-edge highlight, hover glow) across the app
+  2. User sees redesigned Input (blue focus glow ring), Badge (status-specific glow), and Avatar (online indicator glow)
+  3. User sees redesigned Dialog/Popover (entrance animation, backdrop blur), DropdownMenu, Tabs (active indicator), Tooltip, and ScrollArea (slim 5px scrollbar)
+  4. All existing page functionality that uses these components continues to work without regression
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 11: Core Mockup Pages
+**Goal**: Четыре самые важные и сложные страницы (Login, Dashboard, Messenger, Kanban) pixel-perfect соответствуют HTML-макетам, а вся существующая функциональность работает без регрессий
+**Depends on**: Phase 10
+**Requirements**: LOGN-01, LOGN-02, LOGN-03, LOGN-04, LOGN-05, DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, MSGR-01, MSGR-02, MSGR-03, MSGR-04, MSGR-05, MSGR-06, KANB-01, KANB-02, KANB-03, KANB-04
+**Success Criteria** (what must be TRUE):
+  1. User sees Login page with split layout (animated gradient left panel with floating feature cards, form right panel), mesh gradient background, and redesigned email/code flow -- login via magic link and Telegram works without regression
+  2. User sees Dashboard with 3-column widget grid, greeting section with gradient text, quick action buttons, and staggered entrance animations -- widget drag-and-drop works without regression
+  3. User sees Messenger with redesigned 3-panel layout, channel list with search/filter, message items with new styling, glassmorphic composer, and redesigned reactions/typing/reply -- all messenger functionality (send, react, thread, pin, forward, voice, search) works without regression
+  4. User sees Kanban with redesigned columns, issue cards with priority dots and glow hover, filter/view options bar -- drag-and-drop works without regression
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 12: Remaining Mockup Pages + Unmocked Pages
+**Goal**: Все оставшиеся 7 страниц с макетами pixel-perfect соответствуют HTML-макетам, а 6 страниц без макетов приведены к единому дизайн-языку -- вся функциональность работает без регрессий
+**Depends on**: Phase 11
+**Requirements**: ISSU-01, ISSU-02, ISSU-03, ISSU-04, CALL-01, CALL-02, CALL-03, CALL-04, TMSP-01, TMSP-02, TMSP-03, TMSP-04, STNG-01, STNG-02, STNG-03, STNG-04, STNG-05, ADMN-01, ADMN-02, ADMN-03, ADMN-04, ADMN-05, ONBD-01, ONBD-02, ONBD-03, ONBD-04, ONBD-05, TRSH-01, TRSH-02, TRSH-03, XTRA-01, XTRA-02, XTRA-03, XTRA-04, XTRA-05, XTRA-06, XTRA-07
+**Success Criteria** (what must be TRUE):
+  1. User sees redesigned Issue Detail (two-column layout, comments/activity, right sidebar meta) -- all issue functionality (edit, comment, time track, checklist, attachments) works without regression
+  2. User sees redesigned Calls (participant grid, controls, status indicators), TMS (test management interface, case grid, execution tracking) -- all call and TMS functionality works without regression
+  3. User sees redesigned Settings (sidebar nav + content, profile, appearance, notifications), Admin (KPI cards, tabbed interface, user table, audit log), Onboarding (centered modal, profile form, feature tour, theme selection), and Trash (table, restore/delete buttons) -- all functionality works without regression
+  4. User sees Projects list, Project overview, Sprint management, JQL search, Project settings, and Project dashboard pages styled consistently with the design system -- all existing functionality on these pages works without regression
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 13: Polish & QA
+**Goal**: Финальная визуальная проверка качества, доступность, мобильная адаптация и очистка кодовой базы -- приложение визуально безупречно в обеих темах на всех размерах экрана
+**Depends on**: Phase 12
+**Requirements**: (cross-cutting quality -- validates all previous phases)
+**Success Criteria** (what must be TRUE):
+  1. All animations run at 60fps on 4x CPU throttle (Dashboard and Kanban benchmark pages)
+  2. Lighthouse accessibility audit shows zero contrast violations in both dark and light themes across all pages
+  3. All pages render correctly at 375px, 768px, and 1024px viewports without layout breaks or overflow
+  4. Dead CSS classes removed from app.css; no unused custom utilities remain
+  5. Theme toggle transition is smooth (200ms background/color transition on key surfaces)
+**Plans**: TBD
+**UI hint**: yes
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Foundation & Infrastructure | 7/9 | Gap closure | - |
-| 2. Task Tracker | 5/5 | Complete   | 2026-03-21 |
-| 3. Messenger | 0/5 | Planned | - |
-| 4. TMS & Allure | 0/5 | Planned | - |
-| 5. Voice Calls | 4/4 | Complete   | 2026-03-21 |
-| 6. Notifications, Search & Dashboards | 0/5 | Planned | - |
-| 7. Polish & Extended Features | 6/6 | Complete   | 2026-03-21 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Foundation & Infrastructure | v1.0 | 9/9 | Complete | 2026-03-21 |
+| 2. Task Tracker | v1.0 | 5/5 | Complete | 2026-03-21 |
+| 3. Messenger | v1.0 | 5/5 | Complete | 2026-03-21 |
+| 4. TMS & Allure | v1.0 | 5/5 | Complete | 2026-03-21 |
+| 5. Voice Calls | v1.0 | 4/4 | Complete | 2026-03-21 |
+| 6. Notifications, Search & Dashboards | v1.0 | 5/5 | Complete | 2026-03-21 |
+| 7. Polish & Extended Features | v1.0 | 6/6 | Complete | 2026-03-21 |
+| 8. Design System Foundation | v2.0 | 0/? | Not started | - |
+| 9. Layout Shell | v2.0 | 0/? | Not started | - |
+| 10. UI Primitives | v2.0 | 0/? | Not started | - |
+| 11. Core Mockup Pages | v2.0 | 0/? | Not started | - |
+| 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 0/? | Not started | - |
+| 13. Polish & QA | v2.0 | 0/? | Not started | - |

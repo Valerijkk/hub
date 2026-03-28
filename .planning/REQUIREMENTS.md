@@ -160,17 +160,100 @@
 
 ## Traceability
 
-Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| — | — | — |
+| DSFN-01 | Phase 8 | Pending |
+| DSFN-02 | Phase 8 | Pending |
+| DSFN-03 | Phase 8 | Pending |
+| DSFN-04 | Phase 8 | Pending |
+| DSFN-05 | Phase 8 | Pending |
+| DSFN-06 | Phase 8 | Pending |
+| DSFN-07 | Phase 8 | Pending |
+| DSFN-08 | Phase 8 | Pending |
+| DSFN-09 | Phase 8 | Pending |
+| THME-01 | Phase 8 | Pending |
+| THME-02 | Phase 8 | Pending |
+| THME-03 | Phase 8 | Pending |
+| THME-04 | Phase 8 | Pending |
+| LYOT-01 | Phase 9 | Pending |
+| LYOT-02 | Phase 9 | Pending |
+| LYOT-03 | Phase 9 | Pending |
+| LYOT-04 | Phase 9 | Pending |
+| LYOT-05 | Phase 9 | Pending |
+| PRIM-01 | Phase 10 | Pending |
+| PRIM-02 | Phase 10 | Pending |
+| PRIM-03 | Phase 10 | Pending |
+| PRIM-04 | Phase 10 | Pending |
+| PRIM-05 | Phase 10 | Pending |
+| PRIM-06 | Phase 10 | Pending |
+| PRIM-07 | Phase 10 | Pending |
+| PRIM-08 | Phase 10 | Pending |
+| PRIM-09 | Phase 10 | Pending |
+| PRIM-10 | Phase 10 | Pending |
+| LOGN-01 | Phase 11 | Pending |
+| LOGN-02 | Phase 11 | Pending |
+| LOGN-03 | Phase 11 | Pending |
+| LOGN-04 | Phase 11 | Pending |
+| LOGN-05 | Phase 11 | Pending |
+| DASH-01 | Phase 11 | Pending |
+| DASH-02 | Phase 11 | Pending |
+| DASH-03 | Phase 11 | Pending |
+| DASH-04 | Phase 11 | Pending |
+| DASH-05 | Phase 11 | Pending |
+| MSGR-01 | Phase 11 | Pending |
+| MSGR-02 | Phase 11 | Pending |
+| MSGR-03 | Phase 11 | Pending |
+| MSGR-04 | Phase 11 | Pending |
+| MSGR-05 | Phase 11 | Pending |
+| MSGR-06 | Phase 11 | Pending |
+| KANB-01 | Phase 11 | Pending |
+| KANB-02 | Phase 11 | Pending |
+| KANB-03 | Phase 11 | Pending |
+| KANB-04 | Phase 11 | Pending |
+| ISSU-01 | Phase 12 | Pending |
+| ISSU-02 | Phase 12 | Pending |
+| ISSU-03 | Phase 12 | Pending |
+| ISSU-04 | Phase 12 | Pending |
+| CALL-01 | Phase 12 | Pending |
+| CALL-02 | Phase 12 | Pending |
+| CALL-03 | Phase 12 | Pending |
+| CALL-04 | Phase 12 | Pending |
+| TMSP-01 | Phase 12 | Pending |
+| TMSP-02 | Phase 12 | Pending |
+| TMSP-03 | Phase 12 | Pending |
+| TMSP-04 | Phase 12 | Pending |
+| STNG-01 | Phase 12 | Pending |
+| STNG-02 | Phase 12 | Pending |
+| STNG-03 | Phase 12 | Pending |
+| STNG-04 | Phase 12 | Pending |
+| STNG-05 | Phase 12 | Pending |
+| ADMN-01 | Phase 12 | Pending |
+| ADMN-02 | Phase 12 | Pending |
+| ADMN-03 | Phase 12 | Pending |
+| ADMN-04 | Phase 12 | Pending |
+| ADMN-05 | Phase 12 | Pending |
+| ONBD-01 | Phase 12 | Pending |
+| ONBD-02 | Phase 12 | Pending |
+| ONBD-03 | Phase 12 | Pending |
+| ONBD-04 | Phase 12 | Pending |
+| ONBD-05 | Phase 12 | Pending |
+| TRSH-01 | Phase 12 | Pending |
+| TRSH-02 | Phase 12 | Pending |
+| TRSH-03 | Phase 12 | Pending |
+| XTRA-01 | Phase 12 | Pending |
+| XTRA-02 | Phase 12 | Pending |
+| XTRA-03 | Phase 12 | Pending |
+| XTRA-04 | Phase 12 | Pending |
+| XTRA-05 | Phase 12 | Pending |
+| XTRA-06 | Phase 12 | Pending |
+| XTRA-07 | Phase 12 | Pending |
 
 **Coverage:**
-- v2.0 requirements: 68 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 68
+- v2.0 requirements: 85 total
+- Mapped to phases: 85 (Phase 8: 13, Phase 9: 5, Phase 10: 10, Phase 11: 20, Phase 12: 37)
+- Phase 13 (Polish & QA): cross-cutting quality validation, no owned requirements
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after initial definition*
+*Last updated: 2026-03-27 after roadmap creation*
