@@ -3,10 +3,14 @@ package nats
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
+
+// StreamName — единый JetStream stream для всех модулей.
+const StreamName = "EVENTS"
 
 // Client оборачивает NATS-соединение с поддержкой JetStream.
 type Client struct {
@@ -43,6 +47,31 @@ func (c *Client) Close() {
 // Используется для: индикаторов набора, присутствия, обновлений UI в реальном времени.
 func (c *Client) Publish(subject string, data []byte) error {
 	return c.Conn.Publish(subject, data)
+}
+
+// EnsureStreams создаёт единый JetStream stream EVENTS, агрегирующий события
+// всех модулей. Каждый consumer (audit, webhook, notification) создаёт свой
+// durable consumer на этом стриме.
+func (c *Client) EnsureStreams(ctx context.Context) error {
+	_, err := c.JetStream.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
+		Name: StreamName,
+		Subjects: []string{
+			"project.>",
+			"tracker.>",
+			"messenger.channel.>",
+			"tms.>",
+			"calls.channel.>",
+			"auth.session.>",
+			"sprint.>",
+		},
+		Retention: jetstream.InterestPolicy,
+		MaxAge:    7 * 24 * time.Hour,
+	})
+	if err != nil {
+		return err
+	}
+	slog.Info("JetStream stream ensured", "stream", StreamName)
+	return nil
 }
 
 // Subscribe подписывается на core NATS subject (эфемерная подписка).

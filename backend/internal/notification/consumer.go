@@ -50,26 +50,15 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 	js := c.nc.JetStream
 
-	// Создаём stream для уведомлений.
-	_, err := js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-		Name: "NOTIFICATIONS",
-		Subjects: []string{
-			"project.>",
-			"messenger.channel.>",
-			"tms.>",
-			"calls.channel.>",
-			"auth.session.>",
-		},
-		Retention: jetstream.WorkQueuePolicy,
-		MaxAge:    7 * 24 * time.Hour,
-	})
+	// Получаем общий стрим EVENTS (создаётся при старте сервера).
+	stream, err := js.Stream(ctx, natsclient.StreamName)
 	if err != nil {
-		slog.Error("ошибка создания JetStream stream", "error", err)
+		slog.Error("ошибка получения JetStream stream", "error", err)
 		return err
 	}
 
-	// Создаём durable consumer.
-	cons, err := js.CreateOrUpdateConsumer(ctx, "NOTIFICATIONS", jetstream.ConsumerConfig{
+	// Создаём durable consumer на общем стриме.
+	cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
 		Durable:    "notification-dispatcher",
 		AckPolicy:  jetstream.AckExplicitPolicy,
 		MaxDeliver: 5,

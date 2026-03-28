@@ -28,37 +28,18 @@ func NewAuditConsumer(nc *natsclient.Client, repo *Repository) *AuditConsumer {
 func (c *AuditConsumer) Start(ctx context.Context) error {
 	js := c.nc.JetStream
 
-	// Создаём или обновляем стрим AUDIT
-	_, err := js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-		Name: "AUDIT",
-		Subjects: []string{
-			"project.>",
-			"tracker.>",
-			"messenger.channel.>",
-			"tms.>",
-			"calls.channel.>",
-			"auth.session.>",
-		},
-		Retention: jetstream.WorkQueuePolicy,
-		MaxAge:    7 * 24 * time.Hour,
-	})
+	// Получаем общий стрим EVENTS (создаётся при старте сервера).
+	stream, err := js.Stream(ctx, natsclient.StreamName)
 	if err != nil {
 		return err
 	}
 
-	// Получаем или создаём стрим
-	stream, err := js.Stream(ctx, "AUDIT")
-	if err != nil {
-		return err
-	}
-
-	// Durable consumer
+	// Durable consumer на общем стриме.
 	consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-		Durable:       "audit-logger",
-		AckPolicy:     jetstream.AckExplicitPolicy,
-		MaxDeliver:    5,
-		AckWait:       30 * time.Second,
-		FilterSubject: ">",
+		Durable:    "audit-logger",
+		AckPolicy:  jetstream.AckExplicitPolicy,
+		MaxDeliver: 5,
+		AckWait:    30 * time.Second,
 	})
 	if err != nil {
 		return err

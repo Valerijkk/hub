@@ -46,36 +46,18 @@ func (d *WebhookDispatcher) Start(ctx context.Context) error {
 
 	js := d.nats.JetStream
 
-	// Создаём или обновляем стрим WEBHOOKS для агрегации событий всех модулей.
-	_, err := js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-		Name: "WEBHOOKS",
-		Subjects: []string{
-			"project.>",
-			"tracker.>",
-			"tms.>",
-			"messenger.channel.>",
-			"calls.channel.>",
-			"sprint.>",
-		},
-		Retention: jetstream.InterestPolicy,
-		MaxAge:    24 * time.Hour,
-	})
+	// Получаем общий стрим EVENTS (создаётся при старте сервера).
+	stream, err := js.Stream(ctx, natsclient.StreamName)
 	if err != nil {
-		return fmt.Errorf("не удалось создать стрим WEBHOOKS: %w", err)
+		return fmt.Errorf("не удалось получить стрим %s: %w", natsclient.StreamName, err)
 	}
 
-	stream, err := js.Stream(ctx, "WEBHOOKS")
-	if err != nil {
-		return fmt.Errorf("не удалось получить стрим WEBHOOKS: %w", err)
-	}
-
-	// Durable consumer — гарантирует at-least-once доставку.
+	// Durable consumer на общем стриме — гарантирует at-least-once доставку.
 	consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-		Durable:       "webhook-dispatcher",
-		AckPolicy:     jetstream.AckExplicitPolicy,
-		MaxDeliver:    3,
-		AckWait:       30 * time.Second,
-		FilterSubject: ">",
+		Durable:    "webhook-dispatcher",
+		AckPolicy:  jetstream.AckExplicitPolicy,
+		MaxDeliver: 3,
+		AckWait:    30 * time.Second,
 	})
 	if err != nil {
 		return fmt.Errorf("не удалось создать consumer WEBHOOKS: %w", err)

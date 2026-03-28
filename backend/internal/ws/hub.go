@@ -12,6 +12,7 @@ type Client struct {
 	UserID    string
 	SessionID string
 	send      chan []byte
+	done      chan struct{}
 	rooms     map[string]bool
 	mu        sync.Mutex
 }
@@ -22,6 +23,7 @@ func NewClient(userID, sessionID string) *Client {
 		UserID:    userID,
 		SessionID: sessionID,
 		send:      make(chan []byte, 256),
+		done:      make(chan struct{}),
 		rooms:     make(map[string]bool),
 	}
 }
@@ -169,5 +171,8 @@ func (h *Hub) removeClient(client *Client) {
 		}
 	}
 
+	// Сигнализируем writePump о завершении ДО закрытия send-канала,
+	// чтобы writePump успел выйти и не обращался к закрытому соединению.
+	close(client.done)
 	close(client.send)
 }

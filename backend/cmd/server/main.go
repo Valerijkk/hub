@@ -85,6 +85,12 @@ func main() {
 	}
 	defer nc.Close()
 
+	// Создаём единый JetStream stream EVENTS для всех модулей.
+	if err := nc.EnsureStreams(ctx); err != nil {
+		slog.Error("failed to ensure JetStream streams", "error", err)
+		os.Exit(1)
+	}
+
 	// Outbox worker
 	outboxWorker := outbox.NewWorker(db, nc)
 	outboxCtx, outboxCancel := context.WithCancel(ctx)
