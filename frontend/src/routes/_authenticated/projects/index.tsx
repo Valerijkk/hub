@@ -23,11 +23,11 @@ function ProjectsPage() {
 	});
 
 	return (
-		<div className="mx-auto max-w-5xl animate-fade-in">
+		<div className="mx-auto max-w-5xl animate-[eu_450ms_var(--spring)_both]">
 			{/* Заголовок страницы — градиентный */}
 			<div className="mb-8 flex items-center justify-between">
 				<div className="flex items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-blue-500 shadow-sm">
+					<div className="flex h-10 w-10 items-center justify-center rounded-[var(--r3)] bg-gradient-to-br from-[var(--blueS)]/20 to-[var(--purpleS)]/20 text-blue">
 						<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
 							<rect x="3" y="3" width="7" height="7" rx="2" />
 							<rect x="14" y="3" width="7" height="7" rx="2" />
@@ -36,15 +36,15 @@ function ProjectsPage() {
 						</svg>
 					</div>
 					<div>
-						<h1 className="page-title">Проекты</h1>
-						<p className="mt-0.5 text-sm text-muted-foreground leading-relaxed">
+						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">Проекты</h1>
+						<p className="mt-0.5 text-[13px] text-t2 leading-[1.5]">
 							Управляйте проектами вашей команды
 						</p>
 					</div>
 				</div>
 				<Button
 					asChild
-					className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-md shadow-blue-500/25 hover-pulse"
+					className="bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] hover:from-blue hover:to-[var(--blueS)] text-white shadow-md shadow-blue/25 hover-pulse"
 				>
 					<Link to="/projects/new">
 						<svg
@@ -69,9 +69,9 @@ function ProjectsPage() {
 				</TabsList>
 
 				<TabsContent value="info">
-					<section className="rounded-xl border bg-card p-6 space-y-6">
+					<section className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-6 space-y-6">
 						<div>
-							<h2 className="text-lg font-semibold mb-4">Как создать проект</h2>
+							<h2 className="text-[14px] font-bold text-t1 mb-4">Как создать проект</h2>
 							<div className="grid gap-4 md:grid-cols-3">
 								{[
 									{ n: "1", color: "blue", title: "Нажмите \"Создать проект\"", desc: "Укажите название и ключ (KEY-1)" },
@@ -79,12 +79,12 @@ function ProjectsPage() {
 									{ n: "3", color: "violet", title: "Начинайте работать!", desc: "Задачи, тесты, мессенджер и звонки" },
 								].map((s) => (
 									<div key={s.n} className="flex gap-3">
-										<div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-${s.color}-500/10 text-${s.color}-500 text-sm font-bold`}>
+										<div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r2)] bg-${s.color}-500/10 text-${s.color}-500 text-sm font-bold`}>
 											{s.n}
 										</div>
 										<div>
-											<p className="font-medium text-sm">{s.title}</p>
-											<p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
+											<p className="font-medium text-[13px] text-t1">{s.title}</p>
+											<p className="text-[12px] text-t3 mt-0.5">{s.desc}</p>
 										</div>
 									</div>
 								))}
@@ -99,11 +99,11 @@ function ProjectsPage() {
 								{ icon: "\u{1F517}", title: "GitLab / GitHub", desc: "Ветки, MR, пайплайны из Hub" },
 								{ icon: "\u{1F4CA}", title: "Дашборды", desc: "Виджеты, графики, метрики" },
 							].map((f) => (
-								<div key={f.title} className="flex gap-3 rounded-xl border p-3 hover:bg-muted/50 transition-colors">
+								<div key={f.title} className="flex gap-3 rounded-[var(--r3)] border border-b1 p-3 hover:bg-[var(--hover)] transition-colors duration-150">
 									<span className="text-xl">{f.icon}</span>
 									<div>
-										<p className="font-medium text-sm">{f.title}</p>
-										<p className="text-xs text-muted-foreground">{f.desc}</p>
+										<p className="font-medium text-[13px] text-t1">{f.title}</p>
+										<p className="text-[12px] text-t3">{f.desc}</p>
 									</div>
 								</div>
 							))}
@@ -117,7 +117,7 @@ function ProjectsPage() {
 			{isLoading && (
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					{[1, 2, 3].map((i) => (
-						<div key={i} className="rounded-xl border bg-card p-5">
+						<div key={i} className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-5">
 							<div className="space-y-3">
 								<div className="h-5 w-2/3 rounded-md animate-shimmer" />
 								<div className="h-4 w-1/4 rounded-md animate-shimmer" />
@@ -131,12 +131,12 @@ function ProjectsPage() {
 
 			{/* Пустое состояние */}
 			{!isLoading && projects?.length === 0 && (
-				<div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card/50 py-20 px-6 animate-fade-in">
+				<div className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-dashed border-b1 bg-card/50 py-20 px-6 animate-[eu_450ms_var(--spring)_both]">
 					{/* Illustration */}
 					<div className="relative mb-6">
-						<div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+						<div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--blueS)]/10 to-[var(--purpleS)]/10">
 							<svg
-								className="h-10 w-10 text-primary/60"
+								className="h-10 w-10 text-blue/60"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
@@ -150,20 +150,20 @@ function ProjectsPage() {
 								<rect x="14" y="14" width="7" height="7" rx="2" />
 							</svg>
 						</div>
-						<div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-blue-500/20 animate-pulse" />
+						<div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-blue/20 animate-pulse" />
 						<div
-							className="absolute -bottom-1 -left-1 h-3 w-3 rounded-full bg-purple-500/20 animate-pulse"
+							className="absolute -bottom-1 -left-1 h-3 w-3 rounded-full bg-[var(--purpleS)]/20 animate-pulse"
 							style={{ animationDelay: "0.5s" }}
 						/>
 					</div>
-					<h3 className="text-xl font-semibold mb-2">Нет проектов</h3>
-					<p className="mb-8 text-sm text-muted-foreground text-center max-w-sm leading-relaxed">
+					<h3 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1 mb-2">Нет проектов</h3>
+					<p className="mb-8 text-[13px] text-t2 text-center max-w-sm leading-[1.5]">
 						Создайте первый проект для вашей команды, чтобы начать работу с
 						задачами, тестами и общением.
 					</p>
 					<Button
 						asChild
-						className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-md shadow-blue-500/25 hover-pulse"
+						className="bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] hover:from-blue hover:to-[var(--blueS)] text-white shadow-md shadow-blue/25 hover-pulse"
 					>
 						<Link to="/projects/new">
 							<svg
@@ -184,7 +184,7 @@ function ProjectsPage() {
 
 			{/* Сетка проектов */}
 			{projects && projects.length > 0 && (
-				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 					{projects.map((project, index) => (
 						<Link
 							key={project.id}
@@ -193,68 +193,59 @@ function ProjectsPage() {
 							className="group block animate-fade-in-up"
 							style={{ animationDelay: `${index * 50}ms` }}
 						>
-							{/* Gradient border wrapper */}
-							<div className="rounded-xl p-[1px] bg-border transition-all duration-300 group-hover:bg-gradient-to-br group-hover:from-blue-500/50 group-hover:via-purple-500/30 group-hover:to-blue-500/50">
-								<Card className="h-full rounded-[11px] border-0 bg-card transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
-									<CardHeader className="pb-3 pt-5">
-										<div className="flex items-start justify-between gap-2">
-											<div className="flex items-center gap-3 min-w-0 flex-1">
-												{/* Иконка проекта — ключ проекта */}
-												<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary font-bold text-xs tracking-tight ring-1 ring-primary/10">
-													{project.key.substring(0, 3)}
-												</div>
-												<div className="min-w-0 flex-1">
-													<CardTitle className="text-base font-semibold truncate group-hover:text-primary transition-colors duration-200">
-														{project.name}
-													</CardTitle>
-													<CardDescription className="mt-0.5">
-														<span className="inline-flex items-center rounded-md bg-muted/80 px-1.5 py-0.5 text-xs font-mono font-semibold text-muted-foreground/70 ring-1 ring-border/50">
-															{project.key}
-														</span>
-													</CardDescription>
-												</div>
-											</div>
-											<Badge
-												variant={
-													project.status === "active" ? "default" : "secondary"
-												}
-												className={
-													project.status === "active"
-														? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-0"
-														: ""
-												}
-											>
-												{project.status === "active"
-													? "Активный"
-													: project.status}
-											</Badge>
+							<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5 transition-all duration-250 relative overflow-hidden hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)]">
+								<div className="flex items-start justify-between gap-2 mb-3">
+									<div className="flex items-center gap-3 min-w-0 flex-1">
+										{/* Иконка проекта — ключ проекта */}
+										<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--r3)] bg-gradient-to-br from-[var(--blueS)]/15 to-[var(--purpleS)]/5 text-blue font-bold text-xs tracking-tight ring-1 ring-blue/10">
+											{project.key.substring(0, 3)}
 										</div>
-									</CardHeader>
-									<CardContent>
-										{project.description && (
-											<p className="mb-3 line-clamp-2 text-sm text-muted-foreground leading-relaxed">
-												{project.description}
+										<div className="min-w-0 flex-1">
+											<p className="text-[14px] font-bold tracking-[-0.01em] text-t1 truncate group-hover:text-blue transition-colors duration-200">
+												{project.name}
 											</p>
-										)}
-										<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-											<svg
-												className="h-3.5 w-3.5"
-												viewBox="0 0 16 16"
-												fill="none"
-												stroke="currentColor"
-												strokeWidth="1.5"
-												strokeLinecap="round"
-											>
-												<circle cx="8" cy="5" r="3" />
-												<path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" />
-											</svg>
-											<span>
-												{project.member_count}{" "}
-												{project.member_count === 1 ? "участник" : "участников"}
+											<span className="inline-flex items-center rounded-md bg-input px-1.5 py-0.5 text-xs font-mono font-semibold text-t3 ring-1 ring-b1">
+												{project.key}
 											</span>
 										</div>
-									</CardContent>
-								</Card>
+									</div>
+									<Badge
+										variant={
+											project.status === "active" ? "default" : "secondary"
+										}
+										className={
+											project.status === "active"
+												? "bg-emerald-500/[0.08] text-emerald-400 border border-emerald-500/[0.15] px-[10px] py-[3px] rounded-full text-[11px] font-[650]"
+												: ""
+										}
+									>
+										{project.status === "active"
+											? "Активный"
+											: project.status}
+									</Badge>
+								</div>
+								{project.description && (
+									<p className="mb-3 line-clamp-2 text-[13px] text-t2 leading-[1.5]">
+										{project.description}
+									</p>
+								)}
+								<div className="flex items-center gap-1.5 text-[12px] text-t3 font-medium">
+									<svg
+										className="h-3.5 w-3.5"
+										viewBox="0 0 16 16"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.5"
+										strokeLinecap="round"
+									>
+										<circle cx="8" cy="5" r="3" />
+										<path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" />
+									</svg>
+									<span>
+										{project.member_count}{" "}
+										{project.member_count === 1 ? "участник" : "участников"}
+									</span>
+								</div>
 							</div>
 						</Link>
 					))}

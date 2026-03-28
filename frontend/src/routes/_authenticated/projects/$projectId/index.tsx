@@ -61,20 +61,20 @@ function ProjectPage() {
 
 	if (isLoading) {
 		return (
-			<div className="animate-fade-in space-y-6 py-4">
+			<div className="animate-[eu_450ms_var(--spring)_both] space-y-6 py-4">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-4">
-						<div className="h-12 w-12 rounded-xl animate-shimmer" />
+						<div className="h-12 w-12 rounded-[var(--r3)] animate-shimmer" />
 						<div className="space-y-2">
 							<div className="h-6 w-48 rounded animate-shimmer" />
 							<div className="h-4 w-24 rounded animate-shimmer" />
 						</div>
 					</div>
-					<div className="h-9 w-32 rounded-lg animate-shimmer" />
+					<div className="h-9 w-32 rounded-[var(--r2)] animate-shimmer" />
 				</div>
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 					{[1, 2, 3, 4].map((i) => (
-						<div key={i} className="rounded-xl border bg-card p-5 space-y-2">
+						<div key={i} className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-5 space-y-2">
 							<div className="h-4 w-20 rounded animate-shimmer" />
 							<div className="h-8 w-16 rounded animate-shimmer" />
 						</div>
@@ -87,7 +87,7 @@ function ProjectPage() {
 	if (!project) {
 		return (
 			<div className="flex items-center justify-center py-12">
-				<p className="text-muted-foreground">Проект не найден</p>
+				<p className="text-t2">Проект не найден</p>
 			</div>
 		);
 	}
@@ -96,26 +96,31 @@ function ProjectPage() {
 		project.my_role === "owner" || project.my_role === "admin";
 
 	return (
-		<div>
+		<div className="animate-[eu_450ms_var(--spring)_both]">
 			<div className="mb-6 flex items-center justify-between">
 				<div className="flex items-center gap-4">
 					<div>
-						<h1 className="text-2xl font-bold">{project.name}</h1>
-						<p className="text-sm text-muted-foreground">{project.key}</p>
+						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">{project.name}</h1>
+						<p className="text-[13px] text-t3">{project.key}</p>
 					</div>
 					<Badge
 						variant={project.status === "active" ? "default" : "secondary"}
+						className={
+							project.status === "active"
+								? "bg-emerald-500/[0.08] text-emerald-400 border border-emerald-500/[0.15] px-[10px] py-[3px] rounded-full text-[11px] font-[650]"
+								: ""
+						}
 					>
 						{project.status === "active" ? "Активный" : project.status}
 					</Badge>
 				</div>
 				<div className="flex gap-2">
-					<Button variant="outline" asChild>
+					<Button variant="outline" asChild className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]">
 						<Link to="/projects/$projectId/board" params={{ projectId }}>
 							Доска
 						</Link>
 					</Button>
-					<Button variant="outline" asChild>
+					<Button variant="outline" asChild className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]">
 						<Link to="/projects/$projectId/issues" params={{ projectId }}>
 							Задачи
 						</Link>
@@ -134,102 +139,88 @@ function ProjectPage() {
 				</TabsList>
 
 				<TabsContent value="overview" className="mt-4 space-y-4">
-					<Card>
-						<CardHeader>
-							<CardTitle>О проекте</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<p className="text-muted-foreground">
-								{project.description || "Описание не указано"}
-							</p>
-							<Separator className="my-4" />
-							<div className="grid grid-cols-2 gap-4 text-sm">
-								<div>
-									<span className="text-muted-foreground">Участников:</span>{" "}
-									{project.member_count}
-								</div>
-								<div>
-									<span className="text-muted-foreground">Роль:</span>{" "}
-									{project.my_role ?? "Не указана"}
-								</div>
-								<div>
-									<span className="text-muted-foreground">Создан:</span>{" "}
-									{new Date(project.created_at).toLocaleDateString("ru-RU")}
-								</div>
-								<div>
-									<span className="text-muted-foreground">Обновлен:</span>{" "}
-									{new Date(project.updated_at).toLocaleDateString("ru-RU")}
-								</div>
+					<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+						<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">О проекте</h3>
+						<p className="text-[13px] text-t2 leading-[1.5]">
+							{project.description || "Описание не указано"}
+						</p>
+						<Separator className="my-4 bg-b1" />
+						<div className="grid grid-cols-2 gap-4 text-[13px]">
+							<div>
+								<span className="text-t3">Участников:</span>{" "}
+								<span className="text-[24px] font-black tracking-[-0.03em] text-t1">{project.member_count}</span>
 							</div>
-						</CardContent>
-					</Card>
+							<div>
+								<span className="text-t3">Роль:</span>{" "}
+								<span className="text-t1 font-medium">{project.my_role ?? "Не указана"}</span>
+							</div>
+							<div>
+								<span className="text-t3">Создан:</span>{" "}
+								<span className="text-t2">{new Date(project.created_at).toLocaleDateString("ru-RU")}</span>
+							</div>
+							<div>
+								<span className="text-t3">Обновлен:</span>{" "}
+								<span className="text-t2">{new Date(project.updated_at).toLocaleDateString("ru-RU")}</span>
+							</div>
+						</div>
+					</div>
 				</TabsContent>
 
 				<TabsContent value="members" className="mt-4">
-					<Card>
-						<CardHeader>
-							<CardTitle>Участники</CardTitle>
-							<CardDescription>
-								{members?.length ?? 0} участников в проекте
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div className="space-y-3">
-								{members?.map((member) => (
-									<div
-										key={member.user_id}
-										className="flex items-center justify-between rounded-md border p-3"
-									>
-										<div>
-											<p className="font-medium">
-												{member.name || member.email}
-											</p>
-											<p className="text-sm text-muted-foreground">
-												{member.email}
-											</p>
-										</div>
-										<Badge variant="outline">{member.role}</Badge>
+					<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+						<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">Участники</h3>
+						<p className="text-[12px] text-t3 mb-4">
+							{members?.length ?? 0} участников в проекте
+						</p>
+						<div className="space-y-1">
+							{members?.map((member) => (
+								<div
+									key={member.user_id}
+									className="flex items-center justify-between rounded-[var(--r3)] border border-b1 px-4 py-3 hover:bg-[var(--hover)] transition-colors duration-150"
+								>
+									<div>
+										<p className="text-[14px] font-bold text-t1">
+											{member.name || member.email}
+										</p>
+										<p className="text-[13px] text-t2">
+											{member.email}
+										</p>
 									</div>
-								))}
-								{(!members || members.length === 0) && (
-									<p className="text-sm text-muted-foreground">
-										Нет участников
-									</p>
-								)}
-							</div>
-						</CardContent>
-					</Card>
+									<Badge variant="outline" className="border-b1 text-t2">{member.role}</Badge>
+								</div>
+							))}
+							{(!members || members.length === 0) && (
+								<p className="text-[13px] text-t3">
+									Нет участников
+								</p>
+							)}
+						</div>
+					</div>
 				</TabsContent>
 
 				<TabsContent value="files" className="mt-4">
-					<Card>
-						<CardHeader>
-							<CardTitle>Файлы</CardTitle>
-							<CardDescription>
-								Загрузите файлы через drag and drop или Ctrl+V
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<Dropzone
-								projectId={projectId}
-								entityType="project"
-								entityId={projectId}
-							/>
-						</CardContent>
-					</Card>
+					<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+						<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">Файлы</h3>
+						<p className="text-[12px] text-t3 mb-4">
+							Загрузите файлы через drag and drop или Ctrl+V
+						</p>
+						<Dropzone
+							projectId={projectId}
+							entityType="project"
+							entityId={projectId}
+						/>
+					</div>
 				</TabsContent>
 
 				{isOwnerOrAdmin && (
 					<TabsContent value="settings" className="mt-4 space-y-4">
-						<Card>
-							<CardHeader>
-								<CardTitle>Настройки проекта</CardTitle>
-								<CardDescription>Управление проектом</CardDescription>
-							</CardHeader>
-							<CardContent className="space-y-4">
+						<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+							<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">Настройки проекта</h3>
+							<p className="text-[12px] text-t3 mb-5">Управление проектом</p>
+							<div className="space-y-6">
 								<div>
-									<h3 className="mb-2 font-medium">Архивация</h3>
-									<p className="mb-2 text-sm text-muted-foreground">
+									<h4 className="mb-2 text-[14px] font-bold text-t1">Архивация</h4>
+									<p className="mb-2 text-[13px] text-t2">
 										Архивированный проект доступен только для чтения.
 									</p>
 									<Button
@@ -238,20 +229,21 @@ function ProjectPage() {
 										disabled={
 											archiveMutation.isPending || project.status !== "active"
 										}
+										className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]"
 									>
 										Архивировать
 									</Button>
 								</div>
-								<Separator />
+								<Separator className="bg-b1" />
 								<div>
-									<h3 className="mb-2 font-medium text-destructive">
+									<h4 className="mb-2 text-[14px] font-bold text-red">
 										Удаление
-									</h3>
-									<p className="mb-2 text-sm text-muted-foreground">
+									</h4>
+									<p className="mb-2 text-[13px] text-t2">
 										Проект будет перемещен в корзину на 30 дней.
 									</p>
 									<Button
-										variant="destructive"
+										className="bg-red hover:bg-red/80 text-white"
 										onClick={() => {
 											if (window.confirm("Удалить проект?")) {
 												deleteMutation.mutate();
@@ -262,8 +254,8 @@ function ProjectPage() {
 										Удалить
 									</Button>
 								</div>
-							</CardContent>
-						</Card>
+							</div>
+						</div>
 					</TabsContent>
 				)}
 			</Tabs>

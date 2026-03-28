@@ -49,9 +49,9 @@ function ProjectDashboard() {
 	const items = layouts["project"] ?? TEMPLATES[template] ?? projectDev;
 
 	return (
-		<div>
+		<div className="animate-[eu_450ms_var(--spring)_both]">
 			<div className="flex items-center justify-between mb-4">
-				<h1 className="text-2xl font-bold">Дашборд проекта</h1>
+				<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">Дашборд проекта</h1>
 				<div className="flex gap-1">
 					{Object.keys(TEMPLATES).map((key) => (
 						<button
@@ -60,10 +60,10 @@ function ProjectDashboard() {
 								setTemplate(key);
 								setLayout("project", TEMPLATES[key] ?? projectDev);
 							}}
-							className={`px-3 py-1 text-sm rounded-md border ${
+							className={`px-3 py-1 text-[13px] font-semibold rounded-[var(--r2)] border transition-all duration-200 ${
 								template === key
-									? "bg-primary text-primary-foreground"
-									: "hover:bg-muted"
+									? "bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white border-blue/30"
+									: "border-b1 text-t2 hover:bg-[var(--hover)] hover:text-t1"
 							}`}
 						>
 							{key === "dev" ? "Dev" : key === "qa" ? "QA" : "Manager"}
@@ -73,7 +73,7 @@ function ProjectDashboard() {
 			</div>
 
 			{loading && !projectData ? (
-				<p className="text-muted-foreground">Загрузка...</p>
+				<p className="text-t2 text-[13px]">Загрузка...</p>
 			) : (
 				<WidgetGrid
 					items={items}
