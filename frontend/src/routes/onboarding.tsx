@@ -165,7 +165,7 @@ function OnboardingPage() {
 	const [theme, setTheme] = useState<ThemeOption>("dark");
 
 	/** Выбранный язык (шаг 3). */
-	const [lang, setLang] = useState<LangOption>("ru");
+	const [lang] = useState<LangOption>("ru");
 
 	/** Selected accent color index */
 	const [accent, setAccent] = useState(0);
