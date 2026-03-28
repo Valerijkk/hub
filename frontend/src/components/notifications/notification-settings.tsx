@@ -6,10 +6,8 @@ import {
 	updatePreference,
 } from "@/api/notifications";
 import { updateProfile } from "@/api/auth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 /** Карточка настройки тихих часов с сохранением в профиль. */
 function QuietHoursCard() {
@@ -33,50 +31,39 @@ function QuietHoursCard() {
 	}, [start, end]);
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle className="text-base">Тихие часы</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<p className="mb-4 text-sm text-muted-foreground">
-					Во время тихих часов несрочные уведомления подавляются. Срочные
-					уведомления (блокировки) всегда доставляются.
-				</p>
-				<div className="flex items-center gap-4">
-					<div className="space-y-1">
-						<Label htmlFor="quiet-start">Начало</Label>
-						<Input
-							id="quiet-start"
-							type="time"
-							className="w-32"
-							value={start}
-							onChange={(e) => setStart(e.target.value)}
-							placeholder="23:00"
-						/>
-					</div>
-					<span className="mt-5 text-muted-foreground">&mdash;</span>
-					<div className="space-y-1">
-						<Label htmlFor="quiet-end">Конец</Label>
-						<Input
-							id="quiet-end"
-							type="time"
-							className="w-32"
-							value={end}
-							onChange={(e) => setEnd(e.target.value)}
-							placeholder="07:00"
-						/>
-					</div>
-					<Button
-						size="sm"
-						className="mt-5"
-						onClick={() => void handleSave()}
-						disabled={saving || (!start && !end)}
-					>
-						{saving ? "Сохранение..." : "Сохранить"}
-					</Button>
-				</div>
-			</CardContent>
-		</Card>
+		<div className="settings-quiet px-[18px] py-[18px] bg-gradient-to-br from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r3)] mt-5 relative overflow-hidden">
+			<h4 className="text-[14px] font-bold mb-[6px]">Тихие часы</h4>
+			<p className="text-[12px] text-t3 mb-3">
+				Несрочные уведомления подавляются в указанный период
+			</p>
+			<div className="flex items-center gap-3">
+				<Input
+					id="quiet-start"
+					type="time"
+					className="h-[38px] px-3 bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 [color-scheme:dark] w-auto"
+					value={start}
+					onChange={(e) => setStart(e.target.value)}
+					placeholder="23:00"
+				/>
+				<span className="text-t4">-</span>
+				<Input
+					id="quiet-end"
+					type="time"
+					className="h-[38px] px-3 bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 [color-scheme:dark] w-auto"
+					value={end}
+					onChange={(e) => setEnd(e.target.value)}
+					placeholder="07:00"
+				/>
+				<Button
+					size="sm"
+					onClick={() => void handleSave()}
+					disabled={saving || (!start && !end)}
+					className="text-[12px]"
+				>
+					{saving ? "..." : "OK"}
+				</Button>
+			</div>
+		</div>
 	);
 }
 
@@ -179,21 +166,16 @@ export function NotificationSettings() {
 	}
 
 	return (
-		<div className="space-y-6">
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-base">Настройки уведомлений</CardTitle>
-				</CardHeader>
-				<CardContent>
+		<div className="space-y-0">
 					<div className="overflow-x-auto">
-						<table className="w-full text-sm">
+						<table className="w-full border-collapse">
 							<thead>
-								<tr className="border-b">
-									<th className="pb-2 pr-4 text-left font-medium">Тип</th>
+								<tr>
+									<th className="px-[14px] py-[10px] text-[11px] font-bold text-t4 text-left uppercase tracking-[0.05em] border-b border-b2" />
 									{CHANNELS.map((ch) => (
 										<th
 											key={ch.key}
-											className="pb-2 px-4 text-center font-medium"
+											className="px-[14px] py-[10px] text-[11px] font-bold text-t4 text-center uppercase tracking-[0.05em] border-b border-b2"
 										>
 											{ch.label}
 										</th>
@@ -202,15 +184,15 @@ export function NotificationSettings() {
 							</thead>
 							<tbody>
 								{NOTIFICATION_TYPES.map((nt) => (
-									<tr key={nt.key} className="border-b last:border-0">
-										<td className="py-3 pr-4">{nt.label}</td>
+									<tr key={nt.key}>
+										<td className="px-[14px] py-[10px] border-b border-b1 text-left text-t2 text-[13px]">{nt.label}</td>
 										{CHANNELS.map((ch) => (
-											<td key={ch.key} className="py-3 px-4 text-center">
+											<td key={ch.key} className="px-[14px] py-[10px] border-b border-b1 text-center text-[13px]">
 												<input
 													type="checkbox"
 													checked={isEnabled(nt.key, ch.key)}
 													onChange={() => void togglePreference(nt.key, ch.key)}
-													className="h-4 w-4 rounded border-gray-300"
+													className="w-[18px] h-[18px] accent-[var(--blue)] cursor-pointer"
 													aria-label={`${nt.label} - ${ch.label}`}
 												/>
 											</td>
@@ -220,8 +202,6 @@ export function NotificationSettings() {
 							</tbody>
 						</table>
 					</div>
-				</CardContent>
-			</Card>
 
 			<QuietHoursCard />
 		</div>

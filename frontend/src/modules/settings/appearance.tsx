@@ -13,13 +13,6 @@ import {
 	useAccentColor,
 	useTheme,
 } from "@/components/theme-provider";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 /** CSS цвета для превью акцентных кружков */
@@ -47,131 +40,73 @@ export function AppearanceSettings() {
 	const { accent, setAccent } = useAccentColor();
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-0">
 			{/* Тема */}
-			<Card>
-				<CardHeader>
-					<CardTitle>{t("theme.title")}</CardTitle>
-					<CardDescription>{t("theme.description")}</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className="flex gap-[10px]">
+			<div className="mb-9">
+				<h2 className="text-[18px] font-extrabold tracking-[-0.02em] mb-1">{t("theme.title")}</h2>
+				<p className="text-[13px] text-t2 mb-5">{t("theme.description")}</p>
+					<div className="flex gap-[14px] mb-6">
 						{THEME_OPTIONS.map((opt) => (
 							<button
 								key={opt.value}
 								type="button"
 								onClick={() => setTheme(opt.value)}
 								className={cn(
-									"flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-colors hover:bg-accent/50",
+									"flex-1 p-[18px] bg-[var(--card)] border-2 border-b1 rounded-[var(--r3)] text-center cursor-pointer transition-all duration-250 hover:border-b2",
 									theme === opt.value
-										? "border-blue-500 bg-blue-500/[0.08]"
-										: "border-transparent",
+										&& "border-[var(--blue)] shadow-[0_0_0_3px_rgba(91,156,245,0.1),_0_0_16px_rgba(91,156,245,0.06)]",
 								)}
 							>
-								<ThemeIcon icon={opt.icon} />
-								<span className="text-sm font-medium">
+								<div className={cn(
+									"w-full h-[52px] rounded-[var(--r2)] mb-[10px]",
+									opt.value === "light" && "bg-white border border-[#ddd]",
+									opt.value === "dark" && "bg-[var(--void)] border border-b1",
+									opt.value === "system" && "bg-gradient-to-r from-white to-[var(--void)] border border-[#ddd]",
+								)} />
+								<span className="text-[13px] font-semibold">
 									{t(`theme.${opt.value}`)}
 								</span>
 							</button>
 						))}
 					</div>
-				</CardContent>
-			</Card>
+			</div>
 
 			{/* Акцентный цвет */}
-			<Card>
-				<CardHeader>
-					<CardTitle>{t("accent.title")}</CardTitle>
-					<CardDescription>{t("accent.description")}</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className="flex gap-3">
+			<div className="mb-9">
+				<h2 className="text-[18px] font-extrabold tracking-[-0.02em] mb-1">{t("accent.title")}</h2>
+				<p className="text-[13px] text-t2 mb-5">{t("accent.description")}</p>
+					<div className="flex gap-[14px] justify-center mb-6">
 						{ACCENT_COLORS.map((color) => (
 							<button
 								key={color}
 								type="button"
 								onClick={() => setAccent(color)}
 								className={cn(
-									"flex items-center justify-center rounded-full transition-transform hover:scale-110",
+									"w-10 h-10 rounded-full cursor-pointer transition-all duration-200 border-[3px] border-transparent hover:scale-115",
 									accent === color
-										? "ring-2 ring-white ring-offset-2 ring-offset-background"
-										: "",
+										&& "border-white/40 shadow-[0_0_0_2px_currentColor,_0_0_16px_currentColor]",
 								)}
-								style={accent === color ? { boxShadow: `0 0 12px ${ACCENT_PREVIEWS[color]}` } : undefined}
+								style={{
+									backgroundColor: ACCENT_PREVIEWS[color],
+									color: ACCENT_PREVIEWS[color],
+								}}
 								title={t(`accent.${color}`)}
-							>
-								<span
-									className="h-7 w-7 rounded-full"
-									style={{ backgroundColor: ACCENT_PREVIEWS[color] }}
-								/>
-							</button>
+							/>
 						))}
 					</div>
-				</CardContent>
-			</Card>
+			</div>
 
 			{/* Язык */}
-			<Card>
-				<CardHeader>
-					<CardTitle>{t("lang.title")}</CardTitle>
-					<CardDescription>{t("lang.description")}</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<LanguageSwitcher />
-				</CardContent>
-			</Card>
+			<div className="mb-9">
+				<h2 className="text-[18px] font-extrabold tracking-[-0.02em] mb-1">{t("lang.title")}</h2>
+				<p className="text-[13px] text-t2 mb-5">{t("lang.description")}</p>
+				<LanguageSwitcher />
+			</div>
+
+			<button type="button" className="settings-btn-save inline-flex items-center gap-[7px] px-6 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-all duration-220 hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]">
+				Сохранить
+			</button>
 		</div>
 	);
 }
 
-/** Иконки для карточек выбора темы */
-function ThemeIcon({ icon }: { icon: string }) {
-	if (icon === "sun") {
-		return (
-			<svg
-				width="24"
-				height="24"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="2"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-			>
-				<circle cx="12" cy="12" r="5" />
-				<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-			</svg>
-		);
-	}
-	if (icon === "moon") {
-		return (
-			<svg
-				width="24"
-				height="24"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="2"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-			>
-				<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-			</svg>
-		);
-	}
-	return (
-		<svg
-			width="24"
-			height="24"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="2"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-		>
-			<rect x="2" y="3" width="20" height="14" rx="2" />
-			<path d="M8 21h8M12 17v4" />
-		</svg>
-	);
-}

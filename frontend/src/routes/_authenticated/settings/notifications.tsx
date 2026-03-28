@@ -3,10 +3,10 @@ import { NotificationSettings } from "@/components/notifications/notification-se
 
 function NotificationsSettingsPage() {
 	return (
-		<div>
-			<h2 className="text-lg font-semibold mb-1">Уведомления</h2>
-			<p className="text-sm text-muted-foreground mb-6">
-				Настройте каналы доставки для каждого типа событий
+		<div className="mb-9">
+			<h2 className="text-[18px] font-extrabold tracking-[-0.02em] mb-1">Уведомления</h2>
+			<p className="text-[13px] text-t2 mb-5">
+				Настройте каналы доставки для каждого типа события
 			</p>
 			<NotificationSettings />
 		</div>

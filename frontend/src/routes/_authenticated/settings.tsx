@@ -17,19 +17,19 @@ const navItems = [
 
 function SettingsLayout() {
 	return (
-		<div className="flex h-full overflow-hidden -mx-4 -my-4 md:-mx-6 md:-my-4">
+		<div className="flex flex-1 overflow-hidden animate-[eu_400ms_var(--spring)] -mx-4 -my-4 md:-mx-6 md:-my-4">
 			{/* Left sidebar nav */}
-			<nav className="w-[220px] min-w-[220px] border-r border-white/[0.06] p-4 space-y-0.5 overflow-y-auto">
-				<h2 className="px-2.5 pb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-					{"\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"}
-				</h2>
+			<nav className="w-60 min-w-60 border-r border-b1 py-4 px-3 overflow-y-auto">
+				<div className="text-[10px] font-bold uppercase tracking-[0.08em] text-t4 px-[10px] pt-[14px] pb-[6px]">
+					{"\u0410\u043A\u043A\u0430\u0443\u043D\u0442"}
+				</div>
 				{navItems.map((item) => (
 					<NavItem key={item.to} {...item} />
 				))}
 			</nav>
 
 			{/* Right content area */}
-			<div className="flex-1 overflow-y-auto p-6">
+			<div className="flex-1 overflow-y-auto px-9 py-7 max-w-[720px]">
 				<Outlet />
 			</div>
 		</div>
@@ -53,10 +53,10 @@ function NavItem({
 	if (placeholder) {
 		return (
 			<div
-				className="flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] text-muted-foreground/50 cursor-not-allowed select-none"
+				className="flex items-center gap-[10px] px-3 py-[9px] rounded-[var(--r2)] text-[14px] font-medium text-t3/50 cursor-not-allowed select-none mb-[1px]"
 				title={`${label} (\u0441\u043A\u043E\u0440\u043E)`}
 			>
-				<span className="text-base leading-none">{icon}</span>
+				<span className="w-[18px] h-[18px] opacity-50 text-base leading-none shrink-0">{icon}</span>
 				<span className="truncate">{label}</span>
 			</div>
 		);
@@ -66,12 +66,11 @@ function NavItem({
 		<Link
 			to={to}
 			className={cn(
-				"flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] transition-colors",
-				"text-[#979A9F] hover:bg-white/[0.05] hover:text-white",
-				isActive && "bg-white/[0.07] text-white font-medium",
+				"flex items-center gap-[10px] px-3 py-[9px] rounded-[var(--r2)] text-[14px] font-medium text-t2 cursor-pointer transition-all duration-180 mb-[1px] hover:bg-[var(--hover)] hover:text-t1",
+				isActive && "bg-blue/[0.06] text-t1",
 			)}
 		>
-			<span className="text-base leading-none">{icon}</span>
+			<span className="w-[18px] h-[18px] opacity-50 text-base leading-none shrink-0">{icon}</span>
 			<span className="truncate">{label}</span>
 		</Link>
 	);

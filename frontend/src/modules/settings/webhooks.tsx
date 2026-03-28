@@ -80,31 +80,31 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 	};
 
 	return (
-		<div className="space-y-6 p-6">
+		<div className="space-y-6">
 			<div className="flex items-center justify-between">
-				<h2 className="text-xl font-semibold">Вебхуки</h2>
+				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">Вебхуки</h2>
 				<button
 					onClick={() => setShowCreate(true)}
-					className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+					className="settings-btn-save inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-all duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
 				>
 					Добавить вебхук
 				</button>
 			</div>
 
 			{showCreate && (
-				<div className="rounded-md border p-4 dark:border-gray-700">
-					<h3 className="mb-3 font-medium">Новый вебхук</h3>
+				<div className="rounded-[var(--r3)] border border-b1 p-4 bg-[var(--card)]">
+					<h3 className="mb-3 text-[14px] font-semibold">Новый вебхук</h3>
 					<input
 						type="url"
 						value={url}
 						onChange={(e) => setUrl(e.target.value)}
 						placeholder="https://example.com/webhook"
-						className="mb-3 w-full rounded-md border p-2 dark:border-gray-600 dark:bg-gray-800"
+						className="mb-3 w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none focus:border-[rgba(91,156,245,0.3)] placeholder:text-t3"
 					/>
 					<div className="mb-3 space-y-1">
-						<p className="text-sm font-medium">События:</p>
+						<p className="text-[13px] font-semibold text-t2 mb-1">События:</p>
 						{AVAILABLE_EVENTS.map((event) => (
-							<label key={event} className="flex items-center gap-2 text-sm">
+							<label key={event} className="flex items-center gap-2 text-[13px] text-t2">
 								<input
 									type="checkbox"
 									checked={selectedEvents.includes(event)}
@@ -117,13 +117,13 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 					<div className="flex gap-2">
 						<button
 							onClick={handleCreate}
-							className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white"
+							className="settings-btn-save inline-flex items-center px-4 py-2 rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)]"
 						>
 							Создать
 						</button>
 						<button
 							onClick={() => setShowCreate(false)}
-							className="rounded-md border px-4 py-2 text-sm"
+							className="rounded-[var(--r2)] border border-b1 px-4 py-2 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-all duration-180"
 						>
 							Отмена
 						</button>
@@ -132,44 +132,44 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 			)}
 
 			{loading ? (
-				<p className="text-gray-500">Загрузка...</p>
+				<p className="text-t3 text-[13px]">Загрузка...</p>
 			) : endpoints.length === 0 ? (
-				<p className="text-gray-500">Нет вебхуков</p>
+				<p className="text-t3 text-[13px]">Нет вебхуков</p>
 			) : (
 				<div className="space-y-4">
 					{endpoints.map((ep) => (
 						<div
 							key={ep.id}
-							className="rounded-md border p-4 dark:border-gray-700"
+							className="rounded-[var(--r3)] border border-b1 p-4 bg-gradient-to-br from-[var(--card)] to-[var(--raised)]"
 						>
 							<div className="flex items-center justify-between">
 								<div>
-									<p className="font-medium">{ep.url}</p>
-									<p className="text-sm text-gray-500">
+									<p className="text-[14px] font-semibold">{ep.url}</p>
+									<p className="text-[12px] text-t3">
 										{ep.events.join(", ")}
 									</p>
 								</div>
 								<div className="flex items-center gap-3">
 									<span
-										className={`rounded-full px-2 py-1 text-xs ${ep.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+										className={`rounded-full px-[10px] py-[2px] text-[11px] font-bold ${ep.is_active ? "bg-green/[0.08] text-green border border-green/[0.15]" : "bg-[var(--gray)]/[0.08] text-t4 border border-b1"}`}
 									>
 										{ep.is_active ? "Активен" : "Отключен"}
 									</span>
 									<button
 										onClick={() => handleToggleActive(ep)}
-										className="text-sm text-blue-600 hover:underline"
+										className="text-[12px] font-semibold text-blue hover:underline"
 									>
 										{ep.is_active ? "Отключить" : "Включить"}
 									</button>
 									<button
 										onClick={() => handleShowDeliveries(ep.id)}
-										className="text-sm text-blue-600 hover:underline"
+										className="text-[12px] font-semibold text-blue hover:underline"
 									>
 										Доставки
 									</button>
 									<button
 										onClick={() => handleDelete(ep.id)}
-										className="text-sm text-red-600 hover:underline"
+										className="text-[12px] font-bold text-red hover:underline"
 									>
 										Удалить
 									</button>
@@ -177,35 +177,35 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 							</div>
 
 							{showDeliveriesFor === ep.id && (
-								<div className="mt-3 border-t pt-3 dark:border-gray-700">
-									<h4 className="mb-2 text-sm font-medium">История доставок</h4>
+								<div className="mt-3 border-t border-b1 pt-3">
+									<h4 className="mb-2 text-[13px] font-semibold">История доставок</h4>
 									{deliveries.length === 0 ? (
-										<p className="text-sm text-gray-500">Нет доставок</p>
+										<p className="text-[13px] text-t3">Нет доставок</p>
 									) : (
-										<table className="w-full text-sm">
+										<table className="w-full border-collapse">
 											<thead>
-												<tr className="text-left text-gray-500">
-													<th className="p-1">Событие</th>
-													<th className="p-1">Статус</th>
-													<th className="p-1">Дата</th>
+												<tr className="text-left">
+													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">Событие</th>
+													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">Статус</th>
+													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">Дата</th>
 												</tr>
 											</thead>
 											<tbody>
 												{deliveries.map((d) => (
-													<tr key={d.id}>
-														<td className="p-1">{d.event_type}</td>
-														<td className="p-1">
+													<tr key={d.id} className="hover:bg-[var(--hover)]">
+														<td className="px-3 py-[10px] border-b border-b1 text-[13px]">{d.event_type}</td>
+														<td className="px-3 py-[10px] border-b border-b1">
 															<span
-																className={
+																className={`text-[12px] font-bold ${
 																	d.status_code >= 200 && d.status_code < 300
-																		? "text-green-600"
-																		: "text-red-600"
-																}
+																		? "text-green"
+																		: "text-red"
+																}`}
 															>
 																{d.status_code}
 															</span>
 														</td>
-														<td className="p-1">
+														<td className="px-3 py-[10px] border-b border-b1 text-[12px] text-t3">
 															{new Date(d.delivered_at).toLocaleString("ru-RU")}
 														</td>
 													</tr>
