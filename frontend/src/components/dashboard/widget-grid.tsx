@@ -311,7 +311,7 @@ export function WidgetGrid({
 						return (
 							<div
 								key={item.i}
-								className="group/widget widget-card relative rounded-2xl bg-card text-card-foreground border border-white/[0.06] shadow-sm overflow-hidden"
+								className="group/widget dash-widget relative text-card-foreground"
 							>
 								{/* Accent top border */}
 								<div
@@ -319,13 +319,13 @@ export function WidgetGrid({
 								/>
 
 								{/* Widget header */}
-								<div className="widget-drag-handle flex items-center justify-between border-b border-white/[0.06] px-4 py-2.5 cursor-move">
+								<div className="widget-drag-handle flex items-center justify-between px-5 pt-[18px] cursor-move">
 									<div className="flex items-center gap-2">
-										<GripVertical className="h-3.5 w-3.5 text-muted-foreground/40" />
+										<GripVertical className="h-3.5 w-3.5 text-[var(--t4)]" />
 										{Icon && (
-											<Icon className="h-4 w-4 text-muted-foreground" />
+											<Icon className="h-4 w-4 text-[var(--t2)]" />
 										)}
-										<span className="text-[11px] uppercase font-semibold tracking-[0.04em] text-muted-foreground">
+										<span className="text-[13px] font-bold text-[var(--t2)] uppercase tracking-[0.04em]">
 											{WIDGET_NAMES[item.widget_type] ?? item.widget_type}
 										</span>
 									</div>
@@ -334,7 +334,7 @@ export function WidgetGrid({
 											<DropdownMenuTrigger asChild>
 												<button
 													type="button"
-													className="rounded-md p-0.5 text-muted-foreground/50 opacity-0 group-hover/widget:opacity-100 hover:text-foreground hover:bg-accent transition-all duration-150"
+													className="w-7 h-7 flex items-center justify-center rounded-[var(--r1)] text-[var(--t4)] text-base hover:bg-[var(--hover)] hover:text-[var(--t2)] transition-all opacity-0 group-hover/widget:opacity-100"
 												>
 													<Ellipsis className="h-4 w-4" />
 												</button>
@@ -358,7 +358,7 @@ export function WidgetGrid({
 								</div>
 
 								{/* Widget content */}
-								<div className="p-4 overflow-hidden h-[calc(100%-44px)]">
+								<div className="px-5 pb-5 pt-3.5 overflow-hidden h-[calc(100%-52px)]">
 									<WidgetComponent
 										key={refreshKeys[item.i] ?? 0}
 										data={data}

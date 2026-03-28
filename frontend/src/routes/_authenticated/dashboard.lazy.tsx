@@ -108,60 +108,68 @@ function PersonalDashboard() {
 			{/* Scrollable content */}
 			<div className="flex-1 overflow-y-auto p-6">
 				{/* Greeting */}
-				<div className="mb-6">
-					<h1 className="text-[28px] font-bold tracking-[-0.015em] greeting-gradient">
+				<div className="mb-2.5 dash-enter">
+					<h1 className="text-[34px] font-black tracking-[-0.04em] leading-tight dash-greeting-gradient dash-enter">
 						{greeting}
 						{displayName ? `, ${displayName}` : ""} <span>👋</span>
 					</h1>
-					<p className="text-sm text-muted-foreground capitalize mt-1">
+					<p className="text-sm text-[var(--t2)] mt-1.5 dash-enter">
 						{todayDate}
-						<span className="mx-1.5 text-border">|</span>
+						<span className="mx-1.5 text-[var(--t4)]">&middot;</span>
 						{currentTime}
 					</p>
 				</div>
 
 				{/* Quick actions */}
-				<div className="flex gap-2 mb-6 flex-wrap">
+				<div className="flex gap-2.5 mb-7 flex-wrap dash-enter dash-enter-2">
 					<button
 						type="button"
-						className="flex items-center gap-2 px-3.5 py-2 bg-card border border-white/[0.06] rounded-lg text-[13px] text-muted-foreground hover:text-white hover:bg-white/[0.07] hover:-translate-y-[2px] hover:shadow-lg transition-all duration-200"
+						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-all"
 						onClick={() => navigate({ to: "/projects" })}
 					>
-						<Plus className="h-3.5 w-3.5" />
+						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(91,156,245,.06)" }}>
+							<Plus className="h-[18px] w-[18px]" style={{ color: "var(--blue)" }} />
+						</div>
 						Новая задача
 					</button>
 					<button
 						type="button"
-						className="flex items-center gap-2 px-3.5 py-2 bg-card border border-white/[0.06] rounded-lg text-[13px] text-muted-foreground hover:text-white hover:bg-white/[0.07] hover:-translate-y-[2px] hover:shadow-lg transition-all duration-200"
+						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-all"
 						onClick={() => navigate({ to: "/messenger" })}
 					>
-						<MessageSquarePlus className="h-3.5 w-3.5" />
+						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(52,211,153,.06)" }}>
+							<MessageSquarePlus className="h-[18px] w-[18px]" style={{ color: "var(--green)" }} />
+						</div>
 						Написать
 					</button>
 					<button
 						type="button"
-						className="flex items-center gap-2 px-3.5 py-2 bg-card border border-white/[0.06] rounded-lg text-[13px] text-muted-foreground hover:text-white hover:bg-white/[0.07] hover:-translate-y-[2px] hover:shadow-lg transition-all duration-200"
+						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-all"
 						onClick={() => navigate({ to: "/calls" })}
 					>
-						<CalendarPlus className="h-3.5 w-3.5" />
+						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(167,139,250,.06)" }}>
+							<CalendarPlus className="h-[18px] w-[18px]" style={{ color: "var(--purple)" }} />
+						</div>
 						Событие
 					</button>
 					<button
 						type="button"
-						className="flex items-center gap-2 px-3.5 py-2 bg-card border border-white/[0.06] rounded-lg text-[13px] text-muted-foreground hover:text-white hover:bg-white/[0.07] hover:-translate-y-[2px] hover:shadow-lg transition-all duration-200"
+						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-all"
 					>
-						<Search className="h-3.5 w-3.5" />
+						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(255,255,255,.03)" }}>
+							<Search className="h-[18px] w-[18px]" style={{ color: "var(--t2)" }} />
+						</div>
 						Поиск
 					</button>
 				</div>
 
 				{/* Widget grid */}
 				{loading && !personalData ? (
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 dash-enter dash-enter-3">
 						{[1, 2, 3, 4, 5, 6].map((i) => (
 							<div
 								key={i}
-								className="rounded-2xl border border-white/[0.06] bg-card p-5 space-y-3 shadow-sm"
+								className="dash-widget p-5 space-y-3"
 								style={{ animationDelay: `${i * 80}ms` }}
 							>
 								<div className="flex items-center gap-3">
