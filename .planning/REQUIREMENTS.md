@@ -116,17 +116,17 @@
 
 ### Onboarding Page (ONBD)
 
-- [ ] **ONBD-01**: User sees redesigned centered modal flow with progress indicator
-- [ ] **ONBD-02**: User sees redesigned profile form (Step 1)
-- [ ] **ONBD-03**: User sees redesigned feature tour with 6 cards (Step 2)
-- [ ] **ONBD-04**: User sees redesigned theme + accent selection (Step 3)
-- [ ] **ONBD-05**: Onboarding flow works without regression
+- [x] **ONBD-01**: User sees redesigned centered modal flow with progress indicator
+- [x] **ONBD-02**: User sees redesigned profile form (Step 1)
+- [x] **ONBD-03**: User sees redesigned feature tour with 6 cards (Step 2)
+- [x] **ONBD-04**: User sees redesigned theme + accent selection (Step 3)
+- [x] **ONBD-05**: Onboarding flow works without regression
 
 ### Trash Page (TRSH)
 
-- [ ] **TRSH-01**: User sees redesigned trash table with new styling
-- [ ] **TRSH-02**: User sees redesigned restore/delete buttons and type badges
-- [ ] **TRSH-03**: Trash functionality works without regression (restore, permanent delete)
+- [x] **TRSH-01**: User sees redesigned trash table with new styling
+- [x] **TRSH-02**: User sees redesigned restore/delete buttons and type badges
+- [x] **TRSH-03**: Trash functionality works without regression (restore, permanent delete)
 
 ### Pages Without Mockups (XTRA)
 
@@ -232,14 +232,14 @@
 | ADMN-03 | Phase 12 | Pending |
 | ADMN-04 | Phase 12 | Pending |
 | ADMN-05 | Phase 12 | Pending |
-| ONBD-01 | Phase 12 | Pending |
-| ONBD-02 | Phase 12 | Pending |
-| ONBD-03 | Phase 12 | Pending |
-| ONBD-04 | Phase 12 | Pending |
-| ONBD-05 | Phase 12 | Pending |
-| TRSH-01 | Phase 12 | Pending |
-| TRSH-02 | Phase 12 | Pending |
-| TRSH-03 | Phase 12 | Pending |
+| ONBD-01 | Phase 12 | Complete |
+| ONBD-02 | Phase 12 | Complete |
+| ONBD-03 | Phase 12 | Complete |
+| ONBD-04 | Phase 12 | Complete |
+| ONBD-05 | Phase 12 | Complete |
+| TRSH-01 | Phase 12 | Complete |
+| TRSH-02 | Phase 12 | Complete |
+| TRSH-03 | Phase 12 | Complete |
 | XTRA-01 | Phase 12 | Pending |
 | XTRA-02 | Phase 12 | Pending |
 | XTRA-03 | Phase 12 | Pending |

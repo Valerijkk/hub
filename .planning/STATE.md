@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Hub Redesign
-status: verifying
-stopped_at: Completed 11-03-PLAN.md
-last_updated: "2026-03-28T13:05:58.667Z"
+status: executing
+stopped_at: Completed 12-04-PLAN.md
+last_updated: "2026-03-28T13:22:24.345Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 13
   completed_phases: 11
-  total_plans: 50
-  completed_plans: 51
+  total_plans: 55
+  completed_plans: 52
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Unified environment for dev teams -- tracker, TMS, messenger, and calls connected in one interface
-**Current focus:** Phase 11 — core-mockup-pages
+**Current focus:** Phase 12 — remaining-mockup-pages-unmocked-pages
 
 ## Current Position
 
-Phase: 12
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 12 (remaining-mockup-pages-unmocked-pages) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
 Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 11 P01 | 3min | 2 tasks | 4 files |
 | Phase 11 P04 | 4min | 2 tasks | 4 files |
 | Phase 11 P03 | 5min | 2 tasks | 5 files |
+| Phase 12 P04 | 4min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Recent decisions affecting current work:
 - [Phase 11]: Removed Shadcn Button/Input deps from auth forms for exact mockup CSS match
 - [Phase 11]: Kanban cards use CSS class system (kanban-card) instead of inline Tailwind for gradient+glow complexity
 - [Phase 11]: Green accent (emerald-400) for messenger active states and focus indicators
+- [Phase 12]: Removed Shadcn deps from onboarding for exact mockup CSS match
+- [Phase 12]: Trash uses native table with sticky headers per mockup pattern
 
 ### Pending Todos
 
@@ -97,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T13:00:49.004Z
-Stopped at: Completed 11-03-PLAN.md
+Last session: 2026-03-28T13:22:24.340Z
+Stopped at: Completed 12-04-PLAN.md
 Resume file: None

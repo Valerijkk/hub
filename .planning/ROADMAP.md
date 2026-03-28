@@ -85,7 +85,7 @@ Plans:
 - [ ] 12-01-PLAN.md — Issue Detail + Calls restyle
 - [ ] 12-02-PLAN.md — TMS pages restyle
 - [ ] 12-03-PLAN.md — Settings + Admin restyle
-- [ ] 12-04-PLAN.md — Onboarding + Trash restyle
+- [x] 12-04-PLAN.md — Onboarding + Trash restyle
 - [ ] 12-05-PLAN.md — Unmocked pages (Projects, Sprints, JQL, Project settings, Project dashboard)
 
 Plans:
@@ -338,5 +338,5 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 9. Layout Shell | v2.0 | 0/2 | Not started | - |
 | 10. UI Primitives | v2.0 | 3/3 | Complete    | 2026-03-28 |
 | 11. Core Mockup Pages | v2.0 | 4/4 | Complete    | 2026-03-28 |
-| 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 0/5 | In Progress | - |
+| 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 1/5 | In Progress|  |
 | 13. Polish & QA | v2.0 | 0/? | Not started | - |
