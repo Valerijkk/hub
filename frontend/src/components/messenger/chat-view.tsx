@@ -209,15 +209,19 @@ export function ChatView({ channelId }: ChatViewProps) {
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
 			{/* Channel header */}
-			<div className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.06] px-5 page-header-blur">
-				<div className="flex items-center gap-2.5 min-w-0">
-					{channel && <ChannelHeaderIcon type={channel.channel_type} />}
+			<div className="h-[58px] shrink-0 flex items-center px-[22px] gap-3.5 border-b border-[var(--b1)] bg-[rgba(13,14,18,.7)] backdrop-blur-[24px] backdrop-saturate-[180%] relative z-20">
+				<div className="flex items-center gap-3.5 min-w-0 flex-1">
+					{channel && (
+						<div className="w-[34px] h-[34px] rounded-full bg-[rgba(52,211,153,.08)] text-[var(--green)] flex items-center justify-center text-sm font-extrabold shadow-[0_0_12px_rgba(52,211,153,.06)] hover:scale-110 transition-transform">
+							<ChannelHeaderIcon type={channel.channel_type} />
+						</div>
+					)}
 					<div className="min-w-0">
-						<h2 className="text-sm font-semibold leading-tight truncate">
+						<h2 className="text-[15px] font-bold tracking-[-0.015em] truncate">
 							{channel?.name ?? "Загрузка..."}
 						</h2>
 						{channel && channel.channel_type !== "dm" && (
-							<span className="text-[11px] text-muted-foreground">
+							<span className="text-[11.5px] text-[var(--t3)] font-medium">
 								{channel.channel_type === "public"
 									? "Публичный канал"
 									: channel.channel_type === "private"
@@ -235,6 +239,8 @@ export function ChatView({ channelId }: ChatViewProps) {
 					<SearchDialog channelId={channelId} />
 					<PinnedMessages channelId={channelId} />
 				</div>
+				{/* Gradient line after header */}
+				<div className="absolute bottom-[-1px] left-[5%] right-[5%] h-px bg-gradient-to-r from-transparent via-[rgba(52,211,153,.06)] to-transparent" />
 			</div>
 
 			{/* Message area */}
@@ -283,7 +289,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 					) : (
 						<div
 							ref={parentRef}
-							className="flex-1 overflow-y-auto scroll-smooth"
+							className="flex-1 overflow-y-auto scroll-smooth px-[22px] py-[18px]"
 							onScroll={handleScroll}
 						>
 							<div
@@ -363,11 +369,11 @@ export function ChatView({ channelId }: ChatViewProps) {
 
 					{/* Typing indicator */}
 					{typingText && (
-						<div className="shrink-0 px-5 py-1.5 text-xs text-muted-foreground flex items-center gap-1.5">
-							<span className="typing-dots">
-								<span className="dot" />
-								<span className="dot" />
-								<span className="dot" />
+						<div className="shrink-0 px-[22px] py-1.5 text-xs text-[var(--t3)] flex items-center gap-1.5">
+							<span className="flex items-center gap-0.5">
+								<span className="typing-dot" />
+								<span className="typing-dot" />
+								<span className="typing-dot" />
 							</span>
 							<span>{typingText}...</span>
 						</div>
@@ -375,7 +381,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 
 					{/* Composer */}
 					{!channel?.is_readonly && (
-						<div className="shrink-0 px-4 py-3">
+						<div className="px-[22px] pb-[18px] pt-3 shrink-0">
 							<MessageComposer
 								channelId={channelId}
 								placeholder={

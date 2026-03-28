@@ -227,33 +227,28 @@ function MessageItemInner({
 			{/* Date separator -- centered pill */}
 			{showDateSeparator && dateSeparatorText && (
 				<div className="flex items-center justify-center py-4 px-5">
-					<div className="rounded-full border border-border/50 bg-card/80 backdrop-blur-sm px-3 py-1">
-						<span className="text-xs font-medium text-muted-foreground select-none">
-							{dateSeparatorText}
-						</span>
+					<div className="text-[11.5px] font-semibold text-[var(--t3)] bg-[var(--raised)] px-4 py-1.5 rounded-full border border-[var(--b1)] shadow-[var(--sh2)]">
+						{dateSeparatorText}
 					</div>
 				</div>
 			)}
 
 			{/* New messages divider */}
 			{showNewMessagesDivider && (
-				<div className="flex items-center justify-center py-2 px-5">
-					<div className="flex items-center gap-3 w-full">
-						<div className="flex-1 h-px bg-red-500/50" />
-						<span className="text-xs font-semibold text-red-500 px-2 select-none">
-							Новые сообщения
-						</span>
-						<div className="flex-1 h-px bg-red-500/50" />
-					</div>
+				<div className="flex items-center gap-3.5 py-3 px-5">
+					<div className="flex-1 h-px bg-[var(--red)] opacity-50" />
+					<span className="text-[11.5px] font-semibold text-[var(--red)] whitespace-nowrap">
+						Новые сообщения
+					</span>
+					<div className="flex-1 h-px bg-[var(--red)] opacity-50" />
 				</div>
 			)}
 
 			{/* Message -- flat Slack-style layout */}
 			<div
 				className={cn(
-					"group relative flex px-5 transition-colors",
-					isGrouped ? "py-px" : "pt-4 pb-0.5",
-					"hover:bg-muted/30",
+					"msg-row flex gap-3 py-2 px-2.5 rounded-[var(--r3)] transition-[background] relative",
+					"hover:bg-[var(--hover)]",
 				)}
 				onMouseEnter={() => setShowActions(true)}
 				onMouseLeave={() => {
@@ -262,11 +257,11 @@ function MessageItemInner({
 				}}
 			>
 				<div className="flex gap-3 w-full min-w-0">
-					{/* Avatar column -- 36px, shown only on first message in group */}
-					<div className="w-9 shrink-0 pt-0.5">
+					{/* Avatar column -- 38px, shown only on first message in group */}
+					<div className={cn("w-[38px] shrink-0", isGrouped && "invisible h-0")}>
 						{!isGrouped && (
-							<Avatar className="h-9 w-9">
-								<AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+							<Avatar className="w-[38px] h-[38px]">
+								<AvatarFallback className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[13px] font-bold text-white hover:scale-[1.06] hover:shadow-[0_2px_12px_rgba(0,0,0,.3)] transition-all bg-primary/10 text-primary">
 									{message.sender_id?.charAt(0)?.toUpperCase() ?? "?"}
 								</AvatarFallback>
 							</Avatar>
@@ -284,14 +279,14 @@ function MessageItemInner({
 						{/* Name + time -- shown only on first message in group */}
 						{!isGrouped && (
 							<div className="flex items-baseline gap-2 mb-0.5">
-								<span className="text-[13px] font-semibold text-foreground hover:underline cursor-pointer">
+								<span className="text-[13.5px] font-bold tracking-[-0.01em] hover:underline cursor-pointer">
 									{message.sender_id}
 								</span>
-								<span className="text-[11px] text-muted-foreground">
+								<span className="text-[10.5px] text-[var(--t4)] font-medium">
 									{formatTime(message.created_at)}
 								</span>
 								{message.edited_at && (
-									<span className="text-[11px] text-muted-foreground/60 italic">
+									<span className="text-[10.5px] text-[var(--t4)] italic">
 										(изм.)
 									</span>
 								)}
@@ -364,7 +359,7 @@ function MessageItemInner({
 									</div>
 								</div>
 							) : (
-								<div className="text-sm leading-relaxed break-words">
+								<div className="text-sm leading-relaxed text-[var(--t1)] break-words">
 									{message.content_json && (
 										<RenderContent contentJson={message.content_json} />
 									)}
@@ -410,7 +405,7 @@ function MessageItemInner({
 
 						{/* Reactions -- small emoji chips */}
 						{message.reactions && message.reactions.length > 0 && (
-							<div className="mt-1.5 flex flex-wrap gap-1">
+							<div className="flex gap-1.5 mt-2 flex-wrap">
 								{message.reactions.map((reaction) => {
 									const hasReacted = currentUserId
 										? reaction.user_ids.includes(currentUserId)
@@ -420,10 +415,8 @@ function MessageItemInner({
 											key={reaction.emoji}
 											type="button"
 											className={cn(
-												"inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-all hover:scale-105",
-												hasReacted
-													? "border-primary/50 bg-primary/10 text-primary"
-													: "border-border/50 bg-muted/50 hover:bg-accent",
+												"flex items-center gap-1.5 px-2.5 py-0.5 border border-[var(--b2)] rounded-full text-[13px] cursor-pointer hover:bg-[var(--hover)] hover:border-[var(--b3)] hover:-translate-y-px transition-all",
+												hasReacted && "border-[rgba(52,211,153,.2)] bg-[rgba(52,211,153,.04)]",
 											)}
 											onClick={() =>
 												void import("@/api/messenger").then((m) =>
@@ -436,7 +429,7 @@ function MessageItemInner({
 											}
 										>
 											<span>{reaction.emoji}</span>
-											<span className="font-medium">
+											<span className="text-[11.5px] font-semibold text-[var(--t2)]">
 												{reaction.user_ids.length}
 											</span>
 										</button>

@@ -445,24 +445,23 @@ export function MessageComposer({
 		<div className="space-y-0">
 			{/* Reply preview */}
 			{replyToMessage && (
-				<div className="flex items-center gap-2 px-1 py-2 mb-1.5 animate-fade-in">
-					<div className="w-0.5 h-8 rounded-full bg-primary shrink-0" />
+				<div className="flex items-center gap-2.5 px-3.5 py-2.5 border-l-[3px] border-l-[var(--green)] bg-[var(--raised)] rounded-r-[var(--r2)] mb-2.5 animate-fade-in">
 					<div className="flex-1 min-w-0">
-						<p className="text-xs font-semibold text-primary truncate">
+						<p className="text-[13px] font-bold text-[var(--green)] truncate">
 							{replyToMessage.sender_id}
 						</p>
-						<p className="text-xs text-muted-foreground truncate">
+						<p className="text-[12.5px] text-[var(--t3)] truncate flex-1">
 							{replyPreviewText}
 						</p>
 					</div>
 					<button
 						type="button"
 						onClick={() => setReplyTo(null)}
-						className="shrink-0 h-6 w-6 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+						className="w-[26px] h-[26px] flex items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t1)] hover:rotate-90 transition-all"
 						title="Отменить ответ"
 					>
 						<svg
-							className="h-3.5 w-3.5 text-muted-foreground"
+							className="h-3.5 w-3.5"
 							fill="none"
 							viewBox="0 0 24 24"
 							stroke="currentColor"
@@ -535,11 +534,11 @@ export function MessageComposer({
 			) : (
 				/* Rounded container with all controls inside */
 				<div
-					className={cn(
-						"relative flex items-end rounded-2xl border border-white/[0.10] bg-card",
-						"transition-all duration-200 composer-glow",
-					)}
+					className="flex items-end gap-1 bg-[var(--card)] border border-[var(--b1)] rounded-[var(--r4)] px-4 py-1.5 transition-all relative overflow-hidden focus-within:border-[rgba(52,211,153,.25)] focus-within:shadow-[0_0_0_3px_rgba(52,211,153,.05),0_0_24px_rgba(52,211,153,.04)]"
 				>
+					{/* Top highlight */}
+					<div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.03] to-transparent" />
+
 					{/* @Mention автокомплит */}
 					<MentionAutocomplete
 						channelId={channelId}
@@ -554,7 +553,7 @@ export function MessageComposer({
 					<button
 						type="button"
 						className={cn(
-							"flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors",
+							"w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-all",
 							isUploading && "animate-pulse",
 						)}
 						title="Прикрепить файл"
@@ -595,11 +594,7 @@ export function MessageComposer({
 						placeholder={placeholder}
 						rows={1}
 						disabled={isSending}
-						className={cn(
-							"flex-1 resize-none bg-transparent py-3 text-sm focus:outline-none",
-							"min-h-[44px] max-h-[200px]",
-							"placeholder:text-muted-foreground/40",
-						)}
+						className="flex-1 bg-transparent border-none text-sm text-[var(--t1)] resize-none min-h-[38px] max-h-[200px] py-[9px] leading-relaxed outline-none placeholder:text-[var(--t3)]"
 					/>
 
 					{/* Emoji button with Popover */}
@@ -607,7 +602,7 @@ export function MessageComposer({
 						<PopoverTrigger asChild>
 							<button
 								type="button"
-								className="flex h-11 w-9 shrink-0 items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+								className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-all"
 								title="Эмодзи"
 							>
 								<svg
@@ -655,7 +650,7 @@ export function MessageComposer({
 					{/* Poll button */}
 					<button
 						type="button"
-						className="flex h-11 w-9 shrink-0 items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+						className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-all"
 						title="Опрос"
 						onClick={() => setShowPollDialog(true)}
 					>
@@ -677,7 +672,7 @@ export function MessageComposer({
 					{/* Voice recorder button */}
 					<button
 						type="button"
-						className="flex h-11 w-9 shrink-0 items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+						className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-all"
 						title="Голосовое сообщение"
 						onClick={() => setShowVoice(true)}
 					>
@@ -700,10 +695,10 @@ export function MessageComposer({
 					<button
 						type="button"
 						className={cn(
-							"flex h-9 w-9 shrink-0 items-center justify-center rounded-lg mr-1 mb-1 transition-all duration-150",
+							"w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] shrink-0 transition-all",
 							hasContent
-								? "bg-gradient-to-br from-blue-500 to-blue-600 text-white send-glow"
-								: "text-muted-foreground/30 cursor-not-allowed",
+								? "bg-gradient-to-br from-[var(--green)] to-[var(--greenS)] text-white shadow-[0_2px_12px_var(--gG)] hover:scale-[1.08] hover:shadow-[0_4px_20px_rgba(52,211,153,.25)] active:scale-[0.92]"
+								: "bg-[var(--input)] text-[var(--t4)]",
 						)}
 						onClick={() => void handleSend()}
 						disabled={isSending || !hasContent}
