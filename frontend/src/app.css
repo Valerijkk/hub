@@ -1000,3 +1000,227 @@ html {
 .login-form-animate {
 	animation: loginEnterUp 500ms var(--spring);
 }
+
+/* ===================================================
+ * Messenger page — mockup-matching keyframes and utilities
+ * =================================================== */
+
+/* Typing indicator dots (MSGR-05) */
+@keyframes typeBounce {
+	0%, 60%, 100% { transform: translateY(0); }
+	30% { transform: translateY(-5px); }
+}
+.typing-dot {
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: var(--t3);
+	animation: typeBounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: .15s; }
+.typing-dot:nth-child(3) { animation-delay: .3s; }
+
+/* Channel list entrance (MSGR-01) */
+@keyframes msgEnterX {
+	from { opacity: 0; transform: translateX(-10px); }
+	to { opacity: 1; transform: translateX(0); }
+}
+.msg-enter-x {
+	animation: msgEnterX 400ms var(--spring) both;
+}
+
+/* Message hover actions panel */
+.msg-hover-actions {
+	position: absolute;
+	top: -16px;
+	right: 10px;
+	display: flex;
+	gap: 1px;
+	background: var(--card);
+	border: 1px solid var(--b2);
+	border-radius: var(--r2);
+	padding: 3px;
+	box-shadow: var(--sh3);
+	opacity: 0;
+	transform: translateY(4px) scale(0.95);
+	pointer-events: none;
+	transition: all 200ms var(--spring);
+	z-index: 30;
+}
+.msg-row:hover .msg-hover-actions {
+	opacity: 1;
+	transform: translateY(0) scale(1);
+	pointer-events: auto;
+}
+
+/* ===================================================
+ * Kanban board — cards, columns, filters
+ * =================================================== */
+
+/* Kanban entrance animation */
+@keyframes kanbanEnterUp {
+	from { opacity: 0; transform: translateY(12px) scale(.98); }
+	to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.kanban-enter {
+	animation: kanbanEnterUp 500ms var(--spring) both;
+}
+
+/* Issue card base */
+.kanban-card {
+	background: linear-gradient(165deg, var(--card), var(--raised));
+	border: 1px solid var(--b1);
+	border-radius: var(--r3);
+	padding: 16px;
+	cursor: grab;
+	transition: all 260ms var(--ease);
+	position: relative;
+	overflow: hidden;
+}
+.kanban-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent 10%, rgba(255,255,255,.035) 50%, transparent 90%);
+}
+.kanban-card::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: var(--r3);
+	opacity: 0;
+	transition: opacity 260ms;
+	background: radial-gradient(ellipse at 50% 0%, rgba(91,156,245,.025), transparent 70%);
+	pointer-events: none;
+}
+.kanban-card:hover {
+	transform: translateY(-3px);
+	box-shadow: var(--sh3);
+	border-color: var(--b2);
+}
+.kanban-card:hover::after { opacity: 1; }
+.kanban-card:active {
+	transform: scale(1.02);
+	box-shadow: var(--sh3), 0 0 40px rgba(91,156,245,.05);
+	opacity: .92;
+	z-index: 100;
+	cursor: grabbing;
+}
+
+/* Priority left-border variants */
+.kanban-card-critical { border-left: 3px solid var(--red); }
+.kanban-card-high { border-left: 3px solid var(--orange, #FB923C); }
+
+/* Done state */
+.kanban-card-done {
+	opacity: .5;
+	filter: saturate(.7);
+}
+.kanban-card-done:hover {
+	opacity: .7;
+	filter: saturate(.85);
+}
+
+/* Filter chip */
+.kanban-fchip {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 14px;
+	background: var(--card);
+	border: 1px solid var(--b1);
+	border-radius: var(--pill);
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--t2);
+	cursor: pointer;
+	transition: all 180ms;
+}
+.kanban-fchip:hover {
+	border-color: var(--b2);
+	color: var(--t1);
+	transform: translateY(-1px);
+}
+
+/* ===================================================
+ * Dashboard — entrance animation (DASH-04)
+ * =================================================== */
+@keyframes dashEnterUp {
+	from { opacity: 0; transform: translateY(10px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.dash-enter {
+	animation: dashEnterUp 400ms var(--spring) both;
+}
+
+.dash-enter-1 { animation-delay: 0ms; }
+.dash-enter-2 { animation-delay: 80ms; }
+.dash-enter-3 { animation-delay: 160ms; }
+
+/* ===================================================
+ * Dashboard — greeting gradient text (DASH-02)
+ * =================================================== */
+.dash-greeting-gradient {
+	background: linear-gradient(135deg, var(--amber, #FBBF24), var(--orange, #FB923C), #ec4899);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+/* ===================================================
+ * Dashboard — quick action button (DASH-03)
+ * =================================================== */
+.dash-qa-btn {
+	background: linear-gradient(145deg, var(--card), var(--raised));
+	border: 1px solid var(--b1);
+	position: relative;
+	overflow: hidden;
+}
+.dash-qa-btn::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent);
+}
+.dash-qa-btn:hover {
+	background: var(--card);
+	transform: translateY(-3px);
+	box-shadow: var(--sh2);
+	border-color: var(--b2);
+}
+.dash-qa-btn:active {
+	transform: scale(.97);
+}
+
+/* ===================================================
+ * Dashboard — widget card (DASH-01)
+ * =================================================== */
+.dash-widget {
+	background: linear-gradient(165deg, var(--card), var(--raised));
+	border: 1px solid var(--b1);
+	border-radius: var(--r4);
+	position: relative;
+	overflow: hidden;
+	transition: all 280ms var(--ease);
+}
+.dash-widget::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent 10%, rgba(255,255,255,.04) 50%, transparent 90%);
+}
+.dash-widget:hover {
+	border-color: var(--b2);
+	box-shadow: var(--sh2);
+	transform: translateY(-2px);
+}
