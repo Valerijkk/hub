@@ -1,6 +1,7 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { Search } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Channel, PresenceStatus } from "@/api/messenger";
 import { deleteChannel, muteChannel, starChannel, unmuteChannel } from "@/api/messenger";
 import {
@@ -452,6 +453,7 @@ export function ChannelList() {
 	useUnread();
 	const unreadCounts = useMessengerStore((s) => s.unreadCounts);
 	const matchRoute = useMatchRoute();
+	const [searchQuery, setSearchQuery] = useState("");
 
 	// DM presence tracking not available -- backend ChannelResponse does not include members list.
 	const dmUserIds: string[] = [];
@@ -489,9 +491,16 @@ export function ChannelList() {
 
 	const allChannels = channels ?? [];
 
+	// Фильтрация каналов по поисковому запросу.
+	const filteredChannels = useMemo(() => {
+		if (!searchQuery.trim()) return allChannels;
+		const q = searchQuery.toLowerCase();
+		return allChannels.filter((ch) => ch.name.toLowerCase().includes(q));
+	}, [allChannels, searchQuery]);
+
 	// Разделяем закреплённые и обычные каналы.
-	const starredChannels = allChannels.filter((ch) => ch.is_starred);
-	const regularChannels = allChannels.filter((ch) => !ch.is_starred);
+	const starredChannels = filteredChannels.filter((ch) => ch.is_starred);
+	const regularChannels = filteredChannels.filter((ch) => !ch.is_starred);
 	const grouped = groupChannels(regularChannels);
 
 	/** Рендер одного элемента канала. */
@@ -526,6 +535,17 @@ export function ChannelList() {
 					<div className="flex items-center gap-1">
 						<BookmarksButton />
 					</div>
+				</div>
+				{/* Pill-shaped search input per mockup 03-messenger */}
+				<div className="relative">
+					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[var(--t3)] pointer-events-none" />
+					<input
+						type="text"
+						className="w-full h-9 pl-[38px] pr-3.5 bg-[var(--input)] border border-transparent rounded-full text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] outline-none transition-all duration-250 focus:border-[rgba(52,211,153,.3)] focus:bg-[var(--card)] focus:shadow-[0_0_0_3px_rgba(52,211,153,.06)]"
+						placeholder="Поиск..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+					/>
 				</div>
 			</div>
 
