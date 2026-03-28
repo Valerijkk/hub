@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { SessionResponse } from "@/api/auth";
 import {
@@ -10,6 +10,7 @@ import {
 	revokeSession,
 	updateProfile,
 } from "@/api/auth";
+import { uploadFile } from "@/api/files";
 import { setCustomStatus } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,31 @@ function ProfilePage() {
 		language: user?.language ?? "",
 		birthday: user?.birthday ?? "",
 	});
+
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [avatarUploading, setAvatarUploading] = useState(false);
+
+	/** Загрузка аватара: upload файла + обновление профиля. */
+	async function handleAvatarUpload(file: File) {
+		if (file.size > 2 * 1024 * 1024) {
+			toast.error("Максимальный размер файла — 2MB");
+			return;
+		}
+		if (!file.type.startsWith("image/")) {
+			toast.error("Допустимы только изображения (JPG, PNG)");
+			return;
+		}
+		setAvatarUploading(true);
+		try {
+			const fileId = await uploadFile(file, "", "avatar", "me");
+			const avatarUrl = `/files/${fileId}/url`;
+			profileMutation.mutate({ avatar_url: avatarUrl });
+		} catch {
+			toast.error("Не удалось загрузить фото");
+		} finally {
+			setAvatarUploading(false);
+		}
+	}
 
 	/** Кастомный статус пользователя (например, "На обеде", "В отпуске"). */
 	const [customStatusText, setCustomStatusText] = useState("");
@@ -138,8 +164,24 @@ function ProfilePage() {
 					</div>
 				</div>
 				<div>
-					<button type="button" className="settings-btn-save inline-flex items-center gap-[7px] px-4 py-2 rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]">
-						Загрузить фото
+					<input
+						ref={fileInputRef}
+						type="file"
+						accept="image/*"
+						className="hidden"
+						onChange={(e) => {
+							const file = e.target.files?.[0];
+							if (file) void handleAvatarUpload(file);
+							e.target.value = "";
+						}}
+					/>
+					<button
+						type="button"
+						disabled={avatarUploading}
+						onClick={() => fileInputRef.current?.click()}
+						className="settings-btn-save inline-flex items-center gap-[7px] px-4 py-2 rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96] disabled:opacity-50"
+					>
+						{avatarUploading ? "Загрузка..." : "Загрузить фото"}
 					</button>
 					<p className="text-[12px] text-t3 mt-1.5">JPG, PNG. Макс. 2MB</p>
 				</div>
