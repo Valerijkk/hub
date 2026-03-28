@@ -100,19 +100,19 @@
 
 ### Settings Page (STNG)
 
-- [ ] **STNG-01**: User sees redesigned sidebar navigation + content layout
-- [ ] **STNG-02**: User sees redesigned profile section with new form styling
-- [ ] **STNG-03**: User sees redesigned appearance section with theme/accent selectors
-- [ ] **STNG-04**: User sees redesigned notification preferences
-- [ ] **STNG-05**: All settings functionality works without regression
+- [x] **STNG-01**: User sees redesigned sidebar navigation + content layout
+- [x] **STNG-02**: User sees redesigned profile section with new form styling
+- [x] **STNG-03**: User sees redesigned appearance section with theme/accent selectors
+- [x] **STNG-04**: User sees redesigned notification preferences
+- [x] **STNG-05**: All settings functionality works without regression
 
 ### Admin Page (ADMN)
 
-- [ ] **ADMN-01**: User sees redesigned KPI cards (Users, Projects, Tasks, DAU/WAU/MAU)
-- [ ] **ADMN-02**: User sees redesigned tabbed interface (Users, Audit, Resource Limits)
-- [ ] **ADMN-03**: User sees redesigned user management table
-- [ ] **ADMN-04**: User sees redesigned audit log with filters
-- [ ] **ADMN-05**: All admin functionality works without regression
+- [x] **ADMN-01**: User sees redesigned KPI cards (Users, Projects, Tasks, DAU/WAU/MAU)
+- [x] **ADMN-02**: User sees redesigned tabbed interface (Users, Audit, Resource Limits)
+- [x] **ADMN-03**: User sees redesigned user management table
+- [x] **ADMN-04**: User sees redesigned audit log with filters
+- [x] **ADMN-05**: All admin functionality works without regression
 
 ### Onboarding Page (ONBD)
 
@@ -222,16 +222,16 @@
 | TMSP-02 | Phase 12 | Complete |
 | TMSP-03 | Phase 12 | Complete |
 | TMSP-04 | Phase 12 | Complete |
-| STNG-01 | Phase 12 | Pending |
-| STNG-02 | Phase 12 | Pending |
-| STNG-03 | Phase 12 | Pending |
-| STNG-04 | Phase 12 | Pending |
-| STNG-05 | Phase 12 | Pending |
-| ADMN-01 | Phase 12 | Pending |
-| ADMN-02 | Phase 12 | Pending |
-| ADMN-03 | Phase 12 | Pending |
-| ADMN-04 | Phase 12 | Pending |
-| ADMN-05 | Phase 12 | Pending |
+| STNG-01 | Phase 12 | Complete |
+| STNG-02 | Phase 12 | Complete |
+| STNG-03 | Phase 12 | Complete |
+| STNG-04 | Phase 12 | Complete |
+| STNG-05 | Phase 12 | Complete |
+| ADMN-01 | Phase 12 | Complete |
+| ADMN-02 | Phase 12 | Complete |
+| ADMN-03 | Phase 12 | Complete |
+| ADMN-04 | Phase 12 | Complete |
+| ADMN-05 | Phase 12 | Complete |
 | ONBD-01 | Phase 12 | Complete |
 | ONBD-02 | Phase 12 | Complete |
 | ONBD-03 | Phase 12 | Complete |
