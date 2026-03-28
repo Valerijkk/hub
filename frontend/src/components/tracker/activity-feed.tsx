@@ -5,8 +5,7 @@ import {
 	listWorkflowStatuses,
 } from "@/api/tracker";
 import { listMembers } from "@/api/projects";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface ActivityFeedProps {
 	projectId: string;
@@ -92,54 +91,61 @@ function ActivityItem({
 		return str;
 	};
 
-	return (
-		<div className="flex gap-3 rounded-md border p-3">
-			<Avatar className="h-6 w-6 flex-shrink-0">
-				<AvatarImage src={activity.user.avatar_url} />
-				<AvatarFallback className="text-[10px]">
-					{activity.user.name.charAt(0).toUpperCase()}
-				</AvatarFallback>
-			</Avatar>
+	/** Color dot based on action type. */
+	const dotColor =
+		activity.action === "created"
+			? "bg-green"
+			: activity.action === "status_changed"
+				? "bg-blue"
+				: activity.action === "commented"
+					? "bg-purple"
+					: "bg-t3";
 
-			<div className="flex-1">
+	return (
+		<div className="flex gap-3 py-3 border-b border-b1 text-[13px]">
+			<div className={cn("w-[9px] h-[9px] rounded-full mt-[5px] shrink-0", dotColor)} />
+
+			<div className="flex-1 text-t2">
 				<div className="flex items-center gap-2">
-					<span className="text-sm font-medium">{activity.user.name}</span>
-					<span className="text-xs text-muted-foreground">
+					<span className="text-t1 font-semibold">{activity.user.name}</span>
+					<span className="text-t2">
 						{getActionLabel(activity.action)}
 					</span>
-					<span className="text-xs text-muted-foreground">{timeAgo}</span>
 				</div>
 
 				{(activity.changes ?? []).length > 0 && (
 					<div className="mt-1 space-y-1">
 						{(activity.changes ?? []).map((change, idx) => (
-							<div key={idx} className="flex items-center gap-2 text-xs">
-								<span className="font-medium text-muted-foreground">
+							<div key={idx} className="flex items-center gap-2 text-[13px]">
+								<span className="font-medium text-t3">
 									{getFieldLabel(change.field)}:
 								</span>
 								{change.field === "status" ? (
 									<>
-										<Badge variant="outline" className="text-xs">
+										<span className="line-through text-t4">
 											{resolveValue(change.field, change.old_value)}
-										</Badge>
-										<span className="text-muted-foreground">&rarr;</span>
-										<Badge variant="default" className="text-xs">
+										</span>
+										<span className="text-t4">{"\u2192"}</span>
+										<span className="text-t1 font-semibold">
 											{resolveValue(change.field, change.new_value)}
-										</Badge>
+										</span>
 									</>
 								) : (
 									<span>
-										<span className="text-muted-foreground line-through">
+										<span className="line-through text-t4">
 											{resolveValue(change.field, change.old_value)}
 										</span>
 										{" \u2192 "}
-										{resolveValue(change.field, change.new_value)}
+										<span className="text-t1 font-semibold">
+											{resolveValue(change.field, change.new_value)}
+										</span>
 									</span>
 								)}
 							</div>
 						))}
 					</div>
 				)}
+				<div className="text-[10.5px] text-t4 mt-[3px]">{timeAgo}</div>
 			</div>
 		</div>
 	);

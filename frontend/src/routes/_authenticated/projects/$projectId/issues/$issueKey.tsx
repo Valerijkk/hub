@@ -80,38 +80,38 @@ function IssueDetailPage() {
 
 	if (isLoading) {
 		return (
-			<div className="animate-fade-in">
+			<div className="animate-[eu_450ms_var(--spring)_both]">
 				{/* Breadcrumb skeleton */}
 				<div className="mb-4 flex items-center gap-2">
-					<div className="h-4 w-16 rounded animate-shimmer" />
-					<div className="h-4 w-4 rounded animate-shimmer" />
-					<div className="h-4 w-16 rounded animate-shimmer" />
-					<div className="h-4 w-4 rounded animate-shimmer" />
-					<div className="h-4 w-24 rounded animate-shimmer" />
+					<div className="h-4 w-16 rounded bg-card/50 animate-shimmer" />
+					<div className="h-4 w-4 rounded bg-card/50 animate-shimmer" />
+					<div className="h-4 w-16 rounded bg-card/50 animate-shimmer" />
+					<div className="h-4 w-4 rounded bg-card/50 animate-shimmer" />
+					<div className="h-4 w-24 rounded bg-card/50 animate-shimmer" />
 				</div>
 				{/* Header skeleton */}
 				<div className="mb-6 flex items-center gap-3">
-					<div className="h-8 w-8 rounded-lg animate-shimmer" />
-					<div className="h-6 w-32 rounded animate-shimmer" />
+					<div className="h-8 w-8 rounded-lg bg-card/50 animate-shimmer" />
+					<div className="h-6 w-32 rounded bg-card/50 animate-shimmer" />
 				</div>
 				{/* Two-column skeleton */}
 				<div className="grid gap-6 lg:grid-cols-[1fr_320px]">
 					<div className="space-y-4">
-						<div className="h-8 w-3/4 rounded animate-shimmer" />
-						<div className="h-24 w-full rounded-lg animate-shimmer" />
+						<div className="h-8 w-3/4 rounded bg-card/50 animate-shimmer" />
+						<div className="h-24 w-full rounded-lg bg-card/50 animate-shimmer" />
 						<div className="h-px bg-border" />
-						<div className="h-10 w-64 rounded-lg animate-shimmer" />
+						<div className="h-10 w-64 rounded-lg bg-card/50 animate-shimmer" />
 						<div className="space-y-3">
-							<div className="h-16 w-full rounded-lg animate-shimmer" />
-							<div className="h-16 w-full rounded-lg animate-shimmer" />
+							<div className="h-16 w-full rounded-lg bg-card/50 animate-shimmer" />
+							<div className="h-16 w-full rounded-lg bg-card/50 animate-shimmer" />
 						</div>
 					</div>
 					<div className="space-y-3">
-						<div className="h-10 w-full rounded-lg animate-shimmer" />
-						<div className="h-10 w-full rounded-lg animate-shimmer" />
-						<div className="h-10 w-full rounded-lg animate-shimmer" />
-						<div className="h-10 w-full rounded-lg animate-shimmer" />
-						<div className="h-10 w-full rounded-lg animate-shimmer" />
+						<div className="h-10 w-full rounded-lg bg-card/50 animate-shimmer" />
+						<div className="h-10 w-full rounded-lg bg-card/50 animate-shimmer" />
+						<div className="h-10 w-full rounded-lg bg-card/50 animate-shimmer" />
+						<div className="h-10 w-full rounded-lg bg-card/50 animate-shimmer" />
+						<div className="h-10 w-full rounded-lg bg-card/50 animate-shimmer" />
 					</div>
 				</div>
 			</div>
@@ -127,7 +127,7 @@ function IssueDetailPage() {
 	}
 
 	return (
-		<div className="animate-fade-in">
+		<div className="animate-[eu_450ms_var(--spring)_both]">
 			<IssueHeader
 				projectId={projectId}
 				issueKey={issue.issue_key}
@@ -143,7 +143,7 @@ function IssueDetailPage() {
 			{/* Двухколоночная раскладка */}
 			<div className="grid gap-6 lg:grid-cols-[1fr_320px]">
 				{/* Левая колонка: основное */}
-				<div className="space-y-6">
+				<div className="space-y-6 overflow-y-auto pr-2">
 					<IssueTitle
 						title={issue.title}
 						onSave={(newTitle) => updateMutation.mutate({ title: newTitle })}

@@ -71,10 +71,10 @@ export function IssueAttachments({
 	return (
 		<div className="space-y-3">
 			<div className="flex items-center justify-between">
-				<h3 className="text-sm font-medium">
+				<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">
 					Вложения
 					{attachments.length > 0 && (
-						<span className="ml-1.5 text-xs text-muted-foreground">
+						<span className="ml-1.5 text-[11px] text-t4">
 							({attachments.length})
 						</span>
 					)}
@@ -131,21 +131,21 @@ export function IssueAttachments({
 			</div>
 
 			{attachments.length > 0 && (
-				<div className="space-y-1.5">
+				<div className="flex gap-[10px] flex-wrap">
 					{attachments.map((att) => (
 						<a
 							key={att.file_id}
 							href={att.url || `/api/files/${att.file_id}/download`}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="flex items-center gap-2.5 rounded-lg border p-2.5 hover:bg-muted/50 transition-colors group"
+							className="flex items-center gap-[10px] px-4 py-[10px] bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] text-[13px] cursor-pointer transition-all duration-200 hover:border-b2 hover:-translate-y-px hover:shadow-[var(--sh2)]"
 						>
-							<span className="text-lg">{getFileIcon(att.mime_type)}</span>
+							<span className="w-[18px] h-[18px] text-blue">{getFileIcon(att.mime_type)}</span>
 							<div className="flex-1 min-w-0">
-								<p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+								<p className="text-[13px] font-medium truncate text-t1 transition-colors">
 									{att.file_name}
 								</p>
-								<p className="text-xs text-muted-foreground">
+								<p className="text-t3 text-[11px]">
 									{formatFileSize(att.file_size)}
 								</p>
 							</div>

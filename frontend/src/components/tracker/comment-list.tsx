@@ -114,12 +114,12 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 			)}
 
 			{/* Форма нового комментария */}
-			<div className="space-y-3 border-t pt-4">
+			<div className="space-y-3 border-t border-b1 pt-4 mt-4">
 				<PlateEditor
 					value={newBody}
 					onChange={setNewBody}
 					placeholder="Написать комментарий..."
-					className="min-h-[80px]"
+					className="w-full min-h-[44px] px-4 py-3 bg-input border border-b1 rounded-[var(--r3)] text-[14px] text-t1 resize-none outline-none transition-[border-color] duration-250 focus-within:border-[rgba(91,156,245,0.25)] placeholder:text-t3"
 				/>
 				<div className="flex items-center justify-between">
 					<label className="flex items-center gap-2 text-sm">
@@ -161,61 +161,67 @@ function CommentItem({ comment, onDelete, onReaction }: CommentItemProps) {
 	return (
 		<div
 			className={cn(
-				"rounded-md border p-4",
+				"flex gap-[14px] py-4 border-b border-b1",
 				comment.is_internal &&
-					"border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20",
+					"border-yellow-300/20 bg-yellow-950/10",
 			)}
 		>
-			{/* Заголовок */}
-			<div className="mb-2 flex items-center justify-between">
-				<div className="flex items-center gap-2">
-					<Avatar className="h-6 w-6">
-						<AvatarImage src={comment.author.avatar_url} />
-						<AvatarFallback className="text-[10px]">
-							{comment.author.name.charAt(0).toUpperCase()}
-						</AvatarFallback>
-					</Avatar>
-					<span className="text-sm font-medium">{comment.author.name}</span>
-					<span className="text-xs text-muted-foreground">{timeAgo}</span>
-					{comment.is_internal && (
-						<span className="text-xs text-yellow-600">Внутренний</span>
-					)}
+			{/* Avatar */}
+			<Avatar className="w-[34px] h-[34px] rounded-full shrink-0">
+				<AvatarImage src={comment.author.avatar_url} />
+				<AvatarFallback className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[12px] font-bold text-white bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)]">
+					{comment.author.name.charAt(0).toUpperCase()}
+				</AvatarFallback>
+			</Avatar>
+
+			<div className="flex-1">
+				{/* Заголовок */}
+				<div className="mb-[5px] flex items-center justify-between">
+					<div className="flex items-center gap-2">
+						<span className="text-[13.5px] font-bold">{comment.author.name}</span>
+						<span className="text-[10.5px] text-t4">{timeAgo}</span>
+						{comment.is_internal && (
+							<span className="text-[10.5px] text-yellow-600">Внутренний</span>
+						)}
+					</div>
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-6 px-2 text-xs text-t4"
+						onClick={() => onDelete(comment.id)}
+					>
+						Удалить
+					</Button>
 				</div>
-				<Button
-					variant="ghost"
-					size="sm"
-					className="h-6 px-2 text-xs text-muted-foreground"
-					onClick={() => onDelete(comment.id)}
-				>
-					Удалить
-				</Button>
+
+				{/* Тело */}
+				<div className="text-[14px] leading-[1.65] text-t2">
+					<PlateEditor
+						value={comment.body_json as unknown as Value}
+						readOnly
+						className="border-none bg-transparent p-0"
+					/>
+				</div>
+
+				{/* Реакции */}
+				{comment.reactions && comment.reactions.length > 0 && (
+					<div className="mt-2 flex flex-wrap gap-1">
+						{comment.reactions.map((reaction) => (
+							<button
+								key={reaction.emoji}
+								type="button"
+								className={cn(
+									"inline-flex items-center gap-1 rounded-full border border-b1 px-2 py-0.5 text-xs transition-colors hover:bg-[var(--hover)]",
+									reaction.has_reacted && "border-blue bg-blue/10",
+								)}
+								onClick={() => onReaction(comment.id, reaction.emoji)}
+							>
+								{reaction.emoji} {reaction.count}
+							</button>
+						))}
+					</div>
+				)}
 			</div>
-
-			{/* Тело */}
-			<PlateEditor
-				value={comment.body_json as unknown as Value}
-				readOnly
-				className="border-none bg-transparent p-0"
-			/>
-
-			{/* Реакции */}
-			{comment.reactions && comment.reactions.length > 0 && (
-				<div className="mt-2 flex flex-wrap gap-1">
-					{comment.reactions.map((reaction) => (
-						<button
-							key={reaction.emoji}
-							type="button"
-							className={cn(
-								"inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors hover:bg-accent",
-								reaction.has_reacted && "border-primary bg-primary/10",
-							)}
-							onClick={() => onReaction(comment.id, reaction.emoji)}
-						>
-							{reaction.emoji} {reaction.count}
-						</button>
-					))}
-				</div>
-			)}
 		</div>
 	);
 }

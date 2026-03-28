@@ -46,24 +46,24 @@ export function IssueHeader({
 	return (
 		<>
 			{/* Хлебные крошки */}
-			<nav className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+			<nav className="mb-4 flex items-center gap-2">
 				<Link
 					to="/projects/$projectId"
 					params={{ projectId }}
-					className="hover:text-foreground"
+					className="text-[13px] text-t3 hover:text-t2 transition-colors"
 				>
 					Проект
 				</Link>
-				<span>/</span>
+				<span className="text-t4 text-[12px]">/</span>
 				<Link
 					to="/projects/$projectId/issues"
 					params={{ projectId }}
-					className="hover:text-foreground"
+					className="text-[13px] text-t3 hover:text-t2 transition-colors"
 				>
 					Задачи
 				</Link>
-				<span>/</span>
-				<span className="text-foreground">{issueKey}</span>
+				<span className="text-t4 text-[12px]">/</span>
+				<span className="font-mono text-[13px] text-blue font-semibold">{issueKey}</span>
 			</nav>
 
 			{/* Заголовок с типом и ключом */}
@@ -74,7 +74,7 @@ export function IssueHeader({
 					>
 						{TYPE_ICONS[issueType] ?? "\u{1F4CB}"}
 					</span>
-					<span className="text-lg font-bold text-muted-foreground tracking-tight">
+					<span className="font-mono text-[13px] text-blue font-semibold tracking-tight">
 						{issueKey}
 					</span>
 				</div>
@@ -83,6 +83,7 @@ export function IssueHeader({
 					size="sm"
 					onClick={onDelete}
 					disabled={isDeleting}
+					className="w-[34px] h-[34px] rounded-[var(--r2)] text-t3 hover:bg-[var(--hover)] hover:text-t1 text-[18px] transition-all duration-150"
 				>
 					Удалить
 				</Button>

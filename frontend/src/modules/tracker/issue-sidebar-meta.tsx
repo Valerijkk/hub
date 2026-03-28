@@ -4,8 +4,6 @@
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import {
 	Select,
 	SelectContent,
@@ -53,15 +51,15 @@ export function IssueSidebarMeta({
 	onUpdateField,
 }: IssueSidebarMetaProps) {
 	return (
-		<div className="space-y-4">
+		<div className="w-[320px] min-w-[320px] border-l border-b1 overflow-y-auto p-[22px] bg-void">
 			{/* Статус */}
-			<div className="space-y-1">
-				<Label className="text-xs text-muted-foreground">Статус</Label>
+			<div className="mb-[18px]">
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Статус</div>
 				<Select
 					value={issue.status.id}
 					onValueChange={(v) => onUpdateField({ status_id: v })}
 				>
-					<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -78,13 +76,13 @@ export function IssueSidebarMeta({
 			</div>
 
 			{/* Приоритет */}
-			<div className="space-y-1">
-				<Label className="text-xs text-muted-foreground">Приоритет</Label>
+			<div className="mb-[18px]">
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Приоритет</div>
 				<Select
 					value={issue.priority}
 					onValueChange={(v) => onUpdateField({ priority: v })}
 				>
-					<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -97,78 +95,76 @@ export function IssueSidebarMeta({
 				</Select>
 				<Badge
 					variant="secondary"
-					className={cn("text-xs", PRIORITY_COLORS[issue.priority])}
+					className={cn(
+						"inline-flex items-center gap-[5px] px-[10px] py-[3px] rounded-full text-[11px] font-[650]",
+						issue.priority === "critical" || issue.priority === "high"
+							? "bg-red/[0.08] text-red border border-red/[0.15]"
+							: "bg-blue/[0.08] text-blue border border-blue/[0.15]",
+					)}
 				>
 					{issue.priority}
 				</Badge>
 			</div>
 
-			<Separator />
-
 			{/* Исполнитель */}
-			<div className="space-y-1">
-				<Label className="text-xs text-muted-foreground">Исполнитель</Label>
+			<div className="mb-[18px]">
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Исполнитель</div>
 				{issue.assignee ? (
-					<div className="flex items-center gap-2">
-						<Avatar className="h-6 w-6">
+					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px]">
+						<Avatar className="h-7 w-7">
 							<AvatarImage src={issue.assignee.avatar_url} />
-							<AvatarFallback className="text-[10px]">
+							<AvatarFallback className="text-[11px] font-bold text-white bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)]">
 								{issue.assignee.name.charAt(0).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>
-						<span className="text-sm">{issue.assignee.name}</span>
+						<span className="text-[14px]">{issue.assignee.name}</span>
 					</div>
 				) : (
-					<p className="text-sm text-muted-foreground">Не назначен</p>
+					<p className="text-[14px] text-t3 py-[7px] px-[10px]">Не назначен</p>
 				)}
 			</div>
 
 			{/* Автор */}
-			<div className="space-y-1">
-				<Label className="text-xs text-muted-foreground">Автор</Label>
+			<div className="mb-[18px]">
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Автор</div>
 				{issue.reporter ? (
-					<div className="flex items-center gap-2">
-						<Avatar className="h-6 w-6">
+					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px]">
+						<Avatar className="h-7 w-7">
 							<AvatarImage src={issue.reporter.avatar_url} />
-							<AvatarFallback className="text-[10px]">
+							<AvatarFallback className="text-[11px] font-bold text-white bg-gradient-to-br from-[var(--greenS)] to-[#047857]">
 								{issue.reporter.name.charAt(0).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>
-						<span className="text-sm">{issue.reporter.name}</span>
+						<span className="text-[14px]">{issue.reporter.name}</span>
 					</div>
 				) : (
-					<p className="text-sm text-muted-foreground">--</p>
+					<p className="text-[14px] text-t3 py-[7px] px-[10px]">--</p>
 				)}
 			</div>
 
-			<Separator />
-
 			{/* Метки */}
-			<div className="space-y-1">
-				<Label className="text-xs text-muted-foreground">Метки</Label>
-				<div className="flex flex-wrap gap-1">
+			<div className="mb-[18px]">
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Метки</div>
+				<div className="flex flex-wrap gap-[6px]">
 					{issue.labels && issue.labels.length > 0 ? (
 						issue.labels.map((label) => (
-							<Badge
+							<span
 								key={label.id}
-								variant="outline"
-								className="text-xs"
+								className="px-3 py-[3px] rounded-full text-[12px] font-semibold border"
 								style={{ borderColor: label.color, color: label.color }}
 							>
 								{label.name}
-							</Badge>
+							</span>
 						))
 					) : (
-						<p className="text-sm text-muted-foreground">Нет меток</p>
+						<p className="text-[14px] text-t3">Нет меток</p>
 					)}
 				</div>
 			</div>
 
-			<Separator />
-
 			{/* Story Points */}
-			<div className="space-y-1">
-				<Label className="text-xs text-muted-foreground">Story Points</Label>
+			<div className="mb-[18px]">
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Story Points</div>
 				<Select
 					value={issue.story_points != null ? String(issue.story_points) : "none"}
 					onValueChange={(v) =>
@@ -177,7 +173,7 @@ export function IssueSidebarMeta({
 						})
 					}
 				>
-					<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -192,9 +188,9 @@ export function IssueSidebarMeta({
 			</div>
 
 			{issue.due_date && (
-				<div className="space-y-1">
-					<Label className="text-xs text-muted-foreground">Срок</Label>
-					<p className="text-sm">
+				<div className="mb-[18px]">
+					<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Срок</div>
+					<p className="text-[14px] py-[7px] px-[10px]">
 						{new Date(issue.due_date).toLocaleDateString("ru-RU")}
 					</p>
 				</div>
@@ -202,14 +198,14 @@ export function IssueSidebarMeta({
 
 			{/* Родительская задача */}
 			{issue.parent && (
-				<div className="space-y-1">
-					<Label className="text-xs text-muted-foreground">
+				<div className="mb-[18px]">
+					<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
 						Родительская задача
-					</Label>
+					</div>
 					<Link
 						to="/projects/$projectId/issues/$issueKey"
 						params={{ projectId, issueKey: issue.parent.issue_key }}
-						className="text-sm text-primary hover:underline"
+						className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px] text-blue"
 					>
 						{issue.parent.issue_key}: {issue.parent.title}
 					</Link>
@@ -218,22 +214,20 @@ export function IssueSidebarMeta({
 
 			{/* Дочерние задачи */}
 			{issue.children_count > 0 && (
-				<div className="space-y-1">
-					<Label className="text-xs text-muted-foreground">
+				<div className="mb-[18px]">
+					<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
 						Подзадачи ({issue.children_count})
-					</Label>
+					</div>
 				</div>
 			)}
 
-			<Separator />
-
 			{/* Мета */}
-			<div className="space-y-1 text-xs text-muted-foreground">
-				<p>Создана: {new Date(issue.created_at).toLocaleDateString("ru-RU")}</p>
-				<p>
+			<div className="mt-[22px] pt-[18px] border-t border-b1">
+				<div className="text-[12px] text-t4 py-1">Создана: {new Date(issue.created_at).toLocaleDateString("ru-RU")}</div>
+				<div className="text-[12px] text-t4 py-1">
 					Обновлена: {new Date(issue.updated_at).toLocaleDateString("ru-RU")}
-				</p>
-				<p>Версия: {issue.version}</p>
+				</div>
+				<div className="text-[12px] text-t4 py-1">Версия: {issue.version}</div>
 			</div>
 		</div>
 	);

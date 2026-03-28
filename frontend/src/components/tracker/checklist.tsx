@@ -69,45 +69,42 @@ export function Checklist({ items, onChange, disabled }: ChecklistProps) {
 		<div className="space-y-3">
 			{/* Заголовок с прогрессом */}
 			<div className="flex items-center justify-between">
-				<h4 className="text-sm font-medium">Чеклист</h4>
+				<h4 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">Чеклист</h4>
 				{total > 0 && (
-					<span className="text-xs text-muted-foreground">
-						{done}/{total} выполнено
-					</span>
+					<div className="flex items-center gap-[10px]">
+						<div className="h-1 bg-white/[0.04] rounded-sm overflow-hidden max-w-[200px] w-[200px]">
+							<div
+								className="h-full bg-green rounded-sm shadow-[0_0_8px_var(--gG)] transition-all duration-300"
+								style={{ width: `${pct}%` }}
+							/>
+						</div>
+						<span className="text-[12px] text-t3 font-semibold">
+							{done}/{total}
+						</span>
+					</div>
 				)}
 			</div>
 
-			{/* Прогресс-бар */}
-			{total > 0 && (
-				<div className="h-1.5 w-full rounded-full bg-muted">
-					<div
-						className={cn(
-							"h-1.5 rounded-full transition-all duration-300",
-							pct === 100 ? "bg-green-500" : "bg-primary",
-						)}
-						style={{ width: `${pct}%` }}
-					/>
-				</div>
-			)}
-
 			{/* Список элементов */}
-			<div className="space-y-1">
+			<div>
 				{items.map((item) => (
 					<div
 						key={item.id}
-						className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-muted/50"
+						className="group flex items-center gap-3 py-[10px] border-b border-b1 text-[14px]"
 					>
-						<input
-							type="checkbox"
-							checked={item.checked}
-							onChange={() => handleToggle(item.id)}
-							disabled={disabled}
-							className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
-						/>
+						<div
+							onClick={() => !disabled && handleToggle(item.id)}
+							className={cn(
+								"w-5 h-5 border-2 border-b3 rounded-[5px] shrink-0 flex items-center justify-center cursor-pointer transition-all duration-200 hover:border-green",
+								item.checked && "bg-green border-green shadow-[0_0_8px_var(--gG)]",
+							)}
+						>
+							{item.checked && <span className="text-white text-[12px] font-extrabold">{"\u2713"}</span>}
+						</div>
 						<span
 							className={cn(
-								"flex-1 text-sm",
-								item.checked && "line-through text-muted-foreground",
+								"flex-1 text-[14px]",
+								item.checked && "line-through text-t3",
 							)}
 						>
 							{item.text}

@@ -37,7 +37,7 @@ export function IssueTitle({
 						if (e.key === "Escape") setIsEditing(false);
 					}}
 					autoFocus
-					className="text-xl font-bold"
+					className="text-[24px] font-extrabold tracking-[-0.03em] leading-[1.3] border-b-2 border-transparent focus:border-blue bg-transparent w-full text-t1 outline-none transition-[border-color] duration-250 mb-6"
 				/>
 				<Button size="sm" onClick={save}>
 					Сохранить
@@ -48,7 +48,7 @@ export function IssueTitle({
 
 	return (
 		<h1
-			className="cursor-pointer text-xl font-bold hover:bg-muted/50"
+			className="cursor-pointer text-[24px] font-extrabold tracking-[-0.03em] leading-[1.3] border-b-2 border-transparent hover:border-blue bg-transparent w-full text-t1 transition-[border-color] duration-250 mb-6"
 			onClick={() => {
 				setEditValue(title);
 				setIsEditing(true);
@@ -76,7 +76,7 @@ export function IssueDescription({
 
 	return (
 		<div>
-			<Label className="mb-2 block text-sm font-medium">Описание</Label>
+			<Label className="mb-2 block text-[13px] font-bold uppercase tracking-[0.06em] text-t3">Описание</Label>
 			{isEditing ? (
 				<div className="space-y-2">
 					<PlateEditor
@@ -99,7 +99,7 @@ export function IssueDescription({
 				</div>
 			) : (
 				<div
-					className="cursor-pointer rounded-md p-2 hover:bg-muted/50"
+					className="cursor-pointer rounded-md p-2 hover:bg-[var(--hover)] text-[14px] leading-[1.75] text-t2"
 					onClick={() => {
 						setEditValue(descriptionJson as Value | undefined);
 						setIsEditing(true);
@@ -112,7 +112,7 @@ export function IssueDescription({
 							className="border-none p-0"
 						/>
 					) : (
-						<p className="text-sm text-muted-foreground">
+						<p className="text-[14px] text-t3">
 							Нажмите, чтобы добавить описание
 						</p>
 					)}
