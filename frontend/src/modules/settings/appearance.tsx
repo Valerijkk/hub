@@ -103,9 +103,9 @@ export function AppearanceSettings() {
 				<LanguageSwitcher />
 			</div>
 
-			<button type="button" className="settings-btn-save inline-flex items-center gap-[7px] px-6 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]">
-				Сохранить
-			</button>
+			<p className="text-[12px] text-t3">
+				Изменения применяются автоматически
+			</p>
 		</div>
 	);
 }
