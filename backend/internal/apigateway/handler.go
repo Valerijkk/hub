@@ -39,7 +39,18 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 
 // --- API Key handlers ---
 
-// CreateAPIKey обрабатывает POST /api/user/api-keys.
+// CreateAPIKey godoc
+// @Summary Создать API-ключ
+// @Description Генерирует новый API-ключ для текущего пользователя.
+// @Tags API Ключи
+// @Accept json
+// @Produce json
+// @Param body body CreateAPIKeyRequest true "Название и опциональная ��ата истечения"
+// @Success 201 {object} APIKeyResponse "Ключ созд��н (токен по��азывается единожды)"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/user/api-keys [post]
 func (h *Handler) CreateAPIKey(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -62,7 +73,15 @@ func (h *Handler) CreateAPIKey(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListAPIKeys обрабатывает GET /api/user/api-keys.
+// ListAPIKeys godoc
+// @Summary Список API-ключей
+// @Description Возвращает все API-ключи текущего пользователя.
+// @Tags API Ключи
+// @Produce json
+// @Success 200 {array} APIKeyResponse "Список ключей"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/user/api-keys [get]
 func (h *Handler) ListAPIKeys(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -77,7 +96,16 @@ func (h *Handler) ListAPIKeys(c fiber.Ctx) error {
 	return c.JSON(keys)
 }
 
-// RevokeAPIKey обрабатывает DELETE /api/user/api-keys/:id.
+// RevokeAPIKey godoc
+// @Summary Отозвать API-ключ
+// @Description Деактивирует API-ключ пользователя.
+// @Tags API Ключи
+// @Param id path string true "ID ключа"
+// @Success 204 "Ключ отозван"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/user/api-keys/{id} [delete]
 func (h *Handler) RevokeAPIKey(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -98,7 +126,19 @@ func (h *Handler) RevokeAPIKey(c fiber.Ctx) error {
 
 // --- Webhook handlers ---
 
-// CreateEndpoint обрабатывает POST /api/projects/:projectId/webhooks.
+// CreateEndpoint godoc
+// @Summary Создать webhook-эндпоинт
+// @Description Регистрирует новый webhook-эндпоинт для проекта.
+// @Tags API Ключи
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body CreateWebhookRequest true "URL и события"
+// @Success 201 {object} WebhookEndpointResponse "Эндпоинт создан"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/webhooks [post]
 func (h *Handler) CreateEndpoint(c fiber.Ctx) error {
 	projectID, err := parseID(c, "projectId")
 	if err != nil {
@@ -118,7 +158,17 @@ func (h *Handler) CreateEndpoint(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListEndpoints обрабатывает GET /api/projects/:projectId/webhooks.
+// ListEndpoints godoc
+// @Summary Список webhook-эндпоинтов
+// @Description Возвращает все webhook-эндпоинты проекта.
+// @Tags API Ключи
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} WebhookEndpointResponse "Список эндпоинтов"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/webhooks [get]
 func (h *Handler) ListEndpoints(c fiber.Ctx) error {
 	projectID, err := parseID(c, "projectId")
 	if err != nil {
@@ -133,7 +183,19 @@ func (h *Handler) ListEndpoints(c fiber.Ctx) error {
 	return c.JSON(eps)
 }
 
-// UpdateEndpoint обрабатывает PUT /api/webhooks/:id.
+// UpdateEndpoint godoc
+// @Summary Обновить webhook-эндпоинт
+// @Description Обновляет URL, события или статус webhook-эндпоинта.
+// @Tags API Ключи
+// @Accept json
+// @Produce json
+// @Param id path string true "ID эндпоинта"
+// @Param body body UpdateWebhookRequest true "Обновляемые данные"
+// @Success 200 {object} WebhookEndpointResponse "Эндпоинт обновлён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/webhooks/{id} [put]
 func (h *Handler) UpdateEndpoint(c fiber.Ctx) error {
 	epID, err := parseID(c, "id")
 	if err != nil {
@@ -153,7 +215,16 @@ func (h *Handler) UpdateEndpoint(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteEndpoint обрабатывает DELETE /api/webhooks/:id.
+// DeleteEndpoint godoc
+// @Summary Удалить webhook-эндпоинт
+// @Description Удаляет webhook-эндпоинт.
+// @Tags API Ключи
+// @Param id path string true "ID эндпоинта"
+// @Success 204 "Эндпоинт удалён"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/webhooks/{id} [delete]
 func (h *Handler) DeleteEndpoint(c fiber.Ctx) error {
 	epID, err := parseID(c, "id")
 	if err != nil {
@@ -167,7 +238,17 @@ func (h *Handler) DeleteEndpoint(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ListDeliveries обрабатывает GET /api/webhooks/:id/deliveries.
+// ListDeliveries godoc
+// @Summary Список доставок webhook
+// @Description Возвращает историю доставок для указанного webhook-эндпоинта.
+// @Tags API Ключи
+// @Produce json
+// @Param id path string true "ID эндпоинта"
+// @Success 200 {array} WebhookDeliveryResponse "История доставок"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/webhooks/{id}/deliveries [get]
 func (h *Handler) ListDeliveries(c fiber.Ctx) error {
 	epID, err := parseID(c, "id")
 	if err != nil {
