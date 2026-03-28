@@ -1,343 +1,176 @@
-# Требования: Hub
+# Requirements: Hub v2.0 Redesign
 
-**Определены:** 2026-03-20
-**Основная ценность:** Единая среда для команд разработки, где трекер задач, тестирование, общение и звонки объединены в одном интерфейсе -- без переключения между десятком отдельных инструментов.
+**Defined:** 2026-03-27
+**Core Value:** Pixel-perfect редизайн всего фронтенда Hub по 11 HTML-макетам без ломания функционала
 
-## Требования v1
+## v2.0 Requirements
 
-Требования для первого релиза. Каждое соответствует фазам дорожной карты.
+### Design System Foundation (DSFN)
 
-### Аутентификация и пользователи
+- [ ] **DSFN-01**: User sees Inter font for all UI text and JetBrains Mono for code/monospace elements
+- [ ] **DSFN-02**: User sees new 5-level surface palette (void/base/raised/card/input) in dark mode
+- [ ] **DSFN-03**: User sees 4-level text hierarchy (t1/t2/t3/t4) with correct contrast ratios
+- [ ] **DSFN-04**: User sees 3-level border system (b1/b2/b3) with correct opacity values
+- [ ] **DSFN-05**: User sees new radius system (6/8/12/16px + pill) applied consistently
+- [ ] **DSFN-06**: User sees 4-level shadow system (sh1-sh4) on cards, modals, dropdowns
+- [ ] **DSFN-07**: User sees spring/bounce easing on hover/focus/enter animations
+- [ ] **DSFN-08**: All !important declarations removed from app.css without visual regression
+- [ ] **DSFN-09**: User can select accent color (red/blue/green/purple/orange) and see it applied consistently
 
-- [x] **AUTH-01**: Пользователь может войти через Magic Link (email) без пароля
-- [x] **AUTH-02**: Пользователь может войти через Telegram без пароля
-- [x] **AUTH-03**: Администратор может настроить режим регистрации: открытый или только по приглашению
-- [x] **AUTH-04**: Пользователь может редактировать профиль: имя, аватар, email, Telegram, должность, отдел, телефон, часовой пояс, язык, день рождения
-- [x] **AUTH-05**: Система поддерживает две роли: Admin и Member
-- [x] **AUTH-06**: Пользователь может иметь несколько активных сессий (десктоп + мобильное устройство), просматривать список сессий и завершать отдельные сессии
-- [x] **AUTH-07**: Пользователь получает уведомление при создании новой сессии в его аккаунте
-- [x] **AUTH-08**: Новый пользователь проходит онбординг: заполнение профиля, обзорный тур, выбор темы/языка, создание или присоединение к проекту
+### Theme Support (THME)
 
-### Проекты
+- [ ] **THME-01**: User sees dark theme matching mockup palette exactly
+- [ ] **THME-02**: User sees light theme derived from dark tokens with consistent design language
+- [ ] **THME-03**: User can switch between dark/light/system themes without visual glitches
+- [ ] **THME-04**: Light theme passes WCAG AA contrast ratios (4.5:1 text, 3:1 UI)
 
-- [x] **PROJ-01**: Admin и Member могут создавать проекты; при создании автоматически генерируются доска трекера, пространство TMS, чат проекта, канал и дашборд
-- [x] **PROJ-02**: Владелец проекта может управлять ролями участников, рабочим процессом/статусами, командами и правами доступа
-- [x] **PROJ-03**: В проектах есть фиксированные роли (Owner, Developer, Tester, Viewer) и настраиваемые роли с детальными RBAC-правами
-- [x] **PROJ-04**: Пользователей можно приглашать по ссылке; команды (группы людей) можно добавлять целиком
-- [x] **PROJ-05**: Доступны шаблоны проектов: Пустой, Разработка ПО, QA, Kanban Simple, а также пользовательские шаблоны и сохранение проекта как шаблона
-- [x] **PROJ-06**: Проекты можно архивировать (альтернатива удалению с доступом только на чтение)
-- [x] **PROJ-07**: Удаленные проекты попадают в корзину (хранение 30 дней) с возможностью экспорта резервной копии перед окончательным удалением
+### Layout Shell (LYOT)
 
-### Трекер задач
+- [ ] **LYOT-01**: User sees redesigned sidebar with gradient edge line and new background
+- [ ] **LYOT-02**: User sees active navigation item with accent glow indicator
+- [ ] **LYOT-03**: User sees redesigned topbar with backdrop blur and gradient bottom edge
+- [ ] **LYOT-04**: Sidebar collapse/expand works without visual regression
+- [ ] **LYOT-05**: Mobile navigation works without regression (bottom nav, overlay sidebar)
 
-- [x] **TASK-01**: 9 шаблонов задач: Bug, Task, Story, Epic, Sub-task, Improvement, Tech Debt, Spike, Release
-- [x] **TASK-02**: Задачи поддерживают фиксированные поля и пользовательские поля
-- [x] **TASK-03**: Неограниченная глубина вложенности для иерархии родительских/дочерних задач
-- [x] **TASK-04**: Связи задач: родитель/потомок, блокирует, связана с, дублирует, клонирует, является причиной, а также пользовательские типы связей
-- [x] **TASK-05**: Последовательная нумерация с префиксом проекта (HUB-1, MOBILE-1); префикс задается при создании проекта
-- [x] **TASK-06**: Владелец проекта может создавать пользовательский рабочий процесс со статусами и переходами
-- [x] **TASK-07**: Комментарии к задачам поддерживают @упоминания, внутренние комментарии (видимость ограничена ролью), цитирование и реакции
-- [x] **TASK-08**: Полный журнал изменений по каждой задаче (кто, что и когда изменил)
-- [x] **TASK-09**: Учет времени: оценка, фактическое время, старт/стоп таймер
-- [x] **TASK-10**: Метки на уровне проекта с цветами, группы меток; единая система меток для задач, тест-кейсов и сообщений
-- [x] **TASK-11**: Вложения файлов к задачам с предпросмотром изображений/PDF/видео, вставка через Ctrl+V, загрузка перетаскиванием
+### UI Primitives (PRIM)
 
-### Kanban
+- [ ] **PRIM-01**: User sees redesigned Button with gradient primary, ghost/secondary variants, glow hover
+- [ ] **PRIM-02**: User sees redesigned Card with gradient bg, top-edge highlight, hover glow
+- [ ] **PRIM-03**: User sees redesigned Input with blue focus glow ring and subtle scale on focus
+- [ ] **PRIM-04**: User sees redesigned Badge with status-specific glow backgrounds
+- [ ] **PRIM-05**: User sees redesigned Dialog/Popover with entrance animation and backdrop blur
+- [ ] **PRIM-06**: User sees redesigned Tabs with active indicator matching section color
+- [ ] **PRIM-07**: User sees redesigned DropdownMenu matching new design language
+- [ ] **PRIM-08**: User sees redesigned ScrollArea with slim 5px scrollbar
+- [ ] **PRIM-09**: User sees redesigned Avatar with online indicator glow
+- [ ] **PRIM-10**: User sees redesigned Tooltip matching new palette and radius
 
-- [x] **KANB-01**: Колонки Kanban-доски соответствуют статусам рабочего процесса
-- [x] **KANB-02**: WIP-лимиты на колонку
-- [x] **KANB-03**: Swimlanes (по исполнителю, приоритету или типу)
-- [x] **KANB-04**: Несколько досок на проект
-- [x] **KANB-05**: Фильтры доски: мои задачи, только баги, по приоритету
+### Login Page (LOGN)
 
-### Scrum
+- [ ] **LOGN-01**: User sees split layout — animated gradient left, form right
+- [ ] **LOGN-02**: User sees floating animated feature cards on left panel
+- [ ] **LOGN-03**: User sees email→code flow with redesigned inputs and code fields
+- [ ] **LOGN-04**: User sees mesh gradient background animation
+- [ ] **LOGN-05**: Login flow (magic link + Telegram) works without regression
 
-- [x] **SCRM-01**: Создание спринтов с датами начала/окончания, перетаскивание задач из бэклога, запуск/завершение спринта
-- [x] **SCRM-02**: Диаграмма сгорания и диаграмма скорости
-- [x] **SCRM-03**: Заметки ретроспективы, привязанные к спринту
-- [x] **SCRM-04**: Автоперенос незавершенных задач в следующий спринт
-- [x] **SCRM-05**: Planning Poker: шкала Фибоначчи, голоса скрыты до раскрытия
+### Dashboard Page (DASH)
 
-### Мессенджер
+- [ ] **DASH-01**: User sees 3-column widget grid with redesigned cards
+- [ ] **DASH-02**: User sees greeting section with date and gradient text
+- [ ] **DASH-03**: User sees quick action buttons with new styling
+- [ ] **DASH-04**: User sees staggered entrance animations on widgets
+- [ ] **DASH-05**: Dashboard widget drag-and-drop works without regression
 
-- [x] **MSG-01**: Личные сообщения (1-на-1) и групповые чаты
-- [x] **MSG-02**: Публичные каналы (любой может присоединиться) и приватные каналы (только по приглашению)
-- [x] **MSG-03**: Автоматически создаваемые каналы проекта (#project-hub) и тематические каналы (#hub-backend, #hub-bugs)
-- [x] **MSG-04**: Каналы только для чтения (бот публикует, пользователи читают -- например, #hub-ci)
-- [x] **MSG-05**: Ответы в тредах (ответ открывает ветку обсуждения)
-- [x] **MSG-06**: Emoji-реакции на сообщения
-- [x] **MSG-07**: Форматирование текста: жирный, курсив, код, списки, ссылки
-- [x] **MSG-08**: Редактирование и удаление своих сообщений; Owner/Admin канала может удалить любое сообщение
-- [x] **MSG-09**: Пересылка сообщений, закрепление и закладки (сохраненные сообщения)
-- [x] **MSG-10**: Голосовые сообщения (аудиозапись в чате)
-- [x] **MSG-11**: Превью ссылок: задачи, тест-кейсы, тест-раны, GitHub PR/Issue, а также превью внешних URL (OG meta)
-- [x] **MSG-12**: Глобальный поиск и поиск по каналу
-- [x] **MSG-13**: Статус пользователя: онлайн/офлайн/отошел (автоопределение) и пользовательский текст статуса
+### Messenger Page (MSGR)
 
-### TMS (Управление тестированием)
+- [ ] **MSGR-01**: User sees redesigned 3-panel layout (sidebar + channel list 280px + chat)
+- [ ] **MSGR-02**: User sees redesigned channel list with search and filter buttons
+- [ ] **MSGR-03**: User sees redesigned message items with new avatar, text, metadata styling
+- [ ] **MSGR-04**: User sees redesigned message composer with glassmorphism effect
+- [ ] **MSGR-05**: User sees redesigned reactions, typing indicator, reply bar
+- [ ] **MSGR-06**: All messenger functionality works without regression (send, react, thread, pin, forward, voice, search, polls, stickers, GIFs)
 
-- [x] **TMS-01**: Тест-кейсы в классическом формате (шаги + ожидаемый результат) и BDD-формате (Given/When/Then)
-- [x] **TMS-02**: Структура тест-кейсов: папки/секции, теги, компоненты, версионирование с историей и откатом
-- [x] **TMS-03**: Связь с GitHub: сопоставление по ID аннотации (@TestCase("HUB-TC-42")), отображение связанного кода, синхронизация статуса, вебхук при изменении
-- [x] **TMS-04**: Тест-раны: ручные, автоматические (Allure), смешанные; повторное открытие упавших; назначение тестировщикам
-- [x] **TMS-05**: Скриншот и комментарий к каждому шагу результата теста
-- [x] **TMS-06**: Двусторонняя связь с задачами: создание бага из упавшего тест-кейса, покрытие требований, матрица трассировки
-- [x] **TMS-07**: Тестовые окружения: метка (dev/staging/prod), конфигурации (браузер/ОС), сравнение между окружениями, фильтрованная история
-- [x] **TMS-08**: Отчетность уровня Allure: тренды, нестабильные тесты, категории дефектов, сравнение запусков, дашборды
-- [x] **TMS-09**: Импорт тест-кейсов: CSV, JSON, XML, Excel с универсальным маппингом полей
-- [x] **TMS-10**: Экспорт тест-кейсов и результатов: CSV, JSON, XML, PDF
+### Kanban Page (KANB)
 
-### Интеграция с Allure
+- [ ] **KANB-01**: User sees redesigned kanban columns with new header styling
+- [ ] **KANB-02**: User sees redesigned issue cards with priority dots, assignee avatars, glow hover
+- [ ] **KANB-03**: User sees redesigned filter and view options bar
+- [ ] **KANB-04**: Kanban drag-and-drop works without regression
 
-- [x] **ALLU-01**: CI генерирует Allure Report HTML; Hub предоставляет парсер, который читает allure-results JSON и отправляет POST в TMS API
-- [x] **ALLU-02**: Сопоставление результатов тестов с тест-кейсами по Allure ID или имени теста
-- [x] **ALLU-03**: История запусков, статистика и Telegram-уведомления о завершении тест-рана
+### Issue Detail Page (ISSU)
 
-### Голосовые звонки
+- [ ] **ISSU-01**: User sees redesigned two-column layout (content + sidebar meta)
+- [ ] **ISSU-02**: User sees redesigned issue description, comments, activity section
+- [ ] **ISSU-03**: User sees redesigned right sidebar (status, assignee, deadline, related issues)
+- [ ] **ISSU-04**: All issue functionality works without regression (edit, comment, time track, checklist, attachments)
 
-- [x] **CALL-01**: Аудиозвонки и демонстрация экрана (без веб-камер), до 50 участников
-- [x] **CALL-02**: Запланированные и повторяющиеся звонки (например, ежедневный стендап)
-- [x] **CALL-03**: Включение/выключение микрофона, поднятие руки, выбор экрана/окна, одновременная демонстрация нескольких экранов
-- [x] **CALL-04**: Запись по нажатию кнопки (аудио + демонстрация экрана); все участники уведомлены; сохранение в SeaweedFS; ссылка публикуется в канале
-- [x] **CALL-05**: Записи привязаны к проекту (отдельный раздел Записи)
-- [x] **CALL-06**: Эфемерный чат звонка (исчезает после завершения звонка)
+### Calls Page (CALL)
 
-### Дашборды
+- [ ] **CALL-01**: User sees redesigned video/call participant grid
+- [ ] **CALL-02**: User sees redesigned call controls (mute, camera, share, end call)
+- [ ] **CALL-03**: User sees redesigned participant status indicators
+- [ ] **CALL-04**: All call functionality works without regression (join, mute, screen share, record, hand raise, chat)
 
-- [x] **DASH-01**: Личный дашборд: мои задачи, непрочитанные сообщения, предстоящие звонки, тест-раны, дедлайны, активность, быстрые действия, фильтры, чаты, учет времени -- настраиваемые виджеты с перетаскиванием и изменением размера
-- [x] **DASH-02**: Дашборд проекта: статусы задач, сгорание, скорость, баги, активность команды, тесты, тренды, покрытие, нестабильные тесты, неназначенные, просроченные, коммиты -- настраиваемый с шаблонами (Dev/QA/Manager)
-- [x] **DASH-03**: Дашборд администратора: пользователи, проекты, задачи, активность (DAU/WAU/MAU), использование хранилища, состояние сервисов, топ проектов/пользователей, логи ошибок
+### TMS Page (TMSP)
 
-### Уведомления
+- [ ] **TMSP-01**: User sees redesigned test management interface
+- [ ] **TMSP-02**: User sees redesigned test case grid/list with new card styling
+- [ ] **TMSP-03**: User sees redesigned execution status tracking
+- [ ] **TMSP-04**: All TMS functionality works without regression (cases, runs, environments, traceability)
 
-- [x] **NOTF-01**: Триггеры: назначение, обновление, @упоминание, смена статуса, сообщение в чате, звонок, тест-ран, спринт, дедлайн, блокировщик
-- [x] **NOTF-02**: Каналы доставки: в приложении (иконка колокольчика) и Telegram-бот
-- [x] **NOTF-03**: Настройки: конфигурация по типу, по каналу доставки и по проекту
-- [x] **NOTF-04**: Тихие часы с возможностью прорыва для срочных уведомлений
+### Settings Page (STNG)
 
-### Интеграция с GitHub
+- [ ] **STNG-01**: User sees redesigned sidebar navigation + content layout
+- [ ] **STNG-02**: User sees redesigned profile section with new form styling
+- [ ] **STNG-03**: User sees redesigned appearance section with theme/accent selectors
+- [ ] **STNG-04**: User sees redesigned notification preferences
+- [ ] **STNG-05**: All settings functionality works without regression
 
-- [x] **GHUB-01**: Привязка PR и коммитов к задачам с карточками предпросмотра
-- [x] **GHUB-02**: Автопривязка: "HUB-123" в сообщении коммита автоматически прикрепляется к задаче
-- [x] **GHUB-03**: Статус PR отображается на задаче (open/merged/closed)
-- [x] **GHUB-04**: Автоматическая смена статуса задачи при мерже PR
-- [x] **GHUB-05**: Создание ветки из задачи (именование hub-123-fix-login)
+### Admin Page (ADMN)
 
-### Фильтры и поиск
+- [ ] **ADMN-01**: User sees redesigned KPI cards (Users, Projects, Tasks, DAU/WAU/MAU)
+- [ ] **ADMN-02**: User sees redesigned tabbed interface (Users, Audit, Resource Limits)
+- [ ] **ADMN-03**: User sees redesigned user management table
+- [ ] **ADMN-04**: User sees redesigned audit log with filters
+- [ ] **ADMN-05**: All admin functionality works without regression
 
-- [x] **SRCH-01**: Фильтры задач: статус, приоритет, исполнитель, тип; сохраняемые и общие фильтры
-- [x] **SRCH-02**: Ctrl+K глобальный поиск: задачи, тест-кейсы, пользователи, проекты, каналы, файлы
-- [x] **SRCH-03**: JQL-подобный язык запросов для расширенной фильтрации
+### Onboarding Page (ONBD)
 
-### API и интеграции
+- [ ] **ONBD-01**: User sees redesigned centered modal flow with progress indicator
+- [ ] **ONBD-02**: User sees redesigned profile form (Step 1)
+- [ ] **ONBD-03**: User sees redesigned feature tour with 6 cards (Step 2)
+- [ ] **ONBD-04**: User sees redesigned theme + accent selection (Step 3)
+- [ ] **ONBD-05**: Onboarding flow works without regression
 
-- [x] **API-01**: REST API с документацией Swagger
-- [x] **API-02**: Генерация API-ключей в профиле пользователя
-- [x] **API-03**: Вебхуки (POST на внешний URL по событиям)
-- [x] **API-04**: hub-cli: CLI-инструмент для CI/CD (push-results, create-bug, update-task)
+### Trash Page (TRSH)
 
-### Импорт/Экспорт
+- [ ] **TRSH-01**: User sees redesigned trash table with new styling
+- [ ] **TRSH-02**: User sees redesigned restore/delete buttons and type badges
+- [ ] **TRSH-03**: Trash functionality works without regression (restore, permanent delete)
 
-- [x] **IMEX-01**: Универсальный CSV/JSON импорт задач с маппингом полей
-- [x] **IMEX-02**: Импорт тест-кейсов из Excel
-- [x] **IMEX-03**: Экспорт: задачи (CSV/Excel), тест-раны (PDF), спринты (PDF), полная резервная копия проекта (ZIP)
+### Pages Without Mockups (XTRA)
 
-### Аудит и безопасность
+- [ ] **XTRA-01**: User sees Projects list page styled consistently with design system
+- [ ] **XTRA-02**: User sees Project overview page styled consistently with design system
+- [ ] **XTRA-03**: User sees Sprint management pages (backlog, sprint detail, burndown, velocity, planning poker) styled consistently
+- [ ] **XTRA-04**: User sees JQL search page styled consistently with design system
+- [ ] **XTRA-05**: User sees Project settings pages (workflow, labels, integrations) styled consistently
+- [ ] **XTRA-06**: User sees Project dashboard (widget grid) styled consistently with design system
+- [ ] **XTRA-07**: All existing functionality on unmocked pages works without regression
 
-- [x] **AUDT-01**: Полный журнал аудита: вход/выход, задачи, проекты, TMS, мессенджер -- администратор может просматривать с фильтрами
-- [x] **AUDT-02**: Настраиваемые лимиты: размер файла, количество проектов на пользователя, хранилище на проект -- управляет администратор
-- [x] **AUDT-03**: 30-дневная корзина для задач, тест-кейсов, проектов, файлов; Admin/Owner может восстановить
-- [x] **AUDT-04**: Удаление пользователя: деактивация, переназначение задач, полное удаление данных (опция GDPR)
+## Future Requirements
 
-### Резервное копирование
+### Polish (deferred to later iteration)
 
-- [x] **BKUP-01**: Еженедельное автоматическое резервное копирование (PostgreSQL + MongoDB + SeaweedFS)
-- [x] **BKUP-02**: Хранение последних N резервных копий (настраивается)
-- [x] **BKUP-03**: Восстановление из резервной копии через панель администратора
+- **PLSH-01**: Per-page ambient body gradients (Dashboard: amber, Messenger: blue)
+- **PLSH-02**: Skeleton loading states for all widgets
+- **PLSH-03**: Smooth theme toggle transition (remove disableTransitionOnChange)
 
-### UI/UX
+## Out of Scope
 
-- [x] **UI-01**: Сворачиваемая левая боковая панель и верхняя панель (поиск, уведомления, профиль)
-- [x] **UI-02**: Мобильная верстка: нижняя навигация, упрощенный Kanban (вид списком), мобильные дашборды, мобильный интерфейс звонков
-- [x] **UI-03**: Темная, светлая и системная тема, а также пользовательский акцентный цвет
-- [x] **UI-04**: Русский и английский языки с переключателем в профиле
-- [x] **UI-05**: Горячие клавиши: Ctrl+K (поиск), Ctrl+N (новая задача)
-- [x] **UI-06**: PWA: установка на телефон, офлайн-кеш, Web Push уведомления
-- [x] **UI-07**: Обработка ошибок: toast-уведомления, ID запроса, повтор, офлайн-режим, страницы 404/500/403
-- [x] **UI-08**: Вложения файлов повсюду: любой тип файла, предпросмотр изображений/PDF/видео, вставка через Ctrl+V, перетаскивание
-- [x] **UI-09**: Пагинация: постраничная для задач, бесконечная прокрутка для чата, виртуализация для больших списков, серверная фильтрация
+| Feature | Reason |
+|---------|--------|
+| Route-level page transition animations | Layout shift bugs, productivity tool not marketing site |
+| Parallax/scroll-triggered animations | Not appropriate for SaaS productivity tool |
+| 3D transforms / perspective tilt on cards | Over-designed, distracting |
+| Gradient buttons beyond primary CTAs | Visual noise, max 1-2 per page |
+| New functionality or features | This milestone is visual-only |
+| Backend changes | Frontend redesign only |
+| New npm packages for styling | Existing stack covers all needs |
 
-## Требования v2
+## Traceability
 
-Отложены до будущего релиза. Отслеживаются, но не входят в текущую дорожную карту.
+Updated during roadmap creation.
 
-### Расширенные запросы
-
-- **V2-01**: JQL-подобный язык запросов с автодополнением и сохраненными запросами
-- **V2-02**: Представление матрицы трассировки (требования к тест-кейсам к результатам)
-
-### Расширенное управление проектами
-
-- **V2-03**: Маркетплейс шаблонов проектов (импорт/экспорт шаблонов между инстансами)
-- **V2-04**: Импорт из Jira (структура проекта, задачи, вложения)
-- **V2-05**: Импорт из TestRail (тест-кейсы, наборы, запуски)
-
-### Расширенное администрирование
-
-- **V2-06**: Дашборд администратора с аналитикой DAU/WAU/MAU, мониторинг состояния сервисов
-- **V2-07**: CLI-инструмент для автоматизации CI/CD (hub-cli)
-
-### Расширенный TMS
-
-- **V2-08**: Тестовые окружения с конфигурациями браузер/ОС и сравнением между окружениями
-- **V2-09**: Пользовательские поля в задачах
-
-### Расширенный Kanban
-
-- **V2-10**: Swimlanes по исполнителю, приоритету или типу
-- **V2-11**: WIP-лимиты на колонку
-
-### PWA и офлайн
-
-- **V2-12**: Полный офлайн-режим PWA с синхронизацией при восстановлении соединения
-
-## Вне области охвата
-
-Явно исключено. Задокументировано для предотвращения расширения объема работ.
-
-| Функция | Причина |
-|---------|---------|
-| Видеозвонки с веб-камерами | Осознанное ограничение -- голос + демонстрация экрана покрывают 90% потребностей |
-| Нативные мобильные приложения (App Store/Google Play) | PWA достаточно для внутренних инструментов |
-| Email-уведомления | Telegram-бот заменяет их для целевой аудитории |
-| Биллинг/подписки | Внутренний инструмент, не SaaS |
-| SSO/LDAP/OAuth | Magic Link + Telegram достаточно для v1 |
-| Диаграммы Ганта | Kanban + Scrum покрывают потребности управления проектами |
-| Видео/аудиосообщения в мессенджере (кроме голосовых) | Избыточно для v1 |
-| Удаленное управление (управление чужим экраном) | Высокая сложность, не критично |
-| Совместное редактирование в реальном времени | Высокая сложность, не критично для v1 |
-| AI-функции | Вне области охвата для первоначального продукта |
-| Маркетплейс плагинов | Не нужен для внутреннего инструмента |
-| Wiki/база знаний | Отдельная задача, не основная ценность |
-
-## Трассировка
-
-Какие фазы покрывают какие требования. Обновляется при создании дорожной карты.
-
-| Требование | Фаза | Статус |
+| Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Complete |
-| AUTH-02 | Phase 1 | Complete |
-| AUTH-03 | Phase 1 | Complete |
-| AUTH-04 | Phase 1 | Complete |
-| AUTH-05 | Phase 1 | Complete |
-| AUTH-06 | Phase 1 | Complete |
-| AUTH-07 | Phase 1 | Complete |
-| AUTH-08 | Phase 1 | Complete |
-| PROJ-01 | Phase 1 | Complete |
-| PROJ-02 | Phase 1 | Complete |
-| PROJ-03 | Phase 1 | Complete |
-| PROJ-04 | Phase 1 | Complete |
-| PROJ-05 | Phase 7 | Complete |
-| PROJ-06 | Phase 1 | Complete |
-| PROJ-07 | Phase 1 | Complete |
-| TASK-01 | Phase 2 | Complete |
-| TASK-02 | Phase 2 | Complete |
-| TASK-03 | Phase 2 | Complete |
-| TASK-04 | Phase 2 | Complete |
-| TASK-05 | Phase 2 | Complete |
-| TASK-06 | Phase 2 | Complete |
-| TASK-07 | Phase 2 | Complete |
-| TASK-08 | Phase 2 | Complete |
-| TASK-09 | Phase 2 | Complete |
-| TASK-10 | Phase 2 | Complete |
-| TASK-11 | Phase 2 | Complete |
-| KANB-01 | Phase 2 | Complete |
-| KANB-02 | Phase 7 | Complete |
-| KANB-03 | Phase 7 | Complete |
-| KANB-04 | Phase 2 | Complete |
-| KANB-05 | Phase 2 | Complete |
-| SCRM-01 | Phase 7 | Complete |
-| SCRM-02 | Phase 7 | Complete |
-| SCRM-03 | Phase 7 | Complete |
-| SCRM-04 | Phase 7 | Complete |
-| SCRM-05 | Phase 7 | Complete |
-| MSG-01 | Phase 3 | Complete |
-| MSG-02 | Phase 3 | Complete |
-| MSG-03 | Phase 3 | Complete |
-| MSG-04 | Phase 3 | Complete |
-| MSG-05 | Phase 3 | Complete |
-| MSG-06 | Phase 3 | Complete |
-| MSG-07 | Phase 3 | Complete |
-| MSG-08 | Phase 3 | Complete |
-| MSG-09 | Phase 3 | Complete |
-| MSG-10 | Phase 3 | Complete |
-| MSG-11 | Phase 7 | Complete |
-| MSG-12 | Phase 3 | Complete |
-| MSG-13 | Phase 3 | Complete |
-| TMS-01 | Phase 4 | Complete |
-| TMS-02 | Phase 4 | Complete |
-| TMS-03 | Phase 4 | Complete |
-| TMS-04 | Phase 4 | Complete |
-| TMS-05 | Phase 4 | Complete |
-| TMS-06 | Phase 4 | Complete |
-| TMS-07 | Phase 7 | Complete |
-| TMS-08 | Phase 4 | Complete |
-| TMS-09 | Phase 4 | Complete |
-| TMS-10 | Phase 4 | Complete |
-| ALLU-01 | Phase 4 | Complete |
-| ALLU-02 | Phase 4 | Complete |
-| ALLU-03 | Phase 4 | Complete |
-| CALL-01 | Phase 5 | Complete |
-| CALL-02 | Phase 7 | Complete |
-| CALL-03 | Phase 5 | Complete |
-| CALL-04 | Phase 7 | Complete |
-| CALL-05 | Phase 7 | Complete |
-| CALL-06 | Phase 5 | Complete |
-| DASH-01 | Phase 6 | Complete |
-| DASH-02 | Phase 6 | Complete |
-| DASH-03 | Phase 6 | Complete |
-| NOTF-01 | Phase 6 | Complete |
-| NOTF-02 | Phase 6 | Complete |
-| NOTF-03 | Phase 6 | Complete |
-| NOTF-04 | Phase 6 | Complete |
-| GHUB-01 | Phase 7 | Complete |
-| GHUB-02 | Phase 7 | Complete |
-| GHUB-03 | Phase 7 | Complete |
-| GHUB-04 | Phase 7 | Complete |
-| GHUB-05 | Phase 7 | Complete |
-| SRCH-01 | Phase 6 | Complete |
-| SRCH-02 | Phase 6 | Complete |
-| SRCH-03 | Phase 7 | Complete |
-| API-01 | Phase 7 | Complete |
-| API-02 | Phase 7 | Complete |
-| API-03 | Phase 7 | Complete |
-| API-04 | Phase 7 | Complete |
-| IMEX-01 | Phase 7 | Complete |
-| IMEX-02 | Phase 4 | Complete |
-| IMEX-03 | Phase 7 | Complete |
-| AUDT-01 | Phase 6 | Complete |
-| AUDT-02 | Phase 6 | Complete |
-| AUDT-03 | Phase 6 | Complete |
-| AUDT-04 | Phase 6 | Complete |
-| BKUP-01 | Phase 7 | Complete |
-| BKUP-02 | Phase 7 | Complete |
-| BKUP-03 | Phase 7 | Complete |
-| UI-01 | Phase 1 | Complete |
-| UI-02 | Phase 7 | Complete |
-| UI-03 | Phase 7 | Complete |
-| UI-04 | Phase 7 | Complete |
-| UI-05 | Phase 6 | Complete |
-| UI-06 | Phase 7 | Complete |
-| UI-07 | Phase 1 | Complete |
-| UI-08 | Phase 1 | Complete |
-| UI-09 | Phase 2 | Complete |
+| — | — | — |
 
-**Покрытие:**
-- Требования v1: 95 всего
-- Привязано к фазам: 95
-- Не привязано: 0
+**Coverage:**
+- v2.0 requirements: 68 total
+- Mapped to phases: 0 (pending roadmap)
+- Unmapped: 68
 
 ---
-*Требования определены: 2026-03-20*
-*Последнее обновление: 2026-03-20 после первоначального определения*
+*Requirements defined: 2026-03-27*
+*Last updated: 2026-03-27 after initial definition*
