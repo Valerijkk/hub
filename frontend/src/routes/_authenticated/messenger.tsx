@@ -8,7 +8,7 @@ import { ChannelList } from "@/components/messenger/channel-list";
  */
 function MessengerLayout() {
 	return (
-		<div className="flex h-[calc(100vh)] -mx-4 -my-4 md:-mx-6 overflow-hidden">
+		<div className="flex h-[calc(100vh)] -mx-4 -my-4 md:-mx-6 md:-my-6 overflow-hidden">
 			{/* Sidebar каналов — тёмный стиль, соответствует основному сайдбару */}
 			<div className="hidden md:block w-[272px] shrink-0 border-r border-white/[0.06] bg-[hsl(220,13%,10%)] text-sidebar-foreground">
 				<ChannelList />
