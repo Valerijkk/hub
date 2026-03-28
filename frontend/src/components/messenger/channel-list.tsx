@@ -82,7 +82,7 @@ function BookmarksButton() {
 		<>
 			<button
 				type="button"
-				className="inline-flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/60 hover:bg-white/10 hover:text-sidebar-foreground transition-colors"
+				className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-[1.08] transition-all"
 				title="Закладки"
 				onClick={() => setOpen(true)}
 			>
@@ -142,10 +142,10 @@ function ChannelSection({
 
 	return (
 		<div>
-			<div className="flex items-center justify-between px-3 py-1.5 group/section">
+			<div className="flex items-center justify-between px-4 py-1.5 group/section">
 				<button
 					type="button"
-					className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors"
+					className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--t4)] hover:text-[var(--t3)] transition-colors"
 					onClick={() => setCollapsed(!collapsed)}
 				>
 					<svg
@@ -358,45 +358,37 @@ function ChannelItem({
 				to="/messenger/$channelId"
 				params={{ channelId: channel.id }}
 				className={cn(
-					"group/item relative flex items-center gap-2.5 mx-2 rounded-md px-2.5 py-1.5 text-sm transition-all duration-150",
-					"text-sidebar-foreground/70 hover:bg-white/[0.06] hover:text-sidebar-foreground",
-					isActive &&
-						"bg-primary/10 text-sidebar-foreground font-medium",
+					"group/item flex items-center gap-[11px] py-2.5 px-3.5 cursor-pointer transition-all border-l-2 border-transparent",
+					isActive && "bg-[rgba(52,211,153,.04)] border-l-[var(--green)]",
+					!isActive && "hover:bg-[var(--hover)]",
 				)}
 				onContextMenu={handleContextMenu}
 			>
-				{/* Left accent bar for active channel */}
-				{isActive && (
-					<div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
-				)}
-
 				{/* Icon with online dot for DM */}
-				<div className="relative shrink-0">
+				<div className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[13.5px] font-bold shrink-0 relative hover:scale-105 transition-transform">
 					<ChannelIcon type={channel.channel_type} />
 					{channel.channel_type === "dm" && partnerId && (
-						<span className="absolute -bottom-0.5 -right-0.5">
+						<span className="absolute bottom-0 right-0 w-[9px] h-[9px] rounded-full border-2 border-[var(--void)]">
 							<PresenceIndicator
 								status={getStatus(partnerId)}
 								size="sm"
-								className="ring-2 ring-sidebar"
 							/>
 						</span>
 					)}
 				</div>
 
-				{/* Name + time */}
+				{/* Name + preview + time */}
 				<div className="flex-1 min-w-0">
 					<div className="flex items-center justify-between gap-2">
 						<span
 							className={cn(
-								"truncate text-[13px]",
-								unread > 0 &&
-									"font-semibold text-sidebar-foreground",
+								"text-sm font-semibold truncate tracking-[-0.01em]",
+								unread > 0 && "text-[var(--t1)]",
 							)}
 						>
 							{channel.name}
 						</span>
-						<span className="shrink-0 text-[10px] text-sidebar-foreground/35">
+						<span className="text-[10.5px] text-[var(--t4)] font-medium shrink-0">
 							{formatRelativeTime(channel.updated_at)}
 						</span>
 					</div>
@@ -424,9 +416,9 @@ function ChannelItem({
 					<StarIcon filled={channel.is_starred} />
 				</button>
 
-				{/* Unread dot / count */}
+				{/* Unread badge */}
 				{unread > 0 && (
-					<span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+					<span className="bg-gradient-to-br from-[var(--green)] to-[var(--greenS)] text-white text-[10px] font-bold px-[7px] py-0.5 rounded-full min-w-[20px] text-center shadow-[0_2px_8px_var(--gG)]">
 						{unread > 99 ? "99+" : unread}
 					</span>
 				)}
@@ -472,19 +464,20 @@ export function ChannelList() {
 
 	if (isLoading) {
 		return (
-			<div className="flex h-full flex-col">
-				<div className="flex h-14 items-center justify-between border-b border-white/10 px-4">
-					<span className="text-sm font-semibold text-sidebar-foreground">
+			<div className="w-[280px] min-w-[280px] border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x">
+				<div className="px-3.5 pt-3.5 pb-2">
+					<span className="text-sm font-semibold text-[var(--t1)]">
 						Мессенджер
 					</span>
 				</div>
 				<div className="flex flex-1 items-center justify-center">
 					<div className="space-y-1 w-full px-2">
 						{[1, 2, 3, 4, 5].map((i) => (
-							<div key={i} className="flex items-center gap-2.5 px-3 py-2">
-								<div className="h-5 w-5 rounded animate-shimmer shrink-0" />
+							<div key={i} className="flex items-center gap-[11px] px-3.5 py-2.5">
+								<div className="h-[38px] w-[38px] rounded-full animate-shimmer shrink-0" />
 								<div className="flex-1 space-y-1">
 									<div className="h-3 w-24 rounded animate-shimmer" />
+									<div className="h-2.5 w-16 rounded animate-shimmer" />
 								</div>
 							</div>
 						))}
@@ -523,20 +516,22 @@ export function ChannelList() {
 	};
 
 	return (
-		<div className="flex h-full flex-col">
+		<div className="w-[280px] min-w-[280px] border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x">
 			{/* Header */}
-			<div className="flex h-14 items-center justify-between border-b border-white/10 px-4">
-				<span className="text-sm font-semibold tracking-wide text-sidebar-foreground">
-					Мессенджер
-				</span>
-				<div className="flex items-center gap-0.5">
-					<BookmarksButton />
+			<div className="px-3.5 pt-3.5 pb-2">
+				<div className="flex items-center justify-between mb-2">
+					<span className="text-sm font-semibold tracking-wide text-[var(--t1)]">
+						Мессенджер
+					</span>
+					<div className="flex items-center gap-1">
+						<BookmarksButton />
+					</div>
 				</div>
 			</div>
 
 			{/* Channel list */}
 			<div className="flex-1 overflow-y-auto">
-				<div className="py-3 space-y-4">
+				<div className="py-1 space-y-2">
 					{/* Закреплённые каналы (starred) */}
 					{starredChannels.length > 0 && (
 						<ChannelSection type="starred" label="Закреплённые">
@@ -575,13 +570,13 @@ export function ChannelList() {
 			</div>
 
 			{/* Bottom panel -- create channel + new DM */}
-			<div className="border-t border-white/[0.06] px-3 h-12 flex items-center gap-2">
+			<div className="border-t border-[var(--b1)] px-3.5 h-12 flex items-center gap-2">
 				<NewDmDialog />
 				<Dialog>
 					<DialogTrigger asChild>
 						<button
 							type="button"
-							className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-sidebar-foreground/40 hover:bg-white/[0.06] hover:text-sidebar-foreground/70 transition-colors"
+							className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t2)] transition-colors"
 						>
 							<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
 								<path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
