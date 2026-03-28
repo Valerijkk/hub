@@ -314,7 +314,7 @@ Plans:
 
 Plans:
 - [x] 13-01-PLAN.md — Avatar online glow + smooth theme toggle (1/1 SUMMARY)
-- [ ] 13-02-PLAN.md — Dead CSS cleanup + final QA
+- [x] 13-02-PLAN.md — Dead CSS cleanup + final QA
 **UI hint**: yes
 
 ## Progress
@@ -336,4 +336,4 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 10. UI Primitives | v2.0 | 3/3 | Complete    | 2026-03-28 |
 | 11. Core Mockup Pages | v2.0 | 4/4 | Complete    | 2026-03-28 |
 | 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 5/5 | Complete    | 2026-03-28 |
-| 13. Polish & QA | v2.0 | 0/? | Not started | - |
+| 13. Polish & QA | v2.0 | 2/2 | Complete   | 2026-03-28 |
