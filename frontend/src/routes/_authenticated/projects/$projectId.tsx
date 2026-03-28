@@ -19,7 +19,7 @@ function ProjectLayout() {
 	return (
 		<div className="flex flex-col h-full">
 			{/* Горизонтальная навигация проекта */}
-			<div className="shrink-0 border-b border-white/[0.06] bg-card/50 backdrop-blur-sm">
+			<div className="shrink-0 border-b border-white/[0.06]">
 				<nav className="flex gap-0.5 px-4 overflow-x-auto scrollbar-thin">
 					{PROJECT_TABS.map((tab) => {
 						const isActive = tab.exact
