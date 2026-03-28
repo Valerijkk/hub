@@ -2,50 +2,18 @@ import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import type { IssueBriefResponse } from "@/api/tracker";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /** Конфигурация цветов и меток приоритетов задач. */
 const PRIORITY_CONFIG: Record<
 	string,
-	{ dot: string; bg: string; text: string; label: string; borderColor: string }
+	{ color: string; label: string }
 > = {
-	critical: {
-		dot: "bg-red-500",
-		bg: "bg-red-500/15",
-		text: "text-red-700 dark:text-red-400",
-		label: "Критический",
-		borderColor: "#ef4444",
-	},
-	high: {
-		dot: "bg-orange-500",
-		bg: "bg-orange-500/15",
-		text: "text-orange-700 dark:text-orange-400",
-		label: "Высокий",
-		borderColor: "#f97316",
-	},
-	medium: {
-		dot: "bg-yellow-500",
-		bg: "bg-yellow-500/15",
-		text: "text-yellow-700 dark:text-yellow-400",
-		label: "Средний",
-		borderColor: "#eab308",
-	},
-	low: {
-		dot: "bg-blue-500",
-		bg: "bg-blue-500/15",
-		text: "text-blue-700 dark:text-blue-400",
-		label: "Низкий",
-		borderColor: "#3b82f6",
-	},
-	trivial: {
-		dot: "bg-gray-400",
-		bg: "bg-gray-400/15",
-		text: "text-gray-600 dark:text-gray-400",
-		label: "Тривиальный",
-		borderColor: "#9ca3af",
-	},
+	critical: { color: "#ef4444", label: "Критический" },
+	high: { color: "#f97316", label: "Высокий" },
+	medium: { color: "#eab308", label: "Средний" },
+	low: { color: "#3b82f6", label: "Низкий" },
+	trivial: { color: "#9ca3af", label: "Тривиальный" },
 };
 
 /** Конфигурация типов задач — SVG-иконки с цветами для лучшей читаемости. */
@@ -156,6 +124,11 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 	const checklistDone = issue.checklist?.filter((c) => c.checked).length ?? 0;
 	const checklistPct = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
 
+	/** Assignee color from avatar_url or fallback gradient */
+	const assigneeBg = issue.assignee
+		? "linear-gradient(140deg, var(--blueS), var(--purpleS))"
+		: undefined;
+
 	return (
 		<Link
 			to="/projects/$projectId/issues/$issueKey"
@@ -169,94 +142,79 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 				role="button"
 				tabIndex={0}
 				className={cn(
-					"cursor-grab active:cursor-grabbing select-none",
+					"select-none",
 					isDragging && "opacity-30",
 				)}
 				onPointerDown={handlePointerDown}
 			>
 				<div
 					className={cn(
-						"rounded-lg border bg-card p-3",
-						"border-white/[0.06]",
-						"border-l-[3px]",
-						"transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
-						"hover:shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:border-[rgba(59,130,246,0.2)] hover:-translate-y-[2px]",
-						"focus-visible:ring-2 focus-visible:ring-primary/30",
+						"kanban-card",
+						issue.priority === "critical" && "kanban-card-critical",
+						issue.priority === "high" && "kanban-card-high",
+						issue.status === "done" && "kanban-card-done",
 					)}
-					style={{ borderLeftColor: priority.borderColor }}
 				>
 					{/* Верхняя строка: тип + ключ */}
-					<div className="flex items-center gap-1.5 mb-1.5">
+					<div className="flex items-center gap-[7px] mb-[7px]">
 						<span
 							className={cn("text-sm leading-none", typeConfig.color)}
 							title={issue.issue_type}
 						>
 							{typeConfig.icon}
 						</span>
-						<span className="font-mono text-[11px] font-semibold text-muted-foreground/80 tracking-wide">
+						<span className="font-mono text-[11px] text-[var(--t4)] font-medium">
 							{issue.issue_key}
 						</span>
 					</div>
 
 					{/* Название — до 2 строк */}
-					<p className="text-[13px] font-medium leading-snug line-clamp-2 mb-2.5 text-foreground/90">
+					<p className="text-[13.5px] font-semibold leading-[1.45] tracking-[-0.005em] line-clamp-2 mb-3 transition-colors hover:text-white">
 						{issue.title}
 					</p>
 
-					{/* Прогресс чеклиста */}
-					{checklistTotal > 0 && (
-						<div className="mb-2">
-							<div className="flex items-center justify-between mb-0.5">
-								<span className="text-[10px] text-muted-foreground">
-									{checklistDone}/{checklistTotal}
-								</span>
-							</div>
-							<div className="h-1 w-full rounded-full bg-muted">
-								<div
-									className={cn(
-										"h-1 rounded-full transition-all",
-										checklistPct === 100 ? "bg-green-500" : "bg-primary",
-									)}
-									style={{ width: `${checklistPct}%` }}
-								/>
-							</div>
-						</div>
-					)}
+					{/* Meta row: priority dot + SP + checklist */}
+					<div className="flex items-center gap-2">
+						<span
+							className="w-2 h-2 rounded-[3px] transition-all hover:shadow-[0_0_10px_currentColor] hover:scale-125"
+							style={{ backgroundColor: priority.color, color: priority.color }}
+						/>
 
-					{/* Нижняя строка: приоритет + story points + аватар исполнителя */}
-					<div className="flex items-center justify-between">
-						<div className="flex items-center gap-1.5">
-							<Badge
-								variant="secondary"
-								className={cn(
-									"text-[10px] font-semibold px-1.5 py-0 h-[18px] rounded-md border-0",
-									priority.bg,
-									priority.text,
-								)}
-							>
-								{priority.label}
-							</Badge>
-
-							{issue.story_points != null && (
-								<Badge
-									variant="outline"
-									className="text-[10px] font-semibold px-1.5 py-0 h-[18px] rounded-md"
-								>
-									{issue.story_points} SP
-								</Badge>
-							)}
-						</div>
-
-						{issue.assignee ? (
-							<Avatar className="h-5 w-5 ring-1 ring-border/50">
-								<AvatarImage src={issue.assignee.avatar_url} />
-								<AvatarFallback className="text-[9px] font-medium bg-primary/10 text-primary">
-									{issue.assignee.name.charAt(0).toUpperCase()}
-								</AvatarFallback>
-							</Avatar>
-						) : (
-							<div className="h-5 w-5 rounded-full border border-dashed border-border/40" />
+						{issue.story_points != null && (
+							<span className="text-[10.5px] font-bold text-[var(--t4)] bg-[rgba(255,255,255,.035)] px-[7px] py-0.5 rounded-[var(--r1)]">
+								{issue.story_points} SP
+							</span>
 						)}
+
+						{checklistTotal > 0 && (
+							<div className="flex items-center gap-[5px] text-[11px] text-[var(--t4)]">
+								<div className="w-10 h-[3px] bg-[rgba(255,255,255,.04)] rounded-sm overflow-hidden">
+									<div
+										className="h-full bg-[var(--green)] rounded-sm shadow-[0_0_6px_var(--gG)]"
+										style={{ width: `${checklistPct}%` }}
+									/>
+								</div>
+								{checklistDone}/{checklistTotal}
+							</div>
+						)}
+					</div>
+
+					{/* Footer row: assignee avatar + labels */}
+					<div className="flex items-center justify-between mt-3.5">
+						{issue.assignee ? (
+							<div
+								className="w-[26px] h-[26px] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-[0_2px_6px_rgba(0,0,0,.3)] hover:scale-[1.12] transition-transform"
+								style={{ background: assigneeBg }}
+							>
+								{issue.assignee.name.charAt(0).toUpperCase()}
+							</div>
+						) : (
+							<div className="w-[26px] h-[26px] rounded-full border border-dashed border-border/40 flex items-center justify-center text-[10px] text-[var(--t4)]">
+								-
+							</div>
+						)}
+
+						{/* Labels — placeholder for future IssueBriefResponse extension */}
 					</div>
 				</div>
 			</div>

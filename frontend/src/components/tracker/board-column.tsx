@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { IssueBriefResponse, WorkflowStatusResponse } from "@/api/tracker";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { IssueCard } from "./issue-card";
 
@@ -23,7 +22,7 @@ interface BoardColumnProps {
  * Колонка Kanban-доски.
  * Является зоной сброса (drop target) для перетаскиваемых карточек.
  * Отображает заголовок со статусом и список карточек задач с анимацией.
- * Фиксированная ширина 300px, flex-shrink-0 для корректной горизонтальной прокрутки.
+ * Borderless design per mockup — cards carry their own borders.
  */
 export function BoardColumn({
 	status,
@@ -53,43 +52,41 @@ export function BoardColumn({
 		});
 	}, [status.id, issues.length, onDrop]);
 
-	/** Фон колонки — лёгкий оттенок на основе цвета статуса */
-	const columnBgStyle = status.color
-		? { backgroundColor: `${status.color}0A` }
-		: undefined;
-
 	return (
 		<div
 			ref={columnRef}
 			className={cn(
-				"flex w-[300px] min-w-[300px] flex-shrink-0 flex-col rounded-xl border transition-all duration-200",
-				isOver
-					? "border-primary/50 ring-2 ring-primary/20 shadow-lg scale-[1.01] bg-primary/5"
-					: "border-border/40 bg-card/50",
+				"min-w-[290px] max-w-[290px] flex flex-col",
+				"max-h-[calc(100vh-172px)]",
+				isOver && "ring-2 ring-primary/20 rounded-xl bg-primary/5",
 			)}
-			style={!isOver ? columnBgStyle : undefined}
 		>
-			{/* Заголовок колонки — с тонким фоном */}
-			<div className="flex items-center justify-between px-3.5 py-3 border-b border-border/30 bg-muted/20">
-				<div className="flex items-center gap-2.5">
-					<div
-						className="h-3 w-3 rounded-full shadow-sm ring-2 ring-white/10"
-						style={{ backgroundColor: status.color || "#6b7280" }}
-					/>
-					<span className="text-[13px] font-bold tracking-tight">
-						{status.name}
-					</span>
-					<Badge
-						variant="secondary"
-						className="h-5 min-w-[22px] justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums bg-muted/80"
-					>
-						{issues.length}
-					</Badge>
-				</div>
+			{/* Заголовок колонки — group hover for dot glow */}
+			<div className="group flex items-center gap-[9px] px-1.5 py-2.5 mb-2.5">
+				<span
+					className="w-[9px] h-[9px] rounded-full transition-[box-shadow] group-hover:shadow-[0_0_12px_currentColor]"
+					style={{ backgroundColor: status.color || "#6b7280", color: status.color || "#6b7280" }}
+				/>
+				<span className="text-[13.5px] font-bold tracking-[-0.01em]">
+					{status.name}
+				</span>
+				<span className="text-[10.5px] font-bold text-[var(--t4)] bg-[rgba(255,255,255,.035)] px-[9px] py-0.5 rounded-full">
+					{issues.length}
+				</span>
+				<Link
+					to="/projects/$projectId/issues/new"
+					params={{ projectId }}
+					className="ml-auto w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-[var(--t4)] hover:bg-[var(--hover)] hover:text-[var(--t1)] hover:scale-[1.12] transition-all"
+				>
+					<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+						<line x1="12" y1="5" x2="12" y2="19" />
+						<line x1="5" y1="12" x2="19" y2="12" />
+					</svg>
+				</Link>
 			</div>
 
 			{/* Список карточек — скроллируемый контейнер */}
-			<div className="flex-1 space-y-2 overflow-y-auto px-2 py-2 scrollbar-thin">
+			<div className="flex flex-col gap-2.5 overflow-y-auto pr-1 flex-1">
 				<AnimatePresence mode="popLayout">
 					{issues.map((issue) => (
 						<motion.div
@@ -113,30 +110,6 @@ export function BoardColumn({
 						</p>
 					</div>
 				)}
-			</div>
-
-			{/* Кнопка добавления задачи внизу колонки */}
-			<div className="px-2 pb-2 pt-1">
-				<Link
-					to="/projects/$projectId/issues/new"
-					params={{ projectId }}
-					className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/40 px-3 py-1.5 text-xs text-muted-foreground/70 hover:bg-muted/60 hover:border-border hover:text-foreground transition-colors"
-				>
-					<svg
-						className="h-3 w-3"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						strokeWidth={2}
-					>
-						<path
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							d="M12 4v16m8-8H4"
-						/>
-					</svg>
-					Добавить
-				</Link>
 			</div>
 		</div>
 	);
