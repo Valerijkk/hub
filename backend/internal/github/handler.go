@@ -50,9 +50,15 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	api.Get("/link-preview", authMw, h.GetLinkPreview)
 }
 
-// HandleWebhook обрабатывает POST /api/github/webhook.
-// Валидирует HMAC-SHA256 подпись из заголовка X-Hub-Signature-256,
-// сравнивая с секретами всех зарегистрированных интеграций.
+// HandleWebhook godoc
+// @Summary GitHub Webhook
+// @Description Обрабатывает входящие события от GitHub. Валидирует HMAC-SHA256 подпись.
+// @Tags GitHub
+// @Accept json
+// @Param body body object true "Payload от GitHub"
+// @Success 200 "Событие обработано"
+// @Failure 403 {object} fiber.Error "Невалидная подпись"
+// @Router /api/github/webhook [post]
 func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	eventType := utils.CopyString(c.Get("X-GitHub-Event"))
 	signature := utils.CopyString(c.Get("X-Hub-Signature-256"))
@@ -114,7 +120,20 @@ func (h *Handler) validateWebhookSignature(c fiber.Ctx, body []byte, signature s
 	return fiber.NewError(fiber.StatusForbidden, "невалидная подпись webhook")
 }
 
-// CreateIntegration обрабатывает POST /api/projects/:projectId/github/integrations.
+// CreateIntegration godoc
+// @Summary Создать GitHub-интеграцию
+// @Description Подключает GitHub-репозиторий к проекту.
+// @Tags GitHub
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body CreateIntegrationRequest true "Данные интеграции"
+// @Success 201 {object} IntegrationResponse "Интеграция создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/github/integrations [post]
 func (h *Handler) CreateIntegration(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -134,7 +153,17 @@ func (h *Handler) CreateIntegration(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListIntegrations обрабатывает GET /api/projects/:projectId/github/integrations.
+// ListIntegrations godoc
+// @Summary Список GitHub-интеграций
+// @Description Возвращает все GitHub-интеграции проекта.
+// @Tags GitHub
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} IntegrationResponse "Список интеграций"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/github/integrations [get]
 func (h *Handler) ListIntegrations(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -149,7 +178,18 @@ func (h *Handler) ListIntegrations(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteIntegration обрабатывает DELETE /api/projects/:projectId/github/integrations/:integrationId.
+// DeleteIntegration godoc
+// @Summary Удалить GitHub-интеграцию
+// @Description Отключает GitHub-репозиторий от проекта.
+// @Tags GitHub
+// @Param projectId path string true "ID проекта"
+// @Param integrationId path string true "ID интеграции"
+// @Success 204 "Интеграция удалена"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/github/integrations/{integrationId} [delete]
 func (h *Handler) DeleteIntegration(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("integrationId"))
 	id, err := uuid.Parse(idStr)
@@ -164,7 +204,17 @@ func (h *Handler) DeleteIntegration(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ListGitHubLinks обрабатывает GET /api/issues/:issueKey/github-links.
+// ListGitHubLinks godoc
+// @Summary GitHub-ссылки задачи
+// @Description Возвращает коммиты, PR и ветки, связанные с задачей через GitHub.
+// @Tags GitHub
+// @Produce json
+// @Param issueKey path string true "Ключ задачи"
+// @Success 200 {array} GitHubLinkResponse "Связанные ссылки"
+// @Failure 400 {object} fiber.Error "Неверный ключ"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/issues/{issueKey}/github-links [get]
 func (h *Handler) ListGitHubLinks(c fiber.Ctx) error {
 	issueKey := utils.CopyString(c.Params("issueKey"))
 	if issueKey == "" {
@@ -179,7 +229,19 @@ func (h *Handler) ListGitHubLinks(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateBranch обрабатывает POST /api/issues/:issueKey/github/create-branch (GHUB-05).
+// CreateBranch godoc
+// @Summary Создать ветку из задачи
+// @Description Создаёт Git-ветку в GitHub-репозитории с именем на основе ключа задачи.
+// @Tags GitHub
+// @Accept json
+// @Produce json
+// @Param issueKey path string true "Ключ задачи"
+// @Param body body CreateBranchRequest true "Параметры ветки"
+// @Success 201 {object} CreateBranchResponse "Ветка создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/issues/{issueKey}/github/create-branch [post]
 func (h *Handler) CreateBranch(c fiber.Ctx) error {
 	issueKey := utils.CopyString(c.Params("issueKey"))
 	if issueKey == "" {
@@ -199,8 +261,17 @@ func (h *Handler) CreateBranch(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListWorkflowRuns обрабатывает GET /api/projects/:projectId/github/workflows.
-// Возвращает последние запуски CI/CD пайплайнов для всех интеграций проекта.
+// ListWorkflowRuns godoc
+// @Summary Список запусков CI/CD
+// @Description Возвращает последние запуски GitHub Actions workflows для проекта.
+// @Tags GitHub
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} WorkflowRunResponse "Список запусков"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/github/workflows [get]
 func (h *Handler) ListWorkflowRuns(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -215,8 +286,18 @@ func (h *Handler) ListWorkflowRuns(c fiber.Ctx) error {
 	return c.JSON(runs)
 }
 
-// GetWorkflowRunDetail обрабатывает GET /api/projects/:projectId/github/workflows/:runId.
-// Возвращает детали запуска workflow, включая список джобов.
+// GetWorkflowRunDetail godoc
+// @Summary Детали запуска workflow
+// @Description Возвращает подробности запуска GitHub Actions, включая список джобов.
+// @Tags GitHub
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param runId path int true "ID запуска"
+// @Success 200 {object} WorkflowRunDetailResponse "Детали запуска"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/github/workflows/{runId} [get]
 func (h *Handler) GetWorkflowRunDetail(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -237,7 +318,17 @@ func (h *Handler) GetWorkflowRunDetail(c fiber.Ctx) error {
 	return c.JSON(detail)
 }
 
-// GetLinkPreview обрабатывает GET /api/link-preview?url=... (MSG-11).
+// GetLinkPreview godoc
+// @Summary Превью ссылки
+// @Description Возвращает Open Graph метаданные для указанного URL (заголовок, описание, изображение).
+// @Tags GitHub
+// @Produce json
+// @Param url query string true "URL для получения превью"
+// @Success 200 {object} LinkPreviewResponse "Превью ссылки"
+// @Failure 400 {object} fiber.Error "URL не указан"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/link-preview [get]
 func (h *Handler) GetLinkPreview(c fiber.Ctx) error {
 	rawURL := utils.CopyString(c.Query("url"))
 	if rawURL == "" {
