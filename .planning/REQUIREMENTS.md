@@ -63,12 +63,12 @@
 
 ### Messenger Page (MSGR)
 
-- [ ] **MSGR-01**: User sees redesigned 3-panel layout (sidebar + channel list 280px + chat)
-- [ ] **MSGR-02**: User sees redesigned channel list with search and filter buttons
-- [ ] **MSGR-03**: User sees redesigned message items with new avatar, text, metadata styling
-- [ ] **MSGR-04**: User sees redesigned message composer with glassmorphism effect
-- [ ] **MSGR-05**: User sees redesigned reactions, typing indicator, reply bar
-- [ ] **MSGR-06**: All messenger functionality works without regression (send, react, thread, pin, forward, voice, search, polls, stickers, GIFs)
+- [x] **MSGR-01**: User sees redesigned 3-panel layout (sidebar + channel list 280px + chat)
+- [x] **MSGR-02**: User sees redesigned channel list with search and filter buttons
+- [x] **MSGR-03**: User sees redesigned message items with new avatar, text, metadata styling
+- [x] **MSGR-04**: User sees redesigned message composer with glassmorphism effect
+- [x] **MSGR-05**: User sees redesigned reactions, typing indicator, reply bar
+- [x] **MSGR-06**: All messenger functionality works without regression (send, react, thread, pin, forward, voice, search, polls, stickers, GIFs)
 
 ### Kanban Page (KANB)
 
@@ -200,12 +200,12 @@
 | DASH-03 | Phase 11 | Complete |
 | DASH-04 | Phase 11 | Complete |
 | DASH-05 | Phase 11 | Complete |
-| MSGR-01 | Phase 11 | Pending |
-| MSGR-02 | Phase 11 | Pending |
-| MSGR-03 | Phase 11 | Pending |
-| MSGR-04 | Phase 11 | Pending |
-| MSGR-05 | Phase 11 | Pending |
-| MSGR-06 | Phase 11 | Pending |
+| MSGR-01 | Phase 11 | Complete |
+| MSGR-02 | Phase 11 | Complete |
+| MSGR-03 | Phase 11 | Complete |
+| MSGR-04 | Phase 11 | Complete |
+| MSGR-05 | Phase 11 | Complete |
+| MSGR-06 | Phase 11 | Complete |
 | KANB-01 | Phase 11 | Complete |
 | KANB-02 | Phase 11 | Complete |
 | KANB-03 | Phase 11 | Complete |

@@ -249,7 +249,7 @@ Plans:
 Plans:
 - [x] 11-01-PLAN.md — Login page restyle (split layout, mesh gradient, floating cards, form)
 - [x] 11-02-PLAN.md — Dashboard page restyle (greeting gradient, quick actions, widget grid)
-- [ ] 11-03-PLAN.md — Messenger page restyle (channel list, messages, glassmorphic composer)
+- [x] 11-03-PLAN.md — Messenger page restyle (channel list, messages, glassmorphic composer)
 - [x] 11-04-PLAN.md — Kanban page restyle (columns, issue cards, filter bar)
 **UI hint**: yes
 
@@ -295,6 +295,6 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 8. Design System Foundation | v2.0 | 1/2 | In Progress|  |
 | 9. Layout Shell | v2.0 | 0/2 | Not started | - |
 | 10. UI Primitives | v2.0 | 3/3 | Complete    | 2026-03-28 |
-| 11. Core Mockup Pages | v2.0 | 3/4 | In Progress|  |
+| 11. Core Mockup Pages | v2.0 | 4/4 | Complete   | 2026-03-28 |
 | 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 0/? | Not started | - |
 | 13. Polish & QA | v2.0 | 0/? | Not started | - |
