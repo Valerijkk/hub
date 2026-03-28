@@ -210,7 +210,12 @@ Plans:
   2. User sees redesigned topbar with backdrop blur effect and gradient bottom edge
   3. Sidebar collapse/expand works without visual regression at all viewport sizes
   4. Mobile navigation (bottom nav, overlay sidebar) works without regression
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Sidebar redesign (background, gradient edge, active glow, header, user/projects tokens)
+- [ ] 09-02-PLAN.md — Topbar redesign (backdrop blur, gradient edge), AppShell topbar visibility, mobile nav tokens
+
 **UI hint**: yes
 
 ### Phase 10: UI Primitives
@@ -277,7 +282,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 6. Notifications, Search & Dashboards | v1.0 | 5/5 | Complete | 2026-03-21 |
 | 7. Polish & Extended Features | v1.0 | 6/6 | Complete | 2026-03-21 |
 | 8. Design System Foundation | v2.0 | 1/2 | In Progress|  |
-| 9. Layout Shell | v2.0 | 0/? | Not started | - |
+| 9. Layout Shell | v2.0 | 0/2 | Not started | - |
 | 10. UI Primitives | v2.0 | 0/? | Not started | - |
 | 11. Core Mockup Pages | v2.0 | 0/? | Not started | - |
 | 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 0/? | Not started | - |
