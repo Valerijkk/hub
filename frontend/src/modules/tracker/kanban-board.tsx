@@ -122,7 +122,7 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center p-8">
-				<p className="text-muted-foreground">Загрузка доски...</p>
+				<p className="text-t2">Загрузка доски...</p>
 			</div>
 		);
 	}
@@ -138,7 +138,7 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 					value={swimlaneMode}
 					onValueChange={(v) => setSwimlaneMode(v as SwimlaneMode)}
 				>
-					<SelectTrigger className="rounded-xl border bg-background px-3 py-1.5 text-sm w-auto min-w-[160px]">
+					<SelectTrigger className="rounded-xl border bg-base px-3 py-1.5 text-sm w-auto min-w-[160px]">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -156,7 +156,7 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 					<div key={laneKey}>
 						{swimlaneMode !== "none" && (
 							<div className="mb-2 mt-4 border-b pb-1">
-								<h3 className="text-sm font-semibold text-muted-foreground">
+								<h3 className="text-sm font-semibold text-t2">
 									{laneKey}
 								</h3>
 							</div>
@@ -246,7 +246,7 @@ const KanbanColumn = memo(function KanbanColumn({
 				</div>
 				<span
 					className={`text-xs font-medium ${
-						isOverLimit ? "text-red-600" : "text-muted-foreground"
+						isOverLimit ? "text-red-600" : "text-t2"
 					}`}
 				>
 					{wipLimit > 0 ? `${totalCount}/${wipLimit}` : totalCount.toString()}
@@ -285,7 +285,7 @@ const KanbanCard = memo(function KanbanCard({ issue }: KanbanCardProps) {
 		>
 			<CardHeader className="p-3">
 				<div className="flex items-center gap-2">
-					<span className="text-xs font-mono text-muted-foreground">
+					<span className="text-xs font-mono text-t2">
 						{issue.issue_key}
 					</span>
 					<span
@@ -304,7 +304,7 @@ const KanbanCard = memo(function KanbanCard({ issue }: KanbanCardProps) {
 			</CardHeader>
 			{issue.assignee && (
 				<CardContent className="px-3 pb-3 pt-0">
-					<span className="text-xs text-muted-foreground">
+					<span className="text-xs text-t2">
 						{issue.assignee.name}
 					</span>
 				</CardContent>

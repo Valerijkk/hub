@@ -150,7 +150,7 @@ export function IssueAttachments({
 								</p>
 							</div>
 							<svg
-								className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary shrink-0 transition-colors"
+								className="h-4 w-4 text-t2/50 group-hover:text-primary shrink-0 transition-colors"
 								fill="none"
 								viewBox="0 0 24 24"
 								stroke="currentColor"
@@ -168,7 +168,7 @@ export function IssueAttachments({
 			)}
 
 			{attachments.length === 0 && (
-				<p className="text-xs text-muted-foreground py-2">
+				<p className="text-xs text-t2 py-2">
 					Перетащите файлы или нажмите "Добавить файл"
 				</p>
 			)}

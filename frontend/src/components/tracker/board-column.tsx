@@ -105,7 +105,7 @@ export function BoardColumn({
 				{/* Пустое состояние — подсказка для перетаскивания */}
 				{issues.length === 0 && (
 					<div className="flex min-h-[100px] items-center justify-center rounded-lg border-2 border-dashed border-border/40 mx-0.5">
-						<p className="text-xs text-muted-foreground/50 select-none">
+						<p className="text-xs text-t2/50 select-none">
 							Перетащите задачу сюда
 						</p>
 					</div>

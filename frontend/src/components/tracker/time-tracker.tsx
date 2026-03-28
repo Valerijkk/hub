@@ -121,13 +121,13 @@ export function TimeTracker({
 			{/* Сводка времени */}
 			<div className="grid grid-cols-2 gap-3">
 				<div className="rounded-md border p-3 text-center">
-					<p className="text-xs text-muted-foreground">Оценка</p>
+					<p className="text-xs text-t2">Оценка</p>
 					<p className="text-lg font-bold">
 						{estimateMinutes ? formatMinutes(estimateMinutes) : "—"}
 					</p>
 				</div>
 				<div className="rounded-md border p-3 text-center">
-					<p className="text-xs text-muted-foreground">Потрачено</p>
+					<p className="text-xs text-t2">Потрачено</p>
 					<p className="text-lg font-bold">
 						{timeSpentMinutes ? formatMinutes(timeSpentMinutes) : "0м"}
 					</p>
@@ -221,7 +221,7 @@ export function TimeTracker({
 								</Avatar>
 								<span className="text-sm">{log.user.name}</span>
 								{log.description && (
-									<span className="text-xs text-muted-foreground">
+									<span className="text-xs text-t2">
 										— {log.description}
 									</span>
 								)}

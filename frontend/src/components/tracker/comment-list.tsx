@@ -87,7 +87,7 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 
 	if (isLoading) {
 		return (
-			<p className="text-sm text-muted-foreground">Загрузка комментариев...</p>
+			<p className="text-sm text-t2">Загрузка комментариев...</p>
 		);
 	}
 
@@ -110,7 +110,7 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 			))}
 
 			{comments?.length === 0 && (
-				<p className="text-sm text-muted-foreground">Нет комментариев</p>
+				<p className="text-sm text-t2">Нет комментариев</p>
 			)}
 
 			{/* Форма нового комментария */}

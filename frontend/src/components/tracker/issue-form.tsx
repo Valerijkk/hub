@@ -173,7 +173,7 @@ export function IssueForm({
 						value={issueType}
 						onValueChange={(v) => setIssueType(v as IssueType)}
 					>
-						<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+						<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -191,7 +191,7 @@ export function IssueForm({
 						value={priority}
 						onValueChange={(v) => setPriority(v as IssuePriority)}
 					>
-						<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+						<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -245,7 +245,7 @@ export function IssueForm({
 						value={storyPoints || "none"}
 						onValueChange={(v) => setStoryPoints(v === "none" ? "" : v)}
 					>
-						<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+						<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>

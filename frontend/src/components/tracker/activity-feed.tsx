@@ -46,12 +46,12 @@ export function ActivityFeed({ projectId, issueKey }: ActivityFeedProps) {
 
 	if (isLoading) {
 		return (
-			<p className="text-sm text-muted-foreground">Загрузка активности...</p>
+			<p className="text-sm text-t2">Загрузка активности...</p>
 		);
 	}
 
 	if (!activities || activities.length === 0) {
-		return <p className="text-sm text-muted-foreground">Нет активности</p>;
+		return <p className="text-sm text-t2">Нет активности</p>;
 	}
 
 	return (
