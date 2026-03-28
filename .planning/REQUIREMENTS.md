@@ -14,7 +14,7 @@
 - [x] **DSFN-05**: User sees new radius system (6/8/12/16px + pill) applied consistently
 - [x] **DSFN-06**: User sees 4-level shadow system (sh1-sh4) on cards, modals, dropdowns
 - [x] **DSFN-07**: User sees spring/bounce easing on hover/focus/enter animations
-- [ ] **DSFN-08**: All !important declarations removed from app.css without visual regression
+- [x] **DSFN-08**: All !important declarations removed from app.css without visual regression
 - [x] **DSFN-09**: User can select accent color (red/blue/green/purple/orange) and see it applied consistently
 
 ### Theme Support (THME)
@@ -169,7 +169,7 @@
 | DSFN-05 | Phase 8 | Complete |
 | DSFN-06 | Phase 8 | Complete |
 | DSFN-07 | Phase 8 | Complete |
-| DSFN-08 | Phase 8 | Pending |
+| DSFN-08 | Phase 8 | Complete |
 | DSFN-09 | Phase 8 | Complete |
 | THME-01 | Phase 8 | Complete |
 | THME-02 | Phase 8 | Complete |

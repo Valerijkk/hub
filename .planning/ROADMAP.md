@@ -197,7 +197,7 @@ Plans:
 
 Plans:
 - [x] 08-01-PLAN.md — Font swap + CSS token foundation (surfaces, text, borders, radii, shadows, easing, accents, dual Shadcn mapping)
-- [ ] 08-02-PLAN.md — !important removal (56 declarations) + noise texture overlay
+- [x] 08-02-PLAN.md — !important removal (56 declarations) + noise texture overlay
 
 **UI hint**: yes
 
