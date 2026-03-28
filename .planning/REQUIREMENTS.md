@@ -72,10 +72,10 @@
 
 ### Kanban Page (KANB)
 
-- [ ] **KANB-01**: User sees redesigned kanban columns with new header styling
-- [ ] **KANB-02**: User sees redesigned issue cards with priority dots, assignee avatars, glow hover
-- [ ] **KANB-03**: User sees redesigned filter and view options bar
-- [ ] **KANB-04**: Kanban drag-and-drop works without regression
+- [x] **KANB-01**: User sees redesigned kanban columns with new header styling
+- [x] **KANB-02**: User sees redesigned issue cards with priority dots, assignee avatars, glow hover
+- [x] **KANB-03**: User sees redesigned filter and view options bar
+- [x] **KANB-04**: Kanban drag-and-drop works without regression
 
 ### Issue Detail Page (ISSU)
 
@@ -206,10 +206,10 @@
 | MSGR-04 | Phase 11 | Pending |
 | MSGR-05 | Phase 11 | Pending |
 | MSGR-06 | Phase 11 | Pending |
-| KANB-01 | Phase 11 | Pending |
-| KANB-02 | Phase 11 | Pending |
-| KANB-03 | Phase 11 | Pending |
-| KANB-04 | Phase 11 | Pending |
+| KANB-01 | Phase 11 | Complete |
+| KANB-02 | Phase 11 | Complete |
+| KANB-03 | Phase 11 | Complete |
+| KANB-04 | Phase 11 | Complete |
 | ISSU-01 | Phase 12 | Pending |
 | ISSU-02 | Phase 12 | Pending |
 | ISSU-03 | Phase 12 | Pending |
