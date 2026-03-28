@@ -47,11 +47,11 @@
 
 ### Login Page (LOGN)
 
-- [ ] **LOGN-01**: User sees split layout — animated gradient left, form right
-- [ ] **LOGN-02**: User sees floating animated feature cards on left panel
-- [ ] **LOGN-03**: User sees email→code flow with redesigned inputs and code fields
-- [ ] **LOGN-04**: User sees mesh gradient background animation
-- [ ] **LOGN-05**: Login flow (magic link + Telegram) works without regression
+- [x] **LOGN-01**: User sees split layout — animated gradient left, form right
+- [x] **LOGN-02**: User sees floating animated feature cards on left panel
+- [x] **LOGN-03**: User sees email→code flow with redesigned inputs and code fields
+- [x] **LOGN-04**: User sees mesh gradient background animation
+- [x] **LOGN-05**: Login flow (magic link + Telegram) works without regression
 
 ### Dashboard Page (DASH)
 
@@ -190,11 +190,11 @@
 | PRIM-08 | Phase 10 | Complete |
 | PRIM-09 | Phase 10 | Complete |
 | PRIM-10 | Phase 10 | Complete |
-| LOGN-01 | Phase 11 | Pending |
-| LOGN-02 | Phase 11 | Pending |
-| LOGN-03 | Phase 11 | Pending |
-| LOGN-04 | Phase 11 | Pending |
-| LOGN-05 | Phase 11 | Pending |
+| LOGN-01 | Phase 11 | Complete |
+| LOGN-02 | Phase 11 | Complete |
+| LOGN-03 | Phase 11 | Complete |
+| LOGN-04 | Phase 11 | Complete |
+| LOGN-05 | Phase 11 | Complete |
 | DASH-01 | Phase 11 | Complete |
 | DASH-02 | Phase 11 | Complete |
 | DASH-03 | Phase 11 | Complete |
