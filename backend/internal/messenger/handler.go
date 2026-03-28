@@ -125,6 +125,20 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // Invite Link Handlers
 // ---------------------------------------------------------------------------
 
+// CreateInviteLink godoc
+// @Summary Создать пригласительную ссылку канала
+// @Description Генерирует уникальную пригласительную ссылку для вступления в указанный канал.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Param body body CreateInviteLinkRequest true "Параметры приглашения"
+// @Success 201 {object} InviteLinkResponse "Ссылка создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/invites [post]
 func (h *Handler) CreateInviteLink(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -145,6 +159,18 @@ func (h *Handler) CreateInviteLink(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
+// ListChannelInvites godoc
+// @Summary Список пригласительных ссылок канала
+// @Description Возвращает все активные пригласительные ссылки указанного канала.
+// @Tags Мессенджер
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Success 200 {array} InviteLinkResponse "Список приглашений"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/invites [get]
 func (h *Handler) ListChannelInvites(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -161,6 +187,17 @@ func (h *Handler) ListChannelInvites(c fiber.Ctx) error {
 	return c.JSON(invites)
 }
 
+// ValidateInvite godoc
+// @Summary Проверить пригласительную ссылку
+// @Description Проверяет валидность пригласительного токена и возвращает информацию о канале.
+// @Tags Мессенджер
+// @Produce json
+// @Param token path string true "Токен приглашения"
+// @Success 200 {object} ValidateInviteResponse "Информация о приглашении"
+// @Failure 400 {object} fiber.Error "Токен не указан"
+// @Failure 404 {object} fiber.Error "Приглашение не найдено"
+// @Security BearerAuth
+// @Router /api/messenger/invites/{token} [get]
 func (h *Handler) ValidateInvite(c fiber.Ctx) error {
 	token := c.Params("token")
 	if token == "" {
@@ -173,6 +210,17 @@ func (h *Handler) ValidateInvite(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
+// AcceptInvite godoc
+// @Summary Принять приглашение в канал
+// @Description Принимает пригласительную ссылку и добавляет пользователя в канал.
+// @Tags Мессенджер
+// @Produce json
+// @Param token path string true "Токен приглашения"
+// @Success 200 {object} AcceptInviteResponse "Пользователь добавлен в канал"
+// @Failure 400 {object} fiber.Error "Неверный токен или запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/invites/{token}/accept [post]
 func (h *Handler) AcceptInvite(c fiber.Ctx) error {
 	token := c.Params("token")
 	if token == "" {
@@ -189,6 +237,18 @@ func (h *Handler) AcceptInvite(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
+// RevokeInvite godoc
+// @Summary Отозвать пригласительную ссылку
+// @Description Деактивирует пригласительную ссылку канала. Доступно только участникам канала.
+// @Tags Мессенджер
+// @Param channelId path string true "ID канала"
+// @Param inviteId path string true "ID приглашения"
+// @Success 200 "Приглашение отозвано"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/invites/{inviteId} [delete]
 func (h *Handler) RevokeInvite(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -235,7 +295,18 @@ func parseMessageID(c fiber.Ctx) string {
 // Channel handlers
 // ---------------------------------------------------------------------------
 
-// CreateChannel обрабатывает POST /api/messenger/channels
+// CreateChannel godoc
+// @Summary Создать канал
+// @Description Создаёт новый канал мессенджера. Создатель автоматически становится участником.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param body body CreateChannelRequest true "Данные канала"
+// @Success 201 {object} ChannelResponse "Канал создан"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels [post]
 func (h *Handler) CreateChannel(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -255,7 +326,15 @@ func (h *Handler) CreateChannel(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListMyChannels обрабатывает GET /api/messenger/channels
+// ListMyChannels godoc
+// @Summary Список моих каналов
+// @Description Возвращает список каналов, в которых состоит текущий пользователь.
+// @Tags Мессенджер
+// @Produce json
+// @Success 200 {array} ChannelResponse "Список каналов"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels [get]
 func (h *Handler) ListMyChannels(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -270,7 +349,18 @@ func (h *Handler) ListMyChannels(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetChannel обрабатывает GET /api/messenger/channels/:channelId
+// GetChannel godoc
+// @Summary Получить канал
+// @Description Возвращает детальную информацию о канале по его ID.
+// @Tags Мессенджер
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Success 200 {object} ChannelResponse "Данные канала"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 404 {object} fiber.Error "Канал не найден"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId} [get]
 func (h *Handler) GetChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -285,7 +375,19 @@ func (h *Handler) GetChannel(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateChannel обрабатывает PUT /api/messenger/channels/:channelId
+// UpdateChannel godoc
+// @Summary Обновить канал
+// @Description Обновляет название и описание канала. Доступно только участникам.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Param body body CreateChannelRequest true "Обновлённые данные"
+// @Success 200 {object} ChannelResponse "Канал обновлён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId} [put]
 func (h *Handler) UpdateChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -309,7 +411,17 @@ func (h *Handler) UpdateChannel(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteChannel обрабатывает DELETE /api/messenger/channels/:channelId
+// DeleteChannel godoc
+// @Summary Удалить канал
+// @Description Удаляет канал мессенджера. Доступно только создателю канала.
+// @Tags Мессенджер
+// @Param channelId path string true "ID канала"
+// @Success 204 "Канал удалён"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId} [delete]
 func (h *Handler) DeleteChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -327,7 +439,16 @@ func (h *Handler) DeleteChannel(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// JoinChannel обрабатывает POST /api/messenger/channels/:channelId/join
+// JoinChannel godoc
+// @Summary Вступить в канал
+// @Description Текущий пользователь вступает в указанный канал.
+// @Tags Мессенджер
+// @Param channelId path string true "ID канала"
+// @Success 200 "Пользователь вступил в канал"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/join [post]
 func (h *Handler) JoinChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -345,7 +466,16 @@ func (h *Handler) JoinChannel(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// LeaveChannel обрабатывает POST /api/messenger/channels/:channelId/leave
+// LeaveChannel godoc
+// @Summary Покинуть канал
+// @Description Текущий пользователь покидает указанный канал.
+// @Tags Мессенджер
+// @Param channelId path string true "ID канала"
+// @Success 200 "Пользователь покинул канал"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/leave [post]
 func (h *Handler) LeaveChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -363,7 +493,18 @@ func (h *Handler) LeaveChannel(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// AddMembers обрабатывает POST /api/messenger/channels/:channelId/members
+// AddMembers godoc
+// @Summary Добавить участников в канал
+// @Description Добавляет одного или нескольких пользователей в канал.
+// @Tags Мессенджер
+// @Accept json
+// @Param channelId path string true "ID канала"
+// @Param body body AddMembersRequest true "Список ID пользователей"
+// @Success 200 "Участники добавлены"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/members [post]
 func (h *Handler) AddMembers(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -386,7 +527,17 @@ func (h *Handler) AddMembers(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// ListMembers обрабатывает GET /api/messenger/channels/:channelId/members
+// ListMembers godoc
+// @Summary Список участников канала
+// @Description Возвращает список всех участников указанного канала.
+// @Tags Мессенджер
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Success 200 {array} MemberResponse "Список участников"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/members [get]
 func (h *Handler) ListMembers(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -405,7 +556,19 @@ func (h *Handler) ListMembers(c fiber.Ctx) error {
 // Message handlers
 // ---------------------------------------------------------------------------
 
-// SendMessage обрабатывает POST /api/messenger/channels/:channelId/messages
+// SendMessage godoc
+// @Summary Отправить сообщение
+// @Description Отправляет новое сообщение в указанный канал. Поддерживает ответы в тредах.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Param body body SendMessageRequest true "Данные сообщения"
+// @Success 201 {object} MessageResponse "Сообщение отправлено"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/messages [post]
 func (h *Handler) SendMessage(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -429,7 +592,19 @@ func (h *Handler) SendMessage(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListMessages обрабатывает GET /api/messenger/channels/:channelId/messages
+// ListMessages godoc
+// @Summary Список сообщений канала
+// @Description Возвращает сообщения канала с пагинацией по курсору (before) и лимиту.
+// @Tags Мессенджер
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Param before query string false "Курсор — дата RFC3339, сообщения до этой даты"
+// @Param limit query int false "Количество сообщений (по умолчанию 50)"
+// @Success 200 {array} MessageResponse "Список сообщений"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/messages [get]
 func (h *Handler) ListMessages(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -456,7 +631,21 @@ func (h *Handler) ListMessages(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// EditMessage обрабатывает PUT /api/messenger/channels/:channelId/messages/:messageId
+// EditMessage godoc
+// @Summary Редактировать сообщение
+// @Description Редактирует текст ранее отправленного сообщения. Доступно только автору.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Param messageId path string true "ID сообщения"
+// @Param body body EditMessageRequest true "Новый текст"
+// @Success 200 {object} MessageResponse "Сообщение обновлено"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/messages/{messageId} [put]
 func (h *Handler) EditMessage(c fiber.Ctx) error {
 	messageID := parseMessageID(c)
 	if messageID == "" {
@@ -480,7 +669,18 @@ func (h *Handler) EditMessage(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteMessage обрабатывает DELETE /api/messenger/channels/:channelId/messages/:messageId
+// DeleteMessage godoc
+// @Summary Удалить сообщение
+// @Description Удаляет сообщение из канала. Доступно автору или администратору канала.
+// @Tags Мессенджер
+// @Param channelId path string true "ID канала"
+// @Param messageId path string true "ID сообщения"
+// @Success 204 "Сообщение удалено"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/messages/{messageId} [delete]
 func (h *Handler) DeleteMessage(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -502,7 +702,20 @@ func (h *Handler) DeleteMessage(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ToggleReaction обрабатывает POST /api/messenger/channels/:channelId/messages/:messageId/reactions
+// ToggleReaction godoc
+// @Summary Переключить реакцию
+// @Description Добавляет или убирает реакцию (эмодзи) на сообщение.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Param messageId path string true "ID сообщения"
+// @Param body body ToggleReactionRequest true "Эмодзи реакции"
+// @Success 200 {object} map[string]bool "added: true/false"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/messages/{messageId}/reactions [post]
 func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 	messageID := parseMessageID(c)
 	if messageID == "" {
@@ -526,7 +739,18 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"added": added})
 }
 
-// TogglePin обрабатывает POST /api/messenger/channels/:channelId/messages/:messageId/pin
+// TogglePin godoc
+// @Summary Закрепить/открепить сообщение
+// @Description Переключает закрепление сообщения в канале.
+// @Tags Мессенджер
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Param messageId path string true "ID сообщения"
+// @Success 200 {object} map[string]bool "pinned: true/false"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/messages/{messageId}/pin [post]
 func (h *Handler) TogglePin(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -549,7 +773,20 @@ func (h *Handler) TogglePin(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"pinned": pinned})
 }
 
-// ForwardMessage обрабатывает POST /api/messenger/channels/:channelId/messages/:messageId/forward
+// ForwardMessage godoc
+// @Summary Переслать сообщение
+// @Description Пересылает сообщение в другой канал.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param channelId path string true "ID исходного канала"
+// @Param messageId path string true "ID сообщения"
+// @Param body body ForwardMessageRequest true "ID целевого канала"
+// @Success 201 {object} MessageResponse "Сообщение переслано"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/messages/{messageId}/forward [post]
 func (h *Handler) ForwardMessage(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -577,7 +814,20 @@ func (h *Handler) ForwardMessage(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListThreadReplies обрабатывает GET /api/messenger/channels/:channelId/messages/:messageId/replies
+// ListThreadReplies godoc
+// @Summary Список ответов в треде
+// @Description Возвращает ответы на указанное сообщение (тред) с пагинацией.
+// @Tags Мессенджер
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Param messageId path string true "ID родительского сообщения"
+// @Param before query string false "Курсор — дата RFC3339"
+// @Param limit query int false "Количество (по умолчанию 50)"
+// @Success 200 {array} MessageResponse "Ответы в треде"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/messages/{messageId}/replies [get]
 func (h *Handler) ListThreadReplies(c fiber.Ctx) error {
 	messageID := parseMessageID(c)
 	if messageID == "" {
@@ -608,7 +858,19 @@ func (h *Handler) ListThreadReplies(c fiber.Ctx) error {
 // Search handlers
 // ---------------------------------------------------------------------------
 
-// SearchMessages обрабатывает GET /api/messenger/search
+// SearchMessages godoc
+// @Summary Поиск сообщений
+// @Description Полнотекстовый поиск по сообщениям мессенджера с опциональной фильтрацией по каналу.
+// @Tags Мессенджер
+// @Produce json
+// @Param query query string true "Поисковый запрос"
+// @Param channel_id query string false "ID канала для фильтрации"
+// @Param limit query int false "Лимит результатов (по умолчанию 20)"
+// @Success 200 {array} MessageResponse "Результаты поиска"
+// @Failure 400 {object} fiber.Error "Параметр query обязателен"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/search [get]
 func (h *Handler) SearchMessages(c fiber.Ctx) error {
 	query := c.Query("query")
 	if query == "" {
@@ -629,7 +891,15 @@ func (h *Handler) SearchMessages(c fiber.Ctx) error {
 // Bookmark handlers
 // ---------------------------------------------------------------------------
 
-// ListBookmarks обрабатывает GET /api/messenger/bookmarks
+// ListBookmarks godoc
+// @Summary Список закладок
+// @Description Возвращает все сохранённые закладки на сообщения текущего пользователя.
+// @Tags Мессенджер
+// @Produce json
+// @Success 200 {array} BookmarkResponse "Список закладок"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/bookmarks [get]
 func (h *Handler) ListBookmarks(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -644,7 +914,17 @@ func (h *Handler) ListBookmarks(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// AddBookmark обрабатывает POST /api/messenger/bookmarks
+// AddBookmark godoc
+// @Summary Добавить закладку
+// @Description Сохраняет сообщение в закладки текущего пользователя.
+// @Tags Мессенджер
+// @Accept json
+// @Param body body AddBookmarkRequest true "ID сообщения и канала"
+// @Success 201 "Закладка добавлена"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/bookmarks [post]
 func (h *Handler) AddBookmark(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -668,7 +948,16 @@ func (h *Handler) AddBookmark(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusCreated)
 }
 
-// RemoveBookmark обрабатывает DELETE /api/messenger/bookmarks/:bookmarkId
+// RemoveBookmark godoc
+// @Summary Удалить закладку
+// @Description Удаляет закладку на сообщение.
+// @Tags Мессенджер
+// @Param bookmarkId path string true "ID закладки"
+// @Success 204 "Закладка удалена"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/bookmarks/{bookmarkId} [delete]
 func (h *Handler) RemoveBookmark(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("bookmarkId"))
 	if idStr == "" {
@@ -690,7 +979,16 @@ func (h *Handler) RemoveBookmark(c fiber.Ctx) error {
 // Typing handler
 // ---------------------------------------------------------------------------
 
-// SendTyping обрабатывает POST /api/messenger/channels/:channelId/typing
+// SendTyping godoc
+// @Summary Отправить индикатор набора
+// @Description Публикует событие "пользователь печатает" для участников канала.
+// @Tags Мессенджер
+// @Param channelId path string true "ID канала"
+// @Success 204 "Событие отправлено"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/typing [post]
 func (h *Handler) SendTyping(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -712,7 +1010,17 @@ func (h *Handler) SendTyping(c fiber.Ctx) error {
 // Presence handlers
 // ---------------------------------------------------------------------------
 
-// GetPresence обрабатывает GET /api/messenger/presence?user_ids=id1,id2,...
+// GetPresence godoc
+// @Summary Получить статус присутствия
+// @Description Возвращает статус онлайн/оффлайн для указанных пользователей.
+// @Tags Мессенджер
+// @Produce json
+// @Param user_ids query string true "Список ID пользователей через запятую"
+// @Success 200 {object} map[string]PresenceStatus "Статусы пользователей"
+// @Failure 400 {object} fiber.Error "Параметр user_ids обязателен"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/presence [get]
 func (h *Handler) GetPresence(c fiber.Ctx) error {
 	userIDsStr := c.Query("user_ids")
 	if userIDsStr == "" {
@@ -728,7 +1036,17 @@ func (h *Handler) GetPresence(c fiber.Ctx) error {
 	return c.JSON(statuses)
 }
 
-// SetCustomStatus обрабатывает PUT /api/messenger/presence/status
+// SetCustomStatus godoc
+// @Summary Установить пользовательский статус
+// @Description Устанавливает текстовый статус пользователя с опциональной длительностью.
+// @Tags Мессенджер
+// @Accept json
+// @Param body body object true "text и duration статуса"
+// @Success 200 "Статус обновлён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/presence/status [put]
 func (h *Handler) SetCustomStatus(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -750,7 +1068,14 @@ func (h *Handler) SetCustomStatus(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// Heartbeat обрабатывает POST /api/messenger/presence/heartbeat
+// Heartbeat godoc
+// @Summary Heartbeat присутствия
+// @Description Обновляет таймстамп активности пользователя для отслеживания онлайн-статуса.
+// @Tags Мессенджер
+// @Success 200 "Heartbeat принят"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/presence/heartbeat [post]
 func (h *Handler) Heartbeat(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -768,7 +1093,15 @@ func (h *Handler) Heartbeat(c fiber.Ctx) error {
 // Unread handlers
 // ---------------------------------------------------------------------------
 
-// GetUnreadCounts обрабатывает GET /api/messenger/unread
+// GetUnreadCounts godoc
+// @Summary Счётчики непрочитанных
+// @Description Возвращает количество непрочитанных сообщений по каналам для текущего пользователя.
+// @Tags Мессенджер
+// @Produce json
+// @Success 200 {object} map[string]int "Счётчики непрочитанных по каналам"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/unread [get]
 func (h *Handler) GetUnreadCounts(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -783,7 +1116,16 @@ func (h *Handler) GetUnreadCounts(c fiber.Ctx) error {
 	return c.JSON(counts)
 }
 
-// MarkChannelRead обрабатывает POST /api/messenger/channels/:channelId/read
+// MarkChannelRead godoc
+// @Summary Отметить канал прочитанным
+// @Description Сбрасывает счётчик непрочитанных сообщений для указанного канала.
+// @Tags Мессенджер
+// @Param channelId path string true "ID канала"
+// @Success 200 "Канал отмечен прочитанным"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/read [post]
 func (h *Handler) MarkChannelRead(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -805,7 +1147,17 @@ func (h *Handler) MarkChannelRead(c fiber.Ctx) error {
 // Pinned messages handlers
 // ---------------------------------------------------------------------------
 
-// ListPins обрабатывает GET /api/messenger/channels/:channelId/pins
+// ListPins godoc
+// @Summary Список закреплённых сообщений
+// @Description Возвращает все закреплённые сообщения в указанном канале.
+// @Tags Мессенджер
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Success 200 {array} MessageResponse "Закреплённые сообщения"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/pins [get]
 func (h *Handler) ListPins(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -824,8 +1176,17 @@ func (h *Handler) ListPins(c fiber.Ctx) error {
 // Star / Mute handlers
 // ---------------------------------------------------------------------------
 
-// ToggleStar обрабатывает POST /api/messenger/channels/:channelId/star
-// Переключает флаг is_starred для текущего пользователя.
+// ToggleStar godoc
+// @Summary Переключить избранное
+// @Description Добавляет или убирает канал из избранного текущего пользователя.
+// @Tags Мессенджер
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Success 200 {object} map[string]bool "starred: true/false"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/star [post]
 func (h *Handler) ToggleStar(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -849,7 +1210,19 @@ type MuteChannelRequest struct {
 	Duration string `json:"duration"` // "1h", "2h", "8h", "1d", "forever"
 }
 
-// MuteChannel обрабатывает POST /api/messenger/channels/:channelId/mute
+// MuteChannel godoc
+// @Summary Замьютить канал
+// @Description Отключает уведомления канала на указанный период.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Param body body MuteChannelRequest true "Длительность мьюта"
+// @Success 200 {object} map[string]string "muted_until: дата"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/mute [post]
 func (h *Handler) MuteChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -873,7 +1246,16 @@ func (h *Handler) MuteChannel(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"muted_until": mutedUntil})
 }
 
-// UnmuteChannel обрабатывает POST /api/messenger/channels/:channelId/unmute
+// UnmuteChannel godoc
+// @Summary Размьютить канал
+// @Description Включает уведомления канала обратно.
+// @Tags Мессенджер
+// @Param channelId path string true "ID канала"
+// @Success 200 "Уведомления включены"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/unmute [post]
 func (h *Handler) UnmuteChannel(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -912,7 +1294,19 @@ func parsePollID(c fiber.Ctx) (uuid.UUID, error) {
 	return id, nil
 }
 
-// CreatePoll обрабатывает POST /api/messenger/channels/:channelId/polls
+// CreatePoll godoc
+// @Summary Создать опрос
+// @Description Создаёт новый опрос в указанном канале мессенджера.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Param body body CreatePollRequest true "Данные опроса"
+// @Success 201 {object} PollResponse "Опрос создан"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/channels/{channelId}/polls [post]
 func (h *Handler) CreatePoll(c fiber.Ctx) error {
 	channelID, err := parseChannelID(c)
 	if err != nil {
@@ -936,7 +1330,19 @@ func (h *Handler) CreatePoll(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// VotePoll обрабатывает POST /api/messenger/polls/:pollId/vote
+// VotePoll godoc
+// @Summary Проголосовать в опросе
+// @Description Отправляет голос текущего пользователя за выбранный вариант.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param pollId path string true "ID опроса"
+// @Param body body VotePollRequest true "Выбранный вариант"
+// @Success 200 {object} PollResponse "Голос учтён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/polls/{pollId}/vote [post]
 func (h *Handler) VotePoll(c fiber.Ctx) error {
 	pollID, err := parsePollID(c)
 	if err != nil {
@@ -960,7 +1366,18 @@ func (h *Handler) VotePoll(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ClosePoll обрабатывает POST /api/messenger/polls/:pollId/close
+// ClosePoll godoc
+// @Summary Закрыть опрос
+// @Description Завершает опрос и фиксирует результаты. Доступно только создателю.
+// @Tags Мессенджер
+// @Produce json
+// @Param pollId path string true "ID опроса"
+// @Success 200 {object} PollResponse "Опрос закрыт"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/messenger/polls/{pollId}/close [post]
 func (h *Handler) ClosePoll(c fiber.Ctx) error {
 	pollID, err := parsePollID(c)
 	if err != nil {
@@ -979,7 +1396,17 @@ func (h *Handler) ClosePoll(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetPollResults обрабатывает GET /api/messenger/polls/:pollId
+// GetPollResults godoc
+// @Summary Результаты опроса
+// @Description Возвращает текущие результаты опроса, включая голоса и процентное распределение.
+// @Tags Мессенджер
+// @Produce json
+// @Param pollId path string true "ID опроса"
+// @Success 200 {object} PollResponse "Результаты опроса"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/polls/{pollId} [get]
 func (h *Handler) GetPollResults(c fiber.Ctx) error {
 	pollID, err := parsePollID(c)
 	if err != nil {
@@ -1002,7 +1429,18 @@ func (h *Handler) GetPollResults(c fiber.Ctx) error {
 // DM handlers
 // ---------------------------------------------------------------------------
 
-// CreateOrGetDM обрабатывает POST /api/messenger/dm
+// CreateOrGetDM godoc
+// @Summary Создать или получить личную переписку
+// @Description Создаёт новый DM-канал с указанным пользователем или возвращает существующий.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param body body CreateDMRequest true "ID целевого пользователя"
+// @Success 200 {object} ChannelResponse "DM-канал"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/messenger/dm [post]
 func (h *Handler) CreateOrGetDM(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
