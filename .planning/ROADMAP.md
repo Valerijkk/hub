@@ -227,7 +227,12 @@ Plans:
   2. User sees redesigned Input (blue focus glow ring), Badge (status-specific glow), and Avatar (online indicator glow)
   3. User sees redesigned Dialog/Popover (entrance animation, backdrop blur), DropdownMenu, Tabs (active indicator), Tooltip, and ScrollArea (slim 5px scrollbar)
   4. All existing page functionality that uses these components continues to work without regression
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Button, Card, Input restyle (gradient primary, card gradient+highlight, input focus glow)
+- [ ] 10-02-PLAN.md — Badge, ScrollArea, Avatar, Tooltip restyle (status glows, 5px scrollbar, raised surfaces)
+- [ ] 10-03-PLAN.md — Dialog, Tabs, DropdownMenu restyle (backdrop blur, active indicator, raised menus)
 **UI hint**: yes
 
 ### Phase 11: Core Mockup Pages
@@ -283,7 +288,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 7. Polish & Extended Features | v1.0 | 6/6 | Complete | 2026-03-21 |
 | 8. Design System Foundation | v2.0 | 1/2 | In Progress|  |
 | 9. Layout Shell | v2.0 | 0/2 | Not started | - |
-| 10. UI Primitives | v2.0 | 0/? | Not started | - |
+| 10. UI Primitives | v2.0 | 0/3 | Not started | - |
 | 11. Core Mockup Pages | v2.0 | 0/? | Not started | - |
 | 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 0/? | Not started | - |
 | 13. Polish & QA | v2.0 | 0/? | Not started | - |
