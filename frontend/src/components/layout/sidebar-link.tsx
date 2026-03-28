@@ -1,8 +1,8 @@
 /**
- * Slack-style ссылка сайдбара с tooltip при свёрнутом режиме.
+ * Ссылка сайдбара v2.0 с accent glow active state.
  *
- * Активный элемент: 3px blue bar слева + подсветка #35373B.
- * Hover: rgba(255,255,255,0.05). Иконки 20px, текст 15px, высота 32px.
+ * Активный элемент: accent-colored bar слева с glow shadow + gradient overlay.
+ * Hover: var(--hover). Иконки 18px, текст 13.5px, gap 11px.
  */
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import {
@@ -22,7 +22,7 @@ export const NAV_ICON_COLORS: Record<string, string> = {
 	"/trash": "text-slate-500",
 };
 
-/** Элемент навигации сайдбара -- Slack-style с left accent bar. */
+/** Элемент навигации сайдбара -- accent bar + glow active state. */
 export function SidebarLink({
 	to,
 	label,
@@ -53,16 +53,34 @@ export function SidebarLink({
 			to={to}
 			params={params}
 			className={cn(
-				"group relative flex h-8 items-center gap-[10px] rounded-lg px-2 text-[13.5px] font-medium transition-all duration-150",
-				"border-l-2 border-transparent",
-				"text-[#979A9F] hover:bg-white/[0.05] hover:text-white",
-				isActive && "bg-white/[0.07] text-white border-l-blue-500",
-				collapsed && "justify-center px-0 border-l-0",
+				"group relative flex items-center gap-[11px] rounded-[var(--r2)] px-3 py-[9px] text-[13.5px] font-medium transition-all duration-200",
+				"text-t2 hover:bg-[var(--hover)] hover:text-t1",
+				isActive && "bg-[var(--active)] text-white font-semibold",
+				collapsed && "justify-center px-0",
 				indent && !collapsed && "pl-[42px] text-[13px]",
 				unread && "font-bold",
 			)}
 		>
-			<span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+			{/* Active accent bar */}
+			{isActive && !collapsed && (
+				<span
+					className="absolute -left-[3px] top-[6px] bottom-[6px] w-[3px] rounded-sm bg-primary shadow-[0_0_12px_var(--primary),0_0_30px_rgba(91,156,245,.15)]"
+					aria-hidden="true"
+				/>
+			)}
+			{/* Active gradient overlay */}
+			{isActive && !collapsed && (
+				<span
+					className="pointer-events-none absolute inset-y-0 left-0 w-[60px] rounded-[var(--r2)] bg-gradient-to-r from-primary/[0.06] to-transparent"
+					aria-hidden="true"
+				/>
+			)}
+			<span
+				className={cn(
+					"relative flex h-5 w-5 shrink-0 items-center justify-center [&_svg]:w-[18px] [&_svg]:h-[18px] [&_svg]:opacity-45",
+					isActive && "[&_svg]:opacity-100 [&_svg]:drop-shadow-[0_0_4px_rgba(91,156,245,.3)]",
+				)}
+			>
 				{icon}
 				{collapsed && badge != null && badge > 0 && (
 					<span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500" />
