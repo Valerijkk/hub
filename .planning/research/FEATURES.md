@@ -1,392 +1,233 @@
-# Feature Research
+# Feature Landscape: Hub v2.0 UI Redesign
 
-**Domain:** Team Collaboration Hub (Task Tracker + Messenger + TMS + Voice Calls)
-**Researched:** 2026-03-20
+**Domain:** Premium dark UI redesign of existing SaaS platform (11 HTML mockups)
+**Researched:** 2026-03-27
 **Confidence:** HIGH
 
-## Feature Landscape
+---
 
-Analysis based on: Jira, Linear, Plane.so, Huly (trackers); Slack, Mattermost, Zulip (messengers); TestRail, Allure TestOps (TMS); Google Meet, LiveKit (calls). Hub's core differentiator is cross-module traceability in a single self-hosted product.
+## Context
+
+Hub v2.0 is a visual-only redesign. All 11 pages are fully functional. The goal is pixel-perfect implementation of HTML mockups (dark theme), plus light theme derivation, consistent extrapolation of unmocked pages, and premium interaction quality. No new features, no backend changes.
+
+The mockups define a specific design language: 5-layer dark palette (#08090B to #1E2028), Inter + JetBrains Mono typography, spring/bounce easing, noise texture overlays, gradient mesh backgrounds, glassmorphic sidebar, and subtle glow effects on active elements.
 
 ---
 
-### Table Stakes (Users Expect These)
+## Table Stakes
 
-Features users assume exist. Missing any of these = users immediately look for alternatives.
+Features users expect from a premium UI redesign. Missing any = redesign feels amateur or half-done.
 
-#### Task Tracker — Table Stakes
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Issue CRUD with rich text | Every tracker has this since Bugzilla | LOW | Plate editor already chosen; support bold/italic/code/lists/links |
-| Custom fields (text, number, date, select) | Jira/Linear/Plane all support; teams need domain-specific data | MEDIUM | Start with 5-6 field types, extensible schema |
-| Issue types (Bug, Task, Story, Epic) | Universal taxonomy across all trackers | LOW | Configurable per project, icon + color |
-| Assignee, priority, status, due date | Core triage fields in every tracker | LOW | Priority: Critical/High/Medium/Low/None |
-| Kanban board with drag-and-drop | Expected since Trello (2011); Jira/Linear/Plane all have it | MEDIUM | pragmatic-dnd chosen; columns = workflow statuses |
-| Customizable workflow (statuses + transitions) | Jira popularized this; Linear simplified it; both expected | MEDIUM | Visual editor for status transitions; default templates |
-| Sprint management (create, plan, execute, close) | Standard Scrum support; Jira/Plane/Huly all have it | MEDIUM | Backlog view, sprint view, auto-carry-over of incomplete items |
-| Burndown chart | Basic Scrum artifact every PM expects | MEDIUM | Tremor for rendering; data = story points over time |
-| Comments with @mentions | Every tracker since Jira 2.0 | LOW | Link to messenger mentions system |
-| Activity log / history | "Who changed what when" — audit necessity | LOW | Store diffs per field change |
-| File attachments | Universal expectation | LOW | MinIO storage, presigned URLs, image preview |
-| Filters and saved views | Jira/Linear/Plane all provide | MEDIUM | Status/assignee/priority/type filters + save + share |
-| Global search (Ctrl+K) | Linear made this the gold standard; now expected everywhere | MEDIUM | Search across issues, messages, test cases, users |
-| Labels/tags with colors | Every tracker supports categorization | LOW | Project-scoped, reusable across modules |
-| Parent-child relationships | Sub-tasks are universal; Jira/Linear/Plane all have hierarchies | MEDIUM | Unlimited nesting with Ent graph traversal |
-| Issue linking (blocks, relates, duplicates) | Jira standard; teams need dependency tracking | LOW | Bidirectional links with type |
-| Bulk operations | Jira/Linear allow multi-select + batch update | MEDIUM | Select multiple issues, change status/assignee/priority |
-| Project-prefixed IDs (HUB-123) | Jira convention, universally expected | LOW | Auto-incrementing counter per project |
-
-#### Messenger — Table Stakes
+### Design System Foundation
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Direct messages (1:1) | Every messenger since ICQ | LOW | WebSocket-based real-time |
-| Group chats | Basic collaboration unit | LOW | Create, add/remove members, leave |
-| Channels (public + private) | Slack standard since 2013; Mattermost/Zulip/Huly all have | LOW | Join/leave, topic, description |
-| Threaded replies | Slack popularized; now expected in all team messengers | MEDIUM | Thread opens in side panel or inline; unread tracking per thread |
-| Message editing and deletion | Slack/Mattermost standard | LOW | Edit window (or unlimited for own messages), soft delete |
-| Emoji reactions | Universal since Slack; social feedback without noise | LOW | Standard emoji set, click to toggle |
-| Rich text formatting | Markdown-style: bold, italic, code, lists | LOW | Reuse Plate or simpler markdown parser |
-| File sharing + image preview | Every messenger supports drag-and-drop files | LOW | MinIO + thumbnail generation |
-| Typing indicators | Real-time presence signal; Slack/Mattermost have it | LOW | WebSocket broadcast per channel |
-| Online/offline status | Presence awareness is table stakes | LOW | Redis TTL for heartbeat; auto-away after idle |
-| Unread counts and badges | Must know where new messages are | MEDIUM | Per-channel and per-thread unread counters |
-| Message search | Finding past conversations is essential | MEDIUM | Full-text search in MongoDB; filters by channel/user/date |
-| Link previews (OG meta) | Slack standard; users expect URL unfurling | MEDIUM | Server-side fetch of OG tags, cache result |
-| Pin and bookmark messages | Slack standard for important reference messages | LOW | Per-channel pinned list; personal bookmarks |
+| CSS variable-based design tokens | Every modern design system (Linear, Vercel, shadcn) uses semantic tokens. Hardcoded colors = unmaintainable | MEDIUM | Replace current HSL tokens with mockup palette. Semantic naming: --void, --base, --raised, --card, --input for surfaces; --t1 through --t4 for text; --b1 through --b3 for borders |
+| Consistent border radius system | Mockups use 6/8/12/16px + pill. Current code uses `--radius: 0.75rem` with calc derivatives | LOW | Map to --r1 (6px), --r2 (8px), --r3 (12px), --r4 (16px), --pill (100px). Apply consistently across all shadcn components |
+| Shadow elevation system | Mockups define 3 shadow levels (sh1/sh2/sh3). Current dark theme has no shadow hierarchy | LOW | --sh1 subtle (1px 3px), --sh2 medium (4px 16px), --sh3 heavy (12px 40px). All use rgba(0,0,0) not rgba(white) for dark mode |
+| Typography scale with Inter + JetBrains Mono | Mockups use specific weight/size/tracking combos. Current code loads Inter but inconsistently | LOW | Font weights: 400/500/600/700/800/900. Code elements use JetBrains Mono. Letter-spacing: tight (-0.04em) for headings, normal for body |
+| Noise texture overlay | Every mockup page includes a fractal noise SVG overlay at 3% opacity. This creates the "premium matte" feel | LOW | Single `body::after` with fixed SVG noise. Pointer-events: none. Already in mockups as inline SVG data URI |
+| Ambient gradient backgrounds | Mockups use subtle radial gradients on body::before (colored glows at edges). Different per page | LOW | Per-page ambient gradients. Dashboard: amber/blue. Messenger: blue/purple. Login: blue/purple/green mesh |
 
-#### TMS — Table Stakes
+### Theme Switching (Light + Dark)
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Test case CRUD (steps + expected result) | Core TMS functionality since TestRail | MEDIUM | Step editor with ordering, expected/actual result |
-| Folder/suite hierarchy | TestRail/Allure TestOps both organize by tree | MEDIUM | Nested folders with drag-and-drop reordering |
-| Test runs (manual execution) | Core TMS workflow: create run, execute, record pass/fail | MEDIUM | Run = snapshot of selected cases; per-case status |
-| Test run results with evidence | Screenshot/comment per step is TestRail standard | MEDIUM | Attach files to individual step results |
-| Pass/Fail/Blocked/Skipped statuses | Standard test execution statuses | LOW | Configurable status set with colors |
-| Link test case to issue | Bidirectional traceability is core TMS value | MEDIUM | Many-to-many relationship; create bug from failed case |
-| Import test cases (CSV, Excel) | Migration path from existing tools is essential | MEDIUM | Column mapping UI; preview before import |
-| Basic reporting (pass rate, run history) | TestRail/Allure TestOps both provide | MEDIUM | Aggregate stats per run, trend over time |
+| Dark theme matching mockups exactly | The mockups ARE the dark theme. Pixel-perfect implementation is the entire point | HIGH | This is the bulk of the work. Every component must match mockup colors, spacing, borders, shadows |
+| Light theme derived from dark | Users expect light/dark toggle in 2026. Every premium SaaS (Linear, Vercel, Notion, Figma) offers it | MEDIUM | No light mockups exist. Must derive systematically: invert surface hierarchy (white to light grays), keep accent colors, adjust shadows to rgba(0,0,0,0.05-0.15), adjust border opacity |
+| System theme preference detection | OS-level dark/light preference respected by default. `prefers-color-scheme` is standard | LOW | Already implemented via next-themes with `enableSystem`. Keep this behavior |
+| No flash on page load (FOUC prevention) | Theme flash on load looks broken. Users notice immediately | LOW | next-themes handles this with a script tag injected before render. Current `disableTransitionOnChange` is correct for initial load but needs review for theme toggle |
+| Smooth theme transition on toggle | When user clicks dark/light toggle, colors should transition smoothly (not instant swap) | LOW | Remove `disableTransitionOnChange` from ThemeProvider. Add `transition: background-color 200ms, color 200ms, border-color 200ms` to key elements. Exclude initial load |
+| Accent color preservation | Current system supports 5 accent colors (red, blue, green, purple, orange). Must work in both themes | MEDIUM | Accent colors already exist via data-accent attribute. Ensure all 5 work with new dark palette AND derived light palette. May need separate accent opacity values per theme |
 
-#### Voice Calls — Table Stakes
+### Per-Page Pixel-Perfect Implementation (11 Mockup Pages)
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Audio call (multi-participant) | Basic conferencing; Google Meet/Zoom/Teams | HIGH | LiveKit handles SFU; up to 50 participants |
-| Mute/unmute | Universal call control | LOW | LiveKit SDK provides this out of the box |
-| Screen sharing | Google Meet/Zoom standard | MEDIUM | LiveKit native support; select screen/window |
-| Join via link | One-click join without install | LOW | Room token generation, URL-based join |
-| Participant list | See who's in the call | LOW | LiveKit room state subscription |
+| Login page redesign | Split layout (55% animated gradient + 45% form). Floating feature cards. Gradient mesh background | MEDIUM | Major visual change from current login. Code verification input (OTP style). Telegram button. Spring entrance animation |
+| Dashboard redesign | 3-column widget grid. Gradient greeting header. Quick action buttons with hover lift. Task items with colored dots and monospace keys | HIGH | Most complex layout. Multiple widget types: tasks, activity, charts, deadlines, time tracking. Staggered entrance animations |
+| Messenger redesign | Channel list sidebar. Message bubbles. Thread panel. Typing indicators. Glassmorphic elements | HIGH | Must preserve all existing messenger functionality (WebSocket, threads, reactions, file sharing) while reskinning |
+| Kanban board redesign | Column headers with counts. Card design with priority dots, labels, avatars. Drag ghost styling | HIGH | Must work with pragmatic-drag-and-drop. Column backgrounds, card hover states, WIP limit indicators |
+| Issue Detail redesign | Two-panel layout (content + sidebar). Rich text area. Activity timeline. Relation chips. Status/priority selectors | HIGH | Complex page with many sub-components. Must coordinate with Plate editor styling |
+| Calls page redesign | Participant grid. Control bar. Screen share panel. Invite block (when alone) | MEDIUM | Must work with LiveKit components. Audio visualizations. Glassmorphic controls |
+| TMS page redesign | Test case tree. Run execution panel. Status badges. Folder hierarchy | HIGH | Tree view with expandable nodes. Step editor. Result recording UI |
+| Settings page redesign | Form sections. Toggle switches. Profile fields. Theme/accent preview | MEDIUM | Standard form layout. Must include theme toggle and accent color picker preview |
+| Admin page redesign | Stats cards. User management table. System health indicators | MEDIUM | Data tables with sorting. KPI cards with trend indicators |
+| Onboarding page redesign | Step wizard. Profile setup. Tour highlights | MEDIUM | Multi-step flow. Progress indicators. Welcome animations |
+| Trash page redesign | Deleted items list. Restore actions. Retention countdown | LOW | Simple list with filters. Restore/permanent-delete actions |
 
-#### Cross-Module — Table Stakes
+### Animation Quality
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| User authentication | Login/signup is foundational | MEDIUM | Magic Link + Telegram auth (passwordless) |
-| Role-based access control | Multi-user products need permissions | HIGH | System roles (Admin, Member) + project roles (Owner, Dev, Tester, Viewer) + custom RBAC |
-| Notifications (in-app) | Must know about assignments, mentions, updates | MEDIUM | Bell icon, notification center, mark read/unread |
-| User profiles | Name, avatar, contact info | LOW | Standard profile page + settings |
-| Project creation and membership | Organizational unit for all modules | MEDIUM | Create project = auto-create tracker + TMS + channel + dashboard |
-| Dark/light theme | Modern UI expectation | LOW | CSS variables + Tailwind dark mode |
-| i18n (Russian + English) | Bilingual requirement from PROJECT.md | MEDIUM | react-intl or i18next; all strings externalized |
+| Entrance animations on page load | Mockups specify `enterUp` keyframes (opacity 0 + translateY 16px to visible). Staggered per element | LOW | Use motion (ex framer-motion) `AnimatePresence` + staggered delays. 400ms duration with spring easing |
+| Hover state transitions | Every interactive element needs smooth hover. Mockups show: translateY(-2px to -6px), border-color change, box-shadow elevation, background shift | LOW | 200-280ms transitions. Use `var(--ease): cubic-bezier(.25,.1,0,1)` from mockups. Cards lift, buttons scale |
+| Active/pressed state feedback | Buttons: `scale(.97)`. Cards: quick press response. Links: color transition | LOW | 150ms max for press feedback. Matches mockup `btn:active{transform:scale(.97)}` |
+| Spring easing curves | Mockups define `--spring: cubic-bezier(.175,.885,.32,1.1)` and `--ease: cubic-bezier(.25,.1,0,1)`. These create the "snappy but organic" feel | LOW | Register as CSS custom properties. Use in all transitions. spring has overshoot (1.1), ease is smooth deceleration |
+| Loading skeletons | Users expect skeleton screens during data fetches, not spinners. Linear and Vercel set the standard | MEDIUM | Create skeleton variants for each widget type. Match dark theme surface colors (--raised pulsing to --card). Wave animation preferred over pulse |
+| Sidebar active item glow | Mockups show active sidebar item with amber left border + glow shadow + gradient background leak | LOW | CSS-only: `box-shadow: 0 0 12px var(--amber)` on `::before` pseudo-element. Gradient overlay via `::after` |
+
+### Component Library Updates
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Updated shadcn/ui base components | All 15 existing UI components (button, card, dialog, etc.) must use new design tokens | MEDIUM | Restyle each component. Focus on: button gradients (not flat), input focus glow rings, card glass effects, dialog backdrop blur |
+| Custom scrollbar styling | Mockups define thin 5px scrollbars with transparent track and subtle thumb | LOW | Already partially in mockups CSS. Apply globally via `::-webkit-scrollbar` rules |
+| Backdrop blur on overlays | Topbar uses `backdrop-filter: blur(24px) saturate(180%)`. Popover/dialog should follow | LOW | Apply to topbar, dropdown menus, command palette, dialogs. Note: Firefox performance consideration (now supported since FF 103) |
+| Gradient text for headings | Mockups use `background-clip: text` gradients on key headings (greeting, page titles, logo) | LOW | Create utility class or component. Per-page gradient directions: amber-orange for dashboard, blue-purple for general |
 
 ---
 
-### Differentiators (Competitive Advantage)
+## Differentiators
 
-Features that set Hub apart. These align with the core value: "unified environment without switching between a dozen tools."
+Features that elevate the redesign from "competent" to "premium." Not expected, but immediately noticed.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Unified platform (tracker + messenger + TMS + calls)** | No competitor except Huly combines all four; Huly lacks TMS. This is THE differentiator. | N/A (architectural) | Integration between modules is the product, not individual features |
-| **Deep cross-module linking** | Mention HUB-123 in chat and get a rich preview card; create a bug from a failed test case that auto-links; see test coverage on an issue. No tool does all three. | MEDIUM | Smart entity references across all modules |
-| **Allure results ingestion (CI pipeline)** | Allure TestOps costs $30K/yr. Hub accepts allure-results JSON for free, matches to test cases, builds reports. | HIGH | Custom parser, matching algorithm, history tracking |
-| **Auto-channels per project** | When you create a project, #project-hub channel appears. CI events, test run results, and sprint changes post automatically. Huly does this; Jira+Slack requires Zapier. | MEDIUM | Event-driven NATS messages to auto-channel |
-| **Traceability matrix (requirement to test case to code)** | TestRail has basic linking; Allure TestOps links to automation. Hub links issue to test case to GitHub PR to CI result in one view. | HIGH | Multi-entity graph query; dedicated matrix UI |
-| **Planning Poker built-in** | External tool (PlanningPoker.com) for most teams. Built-in = no context switch. | MEDIUM | WebSocket room, Fibonacci scale, reveal mechanic |
-| **Voice-only calls (no video)** | Deliberate constraint. Lower bandwidth, simpler UX, faster to join. Teams doing daily standups don't need video. | LOW (LiveKit handles it) | Simpler than full video; screen share covers visual needs |
-| **Telegram bot for auth + notifications** | Magic Link via Telegram is frictionless. Bot also pushes notifications. No email setup needed. | MEDIUM | telego bot; deep links for auth flow |
-| **Read-only CI channels** | #project-ci auto-posts build/test results. No manual copy-paste from Jenkins/GitHub Actions. | LOW | Webhook receiver posts formatted messages |
-| **BDD test cases (Given/When/Then)** | TestRail is steps-only. Allure TestOps supports BDD but it's paid. Hub supports both formats. | LOW | Alternative editor mode for test case body |
-| **Test case versioning with rollback** | TestRail versions test cases but rollback is clunky. Hub makes it explicit: view history, diff, restore. | MEDIUM | Store snapshots on edit; diff view |
-| **Call recording with project binding** | Google Meet recordings go to Drive (disconnected). Hub recordings are attached to the project, linked to a channel message. | HIGH | LiveKit Egress, MinIO storage, metadata linking |
-| **JQL-like query language** | Jira power users love JQL. Linear has no equivalent. Offering this for advanced users is a differentiator among mid-size tools. | HIGH | Parser + AST + query execution; can defer to v1.x |
-| **Custom workflow per project** | Jira does this but it's admin-heavy. Linear is opinionated (no custom). Hub: project owner builds workflows visually. | MEDIUM | Visual status/transition editor |
-| **Quiet hours with urgent override** | Slack has DND but no urgency bypass. Hub lets urgent notifications punch through quiet hours. | LOW | Notification priority flag + user schedule |
-| **Project templates (save + reuse)** | Jira recently added this. Hub allows saving an entire project config (workflow, roles, channels, TMS structure) as a template. | MEDIUM | Serialize project config to template; apply on create |
-| **Scheduled + recurring calls** | Google Calendar integration is typical. Hub has built-in scheduling with recurrence (daily standup). | MEDIUM | Cron-like schedule, auto-create room, reminder notification |
-| **Voice messages in chat** | Telegram popularized this. Slack added it. Useful for async communication. | MEDIUM | MediaRecorder API, MinIO storage, waveform preview |
+| **Mesh gradient animated backgrounds** | Login page has a 20s animated mesh with hue-rotate. Dashboard has ambient colored glows. This creates depth that flat backgrounds lack. Linear, Raycast, and Arc browser use this technique | LOW | CSS-only: radial-gradient layers + keyframe hue-rotate/brightness. Different mesh per page section. Performance: GPU-composited, no reflows |
+| **Glassmorphic sidebar** | Sidebar has `::after` gradient line (amber to blue), hover states with `var(--hover)`, and glowing active indicators. Not just a dark panel but a layered glass effect | LOW | Already defined in mockups. Key elements: 1px gradient border, glow on active nav item, logo with box-shadow glow, online status dot glow |
+| **Floating card animations** | Login page feature cards float with staggered 7-9s infinite animations. Dashboard widgets lift on hover with shadow elevation change | LOW | CSS @keyframes for float. motion for hover lift. Stagger with nth-child delays |
+| **Focus ring glow effect** | Input focus shows blue glow ring: `box-shadow: 0 0 0 3px rgba(91,156,245,.08), 0 0 20px rgba(91,156,245,.04)` plus slight scale(1.005). More premium than a flat outline | LOW | Apply to all focusable elements. Coordinate with accent color system so focus ring matches user's chosen accent |
+| **Gradient CTA buttons** | Login/primary buttons use `linear-gradient(135deg, var(--blueS), #2563EB)` with inner light overlay via `::before`. Hover adds deeper box-shadow and slight lift | LOW | Reserved for primary CTAs only. Secondary buttons stay flat. Creates clear visual hierarchy |
+| **Colored dot indicators with glow-on-hover** | Task status dots, project indicators, and online status all have `box-shadow: 0 0 8px currentColor` on hover. Subtle but polished | LOW | CSS transition on box-shadow. Use `currentColor` for automatic color matching. Applied to: task priority dots, sidebar project dots, user online status |
+| **Monospace task keys** | Issue keys (HUB-123) use JetBrains Mono with reduced font size and muted color. Gives a technical, developer-tool aesthetic | LOW | Already in mockups. Apply to all entity IDs across all modules |
+| **Top border light line on cards** | Every card/widget has a 1px top highlight: `linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent)` via `::before`. Simulates light source from above | LOW | Single CSS rule on all card components. Creates 3D depth perception without actual 3D transforms |
+| **Page-specific ambient gradients** | Each page has unique subtle colored radial gradients on body::before. Dashboard: amber glow top-right. Messenger: blue glow. This creates visual identity per section | LOW | Set via CSS class on body/main container per route. Very subtle (2-3% opacity) so it's felt not seen |
+| **Sidebar gradient separator line** | Right edge of sidebar has a gradient line: `linear-gradient(180deg, transparent 5%, rgba(amber,.05) 30%, rgba(blue,.04) 60%, transparent 95%)` instead of a flat border | LOW | CSS `::after` pseudo-element. More alive than `border-right: 1px solid` |
 
 ---
 
-### Anti-Features (Deliberately NOT Building)
+## Anti-Features
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| **Video calls with webcams** | "Everyone expects video" | Massively increases bandwidth, complexity, and LiveKit resource usage. For 10-50 person teams doing standups, voice + screen share covers 90% of use cases. | Voice + screen share. If video is truly needed, teams use Google Meet/Zoom for that one meeting. |
-| **Native mobile apps (iOS/Android)** | "People want App Store apps" | Two additional codebases (or React Native); app store approval delays; 6+ months extra work. PWA covers mobile use cases for internal tools. | PWA with push notifications, offline cache, installable. |
-| **Email notifications** | "Standard notification channel" | Requires email infrastructure (SMTP, deliverability, spam management). Telegram bot is simpler, faster, and already integrated for auth. | Telegram bot notifications + in-app notifications. |
-| **SSO/LDAP/OAuth providers** | "Enterprise needs it" | Significant auth complexity for v1. Target is 10-50 person teams, not enterprise. Magic Link + Telegram is sufficient and modern. | Magic Link + Telegram. Add OAuth in v2 if enterprise demand emerges. |
-| **Gantt charts** | "Project managers expect it" | Complex to implement well; Kanban + Sprint views cover planning needs for dev teams. Gantt is more relevant to construction/waterfall. | Kanban board + sprint timeline + burndown chart. |
-| **Real-time collaborative editing (Google Docs style)** | "Modern collaboration" | CRDT/OT implementation is extremely complex. Task descriptions and test cases don't need simultaneous editing. | Last-write-wins with conflict detection. Lock editing if needed. |
-| **AI agent features** | "Plane and Linear are adding AI" | Requires LLM infrastructure, significant cost, unpredictable quality. Distraction from core value (integration, not AI). | None for v1. Revisit when core platform is stable. |
-| **Plugin/extension marketplace** | "Jira has 3000+ plugins" | Plugin API design is a product in itself. Premature extensibility creates maintenance burden. | Well-designed REST API + webhooks. Third parties integrate externally. |
-| **Time zone-aware scheduling (world clock)** | "Distributed teams need it" | Over-engineering for 10-50 person teams likely in same time zone. | Store all times in UTC, display in user's local timezone. Basic, not fancy. |
-| **Wikis / knowledge base / Notion-like docs** | "Huly has it, Plane has Pages" | Separate product domain. Doing it well requires block editor, nested pages, permissions. Distracts from core tracker+messenger+TMS+calls value. | Link to external wiki (Notion, Confluence). Consider for v2+ if demand exists. |
-| **Billing / subscriptions / multi-tenancy** | "SaaS needs it" | Hub is an internal tool, not SaaS. Building billing adds months of work with zero value for the target use case. | Single-tenant self-hosted deployment. |
-| **Remote desktop control** | "Useful for support" | Complex, security-sensitive, niche use case. Dedicated tools (AnyDesk, TeamViewer) do this far better. | Screen share is sufficient for code review / demos. |
+Features to explicitly NOT build during the redesign.
+
+| Anti-Feature | Why Tempting | Why Avoid | What to Do Instead |
+|--------------|-------------|-----------|-------------------|
+| **Full custom component library** | "Let's build everything from scratch for maximum control" | shadcn/ui components are already integrated and well-tested. Rewriting introduces bugs and increases scope 5x | Restyle existing shadcn/ui components via CSS variable overrides. Only create new components for mockup-specific patterns not in shadcn |
+| **Complex page transition animations** | "Linear has smooth page transitions" | Route-level animations with AnimatePresence add complexity to routing, cause layout shift bugs, and interact poorly with TanStack Router | Entrance animations within pages (staggered fade-up). No cross-page transitions. Pages load fast enough that transitions are unnecessary |
+| **Parallax/scroll-triggered animations** | "Modern websites have scroll animations" | Hub is a productivity tool, not a marketing site. Scroll animations slow down workflows and add motion sickness risk | Static layout with hover micro-interactions only. Respect `prefers-reduced-motion` |
+| **3D transforms / perspective effects** | "Cards could tilt on hover like Stripe" | GPU-intensive, causes rendering issues on lower-end machines, distracting in a daily-use work tool | Subtle 2D transforms only: translateY, scale. Maximum lift: -6px (per mockups) |
+| **Custom icon set** | "Let's design bespoke icons for Hub" | Weeks of design work for diminishing returns. Lucide icons (used by shadcn) are comprehensive and consistent | Keep Lucide icons. Mockups use inline SVGs that map to standard Lucide equivalents |
+| **Animated gradient buttons everywhere** | "The login CTA gradient looks great, use it on all buttons" | Gradient overuse cheapens the effect. Creates visual noise in data-dense pages | Gradient buttons for primary CTAs only (max 1-2 per page). All other buttons: flat with hover background change |
+| **Dark-mode-only ship** | "Mockups are dark, just ship dark" | ~30-40% of users prefer light mode. Shipping without light mode causes immediate complaints and accessibility issues (some users need high-contrast light) | Derive light theme systematically from dark tokens. Ship both from day one |
+| **Per-component animations with motion** | "Wrap every element in motion.div" | Bundle size bloat, render overhead, maintenance burden. Most components need simple CSS transitions, not JS-driven animations | Use CSS transitions for hover/focus/active states (95% of interactions). Reserve motion for: entrance animations, layout shifts (AnimatePresence), drag-and-drop ghost |
+| **Theme transition animation on every element** | "Everything should smoothly cross-fade on theme toggle" | Applying transition to all elements causes jank on theme switch (hundreds of elements transitioning simultaneously) | Transition only key surfaces: body background, sidebar background, card backgrounds, text color. Let borders and small elements snap instantly |
 
 ---
 
 ## Feature Dependencies
 
 ```
-Authentication (Magic Link + Telegram)
+Design System Foundation (tokens, variables, fonts)
     |
-    +---> User Profiles + Roles (RBAC)
+    +---> Shadcn/ui Component Restyling (button, card, input, dialog...)
+    |         |
+    |         +---> Page-level Redesigns (use restyled components)
+    |
+    +---> Light Theme Derivation (need dark tokens finalized first)
+    |         |
+    |         +---> Theme Toggle Polish (needs both themes working)
+    |
+    +---> Animation System (easing curves, entrance keyframes)
               |
-              +---> Projects (create, membership, permissions)
-                        |
-                        +---> Task Tracker (issues, boards, sprints)
-                        |         |
-                        |         +---> Kanban Board
-                        |         +---> Sprint Management ---> Burndown/Velocity Charts
-                        |         +---> Custom Workflows
-                        |         +---> Time Tracking
-                        |
-                        +---> Messenger (channels, DMs, threads)
-                        |         |
-                        |         +---> Auto-channels per project
-                        |         +---> Link previews (requires entity reference system)
-                        |         +---> Voice Messages
-                        |
-                        +---> TMS (test cases, runs, results)
-                        |         |
-                        |         +---> Allure Integration (requires TMS + CI webhook)
-                        |         +---> Traceability Matrix (requires Tracker + TMS linking)
-                        |         +---> Test Case Versioning
-                        |
-                        +---> Voice Calls (LiveKit rooms)
-                        |         |
-                        |         +---> Screen Share
-                        |         +---> Call Recording (requires MinIO)
-                        |         +---> Scheduled Calls
-                        |
-                        +---> Dashboards (requires data from all modules)
-                        +---> Notifications (requires events from all modules)
-                        +---> GitHub Integration (requires Tracker issues)
+              +---> Page-level Animations (per-page entrance, hover states)
 
-File Storage (MinIO)
-    |
-    +---> Attachments (all modules)
-    +---> Call Recordings
-    +---> Voice Messages
-    +---> Avatars
-
-Real-time Infrastructure (NATS + WebSocket)
-    |
-    +---> Messenger (message delivery)
-    +---> Notifications (event distribution)
-    +---> Kanban (live board updates)
-    +---> Presence / Online Status
-    +---> Planning Poker
+Pages without mockups (depend on design system + at least 3 mockup pages done):
+    Design System + Sidebar + Topbar + Widget patterns from Dashboard
+        |
+        +---> Projects List (reuse card grid from Dashboard)
+        +---> Project Overview (reuse widget grid from Dashboard)
+        +---> Sprint Management (reuse Kanban column patterns + Dashboard widgets)
+        +---> JQL Search (reuse input + filter patterns from Kanban/TMS)
+        +---> Project Settings (reuse form patterns from Settings)
+        +---> Project Dashboard (reuse widget grid from Dashboard)
 ```
 
-### Dependency Notes
+### Critical Path
 
-- **Authentication is the root dependency:** Nothing works without login. Build first.
-- **Projects gate all modules:** Tracker, TMS, Messenger channels, and Calls all live within a project context. Project CRUD must precede module development.
-- **Real-time infrastructure (NATS + WebSocket) is a horizontal dependency:** Messenger, notifications, live board updates, and presence all need it. Build the real-time layer early.
-- **MinIO is a horizontal dependency:** Attachments, recordings, voice messages, and avatars all need object storage. Set up early.
-- **Dashboards depend on all modules:** They aggregate data from tracker, TMS, and messenger. Build last.
-- **Traceability matrix requires both Tracker and TMS:** Cannot build until both modules have linking capability.
-- **Allure integration requires TMS + external webhook:** Depends on TMS test case model and a webhook/API endpoint for CI to push results.
-- **GitHub integration requires Tracker:** Auto-linking commit messages to issues needs the issue model to exist.
+1. **Design tokens** must be finalized before ANY component work
+2. **Sidebar + topbar** must be done early because they appear on EVERY page
+3. **Dashboard** should be first full page (most widget patterns reused elsewhere)
+4. **Settings** should be done before unmocked pages (form patterns reused in Project Settings)
+5. **Light theme** should be derived AFTER dark theme is stable (changing dark tokens forces light rework)
 
 ---
 
-## MVP Definition
+## Pages Without Mockups: Extrapolation Strategy
 
-### Launch With (v1.0)
+Six pages need consistent styling without explicit mockups. The approach: compose from patterns already defined in mockup pages.
 
-Minimum viable product that demonstrates the core value (unified platform with cross-module traceability).
+### Pattern Mapping
 
-- [ ] **Auth: Magic Link + Telegram login** -- Foundation; passwordless is simpler than password-based
-- [ ] **User profiles + system roles (Admin/Member)** -- Basic identity and access control
-- [ ] **Projects with membership** -- Organizational container for all modules
-- [ ] **Task Tracker: CRUD, Kanban board, basic workflow** -- Core module #1; most immediate daily use
-- [ ] **Issue types, priorities, assignees, labels** -- Basic triage capability
-- [ ] **Parent-child issues + issue linking** -- Hierarchy is table stakes
-- [ ] **Messenger: DMs, channels, threads** -- Core module #2; replaces Slack
-- [ ] **Rich text, reactions, file sharing** -- Messenger table stakes
-- [ ] **Auto-channel per project** -- First differentiator: project activity in one place
-- [ ] **TMS: Test cases (steps), folders, manual test runs** -- Core module #3; replaces TestRail
-- [ ] **Link test case to issue (bidirectional)** -- First cross-module traceability
-- [ ] **Voice calls: audio + screen share** -- Core module #4; replaces Meet
-- [ ] **In-app notifications** -- Must know about mentions, assignments, status changes
-- [ ] **Global search (Ctrl+K)** -- Cross-module search from day one
-- [ ] **File storage (MinIO) for all modules** -- Attachments, screenshots in test results
-- [ ] **Dark/light theme, i18n (RU/EN)** -- UX requirements from PROJECT.md
+| Unmocked Page | Primary Pattern Source | Secondary Source | Key Components to Reuse |
+|---------------|----------------------|------------------|------------------------|
+| **Projects List** | Dashboard (widget grid, cards) | Sidebar (project dots, colors) | Card grid, hover lift, colored dots, search/filter bar |
+| **Project Overview** | Dashboard (widget grid, stats) | TMS (tree/hierarchy display) | Widget grid, stat cards, activity feed, progress bars |
+| **Sprint Backlog** | Kanban (column layout, cards) | Dashboard (task items) | Issue cards, drag-and-drop columns, filter bar, priority dots |
+| **Sprint Detail/Burndown/Velocity** | Dashboard (chart widgets) | Admin (stat cards) | Tremor chart styling with dark tokens, stat KPI cards, date range selectors |
+| **Planning Poker** | Calls (participant grid) | Dashboard (action buttons) | Participant cards, reveal animation, voting buttons, Fibonacci scale display |
+| **JQL Search** | TMS (filter panel, results list) | Messenger (search bar) | Code-style input (JetBrains Mono), results table, filter chips, saved queries list |
+| **Project Settings** | Settings (form layout) | Admin (table layout) | Form sections, toggle switches, role permission table, workflow editor |
+| **Project Dashboard** | Dashboard (widget grid) | Admin (stats) | Same widget system as personal dashboard, project-scoped data |
 
-### Add After Validation (v1.x)
+### Design Rules for Unmocked Pages
 
-Features to add once the four core modules work reliably.
-
-- [ ] **Sprint management + burndown** -- When teams start using tracker for Scrum (not just Kanban)
-- [ ] **Allure results ingestion** -- When teams have CI pipelines pushing test results
-- [ ] **Telegram bot notifications** -- When in-app notifications aren't enough
-- [ ] **GitHub integration (PR linking, auto-status)** -- When dev workflow tightens
-- [ ] **Call recording** -- When teams want to reference past meetings
-- [ ] **Custom workflows (visual editor)** -- When default workflow is too restrictive
-- [ ] **Project-level RBAC (custom roles)** -- When teams need fine-grained permissions
-- [ ] **BDD test cases (Given/When/Then)** -- When QA teams request alternative format
-- [ ] **Test case versioning** -- When test suites mature and need history
-- [ ] **Planning Poker** -- When sprint planning sessions begin
-- [ ] **Scheduled/recurring calls** -- When daily standups are routine
-- [ ] **Voice messages** -- When async communication patterns emerge
-- [ ] **Bulk operations on issues** -- When issue volume makes one-by-one editing painful
-- [ ] **Saved/shared filters** -- When teams standardize their views
-- [ ] **Link previews in chat (HUB-123 cards)** -- Cross-module UX polish
-
-### Future Consideration (v2+)
-
-Features to defer until the platform is stable and adoption is proven.
-
-- [ ] **JQL-like query language** -- Power user feature; basic filters suffice initially
-- [ ] **Traceability matrix view** -- Requires mature tracker + TMS data; complex UI
-- [ ] **Project templates (save + reuse)** -- Useful at scale; not needed with few projects
-- [ ] **Admin dashboard (DAU/WAU, storage, health)** -- Operational tooling for production scale
-- [ ] **Webhook system (outbound)** -- External integration point; API keys + REST API first
-- [ ] **CLI tool (hub-cli)** -- Developer convenience; REST API covers CI/CD needs initially
-- [ ] **PWA with offline mode** -- Mobile experience polish; web app works initially
-- [ ] **Audit log with filters** -- Compliance feature; basic activity log in v1 is enough
-- [ ] **Quiet hours + urgent override** -- Notification sophistication for larger teams
-- [ ] **Import from Jira/TestRail** -- Migration tooling once there are teams to migrate
-- [ ] **Custom fields on issues** -- Extensibility; fixed fields cover 80% of use cases in v1
-- [ ] **Environments in TMS (dev/staging/prod)** -- Advanced TMS feature for mature testing orgs
-- [ ] **Swimlanes on Kanban** -- Nice-to-have board customization
-- [ ] **WIP limits** -- Process enforcement; teams can self-regulate initially
+1. **Use --base as page background** (not --void, which is for body/root only)
+2. **56px topbar** with glassmorphic blur, gradient text page title, same breadcrumb pattern
+3. **Widget grid**: `grid-template-columns: repeat(3, 1fr)` with 16px gap, same card styling (gradient background, 1px top highlight, hover lift)
+4. **Data tables**: Follow Admin page table patterns (row hover, alternating subtle backgrounds, monospace IDs)
+5. **Form sections**: Follow Settings page patterns (labeled sections, --input background on fields, blue focus glow ring)
+6. **Entrance animations**: Same staggered fade-up pattern: `animation: eu 400ms var(--spring) [delay]ms both`
+7. **Empty states**: Centered muted text with icon, following the same muted color (--t3) pattern
 
 ---
 
-## Feature Prioritization Matrix
+## MVP Recommendation for Redesign Phases
 
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| Auth (Magic Link + Telegram) | HIGH | MEDIUM | P1 |
-| User profiles + roles | HIGH | LOW | P1 |
-| Projects with membership | HIGH | MEDIUM | P1 |
-| Task CRUD + Kanban board | HIGH | MEDIUM | P1 |
-| Custom workflow (basic) | HIGH | MEDIUM | P1 |
-| Issue hierarchy + linking | HIGH | MEDIUM | P1 |
-| Messenger (DMs, channels, threads) | HIGH | HIGH | P1 |
-| TMS (cases, runs, results) | HIGH | HIGH | P1 |
-| Voice calls + screen share | HIGH | HIGH | P1 |
-| In-app notifications | HIGH | MEDIUM | P1 |
-| Global search (Ctrl+K) | HIGH | MEDIUM | P1 |
-| Auto-channels per project | HIGH | LOW | P1 |
-| Cross-module entity linking | HIGH | MEDIUM | P1 |
-| Sprint management + burndown | MEDIUM | MEDIUM | P2 |
-| Allure results ingestion | HIGH | HIGH | P2 |
-| GitHub integration | MEDIUM | MEDIUM | P2 |
-| Telegram notifications | MEDIUM | MEDIUM | P2 |
-| Call recording | MEDIUM | HIGH | P2 |
-| Custom RBAC | MEDIUM | HIGH | P2 |
-| Planning Poker | LOW | MEDIUM | P2 |
-| BDD test cases | LOW | LOW | P2 |
-| Test case versioning | MEDIUM | MEDIUM | P2 |
-| JQL-like queries | LOW | HIGH | P3 |
-| Traceability matrix | MEDIUM | HIGH | P3 |
-| Project templates | LOW | MEDIUM | P3 |
-| Admin dashboard | LOW | MEDIUM | P3 |
-| CLI tool | LOW | MEDIUM | P3 |
-| PWA offline mode | LOW | HIGH | P3 |
-| Import from Jira/TestRail | MEDIUM | HIGH | P3 |
+### Phase 1: Foundation (do first)
+1. Design token system (CSS variables matching mockup palette)
+2. Shadcn/ui component restyling (all 15 components)
+3. Sidebar + topbar (shared layout, appears everywhere)
+4. Animation utilities (easing curves, entrance keyframes, hover patterns)
 
-**Priority key:**
-- P1: Must have for launch (v1.0)
-- P2: Should have, add after core validation (v1.x)
-- P3: Nice to have, future consideration (v2+)
+### Phase 2: Core Pages (highest visual impact)
+1. Login (standalone page, great for validation)
+2. Dashboard (most patterns, reused by unmocked pages)
+3. Messenger (most used daily, complex)
+4. Kanban (visual centerpiece of tracker)
 
----
+### Phase 3: Remaining Mockup Pages
+1. Issue Detail (complex, many sub-components)
+2. TMS (tree views, execution panels)
+3. Calls (LiveKit component restyling)
+4. Settings + Admin + Onboarding + Trash
 
-## Competitor Feature Analysis
+### Phase 4: Unmocked Pages + Light Theme
+1. Derive light theme from finalized dark tokens
+2. Apply design system to all unmocked pages
+3. Theme toggle polish (smooth transitions, no FOUC)
+4. Skeleton loading states for all pages
 
-### Task Trackers
-
-| Feature | Jira | Linear | Plane.so | Huly | Hub Approach |
-|---------|------|--------|----------|------|-------------|
-| Kanban board | Full (swimlanes, WIP) | Minimal, fast | Full | Full | Full with WIP limits in v1.x |
-| Scrum (sprints) | Full | Cycles (simplified) | Cycles | Sprints | Sprints with burndown in v1.x |
-| Custom workflows | Extremely flexible (admin-heavy) | Opinionated (fixed) | Configurable | Configurable | Configurable per project (v1.x) |
-| Custom fields | Extensive | Limited | Yes | Yes | v2 (fixed fields in v1) |
-| JQL/query language | JQL (powerful) | Filter views | Filter views | Filter views | JQL-like in v2 |
-| Hierarchy depth | Epic > Story > Sub-task (3 levels) | Project > Issue > Sub-issue | 3 levels | Flexible | Unlimited nesting |
-| GitHub integration | Marketplace plugin | Native | Native | Native two-way sync | Native (commit-to-issue linking) |
-| Time tracking | Via plugins | Built-in (basic) | No | Built-in | Built-in timer (v1) |
-| AI features | Atlassian Intelligence | AI triage/summaries | AI agents | No | Not in scope |
-| Speed/UX | Slow, complex | Fast, keyboard-first | Medium | Fast | Target: Linear-like speed |
-
-### Messengers
-
-| Feature | Slack | Mattermost | Zulip | Huly | Hub Approach |
-|---------|-------|------------|-------|------|-------------|
-| Threading | Threads (secondary) | Threads (secondary) | Topics (primary, mandatory) | Basic threads | Slack-style threads (optional per message) |
-| Channels | Public + private | Public + private | Streams + topics | Channels | Public + private + auto-project channels |
-| Search | Powerful | Full-text | Advanced (by topic) | Basic | Full-text with filters |
-| Integrations | 2500+ apps | Smaller ecosystem | Webhooks | Built-in tracker | Built-in tracker/TMS/calls (core differentiator) |
-| Bots | Extensive bot platform | Webhooks + plugins | Bots | Limited | Webhook receiver + Telegram bot |
-| Voice/video | Huddles (basic) | Plugin (Jitsi) | Via BigBlueButton | Built-in video | Built-in voice + screen share |
-| Self-hosted | No | Yes | Yes | Yes | Yes |
-| Link previews | Rich (OG + app unfurling) | Basic OG | Basic | Issue cards | Issue/test case/PR cards (cross-module) |
-
-### TMS
-
-| Feature | TestRail | Allure TestOps | Hub Approach |
-|---------|----------|----------------|-------------|
-| Manual test cases | Full (steps + expected) | Full | Full (steps + BDD) |
-| Automation integration | API-based | Native (100+ frameworks) | Allure results parser (free alternative) |
-| Folder hierarchy | Sections + suites | Tree structure | Nested folders |
-| Test runs | Manual + automated | Manual + automated + smart | Manual + automated (Allure) + mixed |
-| Reporting | Basic charts | Advanced (trends, flaky, categories) | Allure-level reports (trends, flaky, categories) |
-| Versioning | Basic | Smart (auto-update) | Explicit versioning with diff + rollback |
-| Issue linking | Jira integration | Jira integration | Native (same platform) -- key advantage |
-| Pricing | $36/user/mo (cloud) | ~$30K/yr (enterprise) | Free (self-hosted) |
-| Environments | No native support | Configuration profiles | Labeled environments with comparison |
-
-### Voice/Calls
-
-| Feature | Google Meet | Zoom | LiveKit (raw) | Huly | Hub Approach |
-|---------|-------------|------|---------------|------|-------------|
-| Video | Yes | Yes | Yes | Yes | No (deliberate: voice only) |
-| Screen share | Yes | Yes | Yes | Yes | Yes (multiple simultaneous) |
-| Recording | Google Drive | Cloud/local | Egress service | Yes | MinIO storage, project-bound |
-| Max participants | 100-500 | 100-1000 | Scalable | Unknown | 50 (target team size) |
-| Scheduling | Google Calendar | Built-in | None (raw SDK) | Basic | Built-in with recurrence (v1.x) |
-| Integration | Google Workspace | Standalone | SDK/API | Built-in tracker | Built-in tracker + messenger |
-| Self-hosted | No | No | Yes | Yes | Yes |
-| Raise hand | Yes | Yes | SDK support | Unknown | Yes |
+**Defer:** Complex per-page ambient gradients can be added as polish after all pages are functionally restyled.
 
 ---
 
 ## Sources
 
-- [Huly - Everything App for your teams](https://huly.io/)
-- [Huly GitHub](https://github.com/hcengineering/platform)
-- [Plane.so - AI-native project management](https://plane.so/)
-- [Plane GitHub](https://github.com/makeplane/plane)
-- [Jira Software Features](https://www.atlassian.com/software/jira/features)
-- [Linear vs Jira comparison (efficient.app)](https://efficient.app/compare/linear-vs-jira)
-- [Linear vs Jira (monday.com)](https://monday.com/blog/rnd/linear-or-jira/)
-- [Mattermost vs Slack (pumble.com)](https://pumble.com/blog/mattermost-vs-slack/)
-- [Zulip - Why Zulip](https://zulip.com/why-zulip/)
-- [TestRail vs Allure TestOps (Capterra)](https://www.capterra.com/compare/128204-227555/TestRail-vs-Allure-TestOps)
-- [Allure TestOps - TestRail alternatives](https://qameta.io/blog/testrail-alternatives/)
-- [LiveKit Documentation](https://docs.livekit.io/transport/)
-- [LiveKit GitHub](https://github.com/livekit/livekit)
-- [LiveKit screen sharing docs](https://docs.livekit.io/transport/media/screenshare/)
+- [How we redesigned the Linear UI (part II)](https://linear.app/now/how-we-redesigned-the-linear-ui) - Linear's design system approach with LCH color space and minimal token generation
+- [A calmer interface for a product in motion - Linear](https://linear.app/now/behind-the-latest-design-refresh) - Linear's latest design refresh philosophy
+- [Dark Mode Web Design for Better SaaS UX](https://webspidersolutions.com/dark-mode-web-design-saas/) - Dark mode not a palette swap, requires intentional secondary interface design
+- [Dark Mode UI: Best Practices 2025](https://www.graphiceagle.com/dark-mode-ui/) - Avoid pure black, use dark grays, proper contrast ratios
+- [Theming - shadcn/ui](https://ui.shadcn.com/docs/theming) - Official shadcn CSS variable theming system
+- [Dark Mode - shadcn/ui](https://ui.shadcn.com/docs/dark-mode) - Official dark mode implementation with next-themes
+- [Skeleton loading screen design - LogRocket](https://blog.logrocket.com/ux-design/skeleton-loading-screen-design/) - Skeleton layouts should match final content structure
+- [Micro-interaction ideas with Framer Motion](https://siadesign.ee/en/blog/micro-interactions-framer-motion/) - 200-500ms timing for micro-animations, whileInView for entrance, whileHover for feedback
+- [Advanced animation patterns with Framer Motion](https://blog.maximeheckel.com/posts/advanced-animation-patterns-with-framer-motion/) - Layout animations and spring physics
+- [Color tokens: guide to light and dark modes](https://medium.com/design-bootcamp/color-tokens-guide-to-light-and-dark-modes-in-design-systems-146ab33023ac) - Semantic token mapping between light and dark themes
+- [Designing a Scalable and Accessible Dark Theme](https://www.fourzerothree.in/p/scalable-accessible-dark-mode) - WCAG compliance in dark mode, readable + elegant + scalable
+- [SaaS Design Trends 2026](https://jetbase.io/blog/saas-design-trends-best-practices) - Subtle animations and micro-interactions as essential tools for premium UX
+- Hub HTML mockups (`redesign/01-login.html` through `redesign/11-trash.html`) - Primary design source, analyzed directly
 
 ---
-*Feature research for: Team Collaboration Hub*
-*Researched: 2026-03-20*
+*Feature research for: Hub v2.0 UI Redesign*
+*Researched: 2026-03-27*

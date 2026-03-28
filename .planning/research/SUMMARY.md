@@ -1,215 +1,230 @@
 # Project Research Summary
 
-**Project:** Hub
-**Domain:** Team collaboration hub (task tracker + messenger + TMS + voice calls)
-**Researched:** 2026-03-20
+**Project:** Hub v2.0 — Pixel-Perfect UI Redesign
+**Domain:** Visual redesign of React 19 + Tailwind CSS v4 + Shadcn/ui application (11 HTML mockups)
+**Researched:** 2026-03-27
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Hub is a self-hosted unified platform for development teams (10-50 people) that replaces four separate tools -- Jira (task tracker), Slack (messenger), TestRail/Allure TestOps (TMS), and Google Meet (voice calls) -- with a single integrated product. The core differentiator is cross-module traceability: tasks link to test cases, CI test results flow into the TMS via Allure integration, and all events surface in the messenger and Telegram. The expert approach for this class of product is a Go modular monolith with NATS as the internal event bus, PostgreSQL for relational data, MongoDB for append-heavy chat and Allure JSON, and LiveKit for WebRTC voice calls. The closest competitor is Huly, which combines tracker + messenger + calls but lacks a TMS module entirely.
+Hub v2.0 is a visual-only redesign — no backend changes, no new features, no new npm packages. The scope is implementing 11 HTML mockups as a pixel-perfect dark theme, deriving a light theme from those tokens, extrapolating 6 unmocked pages from established patterns, and delivering premium micro-interactions. The project already has everything required: React 19, Tailwind CSS v4, Shadcn/ui, `motion` v12, `next-themes`, and a CSS variable theming system. The entire work surface is `app.css`, `index.html`, and the component/page layer in `src/`. Zero new dependencies.
 
-The recommended architecture is a single Go binary with strict module boundaries (auth, tracker, messenger, TMS, calls) communicating exclusively through NATS events, fronted by a React 19 SPA with a single WebSocket gateway bridging NATS to the browser. This pattern supports the target scale (10-50 users) without operational complexity while remaining extractable to microservices if needed. Key infrastructure choices are well-validated: Fiber v3 (fasthttp performance), Ent ORM (graph-based entity traversal for task hierarchies and RBAC privacy layer), SeaweedFS (S3-compatible storage replacing the now-archived MinIO), and Caddy (auto-HTTPS reverse proxy). The frontend stack is React 19 + Vite 8 + shadcn/ui + Tailwind CSS 4, with Plate for rich text, pragmatic-drag-and-drop for Kanban boards, and TanStack Query/Router for data and routing.
+The recommended approach is design-tokens-first: replace all CSS variables in a single atomic commit, let the cascade do 60–70% of the visual work automatically, then refine components and pages toward pixel-perfect mockup match. The mockups define a richer token system than the current Shadcn defaults — 5-level surface elevation (`--void` through `--input`), 4-level text hierarchy (`--t1` through `--t4`), 3-level borders (`--b1` through `--b3`), named easing curves (`--ease`, `--spring`), and shadow presets (`--sh1` through `--sh3`). These map cleanly onto the existing `@theme inline` / `:root` / `.dark` architecture without breaking any Shadcn component logic.
 
-The primary risks are: (1) Fiber's fasthttp RequestCtx reuse causing silent data corruption in goroutines -- must establish copy-before-goroutine conventions from day one; (2) PostgreSQL + MongoDB cross-database consistency gaps requiring an outbox pattern for reliable cross-store operations; (3) RBAC role explosion across system, project, and channel scopes -- the permission model must be designed upfront with cached effective permissions; and (4) the sheer breadth of the product (four integrated modules) creating scope pressure that could delay MVP indefinitely. The mitigation for scope risk is a disciplined MVP that delivers all four modules at table-stakes depth, proving the integration value before adding differentiating features.
+The primary risk is the existing `app.css` carrying 56 `!important` declarations that will create specificity conflicts the moment new component styles are applied. This must be addressed in Phase 1 before any restyling begins. Secondary risks are: (1) light theme accessibility — no light mockups exist, so the derived palette must be validated for WCAG AA contrast; (2) JSX structure changes silently breaking interactive behavior in Kanban, Messenger, and Calls; (3) the global CSS variable swap triggering radius/shadow/color ripples across all 235 source files simultaneously. All three risks have clear prevention strategies documented in PITFALLS.md.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack is a Go + React split with a polyglot persistence layer. Go 1.26 with Fiber v3 provides the backend with first-class concurrency for real-time features. The data layer uses PostgreSQL 17 (via Ent ORM) for structured data, MongoDB 8 for chat messages and Allure JSON, Redis 7.4 for sessions/cache, and NATS with JetStream for event-driven communication. SeaweedFS replaces MinIO (archived Feb 2026) for S3-compatible object storage. LiveKit handles WebRTC voice calls and screen sharing.
+The stack requires zero new npm packages. See STACK.md for full details.
 
-**Core technologies:**
-- **Go 1.26 + Fiber v3**: Backend language and framework -- goroutines for real-time, fasthttp for throughput, single binary deployment
-- **Ent ORM + Atlas**: PostgreSQL ORM with code-generated type-safe queries, graph traversal for task hierarchies, privacy layer for RBAC, Atlas for versioned migrations
-- **NATS + JetStream**: Event bus replacing both RabbitMQ and Redis pub/sub -- core NATS for real-time fan-out, JetStream for durable job processing
-- **React 19 + Vite 8 + TypeScript**: Frontend with Server Components available but SPA mode sufficient; Vite 8 ships Rolldown for 10-30x faster builds
-- **shadcn/ui + Tailwind CSS 4 + Plate**: UI components (copy-paste, full control), CSS-first config, shadcn-native rich text editor with free mentions and tables
-- **LiveKit**: Go-native WebRTC SFU for voice calls + screen share, self-hosted single container, Egress for recording
-- **SeaweedFS**: S3-compatible object storage replacing archived MinIO; presigned URLs for direct browser upload/download
-- **Caddy**: Reverse proxy with auto-HTTPS, native WebSocket proxying, minimal config
+**Font swap:** Replace Geist with Inter (weights 400–900) + JetBrains Mono (400–600) via Google Fonts CDN URL swap in `index.html`. Update `body { font-family: var(--sans) }` in `app.css`. Do not add `@fontsource/*` packages.
 
-**Critical version note:** MinIO was archived Feb 2026. All references to MinIO in PROJECT.md constraints should be updated to SeaweedFS. The S3 API is compatible -- no code changes needed beyond endpoint configuration.
+**Core technologies (all already installed):**
+- `Tailwind CSS v4` — CSS-first `@theme inline` config drives all color/radius/shadow utilities from CSS variables; no tailwind.config.js changes needed
+- `motion` v12 (`^12.38.0`) — currently used in 1 file; expand to page entrance animations, staggered lists, layout shifts; CSS transitions handle hover/press/focus (95% of interactions)
+- `next-themes` (`^0.4.6`) — class-based `.dark` toggle; no changes to ThemeProvider; only CSS variable values change
+- `class-variance-authority` (`^0.7.1`) — extend Button/Badge variants for new design states
+- Native CSS — all glassmorphism, gradients, noise textures, and easing achievable without libraries
+
+**New CSS utilities needed in `app.css`:** noise overlay (`body::after`), gradient top border on cards, dot glow, grid-lines background (login page). All are pure CSS, no libraries.
 
 ### Expected Features
 
-The MVP must deliver all four core modules at table-stakes depth to prove the unified platform value. The feature research identified 60+ table stakes features across modules and 20+ differentiators.
+Full details in FEATURES.md.
 
-**Must have (table stakes for v1.0):**
-- Auth: Magic Link + Telegram login, user profiles, system roles (Admin/Member)
-- Projects: creation, membership, auto-channel per project, project-scoped RBAC
-- Tracker: issue CRUD with rich text, Kanban board with drag-and-drop, basic customizable workflow, issue types/priorities/assignees/labels, parent-child hierarchy, issue linking, comments with @mentions, activity log, file attachments, project-prefixed IDs (HUB-123)
-- Messenger: DMs, channels (public+private), threaded replies, reactions, rich text, file sharing, typing indicators, online/offline status, unread counts, message search, pin/bookmark
-- TMS: test case CRUD (steps + expected result), folder/suite hierarchy, manual test runs with evidence, pass/fail/blocked/skipped statuses, bidirectional test case to issue linking, basic reporting
-- Calls: multi-participant audio, mute/unmute, screen sharing, join via link, participant list
-- Cross-module: in-app notifications, global search (Ctrl+K), file storage for all modules, dark/light theme, i18n (RU/EN)
+**Must have (table stakes):**
+- CSS design token system matching mockup palette — `--void`/`--base`/`--raised`/`--card`/`--input` surfaces; `--t1`–`--t4` text; `--b1`–`--b3` borders; `--r1`–`--r4` radius; `--sh1`–`--sh3` shadows; `--ease`/`--spring` easing
+- Dark theme pixel-perfect match to all 11 mockups
+- Light theme derived from dark tokens with WCAG AA contrast verification
+- System theme preference detection (already working via `next-themes`)
+- All 11 mockup pages restyled: Login, Dashboard, Messenger, Kanban, Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash
+- All 15 Shadcn/ui base components updated to new design language
+- Spring/bounce entrance animations (400ms, staggered, `--spring` easing)
+- Hover micro-interactions: translateY(-2px to -6px), border elevation, shadow bloom
 
-**Should have (add after core validation, v1.x):**
-- Sprint management + burndown/velocity charts
-- Allure results ingestion from CI pipelines
-- Telegram bot notifications (beyond auth)
-- GitHub integration (PR linking, auto-status)
-- Call recording with project binding
-- Custom workflows (visual editor)
-- Project-level custom RBAC roles
-- BDD test cases (Given/When/Then)
-- Planning Poker, scheduled/recurring calls
-- Bulk operations, saved/shared filters, link previews in chat
+**Should have (differentiators):**
+- Animated mesh gradient backgrounds (login: 20s hue-rotate loop; dashboard: ambient glows)
+- Glassmorphic sidebar with gradient edge line (`::after` pseudo-element)
+- Floating card animations on login page (staggered 7–9s infinite)
+- Focus ring glow matching user's accent color
+- Gradient CTA buttons on primary actions only (max 1–2 per page)
+- Colored dot indicators with `box-shadow` glow on hover
+- Top-edge 1px highlight on every card via `::before`
+- Monospace task keys (JetBrains Mono, muted color) across all entity IDs
 
-**Defer (v2+):**
-- JQL-like query language, traceability matrix view, project templates
-- Admin dashboard (DAU/WAU, storage, health)
-- CLI tool, PWA offline mode, import from Jira/TestRail
-- Custom fields on issues, environments in TMS, swimlanes, WIP limits
+**Defer to polish pass (not blocking):**
+- Per-page ambient body gradients (Dashboard: amber glow, Messenger: blue glow)
+- Skeleton loading states for all widgets
+- Smooth theme toggle transition (remove `disableTransitionOnChange`)
+- Dead CSS class cleanup in `app.css`
 
-**Anti-features (deliberately not building):**
-- Video calls (voice + screen share covers 90% of needs)
-- Native mobile apps (PWA is sufficient for internal tools)
-- Email notifications (Telegram bot replaces this)
-- SSO/LDAP/OAuth, Gantt charts, real-time collaborative editing, AI features, plugin marketplace, wikis
+**Anti-features — explicitly do not build:**
+- Route-level page transition animations (AnimatePresence on routes causes layout shift bugs)
+- Parallax or scroll-triggered animations (Hub is a productivity tool, not a marketing site)
+- 3D transforms / perspective tilt on cards
+- Gradient buttons beyond primary CTAs
+- Dark-mode-only ship (30–40% of users need light mode)
+- `motion.div` wrappers on every element (CSS transitions handle 95% of interactions)
 
 ### Architecture Approach
 
-The system is a modular monolith: a single Go binary with five domain modules (auth, tracker, messenger, TMS, calls) plus cross-cutting services (notification, storage, search, WebSocket gateway). Modules communicate through NATS events for cross-cutting concerns and share PostgreSQL via Ent ORM for direct entity relationships. A single WebSocket gateway bridges NATS events to browser clients -- modules never touch WebSocket connections directly. The frontend mirrors backend module boundaries with module-specific folders sharing common components.
+The architecture does not change — only token values and visual styling change. The existing data flow (`next-themes` sets `.dark` on `<html>` → CSS cascade resolves `:root`/`.dark` variables → `@theme inline` maps to Tailwind utilities → all `bg-*`/`text-*`/`border-*` classes update automatically) continues unchanged. See ARCHITECTURE.md for the complete migration sequence.
+
+**Migration sequence:**
+1. Design tokens — replace `:root` and `.dark` variable blocks, remap `@theme inline`, add new utility entries (void/base/raised/t1–t4/b1–b3)
+2. Typography + fonts — `index.html` font swap, `body` font-family update
+3. Accent color remap — keep `[data-accent="X"]` mechanism; update values to match new palette
+4. Layout shell — AppShell (topbar always visible on desktop), Sidebar (gradient edge, active glow), Topbar (backdrop blur)
+5. UI primitives — Button (gradient variants), Card (gradient bg + top highlight), Input (blue focus glow), Badge (status glow), Dialog (entrance animation)
+6. Per-page restyling — 11 mockup pages in user-flow order
+7. Unmocked pages — compose from established patterns (Dashboard grid → Projects; Settings forms → Project Settings; Kanban columns → Sprint Backlog)
+8. Polish — light mode QA, animation audit, accessibility, dead CSS removal
+
+**Key insight:** Zero new files needed for the design system foundation. All changes modify existing files.
+
+**Patterns to enforce:**
+- Surface elevation: always use `--void`/`--base`/`--raised`/`--card`/`--input` — never hardcoded hex or arbitrary `bg-[#...]` classes
+- Text hierarchy: `text-t1`/`text-t2`/`text-t3`/`text-t4` for all content
+- Border levels: `border-b1`/`border-b2`/`border-b3` based on prominence
+- Gradient cards: `bg-gradient-to-b from-card to-raised` + `::before` top highlight + `hover:border-b2`
+- Spring animations: `transition: all 250ms var(--spring)` — no inline style overrides
 
 **Major components:**
-1. **REST API (Fiber v3)** -- HTTP request handling with route groups per module, middleware for auth/RBAC/logging
-2. **WebSocket Gateway + NATS Bridge** -- single persistent connection per client, subscribes to NATS subjects, fans out events to relevant browsers; enables horizontal scaling without code changes
-3. **Domain Modules (auth, tracker, messenger, TMS, calls)** -- self-contained with handler/service/repository/events layers; communicate only through NATS events, never direct imports
-4. **PostgreSQL (Ent)** -- source of truth for users, projects, tasks, test cases, roles, file metadata; graph-based entity relations model the cross-module linking
-5. **MongoDB** -- chat messages (append-heavy, flexible schema), Allure results JSON (deeply nested, variable structure)
-6. **NATS + JetStream** -- core NATS for ephemeral real-time (typing, presence, signaling); JetStream for durable processing (audit, Allure ingestion, notification delivery)
-7. **SeaweedFS** -- all file storage via presigned URLs; backend never proxies file bytes
+1. `app.css` — single source of truth for design tokens, typography, animation utilities, and base styles
+2. AppShell + Sidebar + Topbar — layout chrome; must be consistent before any page content work
+3. 15 Shadcn/ui UI primitives — shared across all pages; restyled once, used everywhere
+4. Per-page modules (`src/modules/**/*.tsx`) — pixel-perfect implementation of each mockup
 
 ### Critical Pitfalls
 
-1. **Fiber/fasthttp RequestCtx reuse** -- fasthttp reuses request objects; any ctx values passed to goroutines become invalid. Use `utils.CopyString()`, copy body bytes, set `Immutable = true` in dev. Run all tests with `-race` flag. Address in Phase 1.
+Full details with prevention strategies in PITFALLS.md.
 
-2. **PostgreSQL + MongoDB cross-database consistency** -- no distributed transactions across PG and Mongo. Use the outbox pattern: write events to a PG outbox table in the same transaction, background worker applies changes to MongoDB. Soft-delete in PG first, async cleanup in Mongo. Address in Phase 1.
+1. **56 `!important` declarations in `app.css`** — New styles applied to inputs, selects, and Radix popovers will silently lose to global overrides. Audit and remove all in Phase 1 before any component restyling. Move Radix-specific overrides into individual Shadcn component files using `cn()`.
 
-3. **RBAC role explosion** -- system roles + project roles + channel permissions create combinatorial complexity. Define a clear hierarchy (System > Project > Resource), use permission bitmaps, precompute effective permissions in Redis, implement via Ent Privacy Layer. Address in Phase 1.
+2. **CSS variable swap must be atomic** — Half-migrated state creates jarring visual mismatches app-wide. Swap all `:root`/`.dark` variable blocks in a single commit. Accept the global ripple; fix individual components page-by-page in subsequent phases.
 
-4. **WebSocket split-brain across instances** -- messages sent to server A invisible to clients on server B. Use NATS as the WebSocket message bus from day one; store presence in Redis, not in-memory. Address in Phase 1-2.
+3. **JSX restructuring breaks interactive behavior** — Changing DOM structure to match mockups silently detaches Kanban drag-and-drop, Messenger infinite scroll, Radix focus trapping, and form chains. Rule: restyle with CSS classes first; change JSX only when required, and verify all interactions afterward.
 
-5. **NATS JetStream consumer proliferation** -- creating per-user JetStream consumers leads to instability at scale. Use core NATS for real-time fan-out, reserve JetStream only for durable job processing (audit, Allure, webhooks). Address in Phase 1.
+4. **Radix primitive breakage from Shadcn restyling** — Removing `data-*`, `aria-*`, `asChild`, `forwardRef`, or `Portal` props when restyling Shadcn components causes dropdowns that don't close, dialogs without focus trapping, and broken keyboard navigation. Only modify `className` props — never behavioral props.
 
-6. **LiveKit Egress resource starvation** -- recording consumes 2-6 CPUs and 4GB+ RAM per instance (headless Chrome). Deploy Egress on dedicated node, limit concurrent recordings, add SYS_ADMIN capability. Address in Phase 4 but plan K3s resources in Phase 1.
+5. **Light mode accessibility failure** — Mechanically inverted dark palette will fail WCAG AA contrast (4.5:1 for text, 3:1 for UI components) on first attempt. Run `axe-core` audit immediately after defining light tokens. Zero violations required before merging Phase 1.
+
+---
 
 ## Implications for Roadmap
 
-Based on combined research across stack, features, architecture, and pitfalls, the following phase structure is recommended. The ordering is driven by three factors: dependency chains (auth before everything, projects before modules), architectural foundations (NATS/WebSocket/storage before features that need them), and risk frontloading (tackle the hardest integration patterns early).
+Based on combined research, the redesign maps to 6 phases. The critical constraint is dependency ordering: tokens must exist before components, shared chrome (sidebar/topbar) must be done before page content, dark theme must be stable before light theme visual QA.
 
-### Phase 1: Foundation and Infrastructure
+### Phase 1: Design System Foundation
 
-**Rationale:** Every module depends on authentication, project scoping, RBAC, real-time infrastructure, and file storage. Building these first eliminates the most dangerous pitfalls (ctx reuse conventions, outbox pattern, RBAC model, NATS patterns) before feature code exists.
-**Delivers:** Working auth flow, project CRUD with membership, RBAC middleware, WebSocket gateway with NATS bridge, SeaweedFS integration with presigned URLs, database schemas and migrations, CI pipeline, Docker Compose dev environment.
-**Features addressed:** Magic Link + Telegram auth, user profiles, system roles, project creation and membership, file storage infrastructure.
-**Pitfalls addressed:** Fiber RequestCtx reuse (establish conventions), PG+MongoDB consistency (outbox pattern), RBAC model (permission hierarchy + middleware), NATS patterns (core vs JetStream separation), WebSocket gateway (NATS bridge from day one).
+**Rationale:** CSS variables are the single point of control for the entire visual layer. Changing them first lets the cascade do most of the work automatically. The `!important` cleanup gates everything — any subsequent component work hits the specificity wall without it. Light theme tokens belong here too: defining them after the dark theme is "stable" is a trap that forces rework when dark tokens change.
+**Delivers:** Updated `app.css` with new `:root`/`.dark` variable blocks; entire app shifts to new palette; Inter/JetBrains Mono fonts loaded; new semantic utilities available (`bg-void`, `text-t3`, `border-b2`, etc.); zero `!important` declarations; light theme defined with verified WCAG AA contrast; z-index scale tokens; Firefox scrollbar fix; easing variable definitions (`--ease`, `--spring`).
+**Addresses:** Design token system, font swap, noise overlay, CSS easing variables, radius/shadow systems (FEATURES.md table stakes)
+**Avoids:** Pitfall 1 (important minefield), Pitfall 3 (CSS variable atomic swap), Pitfall 5 (light mode accessibility), Pitfall 8 (global token ripple), Pitfall 11 (accent system incompatibility), Pitfall 15 (z-index wars)
 
-### Phase 2: Task Tracker
+### Phase 2: Layout Shell
 
-**Rationale:** The tracker is the highest-value module and the foundation for cross-module linking. TMS needs tasks to exist for bidirectional linking. Messenger auto-channels need project context. Building the tracker first validates the Ent graph model, workflow engine, and real-time board updates.
-**Delivers:** Issue CRUD with rich text (Plate), Kanban board with drag-and-drop (pragmatic-dnd), customizable workflows, issue types/priorities/assignees/labels, parent-child hierarchy, issue linking, comments with @mentions, activity log, file attachments, project-prefixed IDs.
-**Key stack elements:** Ent graph traversal for task hierarchies, pragmatic-drag-and-drop for Kanban, Plate for rich text, fractional indexing (LexoRank) for card positioning, TanStack Query for optimistic updates.
-**Pitfalls to watch:** Ent N+1 queries (eager loading from day one), Kanban position recalculation (use LexoRank), real-time board update storms (debounce server-side).
+**Rationale:** Sidebar and topbar frame every single page. Until the chrome matches the new design language, every page looks partially broken regardless of how well individual content is styled. This phase also validates that the token system from Phase 1 works end-to-end in real component context before investing in page-level work.
+**Delivers:** Sidebar with gradient edge line (`::after`), active nav item glow, new `--sidebar-bg` background, updated typography; Topbar always visible on desktop with `backdrop-filter: blur(24px)` and gradient bottom edge; AppShell content padding updated to 28px.
+**Avoids:** Pitfall 2 (JSX breakage — sidebar collapse/expand must keep working at all viewport sizes), Pitfall 10 (inconsistent UI during migration)
 
-### Phase 3: Messenger
+### Phase 3: Shared UI Primitives
 
-**Rationale:** The messenger is the second daily-use module and validates the real-time infrastructure built in Phase 1. It exercises the WebSocket gateway, NATS pub/sub, MongoDB write patterns, and presence system at full intensity. Building it after the tracker enables cross-module entity references (mentioning HUB-123 in chat).
-**Delivers:** DMs, channels (public + private), auto-channels per project, threaded replies, reactions, rich text formatting, file sharing with image preview, typing indicators, online/offline status, unread counts and badges, message search, pin/bookmark.
-**Key stack elements:** MongoDB for messages, NATS core pub/sub for real-time delivery, Redis for presence/unread counts, TanStack Virtual for chat virtualization.
-**Pitfalls to watch:** WebSocket distributed delivery (already mitigated by NATS bridge), unindexed MongoDB queries (compound index on channel_id + created_at), notification deduplication (batch edits within time window).
+**Rationale:** 15 Shadcn/ui components appear across all pages. Restyling them before page-level work means every page starts from a correct visual foundation. With `!important` gone from Phase 1, component-level styling is clean and predictable.
+**Delivers:** Button (gradient primary, ghost/secondary variants, spring easing, glow states), Card (gradient bg + top-edge highlight + hover glow), Input (blue focus glow ring + scale 1.005 on focus), Badge (status glow backgrounds using `--gB`/`--gR` etc.), Dialog/Popover (entrance animations + backdrop blur), Tabs, DropdownMenu, ScrollArea (5px slim scrollbar), Avatar (online indicator glow), Tooltip.
+**Avoids:** Pitfall 4 (Radix primitive breakage), Pitfall 6 (animation performance — CSS transitions for hover, `motion` only for layout and mount)
 
-### Phase 4: TMS (Test Management)
+### Phase 4: Core Mockup Pages
 
-**Rationale:** The TMS depends on the tracker for bidirectional test-case-to-issue linking, which is the core traceability differentiator. It also depends on the messenger for posting test run results to project channels. Building it third means all integration points exist.
-**Delivers:** Test case CRUD (steps + expected result), folder/suite hierarchy, manual test runs with evidence (screenshots/comments per step), pass/fail/blocked/skipped statuses, bidirectional test case to issue linking, basic reporting (pass rate, run history), import (CSV/Excel).
-**Key stack elements:** Ent for test case schemas with edges to tasks, MongoDB for Allure JSON storage, NATS events for test run completion notifications.
-**Pitfalls to watch:** Allure parser brittleness (defensive parsing, multiple matching strategies), cross-module linking complexity (test coverage calculation).
+**Rationale:** Login is standalone and great for early validation of the token system visually. Dashboard contains the most reused widget patterns and must be done early so unmocked pages can reference it directly. Messenger and Kanban are the highest-complexity, highest-frequency pages — they are the heart of the product.
+**Delivers:** Login (split layout, animated mesh, floating cards, spring entrance); Dashboard (widget grid, greeting gradient, quick actions, staggered entrance); Messenger (channel list, message bubbles, composer glassmorphism); Kanban (column headers, card hover states, priority dots, WIP indicators).
+**Avoids:** Pitfall 2 (full per-page interactive behavior checklist for Kanban drag-and-drop, Messenger scroll and Plate editor, Calls LiveKit UI), Pitfall 6 (Kanban 50+ card animations must be CSS-only via `animation-delay` stagger), Pitfall 13 (Plate editor and LiveKit style leaks from global CSS)
 
-### Phase 5: Voice Calls
+### Phase 5: Remaining Mockup Pages + Unmocked Pages
 
-**Rationale:** Calls are the most self-contained module -- LiveKit handles the heavy lifting. It depends on auth and projects but not on tracker or TMS. Placed after TMS because the traceability story (tracker + TMS) is the primary differentiator, while calls are table stakes functionality.
-**Delivers:** Multi-participant audio calls, mute/unmute, screen sharing (multiple simultaneous), join via link, participant list, call metadata stored in PostgreSQL.
-**Key stack elements:** LiveKit server SDK for room management and token generation, @livekit/components-react for UI, NATS for call start/end events to messenger.
-**Pitfalls to watch:** LiveKit + Caddy configuration (Caddy proxies signaling only, LiveKit handles UDP media directly), LiveKit NODE_IP configuration for production.
+**Rationale:** The remaining 7 mockup pages (Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash) have established component foundations from Phases 3–4. Unmocked pages come last because they are composed from patterns already proven — no design invention required, just systematic pattern application.
+**Delivers:** All 11 mockup pages pixel-perfect; 6 unmocked pages (Projects List, Sprint Backlog, Sprint Detail/Burndown, Planning Poker, JQL Search, Project Settings/Dashboard) styled consistently with the design system using established pattern mappings from FEATURES.md.
+**Avoids:** Pitfall 9 (mobile regression — check 375px viewport after each page), Pitfall 13 (third-party component leaks in Calls/Messenger)
 
-### Phase 6: Notifications, Search, and Dashboards
+### Phase 6: Polish and QA
 
-**Rationale:** These are cross-cutting features that aggregate data from all modules. Notifications consume events from tracker, messenger, TMS, and calls. Global search indexes entities from all modules. Dashboards query across all data. They must come last because they depend on everything.
-**Delivers:** In-app notification center (bell icon, mark read/unread), notification preferences, global search (Ctrl+K) across all entities, personal dashboard, project dashboard with widgets.
-**Key stack elements:** NATS consumers for notification dispatch, PostgreSQL full-text search (tsvector + GIN index), Tremor for dashboard charts and KPIs, Zustand for notification state.
-**Pitfalls to watch:** Dashboard query performance (use materialized views or Redis-cached aggregations, not live queries), notification deduplication and batching, search index staleness.
-
-### Phase 7: Polish and Extended Features
-
-**Rationale:** After all core modules and cross-cutting features work, add the features that deepen each module: sprint management, call recording, Telegram notifications, GitHub integration, and UX polish (i18n, theme, keyboard shortcuts, PWA).
-**Delivers:** Sprint management + burndown/velocity, call recording (LiveKit Egress), Telegram bot notifications, GitHub integration (PR linking, auto-status), dark/light theme with accent colors, i18n (RU/EN), keyboard shortcuts, PWA basics.
-**Pitfalls to watch:** LiveKit Egress resource starvation (dedicated node, concurrent recording limits, SYS_ADMIN capability), GitHub webhook task matching (word boundary regex).
+**Rationale:** Visual completion is not production readiness. Animation timing audit, light mode visual QA across all pages, accessibility audit, and dead CSS removal require a dedicated phase — they cannot be squeezed into page phases without cutting corners.
+**Delivers:** Animation timing audit (60fps at 4x CPU throttle on Dashboard and Kanban); Lighthouse accessibility zero contrast violations in both themes; mobile QA at 375px/768px/1024px; smooth theme toggle transition (200ms background/color transition on key surfaces); dead CSS class removal from `app.css`; final WCAG AA verification pass; per-page ambient gradient backgrounds (polish cap).
+**Avoids:** Pitfall 5 (light mode accessibility), Pitfall 6 (animation performance), Pitfall 9 (mobile regression), Pitfall 16 (dead CSS accumulation)
 
 ### Phase Ordering Rationale
 
-- **Foundation first** because 7 of 9 critical pitfalls must be addressed in Phase 1 -- delaying infrastructure decisions causes cascading technical debt
-- **Tracker before Messenger** because task management is the primary differentiator (messenger without tasks is just another Slack clone), and the tracker validates the Ent graph model that TMS also needs
-- **Messenger before TMS** because it validates the real-time infrastructure at full intensity and enables cross-module entity references needed by TMS
-- **TMS before Calls** because the tracker-to-test-case traceability is the core differentiator against Huly and all competitors; calls are commodity functionality
-- **Notifications/Search/Dashboards as a group** because they all share the same dependency: needing data from all modules to be meaningful
-- **Polish last** because sprint management, recording, and GitHub integration add depth to working modules rather than creating new ones
+- **Tokens before components** (Phases 1→3): 60–70% of visual change happens automatically through the cascade. Inverting this order means every component invents its own color values and must be redone when tokens are finalized.
+- **Shell before pages** (Phase 2 before 4): Sidebar and topbar frame every page. Mismatched chrome makes every page look broken regardless of content quality.
+- **`!important` cleanup gates everything**: Phase 2+ cannot reliably start until the specificity minefield is cleared in Phase 1.
+- **Dark tokens before light visual QA** (light tokens defined in Phase 1, visual QA in Phase 6): Light theme token values are defined in Phase 1 alongside dark, but visual QA of light mode is deferred to Phase 6 when all pages are stable and not changing.
+- **Mockup pages before unmocked pages** (Phase 4–5): Unmocked pages are composed from mockup patterns. Doing them first produces inconsistent extrapolations that must be redone.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 1 (Foundation):** RBAC permission model design needs detailed specification -- the exact permission set, hierarchy rules, and Ent Privacy Layer integration require careful upfront design
-- **Phase 4 (TMS):** Allure results parser needs research into actual JSON format variations across frameworks (JUnit, pytest, JS). Test with real allure-results from multiple CI pipelines before finalizing the parser
-- **Phase 5 (Calls):** LiveKit self-hosting configuration, Caddy integration for signaling, and K3s deployment with UDP port exposure need hands-on validation
-- **Phase 7 (Polish):** LiveKit Egress deployment on K3s with resource isolation and SYS_ADMIN capability requires K8s-specific research
+Phases where execution is straightforward (standard patterns, no additional research needed):
+- **Phase 1:** CSS variable architecture is fully documented in ARCHITECTURE.md with exact values from mockup analysis. Implementation is mechanical — direct value substitution.
+- **Phase 2:** Sidebar and topbar structures identified from mockup analysis. Scope is clearly bounded.
+- **Phase 3:** All 15 Shadcn/ui components are well-understood. Restyling patterns via `cn()` and CSS variable overrides are thoroughly documented in Shadcn's own docs.
+- **Phase 6:** Performance profiling (Chrome DevTools), accessibility auditing (axe-core), and mobile QA (DevTools responsive mode) are standard verification workflows.
 
-Phases with standard patterns (skip deep research):
-- **Phase 2 (Tracker):** Well-documented patterns -- Kanban boards, workflow engines, and task CRUD are extensively covered in Ent docs and Fiber examples
-- **Phase 3 (Messenger):** WebSocket chat with NATS pub/sub is a well-documented pattern with multiple Go reference implementations
-- **Phase 6 (Notifications/Search/Dashboards):** Standard patterns -- NATS consumers, PostgreSQL FTS, and Tremor dashboard components have clear documentation
+Phases requiring execution-time vigilance (not research, but careful discipline):
+- **Phase 4 — Kanban:** pragmatic-drag-and-drop is sensitive to DOM structure changes. Write smoke tests before restyling if none exist. Verify drag behavior after every JSX modification.
+- **Phase 4 — Messenger:** Plate editor styling isolation requires careful scoping after `!important` removal. Investigate `PlateEditor` container class structure before work begins.
+- **Phase 5 — Calls:** LiveKit components render their own DOM. Test call UI after any global button/avatar style change to catch style leaks early.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All technologies verified via official release notes and docs. Versions confirmed current as of March 2026. MinIO deprecation caught and SeaweedFS alternative validated. |
-| Features | HIGH | Feature landscape benchmarked against 10+ competitors (Jira, Linear, Plane, Huly, Slack, Mattermost, Zulip, TestRail, Allure TestOps). Clear MVP definition with prioritization matrix. |
-| Architecture | HIGH | Modular monolith with NATS is a proven pattern for this scale. Project structure follows Go community conventions. Data flow diagrams cover all cross-module interactions. |
-| Pitfalls | MEDIUM-HIGH | Most pitfalls verified through official docs and multiple community sources. Fiber/fasthttp ctx reuse and NATS consumer anti-patterns confirmed by maintainers. LiveKit Egress resource requirements from official docs. Allure parser brittleness is experiential -- less documented. |
+| Stack | HIGH | Direct inspection of `package.json`, `app.css`, `index.html`, and all 11 mockup CSS blocks. Zero new packages confirmed from two independent angles. |
+| Features | HIGH | All 11 mockups analyzed directly. Feature set is bounded and explicit — this is implementation, not product discovery. Anti-features are clear from scope constraints. |
+| Architecture | HIGH | `app.css` (1053 lines), all 15 Shadcn components, and AppShell/Sidebar/Topbar inspected directly. Migration sequence verified against Tailwind v4 `@theme inline` behavior. Variable mapping tables are concrete, not theoretical. |
+| Pitfalls | HIGH | 56 `!important` declarations counted directly with grep. 235 source files analyzed for interactive behavior risk. Community and official sources agree on Radix breakage patterns and CSS variable strategies. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **SeaweedFS migration from MinIO references:** PROJECT.md constraints still reference MinIO. All deployment configs and documentation should use SeaweedFS. The S3 API compatibility means no code-level changes, but Docker Compose and K3s manifests need SeaweedFS containers instead of MinIO.
-- **Ent Privacy Layer for RBAC:** The exact integration between Ent's Privacy Layer, the RBAC middleware, and Redis-cached effective permissions needs a design spike during Phase 1 planning. The pattern is documented but Hub's multi-scope permission model (system + project + channel) adds complexity not covered in Ent examples.
-- **MongoDB message schema design:** The exact document structure for chat messages (threading model, reaction storage, attachment references) needs finalization. The research confirms MongoDB is the right choice but the schema itself needs design work.
-- **Allure results format variations:** The parser needs to handle output from at least 3 framework adapters (JUnit/Java, pytest, JavaScript). Real sample files should be collected before Phase 4 implementation.
-- **K3s production deployment:** The research covers what to deploy but not the detailed K3s manifest structure (ingress, persistent volumes, secrets management, LiveKit UDP exposure). This needs infrastructure research during Phase 1.
-- **Offline/reconnection UX:** The research identifies WebSocket reconnection with gap recovery as a "looks done but isn't" item. The exact client-side reconnection strategy (last message ID cursor, exponential backoff, gap fetch) needs design.
+- **Light theme exact values:** ARCHITECTURE.md provides a complete derived light palette (`--void: #FFFFFF`, `--base: #F8F9FA`, etc.) as first-pass values. Contrast ratios must be verified with `axe-core` during Phase 1 execution. Muted text values (`--t3`, `--t4`) on light backgrounds are most likely to need adjustment.
+
+- **Font loading strategy — CDN vs self-hosted:** STACK.md recommends Google Fonts CDN (matches current pattern, internal tool). PITFALLS.md recommends self-hosted WOFF2 with `size-adjust` fallback for CLS prevention. Decide at Phase 1 start; CDN is acceptable for an internal 10–50 user tool but document the decision.
+
+- **Unmocked page layouts:** 6 unmocked pages have pattern mappings in FEATURES.md but no explicit designs. The first 2–3 unmocked pages in Phase 5 will establish the reference pattern — allocate extra review time there to prevent divergence.
+
+- **Plate editor dark theme isolation:** Plate rich-text editor may require additional CSS scoping once global `input`/`textarea` overrides are removed. Investigate `PlateEditor` container class structure before Phase 4 Messenger work begins.
+
+---
 
 ## Sources
 
-### Primary (HIGH confidence)
-- Go 1.26 release blog, Fiber v3 docs and release notes, Ent official site
-- React 19.2 blog, Vite 8 announcement, Tailwind CSS v4.2 docs
-- NATS JetStream documentation, Synadia blog on JetStream anti-patterns
-- LiveKit documentation (self-hosting, Egress, components-react)
-- PostgreSQL 17 docs, MongoDB Go driver v2 docs
-- SeaweedFS documentation, MinIO archival notice (GitHub)
+### Primary (HIGH confidence — direct codebase analysis)
+- `frontend/src/app.css` (1053 lines) — current design token system, 56 `!important` declarations, custom utility classes
+- `frontend/package.json` — confirmed `motion ^12.38.0`, `next-themes ^0.4.6`, no missing packages
+- `frontend/index.html` — Google Fonts CDN (Geist, confirmed needs swap to Inter)
+- `redesign/01-login.html` through `redesign/11-trash.html` — all 11 mockups analyzed for CSS tokens, fonts, animations, layout patterns
+- `frontend/src/components/ui/*.tsx` — all 15 Shadcn/ui components analyzed for Radix prop surface
+- `frontend/src/components/layout/app-shell.tsx`, `sidebar.tsx`, `topbar.tsx` — layout structure analysis
 
-### Secondary (MEDIUM confidence)
-- Competitor feature analysis (Huly, Plane, Linear feature pages)
-- Ent ORM community criticism and comparison articles
-- WebSocket scaling patterns (community articles, reference implementations)
-- RBAC implementation pitfalls (security blogs)
+### Secondary (HIGH confidence — official documentation)
+- [Shadcn/ui Theming](https://ui.shadcn.com/docs/theming) — CSS variable theming, `@theme inline` integration
+- [Shadcn/ui Dark Mode](https://ui.shadcn.com/docs/dark-mode) — `next-themes` with `.dark` class
+- [Tailwind CSS v4 Migration Guide](https://tailwindcss.com/blog/tailwindcss-v4) — `@theme inline` config, utility generation
+- [Motion Performance Guide](https://motion.dev/docs/performance) — compositor-safe properties, layout animation costs
+- [WCAG Dark/Light Mode](https://blog.logrocket.com/how-do-you-implement-accessible-linear-design-across-light-and-dark-modes/) — 4.5:1 AA ratio requirements
 
-### Tertiary (LOW confidence)
-- LiveKit Egress resource requirements (community issues, may vary by hardware)
-- Allure results format stability across framework adapters (de facto standard, not strict spec)
-- SeaweedFS performance benchmarks vs MinIO (third-party comparison sites)
+### Secondary (MEDIUM confidence — community and design sources)
+- [Linear UI Redesign (Part II)](https://linear.app/now/how-we-redesigned-the-linear-ui) — design system approach reference
+- [Color Tokens Guide](https://medium.com/design-bootcamp/color-tokens-guide-to-light-and-dark-modes-in-design-systems-146ab33023ac) — semantic token mapping between themes
+- [SaaS Design Trends 2026](https://jetbase.io/blog/saas-design-trends-best-practices) — micro-interactions as premium UX standard
+- [Skeleton Loading Design](https://blog.logrocket.com/ux-design/skeleton-loading-screen-design/) — skeleton structure matching content layout
 
 ---
-*Research completed: 2026-03-20*
+*Research completed: 2026-03-27*
 *Ready for roadmap: yes*
