@@ -26,10 +26,10 @@
 
 ### Layout Shell (LYOT)
 
-- [ ] **LYOT-01**: User sees redesigned sidebar with gradient edge line and new background
-- [ ] **LYOT-02**: User sees active navigation item with accent glow indicator
+- [x] **LYOT-01**: User sees redesigned sidebar with gradient edge line and new background
+- [x] **LYOT-02**: User sees active navigation item with accent glow indicator
 - [x] **LYOT-03**: User sees redesigned topbar with backdrop blur and gradient bottom edge
-- [ ] **LYOT-04**: Sidebar collapse/expand works without visual regression
+- [x] **LYOT-04**: Sidebar collapse/expand works without visual regression
 - [x] **LYOT-05**: Mobile navigation works without regression (bottom nav, overlay sidebar)
 
 ### UI Primitives (PRIM)
@@ -175,10 +175,10 @@
 | THME-02 | Phase 8 | Complete |
 | THME-03 | Phase 8 | Complete |
 | THME-04 | Phase 8 | Complete |
-| LYOT-01 | Phase 9 | Pending |
-| LYOT-02 | Phase 9 | Pending |
+| LYOT-01 | Phase 9 | Complete |
+| LYOT-02 | Phase 9 | Complete |
 | LYOT-03 | Phase 9 | Complete |
-| LYOT-04 | Phase 9 | Pending |
+| LYOT-04 | Phase 9 | Complete |
 | LYOT-05 | Phase 9 | Complete |
 | PRIM-01 | Phase 10 | Pending |
 | PRIM-02 | Phase 10 | Pending |
