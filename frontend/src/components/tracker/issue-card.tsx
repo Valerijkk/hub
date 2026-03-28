@@ -1,5 +1,17 @@
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { Link } from "@tanstack/react-router";
+import {
+	Bug,
+	CheckSquare,
+	BookOpen,
+	Zap,
+	ClipboardList,
+	Rocket,
+	Wrench,
+	Search,
+	Tag,
+	type LucideIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { IssueBriefResponse } from "@/api/tracker";
 import { cn } from "@/lib/utils";
@@ -16,17 +28,17 @@ const PRIORITY_CONFIG: Record<
 	trivial: { color: "var(--gray)", label: "Тривиальный" },
 };
 
-/** Конфигурация типов задач — SVG-иконки с цветами для лучшей читаемости. */
-const TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
-	bug: { icon: "\u{1F41B}", color: "text-red-500" },
-	task: { icon: "\u{2705}", color: "text-blue-500" },
-	story: { icon: "\u{1F4D6}", color: "text-green-500" },
-	epic: { icon: "\u{26A1}", color: "text-purple-500" },
-	sub_task: { icon: "\u{1F4CB}", color: "text-gray-500" },
-	improvement: { icon: "\u{1F680}", color: "text-cyan-500" },
-	tech_debt: { icon: "\u{1F527}", color: "text-amber-500" },
-	spike: { icon: "\u{1F50D}", color: "text-indigo-500" },
-	release: { icon: "\u{1F3F7}\uFE0F", color: "text-pink-500" },
+/** Конфигурация типов задач — Lucide SVG-иконки с цветами. */
+const TYPE_CONFIG: Record<string, { icon: LucideIcon; color: string }> = {
+	bug: { icon: Bug, color: "text-red-500" },
+	task: { icon: CheckSquare, color: "text-blue-500" },
+	story: { icon: BookOpen, color: "text-green-500" },
+	epic: { icon: Zap, color: "text-purple-500" },
+	sub_task: { icon: ClipboardList, color: "text-gray-500" },
+	improvement: { icon: Rocket, color: "text-cyan-500" },
+	tech_debt: { icon: Wrench, color: "text-amber-500" },
+	spike: { icon: Search, color: "text-indigo-500" },
+	release: { icon: Tag, color: "text-pink-500" },
 };
 
 /** Пропсы компонента IssueCard. */
@@ -85,7 +97,7 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 
 	const priority = PRIORITY_CONFIG[issue.priority] ?? PRIORITY_CONFIG.medium!;
 	const typeConfig = TYPE_CONFIG[issue.issue_type] ?? {
-		icon: "\u{1F4CB}",
+		icon: ClipboardList,
 		color: "text-gray-500",
 	};
 
@@ -157,11 +169,8 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 				>
 					{/* Верхняя строка: тип + ключ */}
 					<div className="flex items-center gap-[7px] mb-[7px]">
-						<span
-							className={cn("text-sm leading-none", typeConfig.color)}
-							title={issue.issue_type}
-						>
-							{typeConfig.icon}
+						<span title={issue.issue_type} className={cn("shrink-0", typeConfig.color)}>
+							<typeConfig.icon className="h-3.5 w-3.5" />
 						</span>
 						<span className="font-mono text-[11px] text-[var(--t4)] font-medium">
 							{issue.issue_key}
