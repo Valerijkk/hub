@@ -34,9 +34,9 @@
 
 ### UI Primitives (PRIM)
 
-- [ ] **PRIM-01**: User sees redesigned Button with gradient primary, ghost/secondary variants, glow hover
-- [ ] **PRIM-02**: User sees redesigned Card with gradient bg, top-edge highlight, hover glow
-- [ ] **PRIM-03**: User sees redesigned Input with blue focus glow ring and subtle scale on focus
+- [x] **PRIM-01**: User sees redesigned Button with gradient primary, ghost/secondary variants, glow hover
+- [x] **PRIM-02**: User sees redesigned Card with gradient bg, top-edge highlight, hover glow
+- [x] **PRIM-03**: User sees redesigned Input with blue focus glow ring and subtle scale on focus
 - [x] **PRIM-04**: User sees redesigned Badge with status-specific glow backgrounds
 - [ ] **PRIM-05**: User sees redesigned Dialog/Popover with entrance animation and backdrop blur
 - [ ] **PRIM-06**: User sees redesigned Tabs with active indicator matching section color
@@ -180,9 +180,9 @@
 | LYOT-03 | Phase 9 | Complete |
 | LYOT-04 | Phase 9 | Complete |
 | LYOT-05 | Phase 9 | Complete |
-| PRIM-01 | Phase 10 | Pending |
-| PRIM-02 | Phase 10 | Pending |
-| PRIM-03 | Phase 10 | Pending |
+| PRIM-01 | Phase 10 | Complete |
+| PRIM-02 | Phase 10 | Complete |
+| PRIM-03 | Phase 10 | Complete |
 | PRIM-04 | Phase 10 | Complete |
 | PRIM-05 | Phase 10 | Pending |
 | PRIM-06 | Phase 10 | Pending |
