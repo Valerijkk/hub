@@ -958,3 +958,45 @@ html {
 	top: 0;
 	z-index: 40;
 }
+
+/* ===================================================
+ * Login page — mockup-matching keyframes and utilities
+ * =================================================== */
+
+/* Mesh gradient hue-rotate animation */
+@keyframes meshShift {
+	0%, 100% { filter: hue-rotate(0deg) brightness(1); }
+	33% { filter: hue-rotate(12deg) brightness(1.05); }
+	66% { filter: hue-rotate(-8deg) brightness(.95); }
+}
+
+/* Card float animation */
+@keyframes cardFloat {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-14px); }
+}
+
+/* Form enter-up animation */
+@keyframes loginEnterUp {
+	from { opacity: 0; transform: translateY(16px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.login-mesh {
+	background: radial-gradient(ellipse at 25% 45%, rgba(59,130,246,.18) 0%, transparent 50%),
+	            radial-gradient(ellipse at 75% 20%, rgba(139,92,246,.14) 0%, transparent 50%),
+	            radial-gradient(ellipse at 55% 80%, rgba(52,211,153,.08) 0%, transparent 50%),
+	            linear-gradient(135deg, #06070a 0%, #0c0e18 50%, #080a12 100%);
+	animation: meshShift 20s ease-in-out infinite;
+}
+
+.login-grid-lines {
+	background-image: linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
+	                  linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
+	background-size: 64px 64px;
+	mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black, transparent);
+}
+
+.login-form-animate {
+	animation: loginEnterUp 500ms var(--spring);
+}
