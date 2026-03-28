@@ -105,7 +105,7 @@ export function RecordingControls({ callId }: RecordingControlsProps) {
 				<button
 					onClick={handleStart}
 					disabled={isLoading}
-					className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
+					className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-base text-t2 transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
 					title="Начать запись"
 					aria-label="Начать запись звонка"
 				>

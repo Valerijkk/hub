@@ -234,12 +234,13 @@ function BoardPage() {
 					filters.type ||
 					filters.assignee ||
 					filters.myTasks) && (
-					<span
-						className="text-xs text-[var(--t4)] cursor-pointer ml-auto hover:text-[var(--red)] transition-colors"
+					<button
+						type="button"
+						className="text-xs text-[var(--t4)] cursor-pointer ml-auto hover:text-[var(--red)] transition-colors bg-transparent border-none"
 						onClick={resetFilters}
 					>
 						Сбросить
-					</span>
+					</button>
 				)}
 
 				<div className="ml-auto">

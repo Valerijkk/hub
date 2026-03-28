@@ -144,7 +144,7 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 					value={code}
 					onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
 					autoFocus
-					className="w-12 h-[58px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r2)] text-center text-2xl font-bold font-mono text-[var(--t1)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08)] transition-all outline-none w-full"
+					className="w-full h-[58px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r2)] text-center text-2xl font-bold font-mono text-[var(--t1)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08)] transition-all outline-none"
 				/>
 			</div>
 			<button

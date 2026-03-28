@@ -120,11 +120,11 @@ export function ScheduledCalls({ channelId, projectId }: ScheduledCallsProps) {
 
 			{/* Список */}
 			{isLoading ? (
-				<div className="py-4 text-center text-sm text-muted-foreground">
+				<div className="py-4 text-center text-sm text-t2">
 					Загрузка...
 				</div>
 			) : calls.length === 0 ? (
-				<div className="py-4 text-center text-sm text-muted-foreground">
+				<div className="py-4 text-center text-sm text-t2">
 					Нет запланированных звонков
 				</div>
 			) : (
@@ -136,19 +136,19 @@ export function ScheduledCalls({ channelId, projectId }: ScheduledCallsProps) {
 						>
 							<div className="flex flex-col gap-0.5">
 								<span className="text-sm font-medium">{sc.title}</span>
-								<span className="text-xs text-muted-foreground">
+								<span className="text-xs text-t2">
 									{new Date(sc.scheduled_at).toLocaleString("ru-RU")} --{" "}
 									{getRecurrenceLabel(sc.rrule)}
 								</span>
 								{sc.description && (
-									<span className="text-xs text-muted-foreground">
+									<span className="text-xs text-t2">
 										{sc.description}
 									</span>
 								)}
 							</div>
 							<button
 								onClick={() => handleDelete(sc.id)}
-								className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
+								className="rounded-md border border-border px-2 py-1 text-xs text-t2 transition-colors hover:border-destructive hover:text-destructive"
 								title="Удалить"
 								aria-label={`Удалить запланированный звонок "${sc.title}"`}
 							>
@@ -221,7 +221,7 @@ function CreateScheduledCallForm({
 				onChange={(e) => setTitle(e.target.value)}
 				required
 				maxLength={255}
-				className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+				className="rounded-md border border-border bg-base px-3 py-1.5 text-sm"
 				aria-label="Название запланированного звонка"
 			/>
 
@@ -231,7 +231,7 @@ function CreateScheduledCallForm({
 				onChange={(e) => setDescription(e.target.value)}
 				maxLength={2000}
 				rows={2}
-				className="resize-none rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+				className="resize-none rounded-md border border-border bg-base px-3 py-1.5 text-sm"
 				aria-label="Описание запланированного звонка"
 			/>
 
@@ -240,7 +240,7 @@ function CreateScheduledCallForm({
 				value={scheduledAt}
 				onChange={(e) => setScheduledAt(e.target.value)}
 				required
-				className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+				className="rounded-md border border-border bg-base px-3 py-1.5 text-sm"
 				aria-label="Дата и время звонка"
 			/>
 
@@ -248,7 +248,7 @@ function CreateScheduledCallForm({
 				value={recurrence || "no_repeat"}
 				onValueChange={(v) => setRecurrence(v === "no_repeat" ? "" : v)}
 			>
-				<SelectTrigger className="rounded-xl border border-border bg-background px-3 py-1.5 text-sm" aria-label="Повторение">
+				<SelectTrigger className="rounded-xl border border-border bg-base px-3 py-1.5 text-sm" aria-label="Повторение">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
@@ -267,7 +267,7 @@ function CreateScheduledCallForm({
 					placeholder="FREQ=DAILY;BYHOUR=10;BYMINUTE=0;BYSECOND=0"
 					value={customRRule}
 					onChange={(e) => setCustomRRule(e.target.value)}
-					className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-mono"
+					className="rounded-md border border-border bg-base px-3 py-1.5 text-sm font-mono"
 					aria-label="Custom RRULE"
 				/>
 			)}

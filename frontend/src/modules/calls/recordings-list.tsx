@@ -92,17 +92,17 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 					type="date"
 					value={dateFilter}
 					onChange={(e) => setDateFilter(e.target.value)}
-					className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+					className="rounded-md border border-border bg-base px-3 py-1.5 text-sm"
 					aria-label="Фильтр по дате"
 				/>
 			</div>
 
 			{isLoading ? (
-				<div className="flex justify-center py-8 text-muted-foreground">
+				<div className="flex justify-center py-8 text-t2">
 					Загрузка...
 				</div>
 			) : filteredRecordings.length === 0 ? (
-				<div className="flex justify-center py-8 text-muted-foreground">
+				<div className="flex justify-center py-8 text-t2">
 					Записей пока нет
 				</div>
 			) : (
@@ -110,7 +110,7 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 					<div className="overflow-x-auto rounded-lg border border-border">
 						<table className="w-full text-sm">
 							<thead>
-								<tr className="border-b border-border bg-muted/50">
+								<tr className="border-b border-border bg-raised/50">
 									<th className="px-4 py-2 text-left font-medium">Дата</th>
 									<th className="px-4 py-2 text-left font-medium">
 										Длительность
@@ -162,7 +162,7 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 							>
 								Назад
 							</button>
-							<span className="text-sm text-muted-foreground">
+							<span className="text-sm text-t2">
 								{currentPage} / {totalPages}
 							</span>
 							<button

@@ -252,7 +252,7 @@ function MonthView({
 				{WEEKDAY_NAMES_SHORT.map((name) => (
 					<div
 						key={name}
-						className="py-2 text-center text-xs font-medium uppercase text-muted-foreground"
+						className="py-2 text-center text-xs font-medium uppercase text-t2"
 					>
 						{name}
 					</div>
@@ -270,7 +270,7 @@ function MonthView({
 					return (
 						<div
 							key={idx}
-							className={`relative min-h-[80px] border-b border-r p-1.5 cursor-pointer transition-colors hover:bg-muted/50 ${
+							className={`relative min-h-[80px] border-b border-r p-1.5 cursor-pointer transition-colors hover:bg-raised/50 ${
 								!isCurrentMonth ? "opacity-40" : ""
 							} ${idx % 7 === 6 ? "border-r-0" : ""}`}
 							onClick={() => onDayClick(day)}
@@ -281,7 +281,7 @@ function MonthView({
 									className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm ${
 										isToday
 											? "bg-primary text-primary-foreground font-semibold"
-											: "text-foreground"
+											: "text-t1"
 									}`}
 								>
 									{day.getDate()}
@@ -309,7 +309,7 @@ function MonthView({
 										</div>
 									))}
 									{dayEvents.length > 3 && (
-										<div className="px-1 text-[10px] text-muted-foreground">
+										<div className="px-1 text-[10px] text-t2">
 											+{dayEvents.length - 3}
 										</div>
 									)}
@@ -527,7 +527,7 @@ function DayView({
 							{/* Time label */}
 							<div
 								key={`label-${hour}`}
-								className="relative flex items-start justify-end border-r border-b pr-2 pt-0.5 text-[11px] text-muted-foreground"
+								className="relative flex items-start justify-end border-r border-b pr-2 pt-0.5 text-[11px] text-t2"
 							>
 								{String(hour).padStart(2, "0")}:00
 							</div>
@@ -535,7 +535,7 @@ function DayView({
 							{/* Hour cell */}
 							<div
 								key={`cell-${hour}`}
-								className={`relative border-b cursor-pointer transition-colors hover:bg-muted/50 ${
+								className={`relative border-b cursor-pointer transition-colors hover:bg-raised/50 ${
 									isToday ? "bg-primary/[0.02]" : ""
 								}`}
 								onClick={() => onSlotClick(day, hour)}
@@ -621,7 +621,7 @@ function AgendaView({
 	if (groupedByDay.size === 0) {
 		return (
 			<div className="rounded-xl border bg-card p-8 text-center">
-				<p className="text-muted-foreground">
+				<p className="text-t2">
 					Нет запланированных звонков
 				</p>
 			</div>
@@ -642,7 +642,7 @@ function AgendaView({
 				return (
 					<div key={key} className="rounded-xl border bg-card overflow-hidden">
 						{/* Day header */}
-						<div className="border-b bg-muted/30 px-4 py-2">
+						<div className="border-b bg-raised/30 px-4 py-2">
 							<span className="text-sm font-medium capitalize">
 								{dayHeader}
 							</span>
@@ -653,7 +653,7 @@ function AgendaView({
 							{dayEvents.map((ev) => (
 								<div
 									key={ev.id}
-									className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-muted/50"
+									className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-raised/50"
 									onClick={() => onEventClick(ev)}
 								>
 									{/* Color dot */}
@@ -675,7 +675,7 @@ function AgendaView({
 									</span>
 
 									{/* Duration badge */}
-									<span className="shrink-0 text-xs text-muted-foreground">
+									<span className="shrink-0 text-xs text-t2">
 										{ev.durationMinutes} мин
 									</span>
 								</div>
@@ -1082,13 +1082,13 @@ export function CallCalendar() {
 								<h3 className="font-semibold">{selectedEvent.title}</h3>
 								<button
 									onClick={() => setSelectedEvent(null)}
-									className="rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
+									className="rounded-sm p-0.5 text-t2 hover:text-t1"
 								>
 									&times;
 								</button>
 							</div>
 							{selectedEvent.description && (
-								<p className="text-sm text-muted-foreground">
+								<p className="text-sm text-t2">
 									{selectedEvent.description}
 								</p>
 							)}
@@ -1115,7 +1115,7 @@ export function CallCalendar() {
 									})}
 								</span>
 								{selectedEvent.rrule && (
-									<span className="text-xs text-muted-foreground">
+									<span className="text-xs text-t2">
 										{selectedEvent.rrule.includes("BYDAY=MO,TU,WE,TH,FR")
 											? "По будням"
 											: selectedEvent.rrule.includes("FREQ=DAILY")

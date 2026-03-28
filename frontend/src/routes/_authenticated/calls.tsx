@@ -110,7 +110,7 @@ function CallsPage() {
 										</div>
 										<div>
 											<p className="font-medium text-sm">{s.title}</p>
-											<p className="text-xs text-muted-foreground mt-0.5">
+											<p className="text-xs text-t2 mt-0.5">
 												{s.desc}
 											</p>
 										</div>
@@ -149,12 +149,12 @@ function CallsPage() {
 							].map((f) => (
 								<div
 									key={f.title}
-									className="flex gap-3 rounded-xl border p-3 hover:bg-muted/50 transition-colors"
+									className="flex gap-3 rounded-xl border p-3 hover:bg-raised/50 transition-colors"
 								>
 									<span className="text-xl">{f.icon}</span>
 									<div>
 										<p className="font-medium text-sm">{f.title}</p>
-										<p className="text-xs text-muted-foreground">{f.desc}</p>
+										<p className="text-xs text-t2">{f.desc}</p>
 									</div>
 								</div>
 							))}

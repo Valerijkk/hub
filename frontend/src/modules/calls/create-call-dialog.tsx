@@ -230,7 +230,7 @@ export function CreateCallDialog({
 							{t("createCallTitle", { defaultValue: "Новый звонок" })}
 						</DialogTitle>
 						{dateDisplay && (
-							<p className="text-sm text-muted-foreground capitalize mt-1">
+							<p className="text-sm text-t2 capitalize mt-1">
 								{dateDisplay}
 							</p>
 						)}
@@ -290,7 +290,7 @@ export function CreateCallDialog({
 										return (
 											<span
 												key={uid}
-												className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium"
+												className="inline-flex items-center gap-1 rounded-full border border-border bg-raised px-2.5 py-1 text-xs font-medium"
 											>
 												{member.avatar_url ? (
 													<img
@@ -307,7 +307,7 @@ export function CreateCallDialog({
 												<button
 													type="button"
 													onClick={() => removeParticipant(uid)}
-													className="ml-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-destructive/20 hover:text-destructive transition-colors"
+													className="ml-0.5 rounded-full p-0.5 text-t2 hover:bg-destructive/20 hover:text-destructive transition-colors"
 												>
 													<X className="h-3 w-3" />
 												</button>
@@ -330,7 +330,7 @@ export function CreateCallDialog({
 							{/* Members list */}
 							<div className="max-h-32 overflow-y-auto rounded-lg border">
 								{filteredMembers.length === 0 ? (
-									<div className="px-3 py-2 text-xs text-muted-foreground">
+									<div className="px-3 py-2 text-xs text-t2">
 										{t("noParticipantsFound", {
 											defaultValue: "Участники не найдены",
 										})}
@@ -344,7 +344,7 @@ export function CreateCallDialog({
 											<button
 												key={member.user_id}
 												type="button"
-												className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-muted/50 ${
+												className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-raised/50 ${
 													isSelected ? "bg-primary/5" : ""
 												}`}
 												onClick={() =>
@@ -413,7 +413,7 @@ export function CreateCallDialog({
 										className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
 											duration === opt.value
 												? "border-primary bg-primary/10 text-primary"
-												: "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+												: "border-border bg-base text-t2 hover:border-primary/50 hover:text-t1"
 										}`}
 										onClick={() => setDuration(opt.value)}
 									>
@@ -442,7 +442,7 @@ export function CreateCallDialog({
 										className={`flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
 											reminder === opt.value
 												? "border-primary bg-primary/10 text-primary"
-												: "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+												: "border-border bg-base text-t2 hover:border-primary/50 hover:text-t1"
 										}`}
 										onClick={() => setReminder(opt.value)}
 									>
@@ -465,7 +465,7 @@ export function CreateCallDialog({
 										className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
 											recurrence === opt.value
 												? "border-primary bg-primary/10 text-primary"
-												: "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+												: "border-border bg-base text-t2 hover:border-primary/50 hover:text-t1"
 										}`}
 										onClick={() => setRecurrence(opt.value)}
 									>
