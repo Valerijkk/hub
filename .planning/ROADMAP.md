@@ -193,7 +193,12 @@ Plans:
   3. User can switch between dark/light/system themes without visual glitches, and light theme passes WCAG AA contrast ratios
   4. User can select accent color and see it applied consistently across all themed surfaces
   5. No !important declarations remain in app.css, and spring/bounce easing is applied on hover/focus/enter animations
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Font swap + CSS token foundation (surfaces, text, borders, radii, shadows, easing, accents, dual Shadcn mapping)
+- [ ] 08-02-PLAN.md — !important removal (56 declarations) + noise texture overlay
+
 **UI hint**: yes
 
 ### Phase 9: Layout Shell
@@ -271,7 +276,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 5. Voice Calls | v1.0 | 4/4 | Complete | 2026-03-21 |
 | 6. Notifications, Search & Dashboards | v1.0 | 5/5 | Complete | 2026-03-21 |
 | 7. Polish & Extended Features | v1.0 | 6/6 | Complete | 2026-03-21 |
-| 8. Design System Foundation | v2.0 | 0/? | Not started | - |
+| 8. Design System Foundation | v2.0 | 0/2 | Planning | - |
 | 9. Layout Shell | v2.0 | 0/? | Not started | - |
 | 10. UI Primitives | v2.0 | 0/? | Not started | - |
 | 11. Core Mockup Pages | v2.0 | 0/? | Not started | - |
