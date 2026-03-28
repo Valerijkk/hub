@@ -1,16 +1,15 @@
 import type { TestCaseResponse, TestStep } from "@/api/tms";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 /** Цвета BDD-ключевых слов для бейджей (Given, When, Then, And, But). */
 const BDD_KEYWORD_COLORS: Record<string, string> = {
-	Given: "text-blue-600 dark:text-blue-400 bg-blue-500/10",
-	When: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
-	Then: "text-green-600 dark:text-green-400 bg-green-500/10",
-	And: "text-gray-600 dark:text-gray-400 bg-gray-500/10",
-	But: "text-red-600 dark:text-red-400 bg-red-500/10",
+	Given: "text-blue bg-blue/[0.1] shadow-[0_0_8px_rgba(91,156,245,0.06)]",
+	When: "text-amber bg-amber/[0.1] shadow-[0_0_8px_rgba(251,191,36,0.06)]",
+	Then: "text-green bg-green/[0.1] shadow-[0_0_8px_rgba(52,211,153,0.06)]",
+	And: "text-gray bg-gray/[0.1]",
+	But: "text-red bg-red/[0.1]",
 };
 
 /** Пропсы редактора шагов в режиме редактирования. */
@@ -160,22 +159,22 @@ export function StepEditor(props: StepEditorProps) {
 
 	if (tc.steps && tc.steps.length > 0) {
 		return (
-			<div className="rounded-xl border overflow-hidden shadow-card">
-				<table className="w-full">
+			<div>
+				<table className="w-full border-collapse mt-[14px]">
 					<thead>
-						<tr className="border-b bg-muted/30">
-							<th className="w-12 px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+						<tr>
+							<th className="text-left px-3 py-[10px] text-[10px] font-bold text-t4 border-b border-b2 uppercase tracking-[0.06em] w-8">
 								#
 							</th>
 							{tc.case_type === "bdd" && (
-								<th className="w-24 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<th className="text-left px-3 py-[10px] text-[10px] font-bold text-t4 border-b border-b2 uppercase tracking-[0.06em] w-24">
 									Keyword
 								</th>
 							)}
-							<th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+							<th className="text-left px-3 py-[10px] text-[10px] font-bold text-t4 border-b border-b2 uppercase tracking-[0.06em]">
 								Действие
 							</th>
-							<th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+							<th className="text-left px-3 py-[10px] text-[10px] font-bold text-t4 border-b border-b2 uppercase tracking-[0.06em]">
 								Ожидаемый результат
 							</th>
 						</tr>
@@ -184,33 +183,30 @@ export function StepEditor(props: StepEditorProps) {
 						{tc.steps.map((step) => (
 							<tr
 								key={step.order}
-								className="border-b last:border-0 hover:bg-muted/20 transition-colors"
+								className="transition-[background] duration-150 hover:bg-[var(--hover)]"
 							>
-								<td className="px-3 py-2.5 text-center">
-									<span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
-										{step.order}
-									</span>
+								<td className="px-3 py-[14px] border-b border-b1 text-[13px] align-top leading-[1.65] font-bold text-t4 w-8">
+									{step.order}
 								</td>
 								{tc.case_type === "bdd" && (
-									<td className="px-3 py-2.5">
+									<td className="px-3 py-[14px] border-b border-b1 text-[13px] align-top leading-[1.65]">
 										{step.keyword && (
-											<Badge
-												variant="secondary"
+											<span
 												className={cn(
-													"text-[10px] font-bold font-mono",
+													"inline-block px-[10px] py-[2px] rounded-[5px] text-[10px] font-bold tracking-[0.05em] mr-[6px]",
 													BDD_KEYWORD_COLORS[step.keyword] ??
-														"text-gray-600 bg-gray-500/10",
+														"text-gray bg-gray/[0.1]",
 												)}
 											>
 												{step.keyword}
-											</Badge>
+											</span>
 										)}
 									</td>
 								)}
-								<td className="px-3 py-2.5 text-sm">{step.action}</td>
-								<td className="px-3 py-2.5 text-sm text-muted-foreground">
+								<td className="px-3 py-[14px] border-b border-b1 text-[13px] align-top leading-[1.65] text-t2">{step.action}</td>
+								<td className="px-3 py-[14px] border-b border-b1 text-[13px] align-top leading-[1.65] text-t2">
 									{step.expected_result || (
-										<span className="italic text-muted-foreground/40">--</span>
+										<span className="italic text-t4">--</span>
 									)}
 								</td>
 							</tr>

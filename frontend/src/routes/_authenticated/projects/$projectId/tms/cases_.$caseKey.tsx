@@ -454,11 +454,8 @@ function TestCaseDetailPage() {
 						</div>
 					) : (
 						tc.precondition && (
-							<div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
-								<div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
-									Предусловие
-								</div>
-								<p className="text-sm">{tc.precondition}</p>
+							<div className="tms-precond-card px-[18px] py-4 bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] text-[13px] text-t2 leading-[1.65] relative overflow-hidden">
+								<strong className="text-t1 font-semibold">Предусловие:</strong> {tc.precondition}
 							</div>
 						)
 					)}
@@ -536,11 +533,8 @@ function TestCaseDetailPage() {
 								</div>
 							) : (
 								tc.postcondition && (
-									<div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
-										<div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">
-											Постусловие
-										</div>
-										<p className="text-sm">{tc.postcondition}</p>
+									<div className="tms-precond-card px-[18px] py-4 bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] text-[13px] text-t2 leading-[1.65] relative overflow-hidden">
+										<strong className="text-t1 font-semibold">Постусловие:</strong> {tc.postcondition}
 									</div>
 								)
 							)}

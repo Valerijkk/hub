@@ -1265,3 +1265,34 @@ html {
 	from { transform: scale(0.95); opacity: 0; }
 	to { transform: scale(1); opacity: 1; }
 }
+
+/* ===================================================
+ * TMS — animations and utilities (TMSP-01..04)
+ * =================================================== */
+@keyframes enterRight {
+	from { opacity: 0; transform: translateX(20px); }
+	to { opacity: 1; transform: translateX(0); }
+}
+@keyframes progressGrow { from { width: 0; } }
+@keyframes breathe {
+	0%,100% { box-shadow: 0 0 0 0 var(--glow-purple); }
+	50% { box-shadow: 0 0 20px 4px var(--glow-purple); }
+}
+
+.tms-run-card { position: relative; overflow: hidden; }
+.tms-run-card::before {
+	content: '';
+	position: absolute;
+	top: 0; left: 0; right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+}
+
+.tms-precond-card { position: relative; overflow: hidden; }
+.tms-precond-card::before {
+	content: '';
+	position: absolute;
+	top: 0; left: 0; right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+}
