@@ -5,7 +5,7 @@ import { useAuthStore } from "@/stores/auth-store";
 /** Страница журнала аудита (только для администратора). */
 function AuditPage() {
 	return (
-		<div className="mx-auto max-w-6xl p-6">
+		<div className="flex-1 overflow-y-auto p-6 animate-[eu_450ms_var(--spring)]">
 			<AuditLogViewer />
 		</div>
 	);

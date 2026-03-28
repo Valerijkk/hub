@@ -59,18 +59,18 @@ export function ResourceLimits() {
 
 	if (loading) {
 		return (
-			<div className="py-8 text-center text-muted-foreground">Загрузка...</div>
+			<div className="py-8 text-center text-t3 text-[13px]">Загрузка...</div>
 		);
 	}
 
 	return (
-		<div className="space-y-6">
-			<h2 className="text-xl font-semibold">Лимиты ресурсов</h2>
+		<div>
+			<h3 className="text-[16px] font-bold mb-[18px]">Лимиты ресурсов</h3>
 
-			<div className="space-y-4">
+			<div className="max-w-[480px]">
 				{limits.map((limit) => (
-					<div key={limit.key} className="flex items-center gap-4">
-						<label className="min-w-64 text-sm font-medium">
+					<div key={limit.key} className="mb-4">
+						<label className="block text-[13px] font-semibold text-t2 mb-[6px]">
 							{LIMIT_LABELS[limit.key] ?? limit.key}
 						</label>
 						<input
@@ -80,24 +80,21 @@ export function ResourceLimits() {
 							onChange={(e) =>
 								setValues((v) => ({ ...v, [limit.key]: e.target.value }))
 							}
-							className="w-32 rounded border px-3 py-1.5 text-sm"
+							className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none"
 						/>
-						<span className="text-xs text-muted-foreground">
-							Текущее: {limit.value}
-						</span>
 					</div>
 				))}
 			</div>
 
-			<div className="flex items-center gap-3">
+			<div className="flex items-center gap-3 mt-2">
 				<button
 					onClick={handleSave}
 					disabled={saving}
-					className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+					className="inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-all duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96] disabled:opacity-50"
 				>
 					{saving ? "Сохранение..." : "Сохранить"}
 				</button>
-				{toast && <span className="text-sm text-green-600">{toast}</span>}
+				{toast && <span className="text-[13px] text-green">{toast}</span>}
 			</div>
 		</div>
 	);

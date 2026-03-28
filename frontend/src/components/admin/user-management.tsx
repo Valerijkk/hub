@@ -126,27 +126,29 @@ export function UserManagement() {
 
 	return (
 		<div className="space-y-4">
-			<div className="flex items-center justify-between">
-				<h2 className="text-xl font-semibold">Управление пользователями</h2>
+			{/* Invite section */}
+			<div className="flex gap-[10px] mb-5 p-4 bg-gradient-to-br from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r3)]">
 				<input
 					type="text"
 					value={search}
 					onChange={(e) => setSearch(e.target.value)}
-					placeholder="Поиск по имени или email..."
-					className="w-64 rounded-lg bg-card border-white/10 px-3 py-1.5 text-sm"
+					placeholder="Email нового пользователя"
+					className="flex-1 h-10 px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none focus:border-[rgba(91,156,245,0.3)] placeholder:text-t3"
 				/>
+				<button className="inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-all duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]">
+					Пригласить
+				</button>
 			</div>
 
-			{/* Таблица пользователей */}
-			<div className="overflow-x-auto rounded-xl border border-white/[0.06]">
-				<table className="w-full text-sm">
-					<thead className="bg-muted/50">
+			{/* User table */}
+				<table className="w-full" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
+					<thead>
 						<tr>
-							<th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Имя</th>
-							<th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Email</th>
-							<th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Роль</th>
-							<th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Статус</th>
-							<th className="px-3 py-2.5 text-right text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Действия</th>
+							<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Пользователь</th>
+							<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Роль</th>
+							<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Статус</th>
+							<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Последняя активность</th>
+							<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2 w-[100px]">Действия</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -154,7 +156,7 @@ export function UserManagement() {
 							<tr>
 								<td
 									colSpan={5}
-									className="px-3 py-8 text-center text-muted-foreground"
+									className="px-4 py-8 text-center text-t3 text-[13px]"
 								>
 									Загрузка...
 								</td>
@@ -163,74 +165,76 @@ export function UserManagement() {
 							<tr>
 								<td
 									colSpan={5}
-									className="px-3 py-8 text-center text-muted-foreground"
+									className="px-4 py-8 text-center text-t3 text-[13px]"
 								>
 									Пользователи не найдены
 								</td>
 							</tr>
 						) : (
 							filtered.map((user) => (
-								<tr key={user.id} className="border-t border-white/[0.06] hover:bg-muted/30">
-									<td className="px-3 py-2.5">
-										<div className="flex items-center gap-2.5">
-											<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[11px] font-semibold text-white">
+								<tr key={user.id} className={user.status === "deactivated" ? "opacity-50" : ""}>
+									<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
+										<div className="flex items-center gap-[11px]">
+											<div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)]">
 												{(user.name?.[0] ?? user.email[0] ?? "?").toUpperCase()}
 											</div>
-											<span className="font-medium">{user.name || user.display_name || "-"}</span>
+											<div>
+												<div className="text-[14px] font-semibold">{user.name || user.display_name || "-"}</div>
+												<div className="text-[12px] text-t3">{user.email}</div>
+											</div>
 										</div>
 									</td>
-									<td className="px-3 py-2.5 text-muted-foreground">{user.email}</td>
-									<td className="px-3 py-2.5">
+									<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
 										<span
-											className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+											className={`inline-flex px-[10px] py-[3px] rounded-full text-[11px] font-[650] ${
 												user.system_role === "admin"
-													? "bg-purple-500/15 text-purple-400"
+													? "bg-blue/[0.08] text-blue border border-blue/[0.15]"
 													: user.system_role === "moderator"
-														? "bg-blue-500/15 text-blue-400"
-														: "bg-emerald-500/15 text-emerald-400"
+														? "bg-purple/[0.08] text-purple border border-purple/[0.15]"
+														: user.status === "deactivated"
+															? "bg-[var(--gray)]/[0.08] text-[var(--gray)] border border-[var(--gray)]/[0.15]"
+															: "bg-green/[0.08] text-green border border-green/[0.15]"
 											}`}
 										>
 											{user.system_role}
 										</span>
 									</td>
-									<td className="px-3 py-2.5">
-										<span
-											className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
-												user.status === "deactivated"
-													? "bg-red-500/15 text-red-400"
-													: "bg-emerald-500/15 text-emerald-400"
-											}`}
-										>
-											<span className={`h-1.5 w-1.5 rounded-full ${user.status === "deactivated" ? "bg-red-400" : "bg-emerald-400"}`} />
-											{user.status === "deactivated"
-												? "Деактивирован"
-												: "Активен"}
-										</span>
+									<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
+										{user.status === "deactivated"
+											? <span className="text-t4">{"\u25CB"} Деактивирован</span>
+											: <span className="text-green">{"\u25CF"} Онлайн</span>
+										}
 									</td>
-									<td className="px-3 py-2 text-right">
-										<div className="flex justify-end gap-1">
+									<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] text-t2 hover:bg-[var(--hover)]">
+										{user.created_at ? new Date(user.created_at).toLocaleDateString("ru-RU") : "-"}
+									</td>
+									<td className="px-4 py-[14px] border-b border-b1 align-middle hover:bg-[var(--hover)]">
+										<div className="flex gap-1">
 											{user.status !== "deactivated" && (
 												<button
 													onClick={() => handleDeactivate(user)}
 													disabled={actionUserId === user.id}
-													className="rounded border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-all duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
+													title="Деактивировать"
 												>
-													Деактивировать
+													{"\u2718"}
 												</button>
 											)}
 											<button
 												onClick={() => setReassignDialogUser(user)}
 												disabled={actionUserId === user.id}
-												className="rounded border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+												className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-all duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
+												title="Переназначить"
 											>
-												Переназначить
+												{"\u270E"}
 											</button>
 											<button
 												onClick={() => setGdprDialogUser(user)}
 												disabled={actionUserId === user.id}
-												className="rounded border border-red-300 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+												className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-all duration-150 hover:bg-[var(--hover)] hover:text-red disabled:opacity-50"
+												title="GDPR удаление"
 											>
-												GDPR
+												{"\uD83D\uDDD1"}
 											</button>
 										</div>
 									</td>
@@ -239,14 +243,13 @@ export function UserManagement() {
 						)}
 					</tbody>
 				</table>
-			</div>
 
 			{/* Диалог переназначения */}
 			{reassignDialogUser && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-					<div className="w-96 rounded-lg bg-background p-6 shadow-lg">
-						<h3 className="mb-4 text-lg font-semibold">Переназначить задачи</h3>
-						<p className="mb-3 text-sm text-muted-foreground">
+					<div className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
+						<h3 className="mb-4 text-[16px] font-bold">Переназначить задачи</h3>
+						<p className="mb-3 text-[13px] text-t2">
 							Все задачи пользователя{" "}
 							<strong>
 								{reassignDialogUser.name || reassignDialogUser.email}
@@ -258,7 +261,7 @@ export function UserManagement() {
 							value={reassignTargetId}
 							onChange={(e) => setReassignTargetId(e.target.value)}
 							placeholder="ID целевого пользователя"
-							className="mb-4 w-full rounded border px-3 py-2 text-sm"
+							className="mb-4 w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none placeholder:text-t3"
 						/>
 						<div className="flex justify-end gap-2">
 							<button
@@ -266,14 +269,14 @@ export function UserManagement() {
 									setReassignDialogUser(null);
 									setReassignTargetId("");
 								}}
-								className="rounded border px-3 py-1.5 text-sm"
+								className="rounded-[var(--r2)] border border-b1 px-3 py-1.5 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-all duration-180"
 							>
 								Отмена
 							</button>
 							<button
 								onClick={handleReassign}
 								disabled={!reassignTargetId}
-								className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+								className="rounded-[var(--r2)] bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] px-3 py-1.5 text-[13px] font-bold text-white disabled:opacity-50"
 							>
 								Переназначить
 							</button>
@@ -285,16 +288,16 @@ export function UserManagement() {
 			{/* Диалог GDPR удаления */}
 			{gdprDialogUser && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-					<div className="w-96 rounded-lg bg-background p-6 shadow-lg">
-						<h3 className="mb-2 text-lg font-semibold text-red-600">
+					<div className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
+						<h3 className="mb-2 text-[16px] font-bold text-red">
 							Удаление данных (GDPR)
 						</h3>
-						<p className="mb-2 text-sm text-muted-foreground">
+						<p className="mb-2 text-[13px] text-t2">
 							Все данные пользователя{" "}
 							<strong>{gdprDialogUser.name || gdprDialogUser.email}</strong>{" "}
 							будут безвозвратно удалены.
 						</p>
-						<p className="mb-3 text-sm font-medium text-red-600">
+						<p className="mb-3 text-[13px] font-semibold text-red">
 							Это действие необратимо. Введите УДАЛИТЬ для подтверждения.
 						</p>
 						<input
@@ -302,7 +305,7 @@ export function UserManagement() {
 							value={gdprConfirmText}
 							onChange={(e) => setGdprConfirmText(e.target.value)}
 							placeholder="Введите УДАЛИТЬ"
-							className="mb-4 w-full rounded border border-red-300 px-3 py-2 text-sm"
+							className="mb-4 w-full h-[42px] px-[14px] bg-[var(--input)] border border-red/[0.3] rounded-[var(--r2)] text-[14px] text-t1 outline-none placeholder:text-t3"
 						/>
 						<div className="flex justify-end gap-2">
 							<button
@@ -310,14 +313,14 @@ export function UserManagement() {
 									setGdprDialogUser(null);
 									setGdprConfirmText("");
 								}}
-								className="rounded border px-3 py-1.5 text-sm"
+								className="rounded-[var(--r2)] border border-b1 px-3 py-1.5 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-all duration-180"
 							>
 								Отмена
 							</button>
 							<button
 								onClick={handleGdprDelete}
 								disabled={gdprConfirmText !== "УДАЛИТЬ"}
-								className="rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+								className="rounded-[var(--r2)] bg-red px-3 py-1.5 text-[13px] font-bold text-white hover:bg-[var(--redS)] disabled:opacity-50"
 							>
 								Удалить навсегда
 							</button>

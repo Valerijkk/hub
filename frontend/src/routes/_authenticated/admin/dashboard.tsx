@@ -10,8 +10,7 @@ import { WidgetGrid } from "@/components/dashboard/widget-grid";
 import { AuditLogViewer } from "@/components/admin/audit-log";
 import { ResourceLimits } from "@/components/admin/resource-limits";
 import { UserManagement } from "@/components/admin/user-management";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 
@@ -47,50 +46,39 @@ function AdminDashboard() {
 	const items = layouts["admin"] ?? adminDefault;
 
 	return (
-		<div>
-			{/* Page header */}
-			<div className="page-header-blur mb-6 flex items-center justify-between">
-				<h1 className="text-2xl font-bold">
-					{"\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435"}
-				</h1>
-				<div className="flex items-center gap-2">
-					<Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-						<span>{"\u{1F4E5}"}</span>
-						{"\u042D\u043A\u0441\u043F\u043E\u0440\u0442 CSV"}
-					</Button>
-					<Button
-						size="sm"
-						className="btn-glow gap-1.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-sm shadow-blue-500/20"
-					>
-						+ {"\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C"}
-					</Button>
-				</div>
-			</div>
+		<div className="flex-1 overflow-y-auto p-6 animate-[eu_450ms_var(--spring)]">
 
 			{/* Tab bar */}
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
-				<TabsList className="mb-6">
-					<TabsTrigger value="dashboard">
-						{"\u0414\u0430\u0448\u0431\u043E\u0440\u0434"}
-					</TabsTrigger>
-					<TabsTrigger value="users">
-						{"\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438"}
-					</TabsTrigger>
-					<TabsTrigger value="audit">
-						{"\u0416\u0443\u0440\u043D\u0430\u043B \u0430\u0443\u0434\u0438\u0442\u0430"}
-					</TabsTrigger>
-					<TabsTrigger value="limits">
-						{"\u041B\u0438\u043C\u0438\u0442\u044B"}
-					</TabsTrigger>
-				</TabsList>
+				<div className="flex gap-[3px] mb-5 border-b border-b1 pb-[2px]">
+					{[
+						{ value: "dashboard", label: "\u0414\u0430\u0448\u0431\u043E\u0440\u0434" },
+						{ value: "users", label: "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438" },
+						{ value: "audit", label: "\u0410\u0443\u0434\u0438\u0442" },
+						{ value: "limits", label: "\u041B\u0438\u043C\u0438\u0442\u044B" },
+					].map((tab) => (
+						<button
+							key={tab.value}
+							type="button"
+							onClick={() => setActiveTab(tab.value)}
+							className={`px-[14px] py-[7px] text-[13px] font-medium text-t3 rounded-t-[var(--r2)] transition-all duration-200 cursor-pointer relative hover:text-t2 ${
+								activeTab === tab.value
+									? "text-t1 font-semibold after:absolute after:bottom-[-2px] after:left-1/4 after:right-1/4 after:h-[2px] after:bg-red after:rounded-[1px] after:shadow-[0_0_6px_var(--red)]"
+									: ""
+							}`}
+						>
+							{tab.label}
+						</button>
+					))}
+				</div>
 
 				{/* Dashboard tab */}
 				<TabsContent value="dashboard">
 					{adminData && (
-						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-							<KpiCard label={"\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0435\u0439"} value={adminData.total_users} change={+5} />
-							<KpiCard label={"\u041F\u0440\u043E\u0435\u043A\u0442\u043E\u0432"} value={adminData.total_projects} change={+2} />
-							<KpiCard label={"\u0417\u0430\u0434\u0430\u0447"} value={adminData.total_issues} change={-3} />
+						<div className="grid grid-cols-4 gap-4 mb-7">
+							<KpiCard label={"\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0435\u0439"} value={adminData.total_users} change={+5} color="green" />
+							<KpiCard label={"\u041F\u0440\u043E\u0435\u043A\u0442\u043E\u0432"} value={adminData.total_projects} change={+2} color="blue" />
+							<KpiCard label={"\u0417\u0430\u0434\u0430\u0447"} value={adminData.total_issues} change={-3} color="purple" />
 							<KpiCard
 								label="DAU / WAU / MAU"
 								value={`${adminData.dau} / ${adminData.wau} / ${adminData.mau}`}
@@ -98,7 +86,7 @@ function AdminDashboard() {
 						</div>
 					)}
 					{loading && !adminData ? (
-						<p className="text-muted-foreground">{"\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430..."}</p>
+						<p className="text-t3 text-[13px]">{"\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430..."}</p>
 					) : (
 						<WidgetGrid items={items} dashboardType="admin" data={adminData} />
 					)}
@@ -124,16 +112,31 @@ function AdminDashboard() {
 }
 
 /** KPI-карточка для быстрого обзора метрик. */
-function KpiCard({ label, value, change }: { label: string; value: string | number; change?: number }) {
+function KpiCard({ label, value, change, color }: { label: string; value: string | number; change?: number; color?: string }) {
 	return (
-		<div className="rounded-2xl border border-white/[0.06] bg-card p-5">
-			<p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-			<p className="mt-1 text-[28px] font-bold leading-tight">{value}</p>
-			{change != null && (
-				<p className={`mt-1 text-xs font-medium ${change >= 0 ? "text-emerald-500" : "text-red-500"}`}>
-					{change >= 0 ? "\u2191" : "\u2193"} {Math.abs(change)}%
-				</p>
-			)}
+		<div className="admin-kpi bg-gradient-to-b from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r4)] p-5 transition-all duration-250 hover:border-b2 hover:shadow-[var(--sh2)] hover:-translate-y-[2px]">
+			<p className="text-[11px] font-bold uppercase tracking-[0.06em] text-t4 mb-2">{label}</p>
+			<div className="flex items-end gap-[10px]">
+				<span className="text-[30px] font-black tracking-[-0.03em]">{value}</span>
+				{change != null && (
+					<span className={`text-[12px] font-bold flex items-center gap-[3px] mb-1 ${change >= 0 ? "text-green" : "text-red"}`}>
+						{change >= 0 ? "\u2191" : "\u2193"} {change >= 0 ? "+" : ""}{Math.abs(change)}
+					</span>
+				)}
+				{color && (
+					<div className="ml-auto">
+						<svg className="w-20 h-8" viewBox="0 0 80 32">
+							<polyline
+								points="0,28 12,24 24,26 36,20 48,18 60,15 72,10 80,8"
+								fill="none"
+								stroke={`var(--${color})`}
+								strokeWidth="2"
+								strokeLinecap="round"
+							/>
+						</svg>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }

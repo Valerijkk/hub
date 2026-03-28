@@ -63,9 +63,9 @@ export function BackupsPage() {
 
 	const statusBadge = (status: BackupRecord["status"]) => {
 		const colors = {
-			in_progress: "bg-yellow-100 text-yellow-700",
-			completed: "bg-green-100 text-green-700",
-			failed: "bg-red-100 text-red-700",
+			in_progress: "bg-orange/[0.08] text-orange border border-orange/[0.15]",
+			completed: "bg-green/[0.08] text-green border border-green/[0.15]",
+			failed: "bg-red/[0.08] text-red border border-red/[0.15]",
 		};
 		const labels = {
 			in_progress: "В процессе",
@@ -73,28 +73,28 @@ export function BackupsPage() {
 			failed: "Ошибка",
 		};
 		return (
-			<span className={`rounded-full px-2 py-1 text-xs ${colors[status]}`}>
+			<span className={`inline-flex px-[10px] py-[2px] rounded-full text-[11px] font-[650] ${colors[status]}`}>
 				{labels[status]}
 			</span>
 		);
 	};
 
 	return (
-		<div className="space-y-6 p-6">
+		<div className="space-y-6">
 			<div className="flex items-center justify-between">
-				<h2 className="text-xl font-semibold">Резервные копии</h2>
+				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">Резервные копии</h2>
 				<button
 					onClick={handleCreate}
 					disabled={creating}
-					className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+					className="inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-all duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96] disabled:opacity-50"
 				>
 					{creating ? "Создание..." : "Создать бэкап"}
 				</button>
 			</div>
 
 			{restoreConfirm && (
-				<div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
-					<p className="mb-2 font-medium text-red-800 dark:text-red-200">
+				<div className="rounded-[var(--r3)] border border-red/[0.3] bg-red/[0.06] p-4">
+					<p className="mb-2 text-[14px] font-semibold text-red">
 						Это заменит ВСЕ текущие данные. Введите RESTORE для подтверждения.
 					</p>
 					<div className="flex gap-2">
@@ -103,12 +103,12 @@ export function BackupsPage() {
 							value={restoreInput}
 							onChange={(e) => setRestoreInput(e.target.value)}
 							placeholder="Введите RESTORE"
-							className="rounded-md border p-2 dark:border-gray-600 dark:bg-gray-800"
+							className="h-[42px] px-[14px] bg-[var(--input)] border border-red/[0.3] rounded-[var(--r2)] text-[14px] text-t1 outline-none placeholder:text-t3"
 						/>
 						<button
 							onClick={() => handleRestore(restoreConfirm)}
 							disabled={restoreInput !== "RESTORE"}
-							className="rounded-md bg-red-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+							className="rounded-[var(--r2)] bg-red px-4 py-2 text-[13px] font-bold text-white disabled:opacity-50 hover:bg-[var(--redS)]"
 						>
 							Восстановить
 						</button>
@@ -117,7 +117,7 @@ export function BackupsPage() {
 								setRestoreConfirm(null);
 								setRestoreInput("");
 							}}
-							className="rounded-md border px-4 py-2 text-sm"
+							className="rounded-[var(--r2)] border border-b1 px-4 py-2 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-all duration-180"
 						>
 							Отмена
 						</button>
@@ -126,40 +126,40 @@ export function BackupsPage() {
 			)}
 
 			{loading ? (
-				<p className="text-gray-500">Загрузка...</p>
+				<p className="text-t3 text-[13px]">Загрузка...</p>
 			) : backups.length === 0 ? (
-				<p className="text-gray-500">Нет резервных копий</p>
+				<p className="text-t3 text-[13px]">Нет резервных копий</p>
 			) : (
-				<table className="w-full text-sm">
+				<table className="w-full" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
 					<thead>
-						<tr className="border-b text-left dark:border-gray-700">
-							<th className="p-2">Дата</th>
-							<th className="p-2">Размер</th>
-							<th className="p-2">Статус</th>
-							<th className="p-2">Действия</th>
+						<tr>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Дата</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Размер</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Статус</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Действия</th>
 						</tr>
 					</thead>
 					<tbody>
 						{backups.map((b) => (
-							<tr key={b.id} className="border-b dark:border-gray-700">
-								<td className="p-2">
+							<tr key={b.id} className="hover:bg-[var(--hover)]">
+								<td className="px-4 py-[14px] border-b border-b1 text-[12px] text-t3 whitespace-nowrap">
 									{new Date(b.created_at).toLocaleString("ru-RU")}
 								</td>
-								<td className="p-2">{formatSize(b.file_size)}</td>
-								<td className="p-2">{statusBadge(b.status)}</td>
-								<td className="p-2">
+								<td className="px-4 py-[14px] border-b border-b1 text-[13px]">{formatSize(b.file_size)}</td>
+								<td className="px-4 py-[14px] border-b border-b1">{statusBadge(b.status)}</td>
+								<td className="px-4 py-[14px] border-b border-b1">
 									<div className="flex gap-2">
 										{b.status === "completed" && (
 											<button
 												onClick={() => setRestoreConfirm(b.id)}
-												className="text-blue-600 hover:underline"
+												className="text-[12px] font-semibold text-blue hover:underline"
 											>
 												Восстановить
 											</button>
 										)}
 										<button
 											onClick={() => handleDelete(b.id)}
-											className="text-red-600 hover:underline"
+											className="text-[12px] font-bold text-red hover:underline"
 										>
 											Удалить
 										</button>
