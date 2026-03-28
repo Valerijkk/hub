@@ -3,6 +3,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
 	createLabel,
 	createLabelGroup,
 	deleteLabel,
@@ -58,6 +68,8 @@ function LabelsSettingsPage() {
 		queryKey: ["label-groups", projectId],
 		queryFn: () => listLabelGroups(projectId),
 	});
+
+	const [deleteLabelTarget, setDeleteLabelTarget] = useState<string | null>(null);
 
 	// Форма новой метки
 	const [labelName, setLabelName] = useState("");
@@ -136,6 +148,28 @@ function LabelsSettingsPage() {
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-6 animate-[eu_450ms_var(--spring)_both]">
+			<AlertDialog open={!!deleteLabelTarget} onOpenChange={(open) => { if (!open) setDeleteLabelTarget(null); }}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Удалить метку?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Метка будет удалена из всех задач проекта. Это действие нельзя отменить.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Отмена</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={() => {
+								if (deleteLabelTarget) deleteLabelMutation.mutate(deleteLabelTarget);
+								setDeleteLabelTarget(null);
+							}}
+						>
+							Удалить
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
 			<div className="mb-9 flex items-center justify-between">
 				<div>
 					<h1 className="text-[18px] font-extrabold tracking-[-0.02em] text-t1">Метки</h1>
@@ -162,11 +196,7 @@ function LabelsSettingsPage() {
 								<LabelRow
 									key={label.id}
 									label={label}
-									onDelete={() => {
-										if (window.confirm("Удалить метку?")) {
-											deleteLabelMutation.mutate(label.id);
-										}
-									}}
+									onDelete={() => setDeleteLabelTarget(label.id)}
 								/>
 							))}
 						</div>

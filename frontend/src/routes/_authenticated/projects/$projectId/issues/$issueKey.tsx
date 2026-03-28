@@ -1,6 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
 	deleteIssue,
 	getIssue,
@@ -29,6 +40,8 @@ function IssueDetailPage() {
 	const { projectId, issueKey } = Route.useParams();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+
+	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
 	const { data: issue, isLoading } = useQuery({
 		queryKey: ["issue", projectId, issueKey],
@@ -128,15 +141,33 @@ function IssueDetailPage() {
 
 	return (
 		<div className="animate-[eu_450ms_var(--spring)_both]">
+			<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Удалить задачу?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Задача {issue.issue_key} будет удалена. Это действие нельзя отменить.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Отмена</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={() => {
+								deleteMutation.mutate();
+								setShowDeleteDialog(false);
+							}}
+						>
+							Удалить
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
 			<IssueHeader
 				projectId={projectId}
 				issueKey={issue.issue_key}
 				issueType={issue.issue_type}
-				onDelete={() => {
-					if (window.confirm("Удалить задачу?")) {
-						deleteMutation.mutate();
-					}
-				}}
+				onDelete={() => setShowDeleteDialog(true)}
 				isDeleting={deleteMutation.isPending}
 			/>
 

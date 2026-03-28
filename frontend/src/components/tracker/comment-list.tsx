@@ -3,6 +3,16 @@ import type { Value } from "@udecode/plate";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
 	type CommentResponse,
 	createComment,
 	deleteComment,
@@ -31,6 +41,7 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 	const queryClient = useQueryClient();
 	const [newBody, setNewBody] = useState<Value | undefined>();
 	const [isInternal, setIsInternal] = useState(false);
+	const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
 	const { data: comments, isLoading } = useQuery({
 		queryKey: ["comments", projectId, issueKey],
@@ -93,16 +104,35 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 
 	return (
 		<div className="space-y-4">
+			{/* Диалог подтверждения удаления */}
+			<AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Удалить комментарий?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Это действие нельзя отменить. Комментарий будет удалён навсегда.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Отмена</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={() => {
+								if (deleteTarget) deleteMutation.mutate(deleteTarget);
+								setDeleteTarget(null);
+							}}
+						>
+							Удалить
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
 			{/* Список комментариев */}
 			{comments?.map((comment) => (
 				<CommentItem
 					key={comment.id}
 					comment={comment}
-					onDelete={(id) => {
-						if (window.confirm("Удалить комментарий?")) {
-							deleteMutation.mutate(id);
-						}
-					}}
+					onDelete={(id) => setDeleteTarget(id)}
 					onReaction={(commentId, emoji) =>
 						reactionMutation.mutate({ commentId, emoji })
 					}

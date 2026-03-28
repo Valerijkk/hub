@@ -1,6 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
 	archiveProject,
 	deleteProject,
@@ -21,6 +33,8 @@ function ProjectPage() {
 	const { projectId } = Route.useParams();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+
+	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
 	const { data: project, isLoading } = useQuery({
 		queryKey: ["project", projectId],
@@ -235,17 +249,35 @@ function ProjectPage() {
 									<p className="mb-2 text-[13px] text-t2">
 										Проект будет перемещен в корзину на 30 дней.
 									</p>
-									<Button
-										className="bg-red hover:bg-red/80 text-white"
-										onClick={() => {
-											if (window.confirm("Удалить проект?")) {
-												deleteMutation.mutate();
-											}
-										}}
-										disabled={deleteMutation.isPending}
-									>
-										Удалить
-									</Button>
+									<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+										<AlertDialogTrigger asChild>
+											<Button
+												className="bg-red hover:bg-red/80 text-white"
+												disabled={deleteMutation.isPending}
+											>
+												Удалить
+											</Button>
+										</AlertDialogTrigger>
+										<AlertDialogContent>
+											<AlertDialogHeader>
+												<AlertDialogTitle>Удалить проект?</AlertDialogTitle>
+												<AlertDialogDescription>
+													Проект {project.name} будет перемещен в корзину на 30 дней.
+												</AlertDialogDescription>
+											</AlertDialogHeader>
+											<AlertDialogFooter>
+												<AlertDialogCancel>Отмена</AlertDialogCancel>
+												<AlertDialogAction
+													onClick={() => {
+														deleteMutation.mutate();
+														setShowDeleteDialog(false);
+													}}
+												>
+													Удалить
+												</AlertDialogAction>
+											</AlertDialogFooter>
+										</AlertDialogContent>
+									</AlertDialog>
 								</div>
 							</div>
 						</div>
