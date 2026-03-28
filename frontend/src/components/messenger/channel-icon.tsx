@@ -6,7 +6,7 @@ export function ChannelIcon({ type }: { type: ChannelType }) {
 		case "dm":
 			return (
 				<svg
-					className="h-4 w-4 shrink-0 opacity-70"
+					className="h-4 w-4 shrink-0 text-[var(--t2)]"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -22,7 +22,7 @@ export function ChannelIcon({ type }: { type: ChannelType }) {
 		case "group":
 			return (
 				<svg
-					className="h-4 w-4 shrink-0 opacity-70"
+					className="h-4 w-4 shrink-0 text-[var(--t2)]"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -38,7 +38,7 @@ export function ChannelIcon({ type }: { type: ChannelType }) {
 		case "private":
 			return (
 				<svg
-					className="h-4 w-4 shrink-0 opacity-70"
+					className="h-4 w-4 shrink-0 text-[var(--t2)]"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -52,8 +52,8 @@ export function ChannelIcon({ type }: { type: ChannelType }) {
 				</svg>
 			);
 		case "public":
-			return <span className="shrink-0 text-sm opacity-70 font-medium">#</span>;
+			return <span className="shrink-0 text-sm text-[var(--t2)] font-medium">#</span>;
 		default:
-			return <span className="shrink-0 text-sm opacity-70 font-medium">#</span>;
+			return <span className="shrink-0 text-sm text-[var(--t2)] font-medium">#</span>;
 	}
 }

@@ -383,8 +383,8 @@ function ChannelItem({
 					<div className="flex items-center justify-between gap-2">
 						<span
 							className={cn(
-								"text-sm font-semibold truncate tracking-[-0.01em]",
-								unread > 0 && "text-[var(--t1)]",
+								"text-sm font-semibold truncate tracking-[-0.01em] text-[var(--t2)]",
+								(unread > 0 || isActive) && "text-[var(--t1)]",
 							)}
 						>
 							{channel.name}
