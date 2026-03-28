@@ -356,16 +356,16 @@ function WeekView({
 	}, []);
 
 	return (
-		<div className="overflow-auto rounded-xl border bg-card">
+		<div className="flex flex-1 border border-b1 rounded-[var(--r3)] overflow-hidden overflow-x-auto">
 			<div
-				className="grid min-w-[700px]"
+				className="grid min-w-[700px] w-full"
 				style={{
-					gridTemplateColumns: "60px repeat(7, 1fr)",
-					gridTemplateRows: `40px repeat(${HOURS.length}, 60px)`,
+					gridTemplateColumns: "56px repeat(7, 1fr)",
+					gridTemplateRows: `52px repeat(${HOURS.length}, 60px)`,
 				}}
 			>
-				{/* Header: empty top-left corner */}
-				<div className="sticky top-0 z-20 border-b border-r bg-card" />
+				{/* Header: empty top-left corner (time column header) */}
+				<div className="sticky top-0 z-20 border-b border-r border-b1 bg-base" />
 
 				{/* Day headers */}
 				{weekDays.map((day, i) => {
@@ -374,17 +374,17 @@ function WeekView({
 					return (
 						<div
 							key={i}
-							className={`sticky top-0 z-20 flex flex-col items-center justify-center border-b bg-card text-xs ${
-								i < 6 ? "border-r" : ""
-							} ${isToday ? "bg-primary/5" : ""}`}
+							className={`h-[52px] flex flex-col items-center justify-center border-b border-b1 sticky top-0 bg-base z-[5] ${
+								i < 6 ? "border-r border-b1" : ""
+							}`}
 						>
-							<span className="uppercase text-muted-foreground">
+							<span className="text-[10.5px] text-t4 uppercase font-semibold tracking-[0.06em]">
 								{weekday}
 							</span>
 							<span
-								className={`text-sm font-semibold ${
+								className={`text-[14px] font-bold ${
 									isToday
-										? "flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground"
+										? "bg-purple text-white w-7 h-7 rounded-full flex items-center justify-center shadow-[0_2px_10px_var(--gP)]"
 										: ""
 								}`}
 							>
@@ -400,7 +400,7 @@ function WeekView({
 						{/* Time label */}
 						<div
 							key={`label-${hour}`}
-							className="relative flex items-start justify-end border-r border-b pr-2 pt-0.5 text-[11px] text-muted-foreground"
+							className="h-[60px] flex items-start justify-end px-2 text-[10.5px] text-t4 font-medium -translate-y-[6px] border-r border-b border-b1"
 						>
 							{String(hour).padStart(2, "0")}:00
 						</div>
@@ -416,19 +416,19 @@ function WeekView({
 							return (
 								<div
 									key={`cell-${hour}-${dayIdx}`}
-									className={`relative border-b cursor-pointer transition-colors hover:bg-muted/50 ${
-										dayIdx < 6 ? "border-r" : ""
-									} ${isToday ? "bg-primary/[0.02]" : ""}`}
+									className={`h-[60px] relative border-b border-b1 cursor-pointer transition-colors hover:bg-[var(--hover)] ${
+										dayIdx < 6 ? "border-r border-b1" : ""
+									} ${isToday ? "bg-[rgba(167,139,250,0.015)]" : ""}`}
 									onClick={() => onSlotClick(day, hour)}
 								>
 									{/* Current time indicator */}
 									{isToday && hour === currentHour && (
 										<div
 											ref={currentTimeRef}
-											className="pointer-events-none absolute left-0 right-0 z-10 border-t-2 border-red-500"
+											className="pointer-events-none absolute left-0 right-0 h-[2px] bg-red z-[4] shadow-[0_0_8px_var(--gR)]"
 											style={{ top: `${(currentMinute / 60) * 100}%` }}
 										>
-											<div className="absolute -left-1 -top-1.5 h-3 w-3 rounded-full bg-red-500" />
+											<div className="absolute -left-1 -top-[3px] w-2 h-2 rounded-full bg-red shadow-[0_0_8px_var(--gR)]" />
 										</div>
 									)}
 
@@ -439,7 +439,7 @@ function WeekView({
 										return (
 											<div
 												key={ev.id}
-												className={`absolute left-0.5 right-0.5 z-[5] overflow-hidden rounded-md border px-1.5 py-0.5 text-xs cursor-pointer transition-opacity hover:opacity-80 ${ev.colorClass}`}
+												className={`absolute left-1 right-1 rounded-[var(--r1)] px-2 py-[5px] text-[11.5px] font-semibold cursor-pointer transition-all duration-200 overflow-hidden z-[2] hover:brightness-[1.15] hover:scale-[1.02] hover:z-[3] hover:shadow-[var(--sh2)] ${ev.colorClass}`}
 												style={{
 													top: `${topOffset}%`,
 													height: `${Math.min(height, 100 - topOffset)}%`,
@@ -450,11 +450,11 @@ function WeekView({
 													onEventClick(ev);
 												}}
 											>
-												<span className="font-medium leading-tight line-clamp-2">
+												<span className="overflow-hidden text-ellipsis whitespace-nowrap block">
 													{ev.title}
 												</span>
 												{ev.durationMinutes >= 30 && (
-													<span className="opacity-70">
+													<span className="text-[10px] opacity-70 font-medium">
 														{ev.date.toLocaleTimeString("ru-RU", {
 															hour: "2-digit",
 															minute: "2-digit",
@@ -957,72 +957,77 @@ export function CallCalendar() {
 	return (
 		<div className="space-y-4">
 			{/* Navigation bar */}
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-2">
-					{view !== "agenda" && (
-						<>
-							<Button
-								variant="outline"
-								size="icon"
-								onClick={handleNavigatePrev}
-							>
-								<ChevronLeft className="h-4 w-4" />
-							</Button>
-							<Button variant="outline" size="sm" onClick={handleNavigateToday}>
-								{t("calendarToday", { defaultValue: "Сегодня" })}
-							</Button>
-							<Button
-								variant="outline"
-								size="icon"
-								onClick={handleNavigateNext}
-							>
-								<ChevronRight className="h-4 w-4" />
-							</Button>
-						</>
-					)}
-
-					<span className="ml-2 text-sm font-medium text-foreground capitalize">
+			<div className="flex items-center gap-[14px] pt-[18px] pb-[14px]">
+				{view !== "agenda" && (
+					<>
+						<button
+							type="button"
+							onClick={handleNavigatePrev}
+							className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 transition-all duration-180 hover:bg-[var(--hover)] hover:border-b2 hover:text-t1 text-[16px]"
+						>
+							<ChevronLeft className="h-4 w-4" />
+						</button>
+						<span className="text-[17px] font-bold tracking-[-0.02em] capitalize">
+							{headerText}
+						</span>
+						<button
+							type="button"
+							onClick={handleNavigateNext}
+							className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 transition-all duration-180 hover:bg-[var(--hover)] hover:border-b2 hover:text-t1 text-[16px]"
+						>
+							<ChevronRight className="h-4 w-4" />
+						</button>
+						<button
+							type="button"
+							onClick={handleNavigateToday}
+							className="px-[14px] py-[5px] rounded-full border border-b1 text-[12px] font-semibold text-t2 transition-all duration-180 hover:border-purple hover:text-purple"
+						>
+							{t("calendarToday", { defaultValue: "Сегодня" })}
+						</button>
+					</>
+				)}
+				{view === "agenda" && (
+					<span className="text-[17px] font-bold tracking-[-0.02em] capitalize">
 						{headerText}
 					</span>
+				)}
+
+				{/* View switcher */}
+				<div className="flex gap-[2px] bg-input rounded-[var(--r2)] p-[3px] ml-auto border border-b1">
+					{(
+						[
+							{ key: "month" as const, label: t("calendarMonth", { defaultValue: "Месяц" }) },
+							{ key: "week" as const, label: t("calendarWeek", { defaultValue: "Неделя" }) },
+							{ key: "day" as const, label: t("calendarDay", { defaultValue: "День" }) },
+							{ key: "agenda" as const, label: t("calendarAgenda", { defaultValue: "Список" }) },
+						] as const
+					).map((tab) => (
+						<button
+							key={tab.key}
+							className={`px-3 py-[5px] text-[12px] font-semibold rounded-[var(--r1)] transition-all duration-180 ${
+								view === tab.key
+									? "bg-card text-t1 shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
+									: "text-t3 hover:text-t2"
+							}`}
+							onClick={() => setView(tab.key)}
+						>
+							{tab.label}
+						</button>
+					))}
 				</div>
 
-				<div className="flex items-center gap-2">
-					{/* View switcher */}
-					<div className="inline-flex h-9 items-center rounded-lg border bg-muted p-1">
-						{(
-							[
-								{ key: "month" as const, label: t("calendarMonth", { defaultValue: "Месяц" }) },
-								{ key: "week" as const, label: t("calendarWeek", { defaultValue: "Неделя" }) },
-								{ key: "day" as const, label: t("calendarDay", { defaultValue: "День" }) },
-								{ key: "agenda" as const, label: t("calendarAgenda", { defaultValue: "Повестка" }) },
-							] as const
-						).map((tab) => (
-							<button
-								key={tab.key}
-								className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-									view === tab.key
-										? "bg-background text-foreground shadow-sm"
-										: "text-muted-foreground hover:text-foreground"
-								}`}
-								onClick={() => setView(tab.key)}
-							>
-								{tab.label}
-							</button>
-						))}
-					</div>
-
-					<Button
-						size="sm"
-						onClick={() => {
-							setDialogDefaults({});
-							setSelectedEvent(null);
-							setDialogOpen(true);
-						}}
-					>
-						<Plus className="mr-1 h-4 w-4" />
-						{t("calendarNewCall", { defaultValue: "Запланировать" })}
-					</Button>
-				</div>
+				<Button
+					size="sm"
+					onClick={() => {
+						setDialogDefaults({});
+						setSelectedEvent(null);
+						setDialogOpen(true);
+					}}
+					className="calls-btn-p inline-flex items-center gap-[7px] px-[14px] py-[5px] rounded-[var(--r2)] text-[12px] font-semibold bg-gradient-to-br from-[var(--purpleS)] to-[#6d28d9] text-white shadow-[0_0_12px_var(--gP)] transition-all duration-180 hover:shadow-[0_0_20px_rgba(167,139,250,0.3)] hover:-translate-y-px relative overflow-hidden"
+				>
+					<Plus className="mr-1 h-3.5 w-3.5" />
+					{t("calendarNewCall", { defaultValue: "Запланировать" })}
+				</Button>
 			</div>
 
 			{/* Calendar views */}

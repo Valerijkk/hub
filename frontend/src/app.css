@@ -925,6 +925,15 @@ html {
 	filter: brightness(1.1);
 }
 
+/* Calls purple button gradient overlay */
+.calls-btn-p::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(180deg, rgba(255,255,255,0.1), transparent 60%);
+	border-radius: inherit;
+}
+
 /* Logo badge glow */
 .logo-glow {
 	box-shadow: 0 0 16px rgba(91, 156, 245, 0.3);
@@ -1295,4 +1304,36 @@ html {
 	top: 0; left: 0; right: 0;
 	height: 1px;
 	background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+}
+
+/* ===================================================
+ * Settings — save button + quiet hours (Phase 12)
+ * =================================================== */
+.settings-btn-save { position: relative; overflow: hidden; }
+.settings-btn-save::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(180deg, rgba(255,255,255,0.1), transparent 60%);
+	border-radius: inherit;
+}
+.settings-quiet { position: relative; overflow: hidden; }
+.settings-quiet::before {
+	content: '';
+	position: absolute;
+	top: 0; left: 0; right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+}
+
+/* ===================================================
+ * Admin — KPI card top highlight (Phase 12)
+ * =================================================== */
+.admin-kpi { position: relative; overflow: hidden; }
+.admin-kpi::before {
+	content: '';
+	position: absolute;
+	top: 0; left: 0; right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.035) 50%, transparent 90%);
 }
