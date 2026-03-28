@@ -128,7 +128,7 @@ function ProfilePage() {
 
 			{/* Аватар профиля */}
 			<div className="flex items-center gap-5 mb-7">
-				<div className="group w-24 h-24 rounded-full bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)] flex items-center justify-center text-[32px] font-extrabold text-white relative cursor-pointer transition-all duration-250 shadow-[0_4px_20px_var(--gB)] hover:scale-105 hover:shadow-[0_6px_30px_var(--gB)]">
+				<div className="group w-24 h-24 rounded-full bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)] flex items-center justify-center text-[32px] font-extrabold text-white relative cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 shadow-[0_4px_20px_var(--gB)] hover:scale-105 hover:shadow-[0_6px_30px_var(--gB)]">
 						{user?.display_name?.[0] ?? user?.name?.[0] ?? "?"}
 					<div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100">
 						<svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -138,7 +138,7 @@ function ProfilePage() {
 					</div>
 				</div>
 				<div>
-					<button type="button" className="settings-btn-save inline-flex items-center gap-[7px] px-4 py-2 rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-all duration-220 hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]">
+					<button type="button" className="settings-btn-save inline-flex items-center gap-[7px] px-4 py-2 rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]">
 						Загрузить фото
 					</button>
 					<p className="text-[12px] text-t3 mt-1.5">JPG, PNG. Макс. 2MB</p>
@@ -178,7 +178,7 @@ function ProfilePage() {
 								<button
 									key={preset.label}
 									type="button"
-									className="px-3 py-[5px] bg-[var(--card)] border border-b1 rounded-full text-[12px] font-semibold text-t2 cursor-pointer transition-all duration-180 hover:border-b2 hover:text-t1 hover:-translate-y-px"
+									className="px-3 py-[5px] bg-[var(--card)] border border-b1 rounded-full text-[12px] font-semibold text-t2 cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-180 hover:border-b2 hover:text-t1 hover:-translate-y-px"
 									onClick={() =>
 										setCustomStatusText(`${preset.emoji} ${preset.label}`)
 									}
@@ -202,7 +202,7 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, name: e.target.value }))
 									}
-									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 							<div>
@@ -215,7 +215,7 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, display_name: e.target.value }))
 									}
-									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 						</div>
@@ -230,7 +230,7 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, position: e.target.value }))
 									}
-									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 							<div>
@@ -243,7 +243,7 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, phone: e.target.value }))
 									}
-									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 						</div>
@@ -269,7 +269,7 @@ function ProfilePage() {
 										setForm((f) => ({ ...f, timezone: e.target.value }))
 									}
 									placeholder="Europe/Moscow"
-									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 						</div>
@@ -285,7 +285,7 @@ function ProfilePage() {
 										setForm((f) => ({ ...f, language: e.target.value }))
 									}
 									placeholder="ru"
-									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 							<div>
@@ -299,7 +299,7 @@ function ProfilePage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, birthday: e.target.value }))
 									}
-									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 						</div>
@@ -347,7 +347,7 @@ function ProfilePage() {
 										type="button"
 										onClick={() => revokeMutation.mutate(session.id)}
 										disabled={revokeMutation.isPending}
-										className="px-[14px] py-[5px] rounded-[var(--r2)] text-[12px] font-bold text-red border border-red/[0.15] transition-all duration-180 hover:bg-red/[0.06]"
+										className="px-[14px] py-[5px] rounded-[var(--r2)] text-[12px] font-bold text-red border border-red/[0.15] transition-colors duration-180 hover:bg-red/[0.06]"
 									>
 										Завершить
 									</button>
@@ -367,13 +367,13 @@ function ProfilePage() {
 					type="button"
 					onClick={(e) => { e.preventDefault(); handleSubmit(e as unknown as FormEvent); }}
 					disabled={profileMutation.isPending}
-					className="settings-btn-save inline-flex items-center gap-[7px] px-6 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-all duration-220 hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
+					className="settings-btn-save inline-flex items-center gap-[7px] px-6 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
 				>
 					{profileMutation.isPending ? "Сохранение..." : "Сохранить изменения"}
 				</button>
 				<button
 					type="button"
-					className="px-[14px] py-[5px] rounded-[var(--r2)] text-[12px] font-bold text-red border border-red/[0.15] transition-all duration-180 hover:bg-red/[0.06]"
+					className="px-[14px] py-[5px] rounded-[var(--r2)] text-[12px] font-bold text-red border border-red/[0.15] transition-colors duration-180 hover:bg-red/[0.06]"
 					onClick={async () => {
 						try {
 							await logout();

@@ -74,7 +74,7 @@ export function Checklist({ items, onChange, disabled }: ChecklistProps) {
 					<div className="flex items-center gap-[10px]">
 						<div className="h-1 bg-white/[0.04] rounded-sm overflow-hidden max-w-[200px] w-[200px]">
 							<div
-								className="h-full bg-green rounded-sm shadow-[0_0_8px_var(--gG)] transition-all duration-300"
+								className="h-full bg-green rounded-sm shadow-[0_0_8px_var(--gG)] transition-[width] duration-300"
 								style={{ width: `${pct}%` }}
 							/>
 						</div>
@@ -95,7 +95,7 @@ export function Checklist({ items, onChange, disabled }: ChecklistProps) {
 						<div
 							onClick={() => !disabled && handleToggle(item.id)}
 							className={cn(
-								"w-5 h-5 border-2 border-b3 rounded-[5px] shrink-0 flex items-center justify-center cursor-pointer transition-all duration-200 hover:border-green",
+								"w-5 h-5 border-2 border-b3 rounded-[5px] shrink-0 flex items-center justify-center cursor-pointer transition-colors duration-200 hover:border-green",
 								item.checked && "bg-green border-green shadow-[0_0_8px_var(--gG)]",
 							)}
 						>

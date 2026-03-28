@@ -58,7 +58,7 @@ function TrashPage() {
 				<div className="flex gap-[3px] ml-3">
 					<button
 						type="button"
-						className={`px-[14px] py-[7px] text-[13px] font-medium rounded-[var(--r2)] transition-all duration-200 cursor-pointer relative ${
+						className={`px-[14px] py-[7px] text-[13px] font-medium rounded-[var(--r2)] transition-colors duration-200 cursor-pointer relative ${
 							activeTab === "items"
 								? "text-t1 font-semibold bg-[rgba(107,114,128,0.06)]"
 								: "text-t3 hover:text-t2 hover:bg-[var(--hover)]"
@@ -72,7 +72,7 @@ function TrashPage() {
 					</button>
 					<button
 						type="button"
-						className={`px-[14px] py-[7px] text-[13px] font-medium rounded-[var(--r2)] transition-all duration-200 cursor-pointer relative ${
+						className={`px-[14px] py-[7px] text-[13px] font-medium rounded-[var(--r2)] transition-colors duration-200 cursor-pointer relative ${
 							activeTab === "about"
 								? "text-t1 font-semibold bg-[rgba(107,114,128,0.06)]"
 								: "text-t3 hover:text-t2 hover:bg-[var(--hover)]"
@@ -88,7 +88,7 @@ function TrashPage() {
 				<div className="flex-1" />
 				<button
 					type="button"
-					className="text-[13px] text-red font-semibold px-[14px] py-[7px] rounded-[var(--r2)] transition-all duration-180 hover:bg-red/[0.06]"
+					className="text-[13px] text-red font-semibold px-[14px] py-[7px] rounded-[var(--r2)] transition-colors duration-180 hover:bg-red/[0.06]"
 				>
 					Очистить все
 				</button>
@@ -196,14 +196,14 @@ function TrashPage() {
 													type="button"
 													onClick={() => restoreMutation.mutate(project.id)}
 													disabled={restoreMutation.isPending}
-													className="px-4 py-[6px] rounded-[var(--r2)] text-[12px] font-bold bg-blue/[0.08] text-blue border border-blue/[0.15] transition-all duration-200 mr-2 hover:bg-blue/[0.15] hover:-translate-y-px"
+													className="px-4 py-[6px] rounded-[var(--r2)] text-[12px] font-bold bg-blue/[0.08] text-blue border border-blue/[0.15] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 mr-2 hover:bg-blue/[0.15] hover:-translate-y-px"
 												>
 													Восстановить
 												</button>
 												<button
 													type="button"
 													onClick={() => setConfirmProject(project)}
-													className="px-4 py-[6px] rounded-[var(--r2)] text-[12px] font-bold bg-red/[0.08] text-red border border-red/[0.15] transition-all duration-200 hover:bg-red/[0.15] hover:-translate-y-px"
+													className="px-4 py-[6px] rounded-[var(--r2)] text-[12px] font-bold bg-red/[0.08] text-red border border-red/[0.15] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:bg-red/[0.15] hover:-translate-y-px"
 												>
 													Удалить
 												</button>
@@ -318,7 +318,7 @@ function TrashPage() {
 						].map((card) => (
 							<div
 								key={card.title}
-								className="onb-tour-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-[22px] text-center transition-all duration-250 hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)]"
+								className="onb-tour-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-[22px] text-center transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)]"
 							>
 								<div className="w-7 h-7 text-t2 mb-[10px] mx-auto">
 									{card.icon}
@@ -350,7 +350,7 @@ function TrashPage() {
 							<button
 								type="button"
 								onClick={() => setConfirmProject(null)}
-								className="px-[22px] py-[9px] rounded-[var(--r2)] text-[14px] font-semibold transition-all duration-200 border border-b2 text-t1 hover:bg-[var(--hover)]"
+								className="px-[22px] py-[9px] rounded-[var(--r2)] text-[14px] font-semibold transition-colors duration-200 border border-b2 text-t1 hover:bg-[var(--hover)]"
 							>
 								Отмена
 							</button>
@@ -360,7 +360,7 @@ function TrashPage() {
 									setConfirmProject(null);
 									toast.success("Элемент удален навсегда");
 								}}
-								className="px-[22px] py-[9px] rounded-[var(--r2)] text-[14px] font-bold bg-[var(--redS)] text-white transition-all duration-200 shadow-[0_2px_12px_var(--gR)] hover:brightness-110 hover:-translate-y-px"
+								className="px-[22px] py-[9px] rounded-[var(--r2)] text-[14px] font-bold bg-[var(--redS)] text-white transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 shadow-[0_2px_12px_var(--gR)] hover:brightness-110 hover:-translate-y-px"
 							>
 								Удалить навсегда
 							</button>

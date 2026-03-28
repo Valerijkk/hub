@@ -104,7 +104,7 @@ function LoginPage() {
 					{FLOATING_FEATURES.map((f) => (
 						<div
 							key={f.label}
-							className="rounded-[var(--r4)] border border-white/[0.06] bg-white/[0.03] backdrop-blur-[20px] p-6 cursor-default transition-all duration-300 relative overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.1] hover:-translate-y-1.5"
+							className="rounded-[var(--r4)] border border-white/[0.06] bg-white/[0.03] backdrop-blur-[20px] p-6 cursor-default transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-300 relative overflow-hidden hover:bg-white/[0.05] hover:border-white/[0.1] hover:-translate-y-1.5"
 							style={{
 								animation: `cardFloat ${f.duration} ease-in-out ${f.delay} infinite`,
 							}}

@@ -138,7 +138,7 @@ export function IssueAttachments({
 							href={att.url || `/api/files/${att.file_id}/download`}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="flex items-center gap-[10px] px-4 py-[10px] bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] text-[13px] cursor-pointer transition-all duration-200 hover:border-b2 hover:-translate-y-px hover:shadow-[var(--sh2)]"
+							className="flex items-center gap-[10px] px-4 py-[10px] bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] text-[13px] cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:border-b2 hover:-translate-y-px hover:shadow-[var(--sh2)]"
 						>
 							<span className="w-[18px] h-[18px] text-blue">{getFileIcon(att.mime_type)}</span>
 							<div className="flex-1 min-w-0">

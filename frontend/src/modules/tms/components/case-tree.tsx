@@ -28,7 +28,7 @@ export function SuiteTreeItem({
 		<div>
 			<button
 				className={cn(
-					"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-all duration-[180ms] text-t2 relative",
+					"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative",
 					"hover:bg-[var(--hover)] hover:text-t1",
 					isSelected && "bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
 				)}
@@ -70,7 +70,7 @@ export function SuiteTreeItem({
 				{hasChildren ? (
 					<span
 						className={cn(
-							"shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[7px] transition-all duration-200",
+							"shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[7px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
 							"group-hover:scale-110 group-hover:shadow-[0_0_10px_rgba(167,139,250,0.1)]",
 						)}
 						style={{
@@ -94,7 +94,7 @@ export function SuiteTreeItem({
 					</span>
 				) : (
 					<span
-						className="w-[7px] h-[7px] rounded-full shrink-0 ml-[1px] transition-all duration-200 group-hover:shadow-[0_0_8px_currentColor] group-hover:scale-[1.3]"
+						className="w-[7px] h-[7px] rounded-full shrink-0 ml-[1px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 group-hover:shadow-[0_0_8px_currentColor] group-hover:scale-[1.3]"
 						style={{
 							background: isSelected ? "var(--purple)" : "var(--text-3)",
 							color: isSelected ? "var(--purple)" : "var(--text-3)",
@@ -141,14 +141,14 @@ export function CaseTreePanel({
 				<span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-t4">
 					Тест-сьюты
 				</span>
-				<button className="w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-t3 text-[18px] transition-all duration-200 hover:bg-[var(--active)] hover:text-t1 hover:scale-110">
+				<button className="w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-t3 text-[18px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:bg-[var(--active)] hover:text-t1 hover:scale-110">
 					+
 				</button>
 			</div>
 			<div className="flex-1 overflow-y-auto p-2">
 				<button
 					className={cn(
-						"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-all duration-[180ms] text-t2 relative mb-1",
+						"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative mb-1",
 						"hover:bg-[var(--hover)] hover:text-t1",
 						!selectedSuiteId && "bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
 					)}
@@ -171,7 +171,7 @@ export function CaseTreePanel({
 						/>
 					</svg>
 					<span className="flex-1">Все кейсы</span>
-					<span className="text-[10.5px] font-semibold text-t4 bg-white/[0.035] px-2 py-[1px] rounded-full transition-all duration-200 group-hover:bg-white/[0.06] group-hover:text-t3">
+					<span className="text-[10.5px] font-semibold text-t4 bg-white/[0.035] px-2 py-[1px] rounded-full transition-colors duration-200 group-hover:bg-white/[0.06] group-hover:text-t3">
 						{total}
 					</span>
 				</button>

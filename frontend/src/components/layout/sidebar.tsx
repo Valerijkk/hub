@@ -26,7 +26,7 @@ export function Sidebar() {
 	return (
 		<aside
 			className={cn(
-				"flex h-screen flex-col border-r border-b1 transition-all duration-200 ease-[var(--ease)] relative",
+				"flex h-screen flex-col border-r border-b1 transition-[width,padding] duration-200 ease-[var(--ease)] relative",
 				"bg-sidebar text-t1",
 				collapsed ? "w-[64px]" : "w-[260px]",
 			)}
@@ -57,7 +57,7 @@ export function Sidebar() {
 								<TooltipTrigger asChild>
 									<Link
 										to="/projects/new"
-										className="flex h-7 w-7 items-center justify-center rounded-full text-t2 hover:text-t1 hover:bg-[var(--hover)] transition-all duration-150"
+										className="flex h-7 w-7 items-center justify-center rounded-full text-t2 hover:text-t1 hover:bg-[var(--hover)] transition-colors duration-150"
 									>
 										<svg
 											width="16"
@@ -84,7 +84,7 @@ export function Sidebar() {
 									<button
 										type="button"
 										onClick={toggle}
-										className="flex h-7 w-7 items-center justify-center rounded-md text-t3 hover:text-t1 hover:bg-[var(--hover)] transition-all duration-150"
+										className="flex h-7 w-7 items-center justify-center rounded-md text-t3 hover:text-t1 hover:bg-[var(--hover)] transition-colors duration-150"
 										aria-label={t("sidebar.collapse")}
 									>
 										<svg

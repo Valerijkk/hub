@@ -83,7 +83,7 @@ export function IssueHeader({
 					size="sm"
 					onClick={onDelete}
 					disabled={isDeleting}
-					className="w-[34px] h-[34px] rounded-[var(--r2)] text-t3 hover:bg-[var(--hover)] hover:text-t1 text-[18px] transition-all duration-150"
+					className="w-[34px] h-[34px] rounded-[var(--r2)] text-t3 hover:bg-[var(--hover)] hover:text-t1 text-[18px] transition-colors duration-150"
 				>
 					Удалить
 				</Button>

@@ -332,7 +332,7 @@ function TestRunsPage() {
 									params={{ projectId, runId: run.id }}
 									className="block group"
 								>
-									<div className="tms-run-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] overflow-hidden transition-all duration-[250ms] hover:border-b2 hover:-translate-y-[3px] hover:shadow-[var(--sh2)]">
+									<div className="tms-run-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-[250ms] hover:border-b2 hover:-translate-y-[3px] hover:shadow-[var(--sh2)]">
 										{/* Card header */}
 										<div className="flex items-center gap-3 px-5 py-4">
 											<Badge

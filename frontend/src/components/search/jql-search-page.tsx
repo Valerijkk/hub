@@ -140,7 +140,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 							<button
 								key={filter.id}
 								type="button"
-								className="px-3 py-[5px] bg-card border border-b1 rounded-full text-[12px] font-semibold text-t2 cursor-pointer hover:border-b2 hover:text-t1 transition-all duration-180"
+								className="px-3 py-[5px] bg-card border border-b1 rounded-full text-[12px] font-semibold text-t2 cursor-pointer hover:border-b2 hover:text-t1 transition-colors duration-180"
 								onClick={() => handleApplyFilter(filter)}
 							>
 								{filter.name}
@@ -195,7 +195,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 					<input
 						type="text"
 						placeholder="��азвание фильтра"
-						className="flex-1 rounded-[var(--r2)] border border-b1 bg-input px-3 py-1.5 text-[14px] text-t1 outline-none transition-all duration-250 focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)]"
+						className="flex-1 rounded-[var(--r2)] border border-b1 bg-input px-3 py-1.5 text-[14px] text-t1 outline-none transition-colors duration-250 focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)]"
 						value={saveName}
 						onChange={(e) => setSaveName(e.target.value)}
 						onKeyDown={(e) => {

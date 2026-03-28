@@ -113,7 +113,7 @@ function SuiteTreeItem({
 		<div>
 			<button
 				className={cn(
-					"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-all duration-[180ms] text-t2 relative",
+					"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative",
 					"hover:bg-[var(--hover)] hover:text-t1",
 					isSelected && "bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
 				)}
@@ -154,7 +154,7 @@ function SuiteTreeItem({
 				{hasChildren ? (
 					<span
 						className={cn(
-							"shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[7px] transition-all duration-200",
+							"shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[7px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
 							"group-hover:scale-110 group-hover:shadow-[0_0_10px_rgba(167,139,250,0.1)]",
 						)}
 						style={{
@@ -178,7 +178,7 @@ function SuiteTreeItem({
 					</span>
 				) : (
 					<span
-						className="w-[7px] h-[7px] rounded-full shrink-0 ml-[1px] transition-all duration-200 group-hover:shadow-[0_0_8px_currentColor] group-hover:scale-[1.3]"
+						className="w-[7px] h-[7px] rounded-full shrink-0 ml-[1px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 group-hover:shadow-[0_0_8px_currentColor] group-hover:scale-[1.3]"
 						style={{
 							background: isSelected ? "var(--purple)" : "var(--text-3)",
 							color: isSelected ? "var(--purple)" : "var(--text-3)",
@@ -310,7 +310,7 @@ function TestCasesPage() {
 				<div className="flex-1 overflow-y-auto p-2">
 					<button
 						className={cn(
-							"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-all duration-[180ms] text-t2 relative mb-1",
+							"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative mb-1",
 							"hover:bg-[var(--hover)] hover:text-t1",
 							!filters.suiteId && "bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
 						)}
@@ -333,7 +333,7 @@ function TestCasesPage() {
 							/>
 						</svg>
 						<span className="flex-1">Все кейсы</span>
-						<span className="text-[10.5px] font-semibold text-t4 bg-white/[0.035] px-2 py-[1px] rounded-full transition-all duration-200 group-hover:bg-white/[0.06] group-hover:text-t3">
+						<span className="text-[10.5px] font-semibold text-t4 bg-white/[0.035] px-2 py-[1px] rounded-full transition-colors duration-200 group-hover:bg-white/[0.06] group-hover:text-t3">
 							{total}
 						</span>
 					</button>
@@ -737,7 +737,7 @@ function TestCasesPage() {
 													animationDelay: `${index * 40}ms`,
 												}}
 											>
-												<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
+												<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)]">
 													<input
 														type="checkbox"
 														className="rounded border-b2"
@@ -745,7 +745,7 @@ function TestCasesPage() {
 														onChange={() => toggleSelect(tc.id)}
 													/>
 												</td>
-												<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)] group-first:group-hover:shadow-[-3px_0_0_var(--purple)_inset]">
+												<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)] group-first:group-hover:shadow-[-3px_0_0_var(--purple)_inset]">
 													<Link
 														to="/projects/$projectId/tms/cases/$caseKey"
 														params={{ projectId, caseKey: tc.case_key }}
@@ -754,7 +754,7 @@ function TestCasesPage() {
 														{tc.case_key}
 													</Link>
 												</td>
-												<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)] max-w-md">
+												<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)] max-w-md">
 													<Link
 														to="/projects/$projectId/tms/cases/$caseKey"
 														params={{ projectId, caseKey: tc.case_key }}
@@ -763,7 +763,7 @@ function TestCasesPage() {
 														{tc.title}
 													</Link>
 												</td>
-												<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
+												<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)]">
 													<span className="inline-flex items-center gap-[7px] text-[12px] font-medium text-t2">
 														<span
 															className={cn(
@@ -777,7 +777,7 @@ function TestCasesPage() {
 														{priority.label}
 													</span>
 												</td>
-												<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
+												<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)]">
 													<Badge
 														variant="secondary"
 														className={cn(
@@ -791,10 +791,10 @@ function TestCasesPage() {
 														{statusCfg.label}
 													</Badge>
 												</td>
-												<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
+												<td className="px-5 h-14 border-b border-b1 align-middle transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-[180ms] group-hover:bg-[var(--hover)]">
 													{hasAutotest ? (
 														<span
-															className="text-[16px] opacity-[0.55] transition-all duration-200 group-hover:opacity-100 group-hover:scale-[1.15] inline-block"
+															className="text-[16px] opacity-[0.55] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 group-hover:opacity-100 group-hover:scale-[1.15] inline-block"
 															title="Автоматизирован"
 														>
 															🤖
@@ -808,7 +808,7 @@ function TestCasesPage() {
 														</span>
 													)}
 												</td>
-												<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)] text-right">
+												<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)] text-right">
 													<span className="text-[11px] text-t3 whitespace-nowrap">
 														{formatRelativeTime(tc.updated_at)}
 													</span>

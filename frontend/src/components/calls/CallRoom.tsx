@@ -126,7 +126,7 @@ function CallRoomContent({ onDisconnect }: { onDisconnect: () => void }) {
 							type="button"
 							onClick={() => setChatVisible(!chatVisible)}
 							className={cn(
-								"flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200",
+								"flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-200",
 								chatVisible
 									? "bg-blue-500/20 text-blue-400"
 									: "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70",
@@ -199,7 +199,7 @@ function InviteBlock({ inviteCode }: { inviteCode: string }) {
 				type="button"
 				onClick={copyLink}
 				className={cn(
-					"flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all",
+					"flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-colors",
 					copied
 						? "bg-emerald-500 text-white"
 						: "bg-emerald-500/90 text-white hover:bg-emerald-500",
@@ -227,7 +227,7 @@ function InviteBlock({ inviteCode }: { inviteCode: string }) {
 				<button
 					type="button"
 					onClick={shareViaTelegram}
-					className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.07] text-white/60 hover:bg-white/[0.12] hover:text-white transition-all"
+					className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.07] text-white/60 hover:bg-white/[0.12] hover:text-white transition-colors"
 					title="Telegram"
 				>
 					<svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -237,7 +237,7 @@ function InviteBlock({ inviteCode }: { inviteCode: string }) {
 				<button
 					type="button"
 					onClick={shareViaWhatsApp}
-					className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.07] text-white/60 hover:bg-white/[0.12] hover:text-white transition-all"
+					className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.07] text-white/60 hover:bg-white/[0.12] hover:text-white transition-colors"
 					title="WhatsApp"
 				>
 					<svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -247,7 +247,7 @@ function InviteBlock({ inviteCode }: { inviteCode: string }) {
 				<button
 					type="button"
 					onClick={copyLink}
-					className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.07] text-white/60 hover:bg-white/[0.12] hover:text-white transition-all"
+					className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.07] text-white/60 hover:bg-white/[0.12] hover:text-white transition-colors"
 					title="Скопировать ссылку"
 				>
 					<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -52,7 +52,7 @@ export function AppearanceSettings() {
 								type="button"
 								onClick={() => setTheme(opt.value)}
 								className={cn(
-									"flex-1 p-[18px] bg-[var(--card)] border-2 border-b1 rounded-[var(--r3)] text-center cursor-pointer transition-all duration-250 hover:border-b2",
+									"flex-1 p-[18px] bg-[var(--card)] border-2 border-b1 rounded-[var(--r3)] text-center cursor-pointer transition-colors duration-250 hover:border-b2",
 									theme === opt.value
 										&& "border-[var(--blue)] shadow-[0_0_0_3px_rgba(91,156,245,0.1),_0_0_16px_rgba(91,156,245,0.06)]",
 								)}
@@ -82,7 +82,7 @@ export function AppearanceSettings() {
 								type="button"
 								onClick={() => setAccent(color)}
 								className={cn(
-									"w-10 h-10 rounded-full cursor-pointer transition-all duration-200 border-[3px] border-transparent hover:scale-115",
+									"w-10 h-10 rounded-full cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 border-[3px] border-transparent hover:scale-115",
 									accent === color
 										&& "border-white/40 shadow-[0_0_0_2px_currentColor,_0_0_16px_currentColor]",
 								)}
@@ -103,7 +103,7 @@ export function AppearanceSettings() {
 				<LanguageSwitcher />
 			</div>
 
-			<button type="button" className="settings-btn-save inline-flex items-center gap-[7px] px-6 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-all duration-220 hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]">
+			<button type="button" className="settings-btn-save inline-flex items-center gap-[7px] px-6 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]">
 				Сохранить
 			</button>
 		</div>

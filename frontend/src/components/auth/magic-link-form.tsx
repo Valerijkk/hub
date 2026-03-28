@@ -93,12 +93,12 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 						onChange={(e) => setEmail(e.target.value)}
 						autoComplete="email"
 						autoFocus
-						className="w-full h-[50px] px-[18px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r3)] text-[15px] text-[var(--t1)] placeholder:text-[var(--t3)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08),0_0_20px_rgba(91,156,245,.04)] focus:scale-[1.005] transition-all outline-none"
+						className="w-full h-[50px] px-[18px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r3)] text-[15px] text-[var(--t1)] placeholder:text-[var(--t3)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08),0_0_20px_rgba(91,156,245,.04)] focus:scale-[1.005] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] outline-none"
 					/>
 				</div>
 				<button
 					type="submit"
-					className="w-full h-[50px] bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white rounded-[var(--r3)] text-[15px] font-bold shadow-[0_2px_16px_var(--gB)] hover:shadow-[0_4px_28px_rgba(91,156,245,.35)] hover:-translate-y-px active:scale-[.97] transition-all relative overflow-hidden mt-2"
+					className="w-full h-[50px] bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white rounded-[var(--r3)] text-[15px] font-bold shadow-[0_2px_16px_var(--gB)] hover:shadow-[0_4px_28px_rgba(91,156,245,.35)] hover:-translate-y-px active:scale-[.97] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] relative overflow-hidden mt-2"
 					disabled={loading || !isEmailValid}
 				>
 					{loading ? (
@@ -144,12 +144,12 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 					value={code}
 					onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
 					autoFocus
-					className="w-full h-[58px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r2)] text-center text-2xl font-bold font-mono text-[var(--t1)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08)] transition-all outline-none"
+					className="w-full h-[58px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r2)] text-center text-2xl font-bold font-mono text-[var(--t1)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08)] transition-colors outline-none"
 				/>
 			</div>
 			<button
 				type="submit"
-				className="w-full h-[50px] bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white rounded-[var(--r3)] text-[15px] font-bold shadow-[0_2px_16px_var(--gB)] hover:shadow-[0_4px_28px_rgba(91,156,245,.35)] hover:-translate-y-px active:scale-[.97] transition-all relative overflow-hidden mt-2"
+				className="w-full h-[50px] bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white rounded-[var(--r3)] text-[15px] font-bold shadow-[0_2px_16px_var(--gB)] hover:shadow-[0_4px_28px_rgba(91,156,245,.35)] hover:-translate-y-px active:scale-[.97] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] relative overflow-hidden mt-2"
 				disabled={loading || !code.trim()}
 			>
 				{loading ? "Проверка..." : "Войти"}

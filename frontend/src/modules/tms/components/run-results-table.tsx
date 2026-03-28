@@ -229,7 +229,7 @@ export function RunResultsTable({
 									<tr
 										key={r.id}
 										className={cn(
-											"group transition-all duration-[180ms]",
+											"group transition-colors duration-[180ms]",
 											isClickable && "cursor-pointer",
 											isExecuting && "bg-purple/[0.05]",
 										)}
@@ -237,7 +237,7 @@ export function RunResultsTable({
 											if (isClickable) onSelectResult(r.id);
 										}}
 									>
-										<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
+										<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)]">
 											<div className="flex items-center gap-2">
 												<span
 													className={cn(
@@ -256,7 +256,7 @@ export function RunResultsTable({
 												</div>
 											</div>
 										</td>
-										<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
+										<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)]">
 											<Badge
 												variant="secondary"
 												className={cn(
@@ -267,12 +267,12 @@ export function RunResultsTable({
 												{resultCfg.label}
 											</Badge>
 										</td>
-										<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
+										<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)]">
 											<span className="text-[12px] text-t3 tabular-nums">
 												{formatDuration(r.duration_ms)}
 											</span>
 										</td>
-										<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
+										<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)]">
 											<span className="text-[12px] text-t3">
 												{r.executed_by?.name ?? "--"}
 											</span>

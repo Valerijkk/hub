@@ -82,7 +82,7 @@ function BookmarksButton() {
 		<>
 			<button
 				type="button"
-				className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-[1.08] transition-all"
+				className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-[1.08] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 				title="Закладки"
 				onClick={() => setOpen(true)}
 			>
@@ -358,7 +358,7 @@ function ChannelItem({
 				to="/messenger/$channelId"
 				params={{ channelId: channel.id }}
 				className={cn(
-					"group/item flex items-center gap-[11px] py-2.5 px-3.5 cursor-pointer transition-all border-l-2 border-transparent",
+					"group/item flex items-center gap-[11px] py-2.5 px-3.5 cursor-pointer transition-colors border-l-2 border-transparent",
 					isActive && "bg-[rgba(52,211,153,.04)] border-l-[var(--green)]",
 					!isActive && "hover:bg-[var(--hover)]",
 				)}

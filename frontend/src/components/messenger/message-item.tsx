@@ -261,7 +261,7 @@ function MessageItemInner({
 					<div className={cn("w-[38px] shrink-0", isGrouped && "invisible h-0")}>
 						{!isGrouped && (
 							<Avatar className="w-[38px] h-[38px]">
-								<AvatarFallback className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[13px] font-bold text-white hover:scale-[1.06] hover:shadow-[0_2px_12px_rgba(0,0,0,.3)] transition-all bg-primary/10 text-primary">
+								<AvatarFallback className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[13px] font-bold text-white hover:scale-[1.06] hover:shadow-[0_2px_12px_rgba(0,0,0,.3)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] bg-primary/10 text-primary">
 									{message.sender_id?.charAt(0)?.toUpperCase() ?? "?"}
 								</AvatarFallback>
 							</Avatar>
@@ -415,7 +415,7 @@ function MessageItemInner({
 											key={reaction.emoji}
 											type="button"
 											className={cn(
-												"flex items-center gap-1.5 px-2.5 py-0.5 border border-[var(--b2)] rounded-full text-[13px] cursor-pointer hover:bg-[var(--hover)] hover:border-[var(--b3)] hover:-translate-y-px transition-all",
+												"flex items-center gap-1.5 px-2.5 py-0.5 border border-[var(--b2)] rounded-full text-[13px] cursor-pointer hover:bg-[var(--hover)] hover:border-[var(--b3)] hover:-translate-y-px transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]",
 												hasReacted && "border-[rgba(52,211,153,.2)] bg-[rgba(52,211,153,.04)]",
 											)}
 											onClick={() =>

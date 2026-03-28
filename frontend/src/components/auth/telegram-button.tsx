@@ -38,7 +38,7 @@ export function TelegramButton() {
 		return (
 			<button
 				type="button"
-				className="w-full h-[50px] bg-[#229ED9] text-white rounded-[var(--r3)] text-[15px] font-bold flex items-center justify-center gap-2.5 hover:brightness-110 hover:-translate-y-px active:scale-[.97] transition-all"
+				className="w-full h-[50px] bg-[#229ED9] text-white rounded-[var(--r3)] text-[15px] font-bold flex items-center justify-center gap-2.5 hover:brightness-110 hover:-translate-y-px active:scale-[.97] transition-[transform,filter,opacity]"
 				onClick={handleGetCode}
 			>
 				<svg
@@ -65,14 +65,14 @@ export function TelegramButton() {
 					onChange={(e) => setCode(e.target.value)}
 					placeholder="Код из Telegram"
 					maxLength={6}
-					className="flex-1 h-[50px] px-[18px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r3)] text-center tracking-widest font-mono text-[var(--t1)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08)] transition-all outline-none"
+					className="flex-1 h-[50px] px-[18px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r3)] text-center tracking-widest font-mono text-[var(--t1)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08)] transition-colors outline-none"
 					onKeyDown={(e) => e.key === "Enter" && handleVerify()}
 				/>
 				<button
 					type="button"
 					onClick={handleVerify}
 					disabled={loading || !code.trim()}
-					className="h-[50px] px-5 bg-[#229ED9] text-white rounded-[var(--r3)] text-[15px] font-bold hover:brightness-110 active:scale-[.97] transition-all"
+					className="h-[50px] px-5 bg-[#229ED9] text-white rounded-[var(--r3)] text-[15px] font-bold hover:brightness-110 active:scale-[.97] transition-[transform,filter,opacity]"
 				>
 					{loading ? "..." : "Войти"}
 				</button>

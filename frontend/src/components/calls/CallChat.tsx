@@ -160,14 +160,14 @@ export function CallChat({ callId }: CallChatProps) {
 						"flex-1 h-9 rounded-xl bg-white/5 border-0 px-3 text-sm text-white/90",
 						"placeholder:text-white/25",
 						"focus:outline-none focus:ring-1 focus:ring-blue-500/40",
-						"transition-all duration-200",
+						"transition-colors duration-200",
 					)}
 				/>
 				<button
 					type="submit"
 					disabled={!text.trim()}
 					className={cn(
-						"flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200",
+						"flex h-9 w-9 items-center justify-center rounded-xl transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
 						text.trim()
 							? "bg-blue-500 text-white hover:bg-blue-600 hover:scale-105"
 							: "bg-white/5 text-white/20 cursor-not-allowed",

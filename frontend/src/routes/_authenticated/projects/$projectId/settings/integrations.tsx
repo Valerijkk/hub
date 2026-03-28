@@ -101,7 +101,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 								(ig: GitHubIntegrationResponse) => (
 									<div
 										key={ig.id}
-										className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 hover:border-b2 transition-all duration-200"
+										className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 hover:border-b2 transition-colors duration-200"
 									>
 										<div className="flex items-center gap-2">
 											<GitHubIcon className="h-5 w-5 text-t2" />
@@ -301,7 +301,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 								(ig: GitLabIntegrationResponse) => (
 									<div
 										key={ig.id}
-										className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 hover:border-b2 transition-all duration-200"
+										className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 hover:border-b2 transition-colors duration-200"
 									>
 										<div className="flex items-center gap-2">
 											<GitLabIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />

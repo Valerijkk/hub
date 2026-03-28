@@ -83,7 +83,7 @@ function NotFoundComponent() {
 				</p>
 				<a
 					href="/"
-					className="inline-flex h-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 px-6 py-2 text-sm font-medium text-white shadow-md shadow-blue-500/25 hover-pulse transition-all"
+					className="inline-flex h-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 px-6 py-2 text-sm font-medium text-white shadow-md shadow-blue-500/25 hover-pulse transition-colors"
 				>
 					<svg
 						className="mr-2 h-4 w-4"

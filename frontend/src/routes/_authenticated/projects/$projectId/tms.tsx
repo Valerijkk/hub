@@ -171,7 +171,7 @@ function TmsLayout() {
 							to={tab.to}
 							params={{ projectId }}
 							className={cn(
-								"relative border-b-2 px-4 py-2.5 text-sm font-medium transition-all duration-200",
+								"relative border-b-2 px-4 py-2.5 text-sm font-medium transition-colors duration-200",
 								activeTab === tab.id
 									? "border-primary text-primary"
 									: "border-transparent text-t2 hover:text-t1 hover:border-t2/30",

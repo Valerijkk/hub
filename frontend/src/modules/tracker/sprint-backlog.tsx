@@ -132,7 +132,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 							return (
 								<div
 									key={issue.id}
-									className={`group flex cursor-pointer items-center gap-3 rounded-[var(--r3)] px-4 py-3 border-b border-b1 text-[13px] transition-all duration-150 ${
+									className={`group flex cursor-pointer items-center gap-3 rounded-[var(--r3)] px-4 py-3 border-b border-b1 text-[13px] transition-colors duration-150 ${
 										isSelected
 											? "border-blue/20 bg-blue/5 ring-1 ring-blue/20"
 											: "border-transparent hover:bg-[var(--hover)]"

@@ -235,7 +235,7 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
 						onClick={() => handleLogin(user.email)}
 						disabled={loading !== null}
 						className="group relative flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-left
-              transition-all duration-200
+              transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200
               hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5
               active:scale-[0.97] active:shadow-none
               disabled:opacity-50 disabled:pointer-events-none

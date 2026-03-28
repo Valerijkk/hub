@@ -188,7 +188,7 @@ export function PollMessage({ pollId }: PollMessageProps) {
 							disabled={poll.is_closed || voting}
 							onClick={() => void handleOptionClick(option.id)}
 							className={cn(
-								"relative w-full text-left rounded-lg border px-3 py-2 text-sm transition-all",
+								"relative w-full text-left rounded-lg border px-3 py-2 text-sm transition-colors",
 								"hover:border-primary/50 hover:bg-primary/5",
 								"disabled:opacity-60 disabled:cursor-not-allowed",
 								option.voted && "border-primary/50 bg-primary/5",
@@ -198,7 +198,7 @@ export function PollMessage({ pollId }: PollMessageProps) {
 							{/* Прогресс-бар (фон) */}
 							{showResults && (
 								<div
-									className="absolute inset-0 rounded-lg bg-primary/10 transition-all duration-500"
+									className="absolute inset-0 rounded-lg bg-primary/10 transition-[width] duration-500"
 									style={{ width: `${percentage}%` }}
 								/>
 							)}

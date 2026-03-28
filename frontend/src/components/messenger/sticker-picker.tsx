@@ -269,7 +269,7 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
 									key={sticker.id}
 									type="button"
 									className={cn(
-										"flex items-center justify-center rounded-lg p-1.5 transition-all",
+										"flex items-center justify-center rounded-lg p-1.5 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]",
 										"hover:bg-accent hover:scale-110",
 										"active:scale-95",
 									)}

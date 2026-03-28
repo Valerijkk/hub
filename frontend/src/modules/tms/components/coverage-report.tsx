@@ -54,7 +54,7 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 						<div className="h-2 w-20 overflow-hidden rounded-full bg-raised">
 							<div
 								className={cn(
-									"h-full rounded-full transition-all",
+									"h-full rounded-full transition-[width]",
 									passRate === 100
 										? "bg-green-500"
 										: passRate >= 50

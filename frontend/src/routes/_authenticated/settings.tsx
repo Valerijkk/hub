@@ -66,7 +66,7 @@ function NavItem({
 		<Link
 			to={to}
 			className={cn(
-				"flex items-center gap-[10px] px-3 py-[9px] rounded-[var(--r2)] text-[14px] font-medium text-t2 cursor-pointer transition-all duration-180 mb-[1px] hover:bg-[var(--hover)] hover:text-t1",
+				"flex items-center gap-[10px] px-3 py-[9px] rounded-[var(--r2)] text-[14px] font-medium text-t2 cursor-pointer transition-colors duration-180 mb-[1px] hover:bg-[var(--hover)] hover:text-t1",
 				isActive && "bg-blue/[0.06] text-t1",
 			)}
 		>

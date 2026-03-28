@@ -193,7 +193,7 @@ export function CallSettingsModal({
 
 	/** Стили для Radix Select trigger в тёмной теме настроек. */
 	const selectTriggerClasses =
-		"w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90 transition-all hover:bg-white/10 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/30 h-auto";
+		"w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90 transition-colors hover:bg-white/10 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/30 h-auto";
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>

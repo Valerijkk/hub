@@ -53,7 +53,7 @@ function CallsPage() {
 					type="button"
 					disabled={creatingCall}
 					onClick={() => void handleInstantCall()}
-					className="calls-btn-p inline-flex items-center gap-[7px] px-[18px] py-2 rounded-[var(--r2)] text-[13px] font-semibold bg-gradient-to-br from-[var(--purpleS)] to-[#6d28d9] text-white shadow-[0_0_20px_var(--gP)] transition-all duration-220 hover:shadow-[0_0_32px_rgba(167,139,250,0.3)] hover:-translate-y-px active:scale-[0.96] relative overflow-hidden disabled:opacity-50"
+					className="calls-btn-p inline-flex items-center gap-[7px] px-[18px] py-2 rounded-[var(--r2)] text-[13px] font-semibold bg-gradient-to-br from-[var(--purpleS)] to-[#6d28d9] text-white shadow-[0_0_20px_var(--gP)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_32px_rgba(167,139,250,0.3)] hover:-translate-y-px active:scale-[0.96] relative overflow-hidden disabled:opacity-50"
 				>
 					<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
 						<line x1="12" y1="5" x2="12" y2="19" />

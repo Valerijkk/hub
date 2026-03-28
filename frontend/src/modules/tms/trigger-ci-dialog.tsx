@@ -235,7 +235,7 @@ export function TriggerCIPanel({ projectId }: Props) {
 						}
 						onClick={() => triggerMutation.mutate()}
 						className={cn(
-							"w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
+							"w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
 							selectedCaseIds.size > 0 && activeIntegrationId
 								? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
 								: "bg-raised text-t2 cursor-not-allowed",

@@ -215,7 +215,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 				].map((stat) => (
 					<div
 						key={stat.label}
-						className="bg-gradient-to-b from-card to-raised rounded-[var(--r4)] border border-b1 p-4 transition-all duration-250 hover:border-b2 hover:shadow-[var(--sh2)]"
+						className="bg-gradient-to-b from-card to-raised rounded-[var(--r4)] border border-b1 p-4 transition-colors duration-250 hover:border-b2 hover:shadow-[var(--sh2)]"
 					>
 						<div className="flex items-center gap-3">
 							<div
@@ -255,7 +255,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 							className="group block"
 						>
 							<div
-								className={`bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5 transition-all duration-250 relative overflow-hidden hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)] ${
+								className={`bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 relative overflow-hidden hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)] ${
 									sprint.status === "active"
 										? "ring-1 ring-emerald-500/20"
 										: ""

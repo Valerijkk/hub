@@ -128,7 +128,7 @@ export function RunExecutionPanel({
 						<button
 							key={btn.status}
 							className={cn(
-								"rounded-lg border px-3 py-2 text-xs font-semibold transition-all duration-150",
+								"rounded-lg border px-3 py-2 text-xs font-semibold transition-colors duration-150",
 								overallStatus === btn.status
 									? btn.activeColor
 									: cn("border-border text-t2", btn.color),

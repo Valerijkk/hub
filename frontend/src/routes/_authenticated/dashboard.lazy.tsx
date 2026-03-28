@@ -82,14 +82,14 @@ function PersonalDashboard() {
 				<div className="ml-auto flex items-center gap-2">
 					<button
 						type="button"
-						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-all"
+						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-colors"
 						title="Поиск (Ctrl+K)"
 					>
 						<Search className="h-4 w-4" />
 					</button>
 					<button
 						type="button"
-						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-all"
+						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-colors"
 						title="Уведомления"
 					>
 						<Bell className="h-4 w-4" />
@@ -124,7 +124,7 @@ function PersonalDashboard() {
 				<div className="flex gap-2.5 mb-7 flex-wrap dash-enter dash-enter-2">
 					<button
 						type="button"
-						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-all"
+						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-colors"
 						onClick={() => navigate({ to: "/projects" })}
 					>
 						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(91,156,245,.06)" }}>
@@ -134,7 +134,7 @@ function PersonalDashboard() {
 					</button>
 					<button
 						type="button"
-						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-all"
+						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-colors"
 						onClick={() => navigate({ to: "/messenger" })}
 					>
 						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(52,211,153,.06)" }}>
@@ -144,7 +144,7 @@ function PersonalDashboard() {
 					</button>
 					<button
 						type="button"
-						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-all"
+						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-colors"
 						onClick={() => navigate({ to: "/calls" })}
 					>
 						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(167,139,250,.06)" }}>
@@ -154,7 +154,7 @@ function PersonalDashboard() {
 					</button>
 					<button
 						type="button"
-						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-all"
+						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-colors"
 					>
 						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(255,255,255,.03)" }}>
 							<Search className="h-[18px] w-[18px]" style={{ color: "var(--t2)" }} />

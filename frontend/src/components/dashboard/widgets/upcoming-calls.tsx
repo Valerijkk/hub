@@ -67,7 +67,7 @@ export function UpcomingCallsWidget({ data }: Props) {
 					</span>
 					<button
 						type="button"
-						className={`shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-md transition-all ${
+						className={`shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors ${
 							i === 0
 								? "bg-gradient-to-r from-violet-600 to-purple-600 text-white btn-glow"
 								: "border border-white/[0.10] text-t2 hover:text-white hover:border-white/20"

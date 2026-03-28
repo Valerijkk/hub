@@ -360,7 +360,7 @@ function GifThumbnail({ gif, onClick }: GifThumbnailProps) {
 			type="button"
 			className={cn(
 				"block w-full rounded-md overflow-hidden cursor-pointer",
-				"transition-all duration-150",
+				"transition-[transform,filter,opacity] duration-150",
 				"hover:ring-2 hover:ring-primary/50 hover:scale-[1.02]",
 				"break-inside-avoid",
 			)}

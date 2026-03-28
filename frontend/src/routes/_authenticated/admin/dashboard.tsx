@@ -61,7 +61,7 @@ function AdminDashboard() {
 							key={tab.value}
 							type="button"
 							onClick={() => setActiveTab(tab.value)}
-							className={`px-[14px] py-[7px] text-[13px] font-medium text-t3 rounded-t-[var(--r2)] transition-all duration-200 cursor-pointer relative hover:text-t2 ${
+							className={`px-[14px] py-[7px] text-[13px] font-medium text-t3 rounded-t-[var(--r2)] transition-colors duration-200 cursor-pointer relative hover:text-t2 ${
 								activeTab === tab.value
 									? "text-t1 font-semibold after:absolute after:bottom-[-2px] after:left-1/4 after:right-1/4 after:h-[2px] after:bg-red after:rounded-[1px] after:shadow-[0_0_6px_var(--red)]"
 									: ""
@@ -114,7 +114,7 @@ function AdminDashboard() {
 /** KPI-карточка для быстрого обзора метрик. */
 function KpiCard({ label, value, change, color }: { label: string; value: string | number; change?: number; color?: string }) {
 	return (
-		<div className="admin-kpi bg-gradient-to-b from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r4)] p-5 transition-all duration-250 hover:border-b2 hover:shadow-[var(--sh2)] hover:-translate-y-[2px]">
+		<div className="admin-kpi bg-gradient-to-b from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r4)] p-5 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:border-b2 hover:shadow-[var(--sh2)] hover:-translate-y-[2px]">
 			<p className="text-[11px] font-bold uppercase tracking-[0.06em] text-t4 mb-2">{label}</p>
 			<div className="flex items-end gap-[10px]">
 				<span className="text-[30px] font-black tracking-[-0.03em]">{value}</span>

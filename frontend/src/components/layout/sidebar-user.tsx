@@ -29,10 +29,10 @@ export function SidebarUserProfile({
 				<img
 					src={user.avatar_url}
 					alt={displayName}
-					className="h-[34px] w-[34px] rounded-full object-cover shadow-[0_2px_12px_var(--gB)] group-hover:scale-[1.06] transition-all"
+					className="h-[34px] w-[34px] rounded-full object-cover shadow-[0_2px_12px_var(--gB)] group-hover:scale-[1.06] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 				/>
 			) : (
-				<div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[11.5px] font-bold text-white shadow-[0_2px_12px_var(--gB)] group-hover:scale-[1.06] transition-all">
+				<div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[11.5px] font-bold text-white shadow-[0_2px_12px_var(--gB)] group-hover:scale-[1.06] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]">
 					{initials}
 				</div>
 			)}

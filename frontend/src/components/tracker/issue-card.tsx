@@ -176,7 +176,7 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 					{/* Meta row: priority dot + SP + checklist */}
 					<div className="flex items-center gap-2">
 						<span
-							className="w-2 h-2 rounded-[3px] transition-all hover:shadow-[0_0_10px_currentColor] hover:scale-125"
+							className="w-2 h-2 rounded-[3px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] hover:shadow-[0_0_10px_currentColor] hover:scale-125"
 							style={{ backgroundColor: priority.color, color: priority.color }}
 						/>
 

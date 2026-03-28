@@ -107,7 +107,7 @@ export function CallReactionBar({ onClose }: CallReactionBarProps) {
 						onClick={() => void sendReaction(emoji)}
 						className={cn(
 							"flex h-10 w-10 items-center justify-center rounded-xl text-xl",
-							"transition-all duration-150",
+							"transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-150",
 							"hover:bg-white/10 hover:scale-125",
 							"active:scale-95",
 						)}

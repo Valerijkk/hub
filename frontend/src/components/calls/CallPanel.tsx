@@ -24,7 +24,7 @@ export function CallPanel() {
 	return (
 		<div
 			className={cn(
-				"fixed z-50 overflow-hidden shadow-2xl transition-all duration-500 ease-out",
+				"fixed z-50 overflow-hidden shadow-2xl transition-[inset,border-radius,box-shadow,width,height] duration-500 ease-out",
 				isFullscreen
 					? "inset-0 rounded-none"
 					: "bottom-4 right-4 h-[650px] w-[800px] rounded-2xl ring-1 ring-white/10 shadow-[0_0_40px_rgba(59,130,246,0.15)]",
@@ -58,7 +58,7 @@ export function CallPanel() {
 							"absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center",
 							"rounded-lg bg-white/5 text-white/60",
 							"hover:bg-white/15 hover:text-white hover:scale-105",
-							"transition-all duration-200 backdrop-blur-sm",
+							"transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 backdrop-blur-sm",
 						)}
 						title={isFullscreen ? "Свернуть" : "На весь экран"}
 					>

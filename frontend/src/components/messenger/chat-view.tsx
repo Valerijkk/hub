@@ -343,7 +343,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 								"h-10 w-10 rounded-full",
 								"bg-card/90 backdrop-blur-md border border-border/60 shadow-lg",
 								"text-t1 hover:bg-accent",
-								"transition-all animate-fade-in",
+								"transition-colors animate-fade-in",
 							)}
 						>
 							<svg

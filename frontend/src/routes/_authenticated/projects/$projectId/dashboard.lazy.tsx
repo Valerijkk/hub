@@ -60,7 +60,7 @@ function ProjectDashboard() {
 								setTemplate(key);
 								setLayout("project", TEMPLATES[key] ?? projectDev);
 							}}
-							className={`px-3 py-1 text-[13px] font-semibold rounded-[var(--r2)] border transition-all duration-200 ${
+							className={`px-3 py-1 text-[13px] font-semibold rounded-[var(--r2)] border transition-colors duration-200 ${
 								template === key
 									? "bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white border-blue/30"
 									: "border-b1 text-t2 hover:bg-[var(--hover)] hover:text-t1"

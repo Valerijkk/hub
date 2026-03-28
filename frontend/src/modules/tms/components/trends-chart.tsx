@@ -18,28 +18,28 @@ function StatusBar({ point }: { point: TrendPoint }) {
 		<div className="flex h-6 w-full overflow-hidden rounded">
 			{pPassed > 0 && (
 				<div
-					className="bg-green-500 transition-all"
+					className="bg-green-500 transition-[width]"
 					style={{ width: `${pPassed}%` }}
 					title={`Passed: ${passed}`}
 				/>
 			)}
 			{pFailed > 0 && (
 				<div
-					className="bg-red-500 transition-all"
+					className="bg-red-500 transition-[width]"
 					style={{ width: `${pFailed}%` }}
 					title={`Failed: ${failed}`}
 				/>
 			)}
 			{pBroken > 0 && (
 				<div
-					className="bg-orange-500 transition-all"
+					className="bg-orange-500 transition-[width]"
 					style={{ width: `${pBroken}%` }}
 					title={`Broken: ${broken}`}
 				/>
 			)}
 			{pSkipped > 0 && (
 				<div
-					className="bg-yellow-400 transition-all"
+					className="bg-yellow-400 transition-[width]"
 					style={{ width: `${pSkipped}%` }}
 					title={`Skipped: ${skipped}`}
 				/>

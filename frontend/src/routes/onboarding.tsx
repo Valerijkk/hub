@@ -226,7 +226,7 @@ function OnboardingPage() {
 						<div key={i} className="flex items-center">
 							<div className="flex items-center gap-3">
 								<div
-									className={`w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-extrabold border-2 transition-all duration-350 ${
+									className={`w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-extrabold border-2 transition-[box-shadow] duration-350 ${
 										i < step
 											? "border-green bg-green text-white shadow-[0_0_12px_var(--gG)]"
 											: i === step
@@ -285,7 +285,7 @@ function OnboardingPage() {
 
 						{/* Avatar upload */}
 						<div className="flex flex-col items-center mb-[30px]">
-							<div className="w-24 h-24 rounded-full bg-input border-2 border-dashed border-b2 flex items-center justify-center cursor-pointer transition-all duration-250 mb-2 hover:border-blue hover:bg-blue/[0.04] hover:scale-105">
+							<div className="w-24 h-24 rounded-full bg-input border-2 border-dashed border-b2 flex items-center justify-center cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 mb-2 hover:border-blue hover:bg-blue/[0.04] hover:scale-105">
 								<svg
 									className="w-8 h-8 text-t3"
 									viewBox="0 0 24 24"
@@ -314,7 +314,7 @@ function OnboardingPage() {
 										setProfile((p) => ({ ...p, name: e.target.value }))
 									}
 									autoFocus
-									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 							<div>
@@ -323,7 +323,7 @@ function OnboardingPage() {
 								</label>
 								<input
 									placeholder="Иванов"
-									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 							<div>
@@ -337,7 +337,7 @@ function OnboardingPage() {
 									onChange={(e) =>
 										setProfile((p) => ({ ...p, position: e.target.value }))
 									}
-									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 							<div>
@@ -351,7 +351,7 @@ function OnboardingPage() {
 									onChange={(e) =>
 										setProfile((p) => ({ ...p, department: e.target.value }))
 									}
-									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-all duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</div>
 							<div>
@@ -380,7 +380,7 @@ function OnboardingPage() {
 							<button
 								type="button"
 								onClick={() => setStep((s) => s + 1)}
-								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-all duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
+								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
 							>
 								Далее &rarr;
 							</button>
@@ -402,7 +402,7 @@ function OnboardingPage() {
 							{MODULES.map((module, idx) => (
 								<div
 									key={module.key}
-									className="onb-tour-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-6 text-center transition-all duration-250 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)] hover:border-b2 animate-[eu_400ms_var(--spring)_both]"
+									className="onb-tour-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-6 text-center transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)] hover:border-b2 animate-[eu_400ms_var(--spring)_both]"
 									style={{ animationDelay: `${idx * 60}ms` }}
 								>
 									<div
@@ -426,14 +426,14 @@ function OnboardingPage() {
 							<button
 								type="button"
 								onClick={() => setStep((s) => s - 1)}
-								className="px-5 py-[10px] rounded-[var(--r2)] text-[14px] font-semibold text-t2 border border-b2 transition-all duration-200 hover:bg-[var(--hover)] hover:text-t1"
+								className="px-5 py-[10px] rounded-[var(--r2)] text-[14px] font-semibold text-t2 border border-b2 transition-colors duration-200 hover:bg-[var(--hover)] hover:text-t1"
 							>
 								&larr; Назад
 							</button>
 							<button
 								type="button"
 								onClick={() => setStep((s) => s + 1)}
-								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-all duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
+								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
 							>
 								Далее &rarr;
 							</button>
@@ -466,7 +466,7 @@ function OnboardingPage() {
 								<button
 									key={opt.value}
 									type="button"
-									className={`flex-1 p-[18px] bg-card border-2 rounded-[var(--r3)] text-center cursor-pointer transition-all duration-250 hover:border-b2 ${
+									className={`flex-1 p-[18px] bg-card border-2 rounded-[var(--r3)] text-center cursor-pointer transition-colors duration-250 hover:border-b2 ${
 										theme === opt.value
 											? "border-blue shadow-[0_0_0_3px_rgba(91,156,245,0.1),_0_0_20px_rgba(91,156,245,0.06)]"
 											: "border-b1"
@@ -494,7 +494,7 @@ function OnboardingPage() {
 							{accentColors.map((ac, idx) => (
 								<div
 									key={idx}
-									className={`w-11 h-11 rounded-full cursor-pointer transition-all duration-220 border-[3px] hover:scale-[1.18] ${
+									className={`w-11 h-11 rounded-full cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 border-[3px] hover:scale-[1.18] ${
 										accent === idx
 											? "border-white/40 shadow-[0_0_0_3px_currentColor,_0_0_20px_currentColor]"
 											: "border-transparent"
@@ -510,7 +510,7 @@ function OnboardingPage() {
 							<button
 								type="button"
 								onClick={() => setStep((s) => s - 1)}
-								className="px-5 py-[10px] rounded-[var(--r2)] text-[14px] font-semibold text-t2 border border-b2 transition-all duration-200 hover:bg-[var(--hover)] hover:text-t1"
+								className="px-5 py-[10px] rounded-[var(--r2)] text-[14px] font-semibold text-t2 border border-b2 transition-colors duration-200 hover:bg-[var(--hover)] hover:text-t1"
 							>
 								&larr; Назад
 							</button>
@@ -518,7 +518,7 @@ function OnboardingPage() {
 								type="button"
 								onClick={handleComplete}
 								disabled={loading}
-								className="onb-btn-go px-8 py-3 rounded-[var(--r2)] text-[15px] font-extrabold bg-gradient-to-br from-[var(--greenS)] to-[#047857] text-white shadow-[0_0_24px_var(--gG)] transition-all duration-220 relative overflow-hidden hover:shadow-[0_0_36px_rgba(52,211,153,0.3)] hover:-translate-y-px active:scale-[0.96]"
+								className="onb-btn-go px-8 py-3 rounded-[var(--r2)] text-[15px] font-extrabold bg-gradient-to-br from-[var(--greenS)] to-[#047857] text-white shadow-[0_0_24px_var(--gG)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 relative overflow-hidden hover:shadow-[0_0_36px_rgba(52,211,153,0.3)] hover:-translate-y-px active:scale-[0.96]"
 							>
 								{loading ? "Сохранение..." : "Начать работу →"}
 							</button>

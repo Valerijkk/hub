@@ -195,7 +195,7 @@ function TestRunDetailPage() {
 					<div
 						key={card.label}
 						className={cn(
-							"rounded-[var(--r3)] border p-5 text-center transition-all duration-[250ms] hover:-translate-y-[2px] hover:shadow-[var(--sh2)]",
+							"rounded-[var(--r3)] border p-5 text-center transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-[250ms] hover:-translate-y-[2px] hover:shadow-[var(--sh2)]",
 							card.bgColor,
 							card.borderColor,
 						)}

@@ -320,7 +320,7 @@ interface LabelRowProps {
 /** Строка метки в списке с цветовой индикацией и кнопкой удаления. */
 function LabelRow({ label, onDelete }: LabelRowProps) {
 	return (
-		<div className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 mb-2 hover:border-b2 transition-all duration-200">
+		<div className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 mb-2 hover:border-b2 transition-colors duration-200">
 			<div className="flex items-center gap-2">
 				<div
 					className="h-4 w-4 rounded-full hover:shadow-[0_0_8px_currentColor]"

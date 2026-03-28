@@ -439,7 +439,7 @@ function WeekView({
 										return (
 											<div
 												key={ev.id}
-												className={`absolute left-1 right-1 rounded-[var(--r1)] px-2 py-[5px] text-[11.5px] font-semibold cursor-pointer transition-all duration-200 overflow-hidden z-[2] hover:brightness-[1.15] hover:scale-[1.02] hover:z-[3] hover:shadow-[var(--sh2)] ${ev.colorClass}`}
+												className={`absolute left-1 right-1 rounded-[var(--r1)] px-2 py-[5px] text-[11.5px] font-semibold cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 overflow-hidden z-[2] hover:brightness-[1.15] hover:scale-[1.02] hover:z-[3] hover:shadow-[var(--sh2)] ${ev.colorClass}`}
 												style={{
 													top: `${topOffset}%`,
 													height: `${Math.min(height, 100 - topOffset)}%`,
@@ -963,7 +963,7 @@ export function CallCalendar() {
 						<button
 							type="button"
 							onClick={handleNavigatePrev}
-							className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 transition-all duration-180 hover:bg-[var(--hover)] hover:border-b2 hover:text-t1 text-[16px]"
+							className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 transition-colors duration-180 hover:bg-[var(--hover)] hover:border-b2 hover:text-t1 text-[16px]"
 						>
 							<ChevronLeft className="h-4 w-4" />
 						</button>
@@ -973,14 +973,14 @@ export function CallCalendar() {
 						<button
 							type="button"
 							onClick={handleNavigateNext}
-							className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 transition-all duration-180 hover:bg-[var(--hover)] hover:border-b2 hover:text-t1 text-[16px]"
+							className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 transition-colors duration-180 hover:bg-[var(--hover)] hover:border-b2 hover:text-t1 text-[16px]"
 						>
 							<ChevronRight className="h-4 w-4" />
 						</button>
 						<button
 							type="button"
 							onClick={handleNavigateToday}
-							className="px-[14px] py-[5px] rounded-full border border-b1 text-[12px] font-semibold text-t2 transition-all duration-180 hover:border-purple hover:text-purple"
+							className="px-[14px] py-[5px] rounded-full border border-b1 text-[12px] font-semibold text-t2 transition-colors duration-180 hover:border-purple hover:text-purple"
 						>
 							{t("calendarToday", { defaultValue: "Сегодня" })}
 						</button>
@@ -1004,7 +1004,7 @@ export function CallCalendar() {
 					).map((tab) => (
 						<button
 							key={tab.key}
-							className={`px-3 py-[5px] text-[12px] font-semibold rounded-[var(--r1)] transition-all duration-180 ${
+							className={`px-3 py-[5px] text-[12px] font-semibold rounded-[var(--r1)] transition-colors duration-180 ${
 								view === tab.key
 									? "bg-card text-t1 shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
 									: "text-t3 hover:text-t2"
@@ -1023,7 +1023,7 @@ export function CallCalendar() {
 						setSelectedEvent(null);
 						setDialogOpen(true);
 					}}
-					className="calls-btn-p inline-flex items-center gap-[7px] px-[14px] py-[5px] rounded-[var(--r2)] text-[12px] font-semibold bg-gradient-to-br from-[var(--purpleS)] to-[#6d28d9] text-white shadow-[0_0_12px_var(--gP)] transition-all duration-180 hover:shadow-[0_0_20px_rgba(167,139,250,0.3)] hover:-translate-y-px relative overflow-hidden"
+					className="calls-btn-p inline-flex items-center gap-[7px] px-[14px] py-[5px] rounded-[var(--r2)] text-[12px] font-semibold bg-gradient-to-br from-[var(--purpleS)] to-[#6d28d9] text-white shadow-[0_0_12px_var(--gP)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-180 hover:shadow-[0_0_20px_rgba(167,139,250,0.3)] hover:-translate-y-px relative overflow-hidden"
 				>
 					<Plus className="mr-1 h-3.5 w-3.5" />
 					{t("calendarNewCall", { defaultValue: "Запланировать" })}

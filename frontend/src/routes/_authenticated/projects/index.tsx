@@ -186,7 +186,7 @@ function ProjectsPage() {
 							className="group block animate-fade-in-up"
 							style={{ animationDelay: `${index * 50}ms` }}
 						>
-							<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5 transition-all duration-250 relative overflow-hidden hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)]">
+							<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 relative overflow-hidden hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)]">
 								<div className="flex items-start justify-between gap-2 mb-3">
 									<div className="flex items-center gap-3 min-w-0 flex-1">
 										{/* Иконка проекта — ключ проекта */}

@@ -469,7 +469,7 @@ function TestCaseDetailPage() {
 									<button
 										key={tab.id}
 										className={cn(
-											"relative px-4 py-2 text-sm font-medium transition-all duration-200 border-b-2",
+											"relative px-4 py-2 text-sm font-medium transition-colors duration-200 border-b-2",
 											activeTab === tab.id
 												? "border-primary text-primary"
 												: "border-transparent text-t2 hover:text-t1 hover:border-t2/30",

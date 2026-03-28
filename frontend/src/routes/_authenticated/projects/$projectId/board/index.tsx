@@ -216,7 +216,7 @@ function BoardPage() {
 
 				<Input
 					placeholder="Поиск задач..."
-					className="w-[220px] h-[34px] pl-9 pr-3 bg-[var(--input)] border border-transparent rounded-[var(--r2)] text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] focus:border-[rgba(91,156,245,.25)] focus:bg-[var(--card)] transition-all outline-none"
+					className="w-[220px] h-[34px] pl-9 pr-3 bg-[var(--input)] border border-transparent rounded-[var(--r2)] text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] focus:border-[rgba(91,156,245,.25)] focus:bg-[var(--card)] transition-colors outline-none"
 					value={filters.search ?? ""}
 					onChange={(e) => setFilters({ search: e.target.value || undefined })}
 				/>
@@ -247,7 +247,7 @@ function BoardPage() {
 					<Link
 						to="/projects/$projectId/issues/new"
 						params={{ projectId }}
-						className="inline-flex items-center gap-[7px] px-[18px] py-2 rounded-[var(--r2)] text-[13px] font-semibold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] hover:shadow-[0_0_32px_rgba(91,156,245,.3)] hover:-translate-y-px active:scale-[.96] transition-all relative overflow-hidden"
+						className="inline-flex items-center gap-[7px] px-[18px] py-2 rounded-[var(--r2)] text-[13px] font-semibold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] hover:shadow-[0_0_32px_rgba(91,156,245,.3)] hover:-translate-y-px active:scale-[.96] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] relative overflow-hidden"
 					>
 						<svg
 							className="h-3.5 w-3.5"

@@ -76,7 +76,7 @@ export function BoardColumn({
 				<Link
 					to="/projects/$projectId/issues/new"
 					params={{ projectId }}
-					className="ml-auto w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-[var(--t4)] hover:bg-[var(--hover)] hover:text-[var(--t1)] hover:scale-[1.12] transition-all"
+					className="ml-auto w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-[var(--t4)] hover:bg-[var(--hover)] hover:text-[var(--t1)] hover:scale-[1.12] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 				>
 					<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 						<line x1="12" y1="5" x2="12" y2="19" />

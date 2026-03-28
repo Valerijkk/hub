@@ -59,7 +59,7 @@ export function IssueSidebarMeta({
 					value={issue.status.id}
 					onValueChange={(v) => onUpdateField({ status_id: v })}
 				>
-					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
+					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -82,7 +82,7 @@ export function IssueSidebarMeta({
 					value={issue.priority}
 					onValueChange={(v) => onUpdateField({ priority: v })}
 				>
-					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
+					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -110,7 +110,7 @@ export function IssueSidebarMeta({
 			<div className="mb-[18px]">
 				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Исполнитель</div>
 				{issue.assignee ? (
-					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px]">
+					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px]">
 						<Avatar className="h-7 w-7">
 							<AvatarImage src={issue.assignee.avatar_url} />
 							<AvatarFallback className="text-[11px] font-bold text-white bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)]">
@@ -128,7 +128,7 @@ export function IssueSidebarMeta({
 			<div className="mb-[18px]">
 				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Автор</div>
 				{issue.reporter ? (
-					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px]">
+					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px]">
 						<Avatar className="h-7 w-7">
 							<AvatarImage src={issue.reporter.avatar_url} />
 							<AvatarFallback className="text-[11px] font-bold text-white bg-gradient-to-br from-[var(--greenS)] to-[#047857]">
@@ -173,7 +173,7 @@ export function IssueSidebarMeta({
 						})
 					}
 				>
-					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
+					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -205,7 +205,7 @@ export function IssueSidebarMeta({
 					<Link
 						to="/projects/$projectId/issues/$issueKey"
 						params={{ projectId, issueKey: issue.parent.issue_key }}
-						className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-all duration-180 hover:bg-[var(--hover)] text-[14px] text-blue"
+						className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px] text-blue"
 					>
 						{issue.parent.issue_key}: {issue.parent.title}
 					</Link>

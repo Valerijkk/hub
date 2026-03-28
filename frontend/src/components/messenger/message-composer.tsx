@@ -457,7 +457,7 @@ export function MessageComposer({
 					<button
 						type="button"
 						onClick={() => setReplyTo(null)}
-						className="w-[26px] h-[26px] flex items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t1)] hover:rotate-90 transition-all"
+						className="w-[26px] h-[26px] flex items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t1)] hover:rotate-90 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 						title="Отменить ответ"
 					>
 						<svg
@@ -534,7 +534,7 @@ export function MessageComposer({
 			) : (
 				/* Rounded container with all controls inside */
 				<div
-					className="flex items-end gap-1 bg-[var(--card)] border border-[var(--b1)] rounded-[var(--r4)] px-4 py-1.5 transition-all relative overflow-hidden focus-within:border-[rgba(52,211,153,.25)] focus-within:shadow-[0_0_0_3px_rgba(52,211,153,.05),0_0_24px_rgba(52,211,153,.04)]"
+					className="flex items-end gap-1 bg-[var(--card)] border border-[var(--b1)] rounded-[var(--r4)] px-4 py-1.5 transition-[box-shadow] relative overflow-hidden focus-within:border-[rgba(52,211,153,.25)] focus-within:shadow-[0_0_0_3px_rgba(52,211,153,.05),0_0_24px_rgba(52,211,153,.04)]"
 				>
 					{/* Top highlight */}
 					<div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.03] to-transparent" />
@@ -553,7 +553,7 @@ export function MessageComposer({
 					<button
 						type="button"
 						className={cn(
-							"w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-all",
+							"w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]",
 							isUploading && "animate-pulse",
 						)}
 						title="Прикрепить файл"
@@ -602,7 +602,7 @@ export function MessageComposer({
 						<PopoverTrigger asChild>
 							<button
 								type="button"
-								className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-all"
+								className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 								title="Эмодзи"
 							>
 								<svg
@@ -650,7 +650,7 @@ export function MessageComposer({
 					{/* Poll button */}
 					<button
 						type="button"
-						className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-all"
+						className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 						title="Опрос"
 						onClick={() => setShowPollDialog(true)}
 					>
@@ -672,7 +672,7 @@ export function MessageComposer({
 					{/* Voice recorder button */}
 					<button
 						type="button"
-						className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-all"
+						className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 						title="Голосовое сообщение"
 						onClick={() => setShowVoice(true)}
 					>
@@ -695,7 +695,7 @@ export function MessageComposer({
 					<button
 						type="button"
 						className={cn(
-							"w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] shrink-0 transition-all",
+							"w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] shrink-0 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]",
 							hasContent
 								? "bg-gradient-to-br from-[var(--green)] to-[var(--greenS)] text-white shadow-[0_2px_12px_var(--gG)] hover:scale-[1.08] hover:shadow-[0_4px_20px_rgba(52,211,153,.25)] active:scale-[0.92]"
 								: "bg-[var(--input)] text-[var(--t4)]",
