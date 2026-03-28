@@ -9,11 +9,11 @@ const PRIORITY_CONFIG: Record<
 	string,
 	{ color: string; label: string }
 > = {
-	critical: { color: "#ef4444", label: "Критический" },
-	high: { color: "#f97316", label: "Высокий" },
-	medium: { color: "#eab308", label: "Средний" },
-	low: { color: "#3b82f6", label: "Низкий" },
-	trivial: { color: "#9ca3af", label: "Тривиальный" },
+	critical: { color: "var(--red)", label: "Критический" },
+	high: { color: "var(--orange)", label: "Высокий" },
+	medium: { color: "var(--amber)", label: "Средний" },
+	low: { color: "var(--blue)", label: "Низкий" },
+	trivial: { color: "var(--gray)", label: "Тривиальный" },
 };
 
 /** Конфигурация типов задач — SVG-иконки с цветами для лучшей читаемости. */

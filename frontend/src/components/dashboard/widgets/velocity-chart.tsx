@@ -64,8 +64,8 @@ export function VelocityChartWidget({ data }: Props) {
 			<BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
 				<defs>
 					<linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
-						<stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-						<stop offset="95%" stopColor="#10b981" stopOpacity={0.4} />
+						<stop offset="5%" stopColor="var(--green)" stopOpacity={0.8} />
+						<stop offset="95%" stopColor="var(--green)" stopOpacity={0.4} />
 					</linearGradient>
 				</defs>
 				<CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} vertical={false} />

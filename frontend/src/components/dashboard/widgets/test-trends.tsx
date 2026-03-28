@@ -64,8 +64,8 @@ export function TestTrendsWidget({ data }: Props) {
 			<AreaChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
 				<defs>
 					<linearGradient id="testTrendsGradient" x1="0" y1="0" x2="0" y2="1">
-						<stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
-						<stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+						<stop offset="5%" stopColor="var(--purple)" stopOpacity={0.2} />
+						<stop offset="95%" stopColor="var(--purple)" stopOpacity={0} />
 					</linearGradient>
 				</defs>
 				<CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} vertical={false} />
@@ -86,7 +86,7 @@ export function TestTrendsWidget({ data }: Props) {
 				<Area
 					type="monotone"
 					dataKey="passRate"
-					stroke="#8b5cf6"
+					stroke="var(--purple)"
 					strokeWidth={2}
 					fill="url(#testTrendsGradient)"
 					name="Pass Rate"

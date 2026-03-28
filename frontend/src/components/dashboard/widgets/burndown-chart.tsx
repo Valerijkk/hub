@@ -64,8 +64,8 @@ export function BurndownChartWidget({ data }: Props) {
 			<AreaChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
 				<defs>
 					<linearGradient id="burndownGradient" x1="0" y1="0" x2="0" y2="1">
-						<stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-						<stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+						<stop offset="5%" stopColor="var(--blue)" stopOpacity={0.2} />
+						<stop offset="95%" stopColor="var(--blue)" stopOpacity={0} />
 					</linearGradient>
 				</defs>
 				<CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} vertical={false} />
@@ -84,7 +84,7 @@ export function BurndownChartWidget({ data }: Props) {
 				<Area
 					type="monotone"
 					dataKey="completed"
-					stroke="#3b82f6"
+					stroke="var(--blue)"
 					strokeWidth={2}
 					fill="url(#burndownGradient)"
 					name="Завершено"

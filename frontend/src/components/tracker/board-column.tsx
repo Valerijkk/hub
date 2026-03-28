@@ -65,7 +65,7 @@ export function BoardColumn({
 			<div className="group flex items-center gap-[9px] px-1.5 py-2.5 mb-2.5">
 				<span
 					className="w-[9px] h-[9px] rounded-full transition-[box-shadow] group-hover:shadow-[0_0_12px_currentColor]"
-					style={{ backgroundColor: status.color || "#6b7280", color: status.color || "#6b7280" }}
+					style={{ backgroundColor: status.color || "var(--gray)", color: status.color || "var(--gray)" }}
 				/>
 				<span className="text-[13.5px] font-bold tracking-[-0.01em]">
 					{status.name}

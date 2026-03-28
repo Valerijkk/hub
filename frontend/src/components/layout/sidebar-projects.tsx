@@ -12,7 +12,7 @@ import { useSidebarStore } from "@/stores/sidebar-store";
 import { SidebarLink } from "./sidebar-link";
 
 /** Цвета точек проектов. */
-const PROJECT_DOT_COLORS = ["#3B82F6", "#8B5CF6", "#10B981", "#F59E0B"] as const;
+const PROJECT_DOT_COLORS = ["var(--blue)", "var(--purple)", "var(--green)", "var(--amber)"] as const;
 
 /** Подменю модулей проекта (Доска, Задачи, TMS, Бэклог, Спринты). */
 interface ProjectSubNavItem {

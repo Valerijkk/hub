@@ -356,7 +356,7 @@ function StatusRow({ status }: StatusRowProps) {
 			<div className="flex items-center gap-3">
 				<div
 					className="h-4 w-4 rounded-full hover:shadow-[0_0_8px_currentColor]"
-					style={{ backgroundColor: status.color || "#6b7280" }}
+					style={{ backgroundColor: status.color || "var(--gray)" }}
 				/>
 				<span className="text-[13px] font-medium text-t1">{status.name}</span>
 				<Badge variant="secondary" className="text-xs">

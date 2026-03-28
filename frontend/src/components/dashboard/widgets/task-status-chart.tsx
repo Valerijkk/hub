@@ -14,11 +14,11 @@ import type { ProjectStats } from "@/api/dashboard";
 
 /** Status colors. */
 const STATUS_COLORS = [
-	"#3b82f6",
-	"#10b981",
-	"#f59e0b",
-	"#ef4444",
-	"#8b5cf6",
+	"var(--blue)",
+	"var(--green)",
+	"var(--amber)",
+	"var(--red)",
+	"var(--purple)",
 	"#6366f1",
 	"#ec4899",
 	"#14b8a6",

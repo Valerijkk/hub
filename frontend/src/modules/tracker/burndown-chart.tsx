@@ -72,12 +72,12 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 						>
 							<stop
 								offset="5%"
-								stopColor="#94a3b8"
+								stopColor="var(--gray)"
 								stopOpacity={0.15}
 							/>
 							<stop
 								offset="95%"
-								stopColor="#94a3b8"
+								stopColor="var(--gray)"
 								stopOpacity={0}
 							/>
 						</linearGradient>
@@ -90,12 +90,12 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 						>
 							<stop
 								offset="5%"
-								stopColor="#3b82f6"
+								stopColor="var(--blue)"
 								stopOpacity={0.2}
 							/>
 							<stop
 								offset="95%"
-								stopColor="#3b82f6"
+								stopColor="var(--blue)"
 								stopOpacity={0}
 							/>
 						</linearGradient>
@@ -106,7 +106,7 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 					/>
 					<XAxis
 						dataKey="date"
-						tick={{ fontSize: 12, fill: "#71717a" }}
+						tick={{ fontSize: 12, fill: "var(--t3)" }}
 						tickFormatter={(v: string) => {
 							const d = new Date(v);
 							return `${d.getDate()}.${d.getMonth() + 1}`;
@@ -115,7 +115,7 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 						tickLine={false}
 					/>
 					<YAxis
-						tick={{ fontSize: 12, fill: "#71717a" }}
+						tick={{ fontSize: 12, fill: "var(--t3)" }}
 						axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
 						tickLine={false}
 					/>
@@ -124,22 +124,22 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 							new Date(String(label)).toLocaleDateString()
 						}
 						contentStyle={{
-							background: "rgba(24, 24, 27, 0.95)",
-							border: "1px solid rgba(255,255,255,0.08)",
+							background: "var(--raised)",
+							border: "1px solid var(--b2)",
 							borderRadius: "12px",
 							boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
 							fontSize: "13px",
 						}}
-						itemStyle={{ color: "#d4d4d8" }}
-						labelStyle={{ color: "#a1a1aa", marginBottom: "4px" }}
+						itemStyle={{ color: "var(--t2)" }}
+						labelStyle={{ color: "var(--t3)", marginBottom: "4px" }}
 					/>
 					<Legend
-						wrapperStyle={{ fontSize: "12px", color: "#71717a" }}
+						wrapperStyle={{ fontSize: "12px", color: "var(--t3)" }}
 					/>
 					<Area
 						type="monotone"
 						dataKey="ideal"
-						stroke="#94a3b8"
+						stroke="var(--gray)"
 						fill="url(#burndown-ideal)"
 						strokeDasharray="5 5"
 						strokeWidth={1.5}
@@ -148,7 +148,7 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 					<Area
 						type="monotone"
 						dataKey="remaining"
-						stroke="#3b82f6"
+						stroke="var(--blue)"
 						fill="url(#burndown-remaining)"
 						strokeWidth={2}
 						name="Фактический"

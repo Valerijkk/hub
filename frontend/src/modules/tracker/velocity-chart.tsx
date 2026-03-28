@@ -68,38 +68,38 @@ export function VelocityChart({ projectId }: VelocityChartProps) {
 					/>
 					<XAxis
 						dataKey="sprint_name"
-						tick={{ fontSize: 12, fill: "#71717a" }}
+						tick={{ fontSize: 12, fill: "var(--t3)" }}
 						axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
 						tickLine={false}
 					/>
 					<YAxis
-						tick={{ fontSize: 12, fill: "#71717a" }}
+						tick={{ fontSize: 12, fill: "var(--t3)" }}
 						axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
 						tickLine={false}
 					/>
 					<Tooltip
 						contentStyle={{
-							background: "rgba(24, 24, 27, 0.95)",
-							border: "1px solid rgba(255,255,255,0.08)",
+							background: "var(--raised)",
+							border: "1px solid var(--b2)",
 							borderRadius: "12px",
 							boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
 							fontSize: "13px",
 						}}
-						itemStyle={{ color: "#d4d4d8" }}
-						labelStyle={{ color: "#a1a1aa", marginBottom: "4px" }}
+						itemStyle={{ color: "var(--t2)" }}
+						labelStyle={{ color: "var(--t3)", marginBottom: "4px" }}
 					/>
 					<Legend
-						wrapperStyle={{ fontSize: "12px", color: "#71717a" }}
+						wrapperStyle={{ fontSize: "12px", color: "var(--t3)" }}
 					/>
 					<Bar
 						dataKey="committed"
-						fill="#94a3b8"
+						fill="var(--gray)"
 						name="Запланировано"
 						radius={[4, 4, 0, 0]}
 					/>
 					<Bar
 						dataKey="completed"
-						fill="#3b82f6"
+						fill="var(--blue)"
 						name="Завершено"
 						radius={[4, 4, 0, 0]}
 					/>
