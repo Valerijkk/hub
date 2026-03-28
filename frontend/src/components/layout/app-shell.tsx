@@ -34,7 +34,7 @@ export function AppShell() {
 
 	return (
 		<TooltipProvider delayDuration={300}>
-			<div className="flex h-screen overflow-hidden bg-background">
+			<div className="flex h-screen overflow-hidden bg-base">
 				{/* Mobile overlay для sidebar */}
 				{mobileMenuOpen && (
 					<div
@@ -60,10 +60,8 @@ export function AppShell() {
 
 				{/* Основной контент */}
 				<div className="flex flex-1 flex-col overflow-hidden">
-					<div className="md:hidden">
-						<Topbar onMenuToggle={() => setMobileMenuOpen((v) => !v)} />
-					</div>
-					<main className="flex-1 overflow-y-auto px-4 py-4 pb-20 md:px-6 md:pb-6">
+					<Topbar onMenuToggle={() => setMobileMenuOpen((v) => !v)} />
+					<main className="flex-1 overflow-y-auto px-4 py-4 pb-20 md:px-6 md:py-6 md:pb-6">
 						<Outlet />
 					</main>
 				</div>
