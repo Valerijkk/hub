@@ -55,7 +55,7 @@ export function MyTasksWidget({ data }: Props) {
 
 	if (tasks.length === 0) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-t2">
 				<Inbox className="h-8 w-8 opacity-40" />
 				<p className="text-sm">Нет активных задач</p>
 				<p className="text-xs opacity-60">
@@ -78,7 +78,7 @@ export function MyTasksWidget({ data }: Props) {
 							className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_COLORS[task.priority] ?? "bg-slate-400"}`}
 							title={PRIORITY_LABELS[task.priority] ?? ""}
 						/>
-						<span className="font-mono text-[11px] text-muted-foreground/70 shrink-0 tracking-wide">
+						<span className="font-mono text-[11px] text-t2/70 shrink-0 tracking-wide">
 							{task.key}
 						</span>
 						<span className="truncate text-[13px]">{task.title}</span>

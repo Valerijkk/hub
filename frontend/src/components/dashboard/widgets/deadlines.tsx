@@ -34,7 +34,7 @@ export function DeadlinesWidget({ data }: Props) {
 
 	if (deadlines.length === 0) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-t2">
 				<CalendarCheck className="h-8 w-8 opacity-40" />
 				<p className="text-sm">Нет ближайших дедлайнов</p>
 				<p className="text-xs opacity-60">Все сроки в порядке</p>
@@ -54,10 +54,10 @@ export function DeadlinesWidget({ data }: Props) {
 						className="group flex items-center justify-between gap-2 rounded-lg border border-border/50 p-2.5 text-sm transition-colors duration-150 hover:bg-accent/50"
 					>
 						<div className="flex items-center gap-2.5 min-w-0">
-							<CalendarClock className={`h-4 w-4 shrink-0 ${days !== null && days <= 1 ? "text-red-500" : "text-muted-foreground"}`} />
+							<CalendarClock className={`h-4 w-4 shrink-0 ${days !== null && days <= 1 ? "text-red-500" : "text-t2"}`} />
 							<div className="min-w-0">
 								<p className="truncate">
-									<span className="font-mono text-xs text-muted-foreground mr-1.5">
+									<span className="font-mono text-xs text-t2 mr-1.5">
 										{task.key}
 									</span>
 									{task.title}

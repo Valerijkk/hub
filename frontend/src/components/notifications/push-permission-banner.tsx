@@ -63,7 +63,7 @@ export function PushPermissionBanner() {
 			</div>
 			<div className="flex-1 space-y-2">
 				<p className="text-sm font-medium">Включить уведомления?</p>
-				<p className="text-xs text-muted-foreground">
+				<p className="text-xs text-t2">
 					Получайте мгновенные уведомления о задачах, сообщениях и звонках прямо
 					в браузере.
 				</p>
@@ -79,7 +79,7 @@ export function PushPermissionBanner() {
 			<button
 				type="button"
 				onClick={handleDismiss}
-				className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground"
+				className="shrink-0 rounded p-0.5 text-t2 hover:text-t1"
 				aria-label="Закрыть"
 			>
 				<X className="h-4 w-4" />

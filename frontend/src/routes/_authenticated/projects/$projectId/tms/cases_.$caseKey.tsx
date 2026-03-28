@@ -273,12 +273,12 @@ function TestCaseDetailPage() {
 					<Link
 						to="/projects/$projectId/tms/cases"
 						params={{ projectId }}
-						className="text-muted-foreground hover:text-foreground transition-colors"
+						className="text-t2 hover:text-t1 transition-colors"
 					>
 						Тест-кейсы
 					</Link>
 					<svg
-						className="h-3.5 w-3.5 text-muted-foreground/40"
+						className="h-3.5 w-3.5 text-t2/40"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -431,7 +431,7 @@ function TestCaseDetailPage() {
 							/>
 						) : (
 							tc.description && (
-								<p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+								<p className="mt-2 text-sm text-t2 leading-relaxed">
 									{tc.description}
 								</p>
 							)
@@ -441,7 +441,7 @@ function TestCaseDetailPage() {
 					{/* Precondition */}
 					{editing ? (
 						<div className="rounded-lg border bg-card/50 p-3">
-							<div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+							<div className="text-xs font-semibold text-t2 uppercase tracking-wider mb-2">
 								Предусловие
 							</div>
 							<textarea
@@ -472,7 +472,7 @@ function TestCaseDetailPage() {
 											"relative px-4 py-2 text-sm font-medium transition-all duration-200 border-b-2",
 											activeTab === tab.id
 												? "border-primary text-primary"
-												: "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30",
+												: "border-transparent text-t2 hover:text-t1 hover:border-t2/30",
 										)}
 										onClick={() => setActiveTab(tab.id)}
 									>
@@ -484,7 +484,7 @@ function TestCaseDetailPage() {
 														"text-[10px] font-semibold px-1.5 py-0 rounded-full",
 														activeTab === tab.id
 															? "bg-primary/10 text-primary"
-															: "bg-muted text-muted-foreground",
+															: "bg-raised text-t2",
 													)}
 												>
 													{tab.count}
@@ -520,7 +520,7 @@ function TestCaseDetailPage() {
 							{/* Postcondition */}
 							{editing ? (
 								<div className="rounded-lg border bg-card/50 p-3">
-									<div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+									<div className="text-xs font-semibold text-t2 uppercase tracking-wider mb-2">
 										Постусловие
 									</div>
 									<textarea
@@ -548,11 +548,11 @@ function TestCaseDetailPage() {
 								<div className="rounded-xl border overflow-hidden shadow-card">
 									<table className="w-full">
 										<thead>
-											<tr className="border-b bg-muted/30">
-												<th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+											<tr className="border-b bg-raised/30">
+												<th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t2">
 													Ключ
 												</th>
-												<th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+												<th className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t2">
 													Название
 												</th>
 												<th className="w-10 px-3 py-2.5" />
@@ -562,7 +562,7 @@ function TestCaseDetailPage() {
 											{tc.linked_issues.map((issue) => (
 												<tr
 													key={issue.id}
-													className="border-b last:border-0 hover:bg-muted/20 transition-colors"
+													className="border-b last:border-0 hover:bg-raised/20 transition-colors"
 												>
 													<td className="px-3 py-2.5">
 														<Link
@@ -578,7 +578,7 @@ function TestCaseDetailPage() {
 														<Button
 															variant="ghost"
 															size="sm"
-															className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+															className="h-6 w-6 p-0 text-t2 hover:text-destructive"
 															disabled={unlinkMutation.isPending}
 															onClick={() => unlinkMutation.mutate(issue.id)}
 														>
@@ -605,7 +605,7 @@ function TestCaseDetailPage() {
 							) : (
 								<div className="flex flex-col items-center justify-center py-12 text-center border rounded-xl border-dashed">
 									<svg
-										className="h-10 w-10 text-muted-foreground/20 mb-3"
+										className="h-10 w-10 text-t2/20 mb-3"
 										fill="none"
 										viewBox="0 0 24 24"
 										stroke="currentColor"
@@ -617,7 +617,7 @@ function TestCaseDetailPage() {
 											d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
 										/>
 									</svg>
-									<p className="text-sm text-muted-foreground">
+									<p className="text-sm text-t2">
 										Нет связанных задач
 									</p>
 								</div>
@@ -687,11 +687,11 @@ function TestCaseDetailPage() {
 							<div className="rounded-xl border overflow-hidden shadow-card">
 								<div className="p-4 space-y-4">
 									<div>
-										<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+										<div className="text-[10px] font-bold text-t2 uppercase tracking-wider mb-1.5">
 											ID для автотестов
 										</div>
 										<div className="flex items-center gap-2">
-											<code className="flex-1 text-sm font-mono bg-muted/50 px-3 py-1.5 rounded border select-all">
+											<code className="flex-1 text-sm font-mono bg-raised/50 px-3 py-1.5 rounded border select-all">
 												{tc.case_key}
 											</code>
 											<Button
@@ -708,18 +708,18 @@ function TestCaseDetailPage() {
 												</svg>
 											</Button>
 										</div>
-										<p className="mt-2 text-xs text-muted-foreground/70 leading-relaxed">
+										<p className="mt-2 text-xs text-t2/70 leading-relaxed">
 											Используйте этот ID в названии или аннотации автотеста для автоматической привязки результатов.
 										</p>
 									</div>
 
 									{tc.automation_id && (
 										<div>
-											<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+											<div className="text-[10px] font-bold text-t2 uppercase tracking-wider mb-1">
 												Automation ID
 											</div>
 											<div className="flex items-center gap-2">
-												<code className="flex-1 text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+												<code className="flex-1 text-sm font-mono bg-raised/50 px-2 py-1 rounded">
 													{tc.automation_id}
 												</code>
 												<Button
@@ -740,40 +740,40 @@ function TestCaseDetailPage() {
 									)}
 									{tc.full_name && (
 										<div>
-											<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+											<div className="text-[10px] font-bold text-t2 uppercase tracking-wider mb-1">
 												Полное имя
 											</div>
-											<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+											<code className="text-sm font-mono bg-raised/50 px-2 py-1 rounded">
 												{tc.full_name}
 											</code>
 										</div>
 									)}
 									{tc.class_name && (
 										<div>
-											<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+											<div className="text-[10px] font-bold text-t2 uppercase tracking-wider mb-1">
 												Класс
 											</div>
-											<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+											<code className="text-sm font-mono bg-raised/50 px-2 py-1 rounded">
 												{tc.class_name}
 											</code>
 										</div>
 									)}
 									{tc.method_name && (
 										<div>
-											<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+											<div className="text-[10px] font-bold text-t2 uppercase tracking-wider mb-1">
 												Метод
 											</div>
-											<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+											<code className="text-sm font-mono bg-raised/50 px-2 py-1 rounded">
 												{tc.method_name}
 											</code>
 										</div>
 									)}
 									{tc.external_id && (
 										<div>
-											<div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+											<div className="text-[10px] font-bold text-t2 uppercase tracking-wider mb-1">
 												External ID
 											</div>
-											<code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
+											<code className="text-sm font-mono bg-raised/50 px-2 py-1 rounded">
 												{tc.external_id}
 											</code>
 										</div>

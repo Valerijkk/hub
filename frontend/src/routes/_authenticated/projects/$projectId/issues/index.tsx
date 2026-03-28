@@ -120,7 +120,7 @@ function IssueListPage() {
 						setAllIssues([]);
 					}}
 				>
-					<SelectTrigger className="rounded-xl border bg-background px-3 py-1.5 text-sm w-auto min-w-[140px]">
+					<SelectTrigger className="rounded-xl border bg-base px-3 py-1.5 text-sm w-auto min-w-[140px]">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -140,7 +140,7 @@ function IssueListPage() {
 						setAllIssues([]);
 					}}
 				>
-					<SelectTrigger className="rounded-xl border bg-background px-3 py-1.5 text-sm w-auto min-w-[120px]">
+					<SelectTrigger className="rounded-xl border bg-base px-3 py-1.5 text-sm w-auto min-w-[120px]">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -168,7 +168,7 @@ function IssueListPage() {
 			{isLoading && !cursor ? (
 				<div className="animate-fade-in rounded-md border">
 					{/* Table header skeleton */}
-					<div className="flex items-center gap-4 border-b bg-muted/30 px-4 py-3">
+					<div className="flex items-center gap-4 border-b bg-raised/30 px-4 py-3">
 						<div className="h-4 w-20 rounded animate-shimmer" />
 						<div className="h-4 w-12 rounded animate-shimmer" />
 						<div className="h-4 w-48 rounded animate-shimmer flex-1" />
@@ -196,7 +196,7 @@ function IssueListPage() {
 				</div>
 			) : displayIssues.length === 0 ? (
 				<div className="flex flex-col items-center justify-center py-12">
-					<p className="mb-4 text-lg text-muted-foreground">
+					<p className="mb-4 text-lg text-t2">
 						Задачи не найдены
 					</p>
 					<Button asChild>
@@ -210,26 +210,26 @@ function IssueListPage() {
 					<div className="rounded-md border">
 						<table className="w-full">
 							<thead>
-								<tr className="border-b bg-muted/50">
-									<th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+								<tr className="border-b bg-raised/50">
+									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 										Ключ
 									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 										Название
 									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 										Тип
 									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 										Приоритет
 									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 										Статус
 									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 										Исполнитель
 									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 										Создана
 									</th>
 								</tr>
@@ -238,7 +238,7 @@ function IssueListPage() {
 								{displayIssues.map((issue) => (
 									<tr
 										key={issue.id}
-										className="border-b transition-colors hover:bg-muted/50"
+										className="border-b transition-colors hover:bg-raised/50"
 									>
 										<td className="px-4 py-3">
 											<Link
@@ -298,12 +298,12 @@ function IssueListPage() {
 													<span className="text-sm">{issue.assignee.name}</span>
 												</div>
 											) : (
-												<span className="text-xs text-muted-foreground">
+												<span className="text-xs text-t2">
 													Не назначен
 												</span>
 											)}
 										</td>
-										<td className="px-4 py-3 text-xs text-muted-foreground">
+										<td className="px-4 py-3 text-xs text-t2">
 											{new Date(issue.created_at).toLocaleDateString("ru-RU")}
 										</td>
 									</tr>

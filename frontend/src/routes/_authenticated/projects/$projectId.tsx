@@ -35,7 +35,7 @@ function ProjectLayout() {
 									"shrink-0 px-3 py-2.5 text-[13px] font-medium border-b-2 transition-colors",
 									isActive
 										? "border-blue-500 text-white"
-										: "border-transparent text-muted-foreground hover:text-white",
+										: "border-transparent text-t2 hover:text-white",
 								)}
 							>
 								{tab.label}

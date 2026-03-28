@@ -15,7 +15,7 @@ export function UnreadMessagesWidget({ data }: Props) {
 
 	if (count === 0) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-t2">
 				<div className="relative">
 					<MailOpen className="h-10 w-10 opacity-40" />
 					<CheckCheck className="h-4 w-4 absolute -bottom-0.5 -right-0.5 text-green-500" />
@@ -38,7 +38,7 @@ export function UnreadMessagesWidget({ data }: Props) {
 			</div>
 			<div className="text-center">
 				<span className="text-3xl font-bold tabular-nums">{count}</span>
-				<p className="text-sm text-muted-foreground mt-0.5">
+				<p className="text-sm text-t2 mt-0.5">
 					непрочитанных сообщений
 				</p>
 			</div>

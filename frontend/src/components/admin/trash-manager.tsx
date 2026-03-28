@@ -73,7 +73,7 @@ export function TrashManager() {
 						className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
 							activeTab === tab.key
 								? "border-blue-600 text-blue-600"
-								: "border-transparent text-muted-foreground hover:text-foreground"
+								: "border-transparent text-t2 hover:text-t1"
 						}`}
 					>
 						{tab.label}
@@ -84,7 +84,7 @@ export function TrashManager() {
 			{/* Таблица */}
 			<div className="overflow-x-auto rounded border">
 				<table className="w-full text-sm">
-					<thead className="bg-muted/50">
+					<thead className="bg-raised/50">
 						<tr>
 							<th className="px-3 py-2 text-left font-medium">Название</th>
 							<th className="px-3 py-2 text-left font-medium">Удалено</th>
@@ -97,7 +97,7 @@ export function TrashManager() {
 							<tr>
 								<td
 									colSpan={4}
-									className="px-3 py-8 text-center text-muted-foreground"
+									className="px-3 py-8 text-center text-t2"
 								>
 									Загрузка...
 								</td>
@@ -106,16 +106,16 @@ export function TrashManager() {
 							<tr>
 								<td
 									colSpan={4}
-									className="px-3 py-8 text-center text-muted-foreground"
+									className="px-3 py-8 text-center text-t2"
 								>
 									Корзина пуста
 								</td>
 							</tr>
 						) : (
 							items.map((item) => (
-								<tr key={item.id} className="border-t hover:bg-muted/30">
+								<tr key={item.id} className="border-t hover:bg-raised/30">
 									<td className="px-3 py-2 font-medium">{item.name}</td>
-									<td className="px-3 py-2 text-muted-foreground">
+									<td className="px-3 py-2 text-t2">
 										{new Date(item.deleted_at).toLocaleString("ru-RU")}
 									</td>
 									<td className="px-3 py-2">
@@ -123,7 +123,7 @@ export function TrashManager() {
 											className={`font-mono text-sm ${
 												item.days_remaining <= 7
 													? "text-red-600"
-													: "text-muted-foreground"
+													: "text-t2"
 											}`}
 										>
 											{item.days_remaining}
@@ -150,7 +150,7 @@ export function TrashManager() {
 			{/* Пагинация */}
 			{totalPages > 1 && (
 				<div className="flex items-center justify-between">
-					<span className="text-sm text-muted-foreground">Всего: {total}</span>
+					<span className="text-sm text-t2">Всего: {total}</span>
 					<div className="flex gap-1">
 						<button
 							disabled={page <= 1}

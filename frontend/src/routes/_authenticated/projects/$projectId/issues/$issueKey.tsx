@@ -121,7 +121,7 @@ function IssueDetailPage() {
 	if (!issue) {
 		return (
 			<div className="flex items-center justify-center py-12">
-				<p className="text-muted-foreground">Задача не найдена</p>
+				<p className="text-t2">Задача не найдена</p>
 			</div>
 		);
 	}

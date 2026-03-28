@@ -107,7 +107,7 @@ export function SavedFilters({
 			{filters.map((filter) => (
 				<div
 					key={filter.id}
-					className="flex items-center gap-1 rounded-md border bg-background px-2 py-1"
+					className="flex items-center gap-1 rounded-md border bg-base px-2 py-1"
 				>
 					<button
 						type="button"
@@ -117,13 +117,13 @@ export function SavedFilters({
 						{filter.name}
 					</button>
 					{filter.shared && (
-						<Share2 className="h-3 w-3 text-muted-foreground" />
+						<Share2 className="h-3 w-3 text-t2" />
 					)}
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<button
 								type="button"
-								className="ml-1 text-muted-foreground hover:text-primary"
+								className="ml-1 text-t2 hover:text-primary"
 								onClick={() => void handleToggleShare(filter)}
 							>
 								<Share2 className="h-3 w-3" />
@@ -137,7 +137,7 @@ export function SavedFilters({
 						<TooltipTrigger asChild>
 							<button
 								type="button"
-								className="text-muted-foreground hover:text-destructive"
+								className="text-t2 hover:text-destructive"
 								onClick={() => void handleDelete(filter.id)}
 							>
 								<Trash2 className="h-3 w-3" />

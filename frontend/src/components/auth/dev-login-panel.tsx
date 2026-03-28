@@ -254,7 +254,7 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
 						</div>
 
 						<div className="min-w-0 flex-1">
-							<p className="text-[13px] font-semibold leading-tight truncate text-foreground">
+							<p className="text-[13px] font-semibold leading-tight truncate text-t1">
 								{user.name}
 							</p>
 							<div className="mt-1 flex items-center gap-1.5">
@@ -271,7 +271,7 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
 			</div>
 
 			{loading && loading !== "seed" && (
-				<p className="text-center text-xs text-muted-foreground">
+				<p className="text-center text-xs text-t2">
 					Вход как {DEMO_USERS.find((u) => u.email === loading)?.name}...
 				</p>
 			)}

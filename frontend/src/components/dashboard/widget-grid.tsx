@@ -252,7 +252,7 @@ export function WidgetGrid({
 						<DropdownMenuTrigger asChild>
 							<button
 								type="button"
-								className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-card px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+								className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-card px-3 py-1.5 text-sm text-t2 hover:bg-accent hover:text-t1 transition-colors"
 							>
 								<Layers className="h-3.5 w-3.5" />
 								Добавить виджет

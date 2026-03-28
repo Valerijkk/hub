@@ -41,7 +41,7 @@ class ChatErrorBoundary extends Component<
 						<h3 className="text-lg font-semibold mb-2">
 							Ошибка загрузки чата
 						</h3>
-						<p className="text-sm text-muted-foreground mb-4">
+						<p className="text-sm text-t2 mb-4">
 							{this.state.error.message}
 						</p>
 						<button

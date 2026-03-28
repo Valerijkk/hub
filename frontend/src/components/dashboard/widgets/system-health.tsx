@@ -26,7 +26,7 @@ export function SystemHealthWidget({ data }: Props) {
 
 	if (services.length === 0) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-t2">
 				<Server className="h-8 w-8 opacity-40" />
 				<p className="text-sm">Нет данных о сервисах</p>
 			</div>
@@ -39,8 +39,8 @@ export function SystemHealthWidget({ data }: Props) {
 		<div className="space-y-2">
 			{/* Summary bar */}
 			<div className="flex items-center gap-2 pb-2 border-b border-white/[0.06]">
-				<Activity className="h-4 w-4 text-muted-foreground/60" />
-				<span className="text-[11px] uppercase font-semibold tracking-[0.04em] text-muted-foreground">
+				<Activity className="h-4 w-4 text-t2/60" />
+				<span className="text-[11px] uppercase font-semibold tracking-[0.04em] text-t2">
 					{healthyCount}/{services.length} сервисов в норме
 				</span>
 			</div>

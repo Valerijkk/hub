@@ -43,7 +43,7 @@ export function LanguageSwitcher({
 						"rounded px-1.5 py-0.5 text-xs font-medium transition-colors",
 						currentLang === "ru"
 							? "bg-primary text-primary-foreground"
-							: "text-muted-foreground hover:text-foreground",
+							: "text-t2 hover:text-t1",
 					)}
 				>
 					RU
@@ -55,7 +55,7 @@ export function LanguageSwitcher({
 						"rounded px-1.5 py-0.5 text-xs font-medium transition-colors",
 						currentLang === "en"
 							? "bg-primary text-primary-foreground"
-							: "text-muted-foreground hover:text-foreground",
+							: "text-t2 hover:text-t1",
 					)}
 				>
 					EN

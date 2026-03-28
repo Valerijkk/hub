@@ -82,14 +82,14 @@ function PersonalDashboard() {
 				<div className="ml-auto flex items-center gap-2">
 					<button
 						type="button"
-						className="w-[34px] h-[34px] rounded-lg bg-transparent text-muted-foreground hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-all"
+						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-all"
 						title="Поиск (Ctrl+K)"
 					>
 						<Search className="h-4 w-4" />
 					</button>
 					<button
 						type="button"
-						className="w-[34px] h-[34px] rounded-lg bg-transparent text-muted-foreground hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-all"
+						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-all"
 						title="Уведомления"
 					>
 						<Bell className="h-4 w-4" />

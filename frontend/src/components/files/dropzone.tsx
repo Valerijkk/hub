@@ -34,19 +34,19 @@ export function Dropzone({ projectId, entityType, entityId }: DropzoneProps) {
 				"rounded-lg border-2 border-dashed p-8 text-center transition-colors",
 				isDragging
 					? "border-primary bg-primary/5"
-					: "border-muted-foreground/25 hover:border-muted-foreground/50",
+					: "border-t2/25 hover:border-t2/50",
 				isUploading && "pointer-events-none opacity-60",
 			)}
 		>
 			{isUploading ? (
 				<div className="space-y-2">
-					<div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground border-t-primary" />
-					<p className="text-sm text-muted-foreground">Загрузка...</p>
+					<div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-t2 border-t-primary" />
+					<p className="text-sm text-t2">Загрузка...</p>
 				</div>
 			) : (
 				<div className="space-y-3">
 					<svg
-						className="mx-auto h-10 w-10 text-muted-foreground/50"
+						className="mx-auto h-10 w-10 text-t2/50"
 						width="40"
 						height="40"
 						viewBox="0 0 40 40"
@@ -63,7 +63,7 @@ export function Dropzone({ projectId, entityType, entityId }: DropzoneProps) {
 						<p className="text-sm font-medium">
 							{isDragging ? "Отпустите файл" : "Перетащите файлы сюда"}
 						</p>
-						<p className="text-xs text-muted-foreground">
+						<p className="text-xs text-t2">
 							или используйте Ctrl+V для вставки из буфера обмена
 						</p>
 					</div>

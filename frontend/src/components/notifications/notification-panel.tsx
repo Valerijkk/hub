@@ -174,7 +174,7 @@ export function NotificationPanel() {
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-auto px-2 py-1 text-xs text-muted-foreground"
+						className="h-auto px-2 py-1 text-xs text-t2"
 						onClick={() => void markAllRead()}
 					>
 						Прочитать все
@@ -198,7 +198,7 @@ export function NotificationPanel() {
 				onScrollCapture={handleScroll}
 			>
 				{notifications.length === 0 && !loading ? (
-					<div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+					<div className="flex h-32 items-center justify-center text-sm text-t2">
 						Нет уведомлений
 					</div>
 				) : (
@@ -212,7 +212,7 @@ export function NotificationPanel() {
 							/>
 						))}
 						{loading && (
-							<div className="flex items-center justify-center py-4 text-xs text-muted-foreground">
+							<div className="flex items-center justify-center py-4 text-xs text-t2">
 								Загрузка...
 							</div>
 						)}
@@ -237,12 +237,12 @@ const NotificationItem = memo(function NotificationItem({
 	const typeLabel = TYPE_LABELS[notification.type] ?? notification.type;
 
 	const iconBg = TYPE_ICON_COLORS[notification.type] ?? "rgba(148,163,184,0.15)";
-	const iconTextColor = TYPE_ICON_TEXT_COLORS[notification.type] ?? "text-muted-foreground";
+	const iconTextColor = TYPE_ICON_TEXT_COLORS[notification.type] ?? "text-t2";
 
 	return (
 		<button
 			type="button"
-			className={`group flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 ${
+			className={`group flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-raised/50 ${
 				!notification.is_read ? "border-l-2 border-blue-500 bg-blue-500/[0.04]" : ""
 			}`}
 			onClick={onClick}
@@ -259,7 +259,7 @@ const NotificationItem = memo(function NotificationItem({
 			<div className="min-w-0 flex-1">
 				<div className="flex items-start justify-between gap-2">
 					<p className="text-sm font-medium leading-tight">
-						<span className="mr-1 text-xs text-muted-foreground">
+						<span className="mr-1 text-xs text-t2">
 							{typeLabel}
 						</span>
 						{notification.title}
@@ -269,7 +269,7 @@ const NotificationItem = memo(function NotificationItem({
 						<span
 							role="button"
 							tabIndex={0}
-							className="mt-0.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+							className="mt-0.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors"
 							onClick={onDelete}
 							onKeyDown={(e) => {
 								if (e.key === "Enter")
@@ -286,11 +286,11 @@ const NotificationItem = memo(function NotificationItem({
 					</div>
 				</div>
 				{notification.body && (
-					<p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+					<p className="mt-0.5 line-clamp-2 text-xs text-t2">
 						{notification.body}
 					</p>
 				)}
-				<p className="mt-1 text-xs text-muted-foreground">
+				<p className="mt-1 text-xs text-t2">
 					{formatRelativeTime(notification.created_at)}
 				</p>
 			</div>

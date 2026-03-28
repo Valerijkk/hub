@@ -48,7 +48,7 @@ function ChartTooltip({
 				/>
 				<span className="text-sm font-medium">{entry.name}</span>
 			</div>
-			<p className="text-xs text-muted-foreground mt-0.5">
+			<p className="text-xs text-t2 mt-0.5">
 				{entry.value} задач
 			</p>
 		</div>
@@ -67,7 +67,7 @@ export function TaskStatusChartWidget({ data }: Props) {
 
 	if (chartData.length === 0) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-t2">
 				<Layers className="h-8 w-8 opacity-40" />
 				<p className="text-sm">Нет данных о задачах</p>
 			</div>
@@ -100,7 +100,7 @@ export function TaskStatusChartWidget({ data }: Props) {
 					iconType="circle"
 					iconSize={8}
 					formatter={(value) => (
-						<span className="text-xs text-muted-foreground">{value}</span>
+						<span className="text-xs text-t2">{value}</span>
 					)}
 				/>
 			</PieChart>

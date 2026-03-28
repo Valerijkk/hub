@@ -238,7 +238,7 @@ function TestRunDetailPage() {
 					<div className="w-80 shrink-0">
 						<Card className="shadow-card sticky top-4">
 							<CardHeader className="pb-2 px-4 pt-4">
-								<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-t2">
 									Выполнение теста
 								</CardTitle>
 							</CardHeader>
@@ -278,7 +278,7 @@ function TestRunDetailPage() {
 										isSelected &&
 											!alreadyAdded &&
 											"bg-primary/5 border-primary/30",
-										!alreadyAdded && !isSelected && "hover:bg-muted/50",
+										!alreadyAdded && !isSelected && "hover:bg-raised/50",
 									)}
 								>
 									<input
@@ -294,7 +294,7 @@ function TestRunDetailPage() {
 										</span>
 										<span className="ml-2 text-sm">{tc.title}</span>
 										{alreadyAdded && (
-											<span className="ml-2 text-[10px] text-muted-foreground">
+											<span className="ml-2 text-[10px] text-t2">
 												(уже добавлен)
 											</span>
 										)}

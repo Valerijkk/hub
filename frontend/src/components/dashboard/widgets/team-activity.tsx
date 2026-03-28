@@ -15,7 +15,7 @@ export function TeamActivityWidget({ data }: Props) {
 
 	if (activities.length === 0) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-t2">
 				<Users className="h-8 w-8 opacity-40" />
 				<p className="text-sm">Нет активности</p>
 				<p className="text-xs opacity-60">Действия команды появятся здесь</p>
@@ -37,14 +37,14 @@ export function TeamActivityWidget({ data }: Props) {
 					<div className="min-w-0 flex-1">
 						<p className="leading-snug">
 							<span className="font-medium">{entry.user_name}</span>{" "}
-							<span className="text-muted-foreground">{entry.action}</span>
+							<span className="text-t2">{entry.action}</span>
 						</p>
 						{entry.target && (
-							<p className="text-xs text-muted-foreground truncate mt-0.5">
+							<p className="text-xs text-t2 truncate mt-0.5">
 								{entry.target}
 							</p>
 						)}
-						<p className="text-[11px] text-muted-foreground/60 mt-0.5">
+						<p className="text-[11px] text-t2/60 mt-0.5">
 							{new Date(entry.created_at).toLocaleString("ru-RU", {
 								hour: "2-digit",
 								minute: "2-digit",

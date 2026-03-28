@@ -174,7 +174,7 @@ function BoardPage() {
 					{[1, 2, 3, 4, 5, 6].map((i) => (
 						<div
 							key={i}
-							className="flex w-[300px] min-w-[300px] flex-shrink-0 flex-col rounded-xl border border-border/40 bg-muted/30"
+							className="flex w-[300px] min-w-[300px] flex-shrink-0 flex-col rounded-xl border border-border/40 bg-raised/30"
 						>
 							<div className="px-4 py-3">
 								<div className="h-5 w-24 rounded animate-shimmer" />
@@ -301,7 +301,7 @@ function BoardPage() {
 							</svg>
 						</div>
 						<h3 className="text-lg font-semibold mb-2">Нет задач на доске</h3>
-						<p className="text-sm text-muted-foreground mb-4">
+						<p className="text-sm text-t2 mb-4">
 							Создайте первую задачу, чтобы начать работу с доской
 						</p>
 						<Button asChild>

@@ -30,7 +30,7 @@ function ChartTooltip({
 	if (!active || !payload?.length) return null;
 	return (
 		<div className="rounded-lg border border-border/50 bg-popover px-3 py-2 shadow-md">
-			<p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
+			<p className="text-xs font-medium text-t2 mb-1">{label}</p>
 			{payload.map((entry) => (
 				<p key={entry.name} className="text-sm font-medium" style={{ color: entry.color }}>
 					{entry.name}: {entry.value}
@@ -47,7 +47,7 @@ export function VelocityChartWidget({ data }: Props) {
 
 	if (velocityData.length === 0) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-t2">
 				<ChartBar className="h-8 w-8 opacity-40" />
 				<p className="text-sm">Нет данных velocity</p>
 			</div>

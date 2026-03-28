@@ -233,7 +233,7 @@ function LabelsSettingsPage() {
 									value={labelGroupId || "none"}
 									onValueChange={(v) => setLabelGroupId(v === "none" ? "" : v)}
 								>
-									<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>

@@ -42,7 +42,7 @@ export function UpcomingCallsWidget({ data }: Props) {
 
 	if (calls.length === 0) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+			<div className="flex flex-col items-center justify-center h-full gap-2 text-t2">
 				<PhoneOff className="h-6 w-6 opacity-40" />
 				<p className="text-xs">Нет предстоящих звонков</p>
 			</div>
@@ -56,7 +56,7 @@ export function UpcomingCallsWidget({ data }: Props) {
 					key={call.id}
 					className="flex items-center gap-2.5 py-1.5 px-1 rounded-md hover:bg-white/[0.04] transition-colors"
 				>
-					<span className="text-[12px] text-muted-foreground shrink-0 w-[52px] tabular-nums">
+					<span className="text-[12px] text-t2 shrink-0 w-[52px] tabular-nums">
 						{formatCallTime(call.scheduled_at)}
 					</span>
 					<div className="h-6 w-6 rounded-full bg-violet-500/15 flex items-center justify-center shrink-0">
@@ -70,7 +70,7 @@ export function UpcomingCallsWidget({ data }: Props) {
 						className={`shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-md transition-all ${
 							i === 0
 								? "bg-gradient-to-r from-violet-600 to-purple-600 text-white btn-glow"
-								: "border border-white/[0.10] text-muted-foreground hover:text-white hover:border-white/20"
+								: "border border-white/[0.10] text-t2 hover:text-white hover:border-white/20"
 						}`}
 						onClick={() => {
 							if (call.channel_id) void startCall(call.channel_id);

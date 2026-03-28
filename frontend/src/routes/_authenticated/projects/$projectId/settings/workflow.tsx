@@ -198,7 +198,7 @@ function WorkflowSettingsPage() {
 										)
 									}
 								>
-									<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>
@@ -290,7 +290,7 @@ function WorkflowSettingsPage() {
 									value={fromStatusId || "placeholder"}
 									onValueChange={(v) => setFromStatusId(v === "placeholder" ? "" : v)}
 								>
-									<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>
@@ -309,7 +309,7 @@ function WorkflowSettingsPage() {
 									value={toStatusId || "placeholder"}
 									onValueChange={(v) => setToStatusId(v === "placeholder" ? "" : v)}
 								>
-									<SelectTrigger className="w-full rounded-xl border bg-background px-3 py-2 text-sm">
+									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>

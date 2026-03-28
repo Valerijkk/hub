@@ -88,7 +88,7 @@ function NewProjectPage() {
 			{/* Навигация назад */}
 			<button
 				onClick={() => void navigate({ to: "/projects" })}
-				className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+				className="mb-6 inline-flex items-center gap-1.5 text-sm text-t2 hover:text-t1 transition-colors"
 			>
 				<svg
 					className="h-4 w-4"
@@ -136,7 +136,7 @@ function NewProjectPage() {
 								maxLength={10}
 								className="h-10 font-mono uppercase"
 							/>
-							<p className="text-xs text-muted-foreground">
+							<p className="text-xs text-t2">
 								2-10 символов, A-Z и цифры. Используется в нумерации задач (
 								<span className="font-mono">{key || "KEY"}-1</span>)
 							</p>
@@ -144,7 +144,7 @@ function NewProjectPage() {
 						<div className="space-y-2">
 							<Label htmlFor="proj-desc" className="text-sm font-medium">
 								Описание
-								<span className="ml-1 text-muted-foreground font-normal">
+								<span className="ml-1 text-t2 font-normal">
 									(необязательно)
 								</span>
 							</Label>

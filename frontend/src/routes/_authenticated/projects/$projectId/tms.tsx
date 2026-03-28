@@ -156,7 +156,7 @@ function TmsLayout() {
 							<h1 className="text-2xl font-bold tracking-tight">
 								Управление тестированием
 							</h1>
-							<p className="text-xs text-muted-foreground mt-0.5">
+							<p className="text-xs text-t2 mt-0.5">
 								Тест-кейсы, прогоны и отчёты
 							</p>
 						</div>
@@ -174,7 +174,7 @@ function TmsLayout() {
 								"relative border-b-2 px-4 py-2.5 text-sm font-medium transition-all duration-200",
 								activeTab === tab.id
 									? "border-primary text-primary"
-									: "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30",
+									: "border-transparent text-t2 hover:text-t1 hover:border-t2/30",
 							)}
 						>
 							<span className="flex items-center gap-1.5">

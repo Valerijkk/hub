@@ -25,12 +25,12 @@ function RootLayout() {
 
 function RootErrorBoundary() {
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-background">
+		<div className="flex min-h-screen items-center justify-center bg-base">
 			<div className="rounded-lg border bg-card p-8 text-center shadow-sm">
-				<h1 className="mb-2 text-2xl font-semibold text-foreground">
+				<h1 className="mb-2 text-2xl font-semibold text-t1">
 					Произошла ошибка
 				</h1>
-				<p className="mb-4 text-muted-foreground">
+				<p className="mb-4 text-t2">
 					Что-то пошло не так. Попробуйте обновить страницу.
 				</p>
 				<button
@@ -47,14 +47,14 @@ function RootErrorBoundary() {
 
 function NotFoundComponent() {
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-background">
+		<div className="flex min-h-screen items-center justify-center bg-base">
 			<div className="text-center animate-fade-in max-w-md px-6">
 				{/* Fun illustration */}
 				<div className="relative mx-auto mb-8 flex h-32 w-32 items-center justify-center">
 					<div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 animate-pulse" />
 					<div className="relative">
 						<svg
-							className="h-20 w-20 text-muted-foreground/30"
+							className="h-20 w-20 text-t2/30"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
@@ -74,10 +74,10 @@ function NotFoundComponent() {
 				<h1 className="mb-2 text-7xl font-extrabold tracking-tighter">
 					<span className="gradient-text">404</span>
 				</h1>
-				<p className="mb-2 text-xl font-semibold text-foreground">
+				<p className="mb-2 text-xl font-semibold text-t1">
 					Страница не найдена
 				</p>
-				<p className="mb-8 text-sm text-muted-foreground leading-relaxed">
+				<p className="mb-8 text-sm text-t2 leading-relaxed">
 					Похоже, эта страница решила взять выходной. Попробуйте вернуться на
 					главную.
 				</p>
