@@ -9,7 +9,17 @@ import (
 // Custom field handlers
 // ---------------------------------------------------------------------------
 
-// ListCustomFields обрабатывает GET /api/projects/:projectId/custom-fields
+// ListCustomFields godoc
+// @Summary Список кастомных полей
+// @Description Возвращает все пользовательские поля проекта.
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} CustomFieldResponse "Кастомные поля"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/custom-fields [get]
 func (h *Handler) ListCustomFields(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -24,7 +34,20 @@ func (h *Handler) ListCustomFields(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateCustomField обрабатывает POST /api/projects/:projectId/custom-fields
+// CreateCustomField godoc
+// @Summary Создать кастомное поле
+// @Description Создаёт новое пользовательское поле для задач проекта.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body CreateCustomFieldRequest true "Данные поля"
+// @Success 201 {object} CustomFieldResponse "Поле создано"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/custom-fields [post]
 func (h *Handler) CreateCustomField(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -44,7 +67,18 @@ func (h *Handler) CreateCustomField(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// DeleteCustomField обрабатывает DELETE /api/projects/:projectId/custom-fields/:fieldId
+// DeleteCustomField godoc
+// @Summary Удалить кастомное поле
+// @Description Удаляет пользовательское поле и все его значения из задач.
+// @Tags Трекер
+// @Param projectId path string true "ID проекта"
+// @Param fieldId path string true "ID поля"
+// @Success 204 "Поле удалено"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/custom-fields/{fieldId} [delete]
 func (h *Handler) DeleteCustomField(c fiber.Ctx) error {
 	fieldID, err := httputil.ParseUUIDParam(c, "fieldId")
 	if err != nil {

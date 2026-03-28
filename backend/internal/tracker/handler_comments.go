@@ -9,7 +9,21 @@ import (
 // Comment handlers
 // ---------------------------------------------------------------------------
 
-// CreateComment обрабатывает POST /api/projects/:projectId/issues/:issueKey/comments
+// CreateComment godoc
+// @Summary Создать комментарий
+// @Description Добавляет комментарий к задаче.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Param body body CreateCommentRequest true "Текст комментария"
+// @Success 201 {object} CommentResponse "Комментарий создан"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/comments [post]
 func (h *Handler) CreateComment(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -33,7 +47,18 @@ func (h *Handler) CreateComment(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListComments обрабатывает GET /api/projects/:projectId/issues/:issueKey/comments
+// ListComments godoc
+// @Summary Сп��сок комментариев задачи
+// @Description Возвращает все комментарии указанной задачи.
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Success 200 {array} CommentResponse "Список комментариев"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/comments [get]
 func (h *Handler) ListComments(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -48,7 +73,21 @@ func (h *Handler) ListComments(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateComment обрабатывает PUT /api/projects/:projectId/issues/:issueKey/comments/:commentId
+// UpdateComment godoc
+// @Summary Обновить комментарий
+// @Description Редактирует текст существующего комментария.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Param commentId path string true "ID комментария"
+// @Param body body UpdateCommentRequest true "Новый текст"
+// @Success 200 {object} CommentResponse "Комментарий обновлён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/comments/{commentId} [put]
 func (h *Handler) UpdateComment(c fiber.Ctx) error {
 	commentID, err := httputil.ParseUUIDParam(c, "commentId")
 	if err != nil {
@@ -68,7 +107,18 @@ func (h *Handler) UpdateComment(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteComment обрабатывает DELETE /api/projects/:projectId/issues/:issueKey/comments/:commentId
+// DeleteComment godoc
+// @Summary Удалить комментарий
+// @Description Удаляет комментарий к задаче.
+// @Tags Трекер
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Param commentId path string true "ID комментария"
+// @Success 204 "Комментарий удалён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/comments/{commentId} [delete]
 func (h *Handler) DeleteComment(c fiber.Ctx) error {
 	commentID, err := httputil.ParseUUIDParam(c, "commentId")
 	if err != nil {
@@ -82,7 +132,21 @@ func (h *Handler) DeleteComment(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ToggleReaction обрабатывает POST /api/projects/:projectId/issues/:issueKey/comments/:commentId/reactions
+// ToggleReaction godoc
+// @Summary Переключить реакцию на комментарий
+// @Description Добавляет или убирает эмодзи-реакцию на комментарий задачи.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Param commentId path string true "ID комментария"
+// @Param body body CreateReactionRequest true "Эмодзи реакции"
+// @Success 200 {object} map[string]bool "added: true/false"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/comments/{commentId}/reactions [post]
 func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 	commentID, err := httputil.ParseUUIDParam(c, "commentId")
 	if err != nil {
@@ -110,7 +174,18 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 // Activity handler
 // ---------------------------------------------------------------------------
 
-// GetActivity обрабатывает GET /api/projects/:projectId/issues/:issueKey/activity
+// GetActivity godoc
+// @Summary История активности задачи
+// @Description Возвращает историю изменений задачи (создание, обновления полей, комментарии).
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Success 200 {array} ActivityResponse "История активности"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/activity [get]
 func (h *Handler) GetActivity(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {

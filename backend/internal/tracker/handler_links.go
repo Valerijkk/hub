@@ -9,7 +9,21 @@ import (
 // Issue link handlers
 // ---------------------------------------------------------------------------
 
-// CreateIssueLink обрабатывает POST /api/projects/:projectId/issues/:issueKey/links
+// CreateIssueLink godoc
+// @Summary Создать связь между задачами
+// @Description Создаёт связь (блокирует, связана с, дублирует) между двумя задачами.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Param body body CreateIssueLinkRequest true "Данные связи"
+// @Success 201 {object} IssueLinkResponse "Связь создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/links [post]
 func (h *Handler) CreateIssueLink(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -33,7 +47,18 @@ func (h *Handler) CreateIssueLink(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListIssueLinks обрабатывает GET /api/projects/:projectId/issues/:issueKey/links
+// ListIssueLinks godoc
+// @Summary Список связей задачи
+// @Description Возвращает все связи указанной задачи с другими задачами.
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Success 200 {array} IssueLinkResponse "Список связей"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/links [get]
 func (h *Handler) ListIssueLinks(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -48,7 +73,19 @@ func (h *Handler) ListIssueLinks(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteIssueLink обрабатывает DELETE /api/projects/:projectId/issues/:issueKey/links/:linkId
+// DeleteIssueLink godoc
+// @Summary Удалить связь задачи
+// @Description Удаляет связь между задачами по ID связи.
+// @Tags Трекер
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Param linkId path string true "ID связи"
+// @Success 204 "Связь удал��на"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/links/{linkId} [delete]
 func (h *Handler) DeleteIssueLink(c fiber.Ctx) error {
 	linkID, err := httputil.ParseUUIDParam(c, "linkId")
 	if err != nil {

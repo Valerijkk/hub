@@ -9,7 +9,17 @@ import (
 // Label handlers
 // ---------------------------------------------------------------------------
 
-// ListLabels обрабатывает GET /api/projects/:projectId/labels
+// ListLabels godoc
+// @Summary Список меток проекта
+// @Description Возвращает все метки (labels) указанного проекта.
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} LabelResponse "Список меток"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/labels [get]
 func (h *Handler) ListLabels(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -24,7 +34,20 @@ func (h *Handler) ListLabels(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateLabel обрабатывает POST /api/projects/:projectId/labels
+// CreateLabel godoc
+// @Summary Создать метку
+// @Description Создаёт новую метку для задач проекта.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body CreateLabelRequest true "Данные метки"
+// @Success 201 {object} LabelResponse "Метка создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/labels [post]
 func (h *Handler) CreateLabel(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -44,7 +67,18 @@ func (h *Handler) CreateLabel(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// DeleteLabel обрабатывает DELETE /api/projects/:projectId/labels/:labelId
+// DeleteLabel godoc
+// @Summary Удалить метку
+// @Description Удаляет метку из проекта.
+// @Tags Трекер
+// @Param projectId path string true "ID проекта"
+// @Param labelId path string true "ID метки"
+// @Success 204 "Метка удалена"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/labels/{labelId} [delete]
 func (h *Handler) DeleteLabel(c fiber.Ctx) error {
 	labelID, err := httputil.ParseUUIDParam(c, "labelId")
 	if err != nil {
@@ -58,7 +92,17 @@ func (h *Handler) DeleteLabel(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ListLabelGroups обрабатывает GET /api/projects/:projectId/labels/groups
+// ListLabelGroups godoc
+// @Summary Список групп меток
+// @Description Возвращает группы меток проекта для организации по категориям.
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} LabelGroupResponse "Группы меток"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/labels/groups [get]
 func (h *Handler) ListLabelGroups(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -73,7 +117,20 @@ func (h *Handler) ListLabelGroups(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateLabelGroup обрабатывает POST /api/projects/:projectId/labels/groups
+// CreateLabelGroup godoc
+// @Summary Создать группу меток
+// @Description Создаёт новую группу для организации меток проекта.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body CreateLabelGroupRequest true "Данные группы"
+// @Success 201 {object} LabelGroupResponse "Группа создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/labels/groups [post]
 func (h *Handler) CreateLabelGroup(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

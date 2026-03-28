@@ -12,7 +12,20 @@ import (
 // Issue handlers
 // ---------------------------------------------------------------------------
 
-// CreateIssue обрабатывает POST /api/projects/:projectId/issues
+// CreateIssue godoc
+// @Summary Создать задачу
+// @Description Создаёт новую задачу (issue) в указанном проекте.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body CreateIssueRequest true "Данные задачи"
+// @Success 201 {object} IssueResponse "Задача создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues [post]
 func (h *Handler) CreateIssue(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -36,7 +49,20 @@ func (h *Handler) CreateIssue(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListIssues обрабатывает GET /api/projects/:projectId/issues
+// ListIssues godoc
+// @Summary Список задач проекта
+// @Description Возвращает список задач проекта с фильтрацией по статусу, приоритету, исполнителю и т.д.
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param status query string false "Фильтр по статусу"
+// @Param priority query string false "Фильтр по приоритету"
+// @Param assignee_id query string false "Фильтр по исполнителю"
+// @Success 200 {object} ListIssuesResponse "Список задач"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues [get]
 func (h *Handler) ListIssues(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -56,7 +82,19 @@ func (h *Handler) ListIssues(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetIssue обрабатывает GET /api/projects/:projectId/issues/:issueKey
+// GetIssue godoc
+// @Summary Получить задачу
+// @Description Возвращает детальную информацию о задаче по её ключу (например, PROJ-123).
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи (например PROJ-123)"
+// @Success 200 {object} IssueResponse "Данные задачи"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 404 {object} fiber.Error "Задача не найдена"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey} [get]
 func (h *Handler) GetIssue(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -71,7 +109,21 @@ func (h *Handler) GetIssue(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateIssue обрабатывает PUT /api/projects/:projectId/issues/:issueKey
+// UpdateIssue godoc
+// @Summary Обновить задачу
+// @Description Обновляет поля задачи: название, описание, статус, приоритет, исполнителя и др.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Param body body UpdateIssueRequest true "Обновляемые поля"
+// @Success 200 {object} IssueResponse "Задача обновлена"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey} [put]
 func (h *Handler) UpdateIssue(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -95,7 +147,18 @@ func (h *Handler) UpdateIssue(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteIssue обрабатывает DELETE /api/projects/:projectId/issues/:issueKey
+// DeleteIssue godoc
+// @Summary Удалить задачу
+// @Description Мягкое удаление задачи (перемещение в корзину).
+// @Tags Трекер
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Success 204 "Задача удалена"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey} [delete]
 func (h *Handler) DeleteIssue(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -113,7 +176,21 @@ func (h *Handler) DeleteIssue(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// MoveIssue обрабатывает PUT /api/projects/:projectId/issues/:issueKey/position
+// MoveIssue godoc
+// @Summary Переместить задачу
+// @Description Изменяет позицию задачи на доске (статус, порядок сортировки).
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Param body body MoveIssueRequest true "Новая позиция"
+// @Success 200 {object} IssueResponse "Задача перемещена"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/position [put]
 func (h *Handler) MoveIssue(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -146,8 +223,20 @@ type jqlRequest struct {
 	Query string `json:"query" validate:"required"`
 }
 
-// SearchIssuesJQL обрабатывает POST /api/projects/:projectId/issues/jql.
-// Парсит JQL-строку, конвертирует в Ent-предикаты и возвращает отфильтрованные задачи.
+// SearchIssuesJQL godoc
+// @Summary JQL-поиск задач
+// @Description Парсит JQL-строку, конвертирует в предикаты и возвращает отфильтрованные задачи.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body jqlRequest true "JQL-запрос"
+// @Success 200 {object} map[string]interface{} "Результаты: query, total, results"
+// @Failure 400 {object} fiber.Error "Ошибка JQL или неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Ошибка выполнения"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/jql [post]
 func (h *Handler) SearchIssuesJQL(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {

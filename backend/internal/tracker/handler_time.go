@@ -9,7 +9,21 @@ import (
 // Time tracking handlers
 // ---------------------------------------------------------------------------
 
-// LogTime обрабатывает POST /api/projects/:projectId/issues/:issueKey/time
+// LogTime godoc
+// @Summary Залогировать время
+// @Description Записывает затраченное время на задачу.
+// @Tags Трекер
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Param body body LogTimeRequest true "Данные о времени"
+// @Success 201 {object} TimeLogResponse "Время залогировано"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/time [post]
 func (h *Handler) LogTime(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -33,7 +47,19 @@ func (h *Handler) LogTime(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// StartTimer обрабатывает POST /api/projects/:projectId/issues/:issueKey/timer/start
+// StartTimer godoc
+// @Summary Запустить таймер
+// @Description Запускает таймер отслеживания времени для задачи.
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Success 201 {object} TimerResponse "Таймер запущен"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/timer/start [post]
 func (h *Handler) StartTimer(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -52,7 +78,19 @@ func (h *Handler) StartTimer(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// StopTimer обрабатывает POST /api/projects/:projectId/issues/:issueKey/timer/stop
+// StopTimer godoc
+// @Summary Остановить таймер
+// @Description Останавливает таймер и записывает затраченное время.
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Success 200 {object} TimeLogResponse "Таймер остановлен, время записано"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/timer/stop [post]
 func (h *Handler) StopTimer(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
@@ -71,7 +109,18 @@ func (h *Handler) StopTimer(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ListTimeLogs обрабатывает GET /api/projects/:projectId/issues/:issueKey/time-logs
+// ListTimeLogs godoc
+// @Summary Список записей времени
+// @Description Возвращает все записи затраченного времени на задачу.
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param issueKey path string true "Ключ задачи"
+// @Success 200 {array} TimeLogResponse "Записи времени"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issues/{issueKey}/time-logs [get]
 func (h *Handler) ListTimeLogs(c fiber.Ctx) error {
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
