@@ -23,7 +23,7 @@ function MobileNavItem({ to, label, icon, isActive }: MobileNavItemProps) {
 			to={to}
 			className={cn(
 				"flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
-				isActive ? "text-primary" : "text-muted-foreground",
+				isActive ? "text-primary" : "text-t3",
 			)}
 		>
 			{icon}
@@ -135,11 +135,11 @@ export function MobileNav() {
 							if (e.key === "Escape") setMoreOpen(false);
 						}}
 					/>
-					<div className="fixed inset-x-0 bottom-14 z-50 mx-4 mb-1 rounded-lg border bg-card p-3 shadow-lg md:hidden">
+					<div className="fixed inset-x-0 bottom-14 z-50 mx-4 mb-1 rounded-lg border border-b1 bg-card p-3 shadow-lg md:hidden">
 						<div className="space-y-1">
 							<Link
 								to="/settings/profile"
-								className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent"
+								className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[var(--hover)]"
 								onClick={() => setMoreOpen(false)}
 							>
 								<svg
@@ -159,7 +159,7 @@ export function MobileNav() {
 							</Link>
 							<Link
 								to="/trash"
-								className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent"
+								className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[var(--hover)]"
 								onClick={() => setMoreOpen(false)}
 							>
 								<svg
@@ -182,7 +182,7 @@ export function MobileNav() {
 			)}
 
 			{/* Нижняя панель */}
-			<nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background md:hidden">
+			<nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-b1 bg-base md:hidden">
 				{navItems.map((item) => (
 					<MobileNavItem
 						key={item.to}
@@ -198,7 +198,7 @@ export function MobileNav() {
 					onClick={() => setMoreOpen((v) => !v)}
 					className={cn(
 						"flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
-						moreOpen ? "text-primary" : "text-muted-foreground",
+						moreOpen ? "text-primary" : "text-t3",
 					)}
 				>
 					<svg
