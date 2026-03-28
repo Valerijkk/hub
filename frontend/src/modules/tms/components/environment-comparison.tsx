@@ -174,7 +174,7 @@ export function EnvironmentComparison({
 	// Загрузка окружений
 	if (envsLoading) {
 		return (
-			<div className="py-8 text-center text-muted-foreground">
+			<div className="py-8 text-center text-t2">
 				Загрузка окружений...
 			</div>
 		);
@@ -184,10 +184,10 @@ export function EnvironmentComparison({
 	if (envs.length < 2) {
 		return (
 			<Card>
-				<CardContent className="py-8 text-center text-muted-foreground">
-					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/60 to-muted/30 border border-dashed border-muted-foreground/20">
+				<CardContent className="py-8 text-center text-t2">
+					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-raised/60 to-raised/30 border border-dashed border-t2/20">
 						<svg
-							className="h-8 w-8 text-muted-foreground/30"
+							className="h-8 w-8 text-t2/30"
 							fill="none"
 							viewBox="0 0 24 24"
 							stroke="currentColor"
@@ -218,7 +218,7 @@ export function EnvironmentComparison({
 			{/* Выбор окружений */}
 			<div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card/50 p-4">
 				<div className="space-y-1.5">
-					<label className="text-xs font-medium text-muted-foreground">
+					<label className="text-xs font-medium text-t2">
 						Окружение 1
 					</label>
 					<Select
@@ -251,7 +251,7 @@ export function EnvironmentComparison({
 
 				<div className="flex items-center pb-2">
 					<svg
-						className="h-5 w-5 text-muted-foreground"
+						className="h-5 w-5 text-t2"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -266,7 +266,7 @@ export function EnvironmentComparison({
 				</div>
 
 				<div className="space-y-1.5">
-					<label className="text-xs font-medium text-muted-foreground">
+					<label className="text-xs font-medium text-t2">
 						Окружение 2
 					</label>
 					<Select
@@ -332,7 +332,7 @@ export function EnvironmentComparison({
 							>
 								{comparison.env1.name}
 							</Badge>
-							<span className="text-xs text-muted-foreground">vs</span>
+							<span className="text-xs text-t2">vs</span>
 							<Badge
 								variant="secondary"
 								className={cn(
@@ -347,14 +347,14 @@ export function EnvironmentComparison({
 							</Badge>
 						</div>
 
-						<span className="text-xs text-muted-foreground tabular-nums">
+						<span className="text-xs text-t2 tabular-nums">
 							Всего: {comparison.items.length} | Различий: {diffCount}
 						</span>
 
 						<label className="ml-auto flex items-center gap-2 text-xs cursor-pointer">
 							<input
 								type="checkbox"
-								className="rounded border-muted-foreground/30"
+								className="rounded border-t2/30"
 								checked={showDiffsOnly}
 								onChange={(e) => setShowDiffsOnly(e.target.checked)}
 							/>
@@ -367,20 +367,20 @@ export function EnvironmentComparison({
 						<div className="rounded-xl border shadow-card overflow-auto max-h-[calc(100vh-350px)]">
 							<table className="w-full">
 								<thead className="sticky top-0 z-10">
-									<tr className="bg-muted/60 backdrop-blur-sm">
-										<th className="border-b px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+									<tr className="bg-raised/60 backdrop-blur-sm">
+										<th className="border-b px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t2">
 											Тест-кейс
 										</th>
-										<th className="border-b px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+										<th className="border-b px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t2">
 											Название
 										</th>
-										<th className="border-b px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+										<th className="border-b px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-t2">
 											{comparison.env1.name}
 										</th>
-										<th className="border-b px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+										<th className="border-b px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-t2">
 											{comparison.env2.name}
 										</th>
-										<th className="border-b px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+										<th className="border-b px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-t2">
 											Статус
 										</th>
 									</tr>
@@ -396,7 +396,7 @@ export function EnvironmentComparison({
 													"border-b transition-colors",
 													isDiff
 														? "bg-amber-50/50 dark:bg-amber-900/5 hover:bg-amber-50 dark:hover:bg-amber-900/10"
-														: "hover:bg-muted/30",
+														: "hover:bg-raised/30",
 												)}
 											>
 												<td className="px-4 py-2.5">
@@ -434,7 +434,7 @@ export function EnvironmentComparison({
 															Различие
 														</span>
 													) : (
-														<span className="text-[10px] text-muted-foreground/50">
+														<span className="text-[10px] text-t2/50">
 															Совпадает
 														</span>
 													)}
@@ -446,7 +446,7 @@ export function EnvironmentComparison({
 							</table>
 						</div>
 					) : (
-						<div className="py-12 text-center text-muted-foreground">
+						<div className="py-12 text-center text-t2">
 							{showDiffsOnly
 								? "Различий не обнаружено -- результаты идентичны"
 								: "Нет результатов для сравнения"}
@@ -458,7 +458,7 @@ export function EnvironmentComparison({
 			{/* Начальное состояние */}
 			{!submitted && !comparison && (
 				<div className="rounded-lg border bg-card/50 p-8 text-center">
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm text-t2">
 						Выберите два окружения и нажмите "Сравнить" для просмотра различий в
 						результатах тестирования
 					</p>

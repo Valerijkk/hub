@@ -129,13 +129,13 @@ export function TriggerCIPanel({ projectId }: Props) {
 					<div className="flex gap-3">
 						{integrations && integrations.length > 1 && (
 							<div className="flex-1">
-								<label className="mb-1 block text-xs font-medium text-muted-foreground">
+								<label className="mb-1 block text-xs font-medium text-t2">
 									Репозиторий
 								</label>
 								<select
 									value={activeIntegrationId}
 									onChange={(e) => setSelectedIntegration(e.target.value)}
-									className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+									className="w-full rounded-lg border border-input bg-base px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
 								>
 									{integrations.map((ig) => (
 										<option key={ig.id} value={ig.id}>
@@ -146,7 +146,7 @@ export function TriggerCIPanel({ projectId }: Props) {
 							</div>
 						)}
 						<div className={integrations && integrations.length > 1 ? "w-48" : "w-64"}>
-							<label className="mb-1 block text-xs font-medium text-muted-foreground">
+							<label className="mb-1 block text-xs font-medium text-t2">
 								Ветка
 							</label>
 							<input
@@ -154,7 +154,7 @@ export function TriggerCIPanel({ projectId }: Props) {
 								value={branch}
 								onChange={(e) => setBranch(e.target.value)}
 								placeholder="main"
-								className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+								className="w-full rounded-lg border border-input bg-base px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
 							/>
 						</div>
 					</div>
@@ -166,7 +166,7 @@ export function TriggerCIPanel({ projectId }: Props) {
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
 							placeholder="Поиск тест-кейсов..."
-							className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+							className="flex-1 rounded-lg border border-input bg-base px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
 						/>
 						<button
 							type="button"
@@ -182,11 +182,11 @@ export function TriggerCIPanel({ projectId }: Props) {
 					{/* Список кейсов */}
 					<div className="max-h-72 overflow-y-auto rounded-lg border">
 						{casesLoading ? (
-							<div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+							<div className="flex items-center justify-center py-8 text-sm text-t2">
 								Загрузка тест-кейсов...
 							</div>
 						) : filteredCases.length === 0 ? (
-							<div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+							<div className="flex items-center justify-center py-8 text-sm text-t2">
 								Нет активных тест-кейсов
 							</div>
 						) : (
@@ -197,7 +197,7 @@ export function TriggerCIPanel({ projectId }: Props) {
 										"flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors border-b last:border-b-0",
 										selectedCaseIds.has(tc.id)
 											? "bg-primary/5"
-											: "hover:bg-muted/50",
+											: "hover:bg-raised/50",
 									)}
 								>
 									<input
@@ -238,7 +238,7 @@ export function TriggerCIPanel({ projectId }: Props) {
 							"w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
 							selectedCaseIds.size > 0 && activeIntegrationId
 								? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-								: "bg-muted text-muted-foreground cursor-not-allowed",
+								: "bg-raised text-t2 cursor-not-allowed",
 						)}
 					>
 						{triggerMutation.isPending
@@ -247,7 +247,7 @@ export function TriggerCIPanel({ projectId }: Props) {
 					</button>
 
 					{/* Подсказка */}
-					<p className="text-xs text-muted-foreground">
+					<p className="text-xs text-t2">
 						Выбранные тест-кейсы передаются в переменную CI{" "}
 						<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
 							HUB_TEST_CASE_IDS

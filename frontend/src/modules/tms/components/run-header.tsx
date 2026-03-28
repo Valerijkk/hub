@@ -87,12 +87,12 @@ export function RunHeader({
 				<Link
 					to="/projects/$projectId/tms/runs"
 					params={{ projectId }}
-					className="text-muted-foreground hover:text-foreground transition-colors"
+					className="text-t2 hover:text-t1 transition-colors"
 				>
 					Прогоны
 				</Link>
 				<svg
-					className="h-3.5 w-3.5 text-muted-foreground/40"
+					className="h-3.5 w-3.5 text-t2/40"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -121,7 +121,7 @@ export function RunHeader({
 						</Badge>
 					</div>
 					{run.description && (
-						<p className="text-sm text-muted-foreground mb-2">
+						<p className="text-sm text-t2 mb-2">
 							{run.description}
 						</p>
 					)}
@@ -162,7 +162,7 @@ export function RunHeader({
 									/>
 								)}
 							</div>
-							<span className="text-xs text-muted-foreground tabular-nums font-medium">
+							<span className="text-xs text-t2 tabular-nums font-medium">
 								{passRate}% passed
 							</span>
 						</div>
@@ -170,7 +170,7 @@ export function RunHeader({
 					{/* Назначенные */}
 					{(run.assignees ?? []).length > 0 && (
 						<div className="mt-2 flex items-center gap-1.5">
-							<span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+							<span className="text-[10px] text-t2 uppercase tracking-wider font-medium">
 								Назначены:
 							</span>
 							{(run.assignees ?? []).map((u) => (

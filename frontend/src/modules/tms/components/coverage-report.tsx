@@ -41,7 +41,7 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 	return (
 		<>
 			<tr
-				className="cursor-pointer border-b transition-colors hover:bg-muted/50"
+				className="cursor-pointer border-b transition-colors hover:bg-raised/50"
 				onClick={() => setExpanded(!expanded)}
 			>
 				<td className="px-4 py-3">
@@ -51,7 +51,7 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 				<td className="px-4 py-3 text-center text-sm">{totalCount}</td>
 				<td className="px-4 py-3">
 					<div className="flex items-center gap-2">
-						<div className="h-2 w-20 overflow-hidden rounded-full bg-muted">
+						<div className="h-2 w-20 overflow-hidden rounded-full bg-raised">
 							<div
 								className={cn(
 									"h-full rounded-full transition-all",
@@ -64,17 +64,17 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 								style={{ width: `${passRate}%` }}
 							/>
 						</div>
-						<span className="text-xs text-muted-foreground">{passRate}%</span>
+						<span className="text-xs text-t2">{passRate}%</span>
 					</div>
 				</td>
-				<td className="px-4 py-3 text-right text-xs text-muted-foreground">
+				<td className="px-4 py-3 text-right text-xs text-t2">
 					{expanded ? "Свернуть" : "Развернуть"}
 				</td>
 			</tr>
 			{expanded &&
 				issue.test_cases.map((tc) => (
-					<tr key={tc.case_key} className="border-b bg-muted/20">
-						<td className="px-8 py-2 text-xs text-muted-foreground">
+					<tr key={tc.case_key} className="border-b bg-raised/20">
+						<td className="px-8 py-2 text-xs text-t2">
 							{tc.case_key}
 						</td>
 						<td className="px-4 py-2 text-xs">{tc.case_title}</td>
@@ -110,7 +110,7 @@ export function CoverageReport({ projectId }: { projectId: string }) {
 
 	if (isLoading) {
 		return (
-			<div className="py-8 text-center text-muted-foreground">
+			<div className="py-8 text-center text-t2">
 				Загрузка отчёта...
 			</div>
 		);
@@ -119,7 +119,7 @@ export function CoverageReport({ projectId }: { projectId: string }) {
 	if (!data || data.issues.length === 0) {
 		return (
 			<Card>
-				<CardContent className="py-8 text-center text-muted-foreground">
+				<CardContent className="py-8 text-center text-t2">
 					Нет задач с привязанными тест-кейсами.
 					<br />
 					Привяжите тест-кейсы к задачам для отображения покрытия.
@@ -139,17 +139,17 @@ export function CoverageReport({ projectId }: { projectId: string }) {
 				<div className="rounded-md border">
 					<table className="w-full">
 						<thead>
-							<tr className="border-b bg-muted/50">
-								<th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+							<tr className="border-b bg-raised/50">
+								<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 									Задача
 								</th>
-								<th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+								<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 									Название
 								</th>
-								<th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">
+								<th className="px-4 py-3 text-center text-xs font-medium text-t2">
 									Тестов
 								</th>
-								<th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+								<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 									Покрытие
 								</th>
 								<th className="px-4 py-3" />

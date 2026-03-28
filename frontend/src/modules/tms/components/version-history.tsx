@@ -45,7 +45,7 @@ export function VersionHistory({
 		<Card className="shadow-card">
 			<CardHeader className="pb-2 px-4 pt-4">
 				<div className="flex items-center justify-between">
-					<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+					<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-t2">
 						История версий
 					</CardTitle>
 					<Button
@@ -61,7 +61,7 @@ export function VersionHistory({
 			{versionsOpen && versions && (
 				<CardContent className="px-4 pb-4">
 					{versions.length === 0 ? (
-						<p className="text-xs text-muted-foreground">
+						<p className="text-xs text-t2">
 							Нет предыдущих версий
 						</p>
 					) : (
@@ -69,7 +69,7 @@ export function VersionHistory({
 							{versions.map((v: TestCaseVersionResponse) => (
 								<div
 									key={v.id}
-									className="rounded-lg border p-2.5 hover:bg-muted/30 transition-colors"
+									className="rounded-lg border p-2.5 hover:bg-raised/30 transition-colors"
 								>
 									<div className="flex items-center justify-between">
 										<span className="text-xs font-semibold tabular-nums">
@@ -86,11 +86,11 @@ export function VersionHistory({
 										</Button>
 									</div>
 									{v.change_description && (
-										<p className="text-[11px] text-muted-foreground mt-0.5">
+										<p className="text-[11px] text-t2 mt-0.5">
 											{v.change_description}
 										</p>
 									)}
-									<div className="text-[10px] text-muted-foreground/60 mt-1">
+									<div className="text-[10px] text-t2/60 mt-1">
 										{v.created_by?.name} -- {formatRelativeTime(v.created_at)}
 									</div>
 								</div>

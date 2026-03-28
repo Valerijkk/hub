@@ -111,17 +111,17 @@ export function ImportDialog({
 							{file ? (
 								<div className="text-center">
 									<div className="text-sm font-medium">{file.name}</div>
-									<div className="text-xs text-muted-foreground">
+									<div className="text-xs text-t2">
 										{(file.size / 1024).toFixed(1)} KB -{" "}
 										{detectFormat(file.name).toUpperCase()}
 									</div>
 								</div>
 							) : (
 								<div className="text-center">
-									<div className="text-sm text-muted-foreground">
+									<div className="text-sm text-t2">
 										Перетащите файл или нажмите для выбора
 									</div>
-									<div className="mt-1 text-xs text-muted-foreground">
+									<div className="mt-1 text-xs text-t2">
 										Форматы: CSV, JSON, XML, XLSX
 									</div>
 								</div>
@@ -145,19 +145,19 @@ export function ImportDialog({
 								<div className="text-lg font-bold text-green-600">
 									{result.created}
 								</div>
-								<div className="text-xs text-muted-foreground">Создано</div>
+								<div className="text-xs text-t2">Создано</div>
 							</div>
 							<div className="rounded border p-3 text-center">
 								<div className="text-lg font-bold text-yellow-600">
 									{result.skipped}
 								</div>
-								<div className="text-xs text-muted-foreground">Пропущено</div>
+								<div className="text-xs text-t2">Пропущено</div>
 							</div>
 							<div className="rounded border p-3 text-center">
 								<div className="text-lg font-bold text-red-600">
 									{result.errors}
 								</div>
-								<div className="text-xs text-muted-foreground">Ошибок</div>
+								<div className="text-xs text-t2">Ошибок</div>
 							</div>
 						</div>
 

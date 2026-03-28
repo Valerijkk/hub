@@ -93,7 +93,7 @@ export function AutotestSetup({ projectId }: Props) {
 				<h2 className="text-xl font-semibold">
 					Интеграция автотестов
 				</h2>
-				<p className="mt-1 text-sm text-muted-foreground">
+				<p className="mt-1 text-sm text-t2">
 					Настройте CI/CD пайплайн для автоматической загрузки результатов тестов
 				</p>
 			</div>
@@ -112,14 +112,14 @@ export function AutotestSetup({ projectId }: Props) {
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-3">
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm text-t2">
 						Отправляйте результаты тестов на один из эндпоинтов:
 					</p>
 
 					<div className="space-y-2">
 						<div className="flex items-center gap-2">
 							<Badge variant="outline">Allure JSON</Badge>
-							<span className="text-xs text-muted-foreground">POST</span>
+							<span className="text-xs text-t2">POST</span>
 						</div>
 						<CodeBlock code={webhookUrl} />
 					</div>
@@ -127,12 +127,12 @@ export function AutotestSetup({ projectId }: Props) {
 					<div className="space-y-2">
 						<div className="flex items-center gap-2">
 							<Badge variant="outline">JUnit XML</Badge>
-							<span className="text-xs text-muted-foreground">POST</span>
+							<span className="text-xs text-t2">POST</span>
 						</div>
 						<CodeBlock code={junitUrl} />
 					</div>
 
-					<p className="text-xs text-muted-foreground">
+					<p className="text-xs text-t2">
 						Замените <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
 							{"${YOUR_DOMAIN}"}
 						</code> на адрес вашего Hub-инстанса (например,{" "}
@@ -154,13 +154,13 @@ export function AutotestSetup({ projectId }: Props) {
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm text-t2">
 						Для аутентификации CI/CD используйте API-ключ. Его можно создать
 						в разделе <strong>Профиль &rarr; API-ключи</strong>.
 					</p>
 
 					<CollapsibleSection title="Как создать API-ключ" defaultOpen>
-						<ol className="list-decimal pl-4 space-y-2 text-sm text-muted-foreground">
+						<ol className="list-decimal pl-4 space-y-2 text-sm text-t2">
 							<li>
 								Перейдите в <strong>Профиль</strong> (аватар в левом нижнем углу)
 							</li>
@@ -180,7 +180,7 @@ export function AutotestSetup({ projectId }: Props) {
 						</ol>
 					</CollapsibleSection>
 
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm text-t2">
 						Передавайте ключ одним из способов:
 					</p>
 
@@ -196,7 +196,7 @@ export function AutotestSetup({ projectId }: Props) {
 
 					<CollapsibleSection title="Необходимые права доступа">
 						<div className="space-y-3">
-							<p className="text-sm text-muted-foreground">
+							<p className="text-sm text-t2">
 								API-ключ наследует права пользователя, который его создал.
 								Для работы автотестов требуются следующие права в проекте:
 							</p>
@@ -215,7 +215,7 @@ export function AutotestSetup({ projectId }: Props) {
 											<td className="p-2">
 												<Badge variant="outline">Tester</Badge>
 											</td>
-											<td className="p-2 text-muted-foreground">
+											<td className="p-2 text-t2">
 												Отправка результатов через webhook (Allure / JUnit)
 											</td>
 										</tr>
@@ -224,7 +224,7 @@ export function AutotestSetup({ projectId }: Props) {
 											<td className="p-2">
 												<Badge variant="outline">Tester</Badge>
 											</td>
-											<td className="p-2 text-muted-foreground">
+											<td className="p-2 text-t2">
 												Автоматическое создание test run при импорте
 											</td>
 										</tr>
@@ -233,7 +233,7 @@ export function AutotestSetup({ projectId }: Props) {
 											<td className="p-2">
 												<Badge variant="outline">Developer</Badge>
 											</td>
-											<td className="p-2 text-muted-foreground">
+											<td className="p-2 text-t2">
 												Триггер CI/CD через Hub (кнопка "Запуск тестов")
 											</td>
 										</tr>
@@ -242,7 +242,7 @@ export function AutotestSetup({ projectId }: Props) {
 											<td className="p-2">
 												<Badge variant="outline">Admin</Badge>
 											</td>
-											<td className="p-2 text-muted-foreground">
+											<td className="p-2 text-t2">
 												Подключение/отключение GitLab-репозиториев
 											</td>
 										</tr>
@@ -255,20 +255,20 @@ export function AutotestSetup({ projectId }: Props) {
 					<CollapsibleSection title="Настройка секретов в CI/CD">
 						<div className="space-y-3">
 							<p className="text-sm font-medium">GitHub Actions:</p>
-							<p className="text-sm text-muted-foreground">
+							<p className="text-sm text-t2">
 								<strong>Settings &rarr; Secrets and variables &rarr; Actions</strong> &rarr;
 								создайте секрет <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_API_KEY</code> и
 								переменную <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_URL</code>.
 							</p>
 							<p className="text-sm font-medium">GitLab CI:</p>
-							<p className="text-sm text-muted-foreground">
+							<p className="text-sm text-t2">
 								<strong>Settings &rarr; CI/CD &rarr; Variables</strong> &rarr;
 								создайте переменные{" "}
 								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_API_KEY</code> (masked) и{" "}
 								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_URL</code>.
 							</p>
 							<p className="text-sm font-medium">Jenkins:</p>
-							<p className="text-sm text-muted-foreground">
+							<p className="text-sm text-t2">
 								<strong>Manage Jenkins &rarr; Credentials</strong> &rarr;
 								добавьте Secret text с ID{" "}
 								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">hub-api-key</code>.
@@ -298,18 +298,18 @@ export function AutotestSetup({ projectId }: Props) {
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-3">
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm text-t2">
 						Для автоматической привязки результатов к тест-кейсам используйте
 						паттерн <code className="rounded bg-gray-100 px-1 font-semibold dark:bg-gray-800">PROJ-TC-N</code>,
 						где <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">PROJ</code> — префикс проекта,
 						а <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">N</code> — номер тест-кейса.
 					</p>
 
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm text-t2">
 						Пример: <Badge variant="secondary">HUB-TC-42</Badge>
 					</p>
 
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm text-t2">
 						Включите этот идентификатор в название теста, аннотацию Allure
 						или поле <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">automation_id</code> тест-кейса.
 					</p>
@@ -329,7 +329,7 @@ export function AutotestSetup({ projectId }: Props) {
 				<CardContent className="space-y-3">
 					<CollapsibleSection title="Python (pytest + allure-pytest)" defaultOpen>
 						<div className="space-y-3">
-							<p className="text-sm text-muted-foreground">
+							<p className="text-sm text-t2">
 								Используйте декоратор <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">@allure.id()</code> или
 								метку <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">allure.label()</code>:
 							</p>
@@ -349,7 +349,7 @@ def test_user_login():
 def test_user_registration():
     pass`}
 							/>
-							<p className="text-sm text-muted-foreground">
+							<p className="text-sm text-t2">
 								Генерация результатов:
 							</p>
 							<CodeBlock
@@ -361,7 +361,7 @@ def test_user_registration():
 
 					<CollapsibleSection title="JavaScript (Jest / Playwright)">
 						<div className="space-y-3">
-							<p className="text-sm text-muted-foreground">
+							<p className="text-sm text-t2">
 								Включите ключ тест-кейса в название теста:
 							</p>
 							<CodeBlock
@@ -379,7 +379,7 @@ test("PROJ-TC-2: should show error on invalid password", async ({ page }) => {
   // ... тестовый код ...
 });`}
 							/>
-							<p className="text-sm text-muted-foreground">
+							<p className="text-sm text-t2">
 								Для Playwright с Allure используйте:
 							</p>
 							<CodeBlock
@@ -397,7 +397,7 @@ test("Login test", async ({ page }) => {
 
 					<CollapsibleSection title="Java (JUnit + allure-java)">
 						<div className="space-y-3">
-							<p className="text-sm text-muted-foreground">
+							<p className="text-sm text-t2">
 								Используйте аннотацию <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">@AllureId</code>:
 							</p>
 							<CodeBlock
@@ -475,7 +475,7 @@ jobs:
           HUB_URL: \${{ vars.HUB_URL }}`}
 						/>
 
-						<p className="mt-3 text-sm text-muted-foreground">
+						<p className="mt-3 text-sm text-t2">
 							Для JUnit XML (например, pytest --junitxml):
 						</p>
 						<CodeBlock
@@ -541,7 +541,7 @@ upload_results:
         --data-binary @junit-report.xml`}
 						/>
 
-						<p className="mt-3 text-sm text-muted-foreground">
+						<p className="mt-3 text-sm text-t2">
 							Добавьте переменные <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_URL</code> и{" "}
 							<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_API_KEY</code> в
 							<strong> Settings &rarr; CI/CD &rarr; Variables</strong> (masked).
@@ -561,7 +561,7 @@ upload_results:
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm text-t2">
 						Hub автоматически привязывает результаты автотестов к тест-кейсам,
 						используя 6 стратегий в порядке приоритета:
 					</p>
@@ -589,7 +589,7 @@ upload_results:
 											@AllureId / @TmsLink / label AS_ID
 										</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										Самый надёжный способ. Ищет по external_id тест-кейса.
 									</td>
 								</tr>
@@ -605,7 +605,7 @@ upload_results:
 											label automation_id / @TmsLink
 										</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										Поле automation_id тест-кейса, заданное QA-инженером.
 									</td>
 								</tr>
@@ -621,7 +621,7 @@ upload_results:
 											Паттерн PROJ-TC-N в имени
 										</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										Регулярное выражение ищет ключ тест-кейса в названии теста.
 									</td>
 								</tr>
@@ -637,7 +637,7 @@ upload_results:
 											fullName результата
 										</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										Полное имя теста (пакет.класс.метод) сравнивается с full_name кейса.
 									</td>
 								</tr>
@@ -653,7 +653,7 @@ upload_results:
 											suite label + name
 										</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										Совпадение по имени класса (label suite) и имени метода (name).
 									</td>
 								</tr>
@@ -663,11 +663,11 @@ upload_results:
 											-
 										</Badge>
 									</td>
-									<td className="p-2 font-medium text-muted-foreground">
+									<td className="p-2 font-medium text-t2">
 										unmapped
 									</td>
-									<td className="p-2 text-muted-foreground">-</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">-</td>
+									<td className="p-2 text-t2">
 										Результат не привязан ни к одному тест-кейсу. Отображается
 										в прогоне без ссылки на кейс.
 									</td>
@@ -702,7 +702,7 @@ upload_results:
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-3">
-					<p className="text-sm text-muted-foreground">
+					<p className="text-sm text-t2">
 						При запуске тестов через панель выше Hub передаёт переменные CI/CD в пайплайн:
 					</p>
 
@@ -722,10 +722,10 @@ upload_results:
 											HUB_TEST_CASE_IDS
 										</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										<code className="text-xs">HUB-TC-1,HUB-TC-5,HUB-TC-12</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										Ключи выбранных тест-кейсов (через запятую)
 									</td>
 								</tr>
@@ -735,10 +735,10 @@ upload_results:
 											HUB_RUN_SOURCE
 										</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										<code className="text-xs">hub_trigger</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										Источник запуска (для фильтрации в пайплайне)
 									</td>
 								</tr>
@@ -748,10 +748,10 @@ upload_results:
 											HUB_PROJECT_ID
 										</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										<code className="text-xs">uuid</code>
 									</td>
-									<td className="p-2 text-muted-foreground">
+									<td className="p-2 text-t2">
 										ID проекта в Hub (для обратной привязки)
 									</td>
 								</tr>

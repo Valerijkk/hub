@@ -98,14 +98,14 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 			{/* Metadata card */}
 			<Card className="shadow-card">
 				<CardHeader className="pb-2 px-4 pt-4">
-					<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+					<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-t2">
 						Метаданные
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-3 px-4 pb-4">
 					<div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
 						<div>
-							<div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">
+							<div className="text-[10px] text-t2/70 uppercase tracking-wider font-medium">
 								Приоритет
 							</div>
 							<div className="flex items-center gap-1 mt-0.5">
@@ -114,7 +114,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 							</div>
 						</div>
 						<div>
-							<div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">
+							<div className="text-[10px] text-t2/70 uppercase tracking-wider font-medium">
 								Статус
 							</div>
 							<Badge
@@ -129,7 +129,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 							</Badge>
 						</div>
 						<div>
-							<div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">
+							<div className="text-[10px] text-t2/70 uppercase tracking-wider font-medium">
 								Тип
 							</div>
 							<span className="text-xs font-medium mt-0.5">
@@ -137,7 +137,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 							</span>
 						</div>
 						<div>
-							<div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">
+							<div className="text-[10px] text-t2/70 uppercase tracking-wider font-medium">
 								Версия
 							</div>
 							<span className="text-xs font-medium mt-0.5 tabular-nums">
@@ -149,7 +149,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 					<div className="border-t pt-2.5 space-y-2.5">
 						{tc.created_by && (
 							<div>
-								<div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">
+								<div className="text-[10px] text-t2/70 uppercase tracking-wider font-medium">
 									Автор
 								</div>
 								<div className="text-xs font-medium mt-0.5">
@@ -158,29 +158,29 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 							</div>
 						)}
 						<div>
-							<div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">
+							<div className="text-[10px] text-t2/70 uppercase tracking-wider font-medium">
 								Создан
 							</div>
-							<div className="text-xs text-muted-foreground mt-0.5">
+							<div className="text-xs text-t2 mt-0.5">
 								{formatRelativeTime(tc.created_at)}
 							</div>
 						</div>
 						<div>
-							<div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">
+							<div className="text-[10px] text-t2/70 uppercase tracking-wider font-medium">
 								Обновлён
 							</div>
-							<div className="text-xs text-muted-foreground mt-0.5">
+							<div className="text-xs text-t2 mt-0.5">
 								{formatRelativeTime(tc.updated_at)}
 							</div>
 						</div>
 						{tc.suite && (
 							<div>
-								<div className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium">
+								<div className="text-[10px] text-t2/70 uppercase tracking-wider font-medium">
 									Папка
 								</div>
 								<div className="text-xs font-medium mt-0.5 flex items-center gap-1">
 									<svg
-										className="h-3 w-3 text-muted-foreground"
+										className="h-3 w-3 text-t2"
 										fill="none"
 										viewBox="0 0 24 24"
 										stroke="currentColor"
@@ -204,7 +204,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 			{tc.components && tc.components.length > 0 && (
 				<Card className="shadow-card">
 					<CardHeader className="pb-2 px-4 pt-4">
-						<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+						<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-t2">
 							Компоненты
 						</CardTitle>
 					</CardHeader>
@@ -228,7 +228,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 			{tc.labels && tc.labels.length > 0 && (
 				<Card className="shadow-card">
 					<CardHeader className="pb-2 px-4 pt-4">
-						<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+						<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-t2">
 							Метки
 						</CardTitle>
 					</CardHeader>

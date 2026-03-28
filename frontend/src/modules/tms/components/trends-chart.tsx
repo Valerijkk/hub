@@ -68,7 +68,7 @@ export function TrendsChart({
 
 	if (isLoading) {
 		return (
-			<div className="py-8 text-center text-muted-foreground">
+			<div className="py-8 text-center text-t2">
 				Загрузка трендов...
 			</div>
 		);
@@ -77,7 +77,7 @@ export function TrendsChart({
 	if (!trends || trends.length === 0) {
 		return (
 			<Card>
-				<CardContent className="py-8 text-center text-muted-foreground">
+				<CardContent className="py-8 text-center text-t2">
 					Нет данных для трендов. Выполните прогоны тестов.
 				</CardContent>
 			</Card>
@@ -90,7 +90,7 @@ export function TrendsChart({
 				<CardTitle className="text-sm">
 					Тренды прогонов (последние {trends.length})
 				</CardTitle>
-				<div className="flex gap-4 text-xs text-muted-foreground">
+				<div className="flex gap-4 text-xs text-t2">
 					<span className="flex items-center gap-1">
 						<span className="inline-block h-2 w-3 rounded bg-green-500" />
 						Passed
@@ -114,7 +114,7 @@ export function TrendsChart({
 					{trends.map((point) => (
 						<div key={point.run_id} className="flex items-center gap-3">
 							<div
-								className="w-32 truncate text-xs text-muted-foreground"
+								className="w-32 truncate text-xs text-t2"
 								title={point.title}
 							>
 								{point.title}

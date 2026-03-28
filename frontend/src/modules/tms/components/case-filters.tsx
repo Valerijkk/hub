@@ -53,7 +53,7 @@ export function CaseFilters({
 		<div className="mb-3 flex flex-wrap items-center gap-2">
 			<div className="relative">
 				<svg
-					className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60"
+					className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-t2/60"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -163,7 +163,7 @@ export function CaseFilters({
 			)}
 
 			<div className="ml-auto flex items-center gap-2">
-				<span className="text-xs text-muted-foreground tabular-nums">
+				<span className="text-xs text-t2 tabular-nums">
 					{total} {total === 1 ? "кейс" : total < 5 ? "кейса" : "кейсов"}
 				</span>
 				{createButton}

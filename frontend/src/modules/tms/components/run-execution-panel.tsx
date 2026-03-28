@@ -105,7 +105,7 @@ export function RunExecutionPanel({
 		<div className="space-y-4">
 			{/* Информация о тест-кейсе */}
 			{tc && (
-				<div className="rounded-lg border bg-muted/20 p-3">
+				<div className="rounded-lg border bg-raised/20 p-3">
 					<div className="flex items-center gap-2 mb-1">
 						<span className="font-mono text-xs font-bold text-primary">
 							{tc.case_key}
@@ -120,7 +120,7 @@ export function RunExecutionPanel({
 
 			{/* Кнопки статусов */}
 			<div>
-				<div className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+				<div className="mb-2 text-xs font-semibold text-t2 uppercase tracking-wider">
 					Результат
 				</div>
 				<div className="grid grid-cols-4 gap-1.5">
@@ -131,7 +131,7 @@ export function RunExecutionPanel({
 								"rounded-lg border px-3 py-2 text-xs font-semibold transition-all duration-150",
 								overallStatus === btn.status
 									? btn.activeColor
-									: cn("border-border text-muted-foreground", btn.color),
+									: cn("border-border text-t2", btn.color),
 							)}
 							onClick={() => setOverallStatus(btn.status)}
 						>
@@ -143,7 +143,7 @@ export function RunExecutionPanel({
 
 			{/* Комментарий */}
 			<div>
-				<div className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+				<div className="mb-1.5 text-xs font-semibold text-t2 uppercase tracking-wider">
 					Комментарий
 				</div>
 				<textarea

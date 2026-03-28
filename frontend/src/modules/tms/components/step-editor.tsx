@@ -65,7 +65,7 @@ export function StepEditor(props: StepEditorProps) {
 					</Button>
 				</div>
 				{props.editSteps.length === 0 ? (
-					<div className="text-center py-8 text-sm text-muted-foreground border rounded-lg border-dashed">
+					<div className="text-center py-8 text-sm text-t2 border rounded-lg border-dashed">
 						Нет шагов. Нажмите "Добавить шаг".
 					</div>
 				) : (
@@ -83,8 +83,8 @@ export function StepEditor(props: StepEditorProps) {
 										className={cn(
 											"flex h-5 w-5 items-center justify-center rounded text-[10px] leading-none transition-colors",
 											idx === 0
-												? "text-muted-foreground/30 cursor-not-allowed"
-												: "text-muted-foreground hover:text-foreground hover:bg-muted",
+												? "text-t2/30 cursor-not-allowed"
+												: "text-t2 hover:text-t1 hover:bg-raised",
 										)}
 										title="Переместить вверх"
 									>
@@ -100,8 +100,8 @@ export function StepEditor(props: StepEditorProps) {
 										className={cn(
 											"flex h-5 w-5 items-center justify-center rounded text-[10px] leading-none transition-colors",
 											idx === props.editSteps.length - 1
-												? "text-muted-foreground/30 cursor-not-allowed"
-												: "text-muted-foreground hover:text-foreground hover:bg-muted",
+												? "text-t2/30 cursor-not-allowed"
+												: "text-t2 hover:text-t1 hover:bg-raised",
 										)}
 										title="Переместить вниз"
 									>
@@ -129,7 +129,7 @@ export function StepEditor(props: StepEditorProps) {
 								<Button
 									variant="ghost"
 									size="sm"
-									className="mt-1 h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+									className="mt-1 h-6 w-6 p-0 text-t2 hover:text-destructive"
 									onClick={() => props.onRemoveStep(idx)}
 								>
 									<svg
@@ -220,7 +220,7 @@ export function StepEditor(props: StepEditorProps) {
 	return (
 		<div className="flex flex-col items-center justify-center py-12 text-center border rounded-xl border-dashed">
 			<svg
-				className="h-10 w-10 text-muted-foreground/20 mb-3"
+				className="h-10 w-10 text-t2/20 mb-3"
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
@@ -232,7 +232,7 @@ export function StepEditor(props: StepEditorProps) {
 					d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
 				/>
 			</svg>
-			<p className="text-sm text-muted-foreground mb-2">Шаги не заданы</p>
+			<p className="text-sm text-t2 mb-2">Шаги не заданы</p>
 			<Button variant="outline" size="sm" onClick={onStartEditing}>
 				Добавить шаги
 			</Button>

@@ -87,7 +87,7 @@ export function RunResultsTable({
 		return (
 			<div className="flex flex-col items-center justify-center py-16 text-center border rounded-xl border-dashed">
 				<svg
-					className="h-12 w-12 text-muted-foreground/20 mb-3"
+					className="h-12 w-12 text-t2/20 mb-3"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -99,7 +99,7 @@ export function RunResultsTable({
 						d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
 					/>
 				</svg>
-				<p className="text-sm text-muted-foreground mb-3">
+				<p className="text-sm text-t2 mb-3">
 					Нет результатов. Добавьте тест-кейсы в прогон.
 				</p>
 				{runStatus === "created" && (
@@ -158,7 +158,7 @@ export function RunResultsTable({
 						Сбросить
 					</Button>
 				)}
-				<span className="ml-auto text-[11px] text-muted-foreground tabular-nums">
+				<span className="ml-auto text-[11px] text-t2 tabular-nums">
 					{statusFilter
 						? `${filteredResults.length} из ${results.length}`
 						: `${results.length} результатов`}
@@ -169,7 +169,7 @@ export function RunResultsTable({
 				{filteredResults.length === 0 && statusFilter ? (
 					<div className="flex flex-col items-center justify-center py-14 text-center">
 						<svg
-							className="h-10 w-10 text-muted-foreground/20 mb-3"
+							className="h-10 w-10 text-t2/20 mb-3"
 							fill="none"
 							viewBox="0 0 24 24"
 							stroke="currentColor"
@@ -181,10 +181,10 @@ export function RunResultsTable({
 								d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
 							/>
 						</svg>
-						<p className="text-sm font-medium text-muted-foreground mb-1">
+						<p className="text-sm font-medium text-t2 mb-1">
 							Нет результатов с выбранным статусом
 						</p>
-						<p className="text-xs text-muted-foreground/60 mb-3">
+						<p className="text-xs text-t2/60 mb-3">
 							Статус "
 							{
 								(RESULT_STATUS_CONFIG[statusFilter] ?? { label: statusFilter })

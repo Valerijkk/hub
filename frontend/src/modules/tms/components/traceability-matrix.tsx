@@ -169,7 +169,7 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 	// Загрузка
 	if (isLoading) {
 		return (
-			<div className="py-8 text-center text-muted-foreground">
+			<div className="py-8 text-center text-t2">
 				Загрузка матрицы трассировки...
 			</div>
 		);
@@ -179,10 +179,10 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 	if (!data || data.rows.length === 0) {
 		return (
 			<Card>
-				<CardContent className="py-8 text-center text-muted-foreground">
-					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/60 to-muted/30 border border-dashed border-muted-foreground/20">
+				<CardContent className="py-8 text-center text-t2">
+					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-raised/60 to-raised/30 border border-dashed border-t2/20">
 						<svg
-							className="h-8 w-8 text-muted-foreground/30"
+							className="h-8 w-8 text-t2/30"
 							fill="none"
 							viewBox="0 0 24 24"
 							stroke="currentColor"
@@ -209,26 +209,26 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 			{/* Статистика */}
 			<div className="flex flex-wrap items-center gap-4">
 				<div className="flex items-center gap-2">
-					<span className="text-xs text-muted-foreground">Задач:</span>
+					<span className="text-xs text-t2">Задач:</span>
 					<span className="text-sm font-semibold tabular-nums">
 						{stats.covered}
 					</span>
 				</div>
 				<div className="flex items-center gap-2">
-					<span className="text-xs text-muted-foreground">Связей:</span>
+					<span className="text-xs text-t2">Связей:</span>
 					<span className="text-sm font-semibold tabular-nums">
 						{stats.total}
 					</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<span className="h-2 w-2 rounded-full bg-green-500" />
-					<span className="text-xs text-muted-foreground">
+					<span className="text-xs text-t2">
 						Passed: {stats.passed}
 					</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<span className="h-2 w-2 rounded-full bg-red-500" />
-					<span className="text-xs text-muted-foreground">
+					<span className="text-xs text-t2">
 						Failed: {stats.failed}
 					</span>
 				</div>
@@ -251,7 +251,7 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 											? "--"
 											: status.charAt(0).toUpperCase()}
 									</span>
-									<span className="text-[10px] text-muted-foreground">
+									<span className="text-[10px] text-t2">
 										{cfg.label}
 									</span>
 								</div>
@@ -264,7 +264,7 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 			{/* Поиск */}
 			<div className="relative">
 				<svg
-					className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60"
+					className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-t2/60"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -288,14 +288,14 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 			<div className="rounded-xl border shadow-card overflow-auto max-h-[calc(100vh-300px)]">
 				<table className="w-max min-w-full border-collapse">
 					<thead className="sticky top-0 z-10">
-						<tr className="bg-muted/60 backdrop-blur-sm">
-							<th className="sticky left-0 z-20 bg-muted/90 border-b border-r px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground min-w-[200px]">
+						<tr className="bg-raised/60 backdrop-blur-sm">
+							<th className="sticky left-0 z-20 bg-raised/90 border-b border-r px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t2 min-w-[200px]">
 								Задача
 							</th>
 							{allCaseKeys.map((key) => (
 								<th
 									key={key}
-									className="border-b px-2 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap"
+									className="border-b px-2 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-t2 whitespace-nowrap"
 									title={caseTitleMap.get(key) ?? key}
 								>
 									{key}
@@ -314,14 +314,14 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 							return (
 								<tr
 									key={row.issue_key}
-									className="border-b hover:bg-muted/30 transition-colors"
+									className="border-b hover:bg-raised/30 transition-colors"
 								>
 									<td className="sticky left-0 z-10 bg-card/95 border-r px-4 py-2 min-w-[200px]">
 										<div className="flex flex-col">
 											<span className="font-mono text-xs font-bold text-primary">
 												{row.issue_key}
 											</span>
-											<span className="text-xs text-muted-foreground line-clamp-1">
+											<span className="text-xs text-t2 line-clamp-1">
 												{row.issue_title}
 											</span>
 										</div>
@@ -334,7 +334,7 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 													key={key}
 													className="border px-2 py-1.5 text-center"
 												>
-													<span className="text-[10px] text-muted-foreground/20">
+													<span className="text-[10px] text-t2/20">
 														--
 													</span>
 												</td>
@@ -350,7 +350,7 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 			</div>
 
 			{/* Количество строк */}
-			<div className="text-xs text-muted-foreground">
+			<div className="text-xs text-t2">
 				Показано {filteredRows.length} из {data.rows.length} задач
 			</div>
 		</div>
