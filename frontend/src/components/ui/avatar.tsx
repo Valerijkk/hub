@@ -8,15 +8,21 @@ import { cn } from "@/lib/utils";
 const Avatar = React.forwardRef<
 	React.ElementRef<typeof AvatarPrimitive.Root>,
 	React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
 	<AvatarPrimitive.Root
 		ref={ref}
 		className={cn(
-			"relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
+			"group relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
 			className,
 		)}
 		{...props}
-	/>
+	>
+		{children}
+		<span
+			className="absolute bottom-0 right-0 z-10 h-2.5 w-2.5 rounded-full border-2 border-[var(--base)] bg-emerald-500 opacity-0 pointer-events-none transition-opacity group-data-[online=true]:opacity-100 group-data-[online=true]:animate-pulse-online"
+			aria-hidden="true"
+		/>
+	</AvatarPrimitive.Root>
 ));
 Avatar.displayName = AvatarPrimitive.Root.displayName;
 
