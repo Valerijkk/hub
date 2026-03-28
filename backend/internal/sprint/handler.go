@@ -49,7 +49,20 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // Sprint handlers
 // ---------------------------------------------------------------------------
 
-// CreateSprint обрабатывает POST /api/projects/:projectId/sprints.
+// CreateSprint godoc
+// @Summary Создать спринт
+// @Description Создаёт новый спринт в проекте.
+// @Tags Спринты
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body CreateSprintRequest true "Данные спринта"
+// @Success 201 {object} SprintResponse "Спринт создан"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints [post]
 func (h *Handler) CreateSprint(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -69,7 +82,17 @@ func (h *Handler) CreateSprint(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListSprints обрабатывает GET /api/projects/:projectId/sprints.
+// ListSprints godoc
+// @Summary Список спринтов
+// @Description Возвращает все спринты проекта.
+// @Tags Спринты
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} SprintResponse "Список спринтов"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints [get]
 func (h *Handler) ListSprints(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -84,7 +107,18 @@ func (h *Handler) ListSprints(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetSprint обрабатывает GET /api/projects/:projectId/sprints/:sprintId.
+// GetSprint godoc
+// @Summary Получить спринт
+// @Description Возвращает детальную информацию о спринте.
+// @Tags Спринты
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param sprintId path string true "ID спринта"
+// @Success 200 {object} SprintResponse "Данные спринта"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints/{sprintId} [get]
 func (h *Handler) GetSprint(c fiber.Ctx) error {
 	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
@@ -99,7 +133,21 @@ func (h *Handler) GetSprint(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateSprint обрабатывает PUT /api/projects/:projectId/sprints/:sprintId.
+// UpdateSprint godoc
+// @Summary Обновить спринт
+// @Description Обновляет название, цель или даты спринта.
+// @Tags Спринты
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param sprintId path string true "ID спринта"
+// @Param body body UpdateSprintRequest true "Обновляемые данные"
+// @Success 200 {object} SprintResponse "Спринт обновлён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints/{sprintId} [put]
 func (h *Handler) UpdateSprint(c fiber.Ctx) error {
 	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
@@ -119,7 +167,19 @@ func (h *Handler) UpdateSprint(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// StartSprint обрабатывает POST /api/projects/:projectId/sprints/:sprintId/start.
+// StartSprint godoc
+// @Summary Запустить спринт
+// @Description Переводит спринт в статус "active". В проекте может быть только один активный спринт.
+// @Tags Спринты
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param sprintId path string true "ID спринта"
+// @Success 200 {object} SprintResponse "Спринт запущен"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints/{sprintId}/start [post]
 func (h *Handler) StartSprint(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -138,7 +198,19 @@ func (h *Handler) StartSprint(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CompleteSprint обрабатывает POST /api/projects/:projectId/sprints/:sprintId/complete.
+// CompleteSprint godoc
+// @Summary Завершить спринт
+// @Description Завершает спринт и формирует итоговую статистику.
+// @Tags Спринты
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param sprintId path string true "ID спринта"
+// @Success 200 {object} SprintResponse "Спринт завершён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints/{sprintId}/complete [post]
 func (h *Handler) CompleteSprint(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -157,7 +229,21 @@ func (h *Handler) CompleteSprint(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateRetroNotes обрабатывает PUT /api/projects/:projectId/sprints/:sprintId/retro.
+// UpdateRetroNotes godoc
+// @Summary Обновить ретроспективу
+// @Description Сохраняет заметки ретроспективы спринта.
+// @Tags Спринты
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param sprintId path string true "ID спринта"
+// @Param body body RetroNotesRequest true "Заметки ретро"
+// @Success 200 {object} SprintResponse "Ретро обновлено"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints/{sprintId}/retro [put]
 func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
@@ -177,7 +263,18 @@ func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetBurndown обрабатывает GET /api/projects/:projectId/sprints/:sprintId/burndown.
+// GetBurndown godoc
+// @Summary Burndown-диаграмма спринта
+// @Description Возвращает данные для построения burndown-графика спринта.
+// @Tags Спринты
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param sprintId path string true "ID спринта"
+// @Success 200 {object} BurndownResponse "Данные burndown"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints/{sprintId}/burndown [get]
 func (h *Handler) GetBurndown(c fiber.Ctx) error {
 	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
@@ -192,7 +289,17 @@ func (h *Handler) GetBurndown(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetVelocity обрабатывает GET /api/projects/:projectId/velocity.
+// GetVelocity godoc
+// @Summary Velocity проекта
+// @Description Возвращает метрики velocity по завершённым спринтам проекта.
+// @Tags Спринты
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {object} VelocityResponse "Данные velocity"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/velocity [get]
 func (h *Handler) GetVelocity(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
@@ -207,7 +314,20 @@ func (h *Handler) GetVelocity(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// AddIssuesToSprint обрабатывает POST /api/projects/:projectId/sprints/:sprintId/issues.
+// AddIssuesToSprint godoc
+// @Summary Добавить задачи в спринт
+// @Description Привязывает одну или несколько задач к указанному спринту.
+// @Tags Спринты
+// @Accept json
+// @Param projectId path string true "ID проекта"
+// @Param sprintId path string true "ID спринта"
+// @Param body body MoveIssueToSprintRequest true "Список ID задач"
+// @Success 204 "Задачи добавлены"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints/{sprintId}/issues [post]
 func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
@@ -239,7 +359,20 @@ func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 // Poker handlers
 // ---------------------------------------------------------------------------
 
-// StartPokerSession обрабатывает POST /api/projects/:projectId/sprints/:sprintId/poker.
+// StartPokerSession godoc
+// @Summary Начать Planning Poker сессию
+// @Description Создаёт сессию Planning Poker для оценки задачи в рамках спринта.
+// @Tags Спринты
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param sprintId path string true "ID спринта"
+// @Param body body StartPokerRequest true "ID задачи для оценки"
+// @Success 201 {object} PokerSessionResponse "Сессия создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints/{sprintId}/poker [post]
 func (h *Handler) StartPokerSession(c fiber.Ctx) error {
 	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
 	if err != nil {
@@ -264,7 +397,18 @@ func (h *Handler) StartPokerSession(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// CastVote обрабатывает POST /api/sprints/poker/:sessionId/vote.
+// CastVote godoc
+// @Summary Проголосовать в Poker
+// @Description Отправляет голос (оценку) участника в сессии Planning Poker.
+// @Tags Спринты
+// @Accept json
+// @Param sessionId path string true "ID сессии Poker"
+// @Param body body VoteRequest true "Значение оценки"
+// @Success 204 "Голос учтён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/sprints/poker/{sessionId}/vote [post]
 func (h *Handler) CastVote(c fiber.Ctx) error {
 	sessionID := utils.CopyString(c.Params("sessionId"))
 	if sessionID == "" {
@@ -288,7 +432,17 @@ func (h *Handler) CastVote(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// RevealVotes обрабатывает POST /api/sprints/poker/:sessionId/reveal.
+// RevealVotes godoc
+// @Summary Раскрыть голоса Poker
+// @Description Раскрывает все голоса сессии Planning Poker и показывает результат.
+// @Tags Спринты
+// @Produce json
+// @Param sessionId path string true "ID сессии Poker"
+// @Success 200 {object} PokerSessionResponse "Результаты голосования"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/sprints/poker/{sessionId}/reveal [post]
 func (h *Handler) RevealVotes(c fiber.Ctx) error {
 	sessionID := utils.CopyString(c.Params("sessionId"))
 	if sessionID == "" {
@@ -303,7 +457,17 @@ func (h *Handler) RevealVotes(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetPokerSession обрабатывает GET /api/sprints/poker/:sessionId.
+// GetPokerSession godoc
+// @Summary Получить сессию Poker
+// @Description Возвращает текущее состояние сессии Planning Poker.
+// @Tags Спринты
+// @Produce json
+// @Param sessionId path string true "ID сессии Poker"
+// @Success 200 {object} PokerSessionResponse "Данные сессии"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/sprints/poker/{sessionId} [get]
 func (h *Handler) GetPokerSession(c fiber.Ctx) error {
 	sessionID := utils.CopyString(c.Params("sessionId"))
 	if sessionID == "" {
