@@ -214,7 +214,7 @@ Plans:
 
 Plans:
 - [ ] 09-01-PLAN.md — Sidebar redesign (background, gradient edge, active glow, header, user/projects tokens)
-- [ ] 09-02-PLAN.md — Topbar redesign (backdrop blur, gradient edge), AppShell topbar visibility, mobile nav tokens
+- [x] 09-02-PLAN.md — Topbar redesign (backdrop blur, gradient edge), AppShell topbar visibility, mobile nav tokens
 
 **UI hint**: yes
 
