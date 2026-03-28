@@ -196,7 +196,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — Font swap + CSS token foundation (surfaces, text, borders, radii, shadows, easing, accents, dual Shadcn mapping)
+- [x] 08-01-PLAN.md — Font swap + CSS token foundation (surfaces, text, borders, radii, shadows, easing, accents, dual Shadcn mapping)
 - [ ] 08-02-PLAN.md — !important removal (56 declarations) + noise texture overlay
 
 **UI hint**: yes
@@ -276,7 +276,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 5. Voice Calls | v1.0 | 4/4 | Complete | 2026-03-21 |
 | 6. Notifications, Search & Dashboards | v1.0 | 5/5 | Complete | 2026-03-21 |
 | 7. Polish & Extended Features | v1.0 | 6/6 | Complete | 2026-03-21 |
-| 8. Design System Foundation | v2.0 | 0/2 | Planning | - |
+| 8. Design System Foundation | v2.0 | 1/2 | In Progress|  |
 | 9. Layout Shell | v2.0 | 0/? | Not started | - |
 | 10. UI Primitives | v2.0 | 0/? | Not started | - |
 | 11. Core Mockup Pages | v2.0 | 0/? | Not started | - |

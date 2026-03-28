@@ -7,22 +7,22 @@
 
 ### Design System Foundation (DSFN)
 
-- [ ] **DSFN-01**: User sees Inter font for all UI text and JetBrains Mono for code/monospace elements
-- [ ] **DSFN-02**: User sees new 5-level surface palette (void/base/raised/card/input) in dark mode
-- [ ] **DSFN-03**: User sees 4-level text hierarchy (t1/t2/t3/t4) with correct contrast ratios
-- [ ] **DSFN-04**: User sees 3-level border system (b1/b2/b3) with correct opacity values
-- [ ] **DSFN-05**: User sees new radius system (6/8/12/16px + pill) applied consistently
-- [ ] **DSFN-06**: User sees 4-level shadow system (sh1-sh4) on cards, modals, dropdowns
-- [ ] **DSFN-07**: User sees spring/bounce easing on hover/focus/enter animations
+- [x] **DSFN-01**: User sees Inter font for all UI text and JetBrains Mono for code/monospace elements
+- [x] **DSFN-02**: User sees new 5-level surface palette (void/base/raised/card/input) in dark mode
+- [x] **DSFN-03**: User sees 4-level text hierarchy (t1/t2/t3/t4) with correct contrast ratios
+- [x] **DSFN-04**: User sees 3-level border system (b1/b2/b3) with correct opacity values
+- [x] **DSFN-05**: User sees new radius system (6/8/12/16px + pill) applied consistently
+- [x] **DSFN-06**: User sees 4-level shadow system (sh1-sh4) on cards, modals, dropdowns
+- [x] **DSFN-07**: User sees spring/bounce easing on hover/focus/enter animations
 - [ ] **DSFN-08**: All !important declarations removed from app.css without visual regression
-- [ ] **DSFN-09**: User can select accent color (red/blue/green/purple/orange) and see it applied consistently
+- [x] **DSFN-09**: User can select accent color (red/blue/green/purple/orange) and see it applied consistently
 
 ### Theme Support (THME)
 
-- [ ] **THME-01**: User sees dark theme matching mockup palette exactly
-- [ ] **THME-02**: User sees light theme derived from dark tokens with consistent design language
-- [ ] **THME-03**: User can switch between dark/light/system themes without visual glitches
-- [ ] **THME-04**: Light theme passes WCAG AA contrast ratios (4.5:1 text, 3:1 UI)
+- [x] **THME-01**: User sees dark theme matching mockup palette exactly
+- [x] **THME-02**: User sees light theme derived from dark tokens with consistent design language
+- [x] **THME-03**: User can switch between dark/light/system themes without visual glitches
+- [x] **THME-04**: Light theme passes WCAG AA contrast ratios (4.5:1 text, 3:1 UI)
 
 ### Layout Shell (LYOT)
 
@@ -162,19 +162,19 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DSFN-01 | Phase 8 | Pending |
-| DSFN-02 | Phase 8 | Pending |
-| DSFN-03 | Phase 8 | Pending |
-| DSFN-04 | Phase 8 | Pending |
-| DSFN-05 | Phase 8 | Pending |
-| DSFN-06 | Phase 8 | Pending |
-| DSFN-07 | Phase 8 | Pending |
+| DSFN-01 | Phase 8 | Complete |
+| DSFN-02 | Phase 8 | Complete |
+| DSFN-03 | Phase 8 | Complete |
+| DSFN-04 | Phase 8 | Complete |
+| DSFN-05 | Phase 8 | Complete |
+| DSFN-06 | Phase 8 | Complete |
+| DSFN-07 | Phase 8 | Complete |
 | DSFN-08 | Phase 8 | Pending |
-| DSFN-09 | Phase 8 | Pending |
-| THME-01 | Phase 8 | Pending |
-| THME-02 | Phase 8 | Pending |
-| THME-03 | Phase 8 | Pending |
-| THME-04 | Phase 8 | Pending |
+| DSFN-09 | Phase 8 | Complete |
+| THME-01 | Phase 8 | Complete |
+| THME-02 | Phase 8 | Complete |
+| THME-03 | Phase 8 | Complete |
+| THME-04 | Phase 8 | Complete |
 | LYOT-01 | Phase 9 | Pending |
 | LYOT-02 | Phase 9 | Pending |
 | LYOT-03 | Phase 9 | Pending |
