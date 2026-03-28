@@ -162,7 +162,7 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 					</Button>
 				</>
 			) : isUploading ? (
-				<span className="text-sm text-muted-foreground">Загрузка...</span>
+				<span className="text-sm text-t2">Загрузка...</span>
 			) : (
 				<>
 					{/* Индикатор записи */}

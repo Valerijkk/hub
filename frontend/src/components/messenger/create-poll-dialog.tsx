@@ -150,7 +150,7 @@ export function CreatePollDialog({
 											type="button"
 											onClick={() => removeOption(index)}
 											disabled={submitting}
-											className="shrink-0 h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+											className="shrink-0 h-8 w-8 flex items-center justify-center rounded-md text-t2 hover:text-destructive hover:bg-destructive/10 transition-colors"
 											title="Удалить вариант"
 										>
 											<Trash2 className="h-4 w-4" />

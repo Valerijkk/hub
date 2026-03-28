@@ -61,12 +61,12 @@ function needsDateSeparator(current: Message, previous?: Message): boolean {
 /** Иконка типа канала для заголовка. */
 function ChannelHeaderIcon({ type }: { type: string }) {
 	if (type === "public") {
-		return <span className="text-base font-bold text-muted-foreground">#</span>;
+		return <span className="text-base font-bold text-t2">#</span>;
 	}
 	if (type === "dm") {
 		return (
 			<svg
-				className="h-5 w-5 text-muted-foreground"
+				className="h-5 w-5 text-t2"
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
@@ -83,7 +83,7 @@ function ChannelHeaderIcon({ type }: { type: string }) {
 	if (type === "private") {
 		return (
 			<svg
-				className="h-5 w-5 text-muted-foreground"
+				className="h-5 w-5 text-t2"
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
@@ -99,7 +99,7 @@ function ChannelHeaderIcon({ type }: { type: string }) {
 	}
 	return (
 		<svg
-			className="h-5 w-5 text-muted-foreground"
+			className="h-5 w-5 text-t2"
 			fill="none"
 			viewBox="0 0 24 24"
 			stroke="currentColor"
@@ -278,10 +278,10 @@ export function ChatView({ channelId }: ChatViewProps) {
 										/>
 									</svg>
 								</div>
-								<h3 className="text-base font-medium text-foreground mb-1">
+								<h3 className="text-base font-medium text-t1 mb-1">
 									Начните общение
 								</h3>
-								<p className="text-sm text-muted-foreground">
+								<p className="text-sm text-t2">
 									Напишите первое сообщение в этом канале.
 								</p>
 							</div>
@@ -342,7 +342,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 								"flex items-center justify-center",
 								"h-10 w-10 rounded-full",
 								"bg-card/90 backdrop-blur-md border border-border/60 shadow-lg",
-								"text-foreground hover:bg-accent",
+								"text-t1 hover:bg-accent",
 								"transition-all animate-fade-in",
 							)}
 						>
@@ -399,7 +399,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 					<div
 						className={cn(
 							"w-96 shrink-0 border-l",
-							"max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-50 max-md:w-full max-md:bg-background",
+							"max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-50 max-md:w-full max-md:bg-base",
 						)}
 					>
 						<ThreadPanel

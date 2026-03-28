@@ -264,7 +264,7 @@ function MuteContextMenu({
 					</button>
 				) : (
 					<>
-						<div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+						<div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-t2">
 							Замьютить на
 						</div>
 						{MUTE_OPTIONS.map((opt) => (

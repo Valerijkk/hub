@@ -41,7 +41,7 @@ export function BookmarksPanel() {
 	if (isLoading) {
 		return (
 			<div className="flex h-full items-center justify-center">
-				<span className="text-sm text-muted-foreground">Загрузка...</span>
+				<span className="text-sm text-t2">Загрузка...</span>
 			</div>
 		);
 	}
@@ -65,10 +65,10 @@ export function BookmarksPanel() {
 									onClick={() => handleNavigate(bm)}
 								>
 									<p className="text-sm font-medium">{bm.channel_id}</p>
-									<p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+									<p className="mt-0.5 line-clamp-2 text-xs text-t2">
 										{bm.message_id}
 									</p>
-									<p className="mt-1 text-xs text-muted-foreground">
+									<p className="mt-1 text-xs text-t2">
 										{new Date(bm.created_at).toLocaleDateString("ru-RU")}
 									</p>
 								</button>
@@ -97,7 +97,7 @@ export function BookmarksPanel() {
 						))}
 					</div>
 				) : (
-					<p className="px-4 py-8 text-center text-sm text-muted-foreground">
+					<p className="px-4 py-8 text-center text-sm text-t2">
 						Нет закладок
 					</p>
 				)}

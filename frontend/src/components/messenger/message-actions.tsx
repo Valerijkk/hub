@@ -52,7 +52,7 @@ export function MessageActions({
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7 rounded-full hover:bg-muted"
+				className="h-7 w-7 rounded-full hover:bg-raised"
 				title="Ответить"
 				onClick={onReply}
 			>
@@ -83,7 +83,7 @@ export function MessageActions({
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7 rounded-full hover:bg-muted"
+				className="h-7 w-7 rounded-full hover:bg-raised"
 				title="Тред"
 				onClick={onOpenThread}
 			>
@@ -106,7 +106,7 @@ export function MessageActions({
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7 rounded-full hover:bg-muted"
+				className="h-7 w-7 rounded-full hover:bg-raised"
 				title="Закрепить"
 				onClick={onPin}
 			>
@@ -129,7 +129,7 @@ export function MessageActions({
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7 rounded-full hover:bg-muted"
+				className="h-7 w-7 rounded-full hover:bg-raised"
 				title="Сохранить"
 				onClick={onBookmark}
 			>
@@ -152,7 +152,7 @@ export function MessageActions({
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-7 w-7 rounded-full hover:bg-muted"
+				className="h-7 w-7 rounded-full hover:bg-raised"
 				title="Переслать"
 				onClick={onForward}
 			>
@@ -176,7 +176,7 @@ export function MessageActions({
 				<Button
 					variant="ghost"
 					size="icon"
-					className="h-7 w-7 rounded-full hover:bg-muted"
+					className="h-7 w-7 rounded-full hover:bg-raised"
 					title="Редактировать"
 					onClick={onEdit}
 				>

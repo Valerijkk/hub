@@ -71,7 +71,7 @@ export function ThreadPanel({
 
 			{/* Исходное сообщение */}
 			{parentMessage && (
-				<div className="border-b bg-muted/30">
+				<div className="border-b bg-raised/30">
 					<MessageItem message={parentMessage} channelId={channelId} />
 				</div>
 			)}
@@ -80,11 +80,11 @@ export function ThreadPanel({
 			<ScrollArea className="flex-1">
 				{isLoading ? (
 					<div className="flex items-center justify-center p-4">
-						<span className="text-sm text-muted-foreground">Загрузка...</span>
+						<span className="text-sm text-t2">Загрузка...</span>
 					</div>
 				) : replies.length === 0 ? (
 					<div className="flex items-center justify-center p-4">
-						<span className="text-sm text-muted-foreground">Нет ответов</span>
+						<span className="text-sm text-t2">Нет ответов</span>
 					</div>
 				) : (
 					<div>

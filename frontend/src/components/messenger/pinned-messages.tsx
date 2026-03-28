@@ -76,7 +76,7 @@ export function PinnedMessages({ channelId }: PinnedMessagesProps) {
 								>
 									<div className="min-w-0 flex-1">
 										<p className="text-sm">ID: {pin.message_id}</p>
-										<p className="text-xs text-muted-foreground">
+										<p className="text-xs text-t2">
 											Закреплено:{" "}
 											{new Date(pin.pinned_at).toLocaleDateString("ru-RU")}
 										</p>
@@ -93,7 +93,7 @@ export function PinnedMessages({ channelId }: PinnedMessagesProps) {
 							))}
 						</div>
 					) : (
-						<p className="py-4 text-center text-sm text-muted-foreground">
+						<p className="py-4 text-center text-sm text-t2">
 							Нет закреплённых сообщений
 						</p>
 					)}

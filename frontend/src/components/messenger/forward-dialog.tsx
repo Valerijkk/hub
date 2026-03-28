@@ -59,8 +59,8 @@ export function ForwardDialog({
 				</DialogHeader>
 				<div className="space-y-3 pt-2">
 					{/* Превью */}
-					<div className="rounded-md bg-muted p-3">
-						<p className="text-xs font-medium text-muted-foreground">
+					<div className="rounded-md bg-raised p-3">
+						<p className="text-xs font-medium text-t2">
 							{message.sender_id}
 						</p>
 						<p className="mt-1 line-clamp-3 text-sm">
@@ -83,7 +83,7 @@ export function ForwardDialog({
 								</Button>
 							))}
 							{targetChannels.length === 0 && (
-								<p className="py-4 text-center text-sm text-muted-foreground">
+								<p className="py-4 text-center text-sm text-t2">
 									Нет доступных каналов
 								</p>
 							)}

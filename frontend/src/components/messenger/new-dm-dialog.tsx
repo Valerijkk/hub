@@ -128,11 +128,11 @@ export function NewDmDialog() {
 					/>
 					<ScrollArea className="max-h-64">
 						{loading ? (
-							<div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+							<div className="flex items-center justify-center py-8 text-sm text-t2">
 								Загрузка...
 							</div>
 						) : filtered.length === 0 ? (
-							<div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+							<div className="flex items-center justify-center py-8 text-sm text-t2">
 								{search ? "Никого не найдено" : "Нет пользователей"}
 							</div>
 						) : (
@@ -153,13 +153,13 @@ export function NewDmDialog() {
 												{displayName(u)}
 											</span>
 											{u.email && (
-												<span className="truncate text-xs text-muted-foreground">
+												<span className="truncate text-xs text-t2">
 													{u.email}
 												</span>
 											)}
 										</div>
 										{creating === u.id && (
-											<span className="ml-auto text-xs text-muted-foreground">
+											<span className="ml-auto text-xs text-t2">
 												...
 											</span>
 										)}

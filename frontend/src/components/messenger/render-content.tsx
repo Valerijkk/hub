@@ -25,7 +25,7 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 		if (node.italic) el = <em>{el}</em>;
 		if (node.code)
 			el = (
-				<code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+				<code className="rounded bg-raised px-1.5 py-0.5 text-xs font-mono">
 					{el}
 				</code>
 			);
@@ -69,7 +69,7 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 			return <li>{renderedChildren}</li>;
 		case "blockquote":
 			return (
-				<blockquote className="border-l-2 border-primary/30 pl-3 italic text-muted-foreground">
+				<blockquote className="border-l-2 border-primary/30 pl-3 italic text-t2">
 					{renderedChildren}
 				</blockquote>
 			);
@@ -86,7 +86,7 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 			);
 		case "code_block":
 			return (
-				<pre className="rounded-lg bg-muted p-3 text-xs font-mono overflow-x-auto">
+				<pre className="rounded-lg bg-raised p-3 text-xs font-mono overflow-x-auto">
 					<code>{renderedChildren}</code>
 				</pre>
 			);

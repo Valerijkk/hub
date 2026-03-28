@@ -54,7 +54,7 @@ export function MessageAttachments({
 								"inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
 								isOwn
 									? "bg-white/15 hover:bg-white/25"
-									: "border bg-card hover:bg-muted shadow-sm",
+									: "border bg-card hover:bg-raised shadow-sm",
 							)}
 						>
 							<svg

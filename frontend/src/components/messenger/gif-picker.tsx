@@ -201,7 +201,7 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 			<PopoverTrigger asChild>
 				<button
 					type="button"
-					className="flex h-11 w-9 shrink-0 items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+					className="flex h-11 w-9 shrink-0 items-center justify-center text-t2/60 hover:text-t2 transition-colors"
 					title="GIF"
 				>
 					{/* Иконка плёнки (Film) */}
@@ -237,8 +237,8 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 							onChange={(e) => handleSearchInput(e.target.value)}
 							placeholder="Поиск GIF..."
 							className={cn(
-								"w-full rounded-lg border border-input bg-background px-3 py-2 text-sm",
-								"placeholder:text-muted-foreground/50",
+								"w-full rounded-lg border border-input bg-base px-3 py-2 text-sm",
+								"placeholder:text-t2/50",
 								"focus:outline-none focus:ring-2 focus:ring-ring/50",
 							)}
 						/>
@@ -248,7 +248,7 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 					<div className="flex-1 overflow-y-auto p-2 min-h-[200px]">
 						{loading && gifs.length === 0 && (
 							<div className="flex items-center justify-center h-[200px]">
-								<div className="flex flex-col items-center gap-2 text-muted-foreground">
+								<div className="flex flex-col items-center gap-2 text-t2">
 									<svg
 										className="h-6 w-6 animate-spin"
 										fill="none"
@@ -281,7 +281,7 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 
 						{!loading && !error && gifs.length === 0 && (
 							<div className="flex items-center justify-center h-[200px]">
-								<p className="text-xs text-muted-foreground">
+								<p className="text-xs text-t2">
 									Ничего не найдено
 								</p>
 							</div>
@@ -301,8 +301,8 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 					</div>
 
 					{/* Атрибуция Giphy (обязательная по ToS) */}
-					<div className="flex items-center justify-center py-1.5 border-t border-border/50 bg-muted/30">
-						<span className="text-[10px] text-muted-foreground/70 font-medium tracking-wide">
+					<div className="flex items-center justify-center py-1.5 border-t border-border/50 bg-raised/30">
+						<span className="text-[10px] text-t2/70 font-medium tracking-wide">
 							Powered by GIPHY
 						</span>
 					</div>
@@ -382,7 +382,7 @@ function GifThumbnail({ gif, onClick }: GifThumbnailProps) {
 			{/* Плейсхолдер пока изображение не загружено */}
 			{!loaded && (
 				<div
-					className="w-full bg-muted/50 animate-pulse rounded-md"
+					className="w-full bg-raised/50 animate-pulse rounded-md"
 					style={{ aspectRatio }}
 				/>
 			)}

@@ -127,10 +127,10 @@ export function PollMessage({ pollId }: PollMessageProps) {
 	if (loading) {
 		return (
 			<div className="my-1.5 rounded-xl border bg-card p-4 max-w-md animate-pulse">
-				<div className="h-4 bg-muted rounded w-3/4 mb-3" />
+				<div className="h-4 bg-raised rounded w-3/4 mb-3" />
 				<div className="space-y-2">
-					<div className="h-8 bg-muted rounded" />
-					<div className="h-8 bg-muted rounded" />
+					<div className="h-8 bg-raised rounded" />
+					<div className="h-8 bg-raised rounded" />
 				</div>
 			</div>
 		);
@@ -138,7 +138,7 @@ export function PollMessage({ pollId }: PollMessageProps) {
 
 	if (!poll) {
 		return (
-			<div className="my-1.5 rounded-xl border bg-card p-4 max-w-md text-sm text-muted-foreground">
+			<div className="my-1.5 rounded-xl border bg-card p-4 max-w-md text-sm text-t2">
 				Не удалось загрузить опрос
 			</div>
 		);
@@ -155,10 +155,10 @@ export function PollMessage({ pollId }: PollMessageProps) {
 				<div className="flex items-start gap-2">
 					<BarChart3 className="h-4 w-4 mt-0.5 text-primary shrink-0" />
 					<div className="flex-1 min-w-0">
-						<h4 className="text-sm font-semibold text-foreground leading-snug">
+						<h4 className="text-sm font-semibold text-t1 leading-snug">
 							{poll.question}
 						</h4>
-						<div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+						<div className="flex items-center gap-2 mt-1 text-[11px] text-t2">
 							{poll.is_anonymous && <span>Анонимное</span>}
 							{poll.is_multi_choice && <span>Несколько вариантов</span>}
 							{poll.is_closed && (
@@ -212,7 +212,7 @@ export function PollMessage({ pollId }: PollMessageProps) {
 												"h-4 w-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors",
 												isSelected
 													? "bg-primary border-primary text-primary-foreground"
-													: "border-muted-foreground/30",
+													: "border-t2/30",
 											)}
 										>
 											{isSelected && <Check className="h-3 w-3" />}
@@ -226,7 +226,7 @@ export function PollMessage({ pollId }: PollMessageProps) {
 								</div>
 
 								{showResults && (
-									<span className="text-xs font-medium text-muted-foreground shrink-0">
+									<span className="text-xs font-medium text-t2 shrink-0">
 										{option.count} ({percentage}%)
 									</span>
 								)}
@@ -251,8 +251,8 @@ export function PollMessage({ pollId }: PollMessageProps) {
 			)}
 
 			{/* Подвал: всего голосов + кнопка закрытия */}
-			<div className="flex items-center justify-between px-4 py-2 border-t bg-muted/30">
-				<span className="text-[11px] text-muted-foreground">
+			<div className="flex items-center justify-between px-4 py-2 border-t bg-raised/30">
+				<span className="text-[11px] text-t2">
 					{poll.total_votes}{" "}
 					{poll.total_votes === 1
 						? "голос"

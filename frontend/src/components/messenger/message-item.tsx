@@ -268,7 +268,7 @@ function MessageItemInner({
 						)}
 						{/* Show time on hover for grouped messages */}
 						{isGrouped && (
-							<span className="hidden group-hover:flex items-center justify-center h-full text-[10px] text-muted-foreground/60">
+							<span className="hidden group-hover:flex items-center justify-center h-full text-[10px] text-t2/60">
 								{formatTime(message.created_at)}
 							</span>
 						)}
@@ -295,7 +295,7 @@ function MessageItemInner({
 
 						{/* Forwarded badge */}
 						{message.forwarded_from_id && (
-							<div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground/70">
+							<div className="mb-1 flex items-center gap-1 text-xs text-t2/70">
 								<svg
 									className="h-3 w-3"
 									fill="none"
@@ -331,7 +331,7 @@ function MessageItemInner({
 										onChange={(e) => setEditText(e.target.value)}
 										onKeyDown={handleEditKeyDown}
 										disabled={editSaving}
-										className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+										className="w-full resize-none rounded-lg border border-input bg-base px-3 py-2 text-sm text-t1 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
 										rows={Math.min(
 											editText.split("\n").length + 1,
 											6,
@@ -340,7 +340,7 @@ function MessageItemInner({
 									<div className="flex items-center gap-1 justify-end">
 										<button
 											type="button"
-											className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+											className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-t2 hover:text-t1 transition-colors"
 											title="Отменить (Esc)"
 											onClick={handleCancelEdit}
 											disabled={editSaving}
@@ -374,12 +374,12 @@ function MessageItemInner({
 
 						{/* Voice message */}
 						{message.voice_url && (
-							<div className="mt-1.5 flex items-center gap-2 rounded-lg bg-muted/50 p-2 max-w-sm">
+							<div className="mt-1.5 flex items-center gap-2 rounded-lg bg-raised/50 p-2 max-w-sm">
 								<audio controls preload="metadata" className="h-8 max-w-xs">
 									<source src={message.voice_url} type="audio/webm" />
 								</audio>
 								{message.voice_duration_ms && (
-									<span className="text-xs text-muted-foreground">
+									<span className="text-xs text-t2">
 										{Math.floor(message.voice_duration_ms / 1000)}с
 									</span>
 								)}

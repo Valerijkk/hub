@@ -486,7 +486,7 @@ export function MessageComposer({
 							className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-xs shadow-sm"
 						>
 							<svg
-								className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0"
+								className="h-3.5 w-3.5 text-t2/60 shrink-0"
 								fill="none"
 								viewBox="0 0 24 24"
 								stroke="currentColor"
@@ -504,11 +504,11 @@ export function MessageComposer({
 							<button
 								type="button"
 								onClick={() => removePendingAttachment(att.fileId)}
-								className="shrink-0 h-4 w-4 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+								className="shrink-0 h-4 w-4 flex items-center justify-center rounded-full hover:bg-raised transition-colors"
 								title="Убрать вложение"
 							>
 								<svg
-									className="h-3 w-3 text-muted-foreground"
+									className="h-3 w-3 text-t2"
 									fill="none"
 									viewBox="0 0 24 24"
 									stroke="currentColor"

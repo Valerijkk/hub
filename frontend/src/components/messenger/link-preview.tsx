@@ -51,7 +51,7 @@ function InternalIssuePreview({
 				<span className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
 					{issueKey}
 				</span>
-				<p className="text-xs text-muted-foreground">Задача в Hub</p>
+				<p className="text-xs text-t2">Задача в Hub</p>
 			</div>
 		</a>
 	);
@@ -87,9 +87,9 @@ function GitHubPreview({
 			<div>
 				<span className="text-sm font-semibold">
 					{owner}/{repo}
-					{number && <span className="text-muted-foreground"> #{number}</span>}
+					{number && <span className="text-t2"> #{number}</span>}
 				</span>
-				<p className="text-xs text-muted-foreground">GitHub</p>
+				<p className="text-xs text-t2">GitHub</p>
 			</div>
 		</a>
 	);
@@ -110,7 +110,7 @@ function GenericPreview({ url }: { url: string }) {
 
 	if (isLoading) {
 		return (
-			<div className="mt-2 h-16 animate-pulse rounded-lg border bg-muted/30" />
+			<div className="mt-2 h-16 animate-pulse rounded-lg border bg-raised/30" />
 		);
 	}
 
@@ -123,10 +123,10 @@ function GenericPreview({ url }: { url: string }) {
 			href={url}
 			target="_blank"
 			rel="noopener noreferrer"
-			className="mt-2 flex overflow-hidden rounded-lg border transition-colors hover:bg-muted/30"
+			className="mt-2 flex overflow-hidden rounded-lg border transition-colors hover:bg-raised/30"
 		>
 			{data.image && (
-				<div className="w-20 shrink-0 bg-muted">
+				<div className="w-20 shrink-0 bg-raised">
 					<img
 						src={data.image}
 						alt=""
@@ -140,11 +140,11 @@ function GenericPreview({ url }: { url: string }) {
 					<span className="text-sm font-medium truncate">{data.title}</span>
 				)}
 				{data.description && (
-					<span className="text-xs text-muted-foreground line-clamp-2">
+					<span className="text-xs text-t2 line-clamp-2">
 						{data.description}
 					</span>
 				)}
-				<span className="text-[10px] text-muted-foreground/60 truncate mt-0.5">
+				<span className="text-[10px] text-t2/60 truncate mt-0.5">
 					{(() => {
 						try {
 							return new URL(url).hostname;

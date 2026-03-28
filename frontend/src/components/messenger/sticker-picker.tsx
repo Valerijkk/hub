@@ -208,7 +208,7 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
 			<PopoverTrigger asChild>
 				<button
 					type="button"
-					className="flex h-11 w-9 shrink-0 items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+					className="flex h-11 w-9 shrink-0 items-center justify-center text-t2/60 hover:text-t2 transition-colors"
 					title="Стикеры"
 				>
 					<svg
@@ -235,7 +235,7 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
 			>
 				<div className="flex flex-col max-h-[380px]">
 					{/* Табы паков */}
-					<div className="flex gap-0.5 px-2 py-1.5 border-b border-border/50 bg-muted/20">
+					<div className="flex gap-0.5 px-2 py-1.5 border-b border-border/50 bg-raised/20">
 						{STICKER_PACKS.map((pack) => (
 							<button
 								key={pack.id}
@@ -256,7 +256,7 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
 
 					{/* Название пака */}
 					<div className="px-3 py-1.5">
-						<span className="text-xs font-medium text-muted-foreground">
+						<span className="text-xs font-medium text-t2">
 							{activePack.name}
 						</span>
 					</div>

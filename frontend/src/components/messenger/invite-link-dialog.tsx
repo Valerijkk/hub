@@ -121,7 +121,7 @@ function CreateInviteForm({
 		<div className="space-y-4">
 			{/* Срок действия */}
 			<div>
-				<label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+				<label className="text-xs font-medium text-t2 mb-1.5 block">
 					Срок действия
 				</label>
 				<div className="flex flex-wrap gap-1.5">
@@ -133,7 +133,7 @@ function CreateInviteForm({
 								"rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
 								expiresIn === opt.value
 									? "bg-primary text-primary-foreground"
-									: "bg-muted text-muted-foreground hover:bg-muted/80",
+									: "bg-raised text-t2 hover:bg-raised/80",
 							)}
 							onClick={() => setExpiresIn(opt.value)}
 						>
@@ -145,7 +145,7 @@ function CreateInviteForm({
 
 			{/* Лимит использований */}
 			<div>
-				<label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+				<label className="text-xs font-medium text-t2 mb-1.5 block">
 					Лимит использований
 				</label>
 				<div className="flex flex-wrap gap-1.5">
@@ -157,7 +157,7 @@ function CreateInviteForm({
 								"rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
 								maxUses === opt.value
 									? "bg-primary text-primary-foreground"
-									: "bg-muted text-muted-foreground hover:bg-muted/80",
+									: "bg-raised text-t2 hover:bg-raised/80",
 							)}
 							onClick={() => setMaxUses(opt.value)}
 						>
@@ -233,7 +233,7 @@ function InviteItem({
 		>
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-2">
-					<code className="text-xs font-mono text-foreground truncate">
+					<code className="text-xs font-mono text-t1 truncate">
 						/invite/{invite.token}
 					</code>
 					{isExpired && (
@@ -247,7 +247,7 @@ function InviteItem({
 						</span>
 					)}
 				</div>
-				<div className="mt-0.5 flex items-center gap-3 text-[11px] text-muted-foreground">
+				<div className="mt-0.5 flex items-center gap-3 text-[11px] text-t2">
 					<span>{formatUsage(invite)}</span>
 					<span>{formatExpiration(invite.expires_at)}</span>
 				</div>
@@ -257,7 +257,7 @@ function InviteItem({
 				{/* Кнопка копирования */}
 				<button
 					type="button"
-					className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted transition-colors"
+					className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-raised transition-colors"
 					title="Копировать ссылку"
 					onClick={() => void handleCopy()}
 				>
@@ -295,7 +295,7 @@ function InviteItem({
 				{/* Кнопка отзыва */}
 				<button
 					type="button"
-					className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+					className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors"
 					title="Отозвать"
 					disabled={revoking}
 					onClick={() => void handleRevoke()}
@@ -351,7 +351,7 @@ function InviteList({ channelId }: { channelId: string }) {
 
 	if (activeInvites.length === 0) {
 		return (
-			<p className="text-xs text-muted-foreground text-center py-4">
+			<p className="text-xs text-t2 text-center py-4">
 				Нет активных ссылок
 			</p>
 		);
@@ -396,7 +396,7 @@ function InviteLinkDialogContent({ channelId }: { channelId: string }) {
 					<div className="w-full border-t" />
 				</div>
 				<div className="relative flex justify-center text-xs">
-					<span className="bg-background px-2 text-muted-foreground">
+					<span className="bg-base px-2 text-t2">
 						Активные ссылки
 					</span>
 				</div>
@@ -421,7 +421,7 @@ export function InviteLinkDialog({ channelId }: { channelId: string }) {
 			<DialogTrigger asChild>
 				<button
 					type="button"
-					className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+					className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-t2 hover:bg-raised hover:text-t1 transition-colors"
 					title="Пригласить в канал"
 				>
 					<svg

@@ -219,7 +219,7 @@ export function MentionAutocomplete({
 					<span className="truncate font-medium">
 						{member.user_name || member.user_id}
 					</span>
-					<span className="ml-auto text-[10px] text-muted-foreground">
+					<span className="ml-auto text-[10px] text-t2">
 						{member.role}
 					</span>
 				</button>

@@ -146,18 +146,18 @@ export function SearchDialog({ channelId }: SearchDialogProps) {
 											<span className="text-sm font-medium">
 												{msg.sender_id}
 											</span>
-											<span className="text-xs text-muted-foreground">
+											<span className="text-xs text-t2">
 												{formatDate(msg.created_at)}
 											</span>
 										</div>
-										<p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+										<p className="mt-1 line-clamp-2 text-sm text-t2">
 											{msg.content_text || "---"}
 										</p>
 									</button>
 								))}
 							</div>
 						) : query && !isSearching ? (
-							<p className="py-4 text-center text-sm text-muted-foreground">
+							<p className="py-4 text-center text-sm text-t2">
 								Ничего не найдено
 							</p>
 						) : null}
