@@ -31,31 +31,31 @@ import { cn } from "@/lib/utils";
 /** Run status config with icons. */
 const RUN_STATUS_CONFIG: Record<
 	string,
-	{ bg: string; text: string; label: string; iconColor: string }
+	{ bg: string; text: string; label: string; borderColor: string }
 > = {
 	created: {
-		bg: "bg-gray-500/10",
-		text: "text-gray-600 dark:text-gray-400",
+		bg: "bg-gray/[0.08]",
+		text: "text-gray",
 		label: "Создан",
-		iconColor: "text-gray-400",
+		borderColor: "border-gray/[0.15]",
 	},
 	in_progress: {
-		bg: "bg-blue-500/10",
-		text: "text-blue-700 dark:text-blue-400",
+		bg: "bg-blue/[0.08]",
+		text: "text-blue",
 		label: "Выполняется",
-		iconColor: "text-blue-500",
+		borderColor: "border-blue/[0.15]",
 	},
 	completed: {
-		bg: "bg-green-500/10",
-		text: "text-green-700 dark:text-green-400",
+		bg: "bg-green/[0.08]",
+		text: "text-green",
 		label: "Завершён",
-		iconColor: "text-green-500",
+		borderColor: "border-green/[0.15]",
 	},
 	aborted: {
-		bg: "bg-red-500/10",
-		text: "text-red-600 dark:text-red-400",
+		bg: "bg-red/[0.08]",
+		text: "text-red",
 		label: "Прерван",
-		iconColor: "text-red-500",
+		borderColor: "border-red/[0.15]",
 	},
 };
 
@@ -65,18 +65,18 @@ const RUN_TYPE_CONFIG: Record<
 	{ bg: string; text: string; label: string }
 > = {
 	manual: {
-		bg: "bg-blue-500/10",
-		text: "text-blue-700 dark:text-blue-400",
+		bg: "bg-blue/[0.08]",
+		text: "text-blue",
 		label: "Ручной",
 	},
 	automatic: {
-		bg: "bg-purple-500/10",
-		text: "text-purple-700 dark:text-purple-400",
+		bg: "bg-purple/[0.08]",
+		text: "text-purple",
 		label: "Авто",
 	},
 	mixed: {
-		bg: "bg-orange-500/10",
-		text: "text-orange-700 dark:text-orange-400",
+		bg: "bg-orange/[0.08]",
+		text: "text-orange",
 		label: "Смешанный",
 	},
 };
@@ -131,9 +131,15 @@ function TestRunsPage() {
 	}
 
 	return (
-		<div>
+		<div className="flex flex-col flex-1 animate-[enterUp_450ms_var(--spring)_both]">
 			{/* Top bar */}
-			<div className="mb-4 flex flex-wrap items-center gap-2">
+			<div className="px-6 py-4 border-b border-b1 flex items-center gap-[14px] bg-[rgba(13,14,18,0.5)] backdrop-blur-[12px]">
+				<h2 className="text-[15px] font-bold tracking-[-0.015em]">Прогоны</h2>
+				<span className="text-[11.5px] font-semibold text-t3 bg-white/[0.035] px-3 py-[3px] rounded-full">
+					{total} {total === 1 ? "прогон" : total < 5 ? "прогона" : "прогонов"}
+				</span>
+				<div className="flex-1" />
+
 				<Select
 					value={statusFilter || "all"}
 					onValueChange={(v) => {
@@ -141,7 +147,7 @@ function TestRunsPage() {
 						setOffset(0);
 					}}
 				>
-					<SelectTrigger className="rounded-xl border bg-card px-2.5 py-1.5 text-xs h-8 w-auto min-w-[130px] shadow-sm cursor-pointer hover:border-primary/40 transition-colors">
+					<SelectTrigger className="w-[140px] h-8 text-xs rounded-[var(--r2)] border-b1 bg-white/[0.03]">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -157,7 +163,7 @@ function TestRunsPage() {
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-8 text-xs"
+						className="h-8 text-xs text-t3"
 						onClick={() => {
 							setStatusFilter("");
 							setOffset(0);
@@ -180,90 +186,84 @@ function TestRunsPage() {
 					</Button>
 				)}
 
-				<div className="ml-auto flex items-center gap-2">
-					<span className="text-xs text-muted-foreground tabular-nums">
-						{total}{" "}
-						{total === 1 ? "прогон" : total < 5 ? "прогона" : "прогонов"}
-					</span>
-					<Dialog open={createOpen} onOpenChange={setCreateOpen}>
-						<DialogTrigger asChild>
-							<Button
-								size="sm"
-								className="gradient-tms text-white shadow-sm h-8"
+				<Dialog open={createOpen} onOpenChange={setCreateOpen}>
+					<DialogTrigger asChild>
+						<Button
+							size="sm"
+							className="gradient-tms text-white shadow-sm h-8"
+						>
+							<svg
+								className="mr-1.5 h-3.5 w-3.5"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								strokeWidth={2}
 							>
-								<svg
-									className="mr-1.5 h-3.5 w-3.5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									strokeWidth={2}
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										d="M12 4v16m8-8H4"
-									/>
-								</svg>
-								Новый прогон
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									d="M12 4v16m8-8H4"
+								/>
+							</svg>
+							Новый прогон
+						</Button>
+					</DialogTrigger>
+					<DialogContent>
+						<DialogHeader>
+							<DialogTitle>Новый прогон тестов</DialogTitle>
+						</DialogHeader>
+						<div className="space-y-4">
+							<Input
+								placeholder="Название прогона"
+								value={newTitle}
+								onChange={(e) => setNewTitle(e.target.value)}
+							/>
+							<Select
+								value={newType}
+								onValueChange={(v) => setNewType(v as TestRunType)}
+							>
+								<SelectTrigger className="w-full rounded-xl border bg-card px-3 py-2 text-sm">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="manual">Ручной</SelectItem>
+									<SelectItem value="automatic">Автоматический</SelectItem>
+									<SelectItem value="mixed">Смешанный</SelectItem>
+								</SelectContent>
+							</Select>
+							<textarea
+								className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
+								placeholder="Описание (необязательно)"
+								rows={3}
+								value={newDescription}
+								onChange={(e) => setNewDescription(e.target.value)}
+							/>
+							<Button
+								className="w-full"
+								disabled={!newTitle.trim() || createMutation.isPending}
+								onClick={() => createMutation.mutate()}
+							>
+								{createMutation.isPending ? "Создание..." : "Создать"}
 							</Button>
-						</DialogTrigger>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>Новый прогон тестов</DialogTitle>
-							</DialogHeader>
-							<div className="space-y-4">
-								<Input
-									placeholder="Название прогона"
-									value={newTitle}
-									onChange={(e) => setNewTitle(e.target.value)}
-								/>
-								<Select
-									value={newType}
-									onValueChange={(v) => setNewType(v as TestRunType)}
-								>
-									<SelectTrigger className="w-full rounded-xl border bg-card px-3 py-2 text-sm">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="manual">Ручной</SelectItem>
-										<SelectItem value="automatic">Автоматический</SelectItem>
-										<SelectItem value="mixed">Смешанный</SelectItem>
-									</SelectContent>
-								</Select>
-								<textarea
-									className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
-									placeholder="Описание (необязательно)"
-									rows={3}
-									value={newDescription}
-									onChange={(e) => setNewDescription(e.target.value)}
-								/>
-								<Button
-									className="w-full"
-									disabled={!newTitle.trim() || createMutation.isPending}
-									onClick={() => createMutation.mutate()}
-								>
-									{createMutation.isPending ? "Создание..." : "Создать"}
-								</Button>
-							</div>
-						</DialogContent>
-					</Dialog>
-				</div>
+						</div>
+					</DialogContent>
+				</Dialog>
 			</div>
 
 			{/* Run list */}
 			{isLoading ? (
-				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+				<div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-[18px] p-6">
 					{[1, 2, 3, 4, 5, 6].map((i) => (
 						<div
 							key={i}
-							className="rounded-xl border p-4 space-y-3 shadow-card"
+							className="tms-run-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-6 space-y-3"
 						>
 							<div className="flex justify-between">
 								<div className="h-5 w-3/4 rounded animate-shimmer" />
 								<div className="h-5 w-16 rounded-full animate-shimmer" />
 							</div>
 							<div className="h-3 w-1/3 rounded animate-shimmer" />
-							<div className="h-2.5 w-full rounded-full animate-shimmer" />
+							<div className="h-[3px] w-full rounded-full animate-shimmer" />
 							<div className="flex justify-between">
 								<div className="h-3 w-20 rounded animate-shimmer" />
 								<div className="h-3 w-16 rounded animate-shimmer" />
@@ -272,24 +272,12 @@ function TestRunsPage() {
 					))}
 				</div>
 			) : runs.length === 0 ? (
-				<div className="flex flex-col items-center justify-center py-24 animate-fade-in">
-					<div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-muted/60 to-muted/30 border border-dashed border-muted-foreground/20 shadow-sm">
-						<svg
-							className="h-12 w-12 text-muted-foreground/30"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							strokeWidth={1.5}
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								d="M13 10V3L4 14h7v7l9-11h-7z"
-							/>
-						</svg>
+				<div className="flex flex-col items-center justify-center py-20 flex-1 animate-[enterUp_450ms_var(--spring)_both]">
+					<div className="mx-auto mb-[22px] flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue/[0.06] to-purple/[0.06] shadow-[0_0_60px_rgba(167,139,250,0.06)] animate-[breathe_4s_ease-in-out_infinite] text-[38px]">
+						⚡
 					</div>
-					<h3 className="text-xl font-semibold mb-2">Нет тестовых прогонов</h3>
-					<p className="text-sm text-muted-foreground mb-6 max-w-sm text-center leading-relaxed">
+					<h3 className="text-[19px] font-bold mb-2 tracking-[-0.02em]">Нет тестовых прогонов</h3>
+					<p className="text-[14px] text-t2 mb-6 max-w-[340px] text-center leading-[1.65]">
 						{statusFilter
 							? "По выбранному фильтру прогоны не найдены. Попробуйте изменить статус."
 							: "Создайте первый прогон для проверки тест-кейсов и отслеживания качества продукта"}
@@ -328,8 +316,8 @@ function TestRunsPage() {
 				</div>
 			) : (
 				<>
-					{/* Run cards */}
-					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+					{/* Run cards grid */}
+					<div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-[18px] p-6 flex-1 overflow-y-auto">
 						{runs.map((run) => {
 							const rate = passRate(run);
 							const statusCfg = (RUN_STATUS_CONFIG[run.status] ??
@@ -344,130 +332,116 @@ function TestRunsPage() {
 									params={{ projectId, runId: run.id }}
 									className="block group"
 								>
-									<div className="rounded-xl border bg-card/80 backdrop-blur-sm p-4 shadow-card hover-lift transition-all duration-200 space-y-3 hover:border-primary/20 hover:shadow-lg">
-										{/* Title + status */}
-										<div className="flex items-start justify-between gap-2">
-											<h3 className="text-sm font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-												{run.title}
-											</h3>
+									<div className="tms-run-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] overflow-hidden transition-all duration-[250ms] hover:border-b2 hover:-translate-y-[3px] hover:shadow-[var(--sh2)]">
+										{/* Card header */}
+										<div className="flex items-center gap-3 px-5 py-4">
 											<Badge
 												variant="secondary"
 												className={cn(
-													"text-[10px] font-semibold shrink-0",
+													"text-[11px] font-semibold border",
 													statusCfg.bg,
 													statusCfg.text,
+													statusCfg.borderColor,
 												)}
 											>
 												{statusCfg.label}
 											</Badge>
-										</div>
-
-										{/* Meta: type + date */}
-										<div className="flex items-center gap-2">
-											{typeCfg && (
-												<Badge
-													variant="secondary"
-													className={cn(
-														"text-[10px] font-medium",
-														typeCfg.bg,
-														typeCfg.text,
-													)}
-												>
-													{typeCfg.label}
-												</Badge>
-											)}
-											<span className="text-[11px] text-muted-foreground">
-												{formatRelativeTime(run.created_at)}
+											<div className="flex-1" />
+											<span className="text-[11.5px] text-t3">
+												{hasResults ? `${rate}%` : ""}
 											</span>
 										</div>
 
-										{/* Multi-segment progress bar */}
-										{hasResults ? (
-											<div className="space-y-2">
-												<div className="flex h-2.5 overflow-hidden rounded-full bg-muted/60">
-													{run.passed_count > 0 && (
-														<div
-															className="h-full bg-green-500 animate-progress-fill transition-all duration-500"
-															style={{
-																width: `${Math.max((run.passed_count / run.total_count) * 100, 4)}%`,
-															}}
-															title={`Passed: ${run.passed_count}`}
-														/>
-													)}
-													{run.failed_count > 0 && (
-														<div
-															className="h-full bg-red-500 transition-all duration-500"
-															style={{
-																width: `${Math.max((run.failed_count / run.total_count) * 100, 4)}%`,
-															}}
-															title={`Failed: ${run.failed_count}`}
-														/>
-													)}
-													{run.broken_count > 0 && (
-														<div
-															className="h-full bg-orange-500 transition-all duration-500"
-															style={{
-																width: `${Math.max((run.broken_count / run.total_count) * 100, 4)}%`,
-															}}
-															title={`Broken: ${run.broken_count}`}
-														/>
-													)}
-													{run.skipped_count > 0 && (
-														<div
-															className="h-full bg-gray-400 transition-all duration-500"
-															style={{
-																width: `${Math.max((run.skipped_count / run.total_count) * 100, 4)}%`,
-															}}
-															title={`Skipped: ${run.skipped_count}`}
-														/>
-													)}
-												</div>
-
-												{/* Stats as colored chips */}
-												<div className="flex items-center gap-1.5 flex-wrap">
-													{run.passed_count > 0 && (
-														<span className="flex items-center gap-1 text-[10px] font-medium text-green-600 dark:text-green-400">
-															<span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-															{run.passed_count}
-														</span>
-													)}
-													{run.failed_count > 0 && (
-														<span className="flex items-center gap-1 text-[10px] font-medium text-red-600 dark:text-red-400">
-															<span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-															{run.failed_count}
-														</span>
-													)}
-													{run.broken_count > 0 && (
-														<span className="flex items-center gap-1 text-[10px] font-medium text-orange-600 dark:text-orange-400">
-															<span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-															{run.broken_count}
-														</span>
-													)}
-													{run.skipped_count > 0 && (
-														<span className="flex items-center gap-1 text-[10px] font-medium text-gray-500">
-															<span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-															{run.skipped_count}
-														</span>
-													)}
-													<span
-														className={cn(
-															"ml-auto text-[11px] tabular-nums font-bold",
-															rate >= 80
-																? "text-green-600 dark:text-green-400"
-																: rate >= 50
-																	? "text-yellow-600 dark:text-yellow-400"
-																	: "text-red-600 dark:text-red-400",
-														)}
-													>
-														{rate}%
-													</span>
-												</div>
+										{/* Title + date */}
+										<div className="px-5 pb-1">
+											<div className="text-[14px] font-bold tracking-[-0.01em] mb-[2px] group-hover:text-white transition-colors">
+												{run.title}
 											</div>
-										) : (
-											<div className="flex items-center gap-2 py-1">
-												<div className="h-2.5 w-full rounded-full bg-muted" />
+											<div className="text-[11.5px] text-t3">
+												{formatRelativeTime(run.created_at)}
+												{typeCfg && (
+													<span className="ml-2">
+														<Badge
+															variant="secondary"
+															className={cn(
+																"text-[10px] font-medium",
+																typeCfg.bg,
+																typeCfg.text,
+															)}
+														>
+															{typeCfg.label}
+														</Badge>
+													</span>
+												)}
+											</div>
+										</div>
+
+										{/* Progress bar */}
+										{hasResults && (
+											<div className="px-5 pb-4 pt-3">
+												<div className="h-[3px] bg-white/[0.04] rounded-full overflow-hidden flex gap-[2px]">
+													{run.passed_count > 0 && (
+														<div
+															className="h-full rounded-full bg-green shadow-[0_0_8px_var(--gG)] animate-[progressGrow_800ms_var(--ease)]"
+															style={{
+																width: `${(run.passed_count / run.total_count) * 100}%`,
+															}}
+														/>
+													)}
+													{run.failed_count > 0 && (
+														<div
+															className="h-full rounded-full bg-red shadow-[0_0_8px_var(--gR)] animate-[progressGrow_800ms_var(--ease)]"
+															style={{
+																width: `${(run.failed_count / run.total_count) * 100}%`,
+															}}
+														/>
+													)}
+													{run.broken_count > 0 && (
+														<div
+															className="h-full rounded-full bg-orange animate-[progressGrow_800ms_var(--ease)]"
+															style={{
+																width: `${(run.broken_count / run.total_count) * 100}%`,
+															}}
+														/>
+													)}
+													{run.skipped_count > 0 && (
+														<div
+															className="h-full rounded-full bg-gray opacity-40 animate-[progressGrow_800ms_var(--ease)]"
+															style={{
+																width: `${(run.skipped_count / run.total_count) * 100}%`,
+															}}
+														/>
+													)}
+												</div>
 											</div>
 										)}
+
+										{/* Stats row */}
+										{hasResults && (
+											<div className="flex gap-3 px-5 pb-4">
+												{run.passed_count > 0 && (
+													<span className="flex-1 text-center py-[6px] rounded-[var(--r2)] text-[11.5px] font-semibold bg-green/[0.06] text-green">
+														{run.passed_count}
+													</span>
+												)}
+												{run.failed_count > 0 && (
+													<span className="flex-1 text-center py-[6px] rounded-[var(--r2)] text-[11.5px] font-semibold bg-red/[0.06] text-red">
+														{run.failed_count}
+													</span>
+												)}
+												{run.skipped_count > 0 && (
+													<span className="flex-1 text-center py-[6px] rounded-[var(--r2)] text-[11.5px] font-semibold bg-white/[0.03] text-t3">
+														{run.skipped_count}
+													</span>
+												)}
+											</div>
+										)}
+
+										{/* Footer */}
+										<div className="px-5 py-3 border-t border-b1 flex items-center justify-between text-[12px] text-t3">
+											<span>{run.total_count} тестов</span>
+											<span>{formatRelativeTime(run.created_at)}</span>
+										</div>
 									</div>
 								</Link>
 							);
@@ -476,8 +450,8 @@ function TestRunsPage() {
 
 					{/* Pagination */}
 					{total > 50 && (
-						<div className="mt-6 flex items-center justify-between">
-							<span className="text-xs text-muted-foreground tabular-nums">
+						<div className="px-6 py-3 border-t border-b1 flex items-center justify-between">
+							<span className="text-[12px] text-t3 tabular-nums">
 								Показано {offset + 1}--{Math.min(offset + 50, total)} из {total}
 							</span>
 							<div className="flex gap-2">

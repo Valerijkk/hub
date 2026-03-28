@@ -148,30 +148,30 @@ function TestRunDetailPage() {
 		{
 			label: "Passed",
 			count: run.passed_count,
-			color: "text-green-600 dark:text-green-400",
-			bgColor: "bg-green-500/10",
-			borderColor: "border-green-500/20",
+			color: "text-green",
+			bgColor: "bg-green/[0.06]",
+			borderColor: "border-green/[0.15]",
 		},
 		{
 			label: "Failed",
 			count: run.failed_count,
-			color: "text-red-600 dark:text-red-400",
-			bgColor: "bg-red-500/10",
-			borderColor: "border-red-500/20",
+			color: "text-red",
+			bgColor: "bg-red/[0.06]",
+			borderColor: "border-red/[0.15]",
 		},
 		{
 			label: "Broken",
 			count: run.broken_count,
-			color: "text-orange-600 dark:text-orange-400",
-			bgColor: "bg-orange-500/10",
-			borderColor: "border-orange-500/20",
+			color: "text-orange",
+			bgColor: "bg-orange/[0.06]",
+			borderColor: "border-orange/[0.15]",
 		},
 		{
 			label: "Skipped",
 			count: run.skipped_count,
-			color: "text-gray-500",
-			bgColor: "bg-gray-500/10",
-			borderColor: "border-gray-500/20",
+			color: "text-gray",
+			bgColor: "bg-white/[0.03]",
+			borderColor: "border-b1",
 		},
 	];
 
@@ -195,7 +195,7 @@ function TestRunDetailPage() {
 					<div
 						key={card.label}
 						className={cn(
-							"rounded-xl border p-5 text-center transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5",
+							"rounded-[var(--r3)] border p-5 text-center transition-all duration-[250ms] hover:-translate-y-[2px] hover:shadow-[var(--sh2)]",
 							card.bgColor,
 							card.borderColor,
 						)}
@@ -208,11 +208,11 @@ function TestRunDetailPage() {
 						>
 							{card.count}
 						</div>
-						<div className="text-[11px] font-semibold text-muted-foreground mt-2 uppercase tracking-wider">
+						<div className="text-[11px] font-semibold text-t4 mt-2 uppercase tracking-[0.08em]">
 							{card.label}
 						</div>
 						{run.total_count > 0 && (
-							<div className="text-[10px] text-muted-foreground/60 tabular-nums mt-1">
+							<div className="text-[10px] text-t4 tabular-nums mt-1">
 								{Math.round((card.count / run.total_count) * 100)}%
 							</div>
 						)}

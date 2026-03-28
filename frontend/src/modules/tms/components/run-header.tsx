@@ -9,27 +9,31 @@ import { cn } from "@/lib/utils";
 /** Конфигурация статусов прогона. */
 export const RUN_STATUS_CONFIG: Record<
 	string,
-	{ bg: string; text: string; label: string }
+	{ bg: string; text: string; label: string; borderColor: string }
 > = {
 	created: {
-		bg: "bg-gray-500/10",
-		text: "text-gray-600 dark:text-gray-400",
+		bg: "bg-gray/[0.08]",
+		text: "text-gray",
 		label: "Создан",
+		borderColor: "border-gray/[0.15]",
 	},
 	in_progress: {
-		bg: "bg-blue-500/10",
-		text: "text-blue-700 dark:text-blue-400",
+		bg: "bg-blue/[0.08]",
+		text: "text-blue",
 		label: "Выполняется",
+		borderColor: "border-blue/[0.15]",
 	},
 	completed: {
-		bg: "bg-green-500/10",
-		text: "text-green-700 dark:text-green-400",
+		bg: "bg-green/[0.08]",
+		text: "text-green",
 		label: "Завершён",
+		borderColor: "border-green/[0.15]",
 	},
 	aborted: {
-		bg: "bg-red-500/10",
-		text: "text-red-600 dark:text-red-400",
+		bg: "bg-red/[0.08]",
+		text: "text-red",
 		label: "Прерван",
+		borderColor: "border-red/[0.15]",
 	},
 };
 
@@ -107,9 +111,10 @@ export function RunHeader({
 						<Badge
 							variant="secondary"
 							className={cn(
-								"text-[10px] font-semibold shrink-0",
+								"text-[11px] font-semibold shrink-0 border",
 								statusCfg.bg,
 								statusCfg.text,
+								statusCfg.borderColor,
 							)}
 						>
 							{statusCfg.label}
@@ -123,10 +128,10 @@ export function RunHeader({
 					{/* Прогресс-бар в заголовке */}
 					{run.total_count > 0 && (
 						<div className="flex items-center gap-3">
-							<div className="flex h-2.5 w-56 overflow-hidden rounded-full bg-muted">
+							<div className="flex h-[3px] w-56 overflow-hidden rounded-full bg-white/[0.04] gap-[2px]">
 								{run.passed_count > 0 && (
 									<div
-										className="h-full bg-green-500 transition-all duration-500"
+										className="h-full rounded-full bg-green shadow-[0_0_8px_var(--gG)] animate-[progressGrow_800ms_var(--ease)]"
 										style={{
 											width: `${Math.max((run.passed_count / run.total_count) * 100, 4)}%`,
 										}}
@@ -134,7 +139,7 @@ export function RunHeader({
 								)}
 								{run.failed_count > 0 && (
 									<div
-										className="h-full bg-red-500 transition-all duration-500"
+										className="h-full rounded-full bg-red shadow-[0_0_8px_var(--gR)] animate-[progressGrow_800ms_var(--ease)]"
 										style={{
 											width: `${Math.max((run.failed_count / run.total_count) * 100, 4)}%`,
 										}}
@@ -142,7 +147,7 @@ export function RunHeader({
 								)}
 								{run.broken_count > 0 && (
 									<div
-										className="h-full bg-orange-500 transition-all duration-500"
+										className="h-full rounded-full bg-orange animate-[progressGrow_800ms_var(--ease)]"
 										style={{
 											width: `${Math.max((run.broken_count / run.total_count) * 100, 4)}%`,
 										}}
@@ -150,7 +155,7 @@ export function RunHeader({
 								)}
 								{run.skipped_count > 0 && (
 									<div
-										className="h-full bg-gray-400 transition-all duration-500"
+										className="h-full rounded-full bg-gray opacity-40 animate-[progressGrow_800ms_var(--ease)]"
 										style={{
 											width: `${Math.max((run.skipped_count / run.total_count) * 100, 4)}%`,
 										}}

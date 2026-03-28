@@ -165,7 +165,7 @@ export function RunResultsTable({
 				</span>
 			</div>
 
-			<div className="rounded-xl border shadow-card overflow-hidden">
+			<div className="rounded-[var(--r3)] border border-b1 overflow-hidden">
 				{filteredResults.length === 0 && statusFilter ? (
 					<div className="flex flex-col items-center justify-center py-14 text-center">
 						<svg
@@ -201,20 +201,20 @@ export function RunResultsTable({
 						</Button>
 					</div>
 				) : (
-					<table className="w-full table-striped">
+					<table className="w-full border-separate border-spacing-0">
 						<thead>
-							<tr className="border-b bg-muted/40">
-								<th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground sticky top-0 bg-muted/40">
+							<tr>
+								<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2">
 									Тест-кейс
 								</th>
-								<th className="w-24 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground sticky top-0 bg-muted/40">
+								<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2 w-24">
 									Статус
 								</th>
-								<th className="w-24 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground sticky top-0 bg-muted/40">
+								<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2 w-24">
 									Время
 								</th>
-								<th className="w-28 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground sticky top-0 bg-muted/40">
-									Исполнитель
+								<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2 w-28">
+									Испол��итель
 								</th>
 							</tr>
 						</thead>
@@ -229,50 +229,51 @@ export function RunResultsTable({
 									<tr
 										key={r.id}
 										className={cn(
-											"border-b transition-all duration-150 last:border-0",
-											isClickable && "cursor-pointer hover:bg-card",
-											isExecuting && "bg-primary/5 border-l-2 border-l-primary",
+											"group transition-all duration-[180ms]",
+											isClickable && "cursor-pointer",
+											isExecuting && "bg-purple/[0.05]",
 										)}
 										onClick={() => {
 											if (isClickable) onSelectResult(r.id);
 										}}
 									>
-										<td className="px-3 py-2.5">
+										<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
 											<div className="flex items-center gap-2">
 												<span
 													className={cn(
-														"h-2 w-2 rounded-full shrink-0",
+														"h-2 w-2 rounded-[3px] shrink-0 transition-[box-shadow,transform] duration-200 group-hover:shadow-[0_0_8px_currentColor] group-hover:scale-[1.2]",
 														resultCfg.dotColor,
 													)}
+													style={{ color: "inherit" }}
 												/>
 												<div className="min-w-0">
-													<span className="font-mono text-xs font-bold text-primary">
+													<span className="font-mono text-[12px] font-medium text-t3">
 														{r.test_case?.case_key ?? "N/A"}
 													</span>
-													<div className="text-xs text-muted-foreground truncate max-w-xs">
+													<div className="text-[13px] text-t2 truncate max-w-xs group-hover:text-t1 transition-colors duration-150">
 														{r.test_case?.title}
 													</div>
 												</div>
 											</div>
 										</td>
-										<td className="px-3 py-2.5">
+										<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
 											<Badge
 												variant="secondary"
 												className={cn(
-													"text-[10px] font-semibold",
+													"text-[11px] font-semibold",
 													resultCfg.badgeClass,
 												)}
 											>
 												{resultCfg.label}
 											</Badge>
 										</td>
-										<td className="px-3 py-2.5">
-											<span className="text-xs text-muted-foreground tabular-nums">
+										<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
+											<span className="text-[12px] text-t3 tabular-nums">
 												{formatDuration(r.duration_ms)}
 											</span>
 										</td>
-										<td className="px-3 py-2.5">
-											<span className="text-xs text-muted-foreground">
+										<td className="px-5 h-14 border-b border-b1 align-middle transition-all duration-[180ms] group-hover:bg-[var(--hover)]">
+											<span className="text-[12px] text-t3">
 												{r.executed_by?.name ?? "--"}
 											</span>
 										</td>
