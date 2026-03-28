@@ -221,11 +221,7 @@ function LabelsSettingsPage() {
 									<LabelRow
 										key={label.id}
 										label={label}
-										onDelete={() => {
-											if (window.confirm("Удалить метку?")) {
-												deleteLabelMutation.mutate(label.id);
-											}
-										}}
+										onDelete={() => setDeleteLabelTarget(label.id)}
 									/>
 								))}
 							</div>
