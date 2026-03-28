@@ -79,17 +79,17 @@
 
 ### Issue Detail Page (ISSU)
 
-- [ ] **ISSU-01**: User sees redesigned two-column layout (content + sidebar meta)
-- [ ] **ISSU-02**: User sees redesigned issue description, comments, activity section
-- [ ] **ISSU-03**: User sees redesigned right sidebar (status, assignee, deadline, related issues)
-- [ ] **ISSU-04**: All issue functionality works without regression (edit, comment, time track, checklist, attachments)
+- [x] **ISSU-01**: User sees redesigned two-column layout (content + sidebar meta)
+- [x] **ISSU-02**: User sees redesigned issue description, comments, activity section
+- [x] **ISSU-03**: User sees redesigned right sidebar (status, assignee, deadline, related issues)
+- [x] **ISSU-04**: All issue functionality works without regression (edit, comment, time track, checklist, attachments)
 
 ### Calls Page (CALL)
 
-- [ ] **CALL-01**: User sees redesigned video/call participant grid
-- [ ] **CALL-02**: User sees redesigned call controls (mute, camera, share, end call)
-- [ ] **CALL-03**: User sees redesigned participant status indicators
-- [ ] **CALL-04**: All call functionality works without regression (join, mute, screen share, record, hand raise, chat)
+- [x] **CALL-01**: User sees redesigned video/call participant grid
+- [x] **CALL-02**: User sees redesigned call controls (mute, camera, share, end call)
+- [x] **CALL-03**: User sees redesigned participant status indicators
+- [x] **CALL-04**: All call functionality works without regression (join, mute, screen share, record, hand raise, chat)
 
 ### TMS Page (TMSP)
 
@@ -210,14 +210,14 @@
 | KANB-02 | Phase 11 | Complete |
 | KANB-03 | Phase 11 | Complete |
 | KANB-04 | Phase 11 | Complete |
-| ISSU-01 | Phase 12 | Pending |
-| ISSU-02 | Phase 12 | Pending |
-| ISSU-03 | Phase 12 | Pending |
-| ISSU-04 | Phase 12 | Pending |
-| CALL-01 | Phase 12 | Pending |
-| CALL-02 | Phase 12 | Pending |
-| CALL-03 | Phase 12 | Pending |
-| CALL-04 | Phase 12 | Pending |
+| ISSU-01 | Phase 12 | Complete |
+| ISSU-02 | Phase 12 | Complete |
+| ISSU-03 | Phase 12 | Complete |
+| ISSU-04 | Phase 12 | Complete |
+| CALL-01 | Phase 12 | Complete |
+| CALL-02 | Phase 12 | Complete |
+| CALL-03 | Phase 12 | Complete |
+| CALL-04 | Phase 12 | Complete |
 | TMSP-01 | Phase 12 | Pending |
 | TMSP-02 | Phase 12 | Pending |
 | TMSP-03 | Phase 12 | Pending |

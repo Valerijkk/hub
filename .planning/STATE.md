@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Hub Redesign
 status: executing
-stopped_at: Completed 12-04-PLAN.md
-last_updated: "2026-03-28T13:22:24.345Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-28T13:26:39.631Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 13
   completed_phases: 11
   total_plans: 55
-  completed_plans: 52
+  completed_plans: 53
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 ## Current Position
 
 Phase: 12 (remaining-mockup-pages-unmocked-pages) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-03-28
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 11 P04 | 4min | 2 tasks | 4 files |
 | Phase 11 P03 | 5min | 2 tasks | 5 files |
 | Phase 12 P04 | 4min | 2 tasks | 3 files |
+| Phase 12 P01 | 7min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Recent decisions affecting current work:
 - [Phase 11]: Green accent (emerald-400) for messenger active states and focus indicators
 - [Phase 12]: Removed Shadcn deps from onboarding for exact mockup CSS match
 - [Phase 12]: Trash uses native table with sticky headers per mockup pattern
+- [Phase 12]: Activity feed uses colored dots instead of avatars for compact mockup-matching design
+- [Phase 12]: Comment layout: flex gap-14 rows with gradient avatar fallbacks instead of bordered cards
+- [Phase 12]: Sidebar meta: direct void bg + pixel-exact padding matching mockup 05
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T13:22:24.340Z
-Stopped at: Completed 12-04-PLAN.md
+Last session: 2026-03-28T13:26:39.626Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None
