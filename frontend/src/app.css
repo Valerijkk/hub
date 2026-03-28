@@ -229,23 +229,8 @@
 /* ===================================================
  * Module gradients -- updated to new palette
  * =================================================== */
-.gradient-tracker {
-	background: linear-gradient(135deg, #5B9CF5, #3B7EE0);
-}
-.gradient-messenger {
-	background: linear-gradient(135deg, #34D399, #22C088);
-}
 .gradient-tms {
 	background: linear-gradient(135deg, #A78BFA, #8B6FF0);
-}
-.gradient-calls {
-	background: linear-gradient(135deg, #A78BFA, #8B6FF0);
-}
-.gradient-dashboard {
-	background: linear-gradient(135deg, #FBBF24, #D97706);
-}
-.gradient-settings {
-	background: linear-gradient(135deg, #6B7280, #4B5563);
 }
 
 /* Gradient text -- logo and key headings */
@@ -400,6 +385,12 @@
 	}
 	h1, h2, h3, h4, h5, h6 {
 		@apply font-semibold tracking-tight;
+	}
+	/* Theme toggle smooth transition (200ms crossfade on key surfaces) */
+	html, body,
+	.bg-background, .bg-base, .bg-card, .bg-raised, .bg-void,
+	[class*="bg-gradient"] {
+		transition: background-color 200ms var(--ease), color 200ms var(--ease), border-color 200ms var(--ease);
 	}
 }
 
@@ -566,52 +557,6 @@
 
 .hover-pulse:hover {
 	animation: subtle-pulse 1.5s ease-in-out infinite;
-}
-
-/* ===================================================
- * Стеклянный эффект для композера и оверлеев
- * =================================================== */
-.glass-subtle {
-	background: rgba(255, 255, 255, 0.6);
-	backdrop-filter: blur(12px);
-	-webkit-backdrop-filter: blur(12px);
-}
-
-.dark .glass-subtle {
-	background: rgba(13, 14, 18, 0.7);
-}
-
-/* ===================================================
- * Чередование строк таблицы — для TMS и списков
- * =================================================== */
-.table-striped tbody tr:nth-child(even) {
-	background: color-mix(in srgb, var(--muted) 40%, transparent);
-}
-
-.dark .table-striped tbody tr:nth-child(even) {
-	background: rgba(255, 255, 255, 0.02);
-}
-
-/* ===================================================
- * Градиентная полоска сверху карточки — декоративная
- * =================================================== */
-.card-accent-top {
-	position: relative;
-	overflow: hidden;
-}
-.card-accent-top::before {
-	content: "";
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 3px;
-	background: linear-gradient(
-		90deg,
-		var(--primary),
-		color-mix(in srgb, var(--primary) 60%, #8b5cf6)
-	);
-	border-radius: 12px 12px 0 0;
 }
 
 /* Анимация плавного появления с задержкой — для каскадных элементов */
