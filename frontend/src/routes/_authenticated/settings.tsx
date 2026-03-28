@@ -19,9 +19,9 @@ const navItems = [
 	{ to: "/settings/profile", icon: User, label: "\u041F\u0440\u043E\u0444\u0438\u043B\u044C" },
 	{ to: "/settings/appearance", icon: Palette, label: "\u0412\u043D\u0435\u0448\u043D\u0438\u0439 \u0432\u0438\u0434" },
 	{ to: "/settings/notifications", icon: Bell, label: "\u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F" },
-	{ to: "/settings/security" as string, icon: Shield, label: "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C", placeholder: true },
-	{ to: "/settings/integrations" as string, icon: Puzzle, label: "\u0418\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438", placeholder: true },
-	{ to: "/settings/hotkeys" as string, icon: Keyboard, label: "\u0413\u043E\u0440\u044F\u0447\u0438\u0435 \u043A\u043B\u0430\u0432\u0438\u0448\u0438", placeholder: true },
+	{ to: "/settings/security", icon: Shield, label: "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C" },
+	{ to: "/settings/integrations", icon: Puzzle, label: "\u0418\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438" },
+	{ to: "/settings/hotkeys", icon: Keyboard, label: "\u0413\u043E\u0440\u044F\u0447\u0438\u0435 \u043A\u043B\u0430\u0432\u0438\u0448\u0438" },
 	{ to: "/trash", icon: Trash2, label: "\u041A\u043E\u0440\u0437\u0438\u043D\u0430" },
 ] as const;
 
