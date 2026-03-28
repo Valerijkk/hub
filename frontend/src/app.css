@@ -385,6 +385,16 @@
 		-moz-osx-font-smoothing: grayscale;
 		text-rendering: optimizeLegibility;
 	}
+	/* Noise texture overlay -- subtle grain from mockups */
+	body::after {
+		content: '';
+		position: fixed;
+		inset: 0;
+		z-index: var(--z-noise, 9999);
+		pointer-events: none;
+		opacity: .3;
+		background: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+	}
 	button, a, input, select, textarea {
 		transition: all 150ms var(--ease);
 	}
