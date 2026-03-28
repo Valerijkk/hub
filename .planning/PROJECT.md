@@ -250,5 +250,40 @@ Hub создаётся как внутренний инструмент для �
 | Параллельный поиск PG + MongoDB | PG tsvector + MongoDB text index, без отдельного поискового движка для 50 юзеров | Ожидает проверки |
 | Retention policy настраиваемый Admin | Дефолты: чат 2 года, Allure 1 год, записи 6 мес, Admin меняет | Ожидает проверки |
 
+## Current Milestone: v2.0 Hub Redesign
+
+**Goal:** Pixel-perfect редизайн всего фронтенда Hub на основе 11 HTML-макетов из папки `редизайн/` — без ломания существующего функционала, без новых фич.
+
+**Target features:**
+- Новая дизайн-система (Inter + JetBrains Mono, CSS variables, тёмная палитра #08090B→#1E2028, радиусы 6/8/12/16px, 4 уровня теней, spring/bounce анимации)
+- Light + Dark mode (макеты dark-only → light адаптируется под ту же систему)
+- Редизайн 11 страниц по макетам: Login, Dashboard, Messenger, Kanban, Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash
+- Страницы без макетов (Projects list, Sprint management, JQL search, Project settings, Project dashboard) — привести к общему стилю
+- User-chosen accent color (сохранить текущее поведение)
+- Компоненты переписываются поштучно для максимального качества
+- `/gsd:ui-review` после каждой фазы для контроля качества
+
+**Constraints:**
+- Функционал НЕ трогаем — только визуал
+- Качество > скорость
+- Эталон — HTML-макеты из `редизайн/`
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Последнее обновление: 2026-03-20 после доработки серых зон*
+*Последнее обновление: 2026-03-27 — Milestone v2.0 Hub Redesign started*
