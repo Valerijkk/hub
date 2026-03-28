@@ -1,5 +1,5 @@
 /**
- * Секция проектов сайдбара -- Slack-style список с expand/collapse подменю.
+ * Секция проектов сайдбара v2.0 -- design system tokens, 7px dot indicators.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -161,7 +161,7 @@ export function SidebarProjects({
 			{/* Заголовок секции */}
 			<div className="mb-1.5 flex items-center justify-between px-2">
 				{!collapsed && (
-					<span className="text-[11px] font-semibold uppercase tracking-wider text-[#D1D2D3]/40">
+					<span className="text-[10px] font-bold uppercase tracking-[0.1em] text-t4">
 						{t("nav.projects")}
 					</span>
 				)}
@@ -188,7 +188,7 @@ export function SidebarProjects({
 										onClick={() =>
 											toggleProject(project.id)
 										}
-										className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[#D1D2D3]/40 hover:text-white transition-colors duration-150"
+										className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-t4 hover:text-t1 transition-colors duration-150"
 										aria-label={
 											isExpanded
 												? "Свернуть модули"
@@ -254,7 +254,7 @@ export function SidebarProjects({
 			</div>
 
 			{projects?.length === 0 && !collapsed && (
-				<p className="px-3 py-2 text-xs text-[#D1D2D3]/30">
+				<p className="px-3 py-2 text-xs text-t4">
 					{t("sidebar.noProjects")}
 				</p>
 			)}
