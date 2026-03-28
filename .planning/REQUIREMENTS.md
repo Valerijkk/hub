@@ -37,13 +37,13 @@
 - [ ] **PRIM-01**: User sees redesigned Button with gradient primary, ghost/secondary variants, glow hover
 - [ ] **PRIM-02**: User sees redesigned Card with gradient bg, top-edge highlight, hover glow
 - [ ] **PRIM-03**: User sees redesigned Input with blue focus glow ring and subtle scale on focus
-- [ ] **PRIM-04**: User sees redesigned Badge with status-specific glow backgrounds
+- [x] **PRIM-04**: User sees redesigned Badge with status-specific glow backgrounds
 - [ ] **PRIM-05**: User sees redesigned Dialog/Popover with entrance animation and backdrop blur
 - [ ] **PRIM-06**: User sees redesigned Tabs with active indicator matching section color
 - [ ] **PRIM-07**: User sees redesigned DropdownMenu matching new design language
-- [ ] **PRIM-08**: User sees redesigned ScrollArea with slim 5px scrollbar
-- [ ] **PRIM-09**: User sees redesigned Avatar with online indicator glow
-- [ ] **PRIM-10**: User sees redesigned Tooltip matching new palette and radius
+- [x] **PRIM-08**: User sees redesigned ScrollArea with slim 5px scrollbar
+- [x] **PRIM-09**: User sees redesigned Avatar with online indicator glow
+- [x] **PRIM-10**: User sees redesigned Tooltip matching new palette and radius
 
 ### Login Page (LOGN)
 
@@ -183,13 +183,13 @@
 | PRIM-01 | Phase 10 | Pending |
 | PRIM-02 | Phase 10 | Pending |
 | PRIM-03 | Phase 10 | Pending |
-| PRIM-04 | Phase 10 | Pending |
+| PRIM-04 | Phase 10 | Complete |
 | PRIM-05 | Phase 10 | Pending |
 | PRIM-06 | Phase 10 | Pending |
 | PRIM-07 | Phase 10 | Pending |
-| PRIM-08 | Phase 10 | Pending |
-| PRIM-09 | Phase 10 | Pending |
-| PRIM-10 | Phase 10 | Pending |
+| PRIM-08 | Phase 10 | Complete |
+| PRIM-09 | Phase 10 | Complete |
+| PRIM-10 | Phase 10 | Complete |
 | LOGN-01 | Phase 11 | Pending |
 | LOGN-02 | Phase 11 | Pending |
 | LOGN-03 | Phase 11 | Pending |
