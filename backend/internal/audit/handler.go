@@ -60,7 +60,25 @@ func (h *Handler) requireAdmin() fiber.Handler {
 	}
 }
 
-// ListAuditLogs обрабатывает GET /api/admin/audit.
+// ListAuditLogs godoc
+// @Summary Журнал аудита
+// @Description Возвращает пагинированный список записей аудита с фильтрацией.
+// @Tags Аудит
+// @Produce json
+// @Param action query string false "Фильтр по действию"
+// @Param entity_type query string false "Фильтр по типу сущности"
+// @Param user_id query string false "Фильтр по ID пользователя"
+// @Param project_id query string false "Фильтр по ID проекта"
+// @Param date_from query string false "Начало периода (RFC3339)"
+// @Param date_to query string false "Конец периода (RFC3339)"
+// @Param page query int false "Страница (по умолчанию 1)"
+// @Param per_page query int false "Кол-во на странице (по умолчанию 50)"
+// @Success 200 {object} AuditLogListResponse "Записи аудита"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/admin/audit [get]
 func (h *Handler) ListAuditLogs(c fiber.Ctx) error {
 	filters := AuditLogFilters{
 		Action:     utils.CopyString(c.Query("action")),
@@ -106,7 +124,16 @@ func (h *Handler) ListAuditLogs(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetLimits обрабатывает GET /api/admin/limits.
+// GetLimits godoc
+// @Summary Получить лимиты ресурсов
+// @Description Возвращает текущие ограничения ресурсов системы.
+// @Tags Аудит
+// @Produce json
+// @Success 200 {object} ResourceLimitsResponse "Лимиты"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Security BearerAuth
+// @Router /api/admin/limits [get]
 func (h *Handler) GetLimits(c fiber.Ctx) error {
 	limits, err := h.service.GetResourceLimits(c.Context())
 	if err != nil {
@@ -115,7 +142,20 @@ func (h *Handler) GetLimits(c fiber.Ctx) error {
 	return c.JSON(limits)
 }
 
-// UpdateLimit обрабатывает PUT /api/admin/limits/:key.
+// UpdateLimit godoc
+// @Summary Обновить лимит ресурса
+// @Description Обновляет значение ограничения ресурса по ключу.
+// @Tags Аудит
+// @Accept json
+// @Produce json
+// @Param key path string true "Ключ лимита"
+// @Param body body UpdateLimitRequest true "Новое значение"
+// @Success 200 {object} map[string]bool "success: true"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Security BearerAuth
+// @Router /api/admin/limits/{key} [put]
 func (h *Handler) UpdateLimit(c fiber.Ctx) error {
 	key := utils.CopyString(c.Params("key"))
 	if key == "" {
@@ -134,7 +174,20 @@ func (h *Handler) UpdateLimit(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true})
 }
 
-// ListTrash обрабатывает GET /api/admin/trash.
+// ListTrash godoc
+// @Summary Корзина (админ)
+// @Description Возвращает удалённые элементы с фильтрацией по типу и проекту.
+// @Tags Аудит
+// @Produce json
+// @Param type query string false "Тип сущности (по умолчанию issue)"
+// @Param project_id query string false "ID проекта"
+// @Param page query int false "Страница"
+// @Param per_page query int false "Кол-во на странице"
+// @Success 200 {object} TrashListResponse "Удалённые элементы"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Security BearerAuth
+// @Router /api/admin/trash [get]
 func (h *Handler) ListTrash(c fiber.Ctx) error {
 	entityType := utils.CopyString(c.Query("type", "issue"))
 
@@ -157,7 +210,19 @@ func (h *Handler) ListTrash(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// RestoreItem обрабатывает POST /api/admin/trash/:type/:id/restore.
+// RestoreItem godoc
+// @Summary Восстановить элемент из корзины
+// @Description Восстанавливает удалённый элемент указанного типа.
+// @Tags Аудит
+// @Produce json
+// @Param type path string true "Тип сущности"
+// @Param id path string true "ID элемента"
+// @Success 200 {object} UserManagementResponse "Элемент восстановлен"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Security BearerAuth
+// @Router /api/admin/trash/{type}/{id}/restore [post]
 func (h *Handler) RestoreItem(c fiber.Ctx) error {
 	entityType := utils.CopyString(c.Params("type"))
 	idStr := utils.CopyString(c.Params("id"))
@@ -174,7 +239,18 @@ func (h *Handler) RestoreItem(c fiber.Ctx) error {
 	return c.JSON(UserManagementResponse{Success: true, Message: "Элемент восстановлен"})
 }
 
-// DeactivateUser обрабатывает POST /api/admin/users/:id/deactivate.
+// DeactivateUser godoc
+// @Summary Деактивировать пользователя
+// @Description Блокирует учётную запись пользователя.
+// @Tags Аудит
+// @Produce json
+// @Param id path string true "ID пользователя"
+// @Success 200 {object} UserManagementResponse "Пользователь деактивирован"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Security BearerAuth
+// @Router /api/admin/users/{id}/deactivate [post]
 func (h *Handler) DeactivateUser(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	userID, err := uuid.Parse(idStr)
@@ -189,7 +265,20 @@ func (h *Handler) DeactivateUser(c fiber.Ctx) error {
 	return c.JSON(UserManagementResponse{Success: true, Message: "Пользователь деактивирован"})
 }
 
-// ReassignTasks обрабатывает POST /api/admin/users/:id/reassign.
+// ReassignTasks godoc
+// @Summary Переназначить задачи пользователя
+// @Description Переназначает все задачи одного пользователя на другого.
+// @Tags Аудит
+// @Accept json
+// @Produce json
+// @Param id path string true "ID исходного пользователя"
+// @Param body body ReassignRequest true "ID целевого пользователя"
+// @Success 200 {object} map[string]interface{} "success и reassigned_count"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Security BearerAuth
+// @Router /api/admin/users/{id}/reassign [post]
 func (h *Handler) ReassignTasks(c fiber.Ctx) error {
 	fromIDStr := utils.CopyString(c.Params("id"))
 	fromUserID, err := uuid.Parse(fromIDStr)
@@ -215,8 +304,19 @@ func (h *Handler) ReassignTasks(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "reassigned_count": count})
 }
 
-// DeleteUserGDPR обрабатывает DELETE /api/admin/users/:id/gdpr.
-// Опциональный query-параметр reassign_to — UUID пользователя для переназначения задач.
+// DeleteUserGDPR godoc
+// @Summary Удалить данные пользователя (GDPR)
+// @Description Полностью удаляет персональные данные пользователя в соответствии с GDPR.
+// @Tags Аудит
+// @Produce json
+// @Param id path string true "ID пользователя"
+// @Param reassign_to query string false "ID пользователя для переназначения задач"
+// @Success 200 {object} UserManagementResponse "Данные удалены"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Security BearerAuth
+// @Router /api/admin/users/{id}/gdpr [delete]
 func (h *Handler) DeleteUserGDPR(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	userID, err := uuid.Parse(idStr)
