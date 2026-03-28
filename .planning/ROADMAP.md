@@ -310,14 +310,11 @@ Plans:
   3. All pages render correctly at 375px, 768px, and 1024px viewports without layout breaks or overflow
   4. Dead CSS classes removed from app.css; no unused custom utilities remain
   5. Theme toggle transition is smooth (200ms background/color transition on key surfaces)
-**Plans**: 5 plans
+**Plans**: 2 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Issue Detail + Calls restyle
-- [ ] 12-02-PLAN.md — TMS pages restyle
-- [ ] 12-03-PLAN.md — Settings + Admin restyle
-- [ ] 12-04-PLAN.md — Onboarding + Trash restyle
-- [ ] 12-05-PLAN.md — Unmocked pages (Projects, Sprints, JQL, Project settings, Project dashboard)
+- [x] 13-01-PLAN.md — Avatar online glow + smooth theme toggle (1/1 SUMMARY)
+- [ ] 13-02-PLAN.md — Dead CSS cleanup + final QA
 **UI hint**: yes
 
 ## Progress
