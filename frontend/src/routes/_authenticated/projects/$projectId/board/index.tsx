@@ -194,7 +194,7 @@ function BoardPage() {
 	return (
 		<div className="board-page-root flex flex-col">
 			{/* Панель фильтров */}
-			<div className="flex flex-wrap items-center gap-3 px-2 pb-4">
+			<div className="flex items-center gap-2.5 px-6 h-[50px] border-b border-[var(--b1)] shrink-0">
 				{/* Выбор доски */}
 				{boards && boards.length > 1 && (
 					<Select
@@ -216,55 +216,60 @@ function BoardPage() {
 
 				<Input
 					placeholder="Поиск задач..."
-					className="w-52"
+					className="w-[220px] h-[34px] pl-9 pr-3 bg-[var(--input)] border border-transparent rounded-[var(--r2)] text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] focus:border-[rgba(91,156,245,.25)] focus:bg-[var(--card)] transition-all outline-none"
 					value={filters.search ?? ""}
 					onChange={(e) => setFilters({ search: e.target.value || undefined })}
 				/>
 
-				<Button
-					variant={filters.myTasks ? "default" : "outline"}
-					size="sm"
+				<button
+					type="button"
+					className="kanban-fchip"
 					onClick={() => setFilters({ myTasks: !filters.myTasks })}
 				>
 					Мои задачи
-				</Button>
+				</button>
 
 				{(filters.search ||
 					filters.priority?.length ||
 					filters.type ||
 					filters.assignee ||
 					filters.myTasks) && (
-					<Button variant="ghost" size="sm" onClick={resetFilters}>
+					<span
+						className="text-xs text-[var(--t4)] cursor-pointer ml-auto hover:text-[var(--red)] transition-colors"
+						onClick={resetFilters}
+					>
 						Сбросить
-					</Button>
+					</span>
 				)}
 
 				<div className="ml-auto">
-					<Button asChild className="gradient-tracker text-white shadow-sm">
-						<Link to="/projects/$projectId/issues/new" params={{ projectId }}>
-							<svg
-								className="mr-1.5 h-4 w-4"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={2}
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M12 4v16m8-8H4"
-								/>
-							</svg>
-							Новая задача
-						</Link>
-					</Button>
+					<Link
+						to="/projects/$projectId/issues/new"
+						params={{ projectId }}
+						className="inline-flex items-center gap-[7px] px-[18px] py-2 rounded-[var(--r2)] text-[13px] font-semibold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] hover:shadow-[0_0_32px_rgba(91,156,245,.3)] hover:-translate-y-px active:scale-[.96] transition-all relative overflow-hidden"
+					>
+						<svg
+							className="h-3.5 w-3.5"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							strokeWidth={2.5}
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M12 5v14m7-7H5"
+							/>
+						</svg>
+						Задача
+					</Link>
 				</div>
 			</div>
 
 			{/* Колонки доски с горизонтальной прокруткой */}
 			{filteredColumns.length > 0 ? (
-				<div className="flex-1 overflow-x-auto overflow-y-hidden pb-2">
-					<div className="inline-flex h-full gap-4 px-2">
+				<div className="flex-1 overflow-x-auto overflow-y-hidden">
+					<div className="flex gap-4 px-6 py-5 overflow-x-auto flex-1 items-start kanban-enter">
 						{filteredColumns.map((col) => (
 							<BoardColumn
 								key={col.status.id}
