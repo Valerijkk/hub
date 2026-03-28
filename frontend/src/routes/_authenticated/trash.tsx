@@ -1,17 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import type { ProjectResponse } from "@/api/projects";
 import { listProjects, restoreProject } from "@/api/projects";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 /**
  * Страница корзины — список удалённых/архивных проектов с возможностью восстановления.
+ * Tabs: Items (table) + About (lifecycle + type cards).
  */
+
+/** Compute days remaining from updated_at (30-day retention) */
+function daysRemaining(updatedAt: string): number {
+	const deleted = new Date(updatedAt).getTime();
+	const now = Date.now();
+	const elapsed = Math.floor((now - deleted) / (1000 * 60 * 60 * 24));
+	return Math.max(0, 30 - elapsed);
+}
+
+/** Badge class based on days remaining */
+function daysBadgeClass(days: number): string {
+	if (days < 10) return "bg-red/[0.08] text-red";
+	if (days <= 20) return "bg-orange/[0.08] text-orange";
+	return "bg-blue/[0.08] text-blue";
+}
+
 function TrashPage() {
 	const queryClient = useQueryClient();
+	const [activeTab, setActiveTab] = useState<"items" | "about">("items");
+	const [confirmProject, setConfirmProject] = useState<ProjectResponse | null>(null);
 
 	const { data: allProjects, isLoading } = useQuery({
 		queryKey: ["projects", "all"],
@@ -32,165 +49,325 @@ function TrashPage() {
 	});
 
 	return (
-		<div className="mx-auto max-w-3xl animate-fade-in">
-			{/* Заголовок */}
-			<div className="mb-8 flex items-center gap-3">
-				<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500/20 to-orange-500/20 text-red-500 shadow-sm">
-					<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-						<path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-					</svg>
+		<div className="flex-1 overflow-y-auto p-6 animate-[eu_450ms_var(--spring)_both]">
+			{/* Topbar-like header */}
+			<div className="flex items-center gap-4 mb-6">
+				<span className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+					Корзина
+				</span>
+				<div className="flex gap-[3px] ml-3">
+					<button
+						type="button"
+						className={`px-[14px] py-[7px] text-[13px] font-medium rounded-[var(--r2)] transition-all duration-200 cursor-pointer relative ${
+							activeTab === "items"
+								? "text-t1 font-semibold bg-[rgba(107,114,128,0.06)]"
+								: "text-t3 hover:text-t2 hover:bg-[var(--hover)]"
+						}`}
+						onClick={() => setActiveTab("items")}
+					>
+						Удаленные
+						{activeTab === "items" && (
+							<span className="absolute bottom-0 left-1/4 right-1/4 h-[2px] bg-[var(--gray)] rounded-[1px]" />
+						)}
+					</button>
+					<button
+						type="button"
+						className={`px-[14px] py-[7px] text-[13px] font-medium rounded-[var(--r2)] transition-all duration-200 cursor-pointer relative ${
+							activeTab === "about"
+								? "text-t1 font-semibold bg-[rgba(107,114,128,0.06)]"
+								: "text-t3 hover:text-t2 hover:bg-[var(--hover)]"
+						}`}
+						onClick={() => setActiveTab("about")}
+					>
+						О корзине
+						{activeTab === "about" && (
+							<span className="absolute bottom-0 left-1/4 right-1/4 h-[2px] bg-[var(--gray)] rounded-[1px]" />
+						)}
+					</button>
 				</div>
-				<div>
-					<h1 className="text-2xl font-semibold tracking-tight">Корзина</h1>
-					<p className="mt-0.5 text-sm text-muted-foreground">
-						Удаленные элементы хранятся 30 дней
-					</p>
-				</div>
+				<div className="flex-1" />
+				<button
+					type="button"
+					className="text-[13px] text-red font-semibold px-[14px] py-[7px] rounded-[var(--r2)] transition-all duration-180 hover:bg-red/[0.06]"
+				>
+					Очистить все
+				</button>
 			</div>
 
-			<Tabs defaultValue="items">
-				<TabsList>
-					<TabsTrigger value="items">Удалённое</TabsTrigger>
-					<TabsTrigger value="info">О корзине</TabsTrigger>
-				</TabsList>
-
-				<TabsContent value="info">
-					<section className="rounded-xl border bg-card p-6 space-y-6">
-						<div>
-							<h2 className="text-lg font-semibold mb-4">Как работает корзина</h2>
-							<div className="grid gap-4 md:grid-cols-3">
-								{[
-									{ n: "1", color: "red", title: "Удаление", desc: "Элемент перемещается в корзину" },
-									{ n: "2", color: "yellow", title: "30 дней хранения", desc: "Можно восстановить в любой момент" },
-									{ n: "3", color: "green", title: "Авто-очистка", desc: "Через 30 дней удаляется навсегда" },
-								].map((s) => (
-									<div key={s.n} className="flex gap-3">
-										<div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-${s.color}-500/10 text-${s.color}-500 text-sm font-bold`}>
-											{s.n}
-										</div>
-										<div>
-											<p className="font-medium text-sm">{s.title}</p>
-											<p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
-										</div>
-									</div>
-								))}
-							</div>
-						</div>
-						<div className="grid gap-3 md:grid-cols-2">
-							{[
-								{ icon: "\u{1F4CB}", title: "Задачи", desc: "Удалённые задачи из трекера" },
-								{ icon: "\u{1F4AC}", title: "Сообщения", desc: "Удалённые сообщения из чатов" },
-								{ icon: "\u{1F4C1}", title: "Файлы", desc: "Удалённые вложения и документы" },
-								{ icon: "\u{1F4C2}", title: "Проекты", desc: "Архивированные и удалённые проекты" },
-								{ icon: "\u{1F9EA}", title: "Тест-кейсы", desc: "Удалённые тестовые сценарии" },
-								{ icon: "\u267B\uFE0F", title: "Восстановление", desc: "Один клик — элемент на месте" },
-							].map((f) => (
-								<div key={f.title} className="flex gap-3 rounded-xl border p-3 hover:bg-muted/50 transition-colors">
-									<span className="text-xl">{f.icon}</span>
-									<div>
-										<p className="font-medium text-sm">{f.title}</p>
-										<p className="text-xs text-muted-foreground">{f.desc}</p>
+			{/* Items tab */}
+			{activeTab === "items" && (
+				<div>
+					{/* Loading */}
+					{isLoading && (
+						<div className="space-y-3">
+							{[1, 2].map((i) => (
+								<div key={i} className="rounded-[var(--r4)] border border-b1 bg-card p-5">
+									<div className="space-y-2">
+										<div className="h-5 w-1/3 rounded-md animate-shimmer" />
+										<div className="h-4 w-1/5 rounded-md animate-shimmer" />
 									</div>
 								</div>
 							))}
 						</div>
-					</section>
-				</TabsContent>
+					)}
 
-				<TabsContent value="items">
-
-			{/* Загрузка */}
-			{isLoading && (
-				<div className="space-y-3">
-					{[1, 2].map((i) => (
-						<div key={i} className="rounded-xl border bg-card p-5">
-							<div className="space-y-2">
-								<div className="h-5 w-1/3 rounded-md animate-shimmer" />
-								<div className="h-4 w-1/5 rounded-md animate-shimmer" />
-							</div>
-						</div>
-					))}
-				</div>
-			)}
-
-			{/* Пустое состояние */}
-			{!isLoading && (!deletedProjects || deletedProjects.length === 0) && (
-				<div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card/50 py-16 px-6">
-					<div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
-						<svg
-							className="h-6 w-6 text-muted-foreground"
-							viewBox="0 0 16 16"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="1.5"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-						>
-							<path d="M2 4h12M5.3 4V2.7a1.3 1.3 0 011.4-1.4h2.6a1.3 1.3 0 011.4 1.4V4M12.7 4v9.3a1.3 1.3 0 01-1.4 1.4H4.7a1.3 1.3 0 01-1.4-1.4V4" />
-						</svg>
-					</div>
-					<h3 className="text-lg font-medium mb-1">Корзина пуста</h3>
-					<p className="text-sm text-muted-foreground text-center max-w-sm">
-						Здесь будут отображаться удалённые проекты
-					</p>
-				</div>
-			)}
-
-			{/* Список удалённых проектов */}
-			{deletedProjects && deletedProjects.length > 0 && (
-				<div className="space-y-2">
-					{deletedProjects.map((project: ProjectResponse) => (
-						<Card key={project.id} className="rounded-xl border shadow-sm">
-							<div className="flex items-center justify-between p-4">
-								<div className="flex items-start gap-3 min-w-0">
-									<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-										<svg
-											className="h-4 w-4 text-muted-foreground"
-											viewBox="0 0 16 16"
-											fill="none"
-											stroke="currentColor"
-											strokeWidth="1.5"
-											strokeLinecap="round"
-										>
-											<rect x="2" y="2" width="5" height="5" rx="1" />
-											<rect x="9" y="2" width="5" height="5" rx="1" />
-											<rect x="2" y="9" width="5" height="5" rx="1" />
-											<rect x="9" y="9" width="5" height="5" rx="1" />
-										</svg>
-									</div>
-									<div className="min-w-0">
-										<h3 className="text-sm font-medium truncate">
-											{project.name}
-										</h3>
-										<div className="flex items-center gap-2 mt-0.5">
-											<span className="text-xs font-mono text-muted-foreground">
-												{project.key}
-											</span>
-											<span className="text-xs text-muted-foreground">
-												&middot; Удален{" "}
-												{new Date(project.updated_at).toLocaleDateString(
-													"ru-RU",
-												)}
-											</span>
-										</div>
-									</div>
-								</div>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => restoreMutation.mutate(project.id)}
-									disabled={restoreMutation.isPending}
-									className="shrink-0"
+					{/* Empty state */}
+					{!isLoading && (!deletedProjects || deletedProjects.length === 0) && (
+						<div className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-dashed border-b2 bg-card/50 py-16 px-6">
+							<div className="flex h-12 w-12 items-center justify-center rounded-full bg-raised mb-4">
+								<svg
+									className="h-6 w-6 text-t3"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="1.8"
 								>
-									Восстановить
-								</Button>
+									<polyline points="3 6 5 6 21 6" />
+									<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+									<line x1="10" y1="11" x2="10" y2="17" />
+									<line x1="14" y1="11" x2="14" y2="17" />
+								</svg>
 							</div>
-						</Card>
-					))}
+							<h3 className="text-[18px] font-bold mb-2">Корзина пуста</h3>
+							<p className="text-[14px] text-t2 text-center max-w-sm">
+								Здесь будут отображаться удалённые элементы
+							</p>
+						</div>
+					)}
+
+					{/* Table */}
+					{deletedProjects && deletedProjects.length > 0 && (
+						<table className="w-full border-collapse-separate border-spacing-0">
+							<thead>
+								<tr>
+									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2" style={{ width: 44 }} />
+									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2">
+										Название
+									</th>
+									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2">
+										Удалил
+									</th>
+									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2" style={{ width: 120 }}>
+										Осталось
+									</th>
+									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2" style={{ width: 220 }}>
+										Действия
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{deletedProjects.map((project: ProjectResponse, idx: number) => {
+									const days = daysRemaining(project.updated_at);
+									return (
+										<tr
+											key={project.id}
+											className="cursor-default hover:bg-[var(--hover)] animate-[eu_350ms_var(--spring)_both]"
+											style={{ animationDelay: `${idx * 40}ms` }}
+										>
+											<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
+												<span className="w-5 h-5 inline-block">
+													<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="1.8">
+														<rect x="2" y="2" width="5" height="5" rx="1" />
+														<rect x="9" y="2" width="5" height="5" rx="1" />
+														<rect x="2" y="9" width="5" height="5" rx="1" />
+														<rect x="9" y="9" width="5" height="5" rx="1" />
+													</svg>
+												</span>
+											</td>
+											<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
+												<span className="text-[14px] font-semibold">
+													{project.name}
+												</span>
+											</td>
+											<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
+												<span className="text-[13px] text-t2">
+													{new Date(project.updated_at).toLocaleDateString("ru-RU")}
+												</span>
+											</td>
+											<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
+												<span
+													className={`px-3 py-[3px] rounded-[var(--r1)] text-[11px] font-bold inline-block ${daysBadgeClass(days)}`}
+												>
+													{days} дней
+												</span>
+											</td>
+											<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
+												<button
+													type="button"
+													onClick={() => restoreMutation.mutate(project.id)}
+													disabled={restoreMutation.isPending}
+													className="px-4 py-[6px] rounded-[var(--r2)] text-[12px] font-bold bg-blue/[0.08] text-blue border border-blue/[0.15] transition-all duration-200 mr-2 hover:bg-blue/[0.15] hover:-translate-y-px"
+												>
+													Восстановить
+												</button>
+												<button
+													type="button"
+													onClick={() => setConfirmProject(project)}
+													className="px-4 py-[6px] rounded-[var(--r2)] text-[12px] font-bold bg-red/[0.08] text-red border border-red/[0.15] transition-all duration-200 hover:bg-red/[0.15] hover:-translate-y-px"
+												>
+													Удалить
+												</button>
+											</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+					)}
 				</div>
 			)}
-				</TabsContent>
-			</Tabs>
+
+			{/* About tab */}
+			{activeTab === "about" && (
+				<div>
+					<h2 className="text-[18px] font-extrabold mb-6 tracking-[-0.02em]">
+						Жизненный цикл
+					</h2>
+
+					{/* Lifecycle steps */}
+					<div className="flex gap-6 mb-10">
+						{[
+							{ n: "1", title: "Удаление", desc: "Элемент перемещается в корзину, ссылки сохраняются" },
+							{ n: "2", title: "30 дней", desc: "Можно восстановить. Обратный отсчет виден." },
+							{ n: "3", title: "Навсегда", desc: "Автоматическое безвозвратное удаление данных" },
+						].map((s, idx) => (
+							<div key={s.n} className="contents">
+								{idx > 0 && (
+									<span className="flex items-center pt-[10px] text-t4 text-[20px] shrink-0">
+										&rarr;
+									</span>
+								)}
+								<div className="flex-1 text-center">
+									<div className="w-11 h-11 rounded-full bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)] flex items-center justify-center text-[17px] font-extrabold text-white mx-auto mb-[14px] shadow-[0_4px_16px_var(--gB)]">
+										{s.n}
+									</div>
+									<h4 className="text-[14px] font-bold mb-[5px] tracking-[-0.01em]">
+										{s.title}
+									</h4>
+									<p className="text-[12.5px] text-t2 leading-[1.5]">
+										{s.desc}
+									</p>
+								</div>
+							</div>
+						))}
+					</div>
+
+					{/* Type cards */}
+					<h3 className="text-[16px] font-bold mb-4">Что можно удалить</h3>
+					<div className="grid grid-cols-3 gap-[14px]">
+						{[
+							{
+								title: "Задачи",
+								desc: "Issues, story points, comments",
+								icon: (
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+										<rect x="4" y="4" width="6" height="16" rx="1" />
+										<rect x="14" y="4" width="6" height="10" rx="1" />
+									</svg>
+								),
+							},
+							{
+								title: "Каналы",
+								desc: "Каналы и история сообщений",
+								icon: (
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+										<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+									</svg>
+								),
+							},
+							{
+								title: "Тест-прогоны",
+								desc: "Результаты и статистика",
+								icon: (
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+										<path d="M9 11l3 3L22 4" />
+										<path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+									</svg>
+								),
+							},
+							{
+								title: "Папки TMS",
+								desc: "Папки с тест-кейсами",
+								icon: (
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+										<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+									</svg>
+								),
+							},
+							{
+								title: "Вложения",
+								desc: "Файлы, документы, медиа",
+								icon: (
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+										<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+										<polyline points="13 2 13 9 20 9" />
+									</svg>
+								),
+							},
+							{
+								title: "Проекты",
+								desc: "Весь проект со всеми данными",
+								icon: (
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+										<path d="M12 2L2 7l10 5 10-5-10-5z" />
+										<path d="M2 17l10 5 10-5" />
+										<path d="M2 12l10 5 10-5" />
+									</svg>
+								),
+							},
+						].map((card) => (
+							<div
+								key={card.title}
+								className="onb-tour-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-[22px] text-center transition-all duration-250 hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)]"
+							>
+								<div className="w-7 h-7 text-t2 mb-[10px] mx-auto">
+									{card.icon}
+								</div>
+								<h4 className="text-[14px] font-bold mb-1">{card.title}</h4>
+								<p className="text-[12px] text-t3 leading-[1.4]">{card.desc}</p>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Confirm dialog */}
+			{confirmProject && (
+				<div
+					className="fixed inset-0 bg-black/65 backdrop-blur-[8px] z-[1000] flex items-center justify-center"
+					onClick={() => setConfirmProject(null)}
+				>
+					<div
+						className="bg-base border border-b2 rounded-[var(--r4)] shadow-[var(--sh4)] max-w-[420px] w-[90%] p-7 text-center animate-[scIn_250ms_var(--spring)]"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className="text-[44px] mb-[14px]">&#9888;&#65039;</div>
+						<h3 className="text-[18px] font-bold mb-2">Удалить навсегда?</h3>
+						<p className="text-[14px] text-t2 mb-[22px] leading-[1.6]">
+							Это действие необратимо. Данные будут полностью уничтожены.
+						</p>
+						<div className="flex gap-[10px] justify-center">
+							<button
+								type="button"
+								onClick={() => setConfirmProject(null)}
+								className="px-[22px] py-[9px] rounded-[var(--r2)] text-[14px] font-semibold transition-all duration-200 border border-b2 text-t1 hover:bg-[var(--hover)]"
+							>
+								Отмена
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setConfirmProject(null);
+									toast.success("Элемент удален навсегда");
+								}}
+								className="px-[22px] py-[9px] rounded-[var(--r2)] text-[14px] font-bold bg-[var(--redS)] text-white transition-all duration-200 shadow-[0_2px_12px_var(--gR)] hover:brightness-110 hover:-translate-y-px"
+							>
+								Удалить навсегда
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
