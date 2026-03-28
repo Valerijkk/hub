@@ -105,7 +105,7 @@ export function NotificationSettings() {
 			const prefs = await getPreferences();
 			setPreferences(prefs ?? []);
 		} catch {
-			// Ошибка загрузки — оставляем пустой массив.
+			toast.error("Не удалось загрузить настройки уведомлений");
 		} finally {
 			setLoading(false);
 		}
@@ -130,6 +130,26 @@ export function NotificationSettings() {
 	const togglePreference = useCallback(
 		async (notifType: string, channel: string) => {
 			const current = isEnabled(notifType, channel);
+
+			// Optimistic update
+			setPreferences((prev) => {
+				const idx = prev.findIndex(
+					(p) =>
+						p.notification_type === notifType &&
+						p.channel === channel &&
+						!p.project_id,
+				);
+				if (idx >= 0) {
+					const next = [...prev];
+					next[idx] = { ...next[idx]!, enabled: !current };
+					return next;
+				}
+				return [
+					...prev,
+					{ notification_type: notifType, channel, enabled: !current } as PreferenceDTO,
+				];
+			});
+
 			try {
 				const updated = await updatePreference({
 					notification_type: notifType,
@@ -151,7 +171,22 @@ export function NotificationSettings() {
 					return [...prev, updated];
 				});
 			} catch {
-				// Ошибка обновления — игнорируем.
+				// Revert optimistic update
+				setPreferences((prev) => {
+					const idx = prev.findIndex(
+						(p) =>
+							p.notification_type === notifType &&
+							p.channel === channel &&
+							!p.project_id,
+					);
+					if (idx >= 0) {
+						const next = [...prev];
+						next[idx] = { ...next[idx]!, enabled: current };
+						return next;
+					}
+					return prev;
+				});
+				toast.error("Не удалось обновить настройку");
 			}
 		},
 		[isEnabled],
