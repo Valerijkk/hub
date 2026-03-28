@@ -1,123 +1,728 @@
 # API Reference
 
-Hub предоставляет REST API с ~230 endpoints. Все запросы идут через `/api/` префикс.
+Hub предоставляет REST API с **~230 endpoints**. Все запросы идут через `/api/` префикс.
 
 ## Аутентификация
 
 ### JWT Bearer Token
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 ### API Key
+
 ```
 X-API-Key: <api_key>
 ```
 
-## Основные модули
+Токены выдаются при авторизации через Magic Link или Telegram. API-ключи создаются через `/api/api-keys/`.
 
-### Auth (`/api/auth/`)
-| Метод | Путь | Описание |
-|-------|------|----------|
-| POST | `/auth/magic-link` | Отправить magic link код |
-| POST | `/auth/magic-link/verify` | Верифицировать код |
-| POST | `/auth/telegram` | Вход через Telegram |
-| POST | `/auth/refresh` | Обновить токены |
-| POST | `/auth/logout` | Выход |
-| GET | `/auth/me` | Текущий пользователь |
-| PUT | `/auth/me` | Обновить профиль |
-| GET | `/auth/sessions` | Список сессий |
-| DELETE | `/auth/sessions/:id` | Завершить сессию |
+---
 
-### Projects (`/api/projects/`)
+## Auth (13 endpoints)
+
+Аутентификация, профиль, сессии, режим регистрации.
+
 | Метод | Путь | Описание |
-|-------|------|----------|
+|---|---|---|
+| POST | `/auth/magic-link` | Отправить код Magic Link на email |
+| POST | `/auth/magic-link/verify` | Верифицировать код и получить токены |
+| POST | `/auth/telegram` | Вход через Telegram Widget |
+| POST | `/auth/telegram-code` | Вход через Telegram-код |
+| POST | `/auth/refresh` | Обновить access/refresh токены |
+| POST | `/auth/logout` | Выход (инвалидация refresh-токена) |
+| GET | `/auth/me` | Текущий пользователь (профиль) |
+| PUT | `/auth/me` | Обновить профиль (имя, аватар, язык, тема) |
+| POST | `/auth/me/onboarding` | Завершить онбординг |
+| GET | `/auth/sessions` | Список активных сессий |
+| DELETE | `/auth/sessions/:sessionId` | Завершить конкретную сессию |
+| GET | `/auth/admin/registration-mode` | Получить режим регистрации (open/invite) |
+| PUT | `/auth/admin/registration-mode` | Установить режим регистрации |
+
+---
+
+## Projects (22 endpoints)
+
+Проекты, участники, приглашения, команды.
+
+### Проекты
+
+| Метод | Путь | Описание |
+|---|---|---|
 | POST | `/projects/` | Создать проект |
-| GET | `/projects/` | Список проектов |
-| GET | `/projects/:id` | Получить проект |
-| PUT | `/projects/:id` | Обновить проект |
-| DELETE | `/projects/:id` | Удалить (в корзину) |
-| POST | `/projects/:id/archive` | Архивировать |
-| POST | `/projects/:id/members` | Добавить участника |
-| POST | `/projects/:id/invites` | Создать приглашение |
+| GET | `/projects/` | Список проектов пользователя |
+| GET | `/projects/trash` | Список удалённых проектов |
+| GET | `/projects/:projectId` | Получить проект по ID |
+| PUT | `/projects/:projectId` | Обновить проект |
+| POST | `/projects/:projectId/archive` | Архивировать проект |
+| POST | `/projects/:projectId/unarchive` | Разархивировать проект |
+| DELETE | `/projects/:projectId` | Удалить проект (в корзину) |
+| POST | `/projects/:projectId/restore` | Восстановить из корзины |
 
-### Issues (`/api/projects/:id/issues/`)
-| Метод | Путь | Описание |
-|-------|------|----------|
-| POST | `/issues/` | Создать задачу |
-| GET | `/issues/` | Список задач (pagination) |
-| GET | `/issues/:key` | Получить задачу по ключу |
-| PUT | `/issues/:key` | Обновить задачу |
-| DELETE | `/issues/:key` | Удалить задачу |
-| PUT | `/issues/:key/position` | Переместить (Kanban) |
-| POST | `/issues/jql` | JQL поиск |
-| POST | `/issues/:key/comments` | Добавить комментарий |
-| POST | `/issues/:key/time` | Записать время |
-| POST | `/issues/:key/timer/start` | Старт таймера |
+### Участники
 
-### Messenger (`/api/messenger/`)
 | Метод | Путь | Описание |
-|-------|------|----------|
-| POST | `/channels/` | Создать канал |
-| GET | `/channels/` | Мои каналы |
-| POST | `/channels/:id/messages/` | Отправить сообщение |
-| GET | `/channels/:id/messages/` | Список сообщений |
-| POST | `/dm` | Создать/открыть DM |
-| GET | `/presence` | Онлайн-статусы |
-| GET | `/search` | Поиск сообщений |
+|---|---|---|
+| GET | `/projects/:projectId/members` | Список участников проекта |
+| POST | `/projects/:projectId/members` | Добавить участника |
+| PUT | `/projects/:projectId/members/:userId` | Изменить роль участника |
+| DELETE | `/projects/:projectId/members/:userId` | Удалить участника |
 
-### TMS (`/api/projects/:id/tms/`)
-| Метод | Путь | Описание |
-|-------|------|----------|
-| POST | `/cases/` | Создать тест-кейс |
-| GET | `/cases/` | Список тест-кейсов |
-| POST | `/runs/` | Создать прогон |
-| POST | `/runs/:id/start` | Запустить прогон |
-| POST | `/runs/:id/complete` | Завершить прогон |
-| POST | `/allure/import` | Импорт Allure results |
-| GET | `/reports/trends` | Тренды тестов |
-| GET | `/reports/traceability` | Матрица трассировки |
+### Приглашения
 
-### Calls (`/api/calls/`)
 | Метод | Путь | Описание |
-|-------|------|----------|
+|---|---|---|
+| POST | `/projects/:projectId/invites` | Создать приглашение |
+| GET | `/projects/:projectId/invites` | Список приглашений |
+| DELETE | `/projects/:projectId/invites/:inviteId` | Отозвать приглашение |
+| POST | `/invites/join` | Принять приглашение по коду |
+
+### Команды
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/teams/` | Создать команду |
+| GET | `/teams/` | Список команд |
+| POST | `/teams/:teamId/members` | Добавить участника в команду |
+| DELETE | `/teams/:teamId/members/:userId` | Удалить участника из команды |
+| POST | `/teams/:teamId/projects/:projectId` | Привязать команду к проекту |
+
+---
+
+## Tracker (35 endpoints)
+
+Задачи, workflow, доски, метки, кастомные поля, время, комментарии.
+
+### Задачи
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/issues/` | Создать задачу |
+| GET | `/projects/:projectId/issues/` | Список задач (cursor pagination) |
+| GET | `/projects/:projectId/issues/:issueKey` | Получить задачу по ключу |
+| PUT | `/projects/:projectId/issues/:issueKey` | Обновить задачу |
+| DELETE | `/projects/:projectId/issues/:issueKey` | Удалить задачу |
+| PUT | `/projects/:projectId/issues/:issueKey/position` | Переместить на доске (Kanban drag) |
+| POST | `/projects/:projectId/issues/jql` | JQL-поиск задач |
+
+### Связи между задачами
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/issues/:issueKey/links` | Создать связь |
+| GET | `/projects/:projectId/issues/:issueKey/links` | Список связей |
+| DELETE | `/projects/:projectId/issues/:issueKey/links/:linkId` | Удалить связь |
+
+### Комментарии и реакции
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/issues/:issueKey/comments` | Добавить комментарий |
+| GET | `/projects/:projectId/issues/:issueKey/comments` | Список комментариев |
+| PUT | `/projects/:projectId/issues/:issueKey/comments/:commentId` | Редактировать комментарий |
+| DELETE | `/projects/:projectId/issues/:issueKey/comments/:commentId` | Удалить комментарий |
+| POST | `/projects/:projectId/issues/:issueKey/comments/:commentId/reactions` | Поставить/убрать реакцию |
+
+### Активность
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/projects/:projectId/issues/:issueKey/activity` | Лента активности задачи |
+
+### Время
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/issues/:issueKey/time` | Записать время |
+| POST | `/projects/:projectId/issues/:issueKey/timer/start` | Запустить таймер |
+| POST | `/projects/:projectId/issues/:issueKey/timer/stop` | Остановить таймер |
+| GET | `/projects/:projectId/issues/:issueKey/time-logs` | Список записей времени |
+
+### Доски
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/projects/:projectId/boards/` | Список досок проекта |
+| POST | `/projects/:projectId/boards/` | Создать доску |
+| GET | `/projects/:projectId/boards/:boardId` | Данные доски (колонки + задачи) |
+
+### Workflow
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/projects/:projectId/workflow/statuses` | Список статусов |
+| POST | `/projects/:projectId/workflow/statuses` | Создать статус |
+| PUT | `/projects/:projectId/workflow/statuses/:statusId` | Обновить статус |
+| DELETE | `/projects/:projectId/workflow/statuses/:statusId` | Удалить статус |
+| GET | `/projects/:projectId/workflow/transitions` | Список переходов |
+| POST | `/projects/:projectId/workflow/transitions` | Создать переход |
+| DELETE | `/projects/:projectId/workflow/transitions/:transitionId` | Удалить переход |
+
+### Метки
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/projects/:projectId/labels/` | Список меток |
+| POST | `/projects/:projectId/labels/` | Создать метку |
+| DELETE | `/projects/:projectId/labels/:labelId` | Удалить метку |
+| GET | `/projects/:projectId/labels/groups` | Список групп меток |
+| POST | `/projects/:projectId/labels/groups` | Создать группу меток |
+
+### Кастомные поля
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/projects/:projectId/custom-fields/` | Список кастомных полей |
+| POST | `/projects/:projectId/custom-fields/` | Создать кастомное поле |
+| DELETE | `/projects/:projectId/custom-fields/:fieldId` | Удалить кастомное поле |
+
+---
+
+## Sprint (14 endpoints)
+
+Спринты, burndown, velocity, Planning Poker.
+
+### Спринты
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/sprints/` | Создать спринт |
+| GET | `/projects/:projectId/sprints/` | Список спринтов проекта |
+| GET | `/projects/:projectId/sprints/:sprintId` | Получить спринт |
+| PUT | `/projects/:projectId/sprints/:sprintId` | Обновить спринт |
+| POST | `/projects/:projectId/sprints/:sprintId/start` | Стартовать спринт |
+| POST | `/projects/:projectId/sprints/:sprintId/complete` | Завершить спринт |
+| PUT | `/projects/:projectId/sprints/:sprintId/retro` | Обновить ретро-заметки |
+| GET | `/projects/:projectId/sprints/:sprintId/burndown` | Данные burndown-графика |
+| POST | `/projects/:projectId/sprints/:sprintId/issues` | Добавить задачи в спринт |
+| POST | `/projects/:projectId/sprints/:sprintId/poker` | Начать сессию Planning Poker |
+
+### Velocity
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/projects/:projectId/velocity/` | Данные velocity (завершённые спринты) |
+
+### Planning Poker
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/sprints/poker/:sessionId/vote` | Проголосовать (оценить задачу) |
+| POST | `/sprints/poker/:sessionId/reveal` | Раскрыть голоса |
+| GET | `/sprints/poker/:sessionId` | Получить состояние сессии |
+
+---
+
+## Messenger (40 endpoints)
+
+Каналы, сообщения, присутствие, опросы, пригласительные ссылки.
+
+### Каналы
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/messenger/channels/` | Создать канал |
+| GET | `/messenger/channels/` | Мои каналы |
+| GET | `/messenger/channels/:channelId` | Получить канал |
+| PUT | `/messenger/channels/:channelId` | Обновить канал (название, описание) |
+| DELETE | `/messenger/channels/:channelId` | Удалить канал |
+| POST | `/messenger/channels/:channelId/join` | Присоединиться к каналу |
+| POST | `/messenger/channels/:channelId/leave` | Покинуть канал |
+| POST | `/messenger/channels/:channelId/members` | Добавить участников |
+| GET | `/messenger/channels/:channelId/members` | Список участников канала |
+| POST | `/messenger/channels/:channelId/star` | Добавить/убрать из избранного |
+| POST | `/messenger/channels/:channelId/mute` | Замьютить канал |
+| POST | `/messenger/channels/:channelId/unmute` | Размьютить канал |
+| POST | `/messenger/channels/:channelId/typing` | Отправить индикатор набора |
+
+### Сообщения
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/messenger/channels/:channelId/messages/` | Отправить сообщение |
+| GET | `/messenger/channels/:channelId/messages/` | Список сообщений (cursor pagination) |
+| PUT | `/messenger/channels/:channelId/messages/:messageId` | Редактировать сообщение |
+| DELETE | `/messenger/channels/:channelId/messages/:messageId` | Удалить сообщение |
+| POST | `/messenger/channels/:channelId/messages/:messageId/reactions` | Поставить/убрать реакцию |
+| POST | `/messenger/channels/:channelId/messages/:messageId/pin` | Закрепить/открепить |
+| POST | `/messenger/channels/:channelId/messages/:messageId/forward` | Переслать сообщение |
+| GET | `/messenger/channels/:channelId/messages/:messageId/replies` | Список ответов в треде |
+
+### Присутствие
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/messenger/presence` | Онлайн-статусы пользователей |
+| PUT | `/messenger/presence/status` | Установить кастомный статус |
+| POST | `/messenger/presence/heartbeat` | Heartbeat (поддержание статуса online) |
+
+### Непрочитанные
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/messenger/unread` | Счётчики непрочитанных по каналам |
+| POST | `/messenger/channels/:channelId/read` | Отметить канал прочитанным |
+
+### Закреплённые сообщения
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/messenger/channels/:channelId/pins` | Список закреплённых сообщений |
+
+### Поиск
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/messenger/search` | Поиск по сообщениям |
+
+### Закладки
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/messenger/bookmarks` | Список закладок |
+| POST | `/messenger/bookmarks` | Добавить закладку |
+| DELETE | `/messenger/bookmarks/:bookmarkId` | Удалить закладку |
+
+### DM (личные сообщения)
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/messenger/dm` | Создать или открыть DM |
+
+### Опросы
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/messenger/channels/:channelId/polls` | Создать опрос в канале |
+| POST | `/messenger/polls/:pollId/vote` | Проголосовать в опросе |
+| POST | `/messenger/polls/:pollId/close` | Закрыть опрос |
+| GET | `/messenger/polls/:pollId` | Результаты опроса |
+
+### Пригласительные ссылки
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/messenger/channels/:channelId/invites` | Создать пригласительную ссылку |
+| GET | `/messenger/channels/:channelId/invites` | Список приглашений канала |
+| DELETE | `/messenger/channels/:channelId/invites/:inviteId` | Отозвать приглашение |
+| GET | `/messenger/invites/:token` | Валидировать приглашение по токену |
+| POST | `/messenger/invites/:token/accept` | Принять приглашение |
+
+---
+
+## TMS (46 endpoints)
+
+Тест-кейсы, наборы, компоненты, прогоны, результаты, Allure, отчёты, окружения.
+
+### Тест-кейсы
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/tms/cases/` | Создать тест-кейс |
+| GET | `/projects/:projectId/tms/cases/` | Список тест-кейсов |
+| GET | `/projects/:projectId/tms/cases/:caseKey` | Получить тест-кейс по ключу |
+| PUT | `/projects/:projectId/tms/cases/:caseKey` | Обновить тест-кейс |
+| DELETE | `/projects/:projectId/tms/cases/:caseKey` | Удалить тест-кейс |
+
+### Версии тест-кейсов
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/projects/:projectId/tms/cases/:caseKey/versions` | Список версий |
+| POST | `/projects/:projectId/tms/cases/:caseKey/rollback/:versionId` | Откатиться к версии |
+
+### Связи тест-кейсов с задачами
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/tms/cases/:caseKey/links` | Привязать к задаче |
+| DELETE | `/projects/:projectId/tms/cases/:caseKey/links/:issueId` | Отвязать от задачи |
+| GET | `/projects/:projectId/tms/cases/:caseKey/links` | Список привязанных задач |
+
+### Тестовые наборы (Suites)
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/tms/suites/` | Создать набор |
+| GET | `/projects/:projectId/tms/suites/` | Список наборов |
+| PUT | `/projects/:projectId/tms/suites/:suiteId` | Обновить набор |
+| DELETE | `/projects/:projectId/tms/suites/:suiteId` | Удалить набор |
+
+### Компоненты
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/tms/components/` | Создать компонент |
+| GET | `/projects/:projectId/tms/components/` | Список компонентов |
+| DELETE | `/projects/:projectId/tms/components/:componentId` | Удалить компонент |
+
+### Тестовые прогоны
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/tms/runs/` | Создать прогон |
+| GET | `/projects/:projectId/tms/runs/` | Список прогонов |
+| GET | `/projects/:projectId/tms/runs/:runId` | Получить прогон |
+| PUT | `/projects/:projectId/tms/runs/:runId/status` | Обновить статус прогона |
+| POST | `/projects/:projectId/tms/runs/:runId/reopen` | Переоткрыть прогон |
+| POST | `/projects/:projectId/tms/runs/:runId/cases` | Добавить кейсы в прогон |
+| POST | `/projects/:projectId/tms/runs/:runId/assignees` | Назначить тестировщиков |
+| POST | `/projects/:projectId/tms/runs/:runId/start` | Стартовать прогон |
+| POST | `/projects/:projectId/tms/runs/:runId/complete` | Завершить прогон |
+| GET | `/projects/:projectId/tms/runs/:runId/detail` | Детали прогона (кейсы + результаты) |
+
+### Результаты
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/tms/runs/:runId/results` | Создать результат |
+| PUT | `/projects/:projectId/tms/runs/:runId/results/:resultId` | Обновить результат (выполнить) |
+| GET | `/projects/:projectId/tms/runs/:runId/results` | Список результатов прогона |
+
+### Баги из результатов
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/tms/runs/:runId/results/:resultId/bug` | Создать баг из упавшего теста |
+
+### Allure
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/tms/allure/import` | Импорт Allure results (новый прогон) |
+| POST | `/projects/:projectId/tms/runs/:runId/allure` | Импорт Allure в существующий прогон |
+
+### CI/CD Webhooks
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/tms/webhook/` | Webhook для Allure results из CI |
+| POST | `/projects/:projectId/tms/webhook/junit` | Webhook для JUnit XML из CI |
+
+### Отчёты
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/projects/:projectId/tms/reports/history` | История прогонов |
+| GET | `/projects/:projectId/tms/reports/flaky` | Flaky-тесты |
+| GET | `/projects/:projectId/tms/reports/coverage` | Покрытие тестами |
+| GET | `/projects/:projectId/tms/reports/trends` | Тренды (pass/fail/skip) |
+| GET | `/projects/:projectId/tms/reports/comparison` | Сравнение двух прогонов |
+| GET | `/projects/:projectId/tms/reports/traceability` | Матрица трассировки (кейсы-задачи) |
+| GET | `/projects/:projectId/tms/reports/defect-categories` | Категории дефектов |
+| GET | `/projects/:projectId/tms/reports/env-comparison` | Сравнение окружений |
+
+### Импорт/экспорт TMS
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/tms/import` | Импорт тест-кейсов (CSV/XML) |
+| GET | `/projects/:projectId/tms/export` | Экспорт тест-кейсов |
+| GET | `/projects/:projectId/tms/runs/:runId/export` | Экспорт отчёта прогона |
+
+### Тестовые окружения
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/environments/` | Создать окружение |
+| GET | `/projects/:projectId/environments/` | Список окружений |
+
+---
+
+## Calls (22 endpoints)
+
+Звонки, запись, планирование, чат.
+
+### Звонки
+
+| Метод | Путь | Описание |
+|---|---|---|
 | POST | `/calls/` | Создать звонок |
-| POST | `/calls/:id/join` | Присоединиться |
-| POST | `/calls/:id/leave` | Покинуть |
-| POST | `/calls/:id/end` | Завершить |
-| POST | `/calls/:id/recording/start` | Начать запись |
+| POST | `/calls/instant` | Создать мгновенный звонок |
+| GET | `/calls/invite/:code` | Присоединиться по коду приглашения |
+| GET | `/calls/channel/:channelId` | Получить активный звонок канала |
+| POST | `/calls/:callId/join` | Присоединиться к звонку |
+| POST | `/calls/:callId/leave` | Покинуть звонок |
+| POST | `/calls/:callId/end` | Завершить звонок |
+| POST | `/calls/:callId/raise-hand` | Поднять руку |
+| POST | `/calls/:callId/chat` | Отправить сообщение в чат звонка |
+| GET | `/calls/:callId/chat` | Список сообщений чата звонка |
+| GET | `/calls/conflicts` | Проверить конфликты расписания |
 
-### WebSocket (`/ws`)
+### Запись
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/calls/:callId/recording/start` | Начать запись |
+| POST | `/calls/:callId/recording/stop` | Остановить запись |
+| GET | `/projects/:projectId/recordings` | Список записей проекта |
+| GET | `/recordings/:recordingId/download` | URL для скачивания записи |
+
+### Планирование
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/scheduled-calls` | Запланировать звонок |
+| GET | `/messenger/channels/:channelId/scheduled-calls` | Список запланированных звонков |
+| PUT | `/scheduled-calls/:id` | Обновить запланированный звонок |
+| DELETE | `/scheduled-calls/:id` | Удалить запланированный звонок |
+
+### Webhook
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/calls/webhook` | LiveKit webhook (события звонков) |
+
+---
+
+## Dashboard (7 endpoints)
+
+Данные дашбордов, сохранение layout, шаблоны.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/dashboard/personal` | Персональный дашборд (мои задачи, активность) |
+| GET | `/dashboard/project/:projectId` | Проектный дашборд (статистика проекта) |
+| GET | `/dashboard/admin` | Админский дашборд (общая статистика) |
+| GET | `/dashboard/layout` | Получить layout дашборда |
+| PUT | `/dashboard/layout` | Сохранить layout (позиции виджетов) |
+| GET | `/dashboard/templates` | Список шаблонов дашбордов |
+| POST | `/dashboard/templates/apply` | Применить шаблон |
+
+---
+
+## Notifications (10 endpoints)
+
+Уведомления в приложении, push-подписки, настройки.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/notifications/` | Список уведомлений (pagination) |
+| GET | `/notifications/unread-count` | Счётчик непрочитанных |
+| PATCH | `/notifications/:id/read` | Отметить прочитанным |
+| PATCH | `/notifications/read-all` | Отметить все прочитанными |
+| DELETE | `/notifications/:id` | Удалить уведомление |
+| GET | `/notifications/preferences` | Настройки уведомлений |
+| PUT | `/notifications/preferences` | Обновить настройки |
+| GET | `/notifications/push/vapid-key` | Получить VAPID public key |
+| POST | `/notifications/push/subscribe` | Подписаться на push-уведомления |
+| DELETE | `/notifications/push/unsubscribe` | Отписаться от push |
+
+---
+
+## Search (5 endpoints)
+
+Глобальный поиск по всем сущностям, сохранённые фильтры.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/search` | Глобальный поиск (задачи, тест-кейсы, сообщения) |
+| POST | `/filters/` | Создать сохранённый фильтр |
+| GET | `/filters/` | Список сохранённых фильтров |
+| DELETE | `/filters/:id` | Удалить фильтр |
+| PATCH | `/filters/:id/share` | Поделиться фильтром |
+
+---
+
+## GitHub (9 endpoints)
+
+Вебхуки, интеграции, CI/CD статусы, создание веток, превью ссылок.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/github/webhook` | GitHub webhook (push, PR, workflow) |
+| POST | `/projects/:projectId/github/integrations` | Создать интеграцию |
+| GET | `/projects/:projectId/github/integrations` | Список интеграций |
+| DELETE | `/projects/:projectId/github/integrations/:integrationId` | Удалить интеграцию |
+| GET | `/projects/:projectId/github/workflows` | CI/CD workflow runs |
+| GET | `/projects/:projectId/github/workflows/:runId` | Детали workflow run |
+| GET | `/issues/:issueKey/github-links` | GitHub-ссылки задачи (PR, коммиты) |
+| POST | `/issues/:issueKey/github/create-branch` | Создать ветку из задачи |
+| GET | `/link-preview` | Превью ссылки (OG-данные) |
+
+---
+
+## GitLab (7 endpoints)
+
+Вебхуки, интеграции, пайплайны, создание веток.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/gitlab/webhook` | GitLab webhook (push, MR, pipeline) |
+| POST | `/projects/:projectId/gitlab/integrations` | Создать интеграцию |
+| GET | `/projects/:projectId/gitlab/integrations` | Список интеграций |
+| DELETE | `/projects/:projectId/gitlab/integrations/:integrationId` | Удалить интеграцию |
+| GET | `/projects/:projectId/gitlab/pipelines` | Список пайплайнов |
+| POST | `/projects/:projectId/gitlab/pipelines/trigger` | Запустить пайплайн |
+| POST | `/issues/:issueKey/gitlab/create-branch` | Создать ветку из задачи |
+
+---
+
+## Storage (4 endpoints)
+
+Файловое хранилище через SeaweedFS (S3-совместимое).
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/files/upload-url` | Получить presigned URL для загрузки |
+| POST | `/files/:fileId/confirm` | Подтвердить завершение загрузки |
+| GET | `/files/:fileId/url` | Получить URL для скачивания |
+| DELETE | `/files/:fileId` | Удалить файл |
+
+---
+
+## Import/Export (6 endpoints)
+
+Импорт задач и экспорт данных.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/import/issues` | Импорт задач (CSV/Excel) |
+| POST | `/projects/:projectId/import/jira` | Импорт из Jira (JSON) |
+| GET | `/projects/:projectId/export/issues` | Экспорт задач (CSV/Excel) |
+| GET | `/projects/:projectId/export/full` | Полный экспорт проекта (ZIP) |
+| GET | `/projects/:projectId/test-runs/:runId/export/pdf` | Экспорт прогона в PDF |
+| GET | `/projects/:projectId/sprints/:sprintId/export/pdf` | Экспорт спринта в PDF |
+
+---
+
+## Backup (4 endpoints)
+
+Управление бэкапами.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/backups/` | Создать бэкап |
+| GET | `/backups/` | Список бэкапов |
+| POST | `/backups/:id/restore` | Восстановить из бэкапа |
+| DELETE | `/backups/:id` | Удалить бэкап |
+
+---
+
+## API Gateway (8 endpoints)
+
+API-ключи для программного доступа, webhook-подписки.
+
+### API-ключи
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/api-keys/` | Создать API-ключ |
+| GET | `/api-keys/` | Список API-ключей |
+| DELETE | `/api-keys/:id` | Отозвать API-ключ |
+
+### Webhook-подписки
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/webhooks/` | Создать endpoint |
+| GET | `/webhooks/` | Список endpoints |
+| PUT | `/webhooks/:id` | Обновить endpoint |
+| DELETE | `/webhooks/:id` | Удалить endpoint |
+| GET | `/webhooks/:id/deliveries` | История доставок |
+
+---
+
+## RBAC (6 endpoints)
+
+Кастомные роли проекта.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/projects/:projectId/roles/` | Создать кастомную роль |
+| GET | `/projects/:projectId/roles/` | Список ролей |
+| PUT | `/projects/:projectId/roles/:roleId` | Обновить роль (название, права) |
+| DELETE | `/projects/:projectId/roles/:roleId` | Удалить роль |
+| POST | `/projects/:projectId/roles/:roleId/assign/:userId` | Назначить роль пользователю |
+| DELETE | `/projects/:projectId/roles/:roleId/assign/:userId` | Снять роль с пользователя |
+
+---
+
+## Admin / Audit (8 endpoints)
+
+Аудит, лимиты ресурсов, корзина, управление пользователями.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/admin/audit` | Лог аудита (действия пользователей) |
+| GET | `/admin/limits` | Лимиты ресурсов (проекты, участники и др.) |
+| PUT | `/admin/limits/:key` | Обновить лимит |
+| GET | `/admin/trash` | Корзина (удалённые сущности) |
+| POST | `/admin/trash/:type/:id/restore` | Восстановить из корзины |
+| POST | `/admin/users/:id/deactivate` | Деактивировать пользователя |
+| POST | `/admin/users/:id/reassign` | Переназначить задачи пользователя |
+| DELETE | `/admin/users/:id/gdpr` | GDPR-удаление пользователя |
+
+---
+
+## WebSocket
+
+Подключение к WebSocket для realtime-событий.
+
 ```
 ws://host/ws?token=<jwt>
 ```
 
-## Формат ответа
+События: новые сообщения, обновления задач, присутствие, уведомления, звонки, typing-индикаторы.
 
-Успешный:
+---
+
+## Формат ответов
+
+### Успешный ответ
+
 ```json
 {
-  "id": "uuid",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "title": "Название",
   "created_at": "2026-03-22T12:00:00Z"
 }
 ```
 
-Ошибка:
+### Ошибка
+
 ```json
 {
   "code": 400,
   "message": "Описание ошибки",
-  "request_id": "req-uuid"
+  "request_id": "req-550e8400"
 }
 ```
 
-Пагинация:
+### Пагинация (cursor)
+
 ```json
 {
-  "items": [...],
+  "items": [],
   "next_cursor": "HUB-10",
   "has_more": true,
   "total": 42
 }
 ```
+
+### Пагинация (offset)
+
+```json
+{
+  "items": [],
+  "page": 1,
+  "per_page": 20,
+  "total": 42
+}
+```
+
+### HTTP-коды
+
+| Код | Значение |
+|---|---|
+| 200 | OK |
+| 201 | Created |
+| 204 | No Content (удаление) |
+| 400 | Bad Request |
+| 401 | Unauthorized (нет токена / невалидный) |
+| 403 | Forbidden (нет прав) |
+| 404 | Not Found |
+| 409 | Conflict (дубликат) |
+| 429 | Too Many Requests (rate limit) |
+| 500 | Internal Server Error |
