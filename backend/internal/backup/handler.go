@@ -25,7 +25,17 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	backups.Delete("/:id", h.DeleteBackup)
 }
 
-// TriggerBackup обрабатывает POST /api/admin/backups — запуск бэкапа вручную.
+// TriggerBackup godoc
+// @Summary Запустить бэкап
+// @Description Запускает создание резервной копии базы данных вручную.
+// @Tags Резервное копирование
+// @Produce json
+// @Success 201 {object} BackupResponse "Бэкап создан"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/admin/backups [post]
 func (h *Handler) TriggerBackup(c fiber.Ctx) error {
 	resp, err := h.svc.PerformBackup(c.Context())
 	if err != nil {
@@ -34,7 +44,17 @@ func (h *Handler) TriggerBackup(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListBackups обрабатывает GET /api/admin/backups.
+// ListBackups godoc
+// @Summary Список бэкапов
+// @Description Возвращает все созданные резервные копии.
+// @Tags Резервное копирование
+// @Produce json
+// @Success 200 {array} BackupResponse "Список бэкапов"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/admin/backups [get]
 func (h *Handler) ListBackups(c fiber.Ctx) error {
 	backups, err := h.svc.ListBackups(c.Context())
 	if err != nil {
@@ -43,8 +63,21 @@ func (h *Handler) ListBackups(c fiber.Ctx) error {
 	return c.JSON(backups)
 }
 
-// RestoreBackup обрабатывает POST /api/admin/backups/:id/restore.
-// Требует подтверждения: тело запроса должно содержать {"confirm": "RESTORE"}.
+// RestoreBackup godoc
+// @Summary Восстановить из бэкапа
+// @Description Восстанавливает базу данных из указанной резервной копии. Требует подтверждения.
+// @Tags Резервное копирование
+// @Accept json
+// @Produce json
+// @Param id path string true "ID бэкапа"
+// @Param body body RestoreRequest true "Подтверждение: {confirm: RESTORE}"
+// @Success 200 {object} map[string]string "Восстановление запущено"
+// @Failure 400 {object} fiber.Error "Неверный запрос или нет подтверждения"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/admin/backups/{id}/restore [post]
 func (h *Handler) RestoreBackup(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	backupID, err := uuid.Parse(idStr)
@@ -67,7 +100,18 @@ func (h *Handler) RestoreBackup(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "восстановление запущено"})
 }
 
-// DeleteBackup обрабатывает DELETE /api/admin/backups/:id.
+// DeleteBackup godoc
+// @Summary Удалить бэкап
+// @Description Удаляет резервную копию из хранилища.
+// @Tags Резервное копирование
+// @Param id path string true "ID бэкапа"
+// @Success 204 "Бэкап удалён"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/admin/backups/{id} [delete]
 func (h *Handler) DeleteBackup(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	backupID, err := uuid.Parse(idStr)

@@ -331,6 +331,19 @@ func parseJiraJSON(data []byte) ([]JiraIssue, error) {
 // ---------------------------------------------------------------------------
 
 // ImportJira обрабатывает POST /api/projects/:projectId/import/jira (multipart).
+// ImportJira godoc
+// @Summary Импорт из Jira
+// @Description Импортирует задачи из JSON-экспорта Jira с маппингом статусов и приоритетов.
+// @Tags Импорт/Экспорт
+// @Accept multipart/form-data
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param file formData file true "JSON-файл экспорта Jira"
+// @Success 200 {object} JiraImportResponse "Результат импорта"
+// @Failure 400 {object} fiber.Error "Ошибка файла или данных"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/import/jira [post]
 func (h *Handler) ImportJira(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {

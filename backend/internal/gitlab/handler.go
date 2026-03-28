@@ -38,9 +38,15 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	api.Post("/issues/:issueKey/gitlab/create-branch", authMw, h.CreateBranch)
 }
 
-// HandleWebhook обрабатывает POST /api/gitlab/webhook.
-// Валидирует X-Gitlab-Token заголовок, сравнивая с секретами
-// всех зарегистрированных GitLab-интеграций.
+// HandleWebhook godoc
+// @Summary GitLab Webhook
+// @Description Обрабатывает входящие события от GitLab. Валидирует X-Gitlab-Token.
+// @Tags GitLab
+// @Accept json
+// @Param body body object true "Payload от GitLab"
+// @Success 200 "Событие обработано"
+// @Failure 403 {object} fiber.Error "Невалидный токен"
+// @Router /api/gitlab/webhook [post]
 func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	eventType := utils.CopyString(c.Get("X-Gitlab-Event"))
 	webhookToken := utils.CopyString(c.Get("X-Gitlab-Token"))
@@ -87,7 +93,20 @@ func (h *Handler) validateWebhookToken(c fiber.Ctx, token string) error {
 	return fiber.NewError(fiber.StatusForbidden, "невалидный X-Gitlab-Token")
 }
 
-// CreateIntegration обрабатывает POST /api/projects/:projectId/gitlab/integrations.
+// CreateIntegration godoc
+// @Summary Создать GitLab-интеграцию
+// @Description Подключает GitLab-репозиторий к проекту.
+// @Tags GitLab
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body CreateIntegrationRequest true "Данные интеграции"
+// @Success 201 {object} IntegrationResponse "Интеграция создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/gitlab/integrations [post]
 func (h *Handler) CreateIntegration(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -114,7 +133,17 @@ func (h *Handler) CreateIntegration(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListIntegrations обрабатывает GET /api/projects/:projectId/gitlab/integrations.
+// ListIntegrations godoc
+// @Summary Список GitLab-интеграций
+// @Description Возвращает все GitLab-интеграции проекта.
+// @Tags GitLab
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} IntegrationResponse "Список интеграций"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/gitlab/integrations [get]
 func (h *Handler) ListIntegrations(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -129,7 +158,18 @@ func (h *Handler) ListIntegrations(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteIntegration обрабатывает DELETE /api/projects/:projectId/gitlab/integrations/:integrationId.
+// DeleteIntegration godoc
+// @Summary Удалить GitLab-интеграцию
+// @Description Отключает GitLab-репозиторий от проекта.
+// @Tags GitLab
+// @Param projectId path string true "ID проекта"
+// @Param integrationId path string true "ID интеграции"
+// @Success 204 "Интеграция удалена"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/gitlab/integrations/{integrationId} [delete]
 func (h *Handler) DeleteIntegration(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("integrationId"))
 	id, err := uuid.Parse(idStr)
@@ -144,8 +184,17 @@ func (h *Handler) DeleteIntegration(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ListPipelines обрабатывает GET /api/projects/:projectId/gitlab/pipelines.
-// Возвращает последние пайплайны GitLab CI/CD для всех интеграций проекта.
+// ListPipelines godoc
+// @Summary Список пайплайнов GitLab
+// @Description Возвращает последние CI/CD пайплайны для всех GitLab-интеграций проекта.
+// @Tags GitLab
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} PipelineResponse "Список пайплайнов"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/gitlab/pipelines [get]
 func (h *Handler) ListPipelines(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -160,7 +209,20 @@ func (h *Handler) ListPipelines(c fiber.Ctx) error {
 	return c.JSON(pipelines)
 }
 
-// TriggerPipeline обрабатывает POST /api/projects/:projectId/gitlab/pipelines/trigger.
+// TriggerPipeline godoc
+// @Summary Запустить пайплайн GitLab
+// @Description Запускает CI/CD пайплайн в GitLab для указанной интеграции и ветки.
+// @Tags GitLab
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body TriggerPipelineRequest true "ID интеграции и ветка"
+// @Success 201 {object} PipelineResponse "Пайплайн запущен"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/gitlab/pipelines/trigger [post]
 func (h *Handler) TriggerPipeline(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -184,7 +246,19 @@ func (h *Handler) TriggerPipeline(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// CreateBranch обрабатывает POST /api/issues/:issueKey/gitlab/create-branch.
+// CreateBranch godoc
+// @Summary Создать ветку из задачи (GitLab)
+// @Description Создаёт Git-ветку в GitLab-репозитории с именем на основе ключа задачи.
+// @Tags GitLab
+// @Accept json
+// @Produce json
+// @Param issueKey path string true "Ключ задачи"
+// @Param body body CreateBranchRequest true "Параметры ветки"
+// @Success 201 {object} CreateBranchResponse "Ветка создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/issues/{issueKey}/gitlab/create-branch [post]
 func (h *Handler) CreateBranch(c fiber.Ctx) error {
 	issueKey := utils.CopyString(c.Params("issueKey"))
 	if issueKey == "" {

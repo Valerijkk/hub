@@ -29,7 +29,20 @@ func (h *Handler) RegisterRoutes(api fiber.Router, requireAuth fiber.Handler) {
 	filters.Patch("/:id/share", h.shareFilter)
 }
 
-// search обрабатывает GET /api/search?q=...&type=issue,test_case&limit=20.
+// search godoc
+// @Summary Глобальный поиск
+// @Description Полнотекстовый поиск по задачам, тест-кейсам и другим сущностям.
+// @Tags Поиск
+// @Produce json
+// @Param q query string true "Поисковый запрос"
+// @Param type query string false "Типы сущностей через запятую (issue, test_case)"
+// @Param limit query int false "Лимит результатов (по умолчанию 20)"
+// @Success 200 {object} SearchResponse "Результаты поиска"
+// @Failure 400 {object} fiber.Error "Параметр q обязателен"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/search [get]
 func (h *Handler) search(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -65,7 +78,19 @@ func (h *Handler) search(c fiber.Ctx) error {
 	})
 }
 
-// createFilter обрабатывает POST /api/filters.
+// createFilter godoc
+// @Summary Создать сохранённый фильтр
+// @Description Создаёт сохранённый фильтр задач для быстрого доступа.
+// @Tags Поиск
+// @Accept json
+// @Produce json
+// @Param body body SavedFilterCreateRequest true "Данные фильтра"
+// @Success 201 {object} SavedFilterResponse "Фильтр создан"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/filters [post]
 func (h *Handler) createFilter(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -88,7 +113,18 @@ func (h *Handler) createFilter(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(filter)
 }
 
-// listFilters обрабатывает GET /api/filters?project_id=...
+// listFilters godoc
+// @Summary Список сохранённых фильтров
+// @Description Возвращает сохранённые фильтры пользователя для указанного проекта.
+// @Tags Поиск
+// @Produce json
+// @Param project_id query string true "ID проекта"
+// @Success 200 {object} SavedFilterListResponse "Список фильтров"
+// @Failure 400 {object} fiber.Error "project_id обязателен"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/filters [get]
 func (h *Handler) listFilters(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -112,7 +148,17 @@ func (h *Handler) listFilters(c fiber.Ctx) error {
 	return c.JSON(SavedFilterListResponse{Filters: filters})
 }
 
-// deleteFilter обрабатывает DELETE /api/filters/:id.
+// deleteFilter godoc
+// @Summary Удалить сохранённый фильтр
+// @Description Удаляет сохранённый фильтр пользователя.
+// @Tags Поиск
+// @Param id path string true "ID фильтра"
+// @Success 204 "Фильтр удалён"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/filters/{id} [delete]
 func (h *Handler) deleteFilter(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -131,7 +177,20 @@ func (h *Handler) deleteFilter(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// shareFilter обрабатывает PATCH /api/filters/:id/share.
+// shareFilter godoc
+// @Summary Поделиться фильтром
+// @Description Переключает публичность фильтра — делает его видимым для всех участников проекта.
+// @Tags Поиск
+// @Accept json
+// @Produce json
+// @Param id path string true "ID фильтра"
+// @Param body body SavedFilterShareRequest true "shared: true/false"
+// @Success 200 {object} SavedFilterResponse "Фильтр обновлён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/filters/{id}/share [patch]
 func (h *Handler) shareFilter(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {

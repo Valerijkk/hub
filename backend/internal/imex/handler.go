@@ -31,7 +31,20 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	api.Get("/projects/:projectId/sprints/:sprintId/export/pdf", authMw, h.ExportSprintPDF)
 }
 
-// ImportIssues обрабатывает POST /api/projects/:projectId/import/issues (multipart).
+// ImportIssues godoc
+// @Summary Импорт задач из CSV
+// @Description Импортирует задачи из CSV-файла. Режим preview возвращает предпросмотр без создания.
+// @Tags Импорт/Экспорт
+// @Accept multipart/form-data
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param file formData file true "CSV-файл с задачами"
+// @Param mode query string false "Режим: preview или import (по умолчанию preview)"
+// @Success 200 {object} ImportPreviewResponse "Предпросмотр или результат импорта"
+// @Failure 400 {object} fiber.Error "Ошибка файла или данных"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/import/issues [post]
 func (h *Handler) ImportIssues(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -68,7 +81,19 @@ func (h *Handler) ImportIssues(c fiber.Ctx) error {
 	return c.JSON(importResp)
 }
 
-// ExportIssues обрабатывает GET /api/projects/:projectId/export/issues?format=csv|excel.
+// ExportIssues godoc
+// @Summary Экспорт задач
+// @Description Экспортирует задачи проекта в CSV или Excel формате.
+// @Tags Импорт/Экспорт
+// @Produce application/octet-stream
+// @Param projectId path string true "ID проекта"
+// @Param format query string false "Формат: csv или excel (по умолчанию csv)"
+// @Success 200 {file} binary "Файл с задачами"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/export/issues [get]
 func (h *Handler) ExportIssues(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -100,7 +125,18 @@ func (h *Handler) ExportIssues(c fiber.Ctx) error {
 	return c.Send(data)
 }
 
-// ExportProjectZIP обрабатывает GET /api/projects/:projectId/export/full.
+// ExportProjectZIP godoc
+// @Summary Полный экспорт проекта
+// @Description Экспортирует все данные проекта (задачи, спринты, файлы) в ZIP-архив.
+// @Tags Импорт/Экспорт
+// @Produce application/zip
+// @Param projectId path string true "ID проекта"
+// @Success 200 {file} binary "ZIP-архив проекта"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/export/full [get]
 func (h *Handler) ExportProjectZIP(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -117,7 +153,19 @@ func (h *Handler) ExportProjectZIP(c fiber.Ctx) error {
 	return c.Send(data)
 }
 
-// ExportRunPDF обрабатывает GET /api/projects/:projectId/test-runs/:runId/export/pdf.
+// ExportRunPDF godoc
+// @Summary Экспорт тест-прогона в PDF
+// @Description Генерирует PDF-отчёт по результатам тест-прогона.
+// @Tags Импорт/Экспорт
+// @Produce application/pdf
+// @Param projectId path string true "ID проекта"
+// @Param runId path string true "ID тест-прогона"
+// @Success 200 {file} binary "PDF-отчёт"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/test-runs/{runId}/export/pdf [get]
 func (h *Handler) ExportRunPDF(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -140,7 +188,19 @@ func (h *Handler) ExportRunPDF(c fiber.Ctx) error {
 	return c.Send(data)
 }
 
-// ExportSprintPDF обрабатывает GET /api/projects/:projectId/sprints/:sprintId/export/pdf.
+// ExportSprintPDF godoc
+// @Summary Экспорт спринта в PDF
+// @Description Генерирует PDF-отчёт по спринту (задачи, метрики, burndown).
+// @Tags Импорт/Экспорт
+// @Produce application/pdf
+// @Param projectId path string true "ID проекта"
+// @Param sprintId path string true "ID спринта"
+// @Success 200 {file} binary "PDF-отчёт"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/sprints/{sprintId}/export/pdf [get]
 func (h *Handler) ExportSprintPDF(c fiber.Ctx) error {
 	projectID, err := parseProjectID(c)
 	if err != nil {

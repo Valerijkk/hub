@@ -38,8 +38,20 @@ type uploadRequest struct {
 	ProjectID   string `json:"projectId"`
 }
 
-// GenerateUploadURL обрабатывает POST /api/files/upload-url.
-// Генерирует presigned S3 URL для загрузки и создаёт pending-запись FileMetadata.
+// GenerateUploadURL godoc
+// @Summary Получить URL для загрузки файла
+// @Description Генерирует presigned S3 URL для загрузки и создаёт pending-запись метаданных.
+// @Tags Файлы
+// @Accept json
+// @Produce json
+// @Param body body uploadRequest true "Имя файла, тип и ID проекта"
+// @Success 200 {object} UploadURLResponse "URL для загрузки и ID файла"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/files/upload-url [post]
 func (h *Handler) GenerateUploadURL(c fiber.Ctx) error {
 	var req uploadRequest
 	if err := c.Bind().JSON(&req); err != nil {
@@ -78,7 +90,20 @@ type confirmRequest struct {
 	EntityID   string `json:"entityId"`
 }
 
-// ConfirmUpload обрабатывает POST /api/files/:fileId/confirm — подтверждение загрузки файла.
+// ConfirmUpload godoc
+// @Summary Подтвердить загрузку файла
+// @Description Подтверждает успешную загрузку файла и привязывает его к сущности.
+// @Tags Файлы
+// @Accept json
+// @Produce json
+// @Param fileId path string true "ID файла"
+// @Param body body confirmRequest true "Тип и ID сущности"
+// @Success 200 {object} map[string]string "status: confirmed"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/files/{fileId}/confirm [post]
 func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 	fileID, err := uuid.Parse(c.Params("fileId"))
 	if err != nil {
@@ -97,7 +122,18 @@ func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"status": "confirmed"})
 }
 
-// GetDownloadURL обрабатывает GET /api/files/:fileId/url — генерация presigned URL для скачивания.
+// GetDownloadURL godoc
+// @Summary Получить URL для скачивания
+// @Description Генерирует временный presigned URL для скачивания файла.
+// @Tags Файлы
+// @Produce json
+// @Param fileId path string true "ID файла"
+// @Success 200 {object} map[string]string "downloadUrl"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/files/{fileId}/url [get]
 func (h *Handler) GetDownloadURL(c fiber.Ctx) error {
 	fileID, err := uuid.Parse(c.Params("fileId"))
 	if err != nil {
@@ -112,7 +148,19 @@ func (h *Handler) GetDownloadURL(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"downloadUrl": downloadURL})
 }
 
-// DeleteFile обрабатывает DELETE /api/files/:fileId — мягкое удаление файла.
+// DeleteFile godoc
+// @Summary Удалить файл
+// @Description Мягкое удаление файла (помечает как удалённый).
+// @Tags Файлы
+// @Produce json
+// @Param fileId path string true "ID файла"
+// @Success 200 {object} map[string]string "status: deleted"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/files/{fileId} [delete]
 func (h *Handler) DeleteFile(c fiber.Ctx) error {
 	fileID, err := uuid.Parse(c.Params("fileId"))
 	if err != nil {

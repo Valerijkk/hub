@@ -29,7 +29,16 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	dash.Post("/templates/apply", h.ApplyTemplate)
 }
 
-// Personal возвращает агрегированные данные персонального дашборда.
+// Personal godoc
+// @Summary Персональный дашборд
+// @Description Возвращает агрегированные данные персонального дашборда пользователя.
+// @Tags Дашборды
+// @Produce json
+// @Success 200 {object} PersonalDashboardData "Данные дашборда"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/dashboard/personal [get]
 func (h *Handler) Personal(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -44,7 +53,18 @@ func (h *Handler) Personal(c fiber.Ctx) error {
 	return c.JSON(data)
 }
 
-// Project возвращает статистику проектного дашборда.
+// Project godoc
+// @Summary Проектный дашборд
+// @Description Возвращает статистику и метрики указанного проекта.
+// @Tags Дашборды
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {object} ProjectStatsData "Статистика проекта"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/dashboard/project/{projectId} [get]
 func (h *Handler) Project(c fiber.Ctx) error {
 	_, err := getUserID(c)
 	if err != nil {
@@ -64,7 +84,17 @@ func (h *Handler) Project(c fiber.Ctx) error {
 	return c.JSON(stats)
 }
 
-// Admin возвращает статистику админского дашборда.
+// Admin godoc
+// @Summary Админский дашборд
+// @Description Возвращает статистику системы: пользователи, проекты, хранилище. Только для админа.
+// @Tags Дашборды
+// @Produce json
+// @Success 200 {object} AdminStatsData "Админ-статистика"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Требуются права администратора"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/dashboard/admin [get]
 func (h *Handler) Admin(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -86,7 +116,18 @@ func (h *Handler) Admin(c fiber.Ctx) error {
 	return c.JSON(stats)
 }
 
-// GetLayout возвращает сохранённую раскладку дашборда.
+// GetLayout godoc
+// @Summary Получить раскладку дашборда
+// @Description Возвращает сохранённое расположение виджетов дашборда пользователя.
+// @Tags Дашборды
+// @Produce json
+// @Param type query string false "Тип дашборда (по умолчанию personal)"
+// @Param project_id query string false "ID проекта (для проектного дашборда)"
+// @Success 200 {object} LayoutDTO "Раскладка"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/dashboard/layout [get]
 func (h *Handler) GetLayout(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -119,7 +160,18 @@ func (h *Handler) GetLayout(c fiber.Ctx) error {
 	return c.JSON(layout)
 }
 
-// SaveLayout сохраняет раскладку дашборда.
+// SaveLayout godoc
+// @Summary Сохранить раскладку дашборда
+// @Description Сохраняет пользовательское расположение виджетов.
+// @Tags Дашборды
+// @Accept json
+// @Param body body SaveLayoutRequest true "Раскладка виджетов"
+// @Success 204 "Раскладка сохранена"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/dashboard/layout [put]
 func (h *Handler) SaveLayout(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -142,7 +194,14 @@ func (h *Handler) SaveLayout(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ListTemplates возвращает список доступных шаблонов дашбордов.
+// ListTemplates godoc
+// @Summary Список шаблонов дашбордов
+// @Description Возвращает доступные шаблоны раскладок дашбордов.
+// @Tags Дашборды
+// @Produce json
+// @Success 200 {array} DashboardTemplate "Шаблоны"
+// @Security BearerAuth
+// @Router /api/dashboard/templates [get]
 func (h *Handler) ListTemplates(c fiber.Ctx) error {
 	return c.JSON(h.service.GetTemplates())
 }
@@ -153,7 +212,17 @@ type applyTemplateRequest struct {
 	Template  string `json:"template"`
 }
 
-// ApplyTemplate применяет выбранный шаблон дашборда.
+// ApplyTemplate godoc
+// @Summary Применить шаблон дашборда
+// @Description Применяет предустановленный шаблон раскладки к проектному дашборду.
+// @Tags Дашборды
+// @Accept json
+// @Param body body applyTemplateRequest true "ID проекта и шаблон"
+// @Success 204 "Шаблон применён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Security BearerAuth
+// @Router /api/dashboard/templates/apply [post]
 func (h *Handler) ApplyTemplate(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
