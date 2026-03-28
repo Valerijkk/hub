@@ -35,8 +35,19 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	notifs.Delete("/push/unsubscribe", h.PushUnsubscribe)
 }
 
-// List возвращает пагинированный список уведомлений пользователя.
-// Query params: page, per_page, is_read (optional).
+// List godoc
+// @Summary Список уведомлений
+// @Description Возвращает пагинированный список уведомлений текущего пользователя.
+// @Tags Уведомления
+// @Produce json
+// @Param page query int false "Страница (по умолчанию 1)"
+// @Param per_page query int false "Кол-во на странице (по умолчанию 20, макс 100)"
+// @Param is_read query bool false "Фильтр по статусу прочтения"
+// @Success 200 {object} NotificationListResponse "Список уведомлений"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/notifications [get]
 func (h *Handler) List(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -68,7 +79,16 @@ func (h *Handler) List(c fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-// UnreadCount возвращает количество непрочитанных уведомлений.
+// UnreadCount godoc
+// @Summary Счётчик непрочитанных
+// @Description Возвращает количество непрочитанных уведомлений пользователя.
+// @Tags Уведомления
+// @Produce json
+// @Success 200 {object} UnreadCountResponse "count: число"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/notifications/unread-count [get]
 func (h *Handler) UnreadCount(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -83,7 +103,17 @@ func (h *Handler) UnreadCount(c fiber.Ctx) error {
 	return c.JSON(UnreadCountResponse{Count: count})
 }
 
-// MarkRead помечает одно уведомление как прочитанное.
+// MarkRead godoc
+// @Summary Пометить прочитанным
+// @Description Помечает одно уведомление как прочитанное.
+// @Tags Уведомления
+// @Param id path string true "ID уведомления"
+// @Success 204 "Помечено прочитанным"
+// @Failure 400 {object} fiber.Error "Невалидный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/notifications/{id}/read [patch]
 func (h *Handler) MarkRead(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -102,7 +132,15 @@ func (h *Handler) MarkRead(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// MarkAllRead помечает все уведомления пользователя как прочитанные.
+// MarkAllRead godoc
+// @Summary Пометить все прочитанными
+// @Description Помечает все уведомления текущего пользователя как прочитанные.
+// @Tags Уведомления
+// @Success 204 "Все помечены прочитанными"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/notifications/read-all [patch]
 func (h *Handler) MarkAllRead(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -116,7 +154,17 @@ func (h *Handler) MarkAllRead(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// Delete удаляет уведомление пользователя.
+// Delete godoc
+// @Summary Удалить уведомление
+// @Description Удаляет одно уведомление пользователя.
+// @Tags Уведомления
+// @Param id path string true "ID уведомления"
+// @Success 204 "Уведомление удалено"
+// @Failure 400 {object} fiber.Error "Невалидный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/notifications/{id} [delete]
 func (h *Handler) Delete(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -135,7 +183,16 @@ func (h *Handler) Delete(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// GetPreferences возвращает настройки уведомлений пользователя.
+// GetPreferences godoc
+// @Summary Настройки уведомлений
+// @Description Возвращает настройки уведомлений текущего пользователя по типам и каналам.
+// @Tags Уведомления
+// @Produce json
+// @Success 200 {array} PreferenceResponse "Настройки уведомлений"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/notifications/preferences [get]
 func (h *Handler) GetPreferences(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -150,7 +207,19 @@ func (h *Handler) GetPreferences(c fiber.Ctx) error {
 	return c.JSON(prefs)
 }
 
-// UpdatePreference создаёт или обновляет настройку уведомлений.
+// UpdatePreference godoc
+// @Summary Обновить настройку уведомлений
+// @Description Создаёт или обновляет настройку уведомлений для указанного типа и канала.
+// @Tags Уведомления
+// @Accept json
+// @Produce json
+// @Param body body PreferenceUpdateRequest true "Тип уведомления, канал, enabled"
+// @Success 200 {object} PreferenceResponse "Настройка обновлена"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/notifications/preferences [put]
 func (h *Handler) UpdatePreference(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -174,7 +243,14 @@ func (h *Handler) UpdatePreference(c fiber.Ctx) error {
 	return c.JSON(pref)
 }
 
-// GetVAPIDKey возвращает публичный VAPID-ключ для подписки на push-уведомления.
+// GetVAPIDKey godoc
+// @Summary Получить VAPID-ключ
+// @Description Возвращает публичный VAPID-ключ для подписки на Web Push уведомления.
+// @Tags Уведомления
+// @Produce json
+// @Success 200 {object} map[string]string "vapid_public_key"
+// @Security BearerAuth
+// @Router /api/notifications/push/vapid-key [get]
 func (h *Handler) GetVAPIDKey(c fiber.Ctx) error {
 	push := h.service.PushSender()
 	key := ""
@@ -191,7 +267,18 @@ type PushSubscribeRequest struct {
 	AuthKey   string `json:"auth_key"`
 }
 
-// PushSubscribe сохраняет подписку на push-уведомления для текущего пользователя.
+// PushSubscribe godoc
+// @Summary Подписаться на push-уведомления
+// @Description Сохраняет подписку Web Push для текущего пользователя.
+// @Tags Уведомления
+// @Accept json
+// @Param body body PushSubscribeRequest true "Данные подписки (endpoint, p256dh_key, auth_key)"
+// @Success 201 "Подписка сохранена"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 503 {object} fiber.Error "Push не настроен"
+// @Security BearerAuth
+// @Router /api/notifications/push/subscribe [post]
 func (h *Handler) PushSubscribe(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
@@ -225,7 +312,18 @@ type PushUnsubscribeRequest struct {
 	Endpoint string `json:"endpoint"`
 }
 
-// PushUnsubscribe удаляет подписку на push-уведомления.
+// PushUnsubscribe godoc
+// @Summary Отписаться от push-уведомлений
+// @Description Удаляет подписку Web Push по endpoint.
+// @Tags Уведомления
+// @Accept json
+// @Param body body PushUnsubscribeRequest true "endpoint для удаления"
+// @Success 204 "Подписка удалена"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 503 {object} fiber.Error "Push не настроен"
+// @Security BearerAuth
+// @Router /api/notifications/push/unsubscribe [delete]
 func (h *Handler) PushUnsubscribe(c fiber.Ctx) error {
 	_, err := getUserID(c)
 	if err != nil {
