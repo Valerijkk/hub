@@ -9,7 +9,7 @@ function SprintsPage() {
 	const { projectId } = Route.useParams();
 
 	return (
-		<div className="mx-auto max-w-5xl px-4 py-6">
+		<div className="mx-auto max-w-5xl px-4 py-6 animate-[eu_450ms_var(--spring)_both]">
 			<SprintBoard projectId={projectId} />
 		</div>
 	);

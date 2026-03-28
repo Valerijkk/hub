@@ -387,7 +387,7 @@ export function JQLEditor({
 		<div ref={containerRef} className={cn("relative", className)}>
 			<div className="relative">
 				<svg
-					className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60"
+					className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-t3/60"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -414,17 +414,17 @@ export function JQLEditor({
 
 			{/* Выпадающий список подсказок */}
 			{showSuggestions && suggestions.length > 0 && (
-				<div className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-lg overflow-hidden">
+				<div className="absolute z-50 mt-1 w-full bg-raised border border-b2 rounded-[var(--r2)] shadow-[var(--sh2)] overflow-hidden">
 					<div className="max-h-60 overflow-y-auto p-1">
 						{suggestions.map((item, idx) => (
 							<button
 								key={item.label}
 								type="button"
 								className={cn(
-									"flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors",
+									"flex w-full items-center gap-3 rounded-[var(--r1)] px-3 py-2 text-left text-[13px] transition-colors duration-150",
 									idx === selectedIndex
-										? "bg-primary/10 text-primary"
-										: "hover:bg-muted/80 text-foreground",
+										? "bg-blue/10 text-blue"
+										: "hover:bg-[var(--hover)] text-t1",
 								)}
 								onMouseEnter={() => setSelectedIndex(idx)}
 								onMouseDown={(e) => {
@@ -434,14 +434,14 @@ export function JQLEditor({
 							>
 								<span className="font-mono font-medium">{item.label}</span>
 								{item.description && (
-									<span className="text-xs text-muted-foreground">
+									<span className="text-[12px] text-t3">
 										{item.description}
 									</span>
 								)}
 							</button>
 						))}
 					</div>
-					<div className="border-t px-3 py-1.5 text-[10px] text-muted-foreground">
+					<div className="border-t border-b1 px-3 py-1.5 text-[10px] text-t3">
 						<kbd className="rounded border px-1 py-0.5 text-[10px]">Tab</kbd>{" "}
 						или{" "}
 						<kbd className="rounded border px-1 py-0.5 text-[10px]">Enter</kbd>{" "}

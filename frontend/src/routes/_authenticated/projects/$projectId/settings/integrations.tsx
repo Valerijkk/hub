@@ -85,12 +85,12 @@ function GitHubSection({ projectId }: { projectId: string }) {
 				<CardContent>
 					{isLoading && (
 						<div className="animate-pulse space-y-2">
-							<div className="h-10 w-full rounded bg-gray-200 dark:bg-gray-700" />
+							<div className="h-10 w-full rounded bg-raised" />
 						</div>
 					)}
 
 					{!isLoading && (!integrations || integrations.length === 0) && (
-						<p className="text-sm text-gray-500 dark:text-gray-400">
+						<p className="text-sm text-t2">
 							Нет подключённых GitHub-репозиториев
 						</p>
 					)}
@@ -101,10 +101,10 @@ function GitHubSection({ projectId }: { projectId: string }) {
 								(ig: GitHubIntegrationResponse) => (
 									<div
 										key={ig.id}
-										className="flex items-center justify-between rounded-lg border px-4 py-3 dark:border-gray-700"
+										className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 hover:border-b2 transition-all duration-200"
 									>
 										<div className="flex items-center gap-2">
-											<GitHubIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+											<GitHubIcon className="h-5 w-5 text-t2" />
 											<span className="text-sm font-medium">
 												{ig.repo_owner}/{ig.repo_name}
 											</span>
@@ -112,7 +112,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 										<Button
 											variant="ghost"
 											size="sm"
-											className="text-red-600 hover:text-red-700 dark:text-red-400"
+											className="text-red hover:text-red/80"
 											onClick={() =>
 												deleteMutation.mutate(ig.id)
 											}
@@ -163,7 +163,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 							placeholder="ghp_..."
 						/>
 						<details className="group">
-							<summary className="cursor-pointer text-xs text-primary hover:underline">
+							<summary className="cursor-pointer text-[12px] text-blue hover:underline">
 								Как создать токен в GitHub?
 							</summary>
 							<div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200 space-y-2">
@@ -195,9 +195,9 @@ function GitHubSection({ projectId }: { projectId: string }) {
 							onChange={(e) => setWebhookSecret(e.target.value)}
 							placeholder="Секрет для валидации webhook"
 						/>
-						<p className="text-xs text-muted-foreground">
+						<p className="text-xs text-t2">
 							Настройте Webhook в <strong>GitHub &rarr; Settings &rarr; Webhooks</strong>.
-							URL: <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">{"${HUB_URL}"}/api/github/webhook</code>.
+							URL: <code className="rounded-[var(--r1)] bg-input px-1">{"${HUB_URL}"}/api/github/webhook</code>.
 							Укажите тот же секрет. Events: Push, Pull requests, Workflow runs.
 						</p>
 					</div>
@@ -285,12 +285,12 @@ function GitLabSection({ projectId }: { projectId: string }) {
 				<CardContent>
 					{isLoading && (
 						<div className="animate-pulse space-y-2">
-							<div className="h-10 w-full rounded bg-gray-200 dark:bg-gray-700" />
+							<div className="h-10 w-full rounded bg-raised" />
 						</div>
 					)}
 
 					{!isLoading && (!integrations || integrations.length === 0) && (
-						<p className="text-sm text-gray-500 dark:text-gray-400">
+						<p className="text-sm text-t2">
 							Нет подключённых GitLab-репозиториев
 						</p>
 					)}
@@ -301,7 +301,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 								(ig: GitLabIntegrationResponse) => (
 									<div
 										key={ig.id}
-										className="flex items-center justify-between rounded-lg border px-4 py-3 dark:border-gray-700"
+										className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 hover:border-b2 transition-all duration-200"
 									>
 										<div className="flex items-center gap-2">
 											<GitLabIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
@@ -309,7 +309,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 												<span className="text-sm font-medium">
 													{ig.project_path}
 												</span>
-												<span className="text-xs text-gray-500 dark:text-gray-400">
+												<span className="text-xs text-t2">
 													{ig.gitlab_url}
 												</span>
 											</div>
@@ -317,7 +317,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 										<Button
 											variant="ghost"
 											size="sm"
-											className="text-red-600 hover:text-red-700 dark:text-red-400"
+											className="text-red hover:text-red/80"
 											onClick={() =>
 												deleteMutation.mutate(ig.id)
 											}
@@ -348,7 +348,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 							onChange={(e) => setGitlabUrl(e.target.value)}
 							placeholder="https://gitlab.com"
 						/>
-						<p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+						<p className="mt-1 text-xs text-t2">
 							Для self-hosted GitLab укажите URL вашего инстанса
 						</p>
 					</div>
@@ -369,7 +369,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 							placeholder="glpat-..."
 						/>
 						<details className="group">
-							<summary className="cursor-pointer text-xs text-primary hover:underline">
+							<summary className="cursor-pointer text-[12px] text-blue hover:underline">
 								Как создать токен в GitLab?
 							</summary>
 							<div className="mt-2 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs text-orange-800 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-200 space-y-2">
@@ -404,9 +404,9 @@ function GitLabSection({ projectId }: { projectId: string }) {
 							onChange={(e) => setWebhookSecret(e.target.value)}
 							placeholder="Секрет для валидации webhook"
 						/>
-						<p className="text-xs text-muted-foreground">
+						<p className="text-xs text-t2">
 							Настройте Webhook в <strong>GitLab &rarr; Settings &rarr; Webhooks</strong>.
-							URL: <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">{"${HUB_URL}"}/api/gitlab/webhook</code>.
+							URL: <code className="rounded-[var(--r1)] bg-input px-1">{"${HUB_URL}"}/api/gitlab/webhook</code>.
 							Укажите токен в поле <strong>Secret token</strong>. Triggers: Push, Merge request, Pipeline.
 						</p>
 					</div>
@@ -490,10 +490,10 @@ function IntegrationsSettingsPage() {
 	const { projectId } = Route.useParams();
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6 p-6">
-			<div>
-				<h2 className="text-xl font-semibold">Интеграции</h2>
-				<p className="text-sm text-gray-500 dark:text-gray-400">
+		<div className="mx-auto max-w-3xl space-y-6 p-6 animate-[eu_450ms_var(--spring)_both]">
+			<div className="mb-9">
+				<h2 className="text-[18px] font-extrabold tracking-[-0.02em] text-t1">Интеграции</h2>
+				<p className="text-[13px] text-t2 mt-1">
 					Подключение репозиториев GitHub и GitLab для автоматической
 					привязки коммитов, PR/MR и пайплайнов к задачам
 				</p>

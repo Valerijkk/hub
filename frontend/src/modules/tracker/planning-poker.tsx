@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import * as pokerApi from "@/api/sprint";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSprintStore } from "@/stores/sprint-store";
 
 /** Значения Фибоначчи для голосования. */
@@ -101,11 +100,9 @@ export function PlanningPoker({
 
 	if (!pokerSession) {
 		return (
-			<Card>
-				<CardContent className="py-8 text-center">
-					<p className="text-muted-foreground">Сессия не найдена или истекла</p>
-				</CardContent>
-			</Card>
+			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+				<p className="text-[13px] text-t2 text-center py-8">Сессия не найдена или истекла</p>
+			</div>
 		);
 	}
 
@@ -115,11 +112,9 @@ export function PlanningPoker({
 			: null;
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Planning Poker</CardTitle>
-			</CardHeader>
-			<CardContent className="space-y-6">
+		<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+			<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-4">Planning Poker</h3>
+			<div className="space-y-6">
 				{/* Карточки для голосования */}
 				{!pokerSession.revealed && (
 					<div className="flex flex-wrap gap-2">
@@ -128,13 +123,13 @@ export function PlanningPoker({
 								key={value}
 								onClick={() => handleVote(value)}
 								disabled={voting}
-								className={`flex h-16 w-12 items-center justify-center rounded-lg border-2 text-lg font-bold transition-all ${
+								className={`flex h-16 w-12 items-center justify-center rounded-[var(--r3)] border transition-all duration-250 hover:border-b2 hover:-translate-y-1 ${
 									selectedValue === value
-										? "border-primary bg-primary text-primary-foreground"
-										: "border-gray-200 bg-white hover:border-primary hover:bg-primary/5"
+										? "border-blue shadow-[0_0_0_3px_rgba(91,156,245,0.1),_0_0_16px_rgba(91,156,245,0.06)] bg-blue/10"
+										: "bg-gradient-to-b from-card to-raised border-b1 hover:shadow-[var(--sh2)]"
 								}`}
 							>
-								{value}
+								<span className="text-[18px] font-black text-t1">{value}</span>
 							</button>
 						))}
 					</div>
@@ -147,7 +142,7 @@ export function PlanningPoker({
 							{pokerSession.voters.map((voterId) => (
 								<span
 									key={voterId}
-									className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-800"
+									className="bg-emerald-500/[0.08] text-emerald-400 border border-emerald-500/[0.15] px-[10px] py-[3px] rounded-full text-[11px] font-[650]"
 								>
 									{voterId === currentUserId ? "Вы" : voterId.slice(0, 8)}{" "}
 									Проголосовал
@@ -165,10 +160,10 @@ export function PlanningPoker({
 										key={userId}
 										className="flex flex-col items-center gap-1"
 									>
-										<span className="flex h-14 w-10 items-center justify-center rounded-lg border-2 border-primary bg-primary/10 text-lg font-bold">
+										<span className="flex h-14 w-10 items-center justify-center rounded-[var(--r3)] border border-blue bg-blue/10 text-[18px] font-black text-t1">
 											{value}
 										</span>
-										<span className="text-xs text-muted-foreground">
+										<span className="text-[11px] text-t3">
 											{userId === currentUserId ? "Вы" : userId.slice(0, 8)}
 										</span>
 									</div>
@@ -176,18 +171,18 @@ export function PlanningPoker({
 							</div>
 
 							{stats && (
-								<div className="flex gap-4 rounded-lg bg-muted p-3">
+								<div className="flex gap-4 rounded-[var(--r3)] bg-input border border-b1 p-3">
 									<div>
-										<span className="text-sm text-muted-foreground">
+										<span className="text-[13px] text-t2">
 											Среднее:{" "}
 										</span>
-										<span className="font-bold">{stats.avg}</span>
+										<span className="text-[14px] font-bold text-t1">{stats.avg}</span>
 									</div>
 									<div>
-										<span className="text-sm text-muted-foreground">
+										<span className="text-[13px] text-t2">
 											Медиана:{" "}
 										</span>
-										<span className="font-bold">{stats.median}</span>
+										<span className="text-[14px] font-bold text-t1">{stats.median}</span>
 									</div>
 								</div>
 							)}
@@ -197,11 +192,14 @@ export function PlanningPoker({
 
 				{/* Кнопка раскрытия */}
 				{canReveal && !pokerSession.revealed && (
-					<Button onClick={handleReveal} variant="default">
+					<Button
+						onClick={handleReveal}
+						className="bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-md shadow-blue/20"
+					>
 						Раскрыть голоса
 					</Button>
 				)}
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	);
 }

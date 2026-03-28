@@ -135,10 +135,13 @@ function LabelsSettingsPage() {
 	const ungroupedLabels = labels?.filter((l) => !l.group_name) ?? [];
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
-			<div className="flex items-center justify-between">
-				<h1 className="text-2xl font-bold">Метки</h1>
-				<Button variant="outline" asChild>
+		<div className="mx-auto max-w-3xl space-y-6 animate-[eu_450ms_var(--spring)_both]">
+			<div className="mb-9 flex items-center justify-between">
+				<div>
+					<h1 className="text-[18px] font-extrabold tracking-[-0.02em] text-t1">Метки</h1>
+					<p className="text-[13px] text-t2 mt-1">Управление метками проекта</p>
+				</div>
+				<Button variant="outline" asChild className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]">
 					<Link to="/projects/$projectId" params={{ projectId }}>
 						Назад
 					</Link>
@@ -152,7 +155,7 @@ function LabelsSettingsPage() {
 				</CardHeader>
 				<CardContent>
 					{labelsLoading ? (
-						<p className="text-sm text-muted-foreground">Загрузка...</p>
+						<p className="text-[13px] text-t2">Загрузка...</p>
 					) : ungroupedLabels.length > 0 ? (
 						<div className="space-y-2">
 							{ungroupedLabels.map((label) => (
@@ -168,7 +171,7 @@ function LabelsSettingsPage() {
 							))}
 						</div>
 					) : (
-						<p className="text-sm text-muted-foreground">
+						<p className="text-[13px] text-t2">
 							Нет меток без группы
 						</p>
 					)}
@@ -197,7 +200,7 @@ function LabelsSettingsPage() {
 								))}
 							</div>
 						) : (
-							<p className="text-sm text-muted-foreground">
+							<p className="text-[13px] text-t2">
 								Нет меток в группе
 							</p>
 						)}
@@ -317,18 +320,18 @@ interface LabelRowProps {
 /** Строка метки в списке с цветовой индикацией и кнопкой удаления. */
 function LabelRow({ label, onDelete }: LabelRowProps) {
 	return (
-		<div className="flex items-center justify-between rounded-md border p-2">
+		<div className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 mb-2 hover:border-b2 transition-all duration-200">
 			<div className="flex items-center gap-2">
 				<div
-					className="h-4 w-4 rounded-full"
+					className="h-4 w-4 rounded-full hover:shadow-[0_0_8px_currentColor]"
 					style={{ backgroundColor: label.color }}
 				/>
-				<span className="text-sm font-medium">{label.name}</span>
+				<span className="text-[13px] font-medium text-t1">{label.name}</span>
 			</div>
 			<Button
 				variant="ghost"
 				size="sm"
-				className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+				className="h-6 px-2 text-[12px] text-t3 hover:text-red"
 				onClick={onDelete}
 			>
 				Удалить

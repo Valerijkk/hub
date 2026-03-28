@@ -33,16 +33,16 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 
 	if (burndown.length === 0) {
 		return (
-			<div className="card-premium rounded-2xl border border-white/[0.06] bg-card p-6">
+			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
 				<div className="flex items-center gap-2.5 mb-4">
 					<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5">
 						<TrendingDown className="h-4 w-4 text-blue-400" />
 					</div>
-					<h2 className="text-base font-bold text-foreground">
+					<h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">
 						Burndown
 					</h2>
 				</div>
-				<p className="text-sm text-muted-foreground">
+				<p className="text-[13px] text-t2">
 					Нет данных для отображения
 				</p>
 			</div>
@@ -50,12 +50,12 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 	}
 
 	return (
-		<div className="card-premium rounded-2xl border border-white/[0.06] bg-card p-6">
+		<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
 			<div className="flex items-center gap-2.5 mb-4">
 				<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5">
 					<TrendingDown className="h-4 w-4 text-blue-400" />
 				</div>
-				<h2 className="text-base font-bold text-foreground">Burndown</h2>
+				<h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">Burndown</h2>
 			</div>
 			<ResponsiveContainer width="100%" height={300}>
 				<AreaChart

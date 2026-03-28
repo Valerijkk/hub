@@ -130,8 +130,8 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 		return (
 			<div className="flex items-center justify-center p-16">
 				<div className="flex flex-col items-center gap-3">
-					<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-					<p className="text-sm text-muted-foreground">
+					<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue border-t-transparent" />
+					<p className="text-[13px] text-t2">
 						Загрузка спринтов...
 					</p>
 				</div>
@@ -142,13 +142,13 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 	if (sprints.length === 0) {
 		return (
 			<div className="flex flex-col items-center justify-center py-20 text-center">
-				<div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-					<Flame className="h-8 w-8 text-blue-400" />
+				<div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[var(--r4)] bg-gradient-to-br from-[var(--blueS)]/20 to-[var(--purpleS)]/20">
+					<Flame className="h-8 w-8 text-blue" />
 				</div>
-				<h3 className="text-lg font-semibold text-foreground">
+				<h3 className="text-[14px] font-bold text-t1">
 					Нет спринтов
 				</h3>
-				<p className="mt-1 max-w-sm text-sm text-muted-foreground">
+				<p className="mt-1 max-w-sm text-[13px] text-t2">
 					Создайте первый спринт, чтобы организовать работу команды по
 					итерациям.
 				</p>
@@ -166,16 +166,16 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 	});
 
 	return (
-		<div className="space-y-6 animate-fade-in">
+		<div className="space-y-6 animate-[eu_450ms_var(--spring)_both]">
 			{/* Page header */}
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-blue-500 shadow-sm">
+					<div className="flex h-10 w-10 items-center justify-center rounded-[var(--r3)] bg-gradient-to-br from-[var(--blueS)]/20 to-[var(--purpleS)]/20 text-blue">
 						<Flame className="h-5 w-5" />
 					</div>
 					<div>
-						<h1 className="page-title">Спринты</h1>
-						<p className="mt-0.5 text-sm text-muted-foreground">
+						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">Спринты</h1>
+						<p className="mt-0.5 text-[13px] text-t2">
 							{sprints.length} спринт
 							{sprints.length === 1
 								? ""
@@ -202,7 +202,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 						label: "В планировании",
 						value: sprints.filter((s) => s.status === "planning").length,
 						icon: Clock,
-						color: "text-blue-400",
+						color: "text-blue",
 						bg: "from-blue-500/10 to-blue-500/5",
 					},
 					{
@@ -215,19 +215,19 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 				].map((stat) => (
 					<div
 						key={stat.label}
-						className="widget-card rounded-2xl border border-white/[0.06] bg-card p-4"
+						className="bg-gradient-to-b from-card to-raised rounded-[var(--r4)] border border-b1 p-4 transition-all duration-250 hover:border-b2 hover:shadow-[var(--sh2)]"
 					>
 						<div className="flex items-center gap-3">
 							<div
-								className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br ${stat.bg}`}
+								className={`flex h-9 w-9 items-center justify-center rounded-[var(--r3)] bg-gradient-to-br ${stat.bg}`}
 							>
 								<stat.icon className={`h-4 w-4 ${stat.color}`} />
 							</div>
 							<div>
-								<p className="text-2xl font-bold tabular-nums">
+								<p className="text-[24px] font-black tracking-[-0.03em] tabular-nums text-t1">
 									{stat.value}
 								</p>
-								<p className="text-xs text-muted-foreground">
+								<p className="text-[12px] text-t3 font-medium">
 									{stat.label}
 								</p>
 							</div>
@@ -255,7 +255,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 							className="group block"
 						>
 							<div
-								className={`card-premium rounded-2xl border border-white/[0.06] bg-card p-5 ${
+								className={`bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5 transition-all duration-250 relative overflow-hidden hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)] ${
 									sprint.status === "active"
 										? "ring-1 ring-emerald-500/20"
 										: ""
@@ -265,7 +265,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 								<div className="flex items-start justify-between gap-3">
 									<div className="min-w-0 flex-1">
 										<div className="flex items-center gap-2.5">
-											<h3 className="truncate text-base font-bold text-foreground">
+											<h3 className="truncate text-[14px] font-bold text-t1">
 												{sprint.name}
 											</h3>
 											<span
@@ -276,17 +276,17 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 											</span>
 										</div>
 										{sprint.goal && (
-											<p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+											<p className="mt-1 line-clamp-2 text-[13px] text-t2">
 												<Target className="mr-1 inline h-3 w-3 align-[-2px] opacity-50" />
 												{sprint.goal}
 											</p>
 										)}
 									</div>
-									<ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+									<ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-t3 opacity-0 transition-opacity group-hover:opacity-100" />
 								</div>
 
 								{/* Date + stats row */}
-								<div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+								<div className="mt-4 flex flex-wrap items-center gap-4 text-[12px] text-t3">
 									<span className="inline-flex items-center gap-1.5">
 										<Calendar className="h-3.5 w-3.5 opacity-60" />
 										{new Date(sprint.start_date).toLocaleDateString(
@@ -320,7 +320,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 								{/* Progress bar */}
 								{sprint.status !== "completed" && (
 									<div className="mt-3">
-										<div className="mb-1 flex justify-between text-[11px] text-muted-foreground">
+										<div className="mb-1 flex justify-between text-[11px] text-t3">
 											<span>Прогресс по времени</span>
 											<span className="tabular-nums">
 												{progress}%
@@ -362,7 +362,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 										<Button
 											size="sm"
 											variant="outline"
-											className="border-white/[0.08] hover:bg-white/[0.04]"
+											className="border-b1 text-t2 hover:bg-[var(--hover)] hover:text-t1"
 											onClick={(e) =>
 												openCompleteDialog(e, sprint)
 											}
@@ -380,7 +380,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 
 			{/* Confirm complete dialog */}
 			<Dialog open={confirmComplete} onOpenChange={setConfirmComplete}>
-				<DialogContent className="rounded-2xl border-white/[0.06]">
+				<DialogContent className="rounded-[var(--r4)] border-b1">
 					<DialogHeader>
 						<DialogTitle>Завершить спринт?</DialogTitle>
 						<DialogDescription>
@@ -392,7 +392,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 						<Button
 							variant="outline"
 							onClick={() => setConfirmComplete(false)}
-							className="border-white/[0.08]"
+							className="border-b1 text-t2 hover:text-t1"
 						>
 							Отмена
 						</Button>

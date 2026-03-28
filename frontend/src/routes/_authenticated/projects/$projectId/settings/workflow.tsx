@@ -138,10 +138,13 @@ function WorkflowSettingsPage() {
 		statuses?.find((s) => s.id === id)?.name ?? id;
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
-			<div className="flex items-center justify-between">
-				<h1 className="text-2xl font-bold">Настройки Workflow</h1>
-				<Button variant="outline" asChild>
+		<div className="mx-auto max-w-3xl space-y-6 animate-[eu_450ms_var(--spring)_both]">
+			<div className="mb-9 flex items-center justify-between">
+				<div>
+					<h1 className="text-[18px] font-extrabold tracking-[-0.02em] text-t1">Настройки Workflow</h1>
+					<p className="text-[13px] text-t2 mt-1">Управление статусами и переходами</p>
+				</div>
+				<Button variant="outline" asChild className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]">
 					<Link to="/projects/$projectId" params={{ projectId }}>
 						Назад
 					</Link>
@@ -156,14 +159,14 @@ function WorkflowSettingsPage() {
 				<CardContent className="space-y-4">
 					{/* Список существующих */}
 					{statusesLoading ? (
-						<p className="text-sm text-muted-foreground">Загрузка...</p>
+						<p className="text-[13px] text-t2">Загрузка...</p>
 					) : (
 						<div className="space-y-2">
 							{statuses?.map((status) => (
 								<StatusRow key={status.id} status={status} />
 							))}
 							{statuses?.length === 0 && (
-								<p className="text-sm text-muted-foreground">
+								<p className="text-[13px] text-t2">
 									Нет статусов. Создайте первый!
 								</p>
 							)}
@@ -253,25 +256,25 @@ function WorkflowSettingsPage() {
 				</CardHeader>
 				<CardContent className="space-y-4">
 					{transitionsLoading ? (
-						<p className="text-sm text-muted-foreground">Загрузка...</p>
+						<p className="text-[13px] text-t2">Загрузка...</p>
 					) : (
 						<div className="space-y-2">
 							{transitions?.map((t) => (
 								<div
 									key={t.id}
-									className="flex items-center gap-2 rounded-md border p-2 text-sm"
+									className="flex items-center gap-2 bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 mb-2 text-[13px] hover:border-b2 transition-all duration-200"
 								>
 									<Badge variant="outline">
 										{getStatusName(t.from_status_id)}
 									</Badge>
-									<span className="text-muted-foreground">&rarr;</span>
+									<span className="text-t2">&rarr;</span>
 									<Badge variant="outline">
 										{getStatusName(t.to_status_id)}
 									</Badge>
 								</div>
 							))}
 							{transitions?.length === 0 && (
-								<p className="text-sm text-muted-foreground">Нет переходов</p>
+								<p className="text-[13px] text-t2">Нет переходов</p>
 							)}
 						</div>
 					)}
@@ -349,13 +352,13 @@ function StatusRow({ status }: StatusRowProps) {
 		status.category;
 
 	return (
-		<div className="flex items-center justify-between rounded-md border p-3">
+		<div className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 mb-2 hover:border-b2 transition-all duration-200">
 			<div className="flex items-center gap-3">
 				<div
-					className="h-4 w-4 rounded-full"
+					className="h-4 w-4 rounded-full hover:shadow-[0_0_8px_currentColor]"
 					style={{ backgroundColor: status.color || "#6b7280" }}
 				/>
-				<span className="text-sm font-medium">{status.name}</span>
+				<span className="text-[13px] font-medium text-t1">{status.name}</span>
 				<Badge variant="secondary" className="text-xs">
 					{categoryLabel}
 				</Badge>
@@ -365,7 +368,7 @@ function StatusRow({ status }: StatusRowProps) {
 					</Badge>
 				)}
 			</div>
-			<span className="text-xs text-muted-foreground">
+			<span className="text-[12px] text-t3">
 				Порядок: {status.sort_order}
 			</span>
 		</div>

@@ -91,8 +91,8 @@ function SprintDetailPage() {
 		return (
 			<div className="flex items-center justify-center p-16">
 				<div className="flex flex-col items-center gap-3">
-					<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-					<p className="text-sm text-muted-foreground">Загрузка...</p>
+					<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue border-t-transparent" />
+					<p className="text-[13px] text-t2">Загрузка...</p>
 				</div>
 			</div>
 		);
@@ -113,28 +113,28 @@ function SprintDetailPage() {
 		| undefined;
 
 	return (
-		<div className="mx-auto max-w-5xl space-y-6 animate-fade-in">
+		<div className="mx-auto max-w-5xl space-y-6 animate-[eu_450ms_var(--spring)_both]">
 			{/* Back link */}
 			<Link
 				to="/projects/$projectId/sprints"
 				params={{ projectId }}
-				className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+				className="inline-flex items-center gap-1.5 text-[13px] text-t3 transition-colors duration-150 hover:text-t1"
 			>
 				<ArrowLeft className="h-3.5 w-3.5" />
 				Все спринты
 			</Link>
 
 			{/* Sprint header card */}
-			<div className="card-premium rounded-2xl border border-white/[0.06] bg-card p-6">
+			<div className="bg-gradient-to-b from-card to-raised rounded-[var(--r4)] border border-b1 p-6">
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0 flex-1">
 						<div className="flex items-center gap-3">
-							<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-blue-500 shadow-sm">
+							<div className="flex h-10 w-10 items-center justify-center rounded-[var(--r3)] bg-gradient-to-br from-[var(--blueS)]/20 to-[var(--purpleS)]/20 text-blue">
 								<Flame className="h-5 w-5" />
 							</div>
 							<div>
 								<div className="flex items-center gap-2.5">
-									<h1 className="text-xl font-bold text-foreground">
+									<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
 										{sprint.name}
 									</h1>
 									<span
@@ -145,7 +145,7 @@ function SprintDetailPage() {
 									</span>
 								</div>
 								{sprint.goal && (
-									<p className="mt-1 text-sm text-muted-foreground">
+									<p className="mt-1 text-[13px] text-t2">
 										<Target className="mr-1 inline h-3 w-3 align-[-2px] opacity-50" />
 										{sprint.goal}
 									</p>
@@ -192,7 +192,7 @@ function SprintDetailPage() {
 					].map((stat) => (
 						<div
 							key={stat.label}
-							className="widget-card rounded-xl border border-white/[0.06] bg-card p-3"
+							className="bg-gradient-to-b from-card to-raised rounded-[var(--r3)] border border-b1 p-3"
 						>
 							<div className="flex items-center gap-2.5">
 								<div
@@ -203,10 +203,10 @@ function SprintDetailPage() {
 									/>
 								</div>
 								<div>
-									<p className="text-sm font-bold tabular-nums leading-tight">
+									<p className="text-[14px] font-bold tabular-nums leading-tight text-t1">
 										{stat.value}
 									</p>
-									<p className="text-[11px] text-muted-foreground">
+									<p className="text-[11px] text-t3">
 										{stat.label}
 									</p>
 								</div>
@@ -218,7 +218,7 @@ function SprintDetailPage() {
 				{/* Progress bar */}
 				{sprint.status !== "completed" ? (
 					<div className="mt-4">
-						<div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
+						<div className="mb-1.5 flex justify-between text-[12px] text-t3">
 							<span>Прогресс по времени</span>
 							<span className="tabular-nums">{progress}%</span>
 						</div>
@@ -231,7 +231,7 @@ function SprintDetailPage() {
 					</div>
 				) : (
 					<div className="mt-4">
-						<div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
+						<div className="mb-1.5 flex justify-between text-[12px] text-t3">
 							<span>Спринт завершён</span>
 							<span className="tabular-nums">100%</span>
 						</div>

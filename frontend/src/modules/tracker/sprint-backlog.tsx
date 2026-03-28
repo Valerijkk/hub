@@ -66,16 +66,16 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	const planningSprints = sprints.filter((s) => s.status === "planning");
 
 	return (
-		<div className="space-y-6 animate-fade-in">
+		<div className="space-y-6 animate-[eu_450ms_var(--spring)_both]">
 			{/* Page header */}
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-blue-500/20 text-violet-500 shadow-sm">
+					<div className="flex h-10 w-10 items-center justify-center rounded-[var(--r3)] bg-gradient-to-br from-violet-500/20 to-blue-500/20 text-violet-500">
 						<Inbox className="h-5 w-5" />
 					</div>
 					<div>
-						<h1 className="page-title">Бэклог</h1>
-						<p className="mt-0.5 text-sm text-muted-foreground">
+						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">Бэклог</h1>
+						<p className="mt-0.5 text-[13px] text-t2">
 							{backlogIssues.length} задач без спринта
 						</p>
 					</div>
@@ -107,7 +107,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 				<div className="flex items-center justify-center p-12">
 					<div className="flex flex-col items-center gap-3">
 						<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-						<p className="text-sm text-muted-foreground">
+						<p className="text-sm text-t2">
 							Загрузка бэклога...
 						</p>
 					</div>
@@ -117,32 +117,32 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 					<div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-blue-500/20">
 						<ListTodo className="h-8 w-8 text-violet-400" />
 					</div>
-					<h3 className="text-lg font-semibold text-foreground">
+					<h3 className="text-lg font-semibold text-t1">
 						Бэклог пуст
 					</h3>
-					<p className="mt-1 max-w-sm text-sm text-muted-foreground">
+					<p className="mt-1 max-w-sm text-sm text-t2">
 						Все задачи распределены по спринтам
 					</p>
 				</div>
 			) : (
-				<div className="rounded-2xl border border-white/[0.06] bg-card/50 p-1">
+				<div className="rounded-[var(--r4)] border border-b1 bg-card/50 p-1">
 					<div className="space-y-1">
 						{backlogIssues.map((issue) => {
 							const isSelected = selectedIssues.has(issue.id);
 							return (
 								<div
 									key={issue.id}
-									className={`card-premium group flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition-all ${
+									className={`group flex cursor-pointer items-center gap-3 rounded-[var(--r3)] px-4 py-3 border-b border-b1 text-[13px] transition-all duration-150 ${
 										isSelected
-											? "border-blue-500/20 bg-blue-500/5 ring-1 ring-blue-500/20"
-											: "border-transparent hover:bg-white/[0.02]"
+											? "border-blue/20 bg-blue/5 ring-1 ring-blue/20"
+											: "border-transparent hover:bg-[var(--hover)]"
 									}`}
 									onClick={() => toggleSelect(issue.id)}
 								>
 									{/* Checkbox */}
 									<button
 										type="button"
-										className="flex-shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+										className="flex-shrink-0 text-t2 transition-colors hover:text-t1"
 										onClick={(e) => {
 											e.stopPropagation();
 											toggleSelect(issue.id);
@@ -156,7 +156,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 									</button>
 
 									{/* Issue key */}
-									<span className="flex-shrink-0 rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+									<span className="flex-shrink-0 rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-t2">
 										{issue.issue_key}
 									</span>
 
@@ -167,7 +167,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 											projectId,
 											issueKey: issue.issue_key,
 										}}
-										className="min-w-0 flex-1 truncate text-sm text-foreground transition-colors hover:text-blue-400"
+										className="min-w-0 flex-1 truncate text-sm text-t1 transition-colors hover:text-blue-400"
 										onClick={(e) => e.stopPropagation()}
 									>
 										{issue.title}

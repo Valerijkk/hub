@@ -18,18 +18,18 @@ import { JQLEditor } from "./jql-editor";
 
 /** Цвета бейджей приоритетов задач. */
 const PRIORITY_COLORS: Record<string, string> = {
-	low: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-	medium: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
-	high: "bg-orange-500/10 text-orange-700 dark:text-orange-400",
-	critical: "bg-red-500/10 text-red-600 dark:text-red-400",
+	low: "bg-blue/[0.08] text-blue",
+	medium: "bg-amber/[0.08] text-amber",
+	high: "bg-orange/[0.08] text-orange",
+	critical: "bg-red/[0.08] text-red",
 };
 
 /** Цвета бейджей типов задач. */
 const TYPE_COLORS: Record<string, string> = {
-	task: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-	bug: "bg-red-500/10 text-red-600 dark:text-red-400",
-	story: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-	epic: "bg-purple-500/10 text-purple-700 dark:text-purple-400",
+	task: "bg-blue/[0.08] text-blue",
+	bug: "bg-red/[0.08] text-red",
+	story: "bg-emerald-500/[0.08] text-emerald-400",
+	epic: "bg-[var(--purpleS)]/[0.08] text-[var(--purpleS)]",
 };
 
 // ---------------------------------------------------------------------------
@@ -104,10 +104,10 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 	const savedFilters = filtersData?.filters ?? [];
 
 	return (
-		<div className="space-y-4">
+		<div className="space-y-4 animate-[eu_450ms_var(--spring)_both]">
 			{/* Заголовок */}
 			<div className="flex items-center gap-3">
-				<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+				<div className="flex h-8 w-8 items-center justify-center rounded-[var(--r2)] bg-blue/10 text-blue">
 					<svg
 						className="h-4 w-4"
 						fill="none"
@@ -123,9 +123,9 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 					</svg>
 				</div>
 				<div>
-					<h2 className="text-lg font-semibold">JQL-поиск</h2>
-					<p className="text-xs text-muted-foreground">
-						Поиск задач с помощью JQL-запросов
+					<h2 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">JQL-поиск</h2>
+					<p className="text-[12px] text-t3">
+						��оиск задач с помощью JQL-за��росов
 					</p>
 				</div>
 			</div>
@@ -133,14 +133,14 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 			{/* Сохранённые фильтры */}
 			{savedFilters.length > 0 && (
 				<div className="flex flex-wrap items-center gap-2">
-					<span className="text-xs text-muted-foreground">Фильтры:</span>
+					<span className="text-[12px] text-t3">Фильтры:</span>
 					{savedFilters
 						.filter((f) => f.filter_config && "jql" in f.filter_config)
 						.map((filter) => (
 							<button
 								key={filter.id}
 								type="button"
-								className="rounded-md border bg-background px-2.5 py-1 text-xs font-medium hover:bg-muted/80 hover:text-primary transition-colors"
+								className="px-3 py-[5px] bg-card border border-b1 rounded-full text-[12px] font-semibold text-t2 cursor-pointer hover:border-b2 hover:text-t1 transition-all duration-180"
 								onClick={() => handleApplyFilter(filter)}
 							>
 								{filter.name}
@@ -191,11 +191,11 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 
 			{/* Диалог сохранения */}
 			{showSaveDialog && (
-				<div className="flex items-center gap-2 rounded-lg border bg-card p-3">
+				<div className="flex items-center gap-2 rounded-[var(--r3)] border border-b1 bg-gradient-to-b from-card to-raised p-3">
 					<input
 						type="text"
-						placeholder="Название фильтра"
-						className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm"
+						placeholder="��азвание фильтра"
+						className="flex-1 rounded-[var(--r2)] border border-b1 bg-input px-3 py-1.5 text-[14px] text-t1 outline-none transition-all duration-250 focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)]"
 						value={saveName}
 						onChange={(e) => setSaveName(e.target.value)}
 						onKeyDown={(e) => {
@@ -221,7 +221,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 
 			{/* Ошибка */}
 			{error && (
-				<div className="rounded-lg border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-400">
+				<div className="rounded-[var(--r3)] border border-red/20 bg-red/[0.05] p-3 text-[13px] text-red">
 					{(error as { message?: string }).message ??
 						"Ошибка выполнения запроса"}
 				</div>
@@ -229,10 +229,10 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 
 			{/* Информация о запросе */}
 			{submittedQuery && data && (
-				<div className="flex items-center gap-2 text-xs text-muted-foreground">
+				<div className="flex items-center gap-2 text-[12px] text-t3">
 					<span>
 						Запрос:{" "}
-						<code className="rounded bg-muted px-1.5 py-0.5 font-mono">
+						<code className="rounded-[var(--r1)] bg-input px-1.5 py-0.5 font-mono text-t2">
 							{data.query}
 						</code>
 					</span>
@@ -242,26 +242,26 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 
 			{/* Таблица результатов */}
 			{submittedQuery && !isLoading && results.length > 0 && (
-				<div className="rounded-xl border shadow-card overflow-hidden">
+				<div className="rounded-[var(--r4)] border border-b1 overflow-hidden">
 					<table className="w-full">
 						<thead>
-							<tr className="border-b bg-muted/40">
-								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+							<tr className="border-b border-b1 bg-raised">
+								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t3">
 									Ключ
 								</th>
-								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t3">
 									Название
 								</th>
-								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t3">
 									Тип
 								</th>
-								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t3">
 									Приоритет
 								</th>
-								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t3">
 									Статус
 								</th>
-								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+								<th className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-t3">
 									Исполнитель
 								</th>
 							</tr>
@@ -270,10 +270,10 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 							{results.map((item) => (
 								<tr
 									key={item.key}
-									className="border-b transition-colors hover:bg-primary/[0.03]"
+									className="border-b border-b1 transition-colors duration-150 hover:bg-[var(--hover)]"
 								>
 									<td className="px-4 py-2.5">
-										<span className="font-mono text-xs font-bold text-primary">
+										<span className="font-mono text-xs font-bold text-blue">
 											{item.key}
 										</span>
 									</td>
@@ -308,22 +308,22 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 									</td>
 									<td className="px-4 py-2.5">
 										{item.status ? (
-											<span className="text-xs text-muted-foreground">
+											<span className="text-[12px] text-t3">
 												{item.status}
 											</span>
 										) : (
-											<span className="text-xs text-muted-foreground/40">
+											<span className="text-[12px] text-t3/40">
 												--
 											</span>
 										)}
 									</td>
 									<td className="px-4 py-2.5">
 										{item.assignee ? (
-											<span className="text-xs text-muted-foreground">
+											<span className="text-[12px] text-t3">
 												{item.assignee}
 											</span>
 										) : (
-											<span className="text-xs text-muted-foreground/40">
+											<span className="text-[12px] text-t3/40">
 												--
 											</span>
 										)}
@@ -337,10 +337,10 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 
 			{/* Пустой результат */}
 			{submittedQuery && !isLoading && results.length === 0 && !error && (
-				<div className="flex flex-col items-center justify-center py-16 animate-fade-in">
-					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/60 to-muted/30 border border-dashed border-muted-foreground/20">
+				<div className="flex flex-col items-center justify-center py-16 animate-[eu_350ms_var(--spring)]">
+					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[var(--r4)] bg-gradient-to-br from-raised to-card border border-dashed border-b1">
 						<svg
-							className="h-8 w-8 text-muted-foreground/30"
+							className="h-8 w-8 text-t3/30"
 							fill="none"
 							viewBox="0 0 24 24"
 							stroke="currentColor"
@@ -353,8 +353,8 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 							/>
 						</svg>
 					</div>
-					<h3 className="text-base font-semibold mb-1">Ничего не найдено</h3>
-					<p className="text-sm text-muted-foreground">
+					<h3 className="text-[14px] font-bold text-t1 mb-1">Ничего не найдено</h3>
+					<p className="text-[13px] text-t2">
 						Попробуйте изменить JQL-запрос
 					</p>
 				</div>
@@ -362,11 +362,11 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 
 			{/* Начальное состояние */}
 			{!submittedQuery && (
-				<div className="rounded-lg border bg-card/50 p-6 text-center">
-					<p className="text-sm text-muted-foreground mb-3">
+				<div className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-6 text-center">
+					<p className="text-[13px] text-t2 mb-3">
 						Введите JQL-запрос для поиска задач
 					</p>
-					<div className="space-y-1.5 text-xs text-muted-foreground/80 font-mono">
+					<div className="space-y-1.5 text-[12px] text-t3/80 font-mono">
 						<p>status = "In Progress" AND priority = high</p>
 						<p>assignee = currentUser() ORDER BY created DESC</p>
 						<p>type IN (bug, task) AND created {">"}= 2024-01-01</p>

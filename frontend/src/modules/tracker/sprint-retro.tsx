@@ -106,12 +106,12 @@ export function SprintRetro({
 	] as const;
 
 	return (
-		<div className="card-premium rounded-2xl border border-white/[0.06] bg-card p-6">
+		<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-6">
 			<div className="flex items-center gap-2.5 mb-5">
 				<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500/10 to-violet-500/5">
 					<Lightbulb className="h-4 w-4 text-violet-400" />
 				</div>
-				<h2 className="text-base font-bold text-foreground">
+				<h2 className="text-[14px] font-bold text-t1">
 					Ретроспектива
 				</h2>
 			</div>
@@ -129,7 +129,7 @@ export function SprintRetro({
 										className={`h-3 w-3 ${section.color}`}
 									/>
 								</div>
-								<label className="text-sm font-medium text-foreground">
+								<label className="text-[13px] font-medium text-t1">
 									{section.label}
 								</label>
 							</div>
@@ -138,7 +138,7 @@ export function SprintRetro({
 								onChange={(e) => section.onChange(e.target.value)}
 								placeholder="Каждый пункт с новой строки..."
 								rows={5}
-								className={`rounded-xl border bg-white/[0.02] text-sm transition-colors ${section.borderColor}`}
+								className={`rounded-[var(--r3)] border bg-input text-[13px] text-t2 transition-colors ${section.borderColor}`}
 							/>
 						</div>
 					);
