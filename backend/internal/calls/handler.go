@@ -97,7 +97,19 @@ func userNameFromCtx(c fiber.Ctx) string {
 	return name
 }
 
-// CreateCall обрабатывает POST /api/calls — создание нового звонка.
+// CreateCall godoc
+// @Summary Создать звонок
+// @Description Создаёт новый голосовой/видеозвонок в указанном канале.
+// @Tags Звонки
+// @Accept json
+// @Produce json
+// @Param body body CreateCallRequest true "Данные звонка (channel_id)"
+// @Success 201 {object} CallResponse "Звонок создан"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls [post]
 func (h *Handler) CreateCall(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -123,8 +135,18 @@ func (h *Handler) CreateCall(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// CreateInstantCall обрабатывает POST /api/calls/instant — создание быстрого звонка без канала.
-// Генерирует invite_code для шаринга ссылки.
+// CreateInstantCall godoc
+// @Summary Создать быстрый звонок
+// @Description Создаёт мгновенный звонок без привязки к каналу. Генерирует invite_code для ссылки.
+// @Tags Звонки
+// @Accept json
+// @Produce json
+// @Param body body object false "Опциональный title"
+// @Success 201 {object} CallResponse "Звонок создан"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls/instant [post]
 func (h *Handler) CreateInstantCall(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -146,7 +168,17 @@ func (h *Handler) CreateInstantCall(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// JoinByInviteCode обрабатывает GET /api/calls/invite/:code — join по invite-ссылке.
+// JoinByInviteCode godoc
+// @Summary Присоединиться по invite-коду
+// @Description Присоединяет пользователя к звонку по пригласительному коду.
+// @Tags Звонки
+// @Produce json
+// @Param code path string true "Пригласительный код"
+// @Success 200 {object} CallResponse "Данные звонка с токеном"
+// @Failure 400 {object} fiber.Error "Код не указан"
+// @Failure 404 {object} fiber.Error "Звонок не найден"
+// @Security BearerAuth
+// @Router /api/calls/invite/{code} [get]
 func (h *Handler) JoinByInviteCode(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -167,7 +199,17 @@ func (h *Handler) JoinByInviteCode(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetActiveCall обрабатывает GET /api/calls/channel/:channelId — получение активного звонка.
+// GetActiveCall godoc
+// @Summary Получить активный звонок канала
+// @Description Возвращает текущий активный звонок в указанном канале (или null).
+// @Tags Звонки
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Success 200 {object} CallResponse "Активный звонок или null"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls/channel/{channelId} [get]
 func (h *Handler) GetActiveCall(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("channelId"))
 	channelID, err := uuid.Parse(idStr)
@@ -188,7 +230,18 @@ func (h *Handler) GetActiveCall(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// JoinCall обрабатывает POST /api/calls/:callId/join — присоединение к звонку.
+// JoinCall godoc
+// @Summary Присоединиться к звонку
+// @Description Присоединяет текущего пользователя к звонку и возвращает LiveKit токен.
+// @Tags Звонки
+// @Produce json
+// @Param callId path string true "ID звонка"
+// @Success 200 {object} JoinCallResponse "Токен для подключения"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls/{callId}/join [post]
 func (h *Handler) JoinCall(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -209,7 +262,17 @@ func (h *Handler) JoinCall(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// LeaveCall обрабатывает POST /api/calls/:callId/leave — выход из звонка.
+// LeaveCall godoc
+// @Summary Покинуть звонок
+// @Description Текущий пользователь покидает звонок.
+// @Tags Звонки
+// @Param callId path string true "ID звонка"
+// @Success 200 "Пользователь покинул звонок"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls/{callId}/leave [post]
 func (h *Handler) LeaveCall(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -228,7 +291,16 @@ func (h *Handler) LeaveCall(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// EndCall обрабатывает POST /api/calls/:callId/end — завершение звонка.
+// EndCall godoc
+// @Summary Завершить звонок
+// @Description Завершает звонок для всех участников.
+// @Tags Звонки
+// @Param callId path string true "ID звонка"
+// @Success 200 "Звонок завершён"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls/{callId}/end [post]
 func (h *Handler) EndCall(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -243,7 +315,20 @@ func (h *Handler) EndCall(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// RaiseHand обрабатывает POST /api/calls/:callId/raise-hand — поднять/опустить руку.
+// RaiseHand godoc
+// @Summary Поднять/опустить руку
+// @Description Переключает состояние "поднятой руки" участника в звонке.
+// @Tags Звонки
+// @Accept json
+// @Produce json
+// @Param callId path string true "ID звонка"
+// @Param body body RaiseHandRequest true "raised: true/false"
+// @Success 200 {object} map[string]bool "raised: true/false"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 404 {object} fiber.Error "Звонок не найден"
+// @Security BearerAuth
+// @Router /api/calls/{callId}/raise-hand [post]
 func (h *Handler) RaiseHand(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -273,7 +358,20 @@ func (h *Handler) RaiseHand(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"raised": req.Raised})
 }
 
-// SendChatMessage обрабатывает POST /api/calls/:callId/chat — отправка сообщения в чат звонка.
+// SendChatMessage godoc
+// @Summary Отправить сообщение в чат звонка
+// @Description Отправляет текстовое сообщение в чат текущего звонка.
+// @Tags Звонки
+// @Accept json
+// @Produce json
+// @Param callId path string true "ID звонка"
+// @Param body body object true "text: текст сообщения"
+// @Success 201 {object} CallChatMessage "Сообщение отправлено"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls/{callId}/chat [post]
 func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -304,7 +402,18 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(msg)
 }
 
-// ListChatMessages обрабатывает GET /api/calls/:callId/chat — получение сообщений чата звонка.
+// ListChatMessages godoc
+// @Summary Список сообщений чата звонка
+// @Description Возвращает сообщения чата звонка с пагинацией по лимиту.
+// @Tags Звонки
+// @Produce json
+// @Param callId path string true "ID звонка"
+// @Param limit query int false "Лимит сообщений (по умолчанию 50, макс 200)"
+// @Success 200 {object} map[string][]CallChatMessage "messages: массив сообщений"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls/{callId}/chat [get]
 func (h *Handler) ListChatMessages(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -335,7 +444,18 @@ func (h *Handler) ListChatMessages(c fiber.Ctx) error {
 // Recording handlers (CALL-04, CALL-05)
 // ---------------------------------------------------------------------------
 
-// StartRecording обрабатывает POST /api/calls/:callId/recording/start — начать запись звонка.
+// StartRecording godoc
+// @Summary Начать запись звонка
+// @Description Запускает запись текущего звонка через LiveKit Egress.
+// @Tags Звонки
+// @Produce json
+// @Param callId path string true "ID звонка"
+// @Success 201 {object} RecordingResponse "Запись начата"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls/{callId}/recording/start [post]
 func (h *Handler) StartRecording(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
 	if err != nil {
@@ -355,7 +475,18 @@ func (h *Handler) StartRecording(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// StopRecording обрабатывает POST /api/calls/:callId/recording/stop — остановить запись звонка.
+// StopRecording godoc
+// @Summary Остановить запись звонка
+// @Description Останавливает активную запись звонка.
+// @Tags Звонки
+// @Accept json
+// @Param callId path string true "ID звонка"
+// @Param body body object true "recording_id: ID записи"
+// @Success 200 "Запись остановлена"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls/{callId}/recording/stop [post]
 func (h *Handler) StopRecording(c fiber.Ctx) error {
 	// Получаем recording_id из тела запроса
 	var req struct {
@@ -376,7 +507,19 @@ func (h *Handler) StopRecording(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// ListProjectRecordings обрабатывает GET /api/projects/:projectId/recordings — список записей проекта.
+// ListProjectRecordings godoc
+// @Summary Список записей проекта
+// @Description Возвращает пагинированный список записей звонков проекта.
+// @Tags Звонки
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param offset query int false "Смещение (по умолчанию 0)"
+// @Param limit query int false "Лимит (по умолчанию 20, макс 100)"
+// @Success 200 {object} map[string]interface{} "recordings и total"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/recordings [get]
 func (h *Handler) ListProjectRecordings(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("projectId"))
 	projectID, err := uuid.Parse(idStr)
@@ -409,7 +552,17 @@ func (h *Handler) ListProjectRecordings(c fiber.Ctx) error {
 	})
 }
 
-// GetRecordingDownloadURL обрабатывает GET /api/recordings/:recordingId/download — скачивание записи.
+// GetRecordingDownloadURL godoc
+// @Summary Скачать запись
+// @Description Возвращает presigned URL для скачивания записи звонка.
+// @Tags Звонки
+// @Produce json
+// @Param recordingId path string true "ID записи"
+// @Success 200 {object} RecordingDownloadResponse "URL для скачивания"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/recordings/{recordingId}/download [get]
 func (h *Handler) GetRecordingDownloadURL(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("recordingId"))
 	recordingID, err := uuid.Parse(idStr)
@@ -430,7 +583,20 @@ func (h *Handler) GetRecordingDownloadURL(c fiber.Ctx) error {
 // ScheduledCall handlers (CALL-02)
 // ---------------------------------------------------------------------------
 
-// CreateScheduledCall обрабатывает POST /api/projects/:projectId/scheduled-calls — создание запланированного звонка.
+// CreateScheduledCall godoc
+// @Summary Создать запланированный звонок
+// @Description Создаёт запланированный звонок в проекте с указанным временем и участниками.
+// @Tags Звонки
+// @Accept json
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Param body body CreateScheduledCallRequest true "Данные звонка"
+// @Success 201 {object} ScheduledCallResponse "Звонок запланирован"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/scheduled-calls [post]
 func (h *Handler) CreateScheduledCall(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("projectId"))
 	projectID, err := uuid.Parse(idStr)
@@ -456,7 +622,17 @@ func (h *Handler) CreateScheduledCall(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListScheduledCalls обрабатывает GET /api/channels/:channelId/scheduled-calls — список запланированных звонков.
+// ListScheduledCalls godoc
+// @Summary Список запланированных звонков
+// @Description Возвращает запланированные звонки для указанного канала.
+// @Tags Звонки
+// @Produce json
+// @Param channelId path string true "ID канала"
+// @Success 200 {object} map[string][]ScheduledCallResponse "scheduled_calls"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/channels/{channelId}/scheduled-calls [get]
 func (h *Handler) ListScheduledCalls(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("channelId"))
 	channelID, err := uuid.Parse(idStr)
@@ -473,7 +649,19 @@ func (h *Handler) ListScheduledCalls(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"scheduled_calls": calls})
 }
 
-// UpdateScheduledCall обрабатывает PUT /api/scheduled-calls/:id — обновление запланированного звонка.
+// UpdateScheduledCall godoc
+// @Summary Обновить запланированный звонок
+// @Description Обновляет время, название или участников запланированного звонка.
+// @Tags Звонки
+// @Accept json
+// @Produce json
+// @Param id path string true "ID запланированного звонка"
+// @Param body body UpdateScheduledCallRequest true "Обновляемые данные"
+// @Success 200 {object} ScheduledCallResponse "Звонок обновлён"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/scheduled-calls/{id} [put]
 func (h *Handler) UpdateScheduledCall(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	id, err := uuid.Parse(idStr)
@@ -495,7 +683,16 @@ func (h *Handler) UpdateScheduledCall(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteScheduledCall обрабатывает DELETE /api/scheduled-calls/:id — удаление запланированного звонка.
+// DeleteScheduledCall godoc
+// @Summary Удалить запланированный звонок
+// @Description Удаляет запланированный звонок.
+// @Tags Звонки
+// @Param id path string true "ID запланированного звонка"
+// @Success 200 "Звонок удалён"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/scheduled-calls/{id} [delete]
 func (h *Handler) DeleteScheduledCall(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	id, err := uuid.Parse(idStr)
@@ -511,8 +708,19 @@ func (h *Handler) DeleteScheduledCall(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// CheckConflicts обрабатывает GET /api/calls/conflicts — проверка конфликтов расписания.
-// Query params: time (ISO 8601), duration (минуты), participant_ids (через запятую).
+// CheckConflicts godoc
+// @Summary Проверить конфликты расписания
+// @Description Проверяет, есть ли пересечения в расписании участников на указанное время.
+// @Tags Звонки
+// @Produce json
+// @Param time query string true "Время начала (ISO 8601)"
+// @Param duration query int false "Длительность в минутах (по умолчанию 60)"
+// @Param participant_ids query string false "ID участников через запятую"
+// @Success 200 {object} ConflictResponse "Результат проверки конфликтов"
+// @Failure 400 {object} fiber.Error "Неверные параметры"
+// @Failure 500 {object} fiber.Error "Внутренняя ошибка"
+// @Security BearerAuth
+// @Router /api/calls/conflicts [get]
 func (h *Handler) CheckConflicts(c fiber.Ctx) error {
 	timeStr := c.Query("time")
 	if timeStr == "" {
@@ -588,9 +796,17 @@ type webhookFileResult struct {
 	Duration float64 `json:"duration"`
 }
 
-// HandleWebhook обрабатывает входящие webhook-события от LiveKit.
-// Реализует ручную верификацию JWT из Authorization header + SHA256 hash body.
-// Не использует webhook.ReceiveWebhookEvent из-за несовместимости с Fiber/fasthttp.
+// HandleWebhook godoc
+// @Summary Webhook от LiveKit
+// @Description Обрабатывает входящие события от LiveKit (room_started, participant_joined и др.).
+// @Description Верификация JWT из Authorization header + SHA256 hash body.
+// @Tags Звонки
+// @Accept json
+// @Param body body object true "Webhook event от LiveKit"
+// @Success 200 "Событие обработано"
+// @Failure 400 {object} fiber.Error "Неверное тело"
+// @Failure 401 {object} fiber.Error "Невалидный webhook"
+// @Router /api/calls/webhook [post]
 func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	// Копируем тело запроса (Fiber/fasthttp переиспользует контекст)
 	body := make([]byte, len(c.Body()))
