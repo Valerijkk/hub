@@ -103,6 +103,10 @@ func (m *mockRepository) FindTestCaseByExternalID(_ context.Context, _ uuid.UUID
 	return nil, &ent.NotFoundError{}
 }
 
+func (m *mockRepository) FindTestCaseByAutomationID(_ context.Context, _ uuid.UUID, _ string) (*ent.TestCase, error) {
+	return nil, &ent.NotFoundError{}
+}
+
 func (m *mockRepository) FindTestCaseByFullName(_ context.Context, _ uuid.UUID, _ string) (*ent.TestCase, error) {
 	return nil, &ent.NotFoundError{}
 }
