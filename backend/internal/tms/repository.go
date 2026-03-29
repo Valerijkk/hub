@@ -9,11 +9,12 @@ import (
 	"github.com/valerii/hub/backend/ent/schema"
 )
 
-// Repository определяет интерфейс доступа к данным модуля TMS.
-// Позволяет тестировать сервисный слой с помощью mock-реализаций.
-type Repository interface {
-	// --- Тест-кейсы ---
+// ---------------------------------------------------------------------------
+// Focused domain interfaces (ISP — Interface Segregation Principle)
+// ---------------------------------------------------------------------------
 
+// TestCaseRepository управляет CRUD тест-кейсов, поиском и версионированием.
+type TestCaseRepository interface {
 	// CreateTestCase создаёт новый тест-кейс в проекте.
 	CreateTestCase(ctx context.Context, projectID uuid.UUID, input CreateTestCaseInput) (*ent.TestCase, error)
 	// GetTestCase возвращает тест-кейс по ID с подгруженными связями.
@@ -34,18 +35,22 @@ type Repository interface {
 	UpdateTestCase(ctx context.Context, id uuid.UUID, input UpdateTestCaseInput) (*ent.TestCase, error)
 	// DeleteTestCase удаляет тест-кейс по ID.
 	DeleteTestCase(ctx context.Context, id uuid.UUID) error
+	// IncrementTestCaseCounter атомарно увеличивает счётчик тест-кейсов проекта.
+	IncrementTestCaseCounter(ctx context.Context, projectID uuid.UUID) (int, error)
+}
 
-	// --- Версионирование ---
-
+// TestCaseVersionRepository управляет версиями (снимками) тест-кейсов.
+type TestCaseVersionRepository interface {
 	// CreateTestCaseVersion создаёт снимок версии тест-кейса.
 	CreateTestCaseVersion(ctx context.Context, testCaseID, userID uuid.UUID, versionNumber int, snapshot map[string]interface{}, description string) (*ent.TestCaseVersion, error)
 	// ListTestCaseVersions возвращает все версии тест-кейса.
 	ListTestCaseVersions(ctx context.Context, testCaseID uuid.UUID) ([]*ent.TestCaseVersion, error)
 	// GetTestCaseVersion возвращает конкретную версию по ID.
 	GetTestCaseVersion(ctx context.Context, versionID uuid.UUID) (*ent.TestCaseVersion, error)
+}
 
-	// --- Папки/сьюты ---
-
+// SuiteRepository управляет папками/секциями тест-кейсов.
+type SuiteRepository interface {
 	// CreateSuite создаёт новую папку/секцию тест-кейсов.
 	CreateSuite(ctx context.Context, projectID uuid.UUID, input CreateSuiteInput) (*ent.TestSuite, error)
 	// GetSuite возвращает папку по ID.
@@ -58,18 +63,20 @@ type Repository interface {
 	DeleteSuite(ctx context.Context, id uuid.UUID) error
 	// MoveSuite перемещает папку к другому родителю.
 	MoveSuite(ctx context.Context, id uuid.UUID, parentID *uuid.UUID) (*ent.TestSuite, error)
+}
 
-	// --- Компоненты ---
-
+// ComponentRepository управляет компонентами проекта.
+type ComponentRepository interface {
 	// CreateComponent создаёт новый компонент в проекте.
 	CreateComponent(ctx context.Context, projectID uuid.UUID, name, description string) (*ent.Component, error)
 	// ListComponents возвращает все компоненты проекта.
 	ListComponents(ctx context.Context, projectID uuid.UUID) ([]*ent.Component, error)
 	// DeleteComponent удаляет компонент по ID.
 	DeleteComponent(ctx context.Context, id uuid.UUID) error
+}
 
-	// --- Прогоны ---
-
+// TestRunRepository управляет прогонами тестов и назначением тестировщиков.
+type TestRunRepository interface {
 	// CreateTestRun создаёт новый прогон тестов.
 	CreateTestRun(ctx context.Context, projectID uuid.UUID, input CreateTestRunInput) (*ent.TestRun, error)
 	// GetTestRun возвращает прогон по ID с подгруженными связями.
@@ -82,9 +89,16 @@ type Repository interface {
 	ReopenTestRun(ctx context.Context, id uuid.UUID) (*ent.TestRun, error)
 	// UpdateTestRunStats обновляет счётчики результатов прогона.
 	UpdateTestRunStats(ctx context.Context, id uuid.UUID, stats TestRunStats) (*ent.TestRun, error)
+	// AddTestCasesToRun массово создаёт TestResult записи для каждого тест-кейса.
+	AddTestCasesToRun(ctx context.Context, runID uuid.UUID, caseIDs []uuid.UUID) error
+	// AssignTestersToRun устанавливает M2M связь прогона с назначенными тестировщиками.
+	AssignTestersToRun(ctx context.Context, runID uuid.UUID, userIDs []uuid.UUID) error
+	// GetTestRunWithResults возвращает прогон с результатами, тест-кейсами, файлами и назначенными.
+	GetTestRunWithResults(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error)
+}
 
-	// --- Результаты ---
-
+// TestResultRepository управляет результатами выполнения тестов.
+type TestResultRepository interface {
 	// CreateTestResult создаёт результат выполнения теста.
 	CreateTestResult(ctx context.Context, runID uuid.UUID, input CreateTestResultInput) (*ent.TestResult, error)
 	// UpdateTestResult обновляет результат теста.
@@ -93,21 +107,26 @@ type Repository interface {
 	ListTestResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error)
 	// BatchCreateTestResults массово создаёт результаты (для импорта Allure).
 	BatchCreateTestResults(ctx context.Context, runID uuid.UUID, inputs []CreateTestResultInput) ([]*ent.TestResult, error)
+	// GetTestResult возвращает результат по ID с подгруженными связями.
+	GetTestResult(ctx context.Context, resultID uuid.UUID) (*ent.TestResult, error)
+	// ListTestRunResults возвращает результаты прогона с подгруженными тест-кейсами и файлами.
+	ListTestRunResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error)
+	// AddFilesToResult привязывает файлы к результату теста.
+	AddFilesToResult(ctx context.Context, resultID uuid.UUID, fileIDs []uuid.UUID) error
+	// GetLastResultForTestCase возвращает последний результат для тест-кейса.
+	GetLastResultForTestCase(ctx context.Context, testCaseID uuid.UUID) (*ent.TestResult, error)
+}
 
-	// --- Счётчики ---
-
-	// IncrementTestCaseCounter атомарно увеличивает счётчик тест-кейсов проекта.
-	IncrementTestCaseCounter(ctx context.Context, projectID uuid.UUID) (int, error)
-
-	// --- MongoDB (Allure raw storage) ---
-
+// AllureRepository управляет сырыми результатами Allure в MongoDB.
+type AllureRepository interface {
 	// StoreAllureResults сохраняет сырые результаты Allure в MongoDB.
 	StoreAllureResults(ctx context.Context, runID uuid.UUID, results []AllureResult) error
 	// GetAllureResultsByRunID возвращает сырые результаты Allure для прогона.
 	GetAllureResultsByRunID(ctx context.Context, runID uuid.UUID) ([]AllureResult, error)
+}
 
-	// --- Привязка к задачам ---
-
+// IssueLinkRepository управляет привязкой тест-кейсов к задачам трекера.
+type IssueLinkRepository interface {
 	// LinkTestCaseToIssue привязывает тест-кейс к задаче.
 	LinkTestCaseToIssue(ctx context.Context, testCaseID, issueID uuid.UUID) error
 	// UnlinkTestCaseFromIssue отвязывает тест-кейс от задачи.
@@ -120,28 +139,26 @@ type Repository interface {
 	GetProjectIssuesWithTestCases(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error)
 	// CreateBugIssue создаёт задачу типа bug и привязывает к тест-кейсу.
 	CreateBugIssue(ctx context.Context, projectID, userID, testCaseID uuid.UUID, title, description, priority string) (*ent.Issue, error)
-	// GetLastResultForTestCase возвращает последний результат для тест-кейса.
-	GetLastResultForTestCase(ctx context.Context, testCaseID uuid.UUID) (*ent.TestResult, error)
+}
 
-	// --- Прямой доступ к Ent клиенту (для Environment CRUD) ---
+// ---------------------------------------------------------------------------
+// Composite interface (backward-compatible)
+// ---------------------------------------------------------------------------
+
+// Repository — композитный интерфейс для обратной совместимости.
+// Позволяет тестировать сервисный слой с помощью mock-реализаций.
+type Repository interface {
+	TestCaseRepository
+	TestCaseVersionRepository
+	SuiteRepository
+	ComponentRepository
+	TestRunRepository
+	TestResultRepository
+	AllureRepository
+	IssueLinkRepository
 
 	// EntClient возвращает Ent клиент для прямых операций с БД.
 	EntClient() *ent.Client
-
-	// --- Расширенные операции прогонов ---
-
-	// AddTestCasesToRun массово создаёт TestResult записи для каждого тест-кейса.
-	AddTestCasesToRun(ctx context.Context, runID uuid.UUID, caseIDs []uuid.UUID) error
-	// GetTestResult возвращает результат по ID с подгруженными связями.
-	GetTestResult(ctx context.Context, resultID uuid.UUID) (*ent.TestResult, error)
-	// ListTestRunResults возвращает результаты прогона с подгруженными тест-кейсами и файлами.
-	ListTestRunResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error)
-	// AssignTestersToRun устанавливает M2M связь прогона с назначенными тестировщиками.
-	AssignTestersToRun(ctx context.Context, runID uuid.UUID, userIDs []uuid.UUID) error
-	// GetTestRunWithResults возвращает прогон с результатами, тест-кейсами, файлами и назначенными.
-	GetTestRunWithResults(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error)
-	// AddFilesToResult привязывает файлы к результату теста.
-	AddFilesToResult(ctx context.Context, resultID uuid.UUID, fileIDs []uuid.UUID) error
 }
 
 // ---------------------------------------------------------------------------

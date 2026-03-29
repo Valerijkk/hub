@@ -8,11 +8,12 @@ import (
 	"github.com/valerii/hub/backend/ent"
 )
 
-// Repository определяет интерфейс доступа к данным для модуля трекера задач.
-// Позволяет тестировать сервисный слой с помощью моков.
-type Repository interface {
-	// Issue CRUD
+// ---------------------------------------------------------------------------
+// Focused domain interfaces (ISP — Interface Segregation Principle)
+// ---------------------------------------------------------------------------
 
+// IssueRepository управляет CRUD задач и перемещением на доске.
+type IssueRepository interface {
 	// CreateIssue создаёт новую задачу в указанном проекте.
 	CreateIssue(ctx context.Context, projectID uuid.UUID, input CreateIssueInput) (*ent.Issue, error)
 	// FindIssueByKey возвращает задачу по проектному ключу (например "HUB-1").
@@ -27,18 +28,20 @@ type Repository interface {
 	DeleteIssue(ctx context.Context, issueID uuid.UUID) error
 	// MoveIssue изменяет статус и ранг задачи (перемещение на Kanban-доске).
 	MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string) (*ent.Issue, error)
+}
 
-	// Issue links
-
+// IssueLinkRepository управляет направленными связями между задачами.
+type IssueLinkRepository interface {
 	// CreateIssueLink создаёт направленную связь между двумя задачами.
 	CreateIssueLink(ctx context.Context, sourceID, targetID uuid.UUID, linkType string, customType string) (*ent.IssueLink, error)
 	// ListIssueLinks возвращает все связи (входящие и исходящие) для задачи.
 	ListIssueLinks(ctx context.Context, issueID uuid.UUID) ([]*ent.IssueLink, error)
 	// DeleteIssueLink удаляет связь между задачами.
 	DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error
+}
 
-	// Workflow
-
+// WorkflowRepository управляет статусами и переходами workflow проекта.
+type WorkflowRepository interface {
 	// ListWorkflowStatuses возвращает все статусы workflow проекта, отсортированные по sort_order.
 	ListWorkflowStatuses(ctx context.Context, projectID uuid.UUID) ([]*ent.WorkflowStatus, error)
 	// CreateWorkflowStatus создаёт новый статус workflow в проекте.
@@ -59,9 +62,10 @@ type Repository interface {
 	FindTransition(ctx context.Context, fromStatusID, toStatusID uuid.UUID) (*ent.WorkflowTransition, error)
 	// SeedDefaultWorkflow создаёт стандартные статусы и переходы workflow для нового проекта.
 	SeedDefaultWorkflow(ctx context.Context, projectID uuid.UUID) error
+}
 
-	// Comments
-
+// CommentRepository управляет комментариями и реакциями к задачам.
+type CommentRepository interface {
 	// CreateComment добавляет новый комментарий к задаче.
 	CreateComment(ctx context.Context, issueID, authorID uuid.UUID, input CreateCommentInput) (*ent.Comment, error)
 	// ListComments возвращает все комментарии задачи.
@@ -70,21 +74,20 @@ type Repository interface {
 	UpdateComment(ctx context.Context, commentID uuid.UUID, input UpdateCommentInput) (*ent.Comment, error)
 	// DeleteComment удаляет комментарий по ID.
 	DeleteComment(ctx context.Context, commentID uuid.UUID) error
-
-	// Reactions
-
 	// ToggleReaction добавляет или удаляет реакцию. Возвращает true если добавлена, false если удалена.
 	ToggleReaction(ctx context.Context, commentID, userID uuid.UUID, emoji string) (bool, error)
+}
 
-	// Activity log
-
+// ActivityRepository управляет логом активности задач.
+type ActivityRepository interface {
 	// LogActivity записывает событие активности для задачи.
 	LogActivity(ctx context.Context, issueID, userID uuid.UUID, action string, changes []FieldChange) (*ent.ActivityLog, error)
 	// ListActivities возвращает все записи лога активности задачи.
 	ListActivities(ctx context.Context, issueID uuid.UUID) ([]*ent.ActivityLog, error)
+}
 
-	// Time tracking
-
+// TimeTrackingRepository управляет учётом времени на задачах.
+type TimeTrackingRepository interface {
 	// LogTime записывает вручную введённое время на задачу.
 	LogTime(ctx context.Context, issueID, userID uuid.UUID, minutes int, description string) (*ent.TimeLog, error)
 	// StartTimer запускает таймер на задаче для пользователя.
@@ -93,9 +96,10 @@ type Repository interface {
 	StopTimer(ctx context.Context, issueID, userID uuid.UUID) (*ent.TimeLog, error)
 	// ListTimeLogs возвращает все записи учёта времени для задачи.
 	ListTimeLogs(ctx context.Context, issueID uuid.UUID) ([]*ent.TimeLog, error)
+}
 
-	// Labels
-
+// LabelRepository управляет метками и группами меток проекта.
+type LabelRepository interface {
 	// CreateLabel создаёт новую метку в проекте, опционально в группе.
 	CreateLabel(ctx context.Context, projectID uuid.UUID, name, color string, groupID *uuid.UUID) (*ent.Label, error)
 	// ListLabels возвращает все метки проекта.
@@ -106,24 +110,44 @@ type Repository interface {
 	CreateLabelGroup(ctx context.Context, projectID uuid.UUID, name string) (*ent.LabelGroup, error)
 	// ListLabelGroups возвращает все группы меток проекта с вложенными метками.
 	ListLabelGroups(ctx context.Context, projectID uuid.UUID) ([]*ent.LabelGroup, error)
+}
 
-	// Boards
-
+// BoardRepository управляет досками проекта.
+type BoardRepository interface {
 	// CreateBoard создаёт новую доску в проекте с опциональными сохранёнными фильтрами.
 	CreateBoard(ctx context.Context, projectID uuid.UUID, name string, filters map[string]interface{}) (*ent.Board, error)
 	// ListBoards возвращает все доски проекта.
 	ListBoards(ctx context.Context, projectID uuid.UUID) ([]*ent.Board, error)
 	// GetBoardData возвращает доску по ID с данными для рендеринга.
 	GetBoardData(ctx context.Context, boardID uuid.UUID) (*ent.Board, error)
+}
 
-	// Custom fields
-
+// CustomFieldRepository управляет определениями кастомных полей проекта.
+type CustomFieldRepository interface {
 	// CreateCustomField создаёт новое определение кастомного поля в проекте.
 	CreateCustomField(ctx context.Context, projectID uuid.UUID, input CreateCustomFieldInput) (*ent.CustomFieldDefinition, error)
 	// ListCustomFields возвращает все определения кастомных полей проекта.
 	ListCustomFields(ctx context.Context, projectID uuid.UUID) ([]*ent.CustomFieldDefinition, error)
 	// DeleteCustomField удаляет определение кастомного поля по ID.
 	DeleteCustomField(ctx context.Context, fieldID uuid.UUID) error
+}
+
+// ---------------------------------------------------------------------------
+// Composite interface (backward-compatible)
+// ---------------------------------------------------------------------------
+
+// Repository — композитный интерфейс для обратной совместимости.
+// Позволяет тестировать сервисный слой с помощью моков.
+type Repository interface {
+	IssueRepository
+	IssueLinkRepository
+	WorkflowRepository
+	CommentRepository
+	ActivityRepository
+	TimeTrackingRepository
+	LabelRepository
+	BoardRepository
+	CustomFieldRepository
 
 	// GetDB возвращает Ent-клиент для прямых запросов (JQL и др.).
 	GetDB() *ent.Client

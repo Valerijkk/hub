@@ -8,11 +8,12 @@ import (
 	"github.com/valerii/hub/backend/ent"
 )
 
-// Repository определяет интерфейс доступа к данным модуля мессенджера.
-// Разделён на две реализации: EntRepository (PG) и MongoRepository (MongoDB).
-type Repository interface {
-	// --- Каналы (Ent/PG) ---
+// ---------------------------------------------------------------------------
+// Focused domain interfaces (ISP — Interface Segregation Principle)
+// ---------------------------------------------------------------------------
 
+// ChannelRepository управляет каналами, участниками и правами доступа (Ent/PG).
+type ChannelRepository interface {
 	// CreateChannel создаёт новый канал.
 	CreateChannel(ctx context.Context, input CreateChannelInput) (*ent.Channel, error)
 	// GetChannel возвращает канал по ID с загрузкой участников.
@@ -37,9 +38,10 @@ type Repository interface {
 	FindDMChannel(ctx context.Context, dmKey string) (*ent.Channel, error)
 	// ListMembers возвращает всех участников канала.
 	ListMembers(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelMember, error)
+}
 
-	// --- Starred / Mute ---
-
+// StarMuteRepository управляет закреплением (starred) и мьютом каналов (Ent/PG).
+type StarMuteRepository interface {
 	// ToggleStar переключает is_starred для пользователя в канале.
 	ToggleStar(ctx context.Context, channelID, userID uuid.UUID) (bool, error)
 	// MuteChannel устанавливает muted_until для пользователя в канале.
@@ -50,9 +52,10 @@ type Repository interface {
 	IsChannelMuted(ctx context.Context, channelID, userID uuid.UUID) (bool, error)
 	// GetUserChannelMemberships возвращает membership-данные пользователя (starred, muted).
 	GetUserChannelMemberships(ctx context.Context, userID uuid.UUID) ([]*ent.ChannelMember, error)
+}
 
-	// --- Сообщения (MongoDB) ---
-
+// MessageRepository управляет сообщениями и тредами (MongoDB).
+type MessageRepository interface {
 	// InsertMessage сохраняет сообщение в MongoDB.
 	InsertMessage(ctx context.Context, doc *MessageDocument) (string, error)
 	// FindMessageByID возвращает сообщение по ID.
@@ -69,23 +72,26 @@ type Repository interface {
 	DecrementReplyCount(ctx context.Context, messageID string) error
 	// ListThreadReplies возвращает ответы в треде с курсорной пагинацией.
 	ListThreadReplies(ctx context.Context, threadID string, before *time.Time, limit int) ([]*MessageDocument, error)
+}
 
-	// --- Реакции (MongoDB) ---
-
+// ReactionRepository управляет реакциями на сообщения (MongoDB).
+type ReactionRepository interface {
 	// AddReaction добавляет реакцию пользователя к сообщению.
 	AddReaction(ctx context.Context, messageID, userID, emoji string) error
 	// RemoveReaction удаляет реакцию пользователя с сообщения.
 	RemoveReaction(ctx context.Context, messageID, userID, emoji string) error
 	// FindReaction проверяет наличие реакции пользователя.
 	FindReaction(ctx context.Context, messageID, userID, emoji string) (bool, error)
+}
 
-	// --- Поиск (MongoDB) ---
-
+// SearchRepository обеспечивает полнотекстовый поиск сообщений (MongoDB).
+type SearchRepository interface {
 	// SearchMessages выполняет полнотекстовый поиск по сообщениям.
 	SearchMessages(ctx context.Context, query string, channelID *uuid.UUID, limit int) ([]*MessageDocument, error)
+}
 
-	// --- Закреплённые сообщения (Ent/PG) ---
-
+// PinRepository управляет закреплёнными сообщениями (Ent/PG).
+type PinRepository interface {
 	// AddPin закрепляет сообщение в канале.
 	AddPin(ctx context.Context, channelID uuid.UUID, messageID string, pinnedBy uuid.UUID) error
 	// RemovePin открепляет сообщение.
@@ -94,17 +100,32 @@ type Repository interface {
 	FindPin(ctx context.Context, channelID uuid.UUID, messageID string) (*ent.PinnedMessage, error)
 	// ListPins возвращает все закреплённые сообщения канала.
 	ListPins(ctx context.Context, channelID uuid.UUID) ([]*ent.PinnedMessage, error)
+}
 
-	// --- Закладки (Ent/PG) ---
-
+// BookmarkRepository управляет закладками (Ent/PG).
+type BookmarkRepository interface {
 	// AddBookmark добавляет закладку пользователя.
 	AddBookmark(ctx context.Context, userID uuid.UUID, messageID string, channelID uuid.UUID) (*ent.Bookmark, error)
 	// RemoveBookmark удаляет закладку.
 	RemoveBookmark(ctx context.Context, bookmarkID uuid.UUID) error
 	// ListBookmarks возвращает все закладки пользователя.
 	ListBookmarks(ctx context.Context, userID uuid.UUID) ([]*ent.Bookmark, error)
+}
 
-	// --- Инициализация ---
+// ---------------------------------------------------------------------------
+// Composite interface (backward-compatible)
+// ---------------------------------------------------------------------------
+
+// Repository — композитный интерфейс для обратной совместимости.
+// Разделён на две реализации: EntRepository (PG) и MongoRepository (MongoDB).
+type Repository interface {
+	ChannelRepository
+	StarMuteRepository
+	MessageRepository
+	ReactionRepository
+	SearchRepository
+	PinRepository
+	BookmarkRepository
 
 	// EnsureIndexes создаёт необходимые MongoDB-индексы.
 	EnsureIndexes(ctx context.Context) error
