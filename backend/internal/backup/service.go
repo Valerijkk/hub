@@ -99,7 +99,7 @@ func (s *BackupService) PerformBackup(ctx context.Context) (*BackupResponse, err
 	}
 
 	// Ротация старых бэкапов
-	go s.cleanupOldBackups(context.Background())
+	go s.cleanupOldBackups(ctx)
 
 	return toBackupResponse(record), nil
 }

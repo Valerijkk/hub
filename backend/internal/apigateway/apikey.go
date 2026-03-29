@@ -124,7 +124,8 @@ func (s *APIKeyService) VerifyAPIKey(ctx context.Context, rawKey string) (uuid.U
 
 	// Обновляем last_used_at в фоне (не блокируем запрос)
 	go func() {
-		bgCtx := context.Background()
+		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 		if err := s.db.APIKey.UpdateOneID(ak.ID).
 			SetLastUsedAt(time.Now()).
 			Exec(bgCtx); err != nil {
