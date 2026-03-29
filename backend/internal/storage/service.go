@@ -15,6 +15,7 @@ import (
 	"github.com/valerii/hub/backend/internal/platform/config"
 )
 
+// Настройки файлового хранилища.
 const (
 	uploadURLTTL   = 5 * time.Minute
 	downloadURLTTL = 1 * time.Hour

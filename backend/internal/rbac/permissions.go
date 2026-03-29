@@ -4,6 +4,7 @@ package rbac
 // Каждое разрешение — один бит, что позволяет хранить до 64 различных разрешений.
 type Permission uint64
 
+// Битовые маски прав доступа (RBAC).
 const (
 	PermProjectView          Permission = 1 << iota // 1
 	PermProjectEdit                                 // 2

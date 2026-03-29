@@ -23,6 +23,7 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
+// Настройки аудита, лимитов и корзины.
 const (
 	// Ключи лимитов в SystemSetting.
 	LimitFileMaxSizeMB      = "limit.file.max_size_mb"

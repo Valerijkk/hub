@@ -11,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// Настройки Magic Link авторизации.
 const (
 	magicLinkTTL     = 5 * time.Minute
 	magicLinkRateMax = 3

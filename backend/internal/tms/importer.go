@@ -23,6 +23,7 @@ import (
 // ImportFormat определяет формат файла для импорта.
 type ImportFormat string
 
+// Настройки импорта тест-кейсов.
 const (
 	ImportFormatCSV   ImportFormat = "csv"
 	ImportFormatJSON  ImportFormat = "json"

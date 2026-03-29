@@ -3,6 +3,7 @@ package ws
 // MessageType — тип WebSocket-сообщения (subscribe, event, ping и т.д.).
 type MessageType string
 
+// Типы WebSocket-сообщений и протокол.
 const (
 	TypeSubscribe   MessageType = "subscribe"
 	TypeUnsubscribe MessageType = "unsubscribe"

@@ -15,6 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// Настройки Telegram бот-авторизации.
 const (
 	tgCodeTTL    = 5 * time.Minute
 	tgCodePrefix = "tglogin:"

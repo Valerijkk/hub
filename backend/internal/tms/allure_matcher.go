@@ -25,6 +25,7 @@ var caseKeyInNameRegex = regexp.MustCompile(`\b([A-Z]+-TC-\d+)\b`)
 // MatchStrategy определяет стратегию, по которой был найден тест-кейс.
 type MatchStrategy int
 
+// Паттерны сопоставления Allure-тестов.
 const (
 	// MatchByAnnotation — найден по аннотации (link type=tms или label AS_ID/tms).
 	MatchByAnnotation MatchStrategy = iota
