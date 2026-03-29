@@ -1,6 +1,7 @@
 package search
 
 import (
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -46,6 +47,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, requireAuth fiber.Handler) {
 func (h *Handler) search(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
+		slog.Error("search: getUserID failed", "error", err, "locals_userID_raw", c.Locals("userID"), "auth_header_present", c.Get("Authorization") != "")
 		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
 	}
 
