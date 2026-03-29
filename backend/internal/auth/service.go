@@ -233,10 +233,12 @@ func (s *AuthService) RefreshToken(ctx context.Context, oldRefreshToken string) 
 	}
 
 	// Update session in Ent.
-	s.db.Session.UpdateOneID(sessionID).
+	if _, saveErr := s.db.Session.UpdateOneID(sessionID).
 		SetRefreshToken(newRefresh).
 		SetLastActiveAt(time.Now()).
-		SaveX(ctx)
+		Save(ctx); saveErr != nil {
+		slog.Error("failed to update session after token refresh", "error", saveErr, "session_id", sessionID)
+	}
 
 	return &TokenPairResponse{
 		AccessToken:  accessToken,
