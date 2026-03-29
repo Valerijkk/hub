@@ -217,9 +217,16 @@ func (h *Handler) shareFilter(c fiber.Ctx) error {
 
 // getUserID извлекает ID пользователя из контекста Fiber (установлен auth middleware).
 func getUserID(c fiber.Ctx) (uuid.UUID, error) {
-	idStr, ok := c.Locals("userID").(string)
-	if !ok {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "user_id отсутствует")
+	raw := c.Locals("userID")
+	if raw == nil {
+		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "userID отсутствует в контексте")
 	}
-	return uuid.Parse(idStr)
+	switch v := raw.(type) {
+	case string:
+		return uuid.Parse(v)
+	case uuid.UUID:
+		return v, nil
+	default:
+		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "userID неизвестного типа")
+	}
 }
