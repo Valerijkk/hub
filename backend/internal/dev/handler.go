@@ -61,11 +61,27 @@ type DevUserInfo struct {
 // --- Handlers ---
 
 // Status returns 200 if dev mode is active. Used by frontend to detect availability.
+// @Summary Проверить статус dev-режима
+// @Description Возвращает 200 если dev-режим активен. Используется фронтендом для определения доступности
+// @Tags Разработка
+// @Produce json
+// @Success 200 {object} map[string]bool "dev_mode: true"
+// @Router /dev/status [get]
 func (h *Handler) Status(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"dev_mode": true})
 }
 
 // Login performs login without Magic Link -- directly creates a JWT session by email.
+// @Summary Dev-вход по email
+// @Description Создаёт JWT-сессию напрямую по email без magic-link. Только в dev-режиме
+// @Tags Разработка
+// @Accept json
+// @Produce json
+// @Param body body DevLoginRequest true "Email пользователя"
+// @Success 200 {object} object "access_token, refresh_token, user"
+// @Failure 400 {object} map[string]string "Email не указан"
+// @Failure 404 {object} map[string]string "Пользователь не найден"
+// @Router /dev/login [post]
 func (h *Handler) Login(c fiber.Ctx) error {
 	var req DevLoginRequest
 	if err := c.Bind().JSON(&req); err != nil {

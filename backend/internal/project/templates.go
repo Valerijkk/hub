@@ -234,6 +234,14 @@ func (h *TemplateHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler)
 }
 
 // ListTemplates обрабатывает GET /api/project-templates.
+// @Summary Получить список шаблонов проектов
+// @Description Возвращает все доступные шаблоны: системные и пользовательские
+// @Tags Шаблоны проектов
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} TemplateResponse "Список шаблонов"
+// @Failure 500 {object} map[string]string "Ошибка сервера"
+// @Router /project-templates [get]
 func (h *TemplateHandler) ListTemplates(c fiber.Ctx) error {
 	templates, err := h.svc.ListTemplates(c.Context())
 	if err != nil {
@@ -243,6 +251,16 @@ func (h *TemplateHandler) ListTemplates(c fiber.Ctx) error {
 }
 
 // SaveAsTemplate обрабатывает POST /api/project-templates.
+// @Summary Сохранить проект как шаблон
+// @Description Создаёт пользовательский шаблон на основе конфигурации существующего проекта
+// @Tags Шаблоны проектов
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body object true "project_id, name, description"
+// @Success 201 {object} TemplateResponse "Созданный шаблон"
+// @Failure 400 {object} map[string]string "Некорректный запрос"
+// @Router /project-templates [post]
 func (h *TemplateHandler) SaveAsTemplate(c fiber.Ctx) error {
 	userID, err := templateUserID(c)
 	if err != nil {
@@ -271,6 +289,16 @@ func (h *TemplateHandler) SaveAsTemplate(c fiber.Ctx) error {
 }
 
 // DeleteTemplate обрабатывает DELETE /api/project-templates/:id.
+// @Summary Удалить шаблон проекта
+// @Description Удаляет пользовательский шаблон. Системные шаблоны удалить нельзя
+// @Tags Шаблоны проектов
+// @Security BearerAuth
+// @Param id path string true "ID шаблона"
+// @Success 204 "Шаблон удалён"
+// @Failure 400 {object} map[string]string "Некорректный ID"
+// @Failure 403 {object} map[string]string "Системный шаблон нельзя удалить"
+// @Failure 404 {object} map[string]string "Шаблон не найден"
+// @Router /project-templates/{id} [delete]
 func (h *TemplateHandler) DeleteTemplate(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	id, err := uuid.Parse(idStr)

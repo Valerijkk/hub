@@ -29,6 +29,13 @@ import (
 // Seed creates a full set of demo data: users, project, workflow statuses,
 // issues with hierarchy and links, labels, boards, test cases and messenger channels.
 // Idempotent -- on repeated calls skips already created data.
+// @Summary Заполнить БД демо-данными
+// @Description Создаёт демо-пользователей, проект, задачи, доски, метки, тест-кейсы и каналы. Идемпотентно
+// @Tags Разработка
+// @Produce json
+// @Success 200 {object} object "Созданные демо-данные"
+// @Failure 500 {object} map[string]string "Ошибка сидирования"
+// @Router /dev/seed [post]
 func (h *Handler) Seed(c fiber.Ctx) error {
 	ctx := c.Context()
 

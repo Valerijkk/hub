@@ -138,6 +138,16 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 }
 
 // LoginTelegram обрабатывает POST /api/auth/telegram — вход через Telegram Web App.
+// @Summary Вход через Telegram Web App
+// @Description Аутентификация через initData из Telegram Mini App
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body TelegramAuthRequest true "initData из Telegram Web App"
+// @Success 200 {object} TokenPairResponse "JWT-токены"
+// @Failure 401 {object} map[string]string "Ошибка аутентификации Telegram"
+// @Failure 403 {object} map[string]string "Регистрация только по приглашению"
+// @Router /auth/telegram [post]
 func (h *Handler) LoginTelegram(c fiber.Ctx) error {
 	var req TelegramAuthRequest
 	if err := c.Bind().JSON(&req); err != nil {
@@ -162,6 +172,18 @@ func (h *Handler) LoginTelegram(c fiber.Ctx) error {
 }
 
 // LoginTelegramCode обрабатывает POST /api/auth/telegram-code — вход по коду из Telegram-бота.
+// @Summary Вход по коду из Telegram-бота
+// @Description Аутентификация по одноразовому коду, полученному от Telegram-бота
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body object true "code — одноразовый код"
+// @Success 200 {object} TokenPairResponse "JWT-токены"
+// @Failure 400 {object} map[string]string "Код не указан"
+// @Failure 401 {object} map[string]string "Неверный или просроченный код"
+// @Failure 403 {object} map[string]string "Регистрация только по приглашению"
+// @Failure 503 {object} map[string]string "Telegram-бот не настроен"
+// @Router /auth/telegram-code [post]
 func (h *Handler) LoginTelegramCode(c fiber.Ctx) error {
 	var req struct {
 		Code string `json:"code"`
@@ -265,6 +287,17 @@ func (h *Handler) GetMe(c fiber.Ctx) error {
 }
 
 // UpdateProfile обрабатывает PUT /api/auth/me — обновление профиля текущего пользователя.
+// @Summary Обновить профиль пользователя
+// @Description Обновляет имя, аватар и другие поля профиля текущего пользователя
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body UpdateProfileRequest true "Поля для обновления"
+// @Success 200 {object} UserResponse "Обновлённый профиль"
+// @Failure 400 {object} map[string]string "Некорректный запрос"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Router /auth/me [put]
 func (h *Handler) UpdateProfile(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -285,6 +318,17 @@ func (h *Handler) UpdateProfile(c fiber.Ctx) error {
 }
 
 // CompleteOnboarding обрабатывает POST /api/auth/me/onboarding — завершение онбординга.
+// @Summary Завершить онбординг пользователя
+// @Description Сохраняет данные онбординга (имя, роль, предпочтения) и отмечает его пройденным
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body OnboardingCompleteRequest true "Данные онбординга"
+// @Success 200 {object} UserResponse "Профиль после онбординга"
+// @Failure 400 {object} map[string]string "Некорректный запрос"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Router /auth/me/onboarding [post]
 func (h *Handler) CompleteOnboarding(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -305,6 +349,14 @@ func (h *Handler) CompleteOnboarding(c fiber.Ctx) error {
 }
 
 // ListSessions обрабатывает GET /api/auth/sessions — список активных сессий пользователя.
+// @Summary Получить список активных сессий
+// @Description Возвращает все активные сессии текущего пользователя с пометкой текущей
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} SessionResponse "Список сессий"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Router /auth/sessions [get]
 func (h *Handler) ListSessions(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -334,6 +386,17 @@ func (h *Handler) ListSessions(c fiber.Ctx) error {
 }
 
 // RevokeSession обрабатывает DELETE /api/auth/sessions/:sessionId — отзыв сессии.
+// @Summary Отозвать сессию
+// @Description Завершает указанную сессию пользователя (можно завершить любую свою сессию)
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Param sessionId path string true "ID сессии"
+// @Success 200 {object} map[string]string "Сессия отозвана"
+// @Failure 400 {object} map[string]string "Некорректный ID сессии"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 404 {object} map[string]string "Сессия не найдена"
+// @Router /auth/sessions/{sessionId} [delete]
 func (h *Handler) RevokeSession(c fiber.Ctx) error {
 	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
@@ -357,6 +420,15 @@ func (h *Handler) RevokeSession(c fiber.Ctx) error {
 // ---- Admin handlers ----
 
 // GetRegistrationMode обрабатывает GET /api/admin/registration-mode — получение режима регистрации.
+// @Summary Получить режим регистрации
+// @Description Возвращает текущий режим регистрации: open или invite_only (только для админов)
+// @Tags Администрирование
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "Текущий режим"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 403 {object} map[string]string "Нет прав администратора"
+// @Router /admin/registration-mode [get]
 func (h *Handler) GetRegistrationMode(c fiber.Ctx) error {
 	if err := h.requireAdmin(c); err != nil {
 		return err
@@ -371,6 +443,18 @@ func (h *Handler) GetRegistrationMode(c fiber.Ctx) error {
 }
 
 // SetRegistrationMode обрабатывает PUT /api/admin/registration-mode — установка режима регистрации.
+// @Summary Установить режим регистрации
+// @Description Переключает режим регистрации между open и invite_only (только для админов)
+// @Tags Администрирование
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body SetRegistrationModeRequest true "Новый режим: open или invite_only"
+// @Success 200 {object} map[string]string "Установленный режим"
+// @Failure 400 {object} map[string]string "Некорректный режим"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 403 {object} map[string]string "Нет прав администратора"
+// @Router /admin/registration-mode [put]
 func (h *Handler) SetRegistrationMode(c fiber.Ctx) error {
 	if err := h.requireAdmin(c); err != nil {
 		return err

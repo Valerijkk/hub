@@ -92,6 +92,16 @@ func (s *TemplateService) ImportTemplate(ctx context.Context, userID uuid.UUID, 
 // ---------------------------------------------------------------------------
 
 // ExportTemplateHandler обрабатывает GET /api/project-templates/:id/export.
+// @Summary Экспортировать шаблон проекта
+// @Description Выгружает шаблон в формате JSON для обмена между инстансами
+// @Tags Шаблоны проектов
+// @Produce application/json
+// @Security BearerAuth
+// @Param id path string true "ID шаблона"
+// @Success 200 {object} TemplateExport "JSON-файл шаблона"
+// @Failure 400 {object} map[string]string "Некорректный ID"
+// @Failure 500 {object} map[string]string "Ошибка экспорта"
+// @Router /project-templates/{id}/export [get]
 func (h *TemplateHandler) ExportTemplateHandler(c fiber.Ctx) error {
 	idStr := utils.CopyString(c.Params("id"))
 	id, err := uuid.Parse(idStr)
@@ -110,6 +120,16 @@ func (h *TemplateHandler) ExportTemplateHandler(c fiber.Ctx) error {
 }
 
 // ImportTemplateHandler обрабатывает POST /api/project-templates/import.
+// @Summary Импортировать шаблон проекта
+// @Description Загружает JSON-файл шаблона и создаёт его как пользовательский шаблон
+// @Tags Шаблоны проектов
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param file formData file true "JSON-файл шаблона"
+// @Success 201 {object} TemplateResponse "Импортированный шаблон"
+// @Failure 400 {object} map[string]string "Некорректный файл"
+// @Router /project-templates/import [post]
 func (h *TemplateHandler) ImportTemplateHandler(c fiber.Ctx) error {
 	userID, err := templateUserID(c)
 	if err != nil {

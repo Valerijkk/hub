@@ -123,6 +123,17 @@ func toEnvironmentResponse(e *ent.Environment) *EnvironmentResponse {
 // --- HTTP handlers для окружений ---
 
 // CreateEnvironmentHandler обрабатывает POST /api/projects/:projectId/environments.
+// @Summary Создать тестовое окружение
+// @Description Создаёт новое тестовое окружение (dev/staging/prod/custom) в проекте
+// @Tags Окружения
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param projectId path string true "ID проекта"
+// @Param body body CreateEnvironmentRequest true "Данные окружения"
+// @Success 201 {object} EnvironmentResponse "Созданное окружение"
+// @Failure 400 {object} map[string]string "Некорректный запрос"
+// @Router /projects/{projectId}/environments [post]
 func (h *Handler) CreateEnvironmentHandler(c fiber.Ctx) error {
 	projectID, err := parseTMSProjectID(c)
 	if err != nil {
@@ -146,6 +157,15 @@ func (h *Handler) CreateEnvironmentHandler(c fiber.Ctx) error {
 }
 
 // ListEnvironmentsHandler обрабатывает GET /api/projects/:projectId/environments.
+// @Summary Получить список окружений
+// @Description Возвращает все тестовые окружения указанного проекта
+// @Tags Окружения
+// @Produce json
+// @Security BearerAuth
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} EnvironmentResponse "Список окружений"
+// @Failure 400 {object} map[string]string "Некорректный ID проекта"
+// @Router /projects/{projectId}/environments [get]
 func (h *Handler) ListEnvironmentsHandler(c fiber.Ctx) error {
 	projectID, err := parseTMSProjectID(c)
 	if err != nil {
@@ -161,6 +181,19 @@ func (h *Handler) ListEnvironmentsHandler(c fiber.Ctx) error {
 }
 
 // UpdateEnvironmentHandler обрабатывает PUT /api/projects/:projectId/environments/:envId.
+// @Summary Обновить тестовое окружение
+// @Description Обновляет название, метку или конфигурацию окружения
+// @Tags Окружения
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param projectId path string true "ID проекта"
+// @Param envId path string true "ID окружения"
+// @Param body body UpdateEnvironmentRequest true "Поля для обновления"
+// @Success 200 {object} EnvironmentResponse "Обновлённое окружение"
+// @Failure 400 {object} map[string]string "Некорректный запрос"
+// @Failure 404 {object} map[string]string "Окружение не найдено"
+// @Router /projects/{projectId}/environments/{envId} [put]
 func (h *Handler) UpdateEnvironmentHandler(c fiber.Ctx) error {
 	envIDStr := utils.CopyString(c.Params("envId"))
 	envID, err := uuid.Parse(envIDStr)
@@ -182,6 +215,16 @@ func (h *Handler) UpdateEnvironmentHandler(c fiber.Ctx) error {
 }
 
 // DeleteEnvironmentHandler обрабатывает DELETE /api/projects/:projectId/environments/:envId.
+// @Summary Удалить тестовое окружение
+// @Description Удаляет окружение из проекта. Действие необратимо
+// @Tags Окружения
+// @Security BearerAuth
+// @Param projectId path string true "ID проекта"
+// @Param envId path string true "ID окружения"
+// @Success 204 "Окружение удалено"
+// @Failure 400 {object} map[string]string "Некорректный ID"
+// @Failure 404 {object} map[string]string "Окружение не найдено"
+// @Router /projects/{projectId}/environments/{envId} [delete]
 func (h *Handler) DeleteEnvironmentHandler(c fiber.Ctx) error {
 	envIDStr := utils.CopyString(c.Params("envId"))
 	envID, err := uuid.Parse(envIDStr)

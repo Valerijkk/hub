@@ -28,6 +28,18 @@ func (h *CustomRoleHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handle
 }
 
 // CreateRole обрабатывает POST /api/projects/:projectId/roles.
+// @Summary Создать кастомную роль
+// @Description Создаёт новую роль с набором разрешений в проекте
+// @Tags Роли и права
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param projectId path string true "ID проекта"
+// @Param body body CustomRoleRequest true "Название и разрешения роли"
+// @Success 201 {object} object "Созданная роль"
+// @Failure 400 {object} map[string]string "Некорректный запрос"
+// @Failure 500 {object} map[string]string "Ошибка создания"
+// @Router /projects/{projectId}/roles [post]
 func (h *CustomRoleHandler) CreateRole(c fiber.Ctx) error {
 	projectID, err := uuid.Parse(c.Params("projectId"))
 	if err != nil {
@@ -47,6 +59,16 @@ func (h *CustomRoleHandler) CreateRole(c fiber.Ctx) error {
 }
 
 // ListRoles обрабатывает GET /api/projects/:projectId/roles.
+// @Summary Получить список ролей проекта
+// @Description Возвращает все кастомные роли с их разрешениями
+// @Tags Роли и права
+// @Produce json
+// @Security BearerAuth
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} object "Список ролей"
+// @Failure 400 {object} map[string]string "Некорректный ID проекта"
+// @Failure 500 {object} map[string]string "Ошибка получения"
+// @Router /projects/{projectId}/roles [get]
 func (h *CustomRoleHandler) ListRoles(c fiber.Ctx) error {
 	projectID, err := uuid.Parse(c.Params("projectId"))
 	if err != nil {
@@ -61,6 +83,19 @@ func (h *CustomRoleHandler) ListRoles(c fiber.Ctx) error {
 }
 
 // UpdateRole обрабатывает PUT /api/projects/:projectId/roles/:roleId.
+// @Summary Обновить кастомную роль
+// @Description Обновляет название и/или разрешения роли
+// @Tags Роли и права
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param projectId path string true "ID проекта"
+// @Param roleId path string true "ID роли"
+// @Param body body CustomRoleRequest true "Новые данные роли"
+// @Success 200 {object} object "Обновлённая роль"
+// @Failure 400 {object} map[string]string "Некорректный запрос"
+// @Failure 500 {object} map[string]string "Ошибка обновления"
+// @Router /projects/{projectId}/roles/{roleId} [put]
 func (h *CustomRoleHandler) UpdateRole(c fiber.Ctx) error {
 	roleID, err := uuid.Parse(c.Params("roleId"))
 	if err != nil {
@@ -80,6 +115,17 @@ func (h *CustomRoleHandler) UpdateRole(c fiber.Ctx) error {
 }
 
 // DeleteRole обрабатывает DELETE /api/projects/:projectId/roles/:roleId.
+// @Summary Удалить кастомную роль
+// @Description Удаляет роль из проекта. Пользователи с этой ролью потеряют её
+// @Tags Роли и права
+// @Produce json
+// @Security BearerAuth
+// @Param projectId path string true "ID проекта"
+// @Param roleId path string true "ID роли"
+// @Success 200 {object} map[string]string "Роль удалена"
+// @Failure 400 {object} map[string]string "Некорректный ID"
+// @Failure 500 {object} map[string]string "Ошибка удаления"
+// @Router /projects/{projectId}/roles/{roleId} [delete]
 func (h *CustomRoleHandler) DeleteRole(c fiber.Ctx) error {
 	roleID, err := uuid.Parse(c.Params("roleId"))
 	if err != nil {
@@ -93,6 +139,18 @@ func (h *CustomRoleHandler) DeleteRole(c fiber.Ctx) error {
 }
 
 // AssignRole обрабатывает POST /api/projects/:projectId/roles/:roleId/assign/:userId.
+// @Summary Назначить роль пользователю
+// @Description Назначает кастомную роль участнику проекта
+// @Tags Роли и права
+// @Produce json
+// @Security BearerAuth
+// @Param projectId path string true "ID проекта"
+// @Param roleId path string true "ID роли"
+// @Param userId path string true "ID пользователя"
+// @Success 200 {object} map[string]string "Роль назначена"
+// @Failure 400 {object} map[string]string "Некорректный ID"
+// @Failure 500 {object} map[string]string "Ошибка назначения"
+// @Router /projects/{projectId}/roles/{roleId}/assign/{userId} [post]
 func (h *CustomRoleHandler) AssignRole(c fiber.Ctx) error {
 	projectID, err := uuid.Parse(c.Params("projectId"))
 	if err != nil {
@@ -114,6 +172,18 @@ func (h *CustomRoleHandler) AssignRole(c fiber.Ctx) error {
 }
 
 // UnassignRole обрабатывает DELETE /api/projects/:projectId/roles/:roleId/assign/:userId.
+// @Summary Снять роль с пользователя
+// @Description Снимает кастомную роль с участника проекта
+// @Tags Роли и права
+// @Produce json
+// @Security BearerAuth
+// @Param projectId path string true "ID проекта"
+// @Param roleId path string true "ID роли"
+// @Param userId path string true "ID пользователя"
+// @Success 200 {object} map[string]string "Роль снята"
+// @Failure 400 {object} map[string]string "Некорректный ID"
+// @Failure 500 {object} map[string]string "Ошибка снятия роли"
+// @Router /projects/{projectId}/roles/{roleId}/assign/{userId} [delete]
 func (h *CustomRoleHandler) UnassignRole(c fiber.Ctx) error {
 	projectID, err := uuid.Parse(c.Params("projectId"))
 	if err != nil {
