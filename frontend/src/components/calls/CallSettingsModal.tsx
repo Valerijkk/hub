@@ -75,7 +75,7 @@ async function enumerateDevices(
 
 /**
  * Модальное окно настроек звонка в стиле Telemost.
- * Две вкладки: Звук (динамик, микрофон, тогглы) и Видео (камера, тоггл).
+ * Вкладка Звук: динамик, микрофон, шумоподавление. Проект voice-only (без вебкамер).
  * Настройки сохраняются в localStorage и применяются к текущей комнате LiveKit.
  */
 export function CallSettingsModal({
@@ -165,11 +165,11 @@ export function CallSettingsModal({
 
 	/** Стили для Radix Select trigger в тёмной теме настроек. */
 	const selectTriggerClasses =
-		"w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90 transition-colors hover:bg-white/10 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/30 h-auto";
+		"w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90 transition-colors hover:bg-white/10 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/30 h-auto truncate";
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="border-white/10 bg-[#1a1f2e] text-white sm:max-w-lg p-0 gap-0">
+			<DialogContent className="border-white/10 bg-[#1a1f2e] text-white max-w-[480px] w-[calc(100vw-2rem)] p-0 gap-0 overflow-hidden">
 				<DialogHeader className="px-6 pt-6 pb-2">
 					<DialogTitle className="text-lg font-semibold">
 						Настройки
