@@ -79,13 +79,13 @@ func (s *RBACService) UpdateCustomRole(ctx context.Context, roleID uuid.UUID, re
 		return nil, err
 	}
 
-	// Инвалидируем кэш — разрешения участников с этой ролью могли измениться
-	members, _ := r.QueryMembers().All(ctx)
+	// Инвалидируем кэш — разрешения участников с этой ролью могли измениться.
+	// Используем eager loading WithUser(), чтобы избежать N+1 запросов.
+	members, _ := r.QueryMembers().WithUser().All(ctx)
 	proj, _ := r.QueryProject().Only(ctx)
 	if proj != nil {
 		for _, m := range members {
-			u, _ := m.QueryUser().Only(ctx)
-			if u != nil {
+			if u := m.Edges.User; u != nil {
 				_ = s.cache.Invalidate(ctx, u.ID.String(), proj.ID.String())
 			}
 		}

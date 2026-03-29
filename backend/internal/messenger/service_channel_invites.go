@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/channelinvite"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -112,40 +113,15 @@ func (s *MessengerService) ValidateInvite(ctx context.Context, token string) (*I
 		return nil, apperrors.NewInternal("база данных недоступна")
 	}
 
-	invite, err := s.db.ChannelInvite.Query().
-		Where(
-			// Ent сгенерирует предикаты channelinvite.TokenEQ(token) и т.д.
-			// Пока используем raw-подход через единый запрос.
-		).
-		All(ctx)
-	if err != nil || len(invite) == 0 {
-		// Ищем приглашение через прямой запрос.
-		return s.validateInviteByToken(ctx, token)
-	}
-
-	return s.validateInviteByToken(ctx, token)
-}
-
-// validateInviteByToken — внутренний метод валидации приглашения по токену.
-func (s *MessengerService) validateInviteByToken(ctx context.Context, token string) (*InviteValidationResponse, error) {
-	// NOTE: После go generate будет доступен channelinvite.TokenEQ(token).
-	// Пока используем raw SQL через Ent-клиент.
-	invites, err := s.db.ChannelInvite.Query().All(ctx)
+	// Ищем приглашение по токену через WHERE-предикат (вместо загрузки всех записей).
+	found, err := s.db.ChannelInvite.Query().
+		Where(channelinvite.TokenEQ(token)).
+		Only(ctx)
 	if err != nil {
-		return &InviteValidationResponse{Valid: false, Message: "ошибка проверки приглашения"}, nil
-	}
-
-	// Ищем приглашение по токену.
-	var found *ent.ChannelInvite
-	for _, inv := range invites {
-		if inv.Token == token {
-			found = inv
-			break
+		if ent.IsNotFound(err) {
+			return &InviteValidationResponse{Valid: false, Message: "приглашение не найдено"}, nil
 		}
-	}
-
-	if found == nil {
-		return &InviteValidationResponse{Valid: false, Message: "приглашение не найдено"}, nil
+		return &InviteValidationResponse{Valid: false, Message: "ошибка проверки приглашения"}, nil
 	}
 
 	// Проверяем, не отозвано ли приглашение.
@@ -189,22 +165,15 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 		return nil, apperrors.NewInternal("база данных недоступна")
 	}
 
-	// Находим приглашение по токену.
-	invites, err := s.db.ChannelInvite.Query().All(ctx)
+	// Находим приглашение по токену через WHERE-предикат.
+	found, err := s.db.ChannelInvite.Query().
+		Where(channelinvite.TokenEQ(token)).
+		Only(ctx)
 	if err != nil {
-		return nil, apperrors.NewInternal("ошибка поиска приглашения")
-	}
-
-	var found *ent.ChannelInvite
-	for _, inv := range invites {
-		if inv.Token == token {
-			found = inv
-			break
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("приглашение не найдено")
 		}
-	}
-
-	if found == nil {
-		return nil, apperrors.NewNotFound("приглашение не найдено")
+		return nil, apperrors.NewInternal("ошибка поиска приглашения")
 	}
 
 	// Валидация приглашения.
@@ -305,19 +274,20 @@ func (s *MessengerService) ListChannelInvites(ctx context.Context, channelID, us
 		return nil, apperrors.NewInternal("база данных недоступна")
 	}
 
-	// Получаем все приглашения канала (не отозванные).
-	// NOTE: После go generate будет доступен channelinvite.ChannelIDEQ(channelID).
-	allInvites, err := s.db.ChannelInvite.Query().All(ctx)
+	// Получаем приглашения канала (не отозванные) через WHERE-предикат.
+	invites, err := s.db.ChannelInvite.Query().
+		Where(
+			channelinvite.ChannelIDEQ(channelID),
+			channelinvite.IsRevokedEQ(false),
+		).
+		All(ctx)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения приглашений")
 	}
 
-	// Фильтруем по channelID.
-	result := make([]ChannelInviteResponse, 0)
-	for _, inv := range allInvites {
-		if inv.ChannelID == channelID && !inv.IsRevoked {
-			result = append(result, *toChannelInviteResponse(inv))
-		}
+	result := make([]ChannelInviteResponse, 0, len(invites))
+	for _, inv := range invites {
+		result = append(result, *toChannelInviteResponse(inv))
 	}
 
 	return result, nil
