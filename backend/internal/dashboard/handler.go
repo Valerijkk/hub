@@ -101,10 +101,12 @@ func (h *Handler) Admin(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
 	}
 
-	// Проверяем роль администратора
-	role := c.Locals("systemRole")
-	if role == nil || role != "admin" {
-		_ = userID // userID используется для контекста
+	// Проверяем роль администратора через запрос к БД
+	u, uErr := h.service.db.User.Get(c.Context(), userID)
+	if uErr != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "пользователь не найден")
+	}
+	if string(u.SystemRole) != "admin" {
 		return fiber.NewError(fiber.StatusForbidden, "требуются права администратора")
 	}
 
