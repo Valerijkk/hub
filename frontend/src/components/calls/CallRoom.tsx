@@ -290,7 +290,23 @@ export function CallRoom({ token, onDisconnect }: CallRoomProps) {
 			token={token}
 			serverUrl={LIVEKIT_URL}
 			connect={true}
-			audio={{ autoGainControl: true, echoCancellation: true, noiseSuppression: true, sampleRate: 48000 }}
+			audio={{ autoGainControl: true, echoCancellation: true, noiseSuppression: true, sampleRate: 48000, channelCount: 2 }}
+			options={{
+				audioCaptureDefaults: {
+					autoGainControl: true,
+					echoCancellation: true,
+					noiseSuppression: true,
+					sampleRate: 48000,
+					channelCount: 2,
+				},
+				publishDefaults: {
+					audioPreset: { maxBitrate: 128_000 },
+					dtx: false,
+					red: true,
+					screenShareEncoding: { maxBitrate: 3_000_000, maxFramerate: 30 },
+					screenShareSimulcastLayers: [],
+				},
+			}}
 			video={false}
 			onDisconnected={onDisconnect}
 			data-lk-theme="default"
