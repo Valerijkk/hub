@@ -6,61 +6,70 @@
 
 | Уровень | Инструменты | Покрытие |
 |---------|-------------|----------|
-| Unit-тесты (Backend) | Go testing + testify + mockery | Сервисный слой всех модулей |
-| Unit-тесты (Frontend) | Vitest + RTL | Компоненты, хуки, stores |
-| Интеграционные тесты | testcontainers-go | БД, Redis, NATS |
-| API-тесты | Go test + httptest | Все HTTP-handler'ы |
-| E2E-тесты | Playwright | Критические user flows |
+| Unit-тесты (Backend) | Go testing + testify + mockery | Сервисный слой всех 21 модулей |
+| API-тесты | Go test + httptest | HTTP-handler'ы (auth) |
 | Build-тесты | TypeScript compiler + Vite build | Фронтенд: типизация + сборка |
 
 ### Принципы
 
-1. **Каждый модуль покрыт unit-тестами** на уровне service layer
+1. **Каждый модуль покрыт unit-тестами** на уровне service layer — 21/21 пакетов
 2. **Тесты изолированы**: mock'и для внешних зависимостей через mockery
-3. **Интеграционные тесты** используют testcontainers для реальных PG/Redis/NATS
-4. **Frontend**: TypeScript compilation гарантирует типобезопасность, Vite build проверяет сборку
-5. **CI**: GitHub Actions запускает все тесты при push/PR
+3. **Frontend**: TypeScript compilation (`npx tsc --noEmit`) гарантирует типобезопасность, `npx vite build` проверяет сборку
+4. **Нет frontend unit-тестов**: Vitest/RTL/Playwright не настроены — покрытие только через компиляцию и build
 
 ---
 
 ## Backend-тесты (Go)
 
-### Покрытие по модулям
+### Покрытие по модулям — 22 тестовых файла, 21 пакет
 
-| Модуль | Файл | Что тестируется |
-|--------|------|-----------------|
-| auth | handler_test.go | HTTP-обработчики: magic link, verify, telegram login, refresh, logout, profile |
-| auth | service_test.go | Бизнес-логика: генерация токенов, валидация, сессии, регистрация |
-| project | service_test.go | Создание проекта, участники, invite, архивирование, удаление |
-| tracker | service_test.go | CRUD задач, workflow, комментарии, связи, time tracking, rank |
-| messenger | service_test.go | Каналы, сообщения, участники, DM, реакции |
-| messenger | auto_channels_test.go | Автосоздание каналов при создании проекта |
-| messenger | presence_test.go | Статусы присутствия, heartbeat, online/offline |
-| messenger | unread_test.go | Подсчёт непрочитанных сообщений |
-| tms | service_test.go | Тест-кейсы, прогоны, результаты, связи |
-| tms | allure_parser_test.go | Парсинг Allure JSON, matching стратегии |
-| sprint | service_test.go | Создание/запуск/завершение спринтов, burndown, velocity |
-| calls | service_test.go | Создание звонков, join/leave, LiveKit токены |
-| calls | chat_test.go | Эфемерный чат звонка через NATS |
-| calls | recording_test.go | Запись: start/stop, egress, статусы |
-| dashboard | service_test.go | Данные дашбордов, раскладки, шаблоны |
-| notification | service_test.go | Создание уведомлений, preferences, quiet hours |
-| search | service_test.go | Глобальный поиск, фильтрация, сохранённые фильтры |
-| search | jql_test.go | JQL-парсер: синтаксис, операторы, валидация |
-| github | service_test.go | Webhook обработка, автопривязка, branch creation |
-| audit | service_test.go | Запись аудит-логов, фильтрация, пагинация |
-| backup | service_test.go | Создание бэкапов, S3 upload, restore |
-| apigateway | apikey_test.go | Генерация/валидация API-ключей, хеширование |
+| # | Модуль | Файл | Что тестируется |
+|---|--------|------|-----------------|
+| 1 | apigateway | apikey_test.go | Генерация/валидация API-ключей, SHA-256 хеширование |
+| 2 | audit | service_test.go | Запись аудит-логов, фильтрация, пагинация |
+| 3 | auth | handler_test.go | HTTP-обработчики: magic link, verify, telegram login, refresh, logout, профиль |
+| 4 | auth | service_test.go | Бизнес-логика: генерация токенов, валидация, сессии, регистрация |
+| 5 | backup | service_test.go | Создание бэкапов, S3 upload, restore |
+| 6 | calls | service_test.go | Создание звонков, join/leave, LiveKit токены, гостевой доступ |
+| 7 | calls | chat_test.go | Эфемерный чат звонка через NATS |
+| 8 | calls | recording_test.go | Запись: start/stop, egress, статусы |
+| 9 | dashboard | service_test.go | Данные дашбордов, раскладки, шаблоны |
+| 10 | github | service_test.go | Webhook обработка, автопривязка, branch creation |
+| 11 | messenger | service_test.go | Каналы, сообщения, участники, DM, реакции |
+| 12 | messenger | auto_channels_test.go | Автосоздание каналов при создании проекта |
+| 13 | messenger | presence_test.go | Статусы присутствия, heartbeat, online/offline |
+| 14 | messenger | unread_test.go | Подсчёт непрочитанных сообщений |
+| 15 | notification | service_test.go | Создание уведомлений, preferences, quiet hours |
+| 16 | project | service_test.go | Создание проекта, участники, invite, архивирование, удаление |
+| 17 | search | service_test.go | Глобальный поиск, фильтрация, сохранённые фильтры |
+| 18 | search | jql_test.go | JQL-парсер: синтаксис, операторы, валидация |
+| 19 | sprint | service_test.go | Создание/запуск/завершение спринтов, burndown, velocity |
+| 20 | tms | service_test.go | Тест-кейсы, прогоны, результаты, связи |
+| 21 | tms | allure_parser_test.go | Парсинг Allure JSON, matching стратегии |
+| 22 | tracker | service_test.go | CRUD задач, workflow, комментарии, связи, time tracking, rank |
+
+### Пакеты без отдельных тестовых файлов
+
+Следующие пакеты не имеют `_test.go` файлов (вспомогательные/инфраструктурные):
+
+- `dev` — dev-эндпоинты (seed, dev-login)
+- `gitlab` — GitLab интеграция (аналогична github, но без тестов)
+- `imex` — импорт/экспорт
+- `rbac` — кастомные роли
+- `storage` — файловое хранилище (SeaweedFS)
+- `ws` — WebSocket Hub/Bridge
+- `platform/*` — общие компоненты (config, middleware, errors, http, nats)
 
 ### Запуск тестов
 
 ```bash
-# Все тесты
+# Все backend-тесты
 cd backend && go test ./...
 
 # Конкретный модуль
 go test ./internal/auth/...
 go test ./internal/tracker/...
+go test ./internal/calls/...
 
 # С покрытием
 go test -cover ./...
@@ -72,29 +81,28 @@ go test -v ./internal/tms/...
 go test -short ./...
 ```
 
----
-
-## Frontend-тесты
-
-### TypeScript Compilation
+### Frontend-проверки
 
 ```bash
+# TypeScript type-check (все ошибки типов)
 cd frontend && npx tsc --noEmit
+
+# Полная сборка (импорты, tree-shaking, CSS, routes)
+cd frontend && npx vite build
 ```
 
-Проверяет типобезопасность всего фронтенда без генерации файлов.
-
-### Vite Build
-
-```bash
-cd frontend && npm run build
-```
-
-Проверяет:
-- Корректность импортов
+Vite build проверяет:
+- Корректность всех импортов
 - Tree-shaking
 - CSS compilation (Tailwind 4)
 - Route generation (TanStack Router)
+
+### Известные ограничения
+
+- **Нет frontend unit-тестов** — Vitest и React Testing Library не настроены
+- **Нет E2E-тестов** — Playwright не настроен
+- **Нет интеграционных тестов** с testcontainers (все тесты используют mock'и)
+- GitLab, RBAC, Import/Export, Storage, WebSocket — без тестов
 
 ---
 
@@ -106,14 +114,14 @@ cd frontend && npm run build
 
 | Endpoint | 200 | 400 | 401 | 404 | 429 |
 |----------|-----|-----|-----|-----|-----|
-| POST /auth/magic-link | Email отправлен | Невалидный email | - | - | Rate limit |
-| POST /auth/magic-link/verify | Токены выданы | Невалидный код | - | - | Rate limit |
 | POST /auth/telegram | Токены выданы | Невалидные данные | - | - | Rate limit |
 | POST /auth/telegram-code | Токены выданы | Неверный код | - | - | Rate limit |
 | POST /auth/refresh | Новый access token | Невалидный refresh | - | - | - |
 | GET /auth/me | Профиль | - | Не авторизован | - | - |
 | PUT /auth/me | Обновлён | Невалидные данные | Не авторизован | - | - |
 | POST /auth/logout | Выход | - | Не авторизован | - | - |
+
+> **Примечание:** Magic Link эндпоинты (`/auth/magic-link`, `/auth/magic-link/verify`) существуют в коде, но на фронтенде не используются. Авторизация — только через Telegram.
 
 #### Projects
 
@@ -159,6 +167,7 @@ cd frontend && npm run build
 | POST /calls | Создан | Нет channelId | Нет токена | Канал не найден |
 | POST /calls/instant | Создан | - | Нет токена | - |
 | POST /calls/:id/join | LiveKit token | - | Нет токена | Звонок не найден |
+| POST /calls/guest-join | LiveKit token | Нет invite_code/guest_name | - | Звонок не найден |
 | POST /calls/:id/recording/start | Запись начата | - | Нет токена | Звонок не найден |
 
 ---
@@ -169,19 +178,17 @@ cd frontend && npm run build
 
 | ID | Название | Предусловие | Шаги | Ожидаемый результат |
 |----|----------|-------------|------|---------------------|
-| TC-AUTH-01 | Magic Link: успешная отправка | Валидный email | POST /auth/magic-link {email} | 200, email с кодом отправлен |
-| TC-AUTH-02 | Magic Link: невалидный email | - | POST /auth/magic-link {email: "invalid"} | 400 |
-| TC-AUTH-03 | Magic Link: верификация кода | Код отправлен | POST /auth/magic-link/verify {email, code} | 200, access + refresh token |
-| TC-AUTH-04 | Magic Link: неверный код | Код отправлен | POST /auth/magic-link/verify {email, code: "wrong"} | 400/401 |
-| TC-AUTH-05 | Telegram: авторизация по коду | Код получен от бота | POST /auth/telegram-code {code} | 200, access + refresh token |
-| TC-AUTH-06 | Refresh: обновление токена | Валидный refresh token | POST /auth/refresh {refresh_token} | 200, новый access token |
-| TC-AUTH-07 | Refresh: истёкший токен | Просроченный refresh | POST /auth/refresh {refresh_token} | 401 |
-| TC-AUTH-08 | Профиль: получение | Авторизован | GET /auth/me | 200, данные профиля |
-| TC-AUTH-09 | Профиль: обновление | Авторизован | PUT /auth/me {name, timezone} | 200, обновлён |
-| TC-AUTH-10 | Сессии: список | Авторизован | GET /auth/sessions | 200, список сессий |
-| TC-AUTH-11 | Сессии: отзыв | Авторизован, 2+ сессии | DELETE /auth/sessions/:id | 200, сессия удалена |
-| TC-AUTH-12 | Rate limit: magic link | - | 4 запроса за 10 мин | 429 на 4-м запросе |
-| TC-AUTH-13 | Онбординг: завершение | Авторизован, onboarding_completed=false | POST /auth/me/onboarding | 200, onboarding_completed=true |
+| TC-AUTH-01 | Telegram: авторизация по коду | Код получен от бота | POST /auth/telegram-code {code} | 200, access + refresh token |
+| TC-AUTH-02 | Telegram: невалидный код | - | POST /auth/telegram-code {code: "000000"} | 400/401 |
+| TC-AUTH-03 | Telegram: widget авторизация | Telegram widget data | POST /auth/telegram {data} | 200, access + refresh token |
+| TC-AUTH-04 | Refresh: обновление токена | Валидный refresh token | POST /auth/refresh {refresh_token} | 200, новый access token |
+| TC-AUTH-05 | Refresh: истёкший токен | Просроченный refresh | POST /auth/refresh {refresh_token} | 401 |
+| TC-AUTH-06 | Профиль: получение | Авторизован | GET /auth/me | 200, данные профиля |
+| TC-AUTH-07 | Профиль: обновление | Авторизован | PUT /auth/me {name, timezone} | 200, обновлён |
+| TC-AUTH-08 | Сессии: список | Авторизован | GET /auth/sessions | 200, список сессий |
+| TC-AUTH-09 | Сессии: отзыв | Авторизован, 2+ сессии | DELETE /auth/sessions/:id | 200, сессия удалена |
+| TC-AUTH-10 | Rate limit | - | 4 запроса за 10 мин | 429 на 4-м запросе |
+| TC-AUTH-11 | Онбординг: завершение | Авторизован, onboarding_completed=false | POST /auth/me/onboarding | 200, onboarding_completed=true |
 
 ### PROJ — Проекты
 
@@ -254,13 +261,14 @@ cd frontend && npm run build
 | TC-CALL-01 | Создание звонка | Канал существует | POST calls {channelId} | 201, room_name, LiveKit token |
 | TC-CALL-02 | Instant-звонок | Авторизован | POST calls/instant | 201, invite_code |
 | TC-CALL-03 | Join по invite-коду | Звонок active | GET calls/invite/:code | 200, информация + token |
-| TC-CALL-04 | Leave | В звонке | POST calls/:id/leave | 200, participant_count-- |
-| TC-CALL-05 | End call | В звонке | POST calls/:id/end | 200, status=ended |
-| TC-CALL-06 | Start recording | В звонке | POST calls/:id/recording/start | 200, egress started |
-| TC-CALL-07 | Stop recording | Запись идёт | POST calls/:id/recording/stop | 200, status=processing |
-| TC-CALL-08 | Chat в звонке | В звонке | POST calls/:id/chat {text} | 200, NATS event |
-| TC-CALL-09 | Raise hand | В звонке | POST calls/:id/raise-hand | 200, NATS event |
-| TC-CALL-10 | Webhook: participant_joined | LiveKit event | POST calls/webhook | 200, participant_count++ |
+| TC-CALL-04 | Guest join (без аккаунта) | Звонок active, invite_code | POST calls/guest-join {invite_code, guest_name} | 200, LiveKit token (гостевой) |
+| TC-CALL-05 | Leave | В звонке | POST calls/:id/leave | 200, participant_count-- |
+| TC-CALL-06 | End call | В звонке | POST calls/:id/end | 200, status=ended |
+| TC-CALL-07 | Start recording | В звонке | POST calls/:id/recording/start | 200, egress started |
+| TC-CALL-08 | Stop recording | Запись идёт | POST calls/:id/recording/stop | 200, status=processing |
+| TC-CALL-09 | Chat в звонке | В звонке | POST calls/:id/chat {text} | 200, NATS event |
+| TC-CALL-10 | Raise hand | В звонке | POST calls/:id/raise-hand | 200, NATS event |
+| TC-CALL-11 | Webhook: participant_joined | LiveKit event | POST calls/webhook | 200, participant_count++ |
 
 ### SPRINT — Спринты
 
@@ -302,14 +310,15 @@ cd frontend && npm run build
 
 ### Критический путь (после каждого деплоя)
 
-1. **Авторизация**: Magic Link -> verify -> получить токен -> GET /auth/me
+1. **Авторизация**: Telegram code -> verify -> получить токен -> GET /auth/me
 2. **Проект**: Создать проект -> проверить workflow + канал создан
 3. **Задача**: Создать задачу -> обновить статус -> добавить комментарий
 4. **Мессенджер**: Отправить сообщение -> реакция -> тред
 5. **TMS**: Создать кейс -> прогон -> результат passed
 6. **Звонок**: Создать звонок -> получить LiveKit token
-7. **Дашборд**: GET /dashboard/personal -> виджеты с данными
-8. **Уведомления**: Назначить задачу -> проверить уведомление
+7. **Гостевой звонок**: POST /calls/guest-join с invite_code -> получить гостевой LiveKit token
+8. **Дашборд**: GET /dashboard/personal -> виджеты с данными
+9. **Уведомления**: Назначить задачу -> проверить уведомление
 
 ### WebSocket Regression
 
@@ -347,6 +356,71 @@ cd frontend && npm run build
 
 ---
 
+## Ручное тестирование — чеклист по фичам
+
+### Авторизация
+- [ ] Telegram: вход по 6-значному коду
+- [ ] Telegram: вход через Telegram widget
+- [ ] Профиль: редактирование имени, аватара, часового пояса
+- [ ] Сессии: просмотр списка, отзыв сессии
+- [ ] Онбординг: все 3 шага (профиль -> тур -> тема/проект)
+
+### Проекты
+- [ ] Создание проекта с ключом
+- [ ] Invite-ссылка: генерация, присоединение
+- [ ] Смена ролей участников
+- [ ] Архивирование и восстановление
+- [ ] Удаление (корзина) и восстановление
+
+### Трекер задач
+- [ ] Kanban-доска: drag & drop задач между колонками
+- [ ] Создание задачи всех типов
+- [ ] Комментарии с @mention
+- [ ] Time tracking: таймер start/stop
+- [ ] JQL поиск
+- [ ] Workflow: настройка статусов и переходов
+
+### Мессенджер
+- [ ] Публичные/приватные каналы
+- [ ] DM (личные сообщения)
+- [ ] Отправка сообщений с форматированием
+- [ ] Реакции, pin, forward
+- [ ] Треды (ответы)
+- [ ] Поллы
+- [ ] Typing indicator
+- [ ] Unread counts
+
+### TMS
+- [ ] Создание тест-кейса (classic + BDD)
+- [ ] Прогон: создание, добавление кейсов, выполнение
+- [ ] Allure import через API
+- [ ] Создание бага из failed результата
+- [ ] Отчёты: flaky, trends, traceability
+
+### Созвоны
+- [ ] Создание звонка из канала
+- [ ] Instant-звонок с invite-кодом
+- [ ] Гостевой вход по invite-коду (без аккаунта)
+- [ ] Screen share
+- [ ] Запись звонка (start/stop)
+- [ ] Эфемерный чат звонка
+- [ ] Raise hand
+
+### Дашборды
+- [ ] Личный дашборд: виджеты с данными
+- [ ] Проектный дашборд: burndown, velocity
+- [ ] Админский дашборд: статистика пользователей
+- [ ] Drag & drop виджетов, изменение размеров
+
+### Уведомления
+- [ ] In-app уведомления (колокольчик)
+- [ ] Telegram бот уведомления
+- [ ] Web Push подписка
+- [ ] Quiet hours
+- [ ] Настройка по типам
+
+---
+
 ## Accessibility-тесты
 
 ### Стандарт
@@ -363,40 +437,6 @@ WCAG 2.1 AA (целевой для v2.0 Redesign)
 | Screen reader labels | Manual | aria-label на кнопках без текста |
 | Focus indicators | Visual | Все focusable элементы имеют видимый focus ring |
 | Color не единственный индикатор | Visual | Иконки + текст в дополнение к цвету |
-
----
-
-## UI Review результаты
-
-### Процесс
-
-После каждой фазы редизайна (v2.0) проводится UI review:
-1. Screenshot каждой страницы (light + dark mode)
-2. Сравнение с HTML-макетом из `редизайн/`
-3. Pixel-perfect проверка: шрифты, цвета, отступы, радиусы, тени
-4. Функциональное тестирование: все кнопки, формы, drag & drop работают
-5. Responsive: desktop + mobile layout
-
-### Покрытие (v2.0 Redesign)
-
-| Страница | Макет | UI Review | Функционал |
-|----------|-------|-----------|------------|
-| Login | login.html | Passed | Passed |
-| Dashboard | dashboard.html | Passed | Passed |
-| Messenger | messenger.html | Passed | Passed |
-| Kanban | kanban.html | Passed | Passed |
-| Issue Detail | issue-detail.html | Passed | Passed |
-| Calls | calls.html | Passed | Passed |
-| TMS | tms.html | Passed | Passed |
-| Settings | settings.html | Passed | Passed |
-| Admin | admin.html | Passed | Passed |
-| Onboarding | onboarding.html | Passed | Passed |
-| Trash | trash.html | Passed | Passed |
-| Projects list | (без макета) | Styled consistently | Passed |
-| Sprint management | (без макета) | Styled consistently | Passed |
-| JQL search | (без макета) | Styled consistently | Passed |
-| Project settings | (без макета) | Styled consistently | Passed |
-| Project dashboard | (без макета) | Styled consistently | Passed |
 
 ---
 

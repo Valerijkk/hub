@@ -1013,10 +1013,12 @@ backend/internal/
 
 ### Auth (13 endpoints)
 
+> **Текущее состояние:** Авторизация только через Telegram (фронтенд). Magic Link эндпоинты существуют в бэкенде, но не используются на фронтенде.
+
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
-| POST | /auth/magic-link | Отправить magic-link на email | - |
-| POST | /auth/magic-link/verify | Верифицировать magic-link код | - |
+| POST | /auth/magic-link | Отправить magic-link на email (не используется на фронтенде) | - |
+| POST | /auth/magic-link/verify | Верифицировать magic-link код (не используется на фронтенде) | - |
 | POST | /auth/telegram | Авторизация через Telegram widget | - |
 | POST | /auth/telegram-code | Авторизация по 6-значному коду из Telegram бота | - |
 | POST | /auth/refresh | Обновить access token через refresh token | - |
@@ -1200,13 +1202,16 @@ backend/internal/
 | PUT | /projects/:projectId/tms/environments/:envId | Обновить окружение | JWT + RBAC |
 | DELETE | /projects/:projectId/tms/environments/:envId | Удалить окружение | JWT + RBAC |
 
-### Calls (19 endpoints)
+### Calls (20 endpoints)
+
+> **Гостевой доступ:** Эндпоинт `POST /calls/guest-join` позволяет присоединиться к звонку без аккаунта Hub — достаточно invite_code и имени.
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
 | POST | /calls | Создать звонок (привязка к каналу) | JWT |
 | POST | /calls/instant | Создать instant-звонок (без канала) | JWT |
 | GET | /calls/invite/:code | Присоединиться по invite-коду | JWT |
+| POST | /calls/guest-join | Гостевой вход по invite_code + guest_name (без аккаунта) | - |
 | GET | /calls/channel/:channelId | Получить активный звонок в канале | JWT |
 | POST | /calls/:callId/join | Присоединиться к звонку | JWT |
 | POST | /calls/:callId/leave | Покинуть звонок | JWT |
@@ -1224,6 +1229,38 @@ backend/internal/
 | PUT | /scheduled-calls/:id | Обновить запланированный звонок | JWT |
 | DELETE | /scheduled-calls/:id | Удалить запланированный звонок | JWT |
 | POST | /calls/webhook | Webhook LiveKit (room/participant events) | Internal |
+
+#### LiveKit Quality Settings
+
+| Параметр | Значение |
+|----------|----------|
+| Audio sample rate | 48000 Hz |
+| Audio channels | 2 (stereo) |
+| Audio max bitrate | 256 kbps |
+| Audio features | autoGainControl, echoCancellation, noiseSuppression |
+| DTX (Discontinuous Transmission) | off |
+| RED (Redundant Encoding) | on |
+| Screen share max bitrate | 8 Mbps |
+| Screen share max framerate | 60 fps |
+| Guest token validity | 4 часа |
+
+#### Гостевой доступ к звонкам
+
+```
+Участник Hub                          Гость (без аккаунта)
+     |                                      |
+     |-- POST /calls/instant -->            |
+     |<-- { invite_code: "hub-abc123" }     |
+     |                                      |
+     |-- отправляет ссылку /call/abc123 --> |
+     |                                      |
+     |                POST /calls/guest-join|
+     |                { invite_code, name } |
+     |                                      |
+     |              <-- { token: LiveKit }  |
+     |                                      |
+     |===== LiveKit WebRTC соединение ======|
+```
 
 ### Sprint (13 endpoints)
 
@@ -1261,6 +1298,8 @@ backend/internal/
 
 ### Search (5 endpoints)
 
+> **Полнотекстовый поиск** реализован через PostgreSQL `tsvector` + GIN-индексы и MongoDB `$text`. Результаты объединяются по score.
+
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
 | GET | /search?q=...&type=...&limit=... | Глобальный поиск | JWT |
@@ -1268,6 +1307,19 @@ backend/internal/
 | GET | /filters | Список сохранённых фильтров | JWT |
 | DELETE | /filters/:id | Удалить фильтр | JWT |
 | PATCH | /filters/:id/share | Расшарить фильтр | JWT |
+
+#### tsvector-индексы (PostgreSQL)
+
+| Таблица | Колонка | Состав вектора |
+|---------|---------|---------------|
+| issues | search_vector | `issue_key` (weight A) + `title` (weight A) + `description_text` (weight B) |
+| test_cases | search_vector | `case_key` (weight A) + `title` (weight A) + `description` (weight B) |
+| users | search_vector | `name` (weight A) + `email` (weight A) + `display_name` (weight B) |
+| projects | search_vector | `key` (weight A) + `name` (weight A) + `description` (weight B) |
+| file_metadata | search_vector | `filename` (без весов) |
+| channels | (inline) | `to_tsvector('simple', name)` с fallback на ILIKE |
+
+Все tsvector-колонки создаются автоматически при старте сервера через `EnsureSearchIndexes`. Конфигурация: `plainto_tsquery('simple', query)` — language-agnostic поиск. Сообщения ищутся через MongoDB `$text` индекс.
 
 ### Dashboard (7 endpoints)
 
@@ -1360,7 +1412,7 @@ backend/internal/
 | GET | /projects/:projectId/test-runs/:runId/export/pdf | Экспорт прогона (PDF) | JWT |
 | GET | /projects/:projectId/sprints/:sprintId/export/pdf | Экспорт спринта (PDF) | JWT |
 
-**Итого: ~230+ endpoints**
+**Итого: ~231+ endpoints**
 
 ---
 
