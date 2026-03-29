@@ -65,6 +65,70 @@ function shouldGroupWithPrevious(
 	return curTime - prevTime < 2 * 60 * 1000; // 2 minutes
 }
 
+/** Режим редактирования сообщения. */
+function MessageEditMode({
+	text,
+	onSave,
+	onCancel,
+}: {
+	text: string;
+	onSave: (newText: string) => void;
+	onCancel: () => void;
+}) {
+	const [editText, setEditText] = useState(text);
+	const [saving, setSaving] = useState(false);
+	const inputRef = useRef<HTMLTextAreaElement>(null);
+
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+			if (e.key === "Enter" && !e.shiftKey) {
+				e.preventDefault();
+				setSaving(true);
+				onSave(editText);
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				onCancel();
+			}
+		},
+		[editText, onSave, onCancel],
+	);
+
+	return (
+		<div className="flex flex-col gap-1.5">
+			<textarea
+				ref={inputRef}
+				value={editText}
+				onChange={(e) => setEditText(e.target.value)}
+				onKeyDown={handleKeyDown}
+				disabled={saving}
+				className="w-full resize-none rounded-lg border border-input bg-base px-3 py-2 text-sm text-t1 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+				rows={Math.min(editText.split("\n").length + 1, 6)}
+				autoFocus
+			/>
+			<div className="flex items-center gap-1 justify-end">
+				<button
+					type="button"
+					className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-t2 hover:text-t1 transition-colors"
+					title="Отменить (Esc)"
+					onClick={onCancel}
+					disabled={saving}
+				>
+					<X className="h-3.5 w-3.5" />
+				</button>
+				<button
+					type="button"
+					className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-primary hover:text-primary transition-colors"
+					title="Сохранить (Enter)"
+					onClick={() => { setSaving(true); onSave(editText); }}
+					disabled={saving || !editText.trim()}
+				>
+					<Check className="h-3.5 w-3.5" />
+				</button>
+			</div>
+		</div>
+	);
+}
+
 /**
  * MessageItem отображает одно сообщение чата в стиле Slack / Tinkoff Talk.
  * Flat layout без пузырей: аватар слева, имя + время + контент справа.
@@ -83,8 +147,6 @@ function MessageItemInner({
 	const [showForwardDialog, setShowForwardDialog] = useState(false);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editText, setEditText] = useState("");
-	const [editSaving, setEditSaving] = useState(false);
-	const editInputRef = useRef<HTMLTextAreaElement>(null);
 	const queryClient = useQueryClient();
 	const invalidateMessages = useInvalidateMessages(channelId);
 	const openThread = useMessengerStore((s) => s.openThread);
@@ -147,24 +209,18 @@ function MessageItemInner({
 
 	/** Начать редактирование сообщения. */
 	const handleStartEdit = useCallback(() => {
-		const text = message.content_text ?? "";
-		setEditText(text);
+		setEditText(message.content_text ?? "");
 		setIsEditing(true);
 		setShowActions(false);
-		requestAnimationFrame(() => {
-			editInputRef.current?.focus();
-			editInputRef.current?.setSelectionRange(text.length, text.length);
-		});
 	}, [message.content_text]);
 
 	/** Сохранить отредактированное сообщение. */
-	const handleSaveEdit = useCallback(async () => {
-		const trimmed = editText.trim();
+	const handleSaveEdit = useCallback(async (newText?: string) => {
+		const trimmed = (newText ?? editText).trim();
 		if (!trimmed || trimmed === (message.content_text ?? "").trim()) {
 			setIsEditing(false);
 			return;
 		}
-		setEditSaving(true);
 		try {
 			const contentJson = {
 				type: "doc",
@@ -197,8 +253,6 @@ function MessageItemInner({
 			});
 		} catch {
 			invalidateMessages();
-		} finally {
-			setEditSaving(false);
 		}
 	}, [editText, message.content_text, message.id, channelId, queryClient, invalidateMessages]);
 
@@ -207,20 +261,6 @@ function MessageItemInner({
 		setIsEditing(false);
 		setEditText("");
 	}, []);
-
-	/** Обработка клавиш в поле редактирования. */
-	const handleEditKeyDown = useCallback(
-		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-			if (e.key === "Enter" && !e.shiftKey) {
-				e.preventDefault();
-				void handleSaveEdit();
-			} else if (e.key === "Escape") {
-				e.preventDefault();
-				handleCancelEdit();
-			}
-		},
-		[handleSaveEdit, handleCancelEdit],
-	);
 
 	return (
 		<>
@@ -324,40 +364,11 @@ function MessageItemInner({
 						{/* Message content (or inline edit) — не показываем для опросов */}
 						{message.message_type !== "poll" && (
 							isEditing ? (
-								<div className="flex flex-col gap-1.5">
-									<textarea
-										ref={editInputRef}
-										value={editText}
-										onChange={(e) => setEditText(e.target.value)}
-										onKeyDown={handleEditKeyDown}
-										disabled={editSaving}
-										className="w-full resize-none rounded-lg border border-input bg-base px-3 py-2 text-sm text-t1 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
-										rows={Math.min(
-											editText.split("\n").length + 1,
-											6,
-										)}
-									/>
-									<div className="flex items-center gap-1 justify-end">
-										<button
-											type="button"
-											className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-t2 hover:text-t1 transition-colors"
-											title="Отменить (Esc)"
-											onClick={handleCancelEdit}
-											disabled={editSaving}
-										>
-											<X className="h-3.5 w-3.5" />
-										</button>
-										<button
-											type="button"
-											className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-primary hover:text-primary transition-colors"
-											title="Сохранить (Enter)"
-											onClick={() => void handleSaveEdit()}
-											disabled={editSaving || !editText.trim()}
-										>
-											<Check className="h-3.5 w-3.5" />
-										</button>
-									</div>
-								</div>
+								<MessageEditMode
+									text={editText}
+									onSave={(newText) => void handleSaveEdit(newText)}
+									onCancel={handleCancelEdit}
+								/>
 							) : (
 								<div className="text-sm leading-relaxed text-[var(--t1)] break-words">
 									{message.content_json && (
