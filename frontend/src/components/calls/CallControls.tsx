@@ -11,6 +11,7 @@ import {
 	PhoneOff,
 	Settings,
 	Smile,
+	type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -34,6 +35,52 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useCallStore } from "@/stores/call-store";
 import { CallReactionBar } from "./CallReactions";
 import { CallSettingsModal } from "./CallSettingsModal";
+
+/** Round control button with tooltip and label. */
+function ControlButton({
+	icon: Icon,
+	label,
+	active,
+	activeColor,
+	danger,
+	onClick,
+}: {
+	icon: LucideIcon;
+	label: string;
+	active?: boolean;
+	activeColor?: string;
+	danger?: boolean;
+	onClick: () => void;
+}) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<div className="flex flex-col items-center gap-1">
+					<button
+						type="button"
+						onClick={onClick}
+						aria-label={label}
+						className={cn(
+							"relative flex h-12 w-12 items-center justify-center rounded-full transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
+							"hover:scale-105 active:scale-95",
+							danger
+								? "bg-red-500/15 text-red-500 hover:bg-red-500/25"
+								: active && activeColor
+									? `bg-white/10 ${activeColor} hover:bg-white/15`
+									: active
+										? "bg-white/10 text-white hover:bg-white/15"
+										: "bg-white/10 text-white/60 hover:bg-white/15",
+						)}
+					>
+						<Icon className="h-5 w-5" />
+					</button>
+					<span className="text-[10px] text-white/40">{label}</span>
+				</div>
+			</TooltipTrigger>
+			<TooltipContent>{label}</TooltipContent>
+		</Tooltip>
+	);
+}
 
 /** Пропсы компонента CallControls. */
 interface CallControlsProps {
@@ -120,69 +167,20 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 
 				{/* Группа: Микрофон + Камера */}
 				<div className="flex items-center gap-2">
-					{/* Микрофон */}
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="flex flex-col items-center gap-1">
-								<button
-									type="button"
-									onClick={handleMicToggle}
-									aria-label={
-										isMicEnabled ? "Выключить микрофон" : "Включить микрофон"
-									}
-									className={cn(
-										"relative flex h-12 w-12 items-center justify-center rounded-full transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
-										"hover:scale-105 active:scale-95",
-										isMicEnabled
-											? "bg-white/10 text-white hover:bg-white/15"
-											: "bg-red-500/15 text-red-500 hover:bg-red-500/25",
-									)}
-								>
-									{isMicEnabled ? (
-										<Mic className="h-5 w-5" />
-									) : (
-										<MicOff className="h-5 w-5" />
-									)}
-								</button>
-								<span className="text-[10px] text-white/40">Микрофон</span>
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>
-							{isMicEnabled ? "Выключить микрофон" : "Включить микрофон"}
-						</TooltipContent>
-					</Tooltip>
-
-					{/* Камера */}
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="flex flex-col items-center gap-1">
-								<button
-									type="button"
-									onClick={handleCameraToggle}
-									aria-label={
-										isCameraEnabled ? "Выключить камеру" : "Включить камеру"
-									}
-									className={cn(
-										"relative flex h-12 w-12 items-center justify-center rounded-full transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
-										"hover:scale-105 active:scale-95",
-										isCameraEnabled
-											? "bg-white/10 text-white hover:bg-white/15"
-											: "bg-red-500/15 text-red-500 hover:bg-red-500/25",
-									)}
-								>
-									{isCameraEnabled ? (
-										<Camera className="h-5 w-5" />
-									) : (
-										<CameraOff className="h-5 w-5" />
-									)}
-								</button>
-								<span className="text-[10px] text-white/40">Камера</span>
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>
-							{isCameraEnabled ? "Выключить камеру" : "Включить камеру"}
-						</TooltipContent>
-					</Tooltip>
+					<ControlButton
+						icon={isMicEnabled ? Mic : MicOff}
+						label={isMicEnabled ? "Выключить микрофон" : "Включить микрофон"}
+						active={isMicEnabled}
+						danger={!isMicEnabled}
+						onClick={handleMicToggle}
+					/>
+					<ControlButton
+						icon={isCameraEnabled ? Camera : CameraOff}
+						label={isCameraEnabled ? "Выключить камеру" : "Включить камеру"}
+						active={isCameraEnabled}
+						danger={!isCameraEnabled}
+						onClick={handleCameraToggle}
+					/>
 				</div>
 
 				{/* Разделитель */}
@@ -190,115 +188,32 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 
 				{/* Группа: Экран + Рука + Реакции + Настройки */}
 				<div className="flex items-center gap-2">
-					{/* Демонстрация экрана */}
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="flex flex-col items-center gap-1">
-								<button
-									type="button"
-									onClick={handleScreenShareToggle}
-									aria-label={
-										isScreenSharing
-											? "Остановить демонстрацию"
-											: "Демонстрация экрана"
-									}
-									className={cn(
-										"flex h-12 w-12 items-center justify-center rounded-full transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
-										"hover:scale-105 active:scale-95",
-										isScreenSharing
-											? "bg-white/10 text-blue-400 hover:bg-white/15"
-											: "bg-white/10 text-white/60 hover:bg-white/15",
-									)}
-								>
-									{isScreenSharing ? (
-										<MonitorOff className="h-5 w-5" />
-									) : (
-										<Monitor className="h-5 w-5" />
-									)}
-								</button>
-								<span className="text-[10px] text-white/40">Экран</span>
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>
-							{isScreenSharing
-								? "Остановить демонстрацию"
-								: "Демонстрация экрана"}
-						</TooltipContent>
-					</Tooltip>
-
-					{/* Поднять руку */}
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="flex flex-col items-center gap-1">
-								<button
-									type="button"
-									onClick={toggleHand}
-									aria-label={handRaised ? "Опустить руку" : "Поднять руку"}
-									className={cn(
-										"flex h-12 w-12 items-center justify-center rounded-full transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
-										"hover:scale-105 active:scale-95",
-										handRaised
-											? "bg-white/10 text-amber-400 hover:bg-white/15"
-											: "bg-white/10 text-white/60 hover:bg-white/15",
-									)}
-								>
-									<Hand className="h-5 w-5" />
-								</button>
-								<span className="text-[10px] text-white/40">Рука</span>
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>
-							{handRaised ? "Опустить руку" : "Поднять руку"}
-						</TooltipContent>
-					</Tooltip>
-
-					{/* Реакции */}
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="flex flex-col items-center gap-1">
-								<button
-									type="button"
-									onClick={() => setReactionsOpen(!reactionsOpen)}
-									aria-label="Реакции"
-									className={cn(
-										"flex h-12 w-12 items-center justify-center rounded-full transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
-										"hover:scale-105 active:scale-95",
-										reactionsOpen
-											? "bg-white/10 text-purple-400 hover:bg-white/15"
-											: "bg-white/10 text-white/60 hover:bg-white/15",
-									)}
-								>
-									<Smile className="h-5 w-5" />
-								</button>
-								<span className="text-[10px] text-white/40">Реакции</span>
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>Реакции</TooltipContent>
-					</Tooltip>
-
-					{/* Настройки устройств */}
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="flex flex-col items-center gap-1">
-								<button
-									type="button"
-									onClick={() => setSettingsOpen(true)}
-									aria-label="Настройки устройств"
-									className={cn(
-										"flex h-12 w-12 items-center justify-center rounded-full transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
-										"bg-white/10 text-white/60 hover:bg-white/15",
-										"hover:scale-105 active:scale-95",
-									)}
-								>
-									<Settings className="h-5 w-5" />
-								</button>
-								<span className="text-[10px] text-white/40">
-									Настройки
-								</span>
-							</div>
-						</TooltipTrigger>
-						<TooltipContent>Настройки устройств</TooltipContent>
-					</Tooltip>
+					<ControlButton
+						icon={isScreenSharing ? MonitorOff : Monitor}
+						label={isScreenSharing ? "Остановить демонстрацию" : "Демонстрация экрана"}
+						active={isScreenSharing}
+						activeColor="text-blue-400"
+						onClick={handleScreenShareToggle}
+					/>
+					<ControlButton
+						icon={Hand}
+						label={handRaised ? "Опустить руку" : "Поднять руку"}
+						active={handRaised}
+						activeColor="text-amber-400"
+						onClick={toggleHand}
+					/>
+					<ControlButton
+						icon={Smile}
+						label="Реакции"
+						active={reactionsOpen}
+						activeColor="text-purple-400"
+						onClick={() => setReactionsOpen(!reactionsOpen)}
+					/>
+					<ControlButton
+						icon={Settings}
+						label="Настройки"
+						onClick={() => setSettingsOpen(true)}
+					/>
 				</div>
 
 				{/* Разделитель */}
