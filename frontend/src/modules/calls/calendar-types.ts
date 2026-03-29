@@ -67,7 +67,7 @@ export const HOURS = Array.from(
 export const HOURS_FULL = Array.from({ length: 24 }, (_, i) => i);
 export const DEFAULT_DURATION = 60; // minutes
 
-export const WEEKDAY_NAMES_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "��с"];
+export const WEEKDAY_NAMES_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 /** Get the Monday of the week containing `date`. */
 export function getWeekStart(date: Date): Date {
