@@ -48,85 +48,93 @@ import { UnreadMessagesWidget } from "./widgets/unread-messages";
 import { UpcomingCallsWidget } from "./widgets/upcoming-calls";
 import { VelocityChartWidget } from "./widgets/velocity-chart";
 
-/** Widget registry: type -> component. */
-const WIDGET_REGISTRY: Record<
-	string,
-	React.ComponentType<{ data?: unknown }>
-> = {
-	"my-tasks": MyTasksWidget,
-	"unread-messages": UnreadMessagesWidget,
-	"upcoming-calls": UpcomingCallsWidget,
-	"task-status-chart": TaskStatusChartWidget,
-	"burndown-chart": BurndownChartWidget,
-	"velocity-chart": VelocityChartWidget,
-	"test-trends": TestTrendsWidget,
-	"team-activity": TeamActivityWidget,
-	"system-health": SystemHealthWidget,
-	"storage-usage": StorageUsageWidget,
-	deadlines: DeadlinesWidget,
-};
+/** Single definition per widget: component, display name, icon, accent gradient, size constraints. */
+interface WidgetDefinition {
+	component: React.ComponentType<{ data?: unknown }>;
+	name: string;
+	icon: LucideIcon;
+	accent: string;
+	constraints: { minW: number; maxW: number; minH: number; maxH: number };
+}
 
-/** Widget names in Russian. */
-const WIDGET_NAMES: Record<string, string> = {
-	"my-tasks": "Мои задачи",
-	"unread-messages": "Непрочитанные",
-	"upcoming-calls": "Предстоящие звонки",
-	"task-status-chart": "Статусы задач",
-	"burndown-chart": "Burndown",
-	"velocity-chart": "Velocity",
-	"test-trends": "Тренды тестов",
-	"team-activity": "Активность команды",
-	"system-health": "Здоровье системы",
-	"storage-usage": "Хранилище",
-	deadlines: "Дедлайны",
-};
-
-/** Widget icons. */
-const WIDGET_ICONS: Record<string, LucideIcon> = {
-	"my-tasks": SquareCheck,
-	"unread-messages": Mail,
-	"upcoming-calls": Phone,
-	"task-status-chart": Layers,
-	"burndown-chart": TrendingUp,
-	"velocity-chart": ChartBar,
-	"test-trends": TestTube,
-	"team-activity": Users,
-	"system-health": Server,
-	"storage-usage": HardDrive,
-	deadlines: CalendarClock,
-};
-
-/** Accent color per widget (top border gradient). */
-const WIDGET_ACCENT: Record<string, string> = {
-	"my-tasks": "from-blue-500 to-blue-600",
-	"unread-messages": "from-amber-500 to-orange-500",
-	"upcoming-calls": "from-violet-500 to-purple-600",
-	"task-status-chart": "from-indigo-500 to-blue-500",
-	"burndown-chart": "from-sky-500 to-cyan-500",
-	"velocity-chart": "from-emerald-500 to-green-500",
-	"test-trends": "from-purple-500 to-violet-600",
-	"team-activity": "from-teal-500 to-emerald-500",
-	"system-health": "from-green-500 to-emerald-500",
-	"storage-usage": "from-slate-500 to-zinc-600",
-	deadlines: "from-red-500 to-orange-500",
-};
-
-/** Per-widget min/max size constraints. */
-const WIDGET_SIZE_CONSTRAINTS: Record<
-	string,
-	{ minW: number; maxW: number; minH: number; maxH: number }
-> = {
-	"my-tasks": { minW: 3, maxW: 12, minH: 3, maxH: 6 },
-	"unread-messages": { minW: 2, maxW: 6, minH: 2, maxH: 4 },
-	"upcoming-calls": { minW: 2, maxW: 6, minH: 2, maxH: 4 },
-	"task-status-chart": { minW: 3, maxW: 6, minH: 3, maxH: 6 },
-	"burndown-chart": { minW: 4, maxW: 12, minH: 3, maxH: 6 },
-	"velocity-chart": { minW: 4, maxW: 12, minH: 3, maxH: 6 },
-	"test-trends": { minW: 4, maxW: 12, minH: 3, maxH: 6 },
-	"team-activity": { minW: 3, maxW: 12, minH: 3, maxH: 6 },
-	"system-health": { minW: 2, maxW: 6, minH: 2, maxH: 4 },
-	"storage-usage": { minW: 2, maxW: 6, minH: 2, maxH: 4 },
-	deadlines: { minW: 3, maxW: 12, minH: 2, maxH: 6 },
+const WIDGET_CONFIG: Record<string, WidgetDefinition> = {
+	"my-tasks": {
+		component: MyTasksWidget,
+		name: "Мои задачи",
+		icon: SquareCheck,
+		accent: "from-blue-500 to-blue-600",
+		constraints: { minW: 3, maxW: 12, minH: 3, maxH: 6 },
+	},
+	"unread-messages": {
+		component: UnreadMessagesWidget,
+		name: "Непрочитанные",
+		icon: Mail,
+		accent: "from-amber-500 to-orange-500",
+		constraints: { minW: 2, maxW: 6, minH: 2, maxH: 4 },
+	},
+	"upcoming-calls": {
+		component: UpcomingCallsWidget,
+		name: "Предстоящие звонки",
+		icon: Phone,
+		accent: "from-violet-500 to-purple-600",
+		constraints: { minW: 2, maxW: 6, minH: 2, maxH: 4 },
+	},
+	"task-status-chart": {
+		component: TaskStatusChartWidget,
+		name: "Статусы задач",
+		icon: Layers,
+		accent: "from-indigo-500 to-blue-500",
+		constraints: { minW: 3, maxW: 6, minH: 3, maxH: 6 },
+	},
+	"burndown-chart": {
+		component: BurndownChartWidget,
+		name: "Burndown",
+		icon: TrendingUp,
+		accent: "from-sky-500 to-cyan-500",
+		constraints: { minW: 4, maxW: 12, minH: 3, maxH: 6 },
+	},
+	"velocity-chart": {
+		component: VelocityChartWidget,
+		name: "Velocity",
+		icon: ChartBar,
+		accent: "from-emerald-500 to-green-500",
+		constraints: { minW: 4, maxW: 12, minH: 3, maxH: 6 },
+	},
+	"test-trends": {
+		component: TestTrendsWidget,
+		name: "Тренды тестов",
+		icon: TestTube,
+		accent: "from-purple-500 to-violet-600",
+		constraints: { minW: 4, maxW: 12, minH: 3, maxH: 6 },
+	},
+	"team-activity": {
+		component: TeamActivityWidget,
+		name: "Активность команды",
+		icon: Users,
+		accent: "from-teal-500 to-emerald-500",
+		constraints: { minW: 3, maxW: 12, minH: 3, maxH: 6 },
+	},
+	"system-health": {
+		component: SystemHealthWidget,
+		name: "Здоровье системы",
+		icon: Server,
+		accent: "from-green-500 to-emerald-500",
+		constraints: { minW: 2, maxW: 6, minH: 2, maxH: 4 },
+	},
+	"storage-usage": {
+		component: StorageUsageWidget,
+		name: "Хранилище",
+		icon: HardDrive,
+		accent: "from-slate-500 to-zinc-600",
+		constraints: { minW: 2, maxW: 6, minH: 2, maxH: 4 },
+	},
+	deadlines: {
+		component: DeadlinesWidget,
+		name: "Дедлайны",
+		icon: CalendarClock,
+		accent: "from-red-500 to-orange-500",
+		constraints: { minW: 3, maxW: 12, minH: 2, maxH: 6 },
+	},
 };
 
 /** Default size constraints for unknown widget types. */
@@ -165,7 +173,7 @@ export function WidgetGrid({
 		() =>
 			items.map((item) => {
 				const constraints =
-					WIDGET_SIZE_CONSTRAINTS[item.widget_type] ?? DEFAULT_CONSTRAINTS;
+					WIDGET_CONFIG[item.widget_type]?.constraints ?? DEFAULT_CONSTRAINTS;
 				return {
 					i: item.i,
 					x: item.x,
@@ -239,7 +247,7 @@ export function WidgetGrid({
 
 	/** Widget types not currently on the grid. */
 	const hiddenWidgetTypes = useMemo(
-		() => Object.keys(WIDGET_REGISTRY).filter((type) => !existingTypes.has(type)),
+		() => Object.keys(WIDGET_CONFIG).filter((type) => !existingTypes.has(type)),
 		[existingTypes],
 	);
 
@@ -260,14 +268,15 @@ export function WidgetGrid({
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="start">
 							{hiddenWidgetTypes.map((type) => {
-								const Icon = WIDGET_ICONS[type];
+								const cfg = WIDGET_CONFIG[type];
+								const Icon = cfg?.icon;
 								return (
 									<DropdownMenuItem
 										key={type}
 										onClick={() => handleAddWidget(type)}
 									>
 										{Icon && <Icon className="h-4 w-4" />}
-										{WIDGET_NAMES[type] ?? type}
+										{cfg?.name ?? type}
 									</DropdownMenuItem>
 								);
 							})}
@@ -301,12 +310,10 @@ export function WidgetGrid({
 					onLayoutChange={handleLayoutChange}
 				>
 					{items.map((item) => {
-						const WidgetComponent = WIDGET_REGISTRY[item.widget_type];
-						if (!WidgetComponent) return <div key={item.i} />;
+						const cfg = WIDGET_CONFIG[item.widget_type];
+						if (!cfg) return <div key={item.i} />;
 
-						const Icon = WIDGET_ICONS[item.widget_type];
-						const accent =
-							WIDGET_ACCENT[item.widget_type] ?? "from-gray-500 to-gray-600";
+						const { component: WidgetComponent, icon: Icon, accent, name } = cfg;
 
 						return (
 							<div
@@ -326,7 +333,7 @@ export function WidgetGrid({
 											<Icon className="h-4 w-4 text-[var(--t2)]" />
 										)}
 										<span className="text-[13px] font-bold text-[var(--t2)] uppercase tracking-[0.04em]">
-											{WIDGET_NAMES[item.widget_type] ?? item.widget_type}
+											{name}
 										</span>
 									</div>
 									<div className="flex items-center gap-1">
