@@ -233,7 +233,9 @@ function JoinCallByCodePage() {
 		try {
 			const res = await guestJoinCall(code, trimmed);
 			setGuestToken(res.token);
-			setGuestLivekitUrl(res.livekit_url || LIVEKIT_URL);
+			// Всегда используем клиентский LIVEKIT_URL (через Caddy proxy),
+			// т.к. бэкенд возвращает внутренний Docker URL (http://livekit:7880).
+			setGuestLivekitUrl(LIVEKIT_URL);
 		} catch {
 			setError("Не удалось войти в звонок. Проверьте ссылку или попробуйте позже.");
 		} finally {
