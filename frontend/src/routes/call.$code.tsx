@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { joinByInviteCode, joinCall, guestJoinCall } from "@/api/calls";
 import { useCallStore } from "@/stores/call-store";
 import { useAuthStore } from "@/stores/auth-store";
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useParticipants } from "@livekit/components-react";
 import "@livekit/components-styles";
 
 /** URL сервера LiveKit. */
@@ -19,6 +19,149 @@ const LIVEKIT_URL =
 	(window.location.protocol === "https:"
 		? `wss://${window.location.host}/lk`
 		: `ws://${window.location.hostname}:7880`);
+
+/**
+ * Полноценный UI звонка для гостя — внутри LiveKitRoom контекста.
+ * Отображает участников, контролы (mute, screen share), таймер.
+ */
+function GuestCallContent({ guestName, onLeave }: { guestName: string; onLeave: () => void }) {
+	const participants = useParticipants();
+	const { localParticipant } = useLocalParticipant();
+	const [elapsed, setElapsed] = useState(0);
+	const [isMuted, setIsMuted] = useState(true);
+
+	// Автоматически мьютим при входе
+	useEffect(() => {
+		localParticipant.setMicrophoneEnabled(false);
+	}, [localParticipant]);
+
+	// Таймер
+	useEffect(() => {
+		const t = setInterval(() => setElapsed((s) => s + 1), 1000);
+		return () => clearInterval(t);
+	}, []);
+
+	const formatTime = (s: number) => {
+		const m = Math.floor(s / 60);
+		const sec = s % 60;
+		return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+	};
+
+	const toggleMic = async () => {
+		const next = !localParticipant.isMicrophoneEnabled;
+		await localParticipant.setMicrophoneEnabled(next);
+		setIsMuted(!next);
+	};
+
+	const toggleScreenShare = async () => {
+		const isSharing = localParticipant.isScreenShareEnabled;
+		await localParticipant.setScreenShareEnabled(!isSharing);
+	};
+
+	return (
+		<>
+			<RoomAudioRenderer />
+
+			{/* Header */}
+			<div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+				<div className="flex items-center gap-3">
+					<span className="relative flex h-2.5 w-2.5">
+						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+						<span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+					</span>
+					<span className="text-sm font-semibold text-white/90">Звонок</span>
+					<span className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/60">
+						👥 {participants.length}
+					</span>
+				</div>
+				<span className="text-sm font-mono text-white/50 tabular-nums">
+					{formatTime(elapsed)}
+				</span>
+			</div>
+
+			{/* Participants grid */}
+			<div className="flex-1 overflow-auto p-4">
+				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+					{participants.map((p) => {
+						const isSpeaking = p.isSpeaking;
+						const name = p.name || p.identity;
+						const isLocal = p.isLocal;
+						return (
+							<div
+								key={p.identity}
+								className={`flex flex-col items-center justify-center p-4 rounded-[var(--r3)] border transition-all ${
+									isSpeaking
+										? "border-green bg-green/5 shadow-[0_0_16px_var(--gG)]"
+										: "border-white/5 bg-white/[0.02]"
+								}`}
+							>
+								<div className="w-16 h-16 rounded-full bg-[var(--blueS)]/20 flex items-center justify-center text-2xl font-bold text-[var(--blueS)] mb-3">
+									{name.charAt(0).toUpperCase()}
+								</div>
+								<span className="text-sm font-medium text-t1 truncate max-w-full">
+									{isLocal ? guestName || name : name}{isLocal ? " (вы)" : ""}
+								</span>
+								<span className="text-xs text-t3 mt-1">
+									{p.isMicrophoneEnabled ? "🎙️ Микрофон вкл" : "🔇 Без звука"}
+								</span>
+							</div>
+						);
+					})}
+				</div>
+			</div>
+
+			{/* Controls */}
+			<div className="flex items-center justify-center gap-3 px-4 py-4 border-t border-white/5 bg-black/30">
+				<button
+					type="button"
+					onClick={() => void toggleMic()}
+					className={`flex flex-col items-center gap-1 px-4 py-2 rounded-[var(--r2)] transition-colors ${
+						isMuted
+							? "bg-white/10 text-white/60 hover:bg-white/20"
+							: "bg-blue-500/20 text-blue-400"
+					}`}
+				>
+					{isMuted ? (
+						<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+							<path strokeLinecap="round" strokeLinejoin="round" d="M19 19L5 5m14 0v4a2 2 0 01-2 2H7m0 0v3a5 5 0 0010 0v-1M12 19v3m-3 0h6" />
+						</svg>
+					) : (
+						<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+							<path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+						</svg>
+					)}
+					<span className="text-[10px]">{isMuted ? "Вкл. микрофон" : "Выкл. микрофон"}</span>
+				</button>
+
+				<button
+					type="button"
+					onClick={() => void toggleScreenShare()}
+					className={`flex flex-col items-center gap-1 px-4 py-2 rounded-[var(--r2)] transition-colors ${
+						localParticipant.isScreenShareEnabled
+							? "bg-blue-500/20 text-blue-400"
+							: "bg-white/10 text-white/60 hover:bg-white/20"
+					}`}
+				>
+					<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+						<path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12" />
+					</svg>
+					<span className="text-[10px]">Демонстрация</span>
+				</button>
+
+				<button
+					type="button"
+					onClick={onLeave}
+					className="flex flex-col items-center gap-1 px-6 py-2 rounded-[var(--r2)] bg-red-500/90 hover:bg-red-500 text-white transition-colors"
+				>
+					<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+						<path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+					</svg>
+					<span className="text-[10px]">Выйти</span>
+				</button>
+			</div>
+		</>
+	);
+}
 
 function JoinCallByCodePage() {
 	const { code } = Route.useParams();
@@ -131,10 +274,10 @@ function JoinCallByCodePage() {
 		);
 	}
 
-	// Guest is connected to LiveKit
+	// Guest is connected to LiveKit — полноценный UI с контролами
 	if (guestToken && guestLivekitUrl) {
 		return (
-			<div className="min-h-screen bg-void flex flex-col">
+			<div className="h-screen bg-void flex flex-col overflow-hidden">
 				<LiveKitRoom
 					serverUrl={guestLivekitUrl}
 					token={guestToken}
@@ -145,30 +288,15 @@ function JoinCallByCodePage() {
 						setGuestMode(true);
 						setError("Звонок завершён.");
 					}}
-					style={{ height: "100vh" }}
+					style={{ height: "100%", display: "flex", flexDirection: "column" }}
 				>
-					<RoomAudioRenderer />
-					<div className="flex-1 flex items-center justify-center">
-						<div className="text-center p-8">
-							<div className="w-20 h-20 rounded-full bg-[var(--blueS)]/20 flex items-center justify-center mx-auto mb-6">
-								<svg className="w-10 h-10 text-[var(--blueS)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-									<path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-								</svg>
-							</div>
-							<h2 className="text-xl font-bold text-t1 mb-2">Вы в звонке</h2>
-							<p className="text-t2 text-sm mb-6">Подключено как {guestName.trim()}</p>
-							<button
-								type="button"
-								onClick={() => {
-									setGuestToken(null);
-									setGuestLivekitUrl(null);
-								}}
-								className="px-6 py-2.5 rounded-[var(--r2)] bg-red/90 hover:bg-red text-white font-bold text-sm transition-colors"
-							>
-								Покинуть звонок
-							</button>
-						</div>
-					</div>
+					<GuestCallContent
+						guestName={guestName.trim()}
+						onLeave={() => {
+							setGuestToken(null);
+							setGuestLivekitUrl(null);
+						}}
+					/>
 				</LiveKitRoom>
 			</div>
 		);
