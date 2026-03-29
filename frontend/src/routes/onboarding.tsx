@@ -93,8 +93,17 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 	),
 };
 
+/** Тип описания модуля платформы. */
+interface ModuleInfo {
+	key: string;
+	title: string;
+	desc: string;
+	iconBg: string;
+	iconColor: string;
+}
+
 /** Описания модулей платформы для онбординга. */
-const MODULES = [
+const MODULES: ModuleInfo[] = [
 	{
 		key: "tracker",
 		title: "Трекер",
@@ -147,6 +156,30 @@ type LangOption = "ru" | "en";
 
 /** Step labels for progress indicator */
 const STEP_LABELS = ["Профиль", "Обзор", "Настройки"];
+
+/** Карточка модуля для тура онбординга. */
+function ModuleCard({ module, index }: { module: ModuleInfo; index: number }) {
+	return (
+		<div
+			key={module.key}
+			className="onb-tour-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-6 text-center transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)] hover:border-b2 animate-[eu_400ms_var(--spring)_both]"
+			style={{ animationDelay: `${index * 60}ms` }}
+		>
+			<div
+				className="w-[52px] h-[52px] rounded-[var(--r3)] flex items-center justify-center mx-auto mb-[14px]"
+				style={{ background: module.iconBg, color: module.iconColor }}
+			>
+				{MODULE_ICONS[module.key]}
+			</div>
+			<h4 className="text-[14px] font-bold mb-[5px] tracking-[-0.01em]">
+				{module.title}
+			</h4>
+			<p className="text-[12px] text-t2 leading-[1.5]">
+				{module.desc}
+			</p>
+		</div>
+	);
+}
 
 function OnboardingPage() {
 	const navigate = useNavigate();
@@ -400,24 +433,7 @@ function OnboardingPage() {
 
 						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px]">
 							{MODULES.map((module, idx) => (
-								<div
-									key={module.key}
-									className="onb-tour-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-6 text-center transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)] hover:border-b2 animate-[eu_400ms_var(--spring)_both]"
-									style={{ animationDelay: `${idx * 60}ms` }}
-								>
-									<div
-										className="w-[52px] h-[52px] rounded-[var(--r3)] flex items-center justify-center mx-auto mb-[14px]"
-										style={{ background: module.iconBg, color: module.iconColor }}
-									>
-										{MODULE_ICONS[module.key]}
-									</div>
-									<h4 className="text-[14px] font-bold mb-[5px] tracking-[-0.01em]">
-										{module.title}
-									</h4>
-									<p className="text-[12px] text-t2 leading-[1.5]">
-										{module.desc}
-									</p>
-								</div>
+								<ModuleCard key={module.key} module={module} index={idx} />
 							))}
 						</div>
 
