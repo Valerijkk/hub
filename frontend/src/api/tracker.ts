@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { buildQueryString } from "@/lib/utils";
 import type { PaginatedResponse } from "./types";
 
 // Re-export for backward compatibility.
@@ -356,14 +357,7 @@ export function createIssue(projectId: string, data: CreateIssueRequest) {
 
 /** Получить список задач проекта с фильтрацией и пагинацией. */
 export function listIssues(projectId: string, params?: ListIssuesParams) {
-	const qs = params
-		? "?" +
-			new URLSearchParams(
-				Object.entries(params)
-					.filter(([, v]) => v != null)
-					.map(([k, v]) => [k, Array.isArray(v) ? v.join(",") : String(v)]),
-			).toString()
-		: "";
+	const qs = buildQueryString(params);
 	return api.get<PaginatedResponse<IssueResponse>>(
 		`/projects/${projectId}/issues${qs}`,
 	);

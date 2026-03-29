@@ -80,7 +80,7 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 	resolvedMentions := s.resolveGroupMentions(ctx, channelID, ch.ProjectID, req.MentionGroups, req.Mentions, senderID)
 
 	// Publish NATS event
-	s.publishEvent(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
 		MessageID:        messageID,
 		ChannelID:        channelID,
 		SenderID:         senderID,
@@ -124,7 +124,7 @@ func (s *MessengerService) EditMessage(ctx context.Context, messageID string, us
 	}
 
 	// Publish NATS event
-	s.publishEvent(fmt.Sprintf(SubjectMessageEdited, existing.ChannelID.String()), MessageEditedEvent{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageEdited, existing.ChannelID.String()), MessageEditedEvent{
 		MessageID:   messageID,
 		ChannelID:   existing.ChannelID,
 		EditorID:    userID,
@@ -167,7 +167,7 @@ func (s *MessengerService) DeleteMessage(ctx context.Context, messageID string, 
 	}
 
 	// Publish NATS event
-	s.publishEvent(fmt.Sprintf(SubjectMessageDeleted, existing.ChannelID.String()), MessageDeletedEvent{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageDeleted, existing.ChannelID.String()), MessageDeletedEvent{
 		MessageID: messageID,
 		ChannelID: existing.ChannelID,
 		DeletedBy: userID,
@@ -227,7 +227,7 @@ func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID
 	doc.ID = newID
 
 	// NATS event to target channel
-	s.publishEvent(fmt.Sprintf(SubjectMessageSent, targetID.String()), MessageSentEvent{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, targetID.String()), MessageSentEvent{
 		MessageID:   newID,
 		ChannelID:   targetID,
 		SenderID:    userID,

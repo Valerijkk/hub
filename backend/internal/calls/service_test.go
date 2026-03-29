@@ -52,15 +52,15 @@ func TestGenerateToken_DifferentRooms(t *testing.T) {
 	assert.NotEqual(t, token1, token2, "токены для разных комнат должны отличаться")
 }
 
-// TestPublishEventNilSafe проверяет что publishEvent не паникует при nil NATS.
-func TestPublishEventNilSafe(t *testing.T) {
+// TestPublishJSONNilSafe проверяет что PublishJSON не паникует при nil NATS client.
+func TestPublishJSONNilSafe(t *testing.T) {
 	svc := &CallService{
 		nats: nil,
 	}
 
-	// Не должно быть паники
+	// Не должно быть паники — PublishJSON безопасен при nil receiver
 	assert.NotPanics(t, func() {
-		svc.publishEvent("test.subject", map[string]string{"key": "value"})
+		svc.nats.PublishJSON("test.subject", map[string]string{"key": "value"})
 	})
 }
 

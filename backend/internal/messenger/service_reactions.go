@@ -32,7 +32,7 @@ func (s *MessengerService) ToggleReaction(ctx context.Context, messageID string,
 	}
 
 	added := !exists
-	s.publishEvent(fmt.Sprintf(SubjectReactionToggled, msg.ChannelID.String()), ReactionToggledEvent{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectReactionToggled, msg.ChannelID.String()), ReactionToggledEvent{
 		MessageID: messageID,
 		ChannelID: msg.ChannelID,
 		UserID:    userID,

@@ -303,7 +303,7 @@ func (s *TMSService) CompleteTestRun(ctx context.Context, runID uuid.UUID) (*Tes
 	}
 
 	// Публикуем событие завершения прогона для уведомлений.
-	s.publishEvent(fmt.Sprintf(SubjectTestRunCompleted, runID.String()), map[string]interface{}{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectTestRunCompleted, runID.String()), map[string]interface{}{
 		"run_id": runID,
 		"title":  resp.Title,
 		"total":  resp.TotalCount,

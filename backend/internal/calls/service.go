@@ -3,7 +3,6 @@ package calls
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -87,7 +86,7 @@ func (s *CallService) CreateCall(ctx context.Context, channelID, userID uuid.UUI
 	}
 
 	if channelID != uuid.Nil {
-		s.publishEvent(fmt.Sprintf("calls.channel.%s.started", channelID.String()), map[string]interface{}{
+		s.nats.PublishJSON(fmt.Sprintf("calls.channel.%s.started", channelID.String()), map[string]interface{}{
 			"call_id":    callEnt.ID,
 			"room_name":  roomName,
 			"created_by": userID,
@@ -183,7 +182,7 @@ func (s *CallService) JoinCall(ctx context.Context, callID, userID uuid.UUID, us
 		return nil, fmt.Errorf("не удалось сгенерировать токен: %w", err)
 	}
 
-	s.publishEvent(fmt.Sprintf("calls.channel.%s.joined", channelIDStr(callEnt.ChannelID)), map[string]interface{}{
+	s.nats.PublishJSON(fmt.Sprintf("calls.channel.%s.joined", channelIDStr(callEnt.ChannelID)), map[string]interface{}{
 		"call_id":   callID,
 		"user_id":   userID,
 		"user_name": userName,
@@ -203,7 +202,7 @@ func (s *CallService) LeaveCall(ctx context.Context, callID, userID uuid.UUID) e
 		return fmt.Errorf("не удалось удалить участника: %w", err)
 	}
 
-	s.publishEvent(fmt.Sprintf("calls.channel.%s.left", channelIDStr(callEnt.ChannelID)), map[string]interface{}{
+	s.nats.PublishJSON(fmt.Sprintf("calls.channel.%s.left", channelIDStr(callEnt.ChannelID)), map[string]interface{}{
 		"call_id": callID,
 		"user_id": userID,
 	})
@@ -231,7 +230,7 @@ func (s *CallService) EndCall(ctx context.Context, callID uuid.UUID) error {
 		return fmt.Errorf("не удалось обновить статус звонка: %w", err)
 	}
 
-	s.publishEvent(fmt.Sprintf("calls.channel.%s.ended", channelIDStr(callEnt.ChannelID)), map[string]interface{}{
+	s.nats.PublishJSON(fmt.Sprintf("calls.channel.%s.ended", channelIDStr(callEnt.ChannelID)), map[string]interface{}{
 		"call_id":           callID,
 		"participant_count": callEnt.ParticipantCount,
 	})
@@ -288,7 +287,7 @@ func (s *CallService) OnRoomFinished(ctx context.Context, roomName string) error
 		}
 	}
 
-	s.publishEvent(fmt.Sprintf("calls.channel.%s.ended", channelIDStr(callEnt.ChannelID)), map[string]interface{}{
+	s.nats.PublishJSON(fmt.Sprintf("calls.channel.%s.ended", channelIDStr(callEnt.ChannelID)), map[string]interface{}{
 		"call_id":           callEnt.ID,
 		"participant_count": callEnt.ParticipantCount,
 	})
@@ -322,7 +321,7 @@ func (s *CallService) SendChatMessage(ctx context.Context, callID string, userID
 	}
 
 	// Публикуем событие для real-time доставки через NATS -> WS bridge
-	s.publishEvent("calls.chat."+callID, map[string]interface{}{
+	s.nats.PublishJSON("calls.chat."+callID, map[string]interface{}{
 		"id":         msg.ID.Hex(),
 		"call_id":    msg.CallID,
 		"user_id":    msg.UserID,
@@ -374,29 +373,12 @@ func (s *CallService) OnParticipantLeft(ctx context.Context, roomName, identity 
 	return s.repo.RemoveParticipant(ctx, callEnt.ID, userID, time.Now())
 }
 
-// publishEvent публикует событие в NATS (fire-and-forget).
-// Безопасен при nil NATS-клиенте (пропускает публикацию с логированием).
 // channelIDStr безопасно возвращает строку из *uuid.UUID (nil → "instant").
 func channelIDStr(id *uuid.UUID) string {
 	if id == nil {
 		return "instant"
 	}
 	return id.String()
-}
-
-func (s *CallService) publishEvent(subject string, payload interface{}) {
-	if s.nats == nil {
-		slog.Debug("NATS не подключён, пропускаем публикацию", "subject", subject)
-		return
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("не удалось сериализовать событие", "subject", subject, "error", err)
-		return
-	}
-	if err := s.nats.Publish(subject, data); err != nil {
-		slog.Error("не удалось опубликовать событие", "subject", subject, "error", err)
-	}
 }
 
 // toCallResponse конвертирует Ent Call в DTO ответа.

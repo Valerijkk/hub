@@ -101,7 +101,7 @@ func (s *MessengerService) CreatePoll(ctx context.Context, channelID, creatorID 
 	if msgID != "" {
 		pollDoc.ID = msgID
 		// Публикуем message_sent для real-time доставки.
-		s.publishEvent(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
+		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
 			MessageID:   msgID,
 			ChannelID:   channelID,
 			SenderID:    creatorID,
@@ -113,7 +113,7 @@ func (s *MessengerService) CreatePoll(ctx context.Context, channelID, creatorID 
 	}
 
 	// Публикуем NATS-событие опроса.
-	s.publishEvent(fmt.Sprintf(SubjectPollCreated, channelID.String()), PollCreatedEvent{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectPollCreated, channelID.String()), PollCreatedEvent{
 		PollID:    p.ID.String(),
 		ChannelID: channelID,
 		CreatorID: creatorID,
@@ -222,7 +222,7 @@ func (s *MessengerService) VotePoll(ctx context.Context, pollID, userID uuid.UUI
 	}
 
 	// Публикуем NATS-событие.
-	s.publishEvent(fmt.Sprintf(SubjectPollVoted, p.ChannelID.String()), PollVotedEvent{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectPollVoted, p.ChannelID.String()), PollVotedEvent{
 		PollID:    pollID.String(),
 		ChannelID: p.ChannelID,
 		UserID:    userID,
@@ -264,7 +264,7 @@ func (s *MessengerService) ClosePoll(ctx context.Context, pollID, userID uuid.UU
 	}
 
 	// Публикуем NATS-событие.
-	s.publishEvent(fmt.Sprintf(SubjectPollClosed, p.ChannelID.String()), PollClosedEvent{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectPollClosed, p.ChannelID.String()), PollClosedEvent{
 		PollID:    pollID.String(),
 		ChannelID: p.ChannelID,
 		ClosedBy:  userID,

@@ -173,7 +173,7 @@ func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uu
 	}
 
 	// Publish NATS event
-	s.publishEvent(fmt.Sprintf(SubjectMemberJoined, channelID.String()), map[string]interface{}{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectMemberJoined, channelID.String()), map[string]interface{}{
 		"channel_id": channelID,
 		"user_id":    userID,
 	})
@@ -187,7 +187,7 @@ func (s *MessengerService) LeaveChannel(ctx context.Context, channelID, userID u
 		return apperrors.NewInternal("ошибка выхода из канала")
 	}
 
-	s.publishEvent(fmt.Sprintf(SubjectMemberLeft, channelID.String()), map[string]interface{}{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectMemberLeft, channelID.String()), map[string]interface{}{
 		"channel_id": channelID,
 		"user_id":    userID,
 	})

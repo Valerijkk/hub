@@ -1,6 +1,6 @@
 /**
- * WidgetGrid -- wrapper over react-grid-layout v2 for drag-and-drop widgets.
- * Widgets are always draggable and resizable with per-widget size constraints.
+ * WidgetGrid -- обёртка над react-grid-layout v2 для drag-and-drop виджетов.
+ * Виджеты всегда перетаскиваемы и ресайзятся с индивидуальными ограничениями размеров.
  */
 import {
 	CalendarClock,
@@ -48,7 +48,7 @@ import { UnreadMessagesWidget } from "./widgets/unread-messages";
 import { UpcomingCallsWidget } from "./widgets/upcoming-calls";
 import { VelocityChartWidget } from "./widgets/velocity-chart";
 
-/** Single definition per widget: component, display name, icon, accent gradient, size constraints. */
+/** Определение виджета: компонент, название, иконка, акцентный градиент, ограничения размеров. */
 interface WidgetDefinition {
 	component: React.ComponentType<{ data?: unknown }>;
 	name: string;
@@ -137,24 +137,24 @@ const WIDGET_CONFIG: Record<string, WidgetDefinition> = {
 	},
 };
 
-/** Default size constraints for unknown widget types. */
+/** Ограничения размеров по умолчанию для неизвестных типов виджетов. */
 const DEFAULT_CONSTRAINTS = { minW: 2, maxW: 6, minH: 2, maxH: 6 };
 
-/** WidgetGrid component props. */
+/** Пропсы компонента WidgetGrid. */
 interface WidgetGridProps {
-	/** Layout items. */
+	/** Элементы раскладки. */
 	items: LayoutItem[];
-	/** Dashboard type. */
+	/** Тип дашборда. */
 	dashboardType: string;
-	/** Project ID (for project dashboards). */
+	/** ID проекта (для проектных дашбордов). */
 	projectId?: string;
-	/** Data for widgets. */
+	/** Данные для виджетов. */
 	data?: unknown;
 }
 
 /**
- * Widget grid with drag-and-drop and resize support.
- * Widgets are always draggable -- no edit mode required.
+ * Сетка виджетов с поддержкой drag-and-drop и ресайза.
+ * Виджеты всегда перетаскиваемы -- режим редактирования не требуется.
  */
 export function WidgetGrid({
 	items,
@@ -245,7 +245,7 @@ export function WidgetGrid({
 		[items],
 	);
 
-	/** Widget types not currently on the grid. */
+	/** Типы виджетов, отсутствующие на сетке. */
 	const hiddenWidgetTypes = useMemo(
 		() => Object.keys(WIDGET_CONFIG).filter((type) => !existingTypes.has(type)),
 		[existingTypes],

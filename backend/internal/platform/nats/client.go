@@ -3,6 +3,7 @@ package nats
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"time"
 
@@ -73,6 +74,23 @@ func (c *Client) EnsureStreams(ctx context.Context) error {
 	}
 	slog.Info("JetStream stream ensured", "stream", StreamName)
 	return nil
+}
+
+// PublishJSON сериализует payload в JSON и публикует в NATS (fire-and-forget).
+// Безопасен при nil receiver — пропускает публикацию с debug-логом.
+func (c *Client) PublishJSON(subject string, payload interface{}) {
+	if c == nil {
+		slog.Debug("NATS не подключён, пропускаем публикацию", "subject", subject)
+		return
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		slog.Error("не удалось сериализовать событие", "subject", subject, "error", err)
+		return
+	}
+	if err := c.Conn.Publish(subject, data); err != nil {
+		slog.Error("не удалось опубликовать событие", "subject", subject, "error", err)
+	}
 }
 
 // Subscribe подписывается на core NATS subject (эфемерная подписка).

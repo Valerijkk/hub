@@ -130,7 +130,7 @@ func (s *GitLabService) handlePushWebhook(ctx context.Context, payload []byte) e
 			}
 
 			// Публикуем NATS-событие о привязке коммита к задаче
-			s.publishEvent("gitlab.push.commit_linked", map[string]interface{}{
+			s.nats.PublishJSON("gitlab.push.commit_linked", map[string]interface{}{
 				"issue_key":    key,
 				"commit_sha":   commit.ID,
 				"commit_url":   commit.URL,
@@ -181,7 +181,7 @@ func (s *GitLabService) handleMergeRequestWebhook(ctx context.Context, payload [
 		}
 
 		// Публикуем NATS-событие о привязке MR к задаче
-		s.publishEvent("gitlab.mr.linked", map[string]interface{}{
+		s.nats.PublishJSON("gitlab.mr.linked", map[string]interface{}{
 			"issue_key":     key,
 			"mr_iid":        mr.IID,
 			"mr_title":      mr.Title,
@@ -213,7 +213,7 @@ func (s *GitLabService) handlePipelineWebhook(ctx context.Context, payload []byt
 	}
 
 	// Публикуем NATS-событие об обновлении пайплайна
-	s.publishEvent("gitlab.pipeline.updated", map[string]interface{}{
+	s.nats.PublishJSON("gitlab.pipeline.updated", map[string]interface{}{
 		"pipeline_id":  pipeline.ID,
 		"status":       pipeline.Status,
 		"ref":          pipeline.Ref,
@@ -389,7 +389,7 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 	}
 
 	// Публикуем NATS-событие о запуске пайплайна
-	s.publishEvent("gitlab.pipeline.triggered", map[string]interface{}{
+	s.nats.PublishJSON("gitlab.pipeline.triggered", map[string]interface{}{
 		"pipeline_id":  pipeline.ID,
 		"status":       pipeline.Status,
 		"ref":          pipeline.Ref,
@@ -538,21 +538,6 @@ func toIntegrationResponse(ig *ent.GitLabIntegration) *IntegrationResponse {
 		GitLabURL:   ig.GitlabURL,
 		ProjectPath: ig.ProjectPath,
 		CreatedAt:   ig.CreatedAt,
-	}
-}
-
-// publishEvent публикует событие в NATS (nil-safe).
-func (s *GitLabService) publishEvent(subject string, payload interface{}) {
-	if s.nats == nil {
-		return
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("не удалось сериализовать GitLab событие", "subject", subject, "error", err)
-		return
-	}
-	if err := s.nats.Publish(subject, data); err != nil {
-		slog.Error("не удалось опубликовать GitLab событие", "subject", subject, "error", err)
 	}
 }
 

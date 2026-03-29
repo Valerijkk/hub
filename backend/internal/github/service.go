@@ -254,7 +254,7 @@ func (s *GitHubService) handlePRWebhook(ctx context.Context, payload []byte) err
 				}
 
 				// Публикуем NATS-событие
-				s.publishEvent("github.pr.merged", map[string]interface{}{
+				s.nats.PublishJSON("github.pr.merged", map[string]interface{}{
 					"issue_key": key,
 					"pr_number": prNumber,
 					"pr_title":  pr.GetTitle(),
@@ -478,21 +478,6 @@ func ValidateWebhookSignature(payload []byte, signature, secret string) bool {
 // Helpers
 // ---------------------------------------------------------------------------
 
-// publishEvent публикует событие в NATS (nil-safe).
-func (s *GitHubService) publishEvent(subject string, payload interface{}) {
-	if s.nats == nil {
-		return
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("не удалось сериализовать GitHub событие", "subject", subject, "error", err)
-		return
-	}
-	if err := s.nats.Publish(subject, data); err != nil {
-		slog.Error("не удалось опубликовать GitHub событие", "subject", subject, "error", err)
-	}
-}
-
 // slugify преобразует строку в URL-безопасный формат для имени ветки.
 func slugify(s string) string {
 	s = strings.ToLower(s)
@@ -542,7 +527,7 @@ func (s *GitHubService) markTestCasesOutdated(ctx context.Context, integration *
 					slog.Error("ошибка обновления sync_status", "case_key", tc.CaseKey, "error", err)
 				}
 				// Публикуем уведомление
-				s.publishEvent("tms.test_case.outdated", map[string]interface{}{
+				s.nats.PublishJSON("tms.test_case.outdated", map[string]interface{}{
 					"case_key":  tc.CaseKey,
 					"file_path": file,
 				})

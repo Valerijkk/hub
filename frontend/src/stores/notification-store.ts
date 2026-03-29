@@ -61,8 +61,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 				page: 1,
 				hasMore: (res.notifications?.length ?? 0) < res.total,
 			});
-		} catch {
-			// Ошибка загрузки уведомлений — игнорируем.
+		} catch (err) {
+			console.warn("[notifications] fetchNotifications failed", err);
 		} finally {
 			set({ loading: false });
 		}
@@ -84,8 +84,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 				total: res.total,
 				hasMore: allItems.length < res.total,
 			});
-		} catch {
-			// Ошибка загрузки — игнорируем.
+		} catch (err) {
+			console.warn("[notifications] fetchMore failed", err);
 		} finally {
 			set({ loading: false });
 		}
@@ -111,8 +111,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 				),
 				unreadCount: Math.max(0, state.unreadCount - 1),
 			}));
-		} catch {
-			// Ошибка — игнорируем.
+		} catch (err) {
+			console.warn("[notifications] markRead failed", err);
 		}
 	},
 
@@ -130,8 +130,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 							: state.unreadCount,
 				};
 			});
-		} catch {
-			// Ошибка удаления — игнорируем.
+		} catch (err) {
+			console.warn("[notifications] deleteNotification failed", err);
 		}
 	},
 
@@ -145,8 +145,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 				})),
 				unreadCount: 0,
 			}));
-		} catch {
-			// Ошибка — игнорируем.
+		} catch (err) {
+			console.warn("[notifications] markAllRead failed", err);
 		}
 	},
 
@@ -154,8 +154,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 		try {
 			await apiMarkAllRead();
 			set({ notifications: [], unreadCount: 0 });
-		} catch {
-			// Ошибка — игнорируем.
+		} catch (err) {
+			console.warn("[notifications] clearAll failed", err);
 		}
 	},
 
@@ -163,8 +163,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 		try {
 			const res = await getUnreadCount();
 			set({ unreadCount: res.count });
-		} catch {
-			// Ошибка — игнорируем.
+		} catch (err) {
+			console.warn("[notifications] fetchUnreadCount failed", err);
 		}
 	},
 }));

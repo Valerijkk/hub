@@ -89,7 +89,7 @@ backend/internal/
 
 | Компонент | Технология | Версия |
 |-----------|-----------|--------|
-| Language | Go | 1.23 |
+| Language | Go | 1.25 |
 | Web Framework | Fiber | v3 |
 | ORM | Ent | latest |
 | Migrations | Atlas | auto |
@@ -102,7 +102,7 @@ backend/internal/
 | CSS | Tailwind CSS | 4 |
 | Rich Text | Plate | latest |
 | DnD | pragmatic-drag-and-drop | latest |
-| Charts | Tremor | latest |
+| Charts | Recharts | latest |
 | Database (relational) | PostgreSQL | 17 |
 | Database (document) | MongoDB | 8 |
 | Cache | Redis | 7.4-alpine |
@@ -1725,4 +1725,4 @@ Caddy (prod):
 
 ---
 
-*Последнее обновление: 2026-03-28*
+*Последнее обновление: 2026-03-30*

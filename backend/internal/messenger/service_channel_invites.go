@@ -214,7 +214,7 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 	}
 
 	// Публикуем NATS-событие.
-	s.publishEvent(fmt.Sprintf(SubjectMemberJoined, found.ChannelID.String()), map[string]interface{}{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectMemberJoined, found.ChannelID.String()), map[string]interface{}{
 		"channel_id": found.ChannelID,
 		"user_id":    userID,
 		"via_invite": token,

@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { buildQueryString } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Типы перечислений
@@ -98,6 +99,39 @@ export interface Bookmark {
 	created_at: string;
 }
 
+/**
+ * Конструирует объект Message из WS-события (MessageSentEvent).
+ * WS присылает частичные данные — заполняем недостающие поля безопасными дефолтами.
+ */
+export function buildMessageFromWsEvent(
+	evt: Record<string, unknown>,
+	fallbackChannelId: string,
+): Message | null {
+	const id = (evt.message_id ?? evt.id ?? "") as string;
+	if (!id) return null;
+	return {
+		id,
+		channel_id: (evt.channel_id ?? fallbackChannelId) as string,
+		sender_id: (evt.sender_id ?? "") as string,
+		message_type: (evt.message_type as string) ?? undefined,
+		poll_id: (evt.poll_id as string) ?? undefined,
+		content_text: (evt.content_text as string) ?? undefined,
+		content_json: (evt.content_json as Record<string, unknown>) ?? undefined,
+		reply_count: (evt.reply_count as number) ?? 0,
+		created_at: (evt.created_at as string) ?? new Date().toISOString(),
+		thread_id: (evt.thread_id as string) ?? undefined,
+		reactions: (evt.reactions as Message["reactions"]) ?? undefined,
+		attachments: (evt.attachments as Message["attachments"]) ?? undefined,
+		forwarded_from_id: (evt.forwarded_from_id as string) ?? undefined,
+		edited_at: (evt.edited_at as string) ?? undefined,
+		deleted_at: (evt.deleted_at as string) ?? undefined,
+		voice_url: (evt.voice_url as string) ?? undefined,
+		voice_duration_ms: (evt.voice_duration_ms as number) ?? undefined,
+		mentions: (evt.mentions as string[]) ?? undefined,
+		mention_groups: (evt.mention_groups as string[]) ?? undefined,
+	};
+}
+
 // ---------------------------------------------------------------------------
 // Интерфейсы запросов (Request DTOs)
 // ---------------------------------------------------------------------------
@@ -194,14 +228,7 @@ export function getMessages(
 	channelId: string,
 	params?: { before?: string; limit?: number },
 ) {
-	const qs = params
-		? "?" +
-			new URLSearchParams(
-				Object.entries(params)
-					.filter(([, v]) => v != null)
-					.map(([k, v]) => [k, String(v)]),
-			).toString()
-		: "";
+	const qs = buildQueryString(params);
 	return api.get<Message[]>(`/messenger/channels/${channelId}/messages${qs}`);
 }
 
@@ -282,14 +309,7 @@ export function getThreadReplies(
 	messageId: string,
 	params?: { before?: string; limit?: number },
 ) {
-	const qs = params
-		? "?" +
-			new URLSearchParams(
-				Object.entries(params)
-					.filter(([, v]) => v != null)
-					.map(([k, v]) => [k, String(v)]),
-			).toString()
-		: "";
+	const qs = buildQueryString(params);
 	return api.get<Message[]>(
 		`/messenger/channels/${channelId}/messages/${messageId}/replies${qs}`,
 	);

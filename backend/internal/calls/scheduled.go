@@ -2,7 +2,6 @@ package calls
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -114,7 +113,7 @@ func (s *ScheduledCallService) ProcessDueScheduledCalls(ctx context.Context) err
 
 	for _, sc := range dueCalls {
 		// Публикуем NATS событие для уведомления через WS
-		s.publishEvent("calls.scheduled.due", map[string]interface{}{
+		s.nats.PublishJSON("calls.scheduled.due", map[string]interface{}{
 			"scheduled_call_id": sc.ID,
 			"title":             sc.Title,
 			"channel_id":        sc.ChannelID,
@@ -150,23 +149,6 @@ func (s *ScheduledCallService) ProcessDueScheduledCalls(ctx context.Context) err
 	}
 
 	return nil
-}
-
-// publishEvent публикует событие в NATS (fire-and-forget).
-// Безопасен при nil NATS-клиенте.
-func (s *ScheduledCallService) publishEvent(subject string, payload interface{}) {
-	if s.nats == nil {
-		slog.Debug("NATS не подключён, пропускаем публикацию", "subject", subject)
-		return
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("не удалось сериализовать событие", "subject", subject, "error", err)
-		return
-	}
-	if err := s.nats.Publish(subject, data); err != nil {
-		slog.Error("не удалось опубликовать событие", "subject", subject, "error", err)
-	}
 }
 
 // toScheduledCallResponse конвертирует Ent ScheduledCall в DTO ответа.

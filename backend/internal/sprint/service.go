@@ -204,9 +204,19 @@ func (s *SprintService) GetBurndown(ctx context.Context, sprintID uuid.UUID) ([]
 
 		actualRemaining := total
 		if day.After(now) {
+			// Будущие дни показывают текущий remaining (горизонтальная линия).
 			actualRemaining = remaining
 		} else if day.Before(now) || day.Equal(now) {
-			// Упрощённый расчёт: линейная интерполяция к текущему remaining
+			// Линейная интерполяция фактического прогресса.
+			//
+			// Логика: мы знаем сколько задач сделано с начала спринта до now
+			// (completedSoFar = total - remaining). Для каждого прошедшего дня d
+			// масштабируем прогресс пропорционально:
+			//   ratio = d / elapsed — какую долю прошедших дней покрывает день d
+			//   completedByDay = completedSoFar * ratio
+			//   actualRemaining = total - completedByDay
+			//
+			// Это даёт линейную аппроксимацию от total (день 0) до remaining (сегодня).
 			elapsed := now.Sub(sp.StartDate).Hours() / 24
 			if elapsed > 0 && d > 0 {
 				ratio := float64(d) / elapsed

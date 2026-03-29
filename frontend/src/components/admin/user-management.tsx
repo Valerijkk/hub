@@ -19,6 +19,115 @@ interface UsersResponse {
 	users?: ManagedUser[];
 }
 
+/** Props для диалога переназначения задач. */
+interface ReassignDialogProps {
+	user: ManagedUser;
+	onConfirm: (targetId: string) => void;
+	onClose: () => void;
+	disabled: boolean;
+}
+
+/**
+ * ReassignDialog -- диалог подтверждения переназначения задач пользователя.
+ * Содержит поле ввода ID целевого пользователя и кнопки подтверждения/отмены.
+ */
+function ReassignDialog({ user, onConfirm, onClose, disabled }: ReassignDialogProps) {
+	const [targetId, setTargetId] = useState("");
+
+	return (
+		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+			<div className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
+				<h3 className="mb-4 text-[16px] font-bold">Переназначить задачи</h3>
+				<p className="mb-3 text-[13px] text-t2">
+					Все задачи пользователя{" "}
+					<strong>
+						{user.name || user.email}
+					</strong>{" "}
+					будут переназначены.
+				</p>
+				<input
+					type="text"
+					value={targetId}
+					onChange={(e) => setTargetId(e.target.value)}
+					placeholder="ID целевого пользователя"
+					className="mb-4 w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none placeholder:text-t3"
+				/>
+				<div className="flex justify-end gap-2">
+					<button
+						onClick={onClose}
+						className="rounded-[var(--r2)] border border-b1 px-3 py-1.5 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-colors duration-180"
+					>
+						Отмена
+					</button>
+					<button
+						onClick={() => onConfirm(targetId)}
+						disabled={!targetId || disabled}
+						className="rounded-[var(--r2)] bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] px-3 py-1.5 text-[13px] font-bold text-white disabled:opacity-50"
+					>
+						Переназначить
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+/** Props для диалога GDPR-удаления пользователя. */
+interface GdprDeleteDialogProps {
+	user: ManagedUser;
+	onConfirm: () => void;
+	onClose: () => void;
+	disabled: boolean;
+}
+
+/**
+ * GdprDeleteDialog -- диалог подтверждения безвозвратного удаления данных пользователя (GDPR).
+ * Требует ввод слова «УДАЛИТЬ» для подтверждения действия.
+ */
+function GdprDeleteDialog({ user, onConfirm, onClose, disabled }: GdprDeleteDialogProps) {
+	const [confirmText, setConfirmText] = useState("");
+
+	return (
+		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+			<div className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
+				<h3 className="mb-2 text-[16px] font-bold text-red">
+					Удаление данных (GDPR)
+				</h3>
+				<p className="mb-2 text-[13px] text-t2">
+					Все данные пользователя{" "}
+					<strong>{user.name || user.email}</strong>{" "}
+					будут безвозвратно удалены.
+				</p>
+				<p className="mb-3 text-[13px] font-semibold text-red">
+					Это действие необратимо. Введите УДАЛИТЬ для подтверждения.
+				</p>
+				<input
+					type="text"
+					value={confirmText}
+					onChange={(e) => setConfirmText(e.target.value)}
+					placeholder="Введите УДАЛИТЬ"
+					className="mb-4 w-full h-[42px] px-[14px] bg-[var(--input)] border border-red/[0.3] rounded-[var(--r2)] text-[14px] text-t1 outline-none placeholder:text-t3"
+				/>
+				<div className="flex justify-end gap-2">
+					<button
+						onClick={onClose}
+						className="rounded-[var(--r2)] border border-b1 px-3 py-1.5 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-colors duration-180"
+					>
+						Отмена
+					</button>
+					<button
+						onClick={onConfirm}
+						disabled={confirmText !== "УДАЛИТЬ" || disabled}
+						className="rounded-[var(--r2)] bg-red px-3 py-1.5 text-[13px] font-bold text-white hover:bg-[var(--redS)] disabled:opacity-50"
+					>
+						Удалить навсегда
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
 /**
  * UserManagement -- страница администратора для управления пользователями.
  * Позволяет деактивировать, переназначить задачи и удалить данные (GDPR).
@@ -30,11 +139,9 @@ export function UserManagement() {
 	const [actionUserId, setActionUserId] = useState<string | null>(null);
 	const [reassignDialogUser, setReassignDialogUser] =
 		useState<ManagedUser | null>(null);
-	const [reassignTargetId, setReassignTargetId] = useState("");
 	const [gdprDialogUser, setGdprDialogUser] = useState<ManagedUser | null>(
 		null,
 	);
-	const [gdprConfirmText, setGdprConfirmText] = useState("");
 
 	useEffect(() => {
 		setLoading(true);
@@ -88,18 +195,17 @@ export function UserManagement() {
 	};
 
 	/** Переназначить задачи. */
-	const handleReassign = async () => {
-		if (!reassignDialogUser || !reassignTargetId) return;
+	const handleReassign = async (targetId: string) => {
+		if (!reassignDialogUser || !targetId) return;
 
 		setActionUserId(reassignDialogUser.id);
 		try {
 			const result = await reassignTasks(
 				reassignDialogUser.id,
-				reassignTargetId,
+				targetId,
 			);
 			alert(`Переназначено задач: ${result.reassigned_count}`);
 			setReassignDialogUser(null);
-			setReassignTargetId("");
 		} catch (err) {
 			console.error("Ошибка переназначения:", err);
 		} finally {
@@ -109,14 +215,13 @@ export function UserManagement() {
 
 	/** Удаление данных (GDPR). */
 	const handleGdprDelete = async () => {
-		if (!gdprDialogUser || gdprConfirmText !== "УДАЛИТЬ") return;
+		if (!gdprDialogUser) return;
 
 		setActionUserId(gdprDialogUser.id);
 		try {
 			await gdprDeleteUser(gdprDialogUser.id);
 			setUsers((prev) => prev.filter((u) => u.id !== gdprDialogUser.id));
 			setGdprDialogUser(null);
-			setGdprConfirmText("");
 		} catch (err) {
 			console.error("Ошибка GDPR удаления:", err);
 		} finally {
@@ -246,87 +351,22 @@ export function UserManagement() {
 
 			{/* Диалог переназначения */}
 			{reassignDialogUser && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-					<div className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
-						<h3 className="mb-4 text-[16px] font-bold">Переназначить задачи</h3>
-						<p className="mb-3 text-[13px] text-t2">
-							Все задачи пользователя{" "}
-							<strong>
-								{reassignDialogUser.name || reassignDialogUser.email}
-							</strong>{" "}
-							будут переназначены.
-						</p>
-						<input
-							type="text"
-							value={reassignTargetId}
-							onChange={(e) => setReassignTargetId(e.target.value)}
-							placeholder="ID целевого пользователя"
-							className="mb-4 w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none placeholder:text-t3"
-						/>
-						<div className="flex justify-end gap-2">
-							<button
-								onClick={() => {
-									setReassignDialogUser(null);
-									setReassignTargetId("");
-								}}
-								className="rounded-[var(--r2)] border border-b1 px-3 py-1.5 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-colors duration-180"
-							>
-								Отмена
-							</button>
-							<button
-								onClick={handleReassign}
-								disabled={!reassignTargetId}
-								className="rounded-[var(--r2)] bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] px-3 py-1.5 text-[13px] font-bold text-white disabled:opacity-50"
-							>
-								Переназначить
-							</button>
-						</div>
-					</div>
-				</div>
+				<ReassignDialog
+					user={reassignDialogUser}
+					onConfirm={handleReassign}
+					onClose={() => setReassignDialogUser(null)}
+					disabled={actionUserId === reassignDialogUser.id}
+				/>
 			)}
 
 			{/* Диалог GDPR удаления */}
 			{gdprDialogUser && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-					<div className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
-						<h3 className="mb-2 text-[16px] font-bold text-red">
-							Удаление данных (GDPR)
-						</h3>
-						<p className="mb-2 text-[13px] text-t2">
-							Все данные пользователя{" "}
-							<strong>{gdprDialogUser.name || gdprDialogUser.email}</strong>{" "}
-							будут безвозвратно удалены.
-						</p>
-						<p className="mb-3 text-[13px] font-semibold text-red">
-							Это действие необратимо. Введите УДАЛИТЬ для подтверждения.
-						</p>
-						<input
-							type="text"
-							value={gdprConfirmText}
-							onChange={(e) => setGdprConfirmText(e.target.value)}
-							placeholder="Введите УДАЛИТЬ"
-							className="mb-4 w-full h-[42px] px-[14px] bg-[var(--input)] border border-red/[0.3] rounded-[var(--r2)] text-[14px] text-t1 outline-none placeholder:text-t3"
-						/>
-						<div className="flex justify-end gap-2">
-							<button
-								onClick={() => {
-									setGdprDialogUser(null);
-									setGdprConfirmText("");
-								}}
-								className="rounded-[var(--r2)] border border-b1 px-3 py-1.5 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-colors duration-180"
-							>
-								Отмена
-							</button>
-							<button
-								onClick={handleGdprDelete}
-								disabled={gdprConfirmText !== "УДАЛИТЬ"}
-								className="rounded-[var(--r2)] bg-red px-3 py-1.5 text-[13px] font-bold text-white hover:bg-[var(--redS)] disabled:opacity-50"
-							>
-								Удалить навсегда
-							</button>
-						</div>
-					</div>
-				</div>
+				<GdprDeleteDialog
+					user={gdprDialogUser}
+					onConfirm={handleGdprDelete}
+					onClose={() => setGdprDialogUser(null)}
+					disabled={actionUserId === gdprDialogUser.id}
+				/>
 			)}
 		</div>
 	);

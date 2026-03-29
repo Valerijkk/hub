@@ -2,7 +2,6 @@ package tms
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -122,7 +121,7 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 	}
 
 	// 8. Publish NATS event
-	s.publishEvent(fmt.Sprintf(SubjectTestRunCompleted, run.ID.String()), map[string]interface{}{
+	s.nats.PublishJSON(fmt.Sprintf(SubjectTestRunCompleted, run.ID.String()), map[string]interface{}{
 		"run_id":     run.ID,
 		"project_id": projectID,
 		"title":      title,
@@ -225,18 +224,3 @@ func (s *TMSService) ExportTestRunReport(ctx context.Context, runID uuid.UUID, f
 	return handleExportTestRunReport(s, ctx, runID, format)
 }
 
-// publishEvent publishes an event to NATS (fire-and-forget).
-// Safe when NATS client is nil (skips publishing).
-func (s *TMSService) publishEvent(subject string, payload interface{}) {
-	if s.nats == nil {
-		return
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("не удалось сериализовать TMS событие", "subject", subject, "error", err)
-		return
-	}
-	if err := s.nats.Publish(subject, data); err != nil {
-		slog.Error("не удалось опубликовать TMS событие", "subject", subject, "error", err)
-	}
-}

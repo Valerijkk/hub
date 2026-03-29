@@ -168,6 +168,10 @@ func (s *AuditService) CheckLimit(ctx context.Context, limitKey string, currentV
 }
 
 // ---- Корзина (мягкое удаление) ----
+// Каждый тип сущности (issue, test_case, file, project) обрабатывается
+// отдельным switch-case из-за type-safe API Ent ORM — у каждого типа
+// свои предикаты, поля и query builder. Обобщение через interface{}
+// или reflect усложнило бы код без выигрыша в поддерживаемости.
 
 // ListTrash возвращает пагинированный список элементов в корзине.
 func (s *AuditService) ListTrash(ctx context.Context, entityType string, projectID *uuid.UUID, page, perPage int) (*TrashListResponse, error) {
@@ -346,33 +350,28 @@ func (s *AuditService) SoftDelete(ctx context.Context, entityType string, entity
 func (s *AuditService) PurgeExpired(ctx context.Context) error {
 	cutoff := time.Now().Add(-TrashRetentionDays * 24 * time.Hour)
 
-	n, err := s.db.Issue.Delete().Where(issue.DeletedAtNotNil(), issue.DeletedAtLT(cutoff)).Exec(ctx)
-	if err != nil {
-		slog.Error("purge expired issues", "error", err)
-	} else if n > 0 {
-		slog.Info("purged expired issues", "count", n)
+	// purge вызывает deleteFunc и логирует результат.
+	purge := func(entity string, deleteFunc func() (int, error)) {
+		n, err := deleteFunc()
+		if err != nil {
+			slog.Error("purge expired "+entity, "error", err)
+		} else if n > 0 {
+			slog.Info("purged expired "+entity, "count", n)
+		}
 	}
 
-	n, err = s.db.TestCase.Delete().Where(testcase.DeletedAtNotNil(), testcase.DeletedAtLT(cutoff)).Exec(ctx)
-	if err != nil {
-		slog.Error("purge expired test cases", "error", err)
-	} else if n > 0 {
-		slog.Info("purged expired test cases", "count", n)
-	}
-
-	n, err = s.db.FileMetadata.Delete().Where(filemetadata.DeletedAtNotNil(), filemetadata.DeletedAtLT(cutoff)).Exec(ctx)
-	if err != nil {
-		slog.Error("purge expired files", "error", err)
-	} else if n > 0 {
-		slog.Info("purged expired files", "count", n)
-	}
-
-	n, err = s.db.Project.Delete().Where(project.DeletedAtNotNil(), project.DeletedAtLT(cutoff)).Exec(ctx)
-	if err != nil {
-		slog.Error("purge expired projects", "error", err)
-	} else if n > 0 {
-		slog.Info("purged expired projects", "count", n)
-	}
+	purge("issues", func() (int, error) {
+		return s.db.Issue.Delete().Where(issue.DeletedAtNotNil(), issue.DeletedAtLT(cutoff)).Exec(ctx)
+	})
+	purge("test_cases", func() (int, error) {
+		return s.db.TestCase.Delete().Where(testcase.DeletedAtNotNil(), testcase.DeletedAtLT(cutoff)).Exec(ctx)
+	})
+	purge("files", func() (int, error) {
+		return s.db.FileMetadata.Delete().Where(filemetadata.DeletedAtNotNil(), filemetadata.DeletedAtLT(cutoff)).Exec(ctx)
+	})
+	purge("projects", func() (int, error) {
+		return s.db.Project.Delete().Where(project.DeletedAtNotNil(), project.DeletedAtLT(cutoff)).Exec(ctx)
+	})
 
 	return nil
 }

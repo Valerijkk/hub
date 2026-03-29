@@ -50,6 +50,27 @@ export function useWebSocket() {
 }
 
 /**
+ * useWsEventListener подписывает обработчик на WS-события.
+ * Автоматически обновляет подписку при изменении handler и отписывается при размонтировании.
+ */
+export function useWsEventListener(handler: EventHandler) {
+	const addListener = useWsStore((s) => s.addListener);
+	const removeListener = useWsStore((s) => s.removeListener);
+	const handlerRef = useRef<EventHandler | null>(null);
+
+	useEffect(() => {
+		if (handlerRef.current) {
+			removeListener(handlerRef.current);
+		}
+		handlerRef.current = handler;
+		addListener(handler);
+		return () => {
+			removeListener(handler);
+		};
+	}, [handler, addListener, removeListener]);
+}
+
+/**
  * useRooms подписывается на список WebSocket-комнат.
  * Автоматически отписывается при изменении списка комнат или размонтировании компонента.
  * Должен вызываться как хук (не внутри callbacks).

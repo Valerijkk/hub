@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import type { Channel } from "@/api/messenger";
 import { getChannels } from "@/api/messenger";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { useWsStore } from "@/stores/ws-store";
+import { useWsEventListener } from "@/hooks/use-websocket";
 
 /**
  * useChannels загружает список каналов пользователя через TanStack Query
@@ -17,8 +18,7 @@ export function useChannels() {
 	const updateChannel = useMessengerStore((s) => s.updateChannel);
 	const incrementUnread = useMessengerStore((s) => s.incrementUnread);
 
-	const { subscribe, unsubscribe, addListener, removeListener, connected } =
-		useWsStore();
+	const { subscribe, unsubscribe, connected } = useWsStore();
 
 	const query = useQuery({
 		queryKey: ["messenger", "channels"],
@@ -43,9 +43,6 @@ export function useChannels() {
 	}, [connected, userId, subscribe, unsubscribe]);
 
 	// Обработка WS-событий каналов.
-	const handlerRef = useRef<((event: string, payload: unknown) => void) | null>(
-		null,
-	);
 	const handleEvent = useCallback(
 		(event: string, payload: unknown) => {
 			if (!payload || typeof payload !== "object") return;
@@ -81,16 +78,7 @@ export function useChannels() {
 		[addChannel, updateChannel, incrementUnread],
 	);
 
-	useEffect(() => {
-		if (handlerRef.current) {
-			removeListener(handlerRef.current);
-		}
-		handlerRef.current = handleEvent;
-		addListener(handleEvent);
-		return () => {
-			removeListener(handleEvent);
-		};
-	}, [handleEvent, addListener, removeListener]);
+	useWsEventListener(handleEvent);
 
 	return query;
 }

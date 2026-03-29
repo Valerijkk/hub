@@ -2,9 +2,7 @@ package calls
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -117,7 +115,7 @@ func (s *RecordingService) StartRecording(ctx context.Context, callID, userID uu
 	}
 
 	// Публикуем NATS событие для уведомления участников
-	s.publishEvent("calls.recording.started", map[string]interface{}{
+	s.nats.PublishJSON("calls.recording.started", map[string]interface{}{
 		"recording_id": rec.ID,
 		"call_id":      callID,
 		"started_by":   userID,
@@ -152,7 +150,7 @@ func (s *RecordingService) StopRecording(ctx context.Context, recordingID uuid.U
 		return fmt.Errorf("не удалось обновить статус записи: %w", err)
 	}
 
-	s.publishEvent("calls.recording.stopped", map[string]interface{}{
+	s.nats.PublishJSON("calls.recording.stopped", map[string]interface{}{
 		"recording_id": recordingID,
 		"call_id":      rec.CallID,
 	})
@@ -176,7 +174,7 @@ func (s *RecordingService) OnEgressEnded(ctx context.Context, egressID string, f
 		return fmt.Errorf("не удалось обновить запись: %w", err)
 	}
 
-	s.publishEvent("calls.recording.ready", map[string]interface{}{
+	s.nats.PublishJSON("calls.recording.ready", map[string]interface{}{
 		"recording_id": rec.ID,
 		"call_id":      rec.CallID,
 		"project_id":   rec.ProjectID,
@@ -228,23 +226,6 @@ func (s *RecordingService) GetRecordingDownloadURL(ctx context.Context, recordin
 		URL:       url,
 		ExpiresAt: expiresAt,
 	}, nil
-}
-
-// publishEvent публикует событие в NATS (fire-and-forget).
-// Безопасен при nil NATS-клиенте.
-func (s *RecordingService) publishEvent(subject string, payload interface{}) {
-	if s.nats == nil {
-		slog.Debug("NATS не подключён, пропускаем публикацию", "subject", subject)
-		return
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("не удалось сериализовать событие", "subject", subject, "error", err)
-		return
-	}
-	if err := s.nats.Publish(subject, data); err != nil {
-		slog.Error("не удалось опубликовать событие", "subject", subject, "error", err)
-	}
 }
 
 // toRecordingResponse конвертирует Ent Recording в DTO ответа.

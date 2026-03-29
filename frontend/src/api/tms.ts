@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { buildQueryString } from "@/lib/utils";
 import type { PaginatedResponse } from "./types";
 
 // Re-export for backward compatibility.
@@ -323,14 +324,7 @@ export function createTestCase(projectId: string, data: CreateTestCaseRequest) {
 
 /** Получить список тест-кейсов проекта. */
 export function listTestCases(projectId: string, params?: ListTestCasesParams) {
-	const qs = params
-		? "?" +
-			new URLSearchParams(
-				Object.entries(params)
-					.filter(([, v]) => v != null)
-					.map(([k, v]) => [k, String(v)]),
-			).toString()
-		: "";
+	const qs = buildQueryString(params);
 	return api.get<PaginatedResponse<TestCaseResponse>>(
 		`/projects/${projectId}/tms/cases${qs}`,
 	);
@@ -447,14 +441,7 @@ export function createTestRun(projectId: string, data: CreateTestRunRequest) {
 
 /** Получить список прогонов. */
 export function listTestRuns(projectId: string, params?: ListTestRunsParams) {
-	const qs = params
-		? "?" +
-			new URLSearchParams(
-				Object.entries(params)
-					.filter(([, v]) => v != null)
-					.map(([k, v]) => [k, String(v)]),
-			).toString()
-		: "";
+	const qs = buildQueryString(params);
 	return api.get<PaginatedResponse<TestRunResponse>>(
 		`/projects/${projectId}/tms/runs${qs}`,
 	);

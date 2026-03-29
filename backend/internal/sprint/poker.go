@@ -2,9 +2,7 @@ package sprint
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,7 +46,7 @@ func (p *PokerService) StartPokerSession(ctx context.Context, sprintID, issueID 
 		return nil, apperrors.NewInternal("ошибка создания сессии Planning Poker")
 	}
 
-	p.publishEvent("poker.session_started", map[string]string{
+	p.nats.PublishJSON("poker.session_started", map[string]string{
 		"session_id": sessionID,
 		"issue_id":   issueID.String(),
 		"sprint_id":  sprintID.String(),
@@ -90,7 +88,7 @@ func (p *PokerService) CastVote(ctx context.Context, sessionID string, userID uu
 	p.redis.Expire(ctx, key, 5*time.Minute)
 
 	// Публикуем событие без значения голоса (голоса скрыты)
-	p.publishEvent("poker.vote_cast", map[string]string{
+	p.nats.PublishJSON("poker.vote_cast", map[string]string{
 		"session_id": sessionID,
 		"user_id":    userID.String(),
 		"voted":      "true",
@@ -120,7 +118,7 @@ func (p *PokerService) RevealVotes(ctx context.Context, sessionID string) (*Poke
 	issueID, _ := p.redis.HGet(ctx, key, "issue_id").Result()
 
 	// Публикуем событие с полным списком голосов
-	p.publishEvent("poker.revealed", map[string]interface{}{
+	p.nats.PublishJSON("poker.revealed", map[string]interface{}{
 		"session_id": sessionID,
 		"issue_id":   issueID,
 		"votes":      votes,
@@ -168,17 +166,3 @@ func (p *PokerService) GetSession(ctx context.Context, sessionID string) (*Poker
 	return resp, nil
 }
 
-// publishEvent публикует NATS-событие (nil-safe).
-func (p *PokerService) publishEvent(subject string, payload interface{}) {
-	if p.nats == nil {
-		return
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("не удалось сериализовать poker event", "error", err)
-		return
-	}
-	if err := p.nats.Publish(subject, data); err != nil {
-		slog.Error("не удалось опубликовать poker event", "subject", subject, "error", err)
-	}
-}

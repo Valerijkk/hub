@@ -3,7 +3,6 @@ package messenger
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -88,7 +87,7 @@ func (s *MessengerService) PublishTyping(ctx context.Context, channelID string, 
 	}
 
 	subject := fmt.Sprintf(SubjectTyping, channelID)
-	s.publishEvent(subject, TypingEvent{
+	s.nats.PublishJSON(subject, TypingEvent{
 		ChannelID: channelID,
 		UserID:    userID.String(),
 		UserName:  userName,
@@ -216,22 +215,6 @@ func mapKeys(m map[string]struct{}) []string {
 		result = append(result, k)
 	}
 	return result
-}
-
-// publishEvent публикует событие в NATS (fire-and-forget).
-// Безопасен при nil NATS-клиенте (пропускает публикацию).
-func (s *MessengerService) publishEvent(subject string, payload interface{}) {
-	if s.nats == nil {
-		return
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("не удалось сериализовать событие", "subject", subject, "error", err)
-		return
-	}
-	if err := s.nats.Publish(subject, data); err != nil {
-		slog.Error("не удалось опубликовать событие", "subject", subject, "error", err)
-	}
 }
 
 // toChannelResponse конвертирует Ent Channel в DTO ответа.
