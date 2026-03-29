@@ -466,7 +466,7 @@ export function ChannelList() {
 
 	if (isLoading) {
 		return (
-			<div className="w-[280px] min-w-[280px] border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x">
+			<div className="w-[280px] min-w-[280px] h-full border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x">
 				<div className="px-3.5 pt-3.5 pb-2">
 					<span className="text-sm font-semibold text-[var(--t1)]">
 						Мессенджер
@@ -525,7 +525,7 @@ export function ChannelList() {
 	};
 
 	return (
-		<div className="w-[280px] min-w-[280px] border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x">
+		<div className="w-[280px] min-w-[280px] h-full border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x">
 			{/* Header */}
 			<div className="px-3.5 pt-3.5 pb-2">
 				<div className="flex items-center justify-between mb-2">
