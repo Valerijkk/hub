@@ -13,6 +13,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CallCodeRouteImport } from './routes/call.$code'
 import { Route as AuthenticatedTrashRouteImport } from './routes/_authenticated/trash'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedMessengerRouteImport } from './routes/_authenticated/messenger'
@@ -72,6 +73,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CallCodeRoute = CallCodeRouteImport.update({
+  id: '/call/$code',
+  path: '/call/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTrashRoute = AuthenticatedTrashRouteImport.update({
@@ -336,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/trash': typeof AuthenticatedTrashRoute
+  '/call/$code': typeof CallCodeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/limits': typeof AuthenticatedAdminLimitsRoute
@@ -381,6 +388,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/trash': typeof AuthenticatedTrashRoute
+  '/call/$code': typeof CallCodeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/limits': typeof AuthenticatedAdminLimitsRoute
@@ -428,6 +436,7 @@ export interface FileRoutesById {
   '/_authenticated/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/trash': typeof AuthenticatedTrashRoute
+  '/call/$code': typeof CallCodeRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/_authenticated/admin/limits': typeof AuthenticatedAdminLimitsRoute
@@ -476,6 +485,7 @@ export interface FileRouteTypes {
     | '/messenger'
     | '/settings'
     | '/trash'
+    | '/call/$code'
     | '/admin/audit'
     | '/admin/dashboard'
     | '/admin/limits'
@@ -521,6 +531,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/trash'
+    | '/call/$code'
     | '/admin/audit'
     | '/admin/dashboard'
     | '/admin/limits'
@@ -567,6 +578,7 @@ export interface FileRouteTypes {
     | '/_authenticated/messenger'
     | '/_authenticated/settings'
     | '/_authenticated/trash'
+    | '/call/$code'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/dashboard'
     | '/_authenticated/admin/limits'
@@ -610,6 +622,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  CallCodeRoute: typeof CallCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -640,6 +653,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/call/$code': {
+      id: '/call/$code'
+      path: '/call/$code'
+      fullPath: '/call/$code'
+      preLoaderRoute: typeof CallCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/trash': {
@@ -1099,6 +1119,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  CallCodeRoute: CallCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
