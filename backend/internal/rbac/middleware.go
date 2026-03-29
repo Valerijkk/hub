@@ -31,9 +31,8 @@ func RequireAuth() fiber.Handler {
 			return fiber.NewError(fiber.StatusUnauthorized, "empty token")
 		}
 
-		// TODO: Validate JWT token and extract claims (implemented in auth module)
-		// For now, store the token as a placeholder. The auth module will replace this
-		// with actual JWT validation using the configured secret.
+		// JWT валидация выполняется в auth.RequireAuth middleware.
+		// Здесь сохраняем токен для RBAC-проверок.
 		c.Locals("token", token)
 
 		// The actual userID extraction from JWT claims will be done by the auth module.
