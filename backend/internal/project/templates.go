@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/projecttemplate"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // TemplateResponse — DTO ответа для шаблона проекта.
@@ -272,7 +273,7 @@ func (h *TemplateHandler) SaveAsTemplate(c fiber.Ctx) error {
 		ProjectID string `json:"project_id" validate:"required"`
 	}
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	projectID, err := uuid.Parse(req.ProjectID)

@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // Handler предоставляет HTTP-обработчики для модуля резервного копирования.
@@ -87,7 +88,7 @@ func (h *Handler) RestoreBackup(c fiber.Ctx) error {
 
 	var req RestoreRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 	if req.Confirm != "RESTORE" {
 		return fiber.NewError(fiber.StatusBadRequest, "для подтверждения восстановления отправьте {\"confirm\": \"RESTORE\"}")

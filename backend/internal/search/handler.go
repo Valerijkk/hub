@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // Handler обрабатывает HTTP-запросы глобального поиска и управления сохранёнными фильтрами.
@@ -53,7 +54,7 @@ func (h *Handler) search(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
 		slog.Error("search: getUserID failed", "error", err, "locals_userID_raw", c.Locals("userID"), "auth_header_present", c.Get("Authorization") != "")
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	q := c.Query("q")
@@ -101,7 +102,7 @@ func (h *Handler) search(c fiber.Ctx) error {
 func (h *Handler) createFilter(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	var req SavedFilterCreateRequest
@@ -135,7 +136,7 @@ func (h *Handler) createFilter(c fiber.Ctx) error {
 func (h *Handler) listFilters(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	projectIDStr := c.Query("project_id")
@@ -169,7 +170,7 @@ func (h *Handler) listFilters(c fiber.Ctx) error {
 func (h *Handler) deleteFilter(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	filterID, err := uuid.Parse(c.Params("id"))
@@ -201,7 +202,7 @@ func (h *Handler) deleteFilter(c fiber.Ctx) error {
 func (h *Handler) shareFilter(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	filterID, err := uuid.Parse(c.Params("id"))

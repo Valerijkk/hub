@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
@@ -71,7 +72,7 @@ func (h *Handler) CreateSprint(c fiber.Ctx) error {
 
 	var req CreateSprintRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateSprint(c.Context(), projectID, req)
@@ -156,7 +157,7 @@ func (h *Handler) UpdateSprint(c fiber.Ctx) error {
 
 	var req UpdateSprintRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.UpdateSprint(c.Context(), sprintID, req)
@@ -252,7 +253,7 @@ func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 
 	var req RetroNotesRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.UpdateRetroNotes(c.Context(), sprintID, req)
@@ -336,7 +337,7 @@ func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 
 	var req MoveIssueToSprintRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	issueIDs := make([]uuid.UUID, 0, len(req.IssueIDs))
@@ -381,7 +382,7 @@ func (h *Handler) StartPokerSession(c fiber.Ctx) error {
 
 	var req StartPokerRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	issueID, err := uuid.Parse(req.IssueID)
@@ -422,7 +423,7 @@ func (h *Handler) CastVote(c fiber.Ctx) error {
 
 	var req VoteRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	if err := h.poker.CastVote(c.Context(), sessionID, userID, req.Value); err != nil {

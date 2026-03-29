@@ -3,6 +3,7 @@ package tms
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -32,7 +33,7 @@ func (h *Handler) CreateTestCase(c fiber.Ctx) error {
 
 	var req CreateTestCaseRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateTestCase(c.Context(), projectID, userID, req)
@@ -121,7 +122,7 @@ func (h *Handler) UpdateTestCase(c fiber.Ctx) error {
 
 	var req UpdateTestCaseRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.UpdateTestCase(c.Context(), caseKey, userID, req)
@@ -232,7 +233,7 @@ func (h *Handler) LinkTestCaseToIssue(c fiber.Ctx) error {
 
 	var req LinkIssueRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	issueID, err := uuid.Parse(req.IssueID)
@@ -322,7 +323,7 @@ func (h *Handler) CreateBugFromResult(c fiber.Ctx) error {
 
 	var req CreateBugRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateBugFromFailedResult(c.Context(), projectID, userID, resultID, req)

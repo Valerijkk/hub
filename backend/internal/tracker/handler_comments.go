@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"github.com/gofiber/fiber/v3"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -36,7 +37,7 @@ func (h *Handler) CreateComment(c fiber.Ctx) error {
 
 	var req CreateCommentRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateComment(c.Context(), issueKey, userID, req)
@@ -96,7 +97,7 @@ func (h *Handler) UpdateComment(c fiber.Ctx) error {
 
 	var req UpdateCommentRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.UpdateComment(c.Context(), commentID, req)
@@ -159,7 +160,7 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 
 	var req CreateReactionRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	added, err := h.service.ToggleReaction(c.Context(), commentID, userID, req.Emoji)

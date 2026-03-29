@@ -2,6 +2,7 @@ package tms
 
 import (
 	"github.com/gofiber/fiber/v3"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -30,7 +31,7 @@ func (h *Handler) CreateTestRun(c fiber.Ctx) error {
 
 	var req CreateTestRunRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateTestRun(c.Context(), projectID, userID, req)
@@ -112,7 +113,7 @@ func (h *Handler) UpdateRunStatus(c fiber.Ctx) error {
 
 	var req UpdateRunStatusRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.UpdateRunStatus(c.Context(), runID, req.Status)
@@ -168,7 +169,7 @@ func (h *Handler) CreateTestResult(c fiber.Ctx) error {
 
 	var req CreateTestResultRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateTestResult(c.Context(), runID, req)
@@ -207,7 +208,7 @@ func (h *Handler) ExecuteTestResult(c fiber.Ctx) error {
 
 	var req UpdateTestResultRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.ExecuteTestResult(c.Context(), runID, resultID, userID, req)
@@ -263,7 +264,7 @@ func (h *Handler) AddTestCasesToRun(c fiber.Ctx) error {
 
 	var req AddTestCasesToRunRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.AddTestCasesToRun(c.Context(), runID, req)
@@ -293,7 +294,7 @@ func (h *Handler) AssignTestersToRun(c fiber.Ctx) error {
 
 	var req AssignTestersRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.AssignTestersToRun(c.Context(), runID, req)

@@ -3,6 +3,7 @@ package dashboard
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
@@ -42,7 +43,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 func (h *Handler) Personal(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	data, err := h.service.GetPersonalDashboardData(c.Context(), userID)
@@ -68,7 +69,7 @@ func (h *Handler) Personal(c fiber.Ctx) error {
 func (h *Handler) Project(c fiber.Ctx) error {
 	_, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	projectID, err := uuid.Parse(c.Params("projectId"))
@@ -98,7 +99,7 @@ func (h *Handler) Project(c fiber.Ctx) error {
 func (h *Handler) Admin(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	// Проверяем роль администратора через запрос к БД
@@ -133,7 +134,7 @@ func (h *Handler) Admin(c fiber.Ctx) error {
 func (h *Handler) GetLayout(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	dashType := c.Query("type", "personal")
@@ -177,7 +178,7 @@ func (h *Handler) GetLayout(c fiber.Ctx) error {
 func (h *Handler) SaveLayout(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	var req SaveLayoutRequest
@@ -228,7 +229,7 @@ type applyTemplateRequest struct {
 func (h *Handler) ApplyTemplate(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	var req applyTemplateRequest
@@ -256,7 +257,7 @@ func (h *Handler) ApplyTemplate(c fiber.Ctx) error {
 func getUserID(c fiber.Ctx) (uuid.UUID, error) {
 	raw := c.Locals("userID")
 	if raw == nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	switch v := raw.(type) {
@@ -265,6 +266,6 @@ func getUserID(c fiber.Ctx) (uuid.UUID, error) {
 	case uuid.UUID:
 		return v, nil
 	default:
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 }

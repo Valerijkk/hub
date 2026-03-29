@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"github.com/gofiber/fiber/v3"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -55,7 +56,7 @@ func (h *Handler) CreateBoard(c fiber.Ctx) error {
 
 	var req CreateBoardRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateBoard(c.Context(), projectID, req)

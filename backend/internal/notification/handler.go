@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // Handler предоставляет HTTP-обработчики для модуля уведомлений.
@@ -51,7 +52,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 func (h *Handler) List(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -92,7 +93,7 @@ func (h *Handler) List(c fiber.Ctx) error {
 func (h *Handler) UnreadCount(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	count, err := h.service.GetUnreadCount(c.Context(), userID)
@@ -117,7 +118,7 @@ func (h *Handler) UnreadCount(c fiber.Ctx) error {
 func (h *Handler) MarkRead(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	notifID, err := uuid.Parse(c.Params("id"))
@@ -144,7 +145,7 @@ func (h *Handler) MarkRead(c fiber.Ctx) error {
 func (h *Handler) MarkAllRead(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	if err := h.service.MarkAllRead(c.Context(), userID); err != nil {
@@ -168,7 +169,7 @@ func (h *Handler) MarkAllRead(c fiber.Ctx) error {
 func (h *Handler) Delete(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	notifID, err := uuid.Parse(c.Params("id"))
@@ -196,7 +197,7 @@ func (h *Handler) Delete(c fiber.Ctx) error {
 func (h *Handler) GetPreferences(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	prefs, err := h.service.GetPreferences(c.Context(), userID)
@@ -223,7 +224,7 @@ func (h *Handler) GetPreferences(c fiber.Ctx) error {
 func (h *Handler) UpdatePreference(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	var req PreferenceUpdateRequest
@@ -282,7 +283,7 @@ type PushSubscribeRequest struct {
 func (h *Handler) PushSubscribe(c fiber.Ctx) error {
 	userID, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	var req PushSubscribeRequest
@@ -327,7 +328,7 @@ type PushUnsubscribeRequest struct {
 func (h *Handler) PushUnsubscribe(c fiber.Ctx) error {
 	_, err := getUserID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	var req PushUnsubscribeRequest
@@ -355,7 +356,7 @@ func (h *Handler) PushUnsubscribe(c fiber.Ctx) error {
 func getUserID(c fiber.Ctx) (uuid.UUID, error) {
 	raw := c.Locals("userID")
 	if raw == nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
 	switch v := raw.(type) {
@@ -364,6 +365,6 @@ func getUserID(c fiber.Ctx) (uuid.UUID, error) {
 	case uuid.UUID:
 		return v, nil
 	default:
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 }

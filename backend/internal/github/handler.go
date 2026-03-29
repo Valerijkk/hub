@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
@@ -142,7 +143,7 @@ func (h *Handler) CreateIntegration(c fiber.Ctx) error {
 
 	var req CreateIntegrationRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateIntegration(c.Context(), projectID, req)
@@ -250,7 +251,7 @@ func (h *Handler) CreateBranch(c fiber.Ctx) error {
 
 	var req CreateBranchRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateBranch(c.Context(), issueKey, req)

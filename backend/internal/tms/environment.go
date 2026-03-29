@@ -10,6 +10,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/environment"
 	"github.com/valerii/hub/backend/ent/project"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // EnvironmentResponse — DTO ответа для тестового окружения.
@@ -142,7 +143,7 @@ func (h *Handler) CreateEnvironmentHandler(c fiber.Ctx) error {
 
 	var req CreateEnvironmentRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 	if req.Name == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "name обязателен")
@@ -203,7 +204,7 @@ func (h *Handler) UpdateEnvironmentHandler(c fiber.Ctx) error {
 
 	var req UpdateEnvironmentRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.UpdateEnvironment(c.Context(), envID, req)

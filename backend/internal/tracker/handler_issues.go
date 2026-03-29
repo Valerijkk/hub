@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 	"github.com/valerii/hub/backend/internal/search"
 )
@@ -38,7 +39,7 @@ func (h *Handler) CreateIssue(c fiber.Ctx) error {
 
 	var req CreateIssueRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateIssue(c.Context(), projectID, userID, req)
@@ -136,7 +137,7 @@ func (h *Handler) UpdateIssue(c fiber.Ctx) error {
 
 	var req UpdateIssueRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.UpdateIssue(c.Context(), issueKey, userID, req)
@@ -203,7 +204,7 @@ func (h *Handler) MoveIssue(c fiber.Ctx) error {
 
 	var req MoveIssueRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.MoveIssue(c.Context(), issueKey, userID, req)
@@ -249,7 +250,7 @@ func (h *Handler) SearchIssuesJQL(c fiber.Ctx) error {
 
 	var req jqlRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 	if req.Query == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "query обязателен")

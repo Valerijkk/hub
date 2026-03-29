@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
@@ -315,7 +316,7 @@ func (h *Handler) CreateChannel(c fiber.Ctx) error {
 
 	var req CreateChannelRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateChannel(c.Context(), userID, req)
@@ -400,7 +401,7 @@ func (h *Handler) UpdateChannel(c fiber.Ctx) error {
 
 	var req CreateChannelRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.UpdateChannel(c.Context(), channelID, userID, req)
@@ -517,7 +518,7 @@ func (h *Handler) AddMembers(c fiber.Ctx) error {
 
 	var req AddMembersRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	if err := h.service.AddMembers(c.Context(), channelID, userID, req.MemberIDs); err != nil {
@@ -581,7 +582,7 @@ func (h *Handler) SendMessage(c fiber.Ctx) error {
 
 	var req SendMessageRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.SendMessage(c.Context(), channelID, userID, req)
@@ -658,7 +659,7 @@ func (h *Handler) EditMessage(c fiber.Ctx) error {
 
 	var req EditMessageRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.EditMessage(c.Context(), messageID, userID, req)
@@ -728,7 +729,7 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 
 	var req ToggleReactionRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	added, err := h.service.ToggleReaction(c.Context(), messageID, userID, req.Emoji)
@@ -803,7 +804,7 @@ func (h *Handler) ForwardMessage(c fiber.Ctx) error {
 
 	var req ForwardMessageRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.ForwardMessage(c.Context(), channelID, userID, messageID, req.TargetChannelID)
@@ -933,7 +934,7 @@ func (h *Handler) AddBookmark(c fiber.Ctx) error {
 
 	var req AddBookmarkRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	chID, err := uuid.Parse(req.ChannelID)
@@ -1058,7 +1059,7 @@ func (h *Handler) SetCustomStatus(c fiber.Ctx) error {
 		Duration string `json:"duration"`
 	}
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	if err := h.service.SetCustomStatus(c.Context(), userID.String(), req.Text, req.Duration); err != nil {
@@ -1235,7 +1236,7 @@ func (h *Handler) MuteChannel(c fiber.Ctx) error {
 
 	var req MuteChannelRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	mutedUntil, err := h.service.MuteChannel(c.Context(), channelID, userID, req.Duration)
@@ -1319,7 +1320,7 @@ func (h *Handler) CreatePoll(c fiber.Ctx) error {
 
 	var req CreatePollRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreatePoll(c.Context(), channelID, userID, req)
@@ -1355,7 +1356,7 @@ func (h *Handler) VotePoll(c fiber.Ctx) error {
 
 	var req VotePollRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.VotePoll(c.Context(), pollID, userID, req)
@@ -1449,7 +1450,7 @@ func (h *Handler) CreateOrGetDM(c fiber.Ctx) error {
 
 	var req CreateDMRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	targetID, err := uuid.Parse(req.TargetUserID)

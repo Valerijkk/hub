@@ -2,6 +2,7 @@ package tms
 
 import (
 	"github.com/gofiber/fiber/v3"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -31,7 +32,7 @@ func (h *Handler) ImportAllureResults(c fiber.Ctx) error {
 
 	var req ImportAllureRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.ImportAllureResults(c.Context(), projectID, userID, req)
@@ -70,7 +71,7 @@ func (h *Handler) ImportAllureToExistingRun(c fiber.Ctx) error {
 
 	var req ImportAllureRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.ImportAllureToExistingRun(c.Context(), projectID, runID, userID, req)

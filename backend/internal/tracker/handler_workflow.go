@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"github.com/gofiber/fiber/v3"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -56,7 +57,7 @@ func (h *Handler) CreateWorkflowStatus(c fiber.Ctx) error {
 
 	var req CreateWorkflowStatusRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateWorkflowStatus(c.Context(), projectID, req)
@@ -90,7 +91,7 @@ func (h *Handler) UpdateWorkflowStatus(c fiber.Ctx) error {
 
 	var req CreateWorkflowStatusRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.UpdateWorkflowStatus(c.Context(), statusID, req)
@@ -168,7 +169,7 @@ func (h *Handler) ListWorkflowTransitions(c fiber.Ctx) error {
 func (h *Handler) CreateWorkflowTransition(c fiber.Ctx) error {
 	var req CreateWorkflowTransitionRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateWorkflowTransition(c.Context(), req)

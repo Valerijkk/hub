@@ -16,6 +16,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/internal/platform/config"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -118,7 +119,7 @@ func (h *Handler) CreateCall(c fiber.Ctx) error {
 
 	var req CreateCallRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	if req.ChannelID == uuid.Nil {
@@ -337,7 +338,7 @@ func (h *Handler) RaiseHand(c fiber.Ctx) error {
 
 	var req RaiseHandRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	callID, err := parseCallID(c)
@@ -386,7 +387,7 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 		Text string `json:"text"`
 	}
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 	if req.Text == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "текст сообщения обязателен")
@@ -493,7 +494,7 @@ func (h *Handler) StopRecording(c fiber.Ctx) error {
 		RecordingID uuid.UUID `json:"recording_id"`
 	}
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 	if req.RecordingID == uuid.Nil {
 		return fiber.NewError(fiber.StatusBadRequest, "recording_id обязателен")
@@ -610,7 +611,7 @@ func (h *Handler) CreateScheduledCall(c fiber.Ctx) error {
 
 	var req CreateScheduledCallRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.scheduledSvc.CreateScheduledCall(c.Context(), projectID, userID, req)
@@ -671,7 +672,7 @@ func (h *Handler) UpdateScheduledCall(c fiber.Ctx) error {
 
 	var req UpdateScheduledCallRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.scheduledSvc.UpdateScheduledCall(c.Context(), id, req)

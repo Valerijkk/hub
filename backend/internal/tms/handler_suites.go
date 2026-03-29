@@ -2,6 +2,7 @@ package tms
 
 import (
 	"github.com/gofiber/fiber/v3"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -26,7 +27,7 @@ func (h *Handler) CreateSuite(c fiber.Ctx) error {
 
 	var req CreateSuiteRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateSuite(c.Context(), projectID, req)
@@ -76,7 +77,7 @@ func (h *Handler) UpdateSuite(c fiber.Ctx) error {
 
 	var req UpdateSuiteRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.UpdateSuite(c.Context(), suiteID, req)
@@ -128,7 +129,7 @@ func (h *Handler) CreateComponent(c fiber.Ctx) error {
 
 	var req CreateComponentRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.service.CreateComponent(c.Context(), projectID, req)

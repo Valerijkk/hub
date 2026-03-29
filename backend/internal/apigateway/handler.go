@@ -61,7 +61,7 @@ func (h *Handler) CreateAPIKey(c fiber.Ctx) error {
 
 	var req CreateAPIKeyRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 	if req.Name == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "name обязателен")
@@ -149,7 +149,7 @@ func (h *Handler) CreateEndpoint(c fiber.Ctx) error {
 
 	var req CreateWebhookRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.webhookSvc.CreateEndpoint(c.Context(), projectID, req)
@@ -206,7 +206,7 @@ func (h *Handler) UpdateEndpoint(c fiber.Ctx) error {
 
 	var req UpdateWebhookRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректное тело запроса")
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
 	resp, err := h.webhookSvc.UpdateEndpoint(c.Context(), epID, req)
