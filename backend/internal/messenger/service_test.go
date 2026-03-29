@@ -398,6 +398,26 @@ func (m *mockRepository) ListBookmarks(_ context.Context, userID uuid.UUID) ([]*
 	return m.bookmarks[userID], nil
 }
 
+func (m *mockRepository) ToggleStar(_ context.Context, _, _ uuid.UUID) (bool, error) {
+	return true, nil
+}
+
+func (m *mockRepository) MuteChannel(_ context.Context, _, _ uuid.UUID, _ string) (time.Time, error) {
+	return time.Now().Add(time.Hour), nil
+}
+
+func (m *mockRepository) UnmuteChannel(_ context.Context, _, _ uuid.UUID) error {
+	return nil
+}
+
+func (m *mockRepository) IsChannelMuted(_ context.Context, _, _ uuid.UUID) (bool, error) {
+	return false, nil
+}
+
+func (m *mockRepository) GetUserChannelMemberships(_ context.Context, _ uuid.UUID) ([]*ent.ChannelMember, error) {
+	return nil, nil
+}
+
 func (m *mockRepository) EnsureIndexes(_ context.Context) error {
 	return nil
 }
