@@ -5,7 +5,6 @@ rtc:
   port_range_start: 50000
   port_range_end: 50060
   use_external_ip: true
-  # node_ip автоматически определяется если use_external_ip: true
 keys:
   devkey: secret
 webhook:
@@ -17,3 +16,8 @@ logging:
 room:
   empty_timeout: 300
   max_participants: 50
+  # Аудио качество
+audio:
+  active_sensitivity: 20
+  min_volume_level: -30
+  smooth_intervals: 2

@@ -125,9 +125,16 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 		await localParticipant.setMicrophoneEnabled(!isMicEnabled);
 	};
 
-	/** Переключить демонстрацию экрана. */
+	/** Переключить демонстрацию экрана с высоким качеством. */
 	const handleScreenShareToggle = async () => {
-		await room.localParticipant.setScreenShareEnabled(!isScreenSharing);
+		if (!isScreenSharing) {
+			await room.localParticipant.setScreenShareEnabled(true, {
+				resolution: { width: 1920, height: 1080, frameRate: 15 },
+				contentHint: "detail",
+			});
+		} else {
+			await room.localParticipant.setScreenShareEnabled(false);
+		}
 	};
 
 	/** Переключить камеру (с подтверждением при включении). */

@@ -149,15 +149,15 @@ export function CallRoomContent({ onDisconnect }: { onDisconnect: () => void }) 
 				<CallReactionsOverlay />
 
 				<div className="flex flex-1 gap-2 overflow-hidden p-3">
-					{/* Участники — сужаются до сайдбара при демонстрации экрана */}
-					<div className="flex flex-col gap-2 shrink-0" style={{ width: hasScreenShare ? 200 : "100%", transition: "width 300ms ease" }}>
-						<ParticipantList />
-
-						{/* Блок приглашения — Телемост стиль (только когда 1 участник + invite) */}
-						{activeCall?.invite_code && participants.length <= 1 && (
-							<InviteBlock inviteCode={activeCall.invite_code} />
-						)}
-					</div>
+					{/* При демонстрации экрана — скрываем участников, показываем только демку */}
+					{!hasScreenShare && (
+						<div className="flex flex-1 flex-col gap-2">
+							<ParticipantList />
+							{activeCall?.invite_code && participants.length <= 1 && (
+								<InviteBlock inviteCode={activeCall.invite_code} />
+							)}
+						</div>
+					)}
 					<ScreenShareView />
 				</div>
 				{activeCall && chatVisible && (
@@ -290,7 +290,7 @@ export function CallRoom({ token, onDisconnect }: CallRoomProps) {
 			token={token}
 			serverUrl={LIVEKIT_URL}
 			connect={true}
-			audio={true}
+			audio={{ autoGainControl: true, echoCancellation: true, noiseSuppression: true, sampleRate: 48000 }}
 			video={false}
 			onDisconnected={onDisconnect}
 			data-lk-theme="default"

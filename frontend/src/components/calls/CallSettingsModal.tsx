@@ -169,7 +169,7 @@ export function CallSettingsModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="border-white/10 bg-[#1a1f2e] text-white max-w-[480px] w-[calc(100vw-2rem)] p-0 gap-0 overflow-hidden">
+			<DialogContent className="border-white/10 bg-[#1a1f2e] text-white max-w-[480px] w-[calc(100vw-2rem)] p-0 gap-0 max-h-[85vh] overflow-y-auto">
 				<DialogHeader className="px-6 pt-6 pb-2">
 					<DialogTitle className="text-lg font-semibold">
 						Настройки
