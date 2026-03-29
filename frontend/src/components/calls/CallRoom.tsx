@@ -1,4 +1,5 @@
-import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useParticipants } from "@livekit/components-react";
+import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useParticipants, useTracks } from "@livekit/components-react";
+import { Track } from "livekit-client";
 import { MessageSquare, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import "@livekit/components-styles";
@@ -35,6 +36,8 @@ export function CallRoomContent({ onDisconnect }: { onDisconnect: () => void }) 
 	const activeCall = useCallStore((s) => s.activeCall);
 	const participants = useParticipants();
 	const { localParticipant } = useLocalParticipant();
+	const screenShareTracks = useTracks([Track.Source.ScreenShare]);
+	const hasScreenShare = screenShareTracks.length > 0;
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
 	const [chatVisible, setChatVisible] = useState(false);
 	const timerRef = useRef<ReturnType<typeof setInterval>>(null);
@@ -146,7 +149,8 @@ export function CallRoomContent({ onDisconnect }: { onDisconnect: () => void }) 
 				<CallReactionsOverlay />
 
 				<div className="flex flex-1 gap-2 overflow-hidden p-3">
-					<div className="flex flex-1 flex-col gap-2">
+					{/* Участники — сужаются до сайдбара при демонстрации экрана */}
+					<div className="flex flex-col gap-2 shrink-0" style={{ width: hasScreenShare ? 200 : "100%", transition: "width 300ms ease" }}>
 						<ParticipantList />
 
 						{/* Блок приглашения — Телемост стиль (только когда 1 участник + invite) */}

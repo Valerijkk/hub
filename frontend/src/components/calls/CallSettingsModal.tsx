@@ -1,5 +1,5 @@
 import { useRoomContext } from "@livekit/components-react";
-import { Camera, Mic, Volume2 } from "lucide-react";
+import { Mic, Volume2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 
 /** Ключи localStorage для настроек звонка. */
 const LS_KEY_MIC_OFF = "hub:call:joinMicOff";
-const LS_KEY_CAM_OFF = "hub:call:joinCamOff";
 const LS_KEY_NOISE_SUPPRESSION = "hub:call:noiseSuppression";
 
 /** Информация об устройстве ввода/вывода. */
@@ -45,7 +44,6 @@ interface CallSettingsModalProps {
 export function getCallPreferences() {
 	return {
 		joinMicOff: localStorage.getItem(LS_KEY_MIC_OFF) === "true",
-		joinCamOff: localStorage.getItem(LS_KEY_CAM_OFF) === "true",
 		noiseSuppression: localStorage.getItem(LS_KEY_NOISE_SUPPRESSION) !== "false",
 	};
 }
@@ -89,19 +87,14 @@ export function CallSettingsModal({
 	// Списки устройств
 	const [audioInputs, setAudioInputs] = useState<DeviceInfo[]>([]);
 	const [audioOutputs, setAudioOutputs] = useState<DeviceInfo[]>([]);
-	const [videoInputs, setVideoInputs] = useState<DeviceInfo[]>([]);
 
 	// Выбранные устройства
 	const [selectedInput, setSelectedInput] = useState("");
 	const [selectedOutput, setSelectedOutput] = useState("");
-	const [selectedCamera, setSelectedCamera] = useState("");
 
 	// Настройки
 	const [joinMicOff, setJoinMicOff] = useState(
 		() => localStorage.getItem(LS_KEY_MIC_OFF) === "true",
-	);
-	const [joinCamOff, setJoinCamOff] = useState(
-		() => localStorage.getItem(LS_KEY_CAM_OFF) === "true",
 	);
 	const [noiseSuppression, setNoiseSuppression] = useState(
 		() => localStorage.getItem(LS_KEY_NOISE_SUPPRESSION) !== "false",
@@ -109,24 +102,20 @@ export function CallSettingsModal({
 
 	/** Загрузить все доступные устройства и определить активные. */
 	const loadDevices = useCallback(async () => {
-		const [inputs, outputs, cameras] = await Promise.all([
+		const [inputs, outputs] = await Promise.all([
 			enumerateDevices("audioinput"),
 			enumerateDevices("audiooutput"),
-			enumerateDevices("videoinput"),
 		]);
 
 		setAudioInputs(inputs);
 		setAudioOutputs(outputs);
-		setVideoInputs(cameras);
 
 		// Определяем активные устройства из LiveKit room
 		const activeIn = room.getActiveDevice("audioinput");
 		const activeOut = room.getActiveDevice("audiooutput");
-		const activeCam = room.getActiveDevice("videoinput");
 
 		setSelectedInput(activeIn || inputs[0]?.deviceId || "");
 		setSelectedOutput(activeOut || outputs[0]?.deviceId || "");
-		setSelectedCamera(activeCam || cameras[0]?.deviceId || "");
 	}, [room]);
 
 	useEffect(() => {
@@ -160,28 +149,11 @@ export function CallSettingsModal({
 		}
 	};
 
-	/** Переключить камеру. */
-	const handleCameraChange = async (deviceId: string) => {
-		setSelectedCamera(deviceId);
-		try {
-			await room.switchActiveDevice("videoinput", deviceId);
-		} catch {
-			// Устройство может быть недоступно
-		}
-	};
-
 	/** Сохранить тоггл "подключаться с выключенным микрофоном". */
 	const handleJoinMicOffToggle = () => {
 		const next = !joinMicOff;
 		setJoinMicOff(next);
 		localStorage.setItem(LS_KEY_MIC_OFF, String(next));
-	};
-
-	/** Сохранить тоггл "подключаться с выключенной камерой". */
-	const handleJoinCamOffToggle = () => {
-		const next = !joinCamOff;
-		setJoinCamOff(next);
-		localStorage.setItem(LS_KEY_CAM_OFF, String(next));
 	};
 
 	/** Сохранить тоггл "шумоподавление" (косметический). */
@@ -205,20 +177,13 @@ export function CallSettingsModal({
 				</DialogHeader>
 
 				<Tabs defaultValue="audio" className="px-6 pb-6">
-					<TabsList className="grid w-full grid-cols-2 bg-white/5 border border-white/10 rounded-lg">
+					<TabsList className="grid w-full grid-cols-1 bg-white/5 border border-white/10 rounded-lg">
 						<TabsTrigger
 							value="audio"
 							className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/60 rounded-md"
 						>
 							<Volume2 className="h-4 w-4 mr-2" />
 							Звук
-						</TabsTrigger>
-						<TabsTrigger
-							value="video"
-							className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/60 rounded-md"
-						>
-							<Camera className="h-4 w-4 mr-2" />
-							Видео
 						</TabsTrigger>
 					</TabsList>
 
@@ -303,51 +268,6 @@ export function CallSettingsModal({
 							description="Автоматическое подавление фонового шума"
 							checked={noiseSuppression}
 							onChange={handleNoiseSuppressionToggle}
-						/>
-					</TabsContent>
-
-					{/* Вкладка "Видео" */}
-					<TabsContent value="video" className="mt-4 space-y-5">
-						{/* Камера */}
-						<div className="space-y-2">
-							<label className="flex items-center gap-2 text-xs font-medium text-white/60 uppercase tracking-wider">
-								<Camera className="h-3.5 w-3.5" />
-								Камера
-							</label>
-							<Select
-								value={selectedCamera}
-								onValueChange={(v) => void handleCameraChange(v)}
-							>
-								<SelectTrigger className={selectTriggerClasses}>
-									<SelectValue
-										placeholder="Нет доступных устройств"
-									/>
-								</SelectTrigger>
-								<SelectContent>
-									{videoInputs.length === 0 ? (
-										<SelectItem value="__none" disabled>
-											Нет доступных устройств
-										</SelectItem>
-									) : (
-										videoInputs.map((d) => (
-											<SelectItem key={d.deviceId} value={d.deviceId}>
-												{d.label}
-											</SelectItem>
-										))
-									)}
-								</SelectContent>
-							</Select>
-						</div>
-
-						{/* Разделитель */}
-						<div className="border-t border-white/5" />
-
-						{/* Тоггл: подключаться с выключенной камерой */}
-						<ToggleRow
-							label="Подключаться с выключенной камерой"
-							description="Камера будет выключена при входе в звонок"
-							checked={joinCamOff}
-							onChange={handleJoinCamOffToggle}
 						/>
 					</TabsContent>
 				</Tabs>
