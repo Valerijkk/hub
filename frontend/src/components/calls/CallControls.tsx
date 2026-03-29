@@ -129,7 +129,7 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 	const handleScreenShareToggle = async () => {
 		if (!isScreenSharing) {
 			await room.localParticipant.setScreenShareEnabled(true, {
-				resolution: { width: 1920, height: 1080, frameRate: 15 },
+				resolution: { width: 1920, height: 1080, frameRate: 60 },
 				contentHint: "detail",
 			});
 		} else {

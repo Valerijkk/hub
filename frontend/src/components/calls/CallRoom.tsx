@@ -300,10 +300,10 @@ export function CallRoom({ token, onDisconnect }: CallRoomProps) {
 					channelCount: 2,
 				},
 				publishDefaults: {
-					audioPreset: { maxBitrate: 128_000 },
+					audioPreset: { maxBitrate: 256_000 },
 					dtx: false,
 					red: true,
-					screenShareEncoding: { maxBitrate: 3_000_000, maxFramerate: 30 },
+					screenShareEncoding: { maxBitrate: 8_000_000, maxFramerate: 60 },
 					screenShareSimulcastLayers: [],
 				},
 			}}
