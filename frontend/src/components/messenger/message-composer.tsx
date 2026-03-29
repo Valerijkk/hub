@@ -132,6 +132,53 @@ interface MessageComposerProps {
 	placeholder?: string;
 }
 
+/** Превью ответа на сообщение. */
+function ReplyPreview({
+	replyTo,
+	onClose,
+}: {
+	replyTo: { sender_id: string; content_text?: string | null };
+	onClose: () => void;
+}) {
+	const previewText = replyTo.content_text
+		? replyTo.content_text.slice(0, 80) +
+			(replyTo.content_text.length > 80 ? "..." : "")
+		: "Вложение";
+
+	return (
+		<div className="flex items-center gap-2.5 px-3.5 py-2.5 border-l-[3px] border-l-[var(--green)] bg-[var(--raised)] rounded-r-[var(--r2)] mb-2.5 animate-fade-in">
+			<div className="flex-1 min-w-0">
+				<p className="text-[13px] font-bold text-[var(--green)] truncate">
+					{replyTo.sender_id}
+				</p>
+				<p className="text-[12.5px] text-[var(--t3)] truncate flex-1">
+					{previewText}
+				</p>
+			</div>
+			<button
+				type="button"
+				onClick={onClose}
+				className="w-[26px] h-[26px] flex items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t1)] hover:rotate-90 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
+				title="Отменить ответ"
+			>
+				<svg
+					className="h-3.5 w-3.5"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					strokeWidth={2}
+				>
+					<path
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						d="M6 18L18 6M6 6l12 12"
+					/>
+				</svg>
+			</button>
+		</div>
+	);
+}
+
 /**
  * MessageComposer -- редактор сообщений в стиле Slack / Tinkoff Talk.
  * Округлённый контейнер с кнопками внутри, reply preview сверху,
@@ -425,48 +472,16 @@ export function MessageComposer({
 		[channelId, threadId, invalidateMessages],
 	);
 
-	/** Текст превью сообщения для reply. */
-	const replyPreviewText = replyToMessage?.content_text
-		? replyToMessage.content_text.slice(0, 80) +
-			(replyToMessage.content_text.length > 80 ? "..." : "")
-		: "Вложение";
-
 	const hasContent = text.trim().length > 0 || pendingAttachments.length > 0;
 
 	return (
 		<div className="space-y-0">
 			{/* Reply preview */}
 			{replyToMessage && (
-				<div className="flex items-center gap-2.5 px-3.5 py-2.5 border-l-[3px] border-l-[var(--green)] bg-[var(--raised)] rounded-r-[var(--r2)] mb-2.5 animate-fade-in">
-					<div className="flex-1 min-w-0">
-						<p className="text-[13px] font-bold text-[var(--green)] truncate">
-							{replyToMessage.sender_id}
-						</p>
-						<p className="text-[12.5px] text-[var(--t3)] truncate flex-1">
-							{replyPreviewText}
-						</p>
-					</div>
-					<button
-						type="button"
-						onClick={() => setReplyTo(null)}
-						className="w-[26px] h-[26px] flex items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t1)] hover:rotate-90 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
-						title="Отменить ответ"
-					>
-						<svg
-							className="h-3.5 w-3.5"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							strokeWidth={2}
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								d="M6 18L18 6M6 6l12 12"
-							/>
-						</svg>
-					</button>
-				</div>
+				<ReplyPreview
+					replyTo={replyToMessage}
+					onClose={() => setReplyTo(null)}
+				/>
 			)}
 
 			{/* Превью прикреплённых файлов */}
