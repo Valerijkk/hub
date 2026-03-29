@@ -153,38 +153,21 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 
 // getUserProjectIDs возвращает ID проектов, в которых состоит пользователь.
 // Использует raw SQL, т.к. ProjectMember хранит FK через Ent-edges.
+// Ent column names: project_members = project FK, user_project_members = user FK.
 func (s *SearchService) getUserProjectIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT project_members FROM project_members
-		WHERE project_member_user = $1`,
+		`SELECT project_members FROM project_members WHERE user_project_members = $1`,
 		userID.String())
 	if err != nil {
-		// Попробуем альтернативное имя столбца (Ent может генерировать разные имена)
-		rows, err = s.sqlDB.QueryContext(ctx,
-			`SELECT pm.id, p.id AS project_id
-			FROM project_members pm
-			JOIN projects p ON p.id = pm.project_members
-			WHERE pm.project_member_user = $1`,
-			userID.String())
-		if err != nil {
-			return nil, err
-		}
+		return nil, fmt.Errorf("getUserProjectIDs: %w", err)
 	}
 	defer rows.Close()
 
 	var ids []uuid.UUID
 	for rows.Next() {
 		var projectID uuid.UUID
-		cols, _ := rows.Columns()
-		if len(cols) == 1 {
-			if err := rows.Scan(&projectID); err != nil {
-				continue
-			}
-		} else {
-			var pmID uuid.UUID
-			if err := rows.Scan(&pmID, &projectID); err != nil {
-				continue
-			}
+		if err := rows.Scan(&projectID); err != nil {
+			continue
 		}
 		ids = append(ids, projectID)
 	}
@@ -198,11 +181,11 @@ func (s *SearchService) searchIssues(ctx context.Context, query string, projectI
 	}
 
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, issue_key, title, issue_project,
+		`SELECT id, issue_key, title, project_issues,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
 		FROM issues
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
-			AND issue_project = ANY($2)
+			AND project_issues = ANY($2)
 		ORDER BY rank DESC LIMIT 10`,
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
@@ -237,11 +220,11 @@ func (s *SearchService) searchTestCases(ctx context.Context, query string, proje
 	}
 
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, case_key, title, test_case_project,
+		`SELECT id, case_key, title, project_test_cases,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
 		FROM test_cases
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
-			AND test_case_project = ANY($2)
+			AND project_test_cases = ANY($2)
 		ORDER BY rank DESC LIMIT 10`,
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
@@ -355,11 +338,11 @@ func (s *SearchService) searchFiles(ctx context.Context, query string, projectID
 	}
 
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, filename, file_metadata_project,
+		`SELECT id, filename, project_files,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
 		FROM file_metadata
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
-			AND file_metadata_project = ANY($2)
+			AND project_files = ANY($2)
 		ORDER BY rank DESC LIMIT 10`,
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
@@ -400,20 +383,20 @@ func (s *SearchService) searchChannels(ctx context.Context, query string, projec
 
 	// Пробуем tsvector поиск (если search_vector создан через indexer)
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, name, channel_type, channel_project,
+		`SELECT id, name, channel_type, project_id,
 			ts_rank(to_tsvector('simple', name), plainto_tsquery('simple', $1)) AS rank
 		FROM channels
 		WHERE to_tsvector('simple', name) @@ plainto_tsquery('simple', $1)
-			AND channel_project = ANY($2)
+			AND project_id = ANY($2)
 		ORDER BY rank DESC LIMIT 10`,
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
 		// Fallback на ILIKE если tsvector не работает
 		rows, err = s.sqlDB.QueryContext(ctx,
-			`SELECT id, name, channel_type, channel_project, 0.5::float8 AS rank
+			`SELECT id, name, channel_type, project_id, 0.5::float8 AS rank
 			FROM channels
 			WHERE name ILIKE '%' || $1 || '%'
-				AND channel_project = ANY($2)
+				AND project_id = ANY($2)
 			ORDER BY name ASC LIMIT 10`,
 			query, uuidSliceToPgArray(projectIDs))
 		if err != nil {
