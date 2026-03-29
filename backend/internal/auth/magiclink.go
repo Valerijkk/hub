@@ -84,7 +84,8 @@ func (s *MagicLinkService) SendMagicLink(ctx context.Context, email string) (str
 	// Send email (or log in dev mode)
 	if s.resend != nil {
 		if err := s.resend.SendMagicLinkEmail(ctx, email, code); err != nil {
-			return "", fmt.Errorf("send magic link email: %w", err)
+			slog.Error("не удалось отправить magic link email", "email", email, "error", err)
+			return code, nil // Возвращаем код даже при ошибке отправки (можно посмотреть в логах)
 		}
 	} else {
 		slog.Info("magic link code (dev mode)", "email", email, "code", code)
