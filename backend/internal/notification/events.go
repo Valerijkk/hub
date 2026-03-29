@@ -69,6 +69,10 @@ func SubjectToType(subject string) string {
 	if len(parts) >= 3 && parts[0] == "tms" && parts[1] == "run" && parts[2] == "completed" {
 		return TypeRunCompleted
 	}
+	// tms.testrun.completed
+	if subject == "tms.testrun.completed" {
+		return TypeRunCompleted
+	}
 	// auth.session.created
 	if subject == "auth.session.created" {
 		return TypeNewLogin
