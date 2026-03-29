@@ -268,7 +268,10 @@ func (s *GitLabService) fetchPipelines(ctx context.Context, integration *ent.Git
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
+		}
 		return nil, fmt.Errorf("GitLab API вернул %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -367,7 +370,10 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		respBody, _ := io.ReadAll(resp.Body)
+		respBody, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
+		}
 		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка запуска пайплайна GitLab: %d %s", resp.StatusCode, string(respBody)))
 	}
 
@@ -450,7 +456,10 @@ func (s *GitLabService) CreateBranch(ctx context.Context, issueKey string, req C
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
+		}
 		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка создания ветки в GitLab: %d %s", resp.StatusCode, string(body)))
 	}
 
@@ -502,7 +511,10 @@ func (s *GitLabService) fetchMergeRequests(ctx context.Context, integration *ent
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
+		}
 		return nil, fmt.Errorf("GitLab API вернул %d: %s", resp.StatusCode, string(body))
 	}
 

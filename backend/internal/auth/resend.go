@@ -70,7 +70,10 @@ func (r *ResendEmailClient) SendMagicLinkEmail(ctx context.Context, to, code str
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		respBody, _ := io.ReadAll(resp.Body)
+		respBody, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("resend: API error (status %d), failed to read body: %w", resp.StatusCode, readErr)
+		}
 		return fmt.Errorf("resend: API error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
