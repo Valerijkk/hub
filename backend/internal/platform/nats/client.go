@@ -1,3 +1,4 @@
+// Package nats управляет подключением к NATS и JetStream-стримами.
 package nats
 
 import (

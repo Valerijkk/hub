@@ -1,3 +1,4 @@
+// Package sprint реализует управление спринтами: создание, бэклог, burndown, velocity, Planning Poker.
 package sprint
 
 import (

@@ -1,3 +1,4 @@
+// Package imex реализует импорт и экспорт задач и тест-кейсов (CSV, JSON, Excel, PDF).
 package imex
 
 import (

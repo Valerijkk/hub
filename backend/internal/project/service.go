@@ -1,3 +1,4 @@
+// Package project реализует управление проектами: CRUD, участники, роли, команды, шаблоны.
 package project
 
 import (

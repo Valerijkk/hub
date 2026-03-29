@@ -1,3 +1,4 @@
+// Package messenger реализует мессенджер: каналы, сообщения, треды, реакции, присутствие, поиск.
 package messenger
 
 import (

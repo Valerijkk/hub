@@ -1,3 +1,4 @@
+// Package github реализует интеграцию с GitHub: репозитории, PR, пайплайны, вебхуки.
 package github
 
 import (

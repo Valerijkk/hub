@@ -1,3 +1,4 @@
+// Package database управляет подключениями к PostgreSQL и MongoDB.
 package database
 
 import (

@@ -1,3 +1,4 @@
+// Package errors определяет структурированные ошибки приложения с HTTP-кодами и сообщениями.
 package errors
 
 import "fmt"

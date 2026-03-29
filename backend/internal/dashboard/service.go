@@ -1,3 +1,4 @@
+// Package dashboard реализует персональные, проектные и административные дашборды с виджетами.
 package dashboard
 
 import (

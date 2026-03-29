@@ -1,3 +1,4 @@
+// Package http содержит общие HTTP-хелперы для Fiber-обработчиков.
 package http
 
 import (

@@ -1,3 +1,4 @@
+// Package audit реализует журнал аудита и политики хранения данных.
 package audit
 
 import (

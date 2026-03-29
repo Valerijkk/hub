@@ -1,3 +1,4 @@
+// Package search реализует глобальный полнотекстовый поиск по PostgreSQL (tsvector) и MongoDB ($text).
 package search
 
 import (

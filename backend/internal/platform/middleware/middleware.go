@@ -1,3 +1,4 @@
+// Package middleware содержит HTTP-middleware: логирование, rate limiting, request ID.
 package middleware
 
 import (

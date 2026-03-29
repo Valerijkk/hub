@@ -1,3 +1,4 @@
+// Package tracker реализует трекер задач: CRUD, Kanban-доски, workflow, комментарии, учёт времени.
 package tracker
 
 import (

@@ -1,3 +1,4 @@
+// Package backup реализует резервное копирование и восстановление данных (PostgreSQL + MongoDB + SeaweedFS).
 package backup
 
 import (

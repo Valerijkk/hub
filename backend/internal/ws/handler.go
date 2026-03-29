@@ -1,3 +1,4 @@
+// Package ws реализует WebSocket-шлюз для real-time событий через NATS bridge.
 package ws
 
 import (

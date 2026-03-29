@@ -1,3 +1,4 @@
+// Package storage реализует файловое хранилище через S3-совместимый бэкенд (SeaweedFS).
 package storage
 
 import (

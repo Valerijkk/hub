@@ -1,3 +1,4 @@
+// Package auth реализует аутентификацию через Magic Link и Telegram, управление JWT-сессиями и профилями пользователей.
 package auth
 
 import (

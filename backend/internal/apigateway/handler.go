@@ -1,9 +1,11 @@
+// Package apigateway управляет API-ключами и вебхуками для внешних интеграций.
 package apigateway
 
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // Handler предоставляет HTTP-обработчики для модуля API Gateway (ключи + вебхуки).

@@ -1,3 +1,4 @@
+// Package notification реализует систему уведомлений: in-app, Telegram, Web Push.
 package notification
 
 import (

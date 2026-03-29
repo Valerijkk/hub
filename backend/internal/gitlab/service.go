@@ -1,3 +1,4 @@
+// Package gitlab реализует интеграцию с GitLab: репозитории, MR, пайплайны.
 package gitlab
 
 import (
