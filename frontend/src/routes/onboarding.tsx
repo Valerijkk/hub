@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { completeOnboarding } from "@/api/auth";
+import { FormField } from "@/components/ui/form-field";
 import { useAuthStore } from "@/stores/auth-store";
 
 /**
@@ -335,10 +336,7 @@ function OnboardingPage() {
 
 						{/* Form grid */}
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-[14px]">
-							<div>
-								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
-									Имя
-								</label>
+							<FormField label="Имя">
 								<input
 									id="onb-name"
 									placeholder="Алексей"
@@ -349,20 +347,14 @@ function OnboardingPage() {
 									autoFocus
 									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
-							</div>
-							<div>
-								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
-									Фамилия
-								</label>
+							</FormField>
+							<FormField label="Фамилия">
 								<input
 									placeholder="Иванов"
 									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
-							</div>
-							<div>
-								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
-									Должность
-								</label>
+							</FormField>
+							<FormField label="Должность">
 								<input
 									id="onb-position"
 									placeholder="Senior Developer"
@@ -372,7 +364,7 @@ function OnboardingPage() {
 									}
 									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
-							</div>
+							</FormField>
 							<div>
 								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
 									Отдел
