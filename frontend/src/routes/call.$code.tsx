@@ -11,12 +11,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { joinByInviteCode, joinCall, guestJoinCall } from "@/api/calls";
 import { useCallStore } from "@/stores/call-store";
 import { useAuthStore } from "@/stores/auth-store";
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import { LiveKitRoom } from "@livekit/components-react";
 import "@livekit/components-styles";
-import { CallControls } from "@/components/calls/CallControls";
-import { ParticipantList } from "@/components/calls/ParticipantList";
-import { ScreenShareView } from "@/components/calls/ScreenShareView";
-import { CallReactionsOverlay } from "@/components/calls/CallReactions";
+import { CallRoomContent } from "@/components/calls/CallRoom";
 
 /** URL сервера LiveKit. */
 const LIVEKIT_URL =
@@ -94,6 +91,22 @@ function JoinCallByCodePage() {
 
 		try {
 			const res = await guestJoinCall(code, trimmed);
+			// Заполняем callStore чтобы CallRoomContent/CallControls работали как у зарег. юзера
+			useCallStore.setState({
+				activeCall: {
+					id: res.id,
+					room_name: res.room_name,
+					token: res.token,
+					invite_code: code,
+					channel_id: "",
+					status: "active",
+					created_by: "",
+					created_at: new Date().toISOString(),
+				} as import("@/api/calls").CallResponse,
+				token: res.token,
+				isInCall: true,
+				isConnecting: false,
+			});
 			setGuestToken(res.token);
 			// Всегда используем клиентский LIVEKIT_URL (через Caddy proxy),
 			// т.к. бэкенд возвращает внутренний Docker URL (http://livekit:7880).
@@ -154,35 +167,14 @@ function JoinCallByCodePage() {
 					}}
 					style={{ height: "100%", display: "flex", flexDirection: "column" }}
 				>
-					<RoomAudioRenderer />
-
-					{/* Header */}
-					<div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-						<div className="flex items-center gap-3">
-							<span className="relative flex h-2.5 w-2.5">
-								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-								<span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-							</span>
-							<span className="text-sm font-semibold text-white/90">Звонок</span>
-						</div>
-						<span className="text-xs text-white/40">Гость: {guestName.trim()}</span>
-					</div>
-
-					{/* Участники + screen share */}
-					<div className="relative flex flex-1 overflow-hidden">
-						<CallReactionsOverlay />
-						<div className="flex flex-1 gap-2 overflow-hidden p-3">
-							<div className="flex flex-1 flex-col gap-2">
-								<ParticipantList />
-							</div>
-							<ScreenShareView />
-						</div>
-					</div>
-
-					{/* Контролы — те же что у зарегистрированного юзера */}
-					<CallControls onDisconnect={() => {
+					<CallRoomContent onDisconnect={() => {
 						setGuestToken(null);
 						setGuestLivekitUrl(null);
+						useCallStore.setState({
+							activeCall: null,
+							token: null,
+							isInCall: false,
+						});
 					}} />
 				</LiveKitRoom>
 			</div>

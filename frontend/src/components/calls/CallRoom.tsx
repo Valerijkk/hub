@@ -30,7 +30,8 @@ interface CallRoomProps {
  * Внутренний контент комнаты — используется внутри LiveKitRoom,
  * чтобы хуки LiveKit (useParticipants) имели доступ к контексту.
  */
-function CallRoomContent({ onDisconnect }: { onDisconnect: () => void }) {
+/** Экспортируется для переиспользования в гостевом звонке (/call/$code). */
+export function CallRoomContent({ onDisconnect }: { onDisconnect: () => void }) {
 	const activeCall = useCallStore((s) => s.activeCall);
 	const participants = useParticipants();
 	const { localParticipant } = useLocalParticipant();
