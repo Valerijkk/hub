@@ -1,8 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { getMe } from "@/api/auth";
 import { DevLoginPanel } from "@/components/auth/dev-login-panel";
-
-import { MagicLinkForm } from "@/components/auth/magic-link-form";
 import { TelegramButton } from "@/components/auth/telegram-button";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -65,21 +62,7 @@ const FLOATING_FEATURES: FeatureCard[] = [
  */
 function LoginPage() {
 	const navigate = useNavigate();
-	const setUser = useAuthStore((s) => s.setUser);
 
-	async function handleLoginSuccess() {
-		try {
-			const user = await getMe();
-			setUser(user);
-			if (!user.onboarding_completed) {
-				void navigate({ to: "/onboarding" });
-			} else {
-				void navigate({ to: "/projects" });
-			}
-		} catch {
-			void navigate({ to: "/projects" });
-		}
-	}
 
 	function handleDevLoginSuccess() {
 		const user = useAuthStore.getState().user;
@@ -164,33 +147,18 @@ function LoginPage() {
 							Hub
 						</div>
 						<div className="text-sm text-[var(--t2)] mt-2">
-							Войдите в свой аккаунт
+							Единая платформа для команд
 						</div>
 					</div>
 
-					{/* Form */}
-					<MagicLinkForm onSuccess={handleLoginSuccess} />
-
-					{/* Divider */}
-					<div className="flex items-center my-7 gap-4">
-						<div className="flex-1 h-px bg-[var(--b1)]" />
-						<span className="text-xs text-[var(--t3)] font-medium">
-							или
-						</span>
-						<div className="flex-1 h-px bg-[var(--b1)]" />
-					</div>
-
+					{/* Telegram авторизация — основной способ входа */}
 					<TelegramButton />
 
-					{/* Footer link */}
+					{/* Описание */}
 					<div className="text-center mt-7 text-sm text-[var(--t2)]">
-						Нет аккаунта?{" "}
-						<a
-							href="#"
-							className="text-[var(--blue)] font-semibold hover:text-[var(--t1)] transition-colors"
-						>
-							Зарегистрироваться
-						</a>
+						Войдите через Telegram — быстро и безопасно.
+						<br />
+						<span className="text-[var(--t3)] text-xs">Аккаунт создаётся автоматически при первом входе.</span>
 					</div>
 
 					{/* Dev login panel */}
