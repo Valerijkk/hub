@@ -72,6 +72,30 @@ export function joinByInviteCode(code: string) {
 	return api.get<CallResponse>(`/calls/invite/${code}`);
 }
 
+/** Ответ на гостевой вход. */
+export interface GuestJoinResponse {
+	/** ID звонка. */
+	id: string;
+	/** Имя комнаты LiveKit. */
+	room_name: string;
+	/** JWT-токен для подключения к LiveKit. */
+	token: string;
+	/** URL сервера LiveKit. */
+	livekit_url: string;
+}
+
+/**
+ * Гостевой вход в звонок без аккаунта.
+ * @param inviteCode - invite-код звонка
+ * @param guestName - имя гостя
+ */
+export function guestJoinCall(inviteCode: string, guestName: string) {
+	return api.post<GuestJoinResponse>("/calls/guest-join", {
+		invite_code: inviteCode,
+		guest_name: guestName,
+	});
+}
+
 /**
  * Присоединиться к существующему звонку.
  * @param callId - ID звонка

@@ -31,6 +31,10 @@ func NewHandler(service *CallService, recSvc *RecordingService, scheduledSvc *Sc
 // RegisterRoutes регистрирует все маршруты звонков под /api/calls.
 // authMw — middleware аутентификации. Webhook-эндпоинт регистрируется без аутентификации.
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
+	// Гостевой доступ — без аутентификации
+	api.Post("/calls/guest-join", h.GuestJoinCall)
+
+	// Остальные endpoints — с аутентификацией
 	calls := api.Group("/calls", authMw)
 	calls.Post("/", h.CreateCall)
 	calls.Post("/instant", h.CreateInstantCall)

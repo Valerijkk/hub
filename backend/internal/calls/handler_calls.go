@@ -3,10 +3,12 @@ package calls
 import (
 	"log/slog"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	"github.com/livekit/protocol/auth"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
@@ -352,4 +354,65 @@ func (h *Handler) ListChatMessages(c fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"messages": msgs})
+}
+
+// GuestJoinCall godoc
+// @Summary Гостевой вход в звонок по invite-коду
+// @Description Позволяет гостю без аккаунта присоединиться к звонку, указав имя и invite-код.
+// @Tags Звонки
+// @Accept json
+// @Produce json
+// @Param body body GuestJoinRequest true "Invite-код и имя гостя"
+// @Success 200 {object} GuestJoinResponse "Данные звонка с токеном"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 404 {object} fiber.Error "Звонок не найден"
+// @Router /api/calls/guest-join [post]
+func (h *Handler) GuestJoinCall(c fiber.Ctx) error {
+	var req GuestJoinRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный запрос")
+	}
+	if req.InviteCode == "" || req.GuestName == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "invite_code и guest_name обязательны")
+	}
+
+	// Находим звонок по invite-коду
+	callEnt, err := h.service.repo.GetCallByInviteCode(c.Context(), req.InviteCode)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "звонок не найден или завершён")
+	}
+
+	if callEnt.Status != "active" {
+		return fiber.NewError(fiber.StatusNotFound, "звонок уже завершён")
+	}
+
+	// Генерируем гостевой токен
+	guestIdentity := "guest-" + uuid.New().String()[:8]
+	token, err := h.generateGuestToken(callEnt.RoomName, guestIdentity, req.GuestName)
+	if err != nil {
+		slog.Error("ошибка генерации гостевого токена", "error", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "ошибка генерации токена")
+	}
+
+	return c.JSON(GuestJoinResponse{
+		ID:         callEnt.ID,
+		RoomName:   callEnt.RoomName,
+		Token:      token,
+		LivekitURL: h.cfg.URL,
+	})
+}
+
+// generateGuestToken создаёт JWT-токен LiveKit для гостевого пользователя.
+func (h *Handler) generateGuestToken(roomName, identity, name string) (string, error) {
+	at := auth.NewAccessToken(h.cfg.APIKey, h.cfg.APISecret)
+	grant := &auth.VideoGrant{
+		RoomJoin: true,
+		Room:     roomName,
+	}
+	at.SetVideoGrant(grant).
+		SetIdentity(identity).
+		SetName(name).
+		SetValidFor(4 * time.Hour)
+
+	return at.ToJWT()
 }

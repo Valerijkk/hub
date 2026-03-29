@@ -36,6 +36,20 @@ type CallResponse struct {
 	Title            string     `json:"title,omitempty"`
 }
 
+// GuestJoinRequest содержит параметры для гостевого входа в звонок.
+type GuestJoinRequest struct {
+	InviteCode string `json:"invite_code"` // Invite-код звонка
+	GuestName  string `json:"guest_name"`  // Имя гостя
+}
+
+// GuestJoinResponse содержит данные для подключения гостя к LiveKit.
+type GuestJoinResponse struct {
+	ID         uuid.UUID `json:"id"`
+	RoomName   string    `json:"room_name"`
+	Token      string    `json:"token"`
+	LivekitURL string    `json:"livekit_url"`
+}
+
 // CallParticipantResponse содержит данные участника звонка.
 type CallParticipantResponse struct {
 	UserID   uuid.UUID  `json:"user_id"`
