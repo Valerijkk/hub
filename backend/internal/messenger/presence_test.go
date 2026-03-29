@@ -108,7 +108,7 @@ func TestSetGetCustomStatus(t *testing.T) {
 	ctx := context.Background()
 
 	// Устанавливаем кастомный статус
-	err := svc.SetCustomStatus(ctx, "user-1", "На обеде")
+	err := svc.SetCustomStatus(ctx, "user-1", "На обеде", "")
 	require.NoError(t, err)
 
 	// Читаем
@@ -117,7 +117,7 @@ func TestSetGetCustomStatus(t *testing.T) {
 	assert.Equal(t, "На обеде", text)
 
 	// Очищаем статус
-	err = svc.SetCustomStatus(ctx, "user-1", "")
+	err = svc.SetCustomStatus(ctx, "user-1", "", "")
 	require.NoError(t, err)
 
 	text, err = svc.GetCustomStatus(ctx, "user-1")
