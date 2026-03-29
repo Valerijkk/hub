@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/api/client";
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useInvalidateChannels } from "@/hooks/use-invalidate";
 import { useAuthStore } from "@/stores/auth-store";
 
 /** Пользователь для выбора в диалоге создания личного сообщения. */
@@ -39,7 +39,7 @@ export function NewDmDialog() {
 	const [creating, setCreating] = useState<string | null>(null);
 	const navigate = useNavigate();
 	const currentUserId = useAuthStore((s) => s.user?.id);
-	const queryClient = useQueryClient();
+	const invalidateChannels = useInvalidateChannels();
 
 	useEffect(() => {
 		if (!open) return;
@@ -78,9 +78,7 @@ export function NewDmDialog() {
 		setCreating(userId);
 		try {
 			const channel = await createOrGetDM(userId);
-			void queryClient.invalidateQueries({
-				queryKey: ["messenger", "channels"],
-			});
+			invalidateChannels();
 			setOpen(false);
 			setSearch("");
 			void navigate({

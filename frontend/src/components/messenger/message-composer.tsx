@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { uploadFile } from "@/api/files";
@@ -9,6 +8,7 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useInvalidateMessages } from "@/hooks/use-invalidate";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { CreatePollDialog } from "./create-poll-dialog";
 import { GifPicker } from "./gif-picker";
@@ -142,7 +142,7 @@ export function MessageComposer({
 	threadId,
 	placeholder = "Написать сообщение...",
 }: MessageComposerProps) {
-	const queryClient = useQueryClient();
+	const invalidateMessages = useInvalidateMessages(channelId);
 	const [text, setText] = useState("");
 	const [isSending, setIsSending] = useState(false);
 	const [showVoice, setShowVoice] = useState(false);
@@ -267,9 +267,7 @@ export function MessageComposer({
 				mentions:
 					mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
 			});
-			void queryClient.invalidateQueries({
-				queryKey: ["messenger", "messages", channelId],
-			});
+			invalidateMessages();
 			setText("");
 			setPendingAttachments([]);
 			setMentionedUserIds([]);
@@ -284,7 +282,7 @@ export function MessageComposer({
 		} finally {
 			setIsSending(false);
 		}
-	}, [channelId, threadId, text, pendingAttachments, mentionedUserIds, queryClient, setReplyTo]);
+	}, [channelId, threadId, text, pendingAttachments, mentionedUserIds, invalidateMessages, setReplyTo]);
 
 	/** Обработка выбора упоминания из автокомплита. */
 	const handleMentionSelect = useCallback(
@@ -367,9 +365,7 @@ export function MessageComposer({
 					content_text: gifUrl,
 					thread_id: threadId,
 				});
-				void queryClient.invalidateQueries({
-					queryKey: ["messenger", "messages", channelId],
-				});
+				invalidateMessages();
 			} catch (err) {
 				const message =
 					err instanceof Error
@@ -378,7 +374,7 @@ export function MessageComposer({
 				toast.error(message);
 			}
 		},
-		[channelId, threadId, queryClient],
+		[channelId, threadId, invalidateMessages],
 	);
 
 	/** Отправка стикера. */
@@ -391,9 +387,7 @@ export function MessageComposer({
 					content_text: `[sticker: ${sticker.label}]`,
 					thread_id: threadId,
 				});
-				void queryClient.invalidateQueries({
-					queryKey: ["messenger", "messages", channelId],
-				});
+				invalidateMessages();
 			} catch (err) {
 				const message =
 					err instanceof Error
@@ -402,7 +396,7 @@ export function MessageComposer({
 				toast.error(message);
 			}
 		},
-		[channelId, threadId, queryClient],
+		[channelId, threadId, invalidateMessages],
 	);
 
 	/** Отправка голосового сообщения. */
@@ -418,9 +412,7 @@ export function MessageComposer({
 					voice_duration_ms: durationMs,
 					thread_id: threadId,
 				});
-				void queryClient.invalidateQueries({
-					queryKey: ["messenger", "messages", channelId],
-				});
+				invalidateMessages();
 			} catch (err) {
 				const message =
 					err instanceof Error
@@ -430,7 +422,7 @@ export function MessageComposer({
 			}
 			setShowVoice(false);
 		},
-		[channelId, threadId, queryClient],
+		[channelId, threadId, invalidateMessages],
 	);
 
 	/** Текст превью сообщения для reply. */

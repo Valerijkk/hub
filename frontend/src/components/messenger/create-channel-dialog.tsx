@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { ChannelType } from "@/api/messenger";
 import { createChannel } from "@/api/messenger";
@@ -11,6 +10,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useInvalidateChannels } from "@/hooks/use-invalidate";
 
 /** Диалог создания канала (вариант с кнопкой в заголовке). */
 export function CreateChannelDialog() {
@@ -54,16 +54,14 @@ export function CreateChannelDialogContent() {
 	const [name, setName] = useState("");
 	const [type, setType] = useState<ChannelType>("group");
 	const [isLoading, setIsLoading] = useState(false);
-	const queryClient = useQueryClient();
+	const invalidateChannels = useInvalidateChannels();
 
 	const handleCreate = async () => {
 		if (!name.trim()) return;
 		setIsLoading(true);
 		try {
 			await createChannel({ name: name.trim(), channel_type: type });
-			void queryClient.invalidateQueries({
-				queryKey: ["messenger", "channels"],
-			});
+			invalidateChannels();
 			setName("");
 		} finally {
 			setIsLoading(false);

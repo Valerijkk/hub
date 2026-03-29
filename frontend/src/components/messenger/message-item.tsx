@@ -5,6 +5,7 @@ import type { Message } from "@/api/messenger";
 import { addBookmark, deleteMessage, editMessage, togglePin } from "@/api/messenger";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useInvalidateMessages } from "@/hooks/use-invalidate";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { ForwardDialog } from "./forward-dialog";
@@ -85,6 +86,7 @@ function MessageItemInner({
 	const [editSaving, setEditSaving] = useState(false);
 	const editInputRef = useRef<HTMLTextAreaElement>(null);
 	const queryClient = useQueryClient();
+	const invalidateMessages = useInvalidateMessages(channelId);
 	const openThread = useMessengerStore((s) => s.openThread);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
 	const currentUserId = useAuthStore((s) => s.user?.id);
@@ -194,13 +196,11 @@ function MessageItemInner({
 				content_text: trimmed,
 			});
 		} catch {
-			queryClient.invalidateQueries({
-				queryKey: ["messenger", "messages", channelId],
-			});
+			invalidateMessages();
 		} finally {
 			setEditSaving(false);
 		}
-	}, [editText, message.content_text, message.id, channelId, queryClient]);
+	}, [editText, message.content_text, message.id, channelId, queryClient, invalidateMessages]);
 
 	/** Отменить редактирование. */
 	const handleCancelEdit = useCallback(() => {

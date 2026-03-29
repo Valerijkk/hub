@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 import { createPoll } from "@/api/messenger";
+import { useInvalidateMessages } from "@/hooks/use-invalidate";
 import {
 	Dialog,
 	DialogContent,
@@ -37,7 +37,7 @@ export function CreatePollDialog({
 	open,
 	onOpenChange,
 }: CreatePollDialogProps) {
-	const queryClient = useQueryClient();
+	const invalidateMessages = useInvalidateMessages(channelId);
 	const [question, setQuestion] = useState("");
 	const [options, setOptions] = useState(["", ""]);
 	const [isAnonymous, setIsAnonymous] = useState(false);
@@ -99,9 +99,7 @@ export function CreatePollDialog({
 				is_multi_choice: isMultiChoice,
 			});
 			// Инвалидируем кэш сообщений, чтобы опрос появился в ленте.
-			void queryClient.invalidateQueries({
-				queryKey: ["messenger", "messages", channelId],
-			});
+			invalidateMessages();
 			resetForm();
 			onOpenChange(false);
 		} catch {
@@ -109,7 +107,7 @@ export function CreatePollDialog({
 		} finally {
 			setSubmitting(false);
 		}
-	}, [channelId, question, options, isAnonymous, isMultiChoice, queryClient, resetForm, onOpenChange]);
+	}, [channelId, question, options, isAnonymous, isMultiChoice, invalidateMessages, resetForm, onOpenChange]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
