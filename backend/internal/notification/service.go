@@ -25,18 +25,15 @@ type NotificationService struct {
 }
 
 // NewNotificationService создаёт новый сервис уведомлений.
-func NewNotificationService(repo *Repository, nc *natsclient.Client, telegram *TelegramSender, db *ent.Client) *NotificationService {
+// push может быть nil (Web Push уведомления не будут отправляться).
+func NewNotificationService(repo *Repository, nc *natsclient.Client, telegram *TelegramSender, db *ent.Client, push *PushSender) *NotificationService {
 	return &NotificationService{
 		repo:     repo,
 		nats:     nc,
 		telegram: telegram,
 		db:       db,
+		push:     push,
 	}
-}
-
-// SetPushSender устанавливает отправителя push-уведомлений.
-func (s *NotificationService) SetPushSender(push *PushSender) {
-	s.push = push
 }
 
 // PushSender возвращает отправителя push-уведомлений (для handler).

@@ -170,9 +170,7 @@ func main() {
 	rbacCache := rbac.NewPermissionCache(rdb)
 	outboxPublisher := outbox.NewPublisher()
 	projectRepo := projectmod.NewEntRepository(db, outboxPublisher)
-	projectSvc := projectmod.NewProjectService(projectRepo, rbacCache)
-	projectSvc.SetDB(db)
-	projectSvc.SetNATS(nc)
+	projectSvc := projectmod.NewProjectService(projectRepo, rbacCache, db, nc)
 	projectHandler := projectmod.NewHandler(projectSvc)
 	projectHandler.RegisterRoutes(api, requireAuth)
 
@@ -212,24 +210,23 @@ func main() {
 		}
 	}()
 
+	// Sprint routes (Scrum: спринты, Planning Poker, burndown, velocity)
+	// Создаём до трекера, т.к. SprintService реализует WIPChecker.
+	sprintRepo := sprintmod.NewEntRepository(db)
+	sprintSvc := sprintmod.NewSprintService(sprintRepo, rdb, nc)
+	pokerSvc := sprintmod.NewPokerService(rdb, nc)
+	sprintHandler := sprintmod.NewHandler(sprintSvc, pokerSvc)
+	sprintHandler.RegisterRoutes(api, requireAuth, rbacSvc)
+
 	// Tracker routes
 	trackerRepo := trackermod.NewEntRepository(db, outboxPublisher)
-	trackerSvc := trackermod.NewTrackerService(trackerRepo)
+	trackerSvc := trackermod.NewTrackerService(trackerRepo, sprintSvc)
 	trackerHandler := trackermod.NewHandler(trackerSvc)
 	trackerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// Автопровизия трекера при создании проекта (workflow + доска "Main Board")
 	trackerProv := trackermod.NewTrackerProjectProvisioner(trackerRepo)
 	projectSvc.SetTrackerProvisioner(trackerProv)
-
-	// Sprint routes (Scrum: спринты, Planning Poker, burndown, velocity)
-	sprintRepo := sprintmod.NewEntRepository(db)
-	sprintSvc := sprintmod.NewSprintService(sprintRepo, rdb, nc)
-	pokerSvc := sprintmod.NewPokerService(rdb, nc)
-	sprintHandler := sprintmod.NewHandler(sprintSvc, pokerSvc)
-	sprintHandler.RegisterRoutes(api, requireAuth, rbacSvc)
-	// Внедряем WIP-лимиты в трекер
-	trackerSvc.SetWIPChecker(sprintSvc)
 
 	// Messenger routes
 	mongoDB, err := database.NewMongoClient(ctx, cfg.MongoDB.URL, cfg.MongoDB.Database)
@@ -294,8 +291,7 @@ func main() {
 	messengerRepo := messengermod.NewCombinedRepository(messengerEntRepo, messengerMongoRepo)
 	presenceSvc := messengermod.NewPresenceService(rdb)
 	unreadSvc := messengermod.NewUnreadService(rdb)
-	messengerSvc := messengermod.NewMessengerService(messengerRepo, nc, presenceSvc, unreadSvc)
-	messengerSvc.SetDB(db)
+	messengerSvc := messengermod.NewMessengerService(messengerRepo, nc, presenceSvc, unreadSvc, db)
 	messengerHandler := messengermod.NewHandler(messengerSvc)
 	messengerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
@@ -328,8 +324,7 @@ func main() {
 	notifRepo := notifmod.NewRepository(db)
 	telegramSender := notifmod.NewTelegramSender(cfg.Telegram.BotToken)
 	pushSender := notifmod.NewPushSender(db, cfg.WebPush)
-	notifSvc := notifmod.NewNotificationService(notifRepo, nc, telegramSender, db)
-	notifSvc.SetPushSender(pushSender)
+	notifSvc := notifmod.NewNotificationService(notifRepo, nc, telegramSender, db, pushSender)
 	notifConsumer := notifmod.NewConsumer(nc, notifRepo, notifSvc)
 	notifCtx, notifCancel := context.WithCancel(ctx)
 	defer notifCancel()

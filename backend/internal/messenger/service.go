@@ -25,13 +25,9 @@ type MessengerService struct {
 }
 
 // NewMessengerService создаёт новый сервис мессенджера.
-func NewMessengerService(repo Repository, nats *natsclient.Client, presence *PresenceService, unread *UnreadService) *MessengerService {
-	return &MessengerService{repo: repo, nats: nats, presence: presence, unread: unread}
-}
-
-// SetDB устанавливает Ent-клиент для разрешения групповых упоминаний (@role).
-func (s *MessengerService) SetDB(db *ent.Client) {
-	s.db = db
+// db может быть nil (групповые упоминания @role не будут работать).
+func NewMessengerService(repo Repository, nats *natsclient.Client, presence *PresenceService, unread *UnreadService, db *ent.Client) *MessengerService {
+	return &MessengerService{repo: repo, nats: nats, presence: presence, unread: unread, db: db}
 }
 
 // ---------------------------------------------------------------------------

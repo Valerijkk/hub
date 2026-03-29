@@ -638,7 +638,7 @@ func (m *mockRepo) GetDB() *ent.Client {
 
 func newTestService() (*TrackerService, *mockRepo) {
 	repo := newMockRepo()
-	svc := NewTrackerService(repo)
+	svc := NewTrackerService(repo, nil)
 	return svc, repo
 }
 

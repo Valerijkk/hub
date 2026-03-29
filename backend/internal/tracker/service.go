@@ -22,14 +22,10 @@ type TrackerService struct {
 }
 
 // NewTrackerService создаёт новый сервис трекера.
-func NewTrackerService(repo Repository) *TrackerService {
+// wipChecker может быть nil (WIP-лимиты не будут проверяться).
+func NewTrackerService(repo Repository, wipChecker WIPChecker) *TrackerService {
 	wf := NewWorkflowEngine(repo)
-	return &TrackerService{repo: repo, workflow: wf}
-}
-
-// SetWIPChecker устанавливает проверку WIP-лимитов (внедряется из модуля sprint).
-func (s *TrackerService) SetWIPChecker(checker WIPChecker) {
-	s.wipChecker = checker
+	return &TrackerService{repo: repo, workflow: wf, wipChecker: wipChecker}
 }
 
 // ---------------------------------------------------------------------------

@@ -326,7 +326,7 @@ func (mc *mockCache) Invalidate(_ context.Context, userID, projectID string) err
 func newTestService() (*ProjectService, *mockRepo, *mockCache) {
 	repo := newMockRepo()
 	cache := &mockCache{}
-	svc := NewProjectService(repo, cache)
+	svc := NewProjectService(repo, cache, nil, nil)
 	return svc, repo, cache
 }
 

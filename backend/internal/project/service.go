@@ -28,21 +28,14 @@ type ProjectService struct {
 }
 
 // NewProjectService создаёт новый сервис проектов.
-func NewProjectService(repo Repository, cache CacheInvalidator) *ProjectService {
+// db и nats могут быть nil (graceful degradation для cleanupCrossProjectLinks).
+func NewProjectService(repo Repository, cache CacheInvalidator, db *ent.Client, nats *natsclient.Client) *ProjectService {
 	return &ProjectService{
 		repo:  repo,
 		cache: cache,
+		db:    db,
+		nats:  nats,
 	}
-}
-
-// SetDB устанавливает Ent-клиент для очистки кросс-проектных связей.
-func (s *ProjectService) SetDB(db *ent.Client) {
-	s.db = db
-}
-
-// SetNATS устанавливает NATS-клиент для нотификации при удалении связей.
-func (s *ProjectService) SetNATS(nats *natsclient.Client) {
-	s.nats = nats
 }
 
 // CreateProject creates a new project with the given user as owner.
