@@ -81,8 +81,9 @@ jobs:
             docker start hub-caddy-1 2>/dev/null || true
             docker restart hub-caddy-1 2>/dev/null || true
 
-            # Cleanup
-            docker image prune -f
-            docker builder prune -f
+            # Cleanup — remove all unused images, build cache, volumes
+            docker image prune -af --filter "until=24h"
+            docker builder prune -af
+            docker system prune -f --volumes
 
             echo "Deployed $(cd /opt/hub && git log --oneline -1)"
