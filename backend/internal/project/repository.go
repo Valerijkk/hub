@@ -26,6 +26,7 @@ type Repository interface {
 	UpdateStatus(ctx context.Context, id uuid.UUID, status project.Status, setDeletedAt bool) (*ent.Project, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	MemberCount(ctx context.Context, projectID uuid.UUID) (int, error)
+	MemberCountBatch(ctx context.Context, projectIDs []uuid.UUID) (map[uuid.UUID]int, error)
 	ListMembers(ctx context.Context, projectID uuid.UUID) ([]*ent.ProjectMember, error)
 	AddMember(ctx context.Context, projectID, userID uuid.UUID, role projectmember.ProjectRole) (*ent.ProjectMember, error)
 	RemoveMember(ctx context.Context, projectID, userID uuid.UUID) error
@@ -197,6 +198,32 @@ func (r *EntRepository) MemberCount(ctx context.Context, projectID uuid.UUID) (i
 	return r.client.ProjectMember.Query().
 		Where(projectmember.HasProjectWith(project.IDEQ(projectID))).
 		Count(ctx)
+}
+
+// MemberCountBatch возвращает количество участников для нескольких проектов одним запросом.
+func (r *EntRepository) MemberCountBatch(ctx context.Context, projectIDs []uuid.UUID) (map[uuid.UUID]int, error) {
+	if len(projectIDs) == 0 {
+		return make(map[uuid.UUID]int), nil
+	}
+
+	var rows []struct {
+		ProjectID uuid.UUID `json:"project_members"`
+		Count     int       `json:"count"`
+	}
+	err := r.client.ProjectMember.Query().
+		Where(projectmember.HasProjectWith(project.IDIn(projectIDs...))).
+		GroupBy(projectmember.ProjectColumn).
+		Aggregate(ent.Count()).
+		Scan(ctx, &rows)
+	if err != nil {
+		return nil, err
+	}
+
+	counts := make(map[uuid.UUID]int, len(rows))
+	for _, row := range rows {
+		counts[row.ProjectID] = row.Count
+	}
+	return counts, nil
 }
 
 // ListMembers возвращает всех участников проекта с загруженными данными пользователя.

@@ -90,10 +90,19 @@ func (s *ProjectService) ListProjects(ctx context.Context, userID uuid.UUID, inc
 		return nil, apperrors.NewInternal("failed to list projects")
 	}
 
+	// Batch-fetch member counts in a single query to avoid N+1.
+	ids := make([]uuid.UUID, len(projects))
+	for i, p := range projects {
+		ids[i] = p.ID
+	}
+	counts, err := s.repo.MemberCountBatch(ctx, ids)
+	if err != nil {
+		counts = make(map[uuid.UUID]int) // fallback: zeros
+	}
+
 	result := make([]ProjectResponse, 0, len(projects))
 	for _, p := range projects {
-		count, _ := s.repo.MemberCount(ctx, p.ID)
-		result = append(result, *toProjectResponse(p, count, ""))
+		result = append(result, *toProjectResponse(p, counts[p.ID], ""))
 	}
 	return result, nil
 }
@@ -280,10 +289,19 @@ func (s *ProjectService) ListTrash(ctx context.Context, userID uuid.UUID) ([]Pro
 		return nil, apperrors.NewInternal("failed to list trash")
 	}
 
+	// Batch-fetch member counts in a single query to avoid N+1.
+	ids := make([]uuid.UUID, len(projects))
+	for i, p := range projects {
+		ids[i] = p.ID
+	}
+	counts, err := s.repo.MemberCountBatch(ctx, ids)
+	if err != nil {
+		counts = make(map[uuid.UUID]int) // fallback: zeros
+	}
+
 	result := make([]ProjectResponse, 0, len(projects))
 	for _, p := range projects {
-		count, _ := s.repo.MemberCount(ctx, p.ID)
-		result = append(result, *toProjectResponse(p, count, ""))
+		result = append(result, *toProjectResponse(p, counts[p.ID], ""))
 	}
 	return result, nil
 }

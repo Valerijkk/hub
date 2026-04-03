@@ -70,7 +70,12 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 		}
 
 		// Duration from start/stop
-		if ar.Start != nil && ar.Stop != nil {
+		// Validate: positive epochs, not beyond year 2100, and stop >= start.
+		const maxEpochMs = 4102444800000 // 2100-01-01 00:00:00 UTC in millis
+		if ar.Start != nil && ar.Stop != nil &&
+			*ar.Start > 0 && *ar.Stop > 0 &&
+			*ar.Start < maxEpochMs && *ar.Stop < maxEpochMs &&
+			*ar.Start <= *ar.Stop {
 			duration := *ar.Stop - *ar.Start
 			input.DurationMs = &duration
 			startTime := time.UnixMilli(*ar.Start)

@@ -27,8 +27,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	files.Use(authMw)
 
 	files.Post("/upload-url", rbac.RequirePermission(rbac.PermFileUpload, rbacSvc), h.GenerateUploadURL)
-	files.Post("/:fileId/confirm", h.ConfirmUpload)
-	files.Get("/:fileId/url", h.GetDownloadURL)
+	files.Post("/:fileId/confirm", rbac.RequirePermission(rbac.PermFileUpload, rbacSvc), h.ConfirmUpload)
+	files.Get("/:fileId/url", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetDownloadURL)
 	files.Delete("/:fileId", rbac.RequirePermission(rbac.PermFileDelete, rbacSvc), h.DeleteFile)
 }
 

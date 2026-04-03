@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 	"time"
 )
@@ -50,5 +51,13 @@ func (Comment) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("reactions", Reaction.Type),
+	}
+}
+
+// Indexes of the Comment.
+func (Comment) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Edges("issue").
+			Fields("created_at"),
 	}
 }

@@ -118,5 +118,7 @@ func (User) Edges() []ent.Edge {
 func (User) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("telegram_id"),
+		index.Fields("email"),
+		index.Fields("status"),
 	}
 }

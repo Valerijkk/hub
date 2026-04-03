@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"crypto/subtle"
 	"io"
 
 	"github.com/gofiber/fiber/v3"
@@ -86,7 +87,7 @@ func (h *Handler) validateWebhookToken(c fiber.Ctx, token string) error {
 	}
 
 	for _, secret := range secrets {
-		if token == secret {
+		if subtle.ConstantTimeCompare([]byte(token), []byte(secret)) == 1 {
 			return nil
 		}
 	}

@@ -161,6 +161,14 @@ func (m *mockRepo) MemberCount(_ context.Context, projectID uuid.UUID) (int, err
 	return m.memberCountMap[projectID], nil
 }
 
+func (m *mockRepo) MemberCountBatch(_ context.Context, projectIDs []uuid.UUID) (map[uuid.UUID]int, error) {
+	counts := make(map[uuid.UUID]int, len(projectIDs))
+	for _, id := range projectIDs {
+		counts[id] = m.memberCountMap[id]
+	}
+	return counts, nil
+}
+
 func (m *mockRepo) ListMembers(_ context.Context, projectID uuid.UUID) ([]*ent.ProjectMember, error) {
 	return m.members[projectID], nil
 }

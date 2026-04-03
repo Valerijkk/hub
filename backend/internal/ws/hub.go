@@ -15,6 +15,7 @@ type Client struct {
 	done      chan struct{}
 	rooms     map[string]bool
 	mu        sync.Mutex
+	closeOnce sync.Once
 }
 
 // NewClient создаёт нового клиента для указанного пользователя и сессии.
@@ -173,6 +174,8 @@ func (h *Hub) removeClient(client *Client) {
 
 	// Сигнализируем writePump о завершении ДО закрытия send-канала,
 	// чтобы writePump успел выйти и не обращался к закрытому соединению.
-	close(client.done)
-	close(client.send)
+	client.closeOnce.Do(func() {
+		close(client.done)
+		close(client.send)
+	})
 }

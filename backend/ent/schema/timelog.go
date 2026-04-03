@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 	"time"
 )
@@ -48,5 +49,12 @@ func (TimeLog) Edges() []ent.Edge {
 			Ref("time_logs").
 			Unique().
 			Required(),
+	}
+}
+
+// Indexes of the TimeLog.
+func (TimeLog) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Edges("issue"),
 	}
 }
