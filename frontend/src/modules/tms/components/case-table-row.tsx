@@ -110,7 +110,7 @@ export function CaseTableRow({
 					onChange={() => onToggleSelect(tc.id)}
 				/>
 			</td>
-			<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)] group-first:group-hover:shadow-[-3px_0_0_var(--purple)_inset]">
+			<td className="px-5 h-14 border-b border-b1 align-middle transition-colors duration-[180ms] group-hover:bg-[var(--hover)]">
 				<Link
 					to="/projects/$projectId/tms/cases/$caseKey"
 					params={{ projectId, caseKey: tc.case_key }}
@@ -158,18 +158,16 @@ export function CaseTableRow({
 			</td>
 			<td className="px-5 h-14 border-b border-b1 align-middle transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-[180ms] group-hover:bg-[var(--hover)]">
 				{hasAutotest ? (
-					<span
-						className="text-[16px] opacity-[0.55] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 group-hover:opacity-100 group-hover:scale-[1.15] inline-block"
-						title="Автоматизирован"
-					>
-						🤖
+					<span title="Автоматизирован" className="text-[var(--green)] opacity-70 group-hover:opacity-100 transition-opacity">
+						<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+							<path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+						</svg>
 					</span>
 				) : (
-					<span
-						className="text-[16px] opacity-[0.25] inline-block"
-						title="Ручной"
-					>
-						📝
+					<span title="Ручной" className="text-[var(--t4)]">
+						<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+							<path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+						</svg>
 					</span>
 				)}
 			</td>

@@ -23,9 +23,9 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
 
 	return (
 		<div className="group relative">
-			<pre className="overflow-x-auto rounded-lg bg-gray-950 p-4 text-sm text-gray-100 dark:bg-gray-900">
+			<pre className="overflow-x-auto rounded-lg bg-gray-950 dark:bg-gray-900 p-4 text-sm text-gray-100">
 				{language && (
-					<span className="mb-2 block text-xs text-gray-500">
+					<span className="mb-2 block text-xs text-[var(--t3)]">
 						{language}
 					</span>
 				)}
@@ -55,15 +55,15 @@ function CollapsibleSection({
 	const [open, setOpen] = useState(defaultOpen);
 
 	return (
-		<div className="rounded-lg border dark:border-gray-700">
+		<div className="rounded-lg border border-[var(--b1)]">
 			<button
 				type="button"
 				onClick={() => setOpen(!open)}
-				className="flex w-full items-center justify-between p-4 text-left font-medium hover:bg-gray-50 dark:hover:bg-gray-800/50"
+				className="flex w-full items-center justify-between p-4 text-left font-medium text-[var(--t1)] hover:bg-[var(--hover)]"
 			>
 				<span>{title}</span>
 				<svg
-					className={`h-5 w-5 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`}
+					className={`h-5 w-5 text-[var(--t3)] transition-transform ${open ? "rotate-180" : ""}`}
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -76,7 +76,7 @@ function CollapsibleSection({
 					/>
 				</svg>
 			</button>
-			{open && <div className="border-t p-4 dark:border-gray-700">{children}</div>}
+			{open && <div className="border-t p-4 border-[var(--b1)]">{children}</div>}
 		</div>
 	);
 }
@@ -104,8 +104,8 @@ export function AutotestSetup({ projectId }: Props) {
 			{/* 1. Webhook URL */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2 text-base">
-						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+					<CardTitle className="flex items-center gap-2 text-base text-[var(--t1)]">
+						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--blue)] text-xs text-white">
 							1
 						</span>
 						Webhook URL
@@ -133,10 +133,10 @@ export function AutotestSetup({ projectId }: Props) {
 					</div>
 
 					<p className="text-xs text-t2">
-						Замените <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+						Замените <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
 							{"${YOUR_DOMAIN}"}
 						</code> на адрес вашего Hub-инстанса (например,{" "}
-						<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+						<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
 							https://hub.example.com
 						</code>).
 					</p>
@@ -146,8 +146,8 @@ export function AutotestSetup({ projectId }: Props) {
 			{/* 2. API Token */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2 text-base">
-						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+					<CardTitle className="flex items-center gap-2 text-base text-[var(--t1)]">
+						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--blue)] text-xs text-white">
 							2
 						</span>
 						API-токен для аутентификации
@@ -169,7 +169,7 @@ export function AutotestSetup({ projectId }: Props) {
 							</li>
 							<li>
 								Нажмите <strong>Создать ключ</strong>, укажите название (например,{" "}
-								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">ci-autotest</code>)
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">ci-autotest</code>)
 							</li>
 							<li>
 								Скопируйте ключ — он показывается только один раз
@@ -185,12 +185,12 @@ export function AutotestSetup({ projectId }: Props) {
 					</p>
 
 					<div className="space-y-2">
-						<p className="text-sm font-medium">Заголовок (рекомендуется):</p>
+						<p className="text-sm font-medium text-[var(--t1)]">Заголовок (рекомендуется):</p>
 						<CodeBlock code="X-API-Key: your-api-key-here" />
 					</div>
 
 					<div className="space-y-2">
-						<p className="text-sm font-medium">Query-параметр (альтернативный):</p>
+						<p className="text-sm font-medium text-[var(--t1)]">Query-параметр (альтернативный):</p>
 						<CodeBlock code={`${webhookUrl}?token=your-api-key-here`} />
 					</div>
 
@@ -203,14 +203,14 @@ export function AutotestSetup({ projectId }: Props) {
 							<div className="overflow-x-auto">
 								<table className="w-full text-sm">
 									<thead>
-										<tr className="border-b dark:border-gray-700">
-											<th className="p-2 text-left font-medium">Действие</th>
-											<th className="p-2 text-left font-medium">Минимальная роль</th>
-											<th className="p-2 text-left font-medium">Описание</th>
+										<tr className="border-b border-[var(--b1)]">
+											<th className="p-2 text-left font-medium text-[var(--t1)]">Действие</th>
+											<th className="p-2 text-left font-medium text-[var(--t1)]">Минимальная роль</th>
+											<th className="p-2 text-left font-medium text-[var(--t1)]">Описание</th>
 										</tr>
 									</thead>
 									<tbody>
-										<tr className="border-b dark:border-gray-700">
+										<tr className="border-b border-[var(--b1)]">
 											<td className="p-2">Загрузка результатов</td>
 											<td className="p-2">
 												<Badge variant="outline">Tester</Badge>
@@ -219,7 +219,7 @@ export function AutotestSetup({ projectId }: Props) {
 												Отправка результатов через webhook (Allure / JUnit)
 											</td>
 										</tr>
-										<tr className="border-b dark:border-gray-700">
+										<tr className="border-b border-[var(--b1)]">
 											<td className="p-2">Создание прогонов</td>
 											<td className="p-2">
 												<Badge variant="outline">Tester</Badge>
@@ -228,7 +228,7 @@ export function AutotestSetup({ projectId }: Props) {
 												Автоматическое создание test run при импорте
 											</td>
 										</tr>
-										<tr className="border-b dark:border-gray-700">
+										<tr className="border-b border-[var(--b1)]">
 											<td className="p-2">Запуск пайплайна</td>
 											<td className="p-2">
 												<Badge variant="outline">Developer</Badge>
@@ -237,7 +237,7 @@ export function AutotestSetup({ projectId }: Props) {
 												Триггер CI/CD через Hub (кнопка "Запуск тестов")
 											</td>
 										</tr>
-										<tr className="dark:border-gray-700">
+										<tr className="border-[var(--b1)]">
 											<td className="p-2">Управление интеграциями</td>
 											<td className="p-2">
 												<Badge variant="outline">Admin</Badge>
@@ -254,24 +254,24 @@ export function AutotestSetup({ projectId }: Props) {
 
 					<CollapsibleSection title="Настройка секретов в CI/CD">
 						<div className="space-y-3">
-							<p className="text-sm font-medium">GitHub Actions:</p>
+							<p className="text-sm font-medium text-[var(--t1)]">GitHub Actions:</p>
 							<p className="text-sm text-t2">
 								<strong>Settings &rarr; Secrets and variables &rarr; Actions</strong> &rarr;
-								создайте секрет <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_API_KEY</code> и
-								переменную <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_URL</code>.
+								создайте секрет <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_API_KEY</code> и
+								переменную <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_URL</code>.
 							</p>
-							<p className="text-sm font-medium">GitLab CI:</p>
+							<p className="text-sm font-medium text-[var(--t1)]">GitLab CI:</p>
 							<p className="text-sm text-t2">
 								<strong>Settings &rarr; CI/CD &rarr; Variables</strong> &rarr;
 								создайте переменные{" "}
-								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_API_KEY</code> (masked) и{" "}
-								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_URL</code>.
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_API_KEY</code> (masked) и{" "}
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_URL</code>.
 							</p>
-							<p className="text-sm font-medium">Jenkins:</p>
+							<p className="text-sm font-medium text-[var(--t1)]">Jenkins:</p>
 							<p className="text-sm text-t2">
 								<strong>Manage Jenkins &rarr; Credentials</strong> &rarr;
 								добавьте Secret text с ID{" "}
-								<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">hub-api-key</code>.
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">hub-api-key</code>.
 							</p>
 						</div>
 					</CollapsibleSection>
@@ -290,8 +290,8 @@ export function AutotestSetup({ projectId }: Props) {
 			{/* 3. Формат ID тест-кейсов */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2 text-base">
-						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+					<CardTitle className="flex items-center gap-2 text-base text-[var(--t1)]">
+						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--blue)] text-xs text-white">
 							3
 						</span>
 						Формат ID тест-кейсов
@@ -301,8 +301,8 @@ export function AutotestSetup({ projectId }: Props) {
 					<p className="text-sm text-t2">
 						Для автоматической привязки результатов к тест-кейсам используйте
 						паттерн <code className="rounded bg-gray-100 px-1 font-semibold dark:bg-gray-800">PROJ-TC-N</code>,
-						где <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">PROJ</code> — префикс проекта,
-						а <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">N</code> — номер тест-кейса.
+						где <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">PROJ</code> — префикс проекта,
+						а <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">N</code> — номер тест-кейса.
 					</p>
 
 					<p className="text-sm text-t2">
@@ -311,7 +311,7 @@ export function AutotestSetup({ projectId }: Props) {
 
 					<p className="text-sm text-t2">
 						Включите этот идентификатор в название теста, аннотацию Allure
-						или поле <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">automation_id</code> тест-кейса.
+						или поле <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">automation_id</code> тест-кейса.
 					</p>
 				</CardContent>
 			</Card>
@@ -319,8 +319,8 @@ export function AutotestSetup({ projectId }: Props) {
 			{/* 4. Примеры кода для фреймворков */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2 text-base">
-						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+					<CardTitle className="flex items-center gap-2 text-base text-[var(--t1)]">
+						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--blue)] text-xs text-white">
 							4
 						</span>
 						Примеры интеграции для фреймворков
@@ -330,8 +330,8 @@ export function AutotestSetup({ projectId }: Props) {
 					<CollapsibleSection title="Python (pytest + allure-pytest)" defaultOpen>
 						<div className="space-y-3">
 							<p className="text-sm text-t2">
-								Используйте декоратор <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">@allure.id()</code> или
-								метку <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">allure.label()</code>:
+								Используйте декоратор <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">@allure.id()</code> или
+								метку <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">allure.label()</code>:
 							</p>
 							<CodeBlock
 								language="python"
@@ -398,7 +398,7 @@ test("Login test", async ({ page }) => {
 					<CollapsibleSection title="Java (JUnit + allure-java)">
 						<div className="space-y-3">
 							<p className="text-sm text-t2">
-								Используйте аннотацию <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">@AllureId</code>:
+								Используйте аннотацию <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">@AllureId</code>:
 							</p>
 							<CodeBlock
 								language="java"
@@ -430,8 +430,8 @@ public class AuthTests {
 			{/* 5. CI/CD примеры */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2 text-base">
-						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+					<CardTitle className="flex items-center gap-2 text-base text-[var(--t1)]">
+						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--blue)] text-xs text-white">
 							5
 						</span>
 						Настройка CI/CD
@@ -542,8 +542,8 @@ upload_results:
 						/>
 
 						<p className="mt-3 text-sm text-t2">
-							Добавьте переменные <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_URL</code> и{" "}
-							<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">HUB_API_KEY</code> в
+							Добавьте переменные <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_URL</code> и{" "}
+							<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_API_KEY</code> в
 							<strong> Settings &rarr; CI/CD &rarr; Variables</strong> (masked).
 						</p>
 					</CollapsibleSection>
@@ -553,8 +553,8 @@ upload_results:
 			{/* 6. Как работает матчинг */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2 text-base">
-						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+					<CardTitle className="flex items-center gap-2 text-base text-[var(--t1)]">
+						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--blue)] text-xs text-white">
 							6
 						</span>
 						Как работает привязка результатов
@@ -569,15 +569,15 @@ upload_results:
 					<div className="overflow-x-auto">
 						<table className="w-full text-sm">
 							<thead>
-								<tr className="border-b dark:border-gray-700">
-									<th className="p-2 text-left font-medium">#</th>
-									<th className="p-2 text-left font-medium">Стратегия</th>
-									<th className="p-2 text-left font-medium">Источник данных</th>
-									<th className="p-2 text-left font-medium">Описание</th>
+								<tr className="border-b border-[var(--b1)]">
+									<th className="p-2 text-left font-medium text-[var(--t1)]">#</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">Стратегия</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">Источник данных</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">Описание</th>
 								</tr>
 							</thead>
 							<tbody>
-								<tr className="border-b dark:border-gray-700">
+								<tr className="border-b border-[var(--b1)]">
 									<td className="p-2">
 										<Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
 											1
@@ -593,7 +593,7 @@ upload_results:
 										Самый надёжный способ. Ищет по external_id тест-кейса.
 									</td>
 								</tr>
-								<tr className="border-b dark:border-gray-700">
+								<tr className="border-b border-[var(--b1)]">
 									<td className="p-2">
 										<Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
 											2
@@ -609,7 +609,7 @@ upload_results:
 										Поле automation_id тест-кейса, заданное QA-инженером.
 									</td>
 								</tr>
-								<tr className="border-b dark:border-gray-700">
+								<tr className="border-b border-[var(--b1)]">
 									<td className="p-2">
 										<Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
 											3
@@ -625,7 +625,7 @@ upload_results:
 										Регулярное выражение ищет ключ тест-кейса в названии теста.
 									</td>
 								</tr>
-								<tr className="border-b dark:border-gray-700">
+								<tr className="border-b border-[var(--b1)]">
 									<td className="p-2">
 										<Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
 											4
@@ -641,7 +641,7 @@ upload_results:
 										Полное имя теста (пакет.класс.метод) сравнивается с full_name кейса.
 									</td>
 								</tr>
-								<tr className="border-b dark:border-gray-700">
+								<tr className="border-b border-[var(--b1)]">
 									<td className="p-2">
 										<Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">
 											5
@@ -657,7 +657,7 @@ upload_results:
 										Совпадение по имени класса (label suite) и имени метода (name).
 									</td>
 								</tr>
-								<tr className="dark:border-gray-700">
+								<tr className="border-[var(--b1)]">
 									<td className="p-2">
 										<Badge className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
 											-
@@ -694,8 +694,8 @@ upload_results:
 			{/* 7. Запуск из Hub */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2 text-base">
-						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+					<CardTitle className="flex items-center gap-2 text-base text-[var(--t1)]">
+						<span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--blue)] text-xs text-white">
 							7
 						</span>
 						Запуск тестов из Hub
@@ -709,14 +709,14 @@ upload_results:
 					<div className="overflow-x-auto">
 						<table className="w-full text-sm">
 							<thead>
-								<tr className="border-b dark:border-gray-700">
-									<th className="p-2 text-left font-medium">Переменная</th>
-									<th className="p-2 text-left font-medium">Пример</th>
-									<th className="p-2 text-left font-medium">Описание</th>
+								<tr className="border-b border-[var(--b1)]">
+									<th className="p-2 text-left font-medium text-[var(--t1)]">Переменная</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">Пример</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">Описание</th>
 								</tr>
 							</thead>
 							<tbody>
-								<tr className="border-b dark:border-gray-700">
+								<tr className="border-b border-[var(--b1)]">
 									<td className="p-2">
 										<code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
 											HUB_TEST_CASE_IDS
@@ -729,7 +729,7 @@ upload_results:
 										Ключи выбранных тест-кейсов (через запятую)
 									</td>
 								</tr>
-								<tr className="border-b dark:border-gray-700">
+								<tr className="border-b border-[var(--b1)]">
 									<td className="p-2">
 										<code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
 											HUB_RUN_SOURCE
@@ -742,7 +742,7 @@ upload_results:
 										Источник запуска (для фильтрации в пайплайне)
 									</td>
 								</tr>
-								<tr className="dark:border-gray-700">
+								<tr className="border-[var(--b1)]">
 									<td className="p-2">
 										<code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
 											HUB_PROJECT_ID

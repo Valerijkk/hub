@@ -40,3 +40,9 @@ backend/ent/*
 # Build artifacts
 coverage/
 *.prof
+
+# Standalone TMS (separate product)
+/tms/
+
+# Documentation (generated)
+documentation/
