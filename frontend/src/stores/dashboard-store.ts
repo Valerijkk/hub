@@ -28,6 +28,8 @@ interface DashboardState {
 	layouts: Record<string, LayoutItem[]>;
 	/** Флаг загрузки. */
 	loading: boolean;
+	/** Ошибка загрузки данных. */
+	error: string | null;
 
 	/** Загрузить данные персонального дашборда. */
 	fetchPersonal: () => Promise<void>;
@@ -55,14 +57,16 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
 	adminData: null,
 	layouts: {},
 	loading: false,
+	error: null,
 
 	fetchPersonal: async () => {
-		set({ loading: true });
+		set({ loading: true, error: null });
 		try {
 			const data = await getPersonalDashboard();
 			set({ personalData: data });
 		} catch (err) {
 			console.error("Ошибка загрузки персонального дашборда", err);
+			set({ error: "Не удалось загрузить данные дашборда" });
 		} finally {
 			set({ loading: false });
 		}

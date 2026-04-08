@@ -307,7 +307,7 @@ export function CallRoom({ token, onDisconnect }: CallRoomProps) {
 					screenShareSimulcastLayers: [],
 				},
 			}}
-			video={false}
+			video={true}
 			onDisconnected={onDisconnect}
 			data-lk-theme="default"
 			className="flex h-full w-full flex-col bg-[#0B0F19]"

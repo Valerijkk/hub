@@ -1,5 +1,6 @@
-import { useIsSpeaking, useParticipants } from "@livekit/components-react";
-import type { Participant } from "livekit-client";
+import { useIsSpeaking, useParticipants, VideoTrack } from "@livekit/components-react";
+import type { Participant, TrackPublication } from "livekit-client";
+import { Track } from "livekit-client";
 import { MicOff } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -33,6 +34,17 @@ function ParticipantTile({ participant }: { participant: Participant }) {
 		.toUpperCase();
 	const isMuted = !participant.isMicrophoneEnabled;
 
+	// Находим камерный трек участника
+	const cameraPublication: TrackPublication | undefined = participant
+		.getTrackPublications()
+		.find(
+			(pub) =>
+				pub.source === Track.Source.Camera &&
+				pub.track !== undefined &&
+				!pub.isMuted,
+		);
+	const hasVideo = !!cameraPublication;
+
 	return (
 		<div
 			className={cn(
@@ -48,35 +60,63 @@ function ParticipantTile({ participant }: { participant: Participant }) {
 				</span>
 			)}
 
-			{/* Аватар — крупный, адаптивный */}
-			<div className="relative">
-				{isSpeaking && (
-					<div className="absolute -inset-3 rounded-full border-2 border-green-500/50 animate-speaking" />
-				)}
-
-				<div
-					className={cn(
-						"relative flex items-center justify-center rounded-full font-bold",
-						"h-20 w-20 text-3xl",
-						isSpeaking
-							? "bg-green-500/15 text-green-300"
-							: "bg-white/10 text-white/70",
+			{/* Видео с камеры или аватар */}
+			{hasVideo && cameraPublication ? (
+				<div className="absolute inset-0">
+					<VideoTrack
+						trackRef={{
+							participant,
+							publication: cameraPublication,
+							source: Track.Source.Camera,
+						}}
+						className="h-full w-full object-cover"
+					/>
+					{/* Имя поверх видео */}
+					<div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
+						<span className="text-[13px] font-medium text-white truncate block">
+							{name}
+						</span>
+					</div>
+					{/* Индикатор мьюта поверх видео */}
+					{isMuted && (
+						<span className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 shadow-lg">
+							<MicOff className="h-3.5 w-3.5 text-white" />
+						</span>
 					)}
-				>
-					{initials}
 				</div>
+			) : (
+				<>
+					{/* Аватар — крупный, адаптивный */}
+					<div className="relative">
+						{isSpeaking && (
+							<div className="absolute -inset-3 rounded-full border-2 border-green-500/50 animate-speaking" />
+						)}
 
-				{isMuted && (
-					<span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 shadow-lg ring-2 ring-[#2a2f3e]">
-						<MicOff className="h-3.5 w-3.5 text-white" />
+						<div
+							className={cn(
+								"relative flex items-center justify-center rounded-full font-bold",
+								"h-20 w-20 text-3xl",
+								isSpeaking
+									? "bg-green-500/15 text-green-300"
+									: "bg-white/10 text-white/70",
+							)}
+						>
+							{initials}
+						</div>
+
+						{isMuted && (
+							<span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 shadow-lg ring-2 ring-[#2a2f3e]">
+								<MicOff className="h-3.5 w-3.5 text-white" />
+							</span>
+						)}
+					</div>
+
+					{/* Имя */}
+					<span className="mt-3 text-[13px] font-medium text-white/80 truncate max-w-[90%]">
+						{name}
 					</span>
-				)}
-			</div>
-
-			{/* Имя */}
-			<span className="mt-3 text-[13px] font-medium text-white/80 truncate max-w-[90%]">
-				{name}
-			</span>
+				</>
+			)}
 		</div>
 	);
 }

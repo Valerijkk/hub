@@ -14,6 +14,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/platform/config"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // CallService реализует бизнес-логику модуля голосовых звонков.
@@ -297,7 +298,8 @@ func (s *CallService) OnRoomFinished(ctx context.Context, roomName string) error
 
 // SendChatMessage отправляет сообщение в эфемерный чат звонка.
 // Проверяет что звонок активен, сохраняет сообщение в MongoDB и публикует событие в NATS.
-func (s *CallService) SendChatMessage(ctx context.Context, callID string, userID, userName, text string) (*CallChatMessage, error) {
+// Если ephemeral=true, сообщение только транслируется через NATS без сохранения в БД.
+func (s *CallService) SendChatMessage(ctx context.Context, callID string, userID, userName, text string, ephemeral bool) (*CallChatMessage, error) {
 	// Проверяем что звонок существует и активен
 	callUUID, err := uuid.Parse(callID)
 	if err != nil {
@@ -311,13 +313,28 @@ func (s *CallService) SendChatMessage(ctx context.Context, callID string, userID
 		return nil, fmt.Errorf("звонок уже завершён")
 	}
 
-	if s.chatRepo == nil {
-		return nil, fmt.Errorf("чат звонков не настроен")
-	}
+	var msg *CallChatMessage
 
-	msg, err := s.chatRepo.SendMessage(ctx, callID, userID, userName, text)
-	if err != nil {
-		return nil, err
+	if ephemeral {
+		// Эфемерный режим: не сохраняем в БД, только broadcast
+		msg = &CallChatMessage{
+			ID:        bson.NewObjectID(),
+			CallID:    callID,
+			UserID:    userID,
+			UserName:  userName,
+			Text:      text,
+			CreatedAt: time.Now(),
+		}
+	} else {
+		// Обычный режим: сохраняем в MongoDB
+		if s.chatRepo == nil {
+			return nil, fmt.Errorf("чат звонков не настроен")
+		}
+
+		msg, err = s.chatRepo.SendMessage(ctx, callID, userID, userName, text)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Публикуем событие для real-time доставки через NATS -> WS bridge

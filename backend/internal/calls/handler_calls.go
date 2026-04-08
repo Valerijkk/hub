@@ -299,7 +299,8 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 	}
 
 	var req struct {
-		Text string `json:"text"`
+		Text      string `json:"text"`
+		Ephemeral bool   `json:"ephemeral"`
 	}
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
@@ -309,7 +310,7 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 	}
 
 	userName := userNameFromCtx(c)
-	msg, err := h.service.SendChatMessage(c.Context(), callID.String(), userID.String(), userName, req.Text)
+	msg, err := h.service.SendChatMessage(c.Context(), callID.String(), userID.String(), userName, req.Text, req.Ephemeral)
 	if err != nil {
 		slog.Error("ошибка отправки сообщения чата звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось отправить сообщение")

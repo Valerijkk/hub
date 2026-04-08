@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -14,16 +14,31 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import {
 	archiveProject,
 	deleteProject,
 	getProject,
 	listMembers,
+	updateProject,
 } from "@/api/projects";
 import { Dropzone } from "@/components/files/dropzone";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+
+const NAME_MAX = 100;
+const DESC_MAX = 500;
 
 /**
  * Страница обзора проекта.
@@ -35,6 +50,9 @@ function ProjectPage() {
 	const queryClient = useQueryClient();
 
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+	const [showEditDialog, setShowEditDialog] = useState(false);
+	const [editName, setEditName] = useState("");
+	const [editDescription, setEditDescription] = useState("");
 
 	const { data: project, isLoading } = useQuery({
 		queryKey: ["project", projectId],
@@ -65,6 +83,36 @@ function ProjectPage() {
 		},
 		onError: () => toast.error("Не удалось удалить проект"),
 	});
+
+	const editMutation = useMutation({
+		mutationFn: (data: { name?: string; description?: string }) =>
+			updateProject(projectId, data),
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+			void queryClient.invalidateQueries({ queryKey: ["projects"] });
+			toast.success("Проект обновлён");
+			setShowEditDialog(false);
+		},
+		onError: () => toast.error("Не удалось обновить проект"),
+	});
+
+	function openEditDialog() {
+		setEditName(project?.name ?? "");
+		setEditDescription(project?.description ?? "");
+		setShowEditDialog(true);
+	}
+
+	function handleEditSubmit(e: FormEvent) {
+		e.preventDefault();
+		if (!editName.trim()) {
+			toast.error("Название не может быть пустым");
+			return;
+		}
+		editMutation.mutate({
+			name: editName.trim(),
+			description: editDescription.trim(),
+		});
+	}
 
 	if (isLoading) {
 		return (
@@ -122,6 +170,18 @@ function ProjectPage() {
 					</Badge>
 				</div>
 				<div className="flex gap-2">
+					{isOwnerOrAdmin && (
+						<Button
+							variant="outline"
+							className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]"
+							onClick={openEditDialog}
+						>
+							<svg className="h-4 w-4 mr-1.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+								<path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" />
+							</svg>
+							Редактировать
+						</Button>
+					)}
 					<Button variant="outline" asChild className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]">
 						<Link to="/projects/$projectId/board" params={{ projectId }}>
 							Доска
@@ -284,6 +344,60 @@ function ProjectPage() {
 					</TabsContent>
 				)}
 			</Tabs>
+
+			{/* Edit Project Dialog */}
+			<Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Редактировать проект</DialogTitle>
+						<DialogDescription>Измените название и описание проекта</DialogDescription>
+					</DialogHeader>
+					<form onSubmit={handleEditSubmit} className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="edit-name" className="text-sm font-medium">
+								Название
+							</Label>
+							<Input
+								id="edit-name"
+								value={editName}
+								onChange={(e) => setEditName(e.target.value)}
+								maxLength={NAME_MAX}
+								className="h-10"
+							/>
+							<p className="text-xs text-t2 text-right">{editName.length}/{NAME_MAX}</p>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="edit-desc" className="text-sm font-medium">
+								Описание
+							</Label>
+							<Textarea
+								id="edit-desc"
+								value={editDescription}
+								onChange={(e) => setEditDescription(e.target.value)}
+								rows={3}
+								maxLength={DESC_MAX}
+								className="resize-none"
+							/>
+							<p className="text-xs text-t2 text-right">{editDescription.length}/{DESC_MAX}</p>
+						</div>
+						<DialogFooter>
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => setShowEditDialog(false)}
+							>
+								Отмена
+							</Button>
+							<Button
+								type="submit"
+								disabled={editMutation.isPending || !editName.trim()}
+							>
+								{editMutation.isPending ? "Сохранение..." : "Сохранить"}
+							</Button>
+						</DialogFooter>
+					</form>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

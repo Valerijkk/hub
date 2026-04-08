@@ -17,6 +17,8 @@ interface CallState {
 	error: string | null;
 	/** Рука поднята. */
 	handRaised: boolean;
+	/** Логирование чата включено (сообщения сохраняются в БД). */
+	chatLoggingEnabled: boolean;
 	/** Идёт запись звонка. */
 	isRecording: boolean;
 	/** ID текущей записи. */
@@ -42,6 +44,8 @@ interface CallState {
 	checkActiveCall: (channelId: string) => Promise<CallResponse | null>;
 	/** Поднять/опустить руку. */
 	toggleHand: () => Promise<void>;
+	/** Переключить логирование чата. */
+	toggleChatLogging: () => void;
 	/** Установить состояние записи. */
 	setRecordingState: (
 		isRecording: boolean,
@@ -60,6 +64,7 @@ const initialState = {
 	isConnecting: false,
 	error: null,
 	handRaised: false,
+	chatLoggingEnabled: true,
 	isRecording: false,
 	recordingId: null,
 	recordingStartedBy: null,
@@ -185,6 +190,8 @@ export const useCallStore = create<CallState>()((set, get) => ({
 			// Игнорируем ошибку
 		}
 	},
+
+	toggleChatLogging: () => set((s) => ({ chatLoggingEnabled: !s.chatLoggingEnabled })),
 
 	setRecordingState: (isRecording, recordingId, startedBy) =>
 		set({

@@ -15,6 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+const NAME_MAX = 100;
+const DESC_MAX = 500;
+
 /**
  * Страница создания нового проекта — центрированная карточка с формой.
  */
@@ -23,6 +26,18 @@ function generateKey(name: string): string {
 		.toUpperCase()
 		.replace(/[^A-Z0-9]/g, "")
 		.slice(0, 10);
+}
+
+/** Generate a short project key from first letters of each word (max 5 chars). */
+function generateKeyFromInitials(name: string): string {
+	return name
+		.trim()
+		.split(/\s+/)
+		.map((w) => w[0] ?? "")
+		.join("")
+		.toUpperCase()
+		.replace(/[^A-Z]/g, "")
+		.slice(0, 5);
 }
 
 function NewProjectPage() {
@@ -121,21 +136,47 @@ function NewProjectPage() {
 								value={name}
 								onChange={(e) => handleNameChange(e.target.value)}
 								autoFocus
+								maxLength={NAME_MAX}
 								className="h-10"
 							/>
+							<p className="text-xs text-t2 text-right">{name.length}/{NAME_MAX}</p>
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="proj-key" className="text-sm font-medium">
 								Ключ проекта
 							</Label>
-							<Input
-								id="proj-key"
-								placeholder="PROJ"
-								value={key}
-								onChange={(e) => handleKeyChange(e.target.value)}
-								maxLength={10}
-								className="h-10 font-mono uppercase"
-							/>
+							<div className="flex gap-2">
+								<Input
+									id="proj-key"
+									placeholder="PROJ"
+									value={key}
+									onChange={(e) => handleKeyChange(e.target.value)}
+									maxLength={10}
+									className="h-10 font-mono uppercase"
+								/>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="h-10 shrink-0 text-xs"
+									disabled={!name.trim()}
+									onClick={() => {
+										const generated = generateKeyFromInitials(name);
+										if (generated.length >= 2) {
+											setKey(generated);
+											setKeyManuallyEdited(false);
+										} else {
+											toast.error("Введите название из 2+ слов для генерации ключа");
+										}
+									}}
+									title="Сгенерировать ключ из первых букв слов названия"
+								>
+									<svg className="h-4 w-4 mr-1" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+										<path d="M2 6h4l2-4 2 8 2-4h4" />
+									</svg>
+									Авто
+								</Button>
+							</div>
 							<p className="text-xs text-t2">
 								2-10 символов, A-Z и цифры. Используется в нумерации задач (
 								<span className="font-mono">{key || "KEY"}-1</span>)
@@ -154,8 +195,10 @@ function NewProjectPage() {
 								value={description}
 								onChange={(e) => setDescription(e.target.value)}
 								rows={3}
+								maxLength={DESC_MAX}
 								className="resize-none"
 							/>
+							<p className="text-xs text-t2 text-right">{description.length}/{DESC_MAX}</p>
 						</div>
 
 						{/* Подсказка */}

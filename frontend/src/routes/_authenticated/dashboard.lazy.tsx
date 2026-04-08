@@ -54,6 +54,7 @@ function PersonalDashboard() {
 	const personalItems = useDashboardStore((s) => s.layouts["personal"]);
 	const setLayout = useDashboardStore((s) => s.setLayout);
 	const loading = useDashboardStore((s) => s.loading);
+	const error = useDashboardStore((s) => s.error);
 	const user = useAuthStore((s) => s.user);
 
 	const greeting = useMemo(() => getGreeting(), []);
@@ -180,6 +181,17 @@ function PersonalDashboard() {
 								<div className="h-3 w-3/4 rounded animate-shimmer" />
 							</div>
 						))}
+					</div>
+				) : error && !personalData ? (
+					<div className="flex flex-col items-center justify-center py-20 gap-3 text-t2 dash-enter dash-enter-3">
+						<p className="text-sm font-medium">{error}</p>
+						<button
+							type="button"
+							className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+							onClick={() => fetchPersonal()}
+						>
+							Попробовать снова
+						</button>
 					</div>
 				) : (
 					<WidgetGrid

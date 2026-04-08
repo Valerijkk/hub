@@ -459,6 +459,17 @@ export function ChannelList() {
 	const dmUserIds: string[] = [];
 	const { getStatus } = usePresence(dmUserIds);
 
+	const allChannels = channels ?? [];
+
+	// Фильтрация каналов по поисковому запросу.
+	// NOTE: useMemo must be called unconditionally (before any early return)
+	// to comply with React's rules of hooks.
+	const filteredChannels = useMemo(() => {
+		if (!searchQuery.trim()) return allChannels;
+		const q = searchQuery.toLowerCase();
+		return allChannels.filter((ch) => ch.name.toLowerCase().includes(q));
+	}, [allChannels, searchQuery]);
+
 	/** Получить ID собеседника в ЛС (пока недоступно на бэкенде). */
 	function getDmPartnerId(_channel: Channel): string | undefined {
 		return undefined;
@@ -488,15 +499,6 @@ export function ChannelList() {
 			</div>
 		);
 	}
-
-	const allChannels = channels ?? [];
-
-	// Фильтрация каналов по поисковому запросу.
-	const filteredChannels = useMemo(() => {
-		if (!searchQuery.trim()) return allChannels;
-		const q = searchQuery.toLowerCase();
-		return allChannels.filter((ch) => ch.name.toLowerCase().includes(q));
-	}, [allChannels, searchQuery]);
 
 	// Разделяем закреплённые и обычные каналы.
 	const starredChannels = filteredChannels.filter((ch) => ch.is_starred);

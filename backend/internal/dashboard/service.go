@@ -69,7 +69,7 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	issues, err := s.db.Issue.Query().
 		Where(
 			issue.HasAssigneeWith(user.ID(userID)),
-			issue.HasStatusWith(workflowstatus.NameNotIn("done", "closed")),
+			issue.HasStatusWith(workflowstatus.CategoryNEQ(workflowstatus.CategoryDone)),
 			issue.DeletedAtIsNil(),
 		).
 		WithStatus().
@@ -246,13 +246,15 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 		now := time.Now()
 		for _, iss := range issues {
 			statusName := "unknown"
+			isDone := false
 			if iss.Edges.Status != nil {
 				statusName = iss.Edges.Status.Name
+				isDone = iss.Edges.Status.Category == workflowstatus.CategoryDone
 			}
 			stats.TasksByStatus[statusName]++
 
 			// Баги: тип bug, не завершены
-			if iss.IssueType == issue.IssueTypeBug && statusName != "done" && statusName != "closed" {
+			if iss.IssueType == issue.IssueTypeBug && !isDone {
 				stats.BugCount++
 			}
 
@@ -262,7 +264,7 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 			}
 
 			// Просроченные
-			if iss.DueDate != nil && iss.DueDate.Before(now) && statusName != "done" && statusName != "closed" {
+			if iss.DueDate != nil && iss.DueDate.Before(now) && !isDone {
 				stats.Overdue++
 			}
 		}
@@ -274,7 +276,7 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 	completedIssues, err := s.db.Issue.Query().
 		Where(
 			issue.HasProjectWith(project.ID(projectID)),
-			issue.HasStatusWith(workflowstatus.NameIn("done", "closed")),
+			issue.HasStatusWith(workflowstatus.CategoryEQ(workflowstatus.CategoryDone)),
 			issue.UpdatedAtGTE(thirtyDaysAgo),
 			issue.DeletedAtIsNil(),
 		).
@@ -304,7 +306,7 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 		count, err := s.db.Issue.Query().
 			Where(
 				issue.HasProjectWith(project.ID(projectID)),
-				issue.HasStatusWith(workflowstatus.NameIn("done", "closed")),
+				issue.HasStatusWith(workflowstatus.CategoryEQ(workflowstatus.CategoryDone)),
 				issue.UpdatedAtGTE(weekStart),
 				issue.UpdatedAtLT(weekEnd),
 				issue.DeletedAtIsNil(),

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Send } from "lucide-react";
+import { FileText, FileX, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
 	type CallChatMessage,
@@ -8,6 +8,7 @@ import {
 } from "@/api/calls";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
+import { useCallStore } from "@/stores/call-store";
 import { useWsStore } from "@/stores/ws-store";
 
 /** Пропсы компонента эфемерного чата звонка. */
@@ -37,6 +38,8 @@ export function CallChat({ callId }: CallChatProps) {
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const queryClient = useQueryClient();
 	const user = useAuthStore((s) => s.user);
+	const chatLoggingEnabled = useCallStore((s) => s.chatLoggingEnabled);
+	const toggleChatLogging = useCallStore((s) => s.toggleChatLogging);
 
 	/** Загрузка истории сообщений. */
 	const { data: messages = [] } = useQuery({
@@ -65,7 +68,7 @@ export function CallChat({ callId }: CallChatProps) {
 
 	/** Отправка сообщения. */
 	const sendMutation = useMutation({
-		mutationFn: (msg: string) => sendChatMessage(callId, msg),
+		mutationFn: (msg: string) => sendChatMessage(callId, msg, !chatLoggingEnabled),
 		onSuccess: () => setText(""),
 	});
 
@@ -89,9 +92,29 @@ export function CallChat({ callId }: CallChatProps) {
 				<span className="text-sm font-semibold text-white/80">
 					Чат звонка
 				</span>
-				<span className="text-[10px] text-white/30">
-					{messages.length} сообщ.
-				</span>
+				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						onClick={toggleChatLogging}
+						className={cn(
+							"flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors",
+							chatLoggingEnabled
+								? "bg-green-500/15 text-green-400 hover:bg-green-500/25"
+								: "bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50",
+						)}
+						title={chatLoggingEnabled ? "Логирование включено (сообщения сохраняются)" : "Логирование выключено (сообщения не сохраняются)"}
+					>
+						{chatLoggingEnabled ? (
+							<FileText className="h-3 w-3" />
+						) : (
+							<FileX className="h-3 w-3" />
+						)}
+						{chatLoggingEnabled ? "Лог" : "Без лога"}
+					</button>
+					<span className="text-[10px] text-white/30">
+						{messages.length} сообщ.
+					</span>
+				</div>
 			</div>
 
 			{/* Сообщения */}

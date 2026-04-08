@@ -178,9 +178,10 @@ export interface CallChatMessage {
  * Отправить сообщение в чат звонка.
  * @param callId - ID звонка
  * @param text - текст сообщения
+ * @param ephemeral - если true, сообщение не сохраняется в БД (только broadcast)
  */
-export function sendChatMessage(callId: string, text: string) {
-	return api.post<CallChatMessage>(`/calls/${callId}/chat`, { text });
+export function sendChatMessage(callId: string, text: string, ephemeral?: boolean) {
+	return api.post<CallChatMessage>(`/calls/${callId}/chat`, { text, ephemeral: !!ephemeral });
 }
 
 /**

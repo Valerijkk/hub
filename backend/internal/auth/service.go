@@ -143,8 +143,31 @@ func (s *AuthService) deleteRefreshToken(ctx context.Context, token string) {
 
 // ---- Core session operations ----
 
+// invalidateUserSessions удаляет все активные сессии пользователя (DB + Redis).
+// Используется для обеспечения единственной активной сессии на аккаунт.
+func (s *AuthService) invalidateUserSessions(ctx context.Context, userID uuid.UUID) {
+	sessions, err := s.db.Session.Query().
+		Where(session.HasUserWith(user.ID(userID))).
+		All(ctx)
+	if err != nil {
+		slog.Error("invalidateUserSessions: query sessions", "error", err, "user_id", userID)
+		return
+	}
+	for _, sess := range sessions {
+		s.deleteRefreshToken(ctx, sess.RefreshToken)
+		if err := s.db.Session.DeleteOneID(sess.ID).Exec(ctx); err != nil {
+			slog.Error("invalidateUserSessions: delete session", "error", err, "session_id", sess.ID)
+		}
+	}
+}
+
 // CreateSession генерирует JWT + refresh-токен, сохраняет сессию в БД и публикует NATS-событие.
+// Перед созданием новой сессии все существующие сессии пользователя инвалидируются
+// (single active session per account).
 func (s *AuthService) CreateSession(ctx context.Context, userID uuid.UUID, device, ip string) (*TokenPairResponse, error) {
+	// Invalidate all existing sessions for this user (single session policy).
+	s.invalidateUserSessions(ctx, userID)
+
 	sessionID := uuid.New()
 	refreshToken := uuid.New().String()
 
