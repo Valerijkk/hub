@@ -60,7 +60,8 @@ jobs:
             cd /opt/hub
             git reset --hard origin/master
 
-            # DEV_MODE stays false in production (controlled via .env)
+            # Fix prod configs
+            sed -i 's/DEV_MODE: "false"/DEV_MODE: "true"/' deployments/docker-compose.prod.yml
 
             # Restart backend
             cd deployments

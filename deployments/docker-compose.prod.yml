@@ -174,7 +174,7 @@ services:
       LIVEKIT_URL: "http://livekit:7880"
       LIVEKIT_API_KEY: "${LIVEKIT_API_KEY}"
       LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET}"
-      DEV_MODE: "${DEV_MODE:-false}"
+      DEV_MODE: "false"
     depends_on:
       postgres:
         condition: service_healthy
