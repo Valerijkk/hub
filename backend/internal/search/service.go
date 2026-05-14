@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/savedfilter"
+	"github.com/valerii/hub/backend/ent/user"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -256,15 +257,42 @@ func (s *SearchService) searchTestCases(ctx context.Context, query string, proje
 	return results, rows.Err()
 }
 
+// isSystemAdmin возвращает true, если у пользователя установлена системная
+// роль admin. Используется searchUsers для обхода project-scoping
+// (HI-12 follow-through: системные администраторы должны видеть всех
+// пользователей платформы, например для управления учётками). Один Get
+// на запрос — допустимо, админы редки.
+func (s *SearchService) isSystemAdmin(ctx context.Context, userID uuid.UUID) bool {
+	if s.db == nil {
+		return false
+	}
+	u, err := s.db.User.Get(ctx, userID)
+	if err != nil {
+		return false
+	}
+	return u.SystemRole == user.SystemRoleAdmin
+}
+
 // searchUsers ищет пользователей по tsvector, ограничивая выдачу теми,
 // кто состоит хотя бы в одном общем с callerID проекте (HI-12). Кроме того,
 // сам callerID всегда возвращается, если попадает в поисковую выдачу — это
 // корректно, потому что пользователь имеет право увидеть «себя».
 //
+// HI-12 follow-through: системные администраторы (SystemRole=admin) обходят
+// project-scoping и видят всех пользователей — нужно для управления
+// учётками. Проверка через ent.User.Get — тот же паттерн, что в
+// rbac.RequireAdmin (rbac/middleware.go:113-116) и
+// rbac.GetEffectivePermissions (rbac/service.go:46).
+//
 // Колонки project_members: project_members = FK на project,
 // user_project_members = FK на user. JOIN самой таблицы с собой даёт
 // все user-id, делящие хотя бы одну запись project_members с callerID.
 func (s *SearchService) searchUsers(ctx context.Context, query string, callerID uuid.UUID) ([]SearchResult, error) {
+	// Админский обход project-scoping.
+	if s.isSystemAdmin(ctx, callerID) {
+		return s.searchUsersUnscoped(ctx, query)
+	}
+
 	rows, err := s.sqlDB.QueryContext(ctx,
 		`SELECT id, name, email, display_name,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
@@ -284,6 +312,48 @@ func (s *SearchService) searchUsers(ctx context.Context, query string, callerID 
 		query, callerID.String())
 	if err != nil {
 		return nil, fmt.Errorf("поиск пользователей: %w", err)
+	}
+	defer rows.Close()
+
+	var results []SearchResult
+	for rows.Next() {
+		var id, name, email string
+		var displayName *string
+		var rank float64
+		if err := rows.Scan(&id, &name, &email, &displayName, &rank); err != nil {
+			continue
+		}
+		title := name
+		if title == "" && displayName != nil {
+			title = *displayName
+		}
+		if title == "" {
+			title = email
+		}
+		results = append(results, SearchResult{
+			ID:       id,
+			Type:     "user",
+			Title:    title,
+			Subtitle: email,
+			URL:      fmt.Sprintf("/settings/users/%s", id),
+			Score:    rank,
+		})
+	}
+	return results, rows.Err()
+}
+
+// searchUsersUnscoped — поиск пользователей без project-scoping.
+// Вызывается только для системных администраторов (HI-12 follow-through).
+func (s *SearchService) searchUsersUnscoped(ctx context.Context, query string) ([]SearchResult, error) {
+	rows, err := s.sqlDB.QueryContext(ctx,
+		`SELECT id, name, email, display_name,
+			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
+		FROM users
+		WHERE search_vector @@ plainto_tsquery('simple', $1)
+		ORDER BY rank DESC LIMIT 10`,
+		query)
+	if err != nil {
+		return nil, fmt.Errorf("поиск пользователей (admin): %w", err)
 	}
 	defer rows.Close()
 
