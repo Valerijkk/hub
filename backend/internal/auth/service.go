@@ -266,26 +266,46 @@ func (s *AuthService) RefreshToken(ctx context.Context, oldRefreshToken string) 
 		return nil, fmt.Errorf("refresh token: invalid session id: %w", err)
 	}
 
-	// Delete old refresh token (rotation).
-	s.deleteRefreshToken(ctx, oldRefreshToken)
+	// ME-02: устраняем TOCTOU между удалением старого refresh и созданием
+	// нового. Порядок строго:
+	//   1) сгенерировать новые токены;
+	//   2) сохранить новый refresh в Redis;
+	//   3) обновить ent.Session.refresh_token;
+	//   4) удалить старый refresh (в самом конце).
+	// Если процесс упадёт после шага 2, но до шага 4 — повторный refresh
+	// со старым токеном ещё валиден; вторая попытка генерирует новые
+	// токены и снова перезапишет сессию. Идемпотентность достигнута.
+	// Если упадёт после шага 3, но до шага 4 — старый refresh останется
+	// в Redis сиротой, но не сможет пройти валидацию (ent.Session уже
+	// ссылается на новый); следующая успешная rotation вычистит хвост,
+	// либо TTL Redis сам погасит сироту.
 
-	// Generate new token pair.
+	// (1) Generate new token pair.
 	newRefresh := uuid.New().String()
 	accessToken, err := s.generateAccessToken(userID, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("refresh token: generate access: %w", err)
 	}
+
+	// (2) Store new refresh token in Redis BEFORE deleting the old one.
 	if err := s.storeRefreshToken(ctx, newRefresh, *payload); err != nil {
 		return nil, fmt.Errorf("refresh token: store new: %w", err)
 	}
 
-	// Update session in Ent.
+	// (3) Update session in Ent.
 	if _, saveErr := s.db.Session.UpdateOneID(sessionID).
 		SetRefreshToken(newRefresh).
 		SetLastActiveAt(time.Now()).
 		Save(ctx); saveErr != nil {
+		// Не удаляем старый refresh — пользователь может повторить
+		// запрос со старым токеном, и при следующей попытке снова
+		// успешно сохранится новый.
 		slog.Error("failed to update session after token refresh", "error", saveErr, "session_id", sessionID)
+		return nil, fmt.Errorf("refresh token: update session: %w", saveErr)
 	}
+
+	// (4) Delete old refresh token in Redis last.
+	s.deleteRefreshToken(ctx, oldRefreshToken)
 
 	return &TokenPairResponse{
 		AccessToken:  accessToken,
