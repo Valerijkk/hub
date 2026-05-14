@@ -15,7 +15,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 /** Ключи localStorage для настроек звонка. */
@@ -172,23 +171,12 @@ export function CallSettingsModal({
 			<DialogContent className="border-white/10 bg-[#1a1f2e] text-white max-w-[480px] w-[calc(100vw-2rem)] p-0 gap-0 max-h-[85vh] overflow-y-auto">
 				<DialogHeader className="px-6 pt-6 pb-2">
 					<DialogTitle className="text-lg font-semibold">
-						Настройки
+						Настройки звонка
 					</DialogTitle>
 				</DialogHeader>
 
-				<Tabs defaultValue="audio" className="px-6 pb-6">
-					<TabsList className="grid w-full grid-cols-1 bg-white/5 border border-white/10 rounded-lg">
-						<TabsTrigger
-							value="audio"
-							className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/60 rounded-md"
-						>
-							<Volume2 className="h-4 w-4 mr-2" />
-							Звук
-						</TabsTrigger>
-					</TabsList>
-
-					{/* Вкладка "Звук" */}
-					<TabsContent value="audio" className="mt-4 space-y-5">
+				<div className="px-6 pb-6">
+					<div className="space-y-5">
 						{/* Динамик */}
 						<div className="space-y-2">
 							<label className="flex items-center gap-2 text-xs font-medium text-white/60 uppercase tracking-wider">
@@ -269,8 +257,8 @@ export function CallSettingsModal({
 							checked={noiseSuppression}
 							onChange={handleNoiseSuppressionToggle}
 						/>
-					</TabsContent>
-				</Tabs>
+					</div>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);

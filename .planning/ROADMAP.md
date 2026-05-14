@@ -40,6 +40,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 11: Core Mockup Pages** - Login, Dashboard, Messenger, Kanban
 - [ ] **Phase 12: Remaining Mockup Pages + Unmocked Pages** - Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash + Projects, Sprint, JQL, Project Settings, Project Dashboard
 - [ ] **Phase 13: Polish & QA** - Финальный визуальный QA, доступность, мобильная проверка, очистка мёртвого CSS
+- [ ] **Phase 14: Architectural Hardening** - Расщепление god-объектов (AuthService, CallService), удаление ent.Client leak из сервисов, расширение Permission, покрытие тестами критичных путей
 
 ## Phase Details
 
@@ -317,10 +318,24 @@ Plans:
 - [x] 13-02-PLAN.md — Dead CSS cleanup + final QA
 **UI hint**: yes
 
+### Phase 14: Architectural Hardening
+**Goal**: Расщепить god-объекты бэкенда (AuthService 580 строк, CallService) согласно SRP, убрать ent.Client из сервисов в репозитории (LO-03), расширить Permission за пределы uint64, покрыть тестами критичные пути, выявленные в аудите REVIEW.md (webhook SSRF/dispatcher, RBAC route integration, magic-link brute force, outbox panic recovery, LiveKit webhook signature).
+**Depends on**: Phase 13
+**Requirements**: cross-cutting code-quality. Не вводит новые фичи; цель — снизить технический долг и повысить покрытие тестами.
+**Success Criteria** (what must be TRUE):
+  1. AuthService разбит минимум на 3 субсервиса (Session/Login/Profile), каждый <= 250 строк, с собственными интерфейсами
+  2. CallService разделён на CallRoomService (LiveKit RPC) + CallRepository wrapper + CallEventPublisher (NATS); call.service.go <= 250 строк
+  3. MessengerService, AuditService, SearchService не импортируют `*ent.Client` напрямую — все запросы через Repository интерфейсы
+  4. Permission представление поддерживает > 64 разрешений (миграция на `[]string` или `bigint[]`)
+  5. Покрытие тестами: webhook dispatcher (SSRF + retry + signing), RBAC route integration (anonymous/non-member/member на ключевых маршрутах), magic-link verify brute-force lockout, outbox worker panic recovery
+  6. `go test -count=1 ./...` зелёный, `go test -race ./...` без data race, общий test count вырос минимум на 15 тест-функций
+**Plans**: TBD (планируется через /gsd-plan-phase)
+**Tech hint**: no UI changes; backend refactor only
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
+Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -337,3 +352,4 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 | 11. Core Mockup Pages | v2.0 | 4/4 | Complete    | 2026-03-28 |
 | 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 5/5 | Complete    | 2026-03-28 |
 | 13. Polish & QA | v2.0 | 2/2 | Complete    | 2026-03-28 |
+| 14. Architectural Hardening | v2.0 | 5/5 | Complete    | 2026-05-15 |

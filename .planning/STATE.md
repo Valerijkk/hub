@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Hub Redesign
-status: verifying
-stopped_at: Completed 13-02-PLAN.md
-last_updated: "2026-03-28T16:20:57.150Z"
-last_activity: 2026-03-28
+status: complete
+stopped_at: Phase 14 complete — Architectural Hardening (5/5 plans)
+last_updated: "2026-05-15T00:00:00.000Z"
+last_activity: 2026-05-15
 progress:
-  total_phases: 13
-  completed_phases: 13
-  total_plans: 57
-  completed_plans: 58
-  percent: 98
+  total_phases: 14
+  completed_phases: 14
+  total_plans: 62
+  completed_plans: 63
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Unified environment for dev teams -- tracker, TMS, messenger, and calls connected in one interface
-**Current focus:** Phase 13 — polish-qa
+**Current focus:** Phase 14 — architectural-hardening (planning)
 
 ## Current Position
 
-Phase: 13
+Phase: 14
 Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-03-28
+Status: Awaiting plan (gsd-plan-phase 14)
+Last activity: 2026-05-15
 
-Progress: [█████████░] 98%
+Progress: [█████████░] 92%
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 14 added 2026-05-15: Architectural Hardening (split god-objects, remove ent.Client leak, expand Permission, increase test coverage)
 
 ## Performance Metrics
 
