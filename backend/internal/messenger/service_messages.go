@@ -234,6 +234,17 @@ func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID
 		return nil, apperrors.NewNotFound("исходное сообщение не найдено")
 	}
 
+	// HI-02: verify caller is a member of the SOURCE channel before copying
+	// content. Without this check, knowledge of any message UUID lets any
+	// authenticated user exfiltrate content from channels they cannot read.
+	sourceIsMember, err := s.repo.IsMember(ctx, source.ChannelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !sourceIsMember {
+		return nil, apperrors.NewForbidden("вы не являетесь участником исходного канала")
+	}
+
 	// Create new message with forwarded_from_id
 	doc := &MessageDocument{
 		ChannelID:       targetID,
