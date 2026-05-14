@@ -11,26 +11,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/activitylog"
-	"github.com/valerii/hub/backend/ent/comment"
-	"github.com/valerii/hub/backend/ent/filemetadata"
-	"github.com/valerii/hub/backend/ent/issue"
-	"github.com/valerii/hub/backend/ent/project"
-	"github.com/valerii/hub/backend/ent/reaction"
-	"github.com/valerii/hub/backend/ent/session"
-	"github.com/valerii/hub/backend/ent/systemsetting"
-	"github.com/valerii/hub/backend/ent/testcase"
-	"github.com/valerii/hub/backend/ent/timelog"
-	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/internal/auth"
 )
 
 // Настройки аудита, лимитов и корзины.
 const (
 	// Ключи лимитов в SystemSetting.
-	LimitFileMaxSizeMB      = "limit.file.max_size_mb"
-	LimitUserMaxProjects    = "limit.user.max_projects"
+	LimitFileMaxSizeMB       = "limit.file.max_size_mb"
+	LimitUserMaxProjects     = "limit.user.max_projects"
 	LimitProjectMaxStorageMB = "limit.project.max_storage_mb"
 
 	// TrashRetentionDays — период хранения в корзине (дней).
@@ -38,8 +26,11 @@ const (
 )
 
 // AuditService содержит бизнес-логику для аудита, лимитов, корзины и управления пользователями.
+//
+// SC-14-3: сервис не хранит *ent.Client напрямую — все БД-запросы идут через
+// единый *Repository. Это устраняет дубль db+repo и облегчает unit-тестирование
+// (репозиторий моделируется в памяти без поднятия Ent).
 type AuditService struct {
-	db    *ent.Client
 	repo  *Repository
 	redis *redis.Client // optional — используется для инвалидации auth-кэшей (ME-13).
 }
@@ -49,8 +40,14 @@ type AuditService struct {
 // auth.UserStatusCacheKey при деактивации пользователя (ME-13). Может быть
 // nil в тестах — деактивация всё равно отработает, только статус будет
 // применён по истечении TTL (~30s).
-func NewAuditService(db *ent.Client, repo *Repository, rdb *redis.Client) *AuditService {
-	return &AuditService{db: db, repo: repo, redis: rdb}
+func NewAuditService(repo *Repository, rdb *redis.Client) *AuditService {
+	return &AuditService{repo: repo, redis: rdb}
+}
+
+// IsSystemAdmin возвращает true, если пользователь — системный администратор.
+// Используется HTTP-обработчиками для проверки доступа к admin-эндпоинтам.
+func (s *AuditService) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
+	return s.repo.IsSystemAdmin(ctx, userID)
 }
 
 // ---- Журнал аудита ----
@@ -116,17 +113,14 @@ func (s *AuditService) GetResourceLimits(ctx context.Context) ([]ResourceLimitRe
 
 	result := make([]ResourceLimitResponse, 0, len(keys))
 	for _, key := range keys {
-		setting, err := s.db.SystemSetting.Query().
-			Where(systemsetting.KeyEQ(key)).
-			Only(ctx)
+		value, err := s.repo.GetSystemSetting(ctx, key)
 		if err != nil {
-			if ent.IsNotFound(err) {
-				result = append(result, ResourceLimitResponse{Key: key, Value: defaults[key]})
-				continue
-			}
 			return nil, fmt.Errorf("получение лимита %s: %w", key, err)
 		}
-		result = append(result, ResourceLimitResponse{Key: key, Value: setting.Value})
+		if value == "" {
+			value = defaults[key]
+		}
+		result = append(result, ResourceLimitResponse{Key: key, Value: value})
 	}
 
 	return result, nil
@@ -134,39 +128,20 @@ func (s *AuditService) GetResourceLimits(ctx context.Context) ([]ResourceLimitRe
 
 // UpdateResourceLimit обновляет лимит ресурса в SystemSetting (только для администратора).
 func (s *AuditService) UpdateResourceLimit(ctx context.Context, key, value string) error {
-	n, err := s.db.SystemSetting.Update().
-		Where(systemsetting.KeyEQ(key)).
-		SetValue(value).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("обновление лимита %s: %w", key, err)
-	}
-	if n == 0 {
-		_, err = s.db.SystemSetting.Create().
-			SetKey(key).
-			SetValue(value).
-			SetDescription(fmt.Sprintf("Лимит ресурса: %s", key)).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("создание лимита %s: %w", key, err)
-		}
-	}
-	return nil
+	return s.repo.UpsertSystemSetting(ctx, key, value, fmt.Sprintf("Лимит ресурса: %s", key))
 }
 
 // CheckLimit проверяет, не превышен ли лимит ресурса.
 func (s *AuditService) CheckLimit(ctx context.Context, limitKey string, currentValue int) (bool, error) {
-	setting, err := s.db.SystemSetting.Query().
-		Where(systemsetting.KeyEQ(limitKey)).
-		Only(ctx)
+	value, err := s.repo.GetSystemSetting(ctx, limitKey)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return true, nil // Лимит не задан — разрешаем
-		}
 		return false, err
 	}
+	if value == "" {
+		return true, nil // Лимит не задан — разрешаем
+	}
 
-	limitVal, err := strconv.Atoi(setting.Value)
+	limitVal, err := strconv.Atoi(value)
 	if err != nil {
 		return true, nil // Невалидное значение — разрешаем
 	}
@@ -197,125 +172,38 @@ func (s *AuditService) ListTrash(ctx context.Context, entityType string, project
 		PerPage: perPage,
 	}
 
+	var (
+		items []TrashItem
+		total int
+		err   error
+	)
+
 	switch entityType {
 	case "issue":
-		query := s.db.Issue.Query().
-			Where(issue.DeletedAtNotNil(), issue.DeletedAtGT(cutoff))
-		if projectID != nil {
-			query = query.Where(issue.HasProjectWith(project.IDEQ(*projectID)))
-		}
-		total, err := query.Clone().Count(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("подсчёт удалённых задач: %w", err)
-		}
-		resp.Total = total
-
-		items, err := query.
-			Order(ent.Desc(issue.FieldDeletedAt)).
-			Offset(offset).
-			Limit(perPage).
-			All(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("список удалённых задач: %w", err)
-		}
-		for _, item := range items {
-			resp.Items = append(resp.Items, TrashItemResponse{
-				ID:            item.ID.String(),
-				Name:          item.Title,
-				EntityType:    "issue",
-				DeletedAt:     *item.DeletedAt,
-				DaysRemaining: daysRemaining(*item.DeletedAt),
-			})
-		}
-
+		items, total, err = s.repo.ListDeletedIssues(ctx, projectID, cutoff, offset, perPage)
 	case "test_case":
-		query := s.db.TestCase.Query().
-			Where(testcase.DeletedAtNotNil(), testcase.DeletedAtGT(cutoff))
-		if projectID != nil {
-			query = query.Where(testcase.HasProjectWith(project.IDEQ(*projectID)))
-		}
-		total, err := query.Clone().Count(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("подсчёт удалённых тест-кейсов: %w", err)
-		}
-		resp.Total = total
-
-		items, err := query.
-			Order(ent.Desc(testcase.FieldDeletedAt)).
-			Offset(offset).
-			Limit(perPage).
-			All(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("список удалённых тест-кейсов: %w", err)
-		}
-		for _, item := range items {
-			resp.Items = append(resp.Items, TrashItemResponse{
-				ID:            item.ID.String(),
-				Name:          item.Title,
-				EntityType:    "test_case",
-				DeletedAt:     *item.DeletedAt,
-				DaysRemaining: daysRemaining(*item.DeletedAt),
-			})
-		}
-
+		items, total, err = s.repo.ListDeletedTestCases(ctx, projectID, cutoff, offset, perPage)
 	case "file":
-		query := s.db.FileMetadata.Query().
-			Where(filemetadata.DeletedAtNotNil(), filemetadata.DeletedAtGT(cutoff))
-		if projectID != nil {
-			query = query.Where(filemetadata.HasProjectWith(project.IDEQ(*projectID)))
-		}
-		total, err := query.Clone().Count(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("подсчёт удалённых файлов: %w", err)
-		}
-		resp.Total = total
-
-		items, err := query.
-			Order(ent.Desc(filemetadata.FieldDeletedAt)).
-			Offset(offset).
-			Limit(perPage).
-			All(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("список удалённых файлов: %w", err)
-		}
-		for _, item := range items {
-			resp.Items = append(resp.Items, TrashItemResponse{
-				ID:            item.ID.String(),
-				Name:          item.Filename,
-				EntityType:    "file",
-				DeletedAt:     *item.DeletedAt,
-				DaysRemaining: daysRemaining(*item.DeletedAt),
-			})
-		}
-
+		items, total, err = s.repo.ListDeletedFiles(ctx, projectID, cutoff, offset, perPage)
 	case "project":
-		query := s.db.Project.Query().
-			Where(project.DeletedAtNotNil(), project.DeletedAtGT(cutoff))
-		total, err := query.Clone().Count(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("подсчёт удалённых проектов: %w", err)
-		}
-		resp.Total = total
-
-		items, err := query.
-			Order(ent.Desc(project.FieldDeletedAt)).
-			Offset(offset).
-			Limit(perPage).
-			All(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("список удалённых проектов: %w", err)
-		}
-		for _, item := range items {
-			resp.Items = append(resp.Items, TrashItemResponse{
-				ID:            item.ID.String(),
-				Name:          item.Name,
-				EntityType:    "project",
-				DeletedAt:     *item.DeletedAt,
-				DaysRemaining: daysRemaining(*item.DeletedAt),
-			})
-		}
+		items, total, err = s.repo.ListDeletedProjects(ctx, cutoff, offset, perPage)
+	default:
+		return resp, nil
+	}
+	if err != nil {
+		return nil, err
 	}
 
+	resp.Total = total
+	for _, it := range items {
+		resp.Items = append(resp.Items, TrashItemResponse{
+			ID:            it.ID.String(),
+			Name:          it.Name,
+			EntityType:    it.EntityType,
+			DeletedAt:     it.DeletedAt,
+			DaysRemaining: daysRemaining(it.DeletedAt),
+		})
+	}
 	return resp, nil
 }
 
@@ -323,13 +211,13 @@ func (s *AuditService) ListTrash(ctx context.Context, entityType string, project
 func (s *AuditService) RestoreItem(ctx context.Context, entityType string, entityID uuid.UUID) error {
 	switch entityType {
 	case "issue":
-		return s.db.Issue.UpdateOneID(entityID).ClearDeletedAt().Exec(ctx)
+		return s.repo.RestoreIssue(ctx, entityID)
 	case "test_case":
-		return s.db.TestCase.UpdateOneID(entityID).ClearDeletedAt().Exec(ctx)
+		return s.repo.RestoreTestCase(ctx, entityID)
 	case "file":
-		return s.db.FileMetadata.UpdateOneID(entityID).ClearDeletedAt().Exec(ctx)
+		return s.repo.RestoreFile(ctx, entityID)
 	case "project":
-		return s.db.Project.UpdateOneID(entityID).ClearDeletedAt().SetStatus(project.StatusActive).Exec(ctx)
+		return s.repo.RestoreProject(ctx, entityID)
 	default:
 		return fmt.Errorf("неизвестный тип сущности: %s", entityType)
 	}
@@ -340,13 +228,13 @@ func (s *AuditService) SoftDelete(ctx context.Context, entityType string, entity
 	now := time.Now()
 	switch entityType {
 	case "issue":
-		return s.db.Issue.UpdateOneID(entityID).SetDeletedAt(now).Exec(ctx)
+		return s.repo.SoftDeleteIssue(ctx, entityID, now)
 	case "test_case":
-		return s.db.TestCase.UpdateOneID(entityID).SetDeletedAt(now).Exec(ctx)
+		return s.repo.SoftDeleteTestCase(ctx, entityID, now)
 	case "file":
-		return s.db.FileMetadata.UpdateOneID(entityID).SetDeletedAt(now).Exec(ctx)
+		return s.repo.SoftDeleteFile(ctx, entityID, now)
 	case "project":
-		return s.db.Project.UpdateOneID(entityID).SetDeletedAt(now).SetStatus(project.StatusDeleted).Exec(ctx)
+		return s.repo.SoftDeleteProject(ctx, entityID, now)
 	default:
 		return fmt.Errorf("неизвестный тип сущности: %s", entityType)
 	}
@@ -367,18 +255,10 @@ func (s *AuditService) PurgeExpired(ctx context.Context) error {
 		}
 	}
 
-	purge("issues", func() (int, error) {
-		return s.db.Issue.Delete().Where(issue.DeletedAtNotNil(), issue.DeletedAtLT(cutoff)).Exec(ctx)
-	})
-	purge("test_cases", func() (int, error) {
-		return s.db.TestCase.Delete().Where(testcase.DeletedAtNotNil(), testcase.DeletedAtLT(cutoff)).Exec(ctx)
-	})
-	purge("files", func() (int, error) {
-		return s.db.FileMetadata.Delete().Where(filemetadata.DeletedAtNotNil(), filemetadata.DeletedAtLT(cutoff)).Exec(ctx)
-	})
-	purge("projects", func() (int, error) {
-		return s.db.Project.Delete().Where(project.DeletedAtNotNil(), project.DeletedAtLT(cutoff)).Exec(ctx)
-	})
+	purge("issues", func() (int, error) { return s.repo.PurgeExpiredIssues(ctx, cutoff) })
+	purge("test_cases", func() (int, error) { return s.repo.PurgeExpiredTestCases(ctx, cutoff) })
+	purge("files", func() (int, error) { return s.repo.PurgeExpiredFiles(ctx, cutoff) })
+	purge("projects", func() (int, error) { return s.repo.PurgeExpiredProjects(ctx, cutoff) })
 
 	return nil
 }
@@ -388,18 +268,12 @@ func (s *AuditService) PurgeExpired(ctx context.Context) error {
 // DeactivateUser деактивирует пользователя и отзывает все его сессии.
 func (s *AuditService) DeactivateUser(ctx context.Context, userID uuid.UUID) error {
 	// Обновляем статус пользователя
-	err := s.db.User.UpdateOneID(userID).
-		SetStatus(user.StatusDeactivated).
-		Exec(ctx)
-	if err != nil {
+	if err := s.repo.DeactivateUser(ctx, userID); err != nil {
 		return fmt.Errorf("деактивация пользователя: %w", err)
 	}
 
 	// Отзываем все сессии
-	_, err = s.db.Session.Delete().
-		Where(session.HasUserWith(user.IDEQ(userID))).
-		Exec(ctx)
-	if err != nil {
+	if _, err := s.repo.DeleteUserSessions(ctx, userID); err != nil {
 		slog.Error("revoke sessions on deactivate", "error", err, "user_id", userID)
 	}
 
@@ -412,10 +286,7 @@ func (s *AuditService) DeactivateUser(ctx context.Context, userID uuid.UUID) err
 
 // ReassignTasks переназначает все задачи одного пользователя другому.
 func (s *AuditService) ReassignTasks(ctx context.Context, fromUserID, toUserID uuid.UUID) (int, error) {
-	n, err := s.db.Issue.Update().
-		Where(issue.HasAssigneeWith(user.IDEQ(fromUserID))).
-		SetAssigneeID(toUserID).
-		Save(ctx)
+	n, err := s.repo.ReassignAssignedIssues(ctx, fromUserID, toUserID)
 	if err != nil {
 		return 0, fmt.Errorf("переназначение задач: %w", err)
 	}
@@ -431,60 +302,37 @@ func (s *AuditService) ReassignTasks(ctx context.Context, fromUserID, toUserID u
 func (s *AuditService) DeleteUserGDPR(ctx context.Context, userID uuid.UUID, reassignTo *uuid.UUID) error {
 	// 1. Переназначаем или очищаем задачи
 	if reassignTo != nil {
-		_, err := s.db.Issue.Update().
-			Where(issue.HasAssigneeWith(user.IDEQ(userID))).
-			SetAssigneeID(*reassignTo).
-			Save(ctx)
-		if err != nil {
+		if _, err := s.repo.ReassignAssignedIssues(ctx, userID, *reassignTo); err != nil {
 			return fmt.Errorf("переназначение задач (GDPR): %w", err)
 		}
 		// Также переназначаем задачи где пользователь reporter
-		_, _ = s.db.Issue.Update().
-			Where(issue.HasReporterWith(user.IDEQ(userID))).
-			SetReporterID(*reassignTo).
-			Save(ctx)
+		_, _ = s.repo.ReassignReportedIssues(ctx, userID, *reassignTo)
 	} else {
-		_, err := s.db.Issue.Update().
-			Where(issue.HasAssigneeWith(user.IDEQ(userID))).
-			ClearAssignee().
-			Save(ctx)
-		if err != nil {
+		if _, err := s.repo.ClearUserAssignments(ctx, userID); err != nil {
 			return fmt.Errorf("очистка задач пользователя (GDPR): %w", err)
 		}
 	}
 
 	// 2. Удаляем комментарии пользователя
-	n, err := s.db.Comment.Delete().
-		Where(comment.HasAuthorWith(user.IDEQ(userID))).
-		Exec(ctx)
-	if err != nil {
+	if n, err := s.repo.DeleteUserComments(ctx, userID); err != nil {
 		slog.Error("delete comments (GDPR)", "error", err, "user_id", userID)
 	} else if n > 0 {
 		slog.Info("deleted user comments (GDPR)", "count", n, "user_id", userID)
 	}
 
 	// 3. Удаляем реакции пользователя
-	_, _ = s.db.Reaction.Delete().
-		Where(reaction.HasUserWith(user.IDEQ(userID))).
-		Exec(ctx)
+	_, _ = s.repo.DeleteUserReactions(ctx, userID)
 
 	// 4. Удаляем все сессии
-	_, err = s.db.Session.Delete().
-		Where(session.HasUserWith(user.IDEQ(userID))).
-		Exec(ctx)
-	if err != nil {
+	if _, err := s.repo.DeleteUserSessions(ctx, userID); err != nil {
 		slog.Error("delete sessions (GDPR)", "error", err, "user_id", userID)
 	}
 
 	// 5. Удаляем логи активности пользователя
-	_, _ = s.db.ActivityLog.Delete().
-		Where(activitylog.HasUserWith(user.IDEQ(userID))).
-		Exec(ctx)
+	_, _ = s.repo.DeleteUserActivityLogs(ctx, userID)
 
 	// 6. Удаляем записи времени пользователя
-	_, _ = s.db.TimeLog.Delete().
-		Where(timelog.HasUserWith(user.IDEQ(userID))).
-		Exec(ctx)
+	_, _ = s.repo.DeleteUserTimeLogs(ctx, userID)
 
 	// 7. Записываем аудит-лог перед удалением пользователя
 	if s.repo != nil {
@@ -493,8 +341,7 @@ func (s *AuditService) DeleteUserGDPR(ctx context.Context, userID uuid.UUID, rea
 	}
 
 	// 8. Hard-delete пользователя
-	err = s.db.User.DeleteOneID(userID).Exec(ctx)
-	if err != nil {
+	if err := s.repo.HardDeleteUser(ctx, userID); err != nil {
 		return fmt.Errorf("удаление пользователя (GDPR): %w", err)
 	}
 

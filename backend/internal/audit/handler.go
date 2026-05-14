@@ -7,7 +7,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
-	"github.com/valerii/hub/backend/ent/user"
 )
 
 // Handler предоставляет HTTP-обработчики для административных эндпоинтов аудита.
@@ -47,12 +46,12 @@ func (h *Handler) requireAdmin() fiber.Handler {
 			return fiber.NewError(fiber.StatusUnauthorized, "некорректный user ID")
 		}
 
-		u, err := h.service.db.User.Get(c.Context(), userID)
+		isAdmin, err := h.service.IsSystemAdmin(c.Context(), userID)
 		if err != nil {
 			return fiber.NewError(fiber.StatusUnauthorized, "пользователь не найден")
 		}
 
-		if u.SystemRole != user.SystemRoleAdmin {
+		if !isAdmin {
 			return fiber.NewError(fiber.StatusForbidden, "доступ только для администратора")
 		}
 
