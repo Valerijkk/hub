@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -237,10 +238,17 @@ func (h *Handler) verifyWebhookSignature(authHeader string, body []byte) bool {
 		return false
 	}
 
-	// Проверяем API key (issuer)
+	// Проверяем API key (issuer).
+	// ME-11: НЕ логируем h.cfg.APIKey в открытом виде — это секрет, который
+	// попадает в log streams и сторонние log-aggregators. Вместо этого пишем
+	// только присланный issuer (привнесённый атакующим) и короткий sha256-
+	// префикс ожидаемого ключа — этого достаточно, чтобы оператор сопоставил
+	// конфиг с инцидентом, не утекая сам секрет.
 	iss, _ := claims["iss"].(string)
 	if iss != h.cfg.APIKey {
-		slog.Error("несовпадение API key в webhook", "expected", h.cfg.APIKey, "got", iss)
+		expectedSum := sha256.Sum256([]byte(h.cfg.APIKey))
+		expectedHash := hex.EncodeToString(expectedSum[:])[:8]
+		slog.Error("несовпадение API key в webhook", "got", iss, "expected_hash", expectedHash)
 		return false
 	}
 
