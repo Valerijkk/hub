@@ -361,7 +361,7 @@ func main() {
 	messengerRepo := messengermod.NewCombinedRepository(messengerEntRepo, messengerMongoRepo)
 	presenceSvc := messengermod.NewPresenceService(rdb)
 	unreadSvc := messengermod.NewUnreadService(rdb)
-	messengerSvc := messengermod.NewMessengerService(messengerRepo, nc, presenceSvc, unreadSvc, db)
+	messengerSvc := messengermod.NewMessengerService(messengerRepo, nc, presenceSvc, unreadSvc)
 	messengerHandler := messengermod.NewHandler(messengerSvc)
 	messengerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
@@ -386,7 +386,8 @@ func main() {
 	if err := searchmod.EnsureSearchIndexes(ctx, rawDB); err != nil {
 		slog.Error("failed to ensure search indexes", "error", err)
 	}
-	searchSvc := searchmod.NewSearchService(db, rawDB, mongoDB)
+	searchRepo := searchmod.NewEntRepository(db)
+	searchSvc := searchmod.NewSearchService(searchRepo, rawDB, mongoDB)
 	searchHandler := searchmod.NewHandler(searchSvc)
 	searchHandler.RegisterRoutes(api, requireAuth)
 
@@ -410,7 +411,7 @@ func main() {
 
 	// Audit routes (журнал аудита, лимиты, корзина, управление пользователями)
 	auditRepo := auditmod.NewRepository(db)
-	auditSvc := auditmod.NewAuditService(db, auditRepo, rdb)
+	auditSvc := auditmod.NewAuditService(auditRepo, rdb)
 	// ME-14: audit consumer использует общий rootCtx, плюс defer Stop(),
 	// чтобы JetStream consumer корректно завершился и in-flight Ack-и
 	// не потерялись после ухода main(). Stop() блокируется до drain'а.
