@@ -28,6 +28,43 @@ func NewImExService(db *ent.Client) *ImExService {
 	return &ImExService{db: db}
 }
 
+// allocateIssueKey атомарно резервирует следующий issue number в рамках
+// проекта и возвращает (issueNumber, issueKey, defaultStatusID). Использует
+// ту же tx + AddTaskCounter(1) пару, что и tracker.CreateIssue — это
+// устраняет race в read-modify-write на TaskCounter (HI-06).
+//
+// Дефолтный статус выбирается как `WorkflowStatuses().First(ctx)` — тот же
+// порядок, который имел старый импорт.
+func (s *ImExService) allocateIssueKey(ctx context.Context, projectID uuid.UUID) (int, string, uuid.UUID, error) {
+	tx, err := s.db.Tx(ctx)
+	if err != nil {
+		return 0, "", uuid.Nil, fmt.Errorf("начало транзакции: %w", err)
+	}
+
+	p, err := tx.Project.UpdateOneID(projectID).
+		AddTaskCounter(1).
+		Save(ctx)
+	if err != nil {
+		_ = tx.Rollback()
+		return 0, "", uuid.Nil, fmt.Errorf("инкремент счётчика задач: %w", err)
+	}
+
+	status, err := tx.Project.Query().
+		Where(project.ID(projectID)).
+		QueryWorkflowStatuses().
+		First(ctx)
+	if err != nil {
+		_ = tx.Rollback()
+		return 0, "", uuid.Nil, fmt.Errorf("получение дефолтного статуса: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, "", uuid.Nil, fmt.Errorf("commit tx: %w", err)
+	}
+
+	return p.TaskCounter, fmt.Sprintf("%s-%d", p.Key, p.TaskCounter), status.ID, nil
+}
+
 // ImportIssuesCSV импортирует задачи из CSV-файла с маппингом полей.
 // В режиме preview возвращает первые 5 строк для подтверждения.
 func (s *ImExService) ImportIssuesCSV(ctx context.Context, projectID uuid.UUID, data []byte, mappings []FieldMapping, preview bool) (*ImportPreviewResponse, *ImportResultResponse, error) {
@@ -104,29 +141,10 @@ func (s *ImExService) ImportIssuesCSV(ctx context.Context, projectID uuid.UUID, 
 			priority = "medium"
 		}
 
-		proj, err := s.db.Project.Get(ctx, projectID)
-		if err != nil {
-			return nil, nil, fmt.Errorf("проект не найден: %w", err)
-		}
-		nextNum := proj.TaskCounter + 1
-
-		_, err = s.db.Project.UpdateOneID(projectID).
-			SetTaskCounter(nextNum).
-			Save(ctx)
+		nextNum, issueKey, statusID, err := s.allocateIssueKey(ctx, projectID)
 		if err != nil {
 			skipped++
-			continue
-		}
-
-		issueKey := fmt.Sprintf("%s-%d", proj.Key, nextNum)
-
-		statuses, err := s.db.Project.Query().
-			Where(project.ID(projectID)).
-			QueryWorkflowStatuses().
-			First(ctx)
-		if err != nil {
-			skipped++
-			slog.Error("не удалось получить статус для импорта", "error", err)
+			slog.Error("не удалось зарезервировать issue key", "error", err)
 			continue
 		}
 
@@ -137,7 +155,7 @@ func (s *ImExService) ImportIssuesCSV(ctx context.Context, projectID uuid.UUID, 
 			SetIssueNumber(nextNum).
 			SetIssueKey(issueKey).
 			SetProjectID(projectID).
-			SetStatusID(statuses.ID).
+			SetStatusID(statusID).
 			Save(ctx)
 		if err != nil {
 			skipped++
@@ -184,28 +202,10 @@ func (s *ImExService) ImportIssuesJSON(ctx context.Context, projectID uuid.UUID,
 			priority = "medium"
 		}
 
-		proj, err := s.db.Project.Get(ctx, projectID)
-		if err != nil {
-			return nil, fmt.Errorf("проект не найден: %w", err)
-		}
-		nextNum := proj.TaskCounter + 1
-
-		_, err = s.db.Project.UpdateOneID(projectID).
-			SetTaskCounter(nextNum).
-			Save(ctx)
+		nextNum, issueKey, statusID, err := s.allocateIssueKey(ctx, projectID)
 		if err != nil {
 			skipped++
-			continue
-		}
-
-		issueKey := fmt.Sprintf("%s-%d", proj.Key, nextNum)
-
-		statuses, err := s.db.Project.Query().
-			Where(project.ID(projectID)).
-			QueryWorkflowStatuses().
-			First(ctx)
-		if err != nil {
-			skipped++
+			slog.Error("не удалось зарезервировать issue key", "error", err)
 			continue
 		}
 
@@ -216,7 +216,7 @@ func (s *ImExService) ImportIssuesJSON(ctx context.Context, projectID uuid.UUID,
 			SetIssueNumber(nextNum).
 			SetIssueKey(issueKey).
 			SetProjectID(projectID).
-			SetStatusID(statuses.ID).
+			SetStatusID(statusID).
 			Save(ctx)
 		if err != nil {
 			skipped++

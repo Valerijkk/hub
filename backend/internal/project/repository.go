@@ -36,6 +36,11 @@ type Repository interface {
 	FindInviteByCode(ctx context.Context, code string) (*ent.Invite, error)
 	CreateInvite(ctx context.Context, projectID, creatorID uuid.UUID, code string, role invite.ProjectRole, maxUses int, expiresAt *time.Time) (*ent.Invite, error)
 	IncrementInviteUseCount(ctx context.Context, inviteID uuid.UUID) error
+	// TryConsumeInvite атомарно резервирует одну единицу использования инвайта,
+	// уважая лимит MaxUses (0 = без лимита). Возвращает true, если место было
+	// успешно зарезервировано; false без ошибки означает, что лимит исчерпан
+	// (race-condition safe — см. HI-06).
+	TryConsumeInvite(ctx context.Context, inviteID uuid.UUID, maxUses int) (bool, error)
 	ListInvites(ctx context.Context, projectID uuid.UUID) ([]*ent.Invite, error)
 	DeleteInvite(ctx context.Context, inviteID uuid.UUID) error
 
@@ -326,6 +331,33 @@ func (r *EntRepository) IncrementInviteUseCount(ctx context.Context, inviteID uu
 	return r.client.Invite.UpdateOneID(inviteID).
 		AddUseCount(1).
 		Exec(ctx)
+}
+
+// TryConsumeInvite атомарно увеличивает UseCount на 1 только если ещё не
+// достигнут лимит MaxUses. Возвращает (true, nil), если место было успешно
+// зарезервировано; (false, nil), если лимит уже достигнут (race с другим
+// joiner'ом); (false, err) при ошибке БД.
+//
+// maxUses == 0 трактуется как "без лимита" — тогда инкремент всегда успешен.
+// Это эквивалентно SQL: UPDATE invites SET use_count = use_count + 1
+//
+//	WHERE id = $1 AND (max_uses = 0 OR use_count < max_uses).
+//
+// Ent возвращает ErrNotFound, если ни одна строка не удовлетворила условию,
+// и мы трактуем это как "лимит достигнут" (HI-06).
+func (r *EntRepository) TryConsumeInvite(ctx context.Context, inviteID uuid.UUID, maxUses int) (bool, error) {
+	upd := r.client.Invite.UpdateOneID(inviteID).AddUseCount(1)
+	if maxUses > 0 {
+		upd = upd.Where(invite.UseCountLT(maxUses))
+	}
+	_, err := upd.Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // ListInvites возвращает все приглашения проекта.

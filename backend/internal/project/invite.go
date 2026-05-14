@@ -56,7 +56,9 @@ func (s *ProjectService) JoinByInvite(ctx context.Context, code string, userID u
 		return nil, apperrors.NewBadRequest("invite has expired")
 	}
 
-	// Check max uses
+	// Cheap fast-path check; the authoritative check is the atomic
+	// TryConsumeInvite below — the fast-path just avoids one round-trip in
+	// the common "already exhausted" case.
 	if inv.MaxUses > 0 && inv.UseCount >= inv.MaxUses {
 		return nil, apperrors.NewBadRequest("invite has reached maximum uses")
 	}
@@ -76,16 +78,27 @@ func (s *ProjectService) JoinByInvite(ctx context.Context, code string, userID u
 		return nil, apperrors.NewInternal("failed to check membership")
 	}
 
-	// Add member with the role specified in the invite
+	// HI-06: атомарно резервируем место в инвайте перед AddMember. Без этого
+	// два параллельных JoinByInvite могли пройти check-then-act и превысить
+	// MaxUses.
+	consumed, err := s.repo.TryConsumeInvite(ctx, inv.ID, inv.MaxUses)
+	if err != nil {
+		return nil, apperrors.NewInternal("failed to reserve invite slot")
+	}
+	if !consumed {
+		return nil, apperrors.NewBadRequest("invite has reached maximum uses")
+	}
+
+	// Add member with the role specified in the invite.
+	// NOTE: если AddMember упадёт, UseCount уже инкрементирован — мы получим
+	// одну «потерянную» единицу использования. Это допустимая компенсация за
+	// атомарность лимита (best-effort delivery vs. exactly-once).
 	role := projectmember.ProjectRole(string(inv.ProjectRole))
 	_, err = s.repo.AddMember(ctx, proj.ID, userID, role)
 	if err != nil {
+		slog.Error("failed to add member via invite after consuming slot",
+			"invite_id", inv.ID, "user_id", userID, "error", err)
 		return nil, apperrors.NewInternal("failed to add member via invite")
-	}
-
-	// Increment use count
-	if err := s.repo.IncrementInviteUseCount(ctx, inv.ID); err != nil {
-		slog.Error("failed to increment invite use count", "error", err, "invite_id", inv.ID)
 	}
 
 	// Invalidate RBAC cache

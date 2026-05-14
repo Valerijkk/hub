@@ -266,6 +266,19 @@ func (m *mockRepo) IncrementInviteUseCount(_ context.Context, inviteID uuid.UUID
 	return nil
 }
 
+func (m *mockRepo) TryConsumeInvite(_ context.Context, inviteID uuid.UUID, maxUses int) (bool, error) {
+	for _, inv := range m.invites {
+		if inv.ID == inviteID {
+			if maxUses > 0 && inv.UseCount >= maxUses {
+				return false, nil
+			}
+			inv.UseCount++
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (m *mockRepo) ListInvites(_ context.Context, _ uuid.UUID) ([]*ent.Invite, error) {
 	var result []*ent.Invite
 	for _, inv := range m.invites {
