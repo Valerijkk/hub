@@ -103,8 +103,12 @@ func (h *Handler) ListPins(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
-	pins, err := h.service.ListPins(c.Context(), channelID)
+	pins, err := h.service.ListPins(c.Context(), channelID, userID)
 	if err != nil {
 		return err
 	}

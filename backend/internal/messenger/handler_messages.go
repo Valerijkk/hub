@@ -66,6 +66,10 @@ func (h *Handler) ListMessages(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
 	var before *time.Time
 	beforeStr := c.Query("before")
@@ -79,7 +83,7 @@ func (h *Handler) ListMessages(c fiber.Ctx) error {
 
 	limit := queryInt(c, "limit", 50)
 
-	resp, err := h.service.ListMessages(c.Context(), channelID, before, limit)
+	resp, err := h.service.ListMessages(c.Context(), channelID, userID, before, limit)
 	if err != nil {
 		return err
 	}
@@ -218,6 +222,10 @@ func (h *Handler) ListThreadReplies(c fiber.Ctx) error {
 	if messageID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
 	var before *time.Time
 	beforeStr := c.Query("before")
@@ -231,7 +239,7 @@ func (h *Handler) ListThreadReplies(c fiber.Ctx) error {
 
 	limit := queryInt(c, "limit", 50)
 
-	resp, err := h.service.ListThreadReplies(c.Context(), messageID, before, limit)
+	resp, err := h.service.ListThreadReplies(c.Context(), messageID, userID, before, limit)
 	if err != nil {
 		return err
 	}

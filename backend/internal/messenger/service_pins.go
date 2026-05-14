@@ -27,7 +27,16 @@ func (s *MessengerService) TogglePin(ctx context.Context, channelID uuid.UUID, m
 }
 
 // ListPins returns all pinned messages for a channel.
-func (s *MessengerService) ListPins(ctx context.Context, channelID uuid.UUID) ([]PinnedMessageResponse, error) {
+// HI-01: only channel members may list pinned messages.
+func (s *MessengerService) ListPins(ctx context.Context, channelID, userID uuid.UUID) ([]PinnedMessageResponse, error) {
+	isMember, err := s.repo.IsMember(ctx, channelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !isMember {
+		return nil, apperrors.NewForbidden("вы не являетесь участником канала")
+	}
+
 	pins, err := s.repo.ListPins(ctx, channelID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения закреплённых сообщений")

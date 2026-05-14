@@ -62,7 +62,16 @@ func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, 
 }
 
 // GetChannel returns a channel by ID.
-func (s *MessengerService) GetChannel(ctx context.Context, channelID uuid.UUID) (*ChannelResponse, error) {
+// HI-01: only channel members may read channel data (including DMs and private channels).
+func (s *MessengerService) GetChannel(ctx context.Context, channelID, userID uuid.UUID) (*ChannelResponse, error) {
+	isMember, err := s.repo.IsMember(ctx, channelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !isMember {
+		return nil, apperrors.NewForbidden("вы не являетесь участником канала")
+	}
+
 	ch, err := s.repo.GetChannel(ctx, channelID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -256,7 +265,16 @@ func (s *MessengerService) IsChannelMuted(ctx context.Context, channelID, userID
 }
 
 // ListMembers returns all members of a channel.
-func (s *MessengerService) ListMembers(ctx context.Context, channelID uuid.UUID) ([]ChannelMemberResponse, error) {
+// HI-01: only channel members may list other members.
+func (s *MessengerService) ListMembers(ctx context.Context, channelID, userID uuid.UUID) ([]ChannelMemberResponse, error) {
+	isMember, err := s.repo.IsMember(ctx, channelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !isMember {
+		return nil, apperrors.NewForbidden("вы не являетесь участником канала")
+	}
+
 	members, err := s.repo.ListMembers(ctx, channelID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения участников")

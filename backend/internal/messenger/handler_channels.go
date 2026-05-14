@@ -82,8 +82,12 @@ func (h *Handler) GetChannel(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
-	resp, err := h.service.GetChannel(c.Context(), channelID)
+	resp, err := h.service.GetChannel(c.Context(), channelID, userID)
 	if err != nil {
 		return err
 	}
@@ -259,8 +263,12 @@ func (h *Handler) ListMembers(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
-	resp, err := h.service.ListMembers(c.Context(), channelID)
+	resp, err := h.service.ListMembers(c.Context(), channelID, userID)
 	if err != nil {
 		return err
 	}

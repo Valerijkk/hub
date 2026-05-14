@@ -94,7 +94,16 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 }
 
 // ListMessages returns channel messages with cursor pagination.
-func (s *MessengerService) ListMessages(ctx context.Context, channelID uuid.UUID, before *time.Time, limit int) ([]MessageResponse, error) {
+// HI-01: only channel members may read messages.
+func (s *MessengerService) ListMessages(ctx context.Context, channelID, userID uuid.UUID, before *time.Time, limit int) ([]MessageResponse, error) {
+	isMember, err := s.repo.IsMember(ctx, channelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !isMember {
+		return nil, apperrors.NewForbidden("вы не являетесь участником канала")
+	}
+
 	docs, err := s.repo.ListMessages(ctx, channelID, before, limit)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения сообщений")
@@ -178,7 +187,23 @@ func (s *MessengerService) DeleteMessage(ctx context.Context, messageID string, 
 }
 
 // ListThreadReplies returns thread replies with cursor pagination.
-func (s *MessengerService) ListThreadReplies(ctx context.Context, messageID string, before *time.Time, limit int) ([]MessageResponse, error) {
+// HI-01: only channel members may read thread replies. The parent message's
+// channel is resolved from the message document to anchor the membership check
+// to the actual conversation the thread belongs to.
+func (s *MessengerService) ListThreadReplies(ctx context.Context, messageID string, userID uuid.UUID, before *time.Time, limit int) ([]MessageResponse, error) {
+	parent, err := s.repo.FindMessageByID(ctx, messageID)
+	if err != nil {
+		return nil, apperrors.NewNotFound("сообщение не найдено")
+	}
+
+	isMember, err := s.repo.IsMember(ctx, parent.ChannelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !isMember {
+		return nil, apperrors.NewForbidden("вы не являетесь участником канала")
+	}
+
 	docs, err := s.repo.ListThreadReplies(ctx, messageID, before, limit)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения ответов в треде")
