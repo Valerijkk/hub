@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/activitylog"
 	"github.com/valerii/hub/backend/ent/comment"
@@ -22,6 +23,7 @@ import (
 	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/timelog"
 	"github.com/valerii/hub/backend/ent/user"
+	"github.com/valerii/hub/backend/internal/auth"
 )
 
 // Настройки аудита, лимитов и корзины.
@@ -37,13 +39,18 @@ const (
 
 // AuditService содержит бизнес-логику для аудита, лимитов, корзины и управления пользователями.
 type AuditService struct {
-	db   *ent.Client
-	repo *Repository
+	db    *ent.Client
+	repo  *Repository
+	redis *redis.Client // optional — используется для инвалидации auth-кэшей (ME-13).
 }
 
 // NewAuditService создаёт новый сервис аудита.
-func NewAuditService(db *ent.Client, repo *Repository) *AuditService {
-	return &AuditService{db: db, repo: repo}
+// rdb — опциональный Redis-клиент; если задан, AuditService инвалидирует
+// auth.UserStatusCacheKey при деактивации пользователя (ME-13). Может быть
+// nil в тестах — деактивация всё равно отработает, только статус будет
+// применён по истечении TTL (~30s).
+func NewAuditService(db *ent.Client, repo *Repository, rdb *redis.Client) *AuditService {
+	return &AuditService{db: db, repo: repo, redis: rdb}
 }
 
 // ---- Журнал аудита ----
@@ -395,6 +402,10 @@ func (s *AuditService) DeactivateUser(ctx context.Context, userID uuid.UUID) err
 	if err != nil {
 		slog.Error("revoke sessions on deactivate", "error", err, "user_id", userID)
 	}
+
+	// ME-13: инвалидируем закэшированный статус, чтобы запретить доступ
+	// немедленно, а не через TTL окна (~30s).
+	auth.InvalidateUserStatusCache(ctx, s.redis, userID)
 
 	return nil
 }

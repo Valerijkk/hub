@@ -398,7 +398,7 @@ func main() {
 
 	// Audit routes (журнал аудита, лимиты, корзина, управление пользователями)
 	auditRepo := auditmod.NewRepository(db)
-	auditSvc := auditmod.NewAuditService(db, auditRepo)
+	auditSvc := auditmod.NewAuditService(db, auditRepo, rdb)
 	auditConsumer := auditmod.NewAuditConsumer(nc, auditRepo)
 	auditCtx, auditCancel := context.WithCancel(ctx)
 	defer auditCancel()
