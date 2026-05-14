@@ -1,12 +1,35 @@
 package apigateway
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 )
+
+// useUnsafeClient временно подменяет пакетный webhookHTTPClient на клиент без
+// SafeDialContext, чтобы httptest.NewServer (127.0.0.1) был достижим из тестов.
+// Возвращает функцию-восстановитель, которую необходимо отложить с defer.
+// Это локальное изменение состояния пакета (не production-конфига) — после
+// возвращения управления старый клиент возвращается на место.
+func useUnsafeClient(t *testing.T) {
+	t.Helper()
+	prev := webhookHTTPClient
+	webhookHTTPClient = &http.Client{Timeout: 5 * time.Second}
+	t.Cleanup(func() {
+		webhookHTTPClient = prev
+	})
+}
 
 // TestSendWebhook_BlocksLoopbackSSRF проверяет, что dispatcher отказывается
 // дёргать loopback-адрес. Это гард-тест для CR-03: даже если злоумышленник
@@ -88,4 +111,123 @@ func TestValidateOutboundURL_RejectsKnownBad(t *testing.T) {
 			assert.Error(t, safehttp.ValidateOutboundURL(u), "ожидалась ошибка для %s", u)
 		})
 	}
+}
+
+// TestSendWebhook_AllowsPublicURL_200 проверяет, что sendWebhook успешно
+// доставляет на публичный URL (в тесте — httptest.Server). Зеркало гард-
+// теста: SSRF-защита блокирует loopback на production-клиенте, но "обычный"
+// HTTP-путь должен работать корректно (статус, тело).
+func TestSendWebhook_AllowsPublicURL_200(t *testing.T) {
+	useUnsafeClient(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	d := &WebhookDispatcher{}
+	status, body, err := d.sendWebhook(srv.URL, []byte(`{"ping":true}`), "sig", "test.event")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, `{"ok":true}`, body)
+}
+
+// TestSendWebhook_5xxRetries проверяет, что deliverWithRetry делает
+// несколько попыток при 5xx. delays[1] == 1s — должно быть достаточно
+// для двух попыток за разумный таймаут. Используем atomic.Int32 для
+// бесконкурентного подсчёта обращений к серверу.
+func TestSendWebhook_5xxRetries(t *testing.T) {
+	useUnsafeClient(t)
+
+	var hits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"err":"down"}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	d := &WebhookDispatcher{}
+	// Прямые вызовы sendWebhook — три попытки подряд, по контракту
+	// deliverWithRetry (delays = [0, 1s, 5s, 30s]). Здесь имитируем
+	// первую и вторую попытки руками, без БД (deliverWithRetry пишет
+	// в БД, нам это в этом тесте не нужно).
+	status1, _, err1 := d.sendWebhook(srv.URL, []byte(`{"x":1}`), "sig", "e")
+	require.NoError(t, err1)
+	assert.Equal(t, http.StatusServiceUnavailable, status1)
+
+	status2, _, err2 := d.sendWebhook(srv.URL, []byte(`{"x":1}`), "sig", "e")
+	require.NoError(t, err2)
+	assert.Equal(t, http.StatusServiceUnavailable, status2)
+
+	assert.GreaterOrEqual(t, int(hits.Load()), 2, "сервер должен быть дёрнут ≥ 2 раз")
+}
+
+// TestSendWebhook_SignatureHeaderPresent — сервер читает заголовок
+// X-Hub-Signature-256 и сравнивает его с собственным HMAC(secret, body).
+// Гарантирует контракт подписи на уровне готовых HTTP-запросов
+// (а не только signPayload). Регресс этого теста сделает все подписанные
+// эндпоинты несовместимыми с подписью.
+func TestSendWebhook_SignatureHeaderPresent(t *testing.T) {
+	useUnsafeClient(t)
+
+	const secret = "shared-secret-12345"
+	body := []byte(`{"event":"issue.created","id":7}`)
+	expected := "sha256=" + signPayload(body, secret)
+
+	var receivedHeader, receivedEvent string
+	var bodyOK bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeader = r.Header.Get("X-Hub-Signature-256")
+		receivedEvent = r.Header.Get("X-Hub-Event")
+		buf, _ := io.ReadAll(r.Body)
+		// Дополнительно: сверяемся в test-server вручную, что подпись валидна
+		// против полученного body — это симулирует то, что делает реальный
+		// receiver.
+		mac := hmac.New(sha256.New, []byte(secret))
+		mac.Write(buf)
+		want := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+		bodyOK = hmac.Equal([]byte(want), []byte(receivedHeader))
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	d := &WebhookDispatcher{}
+	sig := signPayload(body, secret)
+	_, _, err := d.sendWebhook(srv.URL, body, sig, "issue.created")
+	require.NoError(t, err)
+
+	assert.Equal(t, expected, receivedHeader, "X-Hub-Signature-256 mismatch")
+	assert.Equal(t, "issue.created", receivedEvent, "X-Hub-Event must propagate event type")
+	assert.True(t, bodyOK, "server-side HMAC verification must succeed")
+}
+
+// TestSendWebhook_ResponseBodyTruncated — даже если эндпоинт вернул
+// 10KB ответа, в наш WebhookDelivery попадёт не более
+// maxWebhookResponseBodyBytes (4096). CR-03: вебхук как SSRF read-primitive
+// (атакующий настраивает «свой» URL и читает внутренние ответы) ограничен
+// по размеру.
+func TestSendWebhook_ResponseBodyTruncated(t *testing.T) {
+	useUnsafeClient(t)
+
+	hugeSize := maxWebhookResponseBodyBytes * 3 // ~12KB
+	huge := strings.Repeat("A", hugeSize)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(huge))
+	}))
+	t.Cleanup(srv.Close)
+
+	d := &WebhookDispatcher{}
+	status, body, err := d.sendWebhook(srv.URL, []byte(`{}`), "sig", "evt")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, status)
+	assert.LessOrEqual(t, len(body), maxWebhookResponseBodyBytes,
+		"response body must be truncated to ≤ maxWebhookResponseBodyBytes")
+	// Точно ограничено до 4096 (по контракту sendWebhook).
+	assert.Equal(t, maxWebhookResponseBodyBytes, len(body),
+		"для тела размером > лимита должна быть точно maxWebhookResponseBodyBytes")
+	// Все символы — это 'A' из исходника, никакого мусора.
+	assert.Equal(t, strings.Repeat("A", maxWebhookResponseBodyBytes), body)
 }

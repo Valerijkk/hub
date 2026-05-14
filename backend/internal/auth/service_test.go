@@ -115,8 +115,9 @@ func TestGenerateCode(t *testing.T) {
 }
 
 // TestJWTRoundTrip tests that generated access tokens can be parsed back.
+// After the 14-01 split, JWT helpers live on SessionService.
 func TestJWTRoundTrip(t *testing.T) {
-	svc := &AuthService{
+	svc := &SessionService{
 		jwtSecret: []byte("test-secret-key"),
 		accessTTL: 15 * time.Minute,
 	}
@@ -144,7 +145,7 @@ func TestJWTRoundTrip(t *testing.T) {
 
 // TestJWTExpired tests that an expired token is rejected.
 func TestJWTExpired(t *testing.T) {
-	svc := &AuthService{
+	svc := &SessionService{
 		jwtSecret: []byte("test-secret-key"),
 		accessTTL: -1 * time.Second, // already expired
 	}
@@ -165,11 +166,11 @@ func TestJWTExpired(t *testing.T) {
 
 // TestJWTWrongSecret tests that a token signed with a different secret is rejected.
 func TestJWTWrongSecret(t *testing.T) {
-	svc1 := &AuthService{
+	svc1 := &SessionService{
 		jwtSecret: []byte("secret-1"),
 		accessTTL: 15 * time.Minute,
 	}
-	svc2 := &AuthService{
+	svc2 := &SessionService{
 		jwtSecret: []byte("secret-2"),
 		accessTTL: 15 * time.Minute,
 	}

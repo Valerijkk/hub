@@ -3,36 +3,40 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"log/slog"
-	"strconv"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/session"
-	"github.com/valerii/hub/backend/ent/systemsetting"
-	"github.com/valerii/hub/backend/ent/user"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
-// AuthService содержит бизнес-логику аутентификации и управления пользователями.
+// AuthService — тонкий orchestrator, который объединяет четыре субсервиса
+// (sessions / login / profile / registration mode) и проксирует вызовы
+// существующих хендлеров на них. Сохраняет обратную совместимость с
+// `handler.go`, `middleware.go` и `cmd/server/main.go` (SC-14-1).
+//
+// Прямые поля `db` и `redis` оставлены — `middleware.go` обращается к ним
+// напрямую (userIsDeactivated). Поле `magicLink` оставлено приватным —
+// `handler.go` обращается к `h.service.magicLink.SendMagicLink` и `IsDevMode()`.
 type AuthService struct {
+	// Публичные субсервисы — handler/middleware/тесты могут обращаться к ним
+	// напрямую (`s.Sessions.X()`), либо использовать делегирующие методы ниже.
+	Sessions *SessionService
+	Login    *LoginService
+	Profile  *ProfileService
+	RegMode  *RegistrationModeService
+
+	// Общие зависимости, нужные middleware (userIsDeactivated) и handler
+	// (доступ к magicLink).
 	db        *ent.Client
 	redis     *redis.Client
-	nats      *natsclient.Client
-	jwtSecret []byte
-	accessTTL time.Duration
-	refreshTTL time.Duration
 	magicLink *MagicLinkService
-	botToken  string
 }
 
-// NewAuthService создаёт новый сервис аутентификации.
+// NewAuthService создаёт оркестратор и все четыре субсервиса. Сигнатура
+// строго совпадает с предыдущей версией, чтобы не ломать main.go.
 func NewAuthService(
 	db *ent.Client,
 	rdb *redis.Client,
@@ -42,626 +46,89 @@ func NewAuthService(
 	magicLink *MagicLinkService,
 	botToken string,
 ) *AuthService {
+	sessions := NewSessionService(db, rdb, nats, jwtSecret, accessTTL, refreshTTL)
+	regMode := NewRegistrationModeService(db)
+	login := NewLoginService(db, magicLink, botToken, sessions, regMode)
+	profile := NewProfileService(db)
 	return &AuthService{
-		db:         db,
-		redis:      rdb,
-		nats:       nats,
-		jwtSecret:  []byte(jwtSecret),
-		accessTTL:  accessTTL,
-		refreshTTL: refreshTTL,
-		magicLink:  magicLink,
-		botToken:   botToken,
+		Sessions:  sessions,
+		Login:     login,
+		Profile:   profile,
+		RegMode:   regMode,
+		db:        db,
+		redis:     rdb,
+		magicLink: magicLink,
 	}
 }
 
-// ---- JWT helpers ----
+// ---- Делегирующие методы (back-compat для handler.go) ----
 
-// JWTClaims — пользовательские claims, встроенные в access-токены.
-type JWTClaims struct {
-	jwt.RegisteredClaims
-	UserID    string `json:"uid"`
-	SessionID string `json:"sid"`
+// ParseAccessToken — back-compat для middleware/ws.
+func (s *AuthService) ParseAccessToken(t string) (*JWTClaims, error) {
+	return s.Sessions.ParseAccessToken(t)
 }
 
-// generateAccessToken генерирует JWT access-токен для указанного пользователя и сессии.
-func (s *AuthService) generateAccessToken(userID, sessionID uuid.UUID) (string, error) {
-	now := time.Now()
-	claims := JWTClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(s.accessTTL)),
-			IssuedAt:  jwt.NewNumericDate(now),
-			Issuer:    "hub",
-		},
-		UserID:    userID.String(),
-		SessionID: sessionID.String(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(s.jwtSecret)
+// CreateSession — back-compat для dev.Handler и тестов.
+func (s *AuthService) CreateSession(ctx context.Context, uid uuid.UUID, dev, ip string) (*TokenPairResponse, error) {
+	return s.Sessions.CreateSession(ctx, uid, dev, ip)
 }
 
-// ParseAccessToken валидирует и парсит строку JWT access-токена.
-func (s *AuthService) ParseAccessToken(tokenStr string) (*JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &JWTClaims{}, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
-		return s.jwtSecret, nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("parse access token: %w", err)
-	}
-	claims, ok := token.Claims.(*JWTClaims)
-	if !ok || !token.Valid {
-		return nil, fmt.Errorf("invalid token claims")
-	}
-	return claims, nil
+// RefreshToken — back-compat для handler.RefreshToken.
+func (s *AuthService) RefreshToken(ctx context.Context, t string) (*TokenPairResponse, error) {
+	return s.Sessions.RefreshToken(ctx, t)
 }
 
-// ---- Refresh token Redis helpers ----
-
-// refreshPayload — данные refresh-токена, хранящиеся в Redis.
-type refreshPayload struct {
-	UserID    string `json:"user_id"`
-	SessionID string `json:"session_id"`
-	Device    string `json:"device"`
+// Logout — back-compat для handler.Logout.
+func (s *AuthService) Logout(ctx context.Context, sid uuid.UUID) error {
+	return s.Sessions.Logout(ctx, sid)
 }
 
-// refreshKey возвращает Redis-ключ для refresh-токена.
-func refreshKey(token string) string {
-	return "refresh:" + token
+// ListSessions — back-compat для handler.ListSessions.
+func (s *AuthService) ListSessions(ctx context.Context, uid uuid.UUID) ([]*ent.Session, error) {
+	return s.Sessions.ListSessions(ctx, uid)
 }
 
-// storeRefreshToken сохраняет refresh-токен в Redis с TTL.
-func (s *AuthService) storeRefreshToken(ctx context.Context, token string, payload refreshPayload) error {
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-	return s.redis.Set(ctx, refreshKey(token), data, s.refreshTTL).Err()
+// RevokeSession — back-compat для handler.RevokeSession.
+func (s *AuthService) RevokeSession(ctx context.Context, uid, sid uuid.UUID) error {
+	return s.Sessions.RevokeSession(ctx, uid, sid)
 }
 
-// getRefreshPayload извлекает данные refresh-токена из Redis.
-func (s *AuthService) getRefreshPayload(ctx context.Context, token string) (*refreshPayload, error) {
-	data, err := s.redis.Get(ctx, refreshKey(token)).Bytes()
-	if err == redis.Nil {
-		return nil, fmt.Errorf("refresh token not found")
-	}
-	if err != nil {
-		return nil, err
-	}
-	var p refreshPayload
-	if err := json.Unmarshal(data, &p); err != nil {
-		return nil, err
-	}
-	return &p, nil
+// LoginWithMagicLink — back-compat для handler.VerifyMagicLink.
+func (s *AuthService) LoginWithMagicLink(ctx context.Context, email, code, dev, ip string) (*TokenPairResponse, error) {
+	return s.Login.LoginWithMagicLink(ctx, email, code, dev, ip)
 }
 
-// deleteRefreshToken удаляет refresh-токен из Redis.
-func (s *AuthService) deleteRefreshToken(ctx context.Context, token string) {
-	s.redis.Del(ctx, refreshKey(token))
+// LoginWithTelegram — back-compat для handler.LoginTelegram.
+func (s *AuthService) LoginWithTelegram(ctx context.Context, initData, dev, ip string) (*TokenPairResponse, error) {
+	return s.Login.LoginWithTelegram(ctx, initData, dev, ip)
 }
 
-// ---- Core session operations ----
-
-// invalidateUserSessions удаляет все активные сессии пользователя (DB + Redis).
-// Используется для обеспечения единственной активной сессии на аккаунт.
-//
-// ME-01: Заменяем N+1 цикл одним bulk DELETE и Redis pipeline. Сначала
-// собираем refresh-токены одним запросом, потом удаляем все строки сессий
-// одним DELETE, и затем пайплайним DEL по всем ключам Redis.
-func (s *AuthService) invalidateUserSessions(ctx context.Context, userID uuid.UUID) {
-	// Шаг 1 — собрать refresh-токены, чтобы потом удалить их из Redis.
-	tokens, err := s.db.Session.Query().
-		Where(session.HasUserWith(user.ID(userID))).
-		Select(session.FieldRefreshToken).
-		Strings(ctx)
-	if err != nil {
-		slog.Error("invalidateUserSessions: query refresh tokens", "error", err, "user_id", userID)
-		return
-	}
-
-	// Шаг 2 — один bulk DELETE по всем сессиям пользователя.
-	if _, err := s.db.Session.Delete().
-		Where(session.HasUserWith(user.ID(userID))).
-		Exec(ctx); err != nil {
-		slog.Error("invalidateUserSessions: bulk delete sessions", "error", err, "user_id", userID)
-		// Продолжаем — постараемся удалить refresh-токены в Redis, чтобы
-		// уменьшить дрейф состояния (JWT перестанет матчиться).
-	}
-
-	// Шаг 3 — пайплайним Redis DEL по всем токенам.
-	if len(tokens) == 0 {
-		return
-	}
-	pipe := s.redis.Pipeline()
-	for _, t := range tokens {
-		pipe.Del(ctx, refreshKey(t))
-	}
-	if _, err := pipe.Exec(ctx); err != nil {
-		// Redis Pipeline.Exec возвращает первую ошибку, но остальные
-		// команды всё равно отправлены. Логируем и идём дальше.
-		slog.Warn("invalidateUserSessions: redis pipeline del", "error", err, "user_id", userID, "tokens", len(tokens))
-	}
+// LoginWithTelegramUser — back-compat для handler.LoginTelegramCode.
+func (s *AuthService) LoginWithTelegramUser(ctx context.Context, tg *TelegramUser, dev, ip string) (*TokenPairResponse, error) {
+	return s.Login.LoginWithTelegramUser(ctx, tg, dev, ip)
 }
 
-// CreateSession генерирует JWT + refresh-токен, сохраняет сессию в БД и публикует NATS-событие.
-// Перед созданием новой сессии все существующие сессии пользователя инвалидируются
-// (single active session per account).
-func (s *AuthService) CreateSession(ctx context.Context, userID uuid.UUID, device, ip string) (*TokenPairResponse, error) {
-	// Invalidate all existing sessions for this user (single session policy).
-	s.invalidateUserSessions(ctx, userID)
-
-	sessionID := uuid.New()
-	refreshToken := uuid.New().String()
-
-	accessToken, err := s.generateAccessToken(userID, sessionID)
-	if err != nil {
-		return nil, fmt.Errorf("create session: generate access token: %w", err)
-	}
-
-	// Store refresh token in Redis.
-	if err := s.storeRefreshToken(ctx, refreshToken, refreshPayload{
-		UserID:    userID.String(),
-		SessionID: sessionID.String(),
-		Device:    device,
-	}); err != nil {
-		return nil, fmt.Errorf("create session: store refresh: %w", err)
-	}
-
-	// Persist session in Ent DB.
-	_, err = s.db.Session.Create().
-		SetID(sessionID).
-		SetRefreshToken(refreshToken).
-		SetDevice(device).
-		SetIPAddress(ip).
-		SetExpiresAt(time.Now().Add(s.refreshTTL)).
-		SetUserID(userID).
-		Save(ctx)
-	if err != nil {
-		s.deleteRefreshToken(ctx, refreshToken)
-		return nil, fmt.Errorf("create session: persist: %w", err)
-	}
-
-	// Publish NATS event (fire and forget).
-	s.publishSessionCreated(userID.String(), sessionID.String(), device, ip)
-
-	return &TokenPairResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresIn:    int64(s.accessTTL.Seconds()),
-	}, nil
+// GetMe — back-compat для handler.GetMe.
+func (s *AuthService) GetMe(ctx context.Context, uid uuid.UUID) (*ent.User, error) {
+	return s.Profile.GetMe(ctx, uid)
 }
 
-// publishSessionCreated публикует событие создания сессии в NATS (fire-and-forget).
-func (s *AuthService) publishSessionCreated(userID, sessionID, device, ip string) {
-	evt := SessionCreatedEvent{
-		UserID:    userID,
-		SessionID: sessionID,
-		Device:    device,
-		IPAddress: ip,
-	}
-	data, err := json.Marshal(evt)
-	if err != nil {
-		slog.Error("marshal session created event", "error", err)
-		return
-	}
-	if err := s.nats.Publish("auth.session.created", data); err != nil {
-		slog.Error("publish session created event", "error", err)
-	}
+// UpdateProfile — back-compat для handler.UpdateProfile.
+func (s *AuthService) UpdateProfile(ctx context.Context, uid uuid.UUID, req UpdateProfileRequest) (*ent.User, error) {
+	return s.Profile.UpdateProfile(ctx, uid, req)
 }
 
-// RefreshToken валидирует refresh-токен, выполняет ротацию и возвращает новую пару токенов.
-func (s *AuthService) RefreshToken(ctx context.Context, oldRefreshToken string) (*TokenPairResponse, error) {
-	payload, err := s.getRefreshPayload(ctx, oldRefreshToken)
-	if err != nil {
-		return nil, fmt.Errorf("refresh token: %w", err)
-	}
-
-	userID, err := uuid.Parse(payload.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("refresh token: invalid user id: %w", err)
-	}
-	sessionID, err := uuid.Parse(payload.SessionID)
-	if err != nil {
-		return nil, fmt.Errorf("refresh token: invalid session id: %w", err)
-	}
-
-	// ME-02: устраняем TOCTOU между удалением старого refresh и созданием
-	// нового. Порядок строго:
-	//   1) сгенерировать новые токены;
-	//   2) сохранить новый refresh в Redis;
-	//   3) обновить ent.Session.refresh_token;
-	//   4) удалить старый refresh (в самом конце).
-	// Если процесс упадёт после шага 2, но до шага 4 — повторный refresh
-	// со старым токеном ещё валиден; вторая попытка генерирует новые
-	// токены и снова перезапишет сессию. Идемпотентность достигнута.
-	// Если упадёт после шага 3, но до шага 4 — старый refresh останется
-	// в Redis сиротой, но не сможет пройти валидацию (ent.Session уже
-	// ссылается на новый); следующая успешная rotation вычистит хвост,
-	// либо TTL Redis сам погасит сироту.
-
-	// (1) Generate new token pair.
-	newRefresh := uuid.New().String()
-	accessToken, err := s.generateAccessToken(userID, sessionID)
-	if err != nil {
-		return nil, fmt.Errorf("refresh token: generate access: %w", err)
-	}
-
-	// (2) Store new refresh token in Redis BEFORE deleting the old one.
-	if err := s.storeRefreshToken(ctx, newRefresh, *payload); err != nil {
-		return nil, fmt.Errorf("refresh token: store new: %w", err)
-	}
-
-	// (3) Update session in Ent.
-	if _, saveErr := s.db.Session.UpdateOneID(sessionID).
-		SetRefreshToken(newRefresh).
-		SetLastActiveAt(time.Now()).
-		Save(ctx); saveErr != nil {
-		// Не удаляем старый refresh — пользователь может повторить
-		// запрос со старым токеном, и при следующей попытке снова
-		// успешно сохранится новый.
-		// LO-05: ошибка оборачивается через %w и поднимается до хендлера,
-		// который и логирует — двойной slog.Error на пути propagation убрали.
-		return nil, fmt.Errorf("refresh token: update session: %w", saveErr)
-	}
-
-	// (4) Delete old refresh token in Redis last.
-	s.deleteRefreshToken(ctx, oldRefreshToken)
-
-	return &TokenPairResponse{
-		AccessToken:  accessToken,
-		RefreshToken: newRefresh,
-		ExpiresIn:    int64(s.accessTTL.Seconds()),
-	}, nil
+// CompleteOnboarding — back-compat для handler.CompleteOnboarding.
+func (s *AuthService) CompleteOnboarding(ctx context.Context, uid uuid.UUID, req OnboardingCompleteRequest) (*ent.User, error) {
+	return s.Profile.CompleteOnboarding(ctx, uid, req)
 }
 
-// Logout удаляет refresh-токен из Redis и сессию из базы данных.
-func (s *AuthService) Logout(ctx context.Context, sessionID uuid.UUID) error {
-	sess, err := s.db.Session.Get(ctx, sessionID)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil // already logged out
-		}
-		return fmt.Errorf("logout: find session: %w", err)
-	}
-	s.deleteRefreshToken(ctx, sess.RefreshToken)
-	return s.db.Session.DeleteOneID(sessionID).Exec(ctx)
-}
-
-// ListSessions возвращает все сессии пользователя, отсортированные по дате создания.
-func (s *AuthService) ListSessions(ctx context.Context, userID uuid.UUID) ([]*ent.Session, error) {
-	return s.db.Session.Query().
-		Where(session.HasUserWith(user.ID(userID))).
-		Order(ent.Desc(session.FieldCreatedAt)).
-		All(ctx)
-}
-
-// RevokeSession отзывает указанную сессию после проверки принадлежности пользователю.
-func (s *AuthService) RevokeSession(ctx context.Context, userID, sessionID uuid.UUID) error {
-	sess, err := s.db.Session.Query().
-		Where(
-			session.ID(sessionID),
-			session.HasUserWith(user.ID(userID)),
-		).
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return fmt.Errorf("session not found or not owned by user")
-		}
-		return fmt.Errorf("revoke session: %w", err)
-	}
-	s.deleteRefreshToken(ctx, sess.RefreshToken)
-	return s.db.Session.DeleteOneID(sessionID).Exec(ctx)
-}
-
-// ---- Login flows ----
-
-// LoginWithMagicLink проверяет код, находит или создаёт пользователя и возвращает пару токенов.
-func (s *AuthService) LoginWithMagicLink(ctx context.Context, email, code, device, ip string) (*TokenPairResponse, error) {
-	if err := s.magicLink.VerifyCode(ctx, email, code); err != nil {
-		return nil, err
-	}
-
-	u, isNew, err := s.findOrCreateUserByEmail(ctx, email)
-	if err != nil {
-		return nil, err
-	}
-
-	if isNew {
-		slog.Info("new user registered via magic link", "user_id", u.ID.String(), "email", email)
-	}
-
-	return s.CreateSession(ctx, u.ID, device, ip)
-}
-
-// LoginWithTelegram проверяет initData Telegram, находит или создаёт пользователя, возвращает пару токенов.
-func (s *AuthService) LoginWithTelegram(ctx context.Context, initData, device, ip string) (*TokenPairResponse, error) {
-	tgUser, err := VerifyTelegramAuth(s.botToken, initData)
-	if err != nil {
-		return nil, err
-	}
-
-	telegramID := strconv.FormatInt(tgUser.ID, 10)
-	u, isNew, err := s.findOrCreateUserByTelegram(ctx, telegramID, tgUser)
-	if err != nil {
-		return nil, err
-	}
-
-	if isNew {
-		slog.Info("new user registered via telegram", "user_id", u.ID.String(), "telegram_id", telegramID)
-	}
-
-	return s.CreateSession(ctx, u.ID, device, ip)
-}
-
-// LoginWithTelegramUser находит или создаёт пользователя по TelegramUser и возвращает пару токенов.
-func (s *AuthService) LoginWithTelegramUser(ctx context.Context, tgUser *TelegramUser, device, ip string) (*TokenPairResponse, error) {
-	telegramID := strconv.FormatInt(tgUser.ID, 10)
-	u, isNew, err := s.findOrCreateUserByTelegram(ctx, telegramID, tgUser)
-	if err != nil {
-		return nil, err
-	}
-	if isNew {
-		slog.Info("new user registered via telegram bot code", "user_id", u.ID.String(), "telegram_id", telegramID)
-	}
-	return s.CreateSession(ctx, u.ID, device, ip)
-}
-
-// findOrCreateUserByEmail ищет пользователя по email. Если не найден — создаёт нового.
-// Самый первый пользователь в системе получает роль admin.
-func (s *AuthService) findOrCreateUserByEmail(ctx context.Context, email string) (*ent.User, bool, error) {
-	u, err := s.db.User.Query().Where(user.EmailEQ(email)).Only(ctx)
-	if err == nil {
-		return u, false, nil
-	}
-	if !ent.IsNotFound(err) {
-		return nil, false, fmt.Errorf("find user by email: %w", err)
-	}
-
-	// Check registration mode.
-	if err := s.checkRegistrationAllowed(ctx); err != nil {
-		return nil, false, err
-	}
-
-	role := user.SystemRoleMember
-	if s.isFirstUser(ctx) {
-		role = user.SystemRoleAdmin
-	}
-
-	u, err = s.db.User.Create().
-		SetEmail(email).
-		SetSystemRole(role).
-		Save(ctx)
-	if err != nil {
-		return nil, false, fmt.Errorf("create user: %w", err)
-	}
-	return u, true, nil
-}
-
-// findOrCreateUserByTelegram ищет пользователя по telegram_id. Если не найден — создаёт нового.
-func (s *AuthService) findOrCreateUserByTelegram(ctx context.Context, telegramID string, tg *TelegramUser) (*ent.User, bool, error) {
-	u, err := s.db.User.Query().Where(user.TelegramIDEQ(telegramID)).Only(ctx)
-	if err == nil {
-		return u, false, nil
-	}
-	if !ent.IsNotFound(err) {
-		return nil, false, fmt.Errorf("find user by telegram: %w", err)
-	}
-
-	if err := s.checkRegistrationAllowed(ctx); err != nil {
-		return nil, false, err
-	}
-
-	role := user.SystemRoleMember
-	if s.isFirstUser(ctx) {
-		role = user.SystemRoleAdmin
-	}
-
-	name := tg.FirstName
-	if tg.LastName != "" {
-		name += " " + tg.LastName
-	}
-
-	// Telegram users get a placeholder email (telegram_<id>@hub.local) until they
-	// provide a real one during onboarding.
-	placeholderEmail := fmt.Sprintf("telegram_%s@hub.local", telegramID)
-
-	u, err = s.db.User.Create().
-		SetEmail(placeholderEmail).
-		SetNillableTelegramID(&telegramID).
-		SetName(name).
-		SetDisplayName(tg.FirstName).
-		SetSystemRole(role).
-		Save(ctx)
-	if err != nil {
-		return nil, false, fmt.Errorf("create telegram user: %w", err)
-	}
-	return u, true, nil
-}
-
-// isFirstUser проверяет, является ли текущая регистрация первой (для назначения admin).
-func (s *AuthService) isFirstUser(ctx context.Context) bool {
-	count, err := s.db.User.Query().Count(ctx)
-	if err != nil {
-		return false
-	}
-	return count == 0
-}
-
-// checkRegistrationAllowed проверяет, разрешена ли регистрация в текущем режиме.
-func (s *AuthService) checkRegistrationAllowed(ctx context.Context) error {
-	mode, _ := s.GetRegistrationMode(ctx)
-	if mode == "invite_only" {
-		return ErrRegistrationInviteOnly
-	}
-	return nil
-}
-
-// ---- Profile ----
-
-// UpdateProfile обновляет поля профиля пользователя. system_role никогда не изменяется.
-func (s *AuthService) UpdateProfile(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) (*ent.User, error) {
-	update := s.db.User.UpdateOneID(userID)
-
-	if req.Name != nil {
-		update.SetName(*req.Name)
-	}
-	if req.DisplayName != nil {
-		update.SetDisplayName(*req.DisplayName)
-	}
-	if req.AvatarURL != nil {
-		update.SetAvatarURL(*req.AvatarURL)
-	}
-	if req.Phone != nil {
-		update.SetPhone(*req.Phone)
-	}
-	if req.Position != nil {
-		update.SetPosition(*req.Position)
-	}
-	if req.Department != nil {
-		update.SetDepartment(*req.Department)
-	}
-	if req.Timezone != nil {
-		update.SetTimezone(*req.Timezone)
-	}
-	if req.Language != nil {
-		update.SetLanguage(*req.Language)
-	}
-	if req.Birthday != nil {
-		update.SetBirthday(*req.Birthday)
-	}
-	if req.QuietHoursStart != nil {
-		update.SetQuietHoursStart(*req.QuietHoursStart)
-	}
-	if req.QuietHoursEnd != nil {
-		update.SetQuietHoursEnd(*req.QuietHoursEnd)
-	}
-	if req.CustomFields != nil {
-		update.SetCustomFields(req.CustomFields)
-	}
-
-	return update.Save(ctx)
-}
-
-// CompleteOnboarding обновляет профиль и помечает онбординг как завершённый.
-func (s *AuthService) CompleteOnboarding(ctx context.Context, userID uuid.UUID, req OnboardingCompleteRequest) (*ent.User, error) {
-	if _, err := s.UpdateProfile(ctx, userID, req.ProfileData); err != nil {
-		return nil, err
-	}
-	return s.db.User.UpdateOneID(userID).
-		SetOnboardingCompleted(true).
-		Save(ctx)
-}
-
-// GetMe возвращает пользователя по ID.
-func (s *AuthService) GetMe(ctx context.Context, userID uuid.UUID) (*ent.User, error) {
-	return s.db.User.Get(ctx, userID)
-}
-
-// ---- Registration mode ----
-
-// GetRegistrationMode читает системную настройку "registration_mode". По умолчанию "open".
+// GetRegistrationMode — back-compat для handler.GetRegistrationMode и handler.SendMagicLink.
 func (s *AuthService) GetRegistrationMode(ctx context.Context) (string, error) {
-	setting, err := s.db.SystemSetting.Query().
-		Where(systemsetting.KeyEQ("registration_mode")).
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return "open", nil
-		}
-		return "", fmt.Errorf("get registration mode: %w", err)
-	}
-	return setting.Value, nil
+	return s.RegMode.GetRegistrationMode(ctx)
 }
 
-// SetRegistrationMode обновляет режим регистрации (только для администратора).
-//
-// ME-04: Ent в этой версии репозитория не экспонирует OnConflict/Upsert
-// (см. ent/systemsetting_create.go — нет методов OnConflict*). Поэтому
-// делаем "Update → Create on miss" с однократным retry на уникальное
-// нарушение: если два администратора параллельно ставят режим, второй
-// после AlreadyExists делает повторный Update и попадает в существующую
-// строку. Это покрывает упомянутую в ревью racy-ситуацию (`n=0` для
-// обоих → второй Create нарушит unique constraint).
+// SetRegistrationMode — back-compat для handler.SetRegistrationMode.
 func (s *AuthService) SetRegistrationMode(ctx context.Context, mode string) error {
-	return s.upsertSystemSetting(ctx, "registration_mode", mode,
-		"Controls whether new users can register: open or invite_only")
+	return s.RegMode.SetRegistrationMode(ctx, mode)
 }
-
-// upsertSystemSetting реализует идемпотентный upsert для SystemSetting,
-// устойчивый к параллельным вызовам. Алгоритм:
-//
-//  1. Попытаться Update — если запись существует, обновим её value.
-//  2. Если n == 0 (нет такой записи) — Create.
-//  3. Если Create вернул IsConstraintError (= unique violation = другой
-//     процесс успел создать запись между шагами 1 и 2) — повторить
-//     Update; на этот раз он гарантированно попадёт в созданную чужим
-//     процессом строку.
-//
-// Это устраняет ME-04 без необходимости в OnConflict / Upsert.
-func (s *AuthService) upsertSystemSetting(ctx context.Context, key, value, description string) error {
-	n, err := s.db.SystemSetting.Update().
-		Where(systemsetting.KeyEQ(key)).
-		SetValue(value).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("upsert system setting %q (update): %w", key, err)
-	}
-	if n > 0 {
-		return nil
-	}
-
-	_, err = s.db.SystemSetting.Create().
-		SetKey(key).
-		SetValue(value).
-		SetDescription(description).
-		Save(ctx)
-	if err == nil {
-		return nil
-	}
-
-	// Possible race: another caller created the row between our Update
-	// and our Create. Retry the Update once — at this point the row
-	// definitely exists.
-	if ent.IsConstraintError(err) {
-		if _, retryErr := s.db.SystemSetting.Update().
-			Where(systemsetting.KeyEQ(key)).
-			SetValue(value).
-			Save(ctx); retryErr != nil {
-			return fmt.Errorf("upsert system setting %q (retry update): %w", key, retryErr)
-		}
-		return nil
-	}
-	return fmt.Errorf("upsert system setting %q (create): %w", key, err)
-}
-
-// ---- UserResponse builder ----
-
-// UserToResponse конвертирует Ent User в DTO UserResponse.
-func UserToResponse(u *ent.User) *UserResponse {
-	resp := &UserResponse{
-		ID:                  u.ID.String(),
-		Email:               u.Email,
-		Name:                u.Name,
-		DisplayName:         u.DisplayName,
-		AvatarURL:           u.AvatarURL,
-		Phone:               u.Phone,
-		Position:            u.Position,
-		Department:          u.Department,
-		Timezone:            u.Timezone,
-		Language:            u.Language,
-		Birthday:            u.Birthday,
-		SystemRole:          string(u.SystemRole),
-		OnboardingCompleted: u.OnboardingCompleted,
-		CustomFields:        u.CustomFields,
-	}
-	if u.TelegramID != nil {
-		resp.TelegramID = *u.TelegramID
-	}
-	return resp
-}
-
-// sentinel errors
-var (
-	ErrRegistrationInviteOnly = fmt.Errorf("registration is by invite only")
-)
