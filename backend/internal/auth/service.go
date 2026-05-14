@@ -145,19 +145,42 @@ func (s *AuthService) deleteRefreshToken(ctx context.Context, token string) {
 
 // invalidateUserSessions удаляет все активные сессии пользователя (DB + Redis).
 // Используется для обеспечения единственной активной сессии на аккаунт.
+//
+// ME-01: Заменяем N+1 цикл одним bulk DELETE и Redis pipeline. Сначала
+// собираем refresh-токены одним запросом, потом удаляем все строки сессий
+// одним DELETE, и затем пайплайним DEL по всем ключам Redis.
 func (s *AuthService) invalidateUserSessions(ctx context.Context, userID uuid.UUID) {
-	sessions, err := s.db.Session.Query().
+	// Шаг 1 — собрать refresh-токены, чтобы потом удалить их из Redis.
+	tokens, err := s.db.Session.Query().
 		Where(session.HasUserWith(user.ID(userID))).
-		All(ctx)
+		Select(session.FieldRefreshToken).
+		Strings(ctx)
 	if err != nil {
-		slog.Error("invalidateUserSessions: query sessions", "error", err, "user_id", userID)
+		slog.Error("invalidateUserSessions: query refresh tokens", "error", err, "user_id", userID)
 		return
 	}
-	for _, sess := range sessions {
-		s.deleteRefreshToken(ctx, sess.RefreshToken)
-		if err := s.db.Session.DeleteOneID(sess.ID).Exec(ctx); err != nil {
-			slog.Error("invalidateUserSessions: delete session", "error", err, "session_id", sess.ID)
-		}
+
+	// Шаг 2 — один bulk DELETE по всем сессиям пользователя.
+	if _, err := s.db.Session.Delete().
+		Where(session.HasUserWith(user.ID(userID))).
+		Exec(ctx); err != nil {
+		slog.Error("invalidateUserSessions: bulk delete sessions", "error", err, "user_id", userID)
+		// Продолжаем — постараемся удалить refresh-токены в Redis, чтобы
+		// уменьшить дрейф состояния (JWT перестанет матчиться).
+	}
+
+	// Шаг 3 — пайплайним Redis DEL по всем токенам.
+	if len(tokens) == 0 {
+		return
+	}
+	pipe := s.redis.Pipeline()
+	for _, t := range tokens {
+		pipe.Del(ctx, refreshKey(t))
+	}
+	if _, err := pipe.Exec(ctx); err != nil {
+		// Redis Pipeline.Exec возвращает первую ошибку, но остальные
+		// команды всё равно отправлены. Логируем и идём дальше.
+		slog.Warn("invalidateUserSessions: redis pipeline del", "error", err, "user_id", userID, "tokens", len(tokens))
 	}
 }
 
