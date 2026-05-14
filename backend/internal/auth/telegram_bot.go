@@ -13,6 +13,7 @@ import (
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 	"github.com/redis/go-redis/v9"
+	telegramutil "github.com/valerii/hub/backend/internal/platform/telegram"
 )
 
 // Настройки Telegram бот-авторизации.
@@ -113,7 +114,7 @@ func (t *TelegramBotAuth) handleLogin(ctx context.Context, msg *telego.Message) 
 		return
 	}
 
-	text := fmt.Sprintf("Ваш код входа в Hub:\n\n*%s*\n\nВведите его на сайте\\. Код действителен 5 минут\\.", escapeMarkdownV2TG(code))
+	text := fmt.Sprintf("Ваш код входа в Hub:\n\n*%s*\n\nВведите его на сайте\\. Код действителен 5 минут\\.", telegramutil.EscapeMarkdownV2(code))
 	params := tu.Message(tu.ID(chatID), text)
 	params.WithParseMode(telego.ModeMarkdownV2)
 
@@ -206,13 +207,4 @@ func generateTGCode() (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%06d", n.Int64()), nil
-}
-
-func escapeMarkdownV2TG(s string) string {
-	special := []string{"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"}
-	result := s
-	for _, ch := range special {
-		result = strings.ReplaceAll(result, ch, "\\"+ch)
-	}
-	return result
 }

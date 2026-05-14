@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
+	telegramutil "github.com/valerii/hub/backend/internal/platform/telegram"
 )
 
 // telegramMessage — внутреннее представление сообщения для очереди.
@@ -106,21 +106,12 @@ func (t *TelegramSender) sendMessage(msg telegramMessage) {
 }
 
 // formatTelegramMessage форматирует уведомление для Telegram MarkdownV2.
+// LO-01: использует общий хелпер из internal/platform/telegram (был дубликат).
 func formatTelegramMessage(title, body string) string {
-	escapedTitle := escapeMarkdownV2(title)
+	escapedTitle := telegramutil.EscapeMarkdownV2(title)
 	if body == "" {
 		return fmt.Sprintf("*%s*", escapedTitle)
 	}
-	escapedBody := escapeMarkdownV2(body)
+	escapedBody := telegramutil.EscapeMarkdownV2(body)
 	return fmt.Sprintf("*%s*\n\n%s", escapedTitle, escapedBody)
-}
-
-// escapeMarkdownV2 экранирует специальные символы для Telegram MarkdownV2.
-func escapeMarkdownV2(s string) string {
-	special := []string{"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"}
-	result := s
-	for _, ch := range special {
-		result = strings.ReplaceAll(result, ch, "\\"+ch)
-	}
-	return result
 }

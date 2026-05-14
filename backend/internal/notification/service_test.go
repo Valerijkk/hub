@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	telegramutil "github.com/valerii/hub/backend/internal/platform/telegram"
 )
 
 // TestSubjectToType проверяет маппинг NATS subject в тип уведомления.
@@ -76,7 +77,7 @@ func TestEscapeMarkdownV2(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := escapeMarkdownV2(tt.input)
+			result := telegramutil.EscapeMarkdownV2(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
