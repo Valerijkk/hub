@@ -494,7 +494,7 @@ func main() {
 	// Backup module (автоматическое еженедельное резервное копирование)
 	backupSvc := backupmod.NewBackupService(db, nil, "hub-backups", cfg.Postgres.URL, cfg.MongoDB.URL)
 	backupHandler := backupmod.NewHandler(backupSvc)
-	backupHandler.RegisterRoutes(api, requireAuth)
+	backupHandler.RegisterRoutes(api, requireAuth, rbac.RequireAdmin(db))
 
 	// Еженедельный автоматический бэкап (каждые 7 дней)
 	backupCtx, backupCancel := context.WithCancel(ctx)

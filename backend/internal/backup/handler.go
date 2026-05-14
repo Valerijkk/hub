@@ -18,8 +18,9 @@ func NewHandler(svc *BackupService) *Handler {
 }
 
 // RegisterRoutes регистрирует маршруты администрирования бэкапов.
-func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
-	backups := api.Group("/admin/backups", authMw)
+// Требует системную роль admin — операции backup/restore/delete = total-data-loss primitive.
+func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, adminMw fiber.Handler) {
+	backups := api.Group("/admin/backups", authMw, adminMw)
 	backups.Post("/", h.TriggerBackup)
 	backups.Get("/", h.ListBackups)
 	backups.Post("/:id/restore", h.RestoreBackup)
