@@ -27,6 +27,13 @@ func ParseProjectID(c fiber.Ctx) (uuid.UUID, error) {
 }
 
 // ParseUUIDParam извлекает и валидирует UUID-параметр пути по имени.
+//
+// ME-12: дополнительно отклоняем uuid.Nil (все нули). uuid.Parse сам
+// по себе пропускает "00000000-0000-0000-0000-000000000000" — но zero
+// UUID не должен попадать в запросы к БД, так как поведение DB-движка
+// для нулевого ID может неприятно отличаться от 404 "not found"
+// (например, точные совпадения с pre-existing test fixtures, или
+// первая запись в незаполненной таблице).
 func ParseUUIDParam(c fiber.Ctx, name string) (uuid.UUID, error) {
 	idStr := utils.CopyString(c.Params(name))
 	if idStr == "" {
@@ -34,6 +41,9 @@ func ParseUUIDParam(c fiber.Ctx, name string) (uuid.UUID, error) {
 	}
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "invalid "+name)
+	}
+	if id == uuid.Nil {
 		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "invalid "+name)
 	}
 	return id, nil

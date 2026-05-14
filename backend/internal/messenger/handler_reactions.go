@@ -263,13 +263,14 @@ func (h *Handler) MarkChannelRead(c fiber.Ctx) error {
 // ---------------------------------------------------------------------------
 
 // parsePollID извлекает и валидирует pollId из параметров пути.
+// ME-12: отклоняет uuid.Nil.
 func parsePollID(c fiber.Ctx) (uuid.UUID, error) {
 	idStr := utils.CopyString(c.Params("pollId"))
 	if idStr == "" {
 		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "poll ID обязателен")
 	}
 	id, err := uuid.Parse(idStr)
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "некорректный poll ID")
 	}
 	return id, nil

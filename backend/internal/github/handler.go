@@ -349,13 +349,14 @@ func (h *Handler) GetLinkPreview(c fiber.Ctx) error {
 // ---------------------------------------------------------------------------
 
 // parseProjectID извлекает и валидирует projectId из параметров пути.
+// ME-12: отклоняет uuid.Nil.
 func parseProjectID(c fiber.Ctx) (uuid.UUID, error) {
 	idStr := utils.CopyString(c.Params("projectId"))
 	if idStr == "" {
 		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "project ID обязателен")
 	}
 	id, err := uuid.Parse(idStr)
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "некорректный project ID")
 	}
 	return id, nil

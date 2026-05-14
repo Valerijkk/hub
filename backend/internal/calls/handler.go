@@ -85,13 +85,14 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 // ---------------------------------------------------------------------------
 
 // parseCallID извлекает и валидирует callId из параметров пути.
+// ME-12: отклоняет uuid.Nil наряду с пустой строкой / невалидным форматом.
 func parseCallID(c fiber.Ctx) (uuid.UUID, error) {
 	idStr := utils.CopyString(c.Params("callId"))
 	if idStr == "" {
 		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "call ID обязателен")
 	}
 	id, err := uuid.Parse(idStr)
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "некорректный call ID")
 	}
 	return id, nil

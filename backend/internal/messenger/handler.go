@@ -124,13 +124,14 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // ---------------------------------------------------------------------------
 
 // parseChannelID извлекает и валидирует channelId из параметров пути.
+// ME-12: отклоняет uuid.Nil наряду с пустой строкой / невалидным форматом.
 func parseChannelID(c fiber.Ctx) (uuid.UUID, error) {
 	idStr := utils.CopyString(c.Params("channelId"))
 	if idStr == "" {
 		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "channel ID обязателен")
 	}
 	id, err := uuid.Parse(idStr)
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "некорректный channel ID")
 	}
 	return id, nil

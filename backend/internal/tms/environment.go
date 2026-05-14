@@ -241,10 +241,18 @@ func (h *Handler) DeleteEnvironmentHandler(c fiber.Ctx) error {
 }
 
 // parseTMSProjectID извлекает projectId из параметров пути.
+// ME-12: отклоняет uuid.Nil.
 func parseTMSProjectID(c fiber.Ctx) (uuid.UUID, error) {
 	idStr := utils.CopyString(c.Params("projectId"))
 	if idStr == "" {
 		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "project ID обязателен")
 	}
-	return uuid.Parse(idStr)
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if id == uuid.Nil {
+		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "некорректный project ID")
+	}
+	return id, nil
 }
