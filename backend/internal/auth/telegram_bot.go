@@ -17,8 +17,10 @@ import (
 
 // Настройки Telegram бот-авторизации.
 const (
-	tgCodeTTL    = 5 * time.Minute
-	tgCodePrefix = "tglogin:"
+	tgCodeTTL         = 5 * time.Minute
+	tgCodePrefix      = "tglogin:"
+	tgVerifyFailsMax  = 5 // max failed VerifyCode attempts per IP within TTL window
+	tgFailsPrefix     = "tglogin:fails:"
 )
 
 // TelegramBotAuth обеспечивает вход через Telegram-бот.
@@ -120,33 +122,56 @@ func (t *TelegramBotAuth) handleLogin(ctx context.Context, msg *telego.Message) 
 	}
 }
 
+// ErrTelegramVerifyLimited indicates the caller (identified by IP) has exceeded
+// the per-IP failed-attempt limit for Telegram code verification.
+var ErrTelegramVerifyLimited = fmt.Errorf("too many telegram verification attempts, try again later")
+
 // VerifyCode проверяет код и возвращает данные Telegram-пользователя.
-func (t *TelegramBotAuth) VerifyCode(ctx context.Context, code string) (*TelegramUser, error) {
+// clientKey — стабильный идентификатор клиента (обычно IP); используется только
+// для per-client учёта неудачных попыток (HI-04). Пустая строка отключает
+// проверку счётчика (для тестов).
+func (t *TelegramBotAuth) VerifyCode(ctx context.Context, code, clientKey string) (*TelegramUser, error) {
 	if t == nil {
 		return nil, fmt.Errorf("telegram bot auth не настроен")
+	}
+
+	failsKey := ""
+	if clientKey != "" {
+		failsKey = tgFailsPrefix + clientKey
+		if cnt, err := t.redis.Get(ctx, failsKey).Int(); err == nil && cnt >= tgVerifyFailsMax {
+			return nil, ErrTelegramVerifyLimited
+		} else if err != nil && err != redis.Nil {
+			slog.Warn("telegram verify fails counter read error", "client", clientKey, "error", err)
+		}
 	}
 
 	key := tgCodePrefix + code
 	data, err := t.redis.Get(ctx, key).Result()
 	if err == redis.Nil {
+		t.recordVerifyFailure(ctx, failsKey)
 		return nil, fmt.Errorf("неверный или истёкший код")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("ошибка проверки кода: %w", err)
 	}
 
-	// Удаляем код — одноразовый.
-	t.redis.Del(ctx, key)
-
 	// Парсим: telegramID|firstName|lastName|username
 	parts := strings.SplitN(data, "|", 4)
 	if len(parts) < 4 {
+		t.recordVerifyFailure(ctx, failsKey)
 		return nil, fmt.Errorf("повреждённые данные кода")
 	}
 
 	tgID, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
+		t.recordVerifyFailure(ctx, failsKey)
 		return nil, fmt.Errorf("некорректный telegram ID: %w", err)
+	}
+
+	// Успех: удаляем одноразовый код и счётчик неудач.
+	t.redis.Del(ctx, key)
+	if failsKey != "" {
+		t.redis.Del(ctx, failsKey)
 	}
 
 	return &TelegramUser{
@@ -155,6 +180,24 @@ func (t *TelegramBotAuth) VerifyCode(ctx context.Context, code string) (*Telegra
 		LastName:  parts[2],
 		Username:  parts[3],
 	}, nil
+}
+
+// recordVerifyFailure increments the per-client failed-attempt counter and sets
+// the TTL on first failure to roughly the code TTL.
+func (t *TelegramBotAuth) recordVerifyFailure(ctx context.Context, failsKey string) {
+	if failsKey == "" {
+		return
+	}
+	cnt, err := t.redis.Incr(ctx, failsKey).Result()
+	if err != nil {
+		slog.Warn("telegram verify fails counter incr error", "key", failsKey, "error", err)
+		return
+	}
+	if cnt == 1 {
+		if expErr := t.redis.Expire(ctx, failsKey, tgCodeTTL).Err(); expErr != nil {
+			slog.Warn("telegram verify fails counter expire error", "key", failsKey, "error", expErr)
+		}
+	}
 }
 
 func generateTGCode() (string, error) {

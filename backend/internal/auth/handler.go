@@ -128,6 +128,9 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 		if err == ErrMagicLinkInvalid {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid or expired code")
 		}
+		if err == ErrMagicLinkVerifyLimited {
+			return fiber.NewError(fiber.StatusTooManyRequests, "too many verification attempts, try again later")
+		}
 		if err == ErrRegistrationInviteOnly {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
 		}
@@ -196,8 +199,11 @@ func (h *Handler) LoginTelegramCode(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusServiceUnavailable, "telegram bot not configured")
 	}
 
-	tgUser, err := h.tgBot.VerifyCode(c.Context(), req.Code)
+	tgUser, err := h.tgBot.VerifyCode(c.Context(), req.Code, c.IP())
 	if err != nil {
+		if err == ErrTelegramVerifyLimited {
+			return fiber.NewError(fiber.StatusTooManyRequests, "too many verification attempts, try again later")
+		}
 		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
 	}
 
