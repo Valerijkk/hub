@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPermission_Has(t *testing.T) {
@@ -84,4 +85,206 @@ func TestDefaultRolePermissions(t *testing.T) {
 		assert.True(t, tester.Has(PermTestRunExecute))
 		assert.False(t, tester.Has(PermProjectManageMembers))
 	})
+}
+
+// ---------------------------------------------------------------------------
+// Registry / ValidPermissionName tests (SC-14-4).
+// ---------------------------------------------------------------------------
+
+func TestValidPermissionName_KnownReturnsTrue(t *testing.T) {
+	known := []string{
+		"project.view",
+		"project.edit",
+		"project.delete",
+		"project.manage_members",
+		"project.manage_roles",
+		"project.manage_workflow",
+		"task.create",
+		"task.edit",
+		"task.edit_any",
+		"task.delete",
+		"task.assign",
+		"task.comment",
+		"file.upload",
+		"file.delete",
+		"file.delete_any",
+		"channel.create",
+		"channel.manage",
+		"message.edit",
+		"message.delete_any",
+		"testcase.create",
+		"testcase.edit",
+		"testrun.create",
+		"testrun.execute",
+		"invite.create",
+		"invite.manage",
+		"team.manage",
+	}
+	for _, n := range known {
+		t.Run(n, func(t *testing.T) {
+			assert.True(t, ValidPermissionName(n), "expected %q to be valid", n)
+		})
+	}
+}
+
+func TestValidPermissionName_UnknownReturnsFalse(t *testing.T) {
+	unknown := []string{
+		"",
+		" ",
+		"project",
+		"project.",
+		".view",
+		"Project.View",        // case-sensitive
+		"project.view ",       // trailing whitespace
+		"unknown.permission",
+		"task.create_extra",
+		"file.delete_any.x",
+		"team.manage; DROP TABLE users",
+	}
+	for _, n := range unknown {
+		t.Run(n, func(t *testing.T) {
+			assert.False(t, ValidPermissionName(n), "expected %q to be invalid", n)
+		})
+	}
+}
+
+func TestPermissionRegistry_AllNamesUnique(t *testing.T) {
+	seen := make(map[string]int, len(permissionRegistry))
+	for i, p := range permissionRegistry {
+		if prev, ok := seen[p.Name]; ok {
+			t.Fatalf("duplicate permission name %q at indices %d and %d", p.Name, prev, i)
+		}
+		seen[p.Name] = i
+	}
+	assert.Equal(t, len(permissionRegistry), len(seen),
+		"every registry entry should contribute a unique name")
+}
+
+func TestPermissionRegistry_AllBitsUnique(t *testing.T) {
+	// Bits with value 0 are intentionally "unallocated" (permission stored only
+	// by name, e.g. when the 64-bit space is exhausted). Multiple Bit=0 entries
+	// must remain legal — only assigned (non-zero) bits must be unique.
+	seenBit := make(map[Permission]string)
+	for _, p := range permissionRegistry {
+		if p.Bit == 0 {
+			continue
+		}
+		if prev, ok := seenBit[p.Bit]; ok {
+			t.Fatalf("permissions %q and %q share bit %d",
+				prev, p.Name, p.Bit)
+		}
+		seenBit[p.Bit] = p.Name
+	}
+}
+
+func TestPermissionRegistry_BitsAreSingleBitPositions(t *testing.T) {
+	// A non-zero Bit must be a power of two (exactly one bit set), otherwise
+	// Has/Add/Remove semantics break. Bit == 0 is allowed and means "no slot".
+	for _, p := range permissionRegistry {
+		if p.Bit == 0 {
+			continue
+		}
+		b := uint64(p.Bit)
+		assert.Equal(t, uint64(0), b&(b-1),
+			"%s has Bit=%d which is not a single-bit value", p.Name, p.Bit)
+	}
+}
+
+func TestBuildPermissionNameMap_CoversAll(t *testing.T) {
+	m := buildPermissionNameMap()
+	require.Equal(t, len(permissionRegistry), len(m),
+		"map and registry must have the same cardinality")
+	for _, p := range permissionRegistry {
+		got, ok := m[p.Name]
+		require.True(t, ok, "registry entry %q missing from map", p.Name)
+		assert.Equal(t, p.Bit, got, "bit mismatch for %q", p.Name)
+	}
+}
+
+func TestPermissionNameMap_MatchesRegistry(t *testing.T) {
+	// Package-level permissionNameMap (initialised at import) must reflect the
+	// registry. This guards against future drift where someone edits the map
+	// directly instead of the registry.
+	require.Equal(t, len(permissionRegistry), len(permissionNameMap))
+	for _, p := range permissionRegistry {
+		got, ok := permissionNameMap[p.Name]
+		require.True(t, ok, "permissionNameMap missing %q", p.Name)
+		assert.Equal(t, p.Bit, got)
+	}
+}
+
+func TestListAllPermissionDefs_ReturnsDefensiveCopy(t *testing.T) {
+	a := ListAllPermissionDefs()
+	require.Equal(t, len(permissionRegistry), len(a))
+
+	// Mutate the returned slice and assert the registry is unaffected.
+	if len(a) > 0 {
+		a[0] = PermissionDef{Name: "tampered", Bit: 0, Display: "x"}
+	}
+
+	b := ListAllPermissionDefs()
+	require.Equal(t, len(permissionRegistry), len(b))
+	if len(b) > 0 {
+		assert.NotEqual(t, "tampered", b[0].Name,
+			"mutating the returned slice must not affect future calls")
+		assert.Equal(t, permissionRegistry[0].Name, b[0].Name)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// permissionsFromNames / permissionNames round-trip
+// ---------------------------------------------------------------------------
+
+func TestPermissionsFromNames_IgnoresUnknownButCountsKnown(t *testing.T) {
+	// permissionsFromNames must not panic on unknown names — callers (legacy
+	// fallback in toCustomRoleResponse) may have stale data. It silently skips
+	// unknowns. validatePermissionNames is the gate that rejects them.
+	got := permissionsFromNames([]string{"project.view", "nope.nope", "task.create"})
+	assert.True(t, got.Has(PermProjectView))
+	assert.True(t, got.Has(PermTaskCreate))
+	assert.False(t, got.Has(PermProjectDelete))
+}
+
+func TestPermissionNamesAndPermissionsFromNames_RoundTrip(t *testing.T) {
+	want := []string{"project.view", "task.create", "file.upload"}
+	perm := permissionsFromNames(want)
+	got := permissionNames(perm)
+
+	assert.ElementsMatch(t, want, got,
+		"round-trip through bitmask must preserve the set of names")
+}
+
+// ---------------------------------------------------------------------------
+// validatePermissionNames behaviour (service-layer gate)
+// ---------------------------------------------------------------------------
+
+func TestValidatePermissionNames_AcceptsAllKnown(t *testing.T) {
+	all := make([]string, 0, len(permissionRegistry))
+	for _, p := range permissionRegistry {
+		all = append(all, p.Name)
+	}
+	assert.NoError(t, validatePermissionNames(all))
+}
+
+func TestValidatePermissionNames_AcceptsEmpty(t *testing.T) {
+	// An empty permission set is allowed at the service layer (a role with no
+	// permissions is meaningful — e.g. a placeholder role waiting to be
+	// configured). The HTTP layer's validate:"required" tag handles the
+	// "Permissions field is mandatory" case before we get here.
+	assert.NoError(t, validatePermissionNames(nil))
+	assert.NoError(t, validatePermissionNames([]string{}))
+}
+
+func TestValidatePermissionNames_RejectsUnknown(t *testing.T) {
+	err := validatePermissionNames([]string{"project.view", "made.up.permission"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "made.up.permission")
+}
+
+func TestValidatePermissionNames_FailsOnFirstUnknown(t *testing.T) {
+	// Order matters for error message clarity.
+	err := validatePermissionNames([]string{"first.bad", "second.bad"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "first.bad")
+	assert.NotContains(t, err.Error(), "second.bad")
 }
