@@ -189,10 +189,26 @@ func main() {
 		return c.SendString(devmod.BuildAPIDocsJSON(app))
 	})
 
-	// Auth routes (rate limit: 3 запроса / 10 мин на IP для защиты от брутфорса)
+	// Auth routes (HI-10: Redis-based sliding-window limiter, не зависит
+	// от количества инстансов и устойчив к простой IP-ротации).
 	// В dev-режиме пропускаем строгий auth rate limit, чтобы не блокировать разработку.
 	if !cfg.Server.DevMode {
-		api.Use("/auth", middleware.RateLimit(middleware.AuthRateLimit))
+		// Отдельный, более жёсткий лимит на verify magic-link: ключ — email
+		// из body (атакуемая сущность); 10 попыток / 10 минут. Регистрируем
+		// до общего /auth-лимитера, чтобы выполнялся первым на этом пути.
+		api.Use("/auth/magic-link/verify",
+			middleware.RateLimitRedis(rdb, middleware.RedisRateLimitConfig{
+				Max:       10,
+				Window:    10 * time.Minute,
+				KeyPrefix: "rl:auth-verify-email:",
+			}, middleware.ExtractEmailFromBody("email")),
+		)
+		// Общий лимит auth-эндпоинтов (3 / 10 минут) по IP-хешу.
+		api.Use("/auth", middleware.RateLimitRedis(rdb, middleware.RedisRateLimitConfig{
+			Max:       middleware.AuthRateLimit.Max,
+			Window:    middleware.AuthRateLimit.Window,
+			KeyPrefix: "rl:auth:",
+		}, nil))
 	}
 	requireAuth := auth.RequireAuth(authSvc)
 	tgBotAuth := auth.NewTelegramBotAuth(cfg.Telegram.BotToken, rdb)

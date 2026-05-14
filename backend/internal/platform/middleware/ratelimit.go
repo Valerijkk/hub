@@ -1,10 +1,16 @@
 package middleware
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"log/slog"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/redis/go-redis/v9"
 
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
@@ -99,6 +105,151 @@ func (rl *rateLimiter) allow(key string) bool {
 
 	entry.timestamps = append(entry.timestamps, now)
 	return true
+}
+
+// ---------------------------------------------------------------------------
+// HI-10: Redis-based sliding window rate limiter (cross-instance safe).
+// ---------------------------------------------------------------------------
+//
+// Назначение: для чувствительных endpoint'ов (auth, magic-link verify) нужен
+// общий счётчик, который не обходится перезапуском процесса или горизонтальным
+// масштабированием. Также важно не доверять IP "как есть" — заголовки
+// X-Forwarded-For легко подделываются, если Fiber не настроен с trusted-proxies.
+//
+// Алгоритм: ZSET с timestamp'ами попыток, ZREMRANGEBYSCORE отрезает старое
+// окно, ZCARD считает текущие — классическая sliding-window реализация
+// в Redis (3 команды в одном pipeline).
+
+// RedisRateLimitConfig определяет параметры sliding-window лимитера на Redis.
+type RedisRateLimitConfig struct {
+	Max       int           // максимум запросов в окне
+	Window    time.Duration // длительность окна
+	KeyPrefix string        // префикс Redis-ключа (например, "rl:auth:")
+}
+
+// RateLimitKeyExtractor возвращает строку, идентифицирующую клиента, по
+// которой идёт учёт. Возврат пустой строки означает «применить fallback»
+// (как правило, к IP). Это позволяет, например, лимитировать по email,
+// если он есть в body, и по IP в противном случае.
+type RateLimitKeyExtractor func(c fiber.Ctx) string
+
+// RateLimitRedis возвращает middleware sliding-window на Redis. extractKey
+// должен вернуть стабильный идентификатор клиента; если он пуст, мы
+// фолбэчимся на хеш IP. Все ключи Redis имеют общий префикс cfg.KeyPrefix.
+//
+// HI-10: использовать вместо in-memory RateLimit для auth, magic-link verify
+// и других путей, где важна устойчивость к IP-rotation и горизонтальному
+// масштабированию.
+func RateLimitRedis(rdb *redis.Client, cfg RedisRateLimitConfig, extractKey RateLimitKeyExtractor) fiber.Handler {
+	if rdb == nil {
+		// Fallback на in-memory лимитер, если Redis не сконфигурирован.
+		// В DevMode это удобно; в production config.validate должен
+		// убедиться, что Redis есть.
+		slog.Warn("RateLimitRedis: Redis client is nil, falling back to in-memory limiter",
+			"prefix", cfg.KeyPrefix)
+		return RateLimit(RateLimitConfig{Max: cfg.Max, Window: cfg.Window})
+	}
+	prefix := cfg.KeyPrefix
+	if prefix == "" {
+		prefix = "rl:"
+	}
+
+	return func(c fiber.Ctx) error {
+		ctx := c.Context()
+
+		raw := ""
+		if extractKey != nil {
+			raw = extractKey(c)
+		}
+		if raw == "" {
+			raw = "ip:" + hashIP(c.IP())
+		}
+		key := prefix + raw
+
+		now := time.Now()
+		nowMs := now.UnixMilli()
+		windowStart := now.Add(-cfg.Window).UnixMilli()
+
+		pipe := rdb.Pipeline()
+		// Удаляем устаревшие попытки.
+		pipe.ZRemRangeByScore(ctx, key, "0", strconv.FormatInt(windowStart-1, 10))
+		// Добавляем текущую попытку. Member — уникальный nanosecond+IP, чтобы
+		// одновременные запросы не схлопывались в один ZADD.
+		member := strconv.FormatInt(now.UnixNano(), 10) + ":" + c.IP()
+		pipe.ZAdd(ctx, key, redis.Z{Score: float64(nowMs), Member: member})
+		cardCmd := pipe.ZCard(ctx, key)
+		// Гарантируем, что ключ не залипнет навсегда: TTL чуть больше окна.
+		pipe.Expire(ctx, key, cfg.Window+time.Minute)
+
+		if _, err := pipe.Exec(ctx); err != nil {
+			// Fail-open на ошибке Redis — лучше пропустить запрос, чем
+			// заDDoSить себя. Логируем, чтобы это было видно в проде.
+			slog.Warn("RateLimitRedis: pipeline error, failing open",
+				"key", key, "error", err)
+			return c.Next()
+		}
+
+		if cardCmd.Val() > int64(cfg.Max) {
+			return apperrors.NewRateLimited("too many requests, please try again later")
+		}
+		return c.Next()
+	}
+}
+
+// ExtractEmailFromBody возвращает RateLimitKeyExtractor, вытаскивающий
+// email из JSON body запроса. Используется для magic-link verify: лимит
+// должен быть по email (это атакуемая сущность), не по IP.
+//
+// Парсинг идёт без c.Bind(), чтобы не нарушать ожидаемого хендлером
+// состояния body buffer.
+func ExtractEmailFromBody(field string) RateLimitKeyExtractor {
+	if field == "" {
+		field = "email"
+	}
+	return func(c fiber.Ctx) string {
+		body := c.Body()
+		if len(body) == 0 {
+			return ""
+		}
+		var m map[string]any
+		if err := json.Unmarshal(body, &m); err != nil {
+			return ""
+		}
+		v, _ := m[field].(string)
+		if v == "" {
+			return ""
+		}
+		return "email:" + normalizeEmail(v)
+	}
+}
+
+func normalizeEmail(s string) string {
+	out := make([]byte, 0, len(s))
+	for i := 0; i < len(s); i++ {
+		b := s[i]
+		if b >= 'A' && b <= 'Z' {
+			b += 'a' - 'A'
+		}
+		if b == ' ' || b == '\t' || b == '\r' || b == '\n' {
+			continue
+		}
+		out = append(out, b)
+	}
+	return string(out)
+}
+
+// hashIP — sha256-первые-16-hex от IP. Чуть уменьшает PII в логах и Redis-
+// ключах. Не зависит от того, что вернёт c.IP() — для нас важна
+// стабильность fingerprint'а, не его «правильность»; если за прокси без
+// EnableTrustedProxyCheck кто-то спуфит X-Forwarded-For, у каждой
+// подмены будет свой бакет (что хуже, чем за прокси, но не хуже того,
+// что было до HI-10).
+func hashIP(ip string) string {
+	if ip == "" {
+		return "unknown"
+	}
+	sum := sha256.Sum256([]byte(ip))
+	return hex.EncodeToString(sum[:8])
 }
 
 func (rl *rateLimiter) cleanup() {
