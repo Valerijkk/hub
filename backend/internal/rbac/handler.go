@@ -2,7 +2,7 @@ package rbac
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/google/uuid"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // CustomRoleHandler обрабатывает HTTP-запросы для управления кастомными ролями проекта.
@@ -41,9 +41,9 @@ func (h *CustomRoleHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handle
 // @Failure 500 {object} map[string]string "Ошибка создания"
 // @Router /projects/{projectId}/roles [post]
 func (h *CustomRoleHandler) CreateRole(c fiber.Ctx) error {
-	projectID, err := uuid.Parse(c.Params("projectId"))
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный project ID")
+		return err
 	}
 
 	var req CustomRoleRequest
@@ -70,9 +70,9 @@ func (h *CustomRoleHandler) CreateRole(c fiber.Ctx) error {
 // @Failure 500 {object} map[string]string "Ошибка получения"
 // @Router /projects/{projectId}/roles [get]
 func (h *CustomRoleHandler) ListRoles(c fiber.Ctx) error {
-	projectID, err := uuid.Parse(c.Params("projectId"))
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный project ID")
+		return err
 	}
 
 	roles, err := h.svc.ListCustomRoles(c.Context(), projectID)
@@ -97,9 +97,9 @@ func (h *CustomRoleHandler) ListRoles(c fiber.Ctx) error {
 // @Failure 500 {object} map[string]string "Ошибка обновления"
 // @Router /projects/{projectId}/roles/{roleId} [put]
 func (h *CustomRoleHandler) UpdateRole(c fiber.Ctx) error {
-	roleID, err := uuid.Parse(c.Params("roleId"))
+	roleID, err := httputil.ParseUUIDParam(c, "roleId")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный role ID")
+		return err
 	}
 
 	var req CustomRoleRequest
@@ -127,9 +127,9 @@ func (h *CustomRoleHandler) UpdateRole(c fiber.Ctx) error {
 // @Failure 500 {object} map[string]string "Ошибка удаления"
 // @Router /projects/{projectId}/roles/{roleId} [delete]
 func (h *CustomRoleHandler) DeleteRole(c fiber.Ctx) error {
-	roleID, err := uuid.Parse(c.Params("roleId"))
+	roleID, err := httputil.ParseUUIDParam(c, "roleId")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный role ID")
+		return err
 	}
 
 	if err := h.svc.DeleteCustomRole(c.Context(), roleID); err != nil {
@@ -152,17 +152,17 @@ func (h *CustomRoleHandler) DeleteRole(c fiber.Ctx) error {
 // @Failure 500 {object} map[string]string "Ошибка назначения"
 // @Router /projects/{projectId}/roles/{roleId}/assign/{userId} [post]
 func (h *CustomRoleHandler) AssignRole(c fiber.Ctx) error {
-	projectID, err := uuid.Parse(c.Params("projectId"))
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный project ID")
+		return err
 	}
-	roleID, err := uuid.Parse(c.Params("roleId"))
+	roleID, err := httputil.ParseUUIDParam(c, "roleId")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный role ID")
+		return err
 	}
-	userID, err := uuid.Parse(c.Params("userId"))
+	userID, err := httputil.ParseUUIDParam(c, "userId")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный user ID")
+		return err
 	}
 
 	if err := h.svc.AssignCustomRole(c.Context(), projectID, userID, roleID); err != nil {
@@ -185,13 +185,13 @@ func (h *CustomRoleHandler) AssignRole(c fiber.Ctx) error {
 // @Failure 500 {object} map[string]string "Ошибка снятия роли"
 // @Router /projects/{projectId}/roles/{roleId}/assign/{userId} [delete]
 func (h *CustomRoleHandler) UnassignRole(c fiber.Ctx) error {
-	projectID, err := uuid.Parse(c.Params("projectId"))
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный project ID")
+		return err
 	}
-	userID, err := uuid.Parse(c.Params("userId"))
+	userID, err := httputil.ParseUUIDParam(c, "userId")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный user ID")
+		return err
 	}
 
 	if err := h.svc.ClearCustomRole(c.Context(), projectID, userID); err != nil {

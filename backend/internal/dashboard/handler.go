@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
@@ -72,9 +73,9 @@ func (h *Handler) Project(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
-	projectID, err := uuid.Parse(c.Params("projectId"))
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "невалидный ID проекта")
+		return err
 	}
 
 	stats, err := h.service.GetProjectStats(c.Context(), projectID)

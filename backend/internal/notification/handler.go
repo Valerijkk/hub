@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // Handler предоставляет HTTP-обработчики для модуля уведомлений.
@@ -121,9 +122,9 @@ func (h *Handler) MarkRead(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
-	notifID, err := uuid.Parse(c.Params("id"))
+	notifID, err := httputil.ParseUUIDParam(c, "id")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "невалидный ID уведомления")
+		return err
 	}
 
 	if err := h.service.MarkRead(c.Context(), notifID, userID); err != nil {
@@ -172,9 +173,9 @@ func (h *Handler) Delete(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
-	notifID, err := uuid.Parse(c.Params("id"))
+	notifID, err := httputil.ParseUUIDParam(c, "id")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "невалидный ID уведомления")
+		return err
 	}
 
 	if err := h.service.DeleteNotification(c.Context(), notifID, userID); err != nil {

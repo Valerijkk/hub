@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
@@ -147,9 +148,9 @@ type confirmRequest struct {
 // @Security BearerAuth
 // @Router /api/files/{fileId}/confirm [post]
 func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
-	fileID, err := uuid.Parse(c.Params("fileId"))
+	fileID, err := httputil.ParseUUIDParam(c, "fileId")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid file ID")
+		return err
 	}
 
 	userID, err := userIDFromCtx(c)
@@ -191,9 +192,9 @@ func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/files/{fileId}/url [get]
 func (h *Handler) GetDownloadURL(c fiber.Ctx) error {
-	fileID, err := uuid.Parse(c.Params("fileId"))
+	fileID, err := httputil.ParseUUIDParam(c, "fileId")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid file ID")
+		return err
 	}
 
 	userID, err := userIDFromCtx(c)
@@ -232,9 +233,9 @@ func (h *Handler) GetDownloadURL(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/files/{fileId} [delete]
 func (h *Handler) DeleteFile(c fiber.Ctx) error {
-	fileID, err := uuid.Parse(c.Params("fileId"))
+	fileID, err := httputil.ParseUUIDParam(c, "fileId")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid file ID")
+		return err
 	}
 
 	userID, err := userIDFromCtx(c)

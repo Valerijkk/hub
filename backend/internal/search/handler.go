@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
+	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // Handler обрабатывает HTTP-запросы глобального поиска и управления сохранёнными фильтрами.
@@ -173,9 +174,9 @@ func (h *Handler) deleteFilter(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
-	filterID, err := uuid.Parse(c.Params("id"))
+	filterID, err := httputil.ParseUUIDParam(c, "id")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный id фильтра")
+		return err
 	}
 
 	if err := h.svc.DeleteSavedFilter(c.Context(), userID, filterID); err != nil {
@@ -205,9 +206,9 @@ func (h *Handler) shareFilter(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
-	filterID, err := uuid.Parse(c.Params("id"))
+	filterID, err := httputil.ParseUUIDParam(c, "id")
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный id фильтра")
+		return err
 	}
 
 	var req SavedFilterShareRequest
