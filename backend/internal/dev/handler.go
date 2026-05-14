@@ -1,7 +1,15 @@
+//go:build !release
+
 // Package dev provides dev-endpoints for local development:
 // seed demo users, project, issues, boards, labels, test cases and channels.
 // Login without Magic Link / Telegram.
 // All endpoints available only when DEV_MODE=true.
+//
+// ME-09: this file is compiled OUT in release builds (`go build -tags release`).
+// In a release binary the stub in handler_release.go provides a no-op
+// Handler whose RegisterRoutes does nothing — so /api/dev/* simply does
+// not exist, regardless of DEV_MODE env var. This makes the dangerous
+// /api/dev/login + /api/dev/seed paths *un-toggle-able at runtime*.
 package dev
 
 import (
