@@ -93,7 +93,19 @@ func main() {
 		}
 	}
 
-	ctx := context.Background()
+	// ME-10 + ME-14: единый корневой контекст, прерываемый SIGINT/SIGTERM.
+	// Все долгоиграющие горутины (outbox, cron-тикеры, notification/audit
+	// консьюмеры, WS hub, webhook dispatcher и т. п.) получают этот ctx —
+	// при первом сигнале они все одновременно идут в graceful-shutdown.
+	rootCtx, rootCancel := signal.NotifyContext(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM)
+	defer rootCancel()
+	// ctx сохраняем как алиас для read-only бутстрапных вызовов
+	// (database connect, EnsureStreams, EnsureIndexes), которые
+	// концептуально не "running forever" — но и здесь использование
+	// rootCtx безопасно: если процесс получает сигнал раньше окончания
+	// инициализации, бутстрап прервётся, и мы быстрее уйдём в exit.
+	ctx := rootCtx
 
 	// --- Infrastructure clients ---
 
@@ -127,11 +139,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Outbox worker
+	// Outbox worker (ctx == rootCtx — отменится по SIGINT/SIGTERM)
 	outboxWorker := outbox.NewWorker(db, nc)
-	outboxCtx, outboxCancel := context.WithCancel(ctx)
-	defer outboxCancel()
-	go outboxWorker.ProcessLoop(outboxCtx)
+	go outboxWorker.ProcessLoop(rootCtx)
 
 	// --- Services ---
 
@@ -252,20 +262,19 @@ func main() {
 	storageHandler := storagemod.NewHandler(storageSvc)
 	storageHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
-	// Cron: очистка осиротевших файлов (pending > 24h) — ежедневно
+	// Cron: очистка осиротевших файлов (pending > 24h) — ежедневно.
+	// ME-10: контекст rootCtx — отменяется одним общим signal.NotifyContext.
 	orphanCleanupSvc := storageSvc.NewOrphanCleanupFromService()
-	orphanCtx, orphanCancel := context.WithCancel(ctx)
-	defer orphanCancel()
 	go func() {
 		ticker := time.NewTicker(24 * time.Hour)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				if err := orphanCleanupSvc.Cleanup(orphanCtx); err != nil {
+				if err := orphanCleanupSvc.Cleanup(rootCtx); err != nil {
 					slog.Error("orphan file cleanup failed", "error", err)
 				}
-			case <-orphanCtx.Done():
+			case <-rootCtx.Done():
 				return
 			}
 		}
@@ -387,16 +396,14 @@ func main() {
 	pushSender := notifmod.NewPushSender(db, cfg.WebPush)
 	notifSvc := notifmod.NewNotificationService(notifRepo, nc, telegramSender, db, pushSender)
 	notifConsumer := notifmod.NewConsumer(nc, notifRepo, notifSvc)
-	notifCtx, notifCancel := context.WithCancel(ctx)
-	defer notifCancel()
-	if err := notifConsumer.Start(notifCtx); err != nil {
+	if err := notifConsumer.Start(rootCtx); err != nil {
 		slog.Error("failed to start notification consumer", "error", err)
 	}
 	if telegramSender != nil {
-		telegramSender.Start(notifCtx)
+		telegramSender.Start(rootCtx)
 	}
 	if pushSender != nil {
-		pushSender.Start(notifCtx)
+		pushSender.Start(rootCtx)
 	}
 	notifHandler := notifmod.NewHandler(notifSvc)
 	notifHandler.RegisterRoutes(api, requireAuth)
@@ -404,65 +411,62 @@ func main() {
 	// Audit routes (журнал аудита, лимиты, корзина, управление пользователями)
 	auditRepo := auditmod.NewRepository(db)
 	auditSvc := auditmod.NewAuditService(db, auditRepo, rdb)
+	// ME-14: audit consumer использует общий rootCtx, плюс defer Stop(),
+	// чтобы JetStream consumer корректно завершился и in-flight Ack-и
+	// не потерялись после ухода main(). Stop() блокируется до drain'а.
 	auditConsumer := auditmod.NewAuditConsumer(nc, auditRepo)
-	auditCtx, auditCancel := context.WithCancel(ctx)
-	defer auditCancel()
-	if err := auditConsumer.Start(auditCtx); err != nil {
+	if err := auditConsumer.Start(rootCtx); err != nil {
 		slog.Error("failed to start audit consumer", "error", err)
 	}
+	defer auditConsumer.Stop()
 	auditHandler := auditmod.NewHandler(auditSvc)
 	auditHandler.RegisterRoutesSimple(api, requireAuth)
 
-	// Запуск фоновой очистки корзины (каждые 24 часа)
-	purgeCtx, purgeCancel := context.WithCancel(ctx)
-	defer purgeCancel()
+	// Запуск фоновой очистки корзины (каждые 24 часа).
+	// ME-10: rootCtx.
 	go func() {
 		ticker := time.NewTicker(24 * time.Hour)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				if err := auditSvc.PurgeExpired(purgeCtx); err != nil {
+				if err := auditSvc.PurgeExpired(rootCtx); err != nil {
 					slog.Error("purge expired items failed", "error", err)
 				}
-			case <-purgeCtx.Done():
+			case <-rootCtx.Done():
 				return
 			}
 		}
 	}()
 
-	// Retention policy: ежедневная очистка устаревших данных
+	// Retention policy: ежедневная очистка устаревших данных. ME-10: rootCtx.
 	retentionSvc := auditmod.NewRetentionService(db, mongoDB)
-	retentionCtx, retentionCancel := context.WithCancel(ctx)
-	defer retentionCancel()
 	go func() {
 		ticker := time.NewTicker(24 * time.Hour)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				if err := retentionSvc.RunRetentionCleanup(retentionCtx); err != nil {
+				if err := retentionSvc.RunRetentionCleanup(rootCtx); err != nil {
 					slog.Error("retention cleanup failed", "error", err)
 				}
-			case <-retentionCtx.Done():
+			case <-rootCtx.Done():
 				return
 			}
 		}
 	}()
 
-	// Крон проверки приближающихся дедлайнов (каждый час)
-	deadlineCtx, deadlineCancel := context.WithCancel(ctx)
-	defer deadlineCancel()
+	// Крон проверки приближающихся дедлайнов (каждый час). ME-10: rootCtx.
 	go func() {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				if err := notifSvc.CheckDeadlines(deadlineCtx); err != nil {
+				if err := notifSvc.CheckDeadlines(rootCtx); err != nil {
 					slog.Error("deadline check failed", "error", err)
 				}
-			case <-deadlineCtx.Done():
+			case <-rootCtx.Done():
 				return
 			}
 		}
@@ -506,28 +510,24 @@ func main() {
 	callsHandler := callsmod.NewHandler(callsSvc, recordingSvc, scheduledCallSvc, cfg.LiveKit, rbacSvc)
 	callsHandler.RegisterRoutes(api, requireAuth)
 
-	// Cron: обработка запланированных звонков (каждые 60 секунд)
-	scheduledCtx, scheduledCancel := context.WithCancel(ctx)
-	defer scheduledCancel()
+	// Cron: обработка запланированных звонков (каждые 60 секунд). ME-10: rootCtx.
 	go func() {
 		ticker := time.NewTicker(60 * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				if err := scheduledCallSvc.ProcessDueScheduledCalls(scheduledCtx); err != nil {
+				if err := scheduledCallSvc.ProcessDueScheduledCalls(rootCtx); err != nil {
 					slog.Error("scheduled calls processing failed", "error", err)
 				}
-			case <-scheduledCtx.Done():
+			case <-rootCtx.Done():
 				return
 			}
 		}
 	}()
 
-	// Запуск фоновой очистки устаревших записей присутствия
-	presenceCtx, presenceCancel := context.WithCancel(ctx)
-	defer presenceCancel()
-	go presenceSvc.StartCleanupLoop(presenceCtx)
+	// Запуск фоновой очистки устаревших записей присутствия. ME-10: rootCtx.
+	go presenceSvc.StartCleanupLoop(rootCtx)
 
 	// Auto-channel service (создаёт каналы при создании проектов)
 	autoChannelSvc := messengermod.NewAutoChannelService(messengerSvc, messengerEntRepo)
@@ -541,11 +541,11 @@ func main() {
 	apiKeySvc := apigatewaymod.NewAPIKeyService(db)
 	webhookSvc := apigatewaymod.NewWebhookService(db)
 	webhookDispatcher := apigatewaymod.NewWebhookDispatcher(db, nc)
-	dispatcherCtx, dispatcherCancel := context.WithCancel(ctx)
-	defer dispatcherCancel()
-	if err := webhookDispatcher.Start(dispatcherCtx); err != nil {
+	if err := webhookDispatcher.Start(rootCtx); err != nil {
 		slog.Error("failed to start webhook dispatcher", "error", err)
 	}
+	// ME-10: явный Stop() блокирует до drain'а workerWG (см. HI-08).
+	defer webhookDispatcher.Stop()
 	apiGatewayHandler := apigatewaymod.NewHandler(apiKeySvc, webhookSvc)
 	apiGatewayHandler.RegisterRoutes(api, requireAuth)
 
@@ -557,9 +557,7 @@ func main() {
 	backupHandler := backupmod.NewHandler(backupSvc)
 	backupHandler.RegisterRoutes(api, requireAuth, rbac.RequireAdmin(db))
 
-	// Еженедельный автоматический бэкап (каждые 7 дней)
-	backupCtx, backupCancel := context.WithCancel(ctx)
-	defer backupCancel()
+	// Еженедельный автоматический бэкап (каждые 7 дней). ME-10: rootCtx.
 	go func() {
 		ticker := time.NewTicker(7 * 24 * time.Hour)
 		defer ticker.Stop()
@@ -567,10 +565,10 @@ func main() {
 			select {
 			case <-ticker.C:
 				slog.Info("запуск автоматического еженедельного бэкапа")
-				if _, err := backupSvc.PerformBackup(backupCtx); err != nil {
+				if _, err := backupSvc.PerformBackup(rootCtx); err != nil {
 					slog.Error("автоматический бэкап не удался", "error", err)
 				}
-			case <-backupCtx.Done():
+			case <-rootCtx.Done():
 				return
 			}
 		}
@@ -592,9 +590,8 @@ func main() {
 	// --- WebSocket gateway ---
 
 	wsHub := wsmod.NewHub()
-	wsCtx, wsCancel := context.WithCancel(ctx)
-	defer wsCancel()
-	go wsHub.Run(wsCtx)
+	// ME-10: rootCtx (вместо локального wsCtx) — отменяется одним сигналом.
+	go wsHub.Run(rootCtx)
 
 	wsBridge := wsmod.NewBridge(wsHub, nc)
 	if err := wsBridge.Start(); err != nil {
@@ -616,12 +613,15 @@ func main() {
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	// ME-10 + ME-14: ждём отмены rootCtx (SIGINT/SIGTERM из NotifyContext
+	// или ручной rootCancel при критической ошибке).
+	<-rootCtx.Done()
 
 	slog.Info("shutting down server")
-	outboxCancel()
+	// rootCancel уже выполнен — все долгоиграющие горутины (outbox, cron,
+	// notification/audit consumer, dispatcher, wsHub) одновременно начали
+	// graceful-shutdown через свои select на rootCtx.Done().
+	// app.Shutdown сливает in-flight HTTP-запросы.
 	if err := app.Shutdown(); err != nil {
 		slog.Error("server shutdown error", "error", err)
 	}
