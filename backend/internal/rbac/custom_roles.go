@@ -30,13 +30,25 @@ type CustomRoleResponse struct {
 }
 
 // CreateCustomRole создаёт кастомную роль в проекте с заданным набором разрешений.
+//
+// Имена разрешений проходят строгую валидацию против реестра (ValidPermissionName) —
+// при наличии неизвестного имени возвращается ошибка, роль не создаётся. Это защищает
+// от опечаток в API-клиентах и от устаревших имён после refactor реестра.
+//
+// Dual-write: одновременно сохраняются (а) `permissions uint64` — кешированная битовая
+// проекция, и (б) `permission_names []string` — полный авторитетный список имён. Имена
+// являются источником истины; uint64 — fast-path для middleware.
 func (s *RBACService) CreateCustomRole(ctx context.Context, projectID uuid.UUID, req CustomRoleRequest) (*CustomRoleResponse, error) {
+	if err := validatePermissionNames(req.Permissions); err != nil {
+		return nil, err
+	}
 	perm := permissionsFromNames(req.Permissions)
 
 	r, err := s.client.Role.Create().
 		SetName(req.Name).
 		SetDescription(req.Description).
 		SetPermissions(uint64(perm)).
+		SetPermissionNames(req.Permissions).
 		SetIsSystem(false).
 		SetProjectID(projectID).
 		Save(ctx)
@@ -67,13 +79,19 @@ func (s *RBACService) ListCustomRoles(ctx context.Context, projectID uuid.UUID) 
 }
 
 // UpdateCustomRole обновляет кастомную роль (имя, описание, набор разрешений).
+//
+// Та же валидация и dual-write, что и в CreateCustomRole.
 func (s *RBACService) UpdateCustomRole(ctx context.Context, roleID uuid.UUID, req CustomRoleRequest) (*CustomRoleResponse, error) {
+	if err := validatePermissionNames(req.Permissions); err != nil {
+		return nil, err
+	}
 	perm := permissionsFromNames(req.Permissions)
 
 	r, err := s.client.Role.UpdateOneID(roleID).
 		SetName(req.Name).
 		SetDescription(req.Description).
 		SetPermissions(uint64(perm)).
+		SetPermissionNames(req.Permissions).
 		Save(ctx)
 	if err != nil {
 		return nil, err
@@ -187,14 +205,38 @@ func permissionNames(perm Permission) []string {
 	return names
 }
 
+// validatePermissionNames отвергает запрос, в котором есть имя разрешения,
+// не зарегистрированное в реестре. Возвращает ошибку с информативным сообщением
+// — handler-слой должен превратить её в 400 Bad Request.
+func validatePermissionNames(names []string) error {
+	for _, n := range names {
+		if !ValidPermissionName(n) {
+			return fmt.Errorf("unknown permission name: %s", n)
+		}
+	}
+	return nil
+}
+
 // toCustomRoleResponse конвертирует Ent Role в DTO ответа.
+//
+// Источник истины для списка разрешений — `r.PermissionNames`. Если поле непустое
+// (новые роли, созданные после миграции на dual-write), используем его как есть.
+// Иначе (legacy-роли, у которых JSON-колонка осталась NULL после ALTER TABLE)
+// восстанавливаем список из bitmask — это работает для всех 25 текущих разрешений
+// с Bit != 0. Когда появятся разрешения с Bit == 0, такие legacy-роли просто не
+// будут содержать их — что корректно, потому что эти разрешения не существовали
+// в момент создания роли.
 func toCustomRoleResponse(r *ent.Role) *CustomRoleResponse {
+	permList := r.PermissionNames
+	if len(permList) == 0 {
+		permList = permissionNames(Permission(r.Permissions))
+	}
 	return &CustomRoleResponse{
 		ID:          r.ID.String(),
 		Name:        r.Name,
 		Description: r.Description,
 		Permissions: r.Permissions,
-		PermList:    permissionNames(Permission(r.Permissions)),
+		PermList:    permList,
 		IsSystem:    r.IsSystem,
 	}
 }
