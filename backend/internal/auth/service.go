@@ -300,7 +300,8 @@ func (s *AuthService) RefreshToken(ctx context.Context, oldRefreshToken string) 
 		// Не удаляем старый refresh — пользователь может повторить
 		// запрос со старым токеном, и при следующей попытке снова
 		// успешно сохранится новый.
-		slog.Error("failed to update session after token refresh", "error", saveErr, "session_id", sessionID)
+		// LO-05: ошибка оборачивается через %w и поднимается до хендлера,
+		// который и логирует — двойной slog.Error на пути propagation убрали.
 		return nil, fmt.Errorf("refresh token: update session: %w", saveErr)
 	}
 
