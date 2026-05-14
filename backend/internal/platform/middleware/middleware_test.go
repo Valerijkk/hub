@@ -155,6 +155,7 @@ func TestErrorHandler_GenericError(t *testing.T) {
 func TestCORS_DefaultOrigins(t *testing.T) {
 	// Ensure env var is not set
 	os.Unsetenv("CORS_ORIGINS")
+	t.Setenv("DEV_MODE", "true") // HI-11: prod fail-start guards os.Exit
 
 	app := fiber.New()
 	app.Use(CORS())
@@ -194,6 +195,7 @@ func TestCORS_CustomOriginsFromEnv(t *testing.T) {
 
 func TestCORS_DisallowedOrigin(t *testing.T) {
 	os.Unsetenv("CORS_ORIGINS")
+	t.Setenv("DEV_MODE", "true") // HI-11: prod fail-start guards os.Exit
 
 	app := fiber.New()
 	app.Use(CORS())
@@ -214,6 +216,7 @@ func TestCORS_DisallowedOrigin(t *testing.T) {
 
 func TestCORS_AllowsCredentials(t *testing.T) {
 	os.Unsetenv("CORS_ORIGINS")
+	t.Setenv("DEV_MODE", "true") // HI-11: prod fail-start guards os.Exit
 
 	app := fiber.New()
 	app.Use(CORS())
@@ -229,6 +232,28 @@ func TestCORS_AllowsCredentials(t *testing.T) {
 	resp.Body.Close()
 
 	assert.Equal(t, "true", resp.Header.Get("Access-Control-Allow-Credentials"))
+}
+
+func TestParseCORSOrigins_TrimsAndRejectsWildcardAndEmpty(t *testing.T) {
+	cases := []struct {
+		name        string
+		env         string
+		wantOrigins []string
+		wantProbs   int
+	}{
+		{"empty env", "", nil, 0},
+		{"spaces", " http://a , http://b ", []string{"http://a", "http://b"}, 0},
+		{"wildcard rejected", "http://a,*", []string{"http://a"}, 1},
+		{"empty entries", "http://a,, ,http://b", []string{"http://a", "http://b"}, 2},
+		{"all bad", "*, ,,", nil, 4},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			origins, probs := parseCORSOrigins(tc.env)
+			assert.Equal(t, tc.wantOrigins, origins)
+			assert.Len(t, probs, tc.wantProbs)
+		})
+	}
 }
 
 // ---------------------------------------------------------------------------
