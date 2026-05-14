@@ -93,7 +93,10 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			items, searchErr := s.searchUsers(ctx, query)
+			// HI-12: ограничиваем выдачу пользователями, разделяющими хотя
+			// бы один проект с вызывающим — иначе search превращается в
+			// глобальный email/name enumerator.
+			items, searchErr := s.searchUsers(ctx, query, userID)
 			appendResults(items, searchErr)
 		}()
 	}
@@ -253,15 +256,32 @@ func (s *SearchService) searchTestCases(ctx context.Context, query string, proje
 	return results, rows.Err()
 }
 
-// searchUsers ищет пользователей по tsvector (без фильтрации по проектам).
-func (s *SearchService) searchUsers(ctx context.Context, query string) ([]SearchResult, error) {
+// searchUsers ищет пользователей по tsvector, ограничивая выдачу теми,
+// кто состоит хотя бы в одном общем с callerID проекте (HI-12). Кроме того,
+// сам callerID всегда возвращается, если попадает в поисковую выдачу — это
+// корректно, потому что пользователь имеет право увидеть «себя».
+//
+// Колонки project_members: project_members = FK на project,
+// user_project_members = FK на user. JOIN самой таблицы с собой даёт
+// все user-id, делящие хотя бы одну запись project_members с callerID.
+func (s *SearchService) searchUsers(ctx context.Context, query string, callerID uuid.UUID) ([]SearchResult, error) {
 	rows, err := s.sqlDB.QueryContext(ctx,
 		`SELECT id, name, email, display_name,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
 		FROM users
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
+		  AND (
+		        id = $2
+		        OR id IN (
+		            SELECT DISTINCT pm2.user_project_members
+		            FROM project_members pm1
+		            JOIN project_members pm2
+		              ON pm1.project_members = pm2.project_members
+		            WHERE pm1.user_project_members = $2
+		        )
+		      )
 		ORDER BY rank DESC LIMIT 10`,
-		query)
+		query, callerID.String())
 	if err != nil {
 		return nil, fmt.Errorf("поиск пользователей: %w", err)
 	}
