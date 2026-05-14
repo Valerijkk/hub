@@ -59,18 +59,27 @@ func (s *MagicLinkService) IsDevMode() bool {
 }
 
 func (s *MagicLinkService) SendMagicLink(ctx context.Context, email string) (string, error) {
-	// Check rate limit
+	// ME-05: Atomic rate-limit window establishment.
+	// Use SET NX EX to atomically initialize counter=1 with TTL on first hit.
+	// If SetNX returns false (key exists), Incr the existing counter.
+	// This avoids the race between Incr returning count=1 and a separate
+	// Expire being applied — a concurrent Incr in that window would have
+	// no TTL and the counter would persist forever after a Redis crash
+	// between the two commands.
 	rateKey := fmt.Sprintf("magiclink_rate:%s", email)
-	count, err := s.redis.Incr(ctx, rateKey).Result()
+	ok, err := s.redis.SetNX(ctx, rateKey, 1, magicLinkRateTTL).Result()
 	if err != nil {
-		return "", fmt.Errorf("magic link rate check: %w", err)
+		return "", fmt.Errorf("magic link rate check (setnx): %w", err)
 	}
-	if count == 1 {
-		// First request -- set the TTL for the rate limit window.
-		s.redis.Expire(ctx, rateKey, magicLinkRateTTL)
-	}
-	if count > magicLinkRateMax {
-		return "", ErrMagicLinkRateLimited
+	if !ok {
+		// Key already exists — increment without touching TTL.
+		count, err := s.redis.Incr(ctx, rateKey).Result()
+		if err != nil {
+			return "", fmt.Errorf("magic link rate check (incr): %w", err)
+		}
+		if count > magicLinkRateMax {
+			return "", ErrMagicLinkRateLimited
+		}
 	}
 
 	code, err := generateCode()
