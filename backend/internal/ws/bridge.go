@@ -116,7 +116,10 @@ func (b *Bridge) handleProjectEvent(msg *nats.Msg) {
 
 	var payload any
 	if len(msg.Data) > 0 {
-		_ = json.Unmarshal(msg.Data, &payload)
+		if err := json.Unmarshal(msg.Data, &payload); err != nil {
+			slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
+			return
+		}
 	}
 
 	b.hub.BroadcastToRoom(room, ServerMessage{
@@ -146,7 +149,10 @@ func (b *Bridge) handleMessengerEvent(msg *nats.Msg) {
 
 	var payload any
 	if len(msg.Data) > 0 {
-		_ = json.Unmarshal(msg.Data, &payload)
+		if err := json.Unmarshal(msg.Data, &payload); err != nil {
+			slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
+			return
+		}
 	}
 
 	b.hub.BroadcastToRoom(room, ServerMessage{
@@ -176,7 +182,10 @@ func (b *Bridge) handleCallEvent(msg *nats.Msg) {
 
 	var payload any
 	if len(msg.Data) > 0 {
-		_ = json.Unmarshal(msg.Data, &payload)
+		if err := json.Unmarshal(msg.Data, &payload); err != nil {
+			slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
+			return
+		}
 	}
 
 	b.hub.BroadcastToRoom(room, ServerMessage{
@@ -201,7 +210,10 @@ func (b *Bridge) handleCallChatEvent(msg *nats.Msg) {
 
 	var payload any
 	if len(msg.Data) > 0 {
-		_ = json.Unmarshal(msg.Data, &payload)
+		if err := json.Unmarshal(msg.Data, &payload); err != nil {
+			slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
+			return
+		}
 	}
 
 	b.hub.BroadcastToRoom(room, ServerMessage{
@@ -229,7 +241,10 @@ func (b *Bridge) handleAuthSessionEvent(msg *nats.Msg) {
 
 	var payload any
 	if len(msg.Data) > 0 {
-		_ = json.Unmarshal(msg.Data, &payload)
+		if err := json.Unmarshal(msg.Data, &payload); err != nil {
+			slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
+			return
+		}
 	}
 
 	b.hub.SendToUser(userID, ServerMessage{
@@ -251,7 +266,10 @@ func (b *Bridge) handleNotificationEvent(msg *nats.Msg) {
 
 	var payload any
 	if len(msg.Data) > 0 {
-		_ = json.Unmarshal(msg.Data, &payload)
+		if err := json.Unmarshal(msg.Data, &payload); err != nil {
+			slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
+			return
+		}
 	}
 
 	b.hub.SendToUser(userID, ServerMessage{
