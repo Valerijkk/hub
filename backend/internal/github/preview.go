@@ -11,6 +11,8 @@ import (
 	"github.com/otiai10/opengraph/v2"
 	"github.com/redis/go-redis/v9"
 	"encoding/json"
+
+	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // issueURLRegex распознаёт внутренние ссылки на задачи.
@@ -117,7 +119,16 @@ func (s *LinkPreviewService) resolveIssuePreview(ctx context.Context, issueKey s
 }
 
 // resolveExternalPreview получает OpenGraph метаданные для внешнего URL.
+// URL предварительно валидируется (схема, отсутствие userinfo) — это первый
+// уровень защиты от SSRF; полная защита от DNS-rebinding потребовала бы
+// перевода opengraph.Fetch на http.Client с SafeDialContext, что выходит за
+// рамки текущего фикса (CR-03).
 func (s *LinkPreviewService) resolveExternalPreview(rawURL string) *LinkPreviewResponse {
+	if err := safehttp.ValidateOutboundURL(rawURL); err != nil {
+		slog.Debug("link preview: отклонён небезопасный URL", "url", rawURL, "error", err)
+		return nil
+	}
+
 	og, err := opengraph.Fetch(rawURL)
 	if err != nil {
 		slog.Debug("не удалось получить OG данные", "url", rawURL, "error", err)

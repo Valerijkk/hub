@@ -19,8 +19,14 @@ import (
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/webhookdelivery"
 	"github.com/valerii/hub/backend/ent/webhookendpoint"
+	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
+
+// webhookHTTPClient — общий безопасный HTTP-клиент для исходящих
+// вебхук-запросов. Использует SafeDialContext, который блокирует RFC1918,
+// loopback, link-local и метаданные облачных провайдеров (защита от SSRF).
+var webhookHTTPClient = safehttp.NewSafeHTTPClient(10 * time.Second)
 
 // WebhookDispatcher потребляет события из JetStream и рассылает HTTP POST
 // на все подписанные активные вебхук-эндпоинты. Подписывает payload HMAC-SHA256.
@@ -177,7 +183,13 @@ func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, ep *ent.Webhoo
 }
 
 // sendWebhook выполняет HTTP POST к эндпоинту с подписью HMAC-SHA256.
+// URL предварительно валидируется (только http/https, без userinfo) и
+// отправляется через webhookHTTPClient с SafeDialContext (защита от SSRF).
 func (d *WebhookDispatcher) sendWebhook(url string, body []byte, signature, eventType string) (int, string, error) {
+	if err := safehttp.ValidateOutboundURL(url); err != nil {
+		return 0, "", fmt.Errorf("отклонён небезопасный URL: %w", err)
+	}
+
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return 0, "", fmt.Errorf("ошибка создания запроса: %w", err)
@@ -188,8 +200,7 @@ func (d *WebhookDispatcher) sendWebhook(url string, body []byte, signature, even
 	req.Header.Set("X-Hub-Event", eventType)
 	req.Header.Set("User-Agent", "Hub-Webhook/1.0")
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := webhookHTTPClient.Do(req)
 	if err != nil {
 		return 0, "", fmt.Errorf("ошибка отправки: %w", err)
 	}
@@ -235,7 +246,14 @@ func NewWebhookService(db *ent.Client) *WebhookService {
 }
 
 // CreateEndpoint создаёт новый вебхук-эндпоинт в проекте.
+// URL валидируется на схему (http/https) и отсутствие userinfo —
+// фактическая блокировка приватных IP происходит в SafeDialContext
+// (CR-03, защита от DNS-rebinding).
 func (s *WebhookService) CreateEndpoint(ctx context.Context, projectID uuid.UUID, req CreateWebhookRequest) (*WebhookResponse, error) {
+	if err := safehttp.ValidateOutboundURL(req.URL); err != nil {
+		return nil, fiber.NewError(fiber.StatusBadRequest, "некорректный URL вебхука: "+err.Error())
+	}
+
 	secret := req.Secret
 	if secret == "" {
 		secret = uuid.New().String()
@@ -275,6 +293,9 @@ func (s *WebhookService) ListEndpoints(ctx context.Context, projectID uuid.UUID)
 func (s *WebhookService) UpdateEndpoint(ctx context.Context, endpointID uuid.UUID, req UpdateWebhookRequest) (*WebhookResponse, error) {
 	builder := s.db.WebhookEndpoint.UpdateOneID(endpointID)
 	if req.URL != nil {
+		if err := safehttp.ValidateOutboundURL(*req.URL); err != nil {
+			return nil, fiber.NewError(fiber.StatusBadRequest, "некорректный URL вебхука: "+err.Error())
+		}
 		builder.SetURL(*req.URL)
 	}
 	if req.Secret != nil {
