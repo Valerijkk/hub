@@ -574,26 +574,64 @@ func (s *AuthService) GetRegistrationMode(ctx context.Context) (string, error) {
 }
 
 // SetRegistrationMode обновляет режим регистрации (только для администратора).
+//
+// ME-04: Ent в этой версии репозитория не экспонирует OnConflict/Upsert
+// (см. ent/systemsetting_create.go — нет методов OnConflict*). Поэтому
+// делаем "Update → Create on miss" с однократным retry на уникальное
+// нарушение: если два администратора параллельно ставят режим, второй
+// после AlreadyExists делает повторный Update и попадает в существующую
+// строку. Это покрывает упомянутую в ревью racy-ситуацию (`n=0` для
+// обоих → второй Create нарушит unique constraint).
 func (s *AuthService) SetRegistrationMode(ctx context.Context, mode string) error {
-	// Upsert: try update first, create if not found.
+	return s.upsertSystemSetting(ctx, "registration_mode", mode,
+		"Controls whether new users can register: open or invite_only")
+}
+
+// upsertSystemSetting реализует идемпотентный upsert для SystemSetting,
+// устойчивый к параллельным вызовам. Алгоритм:
+//
+//  1. Попытаться Update — если запись существует, обновим её value.
+//  2. Если n == 0 (нет такой записи) — Create.
+//  3. Если Create вернул IsConstraintError (= unique violation = другой
+//     процесс успел создать запись между шагами 1 и 2) — повторить
+//     Update; на этот раз он гарантированно попадёт в созданную чужим
+//     процессом строку.
+//
+// Это устраняет ME-04 без необходимости в OnConflict / Upsert.
+func (s *AuthService) upsertSystemSetting(ctx context.Context, key, value, description string) error {
 	n, err := s.db.SystemSetting.Update().
-		Where(systemsetting.KeyEQ("registration_mode")).
-		SetValue(mode).
+		Where(systemsetting.KeyEQ(key)).
+		SetValue(value).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("set registration mode: %w", err)
+		return fmt.Errorf("upsert system setting %q (update): %w", key, err)
 	}
-	if n == 0 {
-		_, err = s.db.SystemSetting.Create().
-			SetKey("registration_mode").
-			SetValue(mode).
-			SetDescription("Controls whether new users can register: open or invite_only").
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("create registration mode setting: %w", err)
+	if n > 0 {
+		return nil
+	}
+
+	_, err = s.db.SystemSetting.Create().
+		SetKey(key).
+		SetValue(value).
+		SetDescription(description).
+		Save(ctx)
+	if err == nil {
+		return nil
+	}
+
+	// Possible race: another caller created the row between our Update
+	// and our Create. Retry the Update once — at this point the row
+	// definitely exists.
+	if ent.IsConstraintError(err) {
+		if _, retryErr := s.db.SystemSetting.Update().
+			Where(systemsetting.KeyEQ(key)).
+			SetValue(value).
+			Save(ctx); retryErr != nil {
+			return fmt.Errorf("upsert system setting %q (retry update): %w", key, retryErr)
 		}
+		return nil
 	}
-	return nil
+	return fmt.Errorf("upsert system setting %q (create): %w", key, err)
 }
 
 // ---- UserResponse builder ----
