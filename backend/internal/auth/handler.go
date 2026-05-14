@@ -26,7 +26,8 @@ func NewHandler(service *AuthService, db *ent.Client, tgBot *TelegramBotAuth) *H
 }
 
 // RegisterRoutes регистрирует все маршруты аутентификации на указанном Fiber-роутере.
-func (h *Handler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler) {
+// LO-08: имя параметра выровнено с остальными модулями (authMw).
+func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	auth := api.Group("/auth")
 
 	// Публичные эндпоинты (без аутентификации).
@@ -37,7 +38,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler)
 	auth.Post("/refresh", h.RefreshToken)
 
 	// Защищённые эндпоинты (требуют аутентификации).
-	authGroup := auth.Group("", authMiddleware)
+	authGroup := auth.Group("", authMw)
 	authGroup.Post("/logout", h.Logout)
 	authGroup.Get("/me", h.GetMe)
 	authGroup.Put("/me", h.UpdateProfile)
@@ -46,7 +47,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMiddleware fiber.Handler)
 	authGroup.Delete("/sessions/:sessionId", h.RevokeSession)
 
 	// Эндпоинты только для администраторов.
-	admin := api.Group("/admin", authMiddleware)
+	admin := api.Group("/admin", authMw)
 	admin.Get("/registration-mode", h.GetRegistrationMode)
 	admin.Put("/registration-mode", h.SetRegistrationMode)
 }

@@ -22,15 +22,16 @@ func NewHandler(svc *SearchService) *Handler {
 }
 
 // RegisterRoutes регистрирует маршруты поиска и сохранённых фильтров.
-func (h *Handler) RegisterRoutes(api fiber.Router, requireAuth fiber.Handler) {
+// LO-08: имя параметра выровнено с остальными модулями (authMw).
+func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	// Fiber v3: inline handler chain api.Get(path, mw, handler) не вызывает middleware.
 	// Используем Group для корректного применения auth middleware.
 	search := api.Group("/search")
-	search.Use(requireAuth)
+	search.Use(authMw)
 	search.Get("", h.search) // GET /api/search?q=...
 
 	filters := api.Group("/filters")
-	filters.Use(requireAuth)
+	filters.Use(authMw)
 	filters.Post("/", h.createFilter)
 	filters.Get("/", h.listFilters)
 	filters.Delete("/:id", h.deleteFilter)
