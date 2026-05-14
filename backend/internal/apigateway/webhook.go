@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -28,26 +29,61 @@ import (
 // loopback, link-local и метаданные облачных провайдеров (защита от SSRF).
 var webhookHTTPClient = safehttp.NewSafeHTTPClient(10 * time.Second)
 
+// Размеры пула воркеров и очереди доставки вебхуков (HI-08).
+// Подобраны умеренно: 16 воркеров × до 4 ретраев × ~10s HTTP-timeout
+// = до ~640s суммарной нагрузки в худшем случае; очередь 256 ловит
+// микро-всплески, а под устойчивой нагрузкой сообщения копятся в NATS.
+const (
+	webhookWorkers   = 16
+	webhookQueueSize = 256
+)
+
+// webhookJob — единица работы для воркер-пула: одна пара (endpoint, событие).
+type webhookJob struct {
+	ep        *ent.WebhookEndpoint
+	eventType string
+	body      []byte                 // уже сериализованный payload (msg.Data())
+	payload   map[string]interface{} // распакованный payload для записи в WebhookDelivery
+}
+
 // WebhookDispatcher потребляет события из JetStream и рассылает HTTP POST
 // на все подписанные активные вебхук-эндпоинты. Подписывает payload HMAC-SHA256.
+//
+// HI-08: для предотвращения goroutine/connection-pool exhaustion рассылка
+// выполняется через фиксированный воркер-пул (webhookWorkers) с буфером
+// webhookQueueSize. Если очередь полна — задача дропается с warn-логом;
+// JetStream доставит событие повторно (MaxDeliver=3).
 type WebhookDispatcher struct {
-	db   *ent.Client
-	nats *natsclient.Client
-	cons jetstream.ConsumeContext
+	db       *ent.Client
+	nats     *natsclient.Client
+	cons     jetstream.ConsumeContext
+	jobs     chan webhookJob
+	workerWG sync.WaitGroup
+	stopOnce sync.Once
 }
 
 // NewWebhookDispatcher создаёт новый диспетчер вебхуков.
 func NewWebhookDispatcher(db *ent.Client, nats *natsclient.Client) *WebhookDispatcher {
-	return &WebhookDispatcher{db: db, nats: nats}
+	return &WebhookDispatcher{
+		db:   db,
+		nats: nats,
+		jobs: make(chan webhookJob, webhookQueueSize),
+	}
 }
 
-// Start запускает JetStream consumer для обработки событий вебхуков.
-// Подписывается на стрим WEBHOOKS с субъектами всех модулей и вызывает
-// dispatchEvent для каждого входящего сообщения.
+// Start запускает JetStream consumer и фиксированный пул HTTP-воркеров для
+// обработки событий вебхуков (HI-08). Подписывается на стрим EVENTS и
+// пушит каждую задачу доставки в d.jobs; воркеры разбирают очередь.
 func (d *WebhookDispatcher) Start(ctx context.Context) error {
 	if d.nats == nil {
 		slog.Info("NATS не подключен, вебхук-диспетчер не запущен")
 		return nil
+	}
+
+	// Поднимаем воркеры до того, как начнём принимать сообщения.
+	for i := 0; i < webhookWorkers; i++ {
+		d.workerWG.Add(1)
+		go d.deliveryWorker(ctx)
 	}
 
 	js := d.nats.JetStream
@@ -81,34 +117,53 @@ func (d *WebhookDispatcher) Start(ctx context.Context) error {
 	}
 	d.cons = cons
 
-	slog.Info("webhook dispatcher запущен")
+	slog.Info("webhook dispatcher запущен", "workers", webhookWorkers, "queue", webhookQueueSize)
 	return nil
 }
 
-// Stop останавливает JetStream consumer вебхуков.
+// Stop останавливает JetStream consumer и дожидается завершения всех
+// воркеров. Идемпотентно — повторный вызов безопасен.
 func (d *WebhookDispatcher) Stop() {
-	if d.cons != nil {
-		d.cons.Stop()
+	d.stopOnce.Do(func() {
+		if d.cons != nil {
+			d.cons.Stop()
+		}
+		// Закрываем канал — воркеры выходят из range loop.
+		close(d.jobs)
+		d.workerWG.Wait()
+	})
+}
+
+// deliveryWorker — единичный HTTP-воркер. Читает задачи из канала и доставляет
+// вебхук с ретраями. Завершается при закрытии d.jobs.
+func (d *WebhookDispatcher) deliveryWorker(ctx context.Context) {
+	defer d.workerWG.Done()
+	for job := range d.jobs {
+		d.deliverWithRetry(ctx, job)
 	}
 }
 
 // handleMessage разбирает входящее JetStream-сообщение и передаёт в dispatchEvent.
+// HI-08: payload передаётся в воркеры как уже сериализованный body (msg.Data())
+// и распакованная map — избегаем повторного json.Marshal в каждом воркере.
 func (d *WebhookDispatcher) handleMessage(ctx context.Context, msg jetstream.Msg) {
 	subject := msg.Subject()
+	body := msg.Data()
 
 	var payload map[string]interface{}
-	if err := json.Unmarshal(msg.Data(), &payload); err != nil {
+	if err := json.Unmarshal(body, &payload); err != nil {
 		slog.Error("не удалось разобрать payload вебхук-события", "error", err, "subject", subject)
 		return
 	}
 
 	// Subject NATS используется как тип события (например: tracker.{projID}.issue.created).
-	d.dispatchEvent(ctx, subject, payload)
+	d.dispatchEvent(ctx, subject, body, payload)
 }
 
-// dispatchEvent находит все активные эндпоинты, подписанные на событие,
-// и отправляет POST с HMAC подписью. Повторяет с exponential backoff (3 попытки).
-func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string, payload map[string]interface{}) {
+// dispatchEvent находит все активные эндпоинты, подписанные на событие, и
+// пушит задачи доставки в воркер-пул. HI-08: вместо unbounded `go` —
+// очередь с фиксированным числом воркеров и явное логирование переполнения.
+func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string, body []byte, payload map[string]interface{}) {
 	endpoints, err := d.db.WebhookEndpoint.Query().
 		Where(
 			webhookendpoint.IsActive(true),
@@ -123,21 +178,26 @@ func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string,
 		if !containsEvent(ep.Events, eventType) {
 			continue
 		}
-		go d.deliverWithRetry(ctx, ep, eventType, payload)
+		job := webhookJob{ep: ep, eventType: eventType, body: body, payload: payload}
+		select {
+		case d.jobs <- job:
+		case <-ctx.Done():
+			return
+		default:
+			// Очередь переполнена. Не блокируем consumer — JetStream
+			// доставит сообщение повторно (MaxDeliver=3).
+			slog.Warn("webhook job queue full, dropping delivery",
+				"endpoint", ep.URL, "event", eventType, "queue_size", webhookQueueSize)
+		}
 	}
 }
 
-// deliverWithRetry отправляет вебхук с повторами (1s, 5s, 30s).
-func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, ep *ent.WebhookEndpoint, eventType string, payload map[string]interface{}) {
+// deliverWithRetry отправляет вебхук с повторами (1s, 5s, 30s). Тело уже
+// сериализовано в job.body, повторного json.Marshal нет (HI-08).
+func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, job webhookJob) {
 	delays := []time.Duration{0, time.Second, 5 * time.Second, 30 * time.Second}
 
-	body, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("не удалось сериализовать payload вебхука", "error", err)
-		return
-	}
-
-	sig := signPayload(body, ep.Secret)
+	sig := signPayload(job.body, job.ep.Secret)
 
 	for attempt, delay := range delays {
 		if delay > 0 {
@@ -148,7 +208,7 @@ func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, ep *ent.Webhoo
 			}
 		}
 
-		statusCode, respBody, deliveryErr := d.sendWebhook(ep.URL, body, sig, eventType)
+		statusCode, respBody, deliveryErr := d.sendWebhook(job.ep.URL, job.body, sig, job.eventType)
 
 		errMsg := ""
 		if deliveryErr != nil {
@@ -157,11 +217,11 @@ func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, ep *ent.Webhoo
 
 		// Записываем доставку в БД
 		builder := d.db.WebhookDelivery.Create().
-			SetEventType(eventType).
-			SetPayload(payload).
+			SetEventType(job.eventType).
+			SetPayload(job.payload).
 			SetStatusCode(statusCode).
 			SetResponseBody(respBody).
-			SetEndpointID(ep.ID)
+			SetEndpointID(job.ep.ID)
 
 		if errMsg != "" {
 			builder.SetError(errMsg)
@@ -177,7 +237,7 @@ func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, ep *ent.Webhoo
 
 		if attempt < len(delays)-1 {
 			slog.Warn("попытка доставки вебхука не удалась, повтор",
-				"endpoint", ep.URL, "attempt", attempt+1, "status", statusCode, "error", errMsg)
+				"endpoint", job.ep.URL, "attempt", attempt+1, "status", statusCode, "error", errMsg)
 		}
 	}
 }
