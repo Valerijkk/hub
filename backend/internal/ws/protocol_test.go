@@ -61,4 +61,58 @@ func TestNewClient(t *testing.T) {
 	assert.NotNil(t, c.send)
 	assert.NotNil(t, c.done)
 	assert.NotNil(t, c.rooms)
+	assert.NotEmpty(t, c.ConnectionID, "ConnectionID должен быть присвоен при создании")
+}
+
+// TestNewClient_ConnectionIDsAreUnique проверяет, что два клиента одного
+// и того же юзера получают разные ConnectionID — основа фикса HI-07.
+func TestNewClient_ConnectionIDsAreUnique(t *testing.T) {
+	a := NewClient("user-1", "s1")
+	b := NewClient("user-1", "s2")
+	assert.NotEqual(t, a.ConnectionID, b.ConnectionID)
+}
+
+// TestHub_SendToUser_FansOutToAllConnections — мульти-таб должен получать
+// сообщения на все открытые табы одного юзера (HI-07 регрессионный тест).
+func TestHub_SendToUser_FansOutToAllConnections(t *testing.T) {
+	hub := NewHub()
+
+	a := NewClient("user-1", "s1")
+	b := NewClient("user-1", "s2")
+
+	hub.registerClient(a)
+	hub.registerClient(b)
+
+	hub.SendToUser("user-1", ServerMessage{Type: TypePong})
+
+	for _, c := range []*Client{a, b} {
+		select {
+		case <-c.send:
+			// ok
+		default:
+			t.Fatalf("client %s did not receive fan-out message", c.ConnectionID)
+		}
+	}
+}
+
+// TestHub_RemoveOneConnectionDoesNotAffectOther — удаление одного соединения
+// не должно затрагивать другие табы того же юзера (HI-07 регрессия).
+func TestHub_RemoveOneConnectionDoesNotAffectOther(t *testing.T) {
+	hub := NewHub()
+	a := NewClient("user-1", "s1")
+	b := NewClient("user-1", "s2")
+	hub.registerClient(a)
+	hub.registerClient(b)
+
+	hub.removeClient(a)
+
+	hub.SendToUser("user-1", ServerMessage{Type: TypePong})
+
+	// b всё ещё подключён — должен получить сообщение.
+	select {
+	case <-b.send:
+		// ok
+	default:
+		t.Fatal("surviving connection should still receive messages after sibling close")
+	}
 }

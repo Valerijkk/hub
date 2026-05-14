@@ -5,27 +5,37 @@ import (
 	"encoding/json"
 	"log/slog"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 // Client — представляет одно WebSocket-соединение пользователя.
+//
+// HI-07: ConnectionID — уникальный идентификатор именно соединения
+// (а не пользователя). Один пользователь может иметь несколько активных
+// клиентов (мульти-таб) — каждый со своим ConnectionID.
 type Client struct {
-	UserID    string
-	SessionID string
-	send      chan []byte
-	done      chan struct{}
-	rooms     map[string]bool
-	mu        sync.Mutex
-	closeOnce sync.Once
+	UserID       string
+	SessionID    string
+	ConnectionID string
+	send         chan []byte
+	done         chan struct{}
+	rooms        map[string]bool
+	mu           sync.Mutex
+	closeOnce    sync.Once
 }
 
 // NewClient создаёт нового клиента для указанного пользователя и сессии.
+// ConnectionID генерируется автоматически как UUID v4, обеспечивая
+// уникальность даже при множественных одновременных соединениях одного юзера.
 func NewClient(userID, sessionID string) *Client {
 	return &Client{
-		UserID:    userID,
-		SessionID: sessionID,
-		send:      make(chan []byte, 256),
-		done:      make(chan struct{}),
-		rooms:     make(map[string]bool),
+		UserID:       userID,
+		SessionID:    sessionID,
+		ConnectionID: uuid.NewString(),
+		send:         make(chan []byte, 256),
+		done:         make(chan struct{}),
+		rooms:        make(map[string]bool),
 	}
 }
 
@@ -35,11 +45,22 @@ func (c *Client) Send() chan []byte {
 }
 
 // Hub — управляет активными WebSocket-клиентами и подписками на комнаты.
+//
+// HI-07: хранилище клиентов организовано в две карты:
+//   - clients: connectionID -> *Client  (полный список соединений для cleanup
+//     и быстрого поиска по ID соединения)
+//   - userClients: userID -> *sync.Map  (внутренняя карта connectionID ->
+//     *Client; используется SendToUser для веера по всем табам пользователя)
+//
+// Это устраняет проблему "новое соединение того же юзера затирает старое",
+// которую вызывал старый clients map с ключом userID.
 type Hub struct {
-	// clients хранит соответствие userID -> *Client. sync.Map для потокобезопасного доступа.
-	clients sync.Map
+	clients     sync.Map // connectionID -> *Client
+	userClients sync.Map // userID       -> *sync.Map[connectionID -> *Client]
 
-	// rooms хранит соответствие roomKey -> (sync.Map: userID -> *Client).
+	// rooms хранит соответствие roomKey -> (sync.Map: connectionID -> *Client).
+	// HI-07: ключ внутренней карты — connectionID, а не userID, иначе одно
+	// соединение пользователя могло вытеснить другое из комнаты.
 	rooms sync.Map
 
 	register   chan *Client
@@ -61,11 +82,13 @@ func (h *Hub) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case client := <-h.register:
-			h.clients.Store(client.UserID, client)
-			slog.Debug("ws client registered", "userID", client.UserID)
+			h.registerClient(client)
+			slog.Debug("ws client registered",
+				"userID", client.UserID, "connID", client.ConnectionID)
 		case client := <-h.unregister:
 			h.removeClient(client)
-			slog.Debug("ws client unregistered", "userID", client.UserID)
+			slog.Debug("ws client unregistered",
+				"userID", client.UserID, "connID", client.ConnectionID)
 		}
 	}
 }
@@ -80,7 +103,18 @@ func (h *Hub) Unregister(client *Client) {
 	h.unregister <- client
 }
 
-// Subscribe подписывает клиента на комнату.
+// registerClient вставляет клиента в обе карты (clients + userClients).
+// Вызывается только из горутины Run, поэтому не требует внешней синхронизации.
+func (h *Hub) registerClient(client *Client) {
+	h.clients.Store(client.ConnectionID, client)
+
+	inner, _ := h.userClients.LoadOrStore(client.UserID, &sync.Map{})
+	inner.(*sync.Map).Store(client.ConnectionID, client)
+}
+
+// Subscribe подписывает клиента на комнату. Ключом во внутренней карте
+// служит ConnectionID, чтобы два соединения одного и того же юзера могли
+// независимо состоять в одной комнате.
 func (h *Hub) Subscribe(client *Client, room string) {
 	client.mu.Lock()
 	client.rooms[room] = true
@@ -88,9 +122,10 @@ func (h *Hub) Subscribe(client *Client, room string) {
 
 	actual, _ := h.rooms.LoadOrStore(room, &sync.Map{})
 	members := actual.(*sync.Map)
-	members.Store(client.UserID, client)
+	members.Store(client.ConnectionID, client)
 
-	slog.Debug("ws client subscribed", "userID", client.UserID, "room", room)
+	slog.Debug("ws client subscribed",
+		"userID", client.UserID, "connID", client.ConnectionID, "room", room)
 }
 
 // Unsubscribe отписывает клиента от комнаты.
@@ -101,7 +136,7 @@ func (h *Hub) Unsubscribe(client *Client, room string) {
 
 	if val, ok := h.rooms.Load(room); ok {
 		members := val.(*sync.Map)
-		members.Delete(client.UserID)
+		members.Delete(client.ConnectionID)
 	}
 }
 
@@ -126,13 +161,15 @@ func (h *Hub) BroadcastToRoom(room string, msg ServerMessage) {
 		default:
 			// Client send buffer full, skip message to avoid blocking.
 			slog.Warn("ws client send buffer full, dropping message",
-				"userID", client.UserID, "room", room)
+				"userID", client.UserID, "connID", client.ConnectionID, "room", room)
 		}
 		return true
 	})
 }
 
-// SendToUser отправляет сообщение конкретному пользователю, если он подключён.
+// SendToUser отправляет сообщение всем активным соединениям пользователя
+// (HI-07 multi-tab fan-out). Если ни одно соединение не открыто, ничего
+// не делает.
 func (h *Hub) SendToUser(userID string, msg ServerMessage) {
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -140,22 +177,46 @@ func (h *Hub) SendToUser(userID string, msg ServerMessage) {
 		return
 	}
 
-	val, ok := h.clients.Load(userID)
+	val, ok := h.userClients.Load(userID)
 	if !ok {
 		return
 	}
 
-	client := val.(*Client)
-	select {
-	case client.send <- data:
-	default:
-		slog.Warn("ws client send buffer full, dropping message", "userID", userID)
-	}
+	inner := val.(*sync.Map)
+	inner.Range(func(_, value any) bool {
+		client := value.(*Client)
+		select {
+		case client.send <- data:
+		default:
+			slog.Warn("ws client send buffer full, dropping message",
+				"userID", userID, "connID", client.ConnectionID)
+		}
+		return true
+	})
 }
 
-// removeClient удаляет клиента из карты клиентов и всех комнат.
+// removeClient удаляет клиента из всех структур Hub. Вызывается только из
+// горутины Run, что серилизует его с registerClient. Subscribe/Unsubscribe
+// продолжают работать с собственной картой rooms через sync.Map, и так как
+// ключом теперь служит ConnectionID, поздний Subscribe старого соединения
+// не может затереть запись нового соединения того же пользователя (HI-07).
 func (h *Hub) removeClient(client *Client) {
-	h.clients.Delete(client.UserID)
+	h.clients.Delete(client.ConnectionID)
+
+	if val, ok := h.userClients.Load(client.UserID); ok {
+		inner := val.(*sync.Map)
+		inner.Delete(client.ConnectionID)
+		// Опционально: убрать пустую запись из userClients, чтобы карта
+		// не разбухала после массовых дисконнектов.
+		empty := true
+		inner.Range(func(_, _ any) bool {
+			empty = false
+			return false
+		})
+		if empty {
+			h.userClients.Delete(client.UserID)
+		}
+	}
 
 	client.mu.Lock()
 	rooms := make([]string, 0, len(client.rooms))
@@ -168,7 +229,7 @@ func (h *Hub) removeClient(client *Client) {
 	for _, room := range rooms {
 		if val, ok := h.rooms.Load(room); ok {
 			members := val.(*sync.Map)
-			members.Delete(client.UserID)
+			members.Delete(client.ConnectionID)
 		}
 	}
 
