@@ -54,6 +54,14 @@ func (c *Client) Publish(subject string, data []byte) error {
 // EnsureStreams создаёт единый JetStream stream EVENTS, агрегирующий события
 // всех модулей. Каждый consumer (audit, webhook, notification) создаёт свой
 // durable consumer на этом стриме.
+//
+// ME-07: явно перечисляем durable subjects.
+//   - notification.> — уведомления должны переживать рестарт, иначе бэкенд
+//     теряет очередь между рестартами и pending события не доедут.
+//   - calls.recording.> — события готовности/завершения записи звонка
+//     должны быть durable, чтобы webhook-диспатчер и аудит их видели.
+//   - calls.chat.> — намеренно НЕ durable: чат внутри звонка — это
+//     real-time, реплей не нужен (см. handleCallChatEvent в ws/bridge.go).
 func (c *Client) EnsureStreams(ctx context.Context) error {
 	_, err := c.JetStream.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
 		Name: StreamName,
@@ -63,8 +71,10 @@ func (c *Client) EnsureStreams(ctx context.Context) error {
 			"messenger.channel.>",
 			"tms.>",
 			"calls.channel.>",
+			"calls.recording.>",
 			"auth.session.>",
 			"sprint.>",
+			"notification.>",
 		},
 		Retention: jetstream.InterestPolicy,
 		MaxAge:    7 * 24 * time.Hour,
