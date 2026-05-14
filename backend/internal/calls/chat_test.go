@@ -2,6 +2,7 @@ package calls
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -13,15 +14,20 @@ import (
 )
 
 // setupTestMongoDB создаёт подключение к тестовой MongoDB.
-// Использует localhost:27017 (запускается через docker-compose).
+// URL берётся из MONGODB_TEST_URL, дефолт — локальный docker-compose mongo с auth hub:hub.
 // Возвращает очищенную тестовую базу данных.
 func setupTestMongoDB(t *testing.T) *mongo.Database {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	uri := os.Getenv("MONGODB_TEST_URL")
+	if uri == "" {
+		uri = "mongodb://hub:hub@localhost:27017/?authSource=admin"
+	}
+
 	client, err := mongo.Connect(options.Client().
-		ApplyURI("mongodb://localhost:27017").
+		ApplyURI(uri).
 		SetConnectTimeout(2 * time.Second).
 		SetServerSelectionTimeout(2 * time.Second))
 	if err != nil {
