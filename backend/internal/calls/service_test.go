@@ -19,7 +19,7 @@ func TestGenerateToken(t *testing.T) {
 	}
 
 	svc := &CallService{
-		cfg: cfg,
+		room: NewCallRoomService(cfg),
 	}
 
 	token, err := svc.GenerateToken("test-room", "user-123", "Test User")
@@ -40,7 +40,7 @@ func TestGenerateToken_DifferentRooms(t *testing.T) {
 	}
 
 	svc := &CallService{
-		cfg: cfg,
+		room: NewCallRoomService(cfg),
 	}
 
 	token1, err := svc.GenerateToken("room-1", "user-1", "User 1")
@@ -52,15 +52,15 @@ func TestGenerateToken_DifferentRooms(t *testing.T) {
 	assert.NotEqual(t, token1, token2, "токены для разных комнат должны отличаться")
 }
 
-// TestPublishJSONNilSafe проверяет что PublishJSON не паникует при nil NATS client.
+// TestPublishJSONNilSafe проверяет что CallEventPublisher не паникует при nil NATS client.
+// После рефакторинга SC-14-2 публикация инкапсулирована в CallEventPublisher;
+// при nil-receiver внутренний nats.Client сам делает no-op.
 func TestPublishJSONNilSafe(t *testing.T) {
-	svc := &CallService{
-		nats: nil,
-	}
+	pub := NewCallEventPublisher(nil)
 
-	// Не должно быть паники — PublishJSON безопасен при nil receiver
+	// Не должно быть паники — PublishJSON безопасен при nil NATS client.
 	assert.NotPanics(t, func() {
-		svc.nats.PublishJSON("test.subject", map[string]string{"key": "value"})
+		pub.nats.PublishJSON("test.subject", map[string]string{"key": "value"})
 	})
 }
 
