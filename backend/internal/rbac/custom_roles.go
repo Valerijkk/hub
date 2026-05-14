@@ -187,36 +187,6 @@ func permissionNames(perm Permission) []string {
 	return names
 }
 
-// permissionNameMap — маппинг имён разрешений на значения Permission.
-var permissionNameMap = map[string]Permission{
-	"project.view":           PermProjectView,
-	"project.edit":           PermProjectEdit,
-	"project.delete":         PermProjectDelete,
-	"project.manage_members": PermProjectManageMembers,
-	"project.manage_roles":   PermProjectManageRoles,
-	"project.manage_workflow": PermProjectManageWorkflow,
-	"task.create":            PermTaskCreate,
-	"task.edit":              PermTaskEdit,
-	"task.edit_any":          PermTaskEditAny,
-	"task.delete":            PermTaskDelete,
-	"task.assign":            PermTaskAssign,
-	"task.comment":           PermTaskComment,
-	"file.upload":            PermFileUpload,
-	"file.delete":            PermFileDelete,
-	"file.delete_any":        PermFileDeleteAny,
-	"channel.create":         PermChannelCreate,
-	"channel.manage":         PermChannelManage,
-	"message.edit":           PermMessageEdit,
-	"message.delete_any":     PermMessageDeleteAny,
-	"testcase.create":        PermTestCaseCreate,
-	"testcase.edit":          PermTestCaseEdit,
-	"testrun.create":         PermTestRunCreate,
-	"testrun.execute":        PermTestRunExecute,
-	"invite.create":          PermInviteCreate,
-	"invite.manage":          PermInviteManage,
-	"team.manage":            PermTeamManage,
-}
-
 // toCustomRoleResponse конвертирует Ent Role в DTO ответа.
 func toCustomRoleResponse(r *ent.Role) *CustomRoleResponse {
 	return &CustomRoleResponse{
