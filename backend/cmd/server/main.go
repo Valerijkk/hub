@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	fiberrecover "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/valerii/hub/backend/internal/auth"
 	"github.com/valerii/hub/backend/internal/platform/config"
 	"github.com/valerii/hub/backend/internal/platform/database"
@@ -138,6 +139,10 @@ func main() {
 	})
 
 	app.Use(middleware.RequestID())
+	// HI-09: глобальный recover, чтобы паника в обработчике не валила процесс.
+	// Стоит сразу после RequestID, чтобы паническая ошибка уже несла request_id
+	// в лог — но раньше всех бизнес-middleware (логгер, CORS, rate-limit).
+	app.Use(fiberrecover.New(fiberrecover.Config{EnableStackTrace: true}))
 	app.Use(middleware.Logger())
 	app.Use(middleware.CORS())
 	// Глобальный rate limit: 100 req/sec на IP
