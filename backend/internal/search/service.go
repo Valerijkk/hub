@@ -19,6 +19,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
+// defaultSearchLimit — потолок на количество результатов на каждый search-
+// шарду (issues, projects, messages и т.д.) перед общим объединением и
+// финальным `limit` в Search(). Значение подобрано так, чтобы суммарный
+// результат хорошо отображался в UI (типичная команда — 5-10 проектов,
+// несколько десятков задач) и при этом не нагружал tsvector indexes.
+const defaultSearchLimit = 10
+
 // SearchService реализует глобальный поиск по всем сущностям платформы.
 // Выполняет параллельные запросы к PostgreSQL (tsvector) и MongoDB ($text),
 // затем объединяет результаты по релевантности.
@@ -186,12 +193,12 @@ func (s *SearchService) searchIssues(ctx context.Context, query string, projectI
 	}
 
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, issue_key, title, project_issues,
+		fmt.Sprintf(`SELECT id, issue_key, title, project_issues,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
 		FROM issues
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND project_issues = ANY($2)
-		ORDER BY rank DESC LIMIT 10`,
+		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
 		return nil, fmt.Errorf("поиск задач: %w", err)
@@ -225,12 +232,12 @@ func (s *SearchService) searchTestCases(ctx context.Context, query string, proje
 	}
 
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, case_key, title, project_test_cases,
+		fmt.Sprintf(`SELECT id, case_key, title, project_test_cases,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
 		FROM test_cases
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND project_test_cases = ANY($2)
-		ORDER BY rank DESC LIMIT 10`,
+		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
 		return nil, fmt.Errorf("поиск тест-кейсов: %w", err)
@@ -294,7 +301,7 @@ func (s *SearchService) searchUsers(ctx context.Context, query string, callerID 
 	}
 
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, name, email, display_name,
+		fmt.Sprintf(`SELECT id, name, email, display_name,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
 		FROM users
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
@@ -308,7 +315,7 @@ func (s *SearchService) searchUsers(ctx context.Context, query string, callerID 
 		            WHERE pm1.user_project_members = $2
 		        )
 		      )
-		ORDER BY rank DESC LIMIT 10`,
+		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, callerID.String())
 	if err != nil {
 		return nil, fmt.Errorf("поиск пользователей: %w", err)
@@ -346,11 +353,11 @@ func (s *SearchService) searchUsers(ctx context.Context, query string, callerID 
 // Вызывается только для системных администраторов (HI-12 follow-through).
 func (s *SearchService) searchUsersUnscoped(ctx context.Context, query string) ([]SearchResult, error) {
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, name, email, display_name,
+		fmt.Sprintf(`SELECT id, name, email, display_name,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
 		FROM users
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
-		ORDER BY rank DESC LIMIT 10`,
+		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query)
 	if err != nil {
 		return nil, fmt.Errorf("поиск пользователей (admin): %w", err)
@@ -391,12 +398,12 @@ func (s *SearchService) searchProjects(ctx context.Context, query string, projec
 	}
 
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, "key", name,
+		fmt.Sprintf(`SELECT id, "key", name,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
 		FROM projects
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND id = ANY($2)
-		ORDER BY rank DESC LIMIT 10`,
+		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
 		return nil, fmt.Errorf("поиск проектов: %w", err)
@@ -429,12 +436,12 @@ func (s *SearchService) searchFiles(ctx context.Context, query string, projectID
 	}
 
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, filename, project_files,
+		fmt.Sprintf(`SELECT id, filename, project_files,
 			ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
 		FROM file_metadata
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND project_files = ANY($2)
-		ORDER BY rank DESC LIMIT 10`,
+		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
 		return nil, fmt.Errorf("поиск файлов: %w", err)
@@ -474,21 +481,21 @@ func (s *SearchService) searchChannels(ctx context.Context, query string, projec
 
 	// Пробуем tsvector поиск (если search_vector создан через indexer)
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT id, name, channel_type, project_id,
+		fmt.Sprintf(`SELECT id, name, channel_type, project_id,
 			ts_rank(to_tsvector('simple', name), plainto_tsquery('simple', $1)) AS rank
 		FROM channels
 		WHERE to_tsvector('simple', name) @@ plainto_tsquery('simple', $1)
 			AND project_id = ANY($2)
-		ORDER BY rank DESC LIMIT 10`,
+		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
 		// Fallback на ILIKE если tsvector не работает
 		rows, err = s.sqlDB.QueryContext(ctx,
-			`SELECT id, name, channel_type, project_id, 0.5::float8 AS rank
+			fmt.Sprintf(`SELECT id, name, channel_type, project_id, 0.5::float8 AS rank
 			FROM channels
-			WHERE name ILIKE '%' || $1 || '%'
+			WHERE name ILIKE '%%' || $1 || '%%'
 				AND project_id = ANY($2)
-			ORDER BY name ASC LIMIT 10`,
+			ORDER BY name ASC LIMIT %d`, defaultSearchLimit),
 			query, uuidSliceToPgArray(projectIDs))
 		if err != nil {
 			return nil, fmt.Errorf("поиск каналов: %w", err)
@@ -540,7 +547,7 @@ func (s *SearchService) searchMessages(ctx context.Context, query string, _ uuid
 			"sender_id":    1,
 		}).
 		SetSort(bson.M{"score": bson.M{"$meta": "textScore"}}).
-		SetLimit(10)
+		SetLimit(int64(defaultSearchLimit))
 
 	cursor, err := coll.Find(ctx, filter, opts)
 	if err != nil {

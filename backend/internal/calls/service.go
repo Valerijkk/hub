@@ -23,6 +23,12 @@ import (
 // и не светить деталь "почему именно" клиенту.
 var ErrCallForbidden = errors.New("forbidden")
 
+// defaultMaxCallParticipants — потолок количества участников в LiveKit-комнате.
+// LiveKit отвергает запросы на вход свыше этого значения. Значение выбрано
+// исходя из практики (Slack/Discord/Zoom для small group calls обычно держат
+// 25-100); 50 даёт запас для общих созвонов команды без перегрузки SFU.
+const defaultMaxCallParticipants = 50
+
 // CallService реализует бизнес-логику модуля голосовых звонков.
 // Управляет жизненным циклом комнат LiveKit, генерирует токены доступа,
 // обрабатывает webhook-события, публикует NATS-уведомления и управляет эфемерным чатом.
@@ -71,7 +77,7 @@ func (s *CallService) CreateCall(ctx context.Context, channelID, userID uuid.UUI
 
 	_, err := s.roomClient.CreateRoom(ctx, &livekit.CreateRoomRequest{
 		Name:            roomName,
-		MaxParticipants: 50,
+		MaxParticipants: defaultMaxCallParticipants,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("не удалось создать комнату LiveKit: %w", err)
@@ -111,7 +117,7 @@ func (s *CallService) CreateInstantCall(ctx context.Context, userID uuid.UUID, u
 
 	_, err := s.roomClient.CreateRoom(ctx, &livekit.CreateRoomRequest{
 		Name:            roomName,
-		MaxParticipants: 50,
+		MaxParticipants: defaultMaxCallParticipants,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("не удалось создать комнату LiveKit: %w", err)

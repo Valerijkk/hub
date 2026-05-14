@@ -36,6 +36,11 @@ var webhookHTTPClient = safehttp.NewSafeHTTPClient(10 * time.Second)
 const (
 	webhookWorkers   = 16
 	webhookQueueSize = 256
+	// maxWebhookResponseBodyBytes — верхняя граница тела ответа от вебхук-
+	// эндпоинта, которая сохраняется в `webhook_delivery.response_body`.
+	// Защищает от использования вебхуков как SSRF read primitive (CR-03)
+	// и от раздувания таблицы доставок ответом мегабайтного размера.
+	maxWebhookResponseBodyBytes = 4096
 )
 
 // webhookJob — единица работы для воркер-пула: одна пара (endpoint, событие).
@@ -269,8 +274,8 @@ func (d *WebhookDispatcher) sendWebhook(url string, body []byte, signature, even
 	var respBuf bytes.Buffer
 	respBuf.ReadFrom(resp.Body)
 	respBody := respBuf.String()
-	if len(respBody) > 4096 {
-		respBody = respBody[:4096]
+	if len(respBody) > maxWebhookResponseBodyBytes {
+		respBody = respBody[:maxWebhookResponseBodyBytes]
 	}
 
 	return resp.StatusCode, respBody, nil
