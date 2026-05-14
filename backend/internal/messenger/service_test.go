@@ -30,17 +30,34 @@ type mockRepository struct {
 	// Закладки
 	bookmarks      map[uuid.UUID][]*ent.Bookmark
 	bookmarksByID  map[uuid.UUID]*ent.Bookmark
+	// Приглашения
+	invites        map[uuid.UUID]*ent.ChannelInvite
+	invitesByToken map[string]*ent.ChannelInvite
+	// Опросы
+	polls          map[uuid.UUID]*ent.Poll
+	pollOptions    map[uuid.UUID][]*ent.PollOption // pollID -> options
+	pollVotes      map[uuid.UUID][]*ent.PollVote   // pollID -> votes
+	// Mentions
+	displayNames     map[uuid.UUID]string
+	projectMembersByRole map[uuid.UUID]map[string][]uuid.UUID
 }
 
 func newMockRepository() *mockRepository {
 	return &mockRepository{
-		channels:      make(map[uuid.UUID]*ent.Channel),
-		members:       make(map[uuid.UUID]map[uuid.UUID]*ent.ChannelMember),
-		dmChannels:    make(map[string]*ent.Channel),
-		messages:      make(map[string]*MessageDocument),
-		pins:          make(map[string]bool),
-		bookmarks:     make(map[uuid.UUID][]*ent.Bookmark),
-		bookmarksByID: make(map[uuid.UUID]*ent.Bookmark),
+		channels:             make(map[uuid.UUID]*ent.Channel),
+		members:              make(map[uuid.UUID]map[uuid.UUID]*ent.ChannelMember),
+		dmChannels:           make(map[string]*ent.Channel),
+		messages:             make(map[string]*MessageDocument),
+		pins:                 make(map[string]bool),
+		bookmarks:            make(map[uuid.UUID][]*ent.Bookmark),
+		bookmarksByID:        make(map[uuid.UUID]*ent.Bookmark),
+		invites:              make(map[uuid.UUID]*ent.ChannelInvite),
+		invitesByToken:       make(map[string]*ent.ChannelInvite),
+		polls:                make(map[uuid.UUID]*ent.Poll),
+		pollOptions:          make(map[uuid.UUID][]*ent.PollOption),
+		pollVotes:            make(map[uuid.UUID][]*ent.PollVote),
+		displayNames:         make(map[uuid.UUID]string),
+		projectMembersByRole: make(map[uuid.UUID]map[string][]uuid.UUID),
 	}
 }
 
@@ -420,6 +437,153 @@ func (m *mockRepository) GetUserChannelMemberships(_ context.Context, _ uuid.UUI
 
 func (m *mockRepository) EnsureIndexes(_ context.Context) error {
 	return nil
+}
+
+// --- Mentions ---
+
+func (m *mockRepository) ListProjectMembersByRole(_ context.Context, projectID uuid.UUID, role string) ([]uuid.UUID, error) {
+	byRole, ok := m.projectMembersByRole[projectID]
+	if !ok {
+		return nil, nil
+	}
+	return byRole[role], nil
+}
+
+func (m *mockRepository) GetUserDisplayName(_ context.Context, userID uuid.UUID) (string, error) {
+	return m.displayNames[userID], nil
+}
+
+// --- Channel invites ---
+
+func (m *mockRepository) CreateChannelInvite(_ context.Context, input CreateChannelInviteInput) (*ent.ChannelInvite, error) {
+	inv := &ent.ChannelInvite{
+		ID:        uuid.New(),
+		ChannelID: input.ChannelID,
+		CreatorID: input.CreatorID,
+		Token:     input.Token,
+		MaxUses:   input.MaxUses,
+		UseCount:  0,
+		IsRevoked: false,
+		ExpiresAt: input.ExpiresAt,
+		CreatedAt: time.Now(),
+	}
+	m.invites[inv.ID] = inv
+	m.invitesByToken[inv.Token] = inv
+	return inv, nil
+}
+
+func (m *mockRepository) FindChannelInviteByToken(_ context.Context, token string) (*ent.ChannelInvite, error) {
+	inv, ok := m.invitesByToken[token]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	return inv, nil
+}
+
+func (m *mockRepository) IncrementInviteUses(_ context.Context, inviteID uuid.UUID) error {
+	inv, ok := m.invites[inviteID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	inv.UseCount++
+	return nil
+}
+
+func (m *mockRepository) RevokeChannelInvite(_ context.Context, inviteID uuid.UUID) error {
+	inv, ok := m.invites[inviteID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	inv.IsRevoked = true
+	return nil
+}
+
+func (m *mockRepository) ListChannelInvites(_ context.Context, channelID uuid.UUID) ([]*ent.ChannelInvite, error) {
+	var result []*ent.ChannelInvite
+	for _, inv := range m.invites {
+		if inv.ChannelID == channelID && !inv.IsRevoked {
+			result = append(result, inv)
+		}
+	}
+	return result, nil
+}
+
+// --- Polls ---
+
+func (m *mockRepository) CreatePollWithOptions(_ context.Context, input CreatePollInput) (*ent.Poll, []*ent.PollOption, error) {
+	p := &ent.Poll{
+		ID:            uuid.New(),
+		ChannelID:     input.ChannelID,
+		CreatorID:     input.CreatorID,
+		Question:      input.Question,
+		IsAnonymous:   input.IsAnonymous,
+		IsMultiChoice: input.IsMultiChoice,
+		IsClosed:      false,
+		CreatedAt:     time.Now(),
+	}
+	m.polls[p.ID] = p
+	options := make([]*ent.PollOption, 0, len(input.Options))
+	for i, text := range input.Options {
+		opt := &ent.PollOption{
+			ID:       uuid.New(),
+			PollID:   p.ID,
+			Text:     text,
+			Position: i,
+		}
+		options = append(options, opt)
+	}
+	m.pollOptions[p.ID] = options
+	return p, options, nil
+}
+
+func (m *mockRepository) GetPollWithOptions(_ context.Context, pollID uuid.UUID) (*ent.Poll, []*ent.PollOption, error) {
+	p, ok := m.polls[pollID]
+	if !ok {
+		return nil, nil, &ent.NotFoundError{}
+	}
+	return p, m.pollOptions[pollID], nil
+}
+
+func (m *mockRepository) GetPoll(_ context.Context, pollID uuid.UUID) (*ent.Poll, error) {
+	p, ok := m.polls[pollID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	return p, nil
+}
+
+func (m *mockRepository) ClosePoll(_ context.Context, pollID uuid.UUID) error {
+	p, ok := m.polls[pollID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	p.IsClosed = true
+	return nil
+}
+
+func (m *mockRepository) VotePoll(_ context.Context, pollID, userID uuid.UUID, optionIDs []uuid.UUID) error {
+	// Удаляем предыдущие голоса пользователя в этом опросе.
+	existing := m.pollVotes[pollID]
+	filtered := existing[:0]
+	for _, v := range existing {
+		if v.UserID != userID {
+			filtered = append(filtered, v)
+		}
+	}
+	for _, oid := range optionIDs {
+		filtered = append(filtered, &ent.PollVote{
+			ID:       uuid.New(),
+			PollID:   pollID,
+			OptionID: oid,
+			UserID:   userID,
+		})
+	}
+	m.pollVotes[pollID] = filtered
+	return nil
+}
+
+func (m *mockRepository) ListVotes(_ context.Context, pollID uuid.UUID) ([]*ent.PollVote, error) {
+	return m.pollVotes[pollID], nil
 }
 
 // ---------------------------------------------------------------------------

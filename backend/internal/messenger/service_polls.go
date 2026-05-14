@@ -7,19 +7,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/poll"
-	"github.com/valerii/hub/backend/ent/polloption"
-	"github.com/valerii/hub/backend/ent/pollvote"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // CreatePoll создаёт новый опрос в канале.
 // Проверяет членство пользователя в канале, создаёт опрос и варианты ответов.
 func (s *MessengerService) CreatePoll(ctx context.Context, channelID, creatorID uuid.UUID, req CreatePollRequest) (*PollResponse, error) {
-	if s.db == nil {
-		return nil, apperrors.NewInternal("база данных недоступна")
-	}
-
 	// Проверяем членство в канале.
 	isMember, err := s.repo.IsMember(ctx, channelID, creatorID)
 	if err != nil {
@@ -40,45 +33,17 @@ func (s *MessengerService) CreatePoll(ctx context.Context, channelID, creatorID 
 		return nil, apperrors.NewBadRequest("вопрос не может быть пустым")
 	}
 
-	// Создаём опрос в транзакции.
-	tx, err := s.db.Tx(ctx)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка начала транзакции")
-	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
-
-	p, err := tx.Poll.Create().
-		SetChannelID(channelID).
-		SetCreatorID(creatorID).
-		SetQuestion(req.Question).
-		SetIsAnonymous(req.IsAnonymous).
-		SetIsMultiChoice(req.IsMultiChoice).
-		Save(ctx)
+	// Создаём опрос в транзакции — Tx инкапсулирован внутри репозитория.
+	p, options, err := s.repo.CreatePollWithOptions(ctx, CreatePollInput{
+		ChannelID:     channelID,
+		CreatorID:     creatorID,
+		Question:      req.Question,
+		IsAnonymous:   req.IsAnonymous,
+		IsMultiChoice: req.IsMultiChoice,
+		Options:       req.Options,
+	})
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка создания опроса")
-	}
-
-	// Создаём варианты ответов.
-	options := make([]*ent.PollOption, 0, len(req.Options))
-	for i, optText := range req.Options {
-		opt, optErr := tx.PollOption.Create().
-			SetPollID(p.ID).
-			SetText(optText).
-			SetPosition(i).
-			Save(ctx)
-		if optErr != nil {
-			err = optErr
-			return nil, apperrors.NewInternal("ошибка создания варианта ответа")
-		}
-		options = append(options, opt)
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, apperrors.NewInternal("ошибка фиксации транзакции")
 	}
 
 	// Формируем ответ.
@@ -127,17 +92,8 @@ func (s *MessengerService) CreatePoll(ctx context.Context, channelID, creatorID 
 // VotePoll обрабатывает голосование пользователя в опросе.
 // Поддерживает одиночный и множественный выбор. Переголосование удаляет старые голоса.
 func (s *MessengerService) VotePoll(ctx context.Context, pollID, userID uuid.UUID, req VotePollRequest) (*PollResponse, error) {
-	if s.db == nil {
-		return nil, apperrors.NewInternal("база данных недоступна")
-	}
-
-	// Получаем опрос.
-	p, err := s.db.Poll.Query().
-		Where(poll.IDEQ(pollID)).
-		WithOptions(func(q *ent.PollOptionQuery) {
-			q.Order(ent.Asc(polloption.FieldPosition))
-		}).
-		Only(ctx)
+	// Получаем опрос с вариантами.
+	p, options, err := s.repo.GetPollWithOptions(ctx, pollID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("опрос не найден")
 	}
@@ -157,8 +113,8 @@ func (s *MessengerService) VotePoll(ctx context.Context, pollID, userID uuid.UUI
 
 	// Валидируем option_ids.
 	optionIDs := make([]uuid.UUID, 0, len(req.OptionIDs))
-	validOptions := make(map[uuid.UUID]bool, len(p.Edges.Options))
-	for _, opt := range p.Edges.Options {
+	validOptions := make(map[uuid.UUID]bool, len(options))
+	for _, opt := range options {
 		validOptions[opt.ID] = true
 	}
 	for _, oidStr := range req.OptionIDs {
@@ -176,43 +132,9 @@ func (s *MessengerService) VotePoll(ctx context.Context, pollID, userID uuid.UUI
 		return nil, apperrors.NewBadRequest("в этом опросе можно выбрать только один вариант")
 	}
 
-	// Транзакция: удаляем старые голоса, добавляем новые.
-	tx, err := s.db.Tx(ctx)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка начала транзакции")
-	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
-
-	// Удаляем предыдущие голоса пользователя в этом опросе.
-	_, err = tx.PollVote.Delete().
-		Where(
-			pollvote.PollIDEQ(pollID),
-			pollvote.UserIDEQ(userID),
-		).
-		Exec(ctx)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка удаления предыдущих голосов")
-	}
-
-	// Создаём новые голоса.
-	for _, oid := range optionIDs {
-		_, voteErr := tx.PollVote.Create().
-			SetPollID(pollID).
-			SetOptionID(oid).
-			SetUserID(userID).
-			Save(ctx)
-		if voteErr != nil {
-			err = voteErr
-			return nil, apperrors.NewInternal("ошибка сохранения голоса")
-		}
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, apperrors.NewInternal("ошибка фиксации транзакции")
+	// Атомарное переголосование — Tx внутри репозитория.
+	if err := s.repo.VotePoll(ctx, pollID, userID, optionIDs); err != nil {
+		return nil, apperrors.NewInternal("ошибка сохранения голоса")
 	}
 
 	// Получаем обновлённые результаты.
@@ -233,11 +155,7 @@ func (s *MessengerService) VotePoll(ctx context.Context, pollID, userID uuid.UUI
 
 // ClosePoll закрывает опрос. Только создатель может закрыть свой опрос.
 func (s *MessengerService) ClosePoll(ctx context.Context, pollID, userID uuid.UUID) (*PollResponse, error) {
-	if s.db == nil {
-		return nil, apperrors.NewInternal("база данных недоступна")
-	}
-
-	p, err := s.db.Poll.Get(ctx, pollID)
+	p, err := s.repo.GetPoll(ctx, pollID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("опрос не найден")
 	}
@@ -250,10 +168,7 @@ func (s *MessengerService) ClosePoll(ctx context.Context, pollID, userID uuid.UU
 		return nil, apperrors.NewBadRequest("опрос уже закрыт")
 	}
 
-	_, err = s.db.Poll.UpdateOneID(pollID).
-		SetIsClosed(true).
-		Save(ctx)
-	if err != nil {
+	if err := s.repo.ClosePoll(ctx, pollID); err != nil {
 		return nil, apperrors.NewInternal("ошибка закрытия опроса")
 	}
 
@@ -275,29 +190,17 @@ func (s *MessengerService) ClosePoll(ctx context.Context, pollID, userID uuid.UU
 
 // GetPollResults возвращает результаты опроса с учётом текущего пользователя.
 func (s *MessengerService) GetPollResults(ctx context.Context, pollID, currentUserID uuid.UUID) (*PollResponse, error) {
-	if s.db == nil {
-		return nil, apperrors.NewInternal("база данных недоступна")
-	}
-
-	p, err := s.db.Poll.Query().
-		Where(poll.IDEQ(pollID)).
-		WithOptions(func(q *ent.PollOptionQuery) {
-			q.Order(ent.Asc(polloption.FieldPosition))
-		}).
-		Only(ctx)
+	p, options, err := s.repo.GetPollWithOptions(ctx, pollID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("опрос не найден")
 	}
 
-	// Получаем все голоса для этого опроса.
-	votes, err := s.db.PollVote.Query().
-		Where(pollvote.PollIDEQ(pollID)).
-		All(ctx)
+	votes, err := s.repo.ListVotes(ctx, pollID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения голосов")
 	}
 
-	return toPollResponse(p, p.Edges.Options, votes, currentUserID, p.IsAnonymous), nil
+	return toPollResponse(p, options, votes, currentUserID, p.IsAnonymous), nil
 }
 
 // toPollResponse формирует PollResponse из Ent-сущностей.

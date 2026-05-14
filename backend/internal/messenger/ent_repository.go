@@ -9,8 +9,12 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/bookmark"
 	"github.com/valerii/hub/backend/ent/channel"
+	"github.com/valerii/hub/backend/ent/channelinvite"
 	"github.com/valerii/hub/backend/ent/channelmember"
 	"github.com/valerii/hub/backend/ent/pinnedmessage"
+	"github.com/valerii/hub/backend/ent/poll"
+	"github.com/valerii/hub/backend/ent/polloption"
+	"github.com/valerii/hub/backend/ent/pollvote"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
 )
@@ -350,4 +354,219 @@ func (r *EntRepository) ListProjectMembers(ctx context.Context, projectID uuid.U
 // GetProjectByID возвращает проект по ID для получения ключа проекта.
 func (r *EntRepository) GetProjectByID(ctx context.Context, projectID uuid.UUID) (*ent.Project, error) {
 	return r.client.Project.Get(ctx, projectID)
+}
+
+// ---------------------------------------------------------------------------
+// MentionsRepository — group mentions resolution and display-name lookup
+// ---------------------------------------------------------------------------
+
+// ListProjectMembersByRole возвращает user IDs участников проекта с указанной project_role.
+func (r *EntRepository) ListProjectMembersByRole(ctx context.Context, projectID uuid.UUID, role string) ([]uuid.UUID, error) {
+	members, err := r.client.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(project.IDEQ(projectID)),
+			projectmember.ProjectRoleEQ(projectmember.ProjectRole(role)),
+		).
+		WithUser().
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]uuid.UUID, 0, len(members))
+	for _, m := range members {
+		if m.Edges.User != nil {
+			ids = append(ids, m.Edges.User.ID)
+		}
+	}
+	return ids, nil
+}
+
+// GetUserDisplayName возвращает display_name (или name как fallback) пользователя.
+// Возвращает пустую строку и nil при отсутствии пользователя — caller сам
+// выбирает дефолт ("user").
+func (r *EntRepository) GetUserDisplayName(ctx context.Context, userID uuid.UUID) (string, error) {
+	u, err := r.client.User.Get(ctx, userID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return "", nil
+		}
+		return "", err
+	}
+	if u.DisplayName != "" {
+		return u.DisplayName, nil
+	}
+	return u.Name, nil
+}
+
+// ---------------------------------------------------------------------------
+// ChannelInviteRepository — invite links CRUD
+// ---------------------------------------------------------------------------
+
+// CreateChannelInvite создаёт новую пригласительную ссылку для канала.
+func (r *EntRepository) CreateChannelInvite(ctx context.Context, input CreateChannelInviteInput) (*ent.ChannelInvite, error) {
+	create := r.client.ChannelInvite.Create().
+		SetChannelID(input.ChannelID).
+		SetCreatorID(input.CreatorID).
+		SetToken(input.Token).
+		SetMaxUses(input.MaxUses).
+		SetUseCount(0).
+		SetIsRevoked(false)
+	if input.ExpiresAt != nil {
+		create = create.SetExpiresAt(*input.ExpiresAt)
+	}
+	return create.Save(ctx)
+}
+
+// FindChannelInviteByToken ищет приглашение по токену.
+func (r *EntRepository) FindChannelInviteByToken(ctx context.Context, token string) (*ent.ChannelInvite, error) {
+	return r.client.ChannelInvite.Query().
+		Where(channelinvite.TokenEQ(token)).
+		Only(ctx)
+}
+
+// IncrementInviteUses увеличивает use_count приглашения на 1.
+// NOTE: После go generate можно использовать .AddUseCount(1) с WHERE-предикатом
+// для атомарной проверки лимита; пока read-modify-write.
+func (r *EntRepository) IncrementInviteUses(ctx context.Context, inviteID uuid.UUID) error {
+	inv, err := r.client.ChannelInvite.Get(ctx, inviteID)
+	if err != nil {
+		return err
+	}
+	_, err = r.client.ChannelInvite.UpdateOneID(inviteID).
+		SetUseCount(inv.UseCount + 1).
+		Save(ctx)
+	return err
+}
+
+// RevokeChannelInvite отзывает приглашение (is_revoked=true).
+func (r *EntRepository) RevokeChannelInvite(ctx context.Context, inviteID uuid.UUID) error {
+	_, err := r.client.ChannelInvite.UpdateOneID(inviteID).
+		SetIsRevoked(true).
+		Save(ctx)
+	return err
+}
+
+// ListChannelInvites возвращает активные (не отозванные) приглашения канала.
+func (r *EntRepository) ListChannelInvites(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelInvite, error) {
+	return r.client.ChannelInvite.Query().
+		Where(
+			channelinvite.ChannelIDEQ(channelID),
+			channelinvite.IsRevokedEQ(false),
+		).
+		All(ctx)
+}
+
+// ---------------------------------------------------------------------------
+// PollRepository — polls + options + votes (Tx-aware)
+// ---------------------------------------------------------------------------
+
+// CreatePollWithOptions создаёт опрос и варианты ответов в одной транзакции.
+// Tx замыкается внутри репозитория — caller не управляет жизненным циклом.
+func (r *EntRepository) CreatePollWithOptions(ctx context.Context, input CreatePollInput) (*ent.Poll, []*ent.PollOption, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("ошибка начала транзакции: %w", err)
+	}
+
+	p, err := tx.Poll.Create().
+		SetChannelID(input.ChannelID).
+		SetCreatorID(input.CreatorID).
+		SetQuestion(input.Question).
+		SetIsAnonymous(input.IsAnonymous).
+		SetIsMultiChoice(input.IsMultiChoice).
+		Save(ctx)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, nil, fmt.Errorf("ошибка создания опроса: %w", err)
+	}
+
+	options := make([]*ent.PollOption, 0, len(input.Options))
+	for i, optText := range input.Options {
+		opt, optErr := tx.PollOption.Create().
+			SetPollID(p.ID).
+			SetText(optText).
+			SetPosition(i).
+			Save(ctx)
+		if optErr != nil {
+			_ = tx.Rollback()
+			return nil, nil, fmt.Errorf("ошибка создания варианта ответа: %w", optErr)
+		}
+		options = append(options, opt)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, nil, fmt.Errorf("ошибка фиксации транзакции: %w", err)
+	}
+	return p, options, nil
+}
+
+// GetPollWithOptions возвращает опрос вместе с вариантами ответов (упорядоченные по position).
+// Возвращает (*ent.Poll, []*ent.PollOption) — варианты доступны и через p.Edges.Options.
+func (r *EntRepository) GetPollWithOptions(ctx context.Context, pollID uuid.UUID) (*ent.Poll, []*ent.PollOption, error) {
+	p, err := r.client.Poll.Query().
+		Where(poll.IDEQ(pollID)).
+		WithOptions(func(q *ent.PollOptionQuery) {
+			q.Order(ent.Asc(polloption.FieldPosition))
+		}).
+		Only(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return p, p.Edges.Options, nil
+}
+
+// GetPoll возвращает опрос по ID (без вариантов ответов).
+func (r *EntRepository) GetPoll(ctx context.Context, pollID uuid.UUID) (*ent.Poll, error) {
+	return r.client.Poll.Get(ctx, pollID)
+}
+
+// ClosePoll переводит опрос в is_closed=true.
+func (r *EntRepository) ClosePoll(ctx context.Context, pollID uuid.UUID) error {
+	_, err := r.client.Poll.UpdateOneID(pollID).
+		SetIsClosed(true).
+		Save(ctx)
+	return err
+}
+
+// VotePoll атомарно перезаписывает голоса пользователя: удаляет старые,
+// создаёт новые в одной транзакции. Если optionIDs пуст — просто очищает
+// предыдущие голоса (валидация принадлежности вариантов опросу — на стороне сервиса).
+func (r *EntRepository) VotePoll(ctx context.Context, pollID, userID uuid.UUID, optionIDs []uuid.UUID) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("ошибка начала транзакции: %w", err)
+	}
+
+	if _, err := tx.PollVote.Delete().
+		Where(
+			pollvote.PollIDEQ(pollID),
+			pollvote.UserIDEQ(userID),
+		).
+		Exec(ctx); err != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("ошибка удаления предыдущих голосов: %w", err)
+	}
+
+	for _, oid := range optionIDs {
+		if _, voteErr := tx.PollVote.Create().
+			SetPollID(pollID).
+			SetOptionID(oid).
+			SetUserID(userID).
+			Save(ctx); voteErr != nil {
+			_ = tx.Rollback()
+			return fmt.Errorf("ошибка сохранения голоса: %w", voteErr)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("ошибка фиксации транзакции: %w", err)
+	}
+	return nil
+}
+
+// ListVotes возвращает все голоса опроса.
+func (r *EntRepository) ListVotes(ctx context.Context, pollID uuid.UUID) ([]*ent.PollVote, error) {
+	return r.client.PollVote.Query().
+		Where(pollvote.PollIDEQ(pollID)).
+		All(ctx)
 }

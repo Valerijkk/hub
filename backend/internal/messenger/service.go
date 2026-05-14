@@ -8,26 +8,28 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/project"
-	"github.com/valerii/hub/backend/ent/projectmember"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
 // MessengerService реализует бизнес-логику модуля мессенджера.
 // Оркестрирует операции с каналами, сообщениями, реакциями,
 // публикует NATS-события для real-time доставки.
+//
+// SC-14-3: сервис не хранит *ent.Client напрямую — все БД-запросы идут через
+// Repository интерфейс. Это устраняет утечку Ent ORM в бизнес-логику и
+// позволяет подменять backend в тестах через mock-репозиторий.
 type MessengerService struct {
 	repo     Repository
 	nats     *natsclient.Client
 	presence *PresenceService
 	unread   *UnreadService
-	db       *ent.Client
 }
 
 // NewMessengerService создаёт новый сервис мессенджера.
-// db может быть nil (групповые упоминания @role не будут работать).
-func NewMessengerService(repo Repository, nats *natsclient.Client, presence *PresenceService, unread *UnreadService, db *ent.Client) *MessengerService {
-	return &MessengerService{repo: repo, nats: nats, presence: presence, unread: unread, db: db}
+// Repository должен реализовывать в том числе MentionsRepository, ChannelInviteRepository
+// и PollRepository — иначе вызовы соответствующих методов вернут ошибку реализации.
+func NewMessengerService(repo Repository, nats *natsclient.Client, presence *PresenceService, unread *UnreadService) *MessengerService {
+	return &MessengerService{repo: repo, nats: nats, presence: presence, unread: unread}
 }
 
 // ---------------------------------------------------------------------------
@@ -73,16 +75,11 @@ func (s *MessengerService) GetCustomStatus(ctx context.Context, userID string) (
 
 // PublishTyping публикует событие набора текста в NATS (ephemeral, без записи в БД).
 func (s *MessengerService) PublishTyping(ctx context.Context, channelID string, userID uuid.UUID) error {
-	// Определяем отображаемое имя пользователя.
+	// Определяем отображаемое имя пользователя через репозиторий.
 	userName := "user"
-	if s.db != nil {
-		u, err := s.db.User.Get(ctx, userID)
-		if err == nil {
-			if u.DisplayName != "" {
-				userName = u.DisplayName
-			} else if u.Name != "" {
-				userName = u.Name
-			}
+	if s.repo != nil {
+		if name, err := s.repo.GetUserDisplayName(ctx, userID); err == nil && name != "" {
+			userName = name
 		}
 	}
 
@@ -178,25 +175,16 @@ func (s *MessengerService) resolveGroupMentions(ctx context.Context, channelID u
 
 		default:
 			// Предполагаем имя роли проекта (owner, developer, tester, viewer).
-			if s.db == nil || projectID == nil {
+			if projectID == nil {
 				continue
 			}
-			members, qErr := s.db.ProjectMember.Query().
-				Where(
-					projectmember.HasProjectWith(project.IDEQ(*projectID)),
-					projectmember.ProjectRoleEQ(projectmember.ProjectRole(g)),
-				).
-				WithUser().
-				All(ctx)
+			roleMemberIDs, qErr := s.repo.ListProjectMembersByRole(ctx, *projectID, g)
 			if qErr != nil {
 				slog.Error("не удалось получить участников по роли", "role", g, "error", qErr)
 				continue
 			}
-			for _, m := range members {
-				if m.Edges.User == nil {
-					continue
-				}
-				uid := m.Edges.User.ID.String()
+			for _, mid := range roleMemberIDs {
+				uid := mid.String()
 				// Учитываем только тех, кто является участником канала.
 				if _, ok := memberSet[uid]; ok && uid != senderStr {
 					seen[uid] = struct{}{}

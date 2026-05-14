@@ -112,6 +112,48 @@ type BookmarkRepository interface {
 	ListBookmarks(ctx context.Context, userID uuid.UUID) ([]*ent.Bookmark, error)
 }
 
+// MentionsRepository обеспечивает разрешение групповых упоминаний (@role) и lookup
+// отображаемых имён пользователей для типинг-индикатора (Ent/PG).
+type MentionsRepository interface {
+	// ListProjectMembersByRole возвращает user IDs участников проекта с указанной project_role.
+	ListProjectMembersByRole(ctx context.Context, projectID uuid.UUID, role string) ([]uuid.UUID, error)
+	// GetUserDisplayName возвращает display_name (с fallback на name) пользователя.
+	// Используется PublishTyping для красивого отображения "X is typing...".
+	GetUserDisplayName(ctx context.Context, userID uuid.UUID) (string, error)
+}
+
+// ChannelInviteRepository управляет пригласительными ссылками каналов (Ent/PG).
+type ChannelInviteRepository interface {
+	// CreateChannelInvite создаёт новую пригласительную ссылку.
+	CreateChannelInvite(ctx context.Context, input CreateChannelInviteInput) (*ent.ChannelInvite, error)
+	// FindChannelInviteByToken ищет приглашение по токену.
+	FindChannelInviteByToken(ctx context.Context, token string) (*ent.ChannelInvite, error)
+	// IncrementInviteUses атомарно увеличивает счётчик использований.
+	IncrementInviteUses(ctx context.Context, inviteID uuid.UUID) error
+	// RevokeChannelInvite ставит is_revoked=true для приглашения.
+	RevokeChannelInvite(ctx context.Context, inviteID uuid.UUID) error
+	// ListChannelInvites возвращает активные (не отозванные) приглашения канала.
+	ListChannelInvites(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelInvite, error)
+}
+
+// PollRepository управляет опросами в каналах: создание, голосование, закрытие (Ent/PG).
+// Транзакционные шаблоны (CreatePollWithOptions, VotePoll) инкапсулированы внутри
+// реализации — Tx не утекает в сервисный слой.
+type PollRepository interface {
+	// CreatePollWithOptions создаёт опрос вместе с вариантами ответов в одной транзакции.
+	CreatePollWithOptions(ctx context.Context, input CreatePollInput) (*ent.Poll, []*ent.PollOption, error)
+	// GetPollWithOptions возвращает опрос вместе с вариантами ответов (упорядоченные по position).
+	GetPollWithOptions(ctx context.Context, pollID uuid.UUID) (*ent.Poll, []*ent.PollOption, error)
+	// GetPoll возвращает опрос по ID (без вариантов).
+	GetPoll(ctx context.Context, pollID uuid.UUID) (*ent.Poll, error)
+	// ClosePoll переводит опрос в is_closed=true.
+	ClosePoll(ctx context.Context, pollID uuid.UUID) error
+	// VotePoll идемпотентно записывает голоса пользователя (удаляет старые, добавляет новые) в Tx.
+	VotePoll(ctx context.Context, pollID, userID uuid.UUID, optionIDs []uuid.UUID) error
+	// ListVotes возвращает все голоса опроса.
+	ListVotes(ctx context.Context, pollID uuid.UUID) ([]*ent.PollVote, error)
+}
+
 // ---------------------------------------------------------------------------
 // Composite interface (backward-compatible)
 // ---------------------------------------------------------------------------
@@ -126,6 +168,9 @@ type Repository interface {
 	SearchRepository
 	PinRepository
 	BookmarkRepository
+	MentionsRepository
+	ChannelInviteRepository
+	PollRepository
 
 	// EnsureIndexes создаёт необходимые MongoDB-индексы.
 	EnsureIndexes(ctx context.Context) error
@@ -151,4 +196,23 @@ type UpdateChannelInput struct {
 	Name        *string
 	Description *string
 	IsReadonly  *bool
+}
+
+// CreateChannelInviteInput — данные для создания пригласительной ссылки.
+type CreateChannelInviteInput struct {
+	ChannelID uuid.UUID
+	CreatorID uuid.UUID
+	Token     string
+	MaxUses   int
+	ExpiresAt *time.Time
+}
+
+// CreatePollInput — данные для создания опроса.
+type CreatePollInput struct {
+	ChannelID     uuid.UUID
+	CreatorID     uuid.UUID
+	Question      string
+	IsAnonymous   bool
+	IsMultiChoice bool
+	Options       []string // тексты вариантов в порядке отображения (position = index)
 }

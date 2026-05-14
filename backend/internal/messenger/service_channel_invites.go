@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/channelinvite"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -81,24 +80,14 @@ func (s *MessengerService) CreateInviteLink(ctx context.Context, channelID, user
 		return nil, apperrors.NewBadRequest(err.Error())
 	}
 
-	// Создаём запись в БД через Ent-клиент.
-	if s.db == nil {
-		return nil, apperrors.NewInternal("база данных недоступна")
-	}
-
-	creator := s.db.ChannelInvite.Create().
-		SetChannelID(channelID).
-		SetCreatorID(userID).
-		SetToken(token).
-		SetMaxUses(req.MaxUses).
-		SetUseCount(0).
-		SetIsRevoked(false)
-
-	if expiresAt != nil {
-		creator.SetExpiresAt(*expiresAt)
-	}
-
-	invite, err := creator.Save(ctx)
+	// Создаём запись в БД через репозиторий.
+	invite, err := s.repo.CreateChannelInvite(ctx, CreateChannelInviteInput{
+		ChannelID: channelID,
+		CreatorID: userID,
+		Token:     token,
+		MaxUses:   req.MaxUses,
+		ExpiresAt: expiresAt,
+	})
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка создания пригласительной ссылки")
 	}
@@ -109,14 +98,8 @@ func (s *MessengerService) CreateInviteLink(ctx context.Context, channelID, user
 // ValidateInvite проверяет валидность пригласительной ссылки по токену.
 // Публичный метод — не требует аутентификации.
 func (s *MessengerService) ValidateInvite(ctx context.Context, token string) (*InviteValidationResponse, error) {
-	if s.db == nil {
-		return nil, apperrors.NewInternal("база данных недоступна")
-	}
-
-	// Ищем приглашение по токену через WHERE-предикат (вместо загрузки всех записей).
-	found, err := s.db.ChannelInvite.Query().
-		Where(channelinvite.TokenEQ(token)).
-		Only(ctx)
+	// Ищем приглашение по токену через репозиторий.
+	found, err := s.repo.FindChannelInviteByToken(ctx, token)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return &InviteValidationResponse{Valid: false, Message: "приглашение не найдено"}, nil
@@ -161,14 +144,8 @@ func (s *MessengerService) ValidateInvite(ctx context.Context, token string) (*I
 // AcceptInvite принимает пригласительную ссылку — добавляет пользователя в канал.
 // Атомарный инкремент use_count с проверкой лимита.
 func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userID uuid.UUID) (*ChannelResponse, error) {
-	if s.db == nil {
-		return nil, apperrors.NewInternal("база данных недоступна")
-	}
-
-	// Находим приглашение по токену через WHERE-предикат.
-	found, err := s.db.ChannelInvite.Query().
-		Where(channelinvite.TokenEQ(token)).
-		Only(ctx)
+	// Находим приглашение по токену через репозиторий.
+	found, err := s.repo.FindChannelInviteByToken(ctx, token)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("приглашение не найдено")
@@ -199,12 +176,9 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 	}
 
 	// Атомарный инкремент use_count.
-	// NOTE: После go generate можно использовать .AddUseCount(1) с WHERE use_count < max_uses.
-	// Пока используем простой инкремент.
-	_, err = s.db.ChannelInvite.UpdateOneID(found.ID).
-		SetUseCount(found.UseCount + 1).
-		Save(ctx)
-	if err != nil {
+	// NOTE: После go generate репозиторий сможет использовать .AddUseCount(1)
+	// с WHERE use_count < max_uses для строго атомарной проверки.
+	if err := s.repo.IncrementInviteUses(ctx, found.ID); err != nil {
 		return nil, apperrors.NewInternal("ошибка обновления счётчика использований")
 	}
 
@@ -240,15 +214,8 @@ func (s *MessengerService) RevokeInvite(ctx context.Context, channelID, inviteID
 		return apperrors.NewForbidden("только owner или admin может отзывать приглашения")
 	}
 
-	if s.db == nil {
-		return apperrors.NewInternal("база данных недоступна")
-	}
-
-	// Обновляем приглашение — ставим is_revoked = true.
-	_, err = s.db.ChannelInvite.UpdateOneID(inviteID).
-		SetIsRevoked(true).
-		Save(ctx)
-	if err != nil {
+	// Отзываем приглашение через репозиторий.
+	if err := s.repo.RevokeChannelInvite(ctx, inviteID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("приглашение не найдено")
 		}
@@ -270,17 +237,8 @@ func (s *MessengerService) ListChannelInvites(ctx context.Context, channelID, us
 		return nil, apperrors.NewForbidden("только owner или admin может просматривать приглашения")
 	}
 
-	if s.db == nil {
-		return nil, apperrors.NewInternal("база данных недоступна")
-	}
-
-	// Получаем приглашения канала (не отозванные) через WHERE-предикат.
-	invites, err := s.db.ChannelInvite.Query().
-		Where(
-			channelinvite.ChannelIDEQ(channelID),
-			channelinvite.IsRevokedEQ(false),
-		).
-		All(ctx)
+	// Получаем приглашения канала через репозиторий.
+	invites, err := s.repo.ListChannelInvites(ctx, channelID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения приглашений")
 	}
