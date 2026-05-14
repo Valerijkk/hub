@@ -12,8 +12,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/savedfilter"
-	"github.com/valerii/hub/backend/ent/user"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -29,16 +27,21 @@ const defaultSearchLimit = 10
 // SearchService реализует глобальный поиск по всем сущностям платформы.
 // Выполняет параллельные запросы к PostgreSQL (tsvector) и MongoDB ($text),
 // затем объединяет результаты по релевантности.
+//
+// SC-14-3: typed Ent-операции (SystemRole lookup, SavedFilter CRUD) вынесены
+// в Repository. Сам сервис держит только sqlDB (raw tsvector) и mongoDB ($text) —
+// эти БД-уровневые драйверы концептуально ниже ORM и для них репозиторий-
+// абстракция избыточна.
 type SearchService struct {
-	db      *ent.Client
+	repo    Repository
 	sqlDB   *sql.DB
 	mongoDB *mongo.Database
 }
 
 // NewSearchService создаёт новый сервис поиска.
 // sqlDB — прямое подключение к PostgreSQL для raw-запросов с tsvector.
-func NewSearchService(db *ent.Client, sqlDB *sql.DB, mongoDB *mongo.Database) *SearchService {
-	return &SearchService{db: db, sqlDB: sqlDB, mongoDB: mongoDB}
+func NewSearchService(repo Repository, sqlDB *sql.DB, mongoDB *mongo.Database) *SearchService {
+	return &SearchService{repo: repo, sqlDB: sqlDB, mongoDB: mongoDB}
 }
 
 // Search выполняет глобальный поиск по всем сущностям с фильтрацией по правам доступа.
@@ -267,17 +270,17 @@ func (s *SearchService) searchTestCases(ctx context.Context, query string, proje
 // isSystemAdmin возвращает true, если у пользователя установлена системная
 // роль admin. Используется searchUsers для обхода project-scoping
 // (HI-12 follow-through: системные администраторы должны видеть всех
-// пользователей платформы, например для управления учётками). Один Get
+// пользователей платформы, например для управления учётками). Один lookup
 // на запрос — допустимо, админы редки.
 func (s *SearchService) isSystemAdmin(ctx context.Context, userID uuid.UUID) bool {
-	if s.db == nil {
+	if s.repo == nil {
 		return false
 	}
-	u, err := s.db.User.Get(ctx, userID)
+	ok, err := s.repo.IsSystemAdmin(ctx, userID)
 	if err != nil {
 		return false
 	}
-	return u.SystemRole == user.SystemRoleAdmin
+	return ok
 }
 
 // searchUsers ищет пользователей по tsvector, ограничивая выдачу теми,
@@ -590,12 +593,12 @@ func (s *SearchService) CreateSavedFilter(ctx context.Context, userID uuid.UUID,
 		return nil, fmt.Errorf("некорректный project_id: %w", err)
 	}
 
-	filter, err := s.db.SavedFilter.Create().
-		SetName(req.Name).
-		SetFilterConfig(req.FilterConfig).
-		SetOwnerID(userID).
-		SetProjectID(projectID).
-		Save(ctx)
+	filter, err := s.repo.CreateSavedFilter(ctx, CreateSavedFilterInput{
+		Name:         req.Name,
+		FilterConfig: req.FilterConfig,
+		OwnerID:      userID,
+		ProjectID:    projectID,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("не удалось создать фильтр: %w", err)
 	}
@@ -605,15 +608,7 @@ func (s *SearchService) CreateSavedFilter(ctx context.Context, userID uuid.UUID,
 
 // ListSavedFilters возвращает фильтры пользователя и расшаренные фильтры проекта.
 func (s *SearchService) ListSavedFilters(ctx context.Context, userID, projectID uuid.UUID) ([]SavedFilterDTO, error) {
-	filters, err := s.db.SavedFilter.Query().
-		Where(
-			savedfilter.ProjectID(projectID),
-			savedfilter.Or(
-				savedfilter.OwnerID(userID),
-				savedfilter.Shared(true),
-			),
-		).
-		All(ctx)
+	filters, err := s.repo.ListSavedFilters(ctx, userID, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить фильтры: %w", err)
 	}
@@ -627,19 +622,19 @@ func (s *SearchService) ListSavedFilters(ctx context.Context, userID, projectID 
 
 // DeleteSavedFilter удаляет сохранённый фильтр (только владелец).
 func (s *SearchService) DeleteSavedFilter(ctx context.Context, userID uuid.UUID, filterID uuid.UUID) error {
-	filter, err := s.db.SavedFilter.Get(ctx, filterID)
+	filter, err := s.repo.GetSavedFilter(ctx, filterID)
 	if err != nil {
 		return fmt.Errorf("фильтр не найден: %w", err)
 	}
 	if filter.OwnerID != userID {
 		return fmt.Errorf("доступ запрещён: только владелец может удалить фильтр")
 	}
-	return s.db.SavedFilter.DeleteOneID(filterID).Exec(ctx)
+	return s.repo.DeleteSavedFilter(ctx, filterID)
 }
 
 // ShareFilter переключает флаг расшаривания фильтра (только владелец).
 func (s *SearchService) ShareFilter(ctx context.Context, userID uuid.UUID, filterID uuid.UUID, shared bool) (*SavedFilterDTO, error) {
-	filter, err := s.db.SavedFilter.Get(ctx, filterID)
+	filter, err := s.repo.GetSavedFilter(ctx, filterID)
 	if err != nil {
 		return nil, fmt.Errorf("фильтр не найден: %w", err)
 	}
@@ -647,7 +642,7 @@ func (s *SearchService) ShareFilter(ctx context.Context, userID uuid.UUID, filte
 		return nil, fmt.Errorf("доступ запрещён: только владелец может изменить расшаривание")
 	}
 
-	updated, err := filter.Update().SetShared(shared).Save(ctx)
+	updated, err := s.repo.UpdateSavedFilterShared(ctx, filterID, shared)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось обновить фильтр: %w", err)
 	}
