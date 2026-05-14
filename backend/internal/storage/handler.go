@@ -1,8 +1,11 @@
 package storage
 
 import (
+	"log/slog"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
@@ -10,6 +13,7 @@ import (
 // подтверждение загрузки, генерация URL скачивания и удаление файлов.
 type Handler struct {
 	storage *StorageService
+	rbacSvc *rbac.RBACService
 }
 
 // NewHandler создаёт новый обработчик файлового хранилища на основе StorageService.
@@ -19,17 +23,55 @@ func NewHandler(storage *StorageService) *Handler {
 
 // RegisterRoutes регистрирует маршруты файлового хранилища.
 // authMw — JWT middleware аутентификации (auth.RequireAuth), валидирующий Bearer-токены.
-// rbacSvc используется для проверки прав на загрузку и удаление файлов.
-// Все маршруты /files/* требуют аутентификации; загрузка и удаление дополнительно
-// требуют разрешений PermFileUpload и PermFileDelete соответственно.
+// rbacSvc используется обработчиками для проверки прав доступа по фактическому
+// projectID файла (CR-04): rbac.RequirePermission middleware сюда не подходит,
+// т.к. пути /files/* не содержат :projectId, а полагаться на ID из body для
+// :fileId-маршрутов небезопасно (IDOR — alice's projectId, bob's fileId).
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
+	h.rbacSvc = rbacSvc
+
 	files := api.Group("/files")
 	files.Use(authMw)
 
-	files.Post("/upload-url", rbac.RequirePermission(rbac.PermFileUpload, rbacSvc), h.GenerateUploadURL)
-	files.Post("/:fileId/confirm", rbac.RequirePermission(rbac.PermFileUpload, rbacSvc), h.ConfirmUpload)
-	files.Get("/:fileId/url", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetDownloadURL)
-	files.Delete("/:fileId", rbac.RequirePermission(rbac.PermFileDelete, rbacSvc), h.DeleteFile)
+	files.Post("/upload-url", h.GenerateUploadURL)
+	files.Post("/:fileId/confirm", h.ConfirmUpload)
+	files.Get("/:fileId/url", h.GetDownloadURL)
+	files.Delete("/:fileId", h.DeleteFile)
+}
+
+// authorizeProject проверяет, что текущий пользователь имеет указанное
+// разрешение в проекте. Возвращает ошибку Fiber с подходящим статусом
+// (401/403/500) или nil, если доступ разрешён.
+func (h *Handler) authorizeProject(c fiber.Ctx, userID, projectID uuid.UUID, perm rbac.Permission) error {
+	if h.rbacSvc == nil {
+		// Безопасный default: без RBAC отказываем — лучше упасть, чем разрешить.
+		return fiber.NewError(fiber.StatusInternalServerError, "RBAC service not configured")
+	}
+	effective, err := h.rbacSvc.GetEffectivePermissions(c.Context(), userID, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return fiber.NewError(fiber.StatusForbidden, "not a project member")
+		}
+		slog.Error("rbac check failed", "error", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to check permissions")
+	}
+	if !effective.Has(perm) {
+		return fiber.NewError(fiber.StatusForbidden, "insufficient permissions")
+	}
+	return nil
+}
+
+// userIDFromCtx извлекает userID из Fiber Locals.
+func userIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
+	userIDStr, ok := c.Locals("userID").(string)
+	if !ok || userIDStr == "" {
+		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
+	}
+	id, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "invalid user")
+	}
+	return id, nil
 }
 
 type uploadRequest struct {
@@ -62,19 +104,19 @@ func (h *Handler) GenerateUploadURL(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "filename, contentType, and projectId are required")
 	}
 
-	userIDStr, ok := c.Locals("userID").(string)
-	if !ok || userIDStr == "" {
-		return fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
-	}
-
-	userID, err := uuid.Parse(userIDStr)
+	userID, err := userIDFromCtx(c)
 	if err != nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
+		return err
 	}
 
 	projectID, err := uuid.Parse(req.ProjectID)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid project ID")
+	}
+
+	// CR-04: проверяем право загрузки в проекте из тела запроса.
+	if err := h.authorizeProject(c, userID, projectID, rbac.PermFileUpload); err != nil {
+		return err
 	}
 
 	result, err := h.storage.GenerateUploadURL(c.Context(), req.Filename, req.ContentType, userID, projectID)
@@ -110,6 +152,20 @@ func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid file ID")
 	}
 
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	// CR-04: грузим projectId самого файла, а не доверяем клиенту.
+	projectID, err := h.storage.FileProjectID(c.Context(), fileID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "file not found")
+	}
+	if err := h.authorizeProject(c, userID, projectID, rbac.PermFileUpload); err != nil {
+		return err
+	}
+
 	var req confirmRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
@@ -140,6 +196,20 @@ func (h *Handler) GetDownloadURL(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid file ID")
 	}
 
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	// CR-04: загружаем проект файла и проверяем PermProjectView у вызывающего.
+	projectID, err := h.storage.FileProjectID(c.Context(), fileID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "file not found")
+	}
+	if err := h.authorizeProject(c, userID, projectID, rbac.PermProjectView); err != nil {
+		return err
+	}
+
 	downloadURL, err := h.storage.GenerateDownloadURL(c.Context(), fileID)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to generate download URL")
@@ -165,6 +235,20 @@ func (h *Handler) DeleteFile(c fiber.Ctx) error {
 	fileID, err := uuid.Parse(c.Params("fileId"))
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid file ID")
+	}
+
+	userID, err := userIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	// CR-04: грузим проект файла, проверяем PermFileDelete.
+	projectID, err := h.storage.FileProjectID(c.Context(), fileID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "file not found")
+	}
+	if err := h.authorizeProject(c, userID, projectID, rbac.PermFileDelete); err != nil {
+		return err
 	}
 
 	if err := h.storage.DeleteFile(c.Context(), fileID); err != nil {

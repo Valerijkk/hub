@@ -113,6 +113,21 @@ func (s *StorageService) ConfirmUpload(ctx context.Context, fileID uuid.UUID, en
 		Exec(ctx)
 }
 
+// FileProjectID возвращает ID проекта, которому принадлежит файл.
+// Используется обработчиком для проверки RBAC по реальному владельцу файла
+// (а не по projectId из URL/body, который злоумышленник мог подделать).
+// Возвращает ошибку, если файл удалён или не найден.
+func (s *StorageService) FileProjectID(ctx context.Context, fileID uuid.UUID) (uuid.UUID, error) {
+	pid, err := s.entClient.FileMetadata.Query().
+		Where(filemetadata.IDEQ(fileID), filemetadata.DeletedAtIsNil()).
+		QueryProject().
+		OnlyID(ctx)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("file not found: %w", err)
+	}
+	return pid, nil
+}
+
 // GenerateDownloadURL создаёт presigned GET URL для скачивания файла.
 func (s *StorageService) GenerateDownloadURL(ctx context.Context, fileID uuid.UUID) (string, error) {
 	fileMeta, err := s.entClient.FileMetadata.Query().
