@@ -3,8 +3,13 @@ package calls
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/livekit/protocol/livekit"
 	lksdk "github.com/livekit/server-sdk-go/v2"
@@ -18,25 +23,63 @@ import (
 // записей на один звонок. Ограничение защищает от перегрузки LiveKit Egress.
 const maxActiveRecordingsPerCall = 2
 
+// downloadURLTTL — время жизни presigned URL для скачивания записи.
+const downloadURLTTL = 1 * time.Hour
+
 // RecordingService реализует бизнес-логику записи звонков через LiveKit Egress.
 // Управляет жизненным циклом записи: запуск Egress, остановка, обработка
 // завершения и предоставление presigned URL для скачивания.
 type RecordingService struct {
-	egressClient *lksdk.EgressClient
-	s3Cfg        config.S3Config
-	repo         *EntRepository
-	nats         *natsclient.Client
+	egressClient  *lksdk.EgressClient
+	s3Cfg         config.S3Config
+	presignClient *s3.PresignClient
+	repo          *EntRepository
+	nats          *natsclient.Client
 }
 
 // NewRecordingService создаёт новый сервис записи звонков.
-// Инициализирует EgressClient для управления записью через LiveKit.
+// Инициализирует EgressClient для управления записью через LiveKit
+// и presign S3-клиент для генерации временных ссылок на скачивание.
+// Если presign-клиент создать не удалось — логируем и продолжаем без него
+// (GetRecordingDownloadURL вернёт ошибку, остальные операции продолжат работать).
 func NewRecordingService(lkCfg config.LiveKitConfig, s3Cfg config.S3Config, repo *EntRepository, nc *natsclient.Client) *RecordingService {
 	egressClient := lksdk.NewEgressClient(lkCfg.URL, lkCfg.APIKey, lkCfg.APISecret)
+
+	var presignClient *s3.PresignClient
+	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
+		awsconfig.WithRegion(s3Cfg.Region),
+		awsconfig.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(s3Cfg.AccessKey, s3Cfg.SecretKey, ""),
+		),
+	)
+	if err != nil {
+		slog.Error("recording service: failed to load AWS config for presign", "error", err)
+	} else {
+		protocol := "http"
+		if s3Cfg.UseSSL {
+			protocol = "https"
+		}
+		endpoint := s3Cfg.Endpoint
+		// Если эндпоинт не содержит схему, добавляем её — иначе SDK интерпретирует
+		// его как путь и presigned URL будет некорректным.
+		if endpoint != "" && len(endpoint) > 0 && endpoint[0] != 'h' {
+			endpoint = fmt.Sprintf("%s://%s", protocol, endpoint)
+		}
+		s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+			if endpoint != "" {
+				o.BaseEndpoint = aws.String(endpoint)
+			}
+			o.UsePathStyle = true // Required for SeaweedFS
+		})
+		presignClient = s3.NewPresignClient(s3Client)
+	}
+
 	return &RecordingService{
-		egressClient: egressClient,
-		s3Cfg:        s3Cfg,
-		repo:         repo,
-		nats:         nc,
+		egressClient:  egressClient,
+		s3Cfg:         s3Cfg,
+		presignClient: presignClient,
+		repo:          repo,
+		nats:          nc,
 	}
 }
 
@@ -201,8 +244,19 @@ func (s *RecordingService) ListProjectRecordings(ctx context.Context, projectID 
 	return result, total, nil
 }
 
+// RecordingProjectID возвращает ID проекта, которому принадлежит запись.
+// Используется обработчиком для проверки прав доступа до выдачи presigned URL.
+func (s *RecordingService) RecordingProjectID(ctx context.Context, recordingID uuid.UUID) (uuid.UUID, error) {
+	rec, err := s.repo.GetRecording(ctx, recordingID)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("запись не найдена: %w", err)
+	}
+	return rec.ProjectID, nil
+}
+
 // GetRecordingDownloadURL генерирует presigned S3 URL для скачивания записи.
-// URL действителен 1 час.
+// URL действителен 1 час. Авторизацию должен выполнить обработчик до вызова
+// (через RecordingProjectID + rbac.GetEffectivePermissions).
 func (s *RecordingService) GetRecordingDownloadURL(ctx context.Context, recordingID uuid.UUID) (*RecordingDownloadResponse, error) {
 	rec, err := s.repo.GetRecording(ctx, recordingID)
 	if err != nil {
@@ -213,17 +267,21 @@ func (s *RecordingService) GetRecordingDownloadURL(ctx context.Context, recordin
 		return nil, fmt.Errorf("запись ещё не готова (статус: %s)", rec.Status)
 	}
 
-	// Генерируем presigned URL через S3 (реализация в storage module)
-	// Для простоты возвращаем прямой путь — в production используется presigned URL
-	expiresAt := time.Now().Add(1 * time.Hour)
-	protocol := "http"
-	if s.s3Cfg.UseSSL {
-		protocol = "https"
+	if s.presignClient == nil {
+		return nil, fmt.Errorf("presign-клиент не инициализирован")
 	}
-	url := fmt.Sprintf("%s://%s/%s/%s", protocol, s.s3Cfg.Endpoint, s.s3Cfg.Bucket, rec.FilePath)
+
+	expiresAt := time.Now().Add(downloadURLTTL)
+	presignResult, err := s.presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.s3Cfg.Bucket),
+		Key:    aws.String(rec.FilePath),
+	}, s3.WithPresignExpires(downloadURLTTL))
+	if err != nil {
+		return nil, fmt.Errorf("не удалось сгенерировать presigned URL: %w", err)
+	}
 
 	return &RecordingDownloadResponse{
-		URL:       url,
+		URL:       presignResult.URL,
 		ExpiresAt: expiresAt,
 	}, nil
 }

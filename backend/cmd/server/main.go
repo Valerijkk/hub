@@ -442,7 +442,7 @@ func main() {
 	callsSvc := callsmod.NewCallService(cfg.LiveKit, callsRepo, nc, callsChatRepo)
 	recordingSvc := callsmod.NewRecordingService(cfg.LiveKit, cfg.S3, callsRepo, nc)
 	scheduledCallSvc := callsmod.NewScheduledCallService(callsRepo, nc)
-	callsHandler := callsmod.NewHandler(callsSvc, recordingSvc, scheduledCallSvc, cfg.LiveKit)
+	callsHandler := callsmod.NewHandler(callsSvc, recordingSvc, scheduledCallSvc, cfg.LiveKit, rbacSvc)
 	callsHandler.RegisterRoutes(api, requireAuth)
 
 	// Cron: обработка запланированных звонков (каждые 60 секунд)

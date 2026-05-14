@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/internal/platform/config"
+	"github.com/valerii/hub/backend/internal/rbac"
 )
 
 // Handler предоставляет HTTP-обработчики для модуля голосовых звонков.
@@ -21,11 +22,14 @@ type Handler struct {
 	recSvc       *RecordingService
 	scheduledSvc *ScheduledCallService
 	cfg          config.LiveKitConfig
+	rbacSvc      *rbac.RBACService
 }
 
 // NewHandler создаёт новый обработчик звонков.
-func NewHandler(service *CallService, recSvc *RecordingService, scheduledSvc *ScheduledCallService, cfg config.LiveKitConfig) *Handler {
-	return &Handler{service: service, recSvc: recSvc, scheduledSvc: scheduledSvc, cfg: cfg}
+// rbacSvc используется для проверки прав доступа к записям звонков (CR-02).
+// Может быть nil — в этом случае проверки прав не выполняются (только в тестах).
+func NewHandler(service *CallService, recSvc *RecordingService, scheduledSvc *ScheduledCallService, cfg config.LiveKitConfig, rbacSvc *rbac.RBACService) *Handler {
+	return &Handler{service: service, recSvc: recSvc, scheduledSvc: scheduledSvc, cfg: cfg, rbacSvc: rbacSvc}
 }
 
 // RegisterRoutes регистрирует все маршруты звонков под /api/calls.

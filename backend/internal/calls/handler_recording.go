@@ -7,8 +7,10 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
+	"github.com/valerii/hub/backend/internal/rbac"
 )
 
 // ---------------------------------------------------------------------------
@@ -98,6 +100,26 @@ func (h *Handler) ListProjectRecordings(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный project ID")
 	}
 
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	// CR-02: проверяем, что пользователь — член проекта и имеет право просмотра.
+	if h.rbacSvc != nil {
+		effective, permErr := h.rbacSvc.GetEffectivePermissions(c.Context(), userID, projectID)
+		if permErr != nil {
+			if ent.IsNotFound(permErr) {
+				return fiber.NewError(fiber.StatusForbidden, "not a project member")
+			}
+			slog.Error("rbac check failed", "error", permErr)
+			return fiber.NewError(fiber.StatusInternalServerError, "failed to check permissions")
+		}
+		if !effective.Has(rbac.PermProjectView) {
+			return fiber.NewError(fiber.StatusForbidden, "insufficient permissions")
+		}
+	}
+
 	offset := 0
 	limit := 20
 	if o := c.Query("offset"); o != "" {
@@ -139,6 +161,31 @@ func (h *Handler) GetRecordingDownloadURL(c fiber.Ctx) error {
 	recordingID, err := uuid.Parse(idStr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный recording ID")
+	}
+
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	// CR-02: загружаем запись для получения её проекта и проверяем доступ.
+	if h.rbacSvc != nil {
+		projectID, projErr := h.recSvc.RecordingProjectID(c.Context(), recordingID)
+		if projErr != nil {
+			slog.Error("recording lookup failed", "error", projErr)
+			return fiber.NewError(fiber.StatusNotFound, "запись не найдена")
+		}
+		effective, permErr := h.rbacSvc.GetEffectivePermissions(c.Context(), userID, projectID)
+		if permErr != nil {
+			if ent.IsNotFound(permErr) {
+				return fiber.NewError(fiber.StatusForbidden, "not a project member")
+			}
+			slog.Error("rbac check failed", "error", permErr)
+			return fiber.NewError(fiber.StatusInternalServerError, "failed to check permissions")
+		}
+		if !effective.Has(rbac.PermProjectView) {
+			return fiber.NewError(fiber.StatusForbidden, "insufficient permissions")
+		}
 	}
 
 	resp, err := h.recSvc.GetRecordingDownloadURL(c.Context(), recordingID)
