@@ -2,10 +2,27 @@
 package config
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
+
+// minJWTSecretLen — минимальная длина JWT_SECRET в production. 32 байта
+// дают ~256 бит энтропии и соответствуют рекомендации RFC 7518 / NIST.
+const minJWTSecretLen = 32
+
+// Известные dev-дефолты, которые недопустимы в production. Проверяются
+// case-insensitive против присвоенных значений.
+var devDefaults = map[string]string{
+	"JWT_SECRET":         "dev-secret-change-in-production",
+	"S3_ACCESS_KEY":      "hub",
+	"S3_SECRET_KEY":      "hubsecret",
+	"LIVEKIT_API_KEY":    "devkey",
+	"LIVEKIT_API_SECRET": "devsecret",
+}
 
 // Config — главная конфигурация приложения, загружаемая из переменных окружения.
 type Config struct {
@@ -27,8 +44,9 @@ type ServerConfig struct {
 	Port         int
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
-	Immutable    bool // true in dev to catch Fiber RequestCtx reuse (Pitfall 1)
-	DevMode      bool // DevMode включает dev-эндпоинты (seed, login без Magic Link)
+	Immutable    bool   // true in dev to catch Fiber RequestCtx reuse (Pitfall 1)
+	DevMode      bool   // DevMode включает dev-эндпоинты (seed, login без Magic Link)
+	Environment  string // ENVIRONMENT: production, staging, development (default)
 }
 
 // PostgresConfig — параметры подключения к PostgreSQL.
@@ -94,15 +112,19 @@ type WebPushConfig struct {
 	VAPIDSubject    string // Контактный email (mailto:admin@example.com)
 }
 
-// Load загружает конфигурацию из переменных окружения с значениями по умолчанию.
-func Load() *Config {
-	return &Config{
+// Load загружает конфигурацию из переменных окружения с дефолтами и
+// валидирует, что в production не остались dev-значения (CR-05, CR-06).
+// Возвращает ошибку, чтобы вызывающий мог завершить процесс с понятным
+// сообщением, а не падать позже на странных HTTP-ошибках.
+func Load() (*Config, error) {
+	cfg := &Config{
 		Server: ServerConfig{
 			Port:         getEnvInt("SERVER_PORT", 3000),
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			Immutable:    getEnvBool("FIBER_IMMUTABLE", true),
 			DevMode:      getEnvBool("DEV_MODE", false),
+			Environment:  getEnv("ENVIRONMENT", "development"),
 		},
 		Postgres: PostgresConfig{
 			URL: getEnv("DATABASE_URL", "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"),
@@ -148,6 +170,69 @@ func Load() *Config {
 			VAPIDSubject:    getEnv("VAPID_SUBJECT", "mailto:admin@hub.local"),
 		},
 	}
+
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
+// validate проверяет конфигурацию на безопасные значения для production:
+// в production (DevMode=false) запрещены dev-дефолты JWT/S3/LiveKit и
+// JWT_SECRET короче minJWTSecretLen. Также запрещена комбинация
+// ENVIRONMENT=production + DEV_MODE=true.
+func (c *Config) validate() error {
+	if c.Server.DevMode && strings.EqualFold(c.Server.Environment, "production") {
+		return errors.New("DEV_MODE=true несовместим с ENVIRONMENT=production — отключите DEV_MODE")
+	}
+	if c.Server.DevMode {
+		// В dev-режиме дефолтные значения разрешены — они для того и нужны.
+		return nil
+	}
+
+	var problems []string
+
+	// JWT secret: запрещаем пустой, dev-дефолт и слишком короткий.
+	if c.JWT.Secret == "" {
+		problems = append(problems, "JWT_SECRET не задан")
+	} else if isDevDefault("JWT_SECRET", c.JWT.Secret) ||
+		strings.Contains(strings.ToLower(c.JWT.Secret), "change-in-production") {
+		problems = append(problems, "JWT_SECRET использует dev-дефолт — задайте сильное значение")
+	} else if len(c.JWT.Secret) < minJWTSecretLen {
+		problems = append(problems, fmt.Sprintf("JWT_SECRET короче %d байт", minJWTSecretLen))
+	}
+
+	// S3 credentials: запрещаем dev-дефолты (hub/hubsecret).
+	if isDevDefault("S3_ACCESS_KEY", c.S3.AccessKey) {
+		problems = append(problems, "S3_ACCESS_KEY использует dev-дефолт")
+	}
+	if isDevDefault("S3_SECRET_KEY", c.S3.SecretKey) {
+		problems = append(problems, "S3_SECRET_KEY использует dev-дефолт")
+	}
+
+	// LiveKit credentials: запрещаем dev-дефолты (devkey/devsecret).
+	if isDevDefault("LIVEKIT_API_KEY", c.LiveKit.APIKey) {
+		problems = append(problems, "LIVEKIT_API_KEY использует dev-дефолт")
+	}
+	if isDevDefault("LIVEKIT_API_SECRET", c.LiveKit.APISecret) {
+		problems = append(problems, "LIVEKIT_API_SECRET использует dev-дефолт")
+	}
+
+	if len(problems) > 0 {
+		return fmt.Errorf("небезопасная конфигурация (DEV_MODE=false): %s", strings.Join(problems, "; "))
+	}
+	return nil
+}
+
+// isDevDefault сравнивает значение со списком известных небезопасных
+// дефолтов. Сравнение регистронезависимое для устойчивости к опечаткам
+// в конфигах деплоя.
+func isDevDefault(key, value string) bool {
+	dv, ok := devDefaults[key]
+	if !ok {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(value), dv)
 }
 
 // getEnv возвращает значение переменной окружения или fallback, если не задана.
