@@ -159,6 +159,11 @@ func main() {
 		WriteTimeout: cfg.Server.WriteTimeout,
 		Immutable:    cfg.Server.Immutable,
 		ErrorHandler: middleware.ErrorHandler,
+		// ME-15: глобальный лимит на размер тела запроса.
+		// 25 МБ покрывает CSV-импорт задач и разумный аватар; маршруты,
+		// которым нужно больше (например, заливка больших файлов), могут
+		// переопределить лимит локально.
+		BodyLimit: 25 * 1024 * 1024,
 	})
 
 	app.Use(middleware.RequestID())
