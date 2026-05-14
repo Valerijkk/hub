@@ -26,17 +26,18 @@ var devDefaults = map[string]string{
 
 // Config — главная конфигурация приложения, загружаемая из переменных окружения.
 type Config struct {
-	Server   ServerConfig
-	Postgres PostgresConfig
-	MongoDB  MongoDBConfig
-	Redis    RedisConfig
-	NATS     NATSConfig
-	S3       S3Config
-	JWT      JWTConfig
-	Resend   ResendConfig
-	Telegram TelegramConfig
-	LiveKit  LiveKitConfig
-	WebPush  WebPushConfig
+	Server      ServerConfig
+	Postgres    PostgresConfig
+	MongoDB     MongoDBConfig
+	Redis       RedisConfig
+	NATS        NATSConfig
+	S3          S3Config
+	JWT         JWTConfig
+	Resend      ResendConfig
+	Telegram    TelegramConfig
+	LiveKit     LiveKitConfig
+	WebPush     WebPushConfig
+	Integration IntegrationConfig
 }
 
 // ServerConfig — параметры HTTP-сервера (порт, таймауты, режим разработки).
@@ -108,8 +109,17 @@ type LiveKitConfig struct {
 // WebPushConfig — параметры Web Push (VAPID) для браузерных push-уведомлений.
 type WebPushConfig struct {
 	VAPIDPublicKey  string // Публичный VAPID-ключ (base64url)
-	VAPIDPrivateKey string // Приватный VAPID-ключ (base64url)
+	VAPIDPrivateKey string // Приватный VAPID-ckлюч (base64url)
 	VAPIDSubject    string // Контактный email (mailto:admin@example.com)
+}
+
+// IntegrationConfig — параметры шифрования секретов внешних интеграций
+// (GitHub/GitLab access tokens, webhook secrets). См. HI-05.
+type IntegrationConfig struct {
+	// EncryptionKey — 32-байтовый ключ AES-256-GCM в hex или base64. Пустое
+	// значение допустимо только в DevMode (используется детерминированный
+	// dev-ключ). В production пустое значение приводит к fail-start.
+	EncryptionKey string
 }
 
 // Load загружает конфигурацию из переменных окружения с дефолтами и
@@ -169,6 +179,9 @@ func Load() (*Config, error) {
 			VAPIDPrivateKey: getEnv("VAPID_PRIVATE_KEY", ""),
 			VAPIDSubject:    getEnv("VAPID_SUBJECT", "mailto:admin@hub.local"),
 		},
+		Integration: IntegrationConfig{
+			EncryptionKey: getEnv("INTEGRATION_ENCRYPTION_KEY", ""),
+		},
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -216,6 +229,12 @@ func (c *Config) validate() error {
 	}
 	if isDevDefault("LIVEKIT_API_SECRET", c.LiveKit.APISecret) {
 		problems = append(problems, "LIVEKIT_API_SECRET использует dev-дефолт")
+	}
+
+	// Integration encryption key: required in production (HI-05). Used to
+	// encrypt GitHub/GitLab access tokens & webhook secrets at rest.
+	if c.Integration.EncryptionKey == "" {
+		problems = append(problems, "INTEGRATION_ENCRYPTION_KEY не задан (требуется 32 байта в hex или base64)")
 	}
 
 	if len(problems) > 0 {

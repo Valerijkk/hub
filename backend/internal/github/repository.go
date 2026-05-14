@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -10,6 +11,7 @@ import (
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
+	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 )
 
 // Repository определяет интерфейс доступа к данным для модуля GitHub-интеграции.
@@ -65,41 +67,107 @@ type CreateGitHubLinkInput struct {
 // ---------------------------------------------------------------------------
 
 // EntRepository реализует Repository через Ent ORM.
+//
+// Чувствительные поля (AccessToken, WebhookSecret) шифруются на запись
+// AES-256-GCM и расшифровываются на чтение (HI-05). Если cipher == nil
+// (например, в тестах), репозиторий ведёт себя как до фикса — это нужно
+// чтобы не ломать существующие test-fixture'ы.
 type EntRepository struct {
 	client *ent.Client
+	cipher *cryptopkg.Cipher
 }
 
 // NewEntRepository создаёт новый репозиторий GitHub-интеграции.
-func NewEntRepository(client *ent.Client) *EntRepository {
-	return &EntRepository{client: client}
+// cipher может быть nil — тогда токены/секреты будут писаться и читаться
+// в открытом виде (как до HI-05). В production cipher обязателен.
+func NewEntRepository(client *ent.Client, cipher *cryptopkg.Cipher) *EntRepository {
+	return &EntRepository{client: client, cipher: cipher}
+}
+
+// encryptField шифрует значение, если cipher настроен. Иначе возвращает as-is.
+func (r *EntRepository) encryptField(v string) (string, error) {
+	if r.cipher == nil || v == "" {
+		return v, nil
+	}
+	return r.cipher.EncryptString(v)
+}
+
+// decryptField расшифровывает значение, если cipher настроен. Если значение
+// уже в открытом виде (legacy plaintext до HI-05), возвращает его как есть —
+// см. MaybeDecryptString.
+func (r *EntRepository) decryptField(v string) string {
+	if r.cipher == nil || v == "" {
+		return v
+	}
+	pt, _ := r.cipher.MaybeDecryptString(v)
+	return pt
+}
+
+// decryptIntegration расшифровывает чувствительные поля для одной интеграции.
+// На месте мутирует *ent.GitHubIntegration (Ent struct не immutable). Если
+// поле не было зашифровано (legacy plaintext), оно остаётся без изменений.
+// Re-encrypt-on-next-save миграция произойдёт лениво.
+func (r *EntRepository) decryptIntegration(ig *ent.GitHubIntegration) {
+	if ig == nil || r.cipher == nil {
+		return
+	}
+	ig.AccessToken = r.decryptField(ig.AccessToken)
+	ig.WebhookSecret = r.decryptField(ig.WebhookSecret)
 }
 
 // CreateIntegration создаёт интеграцию с GitHub-репозиторием.
 func (r *EntRepository) CreateIntegration(ctx context.Context, projectID uuid.UUID, input CreateIntegrationInput) (*ent.GitHubIntegration, error) {
+	encToken, err := r.encryptField(input.AccessToken)
+	if err != nil {
+		return nil, err
+	}
+	encSecret, err := r.encryptField(input.WebhookSecret)
+	if err != nil {
+		return nil, err
+	}
+
 	q := r.client.GitHubIntegration.Create().
 		SetRepoOwner(input.RepoOwner).
 		SetRepoName(input.RepoName).
-		SetAccessToken(input.AccessToken).
-		SetWebhookSecret(input.WebhookSecret).
+		SetAccessToken(encToken).
+		SetWebhookSecret(encSecret).
 		SetProjectID(projectID)
 
 	if input.MergeStatusID != nil {
 		q.SetMergeStatusID(*input.MergeStatusID)
 	}
 
-	return q.Save(ctx)
+	created, err := q.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Return decrypted values to caller so they don't see ciphertext.
+	r.decryptIntegration(created)
+	return created, nil
 }
 
 // ListIntegrations возвращает все интеграции проекта.
 func (r *EntRepository) ListIntegrations(ctx context.Context, projectID uuid.UUID) ([]*ent.GitHubIntegration, error) {
-	return r.client.GitHubIntegration.Query().
+	list, err := r.client.GitHubIntegration.Query().
 		Where(githubintegration.HasProjectWith(project.ID(projectID))).
 		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, ig := range list {
+		r.decryptIntegration(ig)
+	}
+	return list, nil
 }
 
 // GetIntegration возвращает интеграцию по ID.
 func (r *EntRepository) GetIntegration(ctx context.Context, id uuid.UUID) (*ent.GitHubIntegration, error) {
-	return r.client.GitHubIntegration.Get(ctx, id)
+	ig, err := r.client.GitHubIntegration.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	r.decryptIntegration(ig)
+	return ig, nil
 }
 
 // DeleteIntegration удаляет интеграцию по ID.
@@ -109,12 +177,17 @@ func (r *EntRepository) DeleteIntegration(ctx context.Context, id uuid.UUID) err
 
 // FindIntegrationByRepo ищет интеграцию по owner и repo name.
 func (r *EntRepository) FindIntegrationByRepo(ctx context.Context, owner, repo string) (*ent.GitHubIntegration, error) {
-	return r.client.GitHubIntegration.Query().
+	ig, err := r.client.GitHubIntegration.Query().
 		Where(
 			githubintegration.RepoOwner(owner),
 			githubintegration.RepoName(repo),
 		).
 		Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r.decryptIntegration(ig)
+	return ig, nil
 }
 
 // CreateGitHubLink создаёт связь PR/коммита с задачей.
@@ -201,8 +274,11 @@ func (r *EntRepository) LogActivity(ctx context.Context, issueID uuid.UUID, acti
 	return err
 }
 
-// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
-// Используется для валидации подписи входящих webhook-запросов.
+// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных
+// интеграций. Используется только для HMAC-сверки входящей подписи. Возврат
+// расшифрованных значений — необходимое зло (нужно сравнивать HMAC), но
+// дальше функции эти строки не утекают: caller сравнивает HMAC и сразу
+// забывает их. См. HI-05.
 func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, error) {
 	integrations, err := r.client.GitHubIntegration.Query().
 		Select(githubintegration.FieldWebhookSecret).
@@ -213,9 +289,15 @@ func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, er
 
 	secrets := make([]string, 0, len(integrations))
 	for _, ig := range integrations {
-		if ig.WebhookSecret != "" {
-			secrets = append(secrets, ig.WebhookSecret)
+		if ig.WebhookSecret == "" {
+			continue
 		}
+		pt := r.decryptField(ig.WebhookSecret)
+		if pt == "" {
+			slog.Warn("github webhook secret decrypted to empty value — skipping")
+			continue
+		}
+		secrets = append(secrets, pt)
 	}
 	return secrets, nil
 }

@@ -13,6 +13,7 @@ import (
 	fiberrecover "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/valerii/hub/backend/internal/auth"
 	"github.com/valerii/hub/backend/internal/platform/config"
+	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 	"github.com/valerii/hub/backend/internal/platform/database"
 	"github.com/valerii/hub/backend/internal/platform/middleware"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
@@ -68,6 +69,28 @@ func main() {
 	if cfg.Server.DevMode {
 		slog.Warn("DEV_MODE enabled — /api/dev/* endpoints exposed, auth rate-limit DISABLED — DO NOT USE IN PRODUCTION",
 			"environment", cfg.Server.Environment)
+	}
+
+	// HI-05: cipher для шифрования access-токенов и webhook-секретов интеграций.
+	// В DevMode допустим пустой INTEGRATION_ENCRYPTION_KEY — используем
+	// детерминированный dev-ключ (см. cryptopkg.DeriveDevKey). В production
+	// config.validate уже отклонил пустое значение, так что NewCipherFromString
+	// получит непустую строку.
+	var integrationCipher *cryptopkg.Cipher
+	if cfg.Integration.EncryptionKey != "" {
+		integrationCipher, err = cryptopkg.NewCipherFromString(cfg.Integration.EncryptionKey)
+		if err != nil {
+			slog.Error("invalid INTEGRATION_ENCRYPTION_KEY", "error", err)
+			os.Exit(1)
+		}
+	} else {
+		// Reached only when DevMode=true (config.validate enforces this).
+		slog.Warn("INTEGRATION_ENCRYPTION_KEY not set — using deterministic dev key (DEV ONLY)")
+		integrationCipher, err = cryptopkg.NewCipherFromKey(cryptopkg.DeriveDevKey())
+		if err != nil {
+			slog.Error("failed to build dev integration cipher", "error", err)
+			os.Exit(1)
+		}
 	}
 
 	ctx := context.Background()
@@ -438,14 +461,14 @@ func main() {
 	projectSvc.SetDashboardProvisioner(dashProv)
 
 	// GitHub integration routes (webhook, PR/commit linking, branch creation, link preview)
-	githubRepo := githubmod.NewEntRepository(db)
+	githubRepo := githubmod.NewEntRepository(db, integrationCipher)
 	githubSvc := githubmod.NewGitHubService(githubRepo, nc)
 	linkPreviewSvc := githubmod.NewLinkPreviewService(githubRepo, rdb)
 	githubHandler := githubmod.NewHandler(githubSvc, linkPreviewSvc)
 	githubHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// GitLab integration routes (webhook, MR/commit linking, pipelines, branch creation)
-	gitlabRepo := gitlabmod.NewEntRepository(db)
+	gitlabRepo := gitlabmod.NewEntRepository(db, integrationCipher)
 	gitlabSvc := gitlabmod.NewGitLabService(gitlabRepo, nc)
 	gitlabHandler := gitlabmod.NewHandler(gitlabSvc)
 	gitlabHandler.RegisterRoutes(api, requireAuth, rbacSvc)
