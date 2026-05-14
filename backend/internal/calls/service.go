@@ -3,6 +3,7 @@ package calls
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -16,6 +17,11 @@ import (
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
+
+// ErrCallForbidden — авторизация отклонена для операций над звонком.
+// HI-03: возвращается из JoinCall/EndCall, чтобы хендлер мог отличить 403 от 500
+// и не светить деталь "почему именно" клиенту.
+var ErrCallForbidden = errors.New("forbidden")
 
 // CallService реализует бизнес-логику модуля голосовых звонков.
 // Управляет жизненным циклом комнат LiveKit, генерирует токены доступа,
@@ -164,6 +170,10 @@ func (s *CallService) JoinByInviteCode(ctx context.Context, code string, userID 
 
 // JoinCall присоединяет пользователя к существующему звонку.
 // Проверяет что звонок активен, добавляет участника и возвращает токен.
+// HI-03: для канальных звонков проверяет членство в канале. Для instant-звонков
+// (ChannelID == nil) присоединение возможно только создателю; гостям/приглашённым
+// следует использовать JoinByInviteCode или GuestJoinCall — те потоки явно
+// валидируют invite-код и не вызывают JoinCall.
 func (s *CallService) JoinCall(ctx context.Context, callID, userID uuid.UUID, userName string) (*CallResponse, error) {
 	callEnt, err := s.repo.GetCall(ctx, callID)
 	if err != nil {
@@ -172,6 +182,25 @@ func (s *CallService) JoinCall(ctx context.Context, callID, userID uuid.UUID, us
 
 	if callEnt.Status != "active" {
 		return nil, fmt.Errorf("звонок уже завершён")
+	}
+
+	// Авторизация: для канальных звонков обязательное членство в канале.
+	if callEnt.ChannelID != nil {
+		isMember, mErr := s.repo.IsChannelMember(ctx, *callEnt.ChannelID, userID)
+		if mErr != nil {
+			return nil, fmt.Errorf("ошибка проверки членства в канале: %w", mErr)
+		}
+		if !isMember {
+			return nil, ErrCallForbidden
+		}
+	} else {
+		// Instant call: разрешаем только создателю. Сторонние пользователи
+		// должны заходить через invite-код (JoinByInviteCode) или гостевую
+		// ссылку (GuestJoinCall) — те хендлеры используют отдельные методы
+		// сервиса и не приходят через JoinCall.
+		if callEnt.CreatedBy != userID {
+			return nil, ErrCallForbidden
+		}
 	}
 
 	if err := s.repo.AddParticipant(ctx, callID, userID); err != nil {
@@ -212,10 +241,27 @@ func (s *CallService) LeaveCall(ctx context.Context, callID, userID uuid.UUID) e
 }
 
 // EndCall завершает звонок: удаляет комнату в LiveKit и обновляет статус.
-func (s *CallService) EndCall(ctx context.Context, callID uuid.UUID) error {
+// HI-03: только создатель звонка либо владелец/админ канала могут завершить
+// звонок. Для instant-звонков (ChannelID == nil) — только создатель.
+func (s *CallService) EndCall(ctx context.Context, callID, userID uuid.UUID) error {
 	callEnt, err := s.repo.GetCall(ctx, callID)
 	if err != nil {
 		return fmt.Errorf("звонок не найден: %w", err)
+	}
+
+	// Создатель всегда может завершить.
+	if callEnt.CreatedBy != userID {
+		if callEnt.ChannelID == nil {
+			// Instant call: только создатель.
+			return ErrCallForbidden
+		}
+		role, roleErr := s.repo.GetChannelMemberRole(ctx, *callEnt.ChannelID, userID)
+		if roleErr != nil {
+			return fmt.Errorf("ошибка проверки роли в канале: %w", roleErr)
+		}
+		if role != "owner" && role != "admin" {
+			return ErrCallForbidden
+		}
 	}
 
 	// Удаляем комнату в LiveKit

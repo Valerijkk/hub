@@ -1,6 +1,7 @@
 package calls
 
 import (
+	"errors"
 	"log/slog"
 	"strconv"
 	"time"
@@ -171,6 +172,10 @@ func (h *Handler) JoinCall(c fiber.Ctx) error {
 	userName := userNameFromCtx(c)
 	resp, err := h.service.JoinCall(c.Context(), callID, userID, userName)
 	if err != nil {
+		// HI-03: 403 для запретов, 500 для прочих ошибок.
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для присоединения к звонку")
+		}
 		slog.Error("ошибка присоединения к звонку", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось присоединиться к звонку")
 	}
@@ -222,8 +227,16 @@ func (h *Handler) EndCall(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
-	if err := h.service.EndCall(c.Context(), callID); err != nil {
+	if err := h.service.EndCall(c.Context(), callID, userID); err != nil {
+		// HI-03: 403 для запретов, 500 для прочих ошибок.
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "только создатель или владелец/админ канала может завершить звонок")
+		}
 		slog.Error("ошибка завершения звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось завершить звонок")
 	}

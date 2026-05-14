@@ -192,6 +192,39 @@ func (r *EntRepository) ListParticipants(ctx context.Context, callID uuid.UUID) 
 		All(ctx)
 }
 
+// IsChannelMember проверяет, состоит ли пользователь в канале мессенджера.
+// HI-03: используется для авторизации JoinCall/EndCall — у звонка есть
+// channel_id (для канальных звонков), членство в этом канале — необходимое
+// условие для участия/завершения. Эта проверка делается через ту же таблицу
+// channel_members, что и в messenger.EntRepository.IsMember.
+func (r *EntRepository) IsChannelMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+	return r.db.ChannelMember.Query().
+		Where(
+			channelmember.ChannelID(channelID),
+			channelmember.UserID(userID),
+		).
+		Exist(ctx)
+}
+
+// GetChannelMemberRole возвращает роль пользователя в канале ("", если не состоит).
+// HI-03: EndCall разрешён владельцу/админу канала; этот метод инкапсулирует
+// чтение роли без раскрытия Ent наружу.
+func (r *EntRepository) GetChannelMemberRole(ctx context.Context, channelID, userID uuid.UUID) (string, error) {
+	m, err := r.db.ChannelMember.Query().
+		Where(
+			channelmember.ChannelID(channelID),
+			channelmember.UserID(userID),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return "", nil
+		}
+		return "", err
+	}
+	return string(m.Role), nil
+}
+
 // ---------------------------------------------------------------------------
 // Recording методы (CALL-04, CALL-05)
 // ---------------------------------------------------------------------------
