@@ -61,6 +61,14 @@ func main() {
 		slog.Error("invalid configuration", "error", err)
 		os.Exit(1)
 	}
+
+	// CR-06: при DevMode видны небезопасные эндпоинты и отключён auth rate-limit.
+	// Логируем громкий warning, чтобы это не прошло мимо в production-логах.
+	if cfg.Server.DevMode {
+		slog.Warn("DEV_MODE enabled — /api/dev/* endpoints exposed, auth rate-limit DISABLED — DO NOT USE IN PRODUCTION",
+			"environment", cfg.Server.Environment)
+	}
+
 	ctx := context.Background()
 
 	// --- Infrastructure clients ---
