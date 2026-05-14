@@ -24,7 +24,11 @@ func (Role) Fields() []ent.Field {
 		field.String("description").
 			Optional(),
 		field.Uint64("permissions").
-			Default(0),
+			Default(0).
+			Comment("Cached bit-projection of permission_names that fit in 64 bits (fast path for middleware)"),
+		field.JSON("permission_names", []string{}).
+			Optional().
+			Comment("Authoritative list of permission names; permissions uint64 is a cached bit-projection of those that fit in 64 bits"),
 		field.Bool("is_system").
 			Default(false),
 		field.Time("created_at").
