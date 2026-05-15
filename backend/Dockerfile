@@ -29,8 +29,14 @@ RUN apk add --no-cache ca-certificates tzdata
 # Для pg_restore и mongorestore (backup restore)
 RUN apk add --no-cache postgresql16-client mongodb-tools
 
+# LO-Inf: запускаем под непривилегированным пользователем (не root).
+RUN addgroup -g 10001 -S hub && adduser -u 10001 -S -G hub hub
+
 WORKDIR /app
 COPY --from=builder /hub-server .
+RUN chown -R hub:hub /app
+
+USER hub:hub
 
 EXPOSE 3000
 

@@ -29,7 +29,7 @@ services:
           cpus: "1.0"
 
   mongo:
-    image: mongo:7
+    image: mongo:8.0
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
@@ -82,7 +82,8 @@ services:
           cpus: "0.5"
 
   seaweedfs:
-    image: chrislusf/seaweedfs:latest
+    # LO-Inf: pinned tag (раньше :latest — невоспроизводимый билд).
+    image: chrislusf/seaweedfs:3.97
     restart: unless-stopped
     command: ["server", "-s3", "-dir=/data", "-s3.config=/etc/seaweedfs/s3.json"]
     volumes:

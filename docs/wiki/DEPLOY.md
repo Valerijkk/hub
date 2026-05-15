@@ -25,13 +25,13 @@ cd hub
 
 ### 3. Запустить
 ```bash
-docker compose -f docker-compose.demo.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### 4. Проверить
 ```bash
 # Все контейнеры запущены?
-docker compose -f docker-compose.demo.yml ps
+docker compose -f docker-compose.prod.yml ps
 
 # Health check
 curl http://localhost/api/health

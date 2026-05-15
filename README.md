@@ -198,7 +198,8 @@ docker compose -f docker-compose.local.yml up -d
 ### Production
 
 ```bash
-docker compose -f docker-compose.demo.yml up -d --build
+cd deployments
+docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
 ## Структура проекта
