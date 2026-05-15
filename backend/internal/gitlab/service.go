@@ -15,8 +15,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	safehttp "github.com/valerii/hub/backend/internal/platform/http"
+	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
 // issueKeyRegex находит ключи задач вида ABC-123 с границами слов.
@@ -26,14 +27,24 @@ var issueKeyRegex = regexp.MustCompile(`\b([A-Z]+-\d+)\b`)
 // Обрабатывает webhook-события, управляет интеграциями,
 // запрашивает пайплайны и создаёт ветки через GitLab API.
 type GitLabService struct {
-	repo  Repository
-	nats  *natsclient.Client
-	entDB *ent.Client
+	repo   Repository
+	nats   *natsclient.Client
+	entDB  *ent.Client
+	client *http.Client
 }
 
 // NewGitLabService создаёт новый сервис GitLab-интеграции.
+//
+// Исходящие HTTP-запросы к GitLab выполняются через клиент с SafeDialContext,
+// что блокирует подключения к RFC1918, loopback, link-local и облачным
+// metadata-сервисам (SEC-04 / SSRF-защита) — GitlabURL берётся из настроек
+// интеграции и формально является user-controlled.
 func NewGitLabService(repo Repository, nats *natsclient.Client, entDB ...*ent.Client) *GitLabService {
-	svc := &GitLabService{repo: repo, nats: nats}
+	svc := &GitLabService{
+		repo:   repo,
+		nats:   nats,
+		client: safehttp.NewSafeHTTPClient(30 * time.Second),
+	}
 	if len(entDB) > 0 {
 		svc.entDB = entDB[0]
 	}
@@ -262,7 +273,7 @@ func (s *GitLabService) fetchPipelines(ctx context.Context, integration *ent.Git
 	}
 	req.Header.Set("PRIVATE-TOKEN", integration.AccessToken)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +375,7 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 	httpReq.Header.Set("PRIVATE-TOKEN", integration.AccessToken)
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(httpReq)
+	resp, err := s.client.Do(httpReq)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка вызова GitLab API: " + err.Error())
 	}
@@ -450,7 +461,7 @@ func (s *GitLabService) CreateBranch(ctx context.Context, issueKey string, req C
 	}
 	httpReq.Header.Set("PRIVATE-TOKEN", integration.AccessToken)
 
-	resp, err := http.DefaultClient.Do(httpReq)
+	resp, err := s.client.Do(httpReq)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка вызова GitLab API: " + err.Error())
 	}
@@ -505,7 +516,7 @@ func (s *GitLabService) fetchMergeRequests(ctx context.Context, integration *ent
 	}
 	req.Header.Set("PRIVATE-TOKEN", integration.AccessToken)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
