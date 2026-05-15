@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { ChannelList } from "@/components/messenger/channel-list";
+import { RouteErrorBoundary } from "@/components/route-error-boundary";
 
 /**
  * Лейаут-маршрут мессенджера.
@@ -16,7 +17,9 @@ function MessengerLayout() {
 
 			{/* Основной контент */}
 			<div className="flex flex-1 flex-col overflow-hidden">
-				<Outlet />
+				<RouteErrorBoundary module="Мессенджер">
+					<Outlet />
+				</RouteErrorBoundary>
 			</div>
 		</div>
 	);

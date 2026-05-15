@@ -5,6 +5,7 @@ import {
 	redirect,
 	useLocation,
 } from "@tanstack/react-router";
+import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { cn } from "@/lib/utils";
 
 /**
@@ -188,7 +189,9 @@ function TmsLayout() {
 
 			{/* Дочерний маршрут */}
 			<div className="flex-1 min-h-0">
-				<Outlet />
+				<RouteErrorBoundary module="TMS">
+					<Outlet />
+				</RouteErrorBoundary>
 			</div>
 		</div>
 	);

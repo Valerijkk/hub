@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CallCalendar } from "@/modules/calls/call-calendar";
 import { useCallStore } from "@/stores/call-store";
@@ -166,6 +167,15 @@ function CallsPage() {
 	);
 }
 
+/** Обёртка для изоляции рантайм-ошибок раздела «Звонки» (FE-H4). */
+function CallsPageWithBoundary() {
+	return (
+		<RouteErrorBoundary module="Звонки">
+			<CallsPage />
+		</RouteErrorBoundary>
+	);
+}
+
 export const Route = createFileRoute("/_authenticated/calls")({
-	component: CallsPage,
+	component: CallsPageWithBoundary,
 });

@@ -1,4 +1,5 @@
 import { Link, createFileRoute, Outlet, useParams, useMatchRoute } from "@tanstack/react-router";
+import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { cn } from "@/lib/utils";
 
 const PROJECT_TABS: { to: string; label: string; exact?: boolean }[] = [
@@ -47,7 +48,9 @@ function ProjectLayout() {
 
 			{/* Контент */}
 			<div className="flex-1 overflow-y-auto">
-				<Outlet />
+				<RouteErrorBoundary module="Трекер">
+					<Outlet />
+				</RouteErrorBoundary>
 			</div>
 		</div>
 	);

@@ -13,11 +13,21 @@ import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { personalDefault } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
+import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 
+/** Обёртка для изоляции рантайм-ошибок раздела «Главная» (FE-H4). */
+function PersonalDashboardWithBoundary() {
+	return (
+		<RouteErrorBoundary module="Главная">
+			<PersonalDashboard />
+		</RouteErrorBoundary>
+	);
+}
+
 export const Route = createLazyFileRoute("/_authenticated/dashboard")({
-	component: PersonalDashboard,
+	component: PersonalDashboardWithBoundary,
 });
 
 /** Returns greeting in Russian based on current hour. */
