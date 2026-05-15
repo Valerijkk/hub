@@ -444,7 +444,16 @@ func main() {
 	}()
 
 	// Retention policy: ежедневная очистка устаревших данных. ME-10: rootCtx.
-	retentionSvc := auditmod.NewRetentionService(db, mongoDB)
+	// BE-H7: передаём S3-клиент, чтобы при удалении row из recording таблицы
+	// чистились и соответствующие .mp4-объекты в SeaweedFS. Если S3 не
+	// сконфигурирован — RetentionService продолжит работать в fallback-режиме
+	// (только метаданные).
+	var retentionS3Client *s3.Client
+	retentionS3Bucket := storageSvc.Bucket()
+	if cfg.S3.Endpoint != "" {
+		retentionS3Client = storageSvc.S3Client()
+	}
+	retentionSvc := auditmod.NewRetentionService(db, mongoDB, retentionS3Client, retentionS3Bucket)
 	go func() {
 		ticker := time.NewTicker(24 * time.Hour)
 		defer ticker.Stop()
