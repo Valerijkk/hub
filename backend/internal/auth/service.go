@@ -98,6 +98,12 @@ func (s *AuthService) LoginWithMagicLink(ctx context.Context, email, code, dev, 
 	return s.Login.LoginWithMagicLink(ctx, email, code, dev, ip)
 }
 
+// UserExistsByEmail — back-compat для handler.SendMagicLink (ARCH-H1).
+// Позволяет handler-у проверить существование пользователя без прямого доступа к *ent.Client.
+func (s *AuthService) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
+	return s.Login.UserExistsByEmail(ctx, email)
+}
+
 // LoginWithTelegram — back-compat для handler.LoginTelegram.
 func (s *AuthService) LoginWithTelegram(ctx context.Context, initData, dev, ip string) (*TokenPairResponse, error) {
 	return s.Login.LoginWithTelegram(ctx, initData, dev, ip)

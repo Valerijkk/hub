@@ -8,21 +8,23 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 
-	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/user"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // Handler предоставляет HTTP-обработчики для всех эндпоинтов аутентификации.
+//
+// ARCH-H1: handler не держит прямую зависимость от *ent.Client — все обращения
+// к БД идут через AuthService (и его субсервисы). Это сохраняет слойную
+// архитектуру handler → service → repository (db) и упрощает unit-тесты.
 type Handler struct {
 	service *AuthService
-	db      *ent.Client
 	tgBot   *TelegramBotAuth
 }
 
 // NewHandler создаёт новый обработчик аутентификации.
-func NewHandler(service *AuthService, db *ent.Client, tgBot *TelegramBotAuth) *Handler {
-	return &Handler{service: service, db: db, tgBot: tgBot}
+func NewHandler(service *AuthService, tgBot *TelegramBotAuth) *Handler {
+	return &Handler{service: service, tgBot: tgBot}
 }
 
 // RegisterRoutes регистрирует все маршруты аутентификации на указанном Fiber-роутере.
@@ -79,7 +81,7 @@ func (h *Handler) SendMagicLink(c fiber.Ctx) error {
 	// Check registration mode: if invite_only and user does not exist, reject.
 	mode, _ := h.service.GetRegistrationMode(c.Context())
 	if mode == "invite_only" {
-		exists, _ := h.db.User.Query().Where(user.EmailEQ(req.Email)).Exist(c.Context())
+		exists, _ := h.service.UserExistsByEmail(c.Context(), req.Email)
 		if !exists {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
 		}
@@ -500,7 +502,7 @@ func (h *Handler) requireAdmin(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
 	}
 
-	u, err := h.db.User.Get(c.Context(), userID)
+	u, err := h.service.GetMe(c.Context(), userID)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "user not found")
 	}

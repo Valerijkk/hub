@@ -238,7 +238,7 @@ func main() {
 	apiKeySvc := apigatewaymod.NewAPIKeyService(db)
 	api.Use(apigatewaymod.APIKeyAuth(apiKeySvc))
 
-	authHandler := auth.NewHandler(authSvc, db, tgBotAuth)
+	authHandler := auth.NewHandler(authSvc, tgBotAuth)
 	authHandler.RegisterRoutes(api, requireAuth)
 
 	// Dev routes (seed, login без Magic Link — только при DEV_MODE=true)

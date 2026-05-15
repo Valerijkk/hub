@@ -38,6 +38,13 @@ func NewLoginService(
 	}
 }
 
+// UserExistsByEmail возвращает true, если в БД есть пользователь с указанным email.
+// Используется handler.SendMagicLink для проверки приглашения в режиме invite_only
+// без обращения handler-а напрямую к *ent.Client (ARCH-H1).
+func (s *LoginService) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
+	return s.db.User.Query().Where(user.EmailEQ(email)).Exist(ctx)
+}
+
 // LoginWithMagicLink проверяет код, находит или создаёт пользователя и возвращает пару токенов.
 func (s *LoginService) LoginWithMagicLink(ctx context.Context, email, code, device, ip string) (*TokenPairResponse, error) {
 	if err := s.magicLink.VerifyCode(ctx, email, code); err != nil {
