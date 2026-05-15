@@ -433,6 +433,11 @@ func main() {
 		retentionS3Client = storageSvc.S3Client()
 	}
 	retentionSvc := auditmod.NewRetentionService(db, mongoDB, retentionS3Client, retentionS3Bucket)
+	// ME-3: гарантируем индекс на created_at в коллекциях, которые подметает
+	// retention-loop. Без него DeleteMany по $lt:cutoff делает COLLSCAN.
+	if err := retentionSvc.EnsureIndexes(ctx); err != nil {
+		slog.Error("failed to ensure retention indexes", "error", err)
+	}
 	cron.Schedule(rootCtx, 24*time.Hour, "retention-cleanup", func(ctx context.Context) error {
 		return retentionSvc.RunRetentionCleanup(ctx)
 	})

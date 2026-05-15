@@ -14,6 +14,7 @@ import (
 	"github.com/valerii/hub/backend/ent/systemsetting"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 const (
@@ -53,6 +54,44 @@ func NewRetentionService(db *ent.Client, mongoDB *mongo.Database, s3Client *s3.C
 		s3Client: s3Client,
 		s3Bucket: s3Bucket,
 	}
+}
+
+// EnsureIndexes создаёт индексы на created_at для коллекций, которые подметает
+// retention-loop (messages, allure_results). Без такого индекса DeleteMany по
+// $lt:cutoff превращается в COLLSCAN при росте коллекции — на сотни тысяч
+// документов это уже видно по latency, на миллионах — фатально.
+//
+// ME-3: индексы sparse, чтобы не индексировать документы без поля created_at
+// (формат может смещаться при миграциях). В MongoDB 4.2+ индексы создаются в
+// фоне по умолчанию, явный Background не нужен.
+//
+// Идемпотентно — CreateOne не падает, если индекс с тем же именем уже есть.
+func (s *RetentionService) EnsureIndexes(ctx context.Context) error {
+	if s.mongoDB == nil {
+		return nil
+	}
+
+	collections := []string{"messages", "allure_results"}
+	for _, name := range collections {
+		coll := s.mongoDB.Collection(name)
+		indexName := "retention_created_at_idx"
+		_, err := coll.Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys: bson.D{{Key: "created_at", Value: 1}},
+			Options: options.Index().
+				SetName(indexName).
+				SetSparse(true),
+		})
+		if err != nil {
+			slog.Warn("retention: не удалось создать индекс на created_at",
+				"collection", name, "index", indexName, "error", err)
+			// fail-soft: retention продолжит работать, просто медленнее;
+			// не возвращаем ошибку, чтобы не падал startup сервера.
+			continue
+		}
+		slog.Info("retention: индекс на created_at гарантирован",
+			"collection", name, "index", indexName)
+	}
+	return nil
 }
 
 // RunRetentionCleanup выполняет очистку всех устаревших данных.
