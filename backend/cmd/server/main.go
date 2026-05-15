@@ -12,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gofiber/fiber/v3"
 	fiberrecover "github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/auth"
 	"github.com/valerii/hub/backend/internal/platform/config"
 	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
@@ -619,7 +621,37 @@ func main() {
 	}
 	defer wsBridge.Stop()
 
-	app.Get("/ws", wsmod.Handler(wsHub, authSvc))
+	// SEC-H1: WS Authorizer гарантирует, что subscribe идёт только в
+	// разрешённые комнаты (членство в канале/проекте/звонке).
+	wsAuthz := wsmod.NewAuthorizer(wsmod.AuthorizerConfig{
+		IsChannelMember: func(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+			return messengerEntRepo.IsMember(ctx, channelID, userID)
+		},
+		IsCallParticipantOrChannelMember: func(ctx context.Context, callID, userID uuid.UUID) (bool, error) {
+			// Звонок может быть канальным (есть ChannelID) или instant
+			// (по invite-коду). Для канального — членство в канале;
+			// для instant — fail-closed, т.к. подписка идёт не по invite.
+			call, err := callsRepo.GetCall(ctx, callID)
+			if err != nil {
+				return false, err
+			}
+			if call.ChannelID == nil {
+				return false, nil
+			}
+			return callsRepo.IsChannelMember(ctx, *call.ChannelID, userID)
+		},
+		IsProjectMember: func(ctx context.Context, projectID, userID uuid.UUID) (bool, error) {
+			_, err := projectRepo.FindMember(ctx, projectID, userID)
+			if err != nil {
+				if ent.IsNotFound(err) {
+					return false, nil
+				}
+				return false, err
+			}
+			return true, nil
+		},
+	})
+	app.Get("/ws", wsmod.Handler(wsHub, authSvc, wsAuthz))
 
 	// --- Start server ---
 

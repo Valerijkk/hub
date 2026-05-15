@@ -2,8 +2,12 @@
 package ws
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
+	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/fasthttp/websocket"
@@ -25,9 +29,110 @@ const (
 	maxMessageSize = 4096
 )
 
+// SEC-H1: CheckOrigin защищает от cross-origin WS-soup (CSWSH).
+// Источники задаются той же переменной окружения CORS_ORIGINS, что и
+// обычные HTTP CORS-настройки — это исключает рассинхрон между REST и WS.
+// В DEV_MODE=true допускается allow-all, но с warn-логом.
+//
+// Парсинг выполняется один раз через sync.Once для предотвращения накладных
+// расходов на каждый upgrade. В тестах можно сбросить через resetOriginCheck.
+var (
+	originOnce      sync.Once
+	allowedOrigins  map[string]struct{}
+	originDevMode   bool
+	originDevWarned bool
+)
+
+// resetOriginCheck используется в тестах для повторной инициализации с другим
+// окружением. В production вызывается ровно один раз через sync.Once.
+func resetOriginCheck() {
+	originOnce = sync.Once{}
+	allowedOrigins = nil
+	originDevMode = false
+	originDevWarned = false
+}
+
+func initOriginCheck() {
+	originOnce.Do(func() {
+		env := strings.TrimSpace(os.Getenv("CORS_ORIGINS"))
+		set := make(map[string]struct{})
+		for _, raw := range strings.Split(env, ",") {
+			o := strings.TrimSpace(raw)
+			if o == "" || o == "*" {
+				continue
+			}
+			set[o] = struct{}{}
+		}
+		allowedOrigins = set
+
+		dev := strings.TrimSpace(os.Getenv("DEV_MODE"))
+		switch strings.ToLower(dev) {
+		case "true", "1", "yes", "on":
+			originDevMode = true
+		}
+
+		if len(allowedOrigins) == 0 && !originDevMode {
+			slog.Error("ws CheckOrigin: CORS_ORIGINS не задан в production — все WS-апгрейды будут отвергнуты",
+				"hint", "set CORS_ORIGINS=https://yourdomain.example")
+		}
+	})
+}
+
+// checkOrigin возвращает true, если Origin запроса разрешён.
+// Пустой Origin (например, native-клиенты или curl без браузера) разрешается:
+// CSWSH применим только к браузерам, которые ВСЕГДА посылают Origin.
+func checkOrigin(ctx *fasthttp.RequestCtx) bool {
+	initOriginCheck()
+
+	origin := strings.TrimSpace(string(ctx.Request.Header.Peek("Origin")))
+	if origin == "" {
+		// Non-browser клиенты (CLI, тесты) — пропускаем.
+		return true
+	}
+
+	if originDevMode {
+		if !originDevWarned {
+			slog.Warn("ws CheckOrigin: DEV_MODE=true — все Origin разрешены", "origin", origin)
+			originDevWarned = true
+		}
+		return true
+	}
+
+	_, ok := allowedOrigins[origin]
+	if !ok {
+		slog.Warn("ws CheckOrigin: отклонён запрещённый Origin", "origin", origin)
+	}
+	return ok
+}
+
 // upgrader — апгрейдер FastHTTP для преобразования HTTP-соединения в WebSocket.
 var upgrader = websocket.FastHTTPUpgrader{
-	CheckOrigin: func(_ *fasthttp.RequestCtx) bool { return true },
+	CheckOrigin: checkOrigin,
+}
+
+// Authorizer проверяет, имеет ли пользователь право подписаться на
+// конкретную WS-комнату. SEC-H1: без этой проверки Hub.Subscribe был
+// broadcast-IDOR — любой авторизованный пользователь мог слушать события
+// чужого канала/звонка/проекта.
+//
+// Реализация должна понимать формат room (см. ws/bridge.go):
+//   - "channel:{channelID}" — членство в канале мессенджера
+//   - "call:{callID}"       — участник звонка (или член канала звонка)
+//   - "project:{projectID}" — членство в проекте
+//
+// Контекст передаётся для возможности отмены и трассировки. userID —
+// строковое представление UUID (как в JWT claims).
+type Authorizer interface {
+	CanSubscribe(ctx context.Context, userID, room string) (bool, error)
+}
+
+// allowAllAuthorizer разрешает любую подписку. Используется только в тестах,
+// где Hub конструируется без реальной БД. В production Handler ОБЯЗАН
+// получить настоящий Authorizer.
+type allowAllAuthorizer struct{}
+
+func (allowAllAuthorizer) CanSubscribe(_ context.Context, _, _ string) (bool, error) {
+	return true, nil
 }
 
 // Handler возвращает Fiber-обработчик для апгрейда HTTP-соединения в WebSocket.
@@ -36,7 +141,13 @@ var upgrader = websocket.FastHTTPUpgrader{
 //
 // ВАЖНО (Pitfall 1): Все значения извлекаются из fiber.Ctx ДО апгрейда
 // через utils.CopyString для предотвращения проблем переиспользования fasthttp RequestCtx.
-func Handler(hub *Hub, authSvc *auth.AuthService) fiber.Handler {
+//
+// SEC-H1: authz — обязательный параметр для production. Если передан nil,
+// используется allowAllAuthorizer (только для тестов).
+func Handler(hub *Hub, authSvc *auth.AuthService, authz Authorizer) fiber.Handler {
+	if authz == nil {
+		authz = allowAllAuthorizer{}
+	}
 	return func(c fiber.Ctx) error {
 		// Extract and validate JWT from query param BEFORE upgrade (Pitfall 1).
 		tokenStr := utils.CopyString(c.Query("token"))
@@ -66,13 +177,17 @@ func Handler(hub *Hub, authSvc *auth.AuthService) fiber.Handler {
 			go writePump(conn, client)
 
 			// Read pump runs on the current goroutine.
-			readPump(conn, client, hub)
+			readPump(conn, client, hub, authz)
 		})
 	}
 }
 
 // readPump читает сообщения из WebSocket-соединения и диспетчеризирует их.
-func readPump(conn *websocket.Conn, client *Client, hub *Hub) {
+//
+// SEC-H1: TypeSubscribe проходит через Authorizer.CanSubscribe — без этой
+// проверки любой авторизованный пользователь мог подписаться на чужую
+// комнату (channel:/call:/project:) и получать все события (broadcast IDOR).
+func readPump(conn *websocket.Conn, client *Client, hub *Hub, authz Authorizer) {
 	conn.SetReadLimit(maxMessageSize)
 	_ = conn.SetReadDeadline(time.Now().Add(pongWait))
 	conn.SetPongHandler(func(string) error {
@@ -97,9 +212,24 @@ func readPump(conn *websocket.Conn, client *Client, hub *Hub) {
 
 		switch msg.Type {
 		case TypeSubscribe:
-			if msg.Room != "" {
-				hub.Subscribe(client, msg.Room)
+			if msg.Room == "" {
+				continue
 			}
+			// SEC-H1: проверяем право подписки до фактического Subscribe.
+			authCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			allowed, authErr := authz.CanSubscribe(authCtx, client.UserID, msg.Room)
+			cancel()
+			if authErr != nil {
+				slog.Warn("ws subscribe authz error",
+					"userID", client.UserID, "room", msg.Room, "error", authErr)
+				continue
+			}
+			if !allowed {
+				slog.Warn("ws subscribe denied",
+					"userID", client.UserID, "room", msg.Room)
+				continue
+			}
+			hub.Subscribe(client, msg.Room)
 		case TypeUnsubscribe:
 			if msg.Room != "" {
 				hub.Unsubscribe(client, msg.Room)
