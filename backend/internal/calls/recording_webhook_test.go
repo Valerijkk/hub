@@ -153,6 +153,37 @@ func TestLiveKitWebhook_WrongIssuer_Rejected(t *testing.T) {
 		"webhook с чужим iss должен вернуть 401")
 }
 
+// TestLiveKitWebhook_NoSha256Claim_Rejected — JWT подписан правильно (iss,
+// secret), но НЕ содержит claim "sha256". До SEC-02 такой webhook проходил
+// (body-hash проверка была опциональной), что позволяло атакующему с
+// committed devkey forge'ить произвольный body. После фикса — 401.
+func TestLiveKitWebhook_NoSha256Claim_Rejected(t *testing.T) {
+	cfg := liveKitWebhookCfg()
+	app := newWebhookApp(t, cfg)
+
+	body := []byte(`{"event":"room_started"}`)
+	// Собираем JWT БЕЗ claim "sha256" — всё остальное валидно.
+	claims := jwt.MapClaims{
+		"iss": cfg.APIKey,
+		"exp": time.Now().Add(5 * time.Minute).Unix(),
+		"iat": time.Now().Unix(),
+	}
+	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err := tok.SignedString([]byte(cfg.APISecret))
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(fiber.MethodPost, "/api/calls/webhook", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode,
+		"webhook без claim sha256 должен вернуть 401 (SEC-02)")
+}
+
 // TestLiveKitWebhook_TamperedBody_Rejected — тело подменено после подписи.
 // SHA256 hash в claims не совпадает с реальным body → 401.
 //

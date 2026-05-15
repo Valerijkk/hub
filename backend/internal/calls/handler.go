@@ -253,15 +253,21 @@ func (h *Handler) verifyWebhookSignature(authHeader string, body []byte) bool {
 		return false
 	}
 
-	// Проверяем SHA256 hash тела запроса
-	expectedHash, _ := claims["sha256"].(string)
-	if expectedHash != "" {
-		hash := sha256.Sum256(body)
-		actualHash := base64.StdEncoding.EncodeToString(hash[:])
-		if !hmac.Equal([]byte(expectedHash), []byte(actualHash)) {
-			slog.Error("несовпадение hash тела webhook")
-			return false
-		}
+	// Проверяем SHA256 hash тела запроса.
+	// SEC-02: claim "sha256" ОБЯЗАТЕЛЕН. Если его нет — отклоняем webhook (401).
+	// Иначе атакующий, владея валидным JWT (issued LiveKit'ом без sha256 claim),
+	// мог бы forge'ить произвольный body — что в сочетании с committed devkey
+	// открывает RCE-подобный путь через egress_ended → recSvc.OnEgressEnded.
+	expectedHash, ok := claims["sha256"].(string)
+	if !ok || expectedHash == "" {
+		slog.Error("webhook JWT не содержит обязательный claim sha256")
+		return false
+	}
+	hash := sha256.Sum256(body)
+	actualHash := base64.StdEncoding.EncodeToString(hash[:])
+	if !hmac.Equal([]byte(expectedHash), []byte(actualHash)) {
+		slog.Error("несовпадение hash тела webhook")
+		return false
 	}
 
 	return true
