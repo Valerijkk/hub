@@ -71,7 +71,8 @@ function getJqlContext(query: string): SuggestionContext {
 	const tokens = tokenize(trimmed);
 	if (tokens.length === 0) return { type: "field" };
 
-	const lastToken = tokens[tokens.length - 1]!;
+	const lastToken = tokens[tokens.length - 1];
+	if (!lastToken) return { type: "field" };
 	const prevTokens = tokens.slice(0, -1);
 
 	// Проверяем, закончился ли ввод пробелом (следующий токен ожидается)
@@ -109,7 +110,8 @@ function getJqlContext(query: string): SuggestionContext {
 		return { type: "field" };
 	}
 
-	const prevToken = prevTokens[prevTokens.length - 1]!;
+	const prevToken = prevTokens[prevTokens.length - 1];
+	if (!prevToken) return { type: "field" };
 	const upperPrev = prevToken.toUpperCase();
 
 	if (upperPrev === "AND" || upperPrev === "OR") {
@@ -149,8 +151,9 @@ function tokenize(input: string): string[] {
 		if (pos >= input.length) break;
 
 		// Строка в кавычках
-		if (input[pos] === '"' || input[pos] === "'") {
-			const quote = input[pos]!;
+		const currentChar = input[pos];
+		if (currentChar === '"' || currentChar === "'") {
+			const quote = currentChar;
 			const start = pos;
 			pos++;
 			while (pos < input.length && input[pos] !== quote) pos++;
@@ -168,8 +171,9 @@ function tokenize(input: string): string[] {
 				continue;
 			}
 		}
-		if (input[pos] === "=" || input[pos] === ">" || input[pos] === "<") {
-			tokens.push(input[pos]!);
+		const opChar = input[pos];
+		if (opChar === "=" || opChar === ">" || opChar === "<") {
+			tokens.push(opChar);
 			pos++;
 			continue;
 		}
@@ -207,7 +211,8 @@ function findFieldBeforeOperator(
 	opIdx: number,
 ): string | undefined {
 	for (let i = opIdx - 1; i >= 0; i--) {
-		const t = tokens[i]!;
+		const t = tokens[i];
+		if (!t) break;
 		if (isFieldName(t)) return t.toLowerCase();
 		if (t.toUpperCase() === "NOT") continue; // NOT IN
 		break;
@@ -293,7 +298,7 @@ export function JQLEditor({
 	function getPartialToken(query: string): string {
 		if (query.endsWith(" ")) return "";
 		const tokens = tokenize(query);
-		return tokens.length > 0 ? tokens[tokens.length - 1]! : "";
+		return tokens[tokens.length - 1] ?? "";
 	}
 
 	/** Подставить выбранную подсказку. */

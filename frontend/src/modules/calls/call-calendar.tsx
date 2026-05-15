@@ -56,11 +56,13 @@ export function CallCalendar() {
 
 	const monthRangeStart = useMemo(() => {
 		const days = getMonthGridDays(displayMonth.year, displayMonth.month);
+		// biome-ignore lint/style/noNonNullAssertion: getMonthGridDays always returns >=35 days
 		return days[0]!;
 	}, [displayMonth]);
 
 	const monthRangeEnd = useMemo(() => {
 		const days = getMonthGridDays(displayMonth.year, displayMonth.month);
+		// biome-ignore lint/style/noNonNullAssertion: getMonthGridDays always returns >=35 days
 		const last = days[days.length - 1]!;
 		const end = new Date(last);
 		end.setHours(23, 59, 59, 999);
@@ -77,6 +79,7 @@ export function CallCalendar() {
 	const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
 
 	const weekRangeEnd = useMemo(() => {
+		// biome-ignore lint/style/noNonNullAssertion: getWeekDays always returns 7 elements
 		const end = new Date(weekDays[6]!);
 		end.setHours(23, 59, 59, 999);
 		return end;
@@ -276,9 +279,11 @@ export function CallCalendar() {
 		if (view === "agenda") {
 			return "Ближайшие 30 дней";
 		}
+		// biome-ignore lint/style/noNonNullAssertion: getWeekDays always returns 7 elements
 		return `${weekDays[0]!.toLocaleDateString("ru-RU", {
 			day: "numeric",
 			month: "long",
+			// biome-ignore lint/style/noNonNullAssertion: getWeekDays always returns 7 elements
 		})} \u2014 ${weekDays[6]!.toLocaleDateString("ru-RU", {
 			day: "numeric",
 			month: "long",

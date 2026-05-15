@@ -19,6 +19,7 @@ export function useMessages(channelId: string | undefined) {
 	const query = useInfiniteQuery({
 		queryKey: ["messenger", "messages", channelId],
 		queryFn: ({ pageParam }) =>
+			// biome-ignore lint/style/noNonNullAssertion: enabled flag guards channelId being defined
 			getMessages(channelId!, { before: pageParam, limit: PAGE_SIZE }),
 		initialPageParam: undefined as string | undefined,
 		getNextPageParam: (lastPage) => {
@@ -159,6 +160,7 @@ export function useThreadMessages(
 	const query = useInfiniteQuery({
 		queryKey: ["messenger", "thread", channelId, messageId],
 		queryFn: ({ pageParam }) =>
+			// biome-ignore lint/style/noNonNullAssertion: enabled flag guards channelId/messageId being defined
 			getThreadReplies(channelId!, messageId!, {
 				before: pageParam,
 				limit: PAGE_SIZE,

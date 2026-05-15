@@ -73,6 +73,7 @@ export function RunHeader({
 	isCompleting,
 	isReopening,
 }: RunHeaderProps) {
+	// biome-ignore lint/style/noNonNullAssertion: RUN_STATUS_CONFIG.created is always defined
 	const statusCfg = (RUN_STATUS_CONFIG[run.status] ??
 		RUN_STATUS_CONFIG.created)!;
 	const passRate =

@@ -59,6 +59,7 @@ const STATUS_COLORS: Record<
 };
 
 function getStatusCfg(status: string) {
+	// biome-ignore lint/style/noNonNullAssertion: STATUS_COLORS.unknown is always defined
 	return STATUS_COLORS[status] ?? STATUS_COLORS.unknown!;
 }
 

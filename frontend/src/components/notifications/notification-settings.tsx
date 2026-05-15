@@ -139,9 +139,10 @@ export function NotificationSettings() {
 						p.channel === channel &&
 						!p.project_id,
 				);
-				if (idx >= 0) {
+				const existing = idx >= 0 ? prev[idx] : undefined;
+				if (existing) {
 					const next = [...prev];
-					next[idx] = { ...next[idx]!, enabled: !current };
+					next[idx] = { ...existing, enabled: !current };
 					return next;
 				}
 				return [
@@ -179,9 +180,10 @@ export function NotificationSettings() {
 							p.channel === channel &&
 							!p.project_id,
 					);
-					if (idx >= 0) {
+					const existing = idx >= 0 ? prev[idx] : undefined;
+					if (existing) {
 						const next = [...prev];
-						next[idx] = { ...next[idx]!, enabled: current };
+						next[idx] = { ...existing, enabled: current };
 						return next;
 					}
 					return prev;

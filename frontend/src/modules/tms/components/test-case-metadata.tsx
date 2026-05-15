@@ -90,7 +90,9 @@ interface TestCaseMetadataProps {
 
 /** Боковая панель метаданных тест-кейса: тип, приоритет, статус, автор, даты, папка, компоненты, метки. */
 export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
+	// biome-ignore lint/style/noNonNullAssertion: PRIORITY_CONFIG.medium is always defined
 	const priorityCfg = (PRIORITY_CONFIG[tc.priority] ?? PRIORITY_CONFIG.medium)!;
+	// biome-ignore lint/style/noNonNullAssertion: STATUS_CONFIG.draft is always defined
 	const statusCfg = (STATUS_CONFIG[tc.status] ?? STATUS_CONFIG.draft)!;
 
 	return (

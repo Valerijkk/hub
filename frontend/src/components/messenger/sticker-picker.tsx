@@ -186,8 +186,10 @@ interface StickerPickerProps {
  */
 export function StickerPicker({ onSelect }: StickerPickerProps) {
 	const [open, setOpen] = useState(false);
+	// biome-ignore lint/style/noNonNullAssertion: STICKER_PACKS is a non-empty const array literal
 	const [activePackId, setActivePackId] = useState(STICKER_PACKS[0]!.id);
 
+	// biome-ignore lint/style/noNonNullAssertion: STICKER_PACKS is a non-empty const array literal
 	const activePack = STICKER_PACKS.find((p) => p.id === activePackId) ?? STICKER_PACKS[0]!;
 
 	const handleSelect = useCallback(

@@ -198,12 +198,13 @@ export function ChatView({ channelId }: ChatViewProps) {
 
 	/** Текст индикатора печати. */
 	const typingText = useMemo(() => {
-		if (typingUsers.length === 0) return null;
-		if (typingUsers.length === 1)
-			return `${typingUsers[0]!.displayName} печатает`;
-		if (typingUsers.length === 2)
-			return `${typingUsers[0]!.displayName} и ${typingUsers[1]!.displayName} печатают`;
-		return `${typingUsers[0]!.displayName} и ещё ${typingUsers.length - 1} печатают`;
+		const first = typingUsers[0];
+		if (!first) return null;
+		if (typingUsers.length === 1) return `${first.displayName} печатает`;
+		const second = typingUsers[1];
+		if (typingUsers.length === 2 && second)
+			return `${first.displayName} и ${second.displayName} печатают`;
+		return `${first.displayName} и ещё ${typingUsers.length - 1} печатают`;
 	}, [typingUsers]);
 
 	return (

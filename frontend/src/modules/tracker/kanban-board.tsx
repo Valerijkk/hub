@@ -98,10 +98,12 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 				default:
 					key = "all";
 			}
-			if (!groups.has(key)) {
-				groups.set(key, []);
+			const lane = groups.get(key);
+			if (lane) {
+				lane.push(issue);
+			} else {
+				groups.set(key, [issue]);
 			}
-			groups.get(key)!.push(issue);
 		}
 		return groups;
 	};

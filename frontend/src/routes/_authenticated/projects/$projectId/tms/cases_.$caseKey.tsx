@@ -100,8 +100,11 @@ function TestCaseDetailPage() {
 
 	// Update test case
 	const updateMutation = useMutation({
-		mutationFn: () =>
-			updateTestCase(projectId, caseKey, {
+		mutationFn: () => {
+			if (!tc) {
+				return Promise.reject(new Error("test case not loaded"));
+			}
+			return updateTestCase(projectId, caseKey, {
 				title: editTitle,
 				description: editDescription || undefined,
 				precondition: editPrecondition || undefined,
@@ -109,8 +112,9 @@ function TestCaseDetailPage() {
 				priority: editPriority,
 				status: editStatus,
 				steps: editSteps.length > 0 ? editSteps : undefined,
-				version: tc!.version,
-			}),
+				version: tc.version,
+			});
+		},
 		onSuccess: () => {
 			void queryClient.invalidateQueries({
 				queryKey: ["tms-case", projectId, caseKey],
@@ -213,8 +217,12 @@ function TestCaseDetailPage() {
 		setEditSteps((prev) => {
 			const target = direction === "up" ? index - 1 : index + 1;
 			if (target < 0 || target >= prev.length) return prev;
+			const stepA = prev[index];
+			const stepB = prev[target];
+			if (!stepA || !stepB) return prev;
 			const next = [...prev];
-			[next[index], next[target]] = [next[target]!, next[index]!];
+			next[index] = stepB;
+			next[target] = stepA;
 			return next.map((s, i) => ({ ...s, order: i + 1 }));
 		});
 	};
@@ -241,7 +249,9 @@ function TestCaseDetailPage() {
 		);
 	}
 
+	// biome-ignore lint/style/noNonNullAssertion: PRIORITY_CONFIG.medium is always defined
 	const priorityCfg = (PRIORITY_CONFIG[tc.priority] ?? PRIORITY_CONFIG.medium)!;
+	// biome-ignore lint/style/noNonNullAssertion: STATUS_CONFIG.draft is always defined
 	const statusCfg = (STATUS_CONFIG[tc.status] ?? STATUS_CONFIG.draft)!;
 	const hasAutotest = !!(
 		tc.full_name ||
@@ -727,7 +737,8 @@ function TestCaseDetailPage() {
 													size="sm"
 													className="h-7 w-7 p-0"
 													onClick={() => {
-														void navigator.clipboard.writeText(tc.automation_id!);
+														if (!tc.automation_id) return;
+														void navigator.clipboard.writeText(tc.automation_id);
 														toast.success("Automation ID скопирован");
 													}}
 												>

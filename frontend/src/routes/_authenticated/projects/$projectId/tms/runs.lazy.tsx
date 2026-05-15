@@ -320,6 +320,7 @@ function TestRunsPage() {
 					<div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-[18px] p-6 flex-1 overflow-y-auto">
 						{runs.map((run) => {
 							const rate = passRate(run);
+							// biome-ignore lint/style/noNonNullAssertion: RUN_STATUS_CONFIG.created is always defined
 							const statusCfg = (RUN_STATUS_CONFIG[run.status] ??
 								RUN_STATUS_CONFIG.created)!;
 							const typeCfg = RUN_TYPE_CONFIG[run.run_type];

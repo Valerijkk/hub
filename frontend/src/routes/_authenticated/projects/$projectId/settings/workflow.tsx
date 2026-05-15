@@ -68,6 +68,7 @@ function WorkflowSettingsPage() {
 	const [statusCategory, setStatusCategory] = useState<
 		"todo" | "in_progress" | "done"
 	>("todo");
+	// biome-ignore lint/style/noNonNullAssertion: PRESET_COLORS is a non-empty const array
 	const [statusColor, setStatusColor] = useState(PRESET_COLORS[0]!);
 	const [statusOrder, setStatusOrder] = useState("0");
 

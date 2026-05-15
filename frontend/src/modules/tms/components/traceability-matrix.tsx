@@ -58,6 +58,7 @@ const STATUS_CONFIG: Record<
 };
 
 function getStatusConfig(status: string) {
+	// biome-ignore lint/style/noNonNullAssertion: STATUS_CONFIG.unknown is always defined
 	return STATUS_CONFIG[status] ?? STATUS_CONFIG.unknown!;
 }
 

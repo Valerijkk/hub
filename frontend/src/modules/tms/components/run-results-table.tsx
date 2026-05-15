@@ -220,6 +220,7 @@ export function RunResultsTable({
 						</thead>
 						<tbody>
 							{filteredResults.map((r) => {
+								// biome-ignore lint/style/noNonNullAssertion: RESULT_STATUS_CONFIG.unknown is always defined
 								const resultCfg = (RESULT_STATUS_CONFIG[r.status] ??
 									RESULT_STATUS_CONFIG.unknown)!;
 								const isExecuting = executingResultId === r.id;

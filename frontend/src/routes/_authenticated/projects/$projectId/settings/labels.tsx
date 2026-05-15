@@ -73,6 +73,7 @@ function LabelsSettingsPage() {
 
 	// Форма новой метки
 	const [labelName, setLabelName] = useState("");
+	// biome-ignore lint/style/noNonNullAssertion: PRESET_LABEL_COLORS is a non-empty const array
 	const [labelColor, setLabelColor] = useState(PRESET_LABEL_COLORS[0]!);
 	const [labelGroupId, setLabelGroupId] = useState("");
 

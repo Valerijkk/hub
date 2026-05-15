@@ -137,7 +137,8 @@ export function getMonthGridDays(year: number, month: number): Date[] {
 
 	// Pad to complete the last week (fill to 35 or 42 cells)
 	while (days.length % 7 !== 0) {
-		const last = days[days.length - 1]!;
+		const last = days[days.length - 1];
+		if (!last) break;
 		const next = new Date(last);
 		next.setDate(next.getDate() + 1);
 		days.push(next);
@@ -166,8 +167,8 @@ export function expandRRule(
 	}
 
 	const byDayMatch = rrule.match(/BYDAY=([A-Z,]+)/);
-	const byDays = byDayMatch
-		? byDayMatch[1]!.split(",").map((d) => {
+	const byDays = byDayMatch?.[1]
+		? byDayMatch[1].split(",").map((d) => {
 				const map: Record<string, number> = {
 					MO: 1,
 					TU: 2,

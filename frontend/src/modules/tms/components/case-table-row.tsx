@@ -81,8 +81,10 @@ export function CaseTableRow({
 	isSelected,
 	onToggleSelect,
 }: CaseTableRowProps) {
+	// biome-ignore lint/style/noNonNullAssertion: PRIORITY_CONFIG.medium is always defined
 	const priority = (PRIORITY_CONFIG[tc.priority] ??
 		PRIORITY_CONFIG.medium)!;
+	// biome-ignore lint/style/noNonNullAssertion: STATUS_CONFIG.draft is always defined
 	const statusCfg = (STATUS_CONFIG[tc.status] ??
 		STATUS_CONFIG.draft)!;
 	const hasAutotest = !!(

@@ -82,11 +82,13 @@ function ActivityItem({
 	/** Резолвит значение — если это UUID статуса/пользователя, возвращает имя. */
 	const resolveValue = (field: string, value: unknown): string => {
 		const str = String(value ?? "—");
-		if (field === "status" && statusMap.has(str)) {
-			return statusMap.get(str)!;
+		if (field === "status") {
+			const name = statusMap.get(str);
+			if (name) return name;
 		}
-		if (field === "assignee" && userMap.has(str)) {
-			return userMap.get(str)!;
+		if (field === "assignee") {
+			const name = userMap.get(str);
+			if (name) return name;
 		}
 		return str;
 	};

@@ -52,6 +52,7 @@ function BoardPage() {
 	// Загрузка данных доски
 	const { data: boardData, isLoading } = useQuery({
 		queryKey: ["board", projectId, activeBoardId],
+		// biome-ignore lint/style/noNonNullAssertion: enabled flag guards activeBoardId being defined
 		queryFn: () => getBoardData(projectId, activeBoardId!),
 		enabled: !!activeBoardId,
 	});

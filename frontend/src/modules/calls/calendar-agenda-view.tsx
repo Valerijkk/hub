@@ -40,7 +40,9 @@ export function AgendaView({
 	return (
 		<div className="space-y-4">
 			{Array.from(groupedByDay.entries()).map(([key, dayEvents]) => {
-				const dayDate = dayEvents[0]!.date;
+				const firstEvent = dayEvents[0];
+				if (!firstEvent) return null;
+				const dayDate = firstEvent.date;
 				const dayHeader = dayDate.toLocaleDateString("ru-RU", {
 					weekday: "long",
 					day: "numeric",

@@ -95,6 +95,7 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 		});
 	}, [issue.issue_key, issue.id, issue.status, issue.rank]);
 
+	// biome-ignore lint/style/noNonNullAssertion: PRIORITY_CONFIG.medium is always defined
 	const priority = PRIORITY_CONFIG[issue.priority] ?? PRIORITY_CONFIG.medium!;
 	const typeConfig = TYPE_CONFIG[issue.issue_type] ?? {
 		icon: ClipboardList,
