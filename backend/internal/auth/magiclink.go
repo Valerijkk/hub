@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -129,7 +130,8 @@ func (s *MagicLinkService) VerifyCode(ctx context.Context, email, code string) e
 	if err != nil {
 		return fmt.Errorf("verify magic link code: %w", err)
 	}
-	if stored != code {
+	// SEC-07: constant-time comparison — защита от timing-side-channel.
+	if subtle.ConstantTimeCompare([]byte(stored), []byte(code)) != 1 {
 		s.recordFailure(ctx, failsKey)
 		return ErrMagicLinkInvalid
 	}

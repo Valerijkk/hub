@@ -546,8 +546,8 @@ func main() {
 	}
 	defer autoChannelSvc.Stop()
 
-	// API Gateway (API keys + Webhooks)
-	apiKeySvc := apigatewaymod.NewAPIKeyService(db)
+	// API Gateway (API keys + Webhooks). apiKeySvc уже создан выше + middleware
+	// зарегистрирован на api-группу (см. SEC-01 выше).
 	webhookSvc := apigatewaymod.NewWebhookService(db)
 	webhookDispatcher := apigatewaymod.NewWebhookDispatcher(db, nc)
 	if err := webhookDispatcher.Start(rootCtx); err != nil {
@@ -557,9 +557,6 @@ func main() {
 	defer webhookDispatcher.Stop()
 	apiGatewayHandler := apigatewaymod.NewHandler(apiKeySvc, webhookSvc)
 	apiGatewayHandler.RegisterRoutes(api, requireAuth)
-
-	// API key auth middleware (параллельно с JWT)
-	app.Use(apigatewaymod.APIKeyAuth(apiKeySvc))
 
 	// Backup module (автоматическое еженедельное резервное копирование).
 	// INF-04: используем реальный S3-клиент из StorageService — без этого
