@@ -90,7 +90,9 @@ func (s *LoginService) LoginWithTelegramUser(ctx context.Context, tgUser *Telegr
 }
 
 // findOrCreateUserByEmail ищет пользователя по email. Если не найден — создаёт нового.
-// Самый первый пользователь в системе получает роль admin.
+// Самый первый пользователь в системе получает роль admin. Создание делегируется
+// в regMode.CreateFirstOrMemberUser, чтобы count → Create выполнялись атомарно
+// под общим мьютексом (SEC-06).
 func (s *LoginService) findOrCreateUserByEmail(ctx context.Context, email string) (*ent.User, bool, error) {
 	u, err := s.db.User.Query().Where(user.EmailEQ(email)).Only(ctx)
 	if err == nil {
@@ -104,17 +106,11 @@ func (s *LoginService) findOrCreateUserByEmail(ctx context.Context, email string
 		return nil, false, err
 	}
 
-	role := user.SystemRoleMember
-	if s.regMode.IsFirstUser(ctx) {
-		role = user.SystemRoleAdmin
-	}
-
-	u, err = s.db.User.Create().
-		SetEmail(email).
-		SetSystemRole(role).
-		Save(ctx)
+	u, err = s.regMode.CreateFirstOrMemberUser(ctx, func(b *ent.UserCreate, role user.SystemRole) *ent.UserCreate {
+		return b.SetEmail(email).SetSystemRole(role)
+	})
 	if err != nil {
-		return nil, false, fmt.Errorf("create user: %w", err)
+		return nil, false, err
 	}
 	return u, true, nil
 }
@@ -133,11 +129,6 @@ func (s *LoginService) findOrCreateUserByTelegram(ctx context.Context, telegramI
 		return nil, false, err
 	}
 
-	role := user.SystemRoleMember
-	if s.regMode.IsFirstUser(ctx) {
-		role = user.SystemRoleAdmin
-	}
-
 	name := tg.FirstName
 	if tg.LastName != "" {
 		name += " " + tg.LastName
@@ -146,16 +137,18 @@ func (s *LoginService) findOrCreateUserByTelegram(ctx context.Context, telegramI
 	// Telegram users get a placeholder email (telegram_<id>@hub.local) until they
 	// provide a real one during onboarding.
 	placeholderEmail := fmt.Sprintf("telegram_%s@hub.local", telegramID)
+	tgID := telegramID
 
-	u, err = s.db.User.Create().
-		SetEmail(placeholderEmail).
-		SetNillableTelegramID(&telegramID).
-		SetName(name).
-		SetDisplayName(tg.FirstName).
-		SetSystemRole(role).
-		Save(ctx)
+	u, err = s.regMode.CreateFirstOrMemberUser(ctx, func(b *ent.UserCreate, role user.SystemRole) *ent.UserCreate {
+		return b.
+			SetEmail(placeholderEmail).
+			SetNillableTelegramID(&tgID).
+			SetName(name).
+			SetDisplayName(tg.FirstName).
+			SetSystemRole(role)
+	})
 	if err != nil {
-		return nil, false, fmt.Errorf("create telegram user: %w", err)
+		return nil, false, err
 	}
 	return u, true, nil
 }

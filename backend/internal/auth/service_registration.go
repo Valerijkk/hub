@@ -3,15 +3,31 @@ package auth
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/systemsetting"
+	"github.com/valerii/hub/backend/ent/user"
 )
 
 // RegistrationModeService отвечает за системную настройку режима регистрации
 // (open / invite_only) и связанные проверки (SC-14-1).
+//
+// SEC-06: первая регистрация (count == 0 → SystemRoleAdmin) сериализуется
+// process-level мьютексом `firstUserMu`. Без этого две параллельные
+// регистрации в "свежей" системе могут обе увидеть count == 0 и обе стать
+// админами. Мьютекс закрывает race для single-instance deployment.
+// Для multi-instance Postgres-кластера дополнительно нужен
+// `pg_advisory_xact_lock(<const>)` — тот же ключ удерживается до commit'а
+// транзакции и сериализует регистрации между процессами. SQLite (enttest)
+// в advisory lock не нуждается: транзакции уже сериализуемы по умолчанию.
 type RegistrationModeService struct {
 	db *ent.Client
+
+	// firstUserMu сериализует CreateFirstOrMemberUser: count → Create
+	// должна выполняться атомарно, иначе два конкурентных регистратора
+	// могут оба получить SystemRoleAdmin.
+	firstUserMu sync.Mutex
 }
 
 // NewRegistrationModeService создаёт RegistrationModeService.
@@ -58,12 +74,55 @@ func (s *RegistrationModeService) CheckRegistrationAllowed(ctx context.Context) 
 
 // IsFirstUser проверяет, является ли текущая регистрация первой (для назначения admin).
 // PUBLIC: вызывается LoginService при создании нового пользователя.
+//
+// DEPRECATED for first-admin path: см. SEC-06. Используйте CreateFirstOrMemberUser,
+// который атомарно (под mu) определяет роль и создаёт пользователя. Метод
+// оставлен для совместимости (вспомогательные проверки, не для назначения роли).
 func (s *RegistrationModeService) IsFirstUser(ctx context.Context) bool {
 	count, err := s.db.User.Query().Count(ctx)
 	if err != nil {
 		return false
 	}
 	return count == 0
+}
+
+// CreateFirstOrMemberUser атомарно выбирает SystemRole и создаёт пользователя
+// внутри `firstUserMu`. Это закрывает SEC-06 race:
+//
+//  1. acquire firstUserMu (process-level barrier)
+//  2. count users -> если 0, role = Admin; иначе Member
+//  3. apply(builder, role).Save(ctx)
+//  4. release mu
+//
+// `apply` получает builder + выбранную роль; вызывающая сторона добавляет
+// все остальные поля (email, telegram_id, name и т.д.). Это позволяет
+// обеим веткам (email и telegram) разделять одну и ту же атомарную секцию.
+//
+// Для multi-instance Postgres-кластера здесь следует добавить
+// `pg_advisory_xact_lock(<const>)` в раздельной транзакции (raw *sql.DB)
+// перед count'ом — текущая реализация защищает только single-instance.
+func (s *RegistrationModeService) CreateFirstOrMemberUser(
+	ctx context.Context,
+	apply func(b *ent.UserCreate, role user.SystemRole) *ent.UserCreate,
+) (*ent.User, error) {
+	s.firstUserMu.Lock()
+	defer s.firstUserMu.Unlock()
+
+	count, err := s.db.User.Query().Count(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("count users: %w", err)
+	}
+	role := user.SystemRoleMember
+	if count == 0 {
+		role = user.SystemRoleAdmin
+	}
+
+	builder := apply(s.db.User.Create(), role)
+	u, err := builder.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+	return u, nil
 }
 
 // upsertSystemSetting реализует идемпотентный upsert для SystemSetting,
