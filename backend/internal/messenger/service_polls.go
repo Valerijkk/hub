@@ -3,6 +3,7 @@ package messenger
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -62,8 +63,18 @@ func (s *MessengerService) CreatePoll(ctx context.Context, channelID, creatorID 
 		ContentText: req.Question,
 		CreatedAt:   time.Now(),
 	}
-	msgID, _ := s.repo.InsertMessage(ctx, pollDoc)
-	if msgID != "" {
+	// ME-4: раньше ошибка InsertMessage проглатывалась через `msgID, _ := ...`.
+	// Это non-critical path (опрос уже создан в Postgres транзакции), но молчать
+	// нельзя — без сообщения-обёртки опрос не появится в ленте, и пользователь
+	// видит «пропавший» опрос. Логируем WARN и публикуем NATS-событие только при
+	// успешной вставке; общий результат CreatePoll не валим, чтобы основной
+	// эффект (создание опроса) был виден через GetPollResults.
+	msgID, msgErr := s.repo.InsertMessage(ctx, pollDoc)
+	switch {
+	case msgErr != nil:
+		slog.Warn("ошибка вставки сообщения-обёртки опроса",
+			"poll_id", p.ID, "channel_id", channelID, "error", msgErr)
+	case msgID != "":
 		pollDoc.ID = msgID
 		// Публикуем message_sent для real-time доставки.
 		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
