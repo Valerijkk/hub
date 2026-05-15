@@ -153,24 +153,27 @@ function MessageItemInner({
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
 	const currentUserId = useAuthStore((s) => s.user?.id);
 
-	// Defensive: skip rendering if message is malformed (e.g. partial WS event)
-	if (!message || !message.id || typeof message.id !== "string") {
-		return null;
-	}
+	// NOTE: ALL hooks must be called unconditionally before any early return
+	// (Rules of Hooks). The defensive guard for malformed messages lives AFTER
+	// all hook calls. See FE-01 review fix.
 
-	const isOwn = currentUserId === message.sender_id;
-	const isGrouped = shouldGroupWithPrevious(message, previousMessage);
+	// Stable identifiers used by hooks below. When message is malformed we still
+	// need to invoke every hook to keep call order consistent across renders.
+	const safeMessageId =
+		message && typeof message.id === "string" ? message.id : "";
+	const messageContentText = message?.content_text;
+	const messageContentJson = message?.content_json;
 
 	/**
 	 * Извлекает уникальные URL из текста сообщения.
 	 */
 	const extractedUrls = useMemo(() => {
 		const urls = new Set<string>();
-		if (message.content_text) {
-			const matches = message.content_text.match(URL_REGEX);
+		if (messageContentText) {
+			const matches = messageContentText.match(URL_REGEX);
 			if (matches) matches.forEach((u) => urls.add(u));
 		}
-		if (message.content_json) {
+		if (messageContentJson) {
 			const extractFromNode = (node: unknown) => {
 				if (!node || typeof node !== "object") return;
 				const n = node as Record<string, unknown>;
@@ -185,39 +188,39 @@ function MessageItemInner({
 					n.children.forEach(extractFromNode);
 				}
 			};
-			extractFromNode(message.content_json);
+			extractFromNode(messageContentJson);
 		}
 		return Array.from(urls);
-	}, [message.content_text, message.content_json]);
+	}, [messageContentText, messageContentJson]);
 
 	const handleDelete = useCallback(async () => {
-		await deleteMessage(channelId, message.id);
-	}, [channelId, message.id]);
+		await deleteMessage(channelId, safeMessageId);
+	}, [channelId, safeMessageId]);
 
 	const handlePin = useCallback(async () => {
-		await togglePin(channelId, message.id);
-	}, [channelId, message.id]);
+		await togglePin(channelId, safeMessageId);
+	}, [channelId, safeMessageId]);
 
 	const handleBookmark = useCallback(async () => {
-		await addBookmark(message.id, channelId);
-	}, [channelId, message.id]);
+		await addBookmark(safeMessageId, channelId);
+	}, [channelId, safeMessageId]);
 
 	/** Ответить на сообщение (установить reply-to). */
 	const handleReply = useCallback(() => {
-		setReplyTo(message);
+		if (message) setReplyTo(message);
 	}, [message, setReplyTo]);
 
 	/** Начать редактирование сообщения. */
 	const handleStartEdit = useCallback(() => {
-		setEditText(message.content_text ?? "");
+		setEditText(messageContentText ?? "");
 		setIsEditing(true);
 		setShowActions(false);
-	}, [message.content_text]);
+	}, [messageContentText]);
 
 	/** Сохранить отредактированное сообщение. */
 	const handleSaveEdit = useCallback(async (newText?: string) => {
 		const trimmed = (newText ?? editText).trim();
-		if (!trimmed || trimmed === (message.content_text ?? "").trim()) {
+		if (!trimmed || trimmed === (messageContentText ?? "").trim()) {
 			setIsEditing(false);
 			return;
 		}
@@ -234,7 +237,7 @@ function MessageItemInner({
 					...typed,
 					pages: typed.pages.map((page) =>
 						page.map((msg) =>
-							msg.id === message.id
+							msg.id === safeMessageId
 								? {
 										...msg,
 										content_json: contentJson,
@@ -247,20 +250,29 @@ function MessageItemInner({
 				};
 			});
 			setIsEditing(false);
-			await editMessage(channelId, message.id, {
+			await editMessage(channelId, safeMessageId, {
 				content_json: contentJson,
 				content_text: trimmed,
 			});
 		} catch {
 			invalidateMessages();
 		}
-	}, [editText, message.content_text, message.id, channelId, queryClient, invalidateMessages]);
+	}, [editText, messageContentText, safeMessageId, channelId, queryClient, invalidateMessages]);
 
 	/** Отменить редактирование. */
 	const handleCancelEdit = useCallback(() => {
 		setIsEditing(false);
 		setEditText("");
 	}, []);
+
+	// Defensive: skip rendering if message is malformed (e.g. partial WS event).
+	// MUST be placed AFTER all hook calls to preserve Rules of Hooks ordering.
+	if (!message || !message.id || typeof message.id !== "string") {
+		return null;
+	}
+
+	const isOwn = currentUserId === message.sender_id;
+	const isGrouped = shouldGroupWithPrevious(message, previousMessage);
 
 	return (
 		<>

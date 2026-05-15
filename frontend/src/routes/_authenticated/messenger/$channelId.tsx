@@ -3,7 +3,15 @@ import { Component, useEffect, type ErrorInfo, type ReactNode } from "react";
 import { ChatView } from "@/components/messenger/chat-view";
 import { useMessengerStore } from "@/stores/messenger-store";
 
-/** Error boundary для чата — ловит React #185 и показывает fallback. */
+/**
+ * Error boundary для чата — общий fallback для рантайм-ошибок ChatView.
+ *
+ * TODO(FE-01): первоначальный триггер — React #185 (Rendered fewer hooks than
+ * expected) из-за нарушения Rules of Hooks в `MessageItem` — закрыт коммитом
+ * "fix(messenger): hoist hooks above early returns (FE-01)". Оставлено как
+ * defence-in-depth для WS-ошибок, поломанных payload'ов и пр.; убрать можно
+ * после стабилизации потока сообщений.
+ */
 class ChatErrorBoundary extends Component<
 	{ children: ReactNode },
 	{ error: Error | null }
