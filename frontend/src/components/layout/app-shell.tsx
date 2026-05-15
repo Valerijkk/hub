@@ -7,17 +7,32 @@
  */
 
 import { Outlet } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { CallPanel } from "@/components/calls/CallPanel";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { MobileNav } from "@/components/mobile-nav";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useCallStore } from "@/stores/call-store";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+
+/**
+ * CallPanel загружается лениво (FE-H5): тянет за собой ~478KB livekit-client
+ * и @livekit/components-react. Юзеры без звонков никогда не платят за этот
+ * чанк. Vite автоматически выносит транзитивные deps в отдельный chunk.
+ */
+const CallPanel = lazy(() =>
+	import("@/components/calls/CallPanel").then((m) => ({ default: m.CallPanel })),
+);
 
 /** Основная оболочка приложения: sidebar, topbar, content, панель звонка и мобильная навигация. */
 export function AppShell() {
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+	// CallPanel рендерим только когда есть активный/коннектящийся звонок
+	// или ошибка — иначе React не подтягивает lazy chunk вовсе.
+	const callPanelNeeded = useCallStore(
+		(s) => s.isInCall || s.isConnecting || s.error !== null,
+	);
 
 	/* Глобальные горячие клавиши */
 	useEffect(() => {
@@ -70,8 +85,14 @@ export function AppShell() {
 			{/* Нижняя навигация для мобильных */}
 			<MobileNav />
 
-			{/* Панель активного звонка */}
-			<CallPanel />
+			{/* Панель активного звонка — lazy-loaded (FE-H5). Suspense fallback пуст:
+			    CallPanel сам показывает loader при isConnecting, а пока чанк
+			    качается (десятки ms) — ничего рендерить не нужно. */}
+			{callPanelNeeded && (
+				<Suspense fallback={null}>
+					<CallPanel />
+				</Suspense>
+			)}
 		</TooltipProvider>
 	);
 }

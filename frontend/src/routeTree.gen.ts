@@ -79,7 +79,7 @@ const CallCodeRoute = CallCodeRouteImport.update({
   id: '/call/$code',
   path: '/call/$code',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/call.$code.lazy').then((d) => d.Route))
 const AuthenticatedTrashRoute = AuthenticatedTrashRouteImport.update({
   id: '/trash',
   path: '/trash',
