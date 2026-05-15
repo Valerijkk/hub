@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -47,7 +48,7 @@ func (s *PresenceService) Heartbeat(ctx context.Context, userID string) error {
 // Логика: если score < 5 мин назад -> "online", < 90 сек -> "away", иначе/нет записи -> "offline".
 func (s *PresenceService) GetStatus(ctx context.Context, userID string) (string, error) {
 	score, err := s.rdb.ZScore(ctx, presenceOnlineKey, userID).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return "offline", nil
 	}
 	if err != nil {
@@ -77,7 +78,8 @@ func (s *PresenceService) GetBulkStatus(ctx context.Context, userIDs []string) (
 	now := time.Now()
 	for i, uid := range userIDs {
 		score, err := cmds[i].Result()
-		if err == redis.Nil || err != nil {
+		if err != nil {
+			// err также покрывает redis.Nil (отсутствие записи) — оба случая = offline.
 			result[uid] = "offline"
 			continue
 		}
@@ -136,7 +138,7 @@ func (s *PresenceService) SetCustomStatus(ctx context.Context, userID, text, dur
 // GetCustomStatus возвращает кастомный текстовый статус пользователя.
 func (s *PresenceService) GetCustomStatus(ctx context.Context, userID string) (string, error) {
 	val, err := s.rdb.Get(ctx, presenceStatusKeyPrefix+userID).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return "", nil
 	}
 	return val, err

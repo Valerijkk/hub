@@ -28,6 +28,19 @@ type ProjectService struct {
 	dashProv     DashboardProvisioner
 }
 
+// memberCountOrZero безопасно читает количество участников проекта для UI-ответа.
+// Если запрос упал — логируем как warn и возвращаем 0, не блокируя основной флоу
+// (раньше count, _ := игнорировал ошибку молча — MEDIUM из аудита).
+func (s *ProjectService) memberCountOrZero(ctx context.Context, projectID uuid.UUID) int {
+	count, err := s.repo.MemberCount(ctx, projectID)
+	if err != nil {
+		slog.Warn("project member count failed; using 0 fallback",
+			"project_id", projectID, "error", err)
+		return 0
+	}
+	return count
+}
+
 // NewProjectService создаёт новый сервис проектов.
 // db и nats могут быть nil (graceful degradation для cleanupCrossProjectLinks).
 func NewProjectService(repo Repository, cache CacheInvalidator, db *ent.Client, nats *natsclient.Client) *ProjectService {
@@ -79,8 +92,7 @@ func (s *ProjectService) GetProject(ctx context.Context, projectID uuid.UUID) (*
 		}
 		return nil, apperrors.NewInternal("failed to get project")
 	}
-	count, _ := s.repo.MemberCount(ctx, projectID)
-	return toProjectResponse(p, count, ""), nil
+	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
 // ListProjects returns all projects the user is a member of (excluding deleted).
@@ -116,8 +128,7 @@ func (s *ProjectService) UpdateProject(ctx context.Context, projectID uuid.UUID,
 		}
 		return nil, apperrors.NewInternal("failed to update project")
 	}
-	count, _ := s.repo.MemberCount(ctx, projectID)
-	return toProjectResponse(p, count, ""), nil
+	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
 // ArchiveProject sets the project status to archived.
@@ -129,8 +140,7 @@ func (s *ProjectService) ArchiveProject(ctx context.Context, projectID uuid.UUID
 		}
 		return nil, apperrors.NewInternal("failed to archive project")
 	}
-	count, _ := s.repo.MemberCount(ctx, projectID)
-	return toProjectResponse(p, count, ""), nil
+	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
 // UnarchiveProject returns the project from archived to active status.
@@ -142,8 +152,7 @@ func (s *ProjectService) UnarchiveProject(ctx context.Context, projectID uuid.UU
 		}
 		return nil, apperrors.NewInternal("failed to unarchive project")
 	}
-	count, _ := s.repo.MemberCount(ctx, projectID)
-	return toProjectResponse(p, count, ""), nil
+	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
 // DeleteProject выполняет мягкое удаление проекта: статус = deleted, deleted_at = now.
@@ -266,8 +275,7 @@ func (s *ProjectService) RestoreProject(ctx context.Context, projectID uuid.UUID
 		}
 		return nil, apperrors.NewInternal("failed to restore project")
 	}
-	count, _ := s.repo.MemberCount(ctx, projectID)
-	return toProjectResponse(p, count, ""), nil
+	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
 // PermanentDelete performs a hard delete of a project. Admin only.

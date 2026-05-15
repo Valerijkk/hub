@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 	"time"
@@ -107,7 +108,7 @@ func userIsDeactivated(ctx context.Context, svc *AuthService, uid uuid.UUID) boo
 		switch val, err := svc.redis.Get(ctx, cacheKey).Result(); {
 		case err == nil:
 			return val == userStatusCacheDeactivated
-		case err == redis.Nil:
+		case errors.Is(err, redis.Nil):
 			// miss — продолжаем в БД.
 		default:
 			slog.Warn("user status cache get", "user_id", uid, "error", err)

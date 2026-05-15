@@ -113,7 +113,9 @@ func main() {
 	// --- Infrastructure clients ---
 
 	// PostgreSQL + Ent
-	db, err := database.NewPostgresClient(ctx, cfg.Postgres.URL)
+	// BE-H5: rawDB разделяет connection pool с Ent — переиспользуется
+	// в /health probe, чтобы не открывать новое подключение на каждом запросе.
+	db, rawDB, err := database.NewPostgresClient(ctx, cfg.Postgres.URL)
 	if err != nil {
 		slog.Error("failed to connect to PostgreSQL", "error", err)
 		os.Exit(1)
@@ -323,18 +325,13 @@ func main() {
 		overall := "ok"
 
 		// PostgreSQL
-		rawPgDB, pgErr := database.OpenRawDB(cfg.Postgres.URL)
-		if pgErr != nil {
+		// BE-H5: reuse the existing connection pool instead of opening
+		// a new *sql.DB on every probe (which leaked connections under load).
+		if pingErr := rawDB.PingContext(healthCtx); pingErr != nil {
 			services["postgres"] = "error"
 			overall = "degraded"
 		} else {
-			if pingErr := rawPgDB.PingContext(healthCtx); pingErr != nil {
-				services["postgres"] = "error"
-				overall = "degraded"
-			} else {
-				services["postgres"] = "ok"
-			}
-			rawPgDB.Close()
+			services["postgres"] = "ok"
 		}
 
 		// Redis
@@ -387,12 +384,8 @@ func main() {
 	tmsHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// Search routes (глобальный поиск + сохранённые фильтры)
-	rawDB, err := database.OpenRawDB(cfg.Postgres.URL)
-	if err != nil {
-		slog.Error("failed to open raw DB for search", "error", err)
-		os.Exit(1)
-	}
-	defer rawDB.Close()
+	// Поиск переиспользует тот же raw `*sql.DB`, что и /health probe (BE-H5):
+	// pool разделяется с Ent, отдельного pgx-подключения не открываем.
 	if err := searchmod.EnsureSearchIndexes(ctx, rawDB); err != nil {
 		slog.Error("failed to ensure search indexes", "error", err)
 	}

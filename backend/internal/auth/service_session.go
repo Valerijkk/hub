@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -93,7 +94,7 @@ func (s *SessionService) storeRefreshToken(ctx context.Context, token string, pa
 // getRefreshPayload извлекает данные refresh-токена из Redis.
 func (s *SessionService) getRefreshPayload(ctx context.Context, token string) (*refreshPayload, error) {
 	data, err := s.redis.Get(ctx, refreshKey(token)).Bytes()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return nil, fmt.Errorf("refresh token not found")
 	}
 	if err != nil {

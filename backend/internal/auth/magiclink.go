@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -117,13 +118,13 @@ func (s *MagicLinkService) VerifyCode(ctx context.Context, email, code string) e
 	// Per-email failed-attempt limit (independent of IP-based rate-limit).
 	if cnt, err := s.redis.Get(ctx, failsKey).Int(); err == nil && cnt >= magicLinkVerifyMax {
 		return ErrMagicLinkVerifyLimited
-	} else if err != nil && err != redis.Nil {
+	} else if err != nil && !errors.Is(err, redis.Nil) {
 		// Don't fail open on transient Redis error — log and continue cautiously.
 		slog.Warn("magiclink fails counter read error", "email", email, "error", err)
 	}
 
 	stored, err := s.redis.Get(ctx, codeKey).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		s.recordFailure(ctx, failsKey)
 		return ErrMagicLinkInvalid
 	}

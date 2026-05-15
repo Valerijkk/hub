@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -141,14 +142,14 @@ func (t *TelegramBotAuth) VerifyCode(ctx context.Context, code, clientKey string
 		failsKey = tgFailsPrefix + clientKey
 		if cnt, err := t.redis.Get(ctx, failsKey).Int(); err == nil && cnt >= tgVerifyFailsMax {
 			return nil, ErrTelegramVerifyLimited
-		} else if err != nil && err != redis.Nil {
+		} else if err != nil && !errors.Is(err, redis.Nil) {
 			slog.Warn("telegram verify fails counter read error", "client", clientKey, "error", err)
 		}
 	}
 
 	key := tgCodePrefix + code
 	data, err := t.redis.Get(ctx, key).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		t.recordVerifyFailure(ctx, failsKey)
 		return nil, fmt.Errorf("неверный или истёкший код")
 	}

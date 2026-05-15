@@ -14,21 +14,25 @@ import (
 
 // NewPostgresClient создаёт Ent-клиент, подключённый к PostgreSQL.
 // Выполняет автомиграцию в режиме разработки; для продакшена используйте Atlas.
-func NewPostgresClient(ctx context.Context, url string) (*ent.Client, error) {
+//
+// Возвращает также raw `*sql.DB`, разделяющий пул соединений с Ent —
+// его можно переиспользовать в health-probe (BE-H5) и других местах,
+// где нужен прямой Ping, чтобы не открывать каждый раз новое подключение.
+func NewPostgresClient(ctx context.Context, url string) (*ent.Client, *dbsql.DB, error) {
 	drv, err := sql.Open("postgres", url)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	client := ent.NewClient(ent.Driver(drv))
 
 	// Auto-migrate in development. Use Atlas for production.
 	if err := client.Schema.Create(ctx); err != nil {
 		slog.Error("failed to create schema", "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	slog.Info("connected to PostgreSQL")
-	return client, nil
+	return client, drv.DB(), nil
 }
 
 // OpenRawDB открывает прямое подключение к PostgreSQL для raw SQL-запросов.
