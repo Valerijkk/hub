@@ -100,10 +100,19 @@ export function WeekView({
 							return (
 								<div
 									key={`cell-${hour}-${dayIdx}`}
-									className={`h-[60px] relative border-b border-b1 cursor-pointer transition-colors hover:bg-[var(--hover)] ${
+									role="button"
+									tabIndex={0}
+									aria-label={`Создать встречу на ${String(hour).padStart(2, "0")}:00`}
+									className={`h-[60px] relative border-b border-b1 cursor-pointer transition-colors hover:bg-[var(--hover)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40 ${
 										dayIdx < 6 ? "border-r border-b1" : ""
 									} ${isToday ? "bg-[rgba(167,139,250,0.015)]" : ""}`}
 									onClick={() => onSlotClick(day, hour)}
+									onKeyDown={(e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault();
+											onSlotClick(day, hour);
+										}
+									}}
 								>
 									{/* Current time indicator */}
 									{isToday && hour === currentHour && (
@@ -123,7 +132,10 @@ export function WeekView({
 										return (
 											<div
 												key={ev.id}
-												className={`absolute left-1 right-1 rounded-[var(--r1)] px-2 py-[5px] text-[11.5px] font-semibold cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 overflow-hidden z-[2] hover:brightness-[1.15] hover:scale-[1.02] hover:z-[3] hover:shadow-[var(--sh2)] ${ev.colorClass}`}
+												role="button"
+												tabIndex={0}
+												aria-label={`Встреча: ${ev.title}`}
+												className={`absolute left-1 right-1 rounded-[var(--r1)] px-2 py-[5px] text-[11.5px] font-semibold cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 overflow-hidden z-[2] hover:brightness-[1.15] hover:scale-[1.02] hover:z-[3] hover:shadow-[var(--sh2)] focus:outline-none focus:ring-2 focus:ring-primary/50 ${ev.colorClass}`}
 												style={{
 													top: `${topOffset}%`,
 													height: `${Math.min(height, 100 - topOffset)}%`,
@@ -132,6 +144,13 @@ export function WeekView({
 												onClick={(e) => {
 													e.stopPropagation();
 													onEventClick(ev);
+												}}
+												onKeyDown={(e) => {
+													if (e.key === "Enter" || e.key === " ") {
+														e.preventDefault();
+														e.stopPropagation();
+														onEventClick(ev);
+													}
 												}}
 											>
 												<span className="overflow-hidden text-ellipsis whitespace-nowrap block">

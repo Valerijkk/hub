@@ -41,6 +41,7 @@ export function CallPanel() {
 					<div className="flex items-center justify-between bg-red-500/10 border-b border-red-500/20 px-4 py-2.5 text-sm text-red-400">
 						<span>{error}</span>
 						<button
+							type="button"
 							onClick={() => setError(null)}
 							className="ml-2 text-xs underline hover:text-red-300 transition-colors"
 						>

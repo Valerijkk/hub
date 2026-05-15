@@ -64,8 +64,16 @@ export function AgendaView({
 							{dayEvents.map((ev) => (
 								<div
 									key={ev.id}
-									className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-raised/50"
+									role="button"
+									tabIndex={0}
+									className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-raised/50 focus:outline-none focus:ring-2 focus:ring-primary/40"
 									onClick={() => onEventClick(ev)}
+									onKeyDown={(e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault();
+											onEventClick(ev);
+										}
+									}}
 								>
 									{/* Color dot */}
 									<div

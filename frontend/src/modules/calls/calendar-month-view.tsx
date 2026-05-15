@@ -66,10 +66,19 @@ export function MonthView({
 					return (
 						<div
 							key={dayKey}
-							className={`relative min-h-[80px] border-b border-r p-1.5 cursor-pointer transition-colors hover:bg-raised/50 ${
+							role="button"
+							tabIndex={0}
+							aria-label={`Выбрать день: ${day.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}`}
+							className={`relative min-h-[80px] border-b border-r p-1.5 cursor-pointer transition-colors hover:bg-raised/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40 ${
 								!isCurrentMonth ? "opacity-40" : ""
 							} ${idx % 7 === 6 ? "border-r-0" : ""}`}
 							onClick={() => onDayClick(day)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" || e.key === " ") {
+									e.preventDefault();
+									onDayClick(day);
+								}
+							}}
 						>
 							{/* Day number */}
 							<div className="flex items-center justify-center">
@@ -90,11 +99,21 @@ export function MonthView({
 									{dayEvents.slice(0, 3).map((ev) => (
 										<div
 											key={ev.id}
-											className={`truncate rounded px-1 py-0.5 text-[10px] leading-tight cursor-pointer transition-opacity hover:opacity-80 ${ev.colorClass}`}
+											role="button"
+											tabIndex={0}
+											aria-label={`Встреча: ${ev.title}`}
+											className={`truncate rounded px-1 py-0.5 text-[10px] leading-tight cursor-pointer transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/50 ${ev.colorClass}`}
 											title={`${ev.title} ${ev.date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`}
 											onClick={(e) => {
 												e.stopPropagation();
 												onEventClick(ev);
+											}}
+											onKeyDown={(e) => {
+												if (e.key === "Enter" || e.key === " ") {
+													e.preventDefault();
+													e.stopPropagation();
+													onEventClick(ev);
+												}
 											}}
 										>
 											{ev.date.toLocaleTimeString("ru-RU", {

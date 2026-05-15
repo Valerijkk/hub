@@ -66,10 +66,19 @@ export function DayView({
 							{/* Hour cell */}
 							<div
 								key={`cell-${hour}`}
-								className={`relative border-b cursor-pointer transition-colors hover:bg-raised/50 ${
+								role="button"
+								tabIndex={0}
+								aria-label={`Создать встречу на ${String(hour).padStart(2, "0")}:00`}
+								className={`relative border-b cursor-pointer transition-colors hover:bg-raised/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40 ${
 									isToday ? "bg-primary/[0.02]" : ""
 								}`}
 								onClick={() => onSlotClick(day, hour)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										e.preventDefault();
+										onSlotClick(day, hour);
+									}
+								}}
 							>
 								{/* Current time indicator */}
 								{isToday && hour === currentHour && (
@@ -89,7 +98,10 @@ export function DayView({
 									return (
 										<div
 											key={ev.id}
-											className={`absolute left-1 right-1 z-[5] overflow-hidden rounded-md border px-2 py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 ${ev.colorClass}`}
+											role="button"
+											tabIndex={0}
+											aria-label={`Встреча: ${ev.title}`}
+											className={`absolute left-1 right-1 z-[5] overflow-hidden rounded-md border px-2 py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/50 ${ev.colorClass}`}
 											style={{
 												top: `${topOffset}%`,
 												height: `${Math.min(height, 100 - topOffset)}%`,
@@ -98,6 +110,13 @@ export function DayView({
 											onClick={(e) => {
 												e.stopPropagation();
 												onEventClick(ev);
+											}}
+											onKeyDown={(e) => {
+												if (e.key === "Enter" || e.key === " ") {
+													e.preventDefault();
+													e.stopPropagation();
+													onEventClick(ev);
+												}
 											}}
 										>
 											<span className="font-medium leading-tight line-clamp-2">
