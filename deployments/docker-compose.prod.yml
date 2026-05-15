@@ -129,6 +129,10 @@ services:
           level: info
         room:
           empty_timeout: 300
+          # INF-01: дефолт LiveKit departure_timeout=20s ловит ICE-перeподключение
+          # как пустую комнату — пользователь видит "звонок умер через ~30 секунд".
+          # 120с даёт окно на восстановление NAT-смены/Wi-Fi-смены.
+          departure_timeout: 120
           max_participants: 50
         LKEOF
         exec /livekit-server --config /tmp/livekit.yaml

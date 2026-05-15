@@ -60,8 +60,9 @@ jobs:
             cd /opt/hub
             git reset --hard origin/master
 
-            # Fix prod configs
-            sed -i 's/DEV_MODE: "false"/DEV_MODE: "true"/' deployments/docker-compose.prod.yml
+            # INF-02: НЕ форсить DEV_MODE=true в проде. Раньше sed-замена
+            # открывала /api/dev/* и срубала auth rate-limit. DEV_MODE
+            # остаётся "false" из compose.prod.yml.
 
             # Restart backend
             cd deployments
