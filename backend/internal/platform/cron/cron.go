@@ -1,0 +1,76 @@
+// Package cron реализует общий runner для долгоиграющих периодических задач.
+//
+// До LO-1 в cmd/server/main.go было ~7 копий одного и того же паттерна:
+//
+//	go func() {
+//	    ticker := time.NewTicker(interval)
+//	    defer ticker.Stop()
+//	    for {
+//	        select {
+//	        case <-ticker.C:
+//	            // do work
+//	        case <-rootCtx.Done():
+//	            return
+//	        }
+//	    }
+//	}()
+//
+// Schedule инкапсулирует этот паттерн в одну строку:
+//
+//	cron.Schedule(rootCtx, 7*24*time.Hour, "weekly-backup",
+//	    func(ctx context.Context) error { return backupSvc.PerformBackup(ctx) })
+//
+// Все запущенные горутины слушают тот же rootCtx и одновременно
+// завершаются при SIGINT/SIGTERM (см. ME-10 graceful-shutdown).
+package cron
+
+import (
+	"context"
+	"log/slog"
+	"time"
+)
+
+// Schedule запускает периодическую задачу в отдельной горутине.
+//
+// - ctx     — контекст отмены (обычно rootCtx из main); при ctx.Done()
+//             горутина завершается без вызова fn.
+// - interval — период между tick'ами (первый tick также происходит через
+//              interval, как и у time.NewTicker).
+// - name    — человеко-читаемое имя задачи для структурных логов.
+// - fn      — выполняемая работа. Ошибка логируется на уровне Error;
+//             паника не перехватывается (вверх по стеку поднимется до
+//             fiber recover middleware только если задача обернёт её
+//             сама — поэтому в production-задачах fn должна сама
+//             обрабатывать критичные ошибки).
+//
+// Schedule логирует:
+// - Info "cron task started" при запуске;
+// - Debug "cron tick completed" после каждого успешного tick'а с длительностью;
+// - Error "cron task failed" при ошибке fn;
+// - Info "cron task stopped" при завершении (ctx.Done()).
+func Schedule(ctx context.Context, interval time.Duration, name string, fn func(ctx context.Context) error) {
+	go func() {
+		slog.Info("cron task started", "name", name, "interval", interval.String())
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				slog.Info("cron task stopped", "name", name)
+				return
+			case <-ticker.C:
+				start := time.Now()
+				if err := fn(ctx); err != nil {
+					slog.Error("cron task failed",
+						"name", name,
+						"error", err,
+						"duration", time.Since(start).String())
+					continue
+				}
+				slog.Debug("cron tick completed",
+					"name", name,
+					"duration", time.Since(start).String())
+			}
+		}
+	}()
+}

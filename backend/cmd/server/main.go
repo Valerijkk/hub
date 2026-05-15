@@ -16,6 +16,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/auth"
 	"github.com/valerii/hub/backend/internal/platform/config"
+	"github.com/valerii/hub/backend/internal/platform/cron"
 	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 	"github.com/valerii/hub/backend/internal/platform/database"
 	"github.com/valerii/hub/backend/internal/platform/middleware"
@@ -277,20 +278,9 @@ func main() {
 	// Cron: очистка осиротевших файлов (pending > 24h) — ежедневно.
 	// ME-10: контекст rootCtx — отменяется одним общим signal.NotifyContext.
 	orphanCleanupSvc := storageSvc.NewOrphanCleanupFromService()
-	go func() {
-		ticker := time.NewTicker(24 * time.Hour)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				if err := orphanCleanupSvc.Cleanup(rootCtx); err != nil {
-					slog.Error("orphan file cleanup failed", "error", err)
-				}
-			case <-rootCtx.Done():
-				return
-			}
-		}
-	}()
+	cron.Schedule(rootCtx, 24*time.Hour, "orphan-file-cleanup", func(ctx context.Context) error {
+		return orphanCleanupSvc.Cleanup(ctx)
+	})
 
 	// Sprint routes (Scrum: спринты, Planning Poker, burndown, velocity)
 	// Создаём до трекера, т.к. SprintService реализует WIPChecker.
@@ -428,20 +418,9 @@ func main() {
 
 	// Запуск фоновой очистки корзины (каждые 24 часа).
 	// ME-10: rootCtx.
-	go func() {
-		ticker := time.NewTicker(24 * time.Hour)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				if err := auditSvc.PurgeExpired(rootCtx); err != nil {
-					slog.Error("purge expired items failed", "error", err)
-				}
-			case <-rootCtx.Done():
-				return
-			}
-		}
-	}()
+	cron.Schedule(rootCtx, 24*time.Hour, "trash-purge-expired", func(ctx context.Context) error {
+		return auditSvc.PurgeExpired(ctx)
+	})
 
 	// Retention policy: ежедневная очистка устаревших данных. ME-10: rootCtx.
 	// BE-H7: передаём S3-клиент, чтобы при удалении row из recording таблицы
@@ -454,36 +433,14 @@ func main() {
 		retentionS3Client = storageSvc.S3Client()
 	}
 	retentionSvc := auditmod.NewRetentionService(db, mongoDB, retentionS3Client, retentionS3Bucket)
-	go func() {
-		ticker := time.NewTicker(24 * time.Hour)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				if err := retentionSvc.RunRetentionCleanup(rootCtx); err != nil {
-					slog.Error("retention cleanup failed", "error", err)
-				}
-			case <-rootCtx.Done():
-				return
-			}
-		}
-	}()
+	cron.Schedule(rootCtx, 24*time.Hour, "retention-cleanup", func(ctx context.Context) error {
+		return retentionSvc.RunRetentionCleanup(ctx)
+	})
 
 	// Крон проверки приближающихся дедлайнов (каждый час). ME-10: rootCtx.
-	go func() {
-		ticker := time.NewTicker(1 * time.Hour)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				if err := notifSvc.CheckDeadlines(rootCtx); err != nil {
-					slog.Error("deadline check failed", "error", err)
-				}
-			case <-rootCtx.Done():
-				return
-			}
-		}
-	}()
+	cron.Schedule(rootCtx, 1*time.Hour, "deadline-check", func(ctx context.Context) error {
+		return notifSvc.CheckDeadlines(ctx)
+	})
 
 	// Dashboard routes (дашборды: персональный, проектный, админский)
 	dashSvc := dashboardmod.NewDashboardService(db, rdb, mongoDB)
@@ -524,20 +481,9 @@ func main() {
 	callsHandler.RegisterRoutes(api, requireAuth)
 
 	// Cron: обработка запланированных звонков (каждые 60 секунд). ME-10: rootCtx.
-	go func() {
-		ticker := time.NewTicker(60 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				if err := scheduledCallSvc.ProcessDueScheduledCalls(rootCtx); err != nil {
-					slog.Error("scheduled calls processing failed", "error", err)
-				}
-			case <-rootCtx.Done():
-				return
-			}
-		}
-	}()
+	cron.Schedule(rootCtx, 60*time.Second, "scheduled-calls", func(ctx context.Context) error {
+		return scheduledCallSvc.ProcessDueScheduledCalls(ctx)
+	})
 
 	// Запуск фоновой очистки устаревших записей присутствия. ME-10: rootCtx.
 	go presenceSvc.StartCleanupLoop(rootCtx)
@@ -581,21 +527,11 @@ func main() {
 	backupHandler.RegisterRoutes(api, requireAuth, rbac.RequireAdmin(db))
 
 	// Еженедельный автоматический бэкап (каждые 7 дней). ME-10: rootCtx.
-	go func() {
-		ticker := time.NewTicker(7 * 24 * time.Hour)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				slog.Info("запуск автоматического еженедельного бэкапа")
-				if _, err := backupSvc.PerformBackup(rootCtx); err != nil {
-					slog.Error("автоматический бэкап не удался", "error", err)
-				}
-			case <-rootCtx.Done():
-				return
-			}
-		}
-	}()
+	cron.Schedule(rootCtx, 7*24*time.Hour, "weekly-backup", func(ctx context.Context) error {
+		slog.Info("запуск автоматического еженедельного бэкапа")
+		_, err := backupSvc.PerformBackup(ctx)
+		return err
+	})
 
 	// Import/Export module
 	imexSvc := imexmod.NewImExService(db)
