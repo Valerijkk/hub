@@ -166,6 +166,31 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 	return results, nil
 }
 
+// getUserChannelIDs возвращает ID каналов мессенджера, в которых состоит
+// пользователь. Используется SEC-H2 для скоупа Mongo $text-поиска.
+// Таблица channel_members имеет колонки channel_id и user_id (см.
+// ent/migrate/schema.go), что соответствует тому же шаблону, что и в
+// messenger.EntRepository.IsMember.
+func (s *SearchService) getUserChannelIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := s.sqlDB.QueryContext(ctx,
+		`SELECT channel_id FROM channel_members WHERE user_id = $1`,
+		userID.String())
+	if err != nil {
+		return nil, fmt.Errorf("getUserChannelIDs: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var channelID uuid.UUID
+		if err := rows.Scan(&channelID); err != nil {
+			continue
+		}
+		ids = append(ids, channelID)
+	}
+	return ids, rows.Err()
+}
+
 // getUserProjectIDs возвращает ID проектов, в которых состоит пользователь.
 // Использует raw SQL, т.к. ProjectMember хранит FK через Ent-edges.
 // Ent column names: project_members = project FK, user_project_members = user FK.
@@ -532,14 +557,29 @@ func (s *SearchService) searchChannels(ctx context.Context, query string, projec
 }
 
 // searchMessages ищет сообщения в MongoDB по $text-индексу.
-func (s *SearchService) searchMessages(ctx context.Context, query string, _ uuid.UUID) ([]SearchResult, error) {
+//
+// SEC-H2: $text-запрос ограничен каналами, в которых состоит вызывающий
+// пользователь. Раньше /api/search?type=message возвращал сообщения из
+// любого канала (HI-01 закрыл только messenger-handler-путь, но search
+// шёл напрямую в Mongo без scope). Без права хотя бы в одном канале —
+// ранний выход с пустым результатом.
+func (s *SearchService) searchMessages(ctx context.Context, query string, userID uuid.UUID) ([]SearchResult, error) {
 	if s.mongoDB == nil {
+		return nil, nil
+	}
+
+	channelIDs, err := s.getUserChannelIDs(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("получение каналов пользователя: %w", err)
+	}
+	if len(channelIDs) == 0 {
 		return nil, nil
 	}
 
 	coll := s.mongoDB.Collection("messages")
 	filter := bson.M{
-		"$text": bson.M{"$search": query},
+		"channel_id": bson.M{"$in": channelIDs},
+		"$text":      bson.M{"$search": query},
 	}
 	opts := options.Find().
 		SetProjection(bson.M{
