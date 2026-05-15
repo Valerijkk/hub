@@ -114,19 +114,27 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 		const recorder = mediaRecorderRef.current;
 		if (recorder && recorder.state === "recording") {
 			recorder.stop();
+			// MEDIUM: явно освобождаем MediaStream — иначе индикатор
+			// микрофона горит до перезагрузки страницы.
+			recorder.stream.getTracks().forEach((t) => t.stop());
 		}
 		clearInterval(timerRef.current);
 		setIsRecording(false);
 		onCancel();
 	}, [onCancel]);
 
-	// Очистка при размонтировании.
+	// Очистка при размонтировании: останавливаем recorder, освобождаем
+	// MediaStream-треки и чистим таймер. Без stream.stop индикатор микрофона
+	// продолжает гореть после unmount компонента.
 	useEffect(() => {
 		return () => {
 			clearInterval(timerRef.current);
 			const recorder = mediaRecorderRef.current;
-			if (recorder && recorder.state === "recording") {
-				recorder.stop();
+			if (recorder) {
+				if (recorder.state === "recording") {
+					recorder.stop();
+				}
+				recorder.stream.getTracks().forEach((t) => t.stop());
 			}
 		};
 	}, []);
