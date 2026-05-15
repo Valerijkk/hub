@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -12,7 +13,16 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/pushsubscription"
 	"github.com/valerii/hub/backend/internal/platform/config"
+	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 )
+
+// pushHTTPClient — SafeHTTPClient с SafeDialContext, блокирующим SSRF на
+// RFC1918/loopback/link-local IP (см. platform/http/safedialer.go).
+// Используется в webpush.Options.HTTPClient вместо http.DefaultClient,
+// чтобы атакующий не мог зарегистрировать subscription с
+// endpoint = http://169.254.169.254/... и заставить бэк выстрелить во
+// внутреннюю сеть. SEC-H3.
+var pushHTTPClient = safehttp.NewSafeHTTPClient(10 * time.Second)
 
 // pushMessage — внутреннее представление push-уведомления для очереди.
 type pushMessage struct {
@@ -131,7 +141,23 @@ func (p *PushSender) sendToUser(ctx context.Context, msg pushMessage) {
 
 // sendToSubscription отправляет push одной подписке.
 // При 404/410 ответе удаляет мёртвую подписку из БД.
+//
+// SEC-H3: defense-in-depth — endpoint валидируется ещё раз перед отправкой,
+// даже если подписка прошла регистрацию (на случай, если запись попала в БД
+// мимо SaveSubscription — например, через миграцию или legacy-данные).
+// Сам исходящий запрос идёт через pushHTTPClient с SafeDialContext —
+// это финальный рубеж против DNS-rebinding на приватные IP.
 func (p *PushSender) sendToSubscription(ctx context.Context, sub *ent.PushSubscription, payload []byte) {
+	if err := safehttp.ValidateOutboundURL(sub.Endpoint); err != nil {
+		slog.Warn("отказ отправки push: небезопасный endpoint",
+			"error", err, "endpoint", sub.Endpoint, "user_id", sub.UserID)
+		// Удаляем небезопасную запись, чтобы перестать пытаться к ней стучаться.
+		if err := p.db.PushSubscription.DeleteOne(sub).Exec(ctx); err != nil {
+			slog.Error("ошибка удаления небезопасной push-подписки", "error", err)
+		}
+		return
+	}
+
 	s := &webpush.Subscription{
 		Endpoint: sub.Endpoint,
 		Keys: webpush.Keys{
@@ -141,6 +167,7 @@ func (p *PushSender) sendToSubscription(ctx context.Context, sub *ent.PushSubscr
 	}
 
 	resp, err := webpush.SendNotification(payload, s, &webpush.Options{
+		HTTPClient:      pushHTTPClient,
 		VAPIDPublicKey:  p.cfg.VAPIDPublicKey,
 		VAPIDPrivateKey: p.cfg.VAPIDPrivateKey,
 		Subscriber:      p.cfg.VAPIDSubject,
@@ -171,9 +198,19 @@ func (p *PushSender) sendToSubscription(ctx context.Context, sub *ent.PushSubscr
 
 // SaveSubscription сохраняет или обновляет подписку на push-уведомления.
 // При существующем endpoint — обновляет ключи и привязку к пользователю.
+//
+// SEC-H3: endpoint валидируется ValidateOutboundURL (http/https-only, без
+// userinfo, непустой host). Это отбрасывает javascript:/file:/data:/gopher:
+// схемы и URL с user:pass@host. IP-проверка (RFC1918/loopback/link-local)
+// выполняется в момент отправки через SafeDialContext — здесь её делать
+// бессмысленно, т.к. DNS может ребиндиться между регистрацией и отправкой.
 func (p *PushSender) SaveSubscription(ctx context.Context, userID uuid.UUID, endpoint, p256dhKey, authKey, userAgent string) error {
 	if p == nil {
 		return nil
+	}
+
+	if err := safehttp.ValidateOutboundURL(endpoint); err != nil {
+		return fmt.Errorf("некорректный endpoint push-подписки: %w", err)
 	}
 
 	// Проверяем, существует ли подписка с таким endpoint.
