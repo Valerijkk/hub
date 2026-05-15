@@ -4,6 +4,7 @@ package search
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -151,8 +152,11 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 
 	wg.Wait()
 
-	if len(errs) > 0 {
-		slog.Warn("ошибки при поиске", "count", len(errs), "first", errs[0])
+	// ME-2: используем errors.Join вместо cherry-pick первой ошибки — иначе
+	// логи теряют информацию о падениях остальных шардов. errors.Join
+	// корректно скрывает nil-ы и сохраняет все ошибки в цепочке.
+	if joined := errors.Join(errs...); joined != nil {
+		slog.Warn("ошибки при поиске", "count", len(errs), "errors", joined)
 	}
 
 	// Сортировка по убыванию score и ограничение по limit
