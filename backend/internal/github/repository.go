@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/valerii/hub/backend/ent/githublink"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 )
@@ -49,6 +51,15 @@ type Repository interface {
 
 	// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
 	ListAllWebhookSecrets(ctx context.Context) ([]string, error)
+
+	// MarkTestCasesOutdatedByFiles находит test cases со статусом "synced",
+	// у которых ClassName/FullName совпадает с одним из переданных путей файлов
+	// (с нормализацией / и \ → .), помечает их sync_status = "outdated"
+	// и возвращает case_keys обновлённых записей.
+	//
+	// LO-3: метод инкапсулирует прямой доступ к ent.TestCase, чтобы
+	// GitHubService мог обойтись без *ent.Client как поля.
+	MarkTestCasesOutdatedByFiles(ctx context.Context, changedFiles []string) ([]string, error)
 }
 
 // CreateIntegrationInput -- входные данные для создания интеграции.
@@ -365,4 +376,72 @@ func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, er
 	out := make([]string, len(secrets))
 	copy(out, secrets)
 	return out, nil
+}
+
+// MarkTestCasesOutdatedByFiles находит test cases со статусом "synced",
+// у которых ClassName/FullName совпадает с одним из переданных путей файлов,
+// помечает их sync_status = "outdated" и возвращает case_keys обновлённых.
+//
+// LO-3: до рефакторинга эта логика была inline в GitHubService.markTestCasesOutdated
+// и требовала *ent.Client как поле сервиса. Перенос в Repository убирает
+// последнее место в сервисе, где требовался прямой доступ к ent.
+func (r *EntRepository) MarkTestCasesOutdatedByFiles(ctx context.Context, changedFiles []string) ([]string, error) {
+	if len(changedFiles) == 0 {
+		return nil, nil
+	}
+
+	cases, err := r.client.TestCase.Query().
+		Where(
+			testcase.Or(
+				testcase.ClassNameNotNil(),
+				testcase.FullNameNotNil(),
+			),
+			testcase.SyncStatusEQ(testcase.SyncStatusSynced),
+		).
+		All(ctx)
+	if err != nil {
+		slog.Error("ошибка получения тест-кейсов для sync_status", "error", err)
+		return nil, err
+	}
+
+	updated := make([]string, 0, len(cases))
+	for _, tc := range cases {
+		matched := false
+		for _, file := range changedFiles {
+			if matchTestCaseFileByPath(tc.ClassName, tc.FullName, file) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			continue
+		}
+		if err := r.client.TestCase.UpdateOneID(tc.ID).
+			SetSyncStatus(testcase.SyncStatusOutdated).
+			Exec(ctx); err != nil {
+			slog.Error("ошибка обновления sync_status", "case_key", tc.CaseKey, "error", err)
+			continue
+		}
+		updated = append(updated, tc.CaseKey)
+	}
+	return updated, nil
+}
+
+// matchTestCaseFileByPath проверяет, соответствует ли изменённый файл
+// тест-кейсу по className или fullName (с учётом паттернов Java/Python-пакетов).
+//
+// Например: src/test/java/com/example/MyTest.java нормализуется в
+// com.example.MyTest и сравнивается через strings.Contains. Это даёт
+// разумное приближение — false-positive возможен (если className —
+// слишком короткая подстрока), но достаточно для пометки sync_status.
+func matchTestCaseFileByPath(className, fullName, filePath string) bool {
+	normalized := strings.ReplaceAll(filePath, "/", ".")
+	normalized = strings.ReplaceAll(normalized, "\\", ".")
+	if className != "" && strings.Contains(normalized, className) {
+		return true
+	}
+	if fullName != "" && strings.Contains(normalized, fullName) {
+		return true
+	}
+	return false
 }

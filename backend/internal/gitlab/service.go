@@ -35,7 +35,6 @@ const maxGitLabResponseBodyBytes = 10 * 1024 * 1024 // 10 MB
 type GitLabService struct {
 	repo   Repository
 	nats   *natsclient.Client
-	entDB  *ent.Client
 	client *http.Client
 }
 
@@ -45,16 +44,16 @@ type GitLabService struct {
 // что блокирует подключения к RFC1918, loopback, link-local и облачным
 // metadata-сервисам (SEC-04 / SSRF-защита) — GitlabURL берётся из настроек
 // интеграции и формально является user-controlled.
-func NewGitLabService(repo Repository, nats *natsclient.Client, entDB ...*ent.Client) *GitLabService {
-	svc := &GitLabService{
+//
+// LO-3: до рефакторинга конструктор принимал необязательный *ent.Client,
+// но это поле никогда не читалось в коде сервиса — мёртвый параметр.
+// Удалён, чтобы не вводить в заблуждение про "может пригодиться".
+func NewGitLabService(repo Repository, nats *natsclient.Client) *GitLabService {
+	return &GitLabService{
 		repo:   repo,
 		nats:   nats,
 		client: safehttp.NewSafeHTTPClient(30 * time.Second),
 	}
-	if len(entDB) > 0 {
-		svc.entDB = entDB[0]
-	}
-	return svc
 }
 
 // ---------------------------------------------------------------------------
