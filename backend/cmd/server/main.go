@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gofiber/fiber/v3"
 	fiberrecover "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/valerii/hub/backend/internal/auth"
@@ -230,6 +231,13 @@ func main() {
 	if tgBotAuth != nil {
 		tgBotAuth.StartPolling(ctx)
 	}
+
+	// SEC-01: APIKeyAuth должен быть зарегистрирован ДО первого RegisterRoutes —
+	// в Fiber `Use` влияет только на handlers, замаунченные ПОЗЖЕ.
+	// Раньше Use стоял после всех роутов и был мёртвым кодом.
+	apiKeySvc := apigatewaymod.NewAPIKeyService(db)
+	api.Use(apigatewaymod.APIKeyAuth(apiKeySvc))
+
 	authHandler := auth.NewHandler(authSvc, db, tgBotAuth)
 	authHandler.RegisterRoutes(api, requireAuth)
 
@@ -553,8 +561,21 @@ func main() {
 	// API key auth middleware (параллельно с JWT)
 	app.Use(apigatewaymod.APIKeyAuth(apiKeySvc))
 
-	// Backup module (автоматическое еженедельное резервное копирование)
-	backupSvc := backupmod.NewBackupService(db, nil, "hub-backups", cfg.Postgres.URL, cfg.MongoDB.URL)
+	// Backup module (автоматическое еженедельное резервное копирование).
+	// INF-04: используем реальный S3-клиент из StorageService — без этого
+	// PerformBackup пишет ZIP в no-op (s3Client == nil) и weekly ticker
+	// крутится впустую. Bucket — основной S3 bucket приложения, объекты
+	// складываются по префиксу "backups/" (см. PerformBackup → s3Key).
+	// Если S3 не настроен (cfg.S3.Endpoint == ""), оставляем nil явно
+	// и громко логируем — fail-soft, но без молчаливой потери данных.
+	var backupS3Client *s3.Client
+	backupS3Bucket := storageSvc.Bucket()
+	if cfg.S3.Endpoint == "" {
+		slog.Warn("backup: S3 not configured (S3_ENDPOINT пустой), еженедельный бэкап будет no-op")
+	} else {
+		backupS3Client = storageSvc.S3Client()
+	}
+	backupSvc := backupmod.NewBackupService(db, backupS3Client, backupS3Bucket, cfg.Postgres.URL, cfg.MongoDB.URL)
 	backupHandler := backupmod.NewHandler(backupSvc)
 	backupHandler.RegisterRoutes(api, requireAuth, rbac.RequireAdmin(db))
 

@@ -153,6 +153,18 @@ func (s *StorageService) NewOrphanCleanupFromService() *OrphanCleanupService {
 	return NewOrphanCleanupService(s.entClient, s.s3Client, s.bucket)
 }
 
+// S3Client возвращает низкоуровневый S3-клиент. Используется другими модулями
+// (например, backup), которым нужен прямой доступ к S3-совместимому хранилищу
+// без необходимости дублировать конфигурацию credentials/endpoint.
+func (s *StorageService) S3Client() *s3.Client {
+	return s.s3Client
+}
+
+// Bucket возвращает имя bucket'а, используемого текущим StorageService.
+func (s *StorageService) Bucket() string {
+	return s.bucket
+}
+
 // DeleteFile выполняет мягкое удаление файла (устанавливает статус deleted и deleted_at).
 func (s *StorageService) DeleteFile(ctx context.Context, fileID uuid.UUID) error {
 	return s.entClient.FileMetadata.UpdateOneID(fileID).
