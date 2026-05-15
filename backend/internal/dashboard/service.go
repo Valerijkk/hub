@@ -12,6 +12,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/activitylog"
+	"github.com/valerii/hub/backend/ent/call"
+	"github.com/valerii/hub/backend/ent/callparticipant"
 	"github.com/valerii/hub/backend/ent/dashboardlayout"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
@@ -109,10 +111,17 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	}
 	data.UnreadCount = total
 
-	// Предстоящие звонки: последние активные звонки в каналах пользователя
-	// (Calls schema не имеет scheduled_at, показываем активные)
+	// Предстоящие звонки: последние активные звонки, в которых участвует
+	// текущий пользователь (creator или participant).
+	// BE-H3: раньше Where() был пустой и выдавал звонки всех пользователей —
+	// личный дашборд показывал чужие звонки.
 	activeCalls, err := s.db.Call.Query().
-		Where().
+		Where(
+			call.Or(
+				call.CreatedBy(userID),
+				call.HasParticipantsWith(callparticipant.UserIDEQ(userID)),
+			),
+		).
 		WithChannel().
 		Limit(10).
 		All(ctx)
