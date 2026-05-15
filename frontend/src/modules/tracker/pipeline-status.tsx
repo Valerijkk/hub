@@ -204,9 +204,9 @@ export function PipelineStatus({ projectId }: PipelineStatusProps) {
 					CI/CD
 				</h4>
 				<div className="animate-pulse space-y-2">
-					{[1, 2, 3].map((i) => (
+					{["pipe-sk-1", "pipe-sk-2", "pipe-sk-3"].map((sk) => (
 						<div
-							key={i}
+							key={sk}
 							className="h-12 w-full rounded-lg bg-gray-200 dark:bg-gray-700"
 						/>
 					))}

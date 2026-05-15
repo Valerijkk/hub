@@ -37,7 +37,16 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 		(Array.isArray(node.children) ? node.children : []) as Record<string, unknown>[];
 	const renderedChildren = children.map((child, i) => {
 		if (!child || typeof child !== "object" || Array.isArray(child)) return null;
-		return <RenderNode key={i} node={child as Record<string, unknown>} />;
+		const childType =
+			typeof (child as { type?: unknown }).type === "string"
+				? ((child as { type: string }).type)
+				: "node";
+		return (
+			<RenderNode
+				key={`${childType}-${i}`}
+				node={child as Record<string, unknown>}
+			/>
+		);
 	});
 
 	switch (node.type) {
@@ -116,7 +125,16 @@ export function RenderContent({
 			<div className="prose prose-sm dark:prose-invert max-w-none">
 				{nodes.map((node, i) => {
 					if (!node || typeof node !== "object" || Array.isArray(node)) return null;
-					return <RenderNode key={i} node={node as Record<string, unknown>} />;
+					const nodeType =
+						typeof (node as { type?: unknown }).type === "string"
+							? ((node as { type: string }).type)
+							: "node";
+					return (
+						<RenderNode
+							key={`${nodeType}-${i}`}
+							node={node as Record<string, unknown>}
+						/>
+					);
 				})}
 			</div>
 		);
@@ -134,7 +152,16 @@ export function RenderContent({
 		<div className="prose prose-sm dark:prose-invert max-w-none">
 			{children.map((node, i) => {
 				if (!node || typeof node !== "object" || Array.isArray(node)) return null;
-				return <RenderNode key={i} node={node as Record<string, unknown>} />;
+				const nodeType =
+					typeof (node as { type?: unknown }).type === "string"
+						? ((node as { type: string }).type)
+						: "node";
+				return (
+					<RenderNode
+						key={`${nodeType}-${i}`}
+						node={node as Record<string, unknown>}
+					/>
+				);
 			})}
 		</div>
 	);

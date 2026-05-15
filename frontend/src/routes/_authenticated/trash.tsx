@@ -100,8 +100,8 @@ function TrashPage() {
 					{/* Loading */}
 					{isLoading && (
 						<div className="space-y-3">
-							{[1, 2].map((i) => (
-								<div key={i} className="rounded-[var(--r4)] border border-b1 bg-card p-5">
+							{["sk-1", "sk-2"].map((sk) => (
+								<div key={sk} className="rounded-[var(--r4)] border border-b1 bg-card p-5">
 									<div className="space-y-2">
 										<div className="h-5 w-1/3 rounded-md animate-shimmer" />
 										<div className="h-4 w-1/5 rounded-md animate-shimmer" />

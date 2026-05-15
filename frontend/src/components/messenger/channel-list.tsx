@@ -486,7 +486,7 @@ export function ChannelList() {
 				<div className="flex flex-1 items-center justify-center">
 					<div className="space-y-1 w-full px-2">
 						{[1, 2, 3, 4, 5].map((i) => (
-							<div key={i} className="flex items-center gap-[11px] px-3.5 py-2.5">
+							<div key={`ch-sk-${i}`} className="flex items-center gap-[11px] px-3.5 py-2.5">
 								<div className="h-[38px] w-[38px] rounded-full animate-shimmer shrink-0" />
 								<div className="flex-1 space-y-1">
 									<div className="h-3 w-24 rounded animate-shimmer" />

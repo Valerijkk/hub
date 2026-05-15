@@ -129,7 +129,7 @@ function ProjectPage() {
 				</div>
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 					{[1, 2, 3, 4].map((i) => (
-						<div key={i} className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-5 space-y-2">
+						<div key={`stat-sk-${i}`} className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-5 space-y-2">
 							<div className="h-4 w-20 rounded animate-shimmer" />
 							<div className="h-8 w-16 rounded animate-shimmer" />
 						</div>

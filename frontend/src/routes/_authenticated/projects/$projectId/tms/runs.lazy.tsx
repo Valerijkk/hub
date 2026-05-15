@@ -255,7 +255,7 @@ function TestRunsPage() {
 				<div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-[18px] p-6">
 					{[1, 2, 3, 4, 5, 6].map((i) => (
 						<div
-							key={i}
+							key={`run-sk-${i}`}
 							className="tms-run-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-6 space-y-3"
 						>
 							<div className="flex justify-between">

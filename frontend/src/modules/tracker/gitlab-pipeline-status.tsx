@@ -221,9 +221,9 @@ export function GitLabPipelineStatus({ projectId }: GitLabPipelineStatusProps) {
 					GitLab CI/CD
 				</h4>
 				<div className="animate-pulse space-y-2">
-					{[1, 2, 3].map((i) => (
+					{["gl-sk-1", "gl-sk-2", "gl-sk-3"].map((sk) => (
 						<div
-							key={i}
+							key={sk}
 							className="h-12 w-full rounded-lg bg-gray-200 dark:bg-gray-700"
 						/>
 					))}

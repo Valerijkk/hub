@@ -135,7 +135,13 @@ export function CreatePollDialog({
 						<Label>Варианты ответа</Label>
 						<div className="space-y-2">
 							{options.map((option, index) => (
-								<div key={index} className="flex items-center gap-2">
+								// Composite key: options can be mutated (add/remove/reorder), so
+								// index alone is unstable, but combining with option text avoids
+								// duplicate-key collisions while staying stable for unchanged rows.
+								<div
+									key={`option-${index}-${option || "empty"}`}
+									className="flex items-center gap-2"
+								>
 									<Input
 										value={option}
 										onChange={(e) => updateOption(index, e.target.value)}

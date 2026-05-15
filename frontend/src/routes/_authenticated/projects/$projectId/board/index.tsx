@@ -174,7 +174,7 @@ function BoardPage() {
 				<div className="flex flex-1 gap-4 overflow-x-auto pb-4">
 					{[1, 2, 3, 4, 5, 6].map((i) => (
 						<div
-							key={i}
+							key={`board-col-sk-${i}`}
 							className="flex w-[300px] min-w-[300px] flex-shrink-0 flex-col rounded-xl border border-border/40 bg-raised/30"
 						>
 							<div className="px-4 py-3">
@@ -182,7 +182,7 @@ function BoardPage() {
 							</div>
 							<div className="space-y-2 px-2 pb-2">
 								{[1, 2, 3].map((j) => (
-									<div key={j} className="h-28 rounded-lg animate-shimmer" />
+									<div key={`board-card-sk-${i}-${j}`} className="h-28 rounded-lg animate-shimmer" />
 								))}
 							</div>
 						</div>

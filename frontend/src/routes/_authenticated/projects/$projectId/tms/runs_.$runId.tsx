@@ -131,7 +131,7 @@ function TestRunDetailPage() {
 				<div className="h-8 w-64 rounded animate-shimmer mb-4" />
 				<div className="grid grid-cols-4 gap-3 mb-6">
 					{[1, 2, 3, 4].map((i) => (
-						<div key={i} className="h-20 rounded-xl animate-shimmer" />
+						<div key={`run-stat-sk-${i}`} className="h-20 rounded-xl animate-shimmer" />
 					))}
 				</div>
 				<div className="h-64 w-full rounded-xl animate-shimmer" />

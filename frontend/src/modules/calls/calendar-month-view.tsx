@@ -65,7 +65,7 @@ export function MonthView({
 
 					return (
 						<div
-							key={idx}
+							key={dayKey}
 							className={`relative min-h-[80px] border-b border-r p-1.5 cursor-pointer transition-colors hover:bg-raised/50 ${
 								!isCurrentMonth ? "opacity-40" : ""
 							} ${idx % 7 === 6 ? "border-r-0" : ""}`}

@@ -169,7 +169,10 @@ export function ImportDialog({
 										Ошибки валидации:
 									</div>
 									{result.validation_errors.map((ve, i) => (
-										<div key={i} className="text-xs text-red-600">
+										<div
+											key={`ve-${ve.row}-${ve.field}-${i}`}
+											className="text-xs text-red-600"
+										>
 											Строка {ve.row}: {ve.field} - {ve.message}
 										</div>
 									))}

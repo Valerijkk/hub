@@ -119,7 +119,12 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 										</thead>
 										<tbody>
 											{preview.rows.map((row, i) => (
-												<tr key={i} className="border-b">
+												// Preview rows have no stable id; composite of first
+												// column value + index keeps re-renders predictable.
+												<tr
+													key={`row-${i}-${Object.values(row.fields)[0] ?? "empty"}`}
+													className="border-b"
+												>
 													{preview.headers.map((h) => (
 														<td key={h} className="p-1">
 															{row.fields[h] ?? ""}

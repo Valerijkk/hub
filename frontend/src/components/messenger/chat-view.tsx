@@ -251,7 +251,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 						/* Loading skeleton */
 						<div className="flex flex-1 flex-col justify-end p-4 space-y-3">
 							{[1, 2, 3, 4, 5].map((i) => (
-								<div key={i} className="flex gap-3">
+								<div key={`msg-sk-${i}`} className="flex gap-3">
 									<div className="h-9 w-9 rounded-full animate-shimmer shrink-0" />
 									<div className="space-y-1.5 flex-1">
 										<div className="h-3 w-24 rounded animate-shimmer" />

@@ -179,7 +179,7 @@ function IssueListPage() {
 					{/* Table rows skeleton */}
 					{[1, 2, 3, 4, 5, 6].map((i) => (
 						<div
-							key={i}
+							key={`issue-sk-${i}`}
 							className="flex items-center gap-4 border-b last:border-b-0 px-4 py-3"
 						>
 							<div className="h-4 w-20 rounded animate-shimmer" />

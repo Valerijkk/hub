@@ -337,9 +337,9 @@ function InviteList({ channelId }: { channelId: string }) {
 	if (isLoading) {
 		return (
 			<div className="space-y-2">
-				{[1, 2].map((i) => (
+				{["invite-sk-1", "invite-sk-2"].map((sk) => (
 					<div
-						key={i}
+						key={sk}
 						className="h-14 rounded-md animate-shimmer"
 					/>
 				))}

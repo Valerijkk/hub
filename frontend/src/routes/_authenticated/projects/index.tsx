@@ -110,7 +110,7 @@ function ProjectsPage() {
 			{isLoading && (
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					{[1, 2, 3].map((i) => (
-						<div key={i} className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-5">
+						<div key={`proj-sk-${i}`} className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-5">
 							<div className="space-y-3">
 								<div className="h-5 w-2/3 rounded-md animate-shimmer" />
 								<div className="h-4 w-1/4 rounded-md animate-shimmer" />

@@ -27,7 +27,7 @@ export function TeamActivityWidget({ data }: Props) {
 		<div className="space-y-1">
 			{activities.slice(0, 10).map((entry: ActivityEntry, idx: number) => (
 				<div
-					key={idx}
+					key={`${entry.created_at}-${entry.user_name}-${idx}`}
 					className="group flex items-start gap-3 rounded-lg px-2 py-2 text-sm transition-colors duration-150 hover:bg-accent/50"
 				>
 					{/* Avatar */}

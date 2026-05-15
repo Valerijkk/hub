@@ -54,9 +54,10 @@ export function WeekView({
 				{weekDays.map((day, i) => {
 					const { weekday, day: dayNum } = formatDayHeader(day, "ru-RU");
 					const isToday = isSameDay(day, today);
+					const dayKey = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
 					return (
 						<div
-							key={i}
+							key={dayKey}
 							className={`h-[52px] flex flex-col items-center justify-center border-b border-b1 sticky top-0 bg-base z-[5] ${
 								i < 6 ? "border-r border-b1" : ""
 							}`}

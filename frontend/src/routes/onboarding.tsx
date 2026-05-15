@@ -257,7 +257,7 @@ function OnboardingPage() {
 				{/* Progress indicator */}
 				<div className="flex items-center justify-center mb-11 gap-0">
 					{STEP_LABELS.map((label, i) => (
-						<div key={i} className="flex items-center">
+						<div key={label} className="flex items-center">
 							<div className="flex items-center gap-3">
 								<div
 									className={`w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-extrabold border-2 transition-[box-shadow] duration-350 ${
@@ -501,7 +501,7 @@ function OnboardingPage() {
 						<div className="flex gap-4 justify-center mb-[30px]">
 							{accentColors.map((ac, idx) => (
 								<div
-									key={idx}
+									key={ac.color}
 									className={`w-11 h-11 rounded-full cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 border-[3px] hover:scale-[1.18] ${
 										accent === idx
 											? "border-white/40 shadow-[0_0_0_3px_currentColor,_0_0_20px_currentColor]"

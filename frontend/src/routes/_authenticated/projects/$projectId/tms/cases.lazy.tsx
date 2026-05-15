@@ -519,7 +519,7 @@ function TestCasesPage() {
 							</thead>
 							<tbody>
 								{[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-									<tr key={i}>
+									<tr key={`case-sk-${i}`}>
 										<td className="px-5 h-14 border-b border-b1" colSpan={8}>
 											<div className="flex items-center gap-4">
 												<div className="h-4 w-4 rounded animate-shimmer" />

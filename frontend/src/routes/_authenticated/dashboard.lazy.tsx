@@ -179,7 +179,7 @@ function PersonalDashboard() {
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 dash-enter dash-enter-3">
 						{[1, 2, 3, 4, 5, 6].map((i) => (
 							<div
-								key={i}
+								key={`dash-sk-${i}`}
 								className="dash-widget p-5 space-y-3"
 								style={{ animationDelay: `${i * 80}ms` }}
 							>
