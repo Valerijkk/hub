@@ -62,7 +62,12 @@ func (t *TelegramSender) Start(ctx context.Context) {
 			case msg := <-t.queue:
 				t.sendMessage(msg)
 				// Rate limiting: 35мс между отправками (~28 сообщений/сек).
-				time.Sleep(35 * time.Millisecond)
+				// MEDIUM: ctx-aware — при shutdown воркер прерывается мгновенно.
+				select {
+				case <-workerCtx.Done():
+					return
+				case <-time.After(35 * time.Millisecond):
+				}
 			}
 		}
 	}()

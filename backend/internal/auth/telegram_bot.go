@@ -71,7 +71,12 @@ func (t *TelegramBotAuth) StartPolling(ctx context.Context) {
 			})
 			if err != nil {
 				slog.Error("telegram bot auth: ошибка получения обновлений", "error", err)
-				time.Sleep(3 * time.Second)
+				// MEDIUM: ctx-aware backoff — при сигнале shutdown не висим лишних 3с.
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(3 * time.Second):
+				}
 				continue
 			}
 
