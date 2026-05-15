@@ -17,6 +17,20 @@ export interface ApiError {
 }
 
 /**
+ * Single-flight mutex для refresh-токена (FE-H1).
+ *
+ * При параллельных 401-ответах несколько запросов могут одновременно
+ * попытаться обновить токен. Это приводит к гонке: первый успешный refresh
+ * инвалидирует старый refresh_token, и последующие refresh-запросы получают
+ * 401, что выкидывает пользователя из системы.
+ *
+ * Решение: модульный promise-lock. Если refresh уже в работе — все
+ * последующие вызовы дожидаются того же промиса. По завершении промис
+ * сбрасывается, и при следующем 401 запускается новый refresh.
+ */
+let refreshing: Promise<boolean> | null = null;
+
+/**
  * HTTP-клиент для взаимодействия с backend API.
  *
  * Автоматически добавляет JWT-токен из auth-store в заголовок Authorization.
@@ -79,9 +93,22 @@ class ApiClient {
 
 	/**
 	 * Пытается обновить access-токен через refresh-токен.
+	 *
+	 * Single-flight: если refresh уже в работе — дожидается того же
+	 * промиса вместо запуска параллельного refresh (FE-H1).
+	 *
 	 * @returns true если обновление успешно, false если нужен повторный логин
 	 */
-	private async tryRefresh(): Promise<boolean> {
+	private tryRefresh(): Promise<boolean> {
+		if (refreshing) return refreshing;
+		refreshing = this.doRefresh().finally(() => {
+			refreshing = null;
+		});
+		return refreshing;
+	}
+
+	/** Фактический HTTP-запрос на обновление токена (без single-flight обвязки). */
+	private async doRefresh(): Promise<boolean> {
 		const refreshToken = useAuthStore.getState().refreshToken;
 		if (!refreshToken) return false;
 		try {
