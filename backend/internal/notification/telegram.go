@@ -21,9 +21,10 @@ type telegramMessage struct {
 // TelegramSender отправляет уведомления через Telegram-бот.
 // Использует буферизованный канал и воркер с rate limiting (35мс между отправками).
 type TelegramSender struct {
-	bot    *telego.Bot
-	queue  chan telegramMessage
-	cancel context.CancelFunc
+	bot       *telego.Bot
+	queue     chan telegramMessage
+	cancel    context.CancelFunc
+	workerCtx context.Context
 }
 
 // NewTelegramSender создаёт нового отправителя Telegram уведомлений.
@@ -53,6 +54,7 @@ func (t *TelegramSender) Start(ctx context.Context) {
 
 	workerCtx, cancel := context.WithCancel(ctx)
 	t.cancel = cancel
+	t.workerCtx = workerCtx
 
 	go func() {
 		for {
@@ -60,7 +62,7 @@ func (t *TelegramSender) Start(ctx context.Context) {
 			case <-workerCtx.Done():
 				return
 			case msg := <-t.queue:
-				t.sendMessage(msg)
+				t.sendMessage(workerCtx, msg)
 				// Rate limiting: 35мс между отправками (~28 сообщений/сек).
 				// MEDIUM: ctx-aware — при shutdown воркер прерывается мгновенно.
 				select {
@@ -98,15 +100,30 @@ func (t *TelegramSender) Send(chatID int64, title, body string) {
 }
 
 // sendMessage выполняет отправку одного сообщения через Telegram Bot API.
-func (t *TelegramSender) sendMessage(msg telegramMessage) {
+//
+// ME-1: telego v0.31.0 SendMessage не принимает context.Context, поэтому
+// оборачиваем вызов в горутину с каналом и select на ctx.Done(). Это
+// гарантирует, что при shutdown воркер не виснет на сетевом таймауте API.
+func (t *TelegramSender) sendMessage(ctx context.Context, msg telegramMessage) {
 	text := formatTelegramMessage(msg.title, msg.body)
 
 	params := tu.Message(tu.ID(msg.chatID), text)
 	params.WithParseMode(telego.ModeMarkdownV2)
 
-	_, err := t.bot.SendMessage(params)
-	if err != nil {
-		slog.Error("ошибка отправки telegram сообщения", "error", err, "chat_id", msg.chatID)
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := t.bot.SendMessage(params)
+		errCh <- err
+	}()
+
+	select {
+	case <-ctx.Done():
+		slog.Warn("отправка telegram сообщения прервана shutdown", "chat_id", msg.chatID)
+		return
+	case err := <-errCh:
+		if err != nil {
+			slog.Error("ошибка отправки telegram сообщения", "error", err, "chat_id", msg.chatID)
+		}
 	}
 }
 

@@ -47,6 +47,13 @@ func NewTelegramBotAuth(botToken string, rdb *redis.Client) *TelegramBotAuth {
 	return &TelegramBotAuth{bot: bot, redis: rdb}
 }
 
+// getUpdatesResult транспортирует ответ b.GetUpdates через канал, чтобы
+// shutdown не ждал завершения уже-улетевшего HTTP-запроса.
+type getUpdatesResult struct {
+	updates []telego.Update
+	err     error
+}
+
 // StartPolling запускает long polling для обработки команд /start и /login.
 func (t *TelegramBotAuth) StartPolling(ctx context.Context) {
 	if t == nil {
@@ -65,12 +72,29 @@ func (t *TelegramBotAuth) StartPolling(ctx context.Context) {
 			default:
 			}
 
-			updates, err := t.bot.GetUpdates(&telego.GetUpdatesParams{
-				Offset:  offset,
-				Timeout: 30,
-			})
-			if err != nil {
-				slog.Error("telegram bot auth: ошибка получения обновлений", "error", err)
+			// ME-1: оборачиваем blocking GetUpdates (Timeout=30s) в горутину с
+			// каналом — иначе ctx.Done() не прерывает long-poll-вызов и
+			// graceful shutdown висит до тайм-аута. telego v0.31.0 не принимает
+			// context.Context в API-методах, так что ctx прокидываем через
+			// select.
+			resultCh := make(chan getUpdatesResult, 1)
+			go func(offset int) {
+				updates, err := t.bot.GetUpdates(&telego.GetUpdatesParams{
+					Offset:  offset,
+					Timeout: 30,
+				})
+				resultCh <- getUpdatesResult{updates: updates, err: err}
+			}(offset)
+
+			var res getUpdatesResult
+			select {
+			case <-ctx.Done():
+				return
+			case res = <-resultCh:
+			}
+
+			if res.err != nil {
+				slog.Error("telegram bot auth: ошибка получения обновлений", "error", res.err)
 				// MEDIUM: ctx-aware backoff — при сигнале shutdown не висим лишних 3с.
 				select {
 				case <-ctx.Done():
@@ -80,7 +104,7 @@ func (t *TelegramBotAuth) StartPolling(ctx context.Context) {
 				continue
 			}
 
-			for _, update := range updates {
+			for _, update := range res.updates {
 				offset = update.UpdateID + 1
 				if update.Message == nil {
 					continue
@@ -124,8 +148,22 @@ func (t *TelegramBotAuth) handleLogin(ctx context.Context, msg *telego.Message) 
 	params := tu.Message(tu.ID(chatID), text)
 	params.WithParseMode(telego.ModeMarkdownV2)
 
-	if _, err := t.bot.SendMessage(params); err != nil {
-		slog.Error("telegram bot auth: ошибка отправки кода", "error", err, "chat_id", chatID)
+	// ME-1: telego v0.31.0 SendMessage не принимает ctx; оборачиваем в
+	// горутину, чтобы при shutdown не блокировались на сетевом таймауте.
+	sendErrCh := make(chan error, 1)
+	go func() {
+		_, err := t.bot.SendMessage(params)
+		sendErrCh <- err
+	}()
+	select {
+	case <-ctx.Done():
+		// Process is shutting down — best-effort, не ждём подтверждения.
+		slog.Warn("telegram bot auth: отправка кода прервана shutdown", "chat_id", chatID)
+		return
+	case err := <-sendErrCh:
+		if err != nil {
+			slog.Error("telegram bot auth: ошибка отправки кода", "error", err, "chat_id", chatID)
+		}
 	}
 }
 
