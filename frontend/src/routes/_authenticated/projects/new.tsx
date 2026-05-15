@@ -102,6 +102,7 @@ function NewProjectPage() {
 		<div className="mx-auto max-w-lg animate-fade-in">
 			{/* Навигация назад */}
 			<button
+				type="button"
 				onClick={() => void navigate({ to: "/projects" })}
 				className="mb-6 inline-flex items-center gap-1.5 text-sm text-t2 hover:text-t1 transition-colors"
 			>

@@ -65,6 +65,7 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 	return (
 		<div className="flex items-center gap-2">
 			<button
+				type="button"
 				onClick={() => setShowImport(true)}
 				className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
 			>
@@ -72,6 +73,7 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 			</button>
 			<div className="relative">
 				<button
+					type="button"
 					onClick={() => handleExport("csv")}
 					className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
 				>
@@ -79,6 +81,7 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 				</button>
 			</div>
 			<button
+				type="button"
 				onClick={() => handleExport("excel")}
 				className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
 			>
@@ -147,6 +150,7 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 						<div className="flex justify-end gap-2">
 							{preview && (
 								<button
+									type="button"
 									onClick={handleImport}
 									disabled={importing}
 									className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50"
@@ -155,6 +159,7 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 								</button>
 							)}
 							<button
+								type="button"
 								onClick={() => {
 									setShowImport(false);
 									setPreview(null);

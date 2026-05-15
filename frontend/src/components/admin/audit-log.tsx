@@ -151,6 +151,7 @@ export function AuditLogViewer() {
 				</Select>
 				<div className="flex-1" />
 				<button
+					type="button"
 					onClick={exportCSV}
 					className="px-[14px] py-[6px] bg-[var(--card)] border border-b1 rounded-[var(--r2)] text-[12px] font-semibold text-t2 hover:text-t1 hover:border-b2 transition-colors duration-180"
 				>
@@ -216,6 +217,7 @@ export function AuditLogViewer() {
 					</span>
 					<div className="flex gap-1">
 						<button
+							type="button"
 							disabled={page <= 1}
 							onClick={() => setPage((p) => Math.max(1, p - 1))}
 							className="px-3 py-[5px] rounded-[var(--r2)] border border-b1 text-[12px] text-t2 hover:text-t1 hover:border-b2 disabled:opacity-50 transition-colors duration-180"
@@ -226,6 +228,7 @@ export function AuditLogViewer() {
 							{page} / {totalPages}
 						</span>
 						<button
+							type="button"
 							disabled={page >= totalPages}
 							onClick={() => setPage((p) => p + 1)}
 							className="px-3 py-[5px] rounded-[var(--r2)] border border-b1 text-[12px] text-t2 hover:text-t1 hover:border-b2 disabled:opacity-50 transition-colors duration-180"

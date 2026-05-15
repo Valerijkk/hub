@@ -120,6 +120,7 @@ export function PlanningPoker({
 					<div className="flex flex-wrap gap-2">
 						{FIBONACCI_VALUES.map((value) => (
 							<button
+								type="button"
 								key={value}
 								onClick={() => handleVote(value)}
 								disabled={voting}

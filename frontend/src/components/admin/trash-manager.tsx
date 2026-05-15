@@ -68,6 +68,7 @@ export function TrashManager() {
 			<div className="flex gap-1 border-b">
 				{TRASH_TABS.map((tab) => (
 					<button
+						type="button"
 						key={tab.key}
 						onClick={() => setActiveTab(tab.key)}
 						className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
@@ -131,6 +132,7 @@ export function TrashManager() {
 									</td>
 									<td className="px-3 py-2 text-right">
 										<button
+											type="button"
 											onClick={() => handleRestore(item)}
 											disabled={restoringId === item.id}
 											className="rounded bg-green-600 px-2.5 py-1 text-xs text-white hover:bg-green-700 disabled:opacity-50"
@@ -153,6 +155,7 @@ export function TrashManager() {
 					<span className="text-sm text-t2">Всего: {total}</span>
 					<div className="flex gap-1">
 						<button
+							type="button"
 							disabled={page <= 1}
 							onClick={() => setPage((p) => Math.max(1, p - 1))}
 							className="rounded border px-2 py-1 text-sm disabled:opacity-50"
@@ -163,6 +166,7 @@ export function TrashManager() {
 							{page} / {totalPages}
 						</span>
 						<button
+							type="button"
 							disabled={page >= totalPages}
 							onClick={() => setPage((p) => p + 1)}
 							className="rounded border px-2 py-1 text-sm disabled:opacity-50"

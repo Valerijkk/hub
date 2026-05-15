@@ -99,6 +99,7 @@ export function ScheduledCalls({ channelId, projectId }: ScheduledCallsProps) {
 					Запланированные звонки
 				</h3>
 				<button
+					type="button"
 					onClick={() => setShowForm(!showForm)}
 					className="rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
 				>
@@ -147,6 +148,7 @@ export function ScheduledCalls({ channelId, projectId }: ScheduledCallsProps) {
 								)}
 							</div>
 							<button
+								type="button"
 								onClick={() => handleDelete(sc.id)}
 								className="rounded-md border border-border px-2 py-1 text-xs text-t2 transition-colors hover:border-destructive hover:text-destructive"
 								title="Удалить"
