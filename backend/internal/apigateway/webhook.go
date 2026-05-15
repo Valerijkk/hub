@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -271,12 +272,13 @@ func (d *WebhookDispatcher) sendWebhook(url string, body []byte, signature, even
 	}
 	defer resp.Body.Close()
 
+	// BE-H2: read at most maxWebhookResponseBodyBytes от ответа эндпоинта.
+	// Раньше использовали respBuf.ReadFrom(resp.Body) — это читало тело
+	// целиком (вплоть до OOM) и только потом обрезало. io.LimitReader
+	// гарантирует, что больше N байт мы не аллоцируем.
 	var respBuf bytes.Buffer
-	respBuf.ReadFrom(resp.Body)
+	_, _ = io.Copy(&respBuf, io.LimitReader(resp.Body, maxWebhookResponseBodyBytes))
 	respBody := respBuf.String()
-	if len(respBody) > maxWebhookResponseBodyBytes {
-		respBody = respBody[:maxWebhookResponseBodyBytes]
-	}
 
 	return resp.StatusCode, respBody, nil
 }
