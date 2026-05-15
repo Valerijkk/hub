@@ -87,3 +87,90 @@ func waitFor(_ *testing.T, timeout time.Duration, condition func() bool) bool {
 	}
 	return condition()
 }
+
+// TestHub_SEC05_ConcurrentSendersDuringRemoveDoNotPanic — гарантирует, что
+// параллельные writer'ы (BroadcastToRoom, SendToUser), пишущие в client.send
+// одновременно с removeClient, не вызывают "send on closed channel" panic.
+//
+// До фикса SEC-05 receiver (Hub.removeClient) закрывал send-канал, в который
+// одновременно писали bridge/handler-горутины — гонка приводила к панике.
+// После фикса removeClient закрывает только done, и writer'ы корректно
+// видят сигнал через select { case <-done: }.
+func TestHub_SEC05_ConcurrentSendersDuringRemoveDoNotPanic(t *testing.T) {
+	const senders = 100
+	const iters = 50
+
+	for trial := 0; trial < 20; trial++ {
+		hub := NewHub()
+		ctx, cancel := context.WithCancel(context.Background())
+
+		var runWG sync.WaitGroup
+		runWG.Add(1)
+		go func() {
+			defer runWG.Done()
+			hub.Run(ctx)
+		}()
+
+		client := NewClient("user-sec05", "session-sec05")
+		hub.Register(client)
+		hub.Subscribe(client, "room-sec05")
+
+		// Дать Run обработать register+subscribe.
+		if !waitFor(t, 500*time.Millisecond, func() bool {
+			return hub.connectionsForUser("user-sec05") == 1
+		}) {
+			cancel()
+			runWG.Wait()
+			t.Fatalf("client did not register in time")
+		}
+
+		// Постоянный дренаж send, иначе буфер забьётся и writer'ы пойдут в default.
+		drainerDone := make(chan struct{})
+		var drainerWG sync.WaitGroup
+		drainerWG.Add(1)
+		go func() {
+			defer drainerWG.Done()
+			for {
+				select {
+				case <-drainerDone:
+					return
+				case <-client.send:
+				case <-client.done:
+					// После закрытия done продолжаем дренировать остатки,
+					// но выходим через drainerDone, когда тест разрешит.
+				}
+			}
+		}()
+
+		var sendersWG sync.WaitGroup
+		sendersWG.Add(senders)
+		for i := 0; i < senders; i++ {
+			go func() {
+				defer sendersWG.Done()
+				for j := 0; j < iters; j++ {
+					hub.BroadcastToRoom("room-sec05", ServerMessage{Type: TypeEvent, Event: "tick"})
+					hub.SendToUser("user-sec05", ServerMessage{Type: TypeEvent, Event: "tick"})
+				}
+			}()
+		}
+
+		// Параллельно с активной записью снимаем клиента — это и есть
+		// та самая гонка, которая ронялась паникой до SEC-05.
+		go hub.Unregister(client)
+
+		sendersWG.Wait()
+		close(drainerDone)
+		drainerWG.Wait()
+
+		cancel()
+		runWG.Wait()
+
+		// done должен быть закрыт по факту Unregister.
+		select {
+		case <-client.done:
+			// ok
+		case <-time.After(500 * time.Millisecond):
+			t.Fatalf("client.done was not closed after Unregister (trial=%d)", trial)
+		}
+	}
+}

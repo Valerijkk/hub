@@ -107,7 +107,10 @@ func readPump(conn *websocket.Conn, client *Client, hub *Hub) {
 		case TypePing:
 			pong := ServerMessage{Type: TypePong}
 			data, _ := json.Marshal(pong)
+			// SEC-05: client.send никогда не закрывается, но проверяем done,
+			// чтобы не писать в send после Unregister.
 			select {
+			case <-client.done:
 			case client.send <- data:
 			default:
 			}
@@ -118,6 +121,10 @@ func readPump(conn *websocket.Conn, client *Client, hub *Hub) {
 // writePump записывает сообщения из канала отправки клиента в WebSocket-соединение.
 // Завершается при закрытии client.done (до закрытия conn), предотвращая
 // nil pointer dereference при записи в закрытый fasthttp hijackConn.
+//
+// SEC-05: канал client.send больше НЕ закрывается со стороны Hub — сигналом
+// завершения служит исключительно client.done. Это устраняет панику
+// "send on closed channel" в параллельных producer'ах (Bridge/handler).
 func writePump(conn *websocket.Conn, client *Client) {
 	ticker := time.NewTicker(pingPeriod)
 	defer ticker.Stop()
@@ -126,13 +133,11 @@ func writePump(conn *websocket.Conn, client *Client) {
 		select {
 		case <-client.done:
 			// Соединение закрывается — выходим до обращения к conn.
+			_ = conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = conn.WriteMessage(websocket.CloseMessage, nil)
 			return
-		case message, ok := <-client.send:
+		case message := <-client.send:
 			if err := conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-				return
-			}
-			if !ok {
-				_ = conn.WriteMessage(websocket.CloseMessage, nil)
 				return
 			}
 			if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {

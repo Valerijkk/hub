@@ -14,6 +14,13 @@ import (
 // HI-07: ConnectionID — уникальный идентификатор именно соединения
 // (а не пользователя). Один пользователь может иметь несколько активных
 // клиентов (мульти-таб) — каждый со своим ConnectionID.
+//
+// SEC-05: канал send НИКОГДА не закрывается со стороны Hub/receiver.
+// Сигнал завершения распространяется через done — все producer-горутины
+// (BroadcastToRoom, SendToUser, readPump-pong) обязаны проверять <-done
+// перед записью в send. Это устраняет антипаттерн "receiver closes channel",
+// при котором параллельные writer'ы могли отправить в уже закрытый канал
+// и получить панику "send on closed channel".
 type Client struct {
 	UserID       string
 	SessionID    string
@@ -184,6 +191,10 @@ func (h *Hub) unsubscribeClient(client *Client, room string) {
 }
 
 // BroadcastToRoom рассылает сообщение всем клиентам в указанной комнате.
+//
+// SEC-05: перед записью в client.send проверяем <-client.done, чтобы не
+// отправлять в "обречённый" клиент. Сам канал send никогда не закрывается,
+// поэтому отправка после done — это просто no-op (drop), а не паника.
 func (h *Hub) BroadcastToRoom(room string, msg ServerMessage) {
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -200,6 +211,8 @@ func (h *Hub) BroadcastToRoom(room string, msg ServerMessage) {
 	members.Range(func(_, value any) bool {
 		client := value.(*Client)
 		select {
+		case <-client.done:
+			// Client завершается — не отправляем.
 		case client.send <- data:
 		default:
 			// Client send buffer full, skip message to avoid blocking.
@@ -228,7 +241,10 @@ func (h *Hub) SendToUser(userID string, msg ServerMessage) {
 	inner := val.(*sync.Map)
 	inner.Range(func(_, value any) bool {
 		client := value.(*Client)
+		// SEC-05: учитываем done, чтобы не писать в send закрываемого клиента.
 		select {
+		case <-client.done:
+			// Client завершается — не отправляем.
 		case client.send <- data:
 		default:
 			slog.Warn("ws client send buffer full, dropping message",
@@ -276,10 +292,12 @@ func (h *Hub) removeClient(client *Client) {
 		}
 	}
 
-	// Сигнализируем writePump о завершении ДО закрытия send-канала,
-	// чтобы writePump успел выйти и не обращался к закрытому соединению.
+	// SEC-05: закрываем ТОЛЬКО done. Канал send намеренно не закрывается,
+	// поскольку параллельные producer'ы (BroadcastToRoom, SendToUser,
+	// readPump-pong) пишут в него и проверяют done через select — без этого
+	// мы получали "send on closed channel" panic при гонке remove+broadcast.
+	// send будет собран GC после того, как все ссылки на *Client исчезнут.
 	client.closeOnce.Do(func() {
 		close(client.done)
-		close(client.send)
 	})
 }
