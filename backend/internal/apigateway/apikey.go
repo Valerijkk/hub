@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -16,15 +17,74 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
+// Размеры пула воркеров и очереди для асинхронного обновления
+// `api_key.last_used_at`. BE-H4: раньше каждое успешное API-key-обращение
+// порождало unbounded `go func()` — под нагрузкой это приводило к
+// goroutine-leak и connection-pool exhaustion. Сейчас обновления
+// мультиплексируются через буферизованный канал, а лишние events
+// дедуплицируются (per-key throttle на уровне канала).
+const (
+	apiKeyTouchWorkers   = 4
+	apiKeyTouchQueueSize = 100
+)
+
+// apiKeyTouchJob — задание на обновление last_used_at для одного ключа.
+type apiKeyTouchJob struct {
+	keyID uuid.UUID
+	when  time.Time
+}
+
 // APIKeyService управляет жизненным циклом API-ключей:
 // генерация, верификация, отзыв, обновление last_used_at.
 type APIKeyService struct {
 	db *ent.Client
+
+	// BE-H4: bounded worker-pool для асинхронных обновлений last_used_at.
+	touchJobs chan apiKeyTouchJob
+	touchWG   sync.WaitGroup
+	stopOnce  sync.Once
+	stopCh    chan struct{}
 }
 
 // NewAPIKeyService создаёт новый сервис API-ключей.
+// Запускает фиксированный пул воркеров (apiKeyTouchWorkers) для асинхронного
+// обновления last_used_at у API-ключей. Завершите сервис вызовом Close при
+// graceful shutdown.
 func NewAPIKeyService(db *ent.Client) *APIKeyService {
-	return &APIKeyService{db: db}
+	svc := &APIKeyService{
+		db:        db,
+		touchJobs: make(chan apiKeyTouchJob, apiKeyTouchQueueSize),
+		stopCh:    make(chan struct{}),
+	}
+	for i := 0; i < apiKeyTouchWorkers; i++ {
+		svc.touchWG.Add(1)
+		go svc.touchWorker()
+	}
+	return svc
+}
+
+// touchWorker обрабатывает задания обновления last_used_at из канала.
+// Завершается при закрытии canал touchJobs.
+func (s *APIKeyService) touchWorker() {
+	defer s.touchWG.Done()
+	for job := range s.touchJobs {
+		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := s.db.APIKey.UpdateOneID(job.keyID).
+			SetLastUsedAt(job.when).
+			Exec(bgCtx); err != nil {
+			slog.Error("не удалось обновить last_used_at для API-ключа", "error", err, "key_id", job.keyID)
+		}
+		cancel()
+	}
+}
+
+// Close останавливает воркер-пул last_used_at и дожидается завершения.
+// Идемпотентен — повторный вызов безопасен.
+func (s *APIKeyService) Close() {
+	s.stopOnce.Do(func() {
+		close(s.touchJobs)
+		s.touchWG.Wait()
+	})
 }
 
 // CreateAPIKey генерирует новый API-ключ для пользователя.
@@ -122,16 +182,17 @@ func (s *APIKeyService) VerifyAPIKey(ctx context.Context, rawKey string) (uuid.U
 		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "API-ключ истёк")
 	}
 
-	// Обновляем last_used_at в фоне (не блокируем запрос)
-	go func() {
-		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := s.db.APIKey.UpdateOneID(ak.ID).
-			SetLastUsedAt(time.Now()).
-			Exec(bgCtx); err != nil {
-			slog.Error("не удалось обновить last_used_at для API-ключа", "error", err)
-		}
-	}()
+	// BE-H4: обновляем last_used_at через bounded worker-pool вместо
+	// unbounded `go func()`. Если очередь переполнена — пропускаем
+	// обновление с warn-логом; на следующем запросе оно всё равно
+	// будет обновлено воркером.
+	job := apiKeyTouchJob{keyID: ak.ID, when: time.Now()}
+	select {
+	case s.touchJobs <- job:
+	default:
+		slog.Warn("API-key touch queue full, skipping last_used_at update",
+			"key_id", ak.ID, "queue_size", apiKeyTouchQueueSize)
+	}
 
 	if ak.Edges.User == nil {
 		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "пользователь API-ключа не найден")
