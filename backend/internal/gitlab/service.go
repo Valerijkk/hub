@@ -23,6 +23,12 @@ import (
 // issueKeyRegex находит ключи задач вида ABC-123 с границами слов.
 var issueKeyRegex = regexp.MustCompile(`\b([A-Z]+-\d+)\b`)
 
+// maxGitLabResponseBodyBytes — верхняя граница тела ответа от GitLab API,
+// которое мы читаем при ошибке/успехе. BE-H1: защищает от memory DoS,
+// если upstream (или скомпрометированный self-hosted GitLab) вернёт
+// гигабайтный ответ.
+const maxGitLabResponseBodyBytes = 10 * 1024 * 1024 // 10 MB
+
 // GitLabService реализует бизнес-логику интеграции с GitLab.
 // Обрабатывает webhook-события, управляет интеграциями,
 // запрашивает пайплайны и создаёт ветки через GitLab API.
@@ -280,7 +286,8 @@ func (s *GitLabService) fetchPipelines(ctx context.Context, integration *ent.Git
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, readErr := io.ReadAll(resp.Body)
+		// BE-H1: cap body at 10MB to prevent memory DoS via hostile upstream response.
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxGitLabResponseBodyBytes))
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
@@ -382,7 +389,8 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		respBody, readErr := io.ReadAll(resp.Body)
+		// BE-H1: cap body at 10MB to prevent memory DoS via hostile upstream response.
+		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, maxGitLabResponseBodyBytes))
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
@@ -468,7 +476,8 @@ func (s *GitLabService) CreateBranch(ctx context.Context, issueKey string, req C
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		body, readErr := io.ReadAll(resp.Body)
+		// BE-H1: cap body at 10MB to prevent memory DoS via hostile upstream response.
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxGitLabResponseBodyBytes))
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
@@ -523,7 +532,8 @@ func (s *GitLabService) fetchMergeRequests(ctx context.Context, integration *ent
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, readErr := io.ReadAll(resp.Body)
+		// BE-H1: cap body at 10MB to prevent memory DoS via hostile upstream response.
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxGitLabResponseBodyBytes))
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}

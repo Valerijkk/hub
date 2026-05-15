@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+// maxResendResponseBodyBytes — верхняя граница тела ответа от Resend API,
+// которое мы читаем при ошибке. BE-H1: защищает от memory DoS, если
+// upstream вернёт огромный body (или mitm-прокси подменит ответ).
+const maxResendResponseBodyBytes = 10 * 1024 * 1024 // 10 MB
+
 // ResendEmailClient реализует интерфейс ResendClient через HTTP API Resend.
 type ResendEmailClient struct {
 	apiKey    string
@@ -70,7 +75,9 @@ func (r *ResendEmailClient) SendMagicLinkEmail(ctx context.Context, to, code str
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		respBody, readErr := io.ReadAll(resp.Body)
+		// BE-H1: cap response body at 10MB to prevent memory DoS via a
+		// hostile/oversized upstream response.
+		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResendResponseBodyBytes))
 		if readErr != nil {
 			return fmt.Errorf("resend: API error (status %d), failed to read body: %w", resp.StatusCode, readErr)
 		}
