@@ -112,9 +112,14 @@ services:
       S3_REGION: "us-east-1"
       S3_USE_SSL: "false"
       JWT_SECRET: "local-dev-secret-change-in-production"
-      RESEND_API_KEY: "re_QYvUBvFt_9MnSZWd9ocWC9vLcybqo9hbA"
-      RESEND_FROM_EMAIL: "onboarding@resend.dev"
-      TELEGRAM_BOT_TOKEN: "8742216081:AAH2kNe4EK8OVWerSn6LoEPGNEM3mjotKmk"
+      # INF-03: реальные ключи больше НЕ хардкодим. Раньше тут лежали
+      # plaintext Resend API key и Telegram bot token — те значения считаются
+      # СКОМПРОМЕТИРОВАННЫМИ, их нужно ротировать. Локально оставляем пустыми
+      # (Resend → dev-режим с логированием кода, Telegram-bot отключён),
+      # либо подставляем через .env.local / `export RESEND_API_KEY=...`.
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      RESEND_FROM_EMAIL: "${RESEND_FROM_EMAIL:-onboarding@resend.dev}"
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN:-}"
       LIVEKIT_URL: "http://livekit:7880"
       LIVEKIT_API_KEY: "devkey-hub-local-development-2026"
       LIVEKIT_API_SECRET: "devsecret-hub-local-minimum-32-chars-ok"
