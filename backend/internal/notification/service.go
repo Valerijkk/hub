@@ -42,29 +42,59 @@ func (s *NotificationService) PushSender() *PushSender {
 	return s.push
 }
 
+// DispatchEvent описывает уведомление, которое нужно доставить пользователю.
+//
+// LO-2: до рефакторинга Dispatch принимал 10 позиционных аргументов
+// (userID, notifType, title, body, entityType, entityID, projectID, actorID,
+// isUrgent + ctx). Это делало callsite'ы хрупкими (легко перепутать порядок
+// одинаково-типовых string-полей, например title/body или entityType/entityID).
+// Struct делает каждое поле именованным и позволяет легко добавлять новые
+// поля без ломки сигнатуры.
+type DispatchEvent struct {
+	// UserID — получатель уведомления.
+	UserID uuid.UUID
+	// Type — тип уведомления (TypeAssigned, TypeMentioned и т. п.).
+	Type string
+	// Title — заголовок (показывается в push/telegram/in-app).
+	Title string
+	// Body — тело сообщения (может быть пустым).
+	Body string
+	// EntityType — тип связанной сущности ("issue", "channel", "testrun", "call").
+	EntityType string
+	// EntityID — ID связанной сущности (string, т.к. не всегда UUID).
+	EntityID string
+	// ProjectID — необязательная привязка к проекту (используется в IsEnabled).
+	ProjectID *uuid.UUID
+	// ActorID — пользователь, инициировавший событие (может быть nil для системных).
+	ActorID *uuid.UUID
+	// IsUrgent — флаг "срочное", обходит тихие часы.
+	IsUrgent bool
+}
+
 // Dispatch создаёт и отправляет уведомление пользователю.
 // Проверяет предпочтения и тихие часы перед отправкой.
-func (s *NotificationService) Dispatch(ctx context.Context, userID uuid.UUID, notifType, title, body, entityType, entityID string, projectID, actorID *uuid.UUID, isUrgent bool) error {
+func (s *NotificationService) Dispatch(ctx context.Context, evt DispatchEvent) error {
 	// Проверяем предпочтения in_app.
-	inAppEnabled, err := s.repo.IsEnabled(ctx, userID, notifType, ChannelInApp, projectID)
+	inAppEnabled, err := s.repo.IsEnabled(ctx, evt.UserID, evt.Type, ChannelInApp, evt.ProjectID)
 	if err != nil {
-		slog.Error("ошибка проверки предпочтений", "error", err, "user_id", userID)
+		slog.Error("ошибка проверки предпочтений", "error", err, "user_id", evt.UserID)
 		return err
 	}
 
 	// Проверяем тихие часы.
-	inQuietHours := s.isQuietHours(ctx, userID)
-	if inQuietHours && !isUrgent {
-		slog.Debug("уведомление подавлено тихими часами", "user_id", userID, "type", notifType)
+	inQuietHours := s.isQuietHours(ctx, evt.UserID)
+	if inQuietHours && !evt.IsUrgent {
+		slog.Debug("уведомление подавлено тихими часами", "user_id", evt.UserID, "type", evt.Type)
 		return nil
 	}
 
 	// Сохраняем уведомление в БД если in_app включён.
 	var notif *ent.Notification
 	if inAppEnabled {
-		notif, err = s.repo.CreateNotification(ctx, userID, notifType, title, body, entityType, entityID, projectID, actorID, isUrgent)
+		notif, err = s.repo.CreateNotification(ctx, evt.UserID, evt.Type, evt.Title, evt.Body,
+			evt.EntityType, evt.EntityID, evt.ProjectID, evt.ActorID, evt.IsUrgent)
 		if err != nil {
-			slog.Error("ошибка создания уведомления", "error", err, "user_id", userID)
+			slog.Error("ошибка создания уведомления", "error", err, "user_id", evt.UserID)
 			return err
 		}
 		if notif == nil {
@@ -73,27 +103,27 @@ func (s *NotificationService) Dispatch(ctx context.Context, userID uuid.UUID, no
 		}
 
 		// Отправляем через NATS -> WS bridge.
-		s.publishToWS(userID, notif)
+		s.publishToWS(evt.UserID, notif)
 	}
 
 	// Отправляем в Telegram если канал включён и у пользователя есть telegram_id.
-	telegramEnabled, err := s.repo.IsEnabled(ctx, userID, notifType, ChannelTelegram, projectID)
+	telegramEnabled, err := s.repo.IsEnabled(ctx, evt.UserID, evt.Type, ChannelTelegram, evt.ProjectID)
 	if err != nil {
-		slog.Error("ошибка проверки предпочтений telegram", "error", err, "user_id", userID)
+		slog.Error("ошибка проверки предпочтений telegram", "error", err, "user_id", evt.UserID)
 	}
 	if telegramEnabled && s.telegram != nil {
-		s.sendTelegram(ctx, userID, title, body)
+		s.sendTelegram(ctx, evt.UserID, evt.Title, evt.Body)
 	}
 
 	// Отправляем через Web Push если канал включён и есть подписки.
-	pushEnabled, err := s.repo.IsEnabled(ctx, userID, notifType, ChannelPush, projectID)
+	pushEnabled, err := s.repo.IsEnabled(ctx, evt.UserID, evt.Type, ChannelPush, evt.ProjectID)
 	if err != nil {
-		slog.Error("ошибка проверки предпочтений push", "error", err, "user_id", userID)
+		slog.Error("ошибка проверки предпочтений push", "error", err, "user_id", evt.UserID)
 	}
 	if pushEnabled && s.push != nil {
 		// URL для навигации при клике на уведомление.
-		pushURL := buildPushURL(entityType, entityID)
-		s.push.Send(userID, title, body, pushURL)
+		pushURL := buildPushURL(evt.EntityType, evt.EntityID)
+		s.push.Send(evt.UserID, evt.Title, evt.Body, pushURL)
 	}
 
 	return nil
@@ -242,8 +272,15 @@ func (s *NotificationService) CheckDeadlines(ctx context.Context) error {
 		body := fmt.Sprintf("Задача #%d должна быть завершена до %s",
 			iss.IssueNumber, iss.DueDate.Format("02.01.2006 15:04"))
 
-		if dispErr := s.Dispatch(ctx, assignee.ID, TypeDeadlineApproaching, title, body,
-			"issue", iss.ID.String(), projectID, nil, false); dispErr != nil {
+		if dispErr := s.Dispatch(ctx, DispatchEvent{
+			UserID:     assignee.ID,
+			Type:       TypeDeadlineApproaching,
+			Title:      title,
+			Body:       body,
+			EntityType: "issue",
+			EntityID:   iss.ID.String(),
+			ProjectID:  projectID,
+		}); dispErr != nil {
 			slog.Error("ошибка отправки deadline уведомления", "error", dispErr, "issue_id", iss.ID)
 		}
 		count++

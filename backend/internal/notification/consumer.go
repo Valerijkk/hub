@@ -194,11 +194,15 @@ func (c *Consumer) handleAssigned(ctx context.Context, data []byte, _ string) {
 		return
 	}
 
-	if err := c.service.Dispatch(ctx, assigneeID, TypeAssigned,
-		"Вам назначена задача "+evt.IssueKey,
-		"",
-		"issue", evt.IssueID,
-		&projectID, &actorID, false); err != nil {
+	if err := c.service.Dispatch(ctx, DispatchEvent{
+		UserID:     assigneeID,
+		Type:       TypeAssigned,
+		Title:      "Вам назначена задача " + evt.IssueKey,
+		EntityType: "issue",
+		EntityID:   evt.IssueID,
+		ProjectID:  &projectID,
+		ActorID:    &actorID,
+	}); err != nil {
 		slog.Error("не удалось отправить уведомление", "event", "assigned", "error", err)
 	}
 }
@@ -242,11 +246,15 @@ func (c *Consumer) handleStatusChanged(ctx context.Context, data []byte, _ strin
 		return
 	}
 
-	if err := c.service.Dispatch(ctx, assignee.ID, TypeStatusChanged,
-		"Статус задачи "+evt.IssueKey+" изменён",
-		"",
-		"issue", evt.IssueID,
-		&projectID, &actorID, false); err != nil {
+	if err := c.service.Dispatch(ctx, DispatchEvent{
+		UserID:     assignee.ID,
+		Type:       TypeStatusChanged,
+		Title:      "Статус задачи " + evt.IssueKey + " изменён",
+		EntityType: "issue",
+		EntityID:   evt.IssueID,
+		ProjectID:  &projectID,
+		ActorID:    &actorID,
+	}); err != nil {
 		slog.Error("не удалось отправить уведомление", "event", "status_changed", "error", err)
 	}
 }
@@ -281,11 +289,15 @@ func (c *Consumer) handleCommentAdded(ctx context.Context, data []byte, _ string
 			continue
 		}
 
-		if err := c.service.Dispatch(ctx, mentionID, TypeMentioned,
-			"Вас упомянули в задаче "+evt.IssueKey,
-			"",
-			"issue", evt.IssueID,
-			&projectID, &actorID, false); err != nil {
+		if err := c.service.Dispatch(ctx, DispatchEvent{
+			UserID:     mentionID,
+			Type:       TypeMentioned,
+			Title:      "Вас упомянули в задаче " + evt.IssueKey,
+			EntityType: "issue",
+			EntityID:   evt.IssueID,
+			ProjectID:  &projectID,
+			ActorID:    &actorID,
+		}); err != nil {
 			slog.Error("не удалось отправить уведомление", "event", "mentioned", "error", err)
 		}
 	}
@@ -308,11 +320,15 @@ func (c *Consumer) handleCommentAdded(ctx context.Context, data []byte, _ string
 		return
 	}
 
-	if err := c.service.Dispatch(ctx, assignee.ID, TypeCommentAdded,
-		"Новый комментарий к задаче "+evt.IssueKey,
-		"",
-		"issue", evt.IssueID,
-		&projectID, &actorID, false); err != nil {
+	if err := c.service.Dispatch(ctx, DispatchEvent{
+		UserID:     assignee.ID,
+		Type:       TypeCommentAdded,
+		Title:      "Новый комментарий к задаче " + evt.IssueKey,
+		EntityType: "issue",
+		EntityID:   evt.IssueID,
+		ProjectID:  &projectID,
+		ActorID:    &actorID,
+	}); err != nil {
 		slog.Error("не удалось отправить уведомление", "event", "comment_added", "error", err)
 	}
 }
@@ -360,11 +376,16 @@ func (c *Consumer) handleBlockerAdded(ctx context.Context, data []byte, _ string
 		return
 	}
 
-	if err := c.service.Dispatch(ctx, assignee.ID, TypeBlockerAdded,
-		"Задача заблокирована",
-		"",
-		"issue", evt.TargetID,
-		&projectID, &actorID, true); err != nil {
+	if err := c.service.Dispatch(ctx, DispatchEvent{
+		UserID:     assignee.ID,
+		Type:       TypeBlockerAdded,
+		Title:      "Задача заблокирована",
+		EntityType: "issue",
+		EntityID:   evt.TargetID,
+		ProjectID:  &projectID,
+		ActorID:    &actorID,
+		IsUrgent:   true,
+	}); err != nil {
 		slog.Error("не удалось отправить уведомление", "event", "blocker_added", "error", err)
 	}
 }
@@ -422,11 +443,15 @@ func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subje
 			continue
 		}
 
-		if err := c.service.Dispatch(ctx, mentionID, TypeMentioned,
-			"Вас упомянули в сообщении",
-			truncated,
-			"channel", parts[2],
-			nil, &senderID, false); err != nil {
+		if err := c.service.Dispatch(ctx, DispatchEvent{
+			UserID:     mentionID,
+			Type:       TypeMentioned,
+			Title:      "Вас упомянули в сообщении",
+			Body:       truncated,
+			EntityType: "channel",
+			EntityID:   parts[2],
+			ActorID:    &senderID,
+		}); err != nil {
 			slog.Error("не удалось отправить уведомление", "event", "mentioned_message", "error", err)
 		}
 	}
@@ -451,11 +476,15 @@ func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subje
 			continue
 		}
 
-		if err := c.service.Dispatch(ctx, recipientID, TypeMessageReceived,
-			"Новое сообщение",
-			truncated,
-			"channel", parts[2],
-			nil, &senderID, false); err != nil {
+		if err := c.service.Dispatch(ctx, DispatchEvent{
+			UserID:     recipientID,
+			Type:       TypeMessageReceived,
+			Title:      "Новое сообщение",
+			Body:       truncated,
+			EntityType: "channel",
+			EntityID:   parts[2],
+			ActorID:    &senderID,
+		}); err != nil {
 			slog.Error("не удалось отправить уведомление", "event", "message_received", "error", err)
 		}
 	}
@@ -503,11 +532,14 @@ func (c *Consumer) handleCallStarted(ctx context.Context, data []byte, subject s
 			continue
 		}
 
-		if err := c.service.Dispatch(ctx, recipientID, TypeCallStarted,
-			"Звонок начался",
-			"",
-			"call", evt.CallID,
-			nil, &starterID, false); err != nil {
+		if err := c.service.Dispatch(ctx, DispatchEvent{
+			UserID:     recipientID,
+			Type:       TypeCallStarted,
+			Title:      "Звонок начался",
+			EntityType: "call",
+			EntityID:   evt.CallID,
+			ActorID:    &starterID,
+		}); err != nil {
 			slog.Error("не удалось отправить уведомление", "event", "call_started", "error", err)
 		}
 	}
@@ -552,11 +584,16 @@ func (c *Consumer) handleRunCompleted(ctx context.Context, data []byte, _ string
 			continue
 		}
 
-		if err := c.service.Dispatch(ctx, recipientID, TypeRunCompleted,
-			"Прогон завершён: "+evt.Title,
-			body,
-			"testrun", evt.RunID,
-			&projectID, &completedByID, false); err != nil {
+		if err := c.service.Dispatch(ctx, DispatchEvent{
+			UserID:     recipientID,
+			Type:       TypeRunCompleted,
+			Title:      "Прогон завершён: " + evt.Title,
+			Body:       body,
+			EntityType: "testrun",
+			EntityID:   evt.RunID,
+			ProjectID:  &projectID,
+			ActorID:    &completedByID,
+		}); err != nil {
 			slog.Error("не удалось отправить уведомление", "event", "run_completed", "error", err)
 		}
 	}
@@ -588,11 +625,14 @@ func (c *Consumer) handleNewLogin(ctx context.Context, data []byte) {
 
 	body := fmt.Sprintf("Устройство: %s, IP: %s", device, evt.IPAddress)
 
-	if err := c.service.Dispatch(ctx, userID, TypeNewLogin,
-		"Новый вход в аккаунт",
-		body,
-		"session", evt.SessionID,
-		nil, nil, false); err != nil {
+	if err := c.service.Dispatch(ctx, DispatchEvent{
+		UserID:     userID,
+		Type:       TypeNewLogin,
+		Title:      "Новый вход в аккаунт",
+		Body:       body,
+		EntityType: "session",
+		EntityID:   evt.SessionID,
+	}); err != nil {
 		slog.Error("не удалось отправить уведомление", "event", "new_login", "error", err)
 	}
 }
