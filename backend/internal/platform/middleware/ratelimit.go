@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -41,11 +42,21 @@ type rateLimiter struct {
 
 // RateLimit возвращает middleware ограничения частоты запросов на основе in-memory sliding window.
 // Не зависит от Redis при старте.
-func RateLimit(config RateLimitConfig) fiber.Handler {
+//
+// ME-5: принимает context.Context для graceful shutdown cleanup-горутины.
+// При cancel-е ctx (как правило rootCtx из main) cleanup корректно завершается;
+// раньше горутина висла до завершения процесса.
+//
+// Для бэк-совместимости: nil-ctx эквивалентен context.Background() — старый
+// бессрочный режим, на случай если кто-то вызовет конструктор из теста.
+func RateLimit(ctx context.Context, config RateLimitConfig) fiber.Handler {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	limiter := &rateLimiter{config: config}
 
 	// Periodic cleanup of expired entries
-	go limiter.cleanup()
+	go limiter.cleanup(ctx)
 
 	return func(c fiber.Ctx) error {
 		key := c.IP()
@@ -60,9 +71,14 @@ func RateLimit(config RateLimitConfig) fiber.Handler {
 
 // RateLimitByUser возвращает middleware ограничения частоты запросов по userID из Locals.
 // Если userID не задан, фолбэк на IP-адрес клиента.
-func RateLimitByUser(config RateLimitConfig) fiber.Handler {
+//
+// ME-5: см. RateLimit — ctx нужен для graceful shutdown.
+func RateLimitByUser(ctx context.Context, config RateLimitConfig) fiber.Handler {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	limiter := &rateLimiter{config: config}
-	go limiter.cleanup()
+	go limiter.cleanup(ctx)
 
 	return func(c fiber.Ctx) error {
 		key := ""
@@ -140,14 +156,18 @@ type RateLimitKeyExtractor func(c fiber.Ctx) string
 // HI-10: использовать вместо in-memory RateLimit для auth, magic-link verify
 // и других путей, где важна устойчивость к IP-rotation и горизонтальному
 // масштабированию.
-func RateLimitRedis(rdb *redis.Client, cfg RedisRateLimitConfig, extractKey RateLimitKeyExtractor) fiber.Handler {
+//
+// ME-5: ctx нужен только для fallback-пути на in-memory RateLimit, у которого
+// есть фоновая cleanup-горутина. Для Redis-пути ctx запроса берётся из
+// fiber.Ctx.Context().
+func RateLimitRedis(ctx context.Context, rdb *redis.Client, cfg RedisRateLimitConfig, extractKey RateLimitKeyExtractor) fiber.Handler {
 	if rdb == nil {
 		// Fallback на in-memory лимитер, если Redis не сконфигурирован.
 		// В DevMode это удобно; в production config.validate должен
 		// убедиться, что Redis есть.
 		slog.Warn("RateLimitRedis: Redis client is nil, falling back to in-memory limiter",
 			"prefix", cfg.KeyPrefix)
-		return RateLimit(RateLimitConfig{Max: cfg.Max, Window: cfg.Window})
+		return RateLimit(ctx, RateLimitConfig{Max: cfg.Max, Window: cfg.Window})
 	}
 	prefix := cfg.KeyPrefix
 	if prefix == "" {
@@ -252,34 +272,44 @@ func hashIP(ip string) string {
 	return hex.EncodeToString(sum[:8])
 }
 
-func (rl *rateLimiter) cleanup() {
+// cleanup периодически удаляет устаревшие записи sliding-window.
+//
+// ME-5: реагирует на ctx.Done() — при shutdown горутина завершается
+// детерминированно (без 5-минутной задержки на следующий tick). Раньше
+// горутина утекала: при graceful shutdown процесс ждал её до тайм-аута.
+func (rl *rateLimiter) cleanup(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		now := time.Now()
-		windowStart := now.Add(-rl.config.Window)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			now := time.Now()
+			windowStart := now.Add(-rl.config.Window)
 
-		rl.entries.Range(func(key, value any) bool {
-			entry := value.(*slidingWindowEntry)
-			entry.mu.Lock()
+			rl.entries.Range(func(key, value any) bool {
+				entry := value.(*slidingWindowEntry)
+				entry.mu.Lock()
 
-			valid := entry.timestamps[:0]
-			for _, ts := range entry.timestamps {
-				if ts.After(windowStart) {
-					valid = append(valid, ts)
+				valid := entry.timestamps[:0]
+				for _, ts := range entry.timestamps {
+					if ts.After(windowStart) {
+						valid = append(valid, ts)
+					}
 				}
-			}
-			entry.timestamps = valid
+				entry.timestamps = valid
 
-			if len(entry.timestamps) == 0 {
+				if len(entry.timestamps) == 0 {
+					entry.mu.Unlock()
+					rl.entries.Delete(key)
+					return true
+				}
+
 				entry.mu.Unlock()
-				rl.entries.Delete(key)
 				return true
-			}
-
-			entry.mu.Unlock()
-			return true
-		})
+			})
+		}
 	}
 }

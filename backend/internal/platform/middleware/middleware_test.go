@@ -327,7 +327,7 @@ func TestRateLimiter_Allow_WindowExpiry(t *testing.T) {
 
 func TestRateLimit_Middleware_Blocks(t *testing.T) {
 	app := fiber.New(fiber.Config{ErrorHandler: ErrorHandler})
-	app.Use(RateLimit(RateLimitConfig{Max: 2, Window: time.Minute}))
+	app.Use(RateLimit(t.Context(), RateLimitConfig{Max: 2, Window: time.Minute}))
 	app.Get("/", func(c fiber.Ctx) error {
 		return c.SendString("ok")
 	})

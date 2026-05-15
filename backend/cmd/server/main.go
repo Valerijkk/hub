@@ -189,15 +189,16 @@ func main() {
 	app.Use(fiberrecover.New(fiberrecover.Config{EnableStackTrace: true}))
 	app.Use(middleware.Logger())
 	app.Use(middleware.CORS())
-	// Глобальный rate limit: 100 req/sec на IP
-	app.Use(middleware.RateLimit(middleware.APIRateLimit))
+	// Глобальный rate limit: 100 req/sec на IP.
+	// ME-5: rootCtx даёт cleanup-горутине корректный shutdown.
+	app.Use(middleware.RateLimit(rootCtx, middleware.APIRateLimit))
 
 	api := app.Group("/api")
 
 	// Rate limit для загрузки файлов: 10/мин на пользователя
-	api.Use("/files", middleware.RateLimitByUser(middleware.FileUploadRateLimit))
+	api.Use("/files", middleware.RateLimitByUser(rootCtx, middleware.FileUploadRateLimit))
 	// Rate limit для отправки сообщений: 60/мин на пользователя
-	api.Use("/messenger", middleware.RateLimitByUser(middleware.MessageSendRateLimit))
+	api.Use("/messenger", middleware.RateLimitByUser(rootCtx, middleware.MessageSendRateLimit))
 	// Health endpoint registered after all infrastructure clients are initialized (see below)
 
 	// API-документация: динамическая страница со списком всех эндпоинтов.
@@ -218,14 +219,14 @@ func main() {
 		// из body (атакуемая сущность); 10 попыток / 10 минут. Регистрируем
 		// до общего /auth-лимитера, чтобы выполнялся первым на этом пути.
 		api.Use("/auth/magic-link/verify",
-			middleware.RateLimitRedis(rdb, middleware.RedisRateLimitConfig{
+			middleware.RateLimitRedis(rootCtx, rdb, middleware.RedisRateLimitConfig{
 				Max:       10,
 				Window:    10 * time.Minute,
 				KeyPrefix: "rl:auth-verify-email:",
 			}, middleware.ExtractEmailFromBody("email")),
 		)
 		// Общий лимит auth-эндпоинтов (3 / 10 минут) по IP-хешу.
-		api.Use("/auth", middleware.RateLimitRedis(rdb, middleware.RedisRateLimitConfig{
+		api.Use("/auth", middleware.RateLimitRedis(rootCtx, rdb, middleware.RedisRateLimitConfig{
 			Max:       middleware.AuthRateLimit.Max,
 			Window:    middleware.AuthRateLimit.Window,
 			KeyPrefix: "rl:auth:",
