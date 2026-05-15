@@ -25,6 +25,82 @@ interface AuthState {
 	logout: () => void;
 }
 
+/**
+ * Multi-tab синхронизация login/logout через BroadcastChannel (FE-H2).
+ *
+ * Когда пользователь делает login/logout в одной вкладке, событие
+ * транслируется в другие вкладки того же origin. Это позволяет:
+ *  - очистить TanStack Query cache при logout (см. useAuthSync в _authenticated.tsx)
+ *  - переключить вкладку на страницу логина / главную при login
+ *
+ * Реализовано через BroadcastChannel API (есть в Chromium/Firefox/Safari 15.4+).
+ * Если API недоступен — sync молча отключается (single-tab fallback).
+ */
+const AUTH_CHANNEL_NAME = "hub-auth";
+
+/** Типы событий, которые транслируются между вкладками. */
+export type AuthSyncEvent =
+	| { type: "logout" }
+	| { type: "login"; userId: string | null };
+
+let authChannel: BroadcastChannel | null = null;
+if (typeof BroadcastChannel !== "undefined") {
+	try {
+		authChannel = new BroadcastChannel(AUTH_CHANNEL_NAME);
+	} catch {
+		authChannel = null;
+	}
+}
+
+/**
+ * Транслирует событие auth-sync в другие вкладки.
+ * Используется внутри setTokens/logout стора.
+ */
+function broadcastAuth(event: AuthSyncEvent): void {
+	if (!authChannel) return;
+	try {
+		authChannel.postMessage(event);
+	} catch {
+		// ignore: канал мог закрыться
+	}
+}
+
+/**
+ * Подписаться на auth-sync события из других вкладок.
+ * Возвращает функцию отписки.
+ *
+ * @param handler - обработчик события (получает event payload)
+ */
+export function subscribeAuthSync(
+	handler: (event: AuthSyncEvent) => void,
+): () => void {
+	if (typeof BroadcastChannel !== "undefined" && authChannel) {
+		const listener = (ev: MessageEvent<AuthSyncEvent>) => {
+			handler(ev.data);
+		};
+		authChannel.addEventListener("message", listener);
+		return () => {
+			authChannel?.removeEventListener("message", listener);
+		};
+	}
+
+	// Fallback на storage event (для очень старых браузеров и кейсов когда
+	// BroadcastChannel недоступен). sessionStorage НЕ триггерит storage event
+	// между вкладками, но persist-обновления mirror'ятся через localStorage
+	// в некоторых конфигурациях — оставлено как defence-in-depth.
+	const storageListener = (ev: StorageEvent) => {
+		if (ev.key === `${AUTH_CHANNEL_NAME}-event` && ev.newValue) {
+			try {
+				handler(JSON.parse(ev.newValue) as AuthSyncEvent);
+			} catch {
+				// ignore
+			}
+		}
+	};
+	window.addEventListener("storage", storageListener);
+	return () => window.removeEventListener("storage", storageListener);
+}
+
 /** Стор аутентификации с персистом в sessionStorage. */
 export const useAuthStore = create<AuthState>()(
 	persist(
@@ -33,20 +109,24 @@ export const useAuthStore = create<AuthState>()(
 			refreshToken: null,
 			user: null,
 			isAuthenticated: false,
-			setTokens: (access, refresh) =>
+			setTokens: (access, refresh) => {
 				set({
 					accessToken: access,
 					refreshToken: refresh,
 					isAuthenticated: true,
-				}),
+				});
+				broadcastAuth({ type: "login", userId: null });
+			},
 			setUser: (user) => set({ user }),
-			logout: () =>
+			logout: () => {
 				set({
 					accessToken: null,
 					refreshToken: null,
 					user: null,
 					isAuthenticated: false,
-				}),
+				});
+				broadcastAuth({ type: "logout" });
+			},
 		}),
 		{ name: "hub-auth", storage: createJSONStorage(() => sessionStorage) },
 	),
