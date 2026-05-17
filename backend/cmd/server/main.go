@@ -365,6 +365,8 @@ func main() {
 	presenceSvc := messengermod.NewPresenceService(rdb)
 	unreadSvc := messengermod.NewUnreadService(rdb)
 	messengerSvc := messengermod.NewMessengerService(messengerRepo, nc, presenceSvc, unreadSvc)
+	// Feature #58 (Thread → Issue): MessengerService.PromoteToIssue делегирует в trackerSvc.
+	messengerSvc.SetIssuePromoter(trackerSvc)
 	messengerHandler := messengermod.NewHandler(messengerSvc)
 	messengerHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 

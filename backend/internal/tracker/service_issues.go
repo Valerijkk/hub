@@ -86,6 +86,36 @@ func (s *TrackerService) CreateIssue(ctx context.Context, projectID, userID uuid
 	return toIssueResponse(created), nil
 }
 
+// CreateIssueFromPromotion создаёт задачу из промоушена сообщения мессенджера.
+// Реализует messenger.IssuePromoter — RBAC-проверка проектного членства уже
+// выполнена вызывающим хендлером мессенджера (он получает /messages/:id и
+// заранее не знает projectID), поэтому здесь дополнительной проверки нет —
+// CreateIssue в репозитории сам упадёт с FK-нарушением, если projectID
+// невалидный. Для надёжной защиты от cross-project promotion вызывающий
+// код должен предварительно проверить право пользователя через RBACService.
+//
+// Возвращает issueKey (например "HUB-432") и issue.ID для построения backlink.
+func (s *TrackerService) CreateIssueFromPromotion(
+	ctx context.Context,
+	projectID, userID uuid.UUID,
+	title, issueType string,
+	descriptionJSON map[string]interface{},
+) (string, string, error) {
+	req := CreateIssueRequest{
+		Title:     title,
+		IssueType: issueType,
+		Priority:  "medium",
+	}
+	if descriptionJSON != nil {
+		req.DescriptionJSON = &descriptionJSON
+	}
+	resp, err := s.CreateIssue(ctx, projectID, userID, req)
+	if err != nil {
+		return "", "", err
+	}
+	return resp.IssueKey, resp.ID, nil
+}
+
 // GetIssue возвращает задачу по ключу (например "HUB-1").
 func (s *TrackerService) GetIssue(ctx context.Context, issueKey string) (*IssueResponse, error) {
 	i, err := s.repo.FindIssueByKey(ctx, issueKey)

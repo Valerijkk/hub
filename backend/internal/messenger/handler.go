@@ -110,6 +110,12 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	polls.Post("/:pollId/close", h.ClosePoll)
 	polls.Get("/:pollId", h.GetPollResults)
 
+	// Промоушн сообщения в задачу трекера (Feature #58).
+	// Регистрируется отдельной группой /api/messages, чтобы не зависеть от channel ID
+	// в URL — сообщение однозначно адресуется только своим UUID.
+	messagesTop := api.Group("/messages", authMw)
+	messagesTop.Post("/:messageId/promote-to-issue", h.PromoteToIssue)
+
 	// Пригласительные ссылки
 	channels.Post("/:channelId/invites", h.CreateInviteLink)
 	channels.Get("/:channelId/invites", h.ListChannelInvites)

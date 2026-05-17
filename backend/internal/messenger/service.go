@@ -19,10 +19,12 @@ import (
 // Repository интерфейс. Это устраняет утечку Ent ORM в бизнес-логику и
 // позволяет подменять backend в тестах через mock-репозиторий.
 type MessengerService struct {
-	repo     Repository
-	nats     *natsclient.Client
-	presence *PresenceService
-	unread   *UnreadService
+	repo          Repository
+	nats          *natsclient.Client
+	presence      *PresenceService
+	unread        *UnreadService
+	issuePromoter IssuePromoter            // опционально: для /promote-to-issue (см. service_promote.go)
+	promoteCheck  PromotePermissionChecker // опционально: RBAC-проверка целевого проекта при /promote-to-issue
 }
 
 // NewMessengerService создаёт новый сервис мессенджера.

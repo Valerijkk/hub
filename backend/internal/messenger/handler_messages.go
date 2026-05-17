@@ -203,6 +203,45 @@ func (h *Handler) ForwardMessage(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
+// PromoteToIssue godoc
+// @Summary Промоутнуть сообщение в задачу трекера
+// @Description Создаёт новую задачу в указанном проекте на основе содержимого сообщения и его треда,
+// @Description постит в исходный тред backlink-ссылку на созданную задачу.
+// @Tags Мессенджер
+// @Accept json
+// @Produce json
+// @Param messageId path string true "ID сообщения"
+// @Param body body PromoteToIssueRequest true "Параметры промоушена"
+// @Success 201 {object} PromoteToIssueResponse "Задача создана"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа"
+// @Failure 404 {object} fiber.Error "Сообщение не найдено"
+// @Security BearerAuth
+// @Router /api/messages/{messageId}/promote-to-issue [post]
+func (h *Handler) PromoteToIssue(c fiber.Ctx) error {
+	messageID := parseMessageID(c)
+	if messageID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	var req PromoteToIssueRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
+	}
+
+	resp, err := h.service.PromoteToIssue(c.Context(), messageID, userID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
 // ListThreadReplies godoc
 // @Summary Список ответов в треде
 // @Description Возвращает ответы на указанное сообщение (тред) с пагинацией.
