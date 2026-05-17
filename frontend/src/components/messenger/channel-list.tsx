@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import type { Channel, PresenceStatus } from "@/api/messenger";
 import { deleteChannel, muteChannel, starChannel, unmuteChannel } from "@/api/messenger";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
 	Dialog,
 	DialogContent,
@@ -227,6 +228,7 @@ function MuteContextMenu({
 	onClose: () => void;
 }) {
 	const queryClient = useQueryClient();
+	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
 	const handleMute = useCallback(
 		async (duration: "1h" | "2h" | "8h" | "1d" | "forever") => {
@@ -244,6 +246,17 @@ function MuteContextMenu({
 		void queryClient.invalidateQueries({
 			queryKey: ["messenger", "channels"],
 		});
+		onClose();
+	}, [channelId, queryClient, onClose]);
+
+	const handleDelete = useCallback(async () => {
+		try {
+			await deleteChannel(channelId);
+			await queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
+			await queryClient.invalidateQueries({ queryKey: ["messenger"] });
+		} catch {
+			// канал уже удалён
+		}
 		onClose();
 	}, [channelId, queryClient, onClose]);
 
@@ -286,22 +299,20 @@ function MuteContextMenu({
 				<button
 					type="button"
 					className="flex w-full items-center rounded-sm px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors"
-					onClick={async () => {
-						if (confirm("Удалить канал? Это действие необратимо.")) {
-							try {
-								await deleteChannel(channelId);
-								await queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
-								await queryClient.invalidateQueries({ queryKey: ["messenger"] });
-							} catch {
-								// канал уже удалён
-							}
-							onClose();
-						}
-					}}
+					onClick={() => setShowDeleteDialog(true)}
 				>
 					Удалить канал
 				</button>
 			</div>
+			<ConfirmDialog
+				open={showDeleteDialog}
+				onOpenChange={setShowDeleteDialog}
+				title="Удалить канал?"
+				description="Это действие необратимо. История сообщений канала будет удалена."
+				confirmLabel="Удалить"
+				destructive
+				onConfirm={handleDelete}
+			/>
 		</>
 	);
 }

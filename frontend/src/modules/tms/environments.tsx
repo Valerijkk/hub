@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/api/client";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
 	Select,
 	SelectContent,
@@ -28,6 +29,7 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 	const [label, setLabel] = useState<string>("custom");
 	const [configBrowser, setConfigBrowser] = useState("");
 	const [configOS, setConfigOS] = useState("");
+	const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
 
 	const fetchEnvs = useCallback(async () => {
 		try {
@@ -65,7 +67,6 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 	};
 
 	const handleDelete = async (id: string) => {
-		if (!confirm("Удалить это окружение?")) return;
 		await api.delete(`/projects/${projectId}/environments/${id}`);
 		fetchEnvs();
 	};
@@ -188,7 +189,7 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 								<td className="p-2">
 									<button
 										type="button"
-										onClick={() => handleDelete(env.id)}
+										onClick={() => setDeleteDialogId(env.id)}
 										className="text-red-600 hover:underline"
 									>
 										Удалить
@@ -199,6 +200,22 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 					</tbody>
 				</table>
 			)}
+
+			<ConfirmDialog
+				open={deleteDialogId !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeleteDialogId(null);
+				}}
+				title="Удалить окружение?"
+				description="Тестовое окружение будет удалено."
+				confirmLabel="Удалить"
+				destructive
+				onConfirm={async () => {
+					if (deleteDialogId) {
+						await handleDelete(deleteDialogId);
+					}
+				}}
+			/>
 		</div>
 	);
 }
