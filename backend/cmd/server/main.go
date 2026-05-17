@@ -501,7 +501,7 @@ func main() {
 
 	// Auto-channel service (создаёт каналы при создании проектов)
 	autoChannelSvc := messengermod.NewAutoChannelService(messengerSvc, messengerEntRepo)
-	if err := autoChannelSvc.Start(nc); err != nil {
+	if err := autoChannelSvc.Start(rootCtx, nc); err != nil {
 		slog.Error("failed to start auto-channel service", "error", err)
 		os.Exit(1)
 	}

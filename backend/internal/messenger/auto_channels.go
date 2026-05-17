@@ -28,6 +28,12 @@ type AutoChannelService struct {
 	messengerSvc *MessengerService
 	entRepo      *EntRepository
 	sub          *nats.Subscription
+
+	// lifecycleCtx — долгоживущий контекст (rootCtx из main),
+	// прокидывается в NATS-handler. Раньше handler создавал
+	// context.Background() локально, что разрывало shutdown-цепочку —
+	// создание канала могло пережить SIGINT/SIGTERM сервера.
+	lifecycleCtx context.Context
 }
 
 // NewAutoChannelService создаёт новый сервис авто-каналов.
@@ -41,7 +47,13 @@ func NewAutoChannelService(messengerSvc *MessengerService, entRepo *EntRepositor
 // Start подписывается на NATS subject "project.created" для автоматического
 // создания каналов проектов. При получении события создаёт публичный канал
 // #project-{key} и добавляет всех участников проекта.
-func (a *AutoChannelService) Start(nc *natsclient.Client) error {
+//
+// ctx — долгоживущий контекст (обычно rootCtx из main); используется в
+// NATS-handler'ах для CreateChannel/AddMembersInternal, чтобы их можно
+// было прервать общим graceful-shutdown.
+func (a *AutoChannelService) Start(ctx context.Context, nc *natsclient.Client) error {
+	a.lifecycleCtx = ctx
+
 	if nc == nil {
 		slog.Warn("auto-channels: NATS клиент не задан, подписка пропущена")
 		return nil
@@ -90,7 +102,13 @@ func (a *AutoChannelService) handleProjectCreated(data []byte) {
 		return
 	}
 
-	ctx := context.Background()
+	// Используем долгоживущий ctx, переданный в Start (обычно rootCtx).
+	// Fallback на context.Background() — defensive: если кто-то вызвал
+	// handleProjectCreated до Start (например, в тестах).
+	ctx := a.lifecycleCtx
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	// Определяем имя канала: #project-{key} (в нижнем регистре)
 	channelName := "#project-" + strings.ToLower(payload.Key)
