@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/recording"
 	"github.com/valerii/hub/backend/ent/systemsetting"
@@ -220,8 +221,15 @@ func (s *RetentionService) purgeOldCallRecordings(ctx context.Context, days int)
 		return nil
 	}
 
+	// Собираем ID именно из снапшота expired — DELETE WHERE id IN (ids)
+	// гарантирует, что мы не уберём rows, вставленные между Query и Delete
+	// с задним числом (created_at < cutoff). Раньше второй запрос был
+	// DELETE WHERE created_at < cutoff и удалял такие "поздние" записи
+	// без S3-очистки, порождая orphan-объекты в SeaweedFS.
+	ids := make([]uuid.UUID, 0, len(expired))
 	s3Deleted := 0
 	for _, rec := range expired {
+		ids = append(ids, rec.ID)
 		if rec.FilePath == "" {
 			continue
 		}
@@ -239,8 +247,12 @@ func (s *RetentionService) purgeOldCallRecordings(ctx context.Context, days int)
 		s3Deleted++
 	}
 
+	if len(ids) == 0 {
+		return nil
+	}
+
 	n, err := s.db.Recording.Delete().
-		Where(recording.CreatedAtLT(cutoff)).
+		Where(recording.IDIn(ids...)).
 		Exec(ctx)
 	if err != nil {
 		return err
