@@ -26,7 +26,7 @@ services:
       retries: 10
 
   mongo:
-    image: mongo:8
+    image: mongo:8.0
     environment:
       MONGO_INITDB_ROOT_USERNAME: hub
       MONGO_INITDB_ROOT_PASSWORD: hub
@@ -65,7 +65,7 @@ services:
       retries: 5
 
   seaweedfs:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:3.97
     command: ["server", "-s3", "-dir=/data", "-s3.config=/etc/seaweedfs/s3.json"]
     ports:
       - "9333:9333"
