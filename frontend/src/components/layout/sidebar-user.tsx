@@ -3,7 +3,6 @@
  * 34px аватар с gradient glow, 10px online indicator, role badge pill.
  */
 import { Link } from "@tanstack/react-router";
-import { NotificationBell } from "@/components/notifications/notification-bell";
 import {
 	Tooltip,
 	TooltipContent,
@@ -76,9 +75,6 @@ export function SidebarUserProfile({
 						</span>
 						{" "}<span className="text-emerald-400">Онлайн</span>
 					</div>
-				</div>
-				<div className="flex items-center shrink-0">
-					<NotificationBell />
 				</div>
 			</div>
 		</div>

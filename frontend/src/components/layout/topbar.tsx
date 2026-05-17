@@ -3,6 +3,7 @@
  * Visible on all screen sizes. Hamburger shown only on mobile (md:hidden).
  * Optional title prop renders gradient text for page name.
  */
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Button } from "@/components/ui/button";
 
 interface TopbarProps {
@@ -42,6 +43,10 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
 			)}
 
 			<div className="flex-1" />
+
+			<div className="flex items-center gap-2">
+				<NotificationBell />
+			</div>
 
 			{/* Gradient bottom edge */}
 			<div
