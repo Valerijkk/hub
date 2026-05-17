@@ -27,6 +27,7 @@ package cron
 import (
 	"context"
 	"log/slog"
+	"runtime/debug"
 	"time"
 )
 
@@ -38,10 +39,9 @@ import (
 //              interval, как и у time.NewTicker).
 // - name    — человеко-читаемое имя задачи для структурных логов.
 // - fn      — выполняемая работа. Ошибка логируется на уровне Error;
-//             паника не перехватывается (вверх по стеку поднимется до
-//             fiber recover middleware только если задача обернёт её
-//             сама — поэтому в production-задачах fn должна сама
-//             обрабатывать критичные ошибки).
+//             паника перехватывается локальным recover (см. ниже) и
+//             логируется со stack-trace — одно сбойное tick'ом не
+//             уносит весь периодический job и не крашит сервер.
 //
 // Schedule логирует:
 // - Info "cron task started" при запуске;
@@ -59,18 +59,36 @@ func Schedule(ctx context.Context, interval time.Duration, name string, fn func(
 				slog.Info("cron task stopped", "name", name)
 				return
 			case <-ticker.C:
-				start := time.Now()
-				if err := fn(ctx); err != nil {
-					slog.Error("cron task failed",
-						"name", name,
-						"error", err,
-						"duration", time.Since(start).String())
-					continue
-				}
-				slog.Debug("cron tick completed",
-					"name", name,
-					"duration", time.Since(start).String())
+				runTick(ctx, name, fn)
 			}
 		}
 	}()
+}
+
+// runTick выполняет одну итерацию fn с локальным recover'ом, чтобы паника
+// в задаче не уносила за собой всю горутину Schedule (а с ней — и весь
+// процесс сервера, если паника всплыла бы на runtime). Зеркалит паттерн
+// platform/outbox/worker.go:72 (processEvent).
+func runTick(ctx context.Context, name string, fn func(ctx context.Context) error) {
+	start := time.Now()
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("cron task panicked",
+				"name", name,
+				"panic", r,
+				"stack", string(debug.Stack()),
+				"duration", time.Since(start).String(),
+			)
+		}
+	}()
+	if err := fn(ctx); err != nil {
+		slog.Error("cron task failed",
+			"name", name,
+			"error", err,
+			"duration", time.Since(start).String())
+		return
+	}
+	slog.Debug("cron tick completed",
+		"name", name,
+		"duration", time.Since(start).String())
 }
