@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/component"
+	"github.com/valerii/hub/backend/ent/environment"
 	entissue "github.com/valerii/hub/backend/ent/issue"
 	entproject "github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/testcase"
@@ -26,11 +27,6 @@ type EntRepository struct {
 // NewEntRepository создаёт новый Ent-репозиторий TMS.
 func NewEntRepository(client *ent.Client) *EntRepository {
 	return &EntRepository{client: client}
-}
-
-// EntClient возвращает Ent клиент для прямых операций с БД.
-func (r *EntRepository) EntClient() *ent.Client {
-	return r.client
 }
 
 // ---------------------------------------------------------------------------
@@ -929,4 +925,73 @@ func (r *EntRepository) AddFilesToResult(ctx context.Context, resultID uuid.UUID
 	return r.client.TestResult.UpdateOneID(resultID).
 		AddFileIDs(fileIDs...).
 		Exec(ctx)
+}
+
+// ---------------------------------------------------------------------------
+// Тестовые окружения
+// ---------------------------------------------------------------------------
+
+// CreateEnvironment создаёт тестовое окружение в проекте.
+func (r *EntRepository) CreateEnvironment(ctx context.Context, projectID uuid.UUID, input CreateEnvironmentInput) (*ent.Environment, error) {
+	builder := r.client.Environment.Create().
+		SetName(input.Name).
+		SetEnvLabel(environment.EnvLabel(input.Label)).
+		SetProjectID(projectID)
+	if input.Config != nil {
+		builder.SetConfig(input.Config)
+	}
+	return builder.Save(ctx)
+}
+
+// GetEnvironment возвращает окружение по ID.
+func (r *EntRepository) GetEnvironment(ctx context.Context, envID uuid.UUID) (*ent.Environment, error) {
+	return r.client.Environment.Get(ctx, envID)
+}
+
+// ListEnvironmentsByProject возвращает все окружения проекта.
+func (r *EntRepository) ListEnvironmentsByProject(ctx context.Context, projectID uuid.UUID) ([]*ent.Environment, error) {
+	return r.client.Project.Query().
+		Where(entproject.ID(projectID)).
+		QueryEnvironments().
+		All(ctx)
+}
+
+// UpdateEnvironment обновляет тестовое окружение.
+func (r *EntRepository) UpdateEnvironment(ctx context.Context, envID uuid.UUID, input UpdateEnvironmentInput) (*ent.Environment, error) {
+	builder := r.client.Environment.UpdateOneID(envID)
+	if input.Name != nil {
+		builder.SetName(*input.Name)
+	}
+	if input.Label != nil {
+		builder.SetEnvLabel(environment.EnvLabel(*input.Label))
+	}
+	if input.Config != nil {
+		builder.SetConfig(*input.Config)
+	}
+	return builder.Save(ctx)
+}
+
+// DeleteEnvironment удаляет тестовое окружение.
+func (r *EntRepository) DeleteEnvironment(ctx context.Context, envID uuid.UUID) error {
+	return r.client.Environment.DeleteOneID(envID).Exec(ctx)
+}
+
+// GetLatestTestRunForEnvironment возвращает последний прогон проекта в указанном окружении.
+// Если прогонов нет — возвращает (nil, nil) без ошибки.
+func (r *EntRepository) GetLatestTestRunForEnvironment(ctx context.Context, projectID, envID uuid.UUID) (*ent.TestRun, error) {
+	runs, err := r.client.TestRun.Query().
+		Where(
+			testrun.HasProjectWith(entproject.ID(projectID)),
+			testrun.HasEnvironmentWith(environment.ID(envID)),
+		).
+		Order(ent.Desc(testrun.FieldCreatedAt)).
+		Limit(1).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(runs) == 0 {
+		return nil, nil
+	}
+	return runs[0], nil
 }

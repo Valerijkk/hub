@@ -125,6 +125,23 @@ type AllureRepository interface {
 	GetAllureResultsByRunID(ctx context.Context, runID uuid.UUID) ([]AllureResult, error)
 }
 
+// EnvironmentRepository управляет тестовыми окружениями проекта.
+type EnvironmentRepository interface {
+	// CreateEnvironment создаёт тестовое окружение в проекте.
+	CreateEnvironment(ctx context.Context, projectID uuid.UUID, input CreateEnvironmentInput) (*ent.Environment, error)
+	// GetEnvironment возвращает окружение по ID.
+	GetEnvironment(ctx context.Context, envID uuid.UUID) (*ent.Environment, error)
+	// ListEnvironmentsByProject возвращает все окружения проекта.
+	ListEnvironmentsByProject(ctx context.Context, projectID uuid.UUID) ([]*ent.Environment, error)
+	// UpdateEnvironment обновляет тестовое окружение.
+	UpdateEnvironment(ctx context.Context, envID uuid.UUID, input UpdateEnvironmentInput) (*ent.Environment, error)
+	// DeleteEnvironment удаляет тестовое окружение.
+	DeleteEnvironment(ctx context.Context, envID uuid.UUID) error
+	// GetLatestTestRunForEnvironment возвращает последний прогон проекта в указанном окружении.
+	// Если прогонов нет — возвращает (nil, nil) без ошибки.
+	GetLatestTestRunForEnvironment(ctx context.Context, projectID, envID uuid.UUID) (*ent.TestRun, error)
+}
+
 // IssueLinkRepository управляет привязкой тест-кейсов к задачам трекера.
 type IssueLinkRepository interface {
 	// LinkTestCaseToIssue привязывает тест-кейс к задаче.
@@ -156,9 +173,7 @@ type Repository interface {
 	TestResultRepository
 	AllureRepository
 	IssueLinkRepository
-
-	// EntClient возвращает Ent клиент для прямых операций с БД.
-	EntClient() *ent.Client
+	EnvironmentRepository
 }
 
 // ---------------------------------------------------------------------------
@@ -282,4 +297,18 @@ type UpdateTestResultInput struct {
 	Comment     *string
 	StepResults *[]schema.StepResult
 	IsFlaky     *bool
+}
+
+// CreateEnvironmentInput содержит данные для создания тестового окружения.
+type CreateEnvironmentInput struct {
+	Name   string
+	Label  string
+	Config map[string]interface{}
+}
+
+// UpdateEnvironmentInput содержит данные для обновления тестового окружения.
+type UpdateEnvironmentInput struct {
+	Name   *string
+	Label  *string
+	Config *map[string]interface{}
 }

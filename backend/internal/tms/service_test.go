@@ -38,8 +38,24 @@ type mockRepository struct {
 	lastVersion  *ent.TestCaseVersion
 }
 
-func (m *mockRepository) EntClient() *ent.Client {
+// EnvironmentRepository stubs — заглушки для удовлетворения интерфейса в тестах.
+func (m *mockRepository) CreateEnvironment(ctx context.Context, projectID uuid.UUID, input CreateEnvironmentInput) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockRepository) GetEnvironment(ctx context.Context, envID uuid.UUID) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockRepository) ListEnvironmentsByProject(ctx context.Context, projectID uuid.UUID) ([]*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockRepository) UpdateEnvironment(ctx context.Context, envID uuid.UUID, input UpdateEnvironmentInput) (*ent.Environment, error) {
+	return nil, nil
+}
+func (m *mockRepository) DeleteEnvironment(ctx context.Context, envID uuid.UUID) error {
 	return nil
+}
+func (m *mockRepository) GetLatestTestRunForEnvironment(ctx context.Context, projectID, envID uuid.UUID) (*ent.TestRun, error) {
+	return nil, nil
 }
 
 func newMockRepo() *mockRepository {

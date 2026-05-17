@@ -5,9 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/environment"
-	entproject "github.com/valerii/hub/backend/ent/project"
-	"github.com/valerii/hub/backend/ent/testrun"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -386,34 +383,23 @@ func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUI
 // CompareEnvironments сравнивает результаты тестов между двумя окружениями.
 // Для каждого окружения получает последний прогон и его результаты, затем объединяет по ключу тест-кейса.
 func (s *TMSService) CompareEnvironments(ctx context.Context, projectID uuid.UUID, envID1, envID2 uuid.UUID) (*EnvironmentComparisonResponse, error) {
-	client := s.repo.EntClient()
-
-	// Получаем окружения
-	env1, err := client.Environment.Get(ctx, envID1)
+	env1, err := s.repo.GetEnvironment(ctx, envID1)
 	if err != nil {
 		return nil, apperrors.NewNotFound("окружение 1 не найдено")
 	}
-	env2, err := client.Environment.Get(ctx, envID2)
+	env2, err := s.repo.GetEnvironment(ctx, envID2)
 	if err != nil {
 		return nil, apperrors.NewNotFound("окружение 2 не найдено")
 	}
 
 	// Вспомогательная функция: получить последние результаты для окружения
 	getLatestResults := func(envID uuid.UUID) (map[string]string, map[string]string, error) {
-		// Получаем последний прогон для этого окружения
-		runs, err := client.TestRun.Query().
-			Where(
-				testrun.HasProjectWith(entproject.ID(projectID)),
-				testrun.HasEnvironmentWith(environment.ID(envID)),
-			).
-			Order(ent.Desc(testrun.FieldCreatedAt)).
-			Limit(1).
-			All(ctx)
-		if err != nil || len(runs) == 0 {
+		run, err := s.repo.GetLatestTestRunForEnvironment(ctx, projectID, envID)
+		if err != nil || run == nil {
 			return make(map[string]string), make(map[string]string), nil
 		}
 
-		results, err := s.repo.ListTestResults(ctx, runs[0].ID)
+		results, err := s.repo.ListTestResults(ctx, run.ID)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -8,8 +8,6 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/environment"
-	"github.com/valerii/hub/backend/ent/project"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -40,16 +38,11 @@ type UpdateEnvironmentRequest struct {
 
 // CreateEnvironment создаёт тестовое окружение в проекте.
 func (s *TMSService) CreateEnvironment(ctx context.Context, projectID uuid.UUID, req CreateEnvironmentRequest) (*EnvironmentResponse, error) {
-	builder := s.repo.EntClient().Environment.Create().
-		SetName(req.Name).
-		SetEnvLabel(environment.EnvLabel(req.Label)).
-		SetProjectID(projectID)
-
-	if req.Config != nil {
-		builder.SetConfig(req.Config)
-	}
-
-	env, err := builder.Save(ctx)
+	env, err := s.repo.CreateEnvironment(ctx, projectID, CreateEnvironmentInput{
+		Name:   req.Name,
+		Label:  req.Label,
+		Config: req.Config,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("не удалось создать окружение: %w", err)
 	}
@@ -59,10 +52,7 @@ func (s *TMSService) CreateEnvironment(ctx context.Context, projectID uuid.UUID,
 
 // ListEnvironments возвращает все окружения проекта.
 func (s *TMSService) ListEnvironments(ctx context.Context, projectID uuid.UUID) ([]EnvironmentResponse, error) {
-	envs, err := s.repo.EntClient().Project.Query().
-		Where(project.ID(projectID)).
-		QueryEnvironments().
-		All(ctx)
+	envs, err := s.repo.ListEnvironmentsByProject(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить окружения: %w", err)
 	}
@@ -76,18 +66,11 @@ func (s *TMSService) ListEnvironments(ctx context.Context, projectID uuid.UUID) 
 
 // UpdateEnvironment обновляет тестовое окружение.
 func (s *TMSService) UpdateEnvironment(ctx context.Context, envID uuid.UUID, req UpdateEnvironmentRequest) (*EnvironmentResponse, error) {
-	builder := s.repo.EntClient().Environment.UpdateOneID(envID)
-	if req.Name != nil {
-		builder.SetName(*req.Name)
-	}
-	if req.Label != nil {
-		builder.SetEnvLabel(environment.EnvLabel(*req.Label))
-	}
-	if req.Config != nil {
-		builder.SetConfig(*req.Config)
-	}
-
-	env, err := builder.Save(ctx)
+	env, err := s.repo.UpdateEnvironment(ctx, envID, UpdateEnvironmentInput{
+		Name:   req.Name,
+		Label:  req.Label,
+		Config: req.Config,
+	})
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, fiber.NewError(fiber.StatusNotFound, "окружение не найдено")
@@ -100,7 +83,7 @@ func (s *TMSService) UpdateEnvironment(ctx context.Context, envID uuid.UUID, req
 
 // DeleteEnvironment удаляет тестовое окружение.
 func (s *TMSService) DeleteEnvironment(ctx context.Context, envID uuid.UUID) error {
-	err := s.repo.EntClient().Environment.DeleteOneID(envID).Exec(ctx)
+	err := s.repo.DeleteEnvironment(ctx, envID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return fiber.NewError(fiber.StatusNotFound, "окружение не найдено")
