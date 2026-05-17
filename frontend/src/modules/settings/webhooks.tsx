@@ -8,6 +8,7 @@ import {
 	type WebhookDelivery,
 	type WebhookEndpoint,
 } from "@/api/webhooks";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const AVAILABLE_EVENTS = [
 	"issue.created",
@@ -28,6 +29,7 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 	const [showDeliveriesFor, setShowDeliveriesFor] = useState<string | null>(
 		null,
 	);
+	const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
 
 	const fetchEndpoints = useCallback(async () => {
 		try {
@@ -58,7 +60,6 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 	};
 
 	const handleDelete = async (id: string) => {
-		if (!confirm("Удалить этот вебхук?")) return;
 		await deleteWebhook(id);
 		fetchEndpoints();
 	};
@@ -174,7 +175,7 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 									</button>
 									<button
 										type="button"
-										onClick={() => handleDelete(ep.id)}
+										onClick={() => setDeleteDialogId(ep.id)}
 										className="text-[12px] font-bold text-red hover:underline"
 									>
 										Удалить
@@ -225,6 +226,22 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 					))}
 				</div>
 			)}
+
+			<ConfirmDialog
+				open={deleteDialogId !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeleteDialogId(null);
+				}}
+				title="Удалить вебхук?"
+				description="Endpoint больше не будет получать события."
+				confirmLabel="Удалить"
+				destructive
+				onConfirm={async () => {
+					if (deleteDialogId) {
+						await handleDelete(deleteDialogId);
+					}
+				}}
+			/>
 		</div>
 	);
 }

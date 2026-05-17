@@ -5,6 +5,7 @@ import {
 	listAPIKeys,
 	revokeAPIKey,
 } from "@/api/apikeys";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 /** Страница управления API-ключами в настройках профиля. */
 export function APIKeysPage() {
@@ -14,6 +15,7 @@ export function APIKeysPage() {
 	const [newKeyName, setNewKeyName] = useState("");
 	const [createdKey, setCreatedKey] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
+	const [revokeDialogId, setRevokeDialogId] = useState<string | null>(null);
 
 	const fetchKeys = useCallback(async () => {
 		try {
@@ -39,7 +41,6 @@ export function APIKeysPage() {
 	};
 
 	const handleRevoke = async (id: string) => {
-		if (!confirm("Отозвать этот API-ключ? Действие необратимо.")) return;
 		await revokeAPIKey(id);
 		fetchKeys();
 	};
@@ -154,7 +155,7 @@ export function APIKeysPage() {
 								<td className="px-4 py-[14px] border-b border-b1">
 									<button
 										type="button"
-										onClick={() => handleRevoke(key.id)}
+										onClick={() => setRevokeDialogId(key.id)}
 										className="text-[12px] font-bold text-red hover:underline"
 									>
 										Отозвать
@@ -165,6 +166,22 @@ export function APIKeysPage() {
 					</tbody>
 				</table>
 			)}
+
+			<ConfirmDialog
+				open={revokeDialogId !== null}
+				onOpenChange={(open) => {
+					if (!open) setRevokeDialogId(null);
+				}}
+				title="Отозвать API-ключ?"
+				description="Действие необратимо. Все интеграции, использующие этот ключ, перестанут работать."
+				confirmLabel="Отозвать"
+				destructive
+				onConfirm={async () => {
+					if (revokeDialogId) {
+						await handleRevoke(revokeDialogId);
+					}
+				}}
+			/>
 		</div>
 	);
 }

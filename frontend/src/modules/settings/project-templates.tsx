@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/api/client";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 /** Шаблон проекта. */
 interface ProjectTemplate {
@@ -81,6 +82,7 @@ export function TemplateSelector({
 export function ProjectTemplatesPage() {
 	const [templates, setTemplates] = useState<ProjectTemplate[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
 
 	const fetchTemplates = useCallback(async () => {
 		try {
@@ -97,7 +99,6 @@ export function ProjectTemplatesPage() {
 	}, [fetchTemplates]);
 
 	const handleDelete = async (id: string) => {
-		if (!confirm("Удалить этот шаблон?")) return;
 		await api.delete(`/project-templates/${id}`);
 		fetchTemplates();
 	};
@@ -132,7 +133,7 @@ export function ProjectTemplatesPage() {
 							{!t.is_system && (
 								<button
 									type="button"
-									onClick={() => handleDelete(t.id)}
+									onClick={() => setDeleteDialogId(t.id)}
 									className="text-sm text-red-600 hover:underline"
 								>
 									Удалить
@@ -142,6 +143,22 @@ export function ProjectTemplatesPage() {
 					))}
 				</div>
 			)}
+
+			<ConfirmDialog
+				open={deleteDialogId !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeleteDialogId(null);
+				}}
+				title="Удалить шаблон?"
+				description="Шаблон будет удалён. Существующие проекты не пострадают."
+				confirmLabel="Удалить"
+				destructive
+				onConfirm={async () => {
+					if (deleteDialogId) {
+						await handleDelete(deleteDialogId);
+					}
+				}}
+			/>
 		</div>
 	);
 }
