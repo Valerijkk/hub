@@ -28,6 +28,28 @@ interface CreatePollDialogProps {
 	onOpenChange: (open: boolean) => void;
 }
 
+/** Вариант ответа со стабильным идентификатором для React-ключей. */
+interface PollOption {
+	id: string;
+	text: string;
+}
+
+/** Generate a stable id for a poll option (UUID with non-secure fallback). */
+function makeOptionId(): string {
+	if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+		return crypto.randomUUID();
+	}
+	return `opt-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+/** Создать массив пустых вариантов с уникальными id. */
+function makeInitialOptions(): PollOption[] {
+	return [
+		{ id: makeOptionId(), text: "" },
+		{ id: makeOptionId(), text: "" },
+	];
+}
+
 /**
  * CreatePollDialog — диалог создания опроса.
  * Форма: вопрос, 2-10 вариантов ответа, переключатели анонимного и множественного выбора.
@@ -39,7 +61,7 @@ export function CreatePollDialog({
 }: CreatePollDialogProps) {
 	const invalidateMessages = useInvalidateMessages(channelId);
 	const [question, setQuestion] = useState("");
-	const [options, setOptions] = useState(["", ""]);
+	const [options, setOptions] = useState<PollOption[]>(() => makeInitialOptions());
 	const [isAnonymous, setIsAnonymous] = useState(false);
 	const [isMultiChoice, setIsMultiChoice] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
@@ -47,29 +69,29 @@ export function CreatePollDialog({
 	/** Сбросить форму в начальное состояние. */
 	const resetForm = useCallback(() => {
 		setQuestion("");
-		setOptions(["", ""]);
+		setOptions(makeInitialOptions());
 		setIsAnonymous(false);
 		setIsMultiChoice(false);
 	}, []);
 
-	/** Обновить текст варианта по индексу. */
-	const updateOption = useCallback((index: number, value: string) => {
-		setOptions((prev) => prev.map((o, i) => (i === index ? value : o)));
+	/** Обновить текст варианта по id. */
+	const updateOption = useCallback((id: string, value: string) => {
+		setOptions((prev) => prev.map((o) => (o.id === id ? { ...o, text: value } : o)));
 	}, []);
 
 	/** Добавить новый вариант. */
 	const addOption = useCallback(() => {
 		setOptions((prev) => {
 			if (prev.length >= MAX_OPTIONS) return prev;
-			return [...prev, ""];
+			return [...prev, { id: makeOptionId(), text: "" }];
 		});
 	}, []);
 
-	/** Удалить вариант по индексу. */
-	const removeOption = useCallback((index: number) => {
+	/** Удалить вариант по id. */
+	const removeOption = useCallback((id: string) => {
 		setOptions((prev) => {
 			if (prev.length <= MIN_OPTIONS) return prev;
-			return prev.filter((_, i) => i !== index);
+			return prev.filter((o) => o.id !== id);
 		});
 	}, []);
 
@@ -82,7 +104,7 @@ export function CreatePollDialog({
 		}
 
 		const validOptions = options
-			.map((o) => o.trim())
+			.map((o) => o.text.trim())
 			.filter((o) => o.length > 0);
 
 		if (validOptions.length < MIN_OPTIONS) {
@@ -135,16 +157,14 @@ export function CreatePollDialog({
 						<Label>Варианты ответа</Label>
 						<div className="space-y-2">
 							{options.map((option, index) => (
-								// Composite key: options can be mutated (add/remove/reorder), so
-								// index alone is unstable, but combining with option text avoids
-								// duplicate-key collisions while staying stable for unchanged rows.
+								// Stable id keeps focus/state on the right input across add/remove.
 								<div
-									key={`option-${index}-${option || "empty"}`}
+									key={option.id}
 									className="flex items-center gap-2"
 								>
 									<Input
-										value={option}
-										onChange={(e) => updateOption(index, e.target.value)}
+										value={option.text}
+										onChange={(e) => updateOption(option.id, e.target.value)}
 										placeholder={`Вариант ${index + 1}`}
 										maxLength={200}
 										disabled={submitting}
@@ -152,7 +172,7 @@ export function CreatePollDialog({
 									{options.length > MIN_OPTIONS && (
 										<button
 											type="button"
-											onClick={() => removeOption(index)}
+											onClick={() => removeOption(option.id)}
 											disabled={submitting}
 											className="shrink-0 h-8 w-8 flex items-center justify-center rounded-md text-t2 hover:text-destructive hover:bg-destructive/10 transition-colors"
 											title="Удалить вариант"

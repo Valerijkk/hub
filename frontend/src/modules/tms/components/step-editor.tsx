@@ -72,7 +72,7 @@ export function StepEditor(props: StepEditorProps) {
 					<div className="space-y-2">
 						{props.editSteps.map((step, idx) => (
 							<div
-								key={`step-${step.order}-${idx}`}
+								key={step._uid ?? `step-fallback-${step.order}`}
 								className="flex gap-2 items-start rounded-lg border p-3 bg-card/50 hover:bg-card transition-colors"
 							>
 								<div className="flex flex-col items-center gap-0.5 shrink-0 mt-1">

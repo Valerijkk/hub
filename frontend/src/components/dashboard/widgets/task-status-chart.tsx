@@ -88,9 +88,9 @@ export function TaskStatusChartWidget({ data }: Props) {
 					paddingAngle={3}
 					strokeWidth={0}
 				>
-					{chartData.map((_, index) => (
+					{chartData.map((entry, index) => (
 						<Cell
-							key={`cell-${index}`}
+							key={`cell-${entry.name}`}
 							fill={STATUS_COLORS[index % STATUS_COLORS.length]}
 						/>
 					))}

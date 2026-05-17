@@ -12,6 +12,29 @@ function safeString(value: unknown): string {
 	return "";
 }
 
+/**
+ * Compute a stable React key for a Plate node based on its content.
+ * Plate JSON nodes have no inherent ids, so we hash the serialized shape;
+ * identical siblings (e.g. two empty paragraphs) get the same key — that's
+ * acceptable here because re-render output is also identical for them.
+ */
+function nodeKey(node: Record<string, unknown>): string {
+	try {
+		const serialized = JSON.stringify(node);
+		// FNV-1a 32-bit — small, fast, deterministic.
+		let hash = 0x811c9dc5;
+		for (let i = 0; i < serialized.length; i++) {
+			hash ^= serialized.charCodeAt(i);
+			hash = Math.imul(hash, 0x01000193);
+		}
+		const type = typeof node.type === "string" ? node.type : "node";
+		return `${type}-${(hash >>> 0).toString(36)}`;
+	} catch {
+		const type = typeof node.type === "string" ? node.type : "node";
+		return `${type}-fallback`;
+	}
+}
+
 /** Рендерит один узел Plate JSON (текст, параграф, заголовок, список, цитату, ссылку, код). */
 export function RenderNode({ node }: { node: Record<string, unknown> }) {
 	if (!node || typeof node !== "object" || Array.isArray(node)) return null;
@@ -35,15 +58,13 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 
 	const children =
 		(Array.isArray(node.children) ? node.children : []) as Record<string, unknown>[];
-	const renderedChildren = children.map((child, i) => {
+	const renderedChildren = children.map((child) => {
 		if (!child || typeof child !== "object" || Array.isArray(child)) return null;
-		const childType =
-			typeof (child as { type?: unknown }).type === "string"
-				? ((child as { type: string }).type)
-				: "node";
+		// Plate nodes have no stable ids; use a JSON content hash so identical
+		// re-renders reuse the same key but order-changes still re-key correctly.
 		return (
 			<RenderNode
-				key={`${childType}-${i}`}
+				key={nodeKey(child as Record<string, unknown>)}
 				node={child as Record<string, unknown>}
 			/>
 		);
@@ -123,15 +144,11 @@ export function RenderContent({
 		if (nodes.length === 0) return null;
 		return (
 			<div className="prose prose-sm dark:prose-invert max-w-none">
-				{nodes.map((node, i) => {
+				{nodes.map((node) => {
 					if (!node || typeof node !== "object" || Array.isArray(node)) return null;
-					const nodeType =
-						typeof (node as { type?: unknown }).type === "string"
-							? ((node as { type: string }).type)
-							: "node";
 					return (
 						<RenderNode
-							key={`${nodeType}-${i}`}
+							key={nodeKey(node as Record<string, unknown>)}
 							node={node as Record<string, unknown>}
 						/>
 					);
@@ -150,15 +167,11 @@ export function RenderContent({
 
 	return (
 		<div className="prose prose-sm dark:prose-invert max-w-none">
-			{children.map((node, i) => {
+			{children.map((node) => {
 				if (!node || typeof node !== "object" || Array.isArray(node)) return null;
-				const nodeType =
-					typeof (node as { type?: unknown }).type === "string"
-						? ((node as { type: string }).type)
-						: "node";
 				return (
 					<RenderNode
-						key={`${nodeType}-${i}`}
+						key={nodeKey(node as Record<string, unknown>)}
 						node={node as Record<string, unknown>}
 					/>
 				);

@@ -7,6 +7,7 @@ import {
 	linkTestCaseToIssue,
 	listVersions,
 	rollbackVersion,
+	stripStepUid,
 	type TestCasePriority,
 	type TestCaseStatus,
 	type TestStep,
@@ -31,6 +32,14 @@ import {
 	TestCaseMetadata,
 } from "@/modules/tms/components/test-case-metadata";
 import { VersionHistory } from "@/modules/tms/components/version-history";
+
+/** Generate a client-only stable id used as React key for step rows. */
+function makeStepUid(): string {
+	if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+		return crypto.randomUUID();
+	}
+	return `step-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 /** Priority labels. */
 const PRIORITY_LABELS: Record<string, string> = {
@@ -87,7 +96,11 @@ function TestCaseDetailPage() {
 			setEditPostcondition(tc.postcondition ?? "");
 			setEditPriority(tc.priority);
 			setEditStatus(tc.status);
-			setEditSteps(tc.steps ? tc.steps.map((s) => ({ ...s })) : []);
+			setEditSteps(
+				tc.steps
+					? tc.steps.map((s) => ({ ...s, _uid: makeStepUid() }))
+					: [],
+			);
 		}
 	}, [tc]);
 
@@ -111,7 +124,8 @@ function TestCaseDetailPage() {
 				postcondition: editPostcondition || undefined,
 				priority: editPriority,
 				status: editStatus,
-				steps: editSteps.length > 0 ? editSteps : undefined,
+				steps:
+					editSteps.length > 0 ? stripStepUid(editSteps) : undefined,
 				version: tc.version,
 			});
 		},
@@ -180,7 +194,11 @@ function TestCaseDetailPage() {
 		setEditPostcondition(tc.postcondition ?? "");
 		setEditPriority(tc.priority);
 		setEditStatus(tc.status);
-		setEditSteps(tc.steps ? tc.steps.map((s) => ({ ...s })) : []);
+		setEditSteps(
+				tc.steps
+					? tc.steps.map((s) => ({ ...s, _uid: makeStepUid() }))
+					: [],
+			);
 		setEditing(true);
 	};
 
@@ -191,7 +209,12 @@ function TestCaseDetailPage() {
 	const addStep = () => {
 		setEditSteps([
 			...editSteps,
-			{ order: editSteps.length + 1, action: "", expected_result: "" },
+			{
+				_uid: makeStepUid(),
+				order: editSteps.length + 1,
+				action: "",
+				expected_result: "",
+			},
 		]);
 	};
 

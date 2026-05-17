@@ -121,11 +121,12 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 											</tr>
 										</thead>
 										<tbody>
-											{preview.rows.map((row, i) => (
-												// Preview rows have no stable id; composite of first
-												// column value + index keeps re-renders predictable.
+											{preview.rows.map((row) => (
+												// Preview rows have no backend-assigned id; serialize
+												// the row payload so identical rows still collide
+												// deterministically rather than relying on array index.
 												<tr
-													key={`row-${i}-${Object.values(row.fields)[0] ?? "empty"}`}
+													key={`row-${JSON.stringify(row.fields)}`}
 													className="border-b"
 												>
 													{preview.headers.map((h) => (

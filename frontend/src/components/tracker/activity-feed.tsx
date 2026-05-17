@@ -117,8 +117,11 @@ function ActivityItem({
 
 				{(activity.changes ?? []).length > 0 && (
 					<div className="mt-1 space-y-1">
-						{(activity.changes ?? []).map((change, idx) => (
-							<div key={`${change.field}-${idx}`} className="flex items-center gap-2 text-[13px]">
+						{(activity.changes ?? []).map((change) => (
+							<div
+								key={`${change.field}-${String(change.old_value)}-${String(change.new_value)}`}
+								className="flex items-center gap-2 text-[13px]"
+							>
 								<span className="font-medium text-t3">
 									{getFieldLabel(change.field)}:
 								</span>

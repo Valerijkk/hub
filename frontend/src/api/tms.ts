@@ -83,6 +83,20 @@ export interface TestStep {
 	action: string;
 	expected_result?: string;
 	keyword?: string;
+	/**
+	 * Client-only stable id used as React key when editing step lists.
+	 * Optional and ignored by the backend — strip via `stripStepUid` before
+	 * submitting a payload to avoid noise on the wire.
+	 */
+	_uid?: string;
+}
+
+/** Strip the client-only `_uid` field from steps before submitting to the API. */
+export function stripStepUid(
+	steps: TestStep[] | undefined,
+): TestStep[] | undefined {
+	if (!steps) return steps;
+	return steps.map(({ _uid: _ignored, ...rest }) => rest);
 }
 
 /** Результат выполнения шага. */

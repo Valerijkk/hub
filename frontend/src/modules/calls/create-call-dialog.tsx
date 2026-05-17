@@ -482,14 +482,14 @@ export function CreateCallDialog({
 							<div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
 								<AlertTriangle className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
 								<div className="space-y-1">
-									{conflictData.conflicts.map((c, i) => {
+									{conflictData.conflicts.map((c) => {
 										const member = (members ?? []).find(
 											(m: MemberResponse) => m.user_id === c.participant_id,
 										);
 										const name = member?.name ?? c.participant_id.slice(0, 8);
 										return (
 											<p
-												key={`${c.participant_id}-${i}`}
+												key={`${c.participant_id}-${c.call_title}`}
 												className="text-xs text-amber-200"
 											>
 												У участника{" "}

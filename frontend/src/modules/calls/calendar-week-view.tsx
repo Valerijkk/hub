@@ -96,10 +96,11 @@ export function WeekView({
 								(ev) =>
 									isSameDay(ev.date, day) && ev.date.getHours() === hour,
 							);
+							const cellKey = `cell-${hour}-${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
 
 							return (
 								<div
-									key={`cell-${hour}-${dayIdx}`}
+									key={cellKey}
 									role="button"
 									tabIndex={0}
 									aria-label={`Создать встречу на ${String(hour).padStart(2, "0")}:00`}

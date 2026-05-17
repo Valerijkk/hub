@@ -168,9 +168,9 @@ export function ImportDialog({
 									<div className="mb-1 text-xs font-medium">
 										Ошибки валидации:
 									</div>
-									{result.validation_errors.map((ve, i) => (
+									{result.validation_errors.map((ve) => (
 										<div
-											key={`ve-${ve.row}-${ve.field}-${i}`}
+											key={`ve-${ve.row}-${ve.field}-${ve.message}`}
 											className="text-xs text-red-600"
 										>
 											Строка {ve.row}: {ve.field} - {ve.message}
