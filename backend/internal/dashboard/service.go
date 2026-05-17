@@ -4,6 +4,7 @@ package dashboard
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -100,7 +101,7 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 
 	// Непрочитанные сообщения: Redis HGETALL
 	unreadMap, err := s.rdb.HGetAll(ctx, fmt.Sprintf("unread:%s", userID.String())).Result()
-	if err != nil && err != redis.Nil {
+	if err != nil && !errors.Is(err, redis.Nil) {
 		slog.Error("ошибка загрузки непрочитанных", "error", err)
 	}
 	total := 0
