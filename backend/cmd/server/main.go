@@ -242,6 +242,11 @@ func main() {
 	// в Fiber `Use` влияет только на handlers, замаунченные ПОЗЖЕ.
 	// Раньше Use стоял после всех роутов и был мёртвым кодом.
 	apiKeySvc := apigatewaymod.NewAPIKeyService(db)
+	// BE-H4: NewAPIKeyService запускает bounded worker-pool для
+	// async-обновлений last_used_at. Без Close() workers + touchJobs
+	// канал утекают на shutdown'е — defer закрывает канал и дожидается
+	// drain'а worker-pool'а.
+	defer apiKeySvc.Close()
 	api.Use(apigatewaymod.APIKeyAuth(apiKeySvc))
 
 	authHandler := auth.NewHandler(authSvc, tgBotAuth)
