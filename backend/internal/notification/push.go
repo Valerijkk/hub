@@ -80,7 +80,13 @@ func (p *PushSender) Start(ctx context.Context) {
 			case msg := <-p.queue:
 				p.sendToUser(workerCtx, msg)
 				// Rate limiting: 50мс между отправками (~20 сообщений/сек).
-				time.Sleep(50 * time.Millisecond)
+				// ctx-aware — при shutdown воркер прерывается мгновенно,
+				// не дожидаясь оставшихся 50мс × queue depth.
+				select {
+				case <-workerCtx.Done():
+					return
+				case <-time.After(50 * time.Millisecond):
+				}
 			}
 		}
 	}()
