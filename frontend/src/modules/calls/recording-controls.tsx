@@ -103,6 +103,7 @@ export function RecordingControls({ callId }: RecordingControlsProps) {
 			{/* Кнопка записи */}
 			{!isRecording ? (
 				<button
+					type="button"
 					onClick={handleStart}
 					disabled={isLoading}
 					className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-base text-t2 transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
@@ -113,6 +114,7 @@ export function RecordingControls({ callId }: RecordingControlsProps) {
 				</button>
 			) : isMyRecording ? (
 				<button
+					type="button"
 					onClick={handleStop}
 					disabled={isLoading}
 					className="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/10 text-red-500 transition-colors hover:bg-red-500/20 disabled:opacity-50"

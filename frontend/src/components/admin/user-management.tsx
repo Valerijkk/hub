@@ -54,12 +54,14 @@ function ReassignDialog({ user, onConfirm, onClose, disabled }: ReassignDialogPr
 				/>
 				<div className="flex justify-end gap-2">
 					<button
+						type="button"
 						onClick={onClose}
 						className="rounded-[var(--r2)] border border-b1 px-3 py-1.5 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-colors duration-180"
 					>
 						Отмена
 					</button>
 					<button
+						type="button"
 						onClick={() => onConfirm(targetId)}
 						disabled={!targetId || disabled}
 						className="rounded-[var(--r2)] bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] px-3 py-1.5 text-[13px] font-bold text-white disabled:opacity-50"
@@ -110,12 +112,14 @@ function GdprDeleteDialog({ user, onConfirm, onClose, disabled }: GdprDeleteDial
 				/>
 				<div className="flex justify-end gap-2">
 					<button
+						type="button"
 						onClick={onClose}
 						className="rounded-[var(--r2)] border border-b1 px-3 py-1.5 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-colors duration-180"
 					>
 						Отмена
 					</button>
 					<button
+						type="button"
 						onClick={onConfirm}
 						disabled={confirmText !== "УДАЛИТЬ" || disabled}
 						className="rounded-[var(--r2)] bg-red px-3 py-1.5 text-[13px] font-bold text-white hover:bg-[var(--redS)] disabled:opacity-50"
@@ -240,7 +244,10 @@ export function UserManagement() {
 					placeholder="Email нового пользователя"
 					className="flex-1 h-10 px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none focus:border-[rgba(91,156,245,0.3)] placeholder:text-t3"
 				/>
-				<button className="inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]">
+				<button
+					type="button"
+					className="inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
+				>
 					Пригласить
 				</button>
 			</div>
@@ -317,6 +324,7 @@ export function UserManagement() {
 										<div className="flex gap-1">
 											{user.status !== "deactivated" && (
 												<button
+													type="button"
 													onClick={() => handleDeactivate(user)}
 													disabled={actionUserId === user.id}
 													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
@@ -326,6 +334,7 @@ export function UserManagement() {
 												</button>
 											)}
 											<button
+												type="button"
 												onClick={() => setReassignDialogUser(user)}
 												disabled={actionUserId === user.id}
 												className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
@@ -334,6 +343,7 @@ export function UserManagement() {
 												{"\u270E"}
 											</button>
 											<button
+												type="button"
 												onClick={() => setGdprDialogUser(user)}
 												disabled={actionUserId === user.id}
 												className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-red disabled:opacity-50"

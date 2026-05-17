@@ -91,6 +91,7 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 			<div className="flex items-center justify-between">
 				<h2 className="text-xl font-semibold">Тестовые окружения</h2>
 				<button
+					type="button"
 					onClick={() => setShowCreate(true)}
 					className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
 				>
@@ -141,12 +142,14 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 					</div>
 					<div className="mt-3 flex gap-2">
 						<button
+							type="button"
 							onClick={handleCreate}
 							className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white"
 						>
 							Создать
 						</button>
 						<button
+							type="button"
 							onClick={() => setShowCreate(false)}
 							className="rounded-md border px-4 py-2 text-sm"
 						>
@@ -184,6 +187,7 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 								</td>
 								<td className="p-2">
 									<button
+										type="button"
 										onClick={() => handleDelete(env.id)}
 										className="text-red-600 hover:underline"
 									>

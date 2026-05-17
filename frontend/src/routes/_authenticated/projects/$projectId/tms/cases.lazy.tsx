@@ -52,6 +52,7 @@ function SuiteTreeItem({
 	return (
 		<div>
 			<button
+				type="button"
 				className={cn(
 					"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative",
 					"hover:bg-[var(--hover)] hover:text-t1",
@@ -249,6 +250,7 @@ function TestCasesPage() {
 				</div>
 				<div className="flex-1 overflow-y-auto p-2">
 					<button
+						type="button"
 						className={cn(
 							"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative mb-1",
 							"hover:bg-[var(--hover)] hover:text-t1",

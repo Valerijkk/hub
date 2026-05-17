@@ -171,6 +171,7 @@ function CreateBranchDialog({
 
 				<div className="flex justify-end gap-2">
 					<button
+						type="button"
 						className="rounded-md px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
 						onClick={onClose}
 						disabled={loading}
@@ -178,6 +179,7 @@ function CreateBranchDialog({
 						Отмена
 					</button>
 					<button
+						type="button"
 						className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
 						onClick={handleCreate}
 						disabled={loading || !selectedIntegration}
@@ -243,6 +245,7 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 				</h4>
 				{integrations.length > 0 && (
 					<button
+						type="button"
 						className="rounded-md px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
 						onClick={() => setShowBranchDialog(true)}
 					>

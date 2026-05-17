@@ -50,6 +50,7 @@ export function TemplateSelector({
 				{templates.map((t) => (
 					<button
 						key={t.id}
+						type="button"
 						onClick={() => handleSelect(t.id)}
 						className={`rounded-md border p-3 text-left text-sm ${
 							selected === t.id
@@ -130,6 +131,7 @@ export function ProjectTemplatesPage() {
 							</div>
 							{!t.is_system && (
 								<button
+									type="button"
 									onClick={() => handleDelete(t.id)}
 									className="text-sm text-red-600 hover:underline"
 								>

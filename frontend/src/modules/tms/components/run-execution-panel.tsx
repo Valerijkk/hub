@@ -127,6 +127,7 @@ export function RunExecutionPanel({
 					{STATUS_BUTTONS.map((btn) => (
 						<button
 							key={btn.status}
+							type="button"
 							className={cn(
 								"rounded-lg border px-3 py-2 text-xs font-semibold transition-colors duration-150",
 								overallStatus === btn.status

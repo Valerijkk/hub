@@ -343,6 +343,7 @@ export function CallCalendar() {
 					).map((tab) => (
 						<button
 							key={tab.key}
+							type="button"
 							className={`px-3 py-[5px] text-[12px] font-semibold rounded-[var(--r1)] transition-colors duration-180 ${
 								view === tab.key
 									? "bg-card text-t1 shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
@@ -420,6 +421,7 @@ export function CallCalendar() {
 							<div className="flex items-center justify-between">
 								<h3 className="font-semibold">{selectedEvent.title}</h3>
 								<button
+									type="button"
 									onClick={() => setSelectedEvent(null)}
 									className="rounded-sm p-0.5 text-t2 hover:text-t1"
 								>

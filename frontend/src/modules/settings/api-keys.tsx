@@ -57,6 +57,7 @@ export function APIKeysPage() {
 			<div className="flex items-center justify-between">
 				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">API-ключи</h2>
 				<button
+					type="button"
 					onClick={() => setShowCreate(true)}
 					className="settings-btn-save inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
 				>
@@ -74,6 +75,7 @@ export function APIKeysPage() {
 							{createdKey}
 						</code>
 						<button
+							type="button"
 							onClick={handleCopy}
 							className="rounded-[var(--r2)] bg-green px-3 py-2 text-[13px] font-bold text-white hover:bg-[var(--greenS)]"
 						>
@@ -81,6 +83,7 @@ export function APIKeysPage() {
 						</button>
 					</div>
 					<button
+						type="button"
 						onClick={() => setCreatedKey(null)}
 						className="mt-2 text-[12px] text-green underline"
 					>
@@ -101,12 +104,14 @@ export function APIKeysPage() {
 					/>
 					<div className="flex gap-2">
 						<button
+							type="button"
 							onClick={handleCreate}
 							className="settings-btn-save inline-flex items-center px-4 py-2 rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)]"
 						>
 							Создать
 						</button>
 						<button
+							type="button"
 							onClick={() => setShowCreate(false)}
 							className="rounded-[var(--r2)] border border-b1 px-4 py-2 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-colors duration-180"
 						>
@@ -148,6 +153,7 @@ export function APIKeysPage() {
 								</td>
 								<td className="px-4 py-[14px] border-b border-b1">
 									<button
+										type="button"
 										onClick={() => handleRevoke(key.id)}
 										className="text-[12px] font-bold text-red hover:underline"
 									>

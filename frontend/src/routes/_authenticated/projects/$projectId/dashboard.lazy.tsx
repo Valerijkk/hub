@@ -56,6 +56,7 @@ function ProjectDashboard() {
 					{Object.keys(TEMPLATES).map((key) => (
 						<button
 							key={key}
+							type="button"
 							onClick={() => {
 								setTemplate(key);
 								setLayout("project", TEMPLATES[key] ?? projectDev);

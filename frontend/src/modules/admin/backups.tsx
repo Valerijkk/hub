@@ -84,6 +84,7 @@ export function BackupsPage() {
 			<div className="flex items-center justify-between">
 				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">Резервные копии</h2>
 				<button
+					type="button"
 					onClick={handleCreate}
 					disabled={creating}
 					className="inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96] disabled:opacity-50"
@@ -106,6 +107,7 @@ export function BackupsPage() {
 							className="h-[42px] px-[14px] bg-[var(--input)] border border-red/[0.3] rounded-[var(--r2)] text-[14px] text-t1 outline-none placeholder:text-t3"
 						/>
 						<button
+							type="button"
 							onClick={() => handleRestore(restoreConfirm)}
 							disabled={restoreInput !== "RESTORE"}
 							className="rounded-[var(--r2)] bg-red px-4 py-2 text-[13px] font-bold text-white disabled:opacity-50 hover:bg-[var(--redS)]"
@@ -113,6 +115,7 @@ export function BackupsPage() {
 							Восстановить
 						</button>
 						<button
+							type="button"
 							onClick={() => {
 								setRestoreConfirm(null);
 								setRestoreInput("");
@@ -151,6 +154,7 @@ export function BackupsPage() {
 									<div className="flex gap-2">
 										{b.status === "completed" && (
 											<button
+												type="button"
 												onClick={() => setRestoreConfirm(b.id)}
 												className="text-[12px] font-semibold text-blue hover:underline"
 											>
@@ -158,6 +162,7 @@ export function BackupsPage() {
 											</button>
 										)}
 										<button
+											type="button"
 											onClick={() => handleDelete(b.id)}
 											className="text-[12px] font-bold text-red hover:underline"
 										>

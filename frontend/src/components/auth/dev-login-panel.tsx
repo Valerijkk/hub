@@ -232,6 +232,7 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
 				{DEMO_USERS.map((user) => (
 					<button
 						key={user.email}
+						type="button"
 						onClick={() => handleLogin(user.email)}
 						disabled={loading !== null}
 						className="group relative flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-left

@@ -139,6 +139,7 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 										<td className="px-4 py-2 text-right">
 											{rec.status === "ready" && (
 												<button
+													type="button"
 													onClick={() => handleDownload(rec.id)}
 													className="rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
 												>
@@ -156,6 +157,7 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 					{totalPages > 1 && (
 						<div className="flex items-center justify-center gap-2">
 							<button
+								type="button"
 								onClick={() => setOffset(Math.max(0, offset - limit))}
 								disabled={offset === 0}
 								className="rounded-md border border-border px-3 py-1 text-sm disabled:opacity-50"
@@ -166,6 +168,7 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 								{currentPage} / {totalPages}
 							</span>
 							<button
+								type="button"
 								onClick={() => setOffset(offset + limit)}
 								disabled={offset + limit >= total}
 								className="rounded-md border border-border px-3 py-1 text-sm disabled:opacity-50"

@@ -27,6 +27,7 @@ export function SuiteTreeItem({
 	return (
 		<div>
 			<button
+				type="button"
 				className={cn(
 					"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative",
 					"hover:bg-[var(--hover)] hover:text-t1",
@@ -141,12 +142,16 @@ export function CaseTreePanel({
 				<span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-t4">
 					Тест-сьюты
 				</span>
-				<button className="w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-t3 text-[18px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:bg-[var(--active)] hover:text-t1 hover:scale-110">
+				<button
+					type="button"
+					className="w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-t3 text-[18px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:bg-[var(--active)] hover:text-t1 hover:scale-110"
+				>
 					+
 				</button>
 			</div>
 			<div className="flex-1 overflow-y-auto p-2">
 				<button
+					type="button"
 					className={cn(
 						"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative mb-1",
 						"hover:bg-[var(--hover)] hover:text-t1",
