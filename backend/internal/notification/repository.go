@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/notification"
 	"github.com/valerii/hub/backend/ent/notificationpreference"
 )
@@ -222,6 +223,27 @@ func (r *Repository) GetProjectMembersWithUser(ctx context.Context, projectID uu
 		return nil, err
 	}
 	return proj.QueryMembers().WithUser().All(ctx)
+}
+
+// GetUser возвращает пользователя по ID. Используется сервисом для чтения
+// telegram_id / quiet hours / timezone — поля прямо лежат на User.
+func (r *Repository) GetUser(ctx context.Context, userID uuid.UUID) (*ent.User, error) {
+	return r.db.User.Get(ctx, userID)
+}
+
+// ListIssuesWithUpcomingDeadline возвращает задачи с дедлайном в окне (now, deadline],
+// которые не удалены, с preload'ом assignee и project — используется CheckDeadlines.
+func (r *Repository) ListIssuesWithUpcomingDeadline(ctx context.Context, now, deadline time.Time) ([]*ent.Issue, error) {
+	return r.db.Issue.Query().
+		Where(
+			issue.DueDateNotNil(),
+			issue.DueDateGTE(now),
+			issue.DueDateLTE(deadline),
+			issue.DeletedAtIsNil(),
+		).
+		WithAssignee().
+		WithProject().
+		All(ctx)
 }
 
 // IsEnabled проверяет, включено ли уведомление данного типа для канала и пользователя.

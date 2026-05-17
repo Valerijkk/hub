@@ -389,7 +389,7 @@ func main() {
 	notifRepo := notifmod.NewRepository(db)
 	telegramSender := notifmod.NewTelegramSender(cfg.Telegram.BotToken)
 	pushSender := notifmod.NewPushSender(db, cfg.WebPush)
-	notifSvc := notifmod.NewNotificationService(notifRepo, nc, telegramSender, db, pushSender)
+	notifSvc := notifmod.NewNotificationService(notifRepo, nc, telegramSender, pushSender)
 	notifConsumer := notifmod.NewConsumer(nc, notifRepo, notifSvc)
 	if err := notifConsumer.Start(rootCtx); err != nil {
 		slog.Error("failed to start notification consumer", "error", err)

@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/issue"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
@@ -22,17 +21,15 @@ type NotificationService struct {
 	nats     *natsclient.Client
 	telegram *TelegramSender
 	push     *PushSender
-	db       *ent.Client
 }
 
 // NewNotificationService создаёт новый сервис уведомлений.
 // push может быть nil (Web Push уведомления не будут отправляться).
-func NewNotificationService(repo *Repository, nc *natsclient.Client, telegram *TelegramSender, db *ent.Client, push *PushSender) *NotificationService {
+func NewNotificationService(repo *Repository, nc *natsclient.Client, telegram *TelegramSender, push *PushSender) *NotificationService {
 	return &NotificationService{
 		repo:     repo,
 		nats:     nc,
 		telegram: telegram,
-		db:       db,
 		push:     push,
 	}
 }
@@ -182,7 +179,7 @@ func (s *NotificationService) publishToWS(userID uuid.UUID, notif *ent.Notificat
 
 // sendTelegram отправляет уведомление в Telegram.
 func (s *NotificationService) sendTelegram(ctx context.Context, userID uuid.UUID, title, body string) {
-	user, err := s.db.User.Get(ctx, userID)
+	user, err := s.repo.GetUser(ctx, userID)
 	if err != nil {
 		slog.Error("ошибка загрузки пользователя для telegram", "error", err, "user_id", userID)
 		return
@@ -203,7 +200,7 @@ func (s *NotificationService) sendTelegram(ctx context.Context, userID uuid.UUID
 
 // isQuietHours проверяет, находится ли текущее время в тихих часах пользователя.
 func (s *NotificationService) isQuietHours(ctx context.Context, userID uuid.UUID) bool {
-	user, err := s.db.User.Get(ctx, userID)
+	user, err := s.repo.GetUser(ctx, userID)
 	if err != nil {
 		return false
 	}
@@ -243,16 +240,7 @@ func (s *NotificationService) CheckDeadlines(ctx context.Context) error {
 	deadline := now.Add(24 * time.Hour)
 
 	// Запрашиваем задачи с due_date, не удалённые, с assignee и project.
-	issues, err := s.db.Issue.Query().
-		Where(
-			issue.DueDateNotNil(),
-			issue.DueDateGTE(now),
-			issue.DueDateLTE(deadline),
-			issue.DeletedAtIsNil(),
-		).
-		WithAssignee().
-		WithProject().
-		All(ctx)
+	issues, err := s.repo.ListIssuesWithUpcomingDeadline(ctx, now, deadline)
 	if err != nil {
 		return fmt.Errorf("ошибка запроса задач: %w", err)
 	}
