@@ -61,7 +61,7 @@ func (s *MessengerService) CreatePoll(ctx context.Context, channelID, creatorID 
 			"children": []interface{}{map[string]interface{}{"type": "p", "children": []interface{}{map[string]interface{}{"text": req.Question}}}},
 		},
 		ContentText: req.Question,
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UTC(),
 	}
 	// ME-4: раньше ошибка InsertMessage проглатывалась через `msgID, _ := ...`.
 	// Это non-critical path (опрос уже создан в Postgres транзакции), но молчать

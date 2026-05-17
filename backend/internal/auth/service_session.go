@@ -51,7 +51,7 @@ func refreshKey(token string) string { return "refresh:" + token }
 
 // generateAccessToken генерирует JWT access-токен.
 func (s *SessionService) generateAccessToken(userID, sessionID uuid.UUID) (string, error) {
-	now := time.Now()
+	now := time.Now().UTC()
 	claims := JWTClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.accessTTL)),
@@ -167,7 +167,7 @@ func (s *SessionService) CreateSession(ctx context.Context, userID uuid.UUID, de
 	}
 	if _, err = s.db.Session.Create().
 		SetID(sessionID).SetRefreshToken(refreshToken).SetDevice(device).SetIPAddress(ip).
-		SetExpiresAt(time.Now().Add(s.refreshTTL)).SetUserID(userID).Save(ctx); err != nil {
+		SetExpiresAt(time.Now().UTC().Add(s.refreshTTL)).SetUserID(userID).Save(ctx); err != nil {
 		s.deleteRefreshToken(ctx, refreshToken)
 		return nil, fmt.Errorf("create session: persist: %w", err)
 	}
@@ -211,7 +211,7 @@ func (s *SessionService) RefreshToken(ctx context.Context, oldRefreshToken strin
 		return nil, fmt.Errorf("refresh token: store new: %w", err)
 	}
 	if _, saveErr := s.db.Session.UpdateOneID(sessionID).
-		SetRefreshToken(newRefresh).SetLastActiveAt(time.Now()).Save(ctx); saveErr != nil {
+		SetRefreshToken(newRefresh).SetLastActiveAt(time.Now().UTC()).Save(ctx); saveErr != nil {
 		return nil, fmt.Errorf("refresh token: update session: %w", saveErr)
 	}
 	s.deleteRefreshToken(ctx, oldRefreshToken)

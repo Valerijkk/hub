@@ -104,7 +104,7 @@ func (s *MessengerService) ListMyChannels(ctx context.Context, userID uuid.UUID)
 		resp := toChannelResponse(ch)
 		if m, ok := membershipMap[ch.ID.String()]; ok {
 			resp.IsStarred = m.IsStarred
-			if m.MutedUntil != nil && m.MutedUntil.After(time.Now()) {
+			if m.MutedUntil != nil && m.MutedUntil.After(time.Now().UTC()) {
 				resp.MutedUntil = m.MutedUntil
 			}
 		}

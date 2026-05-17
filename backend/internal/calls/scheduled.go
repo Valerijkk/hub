@@ -47,7 +47,7 @@ func (s *ScheduledCallService) CreateScheduledCall(ctx context.Context, projectI
 		if err != nil {
 			return nil, fmt.Errorf("некорректный RRULE: %w", err)
 		}
-		next := rule.After(time.Now(), false)
+		next := rule.After(time.Now().UTC(), false)
 		if !next.IsZero() {
 			scheduledAt = next
 		}
@@ -106,7 +106,7 @@ func (s *ScheduledCallService) DeleteScheduledCall(ctx context.Context, id uuid.
 // Вызывается cron-задачей каждую минуту. Для повторяющихся звонков вычисляет
 // следующее вхождение по RRULE и обновляет scheduled_at.
 func (s *ScheduledCallService) ProcessDueScheduledCalls(ctx context.Context) error {
-	dueCalls, err := s.repo.GetDueScheduledCalls(ctx, time.Now())
+	dueCalls, err := s.repo.GetDueScheduledCalls(ctx, time.Now().UTC())
 	if err != nil {
 		return fmt.Errorf("не удалось получить наступившие звонки: %w", err)
 	}
@@ -128,7 +128,7 @@ func (s *ScheduledCallService) ProcessDueScheduledCalls(ctx context.Context) err
 				continue
 			}
 
-			next := rule.After(time.Now(), false)
+			next := rule.After(time.Now().UTC(), false)
 			if next.IsZero() {
 				// Больше вхождений нет — деактивируем
 				if err := s.repo.DeactivateScheduledCall(ctx, sc.ID); err != nil {

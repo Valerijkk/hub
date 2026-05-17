@@ -46,7 +46,7 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 		MentionGroups:   req.MentionGroups,
 		VoiceURL:        req.VoiceURL,
 		VoiceDurationMs: req.VoiceDurationMs,
-		CreatedAt:       time.Now(),
+		CreatedAt:       time.Now().UTC(),
 	}
 
 	messageID, err := s.repo.InsertMessage(ctx, doc)
@@ -138,7 +138,7 @@ func (s *MessengerService) EditMessage(ctx context.Context, messageID string, us
 		ChannelID:   existing.ChannelID,
 		EditorID:    userID,
 		ContentText: req.ContentText,
-		EditedAt:    time.Now(),
+		EditedAt:    time.Now().UTC(),
 	})
 
 	return toMessageResponse(updated), nil
@@ -180,7 +180,7 @@ func (s *MessengerService) DeleteMessage(ctx context.Context, messageID string, 
 		MessageID: messageID,
 		ChannelID: existing.ChannelID,
 		DeletedBy: userID,
-		DeletedAt: time.Now(),
+		DeletedAt: time.Now().UTC(),
 	})
 
 	return nil
@@ -253,7 +253,7 @@ func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID
 		ContentText:     source.ContentText,
 		ForwardedFromID: sourceMessageID,
 		Attachments:     source.Attachments,
-		CreatedAt:       time.Now(),
+		CreatedAt:       time.Now().UTC(),
 	}
 
 	newID, err := s.repo.InsertMessage(ctx, doc)

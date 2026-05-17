@@ -52,7 +52,7 @@ func parseExpiresIn(expiresIn string) (*time.Time, error) {
 		return nil, fmt.Errorf("некорректный срок действия: %s", expiresIn)
 	}
 
-	t := time.Now().Add(d)
+	t := time.Now().UTC().Add(d)
 	return &t, nil
 }
 
@@ -113,7 +113,7 @@ func (s *MessengerService) ValidateInvite(ctx context.Context, token string) (*I
 	}
 
 	// Проверяем срок действия.
-	if found.ExpiresAt != nil && found.ExpiresAt.Before(time.Now()) {
+	if found.ExpiresAt != nil && found.ExpiresAt.Before(time.Now().UTC()) {
 		return &InviteValidationResponse{Valid: false, Message: "срок действия приглашения истёк"}, nil
 	}
 
@@ -157,7 +157,7 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 	if found.IsRevoked {
 		return nil, apperrors.NewBadRequest("приглашение отозвано")
 	}
-	if found.ExpiresAt != nil && found.ExpiresAt.Before(time.Now()) {
+	if found.ExpiresAt != nil && found.ExpiresAt.Before(time.Now().UTC()) {
 		return nil, apperrors.NewBadRequest("срок действия приглашения истёк")
 	}
 	if found.MaxUses > 0 && found.UseCount >= found.MaxUses {

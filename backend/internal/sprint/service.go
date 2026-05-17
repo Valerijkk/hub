@@ -194,7 +194,7 @@ func (s *SprintService) GetBurndown(ctx context.Context, sprintID uuid.UUID) ([]
 		days = 1
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	points := make([]BurndownPoint, 0, days+1)
 	for d := 0; d <= days; d++ {
 		day := sp.StartDate.AddDate(0, 0, d)
