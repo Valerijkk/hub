@@ -16,6 +16,11 @@ import (
 // Аутентификация через X-Hub-Token заголовок или query-параметр token.
 // ---------------------------------------------------------------------------
 
+// maxAllureFileBytes — лимит размера на каждый загружаемый файл в multipart-вебхуках.
+// Глобальный Fiber BodyLimit покрывает совокупный размер запроса, но не отдельный part —
+// без этой защиты multipart с большим числом крупных файлов может уронить процесс по памяти.
+const maxAllureFileBytes = 5 * 1024 * 1024 // 5 MB per uploaded file
+
 // WebhookResponse — ответ вебхука с ID прогона и сводкой.
 type WebhookResponse struct {
 	RunID   string `json:"run_id"`
@@ -75,9 +80,12 @@ func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 		}
 		defer f.Close()
 
-		allureData, err = io.ReadAll(f)
+		allureData, err = io.ReadAll(io.LimitReader(f, maxAllureFileBytes+1))
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "не удалось прочитать загруженный файл")
+		}
+		if len(allureData) > maxAllureFileBytes {
+			return fiber.NewError(fiber.StatusRequestEntityTooLarge, "загруженный файл превышает лимит 5 MB")
 		}
 
 		// Если title не задан в query, пробуем из form field
@@ -168,9 +176,12 @@ func (h *Handler) WebhookJUnit(c fiber.Ctx) error {
 		}
 		defer f.Close()
 
-		xmlData, err = io.ReadAll(f)
+		xmlData, err = io.ReadAll(io.LimitReader(f, maxAllureFileBytes+1))
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "не удалось прочитать загруженный файл")
+		}
+		if len(xmlData) > maxAllureFileBytes {
+			return fiber.NewError(fiber.StatusRequestEntityTooLarge, "загруженный файл превышает лимит 5 MB")
 		}
 
 		if title == "" {
