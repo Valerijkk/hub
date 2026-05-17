@@ -325,7 +325,7 @@ func (r *EntRepository) UpdateIssue(ctx context.Context, issueID uuid.UUID, inpu
 // DeleteIssue выполняет мягкое удаление задачи (устанавливает deleted_at).
 func (r *EntRepository) DeleteIssue(ctx context.Context, issueID uuid.UUID) error {
 	return r.client.Issue.UpdateOneID(issueID).
-		SetDeletedAt(time.Now()).
+		SetDeletedAt(time.Now().UTC()).
 		Exec(ctx)
 }
 

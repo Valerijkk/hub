@@ -169,6 +169,6 @@ func (s *StorageService) Bucket() string {
 func (s *StorageService) DeleteFile(ctx context.Context, fileID uuid.UUID) error {
 	return s.entClient.FileMetadata.UpdateOneID(fileID).
 		SetStatus(filemetadata.StatusDeleted).
-		SetDeletedAt(time.Now()).
+		SetDeletedAt(time.Now().UTC()).
 		Exec(ctx)
 }

@@ -211,7 +211,7 @@ func (r *EntRepository) Update(ctx context.Context, id uuid.UUID, name, descript
 func (r *EntRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status project.Status, setDeletedAt bool) (*ent.Project, error) {
 	update := r.client.Project.UpdateOneID(id).SetStatus(status)
 	if setDeletedAt {
-		update = update.SetDeletedAt(time.Now())
+		update = update.SetDeletedAt(time.Now().UTC())
 	} else {
 		update = update.ClearDeletedAt()
 	}

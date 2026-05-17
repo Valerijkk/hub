@@ -317,7 +317,7 @@ func (r *EntRepository) UpdateTestCase(ctx context.Context, id uuid.UUID, input 
 // DeleteTestCase выполняет мягкое удаление тест-кейса (устанавливает deleted_at).
 func (r *EntRepository) DeleteTestCase(ctx context.Context, id uuid.UUID) error {
 	return r.client.TestCase.UpdateOneID(id).
-		SetDeletedAt(time.Now()).
+		SetDeletedAt(time.Now().UTC()).
 		Exec(ctx)
 }
 
