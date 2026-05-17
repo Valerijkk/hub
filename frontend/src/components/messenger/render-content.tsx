@@ -1,6 +1,20 @@
 /** Рендерер Plate JSON для содержимого сообщений. */
 
 /**
+ * Whitelist of safe URL schemes/prefixes for <a href>. Blocks `javascript:`,
+ * `data:`, `vbscript:`, and other dangerous schemes that can execute code.
+ */
+const SAFE_URL_RE = /^(https?:|mailto:|\/|#)/i;
+
+/**
+ * Sanitize a URL for use as an `<a href>` value. Returns `"#"` (safe no-op)
+ * for anything that is not a string matching the safe-scheme whitelist.
+ */
+function sanitizeUrl(url: unknown): string {
+	return typeof url === "string" && SAFE_URL_RE.test(url) ? url : "#";
+}
+
+/**
  * Safely converts any value to a React-renderable string.
  * Prevents "Objects are not valid as React child" errors.
  */
@@ -106,7 +120,7 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 		case "a":
 			return (
 				<a
-					href={typeof node.url === "string" ? node.url : "#"}
+					href={sanitizeUrl(node.url)}
 					className="text-primary underline decoration-primary/30 hover:decoration-primary"
 					target="_blank"
 					rel="noopener noreferrer"
