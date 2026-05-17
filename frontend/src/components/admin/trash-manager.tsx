@@ -35,6 +35,9 @@ export function TrashManager() {
 		}
 	}, [activeTab, page]);
 
+	// Reset pagination when the user switches trash category — `activeTab` is
+	// the intentional trigger, not a value read inside the effect body.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: effect intentionally re-runs only on activeTab change to reset pagination.
 	useEffect(() => {
 		setPage(1);
 	}, [activeTab]);

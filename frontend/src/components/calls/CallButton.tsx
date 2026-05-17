@@ -28,7 +28,13 @@ export function CallButton({ channelId }: CallButtonProps) {
 	const [existingCall, setExistingCall] = useState<CallResponse | null>(null);
 	const [checking, setChecking] = useState(false);
 
-	/** Проверить наличие активного звонка при монтировании и смене канала. */
+	/**
+	 * Проверить наличие активного звонка при монтировании, смене канала, а
+	 * также после того, как пользователь покинул собственный звонок — `isInCall`
+	 * не читается в теле, но используется как триггер re-fetch, чтобы кнопка
+	 * сразу показала актуальное состояние канала.
+	 */
+	// biome-ignore lint/correctness/useExhaustiveDependencies: isInCall is an intentional re-fetch trigger (not read inside the effect).
 	useEffect(() => {
 		let cancelled = false;
 		const check = async () => {

@@ -169,12 +169,15 @@ export function ChatView({ channelId }: ChatViewProps) {
 		prevCountRef.current = messages.length;
 	}, [messages.length, isAtBottom, virtualizer]);
 
-	// Первоначальная прокрутка вниз.
+	// Первоначальная прокрутка вниз. Намеренно реагируем только на смену
+	// channelId — messages.length / virtualizer читаются императивно, а
+	// повторные срабатывания при каждом новом сообщении сломают UX.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional channel-change-only trigger; other reads are imperative.
 	useEffect(() => {
 		if (messages.length > 0 && prevCountRef.current === messages.length) {
 			virtualizer.scrollToIndex(messages.length - 1, { align: "end" });
 		}
-	}, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [channelId]);
 
 	// Определение позиции скролла.
 	const handleScroll = useCallback(() => {

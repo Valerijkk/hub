@@ -16,6 +16,24 @@ interface DeviceInfo {
 }
 
 /**
+ * Обёртка над navigator.mediaDevices.enumerateDevices с фильтрацией по типу.
+ * Module-level so it doesn't get re-created on every render and is safe to
+ * reference from useCallback deps without churning the closure identity.
+ */
+async function getAudioDevices(
+	kind: "audioinput" | "audiooutput",
+): Promise<DeviceInfo[]> {
+	const devices = await navigator.mediaDevices.enumerateDevices();
+	return devices
+		.filter((d) => d.kind === kind && d.deviceId !== "")
+		.map((d, i) => ({
+			deviceId: d.deviceId,
+			label:
+				d.label || `${kind === "audioinput" ? "Микрофон" : "Динамик"} ${i + 1}`,
+		}));
+}
+
+/**
  * Панель выбора аудиоустройств (микрофон и динамик).
  * Отображается внутри Popover в панели управления звонком.
  */
@@ -30,8 +48,8 @@ export function DeviceSelector() {
 	/** Загрузить список устройств. */
 	const loadDevices = useCallback(async () => {
 		try {
-			const inputs = await Room_getDevices("audioinput");
-			const outputs = await Room_getDevices("audiooutput");
+			const inputs = await getAudioDevices("audioinput");
+			const outputs = await getAudioDevices("audiooutput");
 			setAudioInputs(inputs);
 			setAudioOutputs(outputs);
 
@@ -46,22 +64,6 @@ export function DeviceSelector() {
 			// Устройства недоступны (нет разрешения)
 		}
 	}, [room]);
-
-	/**
-	 * Обёртка над navigator.mediaDevices.enumerateDevices
-	 * с фильтрацией по типу.
-	 */
-	async function Room_getDevices(
-		kind: "audioinput" | "audiooutput",
-	): Promise<DeviceInfo[]> {
-		const devices = await navigator.mediaDevices.enumerateDevices();
-		return devices
-			.filter((d) => d.kind === kind && d.deviceId !== "")
-			.map((d, i) => ({
-				deviceId: d.deviceId,
-				label: d.label || `${kind === "audioinput" ? "Микрофон" : "Динамик"} ${i + 1}`,
-			}));
-	}
 
 	useEffect(() => {
 		void loadDevices();

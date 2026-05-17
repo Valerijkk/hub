@@ -96,11 +96,7 @@ export function NotificationSettings() {
 	const [preferences, setPreferences] = useState<PreferenceDTO[]>([]);
 	const [loading, setLoading] = useState(true);
 
-	useEffect(() => {
-		void loadPreferences();
-	}, []);
-
-	async function loadPreferences() {
+	const loadPreferences = useCallback(async () => {
 		try {
 			const prefs = await getPreferences();
 			setPreferences(prefs ?? []);
@@ -109,7 +105,11 @@ export function NotificationSettings() {
 		} finally {
 			setLoading(false);
 		}
-	}
+	}, []);
+
+	useEffect(() => {
+		void loadPreferences();
+	}, [loadPreferences]);
 
 	/** Проверяет, включена ли настройка для данного типа и канала. */
 	const isEnabled = useCallback(

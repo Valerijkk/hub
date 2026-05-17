@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
 	Select,
 	SelectContent,
@@ -19,6 +19,41 @@ import { useBoardStore } from "@/stores/board-store";
 /** Режим swimlanes на Kanban-доске. */
 type SwimlaneMode = "none" | "assignee" | "priority" | "type";
 
+/** Группирует задачи по полю для swimlanes. Pure — defined at module level. */
+function getSwimlanes(
+	issues: IssueBriefResponse[],
+	mode: SwimlaneMode,
+): Map<string, IssueBriefResponse[]> {
+	if (mode === "none") {
+		return new Map([["all", issues]]);
+	}
+
+	const groups = new Map<string, IssueBriefResponse[]>();
+	for (const issue of issues) {
+		let key: string;
+		switch (mode) {
+			case "assignee":
+				key = issue.assignee?.name ?? "Без исполнителя";
+				break;
+			case "priority":
+				key = issue.priority;
+				break;
+			case "type":
+				key = issue.issue_type;
+				break;
+			default:
+				key = "all";
+		}
+		const lane = groups.get(key);
+		if (lane) {
+			lane.push(issue);
+		} else {
+			groups.set(key, [issue]);
+		}
+	}
+	return groups;
+}
+
 /** Пропсы компонента KanbanBoard. */
 interface KanbanBoardProps {
 	/** ID проекта. */
@@ -37,11 +72,7 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 	const [loading, setLoading] = useState(true);
 	const { setDragging } = useBoardStore();
 
-	useEffect(() => {
-		loadBoard();
-	}, [projectId, boardId]);
-
-	const loadBoard = async () => {
+	const loadBoard = useCallback(async () => {
 		setLoading(true);
 		try {
 			const board = await getBoardData(projectId, boardId);
@@ -50,7 +81,11 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 			// ошибка загрузки доски
 		}
 		setLoading(false);
-	};
+	}, [projectId, boardId]);
+
+	useEffect(() => {
+		void loadBoard();
+	}, [loadBoard]);
 
 	const handleDrop = async (
 		issueKey: string,
@@ -62,7 +97,7 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 				status_id: targetStatusId,
 				rank,
 			});
-			loadBoard();
+			void loadBoard();
 		} catch (err: unknown) {
 			// Проверяем WIP-лимит ошибку (409)
 			const apiErr = err as { code?: number; message?: string } | undefined;
@@ -71,41 +106,6 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 			}
 		}
 		setDragging(false);
-	};
-
-	/** Группирует задачи по полю для swimlanes. */
-	const getSwimlanes = (
-		issues: IssueBriefResponse[],
-		mode: SwimlaneMode,
-	): Map<string, IssueBriefResponse[]> => {
-		if (mode === "none") {
-			return new Map([["all", issues]]);
-		}
-
-		const groups = new Map<string, IssueBriefResponse[]>();
-		for (const issue of issues) {
-			let key: string;
-			switch (mode) {
-				case "assignee":
-					key = issue.assignee?.name ?? "Без исполнителя";
-					break;
-				case "priority":
-					key = issue.priority;
-					break;
-				case "type":
-					key = issue.issue_type;
-					break;
-				default:
-					key = "all";
-			}
-			const lane = groups.get(key);
-			if (lane) {
-				lane.push(issue);
-			} else {
-				groups.set(key, [issue]);
-			}
-		}
-		return groups;
 	};
 
 	/** Получить все уникальные ключи swimlanes из всех колонок. */

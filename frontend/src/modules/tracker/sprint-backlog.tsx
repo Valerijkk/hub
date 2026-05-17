@@ -6,7 +6,7 @@ import {
 	ListTodo,
 	Square,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { type IssueResponse, listIssues } from "@/api/tracker";
 import { Button } from "@/components/ui/button";
 import { useSprintStore } from "@/stores/sprint-store";
@@ -30,12 +30,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	);
 	const [loading, setLoading] = useState(false);
 
-	useEffect(() => {
-		fetchSprints(projectId);
-		loadBacklog();
-	}, [projectId, fetchSprints]);
-
-	const loadBacklog = async () => {
+	const loadBacklog = useCallback(async () => {
 		setLoading(true);
 		try {
 			const resp = await listIssues(projectId, { limit: 100 });
@@ -44,7 +39,12 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 			// ошибка загрузки бэклога
 		}
 		setLoading(false);
-	};
+	}, [projectId]);
+
+	useEffect(() => {
+		void fetchSprints(projectId);
+		void loadBacklog();
+	}, [projectId, fetchSprints, loadBacklog]);
 
 	const toggleSelect = (issueId: string) => {
 		const next = new Set(selectedIssues);

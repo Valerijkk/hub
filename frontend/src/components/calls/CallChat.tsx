@@ -73,6 +73,7 @@ export function CallChat({ callId }: CallChatProps) {
 	});
 
 	/** Авто-скролл при новых сообщениях. */
+	// biome-ignore lint/correctness/useExhaustiveDependencies: messages.length is the intentional re-run trigger; the scrollHeight read is imperative.
 	useEffect(() => {
 		scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
 	}, [messages.length]);

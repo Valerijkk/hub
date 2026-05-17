@@ -110,7 +110,9 @@ export function MentionAutocomplete({
 		);
 	}, [mentionContext, members]);
 
-	// Сбрасываем выделение при изменении списка.
+	// Сбрасываем выделение при изменении списка — filteredMembers.length
+	// используется как триггер re-run, а не как читаемое значение.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: filteredMembers.length is the intentional re-run trigger; nothing is read inside.
 	useEffect(() => {
 		setSelectedIndex(0);
 	}, [filteredMembers.length]);

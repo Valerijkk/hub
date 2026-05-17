@@ -220,6 +220,13 @@ function findFieldBeforeOperator(
 	return undefined;
 }
 
+/** Получить неполный токен, который пользователь печатает. */
+function getPartialTokenFor(query: string): string {
+	if (query.endsWith(" ")) return "";
+	const tokens = tokenize(query);
+	return tokens[tokens.length - 1] ?? "";
+}
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -256,7 +263,7 @@ export function JQLEditor({
 	/** Вычисляем подсказки на основе текущего ввода. */
 	const suggestions = useMemo(() => {
 		const ctx = getJqlContext(value);
-		const partialToken = getPartialToken(value);
+		const partialToken = getPartialTokenFor(value);
 		const lower = partialToken.toLowerCase();
 
 		switch (ctx.type) {
@@ -294,17 +301,10 @@ export function JQLEditor({
 		}
 	}, [value]);
 
-	/** Получить неполный токен, который пользователь печатает. */
-	function getPartialToken(query: string): string {
-		if (query.endsWith(" ")) return "";
-		const tokens = tokenize(query);
-		return tokens[tokens.length - 1] ?? "";
-	}
-
 	/** Подставить выбранную подсказку. */
 	const applySuggestion = useCallback(
 		(suggestion: string) => {
-			const partial = getPartialToken(value);
+			const partial = getPartialTokenFor(value);
 			const base = partial
 				? value.slice(0, value.length - partial.length)
 				: value;
