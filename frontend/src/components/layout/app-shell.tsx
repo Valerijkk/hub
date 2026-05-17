@@ -3,11 +3,10 @@
  *
  * На десктопе (md+): sidebar всегда видим, контент рядом.
  * На мобильных: sidebar скрыт, открывается как overlay. Нижняя навигация.
- * Регистрирует глобальную горячую клавишу: Ctrl+N (новая задача).
  */
 
 import { Outlet } from "@tanstack/react-router";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { MobileNav } from "@/components/mobile-nav";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -33,19 +32,6 @@ export function AppShell() {
 	const callPanelNeeded = useCallStore(
 		(s) => s.isInCall || s.isConnecting || s.error !== null,
 	);
-
-	/* Глобальные горячие клавиши */
-	useEffect(() => {
-		function handleKeyDown(e: KeyboardEvent) {
-			if ((e.ctrlKey || e.metaKey) && e.key === "n") {
-				e.preventDefault();
-				window.dispatchEvent(new CustomEvent("hub:create-issue"));
-			}
-		}
-
-		document.addEventListener("keydown", handleKeyDown);
-		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, []);
 
 	return (
 		<TooltipProvider delayDuration={300}>

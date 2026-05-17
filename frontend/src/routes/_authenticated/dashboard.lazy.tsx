@@ -94,7 +94,7 @@ function PersonalDashboard() {
 					<button
 						type="button"
 						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-colors"
-						title="Поиск (Ctrl+K)"
+						aria-label="Поиск"
 					>
 						<Search className="h-4 w-4" />
 					</button>
