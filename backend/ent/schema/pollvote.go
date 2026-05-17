@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,30 +8,30 @@ import (
 	"github.com/google/uuid"
 )
 
-// PollVote содержит определение схемы для голоса пользователя в опросе.
+// PollVote СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ РґР»СЏ РіРѕР»РѕСЃР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РІ РѕРїСЂРѕСЃРµ.
 type PollVote struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности PollVote.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё PollVote.
 func (PollVote) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("poll_id", uuid.UUID{}).
-			Comment("ID опроса"),
+			Comment("ID РѕРїСЂРѕСЃР°"),
 		field.UUID("option_id", uuid.UUID{}).
-			Comment("ID выбранного варианта"),
+			Comment("ID РІС‹Р±СЂР°РЅРЅРѕРіРѕ РІР°СЂРёР°РЅС‚Р°"),
 		field.UUID("user_id", uuid.UUID{}).
-			Comment("ID проголосовавшего пользователя"),
+			Comment("ID РїСЂРѕРіРѕР»РѕСЃРѕРІР°РІС€РµРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Edges описывает связи сущности PollVote.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё PollVote.
 func (PollVote) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("poll", Poll.Type).
@@ -54,10 +52,10 @@ func (PollVote) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы сущности PollVote.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё PollVote.
 func (PollVote) Indexes() []ent.Index {
 	return []ent.Index{
-		// Уникальное ограничение: один голос на вариант от одного пользователя.
+		// РЈРЅРёРєР°Р»СЊРЅРѕРµ РѕРіСЂР°РЅРёС‡РµРЅРёРµ: РѕРґРёРЅ РіРѕР»РѕСЃ РЅР° РІР°СЂРёР°РЅС‚ РѕС‚ РѕРґРЅРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.
 		index.Fields("poll_id", "option_id", "user_id").Unique(),
 		index.Fields("poll_id", "user_id"),
 	}

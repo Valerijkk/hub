@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // User holds the schema definition for the User entity.
@@ -52,26 +51,26 @@ func (User) Fields() []ent.Field {
 		field.Enum("status").
 			Values("active", "deactivated").
 			Default("active").
-			Comment("Статус пользователя: active или deactivated"),
+			Comment("РЎС‚Р°С‚СѓСЃ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ: active РёР»Рё deactivated"),
 		field.Bool("onboarding_completed").
 			Default(false),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.String("quiet_hours_start").
 			Optional().
 			Nillable().
-			Comment("Начало тихих часов в формате HH:MM"),
+			Comment("РќР°С‡Р°Р»Рѕ С‚РёС…РёС… С‡Р°СЃРѕРІ РІ С„РѕСЂРјР°С‚Рµ HH:MM"),
 		field.String("quiet_hours_end").
 			Optional().
 			Nillable().
-			Comment("Конец тихих часов в формате HH:MM"),
+			Comment("РљРѕРЅРµС† С‚РёС…РёС… С‡Р°СЃРѕРІ РІ С„РѕСЂРјР°С‚Рµ HH:MM"),
 		field.JSON("custom_fields", map[string]interface{}{}).
 			Optional().
-			Comment("Пользовательские кастомные поля профиля (JSONB)"),
+			Comment("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРµ РєР°СЃС‚РѕРјРЅС‹Рµ РїРѕР»СЏ РїСЂРѕС„РёР»СЏ (JSONB)"),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 

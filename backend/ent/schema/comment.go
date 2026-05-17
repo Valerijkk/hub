@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Comment holds the schema definition for the Comment entity.
@@ -31,11 +30,11 @@ func (Comment) Fields() []ent.Field {
 			Optional().
 			Comment("User IDs mentioned"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 

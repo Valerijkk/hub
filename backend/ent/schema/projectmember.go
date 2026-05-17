@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // ProjectMember holds the schema definition for the ProjectMember entity.
@@ -24,7 +23,7 @@ func (ProjectMember) Fields() []ent.Field {
 			Values("owner", "developer", "tester", "viewer").
 			Default("developer"),
 		field.Time("joined_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

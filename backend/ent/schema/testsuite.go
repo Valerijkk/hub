@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // TestSuite holds the schema definition for the TestSuite entity (folders/sections).
@@ -28,11 +27,11 @@ func (TestSuite) Fields() []ent.Field {
 		field.Int("sort_order").
 			Default(0),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 

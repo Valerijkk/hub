@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,47 +8,47 @@ import (
 	"github.com/google/uuid"
 )
 
-// ChannelInvite содержит определение схемы для пригласительной ссылки канала.
-// Аналог invite-ссылок Telegram: генерируется токен, по которому можно вступить в канал.
+// ChannelInvite СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ РґР»СЏ РїСЂРёРіР»Р°СЃРёС‚РµР»СЊРЅРѕР№ СЃСЃС‹Р»РєРё РєР°РЅР°Р»Р°.
+// РђРЅР°Р»РѕРі invite-СЃСЃС‹Р»РѕРє Telegram: РіРµРЅРµСЂРёСЂСѓРµС‚СЃСЏ С‚РѕРєРµРЅ, РїРѕ РєРѕС‚РѕСЂРѕРјСѓ РјРѕР¶РЅРѕ РІСЃС‚СѓРїРёС‚СЊ РІ РєР°РЅР°Р».
 type ChannelInvite struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности ChannelInvite.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё ChannelInvite.
 func (ChannelInvite) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("channel_id", uuid.UUID{}).
-			Comment("ID канала, к которому относится приглашение"),
+			Comment("ID РєР°РЅР°Р»Р°, Рє РєРѕС‚РѕСЂРѕРјСѓ РѕС‚РЅРѕСЃРёС‚СЃСЏ РїСЂРёРіР»Р°С€РµРЅРёРµ"),
 		field.UUID("creator_id", uuid.UUID{}).
-			Comment("ID пользователя, создавшего приглашение"),
+			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, СЃРѕР·РґР°РІС€РµРіРѕ РїСЂРёРіР»Р°С€РµРЅРёРµ"),
 		field.String("token").
 			Unique().
 			NotEmpty().
 			MaxLen(32).
-			Comment("Уникальный токен приглашения (base62, 22 символа)"),
+			Comment("РЈРЅРёРєР°Р»СЊРЅС‹Р№ С‚РѕРєРµРЅ РїСЂРёРіР»Р°С€РµРЅРёСЏ (base62, 22 СЃРёРјРІРѕР»Р°)"),
 		field.Int("max_uses").
 			Default(0).
-			Comment("Максимальное число использований (0 = без лимита)"),
+			Comment("РњР°РєСЃРёРјР°Р»СЊРЅРѕРµ С‡РёСЃР»Рѕ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёР№ (0 = Р±РµР· Р»РёРјРёС‚Р°)"),
 		field.Int("use_count").
 			Default(0).
-			Comment("Текущее число использований"),
+			Comment("РўРµРєСѓС‰РµРµ С‡РёСЃР»Рѕ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёР№"),
 		field.Time("expires_at").
 			Optional().
 			Nillable().
-			Comment("Время истечения ссылки (nil = бессрочная)"),
+			Comment("Р’СЂРµРјСЏ РёСЃС‚РµС‡РµРЅРёСЏ СЃСЃС‹Р»РєРё (nil = Р±РµСЃСЃСЂРѕС‡РЅР°СЏ)"),
 		field.Bool("is_revoked").
 			Default(false).
-			Comment("Флаг отзыва приглашения"),
+			Comment("Р¤Р»Р°Рі РѕС‚Р·С‹РІР° РїСЂРёРіР»Р°С€РµРЅРёСЏ"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Edges описывает связи сущности ChannelInvite.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё ChannelInvite.
 func (ChannelInvite) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("channel", Channel.Type).
@@ -66,7 +64,7 @@ func (ChannelInvite) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы сущности ChannelInvite.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё ChannelInvite.
 func (ChannelInvite) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id"),

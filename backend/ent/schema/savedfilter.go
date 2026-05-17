@@ -6,16 +6,15 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
-// SavedFilter хранит сохранённые фильтры задач трекера.
-// Пользователь может создавать, сохранять и расшаривать фильтры в рамках проекта.
+// SavedFilter С…СЂР°РЅРёС‚ СЃРѕС…СЂР°РЅС‘РЅРЅС‹Рµ С„РёР»СЊС‚СЂС‹ Р·Р°РґР°С‡ С‚СЂРµРєРµСЂР°.
+// РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РјРѕР¶РµС‚ СЃРѕР·РґР°РІР°С‚СЊ, СЃРѕС…СЂР°РЅСЏС‚СЊ Рё СЂР°СЃС€Р°СЂРёРІР°С‚СЊ С„РёР»СЊС‚СЂС‹ РІ СЂР°РјРєР°С… РїСЂРѕРµРєС‚Р°.
 type SavedFilter struct {
 	ent.Schema
 }
 
-// Fields описывает поля сохранённого фильтра.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃРѕС…СЂР°РЅС‘РЅРЅРѕРіРѕ С„РёР»СЊС‚СЂР°.
 func (SavedFilter) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -24,26 +23,26 @@ func (SavedFilter) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty().
 			MaxLen(200).
-			Comment("Название фильтра"),
+			Comment("РќР°Р·РІР°РЅРёРµ С„РёР»СЊС‚СЂР°"),
 		field.JSON("filter_config", map[string]interface{}{}).
-			Comment("JSON-конфигурация фильтра (статус, приоритет, исполнитель и т.д.)"),
+			Comment("JSON-РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ С„РёР»СЊС‚СЂР° (СЃС‚Р°С‚СѓСЃ, РїСЂРёРѕСЂРёС‚РµС‚, РёСЃРїРѕР»РЅРёС‚РµР»СЊ Рё С‚.Рґ.)"),
 		field.Bool("shared").
 			Default(false).
-			Comment("Расшарен ли фильтр для всех участников проекта"),
+			Comment("Р Р°СЃС€Р°СЂРµРЅ Р»Рё С„РёР»СЊС‚СЂ РґР»СЏ РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ РїСЂРѕРµРєС‚Р°"),
 		field.UUID("owner_id", uuid.UUID{}).
-			Comment("ID владельца фильтра"),
+			Comment("ID РІР»Р°РґРµР»СЊС†Р° С„РёР»СЊС‚СЂР°"),
 		field.UUID("project_id", uuid.UUID{}).
-			Comment("ID проекта, к которому привязан фильтр"),
+			Comment("ID РїСЂРѕРµРєС‚Р°, Рє РєРѕС‚РѕСЂРѕРјСѓ РїСЂРёРІСЏР·Р°РЅ С„РёР»СЊС‚СЂ"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 
-// Edges описывает связи сохранённого фильтра.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃРѕС…СЂР°РЅС‘РЅРЅРѕРіРѕ С„РёР»СЊС‚СЂР°.
 func (SavedFilter) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("owner", User.Type).
@@ -59,7 +58,7 @@ func (SavedFilter) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы для сохранённых фильтров.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ РґР»СЏ СЃРѕС…СЂР°РЅС‘РЅРЅС‹С… С„РёР»СЊС‚СЂРѕРІ.
 func (SavedFilter) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("owner_id", "project_id"),

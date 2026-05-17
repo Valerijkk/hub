@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // FileMetadata holds the schema definition for the FileMetadata entity.
@@ -40,9 +39,9 @@ func (FileMetadata) Fields() []ent.Field {
 		field.Time("deleted_at").
 			Optional().
 			Nillable().
-			Comment("Время мягкого удаления (корзина 30 дней)"),
+			Comment("Р’СЂРµРјСЏ РјСЏРіРєРѕРіРѕ СѓРґР°Р»РµРЅРёСЏ (РєРѕСЂР·РёРЅР° 30 РґРЅРµР№)"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // APIKey holds the schema definition for the APIKey entity.
@@ -23,25 +22,25 @@ func (APIKey) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty().
 			MaxLen(255).
-			Comment("Человекочитаемое имя ключа"),
+			Comment("Р§РµР»РѕРІРµРєРѕС‡РёС‚Р°РµРјРѕРµ РёРјСЏ РєР»СЋС‡Р°"),
 		field.String("key_hash").
 			Unique().
 			NotEmpty().
-			Comment("SHA-256 хеш API-ключа"),
+			Comment("SHA-256 С…РµС€ API-РєР»СЋС‡Р°"),
 		field.String("prefix").
 			NotEmpty().
 			MaxLen(8).
-			Comment("Первые 8 символов ключа для отображения"),
+			Comment("РџРµСЂРІС‹Рµ 8 СЃРёРјРІРѕР»РѕРІ РєР»СЋС‡Р° РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ"),
 		field.Time("last_used_at").
 			Optional().
 			Nillable().
-			Comment("Время последнего использования"),
+			Comment("Р’СЂРµРјСЏ РїРѕСЃР»РµРґРЅРµРіРѕ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ"),
 		field.Time("expires_at").
 			Optional().
 			Nillable().
-			Comment("Срок действия ключа"),
+			Comment("РЎСЂРѕРє РґРµР№СЃС‚РІРёСЏ РєР»СЋС‡Р°"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

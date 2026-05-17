@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // WorkflowTransition holds the schema definition for the WorkflowTransition entity.
@@ -21,7 +20,7 @@ func (WorkflowTransition) Fields() []ent.Field {
 			Default(uuid.New).
 			Immutable(),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

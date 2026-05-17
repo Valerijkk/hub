@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,42 +8,42 @@ import (
 	"github.com/google/uuid"
 )
 
-// NotificationPreference хранит настройки уведомлений пользователя.
+// NotificationPreference С…СЂР°РЅРёС‚ РЅР°СЃС‚СЂРѕР№РєРё СѓРІРµРґРѕРјР»РµРЅРёР№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.
 type NotificationPreference struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности NotificationPreference.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё NotificationPreference.
 func (NotificationPreference) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("user_id", uuid.UUID{}).
-			Comment("ID пользователя"),
+			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ"),
 		field.String("notification_type").
 			NotEmpty().
-			Comment("Тип уведомления: assigned, mentioned и т.д."),
+			Comment("РўРёРї СѓРІРµРґРѕРјР»РµРЅРёСЏ: assigned, mentioned Рё С‚.Рґ."),
 		field.String("channel").
 			NotEmpty().
-			Comment("Канал доставки: in_app, telegram"),
+			Comment("РљР°РЅР°Р» РґРѕСЃС‚Р°РІРєРё: in_app, telegram"),
 		field.Bool("enabled").
 			Default(true).
-			Comment("Включено ли уведомление для данного типа и канала"),
+			Comment("Р’РєР»СЋС‡РµРЅРѕ Р»Рё СѓРІРµРґРѕРјР»РµРЅРёРµ РґР»СЏ РґР°РЅРЅРѕРіРѕ С‚РёРїР° Рё РєР°РЅР°Р»Р°"),
 		field.UUID("project_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID проекта для per-project настройки (nil = глобальная)"),
+			Comment("ID РїСЂРѕРµРєС‚Р° РґР»СЏ per-project РЅР°СЃС‚СЂРѕР№РєРё (nil = РіР»РѕР±Р°Р»СЊРЅР°СЏ)"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 
-// Edges описывает связи сущности NotificationPreference.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё NotificationPreference.
 func (NotificationPreference) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
@@ -56,7 +54,7 @@ func (NotificationPreference) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы сущности NotificationPreference.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё NotificationPreference.
 func (NotificationPreference) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("user_id", "notification_type", "channel", "project_id").

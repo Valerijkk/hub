@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// PinnedMessage содержит определение схемы для закреплённого сообщения в канале.
+// PinnedMessage СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ РґР»СЏ Р·Р°РєСЂРµРїР»С‘РЅРЅРѕРіРѕ СЃРѕРѕР±С‰РµРЅРёСЏ РІ РєР°РЅР°Р»Рµ.
 type PinnedMessage struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности PinnedMessage.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё PinnedMessage.
 func (PinnedMessage) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -23,18 +21,18 @@ func (PinnedMessage) Fields() []ent.Field {
 			Immutable(),
 		field.String("message_id").
 			NotEmpty().
-			Comment("ID сообщения в MongoDB"),
+			Comment("ID СЃРѕРѕР±С‰РµРЅРёСЏ РІ MongoDB"),
 		field.UUID("channel_id", uuid.UUID{}).
-			Comment("ID канала"),
+			Comment("ID РєР°РЅР°Р»Р°"),
 		field.UUID("pinned_by", uuid.UUID{}).
-			Comment("ID пользователя, закрепившего сообщение"),
+			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, Р·Р°РєСЂРµРїРёРІС€РµРіРѕ СЃРѕРѕР±С‰РµРЅРёРµ"),
 		field.Time("pinned_at").
-			Default(time.Now).
-			Comment("Время закрепления"),
+			Default(nowUTC).
+			Comment("Р’СЂРµРјСЏ Р·Р°РєСЂРµРїР»РµРЅРёСЏ"),
 	}
 }
 
-// Edges описывает связи сущности PinnedMessage.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё PinnedMessage.
 func (PinnedMessage) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("channel", Channel.Type).
@@ -45,7 +43,7 @@ func (PinnedMessage) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы сущности PinnedMessage.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё PinnedMessage.
 func (PinnedMessage) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id", "message_id").Unique(),

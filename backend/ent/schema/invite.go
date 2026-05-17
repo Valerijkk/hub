@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Invite holds the schema definition for the Invite entity.
@@ -35,7 +34,7 @@ func (Invite) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

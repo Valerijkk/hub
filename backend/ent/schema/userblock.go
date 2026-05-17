@@ -6,12 +6,11 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
-// UserBlock хранит блокировку одного пользователя другим.
-// Заблокированный пользователь не может добавить блокирующего в каналы
-// и не может отправить ему DM.
+// UserBlock С…СЂР°РЅРёС‚ Р±Р»РѕРєРёСЂРѕРІРєСѓ РѕРґРЅРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РґСЂСѓРіРёРј.
+// Р—Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹Р№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РјРѕР¶РµС‚ РґРѕР±Р°РІРёС‚СЊ Р±Р»РѕРєРёСЂСѓСЋС‰РµРіРѕ РІ РєР°РЅР°Р»С‹
+// Рё РЅРµ РјРѕР¶РµС‚ РѕС‚РїСЂР°РІРёС‚СЊ РµРјСѓ DM.
 type UserBlock struct {
 	ent.Schema
 }
@@ -23,11 +22,11 @@ func (UserBlock) Fields() []ent.Field {
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("blocker_id", uuid.UUID{}).
-			Comment("ID пользователя, который блокирует"),
+			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, РєРѕС‚РѕСЂС‹Р№ Р±Р»РѕРєРёСЂСѓРµС‚"),
 		field.UUID("blocked_id", uuid.UUID{}).
-			Comment("ID заблокированного пользователя"),
+			Comment("ID Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

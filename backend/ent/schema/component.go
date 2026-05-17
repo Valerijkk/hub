@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Component holds the schema definition for the Component entity.
@@ -26,7 +25,7 @@ func (Component) Fields() []ent.Field {
 		field.Text("description").
 			Optional(),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // WebhookDelivery holds the schema definition for the WebhookDelivery entity.
@@ -22,21 +21,21 @@ func (WebhookDelivery) Fields() []ent.Field {
 			Immutable(),
 		field.String("event_type").
 			NotEmpty().
-			Comment("Тип события (issue.created, test_run.completed и т.д.)"),
+			Comment("РўРёРї СЃРѕР±С‹С‚РёСЏ (issue.created, test_run.completed Рё С‚.Рґ.)"),
 		field.JSON("payload", map[string]interface{}{}).
-			Comment("Тело отправленного запроса"),
+			Comment("РўРµР»Рѕ РѕС‚РїСЂР°РІР»РµРЅРЅРѕРіРѕ Р·Р°РїСЂРѕСЃР°"),
 		field.Int("status_code").
-			Comment("HTTP-код ответа"),
+			Comment("HTTP-РєРѕРґ РѕС‚РІРµС‚Р°"),
 		field.Text("response_body").
 			Optional().
-			Comment("Тело ответа"),
+			Comment("РўРµР»Рѕ РѕС‚РІРµС‚Р°"),
 		field.Text("error").
 			Optional().
 			Nillable().
-			Comment("Сообщение об ошибке при неудаче"),
+			Comment("РЎРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ РїСЂРё РЅРµСѓРґР°С‡Рµ"),
 		field.Time("delivered_at").
-			Default(time.Now).
-			Comment("Время доставки"),
+			Default(nowUTC).
+			Comment("Р’СЂРµРјСЏ РґРѕСЃС‚Р°РІРєРё"),
 	}
 }
 

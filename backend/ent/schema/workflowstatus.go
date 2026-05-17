@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // WorkflowStatus holds the schema definition for the WorkflowStatus entity.
@@ -34,9 +33,9 @@ func (WorkflowStatus) Fields() []ent.Field {
 			Default(false),
 		field.Int("wip_limit").
 			Default(0).
-			Comment("WIP лимит: 0 = без лимита"),
+			Comment("WIP Р»РёРјРёС‚: 0 = Р±РµР· Р»РёРјРёС‚Р°"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

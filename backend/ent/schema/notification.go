@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,55 +8,55 @@ import (
 	"github.com/google/uuid"
 )
 
-// Notification хранит уведомление пользователя.
+// Notification С…СЂР°РЅРёС‚ СѓРІРµРґРѕРјР»РµРЅРёРµ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.
 type Notification struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности Notification.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Notification.
 func (Notification) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("user_id", uuid.UUID{}).
-			Comment("ID получателя уведомления"),
+			Comment("ID РїРѕР»СѓС‡Р°С‚РµР»СЏ СѓРІРµРґРѕРјР»РµРЅРёСЏ"),
 		field.String("type").
 			NotEmpty().
-			Comment("Тип уведомления: assigned, mentioned, status_changed и т.д."),
+			Comment("РўРёРї СѓРІРµРґРѕРјР»РµРЅРёСЏ: assigned, mentioned, status_changed Рё С‚.Рґ."),
 		field.String("title").
 			NotEmpty().
-			Comment("Заголовок уведомления"),
+			Comment("Р—Р°РіРѕР»РѕРІРѕРє СѓРІРµРґРѕРјР»РµРЅРёСЏ"),
 		field.String("body").
 			Optional().
-			Comment("Тело уведомления"),
+			Comment("РўРµР»Рѕ СѓРІРµРґРѕРјР»РµРЅРёСЏ"),
 		field.String("entity_type").
 			Optional().
-			Comment("Тип сущности: issue, channel, testrun и т.д."),
+			Comment("РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё: issue, channel, testrun Рё С‚.Рґ."),
 		field.String("entity_id").
 			Optional().
-			Comment("ID связанной сущности"),
+			Comment("ID СЃРІСЏР·Р°РЅРЅРѕР№ СЃСѓС‰РЅРѕСЃС‚Рё"),
 		field.UUID("project_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID проекта (если применимо)"),
+			Comment("ID РїСЂРѕРµРєС‚Р° (РµСЃР»Рё РїСЂРёРјРµРЅРёРјРѕ)"),
 		field.UUID("actor_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID пользователя-инициатора"),
+			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ-РёРЅРёС†РёР°С‚РѕСЂР°"),
 		field.Bool("is_read").
 			Default(false).
-			Comment("Прочитано ли уведомление"),
+			Comment("РџСЂРѕС‡РёС‚Р°РЅРѕ Р»Рё СѓРІРµРґРѕРјР»РµРЅРёРµ"),
 		field.Bool("is_urgent").
 			Default(false).
-			Comment("Срочное уведомление (пробивает тихие часы)"),
+			Comment("РЎСЂРѕС‡РЅРѕРµ СѓРІРµРґРѕРјР»РµРЅРёРµ (РїСЂРѕР±РёРІР°РµС‚ С‚РёС…РёРµ С‡Р°СЃС‹)"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Edges описывает связи сущности Notification.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё Notification.
 func (Notification) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
@@ -69,7 +67,7 @@ func (Notification) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы сущности Notification.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё Notification.
 func (Notification) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("user_id", "is_read"),

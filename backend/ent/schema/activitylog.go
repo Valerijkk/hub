@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // FieldChange represents a single field-level diff in an activity log entry.
@@ -34,7 +33,7 @@ func (ActivityLog) Fields() []ent.Field {
 			Optional().
 			Comment("Field-level diffs"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

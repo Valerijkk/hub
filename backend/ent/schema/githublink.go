@@ -6,10 +6,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
-// GitHubLink хранит связь PR или коммита из GitHub с задачей трекера.
+// GitHubLink С…СЂР°РЅРёС‚ СЃРІСЏР·СЊ PR РёР»Рё РєРѕРјРјРёС‚Р° РёР· GitHub СЃ Р·Р°РґР°С‡РµР№ С‚СЂРµРєРµСЂР°.
 type GitHubLink struct {
 	ent.Schema
 }
@@ -22,31 +21,31 @@ func (GitHubLink) Fields() []ent.Field {
 			Immutable(),
 		field.Enum("link_type").
 			Values("commit", "pull_request").
-			Comment("Тип связи: коммит или pull request"),
+			Comment("РўРёРї СЃРІСЏР·Рё: РєРѕРјРјРёС‚ РёР»Рё pull request"),
 		field.String("external_id").
 			NotEmpty().
-			Comment("GitHub PR number или commit SHA"),
+			Comment("GitHub PR number РёР»Рё commit SHA"),
 		field.String("title").
 			MaxLen(500).
-			Comment("Заголовок PR или сообщение коммита"),
+			Comment("Р—Р°РіРѕР»РѕРІРѕРє PR РёР»Рё СЃРѕРѕР±С‰РµРЅРёРµ РєРѕРјРјРёС‚Р°"),
 		field.String("url").
-			Comment("Полный URL на GitHub"),
+			Comment("РџРѕР»РЅС‹Р№ URL РЅР° GitHub"),
 		field.Enum("status").
 			Values("open", "merged", "closed", "none").
 			Default("none").
-			Comment("Статус PR (для коммитов — none)"),
+			Comment("РЎС‚Р°С‚СѓСЃ PR (РґР»СЏ РєРѕРјРјРёС‚РѕРІ вЂ” none)"),
 		field.String("author").
 			Optional().
-			Comment("Имя автора на GitHub"),
+			Comment("РРјСЏ Р°РІС‚РѕСЂР° РЅР° GitHub"),
 		field.String("branch").
 			Optional().
-			Comment("Имя ветки (для PR)"),
+			Comment("РРјСЏ РІРµС‚РєРё (РґР»СЏ PR)"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 

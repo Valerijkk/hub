@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // TestCaseVersion holds the schema definition for the TestCaseVersion entity.
@@ -22,14 +21,14 @@ func (TestCaseVersion) Fields() []ent.Field {
 			Immutable(),
 		field.Int("version_number").
 			Positive().
-			Comment("Номер версии снимка"),
+			Comment("РќРѕРјРµСЂ РІРµСЂСЃРёРё СЃРЅРёРјРєР°"),
 		field.JSON("snapshot", map[string]interface{}{}).
-			Comment("Полный снимок тест-кейса"),
+			Comment("РџРѕР»РЅС‹Р№ СЃРЅРёРјРѕРє С‚РµСЃС‚-РєРµР№СЃР°"),
 		field.Text("change_description").
 			Optional().
-			Comment("Описание изменений"),
+			Comment("РћРїРёСЃР°РЅРёРµ РёР·РјРµРЅРµРЅРёР№"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

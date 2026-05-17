@@ -5,7 +5,6 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Role holds the schema definition for the Role entity.
@@ -32,7 +31,7 @@ func (Role) Fields() []ent.Field {
 		field.Bool("is_system").
 			Default(false),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

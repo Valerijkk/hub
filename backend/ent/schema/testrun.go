@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // TestRun holds the schema definition for the TestRun entity.
@@ -45,7 +44,7 @@ func (TestRun) Fields() []ent.Field {
 			Default(0),
 		field.String("allure_run_id").
 			Optional().
-			Comment("Идентификатор прогона Allure"),
+			Comment("РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РїСЂРѕРіРѕРЅР° Allure"),
 		field.Time("started_at").
 			Optional().
 			Nillable(),
@@ -53,11 +52,11 @@ func (TestRun) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 

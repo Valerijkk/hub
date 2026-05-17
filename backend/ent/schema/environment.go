@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Environment holds the schema definition for the Environment entity.
@@ -23,16 +22,16 @@ func (Environment) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty().
 			MaxLen(100).
-			Comment("Название окружения"),
+			Comment("РќР°Р·РІР°РЅРёРµ РѕРєСЂСѓР¶РµРЅРёСЏ"),
 		field.Enum("env_label").
 			Values("dev", "staging", "prod", "custom").
 			Default("custom").
-			Comment("Метка окружения"),
+			Comment("РњРµС‚РєР° РѕРєСЂСѓР¶РµРЅРёСЏ"),
 		field.JSON("config", map[string]interface{}{}).
 			Optional().
-			Comment("Конфигурация: {browser, os, version}"),
+			Comment("РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ: {browser, os, version}"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

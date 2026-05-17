@@ -6,10 +6,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
-// GitLabLink хранит связь MR или коммита из GitLab с задачей трекера.
+// GitLabLink С…СЂР°РЅРёС‚ СЃРІСЏР·СЊ MR РёР»Рё РєРѕРјРјРёС‚Р° РёР· GitLab СЃ Р·Р°РґР°С‡РµР№ С‚СЂРµРєРµСЂР°.
 type GitLabLink struct {
 	ent.Schema
 }
@@ -22,34 +21,34 @@ func (GitLabLink) Fields() []ent.Field {
 			Immutable(),
 		field.Enum("link_type").
 			Values("commit", "merge_request").
-			Comment("Тип связи: коммит или merge request"),
+			Comment("РўРёРї СЃРІСЏР·Рё: РєРѕРјРјРёС‚ РёР»Рё merge request"),
 		field.String("external_id").
 			NotEmpty().
-			Comment("GitLab MR IID или commit SHA"),
+			Comment("GitLab MR IID РёР»Рё commit SHA"),
 		field.String("title").
 			MaxLen(500).
-			Comment("Заголовок MR или сообщение коммита"),
+			Comment("Р—Р°РіРѕР»РѕРІРѕРє MR РёР»Рё СЃРѕРѕР±С‰РµРЅРёРµ РєРѕРјРјРёС‚Р°"),
 		field.String("url").
-			Comment("Полный URL на GitLab"),
+			Comment("РџРѕР»РЅС‹Р№ URL РЅР° GitLab"),
 		field.Enum("status").
 			Values("opened", "merged", "closed", "none").
 			Default("none").
-			Comment("Статус MR (для коммитов — none)"),
+			Comment("РЎС‚Р°С‚СѓСЃ MR (РґР»СЏ РєРѕРјРјРёС‚РѕРІ вЂ” none)"),
 		field.String("author").
 			Optional().
-			Comment("Имя автора на GitLab"),
+			Comment("РРјСЏ Р°РІС‚РѕСЂР° РЅР° GitLab"),
 		field.String("source_branch").
 			Optional().
-			Comment("Имя исходной ветки (для MR)"),
+			Comment("РРјСЏ РёСЃС…РѕРґРЅРѕР№ РІРµС‚РєРё (РґР»СЏ MR)"),
 		field.String("project_path").
 			Optional().
-			Comment("Путь проекта в GitLab (group/repo)"),
+			Comment("РџСѓС‚СЊ РїСЂРѕРµРєС‚Р° РІ GitLab (group/repo)"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 

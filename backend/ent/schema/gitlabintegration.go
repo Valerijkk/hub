@@ -6,10 +6,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
-// GitLabIntegration хранит настройки интеграции проекта с GitLab-репозиторием.
+// GitLabIntegration С…СЂР°РЅРёС‚ РЅР°СЃС‚СЂРѕР№РєРё РёРЅС‚РµРіСЂР°С†РёРё РїСЂРѕРµРєС‚Р° СЃ GitLab-СЂРµРїРѕР·РёС‚РѕСЂРёРµРј.
 type GitLabIntegration struct {
 	ent.Schema
 }
@@ -23,19 +22,19 @@ func (GitLabIntegration) Fields() []ent.Field {
 		field.String("gitlab_url").
 			Default("https://gitlab.com").
 			MaxLen(500).
-			Comment("URL инстанса GitLab (по умолчанию https://gitlab.com)"),
+			Comment("URL РёРЅСЃС‚Р°РЅСЃР° GitLab (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ https://gitlab.com)"),
 		field.String("project_path").
 			NotEmpty().
 			MaxLen(500).
-			Comment("Путь к проекту в GitLab (например group/repo)"),
+			Comment("РџСѓС‚СЊ Рє РїСЂРѕРµРєС‚Сѓ РІ GitLab (РЅР°РїСЂРёРјРµСЂ group/repo)"),
 		field.String("access_token").
 			Sensitive().
 			Comment("GitLab Personal Access Token"),
 		field.String("webhook_secret").
 			Optional().
-			Comment("Секрет для валидации GitLab webhook (X-Gitlab-Token)"),
+			Comment("РЎРµРєСЂРµС‚ РґР»СЏ РІР°Р»РёРґР°С†РёРё GitLab webhook (X-Gitlab-Token)"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

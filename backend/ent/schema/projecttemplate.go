@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // ProjectTemplate holds the schema definition for the ProjectTemplate entity.
@@ -23,21 +22,21 @@ func (ProjectTemplate) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty().
 			MaxLen(255).
-			Comment("Название шаблона"),
+			Comment("РќР°Р·РІР°РЅРёРµ С€Р°Р±Р»РѕРЅР°"),
 		field.Text("description").
 			Optional().
-			Comment("Описание шаблона"),
+			Comment("РћРїРёСЃР°РЅРёРµ С€Р°Р±Р»РѕРЅР°"),
 		field.Enum("template_type").
 			Values("empty", "software_dev", "qa", "kanban_simple", "custom").
 			Default("custom").
-			Comment("Тип шаблона"),
+			Comment("РўРёРї С€Р°Р±Р»РѕРЅР°"),
 		field.JSON("config", map[string]interface{}{}).
-			Comment("Снимок конфигурации: statuses, labels, boards, custom_fields"),
+			Comment("РЎРЅРёРјРѕРє РєРѕРЅС„РёРіСѓСЂР°С†РёРё: statuses, labels, boards, custom_fields"),
 		field.Bool("is_system").
 			Default(false).
-			Comment("Системный шаблон (нельзя удалить)"),
+			Comment("РЎРёСЃС‚РµРјРЅС‹Р№ С€Р°Р±Р»РѕРЅ (РЅРµР»СЊР·СЏ СѓРґР°Р»РёС‚СЊ)"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

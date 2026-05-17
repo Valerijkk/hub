@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // LabelGroup holds the schema definition for the LabelGroup entity.
@@ -24,7 +23,7 @@ func (LabelGroup) Fields() []ent.Field {
 			NotEmpty().
 			MaxLen(50),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

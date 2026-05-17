@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,39 +8,39 @@ import (
 	"github.com/google/uuid"
 )
 
-// PushSubscription хранит подписку браузера на Web Push уведомления.
-// Один пользователь может иметь несколько подписок (разные браузеры/устройства).
+// PushSubscription С…СЂР°РЅРёС‚ РїРѕРґРїРёСЃРєСѓ Р±СЂР°СѓР·РµСЂР° РЅР° Web Push СѓРІРµРґРѕРјР»РµРЅРёСЏ.
+// РћРґРёРЅ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РјРѕР¶РµС‚ РёРјРµС‚СЊ РЅРµСЃРєРѕР»СЊРєРѕ РїРѕРґРїРёСЃРѕРє (СЂР°Р·РЅС‹Рµ Р±СЂР°СѓР·РµСЂС‹/СѓСЃС‚СЂРѕР№СЃС‚РІР°).
 type PushSubscription struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности PushSubscription.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё PushSubscription.
 func (PushSubscription) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("user_id", uuid.UUID{}).
-			Comment("ID пользователя-владельца подписки"),
+			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ-РІР»Р°РґРµР»СЊС†Р° РїРѕРґРїРёСЃРєРё"),
 		field.String("endpoint").
 			NotEmpty().
-			Comment("Push endpoint URL (уникальный для каждого браузера)"),
+			Comment("Push endpoint URL (СѓРЅРёРєР°Р»СЊРЅС‹Р№ РґР»СЏ РєР°Р¶РґРѕРіРѕ Р±СЂР°СѓР·РµСЂР°)"),
 		field.String("p256dh_key").
 			NotEmpty().
-			Comment("Публичный ключ клиента (base64url, RFC 8291)"),
+			Comment("РџСѓР±Р»РёС‡РЅС‹Р№ РєР»СЋС‡ РєР»РёРµРЅС‚Р° (base64url, RFC 8291)"),
 		field.String("auth_key").
 			NotEmpty().
 			Comment("Shared auth secret (base64url, RFC 8291)"),
 		field.String("user_agent").
 			Optional().
-			Comment("User-Agent браузера для идентификации устройства"),
+			Comment("User-Agent Р±СЂР°СѓР·РµСЂР° РґР»СЏ РёРґРµРЅС‚РёС„РёРєР°С†РёРё СѓСЃС‚СЂРѕР№СЃС‚РІР°"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Edges описывает связи сущности PushSubscription.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё PushSubscription.
 func (PushSubscription) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
@@ -53,12 +51,12 @@ func (PushSubscription) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы сущности PushSubscription.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё PushSubscription.
 func (PushSubscription) Indexes() []ent.Index {
 	return []ent.Index{
-		// Уникальный endpoint — один браузер = одна подписка.
+		// РЈРЅРёРєР°Р»СЊРЅС‹Р№ endpoint вЂ” РѕРґРёРЅ Р±СЂР°СѓР·РµСЂ = РѕРґРЅР° РїРѕРґРїРёСЃРєР°.
 		index.Fields("endpoint").Unique(),
-		// Быстрый поиск подписок по пользователю.
+		// Р‘С‹СЃС‚СЂС‹Р№ РїРѕРёСЃРє РїРѕРґРїРёСЃРѕРє РїРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ.
 		index.Fields("user_id"),
 	}
 }

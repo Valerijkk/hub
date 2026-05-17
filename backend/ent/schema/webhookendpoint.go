@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // WebhookEndpoint holds the schema definition for the WebhookEndpoint entity.
@@ -22,17 +21,17 @@ func (WebhookEndpoint) Fields() []ent.Field {
 			Immutable(),
 		field.String("url").
 			NotEmpty().
-			Comment("URL для отправки POST-запросов"),
+			Comment("URL РґР»СЏ РѕС‚РїСЂР°РІРєРё POST-Р·Р°РїСЂРѕСЃРѕРІ"),
 		field.String("secret").
 			NotEmpty().
-			Comment("Секрет для HMAC-SHA256 подписи payload"),
+			Comment("РЎРµРєСЂРµС‚ РґР»СЏ HMAC-SHA256 РїРѕРґРїРёСЃРё payload"),
 		field.JSON("events", []string{}).
-			Comment("Массив подписанных событий"),
+			Comment("РњР°СЃСЃРёРІ РїРѕРґРїРёСЃР°РЅРЅС‹С… СЃРѕР±С‹С‚РёР№"),
 		field.Bool("is_active").
 			Default(true).
-			Comment("Активен ли вебхук"),
+			Comment("РђРєС‚РёРІРµРЅ Р»Рё РІРµР±С…СѓРє"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

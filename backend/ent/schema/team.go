@@ -5,7 +5,6 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Team holds the schema definition for the Team entity.
@@ -24,7 +23,7 @@ func (Team) Fields() []ent.Field {
 		field.String("description").
 			Optional(),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

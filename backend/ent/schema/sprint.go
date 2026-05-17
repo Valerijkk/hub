@@ -6,15 +6,14 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
-// Sprint содержит определение схемы сущности Sprint.
+// Sprint СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ СЃСѓС‰РЅРѕСЃС‚Рё Sprint.
 type Sprint struct {
 	ent.Schema
 }
 
-// Fields определяет поля сущности Sprint.
+// Fields РѕРїСЂРµРґРµР»СЏРµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Sprint.
 func (Sprint) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -26,7 +25,7 @@ func (Sprint) Fields() []ent.Field {
 		field.String("goal").
 			Optional().
 			MaxLen(1000).
-			Comment("Цель спринта"),
+			Comment("Р¦РµР»СЊ СЃРїСЂРёРЅС‚Р°"),
 		field.Enum("status").
 			Values("planning", "active", "completed").
 			Default("planning"),
@@ -34,17 +33,17 @@ func (Sprint) Fields() []ent.Field {
 		field.Time("end_date"),
 		field.JSON("retro_notes", map[string]interface{}{}).
 			Optional().
-			Comment("JSONB заметки ретроспективы: went_well, to_improve, actions"),
+			Comment("JSONB Р·Р°РјРµС‚РєРё СЂРµС‚СЂРѕСЃРїРµРєС‚РёРІС‹: went_well, to_improve, actions"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 
-// Edges определяет связи сущности Sprint.
+// Edges РѕРїСЂРµРґРµР»СЏРµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё Sprint.
 func (Sprint) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -55,7 +54,7 @@ func (Sprint) Edges() []ent.Edge {
 	}
 }
 
-// Indexes определяет индексы сущности Sprint.
+// Indexes РѕРїСЂРµРґРµР»СЏРµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё Sprint.
 func (Sprint) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("project").

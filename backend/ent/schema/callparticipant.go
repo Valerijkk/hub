@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,33 +8,33 @@ import (
 	"github.com/google/uuid"
 )
 
-// CallParticipant хранит информацию об участнике голосового звонка.
-// Содержит время присоединения и ухода участника из звонка.
+// CallParticipant С…СЂР°РЅРёС‚ РёРЅС„РѕСЂРјР°С†РёСЋ РѕР± СѓС‡Р°СЃС‚РЅРёРєРµ РіРѕР»РѕСЃРѕРІРѕРіРѕ Р·РІРѕРЅРєР°.
+// РЎРѕРґРµСЂР¶РёС‚ РІСЂРµРјСЏ РїСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ Рё СѓС…РѕРґР° СѓС‡Р°СЃС‚РЅРёРєР° РёР· Р·РІРѕРЅРєР°.
 type CallParticipant struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности CallParticipant.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё CallParticipant.
 func (CallParticipant) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("call_id", uuid.UUID{}).
-			Comment("ID звонка"),
+			Comment("ID Р·РІРѕРЅРєР°"),
 		field.UUID("user_id", uuid.UUID{}).
-			Comment("ID пользователя-участника"),
+			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ-СѓС‡Р°СЃС‚РЅРёРєР°"),
 		field.Time("joined_at").
-			Default(time.Now).
-			Comment("Время присоединения к звонку"),
+			Default(nowUTC).
+			Comment("Р’СЂРµРјСЏ РїСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ Рє Р·РІРѕРЅРєСѓ"),
 		field.Time("left_at").
 			Optional().
 			Nillable().
-			Comment("Время выхода из звонка (nil если ещё в звонке)"),
+			Comment("Р’СЂРµРјСЏ РІС‹С…РѕРґР° РёР· Р·РІРѕРЅРєР° (nil РµСЃР»Рё РµС‰С‘ РІ Р·РІРѕРЅРєРµ)"),
 	}
 }
 
-// Edges описывает связи сущности CallParticipant.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё CallParticipant.
 func (CallParticipant) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("call", Call.Type).
@@ -52,7 +50,7 @@ func (CallParticipant) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы сущности CallParticipant.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё CallParticipant.
 func (CallParticipant) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("call_id", "user_id").

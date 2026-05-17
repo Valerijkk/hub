@@ -5,10 +5,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
-// AuditLog хранит записи журнала аудита всех действий в системе.
+// AuditLog С…СЂР°РЅРёС‚ Р·Р°РїРёСЃРё Р¶СѓСЂРЅР°Р»Р° Р°СѓРґРёС‚Р° РІСЃРµС… РґРµР№СЃС‚РІРёР№ РІ СЃРёСЃС‚РµРјРµ.
 type AuditLog struct {
 	ent.Schema
 }
@@ -21,32 +20,32 @@ func (AuditLog) Fields() []ent.Field {
 			Immutable(),
 		field.String("action").
 			NotEmpty().
-			Comment("Действие: login, logout, create, update, delete"),
+			Comment("Р”РµР№СЃС‚РІРёРµ: login, logout, create, update, delete"),
 		field.String("entity_type").
 			NotEmpty().
-			Comment("Тип сущности: issue, project, test_case, channel, file, user"),
+			Comment("РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё: issue, project, test_case, channel, file, user"),
 		field.String("entity_id").
 			Optional().
-			Comment("ID сущности (UUID или ключ)"),
+			Comment("ID СЃСѓС‰РЅРѕСЃС‚Рё (UUID РёР»Рё РєР»СЋС‡)"),
 		field.UUID("user_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID пользователя, выполнившего действие"),
+			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, РІС‹РїРѕР»РЅРёРІС€РµРіРѕ РґРµР№СЃС‚РІРёРµ"),
 		field.UUID("project_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID проекта (если действие привязано к проекту)"),
+			Comment("ID РїСЂРѕРµРєС‚Р° (РµСЃР»Рё РґРµР№СЃС‚РІРёРµ РїСЂРёРІСЏР·Р°РЅРѕ Рє РїСЂРѕРµРєС‚Сѓ)"),
 		field.JSON("details", map[string]interface{}{}).
 			Optional().
-			Comment("Дополнительные данные о действии в JSON"),
+			Comment("Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ РґР°РЅРЅС‹Рµ Рѕ РґРµР№СЃС‚РІРёРё РІ JSON"),
 		field.String("ip_address").
 			Optional().
-			Comment("IP-адрес клиента"),
+			Comment("IP-Р°РґСЂРµСЃ РєР»РёРµРЅС‚Р°"),
 		field.String("user_agent").
 			Optional().
-			Comment("User-Agent клиента"),
+			Comment("User-Agent РєР»РёРµРЅС‚Р°"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

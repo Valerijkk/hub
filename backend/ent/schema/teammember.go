@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // TeamMember holds the schema definition for the TeamMember entity.
@@ -21,7 +20,7 @@ func (TeamMember) Fields() []ent.Field {
 			Default(uuid.New).
 			Immutable(),
 		field.Time("joined_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

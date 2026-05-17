@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Channel содержит определение схемы для сущности Channel (канал мессенджера).
+// Channel СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ РґР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Channel (РєР°РЅР°Р» РјРµСЃСЃРµРЅРґР¶РµСЂР°).
 type Channel struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности Channel.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Channel.
 func (Channel) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -23,39 +21,39 @@ func (Channel) Fields() []ent.Field {
 			Immutable(),
 		field.Enum("channel_type").
 			Values("dm", "group", "public", "private").
-			Comment("Тип канала: личный чат, групповой, публичный или приватный"),
+			Comment("РўРёРї РєР°РЅР°Р»Р°: Р»РёС‡РЅС‹Р№ С‡Р°С‚, РіСЂСѓРїРїРѕРІРѕР№, РїСѓР±Р»РёС‡РЅС‹Р№ РёР»Рё РїСЂРёРІР°С‚РЅС‹Р№"),
 		field.String("name").
 			Optional().
 			MaxLen(100).
-			Comment("Название канала (пусто для DM)"),
+			Comment("РќР°Р·РІР°РЅРёРµ РєР°РЅР°Р»Р° (РїСѓСЃС‚Рѕ РґР»СЏ DM)"),
 		field.String("description").
 			Optional().
 			MaxLen(500).
-			Comment("Описание канала"),
+			Comment("РћРїРёСЃР°РЅРёРµ РєР°РЅР°Р»Р°"),
 		field.Bool("is_readonly").
 			Default(false).
-			Comment("Флаг read-only канала (например, CI-уведомления)"),
+			Comment("Р¤Р»Р°Рі read-only РєР°РЅР°Р»Р° (РЅР°РїСЂРёРјРµСЂ, CI-СѓРІРµРґРѕРјР»РµРЅРёСЏ)"),
 		field.UUID("project_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID проекта (nil для DM и глобальных каналов)"),
+			Comment("ID РїСЂРѕРµРєС‚Р° (nil РґР»СЏ DM Рё РіР»РѕР±Р°Р»СЊРЅС‹С… РєР°РЅР°Р»РѕРІ)"),
 		field.UUID("created_by", uuid.UUID{}).
-			Comment("ID создателя канала"),
+			Comment("ID СЃРѕР·РґР°С‚РµР»СЏ РєР°РЅР°Р»Р°"),
 		field.String("dm_key").
 			Optional().
 			Unique().
 			Nillable().
-			Comment("Ключ дедупликации DM: отсортированные user IDs через '-'"),
+			Comment("РљР»СЋС‡ РґРµРґСѓРїР»РёРєР°С†РёРё DM: РѕС‚СЃРѕСЂС‚РёСЂРѕРІР°РЅРЅС‹Рµ user IDs С‡РµСЂРµР· '-'"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 
-// Edges описывает связи сущности Channel.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё Channel.
 func (Channel) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("members", ChannelMember.Type),
@@ -76,7 +74,7 @@ func (Channel) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы сущности Channel.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё Channel.
 func (Channel) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_type"),

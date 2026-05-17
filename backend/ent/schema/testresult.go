@@ -6,10 +6,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
-// StepResult описывает результат выполнения одного шага тест-кейса.
+// StepResult РѕРїРёСЃС‹РІР°РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ РІС‹РїРѕР»РЅРµРЅРёСЏ РѕРґРЅРѕРіРѕ С€Р°РіР° С‚РµСЃС‚-РєРµР№СЃР°.
 type StepResult struct {
 	StepOrder int      `json:"step_order"`
 	Status    string   `json:"status"`
@@ -35,25 +34,25 @@ func (TestResult) Fields() []ent.Field {
 			Optional(),
 		field.JSON("step_results", []StepResult{}).
 			Optional().
-			Comment("Результаты выполнения шагов"),
+			Comment("Р РµР·СѓР»СЊС‚Р°С‚С‹ РІС‹РїРѕР»РЅРµРЅРёСЏ С€Р°РіРѕРІ"),
 		field.Int64("duration_ms").
 			Optional().
 			Nillable().
-			Comment("Длительность выполнения в миллисекундах"),
+			Comment("Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ РІС‹РїРѕР»РЅРµРЅРёСЏ РІ РјРёР»Р»РёСЃРµРєСѓРЅРґР°С…"),
 		field.String("allure_uuid").
 			Optional().
-			Comment("UUID результата из Allure"),
+			Comment("UUID СЂРµР·СѓР»СЊС‚Р°С‚Р° РёР· Allure"),
 		field.Text("error_message").
 			Optional(),
 		field.Text("error_trace").
 			Optional(),
 		field.Bool("is_flaky").
 			Default(false).
-			Comment("Нестабильный тест"),
+			Comment("РќРµСЃС‚Р°Р±РёР»СЊРЅС‹Р№ С‚РµСЃС‚"),
 		field.Enum("match_strategy").
 			Values("annotation", "fullname", "classmethod", "unmapped").
 			Default("unmapped").
-			Comment("Стратегия привязки к тест-кейсу"),
+			Comment("РЎС‚СЂР°С‚РµРіРёСЏ РїСЂРёРІСЏР·РєРё Рє С‚РµСЃС‚-РєРµР№СЃСѓ"),
 		field.Time("started_at").
 			Optional().
 			Nillable(),
@@ -61,7 +60,7 @@ func (TestResult) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

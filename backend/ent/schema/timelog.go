@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // TimeLog holds the schema definition for the TimeLog entity.
@@ -33,7 +32,7 @@ func (TimeLog) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

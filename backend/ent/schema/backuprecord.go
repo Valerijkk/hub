@@ -5,7 +5,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // BackupRecord holds the schema definition for the BackupRecord entity.
@@ -21,27 +20,27 @@ func (BackupRecord) Fields() []ent.Field {
 			Immutable(),
 		field.String("s3_key").
 			NotEmpty().
-			Comment("Ключ объекта в S3 (backups/{timestamp}.zip)"),
+			Comment("РљР»СЋС‡ РѕР±СЉРµРєС‚Р° РІ S3 (backups/{timestamp}.zip)"),
 		field.Int64("file_size").
 			Default(0).
-			Comment("Размер архива в байтах"),
+			Comment("Р Р°Р·РјРµСЂ Р°СЂС…РёРІР° РІ Р±Р°Р№С‚Р°С…"),
 		field.Enum("status").
 			Values("in_progress", "completed", "failed").
 			Default("in_progress").
-			Comment("Текущий статус резервного копирования"),
+			Comment("РўРµРєСѓС‰РёР№ СЃС‚Р°С‚СѓСЃ СЂРµР·РµСЂРІРЅРѕРіРѕ РєРѕРїРёСЂРѕРІР°РЅРёСЏ"),
 		field.Text("error_message").
 			Optional().
 			Nillable().
-			Comment("Сообщение об ошибке при неудаче"),
+			Comment("РЎРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ РїСЂРё РЅРµСѓРґР°С‡Рµ"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }
 
 // Edges of the BackupRecord.
 func (BackupRecord) Edges() []ent.Edge {
-	return nil // Системная сущность без связей
+	return nil // РЎРёСЃС‚РµРјРЅР°СЏ СЃСѓС‰РЅРѕСЃС‚СЊ Р±РµР· СЃРІСЏР·РµР№
 }
 
 // Indexes of the BackupRecord.

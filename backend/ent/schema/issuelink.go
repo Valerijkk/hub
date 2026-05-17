@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // IssueLink holds the schema definition for the IssueLink entity.
@@ -33,7 +32,7 @@ func (IssueLink) Fields() []ent.Field {
 			Optional().
 			Comment("For user-defined link types"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Reaction holds the schema definition for the Reaction entity.
@@ -24,7 +23,7 @@ func (Reaction) Fields() []ent.Field {
 			NotEmpty().
 			MaxLen(32),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

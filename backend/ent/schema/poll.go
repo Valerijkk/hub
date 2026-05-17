@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,44 +8,44 @@ import (
 	"github.com/google/uuid"
 )
 
-// Poll содержит определение схемы для сущности голосования (опроса).
+// Poll СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ РґР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё РіРѕР»РѕСЃРѕРІР°РЅРёСЏ (РѕРїСЂРѕСЃР°).
 type Poll struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности Poll.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Poll.
 func (Poll) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("channel_id", uuid.UUID{}).
-			Comment("ID канала, в котором создан опрос"),
+			Comment("ID РєР°РЅР°Р»Р°, РІ РєРѕС‚РѕСЂРѕРј СЃРѕР·РґР°РЅ РѕРїСЂРѕСЃ"),
 		field.UUID("creator_id", uuid.UUID{}).
-			Comment("ID создателя опроса"),
+			Comment("ID СЃРѕР·РґР°С‚РµР»СЏ РѕРїСЂРѕСЃР°"),
 		field.String("question").
 			NotEmpty().
 			MaxLen(500).
-			Comment("Текст вопроса опроса"),
+			Comment("РўРµРєСЃС‚ РІРѕРїСЂРѕСЃР° РѕРїСЂРѕСЃР°"),
 		field.Bool("is_anonymous").
 			Default(false).
-			Comment("Анонимное голосование (не показывать кто голосовал)"),
+			Comment("РђРЅРѕРЅРёРјРЅРѕРµ РіРѕР»РѕСЃРѕРІР°РЅРёРµ (РЅРµ РїРѕРєР°Р·С‹РІР°С‚СЊ РєС‚Рѕ РіРѕР»РѕСЃРѕРІР°Р»)"),
 		field.Bool("is_multi_choice").
 			Default(false).
-			Comment("Множественный выбор (можно выбрать несколько вариантов)"),
+			Comment("РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Р№ РІС‹Р±РѕСЂ (РјРѕР¶РЅРѕ РІС‹Р±СЂР°С‚СЊ РЅРµСЃРєРѕР»СЊРєРѕ РІР°СЂРёР°РЅС‚РѕРІ)"),
 		field.Bool("is_closed").
 			Default(false).
-			Comment("Закрыт ли опрос для голосования"),
+			Comment("Р—Р°РєСЂС‹С‚ Р»Рё РѕРїСЂРѕСЃ РґР»СЏ РіРѕР»РѕСЃРѕРІР°РЅРёСЏ"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 
-// Edges описывает связи сущности Poll.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё Poll.
 func (Poll) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("channel", Channel.Type).
@@ -65,7 +63,7 @@ func (Poll) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы сущности Poll.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё Poll.
 func (Poll) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id"),

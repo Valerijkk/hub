@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,14 +8,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// Recording хранит метаданные записи звонка.
-// Запись создаётся через LiveKit Egress и сохраняется в SeaweedFS (S3).
-// Привязана к звонку, проекту и пользователю, начавшему запись.
+// Recording С…СЂР°РЅРёС‚ РјРµС‚Р°РґР°РЅРЅС‹Рµ Р·Р°РїРёСЃРё Р·РІРѕРЅРєР°.
+// Р—Р°РїРёСЃСЊ СЃРѕР·РґР°С‘С‚СЃСЏ С‡РµСЂРµР· LiveKit Egress Рё СЃРѕС…СЂР°РЅСЏРµС‚СЃСЏ РІ SeaweedFS (S3).
+// РџСЂРёРІСЏР·Р°РЅР° Рє Р·РІРѕРЅРєСѓ, РїСЂРѕРµРєС‚Сѓ Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ, РЅР°С‡Р°РІС€РµРјСѓ Р·Р°РїРёСЃСЊ.
 type Recording struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности Recording.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Recording.
 func (Recording) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -25,40 +23,40 @@ func (Recording) Fields() []ent.Field {
 			Immutable(),
 		field.String("egress_id").
 			NotEmpty().
-			Comment("ID egress-процесса в LiveKit"),
+			Comment("ID egress-РїСЂРѕС†РµСЃСЃР° РІ LiveKit"),
 		field.Enum("status").
 			Values("recording", "processing", "ready", "failed").
 			Default("recording").
-			Comment("Статус записи: recording -> processing -> ready/failed"),
+			Comment("РЎС‚Р°С‚СѓСЃ Р·Р°РїРёСЃРё: recording -> processing -> ready/failed"),
 		field.String("file_path").
 			Optional().
-			Comment("Ключ файла в S3 (recordings/{projectID}/{callID}.mp4)"),
+			Comment("РљР»СЋС‡ С„Р°Р№Р»Р° РІ S3 (recordings/{projectID}/{callID}.mp4)"),
 		field.Int64("file_size").
 			Default(0).
-			Comment("Размер файла записи в байтах"),
+			Comment("Р Р°Р·РјРµСЂ С„Р°Р№Р»Р° Р·Р°РїРёСЃРё РІ Р±Р°Р№С‚Р°С…"),
 		field.Int("duration_seconds").
 			Default(0).
-			Comment("Длительность записи в секундах"),
+			Comment("Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ Р·Р°РїРёСЃРё РІ СЃРµРєСѓРЅРґР°С…"),
 		field.Time("started_at").
-			Default(time.Now).
-			Comment("Время начала записи"),
+			Default(nowUTC).
+			Comment("Р’СЂРµРјСЏ РЅР°С‡Р°Р»Р° Р·Р°РїРёСЃРё"),
 		field.Time("ended_at").
 			Optional().
 			Nillable().
-			Comment("Время окончания записи"),
+			Comment("Р’СЂРµРјСЏ РѕРєРѕРЅС‡Р°РЅРёСЏ Р·Р°РїРёСЃРё"),
 		field.UUID("call_id", uuid.UUID{}).
-			Comment("ID звонка, к которому относится запись"),
+			Comment("ID Р·РІРѕРЅРєР°, Рє РєРѕС‚РѕСЂРѕРјСѓ РѕС‚РЅРѕСЃРёС‚СЃСЏ Р·Р°РїРёСЃСЊ"),
 		field.UUID("project_id", uuid.UUID{}).
-			Comment("ID проекта для привязки записей к проекту"),
+			Comment("ID РїСЂРѕРµРєС‚Р° РґР»СЏ РїСЂРёРІСЏР·РєРё Р·Р°РїРёСЃРµР№ Рє РїСЂРѕРµРєС‚Сѓ"),
 		field.UUID("started_by", uuid.UUID{}).
-			Comment("ID пользователя, начавшего запись"),
+			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, РЅР°С‡Р°РІС€РµРіРѕ Р·Р°РїРёСЃСЊ"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Edges описывает связи сущности Recording.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё Recording.
 func (Recording) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("call", Call.Type).
@@ -79,7 +77,7 @@ func (Recording) Edges() []ent.Edge {
 	}
 }
 
-// Indexes описывает индексы сущности Recording.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё Recording.
 func (Recording) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("project_id", "created_at"),

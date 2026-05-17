@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -10,13 +8,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// ScheduledCall хранит метаданные запланированного или повторяющегося звонка.
-// Поддерживает RFC 5545 RRULE для повторяющихся звонков (ежедневный стендап и т.д.).
+// ScheduledCall С…СЂР°РЅРёС‚ РјРµС‚Р°РґР°РЅРЅС‹Рµ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅРѕРіРѕ РёР»Рё РїРѕРІС‚РѕСЂСЏСЋС‰РµРіРѕСЃСЏ Р·РІРѕРЅРєР°.
+// РџРѕРґРґРµСЂР¶РёРІР°РµС‚ RFC 5545 RRULE РґР»СЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ Р·РІРѕРЅРєРѕРІ (РµР¶РµРґРЅРµРІРЅС‹Р№ СЃС‚РµРЅРґР°Рї Рё С‚.Рґ.).
 type ScheduledCall struct {
 	ent.Schema
 }
 
-// Fields описывает поля сущности ScheduledCall.
+// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё ScheduledCall.
 func (ScheduledCall) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -25,43 +23,43 @@ func (ScheduledCall) Fields() []ent.Field {
 		field.String("title").
 			NotEmpty().
 			MaxLen(255).
-			Comment("Название запланированного звонка"),
+			Comment("РќР°Р·РІР°РЅРёРµ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅРѕРіРѕ Р·РІРѕРЅРєР°"),
 		field.String("description").
 			Optional().
 			MaxLen(2000).
-			Comment("Описание звонка"),
+			Comment("РћРїРёСЃР°РЅРёРµ Р·РІРѕРЅРєР°"),
 		field.Time("scheduled_at").
-			Comment("Следующее запланированное время звонка"),
+			Comment("РЎР»РµРґСѓСЋС‰РµРµ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅРѕРµ РІСЂРµРјСЏ Р·РІРѕРЅРєР°"),
 		field.Int("duration_minutes").
 			Optional().
 			Default(60).
-			Comment("Длительность звонка в минутах"),
+			Comment("Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ Р·РІРѕРЅРєР° РІ РјРёРЅСѓС‚Р°С…"),
 		field.Int("reminder_minutes").
 			Optional().
 			Nillable().
-			Comment("За сколько минут до звонка отправить напоминание (null = без напоминания)"),
+			Comment("Р—Р° СЃРєРѕР»СЊРєРѕ РјРёРЅСѓС‚ РґРѕ Р·РІРѕРЅРєР° РѕС‚РїСЂР°РІРёС‚СЊ РЅР°РїРѕРјРёРЅР°РЅРёРµ (null = Р±РµР· РЅР°РїРѕРјРёРЅР°РЅРёСЏ)"),
 		field.String("rrule").
 			Optional().
-			Comment("RFC 5545 RRULE для повторяющихся звонков"),
+			Comment("RFC 5545 RRULE РґР»СЏ РїРѕРІС‚РѕСЂСЏСЋС‰РёС…СЃСЏ Р·РІРѕРЅРєРѕРІ"),
 		field.UUID("channel_id", uuid.UUID{}).
-			Comment("ID канала, в котором будет звонок"),
+			Comment("ID РєР°РЅР°Р»Р°, РІ РєРѕС‚РѕСЂРѕРј Р±СѓРґРµС‚ Р·РІРѕРЅРѕРє"),
 		field.UUID("project_id", uuid.UUID{}).
-			Comment("ID проекта"),
+			Comment("ID РїСЂРѕРµРєС‚Р°"),
 		field.UUID("created_by", uuid.UUID{}).
-			Comment("ID пользователя, создавшего запланированный звонок"),
+			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, СЃРѕР·РґР°РІС€РµРіРѕ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅС‹Р№ Р·РІРѕРЅРѕРє"),
 		field.Bool("is_active").
 			Default(true).
-			Comment("Активен ли запланированный звонок"),
+			Comment("РђРєС‚РёРІРµРЅ Р»Рё Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅС‹Р№ Р·РІРѕРЅРѕРє"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 
-// Edges описывает связи сущности ScheduledCall.
+// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё ScheduledCall.
 func (ScheduledCall) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -80,11 +78,11 @@ func (ScheduledCall) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("participants", User.Type).
-			Comment("Приглашённые участники звонка"),
+			Comment("РџСЂРёРіР»Р°С€С‘РЅРЅС‹Рµ СѓС‡Р°СЃС‚РЅРёРєРё Р·РІРѕРЅРєР°"),
 	}
 }
 
-// Indexes описывает индексы сущности ScheduledCall.
+// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё ScheduledCall.
 func (ScheduledCall) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id", "scheduled_at"),

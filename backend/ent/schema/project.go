@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Project holds the schema definition for the Project entity.
@@ -40,16 +39,16 @@ func (Project) Fields() []ent.Field {
 			Default(0),
 		field.Int("test_case_counter").
 			Default(0).
-			Comment("Счётчик тест-кейсов для генерации ключей"),
+			Comment("РЎС‡С‘С‚С‡РёРє С‚РµСЃС‚-РєРµР№СЃРѕРІ РґР»СЏ РіРµРЅРµСЂР°С†РёРё РєР»СЋС‡РµР№"),
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }
 

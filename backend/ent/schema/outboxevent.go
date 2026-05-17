@@ -5,7 +5,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // OutboxEvent holds the schema definition for the OutboxEvent entity.
@@ -30,7 +29,7 @@ func (OutboxEvent) Fields() []ent.Field {
 		field.String("last_error").
 			Optional(),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 		field.Time("published_at").
 			Optional().

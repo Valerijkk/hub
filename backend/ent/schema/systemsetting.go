@@ -4,7 +4,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"time"
 )
 
 // SystemSetting holds the schema definition for the SystemSetting entity.
@@ -25,7 +24,7 @@ func (SystemSetting) Fields() []ent.Field {
 		field.String("description").
 			Optional(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
 	}
 }

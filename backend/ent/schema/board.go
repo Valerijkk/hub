@@ -5,7 +5,6 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Board holds the schema definition for the Board entity.
@@ -30,9 +29,9 @@ func (Board) Fields() []ent.Field {
 		field.Enum("swimlane_mode").
 			Values("none", "assignee", "priority", "type").
 			Default("none").
-			Comment("Режим swimlanes на доске"),
+			Comment("Р РµР¶РёРј swimlanes РЅР° РґРѕСЃРєРµ"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	"time"
 )
 
 // Label holds the schema definition for the Label entity.
@@ -27,7 +26,7 @@ func (Label) Fields() []ent.Field {
 			NotEmpty().
 			Default("#3B82F6"),
 		field.Time("created_at").
-			Default(time.Now).
+			Default(nowUTC).
 			Immutable(),
 	}
 }
