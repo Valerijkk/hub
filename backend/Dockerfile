@@ -27,7 +27,7 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates tzdata
 
 # Для pg_restore и mongorestore (backup restore)
-RUN apk add --no-cache postgresql16-client mongodb-tools
+RUN apk add --no-cache postgresql17-client mongodb-tools
 
 # LO-Inf: запускаем под непривилегированным пользователем (не root).
 RUN addgroup -g 10001 -S hub && adduser -u 10001 -S -G hub hub
