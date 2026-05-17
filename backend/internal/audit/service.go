@@ -29,10 +29,13 @@ const (
 // AuditService содержит бизнес-логику для аудита, лимитов, корзины и управления пользователями.
 //
 // SC-14-3: сервис не хранит *ent.Client напрямую — все БД-запросы идут через
-// единый *Repository. Это устраняет дубль db+repo и облегчает unit-тестирование
-// (репозиторий моделируется в памяти без поднятия Ent).
+// единый Repository-интерфейс. Это устраняет дубль db+repo и облегчает
+// unit-тестирование (репозиторий моделируется в памяти без поднятия Ent).
+//
+// Phase-14: Repository теперь интерфейс (а не *struct), что позволяет
+// подменять реализацию в тестах без cgo-зависимостей Ent.
 type AuditService struct {
-	repo  *Repository
+	repo  Repository
 	redis *redis.Client // optional — используется для инвалидации auth-кэшей (ME-13).
 }
 
@@ -41,7 +44,7 @@ type AuditService struct {
 // auth.UserStatusCacheKey при деактивации пользователя (ME-13). Может быть
 // nil в тестах — деактивация всё равно отработает, только статус будет
 // применён по истечении TTL (~30s).
-func NewAuditService(repo *Repository, rdb *redis.Client) *AuditService {
+func NewAuditService(repo Repository, rdb *redis.Client) *AuditService {
 	return &AuditService{repo: repo, redis: rdb}
 }
 

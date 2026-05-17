@@ -15,12 +15,12 @@ import (
 // AuditConsumer — JetStream consumer для записи событий аудита из всех модулей.
 type AuditConsumer struct {
 	nc   *natsclient.Client
-	repo *Repository
+	repo Repository
 	cons jetstream.ConsumeContext
 }
 
 // NewAuditConsumer создаёт новый consumer аудита.
-func NewAuditConsumer(nc *natsclient.Client, repo *Repository) *AuditConsumer {
+func NewAuditConsumer(nc *natsclient.Client, repo Repository) *AuditConsumer {
 	return &AuditConsumer{nc: nc, repo: repo}
 }
 

@@ -21,18 +21,69 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
-// Repository предоставляет доступ к данным журнала аудита через Ent ORM.
-type Repository struct {
+// Repository — контракт доступа к данным журнала аудита, лимитов, корзины и
+// управления пользователями. Конкретная реализация поверх Ent ORM (entRepository)
+// удовлетворяет этот интерфейс; тесты могут подставлять in-memory mock без
+// поднятия Ent.
+type Repository interface {
+	// Журнал аудита
+	CreateAuditLog(ctx context.Context, action, entityType, entityID string, userID, projectID *uuid.UUID, details map[string]interface{}, ipAddress, userAgent string) (*ent.AuditLog, error)
+	ListAuditLogs(ctx context.Context, filters AuditLogFilters) ([]*ent.AuditLog, int, error)
+
+	// SystemSetting
+	GetSystemSetting(ctx context.Context, key string) (string, error)
+	UpsertSystemSetting(ctx context.Context, key, value, description string) error
+
+	// Trash — листинг
+	ListDeletedIssues(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
+	ListDeletedTestCases(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
+	ListDeletedFiles(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
+	ListDeletedProjects(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
+
+	// Trash — restore
+	RestoreIssue(ctx context.Context, id uuid.UUID) error
+	RestoreTestCase(ctx context.Context, id uuid.UUID) error
+	RestoreFile(ctx context.Context, id uuid.UUID) error
+	RestoreProject(ctx context.Context, id uuid.UUID) error
+
+	// Trash — soft delete
+	SoftDeleteIssue(ctx context.Context, id uuid.UUID, when time.Time) error
+	SoftDeleteTestCase(ctx context.Context, id uuid.UUID, when time.Time) error
+	SoftDeleteFile(ctx context.Context, id uuid.UUID, when time.Time) error
+	SoftDeleteProject(ctx context.Context, id uuid.UUID, when time.Time) error
+
+	// Trash — purge
+	PurgeExpiredIssues(ctx context.Context, cutoff time.Time) (int, error)
+	PurgeExpiredTestCases(ctx context.Context, cutoff time.Time) (int, error)
+	PurgeExpiredFiles(ctx context.Context, cutoff time.Time) (int, error)
+	PurgeExpiredProjects(ctx context.Context, cutoff time.Time) (int, error)
+
+	// User admin
+	DeactivateUser(ctx context.Context, userID uuid.UUID) error
+	DeleteUserSessions(ctx context.Context, userID uuid.UUID) (int, error)
+	ReassignAssignedIssues(ctx context.Context, fromUserID, toUserID uuid.UUID) (int, error)
+	ReassignReportedIssues(ctx context.Context, fromUserID, toUserID uuid.UUID) (int, error)
+	ClearUserAssignments(ctx context.Context, userID uuid.UUID) (int, error)
+	DeleteUserComments(ctx context.Context, userID uuid.UUID) (int, error)
+	DeleteUserReactions(ctx context.Context, userID uuid.UUID) (int, error)
+	DeleteUserActivityLogs(ctx context.Context, userID uuid.UUID) (int, error)
+	DeleteUserTimeLogs(ctx context.Context, userID uuid.UUID) (int, error)
+	HardDeleteUser(ctx context.Context, userID uuid.UUID) error
+	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
+}
+
+// entRepository — Ent-реализация Repository.
+type entRepository struct {
 	client *ent.Client
 }
 
-// NewRepository создаёт новый репозиторий журнала аудита.
-func NewRepository(client *ent.Client) *Repository {
-	return &Repository{client: client}
+// NewRepository создаёт новый репозиторий журнала аудита поверх Ent.
+func NewRepository(client *ent.Client) Repository {
+	return &entRepository{client: client}
 }
 
 // CreateAuditLog записывает новую запись в журнал аудита.
-func (r *Repository) CreateAuditLog(ctx context.Context, action, entityType, entityID string, userID, projectID *uuid.UUID, details map[string]interface{}, ipAddress, userAgent string) (*ent.AuditLog, error) {
+func (r *entRepository) CreateAuditLog(ctx context.Context, action, entityType, entityID string, userID, projectID *uuid.UUID, details map[string]interface{}, ipAddress, userAgent string) (*ent.AuditLog, error) {
 	create := r.client.AuditLog.Create().
 		SetAction(action).
 		SetEntityType(entityType)
@@ -60,7 +111,7 @@ func (r *Repository) CreateAuditLog(ctx context.Context, action, entityType, ent
 }
 
 // ListAuditLogs возвращает пагинированный список записей аудита с фильтрами.
-func (r *Repository) ListAuditLogs(ctx context.Context, filters AuditLogFilters) ([]*ent.AuditLog, int, error) {
+func (r *entRepository) ListAuditLogs(ctx context.Context, filters AuditLogFilters) ([]*ent.AuditLog, int, error) {
 	query := r.client.AuditLog.Query()
 
 	if filters.Action != "" {
@@ -115,7 +166,7 @@ func (r *Repository) ListAuditLogs(ctx context.Context, filters AuditLogFilters)
 
 // GetSystemSetting возвращает значение настройки по ключу.
 // Возвращает ("", nil) если запись отсутствует — caller сам решает, использовать дефолт.
-func (r *Repository) GetSystemSetting(ctx context.Context, key string) (string, error) {
+func (r *entRepository) GetSystemSetting(ctx context.Context, key string) (string, error) {
 	setting, err := r.client.SystemSetting.Query().
 		Where(systemsetting.KeyEQ(key)).
 		Only(ctx)
@@ -129,7 +180,7 @@ func (r *Repository) GetSystemSetting(ctx context.Context, key string) (string, 
 }
 
 // UpsertSystemSetting создаёт или обновляет настройку.
-func (r *Repository) UpsertSystemSetting(ctx context.Context, key, value, description string) error {
+func (r *entRepository) UpsertSystemSetting(ctx context.Context, key, value, description string) error {
 	n, err := r.client.SystemSetting.Update().
 		Where(systemsetting.KeyEQ(key)).
 		SetValue(value).
@@ -163,7 +214,7 @@ type TrashItem struct {
 }
 
 // ListDeletedIssues возвращает количество и срез удалённых задач (после cutoff).
-func (r *Repository) ListDeletedIssues(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
+func (r *entRepository) ListDeletedIssues(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
 	query := r.client.Issue.Query().
 		Where(issue.DeletedAtNotNil(), issue.DeletedAtGT(cutoff))
 	if projectID != nil {
@@ -194,7 +245,7 @@ func (r *Repository) ListDeletedIssues(ctx context.Context, projectID *uuid.UUID
 }
 
 // ListDeletedTestCases возвращает количество и срез удалённых тест-кейсов.
-func (r *Repository) ListDeletedTestCases(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
+func (r *entRepository) ListDeletedTestCases(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
 	query := r.client.TestCase.Query().
 		Where(testcase.DeletedAtNotNil(), testcase.DeletedAtGT(cutoff))
 	if projectID != nil {
@@ -225,7 +276,7 @@ func (r *Repository) ListDeletedTestCases(ctx context.Context, projectID *uuid.U
 }
 
 // ListDeletedFiles возвращает количество и срез удалённых файлов.
-func (r *Repository) ListDeletedFiles(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
+func (r *entRepository) ListDeletedFiles(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
 	query := r.client.FileMetadata.Query().
 		Where(filemetadata.DeletedAtNotNil(), filemetadata.DeletedAtGT(cutoff))
 	if projectID != nil {
@@ -256,7 +307,7 @@ func (r *Repository) ListDeletedFiles(ctx context.Context, projectID *uuid.UUID,
 }
 
 // ListDeletedProjects возвращает количество и срез удалённых проектов.
-func (r *Repository) ListDeletedProjects(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
+func (r *entRepository) ListDeletedProjects(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
 	query := r.client.Project.Query().
 		Where(project.DeletedAtNotNil(), project.DeletedAtGT(cutoff))
 	total, err := query.Clone().Count(ctx)
@@ -284,62 +335,62 @@ func (r *Repository) ListDeletedProjects(ctx context.Context, cutoff time.Time, 
 }
 
 // RestoreIssue сбрасывает deleted_at у задачи.
-func (r *Repository) RestoreIssue(ctx context.Context, id uuid.UUID) error {
+func (r *entRepository) RestoreIssue(ctx context.Context, id uuid.UUID) error {
 	return r.client.Issue.UpdateOneID(id).ClearDeletedAt().Exec(ctx)
 }
 
 // RestoreTestCase сбрасывает deleted_at у тест-кейса.
-func (r *Repository) RestoreTestCase(ctx context.Context, id uuid.UUID) error {
+func (r *entRepository) RestoreTestCase(ctx context.Context, id uuid.UUID) error {
 	return r.client.TestCase.UpdateOneID(id).ClearDeletedAt().Exec(ctx)
 }
 
 // RestoreFile сбрасывает deleted_at у файла.
-func (r *Repository) RestoreFile(ctx context.Context, id uuid.UUID) error {
+func (r *entRepository) RestoreFile(ctx context.Context, id uuid.UUID) error {
 	return r.client.FileMetadata.UpdateOneID(id).ClearDeletedAt().Exec(ctx)
 }
 
 // RestoreProject сбрасывает deleted_at у проекта и переводит status=active.
-func (r *Repository) RestoreProject(ctx context.Context, id uuid.UUID) error {
+func (r *entRepository) RestoreProject(ctx context.Context, id uuid.UUID) error {
 	return r.client.Project.UpdateOneID(id).ClearDeletedAt().SetStatus(project.StatusActive).Exec(ctx)
 }
 
 // SoftDeleteIssue ставит deleted_at=now у задачи.
-func (r *Repository) SoftDeleteIssue(ctx context.Context, id uuid.UUID, when time.Time) error {
+func (r *entRepository) SoftDeleteIssue(ctx context.Context, id uuid.UUID, when time.Time) error {
 	return r.client.Issue.UpdateOneID(id).SetDeletedAt(when).Exec(ctx)
 }
 
 // SoftDeleteTestCase ставит deleted_at=now у тест-кейса.
-func (r *Repository) SoftDeleteTestCase(ctx context.Context, id uuid.UUID, when time.Time) error {
+func (r *entRepository) SoftDeleteTestCase(ctx context.Context, id uuid.UUID, when time.Time) error {
 	return r.client.TestCase.UpdateOneID(id).SetDeletedAt(when).Exec(ctx)
 }
 
 // SoftDeleteFile ставит deleted_at=now у файла.
-func (r *Repository) SoftDeleteFile(ctx context.Context, id uuid.UUID, when time.Time) error {
+func (r *entRepository) SoftDeleteFile(ctx context.Context, id uuid.UUID, when time.Time) error {
 	return r.client.FileMetadata.UpdateOneID(id).SetDeletedAt(when).Exec(ctx)
 }
 
 // SoftDeleteProject ставит deleted_at=now и status=deleted у проекта.
-func (r *Repository) SoftDeleteProject(ctx context.Context, id uuid.UUID, when time.Time) error {
+func (r *entRepository) SoftDeleteProject(ctx context.Context, id uuid.UUID, when time.Time) error {
 	return r.client.Project.UpdateOneID(id).SetDeletedAt(when).SetStatus(project.StatusDeleted).Exec(ctx)
 }
 
 // PurgeExpiredIssues окончательно удаляет задачи, которые были помечены deleted_at <= cutoff.
-func (r *Repository) PurgeExpiredIssues(ctx context.Context, cutoff time.Time) (int, error) {
+func (r *entRepository) PurgeExpiredIssues(ctx context.Context, cutoff time.Time) (int, error) {
 	return r.client.Issue.Delete().Where(issue.DeletedAtNotNil(), issue.DeletedAtLT(cutoff)).Exec(ctx)
 }
 
 // PurgeExpiredTestCases окончательно удаляет просроченные тест-кейсы.
-func (r *Repository) PurgeExpiredTestCases(ctx context.Context, cutoff time.Time) (int, error) {
+func (r *entRepository) PurgeExpiredTestCases(ctx context.Context, cutoff time.Time) (int, error) {
 	return r.client.TestCase.Delete().Where(testcase.DeletedAtNotNil(), testcase.DeletedAtLT(cutoff)).Exec(ctx)
 }
 
 // PurgeExpiredFiles окончательно удаляет просроченные файлы.
-func (r *Repository) PurgeExpiredFiles(ctx context.Context, cutoff time.Time) (int, error) {
+func (r *entRepository) PurgeExpiredFiles(ctx context.Context, cutoff time.Time) (int, error) {
 	return r.client.FileMetadata.Delete().Where(filemetadata.DeletedAtNotNil(), filemetadata.DeletedAtLT(cutoff)).Exec(ctx)
 }
 
 // PurgeExpiredProjects окончательно удаляет просроченные проекты.
-func (r *Repository) PurgeExpiredProjects(ctx context.Context, cutoff time.Time) (int, error) {
+func (r *entRepository) PurgeExpiredProjects(ctx context.Context, cutoff time.Time) (int, error) {
 	return r.client.Project.Delete().Where(project.DeletedAtNotNil(), project.DeletedAtLT(cutoff)).Exec(ctx)
 }
 
@@ -348,21 +399,21 @@ func (r *Repository) PurgeExpiredProjects(ctx context.Context, cutoff time.Time)
 // ---------------------------------------------------------------------------
 
 // DeactivateUser помечает пользователя статусом deactivated.
-func (r *Repository) DeactivateUser(ctx context.Context, userID uuid.UUID) error {
+func (r *entRepository) DeactivateUser(ctx context.Context, userID uuid.UUID) error {
 	return r.client.User.UpdateOneID(userID).
 		SetStatus(user.StatusDeactivated).
 		Exec(ctx)
 }
 
 // DeleteUserSessions удаляет все сессии пользователя; возвращает количество удалённых.
-func (r *Repository) DeleteUserSessions(ctx context.Context, userID uuid.UUID) (int, error) {
+func (r *entRepository) DeleteUserSessions(ctx context.Context, userID uuid.UUID) (int, error) {
 	return r.client.Session.Delete().
 		Where(session.HasUserWith(user.IDEQ(userID))).
 		Exec(ctx)
 }
 
 // ReassignAssignedIssues переназначает все задачи, где fromUserID = assignee, на toUserID.
-func (r *Repository) ReassignAssignedIssues(ctx context.Context, fromUserID, toUserID uuid.UUID) (int, error) {
+func (r *entRepository) ReassignAssignedIssues(ctx context.Context, fromUserID, toUserID uuid.UUID) (int, error) {
 	return r.client.Issue.Update().
 		Where(issue.HasAssigneeWith(user.IDEQ(fromUserID))).
 		SetAssigneeID(toUserID).
@@ -370,7 +421,7 @@ func (r *Repository) ReassignAssignedIssues(ctx context.Context, fromUserID, toU
 }
 
 // ReassignReportedIssues переназначает все задачи, где fromUserID = reporter, на toUserID.
-func (r *Repository) ReassignReportedIssues(ctx context.Context, fromUserID, toUserID uuid.UUID) (int, error) {
+func (r *entRepository) ReassignReportedIssues(ctx context.Context, fromUserID, toUserID uuid.UUID) (int, error) {
 	return r.client.Issue.Update().
 		Where(issue.HasReporterWith(user.IDEQ(fromUserID))).
 		SetReporterID(toUserID).
@@ -378,7 +429,7 @@ func (r *Repository) ReassignReportedIssues(ctx context.Context, fromUserID, toU
 }
 
 // ClearUserAssignments очищает поле assignee во всех задачах, где user = assignee.
-func (r *Repository) ClearUserAssignments(ctx context.Context, userID uuid.UUID) (int, error) {
+func (r *entRepository) ClearUserAssignments(ctx context.Context, userID uuid.UUID) (int, error) {
 	return r.client.Issue.Update().
 		Where(issue.HasAssigneeWith(user.IDEQ(userID))).
 		ClearAssignee().
@@ -386,41 +437,41 @@ func (r *Repository) ClearUserAssignments(ctx context.Context, userID uuid.UUID)
 }
 
 // DeleteUserComments удаляет все комментарии пользователя.
-func (r *Repository) DeleteUserComments(ctx context.Context, userID uuid.UUID) (int, error) {
+func (r *entRepository) DeleteUserComments(ctx context.Context, userID uuid.UUID) (int, error) {
 	return r.client.Comment.Delete().
 		Where(comment.HasAuthorWith(user.IDEQ(userID))).
 		Exec(ctx)
 }
 
 // DeleteUserReactions удаляет все реакции пользователя.
-func (r *Repository) DeleteUserReactions(ctx context.Context, userID uuid.UUID) (int, error) {
+func (r *entRepository) DeleteUserReactions(ctx context.Context, userID uuid.UUID) (int, error) {
 	return r.client.Reaction.Delete().
 		Where(reaction.HasUserWith(user.IDEQ(userID))).
 		Exec(ctx)
 }
 
 // DeleteUserActivityLogs удаляет все логи активности пользователя.
-func (r *Repository) DeleteUserActivityLogs(ctx context.Context, userID uuid.UUID) (int, error) {
+func (r *entRepository) DeleteUserActivityLogs(ctx context.Context, userID uuid.UUID) (int, error) {
 	return r.client.ActivityLog.Delete().
 		Where(activitylog.HasUserWith(user.IDEQ(userID))).
 		Exec(ctx)
 }
 
 // DeleteUserTimeLogs удаляет все записи времени пользователя.
-func (r *Repository) DeleteUserTimeLogs(ctx context.Context, userID uuid.UUID) (int, error) {
+func (r *entRepository) DeleteUserTimeLogs(ctx context.Context, userID uuid.UUID) (int, error) {
 	return r.client.TimeLog.Delete().
 		Where(timelog.HasUserWith(user.IDEQ(userID))).
 		Exec(ctx)
 }
 
 // HardDeleteUser окончательно удаляет запись пользователя.
-func (r *Repository) HardDeleteUser(ctx context.Context, userID uuid.UUID) error {
+func (r *entRepository) HardDeleteUser(ctx context.Context, userID uuid.UUID) error {
 	return r.client.User.DeleteOneID(userID).Exec(ctx)
 }
 
 // IsSystemAdmin возвращает true, если у пользователя установлена системная роль admin.
 // Используется audit handler.requireAdmin для проверки доступа к admin-эндпоинтам.
-func (r *Repository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
+func (r *entRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
 	u, err := r.client.User.Get(ctx, userID)
 	if err != nil {
 		return false, err
