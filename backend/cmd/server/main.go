@@ -255,7 +255,7 @@ func main() {
 	rbacCache := rbac.NewPermissionCache(rdb)
 	outboxPublisher := outbox.NewPublisher()
 	projectRepo := projectmod.NewEntRepository(db, outboxPublisher)
-	projectSvc := projectmod.NewProjectService(projectRepo, rbacCache, db, nc)
+	projectSvc := projectmod.NewProjectService(projectRepo, rbacCache, nc)
 	projectHandler := projectmod.NewHandler(projectSvc)
 	projectHandler.RegisterRoutes(api, requireAuth)
 
@@ -545,7 +545,7 @@ func main() {
 	imexHandler.RegisterRoutes(api, requireAuth)
 
 	// Project Templates
-	templateSvc := projectmod.NewTemplateService(db)
+	templateSvc := projectmod.NewTemplateService(projectRepo)
 	if err := templateSvc.SeedSystemTemplates(ctx); err != nil {
 		slog.Error("failed to seed system templates", "error", err)
 	}

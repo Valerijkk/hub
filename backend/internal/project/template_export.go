@@ -33,7 +33,7 @@ const templateExportVersion = 1
 
 // ExportTemplate экспортирует шаблон проекта как JSON для обмена между инстансами.
 func (s *TemplateService) ExportTemplate(ctx context.Context, templateID uuid.UUID) ([]byte, error) {
-	t, err := s.db.ProjectTemplate.Get(ctx, templateID)
+	t, err := s.repo.GetTemplate(ctx, templateID)
 	if err != nil {
 		return nil, fmt.Errorf("template not found: %w", err)
 	}
@@ -73,13 +73,7 @@ func (s *TemplateService) ImportTemplate(ctx context.Context, userID uuid.UUID, 
 		config = make(map[string]interface{})
 	}
 
-	t, err := s.db.ProjectTemplate.Create().
-		SetName(export.Name).
-		SetDescription(export.Description).
-		SetTemplateType(templateType).
-		SetConfig(config).
-		SetCreatedByID(userID).
-		Save(ctx)
+	t, err := s.repo.CreateTemplate(ctx, export.Name, export.Description, templateType, config, &userID, false)
 	if err != nil {
 		return nil, fmt.Errorf("error creating template: %w", err)
 	}

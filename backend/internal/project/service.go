@@ -9,8 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/issue"
-	"github.com/valerii/hub/backend/ent/issuelink"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
@@ -21,7 +19,6 @@ import (
 type ProjectService struct {
 	repo         Repository
 	cache        CacheInvalidator
-	db           *ent.Client
 	nats         *natsclient.Client
 	trackerProv  TrackerProvisioner
 	tmsProv      TMSProvisioner
@@ -42,12 +39,11 @@ func (s *ProjectService) memberCountOrZero(ctx context.Context, projectID uuid.U
 }
 
 // NewProjectService создаёт новый сервис проектов.
-// db и nats могут быть nil (graceful degradation для cleanupCrossProjectLinks).
-func NewProjectService(repo Repository, cache CacheInvalidator, db *ent.Client, nats *natsclient.Client) *ProjectService {
+// nats может быть nil (graceful degradation для notifyLinkDeleted).
+func NewProjectService(repo Repository, cache CacheInvalidator, nats *natsclient.Client) *ProjectService {
 	return &ProjectService{
 		repo:  repo,
 		cache: cache,
-		db:    db,
 		nats:  nats,
 	}
 }
@@ -183,39 +179,21 @@ func (s *ProjectService) DeleteProject(ctx context.Context, projectID uuid.UUID)
 // удаляемому проекту, а другая — другому проекту. Отправляет NATS-уведомление
 // исполнителю задачи из другого проекта.
 func (s *ProjectService) cleanupCrossProjectLinks(ctx context.Context, projectID uuid.UUID, projectName string) {
-	if s.db == nil {
-		return
-	}
-
 	// Связи, где source принадлежит этому проекту, а target — другому.
-	outgoing, err := s.db.IssueLink.Query().
-		Where(
-			issuelink.HasSourceWith(issue.HasProjectWith(project.IDEQ(projectID))),
-			issuelink.HasTargetWith(issue.HasProjectWith(project.IDNEQ(projectID))),
-		).
-		WithSource().
-		WithTarget(func(q *ent.IssueQuery) { q.WithAssignee() }).
-		All(ctx)
+	outgoing, err := s.repo.ListOutgoingCrossProjectLinks(ctx, projectID)
 	if err != nil {
 		slog.Error("ошибка поиска исходящих кросс-проектных связей", "error", err)
 	}
 
 	// Связи, где target принадлежит этому проекту, а source — другому.
-	incoming, err := s.db.IssueLink.Query().
-		Where(
-			issuelink.HasTargetWith(issue.HasProjectWith(project.IDEQ(projectID))),
-			issuelink.HasSourceWith(issue.HasProjectWith(project.IDNEQ(projectID))),
-		).
-		WithTarget().
-		WithSource(func(q *ent.IssueQuery) { q.WithAssignee() }).
-		All(ctx)
+	incoming, err := s.repo.ListIncomingCrossProjectLinks(ctx, projectID)
 	if err != nil {
 		slog.Error("ошибка поиска входящих кросс-проектных связей", "error", err)
 	}
 
 	// Обрабатываем исходящие: уведомляем assignee target-задачи.
 	for _, link := range outgoing {
-		if dErr := s.db.IssueLink.DeleteOneID(link.ID).Exec(ctx); dErr != nil {
+		if dErr := s.repo.DeleteIssueLink(ctx, link.ID); dErr != nil {
 			slog.Error("ошибка удаления кросс-проектной связи", "link_id", link.ID, "error", dErr)
 			continue
 		}
@@ -226,7 +204,7 @@ func (s *ProjectService) cleanupCrossProjectLinks(ctx context.Context, projectID
 
 	// Обрабатываем входящие: уведомляем assignee source-задачи.
 	for _, link := range incoming {
-		if dErr := s.db.IssueLink.DeleteOneID(link.ID).Exec(ctx); dErr != nil {
+		if dErr := s.repo.DeleteIssueLink(ctx, link.ID); dErr != nil {
 			slog.Error("ошибка удаления кросс-проектной связи", "link_id", link.ID, "error", dErr)
 			continue
 		}

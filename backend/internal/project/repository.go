@@ -7,8 +7,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/invite"
+	"github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/issuelink"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
+	"github.com/valerii/hub/backend/ent/projecttemplate"
 	"github.com/valerii/hub/backend/ent/team"
 	"github.com/valerii/hub/backend/ent/teammember"
 	"github.com/valerii/hub/backend/ent/user"
@@ -53,6 +56,28 @@ type Repository interface {
 	TeamMemberCount(ctx context.Context, teamID uuid.UUID) (int, error)
 	ListTeamMembers(ctx context.Context, teamID uuid.UUID) ([]*ent.TeamMember, error)
 	AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error
+
+	// Cross-project issue link cleanup (used by DeleteProject)
+	// ListOutgoingCrossProjectLinks возвращает связи, у которых source принадлежит
+	// заданному проекту, а target — другому. Source и target preload'ятся,
+	// у target дополнительно подгружается assignee для уведомлений.
+	ListOutgoingCrossProjectLinks(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, error)
+	// ListIncomingCrossProjectLinks возвращает связи, у которых target принадлежит
+	// заданному проекту, а source — другому. Target и source preload'ятся,
+	// у source дополнительно подгружается assignee для уведомлений.
+	ListIncomingCrossProjectLinks(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, error)
+	// DeleteIssueLink удаляет связь между задачами по ID.
+	DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error
+
+	// Project template operations (used by TemplateService)
+	ListTemplates(ctx context.Context) ([]*ent.ProjectTemplate, error)
+	GetTemplate(ctx context.Context, id uuid.UUID) (*ent.ProjectTemplate, error)
+	// GetProjectWithWorkflowStatusesAndLabels возвращает проект с preload'ом
+	// workflow_statuses и labels (для сохранения проекта как шаблона).
+	GetProjectWithWorkflowStatusesAndLabels(ctx context.Context, projectID uuid.UUID) (*ent.Project, []string, []string, error)
+	CreateTemplate(ctx context.Context, name, description string, templateType projecttemplate.TemplateType, config map[string]interface{}, createdByID *uuid.UUID, isSystem bool) (*ent.ProjectTemplate, error)
+	DeleteTemplate(ctx context.Context, id uuid.UUID) error
+	CountSystemTemplates(ctx context.Context) (int, error)
 }
 
 // CacheInvalidator abstracts RBAC cache invalidation for testability.
@@ -426,6 +451,101 @@ func (r *EntRepository) ListTeamMembers(ctx context.Context, teamID uuid.UUID) (
 		Where(teammember.HasTeamWith(team.IDEQ(teamID))).
 		WithUser().
 		All(ctx)
+}
+
+// ListOutgoingCrossProjectLinks возвращает связи задач, где source — в данном
+// проекте, а target — в другом. Edges Source/Target/Target.Assignee preload'ятся.
+func (r *EntRepository) ListOutgoingCrossProjectLinks(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, error) {
+	return r.client.IssueLink.Query().
+		Where(
+			issuelink.HasSourceWith(issue.HasProjectWith(project.IDEQ(projectID))),
+			issuelink.HasTargetWith(issue.HasProjectWith(project.IDNEQ(projectID))),
+		).
+		WithSource().
+		WithTarget(func(q *ent.IssueQuery) { q.WithAssignee() }).
+		All(ctx)
+}
+
+// ListIncomingCrossProjectLinks возвращает связи задач, где target — в данном
+// проекте, а source — в другом. Edges Target/Source/Source.Assignee preload'ятся.
+func (r *EntRepository) ListIncomingCrossProjectLinks(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, error) {
+	return r.client.IssueLink.Query().
+		Where(
+			issuelink.HasTargetWith(issue.HasProjectWith(project.IDEQ(projectID))),
+			issuelink.HasSourceWith(issue.HasProjectWith(project.IDNEQ(projectID))),
+		).
+		WithTarget().
+		WithSource(func(q *ent.IssueQuery) { q.WithAssignee() }).
+		All(ctx)
+}
+
+// DeleteIssueLink удаляет связь между задачами по ID.
+func (r *EntRepository) DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error {
+	return r.client.IssueLink.DeleteOneID(linkID).Exec(ctx)
+}
+
+// ListTemplates возвращает все шаблоны проектов, упорядоченные по дате создания.
+func (r *EntRepository) ListTemplates(ctx context.Context) ([]*ent.ProjectTemplate, error) {
+	return r.client.ProjectTemplate.Query().
+		Order(ent.Asc(projecttemplate.FieldCreatedAt)).
+		All(ctx)
+}
+
+// GetTemplate возвращает шаблон проекта по ID.
+func (r *EntRepository) GetTemplate(ctx context.Context, id uuid.UUID) (*ent.ProjectTemplate, error) {
+	return r.client.ProjectTemplate.Get(ctx, id)
+}
+
+// GetProjectWithWorkflowStatusesAndLabels возвращает проект и имена его
+// workflow_statuses и labels — используется при сохранении проекта как шаблона.
+// Возвращает (project, statusNames, labelNames, err). Ошибки получения списков
+// статусов/меток не считаются фатальными (возвращаются пустые срезы).
+func (r *EntRepository) GetProjectWithWorkflowStatusesAndLabels(ctx context.Context, projectID uuid.UUID) (*ent.Project, []string, []string, error) {
+	proj, err := r.client.Project.Get(ctx, projectID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	statuses, _ := r.client.Project.QueryWorkflowStatuses(proj).All(ctx)
+	statusNames := make([]string, 0, len(statuses))
+	for _, st := range statuses {
+		statusNames = append(statusNames, st.Name)
+	}
+
+	labels, _ := r.client.Project.QueryLabels(proj).All(ctx)
+	labelNames := make([]string, 0, len(labels))
+	for _, l := range labels {
+		labelNames = append(labelNames, l.Name)
+	}
+
+	return proj, statusNames, labelNames, nil
+}
+
+// CreateTemplate создаёт шаблон проекта. createdByID может быть nil
+// (для системных шаблонов), isSystem помечает шаблон как системный.
+func (r *EntRepository) CreateTemplate(ctx context.Context, name, description string, templateType projecttemplate.TemplateType, config map[string]interface{}, createdByID *uuid.UUID, isSystem bool) (*ent.ProjectTemplate, error) {
+	create := r.client.ProjectTemplate.Create().
+		SetName(name).
+		SetDescription(description).
+		SetTemplateType(templateType).
+		SetConfig(config).
+		SetIsSystem(isSystem)
+	if createdByID != nil {
+		create = create.SetCreatedByID(*createdByID)
+	}
+	return create.Save(ctx)
+}
+
+// DeleteTemplate удаляет шаблон проекта по ID.
+func (r *EntRepository) DeleteTemplate(ctx context.Context, id uuid.UUID) error {
+	return r.client.ProjectTemplate.DeleteOneID(id).Exec(ctx)
+}
+
+// CountSystemTemplates возвращает количество системных шаблонов.
+func (r *EntRepository) CountSystemTemplates(ctx context.Context) (int, error) {
+	return r.client.ProjectTemplate.Query().
+		Where(projecttemplate.IsSystem(true)).
+		Count(ctx)
 }
 
 // AddTeamToProject links a team to a project and bulk-adds all team members as project members.

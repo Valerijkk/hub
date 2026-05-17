@@ -11,6 +11,7 @@ import (
 	"github.com/valerii/hub/backend/ent/invite"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
+	"github.com/valerii/hub/backend/ent/projecttemplate"
 )
 
 // notFoundErr returns an error that passes ent.IsNotFound.
@@ -329,6 +330,54 @@ func (m *mockRepo) AddTeamToProject(_ context.Context, _, _ uuid.UUID) error {
 	return nil
 }
 
+// --- Cross-project link cleanup (no-op for unit tests) ---
+
+func (m *mockRepo) ListOutgoingCrossProjectLinks(_ context.Context, _ uuid.UUID) ([]*ent.IssueLink, error) {
+	return nil, nil
+}
+
+func (m *mockRepo) ListIncomingCrossProjectLinks(_ context.Context, _ uuid.UUID) ([]*ent.IssueLink, error) {
+	return nil, nil
+}
+
+func (m *mockRepo) DeleteIssueLink(_ context.Context, _ uuid.UUID) error {
+	return nil
+}
+
+// --- Project template operations (no-op for unit tests) ---
+
+func (m *mockRepo) ListTemplates(_ context.Context) ([]*ent.ProjectTemplate, error) {
+	return nil, nil
+}
+
+func (m *mockRepo) GetTemplate(_ context.Context, _ uuid.UUID) (*ent.ProjectTemplate, error) {
+	return nil, notFoundErr()
+}
+
+func (m *mockRepo) GetProjectWithWorkflowStatusesAndLabels(_ context.Context, _ uuid.UUID) (*ent.Project, []string, []string, error) {
+	return nil, nil, nil, notFoundErr()
+}
+
+func (m *mockRepo) CreateTemplate(_ context.Context, name, description string, templateType projecttemplate.TemplateType, config map[string]interface{}, _ *uuid.UUID, isSystem bool) (*ent.ProjectTemplate, error) {
+	return &ent.ProjectTemplate{
+		ID:           uuid.New(),
+		Name:         name,
+		Description:  description,
+		TemplateType: templateType,
+		Config:       config,
+		IsSystem:     isSystem,
+		CreatedAt:    time.Now(),
+	}, nil
+}
+
+func (m *mockRepo) DeleteTemplate(_ context.Context, _ uuid.UUID) error {
+	return nil
+}
+
+func (m *mockRepo) CountSystemTemplates(_ context.Context) (int, error) {
+	return 0, nil
+}
+
 // mockCache implements CacheInvalidator for testing.
 type mockCache struct {
 	invalidated []string
@@ -347,7 +396,7 @@ func (mc *mockCache) Invalidate(_ context.Context, userID, projectID string) err
 func newTestService() (*ProjectService, *mockRepo, *mockCache) {
 	repo := newMockRepo()
 	cache := &mockCache{}
-	svc := NewProjectService(repo, cache, nil, nil)
+	svc := NewProjectService(repo, cache, nil)
 	return svc, repo, cache
 }
 

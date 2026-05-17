@@ -32,19 +32,17 @@ type CreateTemplateRequest struct {
 
 // TemplateService управляет шаблонами проектов: системные + пользовательские.
 type TemplateService struct {
-	db *ent.Client
+	repo Repository
 }
 
 // NewTemplateService создаёт новый сервис шаблонов.
-func NewTemplateService(db *ent.Client) *TemplateService {
-	return &TemplateService{db: db}
+func NewTemplateService(repo Repository) *TemplateService {
+	return &TemplateService{repo: repo}
 }
 
 // ListTemplates возвращает все доступные шаблоны проектов.
 func (s *TemplateService) ListTemplates(ctx context.Context) ([]TemplateResponse, error) {
-	templates, err := s.db.ProjectTemplate.Query().
-		Order(ent.Asc(projecttemplate.FieldCreatedAt)).
-		All(ctx)
+	templates, err := s.repo.ListTemplates(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить шаблоны: %w", err)
 	}
@@ -58,7 +56,7 @@ func (s *TemplateService) ListTemplates(ctx context.Context) ([]TemplateResponse
 
 // GetTemplate возвращает шаблон по ID.
 func (s *TemplateService) GetTemplate(ctx context.Context, id uuid.UUID) (*TemplateResponse, error) {
-	t, err := s.db.ProjectTemplate.Get(ctx, id)
+	t, err := s.repo.GetTemplate(ctx, id)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, fiber.NewError(fiber.StatusNotFound, "шаблон не найден")
@@ -71,24 +69,10 @@ func (s *TemplateService) GetTemplate(ctx context.Context, id uuid.UUID) (*Templ
 // SaveProjectAsTemplate сохраняет текущий проект как custom шаблон.
 // Создаёт снимок конфигурации: statuses, labels, boards, custom_fields.
 func (s *TemplateService) SaveProjectAsTemplate(ctx context.Context, projectID, userID uuid.UUID, req CreateTemplateRequest) (*TemplateResponse, error) {
-	// Собираем конфигурацию проекта
-	proj, err := s.db.Project.Get(ctx, projectID)
+	// Собираем конфигурацию проекта (имена статусов и меток).
+	_, statusNames, labelNames, err := s.repo.GetProjectWithWorkflowStatusesAndLabels(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("проект не найден: %w", err)
-	}
-
-	// Получаем статусы
-	statuses, _ := s.db.Project.QueryWorkflowStatuses(proj).All(ctx)
-	statusNames := make([]string, 0, len(statuses))
-	for _, st := range statuses {
-		statusNames = append(statusNames, st.Name)
-	}
-
-	// Получаем метки
-	labels, _ := s.db.Project.QueryLabels(proj).All(ctx)
-	labelNames := make([]string, 0, len(labels))
-	for _, l := range labels {
-		labelNames = append(labelNames, l.Name)
 	}
 
 	config := map[string]interface{}{
@@ -96,13 +80,7 @@ func (s *TemplateService) SaveProjectAsTemplate(ctx context.Context, projectID, 
 		"labels":   labelNames,
 	}
 
-	t, err := s.db.ProjectTemplate.Create().
-		SetName(req.Name).
-		SetDescription(req.Description).
-		SetTemplateType(projecttemplate.TemplateTypeCustom).
-		SetConfig(config).
-		SetCreatedByID(userID).
-		Save(ctx)
+	t, err := s.repo.CreateTemplate(ctx, req.Name, req.Description, projecttemplate.TemplateTypeCustom, config, &userID, false)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось сохранить шаблон: %w", err)
 	}
@@ -112,7 +90,7 @@ func (s *TemplateService) SaveProjectAsTemplate(ctx context.Context, projectID, 
 
 // DeleteTemplate удаляет пользовательский шаблон (системные нельзя).
 func (s *TemplateService) DeleteTemplate(ctx context.Context, id uuid.UUID) error {
-	t, err := s.db.ProjectTemplate.Get(ctx, id)
+	t, err := s.repo.GetTemplate(ctx, id)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return fiber.NewError(fiber.StatusNotFound, "шаблон не найден")
@@ -124,14 +102,12 @@ func (s *TemplateService) DeleteTemplate(ctx context.Context, id uuid.UUID) erro
 		return fiber.NewError(fiber.StatusForbidden, "системные шаблоны нельзя удалять")
 	}
 
-	return s.db.ProjectTemplate.DeleteOneID(id).Exec(ctx)
+	return s.repo.DeleteTemplate(ctx, id)
 }
 
 // SeedSystemTemplates создаёт системные шаблоны если их ещё нет.
 func (s *TemplateService) SeedSystemTemplates(ctx context.Context) error {
-	count, err := s.db.ProjectTemplate.Query().
-		Where(projecttemplate.IsSystem(true)).
-		Count(ctx)
+	count, err := s.repo.CountSystemTemplates(ctx)
 	if err != nil {
 		return err
 	}
@@ -184,13 +160,7 @@ func (s *TemplateService) SeedSystemTemplates(ctx context.Context) error {
 	}
 
 	for _, tmpl := range templates {
-		_, err := s.db.ProjectTemplate.Create().
-			SetName(tmpl.name).
-			SetDescription(tmpl.desc).
-			SetTemplateType(tmpl.ttype).
-			SetConfig(tmpl.config).
-			SetIsSystem(true).
-			Save(ctx)
+		_, err := s.repo.CreateTemplate(ctx, tmpl.name, tmpl.desc, tmpl.ttype, tmpl.config, nil, true)
 		if err != nil {
 			return fmt.Errorf("не удалось создать системный шаблон %s: %w", tmpl.name, err)
 		}
