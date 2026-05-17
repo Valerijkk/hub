@@ -161,10 +161,12 @@ function LoginPage() {
 						<span className="text-[var(--t3)] text-xs">Аккаунт создаётся автоматически при первом входе.</span>
 					</div>
 
-					{/* Dev login panel */}
-					<div className="mt-6">
-						<DevLoginPanel onSuccess={handleDevLoginSuccess} />
-					</div>
+					{/* Dev login panel — рендерится только в dev-сборке */}
+					{import.meta.env.DEV && (
+						<div className="mt-6">
+							<DevLoginPanel onSuccess={handleDevLoginSuccess} />
+						</div>
+					)}
 				</div>
 			</div>
 		</div>
