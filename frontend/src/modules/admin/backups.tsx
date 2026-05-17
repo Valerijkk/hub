@@ -6,6 +6,7 @@ import {
 	restoreBackup,
 	triggerBackup,
 } from "@/api/backup";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 /** Форматирует размер файла в человекочитаемый вид. */
 function formatSize(bytes: number): string {
@@ -22,6 +23,7 @@ export function BackupsPage() {
 	const [creating, setCreating] = useState(false);
 	const [restoreConfirm, setRestoreConfirm] = useState<string | null>(null);
 	const [restoreInput, setRestoreInput] = useState("");
+	const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
 
 	const fetchBackups = useCallback(async () => {
 		try {
@@ -56,7 +58,6 @@ export function BackupsPage() {
 	};
 
 	const handleDelete = async (id: string) => {
-		if (!confirm("Удалить этот бэкап?")) return;
 		await deleteBackup(id);
 		fetchBackups();
 	};
@@ -163,7 +164,7 @@ export function BackupsPage() {
 										)}
 										<button
 											type="button"
-											onClick={() => handleDelete(b.id)}
+											onClick={() => setDeleteDialogId(b.id)}
 											className="text-[12px] font-bold text-red hover:underline"
 										>
 											Удалить
@@ -175,6 +176,22 @@ export function BackupsPage() {
 					</tbody>
 				</table>
 			)}
+
+			<ConfirmDialog
+				open={deleteDialogId !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeleteDialogId(null);
+				}}
+				title="Удалить бэкап?"
+				description="Резервная копия будет удалена безвозвратно."
+				confirmLabel="Удалить"
+				destructive
+				onConfirm={async () => {
+					if (deleteDialogId) {
+						await handleDelete(deleteDialogId);
+					}
+				}}
+			/>
 		</div>
 	);
 }

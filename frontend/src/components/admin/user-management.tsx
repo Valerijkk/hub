@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { deactivateUser, gdprDeleteUser, reassignTasks } from "@/api/admin";
 import { api } from "@/api/client";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 /** Пользователь для управления. */
 interface ManagedUser {
@@ -146,6 +147,8 @@ export function UserManagement() {
 	const [gdprDialogUser, setGdprDialogUser] = useState<ManagedUser | null>(
 		null,
 	);
+	const [deactivateDialogUser, setDeactivateDialogUser] =
+		useState<ManagedUser | null>(null);
 
 	useEffect(() => {
 		setLoading(true);
@@ -176,13 +179,6 @@ export function UserManagement() {
 
 	/** Деактивировать пользователя. */
 	const handleDeactivate = async (user: ManagedUser) => {
-		if (
-			!confirm(
-				`Деактивировать пользователя "${user.name || user.email}"? Все его сессии будут отозваны.`,
-			)
-		)
-			return;
-
 		setActionUserId(user.id);
 		try {
 			await deactivateUser(user.id);
@@ -325,7 +321,7 @@ export function UserManagement() {
 											{user.status !== "deactivated" && (
 												<button
 													type="button"
-													onClick={() => handleDeactivate(user)}
+													onClick={() => setDeactivateDialogUser(user)}
 													disabled={actionUserId === user.id}
 													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
 													title="Деактивировать"
@@ -378,6 +374,31 @@ export function UserManagement() {
 					disabled={actionUserId === gdprDialogUser.id}
 				/>
 			)}
+
+			{/* Диалог деактивации */}
+			<ConfirmDialog
+				open={deactivateDialogUser !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeactivateDialogUser(null);
+				}}
+				title="Деактивировать пользователя?"
+				description={
+					deactivateDialogUser
+						? `Пользователь "${deactivateDialogUser.name || deactivateDialogUser.email}" будет деактивирован. Все его сессии будут отозваны.`
+						: undefined
+				}
+				confirmLabel="Деактивировать"
+				destructive
+				disabled={
+					deactivateDialogUser !== null &&
+					actionUserId === deactivateDialogUser.id
+				}
+				onConfirm={async () => {
+					if (deactivateDialogUser) {
+						await handleDeactivate(deactivateDialogUser);
+					}
+				}}
+			/>
 		</div>
 	);
 }

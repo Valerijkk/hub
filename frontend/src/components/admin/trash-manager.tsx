@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getTrash, restoreItem, type TrashItem } from "@/api/admin";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 /** Вкладки корзины. */
 const TRASH_TABS = [
@@ -21,6 +22,9 @@ export function TrashManager() {
 	const [page, setPage] = useState(1);
 	const [loading, setLoading] = useState(false);
 	const [restoringId, setRestoringId] = useState<string | null>(null);
+	const [restoreDialogItem, setRestoreDialogItem] = useState<TrashItem | null>(
+		null,
+	);
 
 	const fetchTrash = useCallback(async () => {
 		setLoading(true);
@@ -48,8 +52,6 @@ export function TrashManager() {
 
 	/** Восстановить элемент из корзины. */
 	const handleRestore = async (item: TrashItem) => {
-		if (!confirm(`Восстановить "${item.name}"?`)) return;
-
 		setRestoringId(item.id);
 		try {
 			await restoreItem(item.entity_type, item.id);
@@ -136,7 +138,7 @@ export function TrashManager() {
 									<td className="px-3 py-2 text-right">
 										<button
 											type="button"
-											onClick={() => handleRestore(item)}
+											onClick={() => setRestoreDialogItem(item)}
 											disabled={restoringId === item.id}
 											className="rounded bg-green-600 px-2.5 py-1 text-xs text-white hover:bg-green-700 disabled:opacity-50"
 										>
@@ -151,6 +153,29 @@ export function TrashManager() {
 					</tbody>
 				</table>
 			</div>
+
+			<ConfirmDialog
+				open={restoreDialogItem !== null}
+				onOpenChange={(open) => {
+					if (!open) setRestoreDialogItem(null);
+				}}
+				title="Восстановить элемент?"
+				description={
+					restoreDialogItem
+						? `"${restoreDialogItem.name}" будет восстановлен из корзины.`
+						: undefined
+				}
+				confirmLabel="Восстановить"
+				destructive={false}
+				disabled={
+					restoreDialogItem !== null && restoringId === restoreDialogItem.id
+				}
+				onConfirm={async () => {
+					if (restoreDialogItem) {
+						await handleRestore(restoreDialogItem);
+					}
+				}}
+			/>
 
 			{/* Пагинация */}
 			{totalPages > 1 && (
