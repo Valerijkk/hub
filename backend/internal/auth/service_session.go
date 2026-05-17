@@ -114,36 +114,46 @@ func (s *SessionService) deleteRefreshToken(ctx context.Context, token string) {
 
 // invalidateUserSessions удаляет все активные сессии пользователя (DB + Redis).
 // ME-01: bulk DELETE + Redis pipeline вместо N+1.
-func (s *SessionService) invalidateUserSessions(ctx context.Context, userID uuid.UUID) {
+// Возвращает ошибку, чтобы single-session policy не нарушалась на сбое БД:
+// если предыдущие сессии не удалены, новая создаваться не должна.
+// Redis-сбой при удалении refresh-токенов трактуется как warning — TTL всё равно
+// сработает, а сама запись о сессии в БД уже отсутствует, так что доступ закрыт.
+func (s *SessionService) invalidateUserSessions(ctx context.Context, userID uuid.UUID) error {
 	tokens, err := s.db.Session.Query().
 		Where(session.HasUserWith(user.ID(userID))).
 		Select(session.FieldRefreshToken).
 		Strings(ctx)
 	if err != nil {
 		slog.Error("invalidateUserSessions: query refresh tokens", "error", err, "user_id", userID)
-		return
+		return fmt.Errorf("invalidate user sessions: query: %w", err)
 	}
 	if _, err := s.db.Session.Delete().
 		Where(session.HasUserWith(user.ID(userID))).
 		Exec(ctx); err != nil {
 		slog.Error("invalidateUserSessions: bulk delete sessions", "error", err, "user_id", userID)
+		return fmt.Errorf("invalidate user sessions: delete: %w", err)
 	}
 	if len(tokens) == 0 {
-		return
+		return nil
 	}
 	pipe := s.redis.Pipeline()
 	for _, t := range tokens {
 		pipe.Del(ctx, refreshKey(t))
 	}
 	if _, err := pipe.Exec(ctx); err != nil {
+		// Не блокируем создание новой сессии: запись в БД уже удалена,
+		// refresh-токены протухнут по TTL.
 		slog.Warn("invalidateUserSessions: redis pipeline del", "error", err, "user_id", userID, "tokens", len(tokens))
 	}
+	return nil
 }
 
 // CreateSession генерирует JWT + refresh-токен, сохраняет сессию и публикует NATS-событие.
 // Перед созданием все существующие сессии пользователя инвалидируются (single session policy).
 func (s *SessionService) CreateSession(ctx context.Context, userID uuid.UUID, device, ip string) (*TokenPairResponse, error) {
-	s.invalidateUserSessions(ctx, userID)
+	if err := s.invalidateUserSessions(ctx, userID); err != nil {
+		return nil, fmt.Errorf("create session: %w", err)
+	}
 	sessionID := uuid.New()
 	refreshToken := uuid.New().String()
 	accessToken, err := s.generateAccessToken(userID, sessionID)
