@@ -69,6 +69,16 @@ func (s *TemplateService) GetTemplate(ctx context.Context, id uuid.UUID) (*Templ
 // SaveProjectAsTemplate сохраняет текущий проект как custom шаблон.
 // Создаёт снимок конфигурации: statuses, labels, boards, custom_fields.
 func (s *TemplateService) SaveProjectAsTemplate(ctx context.Context, projectID, userID uuid.UUID, req CreateTemplateRequest) (*TemplateResponse, error) {
+	// Проверяем, что пользователь — участник проекта.
+	// Без этого любой аутентифицированный пользователь, знающий UUID проекта,
+	// мог бы прочитать имена статусов и меток через сохранение в шаблон.
+	if _, err := s.repo.FindMember(ctx, projectID, userID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperr.NewForbidden(apperr.MsgForbidden)
+		}
+		return nil, fmt.Errorf("ошибка проверки членства: %w", err)
+	}
+
 	// Собираем конфигурацию проекта (имена статусов и меток).
 	_, statusNames, labelNames, err := s.repo.GetProjectWithWorkflowStatusesAndLabels(ctx, projectID)
 	if err != nil {
