@@ -528,7 +528,7 @@ func main() {
 	} else {
 		backupS3Client = storageSvc.S3Client()
 	}
-	backupSvc := backupmod.NewBackupService(db, backupS3Client, backupS3Bucket, cfg.Postgres.URL, cfg.MongoDB.URL)
+	backupSvc := backupmod.NewBackupService(rootCtx, db, backupS3Client, backupS3Bucket, cfg.Postgres.URL, cfg.MongoDB.URL)
 	backupHandler := backupmod.NewHandler(backupSvc)
 	backupHandler.RegisterRoutes(api, requireAuth, rbac.RequireAdmin(db))
 

@@ -26,17 +26,32 @@ type BackupService struct {
 	pgURL      string
 	mongoURL   string
 	maxBackups int
+
+	// lifecycleCtx — долгоживущий контекст (rootCtx из main), используемый
+	// для фоновых goroutine'ов (например, ротация старых бэкапов в
+	// cleanupOldBackups). НЕ используйте request-scoped ctx — он
+	// отменяется по завершении HTTP-handler'а и может убить cleanup
+	// в середине DELETE.
+	lifecycleCtx context.Context
 }
 
 // NewBackupService создаёт новый сервис резервного копирования.
-func NewBackupService(db *ent.Client, s3Client *s3.Client, s3Bucket, pgURL, mongoURL string) *BackupService {
+//
+// rootCtx должен быть долгоживущим контекстом (обычно signal.NotifyContext
+// из main) — он используется для фоновых задач сервиса (ротация старых
+// бэкапов и т.п.). Передавайте именно rootCtx, а не request-ctx Fiber'а.
+func NewBackupService(rootCtx context.Context, db *ent.Client, s3Client *s3.Client, s3Bucket, pgURL, mongoURL string) *BackupService {
+	if rootCtx == nil {
+		rootCtx = context.Background()
+	}
 	return &BackupService{
-		db:         db,
-		s3Client:   s3Client,
-		s3Bucket:   s3Bucket,
-		pgURL:      pgURL,
-		mongoURL:   mongoURL,
-		maxBackups: 4,
+		db:           db,
+		s3Client:     s3Client,
+		s3Bucket:     s3Bucket,
+		pgURL:        pgURL,
+		mongoURL:     mongoURL,
+		maxBackups:   4,
+		lifecycleCtx: rootCtx,
 	}
 }
 
@@ -99,8 +114,14 @@ func (s *BackupService) PerformBackup(ctx context.Context) (*BackupResponse, err
 		return nil, fmt.Errorf("не удалось обновить статус бэкапа: %w", err)
 	}
 
-	// Ротация старых бэкапов
-	go s.cleanupOldBackups(ctx)
+	// Ротация старых бэкапов. Используем lifecycleCtx (rootCtx), чтобы
+	// goroutine не была убита в середине DeleteObject/DeleteOneID при
+	// завершении HTTP-handler'а, инициировавшего бэкап.
+	cleanupCtx := s.lifecycleCtx
+	if cleanupCtx == nil {
+		cleanupCtx = context.Background()
+	}
+	go s.cleanupOldBackups(cleanupCtx)
 
 	return toBackupResponse(record), nil
 }
