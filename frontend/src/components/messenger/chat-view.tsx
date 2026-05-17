@@ -401,8 +401,17 @@ export function ChatView({ channelId }: ChatViewProps) {
 				{/* Thread panel */}
 				{activeThreadMessageId && (
 					<div
+						role="dialog"
+						aria-label="Тред"
+						tabIndex={-1}
+						onKeyDown={(e) => {
+							if (e.key === "Escape") {
+								e.stopPropagation();
+								closeThread();
+							}
+						}}
 						className={cn(
-							"w-96 shrink-0 border-l",
+							"w-96 shrink-0 border-l outline-none",
 							"max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-50 max-md:w-full max-md:bg-base",
 						)}
 					>
