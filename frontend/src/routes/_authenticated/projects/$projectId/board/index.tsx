@@ -9,6 +9,7 @@ import {
 	listBoards,
 	moveIssue,
 } from "@/api/tracker";
+import { QueryStateView } from "@/components/query-state-view";
 import { BoardColumn } from "@/components/tracker/board-column";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,12 +51,13 @@ function BoardPage() {
 	}, [boards, activeBoardId, setActiveBoard]);
 
 	// Загрузка данных доски
-	const { data: boardData, isLoading } = useQuery({
+	const boardQuery = useQuery({
 		queryKey: ["board", projectId, activeBoardId],
 		// biome-ignore lint/style/noNonNullAssertion: enabled flag guards activeBoardId being defined
 		queryFn: () => getBoardData(projectId, activeBoardId!),
 		enabled: !!activeBoardId,
 	});
+	const { data: boardData } = boardQuery;
 
 	// Мутация перемещения задачи с оптимистичным обновлением
 	const moveCardMutation = useMutation({
@@ -161,36 +163,34 @@ function BoardPage() {
 		}));
 	}, [boardData?.columns, filters]);
 
-	if (isLoading) {
-		return (
-			<div className="board-page-root flex flex-col">
-				{/* Скелетон панели фильтров */}
-				<div className="flex items-center gap-3 px-2 pb-4">
-					<div className="h-9 w-48 rounded-lg animate-shimmer" />
-					<div className="h-9 w-24 rounded-lg animate-shimmer" />
-					<div className="ml-auto h-9 w-32 rounded-lg animate-shimmer" />
-				</div>
-				{/* Скелетон колонок */}
-				<div className="flex flex-1 gap-4 overflow-x-auto pb-4">
-					{[1, 2, 3, 4, 5, 6].map((i) => (
-						<div
-							key={`board-col-sk-${i}`}
-							className="flex w-[300px] min-w-[300px] flex-shrink-0 flex-col rounded-xl border border-border/40 bg-raised/30"
-						>
-							<div className="px-4 py-3">
-								<div className="h-5 w-24 rounded animate-shimmer" />
-							</div>
-							<div className="space-y-2 px-2 pb-2">
-								{[1, 2, 3].map((j) => (
-									<div key={`board-card-sk-${i}-${j}`} className="h-28 rounded-lg animate-shimmer" />
-								))}
-							</div>
-						</div>
-					))}
-				</div>
+	const boardLoadingFallback = (
+		<div className="board-page-root flex flex-col">
+			{/* Скелетон панели фильтров */}
+			<div className="flex items-center gap-3 px-2 pb-4">
+				<div className="h-9 w-48 rounded-lg animate-shimmer" />
+				<div className="h-9 w-24 rounded-lg animate-shimmer" />
+				<div className="ml-auto h-9 w-32 rounded-lg animate-shimmer" />
 			</div>
-		);
-	}
+			{/* Скелетон колонок */}
+			<div className="flex flex-1 gap-4 overflow-x-auto pb-4">
+				{[1, 2, 3, 4, 5, 6].map((i) => (
+					<div
+						key={`board-col-sk-${i}`}
+						className="flex w-[300px] min-w-[300px] flex-shrink-0 flex-col rounded-xl border border-border/40 bg-raised/30"
+					>
+						<div className="px-4 py-3">
+							<div className="h-5 w-24 rounded animate-shimmer" />
+						</div>
+						<div className="space-y-2 px-2 pb-2">
+							{[1, 2, 3].map((j) => (
+								<div key={`board-card-sk-${i}-${j}`} className="h-28 rounded-lg animate-shimmer" />
+							))}
+						</div>
+					</div>
+				))}
+			</div>
+		</div>
+	);
 
 	return (
 		<div className="board-page-root flex flex-col">
@@ -269,50 +269,57 @@ function BoardPage() {
 			</div>
 
 			{/* Колонки доски с горизонтальной прокруткой */}
-			{filteredColumns.length > 0 ? (
-				<div className="flex-1 overflow-x-auto overflow-y-hidden">
-					<div className="flex gap-4 px-6 py-5 overflow-x-auto flex-1 items-start kanban-enter">
-						{filteredColumns.map((col) => (
-							<BoardColumn
-								key={col.status.id}
-								status={col.status}
-								issues={col.issues}
-								projectId={projectId}
-								onDrop={handleDrop}
-							/>
-						))}
-					</div>
-				</div>
-			) : (
-				<div className="flex flex-1 items-center justify-center">
-					<div className="text-center max-w-sm animate-fade-in">
-						<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-							<svg
-								className="h-8 w-8 text-primary/50"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={1.5}
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
-								/>
-							</svg>
+			<QueryStateView
+				query={boardQuery}
+				loadingFallback={boardLoadingFallback}
+				isEmpty={() => filteredColumns.length === 0}
+				emptyFallback={
+					<div className="flex flex-1 items-center justify-center">
+						<div className="text-center max-w-sm animate-fade-in">
+							<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+								<svg
+									className="h-8 w-8 text-primary/50"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									strokeWidth={1.5}
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+									/>
+								</svg>
+							</div>
+							<h3 className="text-lg font-semibold mb-2">Нет задач на доске</h3>
+							<p className="text-sm text-t2 mb-4">
+								Создайте первую задачу, чтобы начать работу с доской
+							</p>
+							<Button asChild>
+								<Link to="/projects/$projectId/issues/new" params={{ projectId }}>
+									Создать задачу
+								</Link>
+							</Button>
 						</div>
-						<h3 className="text-lg font-semibold mb-2">Нет задач на доске</h3>
-						<p className="text-sm text-t2 mb-4">
-							Создайте первую задачу, чтобы начать работу с доской
-						</p>
-						<Button asChild>
-							<Link to="/projects/$projectId/issues/new" params={{ projectId }}>
-								Создать задачу
-							</Link>
-						</Button>
 					</div>
-				</div>
-			)}
+				}
+			>
+				{() => (
+					<div className="flex-1 overflow-x-auto overflow-y-hidden">
+						<div className="flex gap-4 px-6 py-5 overflow-x-auto flex-1 items-start kanban-enter">
+							{filteredColumns.map((col) => (
+								<BoardColumn
+									key={col.status.id}
+									status={col.status}
+									issues={col.issues}
+									projectId={projectId}
+									onDrop={handleDrop}
+								/>
+							))}
+						</div>
+					</div>
+				)}
+			</QueryStateView>
 		</div>
 	);
 }

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { listProjects } from "@/api/projects";
+import { QueryStateView } from "@/components/query-state-view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  * скелетон-загрузка, CTA для создания нового проекта.
  */
 function ProjectsPage() {
-	const { data: projects, isLoading } = useQuery({
+	const projectsQuery = useQuery({
 		queryKey: ["projects"],
 		queryFn: listProjects,
 	});
@@ -106,79 +107,78 @@ function ProjectsPage() {
 
 				<TabsContent value="list" className="space-y-0">
 
-			{/* Скелетон-загрузка */}
-			{isLoading && (
-				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					{[1, 2, 3].map((i) => (
-						<div key={`proj-sk-${i}`} className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-5">
-							<div className="space-y-3">
-								<div className="h-5 w-2/3 rounded-md animate-shimmer" />
-								<div className="h-4 w-1/4 rounded-md animate-shimmer" />
-								<div className="h-4 w-full rounded-md animate-shimmer" />
-								<div className="h-3 w-1/3 rounded-md animate-shimmer" />
+			<QueryStateView
+				query={projectsQuery}
+				isEmpty={(p) => p.length === 0}
+				loadingFallback={
+					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+						{[1, 2, 3].map((i) => (
+							<div key={`proj-sk-${i}`} className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-5">
+								<div className="space-y-3">
+									<div className="h-5 w-2/3 rounded-md animate-shimmer" />
+									<div className="h-4 w-1/4 rounded-md animate-shimmer" />
+									<div className="h-4 w-full rounded-md animate-shimmer" />
+									<div className="h-3 w-1/3 rounded-md animate-shimmer" />
+								</div>
 							</div>
-						</div>
-					))}
-				</div>
-			)}
-
-			{/* Пустое состояние */}
-			{!isLoading && projects?.length === 0 && (
-				<div className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-dashed border-b1 bg-card/50 py-20 px-6 animate-[eu_450ms_var(--spring)_both]">
-					{/* Illustration */}
-					<div className="relative mb-6">
-						<div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--blueS)]/10 to-[var(--purpleS)]/10">
-							<svg
-								className="h-10 w-10 text-blue/60"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="1.5"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-							>
-								<rect x="3" y="3" width="7" height="7" rx="2" />
-								<rect x="14" y="3" width="7" height="7" rx="2" />
-								<rect x="3" y="14" width="7" height="7" rx="2" />
-								<rect x="14" y="14" width="7" height="7" rx="2" />
-							</svg>
-						</div>
-						<div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-blue/20 animate-pulse" />
-						<div
-							className="absolute -bottom-1 -left-1 h-3 w-3 rounded-full bg-[var(--purpleS)]/20 animate-pulse"
-							style={{ animationDelay: "0.5s" }}
-						/>
+						))}
 					</div>
-					<h3 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1 mb-2">Нет проектов</h3>
-					<p className="mb-8 text-[13px] text-t2 text-center max-w-sm leading-[1.5]">
-						Создайте первый проект для вашей команды, чтобы начать работу с
-						задачами, тестами и общением.
-					</p>
-					<Button
-						asChild
-						className="bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] hover:from-blue hover:to-[var(--blueS)] text-white shadow-md shadow-blue/25 hover-pulse"
-					>
-						<Link to="/projects/new">
-							<svg
-								className="mr-2 h-4 w-4"
-								viewBox="0 0 16 16"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-							>
-								<path d="M8 2v12M2 8h12" />
-							</svg>
-							Создать первый проект
-						</Link>
-					</Button>
-				</div>
-			)}
-
-			{/* Сетка проектов */}
-			{projects && projects.length > 0 && (
-				<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-					{projects.map((project, index) => (
+				}
+				emptyFallback={
+					<div className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-dashed border-b1 bg-card/50 py-20 px-6 animate-[eu_450ms_var(--spring)_both]">
+						{/* Illustration */}
+						<div className="relative mb-6">
+							<div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--blueS)]/10 to-[var(--purpleS)]/10">
+								<svg
+									className="h-10 w-10 text-blue/60"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="1.5"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								>
+									<rect x="3" y="3" width="7" height="7" rx="2" />
+									<rect x="14" y="3" width="7" height="7" rx="2" />
+									<rect x="3" y="14" width="7" height="7" rx="2" />
+									<rect x="14" y="14" width="7" height="7" rx="2" />
+								</svg>
+							</div>
+							<div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-blue/20 animate-pulse" />
+							<div
+								className="absolute -bottom-1 -left-1 h-3 w-3 rounded-full bg-[var(--purpleS)]/20 animate-pulse"
+								style={{ animationDelay: "0.5s" }}
+							/>
+						</div>
+						<h3 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1 mb-2">Нет проектов</h3>
+						<p className="mb-8 text-[13px] text-t2 text-center max-w-sm leading-[1.5]">
+							Создайте первый проект для вашей команды, чтобы начать работу с
+							задачами, тестами и общением.
+						</p>
+						<Button
+							asChild
+							className="bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] hover:from-blue hover:to-[var(--blueS)] text-white shadow-md shadow-blue/25 hover-pulse"
+						>
+							<Link to="/projects/new">
+								<svg
+									className="mr-2 h-4 w-4"
+									viewBox="0 0 16 16"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+								>
+									<path d="M8 2v12M2 8h12" />
+								</svg>
+								Создать первый проект
+							</Link>
+						</Button>
+					</div>
+				}
+			>
+				{(projects) => (
+					<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+						{projects.map((project, index) => (
 						<Link
 							key={project.id}
 							to="/projects/$projectId"
@@ -242,8 +242,9 @@ function ProjectsPage() {
 							</div>
 						</Link>
 					))}
-				</div>
-			)}
+					</div>
+				)}
+			</QueryStateView>
 				</TabsContent>
 			</Tabs>
 		</div>

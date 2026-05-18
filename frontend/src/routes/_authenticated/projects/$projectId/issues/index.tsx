@@ -6,6 +6,7 @@ import {
 	type ListIssuesParams,
 	listIssues,
 } from "@/api/tracker";
+import { QueryStateView } from "@/components/query-state-view";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,10 +65,11 @@ function IssueListPage() {
 		issue_type: typeFilter || undefined,
 	};
 
-	const { data, isLoading } = useQuery({
+	const issuesQuery = useQuery({
 		queryKey: ["issues", projectId, params],
 		queryFn: () => listIssues(projectId, params),
 	});
+	const { data, isLoading } = issuesQuery;
 
 	// Для cursor-based: накапливаем задачи
 	const displayIssues = cursor ? allIssues : (data?.items ?? []);
@@ -165,48 +167,54 @@ function IssueListPage() {
 			</div>
 
 			{/* Таблица задач */}
-			{isLoading && !cursor ? (
-				<div className="animate-fade-in rounded-md border">
-					{/* Table header skeleton */}
-					<div className="flex items-center gap-4 border-b bg-raised/30 px-4 py-3">
-						<div className="h-4 w-20 rounded animate-shimmer" />
-						<div className="h-4 w-12 rounded animate-shimmer" />
-						<div className="h-4 w-48 rounded animate-shimmer flex-1" />
-						<div className="h-4 w-20 rounded animate-shimmer" />
-						<div className="h-4 w-20 rounded animate-shimmer" />
-						<div className="h-4 w-16 rounded animate-shimmer" />
-					</div>
-					{/* Table rows skeleton */}
-					{[1, 2, 3, 4, 5, 6].map((i) => (
-						<div
-							key={`issue-sk-${i}`}
-							className="flex items-center gap-4 border-b last:border-b-0 px-4 py-3"
-						>
+			<QueryStateView
+				query={issuesQuery}
+				isEmpty={() => displayIssues.length === 0}
+				loadingFallback={
+					<div className="animate-fade-in rounded-md border">
+						{/* Table header skeleton */}
+						<div className="flex items-center gap-4 border-b bg-raised/30 px-4 py-3">
 							<div className="h-4 w-20 rounded animate-shimmer" />
-							<div className="h-5 w-5 rounded animate-shimmer" />
-							<div
-								className="h-4 rounded animate-shimmer flex-1"
-								style={{ width: `${40 + ((i * 7) % 30)}%` }}
-							/>
-							<div className="h-5 w-16 rounded-full animate-shimmer" />
-							<div className="h-5 w-16 rounded-full animate-shimmer" />
-							<div className="h-6 w-6 rounded-full animate-shimmer" />
+							<div className="h-4 w-12 rounded animate-shimmer" />
+							<div className="h-4 w-48 rounded animate-shimmer flex-1" />
+							<div className="h-4 w-20 rounded animate-shimmer" />
+							<div className="h-4 w-20 rounded animate-shimmer" />
+							<div className="h-4 w-16 rounded animate-shimmer" />
 						</div>
-					))}
-				</div>
-			) : displayIssues.length === 0 ? (
-				<div className="flex flex-col items-center justify-center py-12">
-					<p className="mb-4 text-lg text-t2">
-						Задачи не найдены
-					</p>
-					<Button asChild>
-						<Link to="/projects/$projectId/issues/new" params={{ projectId }}>
-							Создать задачу
-						</Link>
-					</Button>
-				</div>
-			) : (
-				<>
+						{/* Table rows skeleton */}
+						{[1, 2, 3, 4, 5, 6].map((i) => (
+							<div
+								key={`issue-sk-${i}`}
+								className="flex items-center gap-4 border-b last:border-b-0 px-4 py-3"
+							>
+								<div className="h-4 w-20 rounded animate-shimmer" />
+								<div className="h-5 w-5 rounded animate-shimmer" />
+								<div
+									className="h-4 rounded animate-shimmer flex-1"
+									style={{ width: `${40 + ((i * 7) % 30)}%` }}
+								/>
+								<div className="h-5 w-16 rounded-full animate-shimmer" />
+								<div className="h-5 w-16 rounded-full animate-shimmer" />
+								<div className="h-6 w-6 rounded-full animate-shimmer" />
+							</div>
+						))}
+					</div>
+				}
+				emptyFallback={
+					<div className="flex flex-col items-center justify-center py-12">
+						<p className="mb-4 text-lg text-t2">
+							Задачи не найдены
+						</p>
+						<Button asChild>
+							<Link to="/projects/$projectId/issues/new" params={{ projectId }}>
+								Создать задачу
+							</Link>
+						</Button>
+					</div>
+				}
+			>
+				{() => (
+					<>
 					<div className="rounded-md border overflow-x-auto">
 						<table className="w-full">
 							<thead>
@@ -319,8 +327,9 @@ function IssueListPage() {
 							</Button>
 						</div>
 					)}
-				</>
-			)}
+					</>
+				)}
+			</QueryStateView>
 		</div>
 	);
 }
