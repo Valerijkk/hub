@@ -327,12 +327,14 @@ function ChannelItem({
 	unread,
 	getStatus,
 	getDmPartnerId,
+	onSelect,
 }: {
 	channel: Channel;
 	isActive: boolean;
 	unread: number;
 	getStatus: (userId: string) => PresenceStatus;
 	getDmPartnerId: (ch: Channel) => string | undefined;
+	onSelect?: () => void;
 }) {
 	const queryClient = useQueryClient();
 	const [muteMenu, setMuteMenu] = useState<{ x: number; y: number } | null>(
@@ -374,6 +376,7 @@ function ChannelItem({
 					isActive && "bg-[rgba(52,211,153,.04)] border-l-[var(--green)]",
 					!isActive && "hover:bg-[var(--hover)]",
 				)}
+				onClick={onSelect}
 				onContextMenu={handleContextMenu}
 			>
 				{/* Icon with online dot for DM */}
@@ -459,7 +462,16 @@ function ChannelItem({
  * относительное время, badge непрочитанных и индикатор онлайна для ЛС.
  * Закреплённые (starred) каналы отображаются в отдельной секции сверху.
  */
-export function ChannelList() {
+/** Пропсы списка каналов. */
+interface ChannelListProps {
+	/**
+	 * Колбэк выбора канала. Используется на мобилке, чтобы закрыть drawer.
+	 * На десктопе можно не передавать.
+	 */
+	onChannelSelect?: () => void;
+}
+
+export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 	const { data: channels, isLoading } = useChannels();
 	useUnread();
 	const unreadCounts = useMessengerStore((s) => s.unreadCounts);
@@ -533,6 +545,7 @@ export function ChannelList() {
 				unread={unread}
 				getStatus={getStatus}
 				getDmPartnerId={getDmPartnerId}
+				onSelect={onChannelSelect}
 			/>
 		);
 	};

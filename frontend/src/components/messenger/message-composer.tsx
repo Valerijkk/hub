@@ -648,16 +648,24 @@ export function MessageComposer({
 						</PopoverContent>
 					</Popover>
 
-					{/* GIF picker */}
-					<GifPicker onSelect={(url) => void handleGifSend(url)} />
+					{/*
+					 * Mobile: вторичные действия (GIF/стикеры/опрос) прячем на <md, чтобы
+					 * не было горизонтального переполнения шапки композера на узких
+					 * экранах. Эти возможности возвращаются на >=md.
+					 * Голосовое, эмодзи, прикрепление файла и отправка остаются всегда.
+					 */}
+					<div className="hidden md:flex items-center">
+						{/* GIF picker */}
+						<GifPicker onSelect={(url) => void handleGifSend(url)} />
 
-					{/* Sticker picker */}
-					<StickerPicker onSelect={(s) => void handleStickerSend(s)} />
+						{/* Sticker picker */}
+						<StickerPicker onSelect={(s) => void handleStickerSend(s)} />
+					</div>
 
 					{/* Poll button */}
 					<button
 						type="button"
-						className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
+						className="hidden md:flex w-[38px] h-[38px] items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 						title="Опрос"
 						onClick={() => setShowPollDialog(true)}
 					>

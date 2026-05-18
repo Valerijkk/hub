@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { Menu } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Channel, Message } from "@/api/messenger";
 import { getChannel } from "@/api/messenger";
 import { CallButton } from "@/components/calls/CallButton";
+import { useChannelDrawer } from "./channel-drawer-context";
 import { InviteLinkDialog } from "./invite-link-dialog";
 import { PinnedMessages } from "./pinned-messages";
 import { SearchDialog } from "./search-dialog";
@@ -127,6 +129,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 	);
 	const closeThread = useMessengerStore((s) => s.closeThread);
 	const typingUsers = useMessengerStore((s) => s.typingUsers[channelId]) ?? [];
+	const { setOpen: setDrawerOpen } = useChannelDrawer();
 
 	// Подписка на typing-события для текущего канала.
 	useTypingIndicator(channelId);
@@ -213,7 +216,17 @@ export function ChatView({ channelId }: ChatViewProps) {
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
 			{/* Channel header */}
-			<div className="h-[58px] shrink-0 flex items-center px-[22px] gap-3.5 border-b border-[var(--b1)] bg-[rgba(13,14,18,.7)] backdrop-blur-[24px] backdrop-saturate-[180%] relative z-20">
+			<div className="h-[58px] shrink-0 flex items-center px-4 md:px-[22px] gap-2.5 md:gap-3.5 border-b border-[var(--b1)] bg-[rgba(13,14,18,.7)] backdrop-blur-[24px] backdrop-saturate-[180%] relative z-20">
+				{/* Mobile: гамбургер для открытия списка каналов. */}
+				<button
+					type="button"
+					className="md:hidden w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t2)] hover:bg-[var(--hover)] hover:text-[var(--t1)] transition-colors shrink-0"
+					onClick={() => setDrawerOpen(true)}
+					aria-label="Открыть список каналов"
+					title="Каналы"
+				>
+					<Menu className="h-5 w-5" />
+				</button>
 				<div className="flex items-center gap-3.5 min-w-0 flex-1">
 					{channel && (
 						<div className="w-[34px] h-[34px] rounded-full bg-[rgba(52,211,153,.08)] text-[var(--green)] flex items-center justify-center text-sm font-extrabold shadow-[0_0_12px_rgba(52,211,153,.06)] hover:scale-110 transition-transform">
