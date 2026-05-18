@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { SessionResponse } from "@/api/auth";
@@ -433,6 +433,6 @@ function ProfilePage() {
 	);
 }
 
-export const Route = createFileRoute("/_authenticated/settings/profile")({
+export const Route = createLazyFileRoute("/_authenticated/settings/profile")({
 	component: ProfilePage,
 });

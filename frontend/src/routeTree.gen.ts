@@ -60,7 +60,7 @@ const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/onboarding.lazy').then((d) => d.Route))
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -130,7 +130,11 @@ const AuthenticatedSettingsProfileRoute =
     id: '/profile',
     path: '/profile',
     getParentRoute: () => AuthenticatedSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/_authenticated/settings/profile.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedSettingsNotificationsRoute =
   AuthenticatedSettingsNotificationsRouteImport.update({
     id: '/notifications',
@@ -205,7 +209,11 @@ const AuthenticatedProjectsProjectIdIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedProjectsProjectIdTmsRoute =
   AuthenticatedProjectsProjectIdTmsRouteImport.update({
     id: '/tms',
@@ -307,7 +315,11 @@ const AuthenticatedProjectsProjectIdSettingsIntegrationsRoute =
     id: '/settings/integrations',
     path: '/settings/integrations',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/settings/integrations.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedProjectsProjectIdIssuesNewRoute =
   AuthenticatedProjectsProjectIdIssuesNewRouteImport.update({
     id: '/issues/new',
@@ -331,7 +343,11 @@ const AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute =
     id: '/cases_/$caseKey',
     path: '/cases/$caseKey',
     getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/_authenticated/projects/$projectId/tms/cases_.$caseKey.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute

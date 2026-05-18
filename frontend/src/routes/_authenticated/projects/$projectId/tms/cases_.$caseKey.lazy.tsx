@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -835,7 +835,7 @@ function TestCaseDetailPage() {
 	);
 }
 
-export const Route = createFileRoute(
+export const Route = createLazyFileRoute(
 	"/_authenticated/projects/$projectId/tms/cases_/$caseKey",
 )({
 	component: TestCaseDetailPage,

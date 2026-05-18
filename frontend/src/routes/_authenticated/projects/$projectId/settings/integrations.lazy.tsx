@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createLazyFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -521,7 +521,7 @@ function IntegrationsSettingsPage() {
 	);
 }
 
-export const Route = createFileRoute(
+export const Route = createLazyFileRoute(
 	"/_authenticated/projects/$projectId/settings/integrations",
 )({
 	component: IntegrationsSettingsPage,

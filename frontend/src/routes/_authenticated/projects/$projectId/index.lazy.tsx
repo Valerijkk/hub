@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createLazyFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -402,6 +402,6 @@ function ProjectPage() {
 	);
 }
 
-export const Route = createFileRoute("/_authenticated/projects/$projectId/")({
+export const Route = createLazyFileRoute("/_authenticated/projects/$projectId/")({
 	component: ProjectPage,
 });

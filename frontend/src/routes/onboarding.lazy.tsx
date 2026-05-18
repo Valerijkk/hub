@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { completeOnboarding } from "@/api/auth";
@@ -538,6 +538,6 @@ function OnboardingPage() {
 	);
 }
 
-export const Route = createFileRoute("/onboarding")({
+export const Route = createLazyFileRoute("/onboarding")({
 	component: OnboardingPage,
 });

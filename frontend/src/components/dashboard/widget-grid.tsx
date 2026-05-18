@@ -20,7 +20,7 @@ import {
 	Users,
 	type LucideIcon,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useMemo, useState } from "react";
 import {
 	GridLayout,
 	type LayoutItem as RGLLayoutItem,
@@ -36,17 +36,40 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDashboardStore } from "@/stores/dashboard-store";
-import { BurndownChartWidget } from "./widgets/burndown-chart";
+// Лёгкие виджеты (без recharts) импортируются статически.
 import { DeadlinesWidget } from "./widgets/deadlines";
 import { MyTasksWidget } from "./widgets/my-tasks";
 import { StorageUsageWidget } from "./widgets/storage-usage";
 import { SystemHealthWidget } from "./widgets/system-health";
-import { TaskStatusChartWidget } from "./widgets/task-status-chart";
 import { TeamActivityWidget } from "./widgets/team-activity";
-import { TestTrendsWidget } from "./widgets/test-trends";
 import { UnreadMessagesWidget } from "./widgets/unread-messages";
 import { UpcomingCallsWidget } from "./widgets/upcoming-calls";
-import { VelocityChartWidget } from "./widgets/velocity-chart";
+
+// Тяжёлые виджеты на recharts (~390 KB) выносим в отдельные chunks через React.lazy,
+// чтобы исключить vendor-charts из main-бандла. Грузятся только когда виджет реально на сетке.
+const BurndownChartWidget = lazy(() =>
+	import("./widgets/burndown-chart").then((m) => ({ default: m.BurndownChartWidget })),
+);
+const TaskStatusChartWidget = lazy(() =>
+	import("./widgets/task-status-chart").then((m) => ({
+		default: m.TaskStatusChartWidget,
+	})),
+);
+const TestTrendsWidget = lazy(() =>
+	import("./widgets/test-trends").then((m) => ({ default: m.TestTrendsWidget })),
+);
+const VelocityChartWidget = lazy(() =>
+	import("./widgets/velocity-chart").then((m) => ({ default: m.VelocityChartWidget })),
+);
+
+/** Скелет-заглушка для тяжёлого виджета во время загрузки чанка. */
+function ChartWidgetSkeleton() {
+	return (
+		<div className="flex flex-col items-center justify-center h-full gap-2 text-t3">
+			<div className="h-full w-full rounded animate-shimmer opacity-50" />
+		</div>
+	);
+}
 
 /** Определение виджета: компонент, название, иконка, акцентный градиент, ограничения размеров. */
 interface WidgetDefinition {
@@ -366,10 +389,12 @@ export function WidgetGrid({
 
 								{/* Widget content */}
 								<div className="px-5 pb-5 pt-3.5 overflow-hidden h-[calc(100%-52px)]">
-									<WidgetComponent
-										key={refreshKeys[item.i] ?? 0}
-										data={data}
-									/>
+									<Suspense fallback={<ChartWidgetSkeleton />}>
+										<WidgetComponent
+											key={refreshKeys[item.i] ?? 0}
+											data={data}
+										/>
+									</Suspense>
 								</div>
 							</div>
 						);
