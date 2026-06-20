@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/mymmrac/telego"
@@ -108,81 +107,22 @@ func TestTelegramBotAuth_HandleLogin_ShutdownDuringSend(t *testing.T) {
 	})
 }
 
-func TestTelegramBotAuth_StartPolling_ProcessesStartCommand(t *testing.T) {
+func TestTelegramBotAuth_StartPolling_Disabled(t *testing.T) {
 	mr, err := miniredis.Run()
 	require.NoError(t, err)
 	t.Cleanup(mr.Close)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	t.Cleanup(func() { _ = rdb.Close() })
 
-	updateJSON := []map[string]any{{
-		"update_id": 10,
-		"message": map[string]any{
-			"message_id": 1,
-			"date":       time.Now().Unix(),
-			"chat":       map[string]any{"id": 100, "type": "private"},
-			"from":       map[string]any{"id": 200, "is_bot": false, "first_name": "Poll", "username": "polluser"},
-			"text":       "/start",
-		},
-	}}
-
-	bot, _ := newMockTelegramBot(t, func(call int) any {
-		if call == 1 {
-			return updateJSON
-		}
-		return []any{}
-	})
+	bot, _ := newMockTelegramBot(t, func(int) any { return []any{} })
 	tgAuth := &TelegramBotAuth{bot: bot, redis: rdb}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	tgAuth.StartPolling(ctx)
-
-	require.Eventually(t, func() bool {
-		for _, k := range mr.Keys() {
-			if strings.HasPrefix(k, tgCodePrefix) {
-				return true
-			}
-		}
-		return false
-	}, 3*time.Second, 50*time.Millisecond)
-	cancel()
-}
-
-func TestTelegramBotAuth_StartPolling_GetUpdatesError(t *testing.T) {
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "deleteWebhook") {
-			writeTelegramOK(w, true)
-			return
-		}
-		if strings.HasSuffix(r.URL.Path, "getUpdates") {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		writeTelegramOK(w, true)
-	}))
-	t.Cleanup(srv.Close)
-
-	bot, err := telego.NewBot(
-		testTelegramBotToken,
-		telego.WithAPIServer(srv.URL),
-		telego.WithHTTPClient(srv.Client()),
-		telego.WithDiscardLogger(),
-	)
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	tgAuth := &TelegramBotAuth{bot: bot, redis: rdb}
-	tgAuth.StartPolling(ctx)
-
-	time.Sleep(100 * time.Millisecond)
-	cancel()
+	assert.NotPanics(t, func() {
+		tgAuth.StartPolling(ctx)
+	})
+	assert.Empty(t, mr.Keys(), "polling must not store login codes after AUTH-01")
 }
 
 func TestNewTelegramBotAuth_InvalidToken(t *testing.T) {

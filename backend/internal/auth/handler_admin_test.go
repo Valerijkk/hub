@@ -134,7 +134,7 @@ func TestHandler_SetRegistrationMode_InvalidMode(t *testing.T) {
 
 func TestNewHandler(t *testing.T) {
 	_, svc, _ := newHandlerTestEnv(t)
-	got := NewHandler(svc, nil)
+	got := NewHandler(svc)
 	require.NotNil(t, got)
 	assert.Equal(t, svc, got.service)
 }

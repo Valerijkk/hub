@@ -49,20 +49,6 @@ func TestHandler_GetRegistrationMode_Unauthenticated(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
-func TestHandler_LoginTelegram_ExpiredAuth(t *testing.T) {
-	h, _, _ := newHandlerTestEnv(t)
-	app := testApp(http.MethodPost, "/auth/telegram", h.LoginTelegram)
-
-	params := "auth_date=1&user=%7B%22id%22%3A1%7D&hash=deadbeef"
-	body, _ := json.Marshal(TelegramAuthRequest{InitData: params})
-	req := httptest.NewRequest(http.MethodPost, "/auth/telegram", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req, 5*time.Second)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
-}
-
 func TestHandler_RefreshToken_InvalidBody(t *testing.T) {
 	h, _, _ := newHandlerTestEnv(t)
 	app := testApp(http.MethodPost, "/auth/refresh", h.RefreshToken)
@@ -116,19 +102,6 @@ func TestHandler_SendMagicLink_ExistingUserInviteOnly(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-}
-
-func TestHandler_LoginTelegramCode_BotNotConfigured(t *testing.T) {
-	h, _, _ := newHandlerTestEnv(t)
-	app := testApp(http.MethodPost, "/auth/telegram-code", h.LoginTelegramCode)
-
-	body, _ := json.Marshal(map[string]string{"code": "123456"})
-	req := httptest.NewRequest(http.MethodPost, "/auth/telegram-code", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req, 5*time.Second)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
 
 func TestHandler_VerifyMagicLink_RateLimited(t *testing.T) {

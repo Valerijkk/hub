@@ -9,9 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,30 +32,6 @@ func TestHandler_SendMagicLink_RateLimited(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusTooManyRequests, resp.StatusCode)
-}
-
-func TestHandler_LoginTelegramCode_InviteOnlyNewUser(t *testing.T) {
-	h, svc, _ := newHandlerTestEnv(t)
-	ctx := t.Context()
-	require.NoError(t, svc.SetRegistrationMode(ctx, "invite_only"))
-
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	require.NoError(t, mr.Set(tgCodePrefix+"888999", "55|New|User|newuser"))
-	h.tgBot = &TelegramBotAuth{redis: rdb}
-
-	app := testApp(http.MethodPost, "/auth/telegram-code", h.LoginTelegramCode)
-	body, _ := json.Marshal(map[string]string{"code": "888999"})
-	req := httptest.NewRequest(http.MethodPost, "/auth/telegram-code", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req, 5*time.Second)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 }
 
 func TestLoginWithMagicLink_InviteOnlyExistingUser(t *testing.T) {

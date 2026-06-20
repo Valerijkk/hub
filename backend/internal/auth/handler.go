@@ -19,12 +19,11 @@ import (
 // архитектуру handler → service → repository (db) и упрощает unit-тесты.
 type Handler struct {
 	service *AuthService
-	tgBot   *TelegramBotAuth
 }
 
 // NewHandler создаёт новый обработчик аутентификации.
-func NewHandler(service *AuthService, tgBot *TelegramBotAuth) *Handler {
-	return &Handler{service: service, tgBot: tgBot}
+func NewHandler(service *AuthService) *Handler {
+	return &Handler{service: service}
 }
 
 // RegisterRoutes регистрирует все маршруты аутентификации на указанном Fiber-роутере.
@@ -35,8 +34,6 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	// Публичные эндпоинты (без аутентификации).
 	auth.Post("/magic-link", h.SendMagicLink)
 	auth.Post("/magic-link/verify", h.VerifyMagicLink)
-	auth.Post("/telegram", h.LoginTelegram)
-	auth.Post("/telegram-code", h.LoginTelegramCode)
 	auth.Post("/refresh", h.RefreshToken)
 
 	// Защищённые эндпоинты (требуют аутентификации).
@@ -134,87 +131,6 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 		if err == ErrMagicLinkVerifyLimited {
 			return fiber.NewError(fiber.StatusTooManyRequests, "too many verification attempts, try again later")
 		}
-		if err == ErrRegistrationInviteOnly {
-			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
-		}
-		return fiber.NewError(fiber.StatusInternalServerError, "login failed")
-	}
-
-	return c.JSON(tokens)
-}
-
-// LoginTelegram обрабатывает POST /api/auth/telegram — вход через Telegram Web App.
-// @Summary Вход через Telegram Web App
-// @Description Аутентификация через initData из Telegram Mini App
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param body body TelegramAuthRequest true "initData из Telegram Web App"
-// @Success 200 {object} TokenPairResponse "JWT-токены"
-// @Failure 401 {object} map[string]string "Ошибка аутентификации Telegram"
-// @Failure 403 {object} map[string]string "Регистрация только по приглашению"
-// @Router /auth/telegram [post]
-func (h *Handler) LoginTelegram(c fiber.Ctx) error {
-	var req TelegramAuthRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
-	}
-
-	device := utils.CopyString(c.Get("User-Agent"))
-	ip := c.IP()
-
-	tokens, err := h.service.LoginWithTelegram(c.Context(), req.InitData, device, ip)
-	if err != nil {
-		if err == ErrTelegramAuthExpired {
-			return fiber.NewError(fiber.StatusUnauthorized, "telegram auth expired")
-		}
-		if err == ErrRegistrationInviteOnly {
-			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
-		}
-		return fiber.NewError(fiber.StatusUnauthorized, "telegram auth failed")
-	}
-
-	return c.JSON(tokens)
-}
-
-// LoginTelegramCode обрабатывает POST /api/auth/telegram-code — вход по коду из Telegram-бота.
-// @Summary Вход по коду из Telegram-бота
-// @Description Аутентификация по одноразовому коду, полученному от Telegram-бота
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param body body object true "code — одноразовый код"
-// @Success 200 {object} TokenPairResponse "JWT-токены"
-// @Failure 400 {object} map[string]string "Код не указан"
-// @Failure 401 {object} map[string]string "Неверный или просроченный код"
-// @Failure 403 {object} map[string]string "Регистрация только по приглашению"
-// @Failure 503 {object} map[string]string "Telegram-бот не настроен"
-// @Router /auth/telegram-code [post]
-func (h *Handler) LoginTelegramCode(c fiber.Ctx) error {
-	var req struct {
-		Code string `json:"code"`
-	}
-	if err := c.Bind().JSON(&req); err != nil || req.Code == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "code is required")
-	}
-
-	if h.tgBot == nil {
-		return fiber.NewError(fiber.StatusServiceUnavailable, "telegram bot not configured")
-	}
-
-	tgUser, err := h.tgBot.VerifyCode(c.Context(), req.Code, c.IP())
-	if err != nil {
-		if err == ErrTelegramVerifyLimited {
-			return fiber.NewError(fiber.StatusTooManyRequests, "too many verification attempts, try again later")
-		}
-		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
-	}
-
-	device := utils.CopyString(c.Get("User-Agent"))
-	ip := c.IP()
-
-	tokens, err := h.service.LoginWithTelegramUser(c.Context(), tgUser, device, ip)
-	if err != nil {
 		if err == ErrRegistrationInviteOnly {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
 		}

@@ -248,23 +248,17 @@ func main() {
 		}, nil))
 	}
 	requireAuth := auth.RequireAuth(authSvc)
-	tgBotAuth := auth.NewTelegramBotAuth(cfg.Telegram.BotToken, rdb)
-	if tgBotAuth != nil {
-		tgBotAuth.StartPolling(ctx)
-	}
 
-	// SEC-01: APIKeyAuth должен быть зарегистрирован ДО первого RegisterRoutes —
-	// в Fiber `Use` влияет только на handlers, замаунченные ПОЗЖЕ.
-	// Раньше Use стоял после всех роутов и был мёртвым кодом.
+	// SEC-01: APIKeyAuth должен быть зарегистрирован ДО первого RegisterRoutes.
 	apiKeySvc := apigatewaymod.NewAPIKeyService(db)
-	// BE-H4: NewAPIKeyService запускает bounded worker-pool для
 	// async-обновлений last_used_at. Без Close() workers + touchJobs
 	// канал утекают на shutdown'е — defer закрывает канал и дожидается
 	// drain'а worker-pool'а.
 	defer apiKeySvc.Close()
 	api.Use(apigatewaymod.APIKeyAuth(apiKeySvc))
 
-	authHandler := auth.NewHandler(authSvc, tgBotAuth)
+	// AUTH-01: Telegram login removed; notify bot — Phase 15 Wave 3.
+	authHandler := auth.NewHandler(authSvc)
 	authHandler.RegisterRoutes(api, requireAuth)
 
 	// Dev routes (seed, login без Magic Link — только при DEV_MODE=true)

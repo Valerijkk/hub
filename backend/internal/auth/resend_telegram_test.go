@@ -1,13 +1,10 @@
 package auth
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
@@ -171,54 +168,4 @@ func TestTelegramBotAuth_VerifyCode_EmptyClientKeySkipsRateLimit(t *testing.T) {
 	bot := &TelegramBotAuth{redis: rdb}
 	_, err = bot.VerifyCode(context.Background(), "000000", "")
 	require.Error(t, err)
-}
-
-func TestHandler_LoginTelegramCode_RateLimited(t *testing.T) {
-	h, _, _ := newHandlerTestEnv(t)
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	h.tgBot = &TelegramBotAuth{redis: rdb}
-	app := testApp(http.MethodPost, "/auth/telegram-code", h.LoginTelegramCode)
-
-	for i := 0; i < tgVerifyFailsMax; i++ {
-		body, _ := json.Marshal(map[string]string{"code": "000000"})
-		req := httptest.NewRequest(http.MethodPost, "/auth/telegram-code", bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
-		resp, err := app.Test(req, 5*time.Second)
-		require.NoError(t, err)
-		resp.Body.Close()
-	}
-
-	body, _ := json.Marshal(map[string]string{"code": "000000"})
-	req := httptest.NewRequest(http.MethodPost, "/auth/telegram-code", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req, 5*time.Second)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.Equal(t, http.StatusTooManyRequests, resp.StatusCode)
-}
-
-func TestHandler_LoginTelegramCode_Success(t *testing.T) {
-	h, _, _ := newHandlerTestEnv(t)
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	require.NoError(t, mr.Set(tgCodePrefix+"777888", "99|Bot|User|botuser"))
-	h.tgBot = &TelegramBotAuth{redis: rdb}
-
-	app := testApp(http.MethodPost, "/auth/telegram-code", h.LoginTelegramCode)
-	body, _ := json.Marshal(map[string]string{"code": "777888"})
-	req := httptest.NewRequest(http.MethodPost, "/auth/telegram-code", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := app.Test(req, 5*time.Second)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }

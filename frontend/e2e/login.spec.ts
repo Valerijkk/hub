@@ -11,8 +11,9 @@ test.describe("Login flow", () => {
 			page.getByText("Единая платформа для команд"),
 		).toBeVisible();
 		await expect(
-			page.getByText("Войдите через Telegram — быстро и безопасно."),
+			page.getByText("Введите email — мы отправим одноразовый код для входа."),
 		).toBeVisible();
+		await expect(page.getByLabel("Email")).toBeVisible();
 	});
 
 	test("dev login panel authenticates and redirects to projects", async ({
