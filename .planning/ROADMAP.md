@@ -7,7 +7,9 @@ Hub предоставляет единую платформу для коман
 ## Milestones
 
 - :white_check_mark: **v1.0 MVP** - Phases 1-7 (shipped 2026-03-21)
-- :construction: **v2.0 Hub Redesign** - Phases 8-13 (in progress)
+- :white_check_mark: **v2.0 Hub Redesign** - Phases 8-14 (shipped 2026-05-15)
+- :construction: **v2.5 Trust** - Phase 15 (in progress)
+- :calendar: **v2.6 Automate** - Phase 16 · **v3.0 AI** - Phase 17 · **v4 Super-app** - 2027+
 
 ## Phases
 
@@ -40,7 +42,16 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 11: Core Mockup Pages** - Login, Dashboard, Messenger, Kanban
 - [ ] **Phase 12: Remaining Mockup Pages + Unmocked Pages** - Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash + Projects, Sprint, JQL, Project Settings, Project Dashboard
 - [ ] **Phase 13: Polish & QA** - Финальный визуальный QA, доступность, мобильная проверка, очистка мёртвого CSS
-- [ ] **Phase 14: Architectural Hardening** - Расщепление god-объектов (AuthService, CallService), удаление ent.Client leak из сервисов, расширение Permission, покрытие тестами критичных путей
+- [x] **Phase 14: Architectural Hardening** - Расщепление god-объектов (AuthService, CallService), удаление ent.Client leak из сервисов, расширение Permission, покрытие тестами критичных путей
+
+### v2.5+ Production & Super-app (Planned — PO LOCKED 2026-06-21)
+
+> Decisions: `.planning/DISCUSS-ROADMAP-LOCKED.md` · Branch: `feat/v2.5-trust`
+
+- [ ] **Phase 15: Trust (v2.5)** - Magic Link only, `organization`, NOTIF TG bind, hub-mail (15.2), E2E FB-07..09, WCAG, run_failed, Biome fix, LiveKit CI, coverage ≥50%
+- [ ] **Phase 16: Automate (v2.6)** - PROD automation max, flaky, issue↔message, webhooks log, Gantt, webcam, email marketing, triage inbox, Meilisearch
+- [ ] **Phase 17: AI Native (v3.0)** - AI gateway (Ollama + BYOK), @hub-ai + dialog, full JQL automation
+- [ ] **Phase 18+: Hub One (v4)** - Intranet max, Calendar, CRM, HR, full accounting, Lark-style no-code DB, status page
 
 ## Phase Details
 
@@ -353,3 +364,6 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14
 | 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 5/5 | Complete    | 2026-03-28 |
 | 13. Polish & QA | v2.0 | 2/2 | Complete    | 2026-03-28 |
 | 14. Architectural Hardening | v2.0 | 5/5 | Complete    | 2026-05-15 |
+| 15. Trust (v2.5) | v2.5 | 0/TBD | Not started | - |
+| 16. Automate (v2.6) | v2.6 | 0/TBD | Not started | - |
+| 17. AI Native (v3.0) | v3.0 | 0/TBD | Not started | - |

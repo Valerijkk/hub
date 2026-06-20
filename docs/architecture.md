@@ -191,11 +191,38 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 
 **Покрытие:** 11 / 18 service-пакетов = **61%** (ws/dev/platform — не DB-service модули).
 
+## Target architecture v3–v4 (roadmap)
+
+> Детали: `.planning/MICROSERVICES-ROADMAP.md`, `.planning/PLATFORM-VISION-v4.md`
+
+| Phase | Architecture | New processes |
+|-------|--------------|---------------|
+| v2.x | Modular monolith | — |
+| v3.0 | Monolith + optional `cmd/ai-gateway` | hub-ai-gateway |
+| v4.0 | Monolith + intranet module | hub-intranet (same binary initially) |
+| v4.5 | Selective split | hub-comms, hub-integrations |
+
+**New domain modules (planned):**
+
+```
+backend/internal/
+├── ai/           # v3 — provider registry, adapters, usage
+├── intranet/     # v4 — news, kudos, marketplace
+├── calendar/     # v4 — unified events (extends calls)
+├── crm/          # v4 — contacts, deals (lite)
+├── hr/           # v4 — leave requests
+└── integrations/ # v4.5 — 1C, Bitrix connectors
+```
+
+Event bus remains **NATS JetStream** — no Redis pub/sub.
+
 ## Связанные документы
 
 - `docs/system_specification.md` — API, модели данных
 - `docs/security_guidelines.md` — OWASP, уязвимости
 - `docs/stack_and_tools.md` — версии стека
+- `.planning/PLATFORM-VISION-v4.md` — corporate super-app vision
+- `.planning/AI-PROVIDER-HUB-SPEC.md` — AI gateway spec
 
 ---
-*Последнее обновление: 2026-06-17 — ARCH audit vs codebase*
+*Последнее обновление: 2026-06-21 — v4 target architecture*

@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Hub Redesign
-status: complete
-stopped_at: Phase 14 complete — Architectural Hardening (5/5 plans)
-last_updated: "2026-06-20T00:05:00.000Z"
-last_activity: 2026-06-20
+milestone: v2.5
+milestone_name: Trust
+status: planning
+stopped_at: Discuss LOCKED — gsd-plan-phase Phase 15 next
+last_updated: "2026-06-21T12:00:00.000Z"
+last_activity: 2026-06-21
 progress:
-  total_phases: 14
+  total_phases: 17
   completed_phases: 14
-  total_plans: 62
+  total_plans: 63
   completed_plans: 63
-  percent: 100
+  percent: 82
 ---
 
 # Project State
@@ -21,20 +21,30 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Unified environment for dev teams -- tracker, TMS, messenger, and calls connected in one interface
-**Current focus:** v2.0.2 **SHIP-READY** — audit **93/100** (ceiling без v2.6)
+**Current focus:** Phase 15 Trust · PO decisions LOCKED · score **93/100**
 
 ## Current Position
 
-Phase: Close-Gaps post-gate → v2.0.2 prod hardening
-Plan: All waves **COMPLETE** (uncommitted local)
-Status: **Cycle 12** — cleanup ✅ · score **93/100** · race+build+vitest ✅
-Last activity: 2026-06-20 cycle 12 (artifacts cleanup + full gate)
+Phase: **15 Trust (v2.5)** — planning
+Plan: `gsd-plan-phase` → Phase 15 PLAN.md · branch `feat/v2.5-trust`
+Status: **Discuss LOCKED 2026-06-21** — docs synced, ADR AUTH/NOTIF/TZ
+Last activity: 2026-06-21 DISCUSS-ROADMAP-LOCKED + ROADMAP Phase 15-17
+
+## PO Decisions (locked)
+
+See: `.planning/DISCUSS-ROADMAP-LOCKED.md`
+
+- AUTH: Magic Link only · org table v2.5 · founder role
+- NOTIF: TG bind · hub-mail Phase 15.2 · email alerts v2.5
+- Phase 15 exit: AUTH+NOTIF+E2E+WCAG+run_failed+Biome+LiveKit CI · coverage ≥50%
+- TZ rewrite: Gantt/webcam/marketing/no-code/accounting IN (by phase)
 
 ## Accumulated Context
 
 ### Roadmap Evolution
 
-- Phase 14 added 2026-05-15: Architectural Hardening (split god-objects, remove ent.Client leak, expand Permission, increase test coverage)
+- Phase 14 complete 2026-05-15
+- Phases 15-17 added 2026-06-21 (Trust / Automate / AI Native)
 
 ## Performance Metrics
 

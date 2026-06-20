@@ -49,11 +49,10 @@
 | Recharts | **3.x** | Dashboard charts (не Tremor) |
 | i18next + react-i18next | **25.x / 16.x** | Локализация |
 | motion | **12.x** | UI animations |
+| Playwright | **1.x** | E2E (7 specs) |
 | Vitest + RTL | **3.x / 16.x** | Unit tests |
 | Biome | latest | Lint + format (`npm run lint`) |
 | vite-plugin-pwa | **1.x** | PWA |
-
-> **Playwright, MSW, ESLint** — в roadmap/wiki, **не установлены** в `frontend/package.json` (TD-11).
 
 ## Базы данных и хранилища
 
@@ -79,7 +78,8 @@
 | Docker Compose | dev | Локальная разработка | ✅ `docker-compose.local.yml`, `deployments/*.yml` |
 | K3s | prod (planned) | Kubernetes orchestration | ❌ манифестов нет (TD-04) |
 | Caddy | prod/dev | Reverse proxy, auto HTTPS, WebSocket | ✅ `deployments/Caddyfile*` |
-| GitHub Actions | CI/CD | Build, test, deploy (deploy after CI success) | ✅ `.github/workflows/` |
+| GitHub Actions | CI/CD | Build, test, deploy, pr-guard, dependabot | ✅ `.github/workflows/` |
+| GitLab CI | CI mirror | Same gates for GitLab remotes | ✅ `.gitlab-ci.yml` |
 | Loki + Prometheus + Grafana | prod (planned) | Logs + metrics | ❌ не в compose (TD-05) |
 
 ## Внешние сервисы
@@ -99,7 +99,9 @@
 | tsc | Frontend types | `cd frontend && npx tsc --noEmit` | ✅ (via `npm run build`) |
 | Biome | Frontend lint | `cd frontend && npm run lint` | ✅ baseline (continue-on-error) |
 | go test -race | Backend | `go test -race -count=1 -timeout=600s ./...` | ✅ |
-| Playwright | E2E smoke | `npx playwright test` | ✅ job `e2e-smoke` in CI |
+| Playwright | E2E smoke + full | `npx playwright test` | ✅ `e2e-smoke`, `e2e-full` |
+| pr-guard | Secret scan, labels | on PR | ✅ |
+| dependabot | Weekly deps | go.mod, npm, actions | ✅ |
 | Biome | Planning scripts | `.planning/biome.json` | — |
 
 ## CLI
@@ -147,4 +149,4 @@ hub/
 - Docker Compose (dev) / K3s (prod) → другая оркестрация
 
 ---
-*Последнее обновление: 2026-06-20 — Wave 6 CI/deploy, Dockerfile `-tags release`, docs-sync rule*
+*Последнее обновление: 2026-06-21 — GitLab CI, pr-guard, dependabot, Playwright e2e-full*

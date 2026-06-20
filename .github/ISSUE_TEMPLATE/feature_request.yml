@@ -1,0 +1,53 @@
+name: Feature request
+description: Propose a new feature or module
+title: "[feat]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: dropdown
+    id: persona
+    attributes:
+      label: Primary persona
+      options:
+        - Developer
+        - QA Lead
+        - Team Lead
+        - Project Owner
+        - Admin
+        - Member
+        - DevOps
+        - HR / Corp employee
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What job-to-be-done is blocked?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: scope_check
+    attributes:
+      label: Scope constraints (Hub v2.x)
+      options:
+        - label: Not SSO / LDAP / OAuth login
+          required: true
+        - label: Not multi-tenant SaaS billing
+          required: true
+        - label: Not native mobile apps (PWA OK)
+          required: true
+
+  - type: input
+    id: backlog_ref
+    attributes:
+      label: FEATURE-BACKLOG ID (if any)
+      placeholder: FB-15, MOD-07, AI-01

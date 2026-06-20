@@ -1,6 +1,6 @@
 # Hub — Competitive Audit & Feature Backlog
 
-> Обновлено: 2026-06-20. Сравнение с Jira, Linear, Slack, Notion, TestRail/Allure, Zoom/Meet, Grafana.
+> Обновлено: 2026-06-21. См. также [competitive_analysis_2026.md](../docs/competitive_analysis_2026.md) (Mighty, Bitrix, Lark) и [PLATFORM-VISION-v4.md](./PLATFORM-VISION-v4.md).
 > Цель: best practices от лидеров рынка + backlog нововведений для Hub v2.5–v3.0.
 
 ---

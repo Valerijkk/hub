@@ -6,7 +6,8 @@
 
 ## Проект
 
-**Hub** — единая платформа для команд 10–50 человек: Task Tracker + Messenger + TMS + Voice Calls + Dashboards.
+**Hub** — единая платформа для команд 10–50 человек: Task Tracker + Messenger + TMS + Voice Calls + Dashboards.  
+**Roadmap v4:** corporate super-app (intranet, calendar, CRM-lite, AI hub) — см. `.planning/PLATFORM-VISION-v4.md`.
 
 Монорепо: `backend/` (Go) + `frontend/` (React) + `cli/` + `deployments/`
 
@@ -25,9 +26,13 @@
 | `docs/stack_and_tools.md` | Версии, инструменты |
 | `docs/code_style_guide.md` | Стиль Go/TS |
 | `docs/security_guidelines.md` | OWASP, blockers |
-| `docs/competitive_audit.md` | Best practices, backlog |
+| `docs/tz_constraints.md` | TZ mandatory/forbidden (tracked) |
+| `docs/competitive_analysis_2026.md` | Competitors + Mighty/Bitrix/Lark |
+| `docs/user_needs_analysis_2026.md` | Personas, JTBD |
 
-Планирование: `.planning/STATE.md`, `.planning/ROADMAP.md`, `.planning/PLAN-CLOSE-GAPS.md`
+Планирование: `.planning/STATE.md`, `.planning/DISCUSS-ROADMAP-LOCKED.md`, `.planning/ROADMAP.md` (Phase 15-17)
+
+**Active:** Phase 15 Trust · branch `feat/v2.5-trust` · PO LOCKED 2026-06-21
 
 GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–§10
 
@@ -70,7 +75,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 
 **Docs sync (обязательно):** после любого изменения кода обновляй затронутую документацию в той же сессии. Правило: `.cursor/rules/55-docs-sync.mdc` · skill: `/handoff-sync`.
 
-Текущий план закрытия пробелов: `.planning/PLAN-CLOSE-GAPS.md`
+Текущий план: **Phase 15 Trust** — `.planning/DISCUSS-ROADMAP-LOCKED.md`
 
 ---
 

@@ -64,12 +64,12 @@
 
 | ID | История | Acceptance Criteria |
 |----|---------|---------------------|
-| US-M01 | Как пользователь, хочу войти через Magic Link или Telegram без пароля | JWT 15 мин + refresh 30 дней; rate limit 3/10 мин; множественные сессии с отзывом |
+| US-M01 | Как пользователь, хочу войти через Magic Link (email) без пароля | JWT 15 мин + refresh 30 дней; rate limit 3/10 мин; TG только notify bind (ADR-AUTH-01) |
 | US-M02 | Как участник, хочу создать проект с автоматическим трекером, TMS, чатом | Проект создаёт workflow, Kanban, канал #project-{key}, дашборд; ключ HUB/MOBILE для нумерации |
 | US-M03 | Как разработчик, хочу управлять задачами (9 типов) с кастомным workflow | CRUD, связи (blocks/relates/duplicates/clones/causes), комментарии, optimistic lock, чеклисты |
 | US-M04 | Как команда, хочу общаться в каналах с тредами и реакциями | Публичные/приватные каналы, DM, треды, presence, typing indicator |
 | US-M05 | Как QA, хочу вести тест-кейсы и получать результаты из CI (Allure) | Парсер Allure JSON, матчинг по ID/annotation, уведомления, создание бага из failed |
-| US-M06 | Как участник, хочу голосовые созвоны с screen share до 50 человек | LiveKit, запись в SeaweedFS, без вебкамер, mute/hand raise |
+| US-M06 | Как участник, хочу созвоны с screen share (и webcam с Phase 16) до 50 человек | LiveKit; запись audio+screen; webcam Phase 16 (ADR-TZ-REWRITE) |
 | US-M07 | Как пользователь, хочу глобальный поиск (Ctrl+K) по всем сущностям | User-scope фильтрация; задачи, кейсы, пользователи, проекты, каналы, файлы; JQL для задач |
 | US-M08 | Как новый пользователь, хочу пройти онбординг | Профиль → тур (6 карточек) → тема/accent → создание/вступление в проект |
 | US-M09 | Как Admin, хочу управлять режимом регистрации | Открытая регистрация ИЛИ только по инвайтам — настройка в админ-панели |
@@ -108,26 +108,42 @@
 | US-C05 | Как пользователь, хочу мобильный UX | Bottom navigation; упрощённый Kanban; мобильные дашборды и созвоны |
 | US-C06 | Как разработчик, хочу просмотр GitHub Workflow runs | Статус CI в контексте задачи/PR |
 
-### Won't Have (v1–v2)
+### Won't Have (v1–v2) — updated v2.5 PO lock
 
-- Видеозвонки с вебкамерами
+- ~~Видеозвонки с вебкамерами~~ → **Phase 16** (ADR-TZ-REWRITE)
 - Нативные мобильные приложения (PWA достаточно)
-- Email-уведомления (кроме Magic Link через Resend)
-- SSO/LDAP/OAuth, биллинг, Gantt, multi-tenant
+- ~~Email только magic link~~ → transactional + marketing via **hub-mail** (v2.5+)
+- SSO/LDAP/OAuth, SaaS billing (later), ~~Gantt~~ → Phase 16, multi-org (v5)
 - Remote control (управление чужим экраном)
 - Видео/аудио сообщения в мессенджере (кроме голосовых)
-- Route-level page transition animations (productivity tool, не маркетинг)
+- Route-level page transition animations
 - Parallax/3D-анимации на карточках
+
+См. также: [tz_constraints.md](tz_constraints.md) · `.planning/DISCUSS-ROADMAP-LOCKED.md`
 
 ### Future — v3.0 AI Chat Hub (`.planning/MILESTONE-3.md`)
 
 | ID | История | Приоритет |
 |----|---------|-----------|
 | US-F01 | Как участник, хочу писать `@hub-ai` в каналах и DM | Must (v3.0) |
-| US-F02 | Как Admin, хочу выбирать AI-провайдера (GigaChat/YandexGPT/DeepSeek/Ollama) | Must (v3.0) |
+| US-F02 | Как Admin, хочу выбирать AI-провайдера (GigaChat/YandexGPT/DeepSeek/Ollama/OpenRouter) | Must (v3.0) |
 | US-F03 | Как QA, хочу `/ai test-cases HUB-123` для генерации кейсов из задачи | Should (v3.0) |
-| US-F04 | Как пользователь, хочу AI-панель (Ctrl+Shift+A) и inline AI в редакторе задач | Should (v3.0) |
+| US-F04 | Как пользователь, хочу AI-панель (Ctrl+Shift+A) и выбор модели (GPT/DeepSeek/Claude/…) | Should (v3.0) |
 | US-F05 | Как Admin, хочу rate limits и audit AI-запросов без утечки содержимого | Must (v3.0) |
+| US-F06 | Как разработчик, хочу OpenAI-compatible API Hub для internal tools | Could (v3.5) |
+
+### Future — v4.0 Corporate Super-App (`.planning/PLATFORM-VISION-v4.md`)
+
+| ID | История | Приоритет |
+|----|---------|-----------|
+| US-V01 | Как сотрудник, хочу ленту новостей компании | Should (v4.0) |
+| US-V02 | Как сотрудник, хочу каталог коллег и org chart | Should (v4.0) |
+| US-V03 | Как сотрудник, хочу единый календарь (созвоны, спринты, отпуск) | Should (v4.0) |
+| US-V04 | Как PO, хочу CRM-lite (контакты, сделки) связанный с проектами | Could (v4.0) |
+| US-V05 | Как сотрудник, хочу подать заявку на отпуск | Could (v4.0) |
+| US-V06 | Как Admin, хочу встроенную бухгалтерию (без 1C) | Could (v4.0) |
+
+**Won't Have v4:** payroll/НДФЛ calc, multi-tenant SaaS (v5), SSO, native apps. **In v4:** full accounting Hub-only, Lark-style no-code DB.
 
 ## Сценарии использования
 
@@ -146,12 +162,13 @@
 3. Коммит «HUB-42 fix login» → автопривязка PR
 4. Stop Timer → время в логе задачи
 
-### Альтернативный: вход через Telegram
+### Альтернативный: вход через Magic Link
 
-1. Пользователь открывает /login → Telegram Widget или бот
-2. Получает 6-значный код → вводит в Hub
-3. Выдаётся JWT + refresh, сессия в Redis
-4. При новом устройстве — push на активные сессии
+1. Пользователь открывает /login → вводит email
+2. Получает код (Resend / hub-mail) → verify → JWT
+3. При необходимости — привязка Telegram в Settings для notify
+
+*(Telegram login removed — ADR-AUTH-01)*
 
 ### Альтернативный: настройка нового проекта (Project Owner)
 

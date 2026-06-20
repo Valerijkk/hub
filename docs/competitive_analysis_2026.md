@@ -160,4 +160,30 @@
 
 ---
 
-*Следующий документ: [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · Backlog: [.planning/FEATURE-BACKLOG-2026.md](../.planning/FEATURE-BACKLOG-2026.md)*
+## 7. Corporate super-apps (v4 benchmark) — NEW 2026-06-21
+
+| Платформа | Фокус | Сильные стороны | Слабости vs Hub |
+|-----------|-------|-----------------|-----------------|
+| **Tinkoff Mighty** | Employee super-app | News, HR services, docs, mobile-first | Нет dev tracker/TMS; closed ecosystem |
+| **Bitrix24** | SMB all-in-one | CRM, HR, chat, tasks, automation | Weak dev/TMS; heavy UI |
+| **Lark (Feishu)** | Global teams | Chat, docs, Base no-code, AI | Cloud-only; China/US tension |
+| **Microsoft Viva** | EX on Teams | Learning, topics, connections | Requires M365; no TMS |
+| **Plane** | OSS tracker | Jira alt, Slack sync | No messenger/TMS/calls native |
+
+### v4 gaps Hub should add (from corp apps)
+
+| # | Feature | Benchmark |
+|---|---------|-----------|
+| 16 | Corp news feed + reactions | Mighty |
+| 17 | Org directory + org chart | Viva Connections |
+| 18 | Leave request workflow | Bitrix HR / T2 app |
+| 19 | Unified calendar | Lark Calendar |
+| 20 | CRM-lite pipeline | Bitrix CRM |
+| 21 | **Multi-model AI picker (no VPN)** | OpenRouter pattern |
+| 22 | 1C connector (not built-in accounting) | T-Bank API style |
+
+**Hub unique v4 pitch:** Mighty experience **+** dev/TMS depth **+** self-host **+** AI hub.
+
+---
+
+*Следующий документ: [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · Vision: [PLATFORM-VISION-v4.md](../.planning/PLATFORM-VISION-v4.md)*

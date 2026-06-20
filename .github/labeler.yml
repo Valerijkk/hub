@@ -1,0 +1,29 @@
+backend:
+  - changed-files:
+      - any-glob-to-any-file: 'backend/**'
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/**'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '.planning/**'
+          - '*.md'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - '.gitlab-ci.yml'
+          - 'scripts/**'
+
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'backend/internal/auth/**'
+          - 'backend/internal/rbac/**'
+          - 'backend/internal/apigateway/**'
+          - 'docs/security_guidelines.md'
