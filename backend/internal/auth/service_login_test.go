@@ -34,7 +34,8 @@ func newLoginTestEnv(t *testing.T) (*LoginService, *ent.Client, *MagicLinkServic
 	magic := NewMagicLinkService(rdb, nil, "test@example.com")
 	sessions := NewSessionService(client, rdb, nil, "login-jwt-secret", 15*time.Minute, 30*24*time.Hour)
 	regMode := NewRegistrationModeService(client, nil)
-	login := NewLoginService(client, magic, "telegram-bot-token", sessions, regMode)
+	org := NewOrganizationService(client)
+	login := NewLoginService(client, magic, "telegram-bot-token", sessions, regMode, org)
 	return login, client, magic
 }
 
@@ -46,7 +47,7 @@ func TestLoginWithMagicLink_Success(t *testing.T) {
 	code, err := magic.SendMagicLink(ctx, email)
 	require.NoError(t, err)
 
-	pair, err := login.LoginWithMagicLink(ctx, email, code, "browser", "127.0.0.1")
+	pair, err := login.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
 	require.NoError(t, err)
 	require.NotEmpty(t, pair.AccessToken)
 	require.NotEmpty(t, pair.RefreshToken)
@@ -61,7 +62,7 @@ func TestLoginWithMagicLink_InvalidCode(t *testing.T) {
 	ctx := context.Background()
 	email := "bad-" + uuid.New().String()[:8] + "@example.com"
 
-	_, err := login.LoginWithMagicLink(ctx, email, "000000", "browser", "127.0.0.1")
+	_, err := login.LoginWithMagicLink(ctx, email, "000000", "", "browser", "127.0.0.1")
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, ErrMagicLinkInvalid))
 }
@@ -77,7 +78,7 @@ func TestLoginWithMagicLink_ExistingUser(t *testing.T) {
 	code, err := magic.SendMagicLink(ctx, email)
 	require.NoError(t, err)
 
-	pair, err := login.LoginWithMagicLink(ctx, email, code, "mobile", "10.0.0.2")
+	pair, err := login.LoginWithMagicLink(ctx, email, code, "", "mobile", "10.0.0.2")
 	require.NoError(t, err)
 	require.NotEmpty(t, pair.AccessToken)
 
@@ -109,6 +110,12 @@ func TestLoginWithTelegramUser_ExistingUser(t *testing.T) {
 func TestLoginWithTelegramUser_NewUser(t *testing.T) {
 	login, client, _ := newLoginTestEnv(t)
 	ctx := context.Background()
+	_, err := client.SystemSetting.Create().
+		SetKey("registration_mode").
+		SetValue("open").
+		SetDescription("test").
+		Save(ctx)
+	require.NoError(t, err)
 
 	pair, err := login.LoginWithTelegramUser(ctx, &TelegramUser{
 		ID: 111222333, FirstName: "New", Username: "newtg",
@@ -159,6 +166,13 @@ func TestUserExistsByEmail(t *testing.T) {
 func TestLoginWithTelegram_ValidInitData(t *testing.T) {
 	login, client, _ := newLoginTestEnv(t)
 	ctx := context.Background()
+	_, err := client.SystemSetting.Create().
+		SetKey("registration_mode").
+		SetValue("open").
+		SetDescription("test").
+		Save(ctx)
+	require.NoError(t, err)
+
 	botToken := "telegram-bot-token"
 
 	authDate := strconv.FormatInt(time.Now().Unix(), 10)

@@ -38,14 +38,14 @@ func NewRegistrationModeService(db *ent.Client, sqlDB *sql.DB) *RegistrationMode
 	return &RegistrationModeService{db: db, sqlDB: sqlDB}
 }
 
-// GetRegistrationMode читает системную настройку "registration_mode". По умолчанию "open".
+// GetRegistrationMode читает системную настройку "registration_mode". По умолчанию "invite_only" (ORG-05).
 func (s *RegistrationModeService) GetRegistrationMode(ctx context.Context) (string, error) {
 	setting, err := s.db.SystemSetting.Query().
 		Where(systemsetting.KeyEQ("registration_mode")).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return "open", nil
+			return "invite_only", nil
 		}
 		return "", fmt.Errorf("get registration mode: %w", err)
 	}
@@ -137,4 +137,5 @@ func (s *RegistrationModeService) upsertSystemSetting(ctx context.Context, key, 
 // sentinel errors
 var (
 	ErrRegistrationInviteOnly = fmt.Errorf("registration is by invite only")
+	ErrUserNotFound           = fmt.Errorf("user not found")
 )

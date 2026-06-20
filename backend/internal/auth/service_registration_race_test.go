@@ -41,7 +41,7 @@ func TestCreateFirstOrMemberUser_SecondUserIsMember(t *testing.T) {
 		return b.SetEmail("first-" + uuid.New().String()[:6] + "@example.com").SetSystemRole(role)
 	})
 	require.NoError(t, err)
-	assert.Equal(t, user.SystemRoleAdmin, first.SystemRole)
+	assert.Equal(t, user.SystemRoleFounder, first.SystemRole)
 
 	second, err := svc.CreateFirstOrMemberUser(ctx, func(b *ent.UserCreate, role user.SystemRole) *ent.UserCreate {
 		return b.SetEmail("second-" + uuid.New().String()[:6] + "@example.com").SetSystemRole(role)

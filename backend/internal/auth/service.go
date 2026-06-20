@@ -28,6 +28,7 @@ type AuthService struct {
 	Login    *LoginService
 	Profile  *ProfileService
 	RegMode  *RegistrationModeService
+	Org      *OrganizationService
 
 	// Общие зависимости, нужные middleware (userIsDeactivated) и handler
 	// (доступ к magicLink).
@@ -50,13 +51,15 @@ func NewAuthService(
 ) *AuthService {
 	sessions := NewSessionService(db, rdb, nats, jwtSecret, accessTTL, refreshTTL)
 	regMode := NewRegistrationModeService(db, sqlDB)
-	login := NewLoginService(db, magicLink, botToken, sessions, regMode)
+	org := NewOrganizationService(db)
+	login := NewLoginService(db, magicLink, botToken, sessions, regMode, org)
 	profile := NewProfileService(db)
 	return &AuthService{
 		Sessions:  sessions,
 		Login:     login,
 		Profile:   profile,
 		RegMode:   regMode,
+		Org:       org,
 		db:        db,
 		redis:     rdb,
 		magicLink: magicLink,
@@ -96,8 +99,8 @@ func (s *AuthService) RevokeSession(ctx context.Context, uid, sid uuid.UUID) err
 }
 
 // LoginWithMagicLink — back-compat для handler.VerifyMagicLink.
-func (s *AuthService) LoginWithMagicLink(ctx context.Context, email, code, dev, ip string) (*TokenPairResponse, error) {
-	return s.Login.LoginWithMagicLink(ctx, email, code, dev, ip)
+func (s *AuthService) LoginWithMagicLink(ctx context.Context, email, code, inviteToken, dev, ip string) (*TokenPairResponse, error) {
+	return s.Login.LoginWithMagicLink(ctx, email, code, inviteToken, dev, ip)
 }
 
 // UserExistsByEmail — back-compat для handler.SendMagicLink (ARCH-H1).

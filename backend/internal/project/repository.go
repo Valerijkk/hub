@@ -150,11 +150,18 @@ func (r *EntRepository) Create(ctx context.Context, name, key, description strin
 		return nil, err
 	}
 
-	p, err := tx.Project.Create().
+	create := tx.Project.Create().
 		SetName(name).
 		SetKey(key).
-		SetDescription(description).
-		Save(ctx)
+		SetDescription(description)
+
+	if owner, err := tx.User.Query().Where(user.IDEQ(ownerID)).WithOrganization().Only(ctx); err == nil {
+		if org := owner.Edges.Organization; org != nil {
+			create.SetOrganization(org)
+		}
+	}
+
+	p, err := create.Save(ctx)
 	if err != nil {
 		_ = tx.Rollback()
 		return nil, err

@@ -97,6 +97,7 @@ func UserToResponse(u *ent.User) *UserResponse {
 		Language:            u.Language,
 		Birthday:            u.Birthday,
 		SystemRole:          string(u.SystemRole),
+		Status:              string(u.Status),
 		OnboardingCompleted: u.OnboardingCompleted,
 		CustomFields:        u.CustomFields,
 	}

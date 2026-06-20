@@ -173,6 +173,25 @@ func main() {
 		rawDB,
 	)
 
+	// ORG-06: purge pending users older than 7 days.
+	go func() {
+		ticker := time.NewTicker(time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-rootCtx.Done():
+				return
+			case <-ticker.C:
+				n, err := authSvc.Org.PurgeExpiredPending(context.Background())
+				if err != nil {
+					slog.Warn("pending user purge failed", "error", err)
+				} else if n > 0 {
+					slog.Info("purged expired pending users", "count", n)
+				}
+			}
+		}
+	}()
+
 	// --- Fiber app ---
 
 	app := fiber.New(fiber.Config{

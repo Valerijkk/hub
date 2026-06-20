@@ -115,7 +115,7 @@ func TestAuthService_FacadeDelegates(t *testing.T) {
 
 	mode, err := svc.GetRegistrationMode(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, "open", mode)
+	assert.Equal(t, "invite_only", mode)
 
 	pair, err := svc.CreateSession(ctx, u.ID, "browser", "127.0.0.1")
 	require.NoError(t, err)

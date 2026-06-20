@@ -22,7 +22,7 @@ func TestHandler_ListSessions_MarksCurrent(t *testing.T) {
 	email := "sess-mark-" + uuid.New().String()[:6] + "@example.com"
 	code, err := magic.SendMagicLink(ctx, email)
 	require.NoError(t, err)
-	pair, err := svc.LoginWithMagicLink(ctx, email, code, "browser", "127.0.0.1")
+	pair, err := svc.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
 	require.NoError(t, err)
 
 	app := fiber.New()
@@ -67,7 +67,7 @@ func TestAuthService_GetMe(t *testing.T) {
 	email := "getme-" + uuid.New().String()[:6] + "@example.com"
 	code, err := magic.SendMagicLink(ctx, email)
 	require.NoError(t, err)
-	pair, err := svc.LoginWithMagicLink(ctx, email, code, "browser", "127.0.0.1")
+	pair, err := svc.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
 	require.NoError(t, err)
 
 	claims, err := svc.Sessions.ParseAccessToken(pair.AccessToken)
@@ -79,7 +79,7 @@ func TestAuthService_GetMe(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, email, u.Email)
 	// First user in empty DB becomes system admin (registration race policy).
-	assert.Equal(t, user.SystemRoleAdmin, u.SystemRole)
+	assert.Equal(t, user.SystemRoleFounder, u.SystemRole)
 }
 
 func TestHandler_SendMagicLink_ExistingUserInviteOnly(t *testing.T) {
@@ -89,7 +89,7 @@ func TestHandler_SendMagicLink_ExistingUserInviteOnly(t *testing.T) {
 	email := "existing-inv-" + uuid.New().String()[:6] + "@example.com"
 	code, err := magic.SendMagicLink(ctx, email)
 	require.NoError(t, err)
-	_, err = svc.LoginWithMagicLink(ctx, email, code, "browser", "127.0.0.1")
+	_, err = svc.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
 	require.NoError(t, err)
 
 	require.NoError(t, svc.SetRegistrationMode(ctx, "invite_only"))

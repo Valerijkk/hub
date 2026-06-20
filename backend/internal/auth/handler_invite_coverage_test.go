@@ -52,7 +52,7 @@ func TestLoginWithMagicLink_InviteOnlyExistingUser(t *testing.T) {
 	code, err := magic.SendMagicLink(ctx, email)
 	require.NoError(t, err)
 
-	pair, err := login.LoginWithMagicLink(ctx, email, code, "browser", "127.0.0.1")
+	pair, err := login.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
 	require.NoError(t, err)
 	require.NotEmpty(t, pair.AccessToken)
 }

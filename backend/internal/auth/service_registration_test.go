@@ -23,11 +23,11 @@ func newRegistrationTestEnv(t *testing.T) (*RegistrationModeService, context.Con
 	return NewRegistrationModeService(client, nil), context.Background()
 }
 
-func TestGetRegistrationMode_DefaultOpen(t *testing.T) {
+func TestGetRegistrationMode_DefaultInviteOnly(t *testing.T) {
 	svc, ctx := newRegistrationTestEnv(t)
 	mode, err := svc.GetRegistrationMode(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, "open", mode)
+	assert.Equal(t, "invite_only", mode)
 }
 
 func TestSetRegistrationMode_Upsert(t *testing.T) {
@@ -52,9 +52,7 @@ func TestCheckRegistrationAllowed(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc, ctx := newRegistrationTestEnv(t)
-			if tt.mode != "open" {
-				require.NoError(t, svc.SetRegistrationMode(ctx, tt.mode))
-			}
+			require.NoError(t, svc.SetRegistrationMode(ctx, tt.mode))
 			err := svc.CheckRegistrationAllowed(ctx)
 			if tt.wantErr != nil {
 				require.Error(t, err)

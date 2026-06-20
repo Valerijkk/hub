@@ -55,6 +55,9 @@ func (Project) Fields() []ent.Field {
 // Edges of the Project.
 func (Project) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.From("organization", Organization.Type).
+			Ref("projects").
+			Unique(),
 		edge.To("members", ProjectMember.Type),
 		edge.To("roles", Role.Type),
 		edge.To("teams", Team.Type),

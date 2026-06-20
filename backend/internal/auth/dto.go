@@ -6,13 +6,15 @@ import "time"
 
 // MagicLinkRequest — тело запроса для POST /auth/magic-link.
 type MagicLinkRequest struct {
-	Email string `json:"email" validate:"required,email"`
+	Email       string `json:"email" validate:"required,email"`
+	InviteToken string `json:"invite_token,omitempty"`
 }
 
 // VerifyMagicLinkRequest — тело запроса для POST /auth/magic-link/verify.
 type VerifyMagicLinkRequest struct {
-	Email string `json:"email" validate:"required,email"`
-	Code  string `json:"code" validate:"required,len=6"`
+	Email       string `json:"email" validate:"required,email"`
+	Code        string `json:"code" validate:"required,len=6"`
+	InviteToken string `json:"invite_token,omitempty"`
 }
 
 // TelegramAuthRequest — тело запроса для POST /auth/telegram.
@@ -39,6 +41,19 @@ type UpdateProfileRequest struct {
 	QuietHoursStart *string                 `json:"quiet_hours_start,omitempty"`
 	QuietHoursEnd   *string                 `json:"quiet_hours_end,omitempty"`
 	CustomFields    map[string]interface{}  `json:"custom_fields,omitempty"`
+}
+
+// PendingUserResponse — пользователь в очереди admin Pending (ORG-06).
+type PendingUserResponse struct {
+	ID           string    `json:"id"`
+	Email        string    `json:"email"`
+	PendingSince time.Time `json:"pending_since"`
+}
+
+// OrgInviteResponse — org invite link token for admins.
+type OrgInviteResponse struct {
+	InviteToken string `json:"invite_token"`
+	InviteURL   string `json:"invite_url"`
 }
 
 // SetRegistrationModeRequest — тело запроса для PUT /admin/registration-mode.
@@ -75,6 +90,7 @@ type UserResponse struct {
 	Language            string                 `json:"language"`
 	Birthday            *time.Time             `json:"birthday,omitempty"`
 	SystemRole          string                 `json:"system_role"`
+	Status              string                 `json:"status"`
 	OnboardingCompleted bool                   `json:"onboarding_completed"`
 	CustomFields        map[string]interface{} `json:"custom_fields,omitempty"`
 }

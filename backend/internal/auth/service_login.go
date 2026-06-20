@@ -20,6 +20,7 @@ type LoginService struct {
 	botToken  string
 	sessions  *SessionService
 	regMode   *RegistrationModeService
+	org       *OrganizationService
 }
 
 // NewLoginService создаёт LoginService с явно переданными зависимостями.
@@ -29,6 +30,7 @@ func NewLoginService(
 	botToken string,
 	sessions *SessionService,
 	regMode *RegistrationModeService,
+	org *OrganizationService,
 ) *LoginService {
 	return &LoginService{
 		db:        db,
@@ -36,6 +38,7 @@ func NewLoginService(
 		botToken:  botToken,
 		sessions:  sessions,
 		regMode:   regMode,
+		org:       org,
 	}
 }
 
@@ -47,23 +50,49 @@ func (s *LoginService) UserExistsByEmail(ctx context.Context, email string) (boo
 }
 
 // LoginWithMagicLink проверяет код, находит или создаёт пользователя и возвращает пару токенов.
-func (s *LoginService) LoginWithMagicLink(ctx context.Context, email, code, device, ip string) (*TokenPairResponse, error) {
+func (s *LoginService) LoginWithMagicLink(ctx context.Context, email, code, inviteToken, device, ip string) (*TokenPairResponse, error) {
 	return observability.Timed(ctx, "auth.Login", func(ctx context.Context) (*TokenPairResponse, error) {
 		if err := s.magicLink.VerifyCode(ctx, email, code); err != nil {
 			return nil, err
 		}
 
-		u, isNew, err := s.findOrCreateUserByEmail(ctx, email)
+		u, isNew, err := s.findOrCreateUserByEmail(ctx, email, inviteToken)
 		if err != nil {
 			return nil, err
 		}
 
 		if isNew {
-			slog.Info("new user registered via magic link", "user_id", u.ID.String(), "email", email)
+			slog.Info("new user registered via magic link", "user_id", u.ID.String(), "email", email, "status", u.Status)
 		}
 
 		return s.sessions.CreateSession(ctx, u.ID, device, ip)
 	})
+}
+
+// CanSendMagicLink validates whether magic link may be sent for a new email (ORG-05).
+func (s *LoginService) CanSendMagicLink(ctx context.Context, email, inviteToken string) error {
+	exists, err := s.UserExistsByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+	hasOrg, err := s.org.HasOrganization(ctx)
+	if err != nil {
+		return err
+	}
+	if !hasOrg {
+		return nil
+	}
+	mode, err := s.regMode.GetRegistrationMode(ctx)
+	if err != nil {
+		return err
+	}
+	if mode != "invite_only" {
+		return nil
+	}
+	return s.org.ValidateInviteToken(ctx, inviteToken)
 }
 
 // LoginWithTelegram проверяет initData Telegram, находит или создаёт пользователя, возвращает пару токенов.
@@ -99,11 +128,8 @@ func (s *LoginService) LoginWithTelegramUser(ctx context.Context, tgUser *Telegr
 	return s.sessions.CreateSession(ctx, u.ID, device, ip)
 }
 
-// findOrCreateUserByEmail ищет пользователя по email. Если не найден — создаёт нового.
-// Самый первый пользователь в системе получает роль admin. Создание делегируется
-// в regMode.CreateFirstOrMemberUser, чтобы count → Create выполнялись атомарно
-// под общим мьютексом (SEC-06).
-func (s *LoginService) findOrCreateUserByEmail(ctx context.Context, email string) (*ent.User, bool, error) {
+// findOrCreateUserByEmail ищет пользователя по email или регистрирует нового (founder/pending).
+func (s *LoginService) findOrCreateUserByEmail(ctx context.Context, email, inviteToken string) (*ent.User, bool, error) {
 	u, err := s.db.User.Query().Where(user.EmailEQ(email)).Only(ctx)
 	if err == nil {
 		return u, false, nil
@@ -112,13 +138,7 @@ func (s *LoginService) findOrCreateUserByEmail(ctx context.Context, email string
 		return nil, false, fmt.Errorf("find user by email: %w", err)
 	}
 
-	if err := s.regMode.CheckRegistrationAllowed(ctx); err != nil {
-		return nil, false, err
-	}
-
-	u, err = s.regMode.CreateFirstOrMemberUser(ctx, func(b *ent.UserCreate, role user.SystemRole) *ent.UserCreate {
-		return b.SetEmail(email).SetSystemRole(role)
-	})
+	u, err = s.regMode.RegisterNewUserByEmail(ctx, email, inviteToken, s.org)
 	if err != nil {
 		return nil, false, err
 	}

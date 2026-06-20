@@ -8,7 +8,6 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 
-	"github.com/valerii/hub/backend/ent/user"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -49,6 +48,10 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	admin := api.Group("/admin", authMw)
 	admin.Get("/registration-mode", h.GetRegistrationMode)
 	admin.Put("/registration-mode", h.SetRegistrationMode)
+	admin.Get("/users/pending", h.ListPendingUsers)
+	admin.Post("/users/:userId/approve", h.ApprovePendingUser)
+	admin.Post("/users/:userId/reject", h.RejectPendingUser)
+	admin.Get("/organization/invite", h.GetOrgInvite)
 }
 
 // ---- Публичные обработчики ----
@@ -75,13 +78,12 @@ func (h *Handler) SendMagicLink(c fiber.Ctx) error {
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 
-	// Check registration mode: if invite_only and user does not exist, reject.
-	mode, _ := h.service.GetRegistrationMode(c.Context())
-	if mode == "invite_only" {
-		exists, _ := h.service.UserExistsByEmail(c.Context(), req.Email)
-		if !exists {
+	// Check registration: invite_only requires existing user, valid invite, or founder setup.
+	if err := h.service.Login.CanSendMagicLink(c.Context(), req.Email, req.InviteToken); err != nil {
+		if err == ErrInvalidInviteToken || err == ErrRegistrationInviteOnly {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
 		}
+		return fiber.NewError(fiber.StatusInternalServerError, "registration check failed")
 	}
 
 	code, err := h.service.magicLink.SendMagicLink(c.Context(), req.Email)
@@ -123,7 +125,7 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 	device := utils.CopyString(c.Get("User-Agent"))
 	ip := c.IP()
 
-	tokens, err := h.service.LoginWithMagicLink(c.Context(), req.Email, req.Code, device, ip)
+	tokens, err := h.service.LoginWithMagicLink(c.Context(), req.Email, req.Code, req.InviteToken, device, ip)
 	if err != nil {
 		if err == ErrMagicLinkInvalid {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid or expired code")
@@ -131,7 +133,7 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 		if err == ErrMagicLinkVerifyLimited {
 			return fiber.NewError(fiber.StatusTooManyRequests, "too many verification attempts, try again later")
 		}
-		if err == ErrRegistrationInviteOnly {
+		if err == ErrRegistrationInviteOnly || err == ErrInvalidInviteToken {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
 		}
 		return fiber.NewError(fiber.StatusInternalServerError, "login failed")
@@ -400,6 +402,77 @@ func (h *Handler) SetRegistrationMode(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"mode": req.Mode})
 }
 
+// ListPendingUsers returns users awaiting admin approval (ORG-06).
+func (h *Handler) ListPendingUsers(c fiber.Ctx) error {
+	if err := h.requireAdmin(c); err != nil {
+		return err
+	}
+	users, err := h.service.Org.ListPendingUsers(c.Context())
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to list pending users")
+	}
+	resp := make([]PendingUserResponse, 0, len(users))
+	for _, u := range users {
+		item := PendingUserResponse{ID: u.ID.String(), Email: u.Email}
+		if u.PendingSince != nil {
+			item.PendingSince = *u.PendingSince
+		}
+		resp = append(resp, item)
+	}
+	return c.JSON(resp)
+}
+
+// ApprovePendingUser activates a pending user.
+func (h *Handler) ApprovePendingUser(c fiber.Ctx) error {
+	if err := h.requireAdmin(c); err != nil {
+		return err
+	}
+	userID, err := uuid.Parse(utils.CopyString(c.Params("userId")))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
+	}
+	if err := h.service.Org.ApprovePendingUser(c.Context(), userID); err != nil {
+		if err == ErrUserNotFound {
+			return fiber.NewError(fiber.StatusNotFound, "pending user not found")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to approve user")
+	}
+	return c.JSON(fiber.Map{"message": "user approved"})
+}
+
+// RejectPendingUser removes a pending registration.
+func (h *Handler) RejectPendingUser(c fiber.Ctx) error {
+	if err := h.requireAdmin(c); err != nil {
+		return err
+	}
+	userID, err := uuid.Parse(utils.CopyString(c.Params("userId")))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
+	}
+	if err := h.service.Org.RejectPendingUser(c.Context(), userID); err != nil {
+		if err == ErrUserNotFound {
+			return fiber.NewError(fiber.StatusNotFound, "pending user not found")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to reject user")
+	}
+	return c.JSON(fiber.Map{"message": "user rejected"})
+}
+
+// GetOrgInvite returns the org invite token for sharing (admin/founder).
+func (h *Handler) GetOrgInvite(c fiber.Ctx) error {
+	if err := h.requireAdmin(c); err != nil {
+		return err
+	}
+	org, err := h.service.Org.GetOrganization(c.Context())
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "organization not configured")
+	}
+	return c.JSON(OrgInviteResponse{
+		InviteToken: org.InviteToken,
+		InviteURL:   "/login?invite=" + org.InviteToken,
+	})
+}
+
 // ---- Helpers ----
 
 // sessionIDFromCtx извлекает ID сессии из контекста Fiber.
@@ -423,7 +496,7 @@ func (h *Handler) requireAdmin(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "user not found")
 	}
 
-	if u.SystemRole != user.SystemRoleAdmin {
+	if !IsSystemAdmin(u.SystemRole) {
 		return fiber.NewError(fiber.StatusForbidden, "admin access required")
 	}
 

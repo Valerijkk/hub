@@ -2,6 +2,7 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -16,9 +17,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func seedOrganization(t *testing.T, svc *AuthService, ctx context.Context) string {
+	t.Helper()
+	email := "founder-" + uuid.New().String()[:6] + "@example.com"
+	code, err := svc.magicLink.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+	_, err = svc.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
+	require.NoError(t, err)
+	org, err := svc.Org.GetOrganization(ctx)
+	require.NoError(t, err)
+	return org.InviteToken
+}
+
 func TestHandler_SendMagicLink_InviteOnlyNewUser(t *testing.T) {
 	h, svc, _ := newHandlerTestEnv(t)
 	ctx := t.Context()
+	seedOrganization(t, svc, ctx)
 	require.NoError(t, svc.SetRegistrationMode(ctx, "invite_only"))
 
 	app := testApp(http.MethodPost, "/auth/magic-link", h.SendMagicLink)
@@ -35,6 +49,7 @@ func TestHandler_SendMagicLink_InviteOnlyNewUser(t *testing.T) {
 func TestHandler_VerifyMagicLink_InviteOnlyBlocked(t *testing.T) {
 	h, svc, magic := newHandlerTestEnv(t)
 	ctx := t.Context()
+	seedOrganization(t, svc, ctx)
 	require.NoError(t, svc.SetRegistrationMode(ctx, "invite_only"))
 
 	email := "blocked-" + uuid.New().String()[:6] + "@example.com"
@@ -74,7 +89,7 @@ func TestHandler_Logout_AuthenticatedViaJWT(t *testing.T) {
 	email := "logout-jwt-" + uuid.New().String()[:6] + "@example.com"
 	code, err := magic.SendMagicLink(ctx, email)
 	require.NoError(t, err)
-	pair, err := svc.LoginWithMagicLink(ctx, email, code, "browser", "127.0.0.1")
+	pair, err := svc.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
 	require.NoError(t, err)
 
 	app := fiber.New()

@@ -40,7 +40,7 @@ func wsAccessToken(t *testing.T, svc *auth.AuthService, magic *auth.MagicLinkSer
 	email := "ws-" + uuid.New().String()[:6] + "@example.com"
 	code, err := magic.SendMagicLink(ctx, email)
 	require.NoError(t, err)
-	pair, err := svc.LoginWithMagicLink(ctx, email, code, "browser", "127.0.0.1")
+	pair, err := svc.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
 	require.NoError(t, err)
 	return pair.AccessToken
 }

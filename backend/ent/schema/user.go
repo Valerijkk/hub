@@ -46,12 +46,16 @@ func (User) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.Enum("system_role").
-			Values("admin", "member").
+			Values("founder", "admin", "member").
 			Default("member"),
 		field.Enum("status").
-			Values("active", "deactivated").
+			Values("active", "pending", "deactivated").
 			Default("active").
-			Comment("РЎС‚Р°С‚СѓСЃ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ: active РёР»Рё deactivated"),
+			Comment("User lifecycle: active, pending admin approval, deactivated"),
+		field.Time("pending_since").
+			Optional().
+			Nillable().
+			Comment("When user entered pending queue (7d auto-delete)"),
 		field.Bool("onboarding_completed").
 			Default(false),
 		field.Time("created_at").
@@ -77,6 +81,9 @@ func (User) Fields() []ent.Field {
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.From("organization", Organization.Type).
+			Ref("users").
+			Unique(),
 		edge.To("sessions", Session.Type),
 		edge.To("project_members", ProjectMember.Type),
 		edge.To("team_members", TeamMember.Type),
