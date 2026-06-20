@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	createTestRun,
 	type ListTestRunsParams,
@@ -119,7 +120,7 @@ function TestRunsPage() {
 			setNewDescription("");
 			toast.success("Прогон создан");
 		},
-		onError: () => toast.error("Ошибка создания прогона"),
+		onError: (err) => toastApiError(err, "Ошибка создания прогона"),
 	});
 
 	const runs = data?.items ?? [];
@@ -170,6 +171,7 @@ function TestRunsPage() {
 						}}
 					>
 						<svg
+							aria-hidden="true"
 							className="mr-1 h-3 w-3"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -188,11 +190,9 @@ function TestRunsPage() {
 
 				<Dialog open={createOpen} onOpenChange={setCreateOpen}>
 					<DialogTrigger asChild>
-						<Button
-							size="sm"
-							className="gradient-tms text-white shadow-sm h-8"
-						>
+						<Button size="sm" className="gradient-tms text-white shadow-sm h-8">
 							<svg
+								aria-hidden="true"
 								className="mr-1.5 h-3.5 w-3.5"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -276,7 +276,9 @@ function TestRunsPage() {
 					<div className="mx-auto mb-[22px] flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue/[0.06] to-purple/[0.06] shadow-[0_0_60px_rgba(167,139,250,0.06)] animate-[breathe_4s_ease-in-out_infinite] text-[38px]">
 						⚡
 					</div>
-					<h3 className="text-[19px] font-bold mb-2 tracking-[-0.02em]">Нет тестовых прогонов</h3>
+					<h3 className="text-[19px] font-bold mb-2 tracking-[-0.02em]">
+						Нет тестовых прогонов
+					</h3>
 					<p className="text-[14px] text-t2 mb-6 max-w-[340px] text-center leading-[1.65]">
 						{statusFilter
 							? "По выбранному фильтру прогоны не найдены. Попробуйте изменить статус."
@@ -298,6 +300,7 @@ function TestRunsPage() {
 							onClick={() => setCreateOpen(true)}
 						>
 							<svg
+								aria-hidden="true"
 								className="mr-1.5 h-4 w-4"
 								fill="none"
 								viewBox="0 0 24 24"

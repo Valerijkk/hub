@@ -42,9 +42,7 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 						Burndown
 					</h2>
 				</div>
-				<p className="text-[13px] text-t2">
-					Нет данных для отображения
-				</p>
+				<p className="text-[13px] text-t2">Нет данных для отображения</p>
 			</div>
 		);
 	}
@@ -55,7 +53,9 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 				<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5">
 					<TrendingDown className="h-4 w-4 text-blue-400" />
 				</div>
-				<h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">Burndown</h2>
+				<h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">
+					Burndown
+				</h2>
 			</div>
 			<ResponsiveContainer width="100%" height={300}>
 				<AreaChart
@@ -63,41 +63,13 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 					margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
 				>
 					<defs>
-						<linearGradient
-							id="burndown-ideal"
-							x1="0"
-							y1="0"
-							x2="0"
-							y2="1"
-						>
-							<stop
-								offset="5%"
-								stopColor="var(--gray)"
-								stopOpacity={0.15}
-							/>
-							<stop
-								offset="95%"
-								stopColor="var(--gray)"
-								stopOpacity={0}
-							/>
+						<linearGradient id="burndown-ideal" x1="0" y1="0" x2="0" y2="1">
+							<stop offset="5%" stopColor="var(--gray)" stopOpacity={0.15} />
+							<stop offset="95%" stopColor="var(--gray)" stopOpacity={0} />
 						</linearGradient>
-						<linearGradient
-							id="burndown-remaining"
-							x1="0"
-							y1="0"
-							x2="0"
-							y2="1"
-						>
-							<stop
-								offset="5%"
-								stopColor="var(--blue)"
-								stopOpacity={0.2}
-							/>
-							<stop
-								offset="95%"
-								stopColor="var(--blue)"
-								stopOpacity={0}
-							/>
+						<linearGradient id="burndown-remaining" x1="0" y1="0" x2="0" y2="1">
+							<stop offset="5%" stopColor="var(--blue)" stopOpacity={0.2} />
+							<stop offset="95%" stopColor="var(--blue)" stopOpacity={0} />
 						</linearGradient>
 					</defs>
 					<CartesianGrid
@@ -133,9 +105,7 @@ export function BurndownChart({ projectId, sprintId }: BurndownChartProps) {
 						itemStyle={{ color: "var(--t2)" }}
 						labelStyle={{ color: "var(--t3)", marginBottom: "4px" }}
 					/>
-					<Legend
-						wrapperStyle={{ fontSize: "12px", color: "var(--t3)" }}
-					/>
+					<Legend wrapperStyle={{ fontSize: "12px", color: "var(--t3)" }} />
 					<Area
 						type="monotone"
 						dataKey="ideal"

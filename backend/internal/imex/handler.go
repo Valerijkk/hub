@@ -9,6 +9,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// maxImportFileBytes — лимит загружаемого файла импорта (совпадает с Fiber BodyLimit 25 MB).
+const maxImportFileBytes = 25 * 1024 * 1024
+
 // Handler предоставляет HTTP-обработчики для импорта/экспорта задач.
 type Handler struct {
 	svc *ImExService
@@ -63,9 +66,12 @@ func (h *Handler) ImportIssues(c fiber.Ctx) error {
 	}
 	defer f.Close()
 
-	data, err := io.ReadAll(f)
+	data, err := io.ReadAll(io.LimitReader(f, maxImportFileBytes+1))
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "ошибка чтения файла")
+	}
+	if len(data) > maxImportFileBytes {
+		return fiber.NewError(fiber.StatusRequestEntityTooLarge, "файл слишком большой")
 	}
 
 	preview := c.Query("mode", "preview") == "preview"

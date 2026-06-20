@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
-import { ChannelList } from "@/components/messenger/channel-list";
 import { ChannelDrawerContext } from "@/components/messenger/channel-drawer-context";
+import { ChannelList } from "@/components/messenger/channel-list";
 import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
@@ -36,11 +36,7 @@ function MessengerLayout() {
 
 				{/* Mobile drawer */}
 				<Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-					<SheetContent
-						side="left"
-						aria-label="Список каналов"
-						className="p-0"
-					>
+					<SheetContent side="left" aria-label="Список каналов" className="p-0">
 						<SheetTitle className="sr-only">Список каналов</SheetTitle>
 						<ChannelList onChannelSelect={handleChannelSelect} />
 					</SheetContent>

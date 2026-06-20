@@ -15,6 +15,9 @@ import (
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
+// maxWebhookBodyBytes — лимит тела GitHub webhook (memory DoS protection).
+const maxWebhookBodyBytes = 10 * 1024 * 1024
+
 // Handler предоставляет HTTP-обработчики для модуля GitHub-интеграции.
 type Handler struct {
 	service *GitHubService
@@ -64,13 +67,18 @@ func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	eventType := utils.CopyString(c.Get("X-GitHub-Event"))
 	signature := utils.CopyString(c.Get("X-Hub-Signature-256"))
 
-	body, err := io.ReadAll(c.Request().BodyStream())
-	if err != nil {
-		// Для Fiber v3 body уже прочитан, используем Body()
-		body = c.Body()
-	}
+	body := c.Body()
 	if len(body) == 0 {
-		body = c.Body()
+		if stream := c.Request().BodyStream(); stream != nil {
+			var err error
+			body, err = io.ReadAll(io.LimitReader(stream, maxWebhookBodyBytes+1))
+			if err != nil {
+				return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
+			}
+		}
+	}
+	if len(body) > maxWebhookBodyBytes {
+		return fiber.NewError(fiber.StatusRequestEntityTooLarge, apperr.MsgBadRequest)
 	}
 
 	// Валидируем HMAC-SHA256 подпись по секретам всех зарегистрированных интеграций.

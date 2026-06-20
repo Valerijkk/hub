@@ -1,11 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import {
-	ArrowRight,
-	CheckSquare,
-	Inbox,
-	ListTodo,
-	Square,
-} from "lucide-react";
+import { ArrowRight, CheckSquare, Inbox, ListTodo, Square } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type IssueResponse, listIssues } from "@/api/tracker";
 import { Button } from "@/components/ui/button";
@@ -25,9 +19,7 @@ interface SprintBacklogProps {
 export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	const { sprints, fetchSprints, moveIssueToSprint } = useSprintStore();
 	const [backlogIssues, setBacklogIssues] = useState<IssueResponse[]>([]);
-	const [selectedIssues, setSelectedIssues] = useState<Set<string>>(
-		new Set(),
-	);
+	const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
 	const [loading, setLoading] = useState(false);
 
 	const loadBacklog = useCallback(async () => {
@@ -74,7 +66,9 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 						<Inbox className="h-5 w-5" />
 					</div>
 					<div>
-						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">Бэклог</h1>
+						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+							Бэклог
+						</h1>
 						<p className="mt-0.5 text-[13px] text-t2">
 							{backlogIssues.length} задач без спринта
 						</p>
@@ -94,8 +88,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 								className="btn-glow bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/20 hover:from-blue-500 hover:to-blue-400"
 								onClick={() => handleMoveToSprint(s.id)}
 							>
-								<ArrowRight className="mr-1.5 h-3.5 w-3.5" />
-								В {s.name}
+								<ArrowRight className="mr-1.5 h-3.5 w-3.5" />В {s.name}
 							</Button>
 						))}
 					</div>
@@ -107,9 +100,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 				<div className="flex items-center justify-center p-12">
 					<div className="flex flex-col items-center gap-3">
 						<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-						<p className="text-sm text-t2">
-							Загрузка бэклога...
-						</p>
+						<p className="text-sm text-t2">Загрузка бэклога...</p>
 					</div>
 				</div>
 			) : backlogIssues.length === 0 ? (
@@ -117,9 +108,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 					<div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-blue-500/20">
 						<ListTodo className="h-8 w-8 text-violet-400" />
 					</div>
-					<h3 className="text-lg font-semibold text-t1">
-						Бэклог пуст
-					</h3>
+					<h3 className="text-lg font-semibold text-t1">Бэклог пуст</h3>
 					<p className="mt-1 max-w-sm text-sm text-t2">
 						Все задачи распределены по спринтам
 					</p>

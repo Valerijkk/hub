@@ -5,17 +5,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Channel, Message } from "@/api/messenger";
 import { getChannel } from "@/api/messenger";
 import { CallButton } from "@/components/calls/CallButton";
-import { useChannelDrawer } from "./channel-drawer-context";
-import { InviteLinkDialog } from "./invite-link-dialog";
-import { PinnedMessages } from "./pinned-messages";
-import { SearchDialog } from "./search-dialog";
 import { useMessages } from "@/hooks/use-messages";
 import { useTypingIndicator } from "@/hooks/use-typing";
 import { useMarkRead } from "@/hooks/use-unread";
 import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
+import { useChannelDrawer } from "./channel-drawer-context";
+import { InviteLinkDialog } from "./invite-link-dialog";
 import { MessageComposer } from "./message-composer";
 import { MessageItem } from "./message-item";
+import { PinnedMessages } from "./pinned-messages";
+import { SearchDialog } from "./search-dialog";
 import { ThreadPanel } from "./thread-panel";
 
 /** Пропсы компонента ChatView. */
@@ -56,7 +56,8 @@ function needsDateSeparator(current: Message, previous?: Message): boolean {
 	if (!current.created_at || !previous.created_at) return true;
 	const curDate = new Date(current.created_at);
 	const prevDate = new Date(previous.created_at);
-	if (Number.isNaN(curDate.getTime()) || Number.isNaN(prevDate.getTime())) return true;
+	if (Number.isNaN(curDate.getTime()) || Number.isNaN(prevDate.getTime()))
+		return true;
 	return curDate.toDateString() !== prevDate.toDateString();
 }
 
@@ -68,6 +69,7 @@ function ChannelHeaderIcon({ type }: { type: string }) {
 	if (type === "dm") {
 		return (
 			<svg
+				aria-hidden="true"
 				className="h-5 w-5 text-t2"
 				fill="none"
 				viewBox="0 0 24 24"
@@ -85,6 +87,7 @@ function ChannelHeaderIcon({ type }: { type: string }) {
 	if (type === "private") {
 		return (
 			<svg
+				aria-hidden="true"
 				className="h-5 w-5 text-t2"
 				fill="none"
 				viewBox="0 0 24 24"
@@ -101,6 +104,7 @@ function ChannelHeaderIcon({ type }: { type: string }) {
 	}
 	return (
 		<svg
+			aria-hidden="true"
 			className="h-5 w-5 text-t2"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -282,6 +286,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 							<div className="text-center max-w-xs animate-fade-in">
 								<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5">
 									<svg
+										aria-hidden="true"
 										className="h-8 w-8 text-primary/40"
 										fill="none"
 										viewBox="0 0 24 24"
@@ -364,6 +369,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 							)}
 						>
 							<svg
+								aria-hidden="true"
 								className="h-5 w-5"
 								fill="none"
 								viewBox="0 0 24 24"

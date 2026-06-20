@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import { type ImportResult, importTestCases } from "@/api/tms";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +55,7 @@ export function ImportDialog({
 			});
 			toast.success(`Импортировано ${data.created} тест-кейсов`);
 		},
-		onError: () => toast.error("Ошибка импорта"),
+		onError: (err) => toastApiError(err, "Ошибка импорта"),
 	});
 
 	const handleFileChange = useCallback(

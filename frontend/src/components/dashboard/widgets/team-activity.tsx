@@ -40,9 +40,7 @@ export function TeamActivityWidget({ data }: Props) {
 							<span className="text-t2">{entry.action}</span>
 						</p>
 						{entry.target && (
-							<p className="text-xs text-t2 truncate mt-0.5">
-								{entry.target}
-							</p>
+							<p className="text-xs text-t2 truncate mt-0.5">{entry.target}</p>
 						)}
 						<p className="text-[11px] text-t2/60 mt-0.5">
 							{new Date(entry.created_at).toLocaleString("ru-RU", {

@@ -1,0 +1,64 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.8/schema.json",
+	"files": {
+		"includes": ["src/**"]
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["src/app.css"],
+			"formatter": { "enabled": false },
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noImportantStyles": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/routeTree.gen.ts"],
+			"linter": { "enabled": false },
+			"formatter": { "enabled": false },
+			"assist": { "enabled": false }
+		},
+		{
+			"includes": ["**/*.test.ts", "**/*.test.tsx"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"useValidAnchor": "off"
+					}
+				}
+			}
+		}
+	],
+	"linter": {
+		"rules": {
+			"a11y": {
+				"noAutofocus": "warn",
+				"noLabelWithoutControl": "warn",
+				"noStaticElementInteractions": "warn",
+				"useKeyWithClickEvents": "warn",
+				"useMediaCaption": "warn",
+				"useSemanticElements": "warn",
+				"useValidAnchor": "warn"
+			},
+			"correctness": {
+				"noUnusedVariables": "warn"
+			},
+			"style": {
+				"noNonNullAssertion": "warn"
+			},
+			"suspicious": {
+				"noExplicitAny": "warn",
+				"noTemplateCurlyInString": "warn",
+				"useIterableCallbackReturn": "warn"
+			}
+		}
+	}
+}

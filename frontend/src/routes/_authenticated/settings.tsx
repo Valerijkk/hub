@@ -2,7 +2,12 @@
  * Settings layout — left sidebar navigation + right content area.
  * Wraps all /settings/* child routes via <Outlet />.
  */
-import { Link, Outlet, createFileRoute, useMatchRoute } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	Outlet,
+	useMatchRoute,
+} from "@tanstack/react-router";
 import {
 	Bell,
 	Keyboard,
@@ -16,13 +21,43 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-	{ to: "/settings/profile", icon: User, label: "\u041F\u0440\u043E\u0444\u0438\u043B\u044C" },
-	{ to: "/settings/appearance", icon: Palette, label: "\u0412\u043D\u0435\u0448\u043D\u0438\u0439 \u0432\u0438\u0434" },
-	{ to: "/settings/notifications", icon: Bell, label: "\u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F" },
-	{ to: "/settings/security", icon: Shield, label: "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C" },
-	{ to: "/settings/integrations", icon: Puzzle, label: "\u0418\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438" },
-	{ to: "/settings/hotkeys", icon: Keyboard, label: "\u0413\u043E\u0440\u044F\u0447\u0438\u0435 \u043A\u043B\u0430\u0432\u0438\u0448\u0438" },
-	{ to: "/trash", icon: Trash2, label: "\u041A\u043E\u0440\u0437\u0438\u043D\u0430" },
+	{
+		to: "/settings/profile",
+		icon: User,
+		label: "\u041F\u0440\u043E\u0444\u0438\u043B\u044C",
+	},
+	{
+		to: "/settings/appearance",
+		icon: Palette,
+		label: "\u0412\u043D\u0435\u0448\u043D\u0438\u0439 \u0432\u0438\u0434",
+	},
+	{
+		to: "/settings/notifications",
+		icon: Bell,
+		label: "\u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F",
+	},
+	{
+		to: "/settings/security",
+		icon: Shield,
+		label:
+			"\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C",
+	},
+	{
+		to: "/settings/integrations",
+		icon: Puzzle,
+		label: "\u0418\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438",
+	},
+	{
+		to: "/settings/hotkeys",
+		icon: Keyboard,
+		label:
+			"\u0413\u043E\u0440\u044F\u0447\u0438\u0435 \u043A\u043B\u0430\u0432\u0438\u0448\u0438",
+	},
+	{
+		to: "/trash",
+		icon: Trash2,
+		label: "\u041A\u043E\u0440\u0437\u0438\u043D\u0430",
+	},
 ] as const;
 
 function SettingsLayout() {
@@ -30,7 +65,7 @@ function SettingsLayout() {
 		<div className="flex flex-1 overflow-hidden animate-[eu_400ms_var(--spring)] -mx-4 -my-4 md:-mx-6 md:-my-4">
 			{/* Left sidebar nav */}
 			<nav className="w-full md:w-60 md:min-w-60 border-r border-b1 py-4 px-3 overflow-y-auto">
-				<div className="text-[10px] font-bold uppercase tracking-[0.08em] text-t4 px-[10px] pt-[14px] pb-[6px]">
+				<div className="text-[10px] font-bold uppercase tracking-[0.08em] text-t2 px-[10px] pt-[14px] pb-[6px]">
 					{"\u0410\u043A\u043A\u0430\u0443\u043D\u0442"}
 				</div>
 				{navItems.map((item) => (

@@ -1,8 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-	listWorkflowRuns,
-	type WorkflowRunResponse,
-} from "@/api/github";
+import { listWorkflowRuns, type WorkflowRunResponse } from "@/api/github";
 
 // ---------------------------------------------------------------------------
 // Типы
@@ -113,6 +110,7 @@ function StatusIcon({
 		case "check":
 			return (
 				<svg
+					aria-hidden="true"
 					className={className}
 					width="16"
 					height="16"
@@ -125,6 +123,7 @@ function StatusIcon({
 		case "x":
 			return (
 				<svg
+					aria-hidden="true"
 					className={className}
 					width="16"
 					height="16"
@@ -137,6 +136,7 @@ function StatusIcon({
 		case "spinner":
 			return (
 				<svg
+					aria-hidden="true"
 					className={`${className ?? ""} animate-spin`}
 					width="16"
 					height="16"
@@ -152,6 +152,7 @@ function StatusIcon({
 		case "clock":
 			return (
 				<svg
+					aria-hidden="true"
 					className={className}
 					width="16"
 					height="16"
@@ -164,6 +165,7 @@ function StatusIcon({
 		case "minus":
 			return (
 				<svg
+					aria-hidden="true"
 					className={className}
 					width="16"
 					height="16"

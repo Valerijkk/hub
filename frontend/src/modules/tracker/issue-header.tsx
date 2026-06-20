@@ -63,7 +63,9 @@ export function IssueHeader({
 					Задачи
 				</Link>
 				<span className="text-t4 text-[12px]">/</span>
-				<span className="font-mono text-[13px] text-blue font-semibold">{issueKey}</span>
+				<span className="font-mono text-[13px] text-blue font-semibold">
+					{issueKey}
+				</span>
 			</nav>
 
 			{/* Заголовок с типом и ключом */}

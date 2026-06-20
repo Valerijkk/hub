@@ -8,13 +8,13 @@
  * Авторизованный пользователь автоматически присоединяется к звонку.
  * Неавторизованный — видит форму для ввода имени (гостевой доступ).
  */
+
+import { LiveKitRoom } from "@livekit/components-react";
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-
-import { joinByInviteCode, joinCall, guestJoinCall } from "@/api/calls";
-import { useCallStore } from "@/stores/call-store";
+import { guestJoinCall, joinByInviteCode, joinCall } from "@/api/calls";
 import { useAuthStore } from "@/stores/auth-store";
-import { LiveKitRoom } from "@livekit/components-react";
+import { useCallStore } from "@/stores/call-store";
 import "@livekit/components-styles";
 import { CallRoomContent } from "@/components/calls/CallRoom";
 
@@ -68,14 +68,18 @@ function JoinCallByCodePage() {
 				void navigate({ to: "/messenger" });
 			} catch {
 				if (!cancelled) {
-					setError("Не удалось присоединиться к звонку. Возможно, звонок уже завершён.");
+					setError(
+						"Не удалось присоединиться к звонку. Возможно, звонок уже завершён.",
+					);
 					setLoading(false);
 				}
 			}
 		}
 
 		void join();
-		return () => { cancelled = true; };
+		return () => {
+			cancelled = true;
+		};
 	}, [code, isAuthenticated, navigate]);
 
 	// Focus name input on guest mode
@@ -115,7 +119,9 @@ function JoinCallByCodePage() {
 			// т.к. бэкенд возвращает внутренний Docker URL (http://livekit:7880).
 			setGuestLivekitUrl(LIVEKIT_URL);
 		} catch {
-			setError("Не удалось войти в звонок. Проверьте ссылку или попробуйте позже.");
+			setError(
+				"Не удалось войти в звонок. Проверьте ссылку или попробуйте позже.",
+			);
 		} finally {
 			setGuestSubmitting(false);
 		}
@@ -136,8 +142,19 @@ function JoinCallByCodePage() {
 			<div className="min-h-screen flex items-center justify-center bg-void">
 				<div className="max-w-md text-center p-8">
 					<div className="w-16 h-16 rounded-full bg-red/10 flex items-center justify-center mx-auto mb-4">
-						<svg className="w-8 h-8 text-red" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-							<path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+						<svg
+							aria-hidden="true"
+							className="w-8 h-8 text-red"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							strokeWidth={1.5}
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+							/>
 						</svg>
 					</div>
 					<h1 className="text-xl font-bold text-t1 mb-2">Звонок недоступен</h1>
@@ -162,10 +179,27 @@ function JoinCallByCodePage() {
 					serverUrl={guestLivekitUrl}
 					token={guestToken}
 					connect={true}
-					audio={{ autoGainControl: true, echoCancellation: true, noiseSuppression: true, sampleRate: 48000, channelCount: 2 }}
+					audio={{
+						autoGainControl: true,
+						echoCancellation: true,
+						noiseSuppression: true,
+						sampleRate: 48000,
+						channelCount: 2,
+					}}
 					options={{
-						audioCaptureDefaults: { autoGainControl: true, echoCancellation: true, noiseSuppression: true, sampleRate: 48000, channelCount: 2 },
-						publishDefaults: { audioPreset: { maxBitrate: 256_000 }, dtx: false, red: true, screenShareEncoding: { maxBitrate: 8_000_000, maxFramerate: 60 } },
+						audioCaptureDefaults: {
+							autoGainControl: true,
+							echoCancellation: true,
+							noiseSuppression: true,
+							sampleRate: 48000,
+							channelCount: 2,
+						},
+						publishDefaults: {
+							audioPreset: { maxBitrate: 256_000 },
+							dtx: false,
+							red: true,
+							screenShareEncoding: { maxBitrate: 8_000_000, maxFramerate: 60 },
+						},
 					}}
 					onDisconnected={() => {
 						setGuestToken(null);
@@ -175,15 +209,17 @@ function JoinCallByCodePage() {
 					}}
 					style={{ height: "100%", display: "flex", flexDirection: "column" }}
 				>
-					<CallRoomContent onDisconnect={() => {
-						setGuestToken(null);
-						setGuestLivekitUrl(null);
-						useCallStore.setState({
-							activeCall: null,
-							token: null,
-							isInCall: false,
-						});
-					}} />
+					<CallRoomContent
+						onDisconnect={() => {
+							setGuestToken(null);
+							setGuestLivekitUrl(null);
+							useCallStore.setState({
+								activeCall: null,
+								token: null,
+								isInCall: false,
+							});
+						}}
+					/>
 				</LiveKitRoom>
 			</div>
 		);
@@ -197,8 +233,19 @@ function JoinCallByCodePage() {
 					<div className="bg-[var(--b2)] rounded-[var(--r3)] border border-[var(--border)] p-8 shadow-xl">
 						{/* Icon */}
 						<div className="w-16 h-16 rounded-full bg-[var(--blueS)]/10 flex items-center justify-center mx-auto mb-6">
-							<svg className="w-8 h-8 text-[var(--blueS)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-								<path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+							<svg
+								aria-hidden="true"
+								className="w-8 h-8 text-[var(--blueS)]"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								strokeWidth={1.5}
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+								/>
 							</svg>
 						</div>
 

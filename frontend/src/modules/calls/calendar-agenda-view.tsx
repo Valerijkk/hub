@@ -30,9 +30,7 @@ export function AgendaView({
 	if (groupedByDay.size === 0) {
 		return (
 			<div className="rounded-xl border bg-card p-8 text-center">
-				<p className="text-t2">
-					Нет запланированных звонков
-				</p>
+				<p className="text-t2">Нет запланированных звонков</p>
 			</div>
 		);
 	}

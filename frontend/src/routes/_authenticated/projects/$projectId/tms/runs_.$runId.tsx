@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	addCasesToRun,
 	completeRun,
@@ -57,7 +58,7 @@ function TestRunDetailPage() {
 			});
 			toast.success("Прогон запущен");
 		},
-		onError: () => toast.error("Ошибка запуска прогона"),
+		onError: (err) => toastApiError(err, "Ошибка запуска прогона"),
 	});
 
 	const completeMutation = useMutation({
@@ -68,7 +69,7 @@ function TestRunDetailPage() {
 			});
 			toast.success("Прогон завершён");
 		},
-		onError: () => toast.error("Ошибка завершения прогона"),
+		onError: (err) => toastApiError(err, "Ошибка завершения прогона"),
 	});
 
 	const reopenMutation = useMutation({
@@ -79,7 +80,7 @@ function TestRunDetailPage() {
 			});
 			toast.success("Прогон переоткрыт");
 		},
-		onError: () => toast.error("Ошибка переоткрытия прогона"),
+		onError: (err) => toastApiError(err, "Ошибка переоткрытия прогона"),
 	});
 
 	const addCasesMutation = useMutation({
@@ -92,7 +93,7 @@ function TestRunDetailPage() {
 			setSelectedCaseIds([]);
 			toast.success("Тест-кейсы добавлены");
 		},
-		onError: () => toast.error("Ошибка добавления тест-кейсов"),
+		onError: (err) => toastApiError(err, "Ошибка добавления тест-кейсов"),
 	});
 
 	/** Переходит к следующему невыполненному результату. */
@@ -131,7 +132,10 @@ function TestRunDetailPage() {
 				<div className="h-8 w-64 rounded animate-shimmer mb-4" />
 				<div className="grid grid-cols-4 gap-3 mb-6">
 					{[1, 2, 3, 4].map((i) => (
-						<div key={`run-stat-sk-${i}`} className="h-20 rounded-xl animate-shimmer" />
+						<div
+							key={`run-stat-sk-${i}`}
+							className="h-20 rounded-xl animate-shimmer"
+						/>
 					))}
 				</div>
 				<div className="h-64 w-full rounded-xl animate-shimmer" />

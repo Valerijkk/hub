@@ -27,9 +27,7 @@ export function EmptyState({
 			)}
 			<div className="space-y-1">
 				<p className="text-sm font-medium text-t2">{title}</p>
-				{description && (
-					<p className="text-sm text-t3">{description}</p>
-				)}
+				{description && <p className="text-sm text-t3">{description}</p>}
 			</div>
 		</div>
 	);

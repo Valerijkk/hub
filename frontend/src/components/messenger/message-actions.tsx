@@ -1,5 +1,5 @@
-import type { Message } from "@/api/messenger";
 import { Pencil } from "lucide-react";
+import type { Message } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ReactionPicker } from "./reaction-picker";
@@ -57,6 +57,7 @@ export function MessageActions({
 				onClick={onReply}
 			>
 				<svg
+					aria-hidden="true"
 					className="h-3.5 w-3.5"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -88,6 +89,7 @@ export function MessageActions({
 				onClick={onOpenThread}
 			>
 				<svg
+					aria-hidden="true"
 					className="h-3.5 w-3.5"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -111,6 +113,7 @@ export function MessageActions({
 				onClick={onPin}
 			>
 				<svg
+					aria-hidden="true"
 					className="h-3.5 w-3.5"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -134,6 +137,7 @@ export function MessageActions({
 				onClick={onBookmark}
 			>
 				<svg
+					aria-hidden="true"
 					className="h-3.5 w-3.5"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -157,6 +161,7 @@ export function MessageActions({
 				onClick={onForward}
 			>
 				<svg
+					aria-hidden="true"
 					className="h-3.5 w-3.5"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -194,6 +199,7 @@ export function MessageActions({
 					onClick={onDelete}
 				>
 					<svg
+						aria-hidden="true"
 						className="h-3.5 w-3.5"
 						fill="none"
 						viewBox="0 0 24 24"

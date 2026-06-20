@@ -17,13 +17,23 @@ function daysRemaining(dueDate: string): number {
 }
 
 /** Deadline urgency styling. */
-function getDeadlineStyle(days: number): { variant: "destructive" | "default" | "outline" | "secondary"; className: string } {
+function getDeadlineStyle(days: number): {
+	variant: "destructive" | "default" | "outline" | "secondary";
+	className: string;
+} {
 	if (days <= 0)
-		return { variant: "destructive", className: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" };
-	if (days <= 1)
-		return { variant: "destructive", className: "" };
+		return {
+			variant: "destructive",
+			className:
+				"bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+		};
+	if (days <= 1) return { variant: "destructive", className: "" };
 	if (days <= 3)
-		return { variant: "default", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" };
+		return {
+			variant: "default",
+			className:
+				"bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+		};
 	return { variant: "outline", className: "" };
 }
 
@@ -54,7 +64,9 @@ export function DeadlinesWidget({ data }: Props) {
 						className="group flex items-center justify-between gap-2 rounded-lg border border-border/50 p-2.5 text-sm transition-colors duration-150 hover:bg-accent/50"
 					>
 						<div className="flex items-center gap-2.5 min-w-0">
-							<CalendarClock className={`h-4 w-4 shrink-0 ${days !== null && days <= 1 ? "text-red-500" : "text-t2"}`} />
+							<CalendarClock
+								className={`h-4 w-4 shrink-0 ${days !== null && days <= 1 ? "text-red-500" : "text-t2"}`}
+							/>
 							<div className="min-w-0">
 								<p className="truncate">
 									<span className="font-mono text-xs text-t2 mr-1.5">

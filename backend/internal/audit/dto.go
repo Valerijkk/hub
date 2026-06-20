@@ -24,10 +24,13 @@ type AuditLogResponse struct {
 type AuditLogFilters struct {
 	Action     string
 	EntityType string
+	EntityID   string
 	UserID     *uuid.UUID
 	ProjectID  *uuid.UUID
+	IPAddress  string
 	DateFrom   *time.Time
 	DateTo     *time.Time
+	SlowOnly   bool // slow=1: entity_type=http и details.duration_ms > 500
 	Page       int
 	PerPage    int
 }
@@ -77,4 +80,9 @@ type ReassignRequest struct {
 type UserManagementResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+}
+
+// BanUserRequest — запрос на блокировку пользователя за нарушение.
+type BanUserRequest struct {
+	Reason string `json:"reason"`
 }

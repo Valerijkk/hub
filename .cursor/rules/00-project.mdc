@@ -1,0 +1,85 @@
+---
+description: Hub project context — stack, architecture, key docs. Always applied.
+alwaysApply: true
+---
+
+# Hub — Project Context
+
+## What Is Hub
+
+Unified platform for dev teams (10-50 people): Task Tracker + Messenger + TMS + Voice Calls + Dashboards. Replaces Jira + Slack + TestRail + Zoom + Grafana.
+
+**Monorepo layout:**
+```
+hub/
+├── backend/          # Go 1.24 + Fiber v3
+│   ├── cmd/server/   # main.go (entry point, ~629 LOC — tech debt)
+│   ├── ent/schema/   # ~30 Ent schemas
+│   └── internal/     # 18 modules: auth, project, tracker, sprint,
+│                     # messenger, tms, calls, dashboard, notification,
+│                     # search, github, gitlab, rbac, storage, imex,
+│                     # backup, audit, apigateway, ws, platform
+├── frontend/         # React 19 + TypeScript 5.7 + Vite
+│   └── src/          # api/, components/, hooks/, modules/, routes/, stores/
+├── cli/              # hub-cli (CI/CD utility)
+├── deployments/      # Docker Compose + K3s manifests
+└── docs/wiki/        # API.md, architecture, deploy docs
+```
+
+## Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Go 1.24, Fiber v3 (fasthttp) |
+| ORM | Ent + Atlas migrations |
+| Primary DB | PostgreSQL 17 |
+| Document DB | MongoDB 8 (messages, Allure reports) |
+| Cache/Sessions | Redis 7 |
+| Messaging | NATS + JetStream |
+| Real-time | WebSocket (Fiber built-in) |
+| Voice/Video | LiveKit (WebRTC) |
+| File Storage | SeaweedFS (S3-compatible) |
+| Frontend | React 19, TypeScript 5.7, Vite |
+| Routing | TanStack Router (39 routes) |
+| State | TanStack Query + Zustand (11 stores) |
+| UI | Shadcn/ui + Tailwind CSS 4 |
+| Infra | Docker Compose (dev), K3s (prod), Caddy |
+
+## Unified Knowledge Base (load ALL before any task)
+
+- `docs/vision_and_scope.md` — business goals, User Stories
+- `docs/system_specification.md` — FR/NFR, API, ERD
+- `docs/architecture.md` — C4, deployment, patterns
+- `docs/test_plan.md` — testing strategy, regression
+- `docs/stack_and_tools.md` — stack versions, CI/CD
+- `docs/code_style_guide.md` — Go/TS style
+- `docs/security_guidelines.md` — OWASP, secrets, blockers
+- Index: `docs/README.md` | Regulation: `.cursor/REGULATION.md`
+
+## Key Planning Docs
+
+- Project requirements: `.planning/PROJECT.md`
+- Roadmap & phases: `.planning/ROADMAP.md`
+- Current state: `.planning/STATE.md`
+- Security audit: `.planning/code-review-final/SECURITY.md`
+- Full audit summary: `.planning/code-review-final/SUMMARY.md`
+- v3.0 AI plans: `.planning/MILESTONE-3.md`
+
+## Current Status
+
+- **v1.0** (Phases 1-7): SHIPPED 2026-03-21
+- **v2.0** (Phases 8-14, Hub Redesign): COMPLETE 2026-05-15
+- **v2.0.1** hotfix: 12 CRITICAL security blockers **fixed in code**
+- **v2.0.2** prod cutover: Wave 6 (Dockerfile release, CI/deploy gate, Ctrl+K) — **2026-06-20**
+- **Next:** PG-03 secret rotation → v2.5 Production Hardening → v2.6 Arch → v3.0 AI
+
+## Production checklist (Wave 6)
+
+| Item | Status |
+|------|--------|
+| Dockerfile `-tags release` | ✅ |
+| Deploy gated on CI success | ✅ |
+| COV-01 ≥50% / security 6×80% | ✅ 56.6% / 6/6 |
+| Ctrl+K global search UI | ✅ |
+| PG-03 git secret rotation | ⚠️ manual |
+| Docs sync rule | ✅ `.cursor/rules/55-docs-sync.mdc` |

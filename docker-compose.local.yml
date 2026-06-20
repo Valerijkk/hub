@@ -1,6 +1,7 @@
 # docker-compose.local.yml
 # Полный локальный стек Hub — всё в Docker, одна команда
-# Запуск: docker compose -f docker-compose.local.yml up --build
+# Запуск: docker compose --env-file .env.local -f docker-compose.local.yml up --build
+# (скопируйте .env.local.example → .env.local для Resend/Telegram; DEV_MODE=true здесь)
 # Доступ: http://localhost:8080
 
 services:

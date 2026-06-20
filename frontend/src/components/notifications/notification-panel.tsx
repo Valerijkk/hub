@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { memo, useCallback, useRef } from "react";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import type { NotificationDTO } from "@/api/notifications";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -147,10 +148,10 @@ export function NotificationPanel() {
 				try {
 					void navigate({ to: route });
 				} catch {
-					toast.error("Объект не найден");
+					toast.error(i18n.t("common:validation.objectNotFound"));
 				}
 			} else if (notif.entity_type) {
-				toast.error("Объект не найден");
+				toast.error(i18n.t("common:validation.objectNotFound"));
 			}
 		},
 		[markRead, navigate, resolveNotificationRoute],
@@ -236,14 +237,17 @@ const NotificationItem = memo(function NotificationItem({
 	const Icon = TYPE_ICONS[notification.type] ?? AlertTriangle;
 	const typeLabel = TYPE_LABELS[notification.type] ?? notification.type;
 
-	const iconBg = TYPE_ICON_COLORS[notification.type] ?? "rgba(148,163,184,0.15)";
+	const iconBg =
+		TYPE_ICON_COLORS[notification.type] ?? "rgba(148,163,184,0.15)";
 	const iconTextColor = TYPE_ICON_TEXT_COLORS[notification.type] ?? "text-t2";
 
 	return (
 		<button
 			type="button"
 			className={`group flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-raised/50 ${
-				!notification.is_read ? "border-l-2 border-blue-500 bg-blue-500/[0.04]" : ""
+				!notification.is_read
+					? "border-l-2 border-blue-500 bg-blue-500/[0.04]"
+					: ""
 			}`}
 			onClick={onClick}
 		>
@@ -259,9 +263,7 @@ const NotificationItem = memo(function NotificationItem({
 			<div className="min-w-0 flex-1">
 				<div className="flex items-start justify-between gap-2">
 					<p className="text-sm font-medium leading-tight">
-						<span className="mr-1 text-xs text-t2">
-							{typeLabel}
-						</span>
+						<span className="mr-1 text-xs text-t2">{typeLabel}</span>
 						{notification.title}
 					</p>
 					<div className="flex items-center gap-1 flex-shrink-0">

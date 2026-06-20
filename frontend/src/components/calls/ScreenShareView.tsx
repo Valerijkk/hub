@@ -27,7 +27,7 @@ export function ScreenShareView() {
 
 				return (
 					<div
-						key={trackRef.participant.identity + "-screenshare"}
+						key={`${trackRef.participant.identity}-screenshare`}
 						className="relative overflow-hidden rounded-2xl bg-black ring-1 ring-white/10"
 					>
 						{/* Лейбл "Демонстрация экрана" */}

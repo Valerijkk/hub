@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/environment"
 	entissue "github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/schema"
 	"github.com/valerii/hub/backend/ent/testcase"
@@ -31,22 +32,45 @@ type mockRepository struct {
 	suites       map[uuid.UUID]*ent.TestSuite
 	components   map[uuid.UUID]*ent.Component
 	issues       map[uuid.UUID]*ent.Issue
-	linkedIssues map[uuid.UUID][]uuid.UUID // testCaseID -> issueIDs
+	linkedIssues  map[uuid.UUID][]uuid.UUID // testCaseID -> issueIDs
+	environments  map[uuid.UUID]*ent.Environment
 
 	caseCounter  int
 	issueCounter int
 	lastVersion  *ent.TestCaseVersion
 }
 
-// EnvironmentRepository stubs — заглушки для удовлетворения интерфейса в тестах.
-func (m *mockRepository) CreateEnvironment(ctx context.Context, projectID uuid.UUID, input CreateEnvironmentInput) (*ent.Environment, error) {
-	return nil, nil
+func (m *mockRepository) CreateEnvironment(_ context.Context, projectID uuid.UUID, input CreateEnvironmentInput) (*ent.Environment, error) {
+	id := uuid.New()
+	label := environment.EnvLabel(orDefault(input.Label, "custom"))
+	env := &ent.Environment{
+		ID:        id,
+		Name:      input.Name,
+		EnvLabel:  label,
+		Config:    input.Config,
+		CreatedAt: time.Now(),
+		Edges: ent.EnvironmentEdges{
+			Project: &ent.Project{ID: projectID},
+		},
+	}
+	m.environments[id] = env
+	return env, nil
 }
-func (m *mockRepository) GetEnvironment(ctx context.Context, envID uuid.UUID) (*ent.Environment, error) {
-	return nil, nil
+func (m *mockRepository) GetEnvironment(_ context.Context, envID uuid.UUID) (*ent.Environment, error) {
+	env, ok := m.environments[envID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	return env, nil
 }
-func (m *mockRepository) ListEnvironmentsByProject(ctx context.Context, projectID uuid.UUID) ([]*ent.Environment, error) {
-	return nil, nil
+func (m *mockRepository) ListEnvironmentsByProject(_ context.Context, projectID uuid.UUID) ([]*ent.Environment, error) {
+	items := make([]*ent.Environment, 0)
+	for _, env := range m.environments {
+		if env.Edges.Project != nil && env.Edges.Project.ID == projectID {
+			items = append(items, env)
+		}
+	}
+	return items, nil
 }
 func (m *mockRepository) UpdateEnvironment(ctx context.Context, envID uuid.UUID, input UpdateEnvironmentInput) (*ent.Environment, error) {
 	return nil, nil
@@ -68,6 +92,7 @@ func newMockRepo() *mockRepository {
 		components:   make(map[uuid.UUID]*ent.Component),
 		issues:       make(map[uuid.UUID]*ent.Issue),
 		linkedIssues: make(map[uuid.UUID][]uuid.UUID),
+		environments: make(map[uuid.UUID]*ent.Environment),
 	}
 }
 

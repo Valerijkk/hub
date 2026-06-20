@@ -11,6 +11,9 @@ import (
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
+// maxWebhookBodyBytes — лимит тела GitLab webhook (memory DoS protection).
+const maxWebhookBodyBytes = 10 * 1024 * 1024
+
 // Handler предоставляет HTTP-обработчики для модуля GitLab-интеграции.
 type Handler struct {
 	service *GitLabService
@@ -53,12 +56,19 @@ func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	eventType := utils.CopyString(c.Get("X-Gitlab-Event"))
 	webhookToken := utils.CopyString(c.Get("X-Gitlab-Token"))
 
-	body, err := io.ReadAll(c.Request().BodyStream())
-	if err != nil {
-		body = c.Body()
+	var body []byte
+	if stream := c.Request().BodyStream(); stream != nil {
+		var readErr error
+		body, readErr = io.ReadAll(io.LimitReader(stream, maxWebhookBodyBytes+1))
+		if readErr != nil {
+			return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
+		}
 	}
 	if len(body) == 0 {
 		body = c.Body()
+	}
+	if len(body) > maxWebhookBodyBytes {
+		return fiber.NewError(fiber.StatusRequestEntityTooLarge, apperr.MsgBadRequest)
 	}
 
 	// Валидируем X-Gitlab-Token по секретам всех интеграций.

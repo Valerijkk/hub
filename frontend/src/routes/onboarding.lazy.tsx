@@ -1,8 +1,11 @@
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { completeOnboarding } from "@/api/auth";
+import { createProject, joinByInvite } from "@/api/projects";
 import { FormField } from "@/components/ui/form-field";
+import { toastApiError } from "@/lib/format-api-error";
 import { useAuthStore } from "@/stores/auth-store";
 
 /**
@@ -17,6 +20,7 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 	/** Иконка трекера задач (Kanban-доска). */
 	tracker: (
 		<svg
+			aria-hidden="true"
 			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -30,6 +34,7 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 	/** Иконка мессенджера (чат). */
 	messenger: (
 		<svg
+			aria-hidden="true"
 			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -42,6 +47,7 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 	/** Иконка TMS (тестирование). */
 	tms: (
 		<svg
+			aria-hidden="true"
 			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -55,6 +61,7 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 	/** Иконка звонков (телефон). */
 	calls: (
 		<svg
+			aria-hidden="true"
 			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -67,6 +74,7 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 	/** Иконка дашбордов (графики). */
 	dashboards: (
 		<svg
+			aria-hidden="true"
 			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -82,6 +90,7 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 	/** Иконка интеграций. */
 	integrations: (
 		<svg
+			aria-hidden="true"
 			className="w-6 h-6"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -103,51 +112,27 @@ interface ModuleInfo {
 	iconColor: string;
 }
 
-/** Описания модулей платформы для онбординга. */
-const MODULES: ModuleInfo[] = [
-	{
-		key: "tracker",
-		title: "Трекер",
-		desc: "Kanban-доски, спринты, бэклог. Полный agile-цикл.",
-		iconBg: "rgba(91,156,245,.08)",
-		iconColor: "var(--blue)",
-	},
-	{
-		key: "messenger",
-		title: "Мессенджер",
-		desc: "Каналы, ЛС, реакции, файлы, опросы.",
-		iconBg: "rgba(52,211,153,.08)",
-		iconColor: "var(--green)",
-	},
-	{
-		key: "calls",
-		title: "Звонки",
-		desc: "Видеозвонки до 50 чел, шейринг, запись.",
-		iconBg: "rgba(167,139,250,.08)",
-		iconColor: "var(--purple)",
-	},
-	{
-		key: "tms",
-		title: "TMS",
-		desc: "Тест-кейсы, прогоны, отчеты, автотесты.",
-		iconBg: "rgba(251,191,36,.06)",
-		iconColor: "var(--amber)",
-	},
-	{
-		key: "dashboards",
-		title: "Календарь",
-		desc: "Планирование встреч и событий команды.",
-		iconBg: "rgba(251,146,60,.06)",
-		iconColor: "var(--orange)",
-	},
-	{
-		key: "integrations",
-		title: "Интеграции",
-		desc: "GitHub, GitLab, CI/CD в одном месте.",
-		iconBg: "rgba(248,113,113,.06)",
-		iconColor: "var(--red)",
-	},
-];
+/** Описания модулей — стили фиксированы, тексты из i18n. */
+const MODULE_KEYS = [
+	"tracker",
+	"messenger",
+	"calls",
+	"tms",
+	"dashboards",
+	"integrations",
+] as const;
+
+const MODULE_STYLES: Record<
+	(typeof MODULE_KEYS)[number],
+	{ iconBg: string; iconColor: string }
+> = {
+	tracker: { iconBg: "rgba(91,156,245,.08)", iconColor: "var(--blue)" },
+	messenger: { iconBg: "rgba(52,211,153,.08)", iconColor: "var(--green)" },
+	calls: { iconBg: "rgba(167,139,250,.08)", iconColor: "var(--purple)" },
+	tms: { iconBg: "rgba(251,191,36,.06)", iconColor: "var(--amber)" },
+	dashboards: { iconBg: "rgba(251,146,60,.06)", iconColor: "var(--orange)" },
+	integrations: { iconBg: "rgba(248,113,113,.06)", iconColor: "var(--red)" },
+};
 
 /** Варианты темы интерфейса. */
 type ThemeOption = "light" | "dark" | "system";
@@ -156,7 +141,14 @@ type ThemeOption = "light" | "dark" | "system";
 type LangOption = "ru" | "en";
 
 /** Step labels for progress indicator */
-const STEP_LABELS = ["Профиль", "Обзор", "Настройки"];
+const STEP_LABEL_KEYS = [
+	"common:onboarding.stepProfile",
+	"common:onboarding.stepTour",
+	"common:onboarding.stepTheme",
+	"common:onboarding.stepProject",
+] as const;
+
+type ProjectMode = "create" | "join";
 
 /** Карточка модуля для тура онбординга. */
 function ModuleCard({ module, index }: { module: ModuleInfo; index: number }) {
@@ -175,15 +167,14 @@ function ModuleCard({ module, index }: { module: ModuleInfo; index: number }) {
 			<h4 className="text-[14px] font-bold mb-[5px] tracking-[-0.01em]">
 				{module.title}
 			</h4>
-			<p className="text-[12px] text-t2 leading-[1.5]">
-				{module.desc}
-			</p>
+			<p className="text-[12px] text-t2 leading-[1.5]">{module.desc}</p>
 		</div>
 	);
 }
 
 function OnboardingPage() {
 	const navigate = useNavigate();
+	const { t } = useTranslation(["common", "onboarding"]);
 	const { user, setUser } = useAuthStore();
 	const [step, setStep] = useState(0);
 	const [loading, setLoading] = useState(false);
@@ -204,40 +195,81 @@ function OnboardingPage() {
 	/** Selected accent color index */
 	const [accent, setAccent] = useState(0);
 
-	const steps = [
-		{ title: "Настройте профиль", description: "Расскажите о себе, так коллеги будут узнавать вас" },
-		{
-			title: "Знакомство с Hub",
-			description: "Вот что вы сможете делать на платформе",
-		},
-		{ title: "Выберите оформление", description: "Можно изменить позже в настройках" },
-	];
+	/** Шаг 4: проект */
+	const [projectMode, setProjectMode] = useState<ProjectMode>("create");
+	const [projectName, setProjectName] = useState("");
+	const [projectKey, setProjectKey] = useState("");
+	const [inviteCode, setInviteCode] = useState("");
+
+	const steps = useMemo(
+		() => [
+			{
+				title: t("onboarding:steps.profile.title"),
+				description: t("onboarding:steps.profile.description"),
+			},
+			{
+				title: t("onboarding:steps.tour.title"),
+				description: t("onboarding:steps.tour.description"),
+			},
+			{
+				title: t("onboarding:steps.theme.title"),
+				description: t("onboarding:steps.theme.description"),
+			},
+			{
+				title: t("common:onboarding.projectTitle"),
+				description: t("common:onboarding.projectDesc"),
+			},
+		],
+		[t],
+	);
+
+	const modules = useMemo(
+		() =>
+			MODULE_KEYS.map((key) => ({
+				key,
+				title: t(`onboarding:modules.${key}.title`),
+				desc: t(`onboarding:modules.${key}.desc`),
+				...MODULE_STYLES[key],
+			})),
+		[t],
+	);
 
 	const currentStep = steps[step];
 
+	const isProjectStepValid =
+		projectMode === "create"
+			? projectName.trim().length > 0 && projectKey.trim().length >= 2
+			: inviteCode.trim().length > 0;
+
 	/** Завершить онбординг — отправить профиль и применить настройки. */
-	async function handleComplete() {
+	async function handleComplete(skipProject = false) {
 		setLoading(true);
 		try {
-			// Применяем тему
 			if (theme === "dark") {
 				document.documentElement.classList.add("dark");
 			} else if (theme === "light") {
 				document.documentElement.classList.remove("dark");
 			}
 
+			if (!skipProject) {
+				if (projectMode === "create" && projectName.trim() && projectKey.trim()) {
+					await createProject({
+						name: projectName.trim(),
+						key: projectKey.trim().toUpperCase(),
+					});
+				} else if (projectMode === "join" && inviteCode.trim()) {
+					await joinByInvite(inviteCode.trim());
+				}
+			}
+
 			const updated = await completeOnboarding({
 				profile: { ...profile, language: lang },
 			});
 			setUser(updated);
-			toast.success("Добро пожаловать в Hub!");
+			toast.success(t("common:onboarding.welcome"));
 			void navigate({ to: "/projects" });
 		} catch (err: unknown) {
-			const message =
-				err && typeof err === "object" && "message" in err
-					? (err as { message: string }).message
-					: "Не удалось завершить онбординг";
-			toast.error(message);
+			toastApiError(err, t("common:onboarding.completeError"));
 		} finally {
 			setLoading(false);
 		}
@@ -256,8 +288,8 @@ function OnboardingPage() {
 			<div className="w-full max-w-[680px] px-10 py-10 relative z-[1]">
 				{/* Progress indicator */}
 				<div className="flex items-center justify-center mb-11 gap-0">
-					{STEP_LABELS.map((label, i) => (
-						<div key={label} className="flex items-center">
+					{STEP_LABEL_KEYS.map((labelKey, i) => (
+						<div key={labelKey} className="flex items-center">
 							<div className="flex items-center gap-3">
 								<div
 									className={`w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-extrabold border-2 transition-[box-shadow] duration-350 ${
@@ -270,6 +302,7 @@ function OnboardingPage() {
 								>
 									{i < step ? (
 										<svg
+											aria-hidden="true"
 											className="w-5 h-5"
 											fill="none"
 											viewBox="0 0 24 24"
@@ -291,15 +324,13 @@ function OnboardingPage() {
 										i === step ? "text-t1" : "text-t4"
 									}`}
 								>
-									{label}
+									{t(labelKey)}
 								</span>
 							</div>
-							{i < STEP_LABELS.length - 1 && (
+							{i < STEP_LABEL_KEYS.length - 1 && (
 								<div
 									className={`w-[60px] h-[2px] mx-[10px] transition-[background] duration-300 rounded-[1px] ${
-										i < step
-											? "bg-green shadow-[0_0_6px_var(--gG)]"
-											: "bg-b2"
+										i < step ? "bg-green shadow-[0_0_6px_var(--gG)]" : "bg-b2"
 									}`}
 								/>
 							)}
@@ -321,6 +352,7 @@ function OnboardingPage() {
 						<div className="flex flex-col items-center mb-[30px]">
 							<div className="w-24 h-24 rounded-full bg-input border-2 border-dashed border-b2 flex items-center justify-center cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 mb-2 hover:border-blue hover:bg-blue/[0.04] hover:scale-105">
 								<svg
+									aria-hidden="true"
 									className="w-8 h-8 text-t3"
 									viewBox="0 0 24 24"
 									fill="none"
@@ -331,33 +363,35 @@ function OnboardingPage() {
 									<circle cx="12" cy="13" r="4" />
 								</svg>
 							</div>
-							<span className="text-[12px] text-t3">Нажмите чтобы загрузить</span>
+							<span className="text-[12px] text-t3">
+								{t("onboarding:profile.uploadAvatar")}
+							</span>
 						</div>
 
 						{/* Form grid */}
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-[14px]">
-							<FormField label="Имя">
+							<FormField label={t("onboarding:profile.name")} htmlFor="onb-name">
 								<input
 									id="onb-name"
-									placeholder="Алексей"
+									placeholder={t("onboarding:profile.namePlaceholder")}
 									value={profile.name}
 									onChange={(e) =>
 										setProfile((p) => ({ ...p, name: e.target.value }))
 									}
-									autoFocus
 									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</FormField>
-							<FormField label="Фамилия">
+							<FormField label={t("onboarding:profile.surname")} htmlFor="onb-surname">
 								<input
-									placeholder="Иванов"
+									id="onb-surname"
+									placeholder={t("onboarding:profile.surnamePlaceholder")}
 									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
 							</FormField>
-							<FormField label="Должность">
+							<FormField label={t("onboarding:profile.position")} htmlFor="onb-position">
 								<input
 									id="onb-position"
-									placeholder="Senior Developer"
+									placeholder={t("onboarding:profile.positionPlaceholder")}
 									value={profile.position}
 									onChange={(e) =>
 										setProfile((p) => ({ ...p, position: e.target.value }))
@@ -367,11 +401,11 @@ function OnboardingPage() {
 							</FormField>
 							<div>
 								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
-									Отдел
+									{t("onboarding:profile.department")}
 								</label>
 								<input
 									id="onb-department"
-									placeholder="Backend Engineering"
+									placeholder={t("onboarding:profile.departmentPlaceholder")}
 									value={profile.department}
 									onChange={(e) =>
 										setProfile((p) => ({ ...p, department: e.target.value }))
@@ -381,7 +415,7 @@ function OnboardingPage() {
 							</div>
 							<div>
 								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
-									Часовой пояс
+									{t("onboarding:profile.timezone")}
 								</label>
 								<select className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 appearance-none outline-none">
 									<option>Europe/Moscow (UTC+3)</option>
@@ -390,7 +424,7 @@ function OnboardingPage() {
 							</div>
 							<div>
 								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
-									Язык
+									{t("onboarding:profile.language")}
 								</label>
 								<select className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 appearance-none outline-none">
 									<option>Русский</option>
@@ -407,7 +441,7 @@ function OnboardingPage() {
 								onClick={() => setStep((s) => s + 1)}
 								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
 							>
-								Далее &rarr;
+								{t("btn.next")} &rarr;
 							</button>
 						</div>
 					</div>
@@ -424,7 +458,7 @@ function OnboardingPage() {
 						</div>
 
 						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px]">
-							{MODULES.map((module, idx) => (
+							{modules.map((module, idx) => (
 								<ModuleCard key={module.key} module={module} index={idx} />
 							))}
 						</div>
@@ -436,14 +470,14 @@ function OnboardingPage() {
 								onClick={() => setStep((s) => s - 1)}
 								className="px-5 py-[10px] rounded-[var(--r2)] text-[14px] font-semibold text-t2 border border-b2 transition-colors duration-200 hover:bg-[var(--hover)] hover:text-t1"
 							>
-								&larr; Назад
+								&larr; {t("btn.back")}
 							</button>
 							<button
 								type="button"
 								onClick={() => setStep((s) => s + 1)}
 								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
 							>
-								Далее &rarr;
+								{t("btn.next")} &rarr;
 							</button>
 						</div>
 					</div>
@@ -460,15 +494,29 @@ function OnboardingPage() {
 						</div>
 
 						{/* Theme label */}
-						<h3 className="text-[14px] font-bold text-center mb-[14px]">Тема</h3>
+						<h3 className="text-[14px] font-bold text-center mb-[14px]">
+							{t("onboarding:theme.label")}
+						</h3>
 
 						{/* Theme cards */}
 						<div className="flex gap-[14px] mb-[30px]">
 							{(
 								[
-									{ value: "light" as ThemeOption, label: "Светлая", preview: "bg-white border border-[#ddd]" },
-									{ value: "dark" as ThemeOption, label: "Тёмная", preview: "bg-void border border-b1" },
-									{ value: "system" as ThemeOption, label: "Системная", preview: "border border-[#ddd]" },
+									{
+										value: "light" as ThemeOption,
+										label: t("onboarding:theme.light"),
+										preview: "bg-white border border-[#ddd]",
+									},
+									{
+										value: "dark" as ThemeOption,
+										label: t("onboarding:theme.dark"),
+										preview: "bg-void border border-b1",
+									},
+									{
+										value: "system" as ThemeOption,
+										label: t("onboarding:theme.system"),
+										preview: "border border-[#ddd]",
+									},
 								] as const
 							).map((opt) => (
 								<button
@@ -485,7 +533,10 @@ function OnboardingPage() {
 										className={`w-full h-[52px] rounded-[var(--r2)] mb-[10px] ${opt.preview}`}
 										style={
 											opt.value === "system"
-												? { background: "linear-gradient(135deg, #fff 50%, var(--void) 50%)" }
+												? {
+														background:
+															"linear-gradient(135deg, #fff 50%, var(--void) 50%)",
+													}
 												: undefined
 										}
 									/>
@@ -495,7 +546,9 @@ function OnboardingPage() {
 						</div>
 
 						{/* Accent label */}
-						<h3 className="text-[14px] font-bold text-center mb-[14px]">Акцентный цвет</h3>
+						<h3 className="text-[14px] font-bold text-center mb-[14px]">
+							{t("onboarding:theme.accent")}
+						</h3>
 
 						{/* Accent dots */}
 						<div className="flex gap-4 justify-center mb-[30px]">
@@ -520,16 +573,113 @@ function OnboardingPage() {
 								onClick={() => setStep((s) => s - 1)}
 								className="px-5 py-[10px] rounded-[var(--r2)] text-[14px] font-semibold text-t2 border border-b2 transition-colors duration-200 hover:bg-[var(--hover)] hover:text-t1"
 							>
-								&larr; Назад
+								&larr; {t("btn.back")}
 							</button>
 							<button
 								type="button"
-								onClick={handleComplete}
-								disabled={loading}
-								className="onb-btn-go px-8 py-3 rounded-[var(--r2)] text-[15px] font-extrabold bg-gradient-to-br from-[var(--greenS)] to-[#047857] text-white shadow-[0_0_24px_var(--gG)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 relative overflow-hidden hover:shadow-[0_0_36px_rgba(52,211,153,0.3)] hover:-translate-y-px active:scale-[0.96]"
+								onClick={() => setStep((s) => s + 1)}
+								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
 							>
-								{loading ? "Сохранение..." : "Начать работу →"}
+								{t("btn.next")} &rarr;
 							</button>
+						</div>
+					</div>
+				)}
+
+				{/* Step 4: Project create/join — US-M08 */}
+				{step === 3 && (
+					<div className="animate-[eu_400ms_var(--spring)]">
+						<div className="text-[26px] font-black tracking-[-0.04em] text-center mb-2">
+							{currentStep?.title}
+						</div>
+						<div className="text-[14px] text-t2 text-center mb-9">
+							{currentStep?.description}
+						</div>
+
+						<div className="flex gap-2 mb-6">
+							<button
+								type="button"
+								onClick={() => setProjectMode("create")}
+								className={`flex-1 rounded-[var(--r2)] border px-4 py-2 text-sm font-semibold ${
+									projectMode === "create"
+										? "border-blue bg-blue/10 text-blue"
+										: "border-b1 text-t2"
+								}`}
+							>
+								{t("common:onboarding.createProject")}
+							</button>
+							<button
+								type="button"
+								onClick={() => setProjectMode("join")}
+								className={`flex-1 rounded-[var(--r2)] border px-4 py-2 text-sm font-semibold ${
+									projectMode === "join"
+										? "border-blue bg-blue/10 text-blue"
+										: "border-b1 text-t2"
+								}`}
+							>
+								{t("common:onboarding.joinProject")}
+							</button>
+						</div>
+
+						{projectMode === "create" ? (
+							<div className="grid gap-4">
+								<FormField label={t("common:onboarding.projectName")} htmlFor="onb-project-name">
+									<input
+										id="onb-project-name"
+										value={projectName}
+										onChange={(e) => setProjectName(e.target.value)}
+										className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none focus:border-[rgba(91,156,245,0.3)]"
+									/>
+								</FormField>
+								<FormField label={t("common:onboarding.projectKey")} htmlFor="onb-project-key">
+									<input
+										id="onb-project-key"
+										value={projectKey}
+										onChange={(e) =>
+											setProjectKey(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+										}
+										maxLength={10}
+										className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 font-mono outline-none focus:border-[rgba(91,156,245,0.3)]"
+									/>
+								</FormField>
+							</div>
+						) : (
+							<FormField label={t("common:onboarding.inviteCode")} htmlFor="onb-invite">
+								<input
+									id="onb-invite"
+									value={inviteCode}
+									onChange={(e) => setInviteCode(e.target.value)}
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none focus:border-[rgba(91,156,245,0.3)]"
+								/>
+							</FormField>
+						)}
+
+						<div className="flex justify-between items-center mt-10 pt-[22px] border-t border-b1">
+							<button
+								type="button"
+								onClick={() => setStep((s) => s - 1)}
+								className="px-5 py-[10px] rounded-[var(--r2)] text-[14px] font-semibold text-t2 border border-b2 transition-colors duration-200 hover:bg-[var(--hover)] hover:text-t1"
+							>
+								&larr; {t("btn.back")}
+							</button>
+							<div className="flex gap-2">
+								<button
+									type="button"
+									onClick={() => void handleComplete(true)}
+									disabled={loading}
+									className="px-5 py-[10px] rounded-[var(--r2)] text-[14px] font-semibold text-t2 border border-b2"
+								>
+									{t("common:onboarding.skipProject")}
+								</button>
+								<button
+									type="button"
+									onClick={() => void handleComplete(false)}
+									disabled={loading || !isProjectStepValid}
+									className="onb-btn-go px-8 py-3 rounded-[var(--r2)] text-[15px] font-extrabold bg-gradient-to-br from-[var(--greenS)] to-[#047857] text-white shadow-[0_0_24px_var(--gG)] disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									{loading ? t("btn.saving") : `${t("btn.next")} →`}
+								</button>
+							</div>
 						</div>
 					</div>
 				)}

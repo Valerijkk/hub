@@ -88,9 +88,7 @@ export function VelocityChart({ projectId }: VelocityChartProps) {
 						itemStyle={{ color: "var(--t2)" }}
 						labelStyle={{ color: "var(--t3)", marginBottom: "4px" }}
 					/>
-					<Legend
-						wrapperStyle={{ fontSize: "12px", color: "var(--t3)" }}
-					/>
+					<Legend wrapperStyle={{ fontSize: "12px", color: "var(--t3)" }} />
 					<Bar
 						dataKey="committed"
 						fill="var(--gray)"

@@ -1,0 +1,46 @@
+---
+description: После любого изменения кода — обновить затронутую документацию (docs/, .planning/, wiki).
+alwaysApply: true
+---
+
+# Hub — Documentation Sync (mandatory)
+
+## Когда обновлять
+
+**После каждого** функционального изменения (код, API, CI, infra, UX) — **до handoff/commit**, в той же сессии.
+
+Применяется ко **всем** агентам и orchestrator. Не откладывать «на потом».
+
+## Матрица: что изменил → какой doc
+
+| Тип изменения | Обязательные документы |
+|---------------|------------------------|
+| **Любая фича / фикс** | `.planning/STATE.md` (session note) |
+| **API route / контракт** | `docs/system_specification.md`, `docs/wiki/API.md` |
+| **Новый UI flow / hotkey** | `docs/vision_and_scope.md` (если US), `docs/wiki/SHORTCUTS.md`, `docs/wiki/QUICKSTART.md` |
+| **Тесты / coverage** | `.planning/COVERAGE.md`, `docs/test_plan.md` |
+| **CI / deploy / Docker** | `docs/stack_and_tools.md`, `deployments/.env.example`, `docs/wiki/DEPLOY.md` |
+| **Security** | `docs/security_guidelines.md` |
+| **Закрытие gap / wave** | `.planning/TASKS-CLOSE-GAPS.md`, `.planning/PLAN-CLOSE-GAPS.md` |
+| **Best practice / backlog** | `docs/competitive_audit.md` |
+| **Статус проекта** | `AGENTS.md` (кратко), `.planning/STATE.md` |
+
+## Процедура агента (checklist)
+
+1. **Сделал код** → определи затронутые REQ/US из `docs/vision_and_scope.md` или `docs/system_specification.md`.
+2. **Обнови docs** из таблицы выше (минимум STATE + domain doc).
+3. **Сверь drift:** wiki не обещает то, чего нет в UI; KPI в vision отражают факт.
+4. **Handoff:** `/handoff-sync` или явное обновление `STATE.md` + `Pending Todos`.
+5. **Не коммить** только код без doc sync, если менялся user-visible или prod behavior.
+
+## Исключения (doc не нужен)
+
+- Чистый refactor без изменения поведения → только `STATE.md` one-liner, если wave task.
+- Удаление временных артефактов (coverage dumps) → `.gitignore` / rule 45, без wiki.
+- Комментарии / форматирование без логики.
+
+## Связанные skills
+
+- `.cursor/skills/handoff-sync/SKILL.md` — end-of-session sync
+- `gsd-docs-update` — bulk doc refresh с верификацией по коду
+- `.cursor/rules/45-artifacts-cleanup.mdc` — cleanup после прогонов

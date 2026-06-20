@@ -175,9 +175,7 @@ export function EnvironmentComparison({
 	// Загрузка окружений
 	if (envsLoading) {
 		return (
-			<div className="py-8 text-center text-t2">
-				Загрузка окружений...
-			</div>
+			<div className="py-8 text-center text-t2">Загрузка окружений...</div>
 		);
 	}
 
@@ -188,6 +186,7 @@ export function EnvironmentComparison({
 				<CardContent className="py-8 text-center text-t2">
 					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-raised/60 to-raised/30 border border-dashed border-t2/20">
 						<svg
+							aria-hidden="true"
 							className="h-8 w-8 text-t2/30"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -219,9 +218,7 @@ export function EnvironmentComparison({
 			{/* Выбор окружений */}
 			<div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card/50 p-4">
 				<div className="space-y-1.5">
-					<label className="text-xs font-medium text-t2">
-						Окружение 1
-					</label>
+					<label className="text-xs font-medium text-t2">Окружение 1</label>
 					<Select
 						value={envId1 || "placeholder"}
 						onValueChange={(v) => {
@@ -252,6 +249,7 @@ export function EnvironmentComparison({
 
 				<div className="flex items-center pb-2">
 					<svg
+						aria-hidden="true"
 						className="h-5 w-5 text-t2"
 						fill="none"
 						viewBox="0 0 24 24"
@@ -267,9 +265,7 @@ export function EnvironmentComparison({
 				</div>
 
 				<div className="space-y-1.5">
-					<label className="text-xs font-medium text-t2">
-						Окружение 2
-					</label>
+					<label className="text-xs font-medium text-t2">Окружение 2</label>
 					<Select
 						value={envId2 || "placeholder"}
 						onValueChange={(v) => {
@@ -420,6 +416,7 @@ export function EnvironmentComparison({
 													{isDiff ? (
 														<span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400">
 															<svg
+																aria-hidden="true"
 																className="h-3 w-3"
 																fill="none"
 																viewBox="0 0 24 24"

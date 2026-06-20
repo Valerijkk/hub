@@ -6,11 +6,15 @@
  */
 
 import { Outlet } from "@tanstack/react-router";
-import { Suspense, lazy, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { MobileNav } from "@/components/mobile-nav";
+import { CommandPalette } from "@/components/search/command-palette";
+import { SkipLink } from "@/components/layout/skip-link";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useCallStore } from "@/stores/call-store";
+import { useCommandStore } from "@/stores/command-store";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 
@@ -20,12 +24,26 @@ import { Topbar } from "./topbar";
  * чанк. Vite автоматически выносит транзитивные deps в отдельный chunk.
  */
 const CallPanel = lazy(() =>
-	import("@/components/calls/CallPanel").then((m) => ({ default: m.CallPanel })),
+	import("@/components/calls/CallPanel").then((m) => ({
+		default: m.CallPanel,
+	})),
 );
 
 /** Основная оболочка приложения: sidebar, topbar, content, панель звонка и мобильная навигация. */
 export function AppShell() {
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+	const toggleCommand = useCommandStore((s) => s.toggle);
+
+	useEffect(() => {
+		function onKeyDown(e: KeyboardEvent) {
+			if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+				e.preventDefault();
+				toggleCommand();
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [toggleCommand]);
 
 	// CallPanel рендерим только когда есть активный/коннектящийся звонок
 	// или ошибка — иначе React не подтягивает lazy chunk вовсе.
@@ -35,6 +53,7 @@ export function AppShell() {
 
 	return (
 		<TooltipProvider delayDuration={300}>
+			<SkipLink />
 			<div className="flex h-screen overflow-hidden bg-base">
 				{/* Mobile overlay для sidebar */}
 				{mobileMenuOpen && (
@@ -62,8 +81,13 @@ export function AppShell() {
 				{/* Основной контент */}
 				<div className="flex flex-1 flex-col overflow-hidden">
 					<Topbar onMenuToggle={() => setMobileMenuOpen((v) => !v)} />
-					<main className="flex-1 overflow-y-auto px-4 py-4 pb-20 md:px-6 md:py-6 md:pb-6">
-						<Outlet />
+					<main
+						id="main-content"
+						className="flex-1 overflow-y-auto px-4 py-4 pb-20 md:px-6 md:py-6 md:pb-6"
+					>
+						<ErrorBoundary>
+							<Outlet />
+						</ErrorBoundary>
 					</main>
 				</div>
 			</div>
@@ -79,6 +103,8 @@ export function AppShell() {
 					<CallPanel />
 				</Suspense>
 			)}
+
+			<CommandPalette />
 		</TooltipProvider>
 	);
 }

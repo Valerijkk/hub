@@ -149,6 +149,10 @@ func main() {
 	outboxWorker := outbox.NewWorker(db, nc)
 	go outboxWorker.ProcessLoop(rootCtx)
 
+	// Audit service (ранняя инициализация — нужен для HTTP-audit middleware на /api).
+	auditRepo := auditmod.NewRepository(db)
+	auditSvc := auditmod.NewAuditService(auditRepo, rdb)
+
 	// --- Services ---
 
 	// Magic link: при наличии API-ключа Resend — отправка email; иначе — dev-режим (код в логах).
@@ -166,15 +170,23 @@ func main() {
 		cfg.JWT.RefreshTokenTTL,
 		magicLinkSvc,
 		cfg.Telegram.BotToken,
+		rawDB,
 	)
 
 	// --- Fiber app ---
 
 	app := fiber.New(fiber.Config{
-		ReadTimeout:  cfg.Server.ReadTimeout,
-		WriteTimeout: cfg.Server.WriteTimeout,
-		Immutable:    cfg.Server.Immutable,
-		ErrorHandler: middleware.ErrorHandler,
+		ReadTimeout:             cfg.Server.ReadTimeout,
+		WriteTimeout:            cfg.Server.WriteTimeout,
+		Immutable:               cfg.Server.Immutable,
+		ErrorHandler:            middleware.ErrorHandler,
+		EnableTrustedProxyCheck: true,
+		TrustedProxies: []string{
+			"127.0.0.1",
+			"10.0.0.0/8",
+			"172.16.0.0/12",
+			"192.168.0.0/16",
+		},
 		// ME-15: глобальный лимит на размер тела запроса.
 		// 25 МБ покрывает CSV-импорт задач и разумный аватар; маршруты,
 		// которым нужно больше (например, заливка больших файлов), могут
@@ -187,6 +199,7 @@ func main() {
 	// Стоит сразу после RequestID, чтобы паническая ошибка уже несла request_id
 	// в лог — но раньше всех бизнес-middleware (логгер, CORS, rate-limit).
 	app.Use(fiberrecover.New(fiberrecover.Config{EnableStackTrace: true}))
+	app.Use(middleware.SecurityHeaders())
 	app.Use(middleware.Logger())
 	app.Use(middleware.CORS())
 	// Глобальный rate limit: 100 req/sec на IP.
@@ -194,6 +207,8 @@ func main() {
 	app.Use(middleware.RateLimit(rootCtx, middleware.APIRateLimit))
 
 	api := app.Group("/api")
+	// HTTP-аудит: все API-запросы пишутся в журнал (кроме health/docs).
+	api.Use(auditmod.HTTPAuditMiddleware(auditSvc.RecordHTTPRequest))
 
 	// Rate limit для загрузки файлов: 10/мин на пользователя
 	api.Use("/files", middleware.RateLimitByUser(rootCtx, middleware.FileUploadRateLimit))
@@ -411,8 +426,6 @@ func main() {
 	notifHandler.RegisterRoutes(api, requireAuth)
 
 	// Audit routes (журнал аудита, лимиты, корзина, управление пользователями)
-	auditRepo := auditmod.NewRepository(db)
-	auditSvc := auditmod.NewAuditService(auditRepo, rdb)
 	// ME-14: audit consumer использует общий rootCtx, плюс defer Stop(),
 	// чтобы JetStream consumer корректно завершился и in-flight Ack-и
 	// не потерялись после ухода main(). Stop() блокируется до drain'а.

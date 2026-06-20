@@ -5,6 +5,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	createTestCase,
 	type SuiteResponse,
@@ -70,7 +71,7 @@ export function CreateCaseDialog({
 			setNewDescription("");
 			toast.success("Тест-кейс создан");
 		},
-		onError: () => toast.error("Ошибка создания тест-кейса"),
+		onError: (err) => toastApiError(err, "Ошибка создания тест-кейса"),
 	});
 
 	return (

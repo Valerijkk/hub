@@ -1,0 +1,45 @@
+{
+	"steps": {
+		"profile": {
+			"title": "Настройте профиль",
+			"description": "Расскажите о себе — так коллеги будут узнавать вас"
+		},
+		"tour": {
+			"title": "Знакомство с Hub",
+			"description": "Вот что вы сможете делать на платформе"
+		},
+		"theme": {
+			"title": "Выберите оформление",
+			"description": "Можно изменить позже в настройках"
+		}
+	},
+	"profile": {
+		"uploadAvatar": "Нажмите чтобы загрузить",
+		"name": "Имя",
+		"surname": "Фамилия",
+		"position": "Должность",
+		"department": "Отдел",
+		"timezone": "Часовой пояс",
+		"language": "Язык",
+		"namePlaceholder": "Алексей",
+		"surnamePlaceholder": "Иванов",
+		"positionPlaceholder": "Senior Developer",
+		"departmentPlaceholder": "Backend Engineering"
+	},
+	"modules": {
+		"tracker": { "title": "Трекер", "desc": "Kanban-доски, спринты, бэклог. Полный agile-цикл." },
+		"messenger": { "title": "Мессенджер", "desc": "Каналы, ЛС, реакции, файлы, опросы." },
+		"calls": { "title": "Звонки", "desc": "Голосовые созвоны до 50 чел, шейринг, запись." },
+		"tms": { "title": "TMS", "desc": "Тест-кейсы, прогоны, отчёты, автотесты." },
+		"dashboards": { "title": "Дашборды", "desc": "Метрики команды и планирование." },
+		"integrations": { "title": "Integrations", "desc": "GitHub, GitLab, CI/CD в одном месте." }
+	},
+	"theme": {
+		"label": "Тема",
+		"light": "Светлая",
+		"dark": "Тёмная",
+		"system": "Системная",
+		"accent": "Акцентный цвет"
+	},
+	"startWork": "Начать работу →"
+}

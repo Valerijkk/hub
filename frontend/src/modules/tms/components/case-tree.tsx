@@ -31,7 +31,8 @@ export function SuiteTreeItem({
 				className={cn(
 					"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative",
 					"hover:bg-[var(--hover)] hover:text-t1",
-					isSelected && "bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
+					isSelected &&
+						"bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
 				)}
 				style={{ paddingLeft: `${depth * 26 + 10}px` }}
 				onClick={() => onSelect(isSelected ? undefined : suite.id)}
@@ -52,6 +53,7 @@ export function SuiteTreeItem({
 						}}
 					>
 						<svg
+							aria-hidden="true"
 							className="h-[10px] w-[10px]"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -75,11 +77,14 @@ export function SuiteTreeItem({
 							"group-hover:scale-110 group-hover:shadow-[0_0_10px_rgba(167,139,250,0.1)]",
 						)}
 						style={{
-							background: isSelected ? "rgba(167,139,250,0.1)" : "rgba(255,255,255,0.035)",
+							background: isSelected
+								? "rgba(167,139,250,0.1)"
+								: "rgba(255,255,255,0.035)",
 							color: isSelected ? "var(--purple)" : "var(--text-3)",
 						}}
 					>
 						<svg
+							aria-hidden="true"
 							className="h-3 w-3"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -155,7 +160,8 @@ export function CaseTreePanel({
 					className={cn(
 						"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative mb-1",
 						"hover:bg-[var(--hover)] hover:text-t1",
-						!selectedSuiteId && "bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
+						!selectedSuiteId &&
+							"bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
 					)}
 					onClick={() => onSelectSuite(undefined)}
 				>
@@ -163,6 +169,7 @@ export function CaseTreePanel({
 						<span className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-purple/[0.06] to-transparent rounded-[var(--r2)] pointer-events-none" />
 					)}
 					<svg
+						aria-hidden="true"
 						className="h-3.5 w-3.5 shrink-0"
 						fill="none"
 						viewBox="0 0 24 24"

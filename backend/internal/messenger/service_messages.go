@@ -8,89 +8,92 @@ import (
 
 	"github.com/google/uuid"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // SendMessage sends a message to a channel.
 // Checks membership, readonly status, increments reply_count for threads.
 func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID uuid.UUID, req SendMessageRequest) (*MessageResponse, error) {
-	// Check membership
-	isMember, err := s.repo.IsMember(ctx, channelID, senderID)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка проверки участия")
-	}
-	if !isMember {
-		return nil, apperrors.NewForbidden("вы не являетесь участником канала")
-	}
-
-	// Check readonly
-	ch, err := s.repo.GetChannel(ctx, channelID)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка получения канала")
-	}
-	if ch.IsReadonly {
-		// Only owner/admin can write in readonly channel
-		role, _ := s.repo.GetMemberRole(ctx, channelID, senderID)
-		if role != "owner" && role != "admin" {
-			return nil, apperrors.NewForbidden("канал доступен только для чтения")
+	return observability.Timed(ctx, "messenger.SendMessage", func(ctx context.Context) (*MessageResponse, error) {
+		// Check membership
+		isMember, err := s.repo.IsMember(ctx, channelID, senderID)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки участия")
 		}
-	}
-
-	doc := &MessageDocument{
-		ChannelID:       channelID,
-		SenderID:        senderID,
-		ContentJSON:     req.ContentJSON,
-		ContentText:     req.ContentText,
-		ThreadID:        req.ThreadID,
-		Attachments:     req.Attachments,
-		Mentions:        req.Mentions,
-		MentionGroups:   req.MentionGroups,
-		VoiceURL:        req.VoiceURL,
-		VoiceDurationMs: req.VoiceDurationMs,
-		CreatedAt:       time.Now().UTC(),
-	}
-
-	messageID, err := s.repo.InsertMessage(ctx, doc)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка сохранения сообщения")
-	}
-	doc.ID = messageID
-
-	// Increment reply_count if this is a thread reply
-	if req.ThreadID != "" {
-		if err := s.repo.IncrementReplyCount(ctx, req.ThreadID); err != nil {
-			slog.Error("не удалось инкрементировать reply_count", "error", err)
+		if !isMember {
+			return nil, apperrors.NewForbidden("вы не являетесь участником канала")
 		}
-	}
 
-	// Increment unread for channel members
-	if s.unread != nil {
-		memberIDs, mErr := s.repo.GetChannelMemberIDs(ctx, channelID)
-		if mErr == nil {
-			memberStrs := make([]string, len(memberIDs))
-			for i, m := range memberIDs {
-				memberStrs[i] = m.String()
-			}
-			if uErr := s.unread.Increment(ctx, channelID.String(), memberStrs, senderID.String()); uErr != nil {
-				slog.Error("не удалось инкрементировать непрочитанные", "error", uErr)
+		// Check readonly
+		ch, err := s.repo.GetChannel(ctx, channelID)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка получения канала")
+		}
+		if ch.IsReadonly {
+			// Only owner/admin can write in readonly channel
+			role, _ := s.repo.GetMemberRole(ctx, channelID, senderID)
+			if role != "owner" && role != "admin" {
+				return nil, apperrors.NewForbidden("канал доступен только для чтения")
 			}
 		}
-	}
 
-	// Resolve group mentions (@all, @online, @role) into concrete user IDs.
-	resolvedMentions := s.resolveGroupMentions(ctx, channelID, ch.ProjectID, req.MentionGroups, req.Mentions, senderID)
+		doc := &MessageDocument{
+			ChannelID:       channelID,
+			SenderID:        senderID,
+			ContentJSON:     req.ContentJSON,
+			ContentText:     req.ContentText,
+			ThreadID:        req.ThreadID,
+			Attachments:     req.Attachments,
+			Mentions:        req.Mentions,
+			MentionGroups:   req.MentionGroups,
+			VoiceURL:        req.VoiceURL,
+			VoiceDurationMs: req.VoiceDurationMs,
+			CreatedAt:       time.Now().UTC(),
+		}
 
-	// Publish NATS event
-	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
-		MessageID:        messageID,
-		ChannelID:        channelID,
-		SenderID:         senderID,
-		ContentText:      req.ContentText,
-		ThreadID:         req.ThreadID,
-		MentionedUserIDs: resolvedMentions,
-		CreatedAt:        doc.CreatedAt,
+		messageID, err := s.repo.InsertMessage(ctx, doc)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка сохранения сообщения")
+		}
+		doc.ID = messageID
+
+		// Increment reply_count if this is a thread reply
+		if req.ThreadID != "" {
+			if err := s.repo.IncrementReplyCount(ctx, req.ThreadID); err != nil {
+				slog.Error("не удалось инкрементировать reply_count", "error", err)
+			}
+		}
+
+		// Increment unread for channel members
+		if s.unread != nil {
+			memberIDs, mErr := s.repo.GetChannelMemberIDs(ctx, channelID)
+			if mErr == nil {
+				memberStrs := make([]string, len(memberIDs))
+				for i, m := range memberIDs {
+					memberStrs[i] = m.String()
+				}
+				if uErr := s.unread.Increment(ctx, channelID.String(), memberStrs, senderID.String()); uErr != nil {
+					slog.Error("не удалось инкрементировать непрочитанные", "error", uErr)
+				}
+			}
+		}
+
+		// Resolve group mentions (@all, @online, @role) into concrete user IDs.
+		resolvedMentions := s.resolveGroupMentions(ctx, channelID, ch.ProjectID, req.MentionGroups, req.Mentions, senderID)
+
+		// Publish NATS event
+		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
+			MessageID:        messageID,
+			ChannelID:        channelID,
+			SenderID:         senderID,
+			ContentText:      req.ContentText,
+			ThreadID:         req.ThreadID,
+			MentionedUserIDs: resolvedMentions,
+			CreatedAt:        doc.CreatedAt,
+		})
+
+		return toMessageResponse(doc), nil
 	})
-
-	return toMessageResponse(doc), nil
 }
 
 // ListMessages returns channel messages with cursor pagination.

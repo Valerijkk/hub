@@ -202,9 +202,7 @@ function IssueListPage() {
 				}
 				emptyFallback={
 					<div className="flex flex-col items-center justify-center py-12">
-						<p className="mb-4 text-lg text-t2">
-							Задачи не найдены
-						</p>
+						<p className="mb-4 text-lg text-t2">Задачи не найдены</p>
 						<Button asChild>
 							<Link to="/projects/$projectId/issues/new" params={{ projectId }}>
 								Создать задачу
@@ -215,118 +213,122 @@ function IssueListPage() {
 			>
 				{() => (
 					<>
-					<div className="rounded-md border overflow-x-auto">
-						<table className="w-full">
-							<thead>
-								<tr className="border-b bg-raised/50">
-									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
-										Ключ
-									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
-										Название
-									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
-										Тип
-									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
-										Приоритет
-									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
-										Статус
-									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
-										Исполнитель
-									</th>
-									<th className="px-4 py-3 text-left text-xs font-medium text-t2">
-										Создана
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{displayIssues.map((issue) => (
-									<tr
-										key={issue.id}
-										className="border-b transition-colors hover:bg-raised/50"
-									>
-										<td className="px-4 py-3">
-											<Link
-												to="/projects/$projectId/issues/$issueKey"
-												params={{
-													projectId,
-													issueKey: issue.issue_key,
-												}}
-												className="text-sm font-bold text-primary hover:underline"
-											>
-												{issue.issue_key}
-											</Link>
-										</td>
-										<td className="max-w-md truncate px-4 py-3 text-sm">
-											<Link
-												to="/projects/$projectId/issues/$issueKey"
-												params={{
-													projectId,
-													issueKey: issue.issue_key,
-												}}
-												className="hover:underline"
-											>
-												{issue.title}
-											</Link>
-										</td>
-										<td className="px-4 py-3 text-sm">
-											<span title={issue.issue_type}>
-												{TYPE_ICONS[issue.issue_type] ?? "\u{1F4CB}"}{" "}
-												{issue.issue_type}
-											</span>
-										</td>
-										<td className="px-4 py-3">
-											<Badge
-												variant="secondary"
-												className={cn(
-													"text-xs",
-													PRIORITY_COLORS[issue.priority],
-												)}
-											>
-												{issue.priority}
-											</Badge>
-										</td>
-										<td className="px-4 py-3">
-											<Badge variant="outline" className="text-xs">
-												{issue.status.name}
-											</Badge>
-										</td>
-										<td className="px-4 py-3">
-											{issue.assignee ? (
-												<div className="flex items-center gap-2">
-													<Avatar className="h-5 w-5">
-														<AvatarImage src={issue.assignee.avatar_url} />
-														<AvatarFallback className="text-[10px]">
-															{issue.assignee.name.charAt(0).toUpperCase()}
-														</AvatarFallback>
-													</Avatar>
-													<span className="text-sm">{issue.assignee.name}</span>
-												</div>
-											) : (
-												<span className="text-xs text-t2">
-													Не назначен
-												</span>
-											)}
-										</td>
-										<td className="px-4 py-3 text-xs text-t2">
-											{new Date(issue.created_at).toLocaleDateString("ru-RU")}
-										</td>
+						<div className="rounded-md border overflow-x-auto">
+							<table className="w-full">
+								<thead>
+									<tr className="border-b bg-raised/50">
+										<th className="px-4 py-3 text-left text-xs font-medium text-t2">
+											Ключ
+										</th>
+										<th className="px-4 py-3 text-left text-xs font-medium text-t2">
+											Название
+										</th>
+										<th className="px-4 py-3 text-left text-xs font-medium text-t2">
+											Тип
+										</th>
+										<th className="px-4 py-3 text-left text-xs font-medium text-t2">
+											Приоритет
+										</th>
+										<th className="px-4 py-3 text-left text-xs font-medium text-t2">
+											Статус
+										</th>
+										<th className="px-4 py-3 text-left text-xs font-medium text-t2">
+											Исполнитель
+										</th>
+										<th className="px-4 py-3 text-left text-xs font-medium text-t2">
+											Создана
+										</th>
 									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-
-					{data?.has_more && (
-						<div className="mt-4 flex justify-center">
-							<Button variant="outline" onClick={loadMore} disabled={isLoading}>
-								Загрузить ещё
-							</Button>
+								</thead>
+								<tbody>
+									{displayIssues.map((issue) => (
+										<tr
+											key={issue.id}
+											className="border-b transition-colors hover:bg-raised/50"
+										>
+											<td className="px-4 py-3">
+												<Link
+													to="/projects/$projectId/issues/$issueKey"
+													params={{
+														projectId,
+														issueKey: issue.issue_key,
+													}}
+													className="text-sm font-bold text-primary hover:underline"
+												>
+													{issue.issue_key}
+												</Link>
+											</td>
+											<td className="max-w-md truncate px-4 py-3 text-sm">
+												<Link
+													to="/projects/$projectId/issues/$issueKey"
+													params={{
+														projectId,
+														issueKey: issue.issue_key,
+													}}
+													className="hover:underline"
+												>
+													{issue.title}
+												</Link>
+											</td>
+											<td className="px-4 py-3 text-sm">
+												<span title={issue.issue_type}>
+													{TYPE_ICONS[issue.issue_type] ?? "\u{1F4CB}"}{" "}
+													{issue.issue_type}
+												</span>
+											</td>
+											<td className="px-4 py-3">
+												<Badge
+													variant="secondary"
+													className={cn(
+														"text-xs",
+														PRIORITY_COLORS[issue.priority],
+													)}
+												>
+													{issue.priority}
+												</Badge>
+											</td>
+											<td className="px-4 py-3">
+												<Badge variant="outline" className="text-xs">
+													{issue.status.name}
+												</Badge>
+											</td>
+											<td className="px-4 py-3">
+												{issue.assignee ? (
+													<div className="flex items-center gap-2">
+														<Avatar className="h-5 w-5">
+															<AvatarImage src={issue.assignee.avatar_url} />
+															<AvatarFallback className="text-[10px]">
+																{issue.assignee.name.charAt(0).toUpperCase()}
+															</AvatarFallback>
+														</Avatar>
+														<span className="text-sm">
+															{issue.assignee.name}
+														</span>
+													</div>
+												) : (
+													<span className="text-xs text-t2">Не назначен</span>
+												)}
+											</td>
+											<td className="px-4 py-3 text-xs text-t2">
+												{new Date(issue.created_at).toLocaleDateString("ru-RU")}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
 						</div>
-					)}
+
+						{data?.has_more && (
+							<div className="mt-4 flex justify-center">
+								<Button
+									variant="outline"
+									onClick={loadMore}
+									disabled={isLoading}
+								>
+									Загрузить ещё
+								</Button>
+							</div>
+						)}
 					</>
 				)}
 			</QueryStateView>

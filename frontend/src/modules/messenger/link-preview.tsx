@@ -32,6 +32,7 @@ function IssueTypeIcon({ type }: { type?: string }) {
 
 	return (
 		<svg
+			aria-hidden="true"
 			className={`h-4 w-4 shrink-0 ${color}`}
 			viewBox="0 0 16 16"
 			fill="currentColor"
@@ -46,6 +47,7 @@ function IssueTypeIcon({ type }: { type?: string }) {
 function TestCaseIcon() {
 	return (
 		<svg
+			aria-hidden="true"
 			className="h-4 w-4 shrink-0 text-teal-500"
 			viewBox="0 0 16 16"
 			fill="currentColor"
@@ -59,6 +61,7 @@ function TestCaseIcon() {
 function ExternalLinkIcon() {
 	return (
 		<svg
+			aria-hidden="true"
 			className="h-4 w-4 shrink-0 text-gray-400"
 			viewBox="0 0 16 16"
 			fill="currentColor"

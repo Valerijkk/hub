@@ -11,13 +11,23 @@ import {
 	projectQA,
 } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
+import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { useDashboardStore } from "@/stores/dashboard-store";
 
 export const Route = createLazyFileRoute(
 	"/_authenticated/projects/$projectId/dashboard",
 )({
-	component: ProjectDashboard,
+	component: ProjectDashboardWithBoundary,
 });
+
+/** Обёртка для изоляции рантайм-ошибок дашборда проекта (FE-H4). */
+function ProjectDashboardWithBoundary() {
+	return (
+		<RouteErrorBoundary module="Дашборд проекта">
+			<ProjectDashboard />
+		</RouteErrorBoundary>
+	);
+}
 
 /** Project dashboard templates. */
 const TEMPLATES: Record<string, LayoutItem[]> = {
@@ -39,19 +49,21 @@ function ProjectDashboard() {
 	useEffect(() => {
 		fetchProject(projectId);
 		loadLayout("project", projectId).then(() => {
-			const current = useDashboardStore.getState().layouts["project"];
+			const current = useDashboardStore.getState().layouts.project;
 			if (!current || current.length === 0) {
 				setLayout("project", projectDev);
 			}
 		});
 	}, [projectId, fetchProject, loadLayout, setLayout]);
 
-	const items = layouts["project"] ?? TEMPLATES[template] ?? projectDev;
+	const items = layouts.project ?? TEMPLATES[template] ?? projectDev;
 
 	return (
 		<div className="animate-[eu_450ms_var(--spring)_both]">
 			<div className="flex items-center justify-between mb-4">
-				<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">Дашборд проекта</h1>
+				<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+					Дашборд проекта
+				</h1>
 				<div className="flex gap-1">
 					{Object.keys(TEMPLATES).map((key) => (
 						<button

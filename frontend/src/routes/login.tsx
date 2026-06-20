@@ -63,7 +63,6 @@ const FLOATING_FEATURES: FeatureCard[] = [
 function LoginPage() {
 	const navigate = useNavigate();
 
-
 	function handleDevLoginSuccess() {
 		const user = useAuthStore.getState().user;
 		if (user && !user.onboarding_completed) {
@@ -100,6 +99,7 @@ function LoginPage() {
 								style={{ background: f.iconBg }}
 							>
 								<svg
+									aria-hidden="true"
 									className="w-[22px] h-[22px]"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -129,8 +129,8 @@ function LoginPage() {
 						Единая платформа
 					</h1>
 					<p className="text-[15px] text-[var(--t2)] max-w-[360px] leading-relaxed">
-						Проекты, общение, звонки и тестирование — в одном месте
-						для всей команды
+						Проекты, общение, звонки и тестирование — в одном месте для всей
+						команды
 					</p>
 				</div>
 			</div>
@@ -158,7 +158,9 @@ function LoginPage() {
 					<div className="text-center mt-7 text-sm text-[var(--t2)]">
 						Войдите через Telegram — быстро и безопасно.
 						<br />
-						<span className="text-[var(--t3)] text-xs">Аккаунт создаётся автоматически при первом входе.</span>
+						<span className="text-[var(--t2)] text-xs">
+							Аккаунт создаётся автоматически при первом входе.
+						</span>
 					</div>
 
 					{/* Dev login panel — рендерится только в dev-сборке */}

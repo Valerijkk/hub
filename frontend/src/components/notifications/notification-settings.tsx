@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { updateProfile } from "@/api/auth";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	getPreferences,
 	type PreferenceDTO,
 	updatePreference,
 } from "@/api/notifications";
-import { updateProfile } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -23,8 +24,8 @@ function QuietHoursCard() {
 				quiet_hours_end: end || undefined,
 			});
 			toast.success("Тихие часы сохранены");
-		} catch {
-			toast.error("Не удалось сохранить тихие часы");
+		} catch (err) {
+			toastApiError(err, "Не удалось сохранить тихие часы");
 		} finally {
 			setSaving(false);
 		}
@@ -100,8 +101,8 @@ export function NotificationSettings() {
 		try {
 			const prefs = await getPreferences();
 			setPreferences(prefs ?? []);
-		} catch {
-			toast.error("Не удалось загрузить настройки уведомлений");
+		} catch (err) {
+			toastApiError(err, "Не удалось загрузить настройки уведомлений");
 		} finally {
 			setLoading(false);
 		}
@@ -147,7 +148,11 @@ export function NotificationSettings() {
 				}
 				return [
 					...prev,
-					{ notification_type: notifType, channel, enabled: !current } as PreferenceDTO,
+					{
+						notification_type: notifType,
+						channel,
+						enabled: !current,
+					} as PreferenceDTO,
 				];
 			});
 
@@ -171,7 +176,7 @@ export function NotificationSettings() {
 					}
 					return [...prev, updated];
 				});
-			} catch {
+			} catch (err) {
 				// Revert optimistic update
 				setPreferences((prev) => {
 					const idx = prev.findIndex(
@@ -188,7 +193,7 @@ export function NotificationSettings() {
 					}
 					return prev;
 				});
-				toast.error("Не удалось обновить настройку");
+				toastApiError(err, "Не удалось обновить настройку");
 			}
 		},
 		[isEnabled],
@@ -204,41 +209,46 @@ export function NotificationSettings() {
 
 	return (
 		<div className="space-y-0">
-					<div className="overflow-x-auto">
-						<table className="w-full border-collapse">
-							<thead>
-								<tr>
-									<th className="px-[14px] py-[10px] text-[11px] font-bold text-t4 text-left uppercase tracking-[0.05em] border-b border-b2" />
-									{CHANNELS.map((ch) => (
-										<th
-											key={ch.key}
-											className="px-[14px] py-[10px] text-[11px] font-bold text-t4 text-center uppercase tracking-[0.05em] border-b border-b2"
-										>
-											{ch.label}
-										</th>
-									))}
-								</tr>
-							</thead>
-							<tbody>
-								{NOTIFICATION_TYPES.map((nt) => (
-									<tr key={nt.key}>
-										<td className="px-[14px] py-[10px] border-b border-b1 text-left text-t2 text-[13px]">{nt.label}</td>
-										{CHANNELS.map((ch) => (
-											<td key={ch.key} className="px-[14px] py-[10px] border-b border-b1 text-center text-[13px]">
-												<input
-													type="checkbox"
-													checked={isEnabled(nt.key, ch.key)}
-													onChange={() => void togglePreference(nt.key, ch.key)}
-													className="w-[18px] h-[18px] accent-[var(--blue)] cursor-pointer"
-													aria-label={`${nt.label} - ${ch.label}`}
-												/>
-											</td>
-										))}
-									</tr>
+			<div className="overflow-x-auto">
+				<table className="w-full border-collapse">
+					<thead>
+						<tr>
+							<th className="px-[14px] py-[10px] text-[11px] font-bold text-t4 text-left uppercase tracking-[0.05em] border-b border-b2" />
+							{CHANNELS.map((ch) => (
+								<th
+									key={ch.key}
+									className="px-[14px] py-[10px] text-[11px] font-bold text-t4 text-center uppercase tracking-[0.05em] border-b border-b2"
+								>
+									{ch.label}
+								</th>
+							))}
+						</tr>
+					</thead>
+					<tbody>
+						{NOTIFICATION_TYPES.map((nt) => (
+							<tr key={nt.key}>
+								<td className="px-[14px] py-[10px] border-b border-b1 text-left text-t2 text-[13px]">
+									{nt.label}
+								</td>
+								{CHANNELS.map((ch) => (
+									<td
+										key={ch.key}
+										className="px-[14px] py-[10px] border-b border-b1 text-center text-[13px]"
+									>
+										<input
+											type="checkbox"
+											checked={isEnabled(nt.key, ch.key)}
+											onChange={() => void togglePreference(nt.key, ch.key)}
+											className="w-[18px] h-[18px] accent-[var(--blue)] cursor-pointer"
+											aria-label={`${nt.label} - ${ch.label}`}
+										/>
+									</td>
 								))}
-							</tbody>
-						</table>
-					</div>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
 
 			<QuietHoursCard />
 		</div>

@@ -62,6 +62,7 @@ export function ReactionPicker({
 			<PopoverTrigger asChild>
 				<Button variant="ghost" size="icon" className="h-7 w-7" title="Реакция">
 					<svg
+						aria-hidden="true"
 						className="h-3.5 w-3.5"
 						fill="none"
 						viewBox="0 0 24 24"

@@ -1,120 +1,300 @@
 package search
 
 import (
-	"sort"
+	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	_ "github.com/mattn/go-sqlite3"
+
+	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/enttest"
 )
 
-// TestMergeResultsByScore проверяет сортировку результатов по убыванию score.
-func TestMergeResultsByScore(t *testing.T) {
-	results := []SearchResult{
-		{ID: "1", Type: "issue", Title: "Low", Score: 0.1},
-		{ID: "2", Type: "user", Title: "High", Score: 0.9},
-		{ID: "3", Type: "project", Title: "Mid", Score: 0.5},
-		{ID: "4", Type: "test_case", Title: "Very High", Score: 1.2},
-	}
-
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].Score > results[j].Score
-	})
-
-	require.Len(t, results, 4)
-	assert.Equal(t, "4", results[0].ID, "наивысший score первый")
-	assert.Equal(t, "2", results[1].ID)
-	assert.Equal(t, "3", results[2].ID)
-	assert.Equal(t, "1", results[3].ID, "наименьший score последний")
+// statefulSearchRepo stores saved filters for service-level CRUD tests.
+type statefulSearchRepo struct {
+	mockSearchRepo
+	filters map[uuid.UUID]*ent.SavedFilter
 }
 
-// TestMergeResultsWithLimit проверяет ограничение количества результатов.
-func TestMergeResultsWithLimit(t *testing.T) {
-	results := make([]SearchResult, 30)
-	for i := range results {
-		results[i] = SearchResult{
-			ID:    uuid.New().String(),
-			Type:  "issue",
-			Title: "Test",
-			Score: float64(30 - i),
+func newStatefulSearchRepo() *statefulSearchRepo {
+	return &statefulSearchRepo{filters: make(map[uuid.UUID]*ent.SavedFilter)}
+}
+
+func (m *statefulSearchRepo) CreateSavedFilter(_ context.Context, input CreateSavedFilterInput) (*ent.SavedFilter, error) {
+	now := time.Now().UTC()
+	f := &ent.SavedFilter{
+		ID:           uuid.New(),
+		Name:         input.Name,
+		FilterConfig: input.FilterConfig,
+		OwnerID:      input.OwnerID,
+		ProjectID:    input.ProjectID,
+		Shared:       false,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	m.filters[f.ID] = f
+	return f, nil
+}
+
+func (m *statefulSearchRepo) ListSavedFilters(_ context.Context, userID, projectID uuid.UUID) ([]*ent.SavedFilter, error) {
+	var result []*ent.SavedFilter
+	for _, f := range m.filters {
+		if f.ProjectID != projectID {
+			continue
+		}
+		if f.OwnerID == userID || f.Shared {
+			result = append(result, f)
 		}
 	}
+	return result, nil
+}
 
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].Score > results[j].Score
+func (m *statefulSearchRepo) GetSavedFilter(_ context.Context, filterID uuid.UUID) (*ent.SavedFilter, error) {
+	f, ok := m.filters[filterID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	return f, nil
+}
+
+func (m *statefulSearchRepo) DeleteSavedFilter(_ context.Context, filterID uuid.UUID) error {
+	if _, ok := m.filters[filterID]; !ok {
+		return &ent.NotFoundError{}
+	}
+	delete(m.filters, filterID)
+	return nil
+}
+
+func (m *statefulSearchRepo) UpdateSavedFilterShared(_ context.Context, filterID uuid.UUID, shared bool) (*ent.SavedFilter, error) {
+	f, ok := m.filters[filterID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	f.Shared = shared
+	f.UpdatedAt = time.Now().UTC()
+	return f, nil
+}
+
+func newSearchServiceTestEnv(t *testing.T) (*SearchService, *statefulSearchRepo, context.Context, uuid.UUID, uuid.UUID) {
+	t.Helper()
+	repo := newStatefulSearchRepo()
+	svc := NewSearchService(repo, newScopeTestDB(t), nil)
+	userID := uuid.New()
+	projectID := uuid.New()
+	return svc, repo, context.Background(), userID, projectID
+}
+
+func TestSavedFilterToDTO(t *testing.T) {
+	now := time.Now().UTC()
+	ownerID := uuid.New()
+	projectID := uuid.New()
+	filterID := uuid.New()
+
+	dto := savedFilterToDTO(&ent.SavedFilter{
+		ID:           filterID,
+		Name:         "My bugs",
+		FilterConfig: map[string]interface{}{"status": "open"},
+		Shared:       true,
+		OwnerID:      ownerID,
+		ProjectID:    projectID,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	})
 
-	limit := 20
-	if len(results) > limit {
-		results = results[:limit]
+	require.NotNil(t, dto)
+	assert.Equal(t, filterID.String(), dto.ID)
+	assert.Equal(t, "My bugs", dto.Name)
+	assert.True(t, dto.Shared)
+	assert.Equal(t, ownerID.String(), dto.OwnerID)
+	assert.Equal(t, projectID.String(), dto.ProjectID)
+}
+
+func TestCreateSavedFilter_InvalidProjectID(t *testing.T) {
+	svc, _, ctx, userID, _ := newSearchServiceTestEnv(t)
+
+	_, err := svc.CreateSavedFilter(ctx, userID, SavedFilterCreateRequest{
+		Name:         "F",
+		FilterConfig: map[string]interface{}{"q": "bug"},
+		ProjectID:    "not-uuid",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "project_id")
+}
+
+func TestSavedFilter_CRUDAndShare(t *testing.T) {
+	svc, _, ctx, userID, projectID := newSearchServiceTestEnv(t)
+	otherUser := uuid.New()
+
+	created, err := svc.CreateSavedFilter(ctx, userID, SavedFilterCreateRequest{
+		Name:         "Open issues",
+		FilterConfig: map[string]interface{}{"status": "open"},
+		ProjectID:    projectID.String(),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "Open issues", created.Name)
+	assert.False(t, created.Shared)
+
+	list, err := svc.ListSavedFilters(ctx, userID, projectID)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+
+	otherList, err := svc.ListSavedFilters(ctx, otherUser, projectID)
+	require.NoError(t, err)
+	assert.Empty(t, otherList)
+
+	filterID := uuid.MustParse(created.ID)
+	shared, err := svc.ShareFilter(ctx, userID, filterID, true)
+	require.NoError(t, err)
+	assert.True(t, shared.Shared)
+
+	otherList, err = svc.ListSavedFilters(ctx, otherUser, projectID)
+	require.NoError(t, err)
+	assert.Len(t, otherList, 1)
+
+	err = svc.DeleteSavedFilter(ctx, otherUser, filterID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "доступ запрещён")
+
+	require.NoError(t, svc.DeleteSavedFilter(ctx, userID, filterID))
+	list, err = svc.ListSavedFilters(ctx, userID, projectID)
+	require.NoError(t, err)
+	assert.Empty(t, list)
+}
+
+func TestShareFilter_NotOwnerForbidden(t *testing.T) {
+	svc, repo, ctx, ownerID, projectID := newSearchServiceTestEnv(t)
+	now := time.Now().UTC()
+	filterID := uuid.New()
+	repo.filters[filterID] = &ent.SavedFilter{
+		ID: filterID, Name: "X", OwnerID: ownerID, ProjectID: projectID,
+		FilterConfig: map[string]interface{}{}, CreatedAt: now, UpdatedAt: now,
 	}
 
-	assert.Len(t, results, 20, "должно быть ограничено до 20 результатов")
-	assert.Equal(t, float64(30), results[0].Score, "первый результат с наивысшим score")
-	assert.Equal(t, float64(11), results[19].Score, "последний результат = 11")
+	_, err := svc.ShareFilter(ctx, uuid.New(), filterID, true)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "доступ запрещён")
 }
 
-// TestUUIDSliceToPgArray проверяет конвертацию среза UUID в формат PG-массива.
-func TestUUIDSliceToPgArray(t *testing.T) {
-	id1 := uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	id2 := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+func TestSearch_NormalizesLimit(t *testing.T) {
+	db := newScopeTestDB(t)
+	userID := uuid.New()
+	svc := NewSearchService(&mockSearchRepo{}, db, nil)
 
-	result := uuidSliceToPgArray([]uuid.UUID{id1, id2})
-	assert.Equal(t, "{00000000-0000-0000-0000-000000000001,00000000-0000-0000-0000-000000000002}", result)
-}
-
-// TestUUIDSliceToPgArrayEmpty проверяет пустой массив.
-func TestUUIDSliceToPgArrayEmpty(t *testing.T) {
-	result := uuidSliceToPgArray([]uuid.UUID{})
-	assert.Equal(t, "{}", result)
-}
-
-// TestSavedFilterToDTO проверяет конвертацию SavedFilter Ent-сущности в DTO.
-func TestSavedFilterToDTO(t *testing.T) {
-	// Примечание: полноценный тест конвертации требует Ent-сущность,
-	// здесь проверяем вспомогательную логику.
-
-	typeSet := map[string]bool{"issue": true, "user": true}
-	assert.True(t, typeSet["issue"])
-	assert.True(t, typeSet["user"])
-	assert.False(t, typeSet["project"])
-}
-
-// TestSearchRequestDefaultLimit проверяет значение limit по умолчанию.
-func TestSearchRequestDefaultLimit(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    int
-		expected int
-	}{
-		{"нулевой limit", 0, 20},
-		{"отрицательный limit", -5, 20},
-		{"превышающий limit", 100, 20},
-		{"нормальный limit", 10, 10},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			limit := tt.input
-			if limit <= 0 || limit > 50 {
-				limit = 20
-			}
-			assert.Equal(t, tt.expected, limit)
-		})
+	for _, limit := range []int{0, -1, 100} {
+		results, err := svc.Search(context.Background(), "hub", userID, nil, limit)
+		require.NoError(t, err)
+		assert.Empty(t, results)
 	}
 }
 
-// TestSearchResultTypes проверяет поддерживаемые типы сущностей.
-func TestSearchResultTypes(t *testing.T) {
-	supportedTypes := []string{"issue", "test_case", "user", "project", "channel", "file", "message"}
-	typeSet := make(map[string]bool, len(supportedTypes))
-	for _, tp := range supportedTypes {
-		typeSet[tp] = true
-	}
+func TestSearch_FiltersByType(t *testing.T) {
+	db := newScopeTestDB(t)
+	userID := uuid.New()
+	projectID := uuid.New()
 
-	assert.Len(t, typeSet, 7, "должно быть 7 типов сущностей")
-	assert.True(t, typeSet["issue"])
-	assert.True(t, typeSet["message"])
-	assert.False(t, typeSet["unknown"])
+	_, err := db.Exec(
+		`INSERT INTO project_members (project_members, user_project_members) VALUES (?, ?)`,
+		projectID.String(), userID.String(),
+	)
+	require.NoError(t, err)
+
+	svc := NewSearchService(&mockSearchRepo{}, db, nil)
+
+	results, err := svc.Search(context.Background(), "hub", userID, []string{"project"}, 5)
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+func TestSearch_AdminUsesUnscopedUserSearch(t *testing.T) {
+	db := newScopeTestDB(t)
+	userID := uuid.New()
+	svc := NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
+
+	results, err := svc.Search(context.Background(), "admin", userID, []string{"user"}, 10)
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+func TestSearch_ContinuesOnPartialShardErrors(t *testing.T) {
+	db := newScopeTestDB(t)
+	userID := uuid.New()
+	projectID := uuid.New()
+
+	_, err := db.Exec(
+		`INSERT INTO project_members (project_members, user_project_members) VALUES (?, ?)`,
+		projectID.String(), userID.String(),
+	)
+	require.NoError(t, err)
+
+	repo := &mockSearchRepo{adminErr: errors.New("admin lookup failed")}
+	svc := NewSearchService(repo, db, nil)
+
+	results, err := svc.Search(context.Background(), "hub", userID, []string{"issue", "user"}, 20)
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+func TestEntRepository_SavedFilterCRUD(t *testing.T) {
+	dsn := "file:searchtest_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
+	client := enttest.Open(t, "sqlite3", dsn)
+	t.Cleanup(func() { _ = client.Close() })
+
+	ctx := context.Background()
+	owner, err := client.User.Create().SetEmail("search-" + uuid.New().String()[:8] + "@test.com").Save(ctx)
+	require.NoError(t, err)
+	proj, err := client.Project.Create().SetName("Search Proj").SetKey("SRC").Save(ctx)
+	require.NoError(t, err)
+
+	repo := NewEntRepository(client)
+	cfg := map[string]interface{}{"priority": "high"}
+
+	created, err := repo.CreateSavedFilter(ctx, CreateSavedFilterInput{
+		Name: "High priority", FilterConfig: cfg, OwnerID: owner.ID, ProjectID: proj.ID,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "High priority", created.Name)
+
+	list, err := repo.ListSavedFilters(ctx, owner.ID, proj.ID)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+
+	updated, err := repo.UpdateSavedFilterShared(ctx, created.ID, true)
+	require.NoError(t, err)
+	assert.True(t, updated.Shared)
+
+	require.NoError(t, repo.DeleteSavedFilter(ctx, created.ID))
+	list, err = repo.ListSavedFilters(ctx, owner.ID, proj.ID)
+	require.NoError(t, err)
+	assert.Empty(t, list)
+}
+
+func TestEntRepository_IsSystemAdmin(t *testing.T) {
+	dsn := "file:searchadm_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
+	client := enttest.Open(t, "sqlite3", dsn)
+	t.Cleanup(func() { _ = client.Close() })
+
+	ctx := context.Background()
+	admin, err := client.User.Create().
+		SetEmail("admin-" + uuid.New().String()[:8] + "@test.com").
+		SetSystemRole("admin").
+		Save(ctx)
+	require.NoError(t, err)
+	member, err := client.User.Create().
+		SetEmail("member-" + uuid.New().String()[:8] + "@test.com").
+		Save(ctx)
+	require.NoError(t, err)
+
+	repo := NewEntRepository(client)
+	ok, err := repo.IsSystemAdmin(ctx, admin.ID)
+	require.NoError(t, err)
+	assert.True(t, ok)
+
+	ok, err = repo.IsSystemAdmin(ctx, member.ID)
+	require.NoError(t, err)
+	assert.False(t, ok)
 }

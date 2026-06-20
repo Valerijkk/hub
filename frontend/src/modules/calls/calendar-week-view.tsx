@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import {
 	type CalendarEvent,
-	HOURS,
 	formatDayHeader,
+	HOURS,
 	isSameDay,
 } from "./calendar-types";
 
@@ -93,8 +93,7 @@ export function WeekView({
 						{weekDays.map((day, dayIdx) => {
 							const isToday = isCurrentWeek && isSameDay(day, today);
 							const dayEvents = events.filter(
-								(ev) =>
-									isSameDay(ev.date, day) && ev.date.getHours() === hour,
+								(ev) => isSameDay(ev.date, day) && ev.date.getHours() === hour,
 							);
 							const cellKey = `cell-${hour}-${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
 

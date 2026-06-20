@@ -48,8 +48,7 @@ function getStatusBadge(status: string) {
 		case "completed":
 			return {
 				label: "Завершён",
-				className:
-					"bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
+				className: "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
 				icon: CheckCircle2,
 			};
 		default:
@@ -73,7 +72,7 @@ function getDaysRemaining(endDate: string): number {
 
 /** Вычислить прогресс спринта по дням (для UI). */
 function getProgressPercent(startDate: string, endDate: string): number {
-	const now = new Date().getTime();
+	const now = Date.now();
 	const start = new Date(startDate).getTime();
 	const end = new Date(endDate).getTime();
 	if (now >= end) return 100;
@@ -96,17 +95,15 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 	} = useSprintStore();
 
 	const [confirmComplete, setConfirmComplete] = useState(false);
-	const [selectedSprint, setSelectedSprint] =
-		useState<SprintResponse | null>(null);
+	const [selectedSprint, setSelectedSprint] = useState<SprintResponse | null>(
+		null,
+	);
 
 	useEffect(() => {
 		fetchSprints(projectId);
 	}, [projectId, fetchSprints]);
 
-	const handleStartSprint = async (
-		e: React.MouseEvent,
-		sprintId: string,
-	) => {
+	const handleStartSprint = async (e: React.MouseEvent, sprintId: string) => {
 		e.preventDefault();
 		e.stopPropagation();
 		await startSprint(projectId, sprintId);
@@ -131,9 +128,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 			<div className="flex items-center justify-center p-16">
 				<div className="flex flex-col items-center gap-3">
 					<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue border-t-transparent" />
-					<p className="text-[13px] text-t2">
-						Загрузка спринтов...
-					</p>
+					<p className="text-[13px] text-t2">Загрузка спринтов...</p>
 				</div>
 			</div>
 		);
@@ -145,9 +140,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 				<div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[var(--r4)] bg-gradient-to-br from-[var(--blueS)]/20 to-[var(--purpleS)]/20">
 					<Flame className="h-8 w-8 text-blue" />
 				</div>
-				<h3 className="text-[14px] font-bold text-t1">
-					Нет спринтов
-				</h3>
+				<h3 className="text-[14px] font-bold text-t1">Нет спринтов</h3>
 				<p className="mt-1 max-w-sm text-[13px] text-t2">
 					Создайте первый спринт, чтобы организовать работу команды по
 					итерациям.
@@ -174,15 +167,13 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 						<Flame className="h-5 w-5" />
 					</div>
 					<div>
-						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">Спринты</h1>
+						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+							Спринты
+						</h1>
 						<p className="mt-0.5 text-[13px] text-t2">
 							{sprints.length} спринт
-							{sprints.length === 1
-								? ""
-								: sprints.length < 5
-									? "а"
-									: "ов"}{" "}
-							в проекте
+							{sprints.length === 1 ? "" : sprints.length < 5 ? "а" : "ов"} в
+							проекте
 						</p>
 					</div>
 				</div>
@@ -227,9 +218,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 								<p className="text-[24px] font-black tracking-[-0.03em] tabular-nums text-t1">
 									{stat.value}
 								</p>
-								<p className="text-[12px] text-t3 font-medium">
-									{stat.label}
-								</p>
+								<p className="text-[12px] text-t3 font-medium">{stat.label}</p>
 							</div>
 						</div>
 					</div>
@@ -256,9 +245,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 						>
 							<div
 								className={`bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 relative overflow-hidden hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)] ${
-									sprint.status === "active"
-										? "ring-1 ring-emerald-500/20"
-										: ""
+									sprint.status === "active" ? "ring-1 ring-emerald-500/20" : ""
 								}`}
 							>
 								{/* Header row */}
@@ -289,21 +276,15 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 								<div className="mt-4 flex flex-wrap items-center gap-4 text-[12px] text-t3">
 									<span className="inline-flex items-center gap-1.5">
 										<Calendar className="h-3.5 w-3.5 opacity-60" />
-										{new Date(sprint.start_date).toLocaleDateString(
-											"ru-RU",
-											{
-												day: "numeric",
-												month: "short",
-											},
-										)}{" "}
+										{new Date(sprint.start_date).toLocaleDateString("ru-RU", {
+											day: "numeric",
+											month: "short",
+										})}{" "}
 										&mdash;{" "}
-										{new Date(sprint.end_date).toLocaleDateString(
-											"ru-RU",
-											{
-												day: "numeric",
-												month: "short",
-											},
-										)}
+										{new Date(sprint.end_date).toLocaleDateString("ru-RU", {
+											day: "numeric",
+											month: "short",
+										})}
 									</span>
 									<span className="inline-flex items-center gap-1.5">
 										<ListTodo className="h-3.5 w-3.5 opacity-60" />
@@ -322,9 +303,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 									<div className="mt-3">
 										<div className="mb-1 flex justify-between text-[11px] text-t3">
 											<span>Прогресс по времени</span>
-											<span className="tabular-nums">
-												{progress}%
-											</span>
+											<span className="tabular-nums">{progress}%</span>
 										</div>
 										<div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
 											<div
@@ -350,9 +329,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 											size="sm"
 											disabled={!!activeSprint}
 											className="btn-glow bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/20 hover:from-blue-500 hover:to-blue-400"
-											onClick={(e) =>
-												handleStartSprint(e, sprint.id)
-											}
+											onClick={(e) => handleStartSprint(e, sprint.id)}
 										>
 											<PlayCircle className="mr-1.5 h-3.5 w-3.5" />
 											Начать спринт
@@ -363,9 +340,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 											size="sm"
 											variant="outline"
 											className="border-b1 text-t2 hover:bg-[var(--hover)] hover:text-t1"
-											onClick={(e) =>
-												openCompleteDialog(e, sprint)
-											}
+											onClick={(e) => openCompleteDialog(e, sprint)}
 										>
 											<CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
 											Завершить спринт
@@ -384,8 +359,8 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 					<DialogHeader>
 						<DialogTitle>Завершить спринт?</DialogTitle>
 						<DialogDescription>
-							Незавершённые задачи будут автоматически перенесены в
-							следующий спринт.
+							Незавершённые задачи будут автоматически перенесены в следующий
+							спринт.
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>

@@ -36,13 +36,8 @@ export function StorageUsageWidget({ data }: Props) {
 			{adminData?.top_projects && adminData.top_projects.length > 0 && (
 				<div className="mt-1 w-full space-y-1.5 pt-2 border-t border-border/50">
 					{adminData.top_projects.slice(0, 3).map((project) => (
-						<div
-							key={project.id}
-							className="flex justify-between text-xs px-1"
-						>
-							<span className="truncate text-t2">
-								{project.name}
-							</span>
+						<div key={project.id} className="flex justify-between text-xs px-1">
+							<span className="truncate text-t2">{project.name}</span>
 							<span className="tabular-nums text-t2/80 shrink-0 ml-2">
 								{project.issue_count} задач
 							</span>

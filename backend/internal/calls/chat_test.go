@@ -13,9 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-// setupTestMongoDB создаёт подключение к тестовой MongoDB.
-// URL берётся из MONGODB_TEST_URL, дефолт — локальный docker-compose mongo с auth hub:hub.
-// Возвращает очищенную тестовую базу данных.
+// setupTestMongoDB создаёт подключение к тестовой MongoDB (integration).
+// URL: MONGODB_TEST_URL или docker-compose localhost. Без Mongo — skip.
 func setupTestMongoDB(t *testing.T) *mongo.Database {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

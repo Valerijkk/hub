@@ -59,7 +59,8 @@ export function DeviceSelector() {
 			if (activeInput) setSelectedInput(activeInput);
 			else if (inputs.length > 0) setSelectedInput(inputs[0]?.deviceId ?? "");
 			if (activeOutput) setSelectedOutput(activeOutput);
-			else if (outputs.length > 0) setSelectedOutput(outputs[0]?.deviceId ?? "");
+			else if (outputs.length > 0)
+				setSelectedOutput(outputs[0]?.deviceId ?? "");
 		} catch {
 			// Устройства недоступны (нет разрешения)
 		}

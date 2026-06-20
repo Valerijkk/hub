@@ -951,6 +951,169 @@ func TestBoardData(t *testing.T) {
 	assert.NotEmpty(t, data.Columns)
 }
 
+func TestCreateIssue_InvalidUUIDs(t *testing.T) {
+	svc, _ := newTestService()
+	ctx := context.Background()
+	projectID := uuid.New()
+	userID := uuid.New()
+
+	tests := []struct {
+		name string
+		req  CreateIssueRequest
+		err  string
+	}{
+		{
+			name: "invalid assignee_id",
+			req:  CreateIssueRequest{Title: "T", IssueType: "task", AssigneeID: "not-uuid"},
+			err:  "assignee_id",
+		},
+		{
+			name: "invalid parent_id",
+			req:  CreateIssueRequest{Title: "T", IssueType: "task", ParentID: "bad"},
+			err:  "parent_id",
+		},
+		{
+			name: "invalid status_id",
+			req:  CreateIssueRequest{Title: "T", IssueType: "task", StatusID: "bad"},
+			err:  "status_id",
+		},
+		{
+			name: "invalid label id",
+			req:  CreateIssueRequest{Title: "T", IssueType: "task", Labels: []string{"bad-label"}},
+			err:  "label ID",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := svc.CreateIssue(ctx, projectID, userID, tt.req)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.err)
+		})
+	}
+}
+
+func TestGetIssue_NotFound(t *testing.T) {
+	svc, _ := newTestService()
+	ctx := context.Background()
+
+	_, err := svc.GetIssue(ctx, "MISSING-1")
+	require.Error(t, err)
+	appErr, ok := err.(*apperrors.AppError)
+	require.True(t, ok)
+	assert.Equal(t, 404, appErr.Code)
+}
+
+func TestDeleteIssue_NotFound(t *testing.T) {
+	svc, _ := newTestService()
+	ctx := context.Background()
+
+	err := svc.DeleteIssue(ctx, "MISSING-1", uuid.New())
+	require.Error(t, err)
+	appErr, ok := err.(*apperrors.AppError)
+	require.True(t, ok)
+	assert.Equal(t, 404, appErr.Code)
+}
+
+func TestCreateIssueLink_InvalidTargetID(t *testing.T) {
+	svc, _ := newTestService()
+	ctx := context.Background()
+	projectID := uuid.New()
+	userID := uuid.New()
+
+	created, err := svc.CreateIssue(ctx, projectID, userID, CreateIssueRequest{
+		Title: "Source", IssueType: "task", Priority: "medium",
+	})
+	require.NoError(t, err)
+
+	_, err = svc.CreateIssueLink(ctx, created.IssueKey, userID, CreateIssueLinkRequest{
+		TargetIssueID: "not-a-uuid",
+		LinkType:      "blocks",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "target_issue_id")
+}
+
+func TestListIssues_InvalidAssignee(t *testing.T) {
+	svc, _ := newTestService()
+	ctx := context.Background()
+
+	_, err := svc.ListIssues(ctx, uuid.New(), ListIssuesRequest{Assignee: "bad-uuid"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "assignee")
+}
+
+func TestCommentsAndTimeTracking(t *testing.T) {
+	svc, _ := newTestService()
+	ctx := context.Background()
+	projectID := uuid.New()
+	userID := uuid.New()
+
+	issue, err := svc.CreateIssue(ctx, projectID, userID, CreateIssueRequest{
+		Title: "Commentable", IssueType: "task", Priority: "medium",
+	})
+	require.NoError(t, err)
+
+	comment, err := svc.CreateComment(ctx, issue.IssueKey, userID, CreateCommentRequest{
+		BodyJSON: map[string]interface{}{"text": "hi"},
+		BodyText: "hi",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "hi", comment.BodyText)
+
+	comments, err := svc.ListComments(ctx, issue.IssueKey)
+	require.NoError(t, err)
+	assert.Len(t, comments, 1)
+
+	tl, err := svc.LogTime(ctx, issue.IssueKey, userID, LogTimeRequest{Minutes: 30, Description: "work"})
+	require.NoError(t, err)
+	assert.Equal(t, 30, tl.Minutes)
+
+	timer, err := svc.StartTimer(ctx, issue.IssueKey, userID)
+	require.NoError(t, err)
+	assert.NotNil(t, timer.StartedAt)
+
+	stopped, err := svc.StopTimer(ctx, issue.IssueKey, userID)
+	require.NoError(t, err)
+	assert.NotNil(t, stopped.EndedAt)
+
+	logs, err := svc.ListTimeLogs(ctx, issue.IssueKey)
+	require.NoError(t, err)
+	assert.NotEmpty(t, logs)
+}
+
+func TestWorkflowTransitions_InvalidUUID(t *testing.T) {
+	svc, _ := newTestService()
+	ctx := context.Background()
+
+	_, err := svc.CreateWorkflowTransition(ctx, CreateWorkflowTransitionRequest{
+		FromStatusID: "bad",
+		ToStatusID:   uuid.New().String(),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "from_status_id")
+
+	_, err = svc.CreateWorkflowTransition(ctx, CreateWorkflowTransitionRequest{
+		FromStatusID: uuid.New().String(),
+		ToStatusID:   "bad",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "to_status_id")
+}
+
+func TestCreateIssueFromPromotion(t *testing.T) {
+	svc, _ := newTestService()
+	ctx := context.Background()
+	projectID := uuid.New()
+	userID := uuid.New()
+	desc := map[string]interface{}{"type": "doc", "children": []interface{}{}}
+
+	key, id, err := svc.CreateIssueFromPromotion(ctx, projectID, userID, "Promoted", "story", desc)
+	require.NoError(t, err)
+	assert.Equal(t, "TEST-1", key)
+	assert.NotEmpty(t, id)
+}
+
 func TestCustomFieldValues(t *testing.T) {
 	svc, _ := newTestService()
 	ctx := context.Background()

@@ -64,10 +64,7 @@ export interface GitLabCreateBranchRequest {
 // ---------------------------------------------------------------------------
 
 /** Подключить GitLab-репозиторий к проекту. */
-export function connectGitLab(
-	projectId: string,
-	data: ConnectGitLabRequest,
-) {
+export function connectGitLab(projectId: string, data: ConnectGitLabRequest) {
 	return api.post<GitLabIntegrationResponse>(
 		`/projects/${projectId}/gitlab/integrations`,
 		data,

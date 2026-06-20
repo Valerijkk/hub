@@ -38,9 +38,7 @@ export function UnreadMessagesWidget({ data }: Props) {
 			</div>
 			<div className="text-center">
 				<span className="text-3xl font-bold tabular-nums">{count}</span>
-				<p className="text-sm text-t2 mt-0.5">
-					непрочитанных сообщений
-				</p>
+				<p className="text-sm text-t2 mt-0.5">непрочитанных сообщений</p>
 			</div>
 		</div>
 	);

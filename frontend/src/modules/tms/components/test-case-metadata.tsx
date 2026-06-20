@@ -182,6 +182,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 								</div>
 								<div className="text-xs font-medium mt-0.5 flex items-center gap-1">
 									<svg
+										aria-hidden="true"
 										className="h-3 w-3 text-t2"
 										fill="none"
 										viewBox="0 0 24 24"
@@ -241,7 +242,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 									key={l.id}
 									variant="secondary"
 									className="text-[10px] font-medium"
-									style={{ backgroundColor: l.color + "20", color: l.color }}
+									style={{ backgroundColor: `${l.color}20`, color: l.color }}
 								>
 									{l.name}
 								</Badge>

@@ -2,12 +2,12 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"sync"
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/systemsetting"
-	"github.com/valerii/hub/backend/ent/user"
 )
 
 // RegistrationModeService отвечает за системную настройку режима регистрации
@@ -23,6 +23,8 @@ import (
 // в advisory lock не нуждается: транзакции уже сериализуемы по умолчанию.
 type RegistrationModeService struct {
 	db *ent.Client
+	// sqlDB enables pg_advisory_xact_lock for multi-instance first-admin (SEC-06).
+	sqlDB *sql.DB
 
 	// firstUserMu сериализует CreateFirstOrMemberUser: count → Create
 	// должна выполняться атомарно, иначе два конкурентных регистратора
@@ -31,8 +33,9 @@ type RegistrationModeService struct {
 }
 
 // NewRegistrationModeService создаёт RegistrationModeService.
-func NewRegistrationModeService(db *ent.Client) *RegistrationModeService {
-	return &RegistrationModeService{db: db}
+// sqlDB may be nil in unit tests (sqlite); production passes shared *sql.DB from main.
+func NewRegistrationModeService(db *ent.Client, sqlDB *sql.DB) *RegistrationModeService {
+	return &RegistrationModeService{db: db, sqlDB: sqlDB}
 }
 
 // GetRegistrationMode читает системную настройку "registration_mode". По умолчанию "open".
@@ -84,45 +87,6 @@ func (s *RegistrationModeService) IsFirstUser(ctx context.Context) bool {
 		return false
 	}
 	return count == 0
-}
-
-// CreateFirstOrMemberUser атомарно выбирает SystemRole и создаёт пользователя
-// внутри `firstUserMu`. Это закрывает SEC-06 race:
-//
-//  1. acquire firstUserMu (process-level barrier)
-//  2. count users -> если 0, role = Admin; иначе Member
-//  3. apply(builder, role).Save(ctx)
-//  4. release mu
-//
-// `apply` получает builder + выбранную роль; вызывающая сторона добавляет
-// все остальные поля (email, telegram_id, name и т.д.). Это позволяет
-// обеим веткам (email и telegram) разделять одну и ту же атомарную секцию.
-//
-// Для multi-instance Postgres-кластера здесь следует добавить
-// `pg_advisory_xact_lock(<const>)` в раздельной транзакции (raw *sql.DB)
-// перед count'ом — текущая реализация защищает только single-instance.
-func (s *RegistrationModeService) CreateFirstOrMemberUser(
-	ctx context.Context,
-	apply func(b *ent.UserCreate, role user.SystemRole) *ent.UserCreate,
-) (*ent.User, error) {
-	s.firstUserMu.Lock()
-	defer s.firstUserMu.Unlock()
-
-	count, err := s.db.User.Query().Count(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("count users: %w", err)
-	}
-	role := user.SystemRoleMember
-	if count == 0 {
-		role = user.SystemRoleAdmin
-	}
-
-	builder := apply(s.db.User.Create(), role)
-	u, err := builder.Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("create user: %w", err)
-	}
-	return u, nil
 }
 
 // upsertSystemSetting реализует идемпотентный upsert для SystemSetting,

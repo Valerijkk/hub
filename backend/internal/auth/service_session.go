@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +18,7 @@ import (
 	"github.com/valerii/hub/backend/ent/session"
 	"github.com/valerii/hub/backend/ent/user"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // SessionService отвечает за JWT, refresh-токены и жизненный цикл сессий (SC-14-1).
@@ -47,7 +50,18 @@ type refreshPayload struct {
 	Device    string `json:"device"`
 }
 
-func refreshKey(token string) string { return "refresh:" + token }
+func refreshRedisKey(plaintext string) string {
+	return "refresh:" + hashRefreshToken(plaintext)
+}
+
+func refreshRedisKeyStored(storedHash string) string {
+	return "refresh:" + storedHash
+}
+
+func hashRefreshToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
 
 // generateAccessToken генерирует JWT access-токен.
 func (s *SessionService) generateAccessToken(userID, sessionID uuid.UUID) (string, error) {
@@ -88,12 +102,12 @@ func (s *SessionService) storeRefreshToken(ctx context.Context, token string, pa
 	if err != nil {
 		return err
 	}
-	return s.redis.Set(ctx, refreshKey(token), data, s.refreshTTL).Err()
+	return s.redis.Set(ctx, refreshRedisKey(token), data, s.refreshTTL).Err()
 }
 
 // getRefreshPayload извлекает данные refresh-токена из Redis.
 func (s *SessionService) getRefreshPayload(ctx context.Context, token string) (*refreshPayload, error) {
-	data, err := s.redis.Get(ctx, refreshKey(token)).Bytes()
+	data, err := s.redis.Get(ctx, refreshRedisKey(token)).Bytes()
 	if errors.Is(err, redis.Nil) {
 		return nil, fmt.Errorf("refresh token not found")
 	}
@@ -109,7 +123,7 @@ func (s *SessionService) getRefreshPayload(ctx context.Context, token string) (*
 
 // deleteRefreshToken удаляет refresh-токен из Redis.
 func (s *SessionService) deleteRefreshToken(ctx context.Context, token string) {
-	s.redis.Del(ctx, refreshKey(token))
+	s.redis.Del(ctx, refreshRedisKey(token))
 }
 
 // invalidateUserSessions удаляет все активные сессии пользователя (DB + Redis).
@@ -138,7 +152,7 @@ func (s *SessionService) invalidateUserSessions(ctx context.Context, userID uuid
 	}
 	pipe := s.redis.Pipeline()
 	for _, t := range tokens {
-		pipe.Del(ctx, refreshKey(t))
+		pipe.Del(ctx, refreshRedisKeyStored(t))
 	}
 	if _, err := pipe.Exec(ctx); err != nil {
 		// Не блокируем создание новой сессии: запись в БД уже удалена,
@@ -160,13 +174,14 @@ func (s *SessionService) CreateSession(ctx context.Context, userID uuid.UUID, de
 	if err != nil {
 		return nil, fmt.Errorf("create session: generate access token: %w", err)
 	}
+	tokenHash := hashRefreshToken(refreshToken)
 	if err := s.storeRefreshToken(ctx, refreshToken, refreshPayload{
 		UserID: userID.String(), SessionID: sessionID.String(), Device: device,
 	}); err != nil {
 		return nil, fmt.Errorf("create session: store refresh: %w", err)
 	}
 	if _, err = s.db.Session.Create().
-		SetID(sessionID).SetRefreshToken(refreshToken).SetDevice(device).SetIPAddress(ip).
+		SetID(sessionID).SetRefreshToken(tokenHash).SetDevice(device).SetIPAddress(ip).
 		SetExpiresAt(time.Now().UTC().Add(s.refreshTTL)).SetUserID(userID).Save(ctx); err != nil {
 		s.deleteRefreshToken(ctx, refreshToken)
 		return nil, fmt.Errorf("create session: persist: %w", err)
@@ -177,6 +192,9 @@ func (s *SessionService) CreateSession(ctx context.Context, userID uuid.UUID, de
 
 // publishSessionCreated публикует событие создания сессии в NATS (fire-and-forget).
 func (s *SessionService) publishSessionCreated(userID, sessionID, device, ip string) {
+	if s.nats == nil {
+		return
+	}
 	data, err := json.Marshal(SessionCreatedEvent{UserID: userID, SessionID: sessionID, Device: device, IPAddress: ip})
 	if err != nil {
 		slog.Error("marshal session created event", "error", err)
@@ -190,32 +208,35 @@ func (s *SessionService) publishSessionCreated(userID, sessionID, device, ip str
 // RefreshToken валидирует refresh-токен, выполняет ротацию и возвращает новую пару токенов.
 // ME-02: порядок (1) gen → (2) store new → (3) update session → (4) delete old, для устранения TOCTOU.
 func (s *SessionService) RefreshToken(ctx context.Context, oldRefreshToken string) (*TokenPairResponse, error) {
-	payload, err := s.getRefreshPayload(ctx, oldRefreshToken)
-	if err != nil {
-		return nil, fmt.Errorf("refresh token: %w", err)
-	}
-	userID, err := uuid.Parse(payload.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("refresh token: invalid user id: %w", err)
-	}
-	sessionID, err := uuid.Parse(payload.SessionID)
-	if err != nil {
-		return nil, fmt.Errorf("refresh token: invalid session id: %w", err)
-	}
-	newRefresh := uuid.New().String()
-	accessToken, err := s.generateAccessToken(userID, sessionID)
-	if err != nil {
-		return nil, fmt.Errorf("refresh token: generate access: %w", err)
-	}
-	if err := s.storeRefreshToken(ctx, newRefresh, *payload); err != nil {
-		return nil, fmt.Errorf("refresh token: store new: %w", err)
-	}
-	if _, saveErr := s.db.Session.UpdateOneID(sessionID).
-		SetRefreshToken(newRefresh).SetLastActiveAt(time.Now().UTC()).Save(ctx); saveErr != nil {
-		return nil, fmt.Errorf("refresh token: update session: %w", saveErr)
-	}
-	s.deleteRefreshToken(ctx, oldRefreshToken)
-	return &TokenPairResponse{AccessToken: accessToken, RefreshToken: newRefresh, ExpiresIn: int64(s.accessTTL.Seconds())}, nil
+	return observability.Timed(ctx, "auth.Refresh", func(ctx context.Context) (*TokenPairResponse, error) {
+		payload, err := s.getRefreshPayload(ctx, oldRefreshToken)
+		if err != nil {
+			return nil, fmt.Errorf("refresh token: %w", err)
+		}
+		userID, err := uuid.Parse(payload.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("refresh token: invalid user id: %w", err)
+		}
+		sessionID, err := uuid.Parse(payload.SessionID)
+		if err != nil {
+			return nil, fmt.Errorf("refresh token: invalid session id: %w", err)
+		}
+		newRefresh := uuid.New().String()
+		newHash := hashRefreshToken(newRefresh)
+		accessToken, err := s.generateAccessToken(userID, sessionID)
+		if err != nil {
+			return nil, fmt.Errorf("refresh token: generate access: %w", err)
+		}
+		if err := s.storeRefreshToken(ctx, newRefresh, *payload); err != nil {
+			return nil, fmt.Errorf("refresh token: store new: %w", err)
+		}
+		if _, saveErr := s.db.Session.UpdateOneID(sessionID).
+			SetRefreshToken(newHash).SetLastActiveAt(time.Now().UTC()).Save(ctx); saveErr != nil {
+			return nil, fmt.Errorf("refresh token: update session: %w", saveErr)
+		}
+		s.deleteRefreshToken(ctx, oldRefreshToken)
+		return &TokenPairResponse{AccessToken: accessToken, RefreshToken: newRefresh, ExpiresIn: int64(s.accessTTL.Seconds())}, nil
+	})
 }
 
 // Logout удаляет refresh-токен из Redis и сессию из базы данных.
@@ -227,7 +248,7 @@ func (s *SessionService) Logout(ctx context.Context, sessionID uuid.UUID) error 
 		}
 		return fmt.Errorf("logout: find session: %w", err)
 	}
-	s.deleteRefreshToken(ctx, sess.RefreshToken)
+	s.redis.Del(ctx, refreshRedisKeyStored(sess.RefreshToken))
 	return s.db.Session.DeleteOneID(sessionID).Exec(ctx)
 }
 
@@ -250,6 +271,6 @@ func (s *SessionService) RevokeSession(ctx context.Context, userID, sessionID uu
 		}
 		return fmt.Errorf("revoke session: %w", err)
 	}
-	s.deleteRefreshToken(ctx, sess.RefreshToken)
+	s.redis.Del(ctx, refreshRedisKeyStored(sess.RefreshToken))
 	return s.db.Session.DeleteOneID(sessionID).Exec(ctx)
 }

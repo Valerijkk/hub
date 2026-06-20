@@ -1,0 +1,56 @@
+---
+description: После изменений — регрессия + верификатор + docs sync. Без green gate — не handoff.
+alwaysApply: true
+---
+
+# Hub — Regression & Verification Gate
+
+## Обязательный цикл (каждая сессия с кодом)
+
+```
+1. Изменил код
+2. Минимальная регрессия (затронутый модуль)
+3. Полный /qa-gate перед handoff
+4. Docs sync (.cursor/rules/55-docs-sync.mdc)
+5. *-ver или verifier для критичных изменений
+6. Обновить .planning/STATE.md
+```
+
+## Минимальная регрессия по слою
+
+| Слой | Команда |
+|------|---------|
+| Backend | `cd backend && go build -tags release ./... && go test -race -count=1 -timeout=600s ./...` |
+| Frontend | `cd frontend && npx tsc --noEmit && npx vitest run` |
+| Infra | Проверить diff в `ci.yml`, `deploy.yml`, `docker-compose.prod.yml` |
+
+Slash: **`/qa-gate`** — останавливается на первой FAIL.
+
+## Когда запускать верификаторов
+
+| Изменение | Верификатор |
+|-----------|-------------|
+| Backend handler/service | `be-ver` |
+| Frontend UI/UX | `fe-ver` |
+| Тесты / coverage | `qa-ver` |
+| Wave / phase complete | `verifier` |
+| Security / auth / deploy | `security-auditor` + `gsd-secure-phase` |
+| Pre-merge diff | `code-reviewer` |
+
+**Правило:** `verified: true` только при green regression + приложенный лог.
+
+## Аудит-цикл (до «production-ready UX»)
+
+1. **Re-verify** findings из `.planning/AUDIT-SCORECARD.md` по коду
+2. **Regression** full gate
+3. **Verifiers** parallel для затронутых слоёв
+4. **Fix** CRITICAL/HIGH из аудита
+5. **Docs** STATE + IMPROVEMENT plan
+6. Повторять пока CRITICAL = 0 и product score ≥ 75
+
+## Связанные правила
+
+- `.cursor/rules/55-docs-sync.mdc` — документация
+- `.cursor/rules/45-artifacts-cleanup.mdc` — coverage dumps
+- `.cursor/skills/test-triage/SKILL.md` — FAIL triage
+- `.cursor/skills/qa-gate/SKILL.md` — полный gate

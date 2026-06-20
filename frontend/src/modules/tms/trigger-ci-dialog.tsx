@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import { listGitLabIntegrations, triggerPipeline } from "@/api/gitlab";
 import { listTestCases, type TestCaseResponse } from "@/api/tms";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,9 @@ interface Props {
  * Позволяет выбрать интеграцию, ветку, отметить кейсы и запустить пайплайн.
  */
 export function TriggerCIPanel({ projectId }: Props) {
-	const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(new Set());
+	const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(
+		new Set(),
+	);
 	const [branch, setBranch] = useState("main");
 	const [search, setSearch] = useState("");
 
@@ -79,11 +82,7 @@ export function TriggerCIPanel({ projectId }: Props) {
 			});
 			setSelectedCaseIds(new Set());
 		},
-		onError: (err) => {
-			toast.error(
-				err instanceof Error ? err.message : "Не удалось запустить пайплайн",
-			);
-		},
+		onError: (err) => toastApiError(err, "Не удалось запустить пайплайн"),
 	});
 
 	// Тогглим кейс
@@ -105,16 +104,15 @@ export function TriggerCIPanel({ projectId }: Props) {
 		}
 	}, [filteredCases, selectedCaseIds.size]);
 
-	const noIntegrations = !intLoading && (!integrations || integrations.length === 0);
+	const noIntegrations =
+		!intLoading && (!integrations || integrations.length === 0);
 
 	return (
 		<div className="space-y-4 rounded-lg border p-4">
 			<div className="flex items-center justify-between">
 				<h3 className="text-base font-semibold">Запуск тестов в CI</h3>
 				{selectedCaseIds.size > 0 && (
-					<Badge variant="secondary">
-						{selectedCaseIds.size} выбрано
-					</Badge>
+					<Badge variant="secondary">{selectedCaseIds.size} выбрано</Badge>
 				)}
 			</div>
 
@@ -145,7 +143,11 @@ export function TriggerCIPanel({ projectId }: Props) {
 								</select>
 							</div>
 						)}
-						<div className={integrations && integrations.length > 1 ? "w-48" : "w-64"}>
+						<div
+							className={
+								integrations && integrations.length > 1 ? "w-48" : "w-64"
+							}
+						>
 							<label className="mb-1 block text-xs font-medium text-t2">
 								Ветка
 							</label>
@@ -173,7 +175,8 @@ export function TriggerCIPanel({ projectId }: Props) {
 							onClick={toggleAll}
 							className="shrink-0 rounded-lg border border-input px-3 py-2 text-xs font-medium hover:bg-accent transition-colors"
 						>
-							{selectedCaseIds.size === filteredCases.length && filteredCases.length > 0
+							{selectedCaseIds.size === filteredCases.length &&
+							filteredCases.length > 0
 								? "Снять все"
 								: "Выбрать все"}
 						</button>
@@ -206,7 +209,10 @@ export function TriggerCIPanel({ projectId }: Props) {
 										onChange={() => toggleCase(tc.id)}
 										className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/50"
 									/>
-									<Badge variant="outline" className="shrink-0 text-xs font-mono">
+									<Badge
+										variant="outline"
+										className="shrink-0 text-xs font-mono"
+									>
 										{tc.case_key}
 									</Badge>
 									<span className="text-sm truncate">{tc.title}</span>
@@ -214,8 +220,10 @@ export function TriggerCIPanel({ projectId }: Props) {
 										variant="secondary"
 										className={cn(
 											"ml-auto shrink-0 text-[10px]",
-											tc.priority === "critical" && "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-											tc.priority === "high" && "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+											tc.priority === "critical" &&
+												"bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+											tc.priority === "high" &&
+												"bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
 										)}
 									>
 										{tc.priority}

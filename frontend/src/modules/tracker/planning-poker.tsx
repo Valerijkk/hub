@@ -81,7 +81,7 @@ export function PlanningPoker({
 		const numericVotes = Object.values(votes)
 			.filter((v) => v !== "?")
 			.map(Number)
-			.filter((n) => !isNaN(n));
+			.filter((n) => !Number.isNaN(n));
 
 		if (numericVotes.length === 0) return null;
 
@@ -101,7 +101,9 @@ export function PlanningPoker({
 	if (!pokerSession) {
 		return (
 			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
-				<p className="text-[13px] text-t2 text-center py-8">Сессия не найдена или истекла</p>
+				<p className="text-[13px] text-t2 text-center py-8">
+					Сессия не найдена или истекла
+				</p>
 			</div>
 		);
 	}
@@ -113,7 +115,9 @@ export function PlanningPoker({
 
 	return (
 		<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
-			<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-4">Planning Poker</h3>
+			<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-4">
+				Planning Poker
+			</h3>
 			<div className="space-y-6">
 				{/* Карточки для голосования */}
 				{!pokerSession.revealed && (
@@ -174,16 +178,16 @@ export function PlanningPoker({
 							{stats && (
 								<div className="flex gap-4 rounded-[var(--r3)] bg-input border border-b1 p-3">
 									<div>
-										<span className="text-[13px] text-t2">
-											Среднее:{" "}
+										<span className="text-[13px] text-t2">Среднее: </span>
+										<span className="text-[14px] font-bold text-t1">
+											{stats.avg}
 										</span>
-										<span className="text-[14px] font-bold text-t1">{stats.avg}</span>
 									</div>
 									<div>
-										<span className="text-[13px] text-t2">
-											Медиана:{" "}
+										<span className="text-[13px] text-t2">Медиана: </span>
+										<span className="text-[14px] font-bold text-t1">
+											{stats.median}
 										</span>
-										<span className="text-[14px] font-bold text-t1">{stats.median}</span>
 									</div>
 								</div>
 							)}

@@ -1,6 +1,7 @@
 import { Loader2, Phone } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import type { CallResponse } from "@/api/calls";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,9 +66,7 @@ export function CallButton({ channelId }: CallButtonProps) {
 				toast.error(error);
 			}
 		} catch (err) {
-			const msg =
-				err instanceof Error ? err.message : "Не удалось выполнить звонок";
-			toast.error(msg);
+			toastApiError(err, "Не удалось выполнить звонок");
 		}
 	}, [existingCall, joinCall, startCall, channelId]);
 

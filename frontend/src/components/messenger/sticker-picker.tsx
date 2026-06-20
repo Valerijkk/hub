@@ -87,7 +87,11 @@ export const STICKER_PACKS: StickerPack[] = [
 			{ id: "wave", emoji: "\u{1F44B}", label: "Привет" },
 			{ id: "pray", emoji: "\u{1F64F}", label: "Спасибо" },
 			{ id: "heart", emoji: "\u2764\uFE0F", label: "Сердце" },
-			{ id: "heartfire", emoji: "\u2764\uFE0F\u200D\u{1F525}", label: "Горячее сердце" },
+			{
+				id: "heartfire",
+				emoji: "\u2764\uFE0F\u200D\u{1F525}",
+				label: "Горячее сердце",
+			},
 			{ id: "100", emoji: "\u{1F4AF}", label: "Сотка" },
 			{ id: "ok", emoji: "\u{1F44C}", label: "Ок" },
 			{ id: "salute", emoji: "\u{1FAE1}", label: "Салют" },
@@ -133,7 +137,9 @@ export interface StickerData {
 // ---------------------------------------------------------------------------
 
 /** Проверяет, является ли content_json стикером. */
-export function isStickerMessage(contentJson?: Record<string, unknown> | null): boolean {
+export function isStickerMessage(
+	contentJson?: Record<string, unknown> | null,
+): boolean {
 	if (!contentJson) return false;
 	const children = contentJson.children as unknown[];
 	if (!Array.isArray(children) || children.length !== 1) return false;
@@ -142,7 +148,9 @@ export function isStickerMessage(contentJson?: Record<string, unknown> | null): 
 }
 
 /** Извлекает данные стикера из content_json. */
-export function extractStickerData(contentJson: Record<string, unknown>): StickerData | null {
+export function extractStickerData(
+	contentJson: Record<string, unknown>,
+): StickerData | null {
 	const children = contentJson.children as unknown[];
 	if (!Array.isArray(children) || children.length !== 1) return null;
 	const child = children[0] as Record<string, unknown>;
@@ -156,7 +164,9 @@ export function extractStickerData(contentJson: Record<string, unknown>): Sticke
 }
 
 /** Создаёт content_json для стикер-сообщения. */
-export function buildStickerContentJson(sticker: StickerData): Record<string, unknown> {
+export function buildStickerContentJson(
+	sticker: StickerData,
+): Record<string, unknown> {
 	return {
 		type: "doc",
 		children: [
@@ -190,7 +200,8 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
 	const [activePackId, setActivePackId] = useState(STICKER_PACKS[0]!.id);
 
 	// biome-ignore lint/style/noNonNullAssertion: STICKER_PACKS is a non-empty const array literal
-	const activePack = STICKER_PACKS.find((p) => p.id === activePackId) ?? STICKER_PACKS[0]!;
+	const activePack =
+		STICKER_PACKS.find((p) => p.id === activePackId) ?? STICKER_PACKS[0]!;
 
 	const handleSelect = useCallback(
 		(pack: StickerPack, sticker: Sticker) => {
@@ -214,6 +225,7 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
 					title="Стикеры"
 				>
 					<svg
+						aria-hidden="true"
 						className="h-5 w-5"
 						fill="none"
 						viewBox="0 0 24 24"

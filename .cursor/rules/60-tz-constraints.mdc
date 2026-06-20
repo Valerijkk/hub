@@ -1,0 +1,72 @@
+---
+description: Hard constraints from Hub TZ — what is mandatory and what is strictly forbidden.
+alwaysApply: true
+---
+
+# Hub — Technical Spec Constraints
+
+## MANDATORY (нельзя убрать или изменить без явного согласования)
+
+### Authentication
+- Magic Link (email) + Telegram — единственные методы входа (без паролей, без SSO)
+- JWT access token: 15 минут TTL
+- Refresh token: Redis, 30 дней TTL, instant revocation
+- Rate limiting auth: 3 попытки / 10 минут
+
+### Data Layer
+- UTC in DB always — фронтенд конвертирует в локальный TZ пользователя
+- Optimistic locking: `version` field в каждой изменяемой Ent схеме
+- UUID v4 для всех primary keys — строки запрещены
+- Soft delete через корзину (30 дней) — hard delete только по явному запросу Admin/GDPR
+
+### API
+- Ответ на ошибки: `{"error": "message", "request_id": "uuid"}`
+- Пагинация: задачи — offset/limit страницами; чат — cursor (infinite scroll)
+- Rate limiting: API 100/сек, файлы 10/мин, сообщения 60/мин
+
+### Real-time
+- WebSocket через Fiber (fasthttp) — не менять на net/http или gorilla
+- NATS JetStream — единственный pub/sub (Redis pub/sub не использовать)
+
+### File Storage
+- SeaweedFS (S3-compatible) через `aws-sdk-go-v2` — не minio-go
+- Presigned URLs для прямой загрузки (не через backend buffer)
+- Max file: 25 MB через Fiber BodyLimit (но presigned PUT без ограничения — баг NF-09)
+
+### Frontend
+- TanStack Router — единственный роутер
+- Tailwind CSS 4 + Shadcn/ui — не заменять на другой UI framework
+- Shadcn компоненты: только `className` изменения, Radix поведение не трогать
+- No `!important` в CSS (было 56, Phase 8 очистил — не добавлять новые)
+
+### Infrastructure
+- Docker Compose для dev, K3s для prod — не менять без решения devops
+- Caddy как reverse proxy — не nginx
+- GitHub Actions CI — студенческий пакет ~3000 мин/мес (экономить!)
+
+## FORBIDDEN (строго запрещено)
+
+### Features Out of Scope
+- ❌ Видеозвонки с вебкамерами
+- ❌ Мобильные нативные приложения (App Store/Play)
+- ❌ Email уведомления (кроме Magic Link через Resend)
+- ❌ Биллинг/подписки/SaaS
+- ❌ SSO/LDAP/OAuth провайдеры
+- ❌ Gantt-диаграммы
+- ❌ Multi-tenant (один инстанс = одна команда)
+
+### Code Patterns
+- ❌ `http.DefaultClient` для user-controlled URLs (SSRF)
+- ❌ `io.ReadAll` без `io.LimitReader` (memory DoS)
+- ❌ `!=` для сравнения секретов (timing attack) — использовать `subtle.ConstantTimeCompare`
+- ❌ `*ent.Client` в Service или Handler (нарушение layering)
+- ❌ `panic()` в production paths
+- ❌ Hardcoded credentials в любых конфигурационных файлах в репо
+- ❌ `DEV_MODE=true` в production CI/CD
+- ❌ `seaweedfs:latest` без pinned версии
+
+### Security Non-Negotiables
+- ❌ Webhook signature check: нельзя skip даже при отсутствии claim (SEC-02)
+- ❌ WS room subscription без membership/RBAC проверки (NF-02)
+- ❌ Search без user-scope фильтра (NF-03)
+- ❌ WebPush endpoint без `ValidateOutboundURL` (NF-07)

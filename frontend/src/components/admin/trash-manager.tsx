@@ -101,19 +101,13 @@ export function TrashManager() {
 					<tbody>
 						{loading ? (
 							<tr>
-								<td
-									colSpan={4}
-									className="px-3 py-8 text-center text-t2"
-								>
+								<td colSpan={4} className="px-3 py-8 text-center text-t2">
 									Загрузка...
 								</td>
 							</tr>
 						) : items.length === 0 ? (
 							<tr>
-								<td
-									colSpan={4}
-									className="px-3 py-8 text-center text-t2"
-								>
+								<td colSpan={4} className="px-3 py-8 text-center text-t2">
 									Корзина пуста
 								</td>
 							</tr>
@@ -127,9 +121,7 @@ export function TrashManager() {
 									<td className="px-3 py-2">
 										<span
 											className={`font-mono text-sm ${
-												item.days_remaining <= 7
-													? "text-red-600"
-													: "text-t2"
+												item.days_remaining <= 7 ? "text-red-600" : "text-t2"
 											}`}
 										>
 											{item.days_remaining}

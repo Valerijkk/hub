@@ -83,7 +83,9 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
-				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">Вебхуки</h2>
+				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">
+					Вебхуки
+				</h2>
 				<button
 					type="button"
 					onClick={() => setShowCreate(true)}
@@ -106,7 +108,10 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 					<div className="mb-3 space-y-1">
 						<p className="text-[13px] font-semibold text-t2 mb-1">События:</p>
 						{AVAILABLE_EVENTS.map((event) => (
-							<label key={event} className="flex items-center gap-2 text-[13px] text-t2">
+							<label
+								key={event}
+								className="flex items-center gap-2 text-[13px] text-t2"
+							>
 								<input
 									type="checkbox"
 									checked={selectedEvents.includes(event)}
@@ -149,9 +154,7 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 							<div className="flex items-center justify-between">
 								<div>
 									<p className="text-[14px] font-semibold">{ep.url}</p>
-									<p className="text-[12px] text-t3">
-										{ep.events.join(", ")}
-									</p>
+									<p className="text-[12px] text-t3">{ep.events.join(", ")}</p>
 								</div>
 								<div className="flex items-center gap-3">
 									<span
@@ -185,22 +188,32 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 
 							{showDeliveriesFor === ep.id && (
 								<div className="mt-3 border-t border-b1 pt-3">
-									<h4 className="mb-2 text-[13px] font-semibold">История доставок</h4>
+									<h4 className="mb-2 text-[13px] font-semibold">
+										История доставок
+									</h4>
 									{deliveries.length === 0 ? (
 										<p className="text-[13px] text-t3">Нет доставок</p>
 									) : (
 										<table className="w-full border-collapse">
 											<thead>
 												<tr className="text-left">
-													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">Событие</th>
-													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">Статус</th>
-													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">Дата</th>
+													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">
+														Событие
+													</th>
+													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">
+														Статус
+													</th>
+													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">
+														Дата
+													</th>
 												</tr>
 											</thead>
 											<tbody>
 												{deliveries.map((d) => (
 													<tr key={d.id} className="hover:bg-[var(--hover)]">
-														<td className="px-3 py-[10px] border-b border-b1 text-[13px]">{d.event_type}</td>
+														<td className="px-3 py-[10px] border-b border-b1 text-[13px]">
+															{d.event_type}
+														</td>
 														<td className="px-3 py-[10px] border-b border-b1">
 															<span
 																className={`text-[12px] font-bold ${

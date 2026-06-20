@@ -56,7 +56,9 @@ export function APIKeysPage() {
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
-				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">API-ключи</h2>
+				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">
+					API-ключи
+				</h2>
 				<button
 					type="button"
 					onClick={() => setShowCreate(true)}
@@ -130,19 +132,33 @@ export function APIKeysPage() {
 				<table className="w-full border-collapse">
 					<thead>
 						<tr>
-							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Имя</th>
-							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Префикс</th>
-							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Использование</th>
-							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Создан</th>
-							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Действия</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+								Имя
+							</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+								Префикс
+							</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+								Использование
+							</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+								Создан
+							</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+								Действия
+							</th>
 						</tr>
 					</thead>
 					<tbody>
 						{keys.map((key) => (
 							<tr key={key.id} className="hover:bg-[var(--hover)]">
-								<td className="px-4 py-[14px] border-b border-b1 text-[13px]">{key.name}</td>
 								<td className="px-4 py-[14px] border-b border-b1 text-[13px]">
-									<code className="font-mono text-[12px] text-t4">{key.prefix}...</code>
+									{key.name}
+								</td>
+								<td className="px-4 py-[14px] border-b border-b1 text-[13px]">
+									<code className="font-mono text-[12px] text-t4">
+										{key.prefix}...
+									</code>
 								</td>
 								<td className="px-4 py-[14px] border-b border-b1 text-[12px] text-t3">
 									{key.last_used_at

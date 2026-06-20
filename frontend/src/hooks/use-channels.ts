@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 import type { Channel } from "@/api/messenger";
 import { getChannels } from "@/api/messenger";
+import { useWsEventListener } from "@/hooks/use-websocket";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { useWsStore } from "@/stores/ws-store";
-import { useWsEventListener } from "@/hooks/use-websocket";
 
 /**
  * useChannels загружает список каналов пользователя через TanStack Query
@@ -61,10 +61,15 @@ export function useChannels() {
 						// Only pass safe string fields to avoid objects in render
 						const partial: Partial<Channel> = {};
 						if (typeof data.name === "string") partial.name = data.name;
-						if (typeof data.description === "string") partial.description = data.description;
-						if (typeof data.channel_type === "string") partial.channel_type = data.channel_type as Channel["channel_type"];
-						if (typeof data.is_readonly === "boolean") partial.is_readonly = data.is_readonly;
-						if (typeof data.updated_at === "string") partial.updated_at = data.updated_at;
+						if (typeof data.description === "string")
+							partial.description = data.description;
+						if (typeof data.channel_type === "string")
+							partial.channel_type =
+								data.channel_type as Channel["channel_type"];
+						if (typeof data.is_readonly === "boolean")
+							partial.is_readonly = data.is_readonly;
+						if (typeof data.updated_at === "string")
+							partial.updated_at = data.updated_at;
 						updateChannel(data.id, partial);
 					}
 					break;

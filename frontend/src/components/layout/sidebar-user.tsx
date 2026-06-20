@@ -19,7 +19,8 @@ export function SidebarUserProfile({
 }) {
 	const user = useAuthStore((s) => s.user);
 
-	const displayName = user?.display_name || user?.name || user?.email || "Пользователь";
+	const displayName =
+		user?.display_name || user?.name || user?.email || "Пользователь";
 	const initials = displayName.charAt(0).toUpperCase();
 
 	const avatarBlock = (
@@ -53,9 +54,7 @@ export function SidebarUserProfile({
 							{avatarBlock}
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="right">
-						{displayName}
-					</TooltipContent>
+					<TooltipContent side="right">{displayName}</TooltipContent>
 				</Tooltip>
 			</div>
 		);
@@ -72,8 +71,8 @@ export function SidebarUserProfile({
 					<div className="text-[10px] font-semibold text-t3">
 						<span className="bg-[rgba(255,255,255,.04)] px-2 py-[2px] rounded-[var(--pill)]">
 							{user?.position || "Участник"}
-						</span>
-						{" "}<span className="text-emerald-400">Онлайн</span>
+						</span>{" "}
+						<span className="text-emerald-400">Онлайн</span>
 					</div>
 				</div>
 			</div>

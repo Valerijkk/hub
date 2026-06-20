@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Component, useEffect, type ErrorInfo, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode, useEffect } from "react";
 import { ChatView } from "@/components/messenger/chat-view";
 import { useMessengerStore } from "@/stores/messenger-store";
 
@@ -33,6 +33,7 @@ class ChatErrorBoundary extends Component<
 					<div className="text-center max-w-sm">
 						<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
 							<svg
+								aria-hidden="true"
 								className="h-8 w-8 text-red-500"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -46,12 +47,8 @@ class ChatErrorBoundary extends Component<
 								/>
 							</svg>
 						</div>
-						<h3 className="text-lg font-semibold mb-2">
-							Ошибка загрузки чата
-						</h3>
-						<p className="text-sm text-t2 mb-4">
-							{this.state.error.message}
-						</p>
+						<h3 className="text-lg font-semibold mb-2">Ошибка загрузки чата</h3>
+						<p className="text-sm text-t2 mb-4">{this.state.error.message}</p>
 						<button
 							type="button"
 							className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"

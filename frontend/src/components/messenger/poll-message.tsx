@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
 import { BarChart3, Check, Lock } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import type { Poll } from "@/api/messenger";
 import { closePoll, getPollResults, votePoll } from "@/api/messenger";
 import { cn } from "@/lib/utils";
@@ -192,7 +192,8 @@ export function PollMessage({ pollId }: PollMessageProps) {
 								"hover:border-primary/50 hover:bg-primary/5",
 								"disabled:opacity-60 disabled:cursor-not-allowed",
 								option.voted && "border-primary/50 bg-primary/5",
-								isSelected && "border-primary bg-primary/10 ring-1 ring-primary/30",
+								isSelected &&
+									"border-primary bg-primary/10 ring-1 ring-primary/30",
 							)}
 						>
 							{/* Прогресс-бар (фон) */}
@@ -237,18 +238,21 @@ export function PollMessage({ pollId }: PollMessageProps) {
 			</div>
 
 			{/* Кнопка подтверждения (multi-choice) */}
-			{poll.is_multi_choice && !poll.is_closed && !hasVoted && selected.size > 0 && (
-				<div className="px-4 pb-3">
-					<button
-						type="button"
-						onClick={() => void handleSubmitVote()}
-						disabled={voting}
-						className="w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-					>
-						{voting ? "Голосование..." : "Проголосовать"}
-					</button>
-				</div>
-			)}
+			{poll.is_multi_choice &&
+				!poll.is_closed &&
+				!hasVoted &&
+				selected.size > 0 && (
+					<div className="px-4 pb-3">
+						<button
+							type="button"
+							onClick={() => void handleSubmitVote()}
+							disabled={voting}
+							className="w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+						>
+							{voting ? "Голосование..." : "Проголосовать"}
+						</button>
+					</div>
+				)}
 
 			{/* Подвал: всего голосов + кнопка закрытия */}
 			<div className="flex items-center justify-between px-4 py-2 border-t bg-raised/30">

@@ -21,7 +21,8 @@ function sanitizeUrl(url: unknown): string {
 function safeString(value: unknown): string {
 	if (value === null || value === undefined) return "";
 	if (typeof value === "string") return value;
-	if (typeof value === "number" || typeof value === "boolean") return String(value);
+	if (typeof value === "number" || typeof value === "boolean")
+		return String(value);
 	// Prevent rendering objects/arrays as React children
 	return "";
 }
@@ -70,10 +71,12 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 		return <>{el}</>;
 	}
 
-	const children =
-		(Array.isArray(node.children) ? node.children : []) as Record<string, unknown>[];
+	const children = (
+		Array.isArray(node.children) ? node.children : []
+	) as Record<string, unknown>[];
 	const renderedChildren = children.map((child) => {
-		if (!child || typeof child !== "object" || Array.isArray(child)) return null;
+		if (!child || typeof child !== "object" || Array.isArray(child))
+			return null;
 		// Plate nodes have no stable ids; use a JSON content hash so identical
 		// re-renders reuse the same key but order-changes still re-key correctly.
 		return (
@@ -159,7 +162,8 @@ export function RenderContent({
 		return (
 			<div className="prose prose-sm dark:prose-invert max-w-none">
 				{nodes.map((node) => {
-					if (!node || typeof node !== "object" || Array.isArray(node)) return null;
+					if (!node || typeof node !== "object" || Array.isArray(node))
+						return null;
 					return (
 						<RenderNode
 							key={nodeKey(node as Record<string, unknown>)}
@@ -182,7 +186,8 @@ export function RenderContent({
 	return (
 		<div className="prose prose-sm dark:prose-invert max-w-none">
 			{children.map((node) => {
-				if (!node || typeof node !== "object" || Array.isArray(node)) return null;
+				if (!node || typeof node !== "object" || Array.isArray(node))
+					return null;
 				return (
 					<RenderNode
 						key={nodeKey(node as Record<string, unknown>)}

@@ -180,8 +180,15 @@ export interface CallChatMessage {
  * @param text - текст сообщения
  * @param ephemeral - если true, сообщение не сохраняется в БД (только broadcast)
  */
-export function sendChatMessage(callId: string, text: string, ephemeral?: boolean) {
-	return api.post<CallChatMessage>(`/calls/${callId}/chat`, { text, ephemeral: !!ephemeral });
+export function sendChatMessage(
+	callId: string,
+	text: string,
+	ephemeral?: boolean,
+) {
+	return api.post<CallChatMessage>(`/calls/${callId}/chat`, {
+		text,
+		ephemeral: !!ephemeral,
+	});
 }
 
 /**

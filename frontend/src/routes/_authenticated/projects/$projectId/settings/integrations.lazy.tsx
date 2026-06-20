@@ -2,17 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	createIntegration as createGitHubIntegration,
 	deleteIntegration as deleteGitHubIntegration,
-	listIntegrations as listGitHubIntegrations,
 	type IntegrationResponse as GitHubIntegrationResponse,
+	listIntegrations as listGitHubIntegrations,
 } from "@/api/github";
 import {
 	connectGitLab,
 	disconnectGitLab,
-	listGitLabIntegrations,
 	type GitLabIntegrationResponse,
+	listGitLabIntegrations,
 } from "@/api/gitlab";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,9 +55,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 			setAccessToken("");
 			setWebhookSecret("");
 		},
-		onError: () => {
-			toast.error("Ошибка подключения GitHub-репозитория");
-		},
+		onError: (err) => toastApiError(err, "Ошибка подключения GitHub-репозитория"),
 	});
 
 	const deleteMutation = useMutation({
@@ -68,9 +67,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 				queryKey: ["github-integrations", projectId],
 			});
 		},
-		onError: () => {
-			toast.error("Ошибка удаления интеграции");
-		},
+		onError: (err) => toastApiError(err, "Ошибка удаления интеграции"),
 	});
 
 	return (
@@ -78,9 +75,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 			{/* Подключённые репозитории */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">
-						Подключённые репозитории
-					</CardTitle>
+					<CardTitle className="text-base">Подключённые репозитории</CardTitle>
 				</CardHeader>
 				<CardContent>
 					{isLoading && (
@@ -97,32 +92,28 @@ function GitHubSection({ projectId }: { projectId: string }) {
 
 					{integrations && integrations.length > 0 && (
 						<div className="space-y-2">
-							{integrations.map(
-								(ig: GitHubIntegrationResponse) => (
-									<div
-										key={ig.id}
-										className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 hover:border-b2 transition-colors duration-200"
-									>
-										<div className="flex items-center gap-2">
-											<GitHubIcon className="h-5 w-5 text-t2" />
-											<span className="text-sm font-medium">
-												{ig.repo_owner}/{ig.repo_name}
-											</span>
-										</div>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="text-red hover:text-red/80"
-											onClick={() =>
-												deleteMutation.mutate(ig.id)
-											}
-											disabled={deleteMutation.isPending}
-										>
-											Отключить
-										</Button>
+							{integrations.map((ig: GitHubIntegrationResponse) => (
+								<div
+									key={ig.id}
+									className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 hover:border-b2 transition-colors duration-200"
+								>
+									<div className="flex items-center gap-2">
+										<GitHubIcon className="h-5 w-5 text-t2" />
+										<span className="text-sm font-medium">
+											{ig.repo_owner}/{ig.repo_name}
+										</span>
 									</div>
-								),
-							)}
+									<Button
+										variant="ghost"
+										size="sm"
+										className="text-red hover:text-red/80"
+										onClick={() => deleteMutation.mutate(ig.id)}
+										disabled={deleteMutation.isPending}
+									>
+										Отключить
+									</Button>
+								</div>
+							))}
 						</div>
 					)}
 				</CardContent>
@@ -131,9 +122,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 			{/* Форма подключения */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">
-						Подключить репозиторий
-					</CardTitle>
+					<CardTitle className="text-base">Подключить репозиторий</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<div className="grid grid-cols-2 gap-4">
@@ -168,22 +157,63 @@ function GitHubSection({ projectId }: { projectId: string }) {
 							</summary>
 							<div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200 space-y-2">
 								<ol className="list-decimal pl-4 space-y-1">
-									<li>Перейдите в <strong>GitHub &rarr; Settings &rarr; Developer settings &rarr; Personal access tokens &rarr; Fine-grained tokens</strong></li>
-									<li>Нажмите <strong>Generate new token</strong></li>
-									<li>Укажите название (например, <code className="rounded bg-blue-100 px-1 dark:bg-blue-900">hub-integration</code>)</li>
-									<li>В <strong>Repository access</strong> выберите нужный репозиторий</li>
-									<li>В <strong>Permissions</strong> выдайте:
+									<li>
+										Перейдите в{" "}
+										<strong>
+											GitHub &rarr; Settings &rarr; Developer settings &rarr;
+											Personal access tokens &rarr; Fine-grained tokens
+										</strong>
+									</li>
+									<li>
+										Нажмите <strong>Generate new token</strong>
+									</li>
+									<li>
+										Укажите название (например,{" "}
+										<code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
+											hub-integration
+										</code>
+										)
+									</li>
+									<li>
+										В <strong>Repository access</strong> выберите нужный
+										репозиторий
+									</li>
+									<li>
+										В <strong>Permissions</strong> выдайте:
 										<ul className="list-disc pl-4 mt-1">
-											<li><strong>Contents</strong>: Read (для веток и коммитов)</li>
-											<li><strong>Pull requests</strong>: Read &amp; Write (для линковки PR)</li>
-											<li><strong>Webhooks</strong>: Read &amp; Write (для подписки на события)</li>
-											<li><strong>Actions</strong>: Read (для статуса пайплайнов)</li>
-											<li><strong>Metadata</strong>: Read (обязательно)</li>
+											<li>
+												<strong>Contents</strong>: Read (для веток и коммитов)
+											</li>
+											<li>
+												<strong>Pull requests</strong>: Read &amp; Write (для
+												линковки PR)
+											</li>
+											<li>
+												<strong>Webhooks</strong>: Read &amp; Write (для
+												подписки на события)
+											</li>
+											<li>
+												<strong>Actions</strong>: Read (для статуса пайплайнов)
+											</li>
+											<li>
+												<strong>Metadata</strong>: Read (обязательно)
+											</li>
 										</ul>
 									</li>
-									<li>Нажмите <strong>Generate token</strong> и скопируйте</li>
+									<li>
+										Нажмите <strong>Generate token</strong> и скопируйте
+									</li>
 								</ol>
-								<p className="mt-1 font-medium">Classic token (альтернатива): скоупы <code className="rounded bg-blue-100 px-1 dark:bg-blue-900">repo</code>, <code className="rounded bg-blue-100 px-1 dark:bg-blue-900">admin:repo_hook</code></p>
+								<p className="mt-1 font-medium">
+									Classic token (альтернатива): скоупы{" "}
+									<code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
+										repo
+									</code>
+									,{" "}
+									<code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
+										admin:repo_hook
+									</code>
+								</p>
 							</div>
 						</details>
 					</div>
@@ -196,9 +226,13 @@ function GitHubSection({ projectId }: { projectId: string }) {
 							placeholder="Секрет для валидации webhook"
 						/>
 						<p className="text-xs text-t2">
-							Настройте Webhook в <strong>GitHub &rarr; Settings &rarr; Webhooks</strong>.
-							URL: <code className="rounded-[var(--r1)] bg-input px-1">{"${HUB_URL}"}/api/github/webhook</code>.
-							Укажите тот же секрет. Events: Push, Pull requests, Workflow runs.
+							Настройте Webhook в{" "}
+							<strong>GitHub &rarr; Settings &rarr; Webhooks</strong>. URL:{" "}
+							<code className="rounded-[var(--r1)] bg-input px-1">
+								{"${HUB_URL}"}/api/github/webhook
+							</code>
+							. Укажите тот же секрет. Events: Push, Pull requests, Workflow
+							runs.
 						</p>
 					</div>
 					<Button
@@ -211,9 +245,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 							!webhookSecret
 						}
 					>
-						{createMutation.isPending
-							? "Подключение..."
-							: "Подключить"}
+						{createMutation.isPending ? "Подключение..." : "Подключить"}
 					</Button>
 				</CardContent>
 			</Card>
@@ -254,9 +286,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 			setAccessToken("");
 			setWebhookSecret("");
 		},
-		onError: () => {
-			toast.error("Ошибка подключения GitLab-репозитория");
-		},
+		onError: (err) => toastApiError(err, "Ошибка подключения GitLab-репозитория"),
 	});
 
 	const deleteMutation = useMutation({
@@ -268,9 +298,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 				queryKey: ["gitlab-integrations", projectId],
 			});
 		},
-		onError: () => {
-			toast.error("Ошибка удаления интеграции");
-		},
+		onError: (err) => toastApiError(err, "Ошибка удаления интеграции"),
 	});
 
 	return (
@@ -278,9 +306,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 			{/* Подключённые репозитории */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">
-						Подключённые репозитории
-					</CardTitle>
+					<CardTitle className="text-base">Подключённые репозитории</CardTitle>
 				</CardHeader>
 				<CardContent>
 					{isLoading && (
@@ -297,37 +323,31 @@ function GitLabSection({ projectId }: { projectId: string }) {
 
 					{integrations && integrations.length > 0 && (
 						<div className="space-y-2">
-							{integrations.map(
-								(ig: GitLabIntegrationResponse) => (
-									<div
-										key={ig.id}
-										className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 hover:border-b2 transition-colors duration-200"
-									>
-										<div className="flex items-center gap-2">
-											<GitLabIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-											<div className="flex flex-col">
-												<span className="text-sm font-medium">
-													{ig.project_path}
-												</span>
-												<span className="text-xs text-t2">
-													{ig.gitlab_url}
-												</span>
-											</div>
+							{integrations.map((ig: GitLabIntegrationResponse) => (
+								<div
+									key={ig.id}
+									className="flex items-center justify-between bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] px-4 py-3 hover:border-b2 transition-colors duration-200"
+								>
+									<div className="flex items-center gap-2">
+										<GitLabIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+										<div className="flex flex-col">
+											<span className="text-sm font-medium">
+												{ig.project_path}
+											</span>
+											<span className="text-xs text-t2">{ig.gitlab_url}</span>
 										</div>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="text-red hover:text-red/80"
-											onClick={() =>
-												deleteMutation.mutate(ig.id)
-											}
-											disabled={deleteMutation.isPending}
-										>
-											Отключить
-										</Button>
 									</div>
-								),
-							)}
+									<Button
+										variant="ghost"
+										size="sm"
+										className="text-red hover:text-red/80"
+										onClick={() => deleteMutation.mutate(ig.id)}
+										disabled={deleteMutation.isPending}
+									>
+										Отключить
+									</Button>
+								</div>
+							))}
 						</div>
 					)}
 				</CardContent>
@@ -336,9 +356,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 			{/* Форма подключения */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">
-						Подключить репозиторий
-					</CardTitle>
+					<CardTitle className="text-base">Подключить репозиторий</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<div>
@@ -373,26 +391,71 @@ function GitLabSection({ projectId }: { projectId: string }) {
 								Как создать токен в GitLab?
 							</summary>
 							<div className="mt-2 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs text-orange-800 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-200 space-y-2">
-								<p className="font-medium">Вариант 1: Project Access Token (рекомендуется)</p>
+								<p className="font-medium">
+									Вариант 1: Project Access Token (рекомендуется)
+								</p>
 								<ol className="list-decimal pl-4 space-y-1">
-									<li>Перейдите в <strong>GitLab &rarr; Проект &rarr; Settings &rarr; Access Tokens</strong></li>
-									<li>Нажмите <strong>Add new token</strong></li>
-									<li>Укажите название (например, <code className="rounded bg-orange-100 px-1 dark:bg-orange-900">hub-integration</code>)</li>
-									<li>Роль: <strong>Developer</strong> или выше</li>
-									<li>Выберите скоупы:
+									<li>
+										Перейдите в{" "}
+										<strong>
+											GitLab &rarr; Проект &rarr; Settings &rarr; Access Tokens
+										</strong>
+									</li>
+									<li>
+										Нажмите <strong>Add new token</strong>
+									</li>
+									<li>
+										Укажите название (например,{" "}
+										<code className="rounded bg-orange-100 px-1 dark:bg-orange-900">
+											hub-integration
+										</code>
+										)
+									</li>
+									<li>
+										Роль: <strong>Developer</strong> или выше
+									</li>
+									<li>
+										Выберите скоупы:
 										<ul className="list-disc pl-4 mt-1">
-											<li><strong>api</strong> — полный доступ к API (пайплайны, ветки, MR)</li>
-											<li><strong>read_repository</strong> — чтение кода и коммитов</li>
+											<li>
+												<strong>api</strong> — полный доступ к API (пайплайны,
+												ветки, MR)
+											</li>
+											<li>
+												<strong>read_repository</strong> — чтение кода и
+												коммитов
+											</li>
 										</ul>
 									</li>
-									<li>Нажмите <strong>Create project access token</strong></li>
+									<li>
+										Нажмите <strong>Create project access token</strong>
+									</li>
 								</ol>
-								<p className="mt-2 font-medium">Вариант 2: Personal Access Token</p>
+								<p className="mt-2 font-medium">
+									Вариант 2: Personal Access Token
+								</p>
 								<ol className="list-decimal pl-4 space-y-1">
-									<li>Перейдите в <strong>GitLab &rarr; User Settings &rarr; Access Tokens</strong></li>
-									<li>Создайте токен со скоупами: <code className="rounded bg-orange-100 px-1 dark:bg-orange-900">api</code>, <code className="rounded bg-orange-100 px-1 dark:bg-orange-900">read_repository</code></li>
+									<li>
+										Перейдите в{" "}
+										<strong>
+											GitLab &rarr; User Settings &rarr; Access Tokens
+										</strong>
+									</li>
+									<li>
+										Создайте токен со скоупами:{" "}
+										<code className="rounded bg-orange-100 px-1 dark:bg-orange-900">
+											api
+										</code>
+										,{" "}
+										<code className="rounded bg-orange-100 px-1 dark:bg-orange-900">
+											read_repository
+										</code>
+									</li>
 								</ol>
-								<p className="mt-1 text-orange-600 dark:text-orange-300">Для self-hosted GitLab убедитесь, что URL инстанса указан корректно выше.</p>
+								<p className="mt-1 text-orange-600 dark:text-orange-300">
+									Для self-hosted GitLab убедитесь, что URL инстанса указан
+									корректно выше.
+								</p>
 							</div>
 						</details>
 					</div>
@@ -405,22 +468,20 @@ function GitLabSection({ projectId }: { projectId: string }) {
 							placeholder="Секрет для валидации webhook"
 						/>
 						<p className="text-xs text-t2">
-							Настройте Webhook в <strong>GitLab &rarr; Settings &rarr; Webhooks</strong>.
-							URL: <code className="rounded-[var(--r1)] bg-input px-1">{"${HUB_URL}"}/api/gitlab/webhook</code>.
-							Укажите токен в поле <strong>Secret token</strong>. Triggers: Push, Merge request, Pipeline.
+							Настройте Webhook в{" "}
+							<strong>GitLab &rarr; Settings &rarr; Webhooks</strong>. URL:{" "}
+							<code className="rounded-[var(--r1)] bg-input px-1">
+								{"${HUB_URL}"}/api/gitlab/webhook
+							</code>
+							. Укажите токен в поле <strong>Secret token</strong>. Triggers:
+							Push, Merge request, Pipeline.
 						</p>
 					</div>
 					<Button
 						onClick={() => createMutation.mutate()}
-						disabled={
-							createMutation.isPending ||
-							!projectPath ||
-							!accessToken
-						}
+						disabled={createMutation.isPending || !projectPath || !accessToken}
 					>
-						{createMutation.isPending
-							? "Подключение..."
-							: "Подключить"}
+						{createMutation.isPending ? "Подключение..." : "Подключить"}
 					</Button>
 				</CardContent>
 			</Card>
@@ -435,6 +496,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 function GitHubIcon({ className }: { className?: string }) {
 	return (
 		<svg
+			aria-hidden="true"
 			className={className}
 			viewBox="0 0 16 16"
 			fill="currentColor"
@@ -447,33 +509,24 @@ function GitHubIcon({ className }: { className?: string }) {
 function GitLabIcon({ className }: { className?: string }) {
 	return (
 		<svg
+			aria-hidden="true"
 			className={className}
 			viewBox="0 0 16 16"
 			fill="currentColor"
 		>
 			<path d="M8 14.932l2.358-7.26H5.642L8 14.932z" />
-			<path
-				d="M8 14.932L5.642 7.672H1.21L8 14.932z"
-				opacity="0.7"
-			/>
+			<path d="M8 14.932L5.642 7.672H1.21L8 14.932z" opacity="0.7" />
 			<path
 				d="M1.21 7.672L.124 11.013a.737.737 0 0 0 .268.824L8 14.932 1.21 7.672z"
 				opacity="0.5"
 			/>
-			<path
-				d="M1.21 7.672h4.432L3.598 1.296a.37.37 0 0 0-.703 0L1.21 7.672z"
-			/>
-			<path
-				d="M8 14.932l2.358-7.26h4.432L8 14.932z"
-				opacity="0.7"
-			/>
+			<path d="M1.21 7.672h4.432L3.598 1.296a.37.37 0 0 0-.703 0L1.21 7.672z" />
+			<path d="M8 14.932l2.358-7.26h4.432L8 14.932z" opacity="0.7" />
 			<path
 				d="M14.79 7.672l1.086 3.341a.737.737 0 0 1-.268.824L8 14.932l6.79-7.26z"
 				opacity="0.5"
 			/>
-			<path
-				d="M14.79 7.672H10.358l2.044-6.376a.37.37 0 0 1 .703 0l1.685 6.376z"
-			/>
+			<path d="M14.79 7.672H10.358l2.044-6.376a.37.37 0 0 1 .703 0l1.685 6.376z" />
 		</svg>
 	);
 }
@@ -492,10 +545,12 @@ function IntegrationsSettingsPage() {
 	return (
 		<div className="mx-auto max-w-3xl space-y-6 p-6 animate-[eu_450ms_var(--spring)_both]">
 			<div className="mb-9">
-				<h2 className="text-[18px] font-extrabold tracking-[-0.02em] text-t1">Интеграции</h2>
+				<h2 className="text-[18px] font-extrabold tracking-[-0.02em] text-t1">
+					Интеграции
+				</h2>
 				<p className="text-[13px] text-t2 mt-1">
-					Подключение репозиториев GitHub и GitLab для автоматической
-					привязки коммитов, PR/MR и пайплайнов к задачам
+					Подключение репозиториев GitHub и GitLab для автоматической привязки
+					коммитов, PR/MR и пайплайнов к задачам
 				</p>
 			</div>
 

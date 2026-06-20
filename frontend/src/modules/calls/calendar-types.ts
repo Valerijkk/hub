@@ -43,7 +43,6 @@ const CALL_COLORS = [
 	"bg-cyan-400/20 border-cyan-400/40 text-cyan-700 dark:text-cyan-300",
 ] as const;
 
-
 export function getColorForEvent(id: string): string {
 	let hash = 0;
 	for (let i = 0; i < id.length; i++) {
@@ -51,8 +50,6 @@ export function getColorForEvent(id: string): string {
 	}
 	return CALL_COLORS[Math.abs(hash) % CALL_COLORS.length] as string;
 }
-
-
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -97,9 +94,7 @@ export function isSameDay(a: Date, b: Date): boolean {
 }
 
 export function isSameMonth(a: Date, b: Date): boolean {
-	return (
-		a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()
-	);
+	return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 }
 
 export function formatDayHeader(

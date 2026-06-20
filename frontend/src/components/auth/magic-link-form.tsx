@@ -6,7 +6,9 @@
  */
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import { sendMagicLink, verifyMagicLink } from "@/api/auth";
+import { toastApiError } from "@/lib/format-api-error";
 import { useAuthStore } from "@/stores/auth-store";
 
 /** Пропсы компонента MagicLinkForm. */
@@ -69,7 +71,6 @@ function MagicLinkEmailStep({
 					value={email}
 					onChange={(e) => onEmailChange(e.target.value)}
 					autoComplete="email"
-					autoFocus
 					className="w-full h-[50px] px-[18px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r3)] text-[15px] text-[var(--t1)] placeholder:text-[var(--t3)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08),0_0_20px_rgba(91,156,245,.04)] focus:scale-[1.005] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] outline-none"
 				/>
 			</div>
@@ -81,6 +82,7 @@ function MagicLinkEmailStep({
 				{loading ? (
 					<span className="flex items-center justify-center gap-2">
 						<svg
+							aria-hidden="true"
 							className="h-4 w-4 animate-spin"
 							viewBox="0 0 24 24"
 							fill="none"
@@ -111,8 +113,7 @@ function MagicLinkCodeStep({
 	return (
 		<form onSubmit={onSubmit}>
 			<p className="text-sm text-[var(--t2)] text-center mb-2">
-				Код отправлен на{" "}
-				<strong className="text-[var(--t1)]">{email}</strong>
+				Код отправлен на <strong className="text-[var(--t1)]">{email}</strong>
 			</p>
 			<div className="mb-4">
 				<label
@@ -129,7 +130,6 @@ function MagicLinkCodeStep({
 					maxLength={6}
 					value={code}
 					onChange={(e) => onCodeChange(e.target.value.replace(/\D/g, ""))}
-					autoFocus
 					className="w-full h-[58px] bg-[var(--input)] border border-[var(--b1)] rounded-[var(--r2)] text-center text-2xl font-bold font-mono text-[var(--t1)] focus:border-[rgba(91,156,245,.35)] focus:shadow-[0_0_0_3px_rgba(91,156,245,.08)] transition-colors outline-none"
 				/>
 			</div>
@@ -164,7 +164,7 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 	async function handleSendCode(e: FormEvent) {
 		e.preventDefault();
 		if (!isEmailValid) {
-			toast.error("Введите корректный email");
+			toast.error(i18n.t("common:validation.enterEmail"));
 			return;
 		}
 		setLoading(true);
@@ -176,14 +176,10 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 				setCode(res.code);
 				toast.success("Код подставлен автоматически (dev mode)");
 			} else {
-				toast.success("Код отправлен на " + email);
+				toast.success(`Код отправлен на ${email}`);
 			}
 		} catch (err: unknown) {
-			const message =
-				err && typeof err === "object" && "message" in err
-					? (err as { message: string }).message
-					: "Не удалось отправить код";
-			toast.error(message);
+			toastApiError(err, "Не удалось отправить код");
 		} finally {
 			setLoading(false);
 		}
@@ -192,7 +188,7 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 	async function handleVerifyCode(e: FormEvent) {
 		e.preventDefault();
 		if (!code.trim()) {
-			toast.error("Введите код");
+			toast.error(i18n.t("common:validation.enterCode"));
 			return;
 		}
 		setLoading(true);
@@ -201,11 +197,7 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 			setTokens(tokens.access_token, tokens.refresh_token);
 			onSuccess();
 		} catch (err: unknown) {
-			const message =
-				err && typeof err === "object" && "message" in err
-					? (err as { message: string }).message
-					: "Неверный код";
-			toast.error(message);
+			toastApiError(err, "Неверный код");
 		} finally {
 			setLoading(false);
 		}

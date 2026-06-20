@@ -119,5 +119,7 @@ export function subscribeToPush(data: PushSubscribeRequest) {
 
 /** Отписаться от push-уведомлений. */
 export function unsubscribeFromPush(endpoint: string) {
-	return api.request<void>("DELETE", "/notifications/push/unsubscribe", { endpoint });
+	return api.request<void>("DELETE", "/notifications/push/unsubscribe", {
+		endpoint,
+	});
 }

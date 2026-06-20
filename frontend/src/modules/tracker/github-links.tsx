@@ -60,6 +60,7 @@ function PRStatusBadge({ status }: { status: string }) {
 function GitPullRequestIcon({ className }: { className?: string }) {
 	return (
 		<svg
+			aria-hidden="true"
 			className={className}
 			width="16"
 			height="16"
@@ -75,6 +76,7 @@ function GitPullRequestIcon({ className }: { className?: string }) {
 function GitCommitIcon({ className }: { className?: string }) {
 	return (
 		<svg
+			aria-hidden="true"
 			className={className}
 			width="16"
 			height="16"

@@ -47,6 +47,7 @@ export function MobileNav() {
 			match: "/dashboard",
 			icon: (
 				<svg
+					aria-hidden="true"
 					width="20"
 					height="20"
 					viewBox="0 0 20 20"
@@ -69,6 +70,7 @@ export function MobileNav() {
 			match: "/projects",
 			icon: (
 				<svg
+					aria-hidden="true"
 					width="20"
 					height="20"
 					viewBox="0 0 20 20"
@@ -88,6 +90,7 @@ export function MobileNav() {
 			match: "/messenger",
 			icon: (
 				<svg
+					aria-hidden="true"
 					width="20"
 					height="20"
 					viewBox="0 0 20 20"
@@ -108,6 +111,7 @@ export function MobileNav() {
 			match: "/calls",
 			icon: (
 				<svg
+					aria-hidden="true"
 					width="20"
 					height="20"
 					viewBox="0 0 20 20"
@@ -143,6 +147,7 @@ export function MobileNav() {
 								onClick={() => setMoreOpen(false)}
 							>
 								<svg
+									aria-hidden="true"
 									width="16"
 									height="16"
 									viewBox="0 0 16 16"
@@ -163,6 +168,7 @@ export function MobileNav() {
 								onClick={() => setMoreOpen(false)}
 							>
 								<svg
+									aria-hidden="true"
 									width="16"
 									height="16"
 									viewBox="0 0 16 16"
@@ -202,6 +208,7 @@ export function MobileNav() {
 					)}
 				>
 					<svg
+						aria-hidden="true"
 						width="20"
 						height="20"
 						viewBox="0 0 20 20"

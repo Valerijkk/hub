@@ -82,6 +82,7 @@ export function SearchDialog({ channelId }: SearchDialogProps) {
 			<DialogTrigger asChild>
 				<Button variant="ghost" size="icon" className="h-8 w-8" title="Поиск">
 					<svg
+						aria-hidden="true"
 						className="h-4 w-4"
 						fill="none"
 						viewBox="0 0 24 24"

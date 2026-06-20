@@ -54,7 +54,9 @@ export function IssueSidebarMeta({
 		<div className="w-[320px] min-w-[320px] border-l border-b1 overflow-y-auto p-[22px] bg-void">
 			{/* Статус */}
 			<div className="mb-[18px]">
-				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Статус</div>
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
+					Статус
+				</div>
 				<Select
 					value={issue.status.id}
 					onValueChange={(v) => onUpdateField({ status_id: v })}
@@ -69,7 +71,9 @@ export function IssueSidebarMeta({
 							</SelectItem>
 						))}
 						{!statuses && (
-							<SelectItem value={issue.status.id}>{issue.status.name}</SelectItem>
+							<SelectItem value={issue.status.id}>
+								{issue.status.name}
+							</SelectItem>
 						)}
 					</SelectContent>
 				</Select>
@@ -77,7 +81,9 @@ export function IssueSidebarMeta({
 
 			{/* Приоритет */}
 			<div className="mb-[18px]">
-				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Приоритет</div>
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
+					Приоритет
+				</div>
 				<Select
 					value={issue.priority}
 					onValueChange={(v) => onUpdateField({ priority: v })}
@@ -108,7 +114,9 @@ export function IssueSidebarMeta({
 
 			{/* Исполнитель */}
 			<div className="mb-[18px]">
-				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Исполнитель</div>
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
+					Исполнитель
+				</div>
 				{issue.assignee ? (
 					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px]">
 						<Avatar className="h-7 w-7">
@@ -126,7 +134,9 @@ export function IssueSidebarMeta({
 
 			{/* Автор */}
 			<div className="mb-[18px]">
-				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Автор</div>
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
+					Автор
+				</div>
 				{issue.reporter ? (
 					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px]">
 						<Avatar className="h-7 w-7">
@@ -144,7 +154,9 @@ export function IssueSidebarMeta({
 
 			{/* Метки */}
 			<div className="mb-[18px]">
-				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Метки</div>
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
+					Метки
+				</div>
 				<div className="flex flex-wrap gap-[6px]">
 					{issue.labels && issue.labels.length > 0 ? (
 						issue.labels.map((label) => (
@@ -164,9 +176,13 @@ export function IssueSidebarMeta({
 
 			{/* Story Points */}
 			<div className="mb-[18px]">
-				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Story Points</div>
+				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
+					Story Points
+				</div>
 				<Select
-					value={issue.story_points != null ? String(issue.story_points) : "none"}
+					value={
+						issue.story_points != null ? String(issue.story_points) : "none"
+					}
 					onValueChange={(v) =>
 						onUpdateField({
 							story_points: v === "none" ? undefined : Number(v),
@@ -189,7 +205,9 @@ export function IssueSidebarMeta({
 
 			{issue.due_date && (
 				<div className="mb-[18px]">
-					<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">Срок</div>
+					<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
+						Срок
+					</div>
 					<p className="text-[14px] py-[7px] px-[10px]">
 						{new Date(issue.due_date).toLocaleDateString("ru-RU")}
 					</p>
@@ -223,7 +241,9 @@ export function IssueSidebarMeta({
 
 			{/* Мета */}
 			<div className="mt-[22px] pt-[18px] border-t border-b1">
-				<div className="text-[12px] text-t4 py-1">Создана: {new Date(issue.created_at).toLocaleDateString("ru-RU")}</div>
+				<div className="text-[12px] text-t4 py-1">
+					Создана: {new Date(issue.created_at).toLocaleDateString("ru-RU")}
+				</div>
 				<div className="text-[12px] text-t4 py-1">
 					Обновлена: {new Date(issue.updated_at).toLocaleDateString("ru-RU")}
 				</div>

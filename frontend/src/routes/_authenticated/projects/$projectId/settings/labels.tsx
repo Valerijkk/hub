@@ -2,6 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
+import i18n from "@/i18n";
+import {
+	createLabel,
+	createLabelGroup,
+	deleteLabel,
+	type LabelResponse,
+	listLabelGroups,
+	listLabels,
+} from "@/api/tracker";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -12,14 +22,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-	createLabel,
-	createLabelGroup,
-	deleteLabel,
-	type LabelResponse,
-	listLabelGroups,
-	listLabels,
-} from "@/api/tracker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,7 +71,9 @@ function LabelsSettingsPage() {
 		queryFn: () => listLabelGroups(projectId),
 	});
 
-	const [deleteLabelTarget, setDeleteLabelTarget] = useState<string | null>(null);
+	const [deleteLabelTarget, setDeleteLabelTarget] = useState<string | null>(
+		null,
+	);
 
 	// Форма новой метки
 	const [labelName, setLabelName] = useState("");
@@ -97,7 +101,7 @@ function LabelsSettingsPage() {
 			setLabelName("");
 			toast.success("Метка создана");
 		},
-		onError: () => toast.error("Не удалось создать метку"),
+		onError: (err) => toastApiError(err, "Не удалось создать метку"),
 	});
 
 	const deleteLabelMutation = useMutation({
@@ -111,7 +115,7 @@ function LabelsSettingsPage() {
 			});
 			toast.success("Метка удалена");
 		},
-		onError: () => toast.error("Не удалось удалить метку"),
+		onError: (err) => toastApiError(err, "Не удалось удалить метку"),
 	});
 
 	const createGroupMutation = useMutation({
@@ -123,13 +127,13 @@ function LabelsSettingsPage() {
 			setGroupName("");
 			toast.success("Группа создана");
 		},
-		onError: () => toast.error("Не удалось создать группу"),
+		onError: (err) => toastApiError(err, "Не удалось создать группу"),
 	});
 
 	const handleCreateLabel = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!labelName.trim()) {
-			toast.error("Введите название метки");
+			toast.error(i18n.t("common:validation.enterLabelName"));
 			return;
 		}
 		createLabelMutation.mutate();
@@ -138,7 +142,7 @@ function LabelsSettingsPage() {
 	const handleCreateGroup = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!groupName.trim()) {
-			toast.error("Введите название группы");
+			toast.error(i18n.t("common:validation.enterGroupName"));
 			return;
 		}
 		createGroupMutation.mutate();
@@ -149,19 +153,26 @@ function LabelsSettingsPage() {
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-6 animate-[eu_450ms_var(--spring)_both]">
-			<AlertDialog open={!!deleteLabelTarget} onOpenChange={(open) => { if (!open) setDeleteLabelTarget(null); }}>
+			<AlertDialog
+				open={!!deleteLabelTarget}
+				onOpenChange={(open) => {
+					if (!open) setDeleteLabelTarget(null);
+				}}
+			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Удалить метку?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Метка будет удалена из всех задач проекта. Это действие нельзя отменить.
+							Метка будет удалена из всех задач проекта. Это действие нельзя
+							отменить.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>Отмена</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => {
-								if (deleteLabelTarget) deleteLabelMutation.mutate(deleteLabelTarget);
+								if (deleteLabelTarget)
+									deleteLabelMutation.mutate(deleteLabelTarget);
 								setDeleteLabelTarget(null);
 							}}
 						>
@@ -173,10 +184,16 @@ function LabelsSettingsPage() {
 
 			<div className="mb-9 flex items-center justify-between">
 				<div>
-					<h1 className="text-[18px] font-extrabold tracking-[-0.02em] text-t1">Метки</h1>
+					<h1 className="text-[18px] font-extrabold tracking-[-0.02em] text-t1">
+						Метки
+					</h1>
 					<p className="text-[13px] text-t2 mt-1">Управление метками проекта</p>
 				</div>
-				<Button variant="outline" asChild className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]">
+				<Button
+					variant="outline"
+					asChild
+					className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]"
+				>
 					<Link to="/projects/$projectId" params={{ projectId }}>
 						Назад
 					</Link>
@@ -202,9 +219,7 @@ function LabelsSettingsPage() {
 							))}
 						</div>
 					) : (
-						<p className="text-[13px] text-t2">
-							Нет меток без группы
-						</p>
+						<p className="text-[13px] text-t2">Нет меток без группы</p>
 					)}
 				</CardContent>
 			</Card>
@@ -227,9 +242,7 @@ function LabelsSettingsPage() {
 								))}
 							</div>
 						) : (
-							<p className="text-[13px] text-t2">
-								Нет меток в группе
-							</p>
+							<p className="text-[13px] text-t2">Нет меток в группе</p>
 						)}
 					</CardContent>
 				</Card>

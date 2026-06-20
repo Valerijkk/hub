@@ -41,6 +41,32 @@ backend/ent/*
 coverage/
 *.prof
 
+# Coverage / benchmark dumps (never commit — delete after verification)
+backend/cover
+backend/coverage
+backend/coverage_baseline
+backend/coverprofile
+backend/cover_*
+backend/cov_*
+backend/*_cov*
+backend/*_cov.txt
+backend/tmp*
+backend/tmp-*
+backend/gitlab_cov
+backend/covertms
+backend/notif_cov
+backend/*_after.txt
+tmp_*.py
+
+# Local dev / agent session artifacts
+.gotmp/
+.ci-backend.log
+SESSION_SUMMARY*.txt
+frontend/lint-*.txt
+frontend/biome-report.json
+frontend/playwright-report/
+frontend/test-results/
+
 # Standalone TMS (separate product)
 /tms/
 

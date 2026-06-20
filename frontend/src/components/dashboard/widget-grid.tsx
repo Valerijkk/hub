@@ -10,6 +10,7 @@ import {
 	GripVertical,
 	HardDrive,
 	Layers,
+	type LucideIcon,
 	Mail,
 	Phone,
 	RefreshCw,
@@ -18,9 +19,8 @@ import {
 	TestTube,
 	TrendingUp,
 	Users,
-	type LucideIcon,
 } from "lucide-react";
-import { Suspense, lazy, useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import {
 	GridLayout,
 	type LayoutItem as RGLLayoutItem,
@@ -48,7 +48,9 @@ import { UpcomingCallsWidget } from "./widgets/upcoming-calls";
 // Тяжёлые виджеты на recharts (~390 KB) выносим в отдельные chunks через React.lazy,
 // чтобы исключить vendor-charts из main-бандла. Грузятся только когда виджет реально на сетке.
 const BurndownChartWidget = lazy(() =>
-	import("./widgets/burndown-chart").then((m) => ({ default: m.BurndownChartWidget })),
+	import("./widgets/burndown-chart").then((m) => ({
+		default: m.BurndownChartWidget,
+	})),
 );
 const TaskStatusChartWidget = lazy(() =>
 	import("./widgets/task-status-chart").then((m) => ({
@@ -56,10 +58,14 @@ const TaskStatusChartWidget = lazy(() =>
 	})),
 );
 const TestTrendsWidget = lazy(() =>
-	import("./widgets/test-trends").then((m) => ({ default: m.TestTrendsWidget })),
+	import("./widgets/test-trends").then((m) => ({
+		default: m.TestTrendsWidget,
+	})),
 );
 const VelocityChartWidget = lazy(() =>
-	import("./widgets/velocity-chart").then((m) => ({ default: m.VelocityChartWidget })),
+	import("./widgets/velocity-chart").then((m) => ({
+		default: m.VelocityChartWidget,
+	})),
 );
 
 /** Скелет-заглушка для тяжёлого виджета во время загрузки чанка. */
@@ -336,7 +342,12 @@ export function WidgetGrid({
 						const cfg = WIDGET_CONFIG[item.widget_type];
 						if (!cfg) return <div key={item.i} />;
 
-						const { component: WidgetComponent, icon: Icon, accent, name } = cfg;
+						const {
+							component: WidgetComponent,
+							icon: Icon,
+							accent,
+							name,
+						} = cfg;
 
 						return (
 							<div
@@ -352,9 +363,7 @@ export function WidgetGrid({
 								<div className="widget-drag-handle flex items-center justify-between px-5 pt-[18px] cursor-move">
 									<div className="flex items-center gap-2">
 										<GripVertical className="h-3.5 w-3.5 text-[var(--t4)]" />
-										{Icon && (
-											<Icon className="h-4 w-4 text-[var(--t2)]" />
-										)}
+										{Icon && <Icon className="h-4 w-4 text-[var(--t2)]" />}
 										<span className="text-[13px] font-bold text-[var(--t2)] uppercase tracking-[0.04em]">
 											{name}
 										</span>

@@ -111,10 +111,7 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 							placeholder="Название (например, Chrome Linux)"
 							className="w-full rounded-md border p-2 dark:border-gray-600 dark:bg-gray-800"
 						/>
-						<Select
-							value={label}
-							onValueChange={(v) => setLabel(v)}
-						>
+						<Select value={label} onValueChange={(v) => setLabel(v)}>
 							<SelectTrigger className="w-full rounded-xl border p-2 dark:border-gray-600 dark:bg-gray-800">
 								<SelectValue />
 							</SelectTrigger>

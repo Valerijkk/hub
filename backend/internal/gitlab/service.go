@@ -66,6 +66,11 @@ func (s *GitLabService) CreateIntegration(ctx context.Context, projectID uuid.UU
 	if gitlabURL == "" {
 		gitlabURL = "https://gitlab.com"
 	}
+	// SEC-04: отклоняем file://, userinfo и прочие не-http(s) URL до сохранения
+	// интеграции. SafeHTTPClient защищает на dial, но early reject даёт явный 400.
+	if err := safehttp.ValidateOutboundURL(gitlabURL); err != nil {
+		return nil, apperrors.NewBadRequest("некорректный gitlab_url: " + err.Error())
+	}
 
 	input := CreateIntegrationInput{
 		GitLabURL:     gitlabURL,

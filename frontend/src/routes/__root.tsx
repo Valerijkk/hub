@@ -54,6 +54,7 @@ function NotFoundComponent() {
 					<div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 animate-pulse" />
 					<div className="relative">
 						<svg
+							aria-hidden="true"
 							className="h-20 w-20 text-t2/30"
 							viewBox="0 0 24 24"
 							fill="none"
@@ -86,6 +87,7 @@ function NotFoundComponent() {
 					className="inline-flex h-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 px-6 py-2 text-sm font-medium text-white shadow-md shadow-blue-500/25 hover-pulse transition-colors"
 				>
 					<svg
+						aria-hidden="true"
 						className="mr-2 h-4 w-4"
 						viewBox="0 0 16 16"
 						fill="none"

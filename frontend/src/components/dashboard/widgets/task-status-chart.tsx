@@ -48,9 +48,7 @@ function ChartTooltip({
 				/>
 				<span className="text-sm font-medium">{entry.name}</span>
 			</div>
-			<p className="text-xs text-t2 mt-0.5">
-				{entry.value} задач
-			</p>
+			<p className="text-xs text-t2 mt-0.5">{entry.value} задач</p>
 		</div>
 	);
 }

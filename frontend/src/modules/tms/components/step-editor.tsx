@@ -49,6 +49,7 @@ export function StepEditor(props: StepEditorProps) {
 						className="h-7 text-xs"
 					>
 						<svg
+							aria-hidden="true"
 							className="mr-1 h-3 w-3"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -133,6 +134,7 @@ export function StepEditor(props: StepEditorProps) {
 									onClick={() => props.onRemoveStep(idx)}
 								>
 									<svg
+										aria-hidden="true"
 										className="h-3.5 w-3.5"
 										fill="none"
 										viewBox="0 0 24 24"
@@ -203,7 +205,9 @@ export function StepEditor(props: StepEditorProps) {
 										)}
 									</td>
 								)}
-								<td className="px-3 py-[14px] border-b border-b1 text-[13px] align-top leading-[1.65] text-t2">{step.action}</td>
+								<td className="px-3 py-[14px] border-b border-b1 text-[13px] align-top leading-[1.65] text-t2">
+									{step.action}
+								</td>
 								<td className="px-3 py-[14px] border-b border-b1 text-[13px] align-top leading-[1.65] text-t2">
 									{step.expected_result || (
 										<span className="italic text-t4">--</span>
@@ -220,6 +224,7 @@ export function StepEditor(props: StepEditorProps) {
 	return (
 		<div className="flex flex-col items-center justify-center py-12 text-center border rounded-xl border-dashed">
 			<svg
+				aria-hidden="true"
 				className="h-10 w-10 text-t2/20 mb-3"
 				fill="none"
 				viewBox="0 0 24 24"

@@ -35,6 +35,7 @@ func Logger() fiber.Handler {
 			"path", stripQuery(c.Path()),
 			"status", c.Response().StatusCode(),
 			"duration", duration.String(),
+			"duration_ms", duration.Milliseconds(),
 			"request_id", requestID,
 		)
 

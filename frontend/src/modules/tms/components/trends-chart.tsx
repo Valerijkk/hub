@@ -67,11 +67,7 @@ export function TrendsChart({
 	});
 
 	if (isLoading) {
-		return (
-			<div className="py-8 text-center text-t2">
-				Загрузка трендов...
-			</div>
-		);
+		return <div className="py-8 text-center text-t2">Загрузка трендов...</div>;
 	}
 
 	if (!trends || trends.length === 0) {

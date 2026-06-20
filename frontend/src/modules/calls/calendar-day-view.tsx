@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import {
-	type CalendarEvent,
-	HOURS_FULL,
-	isSameDay,
-} from "./calendar-types";
+import { type CalendarEvent, HOURS_FULL, isSameDay } from "./calendar-types";
 
 // ---------------------------------------------------------------------------
 // Day View (single day, 24-hour grid)

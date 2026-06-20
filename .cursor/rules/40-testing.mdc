@@ -1,0 +1,166 @@
+---
+description: Testing patterns for Hub — Go integration tests, Vitest, Playwright.
+globs: backend/**/*_test.go,frontend/**/*.test.*,frontend/**/*.spec.*
+alwaysApply: false
+---
+
+# Hub — Testing Patterns
+
+## Go Backend Tests
+
+### Integration Tests (preferred)
+
+```go
+// Use real databases via testcontainers
+func setupTestDB(t *testing.T) *ent.Client {
+    t.Helper()
+    ctx := context.Background()
+    
+    pg, err := postgres.RunContainer(ctx,
+        testcontainers.WithImage("postgres:17-alpine"),
+        postgres.WithDatabase("hub_test"),
+        postgres.WithUsername("hub"),
+        postgres.WithPassword("test"),
+        testcontainers.WithWaitStrategy(wait.ForListeningPort("5432/tcp")),
+    )
+    require.NoError(t, err)
+    t.Cleanup(func() { pg.Terminate(ctx) })
+    
+    dsn, _ := pg.ConnectionString(ctx, "sslmode=disable")
+    client, err := ent.Open("postgres", dsn)
+    require.NoError(t, err)
+    require.NoError(t, client.Schema.Create(ctx))
+    return client
+}
+```
+
+### Unit Tests with Mocks
+
+```go
+// Use mockery: go generate ./... in package with //go:generate
+//go:generate mockery --name Repository --outpkg mocks --output ./mocks
+
+func TestService_CreateIssue(t *testing.T) {
+    mockRepo := mocks.NewRepository(t)
+    svc := NewService(mockRepo)
+    
+    mockRepo.On("Create", mock.Anything, mock.AnythingOfType("CreateParams")).
+        Return(&Issue{ID: uuid.New(), Title: "Test"}, nil)
+    
+    issue, err := svc.CreateIssue(context.Background(), CreateIssueRequest{Title: "Test"})
+    require.NoError(t, err)
+    assert.Equal(t, "Test", issue.Title)
+}
+```
+
+### Race Detector (always use)
+
+```bash
+go test -race -count=1 ./...
+go test -race -run TestSpecific ./internal/module/...
+```
+
+## Frontend Tests (Vitest + RTL)
+
+```typescript
+// components/__tests__/IssueCard.test.tsx
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { IssueCard } from '../IssueCard'
+
+describe('IssueCard', () => {
+    it('renders issue title', () => {
+        render(<IssueCard issue={mockIssue} />)
+        expect(screen.getByText(mockIssue.title)).toBeInTheDocument()
+    })
+
+    it('calls onEdit when edit button clicked', async () => {
+        const onEdit = vi.fn()
+        render(<IssueCard issue={mockIssue} onEdit={onEdit} />)
+        await userEvent.click(screen.getByRole('button', { name: /edit/i }))
+        expect(onEdit).toHaveBeenCalledWith(mockIssue.id)
+    })
+})
+```
+
+## API Mocking (MSW)
+
+```typescript
+// mocks/handlers.ts
+import { http, HttpResponse } from 'msw'
+
+export const handlers = [
+    http.get('/api/projects/:id/issues', ({ params }) => {
+        return HttpResponse.json({ data: mockIssues, total: mockIssues.length })
+    }),
+]
+```
+
+## E2E Tests (Playwright)
+
+```typescript
+// e2e/tracker.spec.ts
+test.describe('Issue Tracker', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/')
+        await loginAs(page, 'member@hub.local')
+    })
+
+    test('creates a new issue', async ({ page }) => {
+        await page.click('[data-testid="new-issue-btn"]')
+        await page.fill('[data-testid="issue-title"]', 'Test Issue')
+        await page.click('[data-testid="submit-issue"]')
+        await expect(page.locator('[data-testid="issue-card"]').first()).toContainText('Test Issue')
+    })
+})
+```
+
+## Coverage Targets
+
+| Package | Target | Priority |
+|---------|--------|----------|
+| `auth/` | 80% | Critical (security) |
+| `ws/` | 80% | Critical (panic risk) |
+| `rbac/` | 80% | Critical (authz) |
+| `tracker/` | 60% | High |
+| `messenger/` | 60% | High |
+| `tms/` | 50% | Medium |
+| Overall | 50% | Goal |
+
+## Coverage Artifacts — Cleanup (mandatory)
+
+После прогона покрытия, race-тестов или qa-gate **удали локальные артефакты** до коммита/handoff.
+
+**Go — писать профили только во временную директорию или `/tmp`:**
+
+```bash
+# ✅ Preferred: profile outside repo
+go test -coverprofile="$TMP/coverage.out" ./internal/...
+
+# ❌ Never leave in backend/
+go test -coverprofile=coverage.out ./...
+go test -coverprofile=calls_cov.out ./internal/calls/...
+go tool cover -func=coverage.out > cover_auth   # text dump in repo root
+```
+
+**Удалить после верификации (если создались в repo):**
+
+| Pattern | Пример |
+|---------|--------|
+| `*.out` | `coverage.out`, `calls_cov.out`, `cover_rbac.out` |
+| `backend/cover*` | `cover`, `cover_auth`, `coverprofile`, `covertms` |
+| `backend/cov_*` | `cov_auth`, `cov_calls` |
+| `backend/*_cov*` | `auth_cov.txt`, `gitlab_cov`, `notif_cov` |
+| `backend/tmp*` | `tmpauth`, `tmp-wscov`, `tmp-rbac` |
+| `tmp_*.py` | одноразовые скрипты в корне |
+
+**Cleanup one-liner (PowerShell, из корня repo):**
+
+```powershell
+Get-ChildItem backend -File | Where-Object {
+  $_.Name -match '^(cover|coverage|cov_|tmp|.*_cov)' -or $_.Extension -eq '.out'
+} | Remove-Item -Force
+Remove-Item -Force tmp_*.py -ErrorAction SilentlyContinue
+```
+
+**Agent rule:** если ты запускал `go test -coverprofile`, `go tool cover`, race/prof — **удали артефакты в том же PR/сессии** после фиксации метрик в `.planning/COVERAGE.md`. Не коммить dumps; они в `.gitignore`.

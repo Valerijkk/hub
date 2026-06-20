@@ -1,19 +1,23 @@
 import { type KeyboardEvent, useCallback, useRef, useState } from "react";
-import { toast } from "sonner";
 import { uploadFile } from "@/api/files";
 import { sendMessage, sendTypingIndicator } from "@/api/messenger";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { useInvalidateMessages } from "@/hooks/use-invalidate";
+import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { CreatePollDialog } from "./create-poll-dialog";
 import { GifPicker } from "./gif-picker";
 import { MentionAutocomplete } from "./mention-autocomplete";
-import { type StickerData, StickerPicker, buildStickerContentJson } from "./sticker-picker";
+import {
+	buildStickerContentJson,
+	type StickerData,
+	StickerPicker,
+} from "./sticker-picker";
 import { VoiceRecorder } from "./voice-recorder";
 
 /** Набор популярных эмодзи для быстрого выбора в композере. */
@@ -162,6 +166,7 @@ function ReplyPreview({
 				title="Отменить ответ"
 			>
 				<svg
+					aria-hidden="true"
 					className="h-3.5 w-3.5"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -271,8 +276,8 @@ export function MessageComposer({
 						},
 					]);
 				}
-			} catch {
-				toast.error("Не удалось загрузить файл");
+			} catch (err) {
+				toastApiError(err, "Не удалось загрузить файл");
 			} finally {
 				setIsUploading(false);
 				// Сбрасываем input, чтобы можно было выбрать тот же файл повторно.
@@ -311,8 +316,7 @@ export function MessageComposer({
 					pendingAttachments.length > 0
 						? pendingAttachments.map((a) => a.fileId)
 						: undefined,
-				mentions:
-					mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
+				mentions: mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
 			});
 			invalidateMessages();
 			setText("");
@@ -323,13 +327,19 @@ export function MessageComposer({
 				textareaRef.current.style.height = "auto";
 			}
 		} catch (err) {
-			const message =
-				err instanceof Error ? err.message : "Не удалось отправить сообщение";
-			toast.error(message);
+			toastApiError(err, "Не удалось отправить сообщение");
 		} finally {
 			setIsSending(false);
 		}
-	}, [channelId, threadId, text, pendingAttachments, mentionedUserIds, invalidateMessages, setReplyTo]);
+	}, [
+		channelId,
+		threadId,
+		text,
+		pendingAttachments,
+		mentionedUserIds,
+		invalidateMessages,
+		setReplyTo,
+	]);
 
 	/** Обработка выбора упоминания из автокомплита. */
 	const handleMentionSelect = useCallback(
@@ -414,11 +424,7 @@ export function MessageComposer({
 				});
 				invalidateMessages();
 			} catch (err) {
-				const message =
-					err instanceof Error
-						? err.message
-						: "Не удалось отправить GIF";
-				toast.error(message);
+				toastApiError(err, "Не удалось отправить GIF");
 			}
 		},
 		[channelId, threadId, invalidateMessages],
@@ -436,11 +442,7 @@ export function MessageComposer({
 				});
 				invalidateMessages();
 			} catch (err) {
-				const message =
-					err instanceof Error
-						? err.message
-						: "Не удалось отправить стикер";
-				toast.error(message);
+				toastApiError(err, "Не удалось отправить стикер");
 			}
 		},
 		[channelId, threadId, invalidateMessages],
@@ -461,11 +463,7 @@ export function MessageComposer({
 				});
 				invalidateMessages();
 			} catch (err) {
-				const message =
-					err instanceof Error
-						? err.message
-						: "Не удалось отправить голосовое сообщение";
-				toast.error(message);
+				toastApiError(err, "Не удалось отправить голосовое сообщение");
 			}
 			setShowVoice(false);
 		},
@@ -493,6 +491,7 @@ export function MessageComposer({
 							className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-xs shadow-sm"
 						>
 							<svg
+								aria-hidden="true"
 								className="h-3.5 w-3.5 text-t2/60 shrink-0"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -515,6 +514,7 @@ export function MessageComposer({
 								title="Убрать вложение"
 							>
 								<svg
+									aria-hidden="true"
 									className="h-3 w-3 text-t2"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -540,9 +540,7 @@ export function MessageComposer({
 				/>
 			) : (
 				/* Rounded container with all controls inside */
-				<div
-					className="flex items-end gap-1 bg-[var(--card)] border border-[var(--b1)] rounded-[var(--r4)] px-4 py-1.5 transition-[box-shadow] relative overflow-hidden focus-within:border-[rgba(52,211,153,.25)] focus-within:shadow-[0_0_0_3px_rgba(52,211,153,.05),0_0_24px_rgba(52,211,153,.04)]"
-				>
+				<div className="flex items-end gap-1 bg-[var(--card)] border border-[var(--b1)] rounded-[var(--r4)] px-4 py-1.5 transition-[box-shadow] relative overflow-hidden focus-within:border-[rgba(52,211,153,.25)] focus-within:shadow-[0_0_0_3px_rgba(52,211,153,.05),0_0_24px_rgba(52,211,153,.04)]">
 					{/* Top highlight */}
 					<div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.03] to-transparent" />
 
@@ -568,6 +566,7 @@ export function MessageComposer({
 						disabled={isUploading}
 					>
 						<svg
+							aria-hidden="true"
 							className="h-5 w-5"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -613,6 +612,7 @@ export function MessageComposer({
 								title="Эмодзи"
 							>
 								<svg
+									aria-hidden="true"
 									className="h-5 w-5"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -670,6 +670,7 @@ export function MessageComposer({
 						onClick={() => setShowPollDialog(true)}
 					>
 						<svg
+							aria-hidden="true"
 							className="h-5 w-5"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -692,6 +693,7 @@ export function MessageComposer({
 						onClick={() => setShowVoice(true)}
 					>
 						<svg
+							aria-hidden="true"
 							className="h-5 w-5"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -720,6 +722,7 @@ export function MessageComposer({
 						title="Отправить"
 					>
 						<svg
+							aria-hidden="true"
 							className={cn(
 								"h-5 w-5 transition-transform duration-200",
 								hasContent && "translate-x-0.5 -translate-y-0.5",

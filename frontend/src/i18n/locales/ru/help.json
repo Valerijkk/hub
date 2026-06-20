@@ -1,0 +1,46 @@
+{
+	"title": "Справка Hub",
+	"subtitle": "Краткое руководство. Полная wiki — в репозитории docs/wiki/.",
+	"cards": {
+		"hotkeys": { "title": "Горячие клавиши", "desc": "Все shortcuts в настройках" },
+		"search": { "title": "Глобальный поиск", "desc": "Ctrl+K — задачи, кейсы, каналы, люди" },
+		"tms": { "title": "TMS + Allure", "desc": "Импорт прогонов из CI" },
+		"integrations": { "title": "Интеграции", "desc": "GitHub, GitLab, API keys в профиле" }
+	},
+	"sections": {
+		"quickStart": {
+			"title": "Быстрый старт",
+			"items": [
+				"Magic Link или Telegram — вход без пароля",
+				"Онбординг: профиль → тур → тема → проект",
+				"Создайте проект в сайдбаре — появятся доска, TMS, чат"
+			]
+		},
+		"hotkeys": {
+			"title": "Горячие клавиши",
+			"items": [
+				"Ctrl+K / Cmd+K — глобальный поиск",
+				"Ctrl+N — новая задача (на поддерживаемых страницах)",
+				"Enter / Shift+Enter — отправка в мессенджере"
+			]
+		},
+		"allure": {
+			"title": "Allure / TMS CI",
+			"items": [
+				"CI: hub-cli push-results или POST webhook с Allure JSON",
+				"Матчинг по @TestCase(\"HUB-TC-42\") или ID в названии",
+				"Failed кейс → «Создать баг» в прогоне"
+			]
+		},
+		"integrations": {
+			"title": "GitHub / GitLab",
+			"items": [
+				"Коммит с HUB-123 → автопривязка PR/MR",
+				"Webhook в настройках проекта → Integrations",
+				"Создание ветки из карточки задачи"
+			]
+		}
+	},
+	"adminLink": "Нужна помощь администратора?",
+	"adminPanel": "Админ-панель"
+}

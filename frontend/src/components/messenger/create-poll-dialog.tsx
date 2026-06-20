@@ -1,17 +1,19 @@
-import { useCallback, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
 import { createPoll } from "@/api/messenger";
-import { useInvalidateMessages } from "@/hooks/use-invalidate";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useInvalidateMessages } from "@/hooks/use-invalidate";
 
 /** Максимальное количество вариантов ответа. */
 const MAX_OPTIONS = 10;
@@ -36,7 +38,10 @@ interface PollOption {
 
 /** Generate a stable id for a poll option (UUID with non-secure fallback). */
 function makeOptionId(): string {
-	if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+	if (
+		typeof crypto !== "undefined" &&
+		typeof crypto.randomUUID === "function"
+	) {
 		return crypto.randomUUID();
 	}
 	return `opt-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -61,7 +66,9 @@ export function CreatePollDialog({
 }: CreatePollDialogProps) {
 	const invalidateMessages = useInvalidateMessages(channelId);
 	const [question, setQuestion] = useState("");
-	const [options, setOptions] = useState<PollOption[]>(() => makeInitialOptions());
+	const [options, setOptions] = useState<PollOption[]>(() =>
+		makeInitialOptions(),
+	);
 	const [isAnonymous, setIsAnonymous] = useState(false);
 	const [isMultiChoice, setIsMultiChoice] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
@@ -76,7 +83,9 @@ export function CreatePollDialog({
 
 	/** Обновить текст варианта по id. */
 	const updateOption = useCallback((id: string, value: string) => {
-		setOptions((prev) => prev.map((o) => (o.id === id ? { ...o, text: value } : o)));
+		setOptions((prev) =>
+			prev.map((o) => (o.id === id ? { ...o, text: value } : o)),
+		);
 	}, []);
 
 	/** Добавить новый вариант. */
@@ -99,7 +108,7 @@ export function CreatePollDialog({
 	const handleSubmit = useCallback(async () => {
 		const trimmedQuestion = question.trim();
 		if (!trimmedQuestion) {
-			toast.error("Введите вопрос");
+			toast.error(i18n.t("common:validation.enterQuestion"));
 			return;
 		}
 
@@ -108,7 +117,7 @@ export function CreatePollDialog({
 			.filter((o) => o.length > 0);
 
 		if (validOptions.length < MIN_OPTIONS) {
-			toast.error("Необходимо минимум 2 варианта ответа");
+			toast.error(i18n.t("common:validation.pollMinOptions"));
 			return;
 		}
 
@@ -124,12 +133,21 @@ export function CreatePollDialog({
 			invalidateMessages();
 			resetForm();
 			onOpenChange(false);
-		} catch {
-			toast.error("Не удалось создать опрос");
+		} catch (err) {
+			toastApiError(err, "Не удалось создать опрос");
 		} finally {
 			setSubmitting(false);
 		}
-	}, [channelId, question, options, isAnonymous, isMultiChoice, invalidateMessages, resetForm, onOpenChange]);
+	}, [
+		channelId,
+		question,
+		options,
+		isAnonymous,
+		isMultiChoice,
+		invalidateMessages,
+		resetForm,
+		onOpenChange,
+	]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -158,10 +176,7 @@ export function CreatePollDialog({
 						<div className="space-y-2">
 							{options.map((option, index) => (
 								// Stable id keeps focus/state on the right input across add/remove.
-								<div
-									key={option.id}
-									className="flex items-center gap-2"
-								>
+								<div key={option.id} className="flex items-center gap-2">
 									<Input
 										value={option.text}
 										onChange={(e) => updateOption(option.id, e.target.value)}

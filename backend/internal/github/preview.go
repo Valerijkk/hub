@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/otiai10/opengraph/v2"
 	"github.com/redis/go-redis/v9"
 	"encoding/json"
 
@@ -70,7 +69,7 @@ func (s *LinkPreviewService) GetLinkPreview(ctx context.Context, rawURL string) 
 
 	// Внешний URL -- OpenGraph
 	if resp == nil {
-		resp = s.resolveExternalPreview(rawURL)
+		resp = s.resolveExternalPreview(ctx, rawURL)
 	}
 
 	if resp == nil {
@@ -118,18 +117,9 @@ func (s *LinkPreviewService) resolveIssuePreview(ctx context.Context, issueKey s
 	return resp
 }
 
-// resolveExternalPreview получает OpenGraph метаданные для внешнего URL.
-// URL предварительно валидируется (схема, отсутствие userinfo) — это первый
-// уровень защиты от SSRF; полная защита от DNS-rebinding потребовала бы
-// перевода opengraph.Fetch на http.Client с SafeDialContext, что выходит за
-// рамки текущего фикса (CR-03).
-func (s *LinkPreviewService) resolveExternalPreview(rawURL string) *LinkPreviewResponse {
-	if err := safehttp.ValidateOutboundURL(rawURL); err != nil {
-		slog.Debug("link preview: отклонён небезопасный URL", "url", rawURL, "error", err)
-		return nil
-	}
-
-	og, err := opengraph.Fetch(rawURL)
+// resolveExternalPreview получает OpenGraph метаданные для внешнего URL через SafeHTTP (NEW-02).
+func (s *LinkPreviewService) resolveExternalPreview(ctx context.Context, rawURL string) *LinkPreviewResponse {
+	og, err := safehttp.FetchOpenGraphMetadata(ctx, rawURL)
 	if err != nil {
 		slog.Debug("не удалось получить OG данные", "url", rawURL, "error", err)
 		return nil
@@ -149,8 +139,8 @@ func (s *LinkPreviewService) resolveExternalPreview(rawURL string) *LinkPreviewR
 		Domain:      domain,
 	}
 
-	if len(og.Image) > 0 {
-		imgURL := og.Image[0].URL
+	if og.ImageURL != "" {
+		imgURL := og.ImageURL
 		if strings.HasPrefix(imgURL, "/") && parsed != nil {
 			imgURL = parsed.Scheme + "://" + parsed.Host + imgURL
 		}

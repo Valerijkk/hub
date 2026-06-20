@@ -1,0 +1,114 @@
+---
+description: Backend Go patterns for Hub — layering, Ent, Fiber, NATS, security.
+globs: backend/**/*.go
+alwaysApply: false
+---
+
+# Hub — Backend Patterns
+
+## Module Structure (mandatory)
+
+```
+backend/internal/<module>/
+├── handler.go         # HTTP layer ONLY: parse request, call service, return response
+├── service.go         # Business logic, depends on Repository interface
+├── repository.go      # Repository interface definition
+├── ent_repository.go  # Ent implementation of Repository
+├── dto.go             # Request/Response structs (json tags, validate tags)
+└── <module>_test.go   # Integration tests with testcontainers
+```
+
+## Layering Rules
+
+```go
+// Handler → Service → Repository → DB
+// Each layer depends ONLY on the layer below via interface
+
+// ✅ Handler: only HTTP concerns
+func (h *Handler) CreateIssue(c *fiber.Ctx) error {
+    var req dto.CreateIssueRequest
+    if err := c.BodyParser(&req); err != nil {
+        return fiber.ErrBadRequest
+    }
+    issue, err := h.service.CreateIssue(c.Context(), req)
+    if err != nil { return err }
+    return c.Status(201).JSON(issue)
+}
+
+// ❌ Handler: no DB access
+func (h *Handler) CreateIssue(c *fiber.Ctx) error {
+    h.db.Issue.Create().SetTitle(req.Title).Save(ctx) // WRONG
+}
+```
+
+## Ent Schema Template
+
+```go
+func (Issue) Fields() []ent.Field {
+    return []ent.Field{
+        field.UUID("id", uuid.UUID{}).Default(uuid.New).Immutable(),
+        field.String("title").NotEmpty().MaxLen(500),
+        field.Time("created_at").Default(time.Now).Immutable(),
+        field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
+        field.Int("version").Default(1),  // optimistic lock
+    }
+}
+```
+
+## NATS Event Publishing
+
+```go
+// Publish domain events via NATS JetStream
+type EventPublisher interface {
+    Publish(ctx context.Context, subject string, data any) error
+}
+
+// Subjects: "hub.issues.created", "hub.messages.sent", etc.
+```
+
+## Fiber Middleware Order (main.go)
+
+```go
+// CORRECT ORDER — do not reorder
+app.Use(middleware.RequestID())
+app.Use(middleware.Recover())
+app.Use(middleware.Logger())
+app.Use(middleware.CORS(corsConfig))
+app.Use(middleware.RateLimit(rateLimitConfig))
+app.Use(securityHeaders)                // must be early
+app.Use(apigatewaymod.APIKeyAuth(...))  // must be BEFORE routes
+
+api := app.Group("/api")
+// mount all route groups here
+```
+
+## Security Rules
+
+```go
+// User-controlled URLs: always use SafeDialer
+client := safehttp.NewSafeHTTPClient(10 * time.Second)
+if err := safehttp.ValidateOutboundURL(userURL); err != nil {
+    return ErrInvalidURL
+}
+
+// Webhook signatures: never skip
+expectedHash, ok := claims["sha256"].(string)
+if !ok || expectedHash == "" {
+    return fiber.ErrUnauthorized  // reject if missing
+}
+
+// Rate limiting per endpoint type
+// auth: 3/10min, api: 100/sec, files: 10/min, messages: 60/min
+```
+
+## Testing
+
+```go
+// Use testcontainers for integration tests
+func TestIssueService_Create(t *testing.T) {
+    ctx := context.Background()
+    pg, _ := postgres.RunContainer(ctx, testcontainers.WithImage("postgres:17"))
+    defer pg.Terminate(ctx)
+    // setup ent client, service, run assertions
+}
+```

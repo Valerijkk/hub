@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/activitylog"
@@ -72,6 +73,8 @@ type Repository interface {
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
+const slowRequestThresholdMS = 500
+
 // entRepository — Ent-реализация Repository.
 type entRepository struct {
 	client *ent.Client
@@ -126,11 +129,26 @@ func (r *entRepository) ListAuditLogs(ctx context.Context, filters AuditLogFilte
 	if filters.ProjectID != nil {
 		query = query.Where(auditlog.ProjectIDEQ(*filters.ProjectID))
 	}
+	if filters.EntityID != "" {
+		query = query.Where(auditlog.EntityIDEQ(filters.EntityID))
+	}
+	if filters.IPAddress != "" {
+		query = query.Where(auditlog.IPAddressContains(filters.IPAddress))
+	}
 	if filters.DateFrom != nil {
 		query = query.Where(auditlog.CreatedAtGTE(*filters.DateFrom))
 	}
 	if filters.DateTo != nil {
 		query = query.Where(auditlog.CreatedAtLTE(*filters.DateTo))
+	}
+	if filters.SlowOnly {
+		query = query.Where(auditlog.EntityTypeEQ("http"))
+		query = query.Where(func(s *sql.Selector) {
+			s.Where(sql.ExprP(
+				"details IS NOT NULL AND (details->>'duration_ms')::float > $1",
+				slowRequestThresholdMS,
+			))
+		})
 	}
 
 	total, err := query.Clone().Count(ctx)

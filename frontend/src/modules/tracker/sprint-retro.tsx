@@ -111,9 +111,7 @@ export function SprintRetro({
 				<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500/10 to-violet-500/5">
 					<Lightbulb className="h-4 w-4 text-violet-400" />
 				</div>
-				<h2 className="text-[14px] font-bold text-t1">
-					Ретроспектива
-				</h2>
+				<h2 className="text-[14px] font-bold text-t1">Ретроспектива</h2>
 			</div>
 
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -125,9 +123,7 @@ export function SprintRetro({
 								<div
 									className={`flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br ${section.bg}`}
 								>
-									<SectionIcon
-										className={`h-3 w-3 ${section.color}`}
-									/>
+									<SectionIcon className={`h-3 w-3 ${section.color}`} />
 								</div>
 								<label className="text-[13px] font-medium text-t1">
 									{section.label}

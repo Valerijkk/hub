@@ -59,28 +59,33 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<
 	React.ElementRef<typeof DialogPrimitive.Content>,
 	SheetContentProps
->(({ className, children, side = "left", showClose = false, ...props }, ref) => (
-	<SheetPortal>
-		<SheetOverlay />
-		<DialogPrimitive.Content
-			ref={ref}
-			className={cn(
-				"fixed z-50 flex flex-col bg-[var(--void)] shadow-2xl outline-none duration-[220ms] ease-[var(--spring)] data-[state=open]:animate-in data-[state=closed]:animate-out",
-				SIDE_CLASSES[side],
-				className,
-			)}
-			{...props}
-		>
-			{children}
-			{showClose && (
-				<DialogPrimitive.Close className="absolute right-3 top-3 rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:text-t1 hover:bg-[var(--hover)] focus:outline-none focus:ring-2 focus:ring-ring">
-					<X className="h-4 w-4" />
-					<span className="sr-only">Закрыть</span>
-				</DialogPrimitive.Close>
-			)}
-		</DialogPrimitive.Content>
-	</SheetPortal>
-));
+>(
+	(
+		{ className, children, side = "left", showClose = false, ...props },
+		ref,
+	) => (
+		<SheetPortal>
+			<SheetOverlay />
+			<DialogPrimitive.Content
+				ref={ref}
+				className={cn(
+					"fixed z-50 flex flex-col bg-[var(--void)] shadow-2xl outline-none duration-[220ms] ease-[var(--spring)] data-[state=open]:animate-in data-[state=closed]:animate-out",
+					SIDE_CLASSES[side],
+					className,
+				)}
+				{...props}
+			>
+				{children}
+				{showClose && (
+					<DialogPrimitive.Close className="absolute right-3 top-3 rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:text-t1 hover:bg-[var(--hover)] focus:outline-none focus:ring-2 focus:ring-ring">
+						<X className="h-4 w-4" />
+						<span className="sr-only">Закрыть</span>
+					</DialogPrimitive.Close>
+				)}
+			</DialogPrimitive.Content>
+		</SheetPortal>
+	),
+);
 SheetContent.displayName = "SheetContent";
 
 const SheetTitle = React.forwardRef<

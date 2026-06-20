@@ -1,0 +1,90 @@
+---
+description: Code style, prohibited patterns, tone for all Hub code.
+alwaysApply: true
+---
+
+# Hub — Code Style
+
+> Полная версия: `docs/code_style_guide.md`
+
+## Universal Rules
+
+- Comments explain WHY, not WHAT the code does — never narrate
+- No placeholder comments like "// Handle error", "// Return result"
+- No emojis in code or comments
+- Commit format: `feat(module): description` | `fix(module): description` | `refactor(module): description`
+
+## Go Style
+
+```go
+// ✅ Good: errors
+if ent.IsNotFound(err) { return nil, ErrNotFound }
+if errors.Is(err, context.DeadlineExceeded) { ... }
+fmt.Errorf("create issue: %w", err)  // always wrap
+
+// ❌ Bad
+if err != nil { return nil, err }    // loses context
+panic(err)                           // never in production
+
+// ✅ Good: UUID
+field.UUID("id", uuid.UUID{}).Default(uuid.New).Immutable()
+
+// ❌ Bad
+field.String("id")  // no UUIDs as strings
+
+// ✅ Good: context always first
+func (s *Service) Create(ctx context.Context, req *CreateRequest) (*Entity, error)
+
+// ✅ Good: logging
+slog.InfoContext(ctx, "issue created", "id", issue.ID, "project_id", projectID)
+
+// ❌ Bad
+fmt.Println("issue created")
+log.Printf("issue created %v", issue)
+```
+
+## TypeScript/React Style
+
+```typescript
+// ✅ Good: optional chaining
+const name = user?.profile?.name ?? 'Unknown'
+
+// ❌ Bad: non-null assertion without guard
+const name = user!.profile!.name
+
+// ✅ Good: hook rules (all hooks before any return)
+export function Component({ id }: Props) {
+    const data = useQuery({ queryKey: ['item', id], ... })
+    const store = useStore()
+    if (!id) return null   // conditional AFTER all hooks
+
+// ❌ Bad: hook after conditional
+export function Component({ id }: Props) {
+    if (!id) return null
+    const data = useQuery(...)  // Rules of Hooks violation!
+
+// ✅ Good: stable list keys
+items.map(item => <Card key={item.id} ... />)
+
+// ❌ Bad: index as key
+items.map((item, idx) => <Card key={idx} ... />)
+
+// ✅ Good: explicit button type
+<button type="button" onClick={handleClose}>Cancel</button>
+
+// ❌ Bad: implicit submit
+<button onClick={handleClose}>Cancel</button>
+```
+
+## Prohibited Patterns
+
+| Pattern | Why | Alternative |
+|---------|-----|-------------|
+| `http.DefaultClient` | No timeout, SSRF risk | `safehttp.NewSafeHTTPClient(10*time.Second)` |
+| `io.ReadAll` | Memory DoS | `io.LimitReader(r, maxBytes)` |
+| `!=` for secrets | Timing attack | `subtle.ConstantTimeCompare` |
+| `*ent.Client` in Service | Breaks layering | Repository interface |
+| `*ent.Client` in Handler | Breaks layering | Service interface |
+| `panic()` in handlers | Production crash | return error |
+| `any` without comment | Loses type safety | Explicit type or `// reason` |
+| `key={index}` in lists | React reconciliation bug | Stable ID |

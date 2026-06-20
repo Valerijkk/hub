@@ -1,0 +1,44 @@
+---
+description: Удалять мусорные артефакты покрытия и прогонов после работы и верификации.
+alwaysApply: true
+---
+
+# Hub — Artifacts Cleanup
+
+## Когда чистить
+
+**Обязательно** в конце сессии, после qa-gate, coverage refresh или handoff — если создавались локальные dumps.
+
+Не оставлять артефакты «на потом» и не просить пользователя подтверждать удаление стандартного coverage-мусора.
+
+## Что удалять
+
+| Категория | Паттерны | Примеры |
+|-----------|----------|---------|
+| Go cover profiles | `*.out` в `backend/` | `coverage.out`, `calls_cov.out` |
+| Text cover dumps | `backend/cover*`, `backend/cov_*` | `cover_auth`, `cov_calls`, `coverprofile` |
+| Per-package reports | `backend/*_cov*` | `auth_cov.txt`, `gitlab_cov` |
+| Temp benchmark runs | `backend/tmp*`, `backend/tmp-*` | `tmpwscov`, `tmp-rbac` |
+| Scratch scripts | `tmp_*.py` в корне | `tmp_route_diff.py` |
+
+**Не удалять:** `*_test.go`, `*_coverage_test.go`, `.planning/COVERAGE.md`, CI configs.
+
+## Куда писать профили
+
+```bash
+# ✅ Вне repo или системный temp
+go test -coverprofile="${TMPDIR:-/tmp}/hub-cov.out" ./internal/...
+
+# ❌ В backend/ или корень repo
+go test -coverprofile=coverage.out ./...
+```
+
+## Процедура агента (после верификации)
+
+1. Зафиксировать проценты в `.planning/COVERAGE.md` (если задача про coverage).
+2. Удалить все matching арtefacts из таблицы выше.
+3. `git status` — в diff не должно быть `cover*`, `cov_*`, `*.out`, `tmp_*`.
+
+## Git
+
+Все перечисленные паттерны — в `.gitignore`. **Никогда не коммить** coverage dumps, даже «для истории».

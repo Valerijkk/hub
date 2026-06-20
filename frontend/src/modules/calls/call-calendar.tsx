@@ -11,13 +11,13 @@ import { MonthView } from "./calendar-month-view";
 import {
 	type CalendarEvent,
 	type CalendarView,
-	type ScheduledCallRecord,
 	DEFAULT_DURATION,
 	expandRRule,
 	getColorForEvent,
 	getMonthGridDays,
 	getWeekDays,
 	getWeekStart,
+	type ScheduledCallRecord,
 } from "./calendar-types";
 import { WeekView } from "./calendar-week-view";
 import { CreateCallDialog } from "./create-call-dialog";
@@ -116,19 +116,27 @@ export function CallCalendar() {
 	// --- Compute visible range based on active view ---
 	const rangeStart = useMemo(() => {
 		switch (view) {
-			case "month": return monthRangeStart;
-			case "week": return weekStart;
-			case "day": return displayDay;
-			case "agenda": return agendaRangeStart;
+			case "month":
+				return monthRangeStart;
+			case "week":
+				return weekStart;
+			case "day":
+				return displayDay;
+			case "agenda":
+				return agendaRangeStart;
 		}
 	}, [view, monthRangeStart, weekStart, displayDay, agendaRangeStart]);
 
 	const rangeEnd = useMemo(() => {
 		switch (view) {
-			case "month": return monthRangeEnd;
-			case "week": return weekRangeEnd;
-			case "day": return dayRangeEnd;
-			case "agenda": return agendaRangeEnd;
+			case "month":
+				return monthRangeEnd;
+			case "week":
+				return weekRangeEnd;
+			case "day":
+				return dayRangeEnd;
+			case "agenda":
+				return agendaRangeEnd;
 		}
 	}, [view, monthRangeEnd, weekRangeEnd, dayRangeEnd, agendaRangeEnd]);
 
@@ -335,10 +343,22 @@ export function CallCalendar() {
 				<div className="flex gap-[2px] bg-input rounded-[var(--r2)] p-[3px] ml-auto border border-b1">
 					{(
 						[
-							{ key: "month" as const, label: t("calendarMonth", { defaultValue: "Месяц" }) },
-							{ key: "week" as const, label: t("calendarWeek", { defaultValue: "Неделя" }) },
-							{ key: "day" as const, label: t("calendarDay", { defaultValue: "День" }) },
-							{ key: "agenda" as const, label: t("calendarAgenda", { defaultValue: "Список" }) },
+							{
+								key: "month" as const,
+								label: t("calendarMonth", { defaultValue: "Месяц" }),
+							},
+							{
+								key: "week" as const,
+								label: t("calendarWeek", { defaultValue: "Неделя" }),
+							},
+							{
+								key: "day" as const,
+								label: t("calendarDay", { defaultValue: "День" }),
+							},
+							{
+								key: "agenda" as const,
+								label: t("calendarAgenda", { defaultValue: "Список" }),
+							},
 						] as const
 					).map((tab) => (
 						<button
@@ -401,10 +421,7 @@ export function CallCalendar() {
 				/>
 			)}
 			{view === "agenda" && (
-				<AgendaView
-					events={events}
-					onEventClick={handleEventClick}
-				/>
+				<AgendaView events={events} onEventClick={handleEventClick} />
 			)}
 
 			{/* Event detail popover */}
@@ -429,9 +446,7 @@ export function CallCalendar() {
 								</button>
 							</div>
 							{selectedEvent.description && (
-								<p className="text-sm text-t2">
-									{selectedEvent.description}
-								</p>
+								<p className="text-sm text-t2">{selectedEvent.description}</p>
 							)}
 							<div className="flex flex-col gap-1 text-sm">
 								<span>

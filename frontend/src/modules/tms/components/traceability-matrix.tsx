@@ -183,6 +183,7 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 				<CardContent className="py-8 text-center text-t2">
 					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-raised/60 to-raised/30 border border-dashed border-t2/20">
 						<svg
+							aria-hidden="true"
 							className="h-8 w-8 text-t2/30"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -223,15 +224,11 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 				</div>
 				<div className="flex items-center gap-2">
 					<span className="h-2 w-2 rounded-full bg-green-500" />
-					<span className="text-xs text-t2">
-						Passed: {stats.passed}
-					</span>
+					<span className="text-xs text-t2">Passed: {stats.passed}</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<span className="h-2 w-2 rounded-full bg-red-500" />
-					<span className="text-xs text-t2">
-						Failed: {stats.failed}
-					</span>
+					<span className="text-xs text-t2">Failed: {stats.failed}</span>
 				</div>
 
 				{/* Легенда */}
@@ -252,9 +249,7 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 											? "--"
 											: status.charAt(0).toUpperCase()}
 									</span>
-									<span className="text-[10px] text-t2">
-										{cfg.label}
-									</span>
+									<span className="text-[10px] text-t2">{cfg.label}</span>
 								</div>
 							);
 						},
@@ -265,6 +260,7 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 			{/* Поиск */}
 			<div className="relative">
 				<svg
+					aria-hidden="true"
 					className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-t2/60"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -335,9 +331,7 @@ export function TraceabilityMatrix({ projectId }: TraceabilityMatrixProps) {
 													key={key}
 													className="border px-2 py-1.5 text-center"
 												>
-													<span className="text-[10px] text-t2/20">
-														--
-													</span>
+													<span className="text-[10px] text-t2/20">--</span>
 												</td>
 											);
 										}

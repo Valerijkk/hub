@@ -68,22 +68,29 @@ export function ResourceLimits() {
 			<h3 className="text-[16px] font-bold mb-[18px]">Лимиты ресурсов</h3>
 
 			<div className="max-w-[480px]">
-				{limits.map((limit) => (
-					<div key={limit.key} className="mb-4">
-						<label className="block text-[13px] font-semibold text-t2 mb-[6px]">
-							{LIMIT_LABELS[limit.key] ?? limit.key}
-						</label>
-						<input
-							type="number"
-							min={0}
-							value={values[limit.key] ?? ""}
-							onChange={(e) =>
-								setValues((v) => ({ ...v, [limit.key]: e.target.value }))
-							}
-							className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none"
-						/>
-					</div>
-				))}
+				{limits.map((limit) => {
+					const inputId = `limit-${limit.key.replace(/\./g, "-")}`;
+					return (
+						<div key={limit.key} className="mb-4">
+							<label
+								htmlFor={inputId}
+								className="block text-[13px] font-semibold text-t2 mb-[6px]"
+							>
+								{LIMIT_LABELS[limit.key] ?? limit.key}
+							</label>
+							<input
+								id={inputId}
+								type="number"
+								min={0}
+								value={values[limit.key] ?? ""}
+								onChange={(e) =>
+									setValues((v) => ({ ...v, [limit.key]: e.target.value }))
+								}
+								className="w-full h-[42px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none"
+							/>
+						</div>
+					);
+				})}
 			</div>
 
 			<div className="flex items-center gap-3 mt-2">

@@ -1,9 +1,14 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import type { Channel, PresenceStatus } from "@/api/messenger";
-import { deleteChannel, muteChannel, starChannel, unmuteChannel } from "@/api/messenger";
+import {
+	deleteChannel,
+	muteChannel,
+	starChannel,
+	unmuteChannel,
+} from "@/api/messenger";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
 	Dialog,
@@ -61,9 +66,11 @@ function groupChannels(channels: Channel[]) {
 	}
 
 	const groups: [string, { label: string; channels: Channel[] }][] = [];
-	if (starred.length > 0) groups.push(["starred", { label: "Закреплённые", channels: starred }]);
+	if (starred.length > 0)
+		groups.push(["starred", { label: "Закреплённые", channels: starred }]);
 	if (dm.length > 0) groups.push(["dm", { label: "Личные", channels: dm }]);
-	if (rest.length > 0) groups.push(["channels", { label: "Каналы", channels: rest }]);
+	if (rest.length > 0)
+		groups.push(["channels", { label: "Каналы", channels: rest }]);
 	return groups;
 }
 
@@ -89,6 +96,7 @@ function BookmarksButton() {
 				onClick={() => setOpen(true)}
 			>
 				<svg
+					aria-hidden="true"
 					className="h-4 w-4"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -151,6 +159,7 @@ function ChannelSection({
 					onClick={() => setCollapsed(!collapsed)}
 				>
 					<svg
+						aria-hidden="true"
 						className={cn(
 							"h-3 w-3 transition-transform duration-200",
 							collapsed && "-rotate-90",
@@ -181,7 +190,11 @@ function ChannelSection({
 function StarIcon({ filled }: { filled: boolean }) {
 	return (
 		<svg
-			className={cn("h-3.5 w-3.5", filled ? "text-yellow-400" : "text-sidebar-foreground/40")}
+			aria-hidden="true"
+			className={cn(
+				"h-3.5 w-3.5",
+				filled ? "text-yellow-400" : "text-sidebar-foreground/40",
+			)}
 			fill={filled ? "currentColor" : "none"}
 			viewBox="0 0 24 24"
 			stroke="currentColor"
@@ -200,6 +213,7 @@ function StarIcon({ filled }: { filled: boolean }) {
 function MutedIcon() {
 	return (
 		<svg
+			aria-hidden="true"
 			className="h-3.5 w-3.5 text-sidebar-foreground/40"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -252,7 +266,9 @@ function MuteContextMenu({
 	const handleDelete = useCallback(async () => {
 		try {
 			await deleteChannel(channelId);
-			await queryClient.invalidateQueries({ queryKey: ["messenger", "channels"] });
+			await queryClient.invalidateQueries({
+				queryKey: ["messenger", "channels"],
+			});
 			await queryClient.invalidateQueries({ queryKey: ["messenger"] });
 		} catch {
 			// канал уже удалён
@@ -357,13 +373,10 @@ function ChannelItem({
 	);
 
 	/** Открыть меню мьюта по правому клику. */
-	const handleContextMenu = useCallback(
-		(e: React.MouseEvent) => {
-			e.preventDefault();
-			setMuteMenu({ x: e.clientX, y: e.clientY });
-		},
-		[],
-	);
+	const handleContextMenu = useCallback((e: React.MouseEvent) => {
+		e.preventDefault();
+		setMuteMenu({ x: e.clientX, y: e.clientY });
+	}, []);
 
 	return (
 		<>
@@ -384,10 +397,7 @@ function ChannelItem({
 					<ChannelIcon type={channel.channel_type} />
 					{channel.channel_type === "dm" && partnerId && (
 						<span className="absolute bottom-0 right-0 w-[9px] h-[9px] rounded-full border-2 border-[var(--void)]">
-							<PresenceIndicator
-								status={getStatus(partnerId)}
-								size="sm"
-							/>
+							<PresenceIndicator status={getStatus(partnerId)} size="sm" />
 						</span>
 					)}
 				</div>
@@ -509,7 +519,10 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 				<div className="flex flex-1 items-center justify-center">
 					<div className="space-y-1 w-full px-2">
 						{[1, 2, 3, 4, 5].map((i) => (
-							<div key={`ch-sk-${i}`} className="flex items-center gap-[11px] px-3.5 py-2.5">
+							<div
+								key={`ch-sk-${i}`}
+								className="flex items-center gap-[11px] px-3.5 py-2.5"
+							>
 								<div className="h-[38px] w-[38px] rounded-full animate-shimmer shrink-0" />
 								<div className="flex-1 space-y-1">
 									<div className="h-3 w-24 rounded animate-shimmer" />
@@ -595,6 +608,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 					{allChannels.length === 0 && (
 						<div className="flex flex-col items-center justify-center py-12 px-4">
 							<svg
+								aria-hidden="true"
 								className="mb-3 h-10 w-10 text-sidebar-foreground/20"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -624,8 +638,19 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 							type="button"
 							className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t2)] transition-colors"
 						>
-							<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-								<path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+							<svg
+								aria-hidden="true"
+								className="h-3.5 w-3.5"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								strokeWidth={2}
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									d="M12 4v16m8-8H4"
+								/>
 							</svg>
 							Канал
 						</button>

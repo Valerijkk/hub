@@ -66,8 +66,8 @@ export function NewDmDialog() {
 		const q = search.toLowerCase();
 		return users.filter(
 			(u) =>
-				(u.name && u.name.toLowerCase().includes(q)) ||
-				(u.display_name && u.display_name.toLowerCase().includes(q)) ||
+				u.name?.toLowerCase().includes(q) ||
+				u.display_name?.toLowerCase().includes(q) ||
 				u.email.toLowerCase().includes(q),
 		);
 	}, [users, search]);
@@ -99,6 +99,7 @@ export function NewDmDialog() {
 					title="Написать"
 				>
 					<svg
+						aria-hidden="true"
 						className="h-4 w-4"
 						fill="none"
 						viewBox="0 0 24 24"
@@ -157,9 +158,7 @@ export function NewDmDialog() {
 											)}
 										</div>
 										{creating === u.id && (
-											<span className="ml-auto text-xs text-t2">
-												...
-											</span>
+											<span className="ml-auto text-xs text-t2">...</span>
 										)}
 									</button>
 								))}

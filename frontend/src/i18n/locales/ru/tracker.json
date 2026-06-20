@@ -77,5 +77,39 @@
 	"velocity": "Velocity",
 	"planningPoker": "Planning Poker",
 	"storyPoints": "Story Points",
-	"retrospective": "Ретроспектива"
+	"retrospective": "Ретроспектива",
+	"form": {
+		"title": "Название",
+		"titlePlaceholder": "Введите название задачи",
+		"titleRequired": "Введите название задачи",
+		"descriptionPlaceholder": "Опишите задачу…",
+		"assigneePlaceholder": "Выберите исполнителя",
+		"estimateMinutes": "Оценка (минуты)",
+		"storyPointsNone": "—",
+		"createSuccess": "Задача создана",
+		"createError": "Не удалось создать задачу",
+		"updateSuccess": "Задача обновлена",
+		"updateError": "Не удалось обновить задачу",
+		"submitCreate": "Создать задачу",
+		"submitEdit": "Сохранить изменения"
+	},
+	"userPicker": {
+		"searchPlaceholder": "Поиск по имени или email…",
+		"searchAria": "Поиск исполнителя",
+		"loading": "Загрузка…",
+		"empty": "Участники не найдены",
+		"clearAssignee": "Сбросить исполнителя"
+	},
+	"kanban": {
+		"loading": "Загрузка доски…",
+		"loadError": "Не удалось загрузить доску",
+		"moveError": "Не удалось переместить задачу",
+		"moveIssue": "Переместить {{key}}",
+		"swimlanes": "Swimlanes",
+		"swimlaneNone": "Без группировки",
+		"swimlaneAssignee": "По исполнителю",
+		"swimlanePriority": "По приоритету",
+		"swimlaneType": "По типу",
+		"unassigned": "Без исполнителя"
+	}
 }

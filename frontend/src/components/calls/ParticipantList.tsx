@@ -1,4 +1,8 @@
-import { useIsSpeaking, useParticipants, VideoTrack } from "@livekit/components-react";
+import {
+	useIsSpeaking,
+	useParticipants,
+	VideoTrack,
+} from "@livekit/components-react";
 import type { Participant, TrackPublication } from "livekit-client";
 import { Track } from "livekit-client";
 import { MicOff } from "lucide-react";

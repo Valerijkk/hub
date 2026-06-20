@@ -16,7 +16,8 @@ function getCallDisplayName(call: CallSummary): string {
 	const titleIsRaw = !call.title || GENERATED_ID_RE.test(call.title);
 	// Prefer channel_name for short/numeric/raw titles
 	if (titleIsRaw && call.channel_name) return call.channel_name;
-	if (call.title && call.title.length <= 2 && call.channel_name) return call.channel_name;
+	if (call.title && call.title.length <= 2 && call.channel_name)
+		return call.channel_name;
 	return call.title || call.channel_name || "Звонок";
 }
 
@@ -28,7 +29,10 @@ function formatCallTime(isoDate: string): string {
 	tomorrow.setDate(tomorrow.getDate() + 1);
 	const callDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
-	const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+	const time = d.toLocaleTimeString("ru-RU", {
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 
 	if (callDay.getTime() === today.getTime()) return time;
 	if (callDay.getTime() === tomorrow.getTime()) return "Завтра";

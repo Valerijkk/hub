@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { deactivateUser, gdprDeleteUser, reassignTasks } from "@/api/admin";
+import {
+	banUser,
+	deactivateUser,
+	gdprDeleteUser,
+	reassignTasks,
+} from "@/api/admin";
 import { api } from "@/api/client";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -32,7 +37,12 @@ interface ReassignDialogProps {
  * ReassignDialog -- диалог подтверждения переназначения задач пользователя.
  * Содержит поле ввода ID целевого пользователя и кнопки подтверждения/отмены.
  */
-function ReassignDialog({ user, onConfirm, onClose, disabled }: ReassignDialogProps) {
+function ReassignDialog({
+	user,
+	onConfirm,
+	onClose,
+	disabled,
+}: ReassignDialogProps) {
 	const [targetId, setTargetId] = useState("");
 
 	return (
@@ -40,10 +50,7 @@ function ReassignDialog({ user, onConfirm, onClose, disabled }: ReassignDialogPr
 			<div className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
 				<h3 className="mb-4 text-[16px] font-bold">Переназначить задачи</h3>
 				<p className="mb-3 text-[13px] text-t2">
-					Все задачи пользователя{" "}
-					<strong>
-						{user.name || user.email}
-					</strong>{" "}
+					Все задачи пользователя <strong>{user.name || user.email}</strong>{" "}
 					будут переназначены.
 				</p>
 				<input
@@ -87,7 +94,12 @@ interface GdprDeleteDialogProps {
  * GdprDeleteDialog -- диалог подтверждения безвозвратного удаления данных пользователя (GDPR).
  * Требует ввод слова «УДАЛИТЬ» для подтверждения действия.
  */
-function GdprDeleteDialog({ user, onConfirm, onClose, disabled }: GdprDeleteDialogProps) {
+function GdprDeleteDialog({
+	user,
+	onConfirm,
+	onClose,
+	disabled,
+}: GdprDeleteDialogProps) {
 	const [confirmText, setConfirmText] = useState("");
 
 	return (
@@ -97,8 +109,7 @@ function GdprDeleteDialog({ user, onConfirm, onClose, disabled }: GdprDeleteDial
 					Удаление данных (GDPR)
 				</h3>
 				<p className="mb-2 text-[13px] text-t2">
-					Все данные пользователя{" "}
-					<strong>{user.name || user.email}</strong>{" "}
+					Все данные пользователя <strong>{user.name || user.email}</strong>{" "}
 					будут безвозвратно удалены.
 				</p>
 				<p className="mb-3 text-[13px] font-semibold text-red">
@@ -149,6 +160,8 @@ export function UserManagement() {
 	);
 	const [deactivateDialogUser, setDeactivateDialogUser] =
 		useState<ManagedUser | null>(null);
+	const [banDialogUser, setBanDialogUser] = useState<ManagedUser | null>(null);
+	const [banReason, setBanReason] = useState("");
 
 	useEffect(() => {
 		setLoading(true);
@@ -200,10 +213,7 @@ export function UserManagement() {
 
 		setActionUserId(reassignDialogUser.id);
 		try {
-			const result = await reassignTasks(
-				reassignDialogUser.id,
-				targetId,
-			);
+			const result = await reassignTasks(reassignDialogUser.id, targetId);
 			alert(`Переназначено задач: ${result.reassigned_count}`);
 			setReassignDialogUser(null);
 		} catch (err) {
@@ -229,6 +239,26 @@ export function UserManagement() {
 		}
 	};
 
+	/** Заблокировать пользователя с причиной. */
+	const handleBan = async () => {
+		if (!banDialogUser || !banReason.trim()) return;
+		setActionUserId(banDialogUser.id);
+		try {
+			await banUser(banDialogUser.id, banReason.trim());
+			setUsers((prev) =>
+				prev.map((u) =>
+					u.id === banDialogUser.id ? { ...u, status: "deactivated" } : u,
+				),
+			);
+			setBanDialogUser(null);
+			setBanReason("");
+		} catch (err) {
+			console.error("Ошибка блокировки:", err);
+		} finally {
+			setActionUserId(null);
+		}
+	};
+
 	return (
 		<div className="space-y-4">
 			{/* Invite section */}
@@ -249,76 +279,107 @@ export function UserManagement() {
 			</div>
 
 			{/* User table */}
-				<table className="w-full" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
-					<thead>
+			<table
+				className="w-full"
+				style={{ borderCollapse: "separate", borderSpacing: 0 }}
+			>
+				<thead>
+					<tr>
+						<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+							Пользователь
+						</th>
+						<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+							Роль
+						</th>
+						<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+							Статус
+						</th>
+						<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+							Последняя активность
+						</th>
+						<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2 w-[100px]">
+							Действия
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					{loading ? (
 						<tr>
-							<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Пользователь</th>
-							<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Роль</th>
-							<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Статус</th>
-							<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Последняя активность</th>
-							<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2 w-[100px]">Действия</th>
+							<td
+								colSpan={5}
+								className="px-4 py-8 text-center text-t3 text-[13px]"
+							>
+								Загрузка...
+							</td>
 						</tr>
-					</thead>
-					<tbody>
-						{loading ? (
-							<tr>
-								<td
-									colSpan={5}
-									className="px-4 py-8 text-center text-t3 text-[13px]"
-								>
-									Загрузка...
-								</td>
-							</tr>
-						) : filtered.length === 0 ? (
-							<tr>
-								<td
-									colSpan={5}
-									className="px-4 py-8 text-center text-t3 text-[13px]"
-								>
-									Пользователи не найдены
-								</td>
-							</tr>
-						) : (
-							filtered.map((user) => (
-								<tr key={user.id} className={user.status === "deactivated" ? "opacity-50" : ""}>
-									<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
-										<div className="flex items-center gap-[11px]">
-											<div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)]">
-												{(user.name?.[0] ?? user.email[0] ?? "?").toUpperCase()}
-											</div>
-											<div>
-												<div className="text-[14px] font-semibold">{user.name || user.display_name || "-"}</div>
-												<div className="text-[12px] text-t3">{user.email}</div>
-											</div>
+					) : filtered.length === 0 ? (
+						<tr>
+							<td
+								colSpan={5}
+								className="px-4 py-8 text-center text-t3 text-[13px]"
+							>
+								Пользователи не найдены
+							</td>
+						</tr>
+					) : (
+						filtered.map((user) => (
+							<tr
+								key={user.id}
+								className={user.status === "deactivated" ? "opacity-50" : ""}
+							>
+								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
+									<div className="flex items-center gap-[11px]">
+										<div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)]">
+											{(user.name?.[0] ?? user.email[0] ?? "?").toUpperCase()}
 										</div>
-									</td>
-									<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
-										<span
-											className={`inline-flex px-[10px] py-[3px] rounded-full text-[11px] font-[650] ${
-												user.system_role === "admin"
-													? "bg-blue/[0.08] text-blue border border-blue/[0.15]"
-													: user.system_role === "moderator"
-														? "bg-purple/[0.08] text-purple border border-purple/[0.15]"
-														: user.status === "deactivated"
-															? "bg-[var(--gray)]/[0.08] text-[var(--gray)] border border-[var(--gray)]/[0.15]"
-															: "bg-green/[0.08] text-green border border-green/[0.15]"
-											}`}
-										>
-											{user.system_role}
-										</span>
-									</td>
-									<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
-										{user.status === "deactivated"
-											? <span className="text-t4">{"\u25CB"} Деактивирован</span>
-											: <span className="text-green">{"\u25CF"} Онлайн</span>
-										}
-									</td>
-									<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] text-t2 hover:bg-[var(--hover)]">
-										{user.created_at ? new Date(user.created_at).toLocaleDateString("ru-RU") : "-"}
-									</td>
-									<td className="px-4 py-[14px] border-b border-b1 align-middle hover:bg-[var(--hover)]">
-										<div className="flex gap-1">
-											{user.status !== "deactivated" && (
+										<div>
+											<div className="text-[14px] font-semibold">
+												{user.name || user.display_name || "-"}
+											</div>
+											<div className="text-[12px] text-t3">{user.email}</div>
+										</div>
+									</div>
+								</td>
+								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
+									<span
+										className={`inline-flex px-[10px] py-[3px] rounded-full text-[11px] font-[650] ${
+											user.system_role === "admin"
+												? "bg-blue/[0.08] text-blue border border-blue/[0.15]"
+												: user.system_role === "moderator"
+													? "bg-purple/[0.08] text-purple border border-purple/[0.15]"
+													: user.status === "deactivated"
+														? "bg-[var(--gray)]/[0.08] text-[var(--gray)] border border-[var(--gray)]/[0.15]"
+														: "bg-green/[0.08] text-green border border-green/[0.15]"
+										}`}
+									>
+										{user.system_role}
+									</span>
+								</td>
+								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
+									{user.status === "deactivated" ? (
+										<span className="text-t4">{"\u25CB"} Деактивирован</span>
+									) : (
+										<span className="text-green">{"\u25CF"} Онлайн</span>
+									)}
+								</td>
+								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] text-t2 hover:bg-[var(--hover)]">
+									{user.created_at
+										? new Date(user.created_at).toLocaleDateString("ru-RU")
+										: "-"}
+								</td>
+								<td className="px-4 py-[14px] border-b border-b1 align-middle hover:bg-[var(--hover)]">
+									<div className="flex gap-1">
+										{user.status !== "deactivated" && (
+											<>
+												<button
+													type="button"
+													onClick={() => setBanDialogUser(user)}
+													disabled={actionUserId === user.id}
+													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-red/[0.1] hover:text-red disabled:opacity-50"
+													title="Заблокировать"
+												>
+													{"\u26D4"}
+												</button>
 												<button
 													type="button"
 													onClick={() => setDeactivateDialogUser(user)}
@@ -328,32 +389,33 @@ export function UserManagement() {
 												>
 													{"\u2718"}
 												</button>
-											)}
-											<button
-												type="button"
-												onClick={() => setReassignDialogUser(user)}
-												disabled={actionUserId === user.id}
-												className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
-												title="Переназначить"
-											>
-												{"\u270E"}
-											</button>
-											<button
-												type="button"
-												onClick={() => setGdprDialogUser(user)}
-												disabled={actionUserId === user.id}
-												className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-red disabled:opacity-50"
-												title="GDPR удаление"
-											>
-												{"\uD83D\uDDD1"}
-											</button>
-										</div>
-									</td>
-								</tr>
-							))
-						)}
-					</tbody>
-				</table>
+											</>
+										)}
+										<button
+											type="button"
+											onClick={() => setReassignDialogUser(user)}
+											disabled={actionUserId === user.id}
+											className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
+											title="Переназначить"
+										>
+											{"\u270E"}
+										</button>
+										<button
+											type="button"
+											onClick={() => setGdprDialogUser(user)}
+											disabled={actionUserId === user.id}
+											className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-red disabled:opacity-50"
+											title="GDPR удаление"
+										>
+											{"\uD83D\uDDD1"}
+										</button>
+									</div>
+								</td>
+							</tr>
+						))
+					)}
+				</tbody>
+			</table>
 
 			{/* Диалог переназначения */}
 			{reassignDialogUser && (
@@ -373,6 +435,50 @@ export function UserManagement() {
 					onClose={() => setGdprDialogUser(null)}
 					disabled={actionUserId === gdprDialogUser.id}
 				/>
+			)}
+
+			{/* Диалог блокировки */}
+			{banDialogUser && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+					<div className="w-[420px] rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
+						<h3 className="mb-2 text-[16px] font-bold text-red">
+							Блокировка пользователя
+						</h3>
+						<p className="mb-3 text-[13px] text-t2">
+							<strong>{banDialogUser.name || banDialogUser.email}</strong> будет
+							заблокирован. Все сессии будут отозваны.
+						</p>
+						<textarea
+							value={banReason}
+							onChange={(e) => setBanReason(e.target.value)}
+							placeholder="Причина блокировки"
+							rows={3}
+							className="mb-4 w-full px-3 py-2 bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[13px] text-t1 outline-none resize-none"
+						/>
+						<div className="flex justify-end gap-2">
+							<button
+								type="button"
+								onClick={() => {
+									setBanDialogUser(null);
+									setBanReason("");
+								}}
+								className="rounded-[var(--r2)] border border-b1 px-3 py-1.5 text-[13px] text-t2"
+							>
+								Отмена
+							</button>
+							<button
+								type="button"
+								onClick={() => void handleBan()}
+								disabled={
+									!banReason.trim() || actionUserId === banDialogUser.id
+								}
+								className="rounded-[var(--r2)] bg-red px-3 py-1.5 text-[13px] font-bold text-white disabled:opacity-50"
+							>
+								Заблокировать
+							</button>
+						</div>
+					</div>
+				</div>
 			)}
 
 			{/* Диалог деактивации */}

@@ -138,24 +138,21 @@ export function CallReactionsOverlay() {
 	 * Добавить плавающую реакцию на экран.
 	 * Реакция автоматически удаляется через 2.5 секунды (совпадает с CSS-анимацией).
 	 */
-	const addFloatingReaction = useCallback(
-		(emoji: string, sender: string) => {
-			const id = ++reactionIdCounter;
-			// Случайная горизонтальная позиция (10-90% от ширины)
-			const x = 10 + Math.random() * 80;
+	const addFloatingReaction = useCallback((emoji: string, sender: string) => {
+		const id = ++reactionIdCounter;
+		// Случайная горизонтальная позиция (10-90% от ширины)
+		const x = 10 + Math.random() * 80;
 
-			setReactions((prev) => [...prev, { id, emoji, sender, x }]);
+		setReactions((prev) => [...prev, { id, emoji, sender, x }]);
 
-			// Удаляем реакцию после завершения анимации
-			const timer = setTimeout(() => {
-				setReactions((prev) => prev.filter((r) => r.id !== id));
-				cleanupTimers.current.delete(id);
-			}, 2500);
+		// Удаляем реакцию после завершения анимации
+		const timer = setTimeout(() => {
+			setReactions((prev) => prev.filter((r) => r.id !== id));
+			cleanupTimers.current.delete(id);
+		}, 2500);
 
-			cleanupTimers.current.set(id, timer);
-		},
-		[],
-	);
+		cleanupTimers.current.set(id, timer);
+	}, []);
 
 	/** Слушаем входящие data messages для получения реакций от других участников. */
 	useEffect(() => {

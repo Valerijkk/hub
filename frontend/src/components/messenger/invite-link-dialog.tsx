@@ -263,6 +263,7 @@ function InviteItem({
 				>
 					{copied ? (
 						<svg
+							aria-hidden="true"
 							className="h-3.5 w-3.5 text-green-500"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -277,6 +278,7 @@ function InviteItem({
 						</svg>
 					) : (
 						<svg
+							aria-hidden="true"
 							className="h-3.5 w-3.5"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -301,6 +303,7 @@ function InviteItem({
 					onClick={() => void handleRevoke()}
 				>
 					<svg
+						aria-hidden="true"
 						className="h-3.5 w-3.5"
 						fill="none"
 						viewBox="0 0 24 24"
@@ -338,10 +341,7 @@ function InviteList({ channelId }: { channelId: string }) {
 		return (
 			<div className="space-y-2">
 				{["invite-sk-1", "invite-sk-2"].map((sk) => (
-					<div
-						key={sk}
-						className="h-14 rounded-md animate-shimmer"
-					/>
+					<div key={sk} className="h-14 rounded-md animate-shimmer" />
 				))}
 			</div>
 		);
@@ -351,9 +351,7 @@ function InviteList({ channelId }: { channelId: string }) {
 
 	if (activeInvites.length === 0) {
 		return (
-			<p className="text-xs text-t2 text-center py-4">
-				Нет активных ссылок
-			</p>
+			<p className="text-xs text-t2 text-center py-4">Нет активных ссылок</p>
 		);
 	}
 
@@ -396,9 +394,7 @@ function InviteLinkDialogContent({ channelId }: { channelId: string }) {
 					<div className="w-full border-t" />
 				</div>
 				<div className="relative flex justify-center text-xs">
-					<span className="bg-base px-2 text-t2">
-						Активные ссылки
-					</span>
+					<span className="bg-base px-2 text-t2">Активные ссылки</span>
 				</div>
 			</div>
 
@@ -425,6 +421,7 @@ export function InviteLinkDialog({ channelId }: { channelId: string }) {
 					title="Пригласить в канал"
 				>
 					<svg
+						aria-hidden="true"
 						className="h-4 w-4"
 						fill="none"
 						viewBox="0 0 24 24"

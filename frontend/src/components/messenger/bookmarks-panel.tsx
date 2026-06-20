@@ -80,6 +80,7 @@ export function BookmarksPanel() {
 									onClick={() => void handleRemove(bm)}
 								>
 									<svg
+										aria-hidden="true"
 										className="h-3.5 w-3.5"
 										fill="none"
 										viewBox="0 0 24 24"
@@ -97,9 +98,7 @@ export function BookmarksPanel() {
 						))}
 					</div>
 				) : (
-					<p className="px-4 py-8 text-center text-sm text-t2">
-						Нет закладок
-					</p>
+					<p className="px-4 py-8 text-center text-sm text-t2">Нет закладок</p>
 				)}
 			</ScrollArea>
 		</div>

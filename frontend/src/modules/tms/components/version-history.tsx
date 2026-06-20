@@ -61,9 +61,7 @@ export function VersionHistory({
 			{versionsOpen && versions && (
 				<CardContent className="px-4 pb-4">
 					{versions.length === 0 ? (
-						<p className="text-xs text-t2">
-							Нет предыдущих версий
-						</p>
+						<p className="text-xs text-t2">Нет предыдущих версий</p>
 					) : (
 						<div className="space-y-2">
 							{versions.map((v: TestCaseVersionResponse) => (

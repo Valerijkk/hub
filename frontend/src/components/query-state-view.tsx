@@ -12,7 +12,7 @@ export interface QueryLike<T> {
 	isError?: boolean;
 	error?: unknown;
 	data?: T;
-	refetch?: () => void | Promise<unknown>;
+	refetch?: () => undefined | Promise<unknown>;
 }
 
 /** Пропсы QueryStateView. */
@@ -114,9 +114,11 @@ export function QueryStateView<T>({
 		};
 		return (
 			<>
-				{errorFallback
-					? errorFallback(query.error, retry)
-					: <DefaultError error={query.error} retry={retry} />}
+				{errorFallback ? (
+					errorFallback(query.error, retry)
+				) : (
+					<DefaultError error={query.error} retry={retry} />
+				)}
 			</>
 		);
 	}
@@ -127,7 +129,7 @@ export function QueryStateView<T>({
 		return <>{loadingFallback ?? <DefaultLoading />}</>;
 	}
 
-	if (isEmpty && isEmpty(data) && emptyFallback !== undefined) {
+	if (isEmpty?.(data) && emptyFallback !== undefined) {
 		return <>{emptyFallback}</>;
 	}
 

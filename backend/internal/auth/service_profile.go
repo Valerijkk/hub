@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // ProfileService отвечает за чтение и обновление профиля пользователя
@@ -21,7 +22,9 @@ func NewProfileService(db *ent.Client) *ProfileService {
 
 // GetMe возвращает пользователя по ID.
 func (s *ProfileService) GetMe(ctx context.Context, userID uuid.UUID) (*ent.User, error) {
-	return s.db.User.Get(ctx, userID)
+	return observability.Timed(ctx, "auth.GetMe", func(ctx context.Context) (*ent.User, error) {
+		return s.db.User.Get(ctx, userID)
+	})
 }
 
 // UpdateProfile обновляет поля профиля пользователя. system_role никогда не изменяется.

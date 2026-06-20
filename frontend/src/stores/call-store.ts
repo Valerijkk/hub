@@ -121,8 +121,7 @@ export const useCallStore = create<CallState>()((set, get) => ({
 				isConnecting: false,
 			});
 		} catch (err: unknown) {
-			const msg =
-				err instanceof Error ? err.message : "Звонок не найден";
+			const msg = err instanceof Error ? err.message : "Звонок не найден";
 			set({ isConnecting: false, error: msg });
 		}
 	},
@@ -191,7 +190,8 @@ export const useCallStore = create<CallState>()((set, get) => ({
 		}
 	},
 
-	toggleChatLogging: () => set((s) => ({ chatLoggingEnabled: !s.chatLoggingEnabled })),
+	toggleChatLogging: () =>
+		set((s) => ({ chatLoggingEnabled: !s.chatLoggingEnabled })),
 
 	setRecordingState: (isRecording, recordingId, startedBy) =>
 		set({

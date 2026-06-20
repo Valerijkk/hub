@@ -69,7 +69,9 @@ export function Checklist({ items, onChange, disabled }: ChecklistProps) {
 		<div className="space-y-3">
 			{/* Заголовок с прогрессом */}
 			<div className="flex items-center justify-between">
-				<h4 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">Чеклист</h4>
+				<h4 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">
+					Чеклист
+				</h4>
 				{total > 0 && (
 					<div className="flex items-center gap-[10px]">
 						<div className="h-1 bg-white/[0.04] rounded-sm overflow-hidden max-w-[200px] w-[200px]">
@@ -96,10 +98,15 @@ export function Checklist({ items, onChange, disabled }: ChecklistProps) {
 							onClick={() => !disabled && handleToggle(item.id)}
 							className={cn(
 								"w-5 h-5 border-2 border-b3 rounded-[5px] shrink-0 flex items-center justify-center cursor-pointer transition-colors duration-200 hover:border-green",
-								item.checked && "bg-green border-green shadow-[0_0_8px_var(--gG)]",
+								item.checked &&
+									"bg-green border-green shadow-[0_0_8px_var(--gG)]",
 							)}
 						>
-							{item.checked && <span className="text-white text-[12px] font-extrabold">{"\u2713"}</span>}
+							{item.checked && (
+								<span className="text-white text-[12px] font-extrabold">
+									{"\u2713"}
+								</span>
+							)}
 						</div>
 						<span
 							className={cn(

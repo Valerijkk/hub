@@ -74,7 +74,9 @@ export function BackupsPage() {
 			failed: "Ошибка",
 		};
 		return (
-			<span className={`inline-flex px-[10px] py-[2px] rounded-full text-[11px] font-[650] ${colors[status]}`}>
+			<span
+				className={`inline-flex px-[10px] py-[2px] rounded-full text-[11px] font-[650] ${colors[status]}`}
+			>
 				{labels[status]}
 			</span>
 		);
@@ -83,7 +85,9 @@ export function BackupsPage() {
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
-				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">Резервные копии</h2>
+				<h2 className="text-[18px] font-extrabold tracking-[-0.02em]">
+					Резервные копии
+				</h2>
 				<button
 					type="button"
 					onClick={handleCreate}
@@ -134,13 +138,24 @@ export function BackupsPage() {
 			) : backups.length === 0 ? (
 				<p className="text-t3 text-[13px]">Нет резервных копий</p>
 			) : (
-				<table className="w-full" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
+				<table
+					className="w-full"
+					style={{ borderCollapse: "separate", borderSpacing: 0 }}
+				>
 					<thead>
 						<tr>
-							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Дата</th>
-							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Размер</th>
-							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Статус</th>
-							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">Действия</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+								Дата
+							</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+								Размер
+							</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+								Статус
+							</th>
+							<th className="text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+								Действия
+							</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -149,8 +164,12 @@ export function BackupsPage() {
 								<td className="px-4 py-[14px] border-b border-b1 text-[12px] text-t3 whitespace-nowrap">
 									{new Date(b.created_at).toLocaleString("ru-RU")}
 								</td>
-								<td className="px-4 py-[14px] border-b border-b1 text-[13px]">{formatSize(b.file_size)}</td>
-								<td className="px-4 py-[14px] border-b border-b1">{statusBadge(b.status)}</td>
+								<td className="px-4 py-[14px] border-b border-b1 text-[13px]">
+									{formatSize(b.file_size)}
+								</td>
+								<td className="px-4 py-[14px] border-b border-b1">
+									{statusBadge(b.status)}
+								</td>
 								<td className="px-4 py-[14px] border-b border-b1">
 									<div className="flex gap-2">
 										{b.status === "completed" && (

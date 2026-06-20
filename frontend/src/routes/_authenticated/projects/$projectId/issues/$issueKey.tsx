@@ -2,16 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	deleteIssue,
 	getIssue,
@@ -22,6 +13,16 @@ import { ActivityFeed } from "@/components/tracker/activity-feed";
 import { Checklist } from "@/components/tracker/checklist";
 import { CommentList } from "@/components/tracker/comment-list";
 import { IssueAttachments } from "@/components/tracker/issue-attachments";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -70,7 +71,7 @@ function IssueDetailPage() {
 			});
 			toast.success("Задача обновлена");
 		},
-		onError: () => toast.error("Не удалось обновить задачу"),
+		onError: (err) => toastApiError(err, "Не удалось обновить задачу"),
 	});
 
 	const deleteMutation = useMutation({
@@ -88,7 +89,7 @@ function IssueDetailPage() {
 				params: { projectId },
 			});
 		},
-		onError: () => toast.error("Не удалось удалить задачу"),
+		onError: (err) => toastApiError(err, "Не удалось удалить задачу"),
 	});
 
 	if (isLoading) {
@@ -146,7 +147,8 @@ function IssueDetailPage() {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Удалить задачу?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Задача {issue.issue_key} будет удалена. Это действие нельзя отменить.
+							Задача {issue.issue_key} будет удалена. Это действие нельзя
+							отменить.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -228,7 +230,6 @@ function IssueDetailPage() {
 						<TabsContent value="activity" className="mt-4">
 							<ActivityFeed projectId={projectId} issueKey={issueKey} />
 						</TabsContent>
-
 					</Tabs>
 				</div>
 

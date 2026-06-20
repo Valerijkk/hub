@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import { uploadFile } from "@/api/files";
 import { cn } from "@/lib/utils";
 
@@ -28,8 +29,10 @@ function getFileIcon(mimeType: string): string {
 	if (mimeType.startsWith("image/")) return "\u{1F5BC}\uFE0F";
 	if (mimeType.startsWith("video/")) return "\u{1F3AC}";
 	if (mimeType.includes("pdf")) return "\u{1F4C4}";
-	if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) return "\u{1F4CA}";
-	if (mimeType.includes("zip") || mimeType.includes("archive")) return "\u{1F4E6}";
+	if (mimeType.includes("spreadsheet") || mimeType.includes("excel"))
+		return "\u{1F4CA}";
+	if (mimeType.includes("zip") || mimeType.includes("archive"))
+		return "\u{1F4E6}";
 	return "\u{1F4CE}";
 }
 
@@ -58,8 +61,8 @@ export function IssueAttachments({
 						: `${files.length} файлов загружено`,
 				);
 				onAttachmentAdded?.();
-			} catch {
-				toast.error("Не удалось загрузить файл");
+			} catch (err) {
+				toastApiError(err, "Не удалось загрузить файл");
 			} finally {
 				setIsUploading(false);
 				if (fileInputRef.current) fileInputRef.current.value = "";
@@ -92,6 +95,7 @@ export function IssueAttachments({
 					{isUploading ? (
 						<>
 							<svg
+								aria-hidden="true"
 								className="h-3.5 w-3.5 animate-spin"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -105,6 +109,7 @@ export function IssueAttachments({
 					) : (
 						<>
 							<svg
+								aria-hidden="true"
 								className="h-3.5 w-3.5"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -140,7 +145,9 @@ export function IssueAttachments({
 							rel="noopener noreferrer"
 							className="flex items-center gap-[10px] px-4 py-[10px] bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] text-[13px] cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:border-b2 hover:-translate-y-px hover:shadow-[var(--sh2)]"
 						>
-							<span className="w-[18px] h-[18px] text-blue">{getFileIcon(att.mime_type)}</span>
+							<span className="w-[18px] h-[18px] text-blue">
+								{getFileIcon(att.mime_type)}
+							</span>
 							<div className="flex-1 min-w-0">
 								<p className="text-[13px] font-medium truncate text-t1 transition-colors">
 									{att.file_name}
@@ -150,6 +157,7 @@ export function IssueAttachments({
 								</p>
 							</div>
 							<svg
+								aria-hidden="true"
 								className="h-4 w-4 text-t2/50 group-hover:text-primary shrink-0 transition-colors"
 								fill="none"
 								viewBox="0 0 24 24"

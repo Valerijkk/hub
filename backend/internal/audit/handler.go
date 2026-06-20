@@ -29,6 +29,7 @@ func (h *Handler) RegisterRoutesSimple(api fiber.Router, authMw fiber.Handler) {
 	admin.Get("/trash", h.ListTrash)
 	admin.Post("/trash/:type/:id/restore", h.RestoreItem)
 	admin.Post("/users/:id/deactivate", h.DeactivateUser)
+	admin.Post("/users/:id/ban", h.BanUser)
 	admin.Post("/users/:id/reassign", h.ReassignTasks)
 	admin.Delete("/users/:id/gdpr", h.DeleteUserGDPR)
 }
@@ -70,6 +71,7 @@ func (h *Handler) requireAdmin() fiber.Handler {
 // @Param project_id query string false "Фильтр по ID проекта"
 // @Param date_from query string false "Начало периода (RFC3339)"
 // @Param date_to query string false "Конец периода (RFC3339)"
+// @Param slow query int false "Только медленные HTTP-запросы (entity_type=http, duration_ms>500); значение 1"
 // @Param page query int false "Страница (по умолчанию 1)"
 // @Param per_page query int false "Кол-во на странице (по умолчанию 50)"
 // @Success 200 {object} AuditLogListResponse "Записи аудита"
@@ -82,6 +84,8 @@ func (h *Handler) ListAuditLogs(c fiber.Ctx) error {
 	filters := AuditLogFilters{
 		Action:     utils.CopyString(c.Query("action")),
 		EntityType: utils.CopyString(c.Query("entity_type")),
+		EntityID:   utils.CopyString(c.Query("entity_id")),
+		IPAddress:  utils.CopyString(c.Query("ip_address")),
 	}
 
 	if userIDStr := c.Query("user_id"); userIDStr != "" {
@@ -110,6 +114,10 @@ func (h *Handler) ListAuditLogs(c fiber.Ctx) error {
 		if err == nil {
 			filters.DateTo = &t
 		}
+	}
+
+	if c.Query("slow") == "1" {
+		filters.SlowOnly = true
 	}
 
 	filters.Page, _ = strconv.Atoi(c.Query("page", "1"))
@@ -262,6 +270,48 @@ func (h *Handler) DeactivateUser(c fiber.Ctx) error {
 	}
 
 	return c.JSON(UserManagementResponse{Success: true, Message: "Пользователь деактивирован"})
+}
+
+// BanUser godoc
+// @Summary Заблокировать пользователя
+// @Description Деактивирует учётную запись и фиксирует причину в журнале аудита.
+// @Tags Аудит
+// @Accept json
+// @Produce json
+// @Param id path string true "ID пользователя"
+// @Param body body BanUserRequest true "Причина блокировки"
+// @Success 200 {object} UserManagementResponse "Пользователь заблокирован"
+// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Security BearerAuth
+// @Router /api/admin/users/{id}/ban [post]
+func (h *Handler) BanUser(c fiber.Ctx) error {
+	idStr := utils.CopyString(c.Params("id"))
+	targetID, err := uuid.Parse(idStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный ID пользователя")
+	}
+
+	adminIDStr, ok := c.Locals("userID").(string)
+	if !ok || adminIDStr == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "пользователь не аутентифицирован")
+	}
+	adminID, err := uuid.Parse(adminIDStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "некорректный user ID")
+	}
+
+	var req BanUserRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный запрос")
+	}
+
+	if err := h.service.BanUser(c.Context(), targetID, adminID, req.Reason, c.IP(), c.Get("User-Agent")); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	return c.JSON(UserManagementResponse{Success: true, Message: "Пользователь заблокирован"})
 }
 
 // ReassignTasks godoc

@@ -184,6 +184,22 @@ func TestParseAllureResults_NilPointers(t *testing.T) {
 	assert.Nil(t, r.StatusDetails)
 }
 
+func TestParseAllureResult_Single(t *testing.T) {
+	data := []byte(`{"uuid":"single-1","name":"solo","status":"passed","fullName":"com.example.SoloTest.solo"}`)
+	result, err := ParseAllureResult(data)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "single-1", result.UUID)
+	assert.Equal(t, "solo", result.Name)
+	assert.Equal(t, "passed", result.Status)
+}
+
+func TestParseAllureResult_MalformedJSON(t *testing.T) {
+	result, err := ParseAllureResult([]byte(`{broken`))
+	assert.Error(t, err)
+	assert.Nil(t, result)
+}
+
 // ---------------------------------------------------------------------------
 // Тесты вспомогательных функций парсера
 // ---------------------------------------------------------------------------

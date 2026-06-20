@@ -2,7 +2,8 @@ import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/ad
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
-import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	type BoardDataResponse,
 	getBoardData,
@@ -29,6 +30,7 @@ import { useBoardStore } from "@/stores/board-store";
  * Занимает всю доступную высоту с горизонтальной прокруткой колонок.
  */
 function BoardPage() {
+	const { t } = useTranslation("tracker");
 	const { projectId } = Route.useParams();
 	const queryClient = useQueryClient();
 	const { activeBoardId, setActiveBoard, filters, setFilters, resetFilters } =
@@ -84,14 +86,14 @@ function BoardPage() {
 			);
 			return { previous };
 		},
-		onError: (_err, _data, context) => {
+		onError: (err, _data, context) => {
 			if (context?.previous) {
 				queryClient.setQueryData(
 					["board", projectId, activeBoardId],
 					context.previous,
 				);
 			}
-			toast.error("Не удалось переместить задачу");
+			toastApiError(err, t("kanban.moveError"));
 		},
 		onSettled: () => {
 			void queryClient.invalidateQueries({
@@ -183,7 +185,10 @@ function BoardPage() {
 						</div>
 						<div className="space-y-2 px-2 pb-2">
 							{[1, 2, 3].map((j) => (
-								<div key={`board-card-sk-${i}-${j}`} className="h-28 rounded-lg animate-shimmer" />
+								<div
+									key={`board-card-sk-${i}-${j}`}
+									className="h-28 rounded-lg animate-shimmer"
+								/>
 							))}
 						</div>
 					</div>
@@ -251,6 +256,7 @@ function BoardPage() {
 						className="inline-flex items-center gap-[7px] px-[18px] py-2 rounded-[var(--r2)] text-[13px] font-semibold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] hover:shadow-[0_0_32px_rgba(91,156,245,.3)] hover:-translate-y-px active:scale-[.96] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] relative overflow-hidden"
 					>
 						<svg
+							aria-hidden="true"
 							className="h-3.5 w-3.5"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -278,6 +284,7 @@ function BoardPage() {
 						<div className="text-center max-w-sm animate-fade-in">
 							<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
 								<svg
+									aria-hidden="true"
 									className="h-8 w-8 text-primary/50"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -296,7 +303,10 @@ function BoardPage() {
 								Создайте первую задачу, чтобы начать работу с доской
 							</p>
 							<Button asChild>
-								<Link to="/projects/$projectId/issues/new" params={{ projectId }}>
+								<Link
+									to="/projects/$projectId/issues/new"
+									params={{ projectId }}
+								>
 									Создать задачу
 								</Link>
 							</Button>

@@ -53,6 +53,7 @@ export function CaseFilters({
 		<div className="mb-3 flex flex-wrap items-center gap-2">
 			<div className="relative">
 				<svg
+					aria-hidden="true"
 					className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-t2/60"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -80,7 +81,9 @@ export function CaseFilters({
 				value={filters.status || "all"}
 				onValueChange={(v) => {
 					updateFilter({
-						status: (v === "all" ? undefined : v) as ListTestCasesParams["status"],
+						status: (v === "all"
+							? undefined
+							: v) as ListTestCasesParams["status"],
 					});
 					resetOffset();
 				}}
@@ -100,7 +103,9 @@ export function CaseFilters({
 				value={filters.priority || "all"}
 				onValueChange={(v) => {
 					updateFilter({
-						priority: (v === "all" ? undefined : v) as ListTestCasesParams["priority"],
+						priority: (v === "all"
+							? undefined
+							: v) as ListTestCasesParams["priority"],
 					});
 					resetOffset();
 				}}
@@ -129,6 +134,7 @@ export function CaseFilters({
 					}}
 				>
 					<svg
+						aria-hidden="true"
 						className="mr-1 h-3 w-3"
 						fill="none"
 						viewBox="0 0 24 24"

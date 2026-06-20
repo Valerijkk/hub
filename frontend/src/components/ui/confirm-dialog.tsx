@@ -61,7 +61,9 @@ export function ConfirmDialog({
 					)}
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel disabled={disabled}>{cancelLabel}</AlertDialogCancel>
+					<AlertDialogCancel disabled={disabled}>
+						{cancelLabel}
+					</AlertDialogCancel>
 					<AlertDialogAction
 						disabled={disabled}
 						className={
@@ -72,7 +74,9 @@ export function ConfirmDialog({
 						onClick={(e) => {
 							// Prevent Radix auto-close so onConfirm can run async; we close manually.
 							e.preventDefault();
-							void Promise.resolve(onConfirm()).finally(() => onOpenChange(false));
+							void Promise.resolve(onConfirm()).finally(() =>
+								onOpenChange(false),
+							);
 						}}
 					>
 						{confirmLabel}

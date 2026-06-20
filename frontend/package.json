@@ -8,6 +8,11 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:a11y": "playwright test e2e/a11y.spec.ts",
+    "lighthouse:help": "echo Run: npm run build && npm run preview then npx lighthouse http://localhost:4173/login --only-categories=accessibility,performance,best-practices --chrome-flags=--headless",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install chromium",
     "lint": "biome check ./src"
   },
   "dependencies": {
@@ -50,13 +55,18 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@biomejs/biome": "latest",
+    "@playwright/test": "^1.52.0",
     "@tailwindcss/vite": "^4.0.0",
     "@tanstack/router-plugin": "latest",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.7.0",
+    "happy-dom": "^20.10.5",
+    "jsdom": "^27.0.1",
     "tailwindcss": "^4.0.0",
     "typescript": "~5.7.0",
     "vite": "^6.0.0",

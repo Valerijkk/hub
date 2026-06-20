@@ -67,7 +67,7 @@ func NewStorageService(cfg config.S3Config, entClient *ent.Client) (*StorageServ
 // Создаёт запись FileMetadata со статусом pending и возвращает URL загрузки.
 func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, contentType string, uploaderID, projectID uuid.UUID) (*UploadResult, error) {
 	fileID := uuid.New()
-	s3Key := fmt.Sprintf("%s/files/%s/%s", projectID.String(), fileID.String(), filename)
+	s3Key := fmt.Sprintf("%s/files/%s/%s", projectID.String(), fileID.String(), sanitizeFilename(filename))
 
 	// Create FileMetadata record (status=pending until confirmed)
 	fileMeta, err := s.entClient.FileMetadata.Create().

@@ -12,13 +12,17 @@ import enCalls from "./locales/en/calls.json";
 import enCommon from "./locales/en/common.json";
 import enDashboard from "./locales/en/dashboard.json";
 import enMessenger from "./locales/en/messenger.json";
+import enHelp from "./locales/en/help.json";
+import enOnboarding from "./locales/en/onboarding.json";
 import enSettings from "./locales/en/settings.json";
 import enTms from "./locales/en/tms.json";
 import enTracker from "./locales/en/tracker.json";
 import ruCalls from "./locales/ru/calls.json";
 import ruCommon from "./locales/ru/common.json";
 import ruDashboard from "./locales/ru/dashboard.json";
+import ruHelp from "./locales/ru/help.json";
 import ruMessenger from "./locales/ru/messenger.json";
+import ruOnboarding from "./locales/ru/onboarding.json";
 import ruSettings from "./locales/ru/settings.json";
 import ruTms from "./locales/ru/tms.json";
 import ruTracker from "./locales/ru/tracker.json";
@@ -37,6 +41,8 @@ void i18n
 			"calls",
 			"dashboard",
 			"settings",
+			"help",
+			"onboarding",
 		],
 		resources: {
 			ru: {
@@ -47,6 +53,8 @@ void i18n
 				calls: ruCalls,
 				dashboard: ruDashboard,
 				settings: ruSettings,
+				help: ruHelp,
+				onboarding: ruOnboarding,
 			},
 			en: {
 				common: enCommon,
@@ -56,6 +64,8 @@ void i18n
 				calls: enCalls,
 				dashboard: enDashboard,
 				settings: enSettings,
+				help: enHelp,
+				onboarding: enOnboarding,
 			},
 		},
 		detection: {

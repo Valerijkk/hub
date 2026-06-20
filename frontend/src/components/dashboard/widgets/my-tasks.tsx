@@ -1,7 +1,7 @@
 /**
  * Widget "My Tasks" -- displays a list of assigned tasks with priority and status.
  */
-import { CircleCheck, Circle, Clock, Inbox } from "lucide-react";
+import { Circle, CircleCheck, Clock, Inbox } from "lucide-react";
 import type { PersonalData, TaskSummary } from "@/api/dashboard";
 import { Badge } from "@/components/ui/badge";
 
@@ -58,9 +58,7 @@ export function MyTasksWidget({ data }: Props) {
 			<div className="flex flex-col items-center justify-center h-full gap-2 text-t2">
 				<Inbox className="h-8 w-8 opacity-40" />
 				<p className="text-sm">Нет активных задач</p>
-				<p className="text-xs opacity-60">
-					Все задачи выполнены
-				</p>
+				<p className="text-xs opacity-60">Все задачи выполнены</p>
 			</div>
 		);
 	}

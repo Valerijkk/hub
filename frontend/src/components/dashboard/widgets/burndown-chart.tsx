@@ -32,7 +32,11 @@ function ChartTooltip({
 		<div className="rounded-lg border border-border/50 bg-popover px-3 py-2 shadow-md">
 			<p className="text-xs font-medium text-t2 mb-1">{label}</p>
 			{payload.map((entry) => (
-				<p key={entry.name} className="text-sm font-medium" style={{ color: entry.color }}>
+				<p
+					key={entry.name}
+					className="text-sm font-medium"
+					style={{ color: entry.color }}
+				>
 					{entry.name}: {entry.value}
 				</p>
 			))}
@@ -61,14 +65,21 @@ export function BurndownChartWidget({ data }: Props) {
 
 	return (
 		<ResponsiveContainer width="100%" height="100%">
-			<AreaChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
+			<AreaChart
+				data={chartData}
+				margin={{ top: 4, right: 8, bottom: 0, left: -12 }}
+			>
 				<defs>
 					<linearGradient id="burndownGradient" x1="0" y1="0" x2="0" y2="1">
 						<stop offset="5%" stopColor="var(--blue)" stopOpacity={0.2} />
 						<stop offset="95%" stopColor="var(--blue)" stopOpacity={0} />
 					</linearGradient>
 				</defs>
-				<CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} vertical={false} />
+				<CartesianGrid
+					strokeDasharray="3 3"
+					strokeOpacity={0.15}
+					vertical={false}
+				/>
 				<XAxis
 					dataKey="label"
 					tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}

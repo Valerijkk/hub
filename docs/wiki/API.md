@@ -1,6 +1,6 @@
 # API Reference
 
-Hub предоставляет REST API с **~230 endpoints**. Все запросы идут через `/api/` префикс.
+Hub предоставляет REST API с **286 endpoints** под `/api/*`: **280** handler routes (prod modules) + **3** dev-only + **3** infra. Полный inventory сверен с `RegisterRoutes` в backend (2026-06-17). См. также `system_specification.md`.
 
 ## Аутентификация
 
@@ -16,13 +16,13 @@ Authorization: Bearer <access_token>
 X-API-Key: <api_key>
 ```
 
-Токены выдаются при авторизации через Magic Link или Telegram. API-ключи создаются через `/api/api-keys/`.
+Токены выдаются при авторизации через Magic Link или Telegram. API-ключи создаются через `/api/user/api-keys/`.
 
 ---
 
-## Auth (13 endpoints)
+## Auth (11 endpoints)
 
-Аутентификация, профиль, сессии, режим регистрации.
+Аутентификация, профиль, сессии.
 
 | Метод | Путь | Описание |
 |---|---|---|
@@ -37,8 +37,6 @@ X-API-Key: <api_key>
 | POST | `/auth/me/onboarding` | Завершить онбординг |
 | GET | `/auth/sessions` | Список активных сессий |
 | DELETE | `/auth/sessions/:sessionId` | Завершить конкретную сессию |
-| GET | `/auth/admin/registration-mode` | Получить режим регистрации (open/invite) |
-| PUT | `/auth/admin/registration-mode` | Установить режим регистрации |
 
 ---
 
@@ -90,7 +88,21 @@ X-API-Key: <api_key>
 
 ---
 
-## Tracker (35 endpoints)
+## Project Templates (5 endpoints)
+
+Шаблоны проектов: сохранение, импорт/экспорт, удаление.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/project-templates/` | Список шаблонов (системные и пользовательские) |
+| POST | `/project-templates/` | Сохранить проект как шаблон |
+| POST | `/project-templates/import` | Импорт шаблона из JSON |
+| GET | `/project-templates/:id/export` | Экспорт шаблона в JSON |
+| DELETE | `/project-templates/:id` | Удалить пользовательский шаблон |
+
+---
+
+## Tracker (38 endpoints)
 
 Задачи, workflow, доски, метки, кастомные поля, время, комментарии.
 
@@ -214,7 +226,7 @@ X-API-Key: <api_key>
 
 ---
 
-## Messenger (40 endpoints)
+## Messenger (42 endpoints)
 
 Каналы, сообщения, присутствие, опросы, пригласительные ссылки.
 
@@ -248,6 +260,12 @@ X-API-Key: <api_key>
 | POST | `/messenger/channels/:channelId/messages/:messageId/pin` | Закрепить/открепить |
 | POST | `/messenger/channels/:channelId/messages/:messageId/forward` | Переслать сообщение |
 | GET | `/messenger/channels/:channelId/messages/:messageId/replies` | Список ответов в треде |
+
+### Сообщения (top-level)
+
+| Метод | Путь | Описание |
+|---|---|---|
+| POST | `/messages/:messageId/promote-to-issue` | Преобразовать сообщение в задачу |
 
 ### Присутствие
 
@@ -311,7 +329,7 @@ X-API-Key: <api_key>
 
 ---
 
-## TMS (46 endpoints)
+## TMS (50 endpoints)
 
 Тест-кейсы, наборы, компоненты, прогоны, результаты, Allure, отчёты, окружения.
 
@@ -427,10 +445,12 @@ X-API-Key: <api_key>
 |---|---|---|
 | POST | `/projects/:projectId/environments/` | Создать окружение |
 | GET | `/projects/:projectId/environments/` | Список окружений |
+| PUT | `/projects/:projectId/environments/:envId` | Обновить окружение |
+| DELETE | `/projects/:projectId/environments/:envId` | Удалить окружение |
 
 ---
 
-## Calls (22 endpoints)
+## Calls (21 endpoints)
 
 Звонки, запись, планирование, чат.
 
@@ -438,6 +458,7 @@ X-API-Key: <api_key>
 
 | Метод | Путь | Описание |
 |---|---|---|
+| POST | `/calls/guest-join` | Присоединиться к звонку как гость (без аккаунта) |
 | POST | `/calls/` | Создать звонок |
 | POST | `/calls/instant` | Создать мгновенный звонок |
 | GET | `/calls/invite/:code` | Присоединиться по коду приглашения |
@@ -464,7 +485,7 @@ X-API-Key: <api_key>
 | Метод | Путь | Описание |
 |---|---|---|
 | POST | `/projects/:projectId/scheduled-calls` | Запланировать звонок |
-| GET | `/messenger/channels/:channelId/scheduled-calls` | Список запланированных звонков |
+| GET | `/channels/:channelId/scheduled-calls` | Список запланированных звонков |
 | PUT | `/scheduled-calls/:id` | Обновить запланированный звонок |
 | DELETE | `/scheduled-calls/:id` | Удалить запланированный звонок |
 
@@ -589,14 +610,14 @@ X-API-Key: <api_key>
 
 ## Backup (4 endpoints)
 
-Управление бэкапами.
+Управление бэкапами (только system admin).
 
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/backups/` | Создать бэкап |
-| GET | `/backups/` | Список бэкапов |
-| POST | `/backups/:id/restore` | Восстановить из бэкапа |
-| DELETE | `/backups/:id` | Удалить бэкап |
+| POST | `/admin/backups/` | Создать бэкап |
+| GET | `/admin/backups/` | Список бэкапов |
+| POST | `/admin/backups/:id/restore` | Восстановить из бэкапа |
+| DELETE | `/admin/backups/:id` | Удалить бэкап |
 
 ---
 
@@ -608,16 +629,21 @@ API-ключи для программного доступа, webhook-подп�
 
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/api-keys/` | Создать API-ключ |
-| GET | `/api-keys/` | Список API-ключей |
-| DELETE | `/api-keys/:id` | Отозвать API-ключ |
+| POST | `/user/api-keys/` | Создать API-ключ |
+| GET | `/user/api-keys/` | Список API-ключей |
+| DELETE | `/user/api-keys/:id` | Отозвать API-ключ |
 
-### Webhook-подписки
+### Webhook-подписки (проект)
 
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/webhooks/` | Создать endpoint |
-| GET | `/webhooks/` | Список endpoints |
+| POST | `/projects/:projectId/webhooks/` | Создать endpoint для проекта |
+| GET | `/projects/:projectId/webhooks/` | Список endpoints проекта |
+
+### Webhook-подписки (по ID)
+
+| Метод | Путь | Описание |
+|---|---|---|
 | PUT | `/webhooks/:id` | Обновить endpoint |
 | DELETE | `/webhooks/:id` | Удалить endpoint |
 | GET | `/webhooks/:id/deliveries` | История доставок |
@@ -639,20 +665,68 @@ API-ключи для программного доступа, webhook-подп�
 
 ---
 
-## Admin / Audit (8 endpoints)
+## Admin / Audit (11 endpoints)
 
-Аудит, лимиты ресурсов, корзина, управление пользователями.
+Аудит, лимиты ресурсов, корзина, управление пользователями, режим регистрации. Все маршруты требуют system admin.
+
+### Журнал аудита
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/admin/audit` | Лог аудита (действия пользователей) |
+| GET | `/admin/audit` | Лог аудита (фильтры: `action`, `entity_type`, `entity_id`, `user_id`, `project_id`, `ip_address`, `date_from`, `date_to`, `page`, `per_page`) |
+
+### HTTP audit (middleware)
+
+Не отдельный endpoint. `HTTPAuditMiddleware` (`audit/middleware.go`) подключён ко всем `/api/*` в `main.go` и асинхронно пишет каждый HTTP-запрос в журнал аудита (method, path без query, status, duration, request_id, user_id, IP, User-Agent). Пропускает: `OPTIONS`, `/api/health`, `/api/docs*`.
+
+### Лимиты и корзина
+
+| Метод | Путь | Описание |
+|---|---|---|
 | GET | `/admin/limits` | Лимиты ресурсов (проекты, участники и др.) |
 | PUT | `/admin/limits/:key` | Обновить лимит |
 | GET | `/admin/trash` | Корзина (удалённые сущности) |
 | POST | `/admin/trash/:type/:id/restore` | Восстановить из корзины |
+
+### Управление пользователями
+
+| Метод | Путь | Описание |
+|---|---|---|
 | POST | `/admin/users/:id/deactivate` | Деактивировать пользователя |
+| POST | `/admin/users/:id/ban` | Заблокировать пользователя (`{"reason": "..."}`) |
 | POST | `/admin/users/:id/reassign` | Переназначить задачи пользователя |
 | DELETE | `/admin/users/:id/gdpr` | GDPR-удаление пользователя |
+
+### Режим регистрации
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/admin/registration-mode` | Получить режим регистрации (open/invite) |
+| PUT | `/admin/registration-mode` | Установить режим регистрации |
+
+---
+
+## Infrastructure (3 endpoints)
+
+Служебные маршруты без JWT (мониторинг и документация).
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/health` | Health check (Postgres, Redis, Mongo, NATS, SeaweedFS) |
+| GET | `/docs` | Swagger UI |
+| GET | `/docs/doc.json` | OpenAPI JSON |
+
+---
+
+## Dev (3 endpoints, non-release only)
+
+Доступны только при `DEV_MODE=true` (локальная разработка, не prod).
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/dev/status` | Статус dev-режима |
+| POST | `/dev/seed` | Заполнить БД тестовыми данными |
+| POST | `/dev/login` | Вход под dev-пользователем (`{"email": "..."}`) |
 
 ---
 

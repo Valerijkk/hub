@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/valerii/hub/backend/internal/auth"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // Настройки аудита, лимитов и корзины.
@@ -58,50 +59,52 @@ func (s *AuditService) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (boo
 
 // ListAuditLogs возвращает пагинированный список записей аудита с фильтрами (только для администратора).
 func (s *AuditService) ListAuditLogs(ctx context.Context, filters AuditLogFilters) (*AuditLogListResponse, error) {
-	items, total, err := s.repo.ListAuditLogs(ctx, filters)
-	if err != nil {
-		return nil, err
-	}
-
-	page := filters.Page
-	if page < 1 {
-		page = 1
-	}
-	perPage := filters.PerPage
-	if perPage <= 0 || perPage > 100 {
-		perPage = 50
-	}
-
-	resp := &AuditLogListResponse{
-		Items:   make([]AuditLogResponse, 0, len(items)),
-		Total:   total,
-		Page:    page,
-		PerPage: perPage,
-	}
-
-	for _, item := range items {
-		r := AuditLogResponse{
-			ID:         item.ID.String(),
-			Action:     item.Action,
-			EntityType: item.EntityType,
-			EntityID:   item.EntityID,
-			Details:    item.Details,
-			IPAddress:  item.IPAddress,
-			UserAgent:  item.UserAgent,
-			CreatedAt:  item.CreatedAt,
+	return observability.Timed(ctx, "audit.ListAuditLogs", func(ctx context.Context) (*AuditLogListResponse, error) {
+		items, total, err := s.repo.ListAuditLogs(ctx, filters)
+		if err != nil {
+			return nil, err
 		}
-		if item.UserID != nil {
-			uid := item.UserID.String()
-			r.UserID = &uid
-		}
-		if item.ProjectID != nil {
-			pid := item.ProjectID.String()
-			r.ProjectID = &pid
-		}
-		resp.Items = append(resp.Items, r)
-	}
 
-	return resp, nil
+		page := filters.Page
+		if page < 1 {
+			page = 1
+		}
+		perPage := filters.PerPage
+		if perPage <= 0 || perPage > 100 {
+			perPage = 50
+		}
+
+		resp := &AuditLogListResponse{
+			Items:   make([]AuditLogResponse, 0, len(items)),
+			Total:   total,
+			Page:    page,
+			PerPage: perPage,
+		}
+
+		for _, item := range items {
+			r := AuditLogResponse{
+				ID:         item.ID.String(),
+				Action:     item.Action,
+				EntityType: item.EntityType,
+				EntityID:   item.EntityID,
+				Details:    item.Details,
+				IPAddress:  item.IPAddress,
+				UserAgent:  item.UserAgent,
+				CreatedAt:  item.CreatedAt,
+			}
+			if item.UserID != nil {
+				uid := item.UserID.String()
+				r.UserID = &uid
+			}
+			if item.ProjectID != nil {
+				pid := item.ProjectID.String()
+				r.ProjectID = &pid
+			}
+			resp.Items = append(resp.Items, r)
+		}
+
+		return resp, nil
+	})
 }
 
 // ---- Лимиты ресурсов ----
@@ -271,6 +274,10 @@ func (s *AuditService) PurgeExpired(ctx context.Context) error {
 
 // DeactivateUser деактивирует пользователя и отзывает все его сессии.
 func (s *AuditService) DeactivateUser(ctx context.Context, userID uuid.UUID) error {
+	return s.deactivateUser(ctx, userID)
+}
+
+func (s *AuditService) deactivateUser(ctx context.Context, userID uuid.UUID) error {
 	// Обновляем статус пользователя
 	if err := s.repo.DeactivateUser(ctx, userID); err != nil {
 		return fmt.Errorf("деактивация пользователя: %w", err)
@@ -286,6 +293,63 @@ func (s *AuditService) DeactivateUser(ctx context.Context, userID uuid.UUID) err
 	auth.InvalidateUserStatusCache(ctx, s.redis, userID)
 
 	return nil
+}
+
+// BanUser блокирует пользователя с указанием причины и записывает событие в аудит.
+func (s *AuditService) BanUser(ctx context.Context, targetUserID, adminUserID uuid.UUID, reason, ipAddress, userAgent string) error {
+	return observability.TimedVoid(ctx, "audit.BanUser", func(ctx context.Context) error {
+		if reason == "" {
+			return errors.New("укажите причину блокировки")
+		}
+		if targetUserID == adminUserID {
+			return errors.New("нельзя заблокировать самого себя")
+		}
+
+		if err := s.deactivateUser(ctx, targetUserID); err != nil {
+			return err
+		}
+
+		details := map[string]interface{}{
+			"reason":    reason,
+			"banned_by": adminUserID.String(),
+		}
+		if _, err := s.repo.CreateAuditLog(ctx, "ban", "user", targetUserID.String(),
+			&adminUserID, nil, details, ipAddress, userAgent); err != nil {
+			slog.Error("audit ban log", "error", err, "user_id", targetUserID)
+		}
+
+		return nil
+	})
+}
+
+// RecordHTTPRequest сохраняет HTTP-запрос в журнал аудита.
+// В DEV/Docker логируются все API-запросы; ошибки и медленные запросы
+// всегда попадают в журнал независимо от окружения.
+func (s *AuditService) RecordHTTPRequest(ctx context.Context, entry HTTPAuditEntry) {
+	_ = observability.TimedVoid(ctx, "audit.RecordHTTPRequest", func(ctx context.Context) error {
+		action := "request"
+		if entry.Status >= 400 {
+			action = "request.error"
+		}
+
+		details := map[string]interface{}{
+			"method":      entry.Method,
+			"path":        entry.Path,
+			"status":      entry.Status,
+			"duration_ms": entry.DurationMS,
+		}
+		if entry.RequestID != "" {
+			details["request_id"] = entry.RequestID
+		}
+
+		_, err := s.repo.CreateAuditLog(ctx, action, "http", entry.Path,
+			entry.UserID, nil, details, entry.IPAddress, entry.UserAgent)
+		if err != nil {
+			slog.Error("audit http request", "error", err, "path", entry.Path)
+			return err
+		}
+		return nil
+	})
 }
 
 // ReassignTasks переназначает все задачи одного пользователя другому.

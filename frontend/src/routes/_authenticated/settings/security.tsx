@@ -24,9 +24,9 @@ function SecurityPage() {
 					<div className="flex items-center gap-3 text-t2">
 						<Shield className="w-5 h-5 text-t3 shrink-0" />
 						<p className="text-[13px] leading-[1.5]">
-							Авторизация происходит через Magic Link на вашу почту.
-							Пароль не используется — это обеспечивает высокий уровень безопасности
-							без необходимости запоминать и менять пароли.
+							Авторизация происходит через Magic Link на вашу почту. Пароль не
+							используется — это обеспечивает высокий уровень безопасности без
+							необходимости запоминать и менять пароли.
 						</p>
 					</div>
 				</div>
@@ -42,8 +42,8 @@ function SecurityPage() {
 						<Shield className="w-5 h-5 text-t3 shrink-0" />
 						<p className="text-[13px] leading-[1.5]">
 							Magic Link авторизация обеспечивает безопасность без пароля.
-							Каждый вход подтверждается через ссылку на вашу почту —
-							это эквивалент двухфакторной аутентификации.
+							Каждый вход подтверждается через ссылку на вашу почту — это
+							эквивалент двухфакторной аутентификации.
 						</p>
 					</div>
 				</div>
@@ -51,9 +51,7 @@ function SecurityPage() {
 
 			{/* Active sessions */}
 			<div className="mb-9">
-				<h3 className="text-[14px] font-bold text-t1 mb-2">
-					Активные сессии
-				</h3>
+				<h3 className="text-[14px] font-bold text-t1 mb-2">Активные сессии</h3>
 				<div className="px-[18px] py-[18px] bg-gradient-to-br from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r3)]">
 					<p className="text-[13px] text-t2 leading-[1.5]">
 						Управление сессиями доступно в разделе{" "}

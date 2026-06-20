@@ -212,3 +212,61 @@ func TestLiveKitWebhook_TamperedBody_Rejected(t *testing.T) {
 	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode,
 		"webhook с подменённым body должен вернуть 401")
 }
+
+// TestLiveKitWebhook_EmptySha256Claim_Rejected — claim "sha256" присутствует,
+// но пустой. SEC-02 требует непустой hash, иначе body-integrity не проверяется.
+func TestLiveKitWebhook_EmptySha256Claim_Rejected(t *testing.T) {
+	cfg := liveKitWebhookCfg()
+	app := newWebhookApp(t, cfg)
+
+	body := []byte(`{"event":"room_started"}`)
+	claims := jwt.MapClaims{
+		"iss":    cfg.APIKey,
+		"sha256": "",
+		"exp":    time.Now().Add(5 * time.Minute).Unix(),
+		"iat":    time.Now().Unix(),
+	}
+	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err := tok.SignedString([]byte(cfg.APISecret))
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(fiber.MethodPost, "/api/calls/webhook", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode,
+		"webhook с пустым claim sha256 должен вернуть 401 (SEC-02)")
+}
+
+// TestLiveKitWebhook_WrongSha256Hash_Rejected — JWT валиден по iss/secret,
+// но sha256 claim не совпадает с реальным телом (не tampered JWT, а wrong hash).
+func TestLiveKitWebhook_WrongSha256Hash_Rejected(t *testing.T) {
+	cfg := liveKitWebhookCfg()
+	app := newWebhookApp(t, cfg)
+
+	body := []byte(`{"event":"room_started"}`)
+	claims := jwt.MapClaims{
+		"iss":    cfg.APIKey,
+		"sha256": base64.StdEncoding.EncodeToString([]byte("not-the-body-hash")),
+		"exp":    time.Now().Add(5 * time.Minute).Unix(),
+		"iat":    time.Now().Unix(),
+	}
+	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err := tok.SignedString([]byte(cfg.APISecret))
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(fiber.MethodPost, "/api/calls/webhook", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode,
+		"webhook с неверным sha256 claim должен вернуть 401 (SEC-02)")
+}

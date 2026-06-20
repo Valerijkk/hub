@@ -9,6 +9,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -212,4 +213,47 @@ func TestMagicLink_VerifyCode_SuccessClearsFails(t *testing.T) {
 	// fails-counter удалён.
 	_, err = mr.Get(magicLinkFailsPrefix + email)
 	assert.Error(t, err, "fails-counter должен быть удалён после успешного login'а")
+}
+
+type stubResendClient struct {
+	called bool
+	err    error
+}
+
+func (s *stubResendClient) SendMagicLinkEmail(_ context.Context, _, _ string) error {
+	s.called = true
+	return s.err
+}
+
+func TestMagicLink_SendMagicLink_ResendPath(t *testing.T) {
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	resend := &stubResendClient{}
+	svc := NewMagicLinkService(rdb, resend, "hub@example.com")
+	require.False(t, svc.IsDevMode())
+
+	code, err := svc.SendMagicLink(context.Background(), "prod-"+uuid.New().String()[:6]+"@example.com")
+	require.NoError(t, err)
+	require.NotEmpty(t, code)
+	assert.True(t, resend.called)
+}
+
+func TestMagicLink_SendMagicLink_ResendErrorStillReturnsCode(t *testing.T) {
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	resend := &stubResendClient{err: errors.New("smtp down")}
+	svc := NewMagicLinkService(rdb, resend, "hub@example.com")
+
+	code, err := svc.SendMagicLink(context.Background(), "fail-"+uuid.New().String()[:6]+"@example.com")
+	require.NoError(t, err)
+	require.NotEmpty(t, code)
+	assert.True(t, resend.called)
 }

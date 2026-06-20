@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
+import i18n from "@/i18n";
 import {
 	createWorkflowStatus,
 	createWorkflowTransition,
@@ -88,7 +90,7 @@ function WorkflowSettingsPage() {
 			setStatusOrder("0");
 			toast.success("Статус создан");
 		},
-		onError: () => toast.error("Не удалось создать статус"),
+		onError: (err) => toastApiError(err, "Не удалось создать статус"),
 	});
 
 	// Форма нового перехода
@@ -109,13 +111,13 @@ function WorkflowSettingsPage() {
 			setToStatusId("");
 			toast.success("Переход создан");
 		},
-		onError: () => toast.error("Не удалось создать переход"),
+		onError: (err) => toastApiError(err, "Не удалось создать переход"),
 	});
 
 	const handleCreateStatus = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!statusName.trim()) {
-			toast.error("Введите название статуса");
+			toast.error(i18n.t("common:validation.enterStatusName"));
 			return;
 		}
 		createStatusMutation.mutate();
@@ -124,11 +126,11 @@ function WorkflowSettingsPage() {
 	const handleCreateTransition = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!fromStatusId || !toStatusId) {
-			toast.error("Выберите оба статуса");
+			toast.error(i18n.t("common:validation.selectBothStatuses"));
 			return;
 		}
 		if (fromStatusId === toStatusId) {
-			toast.error("Статусы должны отличаться");
+			toast.error(i18n.t("common:validation.statusesMustDiffer"));
 			return;
 		}
 		createTransitionMutation.mutate();
@@ -142,10 +144,18 @@ function WorkflowSettingsPage() {
 		<div className="mx-auto max-w-3xl space-y-6 animate-[eu_450ms_var(--spring)_both]">
 			<div className="mb-9 flex items-center justify-between">
 				<div>
-					<h1 className="text-[18px] font-extrabold tracking-[-0.02em] text-t1">Настройки Workflow</h1>
-					<p className="text-[13px] text-t2 mt-1">Управление статусами и переходами</p>
+					<h1 className="text-[18px] font-extrabold tracking-[-0.02em] text-t1">
+						Настройки Workflow
+					</h1>
+					<p className="text-[13px] text-t2 mt-1">
+						Управление статусами и переходами
+					</p>
 				</div>
-				<Button variant="outline" asChild className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]">
+				<Button
+					variant="outline"
+					asChild
+					className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]"
+				>
 					<Link to="/projects/$projectId" params={{ projectId }}>
 						Назад
 					</Link>
@@ -194,9 +204,7 @@ function WorkflowSettingsPage() {
 								<Select
 									value={statusCategory}
 									onValueChange={(v) =>
-										setStatusCategory(
-											v as "todo" | "in_progress" | "done",
-										)
+										setStatusCategory(v as "todo" | "in_progress" | "done")
 									}
 								>
 									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
@@ -289,7 +297,9 @@ function WorkflowSettingsPage() {
 								<Label htmlFor="from_status">Из статуса</Label>
 								<Select
 									value={fromStatusId || "placeholder"}
-									onValueChange={(v) => setFromStatusId(v === "placeholder" ? "" : v)}
+									onValueChange={(v) =>
+										setFromStatusId(v === "placeholder" ? "" : v)
+									}
 								>
 									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
 										<SelectValue />
@@ -308,7 +318,9 @@ function WorkflowSettingsPage() {
 								<Label htmlFor="to_status">В статус</Label>
 								<Select
 									value={toStatusId || "placeholder"}
-									onValueChange={(v) => setToStatusId(v === "placeholder" ? "" : v)}
+									onValueChange={(v) =>
+										setToStatusId(v === "placeholder" ? "" : v)
+									}
 								>
 									<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
 										<SelectValue />
@@ -369,9 +381,7 @@ function StatusRow({ status }: StatusRowProps) {
 					</Badge>
 				)}
 			</div>
-			<span className="text-[12px] text-t3">
-				Порядок: {status.sort_order}
-			</span>
+			<span className="text-[12px] text-t3">Порядок: {status.sort_order}</span>
 		</div>
 	);
 }

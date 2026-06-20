@@ -12,7 +12,12 @@ import { useSidebarStore } from "@/stores/sidebar-store";
 import { SidebarLink } from "./sidebar-link";
 
 /** Цвета точек проектов. */
-const PROJECT_DOT_COLORS = ["var(--blue)", "var(--purple)", "var(--green)", "var(--amber)"] as const;
+const PROJECT_DOT_COLORS = [
+	"var(--blue)",
+	"var(--purple)",
+	"var(--green)",
+	"var(--amber)",
+] as const;
 
 /** Подменю модулей проекта (Доска, Задачи, TMS, Бэклог, Спринты). */
 interface ProjectSubNavItem {
@@ -29,6 +34,7 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
 			label: "Доска",
 			icon: (
 				<svg
+					aria-hidden="true"
 					className="text-amber-400"
 					width="16"
 					height="16"
@@ -50,6 +56,7 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
 			label: "Задачи",
 			icon: (
 				<svg
+					aria-hidden="true"
 					className="text-blue-400"
 					width="16"
 					height="16"
@@ -70,6 +77,7 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
 			label: "TMS",
 			icon: (
 				<svg
+					aria-hidden="true"
 					className="text-green-400"
 					width="16"
 					height="16"
@@ -89,6 +97,7 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
 			label: "Бэклог",
 			icon: (
 				<svg
+					aria-hidden="true"
 					className="text-slate-400"
 					width="16"
 					height="16"
@@ -108,6 +117,7 @@ function getProjectSubNav(projectId: string): ProjectSubNavItem[] {
 			label: "Спринты",
 			icon: (
 				<svg
+					aria-hidden="true"
 					className="text-purple-400"
 					width="16"
 					height="16"
@@ -185,17 +195,14 @@ export function SidebarProjects({
 								{!collapsed && (
 									<button
 										type="button"
-										onClick={() =>
-											toggleProject(project.id)
-										}
+										onClick={() => toggleProject(project.id)}
 										className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-t4 hover:text-t1 transition-colors duration-150"
 										aria-label={
-											isExpanded
-												? "Свернуть модули"
-												: "Развернуть модули"
+											isExpanded ? "Свернуть модули" : "Развернуть модули"
 										}
 									>
 										<svg
+											aria-hidden="true"
 											width="10"
 											height="10"
 											viewBox="0 0 10 10"
@@ -221,7 +228,12 @@ export function SidebarProjects({
 										icon={
 											<div
 												className="w-[7px] h-[7px] rounded-full shrink-0"
-												style={{ background: PROJECT_DOT_COLORS[index % PROJECT_DOT_COLORS.length] }}
+												style={{
+													background:
+														PROJECT_DOT_COLORS[
+															index % PROJECT_DOT_COLORS.length
+														],
+												}}
 											/>
 										}
 									/>
@@ -231,21 +243,19 @@ export function SidebarProjects({
 							{/* Подменю модулей проекта */}
 							{isExpanded && !collapsed && (
 								<div className="space-y-0.5 mt-0.5 mb-1">
-									{getProjectSubNav(project.id).map(
-										(item) => (
-											<SidebarLink
-												key={item.to}
-												to={item.to}
-												label={item.label}
-												collapsed={collapsed}
-												params={{
-													projectId: project.id,
-												}}
-												indent
-												icon={item.icon}
-											/>
-										),
-									)}
+									{getProjectSubNav(project.id).map((item) => (
+										<SidebarLink
+											key={item.to}
+											to={item.to}
+											label={item.label}
+											collapsed={collapsed}
+											params={{
+												projectId: project.id,
+											}}
+											indent
+											icon={item.icon}
+										/>
+									))}
 								</div>
 							)}
 						</div>
@@ -254,9 +264,7 @@ export function SidebarProjects({
 			</div>
 
 			{projects?.length === 0 && !collapsed && (
-				<p className="px-3 py-2 text-xs text-t4">
-					{t("sidebar.noProjects")}
-				</p>
+				<p className="px-3 py-2 text-xs text-t4">{t("sidebar.noProjects")}</p>
 			)}
 		</div>
 	);

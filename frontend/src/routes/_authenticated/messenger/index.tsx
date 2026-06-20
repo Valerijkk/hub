@@ -93,8 +93,8 @@ function MessengerIndex() {
 						Добро пожаловать в мессенджер
 					</h2>
 					<p className="text-sm text-t2 leading-relaxed mb-6">
-						У вас пока нет каналов. Создайте первый, чтобы начать общение
-						с командой.
+						У вас пока нет каналов. Создайте первый, чтобы начать общение с
+						командой.
 					</p>
 					<Dialog open={createOpen} onOpenChange={setCreateOpen}>
 						<DialogTrigger asChild>

@@ -3,8 +3,8 @@
  * Иконки 20px (viewBox 20x20), высота элемента 32px.
  */
 import { useMemo } from "react";
-import { NAV_ICON_COLORS, SidebarLink } from "./sidebar-link";
 import { useMessengerStore } from "@/stores/messenger-store";
+import { NAV_ICON_COLORS, SidebarLink } from "./sidebar-link";
 
 /** Блок навигации сайдбара: ссылки на дашборд, мессенджер, звонки, проекты, настройки, корзину. */
 export function SidebarNav({
@@ -27,6 +27,7 @@ export function SidebarNav({
 				collapsed={collapsed}
 				icon={
 					<svg
+						aria-hidden="true"
 						className={NAV_ICON_COLORS["/dashboard"]}
 						width="20"
 						height="20"
@@ -51,6 +52,7 @@ export function SidebarNav({
 				badge={totalUnread || undefined}
 				icon={
 					<svg
+						aria-hidden="true"
 						className={NAV_ICON_COLORS["/messenger"]}
 						width="20"
 						height="20"
@@ -72,6 +74,7 @@ export function SidebarNav({
 				collapsed={collapsed}
 				icon={
 					<svg
+						aria-hidden="true"
 						className={NAV_ICON_COLORS["/calls"]}
 						width="20"
 						height="20"
@@ -93,6 +96,7 @@ export function SidebarNav({
 				badge={undefined}
 				icon={
 					<svg
+						aria-hidden="true"
 						className={NAV_ICON_COLORS["/projects"]}
 						width="20"
 						height="20"
@@ -111,11 +115,34 @@ export function SidebarNav({
 				}
 			/>
 			<SidebarLink
+				to="/help"
+				label={t("nav.help", { defaultValue: "Справка" })}
+				collapsed={collapsed}
+				icon={
+					<svg
+						aria-hidden="true"
+						className={NAV_ICON_COLORS["/help"]}
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<circle cx="10" cy="10" r="7.5" />
+						<path d="M10 14v-.5M10 11.5a2 2 0 012-2c0-1.1-.9-2-2-2s-2 .9-2 2" />
+					</svg>
+				}
+			/>
+			<SidebarLink
 				to="/settings/profile"
 				label={t("nav.settings")}
 				collapsed={collapsed}
 				icon={
 					<svg
+						aria-hidden="true"
 						className={NAV_ICON_COLORS["/settings/profile"]}
 						width="20"
 						height="20"
@@ -137,6 +164,7 @@ export function SidebarNav({
 				collapsed={collapsed}
 				icon={
 					<svg
+						aria-hidden="true"
 						className={NAV_ICON_COLORS["/trash"]}
 						width="20"
 						height="20"

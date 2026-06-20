@@ -5,6 +5,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	type StepResult,
 	type TestResultDetailResponse,
@@ -98,7 +99,7 @@ export function RunExecutionPanel({
 			toast.success("Результат сохранён");
 			onNext();
 		},
-		onError: () => toast.error("Ошибка сохранения результата"),
+		onError: (err) => toastApiError(err, "Ошибка сохранения результата"),
 	});
 
 	return (

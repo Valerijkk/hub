@@ -7,7 +7,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { getChannelMembers, type ChannelMember } from "@/api/messenger";
+import { type ChannelMember, getChannelMembers } from "@/api/messenger";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -25,7 +25,11 @@ interface MentionAutocompleteProps {
 	/** Ref на textarea для позиционирования. */
 	textareaRef: React.RefObject<HTMLTextAreaElement | null>;
 	/** Вызывается при выборе упоминания. Возвращает новый текст, позицию курсора и user_id. */
-	onSelect: (newText: string, newCursorPosition: number, userId: string) => void;
+	onSelect: (
+		newText: string,
+		newCursorPosition: number,
+		userId: string,
+	) => void;
 	/** Ref для регистрации обработчика клавиш (вызывается из parent onKeyDown). */
 	keyHandlerRef?: React.MutableRefObject<
 		((e: KeyboardEvent<HTMLTextAreaElement>) => boolean) | null
@@ -188,8 +192,7 @@ export function MentionAutocomplete({
 	}, [selectedIndex]);
 
 	// Не рендерим если автокомплит не активен.
-	const isVisible =
-		mentionContext !== null && filteredMembers.length > 0;
+	const isVisible = mentionContext !== null && filteredMembers.length > 0;
 
 	if (!isVisible) return null;
 
@@ -214,19 +217,14 @@ export function MentionAutocomplete({
 				>
 					{/* Аватар-заглушка с первой буквой имени */}
 					<div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary">
-						{(member.user_name ?? member.user_id)
-							.charAt(0)
-							.toUpperCase()}
+						{(member.user_name ?? member.user_id).charAt(0).toUpperCase()}
 					</div>
 					<span className="truncate font-medium">
 						{member.user_name || member.user_id}
 					</span>
-					<span className="ml-auto text-[10px] text-t2">
-						{member.role}
-					</span>
+					<span className="ml-auto text-[10px] text-t2">{member.role}</span>
 				</button>
 			))}
 		</div>
 	);
 }
-

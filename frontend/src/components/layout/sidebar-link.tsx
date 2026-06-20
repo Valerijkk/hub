@@ -18,6 +18,7 @@ export const NAV_ICON_COLORS: Record<string, string> = {
 	"/messenger": "text-emerald-400",
 	"/calls": "text-violet-400",
 	"/projects": "text-blue-400",
+	"/help": "text-amber-300",
 	"/settings/profile": "text-slate-400",
 	"/trash": "text-slate-500",
 };
@@ -78,7 +79,8 @@ export function SidebarLink({
 			<span
 				className={cn(
 					"relative flex h-5 w-5 shrink-0 items-center justify-center [&_svg]:w-[18px] [&_svg]:h-[18px] [&_svg]:opacity-45",
-					isActive && "[&_svg]:opacity-100 [&_svg]:drop-shadow-[0_0_4px_rgba(91,156,245,.3)]",
+					isActive &&
+						"[&_svg]:opacity-100 [&_svg]:drop-shadow-[0_0_4px_rgba(91,156,245,.3)]",
 				)}
 			>
 				{icon}
@@ -86,9 +88,7 @@ export function SidebarLink({
 					<span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500" />
 				)}
 			</span>
-			{!collapsed && (
-				<span className="truncate leading-tight">{label}</span>
-			)}
+			{!collapsed && <span className="truncate leading-tight">{label}</span>}
 			{badge != null && badge > 0 && !collapsed && (
 				<span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
 					{badge}

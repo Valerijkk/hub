@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Separator } from "@/components/ui/separator";
 import { APIKeysPage } from "@/modules/settings/api-keys";
 import { WebhooksPage } from "@/modules/settings/webhooks";
-import { Separator } from "@/components/ui/separator";
 
 /**
  * Страница интеграций — API-ключи и вебхуки.

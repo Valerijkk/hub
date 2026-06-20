@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	createSavedFilter,
 	listSavedFilters,
@@ -86,8 +87,8 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 			setShowSaveDialog(false);
 			void refetchFilters();
 			toast.success("Фильтр сохранён");
-		} catch {
-			toast.error("Ошибка сохранения фильтра");
+		} catch (err) {
+			toastApiError(err, "Ошибка сохранения фильтра");
 		}
 	}, [saveName, submittedQuery, projectId, refetchFilters]);
 
@@ -109,6 +110,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 			<div className="flex items-center gap-3">
 				<div className="flex h-8 w-8 items-center justify-center rounded-[var(--r2)] bg-blue/10 text-blue">
 					<svg
+						aria-hidden="true"
 						className="h-4 w-4"
 						fill="none"
 						viewBox="0 0 24 24"
@@ -123,7 +125,9 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 					</svg>
 				</div>
 				<div>
-					<h2 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">JQL-поиск</h2>
+					<h2 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+						JQL-поиск
+					</h2>
 					<p className="text-[12px] text-t3">
 						��оиск задач с помощью JQL-за��росов
 					</p>
@@ -172,6 +176,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 						onClick={() => setShowSaveDialog(!showSaveDialog)}
 					>
 						<svg
+							aria-hidden="true"
 							className="mr-1 h-3.5 w-3.5"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -308,13 +313,9 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 									</td>
 									<td className="px-4 py-2.5">
 										{item.status ? (
-											<span className="text-[12px] text-t3">
-												{item.status}
-											</span>
+											<span className="text-[12px] text-t3">{item.status}</span>
 										) : (
-											<span className="text-[12px] text-t3/40">
-												--
-											</span>
+											<span className="text-[12px] text-t3/40">--</span>
 										)}
 									</td>
 									<td className="px-4 py-2.5">
@@ -323,9 +324,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 												{item.assignee}
 											</span>
 										) : (
-											<span className="text-[12px] text-t3/40">
-												--
-											</span>
+											<span className="text-[12px] text-t3/40">--</span>
 										)}
 									</td>
 								</tr>
@@ -340,6 +339,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 				<div className="flex flex-col items-center justify-center py-16 animate-[eu_350ms_var(--spring)]">
 					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[var(--r4)] bg-gradient-to-br from-raised to-card border border-dashed border-b1">
 						<svg
+							aria-hidden="true"
 							className="h-8 w-8 text-t3/30"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -353,10 +353,10 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 							/>
 						</svg>
 					</div>
-					<h3 className="text-[14px] font-bold text-t1 mb-1">Ничего не найдено</h3>
-					<p className="text-[13px] text-t2">
-						Попробуйте изменить JQL-запрос
-					</p>
+					<h3 className="text-[14px] font-bold text-t1 mb-1">
+						Ничего не найдено
+					</h3>
+					<p className="text-[13px] text-t2">Попробуйте изменить JQL-запрос</p>
 				</div>
 			)}
 

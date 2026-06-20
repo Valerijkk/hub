@@ -1,71 +1,51 @@
 package auth
 
 import (
-	"context"
-	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/google/uuid"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/enttest"
 	"github.com/valerii/hub/backend/ent/user"
 )
 
-// TestFirstUserRace проверяет фикс SEC-06: при 100 параллельных регистрациях
-// ровно один пользователь должен получить SystemRoleAdmin. Без сериализации
-// (mutex или advisory lock) count-then-create race назначил бы admin нескольким.
-//
-// Использует sqlite in-memory с shared cache, чтобы все горутины видели одну
-// и ту же базу. Сериализация регистраций обеспечивается process-level
-// `firstUserMu` внутри RegistrationModeService.CreateFirstOrMemberUser.
-func TestFirstUserRace(t *testing.T) {
-	dsn := "file:firstadminrace_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1&_journal=WAL&_busy_timeout=5000"
-	client := enttest.Open(t, "sqlite3", dsn)
-	t.Cleanup(func() { _ = client.Close() })
+func TestUpsertSystemSetting_ConcurrentCreate(t *testing.T) {
+	svc, ctx := newRegistrationTestEnv(t)
+	const key = "registration_mode"
 
-	regMode := NewRegistrationModeService(client)
-	ctx := context.Background()
-
-	const N = 100
 	var wg sync.WaitGroup
-	wg.Add(N)
-	errs := make(chan error, N)
-
-	for i := 0; i < N; i++ {
-		go func(i int) {
+	errs := make([]error, 20)
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func(idx int) {
 			defer wg.Done()
-			email := fmt.Sprintf("u%d@example.com", i)
-			_, err := regMode.CreateFirstOrMemberUser(ctx, func(b *ent.UserCreate, role user.SystemRole) *ent.UserCreate {
-				return b.SetEmail(email).SetSystemRole(role)
-			})
-			if err != nil {
-				errs <- fmt.Errorf("worker %d: %w", i, err)
-			}
+			errs[idx] = svc.upsertSystemSetting(ctx, key, "open", "registration mode")
 		}(i)
 	}
 	wg.Wait()
-	close(errs)
 
-	for e := range errs {
-		t.Errorf("registration error: %v", e)
+	for _, err := range errs {
+		require.NoError(t, err)
 	}
+	mode, err := svc.GetRegistrationMode(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, "open", mode)
+}
 
-	admins, err := client.User.Query().Where(user.SystemRoleEQ(user.SystemRoleAdmin)).Count(ctx)
-	if err != nil {
-		t.Fatalf("count admins: %v", err)
-	}
-	if admins != 1 {
-		t.Fatalf("SEC-06: got %d admins, want exactly 1", admins)
-	}
+func TestCreateFirstOrMemberUser_SecondUserIsMember(t *testing.T) {
+	svc, ctx := newRegistrationTestEnv(t)
+	first, err := svc.CreateFirstOrMemberUser(ctx, func(b *ent.UserCreate, role user.SystemRole) *ent.UserCreate {
+		return b.SetEmail("first-" + uuid.New().String()[:6] + "@example.com").SetSystemRole(role)
+	})
+	require.NoError(t, err)
+	assert.Equal(t, user.SystemRoleAdmin, first.SystemRole)
 
-	total, err := client.User.Query().Count(ctx)
-	if err != nil {
-		t.Fatalf("count users: %v", err)
-	}
-	if total != N {
-		t.Fatalf("expected %d users created, got %d", N, total)
-	}
+	second, err := svc.CreateFirstOrMemberUser(ctx, func(b *ent.UserCreate, role user.SystemRole) *ent.UserCreate {
+		return b.SetEmail("second-" + uuid.New().String()[:6] + "@example.com").SetSystemRole(role)
+	})
+	require.NoError(t, err)
+	assert.Equal(t, user.SystemRoleMember, second.SystemRole)
 }

@@ -9,13 +9,36 @@ interface Props {
 }
 
 /** Status configuration with glow colors. */
-const STATUS_CONFIG: Record<string, { color: string; glow: string; pulse: boolean; label: string }> = {
-	healthy: { color: "bg-green-500", glow: "0 0 8px rgba(34,197,94,0.6)", pulse: true, label: "Работает" },
-	unhealthy: { color: "bg-red-500", glow: "0 0 8px rgba(239,68,68,0.6)", pulse: false, label: "Ошибка" },
-	degraded: { color: "bg-yellow-500", glow: "0 0 8px rgba(234,179,8,0.6)", pulse: true, label: "Деградация" },
+const STATUS_CONFIG: Record<
+	string,
+	{ color: string; glow: string; pulse: boolean; label: string }
+> = {
+	healthy: {
+		color: "bg-green-500",
+		glow: "0 0 8px rgba(34,197,94,0.6)",
+		pulse: true,
+		label: "Работает",
+	},
+	unhealthy: {
+		color: "bg-red-500",
+		glow: "0 0 8px rgba(239,68,68,0.6)",
+		pulse: false,
+		label: "Ошибка",
+	},
+	degraded: {
+		color: "bg-yellow-500",
+		glow: "0 0 8px rgba(234,179,8,0.6)",
+		pulse: true,
+		label: "Деградация",
+	},
 };
 
-const DEFAULT_STATUS = { color: "bg-gray-400", glow: "none", pulse: false, label: "Неизвестно" };
+const DEFAULT_STATUS = {
+	color: "bg-gray-400",
+	glow: "none",
+	pulse: false,
+	label: "Неизвестно",
+};
 
 /** Service health widget. */
 export function SystemHealthWidget({ data }: Props) {

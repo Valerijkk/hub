@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { listMembers } from "@/api/projects";
 import {
 	type ActivityLogResponse,
 	listActivities,
 	listWorkflowStatuses,
 } from "@/api/tracker";
-import { listMembers } from "@/api/projects";
 import { cn } from "@/lib/utils";
 
 interface ActivityFeedProps {
@@ -45,9 +45,7 @@ export function ActivityFeed({ projectId, issueKey }: ActivityFeedProps) {
 	}
 
 	if (isLoading) {
-		return (
-			<p className="text-sm text-t2">Загрузка активности...</p>
-		);
+		return <p className="text-sm text-t2">Загрузка активности...</p>;
 	}
 
 	if (!activities || activities.length === 0) {
@@ -105,14 +103,17 @@ function ActivityItem({
 
 	return (
 		<div className="flex gap-3 py-3 border-b border-b1 text-[13px]">
-			<div className={cn("w-[9px] h-[9px] rounded-full mt-[5px] shrink-0", dotColor)} />
+			<div
+				className={cn(
+					"w-[9px] h-[9px] rounded-full mt-[5px] shrink-0",
+					dotColor,
+				)}
+			/>
 
 			<div className="flex-1 text-t2">
 				<div className="flex items-center gap-2">
 					<span className="text-t1 font-semibold">{activity.user.name}</span>
-					<span className="text-t2">
-						{getActionLabel(activity.action)}
-					</span>
+					<span className="text-t2">{getActionLabel(activity.action)}</span>
 				</div>
 
 				{(activity.changes ?? []).length > 0 && (

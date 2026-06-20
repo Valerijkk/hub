@@ -65,7 +65,10 @@ export function BoardColumn({
 			<div className="group flex items-center gap-[9px] px-1.5 py-2.5 mb-2.5">
 				<span
 					className="w-[9px] h-[9px] rounded-full transition-[box-shadow] group-hover:shadow-[0_0_12px_currentColor]"
-					style={{ backgroundColor: status.color || "var(--gray)", color: status.color || "var(--gray)" }}
+					style={{
+						backgroundColor: status.color || "var(--gray)",
+						color: status.color || "var(--gray)",
+					}}
 				/>
 				<span className="text-[13.5px] font-bold tracking-[-0.01em]">
 					{status.name}
@@ -78,7 +81,14 @@ export function BoardColumn({
 					params={{ projectId }}
 					className="ml-auto w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-[var(--t4)] hover:bg-[var(--hover)] hover:text-[var(--t1)] hover:scale-[1.12] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 				>
-					<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+					<svg
+						aria-hidden="true"
+						className="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth={2}
+					>
 						<line x1="12" y1="5" x2="12" y2="19" />
 						<line x1="5" y1="12" x2="19" y2="12" />
 					</svg>

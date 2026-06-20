@@ -32,16 +32,16 @@ export function Sidebar() {
 			)}
 		>
 			{/* Gradient edge line */}
-			<div className="pointer-events-none absolute top-0 right-[-1px] bottom-0 w-px bg-[linear-gradient(180deg,transparent_5%,rgba(251,191,36,.05)_30%,rgba(91,156,245,.04)_60%,transparent_95%)] z-10" aria-hidden="true" />
+			<div
+				className="pointer-events-none absolute top-0 right-[-1px] bottom-0 w-px bg-[linear-gradient(180deg,transparent_5%,rgba(251,191,36,.05)_30%,rgba(91,156,245,.04)_60%,transparent_95%)] z-10"
+				aria-hidden="true"
+			/>
 
 			{/* Лого и compose/collapse */}
 			<div className="flex h-14 shrink-0 items-center justify-between px-[18px]">
 				{!collapsed ? (
 					<>
-						<Link
-							to="/projects"
-							className="flex items-center gap-2.5 group"
-						>
+						<Link to="/projects" className="flex items-center gap-2.5 group">
 							<div className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] bg-gradient-to-br from-blue-500 to-purple-600 shadow-[0_2px_16px_var(--gB)] logo-glow transition-transform duration-150 group-hover:scale-105">
 								<span className="text-sm font-bold text-white select-none">
 									H
@@ -60,6 +60,7 @@ export function Sidebar() {
 										className="flex h-7 w-7 items-center justify-center rounded-full text-t2 hover:text-t1 hover:bg-[var(--hover)] transition-colors duration-150"
 									>
 										<svg
+											aria-hidden="true"
 											width="16"
 											height="16"
 											viewBox="0 0 16 16"
@@ -88,6 +89,7 @@ export function Sidebar() {
 										aria-label={t("sidebar.collapse")}
 									>
 										<svg
+											aria-hidden="true"
 											width="14"
 											height="14"
 											viewBox="0 0 16 16"

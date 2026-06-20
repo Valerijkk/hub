@@ -8,7 +8,7 @@ import {
 	createScheduledCall,
 } from "@/api/calls";
 import { getChannels } from "@/api/messenger";
-import { type MemberResponse, listMembers, listProjects } from "@/api/projects";
+import { listMembers, listProjects, type MemberResponse } from "@/api/projects";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -127,13 +127,7 @@ export function CreateCallDialog({
 	}, [date, time]);
 
 	const { data: conflictData } = useQuery({
-		queryKey: [
-			"calls",
-			"conflicts",
-			scheduledAtISO,
-			duration,
-			participantIds,
-		],
+		queryKey: ["calls", "conflicts", scheduledAtISO, duration, participantIds],
 		queryFn: () =>
 			checkCallConflicts(scheduledAtISO, Number(duration), participantIds),
 		enabled: conflictQueryEnabled && !!scheduledAtISO,
@@ -148,8 +142,7 @@ export function CreateCallDialog({
 		const q = participantSearch.toLowerCase();
 		return all.filter(
 			(m) =>
-				m.name.toLowerCase().includes(q) ||
-				m.email.toLowerCase().includes(q),
+				m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q),
 		);
 	}, [members, participantSearch]);
 
@@ -204,7 +197,8 @@ export function CreateCallDialog({
 
 		if (recurrence) data.rrule = recurrence;
 		if (participantIds.length > 0) data.participant_ids = participantIds;
-		if (reminder && reminder !== "0") data.reminder_minutes = Number.parseInt(reminder, 10);
+		if (reminder && reminder !== "0")
+			data.reminder_minutes = Number.parseInt(reminder, 10);
 
 		mutation.mutate(data);
 	};
@@ -214,7 +208,7 @@ export function CreateCallDialog({
 
 	// Format the selected date for display
 	const dateDisplay = date
-		? new Date(date + "T00:00:00").toLocaleDateString("ru-RU", {
+		? new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU", {
 				weekday: "short",
 				day: "numeric",
 				month: "long",
@@ -230,9 +224,7 @@ export function CreateCallDialog({
 							{t("createCallTitle", { defaultValue: "Новый звонок" })}
 						</DialogTitle>
 						{dateDisplay && (
-							<p className="text-sm text-t2 capitalize mt-1">
-								{dateDisplay}
-							</p>
+							<p className="text-sm text-t2 capitalize mt-1">{dateDisplay}</p>
 						)}
 					</DialogHeader>
 
@@ -337,9 +329,7 @@ export function CreateCallDialog({
 									</div>
 								) : (
 									filteredMembers.map((member: MemberResponse) => {
-										const isSelected = participantIds.includes(
-											member.user_id,
-										);
+										const isSelected = participantIds.includes(member.user_id);
 										return (
 											<button
 												key={member.user_id}
@@ -347,9 +337,7 @@ export function CreateCallDialog({
 												className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-raised/50 ${
 													isSelected ? "bg-primary/5" : ""
 												}`}
-												onClick={() =>
-													toggleParticipant(member.user_id)
-												}
+												onClick={() => toggleParticipant(member.user_id)}
 											>
 												{member.avatar_url ? (
 													<img
@@ -492,8 +480,7 @@ export function CreateCallDialog({
 												key={`${c.participant_id}-${c.call_title}`}
 												className="text-xs text-amber-200"
 											>
-												У участника{" "}
-												<span className="font-medium">{name}</span>{" "}
+												У участника <span className="font-medium">{name}</span>{" "}
 												уже есть звонок в это время:{" "}
 												<span className="font-medium">{c.call_title}</span>
 											</p>

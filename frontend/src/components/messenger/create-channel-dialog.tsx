@@ -25,6 +25,7 @@ export function CreateChannelDialog() {
 					title="Создать канал"
 				>
 					<svg
+						aria-hidden="true"
 						className="h-4 w-4"
 						fill="none"
 						viewBox="0 0 24 24"

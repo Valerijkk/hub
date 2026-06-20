@@ -116,9 +116,7 @@ export function SavedFilters({
 					>
 						{filter.name}
 					</button>
-					{filter.shared && (
-						<Share2 className="h-3 w-3 text-t2" />
-					)}
+					{filter.shared && <Share2 className="h-3 w-3 text-t2" />}
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<button

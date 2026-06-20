@@ -3,6 +3,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,9 +46,10 @@ func NewAuthService(
 	accessTTL, refreshTTL time.Duration,
 	magicLink *MagicLinkService,
 	botToken string,
+	sqlDB *sql.DB,
 ) *AuthService {
 	sessions := NewSessionService(db, rdb, nats, jwtSecret, accessTTL, refreshTTL)
-	regMode := NewRegistrationModeService(db)
+	regMode := NewRegistrationModeService(db, sqlDB)
 	login := NewLoginService(db, magicLink, botToken, sessions, regMode)
 	profile := NewProfileService(db)
 	return &AuthService{

@@ -1,0 +1,96 @@
+---
+description: Git workflow, commit format, branch naming, what not to commit.
+alwaysApply: true
+---
+
+# Hub — Git Workflow
+
+## Branch Naming
+
+```
+main              — production-ready, protected
+feat/<module>/<description>     — new features
+fix/<module>/<description>      — bug fixes
+refactor/<module>/<description> — refactoring
+chore/<description>             — deps, tooling, config
+hotfix/<issue-id>/<description> — critical production fixes
+```
+
+## Commit Format (Conventional Commits)
+
+```
+<type>(<scope>): <description>
+
+Types: feat | fix | refactor | test | docs | chore | perf | ci
+Scope: auth | tracker | messenger | tms | calls | dashboard | 
+       notification | search | ws | platform | frontend | infra | ent
+
+Examples:
+feat(tracker): add WIP limits to Kanban columns
+fix(ws): prevent send on closed channel panic
+refactor(auth): extract AuthRepository interface
+test(auth): add magic-link brute-force lockout test
+docs(api): add Swagger annotations for TMS endpoints
+chore(deps): update Go to 1.24.3
+ci(deploy): remove DEV_MODE=true from production workflow
+```
+
+## What NEVER to Commit
+
+```gitignore
+# Secrets (already in .gitignore, but verify manually)
+.env
+.env.*
+!.env.example
+
+# Credentials that found their way in (require git-purge if committed)
+livekit-prod.yaml       # contains devkey: secret — MUST be templated
+docker-compose.local.yml # may have plaintext Resend/Telegram tokens
+
+# Build artifacts
+backend/hub
+frontend/dist/
+coverage.out
+*.test binary
+backend/cover
+backend/coverage
+backend/cov_*
+backend/cover_*
+backend/*_cov*
+backend/tmp*
+tmp_*.py
+
+# IDE
+.idea/
+*.swp
+```
+
+## Pre-commit Checklist
+
+Before every commit:
+```bash
+# Backend
+cd backend && go build ./... && go test -race -count=1 ./...
+
+# Frontend
+cd frontend && npx tsc --noEmit && npm run lint
+
+# Security scan
+git diff --staged | grep -E "(secret|password|token|key)" --color
+```
+
+## PR Rules
+
+1. PR description references the PLAN.md task being completed
+2. All CI checks must pass (lint + test + build)
+3. No `DEV_MODE=true` or hardcoded credentials in diffs
+4. Code-reviewer approval required
+5. Squash merge to main (keeps history clean)
+
+## Tag Convention
+
+```
+v1.0.0   — major milestone release
+v1.0.1   — hotfix
+v2.0.0   — new milestone
+```

@@ -361,6 +361,9 @@ func parseTestRailXML(data []byte) ([]TestRailCase, error) {
 // HTTP handler
 // ---------------------------------------------------------------------------
 
+// maxTestRailImportBytes — лимит CSV/XML файла TestRail (совпадает с Fiber BodyLimit 25 MB).
+const maxTestRailImportBytes = 25 * 1024 * 1024
+
 // ImportTestRailCases обрабатывает POST /api/projects/:projectId/tms/import/testrail.
 func (h *Handler) ImportTestRailCases(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
@@ -383,9 +386,12 @@ func (h *Handler) ImportTestRailCases(c fiber.Ctx) error {
 	}
 	defer f.Close()
 
-	data, err := io.ReadAll(f)
+	data, err := io.ReadAll(io.LimitReader(f, maxTestRailImportBytes+1))
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "error reading file")
+	}
+	if len(data) > maxTestRailImportBytes {
+		return fiber.NewError(fiber.StatusRequestEntityTooLarge, "file too large")
 	}
 
 	// Detect format by file extension or form field.

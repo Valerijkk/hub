@@ -36,6 +36,7 @@ function TmsLayout() {
 			to: "/projects/$projectId/tms/cases" as const,
 			icon: (
 				<svg
+					aria-hidden="true"
 					className="h-4 w-4"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -56,6 +57,7 @@ function TmsLayout() {
 			to: "/projects/$projectId/tms/runs" as const,
 			icon: (
 				<svg
+					aria-hidden="true"
 					className="h-4 w-4"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -76,6 +78,7 @@ function TmsLayout() {
 			to: "/projects/$projectId/tms/traceability" as const,
 			icon: (
 				<svg
+					aria-hidden="true"
 					className="h-4 w-4"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -96,6 +99,7 @@ function TmsLayout() {
 			to: "/projects/$projectId/tms/environments" as const,
 			icon: (
 				<svg
+					aria-hidden="true"
 					className="h-4 w-4"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -116,6 +120,7 @@ function TmsLayout() {
 			to: "/projects/$projectId/tms/autotest" as const,
 			icon: (
 				<svg
+					aria-hidden="true"
 					className="h-4 w-4"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -140,6 +145,7 @@ function TmsLayout() {
 					<div className="flex items-center gap-3">
 						<div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-tms text-white shadow-sm">
 							<svg
+								aria-hidden="true"
 								className="h-5 w-5"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -201,8 +207,14 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId/tms")(
 	{
 		component: TmsLayout,
 		beforeLoad: ({ location, params }) => {
-			if (location.pathname.endsWith("/tms") || location.pathname.endsWith("/tms/")) {
-				throw redirect({ to: "/projects/$projectId/tms/cases", params: { projectId: params.projectId } });
+			if (
+				location.pathname.endsWith("/tms") ||
+				location.pathname.endsWith("/tms/")
+			) {
+				throw redirect({
+					to: "/projects/$projectId/tms/cases",
+					params: { projectId: params.projectId },
+				});
 			}
 		},
 	},

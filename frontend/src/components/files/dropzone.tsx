@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { cn } from "@/lib/utils";
 import { FileUpload } from "./file-upload";
@@ -22,9 +23,7 @@ export function Dropzone({ projectId, entityType, entityId }: DropzoneProps) {
 		onUpload: (_fileId, file) => {
 			toast.success(`Файл "${file.name}" загружен`);
 		},
-		onError: () => {
-			toast.error("Не удалось загрузить файл");
-		},
+		onError: (err) => toastApiError(err, "Не удалось загрузить файл"),
 	});
 
 	return (
@@ -46,6 +45,7 @@ export function Dropzone({ projectId, entityType, entityId }: DropzoneProps) {
 			) : (
 				<div className="space-y-3">
 					<svg
+						aria-hidden="true"
 						className="mx-auto h-10 w-10 text-t2/50"
 						width="40"
 						height="40"

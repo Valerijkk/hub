@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -27,7 +28,7 @@ var (
 	AuthRateLimit        = RateLimitConfig{Max: 3, Window: 10 * time.Minute}
 	APIRateLimit         = RateLimitConfig{Max: 100, Window: 1 * time.Second}
 	FileUploadRateLimit  = RateLimitConfig{Max: 10, Window: 1 * time.Minute}
-	MessageSendRateLimit = RateLimitConfig{Max: 300, Window: 1 * time.Minute}
+	MessageSendRateLimit = RateLimitConfig{Max: 60, Window: 1 * time.Minute}
 )
 
 type slidingWindowEntry struct {
@@ -174,6 +175,10 @@ func RateLimitRedis(ctx context.Context, rdb *redis.Client, cfg RedisRateLimitCo
 		prefix = "rl:"
 	}
 
+	// In-memory fallback when Redis pipeline fails — avoids fail-open bypass (SEC).
+	memFallback := &rateLimiter{config: RateLimitConfig{Max: cfg.Max, Window: cfg.Window}}
+	go memFallback.cleanup(ctx)
+
 	return func(c fiber.Ctx) error {
 		ctx := c.Context()
 
@@ -193,19 +198,23 @@ func RateLimitRedis(ctx context.Context, rdb *redis.Client, cfg RedisRateLimitCo
 		pipe := rdb.Pipeline()
 		// Удаляем устаревшие попытки.
 		pipe.ZRemRangeByScore(ctx, key, "0", strconv.FormatInt(windowStart-1, 10))
-		// Добавляем текущую попытку. Member — уникальный nanosecond+IP, чтобы
-		// одновременные запросы не схлопывались в один ZADD.
-		member := strconv.FormatInt(now.UnixNano(), 10) + ":" + c.IP()
+		// Member must be unique per request — nanosecond alone collides in fast tests/bursts.
+		member := strconv.FormatInt(now.UnixNano(), 10) + ":" + c.IP() + ":" + randomHex(8)
 		pipe.ZAdd(ctx, key, redis.Z{Score: float64(nowMs), Member: member})
 		cardCmd := pipe.ZCard(ctx, key)
 		// Гарантируем, что ключ не залипнет навсегда: TTL чуть больше окна.
 		pipe.Expire(ctx, key, cfg.Window+time.Minute)
 
 		if _, err := pipe.Exec(ctx); err != nil {
-			// Fail-open на ошибке Redis — лучше пропустить запрос, чем
-			// заDDoSить себя. Логируем, чтобы это было видно в проде.
-			slog.Warn("RateLimitRedis: pipeline error, failing open",
+			slog.Warn("RateLimitRedis: pipeline error, falling back to in-memory limiter",
 				"key", key, "error", err)
+			memKey := raw
+			if memKey == "" {
+				memKey = "ip:" + hashIP(c.IP())
+			}
+			if !memFallback.allow(memKey) {
+				return apperrors.NewRateLimited("too many requests, please try again later")
+			}
 			return c.Next()
 		}
 
@@ -256,6 +265,14 @@ func normalizeEmail(s string) string {
 		out = append(out, b)
 	}
 	return string(out)
+}
+
+func randomHex(n int) string {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return strconv.FormatInt(time.Now().UnixNano(), 36)
+	}
+	return hex.EncodeToString(b)
 }
 
 // hashIP — sha256-первые-16-hex от IP. Чуть уменьшает PII в логах и Redis-

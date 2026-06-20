@@ -1,9 +1,13 @@
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 import type { Message } from "@/api/messenger";
-import { buildMessageFromWsEvent, getMessages, getThreadReplies } from "@/api/messenger";
-import { useWsStore } from "@/stores/ws-store";
+import {
+	buildMessageFromWsEvent,
+	getMessages,
+	getThreadReplies,
+} from "@/api/messenger";
 import { useWsEventListener } from "@/hooks/use-websocket";
+import { useWsStore } from "@/stores/ws-store";
 
 /** Количество сообщений за один запрос. */
 const PAGE_SIZE = 30;
@@ -60,7 +64,9 @@ export function useMessages(channelId: string | undefined) {
 						if (!old) return old;
 						const typed = old as { pages: Message[][]; pageParams: unknown[] };
 						// Deduplicate: skip if message already exists
-						const exists = typed.pages.some((page) => page.some((m) => m.id === message.id));
+						const exists = typed.pages.some((page) =>
+							page.some((m) => m.id === message.id),
+						);
 						if (exists) return old;
 						const lastPage = typed.pages[typed.pages.length - 1] ?? [];
 						return {
@@ -84,9 +90,13 @@ export function useMessages(channelId: string | undefined) {
 									msg.id === editedId
 										? {
 												...msg,
-												content_json: (evt.content_json as Record<string, unknown>) ?? msg.content_json,
-												content_text: (evt.content_text as string) ?? msg.content_text,
-												edited_at: (evt.edited_at as string) ?? new Date().toISOString(),
+												content_json:
+													(evt.content_json as Record<string, unknown>) ??
+													msg.content_json,
+												content_text:
+													(evt.content_text as string) ?? msg.content_text,
+												edited_at:
+													(evt.edited_at as string) ?? new Date().toISOString(),
 											}
 										: msg,
 								),
@@ -189,7 +199,9 @@ export function useThreadMessages(
 				queryClient.setQueryData(queryKey, (old: unknown) => {
 					if (!old) return old;
 					const typed = old as { pages: Message[][]; pageParams: unknown[] };
-					const exists = typed.pages.some((page) => page.some((m) => m.id === message.id));
+					const exists = typed.pages.some((page) =>
+						page.some((m) => m.id === message.id),
+					);
 					if (exists) return old;
 					const lastPage = typed.pages[typed.pages.length - 1] ?? [];
 					return {

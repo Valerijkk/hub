@@ -1,45 +1,43 @@
-# Hub — Документация
+# Hub — Единая база знаний
 
-**Hub** — единая платформа для команд разработки и тестирования, объединяющая трекер задач, мессенджер, TMS, созвоны и дашборды в одном интерфейсе.
+> Все агенты AI-команды загружают эти файлы перед любой задачей.
+> Регламент: `.cursor/REGULATION.md` · **Docs sync после изменений:** `.cursor/rules/55-docs-sync.mdc`
+
+## Общие файлы (обязательные)
+
+| Файл | Назначение |
+|------|------------|
+| [vision_and_scope.md](vision_and_scope.md) | Бизнес-цели, KPI, User Stories, MoSCoW |
+| [system_specification.md](system_specification.md) | FR/NFR, ERD, API контракты |
+| [architecture.md](architecture.md) | C4, deployment, паттерны |
+| [test_plan.md](test_plan.md) | Стратегия тестирования, регрессия |
+| [stack_and_tools.md](stack_and_tools.md) | Стек, версии, CI/CD |
+| [code_style_guide.md](code_style_guide.md) | Стиль кода Go/TS |
+| [security_guidelines.md](security_guidelines.md) | OWASP, секреты, чек-лист |
+| [competitive_audit.md](competitive_audit.md) | Best practices конкурентов, feature backlog |
+
+## Детальная документация (справочная)
+
+| Файл | Назначение |
+|------|------------|
+| [BUSINESS.md](BUSINESS.md) | Расширенная бизнес-документация |
+| [TECHNICAL.md](TECHNICAL.md) | Полная техническая спецификация |
+| [TESTING.md](TESTING.md) | Детали тестового покрытия |
+| [wiki/API.md](wiki/API.md) | Справочник API |
+| [wiki/ARCHITECTURE.md](wiki/ARCHITECTURE.md) | Wiki-архитектура |
+| [wiki/DEPLOY.md](wiki/DEPLOY.md) | Деплой |
+
+## Планирование
+
+| Путь | Назначение |
+|------|------------|
+| `.planning/PROJECT.md` | Полный список требований |
+| `.planning/ROADMAP.md` | Фазы и milestones |
+| `.planning/STATE.md` | Текущий статус |
+
+## Skill-файлы агентов
+
+`.cursor/project_skills/` — роль, шаги, лог, статус верификации (без дублирования docs/).
 
 ---
-
-## Навигация
-
-| Документ | Описание |
-|----------|----------|
-| [BUSINESS.md](./BUSINESS.md) | Бизнес-документация: продукт, модули, роли, сценарии, дорожная карта |
-| [TECHNICAL.md](./TECHNICAL.md) | Техническая документация: архитектура, БД, API, WebSocket, деплой |
-| [TESTING.md](./TESTING.md) | Тестовая документация: стратегия, тест-кейсы, покрытие, результаты |
-
-## Быстрый старт
-
-```bash
-# Запуск инфраструктуры
-cd deployments && docker compose up -d
-
-# Запуск бэкенда
-cd backend && go run ./cmd/server
-
-# Запуск фронтенда
-cd frontend && npm run dev
-```
-
-Откройте http://localhost:80 (через Caddy) или http://localhost:5173 (Vite dev server).
-
-## Стек технологий
-
-| Слой | Технологии |
-|------|-----------|
-| Backend | Go 1.23, Fiber v3, Ent ORM, Atlas миграции |
-| Frontend | React 19, TypeScript, Vite, TanStack Router/Query |
-| Базы данных | PostgreSQL 17, MongoDB 8, Redis 7.4 |
-| Real-time | NATS 2.11 + JetStream, WebSocket (fasthttp) |
-| Созвоны | LiveKit 1.8 (WebRTC, голос + screen share) |
-| Хранилище | SeaweedFS (S3-compatible) |
-| UI | Shadcn/ui, Tailwind CSS 4, Plate (rich-text), Tremor (графики) |
-| Прокси | Caddy 2 (auto-HTTPS, WebSocket) |
-
----
-
-*Последнее обновление: 2026-03-28*
+*2026-06-17 — миграция под регламент AI-команды*

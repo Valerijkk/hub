@@ -58,6 +58,7 @@ export function MessageAttachments({
 							)}
 						>
 							<svg
+								aria-hidden="true"
 								className="h-3.5 w-3.5 opacity-60"
 								fill="none"
 								viewBox="0 0 24 24"

@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCallback, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TriggerCIPanel } from "./trigger-ci-dialog";
 
 // ---------------------------------------------------------------------------
@@ -63,6 +63,7 @@ function CollapsibleSection({
 			>
 				<span>{title}</span>
 				<svg
+					aria-hidden="true"
 					className={`h-5 w-5 text-[var(--t3)] transition-transform ${open ? "rotate-180" : ""}`}
 					fill="none"
 					viewBox="0 0 24 24"
@@ -76,7 +77,9 @@ function CollapsibleSection({
 					/>
 				</svg>
 			</button>
-			{open && <div className="border-t p-4 border-[var(--b1)]">{children}</div>}
+			{open && (
+				<div className="border-t p-4 border-[var(--b1)]">{children}</div>
+			)}
 		</div>
 	);
 }
@@ -90,11 +93,10 @@ export function AutotestSetup({ projectId }: Props) {
 		<div className="space-y-6 p-6">
 			{/* Заголовок */}
 			<div>
-				<h2 className="text-xl font-semibold">
-					Интеграция автотестов
-				</h2>
+				<h2 className="text-xl font-semibold">Интеграция автотестов</h2>
 				<p className="mt-1 text-sm text-t2">
-					Настройте CI/CD пайплайн для автоматической загрузки результатов тестов
+					Настройте CI/CD пайплайн для автоматической загрузки результатов
+					тестов
 				</p>
 			</div>
 
@@ -133,12 +135,15 @@ export function AutotestSetup({ projectId }: Props) {
 					</div>
 
 					<p className="text-xs text-t2">
-						Замените <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+						Замените{" "}
+						<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
 							{"${YOUR_DOMAIN}"}
-						</code> на адрес вашего Hub-инстанса (например,{" "}
+						</code>{" "}
+						на адрес вашего Hub-инстанса (например,{" "}
 						<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
 							https://hub.example.com
-						</code>).
+						</code>
+						).
 					</p>
 				</CardContent>
 			</Card>
@@ -155,58 +160,67 @@ export function AutotestSetup({ projectId }: Props) {
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<p className="text-sm text-t2">
-						Для аутентификации CI/CD используйте API-ключ. Его можно создать
-						в разделе <strong>Профиль &rarr; API-ключи</strong>.
+						Для аутентификации CI/CD используйте API-ключ. Его можно создать в
+						разделе <strong>Профиль &rarr; API-ключи</strong>.
 					</p>
 
 					<CollapsibleSection title="Как создать API-ключ" defaultOpen>
 						<ol className="list-decimal pl-4 space-y-2 text-sm text-t2">
 							<li>
-								Перейдите в <strong>Профиль</strong> (аватар в левом нижнем углу)
+								Перейдите в <strong>Профиль</strong> (аватар в левом нижнем
+								углу)
 							</li>
 							<li>
 								Откройте вкладку <strong>API-ключи</strong>
 							</li>
 							<li>
-								Нажмите <strong>Создать ключ</strong>, укажите название (например,{" "}
-								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">ci-autotest</code>)
+								Нажмите <strong>Создать ключ</strong>, укажите название
+								(например,{" "}
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+									ci-autotest
+								</code>
+								)
 							</li>
-							<li>
-								Скопируйте ключ — он показывается только один раз
-							</li>
-							<li>
-								Добавьте ключ в секреты CI/CD вашего репозитория
-							</li>
+							<li>Скопируйте ключ — он показывается только один раз</li>
+							<li>Добавьте ключ в секреты CI/CD вашего репозитория</li>
 						</ol>
 					</CollapsibleSection>
 
-					<p className="text-sm text-t2">
-						Передавайте ключ одним из способов:
-					</p>
+					<p className="text-sm text-t2">Передавайте ключ одним из способов:</p>
 
 					<div className="space-y-2">
-						<p className="text-sm font-medium text-[var(--t1)]">Заголовок (рекомендуется):</p>
+						<p className="text-sm font-medium text-[var(--t1)]">
+							Заголовок (рекомендуется):
+						</p>
 						<CodeBlock code="X-API-Key: your-api-key-here" />
 					</div>
 
 					<div className="space-y-2">
-						<p className="text-sm font-medium text-[var(--t1)]">Query-параметр (альтернативный):</p>
+						<p className="text-sm font-medium text-[var(--t1)]">
+							Query-параметр (альтернативный):
+						</p>
 						<CodeBlock code={`${webhookUrl}?token=your-api-key-here`} />
 					</div>
 
 					<CollapsibleSection title="Необходимые права доступа">
 						<div className="space-y-3">
 							<p className="text-sm text-t2">
-								API-ключ наследует права пользователя, который его создал.
-								Для работы автотестов требуются следующие права в проекте:
+								API-ключ наследует права пользователя, который его создал. Для
+								работы автотестов требуются следующие права в проекте:
 							</p>
 							<div className="overflow-x-auto">
 								<table className="w-full text-sm">
 									<thead>
 										<tr className="border-b border-[var(--b1)]">
-											<th className="p-2 text-left font-medium text-[var(--t1)]">Действие</th>
-											<th className="p-2 text-left font-medium text-[var(--t1)]">Минимальная роль</th>
-											<th className="p-2 text-left font-medium text-[var(--t1)]">Описание</th>
+											<th className="p-2 text-left font-medium text-[var(--t1)]">
+												Действие
+											</th>
+											<th className="p-2 text-left font-medium text-[var(--t1)]">
+												Минимальная роль
+											</th>
+											<th className="p-2 text-left font-medium text-[var(--t1)]">
+												Описание
+											</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -254,24 +268,44 @@ export function AutotestSetup({ projectId }: Props) {
 
 					<CollapsibleSection title="Настройка секретов в CI/CD">
 						<div className="space-y-3">
-							<p className="text-sm font-medium text-[var(--t1)]">GitHub Actions:</p>
+							<p className="text-sm font-medium text-[var(--t1)]">
+								GitHub Actions:
+							</p>
 							<p className="text-sm text-t2">
-								<strong>Settings &rarr; Secrets and variables &rarr; Actions</strong> &rarr;
-								создайте секрет <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_API_KEY</code> и
-								переменную <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_URL</code>.
+								<strong>
+									Settings &rarr; Secrets and variables &rarr; Actions
+								</strong>{" "}
+								&rarr; создайте секрет{" "}
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+									HUB_API_KEY
+								</code>{" "}
+								и переменную{" "}
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+									HUB_URL
+								</code>
+								.
 							</p>
 							<p className="text-sm font-medium text-[var(--t1)]">GitLab CI:</p>
 							<p className="text-sm text-t2">
 								<strong>Settings &rarr; CI/CD &rarr; Variables</strong> &rarr;
 								создайте переменные{" "}
-								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_API_KEY</code> (masked) и{" "}
-								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_URL</code>.
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+									HUB_API_KEY
+								</code>{" "}
+								(masked) и{" "}
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+									HUB_URL
+								</code>
+								.
 							</p>
 							<p className="text-sm font-medium text-[var(--t1)]">Jenkins:</p>
 							<p className="text-sm text-t2">
 								<strong>Manage Jenkins &rarr; Credentials</strong> &rarr;
 								добавьте Secret text с ID{" "}
-								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">hub-api-key</code>.
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+									hub-api-key
+								</code>
+								.
 							</p>
 						</div>
 					</CollapsibleSection>
@@ -281,8 +315,9 @@ export function AutotestSetup({ projectId }: Props) {
 						<code className="rounded bg-yellow-100 px-1 dark:bg-yellow-900">
 							$HUB_API_KEY
 						</code>
-						). Никогда не фиксируйте его в репозитории. Регулярно ротируйте ключи —
-						при увольнении сотрудника отзовите его ключи в <strong>Профиль &rarr; API-ключи</strong>.
+						). Никогда не фиксируйте его в репозитории. Регулярно ротируйте
+						ключи — при увольнении сотрудника отзовите его ключи в{" "}
+						<strong>Профиль &rarr; API-ключи</strong>.
 					</div>
 				</CardContent>
 			</Card>
@@ -300,9 +335,17 @@ export function AutotestSetup({ projectId }: Props) {
 				<CardContent className="space-y-3">
 					<p className="text-sm text-t2">
 						Для автоматической привязки результатов к тест-кейсам используйте
-						паттерн <code className="rounded bg-gray-100 px-1 font-semibold dark:bg-gray-800">PROJ-TC-N</code>,
-						где <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">PROJ</code> — префикс проекта,
-						а <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">N</code> — номер тест-кейса.
+						паттерн{" "}
+						<code className="rounded bg-gray-100 px-1 font-semibold dark:bg-gray-800">
+							PROJ-TC-N
+						</code>
+						, где{" "}
+						<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+							PROJ
+						</code>{" "}
+						— префикс проекта, а{" "}
+						<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">N</code>{" "}
+						— номер тест-кейса.
 					</p>
 
 					<p className="text-sm text-t2">
@@ -310,8 +353,12 @@ export function AutotestSetup({ projectId }: Props) {
 					</p>
 
 					<p className="text-sm text-t2">
-						Включите этот идентификатор в название теста, аннотацию Allure
-						или поле <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">automation_id</code> тест-кейса.
+						Включите этот идентификатор в название теста, аннотацию Allure или
+						поле{" "}
+						<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+							automation_id
+						</code>{" "}
+						тест-кейса.
 					</p>
 				</CardContent>
 			</Card>
@@ -327,11 +374,21 @@ export function AutotestSetup({ projectId }: Props) {
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-3">
-					<CollapsibleSection title="Python (pytest + allure-pytest)" defaultOpen>
+					<CollapsibleSection
+						title="Python (pytest + allure-pytest)"
+						defaultOpen
+					>
 						<div className="space-y-3">
 							<p className="text-sm text-t2">
-								Используйте декоратор <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">@allure.id()</code> или
-								метку <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">allure.label()</code>:
+								Используйте декоратор{" "}
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+									@allure.id()
+								</code>{" "}
+								или метку{" "}
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+									allure.label()
+								</code>
+								:
 							</p>
 							<CodeBlock
 								language="python"
@@ -349,9 +406,7 @@ def test_user_login():
 def test_user_registration():
     pass`}
 							/>
-							<p className="text-sm text-t2">
-								Генерация результатов:
-							</p>
+							<p className="text-sm text-t2">Генерация результатов:</p>
 							<CodeBlock
 								language="bash"
 								code="pytest --alluredir=allure-results tests/"
@@ -398,7 +453,11 @@ test("Login test", async ({ page }) => {
 					<CollapsibleSection title="Java (JUnit + allure-java)">
 						<div className="space-y-3">
 							<p className="text-sm text-t2">
-								Используйте аннотацию <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">@AllureId</code>:
+								Используйте аннотацию{" "}
+								<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+									@AllureId
+								</code>
+								:
 							</p>
 							<CodeBlock
 								language="java"
@@ -542,9 +601,16 @@ upload_results:
 						/>
 
 						<p className="mt-3 text-sm text-t2">
-							Добавьте переменные <code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_URL</code> и{" "}
-							<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">HUB_API_KEY</code> в
-							<strong> Settings &rarr; CI/CD &rarr; Variables</strong> (masked).
+							Добавьте переменные{" "}
+							<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+								HUB_URL
+							</code>{" "}
+							и{" "}
+							<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
+								HUB_API_KEY
+							</code>{" "}
+							в<strong> Settings &rarr; CI/CD &rarr; Variables</strong>{" "}
+							(masked).
 						</p>
 					</CollapsibleSection>
 				</CardContent>
@@ -570,10 +636,18 @@ upload_results:
 						<table className="w-full text-sm">
 							<thead>
 								<tr className="border-b border-[var(--b1)]">
-									<th className="p-2 text-left font-medium text-[var(--t1)]">#</th>
-									<th className="p-2 text-left font-medium text-[var(--t1)]">Стратегия</th>
-									<th className="p-2 text-left font-medium text-[var(--t1)]">Источник данных</th>
-									<th className="p-2 text-left font-medium text-[var(--t1)]">Описание</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">
+										#
+									</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">
+										Стратегия
+									</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">
+										Источник данных
+									</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">
+										Описание
+									</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -638,7 +712,8 @@ upload_results:
 										</code>
 									</td>
 									<td className="p-2 text-t2">
-										Полное имя теста (пакет.класс.метод) сравнивается с full_name кейса.
+										Полное имя теста (пакет.класс.метод) сравнивается с
+										full_name кейса.
 									</td>
 								</tr>
 								<tr className="border-b border-[var(--b1)]">
@@ -654,7 +729,8 @@ upload_results:
 										</code>
 									</td>
 									<td className="p-2 text-t2">
-										Совпадение по имени класса (label suite) и имени метода (name).
+										Совпадение по имени класса (label suite) и имени метода
+										(name).
 									</td>
 								</tr>
 								<tr className="border-[var(--b1)]">
@@ -663,13 +739,11 @@ upload_results:
 											-
 										</Badge>
 									</td>
-									<td className="p-2 font-medium text-t2">
-										unmapped
-									</td>
+									<td className="p-2 font-medium text-t2">unmapped</td>
 									<td className="p-2 text-t2">-</td>
 									<td className="p-2 text-t2">
-										Результат не привязан ни к одному тест-кейсу. Отображается
-										в прогоне без ссылки на кейс.
+										Результат не привязан ни к одному тест-кейсу. Отображается в
+										прогоне без ссылки на кейс.
 									</td>
 								</tr>
 							</tbody>
@@ -703,16 +777,23 @@ upload_results:
 				</CardHeader>
 				<CardContent className="space-y-3">
 					<p className="text-sm text-t2">
-						При запуске тестов через панель выше Hub передаёт переменные CI/CD в пайплайн:
+						При запуске тестов через панель выше Hub передаёт переменные CI/CD в
+						пайплайн:
 					</p>
 
 					<div className="overflow-x-auto">
 						<table className="w-full text-sm">
 							<thead>
 								<tr className="border-b border-[var(--b1)]">
-									<th className="p-2 text-left font-medium text-[var(--t1)]">Переменная</th>
-									<th className="p-2 text-left font-medium text-[var(--t1)]">Пример</th>
-									<th className="p-2 text-left font-medium text-[var(--t1)]">Описание</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">
+										Переменная
+									</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">
+										Пример
+									</th>
+									<th className="p-2 text-left font-medium text-[var(--t1)]">
+										Описание
+									</th>
 								</tr>
 							</thead>
 							<tbody>

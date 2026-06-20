@@ -2,6 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Value } from "@udecode/plate";
 import { useState } from "react";
 import { toast } from "sonner";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
+import {
+	type CommentResponse,
+	createComment,
+	deleteComment,
+	listComments,
+	toggleReaction,
+} from "@/api/tracker";
+import { PlateEditor } from "@/components/tracker/plate-editor";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -12,14 +22,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-	type CommentResponse,
-	createComment,
-	deleteComment,
-	listComments,
-	toggleReaction,
-} from "@/api/tracker";
-import { PlateEditor } from "@/components/tracker/plate-editor";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -63,7 +65,7 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 			setIsInternal(false);
 			toast.success("Комментарий добавлен");
 		},
-		onError: () => toast.error("Не удалось добавить комментарий"),
+		onError: (err) => toastApiError(err, "Не удалось добавить комментарий"),
 	});
 
 	const deleteMutation = useMutation({
@@ -75,7 +77,7 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 			});
 			toast.success("Комментарий удалён");
 		},
-		onError: () => toast.error("Не удалось удалить комментарий"),
+		onError: (err) => toastApiError(err, "Не удалось удалить комментарий"),
 	});
 
 	const reactionMutation = useMutation({
@@ -90,22 +92,25 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 
 	const handleSubmit = () => {
 		if (!newBody || extractPlainText(newBody).trim() === "") {
-			toast.error("Введите текст комментария");
+			toast.error(i18n.t("common:validation.enterComment"));
 			return;
 		}
 		createMutation.mutate();
 	};
 
 	if (isLoading) {
-		return (
-			<p className="text-sm text-t2">Загрузка комментариев...</p>
-		);
+		return <p className="text-sm text-t2">Загрузка комментариев...</p>;
 	}
 
 	return (
 		<div className="space-y-4">
 			{/* Диалог подтверждения удаления */}
-			<AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+			<AlertDialog
+				open={!!deleteTarget}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Удалить комментарий?</AlertDialogTitle>
@@ -192,8 +197,7 @@ function CommentItem({ comment, onDelete, onReaction }: CommentItemProps) {
 		<div
 			className={cn(
 				"flex gap-[14px] py-4 border-b border-b1",
-				comment.is_internal &&
-					"border-yellow-300/20 bg-yellow-950/10",
+				comment.is_internal && "border-yellow-300/20 bg-yellow-950/10",
 			)}
 		>
 			{/* Avatar */}
@@ -208,7 +212,9 @@ function CommentItem({ comment, onDelete, onReaction }: CommentItemProps) {
 				{/* Заголовок */}
 				<div className="mb-[5px] flex items-center justify-between">
 					<div className="flex items-center gap-2">
-						<span className="text-[13.5px] font-bold">{comment.author.name}</span>
+						<span className="text-[13.5px] font-bold">
+							{comment.author.name}
+						</span>
 						<span className="text-[10.5px] text-t4">{timeAgo}</span>
 						{comment.is_internal && (
 							<span className="text-[10.5px] text-yellow-600">Внутренний</span>

@@ -77,5 +77,39 @@
 	"velocity": "Velocity",
 	"planningPoker": "Planning Poker",
 	"storyPoints": "Story Points",
-	"retrospective": "Retrospective"
+	"retrospective": "Retrospective",
+	"form": {
+		"title": "Title",
+		"titlePlaceholder": "Enter issue title",
+		"titleRequired": "Enter issue title",
+		"descriptionPlaceholder": "Describe the issue…",
+		"assigneePlaceholder": "Select assignee",
+		"estimateMinutes": "Estimate (minutes)",
+		"storyPointsNone": "—",
+		"createSuccess": "Issue created",
+		"createError": "Failed to create issue",
+		"updateSuccess": "Issue updated",
+		"updateError": "Failed to update issue",
+		"submitCreate": "Create issue",
+		"submitEdit": "Save changes"
+	},
+	"userPicker": {
+		"searchPlaceholder": "Search by name or email…",
+		"searchAria": "Search assignee",
+		"loading": "Loading…",
+		"empty": "No members found",
+		"clearAssignee": "Clear assignee"
+	},
+	"kanban": {
+		"loading": "Loading board…",
+		"loadError": "Failed to load board",
+		"moveError": "Failed to move issue",
+		"moveIssue": "Move {{key}}",
+		"swimlanes": "Swimlanes",
+		"swimlaneNone": "No grouping",
+		"swimlaneAssignee": "By assignee",
+		"swimlanePriority": "By priority",
+		"swimlaneType": "By type",
+		"unassigned": "Unassigned"
+	}
 }

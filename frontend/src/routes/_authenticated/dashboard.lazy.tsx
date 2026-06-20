@@ -2,6 +2,8 @@
  * Personal user dashboard.
  * Displays widgets with tasks, unread messages, calls, deadlines and time tracking.
  */
+
+import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	Bell,
 	CalendarPlus,
@@ -9,7 +11,6 @@ import {
 	Plus,
 	Search,
 } from "lucide-react";
-import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { personalDefault } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
@@ -61,7 +62,7 @@ function PersonalDashboard() {
 	const fetchPersonal = useDashboardStore((s) => s.fetchPersonal);
 	const loadLayout = useDashboardStore((s) => s.loadLayout);
 	const personalData = useDashboardStore((s) => s.personalData);
-	const personalItems = useDashboardStore((s) => s.layouts["personal"]);
+	const personalItems = useDashboardStore((s) => s.layouts.personal);
 	const setLayout = useDashboardStore((s) => s.setLayout);
 	const loading = useDashboardStore((s) => s.loading);
 	const error = useDashboardStore((s) => s.error);
@@ -138,8 +139,14 @@ function PersonalDashboard() {
 						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-colors"
 						onClick={() => navigate({ to: "/projects" })}
 					>
-						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(91,156,245,.06)" }}>
-							<Plus className="h-[18px] w-[18px]" style={{ color: "var(--blue)" }} />
+						<div
+							className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center"
+							style={{ background: "rgba(91,156,245,.06)" }}
+						>
+							<Plus
+								className="h-[18px] w-[18px]"
+								style={{ color: "var(--blue)" }}
+							/>
 						</div>
 						Новая задача
 					</button>
@@ -148,8 +155,14 @@ function PersonalDashboard() {
 						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-colors"
 						onClick={() => navigate({ to: "/messenger" })}
 					>
-						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(52,211,153,.06)" }}>
-							<MessageSquarePlus className="h-[18px] w-[18px]" style={{ color: "var(--green)" }} />
+						<div
+							className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center"
+							style={{ background: "rgba(52,211,153,.06)" }}
+						>
+							<MessageSquarePlus
+								className="h-[18px] w-[18px]"
+								style={{ color: "var(--green)" }}
+							/>
 						</div>
 						Написать
 					</button>
@@ -158,8 +171,14 @@ function PersonalDashboard() {
 						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-colors"
 						onClick={() => navigate({ to: "/calls" })}
 					>
-						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(167,139,250,.06)" }}>
-							<CalendarPlus className="h-[18px] w-[18px]" style={{ color: "var(--purple)" }} />
+						<div
+							className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center"
+							style={{ background: "rgba(167,139,250,.06)" }}
+						>
+							<CalendarPlus
+								className="h-[18px] w-[18px]"
+								style={{ color: "var(--purple)" }}
+							/>
 						</div>
 						Событие
 					</button>
@@ -167,8 +186,14 @@ function PersonalDashboard() {
 						type="button"
 						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-colors"
 					>
-						<div className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center" style={{ background: "rgba(255,255,255,.03)" }}>
-							<Search className="h-[18px] w-[18px]" style={{ color: "var(--t2)" }} />
+						<div
+							className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center"
+							style={{ background: "rgba(255,255,255,.03)" }}
+						>
+							<Search
+								className="h-[18px] w-[18px]"
+								style={{ color: "var(--t2)" }}
+							/>
 						</div>
 						Поиск
 					</button>

@@ -1,6 +1,7 @@
 import { Bell, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import { Button } from "@/components/ui/button";
 import {
 	dismissPushBanner,
@@ -36,7 +37,7 @@ export function PushPermissionBanner() {
 
 		const granted = await requestPushPermission();
 		if (!granted) {
-			toast.error("Разрешение на уведомления отклонено браузером");
+			toast.error(i18n.t("common:validation.pushPermissionDenied"));
 			return;
 		}
 
@@ -44,7 +45,7 @@ export function PushPermissionBanner() {
 		if (success) {
 			toast.success("Push-уведомления включены");
 		} else {
-			toast.error("Не удалось подписаться на уведомления");
+			toast.error(i18n.t("common:validation.pushSubscribeFailed"));
 		}
 	}, []);
 

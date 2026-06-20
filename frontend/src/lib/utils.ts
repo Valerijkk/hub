@@ -18,5 +18,5 @@ export function buildQueryString(params?: Record<string, any>): string {
 		.filter(([, v]) => v != null)
 		.map(([k, v]) => [k, Array.isArray(v) ? v.join(",") : String(v)]);
 	if (entries.length === 0) return "";
-	return "?" + new URLSearchParams(entries).toString();
+	return `?${new URLSearchParams(entries).toString()}`;
 }

@@ -17,6 +17,7 @@ import { Route as CallCodeRouteImport } from './routes/call.$code'
 import { Route as AuthenticatedTrashRouteImport } from './routes/_authenticated/trash'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedMessengerRouteImport } from './routes/_authenticated/messenger'
+import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCallsRouteImport } from './routes/_authenticated/calls'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
@@ -93,6 +94,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
 const AuthenticatedMessengerRoute = AuthenticatedMessengerRouteImport.update({
   id: '/messenger',
   path: '/messenger',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -355,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/calls': typeof AuthenticatedCallsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/help': typeof AuthenticatedHelpRoute
   '/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/trash': typeof AuthenticatedTrashRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/calls': typeof AuthenticatedCallsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/help': typeof AuthenticatedHelpRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/trash': typeof AuthenticatedTrashRoute
   '/call/$code': typeof CallCodeRoute
@@ -449,6 +457,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/_authenticated/calls': typeof AuthenticatedCallsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/help': typeof AuthenticatedHelpRoute
   '/_authenticated/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/trash': typeof AuthenticatedTrashRoute
@@ -498,6 +507,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/calls'
     | '/dashboard'
+    | '/help'
     | '/messenger'
     | '/settings'
     | '/trash'
@@ -545,6 +555,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/calls'
     | '/dashboard'
+    | '/help'
     | '/settings'
     | '/trash'
     | '/call/$code'
@@ -591,6 +602,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/_authenticated/calls'
     | '/_authenticated/dashboard'
+    | '/_authenticated/help'
     | '/_authenticated/messenger'
     | '/_authenticated/settings'
     | '/_authenticated/trash'
@@ -697,6 +709,13 @@ declare module '@tanstack/react-router' {
       path: '/messenger'
       fullPath: '/messenger'
       preLoaderRoute: typeof AuthenticatedMessengerRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/help': {
+      id: '/_authenticated/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AuthenticatedHelpRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard': {
@@ -1096,6 +1115,7 @@ const AuthenticatedProjectsProjectIdRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedCallsRoute: typeof AuthenticatedCallsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
   AuthenticatedMessengerRoute: typeof AuthenticatedMessengerRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedTrashRoute: typeof AuthenticatedTrashRoute
@@ -1112,6 +1132,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCallsRoute: AuthenticatedCallsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedHelpRoute: AuthenticatedHelpRoute,
   AuthenticatedMessengerRoute: AuthenticatedMessengerRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedTrashRoute: AuthenticatedTrashRoute,

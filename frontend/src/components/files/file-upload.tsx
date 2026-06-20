@@ -43,6 +43,7 @@ export function FileUpload({
 				disabled={disabled}
 			>
 				<svg
+					aria-hidden="true"
 					className="mr-2 h-4 w-4"
 					width="16"
 					height="16"

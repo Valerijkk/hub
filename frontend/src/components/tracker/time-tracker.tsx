@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	startTimer as apiStartTimer,
 	stopTimer as apiStopTimer,
@@ -66,7 +68,7 @@ export function TimeTracker({
 			timer.startTimer(projectId, issueKey);
 			toast.success("Таймер запущен");
 		},
-		onError: () => toast.error("Не удалось запустить таймер"),
+		onError: (err) => toastApiError(err, "Не удалось запустить таймер"),
 	});
 
 	const stopMutation = useMutation({
@@ -81,7 +83,7 @@ export function TimeTracker({
 			});
 			toast.success("Таймер остановлен");
 		},
-		onError: () => toast.error("Не удалось остановить таймер"),
+		onError: (err) => toastApiError(err, "Не удалось остановить таймер"),
 	});
 
 	// Ручное логирование
@@ -105,12 +107,12 @@ export function TimeTracker({
 			setManualDescription("");
 			toast.success("Время залогировано");
 		},
-		onError: () => toast.error("Не удалось залогировать время"),
+		onError: (err) => toastApiError(err, "Не удалось залогировать время"),
 	});
 
 	const handleLogTime = () => {
 		if (!manualMinutes || Number(manualMinutes) <= 0) {
-			toast.error("Введите количество минут");
+			toast.error(i18n.t("common:validation.enterMinutes"));
 			return;
 		}
 		logMutation.mutate();
@@ -221,9 +223,7 @@ export function TimeTracker({
 								</Avatar>
 								<span className="text-sm">{log.user.name}</span>
 								{log.description && (
-									<span className="text-xs text-t2">
-										— {log.description}
-									</span>
+									<span className="text-xs text-t2">— {log.description}</span>
 								)}
 							</div>
 							<span className="text-sm font-medium">

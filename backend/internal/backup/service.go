@@ -19,6 +19,8 @@ import (
 
 // BackupService реализует создание, восстановление и управление резервными копиями.
 // Использует pg_dump + mongodump + S3 для полного бэкапа всех данных платформы.
+const maxBackupReadBytes = 512 * 1024 * 1024 // 512 MiB admin restore cap (NEW-03)
+
 type BackupService struct {
 	db         *ent.Client
 	s3Client   *s3.Client
@@ -168,7 +170,7 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 	}
 	defer result.Body.Close()
 
-	zipData, err := io.ReadAll(result.Body)
+	zipData, err := io.ReadAll(io.LimitReader(result.Body, maxBackupReadBytes))
 	if err != nil {
 		return fmt.Errorf("ошибка чтения бэкапа: %w", err)
 	}
@@ -232,7 +234,7 @@ func (s *BackupService) extractZIP(zipData []byte) (pgData, mongoData []byte, er
 			return nil, nil, fmt.Errorf("ошибка открытия файла %s в ZIP: %w", f.Name, openErr)
 		}
 
-		data, readErr := io.ReadAll(rc)
+		data, readErr := io.ReadAll(io.LimitReader(rc, maxBackupReadBytes))
 		rc.Close()
 		if readErr != nil {
 			return nil, nil, fmt.Errorf("ошибка чтения файла %s из ZIP: %w", f.Name, readErr)

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	createTestCase,
 	type ListTestCasesParams,
@@ -56,7 +57,8 @@ function SuiteTreeItem({
 				className={cn(
 					"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative",
 					"hover:bg-[var(--hover)] hover:text-t1",
-					isSelected && "bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
+					isSelected &&
+						"bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
 				)}
 				style={{ paddingLeft: `${depth * 26 + 10}px` }}
 				onClick={() => onSelect(isSelected ? undefined : suite.id)}
@@ -76,6 +78,7 @@ function SuiteTreeItem({
 						}}
 					>
 						<svg
+							aria-hidden="true"
 							className="h-[10px] w-[10px]"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -99,11 +102,14 @@ function SuiteTreeItem({
 							"group-hover:scale-110 group-hover:shadow-[0_0_10px_rgba(167,139,250,0.1)]",
 						)}
 						style={{
-							background: isSelected ? "rgba(167,139,250,0.1)" : "rgba(255,255,255,0.035)",
+							background: isSelected
+								? "rgba(167,139,250,0.1)"
+								: "rgba(255,255,255,0.035)",
 							color: isSelected ? "var(--purple)" : "var(--text-3)",
 						}}
 					>
 						<svg
+							aria-hidden="true"
 							className="h-3 w-3"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -199,7 +205,7 @@ function TestCasesPage() {
 			setNewDescription("");
 			toast.success("Тест-кейс создан");
 		},
-		onError: () => toast.error("Ошибка создания тест-кейса"),
+		onError: (err) => toastApiError(err, "Ошибка создания тест-кейса"),
 	});
 
 	const handleSuiteSelect = useCallback(
@@ -254,7 +260,8 @@ function TestCasesPage() {
 						className={cn(
 							"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative mb-1",
 							"hover:bg-[var(--hover)] hover:text-t1",
-							!filters.suiteId && "bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
+							!filters.suiteId &&
+								"bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
 						)}
 						onClick={() => handleSuiteSelect(undefined)}
 					>
@@ -262,6 +269,7 @@ function TestCasesPage() {
 							<span className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-purple/[0.06] to-transparent rounded-[var(--r2)] pointer-events-none" />
 						)}
 						<svg
+							aria-hidden="true"
 							className="h-3.5 w-3.5 shrink-0"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -294,7 +302,9 @@ function TestCasesPage() {
 			<div className="flex-1 flex flex-col overflow-hidden">
 				{/* Header */}
 				<div className="px-6 py-4 border-b border-b1 flex items-center gap-[14px] bg-[rgba(13,14,18,0.5)] backdrop-blur-[12px]">
-					<h2 className="text-[15px] font-bold tracking-[-0.015em]">Тест-кейсы</h2>
+					<h2 className="text-[15px] font-bold tracking-[-0.015em]">
+						Тест-кейсы
+					</h2>
 					<span className="text-[11.5px] font-semibold text-t3 bg-white/[0.035] px-3 py-[3px] rounded-full">
 						{total} {total === 1 ? "кейс" : total < 5 ? "кейса" : "кейсов"}
 					</span>
@@ -303,6 +313,7 @@ function TestCasesPage() {
 					{/* Filters */}
 					<div className="relative">
 						<svg
+							aria-hidden="true"
 							className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-t4"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -329,7 +340,11 @@ function TestCasesPage() {
 					<Select
 						value={filters.status ?? "all"}
 						onValueChange={(v) => {
-							updateFilter({ status: (v === "all" ? undefined : v) as ListTestCasesParams["status"] });
+							updateFilter({
+								status: (v === "all"
+									? undefined
+									: v) as ListTestCasesParams["status"],
+							});
 							setOffset(0);
 						}}
 					>
@@ -347,7 +362,11 @@ function TestCasesPage() {
 					<Select
 						value={filters.priority ?? "all"}
 						onValueChange={(v) => {
-							updateFilter({ priority: (v === "all" ? undefined : v) as ListTestCasesParams["priority"] });
+							updateFilter({
+								priority: (v === "all"
+									? undefined
+									: v) as ListTestCasesParams["priority"],
+							});
 							setOffset(0);
 						}}
 					>
@@ -375,6 +394,7 @@ function TestCasesPage() {
 							}}
 						>
 							<svg
+								aria-hidden="true"
 								className="mr-1 h-3 w-3"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -415,6 +435,7 @@ function TestCasesPage() {
 								className="gradient-tms text-white shadow-sm h-8"
 							>
 								<svg
+									aria-hidden="true"
 									className="mr-1.5 h-3.5 w-3.5"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -443,9 +464,7 @@ function TestCasesPage() {
 								<div className="grid grid-cols-2 gap-3">
 									<Select
 										value={newType}
-										onValueChange={(v) =>
-											setNewType(v as TestCaseType)
-										}
+										onValueChange={(v) => setNewType(v as TestCaseType)}
 									>
 										<SelectTrigger className="w-full rounded-xl border bg-card px-3 py-2 text-sm">
 											<SelectValue />
@@ -514,7 +533,10 @@ function TestCasesPage() {
 						<table className="w-full border-separate border-spacing-0">
 							<thead>
 								<tr>
-									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2" colSpan={8}>
+									<th
+										className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2"
+										colSpan={8}
+									>
 										<div className="h-4 w-full rounded animate-shimmer" />
 									</th>
 								</tr>
@@ -544,6 +566,7 @@ function TestCasesPage() {
 							!filters.status &&
 							!filters.priority ? (
 								<svg
+									aria-hidden="true"
 									className="h-10 w-10 text-t4"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -558,6 +581,7 @@ function TestCasesPage() {
 								</svg>
 							) : (
 								<svg
+									aria-hidden="true"
 									className="h-10 w-10 text-t4"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -635,20 +659,31 @@ function TestCasesPage() {
 												onChange={toggleSelectAll}
 											/>
 										</th>
-										<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2" style={{ width: 82 }}>
+										<th
+											className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2"
+											style={{ width: 82 }}
+										>
 											Ключ
 										</th>
 										<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2">
 											Название
 										</th>
-										<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2" style={{ width: 100 }}>
+										<th
+											className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2"
+											style={{ width: 100 }}
+										>
 											Приоритет
 										</th>
-										<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2" style={{ width: 110 }}>
+										<th
+											className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2"
+											style={{ width: 110 }}
+										>
 											Статус
 										</th>
-										<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2" style={{ width: 44 }}>
-										</th>
+										<th
+											className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2"
+											style={{ width: 44 }}
+										></th>
 										<th className="sticky top-0 z-[5] bg-base text-right text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2">
 											Обновлено
 										</th>
@@ -684,6 +719,7 @@ function TestCasesPage() {
 									onClick={() => setOffset(0)}
 								>
 									<svg
+										aria-hidden="true"
 										className="h-3.5 w-3.5"
 										fill="none"
 										viewBox="0 0 24 24"
@@ -705,6 +741,7 @@ function TestCasesPage() {
 									onClick={() => setOffset(Math.max(0, offset - limit))}
 								>
 									<svg
+										aria-hidden="true"
 										className="h-3.5 w-3.5"
 										fill="none"
 										viewBox="0 0 24 24"
@@ -729,6 +766,7 @@ function TestCasesPage() {
 									onClick={() => setOffset(offset + limit)}
 								>
 									<svg
+										aria-hidden="true"
 										className="h-3.5 w-3.5"
 										fill="none"
 										viewBox="0 0 24 24"
@@ -752,6 +790,7 @@ function TestCasesPage() {
 									}
 								>
 									<svg
+										aria-hidden="true"
 										className="h-3.5 w-3.5"
 										fill="none"
 										viewBox="0 0 24 24"

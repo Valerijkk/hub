@@ -45,7 +45,7 @@ class ApiClient {
 		};
 		const token = useAuthStore.getState().accessToken;
 		if (token) {
-			headers["Authorization"] = `Bearer ${token}`;
+			headers.Authorization = `Bearer ${token}`;
 		}
 		return headers;
 	}
@@ -78,6 +78,7 @@ class ApiClient {
 			let error: ApiError;
 			try {
 				error = await response.json();
+				if (!error.code) error.code = response.status;
 			} catch {
 				error = { code: response.status, message: response.statusText };
 			}

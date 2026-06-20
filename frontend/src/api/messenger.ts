@@ -1,5 +1,5 @@
-import { api } from "./client";
 import { buildQueryString } from "@/lib/utils";
+import { api } from "./client";
 
 // ---------------------------------------------------------------------------
 // Типы перечислений
@@ -45,10 +45,9 @@ export function updateChannelNotifyMode(
 	channelId: string,
 	notifyMode: "all" | "mentions" | "nothing",
 ) {
-	return api.put<void>(
-		`/messenger/channels/${channelId}/notify-mode`,
-		{ notify_mode: notifyMode },
-	);
+	return api.put<void>(`/messenger/channels/${channelId}/notify-mode`, {
+		notify_mode: notifyMode,
+	});
 }
 
 /** Реакция на сообщение (raw от backend — содержит user_ids). */
@@ -214,9 +213,7 @@ export function deleteChannel(channelId: string) {
 
 /** Получить список участников канала. */
 export function getChannelMembers(channelId: string) {
-	return api.get<ChannelMember[]>(
-		`/messenger/channels/${channelId}/members`,
-	);
+	return api.get<ChannelMember[]>(`/messenger/channels/${channelId}/members`);
 }
 
 // ---------------------------------------------------------------------------
@@ -487,10 +484,7 @@ export interface CreatePollRequest {
 
 /** Создать опрос в канале. */
 export function createPoll(channelId: string, data: CreatePollRequest) {
-	return api.post<Poll>(
-		`/messenger/channels/${channelId}/polls`,
-		data,
-	);
+	return api.post<Poll>(`/messenger/channels/${channelId}/polls`, data);
 }
 
 /** Проголосовать в опросе. */
@@ -557,9 +551,7 @@ export function createInviteLink(
 
 /** Получить список пригласительных ссылок канала. */
 export function getChannelInvites(channelId: string) {
-	return api.get<ChannelInvite[]>(
-		`/messenger/channels/${channelId}/invites`,
-	);
+	return api.get<ChannelInvite[]>(`/messenger/channels/${channelId}/invites`);
 }
 
 /** Валидировать пригласительную ссылку по токену. */

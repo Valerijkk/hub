@@ -76,7 +76,9 @@ export function IssueDescription({
 
 	return (
 		<div>
-			<Label className="mb-2 block text-[13px] font-bold uppercase tracking-[0.06em] text-t3">Описание</Label>
+			<Label className="mb-2 block text-[13px] font-bold uppercase tracking-[0.06em] text-t3">
+				Описание
+			</Label>
 			{isEditing ? (
 				<div className="space-y-2">
 					<PlateEditor

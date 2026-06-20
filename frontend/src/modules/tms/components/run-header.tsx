@@ -93,6 +93,7 @@ export function RunHeader({
 					Прогоны
 				</Link>
 				<svg
+					aria-hidden="true"
 					className="h-3.5 w-3.5 text-t2/40"
 					fill="none"
 					viewBox="0 0 24 24"
@@ -122,9 +123,7 @@ export function RunHeader({
 						</Badge>
 					</div>
 					{run.description && (
-						<p className="text-sm text-t2 mb-2">
-							{run.description}
-						</p>
+						<p className="text-sm text-t2 mb-2">{run.description}</p>
 					)}
 					{/* Прогресс-бар в заголовке */}
 					{run.total_count > 0 && (
@@ -197,6 +196,7 @@ export function RunHeader({
 								onClick={onAddCases}
 							>
 								<svg
+									aria-hidden="true"
 									className="mr-1 h-3.5 w-3.5"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -218,6 +218,7 @@ export function RunHeader({
 								onClick={onStart}
 							>
 								<svg
+									aria-hidden="true"
 									className="mr-1 h-3.5 w-3.5"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -242,6 +243,7 @@ export function RunHeader({
 							onClick={onComplete}
 						>
 							<svg
+								aria-hidden="true"
 								className="mr-1 h-3.5 w-3.5"
 								fill="none"
 								viewBox="0 0 24 24"

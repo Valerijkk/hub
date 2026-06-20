@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { toast } from "sonner";
-import { api } from "@/api/client";
+import { toastApiError } from "@/lib/format-api-error";
 import type { TokenPairResponse } from "@/api/auth";
+import { api } from "@/api/client";
 import { useAuthStore } from "@/stores/auth-store";
 
 const TG_BOT_USERNAME = "hub_notifycation_lol_bot";
@@ -22,13 +22,12 @@ export function TelegramButton() {
 		if (!code.trim()) return;
 		setLoading(true);
 		try {
-			const tokens = await api.post<TokenPairResponse>(
-				"/auth/telegram-code",
-				{ code: code.trim() },
-			);
+			const tokens = await api.post<TokenPairResponse>("/auth/telegram-code", {
+				code: code.trim(),
+			});
 			setTokens(tokens.access_token, tokens.refresh_token);
-		} catch {
-			toast.error("Неверный или истёкший код");
+		} catch (err) {
+			toastApiError(err, "Неверный или истёкший код");
 		} finally {
 			setLoading(false);
 		}
@@ -38,7 +37,7 @@ export function TelegramButton() {
 		return (
 			<button
 				type="button"
-				className="w-full h-[50px] bg-[#229ED9] text-white rounded-[var(--r3)] text-[15px] font-bold flex items-center justify-center gap-2.5 hover:brightness-110 hover:-translate-y-px active:scale-[.97] transition-[transform,filter,opacity]"
+				className="w-full h-[50px] bg-[#187AAC] text-white rounded-[var(--r3)] text-[15px] font-bold flex items-center justify-center gap-2.5 hover:brightness-110 hover:-translate-y-px active:scale-[.97] transition-[transform,filter,opacity]"
 				onClick={handleGetCode}
 			>
 				<svg
@@ -72,7 +71,7 @@ export function TelegramButton() {
 					type="button"
 					onClick={handleVerify}
 					disabled={loading || !code.trim()}
-					className="h-[50px] px-5 bg-[#229ED9] text-white rounded-[var(--r3)] text-[15px] font-bold hover:brightness-110 active:scale-[.97] transition-[transform,filter,opacity]"
+					className="h-[50px] px-5 bg-[#187AAC] text-white rounded-[var(--r3)] text-[15px] font-bold hover:brightness-110 active:scale-[.97] transition-[transform,filter,opacity]"
 				>
 					{loading ? "..." : "Войти"}
 				</button>

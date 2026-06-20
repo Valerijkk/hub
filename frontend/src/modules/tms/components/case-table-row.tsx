@@ -82,23 +82,14 @@ export function CaseTableRow({
 	onToggleSelect,
 }: CaseTableRowProps) {
 	// biome-ignore lint/style/noNonNullAssertion: PRIORITY_CONFIG.medium is always defined
-	const priority = (PRIORITY_CONFIG[tc.priority] ??
-		PRIORITY_CONFIG.medium)!;
+	const priority = (PRIORITY_CONFIG[tc.priority] ?? PRIORITY_CONFIG.medium)!;
 	// biome-ignore lint/style/noNonNullAssertion: STATUS_CONFIG.draft is always defined
-	const statusCfg = (STATUS_CONFIG[tc.status] ??
-		STATUS_CONFIG.draft)!;
-	const hasAutotest = !!(
-		tc.full_name ||
-		tc.class_name ||
-		tc.external_id
-	);
+	const statusCfg = (STATUS_CONFIG[tc.status] ?? STATUS_CONFIG.draft)!;
+	const hasAutotest = !!(tc.full_name || tc.class_name || tc.external_id);
 
 	return (
 		<tr
-			className={cn(
-				"group cursor-pointer",
-				isSelected && "bg-purple/[0.03]",
-			)}
+			className={cn("group cursor-pointer", isSelected && "bg-purple/[0.03]")}
 			style={{
 				animation: `enterUp 350ms var(--spring) both`,
 				animationDelay: `${index * 40}ms`,
@@ -152,7 +143,11 @@ export function CaseTableRow({
 						statusCfg.bg,
 						statusCfg.text,
 						"border",
-						tc.status === "active" ? "border-green/[0.15]" : tc.status === "deprecated" ? "border-red/[0.15]" : "border-gray/[0.15]",
+						tc.status === "active"
+							? "border-green/[0.15]"
+							: tc.status === "deprecated"
+								? "border-red/[0.15]"
+								: "border-gray/[0.15]",
 					)}
 				>
 					{statusCfg.label}
@@ -160,15 +155,40 @@ export function CaseTableRow({
 			</td>
 			<td className="px-5 h-14 border-b border-b1 align-middle transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-[180ms] group-hover:bg-[var(--hover)]">
 				{hasAutotest ? (
-					<span title="Автоматизирован" className="text-[var(--green)] opacity-70 group-hover:opacity-100 transition-opacity">
-						<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-							<path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+					<span
+						title="Автоматизирован"
+						className="text-[var(--green)] opacity-70 group-hover:opacity-100 transition-opacity"
+					>
+						<svg
+							aria-hidden="true"
+							className="h-4 w-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							strokeWidth={2}
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+							/>
 						</svg>
 					</span>
 				) : (
 					<span title="Ручной" className="text-[var(--t4)]">
-						<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-							<path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+						<svg
+							aria-hidden="true"
+							className="h-4 w-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							strokeWidth={2}
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+							/>
 						</svg>
 					</span>
 				)}

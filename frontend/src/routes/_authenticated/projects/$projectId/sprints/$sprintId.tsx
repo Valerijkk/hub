@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	ArrowLeft,
 	Calendar,
@@ -33,8 +33,7 @@ function getStatusBadge(status: string) {
 		case "completed":
 			return {
 				label: "Завершён",
-				className:
-					"bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
+				className: "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
 				icon: CheckCircle2,
 			};
 		default:
@@ -60,14 +59,12 @@ function getDaysRemaining(endDate: string): number {
 function getSprintDuration(startDate: string, endDate: string): number {
 	const start = new Date(startDate);
 	const end = new Date(endDate);
-	return Math.ceil(
-		(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
-	);
+	return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 /** Вычислить прогресс спринта по дням. */
 function getProgressPercent(startDate: string, endDate: string): number {
-	const now = new Date().getTime();
+	const now = Date.now();
 	const start = new Date(startDate).getTime();
 	const end = new Date(endDate).getTime();
 	if (now >= end) return 100;
@@ -175,9 +172,7 @@ function SprintDetailPage() {
 						{
 							label: "Осталось",
 							value:
-								sprint.status === "completed"
-									? "Завершён"
-									: `${daysLeft} дн.`,
+								sprint.status === "completed" ? "Завершён" : `${daysLeft} дн.`,
 							icon: Clock,
 							color: "text-amber-400",
 							bg: "from-amber-500/10 to-amber-500/5",
@@ -198,17 +193,13 @@ function SprintDetailPage() {
 								<div
 									className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${stat.bg}`}
 								>
-									<stat.icon
-										className={`h-3.5 w-3.5 ${stat.color}`}
-									/>
+									<stat.icon className={`h-3.5 w-3.5 ${stat.color}`} />
 								</div>
 								<div>
 									<p className="text-[14px] font-bold tabular-nums leading-tight text-t1">
 										{stat.value}
 									</p>
-									<p className="text-[11px] text-t3">
-										{stat.label}
-									</p>
+									<p className="text-[11px] text-t3">{stat.label}</p>
 								</div>
 							</div>
 						</div>

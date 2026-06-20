@@ -11,6 +11,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/channel"
 	"github.com/valerii/hub/backend/ent/channelmember"
+	"strings"
 )
 
 // ---------------------------------------------------------------------------
@@ -38,8 +39,11 @@ type mockRepository struct {
 	pollOptions    map[uuid.UUID][]*ent.PollOption // pollID -> options
 	pollVotes      map[uuid.UUID][]*ent.PollVote   // pollID -> votes
 	// Mentions
-	displayNames     map[uuid.UUID]string
+	displayNames         map[uuid.UUID]string
 	projectMembersByRole map[uuid.UUID]map[string][]uuid.UUID
+	// Star/mute state keyed by channelID:userID
+	starred map[string]bool
+	muted   map[string]*time.Time
 }
 
 func newMockRepository() *mockRepository {
@@ -58,6 +62,8 @@ func newMockRepository() *mockRepository {
 		pollVotes:            make(map[uuid.UUID][]*ent.PollVote),
 		displayNames:         make(map[uuid.UUID]string),
 		projectMembersByRole: make(map[uuid.UUID]map[string][]uuid.UUID),
+		starred:              make(map[string]bool),
+		muted:                make(map[string]*time.Time),
 	}
 }
 
@@ -393,8 +399,21 @@ func (m *mockRepository) FindPin(_ context.Context, channelID uuid.UUID, message
 	return nil, &ent.NotFoundError{}
 }
 
-func (m *mockRepository) ListPins(_ context.Context, _ uuid.UUID) ([]*ent.PinnedMessage, error) {
-	return nil, nil
+func (m *mockRepository) ListPins(_ context.Context, channelID uuid.UUID) ([]*ent.PinnedMessage, error) {
+	var result []*ent.PinnedMessage
+	for key := range m.pins {
+		parts := strings.Split(key, ":")
+		if len(parts) == 2 && parts[0] == channelID.String() {
+			result = append(result, &ent.PinnedMessage{
+				ID:        uuid.New(),
+				ChannelID: channelID,
+				MessageID: parts[1],
+				PinnedBy:  uuid.New(),
+				PinnedAt:  time.Now(),
+			})
+		}
+	}
+	return result, nil
 }
 
 // --- Закладки ---
@@ -407,7 +426,20 @@ func (m *mockRepository) AddBookmark(_ context.Context, userID uuid.UUID, messag
 }
 
 func (m *mockRepository) RemoveBookmark(_ context.Context, bookmarkID uuid.UUID) error {
+	b, ok := m.bookmarksByID[bookmarkID]
+	if !ok {
+		return nil
+	}
 	delete(m.bookmarksByID, bookmarkID)
+	if list, ok := m.bookmarks[b.UserID]; ok {
+		filtered := make([]*ent.Bookmark, 0, len(list))
+		for _, item := range list {
+			if item.ID != bookmarkID {
+				filtered = append(filtered, item)
+			}
+		}
+		m.bookmarks[b.UserID] = filtered
+	}
 	return nil
 }
 
@@ -415,24 +447,46 @@ func (m *mockRepository) ListBookmarks(_ context.Context, userID uuid.UUID) ([]*
 	return m.bookmarks[userID], nil
 }
 
-func (m *mockRepository) ToggleStar(_ context.Context, _, _ uuid.UUID) (bool, error) {
-	return true, nil
+func memberKey(channelID, userID uuid.UUID) string {
+	return channelID.String() + ":" + userID.String()
 }
 
-func (m *mockRepository) MuteChannel(_ context.Context, _, _ uuid.UUID, _ string) (time.Time, error) {
-	return time.Now().Add(time.Hour), nil
+func (m *mockRepository) ToggleStar(_ context.Context, channelID, userID uuid.UUID) (bool, error) {
+	key := memberKey(channelID, userID)
+	m.starred[key] = !m.starred[key]
+	return m.starred[key], nil
 }
 
-func (m *mockRepository) UnmuteChannel(_ context.Context, _, _ uuid.UUID) error {
+func (m *mockRepository) MuteChannel(_ context.Context, channelID, userID uuid.UUID, duration string) (time.Time, error) {
+	until := time.Now().Add(time.Hour)
+	if duration == "forever" {
+		until = time.Now().Add(365 * 24 * time.Hour)
+	}
+	m.muted[memberKey(channelID, userID)] = &until
+	return until, nil
+}
+
+func (m *mockRepository) UnmuteChannel(_ context.Context, channelID, userID uuid.UUID) error {
+	delete(m.muted, memberKey(channelID, userID))
 	return nil
 }
 
-func (m *mockRepository) IsChannelMuted(_ context.Context, _, _ uuid.UUID) (bool, error) {
-	return false, nil
+func (m *mockRepository) IsChannelMuted(_ context.Context, channelID, userID uuid.UUID) (bool, error) {
+	until, ok := m.muted[memberKey(channelID, userID)]
+	if !ok || until == nil {
+		return false, nil
+	}
+	return until.After(time.Now()), nil
 }
 
-func (m *mockRepository) GetUserChannelMemberships(_ context.Context, _ uuid.UUID) ([]*ent.ChannelMember, error) {
-	return nil, nil
+func (m *mockRepository) GetUserChannelMemberships(_ context.Context, userID uuid.UUID) ([]*ent.ChannelMember, error) {
+	var result []*ent.ChannelMember
+	for _, members := range m.members {
+		if mem, ok := members[userID]; ok {
+			result = append(result, mem)
+		}
+	}
+	return result, nil
 }
 
 func (m *mockRepository) EnsureIndexes(_ context.Context) error {

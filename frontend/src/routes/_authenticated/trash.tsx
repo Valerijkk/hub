@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import type { ProjectResponse } from "@/api/projects";
 import { listProjects, restoreProject } from "@/api/projects";
 
@@ -28,7 +29,9 @@ function daysBadgeClass(days: number): string {
 function TrashPage() {
 	const queryClient = useQueryClient();
 	const [activeTab, setActiveTab] = useState<"items" | "about">("items");
-	const [confirmProject, setConfirmProject] = useState<ProjectResponse | null>(null);
+	const [confirmProject, setConfirmProject] = useState<ProjectResponse | null>(
+		null,
+	);
 
 	const { data: allProjects, isLoading } = useQuery({
 		queryKey: ["projects", "all"],
@@ -45,7 +48,7 @@ function TrashPage() {
 			void queryClient.invalidateQueries({ queryKey: ["projects"] });
 			toast.success("Проект восстановлен");
 		},
-		onError: () => toast.error("Не удалось восстановить проект"),
+		onError: (err) => toastApiError(err, "Не удалось восстановить проект"),
 	});
 
 	return (
@@ -101,7 +104,10 @@ function TrashPage() {
 					{isLoading && (
 						<div className="space-y-3">
 							{["sk-1", "sk-2"].map((sk) => (
-								<div key={sk} className="rounded-[var(--r4)] border border-b1 bg-card p-5">
+								<div
+									key={sk}
+									className="rounded-[var(--r4)] border border-b1 bg-card p-5"
+								>
 									<div className="space-y-2">
 										<div className="h-5 w-1/3 rounded-md animate-shimmer" />
 										<div className="h-4 w-1/5 rounded-md animate-shimmer" />
@@ -116,6 +122,7 @@ function TrashPage() {
 						<div className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-dashed border-b2 bg-card/50 py-16 px-6">
 							<div className="flex h-12 w-12 items-center justify-center rounded-full bg-raised mb-4">
 								<svg
+									aria-hidden="true"
 									className="h-6 w-6 text-t3"
 									viewBox="0 0 24 24"
 									fill="none"
@@ -140,77 +147,97 @@ function TrashPage() {
 						<table className="w-full border-collapse-separate border-spacing-0">
 							<thead>
 								<tr>
-									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2" style={{ width: 44 }} />
+									<th
+										className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2"
+										style={{ width: 44 }}
+									/>
 									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2">
 										Название
 									</th>
 									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2">
 										Удалил
 									</th>
-									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2" style={{ width: 120 }}>
+									<th
+										className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2"
+										style={{ width: 120 }}
+									>
 										Осталось
 									</th>
-									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2" style={{ width: 220 }}>
+									<th
+										className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2"
+										style={{ width: 220 }}
+									>
 										Действия
 									</th>
 								</tr>
 							</thead>
 							<tbody>
-								{deletedProjects.map((project: ProjectResponse, idx: number) => {
-									const days = daysRemaining(project.updated_at);
-									return (
-										<tr
-											key={project.id}
-											className="cursor-default hover:bg-[var(--hover)] animate-[eu_350ms_var(--spring)_both]"
-											style={{ animationDelay: `${idx * 40}ms` }}
-										>
-											<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
-												<span className="w-5 h-5 inline-block">
-													<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="1.8">
-														<rect x="2" y="2" width="5" height="5" rx="1" />
-														<rect x="9" y="2" width="5" height="5" rx="1" />
-														<rect x="2" y="9" width="5" height="5" rx="1" />
-														<rect x="9" y="9" width="5" height="5" rx="1" />
-													</svg>
-												</span>
-											</td>
-											<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
-												<span className="text-[14px] font-semibold">
-													{project.name}
-												</span>
-											</td>
-											<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
-												<span className="text-[13px] text-t2">
-													{new Date(project.updated_at).toLocaleDateString("ru-RU")}
-												</span>
-											</td>
-											<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
-												<span
-													className={`px-3 py-[3px] rounded-[var(--r1)] text-[11px] font-bold inline-block ${daysBadgeClass(days)}`}
-												>
-													{days} дней
-												</span>
-											</td>
-											<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
-												<button
-													type="button"
-													onClick={() => restoreMutation.mutate(project.id)}
-													disabled={restoreMutation.isPending}
-													className="px-4 py-[6px] rounded-[var(--r2)] text-[12px] font-bold bg-blue/[0.08] text-blue border border-blue/[0.15] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 mr-2 hover:bg-blue/[0.15] hover:-translate-y-px"
-												>
-													Восстановить
-												</button>
-												<button
-													type="button"
-													onClick={() => setConfirmProject(project)}
-													className="px-4 py-[6px] rounded-[var(--r2)] text-[12px] font-bold bg-red/[0.08] text-red border border-red/[0.15] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:bg-red/[0.15] hover:-translate-y-px"
-												>
-													Удалить
-												</button>
-											</td>
-										</tr>
-									);
-								})}
+								{deletedProjects.map(
+									(project: ProjectResponse, idx: number) => {
+										const days = daysRemaining(project.updated_at);
+										return (
+											<tr
+												key={project.id}
+												className="cursor-default hover:bg-[var(--hover)] animate-[eu_350ms_var(--spring)_both]"
+												style={{ animationDelay: `${idx * 40}ms` }}
+											>
+												<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
+													<span className="w-5 h-5 inline-block">
+														<svg
+															aria-hidden="true"
+															className="w-5 h-5"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="var(--blue)"
+															strokeWidth="1.8"
+														>
+															<rect x="2" y="2" width="5" height="5" rx="1" />
+															<rect x="9" y="2" width="5" height="5" rx="1" />
+															<rect x="2" y="9" width="5" height="5" rx="1" />
+															<rect x="9" y="9" width="5" height="5" rx="1" />
+														</svg>
+													</span>
+												</td>
+												<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
+													<span className="text-[14px] font-semibold">
+														{project.name}
+													</span>
+												</td>
+												<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
+													<span className="text-[13px] text-t2">
+														{new Date(project.updated_at).toLocaleDateString(
+															"ru-RU",
+														)}
+													</span>
+												</td>
+												<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
+													<span
+														className={`px-3 py-[3px] rounded-[var(--r1)] text-[11px] font-bold inline-block ${daysBadgeClass(days)}`}
+													>
+														{days} дней
+													</span>
+												</td>
+												<td className="px-[18px] py-4 border-b border-b1 align-middle transition-[background] duration-150">
+													<button
+														type="button"
+														onClick={() => restoreMutation.mutate(project.id)}
+														disabled={restoreMutation.isPending}
+														className="px-4 py-[6px] rounded-[var(--r2)] text-[12px] font-bold bg-blue/[0.08] text-blue border border-blue/[0.15] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 mr-2 hover:bg-blue/[0.15] hover:-translate-y-px"
+													>
+														Восстановить
+													</button>
+													<button
+														type="button"
+														onClick={() => setConfirmProject(project)}
+														className="px-4 py-[6px] rounded-[var(--r2)] text-[12px] font-bold bg-red/[0.08] text-red border border-red/[0.15] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:bg-red/[0.15] hover:-translate-y-px"
+													>
+														Удалить
+													</button>
+												</td>
+											</tr>
+										);
+									},
+								)}
 							</tbody>
 						</table>
 					)}
@@ -227,9 +254,21 @@ function TrashPage() {
 					{/* Lifecycle steps */}
 					<div className="flex gap-6 mb-10">
 						{[
-							{ n: "1", title: "Удаление", desc: "Элемент перемещается в корзину, ссылки сохраняются" },
-							{ n: "2", title: "30 дней", desc: "Можно восстановить. Обратный отсчет виден." },
-							{ n: "3", title: "Навсегда", desc: "Автоматическое безвозвратное удаление данных" },
+							{
+								n: "1",
+								title: "Удаление",
+								desc: "Элемент перемещается в корзину, ссылки сохраняются",
+							},
+							{
+								n: "2",
+								title: "30 дней",
+								desc: "Можно восстановить. Обратный отсчет виден.",
+							},
+							{
+								n: "3",
+								title: "Навсегда",
+								desc: "Автоматическое безвозвратное удаление данных",
+							},
 						].map((s, idx) => (
 							<div key={s.n} className="contents">
 								{idx > 0 && (
@@ -260,7 +299,13 @@ function TrashPage() {
 								title: "Задачи",
 								desc: "Issues, story points, comments",
 								icon: (
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+									<svg
+										aria-hidden="true"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.8"
+									>
 										<rect x="4" y="4" width="6" height="16" rx="1" />
 										<rect x="14" y="4" width="6" height="10" rx="1" />
 									</svg>
@@ -270,7 +315,13 @@ function TrashPage() {
 								title: "Каналы",
 								desc: "Каналы и история сообщений",
 								icon: (
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+									<svg
+										aria-hidden="true"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.8"
+									>
 										<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
 									</svg>
 								),
@@ -279,7 +330,13 @@ function TrashPage() {
 								title: "Тест-прогоны",
 								desc: "Результаты и статистика",
 								icon: (
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+									<svg
+										aria-hidden="true"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.8"
+									>
 										<path d="M9 11l3 3L22 4" />
 										<path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
 									</svg>
@@ -289,7 +346,13 @@ function TrashPage() {
 								title: "Папки TMS",
 								desc: "Папки с тест-кейсами",
 								icon: (
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+									<svg
+										aria-hidden="true"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.8"
+									>
 										<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
 									</svg>
 								),
@@ -298,7 +361,13 @@ function TrashPage() {
 								title: "Вложения",
 								desc: "Файлы, документы, медиа",
 								icon: (
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+									<svg
+										aria-hidden="true"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.8"
+									>
 										<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
 										<polyline points="13 2 13 9 20 9" />
 									</svg>
@@ -308,7 +377,13 @@ function TrashPage() {
 								title: "Проекты",
 								desc: "Весь проект со всеми данными",
 								icon: (
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+									<svg
+										aria-hidden="true"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.8"
+									>
 										<path d="M12 2L2 7l10 5 10-5-10-5z" />
 										<path d="M2 17l10 5 10-5" />
 										<path d="M2 12l10 5 10-5" />

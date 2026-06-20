@@ -1,7 +1,9 @@
 name: Build & Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [master]
 
 env:
@@ -11,6 +13,7 @@ env:
 
 jobs:
   build:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -31,17 +36,18 @@ jobs:
         with:
           context: ./backend
           push: true
-          tags: ${{ env.BACKEND_IMAGE }}:latest,${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+          tags: ${{ env.BACKEND_IMAGE }}:latest,${{ env.BACKEND_IMAGE }}:${{ github.event.workflow_run.head_sha }}
 
       - name: Build & push frontend
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           push: true
-          tags: ${{ env.FRONTEND_IMAGE }}:latest,${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+          tags: ${{ env.FRONTEND_IMAGE }}:latest,${{ env.FRONTEND_IMAGE }}:${{ github.event.workflow_run.head_sha }}
 
   deploy:
     needs: build
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
 
     steps:
@@ -52,39 +58,42 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            # Pull new images
-            docker pull ghcr.io/valerijkk/hub/backend:latest
-            docker pull ghcr.io/valerijkk/hub/frontend:latest
+            set -euo pipefail
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            BACKEND_IMAGE="ghcr.io/valerijkk/hub/backend:${SHA}"
+            FRONTEND_IMAGE="ghcr.io/valerijkk/hub/frontend:${SHA}"
 
-            # Update code (for compose + caddyfile)
+            docker pull "${BACKEND_IMAGE}"
+            docker pull "${FRONTEND_IMAGE}"
+
             cd /opt/hub
-            git reset --hard origin/master
+            git fetch origin master
+            git reset --hard "${SHA}"
 
-            # INF-02: НЕ форсить DEV_MODE=true в проде. Раньше sed-замена
-            # открывала /api/dev/* и срубала auth rate-limit. DEV_MODE
-            # остаётся "false" из compose.prod.yml.
-
-            # Restart backend
             cd deployments
-            IMAGE_BACKEND=ghcr.io/valerijkk/hub/backend:latest \
-            IMAGE_FRONTEND=ghcr.io/valerijkk/hub/frontend:latest \
-            docker compose -f docker-compose.prod.yml --env-file .env -p hub up -d --force-recreate backend
+            IMAGE_BACKEND="${BACKEND_IMAGE}" \
+            IMAGE_FRONTEND="${FRONTEND_IMAGE}" \
+            docker compose -f docker-compose.prod.yml --env-file .env -p hub up -d --force-recreate backend livekit
 
-            # Restart frontend
             docker rm -f frontend 2>/dev/null || true
             docker run -d --name frontend \
               --network hub_default \
               --network-alias frontend \
               --restart unless-stopped \
-              ghcr.io/valerijkk/hub/frontend:latest
+              "${FRONTEND_IMAGE}"
 
-            # Restart caddy
             docker start hub-caddy-1 2>/dev/null || true
             docker restart hub-caddy-1 2>/dev/null || true
 
-            # Cleanup — remove all unused images, build cache, volumes
-            docker image prune -af --filter "until=24h"
+            docker image prune -af --filter "until=72h"
             docker builder prune -af
-            docker system prune -f --volumes
 
-            echo "Deployed $(cd /opt/hub && git log --oneline -1)"
+            for i in $(seq 1 30); do
+              if curl -sf http://127.0.0.1:3000/api/health >/dev/null; then
+                echo "Deployed ${SHA} $(cd /opt/hub && git log --oneline -1)"
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "Health check failed after deploy"
+            exit 1

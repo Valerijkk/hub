@@ -1,0 +1,46 @@
+{
+	"title": "Hub Help",
+	"subtitle": "Quick guide. Full wiki is in the repo at docs/wiki/.",
+	"cards": {
+		"hotkeys": { "title": "Keyboard shortcuts", "desc": "All shortcuts in Settings" },
+		"search": { "title": "Global search", "desc": "Ctrl+K — issues, cases, channels, people" },
+		"tms": { "title": "TMS + Allure", "desc": "Import CI test runs" },
+		"integrations": { "title": "Integrations", "desc": "GitHub, GitLab, API keys in profile" }
+	},
+	"sections": {
+		"quickStart": {
+			"title": "Quick start",
+			"items": [
+				"Magic Link or Telegram — passwordless sign-in",
+				"Onboarding: profile → tour → theme → project",
+				"Create a project in the sidebar — board, TMS, chat appear"
+			]
+		},
+		"hotkeys": {
+			"title": "Keyboard shortcuts",
+			"items": [
+				"Ctrl+K / Cmd+K — global search",
+				"Ctrl+N — new issue (on supported pages)",
+				"Enter / Shift+Enter — send message in messenger"
+			]
+		},
+		"allure": {
+			"title": "Allure / TMS CI",
+			"items": [
+				"CI: hub-cli push-results or POST webhook with Allure JSON",
+				"Match by @TestCase(\"HUB-TC-42\") or ID in name",
+				"Failed case → Create bug from run view"
+			]
+		},
+		"integrations": {
+			"title": "GitHub / GitLab",
+			"items": [
+				"Commit with HUB-123 → auto-link PR/MR",
+				"Configure webhooks in project Settings → Integrations",
+				"Create branch from issue card"
+			]
+		}
+	},
+	"adminLink": "Need admin help?",
+	"adminPanel": "Admin panel"
+}

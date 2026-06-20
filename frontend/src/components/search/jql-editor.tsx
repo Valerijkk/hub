@@ -308,7 +308,7 @@ export function JQLEditor({
 			const base = partial
 				? value.slice(0, value.length - partial.length)
 				: value;
-			const newValue = base + suggestion + " ";
+			const newValue = `${base + suggestion} `;
 			onChange(newValue);
 			setShowSuggestions(false);
 			setSelectedIndex(0);
@@ -392,6 +392,7 @@ export function JQLEditor({
 		<div ref={containerRef} className={cn("relative", className)}>
 			<div className="relative">
 				<svg
+					aria-hidden="true"
 					className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-t3/60"
 					fill="none"
 					viewBox="0 0 24 24"

@@ -3,8 +3,11 @@
  * Visible on all screen sizes. Hamburger shown only on mobile (md:hidden).
  * Optional title prop renders gradient text for page name.
  */
+import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Button } from "@/components/ui/button";
+import { useCommandStore } from "@/stores/command-store";
 
 interface TopbarProps {
 	onMenuToggle?: () => void;
@@ -12,6 +15,9 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuToggle, title }: TopbarProps) {
+	const { t } = useTranslation("common");
+	const openCommand = useCommandStore((s) => s.setOpen);
+
 	return (
 		<header className="relative flex h-14 shrink-0 items-center gap-4 border-b border-b1 bg-[rgba(13,14,18,.75)] px-6 backdrop-blur-[24px] backdrop-saturate-[180%] z-50 sticky top-0">
 			{onMenuToggle && (
@@ -23,6 +29,7 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
 					aria-label="Меню"
 				>
 					<svg
+						aria-hidden="true"
 						width="16"
 						height="16"
 						viewBox="0 0 16 16"
@@ -45,6 +52,32 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
 			<div className="flex-1" />
 
 			<div className="flex items-center gap-2">
+				<button
+					type="button"
+					onClick={() => openCommand(true)}
+					aria-label={t("search.globalSearch")}
+					aria-keyshortcuts="Control+K Meta+K"
+					className="hidden md:flex h-8 min-w-[200px] items-center gap-2 rounded-[var(--r2)] border border-b1 bg-[var(--hover)] px-3 text-sm text-t3 transition-colors hover:text-t2"
+				>
+					<Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+					<span className="flex-1 text-left">{t("search.placeholderExtended")}</span>
+					<kbd
+						aria-hidden="true"
+						className="rounded bg-base px-1.5 py-0.5 font-mono text-[10px] text-t3"
+					>
+						{t("search.hint")}
+					</kbd>
+				</button>
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					className="h-8 w-8 md:hidden text-t2"
+					onClick={() => openCommand(true)}
+					aria-label={t("search.globalSearch")}
+				>
+					<Search className="h-4 w-4" aria-hidden="true" />
+				</Button>
 				<NotificationBell />
 			</div>
 

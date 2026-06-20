@@ -3,7 +3,9 @@ package calls
 import (
 	"errors"
 	"log/slog"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -102,7 +104,12 @@ func (h *Handler) JoinByInviteCode(c fiber.Ctx) error {
 		return err
 	}
 
-	code := utils.CopyString(c.Params("code"))
+	rawCode := utils.CopyString(c.Params("code"))
+	decoded, err := url.PathUnescape(rawCode)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invite code обязателен")
+	}
+	code := strings.TrimSpace(decoded)
 	if code == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "invite code обязателен")
 	}

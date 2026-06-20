@@ -177,8 +177,9 @@ services:
     environment:
       SERVER_PORT: "3000"
       FIBER_IMMUTABLE: "true"
+      ENVIRONMENT: production
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
-      MONGODB_URL: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017"
+      MONGODB_URL: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin"
       MONGODB_DATABASE: "${MONGO_DB:-hub}"
       REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379/0"
       NATS_URL: "nats://nats:4222"
@@ -189,6 +190,8 @@ services:
       S3_REGION: "${S3_REGION:-us-east-1}"
       S3_USE_SSL: "false"
       JWT_SECRET: "${JWT_SECRET}"
+      INTEGRATION_ENCRYPTION_KEY: "${INTEGRATION_ENCRYPTION_KEY}"
+      CORS_ORIGINS: "${CORS_ORIGINS}"
       RESEND_API_KEY: "${RESEND_API_KEY}"
       RESEND_FROM_EMAIL: "${RESEND_FROM_EMAIL}"
       TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"

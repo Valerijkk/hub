@@ -121,9 +121,7 @@ export function ScheduledCalls({ channelId, projectId }: ScheduledCallsProps) {
 
 			{/* Список */}
 			{isLoading ? (
-				<div className="py-4 text-center text-sm text-t2">
-					Загрузка...
-				</div>
+				<div className="py-4 text-center text-sm text-t2">Загрузка...</div>
 			) : calls.length === 0 ? (
 				<div className="py-4 text-center text-sm text-t2">
 					Нет запланированных звонков
@@ -142,9 +140,7 @@ export function ScheduledCalls({ channelId, projectId }: ScheduledCallsProps) {
 									{getRecurrenceLabel(sc.rrule)}
 								</span>
 								{sc.description && (
-									<span className="text-xs text-t2">
-										{sc.description}
-									</span>
+									<span className="text-xs text-t2">{sc.description}</span>
 								)}
 							</div>
 							<button
@@ -250,12 +246,18 @@ function CreateScheduledCallForm({
 				value={recurrence || "no_repeat"}
 				onValueChange={(v) => setRecurrence(v === "no_repeat" ? "" : v)}
 			>
-				<SelectTrigger className="rounded-xl border border-border bg-base px-3 py-1.5 text-sm" aria-label="Повторение">
+				<SelectTrigger
+					className="rounded-xl border border-border bg-base px-3 py-1.5 text-sm"
+					aria-label="Повторение"
+				>
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
 					{RECURRENCE_OPTIONS.map((opt) => (
-						<SelectItem key={opt.value || "no_repeat"} value={opt.value || "no_repeat"}>
+						<SelectItem
+							key={opt.value || "no_repeat"}
+							value={opt.value || "no_repeat"}
+						>
 							{opt.label}
 						</SelectItem>
 					))}

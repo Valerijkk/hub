@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	getTestCase,
 	linkTestCaseToIssue,
@@ -35,7 +36,10 @@ import { VersionHistory } from "@/modules/tms/components/version-history";
 
 /** Generate a client-only stable id used as React key for step rows. */
 function makeStepUid(): string {
-	if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+	if (
+		typeof crypto !== "undefined" &&
+		typeof crypto.randomUUID === "function"
+	) {
 		return crypto.randomUUID();
 	}
 	return `step-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -97,9 +101,7 @@ function TestCaseDetailPage() {
 			setEditPriority(tc.priority);
 			setEditStatus(tc.status);
 			setEditSteps(
-				tc.steps
-					? tc.steps.map((s) => ({ ...s, _uid: makeStepUid() }))
-					: [],
+				tc.steps ? tc.steps.map((s) => ({ ...s, _uid: makeStepUid() })) : [],
 			);
 		}
 	}, [tc]);
@@ -124,8 +126,7 @@ function TestCaseDetailPage() {
 				postcondition: editPostcondition || undefined,
 				priority: editPriority,
 				status: editStatus,
-				steps:
-					editSteps.length > 0 ? stripStepUid(editSteps) : undefined,
+				steps: editSteps.length > 0 ? stripStepUid(editSteps) : undefined,
 				version: tc.version,
 			});
 		},
@@ -139,7 +140,7 @@ function TestCaseDetailPage() {
 			setEditing(false);
 			toast.success("Тест-кейс обновлён");
 		},
-		onError: () => toast.error("Ошибка обновления тест-кейса"),
+		onError: (err) => toastApiError(err, "Ошибка обновления тест-кейса"),
 	});
 
 	// Link to issue
@@ -153,7 +154,7 @@ function TestCaseDetailPage() {
 			setLinkIssueId("");
 			toast.success("Задача привязана");
 		},
-		onError: () => toast.error("Ошибка привязки"),
+		onError: (err) => toastApiError(err, "Ошибка привязки"),
 	});
 
 	// Unlink from issue
@@ -166,7 +167,7 @@ function TestCaseDetailPage() {
 			});
 			toast.success("Задача отвязана");
 		},
-		onError: () => toast.error("Ошибка отвязки"),
+		onError: (err) => toastApiError(err, "Ошибка отвязки"),
 	});
 
 	// Rollback version
@@ -182,7 +183,7 @@ function TestCaseDetailPage() {
 			});
 			toast.success("Тест-кейс откачен к версии");
 		},
-		onError: () => toast.error("Ошибка отката"),
+		onError: (err) => toastApiError(err, "Ошибка отката"),
 	});
 
 	/** Start editing. */
@@ -195,10 +196,8 @@ function TestCaseDetailPage() {
 		setEditPriority(tc.priority);
 		setEditStatus(tc.status);
 		setEditSteps(
-				tc.steps
-					? tc.steps.map((s) => ({ ...s, _uid: makeStepUid() }))
-					: [],
-			);
+			tc.steps ? tc.steps.map((s) => ({ ...s, _uid: makeStepUid() })) : [],
+		);
 		setEditing(true);
 	};
 
@@ -311,6 +310,7 @@ function TestCaseDetailPage() {
 						Тест-кейсы
 					</Link>
 					<svg
+						aria-hidden="true"
 						className="h-3.5 w-3.5 text-t2/40"
 						fill="none"
 						viewBox="0 0 24 24"
@@ -350,6 +350,7 @@ function TestCaseDetailPage() {
 					) : (
 						<Button variant="outline" size="sm" onClick={startEditing}>
 							<svg
+								aria-hidden="true"
 								className="mr-1.5 h-3.5 w-3.5"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -398,9 +399,7 @@ function TestCaseDetailPage() {
 									</Select>
 									<Select
 										value={editStatus}
-										onValueChange={(v) =>
-											setEditStatus(v as TestCaseStatus)
-										}
+										onValueChange={(v) => setEditStatus(v as TestCaseStatus)}
 									>
 										<SelectTrigger className="rounded-xl border bg-card px-2 py-1 text-xs h-auto w-auto min-w-[100px]">
 											<SelectValue />
@@ -488,7 +487,8 @@ function TestCaseDetailPage() {
 					) : (
 						tc.precondition && (
 							<div className="tms-precond-card px-[18px] py-4 bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] text-[13px] text-t2 leading-[1.65] relative overflow-hidden">
-								<strong className="text-t1 font-semibold">Предусловие:</strong> {tc.precondition}
+								<strong className="text-t1 font-semibold">Предусловие:</strong>{" "}
+								{tc.precondition}
 							</div>
 						)
 					)}
@@ -568,7 +568,10 @@ function TestCaseDetailPage() {
 							) : (
 								tc.postcondition && (
 									<div className="tms-precond-card px-[18px] py-4 bg-gradient-to-br from-card to-raised border border-b1 rounded-[var(--r3)] text-[13px] text-t2 leading-[1.65] relative overflow-hidden">
-										<strong className="text-t1 font-semibold">Постусловие:</strong> {tc.postcondition}
+										<strong className="text-t1 font-semibold">
+											Постусловие:
+										</strong>{" "}
+										{tc.postcondition}
 									</div>
 								)
 							)}
@@ -617,6 +620,7 @@ function TestCaseDetailPage() {
 															onClick={() => unlinkMutation.mutate(issue.id)}
 														>
 															<svg
+																aria-hidden="true"
 																className="h-3.5 w-3.5"
 																fill="none"
 																viewBox="0 0 24 24"
@@ -639,6 +643,7 @@ function TestCaseDetailPage() {
 							) : (
 								<div className="flex flex-col items-center justify-center py-12 text-center border rounded-xl border-dashed">
 									<svg
+										aria-hidden="true"
 										className="h-10 w-10 text-t2/20 mb-3"
 										fill="none"
 										viewBox="0 0 24 24"
@@ -651,9 +656,7 @@ function TestCaseDetailPage() {
 											d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
 										/>
 									</svg>
-									<p className="text-sm text-t2">
-										Нет связанных задач
-									</p>
+									<p className="text-sm text-t2">Нет связанных задач</p>
 								</div>
 							)}
 
@@ -677,6 +680,7 @@ function TestCaseDetailPage() {
 									onClick={() => linkMutation.mutate(linkIssueId.trim())}
 								>
 									<svg
+										aria-hidden="true"
 										className="mr-1 h-3 w-3"
 										fill="none"
 										viewBox="0 0 24 24"
@@ -702,14 +706,24 @@ function TestCaseDetailPage() {
 							<div className="flex items-center gap-2">
 								{hasAutotest ? (
 									<span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 px-3 py-1 text-xs font-semibold text-green-700 dark:text-green-400">
-										<svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 16 16">
+										<svg
+											aria-hidden="true"
+											className="h-3.5 w-3.5"
+											fill="currentColor"
+											viewBox="0 0 16 16"
+										>
 											<path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z" />
 										</svg>
 										Автоматизирован
 									</span>
 								) : (
 									<span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
-										<svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 16 16">
+										<svg
+											aria-hidden="true"
+											className="h-3.5 w-3.5"
+											fill="currentColor"
+											viewBox="0 0 16 16"
+										>
 											<path d="M2 7.75A.75.75 0 0 1 2.75 7h10a.75.75 0 0 1 0 1.5h-10A.75.75 0 0 1 2 7.75Z" />
 										</svg>
 										Не автоматизирован
@@ -737,13 +751,25 @@ function TestCaseDetailPage() {
 													toast.success("ID скопирован");
 												}}
 											>
-												<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-													<path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+												<svg
+													aria-hidden="true"
+													className="h-3.5 w-3.5"
+													fill="none"
+													viewBox="0 0 24 24"
+													stroke="currentColor"
+													strokeWidth={2}
+												>
+													<path
+														strokeLinecap="round"
+														strokeLinejoin="round"
+														d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+													/>
 												</svg>
 											</Button>
 										</div>
 										<p className="mt-2 text-xs text-t2/70 leading-relaxed">
-											Используйте этот ID в названии или аннотации автотеста для автоматической привязки результатов.
+											Используйте этот ID в названии или аннотации автотеста для
+											автоматической привязки результатов.
 										</p>
 									</div>
 
@@ -762,12 +788,25 @@ function TestCaseDetailPage() {
 													className="h-7 w-7 p-0"
 													onClick={() => {
 														if (!tc.automation_id) return;
-														void navigator.clipboard.writeText(tc.automation_id);
+														void navigator.clipboard.writeText(
+															tc.automation_id,
+														);
 														toast.success("Automation ID скопирован");
 													}}
 												>
-													<svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-														<path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+													<svg
+														aria-hidden="true"
+														className="h-3 w-3"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														strokeWidth={2}
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+														/>
 													</svg>
 												</Button>
 											</div>

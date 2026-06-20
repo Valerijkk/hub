@@ -47,6 +47,38 @@ func TestServerMessage_JSON(t *testing.T) {
 	assert.Equal(t, "project:abc-123", decoded.Room)
 }
 
+func TestClientMessage_RoundTripWithPayload(t *testing.T) {
+	original := ClientMessage{
+		Type: TypeSubscribe,
+		Room: "channel:abc",
+		Payload: map[string]any{
+			"cursor": "xyz",
+		},
+	}
+	data, err := json.Marshal(original)
+	require.NoError(t, err)
+
+	var decoded ClientMessage
+	require.NoError(t, json.Unmarshal(data, &decoded))
+	assert.Equal(t, TypeSubscribe, decoded.Type)
+	assert.Equal(t, "channel:abc", decoded.Room)
+}
+
+func TestClientMessage_UnsubscribeRoundTrip(t *testing.T) {
+	raw := `{"type":"unsubscribe","room":"project:deadbeef"}`
+	var msg ClientMessage
+	require.NoError(t, json.Unmarshal([]byte(raw), &msg))
+	assert.Equal(t, TypeUnsubscribe, msg.Type)
+	assert.Equal(t, "project:deadbeef", msg.Room)
+}
+
+func TestServerMessage_PongOmitsOptionalFields(t *testing.T) {
+	data, err := json.Marshal(ServerMessage{Type: TypePong})
+	require.NoError(t, err)
+	assert.NotContains(t, string(data), `"event"`)
+	assert.NotContains(t, string(data), `"room"`)
+}
+
 func TestClientMessage_PingHasNoRoom(t *testing.T) {
 	msg := ClientMessage{Type: TypePing}
 	data, err := json.Marshal(msg)

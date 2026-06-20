@@ -1,7 +1,7 @@
 # Dockerfile для Go бэкенда Hub
 # Многоступенчатая сборка: builder + финальный минимальный образ
 
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Позволяем Go автоматически скачать нужную версию toolchain
 ENV GOTOOLCHAIN=auto
@@ -18,8 +18,8 @@ COPY . .
 # Генерируем Ent ORM код
 RUN go generate ./ent
 
-# Собираем бинарник
-RUN CGO_ENABLED=0 GOOS=linux go build -o /hub-server ./cmd/server
+# Собираем prod-бинарник (ME-09: dev routes compiled out)
+RUN CGO_ENABLED=0 GOOS=linux go build -tags release -o /hub-server ./cmd/server
 
 # --- Финальный образ ---
 FROM alpine:3.20

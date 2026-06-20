@@ -370,9 +370,12 @@ func (h *Handler) ImportJira(c fiber.Ctx) error {
 	}
 	defer f.Close()
 
-	data, err := io.ReadAll(f)
+	data, err := io.ReadAll(io.LimitReader(f, maxImportFileBytes+1))
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "error reading file")
+	}
+	if len(data) > maxImportFileBytes {
+		return fiber.NewError(fiber.StatusRequestEntityTooLarge, "file too large")
 	}
 
 	result, err := h.svc.ImportJiraJSON(c.Context(), projectID, userID, data)

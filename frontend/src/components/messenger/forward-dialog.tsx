@@ -60,9 +60,7 @@ export function ForwardDialog({
 				<div className="space-y-3 pt-2">
 					{/* Превью */}
 					<div className="rounded-md bg-raised p-3">
-						<p className="text-xs font-medium text-t2">
-							{message.sender_id}
-						</p>
+						<p className="text-xs font-medium text-t2">{message.sender_id}</p>
 						<p className="mt-1 line-clamp-3 text-sm">
 							{message.content_text || "---"}
 						</p>

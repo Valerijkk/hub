@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Value } from "@udecode/plate";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	type CreateIssueRequest,
 	createIssue,
@@ -11,6 +13,7 @@ import {
 	updateIssue,
 } from "@/api/tracker";
 import { PlateEditor } from "@/components/tracker/plate-editor";
+import { UserPicker } from "@/components/tracker/user-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,51 +25,45 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 
-/** Типы задач для выбора. */
-const ISSUE_TYPES: { value: IssueType; label: string }[] = [
-	{ value: "bug", label: "Баг" },
-	{ value: "task", label: "Задача" },
-	{ value: "story", label: "История" },
-	{ value: "epic", label: "Эпик" },
-	{ value: "sub_task", label: "Подзадача" },
-	{ value: "improvement", label: "Улучшение" },
-	{ value: "tech_debt", label: "Техдолг" },
-	{ value: "spike", label: "Исследование" },
-	{ value: "release", label: "Релиз" },
+const ISSUE_TYPE_KEYS: IssueType[] = [
+	"bug",
+	"task",
+	"story",
+	"epic",
+	"sub_task",
+	"improvement",
+	"tech_debt",
+	"spike",
+	"release",
 ];
 
-/** Приоритеты задач для выбора. */
-const PRIORITIES: { value: IssuePriority; label: string }[] = [
-	{ value: "critical", label: "Критический" },
-	{ value: "high", label: "Высокий" },
-	{ value: "medium", label: "Средний" },
-	{ value: "low", label: "Низкий" },
-	{ value: "trivial", label: "Тривиальный" },
+const PRIORITY_KEYS: IssuePriority[] = [
+	"critical",
+	"high",
+	"medium",
+	"low",
+	"trivial",
 ];
 
-/** Пропсы компонента IssueForm. */
-interface IssueFormProps {
-	/** ID проекта. */
-	projectId: string;
-	/** Колбэк при успешном создании/обновлении. */
-	onSuccess?: (issue: IssueResponse) => void;
-	/** Начальные данные для режима редактирования. */
-	initialData?: IssueResponse;
-	/** Режим формы: создание или редактирование. */
-	mode: "create" | "edit";
+function issueTypeLabel(type: IssueType, t: (k: string) => string): string {
+	if (type === "sub_task") return t("types.subtask");
+	if (type === "tech_debt") return t("types.techDebt");
+	return t(`types.${type}`);
 }
 
-/**
- * Форма создания и редактирования задачи.
- * Поддерживает все 9 типов задач, приоритеты и rich-text описание через PlateEditor.
- * В режиме редактирования использует оптимистичную блокировку через поле version.
- */
+/** Форма создания и редактирования задачи. */
 export function IssueForm({
 	projectId,
 	onSuccess,
 	initialData,
 	mode,
-}: IssueFormProps) {
+}: {
+	projectId: string;
+	onSuccess?: (issue: IssueResponse) => void;
+	initialData?: IssueResponse;
+	mode: "create" | "edit";
+}) {
+	const { t } = useTranslation(["tracker", "common"]);
 	const queryClient = useQueryClient();
 
 	const [title, setTitle] = useState(initialData?.title ?? "");
@@ -87,18 +84,17 @@ export function IssueForm({
 		initialData?.story_points?.toString() ?? "",
 	);
 	const [dueDate, setDueDate] = useState(initialData?.due_date ?? "");
+	const [titleError, setTitleError] = useState<string | null>(null);
 
 	const createMutation = useMutation({
 		mutationFn: (data: CreateIssueRequest) => createIssue(projectId, data),
 		onSuccess: (result) => {
 			void queryClient.invalidateQueries({ queryKey: ["board", projectId] });
-			void queryClient.invalidateQueries({
-				queryKey: ["issues", projectId],
-			});
-			toast.success("Задача создана");
+			void queryClient.invalidateQueries({ queryKey: ["issues", projectId] });
+			toast.success(t("form.createSuccess"));
 			onSuccess?.(result);
 		},
-		onError: () => toast.error("Не удалось создать задачу"),
+		onError: (err) => toastApiError(err, t("form.createError")),
 	});
 
 	const updateMutation = useMutation({
@@ -120,18 +116,19 @@ export function IssueForm({
 				queryKey: ["issue", projectId, initialData?.issue_key],
 			});
 			void queryClient.invalidateQueries({ queryKey: ["board", projectId] });
-			toast.success("Задача обновлена");
+			toast.success(t("form.updateSuccess"));
 			onSuccess?.(result);
 		},
-		onError: () => toast.error("Не удалось обновить задачу"),
+		onError: (err) => toastApiError(err, t("form.updateError")),
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!title.trim()) {
-			toast.error("Введите название задачи");
+			setTitleError(t("form.titleRequired"));
 			return;
 		}
+		setTitleError(null);
 
 		if (mode === "create") {
 			createMutation.mutate({
@@ -153,22 +150,31 @@ export function IssueForm({
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-6">
-			{/* Название */}
 			<div className="space-y-2">
-				<Label htmlFor="title">Название</Label>
+				<Label htmlFor="title">{t("form.title")}</Label>
 				<Input
 					id="title"
 					value={title}
-					onChange={(e) => setTitle(e.target.value)}
-					placeholder="Введите название задачи"
+					onChange={(e) => {
+						setTitle(e.target.value);
+						if (titleError && e.target.value.trim()) setTitleError(null);
+					}}
+					placeholder={t("form.titlePlaceholder")}
 					required
+					aria-invalid={titleError ? true : undefined}
+					aria-describedby={titleError ? "title-error" : undefined}
+					className={titleError ? "border-red-500 focus-visible:ring-red-500" : undefined}
 				/>
+				{titleError ? (
+					<p id="title-error" className="text-sm text-red-500" role="alert">
+						{titleError}
+					</p>
+				) : null}
 			</div>
 
-			{/* Тип и приоритет */}
 			<div className="grid grid-cols-2 gap-4">
 				<div className="space-y-2">
-					<Label htmlFor="issue_type">Тип</Label>
+					<Label htmlFor="issue_type">{t("issueType")}</Label>
 					<Select
 						value={issueType}
 						onValueChange={(v) => setIssueType(v as IssueType)}
@@ -177,16 +183,16 @@ export function IssueForm({
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							{ISSUE_TYPES.map((t) => (
-								<SelectItem key={t.value} value={t.value}>
-									{t.label}
+							{ISSUE_TYPE_KEYS.map((type) => (
+								<SelectItem key={type} value={type}>
+									{issueTypeLabel(type, t)}
 								</SelectItem>
 							))}
 						</SelectContent>
 					</Select>
 				</div>
 				<div className="space-y-2">
-					<Label htmlFor="priority">Приоритет</Label>
+					<Label htmlFor="priority">{t("priority")}</Label>
 					<Select
 						value={priority}
 						onValueChange={(v) => setPriority(v as IssuePriority)}
@@ -195,9 +201,9 @@ export function IssueForm({
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							{PRIORITIES.map((p) => (
-								<SelectItem key={p.value} value={p.value}>
-									{p.label}
+							{PRIORITY_KEYS.map((p) => (
+								<SelectItem key={p} value={p}>
+									{t(`priorities.${p}`)}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -205,31 +211,28 @@ export function IssueForm({
 				</div>
 			</div>
 
-			{/* Описание */}
 			<div className="space-y-2">
-				<Label>Описание</Label>
+				<Label>{t("description")}</Label>
 				<PlateEditor
 					value={description}
 					onChange={setDescription}
-					placeholder="Опишите задачу..."
+					placeholder={t("form.descriptionPlaceholder")}
 				/>
 			</div>
 
-			{/* Исполнитель */}
 			<div className="space-y-2">
-				<Label htmlFor="assignee">Исполнитель (ID)</Label>
-				<Input
-					id="assignee"
+				<Label htmlFor="assignee">{t("assignee")}</Label>
+				<UserPicker
+					projectId={projectId}
 					value={assigneeId}
-					onChange={(e) => setAssigneeId(e.target.value)}
-					placeholder="ID исполнителя"
+					onChange={setAssigneeId}
+					placeholder={t("form.assigneePlaceholder")}
 				/>
 			</div>
 
-			{/* Оценка, story points и срок */}
 			<div className="grid grid-cols-3 gap-4">
 				<div className="space-y-2">
-					<Label htmlFor="estimate">Оценка (минуты)</Label>
+					<Label htmlFor="estimate">{t("form.estimateMinutes")}</Label>
 					<Input
 						id="estimate"
 						type="number"
@@ -240,7 +243,7 @@ export function IssueForm({
 					/>
 				</div>
 				<div className="space-y-2">
-					<Label htmlFor="story_points">Story Points</Label>
+					<Label htmlFor="story_points">{t("storyPoints")}</Label>
 					<Select
 						value={storyPoints || "none"}
 						onValueChange={(v) => setStoryPoints(v === "none" ? "" : v)}
@@ -249,7 +252,7 @@ export function IssueForm({
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="none">--</SelectItem>
+							<SelectItem value="none">{t("form.storyPointsNone")}</SelectItem>
 							{[1, 2, 3, 5, 8, 13, 21].map((sp) => (
 								<SelectItem key={sp} value={String(sp)}>
 									{sp}
@@ -259,7 +262,7 @@ export function IssueForm({
 					</Select>
 				</div>
 				<div className="space-y-2">
-					<Label htmlFor="due_date">Срок</Label>
+					<Label htmlFor="due_date">{t("dueDate")}</Label>
 					<Input
 						id="due_date"
 						type="date"
@@ -271,10 +274,10 @@ export function IssueForm({
 
 			<Button type="submit" disabled={isPending} className="w-full">
 				{isPending
-					? "Сохранение..."
+					? t("common:btn.saving")
 					: mode === "create"
-						? "Создать задачу"
-						: "Сохранить изменения"}
+						? t("form.submitCreate")
+						: t("form.submitEdit")}
 			</Button>
 		</form>
 	);

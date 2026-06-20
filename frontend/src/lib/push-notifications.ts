@@ -55,7 +55,11 @@ export function isPushSupported(): boolean {
 export function shouldShowPushBanner(): boolean {
 	if (!isPushSupported()) return false;
 	if (Notification.permission === "denied") return false;
-	if (Notification.permission === "granted" && localStorage.getItem(PUSH_SUBSCRIBED_KEY)) return false;
+	if (
+		Notification.permission === "granted" &&
+		localStorage.getItem(PUSH_SUBSCRIBED_KEY)
+	)
+		return false;
 	if (localStorage.getItem(PUSH_DISMISSED_KEY)) return false;
 	return true;
 }
@@ -156,5 +160,8 @@ function arrayBufferToBase64url(buffer: ArrayBuffer): string {
 	for (const byte of bytes) {
 		binary += String.fromCharCode(byte);
 	}
-	return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+	return btoa(binary)
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
 }

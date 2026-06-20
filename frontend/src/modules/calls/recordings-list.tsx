@@ -98,13 +98,9 @@ export function RecordingsList({ projectId }: RecordingsListProps) {
 			</div>
 
 			{isLoading ? (
-				<div className="flex justify-center py-8 text-t2">
-					Загрузка...
-				</div>
+				<div className="flex justify-center py-8 text-t2">Загрузка...</div>
 			) : filteredRecordings.length === 0 ? (
-				<div className="flex justify-center py-8 text-t2">
-					Записей пока нет
-				</div>
+				<div className="flex justify-center py-8 text-t2">Записей пока нет</div>
 			) : (
 				<>
 					<div className="overflow-x-auto rounded-lg border border-border">

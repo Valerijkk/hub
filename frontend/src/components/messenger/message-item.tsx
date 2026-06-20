@@ -1,11 +1,16 @@
-import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, X } from "lucide-react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import type { Message } from "@/api/messenger";
-import { addBookmark, deleteMessage, editMessage, togglePin } from "@/api/messenger";
+import {
+	addBookmark,
+	deleteMessage,
+	editMessage,
+	togglePin,
+} from "@/api/messenger";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
 import { useInvalidateMessages } from "@/hooks/use-invalidate";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { ForwardDialog } from "./forward-dialog";
@@ -103,7 +108,6 @@ function MessageEditMode({
 				disabled={saving}
 				className="w-full resize-none rounded-lg border border-input bg-base px-3 py-2 text-sm text-t1 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
 				rows={Math.min(editText.split("\n").length + 1, 6)}
-				autoFocus
 			/>
 			<div className="flex items-center gap-1 justify-end">
 				<button
@@ -119,7 +123,10 @@ function MessageEditMode({
 					type="button"
 					className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-primary hover:text-primary transition-colors"
 					title="Сохранить (Enter)"
-					onClick={() => { setSaving(true); onSave(editText); }}
+					onClick={() => {
+						setSaving(true);
+						onSave(editText);
+					}}
 					disabled={saving || !editText.trim()}
 				>
 					<Check className="h-3.5 w-3.5" />
@@ -218,46 +225,56 @@ function MessageItemInner({
 	}, [messageContentText]);
 
 	/** Сохранить отредактированное сообщение. */
-	const handleSaveEdit = useCallback(async (newText?: string) => {
-		const trimmed = (newText ?? editText).trim();
-		if (!trimmed || trimmed === (messageContentText ?? "").trim()) {
-			setIsEditing(false);
-			return;
-		}
-		try {
-			const contentJson = {
-				type: "doc",
-				children: [{ type: "p", children: [{ text: trimmed }] }],
-			};
-			const queryKey = ["messenger", "messages", channelId];
-			queryClient.setQueryData(queryKey, (old: unknown) => {
-				if (!old) return old;
-				const typed = old as { pages: Message[][]; pageParams: unknown[] };
-				return {
-					...typed,
-					pages: typed.pages.map((page) =>
-						page.map((msg) =>
-							msg.id === safeMessageId
-								? {
-										...msg,
-										content_json: contentJson,
-										content_text: trimmed,
-										edited_at: new Date().toISOString(),
-									}
-								: msg,
-						),
-					),
+	const handleSaveEdit = useCallback(
+		async (newText?: string) => {
+			const trimmed = (newText ?? editText).trim();
+			if (!trimmed || trimmed === (messageContentText ?? "").trim()) {
+				setIsEditing(false);
+				return;
+			}
+			try {
+				const contentJson = {
+					type: "doc",
+					children: [{ type: "p", children: [{ text: trimmed }] }],
 				};
-			});
-			setIsEditing(false);
-			await editMessage(channelId, safeMessageId, {
-				content_json: contentJson,
-				content_text: trimmed,
-			});
-		} catch {
-			invalidateMessages();
-		}
-	}, [editText, messageContentText, safeMessageId, channelId, queryClient, invalidateMessages]);
+				const queryKey = ["messenger", "messages", channelId];
+				queryClient.setQueryData(queryKey, (old: unknown) => {
+					if (!old) return old;
+					const typed = old as { pages: Message[][]; pageParams: unknown[] };
+					return {
+						...typed,
+						pages: typed.pages.map((page) =>
+							page.map((msg) =>
+								msg.id === safeMessageId
+									? {
+											...msg,
+											content_json: contentJson,
+											content_text: trimmed,
+											edited_at: new Date().toISOString(),
+										}
+									: msg,
+							),
+						),
+					};
+				});
+				setIsEditing(false);
+				await editMessage(channelId, safeMessageId, {
+					content_json: contentJson,
+					content_text: trimmed,
+				});
+			} catch {
+				invalidateMessages();
+			}
+		},
+		[
+			editText,
+			messageContentText,
+			safeMessageId,
+			channelId,
+			queryClient,
+			invalidateMessages,
+		],
+	);
 
 	/** Отменить редактирование. */
 	const handleCancelEdit = useCallback(() => {
@@ -310,7 +327,9 @@ function MessageItemInner({
 			>
 				<div className="flex gap-3 w-full min-w-0">
 					{/* Avatar column -- 38px, shown only on first message in group */}
-					<div className={cn("w-[38px] shrink-0", isGrouped && "invisible h-0")}>
+					<div
+						className={cn("w-[38px] shrink-0", isGrouped && "invisible h-0")}
+					>
 						{!isGrouped && (
 							<Avatar className="w-[38px] h-[38px]">
 								<AvatarFallback className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[13px] font-bold text-white hover:scale-[1.06] hover:shadow-[0_2px_12px_rgba(0,0,0,.3)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] bg-primary/10 text-primary">
@@ -349,6 +368,7 @@ function MessageItemInner({
 						{message.forwarded_from_id && (
 							<div className="mb-1 flex items-center gap-1 text-xs text-t2/70">
 								<svg
+									aria-hidden="true"
 									className="h-3 w-3"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -367,15 +387,12 @@ function MessageItemInner({
 
 						{/* Опрос — специальная карточка вместо обычного текста */}
 						{message.message_type === "poll" && message.poll_id && (
-							<PollMessage
-								pollId={message.poll_id}
-								channelId={channelId}
-							/>
+							<PollMessage pollId={message.poll_id} channelId={channelId} />
 						)}
 
 						{/* Message content (or inline edit) — не показываем для опросов */}
-						{message.message_type !== "poll" && (
-							isEditing ? (
+						{message.message_type !== "poll" &&
+							(isEditing ? (
 								<MessageEditMode
 									text={editText}
 									onSave={(newText) => void handleSaveEdit(newText)}
@@ -392,8 +409,7 @@ function MessageItemInner({
 										</p>
 									)}
 								</div>
-							)
-						)}
+							))}
 
 						{/* Voice message */}
 						{message.voice_url && (
@@ -439,7 +455,8 @@ function MessageItemInner({
 											type="button"
 											className={cn(
 												"flex items-center gap-1.5 px-2.5 py-0.5 border border-[var(--b2)] rounded-full text-[13px] cursor-pointer hover:bg-[var(--hover)] hover:border-[var(--b3)] hover:-translate-y-px transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]",
-												hasReacted && "border-[rgba(52,211,153,.2)] bg-[rgba(52,211,153,.04)]",
+												hasReacted &&
+													"border-[rgba(52,211,153,.2)] bg-[rgba(52,211,153,.04)]",
 											)}
 											onClick={() =>
 												void import("@/api/messenger").then((m) =>
@@ -469,6 +486,7 @@ function MessageItemInner({
 								onClick={() => openThread(message.id)}
 							>
 								<svg
+									aria-hidden="true"
 									className="h-3.5 w-3.5"
 									fill="none"
 									viewBox="0 0 24 24"

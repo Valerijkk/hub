@@ -68,7 +68,8 @@ export function CallChat({ callId }: CallChatProps) {
 
 	/** Отправка сообщения. */
 	const sendMutation = useMutation({
-		mutationFn: (msg: string) => sendChatMessage(callId, msg, !chatLoggingEnabled),
+		mutationFn: (msg: string) =>
+			sendChatMessage(callId, msg, !chatLoggingEnabled),
 		onSuccess: () => setText(""),
 	});
 
@@ -90,9 +91,7 @@ export function CallChat({ callId }: CallChatProps) {
 		<div className="flex h-full w-[280px] flex-shrink-0 flex-col border-l border-white/5 bg-black/20">
 			{/* Заголовок */}
 			<div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-				<span className="text-sm font-semibold text-white/80">
-					Чат звонка
-				</span>
+				<span className="text-sm font-semibold text-white/80">Чат звонка</span>
 				<div className="flex items-center gap-2">
 					<button
 						type="button"
@@ -103,7 +102,11 @@ export function CallChat({ callId }: CallChatProps) {
 								? "bg-green-500/15 text-green-400 hover:bg-green-500/25"
 								: "bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50",
 						)}
-						title={chatLoggingEnabled ? "Логирование включено (сообщения сохраняются)" : "Логирование выключено (сообщения не сохраняются)"}
+						title={
+							chatLoggingEnabled
+								? "Логирование включено (сообщения сохраняются)"
+								: "Логирование выключено (сообщения не сохраняются)"
+						}
 					>
 						{chatLoggingEnabled ? (
 							<FileText className="h-3 w-3" />

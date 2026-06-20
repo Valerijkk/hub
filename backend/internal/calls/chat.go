@@ -3,12 +3,10 @@ package calls
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // callChatCollection — имя коллекции MongoDB для эфемерного чата звонков.
@@ -25,40 +23,30 @@ type CallChatMessage struct {
 	CreatedAt time.Time     `bson:"created_at" json:"created_at"`
 }
 
-// ChatRepository реализует доступ к эфемерному чату звонка через MongoDB.
-// Коллекция call_chat_messages с составным индексом {call_id: 1, created_at: 1}.
+type chatMessageStore interface {
+	insert(ctx context.Context, msg *CallChatMessage) error
+	listByCallID(ctx context.Context, callID string, limit int) ([]CallChatMessage, error)
+	deleteByCallID(ctx context.Context, callID string) error
+	ensureIndexes(ctx context.Context) error
+}
+
+// ChatRepository реализует доступ к эфемерному чату звонка.
 type ChatRepository struct {
-	collection *mongo.Collection
+	store chatMessageStore
 }
 
 // NewChatRepository создаёт новый репозиторий чата звонков.
 // Использует коллекцию "call_chat_messages" в указанной базе данных.
 func NewChatRepository(db *mongo.Database) *ChatRepository {
 	return &ChatRepository{
-		collection: db.Collection(callChatCollection),
+		store: newMongoChatStore(db.Collection(callChatCollection)),
 	}
 }
 
 // EnsureIndexes создаёт составной индекс {call_id: 1, created_at: 1}
 // для оптимизации выборки сообщений по звонку в хронологическом порядке.
 func (r *ChatRepository) EnsureIndexes(ctx context.Context) error {
-	indexes := []mongo.IndexModel{
-		{
-			Keys: bson.D{
-				{Key: "call_id", Value: 1},
-				{Key: "created_at", Value: 1},
-			},
-		},
-	}
-
-	_, err := r.collection.Indexes().CreateMany(ctx, indexes)
-	if err != nil {
-		slog.Error("не удалось создать индексы чата звонков", "error", err)
-		return err
-	}
-
-	slog.Info("MongoDB индексы для чата звонков созданы")
-	return nil
+	return r.store.ensureIndexes(ctx)
 }
 
 // SendMessage сохраняет новое сообщение в чат звонка.
@@ -77,9 +65,8 @@ func (r *ChatRepository) SendMessage(ctx context.Context, callID, userID, userNa
 		CreatedAt: time.Now(),
 	}
 
-	_, err := r.collection.InsertOne(ctx, msg)
-	if err != nil {
-		return nil, fmt.Errorf("не удалось сохранить сообщение чата: %w", err)
+	if err := r.store.insert(ctx, msg); err != nil {
+		return nil, err
 	}
 
 	return msg, nil
@@ -92,23 +79,11 @@ func (r *ChatRepository) ListMessages(ctx context.Context, callID string, limit 
 		limit = 50
 	}
 
-	filter := bson.M{"call_id": callID}
-	opts := options.Find().
-		SetSort(bson.D{{Key: "created_at", Value: -1}}).
-		SetLimit(int64(limit))
-
-	cursor, err := r.collection.Find(ctx, filter, opts)
+	results, err := r.store.listByCallID(ctx, callID, limit)
 	if err != nil {
-		return nil, fmt.Errorf("не удалось получить сообщения чата: %w", err)
-	}
-	defer cursor.Close(ctx)
-
-	var results []CallChatMessage
-	if err := cursor.All(ctx, &results); err != nil {
-		return nil, fmt.Errorf("не удалось декодировать сообщения чата: %w", err)
+		return nil, err
 	}
 
-	// Реверсируем для хронологического порядка
 	for i, j := 0, len(results)-1; i < j; i, j = i+1, j-1 {
 		results[i], results[j] = results[j], results[i]
 	}
@@ -119,9 +94,5 @@ func (r *ChatRepository) ListMessages(ctx context.Context, callID string, limit 
 // DeleteCallChat удаляет все сообщения чата указанного звонка.
 // Вызывается при завершении звонка (room_finished) для обеспечения эфемерности чата.
 func (r *ChatRepository) DeleteCallChat(ctx context.Context, callID string) error {
-	_, err := r.collection.DeleteMany(ctx, bson.M{"call_id": callID})
-	if err != nil {
-		return fmt.Errorf("не удалось удалить чат звонка: %w", err)
-	}
-	return nil
+	return r.store.deleteByCallID(ctx, callID)
 }

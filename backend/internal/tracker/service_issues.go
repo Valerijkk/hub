@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // ---------------------------------------------------------------------------
@@ -15,75 +16,77 @@ import (
 
 // CreateIssue создаёт новую задачу в проекте.
 func (s *TrackerService) CreateIssue(ctx context.Context, projectID, userID uuid.UUID, req CreateIssueRequest) (*IssueResponse, error) {
-	input := CreateIssueInput{
-		Title:           req.Title,
-		IssueType:       req.IssueType,
-		Priority:        req.Priority,
-		ReporterID:      userID,
-		CustomFields:    req.CustomFields,
-		EstimateMinutes: req.EstimateMinutes,
-		StoryPoints:     req.StoryPoints,
-		DueDate:         req.DueDate,
-	}
+	return observability.Timed(ctx, "tracker.CreateIssue", func(ctx context.Context) (*IssueResponse, error) {
+		input := CreateIssueInput{
+			Title:           req.Title,
+			IssueType:       req.IssueType,
+			Priority:        req.Priority,
+			ReporterID:      userID,
+			CustomFields:    req.CustomFields,
+			EstimateMinutes: req.EstimateMinutes,
+			StoryPoints:     req.StoryPoints,
+			DueDate:         req.DueDate,
+		}
 
-	// Конвертируем чеклист из DTO в JSONB-формат
-	if len(req.Checklist) > 0 {
-		cl := make([]map[string]interface{}, len(req.Checklist))
-		for i, item := range req.Checklist {
-			cl[i] = map[string]interface{}{"id": item.ID, "text": item.Text, "checked": item.Checked}
-		}
-		input.Checklist = cl
-	}
-
-	if req.DescriptionJSON != nil {
-		input.DescriptionJSON = *req.DescriptionJSON
-	}
-
-	if req.AssigneeID != "" {
-		id, err := uuid.Parse(req.AssigneeID)
-		if err != nil {
-			return nil, apperrors.NewBadRequest("некорректный assignee_id")
-		}
-		input.AssigneeID = &id
-	}
-	if req.ParentID != "" {
-		id, err := uuid.Parse(req.ParentID)
-		if err != nil {
-			return nil, apperrors.NewBadRequest("некорректный parent_id")
-		}
-		input.ParentID = &id
-	}
-	if req.StatusID != "" {
-		id, err := uuid.Parse(req.StatusID)
-		if err != nil {
-			return nil, apperrors.NewBadRequest("некорректный status_id")
-		}
-		input.StatusID = &id
-	}
-	if len(req.Labels) > 0 {
-		labelIDs := make([]uuid.UUID, 0, len(req.Labels))
-		for _, l := range req.Labels {
-			id, err := uuid.Parse(l)
-			if err != nil {
-				return nil, apperrors.NewBadRequest("некорректный label ID: " + l)
+		// Конвертируем чеклист из DTO в JSONB-формат
+		if len(req.Checklist) > 0 {
+			cl := make([]map[string]interface{}, len(req.Checklist))
+			for i, item := range req.Checklist {
+				cl[i] = map[string]interface{}{"id": item.ID, "text": item.Text, "checked": item.Checked}
 			}
-			labelIDs = append(labelIDs, id)
+			input.Checklist = cl
 		}
-		input.Labels = labelIDs
-	}
 
-	created, err := s.repo.CreateIssue(ctx, projectID, input)
-	if err != nil {
-		return nil, err
-	}
+		if req.DescriptionJSON != nil {
+			input.DescriptionJSON = *req.DescriptionJSON
+		}
 
-	// Логируем активность
-	_, err = s.repo.LogActivity(ctx, created.ID, userID, "created", nil)
-	if err != nil {
-		slog.Error("не удалось записать активность", "error", err)
-	}
+		if req.AssigneeID != "" {
+			id, err := uuid.Parse(req.AssigneeID)
+			if err != nil {
+				return nil, apperrors.NewBadRequest("некорректный assignee_id")
+			}
+			input.AssigneeID = &id
+		}
+		if req.ParentID != "" {
+			id, err := uuid.Parse(req.ParentID)
+			if err != nil {
+				return nil, apperrors.NewBadRequest("некорректный parent_id")
+			}
+			input.ParentID = &id
+		}
+		if req.StatusID != "" {
+			id, err := uuid.Parse(req.StatusID)
+			if err != nil {
+				return nil, apperrors.NewBadRequest("некорректный status_id")
+			}
+			input.StatusID = &id
+		}
+		if len(req.Labels) > 0 {
+			labelIDs := make([]uuid.UUID, 0, len(req.Labels))
+			for _, l := range req.Labels {
+				id, err := uuid.Parse(l)
+				if err != nil {
+					return nil, apperrors.NewBadRequest("некорректный label ID: " + l)
+				}
+				labelIDs = append(labelIDs, id)
+			}
+			input.Labels = labelIDs
+		}
 
-	return toIssueResponse(created), nil
+		created, err := s.repo.CreateIssue(ctx, projectID, input)
+		if err != nil {
+			return nil, err
+		}
+
+		// Логируем активность
+		_, err = s.repo.LogActivity(ctx, created.ID, userID, "created", nil)
+		if err != nil {
+			slog.Error("не удалось записать активность", "error", err)
+		}
+
+		return toIssueResponse(created), nil
+	})
 }
 
 // CreateIssueFromPromotion создаёт задачу из промоушена сообщения мессенджера.
@@ -130,49 +133,51 @@ func (s *TrackerService) GetIssue(ctx context.Context, issueKey string) (*IssueR
 
 // ListIssues возвращает пагинированный список задач проекта.
 func (s *TrackerService) ListIssues(ctx context.Context, projectID uuid.UUID, req ListIssuesRequest) (*PaginatedResponse[IssueResponse], error) {
-	params := ListIssuesParams{
-		Cursor:    req.Cursor,
-		Limit:     req.Limit,
-		Status:    req.Status,
-		Priority:  req.Priority,
-		IssueType: req.IssueType,
-		Search:    req.Search,
-		OrderBy:   req.OrderBy,
-	}
-	if req.Assignee != "" {
-		id, err := uuid.Parse(req.Assignee)
-		if err != nil {
-			return nil, apperrors.NewBadRequest("некорректный assignee ID")
+	return observability.Timed(ctx, "tracker.ListIssues", func(ctx context.Context) (*PaginatedResponse[IssueResponse], error) {
+		params := ListIssuesParams{
+			Cursor:    req.Cursor,
+			Limit:     req.Limit,
+			Status:    req.Status,
+			Priority:  req.Priority,
+			IssueType: req.IssueType,
+			Search:    req.Search,
+			OrderBy:   req.OrderBy,
 		}
-		params.Assignee = &id
-	}
+		if req.Assignee != "" {
+			id, err := uuid.Parse(req.Assignee)
+			if err != nil {
+				return nil, apperrors.NewBadRequest("некорректный assignee ID")
+			}
+			params.Assignee = &id
+		}
 
-	items, total, err := s.repo.ListIssues(ctx, projectID, params)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка получения списка задач")
-	}
+		items, total, err := s.repo.ListIssues(ctx, projectID, params)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка получения списка задач")
+		}
 
-	responses := make([]IssueResponse, 0, len(items))
-	for _, item := range items {
-		responses = append(responses, *toIssueResponse(item))
-	}
+		responses := make([]IssueResponse, 0, len(items))
+		for _, item := range items {
+			responses = append(responses, *toIssueResponse(item))
+		}
 
-	var nextCursor string
-	if len(items) > 0 {
-		nextCursor = items[len(items)-1].IssueKey
-	}
+		var nextCursor string
+		if len(items) > 0 {
+			nextCursor = items[len(items)-1].IssueKey
+		}
 
-	limit := req.Limit
-	if limit <= 0 || limit > 100 {
-		limit = 50
-	}
+		limit := req.Limit
+		if limit <= 0 || limit > 100 {
+			limit = 50
+		}
 
-	return &PaginatedResponse[IssueResponse]{
-		Items:      responses,
-		NextCursor: nextCursor,
-		HasMore:    len(items) == limit,
-		Total:      total,
-	}, nil
+		return &PaginatedResponse[IssueResponse]{
+			Items:      responses,
+			NextCursor: nextCursor,
+			HasMore:    len(items) == limit,
+			Total:      total,
+		}, nil
+	})
 }
 
 // UpdateIssue обновляет задачу с проверкой workflow-переходов и оптимистичной блокировкой.

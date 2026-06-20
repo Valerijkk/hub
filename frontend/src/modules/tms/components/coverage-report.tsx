@@ -74,9 +74,7 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 			{expanded &&
 				issue.test_cases.map((tc) => (
 					<tr key={tc.case_key} className="border-b bg-raised/20">
-						<td className="px-8 py-2 text-xs text-t2">
-							{tc.case_key}
-						</td>
+						<td className="px-8 py-2 text-xs text-t2">{tc.case_key}</td>
 						<td className="px-4 py-2 text-xs">{tc.case_title}</td>
 						<td className="px-4 py-2" />
 						<td className="px-4 py-2" colSpan={2}>
@@ -109,11 +107,7 @@ export function CoverageReport({ projectId }: { projectId: string }) {
 	});
 
 	if (isLoading) {
-		return (
-			<div className="py-8 text-center text-t2">
-				Загрузка отчёта...
-			</div>
-		);
+		return <div className="py-8 text-center text-t2">Загрузка отчёта...</div>;
 	}
 
 	if (!data || data.issues.length === 0) {

@@ -43,7 +43,8 @@ interface CallSettingsModalProps {
 export function getCallPreferences() {
 	return {
 		joinMicOff: localStorage.getItem(LS_KEY_MIC_OFF) === "true",
-		noiseSuppression: localStorage.getItem(LS_KEY_NOISE_SUPPRESSION) !== "false",
+		noiseSuppression:
+			localStorage.getItem(LS_KEY_NOISE_SUPPRESSION) !== "false",
 	};
 }
 
@@ -188,9 +189,7 @@ export function CallSettingsModal({
 								onValueChange={(v) => void handleOutputChange(v)}
 							>
 								<SelectTrigger className={selectTriggerClasses}>
-									<SelectValue
-										placeholder="Нет доступных устройств"
-									/>
+									<SelectValue placeholder="Нет доступных устройств" />
 								</SelectTrigger>
 								<SelectContent>
 									{audioOutputs.length === 0 ? (
@@ -219,9 +218,7 @@ export function CallSettingsModal({
 								onValueChange={(v) => void handleInputChange(v)}
 							>
 								<SelectTrigger className={selectTriggerClasses}>
-									<SelectValue
-										placeholder="Нет доступных устройств"
-									/>
+									<SelectValue placeholder="Нет доступных устройств" />
 								</SelectTrigger>
 								<SelectContent>
 									{audioInputs.length === 0 ? (

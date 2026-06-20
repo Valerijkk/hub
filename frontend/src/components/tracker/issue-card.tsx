@@ -1,26 +1,23 @@
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { Link } from "@tanstack/react-router";
 import {
+	BookOpen,
 	Bug,
 	CheckSquare,
-	BookOpen,
-	Zap,
 	ClipboardList,
+	type LucideIcon,
 	Rocket,
-	Wrench,
 	Search,
 	Tag,
-	type LucideIcon,
+	Wrench,
+	Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { IssueBriefResponse } from "@/api/tracker";
 import { cn } from "@/lib/utils";
 
 /** Конфигурация цветов и меток приоритетов задач. */
-const PRIORITY_CONFIG: Record<
-	string,
-	{ color: string; label: string }
-> = {
+const PRIORITY_CONFIG: Record<string, { color: string; label: string }> = {
 	critical: { color: "var(--red)", label: "Критический" },
 	high: { color: "var(--orange)", label: "Высокий" },
 	medium: { color: "var(--amber)", label: "Средний" },
@@ -135,7 +132,8 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 	/** Прогресс чеклиста (количество выполненных / всего). */
 	const checklistTotal = issue.checklist?.length ?? 0;
 	const checklistDone = issue.checklist?.filter((c) => c.checked).length ?? 0;
-	const checklistPct = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
+	const checklistPct =
+		checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
 
 	/** Assignee color from avatar_url or fallback gradient */
 	const assigneeBg = issue.assignee
@@ -154,10 +152,7 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 				ref={cardRef}
 				role="button"
 				tabIndex={0}
-				className={cn(
-					"select-none",
-					isDragging && "opacity-30",
-				)}
+				className={cn("select-none", isDragging && "opacity-30")}
 				onPointerDown={handlePointerDown}
 			>
 				<div
@@ -170,7 +165,10 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 				>
 					{/* Верхняя строка: тип + ключ */}
 					<div className="flex items-center gap-[7px] mb-[7px]">
-						<span title={issue.issue_type} className={cn("shrink-0", typeConfig.color)}>
+						<span
+							title={issue.issue_type}
+							className={cn("shrink-0", typeConfig.color)}
+						>
 							<typeConfig.icon className="h-3.5 w-3.5" />
 						</span>
 						<span className="font-mono text-[11px] text-[var(--t4)] font-medium">

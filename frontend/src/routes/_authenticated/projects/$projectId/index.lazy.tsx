@@ -2,6 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
+import i18n from "@/i18n";
+import {
+	archiveProject,
+	deleteProject,
+	getProject,
+	listMembers,
+	updateProject,
+} from "@/api/projects";
+import { Dropzone } from "@/components/files/dropzone";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -13,6 +23,8 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -21,16 +33,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import {
-	archiveProject,
-	deleteProject,
-	getProject,
-	listMembers,
-	updateProject,
-} from "@/api/projects";
-import { Dropzone } from "@/components/files/dropzone";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -71,7 +73,7 @@ function ProjectPage() {
 			toast.success("Проект архивирован");
 			void navigate({ to: "/projects" });
 		},
-		onError: () => toast.error("Не удалось архивировать проект"),
+		onError: (err) => toastApiError(err, "Не удалось архивировать проект"),
 	});
 
 	const deleteMutation = useMutation({
@@ -81,7 +83,7 @@ function ProjectPage() {
 			toast.success("Проект удален");
 			void navigate({ to: "/projects" });
 		},
-		onError: () => toast.error("Не удалось удалить проект"),
+		onError: (err) => toastApiError(err, "Не удалось удалить проект"),
 	});
 
 	const editMutation = useMutation({
@@ -93,7 +95,7 @@ function ProjectPage() {
 			toast.success("Проект обновлён");
 			setShowEditDialog(false);
 		},
-		onError: () => toast.error("Не удалось обновить проект"),
+		onError: (err) => toastApiError(err, "Не удалось обновить проект"),
 	});
 
 	function openEditDialog() {
@@ -105,7 +107,7 @@ function ProjectPage() {
 	function handleEditSubmit(e: FormEvent) {
 		e.preventDefault();
 		if (!editName.trim()) {
-			toast.error("Название не может быть пустым");
+			toast.error(i18n.t("common:validation.nameCannotBeEmpty"));
 			return;
 		}
 		editMutation.mutate({
@@ -129,7 +131,10 @@ function ProjectPage() {
 				</div>
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 					{[1, 2, 3, 4].map((i) => (
-						<div key={`stat-sk-${i}`} className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-5 space-y-2">
+						<div
+							key={`stat-sk-${i}`}
+							className="rounded-[var(--r4)] border border-b1 bg-gradient-to-b from-card to-raised p-5 space-y-2"
+						>
 							<div className="h-4 w-20 rounded animate-shimmer" />
 							<div className="h-8 w-16 rounded animate-shimmer" />
 						</div>
@@ -155,7 +160,9 @@ function ProjectPage() {
 			<div className="mb-6 flex items-center justify-between">
 				<div className="flex items-center gap-4">
 					<div>
-						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">{project.name}</h1>
+						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+							{project.name}
+						</h1>
 						<p className="text-[13px] text-t3">{project.key}</p>
 					</div>
 					<Badge
@@ -176,18 +183,35 @@ function ProjectPage() {
 							className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]"
 							onClick={openEditDialog}
 						>
-							<svg className="h-4 w-4 mr-1.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<svg
+								aria-hidden="true"
+								className="h-4 w-4 mr-1.5"
+								viewBox="0 0 16 16"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							>
 								<path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" />
 							</svg>
 							Редактировать
 						</Button>
 					)}
-					<Button variant="outline" asChild className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]">
+					<Button
+						variant="outline"
+						asChild
+						className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]"
+					>
 						<Link to="/projects/$projectId/board" params={{ projectId }}>
 							Доска
 						</Link>
 					</Button>
-					<Button variant="outline" asChild className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]">
+					<Button
+						variant="outline"
+						asChild
+						className="border-b1 text-t2 hover:text-t1 hover:bg-[var(--hover)]"
+					>
 						<Link to="/projects/$projectId/issues" params={{ projectId }}>
 							Задачи
 						</Link>
@@ -207,7 +231,9 @@ function ProjectPage() {
 
 				<TabsContent value="overview" className="mt-4 space-y-4">
 					<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
-						<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">О проекте</h3>
+						<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">
+							О проекте
+						</h3>
 						<p className="text-[13px] text-t2 leading-[1.5]">
 							{project.description || "Описание не указано"}
 						</p>
@@ -215,19 +241,27 @@ function ProjectPage() {
 						<div className="grid grid-cols-2 gap-4 text-[13px]">
 							<div>
 								<span className="text-t3">Участников:</span>{" "}
-								<span className="text-[24px] font-black tracking-[-0.03em] text-t1">{project.member_count}</span>
+								<span className="text-[24px] font-black tracking-[-0.03em] text-t1">
+									{project.member_count}
+								</span>
 							</div>
 							<div>
 								<span className="text-t3">Роль:</span>{" "}
-								<span className="text-t1 font-medium">{project.my_role ?? "Не указана"}</span>
+								<span className="text-t1 font-medium">
+									{project.my_role ?? "Не указана"}
+								</span>
 							</div>
 							<div>
 								<span className="text-t3">Создан:</span>{" "}
-								<span className="text-t2">{new Date(project.created_at).toLocaleDateString("ru-RU")}</span>
+								<span className="text-t2">
+									{new Date(project.created_at).toLocaleDateString("ru-RU")}
+								</span>
 							</div>
 							<div>
 								<span className="text-t3">Обновлен:</span>{" "}
-								<span className="text-t2">{new Date(project.updated_at).toLocaleDateString("ru-RU")}</span>
+								<span className="text-t2">
+									{new Date(project.updated_at).toLocaleDateString("ru-RU")}
+								</span>
 							</div>
 						</div>
 					</div>
@@ -235,7 +269,9 @@ function ProjectPage() {
 
 				<TabsContent value="members" className="mt-4">
 					<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
-						<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">Участники</h3>
+						<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">
+							Участники
+						</h3>
 						<p className="text-[12px] text-t3 mb-4">
 							{members?.length ?? 0} участников в проекте
 						</p>
@@ -249,17 +285,15 @@ function ProjectPage() {
 										<p className="text-[14px] font-bold text-t1">
 											{member.name || member.email}
 										</p>
-										<p className="text-[13px] text-t2">
-											{member.email}
-										</p>
+										<p className="text-[13px] text-t2">{member.email}</p>
 									</div>
-									<Badge variant="outline" className="border-b1 text-t2">{member.role}</Badge>
+									<Badge variant="outline" className="border-b1 text-t2">
+										{member.role}
+									</Badge>
 								</div>
 							))}
 							{(!members || members.length === 0) && (
-								<p className="text-[13px] text-t3">
-									Нет участников
-								</p>
+								<p className="text-[13px] text-t3">Нет участников</p>
 							)}
 						</div>
 					</div>
@@ -267,7 +301,9 @@ function ProjectPage() {
 
 				<TabsContent value="files" className="mt-4">
 					<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
-						<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">Файлы</h3>
+						<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">
+							Файлы
+						</h3>
 						<p className="text-[12px] text-t3 mb-4">
 							Загрузите файлы через drag and drop или Ctrl+V
 						</p>
@@ -282,11 +318,15 @@ function ProjectPage() {
 				{isOwnerOrAdmin && (
 					<TabsContent value="settings" className="mt-4 space-y-4">
 						<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
-							<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">Настройки проекта</h3>
+							<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3 mb-3">
+								Настройки проекта
+							</h3>
 							<p className="text-[12px] text-t3 mb-5">Управление проектом</p>
 							<div className="space-y-6">
 								<div>
-									<h4 className="mb-2 text-[14px] font-bold text-t1">Архивация</h4>
+									<h4 className="mb-2 text-[14px] font-bold text-t1">
+										Архивация
+									</h4>
 									<p className="mb-2 text-[13px] text-t2">
 										Архивированный проект доступен только для чтения.
 									</p>
@@ -309,7 +349,10 @@ function ProjectPage() {
 									<p className="mb-2 text-[13px] text-t2">
 										Проект будет перемещен в корзину на 30 дней.
 									</p>
-									<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+									<AlertDialog
+										open={showDeleteDialog}
+										onOpenChange={setShowDeleteDialog}
+									>
 										<AlertDialogTrigger asChild>
 											<Button
 												className="bg-red hover:bg-red/80 text-white"
@@ -322,7 +365,8 @@ function ProjectPage() {
 											<AlertDialogHeader>
 												<AlertDialogTitle>Удалить проект?</AlertDialogTitle>
 												<AlertDialogDescription>
-													Проект {project.name} будет перемещен в корзину на 30 дней.
+													Проект {project.name} будет перемещен в корзину на 30
+													дней.
 												</AlertDialogDescription>
 											</AlertDialogHeader>
 											<AlertDialogFooter>
@@ -350,7 +394,9 @@ function ProjectPage() {
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>Редактировать проект</DialogTitle>
-						<DialogDescription>Измените название и описание проекта</DialogDescription>
+						<DialogDescription>
+							Измените название и описание проекта
+						</DialogDescription>
 					</DialogHeader>
 					<form onSubmit={handleEditSubmit} className="space-y-4">
 						<div className="space-y-2">
@@ -364,7 +410,9 @@ function ProjectPage() {
 								maxLength={NAME_MAX}
 								className="h-10"
 							/>
-							<p className="text-xs text-t2 text-right">{editName.length}/{NAME_MAX}</p>
+							<p className="text-xs text-t2 text-right">
+								{editName.length}/{NAME_MAX}
+							</p>
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="edit-desc" className="text-sm font-medium">
@@ -378,7 +426,9 @@ function ProjectPage() {
 								maxLength={DESC_MAX}
 								className="resize-none"
 							/>
-							<p className="text-xs text-t2 text-right">{editDescription.length}/{DESC_MAX}</p>
+							<p className="text-xs text-t2 text-right">
+								{editDescription.length}/{DESC_MAX}
+							</p>
 						</div>
 						<DialogFooter>
 							<Button
@@ -402,6 +452,8 @@ function ProjectPage() {
 	);
 }
 
-export const Route = createLazyFileRoute("/_authenticated/projects/$projectId/")({
+export const Route = createLazyFileRoute(
+	"/_authenticated/projects/$projectId/",
+)({
 	component: ProjectPage,
 });

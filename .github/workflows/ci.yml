@@ -3,13 +3,71 @@ name: CI
 on:
   push:
     branches: [master]
+  pull_request:
+    branches: [master]
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+
+      - name: Generate Ent + vet
+        working-directory: backend
+        run: |
+          go generate ./ent
+          go vet ./...
+
+      - name: Test (race detector)
+        working-directory: backend
+        run: go test -race -count=1 -timeout=600s ./...
+
+      - name: Build prod binary (ME-09)
+        working-directory: backend
+        run: |
+          go generate ./ent
+          go build -tags release -o bin/server ./cmd/server
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: TypeScript check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Vitest unit tests
+        working-directory: frontend
+        run: npx vitest run
+
+      - name: Biome lint (baseline)
+        working-directory: frontend
+        run: npm run lint
+        continue-on-error: true
+
   build:
+    needs: [backend-test, frontend-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +80,7 @@ jobs:
         working-directory: backend
         run: |
           go generate ./ent
-          go build -o bin/server ./cmd/server
+          go build -tags release -o bin/server ./cmd/server
 
       - uses: actions/setup-node@v4
         with:
@@ -32,3 +90,110 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm ci && npm run build
+
+  # Fast PR gate: no Docker, no backend — login branding + login-page a11y only.
+  e2e-smoke:
+    needs: [frontend-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies + Chromium
+        working-directory: frontend
+        run: npm ci && npx playwright install chromium --with-deps
+
+      - name: Playwright smoke (frontend-only specs)
+        working-directory: frontend
+        env:
+          CI: 'true'
+          # PLAYWRIGHT_SKIP_WEBSERVER unset — Playwright starts Vite (playwright.config.ts).
+        run: npx playwright test e2e/login.spec.ts e2e/a11y.spec.ts --grep "login page|full page has no critical"
+
+  # Full E2E: docker infra + native backend (DEV_MODE) + Playwright critical paths.
+  # Env vars documented in scripts/ci-e2e-backend.sh header.
+  e2e-full:
+    needs: [backend-test, frontend-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEV_MODE: 'true'
+      ENVIRONMENT: development
+      SERVER_PORT: '3000'
+      DATABASE_URL: postgresql://hub:hub@localhost:5432/hub?sslmode=disable
+      MONGODB_URL: mongodb://hub:hub@localhost:27017/?authSource=admin
+      MONGODB_DATABASE: hub
+      REDIS_URL: redis://localhost:6379/0
+      NATS_URL: nats://localhost:4222
+      JWT_SECRET: local-dev-secret-change-in-production
+      PLAYWRIGHT_API_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies + Chromium
+        working-directory: frontend
+        run: npm ci && npx playwright install chromium --with-deps
+
+      - name: Start infrastructure (postgres, redis, mongo, nats)
+        run: bash scripts/ci-e2e-backend.sh start-infra
+
+      - name: Wait for infrastructure
+        run: bash scripts/ci-e2e-backend.sh wait-infra
+
+      - name: Build and start backend
+        run: bash scripts/ci-e2e-backend.sh start-backend
+
+      - name: Wait for backend (health + dev mode)
+        run: bash scripts/ci-e2e-backend.sh wait-backend
+
+      - name: Playwright critical paths (backend + frontend)
+        working-directory: frontend
+        env:
+          CI: 'true'
+          # PLAYWRIGHT_SKIP_WEBSERVER=0 (default): Playwright starts Vite dev server.
+          # Vite proxies /api → localhost:3000 (vite.config.ts).
+        run: >
+          npx playwright test
+          e2e/login.spec.ts
+          e2e/navigation.spec.ts
+          e2e/logout.spec.ts
+          e2e/health.spec.ts
+          e2e/admin-audit.spec.ts
+          e2e/command-palette.spec.ts
+          e2e/a11y.spec.ts
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Upload backend log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-e2e-log
+          path: .ci-backend.log
+          retention-days: 7
+
+      - name: Stop services
+        if: always()
+        run: bash scripts/ci-e2e-backend.sh stop

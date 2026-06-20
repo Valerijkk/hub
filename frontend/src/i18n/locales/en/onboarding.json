@@ -1,0 +1,45 @@
+{
+	"steps": {
+		"profile": {
+			"title": "Set up your profile",
+			"description": "Tell colleagues about yourself"
+		},
+		"tour": {
+			"title": "Meet Hub",
+			"description": "Here's what you can do on the platform"
+		},
+		"theme": {
+			"title": "Choose appearance",
+			"description": "You can change this later in settings"
+		}
+	},
+	"profile": {
+		"uploadAvatar": "Click to upload",
+		"name": "First name",
+		"surname": "Last name",
+		"position": "Job title",
+		"department": "Department",
+		"timezone": "Timezone",
+		"language": "Language",
+		"namePlaceholder": "Alex",
+		"surnamePlaceholder": "Smith",
+		"positionPlaceholder": "Senior Developer",
+		"departmentPlaceholder": "Backend Engineering"
+	},
+	"modules": {
+		"tracker": { "title": "Tracker", "desc": "Kanban boards, sprints, backlog — full agile cycle." },
+		"messenger": { "title": "Messenger", "desc": "Channels, DMs, reactions, files, polls." },
+		"calls": { "title": "Calls", "desc": "Voice calls up to 50 people, screen share, recording." },
+		"tms": { "title": "TMS", "desc": "Test cases, runs, reports, CI autotests." },
+		"dashboards": { "title": "Dashboards", "desc": "Team metrics and planning." },
+		"integrations": { "title": "Integrations", "desc": "GitHub, GitLab, CI/CD in one place." }
+	},
+	"theme": {
+		"label": "Theme",
+		"light": "Light",
+		"dark": "Dark",
+		"system": "System",
+		"accent": "Accent color"
+	},
+	"startWork": "Get started →"
+}

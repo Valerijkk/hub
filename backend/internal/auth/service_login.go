@@ -8,6 +8,7 @@ import (
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/user"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // LoginService инкапсулирует Magic Link / Telegram login-флоу и создание/поиск
@@ -47,20 +48,22 @@ func (s *LoginService) UserExistsByEmail(ctx context.Context, email string) (boo
 
 // LoginWithMagicLink проверяет код, находит или создаёт пользователя и возвращает пару токенов.
 func (s *LoginService) LoginWithMagicLink(ctx context.Context, email, code, device, ip string) (*TokenPairResponse, error) {
-	if err := s.magicLink.VerifyCode(ctx, email, code); err != nil {
-		return nil, err
-	}
+	return observability.Timed(ctx, "auth.Login", func(ctx context.Context) (*TokenPairResponse, error) {
+		if err := s.magicLink.VerifyCode(ctx, email, code); err != nil {
+			return nil, err
+		}
 
-	u, isNew, err := s.findOrCreateUserByEmail(ctx, email)
-	if err != nil {
-		return nil, err
-	}
+		u, isNew, err := s.findOrCreateUserByEmail(ctx, email)
+		if err != nil {
+			return nil, err
+		}
 
-	if isNew {
-		slog.Info("new user registered via magic link", "user_id", u.ID.String(), "email", email)
-	}
+		if isNew {
+			slog.Info("new user registered via magic link", "user_id", u.ID.String(), "email", email)
+		}
 
-	return s.sessions.CreateSession(ctx, u.ID, device, ip)
+		return s.sessions.CreateSession(ctx, u.ID, device, ip)
+	})
 }
 
 // LoginWithTelegram проверяет initData Telegram, находит или создаёт пользователя, возвращает пару токенов.

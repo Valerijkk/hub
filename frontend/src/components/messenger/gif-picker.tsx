@@ -206,6 +206,7 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 				>
 					{/* Иконка плёнки (Film) */}
 					<svg
+						aria-hidden="true"
 						className="h-5 w-5"
 						fill="none"
 						viewBox="0 0 24 24"
@@ -250,6 +251,7 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 							<div className="flex items-center justify-center h-[200px]">
 								<div className="flex flex-col items-center gap-2 text-t2">
 									<svg
+										aria-hidden="true"
 										className="h-6 w-6 animate-spin"
 										fill="none"
 										viewBox="0 0 24 24"
@@ -281,9 +283,7 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 
 						{!loading && !error && gifs.length === 0 && (
 							<div className="flex items-center justify-center h-[200px]">
-								<p className="text-xs text-t2">
-									Ничего не найдено
-								</p>
+								<p className="text-xs text-t2">Ничего не найдено</p>
 							</div>
 						)}
 

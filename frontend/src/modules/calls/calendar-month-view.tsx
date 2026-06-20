@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import {
 	type CalendarEvent,
-	WEEKDAY_NAMES_SHORT,
 	getMonthGridDays,
 	isSameDay,
 	isSameMonth,
+	WEEKDAY_NAMES_SHORT,
 } from "./calendar-types";
 
 // ---------------------------------------------------------------------------

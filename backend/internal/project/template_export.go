@@ -12,6 +12,9 @@ import (
 	"github.com/valerii/hub/backend/ent/projecttemplate"
 )
 
+// maxTemplateImportBytes — лимит JSON-файла шаблона (совпадает с Fiber BodyLimit 25 MB).
+const maxTemplateImportBytes = 25 * 1024 * 1024
+
 // ---------------------------------------------------------------------------
 // Структуры данных для экспорта/импорта шаблонов
 // ---------------------------------------------------------------------------
@@ -141,9 +144,12 @@ func (h *TemplateHandler) ImportTemplateHandler(c fiber.Ctx) error {
 	}
 	defer f.Close()
 
-	data, err := io.ReadAll(f)
+	data, err := io.ReadAll(io.LimitReader(f, maxTemplateImportBytes+1))
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "error reading file")
+	}
+	if len(data) > maxTemplateImportBytes {
+		return fiber.NewError(fiber.StatusRequestEntityTooLarge, "file too large")
 	}
 
 	resp, err := h.svc.ImportTemplate(c.Context(), userID, data)

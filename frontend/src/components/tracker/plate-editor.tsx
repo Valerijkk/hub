@@ -6,7 +6,7 @@
  * редактором (issue-form, comment-list, issue-description).
  */
 import type { Value } from "@udecode/plate";
-import { Suspense, lazy } from "react";
+import { lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 
 /** Пропсы компонента PlateEditor (зеркалят props plate-editor-impl). */

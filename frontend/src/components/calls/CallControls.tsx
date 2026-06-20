@@ -4,6 +4,7 @@ import {
 	Camera,
 	CameraOff,
 	Hand,
+	type LucideIcon,
 	Mic,
 	MicOff,
 	Monitor,
@@ -11,7 +12,6 @@ import {
 	PhoneOff,
 	Settings,
 	Smile,
-	type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -197,7 +197,11 @@ export function CallControls({ onDisconnect }: CallControlsProps) {
 				<div className="flex items-center gap-2">
 					<ControlButton
 						icon={isScreenSharing ? MonitorOff : Monitor}
-						label={isScreenSharing ? "Остановить демонстрацию" : "Демонстрация экрана"}
+						label={
+							isScreenSharing
+								? "Остановить демонстрацию"
+								: "Демонстрация экрана"
+						}
 						active={isScreenSharing}
 						activeColor="text-blue-400"
 						onClick={handleScreenShareToggle}

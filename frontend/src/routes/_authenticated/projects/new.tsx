@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/format-api-error";
+import i18n from "@/i18n";
 import { createProject } from "@/api/projects";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,11 +62,7 @@ function NewProjectPage() {
 			});
 		},
 		onError: (err: unknown) => {
-			const message =
-				err && typeof err === "object" && "message" in err
-					? (err as { message: string }).message
-					: "Не удалось создать проект";
-			toast.error(message);
+			toastApiError(err, "Не удалось создать проект");
 		},
 	});
 
@@ -88,7 +86,7 @@ function NewProjectPage() {
 	function handleSubmit(e: FormEvent) {
 		e.preventDefault();
 		if (!name.trim() || key.length < 2) {
-			toast.error("Заполните название и ключ (2-10 символов)");
+			toast.error(i18n.t("common:validation.fillNameAndKey"));
 			return;
 		}
 		mutation.mutate({
@@ -107,6 +105,7 @@ function NewProjectPage() {
 				className="mb-6 inline-flex items-center gap-1.5 text-sm text-t2 hover:text-t1 transition-colors"
 			>
 				<svg
+					aria-hidden="true"
 					className="h-4 w-4"
 					viewBox="0 0 16 16"
 					fill="none"
@@ -140,7 +139,9 @@ function NewProjectPage() {
 								maxLength={NAME_MAX}
 								className="h-10"
 							/>
-							<p className="text-xs text-t2 text-right">{name.length}/{NAME_MAX}</p>
+							<p className="text-xs text-t2 text-right">
+								{name.length}/{NAME_MAX}
+							</p>
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="proj-key" className="text-sm font-medium">
@@ -167,12 +168,23 @@ function NewProjectPage() {
 											setKey(generated);
 											setKeyManuallyEdited(false);
 										} else {
-											toast.error("Введите название из 2+ слов для генерации ключа");
+											toast.error(
+												i18n.t("common:validation.enterNameForKeyGen"),
+											);
 										}
 									}}
 									title="Сгенерировать ключ из первых букв слов названия"
 								>
-									<svg className="h-4 w-4 mr-1" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+									<svg
+										aria-hidden="true"
+										className="h-4 w-4 mr-1"
+										viewBox="0 0 16 16"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									>
 										<path d="M2 6h4l2-4 2 8 2-4h4" />
 									</svg>
 									Авто
@@ -199,17 +211,32 @@ function NewProjectPage() {
 								maxLength={DESC_MAX}
 								className="resize-none"
 							/>
-							<p className="text-xs text-t2 text-right">{description.length}/{DESC_MAX}</p>
+							<p className="text-xs text-t2 text-right">
+								{description.length}/{DESC_MAX}
+							</p>
 						</div>
 
 						{/* Подсказка */}
 						<div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200">
-							<p className="font-medium mb-1">После создания проекта вы сможете:</p>
+							<p className="font-medium mb-1">
+								После создания проекта вы сможете:
+							</p>
 							<ul className="list-disc pl-4 text-xs space-y-0.5">
-								<li>Подключить <strong>GitHub / GitLab</strong> репозиторий в Настройки &rarr; Интеграции</li>
-								<li>Настроить <strong>Webhook</strong> для автоматической привязки коммитов и PR/MR к задачам</li>
-								<li>Подключить <strong>CI/CD</strong> для импорта результатов автотестов</li>
-								<li>Добавить участников и настроить <strong>роли и права</strong></li>
+								<li>
+									Подключить <strong>GitHub / GitLab</strong> репозиторий в
+									Настройки &rarr; Интеграции
+								</li>
+								<li>
+									Настроить <strong>Webhook</strong> для автоматической привязки
+									коммитов и PR/MR к задачам
+								</li>
+								<li>
+									Подключить <strong>CI/CD</strong> для импорта результатов
+									автотестов
+								</li>
+								<li>
+									Добавить участников и настроить <strong>роли и права</strong>
+								</li>
 							</ul>
 						</div>
 
@@ -233,6 +260,7 @@ function NewProjectPage() {
 									{mutation.isPending ? (
 										<span className="flex items-center gap-2">
 											<svg
+												aria-hidden="true"
 												className="h-4 w-4 animate-spin"
 												viewBox="0 0 24 24"
 												fill="none"
