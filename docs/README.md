@@ -15,6 +15,8 @@
 | [code_style_guide.md](code_style_guide.md) | Стиль кода Go/TS |
 | [security_guidelines.md](security_guidelines.md) | OWASP, секреты, чек-лист |
 | [competitive_audit.md](competitive_audit.md) | Best practices конкурентов, feature backlog |
+| [competitive_analysis_2026.md](competitive_analysis_2026.md) | Глубокий конкурентный анализ 2026 |
+| [user_needs_analysis_2026.md](user_needs_analysis_2026.md) | Персоны, JTBD, потребности пользователей |
 
 ## Детальная документация (справочная)
 
