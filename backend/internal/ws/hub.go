@@ -146,6 +146,15 @@ func (h *Hub) beginShutdown() {
 	})
 }
 
+func (h *Hub) isStopping() bool {
+	select {
+	case <-h.stopping:
+		return true
+	default:
+		return false
+	}
+}
+
 // shutdownAllClients снимает все активные соединения и закрывает client.done.
 // Вызывается только из Run при отмене контекста.
 func (h *Hub) shutdownAllClients() {
@@ -163,6 +172,10 @@ func (h *Hub) signalClientDone(client *Client) {
 
 // Register добавляет клиента в Hub.
 func (h *Hub) Register(client *Client) {
+	if h.isStopping() {
+		h.signalClientDone(client)
+		return
+	}
 	select {
 	case h.register <- client:
 	case <-h.stopping:
@@ -172,6 +185,10 @@ func (h *Hub) Register(client *Client) {
 
 // Unregister удаляет клиента из Hub и всех его комнат.
 func (h *Hub) Unregister(client *Client) {
+	if h.isStopping() {
+		h.signalClientDone(client)
+		return
+	}
 	select {
 	case h.unregister <- client:
 	case <-h.stopping:
