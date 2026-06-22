@@ -42,7 +42,13 @@ test.describe("Project lifecycle (FB-07)", () => {
 		await expect(page.locator("#main-content")).toBeVisible({ timeout: 15_000 });
 
 		await page.goto(`/projects/${projectId}`);
-		await page.getByRole("tab", { name: "Настройки" }).click();
+		await expect(page.getByRole("tab", { name: "Обзор" })).toBeVisible({
+			timeout: 15_000,
+		});
+		await page
+			.getByRole("tablist")
+			.getByRole("tab", { name: "Настройки" })
+			.click();
 		await page.getByRole("button", { name: "Удалить" }).click();
 		await page.getByRole("button", { name: "Удалить" }).last().click();
 

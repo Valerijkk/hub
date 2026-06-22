@@ -4,7 +4,7 @@ import { BasePage, expectVisible } from "./base.page";
 
 /** Page Object: модуль мессенджера. */
 export class MessengerPage extends BasePage {
-	readonly composer = this.page.getByPlaceholder("Написать сообщение...");
+	readonly composer = this.page.getByPlaceholder(/Написать/i);
 	readonly sendButton = this.page.getByTitle("Отправить");
 
 	async openInbox(): Promise<void> {

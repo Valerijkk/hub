@@ -45,7 +45,7 @@ test.describe("Hub One v4 routes smoke (Phase 51–57)", () => {
 		await expect(page.getByText(/Счета на оплату/i)).toBeVisible({
 			timeout: 15_000,
 		});
-		await expect(page.getByText(/Выручка/i)).toBeVisible();
+		await expect(page.getByText(/Выручка/i).first()).toBeVisible();
 
 		await page.goto("/status");
 		await expect(
