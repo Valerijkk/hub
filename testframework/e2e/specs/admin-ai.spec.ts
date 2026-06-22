@@ -24,7 +24,10 @@ test.describe("Admin AI Provider Hub", () => {
 		const login = await auth.loginAsAdmin(page);
 		expect(login.user.system_role).toBe("admin");
 
-		await page.goto("/admin/dashboard");
+		await page.goto("/admin/dashboard", { waitUntil: "domcontentloaded" });
+		await expect(page.locator("#main-content")).toBeVisible({
+			timeout: 30_000,
+		});
 		await expect(page.getByRole("button", { name: "Дашборд" })).toBeVisible({
 			timeout: 30_000,
 		});

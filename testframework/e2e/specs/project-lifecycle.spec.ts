@@ -57,13 +57,18 @@ test.describe("Project lifecycle (FB-07)", () => {
 
 		await page.goto("/admin/trash");
 		await page.getByRole("button", { name: "Проекты" }).click();
-		await expect(page.getByText(projectName)).toBeVisible({ timeout: 15_000 });
+		const trashRow = page.getByRole("row").filter({ hasText: projectName });
+		await expect(trashRow).toBeVisible({ timeout: 15_000 });
 
-		const row = page.getByRole("row").filter({ hasText: projectName });
-		await row.getByRole("button", { name: "Восстановить" }).click();
+		await trashRow.getByRole("button", { name: "Восстановить" }).click();
 		await page.getByRole("button", { name: "Восстановить" }).last().click();
 
 		await shell.gotoProjects();
-		await expect(page.getByText(projectName)).toBeVisible({ timeout: 15_000 });
+		await expect(
+			page
+				.locator("#main-content")
+				.getByRole("link")
+				.filter({ hasText: projectName }),
+		).toBeVisible({ timeout: 15_000 });
 	});
 });
