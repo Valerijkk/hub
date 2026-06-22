@@ -7,10 +7,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Workflow handlers
+// Обработчики рабочего процесса
 // ---------------------------------------------------------------------------
 
-// ListWorkflowStatuses godoc
+// ListWorkflowStatuses — Список статусов workflow
 // @Summary Список статусов workflow
 // @Description Возвращает все статусы рабочего процесса проекта.
 // @Tags Трекер
@@ -35,7 +35,7 @@ func (h *Handler) ListWorkflowStatuses(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateWorkflowStatus godoc
+// CreateWorkflowStatus — Создать статус workflow
 // @Summary Создать статус workflow
 // @Description Создаёт новый статус в рабочем процессе проекта.
 // @Tags Трекер
@@ -68,7 +68,7 @@ func (h *Handler) CreateWorkflowStatus(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// UpdateWorkflowStatus godoc
+// UpdateWorkflowStatus — Обновить статус workflow
 // @Summary Обновить статус workflow
 // @Description Обновляет название, цвет или категорию статуса.
 // @Tags Трекер
@@ -102,7 +102,7 @@ func (h *Handler) UpdateWorkflowStatus(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteWorkflowStatus godoc
+// DeleteWorkflowStatus — Удалить статус workflow
 // @Summary Удалить статус workflow
 // @Description Удаляет статус из рабочего процесса проекта.
 // @Tags Трекер
@@ -127,7 +127,7 @@ func (h *Handler) DeleteWorkflowStatus(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ListWorkflowTransitions godoc
+// ListWorkflowTransitions — Список переходов workflow
 // @Summary Список переходов workflow
 // @Description Возвращает все допустимые переходы между статусами.
 // @Tags Трекер
@@ -152,7 +152,7 @@ func (h *Handler) ListWorkflowTransitions(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateWorkflowTransition godoc
+// CreateWorkflowTransition — Создать переход workflow
 // @Summary Создать переход workflow
 // @Description Создаёт новый допустимый переход между статусами.
 // @Tags Трекер
@@ -180,7 +180,7 @@ func (h *Handler) CreateWorkflowTransition(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// DeleteWorkflowTransition godoc
+// DeleteWorkflowTransition — Удалить переход workflow
 // @Summary Удалить переход workflow
 // @Description Удаляет переход между статусами.
 // @Tags Трекер

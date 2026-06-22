@@ -2,16 +2,25 @@
 	"title": "Справка Hub",
 	"subtitle": "Краткое руководство. Полная wiki — в репозитории docs/wiki/.",
 	"cards": {
-		"hotkeys": { "title": "Горячие клавиши", "desc": "Все shortcuts в настройках" },
-		"search": { "title": "Глобальный поиск", "desc": "Ctrl+K — задачи, кейсы, каналы, люди" },
+		"hotkeys": {
+			"title": "Горячие клавиши",
+			"desc": "Все shortcuts в настройках"
+		},
+		"search": {
+			"title": "Глобальный поиск",
+			"desc": "Ctrl+K — задачи, кейсы, каналы, люди"
+		},
 		"tms": { "title": "TMS + Allure", "desc": "Импорт прогонов из CI" },
-		"integrations": { "title": "Интеграции", "desc": "GitHub, GitLab, API keys в профиле" }
+		"integrations": {
+			"title": "Интеграции",
+			"desc": "GitHub, GitLab, API keys в профиле"
+		}
 	},
 	"sections": {
 		"quickStart": {
 			"title": "Быстрый старт",
 			"items": [
-				"Magic Link или Telegram — вход без пароля",
+				"Magic Link — вход по email без пароля",
 				"Онбординг: профиль → тур → тема → проект",
 				"Создайте проект в сайдбаре — появятся доска, TMS, чат"
 			]
@@ -42,5 +51,27 @@
 		}
 	},
 	"adminLink": "Нужна помощь администратора?",
-	"adminPanel": "Админ-панель"
+	"adminPanel": "Админ-панель",
+	"shortcuts": {
+		"title": "Горячие клавиши",
+		"hint": "Нажмите ? в любой момент или Escape для закрытия",
+		"groups": {
+			"navigation": "Навигация",
+			"tracker": "Трекер",
+			"messenger": "Мессенджер"
+		},
+		"navigation": [
+			"Ctrl+K / Cmd+K — глобальный поиск",
+			"? — эта справка",
+			"Escape — закрыть диалог"
+		],
+		"tracker": ["Ctrl+N — новая задача (в контексте проекта)"],
+		"messenger": ["Enter — отправить сообщение", "Shift+Enter — новая строка"]
+	},
+	"contextTips": {
+		"label": "Подсказка",
+		"jql": "JQL фильтрует задачи по полю, оператору и значению. Примеры: status = \"In Progress\", assignee = currentUser(), type IN (bug, task). Сортировка: ORDER BY created DESC.",
+		"wip": "WIP-лимит ограничивает число карточек в колонке. При достижении лимита колонка подсвечивается красным — завершите или перенесите задачи перед добавлением новых.",
+		"allure": "Отправляйте Allure JSON на webhook после CI. Связка с TMS через @allure.id(\"PROJ-TC-1\") или метку AS_ID — Hub автоматически привяжет результат к тест-кейсу."
+	}
 }

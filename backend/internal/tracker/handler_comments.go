@@ -7,10 +7,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Comment handlers
+// Обработчики комментариев
 // ---------------------------------------------------------------------------
 
-// CreateComment godoc
+// CreateComment — Создать комментарий
 // @Summary Создать комментарий
 // @Description Добавляет комментарий к задаче.
 // @Tags Трекер
@@ -48,8 +48,8 @@ func (h *Handler) CreateComment(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListComments godoc
-// @Summary Сп��сок комментариев задачи
+// ListComments — Список комментариев задачи
+// @Summary Список комментариев задачи
 // @Description Возвращает все комментарии указанной задачи.
 // @Tags Трекер
 // @Produce json
@@ -74,7 +74,7 @@ func (h *Handler) ListComments(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateComment godoc
+// UpdateComment — Обновить комментарий
 // @Summary Обновить комментарий
 // @Description Редактирует текст существующего комментария.
 // @Tags Трекер
@@ -108,7 +108,7 @@ func (h *Handler) UpdateComment(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteComment godoc
+// DeleteComment — Удалить комментарий
 // @Summary Удалить комментарий
 // @Description Удаляет комментарий к задаче.
 // @Tags Трекер
@@ -133,7 +133,7 @@ func (h *Handler) DeleteComment(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ToggleReaction godoc
+// ToggleReaction — Переключить реакцию на комментарий
 // @Summary Переключить реакцию на комментарий
 // @Description Добавляет или убирает эмодзи-реакцию на комментарий задачи.
 // @Tags Трекер
@@ -172,17 +172,17 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Activity handler
+// Обработчик активности
 // ---------------------------------------------------------------------------
 
-// GetActivity godoc
+// GetActivity — История активности задачи
 // @Summary История активности задачи
 // @Description Возвращает историю изменений задачи (создание, обновления полей, комментарии).
 // @Tags Трекер
 // @Produce json
 // @Param projectId path string true "ID проекта"
 // @Param issueKey path string true "Ключ задачи"
-// @Success 200 {array} ActivityResponse "История активности"
+// @Success 200 {array} ActivityLogResponse "История активности"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth

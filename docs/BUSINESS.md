@@ -1,8 +1,13 @@
 # Hub — Бизнес-документация
 
+> Расширенное описание продуктовых модулей и сценариев.  
+> Сводка целей и User Stories: `docs/vision_and_scope.md` · Техническая спецификация: `docs/system_specification.md`
+
 ## Описание продукта
 
-Hub — единая платформа для команд разработки и тестирования (10-50 человек), объединяющая трекер задач (Kanban + Scrum), мессенджер с каналами и тредами, систему управления тестированием (TMS) с Allure-интеграцией и голосовые созвоны с демонстрацией экрана. Все модули связаны между собой: задачи привязаны к тест-кейсам, результаты прогонов автотестов из CI попадают в TMS, уведомления о событиях приходят в мессенджер и Telegram.
+Hub — единая self-hosted платформа для команд разработки и сотрудников компании (10–50 человек). Объединяет трекер задач (Kanban + Scrum), мессенджер, TMS с Allure-интеграцией, голосовые созвоны, дашборды, AI Hub, интранет, CRM-lite, HR, бухгалтерию и no-code базы данных — в одном интерфейсе с единой авторизацией и сквозной трассируемостью.
+
+**Ключевые интеграционные связи:** задача ↔ тест-кейс ↔ CI-прогон ↔ PR ↔ уведомление ↔ календарь ↔ CRM-сделка.
 
 ## Целевая аудитория
 
@@ -36,21 +41,22 @@ Hub объединяет все инструменты в одном интер�
 
 ### 1. Авторизация и пользователи
 
-**Безпарольная аутентификация через Telegram** — вход без паролей, через мессенджер который уже используется командой.
+**Безпарольная аутентификация через Magic Link (email)** — единственный метод входа (ADR-AUTH-01). Telegram используется **только** для привязки и доставки уведомлений, не для login.
 
 | Фича | Описание поведения |
 |------|-------------------|
-| Telegram авторизация | Пользователь отправляет команду Telegram-боту, получает 6-значный код. Вводит код в Hub — авторизация |
-| Telegram Widget | Альтернативный способ: авторизация через встроенный Telegram Login Widget на странице входа |
-| Refresh-токен | Access Token (JWT, 15 мин) + Refresh Token (Redis, 30 дней). При истечении access — автоматический refresh |
-| Множественные сессии | Пользователь может быть авторизован одновременно на нескольких устройствах. Список сессий с device/IP. Отзыв отдельных сессий |
-| Уведомление о новом входе | При авторизации с нового устройства — push-уведомление через WebSocket на все активные сессии |
-| Профиль | Имя, аватар, email, Telegram ID, должность, отдел, телефон, часовой пояс, язык (ru/en), дата рождения, кастомные поля (JSONB) |
-| Системные роли | Admin — полный доступ, управление настройками, пользователями, бэкапами. Member — стандартный доступ |
-| Режим регистрации | Admin выбирает: открытая (любой может зарегистрироваться) или только по инвайтам |
-| Онбординг | Трёхшаговый flow: заполнение профиля -> обзорный тур (6 карточек фич) -> выбор темы/accent color -> создание/присоединение к проекту |
-| Quiet hours | Пользователь задаёт «тихие часы» (HH:MM - HH:MM). В это время обычные уведомления не приходят. Срочные — пробивают |
-| Деактивация | Admin деактивирует пользователя: доступ блокируется, задачи переназначаются, данные сохраняются. GDPR-удаление — полное удаление данных |
+| Magic Link | Пользователь вводит email на `/login` → получает 6-значный код (Resend / hub-mail) → `POST /auth/magic-link/verify` → JWT |
+| Rate limit auth | 3 отправки кода / 10 мин на email; 5 неудачных verify → lockout (Redis) |
+| Invite-only | Без invite-token новый email отклоняется при open registration off; pending queue для Admin |
+| Refresh-токен | Access JWT 15 мин + Refresh в Redis 30 дней, instant revoke |
+| Множественные сессии | Список сессий (device/IP), отзыв отдельных через `DELETE /auth/sessions/:id` |
+| Telegram bind | `POST /notifications/telegram/bind` → confirm → доставка notify; unlink через `DELETE /notifications/telegram` |
+| Профиль | Имя, аватар, email, Telegram ID (после bind), должность, отдел, TZ, язык ru/en, кастомные поля JSONB |
+| Системные роли | **Founder** (один на org), **Admin**, **Member** — поле `system_role` в Ent `User` |
+| Организация | Одна `Organization` на инстанс; org invite для первичного онбординга |
+| Онбординг | Профиль → тур (6 карточек) → тема/accent → проект (`/onboarding`) |
+| Quiet hours | HH:MM–HH:MM; срочные (`is_urgent`) пробивают |
+| Деактивация / GDPR | Admin деактивирует; полное удаление через audit/trash flow |
 
 ### 2. Проекты
 
@@ -180,7 +186,7 @@ Hub объединяет все инструменты в одном интер�
 | Instant-звонки | Быстрый звонок без канала: генерируется invite-код (hub-abc123), ссылка для присоединения |
 | Присоединение | По ID звонка или по invite-коду. LiveKit выдаёт токен для WebRTC-соединения |
 | Гостевой доступ | Присоединение к звонку без аккаунта Hub: достаточно invite-ссылки и имени. Гость получает гостевой LiveKit-токен (4 часа) |
-| Голос | Только аудио (без вебкамер — осознанное решение). До 50 участников |
+| Голос | Аудио; webcam — **Phase 16** (маршрут Gantt уже в UI: `/projects/$id/gantt`) |
 | Screen share | Демонстрация экрана или окна. Несколько участников могут шарить одновременно |
 | Mute/unmute | Toggle микрофона. Статус виден всем участникам |
 | Поднять руку | Индикатор "Хочу сказать". Видно всем участникам |
@@ -260,6 +266,88 @@ Hub объединяет все инструменты в одном интер�
 | Экспорт прогонов | PDF-отчёт по прогону тестов |
 | Экспорт спринтов | PDF-отчёт по спринту |
 
+### 12. AI Hub (v3.0)
+
+**Multi-provider AI gateway** с BYOK и локальным Ollama.
+
+| Фича | Описание поведения |
+|------|-------------------|
+| Провайдеры | GigaChat, YandexGPT, DeepSeek, Ollama, OpenRouter — Ent `AIProvider`, Admin settings |
+| @hub-ai в мессенджере | Bot user, streaming ответы в каналах/DM (`ai/messenger_bot.go`) |
+| AI-панель | `/settings/ai` — модель, preferences (`AIUserPreference`) |
+| JQL assist | `POST /api/ai/jql/assist` — подсказки фильтров задач |
+| Code review | AI review для GitHub PR (`ai/code_review.go`) |
+| Rate limits & audit | `AIUsageDaily`, content policy без логирования prompt body |
+| Composer suggest | Генерация текста задач/кейсов (partial US-F03) |
+
+### 13. Интранет (v4.0)
+
+**Корпоративный слой** поверх dev-модулей.
+
+| Фича | Описание поведения |
+|------|-------------------|
+| Лента новостей | CRUD постов Admin, лента для сотрудников (`NewsPost`) |
+| Каталог сотрудников | Org directory, профили коллег (`/intranet/directory`) |
+| Kudos | Публичная благодарность коллегам, feed |
+| Random Coffee | Enrollment, matching rounds, stats |
+| UI | `/intranet`, `/intranet/directory` |
+
+### 14. Календарь (v4.0)
+
+| Фича | Описание поведения |
+|------|-------------------|
+| Единые события | Созвоны, спринты, отпуска в одном представлении |
+| API | `backend/internal/calendar/` — CRUD событий |
+| UI | `/calendar` |
+
+### 15. CRM-lite (v4.0)
+
+| Фича | Описание поведения |
+|------|-------------------|
+| Контакты | `CRMContact` — имя, email, компания, связь с user |
+| Сделки | `CRMDeal` — pipeline, сумма, этап |
+| UI | `/crm` |
+
+### 16. HR-lite (v4.0)
+
+| Фича | Описание поведения |
+|------|-------------------|
+| Заявки на отпуск | `LeaveRequest` — даты, статус approve/reject |
+| UI | `/hr` |
+
+### 17. Бухгалтерия (v4.0)
+
+| Фича | Описание поведения |
+|------|-------------------|
+| План счетов | `LedgerAccount` |
+| Проводки | `JournalEntry` + `JournalLine` (double-entry) |
+| Счета | `Invoice` — выставление, статусы |
+| UI | `/accounting` |
+| 1C connector | Опциональный sync через `integrations/onec` (не замена Hub-only учёта) |
+
+### 18. No-code DB / Bases (v4.0)
+
+| Фича | Описание поведения |
+|------|-------------------|
+| Базы | `HubBase` — workspace no-code таблиц (Lark-style) |
+| Таблицы и колонки | `HubTable`, `HubColumn` — typed columns |
+| Записи | `HubRecord` — JSON values, CRUD API |
+| UI | `/bases` |
+
+### 19. Marketplace (v4.0)
+
+| Фича | Описание поведения |
+|------|-------------------|
+| Листинги | `MarketplaceListing` — внутренний маркетплейс ресурсов/услуг |
+| UI | `/marketplace` |
+
+### 20. Status Page & Mail
+
+| Модуль | Описание |
+|--------|----------|
+| Status page | Публичный `/status` — health компонентов (`backend/internal/status/`) |
+| hub-mail | Admin transactional/marketing email (`/admin/mail`, `backend/internal/mail/`, `cmd/hub-mail/`) |
+
 ---
 
 ## Роли и права доступа
@@ -268,8 +356,9 @@ Hub объединяет все инструменты в одном интер�
 
 | Роль | Описание |
 |------|----------|
-| **Admin** | Полный доступ. Управление пользователями, настройками регистрации, бэкапами, аудит-логами, системными лимитами, корзиной. Просмотр админ-дашборда |
-| **Member** | Стандартный доступ. Создание проектов, участие в проектах. Не имеет доступа к админ-панели |
+| **Founder** | Единственный на org. Полный доступ + первичная настройка организации |
+| **Admin** | Управление пользователями, регистрацией, бэкапами, audit, лимитами, mail, AI providers |
+| **Member** | Стандартный доступ. Создание проектов, участие в модулях. Без админ-панели |
 
 ### Проектные роли (фиксированные)
 
@@ -344,56 +433,32 @@ Permissions хранятся как bitmask (uint64) в поле `permissions` �
 
 ## Out of Scope
 
-| Что НЕ входит | Почему |
-|----------------|--------|
-| Видеозвонки с вебкамерами | Осознанное ограничение — голос + screen share достаточно для рабочих созвонов |
-| Мобильные нативные приложения | PWA покрывает потребность для мобильного доступа |
-| Email уведомления | Telegram бот покрывает потребность в внешних уведомлениях |
-| Биллинг/подписки | Внутренний инструмент, не SaaS-продукт |
-| SSO/LDAP/OAuth | Telegram авторизация достаточна для v1 |
-| Gantt-диаграммы | Kanban + Scrum покрывают потребности в управлении задачами |
-| Видео/аудио сообщения (кроме голосовых) | Избыточно для v1 |
-| Remote control (управление чужим экраном) | Сложная фича, не критична для команды |
-| Route-level page transitions | Layout shift bugs, productivity tool не маркетинговый сайт |
-| Multi-tenant | Single-tenant: один инстанс = одна команда |
+| Что НЕ входит | Почему / когда |
+|----------------|----------------|
+| SSO/LDAP/OAuth | Запрещено до ADR; Magic Link only |
+| Multi-tenant multi-org | 1 instance = 1 org; v5 |
+| Native App Store/Play | PWA достаточно |
+| SaaS billing/подписки | Internal tool, не commercial SaaS |
+| Webcam в звонках | **Phase 16** (запланировано, ADR-TZ-REWRITE) |
+| Payroll / НДФЛ | v4 accounting — ledger/invoices, не зарплатный модуль |
+| Remote control экрана | Сложность vs ценность |
+| Route-level page transitions | Productivity tool, не marketing site |
+| Redis pub/sub | NATS JetStream only (NFR-26) |
+
+См. также: `docs/tz_constraints.md`, `.planning/DISCUSS-ROADMAP-LOCKED.md`
+
+## Дорожная карта (фактический статус)
+
+| Версия | Содержание | Статус |
+|--------|------------|--------|
+| **v1.0** | 11 core-модулей: auth, project, tracker, messenger, TMS, calls, dashboard, notification, VCS, imex, backup/audit | ✅ SHIPPED 2026-03-21 |
+| **v2.0** | Pixel-perfect redesign, 85/85 UI reqs, design system | ✅ COMPLETE 2026-05-15 |
+| **v2.5** | Production hardening, security fixes, Ctrl+K search UI | ✅ COMPLETE 2026-06-22 |
+| **v2.6** | Architecture completion, OBS stack (Prometheus/Loki/Grafana), automation rules | ✅ COMPLETE 2026-06-24 |
+| **v3.0** | AI Hub: providers, @hub-ai bot, JQL assist, PR review | ✅ COMPLETE 2026-06-22 |
+| **v4.0** | Super-app: intranet, calendar, CRM, HR, accounting, bases, marketplace | ✅ COMPLETE 2026-06-25 |
+| **Coverage wave** | Phases 59–125, COV 82.6%, test framework migration | ✅ COMPLETE 2026-06-21 |
+| **Phase 16+** | Gantt, webcam, full JQL automation, hub-mail transactional | ⏳ Planned |
 
 ---
-
-## Дорожная карта
-
-### v1.0 — MVP (текущая версия)
-
-Полнофункциональная платформа со всеми 11 модулями:
-- Авторизация (Telegram)
-- Проекты с RBAC
-- Трекер задач (Kanban + Scrum)
-- Мессенджер с каналами, тредами, поллами
-- TMS с Allure-интеграцией
-- Созвоны (голос + screen share)
-- Дашборды (личный, проектный, админский)
-- Уведомления (Hub + Telegram + Web Push)
-- GitHub/GitLab интеграция
-- Импорт/Экспорт
-- Бэкапы и аудит
-
-### v2.0 — Redesign
-
-Pixel-perfect редизайн всего фронтенда по 11 HTML-макетам:
-- Новая дизайн-система (Inter + JetBrains Mono, CSS variables, dark palette)
-- Light + Dark mode
-- Редизайн всех 11 страниц + страницы без макетов
-- Spring/bounce анимации
-- Обновлённые UI-примитивы (Button, Card, Input, Badge, Dialog)
-
-### v3.0 — Planned
-
-- Публичный API (v1) со Swagger-документацией
-- hub-cli (CLI-утилита для CI/CD)
-- Расширенные интеграции (Jira import, GitLab full support)
-- Performance-оптимизации (виртуализация списков, lazy loading)
-- Расширенный аудит с экспортом
-- Расширенная аналитика дашбордов
-
----
-
-*Последнее обновление: 2026-03-28*
+*Последнее обновление: 2026-06-21 — RU-D02: auth Magic Link, v3/v4 модули, верификация по backend/internal и frontend/src*

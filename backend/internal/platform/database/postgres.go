@@ -25,7 +25,7 @@ func NewPostgresClient(ctx context.Context, url string) (*ent.Client, *dbsql.DB,
 	}
 	client := ent.NewClient(ent.Driver(drv))
 
-	// Auto-migrate in development. Use Atlas for production.
+	// Auto-migrate в dev; в production — Atlas migrations.
 	if err := client.Schema.Create(ctx); err != nil {
 		slog.Error("failed to create schema", "error", err)
 		return nil, nil, err

@@ -1,8 +1,8 @@
-# Hub — Requirement Coverage Matrix
+# Hub — Матрица покрытия требований
 
-> Phase 0 reconciliation: requirement → code → test.
-> Источники: `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/code-review-final/SUMMARY.md`
-> Верификация кода: 2026-06-17 (SA) · Refresh: 2026-06-20 (Wave 6 docs sync)
+> Phase 0 reconciliation: требование → код → тест.  
+> **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/code-review-final/SUMMARY.md`  
+> **Верификация:** 2026-06-22 (Wave C FA-03, Docker `-tags hubtest`, post FA-11/12)
 
 ---
 
@@ -10,142 +10,198 @@
 
 | Колонка | Значения |
 |---------|----------|
-| **Code** | ✅ Implemented · ⚠️ Partial · ❌ Missing · 🔧 Fixed post-audit (needs re-verify) |
+| **Code** | ✅ Implemented · ⚠️ Partial · ❌ Missing · 🔧 Fixed post-audit |
 | **Tests** | ✅ Covered · ⚠️ Partial · ❌ Missing |
-| **Gap** | Открытый finding из SUMMARY.md или пробел покрытия |
+| **Gap** | Открытый finding или пробел покрытия |
 
-**API endpoint count (2026-06-17):**
+---
+
+## API — сводка (2026-06-21)
 
 | Источник | Count | Примечание |
 |----------|-------|------------|
-| `docs/wiki/API.md` (documented) | **286** | 280 prod handler + 3 dev + 3 infra |
-| Handler `RegisterRoutes` (code) | **283** | 21 модулей + templates (prod) |
-| Dev routes (`/dev/*`) | **+3** | `dev/handler.go` — non-release only |
-| Infra routes (`/docs`, `/docs/doc.json`, `/health`) | **+3** | `main.go` |
-| **Total REST `/api/*`** | **286** | Wiki synced with code |
-| WebSocket | **+1** | `GET /ws` (вне `/api`) |
+| `docs/wiki/API.md` (documented) | **287+** | + AI composer, v4 modules |
+| Handler `RegisterRoutes` (code) | **283** | 21+ модулей + templates |
+| Dev routes (`/dev/*`) | **+3** | non-release only |
+| Infra (`/docs`, `/health`, `/metrics`) | **+3** | main.go |
+| **Total REST `/api/*`** | **286** | Wiki synced |
+| WebSocket | **+1** | `GET /ws` |
 
-**Test baseline (2026-06-20 Wave 6 verification):**
+---
+
+## Test baseline (Wave C FA-03, Docker 2026-06-22, verified)
 
 | Layer | Count | Notes |
 |-------|-------|-------|
-| Backend `*_test.go` | **161** files | `internal/` only |
-| Frontend Vitest | **10** files | 36 tests |
-| Playwright e2e | **7** spec files | login, navigation, logout, health, admin-audit, command-palette, a11y |
-| Statement coverage (overall `internal/`) | **56.6%** | `go test -coverprofile` excl. platform/db config |
-| Security-critical packages | **6/6 ≥80%** | calls **80.2%** (PG-01 closed) |
+| Backend `testframework/**/*_test.go` | **488** files | TF migration COMPLETE |
+| Backend `internal/*_test.go` (remaining) | **0** files | TF-M08 ✅ verified |
+| Frontend Vitest `frontend/testframework/unit/` | **37** files | **99/99** tests · 0 in `src/` |
+| Playwright E2E | **20** spec files | `testframework/e2e/specs/` |
+| Statement coverage (overall `internal/`) | **83.0%** | post FA-11/12 ✅ |
 
-**Wave 1 security-critical test packages (verified 2026-06-20 Wave 6):**
+### Покрытие по пакетам (актуальное, Docker)
+
+| Package | Coverage | Phase / Notes |
+|---------|----------|---------------|
+| **Overall `internal/`** | **83.0%** | Wave C post FA-11/12 |
+| ws | **87.7%** | security wave |
+| storage | **86.8%** | Phase 123 |
+| rbac | **84.7%** | security wave |
+| search | **92.2%** | Phase 116 carry |
+| platform/outbox | **88.6%** | Phase 101 |
+| notification | **82.5%** | Phase 121 + testframework |
+| auth | **82.4%** | security wave |
+| tracker | **82.4%** | Phase 121/124 |
+| messenger | **82.3%** | Phase 123 |
+| audit | **80.5%** | security wave (min threshold) |
+| calls | **80.2%** | PG-01 Wave 6 |
+| tms | **82.0%** | FA-11 ✅ micro-gap closed |
+| project | **82.0%** | FA-11 ✅ micro-gap closed |
+| sprint | **81.7%** | Phase 113 |
+| hr | **83.7%** | Phase 111 |
+| crm | **81.9%** | Phase 111 |
+| imex | **84.7%** | Phase 90 |
+| ai | **78.9%** | Phase 110 |
+| github | **80.8%** | Phase 104 |
+| apigateway | **82.2%** | Phase 97 |
+| dashboard | **86.4%** | Phase 107 |
+| accounting | **80.4%** | Phase 108 |
+| calendar | **86.7%** | Phase 98 |
+| intranet | **81.3%** | Phase 91 |
+| bases | **78.6%** | Phase 107 |
+| marketplace | **80.1%** | Phase 105 |
+| backup | **85.8%** | Phase 100 |
+| integrations/onec | **83.4%** | Phase 101 |
+
+### Security-critical packages (Wave 1 + Phase 125)
 
 | Package | Coverage | Status |
 |---------|----------|--------|
-| `auth/` | **83.6%** | ✅ ≥80% |
-| `ws/` | **88.0%** | ✅ ≥80% |
-| `rbac/` | **85.0%** | ✅ ≥80% |
-| `audit/` | **80.5%** | ✅ ≥80% |
-| `platform/middleware` | **84.0%** | ✅ ≥80% |
-| `calls/` | **80.2%** | ✅ ≥80% (PG-01: chatMessageStore + LiveKit mock) |
+| auth | **82.4%** | ✅ ≥80% |
+| ws | **87.7%** | ✅ ≥80% |
+| rbac | **84.7%** | ✅ ≥80% |
+| audit | **80.5%** | ✅ ≥80% |
+| platform/middleware | **84.0%** | ✅ ≥80% |
+| calls | **80.2%** | ✅ ≥80% |
 
-Target Wave 1: ≥80% per security package — **6/6 met** ✅
+**Target Wave 1:** ≥80% per security package — **6/6 met** ✅
 
 ---
 
 ## Top 20 Critical Requirements — Gap Matrix
 
-| REQ-ID | Requirement | Source | Code Location | Code | Tests | Gap / Finding |
-|--------|-------------|--------|---------------|------|-------|---------------|
-| **AUTH-01** | Magic Link + Telegram login (no passwords) | US-M01 | `auth/handler.go`, `auth/magiclink.go`, `auth/telegram.go` | ✅ | ⚠️ `magiclink_test.go`, `handler_test.go`, `service_session_test.go` | SEC-07 🔧 ConstantTimeCompare applied |
-| **AUTH-02** | JWT 15 min + refresh 30d Redis revoke | NFR-09/10 | `auth/service_session.go`, Redis keys | ✅ | ⚠️ `service_session_test.go` | FE refresh mutex 🔧 in `api/client.ts` |
-| **AUTH-03** | Auth rate limit 3/10 min | NFR-05 | `main.go:217-233`, `middleware/ratelimit.go` | ✅ | ✅ `middleware_test.go` | Skipped when `DEV_MODE=true` (by design) |
-| **PROJ-01** | Project creates tracker+TMS+chat+dashboard | US-M02 | `project/service.go`, provisioners | ✅ | ⚠️ `project/service_test.go` | PROJECT.md still `[ ]` — doc drift |
-| **TASK-01** | 9 issue types, CRUD, links, comments | US-M03 | `tracker/handler.go` (38 routes) | ✅ | ⚠️ `tracker/service_test.go` | No integration/E2E |
-| **TASK-02** | Optimistic lock (`version`, 409) | US-M03, data rule | `tracker/repo_issues.go:242` | ✅ | ✅ conflict test in `service_test.go` | — |
-| **MSG-01** | Channels, threads, reactions, presence | US-M04 | `messenger/handler.go` (42 routes) | ✅ | ⚠️ 4 test files, no fan-out integration | Message rate limit ✅ |
-| **TMS-01** | Test cases + Allure CI import | US-M05 | `tms/handler.go`, `tms/allure_parser.go` | ✅ | ✅ `allure_parser_test.go`, `service_test.go` | Compare-runs UI depth ⚠️ |
-| **CALL-01** | LiveKit voice+screen, ≤50 participants | US-M06, NFR-03 | `calls/handler.go`, `deployments/livekit.yaml` | ✅ | ⚠️ `calls/service_test.go`, `recording_webhook_test.go` | INF-01 🔧 departure_timeout in yaml |
-| **SRCH-01** | Global search with user-scope | US-M07, NF-03 | `search/service.go`, `command-palette.tsx` | ✅ | ⚠️ `service_test.go` mocks; E2E-06 pending | UI Ctrl+K ✅ 2026-06-20; saved filters/JQL partial |
-| **WS-01** | WebSocket real-time via NATS | NFR-02 | `ws/hub.go`, `ws/bridge.go`, `main.go:605` | ✅ | ⚠️ `hub_test.go`, `authorizer_test.go`, `protocol_test.go` | SEC-H1 🔧 `ws.NewAuthorizer` in main |
-| **API-01** | REST API + API keys | API module | 286 endpoints, `apigateway/` | ✅ | ⚠️ `apikey_test.go` DTO-only | SEC-01 🔧 middleware before routes |
-| **NOTF-01** | In-app + Telegram + Web Push | US-S05 | `notification/handler.go`, `push.go` | ✅ | ⚠️ `service_test.go` | SEC-H3 🔧 ValidateOutboundURL |
-| **AUDIT-01** | Audit log + trash 30 days | US-S03, NFR-11 | `audit/handler.go`, HTTP audit middleware, ban API, cron purge | ✅ | ⚠️ `middleware_test.go`, `service_security_test.go` | BE-H6/H7 🔧 GDPR + retention implemented |
-| **OBS-01** | Admin observability + request timing | US-S03 | `audit/middleware.go`, `observability/timing.go`, `/admin/audit` UI | ✅ | ⚠️ `timing_test.go`, `middleware_test.go` | Full API audit volume — OK for dev |
-| **BACK-01** | Weekly PG+Mongo+S3 backup | PROJECT backups | `backup/service.go`, cron | ✅ | ⚠️ `createZIP` unit only | INF-04 🔧 s3Client wired in main |
-| **GH-01** | GitHub PR linking + webhooks | US-S04 | `github/handler.go`, `github/service.go` | ✅ | ⚠️ `github/service_test.go` | SafeDialer ✅ |
-| **SEC-PROD** | 0 CRITICAL blockers for prod | G-04, SUMMARY | cross-cutting | ✅ | ⚠️ | 12/12 CRITICAL fixed; BE-H6/H7 re-verified |
-| **NFR-13** | Error JSON `{error, request_id}` | NFR-13 | `platform/errors`, `middleware.go` | ✅ | ✅ `middleware_test.go` | — |
-| **NFR-16** | WCAG 2.1 AA | NFR-16, G-05 | frontend components | ⚠️ | ✅ login a11y | ErrorBoundary + 10 Vitest; login axe PASS |
-| **COV-01** | Coverage ≥50% overall, ≥80% security | G-04, Phase 18 | all packages | ✅ | ✅ | **56.6%** overall; security **6/6 ≥80%** ✅ |
+| REQ-ID | Requirement | Source | Code | Tests | Gap |
+|--------|-------------|--------|------|-------|-----|
+| **AUTH-01** | Magic Link + Telegram bind (no passwords) | US-M01 | ✅ | ✅ | SEC-07 🔧 fixed |
+| **AUTH-02** | JWT 15m + refresh 30d Redis | NFR-09/10 | ✅ | ✅ | FE refresh mutex ✅ |
+| **AUTH-03** | Auth rate limit 3/10 min | NFR-05 | ✅ | ✅ | DEV_MODE skip by design |
+| **PROJ-01** | Project creates tracker+TMS+chat | US-M02 | ✅ | ⚠️ | E2E partial |
+| **TASK-01** | 9 issue types, CRUD, links | US-M03 | ✅ | ✅ **82.4%** | — |
+| **TASK-02** | Optimistic lock (version, 409) | US-M03 | ✅ | ✅ | — |
+| **MSG-01** | Channels, threads, reactions | US-M04 | ✅ | ✅ **82.3%** | — |
+| **TMS-01** | Test cases + Allure CI | US-M05 | ✅ | ✅ **82.0%** | FA-12 TestRail enum ✅ |
+| **CALL-01** | LiveKit voice+screen+webcam | US-M06 | ✅ | ✅ **80.2%** | — |
+| **SRCH-01** | Global search user-scope | US-M07 | ✅ | ✅ **92.2%** | Ctrl+K ✅ |
+| **WS-01** | WebSocket via NATS | NFR-02 | ✅ | ✅ **87.7%** | SEC-H1 🔧 fixed |
+| **API-01** | REST + API keys | API module | ✅ 286 ep | ✅ **82.2%** | SEC-01 🔧 fixed |
+| **NOTF-01** | In-app + TG + Web Push | US-S05 | ✅ | ✅ **82.5%** | SEC-H3 🔧 fixed |
+| **AUDIT-01** | Audit log + trash 30d | US-S03 | ✅ | ✅ **80.5%** | BE-H6/H7 ✅ |
+| **OBS-01** | Prometheus + OTel + Loki + AM | US-S03 | ✅ | ✅ | **CLOSED** Ph 29–36 |
+| **BACK-01** | Weekly PG+Mongo+S3 backup | PROJECT | ✅ | ⚠️ | INF-04 🔧 fixed |
+| **GH-01** | GitHub PR + webhooks | US-S04 | ✅ | ✅ **80.8%** | SafeDialer ✅ |
+| **SEC-PROD** | 0 CRITICAL blockers | G-04 | ✅ | ✅ | 12/12 fixed |
+| **NFR-13** | Error JSON `{error, request_id}` | NFR-13 | ✅ | ✅ | — |
+| **NFR-16** | WCAG 2.1 AA | NFR-16 | ⚠️ | ✅ login axe | full audit pending |
+| **COV-01** | Coverage ≥82% / security ≥80% | G-04 | ✅ | ✅ | **83.0%** / **6/6** ✅ |
 
 ---
 
-## SUMMARY.md CRITICAL — Reconciliation Status
+## v4 Super-app modules (Phase 58+, verified 2026-06-25)
 
-| ID | Finding | Code Status (2026-06-17) | Test Status |
-|----|---------|---------------------------|-------------|
-| SEC-01 | APIKeyAuth dead code | 🔧 Fixed `main.go:241-250` | ⚠️ No middleware-order test |
-| SEC-02 | LiveKit webhook sha256 optional | 🔧 Fixed `calls/handler.go:257-263` | ✅ `recording_webhook_test.go` |
-| SEC-03 | Hardcoded livekit prod secret | ⚠️ `livekit-prod.yaml` removed; local dev keys in `livekit.yaml` | ❌ |
-| SEC-04 | GitLab SSRF DefaultClient | 🔧 Fixed `safehttp.NewSafeHTTPClient` | ⚠️ `gitlab/service_test.go` partial |
-| SEC-05 | WS send-on-closed panic | 🔧 Fixed `ws/hub.go:removeClient` | ⚠️ `hub_test.go` partial race |
-| SEC-06 | First-admin race | 🔧 Fixed + mutex | ✅ `service_registration_race_test.go` |
-| SEC-07 | Magic-link timing attack | 🔧 Fixed ConstantTimeCompare | ✅ `magiclink_test.go` |
-| INF-01 | LiveKit departure_timeout prod | 🔧 In `livekit.yaml`; prod via compose | ❌ No deploy test |
-| INF-02 | DEV_MODE=true in CI prod | 🔧 Removed from `deploy.yml:63-65` | ❌ |
-| INF-03 | Plaintext creds local compose | ⚠️ Env-var placeholders `${RESEND_API_KEY:-}` | ❌ Rotation/purge manual |
-| INF-04 | BackupService nil s3Client | 🔧 Fixed `main.go:524-537` | ⚠️ ZIP unit only |
-| FE-01 | Rules of Hooks violation | 🔧 Fixed `message-item.tsx:156-158` | ❌ No component test |
+| Module | Stmt coverage | E2E |
+|--------|---------------|-----|
+| status | **100.0%** | ✅ v4-superapp |
+| crm | **72.8%** → **81.9%** | ✅ |
+| hr | **73.3%** → **83.7%** | ✅ |
+| marketplace | **69.2%** → **80.1%** | ✅ |
+| calendar | **65.6%** → **86.7%** | ✅ |
+| accounting | **65.0%** → **80.4%** | ✅ |
+| intranet | **60.8%** → **81.3%** | ✅ |
+| bases | **60.8%** → **78.6%** | ✅ |
+| integrations/onec | **72.0%** → **83.4%** | — |
 
-**Verdict:** COV-01 gate **PASS** (overall ≥50%, security 6/6 ≥80%). Wave 6 prod pipeline + Ctrl+K UI landed; E2E-06 and formal security re-audit remain optional hardening.
+Все v4 модули **≥50%** ✅ (целевой floor **≥80%** для core — достигнут для большинства)
+
+---
+
+## SUMMARY.md CRITICAL — Reconciliation
+
+| ID | Finding | Code | Tests |
+|----|---------|------|-------|
+| SEC-01 | APIKeyAuth dead code | 🔧 Fixed | ✅ Phase 69 |
+| SEC-02 | LiveKit webhook optional | 🔧 Fixed | ✅ |
+| SEC-03 | Hardcoded livekit secret | ⚠️ templated | ❌ |
+| SEC-04 | GitLab SSRF DefaultClient | 🔧 Fixed safehttp | ✅ Phase 70 |
+| SEC-05 | WS send-on-closed panic | 🔧 Fixed | ⚠️ partial race |
+| SEC-06 | First-admin race | 🔧 Fixed mutex | ✅ |
+| SEC-07 | Magic-link timing | 🔧 ConstantTimeCompare | ✅ |
+| INF-01 | LiveKit departure_timeout | 🔧 In yaml/compose | ❌ |
+| INF-02 | DEV_MODE in prod CI | 🔧 Removed deploy.yml | ❌ |
+| INF-03 | Plaintext creds compose | ⚠️ env placeholders | PG-03 manual |
+| INF-04 | BackupService nil s3 | 🔧 Fixed main.go | ⚠️ unit only |
+| FE-01 | Rules of Hooks | 🔧 Fixed | ❌ |
+
+**Verdict:** COV-01 gate **PASS** (83.0% ≥82%, security 6/6 ≥80%). Wave C FA-02 re-audit **DONE** — 0 CRITICAL regression (`.planning/FA-02-SECURITY-REAUDIT.md`).
 
 ---
 
 ## Module Coverage Summary
 
-| Module | Routes | Unit Tests | Integration | E2E | Security Audit |
-|--------|--------|------------|-------------|-----|----------------|
-| auth | 13 | ✅ Wave 1 | partial | ⚠️ login.spec | SEC-06/07 🔧 |
-| project | 27 | ✅ | partial | ❌ | — |
-| tracker | 38 | ✅ | partial | ❌ | — |
-| messenger | 42 | ⚠️ | partial | ❌ | — |
-| tms | 52 | ✅ | partial | ❌ | — |
-| calls | 22 | ⚠️ Wave 1 | partial | ❌ | SEC-02 🔧 |
-| ws | 1 (WS) | ⚠️ Wave 1 | ❌ | ❌ | SEC-05/H1 🔧 |
-| search | 7 | ⚠️ | ❌ | ❌ | SEC-H2 🔧 |
-| notification | 11 | ⚠️ | ❌ | ❌ | SEC-H3 🔧 |
-| apigateway | 8 | ⚠️ | ❌ | ❌ | SEC-01 🔧 |
-| sprint | 14 | ✅ | partial | ❌ | — |
-| dashboard | 8 | ⚠️ | ❌ | ❌ | BE-H3 partial |
-| audit/backup | 12 | ⚠️ Wave 1 | ❌ | ⚠️ admin-audit.spec | BE-H6/H7 🔧 |
-| github/gitlab | 20 | ⚠️ | ❌ | ❌ | SEC-04 🔧 |
-| imex | 6 | ⚠️ | ❌ | ❌ | — |
-| platform | — | ✅ Wave 1 | partial | ⚠️ health.spec | — |
+| Module | Routes | Unit Tests | E2E | Notes |
+|--------|--------|------------|-----|-------|
+| auth | 13 | ✅ 82.4% | ✅ login | security |
+| project | 27 | ✅ 82.0% | ⚠️ | FA-11 ✅ |
+| tracker | 38 | ✅ 82.4% | ⚠️ | — |
+| messenger | 42 | ✅ 82.3% | ⚠️ | — |
+| tms | 52 | ✅ 82.0% | ⚠️ | FA-11 ✅ · FA-12 TestRail enum |
+| calls | 22 | ✅ 80.2% | ⚠️ | security |
+| ws | 1 | ✅ 87.7% | ❌ | security |
+| search | 7 | ✅ 92.2% | ⚠️ | — |
+| notification | 11 | ✅ 82.5% | ⚠️ | testframework |
+| apigateway | 8 | ✅ 82.2% | ❌ | — |
+| sprint | 14 | ✅ 81.7% | ❌ | — |
+| dashboard | 8 | ✅ 86.4% | ⚠️ | — |
+| audit/backup | 12 | ✅ 80.5%/85.8% | ✅ admin-audit | — |
+| github/gitlab | 20 | ✅ 80.8%/68.5% | ❌ | — |
+| ai | 12+ | ✅ 78.9% | ⚠️ composer | v3.0 |
+| intranet/crm/hr/… | v4 | ✅ ≥78% | ✅ v4-superapp | v4 modules |
 
 ---
 
-## Top 10 Unimplemented / Incomplete Requirements
+## Top 10 Open Items
 
-| # | REQ-ID | Requirement | Why Unimplemented |
-|---|--------|-------------|-------------------|
-| 1 | **COV-01** | Unit coverage ≥50% / security ≥80% | **56.0%** overall ✅; calls **72.5%** — only residual gap |
-| 2 | **FE-TEST** | Frontend Vitest unit tests | **4** files (target ≥10 per PLAN-CLOSE-GAPS) |
-| 3 | **E2E-01** | Playwright critical-path E2E | ✅ **7 specs** + CI `e2e-full`; expand E2E-02..05 |
-| 4 | **NFR-16** | WCAG 2.1 AA compliance | Frontend audit 76/100; no automated a11y gate |
-| 5 | **NFR-17** | Lighthouse score ≥90 | Not measured in CI; bundle 1.1MB (FE-H5) |
-| 6 | **ARCH-01** | Repository pattern all modules | 7 packages still use `*ent.Client` in service (Phase 19) |
-| 7 | **OBS-01** | OTel metrics + structured observability | Phase 21 planned; Slog only today |
-| 8 | **PROJ-REC** | PROJECT.md requirement validation | All active reqs still `[ ]` unchecked |
-| 9 | **INF-03** | Secret hygiene (local compose history) | Env placeholders OK; rotation/purge not verified |
-| 10 | **BE-H6** | GDPR delete completeness | ✅ Implemented; monitor partial cascade WARN logs |
+| # | Item | Status |
+|---|------|--------|
+| 1 | TF test framework migration (488 / 0 internal) | ✅ COMPLETE |
+| 2 | FA-11 tms/project → 82% | ✅ closed |
+| 3 | NFR-16 full WCAG AA sign-off | ⚠️ partial |
+| 4 | NFR-17 Lighthouse ≥90 in CI | ❌ not measured |
+| 5 | FA-06 / PG-03 secret rotation execute | ⏳ manual ops |
+| 6 | FA-04 github http.DefaultClient fallback | ✅ safehttp |
+| 7 | FA-05 hub-mail prod compose | ✅ 2026-06-22 |
+| 8 | FA-02-02 TMS webhook RBAC (MEDIUM) | ✅ FA-RBAC-FIBER3 123 routes |
+| 9 | Squash PR feat/v2.5-trust | ⏳ pending (after FA-06) |
+| 10 | FA-10 full qa-gate Docker | ✅ local PASS · CI e2e-full 20 specs |
+
+---
+
+## Next Actions
+
+1. **DevOps:** FA-06 PG-03 secret rotation (manual ops) — единственный блокер Wave C
+2. **DevOps:** Squash PR `feat/v2.5-trust` → main after FA-06 + CTO approval
+3. **QA:** CI Playwright e2e-full (20 specs) + Docker coverage gate on PR
+4. **Backlog:** FA-02-03 LiveKit iss compare · FA-02-04 RequireAuth fail-open
 
 ---
 
-## Next Actions (SA → QA / Tech Lead)
-
-1. **SA_VER:** Re-run security-auditor against current `main.go` to close SEC-PROD formally.
-2. **QA (post-gate):** Uplift `calls/` to 80% (Mongo chat integration or LiveKit mock).
-3. **QA:** Wire Playwright into CI (`npm run test:e2e` with `PLAYWRIGHT_SKIP_WEBSERVER=1`).
-4. **BA:** Move validated PROJECT.md items to Confirmed section.
-5. **DevOps:** Confirm prod LiveKit config delivery (INF-01) on target host.
-
----
-*Generated: 2026-06-17 — Verified: 2026-06-20 (COV-01 gate: 56.0% overall, 5/6 security ≥80%)*
+*Generated: 2026-06-17 · Verified: 2026-06-22 (Wave C FA-03: COV 83.0%, security 6/6 ≥80%, 488 testframework / 0 internal tests)*

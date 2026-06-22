@@ -1,5 +1,5 @@
 /**
- * Widget "Velocity" -- bar chart of completed tasks by week.
+ * Виджет «Velocity» — завершённые задачи по неделям.
  */
 import { ChartBar } from "lucide-react";
 import {
@@ -17,7 +17,7 @@ interface Props {
 	data?: unknown;
 }
 
-/** Custom tooltip. */
+/** Кастомный tooltip. */
 function ChartTooltip({
 	active,
 	payload,
@@ -44,7 +44,7 @@ function ChartTooltip({
 	);
 }
 
-/** Velocity chart widget. */
+/** Виджет velocity-графика. */
 export function VelocityChartWidget({ data }: Props) {
 	const projectData = data as ProjectStats | undefined;
 	const velocityData = projectData?.velocity_data ?? [];

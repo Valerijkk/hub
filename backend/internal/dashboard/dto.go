@@ -31,7 +31,7 @@ type SaveLayoutRequest struct {
 	Items         []LayoutItem `json:"items"`
 }
 
-// --- Personal Dashboard ---
+// --- Персональный дашборд ---
 
 // TaskSummary краткая информация о задаче для виджетов дашборда.
 type TaskSummary struct {
@@ -72,7 +72,7 @@ type PersonalData struct {
 	TimeToday     int           `json:"time_today"` // Минуты за сегодня
 }
 
-// --- Project Dashboard ---
+// --- Проектный дашборд ---
 
 // DataPoint точка данных для графиков.
 type DataPoint struct {
@@ -102,7 +102,7 @@ type ProjectStats struct {
 	Overdue       int             `json:"overdue"`
 }
 
-// --- Admin Dashboard ---
+// --- Админский дашборд ---
 
 // ProjectRank рейтинг проекта по количеству задач.
 type ProjectRank struct {

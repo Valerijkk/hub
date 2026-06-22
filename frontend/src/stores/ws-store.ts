@@ -78,7 +78,7 @@ export const useWsStore = create<WsState>((set, get) => ({
 					}
 				}
 			} catch {
-				// Ignore malformed messages.
+				// Некорректный JSON от WS — пропускаем, чтобы не ронять обработчики.
 			}
 		};
 

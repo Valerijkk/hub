@@ -23,12 +23,12 @@ export function useMessages(channelId: string | undefined) {
 	const query = useInfiniteQuery({
 		queryKey: ["messenger", "messages", channelId],
 		queryFn: ({ pageParam }) =>
-			// biome-ignore lint/style/noNonNullAssertion: enabled flag guards channelId being defined
+			// biome-ignore lint/style/noNonNullAssertion: enabled гарантирует наличие channelId
 			getMessages(channelId!, { before: pageParam, limit: PAGE_SIZE }),
 		initialPageParam: undefined as string | undefined,
 		getNextPageParam: (lastPage) => {
 			if (lastPage.length < PAGE_SIZE) return undefined;
-			// Backend expects RFC3339 timestamp for cursor-based pagination.
+			// Бэкенд ожидает RFC3339 для cursor-пагинации (infinite scroll вверх).
 			return lastPage[0]?.created_at;
 		},
 		enabled: !!channelId,
@@ -63,7 +63,7 @@ export function useMessages(channelId: string | undefined) {
 					queryClient.setQueryData(queryKey, (old: unknown) => {
 						if (!old) return old;
 						const typed = old as { pages: Message[][]; pageParams: unknown[] };
-						// Deduplicate: skip if message already exists
+						// WS может прислать дубликат — не добавляем повторно по id.
 						const exists = typed.pages.some((page) =>
 							page.some((m) => m.id === message.id),
 						);
@@ -170,7 +170,7 @@ export function useThreadMessages(
 	const query = useInfiniteQuery({
 		queryKey: ["messenger", "thread", channelId, messageId],
 		queryFn: ({ pageParam }) =>
-			// biome-ignore lint/style/noNonNullAssertion: enabled flag guards channelId/messageId being defined
+			// biome-ignore lint/style/noNonNullAssertion: enabled гарантирует channelId и messageId
 			getThreadReplies(channelId!, messageId!, {
 				before: pageParam,
 				limit: PAGE_SIZE,
@@ -178,7 +178,7 @@ export function useThreadMessages(
 		initialPageParam: undefined as string | undefined,
 		getNextPageParam: (lastPage) => {
 			if (lastPage.length < PAGE_SIZE) return undefined;
-			// Backend expects RFC3339 timestamp for cursor-based pagination.
+			// Бэкенд ожидает RFC3339 для cursor-пагинации (infinite scroll вверх).
 			return lastPage[0]?.created_at;
 		},
 		enabled: !!channelId && !!messageId,

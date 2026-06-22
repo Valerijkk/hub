@@ -7,7 +7,7 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
-// SearchMessages performs full-text search across messages.
+// SearchMessages выполняет полнотекстовый поиск по сообщениям.
 func (s *MessengerService) SearchMessages(ctx context.Context, query, channelID string, limit int) ([]MessageResponse, error) {
 	var chID *uuid.UUID
 	if channelID != "" {

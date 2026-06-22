@@ -5,6 +5,7 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -13,7 +14,20 @@ concurrency:
 jobs:
   backend-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    services:
+      mongo:
+        image: mongo:8
+        env:
+          MONGO_INITDB_ROOT_USERNAME: hub
+          MONGO_INITDB_ROOT_PASSWORD: hub
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval \"db.adminCommand('ping')\""
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -26,17 +40,76 @@ jobs:
         working-directory: backend
         run: |
           go generate ./ent
-          go vet ./...
+          go vet -tags hubtest ./...
 
       - name: Test (race detector)
         working-directory: backend
-        run: go test -race -count=1 -timeout=600s ./...
+        env:
+          MONGODB_TEST_URL: mongodb://hub:hub@localhost:27017/?authSource=admin
+        run: go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
 
       - name: Build prod binary (ME-09)
         working-directory: backend
         run: |
           go generate ./ent
           go build -tags release -o bin/server ./cmd/server
+
+  # COV gate on master push / manual only — skips PRs to save CI minutes.
+  coverage-gate:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+
+      - name: Start test infrastructure
+        run: docker compose -f deployments/docker-compose.test.yml up -d
+
+      - name: Wait for test infrastructure
+        run: |
+          for _ in $(seq 1 30); do
+            if docker compose -f deployments/docker-compose.test.yml exec -T postgres pg_isready -U hub >/dev/null 2>&1; then
+              echo "Postgres ready"
+              break
+            fi
+            sleep 2
+          done
+          for _ in $(seq 1 30); do
+            if docker compose -f deployments/docker-compose.test.yml exec -T mongo mongosh --eval "db.adminCommand('ping')" --quiet >/dev/null 2>&1; then
+              echo "Mongo ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Mongo timeout"
+          exit 1
+
+      - name: Generate Ent
+        working-directory: backend
+        run: go generate ./ent
+
+      - name: Coverage gate (≥82%)
+        working-directory: backend
+        env:
+          POSTGRES_TEST_URL: postgresql://hub:hub@localhost:5432/hub?sslmode=disable
+          MONGODB_TEST_URL: mongodb://hub:hub@localhost:27017/?authSource=admin
+        run: |
+          go test -tags hubtest -coverprofile=/tmp/cov -coverpkg=./internal/... ./testframework/...
+          total="$(go tool cover -func=/tmp/cov | tail -1 | awk '{print $NF}' | tr -d '%')"
+          echo "Total coverage: ${total}%"
+          awk -v cov="${total}" 'BEGIN { if (cov + 0 >= 82.0) exit 0; exit 1 }' || {
+            echo "::error::Coverage ${total}% is below 82.0% gate"
+            exit 1
+          }
+
+      - name: Stop test infrastructure
+        if: always()
+        run: docker compose -f deployments/docker-compose.test.yml down -v
 
   frontend-test:
     runs-on: ubuntu-latest
@@ -61,10 +134,9 @@ jobs:
         working-directory: frontend
         run: npx vitest run
 
-      - name: Biome lint (baseline)
+      - name: Biome lint (gate)
         working-directory: frontend
         run: npm run lint
-        continue-on-error: true
 
   build:
     needs: [backend-test, frontend-test]
@@ -108,12 +180,16 @@ jobs:
         working-directory: frontend
         run: npm ci && npx playwright install chromium --with-deps
 
+      - name: Link node_modules for E2E specs
+        working-directory: frontend
+        run: node scripts/link-e2e-node-modules.mjs
+
       - name: Playwright smoke (frontend-only specs)
         working-directory: frontend
         env:
           CI: 'true'
           # PLAYWRIGHT_SKIP_WEBSERVER unset — Playwright starts Vite (playwright.config.ts).
-        run: npx playwright test e2e/login.spec.ts e2e/a11y.spec.ts --grep "login page|full page has no critical"
+        run: npx playwright test -c playwright.config.ts login.spec.ts a11y.spec.ts critical-gate.spec.ts --grep "login page|full page has no critical|path 1"
 
   # Full E2E: docker infra + native backend (DEV_MODE) + Playwright critical paths.
   # Env vars documented in scripts/ci-e2e-backend.sh header.
@@ -150,6 +226,10 @@ jobs:
         working-directory: frontend
         run: npm ci && npx playwright install chromium --with-deps
 
+      - name: Link node_modules for E2E specs
+        working-directory: frontend
+        run: node scripts/link-e2e-node-modules.mjs
+
       - name: Start infrastructure (postgres, redis, mongo, nats)
         run: bash scripts/ci-e2e-backend.sh start-infra
 
@@ -169,14 +249,27 @@ jobs:
           # PLAYWRIGHT_SKIP_WEBSERVER=0 (default): Playwright starts Vite dev server.
           # Vite proxies /api → localhost:3000 (vite.config.ts).
         run: >
-          npx playwright test
-          e2e/login.spec.ts
-          e2e/navigation.spec.ts
-          e2e/logout.spec.ts
-          e2e/health.spec.ts
-          e2e/admin-audit.spec.ts
-          e2e/command-palette.spec.ts
-          e2e/a11y.spec.ts
+          npx playwright test -c playwright.config.ts
+          login.spec.ts
+          critical-gate.spec.ts
+          navigation.spec.ts
+          logout.spec.ts
+          health.spec.ts
+          admin-audit.spec.ts
+          command-palette.spec.ts
+          shortcuts.spec.ts
+          onboarding-profile.spec.ts
+          notifications.spec.ts
+          project-lifecycle.spec.ts
+          messenger.spec.ts
+          tms.spec.ts
+          a11y.spec.ts
+          v4-superapp.spec.ts
+          admin-ai.spec.ts
+          admin-metrics.spec.ts
+          ai-hub.spec.ts
+          automation.spec.ts
+          metrics.spec.ts
 
       - name: Upload Playwright report on failure
         if: failure()

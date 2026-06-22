@@ -2,7 +2,7 @@ import { buildQueryString } from "@/lib/utils";
 import { api } from "./client";
 import type { PaginatedResponse } from "./types";
 
-// Re-export for backward compatibility.
+// Реэкспорт для обратной совместимости с legacy-импортами PaginatedResponse.
 export type { PaginatedResponse } from "./types";
 
 // ---------------------------------------------------------------------------

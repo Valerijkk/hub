@@ -36,7 +36,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 // @Description Возвращает агрегированные данные персонального дашборда пользователя.
 // @Tags Дашборды
 // @Produce json
-// @Success 200 {object} PersonalDashboardData "Данные дашборда"
+// @Success 200 {object} PersonalData "Данные дашборда"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
@@ -61,7 +61,7 @@ func (h *Handler) Personal(c fiber.Ctx) error {
 // @Tags Дашборды
 // @Produce json
 // @Param projectId path string true "ID проекта"
-// @Success 200 {object} ProjectStatsData "Статистика проекта"
+// @Success 200 {object} ProjectStats "Статистика проекта"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
@@ -91,7 +91,7 @@ func (h *Handler) Project(c fiber.Ctx) error {
 // @Description Возвращает статистику системы: пользователи, проекты, хранилище. Только для админа.
 // @Tags Дашборды
 // @Produce json
-// @Success 200 {object} AdminStatsData "Админ-статистика"
+// @Success 200 {object} AdminStats "Админ-статистика"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Требуются права администратора"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
@@ -104,7 +104,7 @@ func (h *Handler) Admin(c fiber.Ctx) error {
 	}
 
 	// Проверяем роль администратора через запрос к БД
-	u, uErr := h.service.db.User.Get(c.Context(), userID)
+	u, uErr := h.service.repo.GetUser(c.Context(), userID)
 	if uErr != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "пользователь не найден")
 	}
@@ -203,7 +203,7 @@ func (h *Handler) SaveLayout(c fiber.Ctx) error {
 // @Description Возвращает доступные шаблоны раскладок дашбордов.
 // @Tags Дашборды
 // @Produce json
-// @Success 200 {array} DashboardTemplate "Шаблоны"
+// @Success 200 {object} map[string][]LayoutItem "Шаблоны"
 // @Security BearerAuth
 // @Router /api/dashboard/templates [get]
 func (h *Handler) ListTemplates(c fiber.Ctx) error {

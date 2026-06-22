@@ -1,5 +1,5 @@
 /**
- * Widget "Upcoming Calls" -- compact list matching Gemini prototype.
+ * Виджет «Ближайшие звонки» — компактный список по прототипу.
  * Shows up to 3 calls: time left | name | "Войти" button.
  */
 import { Phone, PhoneOff } from "lucide-react";
@@ -14,7 +14,7 @@ const GENERATED_ID_RE = /^(call-)?[0-9a-f]{8}-/i;
 
 function getCallDisplayName(call: CallSummary): string {
 	const titleIsRaw = !call.title || GENERATED_ID_RE.test(call.title);
-	// Prefer channel_name for short/numeric/raw titles
+	// channel_name предпочтительнее для коротких/числовых заголовков
 	if (titleIsRaw && call.channel_name) return call.channel_name;
 	if (call.title && call.title.length <= 2 && call.channel_name)
 		return call.channel_name;

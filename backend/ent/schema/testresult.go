@@ -16,12 +16,12 @@ type StepResult struct {
 	FileIDs   []string `json:"file_ids,omitempty"`
 }
 
-// TestResult holds the schema definition for the TestResult entity.
+// TestResult — определение Ent-схемы сущности TestResult.
 type TestResult struct {
 	ent.Schema
 }
 
-// Fields of the TestResult.
+// Поля сущности TestResult.
 func (TestResult) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -65,7 +65,7 @@ func (TestResult) Fields() []ent.Field {
 	}
 }
 
-// Edges of the TestResult.
+// Рёбра (edges) сущности TestResult.
 func (TestResult) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("run", TestRun.Type).
@@ -82,7 +82,7 @@ func (TestResult) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the TestResult.
+// Индексы сущности TestResult.
 func (TestResult) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("status"),

@@ -1,0 +1,107 @@
+# Деплой и инфраструктура Hub
+
+Каталог `deployments/` содержит конфигурации Docker Compose, Caddy, LiveKit, мониторинга и манифесты K3s. Логика приложения здесь не меняется — только описание окружения.
+
+## Структура
+
+| Файл / каталог | Назначение |
+|----------------|------------|
+| `docker-compose.yml` | Инфраструктура для локальной разработки (БД, Redis, NATS, SeaweedFS, LiveKit, Caddy) |
+| `docker-compose.prod.yml` | Полный production-стек: инфра + backend + hub-mail + frontend + Caddy |
+| `docker-compose.test.yml` | Минимальный стек для интеграционных тестов (CI) |
+| `docker-compose.monitoring.yml` | Overlay: Prometheus, Loki, Promtail, Alertmanager, Grafana |
+| `Caddyfile` | Reverse proxy для dev (localhost) |
+| `Caddyfile.prod` | Reverse proxy для production с TLS |
+| `livekit.yaml` | Конфиг LiveKit для локальной разработки |
+| `livekit-prod.yaml.example` | Справочник production-конфига (реальный конфиг генерируется из env) |
+| `.env.example` | Шаблон переменных окружения для production |
+| `seaweedfs-s3.json` | S3-идентичности для SeaweedFS (access/secret key) |
+| `monitoring/` | Prometheus, Loki, Promtail, Alertmanager, Grafana provisioning |
+| `k3s/` | Kubernetes-манифесты (NetworkPolicy и др.) |
+
+## Локальная разработка
+
+1. Поднять инфраструктуру:
+
+```bash
+cd deployments
+docker compose -f docker-compose.yml up -d
+```
+
+2. Backend и frontend запускаются отдельно на хосте (см. корневой `Makefile` или `docs/wiki/QUICKSTART.md`).
+
+3. Caddy проксирует:
+   - `/api/*`, `/ws` → backend `:3000`
+   - `/livekit/*` → LiveKit `:7880`
+   - остальное → Vite `:5173`
+
+## Production (Docker Compose)
+
+1. Скопировать и заполнить секреты:
+
+```bash
+cp deployments/.env.example deployments/.env
+# отредактировать .env — пароли, JWT, LiveKit, CORS и т.д.
+```
+
+2. Запуск:
+
+```bash
+docker compose -f deployments/docker-compose.prod.yml --env-file deployments/.env up -d
+```
+
+3. С мониторингом:
+
+```bash
+docker compose \
+  -f deployments/docker-compose.prod.yml \
+  -f deployments/docker-compose.monitoring.yml \
+  --env-file deployments/.env up -d
+```
+
+**Важно:**
+- `DEV_MODE` в prod всегда `false` (задаётся в compose).
+- LiveKit-ключи только через `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — не коммитьте `livekit-prod.yaml` с plaintext-секретами.
+- Образы SeaweedFS и прочих сервисов закреплены по тегу (не `latest`).
+
+## Caddy (production)
+
+В `Caddyfile.prod` замените домен на свой. Caddy автоматически получит сертификат Let's Encrypt.
+
+Маршруты:
+- `/api/*` — REST API backend
+- `/ws` — WebSocket (HTTP/1.1)
+- `/lk/*` — LiveKit (префикс снимается)
+- `/` — статика frontend (Nginx)
+
+## Мониторинг
+
+После overlay `docker-compose.monitoring.yml`:
+
+| Сервис | URL (локально) |
+|--------|----------------|
+| Grafana | http://localhost:3001 (admin / `GRAFANA_ADMIN_PASSWORD`) |
+| Prometheus | http://localhost:9090 |
+| Alertmanager | http://localhost:9093 |
+| Loki | http://localhost:3100 |
+
+Алерты backend описаны в `monitoring/prometheus/alerts/hub.yml`. Для production webhook скопируйте `monitoring/alertmanager/alertmanager.prod.example.yml` → `alertmanager.yml` и задайте `ALERT_WEBHOOK_SECRET` (то же значение в env backend).
+
+## K3s
+
+Пример NetworkPolicy для scrape `/metrics`:
+
+```bash
+kubectl apply -f deployments/k3s/monitoring/networkpolicy-metrics.yaml
+```
+
+Требуется namespace `hub`, backend с меткой `app=hub-backend`, Prometheus с `app=prometheus`.
+
+## Безопасность
+
+- Не коммитьте `.env` и файлы с реальными ключами.
+- Ротация LiveKit: см. комментарии в `livekit-prod.yaml.example`.
+- `METRICS_ALLOWED_CIDRS` ограничивает доступ к `/metrics` backend.
+- Telegram — только уведомления; вход в Hub — Magic Link (email).
+
+Подробнее: `docs/wiki/DEPLOY.md`, `docs/security_guidelines.md`.

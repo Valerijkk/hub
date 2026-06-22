@@ -11,7 +11,7 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
-// CreateChannel creates a new channel and adds the creator as owner.
+// CreateChannel создаёт канал и добавляет создателя как owner.
 func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, req CreateChannelRequest) (*ChannelResponse, error) {
 	input := CreateChannelInput{
 		ChannelType: req.ChannelType,
@@ -34,12 +34,12 @@ func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, 
 		return nil, apperrors.NewInternal("ошибка создания канала")
 	}
 
-	// Add creator as owner
+	// Создатель всегда owner — иначе канал останется без управляющего.
 	if err := s.repo.AddMembers(ctx, ch.ID, []uuid.UUID{userID}, "owner"); err != nil {
 		slog.Error("не удалось добавить создателя в канал", "error", err)
 	}
 
-	// Add extra members
+	// Добавление дополнительных участников
 	if len(req.MemberIDs) > 0 {
 		memberUUIDs := make([]uuid.UUID, 0, len(req.MemberIDs))
 		for _, mid := range req.MemberIDs {
@@ -61,8 +61,8 @@ func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, 
 	return toChannelResponse(ch), nil
 }
 
-// GetChannel returns a channel by ID.
-// HI-01: only channel members may read channel data (including DMs and private channels).
+// GetChannel возвращает канал по ID.
+// HI-01: данные канала (включая DM/private) читают только участники.
 func (s *MessengerService) GetChannel(ctx context.Context, channelID, userID uuid.UUID) (*ChannelResponse, error) {
 	isMember, err := s.repo.IsMember(ctx, channelID, userID)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *MessengerService) GetChannel(ctx context.Context, channelID, userID uui
 	return toChannelResponse(ch), nil
 }
 
-// ListMyChannels returns all channels the user belongs to.
+// ListMyChannels возвращает все каналы пользователя.
 // Обогащает ответ данными membership: is_starred, muted_until.
 func (s *MessengerService) ListMyChannels(ctx context.Context, userID uuid.UUID) ([]ChannelResponse, error) {
 	channels, err := s.repo.ListUserChannels(ctx, userID)
@@ -113,7 +113,7 @@ func (s *MessengerService) ListMyChannels(ctx context.Context, userID uuid.UUID)
 	return result, nil
 }
 
-// UpdateChannel updates a channel (owner/admin only).
+// UpdateChannel обновляет канал (только owner/admin).
 func (s *MessengerService) UpdateChannel(ctx context.Context, channelID, userID uuid.UUID, req CreateChannelRequest) (*ChannelResponse, error) {
 	role, err := s.repo.GetMemberRole(ctx, channelID, userID)
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *MessengerService) UpdateChannel(ctx context.Context, channelID, userID 
 	return toChannelResponse(ch), nil
 }
 
-// DeleteChannel deletes a channel (owner only).
+// DeleteChannel удаляет канал (только owner).
 func (s *MessengerService) DeleteChannel(ctx context.Context, channelID, userID uuid.UUID) error {
 	role, err := s.repo.GetMemberRole(ctx, channelID, userID)
 	if err != nil {
@@ -151,7 +151,7 @@ func (s *MessengerService) DeleteChannel(ctx context.Context, channelID, userID 
 	return s.repo.DeleteChannel(ctx, channelID)
 }
 
-// JoinChannel allows joining a public channel.
+// JoinChannel позволяет вступить в публичный канал.
 func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uuid.UUID) error {
 	ch, err := s.repo.GetChannel(ctx, channelID)
 	if err != nil {
@@ -162,7 +162,7 @@ func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uu
 	}
 	switch ch.ChannelType.String() {
 	case "public":
-		// Public channel — free to join
+		// Публичный канал — свободное вступление
 	case "private":
 		return apperrors.NewForbidden("канал приватный, требуется приглашение")
 	case "dm":
@@ -171,7 +171,7 @@ func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uu
 		return apperrors.NewForbidden("можно присоединиться только к публичному каналу")
 	}
 
-	// Check if already a member
+	// Уже member — идempotent OK
 	isMember, _ := s.repo.IsMember(ctx, channelID, userID)
 	if isMember {
 		return nil
@@ -181,7 +181,7 @@ func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uu
 		return apperrors.NewInternal("ошибка вступления в канал")
 	}
 
-	// Publish NATS event
+	// Публикация NATS-события
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMemberJoined, channelID.String()), map[string]interface{}{
 		"channel_id": channelID,
 		"user_id":    userID,
@@ -190,7 +190,7 @@ func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uu
 	return nil
 }
 
-// LeaveChannel allows leaving a channel.
+// LeaveChannel позволяет покинуть канал.
 func (s *MessengerService) LeaveChannel(ctx context.Context, channelID, userID uuid.UUID) error {
 	if err := s.repo.RemoveMember(ctx, channelID, userID); err != nil {
 		return apperrors.NewInternal("ошибка выхода из канала")
@@ -204,7 +204,7 @@ func (s *MessengerService) LeaveChannel(ctx context.Context, channelID, userID u
 	return nil
 }
 
-// AddMembers adds members to a channel (admin/owner only).
+// AddMembers добавляет участников в канал (только admin/owner).
 func (s *MessengerService) AddMembers(ctx context.Context, channelID, userID uuid.UUID, memberIDs []string) error {
 	role, err := s.repo.GetMemberRole(ctx, channelID, userID)
 	if err != nil {
@@ -226,8 +226,8 @@ func (s *MessengerService) AddMembers(ctx context.Context, channelID, userID uui
 	return s.repo.AddMembers(ctx, channelID, uuids, "member")
 }
 
-// AddMembersInternal adds members without permission checks.
-// Used by internal services (e.g. AutoChannelService).
+// AddMembersInternal добавляет участников без проверки прав.
+// Используется внутренними сервисами (например AutoChannelService).
 func (s *MessengerService) AddMembersInternal(ctx context.Context, channelID uuid.UUID, memberIDs []uuid.UUID) error {
 	return s.repo.AddMembers(ctx, channelID, memberIDs, "member")
 }
@@ -242,7 +242,7 @@ func (s *MessengerService) ToggleStar(ctx context.Context, channelID, userID uui
 }
 
 // MuteChannel устанавливает muted_until для пользователя в канале.
-// duration: "1h", "2h", "8h", "1d", "forever".
+// duration: "1h", "2h", "8h", "1d", "forever" (значения API).
 func (s *MessengerService) MuteChannel(ctx context.Context, channelID, userID uuid.UUID, duration string) (string, error) {
 	mutedUntil, err := s.repo.MuteChannel(ctx, channelID, userID, duration)
 	if err != nil {
@@ -264,8 +264,8 @@ func (s *MessengerService) IsChannelMuted(ctx context.Context, channelID, userID
 	return s.repo.IsChannelMuted(ctx, channelID, userID)
 }
 
-// ListMembers returns all members of a channel.
-// HI-01: only channel members may list other members.
+// ListMembers возвращает всех участников канала.
+// HI-01: список участников видят только members канала.
 func (s *MessengerService) ListMembers(ctx context.Context, channelID, userID uuid.UUID) ([]ChannelMemberResponse, error) {
 	isMember, err := s.repo.IsMember(ctx, channelID, userID)
 	if err != nil {

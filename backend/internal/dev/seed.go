@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/aiprovider"
 	"github.com/valerii/hub/backend/ent/board"
 	"github.com/valerii/hub/backend/ent/channel"
 	"github.com/valerii/hub/backend/ent/channelmember"
@@ -28,9 +29,9 @@ import (
 	"github.com/valerii/hub/backend/ent/workflowtransition"
 )
 
-// Seed creates a full set of demo data: users, project, workflow statuses,
-// issues with hierarchy and links, labels, boards, test cases and messenger channels.
-// Idempotent -- on repeated calls skips already created data.
+// Seed создаёт полный набор демо-данных: пользователи, проект, статусы workflow,
+// задачи с иерархией и связями, метки, доски, тест-кейсы и каналы мессенджера.
+// Идемпотентно — при повторных вызовах пропускает уже созданные данные.
 // @Summary Заполнить БД демо-данными
 // @Description Создаёт демо-пользователей, проект, задачи, доски, метки, тест-кейсы и каналы. Идемпотентно
 // @Tags Разработка
@@ -41,9 +42,9 @@ import (
 func (h *Handler) Seed(c fiber.Ctx) error {
 	ctx := c.Context()
 
-	// Create or find users
+	// Создать или найти пользователей
 	createdUsers := make([]DevUserInfo, 0, len(demoUsers))
-	userIDs := make(map[string]uuid.UUID) // email -> user ID
+	userIDs := make(map[string]uuid.UUID) // email -> ID пользователя
 
 	for _, du := range demoUsers {
 		u, err := h.findOrCreateDemoUser(ctx, du)
@@ -66,14 +67,14 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		createdUsers = append(createdUsers, info)
 	}
 
-	// Create or find demo project
+	// Создать или найти демо-проект
 	proj, err := h.findOrCreateDemoProject(ctx)
 	if err != nil {
 		slog.Error("dev seed: не удалось создать проект", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to seed demo project")
 	}
 
-	// Assign project roles
+	// Назначить роли в проекте
 	for _, du := range demoUsers {
 		if !du.AddToProject || du.ProjectRole == "" {
 			continue
@@ -84,11 +85,11 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		}
 	}
 
-	// --- Extended seed: statuses, issues, labels, boards, tests, channels ---
+	// --- Расширенное сидирование: статусы, задачи, метки, доски, тесты, каналы ---
 
 	summary := fiber.Map{}
 
-	// Workflow statuses
+	// Статусы workflow
 	statusMap, err := h.seedWorkflowStatuses(ctx, proj.ID)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания статусов", "error", err)
@@ -96,7 +97,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		summary["statuses"] = len(statusMap)
 	}
 
-	// Workflow transitions (any-to-any for Kanban)
+	// Переходы workflow (любой-в-любой для Kanban)
 	transCount, err := h.seedWorkflowTransitions(ctx, proj.ID, statusMap)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания переходов", "error", err)
@@ -104,7 +105,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		summary["transitions"] = transCount
 	}
 
-	// Labels
+	// Метки
 	labelCount, err := h.seedLabels(ctx, proj.ID)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания меток", "error", err)
@@ -112,7 +113,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		summary["labels"] = labelCount
 	}
 
-	// Issues
+	// Задачи
 	issueMap, err := h.seedIssues(ctx, proj.ID, userIDs, statusMap)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания задач", "error", err)
@@ -120,7 +121,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		summary["issues"] = len(issueMap)
 	}
 
-	// Issue links
+	// Связи задач
 	linkCount, err := h.seedIssueLinks(ctx, issueMap)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания связей", "error", err)
@@ -128,7 +129,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		summary["issue_links"] = linkCount
 	}
 
-	// Boards
+	// Доски
 	boardCount, err := h.seedBoards(ctx, proj.ID, statusMap)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания досок", "error", err)
@@ -136,7 +137,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		summary["boards"] = boardCount
 	}
 
-	// Test cases
+	// Тест-кейсы
 	tcCount, err := h.seedTestCases(ctx, proj.ID, userIDs)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания тест-кейсов", "error", err)
@@ -144,7 +145,7 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		summary["test_cases"] = tcCount
 	}
 
-	// Test runs with results
+	// Тестовые прогоны с результатами
 	runCount, err := h.seedTestRuns(ctx, proj.ID, userIDs)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания тестовых прогонов", "error", err)
@@ -152,12 +153,19 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 		summary["test_runs"] = runCount
 	}
 
-	// Messenger channels
+	// Каналы мессенджера
 	chCount, err := h.seedChannels(ctx, proj.ID, userIDs)
 	if err != nil {
 		slog.Error("dev seed: ошибка создания каналов", "error", err)
 	} else {
 		summary["channels"] = chCount
+	}
+
+	// AI-провайдер (локальный Ollama — опционально, для @hub-ai / Tab suggest в dev)
+	if aiSeeded, err := h.seedAIProvider(ctx); err != nil {
+		slog.Error("dev seed: ошибка AI провайдера", "error", err)
+	} else if aiSeeded {
+		summary["ai_provider"] = "ollama-dev"
 	}
 
 	slog.Info("dev seed: демо-данные созданы",
@@ -172,10 +180,10 @@ func (h *Handler) Seed(c fiber.Ctx) error {
 	})
 }
 
-// --- Seed helpers ---
+// --- Вспомогательные функции сидирования ---
 
-// seedWorkflowStatuses creates workflow statuses for the DEMO project.
-// Returns map[statusName] -> statusID. Idempotent.
+// seedWorkflowStatuses создаёт статусы workflow для проекта DEMO.
+// Возвращает map[statusName] -> statusID. Идемпотентно.
 func (h *Handler) seedWorkflowStatuses(ctx context.Context, projectID uuid.UUID) (map[string]uuid.UUID, error) {
 	result := make(map[string]uuid.UUID)
 
@@ -213,8 +221,8 @@ func (h *Handler) seedWorkflowStatuses(ctx context.Context, projectID uuid.UUID)
 	return result, nil
 }
 
-// seedWorkflowTransitions creates transitions between all statuses (any-to-any).
-// Idempotent -- skips already existing transitions.
+// seedWorkflowTransitions создаёт переходы между всеми статусами (любой-в-любой).
+// Идемпотентно — пропускает уже существующие переходы.
 func (h *Handler) seedWorkflowTransitions(ctx context.Context, projectID uuid.UUID, statusMap map[string]uuid.UUID) (int, error) {
 	if len(statusMap) < 2 {
 		return 0, nil
@@ -259,7 +267,7 @@ func (h *Handler) seedWorkflowTransitions(ctx context.Context, projectID uuid.UU
 	return created, nil
 }
 
-// seedLabels creates labels for the DEMO project. Idempotent.
+// seedLabels создаёт метки для проекта DEMO. Идемпотентно.
 func (h *Handler) seedLabels(ctx context.Context, projectID uuid.UUID) (int, error) {
 	existing, err := h.db.Label.Query().
 		Where(label.HasProjectWith(project.ID(projectID))).
@@ -293,8 +301,8 @@ func (h *Handler) seedLabels(ctx context.Context, projectID uuid.UUID) (int, err
 	return len(existingNames) + created, nil
 }
 
-// seedIssues creates demo issues for the DEMO project.
-// Returns map[issueKey] -> issueID. Idempotent.
+// seedIssues создаёт демо-задачи для проекта DEMO.
+// Возвращает map[issueKey] -> issueID. Идемпотентно.
 func (h *Handler) seedIssues(ctx context.Context, projectID uuid.UUID, userIDs map[string]uuid.UUID, statusMap map[string]uuid.UUID) (map[string]uuid.UUID, error) {
 	result := make(map[string]uuid.UUID)
 
@@ -314,7 +322,7 @@ func (h *Handler) seedIssues(ctx context.Context, projectID uuid.UUID, userIDs m
 		existingKeys[iss.IssueKey] = iss.ID
 	}
 
-	// If issues already exist -- skip (idempotent)
+	// Если задачи уже существуют — пропустить (идемпотентно)
 	if len(existingKeys) > 0 {
 		for _, di := range demoIssues {
 			if id, ok := existingKeys[di.Key]; ok {
@@ -326,7 +334,7 @@ func (h *Handler) seedIssues(ctx context.Context, projectID uuid.UUID, userIDs m
 
 	reporterID := userIDs["pm@hub.local"]
 
-	// First pass: create all issues without parent
+	// Первый проход: создать все задачи без родителя
 	for i, di := range demoIssues {
 		statusID, ok := statusMap[di.StatusName]
 		if !ok {
@@ -358,7 +366,7 @@ func (h *Handler) seedIssues(ctx context.Context, projectID uuid.UUID, userIDs m
 		result[di.Key] = created.ID
 	}
 
-	// Second pass: set parent for issues with ParentKey
+	// Второй проход: установить родителя для задач с ParentKey
 	for _, di := range demoIssues {
 		if di.ParentKey == "" {
 			continue
@@ -381,7 +389,7 @@ func (h *Handler) seedIssues(ctx context.Context, projectID uuid.UUID, userIDs m
 	return result, nil
 }
 
-// seedIssueLinks creates issue links. Idempotent.
+// seedIssueLinks создаёт связи задач. Идемпотентно.
 func (h *Handler) seedIssueLinks(ctx context.Context, issueMap map[string]uuid.UUID) (int, error) {
 	if len(issueMap) == 0 {
 		return 0, nil
@@ -428,7 +436,7 @@ func (h *Handler) seedIssueLinks(ctx context.Context, issueMap map[string]uuid.U
 	return created, nil
 }
 
-// seedBoards creates Kanban boards for the DEMO project. Idempotent.
+// seedBoards создаёт Kanban-доски для проекта DEMO. Идемпотентно.
 func (h *Handler) seedBoards(ctx context.Context, projectID uuid.UUID, statusMap map[string]uuid.UUID) (int, error) {
 	existing, err := h.db.Board.Query().
 		Where(board.HasProjectWith(project.ID(projectID))).
@@ -474,7 +482,7 @@ func (h *Handler) seedBoards(ctx context.Context, projectID uuid.UUID, statusMap
 	return 2, nil
 }
 
-// seedTestCases creates demo test cases. Idempotent.
+// seedTestCases создаёт демо тест-кейсы. Идемпотентно.
 func (h *Handler) seedTestCases(ctx context.Context, projectID uuid.UUID, userIDs map[string]uuid.UUID) (int, error) {
 	existing, err := h.db.TestCase.Query().
 		Where(testcase.HasProjectWith(project.ID(projectID))).
@@ -509,7 +517,7 @@ func (h *Handler) seedTestCases(ctx context.Context, projectID uuid.UUID, userID
 	return len(demoTestCases), nil
 }
 
-// seedTestRuns creates demo test runs with results. Idempotent.
+// seedTestRuns создаёт демо тестовые прогоны с результатами. Идемпотентно.
 func (h *Handler) seedTestRuns(ctx context.Context, projectID uuid.UUID, userIDs map[string]uuid.UUID) (int, error) {
 	existingCount, err := h.db.TestRun.Query().
 		Where(testrun.HasProjectWith(project.ID(projectID))).
@@ -598,7 +606,7 @@ func (h *Handler) seedTestRuns(ctx context.Context, projectID uuid.UUID, userIDs
 	return created, nil
 }
 
-// seedChannels creates demo messenger channels. Idempotent.
+// seedChannels создаёт демо-каналы мессенджера. Идемпотентно.
 func (h *Handler) seedChannels(ctx context.Context, projectID uuid.UUID, userIDs map[string]uuid.UUID) (int, error) {
 	existing, err := h.db.Channel.Query().
 		Where(channel.ProjectIDEQ(projectID)).
@@ -664,9 +672,35 @@ func (h *Handler) seedChannels(ctx context.Context, projectID uuid.UUID, userIDs
 	return len(existingNames) + created, nil
 }
 
-// --- Core helpers ---
+// seedAIProvider создаёт dev Ollama-провайдер, если ни одного нет (идемпотентно).
+func (h *Handler) seedAIProvider(ctx context.Context) (bool, error) {
+	n, err := h.db.AIProvider.Query().Count(ctx)
+	if err != nil {
+		return false, err
+	}
+	if n > 0 {
+		return false, nil
+	}
+	_, err = h.db.AIProvider.Create().
+		SetName("Dev Ollama").
+		SetProviderType(aiprovider.ProviderTypeOllama).
+		SetBaseURL("http://127.0.0.1:11434/v1").
+		SetModels([]string{"llama3.2", "llama3"}).
+		SetEnabled(true).
+		SetPriority(0).
+		SetMaxRpm(120).
+		SetRuResident(true).
+		SetScope(aiprovider.ScopeSystem).
+		Save(ctx)
+	if err != nil {
+		return false, fmt.Errorf("create ai provider: %w", err)
+	}
+	return true, nil
+}
 
-// findOrCreateDemoUser finds a user by email, creates if not found.
+// --- Базовые вспомогательные функции ---
+
+// findOrCreateDemoUser ищет пользователя по email, создаёт если не найден.
 func (h *Handler) findOrCreateDemoUser(ctx context.Context, du demoUser) (*ent.User, error) {
 	u, err := h.db.User.Query().Where(user.EmailEQ(du.Email)).Only(ctx)
 	if err == nil {
@@ -689,7 +723,7 @@ func (h *Handler) findOrCreateDemoUser(ctx context.Context, du demoUser) (*ent.U
 	return u, nil
 }
 
-// findOrCreateDemoProject finds project DEMO, creates if not found.
+// findOrCreateDemoProject ищет проект DEMO, создаёт если не найден.
 func (h *Handler) findOrCreateDemoProject(ctx context.Context) (*ent.Project, error) {
 	p, err := h.db.Project.Query().Where(project.KeyEQ("DEMO")).Only(ctx)
 	if err == nil {
@@ -710,7 +744,7 @@ func (h *Handler) findOrCreateDemoProject(ctx context.Context) (*ent.Project, er
 	return p, nil
 }
 
-// ensureProjectMember adds a user to a project with specified role if not already added.
+// ensureProjectMember добавляет пользователя в проект с указанной ролью, если ещё не добавлен.
 func (h *Handler) ensureProjectMember(ctx context.Context, projectID, userID uuid.UUID, role projectmember.ProjectRole) error {
 	exists, err := h.db.ProjectMember.Query().
 		Where(

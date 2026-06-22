@@ -60,7 +60,13 @@ export function ReactionPicker({
 	return (
 		<Popover open={open} onOpenChange={onOpenChange}>
 			<PopoverTrigger asChild>
-				<Button variant="ghost" size="icon" className="h-7 w-7" title="Реакция">
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-7 w-7"
+					title="Реакция"
+					aria-label="Реакция"
+				>
 					<svg
 						aria-hidden="true"
 						className="h-3.5 w-3.5"

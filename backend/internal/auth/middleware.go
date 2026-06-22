@@ -80,10 +80,15 @@ func RequireAuth(svc *AuthService) fiber.Handler {
 
 		// Проверяем, не деактивирован ли пользователь (Redis-кэш + fallback в БД).
 		uid, parseErr := uuid.Parse(claims.UserID)
-		if parseErr == nil {
-			if deactivated := userIsDeactivated(c.Context(), svc, uid); deactivated {
-				return fiber.NewError(fiber.StatusForbidden, "user account is deactivated")
-			}
+		if parseErr != nil {
+			return fiber.NewError(fiber.StatusUnauthorized, "invalid token claims")
+		}
+		deactivated, statusErr := svc.IsUserDeactivated(c.Context(), uid)
+		if statusErr != nil {
+			return fiber.NewError(fiber.StatusServiceUnavailable, "unable to verify account status")
+		}
+		if deactivated {
+			return fiber.NewError(fiber.StatusForbidden, "user account is deactivated")
 		}
 
 		c.Locals("userID", claims.UserID)
@@ -97,43 +102,41 @@ func RequireAuth(svc *AuthService) fiber.Handler {
 // deactivated. Сначала пробует Redis-кэш, при промахе — читает БД и
 // записывает результат в кэш.
 //
-// Возвращает false при любых ошибках (fail-open для UX, чтобы транзиентная
-// ошибка БД/Redis не выкидывала всех пользователей). Это то же поведение,
-// что было до ME-13.
-func userIsDeactivated(ctx context.Context, svc *AuthService, uid uuid.UUID) bool {
+// Ошибки Redis (промах или сбой) — graceful degradation в БД. Ошибка
+// GetUser из БД пробрасывается наверх (fail-closed).
+func userIsDeactivated(ctx context.Context, repo Repository, rdb *redis.Client, uid uuid.UUID) (bool, error) {
 	cacheKey := UserStatusCacheKey(uid)
 
-	// Cache hit?
-	if svc.redis != nil {
-		switch val, err := svc.redis.Get(ctx, cacheKey).Result(); {
+	// Попадание в кэш?
+	if rdb != nil {
+		switch val, err := rdb.Get(ctx, cacheKey).Result(); {
 		case err == nil:
-			return val == userStatusCacheDeactivated
+			return val == userStatusCacheDeactivated, nil
 		case errors.Is(err, redis.Nil):
-			// miss — продолжаем в БД.
+			// промах — читаем статус из БД.
 		default:
 			slog.Warn("user status cache get", "user_id", uid, "error", err)
 			// продолжаем в БД (graceful degradation).
 		}
 	}
 
-	// Cache miss — fallback в БД.
-	u, uErr := svc.db.User.Get(ctx, uid)
+	// Промах кэша — fallback в БД.
+	u, uErr := repo.GetUser(ctx, uid)
 	if uErr != nil {
-		// Сохраняем поведение «не блокировать на ошибке БД».
-		return false
+		return false, uErr
 	}
 	deactivated := u.Status == user.StatusDeactivated
 
 	// Пишем кэш (best-effort).
-	if svc.redis != nil {
+	if rdb != nil {
 		val := userStatusCacheActive
 		if deactivated {
 			val = userStatusCacheDeactivated
 		}
-		if err := svc.redis.Set(ctx, cacheKey, val, userStatusCacheTTL).Err(); err != nil {
+		if err := rdb.Set(ctx, cacheKey, val, userStatusCacheTTL).Err(); err != nil {
 			slog.Warn("user status cache set", "user_id", uid, "error", err)
 		}
 	}
 
-	return deactivated
+	return deactivated, nil
 }

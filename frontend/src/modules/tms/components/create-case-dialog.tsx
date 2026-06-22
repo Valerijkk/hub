@@ -5,7 +5,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	createTestCase,
 	type SuiteResponse,
@@ -28,6 +27,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Пропсы диалога создания тест-кейса. */
 interface CreateCaseDialogProps {

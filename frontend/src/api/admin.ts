@@ -68,6 +68,17 @@ export interface ManagementResponse {
 	message: string;
 }
 
+/** Агрегированная метрика observability.Timed (OBS-01). */
+export interface OperationMetric {
+	operation: string;
+	count: number;
+	error_count: number;
+	total_ms: number;
+	max_ms: number;
+	avg_ms: number;
+	last_seen_utc?: string;
+}
+
 // --- API клиент ---
 
 /** Получить список записей журнала аудита с фильтрами. */
@@ -86,6 +97,11 @@ export function getAuditLogs(filters: AuditLogFilters = {}) {
 	if (filters.per_page) params.set("per_page", String(filters.per_page));
 	const qs = params.toString();
 	return api.get<AuditLogListResponse>(`/admin/audit${qs ? `?${qs}` : ""}`);
+}
+
+/** Получить in-memory метрики Timed()-операций (admin-only). */
+export function getOperationMetrics() {
+	return api.get<OperationMetric[]>("/admin/observability/ops");
 }
 
 /** Получить текущие лимиты ресурсов. */

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getLimits, type ResourceLimit, updateLimit } from "@/api/admin";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Описания лимитов на русском. */
 const LIMIT_LABELS: Record<string, string> = {
@@ -30,7 +31,7 @@ export function ResourceLimits() {
 				}
 				setValues(vals);
 			})
-			.catch((err) => console.error("Ошибка загрузки лимитов:", err))
+			.catch((err) => toastApiError(err, "Не удалось загрузить лимиты"))
 			.finally(() => setLoading(false));
 	}, []);
 
@@ -49,7 +50,7 @@ export function ResourceLimits() {
 			const data = await getLimits();
 			setLimits(data);
 		} catch (err) {
-			console.error("Ошибка сохранения лимитов:", err);
+			toastApiError(err, "Ошибка сохранения лимитов");
 			setToast("Ошибка сохранения");
 			setTimeout(() => setToast(""), 3000);
 		} finally {

@@ -6,16 +6,16 @@ import (
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
-// TMSService implements the business logic for the test management module.
-// Orchestrates repository calls, versioning, run state machine,
-// Allure result imports and NATS event publishing.
+// TMSService реализует бизнес-логику модуля управления тестированием.
+// Оркестрирует вызовы репозитория, версионирование, конечный автомат прогонов,
+// импорт Allure и публикацию NATS-событий.
 type TMSService struct {
 	repo    Repository
 	nats    *natsclient.Client
 	matcher *Matcher
 }
 
-// NewTMSService creates a new TMS service.
+// NewTMSService создаёт новый сервис TMS.
 func NewTMSService(repo Repository, nats *natsclient.Client) *TMSService {
 	return &TMSService{
 		repo:    repo,
@@ -25,10 +25,10 @@ func NewTMSService(repo Repository, nats *natsclient.Client) *TMSService {
 }
 
 // ---------------------------------------------------------------------------
-// Run state machine
+// Конечный автомат прогонов
 // ---------------------------------------------------------------------------
 
-// isValidRunTransition checks if a run status transition is allowed.
+// isValidRunTransition проверяет допустимость перехода статуса прогона.
 func isValidRunTransition(from, to string) bool {
 	validTransitions := map[string][]string{
 		"created":     {"in_progress"},
@@ -47,10 +47,10 @@ func isValidRunTransition(from, to string) bool {
 }
 
 // ---------------------------------------------------------------------------
-// Shared helpers
+// Общие вспомогательные функции
 // ---------------------------------------------------------------------------
 
-// parseUUIDs converts a string slice to a UUID slice.
+// parseUUIDs конвертирует срез строк в срез UUID.
 func parseUUIDs(strs []string) ([]uuid.UUID, error) {
 	ids := make([]uuid.UUID, 0, len(strs))
 	for _, s := range strs {

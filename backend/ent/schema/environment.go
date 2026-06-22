@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Environment holds the schema definition for the Environment entity.
+// Environment — определение Ent-схемы сущности Environment.
 type Environment struct {
 	ent.Schema
 }
 
-// Fields of the Environment.
+// Поля сущности Environment.
 func (Environment) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -36,7 +36,7 @@ func (Environment) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Environment.
+// Рёбра (edges) сущности Environment.
 func (Environment) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -47,7 +47,7 @@ func (Environment) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the Environment.
+// Индексы сущности Environment.
 func (Environment) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("env_label"),

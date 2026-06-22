@@ -14,10 +14,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Recording handlers (CALL-04, CALL-05)
+// Обработчики записи звонков (CALL-04, CALL-05)
 // ---------------------------------------------------------------------------
 
-// StartRecording godoc
+// StartRecording — Начать запись звонка
 // @Summary Начать запись звонка
 // @Description Запускает запись текущего звонка через LiveKit Egress.
 // @Tags Звонки
@@ -48,7 +48,7 @@ func (h *Handler) StartRecording(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// StopRecording godoc
+// StopRecording — Остановить запись звонка
 // @Summary Остановить запись звонка
 // @Description Останавливает активную запись звонка.
 // @Tags Звонки
@@ -80,7 +80,7 @@ func (h *Handler) StopRecording(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// ListProjectRecordings godoc
+// ListProjectRecordings — Список записей проекта
 // @Summary Список записей проекта
 // @Description Возвращает пагинированный список записей звонков проекта.
 // @Tags Звонки
@@ -145,7 +145,7 @@ func (h *Handler) ListProjectRecordings(c fiber.Ctx) error {
 	})
 }
 
-// GetRecordingDownloadURL godoc
+// GetRecordingDownloadURL — Скачать запись
 // @Summary Скачать запись
 // @Description Возвращает presigned URL для скачивания записи звонка.
 // @Tags Звонки

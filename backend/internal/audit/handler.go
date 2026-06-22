@@ -7,6 +7,8 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // Handler предоставляет HTTP-обработчики для административных эндпоинтов аудита.
@@ -24,6 +26,7 @@ func (h *Handler) RegisterRoutesSimple(api fiber.Router, authMw fiber.Handler) {
 	admin := api.Group("/admin", authMw, h.requireAdmin())
 
 	admin.Get("/audit", h.ListAuditLogs)
+	admin.Get("/observability/ops", h.ListOperationMetrics)
 	admin.Get("/limits", h.GetLimits)
 	admin.Put("/limits/:key", h.UpdateLimit)
 	admin.Get("/trash", h.ListTrash)
@@ -136,7 +139,7 @@ func (h *Handler) ListAuditLogs(c fiber.Ctx) error {
 // @Description Возвращает текущие ограничения ресурсов системы.
 // @Tags Аудит
 // @Produce json
-// @Success 200 {object} ResourceLimitsResponse "Лимиты"
+// @Success 200 {array} ResourceLimitResponse "Лимиты"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Только для админа"
 // @Security BearerAuth
@@ -387,4 +390,17 @@ func (h *Handler) DeleteUserGDPR(c fiber.Ctx) error {
 	}
 
 	return c.JSON(UserManagementResponse{Success: true, Message: "Данные пользователя удалены (GDPR)"})
+}
+
+// ListOperationMetrics godoc
+// @Summary In-memory метрики Timed()-операций
+// @Description Возвращает агрегаты duration/count/error по observability.Timed (OBS-01)
+// @Tags Аудит
+// @Produce json
+// @Success 200 {array} observability.OperationMetric
+// @Failure 403 {object} fiber.Error "Только для админа"
+// @Security BearerAuth
+// @Router /api/admin/observability/ops [get]
+func (h *Handler) ListOperationMetrics(c fiber.Ctx) error {
+	return c.JSON(observability.Snapshot())
 }

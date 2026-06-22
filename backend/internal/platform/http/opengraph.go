@@ -13,15 +13,15 @@ import (
 
 const maxOpenGraphBodyBytes = 1 << 20 // 1 MiB
 
-// OpenGraphMeta holds parsed Open Graph / HTML title metadata.
+// OpenGraphMeta — распарсенные OG/HTML title метаданные.
 type OpenGraphMeta struct {
 	Title       string
 	Description string
 	ImageURL    string
 }
 
-// FetchOpenGraphMetadata downloads a page via SafeHTTP and extracts OG tags.
-// Replaces opengraph.Fetch to enforce SafeDialContext (NEW-02).
+// FetchOpenGraphMetadata качает страницу через SafeHTTP и извлекает OG.
+// Заменяет opengraph.Fetch — SafeDialContext против SSRF (NEW-02).
 func FetchOpenGraphMetadata(ctx context.Context, rawURL string) (*OpenGraphMeta, error) {
 	if err := ValidateOutboundURL(rawURL); err != nil {
 		return nil, err

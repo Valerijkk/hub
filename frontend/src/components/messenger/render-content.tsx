@@ -1,42 +1,42 @@
 /** Рендерер Plate JSON для содержимого сообщений. */
 
 /**
- * Whitelist of safe URL schemes/prefixes for <a href>. Blocks `javascript:`,
- * `data:`, `vbscript:`, and other dangerous schemes that can execute code.
+ * Whitelist безопасных схем для <a href>. Блокирует `javascript:`,
+ * `data:`, `vbscript:` и другие опасные схемы.
  */
 const SAFE_URL_RE = /^(https?:|mailto:|\/|#)/i;
 
 /**
- * Sanitize a URL for use as an `<a href>` value. Returns `"#"` (safe no-op)
- * for anything that is not a string matching the safe-scheme whitelist.
+ * Санитизация URL для href. Небезопасное → `"#"` (no-op).
+ * Если строка не проходит whitelist схем.
  */
 function sanitizeUrl(url: unknown): string {
 	return typeof url === "string" && SAFE_URL_RE.test(url) ? url : "#";
 }
 
 /**
- * Safely converts any value to a React-renderable string.
- * Prevents "Objects are not valid as React child" errors.
+ * Безопасное приведение к строке для React children.
+ * Предотвращает «Objects are not valid as React child».
  */
 function safeString(value: unknown): string {
 	if (value === null || value === undefined) return "";
 	if (typeof value === "string") return value;
 	if (typeof value === "number" || typeof value === "boolean")
 		return String(value);
-	// Prevent rendering objects/arrays as React children
+	// Объекты/массивы нельзя рендерить как children
 	return "";
 }
 
 /**
  * Compute a stable React key for a Plate node based on its content.
  * Plate JSON nodes have no inherent ids, so we hash the serialized shape;
- * identical siblings (e.g. two empty paragraphs) get the same key — that's
- * acceptable here because re-render output is also identical for them.
+ * Одинаковые siblings могут иметь один key —
+ * допустимо: output при re-render тоже идентичен.
  */
 function nodeKey(node: Record<string, unknown>): string {
 	try {
 		const serialized = JSON.stringify(node);
-		// FNV-1a 32-bit — small, fast, deterministic.
+		// FNV-1a 32-bit — быстрый детерминированный hash для key.
 		let hash = 0x811c9dc5;
 		for (let i = 0; i < serialized.length; i++) {
 			hash ^= serialized.charCodeAt(i);
@@ -54,7 +54,7 @@ function nodeKey(node: Record<string, unknown>): string {
 export function RenderNode({ node }: { node: Record<string, unknown> }) {
 	if (!node || typeof node !== "object" || Array.isArray(node)) return null;
 
-	// Text node.
+	// Текстовый узел Plate.
 	if ("text" in node) {
 		const text = safeString(node.text);
 		if (!text) return null;
@@ -77,8 +77,8 @@ export function RenderNode({ node }: { node: Record<string, unknown> }) {
 	const renderedChildren = children.map((child) => {
 		if (!child || typeof child !== "object" || Array.isArray(child))
 			return null;
-		// Plate nodes have no stable ids; use a JSON content hash so identical
-		// re-renders reuse the same key but order-changes still re-key correctly.
+		// У узлов Plate нет стабильных id; JSON-хеш содержимого даёт одинаковый
+		// key при re-render; смена порядка — корректный re-key.
 		return (
 			<RenderNode
 				key={nodeKey(child as Record<string, unknown>)}
@@ -150,12 +150,12 @@ export function RenderContent({
 }) {
 	if (!contentJson || typeof contentJson !== "object") return null;
 
-	// Safety: if contentJson is somehow a string at runtime, render directly.
+	// Если contentJson строка в runtime — рендерим как plain text.
 	if (typeof contentJson === "string") {
 		return <p className="mb-1 leading-relaxed">{contentJson}</p>;
 	}
 
-	// Handle array-shaped content_json (some Plate editors emit arrays directly).
+	// content_json может быть массивом напрямую (некоторые редакторы Plate так отдают).
 	if (Array.isArray(contentJson)) {
 		const nodes = contentJson as unknown[];
 		if (nodes.length === 0) return null;

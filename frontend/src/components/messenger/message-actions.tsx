@@ -54,6 +54,7 @@ export function MessageActions({
 				size="icon"
 				className="h-7 w-7 rounded-full hover:bg-raised"
 				title="Ответить"
+				aria-label="Ответить"
 				onClick={onReply}
 			>
 				<svg
@@ -86,6 +87,7 @@ export function MessageActions({
 				size="icon"
 				className="h-7 w-7 rounded-full hover:bg-raised"
 				title="Тред"
+				aria-label="Открыть тред"
 				onClick={onOpenThread}
 			>
 				<svg
@@ -110,6 +112,7 @@ export function MessageActions({
 				size="icon"
 				className="h-7 w-7 rounded-full hover:bg-raised"
 				title="Закрепить"
+				aria-label="Закрепить сообщение"
 				onClick={onPin}
 			>
 				<svg
@@ -134,6 +137,7 @@ export function MessageActions({
 				size="icon"
 				className="h-7 w-7 rounded-full hover:bg-raised"
 				title="Сохранить"
+				aria-label="Сохранить в закладки"
 				onClick={onBookmark}
 			>
 				<svg
@@ -158,6 +162,7 @@ export function MessageActions({
 				size="icon"
 				className="h-7 w-7 rounded-full hover:bg-raised"
 				title="Переслать"
+				aria-label="Переслать сообщение"
 				onClick={onForward}
 			>
 				<svg
@@ -183,6 +188,7 @@ export function MessageActions({
 					size="icon"
 					className="h-7 w-7 rounded-full hover:bg-raised"
 					title="Редактировать"
+					aria-label="Редактировать сообщение"
 					onClick={onEdit}
 				>
 					<Pencil className="h-3.5 w-3.5" />
@@ -196,6 +202,7 @@ export function MessageActions({
 					size="icon"
 					className="h-7 w-7 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
 					title="Удалить"
+					aria-label="Удалить сообщение"
 					onClick={onDelete}
 				>
 					<svg

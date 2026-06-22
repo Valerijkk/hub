@@ -49,7 +49,9 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 			};
 
 			recorder.onstop = () => {
-				stream.getTracks().forEach((t) => t.stop());
+				for (const t of stream.getTracks()) {
+					t.stop();
+				}
 				clearInterval(timerRef.current);
 			};
 
@@ -85,7 +87,9 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 		// Ждём последний chunk.
 		await new Promise<void>((resolve) => {
 			recorder.onstop = () => {
-				recorder.stream.getTracks().forEach((t) => t.stop());
+				for (const t of recorder.stream.getTracks()) {
+					t.stop();
+				}
 				clearInterval(timerRef.current);
 				resolve();
 			};
@@ -116,7 +120,9 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 			recorder.stop();
 			// MEDIUM: явно освобождаем MediaStream — иначе индикатор
 			// микрофона горит до перезагрузки страницы.
-			recorder.stream.getTracks().forEach((t) => t.stop());
+			for (const t of recorder.stream.getTracks()) {
+				t.stop();
+			}
 		}
 		clearInterval(timerRef.current);
 		setIsRecording(false);
@@ -134,7 +140,9 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 				if (recorder.state === "recording") {
 					recorder.stop();
 				}
-				recorder.stream.getTracks().forEach((t) => t.stop());
+				for (const t of recorder.stream.getTracks()) {
+					t.stop();
+				}
 			}
 		};
 	}, []);

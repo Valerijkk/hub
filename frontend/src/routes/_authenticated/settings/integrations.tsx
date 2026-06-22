@@ -19,14 +19,14 @@ function IntegrationsPage() {
 				</p>
 			</div>
 
-			{/* API Keys */}
+			{/* API-ключи */}
 			<div className="mb-9">
 				<APIKeysPage />
 			</div>
 
 			<Separator className="bg-b1 my-9" />
 
-			{/* Webhooks — projectId not available in global settings, use empty */}
+			{/* Webhooks — в глобальных настройках нет projectId, передаём пустой */}
 			<div className="mb-9">
 				<WebhooksPage projectId="" />
 			</div>

@@ -218,7 +218,7 @@ export function EnvironmentComparison({
 			{/* Выбор окружений */}
 			<div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card/50 p-4">
 				<div className="space-y-1.5">
-					<label className="text-xs font-medium text-t2">Окружение 1</label>
+					<span className="text-xs font-medium text-t2">Окружение 1</span>
 					<Select
 						value={envId1 || "placeholder"}
 						onValueChange={(v) => {
@@ -265,7 +265,7 @@ export function EnvironmentComparison({
 				</div>
 
 				<div className="space-y-1.5">
-					<label className="text-xs font-medium text-t2">Окружение 2</label>
+					<span className="text-xs font-medium text-t2">Окружение 2</span>
 					<Select
 						value={envId2 || "placeholder"}
 						onValueChange={(v) => {

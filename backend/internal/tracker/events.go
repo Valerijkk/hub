@@ -1,6 +1,6 @@
 package tracker
 
-// IssueCreatedEvent is published via outbox when a new issue is created.
+// IssueCreatedEvent публикуется через outbox при создании новой задачи.
 type IssueCreatedEvent struct {
 	IssueID     string `json:"issue_id"`
 	IssueKey    string `json:"issue_key"`
@@ -10,7 +10,7 @@ type IssueCreatedEvent struct {
 	CreatedByID string `json:"created_by_id"`
 }
 
-// IssueUpdatedEvent is published when an issue is updated.
+// IssueUpdatedEvent публикуется при обновлении задачи.
 type IssueUpdatedEvent struct {
 	IssueID     string        `json:"issue_id"`
 	IssueKey    string        `json:"issue_key"`
@@ -19,7 +19,7 @@ type IssueUpdatedEvent struct {
 	UpdatedByID string        `json:"updated_by_id"`
 }
 
-// IssueMovedEvent is published when an issue is moved to a different status.
+// IssueMovedEvent публикуется при перемещении задачи в другой статус.
 type IssueMovedEvent struct {
 	IssueID     string `json:"issue_id"`
 	IssueKey    string `json:"issue_key"`
@@ -30,7 +30,7 @@ type IssueMovedEvent struct {
 	MovedByID   string `json:"moved_by_id"`
 }
 
-// IssueDeletedEvent is published when an issue is deleted.
+// IssueDeletedEvent публикуется при удалении задачи.
 type IssueDeletedEvent struct {
 	IssueID     string `json:"issue_id"`
 	IssueKey    string `json:"issue_key"`
@@ -38,7 +38,7 @@ type IssueDeletedEvent struct {
 	DeletedByID string `json:"deleted_by_id"`
 }
 
-// IssueAssignedEvent is published when an issue is assigned to a user.
+// IssueAssignedEvent публикуется при назначении исполнителя задачи.
 type IssueAssignedEvent struct {
 	IssueID      string `json:"issue_id"`
 	IssueKey     string `json:"issue_key"`
@@ -47,7 +47,7 @@ type IssueAssignedEvent struct {
 	AssignedByID string `json:"assigned_by_id"`
 }
 
-// CommentCreatedEvent is published when a comment is added to an issue.
+// CommentCreatedEvent публикуется при добавлении комментария к задаче.
 type CommentCreatedEvent struct {
 	CommentID string   `json:"comment_id"`
 	IssueID   string   `json:"issue_id"`
@@ -57,7 +57,7 @@ type CommentCreatedEvent struct {
 	Mentions  []string `json:"mentions,omitempty"`
 }
 
-// IssueLinkCreatedEvent is published when a link between two issues is created.
+// IssueLinkCreatedEvent публикуется при создании связи между задачами.
 type IssueLinkCreatedEvent struct {
 	SourceID  string `json:"source_id"`
 	TargetID  string `json:"target_id"`
@@ -66,7 +66,7 @@ type IssueLinkCreatedEvent struct {
 	CreatedBy string `json:"created_by"`
 }
 
-// TimerStartedEvent is published when a user starts a timer on an issue.
+// TimerStartedEvent публикуется при запуске таймера на задаче.
 type TimerStartedEvent struct {
 	IssueID   string `json:"issue_id"`
 	IssueKey  string `json:"issue_key"`
@@ -74,7 +74,7 @@ type TimerStartedEvent struct {
 	UserID    string `json:"user_id"`
 }
 
-// TimerStoppedEvent is published when a user stops a timer on an issue.
+// TimerStoppedEvent публикуется при остановке таймера на задаче.
 type TimerStoppedEvent struct {
 	IssueID   string `json:"issue_id"`
 	IssueKey  string `json:"issue_key"`

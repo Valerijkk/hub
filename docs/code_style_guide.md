@@ -1,17 +1,22 @@
-# Hub — Code Style Guide
+# Hub — Руководство по стилю кода
 
-> Единая база знаний. Обновляется ARCH при изменении стандартов.
+> Единая база знаний. Обновляется ARCH при изменении стандартов.  
 > Cursor rules: `.cursor/rules/10-style.mdc`, `20-backend.mdc`, `30-frontend.mdc`
 
 ---
 
 ## Универсальные правила
 
-- Комментарии объясняют **WHY**, не WHAT — никаких narrating comments
-- Запрещены placeholder-комментарии: `// Handle error`, `// Return result`
-- Без эмодзи в коде и комментариях
-- Commit format: `feat(scope): description` | `fix(scope): description` | `refactor(scope): description`
-- Scope: `auth`, `tracker`, `messenger`, `tms`, `calls`, `dashboard`, `notification`, `search`, `ws`, `platform`, `frontend`, `infra`, `ent`
+| Правило | Детали |
+|---------|--------|
+| Комментарии | Объясняют **WHY**, не WHAT — без narrating comments |
+| Placeholder | Запрещены: `// Handle error`, `// Return result` |
+| Эмодзи | Запрещены в коде и комментариях |
+| Commits | `feat(scope): desc` \| `fix(scope): desc` \| `refactor(scope): desc` |
+| Scope | `auth`, `tracker`, `messenger`, `tms`, `calls`, `dashboard`, `notification`, `search`, `ws`, `platform`, `frontend`, `infra`, `ent` |
+| Язык комментариев | **English** в Go/TS коде; **русский** в docs |
+
+---
 
 ## Go — именование
 
@@ -20,51 +25,135 @@
 | Пакеты | lowercase, одно слово | `tracker`, `platform` |
 | Интерфейсы | Суффикс роли | `IssueRepository`, `EventPublisher` |
 | Файлы | snake_case по роли | `handler.go`, `ent_repository.go` |
-| Константы ошибок | `Err` prefix | `ErrNotFound`, `ErrConflict` |
+| Ошибки | `Err` prefix | `ErrNotFound`, `ErrConflict` |
 | Context | Первый параметр | `func (s *Service) Create(ctx context.Context, ...)` |
+| Тесты | `Test<Function>_<Scenario>` | `TestCreateIssue_DuplicateKey` |
 
-## Go — структура модуля
+---
+
+## Go — структура модуля (слои)
 
 ```
 backend/internal/<module>/
-├── handler.go          # HTTP only
-├── service.go          # Business logic
+├── handler.go          # HTTP only — parse, validate, status codes
+├── service.go          # Business logic — без *ent.Client
 ├── repository.go       # Interface
 ├── ent_repository.go   # Ent implementation
-├── dto.go              # Request/Response
-└── <module>_test.go    # Tests
+├── dto.go              # Request/Response structs
+└── *_test.go           # Unit tests (testify)
 ```
+
+**Запрещено:** `*ent.Client` в Handler или Service — только через Repository interface.
+
+### Поток запроса
+
+```
+HTTP → Handler → Service → Repository → Ent/DB
+                    ↓
+              NATS / Redis / external APIs
+```
+
+---
 
 ## Go — обработка ошибок
 
 ```go
-// Правильно
-if ent.IsNotFound(err) { return nil, ErrNotFound }
-if errors.Is(err, context.DeadlineExceeded) { ... }
+// ✅ Правильно
+if ent.IsNotFound(err) {
+    return nil, ErrNotFound
+}
+if errors.Is(err, context.DeadlineExceeded) {
+    return nil, fmt.Errorf("timeout: %w", err)
+}
 return fmt.Errorf("create issue: %w", err)
 
-// Запрещено
+// ❌ Запрещено
 if err != nil { return nil, err }  // теряет контекст
 panic(err)                         // в production paths
 ```
 
+Публичные API-ошибки: `platform/errors` → `{"error","request_id"}`.
+
+---
+
 ## Go — UUID и Ent
 
 ```go
-// Правильно
 field.UUID("id", uuid.UUID{}).Default(uuid.New).Immutable()
-field.Int("version").Default(1)  // optimistic lock
-
-// Запрещено
-field.String("id")  // UUID как строка
+field.Int("version").Default(1)  // optimistic locking — обязательно на mutable schemas
 ```
+
+- Primary keys: **UUID v4**, не string
+- Soft delete: `deleted_at` + корзина 30 дней
+- Время в БД: **UTC**
+
+---
 
 ## Go — логирование
 
 ```go
-slog.InfoContext(ctx, "issue created", "id", issue.ID, "project_id", projectID)
-// Запрещено: fmt.Println, log.Printf
+slog.InfoContext(ctx, "issue created",
+    "id", issue.ID,
+    "project_id", projectID,
+    "request_id", middleware.RequestIDFromCtx(ctx),
+)
 ```
+
+- Structured logging (`slog`), context-aware
+- **Не логировать:** JWT, magic link codes, refresh tokens, webhook secrets
+
+---
+
+## Go — HTTP handlers и Swagger
+
+Каждый **публичный** endpoint — аннотации swag (English):
+
+```go
+// CreateIssue создаёт задачу в проекте
+// @Summary      Create issue
+// @Description  Create a new issue in the project
+// @Tags         tracker
+// @Accept       json
+// @Produce      json
+// @Param        project_id path string true "Project ID" format(uuid)
+// @Param        request body CreateIssueRequest true "Issue data"
+// @Success      201 {object} IssueResponse
+// @Failure      400 {object} ErrorResponse
+// @Security     BearerAuth
+// @Router       /projects/{project_id}/issues [post]
+```
+
+Регенерация: `go generate ./ent` + swag в CI/dev.
+
+---
+
+## Go — паттерны безопасности
+
+| Паттерн | Использование |
+|---------|---------------|
+| `safehttp.NewSafeHTTPClient` | User-controlled URLs (GitLab, OpenGraph, WebPush) |
+| `ValidateOutboundURL` | Перед любым outbound fetch |
+| `io.LimitReader` | Чтение body (max 25MB align с Fiber BodyLimit) |
+| `subtle.ConstantTimeCompare` | Magic link codes, webhook tokens |
+| `select` на `client.done` | WS send — не писать в закрытый channel |
+
+---
+
+## TypeScript/React — структура
+
+```
+frontend/src/
+├── api/<module>.ts       # API client (один файл на backend module)
+├── components/ui/        # Shadcn — только className
+├── components/<feature>/ # Feature components
+├── hooks/use<Name>.ts
+├── modules/<module>/     # Self-contained features
+├── routes/               # TanStack Router file-based
+├── stores/<module>.ts    # Zustand
+└── testframework/unit/   # Vitest (предпочтительно)
+```
+
+---
 
 ## TypeScript/React — именование
 
@@ -72,9 +161,12 @@ slog.InfoContext(ctx, "issue created", "id", issue.ID, "project_id", projectID)
 |----------|-----------|--------|
 | Компоненты | PascalCase | `IssueCard.tsx` |
 | Хуки | `use` prefix | `useIssues.ts` |
-| Stores | camelCase + Store | `authStore.ts` |
-| Routes | kebab-case файлы | `issue-detail.tsx` |
+| Stores | `useXStore` | `useAuthStore` |
+| Routes | kebab в path | `$issueKey.tsx` |
 | API types | PascalCase | `CreateIssueRequest` |
+| Тесты | `*.test.ts(x)` | `auth-store.test.ts` |
+
+---
 
 ## TypeScript/React — паттерны
 
@@ -82,58 +174,112 @@ slog.InfoContext(ctx, "issue created", "id", issue.ID, "project_id", projectID)
 // Optional chaining
 const name = user?.profile?.name ?? 'Unknown'
 
-// Rules of Hooks — все хуки ДО любого return
+// Rules of Hooks — ВСЕ хуки ДО conditional return
 export function Component({ id }: Props) {
   const data = useQuery({ queryKey: ['item', id], ... })
-  if (!id) return null  // conditional AFTER hooks
+  const store = useAuthStore()
+  if (!id) return null
 
-// Stable keys
-items.map(item => <Card key={item.id} ... />)
+// Stable list keys
+items.map(item => <Card key={item.id} />)
 
-// Explicit button type
+// Explicit button type (не submit по умолчанию)
 <button type="button" onClick={handleClose}>Cancel</button>
+
+// TanStack Query keys
+queryKey: ['issues', projectId, filters]
 ```
+
+### API-клиент
+
+```typescript
+// api/client.ts — single-flight refresh на 401
+// api/tracker.ts — typed get/post helpers
+```
+
+### Ленивая загрузка (обязательно для тяжёлых deps)
+
+```typescript
+const CallsRoom = lazy(() => import('./modules/calls/CallsRoom'))
+```
+
+### Границы ошибок (Error Boundaries)
+
+Обязательны для: calls, dashboard, tracker, TMS, messenger (route wrappers).
+
+---
 
 ## Запрещённые паттерны
 
 | Паттерн | Почему | Альтернатива |
 |---------|--------|--------------|
-| `http.DefaultClient` | SSRF, no timeout | `safehttp.NewSafeHTTPClient(10*time.Second)` |
-| `io.ReadAll` без лимита | Memory DoS | `io.LimitReader(r, maxBytes)` |
-| `!=` для секретов | Timing attack | `subtle.ConstantTimeCompare` |
-| `*ent.Client` в Service/Handler | Нарушение layering | Repository interface |
-| `panic()` в handlers | Production crash | return error |
-| `any` без комментария | Потеря типов | Explicit type или `// reason` |
-| `key={index}` в списках | Reconciliation bug | Stable ID |
+| `http.DefaultClient` | SSRF, no timeout | `safehttp` |
+| `io.ReadAll` без лимита | Memory DoS | `LimitReader` |
+| `!=` для секретов | Timing attack | `ConstantTimeCompare` |
+| `*ent.Client` в Service/Handler | Layering | Repository |
+| `panic()` в handlers | Crash | return error |
+| `any` без комментария | Type safety | explicit type |
+| `key={index}` | Reconciliation | stable `id` |
 | `!important` в CSS | Tech debt | Tailwind utilities |
-| `user!.profile!.name` | Runtime crash | Optional chaining + guard |
+| `user!.profile!` | Runtime crash | optional chaining |
+| Inline `style={{}}` over DS | Inconsistency | CSS variables `--hub-*` |
+
+---
 
 ## SOLID (обязательно)
 
-- **S**: Handler не сохраняет в БД; Service не парсит HTTP
-- **O**: Новые payment/webhook handlers через интерфейс, не правка существующего
-- **L**: Mock Repository подставляется без изменения Service
-- **I**: Раздельные интерфейсы `IssueReader`, `IssueWriter` при необходимости
-- **D**: Service зависит от `IssueRepository`, не от `*ent.Client`
+| Принцип | В Hub |
+|---------|-------|
+| **S** | Handler не пишет в БД; Service не парсит HTTP |
+| **O** | Новые webhook handlers через interface |
+| **L** | Mock Repository без изменения Service |
+| **I** | `IssueReader` / `IssueWriter` при необходимости |
+| **D** | Service → `IssueRepository`, не `*ent.Client` |
+
+---
 
 ## DRY и KISS
 
-- Бизнес-логика объявляется один раз в Service
-- Избегать Factory-of-Factory; предпочитать прямые функции
-- Общие HTTP-утилиты в `platform/http`, ошибки в `platform/errors`
+- Бизнес-логика — **один раз** в Service
+- HTTP utilities → `platform/http`
+- Стандартные ошибки → `platform/errors`
+- Middleware → `platform/middleware`
+- Избегать излишних абстракций (Factory-of-Factory)
+
+---
 
 ## CSS / UI
 
-- Tailwind CSS 4 + Shadcn/ui
-- Shadcn: только `className` изменения, Radix поведение не трогать
-- WCAG 2.1 AA: контраст, aria, keyboard navigation
-
-## Git
-
-См. `.cursor/rules/50-git.mdc`:
-- Branch: `feat/<module>/<desc>`, `fix/<module>/<desc>`
-- Conventional Commits
-- Pre-commit: `go build ./...`, `go test -race`, `tsc --noEmit`, `npm run lint`
+- **Tailwind CSS 4** + **Shadcn/ui** + design tokens `--hub-*`
+- Shadcn: только `className`; Radix behavior не менять
+- **WCAG 2.1 AA**: контраст, `aria-*`, keyboard nav, focus ring
+- **Без `!important`** (rule 60-tz-constraints)
 
 ---
-*Последнее обновление: 2026-06-17*
+
+## Тесты — стиль
+
+| Слой | Расположение | Теги |
+|------|--------------|------|
+| Backend unit | `backend/internal/*/*_test.go` | `-tags hubtest` в CI |
+| Backend fixtures | `backend/testframework/` | builders, factories |
+| Frontend unit | `frontend/testframework/unit/`, `src/**/*.test.ts` | Vitest |
+| E2E | `testframework/e2e/specs/` | Playwright POM |
+
+Именование Go: table-driven где уместно; testify `require` / `assert`.
+
+---
+
+## Git и pre-commit
+
+См. `.cursor/rules/50-git.mdc`:
+
+```bash
+cd backend && go build -tags release ./... && go test -race -count=1 ./...
+cd frontend && npx tsc --noEmit && npm run lint
+```
+
+**Не коммитить:** `.env`, coverage dumps (`backend/cov*`), secrets.
+
+---
+*Последнее обновление: 2026-06-22 — RU-FIX-01: RU section headers*

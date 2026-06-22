@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	type BoardDataResponse,
 	getBoardData,
@@ -21,6 +20,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 import { useBoardStore } from "@/stores/board-store";
 
 /**
@@ -207,7 +207,10 @@ function BoardPage() {
 						value={activeBoardId ?? ""}
 						onValueChange={(v) => setActiveBoard(v)}
 					>
-						<SelectTrigger className="rounded-xl border bg-card px-3 py-2 text-sm font-medium w-auto min-w-[140px]">
+						<SelectTrigger
+							aria-label="Выбор доски"
+							className="rounded-xl border bg-card px-3 py-2 text-sm font-medium w-auto min-w-[140px]"
+						>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>

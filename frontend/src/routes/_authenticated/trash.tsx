@@ -2,16 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import type { ProjectResponse } from "@/api/projects";
 import { listProjects, restoreProject } from "@/api/projects";
+import { toastApiError } from "@/lib/format-api-error";
 
 /**
  * Страница корзины — список удалённых/архивных проектов с возможностью восстановления.
- * Tabs: Items (table) + About (lifecycle + type cards).
+ * Вкладки: элементы (таблица) + «О корзине» (lifecycle + типы).
  */
 
-/** Compute days remaining from updated_at (30-day retention) */
+/** Дней до удаления из корзины (retention 30 дней от updated_at). */
 function daysRemaining(updatedAt: string): number {
 	const deleted = new Date(updatedAt).getTime();
 	const now = Date.now();
@@ -19,7 +19,7 @@ function daysRemaining(updatedAt: string): number {
 	return Math.max(0, 30 - elapsed);
 }
 
-/** Badge class based on days remaining */
+/** Класс бейджа по оставшимся дням retention. */
 function daysBadgeClass(days: number): string {
 	if (days < 10) return "bg-red/[0.08] text-red";
 	if (days <= 20) return "bg-orange/[0.08] text-orange";
@@ -53,9 +53,12 @@ function TrashPage() {
 
 	return (
 		<div className="flex-1 overflow-y-auto p-6 animate-[eu_450ms_var(--spring)_both]">
-			{/* Topbar-like header */}
+			{/* Заголовок в стиле topbar */}
 			<div className="flex items-center gap-4 mb-6">
-				<span className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+				<span
+					className="text-[18px] font-extrabold tracking-[-0.03em] text-t1"
+					data-testid="trash-page-heading"
+				>
 					Корзина
 				</span>
 				<div className="flex gap-[3px] ml-3">
@@ -97,10 +100,10 @@ function TrashPage() {
 				</button>
 			</div>
 
-			{/* Items tab */}
+			{/* Вкладка элементов */}
 			{activeTab === "items" && (
 				<div>
-					{/* Loading */}
+					{/* Загрузка */}
 					{isLoading && (
 						<div className="space-y-3">
 							{["sk-1", "sk-2"].map((sk) => (
@@ -117,7 +120,7 @@ function TrashPage() {
 						</div>
 					)}
 
-					{/* Empty state */}
+					{/* Пустое состояние */}
 					{!isLoading && (!deletedProjects || deletedProjects.length === 0) && (
 						<div className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-dashed border-b2 bg-card/50 py-16 px-6">
 							<div className="flex h-12 w-12 items-center justify-center rounded-full bg-raised mb-4">
@@ -142,7 +145,7 @@ function TrashPage() {
 						</div>
 					)}
 
-					{/* Table */}
+					{/* Таблица */}
 					{deletedProjects && deletedProjects.length > 0 && (
 						<table className="w-full border-collapse-separate border-spacing-0">
 							<thead>
@@ -244,14 +247,14 @@ function TrashPage() {
 				</div>
 			)}
 
-			{/* About tab */}
+			{/* Вкладка «О корзине» */}
 			{activeTab === "about" && (
 				<div>
 					<h2 className="text-[18px] font-extrabold mb-6 tracking-[-0.02em]">
 						Жизненный цикл
 					</h2>
 
-					{/* Lifecycle steps */}
+					{/* Шаги жизненного цикла */}
 					<div className="flex gap-6 mb-10">
 						{[
 							{
@@ -291,7 +294,7 @@ function TrashPage() {
 						))}
 					</div>
 
-					{/* Type cards */}
+					{/* Карточки типов сущностей */}
 					<h3 className="text-[16px] font-bold mb-4">Что можно удалить</h3>
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px]">
 						{[
@@ -406,15 +409,19 @@ function TrashPage() {
 				</div>
 			)}
 
-			{/* Confirm dialog */}
+			{/* Диалог подтверждения */}
 			{confirmProject && (
-				<div
-					className="fixed inset-0 bg-black/65 backdrop-blur-[8px] z-[1000] flex items-center justify-center"
-					onClick={() => setConfirmProject(null)}
-				>
+				<div className="fixed inset-0 bg-black/65 backdrop-blur-[8px] z-[1000] flex items-center justify-center">
+					<button
+						type="button"
+						className="absolute inset-0 cursor-default border-0 bg-transparent p-0"
+						aria-label="Закрыть"
+						onClick={() => setConfirmProject(null)}
+					/>
 					<div
-						className="bg-base border border-b2 rounded-[var(--r4)] shadow-[var(--sh4)] max-w-[420px] w-[90%] p-7 text-center animate-[scIn_250ms_var(--spring)]"
-						onClick={(e) => e.stopPropagation()}
+						role="dialog"
+						aria-modal="true"
+						className="relative bg-base border border-b2 rounded-[var(--r4)] shadow-[var(--sh4)] max-w-[420px] w-[90%] p-7 text-center animate-[scIn_250ms_var(--spring)]"
 					>
 						<div className="text-[44px] mb-[14px]">&#9888;&#65039;</div>
 						<h3 className="text-[18px] font-bold mb-2">Удалить навсегда?</h3>

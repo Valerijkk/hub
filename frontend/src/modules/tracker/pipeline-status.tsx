@@ -42,7 +42,7 @@ function getStatusConfig(run: WorkflowRunResponse): {
 			label: "В очереди",
 		};
 	}
-	// completed
+	// завершённые
 	switch (run.conclusion) {
 		case "success":
 			return {

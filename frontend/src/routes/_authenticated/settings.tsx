@@ -1,6 +1,6 @@
 /**
- * Settings layout — left sidebar navigation + right content area.
- * Wraps all /settings/* child routes via <Outlet />.
+ * Layout настроек — sidebar слева + контент справа.
+ * Обёртка всех дочерних /settings/* маршрутов через <Outlet />.
  */
 import {
 	createFileRoute,
@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import {
 	Bell,
+	Bot,
 	Keyboard,
 	type LucideIcon,
 	Palette,
@@ -48,6 +49,11 @@ const navItems = [
 		label: "\u0418\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438",
 	},
 	{
+		to: "/settings/ai",
+		icon: Bot,
+		label: "AI",
+	},
+	{
 		to: "/settings/hotkeys",
 		icon: Keyboard,
 		label:
@@ -63,7 +69,7 @@ const navItems = [
 function SettingsLayout() {
 	return (
 		<div className="flex flex-1 overflow-hidden animate-[eu_400ms_var(--spring)] -mx-4 -my-4 md:-mx-6 md:-my-4">
-			{/* Left sidebar nav */}
+			{/* Левая навигация */}
 			<nav className="w-full md:w-60 md:min-w-60 border-r border-b1 py-4 px-3 overflow-y-auto">
 				<div className="text-[10px] font-bold uppercase tracking-[0.08em] text-t2 px-[10px] pt-[14px] pb-[6px]">
 					{"\u0410\u043A\u043A\u0430\u0443\u043D\u0442"}
@@ -73,7 +79,7 @@ function SettingsLayout() {
 				))}
 			</nav>
 
-			{/* Right content area */}
+			{/* Правая область контента */}
 			<div className="flex-1 overflow-y-auto px-9 py-7 max-w-[720px]">
 				<Outlet />
 			</div>

@@ -14,18 +14,34 @@ tmp/
 node_modules/
 dist/
 .cache/
+frontend/tsconfig.tsbuildinfo
 
-# IDE
+# IDE / editors
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-*
 
-# Environment
+# Cursor / AI agent workspace (local only — do not commit)
+.cursor/
+
+# Claude / GSD local state
+.claude/
+.gsd/
+.planning/intel/
+.planning/**/VERIFICATION.md
+.planning/**/REVIEW.md
+
+# Environment & secrets
 .env
 .env.local
 .env.*.local
+!.env.local.example
+!.env.example
+deployments/.env
+docker-compose.local.yml
 
 # OS
 .DS_Store
@@ -40,11 +56,14 @@ backend/ent/*
 # Build artifacts
 coverage/
 *.prof
+backend/hub
+backend/bin/
 
-# Coverage / benchmark dumps (never commit — delete after verification)
+# Coverage / benchmark dumps (never commit)
 backend/cover
 backend/coverage
 backend/coverage_baseline
+backend/coverage_internal
 backend/coverprofile
 backend/cover_*
 backend/cov_*
@@ -58,7 +77,7 @@ backend/notif_cov
 backend/*_after.txt
 tmp_*.py
 
-# Local dev / agent session artifacts
+# Local dev / CI / agent session artifacts
 .gotmp/
 .ci-backend.log
 SESSION_SUMMARY*.txt
@@ -66,9 +85,10 @@ frontend/lint-*.txt
 frontend/biome-report.json
 frontend/playwright-report/
 frontend/test-results/
+*.local.md
 
 # Standalone TMS (separate product)
 /tms/
 
-# Documentation (generated)
+# Documentation (generated externally)
 documentation/

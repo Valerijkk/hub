@@ -8,27 +8,30 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // ---------------------------------------------------------------------------
-// Test runs
+// Прогоны тестов
 // ---------------------------------------------------------------------------
 
 // CreateTestRun создаёт новый прогон тестов.
 func (s *TMSService) CreateTestRun(ctx context.Context, projectID, userID uuid.UUID, req CreateTestRunRequest) (*TestRunResponse, error) {
-	input := CreateTestRunInput{
-		Title:       req.Title,
-		Description: req.Description,
-		RunType:     req.RunType,
-		CreatedByID: userID,
-	}
+	return observability.Timed(ctx, "tms.CreateTestRun", func(ctx context.Context) (*TestRunResponse, error) {
+		input := CreateTestRunInput{
+			Title:       req.Title,
+			Description: req.Description,
+			RunType:     req.RunType,
+			CreatedByID: userID,
+		}
 
-	run, err := s.repo.CreateTestRun(ctx, projectID, input)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка создания прогона")
-	}
+		run, err := s.repo.CreateTestRun(ctx, projectID, input)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка создания прогона")
+		}
 
-	return toTestRunResponse(run), nil
+		return toTestRunResponse(run), nil
+	})
 }
 
 // GetTestRun возвращает прогон по ID.
@@ -120,7 +123,7 @@ func (s *TMSService) ReopenTestRun(ctx context.Context, runID uuid.UUID) (*TestR
 }
 
 // ---------------------------------------------------------------------------
-// Test results
+// Результаты тестов
 // ---------------------------------------------------------------------------
 
 // CreateTestResult создаёт результат теста в прогоне.
@@ -185,7 +188,7 @@ func (s *TMSService) ListTestResults(ctx context.Context, runID uuid.UUID) ([]Te
 }
 
 // ---------------------------------------------------------------------------
-// Extended run operations
+// Расширенные операции прогона
 // ---------------------------------------------------------------------------
 
 // AddTestCasesToRun добавляет тест-кейсы в прогон, создавая записи TestResult со статусом unknown.

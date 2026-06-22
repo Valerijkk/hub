@@ -2,19 +2,20 @@
  * Форма входа через magic link — mockup-matching design.
  *
  * Два шага: ввод email -> ввод кода подтверждения.
- * Inputs and buttons match 01-login mockup CSS values exactly.
+ * Поля и кнопки совпадают с mockup 01-login по CSS-значениям.
  */
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import i18n from "@/i18n";
 import { sendMagicLink, verifyMagicLink } from "@/api/auth";
+import i18n from "@/i18n";
 import { toastApiError } from "@/lib/format-api-error";
 import { useAuthStore } from "@/stores/auth-store";
 
 /** Пропсы компонента MagicLinkForm. */
 interface MagicLinkFormProps {
-	/** Колбэк при успешной авторизации. */
 	onSuccess: () => void;
+	/** Токен org-invite из query ?invite= (ORG-05). */
+	inviteToken?: string;
 }
 
 /** Пропсы шага ввода email. */
@@ -152,7 +153,10 @@ function MagicLinkCodeStep({
 }
 
 /** Форма входа через magic link с двумя шагами: ввод email и подтверждение кодом. */
-export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
+export function MagicLinkForm({
+	onSuccess,
+	inviteToken = "",
+}: MagicLinkFormProps) {
 	const [email, setEmail] = useState("");
 	const [code, setCode] = useState("");
 	const [step, setStep] = useState<"email" | "code">("email");
@@ -169,7 +173,10 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 		}
 		setLoading(true);
 		try {
-			const res = await sendMagicLink({ email });
+			const res = await sendMagicLink({
+				email,
+				...(inviteToken ? { invite_token: inviteToken } : {}),
+			});
 			setStep("code");
 			// В dev mode бэкенд возвращает код в ответе (email не настроен)
 			if (res?.code) {
@@ -193,7 +200,11 @@ export function MagicLinkForm({ onSuccess }: MagicLinkFormProps) {
 		}
 		setLoading(true);
 		try {
-			const tokens = await verifyMagicLink({ email, code: code.trim() });
+			const tokens = await verifyMagicLink({
+				email,
+				code: code.trim(),
+				...(inviteToken ? { invite_token: inviteToken } : {}),
+			});
 			setTokens(tokens.access_token, tokens.refresh_token);
 			onSuccess();
 		} catch (err: unknown) {

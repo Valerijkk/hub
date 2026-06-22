@@ -13,11 +13,11 @@ import {
 } from "lucide-react";
 import { memo, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import i18n from "@/i18n";
 import type { NotificationDTO } from "@/api/notifications";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import i18n from "@/i18n";
 import { formatRelativeTime } from "@/lib/format-time";
 import { useNotificationStore } from "@/stores/notification-store";
 
@@ -30,6 +30,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
 	message_received: MessageSquare,
 	call_started: Phone,
 	run_completed: TestTube,
+	run_failed: AlertTriangle,
 	deadline_approaching: Clock,
 	blocker_added: Link2,
 };
@@ -43,6 +44,7 @@ const TYPE_ICON_COLORS: Record<string, string> = {
 	message_received: "rgba(59,130,246,0.15)",
 	call_started: "rgba(34,197,94,0.15)",
 	run_completed: "rgba(168,85,247,0.15)",
+	run_failed: "rgba(239,68,68,0.15)",
 	deadline_approaching: "rgba(249,115,22,0.15)",
 	blocker_added: "rgba(239,68,68,0.15)",
 };
@@ -55,6 +57,7 @@ const TYPE_ICON_TEXT_COLORS: Record<string, string> = {
 	message_received: "text-blue-400",
 	call_started: "text-emerald-400",
 	run_completed: "text-purple-400",
+	run_failed: "text-red-400",
 	deadline_approaching: "text-orange-400",
 	blocker_added: "text-red-400",
 };
@@ -68,6 +71,7 @@ const TYPE_LABELS: Record<string, string> = {
 	message_received: "Сообщение",
 	call_started: "Звонок",
 	run_completed: "Прогон завершён",
+	run_failed: "Ошибки в прогоне",
 	deadline_approaching: "Дедлайн",
 	blocker_added: "Блокировщик",
 };
@@ -268,19 +272,15 @@ const NotificationItem = memo(function NotificationItem({
 					</p>
 					<div className="flex items-center gap-1 flex-shrink-0">
 						{/* Кнопка удаления — видна при hover */}
-						<span
-							role="button"
-							tabIndex={0}
+						<button
+							type="button"
 							className="mt-0.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors"
 							onClick={onDelete}
-							onKeyDown={(e) => {
-								if (e.key === "Enter")
-									onDelete(e as unknown as React.MouseEvent);
-							}}
 							title="Удалить"
+							aria-label="Удалить уведомление"
 						>
 							<X className="h-3 w-3" />
-						</span>
+						</button>
 						{/* Индикатор непрочитанного */}
 						{!notification.is_read && (
 							<span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />

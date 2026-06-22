@@ -139,12 +139,20 @@ function CreateBranchDialog({
 				<h3 className="mb-4 text-lg font-semibold">Создать ветку</h3>
 
 				<div className="mb-4">
-					<label className="mb-1 block text-sm font-medium">Репозиторий</label>
+					<label
+						htmlFor="github-branch-repo"
+						className="mb-1 block text-sm font-medium"
+					>
+						Репозиторий
+					</label>
 					<Select
 						value={selectedIntegration}
 						onValueChange={(v) => setSelectedIntegration(v)}
 					>
-						<SelectTrigger className="w-full rounded-xl border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700">
+						<SelectTrigger
+							id="github-branch-repo"
+							className="w-full rounded-xl border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700"
+						>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -158,8 +166,14 @@ function CreateBranchDialog({
 				</div>
 
 				<div className="mb-4">
-					<label className="mb-1 block text-sm font-medium">Имя ветки</label>
+					<label
+						htmlFor="github-branch-name"
+						className="mb-1 block text-sm font-medium"
+					>
+						Имя ветки
+					</label>
 					<input
+						id="github-branch-name"
 						className="w-full rounded-md border px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700"
 						value={branchName}
 						onChange={(e) => setBranchName(e.target.value)}
@@ -262,7 +276,7 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 				</p>
 			)}
 
-			{/* Pull Requests */}
+			{/* Pull request'ы */}
 			{pullRequests.length > 0 && (
 				<div className="space-y-1">
 					{pullRequests.map((link) => (
@@ -281,7 +295,7 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 				</div>
 			)}
 
-			{/* Commits */}
+			{/* Коммиты */}
 			{commits.length > 0 && (
 				<div className="space-y-1">
 					{commits.map((link) => (

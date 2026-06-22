@@ -16,8 +16,10 @@ const (
 	TypeMessageReceived = "message_received"
 	// TypeCallStarted — звонок в канале пользователя.
 	TypeCallStarted = "call_started"
-	// TypeRunCompleted — завершение тестового прогона.
+	// TypeRunCompleted — завершение тестового прогона без ошибок.
 	TypeRunCompleted = "run_completed"
+	// TypeRunFailed — прогон завершён с failed_count > 0 (QA/tester + автор).
+	TypeRunFailed = "run_failed"
 	// TypeDeadlineApproaching — дедлайн задачи через 24ч (cron).
 	TypeDeadlineApproaching = "deadline_approaching"
 	// TypeBlockerAdded — добавлена блокирующая связь.

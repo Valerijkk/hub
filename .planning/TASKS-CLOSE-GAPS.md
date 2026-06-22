@@ -54,7 +54,7 @@
 | **REGRESSION** | build + test -race + tsc | all green | ✅ PASS |
 | **NFR-16** | a11y baseline | login axe + a11y.spec.ts | ✅ PASS |
 | **SEC-PROD** | 0 CRITICAL open | fixed in code (v2.0.1) | ✅ (formal re-audit optional) |
-| **Biome lint** | reduced | ~72 warnings (0 errors) locally | ⚠️ not gated |
+| **Biome lint** | reduced | **0 errors / 0 warnings** (Phase 37) | ✅ gated |
 
 COV-01 security: **6/6** packages ≥80% ✅ (PG-01 closed 2026-06-20).
 
@@ -75,7 +75,7 @@ COV-01 security: **6/6** packages ≥80% ✅ (PG-01 closed 2026-06-20).
 | ID | Задача | Target |
 |----|--------|--------|
 | ~~PG-01~~ | ~~`calls/` → 80%~~ | ✅ **80.2%** (2026-06-20) |
-| PG-02 | Biome lint → 0 warnings | T3-04 continuation |
+| PG-02 | Biome lint → 0 warnings | ✅ Phase 37 complete |
 | PG-03 | Secret rotation git history | manual ops |
-| PG-04 | E2E-06 Ctrl+K Playwright | `frontend/e2e/` |
-| PG-05 | UserPicker + inline validation | issue forms |
+| ~~PG-04~~ | ~~E2E-06 Ctrl+K Playwright~~ | ✅ `command-palette.spec.ts` (2026-06-22) |
+| PG-05 | UserPicker + inline validation | ✅ issue-form RHF+Zod + Vitest (Phase 59) |

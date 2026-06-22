@@ -81,7 +81,7 @@ export async function uploadFile(
 		throw new Error(`Upload failed: ${putRes.status}`);
 	}
 
-	// 3. Confirm upload
+	// 3. Подтверждение загрузки на сервере
 	await confirmUpload(file_id, entityType, entityId);
 
 	return file_id;

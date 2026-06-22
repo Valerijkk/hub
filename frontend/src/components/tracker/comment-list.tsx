@@ -2,8 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Value } from "@udecode/plate";
 import { useState } from "react";
 import { toast } from "sonner";
-import i18n from "@/i18n";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	type CommentResponse,
 	createComment,
@@ -24,6 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 
 /** Пропсы компонента CommentList. */
@@ -200,7 +200,7 @@ function CommentItem({ comment, onDelete, onReaction }: CommentItemProps) {
 				comment.is_internal && "border-yellow-300/20 bg-yellow-950/10",
 			)}
 		>
-			{/* Avatar */}
+			{/* Аватар */}
 			<Avatar className="w-[34px] h-[34px] rounded-full shrink-0">
 				<AvatarImage src={comment.author.avatar_url} />
 				<AvatarFallback className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[12px] font-bold text-white bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)]">

@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
-// Types
+// Типы календаря
 // ---------------------------------------------------------------------------
 
-/** Scheduled call record from API. */
+/** Запись запланированного звонка из API. */
 export interface ScheduledCallRecord {
 	id: string;
 	title: string;
@@ -15,7 +15,7 @@ export interface ScheduledCallRecord {
 	is_active: boolean;
 }
 
-/** Parsed call event positioned in the calendar grid. */
+/** Событие с координатами в сетке календаря. */
 export interface CalendarEvent {
 	id: string;
 	title: string;
@@ -24,15 +24,16 @@ export interface CalendarEvent {
 	durationMinutes: number;
 	channelId: string;
 	rrule?: string;
-	/** Pastel color class for the block. */
+	/** Pastel-класс цвета блока события. */
 	colorClass: string;
+	kind?: CalendarEventKind;
+	url?: string;
+	projectKey?: string;
 }
 
 export type CalendarView = "month" | "week" | "day" | "agenda";
 
-// ---------------------------------------------------------------------------
-// Color palette for call types
-// ---------------------------------------------------------------------------
+export type CalendarEventKind = "call" | "sprint" | "deadline" | "leave";
 
 const CALL_COLORS = [
 	"bg-violet-400/20 border-violet-400/40 text-violet-700 dark:text-violet-300",
@@ -51,8 +52,21 @@ export function getColorForEvent(id: string): string {
 	return CALL_COLORS[Math.abs(hash) % CALL_COLORS.length] as string;
 }
 
+const KIND_COLORS: Record<CalendarEventKind, string> = {
+	call: "bg-violet-400/20 border-violet-400/40 text-violet-700 dark:text-violet-300",
+	sprint:
+		"bg-indigo-400/20 border-indigo-400/40 text-indigo-700 dark:text-indigo-300",
+	deadline:
+		"bg-orange-400/20 border-orange-400/40 text-orange-700 dark:text-orange-300",
+	leave: "bg-pink-400/20 border-pink-400/40 text-pink-700 dark:text-pink-300",
+};
+
+export function getColorForKind(kind: CalendarEventKind): string {
+	return KIND_COLORS[kind];
+}
+
 // ---------------------------------------------------------------------------
-// Helpers
+// Вспомогательные функции календаря
 // ---------------------------------------------------------------------------
 
 export const HOUR_START = 8;
@@ -66,7 +80,7 @@ export const DEFAULT_DURATION = 60; // minutes
 
 export const WEEKDAY_NAMES_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
-/** Get the Monday of the week containing `date`. */
+/** Понедельник недели, в которую попадает `date`. */
 export function getWeekStart(date: Date): Date {
 	const d = new Date(date);
 	const day = d.getDay();
@@ -76,7 +90,7 @@ export function getWeekStart(date: Date): Date {
 	return d;
 }
 
-/** Get 7 days starting from `weekStart`. */
+/** Семь дней начиная с `weekStart`. */
 export function getWeekDays(weekStart: Date): Date[] {
 	return Array.from({ length: 7 }, (_, i) => {
 		const d = new Date(weekStart);
@@ -106,31 +120,31 @@ export function formatDayHeader(
 	return { weekday, day };
 }
 
-/** Get all days to display in a month grid (including padding days from prev/next months). */
+/** Все ячейки месячной сетки, включая padding из соседних месяцев. */
 export function getMonthGridDays(year: number, month: number): Date[] {
 	const firstDay = new Date(year, month, 1);
 	const lastDay = new Date(year, month + 1, 0);
 
-	// Find Monday before or on the 1st
+	// Понедельник на или до 1-го числа — начало сетки
 	let startDay = firstDay.getDay(); // 0=Sun
-	// Convert to Mon=0 format
+	// Приводим к формату Mon=0 для расчёта offset
 	startDay = startDay === 0 ? 6 : startDay - 1;
 
 	const days: Date[] = [];
 
-	// Add padding days from previous month
+	// Добавляем хвост предыдущего месяца для выравнивания сетки
 	for (let i = startDay - 1; i >= 0; i--) {
 		const d = new Date(year, month, 1);
 		d.setDate(d.getDate() - i - 1);
 		days.push(d);
 	}
 
-	// Add all days of the month
+	// Все дни текущего месяца
 	for (let d = 1; d <= lastDay.getDate(); d++) {
 		days.push(new Date(year, month, d));
 	}
 
-	// Pad to complete the last week (fill to 35 or 42 cells)
+	// Добиваем последнюю неделю до 35/42 ячеек (6 строк × 7 дней)
 	while (days.length % 7 !== 0) {
 		const last = days[days.length - 1];
 		if (!last) break;
@@ -144,7 +158,7 @@ export function getMonthGridDays(year: number, month: number): Date[] {
 
 /**
  * Simple RRULE expansion within a date range.
- * Only handles FREQ=DAILY and FREQ=WEEKLY (with optional BYDAY).
+ * Поддерживаются только FREQ=DAILY и FREQ=WEEKLY (опционально BYDAY).
  */
 export function expandRRule(
 	baseDate: Date,

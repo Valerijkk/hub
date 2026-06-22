@@ -1,93 +1,239 @@
 # Установка и деплой
 
-## Требования
+> **Обновлено:** 2026-06-21 · Версии образов сверены с `deployments/docker-compose.prod.yml`
+
+---
+
+## Требования к серверу
 
 | Ресурс | Минимум | Рекомендуемый |
-|--------|---------|--------------|
+|--------|---------|---------------|
 | CPU | 2 vCPU | 4 vCPU |
 | RAM | 4 GB | 8 GB |
 | Disk | 40 GB SSD | 100 GB SSD |
-| ОС | Ubuntu 22.04 | Ubuntu 22.04 |
+| ОС | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS |
 
-## Быстрый деплой (Docker Compose)
+Для e2e-full в CI: Ubuntu latest runner + Docker (postgres, redis, mongo, nats).
 
-### 1. Установить Docker
+---
+
+## Версии инфраструктуры (pinned)
+
+| Сервис | Docker image | Порт(ы) |
+|--------|--------------|---------|
+| PostgreSQL | `postgres:17` | 5432 |
+| MongoDB | `mongo:8.0` | 27017 |
+| Redis | `redis:7.4-alpine` | 6379 |
+| NATS JetStream | `nats:2.11` | 4222, 8222 |
+| SeaweedFS | `chrislusf/seaweedfs:3.97` | 9333, 8333 |
+| LiveKit | `livekit/livekit-server:v1.8` | 7880, 7881, UDP 50000–50100 |
+| Caddy | `caddy:2-alpine` | 80, 443 |
+| Backend | `ghcr.io/valerijkk/hub/backend:SHA` | 3000 |
+| hub-mail | `ghcr.io/valerijkk/hub/backend:SHA` (entrypoint `./hub-mail`) | 3001 |
+| Frontend | `ghcr.io/valerijkk/hub/frontend:SHA` | 80 |
+
+Опционально: `deployments/docker-compose.monitoring.yml` — Prometheus v3.2.1, Loki/Grafana 11.5.2.
+
+---
+
+## Быстрый деплой (production, Docker Compose)
+
+### 1. Docker
+
 ```bash
 curl -fsSL https://get.docker.com | sh
 ```
 
-### 2. Клонировать репозиторий
+### 2. Клонирование
+
 ```bash
 cd /opt
 git clone https://github.com/Valerijkk/hub.git
 cd hub
 ```
 
-### 3. Настроить окружение
+### 3. Переменные окружения
+
 ```bash
 cd deployments
 cp .env.example .env
-# Заполните .env реальными значениями (JWT, DB passwords, LiveKit keys, Resend, Telegram)
+# Обязательно заполнить: JWT_SECRET, DATABASE_URL, INTEGRATION_ENCRYPTION_KEY,
+# LIVEKIT_*, RESEND_API_KEY, CORS_ORIGINS
+# DEV_MODE=false в production!
 ```
 
-### 4. Запустить
+### 4. Запуск
+
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
-LiveKit в production **не** монтирует `livekit.yaml`: конфиг генерируется из env vars
-в `docker-compose.prod.yml` (heredoc), включая `departure_timeout: 120` (INF-01).
-После обновления compose пересоздайте контейнер: `docker compose ... up -d --force-recreate livekit`.
+**LiveKit:** конфиг генерируется из env в compose (heredoc), включая `departure_timeout: 120` (INF-01).  
+Не монтировать `livekit-prod.yaml` с plaintext ключами. После обновления:
 
-### 5. Проверить
 ```bash
-# Все контейнеры запущены?
+docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate livekit
+```
+
+### 5. Проверка
+
+```bash
 docker compose -f docker-compose.prod.yml ps
-
-# Health check
-curl http://localhost/api/health
+curl -fsS http://localhost/api/health
 ```
 
-Локальная разработка (полный стек, `DEV_MODE=true`):
+Ожидаемый ответ: `{"status":"ok",...}`.
+
+---
+
+## Локальная разработка
+
+### Полный стек в Docker
+
 ```bash
-cp .env.local.example .env.local   # опционально: Resend/Telegram
+# из корня репозитория
+cp .env.local.example .env.local
 docker compose --env-file .env.local -f docker-compose.local.yml up --build
-# Демо-данные только локально:
-curl -X POST http://localhost:3000/api/dev/seed
+# UI через Caddy: http://localhost:8080
 ```
 
-## Переменные окружения
+`DEV_MODE=true` в local compose — dev-login, `/api/dev/seed`.
 
-| Переменная | Описание | Пример |
-|-----------|----------|--------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://hub:pass@postgres:5432/hub` |
-| `MONGODB_URL` | MongoDB connection string | `mongodb://hub:pass@mongo:27017/hub?authSource=admin` |
-| `REDIS_URL` | Redis connection string | `redis://redis:6379/0` |
-| `NATS_URL` | NATS connection string | `nats://nats:4222` |
-| `JWT_SECRET` | Секрет для JWT подписи | `random-secret-32-chars` |
-| `ENVIRONMENT` | Окружение (`production` в prod) | `production` |
-| `INTEGRATION_ENCRYPTION_KEY` | AES key для GitHub/GitLab tokens (32 bytes base64) | см. `.env.example` |
-| `DEV_MODE` | Режим разработки (`false` в prod compose; `true` только в local compose) | `false` |
-| `CORS_ORIGINS` | Разрешённые origins (через запятую) | `https://hub.example.com` |
-| `RESEND_API_KEY` | API ключ Resend (для email) | `re_xxx` |
-| `TELEGRAM_BOT_TOKEN` | Токен Telegram бота | `123:ABC` |
+### Нативный backend + Docker infra (как в CI e2e-full)
+
+```bash
+# 1. Infra
+bash scripts/ci-e2e-backend.sh start-infra
+bash scripts/ci-e2e-backend.sh wait-infra
+
+# 2. Backend
+export DEV_MODE=true
+export DATABASE_URL=postgresql://hub:hub@localhost:5432/hub?sslmode=disable
+export MONGODB_URL=mongodb://hub:hub@localhost:27017/?authSource=admin
+export REDIS_URL=redis://localhost:6379/0
+export NATS_URL=nats://localhost:4222
+export JWT_SECRET=local-dev-secret-change-in-production
+bash scripts/ci-e2e-backend.sh start-backend
+bash scripts/ci-e2e-backend.sh wait-backend
+
+# 3. Frontend (Vite проксирует /api → :3000)
+cd frontend && npm run dev
+```
+
+### Демо-данные
+
+```bash
+curl -X POST http://localhost:3000/api/dev/seed
+# Только при DEV_MODE=true
+```
+
+---
+
+## Переменные окружения (ключевые)
+
+| Переменная | Описание | Пример / default |
+|-----------|----------|------------------|
+| `DATABASE_URL` | PostgreSQL | `postgresql://hub:pass@postgres:5432/hub` |
+| `MONGODB_URL` | MongoDB | `mongodb://hub:pass@mongo:27017/?authSource=admin` |
+| `MONGODB_DATABASE` | Имя БД | `hub` |
+| `REDIS_URL` | Redis | `redis://redis:6379/0` |
+| `NATS_URL` | NATS | `nats://nats:4222` |
+| `JWT_SECRET` | JWT HS256 | random 32+ chars |
+| `ENVIRONMENT` | `production` / `development` | `production` |
+| `DEV_MODE` | Dev routes | **`false` в prod** |
+| `CORS_ORIGINS` | Origins через запятую | `https://hub.example.com` |
+| `INTEGRATION_ENCRYPTION_KEY` | AES для VCS tokens | 32 bytes base64 |
+| `S3_ENDPOINT` | SeaweedFS | `http://seaweedfs:8333` |
+| `RESEND_API_KEY` | Magic Link email | `re_xxx` |
+| `HUB_MAIL_URL` | URL микросервиса hub-mail | `http://hub-mail:3001` |
+| `HUB_MAIL_INTERNAL_TOKEN` | Shared-secret backend↔hub-mail | random |
+| `RESEND_FROM_ALERTS` | From-адрес alert-писем | `alerts@hub.example.com` |
+| `TELEGRAM_BOT_TOKEN` | Notify bot | `123:ABC` |
+| `LIVEKIT_URL` | WebRTC | `http://livekit:7880` |
+| `LIVEKIT_API_KEY` / `SECRET` | LiveKit creds | из env, не в git |
+
+Полный список: `deployments/.env.example`, `docs/TECHNICAL.md` § Environment Variables.
+
+---
 
 ## CI/CD (GitHub Actions)
 
-**CI** (`.github/workflows/ci.yml`): каждый push/PR — build `-tags release`, `go test -race` (600s timeout), frontend lint/build, Playwright e2e-smoke.
+### CI — `.github/workflows/ci.yml`
 
-**Deploy** (`.github/workflows/deploy.yml`): запускается **только после успешного CI** на `master` (`workflow_run`):
-1. SSH на сервер → `git reset --hard origin/master`
-2. Pull образов из GHCR (тег = SHA коммита)
-3. `docker compose up --force-recreate` backend, livekit, frontend, caddy
-4. Post-deploy: `curl` health endpoint
-5. Без `docker system prune --volumes` (безопасный prune только dangling images)
+Триггеры: push/PR на `master`, `workflow_dispatch`.
 
-Backend prod: `Dockerfile` собирает с `-tags release` (без `/dev/*` routes).
+| Job | Шаги |
+|-----|------|
+| `backend-test` | Go 1.25, Mongo 8 service, `go generate`, `go vet`, `go test -tags hubtest -race` 600s |
+| `frontend-test` | Node 22, `npm ci`, `tsc`, `vitest run`, `biome check` |
+| `build` | `go build -tags release`, `npm run build` |
+| `e2e-smoke` | Playwright без backend: login, a11y, critical-gate |
+| `e2e-full` | Infra script + backend + 16 E2E specs |
 
-Workflow: `.github/workflows/deploy.yml`
+Артефакты при FAIL: `playwright-report`, `backend-e2e-log` (7 дней).
 
-Необходимые GitHub Secrets:
-- `SSH_HOST` — IP сервера
-- `SSH_USER` — пользователь (root)
-- `SSH_KEY` — приватный SSH ключ
+### Deploy — `.github/workflows/deploy.yml`
+
+- Запуск: `workflow_run` после **успешного CI** на push в `master`
+- GHCR images: `backend:SHA`, `frontend:SHA`
+- SSH на сервер → `git reset --hard SHA` → `docker compose up --force-recreate`
+- Post-deploy health check
+- **Нет** `DEV_MODE=true` в workflow env
+
+### GitHub Secrets (deploy)
+
+| Secret | Назначение |
+|--------|------------|
+| `SSH_HOST` | IP сервера |
+| `SSH_USER` | SSH user (например root) |
+| `SSH_KEY` | Private key |
+
+---
+
+## Backend production image
+
+`backend/Dockerfile`:
+
+```dockerfile
+# Сборка с -tags release — без /dev/* routes
+go build -tags release -o /app/server ./cmd/server
+```
+
+---
+
+## Caddy (production routing)
+
+```caddyfile
+hub.example.com {
+  handle /api/*  { reverse_proxy backend:3000 }
+  handle /ws     { reverse_proxy backend:3000 { transport http { versions 1.1 } } }
+  handle /lk/*   { uri strip_prefix /lk; reverse_proxy livekit:7880 }
+  handle         { reverse_proxy frontend:80 }
+}
+```
+
+Файл: `deployments/Caddyfile` (или prod variant).
+
+---
+
+## Бэкапы
+
+- Cron: еженедельно PG dump + Mongo dump + S3 files → ZIP в SeaweedFS
+- API: `POST /api/admin/backups` (Admin)
+- Restore: `POST /api/admin/backups/:id/restore`
+- Retention: настраивается в admin limits
+
+---
+
+## Troubleshooting
+
+| Симптом | Проверка |
+|---------|----------|
+| 502 на /api | `docker logs hub-backend-1`, DATABASE_URL |
+| WS disconnect | Caddy WS upgrade, `CORS_ORIGINS` |
+| Magic Link не приходит | `RESEND_API_KEY`, hub-mail status |
+| E2E fail в CI | Артефакт `playwright-report`, `.ci-backend.log` |
+| LiveKit no media | UDP ports 50000–50100, `LIVEKIT_*` keys |
+
+---
+*2026-06-21 — CI jobs, pinned images, DEV_MODE policy*

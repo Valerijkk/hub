@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useThreadMessages } from "@/hooks/use-messages";
 import { MessageComposer } from "./message-composer";
 import { MessageItem } from "./message-item";
+import { ThreadIssueLinks } from "./thread-issue-links";
 
 /** Пропсы компонента ThreadPanel. */
 interface ThreadPanelProps {
@@ -13,6 +14,8 @@ interface ThreadPanelProps {
 	channelId: string;
 	/** ID сообщения (родительского). */
 	messageId: string;
+	/** ID проекта для issue↔thread links (optional). */
+	projectId?: string;
 	/** Колбэк закрытия панели. */
 	onClose: () => void;
 }
@@ -24,6 +27,7 @@ interface ThreadPanelProps {
 export function ThreadPanel({
 	channelId,
 	messageId,
+	projectId,
 	onClose,
 }: ThreadPanelProps) {
 	const { messages: replies, isLoading } = useThreadMessages(
@@ -69,6 +73,14 @@ export function ThreadPanel({
 					</svg>
 				</Button>
 			</div>
+
+			{projectId && (
+				<ThreadIssueLinks
+					projectId={projectId}
+					channelId={channelId}
+					messageId={messageId}
+				/>
+			)}
 
 			{/* Исходное сообщение */}
 			{parentMessage && (

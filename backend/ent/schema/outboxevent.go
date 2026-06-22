@@ -7,12 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// OutboxEvent holds the schema definition for the OutboxEvent entity.
+// OutboxEvent — определение Ent-схемы сущности OutboxEvent.
 type OutboxEvent struct {
 	ent.Schema
 }
 
-// Fields of the OutboxEvent.
+// Поля сущности OutboxEvent.
 func (OutboxEvent) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -37,7 +37,7 @@ func (OutboxEvent) Fields() []ent.Field {
 	}
 }
 
-// Indexes of the OutboxEvent.
+// Индексы сущности OutboxEvent.
 func (OutboxEvent) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("status", "created_at"),

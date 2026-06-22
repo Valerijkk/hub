@@ -14,11 +14,12 @@ Unified platform for dev teams (10-50 people): Task Tracker + Messenger + TMS + 
 hub/
 ├── backend/          # Go 1.24 + Fiber v3
 │   ├── cmd/server/   # main.go (entry point, ~629 LOC — tech debt)
-│   ├── ent/schema/   # ~30 Ent schemas
-│   └── internal/     # 18 modules: auth, project, tracker, sprint,
+│   ├── ent/schema/   # 82 Ent schemas
+│   └── internal/     # 31+ modules: auth, project, tracker, sprint,
 │                     # messenger, tms, calls, dashboard, notification,
 │                     # search, github, gitlab, rbac, storage, imex,
-│                     # backup, audit, apigateway, ws, platform
+│                     # backup, audit, apigateway, ws, ai, crm, intranet,
+│                     # bases, accounting, marketplace, calendar, hr, platform
 ├── frontend/         # React 19 + TypeScript 5.7 + Vite
 │   └── src/          # api/, components/, hooks/, modules/, routes/, stores/
 ├── cli/              # hub-cli (CI/CD utility)

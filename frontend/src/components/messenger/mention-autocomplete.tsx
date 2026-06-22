@@ -199,6 +199,7 @@ export function MentionAutocomplete({
 	return (
 		<div
 			ref={listRef}
+			role="listbox"
 			className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto rounded-lg border bg-popover shadow-lg z-50"
 			// Предотвращаем потерю фокуса textarea при клике по списку.
 			onMouseDown={(e) => e.preventDefault()}

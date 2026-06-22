@@ -8,10 +8,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Channel handlers
+// Обработчики каналов
 // ---------------------------------------------------------------------------
 
-// CreateChannel godoc
+// CreateChannel — Создать канал
 // @Summary Создать канал
 // @Description Создаёт новый канал мессенджера. Создатель автоматически становится участником.
 // @Tags Мессенджер
@@ -42,7 +42,7 @@ func (h *Handler) CreateChannel(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListMyChannels godoc
+// ListMyChannels — Список моих каналов
 // @Summary Список моих каналов
 // @Description Возвращает список каналов, в которых состоит текущий пользователь.
 // @Tags Мессенджер
@@ -65,7 +65,7 @@ func (h *Handler) ListMyChannels(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetChannel godoc
+// GetChannel — Получить канал
 // @Summary Получить канал
 // @Description Возвращает детальную информацию о канале по его ID.
 // @Tags Мессенджер
@@ -95,7 +95,7 @@ func (h *Handler) GetChannel(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateChannel godoc
+// UpdateChannel — Обновить канал
 // @Summary Обновить канал
 // @Description Обновляет название и описание канала. Доступно только участникам.
 // @Tags Мессенджер
@@ -131,7 +131,7 @@ func (h *Handler) UpdateChannel(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteChannel godoc
+// DeleteChannel — Удалить канал
 // @Summary Удалить канал
 // @Description Удаляет канал мессенджера. Доступно только создателю канала.
 // @Tags Мессенджер
@@ -159,7 +159,7 @@ func (h *Handler) DeleteChannel(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// JoinChannel godoc
+// JoinChannel — Вступить в канал
 // @Summary Вступить в канал
 // @Description Текущий пользователь вступает в указанный канал.
 // @Tags Мессенджер
@@ -186,7 +186,7 @@ func (h *Handler) JoinChannel(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// LeaveChannel godoc
+// LeaveChannel — Покинуть канал
 // @Summary Покинуть канал
 // @Description Текущий пользователь покидает указанный канал.
 // @Tags Мессенджер
@@ -213,7 +213,7 @@ func (h *Handler) LeaveChannel(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// AddMembers godoc
+// AddMembers — Добавить участников в канал
 // @Summary Добавить участников в канал
 // @Description Добавляет одного или нескольких пользователей в канал.
 // @Tags Мессенджер
@@ -247,13 +247,13 @@ func (h *Handler) AddMembers(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// ListMembers godoc
+// ListMembers — Список участников канала
 // @Summary Список участников канала
 // @Description Возвращает список всех участников указанного канала.
 // @Tags Мессенджер
 // @Produce json
 // @Param channelId path string true "ID канала"
-// @Success 200 {array} MemberResponse "Список участников"
+// @Success 200 {array} ChannelMemberResponse "Список участников"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -277,10 +277,10 @@ func (h *Handler) ListMembers(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Star / Mute handlers
+// Обработчики избранного / отключения уведомлений
 // ---------------------------------------------------------------------------
 
-// ToggleStar godoc
+// ToggleStar — Переключить избранное
 // @Summary Переключить избранное
 // @Description Добавляет или убирает канал из избранного текущего пользователя.
 // @Tags Мессенджер
@@ -314,7 +314,7 @@ type MuteChannelRequest struct {
 	Duration string `json:"duration"` // "1h", "2h", "8h", "1d", "forever"
 }
 
-// MuteChannel godoc
+// MuteChannel — Замьютить канал
 // @Summary Замьютить канал
 // @Description Отключает уведомления канала на указанный период.
 // @Tags Мессенджер
@@ -350,7 +350,7 @@ func (h *Handler) MuteChannel(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"muted_until": mutedUntil})
 }
 
-// UnmuteChannel godoc
+// UnmuteChannel — Размьютить канал
 // @Summary Размьютить канал
 // @Description Включает уведомления канала обратно.
 // @Tags Мессенджер
@@ -378,10 +378,10 @@ func (h *Handler) UnmuteChannel(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Invite Link Handlers
+// Обработчики invite-ссылок канала
 // ---------------------------------------------------------------------------
 
-// CreateInviteLink godoc
+// CreateInviteLink — Создать пригласительную ссылку канала
 // @Summary Создать пригласительную ссылку канала
 // @Description Генерирует уникальную пригласительную ссылку для вступления в указанный канал.
 // @Tags Мессенджер
@@ -389,7 +389,7 @@ func (h *Handler) UnmuteChannel(c fiber.Ctx) error {
 // @Produce json
 // @Param channelId path string true "ID канала"
 // @Param body body CreateInviteLinkRequest true "Параметры приглашения"
-// @Success 201 {object} InviteLinkResponse "Ссылка создана"
+// @Success 201 {object} ChannelInviteResponse "Ссылка создана"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
@@ -415,13 +415,13 @@ func (h *Handler) CreateInviteLink(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListChannelInvites godoc
+// ListChannelInvites — Список пригласительных ссылок канала
 // @Summary Список пригласительных ссылок канала
 // @Description Возвращает все активные пригласительные ссылки указанного канала.
 // @Tags Мессенджер
 // @Produce json
 // @Param channelId path string true "ID канала"
-// @Success 200 {array} InviteLinkResponse "Список приглашений"
+// @Success 200 {array} ChannelInviteResponse "Список приглашений"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
@@ -443,13 +443,13 @@ func (h *Handler) ListChannelInvites(c fiber.Ctx) error {
 	return c.JSON(invites)
 }
 
-// ValidateInvite godoc
+// ValidateInvite — Проверить пригласительную ссылку
 // @Summary Проверить пригласительную ссылку
 // @Description Проверяет валидность пригласительного токена и возвращает информацию о канале.
 // @Tags Мессенджер
 // @Produce json
 // @Param token path string true "Токен приглашения"
-// @Success 200 {object} ValidateInviteResponse "Информация о приглашении"
+// @Success 200 {object} InviteValidationResponse "Информация о приглашении"
 // @Failure 400 {object} fiber.Error "Токен не указан"
 // @Failure 404 {object} fiber.Error "Приглашение не найдено"
 // @Security BearerAuth
@@ -466,13 +466,13 @@ func (h *Handler) ValidateInvite(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// AcceptInvite godoc
+// AcceptInvite — Принять приглашение в канал
 // @Summary Принять приглашение в канал
 // @Description Принимает пригласительную ссылку и добавляет пользователя в канал.
 // @Tags Мессенджер
 // @Produce json
 // @Param token path string true "Токен приглашения"
-// @Success 200 {object} AcceptInviteResponse "Пользователь добавлен в канал"
+// @Success 200 {object} ChannelResponse "Пользователь добавлен в канал"
 // @Failure 400 {object} fiber.Error "Неверный токен или запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -493,7 +493,7 @@ func (h *Handler) AcceptInvite(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// RevokeInvite godoc
+// RevokeInvite — Отозвать пригласительную ссылку
 // @Summary Отозвать пригласительную ссылку
 // @Description Деактивирует пригласительную ссылку канала. Доступно только участникам канала.
 // @Tags Мессенджер
@@ -526,10 +526,10 @@ func (h *Handler) RevokeInvite(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// DM handlers
+// Обработчики личных сообщений
 // ---------------------------------------------------------------------------
 
-// CreateOrGetDM godoc
+// CreateOrGetDM — Создать или получить личную переписку
 // @Summary Создать или получить личную переписку
 // @Description Создаёт новый DM-канал с указанным пользователем или возвращает существующий.
 // @Tags Мессенджер

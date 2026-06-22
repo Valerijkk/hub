@@ -65,10 +65,10 @@ export function SidebarUserProfile({
 			<div className="flex items-center gap-3 w-full">
 				{avatarBlock}
 				<div className="flex-1 min-w-0">
-					<p className="truncate text-[13px] font-semibold text-t1 leading-tight">
+					<p className="truncate text-[13px] font-semibold text-sidebar-foreground leading-tight">
 						{displayName}
 					</p>
-					<div className="text-[10px] font-semibold text-t3">
+					<div className="text-[10px] font-semibold text-sidebar-subtle">
 						<span className="bg-[rgba(255,255,255,.04)] px-2 py-[2px] rounded-[var(--pill)]">
 							{user?.position || "Участник"}
 						</span>{" "}

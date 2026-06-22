@@ -1,8 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import i18n from "@/i18n";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	startTimer as apiStartTimer,
 	stopTimer as apiStopTimer,
@@ -13,6 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
 import { useTimerStore } from "@/stores/timer-store";
 
 /** Пропсы компонента TimeTracker. */

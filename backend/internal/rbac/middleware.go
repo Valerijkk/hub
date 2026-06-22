@@ -20,7 +20,7 @@ func RequireAuth() fiber.Handler {
 			return fiber.NewError(fiber.StatusUnauthorized, "missing authorization header")
 		}
 
-		// Extract Bearer token
+		// Extract Bearer token — извлекаем Bearer-токен из Authorization.
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid authorization format")
@@ -35,15 +35,14 @@ func RequireAuth() fiber.Handler {
 		// Здесь сохраняем токен для RBAC-проверок.
 		c.Locals("token", token)
 
-		// The actual userID extraction from JWT claims will be done by the auth module.
-		// This placeholder ensures the middleware chain works during development.
+		// userID в Locals выставляет auth.RequireAuth; здесь только token для цепочки middleware.
 
 		return c.Next()
 	}
 }
 
 // RequireSystemRole возвращает middleware, проверяющий системную роль пользователя.
-func RequireSystemRole(role string, client *ent.Client) fiber.Handler {
+func RequireSystemRole(role string, repo Repository) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		userIDStr, ok := c.Locals("userID").(string)
 		if !ok || userIDStr == "" {
@@ -55,7 +54,7 @@ func RequireSystemRole(role string, client *ent.Client) fiber.Handler {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid user ID")
 		}
 
-		u, err := client.User.Get(c.Context(), userUUID)
+		u, err := repo.GetUser(c.Context(), userUUID)
 		if err != nil {
 			return fiber.NewError(fiber.StatusUnauthorized, "user not found")
 		}
@@ -83,7 +82,7 @@ func RequirePermission(perm Permission, svc *RBACService) fiber.Handler {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid user ID")
 		}
 
-		// Copy string from Fiber ctx before any async usage (Pitfall 1)
+		// Копируем projectId до async — fasthttp переиспользует RequestCtx (Pitfall 1).
 		projectIDStr := utils.CopyString(c.Params("projectId"))
 		if projectIDStr == "" {
 			return fiber.NewError(fiber.StatusBadRequest, "project ID required")
@@ -111,8 +110,8 @@ func RequirePermission(perm Permission, svc *RBACService) fiber.Handler {
 }
 
 // RequireAdmin — вспомогательный middleware, проверяющий роль системного администратора.
-func RequireAdmin(client *ent.Client) fiber.Handler {
-	return RequireSystemRole(string(user.SystemRoleAdmin), client)
+func RequireAdmin(repo Repository) fiber.Handler {
+	return RequireSystemRole(string(user.SystemRoleAdmin), repo)
 }
 
 // UserIDFromCtx извлекает строку userID из Fiber Locals.

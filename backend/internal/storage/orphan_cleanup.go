@@ -7,21 +7,21 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/filemetadata"
 )
+
+const orphanBatchLimit = 500
 
 // OrphanCleanupService удаляет осиротевшие файлы — записи с status=pending,
 // созданные более 24 часов назад (клиент не подтвердил загрузку).
 type OrphanCleanupService struct {
-	db       *ent.Client
+	repo     Repository
 	s3Client *s3.Client
 	bucket   string
 }
 
 // NewOrphanCleanupService создаёт сервис очистки осиротевших файлов.
-func NewOrphanCleanupService(db *ent.Client, s3Client *s3.Client, bucket string) *OrphanCleanupService {
-	return &OrphanCleanupService{db: db, s3Client: s3Client, bucket: bucket}
+func NewOrphanCleanupService(repo Repository, s3Client *s3.Client, bucket string) *OrphanCleanupService {
+	return &OrphanCleanupService{repo: repo, s3Client: s3Client, bucket: bucket}
 }
 
 // Cleanup находит и удаляет осиротевшие файлы: pending-записи старше 24 часов.
@@ -29,14 +29,7 @@ func NewOrphanCleanupService(db *ent.Client, s3Client *s3.Client, bucket string)
 func (s *OrphanCleanupService) Cleanup(ctx context.Context) error {
 	cutoff := time.Now().Add(-24 * time.Hour)
 
-	orphans, err := s.db.FileMetadata.Query().
-		Where(
-			filemetadata.StatusEQ(filemetadata.StatusPending),
-			filemetadata.CreatedAtLT(cutoff),
-			filemetadata.DeletedAtIsNil(),
-		).
-		Limit(500). // Batch ограничение для предотвращения перегрузки
-		All(ctx)
+	orphans, err := s.repo.ListOrphanPending(ctx, cutoff, orphanBatchLimit)
 	if err != nil {
 		return err
 	}
@@ -63,7 +56,7 @@ func (s *OrphanCleanupService) Cleanup(ctx context.Context) error {
 		}
 
 		// Удаляем запись метаданных из PostgreSQL
-		if err := s.db.FileMetadata.DeleteOneID(f.ID).Exec(ctx); err != nil {
+		if err := s.repo.DeleteByID(ctx, f.ID); err != nil {
 			slog.Error("не удалось удалить запись метаданных",
 				"file_id", f.ID, "error", err)
 			continue

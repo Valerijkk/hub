@@ -1,7 +1,12 @@
+# Caddyfile для production (docker-compose.prod.yml).
+# Замените домен на свой; Caddy автоматически получит TLS-сертификат Let's Encrypt.
+
 770470.cloud4box.ru {
+	# REST API Hub
 	handle /api/* {
 		reverse_proxy backend:3000
 	}
+	# WebSocket — HTTP/1.1 обязателен для upgrade
 	handle /ws {
 		reverse_proxy backend:3000 {
 			transport http {
@@ -9,10 +14,12 @@
 			}
 		}
 	}
+	# LiveKit: внешний путь /lk/* → внутренний корень livekit:7880
 	handle /lk/* {
 		uri strip_prefix /lk
 		reverse_proxy livekit:7880
 	}
+	# Статика фронтенда (Nginx в контейнере frontend)
 	handle {
 		reverse_proxy frontend:80
 	}

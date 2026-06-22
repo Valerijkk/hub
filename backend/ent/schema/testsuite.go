@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// TestSuite holds the schema definition for the TestSuite entity (folders/sections).
+// TestSuite — Ent-схема набора тест-кейсов (папки/секции TMS).
 type TestSuite struct {
 	ent.Schema
 }
 
-// Fields of the TestSuite.
+// Поля сущности TestSuite.
 func (TestSuite) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -35,7 +35,7 @@ func (TestSuite) Fields() []ent.Field {
 	}
 }
 
-// Edges of the TestSuite.
+// Рёбра (edges) сущности TestSuite.
 func (TestSuite) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -49,7 +49,7 @@ func (TestSuite) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the TestSuite.
+// Индексы сущности TestSuite.
 func (TestSuite) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("name"),

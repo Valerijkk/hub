@@ -8,7 +8,6 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 
-	"github.com/valerii/hub/backend/ent/user"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -19,12 +18,11 @@ import (
 // архитектуру handler → service → repository (db) и упрощает unit-тесты.
 type Handler struct {
 	service *AuthService
-	tgBot   *TelegramBotAuth
 }
 
 // NewHandler создаёт новый обработчик аутентификации.
-func NewHandler(service *AuthService, tgBot *TelegramBotAuth) *Handler {
-	return &Handler{service: service, tgBot: tgBot}
+func NewHandler(service *AuthService) *Handler {
+	return &Handler{service: service}
 }
 
 // RegisterRoutes регистрирует все маршруты аутентификации на указанном Fiber-роутере.
@@ -35,8 +33,6 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	// Публичные эндпоинты (без аутентификации).
 	auth.Post("/magic-link", h.SendMagicLink)
 	auth.Post("/magic-link/verify", h.VerifyMagicLink)
-	auth.Post("/telegram", h.LoginTelegram)
-	auth.Post("/telegram-code", h.LoginTelegramCode)
 	auth.Post("/refresh", h.RefreshToken)
 
 	// Защищённые эндпоинты (требуют аутентификации).
@@ -52,6 +48,10 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	admin := api.Group("/admin", authMw)
 	admin.Get("/registration-mode", h.GetRegistrationMode)
 	admin.Put("/registration-mode", h.SetRegistrationMode)
+	admin.Get("/users/pending", h.ListPendingUsers)
+	admin.Post("/users/:userId/approve", h.ApprovePendingUser)
+	admin.Post("/users/:userId/reject", h.RejectPendingUser)
+	admin.Get("/organization/invite", h.GetOrgInvite)
 }
 
 // ---- Публичные обработчики ----
@@ -78,13 +78,12 @@ func (h *Handler) SendMagicLink(c fiber.Ctx) error {
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 
-	// Check registration mode: if invite_only and user does not exist, reject.
-	mode, _ := h.service.GetRegistrationMode(c.Context())
-	if mode == "invite_only" {
-		exists, _ := h.service.UserExistsByEmail(c.Context(), req.Email)
-		if !exists {
+	// invite_only: нужен существующий пользователь, валидный invite или setup founder.
+	if err := h.service.Login.CanSendMagicLink(c.Context(), req.Email, req.InviteToken); err != nil {
+		if err == ErrInvalidInviteToken || err == ErrRegistrationInviteOnly {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
 		}
+		return fiber.NewError(fiber.StatusInternalServerError, "registration check failed")
 	}
 
 	code, err := h.service.magicLink.SendMagicLink(c.Context(), req.Email)
@@ -126,7 +125,7 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 	device := utils.CopyString(c.Get("User-Agent"))
 	ip := c.IP()
 
-	tokens, err := h.service.LoginWithMagicLink(c.Context(), req.Email, req.Code, device, ip)
+	tokens, err := h.service.LoginWithMagicLink(c.Context(), req.Email, req.Code, req.InviteToken, device, ip)
 	if err != nil {
 		if err == ErrMagicLinkInvalid {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid or expired code")
@@ -134,88 +133,7 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 		if err == ErrMagicLinkVerifyLimited {
 			return fiber.NewError(fiber.StatusTooManyRequests, "too many verification attempts, try again later")
 		}
-		if err == ErrRegistrationInviteOnly {
-			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
-		}
-		return fiber.NewError(fiber.StatusInternalServerError, "login failed")
-	}
-
-	return c.JSON(tokens)
-}
-
-// LoginTelegram обрабатывает POST /api/auth/telegram — вход через Telegram Web App.
-// @Summary Вход через Telegram Web App
-// @Description Аутентификация через initData из Telegram Mini App
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param body body TelegramAuthRequest true "initData из Telegram Web App"
-// @Success 200 {object} TokenPairResponse "JWT-токены"
-// @Failure 401 {object} map[string]string "Ошибка аутентификации Telegram"
-// @Failure 403 {object} map[string]string "Регистрация только по приглашению"
-// @Router /auth/telegram [post]
-func (h *Handler) LoginTelegram(c fiber.Ctx) error {
-	var req TelegramAuthRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
-	}
-
-	device := utils.CopyString(c.Get("User-Agent"))
-	ip := c.IP()
-
-	tokens, err := h.service.LoginWithTelegram(c.Context(), req.InitData, device, ip)
-	if err != nil {
-		if err == ErrTelegramAuthExpired {
-			return fiber.NewError(fiber.StatusUnauthorized, "telegram auth expired")
-		}
-		if err == ErrRegistrationInviteOnly {
-			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
-		}
-		return fiber.NewError(fiber.StatusUnauthorized, "telegram auth failed")
-	}
-
-	return c.JSON(tokens)
-}
-
-// LoginTelegramCode обрабатывает POST /api/auth/telegram-code — вход по коду из Telegram-бота.
-// @Summary Вход по коду из Telegram-бота
-// @Description Аутентификация по одноразовому коду, полученному от Telegram-бота
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param body body object true "code — одноразовый код"
-// @Success 200 {object} TokenPairResponse "JWT-токены"
-// @Failure 400 {object} map[string]string "Код не указан"
-// @Failure 401 {object} map[string]string "Неверный или просроченный код"
-// @Failure 403 {object} map[string]string "Регистрация только по приглашению"
-// @Failure 503 {object} map[string]string "Telegram-бот не настроен"
-// @Router /auth/telegram-code [post]
-func (h *Handler) LoginTelegramCode(c fiber.Ctx) error {
-	var req struct {
-		Code string `json:"code"`
-	}
-	if err := c.Bind().JSON(&req); err != nil || req.Code == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "code is required")
-	}
-
-	if h.tgBot == nil {
-		return fiber.NewError(fiber.StatusServiceUnavailable, "telegram bot not configured")
-	}
-
-	tgUser, err := h.tgBot.VerifyCode(c.Context(), req.Code, c.IP())
-	if err != nil {
-		if err == ErrTelegramVerifyLimited {
-			return fiber.NewError(fiber.StatusTooManyRequests, "too many verification attempts, try again later")
-		}
-		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
-	}
-
-	device := utils.CopyString(c.Get("User-Agent"))
-	ip := c.IP()
-
-	tokens, err := h.service.LoginWithTelegramUser(c.Context(), tgUser, device, ip)
-	if err != nil {
-		if err == ErrRegistrationInviteOnly {
+		if err == ErrRegistrationInviteOnly || err == ErrInvalidInviteToken {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
 		}
 		return fiber.NewError(fiber.StatusInternalServerError, "login failed")
@@ -231,7 +149,7 @@ func (h *Handler) LoginTelegramCode(c fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param body body RefreshRequest true "Refresh-токен"
-// @Success 200 {object} TokenPair "Новые JWT-токены"
+// @Success 200 {object} TokenPairResponse "Новые JWT-токены"
 // @Failure 401 {object} map[string]string "Невалидный refresh-токен"
 // @Router /auth/refresh [post]
 func (h *Handler) RefreshToken(c fiber.Ctx) error {
@@ -412,7 +330,7 @@ func (h *Handler) RevokeSession(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
 	}
 
-	// Copy string from Fiber ctx (Pitfall 1).
+	// Копируем sessionId из Fiber ctx до async (Pitfall 1).
 	sessionIDStr := utils.CopyString(c.Params("sessionId"))
 	sessionID, err := uuid.Parse(sessionIDStr)
 	if err != nil {
@@ -484,7 +402,121 @@ func (h *Handler) SetRegistrationMode(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"mode": req.Mode})
 }
 
-// ---- Helpers ----
+// ListPendingUsers возвращает пользователей, ожидающих одобрения admin (ORG-06).
+// @Summary Список пользователей в очереди Pending
+// @Description Возвращает пользователей со статусом pending, ожидающих одобрения администратора (ORG-06)
+// @Tags Администрирование
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} PendingUserResponse "Очередь pending"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 403 {object} map[string]string "Нет прав администратора"
+// @Router /admin/users/pending [get]
+func (h *Handler) ListPendingUsers(c fiber.Ctx) error {
+	if err := h.requireAdmin(c); err != nil {
+		return err
+	}
+	users, err := h.service.Org.ListPendingUsers(c.Context())
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to list pending users")
+	}
+	resp := make([]PendingUserResponse, 0, len(users))
+	for _, u := range users {
+		item := PendingUserResponse{ID: u.ID.String(), Email: u.Email}
+		if u.PendingSince != nil {
+			item.PendingSince = *u.PendingSince
+		}
+		resp = append(resp, item)
+	}
+	return c.JSON(resp)
+}
+
+// ApprovePendingUser активирует pending-пользователя (ORG-06).
+// @Summary Одобрить pending-пользователя
+// @Description Активирует пользователя из очереди pending (ORG-06)
+// @Tags Администрирование
+// @Produce json
+// @Security BearerAuth
+// @Param userId path string true "UUID пользователя"
+// @Success 200 {object} map[string]string "user approved"
+// @Failure 400 {object} map[string]string "Некорректный UUID"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 403 {object} map[string]string "Нет прав администратора"
+// @Failure 404 {object} map[string]string "Пользователь не найден"
+// @Router /admin/users/{userId}/approve [post]
+func (h *Handler) ApprovePendingUser(c fiber.Ctx) error {
+	if err := h.requireAdmin(c); err != nil {
+		return err
+	}
+	userID, err := uuid.Parse(utils.CopyString(c.Params("userId")))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
+	}
+	if err := h.service.Org.ApprovePendingUser(c.Context(), userID); err != nil {
+		if err == ErrUserNotFound {
+			return fiber.NewError(fiber.StatusNotFound, "pending user not found")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to approve user")
+	}
+	return c.JSON(fiber.Map{"message": "user approved"})
+}
+
+// RejectPendingUser удаляет pending-регистрацию (ORG-06).
+// @Summary Отклонить pending-пользователя
+// @Description Удаляет регистрацию пользователя из очереди pending (ORG-06)
+// @Tags Администрирование
+// @Produce json
+// @Security BearerAuth
+// @Param userId path string true "UUID пользователя"
+// @Success 200 {object} map[string]string "user rejected"
+// @Failure 400 {object} map[string]string "Некорректный UUID"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 403 {object} map[string]string "Нет прав администратора"
+// @Failure 404 {object} map[string]string "Пользователь не найден"
+// @Router /admin/users/{userId}/reject [post]
+func (h *Handler) RejectPendingUser(c fiber.Ctx) error {
+	if err := h.requireAdmin(c); err != nil {
+		return err
+	}
+	userID, err := uuid.Parse(utils.CopyString(c.Params("userId")))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
+	}
+	if err := h.service.Org.RejectPendingUser(c.Context(), userID); err != nil {
+		if err == ErrUserNotFound {
+			return fiber.NewError(fiber.StatusNotFound, "pending user not found")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to reject user")
+	}
+	return c.JSON(fiber.Map{"message": "user rejected"})
+}
+
+// GetOrgInvite возвращает invite-токен org для sharing (admin/founder, ORG-01).
+// @Summary Получить org invite token
+// @Description Возвращает invite-токен организации для invite-only регистрации (ORG-01)
+// @Tags Администрирование
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} OrgInviteResponse "Invite token и URL"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 403 {object} map[string]string "Нет прав администратора"
+// @Failure 404 {object} map[string]string "Организация не настроена"
+// @Router /admin/organization/invite [get]
+func (h *Handler) GetOrgInvite(c fiber.Ctx) error {
+	if err := h.requireAdmin(c); err != nil {
+		return err
+	}
+	org, err := h.service.Org.GetOrganization(c.Context())
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "organization not configured")
+	}
+	return c.JSON(OrgInviteResponse{
+		InviteToken: org.InviteToken,
+		InviteURL:   "/login?invite=" + org.InviteToken,
+	})
+}
+
+// ---- Вспомогательные функции ----
 
 // sessionIDFromCtx извлекает ID сессии из контекста Fiber.
 func sessionIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
@@ -507,7 +539,7 @@ func (h *Handler) requireAdmin(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "user not found")
 	}
 
-	if u.SystemRole != user.SystemRoleAdmin {
+	if !IsSystemAdmin(u.SystemRole) {
 		return fiber.NewError(fiber.StatusForbidden, "admin access required")
 	}
 

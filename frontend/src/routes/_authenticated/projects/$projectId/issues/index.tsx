@@ -172,7 +172,7 @@ function IssueListPage() {
 				isEmpty={() => displayIssues.length === 0}
 				loadingFallback={
 					<div className="animate-fade-in rounded-md border">
-						{/* Table header skeleton */}
+						{/* Skeleton заголовка таблицы */}
 						<div className="flex items-center gap-4 border-b bg-raised/30 px-4 py-3">
 							<div className="h-4 w-20 rounded animate-shimmer" />
 							<div className="h-4 w-12 rounded animate-shimmer" />
@@ -181,7 +181,7 @@ function IssueListPage() {
 							<div className="h-4 w-20 rounded animate-shimmer" />
 							<div className="h-4 w-16 rounded animate-shimmer" />
 						</div>
-						{/* Table rows skeleton */}
+						{/* Skeleton строк таблицы */}
 						{[1, 2, 3, 4, 5, 6].map((i) => (
 							<div
 								key={`issue-sk-${i}`}

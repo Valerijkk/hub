@@ -1,5 +1,5 @@
 /**
- * Individual test case table row component.
+ * Строка таблицы тест-кейса.
  */
 import { Link } from "@tanstack/react-router";
 import type { TestCaseResponse } from "@/api/tms";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatRelativeTime } from "@/lib/format-time";
 import { cn } from "@/lib/utils";
 
-/** Color config for test case priorities. */
+/** Цвета приоритетов тест-кейсов. */
 export const PRIORITY_CONFIG: Record<
 	string,
 	{ dot: string; bg: string; text: string; label: string }
@@ -44,7 +44,7 @@ export const PRIORITY_CONFIG: Record<
 	},
 };
 
-/** Test case status config. */
+/** Конфиг статусов тест-кейса. */
 export const STATUS_CONFIG: Record<
 	string,
 	{ label: string; bg: string; text: string }
@@ -99,6 +99,7 @@ export function CaseTableRow({
 				<input
 					type="checkbox"
 					className="rounded border-b2"
+					aria-label={`Выбрать кейс ${tc.case_key}`}
 					checked={isSelected}
 					onChange={() => onToggleSelect(tc.id)}
 				/>

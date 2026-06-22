@@ -1,10 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import { listGitLabIntegrations, triggerPipeline } from "@/api/gitlab";
 import { listTestCases, type TestCaseResponse } from "@/api/tms";
 import { Badge } from "@/components/ui/badge";
+import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -127,10 +127,14 @@ export function TriggerCIPanel({ projectId }: Props) {
 					<div className="flex gap-3">
 						{integrations && integrations.length > 1 && (
 							<div className="flex-1">
-								<label className="mb-1 block text-xs font-medium text-t2">
+								<label
+									htmlFor="trigger-ci-integration"
+									className="mb-1 block text-xs font-medium text-t2"
+								>
 									Репозиторий
 								</label>
 								<select
+									id="trigger-ci-integration"
 									value={activeIntegrationId}
 									onChange={(e) => setSelectedIntegration(e.target.value)}
 									className="w-full rounded-lg border border-input bg-base px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
@@ -148,10 +152,14 @@ export function TriggerCIPanel({ projectId }: Props) {
 								integrations && integrations.length > 1 ? "w-48" : "w-64"
 							}
 						>
-							<label className="mb-1 block text-xs font-medium text-t2">
+							<label
+								htmlFor="trigger-ci-branch"
+								className="mb-1 block text-xs font-medium text-t2"
+							>
 								Ветка
 							</label>
 							<input
+								id="trigger-ci-branch"
 								type="text"
 								value={branch}
 								onChange={(e) => setBranch(e.target.value)}

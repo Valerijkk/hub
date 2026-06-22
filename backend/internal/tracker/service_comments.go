@@ -10,7 +10,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Comments
+// Комментарии
 // ---------------------------------------------------------------------------
 
 // CreateComment добавляет комментарий к задаче.
@@ -33,6 +33,10 @@ func (s *TrackerService) CreateComment(ctx context.Context, issueKey string, use
 	c, err := s.repo.CreateComment(ctx, existing.ID, userID, input)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка создания комментария")
+	}
+
+	if !req.IsInternal {
+		s.mirrorIssueCommentsToThreads(ctx, existing.ID, userID, req.BodyText)
 	}
 
 	// Логируем активность

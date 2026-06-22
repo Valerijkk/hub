@@ -52,23 +52,23 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	calls.Post("/:callId/chat", h.SendChatMessage)
 	calls.Get("/:callId/chat", h.ListChatMessages)
 
-	// Recording endpoints (CALL-04, CALL-05)
+	// Эндпоинты записи звонков (CALL-04, CALL-05)
 	calls.Post("/:callId/recording/start", h.StartRecording)
 	calls.Post("/:callId/recording/stop", h.StopRecording)
 
-	// Project recordings (CALL-05)
+	// Записи проекта (CALL-05)
 	projects := api.Group("/projects", authMw)
 	projects.Get("/:projectId/recordings", h.ListProjectRecordings)
 	projects.Post("/:projectId/scheduled-calls", h.CreateScheduledCall)
 
-	// Recording download
+	// Скачивание записи
 	recordings := api.Group("/recordings", authMw)
 	recordings.Get("/:recordingId/download", h.GetRecordingDownloadURL)
 
-	// Conflict check
+	// Проверка конфликтов
 	calls.Get("/conflicts", h.CheckConflicts)
 
-	// Scheduled calls (CALL-02)
+	// Запланированные звонки (CALL-02)
 	channels := api.Group("/channels", authMw)
 	channels.Get("/:channelId/scheduled-calls", h.ListScheduledCalls)
 
@@ -81,7 +81,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Вспомогательные функции
 // ---------------------------------------------------------------------------
 
 // parseCallID извлекает и валидирует callId из параметров пути.
@@ -108,7 +108,7 @@ func userNameFromCtx(c fiber.Ctx) string {
 }
 
 // ---------------------------------------------------------------------------
-// Webhook handler
+// Обработчик webhook LiveKit
 // ---------------------------------------------------------------------------
 
 // webhookEvent представляет структуру webhook-события от LiveKit.
@@ -142,7 +142,7 @@ type webhookFileResult struct {
 	Duration float64 `json:"duration"`
 }
 
-// HandleWebhook godoc
+// HandleWebhook — Webhook от LiveKit
 // @Summary Webhook от LiveKit
 // @Description Обрабатывает входящие события от LiveKit (room_started, participant_joined и др.).
 // @Description Верификация JWT из Authorization header + SHA256 hash body.
@@ -246,7 +246,7 @@ func (h *Handler) verifyWebhookSignature(authHeader string, body []byte) bool {
 	// префикс ожидаемого ключа — этого достаточно, чтобы оператор сопоставил
 	// конфиг с инцидентом, не утекая сам секрет.
 	iss, _ := claims["iss"].(string)
-	if iss != h.cfg.APIKey {
+	if !constantTimeStringEqual(iss, h.cfg.APIKey) {
 		expectedSum := sha256.Sum256([]byte(h.cfg.APIKey))
 		expectedHash := hex.EncodeToString(expectedSum[:])[:8]
 		slog.Error("несовпадение API key в webhook", "got", iss, "expected_hash", expectedHash)
@@ -271,4 +271,12 @@ func (h *Handler) verifyWebhookSignature(authHeader string, body []byte) bool {
 	}
 
 	return true
+}
+
+// constantTimeStringEqual сравнивает строки через SHA-256 без утечки по длине
+// (FA-02-03: iss vs APIKey не через !=).
+func constantTimeStringEqual(a, b string) bool {
+	aSum := sha256.Sum256([]byte(a))
+	bSum := sha256.Sum256([]byte(b))
+	return hmac.Equal(aSum[:], bSum[:])
 }

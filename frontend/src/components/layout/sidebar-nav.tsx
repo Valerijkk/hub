@@ -69,6 +69,28 @@ export function SidebarNav({
 				}
 			/>
 			<SidebarLink
+				to="/calendar"
+				label={t("nav.calendar", { defaultValue: "Календарь" })}
+				collapsed={collapsed}
+				icon={
+					<svg
+						aria-hidden="true"
+						className={NAV_ICON_COLORS["/calendar"]}
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<rect x="3" y="4" width="14" height="13" rx="1.5" />
+						<path d="M3 8h14M7 2.5V5M13 2.5V5" />
+					</svg>
+				}
+			/>
+			<SidebarLink
 				to="/calls"
 				label={t("nav.calls", { defaultValue: "Созвоны" })}
 				collapsed={collapsed}
@@ -111,6 +133,142 @@ export function SidebarNav({
 						<rect x="11.5" y="2.5" width="6" height="6" rx="1.5" />
 						<rect x="2.5" y="11.5" width="6" height="6" rx="1.5" />
 						<rect x="11.5" y="11.5" width="6" height="6" rx="1.5" />
+					</svg>
+				}
+			/>
+			<SidebarLink
+				to="/crm"
+				label={t("nav.crm", { defaultValue: "CRM" })}
+				collapsed={collapsed}
+				icon={
+					<svg
+						aria-hidden="true"
+						className={NAV_ICON_COLORS["/crm"]}
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<path d="M3 6.5h14v10H3z" />
+						<path d="M7 3.5v3M13 3.5v3" />
+						<path d="M6 10h2M6 13h5" />
+					</svg>
+				}
+			/>
+			<SidebarLink
+				to="/hr"
+				label={t("nav.hr", { defaultValue: "HR — отпуска" })}
+				collapsed={collapsed}
+				icon={
+					<svg
+						aria-hidden="true"
+						className={NAV_ICON_COLORS["/hr"]}
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<rect x="3" y="4" width="14" height="13" rx="1.5" />
+						<path d="M3 8h14M7 2.5V5M13 2.5V5" />
+						<path d="M7 11h6" />
+					</svg>
+				}
+			/>
+			<SidebarLink
+				to="/marketplace"
+				label={t("nav.marketplace", { defaultValue: "Барахолка" })}
+				collapsed={collapsed}
+				icon={
+					<svg
+						aria-hidden="true"
+						className={NAV_ICON_COLORS["/marketplace"]}
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<path d="M3 5h14l-1 11H4L3 5z" />
+						<path d="M7 5V3h6v2" />
+					</svg>
+				}
+			/>
+			<SidebarLink
+				to="/bases"
+				label={t("nav.bases", { defaultValue: "Hub Base" })}
+				collapsed={collapsed}
+				icon={
+					<svg
+						aria-hidden="true"
+						className={NAV_ICON_COLORS["/bases"]}
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<rect x="3" y="3" width="14" height="14" rx="1.5" />
+						<path d="M3 8h14M8 8v9" />
+					</svg>
+				}
+			/>
+			<SidebarLink
+				to="/intranet"
+				label={t("nav.intranet", { defaultValue: "Новости" })}
+				collapsed={collapsed}
+				icon={
+					<svg
+						aria-hidden="true"
+						className={NAV_ICON_COLORS["/intranet"]}
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<path d="M3 5.5h14v9H3z" />
+						<path d="M6 8.5h8M6 11h5" />
+					</svg>
+				}
+			/>
+			<SidebarLink
+				to="/intranet/directory"
+				label={t("nav.directory", { defaultValue: "Справочник" })}
+				collapsed={collapsed}
+				icon={
+					<svg
+						aria-hidden="true"
+						className={NAV_ICON_COLORS["/intranet/directory"]}
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<circle cx="7" cy="6" r="2.5" />
+						<path d="M2.5 16.5v-1a4.5 4.5 0 019 0v1" />
+						<circle cx="14" cy="7" r="2" />
+						<path d="M11 16.5v-1a3.5 3.5 0 017 0v1" />
 					</svg>
 				}
 			/>

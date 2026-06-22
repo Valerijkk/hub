@@ -9,7 +9,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Focused domain interfaces (ISP — Interface Segregation Principle)
+// Узкие доменные интерфейсы (ISP — Interface Segregation Principle)
 // ---------------------------------------------------------------------------
 
 // IssueRepository управляет CRUD задач и перемещением на доске.
@@ -132,8 +132,28 @@ type CustomFieldRepository interface {
 	DeleteCustomField(ctx context.Context, fieldID uuid.UUID) error
 }
 
+// IssueMessageLinkRepository управляет связями задача↔тред мессенджера (PROD-03).
+type IssueMessageLinkRepository interface {
+	CreateIssueMessageLink(ctx context.Context, issueID, channelID, createdBy uuid.UUID, messageID string, mirrorToThread bool) (*ent.IssueMessageLink, error)
+	ListIssueMessageLinksByIssue(ctx context.Context, issueID uuid.UUID) ([]*ent.IssueMessageLink, error)
+	ListIssueMessageLinksByThread(ctx context.Context, channelID uuid.UUID, messageID string) ([]*ent.IssueMessageLink, error)
+	FindIssueMessageLink(ctx context.Context, linkID uuid.UUID) (*ent.IssueMessageLink, error)
+	DeleteIssueMessageLink(ctx context.Context, linkID, issueID uuid.UUID) error
+}
+
+// AutomationRepository управляет правилами workflow-автоматизации (PROD-01).
+type AutomationRepository interface {
+	ListAutomationRules(ctx context.Context, projectID uuid.UUID) ([]*ent.AutomationRule, error)
+	CountAutomationRules(ctx context.Context, projectID uuid.UUID) (int, error)
+	CreateAutomationRule(ctx context.Context, projectID, createdBy uuid.UUID, input CreateAutomationRuleInput) (*ent.AutomationRule, error)
+	FindAutomationRule(ctx context.Context, projectID, ruleID uuid.UUID) (*ent.AutomationRule, error)
+	UpdateAutomationRule(ctx context.Context, ruleID uuid.UUID, input UpdateAutomationRuleInput) (*ent.AutomationRule, error)
+	DeleteAutomationRule(ctx context.Context, projectID, ruleID uuid.UUID) error
+	ListEnabledAutomationRules(ctx context.Context, projectID uuid.UUID, triggerType string) ([]*ent.AutomationRule, error)
+}
+
 // ---------------------------------------------------------------------------
-// Composite interface (backward-compatible)
+// Композитный интерфейс (обратная совместимость)
 // ---------------------------------------------------------------------------
 
 // Repository — композитный интерфейс для обратной совместимости.
@@ -148,13 +168,15 @@ type Repository interface {
 	LabelRepository
 	BoardRepository
 	CustomFieldRepository
+	AutomationRepository
+	IssueMessageLinkRepository
 
 	// GetDB возвращает Ent-клиент для прямых запросов (JQL и др.).
 	GetDB() *ent.Client
 }
 
 // ---------------------------------------------------------------------------
-// Repository input structs (use uuid.UUID, not string)
+// Входные структуры репозитория (uuid.UUID, не string)
 // ---------------------------------------------------------------------------
 
 // CreateIssueInput — распарсенные и валидированные данные для создания задачи.
@@ -195,14 +217,15 @@ type UpdateIssueInput struct {
 
 // ListIssuesParams — распарсенные параметры фильтрации и пагинации для списка задач.
 type ListIssuesParams struct {
-	Cursor    string
-	Limit     int
-	Status    []string
-	Priority  []string
-	Assignee  *uuid.UUID
-	IssueType string
-	Search    string
-	OrderBy   string
+	Cursor         string
+	Limit          int
+	Status         []string
+	Priority       []string
+	Assignee       *uuid.UUID
+	UnassignedOnly bool
+	IssueType      string
+	Search         string
+	OrderBy        string
 }
 
 // CreateCommentInput — распарсенные данные для создания комментария.
@@ -228,7 +251,7 @@ type CreateCustomFieldInput struct {
 }
 
 // ---------------------------------------------------------------------------
-// OutboxPublisher + EntRepository skeleton
+// OutboxPublisher и каркас EntRepository
 // ---------------------------------------------------------------------------
 
 // OutboxPublisher абстрагирует публикацию событий через outbox-таблицу для репозитория.

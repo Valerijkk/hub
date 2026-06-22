@@ -1,0 +1,55 @@
+name: PR Guard
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Block obvious secrets in diff
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="HEAD~1"
+          fi
+          if git diff "$BASE"..HEAD | grep '^+' | grep -v '^+++' | grep -iE '(password\s*=\s*["'"'"'][^"'"'"']+|api[_-]?key\s*=\s*["'"'"'][^"'"'"']+|BEGIN (RSA|OPENSSH) PRIVATE KEY)'; then
+            echo "::error::Potential secret detected in diff"
+            exit 1
+          fi
+          echo "No obvious secrets in diff"
+
+  docs-link-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify core docs exist
+        run: |
+          for f in docs/README.md docs/vision_and_scope.md docs/architecture.md AGENTS.md; do
+            test -f "$f" || { echo "Missing $f"; exit 1; }
+          done
+
+  path-labels:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}

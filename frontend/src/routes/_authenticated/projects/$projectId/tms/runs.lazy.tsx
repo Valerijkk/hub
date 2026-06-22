@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	createTestRun,
 	type ListTestRunsParams,
@@ -26,10 +25,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 import { formatRelativeTime } from "@/lib/format-time";
 import { cn } from "@/lib/utils";
 
-/** Run status config with icons. */
+/** Конфиг статусов прогона с иконками. */
 const RUN_STATUS_CONFIG: Record<
 	string,
 	{ bg: string; text: string; label: string; borderColor: string }
@@ -60,7 +60,7 @@ const RUN_STATUS_CONFIG: Record<
 	},
 };
 
-/** Run type config. */
+/** Конфиг типов прогона. */
 const RUN_TYPE_CONFIG: Record<
 	string,
 	{ bg: string; text: string; label: string }
@@ -83,7 +83,7 @@ const RUN_TYPE_CONFIG: Record<
 };
 
 /**
- * Test runs list page -- Allure TestOps level design.
+ * Список прогонов — UI уровня Allure TestOps.
  */
 function TestRunsPage() {
 	const { projectId } = Route.useParams();
@@ -133,7 +133,7 @@ function TestRunsPage() {
 
 	return (
 		<div className="flex flex-col flex-1 animate-[enterUp_450ms_var(--spring)_both]">
-			{/* Top bar */}
+			{/* Верхняя панель */}
 			<div className="px-6 py-4 border-b border-b1 flex items-center gap-[14px] bg-[rgba(13,14,18,0.5)] backdrop-blur-[12px]">
 				<h2 className="text-[15px] font-bold tracking-[-0.015em]">Прогоны</h2>
 				<span className="text-[11.5px] font-semibold text-t3 bg-white/[0.035] px-3 py-[3px] rounded-full">
@@ -250,7 +250,7 @@ function TestRunsPage() {
 				</Dialog>
 			</div>
 
-			{/* Run list */}
+			{/* Список прогонов */}
 			{isLoading ? (
 				<div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-[18px] p-6">
 					{[1, 2, 3, 4, 5, 6].map((i) => (
@@ -319,7 +319,7 @@ function TestRunsPage() {
 				</div>
 			) : (
 				<>
-					{/* Run cards grid */}
+					{/* Сетка карточек прогонов */}
 					<div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-[18px] p-6 flex-1 overflow-y-auto">
 						{runs.map((run) => {
 							const rate = passRate(run);
@@ -337,7 +337,7 @@ function TestRunsPage() {
 									className="block group"
 								>
 									<div className="tms-run-card bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-[250ms] hover:border-b2 hover:-translate-y-[3px] hover:shadow-[var(--sh2)]">
-										{/* Card header */}
+										{/* Заголовок карточки */}
 										<div className="flex items-center gap-3 px-5 py-4">
 											<Badge
 												variant="secondary"
@@ -356,7 +356,7 @@ function TestRunsPage() {
 											</span>
 										</div>
 
-										{/* Title + date */}
+										{/* Название + дата */}
 										<div className="px-5 pb-1">
 											<div className="text-[14px] font-bold tracking-[-0.01em] mb-[2px] group-hover:text-white transition-colors">
 												{run.title}
@@ -380,7 +380,7 @@ function TestRunsPage() {
 											</div>
 										</div>
 
-										{/* Progress bar */}
+										{/* Прогресс-бар */}
 										{hasResults && (
 											<div className="px-5 pb-4 pt-3">
 												<div className="h-[3px] bg-white/[0.04] rounded-full overflow-hidden flex gap-[2px]">
@@ -420,7 +420,7 @@ function TestRunsPage() {
 											</div>
 										)}
 
-										{/* Stats row */}
+										{/* Строка статистики */}
 										{hasResults && (
 											<div className="flex gap-3 px-5 pb-4">
 												{run.passed_count > 0 && (
@@ -441,7 +441,7 @@ function TestRunsPage() {
 											</div>
 										)}
 
-										{/* Footer */}
+										{/* Футер диалога */}
 										<div className="px-5 py-3 border-t border-b1 flex items-center justify-between text-[12px] text-t3">
 											<span>{run.total_count} тестов</span>
 											<span>{formatRelativeTime(run.created_at)}</span>
@@ -452,7 +452,7 @@ function TestRunsPage() {
 						})}
 					</div>
 
-					{/* Pagination */}
+					{/* Пагинация */}
 					{total > 50 && (
 						<div className="px-6 py-3 border-t border-b1 flex items-center justify-between">
 							<span className="text-[12px] text-t3 tabular-nums">

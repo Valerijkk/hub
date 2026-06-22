@@ -135,7 +135,7 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 	const checklistPct =
 		checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
 
-	/** Assignee color from avatar_url or fallback gradient */
+	/** Цвет assignee из avatar_url или fallback-градиент */
 	const assigneeBg = issue.assignee
 		? "linear-gradient(140deg, var(--blueS), var(--purpleS))"
 		: undefined;
@@ -150,8 +150,6 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 		>
 			<div
 				ref={cardRef}
-				role="button"
-				tabIndex={0}
 				className={cn("select-none", isDragging && "opacity-30")}
 				onPointerDown={handlePointerDown}
 			>
@@ -181,7 +179,7 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 						{issue.title}
 					</p>
 
-					{/* Meta row: priority dot + SP + checklist */}
+					{/* Мета: приоритет + SP + чеклист */}
 					<div className="flex items-center gap-2">
 						<span
 							className="w-2 h-2 rounded-[3px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] hover:shadow-[0_0_10px_currentColor] hover:scale-125"
@@ -207,7 +205,7 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 						)}
 					</div>
 
-					{/* Footer row: assignee avatar + labels */}
+					{/* Футер: аватар assignee + метки */}
 					<div className="flex items-center justify-between mt-3.5">
 						{issue.assignee ? (
 							<div
@@ -222,7 +220,7 @@ export function IssueCard({ issue, projectId }: IssueCardProps) {
 							</div>
 						)}
 
-						{/* Labels — placeholder for future IssueBriefResponse extension */}
+						{/* Метки — заглушка до расширения IssueBriefResponse */}
 					</div>
 				</div>
 			</div>

@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// IssueLink holds the schema definition for the IssueLink entity.
+// IssueLink — определение Ent-схемы сущности IssueLink.
 type IssueLink struct {
 	ent.Schema
 }
 
-// Fields of the IssueLink.
+// Поля сущности IssueLink.
 func (IssueLink) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -37,7 +37,7 @@ func (IssueLink) Fields() []ent.Field {
 	}
 }
 
-// Edges of the IssueLink.
+// Рёбра (edges) сущности IssueLink.
 func (IssueLink) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("source", Issue.Type).
@@ -50,7 +50,7 @@ func (IssueLink) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the IssueLink.
+// Индексы сущности IssueLink.
 func (IssueLink) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("source", "target").

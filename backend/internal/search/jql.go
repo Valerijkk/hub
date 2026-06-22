@@ -156,7 +156,7 @@ func dateFieldPredicate(value, op, field string) predicate.Issue {
 	return nil
 }
 
-// --- JQL Parser ---
+// --- Парсер JQL ---
 
 type jqlParser struct {
 	input string
@@ -292,7 +292,7 @@ func (p *jqlParser) readIdentifier() string {
 }
 
 func (p *jqlParser) readOperator() string {
-	// NOT IN
+	// NOT IN — ветка парсера для исключающего списка значений. — исключение из списка значений
 	if p.matchKeyword("NOT") {
 		p.skipWhitespace()
 		if p.matchKeyword("IN") {
@@ -300,7 +300,7 @@ func (p *jqlParser) readOperator() string {
 		}
 		return ""
 	}
-	// IN
+	// IN — ветка парсера для списка допустимых значений.
 	if p.matchKeyword("IN") {
 		return "IN"
 	}

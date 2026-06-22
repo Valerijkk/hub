@@ -23,12 +23,12 @@ import { WeekView } from "./calendar-week-view";
 import { CreateCallDialog } from "./create-call-dialog";
 
 // ---------------------------------------------------------------------------
-// CallCalendar component
+// Компонент календаря звонков
 // ---------------------------------------------------------------------------
 
 /**
- * CallCalendar -- calendar view for scheduled calls.
- * Supports month (default) and week views with a view switcher.
+ * CallCalendar — календарь запланированных звонков.
+ * Режимы месяц (по умолчанию) и неделя + переключатель видов.
  */
 export function CallCalendar() {
 	const { t } = useTranslation("calls");
@@ -48,7 +48,7 @@ export function CallCalendar() {
 
 	const today = useMemo(() => new Date(), []);
 
-	// --- Month view state ---
+	// --- Состояние вида «Месяц» ---
 	const displayMonth = useMemo(() => {
 		const d = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
 		return { year: d.getFullYear(), month: d.getMonth() };
@@ -69,7 +69,7 @@ export function CallCalendar() {
 		return end;
 	}, [displayMonth]);
 
-	// --- Week view state ---
+	// --- Состояние вида «Неделя» ---
 	const weekStart = useMemo(() => {
 		const base = getWeekStart(today);
 		base.setDate(base.getDate() + weekOffset * 7);
@@ -85,7 +85,7 @@ export function CallCalendar() {
 		return end;
 	}, [weekDays]);
 
-	// --- Day view state ---
+	// --- Состояние вида «День» ---
 	const displayDay = useMemo(() => {
 		const d = new Date(today);
 		d.setDate(d.getDate() + dayOffset);
@@ -99,7 +99,7 @@ export function CallCalendar() {
 		return end;
 	}, [displayDay]);
 
-	// --- Agenda view state (next 30 days from today) ---
+	// --- Состояние «Повестки» (30 дней от сегодня) ---
 	const agendaRangeStart = useMemo(() => {
 		const d = new Date(today);
 		d.setHours(0, 0, 0, 0);
@@ -113,7 +113,7 @@ export function CallCalendar() {
 		return d;
 	}, [today]);
 
-	// --- Compute visible range based on active view ---
+	// --- Диапазон дат для загрузки звонков по активному виду ---
 	const rangeStart = useMemo(() => {
 		switch (view) {
 			case "month":
@@ -174,7 +174,7 @@ export function CallCalendar() {
 		[scheduledCallsData],
 	);
 
-	// Expand calls into calendar events for the visible range
+	// Разворачиваем RRULE в события только для видимого диапазона
 	const events = useMemo<CalendarEvent[]>(() => {
 		if (!scheduledCalls) return [];
 
@@ -221,7 +221,7 @@ export function CallCalendar() {
 		return result;
 	}, [scheduledCalls, rangeStart, rangeEnd]);
 
-	// --- Handlers ---
+	// --- Обработчики навигации и действий ---
 
 	const handleDayClick = useCallback((day: Date) => {
 		const d = new Date(day);
@@ -267,7 +267,7 @@ export function CallCalendar() {
 		else if (view === "day") setDayOffset((d) => d + 1);
 	}, [view]);
 
-	// --- Header text ---
+	// --- Текст заголовка периода ---
 	const headerText = useMemo(() => {
 		if (view === "month") {
 			const d = new Date(displayMonth.year, displayMonth.month, 1);
@@ -303,16 +303,17 @@ export function CallCalendar() {
 
 	return (
 		<div className="space-y-4">
-			{/* Navigation bar */}
+			{/* Панель навигации */}
 			<div className="flex items-center gap-[14px] pt-[18px] pb-[14px]">
 				{view !== "agenda" && (
 					<>
 						<button
 							type="button"
 							onClick={handleNavigatePrev}
+							aria-label="Предыдущий период"
 							className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 transition-colors duration-180 hover:bg-[var(--hover)] hover:border-b2 hover:text-t1 text-[16px]"
 						>
-							<ChevronLeft className="h-4 w-4" />
+							<ChevronLeft className="h-4 w-4" aria-hidden="true" />
 						</button>
 						<span className="text-[17px] font-bold tracking-[-0.02em] capitalize">
 							{headerText}
@@ -320,9 +321,10 @@ export function CallCalendar() {
 						<button
 							type="button"
 							onClick={handleNavigateNext}
+							aria-label="Следующий период"
 							className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 transition-colors duration-180 hover:bg-[var(--hover)] hover:border-b2 hover:text-t1 text-[16px]"
 						>
-							<ChevronRight className="h-4 w-4" />
+							<ChevronRight className="h-4 w-4" aria-hidden="true" />
 						</button>
 						<button
 							type="button"
@@ -339,7 +341,7 @@ export function CallCalendar() {
 					</span>
 				)}
 
-				{/* View switcher */}
+				{/* Переключатель видов */}
 				<div className="flex gap-[2px] bg-input rounded-[var(--r2)] p-[3px] ml-auto border border-b1">
 					{(
 						[
@@ -390,7 +392,7 @@ export function CallCalendar() {
 				</Button>
 			</div>
 
-			{/* Calendar views */}
+			{/* Область календарных видов */}
 			{view === "month" && (
 				<MonthView
 					year={displayMonth.year}
@@ -424,15 +426,19 @@ export function CallCalendar() {
 				<AgendaView events={events} onEventClick={handleEventClick} />
 			)}
 
-			{/* Event detail popover */}
+			{/* Popover деталей события */}
 			{selectedEvent && (
-				<div
-					className="fixed inset-0 z-40"
-					onClick={() => setSelectedEvent(null)}
-				>
+				<div className="fixed inset-0 z-40 flex items-center justify-center">
+					<button
+						type="button"
+						className="absolute inset-0 cursor-default border-0 bg-transparent p-0"
+						aria-label="Закрыть"
+						onClick={() => setSelectedEvent(null)}
+					/>
 					<div
-						className="absolute left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-card p-4 shadow-lg"
-						onClick={(e) => e.stopPropagation()}
+						role="dialog"
+						aria-modal="true"
+						className="relative z-50 w-80 rounded-xl border bg-card p-4 shadow-lg"
 					>
 						<div className="space-y-2">
 							<div className="flex items-center justify-between">
@@ -487,7 +493,7 @@ export function CallCalendar() {
 				</div>
 			)}
 
-			{/* Create call dialog */}
+			{/* Диалог создания звонка */}
 			<CreateCallDialog
 				open={dialogOpen}
 				onOpenChange={setDialogOpen}

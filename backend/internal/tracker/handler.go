@@ -1,4 +1,4 @@
-package tracker
+﻿package tracker
 
 import (
 	"github.com/gofiber/fiber/v3"
@@ -8,85 +8,103 @@ import (
 
 // Handler предоставляет HTTP-обработчики для модуля трекера задач.
 type Handler struct {
-	service *TrackerService
+	service    *TrackerService
+	automation *AutomationService
 }
 
 // NewHandler создаёт новый обработчик трекера.
-func NewHandler(service *TrackerService) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *TrackerService, automation *AutomationService) *Handler {
+	return &Handler{service: service, automation: automation}
 }
 
 // RegisterRoutes регистрирует все маршруты трекера под /api/projects/:projectId.
 // authMw — middleware аутентификации, rbacSvc используется для проверки прав доступа.
+//
+// ВАЖНО (Fiber v3): Post(path, handler, ...middleware) — variadic middleware выполняются
+// ПЕРЕД handler. RBAC передаётся после handler: route.Post(path, h.Handler, rbac.RequirePermission(...)).
+// См. tms/handler.go и .planning/FA-RBAC-FIBER3-AUDIT.md (FA-02-02).
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
 	tracker := api.Group("/projects/:projectId", authMw)
 
-	// Issues
+	// Задачи
 	issues := tracker.Group("/issues")
-	issues.Post("/", rbac.RequirePermission(rbac.PermTaskCreate, rbacSvc), h.CreateIssue)
-	issues.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListIssues)
-	issues.Get("/:issueKey", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetIssue)
-	issues.Put("/:issueKey", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.UpdateIssue)
-	issues.Delete("/:issueKey", rbac.RequirePermission(rbac.PermTaskDelete, rbacSvc), h.DeleteIssue)
-	issues.Put("/:issueKey/position", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.MoveIssue)
+	issues.Post("/", h.CreateIssue, rbac.RequirePermission(rbac.PermTaskCreate, rbacSvc))
+	issues.Get("/", h.ListIssues, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	issues.Get("/:issueKey", h.GetIssue, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	issues.Put("/:issueKey", h.UpdateIssue, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	issues.Delete("/:issueKey", h.DeleteIssue, rbac.RequirePermission(rbac.PermTaskDelete, rbacSvc))
+	issues.Put("/:issueKey/position", h.MoveIssue, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
 
 	// JQL-поиск задач
-	issues.Post("/jql", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.SearchIssuesJQL)
+	issues.Post("/jql", h.SearchIssuesJQL, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
-	// Issue links
-	issues.Post("/:issueKey/links", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.CreateIssueLink)
-	issues.Get("/:issueKey/links", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListIssueLinks)
-	issues.Delete("/:issueKey/links/:linkId", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.DeleteIssueLink)
+	// Связи задач
+	issues.Post("/:issueKey/links", h.CreateIssueLink, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	issues.Get("/:issueKey/links", h.ListIssueLinks, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	issues.Delete("/:issueKey/links/:linkId", h.DeleteIssueLink, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
 
-	// Comments
-	issues.Post("/:issueKey/comments", rbac.RequirePermission(rbac.PermTaskComment, rbacSvc), h.CreateComment)
-	issues.Get("/:issueKey/comments", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListComments)
-	issues.Put("/:issueKey/comments/:commentId", rbac.RequirePermission(rbac.PermTaskComment, rbacSvc), h.UpdateComment)
-	issues.Delete("/:issueKey/comments/:commentId", rbac.RequirePermission(rbac.PermTaskComment, rbacSvc), h.DeleteComment)
-	issues.Post("/:issueKey/comments/:commentId/reactions", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ToggleReaction)
+	// Связи задача ↔ тред мессенджера (PROD-03)
+	issues.Get("/:issueKey/message-links", h.ListIssueMessageLinks, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	issues.Post("/:issueKey/message-links", h.CreateIssueMessageLink, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	issues.Delete("/:issueKey/message-links/:linkId", h.DeleteIssueMessageLink, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	tracker.Get("/message-links", h.ListThreadIssueLinks, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
-	// Activity
-	issues.Get("/:issueKey/activity", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetActivity)
+	// Комментарии
+	issues.Post("/:issueKey/comments", h.CreateComment, rbac.RequirePermission(rbac.PermTaskComment, rbacSvc))
+	issues.Get("/:issueKey/comments", h.ListComments, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	issues.Put("/:issueKey/comments/:commentId", h.UpdateComment, rbac.RequirePermission(rbac.PermTaskComment, rbacSvc))
+	issues.Delete("/:issueKey/comments/:commentId", h.DeleteComment, rbac.RequirePermission(rbac.PermTaskComment, rbacSvc))
+	issues.Post("/:issueKey/comments/:commentId/reactions", h.ToggleReaction, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
-	// Time tracking
-	issues.Post("/:issueKey/time", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.LogTime)
-	issues.Post("/:issueKey/timer/start", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.StartTimer)
-	issues.Post("/:issueKey/timer/stop", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.StopTimer)
-	issues.Get("/:issueKey/time-logs", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListTimeLogs)
+	// Активность
+	issues.Get("/:issueKey/activity", h.GetActivity, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
-	// Boards
+	// Учёт времени
+	issues.Post("/:issueKey/time", h.LogTime, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	issues.Post("/:issueKey/timer/start", h.StartTimer, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	issues.Post("/:issueKey/timer/stop", h.StopTimer, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	issues.Get("/:issueKey/time-logs", h.ListTimeLogs, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+
+	// Доски
 	boards := tracker.Group("/boards")
-	boards.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListBoards)
-	boards.Post("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.CreateBoard)
-	boards.Get("/:boardId", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetBoardData)
+	boards.Get("/", h.ListBoards, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	boards.Post("/", h.CreateBoard, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	boards.Get("/:boardId", h.GetBoardData, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
-	// Workflow
+	// Рабочий процесс
 	workflow := tracker.Group("/workflow")
-	workflow.Get("/statuses", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListWorkflowStatuses)
-	workflow.Post("/statuses", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.CreateWorkflowStatus)
-	workflow.Put("/statuses/:statusId", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.UpdateWorkflowStatus)
-	workflow.Delete("/statuses/:statusId", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.DeleteWorkflowStatus)
-	workflow.Get("/transitions", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListWorkflowTransitions)
-	workflow.Post("/transitions", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.CreateWorkflowTransition)
-	workflow.Delete("/transitions/:transitionId", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.DeleteWorkflowTransition)
+	workflow.Get("/statuses", h.ListWorkflowStatuses, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	workflow.Post("/statuses", h.CreateWorkflowStatus, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
+	workflow.Put("/statuses/:statusId", h.UpdateWorkflowStatus, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
+	workflow.Delete("/statuses/:statusId", h.DeleteWorkflowStatus, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
+	workflow.Get("/transitions", h.ListWorkflowTransitions, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	workflow.Post("/transitions", h.CreateWorkflowTransition, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
+	workflow.Delete("/transitions/:transitionId", h.DeleteWorkflowTransition, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
 
-	// Labels
+	// Метки
 	labels := tracker.Group("/labels")
-	labels.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListLabels)
-	labels.Post("/", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.CreateLabel)
-	labels.Delete("/:labelId", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.DeleteLabel)
-	labels.Get("/groups", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListLabelGroups)
-	labels.Post("/groups", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.CreateLabelGroup)
+	labels.Get("/", h.ListLabels, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	labels.Post("/", h.CreateLabel, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	labels.Delete("/:labelId", h.DeleteLabel, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	labels.Get("/groups", h.ListLabelGroups, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	labels.Post("/groups", h.CreateLabelGroup, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
 
-	// Custom Fields
+	// Кастомные поля
 	customFields := tracker.Group("/custom-fields")
-	customFields.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListCustomFields)
-	customFields.Post("/", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.CreateCustomField)
-	customFields.Delete("/:fieldId", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.DeleteCustomField)
+	customFields.Get("/", h.ListCustomFields, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	customFields.Post("/", h.CreateCustomField, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
+	customFields.Delete("/:fieldId", h.DeleteCustomField, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
+
+	// Автоматизация (PROD-01)
+	automation := tracker.Group("/automation-rules")
+	automation.Get("/", h.ListAutomationRules, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	automation.Post("/", h.CreateAutomationRule, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
+	automation.Patch("/:ruleId", h.UpdateAutomationRule, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
+	automation.Delete("/:ruleId", h.DeleteAutomationRule, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Вспомогательные функции
 // ---------------------------------------------------------------------------
 
 // parseIssueKey извлекает issueKey из параметров пути.

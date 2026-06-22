@@ -5,7 +5,7 @@
  * Акцентный цвет хранится в localStorage и устанавливается через data-accent на html.
  * Предустановленные акцентные цвета: red (default), blue, green, purple, orange.
  *
- * @example
+ * @example Пример подключения
  * // В main.tsx
  * <ThemeProvider>
  *   <App />

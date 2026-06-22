@@ -1,42 +1,79 @@
-# API Reference
+# Справочник API
 
-Hub предоставляет REST API с **286 endpoints** под `/api/*`: **280** handler routes (prod modules) + **3** dev-only + **3** infra. Полный inventory сверен с `RegisterRoutes` в backend (2026-06-17). См. также `system_specification.md`.
+> **Обновлено:** 2026-06-22 (Wave C FA-03) · Базовый путь: `/api` · WebSocket: `GET /ws` (вне `/api`)
 
-## Аутентификация
+Hub предоставляет REST API с **~286 endpoints** под `/api/*`:
 
-### JWT Bearer Token
+| Категория | Количество | Примечание |
+|-----------|------------|------------|
+| Prod handler routes | **283** | 21+ модулей, v4 super-app |
+| Dev-only (`/dev/*`) | **+3** | Только без `-tags release` |
+| Infra (`/health`, `/docs`) | **+3** | `main.go` |
+| **Итого REST** | **~286** | См. `.planning/COVERAGE.md` |
 
-```
-Authorization: Bearer <access_token>
-```
-
-### API Key
-
-```
-X-API-Key: <api_key>
-```
-
-Токены выдаются при авторизации через Magic Link или Telegram. API-ключи создаются через `/api/user/api-keys/`.
+Полная спецификация: `docs/system_specification.md`, `docs/TECHNICAL.md`.  
+OpenAPI (dev): `GET /docs`, `GET /docs/doc.json`.
 
 ---
 
-## Auth (11 endpoints)
+## Аутентификация запросов
 
-Аутентификация, профиль, сессии.
+### JWT Bearer (основной)
 
-| Метод | Путь | Описание |
-|---|---|---|
-| POST | `/auth/magic-link` | Отправить код Magic Link на email |
-| POST | `/auth/magic-link/verify` | Верифицировать код и получить токены |
-| POST | `/auth/telegram` | Вход через Telegram Widget |
-| POST | `/auth/telegram-code` | Вход через Telegram-код |
-| POST | `/auth/refresh` | Обновить access/refresh токены |
-| POST | `/auth/logout` | Выход (инвалидация refresh-токена) |
-| GET | `/auth/me` | Текущий пользователь (профиль) |
-| PUT | `/auth/me` | Обновить профиль (имя, аватар, язык, тема) |
-| POST | `/auth/me/onboarding` | Завершить онбординг |
-| GET | `/auth/sessions` | Список активных сессий |
-| DELETE | `/auth/sessions/:sessionId` | Завершить конкретную сессию |
+```http
+Authorization: Bearer <access_token>
+```
+
+Access token TTL: **15 минут**. Refresh: `POST /api/auth/refresh` (Redis, 30 дней).
+
+### API Key (webhooks, TMS CI)
+
+```http
+X-API-Key: <api_key>
+```
+
+Ключи: `POST /api/user/api-keys/` (SHA-256 hash at rest).
+
+### Ошибки
+
+```json
+{"error": "описание", "request_id": "uuid"}
+```
+
+---
+
+## Auth — Magic Link only (v2.5+)
+
+> **ADR-AUTH-01:** единственный login — Magic Link. Telegram — **только** notify bind (`/notifications/telegram/*`), не login.  
+> Удалено v2.5: `POST /auth/telegram`, `POST /auth/telegram-code`.
+
+| Метод | Путь | Auth | Описание |
+|---|---|---|---|
+| POST | `/auth/magic-link` | — | Отправить 6-значный код на email (rate 3/10m) |
+| POST | `/auth/magic-link/verify` | — | Верифицировать код → access + refresh JWT |
+| POST | `/auth/refresh` | — | Обновить access token |
+| POST | `/auth/logout` | JWT | Инвалидация refresh-токена текущей сессии |
+| GET | `/auth/me` | JWT | Профиль текущего пользователя |
+| PUT | `/auth/me` | JWT | Обновить профиль (имя, timezone, язык, тема) |
+| POST | `/auth/me/onboarding` | JWT | Завершить онбординг |
+| GET | `/auth/sessions` | JWT | Список активных сессий (device, IP) |
+| DELETE | `/auth/sessions/:sessionId` | JWT | Отозвать сессию |
+| GET | `/admin/registration-mode` | Admin | Режим регистрации (invite-only) |
+| PUT | `/admin/registration-mode` | Admin | Установить режим регистрации |
+
+### Пример: Magic Link
+
+```bash
+# 1. Запрос кода
+curl -sS -X POST http://localhost:3000/api/auth/magic-link \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@company.com"}'
+
+# 2. Верификация
+curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@company.com","code":"123456"}'
+```
 
 ---
 
@@ -413,10 +450,12 @@ X-API-Key: <api_key>
 
 ### CI/CD Webhooks
 
-| Метод | Путь | Описание |
-|---|---|---|
-| POST | `/projects/:projectId/tms/webhook/` | Webhook для Allure results из CI |
-| POST | `/projects/:projectId/tms/webhook/junit` | Webhook для JUnit XML из CI |
+> **Auth (фактическое поведение):** оба endpoint под `authMw` — требуется `Authorization: Bearer <JWT>` (или `X-API-Key`). Заголовок `X-Hub-Token` из Swagger **не обрабатывается** хендлером. RBAC `RequirePermission` на webhook-роутах пока **не применяется** (см. FA-02-02 — IDOR backlog); используйте `/tms/allure/import` (требует `PermTestRunCreate`) для строгой проверки прав.
+
+| Метод | Путь | Auth | Описание |
+|---|---|---|---|
+| POST | `/projects/:projectId/tms/webhook/` | JWT | Webhook для Allure results из CI |
+| POST | `/projects/:projectId/tms/webhook/junit` | JWT | Webhook для JUnit XML из CI |
 
 ### Отчёты
 
@@ -665,7 +704,7 @@ API-ключи для программного доступа, webhook-подп�
 
 ---
 
-## Admin / Audit (11 endpoints)
+## Admin / Audit (12 endpoints)
 
 Аудит, лимиты ресурсов, корзина, управление пользователями, режим регистрации. Все маршруты требуют system admin.
 
@@ -673,11 +712,11 @@ API-ключи для программного доступа, webhook-подп�
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/admin/audit` | Лог аудита (фильтры: `action`, `entity_type`, `entity_id`, `user_id`, `project_id`, `ip_address`, `date_from`, `date_to`, `page`, `per_page`) |
+| GET | `/admin/audit` | Лог аудита (фильтры: `action`, `entity_type`, `entity_id`, `user_id`, `project_id`, `ip_address`, `date_from`, `date_to`, `slow` (duration_ms>500), `page`, `per_page`). Actions: `alert.firing`, `alert.resolved` (Alertmanager webhook, Phase 36) |
 
 ### HTTP audit (middleware)
 
-Не отдельный endpoint. `HTTPAuditMiddleware` (`audit/middleware.go`) подключён ко всем `/api/*` в `main.go` и асинхронно пишет каждый HTTP-запрос в журнал аудита (method, path без query, status, duration, request_id, user_id, IP, User-Agent). Пропускает: `OPTIONS`, `/api/health`, `/api/docs*`.
+Не отдельный endpoint. `HTTPAuditMiddleware` (`audit/middleware.go`) подключён ко всем `/api/*` в `main.go` и асинхронно пишет каждый HTTP-запрос в журнал аудита (method, path без query, status, duration, request_id, user_id, IP, User-Agent). Пропускает: `OPTIONS`, `/api/health`, `/api/docs*`, `/api/webhooks/alertmanager`.
 
 ### Лимиты и корзина
 
@@ -704,17 +743,257 @@ API-ключи для программного доступа, webhook-подп�
 | GET | `/admin/registration-mode` | Получить режим регистрации (open/invite) |
 | PUT | `/admin/registration-mode` | Установить режим регистрации |
 
+### Observability (OBS-01, admin)
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/admin/observability/ops` | In-memory метрики `observability.Timed()` (operation, count, avg_ms, error_rate) |
+
 ---
 
-## Infrastructure (3 endpoints)
+## Intranet (MOD-INTRA, Phase 39–40)
+
+Корпоративная лента новостей и справочник сотрудников. Чтение — все авторизованные; публикация новостей — system admin/founder.
+
+### News (MOD-01)
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/intranet/news` | Опубликованные новости (`page`, `per_page`; pinned first) |
+| GET | `/intranet/news/admin` | Все новости incl. черновики (admin) |
+| GET | `/intranet/news/:newsId` | Одна новость |
+| POST | `/intranet/news` | Создать (admin) |
+| PUT | `/intranet/news/:newsId` | Обновить (admin, optimistic `version`) |
+| DELETE | `/intranet/news/:newsId` | Soft delete (admin) |
+
+### Directory (MOD-02)
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/intranet/directory` | Дерево отделов → активные сотрудники |
+| GET | `/intranet/directory/users/:userId` | Карточка сотрудника (только `status=active`) |
+
+Ctrl+K user search → `/intranet/directory?user={id}`.
+
+### Kudos (MOD-03)
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/intranet/kudos/feed` | Публичная лента благодарностей |
+| GET | `/intranet/kudos/received` | Полученные текущим пользователем |
+| POST | `/intranet/kudos` | Отправить kudos (`recipient_id`, `message`, `is_public?`) |
+
+Уведомление получателю через NotificationService. Push deep-link → `/intranet?tab=kudos`.
+
+### Random Coffee (V4-05)
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/intranet/coffee/enrollment` | Статус участия |
+| PUT | `/intranet/coffee/enrollment` | Opt-in/out (`{"active": true}`) |
+| GET | `/intranet/coffee/match` | Напарник из последнего раунда |
+| GET | `/intranet/coffee/stats` | Число участников (admin) |
+| GET | `/intranet/coffee/rounds` | История раундов (admin) |
+| POST | `/intranet/coffee/run` | Запуск matching (admin, min 2 участника) |
+
+Anti-repeat: старается не повторять пары из предыдущего раунда. Уведомление обеим сторонам пары.
+
+---
+
+## Calendar (MOD-04, Phase 41)
+
+Единый календарь: созвоны, спринты, дедлайны задач, одобренные отпуска (только проекты пользователя для tracker-событий).
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/calendar/events` | События за период (`from`, `to` — RFC3339) |
+| GET | `/calendar/export.ics` | Экспорт iCalendar за тот же период |
+
+Типы событий в JSON: `call`, `sprint`, `deadline`, `leave`.
+
+---
+
+## HR (MOD-06, Phase 43)
+
+HR-lite: заявки на отсутствие (отпуск, больничный, отгул). Согласование — system admin/founder. Одобренные заявки попадают в unified calendar (`type: leave`). Уведомления через NotificationService (PROD-01).
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/hr/leave` | Мои заявки |
+| POST | `/hr/leave` | Создать заявку (`leave_type`, `start_date`, `end_date`, `reason?`) |
+| GET | `/hr/leave/pending` | Очередь на согласование (admin) |
+| POST | `/hr/leave/:leaveId/approve` | Одобрить (`version`, `review_note?`) |
+| POST | `/hr/leave/:leaveId/reject` | Отклонить (`version`, `review_note?`) |
+| POST | `/hr/leave/:leaveId/cancel` | Отменить свою pending-заявку (`version`) |
+
+`leave_type`: `vacation`, `sick`, `personal`, `other`.  
+`status`: `pending`, `approved`, `rejected`, `cancelled`.
+
+---
+
+## Marketplace (MOD-08, Phase 45)
+
+Внутренняя доска объявлений: создание → mod queue (admin) → публикация. При approve — optional post в канал `#marketplace` (если существует глобальный канал с таким именем).
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/marketplace/listings` | Опубликованные объявления (`category?`, `page`, `per_page`) |
+| GET | `/marketplace/listings/mine` | Мои объявления |
+| GET | `/marketplace/listings/pending` | Очередь модерации (admin) |
+| POST | `/marketplace/listings` | Создать (`title`, `description`, `category`, `price_cents?`) |
+| PUT | `/marketplace/listings/:listingId` | Обновить (re-moderation если было approved) |
+| POST | `/marketplace/listings/:listingId/approve` | Одобрить (`version`, `review_note?`) |
+| POST | `/marketplace/listings/:listingId/reject` | Отклонить |
+| POST | `/marketplace/listings/:listingId/sold` | Отметить проданным (author) |
+| POST | `/marketplace/listings/:listingId/withdraw` | Снять с публикации |
+| DELETE | `/marketplace/listings/:listingId` | Soft delete (author или admin) |
+
+`category`: `equipment`, `books`, `services`, `furniture`, `other`.  
+`status`: `pending`, `approved`, `rejected`, `sold`, `withdrawn`.
+
+---
+
+## CRM (MOD-05, Phase 42)
+
+CRM-lite: контакты (отдельная сущность от User) и kanban pipeline сделок. Связь сделки с проектом — optional `project_id` (требуется членство в проекте).
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/crm/contacts` | Список контактов |
+| POST | `/crm/contacts` | Создать контакт |
+| PUT | `/crm/contacts/:contactId` | Обновить (optimistic `version`) |
+| DELETE | `/crm/contacts/:contactId` | Soft delete |
+| GET | `/crm/pipeline` | Kanban: сделки по stage |
+| POST | `/crm/deals` | Создать сделку |
+| PUT | `/crm/deals/:dealId` | Обновить / переместить stage |
+| DELETE | `/crm/deals/:dealId` | Soft delete |
+
+Stages: `lead`, `qualified`, `proposal`, `negotiation`, `won`, `lost`.
+
+---
+
+## Hub Base — no-code DB (V4-04, Phase 49)
+
+Lark Base clone MVP: org-wide таблицы с typed columns и grid-редактором.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/bases` | Список баз (workspaces) |
+| POST | `/bases` | Создать базу (+ таблица Main, колонка Name) |
+| GET | `/bases/:baseId` | Детали + список таблиц |
+| PUT | `/bases/:baseId` | Обновить (`version`) |
+| DELETE | `/bases/:baseId` | Soft delete |
+| POST | `/bases/:baseId/tables` | Новая таблица |
+| GET | `/bases/:baseId/tables/:tableId` | Колонки + записи (grid) |
+| POST | `/bases/:baseId/tables/:tableId/columns` | Добавить колонку (`col_type`) |
+| POST | `/bases/:baseId/tables/:tableId/records` | Добавить строку (`cells`) |
+| PUT | `/bases/:baseId/tables/:tableId/records/:recordId` | Обновить ячейки |
+| DELETE | `/bases/:baseId/tables/:tableId/records/:recordId` | Soft delete строки |
+
+**Column types:** `text`, `number`, `date`, `select`, `checkbox`, `url`, `user_ref`. Cells — JSON `{ "<column_uuid>": value }`.
+
+---
+
+## Accounting (V4-03, Phase 51)
+
+Hub-only double-entry ledger (admin/founder). Без НДФЛ и payroll.
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/accounting/accounts` | План счетов (auto-seed при первом вызове) |
+| POST | `/accounting/accounts` | Добавить счёт |
+| GET | `/accounting/journal` | Журнал проводок |
+| POST | `/accounting/journal` | Создать черновик (balanced lines) |
+| POST | `/accounting/journal/:entryId/post` | Провести |
+| GET | `/accounting/trial-balance` | ОСВ по posted проводкам |
+| GET | `/accounting/invoices` | Список счетов (draft/issued/paid) |
+| POST | `/accounting/invoices` | Создать счёт (черновик) |
+| POST | `/accounting/invoices/:invoiceId/issue` | Выставить счёт |
+| POST | `/accounting/invoices/:invoiceId/pay` | Оплата → posted проводка 1010/4010 |
+| GET | `/accounting/income-statement` | P&L: revenue, expense, net (cents) |
+
+**CRM hook:** при переводе сделки в `won` с `amount_cents > 0` создаётся draft invoice (если ещё нет).
+
+**Account types:** `asset`, `liability`, `equity`, `revenue`, `expense`. Amounts in **cents** (int64).
+
+---
+
+## AI Provider Hub (Phase 17, v3.0)
+
+AI gateway, @hub-ai bot, ModelPicker, JQL assist. User routes требуют JWT; admin routes — system admin.
+
+### User AI
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/ai/models` | Список доступных моделей (system + BYOK) |
+| GET | `/ai/preferences` | Default model пользователя |
+| PATCH | `/ai/preferences` | Сохранить default model + `allow_external_ai` (M3-030) |
+| GET | `/ai/usage/today` | Дневная квота (tokens, requests, limit 500) |
+| GET | `/ai/bot` | Системный пользователь @hub-ai (user_id для DM) |
+| POST | `/ai/jql/assist` | NL → Hub JQL (`{"query": "..."}`) |
+| POST | `/ai/composer/suggest` | Tab-дополнение сообщения в мессенджере (`{"prefix": "..."}`) |
+| POST | `/ai/v1/chat/completions` | OpenAI-compatible proxy (stream → 202 + WS) |
+
+### BYOK (user-scoped providers)
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/ai/my/providers` | Список user-scoped провайдеров |
+| POST | `/ai/my/providers` | Добавить BYOK провайдер |
+| PATCH | `/ai/my/providers/:id` | Обновить BYOK провайдер |
+
+### Admin AI
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/admin/ai/providers` | Реестр провайдеров |
+| POST | `/admin/ai/providers` | Создать провайдер |
+| PATCH | `/admin/ai/providers/:id` | Обновить провайдер |
+| POST | `/admin/ai/providers/:id/test` | Ping провайдера |
+| GET | `/admin/ai/usage/summary` | Агрегат usage за сегодня |
+| GET | `/admin/ai/usage/history` | История по дням (`?days=7`) |
+| GET | `/admin/ai/settings` | Bot system prompt + `offline_only` flag |
+| PATCH | `/admin/ai/settings` | Обновить system prompt |
+
+### Admin 1C Connector (MOD-07)
+
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/admin/integrations/onec/settings` | Настройки webhook (token masked) |
+| PUT | `/admin/integrations/onec/settings` | Сохранить URL, token, employee_id_field |
+| POST | `/admin/integrations/onec/test` | Ping webhook (`event: ping`) |
+
+При одобрении отпуска (`POST /hr/leave/:id/approve`) Hub POSTит `leave.approved` на настроенный URL, если `enabled=true`.
+
+**Env:** нет — конфиг в `SystemSetting` (`integrations.onec.config`).
+
+
+**Bot:** `@hub-ai` в каналах/DM; slash-команды `/ai summarize|test-cases|review|docs|explain|translate|sql|help`.
+
+---
+
+## Infrastructure (6 endpoints)
 
 Служебные маршруты без JWT (мониторинг и документация).
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/health` | Health check (Postgres, Redis, Mongo, NATS, SeaweedFS) |
+| GET | `/health` | Health check (Postgres, Redis, Mongo) |
+| GET | `/status` | Public status page JSON (Postgres, Redis, Mongo, NATS, API) — V4-06 |
+| GET | `/metrics` | Prometheus scrape (`METRICS_ALLOWED_CIDRS` — пусто = без IP-фильтра) |
 | GET | `/docs` | Swagger UI |
 | GET | `/docs/doc.json` | OpenAPI JSON |
+
+---
+
+## Webhooks (ingress, 1 endpoint)
+
+Входящие webhooks без JWT — только shared secret (Bearer или provider signature).
+
+| Метод | Путь | Auth | Описание |
+|---|---|---|---|
+| POST | `/webhooks/alertmanager` | Bearer `ALERT_WEBHOOK_SECRET` | Alertmanager v4 webhook → audit log (`alert.firing` / `alert.resolved`). Disabled when secret empty. |
 
 ---
 
@@ -758,11 +1037,12 @@ ws://host/ws?token=<jwt>
 
 ```json
 {
-  "code": 400,
-  "message": "Описание ошибки",
-  "request_id": "req-550e8400"
+  "error": "Описание ошибки",
+  "request_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
+
+Формат зафиксирован в `docs/tz_constraints.md` § API.
 
 ### Пагинация (cursor)
 
@@ -800,3 +1080,6 @@ ws://host/ws?token=<jwt>
 | 409 | Conflict (дубликат) |
 | 429 | Too Many Requests (rate limit) |
 | 500 | Internal Server Error |
+
+---
+*Последнее обновление: 2026-06-21 — Magic Link auth, error format, ~286 endpoints*

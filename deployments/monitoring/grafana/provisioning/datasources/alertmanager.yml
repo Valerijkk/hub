@@ -1,0 +1,13 @@
+# Datasource Alertmanager — просмотр активных алертов в Grafana
+apiVersion: 1
+
+datasources:
+  - name: Alertmanager
+    uid: hub-alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    editable: false
+    jsonData:
+      implementation: prometheus
+      handleGrafanaManagedAlerts: false

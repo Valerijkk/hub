@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Issue holds the schema definition for the Issue entity.
+// Issue — определение Ent-схемы сущности Issue.
 type Issue struct {
 	ent.Schema
 }
 
-// Fields of the Issue.
+// Поля сущности Issue.
 func (Issue) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -77,7 +77,7 @@ func (Issue) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Issue.
+// Рёбра (edges) сущности Issue.
 func (Issue) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -107,13 +107,14 @@ func (Issue) Edges() []ent.Edge {
 			Ref("linked_issues"),
 		edge.To("github_links", GitHubLink.Type),
 		edge.To("gitlab_links", GitLabLink.Type),
+		edge.To("message_links", IssueMessageLink.Type),
 		edge.From("sprint", Sprint.Type).
 			Ref("issues").
 			Unique(),
 	}
 }
 
-// Indexes of the Issue.
+// Индексы сущности Issue.
 func (Issue) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("issue_key"),

@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	getTestCase,
 	linkTestCaseToIssue,
@@ -25,6 +24,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 import { StepEditor } from "@/modules/tms/components/step-editor";
 import {
@@ -34,7 +34,7 @@ import {
 } from "@/modules/tms/components/test-case-metadata";
 import { VersionHistory } from "@/modules/tms/components/version-history";
 
-/** Generate a client-only stable id used as React key for step rows. */
+/** Client-only stable id для React key строк шагов. */
 function makeStepUid(): string {
 	if (
 		typeof crypto !== "undefined" &&
@@ -45,7 +45,7 @@ function makeStepUid(): string {
 	return `step-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-/** Priority labels. */
+/** Подписи приоритетов. */
 const PRIORITY_LABELS: Record<string, string> = {
 	critical: "Критический",
 	high: "Высокий",
@@ -54,7 +54,7 @@ const PRIORITY_LABELS: Record<string, string> = {
 	trivial: "Тривиальный",
 };
 
-/** Status labels. */
+/** Подписи статусов. */
 const STATUS_LABELS: Record<string, string> = {
 	draft: "Черновик",
 	active: "Активный",
@@ -62,9 +62,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 /**
- * Test case detail page -- Allure TestOps level design.
- * Header with key and statuses, tabs (Steps / Linked Issues / Autotest),
- * right sidebar with metadata and version history.
+ * Детальная страница кейса — UI уровня Allure TestOps.
+ * Шапка с key и статусами, вкладки Steps / Linked Issues / Autotest,
+ * правый sidebar: метаданные и история версий.
  */
 function TestCaseDetailPage() {
 	const { projectId, caseKey } = Route.useParams();
@@ -76,7 +76,7 @@ function TestCaseDetailPage() {
 	const [linkIssueId, setLinkIssueId] = useState("");
 	const [editing, setEditing] = useState(false);
 
-	// Edit fields
+	// Поля редактирования
 	const [editTitle, setEditTitle] = useState("");
 	const [editDescription, setEditDescription] = useState("");
 	const [editPrecondition, setEditPrecondition] = useState("");
@@ -85,13 +85,13 @@ function TestCaseDetailPage() {
 	const [editStatus, setEditStatus] = useState<TestCaseStatus>("draft");
 	const [editSteps, setEditSteps] = useState<TestStep[]>([]);
 
-	// Load test case
+	// Загрузка тест-кейса
 	const { data: tc, isLoading } = useQuery({
 		queryKey: ["tms-case", projectId, caseKey],
 		queryFn: () => getTestCase(projectId, caseKey),
 	});
 
-	// Initialize form when data loads
+	// Инициализация формы после загрузки данных
 	useEffect(() => {
 		if (tc) {
 			setEditTitle(tc.title);
@@ -106,14 +106,14 @@ function TestCaseDetailPage() {
 		}
 	}, [tc]);
 
-	// Load versions
+	// Загрузка версий
 	const { data: versions } = useQuery({
 		queryKey: ["tms-case-versions", projectId, caseKey],
 		queryFn: () => listVersions(projectId, caseKey),
 		enabled: versionsOpen,
 	});
 
-	// Update test case
+	// Обновление тест-кейса
 	const updateMutation = useMutation({
 		mutationFn: () => {
 			if (!tc) {
@@ -143,7 +143,7 @@ function TestCaseDetailPage() {
 		onError: (err) => toastApiError(err, "Ошибка обновления тест-кейса"),
 	});
 
-	// Link to issue
+	// Привязка к задаче
 	const linkMutation = useMutation({
 		mutationFn: (issueId: string) =>
 			linkTestCaseToIssue(projectId, caseKey, issueId),
@@ -157,7 +157,7 @@ function TestCaseDetailPage() {
 		onError: (err) => toastApiError(err, "Ошибка привязки"),
 	});
 
-	// Unlink from issue
+	// Отвязка от задачи
 	const unlinkMutation = useMutation({
 		mutationFn: (issueId: string) =>
 			unlinkTestCaseFromIssue(projectId, caseKey, issueId),
@@ -170,7 +170,7 @@ function TestCaseDetailPage() {
 		onError: (err) => toastApiError(err, "Ошибка отвязки"),
 	});
 
-	// Rollback version
+	// Откат версии
 	const rollbackMutation = useMutation({
 		mutationFn: (versionId: string) =>
 			rollbackVersion(projectId, caseKey, versionId),
@@ -186,7 +186,7 @@ function TestCaseDetailPage() {
 		onError: (err) => toastApiError(err, "Ошибка отката"),
 	});
 
-	/** Start editing. */
+	/** Начать редактирование. */
 	const startEditing = () => {
 		if (!tc) return;
 		setEditTitle(tc.title);
@@ -201,10 +201,10 @@ function TestCaseDetailPage() {
 		setEditing(true);
 	};
 
-	/** Cancel editing. */
+	/** Отменить редактирование. */
 	const cancelEditing = () => setEditing(false);
 
-	/** Add step to end of list. */
+	/** Добавить шаг в конец списка. */
 	const addStep = () => {
 		setEditSteps([
 			...editSteps,
@@ -217,13 +217,13 @@ function TestCaseDetailPage() {
 		]);
 	};
 
-	/** Remove step and recalculate order. */
+	/** Удалить шаг и пересчитать order. */
 	const removeStep = (index: number) => {
 		const updated = editSteps.filter((_, i) => i !== index);
 		setEditSteps(updated.map((s, i) => ({ ...s, order: i + 1 })));
 	};
 
-	/** Update step field. */
+	/** Обновить поле шага. */
 	const updateStep = (
 		index: number,
 		field: "action" | "expected_result",
@@ -234,7 +234,7 @@ function TestCaseDetailPage() {
 		);
 	};
 
-	/** Move step up or down and recalculate order. */
+	/** Переместить шаг и пересчитать order. */
 	const moveStep = (index: number, direction: "up" | "down") => {
 		setEditSteps((prev) => {
 			const target = direction === "up" ? index - 1 : index + 1;
@@ -282,7 +282,7 @@ function TestCaseDetailPage() {
 		tc.automation_id
 	);
 
-	/** Detail page tab configuration. */
+	/** Конфиг вкладок детальной страницы. */
 	const detailTabs = [
 		{ id: "steps" as const, label: "Шаги", count: tc.steps?.length ?? 0 },
 		{
@@ -299,7 +299,7 @@ function TestCaseDetailPage() {
 
 	return (
 		<div className="mx-auto max-w-6xl animate-fade-in">
-			{/* Breadcrumb navigation */}
+			{/* Хлебные крошки */}
 			<div className="mb-4 flex items-center justify-between">
 				<div className="flex items-center gap-1.5 text-sm">
 					<Link
@@ -370,9 +370,9 @@ function TestCaseDetailPage() {
 			</div>
 
 			<div className="flex gap-6">
-				{/* Main section */}
+				{/* Основная секция */}
 				<div className="flex-1 min-w-0 space-y-5">
-					{/* Case header */}
+					{/* Заголовок кейса */}
 					<div>
 						<div className="mb-2 flex items-center gap-2.5 flex-wrap">
 							<span className="font-mono text-lg font-bold text-primary">
@@ -470,7 +470,7 @@ function TestCaseDetailPage() {
 						)}
 					</div>
 
-					{/* Precondition */}
+					{/* Предусловие */}
 					{editing ? (
 						<div className="rounded-lg border bg-card/50 p-3">
 							<div className="text-xs font-semibold text-t2 uppercase tracking-wider mb-2">
@@ -493,7 +493,7 @@ function TestCaseDetailPage() {
 						)
 					)}
 
-					{/* Tabs */}
+					{/* Вкладки */}
 					<div className="border-b">
 						<div className="flex gap-0.5">
 							{detailTabs.map((tab) => {
@@ -531,7 +531,7 @@ function TestCaseDetailPage() {
 						</div>
 					</div>
 
-					{/* Tab: Steps */}
+					{/* Вкладка: Steps */}
 					{activeTab === "steps" && (
 						<div className="space-y-4">
 							{editing ? (
@@ -551,7 +551,7 @@ function TestCaseDetailPage() {
 								/>
 							)}
 
-							{/* Postcondition */}
+							{/* Постусловие */}
 							{editing ? (
 								<div className="rounded-lg border bg-card/50 p-3">
 									<div className="text-xs font-semibold text-t2 uppercase tracking-wider mb-2">
@@ -578,7 +578,7 @@ function TestCaseDetailPage() {
 						</div>
 					)}
 
-					{/* Tab: Linked Issues */}
+					{/* Вкладка: Linked Issues */}
 					{activeTab === "links" && (
 						<div className="space-y-3">
 							{tc.linked_issues && tc.linked_issues.length > 0 ? (
@@ -699,7 +699,7 @@ function TestCaseDetailPage() {
 						</div>
 					)}
 
-					{/* Tab: Autotest */}
+					{/* Вкладка: Autotest */}
 					{activeTab === "autotest" && (
 						<div className="space-y-4">
 							{/* Бейдж статуса автоматизации */}
@@ -858,7 +858,7 @@ function TestCaseDetailPage() {
 					)}
 				</div>
 
-				{/* Right sidebar -- metadata */}
+				{/* Правый sidebar — метаданные */}
 				<div className="w-72 shrink-0 space-y-4">
 					<TestCaseMetadata tc={tc} />
 					<VersionHistory

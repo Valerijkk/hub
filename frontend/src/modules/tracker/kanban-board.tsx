@@ -1,5 +1,5 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
 	type BoardColumnResponse,
@@ -8,9 +8,8 @@ import {
 	type IssueBriefResponse,
 	moveIssue,
 } from "@/api/tracker";
+import { ContextHelpTip } from "@/components/help/context-help-tip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { sanitizeHexColor } from "@/lib/sanitize-color";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -24,6 +23,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
+import { sanitizeHexColor } from "@/lib/sanitize-color";
 import { useBoardStore } from "@/stores/board-store";
 
 /** Режим swimlanes на Kanban-доске. */
@@ -94,7 +95,7 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 			setData(null);
 		}
 		setLoading(false);
-	}, [projectId, boardId]);
+	}, [projectId, boardId, t]);
 
 	useEffect(() => {
 		void loadBoard();
@@ -124,7 +125,11 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 		if (!data || swimlaneMode === "none") return ["all"];
 		const keys = new Set<string>();
 		for (const col of data.columns) {
-			const lanes = getSwimlanes(col.issues ?? [], swimlaneMode, unassignedLabel);
+			const lanes = getSwimlanes(
+				col.issues ?? [],
+				swimlaneMode,
+				unassignedLabel,
+			);
 			for (const k of lanes.keys()) {
 				keys.add(k);
 			}
@@ -148,7 +153,7 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 		<div className="space-y-4">
 			{/* Переключатель swimlanes */}
 			<div className="flex items-center gap-3">
-				<label className="text-sm font-medium">{t("kanban.swimlanes")}:</label>
+				<span className="text-sm font-medium">{t("kanban.swimlanes")}:</span>
 				<Select
 					value={swimlaneMode}
 					onValueChange={(v) => setSwimlaneMode(v as SwimlaneMode)}
@@ -158,8 +163,12 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="none">{t("kanban.swimlaneNone")}</SelectItem>
-						<SelectItem value="assignee">{t("kanban.swimlaneAssignee")}</SelectItem>
-						<SelectItem value="priority">{t("kanban.swimlanePriority")}</SelectItem>
+						<SelectItem value="assignee">
+							{t("kanban.swimlaneAssignee")}
+						</SelectItem>
+						<SelectItem value="priority">
+							{t("kanban.swimlanePriority")}
+						</SelectItem>
 						<SelectItem value="type">{t("kanban.swimlaneType")}</SelectItem>
 					</SelectContent>
 				</Select>
@@ -177,7 +186,11 @@ export function KanbanBoard({ projectId, boardId }: KanbanBoardProps) {
 						<div className="flex gap-4">
 							{data.columns.map((col) => {
 								const colIssues = col.issues ?? [];
-								const lanes = getSwimlanes(colIssues, swimlaneMode, unassignedLabel);
+								const lanes = getSwimlanes(
+									colIssues,
+									swimlaneMode,
+									unassignedLabel,
+								);
 								const laneIssues = lanes.get(laneKey) ?? [];
 								const wipLimit =
 									(col.status as { wip_limit?: number }).wip_limit ?? 0;
@@ -246,7 +259,8 @@ const KanbanColumn = memo(function KanbanColumn({
 	};
 
 	return (
-		<div
+		<section
+			aria-label={column.status.name}
 			className={`min-w-[280px] flex-1 rounded-lg border p-3 ${
 				isOverLimit ? "border-red-300 bg-red-50" : "border-gray-200 bg-gray-50"
 			}`}
@@ -262,11 +276,12 @@ const KanbanColumn = memo(function KanbanColumn({
 					<h3 className="text-sm font-semibold">{column.status.name}</h3>
 				</div>
 				<span
-					className={`text-xs font-medium ${
+					className={`inline-flex items-center gap-1 text-xs font-medium ${
 						isOverLimit ? "text-red-600" : "text-t2"
 					}`}
 				>
 					{wipLimit > 0 ? `${totalCount}/${wipLimit}` : totalCount.toString()}
+					{wipLimit > 0 && <ContextHelpTip tipKey="wip" className="h-3 w-3" />}
 				</span>
 			</div>
 
@@ -282,7 +297,7 @@ const KanbanColumn = memo(function KanbanColumn({
 					/>
 				))}
 			</div>
-		</div>
+		</section>
 	);
 });
 
@@ -323,7 +338,9 @@ const KanbanCard = memo(function KanbanCard({
 				<div className="flex items-start justify-between gap-2">
 					<div className="min-w-0 flex-1 space-y-1">
 						<div className="flex items-center gap-2">
-							<span className="text-xs font-mono text-t2">{issue.issue_key}</span>
+							<span className="text-xs font-mono text-t2">
+								{issue.issue_key}
+							</span>
 							<span
 								className={`rounded px-1.5 py-0.5 text-xs ${
 									issue.priority === "critical"
@@ -357,7 +374,9 @@ const KanbanCard = memo(function KanbanCard({
 									>
 										<span
 											className="mr-2 inline-block h-2 w-2 rounded-full"
-											style={{ backgroundColor: sanitizeHexColor(status.color) }}
+											style={{
+												backgroundColor: sanitizeHexColor(status.color),
+											}}
 											aria-hidden
 										/>
 										{status.name}

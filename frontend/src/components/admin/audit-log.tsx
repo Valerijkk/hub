@@ -12,6 +12,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 
 const ACTION_OPTIONS = [
 	{ value: "", label: "Все действия" },
@@ -23,6 +24,8 @@ const ACTION_OPTIONS = [
 	{ value: "ban", label: "Блокировка" },
 	{ value: "request", label: "HTTP-запрос" },
 	{ value: "request.error", label: "HTTP-ошибка" },
+	{ value: "alert.firing", label: "Алерт (сраб.)" },
+	{ value: "alert.resolved", label: "Алерт (снят)" },
 ];
 
 const ENTITY_OPTIONS = [
@@ -36,6 +39,7 @@ const ENTITY_OPTIONS = [
 	{ value: "file", label: "Файл" },
 	{ value: "session", label: "Сессия" },
 	{ value: "call", label: "Звонок" },
+	{ value: "alert", label: "Алерт" },
 ];
 
 function formatDuration(entry: AuditLogEntry): string {
@@ -45,6 +49,16 @@ function formatDuration(entry: AuditLogEntry): string {
 }
 
 function formatHttpPath(entry: AuditLogEntry): string {
+	if (entry.entity_type === "alert") {
+		const labels = entry.details?.labels as Record<string, string> | undefined;
+		const name =
+			(typeof labels?.alertname === "string" && labels.alertname) ||
+			entry.entity_id ||
+			"alert";
+		const severity =
+			typeof labels?.severity === "string" ? ` · ${labels.severity}` : "";
+		return `${name}${severity}`;
+	}
 	if (entry.entity_type !== "http") {
 		return (
 			entry.entity_type +
@@ -84,7 +98,7 @@ export function AuditLogViewer() {
 			setEntries(resp.items);
 			setTotal(resp.total);
 		} catch (err) {
-			console.error("Ошибка загрузки журнала аудита:", err);
+			toastApiError(err, "Не удалось загрузить журнал аудита");
 		} finally {
 			setLoading(false);
 		}
@@ -136,7 +150,7 @@ export function AuditLogViewer() {
 			setBanReason("");
 			await fetchLogs();
 		} catch (err) {
-			console.error("Ошибка блокировки:", err);
+			toastApiError(err, "Не удалось заблокировать пользователя");
 		} finally {
 			setBanning(false);
 		}
@@ -149,6 +163,7 @@ export function AuditLogViewer() {
 			case "ban":
 			case "delete":
 			case "request.error":
+			case "alert.firing":
 				return "bg-red/[0.08] text-red";
 			case "deploy":
 			case "create":
@@ -161,6 +176,8 @@ export function AuditLogViewer() {
 			case "login":
 			case "logout":
 				return "bg-orange/[0.08] text-orange";
+			case "alert.resolved":
+				return "bg-green/[0.08] text-green";
 			default:
 				return "bg-blue/[0.08] text-blue";
 		}
@@ -423,7 +440,7 @@ export function AuditLogViewer() {
 													type="button"
 													aria-label="Заблокировать пользователя"
 													onClick={() => setBanTarget(entry)}
-													className="text-[11px] text-[var(--red)] hover:underline"
+													className="text-[11px] text-[var(--redS)] hover:underline"
 												>
 													Бан
 												</button>
@@ -446,7 +463,7 @@ export function AuditLogViewer() {
 														id === entry.id ? null : entry.id,
 													)
 												}
-												className="text-[11px] text-[var(--blue)] hover:underline"
+												className="text-[11px] text-[var(--blueS)] hover:underline"
 											>
 												{expandedId === entry.id ? "Скрыть" : "Показать"}
 											</button>

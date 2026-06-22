@@ -21,6 +21,11 @@ RUN go generate ./ent
 # Собираем prod-бинарник (ME-09: dev routes compiled out)
 RUN CGO_ENABLED=0 GOOS=linux go build -tags release -o /hub-server ./cmd/server
 
+# hub-mail — отдельный микросервис транзакционной почты (Phase 15.2),
+# собираем в тот же образ, чтобы prod compose запускал его как отдельный
+# сервис с переопределённым entrypoint (без второго CI-пайплайна сборки).
+RUN CGO_ENABLED=0 GOOS=linux go build -tags release -o /hub-mail ./cmd/hub-mail
+
 # --- Финальный образ ---
 FROM alpine:3.20
 
@@ -34,6 +39,7 @@ RUN addgroup -g 10001 -S hub && adduser -u 10001 -S -G hub hub
 
 WORKDIR /app
 COPY --from=builder /hub-server .
+COPY --from=builder /hub-mail .
 RUN chown -R hub:hub /app
 
 USER hub:hub

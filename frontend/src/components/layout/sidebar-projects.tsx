@@ -171,7 +171,7 @@ export function SidebarProjects({
 			{/* Заголовок секции */}
 			<div className="mb-1.5 flex items-center justify-between px-2">
 				{!collapsed && (
-					<span className="text-[10px] font-bold uppercase tracking-[0.1em] text-t4">
+					<span className="text-[10px] font-bold uppercase tracking-[0.1em] text-sidebar-subtle">
 						{t("nav.projects")}
 					</span>
 				)}
@@ -196,7 +196,7 @@ export function SidebarProjects({
 									<button
 										type="button"
 										onClick={() => toggleProject(project.id)}
-										className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-t4 hover:text-t1 transition-colors duration-150"
+										className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-sidebar-subtle hover:text-sidebar-foreground transition-colors duration-150"
 										aria-label={
 											isExpanded ? "Свернуть модули" : "Развернуть модули"
 										}
@@ -264,7 +264,9 @@ export function SidebarProjects({
 			</div>
 
 			{projects?.length === 0 && !collapsed && (
-				<p className="px-3 py-2 text-xs text-t4">{t("sidebar.noProjects")}</p>
+				<p className="px-3 py-2 text-xs text-sidebar-subtle">
+					{t("sidebar.noProjects")}
+				</p>
 			)}
 		</div>
 	);

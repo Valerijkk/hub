@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	deleteIssue,
 	getIssue,
@@ -25,11 +24,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toastApiError } from "@/lib/format-api-error";
 import {
 	IssueDescription,
 	IssueTitle,
 } from "@/modules/tracker/issue-description";
 import { IssueHeader } from "@/modules/tracker/issue-header";
+import { IssueMessageLinksPanel } from "@/modules/tracker/issue-message-links-panel";
 import { IssueSidebarMeta } from "@/modules/tracker/issue-sidebar-meta";
 
 /**
@@ -95,7 +96,7 @@ function IssueDetailPage() {
 	if (isLoading) {
 		return (
 			<div className="animate-[eu_450ms_var(--spring)_both]">
-				{/* Breadcrumb skeleton */}
+				{/* Skeleton хлебных крошек */}
 				<div className="mb-4 flex items-center gap-2">
 					<div className="h-4 w-16 rounded bg-card/50 animate-shimmer" />
 					<div className="h-4 w-4 rounded bg-card/50 animate-shimmer" />
@@ -103,12 +104,12 @@ function IssueDetailPage() {
 					<div className="h-4 w-4 rounded bg-card/50 animate-shimmer" />
 					<div className="h-4 w-24 rounded bg-card/50 animate-shimmer" />
 				</div>
-				{/* Header skeleton */}
+				{/* Skeleton заголовка */}
 				<div className="mb-6 flex items-center gap-3">
 					<div className="h-8 w-8 rounded-lg bg-card/50 animate-shimmer" />
 					<div className="h-6 w-32 rounded bg-card/50 animate-shimmer" />
 				</div>
-				{/* Two-column skeleton */}
+				{/* Skeleton двухколоночной раскладки */}
 				<div className="grid gap-6 lg:grid-cols-[1fr_320px]">
 					<div className="space-y-4">
 						<div className="h-8 w-3/4 rounded bg-card/50 animate-shimmer" />
@@ -184,6 +185,9 @@ function IssueDetailPage() {
 
 					<IssueDescription
 						descriptionJson={issue.description_json}
+						descriptionText={issue.description_text}
+						issueKey={issue.issue_key}
+						issueTitle={issue.title}
 						onSave={(value) =>
 							updateMutation.mutate({
 								description_json: value as Record<string, unknown> | undefined,
@@ -234,12 +238,15 @@ function IssueDetailPage() {
 				</div>
 
 				{/* Правая колонка: свойства */}
-				<IssueSidebarMeta
-					projectId={projectId}
-					issue={issue}
-					statuses={statuses}
-					onUpdateField={(fields) => updateMutation.mutate(fields)}
-				/>
+				<div className="w-[320px] min-w-[320px] border-l border-b1 overflow-y-auto p-[22px] bg-void space-y-6">
+					<IssueMessageLinksPanel projectId={projectId} issueKey={issueKey} />
+					<IssueSidebarMeta
+						projectId={projectId}
+						issue={issue}
+						statuses={statuses}
+						onUpdateField={(fields) => updateMutation.mutate(fields)}
+					/>
+				</div>
 			</div>
 		</div>
 	);

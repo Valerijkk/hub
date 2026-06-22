@@ -38,6 +38,7 @@ type Config struct {
 	LiveKit     LiveKitConfig
 	WebPush     WebPushConfig
 	Integration IntegrationConfig
+	AI            AIConfig
 }
 
 // ServerConfig — параметры HTTP-сервера (порт, таймауты, режим разработки).
@@ -45,9 +46,11 @@ type ServerConfig struct {
 	Port         int
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
-	Immutable    bool   // true in dev to catch Fiber RequestCtx reuse (Pitfall 1)
-	DevMode      bool   // DevMode включает dev-эндпоинты (seed, login без Magic Link)
-	Environment  string // ENVIRONMENT: production, staging, development (default)
+	Immutable    bool   // true в dev для отлова повторного использования Fiber RequestCtx (Pitfall 1)
+	DevMode             bool     // DevMode включает dev-эндпоинты (seed, login без Magic Link)
+	Environment         string   // ENVIRONMENT: production, staging, development (по умолчанию)
+	MetricsAllowedCIDRs []string // METRICS_ALLOWED_CIDRS — пусто = /metrics без IP-фильтра
+	AlertWebhookSecret  string   // ALERT_WEBHOOK_SECRET — Bearer для Alertmanager webhook
 }
 
 // PostgresConfig — параметры подключения к PostgreSQL.
@@ -96,7 +99,8 @@ type ResendConfig struct {
 
 // TelegramConfig — параметры Telegram-бота для аутентификации и уведомлений.
 type TelegramConfig struct {
-	BotToken string
+	BotToken    string
+	BotUsername string
 }
 
 // LiveKitConfig содержит параметры подключения к серверу LiveKit.
@@ -122,6 +126,11 @@ type IntegrationConfig struct {
 	EncryptionKey string
 }
 
+// AIConfig — флаги AI Provider Hub (AI-SPEC S8).
+type AIConfig struct {
+	OfflineOnly bool
+}
+
 // Load загружает конфигурацию из переменных окружения с дефолтами и
 // валидирует, что в production не остались dev-значения (CR-05, CR-06).
 // Возвращает ошибку, чтобы вызывающий мог завершить процесс с понятным
@@ -134,7 +143,9 @@ func Load() (*Config, error) {
 			WriteTimeout: 10 * time.Second,
 			Immutable:    getEnvBool("FIBER_IMMUTABLE", true),
 			DevMode:      getEnvBool("DEV_MODE", false),
-			Environment:  getEnv("ENVIRONMENT", "development"),
+			Environment:         getEnv("ENVIRONMENT", "development"),
+			MetricsAllowedCIDRs: splitCSV(getEnv("METRICS_ALLOWED_CIDRS", "")),
+			AlertWebhookSecret:  getEnv("ALERT_WEBHOOK_SECRET", ""),
 		},
 		Postgres: PostgresConfig{
 			URL: getEnv("DATABASE_URL", "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"),
@@ -167,7 +178,8 @@ func Load() (*Config, error) {
 			FromEmail: getEnv("RESEND_FROM_EMAIL", "noreply@hub.local"),
 		},
 		Telegram: TelegramConfig{
-			BotToken: getEnv("TELEGRAM_BOT_TOKEN", ""),
+			BotToken:    getEnv("TELEGRAM_BOT_TOKEN", ""),
+			BotUsername: getEnv("TELEGRAM_BOT_USERNAME", ""),
 		},
 		LiveKit: LiveKitConfig{
 			URL:       getEnv("LIVEKIT_URL", "http://localhost:7880"),
@@ -182,6 +194,9 @@ func Load() (*Config, error) {
 		Integration: IntegrationConfig{
 			EncryptionKey: getEnv("INTEGRATION_ENCRYPTION_KEY", ""),
 		},
+		AI: AIConfig{
+			OfflineOnly: getEnvBool("AI_OFFLINE_ONLY", false),
+		},
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -193,7 +208,7 @@ func Load() (*Config, error) {
 // validate проверяет конфигурацию на безопасные значения для production:
 // в production (DevMode=false) запрещены dev-дефолты JWT/S3/LiveKit и
 // JWT_SECRET короче minJWTSecretLen. Также запрещена комбинация
-// ENVIRONMENT=production + DEV_MODE=true.
+// ENVIRONMENT=production + DEV_MODE=true — запрещено в config.validate.
 func (c *Config) validate() error {
 	if c.Server.DevMode && strings.EqualFold(c.Server.Environment, "production") {
 		return errors.New("DEV_MODE=true несовместим с ENVIRONMENT=production — отключите DEV_MODE")
@@ -231,8 +246,8 @@ func (c *Config) validate() error {
 		problems = append(problems, "LIVEKIT_API_SECRET использует dev-дефолт")
 	}
 
-	// Integration encryption key: required in production (HI-05). Used to
-	// encrypt GitHub/GitLab access tokens & webhook secrets at rest.
+	// Ключ шифрования интеграций: обязателен в production (HI-05). Для
+	// шифрования GitHub/GitLab tokens и webhook secrets at rest.
 	if c.Integration.EncryptionKey == "" {
 		problems = append(problems, "INTEGRATION_ENCRYPTION_KEY не задан (требуется 32 байта в hex или base64)")
 	}
@@ -252,6 +267,22 @@ func isDevDefault(key, value string) bool {
 		return false
 	}
 	return strings.EqualFold(strings.TrimSpace(value), dv)
+}
+
+// splitCSV — CSV из env, пустые части пропускаем.
+func splitCSV(value string) []string {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	parts := strings.Split(value, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }
 
 // getEnv возвращает значение переменной окружения или fallback, если не задана.

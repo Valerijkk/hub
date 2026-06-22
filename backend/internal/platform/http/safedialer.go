@@ -30,24 +30,24 @@ var ErrUserInfoNotAllowed = errors.New("URL with userinfo not allowed")
 // link-local-адреса.
 var blockedCIDRs = func() []*net.IPNet {
 	raw := []string{
-		"0.0.0.0/8",       // "this network"
+		"0.0.0.0/8",       // «эта сеть»
 		"10.0.0.0/8",      // RFC1918
 		"100.64.0.0/10",   // CGNAT
-		"127.0.0.0/8",     // loopback
-		"169.254.0.0/16",  // link-local (AWS metadata: 169.254.169.254)
+		"127.0.0.0/8",     // локальная петля
+		"169.254.0.0/16",  // link-local (метаданные AWS: 169.254.169.254)
 		"172.16.0.0/12",   // RFC1918
-		"192.0.0.0/24",    // IETF protocol assignments
+		"192.0.0.0/24",    // назначения протоколов IETF
 		"192.0.2.0/24",    // TEST-NET-1
 		"192.168.0.0/16",  // RFC1918
-		"198.18.0.0/15",   // benchmark
+		"198.18.0.0/15",   // бенчмарк
 		"198.51.100.0/24", // TEST-NET-2
 		"203.0.113.0/24",  // TEST-NET-3
-		"224.0.0.0/4",     // multicast
-		"240.0.0.0/4",     // reserved
-		"::1/128",         // IPv6 loopback
+		"224.0.0.0/4",     // мультикаст
+		"240.0.0.0/4",     // зарезервировано
+		"::1/128",         // локальная петля IPv6
 		"fc00::/7",        // IPv6 ULA
-		"fe80::/10",       // IPv6 link-local
-		"ff00::/8",        // IPv6 multicast
+		"fe80::/10",       // link-local IPv6
+		"ff00::/8",        // мультикаст IPv6
 	}
 	nets := make([]*net.IPNet, 0, len(raw))
 	for _, c := range raw {

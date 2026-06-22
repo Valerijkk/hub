@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,16 +15,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/project"
-	"github.com/valerii/hub/backend/ent/webhookdelivery"
-	"github.com/valerii/hub/backend/ent/webhookendpoint"
 	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
+
+// errWebhookQueueFull сигнализирует, что задачу доставки не удалось поставить
+// в воркер-очередь (переполнена). Сообщение JetStream в этом случае НЕ
+// подтверждается (NAK с задержкой) — событие будет доставлено повторно
+// (MaxDeliver=3), что исключает «тихую» потерю данных (APIGW-02).
+var errWebhookQueueFull = errors.New("webhook delivery queue full")
+
+// webhookRedeliverDelay — задержка перед повторной доставкой JetStream-
+// сообщения, когда очередь воркеров переполнена. Даёт воркерам время
+// разгрести очередь до следующей попытки и предотвращает busy-loop.
+const webhookRedeliverDelay = 5 * time.Second
 
 // webhookHTTPClient — общий безопасный HTTP-клиент для исходящих
 // вебхук-запросов. Использует SafeDialContext, который блокирует RFC1918,
@@ -60,18 +68,19 @@ type webhookJob struct {
 // webhookQueueSize. Если очередь полна — задача дропается с warn-логом;
 // JetStream доставит событие повторно (MaxDeliver=3).
 type WebhookDispatcher struct {
-	db       *ent.Client
+	repo     WebhookRepository
 	nats     *natsclient.Client
 	cons     jetstream.ConsumeContext
 	jobs     chan webhookJob
 	workerWG sync.WaitGroup
+	inFlight sync.WaitGroup // APIGW-03: in-flight JetStream callbacks before close(jobs)
 	stopOnce sync.Once
 }
 
 // NewWebhookDispatcher создаёт новый диспетчер вебхуков.
-func NewWebhookDispatcher(db *ent.Client, nats *natsclient.Client) *WebhookDispatcher {
+func NewWebhookDispatcher(repo WebhookRepository, nats *natsclient.Client) *WebhookDispatcher {
 	return &WebhookDispatcher{
-		db:   db,
+		repo: repo,
 		nats: nats,
 		jobs: make(chan webhookJob, webhookQueueSize),
 	}
@@ -101,19 +110,35 @@ func (d *WebhookDispatcher) Start(ctx context.Context) error {
 	}
 
 	// Durable consumer на общем стриме — гарантирует at-least-once доставку.
+	// APIGW-03: FilterSubjects ограничивает поток только webhook-релевантными
+	// subject'ами — notification/auth/calls не вызывают ListActiveWebhookEndpoints.
 	consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-		Durable:    "webhook-dispatcher",
-		AckPolicy:  jetstream.AckExplicitPolicy,
-		MaxDeliver: 3,
-		AckWait:    30 * time.Second,
+		Durable:         "webhook-dispatcher",
+		FilterSubjects:  natsclient.WebhookFilterSubjects,
+		AckPolicy:       jetstream.AckExplicitPolicy,
+		MaxDeliver:      3,
+		AckWait:         30 * time.Second,
 	})
 	if err != nil {
 		return fmt.Errorf("не удалось создать consumer WEBHOOKS: %w", err)
 	}
 
 	// Запуск асинхронного потребления сообщений.
+	//
+	// APIGW-02: подтверждаем (Ack) сообщение ТОЛЬКО после успешной постановки
+	// всех задач доставки в воркер-очередь. Если очередь переполнена или
+	// произошла транзиентная ошибка — отправляем NAK с задержкой, и JetStream
+	// доставит событие повторно (MaxDeliver=3). Раньше Ack вызывался безусловно,
+	// из-за чего переполнение очереди приводило к «тихой» потере событий.
 	cons, err := consumer.Consume(func(msg jetstream.Msg) {
-		d.handleMessage(ctx, msg)
+		d.inFlight.Add(1)
+		defer d.inFlight.Done()
+		if handleErr := d.handleMessage(ctx, msg); handleErr != nil {
+			if nakErr := msg.NakWithDelay(webhookRedeliverDelay); nakErr != nil {
+				slog.Error("nak webhook event failed", "error", nakErr, "cause", handleErr)
+			}
+			return
+		}
 		if ackErr := msg.Ack(); ackErr != nil {
 			slog.Error("ack webhook event failed", "error", ackErr)
 		}
@@ -134,7 +159,9 @@ func (d *WebhookDispatcher) Stop() {
 		if d.cons != nil {
 			d.cons.Stop()
 		}
-		// Закрываем канал — воркеры выходят из range loop.
+		// Дождаться завершения callback'ов consumer до close(jobs) — иначе
+		// dispatchEvent может писать в закрытый канал (DATA RACE под -race).
+		d.inFlight.Wait()
 		close(d.jobs)
 		d.workerWG.Wait()
 	})
@@ -152,32 +179,38 @@ func (d *WebhookDispatcher) deliveryWorker(ctx context.Context) {
 // handleMessage разбирает входящее JetStream-сообщение и передаёт в dispatchEvent.
 // HI-08: payload передаётся в воркеры как уже сериализованный body (msg.Data())
 // и распакованная map — избегаем повторного json.Marshal в каждом воркере.
-func (d *WebhookDispatcher) handleMessage(ctx context.Context, msg jetstream.Msg) {
+//
+// Возвращает nil, если событие успешно обработано (можно Ack), и ошибку, если
+// постановка в очередь не удалась (нужен NAK для повторной доставки, APIGW-02).
+// Некорректный JSON (poison message) считается обработанным — повтор не поможет,
+// поэтому возвращается nil, и сообщение подтверждается.
+func (d *WebhookDispatcher) handleMessage(ctx context.Context, msg jetstream.Msg) error {
 	subject := msg.Subject()
 	body := msg.Data()
 
 	var payload map[string]interface{}
 	if err := json.Unmarshal(body, &payload); err != nil {
 		slog.Error("не удалось разобрать payload вебхук-события", "error", err, "subject", subject)
-		return
+		return nil
 	}
 
 	// Subject NATS используется как тип события (например: tracker.{projID}.issue.created).
-	d.dispatchEvent(ctx, subject, body, payload)
+	return d.dispatchEvent(ctx, subject, body, payload)
 }
 
 // dispatchEvent находит все активные эндпоинты, подписанные на событие, и
 // пушит задачи доставки в воркер-пул. HI-08: вместо unbounded `go` —
-// очередь с фиксированным числом воркеров и явное логирование переполнения.
-func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string, body []byte, payload map[string]interface{}) {
-	endpoints, err := d.db.WebhookEndpoint.Query().
-		Where(
-			webhookendpoint.IsActive(true),
-		).
-		All(ctx)
+// очередь с фиксированным числом воркеров.
+//
+// APIGW-02: возвращает ошибку, если хотя бы одну задачу не удалось поставить
+// в очередь (переполнение) либо при транзиентной ошибке получения эндпоинтов.
+// Вызывающий код в этом случае не подтверждает сообщение, и JetStream доставит
+// его повторно — это исключает «тихую» потерю событий при всплесках нагрузки.
+func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string, body []byte, payload map[string]interface{}) error {
+	endpoints, err := d.repo.ListActiveWebhookEndpoints(ctx)
 	if err != nil {
 		slog.Error("ошибка получения вебхук-эндпоинтов", "error", err)
-		return
+		return fmt.Errorf("получение активных вебхук-эндпоинтов: %w", err)
 	}
 
 	for _, ep := range endpoints {
@@ -188,14 +221,17 @@ func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string,
 		select {
 		case d.jobs <- job:
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		default:
-			// Очередь переполнена. Не блокируем consumer — JetStream
-			// доставит сообщение повторно (MaxDeliver=3).
-			slog.Warn("webhook job queue full, dropping delivery",
+			// Очередь переполнена. Не блокируем consumer, но и НЕ теряем
+			// событие: возвращаем ошибку, чтобы сообщение было повторно
+			// доставлено JetStream (MaxDeliver=3) вместо безусловного Ack.
+			slog.Warn("webhook job queue full, requesting redelivery",
 				"endpoint", ep.URL, "event", eventType, "queue_size", webhookQueueSize)
+			return errWebhookQueueFull
 		}
 	}
+	return nil
 }
 
 // deliverWithRetry отправляет вебхук с повторами (1s, 5s, 30s). Тело уже
@@ -221,19 +257,14 @@ func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, job webhookJob
 			errMsg = deliveryErr.Error()
 		}
 
-		// Записываем доставку в БД
-		builder := d.db.WebhookDelivery.Create().
-			SetEventType(job.eventType).
-			SetPayload(job.payload).
-			SetStatusCode(statusCode).
-			SetResponseBody(respBody).
-			SetEndpointID(job.ep.ID)
-
-		if errMsg != "" {
-			builder.SetError(errMsg)
-		}
-
-		if _, saveErr := builder.Save(ctx); saveErr != nil {
+		if saveErr := d.repo.CreateWebhookDelivery(ctx, CreateWebhookDeliveryInput{
+			EventType:    job.eventType,
+			Payload:      job.payload,
+			StatusCode:   statusCode,
+			ResponseBody: respBody,
+			EndpointID:   job.ep.ID,
+			ErrorMsg:     errMsg,
+		}); saveErr != nil {
 			slog.Error("не удалось сохранить запись доставки вебхука", "error", saveErr)
 		}
 
@@ -300,16 +331,16 @@ func containsEvent(events []string, event string) bool {
 	return false
 }
 
-// --- Webhook CRUD ---
+// --- CRUD вебхуков ---
 
 // WebhookService управляет CRUD операциями для вебхук-эндпоинтов.
 type WebhookService struct {
-	db *ent.Client
+	repo WebhookRepository
 }
 
 // NewWebhookService создаёт новый сервис вебхуков.
-func NewWebhookService(db *ent.Client) *WebhookService {
-	return &WebhookService{db: db}
+func NewWebhookService(repo WebhookRepository) *WebhookService {
+	return &WebhookService{repo: repo}
 }
 
 // CreateEndpoint создаёт новый вебхук-эндпоинт в проекте.
@@ -318,7 +349,7 @@ func NewWebhookService(db *ent.Client) *WebhookService {
 // (CR-03, защита от DNS-rebinding).
 func (s *WebhookService) CreateEndpoint(ctx context.Context, projectID uuid.UUID, req CreateWebhookRequest) (*WebhookResponse, error) {
 	if err := safehttp.ValidateOutboundURL(req.URL); err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "некорректный URL вебхука: "+err.Error())
+		return nil, newInvalidInputError("некорректный URL вебхука: " + err.Error())
 	}
 
 	secret := req.Secret
@@ -326,12 +357,7 @@ func (s *WebhookService) CreateEndpoint(ctx context.Context, projectID uuid.UUID
 		secret = uuid.New().String()
 	}
 
-	ep, err := s.db.WebhookEndpoint.Create().
-		SetURL(req.URL).
-		SetSecret(secret).
-		SetEvents(req.Events).
-		SetProjectID(projectID).
-		Save(ctx)
+	ep, err := s.repo.CreateWebhookEndpoint(ctx, projectID, req.URL, secret, req.Events)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось создать вебхук-эндпоинт: %w", err)
 	}
@@ -341,10 +367,7 @@ func (s *WebhookService) CreateEndpoint(ctx context.Context, projectID uuid.UUID
 
 // ListEndpoints возвращает вебхук-эндпоинты проекта.
 func (s *WebhookService) ListEndpoints(ctx context.Context, projectID uuid.UUID) ([]WebhookResponse, error) {
-	eps, err := s.db.Project.Query().
-		Where(project.ID(projectID)).
-		QueryWebhookEndpoints().
-		All(ctx)
+	eps, err := s.repo.ListWebhookEndpointsByProject(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить вебхук-эндпоинты: %w", err)
 	}
@@ -358,27 +381,22 @@ func (s *WebhookService) ListEndpoints(ctx context.Context, projectID uuid.UUID)
 
 // UpdateEndpoint обновляет вебхук-эндпоинт.
 func (s *WebhookService) UpdateEndpoint(ctx context.Context, endpointID uuid.UUID, req UpdateWebhookRequest) (*WebhookResponse, error) {
-	builder := s.db.WebhookEndpoint.UpdateOneID(endpointID)
+	input := UpdateWebhookEndpointInput{
+		URL:      req.URL,
+		Secret:   req.Secret,
+		Events:   req.Events,
+		IsActive: req.IsActive,
+	}
 	if req.URL != nil {
 		if err := safehttp.ValidateOutboundURL(*req.URL); err != nil {
-			return nil, fiber.NewError(fiber.StatusBadRequest, "некорректный URL вебхука: "+err.Error())
+			return nil, newInvalidInputError("некорректный URL вебхука: " + err.Error())
 		}
-		builder.SetURL(*req.URL)
-	}
-	if req.Secret != nil {
-		builder.SetSecret(*req.Secret)
-	}
-	if req.Events != nil {
-		builder.SetEvents(req.Events)
-	}
-	if req.IsActive != nil {
-		builder.SetIsActive(*req.IsActive)
 	}
 
-	ep, err := builder.Save(ctx)
+	ep, err := s.repo.UpdateWebhookEndpoint(ctx, endpointID, input)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, fiber.NewError(fiber.StatusNotFound, "вебхук-эндпоинт не найден")
+		if IsNotFound(err) {
+			return nil, ErrWebhookEndpointNotFound
 		}
 		return nil, fmt.Errorf("не удалось обновить вебхук-эндпоинт: %w", err)
 	}
@@ -387,23 +405,26 @@ func (s *WebhookService) UpdateEndpoint(ctx context.Context, endpointID uuid.UUI
 
 // DeleteEndpoint удаляет вебхук-эндпоинт.
 func (s *WebhookService) DeleteEndpoint(ctx context.Context, endpointID uuid.UUID) error {
-	err := s.db.WebhookEndpoint.DeleteOneID(endpointID).Exec(ctx)
+	err := s.repo.DeleteWebhookEndpoint(ctx, endpointID)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return fiber.NewError(fiber.StatusNotFound, "вебхук-эндпоинт не найден")
+		if IsNotFound(err) {
+			return ErrWebhookEndpointNotFound
 		}
 		return fmt.Errorf("не удалось удалить вебхук-эндпоинт: %w", err)
 	}
 	return nil
 }
 
+// EndpointProjectID возвращает projectID проекта, которому принадлежит эндпоинт
+// (APIGW-01). Используется обработчиком для RBAC-проверки на маршрутах
+// /webhooks/:id, где projectId отсутствует в пути.
+func (s *WebhookService) EndpointProjectID(ctx context.Context, endpointID uuid.UUID) (uuid.UUID, error) {
+	return s.repo.WebhookEndpointProjectID(ctx, endpointID)
+}
+
 // ListDeliveries возвращает историю доставок для эндпоинта.
 func (s *WebhookService) ListDeliveries(ctx context.Context, endpointID uuid.UUID) ([]WebhookDeliveryResponse, error) {
-	deliveries, err := s.db.WebhookDelivery.Query().
-		Where(webhookdelivery.HasEndpointWith(webhookendpoint.ID(endpointID))).
-		Order(ent.Desc(webhookdelivery.FieldDeliveredAt)).
-		Limit(50).
-		All(ctx)
+	deliveries, err := s.repo.ListWebhookDeliveries(ctx, endpointID, 50)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить доставки: %w", err)
 	}

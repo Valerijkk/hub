@@ -2,8 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
-import i18n from "@/i18n";
 import {
 	archiveProject,
 	deleteProject,
@@ -38,6 +36,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
 
 const NAME_MAX = 100;
 const DESC_MAX = 500;
@@ -389,7 +389,7 @@ function ProjectPage() {
 				)}
 			</Tabs>
 
-			{/* Edit Project Dialog */}
+			{/* Диалог редактирования проекта */}
 			<Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
 				<DialogContent>
 					<DialogHeader>

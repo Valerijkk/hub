@@ -82,7 +82,7 @@ function DefaultError({ retry }: { error: unknown; retry: () => void }) {
  * состояние ("Нет проектов", "Задач не найдено"), смешивая отсутствие данных
  * с ошибкой сети. Эта обёртка явно разделяет loading / error / empty / data.
  *
- * @example
+ * @example Пример использования
  * ```tsx
  * const q = useQuery({...});
  * return (

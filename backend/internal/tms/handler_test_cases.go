@@ -8,10 +8,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Test case handlers
+// Обработчики тест-кейсов
 // ---------------------------------------------------------------------------
 
-// CreateTestCase handles POST /api/projects/:projectId/tms/cases
+// CreateTestCase обрабатывает POST /api/projects/:projectId/tms/cases
 // @Summary Create test case
 // @Tags TMS
 // @Accept json
@@ -19,7 +19,7 @@ import (
 // @Param projectId path string true "Project ID"
 // @Param body body CreateTestCaseRequest true "Test case data"
 // @Success 201 {object} TestCaseResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/cases [post]
 func (h *Handler) CreateTestCase(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
@@ -44,7 +44,7 @@ func (h *Handler) CreateTestCase(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListTestCases handles GET /api/projects/:projectId/tms/cases
+// ListTestCases обрабатывает GET /api/projects/:projectId/tms/cases
 // @Summary List test cases
 // @Tags TMS
 // @Produce json
@@ -76,14 +76,14 @@ func (h *Handler) ListTestCases(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetTestCase handles GET /api/projects/:projectId/tms/cases/:caseKey
+// GetTestCase обрабатывает GET /api/projects/:projectId/tms/cases/:caseKey
 // @Summary Get test case
 // @Tags TMS
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Param caseKey path string true "Case key"
 // @Success 200 {object} TestCaseResponse
-// @Failure 404 {object} errors.AppError
+// @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/cases/{caseKey} [get]
 func (h *Handler) GetTestCase(c fiber.Ctx) error {
 	caseKey := parseCaseKey(c)
@@ -99,7 +99,7 @@ func (h *Handler) GetTestCase(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateTestCase handles PUT /api/projects/:projectId/tms/cases/:caseKey
+// UpdateTestCase обрабатывает PUT /api/projects/:projectId/tms/cases/:caseKey
 // @Summary Update test case
 // @Tags TMS
 // @Accept json
@@ -108,7 +108,7 @@ func (h *Handler) GetTestCase(c fiber.Ctx) error {
 // @Param caseKey path string true "Case key"
 // @Param body body UpdateTestCaseRequest true "Update data"
 // @Success 200 {object} TestCaseResponse
-// @Failure 404 {object} errors.AppError
+// @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/cases/{caseKey} [put]
 func (h *Handler) UpdateTestCase(c fiber.Ctx) error {
 	caseKey := parseCaseKey(c)
@@ -133,13 +133,13 @@ func (h *Handler) UpdateTestCase(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteTestCase handles DELETE /api/projects/:projectId/tms/cases/:caseKey
+// DeleteTestCase обрабатывает DELETE /api/projects/:projectId/tms/cases/:caseKey
 // @Summary Delete test case
 // @Tags TMS
 // @Param projectId path string true "Project ID"
 // @Param caseKey path string true "Case key"
 // @Success 204
-// @Failure 404 {object} errors.AppError
+// @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/cases/{caseKey} [delete]
 func (h *Handler) DeleteTestCase(c fiber.Ctx) error {
 	caseKey := parseCaseKey(c)
@@ -155,10 +155,10 @@ func (h *Handler) DeleteTestCase(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Version handlers
+// Обработчики версий тест-кейсов
 // ---------------------------------------------------------------------------
 
-// ListTestCaseVersions handles GET /api/projects/:projectId/tms/cases/:caseKey/versions
+// ListTestCaseVersions обрабатывает GET /api/projects/:projectId/tms/cases/:caseKey/versions
 // @Summary List test case versions
 // @Tags TMS
 // @Produce json
@@ -180,7 +180,7 @@ func (h *Handler) ListTestCaseVersions(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// RollbackTestCase handles POST /api/projects/:projectId/tms/cases/:caseKey/rollback/:versionId
+// RollbackTestCase обрабатывает POST /api/projects/:projectId/tms/cases/:caseKey/rollback/:versionId
 // @Summary Rollback test case to version
 // @Tags TMS
 // @Produce json
@@ -188,7 +188,7 @@ func (h *Handler) ListTestCaseVersions(c fiber.Ctx) error {
 // @Param caseKey path string true "Case key"
 // @Param versionId path string true "Version ID"
 // @Success 200 {object} TestCaseResponse
-// @Failure 404 {object} errors.AppError
+// @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/cases/{caseKey}/rollback/{versionId} [post]
 func (h *Handler) RollbackTestCase(c fiber.Ctx) error {
 	caseKey := parseCaseKey(c)
@@ -213,10 +213,10 @@ func (h *Handler) RollbackTestCase(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Issue link handlers
+// Обработчики связей тест-кейс↔задача
 // ---------------------------------------------------------------------------
 
-// LinkTestCaseToIssue handles POST /api/projects/:projectId/tms/cases/:caseKey/links
+// LinkTestCaseToIssue обрабатывает POST /api/projects/:projectId/tms/cases/:caseKey/links
 // @Summary Link test case to issue
 // @Tags TMS
 // @Accept json
@@ -248,7 +248,7 @@ func (h *Handler) LinkTestCaseToIssue(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// UnlinkTestCaseFromIssue handles DELETE /api/projects/:projectId/tms/cases/:caseKey/links/:issueId
+// UnlinkTestCaseFromIssue обрабатывает DELETE /api/projects/:projectId/tms/cases/:caseKey/links/:issueId
 // @Summary Unlink test case from issue
 // @Tags TMS
 // @Param projectId path string true "Project ID"
@@ -273,7 +273,7 @@ func (h *Handler) UnlinkTestCaseFromIssue(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// GetTestCaseLinks handles GET /api/projects/:projectId/tms/cases/:caseKey/links
+// GetTestCaseLinks обрабатывает GET /api/projects/:projectId/tms/cases/:caseKey/links
 // @Summary Get linked issues for test case
 // @Tags TMS
 // @Produce json
@@ -295,7 +295,7 @@ func (h *Handler) GetTestCaseLinks(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateBugFromResult handles POST /api/projects/:projectId/tms/runs/:runId/results/:resultId/bug
+// CreateBugFromResult обрабатывает POST /api/projects/:projectId/tms/runs/:runId/results/:resultId/bug
 // @Summary Create bug from failed test result
 // @Tags TMS
 // @Accept json
@@ -305,7 +305,7 @@ func (h *Handler) GetTestCaseLinks(c fiber.Ctx) error {
 // @Param resultId path string true "Result ID"
 // @Param body body CreateBugRequest true "Bug data"
 // @Success 201 {object} IssueBriefResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/results/{resultId}/bug [post]
 func (h *Handler) CreateBugFromResult(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)

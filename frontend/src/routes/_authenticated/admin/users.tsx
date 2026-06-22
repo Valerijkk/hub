@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { UserManagement } from "@/components/admin/user-management";
+import { isSystemAdmin } from "@/lib/is-system-admin";
 import { useAuthStore } from "@/stores/auth-store";
 
 /** Страница управления пользователями (только для администратора). */
@@ -14,7 +15,7 @@ function UsersPage() {
 export const Route = createFileRoute("/_authenticated/admin/users")({
 	beforeLoad: () => {
 		const { user } = useAuthStore.getState();
-		if (!user || user.system_role !== "admin") {
+		if (!user || !isSystemAdmin(user.system_role)) {
 			throw redirect({ to: "/" });
 		}
 	},

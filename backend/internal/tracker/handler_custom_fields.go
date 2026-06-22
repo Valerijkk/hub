@@ -7,16 +7,16 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Custom field handlers
+// Обработчики кастомных полей
 // ---------------------------------------------------------------------------
 
-// ListCustomFields godoc
+// ListCustomFields — Список кастомных полей
 // @Summary Список кастомных полей
 // @Description Возвращает все пользовательские поля проекта.
 // @Tags Трекер
 // @Produce json
 // @Param projectId path string true "ID проекта"
-// @Success 200 {array} CustomFieldResponse "Кастомные поля"
+// @Success 200 {array} CustomFieldDefinitionResponse "Кастомные поля"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -35,7 +35,7 @@ func (h *Handler) ListCustomFields(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateCustomField godoc
+// CreateCustomField — Создать кастомное поле
 // @Summary Создать кастомное поле
 // @Description Создаёт новое пользовательское поле для задач проекта.
 // @Tags Трекер
@@ -43,7 +43,7 @@ func (h *Handler) ListCustomFields(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "ID проекта"
 // @Param body body CreateCustomFieldRequest true "Данные поля"
-// @Success 201 {object} CustomFieldResponse "Поле создано"
+// @Success 201 {object} CustomFieldDefinitionResponse "Поле создано"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
@@ -68,7 +68,7 @@ func (h *Handler) CreateCustomField(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// DeleteCustomField godoc
+// DeleteCustomField — Удалить кастомное поле
 // @Summary Удалить кастомное поле
 // @Description Удаляет пользовательское поле и все его значения из задач.
 // @Tags Трекер

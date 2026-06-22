@@ -7,27 +7,27 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
-// TogglePin pins or unpins a message.
-// Returns true if pinned, false if unpinned.
+// TogglePin закрепляет или открепляет сообщение.
+// Возвращает true, если закреплено, false — если откреплено.
 func (s *MessengerService) TogglePin(ctx context.Context, channelID uuid.UUID, messageID string, userID uuid.UUID) (bool, error) {
 	existing, err := s.repo.FindPin(ctx, channelID, messageID)
 	if err == nil && existing != nil {
-		// Unpin
+		// Открепление
 		if err := s.repo.RemovePin(ctx, channelID, messageID); err != nil {
 			return false, apperrors.NewInternal("ошибка открепления сообщения")
 		}
 		return false, nil
 	}
 
-	// Pin
+	// Закрепление
 	if err := s.repo.AddPin(ctx, channelID, messageID, userID); err != nil {
 		return false, apperrors.NewInternal("ошибка закрепления сообщения")
 	}
 	return true, nil
 }
 
-// ListPins returns all pinned messages for a channel.
-// HI-01: only channel members may list pinned messages.
+// ListPins возвращает все закреплённые сообщения канала.
+// HI-01: закрепы видят только участники канала.
 func (s *MessengerService) ListPins(ctx context.Context, channelID, userID uuid.UUID) ([]PinnedMessageResponse, error) {
 	isMember, err := s.repo.IsMember(ctx, channelID, userID)
 	if err != nil {

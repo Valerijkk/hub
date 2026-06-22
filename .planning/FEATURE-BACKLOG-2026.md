@@ -2,7 +2,9 @@
 
 > Детальный backlog для dev-команды · 2026-06-21  
 > Источники: competitive_analysis_2026.md, user_needs_analysis_2026.md, PROD-01-SPIKE, MILESTONE-3  
-> **Out of scope:** SSO, native apps, billing, Gantt, webcams, multi-tenant, email notif (кроме magic link)
+> **PO LOCKED 2026-06-21:** `.planning/DISCUSS-ROADMAP-LOCKED.md`  
+> **Out of scope (still):** SSO, native apps (PWA OK), SaaS billing (later), multi-org (v5)  
+> **In scope by phase:** Gantt/webcam (16), email hub-mail (15.2+), AI (17), v4 accounting/no-code DB
 
 ---
 
@@ -311,6 +313,110 @@
 
 ---
 
+## v3.5 — AI Provider Hub (multi-model)
+
+### AI-01 — Provider registry + admin UI
+
+| Field | Value |
+|-------|-------|
+| **Spec** | `.planning/AI-PROVIDER-HUB-SPEC.md` |
+| **Acceptance** | Admin CRUD providers; encrypted keys; test ping; DeepSeek + Ollama presets |
+| **Effort** | L · **P0** · v3.0 |
+
+### AI-02 — Model picker + OpenRouter preset
+
+| **Acceptance** | User selects any admin-enabled model; OpenRouter «100 models» optional |
+| **Effort** | M · **P0** · v3.5 |
+
+### AI-03 — OpenAI-compatible `/api/ai/v1/chat/completions`
+
+| **Acceptance** | Hub JWT auth; proxies to selected provider; streaming SSE |
+| **Effort** | M · **P1** · v3.5 |
+
+### AI-04 — Anthropic + OpenAI adapters (admin opt-in)
+
+| **Note** | VPN disclaimer in admin UI |
+| **Effort** | S · **P2** · v3.5 |
+
+---
+
+## v4.0 — Corporate modules
+
+### MOD-01 — Intranet news feed
+
+| Persona | All employees |
+| **Acceptance** | Admin/HR posts news; pin; reactions; RBAC publish |
+| **BE** | `internal/intranet/` or extend `project` → `org` scope |
+| **Effort** | L · **P1** · v4.0 |
+
+### MOD-02 — Org directory + org chart
+
+| **Acceptance** | Tree by department; profile cards; search in Ctrl+K |
+| **Effort** | M · **P1** · v4.0 |
+
+### MOD-03 — Kudos / thanks
+
+| **Acceptance** | Send kudos → recipient notif + optional public feed |
+| **Effort** | S · **P2** · v4.0 |
+
+### MOD-04 — Unified calendar module
+
+| **Acceptance** | `/calendar` — sprints, calls, deadlines; iCal export |
+| **Effort** | L · **P1** · v4.0 |
+
+### MOD-05 — CRM-lite (contacts + deals)
+
+| **Acceptance** | Kanban deals; link to project; no invoicing |
+| **Out of scope** | Full accounting |
+| **Effort** | L · **P2** · v4.0 |
+
+### MOD-06 — HR-lite (leave requests)
+
+| **Acceptance** | Submit leave → approver chain via PROD-01; calendar block |
+| **Effort** | M · **P2** · v4.0 |
+
+### MOD-07 — 1C connector (webhook)
+
+| **Acceptance** | Approved leave → POST to 1C endpoint; mapping config |
+| **Effort** | L · **P3** · v4.5 |
+| **Service** | hub-integrations microservice |
+
+### MOD-08 — Internal marketplace (classifieds)
+
+| **Acceptance** | Post listing; mod queue; optional #marketplace channel |
+| **Effort** | M · **P3** · v4.0 |
+
+---
+
+## Security roadmap (SEC-R*)
+
+| ID | Item | Milestone |
+|----|------|-----------|
+| SEC-R1 | PG-03 rotation | v2.5 |
+| SEC-R2 | AI key encryption + SSRF | v3.0 |
+| SEC-R8 | Prompt injection filters | v3.5 |
+
+---
+
+## NOTIF — Telegram bind + Email alerts (v2.5–v2.6)
+
+> Spec: [NOTIF-TG-EMAIL-SPEC.md](./NOTIF-TG-EMAIL-SPEC.md)
+
+| ID | Feature | Effort | Priority |
+|----|---------|--------|----------|
+| NOTIF-01 | ADR email transactional (Resend alerts) | S | P0 |
+| NOTIF-02 | Telegram bind deep link + bot `/start bind_` | M | P0 |
+| NOTIF-03 | Telegram `/link` code + confirm API | S | P0 |
+| NOTIF-04 | Unlink, status, test ping, audit | S | P1 |
+| NOTIF-05 | EmailSender + run_failed templates | M | P1 |
+| NOTIF-06 | Channel `email` in preferences UI | S | P1 |
+| NOTIF-07 | Verify real email in profile (non-placeholder) | M | P1 |
+| NOTIF-08 | `run_failed` / `run_regression` event types | M | P0 |
+| NOTIF-09 | TelegramLinkCard + settings UX | M | P1 |
+| NOTIF-10 | E2E notification bind smoke | M | P2 |
+
+---
+
 ## Dependency graph (critical path)
 
 ```
@@ -325,8 +431,14 @@ v2.0.2 SHIPPED
               ├─► FB-17 issue↔msg
               └─► FB-18 webhooks
                         │
-                        v2.6 SHIP ──► FB-23..28 AI v3.0
+                        v2.6 SHIP ──► FB-23..28 AI v3.0 ──► AI-01..04 ──► MOD-01..08 v4.0
 ```
+
+---
+
+## Extended dependency graph note
+
+See [PLATFORM-VISION-v4.md](./PLATFORM-VISION-v4.md) for microservices split triggers.
 
 ---
 
@@ -339,6 +451,26 @@ v2.0.2 SHIPPED
 | FB-16 Flaky | 3 | 5 | 4 | 8 | **7.5** |
 | FB-23 AI provider | 5 | 5 | 3 | 13 | **5.8** |
 | FB-01 Shortcuts | 5 | 2 | 5 | 2 | **25** |
+
+---
+
+## Test Infrastructure (Backlog — Phase 999.1)
+
+### FB-TEST-01 — Unified test framework + `tests/` tree
+
+| Field | Value |
+|-------|-------|
+| **Persona** | QA, Backend Dev, Frontend Dev |
+| **Problem** | Тесты размазаны: `*_test.go` co-located, `frontend/e2e/` без единого POM/framework, 0 Vitest, дубли fixtures, coverage artifacts в backend/ |
+| **User story** | Как разработчик, хочу один `tests/` каталог и фреймворк (Page Object, builders, SOLID/DRY/KISS), чтобы писать smoke/regression/E2E без копипасты setup |
+| **Acceptance** | Given новый тест, When следую README в `tests/`, Then использую Page/Flow/Builder API; E2E specs без raw selectors; CI targets `test-smoke` / `test-regression`; Go pure unit остаётся co-located |
+| **Technical scope** | `tests/{framework,backend,frontend,e2e}`; Playwright POM refactor; Vitest setup; Go integration suite; migration M1–M6 |
+| **Test design** | Equivalence partitioning, BVA, state transition tables, pairwise role matrices — задокументированы в framework |
+| **Effort** | L · **P1** · post Phase 15 Wave 5 or parallel Wave 8 |
+| **Dependencies** | Phase 15 E2E specs (FB-07..09), `docs/test_plan.md` |
+| **Spec** | `.planning/phases/999-test-framework/SPEC.md` |
+| **Metrics** | Time-to-first-test for new dev ↓; duplicate fixture code ↓50% |
+| **Risk** | Go integration move breaks `go test ./...` discoverability — document split explicitly |
 
 ---
 

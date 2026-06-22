@@ -2,8 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
-import i18n from "@/i18n";
 import {
 	createWorkflowStatus,
 	createWorkflowTransition,
@@ -11,6 +9,7 @@ import {
 	listWorkflowTransitions,
 	type WorkflowStatusResponse,
 } from "@/api/tracker";
+import { AutomationRulesPanel } from "@/components/tracker/automation-rules-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +23,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Предустановленные цвета для статусов. */
 const PRESET_COLORS = [
@@ -348,6 +349,8 @@ function WorkflowSettingsPage() {
 					</form>
 				</CardContent>
 			</Card>
+
+			<AutomationRulesPanel projectId={projectId} />
 		</div>
 	);
 }

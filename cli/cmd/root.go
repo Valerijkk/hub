@@ -136,5 +136,5 @@ func printResult(message string, data interface{}) {
 
 // printError выводит сообщение об ошибке в stderr.
 func printError(msg string) {
-	fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
+	fmt.Fprintf(os.Stderr, "Ошибка: %s\n", msg)
 }

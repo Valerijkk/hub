@@ -1,0 +1,35 @@
+# Пример production-конфигурации Alertmanager (фазы 35–36).
+# Скопируйте в alertmanager.yml и задайте ALERT_WEBHOOK_SECRET
+# (то же значение, что в env backend).
+#
+# Ограничения Hub: email-алерты запрещены (кроме Magic Link).
+# Алерты попадают в Audit Log администратора через webhook backend.
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default
+  group_by: ["alertname", "service", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - match:
+        severity: critical
+      receiver: critical
+      repeat_interval: 1h
+
+receivers:
+  - name: default
+    webhook_configs:
+      - url: "http://backend:3000/api/webhooks/alertmanager"
+        send_resolved: true
+        http_config:
+          bearer_token: "CHANGE_ME_ALERT_WEBHOOK_SECRET"
+  - name: critical
+    webhook_configs:
+      - url: "http://backend:3000/api/webhooks/alertmanager"
+        send_resolved: true
+        http_config:
+          bearer_token: "CHANGE_ME_ALERT_WEBHOOK_SECRET"

@@ -404,6 +404,20 @@ type TraceabilityMatrix struct {
 	Rows []TraceabilityRow `json:"rows"`
 }
 
+// FlakyTestItem — тест-кейс с метриками нестабильности (PROD-02).
+type FlakyTestItem struct {
+	TestCaseResponse
+	StatusHistory []string `json:"status_history"`
+	FlakeRate     float64  `json:"flake_rate"`
+	MarkedFlaky   bool     `json:"marked_flaky"`
+}
+
+// FlakyTestReport — отчёт по flaky-тестам за последние N прогонов.
+type FlakyTestReport struct {
+	Items     []FlakyTestItem `json:"items"`
+	RunWindow int             `json:"run_window"`
+}
+
 // EnvironmentComparisonItem — элемент сравнения результатов по окружениям.
 type EnvironmentComparisonItem struct {
 	CaseKey    string `json:"case_key"`

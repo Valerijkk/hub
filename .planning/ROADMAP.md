@@ -7,7 +7,12 @@ Hub предоставляет единую платформу для коман
 ## Milestones
 
 - :white_check_mark: **v1.0 MVP** - Phases 1-7 (shipped 2026-03-21)
-- :construction: **v2.0 Hub Redesign** - Phases 8-13 (in progress)
+- :white_check_mark: **v2.0 Hub Redesign** - Phases 8-14 (shipped 2026-05-15)
+- :white_check_mark: **v2.5 Trust** - Phase 15 (shipped 2026-06-22)
+- :white_check_mark: **v2.6 Automate** - Phase 16 (shipped 2026-06-22)
+- :white_check_mark: **v3.0 AI Native** - Phases 17–19 (shipped 2026-06-22)
+- :white_check_mark: **v4 Super-app** - Phases 39–58 (shipped 2026-06-25, branch uncommitted)
+- :calendar: **v4.5+** - Accounting advanced, Lark Base formulas · 2027+
 
 ## Phases
 
@@ -40,7 +45,61 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 11: Core Mockup Pages** - Login, Dashboard, Messenger, Kanban
 - [ ] **Phase 12: Remaining Mockup Pages + Unmocked Pages** - Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash + Projects, Sprint, JQL, Project Settings, Project Dashboard
 - [ ] **Phase 13: Polish & QA** - Финальный визуальный QA, доступность, мобильная проверка, очистка мёртвого CSS
-- [ ] **Phase 14: Architectural Hardening** - Расщепление god-объектов (AuthService, CallService), удаление ent.Client leak из сервисов, расширение Permission, покрытие тестами критичных путей
+- [x] **Phase 14: Architectural Hardening** - Расщепление god-объектов (AuthService, CallService), удаление ent.Client leak из сервисов, расширение Permission, покрытие тестами критичных путей
+
+### v2.5+ Production & Super-app (Planned — PO LOCKED 2026-06-21)
+
+> Decisions: `.planning/DISCUSS-ROADMAP-LOCKED.md` · Branch: `feat/v2.5-trust`
+
+- [x] **Phase 15: Trust (v2.5)** - Magic Link only, organization, NOTIF TG bind, hub-mail, E2E FB-07..09, WCAG, run_failed, Biome, LiveKit CI, coverage ≥50% (2026-06-22)
+- [x] **Phase 16: Automate (v2.6)** - PROD automation, flaky, issue↔message, webhooks log, Gantt, webcam, email marketing, triage inbox, Meilisearch (2026-06-22)
+- [x] **Phase 17: AI Native (v3.0)** - AI gateway (Ollama + BYOK), @hub-ai + dialog, full JQL automation (W1–W11, 2026-06-22)
+- [x] **Phase 18: AI Privacy (v3.5)** - M3-030 external AI consent, settings UI, E2E ai-hub (2026-06-22)
+- [x] **Phase 19: AI Polish** - M3-024 composer Tab suggest, dev seed Ollama, MILESTONE-3 reconcile (2026-06-22)
+- [x] **Phase 20: Milestone Gate** - ROADMAP sync, composer E2E, COVERAGE refresh (2026-06-22)
+- [x] **Phase 21: Architecture Completion** - backup Repository (ARCH-01 W1), cron unify (2026-06-22)
+- [x] **Phase 22: Architecture storage** - storage + orphan cleanup Repository (2026-06-22)
+- [x] **Phase 23: Architecture apigateway** - APIKey + Webhook Repository (2026-06-23)
+- [x] **Phase 24: Architecture imex** - import/export Repository, Jira atomic keys (2026-06-23)
+- [x] **Phase 25: Architecture dashboard** - dashboard Repository (2026-06-23)
+- [x] **Phase 26: Architecture rbac** - RBAC + custom roles Repository (2026-06-23)
+- [x] **Phase 27: Architecture auth** - auth Repository, middleware repo (2026-06-23) — **ARCH-01 17/17**
+- [x] **Phase 28: v2.6 Architecture Gate** - rbac RequireAdmin→Repository, regression (2026-06-23)
+- [x] **Phase 29: OBS-01** - Timed metrics + `/admin/observability/ops` (2026-06-23)
+- [x] **Phase 30: OBS-01 FE** - Admin metrics tab + Vitest + E2E smoke (2026-06-23)
+- [x] **Phase 31: OBS-01 Prometheus** - `/metrics` + HTTP middleware + E2E (2026-06-23)
+- [x] **Phase 32: OBS-01 OTel** - OTLP traces + HTTP/Timed spans (2026-06-24)
+- [x] **Phase 33: Monitoring stack** - Grafana/Prometheus compose + metrics CIDR + K3s NP (2026-06-24)
+- [x] **Phase 34: Loki + alerts** - Loki/Promtail + Prometheus rules + logs panel (2026-06-24)
+- [x] **Phase 35: Alertmanager** - AM routing + Grafana datasource + metrics-down (2026-06-24)
+- [x] **Phase 36: Alert webhook** - AM → audit log + prod env wiring (2026-06-24)
+- [x] **Phase 37: Biome gate** - PG-02 lint 0 errors / 0 warnings (2026-06-24)
+- [x] **Phase 38: v2.6 Milestone Gate** - API docs + qa-gate + alert E2E (2026-06-24)
+- [x] **Phase 40: Org directory** - MOD-02 directory + Ctrl+K (2026-06-24)
+- [x] **Phase 41: Unified calendar** - MOD-04 `/calendar` + iCal (2026-06-24)
+- [x] **Phase 42: CRM-lite** - MOD-05 contacts + deals kanban (2026-06-24)
+- [x] **Phase 43: HR-lite** - MOD-06 leave requests + calendar (2026-06-24)
+- [x] **Phase 44: Kudos** - MOD-03 thanks feed + notifications (2026-06-24)
+- [x] **Phase 45: Marketplace** - MOD-08 classifieds + mod queue (2026-06-24)
+- [x] **Phase 46: Status page** - V4-06 public /status (2026-06-24)
+- [x] **Phase 47: Random Coffee** - V4-05 intranet matching (2026-06-24)
+- [x] **Phase 48: 1C Connector** - MOD-07 leave webhook + admin settings (2026-06-24)
+- [x] **Phase 49: Lark Base** - V4-04 no-code tables `/bases` (2026-06-25)
+- [x] **Phase 50: v4 Milestone Gate** - qa-gate + Vitest v4 smoke (2026-06-25)
+- [x] **Phase 51: Accounting MVP** - V4-03 ledger + trial balance (2026-06-25)
+- [x] **Phase 52: Accounting v4.5** - invoices + P&L + CRM won hook (2026-06-25)
+- [x] **Phase 53: v4 Module Gate** - CRM↔invoice tests + E2E v4.5 (2026-06-25)
+- [x] **Phase 54: v4 Coverage Uplift** - bases 61% + marketplace 69% (2026-06-25)
+- [x] **Phase 55: onec + intranet** - 72% + 61% coverage (2026-06-25)
+- [x] **Phase 56: v4 Final Gate** - CRM 73% + qa-gate green (2026-06-25)
+- [x] **Phase 57: Post-v4 CI Handoff** - v4 E2E in CI + admin fix (2026-06-25)
+- [x] **Phase 58: v4 Milestone Archive** - SUMMARY + qa-gate `-race` + coverage refresh (2026-06-25)
+- [x] **Phase 59: Coverage + UX Close-out** - tracker 52% + storage 56% + issue-form Vitest (2026-06-25)
+- [x] **Phase 60: UX-1 Gate** - a11y calls/TMS + shortcuts E2E + onboarding Zod (2026-06-25)
+- [x] **Phase 61: Coverage + Context Tooltips** - project 59% + search 61% + UX-P1-04 (2026-06-25)
+- [x] **Phase 62: Onboarding Profile RHF** - UX-P1-07 profile step RHF+Zod + E2E (2026-06-25)
+- [x] **Phase 63: Production Release Gate** - qa-gate -race + 55.7% + VERIFICATION (2026-06-25)
+- [x] **Phase 64: Auth Coverage Uplift** - auth 74.7% → **81.6%** (2026-06-25)
 
 ## Phase Details
 
@@ -353,3 +412,28 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14
 | 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 5/5 | Complete    | 2026-03-28 |
 | 13. Polish & QA | v2.0 | 2/2 | Complete    | 2026-03-28 |
 | 14. Architectural Hardening | v2.0 | 5/5 | Complete    | 2026-05-15 |
+| 15. Trust (v2.5) | v2.5 | 0/TBD | Not started | - |
+| 16. Automate (v2.6) | v2.6 | 0/TBD | Not started | - |
+| 17. AI Native (v3.0) | v3.0 | 0/TBD | Not started | - |
+
+---
+
+## Backlog
+
+> Unsequenced ideas (999.x). Promote via `/gsd-review-backlog` when ready.
+
+### Phase 999.1: Unified test framework + test tree refactor (BACKLOG)
+
+**Goal:** Вынести интеграционные/E2E/Vitest тесты в `tests/`, построить фреймворк: Page Object, Flow Object, builders, SOLID/DRY/KISS, test design (BVA, equivalence, state transition). Go pure unit — co-located.
+
+**Spec:** `.planning/phases/999-test-framework/SPEC.md`
+
+**Requirements:** TBD (promote → arch + qa plan)
+
+**Plans:** 0 plans
+
+Plans:
+- [ ] M1–M6 migration waves (see SPEC)
+- [ ] TBD (promote with `/gsd-review-backlog` when ready)
+
+**Suggested timing:** after Phase 15 Wave 5 (E2E) or parallel Wave 8 coverage if team capacity allows.

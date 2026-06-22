@@ -14,10 +14,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// ScheduledCall handlers (CALL-02)
+// Обработчики запланированных звонков (CALL-02)
 // ---------------------------------------------------------------------------
 
-// CreateScheduledCall godoc
+// CreateScheduledCall — Создать запланированный звонок
 // @Summary Создать запланированный звонок
 // @Description Создаёт запланированный звонок в проекте с указанным временем и участниками.
 // @Tags Звонки
@@ -56,7 +56,7 @@ func (h *Handler) CreateScheduledCall(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListScheduledCalls godoc
+// ListScheduledCalls — Список запланированных звонков
 // @Summary Список запланированных звонков
 // @Description Возвращает запланированные звонки для указанного канала.
 // @Tags Звонки
@@ -83,7 +83,7 @@ func (h *Handler) ListScheduledCalls(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"scheduled_calls": calls})
 }
 
-// UpdateScheduledCall godoc
+// UpdateScheduledCall — Обновить запланированный звонок
 // @Summary Обновить запланированный звонок
 // @Description Обновляет время, название или участников запланированного звонка.
 // @Tags Звонки
@@ -117,7 +117,7 @@ func (h *Handler) UpdateScheduledCall(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteScheduledCall godoc
+// DeleteScheduledCall — Удалить запланированный звонок
 // @Summary Удалить запланированный звонок
 // @Description Удаляет запланированный звонок.
 // @Tags Звонки
@@ -142,7 +142,7 @@ func (h *Handler) DeleteScheduledCall(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// CheckConflicts godoc
+// CheckConflicts — Проверить конфликты расписания
 // @Summary Проверить конфликты расписания
 // @Description Проверяет, есть ли пересечения в расписании участников на указанное время.
 // @Tags Звонки

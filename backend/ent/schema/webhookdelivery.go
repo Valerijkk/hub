@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// WebhookDelivery holds the schema definition for the WebhookDelivery entity.
+// WebhookDelivery — определение Ent-схемы сущности WebhookDelivery.
 type WebhookDelivery struct {
 	ent.Schema
 }
 
-// Fields of the WebhookDelivery.
+// Поля сущности WebhookDelivery.
 func (WebhookDelivery) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -39,7 +39,7 @@ func (WebhookDelivery) Fields() []ent.Field {
 	}
 }
 
-// Edges of the WebhookDelivery.
+// Рёбра (edges) сущности WebhookDelivery.
 func (WebhookDelivery) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("endpoint", WebhookEndpoint.Type).
@@ -49,7 +49,7 @@ func (WebhookDelivery) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the WebhookDelivery.
+// Индексы сущности WebhookDelivery.
 func (WebhookDelivery) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("delivered_at"),

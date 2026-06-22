@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// CustomFieldDefinition holds the schema definition for the CustomFieldDefinition entity.
+// CustomFieldDefinition — определение Ent-схемы сущности CustomFieldDefinition.
 type CustomFieldDefinition struct {
 	ent.Schema
 }
 
-// Fields of the CustomFieldDefinition.
+// Поля сущности CustomFieldDefinition.
 func (CustomFieldDefinition) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -37,7 +37,7 @@ func (CustomFieldDefinition) Fields() []ent.Field {
 	}
 }
 
-// Edges of the CustomFieldDefinition.
+// Рёбра (edges) сущности CustomFieldDefinition.
 func (CustomFieldDefinition) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -47,7 +47,7 @@ func (CustomFieldDefinition) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the CustomFieldDefinition.
+// Индексы сущности CustomFieldDefinition.
 func (CustomFieldDefinition) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("project").

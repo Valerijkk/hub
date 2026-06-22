@@ -55,7 +55,7 @@ export function useAuth() {
 		try {
 			await logoutApi();
 		} catch {
-			// ignore: всё равно очищаем локальные токены
+			// игнорируем: всё равно очищаем локальные токены
 		}
 		storeLogout();
 	}, [storeLogout]);

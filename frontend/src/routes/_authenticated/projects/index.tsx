@@ -70,7 +70,10 @@ function ProjectsPage() {
 						</svg>
 					</div>
 					<div>
-						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+						<h1
+							className="text-[18px] font-extrabold tracking-[-0.03em] text-t1"
+							data-testid="projects-page-heading"
+						>
 							{t("projectsPage.title")}
 						</h1>
 						<p className="mt-0.5 text-[13px] text-t2 leading-[1.5]">
@@ -169,7 +172,7 @@ function ProjectsPage() {
 						}
 						emptyFallback={
 							<div className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-dashed border-b1 bg-card/50 py-20 px-6 animate-[eu_450ms_var(--spring)_both]">
-								{/* Illustration */}
+								{/* Иллюстрация */}
 								<div className="relative mb-6">
 									<div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--blueS)]/10 to-[var(--purpleS)]/10">
 										<svg

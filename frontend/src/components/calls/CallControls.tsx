@@ -36,7 +36,7 @@ import { useCallStore } from "@/stores/call-store";
 import { CallReactionBar } from "./CallReactions";
 import { CallSettingsModal } from "./CallSettingsModal";
 
-/** Round control button with tooltip and label. */
+/** Круглая кнопка управления с tooltip и подписью. */
 function ControlButton({
 	icon: Icon,
 	label,

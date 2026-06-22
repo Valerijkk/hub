@@ -1,13 +1,13 @@
-# LiveKit production config — REFERENCE ONLY (SEC-03).
+# Конфигурация LiveKit для production — ТОЛЬКО СПРАВОЧНИК (SEC-03).
 #
-# Production does NOT mount this file. docker-compose.prod.yml generates
-# /tmp/livekit.yaml at container start from LIVEKIT_API_KEY / LIVEKIT_API_SECRET
-# env vars (see livekit service heredoc). Copy values into deployments/.env.
+# В production этот файл НЕ монтируется. docker-compose.prod.yml генерирует
+# /tmp/livekit.yaml при старте контейнера из переменных LIVEKIT_API_KEY /
+# LIVEKIT_API_SECRET (см. heredoc сервиса livekit). Значения копируйте в deployments/.env.
 #
-# Local dev uses deployments/livekit.yaml (committed dev-only keys).
+# Локальная разработка использует deployments/livekit.yaml (dev-ключи в репозитории).
 #
-# If you previously deployed with deployments/livekit-prod.yaml (devkey: secret),
-# rotate LIVEKIT_API_KEY and LIVEKIT_API_SECRET before next deploy.
+# Если ранее деплоили с deployments/livekit-prod.yaml (devkey: secret),
+# выполните ротацию LIVEKIT_API_KEY и LIVEKIT_API_SECRET перед следующим деплоем.
 
 port: 7880
 rtc:

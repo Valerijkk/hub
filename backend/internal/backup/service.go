@@ -19,10 +19,10 @@ import (
 
 // BackupService реализует создание, восстановление и управление резервными копиями.
 // Использует pg_dump + mongodump + S3 для полного бэкапа всех данных платформы.
-const maxBackupReadBytes = 512 * 1024 * 1024 // 512 MiB admin restore cap (NEW-03)
+const maxBackupReadBytes = 512 * 1024 * 1024 // 512 MiB — лимит чтения при восстановлении админом (NEW-03)
 
 type BackupService struct {
-	db         *ent.Client
+	repo       Repository
 	s3Client   *s3.Client
 	s3Bucket   string
 	pgURL      string
@@ -42,12 +42,12 @@ type BackupService struct {
 // rootCtx должен быть долгоживущим контекстом (обычно signal.NotifyContext
 // из main) — он используется для фоновых задач сервиса (ротация старых
 // бэкапов и т.п.). Передавайте именно rootCtx, а не request-ctx Fiber'а.
-func NewBackupService(rootCtx context.Context, db *ent.Client, s3Client *s3.Client, s3Bucket, pgURL, mongoURL string) *BackupService {
+func NewBackupService(rootCtx context.Context, repo Repository, s3Client *s3.Client, s3Bucket, pgURL, mongoURL string) *BackupService {
 	if rootCtx == nil {
 		rootCtx = context.Background()
 	}
 	return &BackupService{
-		db:           db,
+		repo:         repo,
 		s3Client:     s3Client,
 		s3Bucket:     s3Bucket,
 		pgURL:        pgURL,
@@ -65,10 +65,7 @@ func (s *BackupService) PerformBackup(ctx context.Context) (*BackupResponse, err
 	s3Key := fmt.Sprintf("backups/%s.zip", timestamp)
 
 	// Создаём запись бэкапа (in_progress)
-	record, err := s.db.BackupRecord.Create().
-		SetS3Key(s3Key).
-		SetStatus(backuprecord.StatusInProgress).
-		Save(ctx)
+	record, err := s.repo.CreateInProgress(ctx, s3Key)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось создать запись бэкапа: %w", err)
 	}
@@ -108,10 +105,7 @@ func (s *BackupService) PerformBackup(ctx context.Context) (*BackupResponse, err
 	}
 
 	// Обновляем статус
-	record, err = s.db.BackupRecord.UpdateOneID(record.ID).
-		SetStatus(backuprecord.StatusCompleted).
-		SetFileSize(int64(len(zipData))).
-		Save(ctx)
+	record, err = s.repo.MarkCompleted(ctx, record.ID, int64(len(zipData)))
 	if err != nil {
 		return nil, fmt.Errorf("не удалось обновить статус бэкапа: %w", err)
 	}
@@ -133,10 +127,10 @@ func (s *BackupService) PerformBackup(ctx context.Context) (*BackupResponse, err
 // состояния перед восстановлением, извлекает pg_dump + mongodump из ZIP,
 // выполняет pg_restore и mongorestore через exec.Command.
 func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) error {
-	record, err := s.db.BackupRecord.Get(ctx, backupID)
+	record, err := s.repo.Get(ctx, backupID)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return fmt.Errorf("бэкап не найден")
+		if IsNotFound(err) {
+			return NotFoundError()
 		}
 		return fmt.Errorf("ошибка получения бэкапа: %w", err)
 	}
@@ -200,9 +194,7 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 	}
 
 	// Обновляем статус записи бэкапа — фиксируем факт восстановления.
-	_, _ = s.db.BackupRecord.UpdateOneID(backupID).
-		SetNillableErrorMessage(strPtr("restored at " + time.Now().UTC().Format(time.RFC3339))).
-		Save(ctx)
+	_ = s.repo.SetRestoredNote(ctx, backupID, "restored at "+time.Now().UTC().Format(time.RFC3339))
 
 	slog.Info("восстановление завершено", "s3_key", record.S3Key)
 	return nil
@@ -286,9 +278,7 @@ func (s *BackupService) restoreMongo(ctx context.Context, data []byte) error {
 
 // ListBackups возвращает список всех бэкапов, отсортированных по дате.
 func (s *BackupService) ListBackups(ctx context.Context) ([]BackupResponse, error) {
-	records, err := s.db.BackupRecord.Query().
-		Order(ent.Desc(backuprecord.FieldCreatedAt)).
-		All(ctx)
+	records, err := s.repo.ListAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить список бэкапов: %w", err)
 	}
@@ -302,10 +292,10 @@ func (s *BackupService) ListBackups(ctx context.Context) ([]BackupResponse, erro
 
 // DeleteBackup удаляет запись бэкапа и файл из S3.
 func (s *BackupService) DeleteBackup(ctx context.Context, backupID uuid.UUID) error {
-	record, err := s.db.BackupRecord.Get(ctx, backupID)
+	record, err := s.repo.Get(ctx, backupID)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return fmt.Errorf("бэкап не найден")
+		if IsNotFound(err) {
+			return NotFoundError()
 		}
 		return err
 	}
@@ -318,7 +308,7 @@ func (s *BackupService) DeleteBackup(ctx context.Context, backupID uuid.UUID) er
 		})
 	}
 
-	return s.db.BackupRecord.DeleteOneID(backupID).Exec(ctx)
+	return s.repo.Delete(ctx, backupID)
 }
 
 // dumpPostgres выполняет pg_dump --format=custom.
@@ -371,10 +361,7 @@ func (s *BackupService) createZIP(pgData, mongoData []byte) ([]byte, error) {
 
 // cleanupOldBackups удаляет старые бэкапы, оставляя не более maxBackups.
 func (s *BackupService) cleanupOldBackups(ctx context.Context) {
-	records, err := s.db.BackupRecord.Query().
-		Where(backuprecord.StatusEQ(backuprecord.StatusCompleted)).
-		Order(ent.Desc(backuprecord.FieldCreatedAt)).
-		All(ctx)
+	records, err := s.repo.ListCompletedNewestFirst(ctx)
 	if err != nil {
 		slog.Error("ошибка получения бэкапов для ротации", "error", err)
 		return
@@ -391,7 +378,7 @@ func (s *BackupService) cleanupOldBackups(ctx context.Context) {
 				Key:    &r.S3Key,
 			})
 		}
-		if err := s.db.BackupRecord.DeleteOneID(r.ID).Exec(ctx); err != nil {
+		if err := s.repo.Delete(ctx, r.ID); err != nil {
 			slog.Error("ошибка удаления старого бэкапа", "id", r.ID, "error", err)
 		}
 	}
@@ -401,11 +388,7 @@ func (s *BackupService) cleanupOldBackups(ctx context.Context) {
 
 // markFailed обновляет статус бэкапа на failed.
 func (s *BackupService) markFailed(ctx context.Context, id uuid.UUID, err error) {
-	errMsg := err.Error()
-	if _, updateErr := s.db.BackupRecord.UpdateOneID(id).
-		SetStatus(backuprecord.StatusFailed).
-		SetErrorMessage(errMsg).
-		Save(ctx); updateErr != nil {
+	if updateErr := s.repo.MarkFailed(ctx, id, err.Error()); updateErr != nil {
 		slog.Error("не удалось обновить статус бэкапа на failed", "error", updateErr)
 	}
 }

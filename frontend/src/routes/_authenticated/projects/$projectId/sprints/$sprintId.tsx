@@ -111,7 +111,7 @@ function SprintDetailPage() {
 
 	return (
 		<div className="mx-auto max-w-5xl space-y-6 animate-[eu_450ms_var(--spring)_both]">
-			{/* Back link */}
+			{/* Ссылка «Назад» */}
 			<Link
 				to="/projects/$projectId/sprints"
 				params={{ projectId }}
@@ -121,7 +121,7 @@ function SprintDetailPage() {
 				Все спринты
 			</Link>
 
-			{/* Sprint header card */}
+			{/* Карточка заголовка спринта */}
 			<div className="bg-gradient-to-b from-card to-raised rounded-[var(--r4)] border border-b1 p-6">
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0 flex-1">
@@ -152,7 +152,7 @@ function SprintDetailPage() {
 					</div>
 				</div>
 
-				{/* Stats row */}
+				{/* Строка статистики */}
 				<div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
 					{[
 						{
@@ -206,7 +206,7 @@ function SprintDetailPage() {
 					))}
 				</div>
 
-				{/* Progress bar */}
+				{/* Прогресс-бар */}
 				{sprint.status !== "completed" ? (
 					<div className="mt-4">
 						<div className="mb-1.5 flex justify-between text-[12px] text-t3">
@@ -233,10 +233,10 @@ function SprintDetailPage() {
 				)}
 			</div>
 
-			{/* Burndown chart */}
+			{/* Burndown-график */}
 			<BurndownChart projectId={projectId} sprintId={sprintId} />
 
-			{/* Retro section */}
+			{/* Секция ретроспективы */}
 			{(sprint.status === "active" || sprint.status === "completed") && (
 				<SprintRetro
 					projectId={projectId}

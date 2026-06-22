@@ -149,7 +149,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 		);
 	}
 
-	// Sort: active first, then planning, then completed
+	// Сортировка: active → planning → completed
 	const sorted = [...sprints].sort((a, b) => {
 		const order = { active: 0, planning: 1, completed: 2 };
 		return (
@@ -160,7 +160,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 
 	return (
 		<div className="space-y-6 animate-[eu_450ms_var(--spring)_both]">
-			{/* Page header */}
+			{/* Заголовок страницы */}
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-3">
 					<div className="flex h-10 w-10 items-center justify-center rounded-[var(--r3)] bg-gradient-to-br from-[var(--blueS)]/20 to-[var(--purpleS)]/20 text-blue">
@@ -179,7 +179,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 				</div>
 			</div>
 
-			{/* Sprint stat bar */}
+			{/* Панель статистики спринта */}
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
 				{[
 					{
@@ -225,7 +225,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 				))}
 			</div>
 
-			{/* Sprint cards grid */}
+			{/* Сетка карточек спринтов */}
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 				{sorted.map((sprint) => {
 					const badge = getStatusBadge(sprint.status);
@@ -248,7 +248,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 									sprint.status === "active" ? "ring-1 ring-emerald-500/20" : ""
 								}`}
 							>
-								{/* Header row */}
+								{/* Строка заголовка */}
 								<div className="flex items-start justify-between gap-3">
 									<div className="min-w-0 flex-1">
 										<div className="flex items-center gap-2.5">
@@ -272,7 +272,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 									<ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-t3 opacity-0 transition-opacity group-hover:opacity-100" />
 								</div>
 
-								{/* Date + stats row */}
+								{/* Строка даты и статистики */}
 								<div className="mt-4 flex flex-wrap items-center gap-4 text-[12px] text-t3">
 									<span className="inline-flex items-center gap-1.5">
 										<Calendar className="h-3.5 w-3.5 opacity-60" />
@@ -298,7 +298,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 									)}
 								</div>
 
-								{/* Progress bar */}
+								{/* Прогресс-бар */}
 								{sprint.status !== "completed" && (
 									<div className="mt-3">
 										<div className="mb-1 flex justify-between text-[11px] text-t3">
@@ -322,7 +322,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 									</div>
 								)}
 
-								{/* Actions */}
+								{/* Действия */}
 								<div className="mt-4 flex items-center gap-2">
 									{sprint.status === "planning" && (
 										<Button
@@ -353,7 +353,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 				})}
 			</div>
 
-			{/* Confirm complete dialog */}
+			{/* Диалог подтверждения завершения */}
 			<Dialog open={confirmComplete} onOpenChange={setConfirmComplete}>
 				<DialogContent className="rounded-[var(--r4)] border-b1">
 					<DialogHeader>

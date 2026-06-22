@@ -2,8 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
-import i18n from "@/i18n";
 import { createProject } from "@/api/projects";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
 
 const NAME_MAX = 100;
 const DESC_MAX = 500;
@@ -30,7 +30,7 @@ function generateKey(name: string): string {
 		.slice(0, 10);
 }
 
-/** Generate a short project key from first letters of each word (max 5 chars). */
+/** Короткий key проекта из первых букв слов (макс. 5 символов). */
 function generateKeyFromInitials(name: string): string {
 	return name
 		.trim()

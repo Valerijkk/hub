@@ -8,15 +8,17 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:e2e": "playwright test",
-    "test:e2e:a11y": "playwright test e2e/a11y.spec.ts",
+    "test:e2e": "node scripts/link-e2e-node-modules.mjs && playwright test -c playwright.config.ts",
+    "test:e2e:a11y": "node scripts/link-e2e-node-modules.mjs && playwright test -c playwright.config.ts --grep a11y",
     "lighthouse:help": "echo Run: npm run build && npm run preview then npx lighthouse http://localhost:4173/login --only-categories=accessibility,performance,best-practices --chrome-flags=--headless",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install chromium",
-    "lint": "biome check ./src"
+    "lint": "biome check ./src",
+    "lighthouse:ci": "node scripts/lighthouse-ci.mjs"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.9",
+    "@hookform/resolvers": "^5.4.0",
     "@livekit/components-react": "^2.9.20",
     "@livekit/components-styles": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -48,10 +50,12 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-grid-layout": "^2.2.2",
+    "react-hook-form": "^7.80.0",
     "react-i18next": "^16.5.8",
     "recharts": "^3.8.0",
     "sonner": "latest",
     "tailwind-merge": "latest",
+    "zod": "^4.4.3",
     "zustand": "^5.0.0"
   },
   "devDependencies": {

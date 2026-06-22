@@ -9,10 +9,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Message handlers
+// Обработчики сообщений
 // ---------------------------------------------------------------------------
 
-// SendMessage godoc
+// SendMessage — Отправить сообщение
 // @Summary Отправить сообщение
 // @Description Отправляет новое сообщение в указанный канал. Поддерживает ответы в тредах.
 // @Tags Мессенджер
@@ -48,7 +48,7 @@ func (h *Handler) SendMessage(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListMessages godoc
+// ListMessages — Список сообщений канала
 // @Summary Список сообщений канала
 // @Description Возвращает сообщения канала с пагинацией по курсору (before) и лимиту.
 // @Tags Мессенджер
@@ -91,7 +91,7 @@ func (h *Handler) ListMessages(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// EditMessage godoc
+// EditMessage — Редактировать сообщение
 // @Summary Редактировать сообщение
 // @Description Редактирует текст ранее отправленного сообщения. Доступно только автору.
 // @Tags Мессенджер
@@ -129,7 +129,7 @@ func (h *Handler) EditMessage(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteMessage godoc
+// DeleteMessage — Удалить сообщение
 // @Summary Удалить сообщение
 // @Description Удаляет сообщение из канала. Доступно автору или администратору канала.
 // @Tags Мессенджер
@@ -162,7 +162,7 @@ func (h *Handler) DeleteMessage(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ForwardMessage godoc
+// ForwardMessage — Переслать сообщение
 // @Summary Переслать сообщение
 // @Description Пересылает сообщение в другой канал.
 // @Tags Мессенджер
@@ -203,7 +203,7 @@ func (h *Handler) ForwardMessage(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// PromoteToIssue godoc
+// PromoteToIssue — Промоутнуть сообщение в задачу трекера
 // @Summary Промоутнуть сообщение в задачу трекера
 // @Description Создаёт новую задачу в указанном проекте на основе содержимого сообщения и его треда,
 // @Description постит в исходный тред backlink-ссылку на созданную задачу.
@@ -242,7 +242,7 @@ func (h *Handler) PromoteToIssue(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListThreadReplies godoc
+// ListThreadReplies — Список ответов в треде
 // @Summary Список ответов в треде
 // @Description Возвращает ответы на указанное сообщение (тред) с пагинацией.
 // @Tags Мессенджер

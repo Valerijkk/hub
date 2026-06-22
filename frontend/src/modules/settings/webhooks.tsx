@@ -204,6 +204,9 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 														Статус
 													</th>
 													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">
+														Ошибка
+													</th>
+													<th className="text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-3 py-2 border-b border-b2">
 														Дата
 													</th>
 												</tr>
@@ -224,6 +227,12 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 															>
 																{d.status_code}
 															</span>
+														</td>
+														<td
+															className="px-3 py-[10px] border-b border-b1 text-[12px] text-t3 max-w-[240px] truncate"
+															title={d.error ?? d.response_body ?? ""}
+														>
+															{d.error ?? d.response_body ?? "—"}
 														</td>
 														<td className="px-3 py-[10px] border-b border-b1 text-[12px] text-t3">
 															{new Date(d.delivered_at).toLocaleString("ru-RU")}

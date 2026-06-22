@@ -1,6 +1,7 @@
 # Hub — Анализ продукта и потребностей пользователей 2026
 
-> Обновлено: 2026-06-21 · Основано на vision_and_scope.md, PROJECT.md, AUDIT-SCORECARD (93/100), competitive_analysis_2026.md.
+> **Обновлено:** 2026-06-21  
+> **Основано на:** `docs/vision_and_scope.md`, `.planning/PROJECT.md`, `AUDIT-SCORECARD` (93/100), `competitive_analysis_2026.md`, `.planning/TASKS-PHASES-121-FINAL-AUDIT.md`.
 
 ---
 
@@ -8,32 +9,64 @@
 
 ### 1.1 Суть продукта
 
-**Hub** — self-hosted единая платформа для команд разработки и QA (10–50 человек), объединяющая:
+**Hub** — self-hosted **corporate super-app** для команд разработки, QA и сотрудников компании (10–50 человек). Объединяет dev-suite и корпоративные сервисы в одном инстансе с единой авторизацией и RBAC.
+
+#### Dev-suite (v1.0–v2.0)
 
 | Модуль | Зрелость | Ключевые возможности |
 |--------|----------|----------------------|
-| **Auth** | Production | Magic Link + Telegram, JWT 15m, refresh 30d, sessions |
-| **Projects + RBAC** | Production | Шаблоны, invite, custom roles, workflow |
-| **Tracker** | Production | 9 типов задач, Kanban, Scrum, time tracking, Git links |
-| **Messenger** | Production | Каналы, треды, reactions, polls, voice msgs, #hub-ci |
-| **TMS** | Production | Classic/BDD cases, runs, Allure CI, traceability matrix |
-| **Calls** | Production | LiveKit voice, screen share, recordings, scheduled |
-| **Dashboards** | Mature | Personal/project widgets, burndown, velocity, health |
-| **Admin** | Production | Audit log, trash 30d, backups, limits, ban |
-| **Search** | Mature | Ctrl+K command palette, user-scope API |
-| **Integrations** | Mature | GitHub, GitLab, Jira import, webhooks, hub-cli |
+| **Auth** | Production | Magic Link + Telegram bind, JWT 15m, refresh 30d, org + founder |
+| **Projects + RBAC** | Production | Шаблоны, invite, custom roles, workflow, teams |
+| **Tracker** | Production | 9 типов задач, Kanban, Scrum, JQL, automation lite, Git links |
+| **Messenger** | Production | Каналы, треды, reactions, polls, voice msgs, #hub-ci, @hub-ai |
+| **TMS** | Production | Classic/BDD, runs, Allure CI, traceability, reports, env compare |
+| **Calls** | Production | LiveKit voice, screen share, webcams, recordings, scheduled |
+| **Dashboards** | Mature | Personal/project/admin widgets, burndown, velocity, health |
+| **Search** | Mature | Ctrl+K, Meilisearch, user-scope API, saved filters |
+| **Integrations** | Mature | GitHub, GitLab, Jira import, webhooks, hub-cli, 1C connector |
 
-### 1.2 Статус релиза
+#### Corporate super-app (v4, Phases 39–58)
 
-- **v2.0.2 SHIP-READY** — product score **93/100** (commit `90042eb`)
-- Coverage backend **~56.6%**, security-critical **≥80%**
-- Vitest **49**, Playwright e2e **7 specs**
-- 12 CRITICAL security blockers — **закрыты в коде**
-- Потолок без v2.6: automation, flaky TMS, full E2E, Lighthouse sign-off
+| Модуль | Зрелость | Ключевые возможности |
+|--------|----------|----------------------|
+| **Intranet** | Production | News feed, kudos, Random Coffee |
+| **Org directory** | Production | MOD-02, Ctrl+K people search |
+| **Calendar** | Production | Unified events, iCal export |
+| **CRM-lite** | Production | Contacts, deals kanban, won→invoice hook |
+| **HR-lite** | Production | Leave requests, calendar sync, 1C webhook |
+| **Marketplace** | Production | Classifieds, mod queue |
+| **Status page** | Production | Public `/status` |
+| **Bases (no-code)** | Production | Lark-style tables `/bases` |
+| **Accounting MVP** | Production | Ledger, journal, invoices, P&L |
+| **AI Hub** | Production | BYOK + Ollama, composer suggest, external AI consent |
 
-### 1.3 Ценностное предложение (one-liner)
+#### Platform & Admin
 
-> «Один self-hosted инстанс вместо Jira + Slack + TestRail + Meet — с трассировкой от CI-теста до бага и PR.»
+| Модуль | Зрелость | Ключевые возможности |
+|--------|----------|----------------------|
+| **Admin** | Production | Audit log, trash 30d, backups, limits, ban, GDPR |
+| **Observability** | Production | Prometheus, Loki, OTel, Alertmanager → audit |
+| **Notifications** | Production | In-app + Web Push + Telegram, quiet hours |
+| **API Gateway** | Production | API keys, webhook subscriptions, delivery history |
+
+### 1.2 Статус релиза (2026-06-21)
+
+| Показатель | Значение |
+|------------|----------|
+| Milestones shipped | v1.0 · v2.0 · v2.5 Trust · v2.6 Automate · v3.0 AI · **v4 Super-app** |
+| Product score | **93/100** |
+| Backend coverage (`internal/`) | **82.6%** (Phase 125, Docker `-tags hubtest`) |
+| Security-critical ≥80% | **6/6** (auth 82.4%, ws 87.7%, rbac 84.7%, audit 80.5%, middleware 84%, calls 80.2%) |
+| REST API endpoints | **286+** |
+| Frontend Vitest | **99+** tests |
+| Playwright E2E | **20** specs (`testframework/e2e/`) |
+| 12 CRITICAL security blockers | **Закрыты** (v2.0.1) |
+| Ветка | `feat/v2.5-trust` (uncommitted, squash PR pending) |
+| Активная работа | Test framework migration (TF-M04–M08) → Wave C final audit |
+
+### 1.3 Ценностное предложение
+
+> «Один self-hosted инстанс вместо Jira + Slack + TestRail + Meet + Bitrix — с трассировкой от CI-теста до бага, PR и счёта клиенту, плюс интранет и AI для всей компании.»
 
 ---
 
@@ -41,173 +74,192 @@
 
 ### 2.1 Алексей — Developer
 
-| JTBD | Боли в Hub сегодня | Незакрытые US |
-|------|-------------------|---------------|
-| Взять задачу, закодить, залить PR | Context switch между табами OK | US-C06: CI workflow status в sidebar |
-| Быстро найти задачу/канал | Ctrl+K ✅ | US-C04: shared JQL filters |
-| Не терять время на формы | UX-08 toastApiError ✅ | RHF+Zod на issue-form (partial) |
-| Созвониться по задаче | Call from context ✅ | — |
+| JTBD | Статус в Hub | Незакрытые needs |
+|------|--------------|------------------|
+| Взять задачу, закодить, залить PR | ✅ Единый UI | US-C06: CI workflow status в sidebar (partial) |
+| Быстро найти задачу/канал | ✅ Ctrl+K + Meilisearch | Shared JQL filters polish |
+| Не терять время на формы | ⚠️ toastApiError ✅ | RHF+Zod на issue-form (UX-1) |
+| Созвониться по задаче | ✅ Call from context | — |
+| AI помощник в чате | ✅ @hub-ai v3.0 | — |
 
-**Приоритет фич:** CI status in issue → keyboard shortcuts overlay → optimistic reactions
+**Приоритет:** CI status sidebar → keyboard shortcuts depth → RHF forms
 
 ### 2.2 Мария — QA Lead
 
-| JTBD | Боли | Незакрытые US |
-|------|------|---------------|
-| Вести кейсы + получать Allure из CI | Parser ✅ | US-C02: flaky + run comparison |
-| Traceability requirement→test | Matrix ✅ | Bidirectional issue↔case sync polish |
-| Создать баг из failed | ✅ | Bulk bug from run |
-| Отчёты для релиза | Basic trends | Allure TestOps-level dashboards |
+| JTBD | Статус в Hub | Незакрытые needs |
+|------|--------------|------------------|
+| Кейсы + Allure из CI | ✅ Parser + hub-cli | Flaky ML-level (vs TestOps) |
+| Traceability requirement→test | ✅ Matrix | Bidirectional issue↔case polish |
+| Баг из failed run | ✅ | Bulk bug from run |
+| Отчёты для релиза | ✅ trends + env compare | PDF depth, run diff UX |
 
-**Приоритет:** PROD-02 flaky detection → environment comparison UX → PDF export runs
+**Приоритет:** flaky detection depth → run comparison UX → TestRail enum fix (FA-12)
 
 ### 2.3 Дмитрий — Team Lead
 
-| JTBD | Боли | Незакрытые US |
-|------|------|---------------|
-| Планировать спринт, видеть burndown | ✅ | Roadmap timeline (нет) |
-| Velocity / retro | ✅ | Sprint goals tracking |
-| Автоматизировать рутину | ❌ **нет automation** | PROD-01 |
-| Видеть загрузку команды | Dashboard widgets ✅ | Capacity planning (нет) |
+| JTBD | Статус в Hub | Незакрытые needs |
+|------|--------------|------------------|
+| Спринт, burndown, velocity | ✅ | Timeline roadmap (v4.5+) |
+| Retro, planning poker | ✅ | Sprint goals tracking |
+| Автоматизация рутины | ✅ automation lite (v2.6) | Rule depth vs Jira |
+| Загрузка команды | ✅ Dashboard widgets | Capacity planning |
 
-**Приоритет:** PROD-01 automation → roadmap view → digest notifications
+**Приоритет:** automation rule UX → roadmap view → notification digest
 
 ### 2.4 Виктор — Project Owner
 
-| JTBD | Боли | Незакрытые US |
-|------|------|---------------|
-| Настроить workflow | UI ✅ | Automation rules |
-| RBAC / invites | ✅ | Custom fields UI (schema есть) |
-| GitHub/GitLab connect | ✅ | Webhook delivery log (PROD-04) |
+| JTBD | Статус в Hub | Незакрытые needs |
+|------|--------------|------------------|
+| Workflow + RBAC | ✅ | Custom fields UI (schema есть) |
+| GitHub/GitLab connect | ✅ | Webhook delivery admin UX |
 | Шаблоны проектов | ✅ | — |
+| CRM + accounting hook | ✅ v4 won→invoice | Accounting v4.5 depth |
 
-**Приоритет:** PROD-01 → PROD-04 webhooks → custom fields builder
+**Приоритет:** custom fields builder → webhook log UX → invoice workflow polish
 
-### 2.5 Елена — Admin
+### 2.5 Елена — Admin / HR
 
-| JTBD | Боли | Незакрытые US |
-|------|------|---------------|
+| JTBD | Статус в Hub | Незакрытые needs |
+|------|--------------|------------------|
 | Users, audit, GDPR | ✅ | PG-03 secret rotation (manual) |
 | Backups restore | ✅ | Backup verify schedule |
 | Resource limits | ✅ | Rate limit visibility admin UI |
-| Registration mode | ✅ | — |
+| HR leave + 1C | ✅ v4 | 1C connector prod wiring (FA-05) |
+| OBS stack | ✅ Prometheus/Loki/AM | — |
 
-**Приоритет:** slow query dashboard → OTel → audit retention S3 archive
+**Приоритет:** PG-03 rotation → slow query dashboard → admin toast errors (FA-07)
 
-### 2.6 Игорь — Member (messenger-heavy)
+### 2.6 Игорь — Member (messenger + intranet)
 
-| JTBD | Боли | Незакрытые US |
-|------|------|---------------|
-| Общаться в каналах | ✅ | Issue↔thread sync (PROD-03) |
-| Уведомления Telegram/Push | ✅ | Digest / quiet hours polish |
-| Быстрый поиск | Ctrl+K ✅ | Mobile PWA polish US-C05 |
-| AI помощник | ❌ | v3.0 @hub-ai |
+| JTBD | Статус в Hub | Незакрытые needs |
+|------|--------------|------------------|
+| Каналы, news, kudos | ✅ v4 intranet | Issue↔thread full sync |
+| Telegram/Push | ✅ | Digest notifications |
+| Поиск | ✅ Ctrl+K | Mobile PWA polish |
+| AI | ✅ @hub-ai | — |
 
-**Приоритет:** PROD-03 → notification digest → PWA offline
+**Приоритет:** notification digest → PWA offline → thread↔issue sync
 
 ### 2.7 Сергей — DevOps
 
-| JTBD | Боли | Незакрытые US |
-|------|------|---------------|
-| hub-cli push-results | ✅ | CLI docs in-product |
-| JUnit webhook | ✅ | Webhook retry dashboard |
-| #hub-ci read-only | ✅ | Pipeline failed → auto issue (automation) |
-| Observability | HTTP audit ✅ | OTel export |
+| JTBD | Статус в Hub | Незакрытыe needs |
+|------|--------------|------------------|
+| hub-cli push-results | ✅ | In-product CLI docs |
+| JUnit webhook | ✅ | Webhook retry dashboard UX |
+| #hub-ci | ✅ | Pipeline failed→issue (automation) |
+| Observability | ✅ OTel + metrics | hub-mail prod compose (FA-05) |
+| Test framework | 🔄 TF migration | `testframework/` unified suite |
 
-**Приоритет:** PROD-04 → PROD-01 CI triggers → OTel
+**Приоритет:** TF-M04–M08 complete → qa-gate Docker → PG-03
+
+### 2.8 Анна — Employee (non-dev, v4 persona)
+
+| JTBD | Статус в Hub | Незакрытые needs |
+|------|--------------|------------------|
+| Новости компании | ✅ intranet feed | — |
+| Отпуск | ✅ HR-lite | Calendar polish |
+| Random Coffee | ✅ | — |
+| Marketplace | ✅ classifieds | — |
+| Directory | ✅ MOD-02 | Org chart viz (v4.5+) |
 
 ---
 
-## 3. MoSCoW приоритизация по impact
+## 3. MoSCoW приоритизация (актуально 2026-06-21)
 
-### Must (удержание + production trust)
+### Must — production handoff
 
-| ID | Feature | Personas | Rationale |
-|----|---------|----------|-----------|
-| PROD-01 | Workflow automation lite | PO, TL, DevOps | #1 competitive gap vs Jira |
-| E2E-02..05 | Critical path e2e | All | Regression confidence |
-| Lighthouse/WCAG sign-off | a11y NFR-16 | All | G-05 completion |
-| PG-03 | Secret rotation exec | Admin | Production ops |
+| ID | Feature | Статус |
+|----|---------|--------|
+| COV ≥82% | Backend coverage | ✅ **82.6%** |
+| Security ≥80% | 6 critical packages | ✅ **6/6** |
+| TF-M04–M08 | Test framework migration | 🔄 in progress |
+| FA-10 | Full `/qa-gate` Docker | ⏳ Wave C |
+| PG-03 | Secret rotation execute | ⏳ manual ops |
+| Squash PR | `feat/v2.5-trust` → main | ⏳ pending approval |
 
-### Should (differentiation v2.6)
-
-| ID | Feature | Personas |
-|----|---------|----------|
-| PROD-02 | Flaky test detection | QA |
-| PROD-03 | Issue↔message sync | Dev, Member |
-| PROD-04 | Webhook delivery log | PO, DevOps |
-| US-C06 | GitHub Actions in issue | Dev |
-| US-C04 | Shared JQL filters | Dev, TL |
-| RHF+Zod forms | Validation UX | All |
-
-### Could (v2.7+)
+### Should — differentiation polish
 
 | ID | Feature | Personas |
 |----|---------|----------|
+| FA-11 | tms/project 81.8% → 82% | QA, PO |
+| UX-1 | RHF+Zod, onboarding step 4, palette actions | All |
+| PROD-02 depth | Flaky detection ML-level | QA |
+| FA-07 | Admin console.error → toast | Admin |
+| FA-09 | E2E 20 specs → full POM+Steps | QA |
+| NFR-16/17 | WCAG + Lighthouse CI gate | All |
+
+### Could — v4.5+
+
+| ID | Feature |
+|----|---------|
 | Roadmap timeline | TL, PO |
 | Custom fields UI | PO |
-| Triage inbox | TL |
 | Notification digest | Member |
-| PWA polish | Member |
+| Org chart visualization | HR, Admin |
+| Accounting v4.5 advanced | PO, Finance |
 
 ### Won't (constraints)
 
-SSO, email notif (except magic link), webcams, native apps, Gantt, multi-tenant, billing — per `.cursor/rules/60-tz-constraints.mdc`.
+SSO, multi-org, native apps, SaaS billing — per `.cursor/rules/60-tz-constraints.mdc`.  
+Email notifications (кроме magic link + hub-mail marketing) — Telegram + Push primary.
 
 ---
 
-## 4. Противоречия scope vs ожидания пользователей
+## 4. Противоречия scope vs ожидания
 
-| Ожидание пользователя | Ограничение Hub | Mitigation |
-|-----------------------|-----------------|------------|
-| «Хочу как в Slack AI» | AI только v3.0 | Roadmap MILESTONE-3, @hub-ai |
-| «Нужен SSO для compliance» | No SSO v1–v2 | Self-host + audit; SCIM в backlog 999.x |
-| «Email когда упал прод» | No email notif | Telegram + Web Push + urgent bypass |
-| «Видео на созвонах» | Voice-only | Screen share as primary |
-| «Как Jira Automation 50 rules» | Lite 1–3 rules MVP | Phase PROD-01 scope honest in UI |
-
----
-
-## 5. Voice of Customer — почему перейдут и останутся
-
-### Switch triggers (FROM Jira+Slack+TestRail)
-
-1. **Счёт за 50 человек > $30k/год** на SaaS — Hub = infra only
-2. **Data must stay in RU/on-prem** — self-hosted K3s
-3. **QA устала синкать Allure вручную** — hub-cli + auto match
-4. **Dev устал Alt-Tab** — один UI для task+chat+call
-5. **Admin хочет один audit** — не 3 admin panels
-
-### Retain triggers (чтобы не вернулись)
-
-1. **Automation** — «Done → post to #releases» без Zapier
-2. **Flaky reports** — QA видит ценность TMS vs Excel
-3. **Reliability** — e2e green, no WS panics, fast search
-4. **AI @hub-ai** — уникально для RU команд
-5. **Keyboard UX** — скорость как Linear
-
-### Churn risks
-
-- PO уходит в Jira если **нет automation** и **custom fields UI**
-- QA уходит в TestOps если **нет flaky + run diff**
-- Members уходят в Slack если **messenger lag** или **нет mobile UX**
+| Ожидание | Ограничение Hub | Mitigation |
+|----------|-----------------|------------|
+| «Slack AI из коробки» | BYOK / Ollama setup | v3.0 shipped; onboarding AI providers |
+| «SSO для compliance» | No SSO v1–v4 | Self-host + audit; SCIM backlog 999.x |
+| «Email alerts on prod down» | No generic email notif | Telegram + Push + status page + AM webhook |
+| «Jira Automation 50 rules» | Lite automation MVP | Honest UI limits; roadmap depth |
+| «Allure TestOps flaky ML» | Basic trends only | hub-cli + reports; ML — v4.5+ |
 
 ---
 
-## 6. Сводная карта persona → feature (heatmap)
+## 5. Voice of Customer
 
-| Feature | Dev | QA | TL | PO | Admin | DevOps | Member |
-|---------|-----|-----|-----|-----|-------|--------|--------|
-| PROD-01 Automation | ○ | ○ | ● | ● | ○ | ● | ○ |
-| PROD-02 Flaky | ○ | ● | ○ | ○ | ○ | ○ | ○ |
-| PROD-03 Issue↔msg | ● | ○ | ○ | ○ | ○ | ○ | ● |
-| PROD-04 Webhook log | ○ | ○ | ○ | ● | ○ | ● | ○ |
-| v3.0 @hub-ai | ● | ● | ● | ○ | ● | ● | ● |
-| E2E expansion | ○ | ● | ● | ○ | ● | ● | ○ |
-| Roadmap timeline | ○ | ○ | ● | ● | ○ | ○ | ○ |
+### Switch triggers (FROM Jira+Slack+TestRail+Bitrix)
 
-● = high impact · ○ = medium/low
+1. **TCO > $30k/год** на 50 человек — Hub = infra only
+2. **Data residency RU/on-prem** — K3s self-host
+3. **QA устала ручной Allure sync** — hub-cli + auto match
+4. **Dev устал Alt-Tab** — один UI task+chat+call+AI
+5. **HR/Admin хочет Mighty без отдельного app** — v4 intranet+HR
+6. **Finance хочет CRM→invoice** — v4 accounting hook
+
+### Retain triggers
+
+1. **Automation lite** — «Done → #releases» без Zapier ✅
+2. **Reliability** — 82.6% cov, e2e 20 specs, no WS panics
+3. **AI @hub-ai RU providers** — GigaChat/YandexGPT/Ollama
+4. **Keyboard UX** — Ctrl+K как Linear
+5. **Single audit trail** — dev + corp actions в одном месте
+
+### Churn risks (остаточные)
+
+- PO → Jira если **custom fields UI** затянется
+- QA → TestOps если **flaky ML** не улучшится
+- Members → Slack если **mobile PWA** отстанет
+- Admin → cloud если **PG-03 rotation** не выполнится pre-prod
 
 ---
 
-*См. также: [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [.planning/FEATURE-BACKLOG-2026.md](../.planning/FEATURE-BACKLOG-2026.md)*
+## 6. Heatmap: persona × feature (2026)
+
+| Feature | Dev | QA | TL | PO | Admin | DevOps | Member | Employee |
+|---------|-----|-----|-----|-----|-------|--------|--------|----------|
+| Automation lite ✅ | ○ | ○ | ● | ● | ○ | ● | ○ | ○ |
+| @hub-ai ✅ | ● | ● | ● | ○ | ● | ● | ● | ○ |
+| v4 intranet/HR ✅ | ○ | ○ | ○ | ○ | ● | ○ | ● | ● |
+| CRM→invoice ✅ | ○ | ○ | ○ | ● | ○ | ○ | ○ | ○ |
+| Flaky depth ⚠️ | ○ | ● | ○ | ○ | ○ | ○ | ○ | ○ |
+| TF migration 🔄 | ○ | ● | ○ | ○ | ● | ● | ○ | ○ |
+| Custom fields UI 📋 | ○ | ○ | ○ | ● | ○ | ○ | ○ | ○ |
+| PG-03 rotation ⏳ | ○ | ○ | ○ | ○ | ● | ● | ○ | ○ |
+
+● = высокий impact · ○ = средний/низкий · ✅ shipped · ⚠️ partial · 🔄 in progress · 📋 backlog · ⏳ ops
+
+---
+
+*См. также: [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [.planning/FEATURE-BACKLOG-2026.md](../.planning/FEATURE-BACKLOG-2026.md) · [.planning/COVERAGE.md](../.planning/COVERAGE.md)*

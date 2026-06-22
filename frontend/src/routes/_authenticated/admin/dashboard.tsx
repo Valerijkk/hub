@@ -5,19 +5,24 @@
  */
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { AISettingsPanel } from "@/components/admin/ai-settings";
 import { AuditLogViewer } from "@/components/admin/audit-log";
+import { MailSettingsPanel } from "@/components/admin/mail-settings";
+import { OnecSettingsPanel } from "@/components/admin/onec-settings";
+import { OperationMetricsPanel } from "@/components/admin/operation-metrics";
 import { ResourceLimits } from "@/components/admin/resource-limits";
 import { UserManagement } from "@/components/admin/user-management";
 import { adminDefault } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { isSystemAdmin } from "@/lib/is-system-admin";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 
 export const Route = createFileRoute("/_authenticated/admin/dashboard")({
 	beforeLoad: () => {
 		const user = useAuthStore.getState().user;
-		if (!user || user.system_role !== "admin") {
+		if (!user || !isSystemAdmin(user.system_role)) {
 			throw redirect({ to: "/dashboard" });
 		}
 	},
@@ -47,7 +52,7 @@ function AdminDashboard() {
 
 	return (
 		<div className="flex-1 overflow-y-auto p-6 animate-[eu_450ms_var(--spring)]">
-			{/* Tab bar */}
+			{/* Панель вкладок */}
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
 				<div className="flex gap-[3px] mb-5 border-b border-b1 pb-[2px]">
 					{[
@@ -61,7 +66,14 @@ function AdminDashboard() {
 								"\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438",
 						},
 						{ value: "audit", label: "\u0410\u0443\u0434\u0438\u0442" },
+						{
+							value: "metrics",
+							label: "\u041C\u0435\u0442\u0440\u0438\u043A\u0438",
+						},
 						{ value: "limits", label: "\u041B\u0438\u043C\u0438\u0442\u044B" },
+						{ value: "mail", label: "\u041F\u043E\u0447\u0442\u0430" },
+						{ value: "ai", label: "AI" },
+						{ value: "onec", label: "1C" },
 					].map((tab) => (
 						<button
 							key={tab.value}
@@ -78,7 +90,7 @@ function AdminDashboard() {
 					))}
 				</div>
 
-				{/* Dashboard tab */}
+				{/* Вкладка дашборда */}
 				<TabsContent value="dashboard">
 					{adminData && (
 						<div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
@@ -117,19 +129,36 @@ function AdminDashboard() {
 					)}
 				</TabsContent>
 
-				{/* Users tab */}
+				{/* Вкладка пользователей */}
 				<TabsContent value="users">
 					<UserManagement />
 				</TabsContent>
 
-				{/* Audit log tab */}
+				{/* Вкладка audit log */}
 				<TabsContent value="audit">
 					<AuditLogViewer />
 				</TabsContent>
 
-				{/* Limits tab */}
+				<TabsContent value="metrics">
+					<OperationMetricsPanel />
+				</TabsContent>
+
+				{/* Вкладка лимитов */}
 				<TabsContent value="limits">
 					<ResourceLimits />
+				</TabsContent>
+
+				{/* Вкладка почты */}
+				<TabsContent value="mail">
+					<MailSettingsPanel />
+				</TabsContent>
+
+				<TabsContent value="ai">
+					<AISettingsPanel />
+				</TabsContent>
+
+				<TabsContent value="onec">
+					<OnecSettingsPanel />
 				</TabsContent>
 			</Tabs>
 		</div>

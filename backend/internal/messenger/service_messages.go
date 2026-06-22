@@ -11,11 +11,11 @@ import (
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
-// SendMessage sends a message to a channel.
-// Checks membership, readonly status, increments reply_count for threads.
+// SendMessage отправляет сообщение в канал.
+// Проверяет membership, readonly и инкрементирует reply_count для тредов.
 func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID uuid.UUID, req SendMessageRequest) (*MessageResponse, error) {
 	return observability.Timed(ctx, "messenger.SendMessage", func(ctx context.Context) (*MessageResponse, error) {
-		// Check membership
+		// Проверка участия
 		isMember, err := s.repo.IsMember(ctx, channelID, senderID)
 		if err != nil {
 			return nil, apperrors.NewInternal("ошибка проверки участия")
@@ -24,13 +24,13 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 			return nil, apperrors.NewForbidden("вы не являетесь участником канала")
 		}
 
-		// Check readonly
+		// Проверка режима «только чтение»
 		ch, err := s.repo.GetChannel(ctx, channelID)
 		if err != nil {
 			return nil, apperrors.NewInternal("ошибка получения канала")
 		}
 		if ch.IsReadonly {
-			// Only owner/admin can write in readonly channel
+			// В канал «только чтение» могут писать только owner/admin
 			role, _ := s.repo.GetMemberRole(ctx, channelID, senderID)
 			if role != "owner" && role != "admin" {
 				return nil, apperrors.NewForbidden("канал доступен только для чтения")
@@ -57,14 +57,14 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 		}
 		doc.ID = messageID
 
-		// Increment reply_count if this is a thread reply
+		// Инкремент reply_count, если это ответ в треде
 		if req.ThreadID != "" {
 			if err := s.repo.IncrementReplyCount(ctx, req.ThreadID); err != nil {
 				slog.Error("не удалось инкрементировать reply_count", "error", err)
 			}
 		}
 
-		// Increment unread for channel members
+		// Инкремент непрочитанных для участников канала
 		if s.unread != nil {
 			memberIDs, mErr := s.repo.GetChannelMemberIDs(ctx, channelID)
 			if mErr == nil {
@@ -78,10 +78,10 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 			}
 		}
 
-		// Resolve group mentions (@all, @online, @role) into concrete user IDs.
+		// Разрешение групповых упоминаний (@all, @online, @role) в конкретные ID пользователей.
 		resolvedMentions := s.resolveGroupMentions(ctx, channelID, ch.ProjectID, req.MentionGroups, req.Mentions, senderID)
 
-		// Publish NATS event
+		// Публикация NATS-события
 		s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, channelID.String()), MessageSentEvent{
 			MessageID:        messageID,
 			ChannelID:        channelID,
@@ -92,12 +92,21 @@ func (s *MessengerService) SendMessage(ctx context.Context, channelID, senderID 
 			CreatedAt:        doc.CreatedAt,
 		})
 
+		s.emitMessageSent(ctx, MessageHookEvent{
+			MessageID:   messageID,
+			ChannelID:   channelID,
+			SenderID:    senderID,
+			ContentText: req.ContentText,
+			ThreadID:    req.ThreadID,
+			Mentions:    resolvedMentions,
+		})
+
 		return toMessageResponse(doc), nil
 	})
 }
 
-// ListMessages returns channel messages with cursor pagination.
-// HI-01: only channel members may read messages.
+// ListMessages возвращает сообщения канала с cursor-пагинацией.
+// HI-01: читать сообщения могут только участники канала.
 func (s *MessengerService) ListMessages(ctx context.Context, channelID, userID uuid.UUID, before *time.Time, limit int) ([]MessageResponse, error) {
 	isMember, err := s.repo.IsMember(ctx, channelID, userID)
 	if err != nil {
@@ -118,14 +127,14 @@ func (s *MessengerService) ListMessages(ctx context.Context, channelID, userID u
 	return result, nil
 }
 
-// EditMessage edits a message (author only).
+// EditMessage редактирует сообщение (только автор).
 func (s *MessengerService) EditMessage(ctx context.Context, messageID string, userID uuid.UUID, req EditMessageRequest) (*MessageResponse, error) {
 	existing, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("сообщение не найдено")
 	}
 
-	// Check authorship
+	// Проверка авторства
 	if existing.SenderID != userID {
 		return nil, apperrors.NewForbidden("можно редактировать только свои сообщения")
 	}
@@ -135,7 +144,7 @@ func (s *MessengerService) EditMessage(ctx context.Context, messageID string, us
 		return nil, apperrors.NewInternal("ошибка редактирования сообщения")
 	}
 
-	// Publish NATS event
+	// Публикация NATS-события
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageEdited, existing.ChannelID.String()), MessageEditedEvent{
 		MessageID:   messageID,
 		ChannelID:   existing.ChannelID,
@@ -147,15 +156,15 @@ func (s *MessengerService) EditMessage(ctx context.Context, messageID string, us
 	return toMessageResponse(updated), nil
 }
 
-// DeleteMessage soft-deletes a message.
-// Author can delete their own; admin/owner can delete any.
+// DeleteMessage выполняет мягкое удаление сообщения.
+// Автор удаляет своё; admin/owner — любое сообщение.
 func (s *MessengerService) DeleteMessage(ctx context.Context, messageID string, userID uuid.UUID, channelID string, isAdmin bool) error {
 	existing, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
 		return apperrors.NewNotFound("сообщение не найдено")
 	}
 
-	// Check authorship or admin rights
+	// Проверка авторства или прав администратора
 	if existing.SenderID != userID && !isAdmin {
 		chID, err := uuid.Parse(channelID)
 		if err != nil {
@@ -171,14 +180,14 @@ func (s *MessengerService) DeleteMessage(ctx context.Context, messageID string, 
 		return apperrors.NewInternal("ошибка удаления сообщения")
 	}
 
-	// Decrement reply_count if this is a thread reply
+	// Декремент reply_count, если это ответ в треде
 	if existing.ThreadID != "" {
 		if err := s.repo.DecrementReplyCount(ctx, existing.ThreadID); err != nil {
 			slog.Error("не удалось декрементировать reply_count", "error", err)
 		}
 	}
 
-	// Publish NATS event
+	// Публикация NATS-события
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageDeleted, existing.ChannelID.String()), MessageDeletedEvent{
 		MessageID: messageID,
 		ChannelID: existing.ChannelID,
@@ -189,10 +198,10 @@ func (s *MessengerService) DeleteMessage(ctx context.Context, messageID string, 
 	return nil
 }
 
-// ListThreadReplies returns thread replies with cursor pagination.
-// HI-01: only channel members may read thread replies. The parent message's
-// channel is resolved from the message document to anchor the membership check
-// to the actual conversation the thread belongs to.
+// ListThreadReplies возвращает ответы треда с cursor-пагинацией.
+// HI-01: ответы треда читают только участники канала. Родительское сообщение
+// определяет channel_id для проверки membership — тред привязан к каналу
+// родительского сообщения, а не к произвольному channel_id из запроса.
 func (s *MessengerService) ListThreadReplies(ctx context.Context, messageID string, userID uuid.UUID, before *time.Time, limit int) ([]MessageResponse, error) {
 	parent, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
@@ -218,28 +227,27 @@ func (s *MessengerService) ListThreadReplies(ctx context.Context, messageID stri
 	return result, nil
 }
 
-// ForwardMessage forwards a message to another channel.
+// ForwardMessage пересылает сообщение в другой канал.
 func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID uuid.UUID, sourceMessageID string, targetChannelID string) (*MessageResponse, error) {
 	targetID, err := uuid.Parse(targetChannelID)
 	if err != nil {
 		return nil, apperrors.NewBadRequest("некорректный target_channel_id")
 	}
 
-	// Check membership in target channel
+	// Проверка membership в целевом канале — без неё forward = spam в чужой канал.
 	isMember, err := s.repo.IsMember(ctx, targetID, userID)
 	if err != nil || !isMember {
 		return nil, apperrors.NewForbidden("вы не являетесь участником целевого канала")
 	}
 
-	// Get source message
+	// Получение исходного сообщения
 	source, err := s.repo.FindMessageByID(ctx, sourceMessageID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("исходное сообщение не найдено")
 	}
 
-	// HI-02: verify caller is a member of the SOURCE channel before copying
-	// content. Without this check, knowledge of any message UUID lets any
-	// authenticated user exfiltrate content from channels they cannot read.
+	// HI-02: проверяем membership в ИСХОДНОМ канале — иначе UUID сообщения
+	// позволяет любому auth-пользователю эксфильтровать контент из закрытых каналов.
 	sourceIsMember, err := s.repo.IsMember(ctx, source.ChannelID, userID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка проверки участия")
@@ -248,7 +256,7 @@ func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID
 		return nil, apperrors.NewForbidden("вы не являетесь участником исходного канала")
 	}
 
-	// Create new message with forwarded_from_id
+	// Новое сообщение с forwarded_from_id — сохраняем provenance для UI.
 	doc := &MessageDocument{
 		ChannelID:       targetID,
 		SenderID:        userID,
@@ -265,7 +273,7 @@ func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID
 	}
 	doc.ID = newID
 
-	// NATS event to target channel
+	// NATS-событие в целевой канал для WS-fanout.
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMessageSent, targetID.String()), MessageSentEvent{
 		MessageID:   newID,
 		ChannelID:   targetID,

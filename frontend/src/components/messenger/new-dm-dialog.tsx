@@ -97,6 +97,7 @@ export function NewDmDialog() {
 					type="button"
 					className="inline-flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/60 hover:bg-white/10 hover:text-sidebar-foreground transition-colors"
 					title="Написать"
+					aria-label="Написать личное сообщение"
 				>
 					<svg
 						aria-hidden="true"

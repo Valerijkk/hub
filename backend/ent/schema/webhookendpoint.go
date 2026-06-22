@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// WebhookEndpoint holds the schema definition for the WebhookEndpoint entity.
+// WebhookEndpoint — определение Ent-схемы сущности WebhookEndpoint.
 type WebhookEndpoint struct {
 	ent.Schema
 }
 
-// Fields of the WebhookEndpoint.
+// Поля сущности WebhookEndpoint.
 func (WebhookEndpoint) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -36,7 +36,7 @@ func (WebhookEndpoint) Fields() []ent.Field {
 	}
 }
 
-// Edges of the WebhookEndpoint.
+// Рёбра (edges) сущности WebhookEndpoint.
 func (WebhookEndpoint) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -47,7 +47,7 @@ func (WebhookEndpoint) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the WebhookEndpoint.
+// Индексы сущности WebhookEndpoint.
 func (WebhookEndpoint) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("is_active"),

@@ -8,19 +8,19 @@ import (
 	"github.com/google/uuid"
 )
 
-// FieldChange represents a single field-level diff in an activity log entry.
+// FieldChange — изменение одного поля в журнале активности.
 type FieldChange struct {
 	Field    string `json:"field"`
 	OldValue any    `json:"old_value"`
 	NewValue any    `json:"new_value"`
 }
 
-// ActivityLog holds the schema definition for the ActivityLog entity.
+// ActivityLog — определение Ent-схемы сущности ActivityLog.
 type ActivityLog struct {
 	ent.Schema
 }
 
-// Fields of the ActivityLog.
+// Поля сущности ActivityLog.
 func (ActivityLog) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -38,7 +38,7 @@ func (ActivityLog) Fields() []ent.Field {
 	}
 }
 
-// Edges of the ActivityLog.
+// Рёбра (edges) сущности ActivityLog.
 func (ActivityLog) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("issue", Issue.Type).
@@ -52,7 +52,7 @@ func (ActivityLog) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the ActivityLog.
+// Индексы сущности ActivityLog.
 func (ActivityLog) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("issue").

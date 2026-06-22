@@ -3,6 +3,7 @@ package middleware
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -17,6 +18,9 @@ func ErrorHandler(c fiber.Ctx, err error) error {
 	var appErr *apperrors.AppError
 	if errors.As(err, &appErr) {
 		appErr.RequestID = requestID
+		if appErr.RetryAfter > 0 {
+			c.Set("Retry-After", strconv.Itoa(appErr.RetryAfter))
+		}
 		return c.Status(appErr.Code).JSON(appErr)
 	}
 

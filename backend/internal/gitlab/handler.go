@@ -1,4 +1,4 @@
-package gitlab
+﻿package gitlab
 
 import (
 	"crypto/subtle"
@@ -31,13 +31,13 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 
 	// Интеграции (auth + permissions)
 	proj := api.Group("/projects/:projectId", authMw)
-	proj.Post("/gitlab/integrations", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.CreateIntegration)
-	proj.Get("/gitlab/integrations", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListIntegrations)
-	proj.Delete("/gitlab/integrations/:integrationId", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.DeleteIntegration)
+	proj.Post("/gitlab/integrations", h.CreateIntegration, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
+	proj.Get("/gitlab/integrations", h.ListIntegrations, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	proj.Delete("/gitlab/integrations/:integrationId", h.DeleteIntegration, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
 
 	// Пайплайны
-	proj.Get("/gitlab/pipelines", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListPipelines)
-	proj.Post("/gitlab/pipelines/trigger", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.TriggerPipeline)
+	proj.Get("/gitlab/pipelines", h.ListPipelines, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	proj.Post("/gitlab/pipelines/trigger", h.TriggerPipeline, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
 
 	// Создание ветки из задачи
 	api.Post("/issues/:issueKey/gitlab/create-branch", authMw, h.CreateBranch)
@@ -291,7 +291,7 @@ func (h *Handler) CreateBranch(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Вспомогательные функции
 // ---------------------------------------------------------------------------
 
 // parseProjectID извлекает и валидирует projectId из параметров пути.

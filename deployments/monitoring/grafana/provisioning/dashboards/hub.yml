@@ -1,0 +1,12 @@
+# Автопровижининг дашбордов Grafana из каталога dashboards/
+apiVersion: 1
+
+providers:
+  - name: Hub
+    orgId: 1
+    folder: Hub
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

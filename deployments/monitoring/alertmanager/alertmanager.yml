@@ -1,0 +1,31 @@
+# Alertmanager — dev/staging: алерты видны только в UI (http://localhost:9093).
+# Production: скопируйте alertmanager.prod.example.yml и задайте webhook URL.
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default
+  group_by: ["alertname", "service", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - match:
+        severity: critical
+      receiver: critical
+      repeat_interval: 1h
+
+inhibit_rules:
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ["alertname", "service"]
+
+receivers:
+  # Dev/staging: без внешних получателей — только UI Alertmanager
+  - name: default
+  - name: critical
+
+# Production: см. deployments/monitoring/alertmanager/alertmanager.prod.example.yml

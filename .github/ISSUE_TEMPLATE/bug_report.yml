@@ -1,0 +1,58 @@
+name: Bug report
+description: Report a defect in Hub
+title: "[bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      options:
+        - auth
+        - tracker
+        - messenger
+        - tms
+        - calls
+        - dashboard
+        - admin
+        - search
+        - ws
+        - platform
+        - frontend
+        - infra
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open ... 2. Click ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Hub version / commit
+      placeholder: v2.0.2 / 90042eb
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / request_id
+      description: Include `request_id` from API error JSON if available

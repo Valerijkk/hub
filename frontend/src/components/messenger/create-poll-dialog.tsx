@@ -1,8 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import i18n from "@/i18n";
-import { toastApiError } from "@/lib/format-api-error";
 import { createPoll } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +12,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useInvalidateMessages } from "@/hooks/use-invalidate";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Максимальное количество вариантов ответа. */
 const MAX_OPTIONS = 10;
@@ -36,7 +36,7 @@ interface PollOption {
 	text: string;
 }
 
-/** Generate a stable id for a poll option (UUID with non-secure fallback). */
+/** Стабильный id варианта опроса (UUID с fallback без crypto). */
 function makeOptionId(): string {
 	if (
 		typeof crypto !== "undefined" &&
@@ -175,7 +175,7 @@ export function CreatePollDialog({
 						<Label>Варианты ответа</Label>
 						<div className="space-y-2">
 							{options.map((option, index) => (
-								// Stable id keeps focus/state on the right input across add/remove.
+								// Стабильный id сохраняет focus при добавлении/удалении вариантов опроса.
 								<div key={option.id} className="flex items-center gap-2">
 									<Input
 										value={option.text}

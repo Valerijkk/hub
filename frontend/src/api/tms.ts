@@ -2,7 +2,7 @@ import { buildQueryString } from "@/lib/utils";
 import { api } from "./client";
 import type { PaginatedResponse } from "./types";
 
-// Re-export for backward compatibility.
+// Реэкспорт для обратной совместимости с legacy-импортами PaginatedResponse.
 export type { PaginatedResponse } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -84,14 +84,14 @@ export interface TestStep {
 	expected_result?: string;
 	keyword?: string;
 	/**
-	 * Client-only stable id used as React key when editing step lists.
-	 * Optional and ignored by the backend — strip via `stripStepUid` before
-	 * submitting a payload to avoid noise on the wire.
+	 * Стабильный client-only id для React key при редактировании списка шагов.
+	 * Бэкенд игнорирует поле — перед отправкой удаляем через `stripStepUid`,
+	 * чтобы не засорять payload лишними данными.
 	 */
 	_uid?: string;
 }
 
-/** Strip the client-only `_uid` field from steps before submitting to the API. */
+/** Удаляет client-only поле `_uid` из шагов перед отправкой в API. */
 export function stripStepUid(
 	steps: TestStep[] | undefined,
 ): TestStep[] | undefined {
@@ -728,6 +728,24 @@ export interface TraceabilityRow {
 /** Полная матрица трассировки. */
 export interface TraceabilityMatrix {
 	rows: TraceabilityRow[];
+}
+
+/** Элемент отчёта по flaky-тестам. */
+export interface FlakyTestItem extends TestCaseResponse {
+	status_history: string[];
+	flake_rate: number;
+	marked_flaky: boolean;
+}
+
+/** Отчёт flaky-тестов за последние N прогонов. */
+export interface FlakyTestReport {
+	items: FlakyTestItem[];
+	run_window: number;
+}
+
+/** Получить отчёт по flaky-тестам. */
+export function getFlakyTests(projectId: string) {
+	return api.get<FlakyTestReport>(`/projects/${projectId}/tms/reports/flaky`);
 }
 
 /** Получить матрицу трассировки проекта. */

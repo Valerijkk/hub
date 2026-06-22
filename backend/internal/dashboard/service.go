@@ -11,17 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/activitylog"
-	"github.com/valerii/hub/backend/ent/call"
-	"github.com/valerii/hub/backend/ent/callparticipant"
-	"github.com/valerii/hub/backend/ent/dashboardlayout"
 	"github.com/valerii/hub/backend/ent/issue"
-	"github.com/valerii/hub/backend/ent/project"
-	"github.com/valerii/hub/backend/ent/session"
-	"github.com/valerii/hub/backend/ent/testrun"
-	"github.com/valerii/hub/backend/ent/timelog"
-	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -31,14 +21,14 @@ const projectStatsTTL = 5 * time.Minute
 
 // DashboardService предоставляет агрегированные данные для дашбордов.
 type DashboardService struct {
-	db      *ent.Client
+	repo    Repository
 	rdb     *redis.Client
 	mongoDB *mongo.Database
 }
 
 // NewDashboardService создаёт новый сервис дашбордов.
-func NewDashboardService(db *ent.Client, rdb *redis.Client, mongoDB *mongo.Database) *DashboardService {
-	return &DashboardService{db: db, rdb: rdb, mongoDB: mongoDB}
+func NewDashboardService(repo Repository, rdb *redis.Client, mongoDB *mongo.Database) *DashboardService {
+	return &DashboardService{repo: repo, rdb: rdb, mongoDB: mongoDB}
 }
 
 // priorityRank возвращает числовой приоритет для сортировки (чем выше — тем важнее).
@@ -69,16 +59,7 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	}
 
 	// Мои задачи: назначены на меня, не завершены, до 20 штук
-	issues, err := s.db.Issue.Query().
-		Where(
-			issue.HasAssigneeWith(user.ID(userID)),
-			issue.HasStatusWith(workflowstatus.CategoryNEQ(workflowstatus.CategoryDone)),
-			issue.DeletedAtIsNil(),
-		).
-		WithStatus().
-		Order(ent.Desc(issue.FieldPriority)).
-		Limit(20).
-		All(ctx)
+	issues, err := s.repo.ListMyOpenTasks(ctx, userID, 20)
 	if err != nil {
 		slog.Error("ошибка загрузки задач", "error", err)
 	} else {
@@ -116,16 +97,7 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	// текущий пользователь (creator или participant).
 	// BE-H3: раньше Where() был пустой и выдавал звонки всех пользователей —
 	// личный дашборд показывал чужие звонки.
-	activeCalls, err := s.db.Call.Query().
-		Where(
-			call.Or(
-				call.CreatedBy(userID),
-				call.HasParticipantsWith(callparticipant.UserIDEQ(userID)),
-			),
-		).
-		WithChannel().
-		Limit(10).
-		All(ctx)
+	activeCalls, err := s.repo.ListUserActiveCalls(ctx, userID, 10)
 	if err != nil {
 		slog.Error("ошибка загрузки звонков", "error", err)
 	} else {
@@ -145,11 +117,7 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	}
 
 	// Последние прогоны тестов
-	runs, err := s.db.TestRun.Query().
-		Where(testrun.HasCreatedByWith(user.ID(userID))).
-		Order(ent.Desc(testrun.FieldCreatedAt)).
-		Limit(5).
-		All(ctx)
+	runs, err := s.repo.ListUserRecentTestRuns(ctx, userID, 5)
 	if err != nil {
 		slog.Error("ошибка загрузки прогонов", "error", err)
 	} else {
@@ -169,17 +137,7 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	// Дедлайны: задачи с due_date в ближайшие 7 дней
 	now := time.Now()
 	weekLater := now.Add(7 * 24 * time.Hour)
-	deadlineIssues, err := s.db.Issue.Query().
-		Where(
-			issue.HasAssigneeWith(user.ID(userID)),
-			issue.DueDateGTE(now),
-			issue.DueDateLTE(weekLater),
-			issue.DeletedAtIsNil(),
-		).
-		WithStatus().
-		Order(ent.Asc(issue.FieldDueDate)).
-		Limit(10).
-		All(ctx)
+	deadlineIssues, err := s.repo.ListUserDeadlineIssues(ctx, userID, now, weekLater, 10)
 	if err != nil {
 		slog.Error("ошибка загрузки дедлайнов", "error", err)
 	} else {
@@ -202,13 +160,7 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 
 	// Время за сегодня: сумма time_logs
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	timeLogs, err := s.db.TimeLog.Query().
-		Where(
-			timelog.HasUserWith(user.ID(userID)),
-			timelog.CreatedAtGTE(today),
-			timelog.CreatedAtLTE(today.Add(24*time.Hour)),
-		).
-		All(ctx)
+	timeLogs, err := s.repo.ListUserTimeLogsBetween(ctx, userID, today, today.Add(24*time.Hour))
 	if err != nil {
 		slog.Error("ошибка загрузки тайм-логов", "error", err)
 	} else {
@@ -242,14 +194,7 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 	}
 
 	// Задачи по статусам
-	issues, err := s.db.Issue.Query().
-		Where(
-			issue.HasProjectWith(project.ID(projectID)),
-			issue.DeletedAtIsNil(),
-		).
-		WithStatus().
-		WithAssignee().
-		All(ctx)
+	issues, err := s.repo.ListProjectIssuesWithStatusAssignee(ctx, projectID)
 	if err != nil {
 		slog.Error("ошибка загрузки задач проекта", "error", err)
 	} else {
@@ -283,14 +228,7 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 	// Burndown: завершённые задачи по дням за последние 30 дней
 	now := time.Now()
 	thirtyDaysAgo := now.AddDate(0, 0, -30)
-	completedIssues, err := s.db.Issue.Query().
-		Where(
-			issue.HasProjectWith(project.ID(projectID)),
-			issue.HasStatusWith(workflowstatus.CategoryEQ(workflowstatus.CategoryDone)),
-			issue.UpdatedAtGTE(thirtyDaysAgo),
-			issue.DeletedAtIsNil(),
-		).
-		All(ctx)
+	completedIssues, err := s.repo.ListProjectCompletedIssuesSince(ctx, projectID, thirtyDaysAgo)
 	if err != nil {
 		slog.Error("ошибка загрузки burndown", "error", err)
 	} else {
@@ -313,15 +251,7 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 	for w := 9; w >= 0; w-- {
 		weekStart := now.AddDate(0, 0, -7*(w+1))
 		weekEnd := now.AddDate(0, 0, -7*w)
-		count, err := s.db.Issue.Query().
-			Where(
-				issue.HasProjectWith(project.ID(projectID)),
-				issue.HasStatusWith(workflowstatus.CategoryEQ(workflowstatus.CategoryDone)),
-				issue.UpdatedAtGTE(weekStart),
-				issue.UpdatedAtLT(weekEnd),
-				issue.DeletedAtIsNil(),
-			).
-			Count(ctx)
+		count, err := s.repo.CountProjectCompletedIssuesInRange(ctx, projectID, weekStart, weekEnd)
 		if err != nil {
 			continue
 		}
@@ -332,11 +262,7 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 	}
 
 	// Тренды тестов: последние 10 прогонов
-	testRuns, err := s.db.TestRun.Query().
-		Where(testrun.HasProjectWith(project.ID(projectID))).
-		Order(ent.Desc(testrun.FieldCreatedAt)).
-		Limit(10).
-		All(ctx)
+	testRuns, err := s.repo.ListProjectRecentTestRuns(ctx, projectID, 10)
 	if err != nil {
 		slog.Error("ошибка загрузки прогонов проекта", "error", err)
 	} else {
@@ -355,12 +281,7 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.U
 	}
 
 	// Активность команды: последние 20 записей из activity_logs проекта
-	logs, err := s.db.ActivityLog.Query().
-		Where(activitylog.HasIssueWith(issue.HasProjectWith(project.ID(projectID)))).
-		WithUser().
-		Order(ent.Desc(activitylog.FieldCreatedAt)).
-		Limit(20).
-		All(ctx)
+	logs, err := s.repo.ListProjectActivityLogs(ctx, projectID, 20)
 	if err != nil {
 		slog.Error("ошибка загрузки активности", "error", err)
 	} else {
@@ -396,7 +317,7 @@ func (s *DashboardService) GetAdminStats(ctx context.Context) (*AdminStats, erro
 	}
 
 	// Пользователи
-	totalUsers, err := s.db.User.Query().Count(ctx)
+	totalUsers, err := s.repo.CountUsers(ctx)
 	if err == nil {
 		stats.TotalUsers = totalUsers
 	}
@@ -404,49 +325,35 @@ func (s *DashboardService) GetAdminStats(ctx context.Context) (*AdminStats, erro
 	// Активные пользователи (последние 30 дней по сессиям)
 	now := time.Now()
 	thirtyDaysAgo := now.AddDate(0, 0, -30)
-	activeUsers, err := s.db.Session.Query().
-		Where(session.CreatedAtGTE(thirtyDaysAgo)).
-		QueryUser().
-		GroupBy(user.FieldID).
-		Strings(ctx)
+	activeUsers, err := s.repo.CountDistinctUsersFromSessionsSince(ctx, thirtyDaysAgo)
 	if err == nil {
-		stats.ActiveUsers = len(activeUsers)
+		stats.ActiveUsers = activeUsers
 	}
 
 	// Проекты
-	totalProjects, err := s.db.Project.Query().Count(ctx)
+	totalProjects, err := s.repo.CountProjects(ctx)
 	if err == nil {
 		stats.TotalProjects = totalProjects
 	}
 
 	// Задачи
-	totalIssues, err := s.db.Issue.Query().
-		Where(issue.DeletedAtIsNil()).
-		Count(ctx)
+	totalIssues, err := s.repo.CountIssues(ctx)
 	if err == nil {
 		stats.TotalIssues = totalIssues
 	}
 
-	// DAU/WAU/MAU
+	// DAU/WAU/MAU — активные пользователи за день/неделю/месяц
 	dayAgo := now.AddDate(0, 0, -1)
 	weekAgo := now.AddDate(0, 0, -7)
 
-	dauUsers, err := s.db.Session.Query().
-		Where(session.CreatedAtGTE(dayAgo)).
-		QueryUser().
-		GroupBy(user.FieldID).
-		Strings(ctx)
+	dauUsers, err := s.repo.CountDistinctUsersFromSessionsSince(ctx, dayAgo)
 	if err == nil {
-		stats.DAU = len(dauUsers)
+		stats.DAU = dauUsers
 	}
 
-	wauUsers, err := s.db.Session.Query().
-		Where(session.CreatedAtGTE(weekAgo)).
-		QueryUser().
-		GroupBy(user.FieldID).
-		Strings(ctx)
+	wauUsers, err := s.repo.CountDistinctUsersFromSessionsSince(ctx, weekAgo)
 	if err == nil {
-		stats.WAU = len(wauUsers)
+		stats.WAU = wauUsers
 	}
 
 	stats.MAU = stats.ActiveUsers
@@ -472,9 +379,7 @@ func (s *DashboardService) GetAdminStats(ctx context.Context) (*AdminStats, erro
 	stats.ServiceHealth["seaweedfs"] = "unknown"
 
 	// Топ-5 проектов по количеству задач
-	projects, err := s.db.Project.Query().
-		WithIssues().
-		All(ctx)
+	projects, err := s.repo.ListProjectsWithIssues(ctx)
 	if err == nil {
 		type pRank struct {
 			id    uuid.UUID
@@ -566,21 +471,9 @@ func (s *DashboardService) ApplyTemplate(ctx context.Context, userID uuid.UUID, 
 
 // GetLayout возвращает сохранённую раскладку дашборда пользователя.
 func (s *DashboardService) GetLayout(ctx context.Context, userID uuid.UUID, dashboardType string, projectID *uuid.UUID) (*LayoutDTO, error) {
-	q := s.db.DashboardLayout.Query().
-		Where(
-			dashboardlayout.HasUserWith(user.ID(userID)),
-			dashboardlayout.DashboardTypeEQ(dashboardlayout.DashboardType(dashboardType)),
-		)
-
-	if projectID != nil {
-		q = q.Where(dashboardlayout.ProjectID(*projectID))
-	} else {
-		q = q.Where(dashboardlayout.ProjectIDIsNil())
-	}
-
-	layout, err := q.Only(ctx)
+	layout, err := s.repo.GetDashboardLayout(ctx, userID, dashboardType, projectID)
 	if err != nil {
-		if ent.IsNotFound(err) {
+		if IsNotFound(err) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("ошибка загрузки раскладки: %w", err)
@@ -604,49 +497,5 @@ func (s *DashboardService) GetLayout(ctx context.Context, userID uuid.UUID, dash
 
 // SaveLayout сохраняет или обновляет раскладку дашборда.
 func (s *DashboardService) SaveLayout(ctx context.Context, userID uuid.UUID, req SaveLayoutRequest) error {
-	// Преобразуем items в []map[string]interface{}
-	rawItems := make([]map[string]interface{}, 0, len(req.Items))
-	for _, item := range req.Items {
-		data, _ := json.Marshal(item)
-		var m map[string]interface{}
-		json.Unmarshal(data, &m)
-		rawItems = append(rawItems, m)
-	}
-
-	// Попытка найти существующую раскладку
-	q := s.db.DashboardLayout.Query().
-		Where(
-			dashboardlayout.HasUserWith(user.ID(userID)),
-			dashboardlayout.DashboardTypeEQ(dashboardlayout.DashboardType(req.DashboardType)),
-		)
-
-	if req.ProjectID != nil {
-		q = q.Where(dashboardlayout.ProjectID(*req.ProjectID))
-	} else {
-		q = q.Where(dashboardlayout.ProjectIDIsNil())
-	}
-
-	existing, err := q.Only(ctx)
-	if err == nil {
-		_, err = existing.Update().
-			SetItems(rawItems).
-			Save(ctx)
-		return err
-	}
-
-	if !ent.IsNotFound(err) {
-		return fmt.Errorf("ошибка поиска раскладки: %w", err)
-	}
-
-	creator := s.db.DashboardLayout.Create().
-		SetUserID(userID).
-		SetDashboardType(dashboardlayout.DashboardType(req.DashboardType)).
-		SetItems(rawItems)
-
-	if req.ProjectID != nil {
-		creator = creator.SetProjectID(*req.ProjectID)
-	}
-
-	_, err = creator.Save(ctx)
-	return err
+	return s.repo.SaveDashboardLayout(ctx, userID, req)
 }

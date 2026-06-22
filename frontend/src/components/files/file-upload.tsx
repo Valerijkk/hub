@@ -29,7 +29,7 @@ export function FileUpload({
 	function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
 		if (e.target.files && e.target.files.length > 0) {
 			onFiles(e.target.files);
-			// Reset input so same file can be re-selected
+			// Сброс input — иначе повторный выбор того же файла не сработает
 			e.target.value = "";
 		}
 	}

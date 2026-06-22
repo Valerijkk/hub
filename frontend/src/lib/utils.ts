@@ -11,8 +11,7 @@ export function cn(...inputs: ClassValue[]) {
  * Пропускает null/undefined значения. Массивы соединяются через запятую.
  * Возвращает строку вида "?key=val&..." или пустую строку если параметров нет.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildQueryString(params?: Record<string, any>): string {
+export function buildQueryString(params?: object): string {
 	if (!params) return "";
 	const entries = Object.entries(params)
 		.filter(([, v]) => v != null)

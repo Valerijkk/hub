@@ -9,10 +9,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Reaction handlers
+// Обработчики реакций
 // ---------------------------------------------------------------------------
 
-// ToggleReaction godoc
+// ToggleReaction — Переключить реакцию
 // @Summary Переключить реакцию
 // @Description Добавляет или убирает реакцию (эмодзи) на сообщение.
 // @Tags Мессенджер
@@ -50,10 +50,10 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Pin handlers
+// Обработчики закрепления
 // ---------------------------------------------------------------------------
 
-// TogglePin godoc
+// TogglePin — Закрепить/открепить сообщение
 // @Summary Закрепить/открепить сообщение
 // @Description Переключает закрепление сообщения в канале.
 // @Tags Мессенджер
@@ -87,7 +87,7 @@ func (h *Handler) TogglePin(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"pinned": pinned})
 }
 
-// ListPins godoc
+// ListPins — Список закреплённых сообщений
 // @Summary Список закреплённых сообщений
 // @Description Возвращает все закреплённые сообщения в указанном канале.
 // @Tags Мессенджер
@@ -117,10 +117,10 @@ func (h *Handler) ListPins(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Bookmark handlers
+// Обработчики закладок
 // ---------------------------------------------------------------------------
 
-// ListBookmarks godoc
+// ListBookmarks — Список закладок
 // @Summary Список закладок
 // @Description Возвращает все сохранённые закладки на сообщения текущего пользователя.
 // @Tags Мессенджер
@@ -143,7 +143,7 @@ func (h *Handler) ListBookmarks(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// AddBookmark godoc
+// AddBookmark — Добавить закладку
 // @Summary Добавить закладку
 // @Description Сохраняет сообщение в закладки текущего пользователя.
 // @Tags Мессенджер
@@ -177,7 +177,7 @@ func (h *Handler) AddBookmark(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusCreated)
 }
 
-// RemoveBookmark godoc
+// RemoveBookmark — Удалить закладку
 // @Summary Удалить закладку
 // @Description Удаляет закладку на сообщение.
 // @Tags Мессенджер
@@ -205,10 +205,10 @@ func (h *Handler) RemoveBookmark(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Unread handlers
+// Обработчики непрочитанного
 // ---------------------------------------------------------------------------
 
-// GetUnreadCounts godoc
+// GetUnreadCounts — Счётчики непрочитанных
 // @Summary Счётчики непрочитанных
 // @Description Возвращает количество непрочитанных сообщений по каналам для текущего пользователя.
 // @Tags Мессенджер
@@ -231,7 +231,7 @@ func (h *Handler) GetUnreadCounts(c fiber.Ctx) error {
 	return c.JSON(counts)
 }
 
-// MarkChannelRead godoc
+// MarkChannelRead — Отметить канал прочитанным
 // @Summary Отметить канал прочитанным
 // @Description Сбрасывает счётчик непрочитанных сообщений для указанного канала.
 // @Tags Мессенджер
@@ -259,7 +259,7 @@ func (h *Handler) MarkChannelRead(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Poll handlers
+// Обработчики опросов
 // ---------------------------------------------------------------------------
 
 // parsePollID извлекает и валидирует pollId из параметров пути.
@@ -276,7 +276,7 @@ func parsePollID(c fiber.Ctx) (uuid.UUID, error) {
 	return id, nil
 }
 
-// CreatePoll godoc
+// CreatePoll — Создать опрос
 // @Summary Создать опрос
 // @Description Создаёт новый опрос в указанном канале мессенджера.
 // @Tags Мессенджер
@@ -312,7 +312,7 @@ func (h *Handler) CreatePoll(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// VotePoll godoc
+// VotePoll — Проголосовать в опросе
 // @Summary Проголосовать в опросе
 // @Description Отправляет голос текущего пользователя за выбранный вариант.
 // @Tags Мессенджер
@@ -348,7 +348,7 @@ func (h *Handler) VotePoll(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ClosePoll godoc
+// ClosePoll — Закрыть опрос
 // @Summary Закрыть опрос
 // @Description Завершает опрос и фиксирует результаты. Доступно только создателю.
 // @Tags Мессенджер
@@ -378,7 +378,7 @@ func (h *Handler) ClosePoll(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetPollResults godoc
+// GetPollResults — Результаты опроса
 // @Summary Результаты опроса
 // @Description Возвращает текущие результаты опроса, включая голоса и процентное распределение.
 // @Tags Мессенджер

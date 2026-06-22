@@ -18,104 +18,117 @@ func NewHandler(service *TMSService) *Handler {
 
 // RegisterRoutes регистрирует все маршруты TMS под /api/projects/:projectId/tms.
 // authMw — middleware аутентификации, rbacSvc используется для проверки прав доступа.
+//
+// ВАЖНО (Fiber v3 порядок выполнения): сигнатура методов роутера —
+// Post(path string, handler Handler, middleware ...Handler). Variadic-middleware
+// выполняются ПЕРЕД основным handler (router.register строит цепочку как
+// [middleware..., handler]). Поэтому RBAC-гард передаётся ПОСЛЕ основного
+// обработчика: `route.Post(path, h.Handler, rbac.RequirePermission(...))`.
+// Если поменять местами (гард первым аргументом), гард станет финальным
+// обработчиком и не выполнится, пока handler сам не вызовет c.Next() — то есть
+// проверка прав будет молча пропущена (FA-02-02: IDOR / OWASP A01).
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
 	tms := api.Group("/projects/:projectId/tms", authMw)
 
-	// Test cases
+	// Тест-кейсы
 	cases := tms.Group("/cases")
-	cases.Post("/", rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc), h.CreateTestCase)
-	cases.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListTestCases)
-	cases.Get("/:caseKey", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestCase)
-	cases.Put("/:caseKey", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.UpdateTestCase)
-	cases.Delete("/:caseKey", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.DeleteTestCase)
+	cases.Post("/", h.CreateTestCase, rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc))
+	cases.Get("/", h.ListTestCases, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	cases.Get("/:caseKey", h.GetTestCase, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	cases.Put("/:caseKey", h.UpdateTestCase, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
+	cases.Delete("/:caseKey", h.DeleteTestCase, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
 
-	// Test case versions
-	cases.Get("/:caseKey/versions", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListTestCaseVersions)
-	cases.Post("/:caseKey/rollback/:versionId", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.RollbackTestCase)
+	// Версии тест-кейсов
+	cases.Get("/:caseKey/versions", h.ListTestCaseVersions, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	cases.Post("/:caseKey/rollback/:versionId", h.RollbackTestCase, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
 
-	// Issue linking
-	cases.Post("/:caseKey/links", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.LinkTestCaseToIssue)
-	cases.Delete("/:caseKey/links/:issueId", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.UnlinkTestCaseFromIssue)
-	cases.Get("/:caseKey/links", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestCaseLinks)
+	// Привязка задач
+	cases.Post("/:caseKey/links", h.LinkTestCaseToIssue, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
+	cases.Delete("/:caseKey/links/:issueId", h.UnlinkTestCaseFromIssue, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
+	cases.Get("/:caseKey/links", h.GetTestCaseLinks, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
-	// Suites
+	// Папки (suites)
 	suites := tms.Group("/suites")
-	suites.Post("/", rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc), h.CreateSuite)
-	suites.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListSuites)
-	suites.Put("/:suiteId", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.UpdateSuite)
-	suites.Delete("/:suiteId", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.DeleteSuite)
+	suites.Post("/", h.CreateSuite, rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc))
+	suites.Get("/", h.ListSuites, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	suites.Put("/:suiteId", h.UpdateSuite, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
+	suites.Delete("/:suiteId", h.DeleteSuite, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
 
-	// Components
+	// Компоненты
 	components := tms.Group("/components")
-	components.Post("/", rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc), h.CreateComponent)
-	components.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListComponents)
-	components.Delete("/:componentId", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.DeleteComponent)
+	components.Post("/", h.CreateComponent, rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc))
+	components.Get("/", h.ListComponents, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	components.Delete("/:componentId", h.DeleteComponent, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
 
-	// Runs
+	// Прогоны
 	runs := tms.Group("/runs")
-	runs.Post("/", rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc), h.CreateTestRun)
-	runs.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListTestRuns)
-	runs.Get("/:runId", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestRun)
-	runs.Put("/:runId/status", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.UpdateRunStatus)
-	runs.Post("/:runId/reopen", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.ReopenTestRun)
+	runs.Post("/", h.CreateTestRun, rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc))
+	runs.Get("/", h.ListTestRuns, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	runs.Get("/:runId", h.GetTestRun, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	runs.Put("/:runId/status", h.UpdateRunStatus, rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc))
+	runs.Post("/:runId/reopen", h.ReopenTestRun, rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc))
 
-	// Run management
-	runs.Post("/:runId/cases", rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc), h.AddTestCasesToRun)
-	runs.Post("/:runId/assignees", rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc), h.AssignTestersToRun)
-	runs.Post("/:runId/start", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.StartTestRun)
-	runs.Post("/:runId/complete", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.CompleteTestRun)
-	runs.Get("/:runId/detail", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestRunDetail)
+	// Управление прогоном
+	runs.Post("/:runId/cases", h.AddTestCasesToRun, rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc))
+	runs.Post("/:runId/assignees", h.AssignTestersToRun, rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc))
+	runs.Post("/:runId/start", h.StartTestRun, rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc))
+	runs.Post("/:runId/complete", h.CompleteTestRun, rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc))
+	runs.Get("/:runId/detail", h.GetTestRunDetail, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
-	// Results
-	runs.Post("/:runId/results", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.CreateTestResult)
-	runs.Put("/:runId/results/:resultId", rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc), h.ExecuteTestResult)
-	runs.Get("/:runId/results", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListTestResults)
+	// Результаты
+	runs.Post("/:runId/results", h.CreateTestResult, rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc))
+	runs.Put("/:runId/results/:resultId", h.ExecuteTestResult, rbac.RequirePermission(rbac.PermTestRunExecute, rbacSvc))
+	runs.Get("/:runId/results", h.ListTestResults, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
-	// Allure import to existing run
-	runs.Post("/:runId/allure", rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc), h.ImportAllureToExistingRun)
+	// Импорт Allure в существующий прогон
+	runs.Post("/:runId/allure", h.ImportAllureToExistingRun, rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc))
 
-	// Allure import (new run)
+	// Импорт Allure (новый прогон)
 	allure := tms.Group("/allure")
-	allure.Post("/import", rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc), h.ImportAllureResults)
+	allure.Post("/import", h.ImportAllureResults, rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc))
 
-	// Bug from result
-	runs.Post("/:runId/results/:resultId/bug", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.CreateBugFromResult)
+	// Баг из результата прогона
+	runs.Post("/:runId/results/:resultId/bug", h.CreateBugFromResult, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
 
-	// Reports
+	// Отчёты
 	reports := tms.Group("/reports")
-	reports.Get("/history", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestRunHistory)
-	reports.Get("/flaky", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetFlakyTests)
-	reports.Get("/coverage", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetCoverageReport)
-	reports.Get("/trends", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTestTrends)
-	reports.Get("/comparison", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetRunComparison)
-	reports.Get("/traceability", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetTraceabilityMatrix)
-	reports.Get("/defect-categories", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetDefectCategories)
-	reports.Get("/env-comparison", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.CompareEnvironments)
+	reports.Get("/history", h.GetTestRunHistory, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	reports.Get("/flaky", h.GetFlakyTests, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	reports.Get("/coverage", h.GetCoverageReport, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	reports.Get("/trends", h.GetTestTrends, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	reports.Get("/comparison", h.GetRunComparison, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	reports.Get("/traceability", h.GetTraceabilityMatrix, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	reports.Get("/defect-categories", h.GetDefectCategories, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	reports.Get("/env-comparison", h.CompareEnvironments, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
-	// Import/export
-	tms.Post("/import", rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc), h.ImportTestCases)
-	tms.Get("/export", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ExportTestCases)
-	runs.Get("/:runId/export", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ExportTestRunReport)
+	// Импорт/экспорт
+	tms.Post("/import", h.ImportTestCases, rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc))
+	tms.Get("/export", h.ExportTestCases, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	runs.Get("/:runId/export", h.ExportTestRunReport, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
 	// CI/CD Webhooks — используют тот же authMw (поддержка X-API-Key / JWT).
 	// Упрощённый интерфейс для пайплайнов: POST файл или JSON → автоматический прогон.
+	// FA-02-02: вебхуки создают прогоны в проекте из пути, поэтому требуют
+	// тех же прав, что и /tms/allure/import (PermTestRunCreate) — иначе любой
+	// аутентифицированный пользователь мог бы импортировать результаты в чужой
+	// проект, зная его UUID (IDOR / OWASP A01).
 	webhook := tms.Group("/webhook")
-	webhook.Post("/", h.WebhookAllure)
-	webhook.Post("/junit", h.WebhookJUnit)
+	webhook.Post("/", h.WebhookAllure, rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc))
+	webhook.Post("/junit", h.WebhookJUnit, rbac.RequirePermission(rbac.PermTestRunCreate, rbacSvc))
 
-	// Test environments
+	// Тестовые окружения
 	envs := api.Group("/projects/:projectId/environments", authMw)
-	envs.Post("/", rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc), h.CreateEnvironmentHandler)
-	envs.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListEnvironmentsHandler)
-	envs.Put("/:envId", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.UpdateEnvironmentHandler)
-	envs.Delete("/:envId", rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc), h.DeleteEnvironmentHandler)
+	envs.Post("/", h.CreateEnvironmentHandler, rbac.RequirePermission(rbac.PermTestCaseCreate, rbacSvc))
+	envs.Get("/", h.ListEnvironmentsHandler, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	envs.Put("/:envId", h.UpdateEnvironmentHandler, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
+	envs.Delete("/:envId", h.DeleteEnvironmentHandler, rbac.RequirePermission(rbac.PermTestCaseEdit, rbacSvc))
 }
 
 // ---------------------------------------------------------------------------
-// TMS-specific helpers
+// Вспомогательные функции TMS handler-слоя
 // ---------------------------------------------------------------------------
 
-// parseCaseKey extracts caseKey from path params.
+// parseCaseKey извлекает caseKey из параметров пути.
 func parseCaseKey(c fiber.Ctx) string {
 	return utils.CopyString(c.Params("caseKey"))
 }

@@ -7,10 +7,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Time tracking handlers
+// Обработчики учёта времени
 // ---------------------------------------------------------------------------
 
-// LogTime godoc
+// LogTime — Залогировать время
 // @Summary Залогировать время
 // @Description Записывает затраченное время на задачу.
 // @Tags Трекер
@@ -48,14 +48,14 @@ func (h *Handler) LogTime(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// StartTimer godoc
+// StartTimer — Запустить таймер
 // @Summary Запустить таймер
 // @Description Запускает таймер отслеживания времени для задачи.
 // @Tags Трекер
 // @Produce json
 // @Param projectId path string true "ID проекта"
 // @Param issueKey path string true "Ключ задачи"
-// @Success 201 {object} TimerResponse "Таймер запущен"
+// @Success 201 {object} TimeLogResponse "Таймер запущен"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
@@ -79,7 +79,7 @@ func (h *Handler) StartTimer(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// StopTimer godoc
+// StopTimer — Остановить таймер
 // @Summary Остановить таймер
 // @Description Останавливает таймер и записывает затраченное время.
 // @Tags Трекер
@@ -110,7 +110,7 @@ func (h *Handler) StopTimer(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ListTimeLogs godoc
+// ListTimeLogs — Список записей времени
 // @Summary Список записей времени
 // @Description Возвращает все записи затраченного времени на задачу.
 // @Tags Трекер

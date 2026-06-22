@@ -5,7 +5,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	type StepResult,
 	type TestResultDetailResponse,
@@ -15,6 +14,7 @@ import {
 } from "@/api/tms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 
 /** Конфигурация кнопок статусов выполнения (passed, failed, broken, skipped). */

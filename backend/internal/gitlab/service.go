@@ -49,10 +49,18 @@ type GitLabService struct {
 // но это поле никогда не читалось в коде сервиса — мёртвый параметр.
 // Удалён, чтобы не вводить в заблуждение про "может пригодиться".
 func NewGitLabService(repo Repository, nats *natsclient.Client) *GitLabService {
+	return NewGitLabServiceWithHTTPClient(repo, nats, nil)
+}
+
+// NewGitLabServiceWithHTTPClient — внедряет HTTP-клиент (тесты, транспорты).
+func NewGitLabServiceWithHTTPClient(repo Repository, nats *natsclient.Client, client *http.Client) *GitLabService {
+	if client == nil {
+		client = safehttp.NewSafeHTTPClient(30 * time.Second)
+	}
 	return &GitLabService{
 		repo:   repo,
 		nats:   nats,
-		client: safehttp.NewSafeHTTPClient(30 * time.Second),
+		client: client,
 	}
 }
 
@@ -290,7 +298,7 @@ func (s *GitLabService) fetchPipelines(ctx context.Context, integration *ent.Git
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// BE-H1: cap body at 10MB to prevent memory DoS via hostile upstream response.
+		// BE-H1: body ≤10MB — защита от memory DoS от upstream.
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxGitLabResponseBodyBytes))
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
@@ -393,7 +401,7 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		// BE-H1: cap body at 10MB to prevent memory DoS via hostile upstream response.
+		// BE-H1: body ≤10MB — защита от memory DoS от upstream.
 		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, maxGitLabResponseBodyBytes))
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
@@ -480,7 +488,7 @@ func (s *GitLabService) CreateBranch(ctx context.Context, issueKey string, req C
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		// BE-H1: cap body at 10MB to prevent memory DoS via hostile upstream response.
+		// BE-H1: body ≤10MB — защита от memory DoS от upstream.
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxGitLabResponseBodyBytes))
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
@@ -536,7 +544,7 @@ func (s *GitLabService) fetchMergeRequests(ctx context.Context, integration *ent
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// BE-H1: cap body at 10MB to prevent memory DoS via hostile upstream response.
+		// BE-H1: body ≤10MB — защита от memory DoS от upstream.
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxGitLabResponseBodyBytes))
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
@@ -553,7 +561,7 @@ func (s *GitLabService) fetchMergeRequests(ctx context.Context, integration *ent
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Вспомогательные функции
 // ---------------------------------------------------------------------------
 
 // toIntegrationResponse конвертирует ent-модель в DTO.

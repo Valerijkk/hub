@@ -31,35 +31,35 @@ type Repository interface {
 	CreateAuditLog(ctx context.Context, action, entityType, entityID string, userID, projectID *uuid.UUID, details map[string]interface{}, ipAddress, userAgent string) (*ent.AuditLog, error)
 	ListAuditLogs(ctx context.Context, filters AuditLogFilters) ([]*ent.AuditLog, int, error)
 
-	// SystemSetting
+	// Системные настройки
 	GetSystemSetting(ctx context.Context, key string) (string, error)
 	UpsertSystemSetting(ctx context.Context, key, value, description string) error
 
-	// Trash — листинг
+	// Корзина — листинг
 	ListDeletedIssues(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 	ListDeletedTestCases(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 	ListDeletedFiles(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 	ListDeletedProjects(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 
-	// Trash — restore
+	// Корзина — восстановление
 	RestoreIssue(ctx context.Context, id uuid.UUID) error
 	RestoreTestCase(ctx context.Context, id uuid.UUID) error
 	RestoreFile(ctx context.Context, id uuid.UUID) error
 	RestoreProject(ctx context.Context, id uuid.UUID) error
 
-	// Trash — soft delete
+	// Корзина — мягкое удаление
 	SoftDeleteIssue(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteTestCase(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteFile(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteProject(ctx context.Context, id uuid.UUID, when time.Time) error
 
-	// Trash — purge
+	// Корзина — окончательное удаление
 	PurgeExpiredIssues(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredTestCases(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredFiles(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredProjects(ctx context.Context, cutoff time.Time) (int, error)
 
-	// User admin
+	// Администрирование пользователей
 	DeactivateUser(ctx context.Context, userID uuid.UUID) error
 	DeleteUserSessions(ctx context.Context, userID uuid.UUID) (int, error)
 	ReassignAssignedIssues(ctx context.Context, fromUserID, toUserID uuid.UUID) (int, error)
@@ -183,7 +183,7 @@ func (r *entRepository) ListAuditLogs(ctx context.Context, filters AuditLogFilte
 // ---------------------------------------------------------------------------
 
 // GetSystemSetting возвращает значение настройки по ключу.
-// Возвращает ("", nil) если запись отсутствует — caller сам решает, использовать дефолт.
+// Возвращает ("", nil) если запись отсутствует — вызывающий код сам выбирает дефолт.
 func (r *entRepository) GetSystemSetting(ctx context.Context, key string) (string, error) {
 	setting, err := r.client.SystemSetting.Query().
 		Where(systemsetting.KeyEQ(key)).
@@ -494,5 +494,5 @@ func (r *entRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bo
 	if err != nil {
 		return false, err
 	}
-	return u.SystemRole == user.SystemRoleAdmin, nil
+	return u.SystemRole == user.SystemRoleFounder || u.SystemRole == user.SystemRoleAdmin, nil
 }

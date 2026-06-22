@@ -137,6 +137,12 @@ func buildPushURL(entityType, entityID string) string {
 		return "/tms/runs/" + entityID
 	case "call":
 		return "/calls/" + entityID
+	case "kudo":
+		return "/intranet?tab=kudos"
+	case "coffee_match":
+		return "/intranet?tab=coffee"
+	case "marketplace_listing":
+		return "/marketplace"
 	default:
 		return "/"
 	}

@@ -30,8 +30,10 @@
 
   /* Sidebar compat */
   --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--t1);
-  --color-sidebar-primary: var(--t1);
+  --color-sidebar-foreground: var(--sidebar-t1);
+  --color-sidebar-muted: var(--sidebar-t2);
+  --color-sidebar-subtle: var(--sidebar-t3);
+  --color-sidebar-primary: var(--sidebar-t1);
   --color-sidebar-primary-foreground: var(--sidebar);
   --color-sidebar-accent: var(--active);
   --color-sidebar-accent-foreground: var(--t1);
@@ -81,6 +83,11 @@
 	--input: #f1f3f5;
 	--sidebar: #1a1d21;
 
+	/* Sidebar text (always on dark --sidebar surface, even in light theme) */
+	--sidebar-t1: #f2f3f5;
+	--sidebar-t2: #9da0a8;
+	--sidebar-t3: #8b919c;
+
 	/* Interactive */
 	--hover: rgba(0, 0, 0, 0.03);
 	--active: rgba(0, 0, 0, 0.06);
@@ -89,7 +96,7 @@
 	--t1: #111827;
 	--t2: #4b5563;
 	--t3: #9ca3af;
-	--t4: #d1d5db;
+	--t4: #6b7280;
 
 	/* Borders */
 	--b1: rgba(0, 0, 0, 0.06);
@@ -162,6 +169,11 @@
 	--card: #191a20;
 	--input: #1e2028;
 	--sidebar: #0b0c0f;
+
+	/* Sidebar text */
+	--sidebar-t1: #f2f3f5;
+	--sidebar-t2: #9da0a8;
+	--sidebar-t3: #a1a7b3;
 
 	/* Interactive */
 	--hover: rgba(255, 255, 255, 0.032);

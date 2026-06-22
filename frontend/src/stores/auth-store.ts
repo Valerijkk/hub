@@ -61,7 +61,7 @@ function broadcastAuth(event: AuthSyncEvent): void {
 	try {
 		authChannel.postMessage(event);
 	} catch {
-		// ignore: канал мог закрыться
+		// игнорируем: канал мог закрыться
 	}
 }
 
@@ -93,7 +93,7 @@ export function subscribeAuthSync(
 			try {
 				handler(JSON.parse(ev.newValue) as AuthSyncEvent);
 			} catch {
-				// ignore
+				// игнорируем: операция не критична для UX
 			}
 		}
 	};

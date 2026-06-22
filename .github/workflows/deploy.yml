@@ -73,7 +73,7 @@ jobs:
             cd deployments
             IMAGE_BACKEND="${BACKEND_IMAGE}" \
             IMAGE_FRONTEND="${FRONTEND_IMAGE}" \
-            docker compose -f docker-compose.prod.yml --env-file .env -p hub up -d --force-recreate backend livekit
+            docker compose -f docker-compose.prod.yml --env-file .env -p hub up -d --force-recreate backend hub-mail livekit
 
             docker rm -f frontend 2>/dev/null || true
             docker run -d --name frontend \

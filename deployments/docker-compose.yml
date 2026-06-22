@@ -1,4 +1,9 @@
+# docker-compose.yml — инфраструктурные сервисы для локальной разработки.
+# Backend и frontend запускаются отдельно (make dev / go run / npm run dev).
+# Запуск: docker compose -f deployments/docker-compose.yml up -d
+
 services:
+  # PostgreSQL — основная реляционная БД (Ent, миграции Atlas)
   postgres:
     image: postgres:17
     ports:
@@ -15,6 +20,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # MongoDB — сообщения мессенджера, Allure-отчёты TMS
   mongo:
     image: mongo:8.0
     ports:
@@ -25,11 +31,13 @@ services:
     volumes:
       - mongodata:/data/db
 
+  # Redis — сессии, refresh-токены, кэш
   redis:
     image: redis:7.4-alpine
     ports:
       - "6379:6379"
 
+  # NATS JetStream — pub/sub между модулями (уведомления, fanout)
   nats:
     image: nats:2.11
     ports:
@@ -39,6 +47,7 @@ services:
     volumes:
       - natsdata:/data
 
+  # SeaweedFS — S3-совместимое хранилище файлов
   seaweedfs:
     image: chrislusf/seaweedfs:3.97
     command: ["server", "-s3", "-dir=/data"]
@@ -48,6 +57,7 @@ services:
     volumes:
       - seaweeddata:/data
 
+  # LiveKit — голосовые/видео звонки (WebRTC)
   livekit:
     image: livekit/livekit-server:v1.8
     ports:
@@ -58,6 +68,7 @@ services:
       - ./livekit.yaml:/etc/livekit.yaml
     command: ["--config", "/etc/livekit.yaml"]
 
+  # Caddy — reverse proxy (см. Caddyfile)
   caddy:
     image: caddy:2-alpine
     ports:

@@ -1,13 +1,18 @@
 import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 import { uploadFile } from "@/api/files";
 import { sendMessage, sendTypingIndicator } from "@/api/messenger";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+	applyComposerSuggestion,
+	canSuggestComposer,
+	fetchComposerSuggestion,
+} from "@/hooks/use-composer-ai-suggest";
 import { useInvalidateMessages } from "@/hooks/use-invalidate";
+import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { CreatePollDialog } from "./create-poll-dialog";
@@ -214,6 +219,10 @@ export function MessageComposer({
 	const mentionKeyHandlerRef = useRef<
 		((e: KeyboardEvent<HTMLTextAreaElement>) => boolean) | null
 	>(null);
+	/** Кэш AI Tab-подсказки для текущего prefix (M3-024). */
+	const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+	const [aiSuggestionFor, setAiSuggestionFor] = useState<string | null>(null);
+	const [aiSuggestLoading, setAiSuggestLoading] = useState(false);
 
 	const replyToMessage = useMessengerStore((s) => s.replyToMessage);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
@@ -362,18 +371,46 @@ export function MessageComposer({
 		[],
 	);
 
-	/** Обработка клавиш: сначала проверяем @mention, затем Enter -- отправить. */
+	/** Обработка клавиш: @mention → Tab AI → Enter отправить. */
 	const handleKeyDown = useCallback(
-		(e: KeyboardEvent<HTMLTextAreaElement>) => {
-			// Если автокомплит @mention обработал клавишу — не делаем ничего.
+		async (e: KeyboardEvent<HTMLTextAreaElement>) => {
 			if (mentionKeyHandlerRef.current?.(e)) return;
+
+			if (e.key === "Tab" && !e.shiftKey && canSuggestComposer(text)) {
+				e.preventDefault();
+				const prefix = text.trim();
+				let suggestion = aiSuggestion;
+				if (!suggestion || aiSuggestionFor !== prefix) {
+					setAiSuggestLoading(true);
+					suggestion = await fetchComposerSuggestion(prefix, channelId);
+					setAiSuggestLoading(false);
+					setAiSuggestion(suggestion);
+					setAiSuggestionFor(prefix);
+				}
+				if (suggestion) {
+					const newText = applyComposerSuggestion(text, suggestion);
+					setText(newText);
+					setAiSuggestion(null);
+					setAiSuggestionFor(null);
+					requestAnimationFrame(() => {
+						const ta = textareaRef.current;
+						if (ta) {
+							ta.focus();
+							ta.setSelectionRange(newText.length, newText.length);
+							ta.style.height = "auto";
+							ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
+						}
+					});
+				}
+				return;
+			}
 
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
 				void handleSend();
 			}
 		},
-		[handleSend],
+		[text, channelId, aiSuggestion, aiSuggestionFor, handleSend],
 	);
 
 	/** Автоматическая подгонка высоты textarea (макс 200px). */
@@ -382,6 +419,10 @@ export function MessageComposer({
 			const value = e.target.value;
 			setText(value);
 			setCursorPosition(e.target.selectionStart);
+			if (aiSuggestionFor !== null && value.trim() !== aiSuggestionFor) {
+				setAiSuggestion(null);
+				setAiSuggestionFor(null);
+			}
 			const el = e.target;
 			el.style.height = "auto";
 			el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
@@ -395,7 +436,7 @@ export function MessageComposer({
 				}
 			}
 		},
-		[channelId],
+		[channelId, aiSuggestionFor],
 	);
 
 	/** Отправка GIF. */
@@ -474,7 +515,7 @@ export function MessageComposer({
 
 	return (
 		<div className="space-y-0">
-			{/* Reply preview */}
+			{/* Превью ответа */}
 			{replyToMessage && (
 				<ReplyPreview
 					replyTo={replyToMessage}
@@ -539,9 +580,9 @@ export function MessageComposer({
 					onCancel={() => setShowVoice(false)}
 				/>
 			) : (
-				/* Rounded container with all controls inside */
+				/* Скруглённый контейнер со всеми контролами */
 				<div className="flex items-end gap-1 bg-[var(--card)] border border-[var(--b1)] rounded-[var(--r4)] px-4 py-1.5 transition-[box-shadow] relative overflow-hidden focus-within:border-[rgba(52,211,153,.25)] focus-within:shadow-[0_0_0_3px_rgba(52,211,153,.05),0_0_24px_rgba(52,211,153,.04)]">
-					{/* Top highlight */}
+					{/* Верхний highlight */}
 					<div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.03] to-transparent" />
 
 					{/* @Mention автокомплит */}
@@ -554,7 +595,7 @@ export function MessageComposer({
 						keyHandlerRef={mentionKeyHandlerRef}
 					/>
 
-					{/* Attachment button */}
+					{/* Кнопка вложения */}
 					<button
 						type="button"
 						className={cn(
@@ -562,6 +603,7 @@ export function MessageComposer({
 							isUploading && "animate-pulse",
 						)}
 						title="Прикрепить файл"
+						aria-label="Прикрепить файл"
 						onClick={handleAttachClick}
 						disabled={isUploading}
 					>
@@ -590,26 +632,45 @@ export function MessageComposer({
 						onChange={(e) => void handleFileChange(e)}
 					/>
 
-					{/* Text input */}
-					<textarea
-						ref={textareaRef}
-						value={text}
-						onChange={handleInput}
-						onKeyDown={handleKeyDown}
-						onSelect={(e) => setCursorPosition(e.currentTarget.selectionStart)}
-						placeholder={placeholder}
-						rows={1}
-						disabled={isSending}
-						className="flex-1 bg-transparent border-none text-sm text-[var(--t1)] resize-none min-h-[38px] max-h-[200px] py-[9px] leading-relaxed outline-none placeholder:text-[var(--t3)]"
-					/>
+					{/* Поле ввода текста */}
+					<div className="relative flex-1 min-w-0">
+						{aiSuggestion && aiSuggestionFor === text.trim() && (
+							<div
+								className="pointer-events-none absolute inset-0 py-[9px] text-sm leading-relaxed text-[var(--t3)] truncate"
+								aria-hidden="true"
+							>
+								<span className="invisible whitespace-pre-wrap">{text}</span>
+								<span>
+									{applyComposerSuggestion("", aiSuggestion).trimStart()}
+								</span>
+							</div>
+						)}
+						<textarea
+							ref={textareaRef}
+							value={text}
+							onChange={handleInput}
+							onKeyDown={(e) => void handleKeyDown(e)}
+							onSelect={(e) =>
+								setCursorPosition(e.currentTarget.selectionStart)
+							}
+							placeholder={placeholder}
+							title={
+								canSuggestComposer(text) ? "Tab — дополнение AI" : undefined
+							}
+							rows={1}
+							disabled={isSending || aiSuggestLoading}
+							className="relative z-[1] w-full bg-transparent border-none text-sm text-[var(--t1)] resize-none min-h-[38px] max-h-[200px] py-[9px] leading-relaxed outline-none placeholder:text-[var(--t3)]"
+						/>
+					</div>
 
-					{/* Emoji button with Popover */}
+					{/* Кнопка emoji с Popover */}
 					<Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
 						<PopoverTrigger asChild>
 							<button
 								type="button"
 								className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 								title="Эмодзи"
+								aria-label="Эмодзи"
 							>
 								<svg
 									aria-hidden="true"
@@ -655,18 +716,19 @@ export function MessageComposer({
 					 * Голосовое, эмодзи, прикрепление файла и отправка остаются всегда.
 					 */}
 					<div className="hidden md:flex items-center">
-						{/* GIF picker */}
+						{/* Выбор GIF */}
 						<GifPicker onSelect={(url) => void handleGifSend(url)} />
 
-						{/* Sticker picker */}
+						{/* Выбор стикера */}
 						<StickerPicker onSelect={(s) => void handleStickerSend(s)} />
 					</div>
 
-					{/* Poll button */}
+					{/* Кнопка опроса */}
 					<button
 						type="button"
 						className="hidden md:flex w-[38px] h-[38px] items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 						title="Опрос"
+						aria-label="Создать опрос"
 						onClick={() => setShowPollDialog(true)}
 					>
 						<svg
@@ -685,11 +747,12 @@ export function MessageComposer({
 						</svg>
 					</button>
 
-					{/* Voice recorder button */}
+					{/* Кнопка голосового сообщения */}
 					<button
 						type="button"
 						className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 						title="Голосовое сообщение"
+						aria-label="Голосовое сообщение"
 						onClick={() => setShowVoice(true)}
 					>
 						<svg
@@ -708,7 +771,7 @@ export function MessageComposer({
 						</svg>
 					</button>
 
-					{/* Send button */}
+					{/* Кнопка отправки */}
 					<button
 						type="button"
 						className={cn(
@@ -720,6 +783,7 @@ export function MessageComposer({
 						onClick={() => void handleSend()}
 						disabled={isSending || !hasContent}
 						title="Отправить"
+						aria-label="Отправить сообщение"
 					>
 						<svg
 							aria-hidden="true"

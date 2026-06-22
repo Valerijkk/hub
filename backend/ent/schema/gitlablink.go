@@ -13,7 +13,7 @@ type GitLabLink struct {
 	ent.Schema
 }
 
-// Fields of the GitLabLink.
+// Поля сущности GitLabLink.
 func (GitLabLink) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -52,7 +52,7 @@ func (GitLabLink) Fields() []ent.Field {
 	}
 }
 
-// Edges of the GitLabLink.
+// Рёбра (edges) сущности GitLabLink.
 func (GitLabLink) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("issue", Issue.Type).
@@ -66,7 +66,7 @@ func (GitLabLink) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the GitLabLink.
+// Индексы сущности GitLabLink.
 func (GitLabLink) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("issue"),

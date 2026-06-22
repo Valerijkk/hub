@@ -196,12 +196,14 @@ interface StickerPickerProps {
  */
 export function StickerPicker({ onSelect }: StickerPickerProps) {
 	const [open, setOpen] = useState(false);
-	// biome-ignore lint/style/noNonNullAssertion: STICKER_PACKS is a non-empty const array literal
-	const [activePackId, setActivePackId] = useState(STICKER_PACKS[0]!.id);
+	const defaultPack = STICKER_PACKS[0];
+	if (!defaultPack) {
+		throw new Error("STICKER_PACKS must not be empty");
+	}
+	const [activePackId, setActivePackId] = useState(defaultPack.id);
 
-	// biome-ignore lint/style/noNonNullAssertion: STICKER_PACKS is a non-empty const array literal
 	const activePack =
-		STICKER_PACKS.find((p) => p.id === activePackId) ?? STICKER_PACKS[0]!;
+		STICKER_PACKS.find((p) => p.id === activePackId) ?? defaultPack;
 
 	const handleSelect = useCallback(
 		(pack: StickerPack, sticker: Sticker) => {
@@ -223,6 +225,7 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
 					type="button"
 					className="flex h-11 w-9 shrink-0 items-center justify-center text-t2/60 hover:text-t2 transition-colors"
 					title="Стикеры"
+					aria-label="Выбрать стикер"
 				>
 					<svg
 						aria-hidden="true"

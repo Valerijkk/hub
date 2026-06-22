@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Project holds the schema definition for the Project entity.
+// Project — определение Ent-схемы сущности Project.
 type Project struct {
 	ent.Schema
 }
 
-// Fields of the Project.
+// Поля сущности Project.
 func (Project) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -52,9 +52,12 @@ func (Project) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Project.
+// Рёбра (edges) сущности Project.
 func (Project) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.From("organization", Organization.Type).
+			Ref("projects").
+			Unique(),
 		edge.To("members", ProjectMember.Type),
 		edge.To("roles", Role.Type),
 		edge.To("teams", Team.Type),
@@ -79,10 +82,12 @@ func (Project) Edges() []ent.Edge {
 		edge.To("webhook_endpoints", WebhookEndpoint.Type),
 		edge.To("environments", Environment.Type),
 		edge.To("sprints", Sprint.Type),
+		edge.To("automation_rules", AutomationRule.Type),
+		edge.To("crm_deals", CrmDeal.Type),
 	}
 }
 
-// Indexes of the Project.
+// Индексы сущности Project.
 func (Project) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("status"),

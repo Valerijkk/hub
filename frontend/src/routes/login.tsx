@@ -1,9 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { DevLoginPanel } from "@/components/auth/dev-login-panel";
-import { TelegramButton } from "@/components/auth/telegram-button";
+import { MagicLinkForm } from "@/components/auth/magic-link-form";
 import { useAuthStore } from "@/stores/auth-store";
 
-/* --- Floating feature cards data --- */
+interface LoginSearch {
+	invite?: string;
+}
+
+/* --- Данные floating feature cards --- */
 
 interface FeatureCard {
 	label: string;
@@ -55,15 +59,13 @@ const FLOATING_FEATURES: FeatureCard[] = [
 ];
 
 /**
- * Страница входа — split-layout с animated mesh gradient и формой.
- *
- * Левая часть (55%): mesh gradient, grid lines, 2x2 feature cards, tagline.
- * Правая часть (45%): clean form panel with logo, email/code form, Telegram.
+ * Страница входа — split-layout с animated mesh gradient и формой Magic Link.
  */
 function LoginPage() {
 	const navigate = useNavigate();
+	const { invite } = Route.useSearch();
 
-	function handleDevLoginSuccess() {
+	function handleLoginSuccess() {
 		const user = useAuthStore.getState().user;
 		if (user && !user.onboarding_completed) {
 			void navigate({ to: "/onboarding" });
@@ -74,14 +76,10 @@ function LoginPage() {
 
 	return (
 		<div className="flex min-h-screen">
-			{/* Левая панель — animated mesh gradient + feature cards */}
-			<div className="relative hidden lg:flex lg:w-[55%] flex-col items-center justify-center overflow-hidden">
-				{/* Mesh gradient background */}
+			<div className="relative hidden lg:flex lg:w-[55%] flex-col items-center justify-center overflow-hidden text-[#f2f3f5]">
 				<div className="absolute inset-0 login-mesh" />
-				{/* Grid lines overlay */}
 				<div className="absolute inset-0 login-grid-lines" />
 
-				{/* 2x2 Feature cards grid */}
 				<div className="relative z-[2] grid grid-cols-2 gap-5 max-w-[440px] p-10">
 					{FLOATING_FEATURES.map((f) => (
 						<div
@@ -91,9 +89,7 @@ function LoginPage() {
 								animation: `cardFloat ${f.duration} ease-in-out ${f.delay} infinite`,
 							}}
 						>
-							{/* Top highlight line */}
 							<div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
-							{/* Icon */}
 							<div
 								className="w-[42px] h-[42px] rounded-[var(--r3)] flex items-center justify-center mb-3.5"
 								style={{ background: f.iconBg }}
@@ -116,32 +112,26 @@ function LoginPage() {
 							<h4 className="text-[15px] font-bold tracking-[-0.01em] mb-1.5">
 								{f.label}
 							</h4>
-							<p className="text-xs text-[var(--t2)] leading-relaxed">
-								{f.desc}
-							</p>
+							<p className="text-xs text-[#9da0a8] leading-relaxed">{f.desc}</p>
 						</div>
 					))}
 				</div>
 
-				{/* Tagline — bottom-left */}
 				<div className="absolute bottom-12 left-12 z-[2]">
 					<h1 className="text-[30px] font-black tracking-[-0.04em] leading-tight bg-gradient-to-br from-[var(--blue)] via-[var(--purple)] to-pink-500 bg-clip-text text-transparent mb-2">
 						Единая платформа
 					</h1>
-					<p className="text-[15px] text-[var(--t2)] max-w-[360px] leading-relaxed">
+					<p className="text-[15px] text-[#9da0a8] max-w-[360px] leading-relaxed">
 						Проекты, общение, звонки и тестирование — в одном месте для всей
 						команды
 					</p>
 				</div>
 			</div>
 
-			{/* Правая панель — форма входа */}
 			<div className="flex flex-1 items-center justify-center bg-[var(--base)] relative">
-				{/* Left border separator */}
 				<div className="absolute top-0 left-0 bottom-0 w-px bg-gradient-to-b from-transparent via-[rgba(91,156,245,.06)] to-transparent" />
 
 				<div className="w-full max-w-[380px] px-4 sm:px-10 login-form-animate">
-					{/* Logo area */}
 					<div className="text-center mb-9">
 						<div className="text-4xl font-black tracking-[-0.05em] bg-gradient-to-br from-[var(--blue)] via-[var(--purple)] to-pink-500 bg-clip-text text-transparent">
 							Hub
@@ -151,30 +141,29 @@ function LoginPage() {
 						</div>
 					</div>
 
-					{/* Telegram авторизация — основной способ входа */}
-					<TelegramButton />
+					<MagicLinkForm
+						onSuccess={handleLoginSuccess}
+						inviteToken={invite ?? ""}
+					/>
 
-					{/* Описание */}
 					<div className="text-center mt-7 text-sm text-[var(--t2)]">
-						Войдите через Telegram — быстро и безопасно.
-						<br />
-						<span className="text-[var(--t2)] text-xs">
-							Аккаунт создаётся автоматически при первом входе.
-						</span>
+						Введите email — мы отправим одноразовый код для входа.
 					</div>
-
-					{/* Dev login panel — рендерится только в dev-сборке */}
-					{import.meta.env.DEV && (
-						<div className="mt-6">
-							<DevLoginPanel onSuccess={handleDevLoginSuccess} />
-						</div>
-					)}
 				</div>
+
+				{import.meta.env.DEV && (
+					<div className="mt-6 w-full max-w-[380px] px-4 sm:px-10">
+						<DevLoginPanel onSuccess={handleLoginSuccess} />
+					</div>
+				)}
 			</div>
 		</div>
 	);
 }
 
 export const Route = createFileRoute("/login")({
+	validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+		invite: typeof search.invite === "string" ? search.invite : undefined,
+	}),
 	component: LoginPage,
 });

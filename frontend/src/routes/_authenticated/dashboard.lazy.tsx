@@ -1,6 +1,6 @@
 /**
- * Personal user dashboard.
- * Displays widgets with tasks, unread messages, calls, deadlines and time tracking.
+ * Персональный дашборд пользователя.
+ * Виджеты: задачи, непрочитанные, звонки, дедлайны, таймер.
  */
 
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
@@ -31,7 +31,7 @@ export const Route = createLazyFileRoute("/_authenticated/dashboard")({
 	component: PersonalDashboardWithBoundary,
 });
 
-/** Returns greeting in Russian based on current hour. */
+/** Приветствие на русском в зависимости от часа. */
 function getGreeting(): string {
 	const hour = new Date().getHours();
 	if (hour >= 5 && hour < 12) return "Доброе утро";
@@ -40,7 +40,7 @@ function getGreeting(): string {
 	return "Доброй ночи";
 }
 
-/** Formats today's date in Russian locale. */
+/** Сегодняшняя дата в русской локали. */
 function formatTodayDate(): string {
 	return new Date().toLocaleDateString("ru-RU", {
 		weekday: "long",
@@ -49,7 +49,7 @@ function formatTodayDate(): string {
 	});
 }
 
-/** Formats current time. */
+/** Текущее время для шапки дашборда. */
 function formatTime(): string {
 	return new Date().toLocaleTimeString("ru-RU", {
 		hour: "2-digit",
@@ -88,7 +88,7 @@ function PersonalDashboard() {
 
 	return (
 		<div className="flex flex-col h-full animate-fade-in">
-			{/* Sticky page header */}
+			{/* Липкий заголовок страницы */}
 			<div className="page-header-blur flex items-center h-[49px] px-5 shrink-0">
 				<span className="text-[15px] font-semibold">Главная</span>
 				<div className="ml-auto flex items-center gap-2">
@@ -117,9 +117,9 @@ function PersonalDashboard() {
 				</div>
 			</div>
 
-			{/* Scrollable content */}
+			{/* Прокручиваемый контент */}
 			<div className="flex-1 overflow-y-auto p-6">
-				{/* Greeting */}
+				{/* Приветствие */}
 				<div className="mb-2.5 dash-enter">
 					<h1 className="text-[34px] font-black tracking-[-0.04em] leading-tight dash-greeting-gradient dash-enter">
 						{greeting}
@@ -132,7 +132,7 @@ function PersonalDashboard() {
 					</p>
 				</div>
 
-				{/* Quick actions */}
+				{/* Быстрые действия */}
 				<div className="flex gap-2.5 mb-7 flex-wrap dash-enter dash-enter-2">
 					<button
 						type="button"
@@ -199,7 +199,7 @@ function PersonalDashboard() {
 					</button>
 				</div>
 
-				{/* Widget grid */}
+				{/* Сетка виджетов */}
 				{loading && !personalData ? (
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 dash-enter dash-enter-3">
 						{[1, 2, 3, 4, 5, 6].map((i) => (

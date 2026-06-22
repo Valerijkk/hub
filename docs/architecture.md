@@ -1,4 +1,4 @@
-# Hub — Architecture
+# Hub — Архитектура
 
 > Единая база знаний. Обновляется ARCH при изменении архитектуры.
 > Детали: `docs/TECHNICAL.md`, `docs/wiki/ARCHITECTURE.md`
@@ -15,11 +15,11 @@
 | Clean Architecture | Слои handler/service/repository, DI через интерфейсы (service→repo) |
 | Event-Driven | NATS JetStream + Outbox pattern для domain events |
 | CQRS (частичный) | Read models для search (PG tsvector + Mongo text index) |
-| Repository Pattern | `repository.go` interface + `ent_repository.go` — **11/20 domain-модулей** (v2.6 rollout) |
+| Repository Pattern | `repository.go` interface + `ent_repository.go` — rollout продолжается (v2.6+) |
 
-**Architecture score (2026-06-17): 75 / 100** — цельный ацикличный монолит; основной долг — незавершённый Repository rollout и несколько layering bypass'ов.
+**Architecture score (2026-06-21): ~85 / 100** — модульный монолит с v3/v4 domain packages; остаточный долг — layering bypass в tracker/rbac и неполный Repository rollout.
 
-## C4 Level 2 — Container Diagram
+## C4 Level 2 — Диаграмма контейнеров
 
 ```
 ┌─────────────┐     HTTPS/WSS      ┌─────────────┐
@@ -51,45 +51,73 @@
                                         └───────────┘
 ```
 
-## C4 Level 3 — Backend Modules
+## C4 Level 3 — Модули backend
 
-**20 domain-модулей** + **`platform/`** (инфраструктура). Точка композиции: `backend/cmd/server/main.go` (~630 LOC).
+**31 domain-пакет** + **`platform/`** (инфраструктура) + `testutil/`. Точка композиции: `backend/cmd/server/main.go` (~820 LOC, wiring v4 modules).
 
 ```
 backend/internal/
-├── apigateway/     API Key auth, webhook signatures
-├── audit/          Audit log, trash, GDPR, retention cron
-├── auth/           Magic Link, Telegram, JWT, sessions
+├── accounting/     Ledger, journal entries, invoices (v4)
+├── ai/             Multi-provider AI, messenger bot, JQL assist (v3)
+├── apigateway/     API Key auth, outbound webhook delivery
+├── audit/          Audit log, trash, GDPR, retention cron, alerts
+├── auth/           Magic Link, JWT, sessions, org/founder
 ├── backup/         PG + Mongo + S3 ZIP backups
+├── bases/          No-code DB: HubBase/Table/Record (v4)
+├── calendar/       Unified calendar events (v4)
 ├── calls/          LiveKit rooms, recordings, scheduled
+├── crm/            Contacts, deals lite (v4)
 ├── dashboard/      Personal/project/admin dashboards
-├── dev/            DEV_MODE seed, dev-login, API docs HTML (!release)
-├── github/         Webhooks, PR linking
-├── gitlab/         Webhooks, MR linking
-├── imex/           Import/export CSV/JSON/PDF
+├── dev/            DEV_MODE seed, dev-login (!release)
+├── github/         Webhooks, PR linking, AI review
+├── gitlab/         Webhooks, MR linking, pipelines
+├── hr/             Leave requests (v4)
+├── imex/           Import/export CSV/JSON/PDF/Jira
+├── integrations/   onec/ — 1C connector (v4.5)
+├── intranet/       News, directory, kudos, random coffee (v4)
+├── mail/           hub-mail admin settings
+├── marketplace/    Internal marketplace listings (v4)
 ├── messenger/      Channels, messages, threads, presence
-├── notification/   In-app, Telegram, Web Push
+├── notification/   In-app, Telegram bind, Web Push
 ├── project/        Projects, members, invites, teams, templates
 ├── rbac/           Custom roles, permission bits
-├── search/         Global search, JQL, saved filters
+├── search/         Global search, Meilisearch indexer, JQL
 ├── sprint/         Sprints, burndown, planning poker
+├── status/         Public status page health
 ├── storage/        SeaweedFS presigned URLs, orphan cleanup
 ├── tms/            Test cases, runs, Allure parser
-├── tracker/        Issues, workflow, boards, labels
+├── tracker/        Issues, workflow, boards, automation
 ├── ws/             WebSocket Hub, NATS Bridge, room Authorizer
 └── platform/       config, cron, crypto, database, errors, http,
-                    middleware, nats, outbox, redis, telegram
+                    middleware, nats, observability, outbox, redis, telegram
 ```
 
-**Repository pattern (11 модулей):** audit, calls, github, gitlab, messenger, notification, project, search, sprint, tms, tracker.
+**Отдельные процессы (cmd/):** `server` (main), `hub-mail`, `meilisearch-indexer`.
 
-**Без Repository (7 модулей, `*ent.Client` в service/apigateway):** auth, dashboard, backup, imex, storage, apigateway, rbac.
+**Repository pattern (основные модули с interface):** audit, bases, calls, crm, github, gitlab, hr, intranet, marketplace, messenger, notification, project, search, sprint, tms, tracker и др.
 
-**Ent schemas:** 59 сущностей в `backend/ent/schema/` (+ `helpers.go`).
+**Ent schemas:** **82** сущности в `backend/ent/schema/` (+ `helpers.go`).
 
-## Потоки данных
+## C4 Level 3 — Фронтенд
 
-### HTTP Request
+```
+frontend/src/
+├── routes/           TanStack Router file-based (~60+ UI pages)
+│   ├── _authenticated/   projects, messenger, tms, calls, dashboard
+│   ├── intranet/, crm/, hr/, accounting/, bases/, marketplace/
+│   ├── calendar/, settings/, admin/
+│   └── login, onboarding, status, call.$code
+├── api/              HTTP clients per backend module
+├── modules/          Feature modules (calls, dashboard, …)
+├── components/       UI + Shadcn primitives
+├── hooks/            useQuery/useMutation wrappers
+└── stores/           Zustand (auth, messenger, …)
+```
+
+**State:** TanStack Query (server) + Zustand (client). **Editor:** Plate (rich-text). **Realtime:** WebSocket client → `/ws`.
+
+### HTTP-запрос
+
 ```
 Browser → Caddy → Fiber Middleware → Handler → Service → Repository → DB
                   (RequestID, Recover, SecurityHeaders, Logger, CORS, RateLimit)
@@ -105,17 +133,17 @@ Browser → Caddy → Fiber Middleware → Handler → Service → Repository �
 6. Per-route: `/files` 10/min, `/messenger` 60/min, `/auth` 3/10min (Redis, off in DevMode)
 7. `apigatewaymod.APIKeyAuth()` — на `api` group **до** `RegisterRoutes` (SEC-01 fix)
 
-### Real-time Event
+### События в реальном времени
 ```
 Domain Event → Outbox (PG) → Worker → NATS → WS Bridge → Client
 ```
 
-### Notification
+### Уведомления
 ```
 NATS Event → JetStream Consumer → NotificationService → In-App + Telegram + Push
 ```
 
-### File Upload
+### Загрузка файлов
 ```
 Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 ```
@@ -128,10 +156,11 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 | Development (infra only) | `deployments/docker-compose.yml` | direct | PG, Mongo, Redis, NATS, S3, LiveKit |
 | Production | `deployments/docker-compose.prod.yml` | Caddy | Replicas, secrets via env |
 | CI tests | `deployments/docker-compose.test.yml` | — | testcontainers-compatible |
+| Monitoring (optional) | `deployments/docker-compose.monitoring.yml` | — | Prometheus, Loki, Grafana |
 
-**K3s:** задокументирован в README/roadmap как prod-оркестрация, **манифестов в репо нет** (TD-04, v2.0 DevOps backlog).
+**K3s:** частичные манифесты в `deployments/k3s/`; полный prod stack — Compose-first.
 
-**Observability (Loki, Prometheus, Grafana):** в roadmap v2.0, **не включены** в `deployments/docker-compose.prod.yml` (TD-05).
+**Observability:** конфиги в `deployments/monitoring/`; `docker-compose.monitoring.yml` — optional stack.
 
 Компоненты в prod compose: backend, frontend (static), postgres, mongodb, redis, nats, seaweedfs, livekit, caddy.
 
@@ -140,8 +169,8 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 | Слой | Меры |
 |------|------|
 | Edge | Caddy TLS, rate limiting |
-| Auth | JWT 15min + Redis refresh, Magic Link rate limit (Redis sliding window) |
-| AuthZ | RBAC 3 уровня, Redis cache с инвалидацией |
+| Auth | JWT 15min + Redis refresh (hashed), Magic Link rate limit |
+| AuthZ | RBAC 3 уровня + founder; Redis cache с инвалидацией |
 | Data | User-scope в search, channel membership в messenger |
 | Network | SSRF protection (`safehttp`), no `http.DefaultClient` |
 | Secrets | Env vars only, AES-GCM at rest для tokens |
@@ -175,27 +204,33 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 | TD-01 | DI-точка раздута | `cmd/server/main.go` — 630 LOC; cron вынесен в `platform/cron` | Wave extraction v2.6 |
 | TD-02 | `*ent.Client` в 7 domain-пакетах | `auth/service*.go`, `dashboard/service.go:34`, `backup/service.go:23`, `imex/service.go:23`, `storage/service.go:36`, `apigateway/*.go:40+`, `rbac/service.go:19` | Repository Phase 19 |
 | TD-03 | Escape hatch `GetDB()` | `tracker/repository.go:153`, `handler_issues.go:269` | Убрать, JQL search → service |
-| TD-04 | K3s манифесты отсутствуют | `deployments/` — только Compose + Caddy + LiveKit | v2.0 DevOps |
-| TD-05 | Observability не развёрнута | `docker-compose.prod.yml` — нет Loki/Prometheus/Grafana | v2.0 Phase |
+| TD-04 | K3s partial | `deployments/k3s/` exists; full prod manifests incomplete | DevOps backlog |
+| TD-05 | Observability optional stack | `docker-compose.monitoring.yml` + configs; not default prod | Enable per env |
 | TD-06 | ~~Security headers~~ | **FIXED** `main.go:190` + `security_headers.go` | — |
 | TD-07 | Handler→Service без интерфейсов | все `handler.go` — `*XxxService` concrete type | v2.6 (низкий приоритет) |
 | TD-08 | `audit/retention.go` вне Repository | `retention.go:41` — отдельный `RetentionService` на `*ent.Client` | Phase 19 |
 | TD-09 | `notification/push.go` на Ent | `push.go:45` — `PushSender` держит `*ent.Client` | Phase 19 |
-| TD-10 | CRITICAL security (v2.0.1) | 10/12 FIXED в коде (2026-06-17); SEC-06 multi-instance + secret rotation pending | v2.0.1 hotfix |
+| TD-10 | CRITICAL security (v2.0.1) | **12/12 FIXED**; PG-03 rotation manual | ops runbook |
 
-### Repository coverage detail
+## Реализованная архитектура v3–v4 (2026-06-21)
 
-| С Repository | Без Repository |
-|--------------|----------------|
-| audit, calls, github, gitlab, messenger, notification, project, search, sprint, tms, tracker | auth, dashboard, backup, imex, storage, apigateway, rbac |
+> Ранее «planned» — теперь в monolith `cmd/server`. Детали: `.planning/PLATFORM-VISION-v4.md`, `.planning/MILESTONE-3.md`
 
-**Покрытие:** 11 / 18 service-пакетов = **61%** (ws/dev/platform — не DB-service модули).
+| Версия | Модули в коде | Frontend routes |
+|--------|---------------|-----------------|
+| v3.0 | `ai/` — providers, bot, JQL, PR review | `/settings/ai` |
+| v4.0 | `intranet/`, `calendar/`, `crm/`, `hr/`, `accounting/`, `bases/`, `marketplace/`, `status/`, `mail/` | `/intranet`, `/calendar`, `/crm`, `/hr`, `/accounting`, `/bases`, `/marketplace`, `/status` |
+| v4.5 | `integrations/onec/` | settings integrations |
+
+Event bus: **NATS JetStream** (без Redis pub/sub). Search: PostgreSQL + **Meilisearch** indexer (`cmd/meilisearch-indexer`).
 
 ## Связанные документы
 
 - `docs/system_specification.md` — API, модели данных
 - `docs/security_guidelines.md` — OWASP, уязвимости
 - `docs/stack_and_tools.md` — версии стека
+- `.planning/PLATFORM-VISION-v4.md` — corporate super-app vision
+- `.planning/AI-PROVIDER-HUB-SPEC.md` — AI gateway spec
 
 ---
-*Последнее обновление: 2026-06-17 — ARCH audit vs codebase*
+*Последнее обновление: 2026-06-22 — RU-FIX-01: RU section headers*

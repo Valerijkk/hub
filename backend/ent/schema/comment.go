@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Comment holds the schema definition for the Comment entity.
+// Comment — определение Ent-схемы сущности Comment.
 type Comment struct {
 	ent.Schema
 }
 
-// Fields of the Comment.
+// Поля сущности Comment.
 func (Comment) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -38,7 +38,7 @@ func (Comment) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Comment.
+// Рёбра (edges) сущности Comment.
 func (Comment) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("issue", Issue.Type).
@@ -53,7 +53,7 @@ func (Comment) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the Comment.
+// Индексы сущности Comment.
 func (Comment) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("issue").

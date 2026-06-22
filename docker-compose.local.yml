@@ -125,6 +125,10 @@ services:
       LIVEKIT_API_KEY: "devkey-hub-local-development-2026"
       LIVEKIT_API_SECRET: "devsecret-hub-local-minimum-32-chars-ok"
       DEV_MODE: "true"
+      # hub-mail bridge (см. сервис hub-mail ниже).
+      HUB_MAIL_URL: "http://hub-mail:3001"
+      HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN:-}"
+      RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -143,6 +147,30 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # hub-mail — микросервис почты. Тот же образ, что и backend (бинарь
+  # /app/hub-mail), entrypoint переопределён. Локально без RESEND_API_KEY
+  # работает в dev-режиме (логирует, не отправляет).
+  hub-mail:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    entrypoint: ["./hub-mail"]
+    ports:
+      - "3001:3001"
+    environment:
+      HUB_MAIL_PORT: "3001"
+      HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN:-}"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      RESEND_FROM_EMAIL: "${RESEND_FROM_EMAIL:-onboarding@resend.dev}"
+      RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"
+      MAIL_DAILY_LIMIT: "${MAIL_DAILY_LIMIT:-20}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
@@ -154,8 +182,19 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: hub-dev-master-key
+    volumes:
+      - meilidata:/meili_data
+
 volumes:
   pgdata:
   mongodata:
   natsdata:
   seaweeddata:
+  meilidata:

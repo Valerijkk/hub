@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// User holds the schema definition for the User entity.
+// User — определение Ent-схемы сущности User.
 type User struct {
 	ent.Schema
 }
 
-// Fields of the User.
+// Поля сущности User.
 func (User) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -46,12 +46,16 @@ func (User) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.Enum("system_role").
-			Values("admin", "member").
+			Values("founder", "admin", "member").
 			Default("member"),
 		field.Enum("status").
-			Values("active", "deactivated").
+			Values("active", "pending", "deactivated").
 			Default("active").
-			Comment("РЎС‚Р°С‚СѓСЃ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ: active РёР»Рё deactivated"),
+			Comment("User lifecycle: active, pending admin approval, deactivated"),
+		field.Time("pending_since").
+			Optional().
+			Nillable().
+			Comment("When user entered pending queue (7d auto-delete)"),
 		field.Bool("onboarding_completed").
 			Default(false),
 		field.Time("created_at").
@@ -74,9 +78,12 @@ func (User) Fields() []ent.Field {
 	}
 }
 
-// Edges of the User.
+// Рёбра (edges) сущности User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.From("organization", Organization.Type).
+			Ref("users").
+			Unique(),
 		edge.To("sessions", Session.Type),
 		edge.To("project_members", ProjectMember.Type),
 		edge.To("team_members", TeamMember.Type),
@@ -97,6 +104,8 @@ func (User) Edges() []ent.Edge {
 		edge.To("created_calls", Call.Type),
 		edge.To("call_participations", CallParticipant.Type),
 		edge.To("saved_filters", SavedFilter.Type),
+		edge.To("automation_rules", AutomationRule.Type),
+		edge.To("issue_message_links", IssueMessageLink.Type),
 		edge.To("notifications", Notification.Type),
 		edge.To("notification_preferences", NotificationPreference.Type),
 		edge.To("dashboard_layouts", DashboardLayout.Type),
@@ -110,10 +119,31 @@ func (User) Edges() []ent.Edge {
 		edge.To("channel_invites", ChannelInvite.Type),
 		edge.To("blocks_created", UserBlock.Type),
 		edge.To("blocks_received", UserBlock.Type),
+		edge.To("ai_providers", AIProvider.Type),
+		edge.To("ai_usage_daily", AIUsageDaily.Type),
+		edge.To("ai_preference", AIUserPreference.Type),
+		edge.To("news_posts", NewsPost.Type),
+		edge.To("crm_contacts_created", CrmContact.Type),
+		edge.To("crm_contact_link", CrmContact.Type),
+		edge.To("crm_deals_owned", CrmDeal.Type),
+		edge.To("leave_requests", LeaveRequest.Type),
+		edge.To("leave_reviews", LeaveRequest.Type),
+		edge.To("kudos_sent", Kudo.Type),
+		edge.To("kudos_received", Kudo.Type),
+		edge.To("marketplace_listings", MarketplaceListing.Type),
+		edge.To("marketplace_reviews", MarketplaceListing.Type),
+		edge.To("coffee_enrollment", CoffeeEnrollment.Type),
+		edge.To("coffee_rounds_triggered", CoffeeRound.Type),
+		edge.To("coffee_pairs_a", CoffeePair.Type),
+		edge.To("coffee_pairs_b", CoffeePair.Type),
+		edge.To("hub_bases", HubBase.Type),
+		edge.To("hub_records", HubRecord.Type),
+		edge.To("journal_entries", JournalEntry.Type),
+		edge.To("invoices_created", Invoice.Type),
 	}
 }
 
-// Indexes of the User.
+// Индексы сущности User.
 func (User) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("telegram_id"),

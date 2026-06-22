@@ -156,7 +156,7 @@ export function StepEditor(props: StepEditorProps) {
 		);
 	}
 
-	// Read mode
+	// Режим просмотра (без редактирования)
 	const { tc, onStartEditing } = props;
 
 	if (tc.steps && tc.steps.length > 0) {

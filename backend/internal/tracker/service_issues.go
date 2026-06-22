@@ -11,7 +11,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Issues
+// Задачи
 // ---------------------------------------------------------------------------
 
 // CreateIssue создаёт новую задачу в проекте.
@@ -144,11 +144,16 @@ func (s *TrackerService) ListIssues(ctx context.Context, projectID uuid.UUID, re
 			OrderBy:   req.OrderBy,
 		}
 		if req.Assignee != "" {
-			id, err := uuid.Parse(req.Assignee)
-			if err != nil {
-				return nil, apperrors.NewBadRequest("некорректный assignee ID")
+			switch req.Assignee {
+			case "none", "unassigned":
+				params.UnassignedOnly = true
+			default:
+				id, err := uuid.Parse(req.Assignee)
+				if err != nil {
+					return nil, apperrors.NewBadRequest("некорректный assignee ID")
+				}
+				params.Assignee = &id
 			}
-			params.Assignee = &id
 		}
 
 		items, total, err := s.repo.ListIssues(ctx, projectID, params)

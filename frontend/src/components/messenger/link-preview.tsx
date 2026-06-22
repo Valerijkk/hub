@@ -172,20 +172,27 @@ export function LinkPreview({ url }: LinkPreviewProps) {
 	// Проверяем внутреннюю ссылку на задачу
 	const internalMatch = url.match(INTERNAL_ISSUE_RE);
 	if (internalMatch) {
-		return <InternalIssuePreview url={url} issueKey={internalMatch[1]!} />;
+		const issueKey = internalMatch[1];
+		if (issueKey) {
+			return <InternalIssuePreview url={url} issueKey={issueKey} />;
+		}
 	}
 
 	// Проверяем GitHub ссылку
 	const ghMatch = url.match(GITHUB_RE);
 	if (ghMatch) {
-		return (
-			<GitHubPreview
-				url={url}
-				owner={ghMatch[1]!}
-				repo={ghMatch[2]!}
-				number={ghMatch[3]}
-			/>
-		);
+		const owner = ghMatch[1];
+		const repo = ghMatch[2];
+		if (owner && repo) {
+			return (
+				<GitHubPreview
+					url={url}
+					owner={owner}
+					repo={repo}
+					number={ghMatch[3]}
+				/>
+			);
+		}
 	}
 
 	// Generic превью через OG-теги

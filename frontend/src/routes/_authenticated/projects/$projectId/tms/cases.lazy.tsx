@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	createTestCase,
 	type ListTestCasesParams,
@@ -28,12 +27,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 import { CaseTableRow } from "@/modules/tms/components/case-table-row";
 import { useTmsStore } from "@/stores/tms-store";
 
 /**
- * Recursive suite tree item component.
+ * Рекурсивный элемент дерева сьютов.
  */
 function SuiteTreeItem({
 	suite,
@@ -52,30 +52,28 @@ function SuiteTreeItem({
 
 	return (
 		<div>
-			<button
-				type="button"
+			<div
 				className={cn(
-					"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative",
+					"group relative flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-[13px] font-medium text-t2",
 					"hover:bg-[var(--hover)] hover:text-t1",
 					isSelected &&
 						"bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
 				)}
 				style={{ paddingLeft: `${depth * 26 + 10}px` }}
-				onClick={() => onSelect(isSelected ? undefined : suite.id)}
 			>
 				{isSelected && (
 					<span className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-purple/[0.06] to-transparent rounded-[var(--r2)] pointer-events-none" />
 				)}
 				{hasChildren ? (
-					<span
+					<button
+						type="button"
 						className={cn(
-							"w-4 h-4 text-[8px] text-t4 transition-transform duration-[250ms] shrink-0 flex items-center justify-center",
+							"w-4 h-4 text-[8px] text-t4 transition-transform duration-[250ms] shrink-0 flex items-center justify-center border-0 bg-transparent p-0 cursor-pointer",
 							expanded && "rotate-90",
 						)}
-						onClick={(e) => {
-							e.stopPropagation();
-							setExpanded(!expanded);
-						}}
+						aria-label={expanded ? "Свернуть сьют" : "Развернуть сьют"}
+						aria-expanded={expanded}
+						onClick={() => setExpanded(!expanded)}
 					>
 						<svg
 							aria-hidden="true"
@@ -91,49 +89,55 @@ function SuiteTreeItem({
 								d="M9 5l7 7-7 7"
 							/>
 						</svg>
-					</span>
+					</button>
 				) : (
-					<span className="w-4 shrink-0" style={{ visibility: "hidden" }} />
+					<span className="w-4 shrink-0" aria-hidden="true" />
 				)}
-				{hasChildren ? (
-					<span
-						className={cn(
-							"shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[7px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
-							"group-hover:scale-110 group-hover:shadow-[0_0_10px_rgba(167,139,250,0.1)]",
-						)}
-						style={{
-							background: isSelected
-								? "rgba(167,139,250,0.1)"
-								: "rgba(255,255,255,0.035)",
-							color: isSelected ? "var(--purple)" : "var(--text-3)",
-						}}
-					>
-						<svg
-							aria-hidden="true"
-							className="h-3 w-3"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							strokeWidth={2}
+				<button
+					type="button"
+					className="flex min-w-0 flex-1 items-center gap-2 border-0 bg-transparent p-0 text-left text-[13px] font-medium text-inherit cursor-pointer"
+					onClick={() => onSelect(isSelected ? undefined : suite.id)}
+				>
+					{hasChildren ? (
+						<span
+							className={cn(
+								"shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[7px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
+								"group-hover:scale-110 group-hover:shadow-[0_0_10px_rgba(167,139,250,0.1)]",
+							)}
+							style={{
+								background: isSelected
+									? "rgba(167,139,250,0.1)"
+									: "rgba(255,255,255,0.035)",
+								color: isSelected ? "var(--purple)" : "var(--text-3)",
+							}}
 						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-							/>
-						</svg>
-					</span>
-				) : (
-					<span
-						className="w-[7px] h-[7px] rounded-full shrink-0 ml-[1px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 group-hover:shadow-[0_0_8px_currentColor] group-hover:scale-[1.3]"
-						style={{
-							background: isSelected ? "var(--purple)" : "var(--text-3)",
-							color: isSelected ? "var(--purple)" : "var(--text-3)",
-						}}
-					/>
-				)}
-				<span className="truncate flex-1">{suite.name}</span>
-			</button>
+							<svg
+								aria-hidden="true"
+								className="h-3 w-3"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								strokeWidth={2}
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+								/>
+							</svg>
+						</span>
+					) : (
+						<span
+							className="w-[7px] h-[7px] rounded-full shrink-0 ml-[1px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 group-hover:shadow-[0_0_8px_currentColor] group-hover:scale-[1.3]"
+							style={{
+								background: isSelected ? "var(--purple)" : "var(--text-3)",
+								color: isSelected ? "var(--purple)" : "var(--text-3)",
+							}}
+						/>
+					)}
+					<span className="truncate">{suite.name}</span>
+				</button>
+			</div>
 			{expanded && hasChildren && (
 				<div>
 					{suite.children?.map((child) => (
@@ -152,7 +156,7 @@ function SuiteTreeItem({
 }
 
 /**
- * Test cases list page -- Allure TestOps level design.
+ * Список тест-кейсов — UI уровня Allure TestOps.
  */
 function TestCasesPage() {
 	const { projectId } = Route.useParams();
@@ -247,7 +251,7 @@ function TestCasesPage() {
 
 	return (
 		<div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-			{/* Suite tree sidebar */}
+			{/* Sidebar дерева сьютов */}
 			<div className="w-full md:w-[290px] md:min-w-[290px] border-r border-b1 flex flex-col bg-void animate-[enterRight_400ms_var(--spring)_both]">
 				<div className="px-[18px] py-4 border-b border-b1 flex items-center justify-between">
 					<span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-t4">
@@ -298,9 +302,9 @@ function TestCasesPage() {
 				</div>
 			</div>
 
-			{/* Case table panel */}
+			{/* Панель таблицы кейсов */}
 			<div className="flex-1 flex flex-col overflow-hidden">
-				{/* Header */}
+				{/* Заголовок */}
 				<div className="px-6 py-4 border-b border-b1 flex items-center gap-[14px] bg-[rgba(13,14,18,0.5)] backdrop-blur-[12px]">
 					<h2 className="text-[15px] font-bold tracking-[-0.015em]">
 						Тест-кейсы
@@ -310,7 +314,7 @@ function TestCasesPage() {
 					</span>
 					<div className="flex-1" />
 
-					{/* Filters */}
+					{/* Фильтры */}
 					<div className="relative">
 						<svg
 							aria-hidden="true"
@@ -348,7 +352,10 @@ function TestCasesPage() {
 							setOffset(0);
 						}}
 					>
-						<SelectTrigger className="w-[140px] h-8 text-xs rounded-[var(--r2)] border-b1 bg-white/[0.03]">
+						<SelectTrigger
+							aria-label="Фильтр по статусу"
+							className="w-[140px] h-8 text-xs rounded-[var(--r2)] border-b1 bg-white/[0.03]"
+						>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -370,7 +377,10 @@ function TestCasesPage() {
 							setOffset(0);
 						}}
 					>
-						<SelectTrigger className="w-[160px] h-8 text-xs rounded-[var(--r2)] border-b1 bg-white/[0.03]">
+						<SelectTrigger
+							aria-label="Фильтр по приоритету"
+							className="w-[160px] h-8 text-xs rounded-[var(--r2)] border-b1 bg-white/[0.03]"
+						>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -411,7 +421,7 @@ function TestCasesPage() {
 						</Button>
 					)}
 
-					{/* Bulk panel */}
+					{/* Bulk-панель */}
 					{selectedIds.size > 0 && (
 						<div className="flex items-center gap-2 px-3 py-1 rounded-[var(--r2)] bg-purple/[0.06] border border-purple/[0.15]">
 							<span className="text-xs font-medium text-purple">
@@ -527,7 +537,7 @@ function TestCasesPage() {
 					</Dialog>
 				</div>
 
-				{/* Test cases table */}
+				{/* Таблица тест-кейсов */}
 				{isLoading ? (
 					<div className="flex-1 overflow-y-auto">
 						<table className="w-full border-separate border-spacing-0">
@@ -653,6 +663,7 @@ function TestCasesPage() {
 											<input
 												type="checkbox"
 												className="rounded border-b2"
+												aria-label="Выбрать все кейсы"
 												checked={
 													selectedIds.size === cases.length && cases.length > 0
 												}
@@ -704,7 +715,7 @@ function TestCasesPage() {
 							</table>
 						</div>
 
-						{/* Pagination */}
+						{/* Пагинация */}
 						<div className="px-6 py-3 border-t border-b1 flex items-center justify-between bg-[rgba(13,14,18,0.5)]">
 							<span className="text-[12px] text-t3 tabular-nums">
 								Показано {offset + 1}--{Math.min(offset + limit, total)} из{" "}
@@ -715,6 +726,7 @@ function TestCasesPage() {
 									variant="outline"
 									size="sm"
 									className="h-7 w-7 p-0"
+									aria-label="В начало списка"
 									disabled={offset === 0}
 									onClick={() => setOffset(0)}
 								>
@@ -737,6 +749,7 @@ function TestCasesPage() {
 									variant="outline"
 									size="sm"
 									className="h-7 w-7 p-0"
+									aria-label="Предыдущая страница"
 									disabled={offset === 0}
 									onClick={() => setOffset(Math.max(0, offset - limit))}
 								>
@@ -762,6 +775,7 @@ function TestCasesPage() {
 									variant="outline"
 									size="sm"
 									className="h-7 w-7 p-0"
+									aria-label="Следующая страница"
 									disabled={offset + limit >= total}
 									onClick={() => setOffset(offset + limit)}
 								>
@@ -784,6 +798,7 @@ function TestCasesPage() {
 									variant="outline"
 									size="sm"
 									className="h-7 w-7 p-0"
+									aria-label="В конец списка"
 									disabled={offset + limit >= total}
 									onClick={() =>
 										setOffset(Math.max(0, (totalPages - 1) * limit))

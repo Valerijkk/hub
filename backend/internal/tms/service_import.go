@@ -14,17 +14,17 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Allure import
+// Импорт Allure
 // ---------------------------------------------------------------------------
 
-// SubjectTestRunCompleted is the NATS subject for automatic run completion events.
+// SubjectTestRunCompleted — NATS-subject для событий автозавершения прогона.
 const SubjectTestRunCompleted = "tms.run.completed.%s"
 
-// ImportAllureResults imports Allure results into TMS.
-// Creates an automatic run, matches results to test cases,
-// stores raw JSON in MongoDB, structured results in PostgreSQL.
+// ImportAllureResults импортирует результаты Allure в TMS.
+// Создаёт автоматический прогон, матчит результаты к тест-кейсам,
+// сохраняет raw JSON в MongoDB, структурированные результаты в PostgreSQL.
 func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID uuid.UUID, req ImportAllureRequest) (*TestRunDetailResponse, error) {
-	// 1. Parse allure-results JSON
+	// 1. Парсим JSON allure-results
 	allureResults, err := ParseAllureResults(req.Results)
 	if err != nil {
 		return nil, apperrors.NewBadRequest("некорректный allure JSON: " + err.Error())
@@ -33,7 +33,7 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 		return nil, apperrors.NewBadRequest("пустой массив результатов Allure")
 	}
 
-	// 2. Create run
+	// 2. Создаём прогон
 	title := req.Title
 	if title == "" {
 		title = fmt.Sprintf("Allure Import %s", time.Now().Format("2006-01-02 15:04"))
@@ -49,13 +49,13 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 		return nil, apperrors.NewInternal("ошибка создания прогона")
 	}
 
-	// 3. Store raw results in MongoDB
+	// 3. Сохраняем сырые результаты в MongoDB
 	if err := s.repo.StoreAllureResults(ctx, run.ID, allureResults); err != nil {
 		slog.Error("ошибка сохранения allure результатов в MongoDB", "error", err, "run_id", run.ID)
-		// Don't abort - PG results are more important
+		// Не прерываем импорт — PG-результаты важнее Mongo raw dump.
 	}
 
-	// 4. Match each result to a test case and create TestResult
+	// 4. Сопоставляем каждый результат с тест-кейсом и создаём TestResult
 	resultInputs := make([]CreateTestResultInput, 0, len(allureResults))
 	for _, ar := range allureResults {
 		tc, strategy, matchErr := s.matcher.MatchTestCase(ctx, projectID, &ar)
@@ -69,9 +69,8 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 			AllureUUID: ar.UUID,
 		}
 
-		// Duration from start/stop
-		// Validate: positive epochs, not beyond year 2100, and stop >= start.
-		const maxEpochMs = 4102444800000 // 2100-01-01 00:00:00 UTC in millis
+		// Длительность из start/stop — валидируем epoch, чтобы не записать мусор.
+		const maxEpochMs = 4102444800000 // 2100-01-01 00:00:00 UTC в миллисекундах
 		if ar.Start != nil && ar.Stop != nil &&
 			*ar.Start > 0 && *ar.Stop > 0 &&
 			*ar.Start < maxEpochMs && *ar.Stop < maxEpochMs &&
@@ -84,13 +83,13 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 			input.CompletedAt = &stopTime
 		}
 
-		// Error message
+		// Сообщение об ошибке
 		if ar.StatusDetails != nil {
 			input.ErrorMessage = ar.StatusDetails.Message
 			input.ErrorTrace = ar.StatusDetails.Trace
 		}
 
-		// Link to test case
+		// Привязка к тест-кейсу
 		if tc != nil {
 			input.TestCaseID = &tc.ID
 			input.MatchStrategy = strategy.String()
@@ -101,7 +100,7 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 		resultInputs = append(resultInputs, input)
 	}
 
-	// 5. Batch insert results
+	// 5. Пакетная вставка результатов
 	if len(resultInputs) > 0 {
 		_, err = s.repo.BatchCreateTestResults(ctx, run.ID, resultInputs)
 		if err != nil {
@@ -109,12 +108,12 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 		}
 	}
 
-	// 6. Recompute stats
+	// 6. Пересчитываем статистику
 	if err := s.recomputeRunStats(ctx, run.ID); err != nil {
 		return nil, err
 	}
 
-	// 7. Transition run: created -> in_progress -> completed
+	// 7. Переход прогона: created -> in_progress -> completed
 	now := time.Now()
 	_, err = s.repo.UpdateTestRunStatus(ctx, run.ID, "in_progress", &now)
 	if err != nil {
@@ -125,7 +124,7 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 		return nil, apperrors.NewInternal("ошибка завершения прогона")
 	}
 
-	// 8. Publish NATS event
+	// 8. Публикуем событие NATS
 	s.nats.PublishJSON(fmt.Sprintf(SubjectTestRunCompleted, run.ID.String()), map[string]interface{}{
 		"run_id":     run.ID,
 		"project_id": projectID,
@@ -133,13 +132,13 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 		"total":      len(resultInputs),
 	})
 
-	// 9. Return detailed response
+	// 9. Возвращаем детальный ответ
 	return s.GetTestRunDetail(ctx, run.ID)
 }
 
-// ImportAllureToExistingRun imports Allure results into an existing run.
+// ImportAllureToExistingRun импортирует результаты Allure в существующий прогон.
 func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, runID, userID uuid.UUID, req ImportAllureRequest) (*TestRunDetailResponse, error) {
-	// Verify run exists
+	// Проверяем существование прогона
 	run, err := s.repo.GetTestRun(ctx, runID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -148,7 +147,7 @@ func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, r
 		return nil, apperrors.NewInternal("ошибка получения прогона")
 	}
 
-	// Parse results
+	// Парсим результаты
 	allureResults, err := ParseAllureResults(req.Results)
 	if err != nil {
 		return nil, apperrors.NewBadRequest("некорректный allure JSON: " + err.Error())
@@ -157,12 +156,12 @@ func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, r
 		return nil, apperrors.NewBadRequest("пустой массив результатов Allure")
 	}
 
-	// Store in MongoDB
+	// Сохраняем в MongoDB
 	if err := s.repo.StoreAllureResults(ctx, run.ID, allureResults); err != nil {
 		slog.Error("ошибка сохранения allure результатов в MongoDB", "error", err, "run_id", run.ID)
 	}
 
-	// Match and create results
+	// Сопоставляем и создаём результаты
 	resultInputs := make([]CreateTestResultInput, 0, len(allureResults))
 	for _, ar := range allureResults {
 		tc, strategy, matchErr := s.matcher.MatchTestCase(ctx, projectID, &ar)
@@ -211,20 +210,20 @@ func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, r
 }
 
 // ---------------------------------------------------------------------------
-// File import/export
+// Импорт/экспорт файлов
 // ---------------------------------------------------------------------------
 
-// ImportTestCases imports test cases from an uploaded file.
+// ImportTestCases импортирует тест-кейсы из загруженного файла.
 func (s *TMSService) ImportTestCases(c fiber.Ctx, projectID, userID uuid.UUID) (*ImportResult, error) {
 	return handleImport(s, c, projectID, userID)
 }
 
-// ExportTestCases exports project test cases in a specified format.
+// ExportTestCases экспортирует тест-кейсы проекта в указанном формате.
 func (s *TMSService) ExportTestCases(ctx context.Context, projectID uuid.UUID, format string) (io.Reader, string, error) {
 	return handleExportTestCases(s, ctx, projectID, format)
 }
 
-// ExportTestRunReport exports a run report in a specified format.
+// ExportTestRunReport экспортирует отчёт прогона в указанном формате.
 func (s *TMSService) ExportTestRunReport(ctx context.Context, runID uuid.UUID, format string) (io.Reader, string, error) {
 	return handleExportTestRunReport(s, ctx, runID, format)
 }

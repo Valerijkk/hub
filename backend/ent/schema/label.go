@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Label holds the schema definition for the Label entity.
+// Label — определение Ent-схемы сущности Label.
 type Label struct {
 	ent.Schema
 }
 
-// Fields of the Label.
+// Поля сущности Label.
 func (Label) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -31,7 +31,7 @@ func (Label) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Label.
+// Рёбра (edges) сущности Label.
 func (Label) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -46,7 +46,7 @@ func (Label) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the Label.
+// Индексы сущности Label.
 func (Label) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("project").

@@ -1,0 +1,56 @@
+# Правила алертов Prometheus для Hub backend.
+groups:
+  - name: hub-alerts
+    rules:
+      - alert: HubHighHTTP5xxRate
+        expr: |
+          sum(rate(hub_http_requests_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(hub_http_requests_total[5m])), 0.001)
+          > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: hub-backend
+        annotations:
+          summary: Доля HTTP 5xx выше 1%
+          description: Более 1% HTTP-запросов вернули 5xx в течение 5 минут.
+
+      - alert: HubHighHTTPLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(hub_http_request_duration_milliseconds_bucket[5m])) by (le)
+          ) > 2000
+        for: 5m
+        labels:
+          severity: warning
+          service: hub-backend
+        annotations:
+          summary: p95 латентности HTTP выше 2 с
+          description: 95-й перцентиль времени ответа превысил 2000 мс в течение 5 минут.
+
+      - alert: HubOperationErrorRate
+        expr: |
+          (
+            sum(rate(hub_operation_calls_total{result="error"}[5m])) by (operation)
+            /
+            clamp_min(sum(rate(hub_operation_calls_total[5m])) by (operation), 0.001)
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: hub-backend
+        annotations:
+          summary: Доля ошибок операций выше 5%
+          description: Операция {{ $labels.operation }} имеет повышенный уровень ошибок 10 минут.
+
+      - alert: HubBackendMetricsDown
+        expr: up{job="hub-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: hub-backend
+        annotations:
+          summary: Scrape метрик backend недоступен
+          description: Prometheus не может получить /metrics с hub-backend более 2 минут.

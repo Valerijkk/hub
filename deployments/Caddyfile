@@ -1,13 +1,20 @@
+# Caddyfile для локальной разработки (docker-compose.yml).
+# Маршрутизация: API и WebSocket → backend, LiveKit → livekit, остальное → Vite dev-server.
+
 :80 {
+	# REST API Hub
 	handle /api/* {
 		reverse_proxy localhost:3000
 	}
+	# WebRTC-сигналинг LiveKit
 	handle /livekit/* {
 		reverse_proxy localhost:7880
 	}
+	# WebSocket (мессенджер, уведомления)
 	handle /ws {
 		reverse_proxy localhost:3000
 	}
+	# SPA фронтенд (Vite, порт 5173)
 	handle {
 		reverse_proxy localhost:5173
 	}

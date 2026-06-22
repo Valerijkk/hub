@@ -13,6 +13,7 @@ import (
 	"github.com/valerii/hub/backend/ent/projectmember"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // ProjectService реализует бизнес-логику управления проектами.
@@ -48,39 +49,41 @@ func NewProjectService(repo Repository, cache CacheInvalidator, nats *natsclient
 	}
 }
 
-// CreateProject creates a new project with the given user as owner.
-// Publishes a project.created outbox event for downstream consumers.
+// CreateProject создаёт проект с указанным пользователем как владельцем.
+// Публикует outbox-событие project.created для downstream-потребителей.
 func (s *ProjectService) CreateProject(ctx context.Context, userID uuid.UUID, name, key, description string) (*ProjectResponse, error) {
-	// Check key uniqueness
-	_, err := s.repo.FindByKey(ctx, key)
-	if err == nil {
-		return nil, apperrors.NewConflict(fmt.Sprintf("project key %q already exists", key))
-	}
-	if !ent.IsNotFound(err) {
-		return nil, apperrors.NewInternal("failed to check key uniqueness")
-	}
-
-	p, err := s.repo.Create(ctx, name, key, description, userID)
-	if err != nil {
-		if ent.IsConstraintError(err) {
+	return observability.Timed(ctx, "project.CreateProject", func(ctx context.Context) (*ProjectResponse, error) {
+		// Проверяем уникальность ключа
+		_, err := s.repo.FindByKey(ctx, key)
+		if err == nil {
 			return nil, apperrors.NewConflict(fmt.Sprintf("project key %q already exists", key))
 		}
-		return nil, apperrors.NewInternal("failed to create project")
-	}
+		if !ent.IsNotFound(err) {
+			return nil, apperrors.NewInternal("failed to check key uniqueness")
+		}
 
-	// Автопровизия: создаём workflow, доску, тест-сьют и дашборд
-	s.provisionProject(ctx, p.ID, userID)
+		p, err := s.repo.Create(ctx, name, key, description, userID)
+		if err != nil {
+			if ent.IsConstraintError(err) {
+				return nil, apperrors.NewConflict(fmt.Sprintf("project key %q already exists", key))
+			}
+			return nil, apperrors.NewInternal("failed to create project")
+		}
 
-	count, err := s.repo.MemberCount(ctx, p.ID)
-	if err != nil {
-		count = 1 // fallback: creator is always a member
-	}
+		// Автопровизия: создаём workflow, доску, тест-сьют и дашборд
+		s.provisionProject(ctx, p.ID, userID)
 
-	return toProjectResponse(p, count, "owner"), nil
+		count, err := s.repo.MemberCount(ctx, p.ID)
+		if err != nil {
+			count = 1 // запасной вариант: создатель всегда участник
+		}
+
+		return toProjectResponse(p, count, "owner"), nil
+	})
 }
 
-// GetProject returns a project by ID.
-func (s *ProjectService) GetProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
+// GetProject возвращает проект по ID и роль текущего пользователя (если userID задан).
+func (s *ProjectService) GetProject(ctx context.Context, projectID, userID uuid.UUID) (*ProjectResponse, error) {
 	p, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -88,24 +91,32 @@ func (s *ProjectService) GetProject(ctx context.Context, projectID uuid.UUID) (*
 		}
 		return nil, apperrors.NewInternal("failed to get project")
 	}
-	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
+
+	myRole := ""
+	if userID != uuid.Nil {
+		if mem, err := s.repo.FindMember(ctx, projectID, userID); err == nil {
+			myRole = string(mem.ProjectRole)
+		}
+	}
+
+	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), myRole), nil
 }
 
-// ListProjects returns all projects the user is a member of (excluding deleted).
+// ListProjects возвращает проекты пользователя (без удалённых).
 func (s *ProjectService) ListProjects(ctx context.Context, userID uuid.UUID, includeArchived bool) ([]ProjectResponse, error) {
 	projects, err := s.repo.ListByUserID(ctx, userID, includeArchived)
 	if err != nil {
 		return nil, apperrors.NewInternal("failed to list projects")
 	}
 
-	// Batch-fetch member counts in a single query to avoid N+1.
+	// Пакетно получаем счётчики участников одним запросом, чтобы избежать N+1.
 	ids := make([]uuid.UUID, len(projects))
 	for i, p := range projects {
 		ids[i] = p.ID
 	}
 	counts, err := s.repo.MemberCountBatch(ctx, ids)
 	if err != nil {
-		counts = make(map[uuid.UUID]int) // fallback: zeros
+		counts = make(map[uuid.UUID]int) // запасной вариант: нули
 	}
 
 	result := make([]ProjectResponse, 0, len(projects))
@@ -115,7 +126,7 @@ func (s *ProjectService) ListProjects(ctx context.Context, userID uuid.UUID, inc
 	return result, nil
 }
 
-// UpdateProject updates a project's name, description, or avatar.
+// UpdateProject обновляет имя, описание или аватар проекта.
 func (s *ProjectService) UpdateProject(ctx context.Context, projectID uuid.UUID, req UpdateProjectRequest) (*ProjectResponse, error) {
 	p, err := s.repo.Update(ctx, projectID, req.Name, req.Description, req.AvatarURL)
 	if err != nil {
@@ -127,7 +138,7 @@ func (s *ProjectService) UpdateProject(ctx context.Context, projectID uuid.UUID,
 	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
-// ArchiveProject sets the project status to archived.
+// ArchiveProject переводит проект в статус archived.
 func (s *ProjectService) ArchiveProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
 	p, err := s.repo.UpdateStatus(ctx, projectID, project.StatusArchived, false)
 	if err != nil {
@@ -139,7 +150,7 @@ func (s *ProjectService) ArchiveProject(ctx context.Context, projectID uuid.UUID
 	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
-// UnarchiveProject returns the project from archived to active status.
+// UnarchiveProject возвращает проект из archived в active.
 func (s *ProjectService) UnarchiveProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
 	p, err := s.repo.UpdateStatus(ctx, projectID, project.StatusActive, false)
 	if err != nil {
@@ -244,7 +255,7 @@ func (s *ProjectService) notifyLinkDeleted(ctx context.Context, otherIssue *ent.
 	}
 }
 
-// RestoreProject restores a project from the trash (sets status to active, clears deleted_at).
+// RestoreProject восстанавливает проект из корзины (active, cleared deleted_at).
 func (s *ProjectService) RestoreProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
 	p, err := s.repo.UpdateStatus(ctx, projectID, project.StatusActive, false)
 	if err != nil {
@@ -256,7 +267,7 @@ func (s *ProjectService) RestoreProject(ctx context.Context, projectID uuid.UUID
 	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
 }
 
-// PermanentDelete performs a hard delete of a project. Admin only.
+// PermanentDelete выполняет жёсткое удаление проекта. Только admin.
 func (s *ProjectService) PermanentDelete(ctx context.Context, projectID uuid.UUID) error {
 	err := s.repo.Delete(ctx, projectID)
 	if err != nil {
@@ -268,21 +279,21 @@ func (s *ProjectService) PermanentDelete(ctx context.Context, projectID uuid.UUI
 	return nil
 }
 
-// ListTrash returns projects in the trash (status=deleted) for the given user.
+// ListTrash возвращает проекты в корзине (status=deleted) для пользователя.
 func (s *ProjectService) ListTrash(ctx context.Context, userID uuid.UUID) ([]ProjectResponse, error) {
 	projects, err := s.repo.ListTrash(ctx, userID)
 	if err != nil {
 		return nil, apperrors.NewInternal("failed to list trash")
 	}
 
-	// Batch-fetch member counts in a single query to avoid N+1.
+	// Пакетно получаем счётчики участников одним запросом, чтобы избежать N+1.
 	ids := make([]uuid.UUID, len(projects))
 	for i, p := range projects {
 		ids[i] = p.ID
 	}
 	counts, err := s.repo.MemberCountBatch(ctx, ids)
 	if err != nil {
-		counts = make(map[uuid.UUID]int) // fallback: zeros
+		counts = make(map[uuid.UUID]int) // запасной вариант: нули
 	}
 
 	result := make([]ProjectResponse, 0, len(projects))
@@ -292,8 +303,8 @@ func (s *ProjectService) ListTrash(ctx context.Context, userID uuid.UUID) ([]Pro
 	return result, nil
 }
 
-// AddMember adds a user to a project with the specified role.
-// Invalidates the RBAC cache for the project.
+// AddMember добавляет пользователя в проект с указанной ролью.
+// Инвалидирует RBAC-кэш проекта — иначе новый member не увидит права до TTL.
 func (s *ProjectService) AddMember(ctx context.Context, projectID, userID uuid.UUID, role string) (*MemberResponse, error) {
 	prole := projectmember.ProjectRole(role)
 	mem, err := s.repo.AddMember(ctx, projectID, userID, prole)
@@ -304,7 +315,7 @@ func (s *ProjectService) AddMember(ctx context.Context, projectID, userID uuid.U
 		return nil, apperrors.NewInternal("failed to add member")
 	}
 
-	// Invalidate RBAC cache
+	// Сбрасываем кэш RBAC
 	if s.cache != nil {
 		if err := s.cache.InvalidateProject(ctx, projectID.String()); err != nil {
 			slog.Error("failed to invalidate RBAC cache", "error", err, "project_id", projectID)
@@ -314,10 +325,10 @@ func (s *ProjectService) AddMember(ctx context.Context, projectID, userID uuid.U
 	return toMemberResponse(mem), nil
 }
 
-// RemoveMember removes a user from a project.
-// Cannot remove the last owner of a project.
+// RemoveMember удаляет пользователя из проекта.
+// Нельзя удалить последнего owner — иначе проект останется без управляющего.
 func (s *ProjectService) RemoveMember(ctx context.Context, projectID, userID uuid.UUID) error {
-	// Check if user is an owner
+	// Проверяем, является ли пользователь владельцем
 	mem, err := s.repo.FindMember(ctx, projectID, userID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -340,7 +351,7 @@ func (s *ProjectService) RemoveMember(ctx context.Context, projectID, userID uui
 		return apperrors.NewInternal("failed to remove member")
 	}
 
-	// Invalidate RBAC cache
+	// Сбрасываем кэш RBAC
 	if s.cache != nil {
 		if err := s.cache.InvalidateProject(ctx, projectID.String()); err != nil {
 			slog.Error("failed to invalidate RBAC cache", "error", err, "project_id", projectID)
@@ -350,7 +361,7 @@ func (s *ProjectService) RemoveMember(ctx context.Context, projectID, userID uui
 	return nil
 }
 
-// UpdateMemberRole changes a member's role in a project.
+// UpdateMemberRole меняет роль участника проекта.
 func (s *ProjectService) UpdateMemberRole(ctx context.Context, projectID, userID uuid.UUID, role string) (*MemberResponse, error) {
 	prole := projectmember.ProjectRole(role)
 	mem, err := s.repo.UpdateMemberRole(ctx, projectID, userID, prole)
@@ -361,7 +372,7 @@ func (s *ProjectService) UpdateMemberRole(ctx context.Context, projectID, userID
 		return nil, apperrors.NewInternal("failed to update member role")
 	}
 
-	// Invalidate RBAC cache for the specific user
+	// Сбрасываем кэш RBAC для конкретного пользователя
 	if s.cache != nil {
 		if err := s.cache.Invalidate(ctx, userID.String(), projectID.String()); err != nil {
 			slog.Error("failed to invalidate RBAC cache", "error", err, "user_id", userID, "project_id", projectID)
@@ -371,7 +382,7 @@ func (s *ProjectService) UpdateMemberRole(ctx context.Context, projectID, userID
 	return toMemberResponse(mem), nil
 }
 
-// ListMembers returns all members of a project.
+// ListMembers возвращает всех участников проекта.
 func (s *ProjectService) ListMembers(ctx context.Context, projectID uuid.UUID) ([]MemberResponse, error) {
 	members, err := s.repo.ListMembers(ctx, projectID)
 	if err != nil {
@@ -385,7 +396,7 @@ func (s *ProjectService) ListMembers(ctx context.Context, projectID uuid.UUID) (
 	return result, nil
 }
 
-// toProjectResponse converts an Ent Project entity to a response DTO.
+// toProjectResponse конвертирует Ent Project в DTO ответа.
 func toProjectResponse(p *ent.Project, memberCount int, myRole string) *ProjectResponse {
 	return &ProjectResponse{
 		ID:          p.ID.String(),
@@ -401,7 +412,7 @@ func toProjectResponse(p *ent.Project, memberCount int, myRole string) *ProjectR
 	}
 }
 
-// toMemberResponse converts an Ent ProjectMember entity to a response DTO.
+// toMemberResponse конвертирует Ent ProjectMember в DTO ответа.
 func toMemberResponse(m *ent.ProjectMember) *MemberResponse {
 	resp := &MemberResponse{
 		Role:     string(m.ProjectRole),
@@ -416,7 +427,7 @@ func toMemberResponse(m *ent.ProjectMember) *MemberResponse {
 	return resp
 }
 
-// toInviteResponse converts an Ent Invite entity to a response DTO.
+// toInviteResponse конвертирует Ent Invite в DTO ответа.
 func toInviteResponse(inv *ent.Invite, frontendURL string) *InviteResponse {
 	return &InviteResponse{
 		ID:        inv.ID.String(),
@@ -430,7 +441,7 @@ func toInviteResponse(inv *ent.Invite, frontendURL string) *InviteResponse {
 	}
 }
 
-// CreateTeam creates a new team and returns its response representation.
+// CreateTeam создаёт команду и возвращает DTO.
 func (s *ProjectService) CreateTeam(ctx context.Context, name, description string) (*TeamResponse, error) {
 	t, err := s.repo.CreateTeam(ctx, name, description)
 	if err != nil {
@@ -442,7 +453,7 @@ func (s *ProjectService) CreateTeam(ctx context.Context, name, description strin
 	return toTeamResponse(t, 0), nil
 }
 
-// ListTeams returns all teams with their member counts.
+// ListTeams возвращает все команды с количеством участников.
 func (s *ProjectService) ListTeams(ctx context.Context) ([]TeamResponse, error) {
 	teams, err := s.repo.ListTeams(ctx)
 	if err != nil {
@@ -455,7 +466,7 @@ func (s *ProjectService) ListTeams(ctx context.Context) ([]TeamResponse, error) 
 	return result, nil
 }
 
-// AddTeamMember adds a user to a team.
+// AddTeamMember добавляет пользователя в команду.
 func (s *ProjectService) AddTeamMember(ctx context.Context, teamID, userID uuid.UUID) error {
 	_, err := s.repo.AddTeamMember(ctx, teamID, userID)
 	if err != nil {
@@ -467,7 +478,7 @@ func (s *ProjectService) AddTeamMember(ctx context.Context, teamID, userID uuid.
 	return nil
 }
 
-// RemoveTeamMember removes a user from a team.
+// RemoveTeamMember удаляет пользователя из команды.
 func (s *ProjectService) RemoveTeamMember(ctx context.Context, teamID, userID uuid.UUID) error {
 	if err := s.repo.RemoveTeamMember(ctx, teamID, userID); err != nil {
 		return apperrors.NewInternal("failed to remove team member")
@@ -475,7 +486,7 @@ func (s *ProjectService) RemoveTeamMember(ctx context.Context, teamID, userID uu
 	return nil
 }
 
-// AddTeamToProject links a team to a project and bulk-adds all team members as project members.
+// AddTeamToProject привязывает команду к проекту и bulk-добавляет участников.
 func (s *ProjectService) AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error {
 	if err := s.repo.AddTeamToProject(ctx, teamID, projectID); err != nil {
 		if ent.IsNotFound(err) {
@@ -486,7 +497,7 @@ func (s *ProjectService) AddTeamToProject(ctx context.Context, teamID, projectID
 	return nil
 }
 
-// toTeamResponse converts an Ent Team entity to a response DTO.
+// toTeamResponse конвертирует Ent Team в DTO ответа.
 func toTeamResponse(t *ent.Team, memberCount int) *TeamResponse {
 	return &TeamResponse{
 		ID:          t.ID.String(),
@@ -496,7 +507,7 @@ func toTeamResponse(t *ent.Team, memberCount int) *TeamResponse {
 	}
 }
 
-// ListInvites returns all invites for a project.
+// ListInvites возвращает все приглашения проекта.
 func (s *ProjectService) ListInvites(ctx context.Context, projectID uuid.UUID) ([]InviteResponse, error) {
 	invites, err := s.repo.ListInvites(ctx, projectID)
 	if err != nil {
@@ -509,7 +520,7 @@ func (s *ProjectService) ListInvites(ctx context.Context, projectID uuid.UUID) (
 	return result, nil
 }
 
-// RevokeInvite deletes an invite.
+// RevokeInvite отзывает приглашение.
 func (s *ProjectService) RevokeInvite(ctx context.Context, inviteID uuid.UUID) error {
 	return s.repo.DeleteInvite(ctx, inviteID)
 }

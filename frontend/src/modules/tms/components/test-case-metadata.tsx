@@ -97,7 +97,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 
 	return (
 		<div className="space-y-4">
-			{/* Metadata card */}
+			{/* Карточка метаданных */}
 			<Card className="shadow-card">
 				<CardHeader className="pb-2 px-4 pt-4">
 					<CardTitle className="text-[11px] font-bold uppercase tracking-wider text-t2">
@@ -203,7 +203,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 				</CardContent>
 			</Card>
 
-			{/* Components */}
+			{/* Компоненты */}
 			{tc.components && tc.components.length > 0 && (
 				<Card className="shadow-card">
 					<CardHeader className="pb-2 px-4 pt-4">
@@ -227,7 +227,7 @@ export function TestCaseMetadata({ tc }: TestCaseMetadataProps) {
 				</Card>
 			)}
 
-			{/* Labels */}
+			{/* Метки */}
 			{tc.labels && tc.labels.length > 0 && (
 				<Card className="shadow-card">
 					<CardHeader className="pb-2 px-4 pt-4">

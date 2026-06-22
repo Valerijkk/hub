@@ -1,150 +1,228 @@
-# Hub — Stack and Tools
+# Hub — Стек и инструменты
 
-> Единая база знаний. Обновляется ARCH при изменении стека.
-> Детали: `README.md`, ограничения: `.cursor/rules/60-tz-constraints.mdc`
+> Единая база знаний. Обновляется ARCH при изменении стека.  
+> Ограничения TZ: `docs/tz_constraints.md` · Детали деплоя: `docs/wiki/DEPLOY.md`
 
 ---
 
 ## Языки и рантаймы
 
-| Компонент | Версия | Назначение |
-|-----------|--------|------------|
-| Go | **1.25** (`backend/go.mod`) | Backend, CLI |
-| TypeScript | **5.7** (`frontend/package.json`) | Frontend |
-| Node.js | **22** (CI), 20+ (local) | Frontend build, tooling |
+| Компонент | Версия (факт) | Источник | Назначение |
+|-----------|---------------|----------|------------|
+| Go | **1.25.0** | `backend/go.mod` | Backend, CLI, hub-mail |
+| TypeScript | **~5.7** | `frontend/package.json` | Frontend |
+| Node.js | **22** (CI), 20+ (local) | `.github/workflows/ci.yml` | Сборка, Vitest, Playwright |
+
+---
 
 ## Backend
 
-| Библиотека | Версия (факт) | Назначение |
-|------------|---------------|------------|
-| Fiber | **v3.0.0-beta.3** | HTTP framework, WebSocket |
-| Ent | **v0.14.1** | ORM, кодогенерация схем |
-| Atlas | indirect via Ent | SQL миграции |
+| Библиотека | Версия (go.mod) | Назначение |
+|------------|-----------------|------------|
+| Fiber | **v3.0.0-beta.3** | HTTP, WebSocket (fasthttp) |
+| Ent | **v0.14.1** | ORM, кодогенерация схем (~59 schemas) |
+| Atlas | indirect (Ent) | SQL-миграции |
 | testify | **v1.11.1** | Unit/integration assertions |
-| testcontainers | dev/test | Integration tests с Docker |
-| aws-sdk-go-v2 | **v1.32.7** (+ s3 v1.71.1) | SeaweedFS S3 API |
-| nats.go | **v1.48.0** (client) | NATS JetStream client |
-| go-redis/v9 | **v9.17.2** | Redis client |
-| mongo-driver | **v2.0.0** | MongoDB client |
-| livekit/server-sdk-go | **v2.4.0** | WebRTC tokens, rooms |
-| telego | **v0.31.0** | Telegram Bot API |
-| slog | stdlib | Structured logging |
-| swag | **v1.16.6** | OpenAPI annotations (HTML docs via `dev/`) |
+| aws-sdk-go-v2 / s3 | **v1.32.7** / **v1.71.1** | SeaweedFS S3 API |
+| nats.go | **v1.48.0** | NATS JetStream client |
+| go-redis/v9 | **v9.17.2** | Redis (sessions, refresh, cache) |
+| mongo-driver | **v2.0.0** | MongoDB (messages, Allure) |
+| livekit/server-sdk-go | **v2.4.0** | WebRTC tokens, rooms, egress |
+| telego | **v0.31.0** | Telegram Bot API (notify only) |
+| golang-jwt/jwt | **v5.3.0** | JWT HS256 |
+| swag | **v1.16.6** | OpenAPI (`/docs` в dev) |
+| OTel | **v1.40.0** | Tracing (observability stack) |
+| prometheus/client_golang | **v1.23.2** | Metrics |
 
-> `mockery`, `golangci-lint` — упоминаются в wiki/rules, **не в CI** (`.github/workflows/ci.yml` — только build).
+**Не в CI:** `golangci-lint`, `mockery` — упоминаются в wiki, но `.github/workflows/ci.yml` использует `go vet` + `go test -race`.
+
+### Сборка production
+
+```bash
+cd backend
+go generate ./ent
+go build -tags release -o bin/server ./cmd/server
+```
+
+Тег `release` исключает `/dev/*` routes (ME-09).
+
+---
 
 ## Frontend
 
-| Библиотека | Версия (факт) | Назначение |
-|------------|---------------|------------|
-| React | **19.1** | UI framework |
-| Vite | **6.x** | Build tool |
-| TanStack Router | **1.x** | File-based routing (**47 routes** в `routeTree.gen.ts`) |
-| TanStack Query | **5.x** | Server state |
-| Zustand | **5.x** | Client state (**11 stores** в `src/stores/`) |
-| Tailwind CSS | **4.x** | Styling |
-| Shadcn/ui + Radix | latest pins | UI components |
-| Plate (`@udecode/plate`) | **48.x** | Rich-text editor |
-| pragmatic-drag-and-drop | **1.7.x** | Kanban DnD |
-| Recharts | **3.x** | Dashboard charts (не Tremor) |
-| i18next + react-i18next | **25.x / 16.x** | Локализация |
-| motion | **12.x** | UI animations |
-| Vitest + RTL | **3.x / 16.x** | Unit tests |
-| Biome | latest | Lint + format (`npm run lint`) |
-| vite-plugin-pwa | **1.x** | PWA |
+| Библиотека | Версия (package.json) | Назначение |
+|------------|----------------------|------------|
+| React / react-dom | **^19.1.0** | UI |
+| Vite | **^6.0.0** | Dev server, build |
+| TypeScript | **~5.7.0** | Типизация |
+| TanStack Router | **^1.0.0** | File-based routing |
+| TanStack Query | **^5.0.0** | Server state |
+| Zustand | **^5.0.0** | Client state (11+ stores) |
+| Tailwind CSS | **^4.0.0** | Styling (`@tailwindcss/vite`) |
+| Shadcn/ui + Radix | pinned | UI primitives |
+| Plate (`@udecode/plate`) | **^48.0.5** | Rich-text |
+| pragmatic-drag-and-drop | **^1.7.9** | Kanban DnD |
+| Recharts | **^3.8.0** | Dashboard charts |
+| i18next | **^25.9.0** | Локализация RU/EN |
+| motion | **^12.38.0** | UI animations |
+| livekit-client | **^2.17.3** | WebRTC UI |
+| Vitest | **^3.0.0** | Unit tests |
+| @testing-library/react | **^16.0.0** | Component tests |
+| @playwright/test | **^1.52.0** | E2E |
+| @biomejs/biome | latest | Lint + format |
+| vite-plugin-pwa | **^1.2.0** | PWA |
 
-> **Playwright, MSW, ESLint** — в roadmap/wiki, **не установлены** в `frontend/package.json` (TD-11).
+### Скрипты npm
 
-## Базы данных и хранилища
+| Команда | Действие |
+|---------|----------|
+| `npm run dev` | Vite dev :5173 |
+| `npm run build` | `tsc -b && vite build` |
+| `npm run lint` | `biome check ./src` |
+| `npx vitest run` | Unit tests |
+| `npm run test:e2e` | Playwright: `link-e2e-node-modules.mjs` + `playwright.config.ts` → `testframework/e2e/specs/` |
 
-| Сервис | Версия (Docker) | Данные |
-|--------|-----------------|--------|
-| PostgreSQL | **17** | Users, projects, issues, TMS, workflow |
-| MongoDB | **8.0** | Messages, Allure reports, ephemeral call chat |
-| Redis | **7.4-alpine** | Sessions, refresh tokens, RBAC cache, presence |
-| SeaweedFS | **3.97** (pinned) | Files (S3-compatible), recordings |
-| NATS JetStream | **2.11** (server image) | Pub/sub, outbox, notifications |
+---
+
+## Базы данных и хранилища (Docker)
+
+| Сервис | Образ (compose) | Порты | Данные |
+|--------|-----------------|-------|--------|
+| PostgreSQL | `postgres:17` | 5432 | Users, projects, issues, TMS, workflow |
+| MongoDB | `mongo:8.0` | 27017 | Messages, Allure reports, call chat |
+| Redis | `redis:7.4-alpine` | 6379 | Refresh tokens, RBAC cache, presence |
+| SeaweedFS | `chrislusf/seaweedfs:3.97` | 9333, 8333 | Files (S3), recordings |
+| NATS JetStream | `nats:2.11` | 4222, 8222 | Pub/sub, outbox, notifications |
+
+Файлы compose: `docker-compose.local.yml` (корень), `deployments/docker-compose.prod.yml`, `deployments/docker-compose.test.yml`.
+
+---
 
 ## Real-time и медиа
 
-| Сервис | Версия | Назначение |
-|--------|--------|------------|
-| LiveKit server | **v1.8** (`livekit/livekit-server:v1.8`) | Voice calls, screen share, recording |
-| Fiber WS | built-in (fasthttp/websocket) | Client real-time events |
+| Сервис | Образ | Назначение |
+|--------|-------|------------|
+| LiveKit | `livekit/livekit-server:v1.8` | Voice, screen share, recording (egress) |
+| Fiber WS | built-in | Client events (`GET /ws?token=JWT`) |
+
+Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не монтировать `livekit-prod.yaml` с секретами).
+
+---
 
 ## Инфраструктура
 
-| Инструмент | Окружение | Назначение | Статус в репо |
-|------------|-----------|------------|---------------|
-| Docker Compose | dev | Локальная разработка | ✅ `docker-compose.local.yml`, `deployments/*.yml` |
-| K3s | prod (planned) | Kubernetes orchestration | ❌ манифестов нет (TD-04) |
-| Caddy | prod/dev | Reverse proxy, auto HTTPS, WebSocket | ✅ `deployments/Caddyfile*` |
-| GitHub Actions | CI/CD | Build, test, deploy (deploy after CI success) | ✅ `.github/workflows/` |
-| Loki + Prometheus + Grafana | prod (planned) | Logs + metrics | ❌ не в compose (TD-05) |
+| Инструмент | Окружение | Файлы | Статус |
+|------------|-----------|-------|--------|
+| Docker Compose | dev / prod | `docker-compose.local.yml`, `deployments/*.yml` | ✅ |
+| Caddy | prod/dev | `deployments/Caddyfile*` | ✅ reverse proxy, WS, HTTPS |
+| K3s | prod (planned) | — | ❌ манифестов нет |
+| GitHub Actions | CI/CD | `.github/workflows/ci.yml`, `deploy.yml` | ✅ |
+| GitLab CI | mirror | `.gitlab-ci.yml` | ✅ |
+| Monitoring | optional | `deployments/docker-compose.monitoring.yml` | Prometheus, Loki, Grafana (pinned v3.x) |
+
+### Caddy routing (prod)
+
+```
+/api/*  → backend:3000
+/ws     → backend:3000 (HTTP/1.1 upgrade)
+/lk/*   → livekit:7880 (strip prefix)
+/*      → frontend:80 (static)
+```
+
+---
+
+## CI/CD (GitHub Actions)
+
+Файл: `.github/workflows/ci.yml` · Ветка: `master` · Concurrency: cancel-in-progress.
+
+| Job | Что делает | Timeout |
+|-----|------------|---------|
+| `backend-test` | `go generate ./ent`, `go vet`, `go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/...` | 15 min |
+| `frontend-test` | `npm ci`, `tsc --noEmit`, `vitest run`, `npm run lint` (Biome **gate**) | default |
+| `build` | `go build -tags release`, `npm ci && npm run build` | default |
+| `e2e-smoke` | Playwright frontend-only: login, a11y, critical-gate | после frontend-test |
+| `e2e-full` | Docker infra + native backend (`DEV_MODE`) + 20 spec paths | 30 min |
+
+**Deploy** (`.github/workflows/deploy.yml`): только после **успешного CI** на push в `master` (`workflow_run`):
+
+1. Build & push GHCR images (SHA tag)
+2. SSH deploy: `docker compose up` backend, livekit, frontend, caddy
+3. Post-deploy health curl
+4. **Без** `DEV_MODE=true` в workflow
+
+E2E config: `frontend/playwright.config.ts` · specs: `testframework/e2e/specs/` · `frontend/scripts/link-e2e-node-modules.mjs` · Infra: `scripts/ci-e2e-backend.sh`.
+
+---
 
 ## Внешние сервисы
 
 | Сервис | Назначение | Ограничения |
 |--------|------------|-------------|
-| Resend | Magic Link email | 3000 писем/мес бесплатно |
-| Telegram Bot API | Auth + notifications | telego SDK |
-| GitHub / GitLab | Webhooks, PR/MR integration | API tokens encrypted at rest |
+| Resend / hub-mail | Magic Link email, transactional | Rate limits провайдера |
+| Telegram Bot API | Уведомления (не login) | telego SDK |
+| GitHub / GitLab | Webhooks, PR/MR | Tokens encrypted at rest |
 
-## Линтеры и форматеры
+---
+
+## Линтеры и quality gates
 
 | Инструмент | Область | Команда | CI |
 |------------|---------|---------|-----|
-| go build, go generate | Backend | `cd backend && go generate ./ent && go build ./...` | ✅ |
-| go vet / golangci-lint | Backend | — | ❌ не в CI |
-| tsc | Frontend types | `cd frontend && npx tsc --noEmit` | ✅ (via `npm run build`) |
-| Biome | Frontend lint | `cd frontend && npm run lint` | ✅ baseline (continue-on-error) |
-| go test -race | Backend | `go test -race -count=1 -timeout=600s ./...` | ✅ |
-| Playwright | E2E smoke | `npx playwright test` | ✅ job `e2e-smoke` in CI |
-| Biome | Planning scripts | `.planning/biome.json` | — |
+| go generate + vet | Backend Ent | `go generate ./ent && go vet ./...` | ✅ |
+| go test -race | Backend | `-tags hubtest`, Mongo service in CI | ✅ |
+| go build -tags release | Prod binary | `go build -tags release ./cmd/server` | ✅ |
+| tsc | Frontend types | `npx tsc --noEmit` | ✅ |
+| Biome | Frontend lint | `npm run lint` | ✅ **gate** (не continue-on-error) |
+| Vitest | Unit | `npx vitest run` | ✅ |
+| Playwright | E2E | smoke + full jobs | ✅ |
+| dependabot | Deps | weekly go/npm/actions | ✅ |
+
+---
 
 ## CLI
 
 | Утилита | Путь | Назначение |
 |---------|------|------------|
 | hub-cli | `cli/` | CI/CD: push-results, create-bug, update-task |
+| hub-mail | `backend/cmd/hub-mail` | Transactional email microservice |
+| meilisearch-indexer | `backend/cmd/meilisearch-indexer` | Search indexing (optional) |
+
+---
 
 ## Структура репозитория
 
 ```
 hub/
-├── backend/              # Go API, Ent schemas (~59), 20 domain modules + platform
-├── frontend/             # React SPA (~47 routes, 12 Zustand stores incl. command-store)
-├── cli/                  # hub-cli
-├── deployments/          # Docker Compose (dev/prod/test), Caddy, LiveKit, SeaweedFS
-├── docker-compose.local.yml  # Full local stack (root)
-├── docs/                 # Единая база знаний (этот регламент)
-├── docs/wiki/            # Детальная wiki (API, deploy, shortcuts)
-└── .planning/            # GSD roadmap, phases, audits
+├── backend/                 # Go API, Ent schemas, internal/* modules
+├── frontend/              # React SPA, playwright.config.ts, testframework/unit
+├── testframework/e2e/     # Playwright specs/, pages/, steps/
+├── cli/                   # hub-cli
+├── deployments/           # Compose prod/test/monitoring, Caddy, LiveKit
+├── docker-compose.local.yml
+├── docs/                  # База знаний (этот регламент)
+├── docs/wiki/             # API, DEPLOY, QUICKSTART, SHORTCUTS
+└── .planning/             # GSD roadmap, COVERAGE, STATE
 ```
+
+---
 
 ## Обоснование ключевых решений
 
 | Решение | Альтернативы | Почему Hub |
 |---------|--------------|------------|
-| Go + Fiber | Python FastAPI | Горутины для real-time, единый WS стек |
-| PostgreSQL + MongoDB | Только PG | Документная модель для чатов и Allure JSON |
-| NATS JetStream | RabbitMQ, Redis pub/sub | Легче, Go-native, outbox pattern |
-| Ent | GORM | Кодогенерация, граф сущностей, Privacy layer |
-| LiveKit | Jitsi | Go-native, React SDK, запись из коробки |
-| SeaweedFS | MinIO | MinIO archived Feb 2026, S3-compatible |
-| TanStack Router | React Router | Type-safe, единая экосистема с Query |
-| Caddy | Nginx | Auto HTTPS, WebSocket, 15 строк конфига |
-| Recharts | Tremor | Фактически используется в dashboard-коде |
+| Go + Fiber | FastAPI | Горутины, единый WS стек |
+| PostgreSQL + MongoDB | Только PG | Документная модель для чатов и Allure |
+| NATS JetStream | RabbitMQ, Redis pub/sub | Go-native, outbox |
+| Ent | GORM | Кодогенерация, граф, Privacy |
+| LiveKit | Jitsi | Go SDK, React components, egress |
+| SeaweedFS | MinIO | S3-compatible, pinned 3.97 |
+| TanStack Router | React Router | Type-safe + Query ecosystem |
+| Caddy | Nginx | Auto HTTPS, WS в 15 строк |
+| Biome | ESLint+Prettier | Один tool, быстрый CI gate |
 
-## Запрещённые замены (без согласования)
+## Запрещённые замены
 
-- Fiber → net/http, gorilla
-- NATS → Redis pub/sub
-- SeaweedFS SDK → minio-go
-- TanStack Router → React Router
-- Shadcn → Ant Design, MUI
-- Caddy → nginx (prod)
-- Docker Compose (dev) / K3s (prod) → другая оркестрация
+См. `docs/tz_constraints.md`: Fiber, NATS, SeaweedFS SDK, TanStack Router, Shadcn, Caddy, Compose/K3s — без ADR.
 
 ---
-*Последнее обновление: 2026-06-20 — Wave 6 CI/deploy, Dockerfile `-tags release`, docs-sync rule*
+*Последнее обновление: 2026-06-22 — e2e: frontend/playwright.config.ts, 20 specs, link-e2e-node-modules.mjs*

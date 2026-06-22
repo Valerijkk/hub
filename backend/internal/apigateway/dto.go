@@ -2,7 +2,7 @@ package apigateway
 
 import "time"
 
-// --- API Keys DTOs ---
+// --- DTO API-ключей ---
 
 // CreateAPIKeyRequest — запрос на создание API-ключа.
 type CreateAPIKeyRequest struct {
@@ -26,7 +26,7 @@ type CreateAPIKeyResponse struct {
 	Key string `json:"key"`
 }
 
-// --- Webhook DTOs ---
+// --- DTO вебхуков ---
 
 // CreateWebhookRequest — запрос на создание вебхук-эндпоинта.
 type CreateWebhookRequest struct {

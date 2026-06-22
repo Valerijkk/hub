@@ -7,10 +7,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Allure import handlers
+// Обработчики импорта Allure
 // ---------------------------------------------------------------------------
 
-// ImportAllureResults handles POST /api/projects/:projectId/tms/allure/import
+// ImportAllureResults обрабатывает POST /api/projects/:projectId/tms/allure/import
 // @Summary Import Allure results (create automatic run)
 // @Tags TMS
 // @Accept json
@@ -18,7 +18,7 @@ import (
 // @Param projectId path string true "Project ID"
 // @Param body body ImportAllureRequest true "Allure results"
 // @Success 201 {object} TestRunDetailResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/allure/import [post]
 func (h *Handler) ImportAllureResults(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
@@ -43,7 +43,7 @@ func (h *Handler) ImportAllureResults(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ImportAllureToExistingRun handles POST /api/projects/:projectId/tms/runs/:runId/allure
+// ImportAllureToExistingRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/allure
 // @Summary Add Allure results to existing run
 // @Tags TMS
 // @Accept json
@@ -52,8 +52,8 @@ func (h *Handler) ImportAllureResults(c fiber.Ctx) error {
 // @Param runId path string true "Run ID"
 // @Param body body ImportAllureRequest true "Allure results"
 // @Success 200 {object} TestRunDetailResponse
-// @Failure 400 {object} errors.AppError
-// @Failure 404 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
+// @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/allure [post]
 func (h *Handler) ImportAllureToExistingRun(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
@@ -83,10 +83,10 @@ func (h *Handler) ImportAllureToExistingRun(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// File import/export handlers
+// Обработчики импорта/экспорта файлов
 // ---------------------------------------------------------------------------
 
-// ImportTestCases handles POST /api/projects/:projectId/tms/import
+// ImportTestCases обрабатывает POST /api/projects/:projectId/tms/import
 // @Summary Import test cases from file
 // @Tags TMS
 // @Accept multipart/form-data
@@ -112,7 +112,7 @@ func (h *Handler) ImportTestCases(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ExportTestCases handles GET /api/projects/:projectId/tms/export
+// ExportTestCases обрабатывает GET /api/projects/:projectId/tms/export
 // @Summary Export test cases to file
 // @Tags TMS
 // @Produce application/octet-stream
@@ -138,7 +138,7 @@ func (h *Handler) ExportTestCases(c fiber.Ctx) error {
 	return c.SendStream(reader)
 }
 
-// ExportTestRunReport handles GET /api/projects/:projectId/tms/runs/:runId/export
+// ExportTestRunReport обрабатывает GET /api/projects/:projectId/tms/runs/:runId/export
 // @Summary Export run report
 // @Tags TMS
 // @Produce application/octet-stream

@@ -7,10 +7,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Suite handlers
+// Обработчики папок (suites)
 // ---------------------------------------------------------------------------
 
-// CreateSuite handles POST /api/projects/:projectId/tms/suites
+// CreateSuite обрабатывает POST /api/projects/:projectId/tms/suites
 // @Summary Create test case folder
 // @Tags TMS
 // @Accept json
@@ -38,7 +38,7 @@ func (h *Handler) CreateSuite(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListSuites handles GET /api/projects/:projectId/tms/suites
+// ListSuites обрабатывает GET /api/projects/:projectId/tms/suites
 // @Summary Suite tree
 // @Tags TMS
 // @Produce json
@@ -59,7 +59,7 @@ func (h *Handler) ListSuites(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateSuite handles PUT /api/projects/:projectId/tms/suites/:suiteId
+// UpdateSuite обрабатывает PUT /api/projects/:projectId/tms/suites/:suiteId
 // @Summary Update suite
 // @Tags TMS
 // @Accept json
@@ -88,7 +88,7 @@ func (h *Handler) UpdateSuite(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteSuite handles DELETE /api/projects/:projectId/tms/suites/:suiteId
+// DeleteSuite обрабатывает DELETE /api/projects/:projectId/tms/suites/:suiteId
 // @Summary Delete suite
 // @Tags TMS
 // @Param projectId path string true "Project ID"
@@ -109,10 +109,10 @@ func (h *Handler) DeleteSuite(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Component handlers
+// Обработчики компонентов
 // ---------------------------------------------------------------------------
 
-// CreateComponent handles POST /api/projects/:projectId/tms/components
+// CreateComponent обрабатывает POST /api/projects/:projectId/tms/components
 // @Summary Create component
 // @Tags TMS
 // @Accept json
@@ -140,7 +140,7 @@ func (h *Handler) CreateComponent(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListComponents handles GET /api/projects/:projectId/tms/components
+// ListComponents обрабатывает GET /api/projects/:projectId/tms/components
 // @Summary List components
 // @Tags TMS
 // @Produce json
@@ -161,7 +161,7 @@ func (h *Handler) ListComponents(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteComponent handles DELETE /api/projects/:projectId/tms/components/:componentId
+// DeleteComponent обрабатывает DELETE /api/projects/:projectId/tms/components/:componentId
 // @Summary Delete component
 // @Tags TMS
 // @Param projectId path string true "Project ID"

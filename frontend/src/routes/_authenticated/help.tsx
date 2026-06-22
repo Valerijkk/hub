@@ -1,20 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BookOpen, Keyboard, Search, TestTube2, Webhook } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { isSystemAdmin } from "@/lib/is-system-admin";
 import { useAuthStore } from "@/stores/auth-store";
 
 function HelpPage() {
 	const { t } = useTranslation("help");
-	const isAdmin = useAuthStore((s) => s.user?.system_role === "admin");
+	const isAdmin = useAuthStore((s) => isSystemAdmin(s.user?.system_role));
 
-	const sectionKeys = ["quickStart", "hotkeys", "allure", "integrations"] as const;
+	const sectionKeys = [
+		"quickStart",
+		"hotkeys",
+		"allure",
+		"integrations",
+	] as const;
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-8">
 			<header className="space-y-2">
 				<div className="flex items-center gap-3">
 					<BookOpen className="h-8 w-8 text-amber-400" aria-hidden />
-					<h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+					<h1
+						className="text-2xl font-bold tracking-tight"
+						data-testid="help-page-heading"
+					>
+						{t("title")}
+					</h1>
 				</div>
 				<p className="text-t2">{t("subtitle")}</p>
 			</header>
@@ -55,13 +66,15 @@ function HelpPage() {
 
 			{sectionKeys.map((key) => (
 				<section key={key} className="space-y-3">
-					<h2 className="text-lg font-semibold">{t(`sections.${key}.title`)}</h2>
+					<h2 className="text-lg font-semibold">
+						{t(`sections.${key}.title`)}
+					</h2>
 					<ul className="list-disc space-y-1.5 pl-5 text-sm text-t2">
-						{(t(`sections.${key}.items`, { returnObjects: true }) as string[]).map(
-							(item) => (
-								<li key={item}>{item}</li>
-							),
-						)}
+						{(
+							t(`sections.${key}.items`, { returnObjects: true }) as string[]
+						).map((item) => (
+							<li key={item}>{item}</li>
+						))}
 					</ul>
 				</section>
 			))}

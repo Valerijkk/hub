@@ -132,12 +132,11 @@ export function MobileNav() {
 			{/* Меню "Ещё" -- overlay */}
 			{moreOpen && (
 				<>
-					<div
-						className="fixed inset-0 z-40 bg-black/50 md:hidden"
+					<button
+						type="button"
+						className="fixed inset-0 z-40 cursor-default border-0 bg-black/50 p-0 md:hidden"
+						aria-label="Закрыть меню"
 						onClick={() => setMoreOpen(false)}
-						onKeyDown={(e) => {
-							if (e.key === "Escape") setMoreOpen(false);
-						}}
 					/>
 					<div className="fixed inset-x-0 bottom-14 z-50 mx-4 mb-1 rounded-lg border border-b1 bg-card p-3 shadow-lg md:hidden">
 						<div className="space-y-1">

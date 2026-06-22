@@ -177,9 +177,9 @@ export function ChatView({ channelId }: ChatViewProps) {
 	}, [messages.length, isAtBottom, virtualizer]);
 
 	// Первоначальная прокрутка вниз. Намеренно реагируем только на смену
-	// channelId — messages.length / virtualizer читаются императивно, а
+	// channelId — messages.length и virtualizer читаются императивно, а
 	// повторные срабатывания при каждом новом сообщении сломают UX.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional channel-change-only trigger; other reads are imperative.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: только смена channelId; остальное императивно.
 	useEffect(() => {
 		if (messages.length > 0 && prevCountRef.current === messages.length) {
 			virtualizer.scrollToIndex(messages.length - 1, { align: "end" });
@@ -219,9 +219,9 @@ export function ChatView({ channelId }: ChatViewProps) {
 
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
-			{/* Channel header */}
+			{/* Заголовок канала */}
 			<div className="h-[58px] shrink-0 flex items-center px-4 md:px-[22px] gap-2.5 md:gap-3.5 border-b border-[var(--b1)] bg-[rgba(13,14,18,.7)] backdrop-blur-[24px] backdrop-saturate-[180%] relative z-20">
-				{/* Mobile: гамбургер для открытия списка каналов. */}
+				{/* Mobile: гамбургер для открытия списка каналов */}
 				<button
 					type="button"
 					className="md:hidden w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t2)] hover:bg-[var(--hover)] hover:text-[var(--t1)] transition-colors shrink-0"
@@ -260,54 +260,58 @@ export function ChatView({ channelId }: ChatViewProps) {
 					<SearchDialog channelId={channelId} />
 					<PinnedMessages channelId={channelId} />
 				</div>
-				{/* Gradient line after header */}
+				{/* Градиентная линия под заголовком */}
 				<div className="absolute bottom-[-1px] left-[5%] right-[5%] h-px bg-gradient-to-r from-transparent via-[rgba(52,211,153,.06)] to-transparent" />
 			</div>
 
-			{/* Message area */}
+			{/* Область сообщений */}
 			<div className="flex flex-1 overflow-hidden">
 				<div className="flex flex-1 flex-col overflow-hidden relative">
 					{isLoading ? (
-						/* Loading skeleton */
-						<div className="flex flex-1 flex-col justify-end p-4 space-y-3">
-							{[1, 2, 3, 4, 5].map((i) => (
-								<div key={`msg-sk-${i}`} className="flex gap-3">
-									<div className="h-9 w-9 rounded-full animate-shimmer shrink-0" />
-									<div className="space-y-1.5 flex-1">
-										<div className="h-3 w-24 rounded animate-shimmer" />
-										<div className="h-4 w-56 rounded animate-shimmer" />
+						<>
+							{/* Skeleton загрузки */}
+							<div className="flex flex-1 flex-col justify-end p-4 space-y-3">
+								{[1, 2, 3, 4, 5].map((i) => (
+									<div key={`msg-sk-${i}`} className="flex gap-3">
+										<div className="h-9 w-9 rounded-full animate-shimmer shrink-0" />
+										<div className="space-y-1.5 flex-1">
+											<div className="h-3 w-24 rounded animate-shimmer" />
+											<div className="h-4 w-56 rounded animate-shimmer" />
+										</div>
 									</div>
-								</div>
-							))}
-						</div>
-					) : messages.length === 0 ? (
-						/* Empty state */
-						<div className="flex flex-1 items-center justify-center">
-							<div className="text-center max-w-xs animate-fade-in">
-								<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5">
-									<svg
-										aria-hidden="true"
-										className="h-8 w-8 text-primary/40"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										strokeWidth={1.5}
-									>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-										/>
-									</svg>
-								</div>
-								<h3 className="text-base font-medium text-t1 mb-1">
-									Начните общение
-								</h3>
-								<p className="text-sm text-t2">
-									Напишите первое сообщение в этом канале.
-								</p>
+								))}
 							</div>
-						</div>
+						</>
+					) : messages.length === 0 ? (
+						<>
+							{/* Пустое состояние */}
+							<div className="flex flex-1 items-center justify-center">
+								<div className="text-center max-w-xs animate-fade-in">
+									<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5">
+										<svg
+											aria-hidden="true"
+											className="h-8 w-8 text-primary/40"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											strokeWidth={1.5}
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+											/>
+										</svg>
+									</div>
+									<h3 className="text-base font-medium text-t1 mb-1">
+										Начните общение
+									</h3>
+									<p className="text-sm text-t2">
+										Напишите первое сообщение в этом канале.
+									</p>
+								</div>
+							</div>
+						</>
 					) : (
 						<div
 							ref={parentRef}
@@ -354,7 +358,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 						</div>
 					)}
 
-					{/* Scroll-to-bottom FAB */}
+					{/* FAB прокрутки вниз */}
 					{!isAtBottom && messages.length > 0 && (
 						<button
 							type="button"
@@ -390,7 +394,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 						</button>
 					)}
 
-					{/* Typing indicator */}
+					{/* Индикатор набора текста */}
 					{typingText && (
 						<div className="shrink-0 px-[22px] py-1.5 text-xs text-[var(--t3)] flex items-center gap-1.5">
 							<span className="flex items-center gap-0.5">
@@ -402,7 +406,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 						</div>
 					)}
 
-					{/* Composer */}
+					{/* Композер сообщений */}
 					{!channel?.is_readonly && (
 						<div className="px-[22px] pb-[18px] pt-3 shrink-0">
 							<MessageComposer
@@ -417,7 +421,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 					)}
 				</div>
 
-				{/* Thread panel */}
+				{/* Панель треда */}
 				{activeThreadMessageId && (
 					<div
 						role="dialog"
@@ -437,6 +441,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 						<ThreadPanel
 							channelId={channelId}
 							messageId={activeThreadMessageId}
+							projectId={channel?.project_id}
 							onClose={closeThread}
 						/>
 					</div>

@@ -7,12 +7,14 @@ import { api } from "./client";
 /** Запрос на отправку magic-link на email. */
 interface MagicLinkRequest {
 	email: string;
+	invite_token?: string;
 }
 
 /** Запрос на верификацию magic-link кода. */
 interface VerifyMagicLinkRequest {
 	email: string;
 	code: string;
+	invite_token?: string;
 }
 
 /** Запрос на авторизацию через Telegram. */
@@ -61,6 +63,7 @@ export interface UserResponse {
 	language: string;
 	birthday?: string;
 	system_role: string;
+	status?: string;
 	onboarding_completed: boolean;
 }
 
@@ -88,7 +91,7 @@ export function verifyMagicLink(data: VerifyMagicLinkRequest) {
 	return api.post<TokenPairResponse>("/auth/magic-link/verify", data);
 }
 
-/** Endpoint: POST /auth/telegram — авторизоваться через Telegram. */
+/** Endpoint: POST /auth/telegram — deprecated (AUTH-01). */
 export function loginTelegram(data: TelegramAuthRequest) {
 	return api.post<TokenPairResponse>("/auth/telegram", data);
 }

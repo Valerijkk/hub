@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/predicate"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
@@ -16,7 +17,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Issue CRUD
+// CRUD задач
 // ---------------------------------------------------------------------------
 
 // CreateIssue создаёт новую задачу в проекте. Атомарно инкрементирует счётчик
@@ -182,7 +183,9 @@ func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, par
 		}
 		query = query.Where(issue.PriorityIn(priorities...))
 	}
-	if params.Assignee != nil {
+	if params.UnassignedOnly {
+		query = query.Where(issue.Not(issue.HasAssignee()))
+	} else if params.Assignee != nil {
 		query = query.Where(issue.HasAssigneeWith(user.IDEQ(*params.Assignee)))
 	}
 	if params.IssueType != "" {
@@ -205,9 +208,22 @@ func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, par
 		return nil, 0, fmt.Errorf("подсчёт задач: %w", err)
 	}
 
-	// Курсорная пагинация
+	// Курсорная пагинация: курсор — issue_key последней строки, фильтр согласован с order_by.
 	if params.Cursor != "" {
-		query = query.Where(issue.IssueKeyGT(params.Cursor))
+		cursorIssue, err := r.client.Issue.Query().
+			Where(
+				issue.IssueKeyEQ(params.Cursor),
+				issue.HasProjectWith(project.IDEQ(projectID)),
+				issue.DeletedAtIsNil(),
+			).
+			Only(ctx)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return []*ent.Issue{}, total, nil
+			}
+			return nil, 0, fmt.Errorf("курсорная задача: %w", err)
+		}
+		query = applyListIssuesCursorFilter(query, cursorIssue, params.OrderBy, params.Cursor)
 	}
 
 	// Лимит
@@ -216,14 +232,14 @@ func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, par
 		limit = 50
 	}
 
-	// Сортировка
+	// Сортировка (issue_key ASC — стабильный tie-breaker для курсора)
 	switch params.OrderBy {
 	case "priority":
-		query = query.Order(ent.Asc(issue.FieldPriority))
+		query = query.Order(issue.ByPriority(), issue.ByIssueKey())
 	case "updated_at":
-		query = query.Order(ent.Desc(issue.FieldUpdatedAt))
+		query = query.Order(issue.ByUpdatedAt(sql.OrderDesc()), issue.ByIssueKey())
 	default:
-		query = query.Order(ent.Desc(issue.FieldCreatedAt))
+		query = query.Order(issue.ByCreatedAt(sql.OrderDesc()), issue.ByIssueKey())
 	}
 
 	items, err := query.
@@ -237,6 +253,29 @@ func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, par
 	}
 
 	return items, total, nil
+}
+
+// applyListIssuesCursorFilter возвращает строки, идущие после курсора в порядке orderBy.
+// Курсор API — issue_key последней выданной строки; tie-breaker — issue_key ASC.
+func applyListIssuesCursorFilter(query *ent.IssueQuery, cursorIssue *ent.Issue, orderBy, cursor string) *ent.IssueQuery {
+	keyAfter := issue.IssueKeyGT(cursor)
+	switch orderBy {
+	case "priority":
+		return query.Where(issue.Or(
+			predicate.Issue(sql.FieldGT(issue.FieldPriority, cursorIssue.Priority)),
+			issue.And(issue.PriorityEQ(cursorIssue.Priority), keyAfter),
+		))
+	case "updated_at":
+		return query.Where(issue.Or(
+			issue.UpdatedAtLT(cursorIssue.UpdatedAt),
+			issue.And(issue.UpdatedAtEQ(cursorIssue.UpdatedAt), keyAfter),
+		))
+	default:
+		return query.Where(issue.Or(
+			issue.CreatedAtLT(cursorIssue.CreatedAt),
+			issue.And(issue.CreatedAtEQ(cursorIssue.CreatedAt), keyAfter),
+		))
+	}
 }
 
 // UpdateIssue обновляет задачу с оптимистичной блокировкой по полю version.

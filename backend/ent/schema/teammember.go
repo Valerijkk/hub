@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// TeamMember holds the schema definition for the TeamMember entity.
+// TeamMember — определение Ent-схемы сущности TeamMember.
 type TeamMember struct {
 	ent.Schema
 }
 
-// Fields of the TeamMember.
+// Поля сущности TeamMember.
 func (TeamMember) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -25,7 +25,7 @@ func (TeamMember) Fields() []ent.Field {
 	}
 }
 
-// Edges of the TeamMember.
+// Рёбра (edges) сущности TeamMember.
 func (TeamMember) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("team", Team.Type).
@@ -39,7 +39,7 @@ func (TeamMember) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the TeamMember.
+// Индексы сущности TeamMember.
 func (TeamMember) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("team", "user").

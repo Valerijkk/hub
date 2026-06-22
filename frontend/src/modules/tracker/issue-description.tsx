@@ -3,11 +3,14 @@
  */
 
 import type { Value } from "@udecode/plate";
+import { Sparkles } from "lucide-react";
 import { useState } from "react";
 import { PlateEditor } from "@/components/tracker/plate-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { activateOnEnterOrSpace } from "@/lib/keyboard";
+import { useAIStore } from "@/stores/ai-store";
 
 export function IssueTitle({
 	title,
@@ -47,27 +50,50 @@ export function IssueTitle({
 	}
 
 	return (
-		<h1
-			className="cursor-pointer text-[24px] font-extrabold tracking-[-0.03em] leading-[1.3] border-b-2 border-transparent hover:border-blue bg-transparent w-full text-t1 transition-[border-color] duration-250 mb-6"
+		<button
+			type="button"
+			className="cursor-pointer text-[24px] font-extrabold tracking-[-0.03em] leading-[1.3] border-b-2 border-transparent hover:border-blue bg-transparent w-full text-t1 transition-[border-color] duration-250 mb-6 text-left"
 			onClick={() => {
 				setEditValue(title);
 				setIsEditing(true);
 			}}
+			onKeyDown={activateOnEnterOrSpace(() => {
+				setEditValue(title);
+				setIsEditing(true);
+			})}
 		>
 			{title}
-		</h1>
+		</button>
 	);
 }
 
 export function IssueDescription({
 	descriptionJson,
+	descriptionText,
+	issueKey,
+	issueTitle,
 	onSave,
 }: {
 	descriptionJson: unknown;
+	descriptionText?: string;
+	issueKey?: string;
+	issueTitle?: string;
 	onSave: (value: Value | undefined) => void;
 }) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState<Value | undefined>();
+	const openWithPrefill = useAIStore((s) => s.openWithPrefill);
+	const loadModels = useAIStore((s) => s.loadModels);
+
+	const askAI = () => {
+		void loadModels();
+		const key = issueKey ?? "задача";
+		const title = issueTitle ?? "";
+		const body = (descriptionText ?? "").trim() || "(описание пустое)";
+		openWithPrefill(
+			`Помоги улучшить описание задачи ${key}${title ? ` «${title}»` : ""}:\n\n${body}\n\nПредложи улучшенную версию в Markdown.`,
+		);
+	};
 
 	const save = () => {
 		onSave(editValue);
@@ -76,9 +102,21 @@ export function IssueDescription({
 
 	return (
 		<div>
-			<Label className="mb-2 block text-[13px] font-bold uppercase tracking-[0.06em] text-t3">
-				Описание
-			</Label>
+			<div className="mb-2 flex items-center justify-between gap-2">
+				<Label className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">
+					Описание
+				</Label>
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					className="h-7 gap-1 text-xs"
+					onClick={askAI}
+				>
+					<Sparkles className="h-3.5 w-3.5 text-purple-500" />
+					Спросить AI
+				</Button>
+			</div>
 			{isEditing ? (
 				<div className="space-y-2">
 					<PlateEditor
@@ -100,12 +138,17 @@ export function IssueDescription({
 					</div>
 				</div>
 			) : (
-				<div
-					className="cursor-pointer rounded-md p-2 hover:bg-[var(--hover)] text-[14px] leading-[1.75] text-t2"
+				<button
+					type="button"
+					className="cursor-pointer rounded-md p-2 hover:bg-[var(--hover)] text-[14px] leading-[1.75] text-t2 w-full text-left"
 					onClick={() => {
 						setEditValue(descriptionJson as Value | undefined);
 						setIsEditing(true);
 					}}
+					onKeyDown={activateOnEnterOrSpace(() => {
+						setEditValue(descriptionJson as Value | undefined);
+						setIsEditing(true);
+					})}
 				>
 					{descriptionJson ? (
 						<PlateEditor
@@ -118,7 +161,7 @@ export function IssueDescription({
 							Нажмите, чтобы добавить описание
 						</p>
 					)}
-				</div>
+				</button>
 			)}
 		</div>
 	);

@@ -21,13 +21,12 @@ import (
 const (
 	tgCodeTTL         = 5 * time.Minute
 	tgCodePrefix      = "tglogin:"
-	tgVerifyFailsMax  = 5 // max failed VerifyCode attempts per IP within TTL window
+	tgVerifyFailsMax  = 5 // лимит неудачных VerifyCode на IP в окне TTL (HI-04)
 	tgFailsPrefix     = "tglogin:fails:"
 )
 
-// TelegramBotAuth обеспечивает вход через Telegram-бот.
-// Бот слушает /start и /login, генерирует 6-значный код,
-// сохраняет в Redis привязку код → telegram_id, шлёт код юзеру.
+// TelegramBotAuth — legacy-хелперы login-бота (VerifyCode сохранён для тестов).
+// Polling bind/notify — Phase 15 Wave 3 (пакет notification).
 type TelegramBotAuth struct {
 	bot   *telego.Bot
 	redis *redis.Client
@@ -47,77 +46,13 @@ func NewTelegramBotAuth(botToken string, rdb *redis.Client) *TelegramBotAuth {
 	return &TelegramBotAuth{bot: bot, redis: rdb}
 }
 
-// getUpdatesResult транспортирует ответ b.GetUpdates через канал, чтобы
-// shutdown не ждал завершения уже-улетевшего HTTP-запроса.
-type getUpdatesResult struct {
-	updates []telego.Update
-	err     error
-}
-
-// StartPolling запускает long polling для обработки команд /start и /login.
+// StartPolling устарел для AUTH-01; bind-бот обслуживается notification (Wave 3).
 func (t *TelegramBotAuth) StartPolling(ctx context.Context) {
 	if t == nil {
 		return
 	}
-
-	// Удаляем webhook если был — иначе getUpdates не работает.
-	_ = t.bot.DeleteWebhook(&telego.DeleteWebhookParams{})
-
-	go func() {
-		offset := 0
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
-			// ME-1: оборачиваем blocking GetUpdates (Timeout=30s) в горутину с
-			// каналом — иначе ctx.Done() не прерывает long-poll-вызов и
-			// graceful shutdown висит до тайм-аута. telego v0.31.0 не принимает
-			// context.Context в API-методах, так что ctx прокидываем через
-			// select.
-			resultCh := make(chan getUpdatesResult, 1)
-			go func(offset int) {
-				updates, err := t.bot.GetUpdates(&telego.GetUpdatesParams{
-					Offset:  offset,
-					Timeout: 30,
-				})
-				resultCh <- getUpdatesResult{updates: updates, err: err}
-			}(offset)
-
-			var res getUpdatesResult
-			select {
-			case <-ctx.Done():
-				return
-			case res = <-resultCh:
-			}
-
-			if res.err != nil {
-				slog.Error("telegram bot auth: ошибка получения обновлений", "error", res.err)
-				// MEDIUM: ctx-aware backoff — при сигнале shutdown не висим лишних 3с.
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(3 * time.Second):
-				}
-				continue
-			}
-
-			for _, update := range res.updates {
-				offset = update.UpdateID + 1
-				if update.Message == nil {
-					continue
-				}
-				text := strings.TrimSpace(update.Message.Text)
-				if text == "/start" || text == "/login" || strings.HasPrefix(text, "/start ") {
-					t.handleLogin(ctx, update.Message)
-				}
-			}
-		}
-	}()
-
-	slog.Info("telegram bot auth polling запущен")
+	slog.Info("telegram bot auth polling disabled (AUTH-01: magic link only; bind in Wave 3)")
+	_ = ctx
 }
 
 // handleLogin генерирует код и отправляет его пользователю.
@@ -167,8 +102,7 @@ func (t *TelegramBotAuth) handleLogin(ctx context.Context, msg *telego.Message) 
 	}
 }
 
-// ErrTelegramVerifyLimited indicates the caller (identified by IP) has exceeded
-// the per-IP failed-attempt limit for Telegram code verification.
+// ErrTelegramVerifyLimited — превышен лимит неудачных попыток верификации Telegram-кода с IP.
 var ErrTelegramVerifyLimited = fmt.Errorf("too many telegram verification attempts, try again later")
 
 // VerifyCode проверяет код и возвращает данные Telegram-пользователя.
@@ -227,8 +161,7 @@ func (t *TelegramBotAuth) VerifyCode(ctx context.Context, code, clientKey string
 	}, nil
 }
 
-// recordVerifyFailure increments the per-client failed-attempt counter and sets
-// the TTL on first failure to roughly the code TTL.
+// recordVerifyFailure увеличивает счётчик неудач клиента; TTL задаётся при первой ошибке (~tgCodeTTL).
 func (t *TelegramBotAuth) recordVerifyFailure(ctx context.Context, failsKey string) {
 	if failsKey == "" {
 		return

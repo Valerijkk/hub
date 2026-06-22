@@ -28,12 +28,12 @@ func CORS() fiber.Handler {
 	}
 
 	if len(origins) == 0 {
-		// Fallback to localhost defaults — same behaviour as before.
+		// Fallback на localhost — прежнее поведение для dev.
 		origins = []string{"http://localhost:5173", "http://localhost:8080"}
 
-		// In production no CORS_ORIGINS at all is almost certainly a deploy
-		// misconfiguration. Fail loudly rather than silently expose only
-		// localhost from a public domain.
+		// В production без CORS_ORIGINS — почти наверняка ошибка деплоя.
+		// Fail loudly, а не молча открывать только
+		// localhost с публичного домена.
 		if !isDevMode() {
 			slog.Error("CORS_ORIGINS не задан в production — небезопасная конфигурация",
 				"hint", "set CORS_ORIGINS=https://yourdomain.example to allow your frontend")

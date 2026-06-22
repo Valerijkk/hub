@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 const PROJECT_TABS: { to: string; label: string; exact?: boolean }[] = [
 	{ to: "/projects/$projectId", label: "Обзор", exact: true },
 	{ to: "/projects/$projectId/board", label: "Доска" },
+	{ to: "/projects/$projectId/gantt", label: "Gantt" },
+	{ to: "/projects/$projectId/triage", label: "Triage" },
 	{ to: "/projects/$projectId/issues", label: "Задачи" },
 	{ to: "/projects/$projectId/backlog", label: "Бэклог" },
 	{ to: "/projects/$projectId/sprints", label: "Спринты" },

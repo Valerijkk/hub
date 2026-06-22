@@ -2,8 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
-import i18n from "@/i18n";
 import type { SessionResponse } from "@/api/auth";
 import {
 	getMe,
@@ -16,6 +14,8 @@ import { uploadFile } from "@/api/files";
 import { setCustomStatus } from "@/api/messenger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
 import { useAuthStore } from "@/stores/auth-store";
 
 /**
@@ -147,7 +147,7 @@ function ProfilePage() {
 
 	return (
 		<div className="space-y-0">
-			{/* Profile section */}
+			{/* Секция профиля */}
 			<div className="mb-9">
 				<h2 className="text-[18px] font-extrabold tracking-[-0.02em] mb-1">
 					Профиль
@@ -201,7 +201,7 @@ function ProfilePage() {
 					</div>
 				</div>
 
-				{/* Status section */}
+				{/* Секция статуса */}
 				<div className="mb-9">
 					<h2 className="text-[18px] font-extrabold tracking-[-0.02em] mb-1">
 						Статус
@@ -254,7 +254,7 @@ function ProfilePage() {
 					</div>
 				</div>
 
-				{/* Profile form */}
+				{/* Форма профиля */}
 				<form onSubmit={handleSubmit}>
 					<div className="grid grid-cols-2 gap-4 mb-4">
 						<div>
@@ -396,7 +396,7 @@ function ProfilePage() {
 				</form>
 			</div>
 
-			{/* Sessions section */}
+			{/* Секция сессий */}
 			<div className="mb-9">
 				<h2 className="text-[18px] font-extrabold tracking-[-0.02em] mb-1">
 					Сессии
@@ -454,7 +454,7 @@ function ProfilePage() {
 				)}
 			</div>
 
-			{/* Save + Logout */}
+			{/* Сохранить + выход */}
 			<div className="flex items-center gap-4 mt-6">
 				<button
 					type="button"
@@ -474,7 +474,7 @@ function ProfilePage() {
 						try {
 							await logout();
 						} catch {
-							// ignore
+							// игнорируем: операция не критична для UX
 						}
 						logoutStore();
 						void navigate({ to: "/login" });

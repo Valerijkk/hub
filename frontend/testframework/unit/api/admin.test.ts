@@ -1,0 +1,52 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { banUser, deactivateUser, getOperationMetrics } from "@/api/admin";
+import { api } from "@/api/client";
+
+describe("admin API client", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("banUser posts reason to /admin/users/:id/ban", async () => {
+		const postSpy = vi.spyOn(api, "post").mockResolvedValue({
+			success: true,
+			message: "User banned",
+		});
+
+		const result = await banUser("user-42", "spam");
+
+		expect(postSpy).toHaveBeenCalledWith("/admin/users/user-42/ban", {
+			reason: "spam",
+		});
+		expect(result.success).toBe(true);
+	});
+
+	it("deactivateUser posts to /admin/users/:id/deactivate", async () => {
+		const postSpy = vi.spyOn(api, "post").mockResolvedValue({
+			success: true,
+			message: "User deactivated",
+		});
+
+		await deactivateUser("user-99");
+
+		expect(postSpy).toHaveBeenCalledWith("/admin/users/user-99/deactivate");
+	});
+
+	it("getOperationMetrics fetches /admin/observability/ops", async () => {
+		const getSpy = vi.spyOn(api, "get").mockResolvedValue([
+			{
+				operation: "tracker.CreateIssue",
+				count: 10,
+				error_count: 0,
+				total_ms: 500,
+				max_ms: 80,
+				avg_ms: 50,
+			},
+		]);
+
+		const result = await getOperationMetrics();
+
+		expect(getSpy).toHaveBeenCalledWith("/admin/observability/ops");
+		expect(result[0]?.operation).toBe("tracker.CreateIssue");
+	});
+});

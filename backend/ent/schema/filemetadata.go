@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// FileMetadata holds the schema definition for the FileMetadata entity.
+// FileMetadata — определение Ent-схемы сущности FileMetadata.
 type FileMetadata struct {
 	ent.Schema
 }
 
-// Fields of the FileMetadata.
+// Поля сущности FileMetadata.
 func (FileMetadata) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -46,7 +46,7 @@ func (FileMetadata) Fields() []ent.Field {
 	}
 }
 
-// Edges of the FileMetadata.
+// Рёбра (edges) сущности FileMetadata.
 func (FileMetadata) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("uploader", User.Type).
@@ -58,7 +58,7 @@ func (FileMetadata) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the FileMetadata.
+// Индексы сущности FileMetadata.
 func (FileMetadata) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("entity_type", "entity_id"),

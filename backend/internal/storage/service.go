@@ -11,8 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
-	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/filemetadata"
 	"github.com/valerii/hub/backend/internal/platform/config"
 )
 
@@ -33,12 +31,12 @@ type UploadResult struct {
 type StorageService struct {
 	s3Client      *s3.Client
 	presignClient *s3.PresignClient
-	entClient     *ent.Client
+	repo          Repository
 	bucket        string
 }
 
 // NewStorageService создаёт сервис хранилища, настроенный для SeaweedFS (S3-совместимый).
-func NewStorageService(cfg config.S3Config, entClient *ent.Client) (*StorageService, error) {
+func NewStorageService(cfg config.S3Config, repo Repository) (*StorageService, error) {
 	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
 		awsconfig.WithRegion(cfg.Region),
 		awsconfig.WithCredentialsProvider(
@@ -51,14 +49,14 @@ func NewStorageService(cfg config.S3Config, entClient *ent.Client) (*StorageServ
 
 	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(cfg.Endpoint)
-		o.UsePathStyle = true // Required for SeaweedFS
+		o.UsePathStyle = true // требуется для SeaweedFS
 	})
 	presignClient := s3.NewPresignClient(s3Client)
 
 	return &StorageService{
 		s3Client:      s3Client,
 		presignClient: presignClient,
-		entClient:     entClient,
+		repo:          repo,
 		bucket:        cfg.Bucket,
 	}, nil
 }
@@ -69,31 +67,28 @@ func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, conten
 	fileID := uuid.New()
 	s3Key := fmt.Sprintf("%s/files/%s/%s", projectID.String(), fileID.String(), sanitizeFilename(filename))
 
-	// Create FileMetadata record (status=pending until confirmed)
-	fileMeta, err := s.entClient.FileMetadata.Create().
-		SetID(fileID).
-		SetFilename(filename).
-		SetContentType(contentType).
-		SetSize(0). // Updated on confirm
-		SetS3Key(s3Key).
-		SetS3Bucket(s.bucket).
-		SetStatus(filemetadata.StatusPending).
-		SetUploaderID(uploaderID).
-		SetProjectID(projectID).
-		Save(ctx)
+	fileMeta, err := s.repo.CreatePending(ctx, CreateFileInput{
+		ID:          fileID,
+		Filename:    filename,
+		ContentType: contentType,
+		S3Key:       s3Key,
+		S3Bucket:    s.bucket,
+		UploaderID:  uploaderID,
+		ProjectID:   projectID,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create file metadata: %w", err)
 	}
 
-	// Generate presigned PUT URL
+	// Генерируем presigned PUT URL — клиент грузит напрямую в S3, без буфера backend.
 	presignResult, err := s.presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucket),
 		Key:         aws.String(s3Key),
 		ContentType: aws.String(contentType),
 	}, s3.WithPresignExpires(uploadURLTTL))
 	if err != nil {
-		// Clean up the metadata record on failure
-		_ = s.entClient.FileMetadata.DeleteOneID(fileMeta.ID).Exec(ctx)
+		// Удаляем метаданные при ошибке presign — иначе осиротевшая pending-запись.
+		_ = s.repo.DeleteByID(ctx, fileMeta.ID)
 		return nil, fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
 
@@ -106,11 +101,7 @@ func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, conten
 
 // ConfirmUpload помечает файл как подтверждённый и устанавливает тип и ID сущности.
 func (s *StorageService) ConfirmUpload(ctx context.Context, fileID uuid.UUID, entityType, entityID string) error {
-	return s.entClient.FileMetadata.UpdateOneID(fileID).
-		SetStatus(filemetadata.StatusConfirmed).
-		SetEntityType(entityType).
-		SetEntityID(entityID).
-		Exec(ctx)
+	return s.repo.ConfirmUpload(ctx, fileID, entityType, entityID)
 }
 
 // FileProjectID возвращает ID проекта, которому принадлежит файл.
@@ -118,10 +109,7 @@ func (s *StorageService) ConfirmUpload(ctx context.Context, fileID uuid.UUID, en
 // (а не по projectId из URL/body, который злоумышленник мог подделать).
 // Возвращает ошибку, если файл удалён или не найден.
 func (s *StorageService) FileProjectID(ctx context.Context, fileID uuid.UUID) (uuid.UUID, error) {
-	pid, err := s.entClient.FileMetadata.Query().
-		Where(filemetadata.IDEQ(fileID), filemetadata.DeletedAtIsNil()).
-		QueryProject().
-		OnlyID(ctx)
+	pid, err := s.repo.ProjectIDForActiveFile(ctx, fileID)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("file not found: %w", err)
 	}
@@ -130,9 +118,7 @@ func (s *StorageService) FileProjectID(ctx context.Context, fileID uuid.UUID) (u
 
 // GenerateDownloadURL создаёт presigned GET URL для скачивания файла.
 func (s *StorageService) GenerateDownloadURL(ctx context.Context, fileID uuid.UUID) (string, error) {
-	fileMeta, err := s.entClient.FileMetadata.Query().
-		Where(filemetadata.IDEQ(fileID), filemetadata.DeletedAtIsNil()).
-		Only(ctx)
+	fileMeta, err := s.repo.GetActiveByID(ctx, fileID)
 	if err != nil {
 		return "", fmt.Errorf("file not found: %w", err)
 	}
@@ -150,7 +136,7 @@ func (s *StorageService) GenerateDownloadURL(ctx context.Context, fileID uuid.UU
 
 // NewOrphanCleanupFromService создаёт OrphanCleanupService из S3-клиента и bucket текущего StorageService.
 func (s *StorageService) NewOrphanCleanupFromService() *OrphanCleanupService {
-	return NewOrphanCleanupService(s.entClient, s.s3Client, s.bucket)
+	return NewOrphanCleanupService(s.repo, s.s3Client, s.bucket)
 }
 
 // S3Client возвращает низкоуровневый S3-клиент. Используется другими модулями
@@ -167,8 +153,5 @@ func (s *StorageService) Bucket() string {
 
 // DeleteFile выполняет мягкое удаление файла (устанавливает статус deleted и deleted_at).
 func (s *StorageService) DeleteFile(ctx context.Context, fileID uuid.UUID) error {
-	return s.entClient.FileMetadata.UpdateOneID(fileID).
-		SetStatus(filemetadata.StatusDeleted).
-		SetDeletedAt(time.Now().UTC()).
-		Exec(ctx)
+	return s.repo.SoftDelete(ctx, fileID, time.Now().UTC())
 }

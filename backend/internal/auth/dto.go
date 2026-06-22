@@ -2,17 +2,19 @@ package auth
 
 import "time"
 
-// --- Request DTOs ---
+// --- DTO запросов ---
 
 // MagicLinkRequest — тело запроса для POST /auth/magic-link.
 type MagicLinkRequest struct {
-	Email string `json:"email" validate:"required,email"`
+	Email       string `json:"email" validate:"required,email"`
+	InviteToken string `json:"invite_token,omitempty"`
 }
 
 // VerifyMagicLinkRequest — тело запроса для POST /auth/magic-link/verify.
 type VerifyMagicLinkRequest struct {
-	Email string `json:"email" validate:"required,email"`
-	Code  string `json:"code" validate:"required,len=6"`
+	Email       string `json:"email" validate:"required,email"`
+	Code        string `json:"code" validate:"required,len=6"`
+	InviteToken string `json:"invite_token,omitempty"`
 }
 
 // TelegramAuthRequest — тело запроса для POST /auth/telegram.
@@ -41,6 +43,19 @@ type UpdateProfileRequest struct {
 	CustomFields    map[string]interface{}  `json:"custom_fields,omitempty"`
 }
 
+// PendingUserResponse — пользователь в очереди admin Pending (ORG-06).
+type PendingUserResponse struct {
+	ID           string    `json:"id"`
+	Email        string    `json:"email"`
+	PendingSince time.Time `json:"pending_since"`
+}
+
+// OrgInviteResponse — invite-токен и URL org для администраторов.
+type OrgInviteResponse struct {
+	InviteToken string `json:"invite_token"`
+	InviteURL   string `json:"invite_url"`
+}
+
 // SetRegistrationModeRequest — тело запроса для PUT /admin/registration-mode.
 type SetRegistrationModeRequest struct {
 	Mode string `json:"mode" validate:"required,oneof=open invite_only"`
@@ -51,7 +66,7 @@ type OnboardingCompleteRequest struct {
 	ProfileData UpdateProfileRequest `json:"profile"`
 }
 
-// --- Response DTOs ---
+// --- DTO ответов ---
 
 // TokenPairResponse — ответ для эндпоинтов login/refresh.
 type TokenPairResponse struct {
@@ -75,6 +90,7 @@ type UserResponse struct {
 	Language            string                 `json:"language"`
 	Birthday            *time.Time             `json:"birthday,omitempty"`
 	SystemRole          string                 `json:"system_role"`
+	Status              string                 `json:"status"`
 	OnboardingCompleted bool                   `json:"onboarding_completed"`
 	CustomFields        map[string]interface{} `json:"custom_fields,omitempty"`
 }

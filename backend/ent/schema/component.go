@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Component holds the schema definition for the Component entity.
+// Component — определение Ent-схемы сущности Component.
 type Component struct {
 	ent.Schema
 }
 
-// Fields of the Component.
+// Поля сущности Component.
 func (Component) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -30,7 +30,7 @@ func (Component) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Component.
+// Рёбра (edges) сущности Component.
 func (Component) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -42,7 +42,7 @@ func (Component) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the Component.
+// Индексы сущности Component.
 func (Component) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("name"),

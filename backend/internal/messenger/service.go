@@ -19,12 +19,15 @@ import (
 // Repository интерфейс. Это устраняет утечку Ent ORM в бизнес-логику и
 // позволяет подменять backend в тестах через mock-репозиторий.
 type MessengerService struct {
-	repo          Repository
-	nats          *natsclient.Client
-	presence      *PresenceService
-	unread        *UnreadService
-	issuePromoter IssuePromoter            // опционально: для /promote-to-issue (см. service_promote.go)
-	promoteCheck  PromotePermissionChecker // опционально: RBAC-проверка целевого проекта при /promote-to-issue
+	repo              Repository
+	nats              *natsclient.Client
+	presence          *PresenceService
+	unread            *UnreadService
+	issuePromoter     IssuePromoter            // опционально: для /promote-to-issue (см. service_promote.go)
+	promoteCheck      PromotePermissionChecker // опционально: RBAC-проверка целевого проекта при /promote-to-issue
+	issueThreadLinker IssueThreadLinker        // опционально: auto-link после promote (PROD-03)
+	messageSentHook   MessageSentHook          // опционально: @hub-ai bot (Phase 17 W2)
+	systemBotID       uuid.UUID                // системный бот @hub-ai
 }
 
 // NewMessengerService создаёт новый сервис мессенджера.
@@ -35,7 +38,7 @@ func NewMessengerService(repo Repository, nats *natsclient.Client, presence *Pre
 }
 
 // ---------------------------------------------------------------------------
-// Presence
+// Присутствие
 // ---------------------------------------------------------------------------
 
 // Heartbeat обновляет время активности пользователя.
@@ -72,7 +75,7 @@ func (s *MessengerService) GetCustomStatus(ctx context.Context, userID string) (
 }
 
 // ---------------------------------------------------------------------------
-// Typing
+// Набор текста
 // ---------------------------------------------------------------------------
 
 // PublishTyping публикует событие набора текста в NATS (ephemeral, без записи в БД).
@@ -95,7 +98,7 @@ func (s *MessengerService) PublishTyping(ctx context.Context, channelID string, 
 }
 
 // ---------------------------------------------------------------------------
-// Unread
+// Непрочитанные
 // ---------------------------------------------------------------------------
 
 // GetUnreadCounts возвращает счётчики непрочитанных для пользователя.
@@ -115,7 +118,7 @@ func (s *MessengerService) MarkChannelRead(ctx context.Context, userID, channelI
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Вспомогательные функции
 // ---------------------------------------------------------------------------
 
 // resolveGroupMentions разрешает групповые упоминания (@all, @online, @role)

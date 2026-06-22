@@ -1,218 +1,242 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Hub Redesign
-status: complete
-stopped_at: Phase 14 complete — Architectural Hardening (5/5 plans)
-last_updated: "2026-06-20T00:05:00.000Z"
-last_activity: 2026-06-20
+milestone: v4
+milestone_name: Hub One Super-app
+status: wave-c-mostly-complete
+stopped_at: Wave B ✅ · Wave C FA-01–FA-12 ✅ (except FA-06 manual) · RU-V10 PASS · FA-10 qa-gate PASS
+last_updated: "2026-06-23T00:30:00.000Z"
+last_activity: 2026-06-22/23 AUTH-01 · APIGW-04 · WebhookDispatcher inFlight Stop race fix · FA-10 race PASS
 progress:
-  total_phases: 14
-  completed_phases: 14
-  total_plans: 62
-  completed_plans: 63
+  total_phases: 125
+  completed_phases: 125
+  total_plans: 250+
+  completed_plans: 250+
   percent: 100
 ---
 
-# Project State
+# Состояние проекта Hub
 
-## Project Reference
+## Справка
 
-See: .planning/PROJECT.md (updated 2026-03-27)
+См.: `.planning/PROJECT.md` (обновлено 2026-03-27)
 
-**Core value:** Unified environment for dev teams -- tracker, TMS, messenger, and calls connected in one interface
-**Current focus:** v2.0.2 **SHIP-READY** — audit **93/100** (ceiling без v2.6)
+**Ключевая ценность:** единая self-hosted среда для dev-команды и сотрудников компании — трекер, TMS, мессенджер, звонки, интранет, CRM, HR, учёт, AI — в одном интерфейсе.
 
-## Current Position
+**Текущий фокус:** Wave C final audit — **FA-01–FA-12 ✅** (кроме **FA-06** manual ops) · squash PR `feat/v2.5-trust`
 
-Phase: Close-Gaps post-gate → v2.0.2 prod hardening
-Plan: All waves **COMPLETE** (uncommitted local)
-Status: **Cycle 12** — cleanup ✅ · score **93/100** · race+build+vitest ✅
-Last activity: 2026-06-20 cycle 12 (artifacts cleanup + full gate)
+---
 
-## Accumulated Context
+## Текущая позиция (2026-06-22)
 
-### Roadmap Evolution
+| Параметр | Значение |
+|----------|----------|
+| Фаза | **Wave C** — FA-01–FA-12 ✅ (кроме FA-06 manual) · RU-V10 PASS · FA-10 qa-gate PASS |
+| Ветка | `feat/v2.5-trust` (uncommitted) |
+| COV overall (`internal/`) | **83.0%** (Docker, `-tags hubtest`, post FA-11/12) |
+| Security packages ≥80% | **6/6** ✅ |
+| Product score | **93/100** |
+| REST API | **286+** endpoints |
+| Backend tests | **488** files в `backend/testframework/` · **0** в `internal/*_test.go` (TF-M08 ✅) |
+| Playwright E2E | **20** specs (`testframework/e2e/specs/`) |
+| Frontend Vitest | **99/99** pass · 37 files `frontend/testframework/unit/` · 0 in `src/` |
 
-- Phase 14 added 2026-05-15: Architectural Hardening (split god-objects, remove ent.Client leak, expand Permission, increase test coverage)
+### Покрытие ключевых пакетов (Docker, Phase 125)
 
-## Performance Metrics
+| Пакет | Coverage |
+|-------|----------|
+| notification | **82.5%** |
+| auth | **82.4%** |
+| tracker | **82.4%** |
+| messenger | **82.3%** |
+| ws | **87.7%** |
+| storage | **86.8%** |
+| rbac | **84.7%** |
+| audit | **80.5%** |
+| tms | **82.0%** (FA-11 ✅ micro-gap closed) |
+| project | **82.0%** (FA-11 ✅ micro-gap closed) |
 
-**Velocity:**
+---
 
-- Total plans completed: 0 (v2.0)
-- Average duration: -
-- Total execution time: -
+## Milestones — статус
 
-**By Phase:**
+| Milestone | Phases | Статус | Дата |
+|-----------|--------|--------|------|
+| v1.0 MVP | 1–7 | ✅ SHIPPED | 2026-03-21 |
+| v2.0 Hub Redesign | 8–14 | ✅ COMPLETE | 2026-05-15 |
+| v2.5 Trust | 15 | ✅ COMPLETE | 2026-06-22 |
+| v2.6 Automate + Arch + OBS | 16–38 | ✅ COMPLETE | 2026-06-24 |
+| v3.0 AI Native | 17–19 | ✅ COMPLETE | 2026-06-22 |
+| v4 Super-app | 39–58 | ✅ COMPLETE | 2026-06-25 |
+| Coverage wave | 59–125 | ✅ COMPLETE | 2026-06-21 |
+| Test framework migration | TF-M01–M10 | ✅ Wave B COMPLETE (0 internal tests) | 2026-06-22 |
+| Final audit | FA-01–FA-12 | ✅ Wave C COMPLETE (кроме FA-06 manual) | 2026-06-22 |
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| - | - | - | - |
+Архив v4: `.planning/milestones/v4-super-app/SUMMARY.md`
 
-*Updated after each plan completion*
-| Phase 08 P01 | 5min | 1 tasks | 2 files |
-| Phase 08 P02 | 2min | 2 tasks | 1 files |
-| Phase 09 P02 | 2min | 3 tasks | 3 files |
-| Phase 09 P01 | 3min | 3 tasks | 4 files |
-| Phase 10 P02 | 3min | 2 tasks | 4 files |
-| Phase 10 P01 | 1min | 3 tasks | 3 files |
-| Phase 10 P03 | 2min | 3 tasks | 3 files |
-| Phase 11 P02 | 2min | 2 tasks | 3 files |
-| Phase 11 P01 | 3min | 2 tasks | 4 files |
-| Phase 11 P04 | 4min | 2 tasks | 4 files |
-| Phase 11 P03 | 5min | 2 tasks | 5 files |
-| Phase 12 P04 | 4min | 2 tasks | 3 files |
-| Phase 12 P01 | 7min | 2 tasks | 11 files |
-| Phase 12 P02 | 8min | 2 tasks | 9 files |
-| Phase 12 P05 | 14min | 2 tasks | 16 files |
-| Phase 12 P03 | 14min | 2 tasks | 18 files |
-| Phase 13 P01 | 4min | 2 tasks | 3 files |
-| Phase 13 P02 | 4min | 2 tasks | 1 files |
+---
 
-## Accumulated Context
+## PO Decisions (locked)
 
-### Decisions
+См.: `.planning/DISCUSS-ROADMAP-LOCKED.md`
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+- **AUTH:** Magic Link only · org table v2.5 · founder role · Telegram только bind/delivery
+- **NOTIF:** TG bind · hub-mail Phase 15.2 · email marketing v2.6
+- **Phase 15 exit:** AUTH+NOTIF+E2E+WCAG+run_failed+Biome+LiveKit CI · coverage ≥50% ✅
+- **TZ rewrite:** Gantt, webcam, marketing, no-code, accounting — IN (by phase)
+- **Coverage target:** ≥82% overall · security 6/6 ≥80% ✅
 
-- [v2.0] Visual-only redesign -- no new features, no functionality changes
-- [v2.0] Components restyled one-by-one for maximum quality
-- [v2.0] Light + Dark mode both supported (mockups dark-only, light adapted)
-- [v2.0] !important cleanup gates all subsequent work (Phase 8 prerequisite)
-- [v2.0] /gsd:ui-review after every phase
-- [Phase 08]: Hex-based accent colors instead of HSL for simpler dark/light mapping
-- [Phase 08]: Dual @theme inline mapping preserves Shadcn compat while exposing new tokens
-- [Phase 08]: Fixed radius values (6/8/12/16px) replace calc-based system
-- [Phase 08]: Removed all 56 !important declarations; noise overlay at z-index 9999 via feTurbulence SVG
-- [Phase 09]: Topbar uses sticky positioning within flex layout, title prop optional for future per-page wiring
-- [Phase 09]: Gradient edge line uses absolute div instead of ::after pseudo for cleaner Tailwind
-- [Phase 10]: className-only changes -- no React/Radix behavioral code modified in primitives
-- [Phase 10]: className-only changes, zero Radix behavioral modifications for Dialog/Tabs/DropdownMenu
-- [Phase 11]: Used CSS utility classes (dash-*) for dashboard-specific gradient/animation styles
-- [Phase 11]: Removed Shadcn Button/Input deps from auth forms for exact mockup CSS match
-- [Phase 11]: Kanban cards use CSS class system (kanban-card) instead of inline Tailwind for gradient+glow complexity
-- [Phase 11]: Green accent (emerald-400) for messenger active states and focus indicators
-- [Phase 12]: Removed Shadcn deps from onboarding for exact mockup CSS match
-- [Phase 12]: Trash uses native table with sticky headers per mockup pattern
-- [Phase 12]: Activity feed uses colored dots instead of avatars for compact mockup-matching design
-- [Phase 12]: Comment layout: flex gap-14 rows with gradient avatar fallbacks instead of bordered cards
-- [Phase 12]: Sidebar meta: direct void bg + pixel-exact padding matching mockup 05
-- [Phase 12]: Used CSS utility classes (tms-run-card, tms-precond-card) for ::before pseudo-element effects in TMS
-- [Phase 12]: Removed Card/CardHeader Shadcn components in favor of plain divs with design system gradient classes
-- [Phase 12]: Velocity chart restyled from Shadcn Card wrapper to inline gradient container
-- [Phase 12]: Planning poker uses border-blue glow shadow for selected state
-- [Phase 12]: Custom tab buttons instead of Shadcn TabsTrigger for Admin mockup match
-- [Phase 12]: Flat section layout (h2+desc+content) for Settings instead of Card wrappers
-- [Phase 13]: CSS-only online indicator via group-data pattern (no JS conditional rendering)
-- [Phase 13]: 200ms transition on bg/color/border for theme toggle smoothness
-- [Phase 13]: Kept all @keyframes even when animation classes removed; replaced all transition:all with explicit property lists
+---
 
-### Pending Todos
+## Test Framework Migration — ✅ COMPLETE (Wave B)
 
-- **UX-1:** Onboarding step 4, command palette actions, full RHF+Zod, i18n tracker forms
-- **Tests:** Component tests UserPicker; expand axe E2E
-- PG-03: Secret rotation (manual ops)
-- Git commit when approved
+| ID | Задача | Статус |
+|----|--------|--------|
+| TF-M01–M03 | export_hooks + auth/ws/rbac/audit/notification | ✅ |
+| TF-M04 | tracker/tms/project/messenger → testframework/ | ✅ Docker PASS |
+| TF-M05 | remaining internal tests | ✅ migrated |
+| TF-M06 | Vitest → `frontend/testframework/unit/` | ✅ 37 files · 99/99 · 0 in `src/` |
+| TF-M07 | E2E in testframework/e2e/specs/ | ✅ 20 specs |
+| TF-M08 | delete `internal/*_test.go` | ✅ **0 remaining** (verified) |
+| TF-M09 | CI: `go test -tags hubtest ./testframework/...` | ✅ full PASS |
 
-### Session 2026-06-20 (final) — UX-0 complete + audit loop
+**Итог (verified 2026-06-22):** `backend/testframework/` = **488** `*_test.go` · `backend/internal/` = **0** · `frontend/testframework/unit/` = **37** · `testframework/e2e/specs/` = **20**.
 
-**UX-0 delivered:**
-- `user-picker.tsx` → issue-form (no more UUID assignee)
-- `skip-link.tsx`, `/help` route, sidebar link
-- Kanban «Move to…» menu + toast (no alert); `sanitizeHexColor` (CSS injection fix)
-- E2E: `command-palette.spec.ts`, navigation includes /help
-- Rules: `56-regression-verify.mdc`
-- Plans: `AUDIT-SCORECARD.md`, `IMPROVEMENT-MASTER-PLAN.md`
+## Wave C Final Audit — ✅ MOSTLY COMPLETE (2026-06-22)
 
-**Verifiers:** fe-ver 68→blockers i18n+tests; qa-ver PASS gate; code-reviewer BLOCK color → fixed
+| ID | Задача | Статус |
+|----|--------|--------|
+| FA-01 | Full file-by-file audit + remediation | ✅ 2026-06-22 · `.planning/FA-01-AUDIT.md` |
+| FA-01 P0 | APIGW-01 webhook CRUD RBAC | ✅ 2026-06-22 |
+| FA-01 P1 | APIGW-02 webhook Ack semantics (`NakWithDelay`) | ✅ 2026-06-22 · `webhook_dispatcher_apigw02_test.go` |
+| FA-01 P1 | APIGW-03 JetStream FilterSubjects on webhook consumer | ✅ 2026-06-22 · `webhook_dispatcher_apigw03_test.go` |
+| FA-01 P1 | AUTH-01 RefreshToken session validation | ✅ 2026-06-22/23 · `service_session.go` · `service_session_test.go` |
+| FA-01 P2 | APIGW-04 API key deactivated user check | ✅ 2026-06-22/23 · `apikey.go` · `apikey_auth_test.go` |
+| FA-01 P2 | WebhookDispatcher `Stop` inFlight race fix | ✅ 2026-06-22/23 · `webhook.go` (`inFlight.Wait()` before `close(jobs)`) |
+| FA-01 P2 | BOOT-01 notification consumer Stop cleanup | ✅ 2026-06-22 · `wiring_notification.go` |
+| FA-01 P3 | WS-01 Hub graceful shutdown | ✅ 2026-06-22 · `ws/hub.go` · `hub_shutdown_test.go` |
+| FA-01 P3 | APIGW-05 domain errors (no Fiber in services) | ✅ 2026-06-22 · `apigateway/errors.go` |
+| FA-01 CRIT | FA-RBAC-FIBER3 Fiber v3 middleware order | ✅ 2026-06-22 · **123 routes** · `.planning/FA-RBAC-FIBER3-AUDIT.md` |
+| FA-02 | Security re-audit (post TF) | ✅ 2026-06-22 · 0 CRITICAL · `.planning/FA-02-SECURITY-REAUDIT.md` |
+| FA-03 | Docs sync (STATE/COVERAGE/API) | ✅ 2026-06-22 |
+| FA-04 | github SafeHTTP client (no DefaultClient) | ✅ 2026-06-22 · `github/service.go:55` |
+| FA-05 | hub-mail in prod compose | ✅ 2026-06-22 |
+| FA-06 | PG-03 secret rotation | ⏳ **manual ops** (runbook ready) |
+| FA-07 | Admin console.error → toastApiError | ✅ 2026-06-22 |
+| FA-08 | main.go bootstrap extraction | ✅ 2026-06-22 · `wiring_*.go` split |
+| FA-09 | E2E 20 specs → full POM+Steps | ✅ 2026-06-22 |
+| FA-10 | `/qa-gate` Docker + Playwright + tsc | ✅ 2026-06-22 **PASS** (local) · `.planning/FA-10-QA-GATE.md` |
+| FA-11 | tms/project 81.8% → 82% micro-gap | ✅ 2026-06-22 · `service_fa11_test.go` |
+| FA-12 | TestRail `mapTestRailType` → ent `classic`/`bdd` | ✅ 2026-06-22 · `tms/testrail_import.go:69` |
+| RU-V10 | RU comments/docs final gate | ✅ 2026-06-22 PASS · `.planning/RU-V-REPORT.md` |
 
-**Regression:** `go test ./...` ✅ · `vite build` ✅ · Vitest **39/39** ✅ · `tsc` ✅
+**FA-10 qa-gate:** build ✅ · hubtest ✅ · tsc ✅ · Biome ✅ · Vitest 99/99 ✅ · race ✅ · e2e-smoke 3/3 ✅ · coverage-gate CI ✅ · e2e-full/Docker cov — CI only.
 
-**Product score:** 74/100 (target 80 at UX-1)
+Детали: `.planning/TASKS-PHASES-121-FINAL-AUDIT.md`
 
-### Session 2026-06-20 (late) — Wave 6 prod + Ctrl+K + docs sync
+---
 
-**PG-01 closed:** `calls/` **80.2%** (chatMessageStore interface, `chat_mongo.go`, LiveKit mock tests) — 6/6 security packages ≥80% ✅
+## Pending Todos
 
-**Wave 6 — Prod pipeline:**
-- `backend/Dockerfile`: `-tags release`, Go 1.25
-- `.github/workflows/ci.yml`: race timeout 600s, release build, Biome baseline (continue-on-error), Mongo `authSource=admin` in E2E
-- `.github/workflows/deploy.yml`: `workflow_run` after CI success only, SHA image tags, no `--volumes` prune, post-deploy health curl
-- `deployments/docker-compose.prod.yml`: `ENVIRONMENT`, `CORS_ORIGINS`, `INTEGRATION_ENCRYPTION_KEY`, Mongo authSource
-- `deployments/.env.example`: new required vars documented
+- **FA-06 / PG-03:** Secret rotation (manual ops, runbook ready) — единственный блокер Wave C
+- **FA-10 follow-up:** race ✅ · coverage-gate CI ✅ · Playwright e2e-smoke ✅ (frontend config fix)
+- **FA-02 backlog:** ~~FA-02-03 LiveKit iss~~ ✅ · ~~FA-02-04 RequireAuth fail-open~~ ✅
+- **UX-1:** onboarding step 4, command palette actions, RHF+Zod tracker forms
+- **Squash PR:** draft ready → `.planning/PR-feat-v2.5-trust.md` · merge after **FA-06** + CTO approval
 
-**UX-0 — Global Ctrl+K (US-M07):**
-- `frontend/src/components/search/command-palette.tsx`, `command-store.ts`, `ui/command.tsx`
-- `app-shell.tsx` + `topbar.tsx`: Ctrl/Cmd+K, search trigger, `GET /api/search` via debounced global search
-- Docs: `docs/wiki/SHORTCUTS.md`, `docs/competitive_audit.md`, `.planning/COVERAGE.md` SRCH-01 UI ✅
+---
 
-**Rule added:** `.cursor/rules/55-docs-sync.mdc` — mandatory doc update after any code change
+## Недавние сессии
 
-**Verified:** `go build -tags release` ✅ · `tsc` ✅ · Vitest 36/36 ✅
+### 2026-06-22 — APIGW-05 domain errors ✅
 
-### Session 2026-06-20 — COV-01 closure + gate verification
+- **APIGW-05:** Removed `fiber.NewError` from `APIKeyService` / `WebhookService`; added `errors.go` with typed sentinels + `MapToFiber()` in handler/middleware only.
+- **Tests:** `go test -tags hubtest -count=1 ./testframework/apigateway/...` — PASS (38s).
 
-**Coverage wave (handler + ent + consumer tests):**
-- `tms` 56.0%, `messenger` 50.0%, `notification` 48.2%, `project` 44.8%
-- **Overall `internal/` 56.0%** (target ≥50% ✅)
-- Security-critical: auth 83.6%, ws 88%, rbac 85%, audit 80.5%, middleware 84% ✅; calls 72.5% ⚠️
+### 2026-06-22/23 — AUTH-01, APIGW-04, WebhookDispatcher Stop race fix ✅
 
-**Gate verification (`go test -race -count=1 ./internal/...`, `go build`, `tsc`, `vitest`):**
-- Backend: **all packages PASS**
-- Frontend: **10 files / 36 tests PASS**
-- E2E scaffold: **6 Playwright specs** (CI job present)
+- **AUTH-01 (P1):** `RefreshToken` — DB session lookup + expiry validation; reject missing/expired sessions before Redis rotation (`service_session.go`, `service_session_test.go`)
+- **APIGW-04 (P2):** API key auth path rejects deactivated owner — parity with JWT `RequireAuth` (`apikey.go`, `apikey_auth_test.go`)
+- **WebhookDispatcher Stop race:** `inFlight sync.WaitGroup` — consumer callbacks tracked; `Stop()` waits `inFlight` before `close(jobs)` to prevent DATA RACE on shutdown (`webhook.go`)
+- **FA-10:** `go test -tags hubtest -race` full suite **PASS** post-fix → `.planning/FA-10-QA-GATE.md`
 
-**Artifacts updated:** `.planning/COVERAGE.md`, `.planning/TASKS-CLOSE-GAPS.md`, `.planning/STATE.md`
+### 2026-06-22 — Wave C complete (FA-01–FA-12, кроме FA-06) ✅
 
-**Wave 1 (prior):** Admin observability, HTTP audit middleware, BanUser API, `Timed()` wrapper, `docs/competitive_audit.md`
+- **FA-01** file-by-file audit + remediation → `.planning/FA-01-AUDIT.md`
+- **APIGW-01** webhook CRUD RBAC · **APIGW-02** Ack/`NakWithDelay` semantics
+- **FA-RBAC-FIBER3** Fiber v3 middleware order → **123 routes** fixed (tracker 46, sprint 11, rbac 6, github 5, gitlab 5 + tms 50 prior) → `.planning/FA-RBAC-FIBER3-AUDIT.md`
+- **FA-02** security re-audit: 0 CRITICAL · **FA-04** github safehttp · **FA-11/12** tms/project + TestRail enum
+- **FA-05** hub-mail prod compose · **FA-07** admin toast · **FA-08** main.go `wiring_*.go` · **FA-09** E2E POM+Steps
+- **FA-10** qa-gate **PASS** (local): build · hubtest · tsc · Biome · Vitest 99/99 → `.planning/FA-10-QA-GATE.md`
+- **RU-V10** final gate **PASS** (post RU-FIX-11–13) → `.planning/RU-V-REPORT.md`
+- **FA-03** docs sync: STATE + COVERAGE + API.md; COV **83.0%** · 488 testframework / 0 internal tests
+- **Остаётся:** FA-06 PG-03 secret rotation (manual ops)
 
-**Wave 2 — Backend Coverage ✅**
-- Tests: calls webhook, messenger rate, storage presign, platform/nats, apigateway middleware order (SEC-01)
-- `Timed()` on auth/audit/tracker hot paths
-- BE-H6/BE-H7 docs fix in `docs/security_guidelines.md`
+### 2026-06-22 — Wave B Test Framework Migration ✅
 
-**Wave 3 — Frontend Quality ✅**
-- Vitest: **17 tests** in 6 files (auth, admin, hooks, ErrorBoundary)
-- ErrorBoundary wrappers on tracker, tms, calls, dashboard routes
-- Playwright: **5 specs** in `frontend/e2e/` (login, navigation, logout, admin-audit, health)
-- Biome: partial critical lint fixes (269 errors remain)
+- TF-M04–M08: all internal tests migrated · **0** `internal/*_test.go`
+- `go test -tags hubtest ./testframework/...` — full PASS (Docker)
+- TF-M06: Vitest **99/99** · 37 files `frontend/testframework/unit/` · 0 in `src/`
+- Next: RU-V FIX wave → Wave C FA-01–FA-12
 
-**Wave 4 — Observability + Docs ✅**
-- Audit filter `slow=1` (duration_ms>500) — backend + admin UI checkbox
-- `docs/wiki/API.md` sync (+15 routes)
-- `.planning/COVERAGE.md` refresh (COV-01 ~13%)
+### 2026-06-21 — Phases 121–125 Coverage Wave ✅
 
-**Wave 5 — Gate 🔄**
-- T5-01: qa-gate — **build + test -race + tsc + vitest PASS** (lint 128 errors — not gated)
-- T5-02: verifier acceptance — pending
-- T5-03: STATE.md handoff — this session
+- Phase 121: notification **82.5%**, tracker **82.4%**
+- Phase 123: messenger **82.3%**, storage **86.8%**
+- Phase 125: COV **82.6%**, security **6/6 ≥80%**
+- TF-M02–M03: testframework/notification, auth, ws, rbac, audit — Docker PASS
+- TF-M04: 154 files moved; compile fix in progress
 
-**Session 2026-06-17 (continued)**
-- CI: `backend-test`, `frontend-test`, `e2e-smoke` jobs in `.github/workflows/ci.yml`
-- Audit: handler + purge tests → **64.5%** coverage (was 47.3%)
-- A11y: login page color-contrast fix (Telegram button #187AAC, helper text --t2)
-- Security pkg coverage: auth 50.5%, ws 52.2%, rbac 53.4%, audit 64.5%, calls 35.3%
+### 2026-06-20 — Wave 6 prod + Ctrl+K
 
-### Blockers/Concerns
+- PG-01 calls **80.2%** · Dockerfile `-tags release` · deploy gated on CI
+- Ctrl+K global search UI (`command-palette.tsx`)
+- Rule: `.cursor/rules/55-docs-sync.mdc`
 
-- 56 !important declarations in app.css must be removed in Phase 8 before any component restyling
-- Light mode has no mockups -- derived palette must be validated for WCAG AA contrast
-- 6 page groups have no mockups -- need consistent extrapolation from design system patterns
-- Plate editor may need CSS scoping after !important removal
+### 2026-06-20 — UX-0 + audit loop
+
+- UserPicker, skip-link, `/help`, Kanban «Move to…»
+- Product score 74→93 path via IMPROVEMENT-MASTER-PLAN
+- Vitest 39→99+ tests
+
+---
+
+## Блокеры / риски
+
+| Риск | Mitigation |
+|------|------------|
+| ~~RU-V gaps (EN comments, encoding)~~ | ✅ RU-V10 PASS 2026-06-22 |
+| ~~tms/project −0.2% gap~~ | ✅ FA-11 closed (82.0%) |
+| ~~TMS CI webhook без RBAC (FA-02-02)~~ | ✅ FA-RBAC-FIBER3 + APIGW-01 2026-06-22 |
+| ~~Fiber v3 RBAC middleware order~~ | ✅ FA-RBAC-FIBER3 123 routes 2026-06-22 |
+| PG-03 not executed | FA-06 manual ops before prod cutover |
+| Uncommitted v4 block on branch | squash PR after FA-06 + CTO approval |
+| ~~main.go ~629 LOC tech debt~~ | ✅ FA-08 wiring split 2026-06-22 |
+
+---
 
 ## Session Continuity
 
-Last session: 2026-06-20T23:00:00.000Z
-Stopped at: Wave 6 prod pipeline + Ctrl+K + full docs sync
-Completed this session:
-- PG-01 calls 80.2% + Wave 6 infra/UX code
-- Docs: STATE, COVERAGE, TASKS, PLAN, AGENTS, stack_and_tools, test_plan, competitive_audit, vision KPI, DEPLOY, REGULATION, rule 55-docs-sync
-Resume file: None
+**Last session:** 2026-06-22/23  
+**Stopped at:** AUTH-01 · APIGW-04 closed · WebhookDispatcher Stop race fix · FA-10 race PASS  
+**Resume:** FA-06 PG-03 secret rotation (manual) → squash PR
 
-## Next session priorities
-1. UserPicker + form validation (UX backlog)
-2. E2E-06 Ctrl+K Playwright spec
-3. PG-03 secret rotation checklist
-4. Commit Wave 6 when CTO approves
+**Latest session (2026-06-22/23):**
+- **AUTH-01** RefreshToken DB + expiry validation
+- **APIGW-04** API key deactivated-user check
+- **WebhookDispatcher** `inFlight.Wait()` before `close(jobs)` — race suite green
+
+**Wave C highlights (2026-06-22):**
+- **APIGW-01** webhook CRUD RBAC · **APIGW-02** Ack/`NakWithDelay` (`webhook_dispatcher_apigw02_test.go`)
+- **FA-RBAC-FIBER3** 123 routes — Fiber v3 `[rbacMW, handler]` order (`.planning/FA-RBAC-FIBER3-AUDIT.md`)
+- **FA-10** qa-gate PASS local: build · hubtest · tsc · Biome · Vitest 99/99 (`.planning/FA-10-QA-GATE.md`)
+- **RU-V10** PASS post RU-FIX-11–13 (`.planning/RU-V-REPORT.md`)
+
+**Next session priorities:**
+1. FA-06: PG-03 secret rotation (manual ops)
+2. FA-10 follow-up: ~~race suite~~ ✅ · ~~coverage-gate CI~~ ✅ · Playwright E2E
+3. Squash PR `feat/v2.5-trust` → main when CTO approves
+4. FA-02 backlog: LiveKit `iss` const-time (FA-02-03), `RequireAuth` fail-open (FA-02-04)
+
+---
+
+*Обновляется после каждой фазы и `/handoff-sync`*

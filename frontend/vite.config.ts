@@ -1,9 +1,12 @@
 /// <reference types="vitest/config" />
+import path from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { VitePWA } from "vite-plugin-pwa";
+
+const testframeworkDir = path.resolve(__dirname, "testframework");
 
 export default defineConfig({
   plugins: [
@@ -16,6 +19,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": "/src",
+      "@testframework": testframeworkDir,
     },
   },
   build: {
@@ -58,6 +62,9 @@ export default defineConfig({
     },
   },
   server: {
+    fs: {
+      allow: [path.resolve(__dirname, "..")],
+    },
     port: 5173,
     proxy: {
       "/api": "http://localhost:3000",
@@ -71,6 +78,7 @@ export default defineConfig({
     environment: "happy-dom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    include: ["testframework/unit/**/*.test.{ts,tsx}"],
+    exclude: ["src/**/*.test.{ts,tsx}"],
   },
 });

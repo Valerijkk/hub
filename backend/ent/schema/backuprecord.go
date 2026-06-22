@@ -7,12 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// BackupRecord holds the schema definition for the BackupRecord entity.
+// BackupRecord — определение Ent-схемы сущности BackupRecord.
 type BackupRecord struct {
 	ent.Schema
 }
 
-// Fields of the BackupRecord.
+// Поля сущности BackupRecord.
 func (BackupRecord) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -38,12 +38,12 @@ func (BackupRecord) Fields() []ent.Field {
 	}
 }
 
-// Edges of the BackupRecord.
+// Рёбра (edges) сущности BackupRecord.
 func (BackupRecord) Edges() []ent.Edge {
 	return nil // РЎРёСЃС‚РµРјРЅР°СЏ СЃСѓС‰РЅРѕСЃС‚СЊ Р±РµР· СЃРІСЏР·РµР№
 }
 
-// Indexes of the BackupRecord.
+// Индексы сущности BackupRecord.
 func (BackupRecord) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("status"),

@@ -7,6 +7,7 @@ import { useState } from "react";
 import type { ChecklistItem } from "@/api/tracker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { activateOnEnterOrSpace } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 
 /** Пропсы компонента Checklist. */
@@ -94,20 +95,27 @@ export function Checklist({ items, onChange, disabled }: ChecklistProps) {
 						key={item.id}
 						className="group flex items-center gap-3 py-[10px] border-b border-b1 text-[14px]"
 					>
-						<div
+						<button
+							type="button"
+							disabled={disabled}
 							onClick={() => !disabled && handleToggle(item.id)}
+							onKeyDown={activateOnEnterOrSpace(() => handleToggle(item.id))}
 							className={cn(
 								"w-5 h-5 border-2 border-b3 rounded-[5px] shrink-0 flex items-center justify-center cursor-pointer transition-colors duration-200 hover:border-green",
 								item.checked &&
 									"bg-green border-green shadow-[0_0_8px_var(--gG)]",
 							)}
+							aria-label={
+								item.checked ? "Снять отметку" : "Отметить выполненным"
+							}
+							aria-pressed={item.checked}
 						>
 							{item.checked && (
 								<span className="text-white text-[12px] font-extrabold">
 									{"\u2713"}
 								</span>
 							)}
-						</div>
+						</button>
 						<span
 							className={cn(
 								"flex-1 text-[14px]",

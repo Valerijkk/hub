@@ -1,15 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
+import { assistJQL } from "@/api/ai";
 import {
 	createSavedFilter,
 	listSavedFilters,
 	type SavedFilter,
 	searchJQL,
 } from "@/api/search";
+import { ContextHelpTip } from "@/components/help/context-help-tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 import { JQLEditor } from "./jql-editor";
 
@@ -49,6 +52,8 @@ interface JQLSearchPageProps {
  */
 export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 	const [query, setQuery] = useState("");
+	const [nlQuery, setNlQuery] = useState("");
+	const [aiLoading, setAiLoading] = useState(false);
 	const [submittedQuery, setSubmittedQuery] = useState("");
 	const [saveName, setSaveName] = useState("");
 	const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -125,11 +130,14 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 					</svg>
 				</div>
 				<div>
-					<h2 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
-						JQL-поиск
-					</h2>
+					<div className="flex items-center gap-1.5">
+						<h2 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+							JQL-поиск
+						</h2>
+						<ContextHelpTip tipKey="jql" />
+					</div>
 					<p className="text-[12px] text-t3">
-						��оиск задач с помощью JQL-за��росов
+						Поиск задач с помощью JQL-запросов
 					</p>
 				</div>
 			</div>
@@ -152,6 +160,39 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 						))}
 				</div>
 			)}
+
+			{/* NL → JQL (фаза 17, W5) */}
+			<div className="flex gap-2 items-center">
+				<Input
+					value={nlQuery}
+					onChange={(e) => setNlQuery(e.target.value)}
+					placeholder="Опишите задачи на русском — AI сгенерирует JQL"
+					className="flex-1 text-[13px]"
+				/>
+				<Button
+					type="button"
+					variant="outline"
+					disabled={!nlQuery.trim() || aiLoading}
+					onClick={async () => {
+						setAiLoading(true);
+						try {
+							const r = await assistJQL({
+								query: nlQuery.trim(),
+								project_id: projectId,
+							});
+							setQuery(r.jql);
+							if (r.explanation) toast.message(r.explanation);
+							else toast.success("JQL сгенерирован");
+						} catch (err) {
+							toastApiError(err, "AI JQL не удался");
+						} finally {
+							setAiLoading(false);
+						}
+					}}
+				>
+					{aiLoading ? "..." : "AI → JQL"}
+				</Button>
+			</div>
 
 			{/* Строка поиска */}
 			<div className="flex gap-2">
@@ -199,7 +240,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 				<div className="flex items-center gap-2 rounded-[var(--r3)] border border-b1 bg-gradient-to-b from-card to-raised p-3">
 					<input
 						type="text"
-						placeholder="��азвание фильтра"
+						placeholder="Название фильтра"
 						className="flex-1 rounded-[var(--r2)] border border-b1 bg-input px-3 py-1.5 text-[14px] text-t1 outline-none transition-colors duration-250 focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)]"
 						value={saveName}
 						onChange={(e) => setSaveName(e.target.value)}

@@ -1,11 +1,19 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { completeOnboarding } from "@/api/auth";
 import { createProject, joinByInvite } from "@/api/projects";
 import { FormField } from "@/components/ui/form-field";
 import { toastApiError } from "@/lib/format-api-error";
+import {
+	buildProfileDisplayName,
+	type OnboardingProfileValues,
+	onboardingProfileSchema,
+} from "@/lib/onboarding/profile-schema";
+import { validateOnboardingProjectStep } from "@/lib/onboarding/project-schema";
 import { useAuthStore } from "@/stores/auth-store";
 
 /**
@@ -140,7 +148,7 @@ type ThemeOption = "light" | "dark" | "system";
 /** Варианты языка интерфейса. */
 type LangOption = "ru" | "en";
 
-/** Step labels for progress indicator */
+/** Подписи шагов индикатора прогресса онбординга. */
 const STEP_LABEL_KEYS = [
 	"common:onboarding.stepProfile",
 	"common:onboarding.stepTour",
@@ -179,20 +187,22 @@ function OnboardingPage() {
 	const [step, setStep] = useState(0);
 	const [loading, setLoading] = useState(false);
 
-	/** Данные профиля (шаг 1). */
-	const [profile, setProfile] = useState({
-		name: user?.name ?? "",
-		position: user?.position ?? "",
-		department: user?.department ?? "",
+	const profileForm = useForm<OnboardingProfileValues>({
+		resolver: zodResolver(onboardingProfileSchema),
+		mode: "onChange",
+		defaultValues: {
+			name: user?.name ?? "",
+			surname: "",
+			position: user?.position ?? "",
+			department: user?.department ?? "",
+			language: (user?.language === "en" ? "en" : "ru") as LangOption,
+		},
 	});
 
 	/** Выбранная тема (шаг 3). */
 	const [theme, setTheme] = useState<ThemeOption>("dark");
 
-	/** Выбранный язык (шаг 3). */
-	const [lang] = useState<LangOption>("ru");
-
-	/** Selected accent color index */
+	/** Индекс выбранного accent-цвета. */
 	const [accent, setAccent] = useState(0);
 
 	/** Шаг 4: проект */
@@ -200,6 +210,9 @@ function OnboardingPage() {
 	const [projectName, setProjectName] = useState("");
 	const [projectKey, setProjectKey] = useState("");
 	const [inviteCode, setInviteCode] = useState("");
+	const [projectErrors, setProjectErrors] = useState<Record<string, string>>(
+		{},
+	);
 
 	const steps = useMemo(
 		() => [
@@ -237,14 +250,48 @@ function OnboardingPage() {
 	const currentStep = steps[step];
 
 	const isProjectStepValid =
-		projectMode === "create"
-			? projectName.trim().length > 0 && projectKey.trim().length >= 2
-			: inviteCode.trim().length > 0;
+		validateOnboardingProjectStep(projectMode, {
+			projectName,
+			projectKey,
+			inviteCode,
+		}) === null;
+
+	const projectFieldError = (key: string) => {
+		const msg = projectErrors[key];
+		return msg ? t(msg as never) : null;
+	};
+
+	const profileFieldError = (key: keyof OnboardingProfileValues) => {
+		const msg = profileForm.formState.errors[key]?.message;
+		return msg ? t(msg as never) : null;
+	};
+
+	const advanceFromProfileStep = profileForm.handleSubmit(() => {
+		setStep((s) => s + 1);
+	});
 
 	/** Завершить онбординг — отправить профиль и применить настройки. */
 	async function handleComplete(skipProject = false) {
+		if (!skipProject) {
+			const errors = validateOnboardingProjectStep(projectMode, {
+				projectName,
+				projectKey,
+				inviteCode,
+			});
+			if (errors) {
+				setProjectErrors(errors);
+				return;
+			}
+		}
+		setProjectErrors({});
 		setLoading(true);
 		try {
+			const profileValid = await profileForm.trigger();
+			if (!profileValid) {
+				setStep(0);
+				return;
+			}
+
 			if (theme === "dark") {
 				document.documentElement.classList.add("dark");
 			} else if (theme === "light") {
@@ -252,7 +299,11 @@ function OnboardingPage() {
 			}
 
 			if (!skipProject) {
-				if (projectMode === "create" && projectName.trim() && projectKey.trim()) {
+				if (
+					projectMode === "create" &&
+					projectName.trim() &&
+					projectKey.trim()
+				) {
 					await createProject({
 						name: projectName.trim(),
 						key: projectKey.trim().toUpperCase(),
@@ -262,8 +313,16 @@ function OnboardingPage() {
 				}
 			}
 
+			const profileValues = profileForm.getValues();
+			const displayName = buildProfileDisplayName(profileValues);
+
 			const updated = await completeOnboarding({
-				profile: { ...profile, language: lang },
+				profile: {
+					name: displayName,
+					position: profileValues.position?.trim() || undefined,
+					department: profileValues.department?.trim() || undefined,
+					language: profileValues.language,
+				},
 			});
 			setUser(updated);
 			toast.success(t("common:onboarding.welcome"));
@@ -286,7 +345,7 @@ function OnboardingPage() {
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-void">
 			<div className="w-full max-w-[680px] px-10 py-10 relative z-[1]">
-				{/* Progress indicator */}
+				{/* Индикатор прогресса */}
 				<div className="flex items-center justify-center mb-11 gap-0">
 					{STEP_LABEL_KEYS.map((labelKey, i) => (
 						<div key={labelKey} className="flex items-center">
@@ -338,7 +397,7 @@ function OnboardingPage() {
 					))}
 				</div>
 
-				{/* Step 1: Profile form */}
+				{/* Шаг 1: форма профиля */}
 				{step === 0 && (
 					<div className="animate-[eu_400ms_var(--spring)]">
 						<div className="text-[26px] font-black tracking-[-0.04em] text-center mb-2">
@@ -348,7 +407,7 @@ function OnboardingPage() {
 							{currentStep?.description}
 						</div>
 
-						{/* Avatar upload */}
+						{/* Загрузка аватара */}
 						<div className="flex flex-col items-center mb-[30px]">
 							<div className="w-24 h-24 rounded-full bg-input border-2 border-dashed border-b2 flex items-center justify-center cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 mb-2 hover:border-blue hover:bg-blue/[0.04] hover:scale-105">
 								<svg
@@ -368,78 +427,128 @@ function OnboardingPage() {
 							</span>
 						</div>
 
-						{/* Form grid */}
+						{/* Сетка полей формы */}
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-[14px]">
-							<FormField label={t("onboarding:profile.name")} htmlFor="onb-name">
+							<FormField
+								label={t("onboarding:profile.name")}
+								htmlFor="onb-name"
+							>
 								<input
 									id="onb-name"
 									placeholder={t("onboarding:profile.namePlaceholder")}
-									value={profile.name}
-									onChange={(e) =>
-										setProfile((p) => ({ ...p, name: e.target.value }))
+									{...profileForm.register("name")}
+									aria-invalid={
+										profileForm.formState.errors.name ? true : undefined
 									}
 									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
+								{profileForm.formState.errors.name ? (
+									<p className="text-sm text-red-500 mt-1" role="alert">
+										{profileFieldError("name")}
+									</p>
+								) : null}
 							</FormField>
-							<FormField label={t("onboarding:profile.surname")} htmlFor="onb-surname">
+							<FormField
+								label={t("onboarding:profile.surname")}
+								htmlFor="onb-surname"
+							>
 								<input
 									id="onb-surname"
 									placeholder={t("onboarding:profile.surnamePlaceholder")}
-									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
-								/>
-							</FormField>
-							<FormField label={t("onboarding:profile.position")} htmlFor="onb-position">
-								<input
-									id="onb-position"
-									placeholder={t("onboarding:profile.positionPlaceholder")}
-									value={profile.position}
-									onChange={(e) =>
-										setProfile((p) => ({ ...p, position: e.target.value }))
+									{...profileForm.register("surname")}
+									aria-invalid={
+										profileForm.formState.errors.surname ? true : undefined
 									}
 									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
+								{profileForm.formState.errors.surname ? (
+									<p className="text-sm text-red-500 mt-1" role="alert">
+										{profileFieldError("surname")}
+									</p>
+								) : null}
+							</FormField>
+							<FormField
+								label={t("onboarding:profile.position")}
+								htmlFor="onb-position"
+							>
+								<input
+									id="onb-position"
+									placeholder={t("onboarding:profile.positionPlaceholder")}
+									{...profileForm.register("position")}
+									aria-invalid={
+										profileForm.formState.errors.position ? true : undefined
+									}
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
+								/>
+								{profileForm.formState.errors.position ? (
+									<p className="text-sm text-red-500 mt-1" role="alert">
+										{profileFieldError("position")}
+									</p>
+								) : null}
 							</FormField>
 							<div>
-								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
+								<label
+									htmlFor="onb-department"
+									className="block text-[12px] font-semibold text-t2 mb-[5px]"
+								>
 									{t("onboarding:profile.department")}
 								</label>
 								<input
 									id="onb-department"
 									placeholder={t("onboarding:profile.departmentPlaceholder")}
-									value={profile.department}
-									onChange={(e) =>
-										setProfile((p) => ({ ...p, department: e.target.value }))
+									{...profileForm.register("department")}
+									aria-invalid={
+										profileForm.formState.errors.department ? true : undefined
 									}
 									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 transition-colors duration-250 outline-none focus:border-[rgba(91,156,245,0.3)] focus:shadow-[0_0_0_3px_rgba(91,156,245,0.06)] placeholder:text-t3"
 								/>
+								{profileForm.formState.errors.department ? (
+									<p className="text-sm text-red-500 mt-1" role="alert">
+										{profileFieldError("department")}
+									</p>
+								) : null}
 							</div>
 							<div>
-								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
+								<label
+									htmlFor="onb-timezone"
+									className="block text-[12px] font-semibold text-t2 mb-[5px]"
+								>
 									{t("onboarding:profile.timezone")}
 								</label>
-								<select className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 appearance-none outline-none">
+								<select
+									id="onb-timezone"
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 appearance-none outline-none"
+								>
 									<option>Europe/Moscow (UTC+3)</option>
 									<option>Europe/Warsaw (UTC+1)</option>
 								</select>
 							</div>
 							<div>
-								<label className="block text-[12px] font-semibold text-t2 mb-[5px]">
+								<label
+									htmlFor="onb-language"
+									className="block text-[12px] font-semibold text-t2 mb-[5px]"
+								>
 									{t("onboarding:profile.language")}
 								</label>
-								<select className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 appearance-none outline-none">
-									<option>Русский</option>
-									<option>English</option>
+								<select
+									id="onb-language"
+									{...profileForm.register("language")}
+									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 appearance-none outline-none"
+								>
+									<option value="ru">Русский</option>
+									<option value="en">English</option>
 								</select>
 							</div>
 						</div>
 
-						{/* Navigation */}
+						{/* Навигация по шагам */}
 						<div className="flex justify-between items-center mt-10 pt-[22px] border-t border-b1">
 							<div />
 							<button
 								type="button"
-								onClick={() => setStep((s) => s + 1)}
-								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96]"
+								onClick={() => void advanceFromProfileStep()}
+								disabled={!profileForm.formState.isValid}
+								className="onb-btn-next px-7 py-[10px] rounded-[var(--r2)] text-[14px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_20px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 relative overflow-hidden hover:shadow-[0_0_32px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96] disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								{t("btn.next")} &rarr;
 							</button>
@@ -447,7 +556,7 @@ function OnboardingPage() {
 					</div>
 				)}
 
-				{/* Step 2: Feature tour */}
+				{/* Шаг 2: тур по возможностям */}
 				{step === 1 && (
 					<div className="animate-[eu_400ms_var(--spring)]">
 						<div className="text-[26px] font-black tracking-[-0.04em] text-center mb-2">
@@ -463,7 +572,7 @@ function OnboardingPage() {
 							))}
 						</div>
 
-						{/* Navigation */}
+						{/* Навигация по шагам */}
 						<div className="flex justify-between items-center mt-10 pt-[22px] border-t border-b1">
 							<button
 								type="button"
@@ -483,7 +592,7 @@ function OnboardingPage() {
 					</div>
 				)}
 
-				{/* Step 3: Theme + Accent */}
+				{/* Шаг 3: тема + accent */}
 				{step === 2 && (
 					<div className="animate-[eu_400ms_var(--spring)]">
 						<div className="text-[26px] font-black tracking-[-0.04em] text-center mb-2">
@@ -493,12 +602,12 @@ function OnboardingPage() {
 							{currentStep?.description}
 						</div>
 
-						{/* Theme label */}
+						{/* Подпись темы */}
 						<h3 className="text-[14px] font-bold text-center mb-[14px]">
 							{t("onboarding:theme.label")}
 						</h3>
 
-						{/* Theme cards */}
+						{/* Карточки тем */}
 						<div className="flex gap-[14px] mb-[30px]">
 							{(
 								[
@@ -545,16 +654,19 @@ function OnboardingPage() {
 							))}
 						</div>
 
-						{/* Accent label */}
+						{/* Подпись accent */}
 						<h3 className="text-[14px] font-bold text-center mb-[14px]">
 							{t("onboarding:theme.accent")}
 						</h3>
 
-						{/* Accent dots */}
+						{/* Точки accent-цветов */}
 						<div className="flex gap-4 justify-center mb-[30px]">
 							{accentColors.map((ac, idx) => (
-								<div
+								<button
 									key={ac.color}
+									type="button"
+									aria-label={`Выбрать акцентный цвет ${ac.color}`}
+									aria-pressed={accent === idx}
 									className={`w-11 h-11 rounded-full cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 border-[3px] hover:scale-[1.18] ${
 										accent === idx
 											? "border-white/40 shadow-[0_0_0_3px_currentColor,_0_0_20px_currentColor]"
@@ -566,7 +678,7 @@ function OnboardingPage() {
 							))}
 						</div>
 
-						{/* Navigation */}
+						{/* Навигация по шагам */}
 						<div className="flex justify-between items-center mt-10 pt-[22px] border-t border-b1">
 							<button
 								type="button"
@@ -586,7 +698,7 @@ function OnboardingPage() {
 					</div>
 				)}
 
-				{/* Step 4: Project create/join — US-M08 */}
+				{/* Шаг 4: создать/вступить в проект — US-M08 */}
 				{step === 3 && (
 					<div className="animate-[eu_400ms_var(--spring)]">
 						<div className="text-[26px] font-black tracking-[-0.04em] text-center mb-2">
@@ -599,7 +711,10 @@ function OnboardingPage() {
 						<div className="flex gap-2 mb-6">
 							<button
 								type="button"
-								onClick={() => setProjectMode("create")}
+								onClick={() => {
+									setProjectMode("create");
+									setProjectErrors({});
+								}}
 								className={`flex-1 rounded-[var(--r2)] border px-4 py-2 text-sm font-semibold ${
 									projectMode === "create"
 										? "border-blue bg-blue/10 text-blue"
@@ -610,7 +725,10 @@ function OnboardingPage() {
 							</button>
 							<button
 								type="button"
-								onClick={() => setProjectMode("join")}
+								onClick={() => {
+									setProjectMode("join");
+									setProjectErrors({});
+								}}
 								className={`flex-1 rounded-[var(--r2)] border px-4 py-2 text-sm font-semibold ${
 									projectMode === "join"
 										? "border-blue bg-blue/10 text-blue"
@@ -623,34 +741,82 @@ function OnboardingPage() {
 
 						{projectMode === "create" ? (
 							<div className="grid gap-4">
-								<FormField label={t("common:onboarding.projectName")} htmlFor="onb-project-name">
+								<FormField
+									label={t("common:onboarding.projectName")}
+									htmlFor="onb-project-name"
+								>
 									<input
 										id="onb-project-name"
 										value={projectName}
-										onChange={(e) => setProjectName(e.target.value)}
+										onChange={(e) => {
+											setProjectName(e.target.value);
+											setProjectErrors((prev) => {
+												const next = { ...prev };
+												delete next.projectName;
+												return next;
+											});
+										}}
+										aria-invalid={projectErrors.projectName ? true : undefined}
 										className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none focus:border-[rgba(91,156,245,0.3)]"
 									/>
+									{projectErrors.projectName ? (
+										<p className="text-sm text-red-500 mt-1" role="alert">
+											{projectFieldError("projectName")}
+										</p>
+									) : null}
 								</FormField>
-								<FormField label={t("common:onboarding.projectKey")} htmlFor="onb-project-key">
+								<FormField
+									label={t("common:onboarding.projectKey")}
+									htmlFor="onb-project-key"
+								>
 									<input
 										id="onb-project-key"
 										value={projectKey}
-										onChange={(e) =>
-											setProjectKey(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
-										}
+										onChange={(e) => {
+											setProjectKey(
+												e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+											);
+											setProjectErrors((prev) => {
+												const next = { ...prev };
+												delete next.projectKey;
+												return next;
+											});
+										}}
 										maxLength={10}
+										aria-invalid={projectErrors.projectKey ? true : undefined}
 										className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 font-mono outline-none focus:border-[rgba(91,156,245,0.3)]"
 									/>
+									{projectErrors.projectKey ? (
+										<p className="text-sm text-red-500 mt-1" role="alert">
+											{projectFieldError("projectKey")}
+										</p>
+									) : null}
 								</FormField>
 							</div>
 						) : (
-							<FormField label={t("common:onboarding.inviteCode")} htmlFor="onb-invite">
+							<FormField
+								label={t("common:onboarding.inviteCode")}
+								htmlFor="onb-invite"
+							>
 								<input
 									id="onb-invite"
 									value={inviteCode}
-									onChange={(e) => setInviteCode(e.target.value)}
+									onChange={(e) => {
+										setInviteCode(e.target.value);
+										setProjectErrors((prev) => {
+											const next = { ...prev };
+											delete next.inviteCode;
+											return next;
+										});
+									}}
+									aria-invalid={projectErrors.inviteCode ? true : undefined}
 									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none focus:border-[rgba(91,156,245,0.3)]"
 								/>
+								{projectErrors.inviteCode ? (
+									<p className="text-sm text-red-500 mt-1" role="alert">
+										{projectFieldError("inviteCode")}
+									</p>
+								) : null}
 							</FormField>
 						)}
 

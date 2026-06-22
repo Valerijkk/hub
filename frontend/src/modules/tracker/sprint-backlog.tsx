@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, CheckSquare, Inbox, ListTodo, Square } from "lucide-react";
+import { ArrowRight, Inbox, ListTodo } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type IssueResponse, listIssues } from "@/api/tracker";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 
 	return (
 		<div className="space-y-6 animate-[eu_450ms_var(--spring)_both]">
-			{/* Page header */}
+			{/* Заголовок страницы */}
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-3">
 					<div className="flex h-10 w-10 items-center justify-center rounded-[var(--r3)] bg-gradient-to-br from-violet-500/20 to-blue-500/20 text-violet-500">
@@ -75,7 +75,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 					</div>
 				</div>
 
-				{/* Move to sprint action bar */}
+				{/* Панель «Перенести в спринт» */}
 				{selectedIssues.size > 0 && planningSprints.length > 0 && (
 					<div className="flex items-center gap-3">
 						<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-400 border border-blue-500/20">
@@ -95,7 +95,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 				)}
 			</div>
 
-			{/* Backlog issues */}
+			{/* Задачи бэклога */}
 			{loading ? (
 				<div className="flex items-center justify-center p-12">
 					<div className="flex flex-col items-center gap-3">
@@ -121,35 +121,25 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 							return (
 								<div
 									key={issue.id}
-									className={`group flex cursor-pointer items-center gap-3 rounded-[var(--r3)] px-4 py-3 border-b border-b1 text-[13px] transition-colors duration-150 ${
+									className={`group flex items-center gap-3 rounded-[var(--r3)] px-4 py-3 border-b border-b1 text-[13px] transition-colors duration-150 ${
 										isSelected
 											? "border-blue/20 bg-blue/5 ring-1 ring-blue/20"
 											: "border-transparent hover:bg-[var(--hover)]"
 									}`}
-									onClick={() => toggleSelect(issue.id)}
 								>
-									{/* Checkbox */}
-									<button
-										type="button"
-										className="flex-shrink-0 text-t2 transition-colors hover:text-t1"
-										onClick={(e) => {
-											e.stopPropagation();
-											toggleSelect(issue.id);
-										}}
-									>
-										{isSelected ? (
-											<CheckSquare className="h-4 w-4 text-blue-400" />
-										) : (
-											<Square className="h-4 w-4" />
-										)}
-									</button>
-
-									{/* Issue key */}
+									<input
+										id={`backlog-issue-${issue.id}`}
+										type="checkbox"
+										checked={isSelected}
+										onChange={() => toggleSelect(issue.id)}
+										className="h-4 w-4 shrink-0 cursor-pointer accent-blue-400"
+									/>
+									{/* Ключ задачи */}
 									<span className="flex-shrink-0 rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-t2">
 										{issue.issue_key}
 									</span>
 
-									{/* Title */}
+									{/* Название */}
 									<Link
 										to="/projects/$projectId/issues/$issueKey"
 										params={{
@@ -162,7 +152,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 										{issue.title}
 									</Link>
 
-									{/* Priority badge */}
+									{/* Бейдж приоритета */}
 									<span
 										className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
 											issue.priority === "critical"

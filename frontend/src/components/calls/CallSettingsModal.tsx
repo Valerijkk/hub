@@ -180,10 +180,10 @@ export function CallSettingsModal({
 					<div className="space-y-5">
 						{/* Динамик */}
 						<div className="space-y-2">
-							<label className="flex items-center gap-2 text-xs font-medium text-white/60 uppercase tracking-wider">
+							<span className="flex items-center gap-2 text-xs font-medium text-white/60 uppercase tracking-wider">
 								<Volume2 className="h-3.5 w-3.5" />
 								Динамик
-							</label>
+							</span>
 							<Select
 								value={selectedOutput}
 								onValueChange={(v) => void handleOutputChange(v)}
@@ -209,10 +209,10 @@ export function CallSettingsModal({
 
 						{/* Микрофон */}
 						<div className="space-y-2">
-							<label className="flex items-center gap-2 text-xs font-medium text-white/60 uppercase tracking-wider">
+							<span className="flex items-center gap-2 text-xs font-medium text-white/60 uppercase tracking-wider">
 								<Mic className="h-3.5 w-3.5" />
 								Микрофон
-							</label>
+							</span>
 							<Select
 								value={selectedInput}
 								onValueChange={(v) => void handleInputChange(v)}

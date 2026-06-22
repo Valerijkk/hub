@@ -1,9 +1,18 @@
-# Hub — Security Guidelines
+# Hub — Руководство по безопасности
 
-> Единая база знаний. Обновляется ARCH/BE при изменении политик безопасности.
-> Аудит: `.planning/code-review-final/SECURITY.md`, constraints: `.cursor/rules/60-tz-constraints.mdc`
+> Единая база знаний. Обновляется ARCH/BE при изменении политик.  
+> Аудит: `.planning/code-review-final/SECURITY.md` · TZ: `docs/tz_constraints.md`
 
 ---
+
+## Краткий статус (2026-06-21)
+
+| Категория | Статус |
+|-----------|--------|
+| CRITICAL findings (v2.0.1) | **12/12 FIXED** ✅ |
+| HIGH findings | **14 FIXED**, 2 PARTIAL, 1 DEFERRED (bundle size) |
+| Production readiness | ✅ YES с оговорками (PG-03 rotation, FE-H5 audit) |
+| Auth model | **Magic Link only** — Telegram notify-only (ADR-AUTH-01) |
 
 ## OWASP Top 10 — чек-лист Hub
 
@@ -23,9 +32,9 @@
 | A09 | Logging Failures | ✅ | slog + request_id, audit middleware |
 | A10 | SSRF | ✅ Fixed | — (NEW-02 OpenGraph SafeHTTP; NF-07 WebPush; SEC-04 GitLab) |
 
-## Статус findings — 2026-06-17 Re-Audit
+## Статус findings — формальный re-audit 2026-06-17
 
-### CRITICAL (12) — Production Blockers
+### CRITICAL (12) — блокеры продакшена
 
 | ID | Статус | Файл:строка | Верификация |
 |----|--------|-------------|-------------|
@@ -46,7 +55,7 @@
 
 ---
 
-### HIGH (16) — Security & Architecture
+### HIGH (16) — безопасность и архитектура
 
 | ID | Статус | Файл:строка | Примечание |
 |----|--------|-------------|------------|
@@ -71,7 +80,7 @@
 
 ---
 
-### Additional Findings (новые фичи 2026-06-17)
+### Дополнительные findings (новые фичи 2026-06-17)
 
 | ID | Severity | Статус | Файл:строка | Примечание |
 |----|----------|--------|-------------|------------|
@@ -103,19 +112,23 @@
 ## Аутентификация и авторизация
 
 ```
-Magic Link / Telegram → JWT access (15 min, memory)
-                     → Refresh token (Redis, 30 days, revocable)
-                     → Session record (PostgreSQL)
+Magic Link (email) → JWT access (15 min, memory)
+                  → Refresh token (Redis, 30 days, revocable)
+                  → Session record (PostgreSQL)
+Telegram         → Только notify bind/delivery (НЕ login)
 ```
 
-| Контроль | Значение |
-|----------|----------|
-| Auth rate limit | 3 попытки / 10 мин |
-| Magic link TTL | 10 мин |
-| Session list | User видит device/IP, может отозвать |
-| RBAC levels | System (Admin/Member) → Project (Owner/Dev/Tester/Viewer) → Custom |
+| Контроль | Значение | Источник |
+|----------|----------|----------|
+| Login methods | **Magic Link only** | ADR-AUTH-01, `auth/handler.go` |
+| Auth rate limit | 3 / 10 min | `ratelimit.go` |
+| Magic link TTL | 10 min | `magiclink.go` |
+| Code compare | `subtle.ConstantTimeCompare` | SEC-07 ✅ |
+| Refresh storage | SHA-256 hash in Redis | NF-12 ✅ |
+| Session list | User видит device/IP, может отозвать | `/auth/sessions` |
+| RBAC | System (Admin/Member) → Project roles → Custom | `rbac/` |
 
-**Запрещено:** пароли, SSO, LDAP, OAuth (v1–v2 scope).
+**Запрещено (v1–v4 scope):** пароли, SSO, LDAP, OAuth login providers.
 
 ## Валидация и санитизация
 
@@ -137,7 +150,7 @@ Magic Link / Telegram → JWT access (15 min, memory)
 | Clickjacking | `X-Frame-Options: DENY` (NF-08 ✅ `SecurityHeaders`) |
 | CSWSH | WS origin check vs `CORS_ORIGINS` (NF-02 ✅) |
 
-## WebSocket Security (NF-02) — FIXED
+## Безопасность WebSocket (NF-02) — FIXED
 
 **Реализовано (SEC-H1):**
 1. `CheckOrigin` сверяет `Origin` с `CORS_ORIGINS` (`ws/handler.go:84-105`)
@@ -146,12 +159,12 @@ Magic Link / Telegram → JWT access (15 min, memory)
 
 **Остаточный риск:** `DEV_MODE=true` разрешает все Origin; пустой Origin пропускается (non-browser).
 
-## Search Security (NF-03) — FIXED
+## Безопасность поиска (NF-03) — FIXED
 
 **Реализовано (SEC-H2):** `searchMessages` фильтрует `channel_id ∈ getUserChannelIDs(userID)`.
 Issues/projects/files/channels — по `projectIDs`; users — shared-project scope (+ admin bypass).
 
-## Webhook Security
+## Безопасность webhook
 
 ```go
 // ПРАВИЛЬНО — reject if hash claim missing
@@ -173,16 +186,16 @@ if expectedHash != "" { ... }
 - ❌ `log.Printf("%v", req.Body)` с sensitive data
 - ❌ Логирование полного JWT
 
-## Rate Limiting
+## Ограничение частоты запросов
 
 | Endpoint type | Limit |
 |---------------|-------|
 | Auth | 3 / 10 min |
 | API general | 100 / sec |
 | File upload | 10 / min |
-| Messages | 60 / min |
+| Messages | 60 / min | `MessageSendRateLimit` в `ratelimit.go` |
 
-## v2.0.1 Blockers — итог 2026-06-17 Re-Audit
+## v2.0.1 Blockers — итог re-audit 2026-06-17
 
 **CRITICAL (12/12): ✅ ALL FIXED**
 
@@ -213,7 +226,7 @@ if expectedHash != "" { ... }
 | NF-13 | WS drop на full buffer | Accepted: fail-soft лучше блокировки room |
 | FE-H5 | Bundle 1.1 MB | Deferred: code-splitting в Phase 17 (v2.5) |
 
-## Security Review Checklist (для верификаторов)
+## Чек-лист security review (для верификаторов)
 
 - [ ] Нет hardcoded secrets в diff
 - [ ] User-controlled URLs через safehttp
@@ -250,13 +263,13 @@ if expectedHash != "" { ... }
 
 ---
 
-## Executive Summary — 2026-06-17 Formal Re-Audit
+## Итоговое резюме — формальный re-audit 2026-06-17
 
 **Scope:** All 12 CRITICAL + 16 HIGH findings from `.planning/code-review-final/SUMMARY.md` (2026-05-15)  
 **Method:** File-level verification (Grep + Read actual code) against current codebase  
 **Auditor:** security-auditor (readonly analysis)
 
-### Status Counts
+### Сводка статусов
 
 | Severity | Total | ✅ FIXED | ⚠️ PARTIAL | ❌ NOT FOUND | 🔄 DEFERRED |
 |----------|-------|---------|-----------|-------------|------------|
@@ -264,7 +277,7 @@ if expectedHash != "" { ... }
 | **HIGH** | **16** | **12** | **2** | **2** | **0** |
 | **TOTAL** | **28** | **24** | **2** | **2** | **0** |
 
-### CRITICAL (12) — All Fixed ✅
+### CRITICAL (12) — все исправлено ✅
 
 1. ✅ SEC-01: APIKeyAuth ordering
 2. ✅ SEC-02: LiveKit webhook sha256
@@ -279,7 +292,7 @@ if expectedHash != "" { ... }
 11. ✅ INF-04: BackupService nil s3Client
 12. ✅ FE-01: Rules of Hooks violation
 
-### HIGH (16) — Status Breakdown
+### HIGH (16) — разбивка статусов
 
 **✅ FIXED (12):**
 - SEC-H1: WS authz (CheckOrigin + CanSubscribe)
@@ -305,7 +318,7 @@ if expectedHash != "" { ... }
 **🔄 DEFERRED (1):**
 - FE-H5: Bundle size audit (requires build tooling analysis)
 
-### New Features Audit (2026-06-17)
+### Аудит новых фич (2026-06-17)
 
 **Verified Safe:**
 - ✅ `audit/middleware.go`: Async recorder, proper skip logic
@@ -315,7 +328,7 @@ if expectedHash != "" { ... }
 - ✅ `storage/filename.go`: Path traversal mitigation
 - ✅ `platform/http/opengraph.go`: SafeHTTP + ValidateOutboundURL + LimitReader
 
-### SEC-PROD Verdict
+### Вердикт SEC-PROD
 
 **Production Ready:** ✅ **YES**
 
@@ -332,4 +345,4 @@ if expectedHash != "" { ... }
 **Recommendation:** Clear for production deployment. Residual risks are LOW severity or architectural debt scheduled for v2.6 Phase 19-20.
 
 ---
-*Последнее обновление: 2026-06-17 — Formal re-audit complete*
+*Последнее обновление: 2026-06-22 — RU-FIX-01: RU section headers*

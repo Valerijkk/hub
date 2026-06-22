@@ -9,6 +9,7 @@ import (
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/notification"
 	"github.com/valerii/hub/backend/ent/notificationpreference"
+	"github.com/valerii/hub/backend/ent/user"
 )
 
 // Repository предоставляет доступ к данным уведомлений через Ent.
@@ -183,7 +184,7 @@ func (r *Repository) UpsertPreference(ctx context.Context, userID uuid.UUID, not
 	return builder.Save(ctx)
 }
 
-// --- Helper methods for consumer (avoid direct DB access) ---
+// --- Методы для consumer (без прямого доступа consumer к *ent.Client) ---
 
 // GetIssueAssignee возвращает назначенного пользователя задачи по ID задачи.
 // Возвращает nil, nil если задача не найдена или назначенный не задан.
@@ -283,4 +284,40 @@ func (r *Repository) IsEnabled(ctx context.Context, userID uuid.UUID, notifType,
 		return true, nil // По умолчанию включено.
 	}
 	return false, err
+}
+
+// GetUserTelegram загружает поля telegram пользователя для статуса bind.
+func (r *Repository) GetUserTelegram(ctx context.Context, userID uuid.UUID) (*ent.User, error) {
+	return r.db.User.Get(ctx, userID)
+}
+
+// FindUserByTelegramID находит пользователя по telegram_id.
+func (r *Repository) FindUserByTelegramID(ctx context.Context, telegramID string) (*ent.User, error) {
+	return r.db.User.Query().Where(user.TelegramIDEQ(telegramID)).Only(ctx)
+}
+
+// IsTelegramIDTaken проверяет, привязан ли telegram_id к другому пользователю.
+func (r *Repository) IsTelegramIDTaken(ctx context.Context, telegramID string, excludeUserID uuid.UUID) (bool, error) {
+	return r.db.User.Query().
+		Where(
+			user.TelegramIDEQ(telegramID),
+			user.IDNEQ(excludeUserID),
+		).
+		Exist(ctx)
+}
+
+// SetUserTelegram записывает telegram_id на пользователя.
+func (r *Repository) SetUserTelegram(ctx context.Context, userID uuid.UUID, telegramID string) error {
+	_, err := r.db.User.UpdateOneID(userID).
+		SetTelegramID(telegramID).
+		Save(ctx)
+	return err
+}
+
+// ClearUserTelegram снимает telegram_id с профиля пользователя.
+func (r *Repository) ClearUserTelegram(ctx context.Context, userID uuid.UUID) error {
+	_, err := r.db.User.UpdateOneID(userID).
+		ClearTelegramID().
+		Save(ctx)
+	return err
 }

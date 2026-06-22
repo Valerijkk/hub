@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
 	banUser,
 	deactivateUser,
 	gdprDeleteUser,
 	reassignTasks,
 } from "@/api/admin";
+import { getOrgInvite } from "@/api/admin-org";
 import { api } from "@/api/client";
+import { PendingUsersPanel } from "@/components/admin/pending-users-panel";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Пользователь для управления. */
 interface ManagedUser {
@@ -162,6 +166,22 @@ export function UserManagement() {
 		useState<ManagedUser | null>(null);
 	const [banDialogUser, setBanDialogUser] = useState<ManagedUser | null>(null);
 	const [banReason, setBanReason] = useState("");
+	const [inviteLink, setInviteLink] = useState("");
+	const [inviteLoading, setInviteLoading] = useState(false);
+
+	useEffect(() => {
+		setInviteLoading(true);
+		getOrgInvite()
+			.then((res) => {
+				const url =
+					typeof window !== "undefined"
+						? `${window.location.origin}/login?invite=${encodeURIComponent(res.invite_token)}`
+						: res.invite_url;
+				setInviteLink(url);
+			})
+			.catch(() => setInviteLink(""))
+			.finally(() => setInviteLoading(false));
+	}, []);
 
 	useEffect(() => {
 		setLoading(true);
@@ -177,7 +197,6 @@ export function UserManagement() {
 				}
 			})
 			.catch(() => {
-				// API may not exist yet, use empty list
 				setUsers([]);
 			})
 			.finally(() => setLoading(false));
@@ -201,7 +220,7 @@ export function UserManagement() {
 				),
 			);
 		} catch (err) {
-			console.error("Ошибка деактивации:", err);
+			toastApiError(err, "Не удалось деактивировать пользователя");
 		} finally {
 			setActionUserId(null);
 		}
@@ -217,7 +236,7 @@ export function UserManagement() {
 			alert(`Переназначено задач: ${result.reassigned_count}`);
 			setReassignDialogUser(null);
 		} catch (err) {
-			console.error("Ошибка переназначения:", err);
+			toastApiError(err, "Не удалось переназначить задачи");
 		} finally {
 			setActionUserId(null);
 		}
@@ -233,7 +252,7 @@ export function UserManagement() {
 			setUsers((prev) => prev.filter((u) => u.id !== gdprDialogUser.id));
 			setGdprDialogUser(null);
 		} catch (err) {
-			console.error("Ошибка GDPR удаления:", err);
+			toastApiError(err, "Не удалось выполнить GDPR удаление");
 		} finally {
 			setActionUserId(null);
 		}
@@ -253,7 +272,7 @@ export function UserManagement() {
 			setBanDialogUser(null);
 			setBanReason("");
 		} catch (err) {
-			console.error("Ошибка блокировки:", err);
+			toastApiError(err, "Не удалось заблокировать пользователя");
 		} finally {
 			setActionUserId(null);
 		}
@@ -261,7 +280,42 @@ export function UserManagement() {
 
 	return (
 		<div className="space-y-4">
-			{/* Invite section */}
+			<PendingUsersPanel />
+
+			{/* Инвайт-ссылка организации */}
+			<div className="flex flex-col gap-2 mb-5 p-4 bg-gradient-to-br from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r3)]">
+				<h3 className="text-[14px] font-bold">Ссылка-приглашение в Hub</h3>
+				<p className="text-[12px] text-t3">
+					Отправьте новым участникам — после регистрации они попадут в очередь
+					одобрения
+				</p>
+				<div className="flex gap-2">
+					<input
+						type="text"
+						readOnly
+						aria-label="Ссылка-приглашение в Hub"
+						value={
+							inviteLoading
+								? "Загрузка..."
+								: inviteLink || "Организация не настроена"
+						}
+						className="flex-1 h-10 px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[13px] text-t1 outline-none"
+					/>
+					<button
+						type="button"
+						disabled={!inviteLink}
+						onClick={() => {
+							void navigator.clipboard.writeText(inviteLink);
+							toast.success("Ссылка скопирована");
+						}}
+						className="inline-flex items-center px-4 py-2 rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white disabled:opacity-50"
+					>
+						Копировать
+					</button>
+				</div>
+			</div>
+
+			{/* Поиск */}
 			<div className="flex gap-[10px] mb-5 p-4 bg-gradient-to-br from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r3)]">
 				<input
 					type="text"
@@ -278,7 +332,7 @@ export function UserManagement() {
 				</button>
 			</div>
 
-			{/* User table */}
+			{/* Таблица пользователей */}
 			<table
 				className="w-full"
 				style={{ borderCollapse: "separate", borderSpacing: 0 }}
@@ -343,6 +397,7 @@ export function UserManagement() {
 								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
 									<span
 										className={`inline-flex px-[10px] py-[3px] rounded-full text-[11px] font-[650] ${
+											user.system_role === "founder" ||
 											user.system_role === "admin"
 												? "bg-blue/[0.08] text-blue border border-blue/[0.15]"
 												: user.system_role === "moderator"
@@ -356,10 +411,12 @@ export function UserManagement() {
 									</span>
 								</td>
 								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
-									{user.status === "deactivated" ? (
+									{user.status === "pending" ? (
+										<span className="text-amber-400">{"\u25CF"} Ожидает</span>
+									) : user.status === "deactivated" ? (
 										<span className="text-t4">{"\u25CB"} Деактивирован</span>
 									) : (
-										<span className="text-green">{"\u25CF"} Онлайн</span>
+										<span className="text-green">{"\u25CF"} Активен</span>
 									)}
 								</td>
 								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] text-t2 hover:bg-[var(--hover)]">
@@ -377,6 +434,7 @@ export function UserManagement() {
 													disabled={actionUserId === user.id}
 													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-red/[0.1] hover:text-red disabled:opacity-50"
 													title="Заблокировать"
+													aria-label="Заблокировать пользователя"
 												>
 													{"\u26D4"}
 												</button>
@@ -386,6 +444,7 @@ export function UserManagement() {
 													disabled={actionUserId === user.id}
 													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
 													title="Деактивировать"
+													aria-label="Деактивировать пользователя"
 												>
 													{"\u2718"}
 												</button>
@@ -397,6 +456,7 @@ export function UserManagement() {
 											disabled={actionUserId === user.id}
 											className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
 											title="Переназначить"
+											aria-label="Переназначить задачи пользователя"
 										>
 											{"\u270E"}
 										</button>
@@ -406,6 +466,7 @@ export function UserManagement() {
 											disabled={actionUserId === user.id}
 											className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-red disabled:opacity-50"
 											title="GDPR удаление"
+											aria-label="GDPR удаление данных пользователя"
 										>
 											{"\uD83D\uDDD1"}
 										</button>

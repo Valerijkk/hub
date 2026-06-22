@@ -192,7 +192,7 @@ func toTemplateResponse(t *ent.ProjectTemplate) *TemplateResponse {
 	}
 }
 
-// --- HTTP handlers ---
+// --- HTTP-обработчики ---
 
 // TemplateHandler предоставляет HTTP-обработчики для шаблонов проектов.
 type TemplateHandler struct {

@@ -10,9 +10,12 @@ import (
 // Timed выполняет fn и логирует длительность в миллисекундах.
 // Ошибки логируются на уровне Error, успех — Info.
 func Timed[T any](ctx context.Context, operation string, fn func(context.Context) (T, error)) (T, error) {
+	ctx, span := startOperationSpan(ctx, operation)
 	start := time.Now()
 	result, err := fn(ctx)
 	ms := time.Since(start).Milliseconds()
+	recordOperation(operation, ms, err != nil)
+	finishOperationSpan(span, err)
 	attrs := []any{
 		"operation", operation,
 		"duration_ms", ms,

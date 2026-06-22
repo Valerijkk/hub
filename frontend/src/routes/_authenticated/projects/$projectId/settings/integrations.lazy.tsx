@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	createIntegration as createGitHubIntegration,
 	deleteIntegration as deleteGitHubIntegration,
@@ -20,9 +19,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toastApiError } from "@/lib/format-api-error";
 
 // ---------------------------------------------------------------------------
-// GitHub секция
+// Секция GitHub
 // ---------------------------------------------------------------------------
 
 function GitHubSection({ projectId }: { projectId: string }) {
@@ -55,7 +55,8 @@ function GitHubSection({ projectId }: { projectId: string }) {
 			setAccessToken("");
 			setWebhookSecret("");
 		},
-		onError: (err) => toastApiError(err, "Ошибка подключения GitHub-репозитория"),
+		onError: (err) =>
+			toastApiError(err, "Ошибка подключения GitHub-репозитория"),
 	});
 
 	const deleteMutation = useMutation({
@@ -229,7 +230,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 							Настройте Webhook в{" "}
 							<strong>GitHub &rarr; Settings &rarr; Webhooks</strong>. URL:{" "}
 							<code className="rounded-[var(--r1)] bg-input px-1">
-								{"${HUB_URL}"}/api/github/webhook
+								$&#123;HUB_URL&#125;/api/github/webhook
 							</code>
 							. Укажите тот же секрет. Events: Push, Pull requests, Workflow
 							runs.
@@ -254,7 +255,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// GitLab секция
+// Секция GitLab
 // ---------------------------------------------------------------------------
 
 function GitLabSection({ projectId }: { projectId: string }) {
@@ -286,7 +287,8 @@ function GitLabSection({ projectId }: { projectId: string }) {
 			setAccessToken("");
 			setWebhookSecret("");
 		},
-		onError: (err) => toastApiError(err, "Ошибка подключения GitLab-репозитория"),
+		onError: (err) =>
+			toastApiError(err, "Ошибка подключения GitLab-репозитория"),
 	});
 
 	const deleteMutation = useMutation({
@@ -471,7 +473,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 							Настройте Webhook в{" "}
 							<strong>GitLab &rarr; Settings &rarr; Webhooks</strong>. URL:{" "}
 							<code className="rounded-[var(--r1)] bg-input px-1">
-								{"${HUB_URL}"}/api/gitlab/webhook
+								$&#123;HUB_URL&#125;/api/gitlab/webhook
 							</code>
 							. Укажите токен в поле <strong>Secret token</strong>. Triggers:
 							Push, Merge request, Pipeline.

@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Reaction holds the schema definition for the Reaction entity.
+// Reaction — определение Ent-схемы сущности Reaction.
 type Reaction struct {
 	ent.Schema
 }
 
-// Fields of the Reaction.
+// Поля сущности Reaction.
 func (Reaction) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -28,7 +28,7 @@ func (Reaction) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Reaction.
+// Рёбра (edges) сущности Reaction.
 func (Reaction) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("comment", Comment.Type).
@@ -42,7 +42,7 @@ func (Reaction) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the Reaction.
+// Индексы сущности Reaction.
 func (Reaction) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("comment", "user").

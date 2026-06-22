@@ -2,99 +2,82 @@
 
 # Hub
 
-**Единая платформа для команд разработки**
+**Self-hosted corporate super-app для команд разработки**
 
-Трекер задач · Мессенджер · TMS · Звонки · Дашборды
+Трекер · Мессенджер · TMS · Звонки · Интранет · CRM · HR · Учёт · AI
 
 <p>
-  <img src="https://img.shields.io/badge/Go-1.24-00ADD8?style=flat&logo=go&logoColor=white" alt="Go" />
+  <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=flat&logo=go&logoColor=white" alt="Go" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/PostgreSQL-17-4169E1?style=flat&logo=postgresql&logoColor=white" alt="PostgreSQL" />
   <img src="https://img.shields.io/badge/MongoDB-8-47A248?style=flat&logo=mongodb&logoColor=white" alt="MongoDB" />
   <img src="https://img.shields.io/badge/Redis-7-DC382D?style=flat&logo=redis&logoColor=white" alt="Redis" />
+  <img src="https://img.shields.io/badge/Coverage-82.6%25-brightgreen" alt="Coverage" />
   <img src="https://img.shields.io/badge/License-Private-red" alt="License" />
 </p>
 
 <p>
-  <strong>~230 API endpoints</strong> · <strong>39 frontend routes</strong> · <strong>95 requirements v1.0</strong>
+  <strong>286+ API endpoints</strong> · <strong>39+ frontend routes</strong> · <strong>22 E2E specs</strong> · <strong>Product score 93/100</strong>
 </p>
 
 </div>
 
 ---
 
-Hub -- платформа, заменяющая Jira + Slack + TestRail + Zoom + Grafana для средних команд разработки (10-50 человек). Один проект вместо пяти подписок. Полноценный трекер с 9 типами задач и кастомным workflow, мессенджер с тредами и голосовыми, TMS с Allure-интеграцией, видеозвонки через LiveKit, и настраиваемые дашборды -- всё под одной авторизацией.
+Hub — self-hosted платформа, заменяющая **Jira + Slack + TestRail + Zoom + Bitrix** для команд 10–50 человек. Dev-suite (трекер, мессенджер, TMS, звонки, дашборды) и корпоративные модули (интранет, календарь, CRM-lite, HR, учёт, no-code базы, AI hub) — в одном инстансе с единой авторизацией Magic Link и RBAC.
 
 ## Возможности
 
-### Трекер задач
+### Dev-suite
+
+#### Трекер задач
 - 9 типов задач (Epic, Story, Task, Bug, Sub-Task, Improvement, Research, Design, DevOps)
-- Kanban-доски с WIP-лимитами и swimlanes
-- Scrum: спринты, Planning Poker, burndown, velocity
-- Кастомный workflow (статусы + переходы)
-- Кастомные поля, метки, группы меток
-- Связи между задачами (blocks, relates to, duplicates)
-- Time tracking с таймером
-- JQL-поиск по задачам
-- Комментарии с rich-text, реакции, лента активности
+- Kanban с WIP-лимитами и swimlanes · Scrum: спринты, Planning Poker, burndown, velocity
+- Кастомный workflow · JQL · automation lite · time tracking
+- Связи между задачами · GitHub/GitLab webhooks · Gantt (v2.6)
 
-### Мессенджер
-- Каналы (публичные / приватные), DM
-- Треды, реакции, пересылка сообщений
-- Закрепление сообщений, закладки
-- Голосовые сообщения
-- Опросы (polls)
-- Индикатор набора текста, присутствие (online/offline)
-- Кастомные статусы
-- Пригласительные ссылки в каналы
-- Глобальный поиск по сообщениям
+#### Мессенджер
+- Каналы (публичные/приватные), DM, треды, reactions, polls, voice messages
+- @hub-ai (AI gateway: Ollama + BYOK) · presence · #hub-ci read-only channel
+- Глобальный поиск Ctrl+K · issue↔message deep links
 
-### TMS (Test Management)
-- Тест-кейсы: classic и BDD (Gherkin)
-- Тестовые наборы (suites) и компоненты
-- Тестовые прогоны с назначением тестировщиков
-- Результаты: passed / failed / blocked / skipped
-- Версионирование тест-кейсов с rollback
-- Связывание тест-кейсов с задачами (traceability)
-- Создание бага из результата прогона
-- Allure import (JSON / ZIP), JUnit import
-- CI/CD webhook (автоматические прогоны)
-- Отчёты: тренды, flaky-тесты, покрытие, сравнение прогонов, матрица трассировки, дефект-категории, сравнение окружений
-- Тестовые окружения
-- Экспорт прогонов в PDF
+#### TMS (Test Management)
+- Classic/BDD кейсы · suites · runs · Allure CI import · hub-cli push-results
+- Traceability matrix · run comparison · env compare · flaky trends · PDF export
 
-### Звонки
-- Аудио + screen share через LiveKit (WebRTC)
-- До 50 участников
-- Запись звонков
-- Планирование звонков, проверка конфликтов
-- Instant-звонки из мессенджера
-- Приглашение по ссылке
-- "Поднять руку" (raise hand)
-- Эфемерный чат в звонке
+#### Звонки
+- LiveKit: voice + screen share + webcams · до 50 участников
+- Запись · планирование · instant-call из мессенджера · ephemeral chat
 
-### Дашборды
-- Персональный, проектный, админский
-- 12+ виджетов (burndown, velocity, тренды тестов и др.)
-- Drag-and-drop layout
-- Шаблоны дашбордов
+#### Дашборды
+- Personal / project / admin · 12+ виджетов · drag-and-drop layout · шаблоны
 
-### Дополнительно
-- **Авторизация**: Magic Link (email) + Telegram, JWT + refresh-токены, управление сессиями
-- **RBAC**: фиксированные роли (Owner, Admin, Member, Viewer) + кастомные роли с детальными правами
-- **Уведомления**: в приложении + push (Web Push VAPID) + Telegram-бот, тихие часы, настройки по типам
-- **Глобальный поиск**: Ctrl+K, поиск по задачам / тест-кейсам / сообщениям, сохранённые фильтры
-- **GitHub-интеграция**: вебхуки (push, PR, workflow), автолинк PR и коммитов, создание веток из задач, CI/CD статусы
-- **GitLab-интеграция**: вебхуки, пайплайны, создание веток, триггер пайплайнов
-- **Импорт**: Jira JSON, CSV/Excel (задачи), TestRail CSV (тест-кейсы)
-- **Экспорт**: CSV, Excel, ZIP (полный бэкап проекта), PDF (прогоны, спринты)
-- **Бэкапы**: ручное создание, восстановление, удаление
-- **API-ключи и вебхуки**: программный доступ + webhook-подписки с историей доставок
-- **Аудит**: лог действий, лимиты ресурсов, корзина, деактивация и GDPR-удаление пользователей
-- **i18n**: Русский + Английский
-- **Темы**: Тёмная / Светлая / Системная + акцентные цвета
-- **PWA**: установка на мобильные устройства
+### Corporate super-app (v4)
+
+| Модуль | Возможности |
+|--------|-------------|
+| **Интранет** | News feed, kudos, Random Coffee |
+| **Org directory** | MOD-02, поиск людей в Ctrl+K |
+| **Календарь** | Unified events, iCal export |
+| **CRM-lite** | Contacts, deals kanban, won→invoice |
+| **HR-lite** | Leave requests, 1C webhook |
+| **Marketplace** | Classifieds, mod queue |
+| **Status page** | Public `/status` |
+| **Bases** | Lark-style no-code tables |
+| **Accounting** | Ledger, journal, invoices, P&L |
+
+### Platform
+
+- **Auth:** Magic Link (email) + Telegram bind · JWT 15m · refresh 30d · org + founder role
+- **RBAC:** Owner/Admin/Member/Viewer + custom roles
+- **Notifications:** in-app + Web Push + Telegram · quiet hours
+- **Search:** Meilisearch + Ctrl+K · user-scope (NF-03)
+- **AI Hub:** BYOK + Ollama · composer suggest · external AI consent
+- **Observability:** Prometheus · Loki · OTel · Alertmanager → audit log
+- **Integrations:** GitHub, GitLab, Jira import, 1C connector, hub-cli
+- **Admin:** audit log, trash 30d, backups, ban, GDPR, resource limits
+- **i18n:** RU + EN · Dark/Light/System themes · PWA
 
 ## Технологический стек
 
@@ -102,43 +85,43 @@ Hub -- платформа, заменяющая Jira + Slack + TestRail + Zoom +
 
 | Технология | Версия | Назначение |
 |---|---|---|
-| Go + Fiber v3 | 1.24 | HTTP-сервер, WebSocket, middleware, конкуррентная обработка |
-| Ent ORM + Atlas | -- | PostgreSQL: кодогенерация схем, типобезопасные запросы, миграции |
-| MongoDB | 8 | Сообщения мессенджера, Allure-отчёты |
-| Redis | 7 | Кеш, сессии, presence, magic link токены, rate limiting |
-| NATS + JetStream | -- | Pub/sub события, очереди уведомлений, аудит-лог |
-| LiveKit | -- | WebRTC: звонки, screen share, запись |
-| SeaweedFS | -- | S3-совместимое файловое хранилище (аватары, вложения, записи) |
+| Go + Fiber v3 | 1.25 | HTTP, WebSocket, middleware |
+| Ent ORM + Atlas | — | PostgreSQL: схемы, миграции |
+| MongoDB | 8 | Сообщения, Allure reports |
+| Redis | 7 | Кеш, сессии, presence, rate limiting |
+| NATS + JetStream | — | Pub/sub, уведомления, аудит |
+| LiveKit | — | WebRTC: звонки, запись |
+| SeaweedFS | — | S3-совместимое хранилище |
+| Meilisearch | — | Full-text search |
 
 ### Frontend
 
 | Технология | Версия | Назначение |
 |---|---|---|
-| React | 19 | UI-фреймворк |
+| React | 19 | UI |
 | TypeScript | 5.7 | Типобезопасность |
-| TanStack Router | -- | Type-safe файловый роутинг (39 маршрутов) |
-| TanStack Query | -- | Серверное состояние, кеширование, инвалидация |
-| Zustand | -- | Клиентское состояние (11 stores) |
-| Shadcn/ui + Tailwind CSS 4 | -- | UI-компоненты, дизайн-система |
-| Plate | -- | Rich-text редактор (описания задач, комментарии) |
-| Recharts | -- | Графики (burndown, velocity, тренды) |
-| LiveKit React | -- | UI звонков |
-| Vite | -- | Сборка, HMR, code splitting |
+| TanStack Router | — | 39+ маршрутов |
+| TanStack Query + Zustand | — | Server/client state |
+| Shadcn/ui + Tailwind CSS 4 | — | Дизайн-система |
+| Plate | — | Rich-text редактор |
+| LiveKit React | — | UI звонков |
+| Vite | — | Сборка |
 
 ### Инфраструктура
 
 | Технология | Назначение |
 |---|---|
-| Docker + Docker Compose | Контейнеризация, локальная разработка |
-| Caddy | Reverse proxy, автоматический HTTPS |
-| K3s | Kubernetes-деплой (production) |
-| GitHub Actions | CI/CD |
+| Docker Compose | Dev + test (`deployments/docker-compose.test.yml`) |
+| Caddy | Reverse proxy, HTTPS |
+| K3s | Production Kubernetes |
+| GitHub Actions | CI/CD (release build, race tests, E2E) |
+| Prometheus + Grafana + Loki | Observability stack |
 
 ## Архитектура
 
 ```
                           ┌──────────────────────┐
-                          │    Caddy / Nginx     │
+                          │       Caddy          │
                           │  (reverse proxy, TLS)│
                           └──────┬───────┬───────┘
                                  │       │
@@ -146,29 +129,21 @@ Hub -- платформа, заменяющая Jira + Slack + TestRail + Zoom +
                     v                                  v
           ┌─────────────────┐              ┌─────────────────────┐
           │  Frontend (SPA) │              │  Backend (Go+Fiber) │
-          │  React 19       │   REST/WS    │  ~230 endpoints     │
-          │  39 routes      │ ◄──────────► │  WebSocket gateway  │
-          │  Vite           │              │  NATS consumers      │
+          │  React 19       │   REST/WS    │  286+ endpoints     │
+          │  39+ routes     │ ◄──────────► │  WebSocket + NATS   │
           └─────────────────┘              └──────────┬──────────┘
                                                       │
-                    ┌────────────┬────────────┬───────┴───────┐
-                    v            v            v               v
-             ┌───────────┐ ┌─────────┐ ┌──────────┐  ┌────────────┐
-             │PostgreSQL │ │ MongoDB │ │  Redis   │  │    NATS    │
-             │  17       │ │  8      │ │  7       │  │ JetStream  │
-             │           │ │         │ │          │  │            │
-             │ Задачи    │ │ Чат     │ │ Кеш      │  │ События    │
-             │ TMS       │ │ Allure  │ │ Сессии   │  │ Очереди    │
-             │ Юзеры     │ │         │ │ Presence │  │ Аудит      │
-             │ Спринты   │ │         │ │          │  │            │
-             └───────────┘ └─────────┘ └──────────┘  └────────────┘
-                                │
-                    ┌───────────┴───────────┐
-                    v                       v
-             ┌───────────┐          ┌────────────┐
-             │ SeaweedFS │          │  LiveKit   │
-             │ (файлы)   │          │ (WebRTC)   │
-             └───────────┘          └────────────┘
+          ┌────────────┬────────────┬───────┴───────┬──────────┐
+          v            v            v               v          v
+   ┌───────────┐ ┌─────────┐ ┌──────────┐  ┌────────────┐ ┌─────────┐
+   │PostgreSQL │ │ MongoDB │ │  Redis   │  │    NATS    │ │Meilisearch│
+   │  17       │ │  8      │ │  7       │  │ JetStream  │ │         │
+   └───────────┘ └─────────┘ └──────────┘  └────────────┘ └─────────┘
+          │
+   ┌──────┴──────┐              ┌────────────┐
+   v             v              v            v
+SeaweedFS    LiveKit      Prometheus    testframework/
+ (файлы)     (WebRTC)     Loki/OTel     (Go + E2E tests)
 ```
 
 ## Быстрый старт
@@ -181,11 +156,8 @@ Hub -- платформа, заменяющая Jira + Slack + TestRail + Zoom +
 ### Локальная разработка
 
 ```bash
-# Клонировать репозиторий
 git clone https://github.com/Valerijkk/hub.git
 cd hub
-
-# Запустить все сервисы
 docker compose -f docker-compose.local.yml up -d
 ```
 
@@ -193,6 +165,7 @@ docker compose -f docker-compose.local.yml up -d
 |---|---|
 | Frontend | http://localhost:5173 |
 | Backend API | http://localhost:3000/api |
+| Swagger | http://localhost:3000/docs |
 | SeaweedFS | http://localhost:9333 |
 
 ### Production
@@ -202,105 +175,98 @@ cd deployments
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
+Подробнее: [docs/wiki/DEPLOY.md](docs/wiki/DEPLOY.md) · [docs/wiki/QUICKSTART.md](docs/wiki/QUICKSTART.md)
+
 ## Структура проекта
 
 ```
 hub/
-├── backend/                  # Go backend
-│   ├── cmd/server/           # Точка входа (main.go)
-│   ├── ent/                  # Ent ORM: схемы, кодогенерация, миграции
-│   │   └── schema/           # ~30 схем (User, Project, Issue, TestCase, ...)
-│   └── internal/             # Бизнес-логика по модулям
-│       ├── auth/             # Magic Link + Telegram, JWT, сессии
-│       ├── project/          # Проекты, участники, приглашения, команды, шаблоны
-│       ├── tracker/          # Трекер: задачи, workflow, доски, метки, поля, время
-│       ├── sprint/           # Спринты, burndown, velocity, Planning Poker
-│       ├── messenger/        # Каналы, сообщения, присутствие, опросы, инвайты
-│       ├── tms/              # TMS: кейсы, наборы, прогоны, Allure, отчёты
-│       ├── calls/            # Звонки: LiveKit, запись, планирование
-│       ├── dashboard/        # Дашборды: данные, layout, шаблоны
-│       ├── notification/     # Уведомления: in-app, push, Telegram-бот
-│       ├── search/           # Глобальный поиск, фильтры
-│       ├── github/           # GitHub: вебхуки, интеграции, CI/CD, превью ссылок
-│       ├── gitlab/           # GitLab: вебхуки, пайплайны, интеграции
-│       ├── rbac/             # RBAC: роли, права, кастомные роли
-│       ├── storage/          # Файлы: upload/download URL, SeaweedFS
-│       ├── imex/             # Импорт/экспорт: CSV, Excel, Jira, PDF
-│       ├── backup/           # Бэкапы: создание, восстановление
-│       ├── audit/            # Аудит: лог, лимиты, корзина, GDPR
-│       ├── apigateway/       # API-ключи, webhook-подписки
-│       ├── ws/               # WebSocket gateway, NATS bridge
-│       └── platform/         # Общее: middleware, утилиты, rate limiting
-├── frontend/                 # React frontend
-│   └── src/
-│       ├── api/              # API-клиент (16 модулей, ~192 вызова)
-│       ├── components/       # Переиспользуемые UI-компоненты
-│       ├── hooks/            # React-хуки (7 шт.)
-│       ├── modules/          # Крупные модули (tracker, tms, calls, messenger)
-│       ├── routes/           # TanStack Router (39 маршрутов)
-│       └── stores/           # Zustand stores (11 шт.)
-├── cli/                      # hub-cli (CI/CD утилита)
-├── deployments/              # Docker, K3s конфиги
-├── docs/wiki/                # Документация (API, архитектура, деплой, шорткаты)
-└── docker-compose.*.yml      # Конфигурации Docker Compose
+├── backend/
+│   ├── cmd/server/           # Точка входа
+│   ├── ent/schema/           # ~40 Ent схем
+│   ├── internal/             # 25+ модулей (auth, tracker, tms, intranet, crm, …)
+│   └── testframework/        # Unified test suite (-tags hubtest)
+├── frontend/src/
+│   ├── api/                  # API-клиент
+│   ├── modules/              # tracker, tms, messenger, intranet, crm, …
+│   ├── routes/               # TanStack Router
+│   └── stores/               # Zustand
+├── testframework/e2e/        # Playwright (22 specs)
+├── cli/                      # hub-cli (CI/CD)
+├── deployments/              # Docker, K3s, observability
+└── docs/wiki/                # API, архитектура, деплой
 ```
 
 ## API
 
-Hub предоставляет **~230 REST endpoints**, сгруппированных по модулям:
+**286+ REST endpoints** по модулям:
 
-| Модуль | Endpoints | Описание |
+| Модуль | ~Endpoints | Описание |
 |---|---|---|
-| Auth | 13 | Аутентификация, профиль, сессии, регистрация |
-| Projects | 22 | CRUD проектов, участники, приглашения, команды |
-| Tracker | 35 | Задачи, workflow, доски, метки, поля, время, комментарии |
-| Sprint | 14 | Спринты, burndown, velocity, Planning Poker |
-| Messenger | 40 | Каналы, сообщения, присутствие, опросы, инвайты |
-| TMS | 46 | Тест-кейсы, прогоны, Allure, отчёты, окружения |
-| Calls | 22 | Звонки, запись, планирование, чат |
-| Dashboard | 7 | Данные дашбордов, layout, шаблоны |
-| Notifications | 10 | Список, статусы, настройки, push-подписки |
-| Search | 5 | Глобальный поиск, сохранённые фильтры |
-| GitHub | 9 | Вебхуки, интеграции, CI/CD, создание веток, превью |
-| GitLab | 7 | Вебхуки, интеграции, пайплайны, создание веток |
-| Storage | 4 | Upload/download URL, подтверждение, удаление |
-| Import/Export | 6 | CSV, Excel, Jira, PDF, ZIP |
-| Backup | 4 | Создание, список, восстановление, удаление |
-| API Gateway | 8 | API-ключи, webhook-подписки, доставки |
-| RBAC | 6 | Кастомные роли, назначение |
-| Admin/Audit | 8 | Аудит, лимиты, корзина, GDPR |
+| Auth | 13 | Magic Link, sessions, org |
+| Projects | 22+ | CRUD, teams, templates |
+| Tracker | 38+ | Issues, workflow, boards, JQL |
+| Messenger | 42+ | Channels, messages, presence |
+| TMS | 52+ | Cases, runs, Allure, reports |
+| Calls | 22+ | LiveKit, recording |
+| v4 modules | 40+ | Intranet, CRM, HR, calendar, bases, accounting |
+| AI | 12+ | Gateway, composer, preferences |
+| Admin/OBS | 15+ | Audit, metrics, observability |
+| Integrations | 20+ | GitHub, GitLab, 1C, webhooks |
 
 Полная документация: [docs/wiki/API.md](docs/wiki/API.md)
 
-## Статистика кодовой базы
+## Качество и тесты
 
 | Метрика | Значение |
 |---|---|
-| API endpoints | **~230** |
-| Frontend routes | **39** |
-| Zustand stores | **11** |
-| API-клиент модули | **16** (~192 вызова) |
-| Go-файлов | **~608** |
-| TS/TSX-файлов | **~210** |
-| Ent-схемы | **~30** |
-| Backend-тесты | Tracker, Auth, Sprint, TMS |
-| Bundle size (gzip) | **245 KB** main chunk |
+| Backend coverage | **82.6%** (`internal/`) |
+| Security packages ≥80% | **6/6** ✅ |
+| Frontend Vitest | **99+** tests |
+| Playwright E2E | **22** specs |
+| Product score | **93/100** |
+
+```bash
+# Backend (Docker, canonical)
+docker compose -f deployments/docker-compose.test.yml up -d
+docker run --rm --network deployments_default \
+  -v "${PWD}/backend:/app" -w /app \
+  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
+  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
+  golang:1.25-bookworm \
+  sh -c "go test -tags hubtest -race -count=1 ./internal/... ./testframework/..."
+
+# Frontend
+cd frontend && npx tsc --noEmit && npx vitest run
+```
 
 ## Дорожная карта
 
 | Версия | Статус | Описание |
 |---|---|---|
-| **v1.0** | Завершён | 95 требований, 7 фаз. Все основные модули: трекер, мессенджер, TMS, звонки, дашборды, GitHub, RBAC, уведомления, поиск, импорт/экспорт |
-| **v2.0** | Спланирован | 137 требований -- 6 фаз. UI-редизайн (Slack-стиль), DevOps (monitoring, K3s), GitHub App, AI-фичи, Productivity (templates, shortcuts, offline) |
-| **v3.0** | Концепция | AI Chat Hub -- GigaChat, YandexGPT, DeepSeek (без VPN). AI-помощник в трекере и TMS |
+| **v1.0** | ✅ Shipped 2026-03-21 | MVP: tracker, messenger, TMS, calls, dashboards |
+| **v2.0** | ✅ 2026-05-15 | Hub Redesign (Slack-style UI) |
+| **v2.5 Trust** | ✅ 2026-06-22 | Magic Link, org, E2E, WCAG, coverage ≥50% |
+| **v2.6 Automate** | ✅ 2026-06-24 | Automation, OBS stack, ARCH-01, Biome gate |
+| **v3.0 AI Native** | ✅ 2026-06-22 | AI gateway, @hub-ai, full JQL |
+| **v4 Super-app** | ✅ 2026-06-25 | Intranet, CRM, HR, calendar, bases, accounting |
+| **v4.5+** | 📋 Planned | Accounting advanced, org chart, TF migration complete |
+
+Детали: [.planning/ROADMAP.md](.planning/ROADMAP.md) · [.planning/STATE.md](.planning/STATE.md)
+
+## Документация
+
+| Документ | Назначение |
+|----------|------------|
+| [docs/README.md](docs/README.md) | Индекс базы знаний |
+| [docs/competitive_analysis_2026.md](docs/competitive_analysis_2026.md) | Конкурентный анализ |
+| [docs/user_needs_analysis_2026.md](docs/user_needs_analysis_2026.md) | Персоны и JTBD |
+| [AGENTS.md](AGENTS.md) | Регламент AI-команды |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Git workflow, code style |
 
 ## Контрибуция
 
-См. [CONTRIBUTING.md](CONTRIBUTING.md) для деталей по:
-- Git workflow и ветвлению
-- Формату коммитов
-- Code style (Go, TypeScript)
-- Процессу code review
+См. [CONTRIBUTING.md](CONTRIBUTING.md): Git workflow, conventional commits, code review, `/qa-gate` перед PR.
 
 ## Лицензия
 
@@ -310,8 +276,10 @@ Hub предоставляет **~230 REST endpoints**, сгруппирован
 
 <div align="center">
 
-**Разработано с вниманием к деталям**
+**Self-hosted super-app для dev-команд**
 
-Go + React + PostgreSQL + MongoDB + Redis + NATS + LiveKit
+Go · React · PostgreSQL · MongoDB · Redis · NATS · LiveKit · Meilisearch
+
+*Обновлено: 2026-06-21*
 
 </div>

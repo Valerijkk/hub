@@ -1,5 +1,5 @@
 /**
- * Widget "Burndown" -- chart of completed tasks by day (ideal vs actual).
+ * Виджет «Burndown» — ideal vs actual по дням спринта.
  */
 import { TrendingDown } from "lucide-react";
 import {
@@ -17,7 +17,7 @@ interface Props {
 	data?: unknown;
 }
 
-/** Custom tooltip for charts. */
+/** Кастомный tooltip для Recharts. */
 function ChartTooltip({
 	active,
 	payload,
@@ -44,7 +44,7 @@ function ChartTooltip({
 	);
 }
 
-/** Burndown chart widget. */
+/** Виджет burndown-графика. */
 export function BurndownChartWidget({ data }: Props) {
 	const projectData = data as ProjectStats | undefined;
 	const burndownData = projectData?.burndown_data ?? [];

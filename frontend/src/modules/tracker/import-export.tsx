@@ -122,9 +122,9 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 										</thead>
 										<tbody>
 											{preview.rows.map((row) => (
-												// Preview rows have no backend-assigned id; serialize
-												// the row payload so identical rows still collide
-												// deterministically rather than relying on array index.
+												// У preview-строк нет id с бэкенда — сериализуем
+												// payload строки, чтобы одинаковые строки давали стабильный key
+												// детерминированно, а не через index массива (React anti-pattern).
 												<tr
 													key={`row-${JSON.stringify(row.fields)}`}
 													className="border-b"

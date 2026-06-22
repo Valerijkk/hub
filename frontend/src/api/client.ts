@@ -14,6 +14,8 @@ export interface ApiError {
 	message: string;
 	/** ID запроса для отладки (опционально). */
 	request_id?: string;
+	/** Секунды до повтора (429, из заголовка Retry-After). */
+	retry_after?: number;
 }
 
 /**
@@ -81,6 +83,15 @@ class ApiClient {
 				if (!error.code) error.code = response.status;
 			} catch {
 				error = { code: response.status, message: response.statusText };
+			}
+			if (response.status === 429) {
+				const retryHeader = response.headers.get("Retry-After");
+				if (retryHeader) {
+					const seconds = Number.parseInt(retryHeader, 10);
+					if (!Number.isNaN(seconds) && seconds > 0) {
+						error.retry_after = seconds;
+					}
+				}
 			}
 			throw error;
 		}

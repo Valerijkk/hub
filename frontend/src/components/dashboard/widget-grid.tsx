@@ -195,7 +195,7 @@ export function WidgetGrid({
 
 	const { width, containerRef } = useContainerWidth({ initialWidth: 1200 });
 
-	/** Key that increments to force re-render of individual widget content. */
+	/** Ключ для принудительного re-render содержимого виджета после refresh. */
 	const [refreshKeys, setRefreshKeys] = useState<Record<string, number>>({});
 
 	const layout = useMemo(
@@ -282,7 +282,7 @@ export function WidgetGrid({
 
 	return (
 		<div ref={containerRef}>
-			{/* Add hidden widgets back */}
+			{/* Вернуть скрытые виджеты */}
 			{hiddenWidgetTypes.length > 0 && (
 				<div className="mb-4">
 					<DropdownMenu>
@@ -314,7 +314,7 @@ export function WidgetGrid({
 				</div>
 			)}
 
-			{/* Widget grid */}
+			{/* Сетка виджетов */}
 			{width > 0 && (
 				<GridLayout
 					layout={layout}
@@ -354,12 +354,12 @@ export function WidgetGrid({
 								key={item.i}
 								className="group/widget dash-widget relative text-card-foreground"
 							>
-								{/* Accent top border */}
+								{/* Акцентная верхняя граница */}
 								<div
 									className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${accent} opacity-60 group-hover/widget:opacity-100 transition-opacity duration-200`}
 								/>
 
-								{/* Widget header */}
+								{/* Заголовок виджета */}
 								<div className="widget-drag-handle flex items-center justify-between px-5 pt-[18px] cursor-move">
 									<div className="flex items-center gap-2">
 										<GripVertical className="h-3.5 w-3.5 text-[var(--t4)]" />
@@ -396,7 +396,7 @@ export function WidgetGrid({
 									</div>
 								</div>
 
-								{/* Widget content */}
+								{/* Содержимое виджета */}
 								<div className="px-5 pb-5 pt-3.5 overflow-hidden h-[calc(100%-52px)]">
 									<Suspense fallback={<ChartWidgetSkeleton />}>
 										<WidgetComponent

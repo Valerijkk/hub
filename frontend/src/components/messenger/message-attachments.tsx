@@ -21,7 +21,7 @@ export function MessageAttachments({
 
 	return (
 		<div className="mt-2 space-y-2">
-			{/* Image previews */}
+			{/* Превью изображений */}
 			{attachments
 				.filter((att) => isImageAttachment(att.mime_type))
 				.map((att) => (
@@ -40,7 +40,7 @@ export function MessageAttachments({
 						/>
 					</a>
 				))}
-			{/* File links */}
+			{/* Ссылки на файлы */}
 			<div className="flex flex-wrap gap-1.5">
 				{attachments
 					.filter((att) => !isImageAttachment(att.mime_type))

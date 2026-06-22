@@ -9,25 +9,25 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
-// CreateOrGetDM creates or returns an existing DM channel.
-// Deduplication via sorted user IDs in dm_key.
+// CreateOrGetDM создаёт или возвращает существующий DM-канал.
+// Дедупликация через отсортированные user ID в dm_key — один DM на пару пользователей.
 func (s *MessengerService) CreateOrGetDM(ctx context.Context, userID, targetUserID uuid.UUID) (*ChannelResponse, error) {
 	if userID == targetUserID {
 		return nil, apperrors.NewBadRequest("нельзя создать DM с самим собой")
 	}
 
-	// Build dm_key from sorted IDs
+	// dm_key из отсортированных ID — симметричный ключ для пары A-B и B-A.
 	ids := []string{userID.String(), targetUserID.String()}
 	sort.Strings(ids)
 	dmKey := ids[0] + "-" + ids[1]
 
-	// Look for existing DM
+	// Ищем существующий DM по dm_key
 	existing, err := s.repo.FindDMChannel(ctx, dmKey)
 	if err == nil {
 		return toChannelResponse(existing), nil
 	}
 
-	// Create new DM
+	// Создаём новый DM
 	input := CreateChannelInput{
 		ChannelType: "dm",
 		CreatedBy:   userID,
@@ -38,7 +38,7 @@ func (s *MessengerService) CreateOrGetDM(ctx context.Context, userID, targetUser
 		return nil, apperrors.NewInternal("ошибка создания DM канала")
 	}
 
-	// Add both participants
+	// Добавление обоих участников
 	if err := s.repo.AddMembers(ctx, ch.ID, []uuid.UUID{userID, targetUserID}, "member"); err != nil {
 		slog.Error("не удалось добавить участников DM", "error", err)
 	}

@@ -58,7 +58,7 @@ func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bo
 	if err != nil {
 		return false, err
 	}
-	return u.SystemRole == user.SystemRoleAdmin, nil
+	return u.SystemRole == user.SystemRoleFounder || u.SystemRole == user.SystemRoleAdmin, nil
 }
 
 // CreateSavedFilter реализует Repository.

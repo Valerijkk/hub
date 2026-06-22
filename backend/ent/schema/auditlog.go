@@ -12,7 +12,7 @@ type AuditLog struct {
 	ent.Schema
 }
 
-// Fields of the AuditLog.
+// Поля сущности AuditLog.
 func (AuditLog) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -50,7 +50,7 @@ func (AuditLog) Fields() []ent.Field {
 	}
 }
 
-// Indexes of the AuditLog.
+// Индексы сущности AuditLog.
 func (AuditLog) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("action"),

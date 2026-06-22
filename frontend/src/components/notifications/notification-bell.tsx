@@ -24,7 +24,7 @@ export function NotificationBell() {
 	const addListener = useWsStore((s) => s.addListener);
 	const removeListener = useWsStore((s) => s.removeListener);
 
-	// useRef для WS обработчика чтобы избежать stale closures.
+	// useRef для WS-обработчика — избегаем stale closures при reconnect.
 	const addNotificationRef = useRef(addNotification);
 	addNotificationRef.current = addNotification;
 

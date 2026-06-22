@@ -43,7 +43,10 @@ export function AppearanceSettings() {
 		<div className="space-y-0">
 			{/* Тема */}
 			<div className="mb-9">
-				<h2 className="text-[18px] font-extrabold tracking-[-0.02em] mb-1">
+				<h2
+					className="text-[18px] font-extrabold tracking-[-0.02em] mb-1"
+					data-testid="appearance-theme-heading"
+				>
 					{t("theme.title")}
 				</h2>
 				<p className="text-[13px] text-[var(--t2)] mb-5">

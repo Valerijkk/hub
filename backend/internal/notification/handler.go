@@ -11,12 +11,13 @@ import (
 
 // Handler предоставляет HTTP-обработчики для модуля уведомлений.
 type Handler struct {
-	service *NotificationService
+	service      *NotificationService
+	telegramBind *TelegramBindService
 }
 
 // NewHandler создаёт новый обработчик уведомлений.
-func NewHandler(service *NotificationService) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *NotificationService, telegramBind *TelegramBindService) *Handler {
+	return &Handler{service: service, telegramBind: telegramBind}
 }
 
 // RegisterRoutes регистрирует маршруты уведомлений под /api/notifications.
@@ -25,9 +26,6 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 
 	notifs.Get("/", h.List)
 	notifs.Get("/unread-count", h.UnreadCount)
-	notifs.Patch("/:id/read", h.MarkRead)
-	notifs.Patch("/read-all", h.MarkAllRead)
-	notifs.Delete("/:id", h.Delete)
 	notifs.Get("/preferences", h.GetPreferences)
 	notifs.Put("/preferences", h.UpdatePreference)
 
@@ -35,6 +33,19 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	notifs.Get("/push/vapid-key", h.GetVAPIDKey)
 	notifs.Post("/push/subscribe", h.PushSubscribe)
 	notifs.Delete("/push/unsubscribe", h.PushUnsubscribe)
+
+	if h.telegramBind != nil {
+		notifs.Post("/telegram/bind", h.TelegramBind)
+		notifs.Post("/telegram/confirm", h.TelegramConfirm)
+		notifs.Delete("/telegram", h.TelegramUnlink)
+		notifs.Post("/telegram/test", h.TelegramTest)
+		notifs.Get("/telegram/status", h.TelegramStatus)
+	}
+
+	// Статические сегменты — до /:id, иначе «telegram» и «read-all» матчятся как UUID.
+	notifs.Patch("/read-all", h.MarkAllRead)
+	notifs.Patch("/:id/read", h.MarkRead)
+	notifs.Delete("/:id", h.Delete)
 }
 
 // List godoc
@@ -190,7 +201,7 @@ func (h *Handler) Delete(c fiber.Ctx) error {
 // @Description Возвращает настройки уведомлений текущего пользователя по типам и каналам.
 // @Tags Уведомления
 // @Produce json
-// @Success 200 {array} PreferenceResponse "Настройки уведомлений"
+// @Success 200 {array} PreferenceDTO "Настройки уведомлений"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
@@ -216,7 +227,7 @@ func (h *Handler) GetPreferences(c fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param body body PreferenceUpdateRequest true "Тип уведомления, канал, enabled"
-// @Success 200 {object} PreferenceResponse "Настройка обновлена"
+// @Success 200 {object} PreferenceDTO "Настройка обновлена"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"

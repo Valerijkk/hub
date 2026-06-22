@@ -9,13 +9,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	gh "github.com/google/go-github/v68/github"
 	"github.com/google/uuid"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
@@ -26,8 +30,10 @@ var issueKeyRegex = regexp.MustCompile(`\b([A-Z]+-\d+)\b`)
 // Обрабатывает webhook-события, автоматически связывает PR/коммиты с задачами,
 // управляет интеграциями и создаёт ветки через GitHub API.
 type GitHubService struct {
-	repo Repository
-	nats *natsclient.Client
+	repo       Repository
+	nats       *natsclient.Client
+	httpClient *http.Client
+	apiBaseURL string
 }
 
 // NewGitHubService создаёт новый сервис GitHub-интеграции.
@@ -37,7 +43,35 @@ type GitHubService struct {
 // инкапсулирована в Repository.MarkTestCasesOutdatedByFiles — сервис
 // зависит только от Repository, что упрощает мокирование в тестах.
 func NewGitHubService(repo Repository, nats *natsclient.Client) *GitHubService {
-	return &GitHubService{repo: repo, nats: nats}
+	return NewGitHubServiceWithHTTPClient(repo, nats, nil, "")
+}
+
+// NewGitHubServiceWithHTTPClient — внедряет HTTP-клиент/base URL (тесты, GHE).
+//
+// Исходящие запросы к GitHub API выполняются через клиент с SafeDialContext,
+// что блокирует подключения к RFC1918, loopback и metadata-сервисам (SEC-04).
+func NewGitHubServiceWithHTTPClient(repo Repository, nats *natsclient.Client, client *http.Client, apiBaseURL string) *GitHubService {
+	if client == nil {
+		client = safehttp.NewSafeHTTPClient(30 * time.Second)
+	}
+	return &GitHubService{
+		repo:       repo,
+		nats:       nats,
+		httpClient: client,
+		apiBaseURL: apiBaseURL,
+	}
+}
+
+func (s *GitHubService) apiClient(token string) *gh.Client {
+	c := gh.NewClient(s.httpClient).WithAuthToken(token)
+	if s.apiBaseURL != "" {
+		base := strings.TrimSuffix(s.apiBaseURL, "/") + "/"
+		if u, err := url.Parse(base); err == nil {
+			c.BaseURL = u
+			c.UploadURL = u
+		}
+	}
+	return c
 }
 
 // ---------------------------------------------------------------------------
@@ -297,7 +331,7 @@ func (s *GitHubService) CreateBranch(ctx context.Context, issueKey string, req C
 	}
 
 	// Создаём GitHub client с токеном интеграции
-	client := gh.NewClient(nil).WithAuthToken(integration.AccessToken)
+	client := s.apiClient(integration.AccessToken)
 
 	// Получаем default branch ref
 	repo, _, err := client.Repositories.Get(ctx, integration.RepoOwner, integration.RepoName)
@@ -326,7 +360,7 @@ func (s *GitHubService) CreateBranch(ctx context.Context, issueKey string, req C
 }
 
 // ---------------------------------------------------------------------------
-// CI/CD Pipeline Status (Workflow Runs)
+// Статус CI/CD pipeline (workflow runs)
 // ---------------------------------------------------------------------------
 
 // ListWorkflowRuns возвращает последние запуски workflow для всех интеграций проекта.
@@ -341,7 +375,7 @@ func (s *GitHubService) ListWorkflowRuns(ctx context.Context, projectID uuid.UUI
 	var allRuns []WorkflowRunResponse
 
 	for _, integration := range integrations {
-		client := gh.NewClient(nil).WithAuthToken(integration.AccessToken)
+		client := s.apiClient(integration.AccessToken)
 
 		opts := &gh.ListWorkflowRunsOptions{
 			ListOptions: gh.ListOptions{PerPage: 20},
@@ -371,7 +405,7 @@ func (s *GitHubService) GetWorkflowRunDetail(ctx context.Context, projectID uuid
 
 	// Пробуем каждую интеграцию — runID может принадлежать любому из репозиториев.
 	for _, integration := range integrations {
-		client := gh.NewClient(nil).WithAuthToken(integration.AccessToken)
+		client := s.apiClient(integration.AccessToken)
 
 		run, _, err := client.Actions.GetWorkflowRunByID(ctx, integration.RepoOwner, integration.RepoName, runID)
 		if err != nil {
@@ -472,7 +506,7 @@ func ValidateWebhookSignature(payload []byte, signature, secret string) bool {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Вспомогательные функции
 // ---------------------------------------------------------------------------
 
 // slugify преобразует строку в URL-безопасный формат для имени ветки.
