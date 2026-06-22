@@ -70,7 +70,10 @@ function ProjectsPage() {
 						</svg>
 					</div>
 					<div>
-						<h1 className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+						<h1
+							className="text-[18px] font-extrabold tracking-[-0.03em] text-t1"
+							data-testid="projects-page-heading"
+						>
 							{t("projectsPage.title")}
 						</h1>
 						<p className="mt-0.5 text-[13px] text-t2 leading-[1.5]">

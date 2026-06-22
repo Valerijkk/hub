@@ -203,6 +203,7 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 					type="button"
 					className="flex h-11 w-9 shrink-0 items-center justify-center text-t2/60 hover:text-t2 transition-colors"
 					title="GIF"
+					aria-label="Выбрать GIF"
 				>
 					{/* Иконка плёнки (Film) */}
 					<svg

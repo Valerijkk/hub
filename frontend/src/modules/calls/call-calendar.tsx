@@ -310,9 +310,10 @@ export function CallCalendar() {
 						<button
 							type="button"
 							onClick={handleNavigatePrev}
+							aria-label="Предыдущий период"
 							className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 transition-colors duration-180 hover:bg-[var(--hover)] hover:border-b2 hover:text-t1 text-[16px]"
 						>
-							<ChevronLeft className="h-4 w-4" />
+							<ChevronLeft className="h-4 w-4" aria-hidden="true" />
 						</button>
 						<span className="text-[17px] font-bold tracking-[-0.02em] capitalize">
 							{headerText}
@@ -320,9 +321,10 @@ export function CallCalendar() {
 						<button
 							type="button"
 							onClick={handleNavigateNext}
+							aria-label="Следующий период"
 							className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 transition-colors duration-180 hover:bg-[var(--hover)] hover:border-b2 hover:text-t1 text-[16px]"
 						>
-							<ChevronRight className="h-4 w-4" />
+							<ChevronRight className="h-4 w-4" aria-hidden="true" />
 						</button>
 						<button
 							type="button"

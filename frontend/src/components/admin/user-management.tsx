@@ -433,6 +433,7 @@ export function UserManagement() {
 													disabled={actionUserId === user.id}
 													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-red/[0.1] hover:text-red disabled:opacity-50"
 													title="Заблокировать"
+													aria-label="Заблокировать пользователя"
 												>
 													{"\u26D4"}
 												</button>
@@ -442,6 +443,7 @@ export function UserManagement() {
 													disabled={actionUserId === user.id}
 													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
 													title="Деактивировать"
+													aria-label="Деактивировать пользователя"
 												>
 													{"\u2718"}
 												</button>

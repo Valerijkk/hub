@@ -418,7 +418,7 @@ function ChannelItem({
 						>
 							{channel.name}
 						</span>
-						<span className="text-[10.5px] text-[var(--t4)] font-medium shrink-0">
+						<span className="text-[10.5px] text-t3 font-medium shrink-0">
 							{formatRelativeTime(channel.updated_at)}
 						</span>
 					</div>
@@ -441,6 +441,9 @@ function ChannelItem({
 							: "opacity-0 group-hover/item:opacity-100",
 					)}
 					title={channel.is_starred ? "Убрать из закреплённых" : "Закрепить"}
+					aria-label={
+						channel.is_starred ? "Убрать из закреплённых" : "Закрепить канал"
+					}
 					onClick={(e) => void handleToggleStar(e)}
 				>
 					<StarIcon filled={channel.is_starred} />
@@ -569,7 +572,10 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 	};
 
 	return (
-		<div className="w-[280px] min-w-[280px] h-full border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x">
+		<div
+			className="w-[280px] min-w-[280px] h-full border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x"
+			data-testid="messenger-channel-list"
+		>
 			{/* Заголовок */}
 			<div className="px-3.5 pt-3.5 pb-2">
 				<div className="flex items-center justify-between mb-2">

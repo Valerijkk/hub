@@ -225,6 +225,7 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
 					type="button"
 					className="flex h-11 w-9 shrink-0 items-center justify-center text-t2/60 hover:text-t2 transition-colors"
 					title="Стикеры"
+					aria-label="Выбрать стикер"
 				>
 					<svg
 						aria-hidden="true"

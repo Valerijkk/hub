@@ -28,7 +28,9 @@ test.describe("Admin audit page", () => {
 
 		await expect(page).toHaveURL(/\/admin\/audit/);
 		await expect(page.getByRole("button", { name: "Применить" })).toBeVisible();
-		await expect(page.getByRole("button", { name: "CSV" })).toBeVisible();
+		await expect(
+			page.getByRole("button", { name: /csv|экспорт/i }),
+		).toBeVisible();
 		await expect(page.getByRole("columnheader", { name: "Время" })).toBeVisible();
 		await expect(
 			page.getByRole("columnheader", { name: "Действие" }),

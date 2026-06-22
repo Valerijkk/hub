@@ -20,7 +20,12 @@ function HelpPage() {
 			<header className="space-y-2">
 				<div className="flex items-center gap-3">
 					<BookOpen className="h-8 w-8 text-amber-400" aria-hidden />
-					<h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+					<h1
+						className="text-2xl font-bold tracking-tight"
+						data-testid="help-page-heading"
+					>
+						{t("title")}
+					</h1>
 				</div>
 				<p className="text-t2">{t("subtitle")}</p>
 			</header>

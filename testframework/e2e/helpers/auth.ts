@@ -66,6 +66,7 @@ export async function authenticatePage(
 	};
 
 	await page.addInitScript((payload) => {
+		localStorage.setItem("i18nextLng", "ru");
 		sessionStorage.setItem("hub-auth", JSON.stringify(payload));
 	}, persistPayload);
 }

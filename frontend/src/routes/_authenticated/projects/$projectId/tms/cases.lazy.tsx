@@ -655,6 +655,7 @@ function TestCasesPage() {
 											<input
 												type="checkbox"
 												className="rounded border-b2"
+												aria-label="Выбрать все кейсы"
 												checked={
 													selectedIds.size === cases.length && cases.length > 0
 												}

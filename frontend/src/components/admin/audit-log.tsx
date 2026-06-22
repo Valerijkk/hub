@@ -440,7 +440,7 @@ export function AuditLogViewer() {
 													type="button"
 													aria-label="Заблокировать пользователя"
 													onClick={() => setBanTarget(entry)}
-													className="text-[11px] text-[var(--red)] hover:underline"
+													className="text-[11px] text-[var(--redS)] hover:underline"
 												>
 													Бан
 												</button>
@@ -463,7 +463,7 @@ export function AuditLogViewer() {
 														id === entry.id ? null : entry.id,
 													)
 												}
-												className="text-[11px] text-[var(--blue)] hover:underline"
+												className="text-[11px] text-[var(--blueS)] hover:underline"
 											>
 												{expandedId === entry.id ? "Скрыть" : "Показать"}
 											</button>

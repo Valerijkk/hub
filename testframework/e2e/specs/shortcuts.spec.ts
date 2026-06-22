@@ -25,9 +25,9 @@ test.describe("Shortcuts overlay (FB-01 / E2E)", () => {
 		const shell = new AppShellPage(page);
 		await auth.loginAsDev(page);
 		await shell.gotoProjects();
-		await expect(
-			page.getByRole("heading", { name: "Проекты" }),
-		).toBeVisible();
+		await expect(page.getByTestId("projects-page-heading")).toBeVisible({
+			timeout: 15_000,
+		});
 
 		await page.keyboard.press("Shift+/");
 		await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });

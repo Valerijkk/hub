@@ -99,6 +99,7 @@ export function CaseTableRow({
 				<input
 					type="checkbox"
 					className="rounded border-b2"
+					aria-label={`Выбрать кейс ${tc.case_key}`}
 					checked={isSelected}
 					onChange={() => onToggleSelect(tc.id)}
 				/>

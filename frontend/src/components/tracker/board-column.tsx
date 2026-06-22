@@ -73,12 +73,13 @@ export function BoardColumn({
 				<span className="text-[13.5px] font-bold tracking-[-0.01em]">
 					{status.name}
 				</span>
-				<span className="text-[10.5px] font-bold text-[var(--t4)] bg-[rgba(255,255,255,.035)] px-[9px] py-0.5 rounded-full">
+				<span className="text-[10.5px] font-bold text-t3 bg-[rgba(255,255,255,.035)] px-[9px] py-0.5 rounded-full">
 					{issues.length}
 				</span>
 				<Link
 					to="/projects/$projectId/issues/new"
 					params={{ projectId }}
+					aria-label="Создать задачу"
 					className="ml-auto w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-[var(--t4)] hover:bg-[var(--hover)] hover:text-[var(--t1)] hover:scale-[1.12] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 				>
 					<svg

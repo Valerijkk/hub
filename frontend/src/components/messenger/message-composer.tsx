@@ -603,6 +603,7 @@ export function MessageComposer({
 							isUploading && "animate-pulse",
 						)}
 						title="Прикрепить файл"
+						aria-label="Прикрепить файл"
 						onClick={handleAttachClick}
 						disabled={isUploading}
 					>
@@ -669,6 +670,7 @@ export function MessageComposer({
 								type="button"
 								className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 								title="Эмодзи"
+								aria-label="Эмодзи"
 							>
 								<svg
 									aria-hidden="true"
@@ -726,6 +728,7 @@ export function MessageComposer({
 						type="button"
 						className="hidden md:flex w-[38px] h-[38px] items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 						title="Опрос"
+						aria-label="Создать опрос"
 						onClick={() => setShowPollDialog(true)}
 					>
 						<svg
@@ -749,6 +752,7 @@ export function MessageComposer({
 						type="button"
 						className="w-[38px] h-[38px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] shrink-0 hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-110 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 						title="Голосовое сообщение"
+						aria-label="Голосовое сообщение"
 						onClick={() => setShowVoice(true)}
 					>
 						<svg
@@ -779,6 +783,7 @@ export function MessageComposer({
 						onClick={() => void handleSend()}
 						disabled={isSending || !hasContent}
 						title="Отправить"
+						aria-label="Отправить сообщение"
 					>
 						<svg
 							aria-hidden="true"

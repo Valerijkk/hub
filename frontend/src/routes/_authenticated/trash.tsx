@@ -55,7 +55,10 @@ function TrashPage() {
 		<div className="flex-1 overflow-y-auto p-6 animate-[eu_450ms_var(--spring)_both]">
 			{/* Заголовок в стиле topbar */}
 			<div className="flex items-center gap-4 mb-6">
-				<span className="text-[18px] font-extrabold tracking-[-0.03em] text-t1">
+				<span
+					className="text-[18px] font-extrabold tracking-[-0.03em] text-t1"
+					data-testid="trash-page-heading"
+				>
 					Корзина
 				</span>
 				<div className="flex gap-[3px] ml-3">
