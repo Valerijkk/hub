@@ -4,7 +4,7 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: wave-c-mostly-complete
 stopped_at: Wave B ✅ · Wave C FA-01–FA-12 ✅ (except FA-06 manual) · RU-V10 PASS · FA-10 qa-gate PASS
-last_updated: "2026-06-23T00:30:00.000Z"
+last_updated: "2026-06-23T18:00:00.000Z"
 last_activity: 2026-06-22/23 AUTH-01 · APIGW-04 · WebhookDispatcher inFlight Stop race fix · FA-10 race PASS
 progress:
   total_phases: 125
@@ -22,16 +22,16 @@ progress:
 
 **Ключевая ценность:** единая self-hosted среда для dev-команды и сотрудников компании — трекер, TMS, мессенджер, звонки, интранет, CRM, HR, учёт, AI — в одном интерфейсе.
 
-**Текущий фокус:** Wave C final audit — **FA-01–FA-12 ✅** (кроме **FA-06** manual ops) · squash PR `feat/v2.5-trust`
+**Текущий фокус:** Wave C final audit — **FA-01–FA-12 ✅** (кроме **FA-06** manual ops) · squash PR #1 merged · PR #25/#26 ops scripts
 
 ---
 
-## Текущая позиция (2026-06-22)
+## Текущая позиция (2026-06-23)
 
 | Параметр | Значение |
 |----------|----------|
 | Фаза | **Wave C** — FA-01–FA-12 ✅ (кроме FA-06 manual) · RU-V10 PASS · FA-10 qa-gate PASS |
-| Ветка | `feat/v2.5-trust` (uncommitted) |
+| Ветка | `master` · HEAD `0896c3b` |
 | COV overall (`internal/`) | **83.0%** (Docker, `-tags hubtest`, post FA-11/12) |
 | Security packages ≥80% | **6/6** ✅ |
 | Product score | **93/100** |

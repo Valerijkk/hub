@@ -185,7 +185,7 @@
 | 1 | TF test framework migration (488 / 0 internal) | ✅ COMPLETE |
 | 2 | FA-11 tms/project → 82% | ✅ closed |
 | 3 | NFR-16 full WCAG AA sign-off | ⚠️ partial |
-| 4 | NFR-17 Lighthouse ≥90 in CI | ❌ not measured |
+| 4 | NFR-17 Lighthouse ≥90 in CI | ⚠️ artifact job (non-blocking) |
 | 5 | FA-06 / PG-03 secret rotation execute | ⏳ manual ops |
 | 6 | FA-04 github http.DefaultClient fallback | ✅ safehttp |
 | 7 | FA-05 hub-mail prod compose | ✅ 2026-06-22 |
