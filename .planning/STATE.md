@@ -137,15 +137,22 @@ progress:
 
 ## Pending Todos
 
-- **FA-06 / PG-03:** Secret rotation (manual ops, runbook ready) — единственный блокер prod cutover
-- **SSH deploy:** GitHub Actions deploy job — firewall :22 / `SSH_HOST` secrets (continue-on-error on master)
-- **Post-merge CI:** master `64dce64` — e2e-full failed Docker Hub pull timeout (transient); retry in `ci-e2e-backend.sh`
-- ~~**UX-1:**~~ ✅ **DONE 2026-06-22** — PR #15 merged (`calls`, `settings`, `admin` in Ctrl+K; i18n; E2E shortcuts)
-- ~~**Squash PR v2.5-trust:**~~ ✅ merged #1 (2026-06-22) + hotfixes #12–#14
+- **FA-06 / PG-03:** Phase 0 ✅ scan logged · **Phase 1–3 manual** — P1: `RESEND_API_KEY`, `TELEGRAM_BOT_TOKEN` → `.planning/FA-06-EXECUTION-LOG.md`
+- **SSH deploy:** GitHub Actions deploy job — firewall :22 / `SSH_HOST` secrets (`continue-on-error` on master)
+- ~~**UX-1:**~~ ✅ PR #15 merged · ~~**CI flake:**~~ ✅ #16 docker retry · #22 gitlab test · **master CI green** (run 27962930096)
+- ~~**Dependabot batch:**~~ ✅ #17–#21 merged 2026-06-22 (recharts, happy-dom, radix select/tooltip, atlaskit dnd 2.x)
+- **v2.5.0 tag:** after FA-06 Phase 1–3 + CTO sign-off
 
 ---
 
 ## Недавние сессии
+
+### 2026-06-22 — Master CI green + Dependabot batch ✅
+
+- **Master CI** run 27962930096: all jobs pass incl. **coverage-gate ≥82%** · e2e-full
+- **PR #16** docker compose retry · **PR #22** gitlab pipelines mock · HEAD `a9f931c`
+- **Dependabot #17–#21** merged: recharts, happy-dom, radix select/tooltip, atlaskit/pragmatic-drag-and-drop 2.x
+- **FA-06 Phase 0** git scan filled → `.planning/FA-06-EXECUTION-LOG.md` (local; no secret values)
 
 ### 2026-06-22 — UX-1 command palette ✅ PR #15
 
