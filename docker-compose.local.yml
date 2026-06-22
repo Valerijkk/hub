@@ -116,7 +116,7 @@ services:
       RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"
       MAIL_DAILY_LIMIT: "${MAIL_DAILY_LIMIT:-20}"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -172,7 +172,7 @@ services:
       hub-mail:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 10
