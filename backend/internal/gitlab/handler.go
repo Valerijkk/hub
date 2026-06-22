@@ -1,4 +1,4 @@
-﻿package gitlab
+package gitlab
 
 import (
 	"crypto/subtle"

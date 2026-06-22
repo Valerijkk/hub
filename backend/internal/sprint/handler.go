@@ -1,4 +1,4 @@
-﻿package sprint
+package sprint
 
 import (
 	"github.com/gofiber/fiber/v3"
