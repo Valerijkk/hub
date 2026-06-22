@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
@@ -24,6 +26,7 @@ type gitlabRoutesEnv struct {
 	app       *fiber.App
 	ownerID   uuid.UUID
 	projectID uuid.UUID
+	gitlabURL string
 }
 
 func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
@@ -59,8 +62,18 @@ func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
 		Save(ctx)
 	require.NoError(t, err)
 
+	glSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/pipelines") {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte("[]"))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(glSrv.Close)
+
 	repo := gitlab.NewEntRepository(client, nil)
-	svc := gitlab.NewGitLabService(repo, nil)
+	svc := gitlab.NewGitLabServiceWithHTTPClient(repo, nil, glSrv.Client())
 	h := gitlab.NewHandler(svc)
 
 	app := fiber.New()
@@ -71,14 +84,17 @@ func newGitLabRoutesEnv(t *testing.T) gitlabRoutesEnv {
 	}
 	h.RegisterRoutes(api, authMw, rbacSvc)
 
-	return gitlabRoutesEnv{app: app, ownerID: owner.ID, projectID: proj.ID}
+	return gitlabRoutesEnv{app: app, ownerID: owner.ID, projectID: proj.ID, gitlabURL: glSrv.URL}
 }
 
 func TestHandler_RegisterRoutes_WebhookAndIntegrations(t *testing.T) {
 	env := newGitLabRoutesEnv(t)
 	base := "/api/projects/" + env.projectID.String() + "/gitlab"
 
-	payload := `{"project_path":"group/routes","access_token":"glpat-routes","webhook_secret":"route-secret"}`
+	payload := fmt.Sprintf(
+		`{"project_path":"group/routes","access_token":"glpat-routes","webhook_secret":"route-secret","gitlab_url":%q}`,
+		env.gitlabURL,
+	)
 	req := httptest.NewRequest(http.MethodPost, base+"/integrations", bytes.NewReader([]byte(payload)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := env.app.Test(req)
