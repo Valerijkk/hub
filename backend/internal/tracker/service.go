@@ -17,9 +17,10 @@ type WIPChecker interface {
 // TrackerService реализует бизнес-логику модуля трекера задач.
 // Оркестрирует вызовы репозитория, workflow-движка, логирование активности и outbox-события.
 type TrackerService struct {
-	repo       Repository
-	workflow   *WorkflowEngine
-	wipChecker WIPChecker
+	repo         Repository
+	workflow     *WorkflowEngine
+	wipChecker   WIPChecker
+	threadMirror ThreadMirror
 }
 
 // NewTrackerService создаёт новый сервис трекера.
@@ -30,7 +31,7 @@ func NewTrackerService(repo Repository, wipChecker WIPChecker) *TrackerService {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Вспомогательные функции
 // ---------------------------------------------------------------------------
 
 // buildFieldChanges сравнивает существующую задачу с запросом обновления и возвращает список изменений.

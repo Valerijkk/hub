@@ -15,7 +15,7 @@ type UserBlock struct {
 	ent.Schema
 }
 
-// Fields of the UserBlock.
+// Поля сущности UserBlock.
 func (UserBlock) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -31,7 +31,7 @@ func (UserBlock) Fields() []ent.Field {
 	}
 }
 
-// Edges of the UserBlock.
+// Рёбра (edges) сущности UserBlock.
 func (UserBlock) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("blocker", User.Type).
@@ -47,7 +47,7 @@ func (UserBlock) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the UserBlock.
+// Индексы сущности UserBlock.
 func (UserBlock) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("blocker_id", "blocked_id").

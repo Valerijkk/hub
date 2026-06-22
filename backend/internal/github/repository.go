@@ -182,7 +182,7 @@ func (r *EntRepository) CreateIntegration(ctx context.Context, projectID uuid.UU
 	// ME-08: новая интеграция — сбрасываем кеш секретов, чтобы её secret
 	// сразу учитывался в HMAC-сверке (а не через 60 секунд).
 	r.invalidateSecretsCache()
-	// Return decrypted values to caller so they don't see ciphertext.
+	// Возвращаем decrypt caller — не показываем ciphertext в API.
 	r.decryptIntegration(created)
 	return created, nil
 }
@@ -333,7 +333,7 @@ func (r *EntRepository) LogActivity(ctx context.Context, issueID uuid.UUID, acti
 // (если invalidate не вызывался) новый секрет подхватится с задержкой
 // до 60 секунд.
 func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, error) {
-	// Fast path: cache hit under RLock.
+	// Fast path: cache hit под RLock — без лишних decrypt.
 	r.secretsMu.RLock()
 	if !r.secretsExpire.IsZero() && time.Now().Before(r.secretsExpire) {
 		// Возвращаем копию, чтобы caller не мог мутировать слайс кеша.

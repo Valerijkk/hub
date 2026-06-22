@@ -1,7 +1,6 @@
 {
 	"issues": "Issues",
 	"issue": "Issue",
-	"kanban": "Kanban",
 	"board": "Board",
 	"sprint": "Sprint",
 	"sprints": "Sprints",
@@ -82,6 +81,9 @@
 		"title": "Title",
 		"titlePlaceholder": "Enter issue title",
 		"titleRequired": "Enter issue title",
+		"titleMinLength": "Title must be at least 3 characters",
+		"titleMaxLength": "Title must be at most 200 characters",
+		"estimateInvalid": "Estimate must be a non-negative number",
 		"descriptionPlaceholder": "Describe the issue…",
 		"assigneePlaceholder": "Select assignee",
 		"estimateMinutes": "Estimate (minutes)",

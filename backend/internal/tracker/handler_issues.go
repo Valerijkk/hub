@@ -10,10 +10,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Issue handlers
+// Обработчики задач
 // ---------------------------------------------------------------------------
 
-// CreateIssue godoc
+// CreateIssue — Создать задачу
 // @Summary Создать задачу
 // @Description Создаёт новую задачу (issue) в указанном проекте.
 // @Tags Трекер
@@ -50,7 +50,7 @@ func (h *Handler) CreateIssue(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListIssues godoc
+// ListIssues — Список задач проекта
 // @Summary Список задач проекта
 // @Description Возвращает список задач проекта с фильтрацией по статусу, приоритету, исполнителю и т.д.
 // @Tags Трекер
@@ -59,7 +59,7 @@ func (h *Handler) CreateIssue(c fiber.Ctx) error {
 // @Param status query string false "Фильтр по статусу"
 // @Param priority query string false "Фильтр по приоритету"
 // @Param assignee_id query string false "Фильтр по исполнителю"
-// @Success 200 {object} ListIssuesResponse "Список задач"
+// @Success 200 {object} PaginatedResponse[IssueResponse] "Список задач"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -83,7 +83,7 @@ func (h *Handler) ListIssues(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetIssue godoc
+// GetIssue — Получить задачу
 // @Summary Получить задачу
 // @Description Возвращает детальную информацию о задаче по её ключу (например, PROJ-123).
 // @Tags Трекер
@@ -110,7 +110,7 @@ func (h *Handler) GetIssue(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateIssue godoc
+// UpdateIssue — Обновить задачу
 // @Summary Обновить задачу
 // @Description Обновляет поля задачи: название, описание, статус, приоритет, исполнителя и др.
 // @Tags Трекер
@@ -148,7 +148,7 @@ func (h *Handler) UpdateIssue(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteIssue godoc
+// DeleteIssue — Удалить задачу
 // @Summary Удалить задачу
 // @Description Мягкое удаление задачи (перемещение в корзину).
 // @Tags Трекер
@@ -177,7 +177,7 @@ func (h *Handler) DeleteIssue(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// MoveIssue godoc
+// MoveIssue — Переместить задачу
 // @Summary Переместить задачу
 // @Description Изменяет позицию задачи на доске (статус, порядок сортировки).
 // @Tags Трекер
@@ -224,7 +224,7 @@ type jqlRequest struct {
 	Query string `json:"query" validate:"required"`
 }
 
-// SearchIssuesJQL godoc
+// SearchIssuesJQL — JQL-поиск задач
 // @Summary JQL-поиск задач
 // @Description Парсит JQL-строку, конвертирует в предикаты и возвращает отфильтрованные задачи.
 // @Tags Трекер

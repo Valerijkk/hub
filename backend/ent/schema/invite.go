@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Invite holds the schema definition for the Invite entity.
+// Invite — определение Ent-схемы сущности Invite.
 type Invite struct {
 	ent.Schema
 }
 
-// Fields of the Invite.
+// Поля сущности Invite.
 func (Invite) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -39,7 +39,7 @@ func (Invite) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Invite.
+// Рёбра (edges) сущности Invite.
 func (Invite) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -53,7 +53,7 @@ func (Invite) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the Invite.
+// Индексы сущности Invite.
 func (Invite) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("expires_at"),

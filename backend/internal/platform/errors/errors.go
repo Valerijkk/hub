@@ -5,10 +5,11 @@ import "fmt"
 
 // AppError — структурированная ошибка приложения с HTTP-кодом, сообщением и ID запроса.
 type AppError struct {
-	Code      int    `json:"code"`
-	Message   string `json:"message"`
-	RequestID string `json:"request_id,omitempty"`
-	Details   any    `json:"details,omitempty"`
+	Code       int    `json:"code"`
+	Message    string `json:"message"`
+	RequestID  string `json:"request_id,omitempty"`
+	Details    any    `json:"details,omitempty"`
+	RetryAfter int    `json:"-"` // секунды для заголовка Retry-After (429)
 }
 
 // Error возвращает строковое представление ошибки в формате "[код] сообщение".
@@ -44,6 +45,14 @@ func NewConflict(msg string) *AppError {
 // NewRateLimited создаёт ошибку 429 Too Many Requests.
 func NewRateLimited(msg string) *AppError {
 	return &AppError{Code: 429, Message: msg}
+}
+
+// NewRateLimitedAfter создаёт 429 с Retry-After (секунды).
+func NewRateLimitedAfter(msg string, retryAfterSec int) *AppError {
+	if retryAfterSec < 1 {
+		retryAfterSec = 1
+	}
+	return &AppError{Code: 429, Message: msg, RetryAfter: retryAfterSec}
 }
 
 // NewInternal создаёт ошибку 500 Internal Server Error.

@@ -6,9 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/project"
-	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/user"
 )
 
@@ -16,17 +13,17 @@ const defaultCacheTTL = 5 * time.Minute
 
 // RBACService предоставляет проверку разрешений с кешированием в Redis.
 type RBACService struct {
-	client *ent.Client
-	cache  *PermissionCache
-	ttl    time.Duration
+	repo  Repository
+	cache *PermissionCache
+	ttl   time.Duration
 }
 
 // NewRBACService создаёт новый RBAC-сервис.
-func NewRBACService(client *ent.Client, cache *PermissionCache) *RBACService {
+func NewRBACService(repo Repository, cache *PermissionCache) *RBACService {
 	return &RBACService{
-		client: client,
-		cache:  cache,
-		ttl:    defaultCacheTTL,
+		repo:  repo,
+		cache: cache,
+		ttl:   defaultCacheTTL,
 	}
 }
 
@@ -37,13 +34,13 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 	userStr := userID.String()
 	projectStr := projectID.String()
 
-	// Check cache first
+	// Сначала Redis-кэш — снижает нагрузку на БД при частых RBAC-проверках.
 	if perm, ok := s.cache.Get(ctx, userStr, projectStr); ok {
 		return perm, nil
 	}
 
-	// Check if user is system admin
-	u, err := s.client.User.Get(ctx, userID)
+	// Системный admin обходит project membership — полный набор разрешений.
+	u, err := s.repo.GetUser(ctx, userID)
 	if err != nil {
 		return 0, err
 	}
@@ -53,27 +50,21 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 		return allPerms, nil
 	}
 
-	// Look up project membership with optional custom role
-	member, err := s.client.ProjectMember.Query().
-		Where(
-			projectmember.HasUserWith(user.IDEQ(userID)),
-			projectmember.HasProjectWith(project.IDEQ(projectID)),
-		).
-		WithCustomRole().
-		Only(ctx)
+	// Членство в проекте + опциональная кастомная роль.
+	member, err := s.repo.GetProjectMemberWithCustomRole(ctx, userID, projectID)
 	if err != nil {
 		return 0, err
 	}
 
-	// Determine base permissions from project role
+	// Базовые права по фиксированной роли проекта (owner/member/viewer).
 	perm := DefaultRolePermissions[string(member.ProjectRole)]
 
-	// If custom role is assigned, use its permissions instead
+	// Кастомная роль перекрывает базовую bitmask проекта.
 	if customRole := member.Edges.CustomRole; customRole != nil {
 		perm = Permission(customRole.Permissions)
 	}
 
-	// Cache the result
+	// Кэшируем эффективную маску на defaultCacheTTL.
 	_ = s.cache.Set(ctx, userStr, projectStr, perm, s.ttl)
 
 	return perm, nil

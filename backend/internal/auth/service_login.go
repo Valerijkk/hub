@@ -11,11 +11,9 @@ import (
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
-// LoginService инкапсулирует Magic Link / Telegram login-флоу и создание/поиск
-// пользователей. Делегирует выпуск токенов в SessionService, а проверку режима
-// регистрации — в RegistrationModeService (SC-14-1).
+// LoginService инкапсулирует Magic Link / Telegram login-флоу.
 type LoginService struct {
-	db        *ent.Client
+	repo      Repository
 	magicLink *MagicLinkService
 	botToken  string
 	sessions  *SessionService
@@ -25,7 +23,7 @@ type LoginService struct {
 
 // NewLoginService создаёт LoginService с явно переданными зависимостями.
 func NewLoginService(
-	db *ent.Client,
+	repo Repository,
 	magicLink *MagicLinkService,
 	botToken string,
 	sessions *SessionService,
@@ -33,7 +31,7 @@ func NewLoginService(
 	org *OrganizationService,
 ) *LoginService {
 	return &LoginService{
-		db:        db,
+		repo:      repo,
 		magicLink: magicLink,
 		botToken:  botToken,
 		sessions:  sessions,
@@ -43,10 +41,8 @@ func NewLoginService(
 }
 
 // UserExistsByEmail возвращает true, если в БД есть пользователь с указанным email.
-// Используется handler.SendMagicLink для проверки приглашения в режиме invite_only
-// без обращения handler-а напрямую к *ent.Client (ARCH-H1).
 func (s *LoginService) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
-	return s.db.User.Query().Where(user.EmailEQ(email)).Exist(ctx)
+	return s.repo.UserExistsByEmail(ctx, email)
 }
 
 // LoginWithMagicLink проверяет код, находит или создаёт пользователя и возвращает пару токенов.
@@ -69,7 +65,7 @@ func (s *LoginService) LoginWithMagicLink(ctx context.Context, email, code, invi
 	})
 }
 
-// CanSendMagicLink validates whether magic link may be sent for a new email (ORG-05).
+// CanSendMagicLink проверяет, можно ли отправить magic link для нового email (ORG-05).
 func (s *LoginService) CanSendMagicLink(ctx context.Context, email, inviteToken string) error {
 	exists, err := s.UserExistsByEmail(ctx, email)
 	if err != nil {
@@ -128,9 +124,8 @@ func (s *LoginService) LoginWithTelegramUser(ctx context.Context, tgUser *Telegr
 	return s.sessions.CreateSession(ctx, u.ID, device, ip)
 }
 
-// findOrCreateUserByEmail ищет пользователя по email или регистрирует нового (founder/pending).
 func (s *LoginService) findOrCreateUserByEmail(ctx context.Context, email, inviteToken string) (*ent.User, bool, error) {
-	u, err := s.db.User.Query().Where(user.EmailEQ(email)).Only(ctx)
+	u, err := s.repo.GetUserByEmail(ctx, email)
 	if err == nil {
 		return u, false, nil
 	}
@@ -145,9 +140,8 @@ func (s *LoginService) findOrCreateUserByEmail(ctx context.Context, email, invit
 	return u, true, nil
 }
 
-// findOrCreateUserByTelegram ищет пользователя по telegram_id. Если не найден — создаёт нового.
 func (s *LoginService) findOrCreateUserByTelegram(ctx context.Context, telegramID string, tg *TelegramUser) (*ent.User, bool, error) {
-	u, err := s.db.User.Query().Where(user.TelegramIDEQ(telegramID)).Only(ctx)
+	u, err := s.repo.GetUserByTelegramID(ctx, telegramID)
 	if err == nil {
 		return u, false, nil
 	}
@@ -164,8 +158,6 @@ func (s *LoginService) findOrCreateUserByTelegram(ctx context.Context, telegramI
 		name += " " + tg.LastName
 	}
 
-	// Telegram users get a placeholder email (telegram_<id>@hub.local) until they
-	// provide a real one during onboarding.
 	placeholderEmail := fmt.Sprintf("telegram_%s@hub.local", telegramID)
 	tgID := telegramID
 

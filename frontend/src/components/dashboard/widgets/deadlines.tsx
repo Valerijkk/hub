@@ -1,5 +1,5 @@
 /**
- * Widget "Deadlines" -- list of tasks with approaching due dates.
+ * Виджет «Дедлайны» — задачи с приближающимся due_date.
  */
 import { CalendarCheck, CalendarClock } from "lucide-react";
 import type { PersonalData, TaskSummary } from "@/api/dashboard";
@@ -9,14 +9,14 @@ interface Props {
 	data?: unknown;
 }
 
-/** Calculate days remaining until deadline. */
+/** Дней до дедлайна (отрицательное — просрочка). */
 function daysRemaining(dueDate: string): number {
 	const due = new Date(dueDate);
 	const now = new Date();
 	return Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-/** Deadline urgency styling. */
+/** Стили срочности по оставшимся дням. */
 function getDeadlineStyle(days: number): {
 	variant: "destructive" | "default" | "outline" | "secondary";
 	className: string;
@@ -37,7 +37,7 @@ function getDeadlineStyle(days: number): {
 	return { variant: "outline", className: "" };
 }
 
-/** Deadlines widget. */
+/** Виджет дедлайнов. */
 export function DeadlinesWidget({ data }: Props) {
 	const personalData = data as PersonalData | undefined;
 	const deadlines = personalData?.deadlines ?? [];

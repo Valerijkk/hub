@@ -6,10 +6,11 @@
 
 ## Проект
 
-**Hub** — единая платформа для команд 10–50 человек: Task Tracker + Messenger + TMS + Voice Calls + Dashboards.  
-**Roadmap v4:** corporate super-app (intranet, calendar, CRM-lite, AI hub) — см. `.planning/PLATFORM-VISION-v4.md`.
+**Hub** — self-hosted **corporate super-app** для команд 10–50 человек: Task Tracker + Messenger + TMS + Voice Calls + Dashboards **+** интранет, календарь, CRM-lite, HR, учёт, no-code базы, AI hub.
 
-Монорепо: `backend/` (Go) + `frontend/` (React) + `cli/` + `deployments/`
+**Roadmap v4:** `.planning/milestones/v4-super-app/SUMMARY.md` · Vision: `.planning/PLATFORM-VISION-v4.md`
+
+Монорепо: `backend/` (Go, **82 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + `testframework/`
 
 ---
 
@@ -26,15 +27,16 @@
 | `docs/stack_and_tools.md` | Версии, инструменты |
 | `docs/code_style_guide.md` | Стиль Go/TS |
 | `docs/security_guidelines.md` | OWASP, blockers |
-| `docs/tz_constraints.md` | TZ mandatory/forbidden (tracked) |
-| `docs/competitive_analysis_2026.md` | Competitors + Mighty/Bitrix/Lark |
-| `docs/user_needs_analysis_2026.md` | Personas, JTBD |
+| `docs/tz_constraints.md` | TZ mandatory/forbidden |
+| `docs/competitive_analysis_2026.md` | Конкуренты + Mighty/Bitrix/Lark |
+| `docs/competitive_audit.md` | Best practices + backlog |
+| `docs/user_needs_analysis_2026.md` | Персоны, JTBD, MoSCoW |
 
-Планирование: `.planning/STATE.md`, `.planning/DISCUSS-ROADMAP-LOCKED.md`, `.planning/ROADMAP.md` (Phase 15-17)
+Планирование: `.planning/STATE.md`, `.planning/COVERAGE.md`, `.planning/ROADMAP.md`, `.planning/DISCUSS-ROADMAP-LOCKED.md`
 
-**Active:** Phase 15 Trust · branch `feat/v2.5-trust` · PO LOCKED 2026-06-21
+**Active:** Phase 125 complete · COV **82.6%** · TF migration Wave B · branch `feat/v2.5-trust`
 
-GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–§10
+GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–§11
 
 ---
 
@@ -55,7 +57,7 @@ Skills: `.cursor/project_skills/`
 
 ### Вспомогательные
 
-`devops-engineer`, `debugger`, `refactor-specialist`
+`devops-engineer`, `debugger`, `refactor-specialist`, `docs-writer`
 
 Legacy aliases: `business-analyst`→`ba`, `backend-dev`→`be`, `frontend-dev`→`fe`, `qa-auto`→`qa`
 
@@ -75,31 +77,50 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 
 **Docs sync (обязательно):** после любого изменения кода обновляй затронутую документацию в той же сессии. Правило: `.cursor/rules/55-docs-sync.mdc` · skill: `/handoff-sync`.
 
-Текущий план: **Phase 15 Trust** — `.planning/DISCUSS-ROADMAP-LOCKED.md`
-
 ---
 
-## Текущий статус
+## Текущий статус (2026-06-22)
 
-- **v1.0** SHIPPED 2026-03-21
-- **v2.0** Hub Redesign COMPLETE 2026-05-15
-- **v2.0.1** hotfix — **12 CRITICAL закрыты в коде** (см. `docs/security_guidelines.md`)
-- **v2.0.2** **SHIP-READY** — score **93/100** (2026-06-20, uncommitted)
-- **PLAN-CLOSE-GAPS** Waves 1–6 ✅ · cleanup cycle 12 ✅
-- Production ready: **✅ v2.0.2 gate** — COV-01 PASS; PG-03 secrets manual; v2.6 = PROD-01
+| Milestone | Статус |
+|-----------|--------|
+| v1.0 MVP | ✅ SHIPPED 2026-03-21 |
+| v2.0 Hub Redesign | ✅ COMPLETE 2026-05-15 |
+| v2.5 Trust | ✅ COMPLETE 2026-06-22 |
+| v2.6 Automate + Arch + OBS | ✅ COMPLETE 2026-06-24 |
+| v3.0 AI Native | ✅ COMPLETE 2026-06-22 |
+| v4 Super-app | ✅ COMPLETE 2026-06-25 |
+| Coverage wave (Ph 59–125) | ✅ COV **83.0%** |
+| Test framework migration | ✅ Wave B COMPLETE (0 internal tests) |
+| Final audit (FA-01–FA-12) | ✅ Wave C COMPLETE (кроме FA-06 manual) |
 
-### Оставшиеся gaps (v2.6 only)
+### Метрики качества
+
+| Метрика | Значение |
+|---------|----------|
+| COV overall | **83.0%** |
+| Security packages ≥80% | **6/6** ✅ |
+| auth / ws / rbac / audit / calls | 82.4% / 87.7% / 84.7% / 80.5% / 80.2% |
+| tracker / messenger / notification / tms / project | 82.4% / 82.3% / 82.5% / 82.0% / 82.0% |
+| Product score | **93/100** |
+| REST API | **286+** endpoints |
+| Ent schemas | **82** |
+| Backend tests (`testframework/`) | **488** · 0 in `internal/` |
+| Vitest | **99/99** pass |
+| Playwright E2E | **20** specs |
+| qa-gate (FA-10) | build ✅ · hubtest ✅ · race ✅ · Biome ✅ · e2e-smoke **3/3** ✅ |
+
+### Следующие шаги
 
 | Gap | Статус |
 |-----|--------|
-| PROD-01 workflow automation | Spike ready — `.planning/PROD-01-SPIKE.md` |
-| Vitest / Playwright | **49 tests** / **7 e2e specs** + CI ✅ |
-| Lighthouse ≥90 | manual — `npm run lighthouse:help` |
-| Secret rotation (git history) | PG-03 manual ops |
-| Biome lint baseline | not gated |
-| RHF+Zod forms | v2.6 backlog |
+| FA-01 audit + remediation backlog | ✅ closed 2026-06-22 |
+| Test framework migration TF-M04–M08 | ✅ Wave B COMPLETE |
+| Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
+| FA-10 e2e-smoke | ✅ 3/3 PASS |
+| PG-03 Secret rotation (FA-06) | ⏳ manual ops — блокер Wave C |
+| Squash PR `feat/v2.5-trust` | ⏳ draft → `.planning/PR-feat-v2.5-trust.md` · after FA-06 + CTO |
 
-Полный список: `.planning/COVERAGE.md` · задачи: `.planning/TASKS-CLOSE-GAPS.md`
+Полный список: `.planning/COVERAGE.md` · задачи: `.planning/TASKS-PHASES-121-FINAL-AUDIT.md`
 
 ---
 
@@ -109,9 +130,10 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 1. Загрузить docs/*
 2. ba → sa → arch (для новых фич)
 3. be/fe → атомарная реализация + тесты
-4. *-ver → верификация (verified: true в skill)
-5. qa → регрессия
-6. /qa-gate → финальный чек
+4. Docs sync (STATE + domain docs)
+5. *-ver → верификация (verified: true в skill)
+6. qa → регрессия (Docker: -tags hubtest)
+7. /qa-gate → финальный чек
 ```
 
 ---
@@ -122,8 +144,17 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 # Dev
 docker compose -f docker-compose.local.yml up -d
 
-# Backend regression
-cd backend && go build ./... && go test -race -count=1 ./...
+# Backend regression (local)
+cd backend && go build -tags release ./... && go test -race -count=1 ./...
+
+# Backend regression (Docker, canonical)
+docker compose -f deployments/docker-compose.test.yml up -d
+docker run --rm --network deployments_default \
+  -v "${PWD}/backend:/app" -w /app \
+  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
+  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
+  golang:1.25-bookworm \
+  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/..."
 
 # Frontend regression
 cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
@@ -134,4 +165,4 @@ cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
 
 ---
 
-*2026-06-17 — Реструктуризация под регламент AI-команды*
+*Обновлено: 2026-06-22 — RU-FIX-03: 82 Ent schemas, Phase 125 COV 82.6%*

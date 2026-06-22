@@ -6,8 +6,8 @@ import (
 	"unicode"
 )
 
-// sanitizeFilename strips path components and unsafe characters from upload names (NF-09).
-// Original filename is kept in FileMetadata; only the S3 key segment is sanitized.
+// sanitizeFilename убирает path-компоненты и небезопасные символы (NF-09).
+// Оригинальное имя в FileMetadata; санитизируется только сегмент S3-ключа.
 func sanitizeFilename(name string) string {
 	base := filepath.Base(strings.ReplaceAll(name, "\\", "/"))
 	if base == "." || base == ".." {

@@ -22,11 +22,11 @@ function CallsPage() {
 		setCreatingCall(false);
 		if (inviteCode) {
 			const url = `${window.location.origin}/call/${inviteCode}`;
-			// Fallback для HTTP (clipboard API требует HTTPS)
+			// Fallback для HTTP — clipboard API доступен только по HTTPS
 			try {
 				await navigator.clipboard.writeText(url);
 			} catch {
-				// fallback: prompt
+				// fallback: prompt для копирования вручную для копирования вручную
 				window.prompt("Скопируйте ссылку:", url);
 			}
 			toast.success("Звонок создан!", {

@@ -7,10 +7,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Issue link handlers
+// Обработчики связей задач
 // ---------------------------------------------------------------------------
 
-// CreateIssueLink godoc
+// CreateIssueLink — Создать связь между задачами
 // @Summary Создать связь между задачами
 // @Description Создаёт связь (блокирует, связана с, дублирует) между двумя задачами.
 // @Tags Трекер
@@ -48,7 +48,7 @@ func (h *Handler) CreateIssueLink(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListIssueLinks godoc
+// ListIssueLinks — Список связей задачи
 // @Summary Список связей задачи
 // @Description Возвращает все связи указанной задачи с другими задачами.
 // @Tags Трекер
@@ -74,14 +74,14 @@ func (h *Handler) ListIssueLinks(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteIssueLink godoc
+// DeleteIssueLink — Удалить связь задачи
 // @Summary Удалить связь задачи
 // @Description Удаляет связь между задачами по ID связи.
 // @Tags Трекер
 // @Param projectId path string true "ID проекта"
 // @Param issueKey path string true "Ключ задачи"
 // @Param linkId path string true "ID связи"
-// @Success 204 "Связь удал��на"
+// @Success 204 "Связь удалена"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"

@@ -49,7 +49,7 @@ export function useChannels() {
 			const data = payload as Record<string, unknown>;
 			switch (event) {
 				case "channel_created": {
-					// Ensure required fields exist before adding
+					// Проверяем обязательные поля — WS-payload может быть неполным.
 					const ch = data as unknown as Channel;
 					if (ch && typeof ch.id === "string" && typeof ch.name === "string") {
 						addChannel(ch);
@@ -58,7 +58,7 @@ export function useChannels() {
 				}
 				case "channel_updated":
 					if (typeof data.id === "string") {
-						// Only pass safe string fields to avoid objects in render
+						// В partial только строковые поля — объекты в render ломают React.
 						const partial: Partial<Channel> = {};
 						if (typeof data.name === "string") partial.name = data.name;
 						if (typeof data.description === "string")

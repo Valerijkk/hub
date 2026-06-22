@@ -2,7 +2,7 @@ package auth
 
 import "time"
 
-// --- Request DTOs ---
+// --- DTO запросов ---
 
 // MagicLinkRequest — тело запроса для POST /auth/magic-link.
 type MagicLinkRequest struct {
@@ -50,7 +50,7 @@ type PendingUserResponse struct {
 	PendingSince time.Time `json:"pending_since"`
 }
 
-// OrgInviteResponse — org invite link token for admins.
+// OrgInviteResponse — invite-токен и URL org для администраторов.
 type OrgInviteResponse struct {
 	InviteToken string `json:"invite_token"`
 	InviteURL   string `json:"invite_url"`
@@ -66,7 +66,7 @@ type OnboardingCompleteRequest struct {
 	ProfileData UpdateProfileRequest `json:"profile"`
 }
 
-// --- Response DTOs ---
+// --- DTO ответов ---
 
 // TokenPairResponse — ответ для эндпоинтов login/refresh.
 type TokenPairResponse struct {

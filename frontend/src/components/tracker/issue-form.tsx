@@ -1,9 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Value } from "@udecode/plate";
 import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	type CreateIssueRequest,
 	createIssue,
@@ -12,6 +13,10 @@ import {
 	type IssueType,
 	updateIssue,
 } from "@/api/tracker";
+import {
+	type IssueFormValues,
+	issueFormSchema,
+} from "@/components/tracker/issue-form-schema";
 import { PlateEditor } from "@/components/tracker/plate-editor";
 import { UserPicker } from "@/components/tracker/user-picker";
 import { Button } from "@/components/ui/button";
@@ -24,6 +29,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 
 const ISSUE_TYPE_KEYS: IssueType[] = [
 	"bug",
@@ -51,7 +57,7 @@ function issueTypeLabel(type: IssueType, t: (k: string) => string): string {
 	return t(`types.${type}`);
 }
 
-/** Форма создания и редактирования задачи. */
+/** Форма создания и редактирования задачи (RHF + Zod, FB-11). */
 export function IssueForm({
 	projectId,
 	onSuccess,
@@ -65,26 +71,28 @@ export function IssueForm({
 }) {
 	const { t } = useTranslation(["tracker", "common"]);
 	const queryClient = useQueryClient();
-
-	const [title, setTitle] = useState(initialData?.title ?? "");
-	const [issueType, setIssueType] = useState<IssueType>(
-		initialData?.issue_type ?? "task",
-	);
-	const [priority, setPriority] = useState<IssuePriority>(
-		initialData?.priority ?? "medium",
-	);
 	const [description, setDescription] = useState<Value | undefined>(
 		initialData?.description_json as Value | undefined,
 	);
-	const [assigneeId, setAssigneeId] = useState(initialData?.assignee?.id ?? "");
-	const [estimateMinutes, setEstimateMinutes] = useState<string>(
-		initialData?.estimate_minutes?.toString() ?? "",
-	);
-	const [storyPoints, setStoryPoints] = useState<string>(
-		initialData?.story_points?.toString() ?? "",
-	);
-	const [dueDate, setDueDate] = useState(initialData?.due_date ?? "");
-	const [titleError, setTitleError] = useState<string | null>(null);
+
+	const {
+		register,
+		control,
+		handleSubmit,
+		formState: { errors, isValid, isSubmitting },
+	} = useForm<IssueFormValues>({
+		resolver: zodResolver(issueFormSchema),
+		mode: "onChange",
+		defaultValues: {
+			title: initialData?.title ?? "",
+			issue_type: initialData?.issue_type ?? "task",
+			priority: initialData?.priority ?? "medium",
+			assignee_id: initialData?.assignee?.id ?? "",
+			estimate_minutes: initialData?.estimate_minutes?.toString() ?? "",
+			story_points: initialData?.story_points?.toString() ?? "",
+			due_date: initialData?.due_date ?? "",
+		},
+	});
 
 	const createMutation = useMutation({
 		mutationFn: (data: CreateIssueRequest) => createIssue(projectId, data),
@@ -98,16 +106,20 @@ export function IssueForm({
 	});
 
 	const updateMutation = useMutation({
-		mutationFn: () => {
+		mutationFn: (values: IssueFormValues) => {
 			if (!initialData) throw new Error("No initial data for edit");
 			return updateIssue(projectId, initialData.issue_key, {
-				title,
+				title: values.title.trim(),
 				description_json: description as Record<string, unknown> | undefined,
-				priority,
-				assignee_id: assigneeId || undefined,
-				estimate_minutes: estimateMinutes ? Number(estimateMinutes) : undefined,
-				story_points: storyPoints ? Number(storyPoints) : undefined,
-				due_date: dueDate || undefined,
+				priority: values.priority,
+				assignee_id: values.assignee_id || undefined,
+				estimate_minutes: values.estimate_minutes
+					? Number(values.estimate_minutes)
+					: undefined,
+				story_points: values.story_points
+					? Number(values.story_points)
+					: undefined,
+				due_date: values.due_date || undefined,
 				version: initialData.version,
 			});
 		},
@@ -122,52 +134,58 @@ export function IssueForm({
 		onError: (err) => toastApiError(err, t("form.updateError")),
 	});
 
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!title.trim()) {
-			setTitleError(t("form.titleRequired"));
-			return;
-		}
-		setTitleError(null);
-
+	const onSubmit = (values: IssueFormValues) => {
 		if (mode === "create") {
 			createMutation.mutate({
-				title: title.trim(),
-				issue_type: issueType,
-				priority,
+				title: values.title.trim(),
+				issue_type: values.issue_type,
+				priority: values.priority,
 				description_json: description as Record<string, unknown> | undefined,
-				assignee_id: assigneeId || undefined,
-				estimate_minutes: estimateMinutes ? Number(estimateMinutes) : undefined,
-				story_points: storyPoints ? Number(storyPoints) : undefined,
-				due_date: dueDate || undefined,
+				assignee_id: values.assignee_id || undefined,
+				estimate_minutes: values.estimate_minutes
+					? Number(values.estimate_minutes)
+					: undefined,
+				story_points: values.story_points
+					? Number(values.story_points)
+					: undefined,
+				due_date: values.due_date || undefined,
 			});
 		} else {
-			updateMutation.mutate();
+			updateMutation.mutate(values);
 		}
 	};
 
-	const isPending = createMutation.isPending || updateMutation.isPending;
+	const fieldError = (key: keyof IssueFormValues) => {
+		const err = errors[key];
+		if (!err?.message) return null;
+		return t(err.message as string);
+	};
+
+	const isPending =
+		isSubmitting || createMutation.isPending || updateMutation.isPending;
 
 	return (
-		<form onSubmit={handleSubmit} className="space-y-6">
+		<form
+			onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+			className="space-y-6"
+		>
 			<div className="space-y-2">
 				<Label htmlFor="title">{t("form.title")}</Label>
 				<Input
 					id="title"
-					value={title}
-					onChange={(e) => {
-						setTitle(e.target.value);
-						if (titleError && e.target.value.trim()) setTitleError(null);
-					}}
+					{...register("title")}
 					placeholder={t("form.titlePlaceholder")}
-					required
-					aria-invalid={titleError ? true : undefined}
-					aria-describedby={titleError ? "title-error" : undefined}
-					className={titleError ? "border-red-500 focus-visible:ring-red-500" : undefined}
+					aria-invalid={errors.title ? true : undefined}
+					aria-describedby={errors.title ? "title-error" : undefined}
+					className={
+						errors.title
+							? "border-red-500 focus-visible:ring-red-500"
+							: undefined
+					}
 				/>
-				{titleError ? (
+				{errors.title ? (
 					<p id="title-error" className="text-sm text-red-500" role="alert">
-						{titleError}
+						{fieldError("title")}
 					</p>
 				) : null}
 			</div>
@@ -175,39 +193,51 @@ export function IssueForm({
 			<div className="grid grid-cols-2 gap-4">
 				<div className="space-y-2">
 					<Label htmlFor="issue_type">{t("issueType")}</Label>
-					<Select
-						value={issueType}
-						onValueChange={(v) => setIssueType(v as IssueType)}
-					>
-						<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{ISSUE_TYPE_KEYS.map((type) => (
-								<SelectItem key={type} value={type}>
-									{issueTypeLabel(type, t)}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					<Controller
+						name="issue_type"
+						control={control}
+						render={({ field }) => (
+							<Select value={field.value} onValueChange={field.onChange}>
+								<SelectTrigger
+									id="issue_type"
+									className="w-full rounded-xl border bg-base px-3 py-2 text-sm"
+								>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{ISSUE_TYPE_KEYS.map((type) => (
+										<SelectItem key={type} value={type}>
+											{issueTypeLabel(type, t)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						)}
+					/>
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor="priority">{t("priority")}</Label>
-					<Select
-						value={priority}
-						onValueChange={(v) => setPriority(v as IssuePriority)}
-					>
-						<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{PRIORITY_KEYS.map((p) => (
-								<SelectItem key={p} value={p}>
-									{t(`priorities.${p}`)}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					<Controller
+						name="priority"
+						control={control}
+						render={({ field }) => (
+							<Select value={field.value} onValueChange={field.onChange}>
+								<SelectTrigger
+									id="priority"
+									className="w-full rounded-xl border bg-base px-3 py-2 text-sm"
+								>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{PRIORITY_KEYS.map((p) => (
+										<SelectItem key={p} value={p}>
+											{t(`priorities.${p}`)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						)}
+					/>
 				</div>
 			</div>
 
@@ -222,11 +252,17 @@ export function IssueForm({
 
 			<div className="space-y-2">
 				<Label htmlFor="assignee">{t("assignee")}</Label>
-				<UserPicker
-					projectId={projectId}
-					value={assigneeId}
-					onChange={setAssigneeId}
-					placeholder={t("form.assigneePlaceholder")}
+				<Controller
+					name="assignee_id"
+					control={control}
+					render={({ field }) => (
+						<UserPicker
+							projectId={projectId}
+							value={field.value ?? ""}
+							onChange={field.onChange}
+							placeholder={t("form.assigneePlaceholder")}
+						/>
+					)}
 				/>
 			</div>
 
@@ -237,42 +273,52 @@ export function IssueForm({
 						id="estimate"
 						type="number"
 						min={0}
-						value={estimateMinutes}
-						onChange={(e) => setEstimateMinutes(e.target.value)}
+						{...register("estimate_minutes")}
 						placeholder="0"
 					/>
+					{errors.estimate_minutes ? (
+						<p className="text-sm text-red-500">
+							{fieldError("estimate_minutes")}
+						</p>
+					) : null}
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor="story_points">{t("storyPoints")}</Label>
-					<Select
-						value={storyPoints || "none"}
-						onValueChange={(v) => setStoryPoints(v === "none" ? "" : v)}
-					>
-						<SelectTrigger className="w-full rounded-xl border bg-base px-3 py-2 text-sm">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="none">{t("form.storyPointsNone")}</SelectItem>
-							{[1, 2, 3, 5, 8, 13, 21].map((sp) => (
-								<SelectItem key={sp} value={String(sp)}>
-									{sp}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					<Controller
+						name="story_points"
+						control={control}
+						render={({ field }) => (
+							<Select
+								value={field.value || "none"}
+								onValueChange={(v) => field.onChange(v === "none" ? "" : v)}
+							>
+								<SelectTrigger
+									id="story_points"
+									className="w-full rounded-xl border bg-base px-3 py-2 text-sm"
+								>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">
+										{t("form.storyPointsNone")}
+									</SelectItem>
+									{[1, 2, 3, 5, 8, 13, 21].map((sp) => (
+										<SelectItem key={sp} value={String(sp)}>
+											{sp}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						)}
+					/>
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor="due_date">{t("dueDate")}</Label>
-					<Input
-						id="due_date"
-						type="date"
-						value={dueDate}
-						onChange={(e) => setDueDate(e.target.value)}
-					/>
+					<Input id="due_date" type="date" {...register("due_date")} />
 				</div>
 			</div>
 
-			<Button type="submit" disabled={isPending} className="w-full">
+			<Button type="submit" disabled={isPending || !isValid} className="w-full">
 				{isPending
 					? t("common:btn.saving")
 					: mode === "create"

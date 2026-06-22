@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 
 // ---------------------------------------------------------------------------
-// Duration presets
+// Пресеты длительности
 // ---------------------------------------------------------------------------
 
 const DURATION_OPTIONS = [
@@ -38,7 +38,7 @@ const DURATION_OPTIONS = [
 ] as const;
 
 // ---------------------------------------------------------------------------
-// Recurrence presets
+// Пресеты повторения
 // ---------------------------------------------------------------------------
 
 const RECURRENCE_OPTIONS = [
@@ -55,26 +55,26 @@ const RECURRENCE_OPTIONS = [
 ] as const;
 
 // ---------------------------------------------------------------------------
-// Props
+// Props компонента
 // ---------------------------------------------------------------------------
 
 interface CreateCallDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	/** Pre-fill date (YYYY-MM-DD). */
+	/** Предзаполнение даты (YYYY-MM-DD). */
 	defaultDate?: string;
-	/** Pre-fill time (HH:MM). */
+	/** Предзаполнение времени (HH:MM). */
 	defaultTime?: string;
 }
 
 // ---------------------------------------------------------------------------
-// Component
+// Компонент
 // ---------------------------------------------------------------------------
 
 /**
- * CreateCallDialog -- simplified quick-create dialog for scheduling calls.
- * Pre-fills selected date, uses quick-select buttons for duration,
- * and clean minimal dark design inspired by Tinkoff Talk.
+ * CreateCallDialog — быстрое создание запланированного звонка.
+ * Предзаполняет дату, длительность — кнопками быстрого выбора,
+ * минималистичный тёмный UI в духе Tinkoff Talk.
  */
 export function CreateCallDialog({
 	open,
@@ -113,7 +113,7 @@ export function CreateCallDialog({
 		enabled: !!projectId,
 	});
 
-	// --- Conflict checking ---
+	// --- Проверка конфликтов расписания ---
 	const conflictQueryEnabled =
 		!!date && !!time && participantIds.length > 0 && open;
 
@@ -158,7 +158,7 @@ export function CreateCallDialog({
 		setParticipantIds((prev) => prev.filter((id) => id !== userId));
 	};
 
-	// Reset form when dialog opens with defaults
+	// Сбрасываем форму при открытии с переданными default-значениями
 	useEffect(() => {
 		if (open) {
 			setTitle("");
@@ -206,7 +206,7 @@ export function CreateCallDialog({
 	const isValid =
 		title.trim().length > 0 && date && time && channelId && !hasConflict;
 
-	// Format the selected date for display
+	// Форматируем выбранную дату для отображения в UI
 	const dateDisplay = date
 		? new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU", {
 				weekday: "short",
@@ -229,7 +229,7 @@ export function CreateCallDialog({
 					</DialogHeader>
 
 					<div className="px-6 space-y-5">
-						{/* Title */}
+						{/* Название */}
 						<div className="space-y-2">
 							<Label htmlFor="call-title" className="text-sm font-medium">
 								{t("callTitleLabel", { defaultValue: "Название" })}
@@ -248,7 +248,7 @@ export function CreateCallDialog({
 							/>
 						</div>
 
-						{/* Channel */}
+						{/* Канал */}
 						<div className="space-y-2">
 							<Label className="text-sm font-medium">Канал</Label>
 							<Select value={channelId} onValueChange={setChannelId}>
@@ -265,13 +265,13 @@ export function CreateCallDialog({
 							</Select>
 						</div>
 
-						{/* Participants */}
+						{/* Участники */}
 						<div className="space-y-2">
 							<Label className="text-sm font-medium">
 								{t("callParticipantsLabel", { defaultValue: "Участники" })}
 							</Label>
 
-							{/* Selected participants chips */}
+							{/* Чипы выбранных участников */}
 							{participantIds.length > 0 && (
 								<div className="flex flex-wrap gap-1.5">
 									{participantIds.map((uid) => {
@@ -309,7 +309,7 @@ export function CreateCallDialog({
 								</div>
 							)}
 
-							{/* Search input */}
+							{/* Поле поиска участников */}
 							<Input
 								placeholder={t("searchParticipants", {
 									defaultValue: "Поиск участников...",
@@ -319,7 +319,7 @@ export function CreateCallDialog({
 								className="h-10"
 							/>
 
-							{/* Members list */}
+							{/* Список участников */}
 							<div className="max-h-32 overflow-y-auto rounded-lg border">
 								{filteredMembers.length === 0 ? (
 									<div className="px-3 py-2 text-xs text-t2">
@@ -363,7 +363,7 @@ export function CreateCallDialog({
 							</div>
 						</div>
 
-						{/* Time */}
+						{/* Время */}
 						<div className="space-y-2">
 							<Label htmlFor="call-time" className="text-sm font-medium">
 								{t("callTimeLabel", { defaultValue: "Время начала" })}
@@ -377,7 +377,7 @@ export function CreateCallDialog({
 									required
 									className="h-11 w-32"
 								/>
-								{/* Hidden date input -- always present for form submission */}
+								{/* Скрытый input даты — нужен для submit формы */}
 								<Input
 									type="date"
 									value={date}
@@ -388,7 +388,7 @@ export function CreateCallDialog({
 							</div>
 						</div>
 
-						{/* Duration -- quick select buttons */}
+						{/* Длительность — кнопки быстрого выбора */}
 						<div className="space-y-2">
 							<Label className="text-sm font-medium">
 								{t("callDurationLabel", { defaultValue: "Длительность" })}
@@ -411,7 +411,7 @@ export function CreateCallDialog({
 							</div>
 						</div>
 
-						{/* Reminder */}
+						{/* Напоминание */}
 						<div className="space-y-2">
 							<Label className="text-sm font-medium">
 								{t("callReminderLabel", { defaultValue: "Напоминание" })}
@@ -440,7 +440,7 @@ export function CreateCallDialog({
 							</div>
 						</div>
 
-						{/* Recurrence */}
+						{/* Повторение */}
 						<div className="space-y-2">
 							<Label className="text-sm font-medium">
 								{t("callRecurrenceLabel", { defaultValue: "Повтор" })}
@@ -464,7 +464,7 @@ export function CreateCallDialog({
 						</div>
 					</div>
 
-					{/* Conflict warning */}
+					{/* Предупреждение о конфликте */}
 					{hasConflict && conflictData && (
 						<div className="px-6 mt-3">
 							<div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
@@ -491,7 +491,7 @@ export function CreateCallDialog({
 						</div>
 					)}
 
-					{/* Footer */}
+					{/* Футер диалога */}
 					<div className="px-6 py-5 mt-2">
 						<Button
 							type="submit"

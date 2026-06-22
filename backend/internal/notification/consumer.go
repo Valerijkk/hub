@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/internal/auth"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 	"github.com/valerii/hub/backend/internal/tracker"
@@ -546,6 +547,7 @@ func (c *Consumer) handleCallStarted(ctx context.Context, data []byte, subject s
 }
 
 // handleRunCompleted обрабатывает событие завершения тестового прогона.
+// При failed_count > 0 отправляет run_failed QA/tester + автору прогона.
 func (c *Consumer) handleRunCompleted(ctx context.Context, data []byte, _ string) {
 	var evt tms.TestRunCompletedEvent
 	if err := json.Unmarshal(data, &evt); err != nil {
@@ -563,10 +565,19 @@ func (c *Consumer) handleRunCompleted(ctx context.Context, data []byte, _ string
 		return
 	}
 
-	// Уведомляем участников проекта через edge-запрос.
 	members, err := c.repo.GetProjectMembersWithUser(ctx, projectID)
 	if err != nil {
 		return
+	}
+
+	hasFailures := evt.Failed > 0
+	notifType := TypeRunCompleted
+	title := "Прогон завершён: " + evt.Title
+	isUrgent := false
+	if hasFailures {
+		notifType = TypeRunFailed
+		title = "Прогон с ошибками: " + evt.Title
+		isUrgent = true
 	}
 
 	body := fmt.Sprintf("Passed: %d, Failed: %d, Skipped: %d", evt.Passed, evt.Failed, evt.Skipped)
@@ -576,27 +587,41 @@ func (c *Consumer) handleRunCompleted(ctx context.Context, data []byte, _ string
 			continue
 		}
 		recipientID := pm.Edges.User.ID
-		if recipientID == completedByID {
+
+		if hasFailures {
+			if !isRunFailedRecipient(pm.ProjectRole, recipientID, completedByID) {
+				continue
+			}
+		} else if recipientID == completedByID {
 			continue
 		}
 
-		if !c.shouldDispatch(recipientID.String(), TypeRunCompleted, evt.RunID) {
+		if !c.shouldDispatch(recipientID.String(), notifType, evt.RunID) {
 			continue
 		}
 
 		if err := c.service.Dispatch(ctx, DispatchEvent{
 			UserID:     recipientID,
-			Type:       TypeRunCompleted,
-			Title:      "Прогон завершён: " + evt.Title,
+			Type:       notifType,
+			Title:      title,
 			Body:       body,
 			EntityType: "testrun",
 			EntityID:   evt.RunID,
 			ProjectID:  &projectID,
 			ActorID:    &completedByID,
+			IsUrgent:   isUrgent,
 		}); err != nil {
-			slog.Error("не удалось отправить уведомление", "event", "run_completed", "error", err)
+			slog.Error("не удалось отправить уведомление", "event", notifType, "error", err)
 		}
 	}
+}
+
+// isRunFailedRecipient — QA/tester роль или автор прогона (NOTIF-04).
+func isRunFailedRecipient(role projectmember.ProjectRole, userID, completedByID uuid.UUID) bool {
+	if userID == completedByID {
+		return true
+	}
+	return role == projectmember.ProjectRoleTester
 }
 
 // handleNewLogin обрабатывает событие нового входа в аккаунт.

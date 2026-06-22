@@ -22,7 +22,7 @@ interface BoardColumnProps {
  * Колонка Kanban-доски.
  * Является зоной сброса (drop target) для перетаскиваемых карточек.
  * Отображает заголовок со статусом и список карточек задач с анимацией.
- * Borderless design per mockup — cards carry their own borders.
+ * Без рамки колонки — карточки с собственным border (mockup).
  */
 export function BoardColumn({
 	status,

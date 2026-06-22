@@ -9,10 +9,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Ent -> DTO converters
+// Конвертеры Ent → DTO
 // ---------------------------------------------------------------------------
 
-// toTestCaseResponse converts an Ent TestCase to DTO.
+// toTestCaseResponse конвертирует Ent TestCase в DTO.
 func toTestCaseResponse(tc *ent.TestCase) *TestCaseResponse {
 	resp := &TestCaseResponse{
 		ID:            tc.ID.String(),
@@ -88,7 +88,7 @@ func toTestCaseResponse(tc *ent.TestCase) *TestCaseResponse {
 	return resp
 }
 
-// toTestCaseVersionResponse converts an Ent TestCaseVersion to DTO.
+// toTestCaseVersionResponse конвертирует Ent TestCaseVersion в DTO.
 func toTestCaseVersionResponse(v *ent.TestCaseVersion) *TestCaseVersionResponse {
 	resp := &TestCaseVersionResponse{
 		ID:                v.ID.String(),
@@ -108,7 +108,7 @@ func toTestCaseVersionResponse(v *ent.TestCaseVersion) *TestCaseVersionResponse 
 	return resp
 }
 
-// toSuiteResponse converts an Ent TestSuite to DTO.
+// toSuiteResponse конвертирует Ent TestSuite в DTO.
 func toSuiteResponse(suite *ent.TestSuite) *SuiteResponse {
 	resp := &SuiteResponse{
 		ID:          suite.ID.String(),
@@ -124,7 +124,7 @@ func toSuiteResponse(suite *ent.TestSuite) *SuiteResponse {
 	return resp
 }
 
-// toComponentResponse converts an Ent Component to DTO.
+// toComponentResponse конвертирует Ent Component в DTO.
 func toComponentResponse(c *ent.Component) *ComponentResponse {
 	return &ComponentResponse{
 		ID:          c.ID.String(),
@@ -134,7 +134,7 @@ func toComponentResponse(c *ent.Component) *ComponentResponse {
 	}
 }
 
-// toTestRunResponse converts an Ent TestRun to DTO.
+// toTestRunResponse конвертирует Ent TestRun в DTO.
 func toTestRunResponse(run *ent.TestRun) *TestRunResponse {
 	resp := &TestRunResponse{
 		ID:           run.ID.String(),
@@ -165,7 +165,7 @@ func toTestRunResponse(run *ent.TestRun) *TestRunResponse {
 	return resp
 }
 
-// toTestResultResponse converts an Ent TestResult to DTO.
+// toTestResultResponse конвертирует Ent TestResult в DTO.
 func toTestResultResponse(r *ent.TestResult) *TestResultResponse {
 	resp := &TestResultResponse{
 		ID:            r.ID.String(),
@@ -196,13 +196,13 @@ func toTestResultResponse(r *ent.TestResult) *TestResultResponse {
 	return resp
 }
 
-// toTestRunDetailResponse converts an Ent TestRun (with results and assignees) to DTO.
+// toTestRunDetailResponse конвертирует Ent TestRun (с results и assignees) в DTO.
 func toTestRunDetailResponse(run *ent.TestRun) *TestRunDetailResponse {
 	resp := &TestRunDetailResponse{
 		TestRunResponse: *toTestRunResponse(run),
 	}
 
-	// Results
+	// Результаты
 	resp.Results = make([]TestResultDetailResponse, 0, len(run.Edges.Results))
 	for _, r := range run.Edges.Results {
 		detail := TestResultDetailResponse{
@@ -248,7 +248,7 @@ func toTestRunDetailResponse(run *ent.TestRun) *TestRunDetailResponse {
 		resp.Results = append(resp.Results, detail)
 	}
 
-	// Assigned testers
+	// Назначенные тестировщики
 	resp.Assignees = make([]UserBriefResponse, 0, len(run.Edges.Assignees))
 	for _, u := range run.Edges.Assignees {
 		resp.Assignees = append(resp.Assignees, UserBriefResponse{
@@ -263,12 +263,12 @@ func toTestRunDetailResponse(run *ent.TestRun) *TestRunDetailResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Suite tree builder
+// Построение дерева папок
 // ---------------------------------------------------------------------------
 
-// buildSuiteTree builds a tree of suites from a flat list.
+// buildSuiteTree строит дерево папок из плоского списка.
 func buildSuiteTree(suites []*ent.TestSuite) []SuiteResponse {
-	// Map id -> response
+	// id → ответ
 	byID := make(map[uuid.UUID]*SuiteResponse, len(suites))
 	for _, s := range suites {
 		resp := toSuiteResponse(s)
@@ -276,7 +276,7 @@ func buildSuiteTree(suites []*ent.TestSuite) []SuiteResponse {
 		byID[s.ID] = resp
 	}
 
-	// Build tree
+	// Сборка дерева
 	var roots []SuiteResponse
 	for _, s := range suites {
 		if s.Edges.Parent == nil {
@@ -296,10 +296,10 @@ func buildSuiteTree(suites []*ent.TestSuite) []SuiteResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Snapshot helpers
+// Вспомогательные функции снимков версий
 // ---------------------------------------------------------------------------
 
-// buildSnapshot creates a snapshot of a test case for versioning.
+// buildSnapshot создаёт снимок тест-кейса для версионирования.
 func buildSnapshot(tc *ent.TestCase) map[string]interface{} {
 	snapshot := map[string]interface{}{
 		"title":         tc.Title,
@@ -332,7 +332,7 @@ func buildSnapshot(tc *ent.TestCase) map[string]interface{} {
 	return snapshot
 }
 
-// snapshotToUpdateInput converts a version snapshot to UpdateTestCaseInput for rollback.
+// snapshotToUpdateInput конвертирует снимок версии в UpdateTestCaseInput для rollback.
 func snapshotToUpdateInput(snapshot map[string]interface{}) UpdateTestCaseInput {
 	input := UpdateTestCaseInput{}
 
@@ -380,7 +380,7 @@ func snapshotToUpdateInput(snapshot map[string]interface{}) UpdateTestCaseInput 
 	return input
 }
 
-// normalizeErrorPattern extracts the main pattern from an error message (first 100 chars).
+// normalizeErrorPattern извлекает основной паттерн из сообщения об ошибке (первые 100 символов).
 func normalizeErrorPattern(msg string) string {
 	if len(msg) > 100 {
 		return msg[:100]

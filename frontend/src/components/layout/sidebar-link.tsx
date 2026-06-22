@@ -15,9 +15,16 @@ import { cn } from "@/lib/utils";
 /** Цвета для иконок навигации */
 export const NAV_ICON_COLORS: Record<string, string> = {
 	"/dashboard": "text-amber-400",
+	"/calendar": "text-orange-400",
+	"/crm": "text-teal-400",
+	"/hr": "text-pink-400",
+	"/marketplace": "text-lime-400",
+	"/bases": "text-cyan-400",
 	"/messenger": "text-emerald-400",
 	"/calls": "text-violet-400",
 	"/projects": "text-blue-400",
+	"/intranet": "text-rose-400",
+	"/intranet/directory": "text-sky-400",
 	"/help": "text-amber-300",
 	"/settings/profile": "text-slate-400",
 	"/trash": "text-slate-500",
@@ -62,14 +69,14 @@ export function SidebarLink({
 				unread && "font-bold",
 			)}
 		>
-			{/* Active accent bar */}
+			{/* Акцентная полоска активного пункта */}
 			{isActive && !collapsed && (
 				<span
 					className="absolute -left-[3px] top-[6px] bottom-[6px] w-[3px] rounded-sm bg-primary shadow-[0_0_12px_var(--primary),0_0_30px_rgba(91,156,245,.15)]"
 					aria-hidden="true"
 				/>
 			)}
-			{/* Active gradient overlay */}
+			{/* Градиентный overlay активного пункта */}
 			{isActive && !collapsed && (
 				<span
 					className="pointer-events-none absolute inset-y-0 left-0 w-[60px] rounded-[var(--r2)] bg-gradient-to-r from-primary/[0.06] to-transparent"

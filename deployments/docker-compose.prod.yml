@@ -1,18 +1,17 @@
-# docker-compose.prod.yml
-# Production stack for Hub platform
-# Usage: docker compose -f docker-compose.prod.yml --env-file .env up -d
+# docker-compose.prod.yml — production-стек платформы Hub.
+# Запуск: docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 services:
 
   # ========================================
-  # Infrastructure
+  # Инфраструктура
   # ========================================
 
   postgres:
     image: postgres:17
     restart: unless-stopped
-    # LO-Inf: compose v2 keys mirror deploy.resources.limits (which is Swarm-only
-    # and ignored by `docker compose up`). Keep both for plain-compose + Swarm.
+    # LO-Inf: mem_limit/cpus дублируют deploy.resources.limits (Swarm-only,
+    # игнорируются `docker compose up`). Оставляем оба варианта для compose и Swarm.
     mem_limit: 1g
     cpus: 1.0
     environment:
@@ -166,7 +165,7 @@ services:
           cpus: "1.0"
 
   # ========================================
-  # Application
+  # Приложение
   # ========================================
 
   backend:
@@ -194,11 +193,18 @@ services:
       CORS_ORIGINS: "${CORS_ORIGINS}"
       RESEND_API_KEY: "${RESEND_API_KEY}"
       RESEND_FROM_EMAIL: "${RESEND_FROM_EMAIL}"
+      RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"
       TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
+      # hub-mail bridge: основной сервер ходит в микросервис почты по HTTP.
+      # В контейнерной сети localhost не резолвится — нужен service DNS hub-mail.
+      HUB_MAIL_URL: "http://hub-mail:3001"
+      HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN}"
       LIVEKIT_URL: "http://livekit:7880"
       LIVEKIT_API_KEY: "${LIVEKIT_API_KEY}"
       LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET}"
       DEV_MODE: "false"
+      METRICS_ALLOWED_CIDRS: "${METRICS_ALLOWED_CIDRS:-}"
+      ALERT_WEBHOOK_SECRET: "${ALERT_WEBHOOK_SECRET:-}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -210,6 +216,8 @@ services:
         condition: service_started
       seaweedfs:
         condition: service_started
+      hub-mail:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 10s
@@ -220,6 +228,34 @@ services:
         limits:
           memory: 512M
           cpus: "1.0"
+
+  # hub-mail — микросервис транзакционной/alert-почты (Phase 15.2, FA-05).
+  # Использует тот же образ, что и backend (бинарь /app/hub-mail), но
+  # переопределяет entrypoint. Держит RESEND_API_KEY, основной сервер
+  # обращается к нему по HUB_MAIL_URL=http://hub-mail:3001.
+  hub-mail:
+    image: ${IMAGE_BACKEND:-ghcr.io/valerijkk/hub/backend:latest}
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.25
+    entrypoint: ["./hub-mail"]
+    environment:
+      HUB_MAIL_PORT: "3001"
+      HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN}"
+      RESEND_API_KEY: "${RESEND_API_KEY}"
+      RESEND_FROM_EMAIL: "${RESEND_FROM_EMAIL}"
+      RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"
+      MAIL_DAILY_LIMIT: "${MAIL_DAILY_LIMIT:-20}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
 
   frontend:
     image: ${IMAGE_FRONTEND:-ghcr.io/valerijkk/hub/frontend:latest}

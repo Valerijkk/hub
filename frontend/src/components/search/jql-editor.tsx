@@ -214,7 +214,7 @@ function findFieldBeforeOperator(
 		const t = tokens[i];
 		if (!t) break;
 		if (isFieldName(t)) return t.toLowerCase();
-		if (t.toUpperCase() === "NOT") continue; // NOT IN
+		if (t.toUpperCase() === "NOT") continue; // NOT IN — составной оператор JQL — составной оператор JQL
 		break;
 	}
 	return undefined;
@@ -228,17 +228,17 @@ function getPartialTokenFor(query: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Props
+// Props компонента компонента
 // ---------------------------------------------------------------------------
 
 interface JQLEditorProps {
 	/** Текущее значение запроса. */
 	value: string;
-	/** Callback при изменении значения. */
+	/** Callback при изменении JQL. */
 	onChange: (value: string) => void;
-	/** Callback при отправке запроса (Enter). */
+	/** Callback по Enter (выполнить JQL). */
 	onSubmit?: (query: string) => void;
-	/** Placeholder. */
+	/** Placeholder поля ввода. */
 	placeholder?: string;
 	/** Дополнительные CSS-классы для корневого элемента. */
 	className?: string;

@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// WorkflowStatus holds the schema definition for the WorkflowStatus entity.
+// WorkflowStatus — определение Ent-схемы сущности WorkflowStatus.
 type WorkflowStatus struct {
 	ent.Schema
 }
 
-// Fields of the WorkflowStatus.
+// Поля сущности WorkflowStatus.
 func (WorkflowStatus) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -40,7 +40,7 @@ func (WorkflowStatus) Fields() []ent.Field {
 	}
 }
 
-// Edges of the WorkflowStatus.
+// Рёбра (edges) сущности WorkflowStatus.
 func (WorkflowStatus) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -54,7 +54,7 @@ func (WorkflowStatus) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the WorkflowStatus.
+// Индексы сущности WorkflowStatus.
 func (WorkflowStatus) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("project").

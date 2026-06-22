@@ -39,7 +39,7 @@ func VerifyTelegramAuth(botToken, initData string) (*TelegramUser, error) {
 	}
 	params.Del("hash")
 
-	// Sort keys and build data_check_string.
+	// Сортировка ключей обязательна спецификацией Telegram для data_check_string.
 	keys := make([]string, 0, len(params))
 	for k := range params {
 		keys = append(keys, k)
@@ -61,17 +61,17 @@ func VerifyTelegramAuth(botToken, initData string) (*TelegramUser, error) {
 
 	var secret []byte
 	if isWebApp {
-		// Web App: secret = HMAC-SHA256("WebAppData", botToken)
+		// Web App: secret = HMAC-SHA256("WebAppData", botToken) — отличие от Login Widget.
 		secretKey := hmac.New(sha256.New, []byte("WebAppData"))
 		secretKey.Write([]byte(botToken))
 		secret = secretKey.Sum(nil)
 	} else {
-		// Login Widget: secret = SHA256(botToken)
+		// Login Widget: secret = SHA256(botToken) — иной алгоритм, чем у Web App.
 		h := sha256.Sum256([]byte(botToken))
 		secret = h[:]
 	}
 
-	// hash = HMAC-SHA256(secret, dataCheckString)
+	// hash = HMAC-SHA256(secret, data_check_string) — финальная проверка подписи Telegram.
 	h := hmac.New(sha256.New, secret)
 	h.Write([]byte(dataCheckString.String()))
 	calculatedHash := hex.EncodeToString(h.Sum(nil))
@@ -80,7 +80,7 @@ func VerifyTelegramAuth(botToken, initData string) (*TelegramUser, error) {
 		return nil, fmt.Errorf("telegram auth: invalid hash")
 	}
 
-	// Verify auth_date freshness.
+	// auth_date старше telegramAuthMaxAge отклоняем — защита от replay initData.
 	authDateStr := params.Get("auth_date")
 	if authDateStr == "" {
 		return nil, fmt.Errorf("telegram auth: missing auth_date")
@@ -94,7 +94,7 @@ func VerifyTelegramAuth(botToken, initData string) (*TelegramUser, error) {
 		return nil, ErrTelegramAuthExpired
 	}
 
-	// Parse user data.
+	// Web App кладёт user JSON; Login Widget — поля id/first_name напрямую в params.
 	var tgUser TelegramUser
 	if isWebApp {
 		userJSON := params.Get("user")

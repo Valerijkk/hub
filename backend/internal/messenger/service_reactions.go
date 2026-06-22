@@ -8,8 +8,8 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
-// ToggleReaction adds or removes a reaction (toggle).
-// Returns true if reaction was added, false if removed.
+// ToggleReaction добавляет или удаляет реакцию (toggle).
+// Возвращает true, если реакция добавлена, false — если удалена.
 func (s *MessengerService) ToggleReaction(ctx context.Context, messageID string, userID uuid.UUID, emoji string) (bool, error) {
 	exists, err := s.repo.FindReaction(ctx, messageID, userID.String(), emoji)
 	if err != nil {

@@ -5,13 +5,21 @@ alwaysApply: true
 
 # Hub — Technical Spec Constraints
 
+> **Updated 2026-06-21** · ADR: `.planning/decisions/ADR-TZ-REWRITE-2026.md` · Tracked copy: `docs/tz_constraints.md`
+
 ## MANDATORY (нельзя убрать или изменить без явного согласования)
 
 ### Authentication
-- Magic Link (email) + Telegram — единственные методы входа (без паролей, без SSO)
+- **Magic Link (email) only** — единственный метод входа (без паролей, без SSO)
+- Telegram — **только** notification bind/delivery, **не** login (ADR-AUTH-01)
 - JWT access token: 15 минут TTL
 - Refresh token: Redis, 30 дней TTL, instant revocation
 - Rate limiting auth: 3 попытки / 10 минут
+
+### Organization (v2.5+)
+- Таблица `organization`; 1 org на инстанс (multi-org → v5)
+- Регистрация по **invite**; admin queue Pending; 7 дней без approve → delete
+- `system_role founder` — один на org
 
 ### Data Layer
 - UTC in DB always — фронтенд конвертирует в локальный TZ пользователя
@@ -46,14 +54,11 @@ alwaysApply: true
 
 ## FORBIDDEN (строго запрещено)
 
-### Features Out of Scope
-- ❌ Видеозвонки с вебкамерами
-- ❌ Мобильные нативные приложения (App Store/Play)
-- ❌ Email уведомления (кроме Magic Link через Resend)
-- ❌ Биллинг/подписки/SaaS
+### Features Out of Scope (until ADR)
 - ❌ SSO/LDAP/OAuth провайдеры
-- ❌ Gantt-диаграммы
-- ❌ Multi-tenant (один инстанс = одна команда)
+- ❌ Multi-tenant multi-org (один инстанс = одна org; v5 — multi-org)
+- ❌ Native App Store/Play (PWA достаточно)
+- ❌ SaaS billing/подписки (milestone Later)
 
 ### Code Patterns
 - ❌ `http.DefaultClient` для user-controlled URLs (SSRF)
@@ -70,3 +75,14 @@ alwaysApply: true
 - ❌ WS room subscription без membership/RBAC проверки (NF-02)
 - ❌ Search без user-scope фильтра (NF-03)
 - ❌ WebPush endpoint без `ValidateOutboundURL` (NF-07)
+
+## IN SCOPE by phase (PO 2026-06-21)
+
+| Feature | Phase |
+|---------|-------|
+| Gantt | 16 |
+| Webcam in calls | 16 |
+| Email transactional + marketing (hub-mail) | 15.2 / 16 |
+| Full JQL automation | 17 |
+| AI gateway BYOK + Ollama | 17 |
+| Intranet, Calendar, CRM, HR, accounting, no-code DB | v4 |

@@ -91,7 +91,7 @@ function ActivityItem({
 		return str;
 	};
 
-	/** Color dot based on action type. */
+	/** Цвет точки по типу действия. */
 	const dotColor =
 		activity.action === "created"
 			? "bg-green"

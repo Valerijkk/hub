@@ -14,6 +14,19 @@ import (
 // StreamName — единый JetStream stream для всех модулей.
 const StreamName = "EVENTS"
 
+// WebhookFilterSubjects — JetStream filter для durable consumer webhook-dispatcher.
+// Только subject'ы, которые могут триггерить исходящие webhook (см. UI AVAILABLE_EVENTS).
+// Исключает notification.*, auth.session.*, calls.* — они не доставляются наружу (APIGW-03).
+var WebhookFilterSubjects = []string{
+	"project.*.issue.>",
+	"tracker.*.issue.>",
+	"project.created",
+	"tms.run.completed.>",
+	"tms.testrun.completed",
+	"sprint.>",
+	"messenger.channel.*.message_sent",
+}
+
 // Client оборачивает NATS-соединение с поддержкой JetStream.
 type Client struct {
 	Conn      *nats.Conn

@@ -192,7 +192,7 @@ func (r *EntRepository) ToggleStar(ctx context.Context, channelID, userID uuid.U
 }
 
 // MuteChannel устанавливает muted_until для участника канала.
-// duration: "1h", "2h", "8h", "1d", "forever".
+// duration: "1h", "2h", "8h", "1d", "forever" (значения API).
 func (r *EntRepository) MuteChannel(ctx context.Context, channelID, userID uuid.UUID, duration string) (time.Time, error) {
 	m, err := r.client.ChannelMember.Query().
 		Where(
@@ -357,7 +357,7 @@ func (r *EntRepository) GetProjectByID(ctx context.Context, projectID uuid.UUID)
 }
 
 // ---------------------------------------------------------------------------
-// MentionsRepository — group mentions resolution and display-name lookup
+// MentionsRepository — разрешение групповых упоминаний и поиск отображаемых имён
 // ---------------------------------------------------------------------------
 
 // ListProjectMembersByRole возвращает user IDs участников проекта с указанной project_role.
@@ -399,7 +399,7 @@ func (r *EntRepository) GetUserDisplayName(ctx context.Context, userID uuid.UUID
 }
 
 // ---------------------------------------------------------------------------
-// ChannelInviteRepository — invite links CRUD
+// ChannelInviteRepository — CRUD для пригласительных ссылок
 // ---------------------------------------------------------------------------
 
 // CreateChannelInvite создаёт новую пригласительную ссылку для канала.
@@ -457,7 +457,7 @@ func (r *EntRepository) ListChannelInvites(ctx context.Context, channelID uuid.U
 }
 
 // ---------------------------------------------------------------------------
-// PollRepository — polls + options + votes (Tx-aware)
+// PollRepository — опросы + варианты + голоса (с поддержкой Tx)
 // ---------------------------------------------------------------------------
 
 // CreatePollWithOptions создаёт опрос и варианты ответов в одной транзакции.
@@ -569,4 +569,15 @@ func (r *EntRepository) ListVotes(ctx context.Context, pollID uuid.UUID) ([]*ent
 	return r.client.PollVote.Query().
 		Where(pollvote.PollIDEQ(pollID)).
 		All(ctx)
+}
+
+// FindGlobalChannelByName ищет глобальный public-канал по имени (MOD-08 #marketplace).
+func (r *EntRepository) FindGlobalChannelByName(ctx context.Context, name string) (*ent.Channel, error) {
+	return r.client.Channel.Query().
+		Where(
+			channel.NameEQ(name),
+			channel.ProjectIDIsNil(),
+			channel.ChannelTypeIn(channel.ChannelTypePublic, channel.ChannelTypePrivate),
+		).
+		First(ctx)
 }

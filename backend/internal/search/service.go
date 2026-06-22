@@ -197,7 +197,7 @@ func (s *SearchService) getUserChannelIDs(ctx context.Context, userID uuid.UUID)
 
 // getUserProjectIDs возвращает ID проектов, в которых состоит пользователь.
 // Использует raw SQL, т.к. ProjectMember хранит FK через Ent-edges.
-// Ent column names: project_members = project FK, user_project_members = user FK.
+// Имена колонок Ent: project_members — FK проекта, user_project_members — FK пользователя.
 func (s *SearchService) getUserProjectIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
 	rows, err := s.sqlDB.QueryContext(ctx,
 		`SELECT project_members FROM project_members WHERE user_project_members = $1`,
@@ -321,7 +321,7 @@ func (s *SearchService) isSystemAdmin(ctx context.Context, userID uuid.UUID) boo
 // project-scoping и видят всех пользователей — нужно для управления
 // учётками. Проверка через ent.User.Get — тот же паттерн, что в
 // rbac.RequireAdmin (rbac/middleware.go:113-116) и
-// rbac.GetEffectivePermissions (rbac/service.go:46).
+// rbac.GetEffectivePermissions (rbac/service.go:46) — единый источник прав.
 //
 // Колонки project_members: project_members = FK на project,
 // user_project_members = FK на user. JOIN самой таблицы с собой даёт
@@ -374,7 +374,7 @@ func (s *SearchService) searchUsers(ctx context.Context, query string, callerID 
 			Type:     "user",
 			Title:    title,
 			Subtitle: email,
-			URL:      fmt.Sprintf("/settings/users/%s", id),
+			URL:      fmt.Sprintf("/intranet/directory?user=%s", id),
 			Score:    rank,
 		})
 	}
@@ -416,7 +416,7 @@ func (s *SearchService) searchUsersUnscoped(ctx context.Context, query string) (
 			Type:     "user",
 			Title:    title,
 			Subtitle: email,
-			URL:      fmt.Sprintf("/settings/users/%s", id),
+			URL:      fmt.Sprintf("/intranet/directory?user=%s", id),
 			Score:    rank,
 		})
 	}
@@ -482,21 +482,16 @@ func (s *SearchService) searchFiles(ctx context.Context, query string, projectID
 
 	var results []SearchResult
 	for rows.Next() {
-		var id, filename string
-		var projID *string
+		var id, filename, projID string
 		var rank float64
 		if err := rows.Scan(&id, &filename, &projID, &rank); err != nil {
 			continue
-		}
-		pid := ""
-		if projID != nil {
-			pid = *projID
 		}
 		results = append(results, SearchResult{
 			ID:        id,
 			Type:      "file",
 			Title:     filename,
-			ProjectID: pid,
+			ProjectID: projID,
 			URL:       fmt.Sprintf("/api/files/%s", id),
 			Score:     rank,
 		})

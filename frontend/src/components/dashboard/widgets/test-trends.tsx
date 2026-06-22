@@ -1,5 +1,5 @@
 /**
- * Widget "Test Trends" -- line chart of pass rate across recent runs.
+ * Виджет «Тренды тестов» — pass rate по последним прогонам.
  */
 import { TestTube } from "lucide-react";
 import {
@@ -17,7 +17,7 @@ interface Props {
 	data?: unknown;
 }
 
-/** Custom tooltip. */
+/** Кастомный tooltip. */
 function ChartTooltip({
 	active,
 	payload,
@@ -44,7 +44,7 @@ function ChartTooltip({
 	);
 }
 
-/** Test trends widget. */
+/** Виджет трендов тестирования. */
 export function TestTrendsWidget({ data }: Props) {
 	const projectData = data as ProjectStats | undefined;
 	const trends = projectData?.test_trends ?? [];

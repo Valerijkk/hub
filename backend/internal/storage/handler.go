@@ -88,7 +88,7 @@ type uploadRequest struct {
 // @Accept json
 // @Produce json
 // @Param body body uploadRequest true "Имя файла, тип и ID проекта"
-// @Success 200 {object} UploadURLResponse "URL для загрузки и ID файла"
+// @Success 200 {object} UploadResult "URL для загрузки и ID файла"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"

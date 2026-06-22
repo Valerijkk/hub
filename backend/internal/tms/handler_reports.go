@@ -5,14 +5,17 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
+// apperr используется в swag @Failure аннотациях.
+var _ *apperr.AppError
 // ---------------------------------------------------------------------------
-// Report handlers
+// Обработчики отчётов TMS
 // ---------------------------------------------------------------------------
 
-// GetTestRunHistory handles GET /api/projects/:projectId/tms/reports/history
+// GetTestRunHistory обрабатывает GET /api/projects/:projectId/tms/reports/history
 // @Summary Test run history
 // @Tags TMS
 // @Produce json
@@ -41,12 +44,12 @@ func (h *Handler) GetTestRunHistory(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetFlakyTests handles GET /api/projects/:projectId/tms/reports/flaky
+// GetFlakyTests обрабатывает GET /api/projects/:projectId/tms/reports/flaky
 // @Summary Flaky tests list
 // @Tags TMS
 // @Produce json
 // @Param projectId path string true "Project ID"
-// @Success 200 {array} TestCaseResponse
+// @Success 200 {object} FlakyTestReport
 // @Router /api/projects/{projectId}/tms/reports/flaky [get]
 func (h *Handler) GetFlakyTests(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
@@ -62,7 +65,7 @@ func (h *Handler) GetFlakyTests(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetCoverageReport handles GET /api/projects/:projectId/tms/reports/coverage
+// GetCoverageReport обрабатывает GET /api/projects/:projectId/tms/reports/coverage
 // @Summary Issue coverage by test cases report
 // @Tags TMS
 // @Produce json
@@ -83,7 +86,7 @@ func (h *Handler) GetCoverageReport(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetTestTrends handles GET /api/projects/:projectId/tms/reports/trends
+// GetTestTrends обрабатывает GET /api/projects/:projectId/tms/reports/trends
 // @Summary Test run trends (pass/fail/skip per run)
 // @Tags TMS
 // @Produce json
@@ -112,7 +115,7 @@ func (h *Handler) GetTestTrends(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetRunComparison handles GET /api/projects/:projectId/tms/reports/comparison
+// GetRunComparison обрабатывает GET /api/projects/:projectId/tms/reports/comparison
 // @Summary Compare two test runs
 // @Tags TMS
 // @Produce json
@@ -120,7 +123,7 @@ func (h *Handler) GetTestTrends(c fiber.Ctx) error {
 // @Param run1 query string true "First run ID"
 // @Param run2 query string true "Second run ID"
 // @Success 200 {object} RunComparison
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/reports/comparison [get]
 func (h *Handler) GetRunComparison(c fiber.Ctx) error {
 	run1Str := c.Query("run1")
@@ -146,7 +149,7 @@ func (h *Handler) GetRunComparison(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetTraceabilityMatrix handles GET /api/projects/:projectId/tms/reports/traceability
+// GetTraceabilityMatrix обрабатывает GET /api/projects/:projectId/tms/reports/traceability
 // @Summary Issue-test case traceability matrix
 // @Tags TMS
 // @Produce json
@@ -167,7 +170,7 @@ func (h *Handler) GetTraceabilityMatrix(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CompareEnvironments handles GET /api/projects/:projectId/tms/reports/env-comparison
+// CompareEnvironments обрабатывает GET /api/projects/:projectId/tms/reports/env-comparison
 // @Summary Compare test results between two environments
 // @Tags TMS
 // @Produce json
@@ -175,7 +178,7 @@ func (h *Handler) GetTraceabilityMatrix(c fiber.Ctx) error {
 // @Param env1 query string true "First environment ID"
 // @Param env2 query string true "Second environment ID"
 // @Success 200 {object} EnvironmentComparisonResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/reports/env-comparison [get]
 func (h *Handler) CompareEnvironments(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
@@ -206,7 +209,7 @@ func (h *Handler) CompareEnvironments(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetDefectCategories handles GET /api/projects/:projectId/tms/reports/defect-categories
+// GetDefectCategories обрабатывает GET /api/projects/:projectId/tms/reports/defect-categories
 // @Summary Defect categories (group failed tests by error)
 // @Tags TMS
 // @Produce json

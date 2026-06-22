@@ -125,11 +125,15 @@ export function SprintRetro({
 								>
 									<SectionIcon className={`h-3 w-3 ${section.color}`} />
 								</div>
-								<label className="text-[13px] font-medium text-t1">
+								<label
+									htmlFor={`retro-${section.key}`}
+									className="text-[13px] font-medium text-t1"
+								>
 									{section.label}
 								</label>
 							</div>
 							<Textarea
+								id={`retro-${section.key}`}
 								value={section.value}
 								onChange={(e) => section.onChange(e.target.value)}
 								placeholder="Каждый пункт с новой строки..."

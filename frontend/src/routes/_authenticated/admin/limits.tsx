@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ResourceLimits } from "@/components/admin/resource-limits";
+import { isSystemAdmin } from "@/lib/is-system-admin";
 import { useAuthStore } from "@/stores/auth-store";
 
 /** Страница настройки лимитов ресурсов (только для администратора). */
@@ -14,7 +15,7 @@ function LimitsPage() {
 export const Route = createFileRoute("/_authenticated/admin/limits")({
 	beforeLoad: () => {
 		const { user } = useAuthStore.getState();
-		if (!user || user.system_role !== "admin") {
+		if (!user || !isSystemAdmin(user.system_role)) {
 			throw redirect({ to: "/" });
 		}
 	},

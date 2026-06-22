@@ -45,6 +45,41 @@ export interface PreferenceUpdateRequest {
 	project_id?: string;
 }
 
+export interface TelegramBindResponse {
+	bind_token: string;
+	deep_link?: string;
+	expires_in: number;
+	bot_enabled: boolean;
+}
+
+export interface TelegramStatusResponse {
+	linked: boolean;
+	telegram_id?: string;
+	username?: string;
+}
+
+export function createTelegramBind() {
+	return api.post<TelegramBindResponse>("/notifications/telegram/bind");
+}
+
+export function confirmTelegramLink(code: string) {
+	return api.post<{ message: string }>("/notifications/telegram/confirm", {
+		code,
+	});
+}
+
+export function unlinkTelegram() {
+	return api.delete<void>("/notifications/telegram");
+}
+
+export function sendTelegramTest() {
+	return api.post<{ message: string }>("/notifications/telegram/test");
+}
+
+export function getTelegramStatus() {
+	return api.get<TelegramStatusResponse>("/notifications/telegram/status");
+}
+
 /**
  * Получить список уведомлений с пагинацией.
  * @param page - номер страницы

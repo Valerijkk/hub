@@ -49,7 +49,7 @@
 | 2.2 | audit ban + HTTP middleware | `qa` | 80% |
 | 2.3 | ws hub + authorizer | `qa` | 80% |
 | 2.4 | rbac resolver | `qa` | 80% |
-| 2.5 | messenger rate limit fan-out | `qa` | 60% |
+| 2.5 | messenger rate limit fan-out | `qa` | 60% | ✅ **62.1%** |
 | 2.6 | platform middleware | `qa` | 70% |
 
 **Wave 2 parallel:** `qa` (6 packages sequential batches of 2)
@@ -116,7 +116,7 @@
 | 7.6 | US-M07 global Ctrl+K | `fe` | `command-palette.tsx`, `command-store.ts` |
 | 7.7 | Docs sync + rule 55-docs-sync | orchestrator | `.cursor/rules/55-docs-sync.mdc` |
 
-**Next:** v2.0.2 tag after commit; PG-03 secret rotation; UX backlog (UserPicker, validation).
+**Next:** v2.0.2 tag after commit; PG-03 secret rotation (manual).
 
 ---
 

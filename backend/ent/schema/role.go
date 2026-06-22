@@ -7,12 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Role holds the schema definition for the Role entity.
+// Role — определение Ent-схемы сущности Role.
 type Role struct {
 	ent.Schema
 }
 
-// Fields of the Role.
+// Поля сущности Role.
 func (Role) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -36,7 +36,7 @@ func (Role) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Role.
+// Рёбра (edges) сущности Role.
 func (Role) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

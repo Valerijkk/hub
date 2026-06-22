@@ -18,5 +18,5 @@ func NewCombinedRepository(entRepo *EntRepository, mongoRepo *MongoRepository) *
 	return &CombinedRepository{EntRepository: entRepo, MongoRepository: mongoRepo}
 }
 
-// Suppress unused import warning for schema.
+// Подавляем предупреждение о неиспользуемом импорте schema.
 var _ = schema.TestStep{}

@@ -63,6 +63,7 @@ backend/bin/
 backend/cover
 backend/coverage
 backend/coverage_baseline
+backend/coverage_internal
 backend/coverprofile
 backend/cover_*
 backend/cov_*

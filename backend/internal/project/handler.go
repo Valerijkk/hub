@@ -7,26 +7,26 @@ import (
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
-// Handler provides HTTP handlers for the project module.
+// Handler предоставляет HTTP-обработчики модуля project.
 type Handler struct {
 	service *ProjectService
 }
 
-// NewHandler creates a new project handler.
+// NewHandler создаёт обработчик project.
 func NewHandler(service *ProjectService) *Handler {
 	return &Handler{service: service}
 }
 
-// RegisterRoutes registers all project-related routes.
-// authMw is the authentication middleware.
-// requirePerm is a factory that returns a permission-checking middleware.
+// RegisterRoutes регистрирует все маршруты project.
+// authMw — middleware аутентификации.
+// requirePerm — фабрика middleware проверки прав RBAC.
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	projects := api.Group("/projects", authMw)
 
-	// Project CRUD
+	// CRUD проектов
 	projects.Post("/", h.CreateProject)
 	projects.Get("/", h.ListProjects)
-	projects.Get("/trash", h.ListTrash) // before :projectId to avoid conflict
+	projects.Get("/trash", h.ListTrash) // до :projectId, чтобы избежать конфликта маршрутов
 	projects.Get("/:projectId", h.GetProject)
 	projects.Put("/:projectId", h.UpdateProject)
 	projects.Post("/:projectId/archive", h.ArchiveProject)
@@ -34,21 +34,21 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	projects.Delete("/:projectId", h.DeleteProject)
 	projects.Post("/:projectId/restore", h.RestoreProject)
 
-	// Members
+	// Участники
 	projects.Get("/:projectId/members", h.ListMembers)
 	projects.Post("/:projectId/members", h.AddMember)
 	projects.Put("/:projectId/members/:userId", h.UpdateMemberRole)
 	projects.Delete("/:projectId/members/:userId", h.RemoveMember)
 
-	// Invites
+	// Приглашения
 	projects.Post("/:projectId/invites", h.CreateInvite)
 	projects.Get("/:projectId/invites", h.ListInvites)
 	projects.Delete("/:projectId/invites/:inviteId", h.RevokeInvite)
 
-	// Join (public-ish, only auth required)
+	// Join — только auth, без project RBAC (invite-код сам определяет проект).
 	api.Post("/invites/join", authMw, h.JoinByInvite)
 
-	// Teams
+	// Команды
 	teams := api.Group("/teams", authMw)
 	teams.Post("/", h.CreateTeam)
 	teams.Get("/", h.ListTeams)
@@ -57,7 +57,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	teams.Post("/:teamId/projects/:projectId", h.AddTeamToProject)
 }
 
-// CreateProject godoc
+// CreateProject — Создать проект
 // @Summary Создать проект
 // @Description Создаёт новый проект. Создатель автоматически становится владельцем.
 // @Tags Проекты
@@ -88,7 +88,7 @@ func (h *Handler) CreateProject(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListProjects godoc
+// ListProjects — Список проектов
 // @Summary Список проектов
 // @Description Возвращает проекты, в которых состоит текущий пользователь.
 // @Tags Проекты
@@ -113,7 +113,7 @@ func (h *Handler) ListProjects(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetProject godoc
+// GetProject — Получить проект
 // @Summary Получить проект
 // @Description Возвращает детальную информацию о проекте.
 // @Tags Проекты
@@ -139,7 +139,7 @@ func (h *Handler) GetProject(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateProject godoc
+// UpdateProject — Обновить проект
 // @Summary Обновить проект
 // @Description Обновляет название, описание и настройки проекта.
 // @Tags Проекты
@@ -171,7 +171,7 @@ func (h *Handler) UpdateProject(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ArchiveProject godoc
+// ArchiveProject — Архивировать проект
 // @Summary Архивировать проект
 // @Description Переводит проект в архивный статус. Задачи становятся только для чтения.
 // @Tags Проекты
@@ -196,7 +196,7 @@ func (h *Handler) ArchiveProject(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UnarchiveProject godoc
+// UnarchiveProject — Разархивировать проект
 // @Summary Разархивировать проект
 // @Description Восстанавливает проект из архива.
 // @Tags Проекты
@@ -221,7 +221,7 @@ func (h *Handler) UnarchiveProject(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// DeleteProject godoc
+// DeleteProject — Удалить проект
 // @Summary Удалить проект
 // @Description Перемещает проект в корзину (мягкое удаление).
 // @Tags Проекты
@@ -245,7 +245,7 @@ func (h *Handler) DeleteProject(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Project moved to trash"})
 }
 
-// RestoreProject godoc
+// RestoreProject — Восстановить проект
 // @Summary Восстановить проект
 // @Description Восстанавливает проект из корзины.
 // @Tags Проекты
@@ -270,7 +270,7 @@ func (h *Handler) RestoreProject(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ListTrash godoc
+// ListTrash — Корзина проектов
 // @Summary Корзина проектов
 // @Description Возвращает список удалённых проектов пользователя.
 // @Tags Проекты
@@ -293,7 +293,7 @@ func (h *Handler) ListTrash(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ListMembers godoc
+// ListMembers — Список участников проекта
 // @Summary Список участников проекта
 // @Description Возвращает всех участников проекта с их ролями.
 // @Tags Проекты
@@ -318,7 +318,7 @@ func (h *Handler) ListMembers(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// AddMember godoc
+// AddMember — Добавить участника в проект
 // @Summary Добавить участника в проект
 // @Description Добавляет пользователя в проект с указанной ролью.
 // @Tags Проекты
@@ -355,7 +355,7 @@ func (h *Handler) AddMember(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// UpdateMemberRole godoc
+// UpdateMemberRole — Изменить роль участника
 // @Summary Изменить роль участника
 // @Description Обновляет роль участника в проекте.
 // @Tags Проекты
@@ -394,7 +394,7 @@ func (h *Handler) UpdateMemberRole(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// RemoveMember godoc
+// RemoveMember — Удалить участника из проекта
 // @Summary Удалить участника из проекта
 // @Description Удаляет пользователя из проекта.
 // @Tags Проекты
@@ -424,7 +424,7 @@ func (h *Handler) RemoveMember(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// CreateInvite godoc
+// CreateInvite — Создать приглашение в проект
 // @Summary Создать приглашение в проект
 // @Description Генерирует инвайт-ссылку для вступления в проект.
 // @Tags Проекты
@@ -461,7 +461,7 @@ func (h *Handler) CreateInvite(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListInvites godoc
+// ListInvites — Список приглашений проекта
 // @Summary Список приглашений проекта
 // @Description Возвращает все активные приглашения указанного проекта.
 // @Tags Проекты
@@ -486,7 +486,7 @@ func (h *Handler) ListInvites(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// RevokeInvite godoc
+// RevokeInvite — Отозвать приглашение
 // @Summary Отозвать приглашение
 // @Description Деактивирует приглашение в проект.
 // @Tags Проекты
@@ -511,7 +511,7 @@ func (h *Handler) RevokeInvite(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// JoinByInvite godoc
+// JoinByInvite — Вступить по приглашению
 // @Summary Вступить по приглашению
 // @Description Вступает в проект по инвайт-коду.
 // @Tags Проекты
@@ -542,7 +542,7 @@ func (h *Handler) JoinByInvite(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateTeam godoc
+// CreateTeam — Создать команду
 // @Summary Создать команду
 // @Description Создаёт новую команду.
 // @Tags Проекты
@@ -569,7 +569,7 @@ func (h *Handler) CreateTeam(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListTeams godoc
+// ListTeams — Список команд
 // @Summary Список команд
 // @Description Возвращает все команды.
 // @Tags Проекты
@@ -586,7 +586,7 @@ func (h *Handler) ListTeams(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// AddTeamMember godoc
+// AddTeamMember — Добавить участника в команду
 // @Summary Добавить участника в команду
 // @Description Добавляет пользователя в команду.
 // @Tags Проекты
@@ -619,7 +619,7 @@ func (h *Handler) AddTeamMember(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "member added to team"})
 }
 
-// RemoveTeamMember godoc
+// RemoveTeamMember — Удалить участника из команды
 // @Summary Удалить участника из команды
 // @Description Удаляет пользователя из команды.
 // @Tags Проекты
@@ -647,7 +647,7 @@ func (h *Handler) RemoveTeamMember(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// AddTeamToProject godoc
+// AddTeamToProject — Привязать команду к проекту
 // @Summary Привязать команду к проекту
 // @Description Добавляет команду в проект — все участники команды получают доступ.
 // @Tags Проекты

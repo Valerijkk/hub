@@ -19,8 +19,8 @@ import (
 
 // RateLimitConfig определяет параметры ограничения частоты запросов.
 type RateLimitConfig struct {
-	Max    int           // Maximum number of requests
-	Window time.Duration // Time window for the limit
+	Max    int           // Максимальное число запросов
+	Window time.Duration // Временное окно для лимита
 }
 
 // Предопределённые конфигурации лимитов.
@@ -29,6 +29,7 @@ var (
 	APIRateLimit         = RateLimitConfig{Max: 100, Window: 1 * time.Second}
 	FileUploadRateLimit  = RateLimitConfig{Max: 10, Window: 1 * time.Minute}
 	MessageSendRateLimit = RateLimitConfig{Max: 60, Window: 1 * time.Minute}
+	AIRateLimit          = RateLimitConfig{Max: 20, Window: 1 * time.Minute}
 )
 
 type slidingWindowEntry struct {
@@ -56,14 +57,18 @@ func RateLimit(ctx context.Context, config RateLimitConfig) fiber.Handler {
 	}
 	limiter := &rateLimiter{config: config}
 
-	// Periodic cleanup of expired entries
+	// Периодическая очистка просроченных записей — иначе утечка памяти.
 	go limiter.cleanup(ctx)
 
 	return func(c fiber.Ctx) error {
 		key := c.IP()
 
 		if !limiter.allow(key) {
-			return apperrors.NewRateLimited("too many requests, please try again later")
+			sec := int(limiter.config.Window.Seconds())
+			if sec < 1 {
+				sec = 1
+			}
+			return apperrors.NewRateLimitedAfter("too many requests, please try again later", sec)
 		}
 
 		return c.Next()
@@ -90,7 +95,11 @@ func RateLimitByUser(ctx context.Context, config RateLimitConfig) fiber.Handler 
 		}
 
 		if !limiter.allow(key) {
-			return apperrors.NewRateLimited("too many requests, please try again later")
+			sec := int(limiter.config.Window.Seconds())
+			if sec < 1 {
+				sec = 1
+			}
+			return apperrors.NewRateLimitedAfter("too many requests, please try again later", sec)
 		}
 
 		return c.Next()
@@ -107,7 +116,7 @@ func (rl *rateLimiter) allow(key string) bool {
 	entry.mu.Lock()
 	defer entry.mu.Unlock()
 
-	// Remove expired timestamps
+	// Удаляем просроченные timestamps из sliding window.
 	valid := entry.timestamps[:0]
 	for _, ts := range entry.timestamps {
 		if ts.After(windowStart) {
@@ -125,7 +134,7 @@ func (rl *rateLimiter) allow(key string) bool {
 }
 
 // ---------------------------------------------------------------------------
-// HI-10: Redis-based sliding window rate limiter (cross-instance safe).
+// HI-10: sliding window rate limiter на Redis — безопасен между инстансами.
 // ---------------------------------------------------------------------------
 //
 // Назначение: для чувствительных endpoint'ов (auth, magic-link verify) нужен
@@ -175,7 +184,7 @@ func RateLimitRedis(ctx context.Context, rdb *redis.Client, cfg RedisRateLimitCo
 		prefix = "rl:"
 	}
 
-	// In-memory fallback when Redis pipeline fails — avoids fail-open bypass (SEC).
+	// In-memory fallback при сбое Redis — иначе fail-open bypass (SEC).
 	memFallback := &rateLimiter{config: RateLimitConfig{Max: cfg.Max, Window: cfg.Window}}
 	go memFallback.cleanup(ctx)
 
@@ -198,7 +207,7 @@ func RateLimitRedis(ctx context.Context, rdb *redis.Client, cfg RedisRateLimitCo
 		pipe := rdb.Pipeline()
 		// Удаляем устаревшие попытки.
 		pipe.ZRemRangeByScore(ctx, key, "0", strconv.FormatInt(windowStart-1, 10))
-		// Member must be unique per request — nanosecond alone collides in fast tests/bursts.
+		// Member уникален на запрос — nanosecond alone коллидирует в burst.
 		member := strconv.FormatInt(now.UnixNano(), 10) + ":" + c.IP() + ":" + randomHex(8)
 		pipe.ZAdd(ctx, key, redis.Z{Score: float64(nowMs), Member: member})
 		cardCmd := pipe.ZCard(ctx, key)
@@ -213,13 +222,21 @@ func RateLimitRedis(ctx context.Context, rdb *redis.Client, cfg RedisRateLimitCo
 				memKey = "ip:" + hashIP(c.IP())
 			}
 			if !memFallback.allow(memKey) {
-				return apperrors.NewRateLimited("too many requests, please try again later")
+				sec := int(cfg.Window.Seconds())
+				if sec < 1 {
+					sec = 1
+				}
+				return apperrors.NewRateLimitedAfter("too many requests, please try again later", sec)
 			}
 			return c.Next()
 		}
 
 		if cardCmd.Val() > int64(cfg.Max) {
-			return apperrors.NewRateLimited("too many requests, please try again later")
+			sec := int(cfg.Window.Seconds())
+			if sec < 1 {
+				sec = 1
+			}
+			return apperrors.NewRateLimitedAfter("too many requests, please try again later", sec)
 		}
 		return c.Next()
 	}

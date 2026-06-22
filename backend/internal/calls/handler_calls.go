@@ -16,7 +16,7 @@ import (
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
-// CreateCall godoc
+// CreateCall — Создать звонок
 // @Summary Создать звонок
 // @Description Создаёт новый голосовой/видеозвонок в указанном канале.
 // @Tags Звонки
@@ -54,7 +54,7 @@ func (h *Handler) CreateCall(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// CreateInstantCall godoc
+// CreateInstantCall — Создать быстрый звонок
 // @Summary Создать быстрый звонок
 // @Description Создаёт мгновенный звонок без привязки к каналу. Генерирует invite_code для ссылки.
 // @Tags Звонки
@@ -87,7 +87,7 @@ func (h *Handler) CreateInstantCall(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// JoinByInviteCode godoc
+// JoinByInviteCode — Присоединиться по invite-коду
 // @Summary Присоединиться по invite-коду
 // @Description Присоединяет пользователя к звонку по пригласительному коду.
 // @Tags Звонки
@@ -123,7 +123,7 @@ func (h *Handler) JoinByInviteCode(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetActiveCall godoc
+// GetActiveCall — Получить активный звонок канала
 // @Summary Получить активный звонок канала
 // @Description Возвращает текущий активный звонок в указанном канале (или null).
 // @Tags Звонки
@@ -154,13 +154,13 @@ func (h *Handler) GetActiveCall(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// JoinCall godoc
+// JoinCall — Присоединиться к звонку
 // @Summary Присоединиться к звонку
 // @Description Присоединяет текущего пользователя к звонку и возвращает LiveKit токен.
 // @Tags Звонки
 // @Produce json
 // @Param callId path string true "ID звонка"
-// @Success 200 {object} JoinCallResponse "Токен для подключения"
+// @Success 200 {object} CallResponse "Токен для подключения"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
@@ -190,7 +190,7 @@ func (h *Handler) JoinCall(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// LeaveCall godoc
+// LeaveCall — Покинуть звонок
 // @Summary Покинуть звонок
 // @Description Текущий пользователь покидает звонок.
 // @Tags Звонки
@@ -219,7 +219,7 @@ func (h *Handler) LeaveCall(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// EndCall godoc
+// EndCall — Завершить звонок
 // @Summary Завершить звонок
 // @Description Завершает звонок для всех участников.
 // @Tags Звонки
@@ -251,7 +251,7 @@ func (h *Handler) EndCall(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// RaiseHand godoc
+// RaiseHand — Поднять/опустить руку
 // @Summary Поднять/опустить руку
 // @Description Переключает состояние "поднятой руки" участника в звонке.
 // @Tags Звонки
@@ -294,7 +294,7 @@ func (h *Handler) RaiseHand(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"raised": req.Raised})
 }
 
-// SendChatMessage godoc
+// SendChatMessage — Отправить сообщение в чат звонка
 // @Summary Отправить сообщение в чат звонка
 // @Description Отправляет текстовое сообщение в чат текущего звонка.
 // @Tags Звонки
@@ -339,7 +339,7 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(msg)
 }
 
-// ListChatMessages godoc
+// ListChatMessages — Список сообщений чата звонка
 // @Summary Список сообщений чата звонка
 // @Description Возвращает сообщения чата звонка с пагинацией по лимиту.
 // @Tags Звонки
@@ -377,7 +377,7 @@ func (h *Handler) ListChatMessages(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"messages": msgs})
 }
 
-// GuestJoinCall godoc
+// GuestJoinCall — Гостевой вход в звонок по invite-коду
 // @Summary Гостевой вход в звонок по invite-коду
 // @Description Позволяет гостю без аккаунта присоединиться к звонку, указав имя и invite-код.
 // @Tags Звонки

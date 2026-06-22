@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getTrash, restoreItem, type TrashItem } from "@/api/admin";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Вкладки корзины. */
 const TRASH_TABS = [
@@ -33,14 +34,14 @@ export function TrashManager() {
 			setItems(resp.items);
 			setTotal(resp.total);
 		} catch (err) {
-			console.error("Ошибка загрузки корзины:", err);
+			toastApiError(err, "Не удалось загрузить корзину");
 		} finally {
 			setLoading(false);
 		}
 	}, [activeTab, page]);
 
-	// Reset pagination when the user switches trash category — `activeTab` is
-	// the intentional trigger, not a value read inside the effect body.
+	// Сброс пагинации при смене категории корзины — `activeTab`
+	// намеренный триггер effect, а не значение из тела effect.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: effect intentionally re-runs only on activeTab change to reset pagination.
 	useEffect(() => {
 		setPage(1);
@@ -57,7 +58,7 @@ export function TrashManager() {
 			await restoreItem(item.entity_type, item.id);
 			await fetchTrash();
 		} catch (err) {
-			console.error("Ошибка восстановления:", err);
+			toastApiError(err, "Не удалось восстановить элемент");
 		} finally {
 			setRestoringId(null);
 		}

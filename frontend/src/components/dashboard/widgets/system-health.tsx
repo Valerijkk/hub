@@ -1,5 +1,5 @@
 /**
- * Widget "System Health" -- service status indicators (PG, Redis, NATS, MongoDB, SeaweedFS).
+ * Виджет «System Health» — статусы PG, Redis, NATS, MongoDB, SeaweedFS.
  */
 import { Activity, Server } from "lucide-react";
 import type { AdminStats } from "@/api/dashboard";
@@ -8,7 +8,7 @@ interface Props {
 	data?: unknown;
 }
 
-/** Status configuration with glow colors. */
+/** Конфиг статусов с glow-цветами. */
 const STATUS_CONFIG: Record<
 	string,
 	{ color: string; glow: string; pulse: boolean; label: string }
@@ -40,7 +40,7 @@ const DEFAULT_STATUS = {
 	label: "Неизвестно",
 };
 
-/** Service health widget. */
+/** Виджет здоровья сервисов. */
 export function SystemHealthWidget({ data }: Props) {
 	const adminData = data as AdminStats | undefined;
 	const health = adminData?.service_health ?? {};
@@ -60,7 +60,7 @@ export function SystemHealthWidget({ data }: Props) {
 
 	return (
 		<div className="space-y-2">
-			{/* Summary bar */}
+			{/* Сводная полоска */}
 			<div className="flex items-center gap-2 pb-2 border-b border-white/[0.06]">
 				<Activity className="h-4 w-4 text-t2/60" />
 				<span className="text-[11px] uppercase font-semibold tracking-[0.04em] text-t2">

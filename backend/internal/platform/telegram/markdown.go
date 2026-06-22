@@ -8,7 +8,7 @@ package telegram
 import "strings"
 
 // markdownV2Special — спецсимволы, требующие экранирования по правилам
-// Telegram MarkdownV2 (https://core.telegram.org/bots/api#markdownv2-style).
+// Telegram MarkdownV2 — экранирование по спецификации Telegram.
 var markdownV2Special = []string{
 	"_", "*", "[", "]", "(", ")", "~", "`", ">",
 	"#", "+", "-", "=", "|", "{", "}", ".", "!",

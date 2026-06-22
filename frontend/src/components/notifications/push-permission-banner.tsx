@@ -1,8 +1,8 @@
 import { Bell, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import i18n from "@/i18n";
 import { Button } from "@/components/ui/button";
+import i18n from "@/i18n";
 import {
 	dismissPushBanner,
 	requestPushPermission,

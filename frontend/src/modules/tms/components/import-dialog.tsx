@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import { type ImportResult, importTestCases } from "@/api/tms";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Допустимые расширения файлов для импорта. */
 const ACCEPTED_EXTENSIONS = ".csv,.json,.xml,.xlsx";
@@ -94,13 +94,11 @@ export function ImportDialog({
 				{!result ? (
 					<div className="space-y-4">
 						{/* Зона перетаскивания */}
-						<div
+						<label
+							htmlFor="import-file-input"
 							className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed p-6 transition-colors hover:border-primary"
 							onDrop={handleDrop}
 							onDragOver={(e) => e.preventDefault()}
-							onClick={() =>
-								document.getElementById("import-file-input")?.click()
-							}
 						>
 							<input
 								id="import-file-input"
@@ -127,7 +125,7 @@ export function ImportDialog({
 									</div>
 								</div>
 							)}
-						</div>
+						</label>
 
 						{/* Кнопка импорта */}
 						<Button

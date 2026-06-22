@@ -13,34 +13,22 @@ import (
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
-// AuthService — тонкий orchestrator, который объединяет четыре субсервиса
-// (sessions / login / profile / registration mode) и проксирует вызовы
-// существующих хендлеров на них. Сохраняет обратную совместимость с
-// `handler.go`, `middleware.go` и `cmd/server/main.go` (SC-14-1).
-//
-// Прямые поля `db` и `redis` оставлены — `middleware.go` обращается к ним
-// напрямую (userIsDeactivated). Поле `magicLink` оставлено приватным —
-// `handler.go` обращается к `h.service.magicLink.SendMagicLink` и `IsDevMode()`.
+// AuthService — тонкий orchestrator, который объединяет субсервисы auth.
 type AuthService struct {
-	// Публичные субсервисы — handler/middleware/тесты могут обращаться к ним
-	// напрямую (`s.Sessions.X()`), либо использовать делегирующие методы ниже.
-	Sessions *SessionService
-	Login    *LoginService
-	Profile  *ProfileService
-	RegMode  *RegistrationModeService
-	Org      *OrganizationService
+	Sessions  *SessionService
+	Login     *LoginService
+	Profile   *ProfileService
+	RegMode   *RegistrationModeService
+	Org       *OrganizationService
 
-	// Общие зависимости, нужные middleware (userIsDeactivated) и handler
-	// (доступ к magicLink).
-	db        *ent.Client
+	repo      Repository
 	redis     *redis.Client
 	magicLink *MagicLinkService
 }
 
-// NewAuthService создаёт оркестратор и все четыре субсервиса. Сигнатура
-// строго совпадает с предыдущей версией, чтобы не ломать main.go.
+// NewAuthService создаёт оркестратор и все субсервисы.
 func NewAuthService(
-	db *ent.Client,
+	repo Repository,
 	rdb *redis.Client,
 	nats *natsclient.Client,
 	jwtSecret string,
@@ -49,18 +37,18 @@ func NewAuthService(
 	botToken string,
 	sqlDB *sql.DB,
 ) *AuthService {
-	sessions := NewSessionService(db, rdb, nats, jwtSecret, accessTTL, refreshTTL)
-	regMode := NewRegistrationModeService(db, sqlDB)
-	org := NewOrganizationService(db)
-	login := NewLoginService(db, magicLink, botToken, sessions, regMode, org)
-	profile := NewProfileService(db)
+	sessions := NewSessionService(repo, rdb, nats, jwtSecret, accessTTL, refreshTTL)
+	regMode := NewRegistrationModeService(repo, sqlDB)
+	org := NewOrganizationService(repo)
+	login := NewLoginService(repo, magicLink, botToken, sessions, regMode, org)
+	profile := NewProfileService(repo)
 	return &AuthService{
 		Sessions:  sessions,
 		Login:     login,
 		Profile:   profile,
 		RegMode:   regMode,
 		Org:       org,
-		db:        db,
+		repo:      repo,
 		redis:     rdb,
 		magicLink: magicLink,
 	}
@@ -71,6 +59,12 @@ func NewAuthService(
 // ParseAccessToken — back-compat для middleware/ws.
 func (s *AuthService) ParseAccessToken(t string) (*JWTClaims, error) {
 	return s.Sessions.ParseAccessToken(t)
+}
+
+// IsUserDeactivated проверяет, деактивирован ли аккаунт (ME-13).
+// Используется RequireAuth и WS handler — та же логика Redis-кэш + БД.
+func (s *AuthService) IsUserDeactivated(ctx context.Context, uid uuid.UUID) (bool, error) {
+	return userIsDeactivated(ctx, s.repo, s.redis, uid)
 }
 
 // CreateSession — back-compat для dev.Handler и тестов.

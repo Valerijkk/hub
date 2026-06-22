@@ -17,8 +17,8 @@ interface DeviceInfo {
 
 /**
  * Обёртка над navigator.mediaDevices.enumerateDevices с фильтрацией по типу.
- * Module-level so it doesn't get re-created on every render and is safe to
- * reference from useCallback deps without churning the closure identity.
+ * На уровне модуля — не пересоздаётся каждый render и стабилен в deps useCallback.
+ * Ссылка из deps useCallback без смены identity замыкания.
  */
 async function getAudioDevices(
 	kind: "audioinput" | "audiooutput",
@@ -105,10 +105,10 @@ export function DeviceSelector() {
 
 			{/* Микрофон */}
 			<div className="flex flex-col gap-1.5">
-				<label className="flex items-center gap-2 text-xs font-medium text-white/60">
+				<span className="flex items-center gap-2 text-xs font-medium text-white/60">
 					<Mic className="h-3.5 w-3.5" />
 					Микрофон
-				</label>
+				</span>
 				<Select
 					value={selectedInput || "none"}
 					onValueChange={(v) => void handleInputChange(v === "none" ? "" : v)}
@@ -131,10 +131,10 @@ export function DeviceSelector() {
 
 			{/* Динамик */}
 			<div className="flex flex-col gap-1.5">
-				<label className="flex items-center gap-2 text-xs font-medium text-white/60">
+				<span className="flex items-center gap-2 text-xs font-medium text-white/60">
 					<Volume2 className="h-3.5 w-3.5" />
 					Динамик
-				</label>
+				</span>
 				<Select
 					value={selectedOutput || "none"}
 					onValueChange={(v) => void handleOutputChange(v === "none" ? "" : v)}

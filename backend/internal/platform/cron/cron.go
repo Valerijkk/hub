@@ -2,13 +2,13 @@
 //
 // До LO-1 в cmd/server/main.go было ~7 копий одного и того же паттерна:
 //
-//	go func() {
+// асинхронный запуск фоновой задачи
 //	    ticker := time.NewTicker(interval)
 //	    defer ticker.Stop()
-//	    for {
+// бесконечный цикл cron-задачи
 //	        select {
 //	        case <-ticker.C:
-//	            // do work
+//	            // выполнение работы
 //	        case <-rootCtx.Done():
 //	            return
 //	        }
@@ -18,7 +18,7 @@
 // Schedule инкапсулирует этот паттерн в одну строку:
 //
 //	cron.Schedule(rootCtx, 7*24*time.Hour, "weekly-backup",
-//	    func(ctx context.Context) error { return backupSvc.PerformBackup(ctx) })
+// обёртка для cron: PerformBackup требует context.
 //
 // Все запущенные горутины слушают тот же rootCtx и одновременно
 // завершаются при SIGINT/SIGTERM (см. ME-10 graceful-shutdown).
@@ -68,7 +68,7 @@ func Schedule(ctx context.Context, interval time.Duration, name string, fn func(
 // runTick выполняет одну итерацию fn с локальным recover'ом, чтобы паника
 // в задаче не уносила за собой всю горутину Schedule (а с ней — и весь
 // процесс сервера, если паника всплыла бы на runtime). Зеркалит паттерн
-// platform/outbox/worker.go:72 (processEvent).
+// platform/outbox/worker.go:72 (processEvent) — повтор outbox.
 func runTick(ctx context.Context, name string, fn func(ctx context.Context) error) {
 	start := time.Now()
 	defer func() {

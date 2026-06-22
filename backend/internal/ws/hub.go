@@ -87,6 +87,12 @@ type Hub struct {
 	unregister  chan *Client
 	subscribe   chan subscribeReq
 	unsubscribe chan subscribeReq
+
+	// stopping закрывается один раз при ctx.Done() до drain клиентов.
+	// Публичные методы select'ят на него, чтобы не блокироваться на каналах
+	// после выхода Run (WS-01 / FA-01 P3).
+	stopOnce  sync.Once
+	stopping  chan struct{}
 }
 
 // NewHub создаёт новый Hub.
@@ -96,6 +102,7 @@ func NewHub() *Hub {
 		unregister:  make(chan *Client, 64),
 		subscribe:   make(chan subscribeReq, 256),
 		unsubscribe: make(chan subscribeReq, 256),
+		stopping:    make(chan struct{}),
 	}
 }
 
@@ -108,6 +115,8 @@ func (h *Hub) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			h.beginShutdown()
+			h.shutdownAllClients()
 			return
 		case client := <-h.register:
 			h.registerClient(client)
@@ -131,14 +140,43 @@ func (h *Hub) Run(ctx context.Context) {
 	}
 }
 
+func (h *Hub) beginShutdown() {
+	h.stopOnce.Do(func() {
+		close(h.stopping)
+	})
+}
+
+// shutdownAllClients снимает все активные соединения и закрывает client.done.
+// Вызывается только из Run при отмене контекста.
+func (h *Hub) shutdownAllClients() {
+	h.clients.Range(func(_, value any) bool {
+		h.removeClient(value.(*Client))
+		return true
+	})
+}
+
+func (h *Hub) signalClientDone(client *Client) {
+	client.closeOnce.Do(func() {
+		close(client.done)
+	})
+}
+
 // Register добавляет клиента в Hub.
 func (h *Hub) Register(client *Client) {
-	h.register <- client
+	select {
+	case h.register <- client:
+	case <-h.stopping:
+		h.signalClientDone(client)
+	}
 }
 
 // Unregister удаляет клиента из Hub и всех его комнат.
 func (h *Hub) Unregister(client *Client) {
-	h.unregister <- client
+	select {
+	case h.unregister <- client:
+	case <-h.stopping:
+		h.signalClientDone(client)
+	}
 }
 
 // Subscribe ставит клиента в очередь подписки на комнату. Семантика
@@ -147,12 +185,18 @@ func (h *Hub) Unregister(client *Client) {
 // HI-07 follow-through: теперь это просто послание в канал — фактическая
 // мутация h.rooms делается subscribeClient под управлением Run.
 func (h *Hub) Subscribe(client *Client, room string) {
-	h.subscribe <- subscribeReq{client: client, room: room}
+	select {
+	case h.subscribe <- subscribeReq{client: client, room: room}:
+	case <-h.stopping:
+	}
 }
 
 // Unsubscribe ставит клиента в очередь отписки от комнаты.
 func (h *Hub) Unsubscribe(client *Client, room string) {
-	h.unsubscribe <- subscribeReq{client: client, room: room}
+	select {
+	case h.unsubscribe <- subscribeReq{client: client, room: room}:
+	case <-h.stopping:
+	}
 }
 
 // registerClient вставляет клиента в обе карты (clients + userClients).
@@ -215,7 +259,7 @@ func (h *Hub) BroadcastToRoom(room string, msg ServerMessage) {
 			// Client завершается — не отправляем.
 		case client.send <- data:
 		default:
-			// Client send buffer full, skip message to avoid blocking.
+			// Буфер send переполнен — drop, чтобы не блокировать Hub/Broadcast.
 			slog.Warn("ws client send buffer full, dropping message",
 				"userID", client.UserID, "connID", client.ConnectionID, "room", room)
 		}
@@ -297,7 +341,5 @@ func (h *Hub) removeClient(client *Client) {
 	// readPump-pong) пишут в него и проверяют done через select — без этого
 	// мы получали "send on closed channel" panic при гонке remove+broadcast.
 	// send будет собран GC после того, как все ссылки на *Client исчезнут.
-	client.closeOnce.Do(func() {
-		close(client.done)
-	})
+	h.signalClientDone(client)
 }

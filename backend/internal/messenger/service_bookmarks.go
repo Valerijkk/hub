@@ -7,7 +7,7 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
-// AddBookmark adds a user bookmark on a message.
+// AddBookmark добавляет закладку пользователя на сообщение.
 func (s *MessengerService) AddBookmark(ctx context.Context, userID uuid.UUID, messageID string, channelID uuid.UUID) error {
 	_, err := s.repo.AddBookmark(ctx, userID, messageID, channelID)
 	if err != nil {
@@ -16,12 +16,12 @@ func (s *MessengerService) AddBookmark(ctx context.Context, userID uuid.UUID, me
 	return nil
 }
 
-// RemoveBookmark removes a bookmark by ID.
+// RemoveBookmark удаляет закладку по ID.
 func (s *MessengerService) RemoveBookmark(ctx context.Context, bookmarkID uuid.UUID) error {
 	return s.repo.RemoveBookmark(ctx, bookmarkID)
 }
 
-// ListBookmarks returns all bookmarks for a user.
+// ListBookmarks возвращает все закладки пользователя.
 func (s *MessengerService) ListBookmarks(ctx context.Context, userID uuid.UUID) ([]BookmarkResponse, error) {
 	bookmarks, err := s.repo.ListBookmarks(ctx, userID)
 	if err != nil {

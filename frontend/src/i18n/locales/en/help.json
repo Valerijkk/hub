@@ -2,16 +2,25 @@
 	"title": "Hub Help",
 	"subtitle": "Quick guide. Full wiki is in the repo at docs/wiki/.",
 	"cards": {
-		"hotkeys": { "title": "Keyboard shortcuts", "desc": "All shortcuts in Settings" },
-		"search": { "title": "Global search", "desc": "Ctrl+K — issues, cases, channels, people" },
+		"hotkeys": {
+			"title": "Keyboard shortcuts",
+			"desc": "All shortcuts in Settings"
+		},
+		"search": {
+			"title": "Global search",
+			"desc": "Ctrl+K — issues, cases, channels, people"
+		},
 		"tms": { "title": "TMS + Allure", "desc": "Import CI test runs" },
-		"integrations": { "title": "Integrations", "desc": "GitHub, GitLab, API keys in profile" }
+		"integrations": {
+			"title": "Integrations",
+			"desc": "GitHub, GitLab, API keys in profile"
+		}
 	},
 	"sections": {
 		"quickStart": {
 			"title": "Quick start",
 			"items": [
-				"Magic Link or Telegram — passwordless sign-in",
+				"Magic Link — passwordless email sign-in",
 				"Onboarding: profile → tour → theme → project",
 				"Create a project in the sidebar — board, TMS, chat appear"
 			]
@@ -42,5 +51,27 @@
 		}
 	},
 	"adminLink": "Need admin help?",
-	"adminPanel": "Admin panel"
+	"adminPanel": "Admin panel",
+	"shortcuts": {
+		"title": "Keyboard shortcuts",
+		"hint": "Press ? anytime or Escape to close",
+		"groups": {
+			"navigation": "Navigation",
+			"tracker": "Tracker",
+			"messenger": "Messenger"
+		},
+		"navigation": [
+			"Ctrl+K / Cmd+K — global search",
+			"? — this help",
+			"Escape — close dialog"
+		],
+		"tracker": ["Ctrl+N — new issue (inside a project)"],
+		"messenger": ["Enter — send message", "Shift+Enter — new line"]
+	},
+	"contextTips": {
+		"label": "Context help",
+		"jql": "JQL filters issues by field, operator, and value. Examples: status = \"In Progress\", assignee = currentUser(), type IN (bug, task). Use ORDER BY created DESC to sort.",
+		"wip": "WIP (Work In Progress) limit caps how many cards a column may hold. When count reaches the limit, the column highlights in red — finish or move work before adding more.",
+		"allure": "POST Allure JSON to the webhook after CI runs. Match test cases via @allure.id(\"PROJ-TC-1\") or AS_ID label so Hub links results to TMS cases automatically."
+	}
 }

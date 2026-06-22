@@ -7,10 +7,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Label handlers
+// Обработчики меток
 // ---------------------------------------------------------------------------
 
-// ListLabels godoc
+// ListLabels — Список меток проекта
 // @Summary Список меток проекта
 // @Description Возвращает все метки (labels) указанного проекта.
 // @Tags Трекер
@@ -35,7 +35,7 @@ func (h *Handler) ListLabels(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateLabel godoc
+// CreateLabel — Создать метку
 // @Summary Создать метку
 // @Description Создаёт новую метку для задач проекта.
 // @Tags Трекер
@@ -68,7 +68,7 @@ func (h *Handler) CreateLabel(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// DeleteLabel godoc
+// DeleteLabel — Удалить метку
 // @Summary Удалить метку
 // @Description Удаляет метку из проекта.
 // @Tags Трекер
@@ -93,7 +93,7 @@ func (h *Handler) DeleteLabel(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// ListLabelGroups godoc
+// ListLabelGroups — Список групп меток
 // @Summary Список групп меток
 // @Description Возвращает группы меток проекта для организации по категориям.
 // @Tags Трекер
@@ -118,7 +118,7 @@ func (h *Handler) ListLabelGroups(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateLabelGroup godoc
+// CreateLabelGroup — Создать группу меток
 // @Summary Создать группу меток
 // @Description Создаёт новую группу для организации меток проекта.
 // @Tags Трекер

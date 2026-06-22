@@ -16,12 +16,12 @@ type TestStep struct {
 	Keyword        string `json:"keyword,omitempty"` // Given/When/Then РґР»СЏ BDD
 }
 
-// TestCase holds the schema definition for the TestCase entity.
+// TestCase — определение Ent-схемы сущности TestCase.
 type TestCase struct {
 	ent.Schema
 }
 
-// Fields of the TestCase.
+// Поля сущности TestCase.
 func (TestCase) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -91,7 +91,7 @@ func (TestCase) Fields() []ent.Field {
 	}
 }
 
-// Edges of the TestCase.
+// Рёбра (edges) сущности TestCase.
 func (TestCase) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -113,7 +113,7 @@ func (TestCase) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the TestCase.
+// Индексы сущности TestCase.
 func (TestCase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("case_key"),

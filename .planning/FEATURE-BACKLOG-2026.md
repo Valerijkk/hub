@@ -454,6 +454,26 @@ See [PLATFORM-VISION-v4.md](./PLATFORM-VISION-v4.md) for microservices split tri
 
 ---
 
+## Test Infrastructure (Backlog — Phase 999.1)
+
+### FB-TEST-01 — Unified test framework + `tests/` tree
+
+| Field | Value |
+|-------|-------|
+| **Persona** | QA, Backend Dev, Frontend Dev |
+| **Problem** | Тесты размазаны: `*_test.go` co-located, `frontend/e2e/` без единого POM/framework, 0 Vitest, дубли fixtures, coverage artifacts в backend/ |
+| **User story** | Как разработчик, хочу один `tests/` каталог и фреймворк (Page Object, builders, SOLID/DRY/KISS), чтобы писать smoke/regression/E2E без копипасты setup |
+| **Acceptance** | Given новый тест, When следую README в `tests/`, Then использую Page/Flow/Builder API; E2E specs без raw selectors; CI targets `test-smoke` / `test-regression`; Go pure unit остаётся co-located |
+| **Technical scope** | `tests/{framework,backend,frontend,e2e}`; Playwright POM refactor; Vitest setup; Go integration suite; migration M1–M6 |
+| **Test design** | Equivalence partitioning, BVA, state transition tables, pairwise role matrices — задокументированы в framework |
+| **Effort** | L · **P1** · post Phase 15 Wave 5 or parallel Wave 8 |
+| **Dependencies** | Phase 15 E2E specs (FB-07..09), `docs/test_plan.md` |
+| **Spec** | `.planning/phases/999-test-framework/SPEC.md` |
+| **Metrics** | Time-to-first-test for new dev ↓; duplicate fixture code ↓50% |
+| **Risk** | Go integration move breaks `go test ./...` discoverability — document split explicitly |
+
+---
+
 ## Verification checklist (ba-ver)
 
 - [x] No forbidden features (SSO, Gantt, webcams, billing)

@@ -1,4 +1,4 @@
-package github
+﻿package github
 
 import (
 	"crypto/hmac"
@@ -36,13 +36,13 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 
 	// Интеграции (auth + owner)
 	proj := api.Group("/projects/:projectId", authMw)
-	proj.Post("/github/integrations", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.CreateIntegration)
-	proj.Get("/github/integrations", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListIntegrations)
-	proj.Delete("/github/integrations/:integrationId", rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc), h.DeleteIntegration)
+	proj.Post("/github/integrations", h.CreateIntegration, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
+	proj.Get("/github/integrations", h.ListIntegrations, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	proj.Delete("/github/integrations/:integrationId", h.DeleteIntegration, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
 
-	// CI/CD Pipeline Status (workflow runs)
-	proj.Get("/github/workflows", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListWorkflowRuns)
-	proj.Get("/github/workflows/:runId", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetWorkflowRunDetail)
+	// Статус CI/CD pipeline (workflow runs)
+	proj.Get("/github/workflows", h.ListWorkflowRuns, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	proj.Get("/github/workflows/:runId", h.GetWorkflowRunDetail, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
 	// GitHub ссылки для задачи
 	api.Get("/issues/:issueKey/github-links", authMw, h.ListGitHubLinks)
@@ -353,7 +353,7 @@ func (h *Handler) GetLinkPreview(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Вспомогательные функции
 // ---------------------------------------------------------------------------
 
 // parseProjectID извлекает и валидирует projectId из параметров пути.

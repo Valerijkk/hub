@@ -1,5 +1,5 @@
 /**
- * Widget "Task Statuses" -- donut chart of task distribution by status.
+ * Виджет «Статусы задач» — donut по распределению статусов.
  */
 import { Layers } from "lucide-react";
 import {
@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import type { ProjectStats } from "@/api/dashboard";
 
-/** Status colors. */
+/** Цвета статусов. */
 const STATUS_COLORS = [
 	"var(--blue)",
 	"var(--green)",
@@ -28,7 +28,7 @@ interface Props {
 	data?: unknown;
 }
 
-/** Custom tooltip. */
+/** Кастомный tooltip. */
 function ChartTooltip({
 	active,
 	payload,
@@ -53,7 +53,7 @@ function ChartTooltip({
 	);
 }
 
-/** Task status chart widget. */
+/** Виджет диаграммы статусов задач. */
 export function TaskStatusChartWidget({ data }: Props) {
 	const projectData = data as ProjectStats | undefined;
 	const statusMap = projectData?.tasks_by_status ?? {};

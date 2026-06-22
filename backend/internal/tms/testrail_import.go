@@ -18,7 +18,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// TestRail import types
+// Типы импорта TestRail
 // ---------------------------------------------------------------------------
 
 // TestRailCase представляет тест-кейс TestRail из CSV/XML экспорта.
@@ -26,13 +26,13 @@ type TestRailCase struct {
 	ID             string `json:"id" xml:"id"`
 	Title          string `json:"title" xml:"title"`
 	SectionName    string `json:"section" xml:"section"`
-	Type           string `json:"type" xml:"type"`         // Automated, Manual, etc.
+	Type           string `json:"type" xml:"type"`         // Automated, Manual и т.п.
 	Priority       string `json:"priority" xml:"priority"` // Critical, High, Medium, Low
-	Estimate       string `json:"estimate" xml:"estimate"` // e.g., "30s", "1m", "1h"
+	Estimate       string `json:"estimate" xml:"estimate"` // например "30s", "1m", "1h"
 	Preconditions  string `json:"preconditions" xml:"preconditions"`
-	Steps          string `json:"steps" xml:"steps"`           // HTML or plain text steps
+	Steps          string `json:"steps" xml:"steps"`           // шаги в HTML или простом тексте
 	ExpectedResult string `json:"expected" xml:"expected"`
-	References     string `json:"refs" xml:"refs"` // comma-separated issue IDs
+	References     string `json:"refs" xml:"refs"` // ID задач через запятую
 }
 
 // TestRailXMLRoot — корневой элемент XML-экспорта TestRail.
@@ -42,7 +42,7 @@ type TestRailXMLRoot struct {
 }
 
 // ---------------------------------------------------------------------------
-// Priority mapping
+// Маппинг приоритетов TestRail → Hub TMS
 // ---------------------------------------------------------------------------
 
 // mapTestRailPriority преобразует приоритет TestRail в приоритет Hub TMS.
@@ -63,26 +63,22 @@ func mapTestRailPriority(trPriority string) string {
 	}
 }
 
-// mapTestRailType преобразует тип тест-кейса TestRail в тип Hub TMS.
+// mapTestRailType преобразует тип TestRail в case_type Hub TMS (classic/bdd).
+// TestRail «Type» — категория кейса (Manual, Automated, Functional, …), не формат шагов.
+// BDD-шаблоны и Gherkin-сценарии маппятся в bdd, остальное — classic.
 func mapTestRailType(trType string) string {
 	switch strings.ToLower(strings.TrimSpace(trType)) {
-	case "automated", "automation":
-		return "automated"
-	case "manual":
-		return "manual"
-	case "functional":
-		return "functional"
-	case "regression":
-		return "regression"
-	case "smoke":
-		return "smoke"
+	case "bdd", "behavior", "behaviour", "scenario", "gherkin", "cucumber", "feature":
+		return "bdd"
+	case "classic":
+		return "classic"
 	default:
-		return "manual"
+		return "classic"
 	}
 }
 
 // ---------------------------------------------------------------------------
-// Step parsing
+// Парсинг шагов TestRail
 // ---------------------------------------------------------------------------
 
 // htmlTagRegexp используется для удаления HTML-тегов из шагов TestRail.
@@ -114,7 +110,7 @@ func parseTestRailSteps(stepsText, expectedText string) []schema.TestStep {
 		if line == "" {
 			continue
 		}
-		// Remove leading numbering like "1. ", "1) ", "Step 1: "
+		// Убираем ведущую нумерацию вида "1. ", "1) ", "Step 1: "
 		line = trimStepNumbering(line)
 		if line == "" {
 			continue
@@ -135,7 +131,7 @@ func parseTestRailSteps(stepsText, expectedText string) []schema.TestStep {
 		order++
 	}
 
-	// If no structured steps were found but we have expected text, create a single step.
+	// Если структурированных шагов нет, но есть ожидаемый текст — создаём один шаг.
 	if len(steps) == 0 && expectedText != "" {
 		steps = append(steps, schema.TestStep{
 			Order:          1,
@@ -149,17 +145,17 @@ func parseTestRailSteps(stepsText, expectedText string) []schema.TestStep {
 
 // trimStepNumbering удаляет типичные префиксы нумерации шагов: "1. ", "1) ", "Step 1: ".
 func trimStepNumbering(s string) string {
-	// "1. text" or "1) text"
+	// "1. text" или "1) text"
 	re := regexp.MustCompile(`^\d+[\.\)]\s*`)
 	s = re.ReplaceAllString(s, "")
-	// "Step N: text"
+	// префикс вида "Step N: text"
 	re2 := regexp.MustCompile(`(?i)^step\s*\d+[:\s]*`)
 	s = re2.ReplaceAllString(s, "")
 	return strings.TrimSpace(s)
 }
 
 // ---------------------------------------------------------------------------
-// CSV import
+// Импорт CSV
 // ---------------------------------------------------------------------------
 
 // testRailCSVHeaders маппит известные названия столбцов CSV TestRail в наши внутренние имена полей.
@@ -211,7 +207,7 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 		return result, nil
 	}
 
-	// Create suites from unique section names.
+	// Создаём папки из уникальных имён секций.
 	suiteName2ID := make(map[string]*uuid.UUID)
 	for _, tc := range cases {
 		section := strings.TrimSpace(tc.SectionName)
@@ -232,7 +228,7 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 		suiteName2ID[section] = &suite.ID
 	}
 
-	// Create test cases.
+	// Создаём тест-кейсы.
 	for i, tc := range cases {
 		title := strings.TrimSpace(tc.Title)
 		if title == "" {
@@ -276,7 +272,7 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 }
 
 // ---------------------------------------------------------------------------
-// Parsers
+// Парсеры
 // ---------------------------------------------------------------------------
 
 // parseTestRailCSV парсит CSV-экспорт TestRail в структуры TestRailCase.
@@ -285,7 +281,7 @@ func parseTestRailCSV(data []byte) ([]TestRailCase, error) {
 	reader.LazyQuotes = true
 	reader.TrimLeadingSpace = true
 
-	// Try comma first, then semicolon, then tab.
+	// Сначала пробуем запятую, затем точку с запятой, затем табуляцию.
 	records, err := tryReadCSV(data, ',')
 	if err != nil || len(records) < 2 {
 		records, err = tryReadCSV(data, ';')
@@ -301,9 +297,9 @@ func parseTestRailCSV(data []byte) ([]TestRailCase, error) {
 		return nil, fmt.Errorf("CSV file is empty or contains only headers")
 	}
 
-	// Build column index.
+	// Строим индекс столбцов.
 	headers := records[0]
-	colMap := make(map[string]int) // field -> column index
+	colMap := make(map[string]int) // поле -> индекс столбца
 	for i, h := range headers {
 		lower := strings.ToLower(strings.TrimSpace(h))
 		if field, ok := testRailCSVHeaders[lower]; ok {
@@ -358,7 +354,7 @@ func parseTestRailXML(data []byte) ([]TestRailCase, error) {
 }
 
 // ---------------------------------------------------------------------------
-// HTTP handler
+// HTTP-обработчик
 // ---------------------------------------------------------------------------
 
 // maxTestRailImportBytes — лимит CSV/XML файла TestRail (совпадает с Fiber BodyLimit 25 MB).
@@ -394,7 +390,7 @@ func (h *Handler) ImportTestRailCases(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusRequestEntityTooLarge, "file too large")
 	}
 
-	// Detect format by file extension or form field.
+	// Определяем формат по расширению файла или полю формы.
 	format := c.FormValue("format", "")
 	if format == "" {
 		name := file.Filename

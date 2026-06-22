@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, X } from "lucide-react";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Message } from "@/api/messenger";
 import {
 	addBookmark,
@@ -11,8 +11,10 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useInvalidateMessages } from "@/hooks/use-invalidate";
 import { cn } from "@/lib/utils";
+import { useAIStore } from "@/stores/ai-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMessengerStore } from "@/stores/messenger-store";
+import { BotMarkdown, isHubAIMarkdown } from "./bot-markdown";
 import { ForwardDialog } from "./forward-dialog";
 import { LinkPreview } from "./link-preview";
 import { MessageActions } from "./message-actions";
@@ -149,7 +151,6 @@ function MessageItemInner({
 	dateSeparatorText,
 	showNewMessagesDivider,
 }: MessageItemProps) {
-	const [showActions, setShowActions] = useState(false);
 	const [showReactionPicker, setShowReactionPicker] = useState(false);
 	const [showForwardDialog, setShowForwardDialog] = useState(false);
 	const [isEditing, setIsEditing] = useState(false);
@@ -159,13 +160,19 @@ function MessageItemInner({
 	const openThread = useMessengerStore((s) => s.openThread);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
 	const currentUserId = useAuthStore((s) => s.user?.id);
+	const loadBotInfo = useAIStore((s) => s.loadBotInfo);
+	const isBotMessage = useAIStore((s) => s.isBotMessage);
+	const botDisplayName = useAIStore((s) => s.botDisplayName);
 
-	// NOTE: ALL hooks must be called unconditionally before any early return
-	// (Rules of Hooks). The defensive guard for malformed messages lives AFTER
-	// all hook calls. See FE-01 review fix.
+	useEffect(() => {
+		void loadBotInfo();
+	}, [loadBotInfo]);
 
-	// Stable identifiers used by hooks below. When message is malformed we still
-	// need to invoke every hook to keep call order consistent across renders.
+	// NOTE: все хуки до early return (Rules of Hooks, FE-01).
+	// Guard для битых сообщений — ПОСЛЕ всех хуков.
+
+	// Стабильные id для хуков ниже; при битом message хуки всё равно вызываем,
+	// чтобы порядок вызовов не менялся между renders.
 	const safeMessageId =
 		message && typeof message.id === "string" ? message.id : "";
 	const messageContentText = message?.content_text;
@@ -178,7 +185,11 @@ function MessageItemInner({
 		const urls = new Set<string>();
 		if (messageContentText) {
 			const matches = messageContentText.match(URL_REGEX);
-			if (matches) matches.forEach((u) => urls.add(u));
+			if (matches) {
+				for (const u of matches) {
+					urls.add(u);
+				}
+			}
 		}
 		if (messageContentJson) {
 			const extractFromNode = (node: unknown) => {
@@ -189,7 +200,11 @@ function MessageItemInner({
 				}
 				if (typeof n.text === "string") {
 					const matches = n.text.match(URL_REGEX);
-					if (matches) matches.forEach((u) => urls.add(u));
+					if (matches) {
+						for (const u of matches) {
+							urls.add(u);
+						}
+					}
 				}
 				if (Array.isArray(n.children)) {
 					n.children.forEach(extractFromNode);
@@ -221,7 +236,6 @@ function MessageItemInner({
 	const handleStartEdit = useCallback(() => {
 		setEditText(messageContentText ?? "");
 		setIsEditing(true);
-		setShowActions(false);
 	}, [messageContentText]);
 
 	/** Сохранить отредактированное сообщение. */
@@ -282,18 +296,23 @@ function MessageItemInner({
 		setEditText("");
 	}, []);
 
-	// Defensive: skip rendering if message is malformed (e.g. partial WS event).
-	// MUST be placed AFTER all hook calls to preserve Rules of Hooks ordering.
+	// Защита: не рендерим битое сообщение (частичный WS event).
+	// Только ПОСЛЕ всех хуков — иначе нарушим Rules of Hooks.
 	if (!message || !message.id || typeof message.id !== "string") {
 		return null;
 	}
 
 	const isOwn = currentUserId === message.sender_id;
 	const isGrouped = shouldGroupWithPrevious(message, previousMessage);
+	const fromBot =
+		isBotMessage(message.sender_id) ||
+		isHubAIMarkdown(
+			message.content_json as Record<string, unknown> | undefined,
+		);
 
 	return (
 		<>
-			{/* Date separator -- centered pill */}
+			{/* Разделитель дат — pill по центру */}
 			{showDateSeparator && dateSeparatorText && (
 				<div className="flex items-center justify-center py-4 px-5">
 					<div className="text-[11.5px] font-semibold text-[var(--t3)] bg-[var(--raised)] px-4 py-1.5 rounded-full border border-[var(--b1)] shadow-[var(--sh2)]">
@@ -302,7 +321,7 @@ function MessageItemInner({
 				</div>
 			)}
 
-			{/* New messages divider */}
+			{/* Разделитель «Новые сообщения» */}
 			{showNewMessagesDivider && (
 				<div className="flex items-center gap-3.5 py-3 px-5">
 					<div className="flex-1 h-px bg-[var(--red)] opacity-50" />
@@ -313,20 +332,15 @@ function MessageItemInner({
 				</div>
 			)}
 
-			{/* Message -- flat Slack-style layout */}
+			{/* Сообщение — плоская Slack-раскладка */}
 			<div
 				className={cn(
-					"msg-row flex gap-3 py-2 px-2.5 rounded-[var(--r3)] transition-[background] relative",
+					"group msg-row flex gap-3 py-2 px-2.5 rounded-[var(--r3)] transition-[background] relative",
 					"hover:bg-[var(--hover)]",
 				)}
-				onMouseEnter={() => setShowActions(true)}
-				onMouseLeave={() => {
-					setShowActions(false);
-					setShowReactionPicker(false);
-				}}
 			>
 				<div className="flex gap-3 w-full min-w-0">
-					{/* Avatar column -- 38px, shown only on first message in group */}
+					{/* Колонка аватара 38px — только у первого в группе */}
 					<div
 						className={cn("w-[38px] shrink-0", isGrouped && "invisible h-0")}
 					>
@@ -337,7 +351,7 @@ function MessageItemInner({
 								</AvatarFallback>
 							</Avatar>
 						)}
-						{/* Show time on hover for grouped messages */}
+						{/* Время при hover у сгруппированных сообщений */}
 						{isGrouped && (
 							<span className="hidden group-hover:flex items-center justify-center h-full text-[10px] text-t2/60">
 								{formatTime(message.created_at)}
@@ -345,13 +359,18 @@ function MessageItemInner({
 						)}
 					</div>
 
-					{/* Content */}
+					{/* Контент сообщения */}
 					<div className="min-w-0 flex-1">
-						{/* Name + time -- shown only on first message in group */}
+						{/* Имя + время — только у первого в группе */}
 						{!isGrouped && (
 							<div className="flex items-baseline gap-2 mb-0.5">
-								<span className="text-[13.5px] font-bold tracking-[-0.01em] hover:underline cursor-pointer">
-									{message.sender_id}
+								<span
+									className={cn(
+										"text-[13.5px] font-bold tracking-[-0.01em] hover:underline cursor-pointer",
+										fromBot && "text-purple-500",
+									)}
+								>
+									{fromBot ? botDisplayName : message.sender_id}
 								</span>
 								<span className="text-[10.5px] text-[var(--t4)] font-medium">
 									{formatTime(message.created_at)}
@@ -364,7 +383,7 @@ function MessageItemInner({
 							</div>
 						)}
 
-						{/* Forwarded badge */}
+						{/* Бейдж «Переслано» */}
 						{message.forwarded_from_id && (
 							<div className="mb-1 flex items-center gap-1 text-xs text-t2/70">
 								<svg
@@ -390,7 +409,7 @@ function MessageItemInner({
 							<PollMessage pollId={message.poll_id} channelId={channelId} />
 						)}
 
-						{/* Message content (or inline edit) — не показываем для опросов */}
+						{/* Контент сообщения (или inline-редактирование) — скрываем для опросов */}
 						{message.message_type !== "poll" &&
 							(isEditing ? (
 								<MessageEditMode
@@ -400,22 +419,34 @@ function MessageItemInner({
 								/>
 							) : (
 								<div className="text-sm leading-relaxed text-[var(--t1)] break-words">
-									{message.content_json && (
-										<RenderContent contentJson={message.content_json} />
-									)}
-									{!message.content_json && message.content_text && (
-										<p className="whitespace-pre-wrap">
-											{message.content_text}
-										</p>
+									{fromBot && message.content_text ? (
+										<BotMarkdown text={message.content_text} />
+									) : (
+										<>
+											{message.content_json && (
+												<RenderContent contentJson={message.content_json} />
+											)}
+											{!message.content_json && message.content_text && (
+												<p className="whitespace-pre-wrap">
+													{message.content_text}
+												</p>
+											)}
+										</>
 									)}
 								</div>
 							))}
 
-						{/* Voice message */}
+						{/* Голосовое сообщение */}
 						{message.voice_url && (
 							<div className="mt-1.5 flex items-center gap-2 rounded-lg bg-raised/50 p-2 max-w-sm">
-								<audio controls preload="metadata" className="h-8 max-w-xs">
+								<audio
+									controls
+									preload="metadata"
+									className="h-8 max-w-xs"
+									aria-label="Голосовое сообщение"
+								>
 									<source src={message.voice_url} type="audio/webm" />
+									<track kind="captions" />
 								</audio>
 								{message.voice_duration_ms && (
 									<span className="text-xs text-t2">
@@ -425,7 +456,7 @@ function MessageItemInner({
 							</div>
 						)}
 
-						{/* Attachments */}
+						{/* Вложения */}
 						{message.attachments && message.attachments.length > 0 && (
 							<MessageAttachments
 								attachments={message.attachments}
@@ -433,7 +464,7 @@ function MessageItemInner({
 							/>
 						)}
 
-						{/* Link previews */}
+						{/* Превью ссылок */}
 						{extractedUrls.length > 0 && (
 							<div className="mt-1.5 space-y-1.5">
 								{extractedUrls.slice(0, 2).map((url) => (
@@ -442,7 +473,7 @@ function MessageItemInner({
 							</div>
 						)}
 
-						{/* Reactions -- small emoji chips */}
+						{/* Реакции — компактные emoji-чипы */}
 						{message.reactions && message.reactions.length > 0 && (
 							<div className="flex gap-1.5 mt-2 flex-wrap">
 								{message.reactions.map((reaction) => {
@@ -478,7 +509,7 @@ function MessageItemInner({
 							</div>
 						)}
 
-						{/* Thread indicator */}
+						{/* Индикатор треда */}
 						{message.reply_count > 0 && (
 							<button
 								type="button"
@@ -510,25 +541,32 @@ function MessageItemInner({
 					</div>
 				</div>
 
-				{/* Hover actions -- floating pill toolbar on the right */}
-				{showActions && !isEditing && (
-					<MessageActions
-						message={message}
-						channelId={channelId}
-						isOwn={isOwn}
-						showReactionPicker={showReactionPicker}
-						onReactionPickerChange={setShowReactionPicker}
-						onReply={handleReply}
-						onOpenThread={() => openThread(message.id)}
-						onPin={handlePin}
-						onBookmark={handleBookmark}
-						onForward={() => setShowForwardDialog(true)}
-						onEdit={handleStartEdit}
-						onDelete={handleDelete}
-					/>
+				{/* Hover-действия — pill-toolbar справа */}
+				{!isEditing && (
+					<div
+						role="toolbar"
+						aria-label="Действия с сообщением"
+						className="pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
+						onMouseLeave={() => setShowReactionPicker(false)}
+					>
+						<MessageActions
+							message={message}
+							channelId={channelId}
+							isOwn={isOwn}
+							showReactionPicker={showReactionPicker}
+							onReactionPickerChange={setShowReactionPicker}
+							onReply={handleReply}
+							onOpenThread={() => openThread(message.id)}
+							onPin={handlePin}
+							onBookmark={handleBookmark}
+							onForward={() => setShowForwardDialog(true)}
+							onEdit={handleStartEdit}
+							onDelete={handleDelete}
+						/>
+					</div>
 				)}
 
-				{/* Forward dialog */}
+				{/* Диалог пересылки */}
 				<ForwardDialog
 					message={message}
 					channelId={channelId}

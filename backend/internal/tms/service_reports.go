@@ -9,7 +9,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Reports
+// Отчёты
 // ---------------------------------------------------------------------------
 
 // GetCoverageReport возвращает отчёт о покрытии задач тест-кейсами.
@@ -237,17 +237,21 @@ func (s *TMSService) GetTestRunHistory(ctx context.Context, projectID uuid.UUID,
 	return summaries, nil
 }
 
-// GetFlakyTests возвращает тест-кейсы с нестабильными (flaky) результатами из последних прогонов.
-func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) ([]TestCaseResponse, error) {
-	// Получаем последние прогоны
-	params := ListTestRunsParams{Offset: 0, Limit: 10}
+// GetFlakyTests возвращает тест-кейсы с нестабильными (flaky) результатами из последних 5 прогонов.
+func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) (*FlakyTestReport, error) {
+	const runWindow = 5
+	params := ListTestRunsParams{Offset: 0, Limit: runWindow}
 	runs, _, err := s.repo.ListTestRuns(ctx, projectID, params)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения прогонов для flaky-анализа")
 	}
 
-	// Собираем историю статусов по каждому тест-кейсу
-	tcStatuses := make(map[uuid.UUID][]string)
+	type tcMeta struct {
+		statuses    []string
+		markedFlaky bool
+	}
+
+	tcStatuses := make(map[uuid.UUID]*tcMeta)
 	tcMap := make(map[uuid.UUID]*ent.TestCase)
 	for _, run := range runs {
 		results, err := s.repo.ListTestResults(ctx, run.ID)
@@ -255,41 +259,70 @@ func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) ([]
 			continue
 		}
 		for _, r := range results {
-			if r.Edges.TestCase != nil {
-				tcID := r.Edges.TestCase.ID
-				tcStatuses[tcID] = append(tcStatuses[tcID], string(r.Status))
-				if _, ok := tcMap[tcID]; !ok {
-					tcMap[tcID] = r.Edges.TestCase
+			if r.Edges.TestCase == nil {
+				continue
+			}
+			tcID := r.Edges.TestCase.ID
+			meta, ok := tcStatuses[tcID]
+			if !ok {
+				meta = &tcMeta{}
+				tcStatuses[tcID] = meta
+			}
+			meta.statuses = append(meta.statuses, string(r.Status))
+			if r.IsFlaky {
+				meta.markedFlaky = true
+			}
+			if _, ok := tcMap[tcID]; !ok {
+				tcMap[tcID] = r.Edges.TestCase
+			}
+		}
+	}
+
+	items := make([]FlakyTestItem, 0)
+	for tcID, meta := range tcStatuses {
+		if len(meta.statuses) < 2 && !meta.markedFlaky {
+			continue
+		}
+		isFlaky := meta.markedFlaky
+		if !isFlaky && len(meta.statuses) >= 2 {
+			first := meta.statuses[0]
+			for _, st := range meta.statuses[1:] {
+				if st != first {
+					isFlaky = true
+					break
 				}
 			}
 		}
-	}
-
-	// Определяем flaky: тест-кейс имеет разные статусы в разных прогонах
-	var flakyTests []TestCaseResponse
-	for tcID, statuses := range tcStatuses {
-		if len(statuses) < 2 {
+		if !isFlaky {
 			continue
 		}
-		first := statuses[0]
-		isFlaky := false
-		for _, s := range statuses[1:] {
-			if s != first {
-				isFlaky = true
-				break
+		tc, ok := tcMap[tcID]
+		if !ok {
+			continue
+		}
+		passed := 0
+		for _, st := range meta.statuses {
+			if st == "passed" {
+				passed++
 			}
 		}
-		if isFlaky {
-			if tc, ok := tcMap[tcID]; ok {
-				flakyTests = append(flakyTests, *toTestCaseResponse(tc))
-			}
+		flakeRate := 0.0
+		if n := len(meta.statuses); n > 0 {
+			flakeRate = float64(n-passed) / float64(n)
 		}
+		base := toTestCaseResponse(tc)
+		items = append(items, FlakyTestItem{
+			TestCaseResponse: *base,
+			StatusHistory:    meta.statuses,
+			FlakeRate:        flakeRate,
+			MarkedFlaky:      meta.markedFlaky,
+		})
 	}
 
-	if flakyTests == nil {
-		flakyTests = make([]TestCaseResponse, 0)
-	}
-	return flakyTests, nil
+	return &FlakyTestReport{
+		Items:     items,
+		RunWindow: runWindow,
+	}, nil
 }
 
 // GetTraceabilityMatrix строит матрицу трассировки: строки = задачи, столбцы = тест-кейсы, ячейки = последний статус.
@@ -335,7 +368,7 @@ func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUI
 	}
 
 	// Собираем упавшие результаты и группируем по паттерну ошибки
-	categories := make(map[string][]string) // pattern -> []caseKey
+	categories := make(map[string][]string) // паттерн -> []caseKey
 	for _, run := range runs {
 		results, err := s.repo.ListTestResults(ctx, run.ID)
 		if err != nil {
@@ -404,8 +437,8 @@ func (s *TMSService) CompareEnvironments(ctx context.Context, projectID uuid.UUI
 			return nil, nil, err
 		}
 
-		statusMap := make(map[string]string)  // case_key -> status
-		titleMap := make(map[string]string)    // case_key -> title
+		statusMap := make(map[string]string)  // case_key -> статус
+		titleMap := make(map[string]string)    // case_key -> заголовок
 		for _, r := range results {
 			if r.Edges.TestCase != nil {
 				statusMap[r.Edges.TestCase.CaseKey] = string(r.Status)

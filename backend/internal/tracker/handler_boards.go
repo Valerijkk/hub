@@ -7,10 +7,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Board handlers
+// Обработчики досок
 // ---------------------------------------------------------------------------
 
-// ListBoards godoc
+// ListBoards — Список досок проекта
 // @Summary Список досок проекта
 // @Description Возвращает все канбан-доски указанного проекта.
 // @Tags Трекер
@@ -35,7 +35,7 @@ func (h *Handler) ListBoards(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CreateBoard godoc
+// CreateBoard — Создать доску
 // @Summary Создать доску
 // @Description Создаёт новую канбан-доску в проекте.
 // @Tags Трекер
@@ -67,7 +67,7 @@ func (h *Handler) CreateBoard(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// GetBoardData godoc
+// GetBoardData — Данные доски
 // @Summary Данные доски
 // @Description Возвращает колонки и задачи доски с опциональной группировкой по swimlane.
 // @Tags Трекер

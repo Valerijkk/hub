@@ -174,7 +174,7 @@ export function IssueSidebarMeta({
 				</div>
 			</div>
 
-			{/* Story Points */}
+			{/* Оценка сложности (SP) */}
 			<div className="mb-[18px]">
 				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
 					Story Points

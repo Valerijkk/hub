@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { TrashManager } from "@/components/admin/trash-manager";
+import { isSystemAdmin } from "@/lib/is-system-admin";
 import { useAuthStore } from "@/stores/auth-store";
 
 /** Страница управления корзиной (только для администратора). */
@@ -14,7 +15,7 @@ function TrashPage() {
 export const Route = createFileRoute("/_authenticated/admin/trash")({
 	beforeLoad: () => {
 		const { user } = useAuthStore.getState();
-		if (!user || user.system_role !== "admin") {
+		if (!user || !isSystemAdmin(user.system_role)) {
 			throw redirect({ to: "/" });
 		}
 	},

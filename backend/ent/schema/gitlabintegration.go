@@ -13,7 +13,7 @@ type GitLabIntegration struct {
 	ent.Schema
 }
 
-// Fields of the GitLabIntegration.
+// Поля сущности GitLabIntegration.
 func (GitLabIntegration) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -39,7 +39,7 @@ func (GitLabIntegration) Fields() []ent.Field {
 	}
 }
 
-// Edges of the GitLabIntegration.
+// Рёбра (edges) сущности GitLabIntegration.
 func (GitLabIntegration) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -50,7 +50,7 @@ func (GitLabIntegration) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the GitLabIntegration.
+// Индексы сущности GitLabIntegration.
 func (GitLabIntegration) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("project_path").

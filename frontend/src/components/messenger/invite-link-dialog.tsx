@@ -121,9 +121,9 @@ function CreateInviteForm({
 		<div className="space-y-4">
 			{/* Срок действия */}
 			<div>
-				<label className="text-xs font-medium text-t2 mb-1.5 block">
+				<span className="text-xs font-medium text-t2 mb-1.5 block">
 					Срок действия
-				</label>
+				</span>
 				<div className="flex flex-wrap gap-1.5">
 					{EXPIRATION_OPTIONS.map((opt) => (
 						<button
@@ -145,9 +145,9 @@ function CreateInviteForm({
 
 			{/* Лимит использований */}
 			<div>
-				<label className="text-xs font-medium text-t2 mb-1.5 block">
+				<span className="text-xs font-medium text-t2 mb-1.5 block">
 					Лимит использований
-				</label>
+				</span>
 				<div className="flex flex-wrap gap-1.5">
 					{USAGE_LIMIT_OPTIONS.map((opt) => (
 						<button

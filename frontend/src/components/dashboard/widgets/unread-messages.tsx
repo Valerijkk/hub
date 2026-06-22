@@ -1,5 +1,5 @@
 /**
- * Widget "Unread Messages" -- displays unread message count with visual indicator.
+ * Виджет «Непрочитанные» — счётчик с визуальным индикатором.
  */
 import { CheckCheck, MailOpen, MessageCircle } from "lucide-react";
 import type { PersonalData } from "@/api/dashboard";
@@ -8,7 +8,7 @@ interface Props {
 	data?: unknown;
 }
 
-/** Unread messages widget. */
+/** Виджет непрочитанных сообщений. */
 export function UnreadMessagesWidget({ data }: Props) {
 	const personalData = data as PersonalData | undefined;
 	const count = personalData?.unread_count ?? 0;

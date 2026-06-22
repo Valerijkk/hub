@@ -131,6 +131,8 @@
 		"409": "Conflict — refresh the page and try again",
 		"422": "Invalid data — check the form fields",
 		"429": "Too many requests — please wait and try again",
+		"rateLimitRetry": "Too many requests — retry in {{seconds}} sec",
+		"requestIdHint": "Request ID: {{id}} — share with support if the issue persists",
 		"500": "Server error — try again later",
 		"502": "Service temporarily unavailable",
 		"503": "Service temporarily unavailable",
@@ -156,17 +158,38 @@
 		"createFirst": "Create first project",
 		"infoHowToTitle": "How to create a project",
 		"infoSteps": {
-			"1": { "title": "Click \"Create project\"", "desc": "Set name and key (KEY-1)" },
+			"1": {
+				"title": "Click \"Create project\"",
+				"desc": "Set name and key (KEY-1)"
+			},
 			"2": { "title": "Set up your team", "desc": "Add members and roles" },
-			"3": { "title": "Start working!", "desc": "Issues, tests, messenger and calls" }
+			"3": {
+				"title": "Start working!",
+				"desc": "Issues, tests, messenger and calls"
+			}
 		},
 		"infoFeatures": {
-			"tracker": { "title": "Task tracker", "desc": "Kanban board, backlog, sprints" },
-			"tms": { "title": "Test management", "desc": "Test cases, runs, reports" },
-			"messenger": { "title": "Messenger", "desc": "Channels, DMs, voice, stickers" },
+			"tracker": {
+				"title": "Task tracker",
+				"desc": "Kanban board, backlog, sprints"
+			},
+			"tms": {
+				"title": "Test management",
+				"desc": "Test cases, runs, reports"
+			},
+			"messenger": {
+				"title": "Messenger",
+				"desc": "Channels, DMs, voice, stickers"
+			},
 			"calls": { "title": "Calls", "desc": "Audio, screen share, recording" },
-			"integrations": { "title": "GitLab / GitHub", "desc": "Branches, MRs, pipelines in Hub" },
-			"dashboards": { "title": "Dashboards", "desc": "Widgets, charts, metrics" }
+			"integrations": {
+				"title": "GitLab / GitHub",
+				"desc": "Branches, MRs, pipelines in Hub"
+			},
+			"dashboards": {
+				"title": "Dashboards",
+				"desc": "Widgets, charts, metrics"
+			}
 		}
 	},
 	"onboarding": {
@@ -183,27 +206,27 @@
 		"inviteCode": "Invite code",
 		"skipProject": "Skip for now",
 		"welcome": "Welcome to Hub!",
-    "completeError": "Failed to complete onboarding"
-  },
-  "validation": {
-    "enterEmail": "Enter a valid email",
-    "enterCode": "Enter the code",
-    "enterComment": "Enter comment text",
-    "enterQuestion": "Enter a question",
-    "pollMinOptions": "At least 2 answer options required",
-    "enterLabelName": "Enter label name",
-    "enterGroupName": "Enter group name",
-    "nameCannotBeEmpty": "Name cannot be empty",
-    "fillNameAndKey": "Fill in name and key (2–10 characters)",
-    "enterNameForKeyGen": "Enter a name with 2+ words to generate a key",
-    "avatarMaxSize": "Maximum file size is 2 MB",
-    "avatarImagesOnly": "Only images allowed (JPG, PNG)",
-    "enterMinutes": "Enter number of minutes",
-    "enterStatusName": "Enter status name",
-    "selectBothStatuses": "Select both statuses",
-    "statusesMustDiffer": "Statuses must be different",
-    "pushPermissionDenied": "Browser denied notification permission",
-    "pushSubscribeFailed": "Failed to subscribe to notifications",
-    "objectNotFound": "Object not found"
-  }
+		"completeError": "Failed to complete onboarding"
+	},
+	"validation": {
+		"enterEmail": "Enter a valid email",
+		"enterCode": "Enter the code",
+		"enterComment": "Enter comment text",
+		"enterQuestion": "Enter a question",
+		"pollMinOptions": "At least 2 answer options required",
+		"enterLabelName": "Enter label name",
+		"enterGroupName": "Enter group name",
+		"nameCannotBeEmpty": "Name cannot be empty",
+		"fillNameAndKey": "Fill in name and key (2–10 characters)",
+		"enterNameForKeyGen": "Enter a name with 2+ words to generate a key",
+		"avatarMaxSize": "Maximum file size is 2 MB",
+		"avatarImagesOnly": "Only images allowed (JPG, PNG)",
+		"enterMinutes": "Enter number of minutes",
+		"enterStatusName": "Enter status name",
+		"selectBothStatuses": "Select both statuses",
+		"statusesMustDiffer": "Statuses must be different",
+		"pushPermissionDenied": "Browser denied notification permission",
+		"pushSubscribeFailed": "Failed to subscribe to notifications",
+		"objectNotFound": "Object not found"
+	}
 }

@@ -13,7 +13,7 @@ type GitHubIntegration struct {
 	ent.Schema
 }
 
-// Fields of the GitHubIntegration.
+// Поля сущности GitHubIntegration.
 func (GitHubIntegration) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -42,7 +42,7 @@ func (GitHubIntegration) Fields() []ent.Field {
 	}
 }
 
-// Edges of the GitHubIntegration.
+// Рёбра (edges) сущности GitHubIntegration.
 func (GitHubIntegration) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -53,7 +53,7 @@ func (GitHubIntegration) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the GitHubIntegration.
+// Индексы сущности GitHubIntegration.
 func (GitHubIntegration) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("repo_owner", "repo_name").

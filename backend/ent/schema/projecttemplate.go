@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// ProjectTemplate holds the schema definition for the ProjectTemplate entity.
+// ProjectTemplate — определение Ent-схемы сущности ProjectTemplate.
 type ProjectTemplate struct {
 	ent.Schema
 }
 
-// Fields of the ProjectTemplate.
+// Поля сущности ProjectTemplate.
 func (ProjectTemplate) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -41,7 +41,7 @@ func (ProjectTemplate) Fields() []ent.Field {
 	}
 }
 
-// Edges of the ProjectTemplate.
+// Рёбра (edges) сущности ProjectTemplate.
 func (ProjectTemplate) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("created_by", User.Type).
@@ -50,7 +50,7 @@ func (ProjectTemplate) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the ProjectTemplate.
+// Индексы сущности ProjectTemplate.
 func (ProjectTemplate) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("template_type"),

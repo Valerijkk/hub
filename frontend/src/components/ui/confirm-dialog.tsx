@@ -1,7 +1,7 @@
 /**
- * ConfirmDialog — controlled AlertDialog wrapper that replaces window.confirm.
+ * ConfirmDialog — controlled AlertDialog вместо window.confirm.
  *
- * Usage:
+ * Использование:
  *   <ConfirmDialog
  *     open={open}
  *     onOpenChange={setOpen}
@@ -11,8 +11,8 @@
  *     onConfirm={() => doDelete()}
  *   />
  *
- * Body text and action labels are provided in Russian by the caller — this
- * component intentionally does not localize so each call-site stays explicit.
+ * Тексты передаёт call-site на русском —
+ * компонент не локализует, чтобы формулировки были явными.
  */
 import {
 	AlertDialog,
@@ -32,11 +32,11 @@ export interface ConfirmDialogProps {
 	description?: string;
 	confirmLabel?: string;
 	cancelLabel?: string;
-	/** When true, the confirm button uses destructive styling (red). */
+	/** true — кнопка подтверждения в destructive-стиле (красная). */
 	destructive?: boolean;
-	/** Called when the user confirms. Dialog closes automatically afterwards. */
+	/** Вызывается при подтверждении; диалог закрывается после onConfirm. */
 	onConfirm: () => void | Promise<void>;
-	/** Disable the confirm button (e.g. while a request is in flight). */
+	/** Блокирует кнопку подтверждения (например, во время запроса). */
 	disabled?: boolean;
 }
 
@@ -72,7 +72,7 @@ export function ConfirmDialog({
 								: "bg-blue hover:bg-blue/90 focus:ring-blue/50"
 						}
 						onClick={(e) => {
-							// Prevent Radix auto-close so onConfirm can run async; we close manually.
+							// Блокируем auto-close Radix — onConfirm может быть async; закрываем вручную.
 							e.preventDefault();
 							void Promise.resolve(onConfirm()).finally(() =>
 								onOpenChange(false),

@@ -1,0 +1,25 @@
+# NetworkPolicy K3s: разрешить Prometheus scrape только /metrics backend.
+# Применить в namespace hub после деплоя Prometheus с меткой app=prometheus:
+#
+#   kubectl apply -f deployments/k3s/monitoring/networkpolicy-metrics.yaml
+#
+# Backend должен слушать порт 3000 с меткой app=hub-backend.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hub-backend-metrics-scrape
+  namespace: hub
+spec:
+  podSelector:
+    matchLabels:
+      app: hub-backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 3000

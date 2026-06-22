@@ -7,12 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Board holds the schema definition for the Board entity.
+// Board — определение Ent-схемы сущности Board.
 type Board struct {
 	ent.Schema
 }
 
-// Fields of the Board.
+// Поля сущности Board.
 func (Board) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -36,7 +36,7 @@ func (Board) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Board.
+// Рёбра (edges) сущности Board.
 func (Board) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

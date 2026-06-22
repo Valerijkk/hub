@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	createTestCase,
 	type ListTestCasesParams,
@@ -28,12 +27,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 import { CaseTableRow } from "@/modules/tms/components/case-table-row";
 import { useTmsStore } from "@/stores/tms-store";
 
 /**
- * Recursive suite tree item component.
+ * Рекурсивный элемент дерева сьютов.
  */
 function SuiteTreeItem({
 	suite,
@@ -67,11 +67,13 @@ function SuiteTreeItem({
 					<span className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-purple/[0.06] to-transparent rounded-[var(--r2)] pointer-events-none" />
 				)}
 				{hasChildren ? (
-					<span
+					<button
+						type="button"
 						className={cn(
-							"w-4 h-4 text-[8px] text-t4 transition-transform duration-[250ms] shrink-0 flex items-center justify-center",
+							"w-4 h-4 text-[8px] text-t4 transition-transform duration-[250ms] shrink-0 flex items-center justify-center border-0 bg-transparent p-0",
 							expanded && "rotate-90",
 						)}
+						aria-label={expanded ? "Свернуть" : "Развернуть"}
 						onClick={(e) => {
 							e.stopPropagation();
 							setExpanded(!expanded);
@@ -91,7 +93,7 @@ function SuiteTreeItem({
 								d="M9 5l7 7-7 7"
 							/>
 						</svg>
-					</span>
+					</button>
 				) : (
 					<span className="w-4 shrink-0" style={{ visibility: "hidden" }} />
 				)}
@@ -152,7 +154,7 @@ function SuiteTreeItem({
 }
 
 /**
- * Test cases list page -- Allure TestOps level design.
+ * Список тест-кейсов — UI уровня Allure TestOps.
  */
 function TestCasesPage() {
 	const { projectId } = Route.useParams();
@@ -247,7 +249,7 @@ function TestCasesPage() {
 
 	return (
 		<div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-			{/* Suite tree sidebar */}
+			{/* Sidebar дерева сьютов */}
 			<div className="w-full md:w-[290px] md:min-w-[290px] border-r border-b1 flex flex-col bg-void animate-[enterRight_400ms_var(--spring)_both]">
 				<div className="px-[18px] py-4 border-b border-b1 flex items-center justify-between">
 					<span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-t4">
@@ -298,9 +300,9 @@ function TestCasesPage() {
 				</div>
 			</div>
 
-			{/* Case table panel */}
+			{/* Панель таблицы кейсов */}
 			<div className="flex-1 flex flex-col overflow-hidden">
-				{/* Header */}
+				{/* Заголовок */}
 				<div className="px-6 py-4 border-b border-b1 flex items-center gap-[14px] bg-[rgba(13,14,18,0.5)] backdrop-blur-[12px]">
 					<h2 className="text-[15px] font-bold tracking-[-0.015em]">
 						Тест-кейсы
@@ -310,7 +312,7 @@ function TestCasesPage() {
 					</span>
 					<div className="flex-1" />
 
-					{/* Filters */}
+					{/* Фильтры */}
 					<div className="relative">
 						<svg
 							aria-hidden="true"
@@ -411,7 +413,7 @@ function TestCasesPage() {
 						</Button>
 					)}
 
-					{/* Bulk panel */}
+					{/* Bulk-панель */}
 					{selectedIds.size > 0 && (
 						<div className="flex items-center gap-2 px-3 py-1 rounded-[var(--r2)] bg-purple/[0.06] border border-purple/[0.15]">
 							<span className="text-xs font-medium text-purple">
@@ -527,7 +529,7 @@ function TestCasesPage() {
 					</Dialog>
 				</div>
 
-				{/* Test cases table */}
+				{/* Таблица тест-кейсов */}
 				{isLoading ? (
 					<div className="flex-1 overflow-y-auto">
 						<table className="w-full border-separate border-spacing-0">
@@ -704,7 +706,7 @@ function TestCasesPage() {
 							</table>
 						</div>
 
-						{/* Pagination */}
+						{/* Пагинация */}
 						<div className="px-6 py-3 border-t border-b1 flex items-center justify-between bg-[rgba(13,14,18,0.5)]">
 							<span className="text-[12px] text-t3 tabular-nums">
 								Показано {offset + 1}--{Math.min(offset + limit, total)} из{" "}

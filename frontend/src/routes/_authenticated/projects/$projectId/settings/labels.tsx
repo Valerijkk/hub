@@ -2,8 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
-import i18n from "@/i18n";
 import {
 	createLabel,
 	createLabelGroup,
@@ -35,6 +33,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import i18n from "@/i18n";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Предустановленные цвета Tailwind для меток. */
 const PRESET_LABEL_COLORS = [

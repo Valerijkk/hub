@@ -7,12 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Team holds the schema definition for the Team entity.
+// Team — определение Ent-схемы сущности Team.
 type Team struct {
 	ent.Schema
 }
 
-// Fields of the Team.
+// Поля сущности Team.
 func (Team) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -28,7 +28,7 @@ func (Team) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Team.
+// Рёбра (edges) сущности Team.
 func (Team) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("projects", Project.Type).

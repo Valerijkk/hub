@@ -15,23 +15,20 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/core"
 	"github.com/johnfercher/maroto/v2/pkg/props"
-	"github.com/valerii/hub/backend/ent"
 )
 
 // ExportRunPDF генерирует PDF-отчёт по тестовому прогону.
 // Содержит заголовок, метаданные прогона и таблицу результатов.
 func (s *ImExService) ExportRunPDF(ctx context.Context, projectID, runID uuid.UUID) ([]byte, error) {
-	run, err := s.db.TestRun.Get(ctx, runID)
+	run, err := s.repo.GetTestRun(ctx, runID)
 	if err != nil {
-		if ent.IsNotFound(err) {
+		if IsNotFound(err) {
 			return nil, fmt.Errorf("прогон не найден")
 		}
 		return nil, fmt.Errorf("ошибка получения прогона: %w", err)
 	}
 
-	results, err := s.db.TestRun.QueryResults(run).
-		WithTestCase().
-		All(ctx)
+	results, err := s.repo.ListTestRunResults(ctx, run)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения результатов: %w", err)
 	}
@@ -75,18 +72,15 @@ func (s *ImExService) ExportRunPDF(ctx context.Context, projectID, runID uuid.UU
 // ExportSprintPDF генерирует PDF-отчёт по спринту.
 // Содержит заголовок, метаданные спринта и таблицу задач.
 func (s *ImExService) ExportSprintPDF(ctx context.Context, projectID, sprintID uuid.UUID) ([]byte, error) {
-	sp, err := s.db.Sprint.Get(ctx, sprintID)
+	sp, err := s.repo.GetSprint(ctx, sprintID)
 	if err != nil {
-		if ent.IsNotFound(err) {
+		if IsNotFound(err) {
 			return nil, fmt.Errorf("спринт не найден")
 		}
 		return nil, fmt.Errorf("ошибка получения спринта: %w", err)
 	}
 
-	issues, err := s.db.Sprint.QueryIssues(sp).
-		WithStatus().
-		WithAssignee().
-		All(ctx)
+	issues, err := s.repo.ListSprintIssues(ctx, sp)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения задач спринта: %w", err)
 	}

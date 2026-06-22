@@ -2,57 +2,57 @@ package project
 
 import "time"
 
-// CreateProjectRequest is the request body for creating a project.
+// CreateProjectRequest — тело запроса на создание проекта.
 type CreateProjectRequest struct {
 	Name        string `json:"name" validate:"required,min=2,max=100"`
 	Key         string `json:"key" validate:"required,uppercase,min=2,max=10,alphanum"`
 	Description string `json:"description,omitempty" validate:"max=2000"`
 }
 
-// UpdateProjectRequest is the request body for updating a project.
+// UpdateProjectRequest — тело запроса на обновление проекта.
 type UpdateProjectRequest struct {
 	Name        *string `json:"name" validate:"omitempty,min=2,max=100"`
 	Description *string `json:"description" validate:"omitempty,max=2000"`
 	AvatarURL   *string `json:"avatar_url"`
 }
 
-// AddMemberRequest is the request body for adding a member to a project.
+// AddMemberRequest — тело запроса на добавление участника.
 type AddMemberRequest struct {
 	UserID string `json:"user_id" validate:"required"`
 	Role   string `json:"role" validate:"required,oneof=developer tester viewer"`
 }
 
-// UpdateMemberRoleRequest is the request body for changing a member's role.
+// UpdateMemberRoleRequest — тело запроса на смену роли участника.
 type UpdateMemberRoleRequest struct {
 	Role string `json:"role" validate:"required,oneof=owner developer tester viewer"`
 }
 
-// CreateInviteRequest is the request body for creating a project invite.
+// CreateInviteRequest — тело запроса на создание приглашения.
 type CreateInviteRequest struct {
 	Role      string     `json:"role" validate:"required,oneof=developer tester viewer"`
 	MaxUses   int        `json:"max_uses"`
 	ExpiresAt *time.Time `json:"expires_at"`
 }
 
-// CreateTeamRequest is the request body for creating a team.
+// CreateTeamRequest — тело запроса на создание команды.
 type CreateTeamRequest struct {
 	Name        string `json:"name" validate:"required,min=2,max=100"`
 	Description string `json:"description,omitempty"`
 }
 
-// AddTeamMemberRequest is the request body for adding a user to a team.
+// AddTeamMemberRequest — тело запроса на добавление в команду.
 type AddTeamMemberRequest struct {
 	UserID string `json:"user_id" validate:"required"`
 }
 
-// JoinByInviteRequest is the request body for joining a project via invite code.
+// JoinByInviteRequest — тело запроса на вступление по invite-коду.
 type JoinByInviteRequest struct {
 	Code string `json:"code" validate:"required"`
 }
 
-// Response DTOs
+// DTO ответов
 
-// ProjectResponse represents a project in API responses.
+// ProjectResponse — представление проекта в API-ответах.
 type ProjectResponse struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -66,7 +66,7 @@ type ProjectResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// MemberResponse represents a project member in API responses.
+// MemberResponse — представление участника проекта в API-ответах.
 type MemberResponse struct {
 	UserID    string    `json:"user_id"`
 	Email     string    `json:"email"`
@@ -76,7 +76,7 @@ type MemberResponse struct {
 	JoinedAt  time.Time `json:"joined_at"`
 }
 
-// InviteResponse represents a project invite in API responses.
+// InviteResponse — представление приглашения в API-ответах.
 type InviteResponse struct {
 	ID        string     `json:"id"`
 	Code      string     `json:"code"`
@@ -88,7 +88,7 @@ type InviteResponse struct {
 	CreatedAt time.Time  `json:"created_at"`
 }
 
-// TeamResponse represents a team in API responses.
+// TeamResponse — представление команды в API-ответах.
 type TeamResponse struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
@@ -96,7 +96,7 @@ type TeamResponse struct {
 	MemberCount int    `json:"member_count"`
 }
 
-// TeamMemberResponse represents a team member in API responses.
+// TeamMemberResponse — представление участника команды в API-ответах.
 type TeamMemberResponse struct {
 	UserID    string    `json:"user_id"`
 	Email     string    `json:"email"`

@@ -12,57 +12,23 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
-	"github.com/valerii/hub/backend/ent/project"
 )
 
 // ImExService реализует импорт и экспорт задач, прогонов и проектов.
 // Поддерживает CSV, JSON, Excel, PDF и ZIP форматы.
 type ImExService struct {
-	db *ent.Client
+	repo Repository
 }
 
 // NewImExService создаёт новый сервис импорта/экспорта.
-func NewImExService(db *ent.Client) *ImExService {
-	return &ImExService{db: db}
+func NewImExService(repo Repository) *ImExService {
+	return &ImExService{repo: repo}
 }
 
-// allocateIssueKey атомарно резервирует следующий issue number в рамках
-// проекта и возвращает (issueNumber, issueKey, defaultStatusID). Использует
-// ту же tx + AddTaskCounter(1) пару, что и tracker.CreateIssue — это
-// устраняет race в read-modify-write на TaskCounter (HI-06).
-//
-// Дефолтный статус выбирается как `WorkflowStatuses().First(ctx)` — тот же
-// порядок, который имел старый импорт.
+// allocateIssueKey — атомарный счётчик в repository (HI-06).
 func (s *ImExService) allocateIssueKey(ctx context.Context, projectID uuid.UUID) (int, string, uuid.UUID, error) {
-	tx, err := s.db.Tx(ctx)
-	if err != nil {
-		return 0, "", uuid.Nil, fmt.Errorf("начало транзакции: %w", err)
-	}
-
-	p, err := tx.Project.UpdateOneID(projectID).
-		AddTaskCounter(1).
-		Save(ctx)
-	if err != nil {
-		_ = tx.Rollback()
-		return 0, "", uuid.Nil, fmt.Errorf("инкремент счётчика задач: %w", err)
-	}
-
-	status, err := tx.Project.Query().
-		Where(project.ID(projectID)).
-		QueryWorkflowStatuses().
-		First(ctx)
-	if err != nil {
-		_ = tx.Rollback()
-		return 0, "", uuid.Nil, fmt.Errorf("получение дефолтного статуса: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return 0, "", uuid.Nil, fmt.Errorf("commit tx: %w", err)
-	}
-
-	return p.TaskCounter, fmt.Sprintf("%s-%d", p.Key, p.TaskCounter), status.ID, nil
+	return s.repo.AllocateIssueKey(ctx, projectID)
 }
 
 // ImportIssuesCSV импортирует задачи из CSV-файла с маппингом полей.
@@ -148,15 +114,15 @@ func (s *ImExService) ImportIssuesCSV(ctx context.Context, projectID uuid.UUID, 
 			continue
 		}
 
-		_, err = s.db.Issue.Create().
-			SetTitle(title).
-			SetIssueType(issue.IssueType(issueType)).
-			SetPriority(issue.Priority(priority)).
-			SetIssueNumber(nextNum).
-			SetIssueKey(issueKey).
-			SetProjectID(projectID).
-			SetStatusID(statusID).
-			Save(ctx)
+		_, err = s.repo.CreateIssue(ctx, CreateIssueInput{
+			Title:       title,
+			IssueType:   issue.IssueType(issueType),
+			Priority:    issue.Priority(priority),
+			IssueNumber: nextNum,
+			IssueKey:    issueKey,
+			ProjectID:   projectID,
+			StatusID:    statusID,
+		})
 		if err != nil {
 			skipped++
 			errs = append(errs, fmt.Sprintf("строка %d: %s", imported+skipped+1, err.Error()))
@@ -209,15 +175,15 @@ func (s *ImExService) ImportIssuesJSON(ctx context.Context, projectID uuid.UUID,
 			continue
 		}
 
-		_, err = s.db.Issue.Create().
-			SetTitle(title).
-			SetIssueType(issue.IssueType(issueType)).
-			SetPriority(issue.Priority(priority)).
-			SetIssueNumber(nextNum).
-			SetIssueKey(issueKey).
-			SetProjectID(projectID).
-			SetStatusID(statusID).
-			Save(ctx)
+		_, err = s.repo.CreateIssue(ctx, CreateIssueInput{
+			Title:       title,
+			IssueType:   issue.IssueType(issueType),
+			Priority:    issue.Priority(priority),
+			IssueNumber: nextNum,
+			IssueKey:    issueKey,
+			ProjectID:   projectID,
+			StatusID:    statusID,
+		})
 		if err != nil {
 			skipped++
 			errs = append(errs, fmt.Sprintf("элемент %d: %s", i, err.Error()))
@@ -236,13 +202,7 @@ func (s *ImExService) ImportIssuesJSON(ctx context.Context, projectID uuid.UUID,
 
 // ExportIssuesCSV экспортирует задачи проекта в CSV.
 func (s *ImExService) ExportIssuesCSV(ctx context.Context, projectID uuid.UUID) ([]byte, error) {
-	issues, err := s.db.Project.Query().
-		Where(project.ID(projectID)).
-		QueryIssues().
-		Where(issue.DeletedAtIsNil()).
-		WithStatus().
-		WithAssignee().
-		All(ctx)
+	issues, err := s.repo.ListProjectIssuesForExport(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения задач: %w", err)
 	}
@@ -289,10 +249,7 @@ func (s *ImExService) ExportIssuesExcel(ctx context.Context, projectID uuid.UUID
 
 // ExportProjectZIP создаёт полный бэкап проекта: задачи JSON + metadata.
 func (s *ImExService) ExportProjectZIP(ctx context.Context, projectID uuid.UUID) ([]byte, error) {
-	issues, err := s.db.Project.Query().
-		Where(project.ID(projectID)).
-		QueryIssues().
-		All(ctx)
+	issues, err := s.repo.ListProjectIssuesPlain(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения задач: %w", err)
 	}
@@ -323,7 +280,7 @@ func (s *ImExService) ExportProjectZIP(ctx context.Context, projectID uuid.UUID)
 	return buf.Bytes(), nil
 }
 
-// --- Helpers ---
+// --- Вспомогательные функции ---
 
 // buildFieldMap создаёт маппинг индексов колонок CSV к целевым полям.
 func buildFieldMap(mappings []FieldMapping, headers []string) map[string]int {

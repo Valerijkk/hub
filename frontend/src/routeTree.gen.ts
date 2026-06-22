@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StatusRouteImport } from './routes/status'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
@@ -17,27 +18,39 @@ import { Route as CallCodeRouteImport } from './routes/call.$code'
 import { Route as AuthenticatedTrashRouteImport } from './routes/_authenticated/trash'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedMessengerRouteImport } from './routes/_authenticated/messenger'
+import { Route as AuthenticatedMarketplaceRouteImport } from './routes/_authenticated/marketplace'
+import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
 import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedCallsRouteImport } from './routes/_authenticated/calls'
+import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
+import { Route as AuthenticatedBasesRouteImport } from './routes/_authenticated/bases'
+import { Route as AuthenticatedAccountingRouteImport } from './routes/_authenticated/accounting'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
 import { Route as AuthenticatedMessengerIndexRouteImport } from './routes/_authenticated/messenger/index'
+import { Route as AuthenticatedIntranetIndexRouteImport } from './routes/_authenticated/intranet/index'
 import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated/settings/security'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings/profile'
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings/notifications'
 import { Route as AuthenticatedSettingsIntegrationsRouteImport } from './routes/_authenticated/settings/integrations'
 import { Route as AuthenticatedSettingsHotkeysRouteImport } from './routes/_authenticated/settings/hotkeys'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings/appearance'
+import { Route as AuthenticatedSettingsAiRouteImport } from './routes/_authenticated/settings/ai'
 import { Route as AuthenticatedProjectsNewRouteImport } from './routes/_authenticated/projects/new'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects/$projectId'
 import { Route as AuthenticatedMessengerChannelIdRouteImport } from './routes/_authenticated/messenger/$channelId'
+import { Route as AuthenticatedIntranetDirectoryRouteImport } from './routes/_authenticated/intranet/directory'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminTrashRouteImport } from './routes/_authenticated/admin/trash'
+import { Route as AuthenticatedAdminMailRouteImport } from './routes/_authenticated/admin/mail'
 import { Route as AuthenticatedAdminLimitsRouteImport } from './routes/_authenticated/admin/limits'
 import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/admin/dashboard'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
 import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects/$projectId/index'
+import { Route as AuthenticatedProjectsProjectIdTriageRouteImport } from './routes/_authenticated/projects/$projectId/triage'
 import { Route as AuthenticatedProjectsProjectIdTmsRouteImport } from './routes/_authenticated/projects/$projectId/tms'
+import { Route as AuthenticatedProjectsProjectIdGanttRouteImport } from './routes/_authenticated/projects/$projectId/gantt'
 import { Route as AuthenticatedProjectsProjectIdDashboardRouteImport } from './routes/_authenticated/projects/$projectId/dashboard'
 import { Route as AuthenticatedProjectsProjectIdBacklogRouteImport } from './routes/_authenticated/projects/$projectId/backlog'
 import { Route as AuthenticatedProjectsProjectIdSprintsIndexRouteImport } from './routes/_authenticated/projects/$projectId/sprints/index'
@@ -45,6 +58,7 @@ import { Route as AuthenticatedProjectsProjectIdIssuesIndexRouteImport } from '.
 import { Route as AuthenticatedProjectsProjectIdBoardIndexRouteImport } from './routes/_authenticated/projects/$projectId/board/index'
 import { Route as AuthenticatedProjectsProjectIdTmsTraceabilityRouteImport } from './routes/_authenticated/projects/$projectId/tms/traceability'
 import { Route as AuthenticatedProjectsProjectIdTmsRunsRouteImport } from './routes/_authenticated/projects/$projectId/tms/runs'
+import { Route as AuthenticatedProjectsProjectIdTmsFlakyRouteImport } from './routes/_authenticated/projects/$projectId/tms/flaky'
 import { Route as AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport } from './routes/_authenticated/projects/$projectId/tms/environments'
 import { Route as AuthenticatedProjectsProjectIdTmsCasesRouteImport } from './routes/_authenticated/projects/$projectId/tms/cases'
 import { Route as AuthenticatedProjectsProjectIdTmsAutotestRouteImport } from './routes/_authenticated/projects/$projectId/tms/autotest'
@@ -57,6 +71,11 @@ import { Route as AuthenticatedProjectsProjectIdIssuesIssueKeyRouteImport } from
 import { Route as AuthenticatedProjectsProjectIdTmsRunsRunIdRouteImport } from './routes/_authenticated/projects/$projectId/tms/runs_.$runId'
 import { Route as AuthenticatedProjectsProjectIdTmsCasesCaseKeyRouteImport } from './routes/_authenticated/projects/$projectId/tms/cases_.$caseKey'
 
+const StatusRoute = StatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -96,6 +115,17 @@ const AuthenticatedMessengerRoute = AuthenticatedMessengerRouteImport.update({
   path: '/messenger',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMarketplaceRoute =
+  AuthenticatedMarketplaceRouteImport.update({
+    id: '/marketplace',
+    path: '/marketplace',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedHrRoute = AuthenticatedHrRouteImport.update({
+  id: '/hr',
+  path: '/hr',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
   id: '/help',
   path: '/help',
@@ -108,9 +138,29 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 } as any).lazy(() =>
   import('./routes/_authenticated/dashboard.lazy').then((d) => d.Route),
 )
+const AuthenticatedCrmRoute = AuthenticatedCrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedCallsRoute = AuthenticatedCallsRouteImport.update({
   id: '/calls',
   path: '/calls',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedBasesRoute = AuthenticatedBasesRouteImport.update({
+  id: '/bases',
+  path: '/bases',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAccountingRoute = AuthenticatedAccountingRouteImport.update({
+  id: '/accounting',
+  path: '/accounting',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedProjectsIndexRoute =
@@ -124,6 +174,12 @@ const AuthenticatedMessengerIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedMessengerRoute,
+  } as any)
+const AuthenticatedIntranetIndexRoute =
+  AuthenticatedIntranetIndexRouteImport.update({
+    id: '/intranet/',
+    path: '/intranet/',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedSettingsSecurityRoute =
   AuthenticatedSettingsSecurityRouteImport.update({
@@ -165,6 +221,11 @@ const AuthenticatedSettingsAppearanceRoute =
     path: '/appearance',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsAiRoute = AuthenticatedSettingsAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => AuthenticatedSettingsRoute,
+} as any)
 const AuthenticatedProjectsNewRoute =
   AuthenticatedProjectsNewRouteImport.update({
     id: '/projects/new',
@@ -183,6 +244,12 @@ const AuthenticatedMessengerChannelIdRoute =
     path: '/$channelId',
     getParentRoute: () => AuthenticatedMessengerRoute,
   } as any)
+const AuthenticatedIntranetDirectoryRoute =
+  AuthenticatedIntranetDirectoryRouteImport.update({
+    id: '/intranet/directory',
+    path: '/intranet/directory',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
@@ -191,6 +258,11 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
 const AuthenticatedAdminTrashRoute = AuthenticatedAdminTrashRouteImport.update({
   id: '/admin/trash',
   path: '/admin/trash',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdminMailRoute = AuthenticatedAdminMailRouteImport.update({
+  id: '/admin/mail',
+  path: '/admin/mail',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAdminLimitsRoute =
@@ -220,10 +292,22 @@ const AuthenticatedProjectsProjectIdIndexRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedProjectsProjectIdTriageRoute =
+  AuthenticatedProjectsProjectIdTriageRouteImport.update({
+    id: '/triage',
+    path: '/triage',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTmsRoute =
   AuthenticatedProjectsProjectIdTmsRouteImport.update({
     id: '/tms',
     path: '/tms',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdGanttRoute =
+  AuthenticatedProjectsProjectIdGanttRouteImport.update({
+    id: '/gantt',
+    path: '/gantt',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
 const AuthenticatedProjectsProjectIdDashboardRoute =
@@ -276,6 +360,12 @@ const AuthenticatedProjectsProjectIdTmsRunsRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedProjectsProjectIdTmsFlakyRoute =
+  AuthenticatedProjectsProjectIdTmsFlakyRouteImport.update({
+    id: '/flaky',
+    path: '/flaky',
+    getParentRoute: () => AuthenticatedProjectsProjectIdTmsRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTmsEnvironmentsRoute =
   AuthenticatedProjectsProjectIdTmsEnvironmentsRouteImport.update({
     id: '/environments',
@@ -359,9 +449,16 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/status': typeof StatusRoute
+  '/accounting': typeof AuthenticatedAccountingRoute
+  '/bases': typeof AuthenticatedBasesRoute
+  '/calendar': typeof AuthenticatedCalendarRoute
   '/calls': typeof AuthenticatedCallsRoute
+  '/crm': typeof AuthenticatedCrmRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help': typeof AuthenticatedHelpRoute
+  '/hr': typeof AuthenticatedHrRoute
+  '/marketplace': typeof AuthenticatedMarketplaceRoute
   '/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/trash': typeof AuthenticatedTrashRoute
@@ -369,22 +466,28 @@ export interface FileRoutesByFullPath {
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/limits': typeof AuthenticatedAdminLimitsRoute
+  '/admin/mail': typeof AuthenticatedAdminMailRoute
   '/admin/trash': typeof AuthenticatedAdminTrashRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/intranet/directory': typeof AuthenticatedIntranetDirectoryRoute
   '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/new': typeof AuthenticatedProjectsNewRoute
+  '/settings/ai': typeof AuthenticatedSettingsAiRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/hotkeys': typeof AuthenticatedSettingsHotkeysRoute
   '/settings/integrations': typeof AuthenticatedSettingsIntegrationsRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
+  '/intranet/': typeof AuthenticatedIntranetIndexRoute
   '/messenger/': typeof AuthenticatedMessengerIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
   '/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
+  '/projects/$projectId/gantt': typeof AuthenticatedProjectsProjectIdGanttRoute
   '/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
+  '/projects/$projectId/triage': typeof AuthenticatedProjectsProjectIdTriageRoute
   '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
   '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
@@ -395,6 +498,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/tms/autotest': typeof AuthenticatedProjectsProjectIdTmsAutotestRoute
   '/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   '/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
+  '/projects/$projectId/tms/flaky': typeof AuthenticatedProjectsProjectIdTmsFlakyRoute
   '/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
   '/projects/$projectId/tms/traceability': typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
   '/projects/$projectId/board/': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
@@ -407,30 +511,43 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/status': typeof StatusRoute
+  '/accounting': typeof AuthenticatedAccountingRoute
+  '/bases': typeof AuthenticatedBasesRoute
+  '/calendar': typeof AuthenticatedCalendarRoute
   '/calls': typeof AuthenticatedCallsRoute
+  '/crm': typeof AuthenticatedCrmRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help': typeof AuthenticatedHelpRoute
+  '/hr': typeof AuthenticatedHrRoute
+  '/marketplace': typeof AuthenticatedMarketplaceRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/trash': typeof AuthenticatedTrashRoute
   '/call/$code': typeof CallCodeRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/limits': typeof AuthenticatedAdminLimitsRoute
+  '/admin/mail': typeof AuthenticatedAdminMailRoute
   '/admin/trash': typeof AuthenticatedAdminTrashRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/intranet/directory': typeof AuthenticatedIntranetDirectoryRoute
   '/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/projects/new': typeof AuthenticatedProjectsNewRoute
+  '/settings/ai': typeof AuthenticatedSettingsAiRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/hotkeys': typeof AuthenticatedSettingsHotkeysRoute
   '/settings/integrations': typeof AuthenticatedSettingsIntegrationsRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
+  '/intranet': typeof AuthenticatedIntranetIndexRoute
   '/messenger': typeof AuthenticatedMessengerIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
   '/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
+  '/projects/$projectId/gantt': typeof AuthenticatedProjectsProjectIdGanttRoute
   '/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
+  '/projects/$projectId/triage': typeof AuthenticatedProjectsProjectIdTriageRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
   '/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   '/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
@@ -441,6 +558,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/tms/autotest': typeof AuthenticatedProjectsProjectIdTmsAutotestRoute
   '/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   '/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
+  '/projects/$projectId/tms/flaky': typeof AuthenticatedProjectsProjectIdTmsFlakyRoute
   '/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
   '/projects/$projectId/tms/traceability': typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
   '/projects/$projectId/board': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
@@ -455,9 +573,16 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/status': typeof StatusRoute
+  '/_authenticated/accounting': typeof AuthenticatedAccountingRoute
+  '/_authenticated/bases': typeof AuthenticatedBasesRoute
+  '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/calls': typeof AuthenticatedCallsRoute
+  '/_authenticated/crm': typeof AuthenticatedCrmRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/help': typeof AuthenticatedHelpRoute
+  '/_authenticated/hr': typeof AuthenticatedHrRoute
+  '/_authenticated/marketplace': typeof AuthenticatedMarketplaceRoute
   '/_authenticated/messenger': typeof AuthenticatedMessengerRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/trash': typeof AuthenticatedTrashRoute
@@ -465,22 +590,28 @@ export interface FileRoutesById {
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/_authenticated/admin/limits': typeof AuthenticatedAdminLimitsRoute
+  '/_authenticated/admin/mail': typeof AuthenticatedAdminMailRoute
   '/_authenticated/admin/trash': typeof AuthenticatedAdminTrashRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/intranet/directory': typeof AuthenticatedIntranetDirectoryRoute
   '/_authenticated/messenger/$channelId': typeof AuthenticatedMessengerChannelIdRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/new': typeof AuthenticatedProjectsNewRoute
+  '/_authenticated/settings/ai': typeof AuthenticatedSettingsAiRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/hotkeys': typeof AuthenticatedSettingsHotkeysRoute
   '/_authenticated/settings/integrations': typeof AuthenticatedSettingsIntegrationsRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
+  '/_authenticated/intranet/': typeof AuthenticatedIntranetIndexRoute
   '/_authenticated/messenger/': typeof AuthenticatedMessengerIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/projects/$projectId/backlog': typeof AuthenticatedProjectsProjectIdBacklogRoute
   '/_authenticated/projects/$projectId/dashboard': typeof AuthenticatedProjectsProjectIdDashboardRoute
+  '/_authenticated/projects/$projectId/gantt': typeof AuthenticatedProjectsProjectIdGanttRoute
   '/_authenticated/projects/$projectId/tms': typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
+  '/_authenticated/projects/$projectId/triage': typeof AuthenticatedProjectsProjectIdTriageRoute
   '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
   '/_authenticated/projects/$projectId/issues/$issueKey': typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   '/_authenticated/projects/$projectId/issues/new': typeof AuthenticatedProjectsProjectIdIssuesNewRoute
@@ -491,6 +622,7 @@ export interface FileRoutesById {
   '/_authenticated/projects/$projectId/tms/autotest': typeof AuthenticatedProjectsProjectIdTmsAutotestRoute
   '/_authenticated/projects/$projectId/tms/cases': typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   '/_authenticated/projects/$projectId/tms/environments': typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
+  '/_authenticated/projects/$projectId/tms/flaky': typeof AuthenticatedProjectsProjectIdTmsFlakyRoute
   '/_authenticated/projects/$projectId/tms/runs': typeof AuthenticatedProjectsProjectIdTmsRunsRoute
   '/_authenticated/projects/$projectId/tms/traceability': typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
   '/_authenticated/projects/$projectId/board/': typeof AuthenticatedProjectsProjectIdBoardIndexRoute
@@ -505,9 +637,16 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/onboarding'
+    | '/status'
+    | '/accounting'
+    | '/bases'
+    | '/calendar'
     | '/calls'
+    | '/crm'
     | '/dashboard'
     | '/help'
+    | '/hr'
+    | '/marketplace'
     | '/messenger'
     | '/settings'
     | '/trash'
@@ -515,22 +654,28 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/dashboard'
     | '/admin/limits'
+    | '/admin/mail'
     | '/admin/trash'
     | '/admin/users'
+    | '/intranet/directory'
     | '/messenger/$channelId'
     | '/projects/$projectId'
     | '/projects/new'
+    | '/settings/ai'
     | '/settings/appearance'
     | '/settings/hotkeys'
     | '/settings/integrations'
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/security'
+    | '/intranet/'
     | '/messenger/'
     | '/projects/'
     | '/projects/$projectId/backlog'
     | '/projects/$projectId/dashboard'
+    | '/projects/$projectId/gantt'
     | '/projects/$projectId/tms'
+    | '/projects/$projectId/triage'
     | '/projects/$projectId/'
     | '/projects/$projectId/issues/$issueKey'
     | '/projects/$projectId/issues/new'
@@ -541,6 +686,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/tms/autotest'
     | '/projects/$projectId/tms/cases'
     | '/projects/$projectId/tms/environments'
+    | '/projects/$projectId/tms/flaky'
     | '/projects/$projectId/tms/runs'
     | '/projects/$projectId/tms/traceability'
     | '/projects/$projectId/board/'
@@ -553,30 +699,43 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/onboarding'
+    | '/status'
+    | '/accounting'
+    | '/bases'
+    | '/calendar'
     | '/calls'
+    | '/crm'
     | '/dashboard'
     | '/help'
+    | '/hr'
+    | '/marketplace'
     | '/settings'
     | '/trash'
     | '/call/$code'
     | '/admin/audit'
     | '/admin/dashboard'
     | '/admin/limits'
+    | '/admin/mail'
     | '/admin/trash'
     | '/admin/users'
+    | '/intranet/directory'
     | '/messenger/$channelId'
     | '/projects/new'
+    | '/settings/ai'
     | '/settings/appearance'
     | '/settings/hotkeys'
     | '/settings/integrations'
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/security'
+    | '/intranet'
     | '/messenger'
     | '/projects'
     | '/projects/$projectId/backlog'
     | '/projects/$projectId/dashboard'
+    | '/projects/$projectId/gantt'
     | '/projects/$projectId/tms'
+    | '/projects/$projectId/triage'
     | '/projects/$projectId'
     | '/projects/$projectId/issues/$issueKey'
     | '/projects/$projectId/issues/new'
@@ -587,6 +746,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/tms/autotest'
     | '/projects/$projectId/tms/cases'
     | '/projects/$projectId/tms/environments'
+    | '/projects/$projectId/tms/flaky'
     | '/projects/$projectId/tms/runs'
     | '/projects/$projectId/tms/traceability'
     | '/projects/$projectId/board'
@@ -600,9 +760,16 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/onboarding'
+    | '/status'
+    | '/_authenticated/accounting'
+    | '/_authenticated/bases'
+    | '/_authenticated/calendar'
     | '/_authenticated/calls'
+    | '/_authenticated/crm'
     | '/_authenticated/dashboard'
     | '/_authenticated/help'
+    | '/_authenticated/hr'
+    | '/_authenticated/marketplace'
     | '/_authenticated/messenger'
     | '/_authenticated/settings'
     | '/_authenticated/trash'
@@ -610,22 +777,28 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/dashboard'
     | '/_authenticated/admin/limits'
+    | '/_authenticated/admin/mail'
     | '/_authenticated/admin/trash'
     | '/_authenticated/admin/users'
+    | '/_authenticated/intranet/directory'
     | '/_authenticated/messenger/$channelId'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/projects/new'
+    | '/_authenticated/settings/ai'
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/hotkeys'
     | '/_authenticated/settings/integrations'
     | '/_authenticated/settings/notifications'
     | '/_authenticated/settings/profile'
     | '/_authenticated/settings/security'
+    | '/_authenticated/intranet/'
     | '/_authenticated/messenger/'
     | '/_authenticated/projects/'
     | '/_authenticated/projects/$projectId/backlog'
     | '/_authenticated/projects/$projectId/dashboard'
+    | '/_authenticated/projects/$projectId/gantt'
     | '/_authenticated/projects/$projectId/tms'
+    | '/_authenticated/projects/$projectId/triage'
     | '/_authenticated/projects/$projectId/'
     | '/_authenticated/projects/$projectId/issues/$issueKey'
     | '/_authenticated/projects/$projectId/issues/new'
@@ -636,6 +809,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$projectId/tms/autotest'
     | '/_authenticated/projects/$projectId/tms/cases'
     | '/_authenticated/projects/$projectId/tms/environments'
+    | '/_authenticated/projects/$projectId/tms/flaky'
     | '/_authenticated/projects/$projectId/tms/runs'
     | '/_authenticated/projects/$projectId/tms/traceability'
     | '/_authenticated/projects/$projectId/board/'
@@ -650,11 +824,19 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  StatusRoute: typeof StatusRoute
   CallCodeRoute: typeof CallCodeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/status': {
+      id: '/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof StatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -711,6 +893,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMessengerRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/marketplace': {
+      id: '/_authenticated/marketplace'
+      path: '/marketplace'
+      fullPath: '/marketplace'
+      preLoaderRoute: typeof AuthenticatedMarketplaceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/hr': {
+      id: '/_authenticated/hr'
+      path: '/hr'
+      fullPath: '/hr'
+      preLoaderRoute: typeof AuthenticatedHrRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/help': {
       id: '/_authenticated/help'
       path: '/help'
@@ -725,11 +921,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/crm': {
+      id: '/_authenticated/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof AuthenticatedCrmRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/calls': {
       id: '/_authenticated/calls'
       path: '/calls'
       fullPath: '/calls'
       preLoaderRoute: typeof AuthenticatedCallsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/calendar': {
+      id: '/_authenticated/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AuthenticatedCalendarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/bases': {
+      id: '/_authenticated/bases'
+      path: '/bases'
+      fullPath: '/bases'
+      preLoaderRoute: typeof AuthenticatedBasesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/accounting': {
+      id: '/_authenticated/accounting'
+      path: '/accounting'
+      fullPath: '/accounting'
+      preLoaderRoute: typeof AuthenticatedAccountingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/projects/': {
@@ -745,6 +969,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/messenger/'
       preLoaderRoute: typeof AuthenticatedMessengerIndexRouteImport
       parentRoute: typeof AuthenticatedMessengerRoute
+    }
+    '/_authenticated/intranet/': {
+      id: '/_authenticated/intranet/'
+      path: '/intranet'
+      fullPath: '/intranet/'
+      preLoaderRoute: typeof AuthenticatedIntranetIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings/security': {
       id: '/_authenticated/settings/security'
@@ -788,6 +1019,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAppearanceRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/ai': {
+      id: '/_authenticated/settings/ai'
+      path: '/ai'
+      fullPath: '/settings/ai'
+      preLoaderRoute: typeof AuthenticatedSettingsAiRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/projects/new': {
       id: '/_authenticated/projects/new'
       path: '/projects/new'
@@ -809,6 +1047,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMessengerChannelIdRouteImport
       parentRoute: typeof AuthenticatedMessengerRoute
     }
+    '/_authenticated/intranet/directory': {
+      id: '/_authenticated/intranet/directory'
+      path: '/intranet/directory'
+      fullPath: '/intranet/directory'
+      preLoaderRoute: typeof AuthenticatedIntranetDirectoryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
       path: '/admin/users'
@@ -821,6 +1066,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/trash'
       fullPath: '/admin/trash'
       preLoaderRoute: typeof AuthenticatedAdminTrashRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/mail': {
+      id: '/_authenticated/admin/mail'
+      path: '/admin/mail'
+      fullPath: '/admin/mail'
+      preLoaderRoute: typeof AuthenticatedAdminMailRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/admin/limits': {
@@ -851,11 +1103,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdIndexRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
+    '/_authenticated/projects/$projectId/triage': {
+      id: '/_authenticated/projects/$projectId/triage'
+      path: '/triage'
+      fullPath: '/projects/$projectId/triage'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTriageRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
     '/_authenticated/projects/$projectId/tms': {
       id: '/_authenticated/projects/$projectId/tms'
       path: '/tms'
       fullPath: '/projects/$projectId/tms'
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/gantt': {
+      id: '/_authenticated/projects/$projectId/gantt'
+      path: '/gantt'
+      fullPath: '/projects/$projectId/gantt'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdGanttRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
     '/_authenticated/projects/$projectId/dashboard': {
@@ -905,6 +1171,13 @@ declare module '@tanstack/react-router' {
       path: '/runs'
       fullPath: '/projects/$projectId/tms/runs'
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
+    }
+    '/_authenticated/projects/$projectId/tms/flaky': {
+      id: '/_authenticated/projects/$projectId/tms/flaky'
+      path: '/flaky'
+      fullPath: '/projects/$projectId/tms/flaky'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTmsFlakyRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdTmsRoute
     }
     '/_authenticated/projects/$projectId/tms/environments': {
@@ -1004,6 +1277,7 @@ const AuthenticatedMessengerRouteWithChildren =
   )
 
 interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsAiRoute: typeof AuthenticatedSettingsAiRoute
   AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
   AuthenticatedSettingsHotkeysRoute: typeof AuthenticatedSettingsHotkeysRoute
   AuthenticatedSettingsIntegrationsRoute: typeof AuthenticatedSettingsIntegrationsRoute
@@ -1013,6 +1287,7 @@ interface AuthenticatedSettingsRouteChildren {
 }
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsAiRoute: AuthenticatedSettingsAiRoute,
   AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
   AuthenticatedSettingsHotkeysRoute: AuthenticatedSettingsHotkeysRoute,
   AuthenticatedSettingsIntegrationsRoute:
@@ -1032,6 +1307,7 @@ interface AuthenticatedProjectsProjectIdTmsRouteChildren {
   AuthenticatedProjectsProjectIdTmsAutotestRoute: typeof AuthenticatedProjectsProjectIdTmsAutotestRoute
   AuthenticatedProjectsProjectIdTmsCasesRoute: typeof AuthenticatedProjectsProjectIdTmsCasesRoute
   AuthenticatedProjectsProjectIdTmsEnvironmentsRoute: typeof AuthenticatedProjectsProjectIdTmsEnvironmentsRoute
+  AuthenticatedProjectsProjectIdTmsFlakyRoute: typeof AuthenticatedProjectsProjectIdTmsFlakyRoute
   AuthenticatedProjectsProjectIdTmsRunsRoute: typeof AuthenticatedProjectsProjectIdTmsRunsRoute
   AuthenticatedProjectsProjectIdTmsTraceabilityRoute: typeof AuthenticatedProjectsProjectIdTmsTraceabilityRoute
   AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute: typeof AuthenticatedProjectsProjectIdTmsCasesCaseKeyRoute
@@ -1046,6 +1322,8 @@ const AuthenticatedProjectsProjectIdTmsRouteChildren: AuthenticatedProjectsProje
       AuthenticatedProjectsProjectIdTmsCasesRoute,
     AuthenticatedProjectsProjectIdTmsEnvironmentsRoute:
       AuthenticatedProjectsProjectIdTmsEnvironmentsRoute,
+    AuthenticatedProjectsProjectIdTmsFlakyRoute:
+      AuthenticatedProjectsProjectIdTmsFlakyRoute,
     AuthenticatedProjectsProjectIdTmsRunsRoute:
       AuthenticatedProjectsProjectIdTmsRunsRoute,
     AuthenticatedProjectsProjectIdTmsTraceabilityRoute:
@@ -1064,7 +1342,9 @@ const AuthenticatedProjectsProjectIdTmsRouteWithChildren =
 interface AuthenticatedProjectsProjectIdRouteChildren {
   AuthenticatedProjectsProjectIdBacklogRoute: typeof AuthenticatedProjectsProjectIdBacklogRoute
   AuthenticatedProjectsProjectIdDashboardRoute: typeof AuthenticatedProjectsProjectIdDashboardRoute
+  AuthenticatedProjectsProjectIdGanttRoute: typeof AuthenticatedProjectsProjectIdGanttRoute
   AuthenticatedProjectsProjectIdTmsRoute: typeof AuthenticatedProjectsProjectIdTmsRouteWithChildren
+  AuthenticatedProjectsProjectIdTriageRoute: typeof AuthenticatedProjectsProjectIdTriageRoute
   AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute
   AuthenticatedProjectsProjectIdIssuesIssueKeyRoute: typeof AuthenticatedProjectsProjectIdIssuesIssueKeyRoute
   AuthenticatedProjectsProjectIdIssuesNewRoute: typeof AuthenticatedProjectsProjectIdIssuesNewRoute
@@ -1083,8 +1363,12 @@ const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectI
       AuthenticatedProjectsProjectIdBacklogRoute,
     AuthenticatedProjectsProjectIdDashboardRoute:
       AuthenticatedProjectsProjectIdDashboardRoute,
+    AuthenticatedProjectsProjectIdGanttRoute:
+      AuthenticatedProjectsProjectIdGanttRoute,
     AuthenticatedProjectsProjectIdTmsRoute:
       AuthenticatedProjectsProjectIdTmsRouteWithChildren,
+    AuthenticatedProjectsProjectIdTriageRoute:
+      AuthenticatedProjectsProjectIdTriageRoute,
     AuthenticatedProjectsProjectIdIndexRoute:
       AuthenticatedProjectsProjectIdIndexRoute,
     AuthenticatedProjectsProjectIdIssuesIssueKeyRoute:
@@ -1113,37 +1397,55 @@ const AuthenticatedProjectsProjectIdRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAccountingRoute: typeof AuthenticatedAccountingRoute
+  AuthenticatedBasesRoute: typeof AuthenticatedBasesRoute
+  AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedCallsRoute: typeof AuthenticatedCallsRoute
+  AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
+  AuthenticatedHrRoute: typeof AuthenticatedHrRoute
+  AuthenticatedMarketplaceRoute: typeof AuthenticatedMarketplaceRoute
   AuthenticatedMessengerRoute: typeof AuthenticatedMessengerRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedTrashRoute: typeof AuthenticatedTrashRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
   AuthenticatedAdminLimitsRoute: typeof AuthenticatedAdminLimitsRoute
+  AuthenticatedAdminMailRoute: typeof AuthenticatedAdminMailRoute
   AuthenticatedAdminTrashRoute: typeof AuthenticatedAdminTrashRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
+  AuthenticatedIntranetDirectoryRoute: typeof AuthenticatedIntranetDirectoryRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRouteWithChildren
   AuthenticatedProjectsNewRoute: typeof AuthenticatedProjectsNewRoute
+  AuthenticatedIntranetIndexRoute: typeof AuthenticatedIntranetIndexRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAccountingRoute: AuthenticatedAccountingRoute,
+  AuthenticatedBasesRoute: AuthenticatedBasesRoute,
+  AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedCallsRoute: AuthenticatedCallsRoute,
+  AuthenticatedCrmRoute: AuthenticatedCrmRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHelpRoute: AuthenticatedHelpRoute,
+  AuthenticatedHrRoute: AuthenticatedHrRoute,
+  AuthenticatedMarketplaceRoute: AuthenticatedMarketplaceRoute,
   AuthenticatedMessengerRoute: AuthenticatedMessengerRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedTrashRoute: AuthenticatedTrashRoute,
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
   AuthenticatedAdminLimitsRoute: AuthenticatedAdminLimitsRoute,
+  AuthenticatedAdminMailRoute: AuthenticatedAdminMailRoute,
   AuthenticatedAdminTrashRoute: AuthenticatedAdminTrashRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
+  AuthenticatedIntranetDirectoryRoute: AuthenticatedIntranetDirectoryRoute,
   AuthenticatedProjectsProjectIdRoute:
     AuthenticatedProjectsProjectIdRouteWithChildren,
   AuthenticatedProjectsNewRoute: AuthenticatedProjectsNewRoute,
+  AuthenticatedIntranetIndexRoute: AuthenticatedIntranetIndexRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
 }
 
@@ -1156,6 +1458,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  StatusRoute: StatusRoute,
   CallCodeRoute: CallCodeRoute,
 }
 export const routeTree = rootRouteImport

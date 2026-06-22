@@ -1,4 +1,4 @@
-# Hub — Vision and Scope
+# Hub — Видение и границы (Vision and Scope)
 
 > Единая база знаний. Обновляется BA при изменении бизнес-требований.
 > Детальная документация: `docs/BUSINESS.md`, планирование: `.planning/PROJECT.md`
@@ -30,20 +30,21 @@
 
 | Метрика | Целевое значение | Текущий статус |
 |---------|------------------|----------------|
-| API endpoints | 285 REST (+1 WS) | Достигнуто (2026-06-17 recount) |
-| Frontend routes | 47 | Достигнуто (TanStack Router) |
-| Ent schemas | ~30 | Достигнуто |
-| Backend unit test packages | 32/32 модулей | Достигнуто |
-| v2.0 UI requirements (DSFN–XTRA) | 85/85 | Достигнуто (Phases 8–14) |
-| CRITICAL security blockers | 0 | 12/12 FIXED в коде (v2.0.1); PG-03 ротация секретов в git history — manual |
-| Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (2026-06-20, PG-01) |
-| Unit coverage (overall) | ≥ 50% | **56.6%** ✅ (2026-06-20) |
-| E2E critical paths | Покрыты Playwright | 6 specs ✅; E2E-06 Ctrl+K pending |
-| Global search Ctrl+K (US-M07) | UI + user-scope backend | **UI ✅** 2026-06-20 (`command-palette.tsx`); saved filters/JQL partial |
-| Lighthouse Performance/Accessibility | ≥ 90 | Цель v2.0, верификация pending |
-| WCAG 2.1 AA | 4.5:1 text, 3:1 UI | Реализовано (THME-04), аудит pending |
-| DAU/WAU/MAU | Отслеживается админ-дашбордом | Реализовано |
-| Участники голосового звонка | До 50 | Реализовано |
+| REST API (`/api/*`) | 280+ production routes | **286** ✅ (+3 infra, +1 WS `GET /ws`; см. `docs/wiki/API.md`) |
+| Frontend UI-маршруты | Покрытие всех модулей | **60+** страниц ✅ (`frontend/src/routeTree.gen.ts`, v4 super-app) |
+| Ent schemas (PostgreSQL) | Полная модель домена | **82** сущности ✅ (`backend/ent/schema/`, без `helpers.go`) |
+| Backend domain-модули | Модульный монолит | **31** пакет в `backend/internal/` (+ `platform/`, `testutil/`) |
+| v2.0 UI requirements (DSFN–XTRA) | 85/85 | ✅ COMPLETE (Phases 8–14) |
+| CRITICAL security blockers | 0 | **12/12 FIXED** в коде (v2.0.1); PG-03 ротация секретов в git history — manual ops |
+| Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (auth, ws, storage, rbac, audit, calls) |
+| Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **82.6%** ✅ (Phase 125, Docker `-tags hubtest`) |
+| Frontend Vitest | Unit-тесты модулей | **99+** тестов ✅ |
+| E2E critical paths | Playwright | **20 spec-файлов** ✅ (`testframework/e2e/specs/`) |
+| Global search Ctrl+K (US-M07) | UI + user-scope backend | **UI ✅** (`command-palette.tsx`); Meilisearch indexer + JQL assist (AI) |
+| Lighthouse Performance/Accessibility | ≥ 90 | Цель v2.5, formal audit pending |
+| WCAG 2.1 AA | 4.5:1 text, 3:1 UI | Реализовано (THME-04), E2E a11y spec ✅ |
+| DAU/WAU/MAU | Админ-дашборд | ✅ Реализовано |
+| Участники голосового звонка | До 50 | ✅ LiveKit |
 | CI budget (GitHub Actions) | ~3000 мин/мес | В рамках лимита |
 
 ## Портреты пользователей
@@ -121,29 +122,31 @@
 
 См. также: [tz_constraints.md](tz_constraints.md) · `.planning/DISCUSS-ROADMAP-LOCKED.md`
 
-### Future — v3.0 AI Chat Hub (`.planning/MILESTONE-3.md`)
+### v3.0 AI Chat Hub — SHIPPED (`.planning/MILESTONE-3.md`)
 
-| ID | История | Приоритет |
-|----|---------|-----------|
-| US-F01 | Как участник, хочу писать `@hub-ai` в каналах и DM | Must (v3.0) |
-| US-F02 | Как Admin, хочу выбирать AI-провайдера (GigaChat/YandexGPT/DeepSeek/Ollama/OpenRouter) | Must (v3.0) |
-| US-F03 | Как QA, хочу `/ai test-cases HUB-123` для генерации кейсов из задачи | Should (v3.0) |
-| US-F04 | Как пользователь, хочу AI-панель (Ctrl+Shift+A) и выбор модели (GPT/DeepSeek/Claude/…) | Should (v3.0) |
-| US-F05 | Как Admin, хочу rate limits и audit AI-запросов без утечки содержимого | Must (v3.0) |
-| US-F06 | Как разработчик, хочу OpenAI-compatible API Hub для internal tools | Could (v3.5) |
+| ID | История | Статус |
+|----|---------|--------|
+| US-F01 | Как участник, хочу писать `@hub-ai` в каналах и DM | ✅ `backend/internal/ai/messenger_bot.go` |
+| US-F02 | Как Admin, хочу выбирать AI-провайдера (GigaChat/YandexGPT/DeepSeek/Ollama/OpenRouter) | ✅ `ai/admin_handler`, Ent `AIProvider` |
+| US-F03 | Как QA, хочу генерацию кейсов из задачи | ⚠️ Partial — AI composer suggest, не slash-команда |
+| US-F04 | Как пользователь, хочу AI-панель и выбор модели | ✅ `/settings/ai`, `GET /api/ai/models` |
+| US-F05 | Как Admin, хочу rate limits и audit AI без утечки содержимого | ✅ `AIUsageDaily`, content policy |
+| US-F06 | Как разработчик, хочу OpenAI-compatible API Hub | ⏳ v3.5 backlog |
 
-### Future — v4.0 Corporate Super-App (`.planning/PLATFORM-VISION-v4.md`)
+### v4.0 Corporate Super-App — SHIPPED (`.planning/PLATFORM-VISION-v4.md`)
 
-| ID | История | Приоритет |
-|----|---------|-----------|
-| US-V01 | Как сотрудник, хочу ленту новостей компании | Should (v4.0) |
-| US-V02 | Как сотрудник, хочу каталог коллег и org chart | Should (v4.0) |
-| US-V03 | Как сотрудник, хочу единый календарь (созвоны, спринты, отпуск) | Should (v4.0) |
-| US-V04 | Как PO, хочу CRM-lite (контакты, сделки) связанный с проектами | Could (v4.0) |
-| US-V05 | Как сотрудник, хочу подать заявку на отпуск | Could (v4.0) |
-| US-V06 | Как Admin, хочу встроенную бухгалтерию (без 1C) | Could (v4.0) |
+| ID | История | Статус |
+|----|---------|--------|
+| US-V01 | Как сотрудник, хочу ленту новостей компании | ✅ `intranet/news`, Ent `NewsPost` |
+| US-V02 | Как сотрудник, хочу каталог коллег и org chart | ✅ `/intranet/directory` |
+| US-V03 | Как сотрудник, хочу единый календарь (созвоны, спринты, отпуск) | ✅ `/calendar`, `backend/internal/calendar/` |
+| US-V04 | Как PO, хочу CRM-lite (контакты, сделки) | ✅ `/crm`, Ent `CRMContact`, `CRMDeal` |
+| US-V05 | Как сотрудник, хочу подать заявку на отпуск | ✅ `/hr`, Ent `LeaveRequest` |
+| US-V06 | Как Admin, хочу встроенную бухгалтерию (без 1C) | ✅ `/accounting`, journal entries, invoices |
 
-**Won't Have v4:** payroll/НДФЛ calc, multi-tenant SaaS (v5), SSO, native apps. **In v4:** full accounting Hub-only, Lark-style no-code DB.
+**Дополнительно в v4 (код):** no-code DB (`/bases`, `HubBase/HubTable/HubRecord`), marketplace (`/marketplace`), kudos и random coffee (`intranet`), status page (`/status`), hub-mail (`/admin/mail`), 1C connector (`integrations/onec`).
+
+**Won't Have v4:** payroll/НДФЛ calc, multi-tenant SaaS (v5), SSO, native apps.
 
 ## Сценарии использования
 
@@ -188,18 +191,36 @@
 2. Второй save получает 409 Conflict (version mismatch)
 3. UI показывает diff и предлагает перезагрузить или перезаписать
 
+## Организация (v2.5+)
+
+| Правило | Реализация |
+|---------|------------|
+| Одна org на инстанс | Ent `Organization`; multi-org → v5 |
+| Регистрация | Invite-only или open — настройка Admin (`/admin/registration-mode`) |
+| Pending queue | Новые пользователи без invite → approve/reject; 7 дней без approve → delete (cron) |
+| Роль `founder` | Ровно один на org (`User.system_role`: founder/admin/member) |
+| Org invite | `GET /admin/organization/invite` — ссылка для первичного онбординга |
+
 ## Текущий статус проекта
 
-- **v1.0** (Phases 1–7): SHIPPED 2026-03-21 — все 11 модулей
-- **v2.0** Hub Redesign (Phases 8–14): COMPLETE 2026-05-15 — 85/85 UI requirements
-- **Следующий шаг:** v2.0.1 hotfix — 12 CRITICAL blockers (см. `.planning/code-review-final/SUMMARY.md`)
-- **Затем:** v2.5 Production Hardening → v2.6 Arch Completion → v3.0 AI Chat Hub (30 требований M3-001..M3-030)
+| Milestone | Phases | Статус | Дата |
+|-----------|--------|--------|------|
+| v1.0 MVP | 1–7 | ✅ SHIPPED | 2026-03-21 |
+| v2.0 Hub Redesign | 8–14 | ✅ COMPLETE | 2026-05-15 |
+| v2.5 Trust | 15 | ✅ COMPLETE | 2026-06-22 |
+| v2.6 Automate + Arch + OBS | 16–38 | ✅ COMPLETE | 2026-06-24 |
+| v3.0 AI Native | 17–19 | ✅ COMPLETE | 2026-06-22 |
+| v4 Super-app | 39–58 | ✅ COMPLETE | 2026-06-25 |
+| Coverage wave | 59–125 | ✅ COMPLETE | 2026-06-21 |
 
-### Отложенный polish (v2.0, не блокирует релиз)
+**Текущий фокус:** Wave B test framework migration (TF-M04–M08) → Wave C final audit (FA-01–FA-12). Ветка `feat/v2.5-trust`, commit-ready. См. `.planning/STATE.md`.
+
+### Отложенный polish (не блокирует релиз)
 
 - PLSH-01: Per-page ambient body gradients
 - PLSH-02: Skeleton loading states для виджетов
 - PLSH-03: Smooth theme toggle transition
+- Phase 16: Gantt UI (`/projects/$id/gantt`), webcam в звонках, hub-mail transactional
 
 ## Связанные документы
 
@@ -214,4 +235,4 @@
 | `.planning/MILESTONE-3.md` | v3.0 AI Chat Hub (30 требований) |
 
 ---
-*Последнее обновление: 2026-06-17 — gap-анализ BA: синхронизация с PROJECT.md и BUSINESS.md*
+*Последнее обновление: 2026-06-21 — RU-D01: верификация по коду (backend/internal, frontend/src, Ent schema, COVERAGE.md)*

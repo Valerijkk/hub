@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { toastApiError } from "@/lib/format-api-error";
 import type { TokenPairResponse } from "@/api/auth";
 import { api } from "@/api/client";
+import { toastApiError } from "@/lib/format-api-error";
 import { useAuthStore } from "@/stores/auth-store";
 
 const TG_BOT_USERNAME = "hub_notifycation_lol_bot";

@@ -9,10 +9,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Suites
+// Папки (suites)
 // ---------------------------------------------------------------------------
 
-// CreateSuite creates a new test case folder/suite.
+// CreateSuite создаёт новую папку/секцию тест-кейсов.
 func (s *TMSService) CreateSuite(ctx context.Context, projectID uuid.UUID, req CreateSuiteRequest) (*SuiteResponse, error) {
 	input := CreateSuiteInput{
 		Name:        req.Name,
@@ -35,18 +35,18 @@ func (s *TMSService) CreateSuite(ctx context.Context, projectID uuid.UUID, req C
 	return toSuiteResponse(suite), nil
 }
 
-// ListSuites returns the suite tree for a project.
+// ListSuites возвращает дерево папок проекта.
 func (s *TMSService) ListSuites(ctx context.Context, projectID uuid.UUID) ([]SuiteResponse, error) {
 	suites, err := s.repo.ListSuites(ctx, projectID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения папок")
 	}
 
-	// Build tree: return only root nodes (no parent)
+	// Возвращаем только корневые узлы (без parent) — UI строит дерево рекурсивно.
 	return buildSuiteTree(suites), nil
 }
 
-// UpdateSuite updates a suite.
+// UpdateSuite обновляет папку.
 func (s *TMSService) UpdateSuite(ctx context.Context, suiteID uuid.UUID, req UpdateSuiteRequest) (*SuiteResponse, error) {
 	input := UpdateSuiteInput{
 		Name:        req.Name,
@@ -65,7 +65,7 @@ func (s *TMSService) UpdateSuite(ctx context.Context, suiteID uuid.UUID, req Upd
 	return toSuiteResponse(suite), nil
 }
 
-// DeleteSuite deletes a suite.
+// DeleteSuite удаляет папку.
 func (s *TMSService) DeleteSuite(ctx context.Context, suiteID uuid.UUID) error {
 	if err := s.repo.DeleteSuite(ctx, suiteID); err != nil {
 		if ent.IsNotFound(err) {
@@ -77,10 +77,10 @@ func (s *TMSService) DeleteSuite(ctx context.Context, suiteID uuid.UUID) error {
 }
 
 // ---------------------------------------------------------------------------
-// Components
+// Компоненты
 // ---------------------------------------------------------------------------
 
-// CreateComponent creates a new component.
+// CreateComponent создаёт новый компонент.
 func (s *TMSService) CreateComponent(ctx context.Context, projectID uuid.UUID, req CreateComponentRequest) (*ComponentResponse, error) {
 	comp, err := s.repo.CreateComponent(ctx, projectID, req.Name, req.Description)
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *TMSService) CreateComponent(ctx context.Context, projectID uuid.UUID, r
 	return toComponentResponse(comp), nil
 }
 
-// ListComponents returns all components for a project.
+// ListComponents возвращает все компоненты проекта.
 func (s *TMSService) ListComponents(ctx context.Context, projectID uuid.UUID) ([]ComponentResponse, error) {
 	comps, err := s.repo.ListComponents(ctx, projectID)
 	if err != nil {
@@ -102,7 +102,7 @@ func (s *TMSService) ListComponents(ctx context.Context, projectID uuid.UUID) ([
 	return result, nil
 }
 
-// DeleteComponent deletes a component.
+// DeleteComponent удаляет компонент.
 func (s *TMSService) DeleteComponent(ctx context.Context, componentID uuid.UUID) error {
 	if err := s.repo.DeleteComponent(ctx, componentID); err != nil {
 		if ent.IsNotFound(err) {

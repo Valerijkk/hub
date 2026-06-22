@@ -2,6 +2,9 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	AlertTriangle,
+	Briefcase,
+	Calendar,
+	CalendarDays,
 	CircleDot,
 	FlaskConical,
 	FolderKanban,
@@ -12,12 +15,15 @@ import {
 	Paperclip,
 	Plus,
 	SearchX,
+	ShoppingBag,
+	Table2,
 	User,
+	Users,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { searchGlobal, type SearchResult } from "@/api/search";
+import { type SearchResult, searchGlobal } from "@/api/search";
 import { Button } from "@/components/ui/button";
 import {
 	CommandDialog,
@@ -107,8 +113,48 @@ export function CommandPalette() {
 
 	const ACTION_ITEMS = [
 		{ icon: FolderKanban, label: t("command.goProjects"), path: "/projects" },
-		{ icon: MessageSquare, label: t("command.goMessenger"), path: "/messenger" },
-		{ icon: LayoutDashboard, label: t("command.goDashboard"), path: "/dashboard" },
+		{
+			icon: MessageSquare,
+			label: t("command.goMessenger"),
+			path: "/messenger",
+		},
+		{
+			icon: LayoutDashboard,
+			label: t("command.goDashboard"),
+			path: "/dashboard",
+		},
+		{
+			icon: Users,
+			label: t("command.goDirectory", {
+				defaultValue: "Справочник сотрудников",
+			}),
+			path: "/intranet/directory",
+		},
+		{
+			icon: Calendar,
+			label: t("command.goCalendar", { defaultValue: "Календарь" }),
+			path: "/calendar",
+		},
+		{
+			icon: Briefcase,
+			label: t("command.goCrm", { defaultValue: "CRM — сделки" }),
+			path: "/crm",
+		},
+		{
+			icon: CalendarDays,
+			label: t("command.goHr", { defaultValue: "HR — отпуска" }),
+			path: "/hr",
+		},
+		{
+			icon: ShoppingBag,
+			label: t("command.goMarketplace", { defaultValue: "Барахолка" }),
+			path: "/marketplace",
+		},
+		{
+			icon: Table2,
+			label: t("command.goBases", { defaultValue: "Hub Base — таблицы" }),
+			path: "/bases",
+		},
 		{ icon: Plus, label: t("command.createProject"), path: "/projects/new" },
 		{ icon: HelpCircle, label: t("command.goHelp"), path: "/help" },
 	] as const;
@@ -133,7 +179,10 @@ export function CommandPalette() {
 						<CommandGroup heading={t("search.groups.actions")}>
 							{ACTION_ITEMS.map(({ icon: Icon, label, path }) => (
 								<CommandItem key={path} value={path} onSelect={() => go(path)}>
-									<Icon className="h-4 w-4 shrink-0 text-t3" aria-hidden="true" />
+									<Icon
+										className="h-4 w-4 shrink-0 text-t3"
+										aria-hidden="true"
+									/>
 									<span>{label}</span>
 								</CommandItem>
 							))}
@@ -150,7 +199,12 @@ export function CommandPalette() {
 							description={t("search.errorHint")}
 						/>
 						<div className="flex justify-center pb-2">
-							<Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => void refetch()}
+							>
 								{t("btn.retry")}
 							</Button>
 						</div>
@@ -160,8 +214,8 @@ export function CommandPalette() {
 				{enabled && isFetching && results.length === 0 && (
 					<div role="status" aria-live="polite">
 						<span className="sr-only">{t("search.loading")}</span>
-						{Array.from({ length: 5 }, (_, i) => (
-							<CommandResultSkeleton key={`sk-${i}`} />
+						{(["a", "b", "c", "d", "e"] as const).map((id) => (
+							<CommandResultSkeleton key={`sk-${id}`} />
 						))}
 					</div>
 				)}
@@ -186,11 +240,16 @@ export function CommandPalette() {
 									value={result.id}
 									onSelect={() => handleSelect(result)}
 								>
-									<Icon className="h-4 w-4 shrink-0 text-t3" aria-hidden="true" />
+									<Icon
+										className="h-4 w-4 shrink-0 text-t3"
+										aria-hidden="true"
+									/>
 									<div className="min-w-0 flex-1">
 										<p className="truncate text-t1">{result.title}</p>
 										{result.subtitle && (
-											<p className="truncate text-xs text-t3">{result.subtitle}</p>
+											<p className="truncate text-xs text-t3">
+												{result.subtitle}
+											</p>
 										)}
 									</div>
 								</CommandItem>

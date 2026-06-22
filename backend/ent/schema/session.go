@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Session holds the schema definition for the Session entity.
+// Session — определение Ent-схемы сущности Session.
 type Session struct {
 	ent.Schema
 }
 
-// Fields of the Session.
+// Поля сущности Session.
 func (Session) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -34,7 +34,7 @@ func (Session) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Session.
+// Рёбра (edges) сущности Session.
 func (Session) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
@@ -44,7 +44,7 @@ func (Session) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the Session.
+// Индексы сущности Session.
 func (Session) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("expires_at"),

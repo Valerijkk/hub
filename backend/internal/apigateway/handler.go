@@ -2,16 +2,27 @@
 package apigateway
 
 import (
+	"log/slog"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
+	"github.com/valerii/hub/backend/internal/rbac"
 )
+
+// permWebhookManage — разрешение, требуемое для управления вебхуками проекта.
+// Вебхуки — проектная интеграция, раскрывающая событийный payload (tracker,
+// messenger и т.д.) на внешний URL; управление ими (а также просмотр конфигов
+// и логов доставок с payload) ограничено владельцем проекта.
+const permWebhookManage = rbac.PermProjectManageWorkflow
 
 // Handler предоставляет HTTP-обработчики для модуля API Gateway (ключи + вебхуки).
 type Handler struct {
 	apiKeySvc  *APIKeyService
 	webhookSvc *WebhookService
+	rbacSvc    *rbac.RBACService
 }
 
 // NewHandler создаёт новый обработчик API Gateway.
@@ -20,7 +31,13 @@ func NewHandler(apiKeySvc *APIKeyService, webhookSvc *WebhookService) *Handler {
 }
 
 // RegisterRoutes регистрирует маршруты API ключей и вебхуков.
-func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
+// rbacSvc обязателен для авторизации webhook CRUD по фактическому projectId
+// (APIGW-01): rbac.RequirePermission middleware не подходит, т.к. маршруты
+// /webhooks/:id не содержат :projectId, а доверять ID из тела/пути небезопасно
+// (IDOR). По образцу storageHandler.RegisterRoutes (CR-04).
+func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
+	h.rbacSvc = rbacSvc
+
 	// API Keys (пользовательские)
 	keys := api.Group("/user/api-keys", authMw)
 	keys.Post("/", h.CreateAPIKey)
@@ -39,7 +56,44 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	wh.Get("/:id/deliveries", h.ListDeliveries)
 }
 
-// --- API Key handlers ---
+// authorizeProject проверяет, что текущий пользователь имеет указанное
+// разрешение в проекте (APIGW-01). Возвращает Fiber-ошибку с подходящим
+// статусом (401/403/500) или nil, если доступ разрешён.
+func (h *Handler) authorizeProject(c fiber.Ctx, userID, projectID uuid.UUID, perm rbac.Permission) error {
+	if h.rbacSvc == nil {
+		// Безопасный default: без RBAC отказываем — лучше упасть, чем разрешить.
+		return fiber.NewError(fiber.StatusInternalServerError, "RBAC service not configured")
+	}
+	effective, err := h.rbacSvc.GetEffectivePermissions(c.Context(), userID, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return fiber.NewError(fiber.StatusForbidden, "not a project member")
+		}
+		slog.Error("rbac check failed", "error", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to check permissions")
+	}
+	if !effective.Has(perm) {
+		return fiber.NewError(fiber.StatusForbidden, "insufficient permissions")
+	}
+	return nil
+}
+
+// authorizeEndpoint резолвит projectId владеющего эндпоинтом проекта и проверяет
+// права вызывающего (APIGW-01). projectId берётся из БД, а не из запроса —
+// защита от IDOR на маршрутах /webhooks/:id.
+func (h *Handler) authorizeEndpoint(c fiber.Ctx, userID, endpointID uuid.UUID, perm rbac.Permission) error {
+	projectID, err := h.webhookSvc.EndpointProjectID(c.Context(), endpointID)
+	if err != nil {
+		if IsNotFound(err) {
+			return fiber.NewError(fiber.StatusNotFound, "вебхук-эндпоинт не найден")
+		}
+		slog.Error("resolve webhook project failed", "error", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to resolve webhook project")
+	}
+	return h.authorizeProject(c, userID, projectID, perm)
+}
+
+// --- Обработчики API-ключей ---
 
 // CreateAPIKey godoc
 // @Summary Создать API-ключ
@@ -47,8 +101,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 // @Tags API Ключи
 // @Accept json
 // @Produce json
-// @Param body body CreateAPIKeyRequest true "Название и опциональная ��ата истечения"
-// @Success 201 {object} APIKeyResponse "Ключ созд��н (токен по��азывается единожды)"
+// @Param body body CreateAPIKeyRequest true "Название и опциональная дата истечения"
+// @Success 201 {object} APIKeyResponse "Ключ создан (токен показывается единожды)"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -69,7 +123,7 @@ func (h *Handler) CreateAPIKey(c fiber.Ctx) error {
 
 	resp, err := h.apiKeySvc.CreateAPIKey(c.Context(), userID, req.Name, req.ExpiresAt)
 	if err != nil {
-		return err
+		return MapToFiber(err)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(resp)
@@ -92,7 +146,7 @@ func (h *Handler) ListAPIKeys(c fiber.Ctx) error {
 
 	keys, err := h.apiKeySvc.ListAPIKeys(c.Context(), userID)
 	if err != nil {
-		return err
+		return MapToFiber(err)
 	}
 
 	return c.JSON(keys)
@@ -120,13 +174,13 @@ func (h *Handler) RevokeAPIKey(c fiber.Ctx) error {
 	}
 
 	if err := h.apiKeySvc.RevokeAPIKey(c.Context(), userID, keyID); err != nil {
-		return err
+		return MapToFiber(err)
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// --- Webhook handlers ---
+// --- Обработчики вебхуков ---
 
 // CreateEndpoint godoc
 // @Summary Создать webhook-эндпоинт
@@ -136,7 +190,7 @@ func (h *Handler) RevokeAPIKey(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "ID проекта"
 // @Param body body CreateWebhookRequest true "URL и события"
-// @Success 201 {object} WebhookEndpointResponse "Эндпоинт создан"
+// @Success 201 {object} WebhookResponse "Эндпоинт создан"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -147,6 +201,15 @@ func (h *Handler) CreateEndpoint(c fiber.Ctx) error {
 		return err
 	}
 
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.authorizeProject(c, userID, projectID, permWebhookManage); err != nil {
+		return err
+	}
+
 	var req CreateWebhookRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
@@ -154,7 +217,7 @@ func (h *Handler) CreateEndpoint(c fiber.Ctx) error {
 
 	resp, err := h.webhookSvc.CreateEndpoint(c.Context(), projectID, req)
 	if err != nil {
-		return err
+		return MapToFiber(err)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(resp)
@@ -166,7 +229,7 @@ func (h *Handler) CreateEndpoint(c fiber.Ctx) error {
 // @Tags API Ключи
 // @Produce json
 // @Param projectId path string true "ID проекта"
-// @Success 200 {array} WebhookEndpointResponse "Список эндпоинтов"
+// @Success 200 {array} WebhookResponse "Список эндпоинтов"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -177,9 +240,18 @@ func (h *Handler) ListEndpoints(c fiber.Ctx) error {
 		return err
 	}
 
-	eps, err := h.webhookSvc.ListEndpoints(c.Context(), projectID)
+	userID, err := getUserID(c)
 	if err != nil {
 		return err
+	}
+
+	if err := h.authorizeProject(c, userID, projectID, permWebhookManage); err != nil {
+		return err
+	}
+
+	eps, err := h.webhookSvc.ListEndpoints(c.Context(), projectID)
+	if err != nil {
+		return MapToFiber(err)
 	}
 
 	return c.JSON(eps)
@@ -193,7 +265,7 @@ func (h *Handler) ListEndpoints(c fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "ID эндпоинта"
 // @Param body body UpdateWebhookRequest true "Обновляемые данные"
-// @Success 200 {object} WebhookEndpointResponse "Эндпоинт обновлён"
+// @Success 200 {object} WebhookResponse "Эндпоинт обновлён"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -204,6 +276,15 @@ func (h *Handler) UpdateEndpoint(c fiber.Ctx) error {
 		return err
 	}
 
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.authorizeEndpoint(c, userID, epID, permWebhookManage); err != nil {
+		return err
+	}
+
 	var req UpdateWebhookRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
@@ -211,7 +292,7 @@ func (h *Handler) UpdateEndpoint(c fiber.Ctx) error {
 
 	resp, err := h.webhookSvc.UpdateEndpoint(c.Context(), epID, req)
 	if err != nil {
-		return err
+		return MapToFiber(err)
 	}
 
 	return c.JSON(resp)
@@ -233,8 +314,17 @@ func (h *Handler) DeleteEndpoint(c fiber.Ctx) error {
 		return err
 	}
 
-	if err := h.webhookSvc.DeleteEndpoint(c.Context(), epID); err != nil {
+	userID, err := getUserID(c)
+	if err != nil {
 		return err
+	}
+
+	if err := h.authorizeEndpoint(c, userID, epID, permWebhookManage); err != nil {
+		return err
+	}
+
+	if err := h.webhookSvc.DeleteEndpoint(c.Context(), epID); err != nil {
+		return MapToFiber(err)
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
@@ -257,15 +347,24 @@ func (h *Handler) ListDeliveries(c fiber.Ctx) error {
 		return err
 	}
 
-	deliveries, err := h.webhookSvc.ListDeliveries(c.Context(), epID)
+	userID, err := getUserID(c)
 	if err != nil {
 		return err
+	}
+
+	if err := h.authorizeEndpoint(c, userID, epID, permWebhookManage); err != nil {
+		return err
+	}
+
+	deliveries, err := h.webhookSvc.ListDeliveries(c.Context(), epID)
+	if err != nil {
+		return MapToFiber(err)
 	}
 
 	return c.JSON(deliveries)
 }
 
-// --- Helpers ---
+// --- Вспомогательные функции ---
 
 // getUserID извлекает user ID из Fiber Locals.
 func getUserID(c fiber.Ctx) (uuid.UUID, error) {

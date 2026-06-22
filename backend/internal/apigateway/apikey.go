@@ -12,8 +12,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
-	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/apikey"
+
 	"github.com/valerii/hub/backend/ent/user"
 )
 
@@ -37,7 +36,7 @@ type apiKeyTouchJob struct {
 // APIKeyService управляет жизненным циклом API-ключей:
 // генерация, верификация, отзыв, обновление last_used_at.
 type APIKeyService struct {
-	db *ent.Client
+	repo APIKeyRepository
 
 	// BE-H4: bounded worker-pool для асинхронных обновлений last_used_at.
 	touchJobs chan apiKeyTouchJob
@@ -49,10 +48,10 @@ type APIKeyService struct {
 // NewAPIKeyService создаёт новый сервис API-ключей.
 // Запускает фиксированный пул воркеров (apiKeyTouchWorkers) для асинхронного
 // обновления last_used_at у API-ключей. Завершите сервис вызовом Close при
-// graceful shutdown.
-func NewAPIKeyService(db *ent.Client) *APIKeyService {
+// корректном завершении работы.
+func NewAPIKeyService(repo APIKeyRepository) *APIKeyService {
 	svc := &APIKeyService{
-		db:        db,
+		repo:      repo,
 		touchJobs: make(chan apiKeyTouchJob, apiKeyTouchQueueSize),
 		stopCh:    make(chan struct{}),
 	}
@@ -69,9 +68,7 @@ func (s *APIKeyService) touchWorker() {
 	defer s.touchWG.Done()
 	for job := range s.touchJobs {
 		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		if err := s.db.APIKey.UpdateOneID(job.keyID).
-			SetLastUsedAt(job.when).
-			Exec(bgCtx); err != nil {
+		if err := s.repo.UpdateAPIKeyLastUsedAt(bgCtx, job.keyID, job.when); err != nil {
 			slog.Error("не удалось обновить last_used_at для API-ключа", "error", err, "key_id", job.keyID)
 		}
 		cancel()
@@ -98,17 +95,7 @@ func (s *APIKeyService) CreateAPIKey(ctx context.Context, userID uuid.UUID, name
 	prefix := fullKey[:8]
 	hash := hashKey(fullKey)
 
-	builder := s.db.APIKey.Create().
-		SetName(name).
-		SetKeyHash(hash).
-		SetPrefix(prefix).
-		SetUserID(userID)
-
-	if expiresAt != nil {
-		builder.SetExpiresAt(*expiresAt)
-	}
-
-	ak, err := builder.Save(ctx)
+	ak, err := s.repo.CreateAPIKey(ctx, userID, name, hash, prefix, expiresAt)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось сохранить API-ключ: %w", err)
 	}
@@ -127,9 +114,7 @@ func (s *APIKeyService) CreateAPIKey(ctx context.Context, userID uuid.UUID, name
 
 // ListAPIKeys возвращает список API-ключей пользователя (без полных ключей).
 func (s *APIKeyService) ListAPIKeys(ctx context.Context, userID uuid.UUID) ([]APIKeyResponse, error) {
-	keys, err := s.db.APIKey.Query().
-		Where(apikey.HasUserWith(user.ID(userID))).
-		All(ctx)
+	keys, err := s.repo.ListAPIKeysByUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить API-ключи: %w", err)
 	}
@@ -150,16 +135,11 @@ func (s *APIKeyService) ListAPIKeys(ctx context.Context, userID uuid.UUID) ([]AP
 
 // RevokeAPIKey удаляет API-ключ пользователя.
 func (s *APIKeyService) RevokeAPIKey(ctx context.Context, userID uuid.UUID, keyID uuid.UUID) error {
-	count, err := s.db.APIKey.Query().
-		Where(
-			apikey.ID(keyID),
-			apikey.HasUserWith(user.ID(userID)),
-		).
-		Count(ctx)
+	count, err := s.repo.CountAPIKeyForUser(ctx, userID, keyID)
 	if err != nil || count == 0 {
-		return fiber.NewError(fiber.StatusNotFound, "API-ключ не найден")
+		return ErrAPIKeyNotFound
 	}
-	return s.db.APIKey.DeleteOneID(keyID).Exec(ctx)
+	return s.repo.DeleteAPIKey(ctx, keyID)
 }
 
 // VerifyAPIKey проверяет API-ключ по хешу и возвращает ID пользователя.
@@ -167,19 +147,16 @@ func (s *APIKeyService) RevokeAPIKey(ctx context.Context, userID uuid.UUID, keyI
 func (s *APIKeyService) VerifyAPIKey(ctx context.Context, rawKey string) (uuid.UUID, error) {
 	hash := hashKey(rawKey)
 
-	ak, err := s.db.APIKey.Query().
-		Where(apikey.KeyHash(hash)).
-		WithUser().
-		Only(ctx)
+	ak, err := s.repo.GetAPIKeyByHashWithUser(ctx, hash)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "недействительный API-ключ")
+		if IsNotFound(err) {
+			return uuid.Nil, ErrAPIKeyInvalid
 		}
 		return uuid.Nil, fmt.Errorf("ошибка проверки API-ключа: %w", err)
 	}
 
 	if ak.ExpiresAt != nil && ak.ExpiresAt.Before(time.Now()) {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "API-ключ истёк")
+		return uuid.Nil, ErrAPIKeyExpired
 	}
 
 	// BE-H4: обновляем last_used_at через bounded worker-pool вместо
@@ -195,7 +172,12 @@ func (s *APIKeyService) VerifyAPIKey(ctx context.Context, rawKey string) (uuid.U
 	}
 
 	if ak.Edges.User == nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusUnauthorized, "пользователь API-ключа не найден")
+		return uuid.Nil, ErrAPIKeyUserNotFound
+	}
+
+	// APIGW-04: JWT RequireAuth rejects deactivated users; API keys must too.
+	if ak.Edges.User.Status == user.StatusDeactivated {
+		return uuid.Nil, ErrAPIKeyUserDeactivated
 	}
 
 	return ak.Edges.User.ID, nil
@@ -213,7 +195,7 @@ func APIKeyAuth(svc *APIKeyService) fiber.Handler {
 
 		userID, err := svc.VerifyAPIKey(c.Context(), key)
 		if err != nil {
-			return err
+			return MapToFiber(err)
 		}
 
 		c.Locals("userID", userID.String())

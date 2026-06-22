@@ -1,11 +1,11 @@
 /**
- * Widget "My Tasks" -- displays a list of assigned tasks with priority and status.
+ * Виджет «Мои задачи» — назначенные задачи с приоритетом и статусом.
  */
 import { Circle, CircleCheck, Clock, Inbox } from "lucide-react";
 import type { PersonalData, TaskSummary } from "@/api/dashboard";
 import { Badge } from "@/components/ui/badge";
 
-/** Priority color dots. */
+/** Цветовые точки приоритетов. */
 const PRIORITY_COLORS: Record<number, string> = {
 	5: "bg-red-500",
 	4: "bg-orange-500",
@@ -22,7 +22,7 @@ const PRIORITY_LABELS: Record<number, string> = {
 	1: "Минимальный",
 };
 
-/** Status badge styling. */
+/** Стили бейджа статуса. */
 function getStatusVariant(
 	status: string,
 ): "default" | "secondary" | "destructive" | "outline" {
@@ -34,7 +34,7 @@ function getStatusVariant(
 	return "outline";
 }
 
-/** Status icon. */
+/** Иконка статуса. */
 function StatusIcon({ status }: { status: string }) {
 	const s = status.toLowerCase();
 	if (s.includes("done") || s.includes("закрыт") || s.includes("готов"))
@@ -48,7 +48,7 @@ interface Props {
 	data?: unknown;
 }
 
-/** User task list widget. */
+/** Виджет списка задач пользователя. */
 export function MyTasksWidget({ data }: Props) {
 	const personalData = data as PersonalData | undefined;
 	const tasks = personalData?.my_tasks ?? [];
@@ -71,7 +71,7 @@ export function MyTasksWidget({ data }: Props) {
 					className="group flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors duration-150 hover:bg-white/[0.04]"
 				>
 					<div className="flex items-center gap-2.5 min-w-0">
-						{/* Status dot (8px) */}
+						{/* Точка статуса (8px) */}
 						<div
 							className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_COLORS[task.priority] ?? "bg-slate-400"}`}
 							title={PRIORITY_LABELS[task.priority] ?? ""}

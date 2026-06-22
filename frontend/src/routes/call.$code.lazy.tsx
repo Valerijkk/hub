@@ -1,6 +1,6 @@
 /**
  * Публичная страница присоединения к звонку по invite-коду.
- * URL: /call/{code}
+ * URL: /call/{code} — гостевой вход по invite.
  *
  * Lazy-route (FE-H5): livekit-client попадает в отдельный chunk и грузится
  * только при заходе на этот URL.
@@ -32,7 +32,7 @@ function JoinCallByCodePage() {
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 
-	// Guest state
+	// Состояние гостевого входа по invite-коду
 	const [guestMode, setGuestMode] = useState(false);
 	const [guestName, setGuestName] = useState("");
 	const [guestSubmitting, setGuestSubmitting] = useState(false);
@@ -40,7 +40,7 @@ function JoinCallByCodePage() {
 	const [guestLivekitUrl, setGuestLivekitUrl] = useState<string | null>(null);
 	const nameInputRef = useRef<HTMLInputElement>(null);
 
-	// Authenticated flow
+	// Поток для авторизованного пользователя
 	useEffect(() => {
 		if (!isAuthenticated) {
 			setGuestMode(true);
@@ -82,7 +82,7 @@ function JoinCallByCodePage() {
 		};
 	}, [code, isAuthenticated, navigate]);
 
-	// Focus name input on guest mode
+	// Фокус на поле имени в guest-режиме
 	useEffect(() => {
 		if (guestMode && nameInputRef.current) {
 			nameInputRef.current.focus();
@@ -136,7 +136,7 @@ function JoinCallByCodePage() {
 		[handleGuestJoin],
 	);
 
-	// Error state
+	// Состояние ошибки подключения
 	if (error && !guestMode) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-void">
@@ -171,7 +171,7 @@ function JoinCallByCodePage() {
 		);
 	}
 
-	// Guest is connected to LiveKit — используем те же компоненты что и у зарег. юзера
+	// Guest подключён к LiveKit — те же компоненты, что у зарегистрированного пользователя
 	if (guestToken && guestLivekitUrl) {
 		return (
 			<div className="h-screen bg-[#0B0F19] flex flex-col overflow-hidden">
@@ -225,13 +225,13 @@ function JoinCallByCodePage() {
 		);
 	}
 
-	// Guest form
+	// Форма ввода имени гостя
 	if (guestMode) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-void">
 				<div className="max-w-sm w-full mx-4">
 					<div className="bg-[var(--b2)] rounded-[var(--r3)] border border-[var(--border)] p-8 shadow-xl">
-						{/* Icon */}
+						{/* Иконка */}
 						<div className="w-16 h-16 rounded-full bg-[var(--blueS)]/10 flex items-center justify-center mx-auto mb-6">
 							<svg
 								aria-hidden="true"
@@ -309,7 +309,7 @@ function JoinCallByCodePage() {
 		);
 	}
 
-	// Loading state (authenticated flow)
+	// Загрузка (авторизованный поток)
 	if (loading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-void">

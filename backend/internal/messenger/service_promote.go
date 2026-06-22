@@ -12,7 +12,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Thread → Issue promotion (Feature #58)
+// Преобразование треда в задачу (Feature #58)
 // ---------------------------------------------------------------------------
 
 // IssuePromoter — узкий интерфейс для создания задачи из сообщения треда.
@@ -35,6 +35,16 @@ type IssuePromoter interface {
 // Возвращает true, если пользователь имеет право task.create в указанном проекте.
 type PromotePermissionChecker interface {
 	CanCreateTaskInProject(ctx context.Context, userID, projectID uuid.UUID) (bool, error)
+}
+
+// IssueThreadLinker создаёт связь issue↔thread после promote (PROD-03).
+type IssueThreadLinker interface {
+	LinkThreadToIssue(ctx context.Context, projectID, issueID, userID uuid.UUID, channelID uuid.UUID, threadRootMessageID string) error
+}
+
+// SetIssueThreadLinker подключает tracker для автосвязи при promote.
+func (s *MessengerService) SetIssueThreadLinker(l IssueThreadLinker) {
+	s.issueThreadLinker = l
 }
 
 // SetIssuePromoter подключает реализацию IssuePromoter к сервису.
@@ -169,6 +179,15 @@ func (s *MessengerService) PromoteToIssue(
 	// 8. Постим backlink-сообщение в тред. Не валим основной запрос на ошибках.
 	if postErr := s.postPromotionBacklink(ctx, source.ChannelID, parentID, userID, issueKey); postErr != nil {
 		slog.Warn("promote-to-issue: failed to post backlink message", "error", postErr, "issue_key", issueKey)
+	}
+
+	if s.issueThreadLinker != nil {
+		issueUUID, parseErr := uuid.Parse(issueID)
+		if parseErr == nil {
+			if linkErr := s.issueThreadLinker.LinkThreadToIssue(ctx, projectID, issueUUID, userID, source.ChannelID, parentID); linkErr != nil {
+				slog.Warn("promote-to-issue: failed to link thread", "error", linkErr, "issue_key", issueKey)
+			}
+		}
 	}
 
 	return &PromoteToIssueResponse{IssueID: issueID, IssueKey: issueKey}, nil

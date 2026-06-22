@@ -130,7 +130,7 @@ func junitTestCaseToAllure(suiteName string, tc JUnitTestCase) AllureResult {
 		stop = &e
 	}
 
-	// fullName = className.methodName
+	// fullName = className.methodName — полное имя теста
 	fullName := tc.ClassName
 	if tc.Name != "" {
 		if fullName != "" {

@@ -20,6 +20,7 @@ function TmsLayout() {
 	/** Определяет активный таб по текущему пути. */
 	const getActiveTab = () => {
 		if (location.pathname.includes("/tms/runs")) return "runs";
+		if (location.pathname.includes("/tms/flaky")) return "flaky";
 		if (location.pathname.includes("/tms/traceability")) return "traceability";
 		if (location.pathname.includes("/tms/environments")) return "environments";
 		if (location.pathname.includes("/tms/autotest")) return "autotest";
@@ -68,6 +69,27 @@ function TmsLayout() {
 						strokeLinecap="round"
 						strokeLinejoin="round"
 						d="M13 10V3L4 14h7v7l9-11h-7z"
+					/>
+				</svg>
+			),
+		},
+		{
+			id: "flaky",
+			label: "Flaky",
+			to: "/projects/$projectId/tms/flaky" as const,
+			icon: (
+				<svg
+					aria-hidden="true"
+					className="h-4 w-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					strokeWidth={2}
+				>
+					<path
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"
 					/>
 				</svg>
 			),

@@ -27,12 +27,30 @@
 		"departmentPlaceholder": "Backend Engineering"
 	},
 	"modules": {
-		"tracker": { "title": "Tracker", "desc": "Kanban boards, sprints, backlog — full agile cycle." },
-		"messenger": { "title": "Messenger", "desc": "Channels, DMs, reactions, files, polls." },
-		"calls": { "title": "Calls", "desc": "Voice calls up to 50 people, screen share, recording." },
-		"tms": { "title": "TMS", "desc": "Test cases, runs, reports, CI autotests." },
-		"dashboards": { "title": "Dashboards", "desc": "Team metrics and planning." },
-		"integrations": { "title": "Integrations", "desc": "GitHub, GitLab, CI/CD in one place." }
+		"tracker": {
+			"title": "Tracker",
+			"desc": "Kanban boards, sprints, backlog — full agile cycle."
+		},
+		"messenger": {
+			"title": "Messenger",
+			"desc": "Channels, DMs, reactions, files, polls."
+		},
+		"calls": {
+			"title": "Calls",
+			"desc": "Voice calls up to 50 people, screen share, recording."
+		},
+		"tms": {
+			"title": "TMS",
+			"desc": "Test cases, runs, reports, CI autotests."
+		},
+		"dashboards": {
+			"title": "Dashboards",
+			"desc": "Team metrics and planning."
+		},
+		"integrations": {
+			"title": "Integrations",
+			"desc": "GitHub, GitLab, CI/CD in one place."
+		}
 	},
 	"theme": {
 		"label": "Theme",
@@ -41,5 +59,19 @@
 		"system": "System",
 		"accent": "Accent color"
 	},
-	"startWork": "Get started →"
+	"startWork": "Get started →",
+	"validation": {
+		"projectNameMin": "Project name must be at least 2 characters",
+		"projectNameMax": "Project name must be at most 100 characters",
+		"projectKeyMin": "Project key must be at least 2 characters",
+		"projectKeyMax": "Project key must be at most 10 characters",
+		"projectKeyFormat": "Key: uppercase Latin letters and digits only",
+		"inviteCodeMin": "Invite code must be at least 4 characters",
+		"inviteCodeMax": "Invite code must be at most 64 characters",
+		"nameMin": "First name must be at least 2 characters",
+		"nameMax": "First name must be at most 100 characters",
+		"surnameMax": "Last name must be at most 100 characters",
+		"positionMax": "Job title must be at most 100 characters",
+		"departmentMax": "Department must be at most 100 characters"
+	}
 }

@@ -1,21 +1,38 @@
 # Hub — Тестовая документация
 
+> **Обновлено:** 2026-06-21 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md`
+
+---
+
 ## Стратегия тестирования
 
-### Уровни тестирования
+### Уровни
 
-| Уровень | Инструменты | Покрытие |
-|---------|-------------|----------|
-| Unit-тесты (Backend) | Go testing + testify + mockery | Все модули + platform — 33 файла, 32 пакета |
-| API-тесты | Go test + httptest | HTTP-handler'ы (auth) |
-| Build-тесты | TypeScript compiler + Vite build | Фронтенд: типизация + сборка |
+| Уровень | Инструменты | Расположение | CI job |
+|---------|-------------|--------------|--------|
+| Unit (Backend) | Go testing + testify | `backend/internal/*_test.go` | `backend-test` |
+| Unit (Frontend) | Vitest + RTL | `frontend/testframework/unit/`, `src/**/*.test.ts` | `frontend-test` |
+| API / handler | httptest | рядом с handlers | в unit |
+| E2E | Playwright + POM | `testframework/e2e/specs/` | `e2e-smoke`, `e2e-full` |
+| Build | tsc + vite | `frontend/` | `build` |
+| Lint | Biome | `frontend/src` | `frontend-test` (gate) |
 
 ### Принципы
 
-1. **Каждый модуль покрыт unit-тестами** на уровне service layer — 32/32 пакета
-2. **Тесты изолированы**: mock'и для внешних зависимостей через mockery
-3. **Frontend**: TypeScript compilation (`npx tsc --noEmit`) гарантирует типобезопасность, `npx vite build` проверяет сборку
-4. **Нет frontend unit-тестов**: Vitest/RTL/Playwright не настроены — покрытие только через компиляцию и build
+1. **Backend CI:** `go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/...`
+2. **Coverage floor:** statement coverage `internal/` **~82%** (Phase 120+); security packages **≥80%**
+3. **Auth тесты:** Magic Link only (v2.5) — Telegram login endpoints **удалены**
+4. **E2E:** 20 spec files; config `frontend/playwright.config.ts` (см. `docs/test_plan.md`)
+5. **Triage:** spec-first — `.cursor/skills/test-triage/SKILL.md`
+
+### Актуальные счётчики (2026-06-21)
+
+| Слой | Метрика |
+|------|---------|
+| Backend test files | 200+ `_test.go` |
+| Frontend Vitest | 25 files, 56 tests (локальный `vitest run`) |
+| Playwright | 20 spec files |
+| Overall `internal/` coverage | ~82.1% |
 
 ---
 
@@ -70,46 +87,43 @@
 ### Запуск тестов
 
 ```bash
-# Все backend-тесты
-cd backend && go test ./...
+# Backend — как CI
+cd backend
+go generate ./ent
+go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/...
 
 # Конкретный модуль
-go test ./internal/auth/...
-go test ./internal/tracker/...
-go test ./internal/calls/...
+go test -tags hubtest ./internal/auth/...
+go test -tags hubtest -v ./internal/tms/...
 
-# С покрытием
-go test -cover ./...
+# С покрытием (профиль вне repo — rule 45)
+go test -tags hubtest -cover ./internal/auth/...
 
-# С verbose output
-go test -v ./internal/tms/...
-
-# Только unit (без testcontainers)
-go test -short ./...
+# Prod build
+go build -tags release -o bin/server ./cmd/server
 ```
 
-### Frontend-проверки
+### Frontend
 
 ```bash
-# TypeScript type-check (все ошибки типов)
-cd frontend && npx tsc --noEmit
-
-# Полная сборка (импорты, tree-shaking, CSS, routes)
-cd frontend && npx vite build
+cd frontend
+npx tsc --noEmit          # типы
+npm run lint              # Biome gate
+npx vitest run            # unit
+npm run build             # полная сборка
+npm run test:e2e          # Playwright (нужен backend для full)
 ```
 
-Vite build проверяет:
-- Корректность всех импортов
-- Tree-shaking
-- CSS compilation (Tailwind 4)
-- Route generation (TanStack Router)
+Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStack Router codegen.
 
-### Известные ограничения
+### CI jobs (кратко)
 
-- **Нет frontend unit-тестов** — Vitest и React Testing Library не настроены
-- **Нет E2E-тестов** — Playwright не настроен
-- **Нет интеграционных тестов** с testcontainers (все тесты используют mock'и)
-- Инфраструктурные пакеты platform/config, platform/database, platform/redis — без тестов (подключения к внешним сервисам)
+| Job | Ключевые шаги |
+|-----|---------------|
+| `backend-test` | Go 1.25, Mongo 8, `-tags hubtest -race` |
+| `frontend-test` | Node 22, tsc, vitest, biome |
+| `e2e-smoke` | login + a11y + critical-gate (без backend) |
+| `e2e-full` | `scripts/ci-e2e-backend.sh` + 20 specs |
 
 ---
 
@@ -117,18 +131,20 @@ Vite build проверяет:
 
 ### Формат: Ожидаемые HTTP-коды
 
-#### Auth
+#### Auth (Magic Link only — v2.5+)
+
+> Telegram login (`/auth/telegram*`) **удалён** (ADR-AUTH-01). Telegram — только notify bind.
 
 | Endpoint | 200 | 400 | 401 | 404 | 429 |
 |----------|-----|-----|-----|-----|-----|
-| POST /auth/telegram | Токены выданы | Невалидные данные | - | - | Rate limit |
-| POST /auth/telegram-code | Токены выданы | Неверный код | - | - | Rate limit |
-| POST /auth/refresh | Новый access token | Невалидный refresh | - | - | - |
-| GET /auth/me | Профиль | - | Не авторизован | - | - |
-| PUT /auth/me | Обновлён | Невалидные данные | Не авторизован | - | - |
-| POST /auth/logout | Выход | - | Не авторизован | - | - |
-
-> **Примечание:** Magic Link эндпоинты (`/auth/magic-link`, `/auth/magic-link/verify`) существуют в коде, но на фронтенде не используются. Авторизация — только через Telegram.
+| POST /auth/magic-link | Код отправлен | Невалидный email | — | — | Rate limit (3/10m) |
+| POST /auth/magic-link/verify | Токены выданы | Неверный код | — | — | Rate limit |
+| POST /auth/refresh | Новый access token | Невалидный refresh | 401 expired | — | — |
+| GET /auth/me | Профиль | — | Не авторизован | — | — |
+| PUT /auth/me | Обновлён | Невалидные данные | Не авторизован | — | — |
+| POST /auth/logout | Выход | — | Не авторизован | — | — |
+| GET /auth/sessions | Список сессий | — | 401 | — | — |
+| DELETE /auth/sessions/:id | Сессия отозвана | — | 401 | — | — |
 
 #### Projects
 
@@ -183,21 +199,22 @@ Vite build проверяет:
 
 > Каждый тест-кейс (TC-*) связан с автоматизированными unit-тестами. Колонка **Автотест** указывает Go test function, покрывающую данный сценарий.
 
-### AUTH — Авторизация
+### AUTH — Авторизация (Magic Link)
 
 | ID | Название | Предусловие | Шаги | Ожидаемый результат | Автотест |
 |----|----------|-------------|------|---------------------|----------|
-| TC-AUTH-01 | Telegram: авторизация по коду | Код получен от бота | POST /auth/telegram-code {code} | 200, access + refresh token | `TestGenerateCode`, `TestVerifyTelegramAuth_ValidSignature` |
-| TC-AUTH-02 | Telegram: невалидный код | - | POST /auth/telegram-code {code: "000000"} | 400/401 | `TestVerifyTelegramAuth_InvalidHash` |
-| TC-AUTH-03 | Telegram: widget авторизация | Telegram widget data | POST /auth/telegram {data} | 200, access + refresh token | `TestVerifyTelegramAuth_ValidSignature` |
-| TC-AUTH-04 | Refresh: обновление токена | Валидный refresh token | POST /auth/refresh {refresh_token} | 200, новый access token | `TestJWTRoundTrip` |
-| TC-AUTH-05 | Refresh: истёкший токен | Просроченный refresh | POST /auth/refresh {refresh_token} | 401 | `TestJWTExpired`, `TestJWTWrongSecret` |
-| TC-AUTH-06 | Профиль: получение | Авторизован | GET /auth/me | 200, данные профиля | `TestGetMe_Unauthenticated` |
-| TC-AUTH-07 | Профиль: обновление | Авторизован | PUT /auth/me {name, timezone} | 200, обновлён | `TestSendMagicLink_InvalidEmail` (handler validation) |
-| TC-AUTH-08 | Сессии: список | Авторизован | GET /auth/sessions | 200, список сессий | — (ручной) |
-| TC-AUTH-09 | Сессии: отзыв | Авторизован, 2+ сессии | DELETE /auth/sessions/:id | 200, сессия удалена | — (ручной) |
-| TC-AUTH-10 | Rate limit | - | 4 запроса за 10 мин | 429 на 4-м запросе | — (ручной) |
-| TC-AUTH-11 | Онбординг: завершение | Авторизован, onboarding_completed=false | POST /auth/me/onboarding | 200, onboarding_completed=true | — (ручной) |
+| TC-AUTH-01 | Magic Link: запрос кода | Email в org | POST /auth/magic-link {email} | 200, код отправлен | handler validation tests |
+| TC-AUTH-02 | Magic Link: верификация | Код из email | POST /auth/magic-link/verify | 200, access + refresh | `TestVerifyMagicLink_*` |
+| TC-AUTH-03 | Magic Link: неверный код | — | verify с wrong code | 400/401 | `ConstantTimeCompare` path |
+| TC-AUTH-04 | Refresh: обновление токена | Валидный refresh | POST /auth/refresh | 200, новый access | JWT round-trip tests |
+| TC-AUTH-05 | Refresh: истёкший токен | Просроченный refresh | POST /auth/refresh | 401 | `TestJWTExpired` |
+| TC-AUTH-06 | Профиль: получение | Авторизован | GET /auth/me | 200 | handler tests |
+| TC-AUTH-07 | Профиль: обновление | Авторизован | PUT /auth/me | 200 | handler validation |
+| TC-AUTH-08 | Сессии: список | Авторизован | GET /auth/sessions | 200 | — (E2E/manual) |
+| TC-AUTH-09 | Сессии: отзыв | 2+ сессии | DELETE /auth/sessions/:id | 200 | — (E2E/manual) |
+| TC-AUTH-10 | Rate limit | — | 4 auth запроса за 10 мин | 429 на 4-м | manual / middleware test |
+| TC-AUTH-11 | Онбординг | onboarding=false | POST /auth/me/onboarding | 200 | `onboarding-profile.spec.ts` |
+| TC-AUTH-12 | Logout | Авторизован | POST /auth/logout | 200, refresh revoked | `logout.spec.ts` |
 
 ### PROJ — Проекты
 
@@ -390,17 +407,16 @@ Vite build проверяет:
 
 ## Regression-тесты
 
-### Критический путь (после каждого деплоя)
+### Критический путь (после каждого деплоя / CI e2e-full)
 
-1. **Авторизация**: Telegram code -> verify -> получить токен -> GET /auth/me
-2. **Проект**: Создать проект -> проверить workflow + канал создан
-3. **Задача**: Создать задачу -> обновить статус -> добавить комментарий
-4. **Мессенджер**: Отправить сообщение -> реакция -> тред
-5. **TMS**: Создать кейс -> прогон -> результат passed
-6. **Звонок**: Создать звонок -> получить LiveKit token
-7. **Гостевой звонок**: POST /calls/guest-join с invite_code -> получить гостевой LiveKit token
-8. **Дашборд**: GET /dashboard/personal -> виджеты с данными
-9. **Уведомления**: Назначить задачу -> проверить уведомление
+1. **Авторизация**: Magic Link или dev-login → GET /auth/me
+2. **Проект**: Создать проект → workflow + канал
+3. **Задача**: CRUD issue → смена статуса → комментарий
+4. **Мессенджер**: Отправить сообщение → реакция → тред
+5. **TMS**: Кейс → прогон → результат passed
+6. **Ctrl+K**: Глобальный поиск
+7. **Logout**: POST /auth/logout → redirect login
+8. **a11y**: axe на login + authenticated routes
 
 ### WebSocket Regression
 
@@ -434,18 +450,20 @@ Vite build проверяет:
 | 4 запроса auth за 10 мин | 4-й -> 429 |
 | 101 API запрос за 1 сек | 101-й -> 429 |
 | 11 file uploads за 1 мин | 11-й -> 429 |
-| 301 сообщение за 1 мин | 301-е -> 429 |
+| 61 сообщение за 1 мин | 61-й -> 429 (лимит **60/мин**, `MessageSendRateLimit`) |
 
 ---
 
 ## Ручное тестирование — чеклист по фичам
 
 ### Авторизация
-- [ ] Telegram: вход по 6-значному коду
-- [ ] Telegram: вход через Telegram widget
-- [ ] Профиль: редактирование имени, аватара, часового пояса
-- [ ] Сессии: просмотр списка, отзыв сессии
-- [ ] Онбординг: все 3 шага (профиль -> тур -> тема/проект)
+- [ ] Magic Link: email → код → вход
+- [ ] Dev-login (только DEV_MODE)
+- [ ] Профиль: имя, timezone, язык
+- [ ] Сессии: список, отзыв
+- [ ] Logout: POST /auth/logout
+- [ ] Онбординг: 3 шага
+- [ ] Telegram: **только** привязка уведомлений (не login)
 
 ### Проекты
 - [ ] Создание проекта с ключом
@@ -522,4 +540,4 @@ WCAG 2.1 AA (целевой для v2.0 Redesign)
 
 ---
 
-*Последнее обновление: 2026-03-30*
+*Последнее обновление: 2026-06-21 — Magic Link auth, CI Go 1.25, coverage 82%+, e2e testframework/*

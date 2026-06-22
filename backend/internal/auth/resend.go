@@ -33,7 +33,7 @@ func NewResendEmailClient(apiKey, fromEmail string) *ResendEmailClient {
 	}
 }
 
-// resendRequest -- тело запроса к Resend API /emails.
+// resendRequest — тело запроса к Resend API /emails.
 type resendRequest struct {
 	From    string `json:"from"`
 	To      []string `json:"to"`
@@ -75,8 +75,7 @@ func (r *ResendEmailClient) SendMagicLinkEmail(ctx context.Context, to, code str
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		// BE-H1: cap response body at 10MB to prevent memory DoS via a
-		// hostile/oversized upstream response.
+		// BE-H1: лимит тела ответа 10MB — защита от memory DoS через oversized upstream.
 		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResendResponseBodyBytes))
 		if readErr != nil {
 			return fmt.Errorf("resend: API error (status %d), failed to read body: %w", resp.StatusCode, readErr)

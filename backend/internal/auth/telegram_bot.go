@@ -21,12 +21,12 @@ import (
 const (
 	tgCodeTTL         = 5 * time.Minute
 	tgCodePrefix      = "tglogin:"
-	tgVerifyFailsMax  = 5 // max failed VerifyCode attempts per IP within TTL window
+	tgVerifyFailsMax  = 5 // лимит неудачных VerifyCode на IP в окне TTL (HI-04)
 	tgFailsPrefix     = "tglogin:fails:"
 )
 
-// TelegramBotAuth — legacy login bot helpers (VerifyCode retained for tests).
-// Notify/bind polling — Phase 15 Wave 3 (notification package).
+// TelegramBotAuth — legacy-хелперы login-бота (VerifyCode сохранён для тестов).
+// Polling bind/notify — Phase 15 Wave 3 (пакет notification).
 type TelegramBotAuth struct {
 	bot   *telego.Bot
 	redis *redis.Client
@@ -46,7 +46,7 @@ func NewTelegramBotAuth(botToken string, rdb *redis.Client) *TelegramBotAuth {
 	return &TelegramBotAuth{bot: bot, redis: rdb}
 }
 
-// StartPolling — deprecated for AUTH-01; notify bind bot uses notification package (Wave 3).
+// StartPolling устарел для AUTH-01; bind-бот обслуживается notification (Wave 3).
 func (t *TelegramBotAuth) StartPolling(ctx context.Context) {
 	if t == nil {
 		return
@@ -102,8 +102,7 @@ func (t *TelegramBotAuth) handleLogin(ctx context.Context, msg *telego.Message) 
 	}
 }
 
-// ErrTelegramVerifyLimited indicates the caller (identified by IP) has exceeded
-// the per-IP failed-attempt limit for Telegram code verification.
+// ErrTelegramVerifyLimited — превышен лимит неудачных попыток верификации Telegram-кода с IP.
 var ErrTelegramVerifyLimited = fmt.Errorf("too many telegram verification attempts, try again later")
 
 // VerifyCode проверяет код и возвращает данные Telegram-пользователя.
@@ -162,8 +161,7 @@ func (t *TelegramBotAuth) VerifyCode(ctx context.Context, code, clientKey string
 	}, nil
 }
 
-// recordVerifyFailure increments the per-client failed-attempt counter and sets
-// the TTL on first failure to roughly the code TTL.
+// recordVerifyFailure увеличивает счётчик неудач клиента; TTL задаётся при первой ошибке (~tgCodeTTL).
 func (t *TelegramBotAuth) recordVerifyFailure(ctx context.Context, failsKey string) {
 	if failsKey == "" {
 		return

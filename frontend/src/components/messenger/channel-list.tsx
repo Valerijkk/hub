@@ -279,7 +279,12 @@ function MuteContextMenu({
 	return (
 		<>
 			{/* Невидимый оверлей для закрытия меню. */}
-			<div className="fixed inset-0 z-40" onClick={onClose} />
+			<button
+				type="button"
+				className="fixed inset-0 z-40 cursor-default border-0 bg-transparent p-0"
+				aria-label="Закрыть меню"
+				onClick={onClose}
+			/>
 			<div
 				className="fixed z-50 min-w-[160px] rounded-md border bg-popover p-1 shadow-lg animate-in fade-in-0 zoom-in-95"
 				style={{ left: position.x, top: position.y }}
@@ -392,7 +397,7 @@ function ChannelItem({
 				onClick={onSelect}
 				onContextMenu={handleContextMenu}
 			>
-				{/* Icon with online dot for DM */}
+				{/* Иконка DM с online-точкой */}
 				<div className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-[13.5px] font-bold shrink-0 relative hover:scale-105 transition-transform">
 					<ChannelIcon type={channel.channel_type} />
 					{channel.channel_type === "dm" && partnerId && (
@@ -402,7 +407,7 @@ function ChannelItem({
 					)}
 				</div>
 
-				{/* Name + preview + time */}
+				{/* Имя + превью + время */}
 				<div className="flex-1 min-w-0">
 					<div className="flex items-center justify-between gap-2">
 						<span
@@ -419,14 +424,14 @@ function ChannelItem({
 					</div>
 				</div>
 
-				{/* Muted indicator */}
+				{/* Индикатор mute */}
 				{muted && (
 					<span className="shrink-0" title="Канал замьючен">
 						<MutedIcon />
 					</span>
 				)}
 
-				{/* Star button (visible on hover or if starred) */}
+				{/* Кнопка «В избранное» (hover или уже starred) */}
 				<button
 					type="button"
 					className={cn(
@@ -441,7 +446,7 @@ function ChannelItem({
 					<StarIcon filled={channel.is_starred} />
 				</button>
 
-				{/* Unread badge */}
+				{/* Бейдж непрочитанных */}
 				{unread > 0 && (
 					<span className="bg-gradient-to-br from-[var(--green)] to-[var(--greenS)] text-white text-[10px] font-bold px-[7px] py-0.5 rounded-full min-w-[20px] text-center shadow-[0_2px_8px_var(--gG)]">
 						{unread > 99 ? "99+" : unread}
@@ -488,15 +493,15 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 	const matchRoute = useMatchRoute();
 	const [searchQuery, setSearchQuery] = useState("");
 
-	// DM presence tracking not available -- backend ChannelResponse does not include members list.
+	// Presence для DM недоступен — ChannelResponse не содержит members.
 	const dmUserIds: string[] = [];
 	const { getStatus } = usePresence(dmUserIds);
 
 	const allChannels = channels ?? [];
 
 	// Фильтрация каналов по поисковому запросу.
-	// NOTE: useMemo must be called unconditionally (before any early return)
-	// to comply with React's rules of hooks.
+	// NOTE: useMemo до любого early return (Rules of Hooks).
+	// См. Rules of Hooks — порядок вызовов хуков фиксирован.
 	const filteredChannels = useMemo(() => {
 		if (!searchQuery.trim()) return allChannels;
 		const q = searchQuery.toLowerCase();
@@ -565,7 +570,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 
 	return (
 		<div className="w-[280px] min-w-[280px] h-full border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x">
-			{/* Header */}
+			{/* Заголовок */}
 			<div className="px-3.5 pt-3.5 pb-2">
 				<div className="flex items-center justify-between mb-2">
 					<span className="text-sm font-semibold tracking-wide text-[var(--t1)]">
@@ -575,7 +580,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 						<BookmarksButton />
 					</div>
 				</div>
-				{/* Pill-shaped search input per mockup 03-messenger */}
+				{/* Pill-поиск по mockup 03-messenger */}
 				<div className="relative">
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[var(--t3)] pointer-events-none" />
 					<input
@@ -588,7 +593,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 				</div>
 			</div>
 
-			{/* Channel list */}
+			{/* Список каналов */}
 			<div className="flex-1 overflow-y-auto">
 				<div className="py-1 space-y-2">
 					{/* Закреплённые каналы (starred) */}
@@ -629,7 +634,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 				</div>
 			</div>
 
-			{/* Bottom panel -- create channel + new DM */}
+			{/* Нижняя панель: канал + новый DM */}
 			<div className="border-t border-[var(--b1)] px-3.5 h-12 flex items-center gap-2">
 				<NewDmDialog />
 				<Dialog>

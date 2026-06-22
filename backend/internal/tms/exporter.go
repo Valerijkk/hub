@@ -281,7 +281,7 @@ func truncate(s string, maxLen int) string {
 	return string(runes[:maxLen]) + "..."
 }
 
-// Ensure maroto imports are used
+// Гарантируем использование импортов maroto
 var (
 	_ = row.New
 )

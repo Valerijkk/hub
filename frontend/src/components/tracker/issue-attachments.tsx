@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import { uploadFile } from "@/api/files";
+import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 
 interface Attachment {

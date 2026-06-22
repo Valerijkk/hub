@@ -97,7 +97,7 @@ func (c *AuditConsumer) processEvent(ctx context.Context, msg jetstream.Msg) {
 func (c *AuditConsumer) mapSubjectToAction(subject string) (string, string) {
 	parts := strings.Split(subject, ".")
 
-	// auth.session.created -> login, session
+	// auth.session.{event} -> login/logout, session
 	if len(parts) >= 3 && parts[0] == "auth" && parts[1] == "session" {
 		switch parts[2] {
 		case "created":
@@ -107,7 +107,7 @@ func (c *AuditConsumer) mapSubjectToAction(subject string) (string, string) {
 		}
 	}
 
-	// tracker.{projID}.issue.created -> create, issue
+	// tracker.{projID}.{entity}.{event} -> CRUD по типу сущности
 	if len(parts) >= 2 && parts[0] == "tracker" {
 		if len(parts) >= 4 {
 			entityType := parts[2]
@@ -116,13 +116,13 @@ func (c *AuditConsumer) mapSubjectToAction(subject string) (string, string) {
 		}
 	}
 
-	// project.created, project.updated, project.deleted
+	// project.{created|updated|deleted}
 	if len(parts) >= 2 && parts[0] == "project" {
 		action := mapCRUDSuffix(parts[len(parts)-1])
 		return action, "project"
 	}
 
-	// tms.{projID}.testcase.created
+	// tms.{projID}.{entity}.{event}
 	if len(parts) >= 2 && parts[0] == "tms" {
 		if len(parts) >= 4 {
 			entityType := parts[2]
@@ -131,7 +131,7 @@ func (c *AuditConsumer) mapSubjectToAction(subject string) (string, string) {
 		}
 	}
 
-	// messenger.channel.{id}.message.sent
+	// messenger.channel.{id}.{entity}.{event}
 	if len(parts) >= 2 && parts[0] == "messenger" {
 		if len(parts) >= 5 {
 			entityType := parts[3]
@@ -140,7 +140,7 @@ func (c *AuditConsumer) mapSubjectToAction(subject string) (string, string) {
 		}
 	}
 
-	// calls.channel.{id}.started
+	// calls.channel.{id}.{event}
 	if len(parts) >= 2 && parts[0] == "calls" {
 		if len(parts) >= 4 {
 			action := mapCRUDSuffix(parts[3])

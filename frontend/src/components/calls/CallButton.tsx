@@ -1,7 +1,6 @@
 import { Loader2, Phone } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { toastApiError } from "@/lib/format-api-error";
 import type { CallResponse } from "@/api/calls";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +9,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toastApiError } from "@/lib/format-api-error";
 import { useCallStore } from "@/stores/call-store";
 
 /** Пропсы компонента CallButton. */

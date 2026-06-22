@@ -13,6 +13,7 @@ import (
 	"github.com/fasthttp/websocket"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
+	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 	"github.com/valerii/hub/backend/internal/auth"
 )
@@ -86,7 +87,7 @@ func checkOrigin(ctx *fasthttp.RequestCtx) bool {
 
 	origin := strings.TrimSpace(string(ctx.Request.Header.Peek("Origin")))
 	if origin == "" {
-		// Non-browser клиенты (CLI, тесты) — пропускаем.
+		// Небраузерные клиенты (CLI, тесты) — CSWSH не применим без Origin.
 		return true
 	}
 
@@ -149,7 +150,7 @@ func Handler(hub *Hub, authSvc *auth.AuthService, authz Authorizer) fiber.Handle
 		authz = allowAllAuthorizer{}
 	}
 	return func(c fiber.Ctx) error {
-		// Extract and validate JWT from query param BEFORE upgrade (Pitfall 1).
+		// JWT из query до upgrade — после hijack fiber.Ctx недоступен (Pitfall 1).
 		tokenStr := utils.CopyString(c.Query("token"))
 		if tokenStr == "" {
 			return fiber.NewError(fiber.StatusUnauthorized, "missing token query parameter")
@@ -160,9 +161,22 @@ func Handler(hub *Hub, authSvc *auth.AuthService, authz Authorizer) fiber.Handle
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid or expired token")
 		}
 
-		// Copy values before upgrade (Pitfall 1).
+		// Копируем userID/sessionID до upgrade (Pitfall 1).
 		userID := utils.CopyString(claims.UserID)
 		sessionID := utils.CopyString(claims.SessionID)
+
+		// ME-13: та же проверка deactivated, что и RequireAuth — до WS upgrade.
+		uid, parseErr := uuid.Parse(userID)
+		if parseErr != nil {
+			return fiber.NewError(fiber.StatusUnauthorized, "invalid token claims")
+		}
+		deactivated, statusErr := authSvc.IsUserDeactivated(c.Context(), uid)
+		if statusErr != nil {
+			return fiber.NewError(fiber.StatusServiceUnavailable, "unable to verify account status")
+		}
+		if deactivated {
+			return fiber.NewError(fiber.StatusForbidden, "user account is deactivated")
+		}
 
 		return upgrader.Upgrade(c.Context(), func(conn *websocket.Conn) {
 			client := NewClient(userID, sessionID)
@@ -173,10 +187,10 @@ func Handler(hub *Hub, authSvc *auth.AuthService, authz Authorizer) fiber.Handle
 				conn.Close()
 			}()
 
-			// Start write pump in a separate goroutine.
+			// writePump в отдельной goroutine — readPump блокирует conn на чтении.
 			go writePump(conn, client)
 
-			// Read pump runs on the current goroutine.
+			// readPump на текущей goroutine — conn закрывается при выходе из readPump.
 			readPump(conn, client, hub, authz)
 		})
 	}

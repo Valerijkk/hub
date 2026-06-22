@@ -1,5 +1,5 @@
 /**
- * Widget "Team Activity" -- list of recent project actions.
+ * Виджет «Активность команды» — последние действия в проекте.
  */
 import { Users } from "lucide-react";
 import type { ActivityEntry, ProjectStats } from "@/api/dashboard";
@@ -8,7 +8,7 @@ interface Props {
 	data?: unknown;
 }
 
-/** Team activity widget. */
+/** Виджет активности команды. */
 export function TeamActivityWidget({ data }: Props) {
 	const projectData = data as ProjectStats | undefined;
 	const activities = projectData?.team_activity ?? [];
@@ -30,7 +30,7 @@ export function TeamActivityWidget({ data }: Props) {
 					key={`${entry.created_at}-${entry.user_name}-${entry.action}-${entry.target ?? ""}`}
 					className="group flex items-start gap-3 rounded-lg px-2 py-2 text-sm transition-colors duration-150 hover:bg-accent/50"
 				>
-					{/* Avatar */}
+					{/* Аватар */}
 					<div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-border/50 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
 						{entry.user_name?.charAt(0)?.toUpperCase() ?? "?"}
 					</div>

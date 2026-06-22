@@ -6,12 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// SystemSetting holds the schema definition for the SystemSetting entity.
+// SystemSetting — определение Ent-схемы сущности SystemSetting.
 type SystemSetting struct {
 	ent.Schema
 }
 
-// Fields of the SystemSetting.
+// Поля сущности SystemSetting.
 func (SystemSetting) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).

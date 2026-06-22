@@ -7,10 +7,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Test run handlers
+// Обработчики прогонов тестов
 // ---------------------------------------------------------------------------
 
-// CreateTestRun handles POST /api/projects/:projectId/tms/runs
+// CreateTestRun обрабатывает POST /api/projects/:projectId/tms/runs
 // @Summary Create test run
 // @Tags TMS
 // @Accept json
@@ -42,7 +42,7 @@ func (h *Handler) CreateTestRun(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListTestRuns handles GET /api/projects/:projectId/tms/runs
+// ListTestRuns обрабатывает GET /api/projects/:projectId/tms/runs
 // @Summary List test runs
 // @Tags TMS
 // @Produce json
@@ -71,14 +71,14 @@ func (h *Handler) ListTestRuns(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetTestRun handles GET /api/projects/:projectId/tms/runs/:runId
+// GetTestRun обрабатывает GET /api/projects/:projectId/tms/runs/:runId
 // @Summary Get test run
 // @Tags TMS
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {object} TestRunResponse
-// @Failure 404 {object} errors.AppError
+// @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId} [get]
 func (h *Handler) GetTestRun(c fiber.Ctx) error {
 	runID, err := httputil.ParseUUIDParam(c, "runId")
@@ -94,7 +94,7 @@ func (h *Handler) GetTestRun(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateRunStatus handles PUT /api/projects/:projectId/tms/runs/:runId/status
+// UpdateRunStatus обрабатывает PUT /api/projects/:projectId/tms/runs/:runId/status
 // @Summary Update run status
 // @Tags TMS
 // @Accept json
@@ -103,7 +103,7 @@ func (h *Handler) GetTestRun(c fiber.Ctx) error {
 // @Param runId path string true "Run ID"
 // @Param body body UpdateRunStatusRequest true "New status"
 // @Success 200 {object} TestRunResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/status [put]
 func (h *Handler) UpdateRunStatus(c fiber.Ctx) error {
 	runID, err := httputil.ParseUUIDParam(c, "runId")
@@ -124,14 +124,14 @@ func (h *Handler) UpdateRunStatus(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ReopenTestRun handles POST /api/projects/:projectId/tms/runs/:runId/reopen
+// ReopenTestRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/reopen
 // @Summary Reopen test run
 // @Tags TMS
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {object} TestRunResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/reopen [post]
 func (h *Handler) ReopenTestRun(c fiber.Ctx) error {
 	runID, err := httputil.ParseUUIDParam(c, "runId")
@@ -148,10 +148,10 @@ func (h *Handler) ReopenTestRun(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Test result handlers
+// Обработчики результатов тестов
 // ---------------------------------------------------------------------------
 
-// CreateTestResult handles POST /api/projects/:projectId/tms/runs/:runId/results
+// CreateTestResult обрабатывает POST /api/projects/:projectId/tms/runs/:runId/results
 // @Summary Create test result
 // @Tags TMS
 // @Accept json
@@ -180,7 +180,7 @@ func (h *Handler) CreateTestResult(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ExecuteTestResult handles PUT /api/projects/:projectId/tms/runs/:runId/results/:resultId
+// ExecuteTestResult обрабатывает PUT /api/projects/:projectId/tms/runs/:runId/results/:resultId
 // @Summary Execute test result (update status, steps, comment, files)
 // @Tags TMS
 // @Accept json
@@ -190,7 +190,7 @@ func (h *Handler) CreateTestResult(c fiber.Ctx) error {
 // @Param resultId path string true "Result ID"
 // @Param body body UpdateTestResultRequest true "Execution data"
 // @Success 200 {object} TestResultResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/results/{resultId} [put]
 func (h *Handler) ExecuteTestResult(c fiber.Ctx) error {
 	runID, err := httputil.ParseUUIDParam(c, "runId")
@@ -219,7 +219,7 @@ func (h *Handler) ExecuteTestResult(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ListTestResults handles GET /api/projects/:projectId/tms/runs/:runId/results
+// ListTestResults обрабатывает GET /api/projects/:projectId/tms/runs/:runId/results
 // @Summary List run results
 // @Tags TMS
 // @Produce json
@@ -242,10 +242,10 @@ func (h *Handler) ListTestResults(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Extended run operation handlers
+// Обработчики расширенных операций прогона
 // ---------------------------------------------------------------------------
 
-// AddTestCasesToRun handles POST /api/projects/:projectId/tms/runs/:runId/cases
+// AddTestCasesToRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/cases
 // @Summary Add test cases to run
 // @Tags TMS
 // @Accept json
@@ -254,7 +254,7 @@ func (h *Handler) ListTestResults(c fiber.Ctx) error {
 // @Param runId path string true "Run ID"
 // @Param body body AddTestCasesToRunRequest true "List of test case IDs"
 // @Success 200 {object} TestRunDetailResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/cases [post]
 func (h *Handler) AddTestCasesToRun(c fiber.Ctx) error {
 	runID, err := httputil.ParseUUIDParam(c, "runId")
@@ -275,7 +275,7 @@ func (h *Handler) AddTestCasesToRun(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// AssignTestersToRun handles POST /api/projects/:projectId/tms/runs/:runId/assignees
+// AssignTestersToRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/assignees
 // @Summary Assign testers to run
 // @Tags TMS
 // @Accept json
@@ -284,7 +284,7 @@ func (h *Handler) AddTestCasesToRun(c fiber.Ctx) error {
 // @Param runId path string true "Run ID"
 // @Param body body AssignTestersRequest true "List of user IDs"
 // @Success 200 {object} TestRunDetailResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/assignees [post]
 func (h *Handler) AssignTestersToRun(c fiber.Ctx) error {
 	runID, err := httputil.ParseUUIDParam(c, "runId")
@@ -305,14 +305,14 @@ func (h *Handler) AssignTestersToRun(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// StartTestRun handles POST /api/projects/:projectId/tms/runs/:runId/start
+// StartTestRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/start
 // @Summary Start test run (created -> in_progress)
 // @Tags TMS
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {object} TestRunResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/start [post]
 func (h *Handler) StartTestRun(c fiber.Ctx) error {
 	runID, err := httputil.ParseUUIDParam(c, "runId")
@@ -328,14 +328,14 @@ func (h *Handler) StartTestRun(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CompleteTestRun handles POST /api/projects/:projectId/tms/runs/:runId/complete
+// CompleteTestRun обрабатывает POST /api/projects/:projectId/tms/runs/:runId/complete
 // @Summary Complete test run (in_progress -> completed)
 // @Tags TMS
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {object} TestRunResponse
-// @Failure 400 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/complete [post]
 func (h *Handler) CompleteTestRun(c fiber.Ctx) error {
 	runID, err := httputil.ParseUUIDParam(c, "runId")
@@ -351,14 +351,14 @@ func (h *Handler) CompleteTestRun(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetTestRunDetail handles GET /api/projects/:projectId/tms/runs/:runId/detail
+// GetTestRunDetail обрабатывает GET /api/projects/:projectId/tms/runs/:runId/detail
 // @Summary Get run details with results and assignees
 // @Tags TMS
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Param runId path string true "Run ID"
 // @Success 200 {object} TestRunDetailResponse
-// @Failure 404 {object} errors.AppError
+// @Failure 404 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/runs/{runId}/detail [get]
 func (h *Handler) GetTestRunDetail(c fiber.Ctx) error {
 	runID, err := httputil.ParseUUIDParam(c, "runId")

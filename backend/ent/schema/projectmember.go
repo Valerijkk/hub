@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// ProjectMember holds the schema definition for the ProjectMember entity.
+// ProjectMember — определение Ent-схемы сущности ProjectMember.
 type ProjectMember struct {
 	ent.Schema
 }
 
-// Fields of the ProjectMember.
+// Поля сущности ProjectMember.
 func (ProjectMember) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -28,7 +28,7 @@ func (ProjectMember) Fields() []ent.Field {
 	}
 }
 
-// Edges of the ProjectMember.
+// Рёбра (edges) сущности ProjectMember.
 func (ProjectMember) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
@@ -45,7 +45,7 @@ func (ProjectMember) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the ProjectMember.
+// Индексы сущности ProjectMember.
 func (ProjectMember) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("user", "project").

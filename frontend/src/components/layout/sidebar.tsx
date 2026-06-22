@@ -31,7 +31,7 @@ export function Sidebar() {
 				collapsed ? "w-[64px]" : "w-[260px]",
 			)}
 		>
-			{/* Gradient edge line */}
+			{/* Градиентная граница sidebar */}
 			<div
 				className="pointer-events-none absolute top-0 right-[-1px] bottom-0 w-px bg-[linear-gradient(180deg,transparent_5%,rgba(251,191,36,.05)_30%,rgba(91,156,245,.04)_60%,transparent_95%)] z-10"
 				aria-hidden="true"

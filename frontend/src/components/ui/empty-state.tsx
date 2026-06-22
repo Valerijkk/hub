@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Shared empty-state placeholder: centered icon, title, optional description. */
+/** Общий empty-state: иконка, заголовок, опционально описание. */
 export function EmptyState({
 	icon: Icon,
 	title,

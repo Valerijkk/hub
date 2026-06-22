@@ -1,4 +1,4 @@
-# Hub — System Specification
+# Hub — Системная спецификация
 
 > Единая база знаний. Обновляется SA при изменении требований.
 > Детали: `docs/TECHNICAL.md`, API: `docs/wiki/API.md`, Swagger: `backend/docs/`
@@ -11,22 +11,33 @@
 
 | Модуль | ID prefix | Ключевые возможности |
 |--------|-----------|---------------------|
-| Auth | AUTH | Magic Link, Telegram, JWT, sessions, onboarding |
+| Auth | AUTH | Magic Link login, org/founder, invite-only, JWT, sessions, TG **notify bind only** |
 | Project | PROJ | CRUD, RBAC, invites, teams, templates, archive |
-| Tracker | TASK | 9 типов, workflow, links, comments, time tracking |
+| Tracker | TASK | 9 типов, workflow, links, comments, time tracking, automation rules |
 | Kanban | KANB | Columns, WIP, swimlanes, filters |
 | Scrum | SCRM | Sprints, burndown, velocity, planning poker |
-| Messenger | MSG | Channels, DMs, threads, reactions, voice messages |
-| TMS | TMS | Cases (classic/BDD), runs, environments, reports |
-| Allure | ALLU | CI parser, matching, notifications |
-| Calls | CALL | LiveKit voice + screen share, recording |
+| Messenger | MSG | Channels, DMs, threads, reactions, voice messages, issue links |
+| TMS | TMS | Cases (classic/BDD), runs, environments, reports, traceability |
+| Allure | ALLU | CI parser, matching, notifications, JUnit webhook |
+| Calls | CALL | LiveKit voice + screen share, recording, scheduled |
 | Dashboard | DASH | Personal/project/admin widgets |
-| Notification | NOTF | In-app, Telegram, Web Push, quiet hours |
-| Search | SRCH | Ctrl+K, JQL, saved filters |
-| GitHub/GitLab | GHUB/GLAB | Webhooks, PR/MR linking |
-| API | API | REST **285** endpoints (+1 WS), API keys, webhooks |
-| Import/Export | IMEX | CSV, JSON, PDF, ZIP backup |
-| Audit | AUDIT | Full audit log, trash, GDPR |
+| Notification | NOTF | In-app, Telegram bind, Web Push, quiet hours |
+| Search | SRCH | Ctrl+K, Meilisearch indexer, JQL, saved filters |
+| GitHub/GitLab | GHUB/GLAB | Webhooks, PR/MR linking, AI PR review |
+| API | API | REST **286** endpoints (+1 WS), API keys, outbound webhooks |
+| Import/Export | IMEX | CSV, JSON, PDF, ZIP backup, Jira import |
+| Audit | AUDIT | Full audit log, trash 30d, GDPR, alerts |
+| AI | AI | Multi-provider gateway, @hub-ai bot, JQL assist, usage audit |
+| Intranet | INTR | News, directory, kudos, random coffee |
+| Calendar | CAL | Unified events (calls, sprints, leave) |
+| CRM | CRM | Contacts, deals (lite) |
+| HR | HR | Leave requests |
+| Accounting | ACCT | Ledger, journal entries, invoices |
+| Bases | BASE | No-code DB (HubBase/Table/Record) |
+| Marketplace | MKT | Internal listings |
+| Mail | MAIL | hub-mail admin, transactional settings |
+| Status | STAT | Public status page |
+| 1C | ONEC | Optional connector (`integrations/onec`) |
 
 ## Нефункциональные требования
 
@@ -53,15 +64,15 @@
 | NFR-19 | Search user-scope | Фильтрация по project/channel membership (NF-03) |
 | NFR-20 | Webhook signature | LiveKit/GitHub: body hash обязателен, skip запрещён (SEC-02) |
 | NFR-21 | Outbound HTTP safety | `SafeHTTPClient` + `ValidateOutboundURL` для user URLs (SSRF) |
-| NFR-22 | Security headers | CSP, HSTS, X-Frame-Options — Phase 16 (v2.5) |
-| NFR-23 | Refresh token storage | Hash в Redis, не plaintext — Phase 16 (v2.5) |
+| NFR-22 | Security headers | CSP, HSTS, X-Frame-Options — ✅ `middleware.SecurityHeaders()` |
+| NFR-23 | Refresh token storage | Hash в Redis, не plaintext — ✅ |
 | NFR-24 | Optimistic locking | `version` int на каждой изменяемой Ent |
 | NFR-25 | Primary keys | UUID v4 only — string IDs запрещены |
 | NFR-26 | Pub/sub transport | NATS JetStream only — Redis pub/sub запрещён |
 | NFR-27 | File upload path | Presigned PUT в SeaweedFS; backend buffer max 25 MB |
 | NFR-28 | Tenancy | Single-tenant (1 instance = 1 team) |
-| NFR-29 | Test coverage gate | ≥50% overall, ≥80% security-critical paths (Phase 18) |
-| NFR-30 | Frontend test gate | Vitest unit + Playwright E2E на критических путях (Phase 18) |
+| NFR-29 | Test coverage gate | ≥50% overall ✅ **82.6%**; ≥80% security-critical ✅ **6/6** |
+| NFR-30 | Frontend test gate | Vitest **99+** tests; Playwright **20** E2E specs ✅ |
 
 ## Модель данных (ER — ключевые сущности)
 
@@ -69,23 +80,26 @@
 
 ```
 User ──┬── Session
+       ├── Organization (1 per instance)
        ├── ProjectMember ── Project ──┬── Issue ──┬── IssueLink
        │                              │           ├── Comment
-       │                              │           ├── Label
+       │                              │           ├── IssueMessageLink
        │                              │           └── CustomFieldValue
-       │                              ├── WorkflowStatus
+       │                              ├── WorkflowStatus / AutomationRule
        │                              ├── Board
        │                              ├── TestCase ── TestRun ── TestResult
        │                              └── Channel (ref)
+       ├── AIProvider / AIUserPreference / AIUsageDaily
+       ├── NewsPost / Kudo / CoffeeEnrollment
+       ├── CRMContact / CRMDeal / LeaveRequest
+       ├── HubBase ── HubTable ── HubColumn ── HubRecord
+       ├── LedgerAccount / JournalEntry / Invoice
        └── NotificationPreference
-
-Role (system: Admin/Member)
-ProjectRole (Owner/Developer/Tester/Viewer + custom RBAC)
-Team ── TeamMember
-InviteLink
-AuditLogEntry
-TrashItem
 ```
+
+**Ent schemas:** **82** сущности в `backend/ent/schema/` (2026-06-21).
+
+**RBAC / прочие PG-сущности:** Role (founder/admin/member), ProjectRole, Team, InviteLink, AuditLog, TrashItem, Label, MarketplaceListing и др.
 
 **Общие поля изменяемых Ent:**
 - `id`: UUID v4 (не string)
@@ -121,9 +135,8 @@ rate_limit:<key> → counter
 
 | Method | Path | Описание |
 |--------|------|----------|
-| POST | `/auth/magic-link` | Отправить Magic Link |
-| POST | `/auth/verify` | Verify code → tokens |
-| POST | `/auth/telegram` | Telegram auth |
+| POST | `/auth/magic-link` | Отправить Magic Link код на email |
+| POST | `/auth/magic-link/verify` | Verify code → tokens |
 | POST | `/auth/refresh` | Refresh access token |
 | GET | `/projects` | List projects |
 | POST | `/projects/:id/issues` | Create issue |
@@ -136,18 +149,18 @@ rate_limit:<key> → counter
 
 Полная спецификация: `docs/wiki/API.md`, Swagger annotations в handlers.
 
-### Endpoint inventory (2026-06-17)
+### Endpoint inventory (2026-06-21)
 
 | Категория | Count | Примечание |
 |-----------|-------|------------|
-| Documented in `docs/wiki/API.md` | **280** | Production routes (без `/api/dev/*`) |
-| Registered in handlers (`RegisterRoutes`) | **283** | 280 production + 3 dev-only |
-| Infra (`/docs`, `/docs/doc.json`, `/health`) | **3** | `cmd/server/main.go` |
-| **Total REST `/api/*`** | **286** | incl. ban endpoint (audit +1) |
-| WebSocket `GET /ws` | **1** | Вне префикса `/api` |
-| Dev-only `/api/dev/*` | **3** | `DEV_MODE` — не в release binary |
+| Documented in `docs/wiki/API.md` | **287+** | v4 + AI routes |
+| Handler `RegisterRoutes` (code) | **283** | 21+ domain handlers |
+| Infra (`/docs`, `/health`, `/metrics`) | **+3** | `cmd/server/main.go` |
+| **Total REST `/api/*`** | **286** | Wiki synced |
+| WebSocket `GET /ws` | **+1** | Вне префикса `/api` |
+| Dev-only `/api/dev/*` | **3** | `DEV_MODE`, не в `-tags release` |
 
-**По модулям (handler routes):** auth 11 · project 22 · templates 5 · rbac 6 · storage 4 · sprint 14 · tracker 38 · messenger 42 · tms 50 · search 5 · notification 10 · audit/admin 11 · dashboard 7 · github 9 · gitlab 7 · calls 21 · apigateway 8 · backup 4 · imex 6 · dev 3.
+**По модулям (handler routes, выборочно):** auth 11 · project 24 · tracker 48 · messenger 44 · tms 52 · calls 24 · search 9 · notification 18 · ai 10+ · intranet 19 · bases 13 · accounting 13 · crm 10 · hr 8 · calendar 4 · marketplace 12 · github 13 · gitlab 11 · sprint 16 · dashboard 9 · audit 13 · apigateway 10 · backup 6 · imex 8 · storage 6 · rbac 8 · status 3 · mail (admin) · onec 5.
 
 ### WebSocket Protocol
 
@@ -194,29 +207,29 @@ Rooms: `project:<id>`, `channel:<id>`, `user:<id>`, `admin:<id>`
 
 Полная матрица: `.planning/COVERAGE.md`
 
-### Аудит SUMMARY.md (2026-05-15) — 57 findings
+### Актуальные пробелы (2026-06-21)
 
-| Severity | Count | Production impact |
-|----------|-------|-------------------|
-| CRITICAL | 12 | Blockers — см. reconciliation в COVERAGE.md |
-| HIGH | 16 | SSRF, IDOR, coverage, frontend auth/bundle |
-| MEDIUM | 21 | Layering, a11y, Repository pattern gaps |
-| LOW/INFO | 8 | Docs drift, unpinned images |
+| Область | Статус | Gap |
+|---------|--------|-----|
+| Backend coverage overall | **82.6%** ✅ | tms/project −0.2% до 82% (FA-11 micro-gap) |
+| US-F03 slash `/ai test-cases` | ⚠️ Partial | Composer suggest вместо slash-команды |
+| Webcam в звонках | ❌ Missing | Phase 16 |
+| Full JQL automation | ⚠️ Partial | Basic JQL + AI assist; full engine Phase 17 |
+| Lighthouse ≥90 formal | ⏳ Pending | E2E a11y есть, Lighthouse audit нет |
+| PG-03 secret rotation | ⚠️ Manual | Секреты в git history — ops runbook |
+| OpenAI-compatible Hub API (US-F06) | ❌ Missing | v3.5 backlog |
+| Test framework migration | 🔄 In progress | TF-M04–M08 Wave B |
 
-**Post-audit code status (2026-06-17):** ~9 из 12 CRITICAL исправлены в коде (SEC-01..07, INF-01/02/04, FE-01). Требуется formal re-audit (SA_VER + security-auditor). Остаются: **INF-03** (secret rotation), **COV-01** (11.5% coverage), **NFR-16/17** (a11y/Lighthouse).
+### Закрытые gaps (post-audit)
 
-### Критические пробелы покрытия тестами
-
-| Область | Текущее | Цель | Gap |
-|---------|---------|------|-----|
-| Backend statement coverage | 11.5% | 50% | Phase 18 |
-| Security-critical packages | <<80% | 80% | auth refresh, ws authz, nats, storage |
-| Frontend Vitest | 0 files | module unit tests | Phase 18 |
-| Playwright E2E | not present | 5+ critical paths | Phase 18 |
-
-### Wiki drift
-
-- `docs/wiki/API.md` синхронизирован с кодом: **280** production routes (+3 dev-only не документированы) = **283** handlers; **286** REST `/api/*` с infra (Stage 4.4, 2026-06-17).
+| Область | Было | Сейчас |
+|---------|------|--------|
+| CRITICAL security (12) | Blockers | **FIXED** в коде |
+| Overall coverage | 11.5% → 56.6% | **82.6%** |
+| Playwright E2E | not present | **20 specs** |
+| Frontend Vitest | 0 | **99+ tests** |
+| Ctrl+K global search | missing UI | **UI ✅** |
+| Security headers NFR-22 | Phase 16 | **✅ deployed** |
 
 ---
-*Последнее обновление: 2026-06-17 — SA gap matrix + endpoint recount*
+*Последнее обновление: 2026-06-21 — RU-D03: v3/v4 FR, endpoint recount, coverage Phase 125*

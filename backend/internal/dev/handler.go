@@ -1,15 +1,15 @@
 //go:build !release
 
-// Package dev provides dev-endpoints for local development:
-// seed demo users, project, issues, boards, labels, test cases and channels.
-// Login without Magic Link / Telegram.
-// All endpoints available only when DEV_MODE=true.
+// Package dev предоставляет dev-эндпоинты для локальной разработки:
+// сидирование демо-пользователей, проекта, задач, досок, меток, тест-кейсов и каналов.
+// Вход без Magic Link / Telegram.
+// Все эндпоинты доступны только при DEV_MODE=true.
 //
-// ME-09: this file is compiled OUT in release builds (`go build -tags release`).
-// In a release binary the stub in handler_release.go provides a no-op
-// Handler whose RegisterRoutes does nothing — so /api/dev/* simply does
-// not exist, regardless of DEV_MODE env var. This makes the dangerous
-// /api/dev/login + /api/dev/seed paths *un-toggle-able at runtime*.
+// ME-09: этот файл НЕ компилируется в release-сборках (`go build -tags release`).
+// В release-бинарнике заглушка в handler_release.go предоставляет no-op
+// Handler, чей RegisterRoutes ничего не делает — поэтому /api/dev/* просто
+// не существует, независимо от переменной DEV_MODE. Это делает опасные
+// пути /api/dev/login и /api/dev/seed *невозможными для включения в рантайме*.
 package dev
 
 import (
@@ -20,19 +20,19 @@ import (
 	"github.com/valerii/hub/backend/internal/auth"
 )
 
-// Handler handles dev-endpoints (seed, login, status).
+// Handler обрабатывает dev-эндпоинты (seed, login, status).
 type Handler struct {
 	db      *ent.Client
 	authSvc *auth.AuthService
 }
 
-// NewHandler creates a new Handler for dev-endpoints.
+// NewHandler создаёт новый Handler для dev-эндпоинтов.
 func NewHandler(db *ent.Client, authSvc *auth.AuthService) *Handler {
 	return &Handler{db: db, authSvc: authSvc}
 }
 
-// RegisterRoutes registers dev routes under /api/dev.
-// All routes are guarded by DevMode check -- returns 404 when DevMode=false.
+// RegisterRoutes регистрирует dev-маршруты под /api/dev.
+// Все маршруты защищены проверкой DevMode — возвращает 404 при DevMode=false.
 func (h *Handler) RegisterRoutes(api fiber.Router, devMode bool) {
 	dev := api.Group("/dev")
 
@@ -49,14 +49,14 @@ func (h *Handler) RegisterRoutes(api fiber.Router, devMode bool) {
 	dev.Post("/login", h.Login)
 }
 
-// --- DTOs ---
+// --- DTO ---
 
-// DevLoginRequest is the request body for POST /api/dev/login.
+// DevLoginRequest — тело запроса для POST /api/dev/login.
 type DevLoginRequest struct {
 	Email string `json:"email"`
 }
 
-// DevUserInfo contains demo user info returned in seed response.
+// DevUserInfo содержит информацию о демо-пользователе в ответе seed.
 type DevUserInfo struct {
 	ID          string `json:"id"`
 	Email       string `json:"email"`
@@ -66,9 +66,9 @@ type DevUserInfo struct {
 	Description string `json:"description"`
 }
 
-// --- Handlers ---
+// --- Обработчики ---
 
-// Status returns 200 if dev mode is active. Used by frontend to detect availability.
+// Status возвращает 200, если dev-режим активен. Используется фронтендом для проверки доступности.
 // @Summary Проверить статус dev-режима
 // @Description Возвращает 200 если dev-режим активен. Используется фронтендом для определения доступности
 // @Tags Разработка
@@ -79,7 +79,7 @@ func (h *Handler) Status(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"dev_mode": true})
 }
 
-// Login performs login without Magic Link -- directly creates a JWT session by email.
+// Login выполняет вход без Magic Link — напрямую создаёт JWT-сессию по email.
 // @Summary Dev-вход по email
 // @Description Создаёт JWT-сессию напрямую по email без magic-link. Только в dev-режиме
 // @Tags Разработка

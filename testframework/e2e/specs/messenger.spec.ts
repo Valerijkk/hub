@@ -1,0 +1,31 @@
+/**
+ * E2E-компонент Hub: messenger.spec.ts.
+ */
+import {
+	skipUnlessBackend,
+	skipUnlessDevMode,
+	test,
+} from "../fixtures";
+import { MessengerPage } from "../pages";
+import { AuthSteps } from "../steps";
+
+// E2E-группа: Мессенджер (FB-08).
+test.describe("Messenger (FB-08)", () => {
+	// Проверяет: отправка сообщения в seed-канале.
+	test("send message in seeded channel", async ({
+		page,
+		backendAvailable,
+		devModeAvailable,
+	}) => {
+		skipUnlessBackend(backendAvailable);
+		skipUnlessDevMode(devModeAvailable);
+
+		const auth = new AuthSteps(page);
+		const messenger = new MessengerPage(page);
+		await auth.loginAsDev(page);
+
+		await messenger.openInbox();
+		const messageText = `E2E ping ${Date.now()}`;
+		await messenger.sendMessage(messageText);
+	});
+});

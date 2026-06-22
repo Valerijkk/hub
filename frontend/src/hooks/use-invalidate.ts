@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
-/** Hooks for centralized React Query cache invalidation. */
+/** Хуки централизованной инвалидации кэша React Query после мутаций. */
 
 export function useInvalidateMessages(channelId: string) {
 	const qc = useQueryClient();

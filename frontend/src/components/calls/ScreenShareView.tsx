@@ -15,7 +15,7 @@ export function ScreenShareView() {
 		return null;
 	}
 
-	/** Grid: 1 share = full width, 2+ = grid cols-2. */
+	/** Сетка: 1 share — на всю ширину, 2+ — cols-2. */
 	const gridClass =
 		tracks.length === 1 ? "grid grid-cols-1" : "grid grid-cols-2";
 

@@ -35,7 +35,7 @@ func shouldSkipHTTPAudit(method, path string) bool {
 		return true
 	}
 	switch path {
-	case "/api/health", "/api/docs", "/api/docs/doc.json":
+	case "/api/health", "/api/status", "/api/docs", "/api/docs/doc.json", "/api/webhooks/alertmanager":
 		return true
 	}
 	if strings.HasPrefix(path, "/api/docs/") {

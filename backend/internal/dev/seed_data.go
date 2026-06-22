@@ -14,7 +14,7 @@ import (
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
-// --- Demo users ---
+// --- Демо-пользователи ---
 
 type demoUser struct {
 	Email        string
@@ -69,7 +69,7 @@ var demoUsers = []demoUser{
 	},
 }
 
-// --- Demo workflow statuses ---
+// --- Демо-статусы workflow ---
 
 type demoStatus struct {
 	Name     string
@@ -87,7 +87,7 @@ var demoStatuses = []demoStatus{
 	{Name: "Готово", Color: "#22C55E", Category: workflowstatus.CategoryDone, Order: 6},
 }
 
-// --- Demo issues ---
+// --- Демо-задачи ---
 
 type demoIssue struct {
 	Key           string
@@ -96,7 +96,7 @@ type demoIssue struct {
 	StatusName    string
 	AssigneeEmail string
 	Priority      issue.Priority
-	ParentKey     string // parent issue key (empty = no parent)
+	ParentKey     string // ключ родительской задачи (пусто = без родителя)
 }
 
 var demoIssues = []demoIssue{
@@ -117,7 +117,7 @@ var demoIssues = []demoIssue{
 	{"DEMO-15", issue.IssueTypeTask, "Написать тесты для auth модуля", "Тестирование", "tester1@hub.local", issue.PriorityMedium, ""},
 }
 
-// --- Demo issue links ---
+// --- Демо-связи задач ---
 
 type demoLink struct {
 	SourceKey string
@@ -130,7 +130,7 @@ var demoLinks = []demoLink{
 	{"DEMO-12", "DEMO-8", issuelink.LinkTypeRelatesTo},
 }
 
-// --- Demo labels ---
+// --- Демо-метки ---
 
 type demoLabel struct {
 	Name  string
@@ -145,7 +145,7 @@ var demoLabels = []demoLabel{
 	{"docs", "#94A3B8"},
 }
 
-// --- Demo test cases ---
+// --- Демо тест-кейсы ---
 
 type demoTestCase struct {
 	CaseKey     string
@@ -197,14 +197,14 @@ var demoTestCases = []demoTestCase{
 	},
 }
 
-// --- Demo channels ---
+// --- Демо-каналы ---
 
 type demoChannel struct {
 	Name         string
 	Description  string
 	Type         channel.ChannelType
 	IsReadonly   bool
-	MemberEmails []string // member emails (empty = all project members)
+	MemberEmails []string // email участников (пусто = все участники проекта)
 }
 
 var demoChannels = []demoChannel{
@@ -225,7 +225,7 @@ var demoChannels = []demoChannel{
 	},
 }
 
-// --- Demo test runs ---
+// --- Демо тестовые прогоны ---
 
 type demoTestRun struct {
 	Title        string
@@ -237,11 +237,11 @@ type demoTestRun struct {
 	SkippedCount int
 	BrokenCount  int
 	UnknownCount int
-	Results      []demoTestResult // results per test case
+	Results      []demoTestResult // результаты по каждому тест-кейсу
 }
 
 type demoTestResult struct {
-	CaseIdx    int // index into demoTestCases
+	CaseIdx    int // индекс в demoTestCases
 	Status     testresult.Status
 	DurationMs int64
 	Comment    string

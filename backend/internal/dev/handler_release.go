@@ -1,17 +1,17 @@
 //go:build release
 
-// Release-build stub for the dev package.
+// Заглушка пакета dev для release-сборки.
 //
-// ME-09: when the binary is built with `-tags release`, all dev endpoints
-// (seed, login, status) are physically compiled out — the only way to
-// "enable" them is to recompile without the `release` build tag, which
-// is impossible to do at runtime. This is strictly stronger than gating
-// on the DEV_MODE env var (which can be flipped by anyone who can edit
-// the deployment manifest).
+// ME-09: при сборке бинарника с `-tags release` все dev-эндпоинты
+// (seed, login, status) физически исключаются из компиляции — единственный способ
+// «включить» их — пересобрать без тега `release`, что
+// невозможно сделать в рантайме. Это строже, чем проверка
+// переменной окружения DEV_MODE (которую может изменить любой, кто редактирует
+// манифест деплоя).
 //
-// The dev.Handler type and its NewHandler / RegisterRoutes methods are
-// re-declared here as no-ops so that cmd/server/main.go continues to
-// compile under both tag sets without code changes.
+// Тип dev.Handler и методы NewHandler / RegisterRoutes
+// переобъявлены здесь как no-op, чтобы cmd/server/main.go продолжал
+// компилироваться с обоими наборами тегов без изменений кода.
 
 package dev
 
@@ -22,18 +22,18 @@ import (
 	"github.com/valerii/hub/backend/internal/auth"
 )
 
-// Handler is a release-build stub. All methods are intentionally no-ops.
+// Handler — заглушка для release-сборки. Все методы намеренно пустые.
 type Handler struct{}
 
-// NewHandler returns a stub handler. db and authSvc are accepted to keep
-// the API identical to the dev-build NewHandler, but neither is stored
-// — the release build deliberately has no dev functionality.
+// NewHandler возвращает заглушку. db и authSvc принимаются для сохранения
+// идентичного API с dev-сборкой NewHandler, но ни один из них не сохраняется —
+// в release-сборке намеренно нет dev-функциональности.
 func NewHandler(_ *ent.Client, _ *auth.AuthService) *Handler {
 	return &Handler{}
 }
 
-// RegisterRoutes is a no-op in release builds. /api/dev/* simply does
-// not exist.
+// RegisterRoutes — no-op в release-сборках. /api/dev/* просто
+// не существует.
 func (h *Handler) RegisterRoutes(_ fiber.Router, _ bool) {
-	// no-op
+	// без действий
 }

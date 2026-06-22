@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// APIKey holds the schema definition for the APIKey entity.
+// APIKey — определение Ent-схемы сущности APIKey.
 type APIKey struct {
 	ent.Schema
 }
 
-// Fields of the APIKey.
+// Поля сущности APIKey.
 func (APIKey) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -45,7 +45,7 @@ func (APIKey) Fields() []ent.Field {
 	}
 }
 
-// Edges of the APIKey.
+// Рёбра (edges) сущности APIKey.
 func (APIKey) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
@@ -55,7 +55,7 @@ func (APIKey) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the APIKey.
+// Индексы сущности APIKey.
 func (APIKey) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("key_hash"),

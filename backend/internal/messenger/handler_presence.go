@@ -7,10 +7,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Typing handler
+// Обработчик набора текста
 // ---------------------------------------------------------------------------
 
-// SendTyping godoc
+// SendTyping — Отправить индикатор набора
 // @Summary Отправить индикатор набора
 // @Description Публикует событие "пользователь печатает" для участников канала.
 // @Tags Мессенджер
@@ -38,16 +38,16 @@ func (h *Handler) SendTyping(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Presence handlers
+// Обработчики присутствия
 // ---------------------------------------------------------------------------
 
-// GetPresence godoc
+// GetPresence — Получить статус присутствия
 // @Summary Получить статус присутствия
 // @Description Возвращает статус онлайн/оффлайн для указанных пользователей.
 // @Tags Мессенджер
 // @Produce json
 // @Param user_ids query string true "Список ID пользователей через запятую"
-// @Success 200 {object} map[string]PresenceStatus "Статусы пользователей"
+// @Success 200 {object} map[string]string "Статусы пользователей"
 // @Failure 400 {object} fiber.Error "Параметр user_ids обязателен"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -67,7 +67,7 @@ func (h *Handler) GetPresence(c fiber.Ctx) error {
 	return c.JSON(statuses)
 }
 
-// SetCustomStatus godoc
+// SetCustomStatus — Установить пользовательский статус
 // @Summary Установить пользовательский статус
 // @Description Устанавливает текстовый статус пользователя с опциональной длительностью.
 // @Tags Мессенджер
@@ -99,7 +99,7 @@ func (h *Handler) SetCustomStatus(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
-// Heartbeat godoc
+// Heartbeat — Heartbeat присутствия
 // @Summary Heartbeat присутствия
 // @Description Обновляет таймстамп активности пользователя для отслеживания онлайн-статуса.
 // @Tags Мессенджер

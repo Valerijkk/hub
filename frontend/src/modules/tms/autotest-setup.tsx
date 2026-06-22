@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react";
+import { ContextHelpTip } from "@/components/help/context-help-tip";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TriggerCIPanel } from "./trigger-ci-dialog";
 
 // ---------------------------------------------------------------------------
-// Autotest Integration Setup Page
+// Страница настройки интеграции автотестов
 // ---------------------------------------------------------------------------
 
 interface Props {
@@ -103,7 +104,7 @@ export function AutotestSetup({ projectId }: Props) {
 			{/* Запуск тестов из Hub */}
 			<TriggerCIPanel projectId={projectId} />
 
-			{/* 1. Webhook URL */}
+			{/* 1. URL вебхука */}
 			<Card>
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2 text-base text-[var(--t1)]">
@@ -121,6 +122,7 @@ export function AutotestSetup({ projectId }: Props) {
 					<div className="space-y-2">
 						<div className="flex items-center gap-2">
 							<Badge variant="outline">Allure JSON</Badge>
+							<ContextHelpTip tipKey="allure" />
 							<span className="text-xs text-t2">POST</span>
 						</div>
 						<CodeBlock code={webhookUrl} />
@@ -137,7 +139,7 @@ export function AutotestSetup({ projectId }: Props) {
 					<p className="text-xs text-t2">
 						Замените{" "}
 						<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
-							{"${YOUR_DOMAIN}"}
+							$&#123;YOUR_DOMAIN&#125;
 						</code>{" "}
 						на адрес вашего Hub-инстанса (например,{" "}
 						<code className="rounded bg-gray-100 dark:bg-gray-800 px-1">
@@ -148,7 +150,7 @@ export function AutotestSetup({ projectId }: Props) {
 				</CardContent>
 			</Card>
 
-			{/* 2. API Token */}
+			{/* 2. API-токен */}
 			<Card>
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2 text-base text-[var(--t1)]">

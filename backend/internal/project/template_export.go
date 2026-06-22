@@ -25,7 +25,7 @@ type TemplateExport struct {
 	Description  string                 `json:"description,omitempty"`
 	TemplateType string                 `json:"template_type"`
 	Config       map[string]interface{} `json:"config"`
-	Version      int                    `json:"version"` // schema version for forward compatibility
+	Version      int                    `json:"version"` // версия схемы для прямой совместимости
 }
 
 const templateExportVersion = 1
@@ -68,7 +68,7 @@ func (s *TemplateService) ImportTemplate(ctx context.Context, userID uuid.UUID, 
 		return nil, fmt.Errorf("template name is required")
 	}
 
-	// Imported templates are always "custom" type, regardless of source.
+	// Импортированные шаблоны всегда имеют тип "custom", независимо от источника.
 	templateType := projecttemplate.TemplateTypeCustom
 
 	config := export.Config

@@ -1,9 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { MagicLinkForm } from "@/components/auth/magic-link-form";
 import { DevLoginPanel } from "@/components/auth/dev-login-panel";
+import { MagicLinkForm } from "@/components/auth/magic-link-form";
 import { useAuthStore } from "@/stores/auth-store";
 
-/* --- Floating feature cards data --- */
+interface LoginSearch {
+	invite?: string;
+}
+
+/* --- Данные floating feature cards --- */
 
 interface FeatureCard {
 	label: string;
@@ -59,6 +63,7 @@ const FLOATING_FEATURES: FeatureCard[] = [
  */
 function LoginPage() {
 	const navigate = useNavigate();
+	const { invite } = Route.useSearch();
 
 	function handleLoginSuccess() {
 		const user = useAuthStore.getState().user;
@@ -138,7 +143,10 @@ function LoginPage() {
 						</div>
 					</div>
 
-					<MagicLinkForm onSuccess={handleLoginSuccess} />
+					<MagicLinkForm
+						onSuccess={handleLoginSuccess}
+						inviteToken={invite ?? ""}
+					/>
 
 					<div className="text-center mt-7 text-sm text-[var(--t2)]">
 						Введите email — мы отправим одноразовый код для входа.
@@ -156,5 +164,8 @@ function LoginPage() {
 }
 
 export const Route = createFileRoute("/login")({
+	validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+		invite: typeof search.invite === "string" ? search.invite : undefined,
+	}),
 	component: LoginPage,
 });

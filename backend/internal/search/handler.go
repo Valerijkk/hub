@@ -95,7 +95,7 @@ func (h *Handler) search(c fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param body body SavedFilterCreateRequest true "Данные фильтра"
-// @Success 201 {object} SavedFilterResponse "Фильтр создан"
+// @Success 201 {object} SavedFilterDTO "Фильтр создан"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
@@ -195,7 +195,7 @@ func (h *Handler) deleteFilter(c fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "ID фильтра"
 // @Param body body SavedFilterShareRequest true "shared: true/false"
-// @Success 200 {object} SavedFilterResponse "Фильтр обновлён"
+// @Success 200 {object} SavedFilterDTO "Фильтр обновлён"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"

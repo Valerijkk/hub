@@ -1,7 +1,9 @@
 # Регламент AI-команды Hub
 
-> Полный цикл разработки: 6 ролей + 6 персональных верификаторов.
-> Ключевой принцип: единая база знаний в `docs/`, верификация каждого действия.
+> Полный цикл разработки: 6 ролей + 6 персональных верификаторов + вспомогательные агенты.  
+> **Ключевой принцип:** единая база знаний в `docs/`, верификация каждого действия, docs sync после каждого изменения.
+
+*Обновлено: 2026-06-21*
 
 ---
 
@@ -18,8 +20,12 @@
 | `docs/stack_and_tools.md` | Стек с версиями, CI/CD, линтеры | ARCH |
 | `docs/code_style_guide.md` | Именование, форматирование, запреты | ARCH |
 | `docs/security_guidelines.md` | OWASP, секреты, auth, чек-лист | ARCH/BE |
+| `docs/tz_constraints.md` | Mandatory/forbidden (tracked ADR) | ARCH |
+| `docs/competitive_analysis_2026.md` | Конкуренты, TCO, gaps | BA |
+| `docs/competitive_audit.md` | Best practices, feature backlog | BA |
+| `docs/user_needs_analysis_2026.md` | Персоны, JTBD, MoSCoW | BA |
 
-Дополнительно (не дублировать): `.planning/ROADMAP.md`, `.planning/STATE.md`, `docs/wiki/`.
+Дополнительно (не дублировать): `.planning/STATE.md`, `.planning/COVERAGE.md`, `.planning/ROADMAP.md`, `docs/wiki/`.
 
 ---
 
@@ -47,13 +53,14 @@
 | FE_VER | `FE_VER_skill.md` | `fe-ver` |
 | QA_VER | `QA_VER_skill.md` | `qa-ver` |
 
-### Вспомогательные (вне регламента)
+### Вспомогательные (вне основного цикла)
 
 | Агент | Назначение |
 |-------|------------|
-| `devops-engineer` | Docker, CI/CD, K3s |
+| `devops-engineer` | Docker, CI/CD, K3s, compose |
 | `debugger` | Root cause analysis |
 | `refactor-specialist` | Массовые rename/move |
+| `docs-writer` | README, wiki, Swagger, phase docs |
 
 Legacy aliases: `business-analyst`→`ba`, `system-analyst`→`sa`, `architect`→`arch`, `backend-dev`→`be`, `frontend-dev`→`fe`, `qa-auto`→`qa`.
 
@@ -63,6 +70,7 @@ Legacy aliases: `business-analyst`→`ba`, `system-analyst`→`sa`, `architect`�
 
 ```
 Агент → изменение в docs/ или коде
+     → docs sync (STATE + domain docs)
      → запись в skill-лог
      → описание простым языком (2–5 предложений)
      → персональный верификатор
@@ -77,36 +85,12 @@ Legacy aliases: `business-analyst`→`ba`, `system-analyst`→`sa`, `architect`�
 
 1. **Контекст задачи** — верификатор воспроизводит сценарий из требований
 2. **Одна нейросеть проверяет другую** — верификатор независим
-3. **Регрессия обязательна после КАЖДОГО изменения** — см. §8; без green `/qa-gate` артефакт не в baseline
+3. **Регрессия обязательна** — см. §8; без green `/qa-gate` артефакт не в baseline
 4. **Полный контекст** — загрузка всех `docs/` перед задачей
 5. **Атомарность** — ≤200–300 строк за итерацию
-6. **Security** — проверка по security_guidelines.md
+6. **Security** — проверка по `security_guidelines.md` и `tz_constraints.md`
 7. **Понятное описание** — 2–5 предложений к каждому артефакту
-
-## 8. Обязательная регрессия после каждого изменения
-
-Любое изменение кода, конфигурации или docs, затрагивающее поведение — **сразу** прогон полного регрессионного набора:
-
-```bash
-# Backend (обязательно)
-cd backend && go build ./... && go vet ./... && go test -race -count=1 -timeout=120s ./...
-
-# Frontend (обязательно при изменениях frontend/)
-cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
-
-# Security scan diff (обязательно)
-git diff --staged | findstr /I "secret password devkey token DEV_MODE"
-```
-
-Или slash-команда: **`/qa-gate`** — останавливается на первой FAIL.
-
-**Правило для агентов (BE, FE, QA, devops):**
-1. Сделал атомарное изменение
-2. Запустил регрессию (минимум затронутый пакет + полный gate перед handoff)
-3. Записал результат в skill-лог (`PASS` / `FAIL`)
-4. Только после green — передача `*-ver`
-
-**Правило для верификаторов:** не ставить `verified: true`, если регрессия не зелёная или не приложен лог прогона.
+8. **Docker для тестов** — канонический прогон: `-tags hubtest` в `deployments/docker-compose.test.yml`
 
 ---
 
@@ -117,13 +101,13 @@ git diff --staged | findstr /I "secret password devkey token DEV_MODE"
 2. SA  → system_specification
 3. ARCH → architecture (если нужно)
 4. BE/FE → код + тесты (атомарно)
-5. **Docs sync** → обновить docs по `.cursor/rules/55-docs-sync.mdc` (STATE + domain docs)
+5. Docs sync → .cursor/rules/55-docs-sync.mdc (STATE + domain docs)
 6. QA  → test_plan, регрессия
 7. *-ver → верификация каждого шага
 8. /qa-gate → финальный чек
 ```
 
-Hotfix (v2.0.1): `be`/`fe` → `be-ver`/`fe-ver` → `/qa-gate`
+Hotfix: `be`/`fe` → `be-ver`/`fe-ver` → `/qa-gate`
 
 ---
 
@@ -133,17 +117,46 @@ Hotfix (v2.0.1): `be`/`fe` → `be-ver`/`fe-ver` → `/qa-gate`
 |---------|------------|
 | `/qa-gate` | build + test + lint + security scan |
 | `/coverage-audit` | матрица требований × код × тесты |
-| `/handoff-sync` | обновить STATE.md, ROADMAP.md, COVERAGE.md + docs matrix (rule 55) |
+| `/handoff-sync` | STATE + ROADMAP + COVERAGE + docs matrix |
 | `/style-check` | anti-AI + deprecated + a11y |
-| `/test-triage` | протокол: функционал → код vs тест (см. skills/test-triage) |
+| `/test-triage` | протокол: функционал → код vs тест |
 
 ---
 
-## 9. GSD Skills Integration
+## 7. Обязательная регрессия (§8)
 
-Hub использует **GSD** (Get Shit Done) skills из `~/.claude/skills/gsd-*/` параллельно с Hub slash-skills.
+Любое изменение кода, конфигурации или docs, затрагивающее поведение — **сразу** прогон регрессии:
 
-**Полная матрица:** `.cursor/GSD-INTEGRATION.md`
+```bash
+# Backend local
+cd backend && go build -tags release ./... && go vet ./... && go test -race -count=1 -timeout=600s ./...
+
+# Backend canonical (Docker)
+docker compose -f deployments/docker-compose.test.yml up -d
+docker run --rm --network deployments_default \
+  -v "${PWD}/backend:/app" -w /app \
+  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
+  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
+  golang:1.25-bookworm \
+  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/..."
+
+# Frontend (при изменениях frontend/)
+cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
+```
+
+Или slash-команда: **`/qa-gate`** — останавливается на первой FAIL.
+
+**Правило для агентов:** сделал изменение → регрессия → skill-лог PASS/FAIL → только после green — передача `*-ver`.
+
+**Правило для верификаторов:** не ставить `verified: true` без green regression + лог прогона.
+
+---
+
+## 8. GSD Skills Integration (§9)
+
+Hub использует **GSD** skills из `~/.claude/skills/gsd-*/` + Hub slash-skills.
+
+**Матрица:** `.cursor/GSD-INTEGRATION.md`
 
 | Ситуация | GSD Skill |
 |----------|-----------|
@@ -153,40 +166,51 @@ Hub использует **GSD** (Get Shit Done) skills из `~/.claude/skills/g
 | Падают тесты / баг | `gsd-debug` + `/test-triage` |
 | Аудит → фикс | `gsd-audit-fix` |
 | Верификация фазы | `gsd-verify-work`, `gsd-validate-phase` |
-| Не знаю команду | `gsd-do` |
+| Docs bulk update | `gsd-docs-update` |
 | Статус / handoff | `gsd-progress`, `/handoff-sync` |
 
-Каждый агент в `.cursor/agents/*.md` и `.cursor/project_skills/*_skill.md` содержит свои GSD-навыки.
+---
+
+## 9. Test Triage (§10)
+
+**Перед исправлением упавшего теста:**
+
+1. Воспроизвести **функционал** по `docs/` (не только assert)
+2. Определить: код неверен **или** тест устарел
+3. Чинить **минимальный** слой
+4. Записать triage: `ROOT=code|test`, файл, обоснование
+
+Skill: `.cursor/skills/test-triage/SKILL.md`
+
+**Запрещено:** делать тесты зелёными без проверки спецификации.
 
 ---
 
-## 10. Test Triage (обязательно при FAIL)
+## 10. Documentation Sync (§11)
 
-**Перед исправлением упавшего теста или «бага из теста»:**
-
-1. Воспроизвести **функционал** по `docs/` (не только assert в тесте)
-2. Определить: код неверен **или** тест устарел/неверен
-3. Чинить **минимальный** слой (код или тест — не оба «наугад»)
-4. Записать triage в skill-лог: `ROOT=code|test`, файл, обоснование
-
-Skill: `.cursor/skills/test-triage/SKILL.md` — обязателен для `be`, `fe`, `qa`, `debugger`, `*-ver`.
-
-**Запрещено:** делать тесты зелёными без проверки соответствия спецификации.
-
----
-
-## 11. Documentation Sync (обязательно)
-
-После **любого** функционального изменения (код, API, CI, UX) агент **в той же сессии** обновляет затронутую документацию.
+После **любого** функционального изменения агент **в той же сессии** обновляет docs.
 
 **Правило:** `.cursor/rules/55-docs-sync.mdc` (alwaysApply)
 
-**Минимум:** `.planning/STATE.md` + доменный doc из матрицы (API → `system_specification` + `wiki/API.md`; UI → `SHORTCUTS`; deploy → `stack_and_tools` + `DEPLOY.md`; tests → `COVERAGE.md`).
+**Минимум:** `.planning/STATE.md` + доменный doc (API → `system_specification` + `wiki/API.md`; UI → `SHORTCUTS`; tests → `COVERAGE.md`; competitive → `competitive_*.md`).
 
-**Handoff:** `/handoff-sync` — полная синхронизация planning + wiki.
+**Handoff:** `/handoff-sync`
 
-**Запрещено:** handoff/commit user-visible изменений без обновления docs.
+**Запрещено:** handoff/commit user-visible изменений без docs sync.
 
 ---
 
-*Hub AI Team Regulation — 2026-06-20 (docs-sync §11)*
+## 11. Текущий статус проекта (справка для агентов)
+
+| Показатель | Значение (2026-06-21) |
+|------------|----------------------|
+| Milestone | v4 Super-app ✅ + Coverage wave ✅ |
+| COV overall | **82.6%** |
+| Security 6/6 | ✅ ≥80% |
+| Active work | TF migration Wave B → Wave C audit |
+| Branch | `feat/v2.5-trust` (uncommitted) |
+| Blockers | PG-03 rotation (manual), TF-M04 compile |
+
+---
+
+*Hub AI Team Regulation — 2026-06-21*

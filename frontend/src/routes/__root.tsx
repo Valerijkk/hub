@@ -49,7 +49,7 @@ function NotFoundComponent() {
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-base">
 			<div className="text-center animate-fade-in max-w-md px-6">
-				{/* Fun illustration */}
+				{/* Декоративная иллюстрация */}
 				<div className="relative mx-auto mb-8 flex h-32 w-32 items-center justify-center">
 					<div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 animate-pulse" />
 					<div className="relative">

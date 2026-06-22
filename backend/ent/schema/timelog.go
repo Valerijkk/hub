@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// TimeLog holds the schema definition for the TimeLog entity.
+// TimeLog — определение Ent-схемы сущности TimeLog.
 type TimeLog struct {
 	ent.Schema
 }
 
-// Fields of the TimeLog.
+// Поля сущности TimeLog.
 func (TimeLog) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -37,7 +37,7 @@ func (TimeLog) Fields() []ent.Field {
 	}
 }
 
-// Edges of the TimeLog.
+// Рёбра (edges) сущности TimeLog.
 func (TimeLog) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("issue", Issue.Type).
@@ -51,7 +51,7 @@ func (TimeLog) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the TimeLog.
+// Индексы сущности TimeLog.
 func (TimeLog) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("issue"),

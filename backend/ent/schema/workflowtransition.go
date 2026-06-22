@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// WorkflowTransition holds the schema definition for the WorkflowTransition entity.
+// WorkflowTransition — определение Ent-схемы сущности WorkflowTransition.
 type WorkflowTransition struct {
 	ent.Schema
 }
 
-// Fields of the WorkflowTransition.
+// Поля сущности WorkflowTransition.
 func (WorkflowTransition) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -25,7 +25,7 @@ func (WorkflowTransition) Fields() []ent.Field {
 	}
 }
 
-// Edges of the WorkflowTransition.
+// Рёбра (edges) сущности WorkflowTransition.
 func (WorkflowTransition) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("from_status", WorkflowStatus.Type).
@@ -38,7 +38,7 @@ func (WorkflowTransition) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the WorkflowTransition.
+// Индексы сущности WorkflowTransition.
 func (WorkflowTransition) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("from_status", "to_status").

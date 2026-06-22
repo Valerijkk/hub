@@ -1,0 +1,106 @@
+# Overlay мониторинга для production-стека Hub (фазы 33–35).
+# Запуск вместе с prod:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+#
+# Grafana:       http://localhost:3001
+# Prometheus:    http://localhost:9090
+# Alertmanager:  http://localhost:9093
+# Loki:          http://localhost:3100
+
+services:
+  # Сбор метрик и правила алертов
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts:/etc/prometheus/alerts:ro
+      - promdata:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      alertmanager:
+        condition: service_started
+      backend:
+        condition: service_started
+
+  # Маршрутизация и группировка алертов
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.25
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --web.external-url=http://localhost:9093
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanagerdata:/alertmanager
+    ports:
+      - "9093:9093"
+
+  # Агрегация и хранение логов
+  loki:
+    image: grafana/loki:3.4.2
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - lokidata:/loki
+    ports:
+      - "3100:3100"
+
+  # Сбор логов из Docker-контейнеров → Loki
+  promtail:
+    image: grafana/promtail:3.4.2
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.25
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail-positions:/tmp
+    depends_on:
+      loki:
+        condition: service_started
+
+  # Дашборды, datasources (Prometheus, Loki, Alertmanager)
+  grafana:
+    image: grafana/grafana:11.5.2
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-changeme}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
+      alertmanager:
+        condition: service_started
+      loki:
+        condition: service_started
+
+volumes:
+  promdata:
+  alertmanagerdata:
+  lokidata:
+  promtail-positions:
+  grafanadata:

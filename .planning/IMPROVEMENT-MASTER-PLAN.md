@@ -37,14 +37,14 @@
 
 | ID | Feature | Effort | Agent |
 |----|---------|--------|-------|
-| UX-P1-01 | Shortcuts overlay `?` | M | fe |
+| UX-P1-01 | Shortcuts overlay `?` | ✅ DONE Phase 60 |
 | UX-P1-02 | Command palette actions (Create issue, Go to…) | ✅ DONE | command-palette.tsx |
 | UX-P1-03 | Onboarding step 4: create/join project | ✅ DONE | onboarding.lazy.tsx |
-| UX-P1-04 | Contextual tooltips (JQL, WIP, Allure) | S | fe + docs |
-| UX-P1-05 | Actionable API errors + rate limit timer | M | fe + be |
-| UX-P1-06 | E2E axe: messenger, board, calls | M | qa |
-| UX-P1-07 | Full RHF+Zod: issue-form, onboarding | L | fe |
-| UX-P1-08 | E2E-06 Ctrl+K Playwright | S | qa |
+| UX-P1-04 | Contextual tooltips (JQL, WIP, Allure) | ✅ DONE Phase 61 |
+| UX-P1-05 | Actionable API errors + rate limit timer | ✅ DONE Phase 65 |
+| UX-P1-06 | E2E axe: messenger, board, calls, TMS | ✅ DONE Phase 60 |
+| UX-P1-07 | Full RHF+Zod: issue-form, onboarding | ✅ issue-form + profile RHF + project Zod step 4 |
+| UX-P1-08 | E2E-06 Ctrl+K Playwright | ✅ DONE (command-palette.spec.ts in CI) |
 
 **Exit:** UX score ≥ 80, a11y ≥ 70, E2E-06 green.
 

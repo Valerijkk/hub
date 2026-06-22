@@ -1,132 +1,169 @@
-# Hub — Competitive Audit & Feature Backlog
+# Hub — Конкурентный аудит и backlog фич
 
-> Обновлено: 2026-06-21. См. также [competitive_analysis_2026.md](../docs/competitive_analysis_2026.md) (Mighty, Bitrix, Lark) и [PLATFORM-VISION-v4.md](./PLATFORM-VISION-v4.md).
-> Цель: best practices от лидеров рынка + backlog нововведений для Hub v2.5–v3.0.
-
----
-
-## 1. Матрица конкурентов
-
-| Категория | Конкуренты | Сильные стороны | Gap в Hub |
-|-----------|------------|-----------------|-----------|
-| Task Tracker | Jira, Linear, Asana | JQL, cycles, roadmap, automations | Нет workflow automation UI |
-| Messenger | Slack, Discord, Teams | Threads, reactions, search, bots | Нет bot framework |
-| TMS | TestRail, Allure TestOps | Test plans, flaky detection, CI gates | Allure import есть, flaky — нет |
-| Calls | Zoom, Meet, Discord | Breakout rooms, noise cancel | LiveKit screen share есть |
-| Dashboards | Grafana, Datadog | Custom panels, alerting | Статичные виджеты |
-| Admin/Observability | Datadog, Sentry, Auth0 | APM, audit trail, user ban | **Частично закрыто** (audit UI + HTTP log) |
+> **Обновлено:** 2026-06-21  
+> **Связанные документы:** [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · [.planning/PLATFORM-VISION-v4.md](../.planning/PLATFORM-VISION-v4.md)  
+> **Цель:** best practices от лидеров рынка + приоритизированный backlog для Hub v2.5–v4.5+.
 
 ---
 
-## 2. Best Practices (внедрить)
+## 1. Текущая позиция Hub (2026-06-21)
 
-### Security & Admin (P0 — v2.0.1/v2.5)
+Hub — **self-hosted corporate super-app** для команд 10–50 человек: dev-suite (трекер, мессенджер, TMS, звонки) **+** корпоративные модули v4 (интранет, календарь, CRM-lite, HR, учёт, no-code базы, AI hub).
+
+| Показатель | Значение |
+|------------|----------|
+| Milestone v4 Super-app | ✅ Phases 39–58 (2026-06-25) |
+| Milestone v2.5 Trust / v2.6 Automate / v3.0 AI | ✅ Phases 15–19 |
+| Покрытие backend (`internal/`) | **82.6%** (Phase 125) |
+| Security-critical пакеты ≥80% | **6/6** ✅ |
+| REST API endpoints | **286+** |
+| Product score (AUDIT-SCORECARD) | **93/100** |
+| Ветка | `feat/v2.5-trust` (uncommitted) |
+
+**Стратегия:** не конкурировать с Jira в enterprise workflow; побеждать по **TCO + интеграция + self-host + RU-friendly AI** для команд с data residency.
+
+---
+
+## 2. Матрица конкурентов
+
+| Категория | Конкуренты | Сильные стороны | Gap в Hub (остаточный) |
+|-----------|------------|-----------------|------------------------|
+| Task Tracker | Jira, Linear, Asana | JQL deep, cycles, roadmap, automations | Automation UI есть (v2.6); triage inbox — polish |
+| Messenger | Slack, Discord, Teams | Threads, bots, marketplace | Bot framework ограничен (Telegram); AI v3.0 ✅ |
+| TMS | TestRail, Allure TestOps | Flaky ML, CI gates, run diff | Allure import ✅; flaky detection — partial |
+| Calls | Zoom, Meet, Discord | Breakout, noise cancel, webcams | LiveKit voice+screen ✅; webcams — Phase 16 IN |
+| Dashboards | Grafana, Datadog | Custom panels, alerting | Статичные виджеты; OBS stack ✅ (Prometheus/Loki) |
+| Corp super-app | Mighty, Bitrix24, Lark | News, HR, CRM, calendar | **v4 закрыто** — intranet, HR, CRM, bases |
+| Admin/Observability | Datadog, Sentry, Auth0 | APM, audit, ban | ✅ Audit UI + HTTP timing + OTel + Alertmanager |
+
+---
+
+## 3. Best Practices — статус внедрения
+
+### Security & Admin (P0 — закрыто в v2.0.1–v2.5)
 
 | Практика | Источник | Статус Hub |
 |----------|----------|------------|
 | Centralized audit log с фильтрами | Auth0, AWS CloudTrail | ✅ `/admin/audit` + NATS consumer |
-| HTTP request timing в audit | Datadog APM lite | ✅ middleware `HTTPAuditMiddleware` |
+| HTTP request timing в audit | Datadog APM lite | ✅ `HTTPAuditMiddleware` |
 | User ban с причиной + session revoke | Discord, Slack | ✅ `POST /admin/users/:id/ban` |
 | Security headers (CSP, HSTS) | OWASP | ✅ `SecurityHeaders` middleware |
 | Refresh token hash at rest | Auth0 | ✅ SHA-256 в Redis/PG |
 | Single-flight refresh (FE) | Spotify, Auth0 SDK | ✅ `client.ts` mutex |
 | Multi-tab auth sync | Slack web | ✅ BroadcastChannel |
 | Error boundaries per module | React docs | ✅ `ErrorBoundary` в AppShell |
+| Secret rotation runbook | Production ops | ⚠️ PG-03 — manual ops |
 
-### Developer Experience (P1 — v2.6)
+### Developer Experience (P1 — v2.6 закрыто)
 
-| Практика | Источник | Рекомендация |
-|----------|----------|--------------|
-| OpenTelemetry traces | Grafana Tempo | Добавить OTel exporter в `observability/` |
-| Structured slog + request_id | Google SRE | ✅ уже есть |
+| Практика | Источник | Статус Hub |
+|----------|----------|------------|
+| OpenTelemetry traces | Grafana Tempo | ✅ OTLP export (Phase 32) |
+| Structured slog + request_id | Google SRE | ✅ |
 | `Timed()` wrapper для сервисов | Internal SRE | ✅ `platform/observability/timing.go` |
-| Feature flags | LaunchDarkly, Linear | Redis-backed flags для beta |
-| API changelog / deprecation headers | Stripe | `Sunset` header на deprecated routes |
+| Prometheus `/metrics` | Industry standard | ✅ Phase 31 |
+| Loki + Promtail + Alertmanager | Grafana stack | ✅ Phases 33–36 |
+| Feature flags | LaunchDarkly, Linear | 📋 Redis-backed — backlog |
+| API changelog / deprecation headers | Stripe | 📋 backlog |
 
-### UX (P1 — v2.5 Phase 17)
+### UX (P1 — v2.5 закрыто частично)
 
-| Практика | Источник | Рекомендация |
-|----------|----------|--------------|
-| Command palette (⌘K) | Linear, Notion | Глобальный поиск + actions |
-| Optimistic UI updates | Linear | Расширить на messenger reactions |
-| Keyboard shortcuts overlay | GitHub | `?` hotkey help modal |
-| Empty states с CTA | Notion | Шаблоны для новых проектов |
-| Skeleton loaders | Slack | Заменить "Загрузка..." в таблицах |
+| Практика | Источник | Статус Hub |
+|----------|----------|------------|
+| Command palette (⌘K) | Linear, Notion | ✅ `command-palette.tsx` (2026-06-20) |
+| Optimistic UI updates | Linear | ⚠️ tracker ✅; messenger reactions — partial |
+| Keyboard shortcuts overlay | GitHub | ✅ `/help` route + skip-link |
+| Empty states с CTA | Notion | ⚠️ partial |
+| Skeleton loaders | Slack | ⚠️ partial — заменить «Загрузка...» |
+| RHF+Zod forms | Industry standard | ⚠️ onboarding ✅; issue-form — partial (UX-1) |
 
-### Collaboration (P2 — v3.0)
+### Collaboration & AI (P2 — v3.0 закрыто)
 
-| Практика | Источник | Рекомендация |
-|----------|----------|--------------|
-| AI summarize thread | Slack AI, Notion AI | M3-001..M3-030 roadmap |
-| Smart notifications (digest) | Slack | Quiet hours есть — добавить digest |
-| Issue ↔ message linking | Linear + Slack sync | Deep links есть, bidirectional sync — нет |
-| Presence indicators | Discord | WS presence частично |
+| Практика | Источник | Статус Hub |
+|----------|----------|------------|
+| AI summarize / @hub-ai | Slack AI, Notion AI | ✅ AI gateway BYOK + Ollama (Phase 17) |
+| Smart notifications (digest) | Slack | ⚠️ quiet hours ✅; digest — backlog |
+| Issue ↔ message linking | Linear + Slack sync | ⚠️ deep links ✅; bidirectional — partial |
+| Presence indicators | Discord | ✅ WS presence |
+| Workflow automation lite | Jira Automation | ✅ Phase 16 PROD-01 |
 
 ---
 
-## 3. Feature Backlog (приоритизированный)
+## 4. Feature Backlog (приоритизированный)
 
-### Must Have (до production)
+### Must Have (production trust — в основном закрыто)
 
-1. ~~12 CRITICAL security blockers~~ — закрыты в v2.0.1
-2. Test coverage 50% overall / 80% security-critical (Phase 18)
-3. Secret rotation в git history (manual ops)
-4. Vitest smoke tests для auth + admin audit
+1. ~~12 CRITICAL security blockers~~ — ✅ v2.0.1
+2. ~~Test coverage ≥50% overall / ≥80% security~~ — ✅ **82.6%** / **6/6 ≥80%**
+3. Secret rotation в git history — ⚠️ PG-03 manual ops
+4. ~~Vitest smoke tests auth + admin~~ — ✅ 99+ tests
+5. ~~E2E critical paths~~ — ✅ 20 Playwright specs в `testframework/e2e/`
 
-### Should Have (v2.5)
+### Should Have (v4.5 / Wave C audit)
 
-1. **Command palette** — глобальный поиск (уже есть search module, нужен UI)
-2. **Audit log retention policy** — 90 дней hot, archive в S3
-3. **Slow query dashboard** — топ N медленных `duration_ms` из audit
-4. **Rate limit visibility** — admin видит кто упёрся в лимит
-5. **Webhook delivery log** — для GitHub/GitLab integrations
+1. **Test framework migration** — все Go-тесты в `backend/testframework/` (TF-M04–M08 in progress)
+2. **tms/project micro-gap** — 81.7–81.8% → 82% (FA-11)
+3. **Webhook delivery log polish** — PROD-04 базово есть; admin UI depth
+4. **Flaky test detection** — PROD-02 partial; ML-level vs Allure TestOps
+5. **Notification digest** — quiet hours есть; daily digest — backlog
+6. **Lighthouse ≥90 + WCAG sign-off** — login axe PASS; full audit pending
 
-### Could Have (v2.6–v3.0)
+### Could Have (v4.5+ / 2027)
 
-1. Workflow automation (if X then Y) — как Jira Automation lite
-2. Custom fields builder UI — schema есть, UI нет
-3. Flaky test detection в TMS
-4. Recording retention dashboard
-5. Mobile PWA polish (уже web-only по scope)
-6. AI chat hub (MILESTONE-3)
+1. Custom fields builder UI — schema есть, UI нет
+2. Timeline roadmap / initiatives view
+3. Triage inbox UX polish
+4. Mobile PWA offline depth
+5. Feature flags (Redis-backed beta)
+6. Accounting v4.5+ (расширенный P&L, интеграции)
 
-### Won't Have (out of scope per PROJECT.md)
+### Won't Have (per ADR / `.cursor/rules/60-tz-constraints.mdc`)
 
-- Native mobile apps
-- SSO/LDAP
+- Native mobile apps (PWA достаточно)
+- SSO/LDAP/OAuth провайдеры (до v5 ADR)
 - Multi-tenant SaaS billing
-- Video calls with webcams (voice only)
-- Gantt charts
+- Multi-org на одном инстансе (v5)
+
+**IN SCOPE by phase (PO 2026-06-21):** Gantt (Phase 16), webcams in calls (Phase 16), hub-mail marketing (Phase 15.2/16), full JQL automation (Phase 17), no-code bases + accounting (v4).
 
 ---
 
-## 4. Observability Stack (рекомендация для prod)
+## 5. Observability Stack (prod — реализовано)
 
 ```
-Hub API → slog (JSON) → Loki/ELK
+Hub API → slog (JSON) → Loki (Promtail)
        → audit_log table → Admin UI
        → NATS events → audit consumer
-       → (future) OTel → Tempo/Jaeger
+       → OTel OTLP → Tempo/Jaeger (optional)
+       → Prometheus /metrics → Grafana
+       → Alertmanager → webhook → audit log
 ```
 
 **DEV_MODE** остаётся для локального Docker: magic link в логах, relaxed CORS, полный HTTP audit.
 
 ---
 
-## 5. Метрики успеха
+## 6. Метрики успеха
 
-| KPI | Target | Как измерять |
-|-----|--------|--------------|
-| Mean API latency (p95) | < 200ms | `duration_ms` в audit, entity_type=http |
-| Audit coverage | 100% admin + auth + errors | COUNT by action |
-| Time to ban abusive user | < 30s | Admin UI flow |
-| Security findings open | 0 CRITICAL | `docs/security_guidelines.md` |
+| KPI | Target | Текущее (2026-06-21) |
+|-----|--------|----------------------|
+| Statement coverage (`internal/`) | ≥82% | **82.6%** ✅ |
+| Security packages ≥80% | 6/6 | **6/6** ✅ |
+| Mean API latency (p95) | < 200ms | Измеряется через `duration_ms` в audit |
+| Audit coverage admin + auth | 100% | ✅ |
+| Security findings CRITICAL open | 0 | ✅ (12/12 fixed) |
+| Product score | ≥80 | **93/100** ✅ |
 
 ---
 
-## 6. Следующие шаги
+## 7. Следующие шаги
 
-1. ~~Phase 17: command palette~~ → **Ctrl+K UI shipped** 2026-06-20 (`command-palette.tsx`); extend with actions (create issue, navigate modules)
-2. Phase 18: E2E-06 Ctrl+K Playwright + a11y audit (target WCAG AA)
-3. OTel spike в `platform/observability/`
-4. UX backlog: UserPicker, inline validation, Kanban keyboard nav
+1. **Wave B TF-M04–M08** — завершить миграцию Go-тестов в `testframework/`
+2. **Wave C FA-01–FA-12** — полный аудит, docs sync, PG-03 rotation
+3. **Squash PR** `feat/v2.5-trust` → main после qa-gate green
+4. **UX-1** — onboarding step 4, command palette actions, RHF+Zod tracker forms
+5. **FA-11** — закрыть micro-gap tms/project 81.8% → 82%
+
+---
+
+*См. также: [FEATURE-BACKLOG-2026.md](../.planning/FEATURE-BACKLOG-2026.md) · [COVERAGE.md](../.planning/COVERAGE.md)*

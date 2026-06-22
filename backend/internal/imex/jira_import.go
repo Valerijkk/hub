@@ -11,7 +11,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent/issue"
-	"github.com/valerii/hub/backend/ent/project"
 )
 
 // ---------------------------------------------------------------------------
@@ -27,7 +26,7 @@ type JiraIssue struct {
 // JiraFields содержит все поля задачи Jira.
 type JiraFields struct {
 	Summary     string          `json:"summary"`
-	Description interface{}     `json:"description"` // ADF or string
+	Description interface{}     `json:"description"` // ADF или строка
 	IssueType   JiraNamedField  `json:"issuetype"`
 	Priority    JiraNamedField  `json:"priority"`
 	Status      JiraNamedField  `json:"status"`
@@ -59,7 +58,7 @@ type JiraComments struct {
 
 // JiraComment представляет один комментарий Jira.
 type JiraComment struct {
-	Body    interface{} `json:"body"` // ADF or string
+	Body    interface{} `json:"body"` // ADF или строка
 	Author  JiraUser    `json:"author"`
 	Created string      `json:"created"`
 }
@@ -125,7 +124,7 @@ func jiraDescriptionToText(desc interface{}) string {
 	case string:
 		return v
 	case map[string]interface{}:
-		// Simplified ADF extraction: walk content nodes and collect text.
+		// Упрощённый ADF: обход content nodes и сбор text.
 		return extractADFText(v)
 	default:
 		return fmt.Sprintf("%v", v)
@@ -146,7 +145,7 @@ func extractADFText(node map[string]interface{}) string {
 				sb.WriteString(extractADFText(childMap))
 			}
 		}
-		// Add newline after paragraph-level nodes.
+		// Newline после paragraph — читаемость plain-text из ADF.
 		if nodeType, _ := node["type"].(string); nodeType == "paragraph" || nodeType == "heading" {
 			sb.WriteString("\n")
 		}
@@ -190,47 +189,29 @@ func (s *ImExService) ImportJiraJSON(ctx context.Context, projectID uuid.UUID, u
 		priority := mapJiraPriority(ji.Fields.Priority.Name)
 		descText := jiraDescriptionToText(ji.Fields.Description)
 
-		proj, err := s.db.Project.Get(ctx, projectID)
-		if err != nil {
-			return nil, fmt.Errorf("project not found: %w", err)
-		}
-		nextNum := proj.TaskCounter + 1
-
-		_, err = s.db.Project.UpdateOneID(projectID).
-			SetTaskCounter(nextNum).
-			Save(ctx)
+		nextNum, issueKey, statusID, err := s.allocateIssueKey(ctx, projectID)
 		if err != nil {
 			skipped++
+			slog.Error("failed to allocate issue key for Jira import", "error", err)
 			continue
 		}
 
-		issueKey := fmt.Sprintf("%s-%d", proj.Key, nextNum)
-
-		statuses, err := s.db.Project.Query().
-			Where(project.ID(projectID)).
-			QueryWorkflowStatuses().
-			First(ctx)
-		if err != nil {
-			skipped++
-			slog.Error("failed to get default status for Jira import", "error", err)
-			continue
-		}
-
-		creator := s.db.Issue.Create().
-			SetTitle(title).
-			SetIssueType(issue.IssueType(issueType)).
-			SetPriority(issue.Priority(priority)).
-			SetIssueNumber(nextNum).
-			SetIssueKey(issueKey).
-			SetProjectID(projectID).
-			SetStatusID(statuses.ID).
-			SetReporterID(userID)
-
+		var descPtr *string
 		if descText != "" {
-			creator = creator.SetDescriptionText(descText)
+			descPtr = &descText
 		}
 
-		created, err := creator.Save(ctx)
+		created, err := s.repo.CreateIssue(ctx, CreateIssueInput{
+			Title:           title,
+			IssueType:       issue.IssueType(issueType),
+			Priority:        issue.Priority(priority),
+			IssueNumber:     nextNum,
+			IssueKey:        issueKey,
+			ProjectID:       projectID,
+			StatusID:        statusID,
+			ReporterID:      &userID,
+			DescriptionText: descPtr,
+		})
 		if err != nil {
 			skipped++
 			errs = append(errs, fmt.Sprintf("issue %d (%s): %s", i, ji.Key, err.Error()))
@@ -239,19 +220,14 @@ func (s *ImExService) ImportJiraJSON(ctx context.Context, projectID uuid.UUID, u
 
 		keyToID[ji.Key] = created.ID
 
-		// Import comments for this issue.
+		// Импорт комментариев issue — сохраняем историю обсуждений.
 		if ji.Fields.Comment != nil {
 			for _, jc := range ji.Fields.Comment.Comments {
 				bodyText := jiraDescriptionToText(jc.Body)
 				if bodyText == "" {
 					continue
 				}
-				_, cerr := s.db.Comment.Create().
-					SetBodyText(bodyText).
-					SetIssueID(created.ID).
-					SetAuthorID(userID).
-					Save(ctx)
-				if cerr != nil {
+				if cerr := s.repo.CreateIssueComment(ctx, created.ID, userID, bodyText); cerr != nil {
 					slog.Error("failed to create comment during Jira import",
 						"issue_key", ji.Key, "error", cerr)
 				}
@@ -268,26 +244,20 @@ func (s *ImExService) ImportJiraJSON(ctx context.Context, projectID uuid.UUID, u
 			continue
 		}
 
-		// Link via parent field.
+		// Связь через parent field — иерархия комментариев Jira.
 		if ji.Fields.Parent != nil {
 			if parentID, ok := keyToID[ji.Fields.Parent.Key]; ok {
-				_, err := s.db.Issue.UpdateOneID(myID).
-					SetParentID(parentID).
-					Save(ctx)
-				if err != nil {
+				if err := s.repo.SetIssueParent(ctx, myID, parentID); err != nil {
 					slog.Error("failed to set parent during Jira import",
 						"child", ji.Key, "parent", ji.Fields.Parent.Key, "error", err)
 				}
 			}
 		}
 
-		// Link subtasks (reverse direction: subtask.parent = current issue).
+		// Связываем подзадачи (обратное направление: subtask.parent = текущая задача).
 		for _, sub := range ji.Fields.Subtasks {
 			if subID, ok := keyToID[sub.Key]; ok {
-				_, err := s.db.Issue.UpdateOneID(subID).
-					SetParentID(myID).
-					Save(ctx)
-				if err != nil {
+				if err := s.repo.SetIssueParent(ctx, subID, myID); err != nil {
 					slog.Error("failed to set subtask parent during Jira import",
 						"subtask", sub.Key, "parent", ji.Key, "error", err)
 				}
@@ -305,19 +275,19 @@ func (s *ImExService) ImportJiraJSON(ctx context.Context, projectID uuid.UUID, u
 // parseJiraJSON парсит JSON-данные Jira, принимая массив задач
 // или объект ответа поиска {"issues": [...]}.
 func parseJiraJSON(data []byte) ([]JiraIssue, error) {
-	// Try array first.
+	// Сначала массив — Jira экспортирует и пустые списки как [].
 	var issues []JiraIssue
-	if err := json.Unmarshal(data, &issues); err == nil && len(issues) > 0 {
+	if err := json.Unmarshal(data, &issues); err == nil {
 		return issues, nil
 	}
 
-	// Try search response format.
+	// Пробуем формат ответа search API — совместимость с разными версиями.
 	var searchResp JiraSearchResponse
 	if err := json.Unmarshal(data, &searchResp); err == nil && len(searchResp.Issues) > 0 {
 		return searchResp.Issues, nil
 	}
 
-	// Try single issue.
+	// Fallback на один issue — legacy формат импорта.
 	var single JiraIssue
 	if err := json.Unmarshal(data, &single); err == nil && single.Key != "" {
 		return []JiraIssue{single}, nil
@@ -339,7 +309,7 @@ func parseJiraJSON(data []byte) ([]JiraIssue, error) {
 // @Produce json
 // @Param projectId path string true "ID проекта"
 // @Param file formData file true "JSON-файл экспорта Jira"
-// @Success 200 {object} JiraImportResponse "Результат импорта"
+// @Success 200 {object} ImportResultResponse "Результат импорта"
 // @Failure 400 {object} fiber.Error "Ошибка файла или данных"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth

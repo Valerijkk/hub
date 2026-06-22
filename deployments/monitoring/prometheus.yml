@@ -1,0 +1,23 @@
+# Конфигурация Prometheus для Hub production overlay.
+# Scrape backend:3000/metrics; правила алертов — monitoring/prometheus/alerts/.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alerts/*.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: hub-backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["backend:3000"]
+        labels:
+          service: hub-backend
+          environment: production

@@ -29,12 +29,12 @@ function MessengerLayout() {
 	return (
 		<ChannelDrawerContext.Provider value={drawerCtx}>
 			<div className="flex h-full -mx-4 -my-4 md:-mx-6 md:-my-6 overflow-hidden">
-				{/* Desktop sidebar — растягивается на всю высоту */}
+				{/* Desktop sidebar на всю высоту */}
 				<div className="hidden md:flex shrink-0">
 					<ChannelList />
 				</div>
 
-				{/* Mobile drawer */}
+				{/* Mobile drawer списка каналов */}
 				<Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
 					<SheetContent side="left" aria-label="Список каналов" className="p-0">
 						<SheetTitle className="sr-only">Список каналов</SheetTitle>

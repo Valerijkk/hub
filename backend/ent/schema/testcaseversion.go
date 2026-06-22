@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// TestCaseVersion holds the schema definition for the TestCaseVersion entity.
+// TestCaseVersion — определение Ent-схемы сущности TestCaseVersion.
 type TestCaseVersion struct {
 	ent.Schema
 }
 
-// Fields of the TestCaseVersion.
+// Поля сущности TestCaseVersion.
 func (TestCaseVersion) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -33,7 +33,7 @@ func (TestCaseVersion) Fields() []ent.Field {
 	}
 }
 
-// Edges of the TestCaseVersion.
+// Рёбра (edges) сущности TestCaseVersion.
 func (TestCaseVersion) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("test_case", TestCase.Type).
@@ -46,7 +46,7 @@ func (TestCaseVersion) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the TestCaseVersion.
+// Индексы сущности TestCaseVersion.
 func (TestCaseVersion) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("version_number"),

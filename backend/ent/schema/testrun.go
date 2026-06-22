@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// TestRun holds the schema definition for the TestRun entity.
+// TestRun — определение Ent-схемы сущности TestRun.
 type TestRun struct {
 	ent.Schema
 }
 
-// Fields of the TestRun.
+// Поля сущности TestRun.
 func (TestRun) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -60,7 +60,7 @@ func (TestRun) Fields() []ent.Field {
 	}
 }
 
-// Edges of the TestRun.
+// Рёбра (edges) сущности TestRun.
 func (TestRun) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -79,7 +79,7 @@ func (TestRun) Edges() []ent.Edge {
 	}
 }
 
-// Indexes of the TestRun.
+// Индексы сущности TestRun.
 func (TestRun) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("status"),

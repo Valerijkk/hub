@@ -113,6 +113,6 @@ func runCreateBug(_ *cobra.Command, _ []string) error {
 		key = "created"
 	}
 
-	printResult(fmt.Sprintf("Bug создан: %s — %s", key, bugTitle), resp)
+	printResult(fmt.Sprintf("Баг создан: %s — %s", key, bugTitle), resp)
 	return nil
 }

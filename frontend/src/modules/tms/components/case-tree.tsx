@@ -37,16 +37,18 @@ export function SuiteTreeItem({
 				style={{ paddingLeft: `${depth * 26 + 10}px` }}
 				onClick={() => onSelect(isSelected ? undefined : suite.id)}
 			>
-				{/* Selected row left gradient */}
+				{/* Градиент выбранной строки слева */}
 				{isSelected && (
 					<span className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-purple/[0.06] to-transparent rounded-[var(--r2)] pointer-events-none" />
 				)}
 				{hasChildren ? (
-					<span
+					<button
+						type="button"
 						className={cn(
-							"w-4 h-4 text-[8px] text-t4 transition-transform duration-[250ms] shrink-0 flex items-center justify-center",
+							"w-4 h-4 text-[8px] text-t4 transition-transform duration-[250ms] shrink-0 flex items-center justify-center border-0 bg-transparent p-0",
 							expanded && "rotate-90",
 						)}
+						aria-label={expanded ? "Свернуть" : "Развернуть"}
 						onClick={(e) => {
 							e.stopPropagation();
 							setExpanded(!expanded);
@@ -66,7 +68,7 @@ export function SuiteTreeItem({
 								d="M9 5l7 7-7 7"
 							/>
 						</svg>
-					</span>
+					</button>
 				) : (
 					<span className="w-4 shrink-0" style={{ visibility: "hidden" }} />
 				)}

@@ -1,8 +1,9 @@
 import { useMemo } from "react";
+import { activateOnEnterOrSpace } from "@/lib/keyboard";
 import type { CalendarEvent } from "./calendar-types";
 
 // ---------------------------------------------------------------------------
-// Agenda View (chronological list of upcoming events)
+// Вид «Повестка» — хронологический список предстоящих событий
 // ---------------------------------------------------------------------------
 
 export function AgendaView({
@@ -12,7 +13,7 @@ export function AgendaView({
 	events: CalendarEvent[];
 	onEventClick: (ev: CalendarEvent) => void;
 }) {
-	// Group events by day, sorted chronologically
+	// Группируем события по дням в хронологическом порядке
 	const groupedByDay = useMemo(() => {
 		const sorted = [...events].sort(
 			(a, b) => a.date.getTime() - b.date.getTime(),
@@ -50,35 +51,29 @@ export function AgendaView({
 
 				return (
 					<div key={key} className="rounded-xl border bg-card overflow-hidden">
-						{/* Day header */}
+						{/* Заголовок дня */}
 						<div className="border-b bg-raised/30 px-4 py-2">
 							<span className="text-sm font-medium capitalize">
 								{dayHeader}
 							</span>
 						</div>
 
-						{/* Events for this day */}
+						{/* События этого дня */}
 						<div className="divide-y">
 							{dayEvents.map((ev) => (
-								<div
+								<button
 									key={ev.id}
-									role="button"
-									tabIndex={0}
-									className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-raised/50 focus:outline-none focus:ring-2 focus:ring-primary/40"
+									type="button"
+									className="flex w-full items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-raised/50 focus:outline-none focus:ring-2 focus:ring-primary/40 text-left"
 									onClick={() => onEventClick(ev)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											onEventClick(ev);
-										}
-									}}
+									onKeyDown={activateOnEnterOrSpace(() => onEventClick(ev))}
 								>
-									{/* Color dot */}
+									{/* Цветовая метка */}
 									<div
 										className={`h-3 w-3 shrink-0 rounded-full border ${ev.colorClass}`}
 									/>
 
-									{/* Time */}
+									{/* Время */}
 									<span className="w-14 shrink-0 text-sm font-medium tabular-nums">
 										{ev.date.toLocaleTimeString("ru-RU", {
 											hour: "2-digit",
@@ -86,16 +81,16 @@ export function AgendaView({
 										})}
 									</span>
 
-									{/* Title */}
+									{/* Название */}
 									<span className="flex-1 truncate text-sm font-medium">
 										{ev.title}
 									</span>
 
-									{/* Duration badge */}
+									{/* Бейдж длительности */}
 									<span className="shrink-0 text-xs text-t2">
 										{ev.durationMinutes} мин
 									</span>
-								</div>
+								</button>
 							))}
 						</div>
 					</div>

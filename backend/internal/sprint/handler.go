@@ -1,4 +1,4 @@
-package sprint
+﻿package sprint
 
 import (
 	"github.com/gofiber/fiber/v3"
@@ -21,23 +21,24 @@ func NewHandler(service *SprintService, poker *PokerService) *Handler {
 }
 
 // RegisterRoutes регистрирует все маршруты модуля спринтов.
+// ВАЖНО (Fiber v3): RBAC-гард — второй variadic после handler (см. tms/handler.go).
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
 	sprints := api.Group("/projects/:projectId/sprints", authMw)
 
-	sprints.Post("/", rbac.RequirePermission(rbac.PermTaskCreate, rbacSvc), h.CreateSprint)
-	sprints.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.ListSprints)
-	sprints.Get("/:sprintId", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetSprint)
-	sprints.Put("/:sprintId", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.UpdateSprint)
-	sprints.Post("/:sprintId/start", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.StartSprint)
-	sprints.Post("/:sprintId/complete", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.CompleteSprint)
-	sprints.Put("/:sprintId/retro", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.UpdateRetroNotes)
-	sprints.Get("/:sprintId/burndown", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetBurndown)
-	sprints.Post("/:sprintId/poker", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.StartPokerSession)
-	sprints.Post("/:sprintId/issues", rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc), h.AddIssuesToSprint)
+	sprints.Post("/", h.CreateSprint, rbac.RequirePermission(rbac.PermTaskCreate, rbacSvc))
+	sprints.Get("/", h.ListSprints, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	sprints.Get("/:sprintId", h.GetSprint, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	sprints.Put("/:sprintId", h.UpdateSprint, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	sprints.Post("/:sprintId/start", h.StartSprint, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	sprints.Post("/:sprintId/complete", h.CompleteSprint, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	sprints.Put("/:sprintId/retro", h.UpdateRetroNotes, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	sprints.Get("/:sprintId/burndown", h.GetBurndown, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	sprints.Post("/:sprintId/poker", h.StartPokerSession, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	sprints.Post("/:sprintId/issues", h.AddIssuesToSprint, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
 
 	// Velocity на уровне проекта
 	velocity := api.Group("/projects/:projectId/velocity", authMw)
-	velocity.Get("/", rbac.RequirePermission(rbac.PermProjectView, rbacSvc), h.GetVelocity)
+	velocity.Get("/", h.GetVelocity, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
 	// Poker маршруты без projectId
 	poker := api.Group("/sprints/poker", authMw)
@@ -47,10 +48,10 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 }
 
 // ---------------------------------------------------------------------------
-// Sprint handlers
+// Обработчики спринтов
 // ---------------------------------------------------------------------------
 
-// CreateSprint godoc
+// CreateSprint — Создать спринт
 // @Summary Создать спринт
 // @Description Создаёт новый спринт в проекте.
 // @Tags Спринты
@@ -83,7 +84,7 @@ func (h *Handler) CreateSprint(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// ListSprints godoc
+// ListSprints — Список спринтов
 // @Summary Список спринтов
 // @Description Возвращает все спринты проекта.
 // @Tags Спринты
@@ -108,7 +109,7 @@ func (h *Handler) ListSprints(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetSprint godoc
+// GetSprint — Получить спринт
 // @Summary Получить спринт
 // @Description Возвращает детальную информацию о спринте.
 // @Tags Спринты
@@ -134,7 +135,7 @@ func (h *Handler) GetSprint(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateSprint godoc
+// UpdateSprint — Обновить спринт
 // @Summary Обновить спринт
 // @Description Обновляет название, цель или даты спринта.
 // @Tags Спринты
@@ -168,7 +169,7 @@ func (h *Handler) UpdateSprint(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// StartSprint godoc
+// StartSprint — Запустить спринт
 // @Summary Запустить спринт
 // @Description Переводит спринт в статус "active". В проекте может быть только один активный спринт.
 // @Tags Спринты
@@ -199,7 +200,7 @@ func (h *Handler) StartSprint(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// CompleteSprint godoc
+// CompleteSprint — Завершить спринт
 // @Summary Завершить спринт
 // @Description Завершает спринт и формирует итоговую статистику.
 // @Tags Спринты
@@ -230,7 +231,7 @@ func (h *Handler) CompleteSprint(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// UpdateRetroNotes godoc
+// UpdateRetroNotes — Обновить ретроспективу
 // @Summary Обновить ретроспективу
 // @Description Сохраняет заметки ретроспективы спринта.
 // @Tags Спринты
@@ -264,14 +265,14 @@ func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetBurndown godoc
+// GetBurndown — Burndown-диаграмма спринта
 // @Summary Burndown-диаграмма спринта
 // @Description Возвращает данные для построения burndown-графика спринта.
 // @Tags Спринты
 // @Produce json
 // @Param projectId path string true "ID проекта"
 // @Param sprintId path string true "ID спринта"
-// @Success 200 {object} BurndownResponse "Данные burndown"
+// @Success 200 {array} BurndownPoint "Данные burndown"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -290,13 +291,13 @@ func (h *Handler) GetBurndown(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetVelocity godoc
+// GetVelocity — Velocity проекта
 // @Summary Velocity проекта
 // @Description Возвращает метрики velocity по завершённым спринтам проекта.
 // @Tags Спринты
 // @Produce json
 // @Param projectId path string true "ID проекта"
-// @Success 200 {object} VelocityResponse "Данные velocity"
+// @Success 200 {array} VelocityPoint "Данные velocity"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
@@ -315,7 +316,7 @@ func (h *Handler) GetVelocity(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// AddIssuesToSprint godoc
+// AddIssuesToSprint — Добавить задачи в спринт
 // @Summary Добавить задачи в спринт
 // @Description Привязывает одну или несколько задач к указанному спринту.
 // @Tags Спринты
@@ -357,10 +358,10 @@ func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 }
 
 // ---------------------------------------------------------------------------
-// Poker handlers
+// Обработчики Planning Poker
 // ---------------------------------------------------------------------------
 
-// StartPokerSession godoc
+// StartPokerSession — Начать Planning Poker сессию
 // @Summary Начать Planning Poker сессию
 // @Description Создаёт сессию Planning Poker для оценки задачи в рамках спринта.
 // @Tags Спринты
@@ -398,7 +399,7 @@ func (h *Handler) StartPokerSession(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// CastVote godoc
+// CastVote — Проголосовать в Poker
 // @Summary Проголосовать в Poker
 // @Description Отправляет голос (оценку) участника в сессии Planning Poker.
 // @Tags Спринты
@@ -433,7 +434,7 @@ func (h *Handler) CastVote(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// RevealVotes godoc
+// RevealVotes — Раскрыть голоса Poker
 // @Summary Раскрыть голоса Poker
 // @Description Раскрывает все голоса сессии Planning Poker и показывает результат.
 // @Tags Спринты
@@ -458,7 +459,7 @@ func (h *Handler) RevealVotes(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// GetPokerSession godoc
+// GetPokerSession — Получить сессию Poker
 // @Summary Получить сессию Poker
 // @Description Возвращает текущее состояние сессии Planning Poker.
 // @Tags Спринты

@@ -69,7 +69,7 @@ func NewRecordingService(lkCfg config.LiveKitConfig, s3Cfg config.S3Config, repo
 			if endpoint != "" {
 				o.BaseEndpoint = aws.String(endpoint)
 			}
-			o.UsePathStyle = true // Required for SeaweedFS
+			o.UsePathStyle = true // Требуется для SeaweedFS
 		})
 		presignClient = s3.NewPresignClient(s3Client)
 	}

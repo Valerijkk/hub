@@ -1,8 +1,26 @@
 # Hub — Техническая документация
 
+> **Обновлено:** 2026-06-22 · Стек: Go 1.25, React 19, Fiber v3 · Auth: Magic Link only  
+> Wiki: `docs/wiki/API.md` · Deploy: `docs/wiki/DEPLOY.md` · Tests: `docs/test_plan.md`
+
+---
+
+## CI и контроль качества
+
+| Job | Команда / артефакт |
+|-----|-------------------|
+| `backend-test` | `go test -tags hubtest -race ./internal/... ./testframework/...` |
+| `frontend-test` | `tsc`, `vitest run`, `biome check` |
+| `build` | `go build -tags release`, `npm run build` |
+| `e2e-full` | Playwright 20 specs + `scripts/ci-e2e-backend.sh` |
+
+Coverage floor `internal/`: **~82%** (`.planning/COVERAGE.md`).
+
+---
+
 ## Архитектура
 
-### System Diagram
+### Диаграмма системы
 
 ```
                           +-----------+
@@ -35,7 +53,7 @@
                           +---------+
 ```
 
-### Module Diagram
+### Диаграмма модулей
 
 ```
 backend/internal/
@@ -58,6 +76,14 @@ backend/internal/
   +-- rbac/          Кастомные роли и permissions
   +-- imex/          Импорт/Экспорт (CSV, JSON, ZIP, PDF)
   +-- ws/            WebSocket Hub, Bridge (NATS -> WS)
+  +-- ai/            AI gateway, bot, JQL assist, BYOK (v3)
+  +-- crm/           Контакты, сделки, pipeline (v4)
+  +-- intranet/      Новости, справочник, kudos, random coffee (v4)
+  +-- bases/         No-code DB: HubBase/Table/Record (v4)
+  +-- accounting/    Бухгалтерия: ledger, journal, invoices (v4)
+  +-- marketplace/   Внутренняя доска объявлений (v4)
+  +-- calendar/      Единый календарь (v4)
+  +-- hr/            Заявки на отсутствие (v4)
   +-- dev/           Dev-эндпоинты (seed, dev-login)
   +-- platform/      Общие компоненты:
       +-- config/      Конфигурация (env vars)
@@ -67,7 +93,7 @@ backend/internal/
       +-- nats/        NATS-клиент
 ```
 
-### Data Flow
+### Потоки данных
 
 ```
 [Клиент] --HTTP--> [Caddy] --proxy--> [Fiber Handler]
@@ -85,34 +111,30 @@ backend/internal/
                          [Web Push] ---> [Браузер]
 ```
 
-### Tech Stack
+### Стек технологий
 
-| Компонент | Технология | Версия |
-|-----------|-----------|--------|
-| Language | Go | 1.25 |
-| Web Framework | Fiber | v3 |
-| ORM | Ent | latest |
-| Migrations | Atlas | auto |
-| Frontend | React | 19 |
-| TypeScript | TypeScript | 5.x |
-| Bundler | Vite | 6.x |
-| Router | TanStack Router | v1 |
-| State | Zustand + TanStack Query | latest |
-| UI Components | Shadcn/ui | latest |
-| CSS | Tailwind CSS | 4 |
-| Rich Text | Plate | latest |
-| DnD | pragmatic-drag-and-drop | latest |
-| Charts | Recharts | latest |
-| Database (relational) | PostgreSQL | 17 |
-| Database (document) | MongoDB | 8 |
-| Cache | Redis | 7.4-alpine |
-| Message Broker | NATS + JetStream | 2.11 |
-| Object Storage | SeaweedFS (S3) | latest |
-| WebRTC | LiveKit | 1.8 |
-| Email | Resend API | - |
-| Telegram | telego | latest |
-| Proxy | Caddy | 2-alpine |
-| S3 SDK | aws-sdk-go-v2 | latest |
+| Компонент | Технология | Версия (факт) |
+|-----------|-----------|---------------|
+| Language | Go | **1.25** (`go.mod`) |
+| Web Framework | Fiber | **v3.0.0-beta.3** |
+| ORM | Ent | **v0.14.1** |
+| Migrations | Atlas | via Ent |
+| Frontend | React | **19.1** |
+| TypeScript | TypeScript | **5.7** |
+| Bundler | Vite | **6.x** |
+| Router | TanStack Router | **1.x** |
+| State | Zustand + TanStack Query | **5.x** |
+| UI | Shadcn/ui + Tailwind | **4.x** |
+| PostgreSQL | relational | **17** |
+| MongoDB | document | **8.0** |
+| Redis | cache/sessions | **7.4-alpine** |
+| NATS JetStream | pub/sub | **2.11** |
+| Object Storage | SeaweedFS | **3.97** |
+| WebRTC | LiveKit | **1.8** |
+| Email | Resend / hub-mail | — |
+| Telegram | telego (notify) | **v0.31.0** |
+| Proxy | Caddy | **2-alpine** |
+| S3 SDK | aws-sdk-go-v2 | **v1.32.7** |
 
 ---
 
@@ -998,6 +1020,75 @@ backend/internal/
 | status | ENUM(pending, sent, failed) | |
 | created_at | TIME | Immutable |
 
+### v3/v4 — Дополнительные таблицы (Ent Schema)
+
+> Полный перечень: **82** схемы в `backend/ent/schema/`. Ниже — выборка v3/v4 super-app (см. `docs/wiki/API.md`).
+
+#### crm_contacts / crm_deals
+
+| Колонка | Тип | Описание |
+|---------|-----|----------|
+| id | UUID | PK |
+| name / title | STRING | Имя контакта / название сделки |
+| email, phone, company | STRING | Контактные данные (contacts) |
+| stage | ENUM(lead…lost) | Стадия pipeline (deals) |
+| amount_cents | INT64 | Сумма сделки (deals) |
+| project_id | UUID | Nullable, optional link к проекту |
+| version | INT | Optimistic locking |
+| deleted_at | TIME | Soft delete |
+
+#### news_posts / kudos (intranet)
+
+| Колонка | Тип | Описание |
+|---------|-----|----------|
+| id | UUID | PK |
+| title / message | STRING / TEXT | Заголовок новости / текст kudos |
+| body_json | JSONB | Rich-text новости |
+| is_pinned / is_public | BOOL | Закрепление / публичность |
+| author_id, recipient_id | UUID | FK на users |
+| status | ENUM(draft, published) | Новости |
+| version | INT | Optimistic locking |
+
+#### hub_bases / hub_tables / hub_columns / hub_records
+
+| Сущность | Ключевые поля |
+|----------|---------------|
+| hub_bases | name, description, version, deleted_at |
+| hub_tables | base_id, name, sort_order |
+| hub_columns | table_id, name, col_type (text/number/date/select/checkbox/url/user_ref), options JSON |
+| hub_records | table_id, cells JSONB `{column_uuid: value}`, version, deleted_at |
+
+#### ledger_accounts / journal_entries / journal_lines / invoices (accounting)
+
+| Сущность | Ключевые поля |
+|----------|---------------|
+| ledger_accounts | code, name, account_type (asset/liability/equity/revenue/expense) |
+| journal_entries | status (draft/posted), posted_at, description |
+| journal_lines | entry_id, account_id, debit_cents, credit_cents |
+| invoices | number, status (draft/issued/paid), amount_cents, crm_deal_id (optional) |
+
+#### ai_providers / ai_usage_daily / ai_user_preferences
+
+| Сущность | Ключевые поля |
+|----------|---------------|
+| ai_providers | name, provider_type, base_url, api_key_enc (AES-GCM), models JSON, enabled, priority |
+| ai_usage_daily | user_id, date, tokens_used, requests_count |
+| ai_user_preferences | user_id, default_model, allow_external_ai |
+
+#### marketplace_listings
+
+| Колонка | Тип | Описание |
+|---------|-----|----------|
+| id | UUID | PK |
+| title | STRING | Заголовок объявления |
+| description | TEXT | Описание |
+| category | ENUM(equipment, books, services, furniture, other) | |
+| price_cents | INT64 | Nullable |
+| status | ENUM(pending, approved, rejected, sold, withdrawn) | |
+| author_id | UUID | FK |
+| version | INT | Optimistic locking |
+| deleted_at | TIME | Soft delete |
+
 ### MongoDB — Коллекции
 
 | Коллекция | Описание |
@@ -1007,20 +1098,18 @@ backend/internal/
 
 ---
 
-## API Reference
+## Справочник API
 
 Базовый путь: `/api`
 
-### Auth (13 endpoints)
+### Auth (11 эндпоинтов)
 
-> **Текущее состояние:** Авторизация только через Telegram (фронтенд). Magic Link эндпоинты существуют в бэкенде, но не используются на фронтенде.
+> **v2.5 (Phase 15):** Login — **Magic Link only** (frontend `MagicLinkForm`). Telegram — **notify bind only** (`/notifications/telegram/*`), не login. Registration default: **invite-only** + admin Pending queue.
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
-| POST | /auth/magic-link | Отправить magic-link на email (не используется на фронтенде) | - |
-| POST | /auth/magic-link/verify | Верифицировать magic-link код (не используется на фронтенде) | - |
-| POST | /auth/telegram | Авторизация через Telegram widget | - |
-| POST | /auth/telegram-code | Авторизация по 6-значному коду из Telegram бота | - |
+| POST | /auth/magic-link | Отправить magic-link код на email | - |
+| POST | /auth/magic-link/verify | Верифицировать код → JWT + refresh | - |
 | POST | /auth/refresh | Обновить access token через refresh token | - |
 | POST | /auth/logout | Выход из текущей сессии | JWT |
 | GET | /auth/me | Получить профиль текущего пользователя | JWT |
@@ -1031,7 +1120,18 @@ backend/internal/
 | GET | /admin/registration-mode | Получить режим регистрации | JWT (Admin) |
 | PUT | /admin/registration-mode | Установить режим регистрации | JWT (Admin) |
 
-### Projects (22 endpoints)
+> **Removed v2.5:** `POST /auth/telegram`, `POST /auth/telegram-code` (AUTH-01).
+
+### Admin mail / hub-mail (Phase 15.2)
+
+| Метод | Путь | Описание | Auth |
+|-------|------|----------|------|
+| GET | /admin/mail/settings | Настройки transactional email / hub-mail | JWT (Admin) |
+| PUT | /admin/mail/settings | Обновить from, URL hub-mail, лимиты | JWT (Admin) |
+
+Микросервис: `cmd/hub-mail` — `GET /health`, `GET /v1/status`, `POST /v1/send` (internal).
+
+### Projects (22 эндпоинта)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1058,7 +1158,7 @@ backend/internal/
 | DELETE | /projects/:projectId/teams/:teamId/members/:userId | Удалить участника из команды | JWT |
 | POST | /projects/:projectId/teams/:teamId/projects/:projectId | Добавить команду в проект | JWT |
 
-### Tracker (35 endpoints)
+### Tracker (35 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1101,7 +1201,7 @@ backend/internal/
 | POST | /projects/:projectId/custom-fields | Создать кастомное поле | JWT + RBAC |
 | DELETE | /projects/:projectId/custom-fields/:fieldId | Удалить кастомное поле | JWT + RBAC |
 
-### Messenger (38 endpoints)
+### Messenger (38 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1147,7 +1247,7 @@ backend/internal/
 | GET | /messenger/invites/:token | Валидация invite | JWT |
 | POST | /messenger/invites/:token/accept | Принять invite | JWT |
 
-### TMS (47 endpoints)
+### TMS (47 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1202,7 +1302,7 @@ backend/internal/
 | PUT | /projects/:projectId/tms/environments/:envId | Обновить окружение | JWT + RBAC |
 | DELETE | /projects/:projectId/tms/environments/:envId | Удалить окружение | JWT + RBAC |
 
-### Calls (20 endpoints)
+### Calls (20 эндпоинтов)
 
 > **Гостевой доступ:** Эндпоинт `POST /calls/guest-join` позволяет присоединиться к звонку без аккаунта Hub — достаточно invite_code и имени.
 
@@ -1230,7 +1330,7 @@ backend/internal/
 | DELETE | /scheduled-calls/:id | Удалить запланированный звонок | JWT |
 | POST | /calls/webhook | Webhook LiveKit (room/participant events) | Internal |
 
-#### LiveKit Quality Settings
+#### Настройки качества LiveKit
 
 | Параметр | Значение |
 |----------|----------|
@@ -1262,7 +1362,7 @@ backend/internal/
      |===== LiveKit WebRTC соединение ======|
 ```
 
-### Sprint (13 endpoints)
+### Sprint (13 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1281,7 +1381,7 @@ backend/internal/
 | POST | /poker/:sessionId/reveal | Раскрыть голоса | JWT |
 | GET | /poker/:sessionId | Состояние Poker-сессии | JWT |
 
-### Notifications (11 endpoints)
+### Notifications (11 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1296,7 +1396,7 @@ backend/internal/
 | POST | /notifications/push/subscribe | Подписаться на Web Push | JWT |
 | DELETE | /notifications/push/unsubscribe | Отписаться от Web Push | JWT |
 
-### Search (5 endpoints)
+### Search (5 эндпоинтов)
 
 > **Полнотекстовый поиск** реализован через PostgreSQL `tsvector` + GIN-индексы и MongoDB `$text`. Результаты объединяются по score.
 
@@ -1321,7 +1421,7 @@ backend/internal/
 
 Все tsvector-колонки создаются автоматически при старте сервера через `EnsureSearchIndexes`. Конфигурация: `plainto_tsquery('simple', query)` — language-agnostic поиск. Сообщения ищутся через MongoDB `$text` индекс.
 
-### Dashboard (7 endpoints)
+### Dashboard (7 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1333,7 +1433,7 @@ backend/internal/
 | GET | /dashboard/templates | Список шаблонов | JWT |
 | POST | /dashboard/templates/apply | Применить шаблон | JWT |
 
-### Admin / Audit (7 endpoints)
+### Admin / Audit (7 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1346,7 +1446,7 @@ backend/internal/
 | POST | /admin/users/:id/reassign | Переназначить задачи | JWT (Admin) |
 | DELETE | /admin/users/:id/gdpr | GDPR-удаление пользователя | JWT (Admin) |
 
-### GitHub (9 endpoints)
+### GitHub (9 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1360,7 +1460,7 @@ backend/internal/
 | POST | /issues/:issueKey/github/create-branch | Создать ветку из задачи | JWT |
 | GET | /link-preview | Preview URL (GitHub/external) | JWT |
 
-### GitLab (7 endpoints)
+### GitLab (7 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1372,7 +1472,7 @@ backend/internal/
 | POST | /projects/:projectId/gitlab/pipelines/trigger | Запустить pipeline | JWT + RBAC |
 | POST | /issues/:issueKey/gitlab/create-branch | Создать ветку из задачи | JWT |
 
-### Storage (4 endpoints)
+### Storage (4 эндпоинта)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1381,7 +1481,7 @@ backend/internal/
 | GET | /projects/:projectId/files/:fileId/url | Получить download URL | JWT |
 | DELETE | /projects/:projectId/files/:fileId | Удалить файл | JWT + RBAC |
 
-### Backup (4 endpoints)
+### Backup (4 эндпоинта)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1390,7 +1490,7 @@ backend/internal/
 | POST | /admin/backups/:id/restore | Восстановить из бэкапа | JWT (Admin) |
 | DELETE | /admin/backups/:id | Удалить бэкап | JWT (Admin) |
 
-### RBAC (6 endpoints)
+### RBAC (6 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1401,7 +1501,7 @@ backend/internal/
 | POST | /projects/:projectId/roles/:roleId/assign/:userId | Назначить роль | JWT + RBAC |
 | DELETE | /projects/:projectId/roles/:roleId/assign/:userId | Снять роль | JWT + RBAC |
 
-### Import/Export (6 endpoints)
+### Импорт/Экспорт (6 эндпоинтов)
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
@@ -1412,7 +1512,78 @@ backend/internal/
 | GET | /projects/:projectId/test-runs/:runId/export/pdf | Экспорт прогона (PDF) | JWT |
 | GET | /projects/:projectId/sprints/:sprintId/export/pdf | Экспорт спринта (PDF) | JWT |
 
-**Итого: ~231+ endpoints**
+### Intranet (v4, ~18 эндпоинтов)
+
+> Новости, справочник сотрудников, kudos, random coffee. Полный список: `docs/wiki/API.md`.
+
+| Метод | Путь | Описание | Auth |
+|-------|------|----------|------|
+| GET | /intranet/news | Опубликованные новости | JWT |
+| POST | /intranet/news | Создать новость | JWT (Admin) |
+| GET | /intranet/directory | Дерево отделов → сотрудники | JWT |
+| GET | /intranet/kudos/feed | Лента благодарностей | JWT |
+| POST | /intranet/kudos | Отправить kudos | JWT |
+| PUT | /intranet/coffee/enrollment | Opt-in/out random coffee | JWT |
+| POST | /intranet/coffee/run | Запуск matching (admin) | JWT (Admin) |
+
+### CRM (v4, 8 эндпоинтов)
+
+| Метод | Путь | Описание | Auth |
+|-------|------|----------|------|
+| GET | /crm/contacts | Список контактов | JWT |
+| POST | /crm/contacts | Создать контакт | JWT |
+| PUT | /crm/contacts/:contactId | Обновить (version) | JWT |
+| DELETE | /crm/contacts/:contactId | Soft delete | JWT |
+| GET | /crm/pipeline | Kanban сделок по stage | JWT |
+| POST | /crm/deals | Создать сделку | JWT |
+| PUT | /crm/deals/:dealId | Обновить / переместить stage | JWT |
+| DELETE | /crm/deals/:dealId | Soft delete | JWT |
+
+### Hub Base / bases (v4, 10 эндпоинтов)
+
+| Метод | Путь | Описание | Auth |
+|-------|------|----------|------|
+| GET | /bases | Список баз (workspaces) | JWT |
+| POST | /bases | Создать базу | JWT |
+| GET | /bases/:baseId/tables/:tableId | Колонки + записи (grid) | JWT |
+| POST | /bases/:baseId/tables/:tableId/columns | Добавить колонку | JWT |
+| POST | /bases/:baseId/tables/:tableId/records | Добавить строку | JWT |
+| PUT | /bases/:baseId/tables/:tableId/records/:recordId | Обновить ячейки | JWT |
+
+### Accounting (v4, 11 эндпоинтов)
+
+| Метод | Путь | Описание | Auth |
+|-------|------|----------|------|
+| GET | /accounting/accounts | План счетов | JWT (Admin) |
+| POST | /accounting/journal | Создать черновик проводки | JWT (Admin) |
+| POST | /accounting/journal/:entryId/post | Провести | JWT (Admin) |
+| GET | /accounting/trial-balance | ОСВ | JWT (Admin) |
+| GET | /accounting/invoices | Список счетов | JWT (Admin) |
+| POST | /accounting/invoices/:invoiceId/pay | Оплата → posted проводка | JWT (Admin) |
+| GET | /accounting/income-statement | P&L | JWT (Admin) |
+
+### AI Provider Hub (v3, ~18 эндпоинтов)
+
+| Метод | Путь | Описание | Auth |
+|-------|------|----------|------|
+| GET | /ai/models | Доступные модели (system + BYOK) | JWT |
+| PATCH | /ai/preferences | Default model, allow_external_ai | JWT |
+| POST | /ai/jql/assist | NL → Hub JQL | JWT |
+| POST | /ai/v1/chat/completions | OpenAI-compatible proxy | JWT |
+| GET | /admin/ai/providers | Реестр провайдеров | JWT (Admin) |
+| POST | /admin/ai/providers/:id/test | Ping провайдера | JWT (Admin) |
+
+### Marketplace (v4, 10 эндпоинтов)
+
+| Метод | Путь | Описание | Auth |
+|-------|------|----------|------|
+| GET | /marketplace/listings | Опубликованные объявления | JWT |
+| POST | /marketplace/listings | Создать объявление | JWT |
+| GET | /marketplace/listings/pending | Очередь модерации | JWT (Admin) |
+| POST | /marketplace/listings/:listingId/approve | Одобрить | JWT (Admin) |
+| POST | /marketplace/listings/:listingId/sold | Отметить проданным | JWT |
+
+**Итого: ~286+ эндпоинтов** (полный перечень: `docs/wiki/API.md`)
 
 ---
 
@@ -1507,7 +1678,7 @@ routes/
         dashboard.tsx           # Проектный дашборд
 ```
 
-### State Management (Zustand stores)
+### Управление состоянием (Zustand stores)
 
 | Store | Описание |
 |-------|----------|
@@ -1548,7 +1719,7 @@ modules/
   tracker/      # Tracker module logic
 ```
 
-### Дизайн-система (CSS Variables)
+### Дизайн-система (CSS-переменные)
 
 ```css
 /* Поверхности (5 уровней) */
@@ -1594,7 +1765,7 @@ modules/
 
 ## Константы и конфигурация
 
-### Environment Variables
+### Переменные окружения
 
 | Переменная | Описание | По умолчанию |
 |-----------|----------|-------------|
@@ -1623,18 +1794,18 @@ modules/
 | VAPID_PRIVATE_KEY | VAPID private key (base64url) | "" |
 | VAPID_SUBJECT | VAPID subject (mailto:) | mailto:admin@hub.local |
 
-### Rate Limits
+### Лимиты запросов
 
 | Лимит | Max | Window | Описание |
 |-------|-----|--------|----------|
 | AuthRateLimit | 3 | 10 мин | Авторизация (по IP) |
 | APIRateLimit | 100 | 1 сек | Общий API (по IP) |
 | FileUploadRateLimit | 10 | 1 мин | Загрузка файлов (по IP) |
-| MessageSendRateLimit | 300 | 1 мин | Отправка сообщений (по user) |
+| MessageSendRateLimit | 60 | 1 мин | Отправка сообщений (по user) |
 
 Реализация: in-memory sliding window (без зависимости от Redis).
 
-### JWT Settings
+### Настройки JWT
 
 | Параметр | Значение |
 |----------|----------|
@@ -1643,7 +1814,7 @@ modules/
 | Алгоритм | HS256 |
 | Хранение refresh | Redis |
 
-### WebSocket Settings
+### Настройки WebSocket
 
 | Параметр | Значение |
 |----------|----------|
@@ -1653,7 +1824,7 @@ modules/
 | Max message size | 4096 байт |
 | Send buffer | 256 сообщений |
 
-### NATS Subjects
+### Темы NATS
 
 | Subject Pattern | Описание |
 |----------------|----------|
@@ -1668,7 +1839,7 @@ modules/
 
 ## Деплой
 
-### Docker Compose (development)
+### Docker Compose (разработка)
 
 ```yaml
 services:
@@ -1681,7 +1852,7 @@ services:
   caddy:        # Caddy 2                :80/:443
 ```
 
-### Production (CloudForBox + K3s)
+### Продакшен (CloudForBox + K3s)
 
 ```
 Домен: 770470.cloud4box.ru
@@ -1693,7 +1864,7 @@ Caddy (prod):
   /*           -> frontend:80 (static build)
 ```
 
-### Caddy Config (dev)
+### Конфигурация Caddy (dev)
 
 ```caddyfile
 :80 {
@@ -1704,7 +1875,7 @@ Caddy (prod):
 }
 ```
 
-### Caddy Config (prod)
+### Конфигурация Caddy (prod)
 
 ```caddyfile
 770470.cloud4box.ru {
@@ -1725,4 +1896,4 @@ Caddy (prod):
 
 ---
 
-*Последнее обновление: 2026-03-30*
+*Последнее обновление: 2026-06-22 — RU-FIX-01/02: RU headers, v4 modules API/schema sample, ~286 endpoints*

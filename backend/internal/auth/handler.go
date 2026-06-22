@@ -78,7 +78,7 @@ func (h *Handler) SendMagicLink(c fiber.Ctx) error {
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 
-	// Check registration: invite_only requires existing user, valid invite, or founder setup.
+	// invite_only: нужен существующий пользователь, валидный invite или setup founder.
 	if err := h.service.Login.CanSendMagicLink(c.Context(), req.Email, req.InviteToken); err != nil {
 		if err == ErrInvalidInviteToken || err == ErrRegistrationInviteOnly {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
@@ -149,7 +149,7 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param body body RefreshRequest true "Refresh-токен"
-// @Success 200 {object} TokenPair "Новые JWT-токены"
+// @Success 200 {object} TokenPairResponse "Новые JWT-токены"
 // @Failure 401 {object} map[string]string "Невалидный refresh-токен"
 // @Router /auth/refresh [post]
 func (h *Handler) RefreshToken(c fiber.Ctx) error {
@@ -330,7 +330,7 @@ func (h *Handler) RevokeSession(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
 	}
 
-	// Copy string from Fiber ctx (Pitfall 1).
+	// Копируем sessionId из Fiber ctx до async (Pitfall 1).
 	sessionIDStr := utils.CopyString(c.Params("sessionId"))
 	sessionID, err := uuid.Parse(sessionIDStr)
 	if err != nil {
@@ -402,7 +402,16 @@ func (h *Handler) SetRegistrationMode(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"mode": req.Mode})
 }
 
-// ListPendingUsers returns users awaiting admin approval (ORG-06).
+// ListPendingUsers возвращает пользователей, ожидающих одобрения admin (ORG-06).
+// @Summary Список пользователей в очереди Pending
+// @Description Возвращает пользователей со статусом pending, ожидающих одобрения администратора (ORG-06)
+// @Tags Администрирование
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} PendingUserResponse "Очередь pending"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 403 {object} map[string]string "Нет прав администратора"
+// @Router /admin/users/pending [get]
 func (h *Handler) ListPendingUsers(c fiber.Ctx) error {
 	if err := h.requireAdmin(c); err != nil {
 		return err
@@ -422,7 +431,19 @@ func (h *Handler) ListPendingUsers(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-// ApprovePendingUser activates a pending user.
+// ApprovePendingUser активирует pending-пользователя (ORG-06).
+// @Summary Одобрить pending-пользователя
+// @Description Активирует пользователя из очереди pending (ORG-06)
+// @Tags Администрирование
+// @Produce json
+// @Security BearerAuth
+// @Param userId path string true "UUID пользователя"
+// @Success 200 {object} map[string]string "user approved"
+// @Failure 400 {object} map[string]string "Некорректный UUID"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 403 {object} map[string]string "Нет прав администратора"
+// @Failure 404 {object} map[string]string "Пользователь не найден"
+// @Router /admin/users/{userId}/approve [post]
 func (h *Handler) ApprovePendingUser(c fiber.Ctx) error {
 	if err := h.requireAdmin(c); err != nil {
 		return err
@@ -440,7 +461,19 @@ func (h *Handler) ApprovePendingUser(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "user approved"})
 }
 
-// RejectPendingUser removes a pending registration.
+// RejectPendingUser удаляет pending-регистрацию (ORG-06).
+// @Summary Отклонить pending-пользователя
+// @Description Удаляет регистрацию пользователя из очереди pending (ORG-06)
+// @Tags Администрирование
+// @Produce json
+// @Security BearerAuth
+// @Param userId path string true "UUID пользователя"
+// @Success 200 {object} map[string]string "user rejected"
+// @Failure 400 {object} map[string]string "Некорректный UUID"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 403 {object} map[string]string "Нет прав администратора"
+// @Failure 404 {object} map[string]string "Пользователь не найден"
+// @Router /admin/users/{userId}/reject [post]
 func (h *Handler) RejectPendingUser(c fiber.Ctx) error {
 	if err := h.requireAdmin(c); err != nil {
 		return err
@@ -458,7 +491,17 @@ func (h *Handler) RejectPendingUser(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "user rejected"})
 }
 
-// GetOrgInvite returns the org invite token for sharing (admin/founder).
+// GetOrgInvite возвращает invite-токен org для sharing (admin/founder, ORG-01).
+// @Summary Получить org invite token
+// @Description Возвращает invite-токен организации для invite-only регистрации (ORG-01)
+// @Tags Администрирование
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} OrgInviteResponse "Invite token и URL"
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Failure 403 {object} map[string]string "Нет прав администратора"
+// @Failure 404 {object} map[string]string "Организация не настроена"
+// @Router /admin/organization/invite [get]
 func (h *Handler) GetOrgInvite(c fiber.Ctx) error {
 	if err := h.requireAdmin(c); err != nil {
 		return err
@@ -473,7 +516,7 @@ func (h *Handler) GetOrgInvite(c fiber.Ctx) error {
 	})
 }
 
-// ---- Helpers ----
+// ---- Вспомогательные функции ----
 
 // sessionIDFromCtx извлекает ID сессии из контекста Fiber.
 func sessionIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {

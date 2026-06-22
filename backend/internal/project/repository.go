@@ -17,8 +17,8 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
-// Repository defines the data access interface for the project module.
-// This allows the service layer to be tested with mock implementations.
+// Repository определяет интерфейс доступа к данным модуля project.
+// Позволяет тестировать service-слой с mock-реализациями.
 type Repository interface {
 	FindByID(ctx context.Context, id uuid.UUID) (*ent.Project, error)
 	FindByKey(ctx context.Context, key string) (*ent.Project, error)
@@ -47,7 +47,7 @@ type Repository interface {
 	ListInvites(ctx context.Context, projectID uuid.UUID) ([]*ent.Invite, error)
 	DeleteInvite(ctx context.Context, inviteID uuid.UUID) error
 
-	// Team operations
+	// Операции с командами
 	CreateTeam(ctx context.Context, name, description string) (*ent.Team, error)
 	ListTeams(ctx context.Context) ([]*ent.Team, error)
 	FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Team, error)
@@ -57,7 +57,7 @@ type Repository interface {
 	ListTeamMembers(ctx context.Context, teamID uuid.UUID) ([]*ent.TeamMember, error)
 	AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error
 
-	// Cross-project issue link cleanup (used by DeleteProject)
+	// Очистка межпроектных связей задач (используется в DeleteProject)
 	// ListOutgoingCrossProjectLinks возвращает связи, у которых source принадлежит
 	// заданному проекту, а target — другому. Source и target preload'ятся,
 	// у target дополнительно подгружается assignee для уведомлений.
@@ -69,7 +69,7 @@ type Repository interface {
 	// DeleteIssueLink удаляет связь между задачами по ID.
 	DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error
 
-	// Project template operations (used by TemplateService)
+	// Операции с шаблонами проектов (используются в TemplateService)
 	ListTemplates(ctx context.Context) ([]*ent.ProjectTemplate, error)
 	GetTemplate(ctx context.Context, id uuid.UUID) (*ent.ProjectTemplate, error)
 	// GetProjectWithWorkflowStatusesAndLabels возвращает проект с preload'ом
@@ -80,24 +80,24 @@ type Repository interface {
 	CountSystemTemplates(ctx context.Context) (int, error)
 }
 
-// CacheInvalidator abstracts RBAC cache invalidation for testability.
+// CacheInvalidator абстрагирует инвалидацию RBAC-кэша для тестируемости.
 type CacheInvalidator interface {
 	InvalidateProject(ctx context.Context, projectID string) error
 	Invalidate(ctx context.Context, userID, projectID string) error
 }
 
-// OutboxPublisher abstracts outbox event publishing for the repository.
+// OutboxPublisher абстрагирует публикацию outbox-событий для репозитория.
 type OutboxPublisher interface {
 	PublishInTx(ctx context.Context, tx *ent.Tx, eventType string, payload any) error
 }
 
-// EntRepository implements Repository using Ent ORM with outbox event publishing.
+// EntRepository реализует Repository через Ent ORM с outbox-событиями.
 type EntRepository struct {
 	client    *ent.Client
 	publisher OutboxPublisher
 }
 
-// NewEntRepository creates a new Ent-backed repository.
+// NewEntRepository создаёт Ent-репозиторий project.
 func NewEntRepository(client *ent.Client, publisher OutboxPublisher) *EntRepository {
 	return &EntRepository{client: client, publisher: publisher}
 }
@@ -167,7 +167,7 @@ func (r *EntRepository) Create(ctx context.Context, name, key, description strin
 		return nil, err
 	}
 
-	// Add creator as owner
+	// Добавляем создателя как владельца
 	_, err = tx.ProjectMember.Create().
 		SetProjectID(p.ID).
 		SetUserID(ownerID).
@@ -178,7 +178,7 @@ func (r *EntRepository) Create(ctx context.Context, name, key, description strin
 		return nil, err
 	}
 
-	// Publish outbox event for project.created
+	// Публикуем outbox-событие project.created
 	if r.publisher != nil {
 		err = r.publisher.PublishInTx(ctx, tx, "project.created", ProjectCreatedEvent{
 			ProjectID:   p.ID.String(),
@@ -281,7 +281,7 @@ func (r *EntRepository) AddMember(ctx context.Context, projectID, userID uuid.UU
 	if err != nil {
 		return nil, err
 	}
-	// Reload with user edge
+	// Reload с user edge для DTO ответа.
 	return r.client.ProjectMember.Query().
 		Where(projectmember.IDEQ(mem.ID)).
 		WithUser().
@@ -404,7 +404,7 @@ func (r *EntRepository) DeleteInvite(ctx context.Context, inviteID uuid.UUID) er
 	return r.client.Invite.DeleteOneID(inviteID).Exec(ctx)
 }
 
-// CreateTeam creates a new team with the given name and description.
+// CreateTeam создаёт команду с указанным именем и описанием.
 func (r *EntRepository) CreateTeam(ctx context.Context, name, description string) (*ent.Team, error) {
 	create := r.client.Team.Create().SetName(name)
 	if description != "" {
@@ -413,12 +413,12 @@ func (r *EntRepository) CreateTeam(ctx context.Context, name, description string
 	return create.Save(ctx)
 }
 
-// ListTeams returns all teams with their members eagerly loaded.
+// ListTeams возвращает все команды с eager-loaded участниками.
 func (r *EntRepository) ListTeams(ctx context.Context) ([]*ent.Team, error) {
 	return r.client.Team.Query().WithMembers().All(ctx)
 }
 
-// FindTeamByID returns a team by ID with members eagerly loaded.
+// FindTeamByID возвращает команду по ID с eager-loaded участниками.
 func (r *EntRepository) FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Team, error) {
 	return r.client.Team.Query().
 		Where(team.IDEQ(id)).
@@ -426,7 +426,7 @@ func (r *EntRepository) FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Te
 		Only(ctx)
 }
 
-// AddTeamMember adds a user to a team, returning the created TeamMember.
+// AddTeamMember добавляет пользователя в команду и возвращает TeamMember.
 func (r *EntRepository) AddTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error) {
 	return r.client.TeamMember.Create().
 		SetTeamID(teamID).
@@ -434,7 +434,7 @@ func (r *EntRepository) AddTeamMember(ctx context.Context, teamID, userID uuid.U
 		Save(ctx)
 }
 
-// RemoveTeamMember removes a user from a team.
+// RemoveTeamMember удаляет пользователя из команды.
 func (r *EntRepository) RemoveTeamMember(ctx context.Context, teamID, userID uuid.UUID) error {
 	_, err := r.client.TeamMember.Delete().
 		Where(
@@ -445,14 +445,14 @@ func (r *EntRepository) RemoveTeamMember(ctx context.Context, teamID, userID uui
 	return err
 }
 
-// TeamMemberCount returns the number of members in a team.
+// TeamMemberCount возвращает количество участников команды.
 func (r *EntRepository) TeamMemberCount(ctx context.Context, teamID uuid.UUID) (int, error) {
 	return r.client.TeamMember.Query().
 		Where(teammember.HasTeamWith(team.IDEQ(teamID))).
 		Count(ctx)
 }
 
-// ListTeamMembers returns all members of a team with user edges eagerly loaded.
+// ListTeamMembers возвращает всех участников команды с eager-loaded user edge.
 func (r *EntRepository) ListTeamMembers(ctx context.Context, teamID uuid.UUID) ([]*ent.TeamMember, error) {
 	return r.client.TeamMember.Query().
 		Where(teammember.HasTeamWith(team.IDEQ(teamID))).
@@ -555,9 +555,9 @@ func (r *EntRepository) CountSystemTemplates(ctx context.Context) (int, error) {
 		Count(ctx)
 }
 
-// AddTeamToProject links a team to a project and bulk-adds all team members as project members.
+// AddTeamToProject привязывает команду к проекту и bulk-добавляет участников.
 func (r *EntRepository) AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error {
-	// Link team to project
+	// Привязываем команду к проекту
 	err := r.client.Project.UpdateOneID(projectID).
 		AddTeamIDs(teamID).
 		Exec(ctx)
@@ -565,7 +565,7 @@ func (r *EntRepository) AddTeamToProject(ctx context.Context, teamID, projectID 
 		return err
 	}
 
-	// Bulk-add team members as project members with "developer" role
+	// Массово добавляем участников команды как участников проекта с ролью "developer"
 	members, err := r.ListTeamMembers(ctx, teamID)
 	if err != nil {
 		return err
@@ -575,7 +575,7 @@ func (r *EntRepository) AddTeamToProject(ctx context.Context, teamID, projectID 
 		if m.Edges.User == nil {
 			continue
 		}
-		// Ignore constraint errors (user already a project member)
+		// Игнорируем ошибки ограничений (пользователь уже участник проекта)
 		_, _ = r.AddMember(ctx, projectID, m.Edges.User.ID, projectmember.ProjectRoleDeveloper)
 	}
 

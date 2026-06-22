@@ -210,5 +210,5 @@ func (s *ScheduledCallService) CheckConflicts(ctx context.Context, requestedTime
 	}, nil
 }
 
-// Ignore unused import warning - scheduledcall is used in repository
+// Подавление unused import — scheduledcall используется в repository
 var _ = scheduledcall.Table

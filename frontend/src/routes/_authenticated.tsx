@@ -20,7 +20,7 @@ function AuthenticatedLayout() {
 		void registerServiceWorker();
 	}, []);
 
-	// Multi-tab sync: при logout/login в другой вкладке очищаем cache
+	// Multi-tab sync: logout/login в другой вкладке — очищаем cache Query
 	// и редиректим на login (или перезагружаем, чтобы переподписаться на
 	// новый user_id). См. FE-H2.
 	useEffect(() => {

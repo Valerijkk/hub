@@ -169,7 +169,7 @@ function ProjectsPage() {
 						}
 						emptyFallback={
 							<div className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-dashed border-b1 bg-card/50 py-20 px-6 animate-[eu_450ms_var(--spring)_both]">
-								{/* Illustration */}
+								{/* Иллюстрация */}
 								<div className="relative mb-6">
 									<div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--blueS)]/10 to-[var(--purpleS)]/10">
 										<svg

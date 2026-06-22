@@ -17,7 +17,7 @@ function SecurityPage() {
 				</p>
 			</div>
 
-			{/* Change password section */}
+			{/* Секция смены пароля (legacy UI, вход только magic-link) */}
 			<div className="mb-9">
 				<h3 className="text-[14px] font-bold text-t1 mb-2">Смена пароля</h3>
 				<div className="px-[18px] py-[18px] bg-gradient-to-br from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r3)]">
@@ -32,7 +32,7 @@ function SecurityPage() {
 				</div>
 			</div>
 
-			{/* Two-factor authentication */}
+			{/* Двухфакторная аутентификация (placeholder) */}
 			<div className="mb-9">
 				<h3 className="text-[14px] font-bold text-t1 mb-2">
 					Двухфакторная аутентификация
@@ -49,7 +49,7 @@ function SecurityPage() {
 				</div>
 			</div>
 
-			{/* Active sessions */}
+			{/* Активные сессии */}
 			<div className="mb-9">
 				<h3 className="text-[14px] font-bold text-t1 mb-2">Активные сессии</h3>
 				<div className="px-[18px] py-[18px] bg-gradient-to-br from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r3)]">

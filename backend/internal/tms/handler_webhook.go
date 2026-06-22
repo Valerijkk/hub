@@ -6,11 +6,14 @@ import (
 	"log/slog"
 
 	"github.com/gofiber/fiber/v3"
+	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
+// apperr используется в swag @Failure аннотациях.
+var _ *apperr.AppError
 // ---------------------------------------------------------------------------
-// CI/CD Webhook handlers
+// Обработчики вебхуков CI/CD
 // ---------------------------------------------------------------------------
 // Упрощённые эндпоинты для CI/CD пайплайнов.
 // Аутентификация через X-Hub-Token заголовок или query-параметр token.
@@ -19,7 +22,7 @@ import (
 // maxAllureFileBytes — лимит размера на каждый загружаемый файл в multipart-вебхуках.
 // Глобальный Fiber BodyLimit покрывает совокупный размер запроса, но не отдельный part —
 // без этой защиты multipart с большим числом крупных файлов может уронить процесс по памяти.
-const maxAllureFileBytes = 5 * 1024 * 1024 // 5 MB per uploaded file
+const maxAllureFileBytes = 5 * 1024 * 1024 // 5 МБ на каждый загружаемый файл
 
 // WebhookResponse — ответ вебхука с ID прогона и сводкой.
 type WebhookResponse struct {
@@ -33,7 +36,7 @@ type WebhookResponse struct {
 	Status  string `json:"status"`
 }
 
-// WebhookAllure handles POST /api/projects/:projectId/tms/webhook
+// WebhookAllure обрабатывает POST /api/projects/:projectId/tms/webhook
 // @Summary CI/CD webhook для импорта результатов Allure
 // @Description Принимает multipart (zip-архив allure-results) или JSON-массив результатов.
 // @Description Аутентификация через X-Hub-Token заголовок или query-параметр token.
@@ -45,8 +48,8 @@ type WebhookResponse struct {
 // @Param token query string false "API-ключ (альтернативный способ)"
 // @Param title query string false "Заголовок прогона"
 // @Success 201 {object} WebhookResponse
-// @Failure 400 {object} errors.AppError
-// @Failure 401 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
+// @Failure 401 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/webhook [post]
 func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)
@@ -93,7 +96,7 @@ func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 			title = c.FormValue("title", "")
 		}
 	} else {
-		// JSON body
+		// тело JSON
 		allureData = c.Body()
 	}
 
@@ -131,7 +134,7 @@ func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
 
-// WebhookJUnit handles POST /api/projects/:projectId/tms/webhook/junit
+// WebhookJUnit обрабатывает POST /api/projects/:projectId/tms/webhook/junit
 // @Summary CI/CD webhook для импорта результатов JUnit XML
 // @Description Принимает multipart (XML-файл) или raw XML body.
 // @Description Парсит JUnit XML, конвертирует в Allure-формат и создаёт прогон.
@@ -143,8 +146,8 @@ func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 // @Param token query string false "API-ключ (альтернативный способ)"
 // @Param title query string false "Заголовок прогона"
 // @Success 201 {object} WebhookResponse
-// @Failure 400 {object} errors.AppError
-// @Failure 401 {object} errors.AppError
+// @Failure 400 {object} apperr.AppError
+// @Failure 401 {object} apperr.AppError
 // @Router /api/projects/{projectId}/tms/webhook/junit [post]
 func (h *Handler) WebhookJUnit(c fiber.Ctx) error {
 	projectID, err := httputil.ParseProjectID(c)

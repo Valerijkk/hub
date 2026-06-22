@@ -19,12 +19,12 @@ func NewCustomRoleHandler(svc *RBACService) *CustomRoleHandler {
 func (h *CustomRoleHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	roles := api.Group("/projects/:projectId/roles", authMw)
 
-	roles.Post("/", RequirePermission(PermProjectManageRoles, h.svc), h.CreateRole)
-	roles.Get("/", RequirePermission(PermProjectView, h.svc), h.ListRoles)
-	roles.Put("/:roleId", RequirePermission(PermProjectManageRoles, h.svc), h.UpdateRole)
-	roles.Delete("/:roleId", RequirePermission(PermProjectManageRoles, h.svc), h.DeleteRole)
-	roles.Post("/:roleId/assign/:userId", RequirePermission(PermProjectManageRoles, h.svc), h.AssignRole)
-	roles.Delete("/:roleId/assign/:userId", RequirePermission(PermProjectManageRoles, h.svc), h.UnassignRole)
+	roles.Post("/", h.CreateRole, RequirePermission(PermProjectManageRoles, h.svc))
+	roles.Get("/", h.ListRoles, RequirePermission(PermProjectView, h.svc))
+	roles.Put("/:roleId", h.UpdateRole, RequirePermission(PermProjectManageRoles, h.svc))
+	roles.Delete("/:roleId", h.DeleteRole, RequirePermission(PermProjectManageRoles, h.svc))
+	roles.Post("/:roleId/assign/:userId", h.AssignRole, RequirePermission(PermProjectManageRoles, h.svc))
+	roles.Delete("/:roleId/assign/:userId", h.UnassignRole, RequirePermission(PermProjectManageRoles, h.svc))
 }
 
 // CreateRole обрабатывает POST /api/projects/:projectId/roles.

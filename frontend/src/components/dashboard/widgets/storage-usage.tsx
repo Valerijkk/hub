@@ -1,5 +1,5 @@
 /**
- * Widget "Storage" -- storage usage visualization.
+ * Виджет «Хранилище» — использование дискового пространства.
  */
 import { HardDrive } from "lucide-react";
 import type { AdminStats } from "@/api/dashboard";
@@ -8,7 +8,7 @@ interface Props {
 	data?: unknown;
 }
 
-/** Format bytes to human-readable form. */
+/** Форматирование байт в человекочитаемый вид. */
 function formatBytes(bytes: number): string {
 	if (bytes === 0) return "0 B";
 	const k = 1024;
@@ -17,7 +17,7 @@ function formatBytes(bytes: number): string {
 	return `${(bytes / k ** i).toFixed(1)} ${sizes[i]}`;
 }
 
-/** Storage usage widget. */
+/** Виджет использования хранилища. */
 export function StorageUsageWidget({ data }: Props) {
 	const adminData = data as AdminStats | undefined;
 	const storageUsed = adminData?.storage_used ?? 0;

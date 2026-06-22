@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { updateProfile } from "@/api/auth";
-import { toastApiError } from "@/lib/format-api-error";
 import {
 	getPreferences,
 	type PreferenceDTO,
 	updatePreference,
 } from "@/api/notifications";
+import { TelegramLinkCard } from "@/components/notifications/telegram-link-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Карточка настройки тихих часов с сохранением в профиль. */
 function QuietHoursCard() {
@@ -77,6 +78,7 @@ const NOTIFICATION_TYPES = [
 	{ key: "message_received", label: "Личное сообщение" },
 	{ key: "call_started", label: "Начало звонка" },
 	{ key: "run_completed", label: "Завершение прогона" },
+	{ key: "run_failed", label: "Ошибки в прогоне" },
 	{ key: "deadline_approaching", label: "Приближение дедлайна" },
 	{ key: "blocker_added", label: "Блокировка задачи" },
 ] as const;
@@ -132,7 +134,7 @@ export function NotificationSettings() {
 		async (notifType: string, channel: string) => {
 			const current = isEnabled(notifType, channel);
 
-			// Optimistic update
+			// Оптимистичное обновление — мгновенный отклик UI до ответа сервера
 			setPreferences((prev) => {
 				const idx = prev.findIndex(
 					(p) =>
@@ -177,7 +179,7 @@ export function NotificationSettings() {
 					return [...prev, updated];
 				});
 			} catch (err) {
-				// Revert optimistic update
+				// Откат оптимистичного обновления при ошибке API
 				setPreferences((prev) => {
 					const idx = prev.findIndex(
 						(p) =>
@@ -209,6 +211,8 @@ export function NotificationSettings() {
 
 	return (
 		<div className="space-y-0">
+			<TelegramLinkCard />
+
 			<div className="overflow-x-auto">
 				<table className="w-full border-collapse">
 					<thead>

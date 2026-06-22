@@ -1,7 +1,6 @@
 {
 	"issues": "Задачи",
 	"issue": "Задача",
-	"kanban": "Канбан",
 	"board": "Доска",
 	"sprint": "Спринт",
 	"sprints": "Спринты",
@@ -82,6 +81,9 @@
 		"title": "Название",
 		"titlePlaceholder": "Введите название задачи",
 		"titleRequired": "Введите название задачи",
+		"titleMinLength": "Минимум 3 символа в названии",
+		"titleMaxLength": "Максимум 200 символов в названии",
+		"estimateInvalid": "Оценка должна быть неотрицательным числом",
 		"descriptionPlaceholder": "Опишите задачу…",
 		"assigneePlaceholder": "Выберите исполнителя",
 		"estimateMinutes": "Оценка (минуты)",

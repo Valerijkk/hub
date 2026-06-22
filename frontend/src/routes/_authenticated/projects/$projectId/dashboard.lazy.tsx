@@ -1,6 +1,6 @@
 /**
- * Project dashboard page.
- * Displays task charts, burndown, velocity, test trends and team activity.
+ * Страница проектного дашборда.
+ * Burndown, velocity, тренды тестов, активность команды.
  */
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -29,7 +29,7 @@ function ProjectDashboardWithBoundary() {
 	);
 }
 
-/** Project dashboard templates. */
+/** Шаблоны раскладки проектного дашборда. */
 const TEMPLATES: Record<string, LayoutItem[]> = {
 	dev: projectDev,
 	qa: projectQA,
