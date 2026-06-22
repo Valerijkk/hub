@@ -147,6 +147,11 @@ progress:
 
 ## Недавние сессии
 
+### 2026-06-22 — PR #25 K3s runbook + v2.5 release gate ✅
+
+- **HEAD** `8317412` — `fa06-rotate-p1-k3s.sh`, `v25-release-gate.sh`
+- Ops entry: `scripts/fa06.sh` (p1-compose | p1-k3s | p2-smoke | deploy | release-gate)
+
 ### 2026-06-22 — FA-06 ops scripts + release gate ✅
 
 - **PR #24** `deploy-preflight.sh`, `fa06-rotate-p2-smoke.sh` → HEAD `beb0022`

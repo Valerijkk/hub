@@ -190,17 +190,17 @@
 | 6 | FA-04 github http.DefaultClient fallback | ✅ safehttp |
 | 7 | FA-05 hub-mail prod compose | ✅ 2026-06-22 |
 | 8 | FA-02-02 TMS webhook RBAC (MEDIUM) | ✅ FA-RBAC-FIBER3 123 routes |
-| 9 | Squash PR feat/v2.5-trust | ⏳ pending (after FA-06) |
+| 9 | Squash PR v2.5-trust → master | ✅ PR #1 merged 2026-06-22 + hotfixes |
 | 10 | FA-10 full qa-gate Docker | ✅ local PASS · CI e2e-full 20 specs |
 
 ---
 
 ## Next Actions
 
-1. **DevOps:** FA-06 PG-03 secret rotation (manual ops) — единственный блокер Wave C
-2. **DevOps:** Squash PR `feat/v2.5-trust` → main after FA-06 + CTO approval
-3. **QA:** CI Playwright e2e-full (20 specs) + Docker coverage gate on PR
-4. **Backlog:** FA-02-03 LiveKit iss compare · FA-02-04 RequireAuth fail-open
+1. **DevOps:** FA-06 PG-03 Phase 1–3 (manual) — scripts: `bash scripts/fa06.sh p1-compose` or `p1-k3s` → `p2-smoke` → CTO sign-off
+2. **DevOps:** SSH deploy — `bash scripts/fa06.sh deploy` · GitHub Secrets SSH_HOST/SSH_KEY
+3. **Release:** `bash scripts/fa06.sh release-gate` → `git tag v2.5.0` after FA-06 complete
+4. **Backlog:** NFR-17 Lighthouse in CI · full WCAG AA sign-off
 
 ---
 
