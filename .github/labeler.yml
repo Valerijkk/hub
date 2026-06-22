@@ -1,29 +1,24 @@
+# Path-based PR labels (actions/labeler@v5)
 backend:
   - changed-files:
-      - any-glob-to-any-file: 'backend/**'
+      - any-glob-to-any-file: "backend/**"
 
 frontend:
   - changed-files:
-      - any-glob-to-any-file: 'frontend/**'
+      - any-glob-to-any-file: "frontend/**"
 
 docs:
   - changed-files:
-      - any-glob-to-any-file:
-          - 'docs/**'
-          - '.planning/**'
-          - '*.md'
+      - any-glob-to-any-file: "docs/**"
+
+planning:
+  - changed-files:
+      - any-glob-to-any-file: ".planning/**"
 
 ci:
   - changed-files:
-      - any-glob-to-any-file:
-          - '.github/**'
-          - '.gitlab-ci.yml'
-          - 'scripts/**'
+      - any-glob-to-any-file: ".github/**"
 
-security:
+e2e:
   - changed-files:
-      - any-glob-to-any-file:
-          - 'backend/internal/auth/**'
-          - 'backend/internal/rbac/**'
-          - 'backend/internal/apigateway/**'
-          - 'docs/security_guidelines.md'
+      - any-glob-to-any-file: "testframework/e2e/**"

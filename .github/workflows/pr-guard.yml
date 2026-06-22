@@ -24,7 +24,7 @@ jobs:
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             BASE="HEAD~1"
           fi
-          if git diff "$BASE"..HEAD | grep -iE '(password\s*=\s*["'"'"'][^"'"'"']+|api[_-]?key\s*=\s*["'"'"'][^"'"'"']+|BEGIN (RSA|OPENSSH) PRIVATE KEY)'; then
+          if git diff "$BASE"..HEAD | grep '^+' | grep -v '^+++' | grep -iE '(password\s*=\s*["'"'"'][^"'"'"']+|api[_-]?key\s*=\s*["'"'"'][^"'"'"']+|BEGIN (RSA|OPENSSH) PRIVATE KEY)'; then
             echo "::error::Potential secret detected in diff"
             exit 1
           fi
@@ -46,8 +46,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     permissions:
+      contents: read
       pull-requests: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/labeler@v5
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
