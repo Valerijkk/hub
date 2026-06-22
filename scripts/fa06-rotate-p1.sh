@@ -34,7 +34,7 @@ echo "    up -d --force-recreate backend hub-mail"
 cat <<'EOF'
 
 STEP 4 — Post-deploy verification (Phase 2 smoke)
-  • curl -sf http://127.0.0.1:3000/api/health
+  • bash scripts/fa06-rotate-p2-smoke.sh   (set HUB_BASE, MAGIC_LINK_EMAIL)
   • Trigger Magic Link login → email arrives (Resend)
   • Settings → Notifications → Telegram bind → test notification
 

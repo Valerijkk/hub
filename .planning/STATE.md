@@ -137,8 +137,8 @@ progress:
 
 ## Pending Todos
 
-- **FA-06 / PG-03:** Phase 0 ✅ scan logged · **Phase 1–3 manual** — P1: `RESEND_API_KEY`, `TELEGRAM_BOT_TOKEN` → `.planning/FA-06-EXECUTION-LOG.md`
-- **SSH deploy:** GitHub Actions deploy job — firewall :22 / `SSH_HOST` secrets (`continue-on-error` on master)
+- **FA-06 / PG-03:** Phase 0 ✅ · scripts: `fa06-rotate-p1.sh`, `fa06-rotate-p2-smoke.sh` · **Phase 1–3 manual**
+- **SSH deploy:** `scripts/deploy-preflight.sh` + GitHub Secrets `SSH_HOST`/`SSH_KEY` · firewall :22
 - ~~**UX-1:**~~ ✅ PR #15 merged · ~~**CI flake:**~~ ✅ #16 docker retry · #22 gitlab test · **master CI green** (run 27962930096)
 - ~~**Dependabot batch:**~~ ✅ #17–#21 merged 2026-06-22 (recharts, happy-dom, radix select/tooltip, atlaskit dnd 2.x)
 - **v2.5.0 tag:** after FA-06 Phase 1–3 + CTO sign-off
