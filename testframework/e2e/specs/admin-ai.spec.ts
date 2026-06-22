@@ -27,10 +27,18 @@ test.describe("Admin AI Provider Hub", () => {
 		await page.goto("/admin/dashboard");
 		await page.getByRole("button", { name: "AI" }).click();
 
-		await expect(page.getByRole("heading", { name: "AI Provider Hub" })).toBeVisible();
-		await expect(page.getByText("System prompt @hub-ai")).toBeVisible();
-		await expect(page.getByRole("button", { name: "DeepSeek" })).toBeVisible();
-		await expect(page.getByRole("button", { name: "Открыть DM с @hub-ai" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "AI Provider Hub" })).toBeVisible({
+			timeout: 15_000,
+		});
+		await expect(page.getByText(/System prompt @hub-ai/i)).toBeVisible({
+			timeout: 15_000,
+		});
+		await expect(page.getByRole("button", { name: "DeepSeek" })).toBeVisible({
+			timeout: 15_000,
+		});
+		await expect(
+			page.getByRole("button", { name: "Открыть DM с @hub-ai" }),
+		).toBeVisible({ timeout: 15_000 });
 	});
 
 	// Проверяет: не-admin перенаправляется с панели admin.

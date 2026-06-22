@@ -29,7 +29,8 @@ test.describe("Shortcuts overlay (FB-01 / E2E)", () => {
 			timeout: 15_000,
 		});
 
-		await page.keyboard.press("Shift+/");
+		await page.locator("#main-content").click();
+		await page.keyboard.press("?");
 		await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
 		await expect(page.getByText(/горяч|shortcuts/i)).toBeVisible();
 

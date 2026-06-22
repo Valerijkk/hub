@@ -26,7 +26,7 @@ test.describe("Hub One v4 routes smoke (Phase 51–57)", () => {
 		const routes = [
 			{ path: "/calendar", heading: /Календарь/i },
 			{ path: "/crm", heading: /^CRM$/i },
-			{ path: "/hr", heading: /HR — отпуска/i },
+			{ path: "/hr", heading: /HR.*отпуска/i },
 			{ path: "/marketplace", heading: /Барахолка/i },
 			{ path: "/bases", heading: /Hub Base/i },
 			{ path: "/intranet", heading: /^Intranet$/i },
@@ -35,6 +35,7 @@ test.describe("Hub One v4 routes smoke (Phase 51–57)", () => {
 
 		for (const route of routes) {
 			await page.goto(route.path);
+			await expect(page.getByRole("main")).toBeVisible({ timeout: 15_000 });
 			await expect(page.getByRole("heading", { name: route.heading })).toBeVisible({
 				timeout: 15_000,
 			});

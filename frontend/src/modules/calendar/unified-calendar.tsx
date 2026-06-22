@@ -272,6 +272,7 @@ export function UnifiedCalendar() {
 					<>
 						<button
 							type="button"
+							aria-label="Предыдущий период"
 							onClick={() => {
 								if (view === "month") setMonthOffset((m) => m - 1);
 								else if (view === "week") setWeekOffset((w) => w - 1);
@@ -279,13 +280,14 @@ export function UnifiedCalendar() {
 							}}
 							className="flex h-[34px] w-[34px] items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 hover:bg-[var(--hover)]"
 						>
-							<ChevronLeft className="h-4 w-4" />
+							<ChevronLeft className="h-4 w-4" aria-hidden="true" />
 						</button>
 						<span className="text-[17px] font-bold capitalize tracking-[-0.02em]">
 							{headerText}
 						</span>
 						<button
 							type="button"
+							aria-label="Следующий период"
 							onClick={() => {
 								if (view === "month") setMonthOffset((m) => m + 1);
 								else if (view === "week") setWeekOffset((w) => w + 1);
@@ -293,7 +295,7 @@ export function UnifiedCalendar() {
 							}}
 							className="flex h-[34px] w-[34px] items-center justify-center rounded-[var(--r2)] border border-b1 text-t2 hover:bg-[var(--hover)]"
 						>
-							<ChevronRight className="h-4 w-4" />
+							<ChevronRight className="h-4 w-4" aria-hidden="true" />
 						</button>
 						<button
 							type="button"

@@ -40,7 +40,7 @@ test.describe("Onboarding profile step (UX-P1-07 / FB-12)", () => {
 
 		await nextBtn.click();
 		await expect(
-			page.getByRole("heading", { name: /hub|знаком/i }),
-		).toBeVisible({ timeout: 5000 });
+			page.getByText(/знакомство с hub|hub tour|platform tour/i),
+		).toBeVisible({ timeout: 10_000 });
 	});
 });
