@@ -164,9 +164,9 @@ Security re-audit: `.planning/AUDIT-2026-06-23-full.md` · Guidelines: `docs/sec
 
 | ID | Task | Effort |
 |----|------|--------|
-| TF-CLEANUP-01 | Удалить legacy `testframework/e2e/specs/` + `frontend/testframework/unit/` | 1 h |
-| RU-COMMENTS-01 | EN→RU в ~15 frontend files | 2 h |
-| DOC-02 | Banner «historical» на `.planning/code-review-final/SUMMARY.md` | 5 min |
+| TF-CLEANUP-01 | ✅ legacy `testframework/e2e/` removed (pipeline) |
+| RU-COMMENTS-01 | ✅ top audit files (calls, tms, search, messenger) |
+| DOC-02 | ✅ banner на `code-review-final/SUMMARY.md` |
 
 ### P2 — sprint
 

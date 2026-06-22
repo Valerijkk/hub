@@ -1,14 +1,11 @@
 # docker-compose.local.yml
-# Полный локальный стек Hub — всё в Docker, одна команда
+# Полный локальный стек Hub — всё в Docker, одна команда.
 # Запуск: docker compose --env-file .env.local -f docker-compose.local.yml up --build
-# (скопируйте .env.local.example → .env.local для Resend/Telegram; DEV_MODE=true здесь)
-# Доступ: http://localhost:8080
+# Или:  bash scripts/dev-docker-up.sh   /   pwsh scripts/dev-docker-up.ps1
+# (скопируйте .env.local.example → .env.local для Resend/Telegram)
+# Доступ: http://localhost:8080  ·  API: http://localhost:3000  ·  DEV_MODE=true
 
 services:
-
-  # ========================================
-  # Инфраструктура
-  # ========================================
 
   postgres:
     image: postgres:17
@@ -75,12 +72,14 @@ services:
       - seaweeddata:/data
       - ./deployments/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
 
+  # LiveKit — на Windows сузьте UDP-диапазон (Hyper-V резервирует порты).
+  # Если bind UDP failed: docker compose up -d --no-deps backend frontend hub-mail
   livekit:
     image: livekit/livekit-server:v1.8
     ports:
       - "7880:7880"
       - "7881:7881"
-      - "50000-50100:50000-50100/udp"
+      - "50000-50010:50000-50010/udp"
     volumes:
       - ./deployments/livekit.yaml:/etc/livekit.yaml:ro
     command: ["--config", "/etc/livekit.yaml"]
@@ -88,9 +87,40 @@ services:
       redis:
         condition: service_healthy
 
-  # ========================================
-  # Приложение
-  # ========================================
+  # Опционально: глобальный поиск Meilisearch (profile: search)
+  meilisearch:
+    profiles: ["search"]
+    image: getmeili/meilisearch:v1.12
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: hub-dev-master-key
+    volumes:
+      - meilidata:/meili_data
+
+  hub-mail:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        GO_BUILD_TAGS: release
+    entrypoint: ["./hub-mail"]
+    ports:
+      - "3001:3001"
+    environment:
+      HUB_MAIL_PORT: "3001"
+      HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN:-local-dev-mail-token}"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      RESEND_FROM_EMAIL: "${RESEND_FROM_EMAIL:-onboarding@resend.dev}"
+      RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"
+      MAIL_DAILY_LIMIT: "${MAIL_DAILY_LIMIT:-20}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   backend:
     build:
@@ -104,8 +134,10 @@ services:
     environment:
       SERVER_PORT: "3000"
       FIBER_IMMUTABLE: "true"
+      ENVIRONMENT: development
+      DEV_MODE: "true"
       DATABASE_URL: "postgresql://hub:hub@postgres:5432/hub?sslmode=disable"
-      MONGODB_URL: "mongodb://hub:hub@mongo:27017"
+      MONGODB_URL: "mongodb://hub:hub@mongo:27017/?authSource=admin"
       MONGODB_DATABASE: "hub"
       REDIS_URL: "redis://redis:6379/0"
       NATS_URL: "nats://nats:4222"
@@ -116,21 +148,15 @@ services:
       S3_REGION: "us-east-1"
       S3_USE_SSL: "false"
       JWT_SECRET: "local-dev-secret-change-in-production"
-      # INF-03: реальные ключи больше НЕ хардкодим. Раньше тут лежали
-      # plaintext Resend API key и Telegram bot token — те значения считаются
-      # СКОМПРОМЕТИРОВАННЫМИ, их нужно ротировать. Локально оставляем пустыми
-      # (Resend → dev-режим с логированием кода, Telegram-bot отключён),
-      # либо подставляем через .env.local / `export RESEND_API_KEY=...`.
+      # INF-03: ключи через .env.local, не хардкодить в compose
       RESEND_API_KEY: "${RESEND_API_KEY:-}"
       RESEND_FROM_EMAIL: "${RESEND_FROM_EMAIL:-onboarding@resend.dev}"
       TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN:-}"
       LIVEKIT_URL: "http://livekit:7880"
       LIVEKIT_API_KEY: "devkey-hub-local-development-2026"
       LIVEKIT_API_SECRET: "devsecret-hub-local-minimum-32-chars-ok"
-      DEV_MODE: "true"
-      # hub-mail bridge (см. сервис hub-mail ниже).
       HUB_MAIL_URL: "http://hub-mail:3001"
-      HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN:-}"
+      HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN:-local-dev-mail-token}"
       RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"
     depends_on:
       postgres:
@@ -143,35 +169,14 @@ services:
         condition: service_started
       seaweedfs:
         condition: service_started
+      hub-mail:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  # hub-mail — микросервис почты. Тот же образ, что и backend (бинарь
-  # /app/hub-mail), entrypoint переопределён. Локально без RESEND_API_KEY
-  # работает в dev-режиме (логирует, не отправляет).
-  hub-mail:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    entrypoint: ["./hub-mail"]
-    ports:
-      - "3001:3001"
-    environment:
-      HUB_MAIL_PORT: "3001"
-      HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN:-}"
-      RESEND_API_KEY: "${RESEND_API_KEY:-}"
-      RESEND_FROM_EMAIL: "${RESEND_FROM_EMAIL:-onboarding@resend.dev}"
-      RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"
-      MAIL_DAILY_LIMIT: "${MAIL_DAILY_LIMIT:-20}"
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   frontend:
@@ -182,18 +187,8 @@ services:
       - "8080:80"
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
-
-  meilisearch:
-    image: getmeili/meilisearch:v1.12
-    ports:
-      - "7700:7700"
-    environment:
-      MEILI_ENV: development
-      MEILI_MASTER_KEY: hub-dev-master-key
-    volumes:
-      - meilidata:/meili_data
 
 volumes:
   pgdata:
