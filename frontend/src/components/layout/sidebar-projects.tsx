@@ -264,7 +264,9 @@ export function SidebarProjects({
 			</div>
 
 			{projects?.length === 0 && !collapsed && (
-				<p className="px-3 py-2 text-xs text-sidebar-subtle">{t("sidebar.noProjects")}</p>
+				<p className="px-3 py-2 text-xs text-sidebar-subtle">
+					{t("sidebar.noProjects")}
+				</p>
 			)}
 		</div>
 	);

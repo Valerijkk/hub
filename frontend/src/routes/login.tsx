@@ -112,9 +112,7 @@ function LoginPage() {
 							<h4 className="text-[15px] font-bold tracking-[-0.01em] mb-1.5">
 								{f.label}
 							</h4>
-							<p className="text-xs text-[#9da0a8] leading-relaxed">
-								{f.desc}
-							</p>
+							<p className="text-xs text-[#9da0a8] leading-relaxed">{f.desc}</p>
 						</div>
 					))}
 				</div>
