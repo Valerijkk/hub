@@ -17,7 +17,7 @@
     "lighthouse:ci": "node scripts/lighthouse-ci.mjs"
   },
   "dependencies": {
-    "@atlaskit/pragmatic-drag-and-drop": "^1.7.9",
+    "@atlaskit/pragmatic-drag-and-drop": "^2.0.1",
     "@hookform/resolvers": "^5.4.0",
     "@livekit/components-react": "^2.9.20",
     "@livekit/components-styles": "^1.2.0",
