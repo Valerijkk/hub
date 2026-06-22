@@ -98,7 +98,7 @@ func (m *mockRepo) ListTrash(_ context.Context, _ uuid.UUID) ([]*ent.Project, er
 	return result, nil
 }
 
-func (m *mockRepo) Create(_ context.Context, name, key, description string, ownerID uuid.UUID) (*ent.Project, error) {
+func (m *mockRepo) Create(_ context.Context, name, key, description string, _ uuid.UUID) (*ent.Project, error) {
 	if m.createErr != nil {
 		return nil, m.createErr
 	}
@@ -121,16 +121,6 @@ func (m *mockRepo) Create(_ context.Context, name, key, description string, owne
 	}
 	m.projects[id] = p
 	m.memberCountMap[id] = 1
-	m.members[id] = []*ent.ProjectMember{
-		{
-			ID:          uuid.New(),
-			ProjectRole: projectmember.ProjectRoleOwner,
-			JoinedAt:    now,
-			Edges: ent.ProjectMemberEdges{
-				User: &ent.User{ID: ownerID},
-			},
-		},
-	}
 	return p, nil
 }
 
