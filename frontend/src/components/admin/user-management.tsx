@@ -290,16 +290,17 @@ export function UserManagement() {
 					одобрения
 				</p>
 				<div className="flex gap-2">
-					<input
-						type="text"
-						readOnly
-						value={
-							inviteLoading
-								? "Загрузка..."
-								: inviteLink || "Организация не настроена"
-						}
-						className="flex-1 h-10 px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[13px] text-t1 outline-none"
-					/>
+				<input
+					type="text"
+					readOnly
+					aria-label="Ссылка-приглашение в Hub"
+					value={
+						inviteLoading
+							? "Загрузка..."
+							: inviteLink || "Организация не настроена"
+					}
+					className="flex-1 h-10 px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[13px] text-t1 outline-none"
+				/>
 					<button
 						type="button"
 						disabled={!inviteLink}

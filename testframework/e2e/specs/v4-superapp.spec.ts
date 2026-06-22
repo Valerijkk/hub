@@ -35,7 +35,7 @@ test.describe("Hub One v4 routes smoke (Phase 51–57)", () => {
 
 		for (const route of routes) {
 			await page.goto(route.path);
-			await expect(page.getByRole("main")).toBeVisible({ timeout: 15_000 });
+			await expect(page.locator("#main-content")).toBeVisible({ timeout: 15_000 });
 			await expect(page.getByRole("heading", { name: route.heading })).toBeVisible({
 				timeout: 15_000,
 			});

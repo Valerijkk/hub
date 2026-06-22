@@ -34,7 +34,7 @@ test.describe("Admin audit page", () => {
 			page.getByRole("button", { name: /csv|экспорт/i }),
 		).toBeVisible();
 		await expect(
-			page.getByRole("columnheader", { name: "Время" }),
+			page.getByRole("columnheader", { name: "Время", exact: true }),
 		).toBeVisible({ timeout: 15_000 });
 		await expect(
 			page.getByRole("columnheader", { name: "Действие" }),

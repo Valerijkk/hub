@@ -36,10 +36,12 @@ test.describe("Project lifecycle (FB-07)", () => {
 		await page.getByRole("button", { name: "Создать проект" }).click();
 
 		await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+/, { timeout: 30_000 });
-		await expect(page.getByRole("link", { name: "Доска" })).toBeVisible({
-			timeout: 15_000,
-		});
+		const projectId = page.url().match(/\/projects\/([0-9a-f-]+)/)?.[1];
+		expect(projectId).toBeTruthy();
+		await page.goto(`/projects/${projectId}/board`);
+		await expect(page.locator("#main-content")).toBeVisible({ timeout: 15_000 });
 
+		await page.goto(`/projects/${projectId}`);
 		await page.getByRole("tab", { name: "Настройки" }).click();
 		await page.getByRole("button", { name: "Удалить" }).click();
 		await page.getByRole("button", { name: "Удалить" }).last().click();

@@ -2,6 +2,7 @@
  * E2E-компонент Hub: messenger.spec.ts.
  */
 import {
+	expect,
 	skipUnlessBackend,
 	skipUnlessDevMode,
 	test,
@@ -25,6 +26,7 @@ test.describe("Messenger (FB-08)", () => {
 		await auth.loginAsDev(page);
 
 		await messenger.openInbox();
+		await expect(messenger.composer).toBeVisible({ timeout: 30_000 });
 		const messageText = `E2E ping ${Date.now()}`;
 		await messenger.sendMessage(messageText);
 	});

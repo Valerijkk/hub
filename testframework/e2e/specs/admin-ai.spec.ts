@@ -25,6 +25,9 @@ test.describe("Admin AI Provider Hub", () => {
 		expect(login.user.system_role).toBe("admin");
 
 		await page.goto("/admin/dashboard");
+		await expect(page.getByRole("button", { name: "Дашборд" })).toBeVisible({
+			timeout: 15_000,
+		});
 		await page.getByRole("button", { name: "AI" }).click();
 
 		await expect(page.getByRole("heading", { name: "AI Provider Hub" })).toBeVisible({

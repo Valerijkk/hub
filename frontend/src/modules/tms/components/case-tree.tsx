@@ -26,18 +26,15 @@ export function SuiteTreeItem({
 
 	return (
 		<div>
-			<button
-				type="button"
+			<div
 				className={cn(
-					"group flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-left text-[13px] font-medium cursor-pointer transition-colors duration-[180ms] text-t2 relative",
+					"group relative flex w-full items-center gap-2 rounded-[var(--r2)] px-[10px] py-2 text-[13px] font-medium text-t2",
 					"hover:bg-[var(--hover)] hover:text-t1",
 					isSelected &&
 						"bg-purple/[0.05] text-white shadow-[0_0_0_1px_rgba(167,139,250,0.08)_inset]",
 				)}
 				style={{ paddingLeft: `${depth * 26 + 10}px` }}
-				onClick={() => onSelect(isSelected ? undefined : suite.id)}
 			>
-				{/* Градиент выбранной строки слева */}
 				{isSelected && (
 					<span className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-purple/[0.06] to-transparent rounded-[var(--r2)] pointer-events-none" />
 				)}
@@ -45,14 +42,12 @@ export function SuiteTreeItem({
 					<button
 						type="button"
 						className={cn(
-							"w-4 h-4 text-[8px] text-t4 transition-transform duration-[250ms] shrink-0 flex items-center justify-center border-0 bg-transparent p-0",
+							"w-4 h-4 text-[8px] text-t4 transition-transform duration-[250ms] shrink-0 flex items-center justify-center border-0 bg-transparent p-0 cursor-pointer",
 							expanded && "rotate-90",
 						)}
-						aria-label={expanded ? "Свернуть" : "Развернуть"}
-						onClick={(e) => {
-							e.stopPropagation();
-							setExpanded(!expanded);
-						}}
+						aria-label={expanded ? "Свернуть сьют" : "Развернуть сьют"}
+						aria-expanded={expanded}
+						onClick={() => setExpanded(!expanded)}
 					>
 						<svg
 							aria-hidden="true"
@@ -70,47 +65,53 @@ export function SuiteTreeItem({
 						</svg>
 					</button>
 				) : (
-					<span className="w-4 shrink-0" style={{ visibility: "hidden" }} />
+					<span className="w-4 shrink-0" aria-hidden="true" />
 				)}
-				{hasChildren ? (
-					<span
-						className={cn(
-							"shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[7px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
-							"group-hover:scale-110 group-hover:shadow-[0_0_10px_rgba(167,139,250,0.1)]",
-						)}
-						style={{
-							background: isSelected
-								? "rgba(167,139,250,0.1)"
-								: "rgba(255,255,255,0.035)",
-							color: isSelected ? "var(--purple)" : "var(--text-3)",
-						}}
-					>
-						<svg
-							aria-hidden="true"
-							className="h-3 w-3"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							strokeWidth={2}
+				<button
+					type="button"
+					className="flex min-w-0 flex-1 items-center gap-2 border-0 bg-transparent p-0 text-left text-[13px] font-medium text-inherit cursor-pointer"
+					onClick={() => onSelect(isSelected ? undefined : suite.id)}
+				>
+					{hasChildren ? (
+						<span
+							className={cn(
+								"shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[7px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
+								"group-hover:scale-110 group-hover:shadow-[0_0_10px_rgba(167,139,250,0.1)]",
+							)}
+							style={{
+								background: isSelected
+									? "rgba(167,139,250,0.1)"
+									: "rgba(255,255,255,0.035)",
+								color: isSelected ? "var(--purple)" : "var(--text-3)",
+							}}
 						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-							/>
-						</svg>
-					</span>
-				) : (
-					<span
-						className="w-[7px] h-[7px] rounded-full shrink-0 ml-[1px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 group-hover:shadow-[0_0_8px_currentColor] group-hover:scale-[1.3]"
-						style={{
-							background: isSelected ? "var(--purple)" : "var(--text-3)",
-							color: isSelected ? "var(--purple)" : "var(--text-3)",
-						}}
-					/>
-				)}
-				<span className="truncate flex-1">{suite.name}</span>
-			</button>
+							<svg
+								aria-hidden="true"
+								className="h-3 w-3"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								strokeWidth={2}
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+								/>
+							</svg>
+						</span>
+					) : (
+						<span
+							className="w-[7px] h-[7px] rounded-full shrink-0 ml-[1px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 group-hover:shadow-[0_0_8px_currentColor] group-hover:scale-[1.3]"
+							style={{
+								background: isSelected ? "var(--purple)" : "var(--text-3)",
+								color: isSelected ? "var(--purple)" : "var(--text-3)",
+							}}
+						/>
+					)}
+					<span className="truncate">{suite.name}</span>
+				</button>
+			</div>
 			{expanded && hasChildren && (
 				<div>
 					{suite.children?.map((child) => (
