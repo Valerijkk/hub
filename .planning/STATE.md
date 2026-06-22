@@ -137,7 +137,7 @@ progress:
 
 ## Pending Todos
 
-- **FA-06 / PG-03:** Phase 0 ✅ · scripts: `fa06-rotate-p1.sh`, `fa06-rotate-p2-smoke.sh` · **Phase 1–3 manual**
+- **FA-06 / PG-03:** Phase 0 ✅ · scripts: `fa06-rotate-p1.sh`, `fa06-rotate-p1-k3s.sh`, `fa06-rotate-p2-smoke.sh`, `v25-release-gate.sh` · **Phase 1–3 manual**
 - **SSH deploy:** `scripts/deploy-preflight.sh` + GitHub Secrets `SSH_HOST`/`SSH_KEY` · firewall :22
 - ~~**UX-1:**~~ ✅ PR #15 merged · ~~**CI flake:**~~ ✅ #16 docker retry · #22 gitlab test · **master CI green** (run 27962930096)
 - ~~**Dependabot batch:**~~ ✅ #17–#21 merged 2026-06-22 (recharts, happy-dom, radix select/tooltip, atlaskit dnd 2.x)
@@ -146,6 +146,12 @@ progress:
 ---
 
 ## Недавние сессии
+
+### 2026-06-22 — FA-06 ops scripts + release gate ✅
+
+- **PR #24** `deploy-preflight.sh`, `fa06-rotate-p2-smoke.sh` → HEAD `beb0022`
+- **Build & Deploy** run 27965584506: **success** (images pushed; deploy best-effort)
+- K3s + v2.5 tag gate scripts added on master
 
 ### 2026-06-22 — Master CI green + Dependabot batch ✅
 
