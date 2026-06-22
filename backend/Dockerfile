@@ -27,7 +27,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -tags release -o /hub-server ./cmd/server
 RUN CGO_ENABLED=0 GOOS=linux go build -tags release -o /hub-mail ./cmd/hub-mail
 
 # --- Финальный образ ---
-FROM alpine:3.20
+FROM alpine:3.21
 
 RUN apk add --no-cache ca-certificates tzdata
 
