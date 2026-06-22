@@ -11,7 +11,16 @@ cmd="${1:-}"
 
 start_infra() {
   echo "Starting postgres, mongo, redis, nats, livekit..."
-  "${COMPOSE[@]}" up -d postgres mongo redis nats livekit
+  local attempt
+  for attempt in 1 2 3; do
+    if "${COMPOSE[@]}" up -d postgres mongo redis nats livekit; then
+      return 0
+    fi
+    echo "docker compose up failed (attempt ${attempt}/3), retrying in 20s..."
+    sleep 20
+  done
+  echo "docker compose up failed after 3 attempts"
+  exit 1
 }
 
 wait_infra() {

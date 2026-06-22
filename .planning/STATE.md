@@ -137,15 +137,21 @@ progress:
 
 ## Pending Todos
 
-- **FA-06 / PG-03:** Secret rotation (manual ops, runbook ready) — единственный блокер Wave C
-- **FA-10 follow-up:** race ✅ · coverage-gate CI ✅ · Playwright e2e-smoke ✅ (frontend config fix)
-- **FA-02 backlog:** ~~FA-02-03 LiveKit iss~~ ✅ · ~~FA-02-04 RequireAuth fail-open~~ ✅
-- **UX-1:** onboarding step 4, command palette actions, RHF+Zod tracker forms
-- **Squash PR:** draft ready → `.planning/PR-feat-v2.5-trust.md` · merge after **FA-06** + CTO approval
+- **FA-06 / PG-03:** Secret rotation (manual ops, runbook ready) — единственный блокер prod cutover
+- **SSH deploy:** GitHub Actions deploy job — firewall :22 / `SSH_HOST` secrets (continue-on-error on master)
+- **Post-merge CI:** master `64dce64` — e2e-full failed Docker Hub pull timeout (transient); retry in `ci-e2e-backend.sh`
+- ~~**UX-1:**~~ ✅ **DONE 2026-06-22** — PR #15 merged (`calls`, `settings`, `admin` in Ctrl+K; i18n; E2E shortcuts)
+- ~~**Squash PR v2.5-trust:**~~ ✅ merged #1 (2026-06-22) + hotfixes #12–#14
 
 ---
 
 ## Недавние сессии
+
+### 2026-06-22 — UX-1 command palette ✅ PR #15
+
+- **PR #15** merged → `64dce64` — Ctrl+K actions: Calls, Settings, Admin + i18n keys (en/ru)
+- E2E: `command-palette.spec.ts` action shortcuts → `/calls`, `/settings/profile`
+- Onboarding Zod step 4 + issue-form RHF+Zod already on master (FA-06 wave)
 
 ### 2026-06-22 — APIGW-05 domain errors ✅
 

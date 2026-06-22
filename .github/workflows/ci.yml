@@ -80,7 +80,16 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       - name: Start test infrastructure
-        run: docker compose -f deployments/docker-compose.test.yml up -d
+        run: |
+          for attempt in 1 2 3; do
+            if docker compose -f deployments/docker-compose.test.yml up -d; then
+              exit 0
+            fi
+            echo "docker compose up failed (attempt ${attempt}/3), retrying in 20s..."
+            sleep 20
+          done
+          echo "docker compose up failed after 3 attempts"
+          exit 1
 
       - name: Wait for test infrastructure
         run: |
