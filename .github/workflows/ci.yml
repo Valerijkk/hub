@@ -40,7 +40,7 @@ jobs:
         working-directory: backend
         run: |
           go generate ./ent
-          go vet ./...
+          go vet -tags hubtest ./...
 
       - name: Test (race detector)
         working-directory: backend
