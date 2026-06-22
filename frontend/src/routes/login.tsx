@@ -76,7 +76,7 @@ function LoginPage() {
 
 	return (
 		<div className="flex min-h-screen">
-			<div className="relative hidden lg:flex lg:w-[55%] flex-col items-center justify-center overflow-hidden">
+			<div className="relative hidden lg:flex lg:w-[55%] flex-col items-center justify-center overflow-hidden text-[#f2f3f5]">
 				<div className="absolute inset-0 login-mesh" />
 				<div className="absolute inset-0 login-grid-lines" />
 
@@ -112,7 +112,7 @@ function LoginPage() {
 							<h4 className="text-[15px] font-bold tracking-[-0.01em] mb-1.5">
 								{f.label}
 							</h4>
-							<p className="text-xs text-[var(--t2)] leading-relaxed">
+							<p className="text-xs text-[#9da0a8] leading-relaxed">
 								{f.desc}
 							</p>
 						</div>
@@ -123,7 +123,7 @@ function LoginPage() {
 					<h1 className="text-[30px] font-black tracking-[-0.04em] leading-tight bg-gradient-to-br from-[var(--blue)] via-[var(--purple)] to-pink-500 bg-clip-text text-transparent mb-2">
 						Единая платформа
 					</h1>
-					<p className="text-[15px] text-[var(--t2)] max-w-[360px] leading-relaxed">
+					<p className="text-[15px] text-[#9da0a8] max-w-[360px] leading-relaxed">
 						Проекты, общение, звонки и тестирование — в одном месте для всей
 						команды
 					</p>

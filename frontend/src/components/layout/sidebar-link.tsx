@@ -62,7 +62,7 @@ export function SidebarLink({
 			params={params}
 			className={cn(
 				"group relative flex items-center gap-[11px] rounded-[var(--r2)] px-3 py-[9px] text-[13.5px] font-medium transition-colors duration-200",
-				"text-t2 hover:bg-[var(--hover)] hover:text-t1",
+				"text-sidebar-muted hover:bg-[var(--hover)] hover:text-sidebar-foreground",
 				isActive && "bg-[var(--active)] text-white font-semibold",
 				collapsed && "justify-center px-0",
 				indent && !collapsed && "pl-[42px] text-[13px]",
