@@ -31,6 +31,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Reject UTF-8 BOM in Go sources
+        run: |
+          set -euo pipefail
+          bad=0
+          while IFS= read -r -d '' f; do
+            if [ "$(head -c 3 "$f" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]; then
+              echo "::error file=${f}::UTF-8 BOM prefix breaks Go 1.25 on Linux CI"
+              bad=1
+            fi
+          done < <(find backend/internal -name '*.go' -print0)
+          exit "$bad"
+
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
