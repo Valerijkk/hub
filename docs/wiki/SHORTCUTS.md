@@ -19,7 +19,7 @@
 - **Debounce:** 300 ms
 - **Группы:** задачи, тест-кейсы, пользователи, проекты, каналы, файлы
 - **Открытие:** клавиша или кнопка 🔍 в topbar
-- **E2E:** `testframework/e2e/specs/command-palette.spec.ts`
+- **E2E:** `testframework/stages/e2e/domains/navigation/command-palette.spec.ts`
 
 ---
 
@@ -78,7 +78,7 @@
 
 - Все интерактивные элементы доступны с клавиатуры (Tab)
 - Focus ring видимый (Tailwind `focus-visible`)
-- E2E a11y: `testframework/e2e/specs/a11y.spec.ts` (axe-core, WCAG 2.1 AA target)
+- E2E a11y: `testframework/stages/e2e/domains/platform/a11y.spec.ts` (axe-core, WCAG 2.1 AA target)
 
 ---
 

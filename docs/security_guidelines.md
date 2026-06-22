@@ -5,7 +5,10 @@
 
 ---
 
-## Краткий статус (2026-06-21)
+## Краткий статус (2026-06-22)
+
+> Quality processes audit: `.planning/AUDIT-2026-06-22-quality-processes.md`  
+> Security re-audit: `.planning/AUDIT-2026-06-23-full.md`
 
 | Категория | Статус |
 |-----------|--------|

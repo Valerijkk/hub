@@ -2,7 +2,7 @@
 
 > Phase 0 reconciliation: требование → код → тест.  
 > **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/code-review-final/SUMMARY.md`  
-> **Верификация:** 2026-06-22 (Wave C FA-03, Docker `-tags hubtest`, post FA-11/12)
+> **Верификация:** 2026-06-22 (quality audit + Wave C FA-03, Docker `-tags hubtest`, post FA-11/12)
 
 ---
 
@@ -33,10 +33,11 @@
 
 | Layer | Count | Notes |
 |-------|-------|-------|
-| Backend `testframework/**/*_test.go` | **488** files | TF migration COMPLETE |
+| Backend `testframework/**/*_test.go` | **495** files | TF migration COMPLETE |
 | Backend `internal/*_test.go` (remaining) | **0** files | TF-M08 ✅ verified |
-| Frontend Vitest `frontend/testframework/unit/` | **37** files | **99/99** tests · 0 in `src/` |
-| Playwright E2E | **20** spec files | `testframework/e2e/specs/` |
+| Frontend Vitest `testframework/stages/unit/frontend-test/domains/` | **37** files | **99/99** tests · 0 in `src/` |
+| Playwright E2E | **20** spec files | `testframework/stages/e2e/domains/` |
+| E2E shared (POM/steps) | pages, steps, helpers | `testframework/stages/e2e/shared/` |
 | Statement coverage (overall `internal/`) | **83.0%** | post FA-11/12 ✅ |
 
 ### Покрытие по пакетам (актуальное, Docker)

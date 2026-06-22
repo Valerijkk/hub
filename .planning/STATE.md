@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: wave-c-mostly-complete
 stopped_at: Wave B ✅ · Wave C FA-01–FA-12 ✅ (except FA-06 manual) · RU-V10 PASS · FA-10 qa-gate PASS
-last_updated: "2026-06-23T18:00:00.000Z"
-last_activity: 2026-06-22/23 AUTH-01 · APIGW-04 · WebhookDispatcher inFlight Stop race fix · FA-10 race PASS
+last_updated: "2026-06-22T23:45:00.000Z"
+last_activity: 2026-06-22 quality-processes audit · docs sync TF paths · local qa-gate PASS (build/vet/tsc/lint/vitest)
 progress:
   total_phases: 125
   completed_phases: 125
@@ -26,7 +26,7 @@ progress:
 
 ---
 
-## Текущая позиция (2026-06-23)
+## Текущая позиция (2026-06-22)
 
 | Параметр | Значение |
 |----------|----------|
@@ -34,11 +34,11 @@ progress:
 | Ветка | `master` · HEAD `bbdaf16` |
 | COV overall (`internal/`) | **83.0%** (Docker, `-tags hubtest`, post FA-11/12) |
 | Security packages ≥80% | **6/6** ✅ |
-| Product score | **93/100** |
+| Product score | **89/100** (post P1 backlog close) |
 | REST API | **286+** endpoints |
-| Backend tests | **488** files в `backend/testframework/` · **0** в `internal/*_test.go` (TF-M08 ✅) |
-| Playwright E2E | **20** specs (`testframework/e2e/specs/`) |
-| Frontend Vitest | **99/99** pass · 37 files `frontend/testframework/unit/` · 0 in `src/` |
+| Backend tests | **495** files в `backend/testframework/` · **0** в `internal/*_test.go` (TF-M08 ✅) |
+| Playwright E2E | **20** specs (`testframework/stages/e2e/domains/`) |
+| Frontend Vitest | **99/99** pass · 37 files `testframework/stages/unit/frontend-test/domains/` · 0 in `src/` |
 
 ### Покрытие ключевых пакетов (Docker, Phase 125)
 
@@ -68,7 +68,7 @@ progress:
 | v3.0 AI Native | 17–19 | ✅ COMPLETE | 2026-06-22 |
 | v4 Super-app | 39–58 | ✅ COMPLETE | 2026-06-25 |
 | Coverage wave | 59–125 | ✅ COMPLETE | 2026-06-21 |
-| Test framework migration | TF-M01–M10 | ✅ Wave B COMPLETE (0 internal tests) | 2026-06-22 |
+| Test framework migration | TF-M01–M10 | ✅ Wave B + pipeline domains (TF-M10) | 2026-06-23 |
 | Final audit | FA-01–FA-12 | ✅ Wave C COMPLETE (кроме FA-06 manual) | 2026-06-22 |
 
 Архив v4: `.planning/milestones/v4-super-app/SUMMARY.md`
@@ -94,12 +94,13 @@ progress:
 | TF-M01–M03 | export_hooks + auth/ws/rbac/audit/notification | ✅ |
 | TF-M04 | tracker/tms/project/messenger → testframework/ | ✅ Docker PASS |
 | TF-M05 | remaining internal tests | ✅ migrated |
-| TF-M06 | Vitest → `frontend/testframework/unit/` | ✅ 37 files · 99/99 · 0 in `src/` |
-| TF-M07 | E2E in testframework/e2e/specs/ | ✅ 20 specs |
+| TF-M06 | Vitest → `testframework/stages/unit/frontend-test/domains/` | ✅ 37 files · 99/99 · 0 in `src/` |
+| TF-M07 | E2E in `testframework/stages/e2e/domains/` | ✅ 20 specs |
+| TF-M10 | Pipeline manifests + shared POM in `stages/e2e/shared/` | ✅ 2026-06-22 |
 | TF-M08 | delete `internal/*_test.go` | ✅ **0 remaining** (verified) |
 | TF-M09 | CI: `go test -tags hubtest ./testframework/...` | ✅ full PASS |
 
-**Итог (verified 2026-06-22):** `backend/testframework/` = **488** `*_test.go` · `backend/internal/` = **0** · `frontend/testframework/unit/` = **37** · `testframework/e2e/specs/` = **20**.
+**Итог (verified 2026-06-22):** `backend/testframework/` = **495** `*_test.go` · `backend/internal/` = **0** · `testframework/stages/unit/frontend-test/domains/` = **37** · `testframework/stages/e2e/domains/` = **20**.
 
 ## Wave C Final Audit — ✅ MOSTLY COMPLETE (2026-06-22)
 
@@ -146,6 +147,14 @@ progress:
 ---
 
 ## Недавние сессии
+
+### 2026-06-22 — Quality processes audit + docs sync ✅
+
+- Полный аудит 15 процессов качества (REGULATION, rules 45/55/56, `/qa-gate`, verifiers, CI)
+- Отчёт: `.planning/AUDIT-2026-06-22-quality-processes.md` · scorecard обновлён
+- Локальная регрессия: build ✅ · vet ✅ · tsc ✅ · lint ✅ · vitest **99/99** ✅
+- Docs sync: `test_plan`, `TESTING`, `stack_and_tools`, `code_style_guide`, `vision_and_scope`, `COVERAGE`, `AGENTS`, `REGULATION`
+- Backlog: **TF-CLEANUP-01** (legacy `testframework/e2e/specs/`), **RU-COMMENTS-01**, **FA-06**
 
 ### 2026-06-22 — PR #25 K3s runbook + v2.5 release gate ✅
 

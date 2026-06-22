@@ -430,7 +430,7 @@ describe("Auth", () => {
   });
 });
 
-// Playwright
+// Пример E2E-теста (Playwright)
 test("PROJ-TC-2: should show error on invalid password", async ({ page }) => {
   await page.goto("/login");
   // ... тестовый код ...

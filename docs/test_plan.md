@@ -19,11 +19,11 @@
 
 | Уровень | Инструмент | Расположение | Gate |
 |---------|------------|--------------|------|
-| Unit (BE) | Go testing + testify | `backend/testframework/` (0 в `internal/`) | CI `backend-test` |
-| Unit (FE) | Vitest + RTL | `frontend/testframework/unit/`, `frontend/src/**/*.test.ts` | CI `frontend-test` |
-| Integration | httptest, enttest, miniredis | `backend/internal/*/` | В составе unit |
+| Unit (BE) | Go testing + testify | `backend/testframework/{domain}/` (0 в `internal/`) | CI `backend-test` |
+| Unit (FE) | Vitest + RTL | `testframework/stages/unit/frontend-test/domains/{domain}/` | CI `frontend-test` |
+| Integration | httptest, enttest, miniredis | `backend/testframework/` | В составе unit |
 | API smoke | httptest | auth, health, critical handlers | e2e-full |
-| E2E | Playwright + POM + Steps | `testframework/e2e/specs/` | `e2e-smoke` + `e2e-full` |
+| E2E | Playwright + POM + Steps | `testframework/stages/e2e/domains/{domain}/` | `e2e-smoke` + `e2e-full` |
 | Build | `tsc`, `vite build`, `-tags release` | CI `build` job | 0 errors |
 | Lint | Biome | `npm run lint` | **gate** (не continue-on-error) |
 | Security | grep + audit docs | `.planning/code-review-final/` | 0 CRITICAL |
@@ -43,18 +43,18 @@
 
 ---
 
-## Текущие метрики (2026-06-23)
+## Текущие метрики (2026-06-22)
 
-Источник: `.planning/COVERAGE.md` · `.planning/AUDIT-2026-06-23.md`
+Источник: `.planning/COVERAGE.md` · `.planning/AUDIT-SCORECARD.md`
 
 | Метрика | Значение |
 |---------|----------|
-| Backend `testframework/**/*_test.go` | **488** файлов |
+| Backend `testframework/**/*_test.go` | **495** файлов |
 | Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
 | Statement coverage `internal/` | **83.0%** |
 | Security-critical packages ≥80% | **6/6** ✅ |
 | Frontend Vitest | **37** files, **99/99** tests ✅ |
-| Playwright specs | **20** files в `testframework/e2e/specs/` |
+| Playwright specs | **20** files в `testframework/stages/e2e/domains/` |
 | Lighthouse CI | artifact job (master push, non-blocking) |
 | TypeScript | `tsc --noEmit` — 0 errors (CI) |
 | Data races | 0 (CI `-race`) |
@@ -62,25 +62,27 @@
 ### Команды регрессии
 
 ```bash
-# Backend (как CI)
+# Backend (как CI — только testframework после TF-M08)
 cd backend
 go generate ./ent
-go vet ./...
-go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/...
+go vet -tags hubtest ./...
+go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
 
 # Prod build check
 go build -tags release -o bin/server ./cmd/server
 
 # Frontend (как CI)
 cd frontend
+node scripts/link-testframework-node-modules.mjs
 npx tsc --noEmit
 npm run lint
-npx vitest run
+npm run test:run
 npm run build
 
 # E2E локально (из frontend/, нужен backend + infra)
 cd frontend
-npm run test:e2e   # link-e2e-node-modules.mjs + playwright.config.ts → testframework/e2e/specs/
+npm run test:e2e:smoke   # job e2e-smoke (--project=chromium-smoke)
+npm run test:e2e         # job e2e-full (--project=chromium-full)
 ```
 
 ---
@@ -89,8 +91,8 @@ npm run test:e2e   # link-e2e-node-modules.mjs + playwright.config.ts → testfr
 
 | Job | Зависимости | Содержание |
 |-----|-------------|------------|
-| `backend-test` | — | Go **1.25**, Mongo **8** service, `go generate`, `go vet`, `go test -tags hubtest -race` 600s |
-| `frontend-test` | — | Node **22**, `tsc`, `vitest run`, Biome lint |
+| `backend-test` | — | Go **1.25**, Mongo **8** service, `go generate`, `go vet -tags hubtest`, `go test -tags hubtest -race ./testframework/...` 600s |
+| `frontend-test` | — | Node **22**, link testframework deps, `tsc`, `vitest run`, Biome lint |
 | `build` | backend + frontend test | `go build -tags release`, `npm run build` |
 | `e2e-smoke` | frontend-test | Playwright без backend: `login`, `a11y`, `critical-gate` |
 | `e2e-full` | backend + frontend test | Infra script + backend `DEV_MODE` + 20 spec files |
@@ -99,8 +101,9 @@ npm run test:e2e   # link-e2e-node-modules.mjs + playwright.config.ts → testfr
 
 **Deploy** (`.github/workflows/deploy.yml`): только после успешного CI на push `master`; образы GHCR по SHA; **без** `DEV_MODE=true`.
 
-E2E конфиг: `frontend/playwright.config.ts` (спеки: `testframework/e2e/specs/`)  
-Module resolution: `frontend/scripts/link-e2e-node-modules.mjs` (symlink `node_modules` для specs вне `frontend/`)  
+E2E конфиг: `frontend/playwright.config.ts` (спеки: `testframework/stages/e2e/domains/{domain}/`)  
+Module resolution: `frontend/scripts/link-testframework-node-modules.mjs`  
+Pipeline manifests: `testframework/pipeline/jobs/*.yaml`  
 Infra: `scripts/ci-e2e-backend.sh` (postgres:17, redis:7.4, mongo:8, nats:2.11).
 
 ### e2e-full spec list (CI)
@@ -124,10 +127,10 @@ Infra: `scripts/ci-e2e-backend.sh` (postgres:17, redis:7.4, mongo:8, nats:2.11).
 
 | Модуль | Unit | E2E | Security |
 |--------|------|-----|----------|
-| auth | ✅ ~82% | login, logout | SEC-06, SEC-07, magic-link timing |
-| tracker | ✅ ~81% | project-lifecycle | optimistic lock |
-| messenger | ✅ ~76% | messenger.spec | NF-02 WS authz |
-| tms | ✅ ~81% | tms.spec | webhook API key |
+| auth | ✅ 82.4% | login, logout | SEC-06, SEC-07, magic-link timing |
+| tracker | ✅ 82.4% | project-lifecycle | optimistic lock |
+| messenger | ✅ 82.3% | messenger.spec | NF-02 WS authz |
+| tms | ✅ 82.0% | tms.spec | webhook API key |
 | calls | ✅ | partial | SEC-02 webhook sha256 |
 | ws | ✅ | real-time | SEC-05, NF-02 |
 | search | ✅ ~92% | command-palette | NF-03 user scope |
@@ -151,7 +154,7 @@ Infra: `scripts/ci-e2e-backend.sh` (postgres:17, redis:7.4, mongo:8, nats:2.11).
 | E2E-06 | Ctrl+K search | `command-palette.spec.ts` | ✅ |
 | E2E-07 | a11y axe | `a11y.spec.ts` | ✅ |
 
-POM/steps: `testframework/e2e/pages/`, `testframework/e2e/steps/`.
+POM/steps: `testframework/stages/e2e/shared/pages/`, `testframework/stages/e2e/shared/steps/`.
 
 ---
 
@@ -207,4 +210,4 @@ File: path:line
 | `.cursor/skills/qa-gate/SKILL.md` | Полный gate |
 
 ---
-*Последнее обновление: 2026-06-22 — e2e: frontend/playwright.config.ts, 20 specs в testframework/e2e/specs/*
+*Последнее обновление: 2026-06-22 — quality audit: pipeline paths, 495 BE tests, COV 83%, product score 87/100*

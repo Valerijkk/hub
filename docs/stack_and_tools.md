@@ -79,8 +79,9 @@ go build -tags release -o bin/server ./cmd/server
 | `npm run dev` | Vite dev :5173 |
 | `npm run build` | `tsc -b && vite build` |
 | `npm run lint` | `biome check ./src` |
-| `npx vitest run` | Unit tests |
-| `npm run test:e2e` | Playwright: `link-e2e-node-modules.mjs` + `playwright.config.ts` → `testframework/e2e/specs/` |
+| `npx vitest run` / `npm run test:run` | Unit tests (`testframework/stages/unit/frontend-test/domains/`) |
+| `npm run test:e2e:smoke` | Playwright smoke job (`--project=chromium-smoke`) |
+| `npm run test:e2e` | Playwright full job (`--project=chromium-full`) |
 
 ---
 
@@ -137,11 +138,13 @@ Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не �
 
 | Job | Что делает | Timeout |
 |-----|------------|---------|
-| `backend-test` | `go generate ./ent`, `go vet`, `go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/...` | 15 min |
-| `frontend-test` | `npm ci`, `tsc --noEmit`, `vitest run`, `npm run lint` (Biome **gate**) | default |
+| `backend-test` | `go generate ./ent`, `go vet -tags hubtest`, `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` | 25 min |
+| `frontend-test` | `npm ci`, link testframework deps, `tsc --noEmit`, `vitest run`, `npm run lint` (Biome **gate**) | default |
 | `build` | `go build -tags release`, `npm ci && npm run build` | default |
 | `e2e-smoke` | Playwright frontend-only: login, a11y, critical-gate | после frontend-test |
 | `e2e-full` | Docker infra + native backend (`DEV_MODE`) + 20 spec paths | 30 min |
+| `coverage-gate` | `go test -coverpkg=./internal/...` ≥82% | master push only |
+| `lighthouse` | Lighthouse login page artifact | non-blocking |
 
 **Deploy** (`.github/workflows/deploy.yml`): только после **успешного CI** на push в `master` (`workflow_run`):
 
@@ -150,7 +153,7 @@ Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не �
 3. Post-deploy health curl
 4. **Без** `DEV_MODE=true` в workflow
 
-E2E config: `frontend/playwright.config.ts` · specs: `testframework/e2e/specs/` · `frontend/scripts/link-e2e-node-modules.mjs` · Infra: `scripts/ci-e2e-backend.sh`.
+E2E config: `frontend/playwright.config.ts` · specs: `testframework/stages/e2e/domains/` · `frontend/scripts/link-testframework-node-modules.mjs` · Infra: `scripts/ci-e2e-backend.sh`.
 
 ---
 
@@ -194,14 +197,19 @@ E2E config: `frontend/playwright.config.ts` · specs: `testframework/e2e/specs/`
 ```
 hub/
 ├── backend/                 # Go API, Ent schemas, internal/* modules
-├── frontend/              # React SPA, playwright.config.ts, testframework/unit
-├── testframework/e2e/     # Playwright specs/, pages/, steps/
+├── frontend/              # React SPA, playwright.config.ts
+├── testframework/         # Pipeline-aligned tests (PIPELINE.md)
+│   ├── pipeline/jobs/     # CI job manifests
+│   └── stages/
+│       ├── unit/frontend-test/domains/
+│       ├── e2e/domains/ + e2e/shared/
+│       └── quality/coverage-gate/
 ├── cli/                   # hub-cli
 ├── deployments/           # Compose prod/test/monitoring, Caddy, LiveKit
 ├── docker-compose.local.yml
 ├── docs/                  # База знаний (этот регламент)
 ├── docs/wiki/             # API, DEPLOY, QUICKSTART, SHORTCUTS
-└── .planning/             # GSD roadmap, COVERAGE, STATE
+└── .planning/             # GSD roadmap, COVERAGE, STATE, AUDIT-*
 ```
 
 ---
@@ -225,4 +233,4 @@ hub/
 См. `docs/tz_constraints.md`: Fiber, NATS, SeaweedFS SDK, TanStack Router, Shadcn, Caddy, Compose/K3s — без ADR.
 
 ---
-*Последнее обновление: 2026-06-22 — e2e: frontend/playwright.config.ts, 20 specs, link-e2e-node-modules.mjs*
+*Последнее обновление: 2026-06-22 — quality audit: CI backend-test только testframework/, pipeline repo structure*

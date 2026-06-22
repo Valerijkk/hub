@@ -18,8 +18,14 @@ COPY . .
 # Генерируем Ent ORM код
 RUN go generate ./ent
 
-# Собираем prod-бинарник (ME-09: dev routes compiled out)
-RUN CGO_ENABLED=0 GOOS=linux go build -tags release -o /hub-server ./cmd/server
+# GO_BUILD_TAGS: "release" по умолчанию (prod). Локальный compose передаёт "" для /api/dev/*.
+ARG GO_BUILD_TAGS=release
+RUN CGO_ENABLED=0 GOOS=linux sh -c '\
+	if [ -n "$GO_BUILD_TAGS" ]; then \
+		go build -tags "$GO_BUILD_TAGS" -o /hub-server ./cmd/server; \
+	else \
+		go build -o /hub-server ./cmd/server; \
+	fi'
 
 # hub-mail — отдельный микросервис транзакционной почты (Phase 15.2),
 # собираем в тот же образ, чтобы prod compose запускал его как отдельный

@@ -84,7 +84,7 @@ export function subscribeAuthSync(
 		};
 	}
 
-	// Fallback на storage event (для очень старых браузеров и кейсов когда
+	// Запасной вариант: storage event (для очень старых браузеров и кейсов, когда
 	// BroadcastChannel недоступен). sessionStorage НЕ триггерит storage event
 	// между вкладками, но persist-обновления mirror'ятся через localStorage
 	// в некоторых конфигурациях — оставлено как defence-in-depth.

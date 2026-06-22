@@ -4,7 +4,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useCallStore } from "@/stores/call-store";
 
 // ---------------------------------------------------------------------------
-// RecordingControls -- кнопка записи звонка и индикатор записи
+// RecordingControls — кнопка записи звонка и индикатор записи
 // ---------------------------------------------------------------------------
 
 /** Пропсы компонента RecordingControls. */

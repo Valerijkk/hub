@@ -10,7 +10,21 @@
 
 **Roadmap v4:** `.planning/milestones/v4-super-app/SUMMARY.md` · Vision: `.planning/PLATFORM-VISION-v4.md`
 
-Монорепо: `backend/` (Go, **82 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + `testframework/`
+Монорепо: `backend/` (Go, **82 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + **`testframework/`** (E2E + Vitest)
+
+### Расположение тестов (pipeline-aligned)
+
+| CI Job | Стадия | Путь | Домены |
+|--------|--------|------|--------|
+| `backend-test` | unit | `backend/testframework/{domain}/` | auth, tracker, tms, … |
+| `frontend-test` | unit | `testframework/stages/unit/frontend-test/domains/{domain}/` | auth, admin, ai, v4, … |
+| `e2e-smoke` | e2e | `testframework/stages/e2e/domains/` | auth, platform (3 spec) |
+| `e2e-full` | e2e | `testframework/stages/e2e/domains/` | все 9 доменов, 20 spec |
+| `coverage-gate` | quality | `backend/testframework/` | ≥82% |
+
+Манифесты: `testframework/pipeline/jobs/*.yaml` · Карта: `testframework/PIPELINE.md`
+
+Перед Vitest/E2E: `node frontend/scripts/link-testframework-node-modules.mjs`
 
 ---
 
@@ -34,7 +48,7 @@
 
 Планирование: `.planning/STATE.md`, `.planning/COVERAGE.md`, `.planning/ROADMAP.md`, `.planning/DISCUSS-ROADMAP-LOCKED.md`
 
-**Active:** Wave C ✅ · COV **83.0%** · ветка `master` · HEAD `bbdaf16` · FA-06 manual — единственный prod-блокер
+**Active:** Wave C ✅ · COV **83.0%** · TF pipeline-aligned · branch `master` · FA-06 manual — единственный prod-блокер
 
 GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–§11
 
@@ -102,10 +116,10 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Security packages ≥80% | **6/6** ✅ |
 | auth / ws / rbac / audit / calls | 82.4% / 87.7% / 84.7% / 80.5% / 80.2% |
 | tracker / messenger / notification / tms / project | 82.4% / 82.3% / 82.5% / 82.0% / 82.0% |
-| Product score | **93/100** |
+| Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Backend tests (`testframework/`) | **488** · 0 in `internal/` |
+| Backend tests (`testframework/`) | **495** · 0 in `internal/` |
 | Vitest | **99/99** pass |
 | Playwright E2E | **20** specs |
 | qa-gate (FA-10) | build ✅ · hubtest ✅ · race ✅ · Biome ✅ · e2e-smoke **3/3** ✅ |
@@ -119,6 +133,9 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
 | FA-10 e2e-smoke | ✅ 3/3 PASS |
 | PG-03 Secret rotation (FA-06) | ⏳ manual ops — **единственный prod-блокер** |
+| TF-CLEANUP-01 legacy e2e/specs | ✅ closed 2026-06-22 |
+| RU-COMMENTS-01 top files | ✅ closed 2026-06-22 |
+| DOC-02 historical SUMMARY banner | ✅ closed 2026-06-22 |
 | SSH deploy + v2.5.0 tag | ⏳ после FA-06 + CTO sign-off |
 | NFR-16 WCAG full sign-off | ⚠️ login axe PASS |
 | NFR-17 Lighthouse blocking gate | ⚠️ artifact only (PR #27) |
@@ -157,10 +174,10 @@ docker run --rm --network deployments_default \
   -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
   -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
   golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/..."
+  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
 
 # Frontend regression
-cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
+cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noEmit && npm run lint && npm run test:run
 
 # Full gate
 /qa-gate
@@ -168,4 +185,4 @@ cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
 
 ---
 
-*Обновлено: 2026-06-23 — Wave C complete, master bbdaf16, AUDIT-2026-06-23*
+*Обновлено: 2026-06-22 — P1 backlog closed, product 89/100, TF pipeline, dev Docker login*

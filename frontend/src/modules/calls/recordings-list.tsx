@@ -4,7 +4,7 @@ import type { RecordingResponse } from "@/api/calls";
 import * as callsApi from "@/api/calls";
 
 // ---------------------------------------------------------------------------
-// RecordingsList -- раздел "Записи" проекта (CALL-05)
+// RecordingsList — раздел «Записи» проекта (CALL-05)
 // ---------------------------------------------------------------------------
 
 /** Пропсы компонента RecordingsList. */

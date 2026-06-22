@@ -1,0 +1,206 @@
+# docker-compose.local.yml.example
+# Полный локальный стек Hub — всё в Docker, одна команда.
+#
+# Первый запуск:
+#   cp docker-compose.local.yml.example docker-compose.local.yml
+#   cp .env.local.example .env.local
+#   docker compose --env-file .env.local -f docker-compose.local.yml up --build
+#
+# Или:  bash scripts/dev-docker-up.sh   /   pwsh scripts/dev-docker-up.ps1
+#
+# UI: http://localhost:8080  ·  API: http://localhost:3000  ·  DEV_MODE=true
+
+services:
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_PASSWORD: hub
+      POSTGRES_DB: hub
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hub"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo:
+    image: mongo:8.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: hub
+      MONGO_INITDB_ROOT_PASSWORD: hub
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  nats:
+    image: nats:2.11
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["-js", "--store_dir", "/data"]
+    volumes:
+      - natsdata:/data
+    healthcheck:
+      test: ["CMD", "nats-server", "--signal", "ldm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.97
+    command: ["server", "-s3", "-dir=/data", "-s3.config=/etc/seaweedfs/s3.json"]
+    ports:
+      - "9333:9333"
+      - "8333:8333"
+    volumes:
+      - seaweeddata:/data
+      - ./deployments/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+
+  # LiveKit — на Windows сузьте UDP-диапазон (Hyper-V резервирует порты).
+  # Если bind UDP failed: docker compose up -d --no-deps backend frontend hub-mail
+  livekit:
+    image: livekit/livekit-server:v1.8
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50010:50000-50010/udp"
+    volumes:
+      - ./deployments/livekit.yaml:/etc/livekit.yaml:ro
+    command: ["--config", "/etc/livekit.yaml"]
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Опционально: глобальный поиск Meilisearch (profile: search)
+  # Запуск: docker compose --profile search ...
+  meilisearch:
+    profiles: ["search"]
+    image: getmeili/meilisearch:v1.12
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: hub-dev-master-key
+    volumes:
+      - meilidata:/meili_data
+
+  hub-mail:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        GO_BUILD_TAGS: release
+    entrypoint: ["./hub-mail"]
+    ports:
+      - "3001:3001"
+    environment:
+      HUB_MAIL_PORT: "3001"
+      HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN:-local-dev-mail-token}"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      RESEND_FROM_EMAIL: "${RESEND_FROM_EMAIL:-onboarding@resend.dev}"
+      RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"
+      MAIL_DAILY_LIMIT: "${MAIL_DAILY_LIMIT:-20}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        # Пусто = dev-сборка с /api/dev/* (seed, dev-login)
+        GO_BUILD_TAGS: ""
+    ports:
+      - "3000:3000"
+    environment:
+      SERVER_PORT: "3000"
+      FIBER_IMMUTABLE: "true"
+      ENVIRONMENT: development
+      DEV_MODE: "true"
+      DATABASE_URL: "postgresql://hub:hub@postgres:5432/hub?sslmode=disable"
+      MONGODB_URL: "mongodb://hub:hub@mongo:27017/?authSource=admin"
+      MONGODB_DATABASE: "hub"
+      REDIS_URL: "redis://redis:6379/0"
+      NATS_URL: "nats://nats:4222"
+      S3_ENDPOINT: "http://seaweedfs:8333"
+      S3_ACCESS_KEY: "hub"
+      S3_SECRET_KEY: "hubsecret"
+      S3_BUCKET: "hub"
+      S3_REGION: "us-east-1"
+      S3_USE_SSL: "false"
+      JWT_SECRET: "local-dev-secret-change-in-production"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      RESEND_FROM_EMAIL: "${RESEND_FROM_EMAIL:-onboarding@resend.dev}"
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN:-}"
+      LIVEKIT_URL: "http://livekit:7880"
+      LIVEKIT_API_KEY: "devkey-hub-local-development-2026"
+      LIVEKIT_API_SECRET: "devsecret-hub-local-minimum-32-chars-ok"
+      HUB_MAIL_URL: "http://hub-mail:3001"
+      HUB_MAIL_INTERNAL_TOKEN: "${HUB_MAIL_INTERNAL_TOKEN:-local-dev-mail-token}"
+      RESEND_FROM_ALERTS: "${RESEND_FROM_ALERTS:-alerts@hub.local}"
+      # MEILI_HOST: раскомментируйте при запуске с --profile search
+      # MEILI_HOST: "http://meilisearch:7700"
+      # MEILI_MASTER_KEY: "hub-dev-master-key"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      seaweedfs:
+        condition: service_started
+      hub-mail:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  mongodata:
+  natsdata:
+  seaweeddata:
+  meilidata:

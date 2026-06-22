@@ -261,10 +261,11 @@ const CallsRoom = lazy(() => import('./modules/calls/CallsRoom'))
 
 | Слой | Расположение | Теги |
 |------|--------------|------|
-| Backend unit | `backend/internal/*/*_test.go` | `-tags hubtest` в CI |
-| Backend fixtures | `backend/testframework/` | builders, factories |
-| Frontend unit | `frontend/testframework/unit/`, `src/**/*.test.ts` | Vitest |
-| E2E | `testframework/e2e/specs/` | Playwright POM |
+| Backend unit | `backend/testframework/{domain}/*_test.go` | `-tags hubtest` в CI |
+| Backend fixtures | `backend/testframework/env/`, `factory/` | builders, factories |
+| Frontend unit | `testframework/stages/unit/frontend-test/domains/` | Vitest (0 in `src/`) |
+| E2E specs | `testframework/stages/e2e/domains/{domain}/` | Playwright |
+| E2E shared | `testframework/stages/e2e/shared/` | POM, steps, fixtures |
 
 Именование Go: table-driven где уместно; testify `require` / `assert`.
 

@@ -177,7 +177,7 @@ export function RenderContent({
 
 	const children = (contentJson as { children?: unknown[] }).children;
 	if (!Array.isArray(children)) {
-		// Fallback: если нет children, попробуем отрендерить как текст.
+		// Запасной вариант: если нет children, попробуем отрендерить как текст.
 		const text = (contentJson as { text?: unknown }).text;
 		if (typeof text === "string") return <p>{text}</p>;
 		return null;

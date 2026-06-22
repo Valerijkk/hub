@@ -96,6 +96,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        # Пусто = dev-сборка с /api/dev/* (seed, dev-login)
+        GO_BUILD_TAGS: ""
     ports:
       - "3000:3000"
     environment:

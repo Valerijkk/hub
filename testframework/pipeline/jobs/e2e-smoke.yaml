@@ -1,0 +1,15 @@
+# Job: e2e-smoke (CI stage: e2e) — fast PR gate, no backend
+job: e2e-smoke
+stage: e2e
+needs: [frontend-test]
+working_directory: frontend
+playwright_project: chromium-smoke
+grep: "login page|full page has no critical|path 1"
+
+specs:
+  - domains/auth/login.spec.ts
+  - domains/platform/a11y.spec.ts
+  - domains/platform/critical-gate.spec.ts
+
+code_root: testframework/stages/e2e
+shared: shared/

@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,7 +37,7 @@ func (h *HookTestRepo) SetupPublicChannel(ownerID uuid.UUID, memberIDs ...uuid.U
 }
 
 // InsertMessage сохраняет сообщение user/bot и возвращает его ID.
-func (h *HookTestRepo) InsertMessage(channelID, senderID uuid.UUID, text, threadID string) string {
+func (h *HookTestRepo) InsertMessage(channelID, senderID uuid.UUID, text, threadID string) (string, error) {
 	doc := &MessageDocument{
 		ChannelID:   channelID,
 		SenderID:    senderID,
@@ -46,9 +47,9 @@ func (h *HookTestRepo) InsertMessage(channelID, senderID uuid.UUID, text, thread
 	}
 	id, err := h.r.InsertMessage(context.Background(), doc)
 	if err != nil {
-		panic("hook fixture insert message: " + err.Error())
+		return "", fmt.Errorf("hook fixture insert message: %w", err)
 	}
-	return id
+	return id, nil
 }
 
 // Channel возвращает сущность канала.

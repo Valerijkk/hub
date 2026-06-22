@@ -195,6 +195,6 @@ export function LinkPreview({ url }: LinkPreviewProps) {
 		}
 	}
 
-	// Generic превью через OG-теги
+	// Универсальное превью через OG-теги
 	return <GenericPreview url={url} />;
 }

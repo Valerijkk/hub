@@ -77,7 +77,8 @@ func TestHookTestRepo_SetupAndInsertMessage(t *testing.T) {
 	userID := uuid.New()
 	botID := uuid.New()
 	chID := fixture.SetupDM(userID, botID)
-	msgID := fixture.InsertMessage(chID, userID, "hello bot", "")
+	msgID, err := fixture.InsertMessage(chID, userID, "hello bot", "")
+	require.NoError(t, err)
 	assert.NotEmpty(t, msgID)
 
 	pubID := fixture.SetupPublicChannel(userID, botID)

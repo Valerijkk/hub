@@ -33,6 +33,21 @@
 3. tracker, tms, project, messenger
 4. remaining modules
 
-## Frontend (TF-M06)
+## Frontend (TF-M06) ✅ · Pipeline domains (TF-M10) ✅
 
-Move `frontend/testframework/` → `testframework/frontend/` and update `vite.config.ts` root.
+Vitest: `testframework/stages/unit/frontend-test/domains/{domain}/`
+
+Update `frontend/vite.config.ts`:
+
+- `testframeworkDir`: `../testframework/stages/unit/frontend-test`
+- vitest `include`: `../testframework/stages/unit/frontend-test/domains/**/*.test.{ts,tsx}`
+
+E2E: `testframework/stages/e2e/domains/{domain}/` + `shared/` (POM, steps)
+
+Run `node frontend/scripts/link-testframework-node-modules.mjs` before Vitest/E2E (symlink `node_modules`).
+
+Pipeline manifests: `testframework/pipeline/jobs/*.yaml` · Map: `testframework/PIPELINE.md`
+
+## Go (TF-M05) ✅
+
+Stay in `backend/testframework/` — same Go module as `internal/` (required for `//go:build hubtest` export hooks).

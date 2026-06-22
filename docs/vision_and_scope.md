@@ -39,7 +39,7 @@
 | Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (auth, ws, storage, rbac, audit, calls) |
 | Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **83.0%** ✅ (Wave C, Docker `-tags hubtest`) |
 | Frontend Vitest | Unit-тесты модулей | **99/99** ✅ |
-| E2E critical paths | Playwright | **20 spec-файлов** ✅ (`testframework/e2e/specs/`) |
+| E2E critical paths | Playwright | **20 spec-файлов** ✅ (`testframework/stages/e2e/domains/`) |
 | Global search Ctrl+K (US-M07) | UI + user-scope backend | **UI ✅** (PR #15: Calls, Settings, Admin) |
 | Lighthouse Performance/Accessibility | ≥ 90 | CI artifact job (PR #27, non-blocking); formal gate — backlog |
 | WCAG 2.1 AA | 4.5:1 text, 3:1 UI | Реализовано (THME-04), E2E a11y spec ✅ |

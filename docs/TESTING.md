@@ -1,6 +1,6 @@
 # Hub — Тестовая документация
 
-> **Обновлено:** 2026-06-21 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md`
+> **Обновлено:** 2026-06-22 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/AUDIT-2026-06-22-quality-processes.md`
 
 ---
 
@@ -10,29 +10,30 @@
 
 | Уровень | Инструменты | Расположение | CI job |
 |---------|-------------|--------------|--------|
-| Unit (Backend) | Go testing + testify | `backend/internal/*_test.go` | `backend-test` |
-| Unit (Frontend) | Vitest + RTL | `frontend/testframework/unit/`, `src/**/*.test.ts` | `frontend-test` |
-| API / handler | httptest | рядом с handlers | в unit |
-| E2E | Playwright + POM | `testframework/e2e/specs/` | `e2e-smoke`, `e2e-full` |
+| Unit (Backend) | Go testing + testify | `backend/testframework/{domain}/` | `backend-test` |
+| Unit (Frontend) | Vitest + RTL | `testframework/stages/unit/frontend-test/domains/` | `frontend-test` |
+| API / handler | httptest | `backend/testframework/` | в unit |
+| E2E | Playwright + POM | `testframework/stages/e2e/domains/` | `e2e-smoke`, `e2e-full` |
 | Build | tsc + vite | `frontend/` | `build` |
 | Lint | Biome | `frontend/src` | `frontend-test` (gate) |
 
 ### Принципы
 
-1. **Backend CI:** `go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/...`
-2. **Coverage floor:** statement coverage `internal/` **~82%** (Phase 120+); security packages **≥80%**
+1. **Backend CI:** `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`
+2. **Coverage floor:** statement coverage `internal/` **83.0%** (≥82% gate); security packages **≥80%**
 3. **Auth тесты:** Magic Link only (v2.5) — Telegram login endpoints **удалены**
 4. **E2E:** 20 spec files; config `frontend/playwright.config.ts` (см. `docs/test_plan.md`)
 5. **Triage:** spec-first — `.cursor/skills/test-triage/SKILL.md`
 
-### Актуальные счётчики (2026-06-21)
+### Актуальные счётчики (2026-06-22)
 
 | Слой | Метрика |
 |------|---------|
-| Backend test files | 200+ `_test.go` |
-| Frontend Vitest | 25 files, 56 tests (локальный `vitest run`) |
-| Playwright | 20 spec files |
-| Overall `internal/` coverage | ~82.1% |
+| Backend test files (`testframework/`) | **495** `_test.go` |
+| Backend `internal/*_test.go` | **0** (TF-M08) |
+| Frontend Vitest | **37** files, **99** tests |
+| Playwright | **20** spec files (`stages/e2e/domains/`) |
+| Overall `internal/` coverage | **83.0%** |
 
 ---
 

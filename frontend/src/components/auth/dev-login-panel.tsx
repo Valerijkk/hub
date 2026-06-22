@@ -150,11 +150,11 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
 	const setTokens = useAuthStore((s) => s.setTokens);
 	const setUser = useAuthStore((s) => s.setUser);
 
-	/* Проверяем доступность dev-режима */
+	/* Проверяем доступность dev-режима на backend (DEV_MODE=true + dev-сборка) */
 	useEffect(() => {
 		api
 			.get<{ dev_mode: boolean }>("/dev/status")
-			.then(() => setDevMode(true))
+			.then((res) => setDevMode(res.dev_mode === true))
 			.catch(() => setDevMode(false));
 	}, []);
 
@@ -236,6 +236,7 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
 					<button
 						key={user.email}
 						type="button"
+						aria-label={user.name}
 						onClick={() => handleLogin(user.email)}
 						disabled={loading !== null}
 						className="group relative flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-left

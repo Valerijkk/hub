@@ -151,6 +151,10 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
+      - name: Link testframework node_modules
+        working-directory: frontend
+        run: node scripts/link-testframework-node-modules.mjs
+
       - name: Vitest unit tests
         working-directory: frontend
         run: npx vitest run
@@ -201,16 +205,15 @@ jobs:
         working-directory: frontend
         run: npm ci && npx playwright install chromium --with-deps
 
-      - name: Link node_modules for E2E specs
+      - name: Link testframework node_modules
         working-directory: frontend
-        run: node scripts/link-e2e-node-modules.mjs
+        run: node scripts/link-testframework-node-modules.mjs
 
       - name: Playwright smoke (frontend-only specs)
         working-directory: frontend
         env:
           CI: 'true'
-          # PLAYWRIGHT_SKIP_WEBSERVER unset — Playwright starts Vite (playwright.config.ts).
-        run: npx playwright test -c playwright.config.ts login.spec.ts a11y.spec.ts critical-gate.spec.ts --grep "login page|full page has no critical|path 1"
+        run: npx playwright test -c playwright.config.ts --project=chromium-smoke --grep "login page|full page has no critical|path 1"
 
   # Full E2E: docker infra + native backend (DEV_MODE) + Playwright critical paths.
   # Env vars documented in scripts/ci-e2e-backend.sh header.
@@ -247,9 +250,9 @@ jobs:
         working-directory: frontend
         run: npm ci && npx playwright install chromium --with-deps
 
-      - name: Link node_modules for E2E specs
+      - name: Link testframework node_modules
         working-directory: frontend
-        run: node scripts/link-e2e-node-modules.mjs
+        run: node scripts/link-testframework-node-modules.mjs
 
       - name: Start infrastructure (postgres, redis, mongo, nats)
         run: bash scripts/ci-e2e-backend.sh start-infra
@@ -267,30 +270,7 @@ jobs:
         working-directory: frontend
         env:
           CI: 'true'
-          # PLAYWRIGHT_SKIP_WEBSERVER=0 (default): Playwright starts Vite dev server.
-          # Vite proxies /api → localhost:3000 (vite.config.ts).
-        run: >
-          npx playwright test -c playwright.config.ts
-          login.spec.ts
-          critical-gate.spec.ts
-          navigation.spec.ts
-          logout.spec.ts
-          health.spec.ts
-          admin-audit.spec.ts
-          command-palette.spec.ts
-          shortcuts.spec.ts
-          onboarding-profile.spec.ts
-          notifications.spec.ts
-          project-lifecycle.spec.ts
-          messenger.spec.ts
-          tms.spec.ts
-          a11y.spec.ts
-          v4-superapp.spec.ts
-          admin-ai.spec.ts
-          admin-metrics.spec.ts
-          ai-hub.spec.ts
-          automation.spec.ts
-          metrics.spec.ts
+        run: npx playwright test -c playwright.config.ts --project=chromium-full
 
       - name: Upload Playwright report on failure
         if: failure()

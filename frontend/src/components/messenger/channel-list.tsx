@@ -503,7 +503,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 	const allChannels = channels ?? [];
 
 	// Фильтрация каналов по поисковому запросу.
-	// NOTE: useMemo до любого early return (Rules of Hooks).
+	// Примечание: useMemo до любого early return (Rules of Hooks).
 	// См. Rules of Hooks — порядок вызовов хуков фиксирован.
 	const filteredChannels = useMemo(() => {
 		if (!searchQuery.trim()) return allChannels;

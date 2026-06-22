@@ -1,0 +1,48 @@
+# Job: backend-test (CI stage: unit)
+job: backend-test
+stage: unit
+working_directory: backend
+command: go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
+
+# Physical path (Go module constraint — cannot move to testframework/stages/)
+code_root: backend/testframework
+
+domains:
+  - accounting
+  - ai
+  - apigateway
+  - audit
+  - auth
+  - backup
+  - bases
+  - calendar
+  - calls
+  - crm
+  - dashboard
+  - github
+  - gitlab
+  - hr
+  - imex
+  - intranet
+  - mail
+  - marketplace
+  - messenger
+  - notification
+  - onec
+  - platform
+  - project
+  - rbac
+  - search
+  - sprint
+  - status
+  - storage
+  - tms
+  - tracker
+  - ws
+
+shared:
+  - env
+  - factory
+  - dev
+  - mongotest
+  - steps

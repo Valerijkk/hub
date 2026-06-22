@@ -3,7 +3,7 @@
 > Полный цикл разработки: 6 ролей + 6 персональных верификаторов + вспомогательные агенты.  
 > **Ключевой принцип:** единая база знаний в `docs/`, верификация каждого действия, docs sync после каждого изменения.
 
-*Обновлено: 2026-06-21*
+*Обновлено: 2026-06-22*
 
 ---
 
@@ -138,7 +138,7 @@ docker run --rm --network deployments_default \
   -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
   -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
   golang:1.25-bookworm \
-  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/..."
+  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
 
 # Frontend (при изменениях frontend/)
 cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
@@ -200,17 +200,22 @@ Skill: `.cursor/skills/test-triage/SKILL.md`
 
 ---
 
-## 11. Текущий статус проекта (справка для агентов)
-
-| Показатель | Значение (2026-06-21) |
-|------------|----------------------|
-| Milestone | v4 Super-app ✅ + Coverage wave ✅ |
-| COV overall | **82.6%** |
-| Security 6/6 | ✅ ≥80% |
-| Active work | TF migration Wave B → Wave C audit |
-| Branch | `feat/v2.5-trust` (uncommitted) |
-| Blockers | PG-03 rotation (manual), TF-M04 compile |
+*Обновлено: 2026-06-22*
 
 ---
 
-*Hub AI Team Regulation — 2026-06-21*
+## 11. Текущий статус проекта (справка для агентов)
+
+| Показатель | Значение (2026-06-22) |
+|------------|----------------------|
+| Milestone | v4 Super-app ✅ + Wave C audit ✅ |
+| COV overall | **83.0%** |
+| Security 6/6 | ✅ ≥80% |
+| Product score | **87/100** (`.planning/AUDIT-SCORECARD.md`) |
+| Active work | FA-06 manual ops · TF-CLEANUP-01 |
+| Branch | `master` |
+| Blockers | PG-03 rotation (manual) |
+
+---
+
+*Hub AI Team Regulation — 2026-06-22*

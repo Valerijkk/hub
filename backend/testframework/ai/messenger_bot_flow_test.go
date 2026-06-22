@@ -112,10 +112,12 @@ func TestMessengerBot_HandleCommand_TestCasesMissingKey(t *testing.T) {
 func TestMessengerBot_LoadHistory_Thread(t *testing.T) {
 	adapter := &streamingMockAdapter{chunks: []string{"reply"}}
 	bot, hookRepo, userID, channelID, _ := setupHubAIBot(t, adapter)
-	rootID := hookRepo.InsertMessage(channelID, userID, "thread root", "")
-	hookRepo.InsertMessage(channelID, userID, "follow up", rootID)
+	rootID, err := hookRepo.InsertMessage(channelID, userID, "thread root", "")
+	require.NoError(t, err)
+	_, err = hookRepo.InsertMessage(channelID, userID, "follow up", rootID)
+	require.NoError(t, err)
 
-	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
+	err = bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
 		ChannelID:   channelID,
 		SenderID:    userID,
 		ContentText: "@hub-ai explain",
@@ -298,9 +300,10 @@ func TestMessengerBot_StreamReply_AIError(t *testing.T) {
 func TestMessengerBot_HandleCommand_Summarize(t *testing.T) {
 	adapter := &streamingMockAdapter{chunks: []string{"summary"}}
 	bot, hookRepo, userID, channelID, _ := setupHubAIBot(t, adapter)
-	hookRepo.InsertMessage(channelID, userID, "decision made", "")
+	_, err := hookRepo.InsertMessage(channelID, userID, "decision made", "")
+	require.NoError(t, err)
 
-	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
+	err = bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
 		ChannelID: channelID, SenderID: userID, ContentText: "/ai summarize", MessageID: "m-sum",
 	})
 	require.NoError(t, err)
