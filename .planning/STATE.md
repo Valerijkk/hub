@@ -22,7 +22,7 @@ progress:
 
 **Ключевая ценность:** единая self-hosted среда для dev-команды и сотрудников компании — трекер, TMS, мессенджер, звонки, интранет, CRM, HR, учёт, AI — в одном интерфейсе.
 
-**Текущий фокус:** Wave C final audit — **FA-01–FA-12 ✅** (кроме **FA-06** manual ops) · squash PR #1 merged · PR #25/#26 ops scripts
+**Текущий фокус:** FA-06 manual ops — **единственный prod-блокер** · PR #25–#27 merged · CI green · Lighthouse artifact (FB-06)
 
 ---
 
@@ -31,7 +31,7 @@ progress:
 | Параметр | Значение |
 |----------|----------|
 | Фаза | **Wave C** — FA-01–FA-12 ✅ (кроме FA-06 manual) · RU-V10 PASS · FA-10 qa-gate PASS |
-| Ветка | `master` · HEAD `0896c3b` |
+| Ветка | `master` · HEAD `bbdaf16` |
 | COV overall (`internal/`) | **83.0%** (Docker, `-tags hubtest`, post FA-11/12) |
 | Security packages ≥80% | **6/6** ✅ |
 | Product score | **93/100** |
@@ -233,7 +233,7 @@ progress:
 | ~~TMS CI webhook без RBAC (FA-02-02)~~ | ✅ FA-RBAC-FIBER3 + APIGW-01 2026-06-22 |
 | ~~Fiber v3 RBAC middleware order~~ | ✅ FA-RBAC-FIBER3 123 routes 2026-06-22 |
 | PG-03 not executed | FA-06 manual ops before prod cutover |
-| Uncommitted v4 block on branch | squash PR after FA-06 + CTO approval |
+| ~~Uncommitted v4 block on branch~~ | ✅ PR #1 squash merged 2026-06-22 |
 | ~~main.go ~629 LOC tech debt~~ | ✅ FA-08 wiring split 2026-06-22 |
 
 ---
@@ -242,24 +242,20 @@ progress:
 
 **Last session:** 2026-06-22/23  
 **Stopped at:** AUTH-01 · APIGW-04 closed · WebhookDispatcher Stop race fix · FA-10 race PASS  
-**Resume:** FA-06 PG-03 secret rotation (manual) → squash PR
+**Resume:** FA-06 PG-03 Phase 1–3 (manual) → `bash scripts/fa06.sh release-gate` → `git tag v2.5.0`
 
-**Latest session (2026-06-22/23):**
-- **AUTH-01** RefreshToken DB + expiry validation
-- **APIGW-04** API key deactivated-user check
-- **WebhookDispatcher** `inFlight.Wait()` before `close(jobs)` — race suite green
+### 2026-06-23 — Docs audit + cleanup ✅
 
-**Wave C highlights (2026-06-22):**
-- **APIGW-01** webhook CRUD RBAC · **APIGW-02** Ack/`NakWithDelay` (`webhook_dispatcher_apigw02_test.go`)
-- **FA-RBAC-FIBER3** 123 routes — Fiber v3 `[rbacMW, handler]` order (`.planning/FA-RBAC-FIBER3-AUDIT.md`)
-- **FA-10** qa-gate PASS local: build · hubtest · tsc · Biome · Vitest 99/99 (`.planning/FA-10-QA-GATE.md`)
-- **RU-V10** PASS post RU-FIX-11–13 (`.planning/RU-V-REPORT.md`)
+- **AUDIT:** `.planning/AUDIT-2026-06-23.md` — полный аудит, P0/P1/P2 остаток
+- **Cleanup:** удалено 169+ coverage-артефактов (`backend/cov*`, `cover*`, `*.txt` отчёты)
+- **Docs sync:** AGENTS, system_spec, vision, competitive, test_plan → master `bbdaf16`
+- **PR #27:** Lighthouse CI artifact (non-blocking)
 
 **Next session priorities:**
-1. FA-06: PG-03 secret rotation (manual ops)
-2. FA-10 follow-up: ~~race suite~~ ✅ · ~~coverage-gate CI~~ ✅ · Playwright E2E
-3. Squash PR `feat/v2.5-trust` → main when CTO approves
-4. FA-02 backlog: LiveKit `iss` const-time (FA-02-03), `RequireAuth` fail-open (FA-02-04)
+1. FA-06: PG-03 secret rotation (manual ops) — **P0**
+2. SSH deploy + `git tag v2.5.0`
+3. NFR-16 WCAG full sign-off · NFR-17 Lighthouse blocking gate
+4. FA-02 backlog: LiveKit `iss` (FA-02-03), RequireAuth fail-open (FA-02-04)
 
 ---
 

@@ -37,11 +37,11 @@
 | v2.0 UI requirements (DSFN–XTRA) | 85/85 | ✅ COMPLETE (Phases 8–14) |
 | CRITICAL security blockers | 0 | **12/12 FIXED** в коде (v2.0.1); PG-03 ротация секретов в git history — manual ops |
 | Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (auth, ws, storage, rbac, audit, calls) |
-| Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **82.6%** ✅ (Phase 125, Docker `-tags hubtest`) |
-| Frontend Vitest | Unit-тесты модулей | **99+** тестов ✅ |
+| Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **83.0%** ✅ (Wave C, Docker `-tags hubtest`) |
+| Frontend Vitest | Unit-тесты модулей | **99/99** ✅ |
 | E2E critical paths | Playwright | **20 spec-файлов** ✅ (`testframework/e2e/specs/`) |
-| Global search Ctrl+K (US-M07) | UI + user-scope backend | **UI ✅** (`command-palette.tsx`); Meilisearch indexer + JQL assist (AI) |
-| Lighthouse Performance/Accessibility | ≥ 90 | Цель v2.5, formal audit pending |
+| Global search Ctrl+K (US-M07) | UI + user-scope backend | **UI ✅** (PR #15: Calls, Settings, Admin) |
+| Lighthouse Performance/Accessibility | ≥ 90 | CI artifact job (PR #27, non-blocking); formal gate — backlog |
 | WCAG 2.1 AA | 4.5:1 text, 3:1 UI | Реализовано (THME-04), E2E a11y spec ✅ |
 | DAU/WAU/MAU | Админ-дашборд | ✅ Реализовано |
 | Участники голосового звонка | До 50 | ✅ LiveKit |
@@ -213,7 +213,7 @@
 | v4 Super-app | 39–58 | ✅ COMPLETE | 2026-06-25 |
 | Coverage wave | 59–125 | ✅ COMPLETE | 2026-06-21 |
 
-**Текущий фокус:** Wave B test framework migration (TF-M04–M08) → Wave C final audit (FA-01–FA-12). Ветка `feat/v2.5-trust`, commit-ready. См. `.planning/STATE.md`.
+**Текущий фокус:** Wave C ✅ · FA-06 manual — единственный prod-блокер · ветка `master`. См. `.planning/STATE.md` и `.planning/AUDIT-2026-06-23.md`.
 
 ### Отложенный polish (не блокирует релиз)
 

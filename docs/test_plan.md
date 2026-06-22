@@ -19,7 +19,7 @@
 
 | Уровень | Инструмент | Расположение | Gate |
 |---------|------------|--------------|------|
-| Unit (BE) | Go testing + testify | `backend/internal/*_test.go`, `backend/testframework/` | CI `backend-test` |
+| Unit (BE) | Go testing + testify | `backend/testframework/` (0 в `internal/`) | CI `backend-test` |
 | Unit (FE) | Vitest + RTL | `frontend/testframework/unit/`, `frontend/src/**/*.test.ts` | CI `frontend-test` |
 | Integration | httptest, enttest, miniredis | `backend/internal/*/` | В составе unit |
 | API smoke | httptest | auth, health, critical handlers | e2e-full |
@@ -43,22 +43,19 @@
 
 ---
 
-## Текущие метрики (2026-06-21)
+## Текущие метрики (2026-06-23)
 
-Источник: `.planning/COVERAGE.md` Phase 120+, локальный прогон Vitest 2026-06-21.
+Источник: `.planning/COVERAGE.md` · `.planning/AUDIT-2026-06-23.md`
 
 | Метрика | Значение |
 |---------|----------|
-| Backend `*_test.go` | **200+** файлов |
-| Statement coverage `internal/` | **~82.1%** (floor Phase 120) |
-| `internal/auth/` | **~81.6%** |
-| `internal/tracker/` | **~81.2%** |
-| `internal/tms/` | **~80.6%** |
-| `internal/search/` | **~92.2%** |
-| `internal/storage/` | **~86.8%** |
+| Backend `testframework/**/*_test.go` | **488** файлов |
+| Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
+| Statement coverage `internal/` | **83.0%** |
 | Security-critical packages ≥80% | **6/6** ✅ |
-| Frontend Vitest | **25** files, **56** tests ✅ (локальный прогон) |
+| Frontend Vitest | **37** files, **99/99** tests ✅ |
 | Playwright specs | **20** files в `testframework/e2e/specs/` |
+| Lighthouse CI | artifact job (master push, non-blocking) |
 | TypeScript | `tsc --noEmit` — 0 errors (CI) |
 | Data races | 0 (CI `-race`) |
 
@@ -97,6 +94,8 @@ npm run test:e2e   # link-e2e-node-modules.mjs + playwright.config.ts → testfr
 | `build` | backend + frontend test | `go build -tags release`, `npm run build` |
 | `e2e-smoke` | frontend-test | Playwright без backend: `login`, `a11y`, `critical-gate` |
 | `e2e-full` | backend + frontend test | Infra script + backend `DEV_MODE` + 20 spec files |
+| `coverage-gate` | master push only | Docker infra, ≥82% statement coverage |
+| `lighthouse` | master push only | Login page LH audit, artifact (non-blocking) |
 
 **Deploy** (`.github/workflows/deploy.yml`): только после успешного CI на push `master`; образы GHCR по SHA; **без** `DEV_MODE=true`.
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# FA-06 / PG-03 — entry point for secret rotation runbooks.
-# Usage: bash scripts/fa06.sh <command>
-#   phase0-log   — open execution log path
-#   p1-compose   — Phase 1 Docker Compose checklist
-#   p1-k3s       — Phase 1 K3s kubectl checklist
-#   p2-smoke     — Phase 2 post-rotation curl smoke
-#   deploy       — SSH deploy preflight
-#   release-gate — v2.5.0 tag readiness
+# FA-06 / PG-03 — единая точка входа для runbook ротации секретов Hub v2.5.
+# Использование: bash scripts/fa06.sh <команда>
+#   phase0-log   — пути к журналу выполнения и runbook
+#   p1-compose   — Phase 1: чеклист Docker Compose
+#   p1-k3s       — Phase 1: чеклист K3s (kubectl patch)
+#   p2-smoke     — Phase 2: curl smoke после ротации
+#   deploy       — preflight SSH-деплоя
+#   release-gate — чеклист перед git tag v2.5.0
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -24,14 +24,14 @@ case "${cmd}" in
   release-gate) exec bash "${ROOT}/scripts/v25-release-gate.sh" ;;
   help|*)
     cat <<EOF
-FA-06 / PG-03 secret rotation (Hub v2.5 Trust)
+FA-06 / PG-03 — ротация секретов (Hub v2.5 Trust)
 
   bash scripts/fa06.sh p1-compose    Phase 1 — Docker Compose (Resend + Telegram)
-  bash scripts/fa06.sh p1-k3s        Phase 1 — K3s hub-app-secrets patch
-  bash scripts/fa06.sh p2-smoke      Phase 2 — curl smoke (set HUB_BASE, MAGIC_LINK_EMAIL)
-  bash scripts/fa06.sh deploy         SSH deploy preflight (optional SSH_HOST)
-  bash scripts/fa06.sh release-gate   Checklist before git tag v2.5.0
-  bash scripts/fa06.sh phase0-log     Paths to FA-06-EXECUTION-LOG.md + PG-03
+  bash scripts/fa06.sh p1-k3s        Phase 1 — K3s patch hub-app-secrets
+  bash scripts/fa06.sh p2-smoke      Phase 2 — curl smoke (HUB_BASE, MAGIC_LINK_EMAIL)
+  bash scripts/fa06.sh deploy         Preflight SSH-деплоя (SSH_HOST, SSH_KEY)
+  bash scripts/fa06.sh release-gate   Чеклист перед git tag v2.5.0
+  bash scripts/fa06.sh phase0-log     Пути к FA-06-EXECUTION-LOG.md и PG-03
 
 Runbook: .planning/PG-03-SECRET-ROTATION.md
 EOF

@@ -61,6 +61,10 @@ backend/bin/
 
 # Coverage / benchmark dumps (never commit)
 backend/cover
+backend/cover*
+backend/coverall*
+backend/cov
+backend/cov*
 backend/coverage
 backend/coverage_baseline
 backend/coverage_internal
@@ -75,7 +79,11 @@ backend/gitlab_cov
 backend/covertms
 backend/notif_cov
 backend/*_after.txt
+backend/*.out
 tmp_*.py
+.planning/biome-output.txt
+.planning/tsc-output.txt
+.planning/*-output.txt
 
 # Local dev / CI / agent session artifacts
 .gotmp/

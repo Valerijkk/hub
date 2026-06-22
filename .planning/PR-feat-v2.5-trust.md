@@ -1,8 +1,9 @@
 # Squash PR: `feat/v2.5-trust` → `main`
 
-> **Draft** · Updated: 2026-06-22 · Branch: `feat/v2.5-trust`  
-> **Merge strategy:** squash merge (single commit to `main`)  
-> **Status:** pending CTO approval · **uncommitted changes on branch** (commit before open)
+> **ARCHIVED** · Merged as **PR #1** · 2026-06-22  
+> **Branch:** was `feat/v2.5-trust` · текущая ветка `master`  
+> **Merge strategy:** squash merge ✅ выполнен  
+> **Status:** ~~pending~~ → **MERGED**. Prod-блокер: FA-06 PG-03 manual ops.
 
 ---
 

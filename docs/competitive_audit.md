@@ -1,12 +1,12 @@
 # Hub — Конкурентный аудит и backlog фич
 
-> **Обновлено:** 2026-06-21  
+> **Обновлено:** 2026-06-23  
 > **Связанные документы:** [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · [.planning/PLATFORM-VISION-v4.md](../.planning/PLATFORM-VISION-v4.md)  
 > **Цель:** best practices от лидеров рынка + приоритизированный backlog для Hub v2.5–v4.5+.
 
 ---
 
-## 1. Текущая позиция Hub (2026-06-21)
+## 1. Текущая позиция Hub (2026-06-23)
 
 Hub — **self-hosted corporate super-app** для команд 10–50 человек: dev-suite (трекер, мессенджер, TMS, звонки) **+** корпоративные модули v4 (интранет, календарь, CRM-lite, HR, учёт, no-code базы, AI hub).
 
@@ -14,11 +14,13 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 |------------|----------|
 | Milestone v4 Super-app | ✅ Phases 39–58 (2026-06-25) |
 | Milestone v2.5 Trust / v2.6 Automate / v3.0 AI | ✅ Phases 15–19 |
-| Покрытие backend (`internal/`) | **82.6%** (Phase 125) |
+| Wave C final audit FA-01–FA-12 | ✅ (кроме FA-06 manual) |
+| Покрытие backend (`internal/`) | **83.0%** (Wave C) |
 | Security-critical пакеты ≥80% | **6/6** ✅ |
 | REST API endpoints | **286+** |
 | Product score (AUDIT-SCORECARD) | **93/100** |
-| Ветка | `feat/v2.5-trust` (uncommitted) |
+| Ветка | `master` · HEAD `bbdaf16` |
+| CI | ✅ green (coverage-gate, e2e-full 20 specs, lighthouse artifact) |
 
 **Стратегия:** не конкурировать с Jira в enterprise workflow; побеждать по **TCO + интеграция + self-host + RU-friendly AI** для команд с data residency.
 
@@ -94,19 +96,21 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 ### Must Have (production trust — в основном закрыто)
 
 1. ~~12 CRITICAL security blockers~~ — ✅ v2.0.1
-2. ~~Test coverage ≥50% overall / ≥80% security~~ — ✅ **82.6%** / **6/6 ≥80%**
-3. Secret rotation в git history — ⚠️ PG-03 manual ops
-4. ~~Vitest smoke tests auth + admin~~ — ✅ 99+ tests
-5. ~~E2E critical paths~~ — ✅ 20 Playwright specs в `testframework/e2e/`
+2. ~~Test coverage ≥50% overall / ≥80% security~~ — ✅ **83.0%** / **6/6 ≥80%**
+3. Secret rotation в git history — ⏳ **FA-06 manual** — единственный prod-блокер
+4. ~~Vitest smoke tests auth + admin~~ — ✅ 99/99 tests
+5. ~~E2E critical paths~~ — ✅ 20 Playwright specs
+6. ~~Test framework migration~~ — ✅ 488 testframework / 0 internal
+7. ~~Squash PR v2.5-trust~~ — ✅ merged PR #1 2026-06-22
 
-### Should Have (v4.5 / Wave C audit)
+### Should Have (v4.5 / Wave C audit — в основном закрыто)
 
-1. **Test framework migration** — все Go-тесты в `backend/testframework/` (TF-M04–M08 in progress)
-2. **tms/project micro-gap** — 81.7–81.8% → 82% (FA-11)
+1. ~~Test framework migration~~ — ✅ TF-M01–M10 COMPLETE
+2. ~~tms/project micro-gap~~ — ✅ FA-11 (82.0%)
 3. **Webhook delivery log polish** — PROD-04 базово есть; admin UI depth
-4. **Flaky test detection** — PROD-02 partial; ML-level vs Allure TestOps
-5. **Notification digest** — quiet hours есть; daily digest — backlog
-6. **Lighthouse ≥90 + WCAG sign-off** — login axe PASS; full audit pending
+4. **Flaky test detection** — PROD-02 partial
+5. **Notification digest** — backlog
+6. **Lighthouse ≥90 blocking + WCAG sign-off** — artifact CI ✅ (PR #27); full audit pending
 
 ### Could Have (v4.5+ / 2027)
 
@@ -145,9 +149,9 @@ Hub API → slog (JSON) → Loki (Promtail)
 
 ## 6. Метрики успеха
 
-| KPI | Target | Текущее (2026-06-21) |
+| KPI | Target | Текущее (2026-06-23) |
 |-----|--------|----------------------|
-| Statement coverage (`internal/`) | ≥82% | **82.6%** ✅ |
+| Statement coverage (`internal/`) | ≥82% | **83.0%** ✅ |
 | Security packages ≥80% | 6/6 | **6/6** ✅ |
 | Mean API latency (p95) | < 200ms | Измеряется через `duration_ms` в audit |
 | Audit coverage admin + auth | 100% | ✅ |
@@ -158,11 +162,12 @@ Hub API → slog (JSON) → Loki (Promtail)
 
 ## 7. Следующие шаги
 
-1. **Wave B TF-M04–M08** — завершить миграцию Go-тестов в `testframework/`
-2. **Wave C FA-01–FA-12** — полный аудит, docs sync, PG-03 rotation
-3. **Squash PR** `feat/v2.5-trust` → main после qa-gate green
-4. **UX-1** — onboarding step 4, command palette actions, RHF+Zod tracker forms
-5. **FA-11** — закрыть micro-gap tms/project 81.8% → 82%
+1. **FA-06 PG-03** — ротация секретов на staging/prod (`bash scripts/fa06.sh`)
+2. **Release v2.5.0** — `release-gate` → git tag после FA-06 + CTO
+3. **NFR-16/17** — WCAG full sign-off · Lighthouse blocking gate
+4. **SSH deploy** — GitHub Secrets + firewall :22
+
+Полный аудит: `.planning/AUDIT-2026-06-23.md`
 
 ---
 

@@ -71,7 +71,7 @@
 | NFR-26 | Pub/sub transport | NATS JetStream only — Redis pub/sub запрещён |
 | NFR-27 | File upload path | Presigned PUT в SeaweedFS; backend buffer max 25 MB |
 | NFR-28 | Tenancy | Single-tenant (1 instance = 1 team) |
-| NFR-29 | Test coverage gate | ≥50% overall ✅ **82.6%**; ≥80% security-critical ✅ **6/6** |
+| NFR-29 | Test coverage gate | ≥50% overall ✅ **83.0%**; ≥80% security-critical ✅ **6/6** |
 | NFR-30 | Frontend test gate | Vitest **99+** tests; Playwright **20** E2E specs ✅ |
 
 ## Модель данных (ER — ключевые сущности)
@@ -207,29 +207,30 @@ Rooms: `project:<id>`, `channel:<id>`, `user:<id>`, `admin:<id>`
 
 Полная матрица: `.planning/COVERAGE.md`
 
-### Актуальные пробелы (2026-06-21)
+### Актуальные пробелы (2026-06-23)
 
 | Область | Статус | Gap |
 |---------|--------|-----|
-| Backend coverage overall | **82.6%** ✅ | tms/project −0.2% до 82% (FA-11 micro-gap) |
+| Backend coverage overall | **83.0%** ✅ | Gate ≥82% PASS |
+| PG-03 secret rotation | ⏳ Manual | FA-06 Phase 1–3 — **единственный prod-блокер** |
+| Lighthouse ≥90 formal | ⚠️ Partial | CI artifact job (PR #27, non-blocking) |
+| NFR-16 WCAG 2.1 AA | ⚠️ Partial | Login axe PASS; full human audit pending |
 | US-F03 slash `/ai test-cases` | ⚠️ Partial | Composer suggest вместо slash-команды |
-| Webcam в звонках | ❌ Missing | Phase 16 |
-| Full JQL automation | ⚠️ Partial | Basic JQL + AI assist; full engine Phase 17 |
-| Lighthouse ≥90 formal | ⏳ Pending | E2E a11y есть, Lighthouse audit нет |
-| PG-03 secret rotation | ⚠️ Manual | Секреты в git history — ops runbook |
+| Webcam в звонках | ❌ Out of scope | TZ forbidden |
 | OpenAI-compatible Hub API (US-F06) | ❌ Missing | v3.5 backlog |
-| Test framework migration | 🔄 In progress | TF-M04–M08 Wave B |
+| Test framework migration | ✅ Complete | 488 testframework / 0 internal |
 
 ### Закрытые gaps (post-audit)
 
 | Область | Было | Сейчас |
 |---------|------|--------|
 | CRITICAL security (12) | Blockers | **FIXED** в коде |
-| Overall coverage | 11.5% → 56.6% | **82.6%** |
+| Overall coverage | 11.5% → 56.6% | **83.0%** |
 | Playwright E2E | not present | **20 specs** |
-| Frontend Vitest | 0 | **99+ tests** |
-| Ctrl+K global search | missing UI | **UI ✅** |
-| Security headers NFR-22 | Phase 16 | **✅ deployed** |
+| Frontend Vitest | 0 | **99/99 tests** |
+| Test framework migration | in progress | **488 / 0 internal** ✅ |
+| Lighthouse CI | missing | **artifact job** (PR #27) |
+| Squash PR v2.5-trust | pending | **merged PR #1** ✅ |
 
 ---
-*Последнее обновление: 2026-06-21 — RU-D03: v3/v4 FR, endpoint recount, coverage Phase 125*
+*Последнее обновление: 2026-06-23 — Wave C complete, COV 83.0%, FA-06 manual blocker, Lighthouse CI*

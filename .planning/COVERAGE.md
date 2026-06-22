@@ -200,8 +200,8 @@
 1. **DevOps:** FA-06 PG-03 Phase 1–3 (manual) — scripts: `bash scripts/fa06.sh p1-compose` or `p1-k3s` → `p2-smoke` → CTO sign-off
 2. **DevOps:** SSH deploy — `bash scripts/fa06.sh deploy` · GitHub Secrets SSH_HOST/SSH_KEY
 3. **Release:** `bash scripts/fa06.sh release-gate` → `git tag v2.5.0` after FA-06 complete
-4. **Backlog:** NFR-17 Lighthouse in CI · full WCAG AA sign-off
+4. **Backlog:** NFR-17 Lighthouse blocking gate · NFR-16 WCAG AA sign-off · `.planning/AUDIT-2026-06-23.md`
 
 ---
 
-*Generated: 2026-06-17 · Verified: 2026-06-22 (Wave C FA-03: COV 83.0%, security 6/6 ≥80%, 488 testframework / 0 internal tests)*
+*Generated: 2026-06-17 · Verified: 2026-06-23 (AUDIT-2026-06-23: COV 83.0%, master bbdaf16, CI green)*
