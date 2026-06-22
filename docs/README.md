@@ -45,6 +45,7 @@
 | `.planning/PROJECT.md` | Полный список требований |
 | `.planning/ROADMAP.md` | Фазы и milestones |
 | `.planning/STATE.md` | **Текущий статус сессии** |
+| `.planning/AUDIT-2026-06-23.md` | **Полный аудит проекта + остаток плана** |
 | `.planning/COVERAGE.md` | Матрица requirement → code → test |
 | `.planning/PLATFORM-VISION-v4.md` | Corporate super-app vision |
 | `.planning/DISCUSS-ROADMAP-LOCKED.md` | PO decisions LOCKED 2026-06-21 |
@@ -82,4 +83,4 @@ docker compose --env-file .env.local -f docker-compose.local.yml up --build
 Skill: `/qa-gate` — останавливается на первой FAIL.
 
 ---
-*2026-06-21 — RU-D04–D08 docs refresh, Go 1.25, Magic Link auth*
+*2026-06-23 — Wave C complete, AUDIT-2026-06-23, COV 83.0%, master bbdaf16*

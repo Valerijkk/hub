@@ -49,20 +49,20 @@
 | **Notifications** | Production | In-app + Web Push + Telegram, quiet hours |
 | **API Gateway** | Production | API keys, webhook subscriptions, delivery history |
 
-### 1.2 Статус релиза (2026-06-21)
+### 1.2 Статус релиза (2026-06-23)
 
 | Показатель | Значение |
 |------------|----------|
 | Milestones shipped | v1.0 · v2.0 · v2.5 Trust · v2.6 Automate · v3.0 AI · **v4 Super-app** |
 | Product score | **93/100** |
-| Backend coverage (`internal/`) | **82.6%** (Phase 125, Docker `-tags hubtest`) |
-| Security-critical ≥80% | **6/6** (auth 82.4%, ws 87.7%, rbac 84.7%, audit 80.5%, middleware 84%, calls 80.2%) |
+| Backend coverage (`internal/`) | **83.0%** (Wave C, Docker `-tags hubtest`) |
+| Security-critical ≥80% | **6/6** |
 | REST API endpoints | **286+** |
-| Frontend Vitest | **99+** tests |
-| Playwright E2E | **20** specs (`testframework/e2e/`) |
+| Frontend Vitest | **99/99** tests |
+| Playwright E2E | **20** specs |
 | 12 CRITICAL security blockers | **Закрыты** (v2.0.1) |
-| Ветка | `feat/v2.5-trust` (uncommitted, squash PR pending) |
-| Активная работа | Test framework migration (TF-M04–M08) → Wave C final audit |
+| Ветка | `master` · HEAD `bbdaf16` |
+| Prod-блокер | **FA-06** PG-03 secret rotation (manual) |
 
 ### 1.3 Ценностное предложение
 
@@ -148,9 +148,9 @@
 | JUnit webhook | ✅ | Webhook retry dashboard UX |
 | #hub-ci | ✅ | Pipeline failed→issue (automation) |
 | Observability | ✅ OTel + metrics | hub-mail prod compose (FA-05) |
-| Test framework | 🔄 TF migration | `testframework/` unified suite |
+| Test framework | ✅ TF-M01–M10 COMPLETE | — |
 
-**Приоритет:** TF-M04–M08 complete → qa-gate Docker → PG-03
+**Приоритет:** FA-06 PG-03 → v2.5.0 tag → WCAG/Lighthouse gate
 
 ### 2.8 Анна — Employee (non-dev, v4 persona)
 
@@ -164,29 +164,27 @@
 
 ---
 
-## 3. MoSCoW приоритизация (актуально 2026-06-21)
+## 3. MoSCoW приоритизация (актуально 2026-06-23)
 
 ### Must — production handoff
 
 | ID | Feature | Статус |
 |----|---------|--------|
-| COV ≥82% | Backend coverage | ✅ **82.6%** |
+| COV ≥82% | Backend coverage | ✅ **83.0%** |
 | Security ≥80% | 6 critical packages | ✅ **6/6** |
-| TF-M04–M08 | Test framework migration | 🔄 in progress |
-| FA-10 | Full `/qa-gate` Docker | ⏳ Wave C |
-| PG-03 | Secret rotation execute | ⏳ manual ops |
-| Squash PR | `feat/v2.5-trust` → main | ⏳ pending approval |
+| TF-M04–M08 | Test framework migration | ✅ COMPLETE |
+| FA-10 | Full `/qa-gate` Docker | ✅ PASS |
+| PG-03 | Secret rotation execute | ⏳ **manual — P0 блокер** |
+| v2.5.0 tag | Release | ⏳ после FA-06 |
 
 ### Should — differentiation polish
 
-| ID | Feature | Personas |
-|----|---------|----------|
-| FA-11 | tms/project 81.8% → 82% | QA, PO |
-| UX-1 | RHF+Zod, onboarding step 4, palette actions | All |
-| PROD-02 depth | Flaky detection ML-level | QA |
-| FA-07 | Admin console.error → toast | Admin |
-| FA-09 | E2E 20 specs → full POM+Steps | QA |
-| NFR-16/17 | WCAG + Lighthouse CI gate | All |
+| ID | Feature | Personas | Статус |
+|----|---------|----------|--------|
+| FA-11 | tms/project → 82% | QA, PO | ✅ |
+| UX-1 | Command palette actions | All | ✅ PR #15 |
+| NFR-16/17 | WCAG + Lighthouse | All | ⚠️ partial (LH artifact PR #27) |
+| PROD-02 depth | Flaky detection | QA | backlog |
 
 ### Could — v4.5+
 

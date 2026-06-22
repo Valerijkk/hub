@@ -1,6 +1,6 @@
 # Hub — Конкурентный анализ 2026
 
-> **Обновлено:** 2026-06-21  
+> **Обновлено:** 2026-06-23  
 > **Источники:** `docs/competitive_audit.md`, `docs/vision_and_scope.md`, `.planning/PLATFORM-VISION-v4.md`, web research (Linear, Jira, Plane, Allure TestOps, Slack, Mighty, Bitrix24, Lark).  
 > **Целевой сегмент:** self-hosted команды **10–50 человек**, замена стека Jira + Slack + TestRail/Allure + Meet + Grafana **+** корпоративные сервисы (интранет, HR, CRM).
 
@@ -8,7 +8,7 @@
 
 ## 1. Резюме для руководства
 
-Hub после milestone **v4 Super-app** (Phases 39–58) — единственный self-hosted продукт в нише, объединяющий **dev-suite + corporate super-app** с AI hub и data residency. Покрытие тестами backend **82.6%**, product score **93/100**, 286+ REST endpoints.
+Hub после milestone **v4 Super-app** (Phases 39–58) — единственный self-hosted продукт в нише, объединяющий **dev-suite + corporate super-app** с AI hub и data residency. Покрытие тестами backend **83.0%**, product score **93/100**, 286+ REST endpoints. Wave C ✅; prod-блокер — FA-06 manual.
 
 **Ключевое конкурентное преимущество:** TCO на горизонте 2–3 лет + сквозная traceability (задача → тест → PR → уведомление) + RU-friendly AI без VPN.
 

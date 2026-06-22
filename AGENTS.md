@@ -34,7 +34,7 @@
 
 Планирование: `.planning/STATE.md`, `.planning/COVERAGE.md`, `.planning/ROADMAP.md`, `.planning/DISCUSS-ROADMAP-LOCKED.md`
 
-**Active:** Phase 125 complete · COV **82.6%** · TF migration Wave B · branch `feat/v2.5-trust`
+**Active:** Wave C ✅ · COV **83.0%** · ветка `master` · HEAD `bbdaf16` · FA-06 manual — единственный prod-блокер
 
 GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–§11
 
@@ -79,7 +79,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 
 ---
 
-## Текущий статус (2026-06-22)
+## Текущий статус (2026-06-23)
 
 | Milestone | Статус |
 |-----------|--------|
@@ -92,6 +92,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Coverage wave (Ph 59–125) | ✅ COV **83.0%** |
 | Test framework migration | ✅ Wave B COMPLETE (0 internal tests) |
 | Final audit (FA-01–FA-12) | ✅ Wave C COMPLETE (кроме FA-06 manual) |
+| Lighthouse CI (FB-06) | ✅ artifact job PR #27 (non-blocking) |
 
 ### Метрики качества
 
@@ -117,10 +118,12 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Test framework migration TF-M04–M08 | ✅ Wave B COMPLETE |
 | Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
 | FA-10 e2e-smoke | ✅ 3/3 PASS |
-| PG-03 Secret rotation (FA-06) | ⏳ manual ops — блокер Wave C |
-| Squash PR `feat/v2.5-trust` | ⏳ draft → `.planning/PR-feat-v2.5-trust.md` · after FA-06 + CTO |
+| PG-03 Secret rotation (FA-06) | ⏳ manual ops — **единственный prod-блокер** |
+| SSH deploy + v2.5.0 tag | ⏳ после FA-06 + CTO sign-off |
+| NFR-16 WCAG full sign-off | ⚠️ login axe PASS |
+| NFR-17 Lighthouse blocking gate | ⚠️ artifact only (PR #27) |
 
-Полный список: `.planning/COVERAGE.md` · задачи: `.planning/TASKS-PHASES-121-FINAL-AUDIT.md`
+Полный аудит: `.planning/AUDIT-2026-06-23.md` · матрица: `.planning/COVERAGE.md`
 
 ---
 
@@ -165,4 +168,4 @@ cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
 
 ---
 
-*Обновлено: 2026-06-22 — RU-FIX-03: 82 Ent schemas, Phase 125 COV 82.6%*
+*Обновлено: 2026-06-23 — Wave C complete, master bbdaf16, AUDIT-2026-06-23*
