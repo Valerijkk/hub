@@ -722,14 +722,14 @@ function TestCasesPage() {
 								{total}
 							</span>
 							<div className="flex items-center gap-1">
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-7 w-7 p-0"
-								aria-label="В начало списка"
-								disabled={offset === 0}
-								onClick={() => setOffset(0)}
-							>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-7 w-7 p-0"
+									aria-label="В начало списка"
+									disabled={offset === 0}
+									onClick={() => setOffset(0)}
+								>
 									<svg
 										aria-hidden="true"
 										className="h-3.5 w-3.5"
@@ -745,14 +745,14 @@ function TestCasesPage() {
 										/>
 									</svg>
 								</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-7 w-7 p-0"
-								aria-label="Предыдущая страница"
-								disabled={offset === 0}
-								onClick={() => setOffset(Math.max(0, offset - limit))}
-							>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-7 w-7 p-0"
+									aria-label="Предыдущая страница"
+									disabled={offset === 0}
+									onClick={() => setOffset(Math.max(0, offset - limit))}
+								>
 									<svg
 										aria-hidden="true"
 										className="h-3.5 w-3.5"
@@ -771,14 +771,14 @@ function TestCasesPage() {
 								<span className="px-2 text-xs text-t3 tabular-nums">
 									{currentPage} / {totalPages || 1}
 								</span>
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-7 w-7 p-0"
-								aria-label="Следующая страница"
-								disabled={offset + limit >= total}
-								onClick={() => setOffset(offset + limit)}
-							>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-7 w-7 p-0"
+									aria-label="Следующая страница"
+									disabled={offset + limit >= total}
+									onClick={() => setOffset(offset + limit)}
+								>
 									<svg
 										aria-hidden="true"
 										className="h-3.5 w-3.5"
@@ -794,16 +794,16 @@ function TestCasesPage() {
 										/>
 									</svg>
 								</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-7 w-7 p-0"
-								aria-label="В конец списка"
-								disabled={offset + limit >= total}
-								onClick={() =>
-									setOffset(Math.max(0, (totalPages - 1) * limit))
-								}
-							>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-7 w-7 p-0"
+									aria-label="В конец списка"
+									disabled={offset + limit >= total}
+									onClick={() =>
+										setOffset(Math.max(0, (totalPages - 1) * limit))
+									}
+								>
 									<svg
 										aria-hidden="true"
 										className="h-3.5 w-3.5"
