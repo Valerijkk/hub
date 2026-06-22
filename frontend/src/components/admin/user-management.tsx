@@ -455,6 +455,7 @@ export function UserManagement() {
 											disabled={actionUserId === user.id}
 											className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
 											title="Переназначить"
+											aria-label="Переназначить задачи пользователя"
 										>
 											{"\u270E"}
 										</button>
@@ -464,6 +465,7 @@ export function UserManagement() {
 											disabled={actionUserId === user.id}
 											className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-red disabled:opacity-50"
 											title="GDPR удаление"
+											aria-label="GDPR удаление данных пользователя"
 										>
 											{"\uD83D\uDDD1"}
 										</button>

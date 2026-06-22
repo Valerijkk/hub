@@ -207,7 +207,10 @@ function BoardPage() {
 						value={activeBoardId ?? ""}
 						onValueChange={(v) => setActiveBoard(v)}
 					>
-						<SelectTrigger className="rounded-xl border bg-card px-3 py-2 text-sm font-medium w-auto min-w-[140px]">
+						<SelectTrigger
+							aria-label="Выбор доски"
+							className="rounded-xl border bg-card px-3 py-2 text-sm font-medium w-auto min-w-[140px]"
+						>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>

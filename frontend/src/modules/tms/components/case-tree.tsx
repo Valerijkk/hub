@@ -152,6 +152,7 @@ export function CaseTreePanel({
 				<button
 					type="button"
 					className="w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-t3 text-[18px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:bg-[var(--active)] hover:text-t1 hover:scale-110"
+					aria-label="Создать сьют"
 				>
 					+
 				</button>

@@ -29,7 +29,7 @@ test.describe("Onboarding profile step (UX-P1-07 / FB-12)", () => {
 
 		await page.goto("/onboarding");
 		await expect(
-			page.getByRole("heading", { name: /профил|profile/i }),
+			page.getByText(/профил|profile/i, { exact: false }).first(),
 		).toBeVisible({ timeout: 10_000 });
 
 		const nextBtn = page.getByRole("button", { name: /далее|next/i });

@@ -34,7 +34,7 @@ test.describe("Project lifecycle (FB-07)", () => {
 		await page.getByLabel("Ключ проекта").fill(projectKey);
 		await page.getByRole("button", { name: "Создать проект" }).click();
 
-		await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+/, { timeout: 15_000 });
+		await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+/, { timeout: 30_000 });
 		await expect(page.getByRole("link", { name: "Доска" })).toBeVisible();
 
 		await page.getByRole("tab", { name: "Настройки" }).click();

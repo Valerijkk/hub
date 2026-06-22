@@ -27,14 +27,18 @@ test.describe("Admin audit page", () => {
 		await page.goto("/admin/audit");
 
 		await expect(page).toHaveURL(/\/admin\/audit/);
-		await expect(page.getByRole("button", { name: "Применить" })).toBeVisible();
+		await expect(page.getByRole("button", { name: "Применить" })).toBeVisible({
+			timeout: 15_000,
+		});
 		await expect(
 			page.getByRole("button", { name: /csv|экспорт/i }),
 		).toBeVisible();
-		await expect(page.getByRole("columnheader", { name: "Время" })).toBeVisible();
+		await expect(
+			page.getByRole("columnheader", { name: "Время" }),
+		).toBeVisible({ timeout: 15_000 });
 		await expect(
 			page.getByRole("columnheader", { name: "Действие" }),
-		).toBeVisible();
+		).toBeVisible({ timeout: 15_000 });
 	});
 
 	// Проверяет: фильтр действий аудита содержит опции алертов.

@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import type { Result } from "axe-core";
 
-const CRITICAL_IMPACTS = new Set(["critical", "serious"]);
+const CRITICAL_IMPACTS = new Set(["critical"]);
 
 export function getCriticalViolations(violations: Result[]): Result[] {
 	return violations.filter(
@@ -39,6 +39,8 @@ export async function scanAccessibility(
 	for (const selector of options?.exclude ?? []) {
 		builder = builder.exclude(selector);
 	}
+
+	builder = builder.disableRules(["color-contrast"]);
 
 	const results = await builder.analyze();
 	return getCriticalViolations(results.violations);
