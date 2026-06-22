@@ -82,8 +82,8 @@ func (s *ProjectService) CreateProject(ctx context.Context, userID uuid.UUID, na
 	})
 }
 
-// GetProject возвращает проект по ID.
-func (s *ProjectService) GetProject(ctx context.Context, projectID uuid.UUID) (*ProjectResponse, error) {
+// GetProject возвращает проект по ID и роль текущего пользователя (если userID задан).
+func (s *ProjectService) GetProject(ctx context.Context, projectID, userID uuid.UUID) (*ProjectResponse, error) {
 	p, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -91,7 +91,15 @@ func (s *ProjectService) GetProject(ctx context.Context, projectID uuid.UUID) (*
 		}
 		return nil, apperrors.NewInternal("failed to get project")
 	}
-	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
+
+	myRole := ""
+	if userID != uuid.Nil {
+		if mem, err := s.repo.FindMember(ctx, projectID, userID); err == nil {
+			myRole = string(mem.ProjectRole)
+		}
+	}
+
+	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), myRole), nil
 }
 
 // ListProjects возвращает проекты пользователя (без удалённых).

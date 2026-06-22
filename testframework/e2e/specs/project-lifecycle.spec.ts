@@ -45,10 +45,11 @@ test.describe("Project lifecycle (FB-07)", () => {
 		await expect(page.getByRole("tab", { name: "Обзор" })).toBeVisible({
 			timeout: 15_000,
 		});
-		await page
+		const settingsTab = page
 			.getByRole("tablist")
-			.getByRole("tab", { name: "Настройки" })
-			.click();
+			.getByRole("tab", { name: "Настройки" });
+		await expect(settingsTab).toBeVisible({ timeout: 15_000 });
+		await settingsTab.click();
 		await page.getByRole("button", { name: "Удалить" }).click();
 		await page.getByRole("button", { name: "Удалить" }).last().click();
 

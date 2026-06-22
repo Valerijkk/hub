@@ -69,6 +69,6 @@ func TestService_Wave122_GetProject_NotFound(t *testing.T) {
 	env := newProjectRepoEnv(t)
 	svc := project.NewProjectService(env.repo, nil, nil)
 
-	_, err := svc.GetProject(env.ctx, uuid.New())
+	_, err := svc.GetProject(env.ctx, uuid.New(), uuid.Nil)
 	require.Error(t, err)
 }

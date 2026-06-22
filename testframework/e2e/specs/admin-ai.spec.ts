@@ -26,6 +26,9 @@ test.describe("Admin AI Provider Hub", () => {
 
 		await page.goto("/admin/dashboard");
 		await expect(page.getByRole("button", { name: "Дашборд" })).toBeVisible({
+			timeout: 30_000,
+		});
+		await expect(page.getByRole("button", { name: "AI" })).toBeVisible({
 			timeout: 15_000,
 		});
 		await page.getByRole("button", { name: "AI" }).click();

@@ -19,8 +19,24 @@ import (
 // TestGetProject_NotFound проверяет сценарий: получение project not found.
 func TestGetProject_NotFound(t *testing.T) {
 	svc, _, _ := newTestService()
-	_, err := svc.GetProject(context.Background(), uuid.New())
+	_, err := svc.GetProject(context.Background(), uuid.New(), uuid.Nil)
 	require.Error(t, err)
+}
+
+// TestGetProject_ReturnsMyRole проверяет, что GetProject возвращает роль текущего пользователя.
+func TestGetProject_ReturnsMyRole(t *testing.T) {
+	svc, _, _ := newTestService()
+	ctx := context.Background()
+	ownerID := uuid.New()
+
+	created, err := svc.CreateProject(ctx, ownerID, "Role Test", "ROLE", "")
+	require.NoError(t, err)
+	projectID, err := uuid.Parse(created.ID)
+	require.NoError(t, err)
+
+	got, err := svc.GetProject(ctx, projectID, ownerID)
+	require.NoError(t, err)
+	assert.Equal(t, "owner", got.MyRole)
 }
 
 // TestUpdateProject_Success проверяет сценарий: обновление project успех.

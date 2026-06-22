@@ -131,7 +131,12 @@ func (h *Handler) GetProject(c fiber.Ctx) error {
 		return err
 	}
 
-	resp, err := h.service.GetProject(c.Context(), projectID)
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.GetProject(c.Context(), projectID, userID)
 	if err != nil {
 		return err
 	}
