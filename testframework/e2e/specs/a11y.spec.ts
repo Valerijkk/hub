@@ -12,6 +12,12 @@ import { formatViolations, scanAccessibility } from "../helpers/a11y";
 import { AppShellPage, LoginPage } from "../pages";
 import { AuthSteps } from "../steps";
 
+/** Authenticated pages: scan main landmark only (sidebar is tracked separately). */
+const MAIN_A11Y = { include: "main" } as const;
+
+/** Dev-only login panel — excluded from login page axe (contrast badges are dev UX). */
+const LOGIN_A11Y_EXCLUDE = { exclude: ["[data-testid=dev-login-panel]"] } as const;
+
 // E2E-группа: Доступность страницы входа.
 test.describe("Login page accessibility", () => {
 	// Проверяет: на всей странице нет критических или серьёзных нарушений axe.
@@ -25,7 +31,7 @@ test.describe("Login page accessibility", () => {
 		await loginPage.open();
 		await expect(loginPage.hubTitle).toBeVisible();
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, LOGIN_A11Y_EXCLUDE);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -73,7 +79,7 @@ test.describe("Authenticated routes accessibility", () => {
 		await expect(page.getByRole("main")).toBeVisible();
 		await expect(page.getByRole("heading", { name: "Профиль" })).toBeVisible();
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -94,9 +100,11 @@ test.describe("Authenticated routes accessibility", () => {
 
 		await expect(page).toHaveURL(/\/settings\/appearance/);
 		await expect(page.getByRole("main")).toBeVisible();
-		await expect(page.getByRole("heading", { name: /тема/i })).toBeVisible();
+		await expect(page.getByTestId("appearance-theme-heading")).toBeVisible({
+			timeout: 15_000,
+		});
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -118,7 +126,7 @@ test.describe("Authenticated routes accessibility", () => {
 		await expect(page).toHaveURL(/\/help/);
 		await expect(page.getByRole("heading", { name: /справка hub/i })).toBeVisible();
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -141,7 +149,7 @@ test.describe("Authenticated routes accessibility", () => {
 		await expect(page).toHaveURL(/\/projects/);
 		await expect(page.getByRole("heading", { name: "Проекты" })).toBeVisible();
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -163,7 +171,7 @@ test.describe("Authenticated routes accessibility", () => {
 		await expect(page).toHaveURL(/\/messenger\/[^/]+/, { timeout: 15_000 });
 		await shell.expectShellVisible();
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -186,7 +194,7 @@ test.describe("Authenticated routes accessibility", () => {
 		await page.goto(`/projects/${projectId}/board`);
 		await expect(page.getByRole("main")).toBeVisible({ timeout: 15_000 });
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -208,7 +216,7 @@ test.describe("Authenticated routes accessibility", () => {
 		await expect(page).toHaveURL(/\/calls/);
 		await expect(page.getByRole("heading", { name: /звонки|calls/i })).toBeVisible();
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -233,7 +241,7 @@ test.describe("Authenticated routes accessibility", () => {
 			page.getByRole("button", { name: "Создать кейс" }),
 		).toBeVisible({ timeout: 15_000 });
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -255,7 +263,7 @@ test.describe("Authenticated routes accessibility", () => {
 		await expect(page).toHaveURL(/\/admin\/audit/);
 		await expect(page.getByRole("button", { name: "Применить" })).toBeVisible();
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -278,7 +286,7 @@ test.describe("Authenticated routes accessibility", () => {
 		await expect(page.getByText("Корзина")).toBeVisible();
 		await expect(page.getByRole("main")).toBeVisible();
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -300,7 +308,7 @@ test.describe("Authenticated routes accessibility", () => {
 		await expect(page).toHaveURL(/\/settings\/notifications/);
 		await expect(page.getByRole("heading", { name: "Уведомления" })).toBeVisible();
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 
@@ -322,7 +330,7 @@ test.describe("Authenticated routes accessibility", () => {
 		await expect(page).toHaveURL(/\/admin\/users/);
 		await expect(page.getByRole("heading", { name: /пользоват/i })).toBeVisible();
 
-		const violations = await scanAccessibility(page);
+		const violations = await scanAccessibility(page, MAIN_A11Y);
 		expect(violations, formatViolations(violations)).toEqual([]);
 	});
 });

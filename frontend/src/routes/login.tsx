@@ -149,13 +149,13 @@ function LoginPage() {
 					<div className="text-center mt-7 text-sm text-[var(--t2)]">
 						Введите email — мы отправим одноразовый код для входа.
 					</div>
-
-					{import.meta.env.DEV && (
-						<div className="mt-6">
-							<DevLoginPanel onSuccess={handleLoginSuccess} />
-						</div>
-					)}
 				</div>
+
+				{import.meta.env.DEV && (
+					<div className="mt-6 w-full max-w-[380px] px-4 sm:px-10">
+						<DevLoginPanel onSuccess={handleLoginSuccess} />
+					</div>
+				)}
 			</div>
 		</div>
 	);

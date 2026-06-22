@@ -198,11 +198,14 @@ export function DevLoginPanel({ onSuccess }: DevLoginPanelProps) {
 	}
 
 	return (
-		<div className="space-y-4 rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/[0.03] p-5">
+		<div
+			className="space-y-4 rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/[0.03] p-5"
+			data-testid="dev-login-panel"
+		>
 			{/* Заголовок Демо-доступ */}
 			<div className="flex items-center justify-center gap-2">
 				<div className="h-px flex-1 bg-amber-500/20" />
-				<span className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+				<span className="text-[11px] font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300">
 					Демо-доступ
 				</span>
 				<div className="h-px flex-1 bg-amber-500/20" />

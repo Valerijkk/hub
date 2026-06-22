@@ -30,11 +30,14 @@ export function formatViolations(violations: Result[]): string {
 
 export async function scanAccessibility(
 	page: Page,
-	options?: { include?: string },
+	options?: { include?: string; exclude?: string[] },
 ): Promise<Result[]> {
 	let builder = new AxeBuilder({ page });
 	if (options?.include) {
 		builder = builder.include(options.include);
+	}
+	for (const selector of options?.exclude ?? []) {
+		builder = builder.exclude(selector);
 	}
 
 	const results = await builder.analyze();
