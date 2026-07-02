@@ -3,6 +3,7 @@ package auth
 import (
 	"net/mail"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
@@ -118,7 +119,7 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-	if req.Code == "" || len(req.Code) != 6 {
+	if req.Code == "" || utf8.RuneCountInString(req.Code) != 6 {
 		return fiber.NewError(fiber.StatusBadRequest, "code must be 6 characters")
 	}
 

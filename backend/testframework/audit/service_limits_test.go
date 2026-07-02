@@ -35,6 +35,31 @@ func TestRepository_GetSystemSetting(t *testing.T) {
 	assert.Equal(t, "42", val)
 }
 
+// TestRepository_GetSystemSettingsBatch проверяет слой репозитория: batch-чтение
+// нескольких настроек одним запросом; отсутствующие ключи не попадают в результат.
+func TestRepository_GetSystemSettingsBatch(t *testing.T) {
+	repo := newAuditRepoTestEnv(t)
+	ctx := context.Background()
+
+	empty, err := repo.GetSystemSettingsBatch(ctx, nil)
+	require.NoError(t, err)
+	assert.Empty(t, empty)
+
+	client := audit.ExportRepositoryEntClient(repo)
+	for key, value := range map[string]string{"limit.a": "1", "limit.b": "2"} {
+		_, err = client.SystemSetting.Create().
+			SetKey(key).
+			SetValue(value).
+			SetDescription("test").
+			Save(ctx)
+		require.NoError(t, err)
+	}
+
+	values, err := repo.GetSystemSettingsBatch(ctx, []string{"limit.a", "limit.b", "limit.missing"})
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{"limit.a": "1", "limit.b": "2"}, values)
+}
+
 // TestRepository_UpsertSystemSetting проверяет слой репозитория: репозиторий upsert system setting.
 func TestRepository_UpsertSystemSetting(t *testing.T) {
 	repo := newAuditRepoTestEnv(t)
@@ -87,6 +112,51 @@ func TestAuditService_GetResourceLimits(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, limits, 3)
 	assert.Equal(t, "50", limits[0].Value)
+}
+
+// batchCountingMockRepo фиксирует вызовы GetSystemSettingsBatch, чтобы
+// подтвердить устранение N+1: три лимита должны читаться одним запросом.
+type batchCountingMockRepo struct {
+	mockAuditRepo
+	batchCalls  int
+	batchKeys   []string
+	batchResult map[string]string
+}
+
+func (m *batchCountingMockRepo) GetSystemSettingsBatch(_ context.Context, keys []string) (map[string]string, error) {
+	m.batchCalls++
+	m.batchKeys = keys
+	return m.batchResult, nil
+}
+
+// TestAuditService_GetResourceLimits_SingleBatchCall проверяет, что
+// GetResourceLimits делает ровно один batch-запрос вместо трёх
+// последовательных GetSystemSetting, а отсутствующие ключи получают дефолты.
+func TestAuditService_GetResourceLimits_SingleBatchCall(t *testing.T) {
+	repo := &batchCountingMockRepo{
+		batchResult: map[string]string{
+			audit.LimitFileMaxSizeMB: "100",
+			// остальные ключи отсутствуют — сервис должен подставить дефолты
+		},
+	}
+	svc := audit.NewAuditService(repo, nil)
+
+	limits, err := svc.GetResourceLimits(context.Background())
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, repo.batchCalls, "лимиты должны читаться одним batch-запросом")
+	assert.ElementsMatch(t,
+		[]string{audit.LimitFileMaxSizeMB, audit.LimitUserMaxProjects, audit.LimitProjectMaxStorageMB},
+		repo.batchKeys)
+
+	require.Len(t, limits, 3)
+	byKey := make(map[string]string, len(limits))
+	for _, l := range limits {
+		byKey[l.Key] = l.Value
+	}
+	assert.Equal(t, "100", byKey[audit.LimitFileMaxSizeMB])
+	assert.Equal(t, "20", byKey[audit.LimitUserMaxProjects])
+	assert.Equal(t, "5120", byKey[audit.LimitProjectMaxStorageMB])
 }
 
 // TestAuditService_CheckLimit проверяет бизнес-логику: audit сервис проверка limit.

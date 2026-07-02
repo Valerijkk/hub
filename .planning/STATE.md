@@ -30,6 +30,16 @@ progress:
 - **test(bases): RBAC-отказы** — новые тесты в `backend/testframework/bases/`: чужая база невидима в списке, GET/PUT/DELETE чужой базы → 403, мутации таблиц/записей в чужой базе → 403, позитив владельца. `go test -tags hubtest -race ./testframework/bases/...` — PASS.
 - Docs: `docs/wiki/API.md` (Hub Base — owner-scoped доступ).
 
+## Session note — 2026-07-03 (Волна 1, поток Q: quick-fixes tech-debt)
+
+Ветка `fix/platform/wave1-quickfixes` (be2/fe1):
+
+- **fix(audit):** N+1 в `GetResourceLimits` устранён — новый `Repository.GetSystemSettingsBatch` (один `KeyIn`-запрос вместо 3 последовательных `GetSystemSetting`); моки в `testframework/audit/` дополнены, тесты на single-batch-call и repository batch добавлены.
+- **fix(auth):** длина magic-link кода считается по рунам (`utf8.RuneCountInString`), не по байтам; тесты: 6-рунный multibyte код проходит валидацию длины, 3 эмодзи и «ааа» (6 байт / 3 руны) — 400.
+- **fix(frontend):** GIPHY-ключ убран из кода → `import.meta.env.VITE_GIPHY_API_KEY`; создан `frontend/.env.example` (VITE_GIPHY_API_KEY, VITE_LIVEKIT_URL).
+- **FA-02-03 / FA-02-04 (roadmap 1.6/1.7):** уже закрыты ранее в `a14aa20` (v2.5 trust) — `calls/handler.go` использует `constantTimeStringEqual` (SHA-256 + `hmac.Equal`) для `iss`, `RequireAuth` fail-closed (503 при ошибке status-lookup); тесты существуют (`recording_webhook_test.go`: валидный/чужой iss; `middleware_failclosed_test.go`: DB error → 503, битый uid → 401; `middleware_test.go`: без/битый токен → 401). Новый код не требовался.
+- **Ворота:** `go build -tags release` ✅ · `go vet -tags hubtest` ✅ · `go test -race` audit/auth/calls/platform/rbac ✅ · `npx tsc --noEmit` ✅.
+
 ## Session note — 2026-07-03 (реорганизация команды и планирование)
 
 - **Команда:** 30 агентов (`.cursor/agents/`), параллельные потоки be1/be2, fe1/fe2, ba1/2, sa1/2, qa-auto1/2 + верификаторы у всех; `team-lead` = **Fable 5** (по итогам 5 A/B-задач против Opus 4.8), `team-lead-opus` = эскалация; остальные Sonnet 5.

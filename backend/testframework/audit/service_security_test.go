@@ -120,6 +120,9 @@ func (m *mockAuditRepo) DeleteUserSessions(_ context.Context, userID uuid.UUID) 
 }
 
 func (m *mockAuditRepo) GetSystemSetting(context.Context, string) (string, error) { return "", nil }
+func (m *mockAuditRepo) GetSystemSettingsBatch(context.Context, []string) (map[string]string, error) {
+	return map[string]string{}, nil
+}
 func (m *mockAuditRepo) UpsertSystemSetting(context.Context, string, string, string) error {
 	return nil
 }
