@@ -45,6 +45,12 @@ Ops-лейн (фоновый):    FA-06 ротация (пользователь
 
 Ворота волны: регрессия доменов у каждого агента → полный `/qa-gate` на интеграции (team-lead) → мерж по команде пользователя.
 
+**СТАТУС ВОЛНЫ 1 (2026-07-03): ✅ ИСПОЛНЕНА И ВЕРИФИЦИРОВАНА.** Ветки: `fix/platform/wave1-quickfixes` (be-ver: verified true), `feat/bases/security-membership-fix` (be-ver+security: verified true, 11/11 эндпоинтов покрыты), `docs/wave1-analysis` (ba-ver: verified true, 14 US). Интеграция: `integration/wave1` — Docker full backend suite PASS (~187с, 0 fail), tsc PASS, Vitest 99/99; Biome-ошибки = локальные CRLF-артефакты Windows. FA-02-03/04 оказались закрыты ранее (a14aa20). NF-09 перенесён в Волну 2 (devops). **Мерж в master — за пользователем** (рекомендация: мержить `integration/wave1`; security-изменение bases — в списке личного ревью).
+
+**Follow-ups из верификации (в Волну 2):**
+- [MEDIUM] `VITE_GIPHY_API_KEY` не проброшен в prod-сборку фронтенда + обновить `wiki/DEPLOY.md` (→ devops, задача 2.15).
+- [MEDIUM] bases: owner-only модель vs GZ-решение о project-membership sharing — дизайн-gap зафиксировать в эпике BS-1 (проект-шаринг = фича, не хотфикс).
+
 ## ВОЛНА 2 — ADR-пакет + Track P M0 старт + спеки (атомарная)
 
 | # | Задача | Исполнитель | Верификатор | DoD |
