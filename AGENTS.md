@@ -48,32 +48,45 @@
 
 Планирование: `.planning/STATE.md`, `.planning/COVERAGE.md`, `.planning/ROADMAP.md`, `.planning/DISCUSS-ROADMAP-LOCKED.md`
 
-**Active:** Wave C ✅ · COV **83.0%** · TF pipeline-aligned · branch `master` · FA-06 manual — единственный prod-блокер
+**Active (2026-07-03):** Реорганизация команды ✅ (30 агентов + 10 playbooks) · ADR-MICROSERVICES accepted · gray-zones решены (`.planning/GRAY-ZONES-DECISIONS-2026-07-03.md`) · **Roadmap: `.planning/ROADMAP-FINAL-2026-07-03.md`** (ревью → коммит → Волна 1) · COV 83.0% · branch `master` · FA-06 — ручная ротация по runbook (не гейтит)
 
 GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–§11
 
 ---
 
-## AI-команда (12 агентов)
+## AI-команда (30 агентов)
 
-### Основные роли → Верификаторы
+> Реорганизована 2026-07-02 под параллельную разработку. Ростер и модели: **`.cursor/playbooks/README.md`** · процессы/RACI: `.cursor/playbooks/team-workflow.md`.
+> **Модели:** `team-lead` — Fable 5 (дефолтный оркестратор); `team-lead-opus` — Opus 4.8 @ 1M (**только эскалация**: тяжёлые декомпозиции/приёмка milestone); все остальные — Sonnet 5, max effort, ~200–300k.
 
-| Роль | Agent | Skill | Verifier |
-|------|-------|-------|----------|
-| Business Analyst | `ba` | `BA_skill.md` | `ba-ver` |
-| System Analyst | `sa` | `SA_skill.md` | `sa-ver` |
-| Architect | `arch` | `ARCH_skill.md` | `arch-ver` |
-| Backend Dev | `be` | `BE_skill.md` | `be-ver` |
-| Frontend Dev | `fe` | `FE_skill.md` | `fe-ver` |
-| QA | `qa` | `QA_skill.md` | `qa-ver` |
+### Лидерство / продукт
+`team-lead` (оркестратор), `tech-lead` (декомпозиция), `product` + `product-ver`
 
-Skills: `.cursor/project_skills/`
+### Аналитика / архитектура / дизайн (потоки + верификаторы)
 
-### Вспомогательные
+| Роль | Агенты | Verifier |
+|------|--------|----------|
+| Business Analyst | `ba1`, `ba2` | `ba-ver` |
+| System Analyst | `sa1`, `sa2` | `sa-ver` |
+| Architect | `arch` | `arch-ver` |
+| Designer | `designer` | `designer-ver` |
 
-`devops-engineer`, `debugger`, `refactor-specialist`, `docs-writer`
+### Разработка / QA (потоки + кросс-ревью + верификаторы)
 
-Legacy aliases: `business-analyst`→`ba`, `backend-dev`→`be`, `frontend-dev`→`fe`, `qa-auto`→`qa`
+| Роль | Агенты | Verifier |
+|------|--------|----------|
+| Backend | `be1`, `be2` | `be-ver` |
+| Frontend | `fe1`, `fe2` | `fe-ver` |
+| Manual QA | `qa-manual` | `qa-manual-ver` |
+| Auto QA | `qa-auto1`, `qa-auto2` | `qa-auto-ver` |
+
+### Cross-cutting
+
+`devops-engineer`, `security-auditor`, `debugger`, `code-reviewer`, `docs-writer`
+
+### Practices playbooks (`.cursor/playbooks/`)
+
+`backend.md` · `frontend.md` · `design.md` · `testing.md` (Allure + замер времени + MD↔автотесты) · `observability.md` · `code-comments.md` · `git-workflow.md` · `analysis.md` · `verification.md` · `team-workflow.md`
 
 ---
 

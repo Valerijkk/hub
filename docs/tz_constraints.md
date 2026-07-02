@@ -13,7 +13,7 @@
 
 | Правило | Детали |
 |---------|--------|
-| Единственный вход | **Magic Link (email)** — без паролей, без SSO (ADR-AUTH-01) |
+| Единственный вход | **Magic Link (email)** — без паролей (ADR-AUTH-01). SSO (OIDC/LDAP) — дополнительный корпоративный метод после `ADR-AUTH-SSO` (2026-07-03); Magic Link остаётся дефолтом и break-glass |
 | Telegram | **Только** привязка и доставка уведомлений, **не** login |
 | JWT access | TTL **15 минут** |
 | Refresh token | Redis, TTL **30 дней**, мгновенный отзыв |
@@ -84,7 +84,7 @@
 
 ### Фичи вне scope (до отдельного ADR)
 
-- SSO / LDAP / OAuth провайдеры
+- ⚠️ SSO / LDAP — **одобрено в scope (2026-07-03)**; реализация только после принятого `ADR-AUTH-SSO` (OIDC + LDAP/AD bind; org-политика magic-link/sso/both с break-glass Magic Link для founder; JIT + LDAP-sync; без собственного MFA — делегируется IdP; маппинг групп только на system role). OAuth-провайдеры соцсетей — по-прежнему вне scope
 - Multi-tenant multi-org (один инстанс = одна org; v5 — multi-org)
 - Native App Store / Play Store (PWA достаточно)
 - SaaS billing / подписки (milestone Later)

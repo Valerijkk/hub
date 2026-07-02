@@ -55,7 +55,7 @@ alwaysApply: true
 ## FORBIDDEN (строго запрещено)
 
 ### Features Out of Scope (until ADR)
-- ❌ SSO/LDAP/OAuth провайдеры
+- ⚠️ SSO/LDAP — **одобрено в scope (2026-07-03)**, реализация только после принятого `ADR-AUTH-SSO` (OIDC + LDAP/AD; org-политика magic-link/sso/both; break-glass Magic Link для founder; JIT + LDAP-sync). OAuth-провайдеры соцсетей — по-прежнему вне scope
 - ❌ Multi-tenant multi-org (один инстанс = одна org; v5 — multi-org)
 - ❌ Native App Store/Play (PWA достаточно)
 - ❌ SaaS billing/подписки (milestone Later)

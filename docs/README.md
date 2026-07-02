@@ -29,6 +29,8 @@
 | [BUSINESS.md](BUSINESS.md) | Расширенная бизнес-документация |
 | [TECHNICAL.md](TECHNICAL.md) | ERD, API, WebSocket, env vars, деплой |
 | [TESTING.md](TESTING.md) | Тест-кейсы TC-*, матрица автоматизации |
+| [testframework_strategy.md](testframework_strategy.md) | Стратегия тестфреймворка: слои Go/TS/Python, Locust, Allure→TMS, гейты |
+| [onboarding/](onboarding/README.md) | Онбординг-листы по ролям (BE/FE/QA-manual/QA-auto/PM+ops) |
 | [wiki/HOME.md](wiki/HOME.md) | Точка входа wiki |
 | [wiki/API.md](wiki/API.md) | Справочник REST API (~286 endpoints) |
 | [wiki/DEPLOY.md](wiki/DEPLOY.md) | Установка, Docker, CI/CD |
@@ -43,13 +45,16 @@
 | Путь | Назначение |
 |------|------------|
 | `.planning/PROJECT.md` | Полный список требований |
-| `.planning/ROADMAP.md` | Фазы и milestones |
+| `.planning/ROADMAP.md` | Фазы и milestones (исторический) |
+| **`.planning/ROADMAP-FINAL-2026-07-03.md`** | **Актуальный roadmap: волны Track F/P, TF-PY, DOCS-EXCELLENCE** |
+| `.planning/GRAY-ZONES-DECISIONS-2026-07-03.md` | **Реестр решений по ~90 серым зонам** |
 | `.planning/STATE.md` | **Текущий статус сессии** |
-| `.planning/AUDIT-2026-06-23.md` | **Полный аудит проекта + остаток плана** |
+| `.planning/AUDIT-2026-06-23.md` | Полный аудит проекта (2026-06-23) |
+| `.planning/EXPANSION-ANALYSIS-2026-07-02.md` | Анализ глубины модулей + бэклог расширения |
+| `.planning/research/MARKET-AND-NEEDS-2026-07-02.md` | Рынок/конкуренты/потребности сотрудников |
 | `.planning/COVERAGE.md` | Матрица requirement → code → test |
 | `.planning/PLATFORM-VISION-v4.md` | Corporate super-app vision |
-| `.planning/DISCUSS-ROADMAP-LOCKED.md` | PO decisions LOCKED 2026-06-21 |
-| `.planning/decisions/ADR-*.md` | AUTH, NOTIF, TZ rewrite |
+| `.planning/decisions/ADR-*.md` | AUTH, NOTIF, TZ rewrite, **ARCH-MICROSERVICES-2026** |
 
 ---
 
@@ -62,7 +67,7 @@
 
 **Версии в CI (2026-06-21):** Go **1.25**, Node **22**, Mongo **8** (service), Postgres/Redis/NATS в e2e-full via `scripts/ci-e2e-backend.sh`.
 
-**Локальные правила:** `.cursor/` может быть в `.gitignore` — копировать skills из wiki при onboarding.
+**Команда агентов:** `.cursor/` **трекается в git** (решение 2026-07-03): агенты (`.cursor/agents/`, 30 ролей), playbooks (`.cursor/playbooks/`, 10 файлов), правила, скилы. Индекс: `.cursor/playbooks/README.md`.
 
 ---
 
@@ -83,4 +88,4 @@ docker compose --env-file .env.local -f docker-compose.local.yml up --build
 Skill: `/qa-gate` — останавливается на первой FAIL.
 
 ---
-*2026-06-23 — Wave C complete, AUDIT-2026-06-23, COV 83.0%, master bbdaf16*
+*2026-07-03 — реорганизация AI-команды (30 агентов + playbooks), ADR-MICROSERVICES, ROADMAP-FINAL, DOCS-EXCELLENCE*
