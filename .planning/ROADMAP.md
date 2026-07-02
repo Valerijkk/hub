@@ -35,16 +35,16 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v2.0 Hub Redesign (In Progress)
+### v2.0 Hub Redesign (Complete 2026-05-15)
 
 **Milestone Goal:** Pixel-perfect редизайн всего фронтенда Hub по 11 HTML-макетам без ломания существующего функционала
 
-- [ ] **Phase 8: Design System Foundation** - CSS-токены, шрифты, !important-очистка, тёмная и светлая палитры, радиусы, тени, анимации
-- [ ] **Phase 9: Layout Shell** - Сайдбар, топбар, AppShell с новым дизайном
-- [ ] **Phase 10: UI Primitives** - Все Shadcn-компоненты рестайлированы под новый дизайн-язык
-- [ ] **Phase 11: Core Mockup Pages** - Login, Dashboard, Messenger, Kanban
-- [ ] **Phase 12: Remaining Mockup Pages + Unmocked Pages** - Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash + Projects, Sprint, JQL, Project Settings, Project Dashboard
-- [ ] **Phase 13: Polish & QA** - Финальный визуальный QA, доступность, мобильная проверка, очистка мёртвого CSS
+- [x] **Phase 8: Design System Foundation** - CSS-токены, шрифты, !important-очистка, тёмная и светлая палитры, радиусы, тени, анимации (drift fixed 2026-07-03: подтверждено по STATE/AGENTS)
+- [x] **Phase 9: Layout Shell** - Сайдбар, топбар, AppShell с новым дизайном (drift fixed 2026-07-03: подтверждено по STATE/AGENTS)
+- [x] **Phase 10: UI Primitives** - Все Shadcn-компоненты рестайлированы под новый дизайн-язык (drift fixed 2026-07-03)
+- [x] **Phase 11: Core Mockup Pages** - Login, Dashboard, Messenger, Kanban (drift fixed 2026-07-03)
+- [x] **Phase 12: Remaining Mockup Pages + Unmocked Pages** - Issue Detail, Calls, TMS, Settings, Admin, Onboarding, Trash + Projects, Sprint, JQL, Project Settings, Project Dashboard (drift fixed 2026-07-03: подтверждено по STATE/AGENTS)
+- [x] **Phase 13: Polish & QA** - Финальный визуальный QA, доступность, мобильная проверка, очистка мёртвого CSS (drift fixed 2026-07-03)
 - [x] **Phase 14: Architectural Hardening** - Расщепление god-объектов (AuthService, CallService), удаление ent.Client leak из сервисов, расширение Permission, покрытие тестами критичных путей
 
 ### v2.5+ Production & Super-app (Planned — PO LOCKED 2026-06-21)
@@ -142,13 +142,6 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [x] 12-01-PLAN.md — Issue Detail + Calls restyle
-- [x] 12-02-PLAN.md — TMS pages restyle
-- [x] 12-03-PLAN.md — Settings + Admin restyle
-- [x] 12-04-PLAN.md — Onboarding + Trash restyle
-- [x] 12-05-PLAN.md — Unmocked pages (Projects, Sprints, JQL, Project settings, Project dashboard)
-
-Plans:
 - [x] 02-01-PLAN.md — Ent-схемы трекера (15 схем), Repository interface, DTOs, events
 - [x] 02-02-PLAN.md — Issue CRUD backend (handler/service/repository), workflow engine, тесты
 - [x] 02-03-PLAN.md — Frontend API client, Zustand stores, Plate editor wrapper
@@ -168,13 +161,6 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [x] 12-01-PLAN.md — Issue Detail + Calls restyle
-- [x] 12-02-PLAN.md — TMS pages restyle
-- [ ] 12-03-PLAN.md — Settings + Admin restyle
-- [x] 12-04-PLAN.md — Onboarding + Trash restyle
-- [x] 12-05-PLAN.md — Unmocked pages (Projects, Sprints, JQL, Project settings, Project dashboard)
-
-Plans:
 - [x] 03-01-PLAN.md — Бэкенд ядра мессенджера
 - [x] 03-02-PLAN.md — Управление каналами
 - [x] 03-03-PLAN.md — Фронтенд чата
@@ -192,13 +178,6 @@ Plans:
   4. Тест-кейсы двусторонне связаны с задачами
   5. Отчёты показывают процент прохождения, тренды, обнаружение нестабильных тестов
 **Plans**: 5 plans
-
-Plans:
-- [x] 12-01-PLAN.md — Issue Detail + Calls restyle
-- [x] 12-02-PLAN.md — TMS pages restyle
-- [ ] 12-03-PLAN.md — Settings + Admin restyle
-- [x] 12-04-PLAN.md — Onboarding + Trash restyle
-- [ ] 12-05-PLAN.md — Unmocked pages (Projects, Sprints, JQL, Project settings, Project dashboard)
 
 Plans:
 - [x] 04-01-PLAN.md — Ent-схемы TMS, handler/service/repository
@@ -234,13 +213,6 @@ Plans:
   3. Персональный дашборд показывает задачи, непрочитанные, звонки, прогоны и дедлайны
   4. Дашборд проекта показывает метрики; административный дашборд показывает метрики системы
 **Plans**: 5 plans
-
-Plans:
-- [x] 12-01-PLAN.md — Issue Detail + Calls restyle
-- [ ] 12-02-PLAN.md — TMS pages restyle
-- [ ] 12-03-PLAN.md — Settings + Admin restyle
-- [x] 12-04-PLAN.md — Onboarding + Trash restyle
-- [ ] 12-05-PLAN.md — Unmocked pages (Projects, Sprints, JQL, Project settings, Project dashboard)
 
 Plans:
 - [x] 06-01-PLAN.md — Система уведомлений
@@ -353,11 +325,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Issue Detail + Calls restyle
-- [ ] 12-02-PLAN.md — TMS pages restyle
-- [ ] 12-03-PLAN.md — Settings + Admin restyle
+- [x] 12-01-PLAN.md — Issue Detail + Calls restyle (drift fixed 2026-07-03: подтверждено по STATE/AGENTS)
+- [x] 12-02-PLAN.md — TMS pages restyle (drift fixed 2026-07-03: подтверждено по STATE/AGENTS)
+- [x] 12-03-PLAN.md — Settings + Admin restyle (drift fixed 2026-07-03: подтверждено по STATE/AGENTS)
 - [x] 12-04-PLAN.md — Onboarding + Trash restyle
-- [ ] 12-05-PLAN.md — Unmocked pages (Projects, Sprints, JQL, Project settings, Project dashboard)
+- [x] 12-05-PLAN.md — Unmocked pages (Projects, Sprints, JQL, Project settings, Project dashboard) (drift fixed 2026-07-03: подтверждено по STATE/AGENTS)
 **UI hint**: yes
 
 ### Phase 13: Polish & QA
@@ -405,16 +377,18 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14
 | 5. Voice Calls | v1.0 | 4/4 | Complete | 2026-03-21 |
 | 6. Notifications, Search & Dashboards | v1.0 | 5/5 | Complete | 2026-03-21 |
 | 7. Polish & Extended Features | v1.0 | 6/6 | Complete | 2026-03-21 |
-| 8. Design System Foundation | v2.0 | 1/2 | In Progress|  |
-| 9. Layout Shell | v2.0 | 0/2 | Not started | - |
+| 8. Design System Foundation | v2.0 | 2/2 | Complete | 2026-03-28 |
+| 9. Layout Shell | v2.0 | 2/2 | Complete | 2026-03-28 |
 | 10. UI Primitives | v2.0 | 3/3 | Complete    | 2026-03-28 |
 | 11. Core Mockup Pages | v2.0 | 4/4 | Complete    | 2026-03-28 |
 | 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 5/5 | Complete    | 2026-03-28 |
 | 13. Polish & QA | v2.0 | 2/2 | Complete    | 2026-03-28 |
 | 14. Architectural Hardening | v2.0 | 5/5 | Complete    | 2026-05-15 |
-| 15. Trust (v2.5) | v2.5 | 0/TBD | Not started | - |
-| 16. Automate (v2.6) | v2.6 | 0/TBD | Not started | - |
-| 17. AI Native (v3.0) | v3.0 | 0/TBD | Not started | - |
+| 15. Trust (v2.5) | v2.5 | Complete | Complete | 2026-06-22 |
+| 16. Automate (v2.6) | v2.6 | Complete | Complete | 2026-06-22 |
+| 17. AI Native (v3.0) | v3.0 | Complete | Complete | 2026-06-22 |
+
+> **Сноска о сверке (drift fixed 2026-07-03, Волна 1 задача 1.13):** чекбоксы Phase 8/9/12 и строки Progress приведены в соответствие с фактом — v2.0 Hub Redesign завершён 2026-05-15 (подтверждено по `.planning/STATE.md` «v2.0 Hub Redesign ✅ COMPLETE» и `AGENTS.md`; планы 08-01/08-02, 09-01/09-02, 12-01…12-05 отмечены [x] в Phase Details). Дополнительно удалены пять дублирующихся блоков «Plans: 12-0X-PLAN.md», ошибочно вставленных в Phase Details фаз 2, 3, 4 и 6 (v1.0), — они дублировали планы Phase 12 с противоречивыми чекбоксами. Строки Phase 15–17 обновлены по факту milestone-статусов (v2.5/v2.6/v3.0 ✅ COMPLETE, см. раздел Milestones выше).
 
 ---
 

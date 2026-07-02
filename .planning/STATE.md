@@ -16,6 +16,12 @@ progress:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-03 (Волна 1, поток D: аналитика и доки, ветка `docs/wave1-analysis`)
+
+- **US/AC (задачи 1.10–1.12):** в `docs/vision_and_scope.md` добавлены разделы Волны 1 — Intranet v2 (US-INTR-01…05: опрос-в-посте, onboarding-шаблоны, постмодерация, kudos-лидерборд, Random Coffee авто-DM), Calendar v2 (US-CAL-01…04: ресурсы+booking, recurring d/w/m until/count, iCal export+подписки без OAuth, availability busy/free+отпуска), Wiki — новый модуль (US-WIKI-01…05: space→pages, space-RBAC+restrict, версии, issue-link, user-scope поиск NF-03). Gherkin AC позитив+негатив, KPI, MoSCoW, edge-cases; цель G-07. Scope строго по `GRAY-ZONES-DECISIONS-2026-07-03.md` §2/§4. verified: false → ba-ver.
+- **ROADMAP-drift (задача 1.13):** Phase 8/9/12 чекбоксы и таблица Progress приведены к факту (v2.0 complete 2026-05-15); удалены 5 дублирующихся блоков планов Phase 12 из Phase Details фаз 2/3/4/6; строки Progress Phase 15–17 обновлены по milestone-статусам; сноска о сверке добавлена.
+- **Runbook FA-06 (задача 1.9 доля D):** создан `docs/runbooks/fa06-secret-rotation.md` — пошаговая ручная ротация Resend/Telegram для владельца (выпуск ключей, .env/K3s/GitHub Secrets, перезапуск, тест-письмо/тест-уведомление, отзыв старых, sign-off чек-лист).
+
 ## Справка
 
 См.: `.planning/PROJECT.md` (обновлено 2026-03-27)
