@@ -874,11 +874,13 @@ Stages: `lead`, `qualified`, `proposal`, `negotiation`, `won`, `lost`.
 
 ## Hub Base — no-code DB (V4-04, Phase 49)
 
-Lark Base clone MVP: org-wide таблицы с typed columns и grid-редактором.
+Lark Base clone MVP: таблицы с typed columns и grid-редактором.
+
+**Доступ (owner-scoped):** `GET /bases` возвращает только базы текущего пользователя; все операции над чужой базой (чтение/мутации базы, таблиц, колонок, записей) → `403 access denied`, несуществующая база → `404`.
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/bases` | Список баз (workspaces) |
+| GET | `/bases` | Список баз текущего пользователя |
 | POST | `/bases` | Создать базу (+ таблица Main, колонка Name) |
 | GET | `/bases/:baseId` | Детали + список таблиц |
 | PUT | `/bases/:baseId` | Обновить (`version`) |

@@ -12,6 +12,7 @@ import (
 
 var (
 	ErrNotFound        = errors.New("base entity not found")
+	ErrForbidden       = errors.New("base access denied")
 	ErrInvalidInput    = errors.New("invalid base input")
 	ErrVersionConflict = errors.New("base version conflict")
 )
@@ -26,8 +27,8 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) ListBases(ctx context.Context) ([]BaseResponse, error) {
-	items, err := s.repo.ListBases(ctx)
+func (s *Service) ListBases(ctx context.Context, userID uuid.UUID) ([]BaseResponse, error) {
+	items, err := s.repo.ListBases(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list bases: %w", err)
 	}
@@ -38,13 +39,27 @@ func (s *Service) ListBases(ctx context.Context) ([]BaseResponse, error) {
 	return out, nil
 }
 
-func (s *Service) GetBase(ctx context.Context, id uuid.UUID) (*BaseDetailResponse, error) {
-	b, err := s.repo.GetBase(ctx, id)
+// authorizeBase проверяет право доступа к базе: без этой проверки любой
+// аутентифицированный пользователь мог читать и править чужие базы (аналог NF-03).
+// Возвращает ErrForbidden для чужой базы, ErrNotFound — для несуществующей.
+func (s *Service) authorizeBase(ctx context.Context, baseID, userID uuid.UUID) (*ent.HubBase, error) {
+	b, err := s.repo.GetBase(ctx, baseID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("get base: %w", err)
+	}
+	if b.Edges.Owner == nil || b.Edges.Owner.ID != userID {
+		return nil, ErrForbidden
+	}
+	return b, nil
+}
+
+func (s *Service) GetBase(ctx context.Context, userID, id uuid.UUID) (*BaseDetailResponse, error) {
+	b, err := s.authorizeBase(ctx, id, userID)
+	if err != nil {
+		return nil, err
 	}
 	resp := toBaseResponse(b)
 	tables := make([]TableSummary, 0, len(b.Edges.Tables))
@@ -79,16 +94,13 @@ func (s *Service) CreateBase(ctx context.Context, ownerID uuid.UUID, req CreateB
 		return nil, fmt.Errorf("create default column: %w", err)
 	}
 
-	return s.GetBase(ctx, b.ID)
+	return s.GetBase(ctx, ownerID, b.ID)
 }
 
-func (s *Service) UpdateBase(ctx context.Context, id uuid.UUID, req UpdateBaseRequest) (*BaseResponse, error) {
-	current, err := s.repo.GetBase(ctx, id)
+func (s *Service) UpdateBase(ctx context.Context, userID, id uuid.UUID, req UpdateBaseRequest) (*BaseResponse, error) {
+	current, err := s.authorizeBase(ctx, id, userID)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
-		}
-		return nil, fmt.Errorf("get base: %w", err)
+		return nil, err
 	}
 	if req.Version > 0 && current.Version != req.Version {
 		return nil, ErrVersionConflict
@@ -111,26 +123,20 @@ func (s *Service) UpdateBase(ctx context.Context, id uuid.UUID, req UpdateBaseRe
 	return &resp, nil
 }
 
-func (s *Service) DeleteBase(ctx context.Context, id uuid.UUID) error {
-	if _, err := s.repo.GetBase(ctx, id); err != nil {
-		if ent.IsNotFound(err) {
-			return ErrNotFound
-		}
-		return fmt.Errorf("get base: %w", err)
+func (s *Service) DeleteBase(ctx context.Context, userID, id uuid.UUID) error {
+	if _, err := s.authorizeBase(ctx, id, userID); err != nil {
+		return err
 	}
 	return s.repo.SoftDeleteBase(ctx, id)
 }
 
-func (s *Service) CreateTable(ctx context.Context, baseID uuid.UUID, req CreateTableRequest) (*TableSummary, error) {
+func (s *Service) CreateTable(ctx context.Context, userID, baseID uuid.UUID, req CreateTableRequest) (*TableSummary, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
 		return nil, ErrInvalidInput
 	}
-	if _, err := s.repo.GetBase(ctx, baseID); err != nil {
-		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
-		}
-		return nil, fmt.Errorf("get base: %w", err)
+	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
+		return nil, err
 	}
 	t, err := s.repo.CreateTable(ctx, baseID, CreateTableRequest{Name: name})
 	if err != nil {
@@ -147,7 +153,10 @@ func (s *Service) CreateTable(ctx context.Context, baseID uuid.UUID, req CreateT
 	return &summary, nil
 }
 
-func (s *Service) GetTableView(ctx context.Context, baseID, tableID uuid.UUID) (*TableViewResponse, error) {
+func (s *Service) GetTableView(ctx context.Context, userID, baseID, tableID uuid.UUID) (*TableViewResponse, error) {
+	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
+		return nil, err
+	}
 	t, err := s.repo.GetTable(ctx, baseID, tableID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -171,9 +180,12 @@ func (s *Service) GetTableView(ctx context.Context, baseID, tableID uuid.UUID) (
 	}, nil
 }
 
-func (s *Service) CreateColumn(ctx context.Context, baseID, tableID uuid.UUID, req CreateColumnRequest) (*ColumnResponse, error) {
+func (s *Service) CreateColumn(ctx context.Context, userID, baseID, tableID uuid.UUID, req CreateColumnRequest) (*ColumnResponse, error) {
 	if strings.TrimSpace(req.Name) == "" {
 		return nil, ErrInvalidInput
+	}
+	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
+		return nil, err
 	}
 	t, err := s.repo.GetTable(ctx, baseID, tableID)
 	if err != nil {
@@ -196,6 +208,9 @@ func (s *Service) CreateColumn(ctx context.Context, baseID, tableID uuid.UUID, r
 }
 
 func (s *Service) CreateRecord(ctx context.Context, baseID, tableID, userID uuid.UUID, req CreateRecordRequest) (*RecordResponse, error) {
+	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
+		return nil, err
+	}
 	t, err := s.repo.GetTable(ctx, baseID, tableID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -212,7 +227,10 @@ func (s *Service) CreateRecord(ctx context.Context, baseID, tableID, userID uuid
 	return &resp, nil
 }
 
-func (s *Service) UpdateRecord(ctx context.Context, baseID, tableID, recordID uuid.UUID, req UpdateRecordRequest) (*RecordResponse, error) {
+func (s *Service) UpdateRecord(ctx context.Context, userID, baseID, tableID, recordID uuid.UUID, req UpdateRecordRequest) (*RecordResponse, error) {
+	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
+		return nil, err
+	}
 	t, err := s.repo.GetTable(ctx, baseID, tableID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -242,7 +260,10 @@ func (s *Service) UpdateRecord(ctx context.Context, baseID, tableID, recordID uu
 	return &resp, nil
 }
 
-func (s *Service) DeleteRecord(ctx context.Context, baseID, tableID, recordID uuid.UUID) error {
+func (s *Service) DeleteRecord(ctx context.Context, userID, baseID, tableID, recordID uuid.UUID) error {
+	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
+		return err
+	}
 	t, err := s.repo.GetTable(ctx, baseID, tableID)
 	if err != nil {
 		if ent.IsNotFound(err) {

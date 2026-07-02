@@ -10,12 +10,13 @@ import (
 	"github.com/valerii/hub/backend/ent/hubcolumn"
 	"github.com/valerii/hub/backend/ent/hubrecord"
 	"github.com/valerii/hub/backend/ent/hubtable"
+	"github.com/valerii/hub/backend/ent/user"
 )
 
 // Repository — персистентность no-code баз (V4-04).
 type Repository interface {
 	CreateBase(ctx context.Context, ownerID uuid.UUID, req CreateBaseRequest) (*ent.HubBase, error)
-	ListBases(ctx context.Context) ([]*ent.HubBase, error)
+	ListBases(ctx context.Context, ownerID uuid.UUID) ([]*ent.HubBase, error)
 	GetBase(ctx context.Context, id uuid.UUID) (*ent.HubBase, error)
 	UpdateBase(ctx context.Context, id uuid.UUID, req UpdateBaseRequest) (*ent.HubBase, error)
 	SoftDeleteBase(ctx context.Context, id uuid.UUID) error
@@ -52,9 +53,14 @@ func (r *EntRepository) CreateBase(ctx context.Context, ownerID uuid.UUID, req C
 		Save(ctx)
 }
 
-func (r *EntRepository) ListBases(ctx context.Context) ([]*ent.HubBase, error) {
+func (r *EntRepository) ListBases(ctx context.Context, ownerID uuid.UUID) ([]*ent.HubBase, error) {
+	// Владелец видит только свои базы: без owner-фильтра любой аутентифицированный
+	// пользователь получал полный список чужих баз (аналог NF-03).
 	return r.client.HubBase.Query().
-		Where(hubbase.DeletedAtIsNil()).
+		Where(
+			hubbase.DeletedAtIsNil(),
+			hubbase.HasOwnerWith(user.IDEQ(ownerID)),
+		).
 		WithOwner().
 		WithTables(func(q *ent.HubTableQuery) {
 			q.Where(hubtable.DeletedAtIsNil())

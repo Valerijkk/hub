@@ -41,14 +41,14 @@ func TestService_UpdateBaseAndVersionConflict(t *testing.T) {
 	require.NoError(t, err)
 
 	newName := "Sales CRM"
-	updated, err := svc.UpdateBase(ctx, created.ID, UpdateBaseRequest{
+	updated, err := svc.UpdateBase(ctx, ownerID, created.ID, UpdateBaseRequest{
 		Name:    &newName,
 		Version: created.Version,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Sales CRM", updated.Name)
 
-	_, err = svc.UpdateBase(ctx, created.ID, UpdateBaseRequest{
+	_, err = svc.UpdateBase(ctx, ownerID, created.ID, UpdateBaseRequest{
 		Name:    &newName,
 		Version: created.Version,
 	})
@@ -62,13 +62,13 @@ func TestService_DeleteBase(t *testing.T) {
 	created, err := svc.CreateBase(ctx, ownerID, CreateBaseRequest{Name: "Temp"})
 	require.NoError(t, err)
 
-	err = svc.DeleteBase(ctx, created.ID)
+	err = svc.DeleteBase(ctx, ownerID, created.ID)
 	require.NoError(t, err)
 
-	_, err = svc.GetBase(ctx, created.ID)
+	_, err = svc.GetBase(ctx, ownerID, created.ID)
 	assert.ErrorIs(t, err, bases.ErrNotFound)
 
-	err = svc.DeleteBase(ctx, uuid.New())
+	err = svc.DeleteBase(ctx, ownerID, uuid.New())
 	assert.ErrorIs(t, err, bases.ErrNotFound)
 }
 
@@ -79,21 +79,21 @@ func TestService_TableColumnRecordLifecycle(t *testing.T) {
 	base, err := svc.CreateBase(ctx, ownerID, CreateBaseRequest{Name: "Inventory"})
 	require.NoError(t, err)
 
-	table, err := svc.CreateTable(ctx, base.ID, CreateTableRequest{Name: "Assets"})
+	table, err := svc.CreateTable(ctx, ownerID, base.ID, CreateTableRequest{Name: "Assets"})
 	require.NoError(t, err)
 	assert.Equal(t, "Assets", table.Name)
 
-	view, err := svc.GetTableView(ctx, base.ID, table.ID)
+	view, err := svc.GetTableView(ctx, ownerID, base.ID, table.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, view.Columns)
 
-	col, err := svc.CreateColumn(ctx, base.ID, table.ID, CreateColumnRequest{
+	col, err := svc.CreateColumn(ctx, ownerID, base.ID, table.ID, CreateColumnRequest{
 		Name:    "Qty",
 		ColType: ColumnNumber,
 	})
 	require.NoError(t, err)
 
-	view, err = svc.GetTableView(ctx, base.ID, table.ID)
+	view, err = svc.GetTableView(ctx, ownerID, base.ID, table.ID)
 	require.NoError(t, err)
 	nameColID := view.Columns[0].ID.String()
 
@@ -108,17 +108,17 @@ func TestService_TableColumnRecordLifecycle(t *testing.T) {
 	assert.Equal(t, "Laptop", rec.Cells[nameColID])
 	assert.NotContains(t, rec.Cells, "unknown-col")
 
-	updated, err := svc.UpdateRecord(ctx, base.ID, table.ID, rec.ID, UpdateRecordRequest{
+	updated, err := svc.UpdateRecord(ctx, ownerID, base.ID, table.ID, rec.ID, UpdateRecordRequest{
 		Cells:   map[string]interface{}{nameColID: "Desktop"},
 		Version: rec.Version,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Desktop", updated.Cells[nameColID])
 
-	err = svc.DeleteRecord(ctx, base.ID, table.ID, rec.ID)
+	err = svc.DeleteRecord(ctx, ownerID, base.ID, table.ID, rec.ID)
 	require.NoError(t, err)
 
-	view, err = svc.GetTableView(ctx, base.ID, table.ID)
+	view, err = svc.GetTableView(ctx, ownerID, base.ID, table.ID)
 	require.NoError(t, err)
 	assert.Empty(t, view.Records)
 }
@@ -132,7 +132,7 @@ func TestService_ListBases(t *testing.T) {
 	_, err = svc.CreateBase(ctx, ownerID, CreateBaseRequest{Name: "B"})
 	require.NoError(t, err)
 
-	list, err := svc.ListBases(ctx)
+	list, err := svc.ListBases(ctx, ownerID)
 	require.NoError(t, err)
 	assert.Len(t, list, 2)
 }

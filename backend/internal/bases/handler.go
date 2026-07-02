@@ -36,7 +36,11 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 }
 
 func (h *Handler) ListBases(c fiber.Ctx) error {
-	items, err := h.service.ListBases(c.Context())
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	items, err := h.service.ListBases(c.Context(), userID)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to list bases")
 	}
@@ -60,11 +64,15 @@ func (h *Handler) CreateBase(c fiber.Ctx) error {
 }
 
 func (h *Handler) GetBase(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	baseID, err := parseBaseID(c)
 	if err != nil {
 		return err
 	}
-	resp, err := h.service.GetBase(c.Context(), baseID)
+	resp, err := h.service.GetBase(c.Context(), userID, baseID)
 	if err != nil {
 		return mapServiceError(err)
 	}
@@ -72,6 +80,10 @@ func (h *Handler) GetBase(c fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateBase(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	baseID, err := parseBaseID(c)
 	if err != nil {
 		return err
@@ -80,7 +92,7 @@ func (h *Handler) UpdateBase(c fiber.Ctx) error {
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
-	resp, err := h.service.UpdateBase(c.Context(), baseID, req)
+	resp, err := h.service.UpdateBase(c.Context(), userID, baseID, req)
 	if err != nil {
 		return mapServiceError(err)
 	}
@@ -88,17 +100,25 @@ func (h *Handler) UpdateBase(c fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteBase(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	baseID, err := parseBaseID(c)
 	if err != nil {
 		return err
 	}
-	if err := h.service.DeleteBase(c.Context(), baseID); err != nil {
+	if err := h.service.DeleteBase(c.Context(), userID, baseID); err != nil {
 		return mapServiceError(err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
 func (h *Handler) CreateTable(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	baseID, err := parseBaseID(c)
 	if err != nil {
 		return err
@@ -107,7 +127,7 @@ func (h *Handler) CreateTable(c fiber.Ctx) error {
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
-	resp, err := h.service.CreateTable(c.Context(), baseID, req)
+	resp, err := h.service.CreateTable(c.Context(), userID, baseID, req)
 	if err != nil {
 		return mapServiceError(err)
 	}
@@ -115,6 +135,10 @@ func (h *Handler) CreateTable(c fiber.Ctx) error {
 }
 
 func (h *Handler) GetTableView(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	baseID, err := parseBaseID(c)
 	if err != nil {
 		return err
@@ -123,7 +147,7 @@ func (h *Handler) GetTableView(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	resp, err := h.service.GetTableView(c.Context(), baseID, tableID)
+	resp, err := h.service.GetTableView(c.Context(), userID, baseID, tableID)
 	if err != nil {
 		return mapServiceError(err)
 	}
@@ -131,6 +155,10 @@ func (h *Handler) GetTableView(c fiber.Ctx) error {
 }
 
 func (h *Handler) CreateColumn(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	baseID, err := parseBaseID(c)
 	if err != nil {
 		return err
@@ -143,7 +171,7 @@ func (h *Handler) CreateColumn(c fiber.Ctx) error {
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
-	resp, err := h.service.CreateColumn(c.Context(), baseID, tableID, req)
+	resp, err := h.service.CreateColumn(c.Context(), userID, baseID, tableID, req)
 	if err != nil {
 		return mapServiceError(err)
 	}
@@ -175,6 +203,10 @@ func (h *Handler) CreateRecord(c fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateRecord(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	baseID, err := parseBaseID(c)
 	if err != nil {
 		return err
@@ -191,7 +223,7 @@ func (h *Handler) UpdateRecord(c fiber.Ctx) error {
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
-	resp, err := h.service.UpdateRecord(c.Context(), baseID, tableID, recordID, req)
+	resp, err := h.service.UpdateRecord(c.Context(), userID, baseID, tableID, recordID, req)
 	if err != nil {
 		return mapServiceError(err)
 	}
@@ -199,6 +231,10 @@ func (h *Handler) UpdateRecord(c fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteRecord(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	baseID, err := parseBaseID(c)
 	if err != nil {
 		return err
@@ -211,7 +247,7 @@ func (h *Handler) DeleteRecord(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	if err := h.service.DeleteRecord(c.Context(), baseID, tableID, recordID); err != nil {
+	if err := h.service.DeleteRecord(c.Context(), userID, baseID, tableID, recordID); err != nil {
 		return mapServiceError(err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
@@ -233,6 +269,8 @@ func mapServiceError(err error) error {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		return fiber.NewError(fiber.StatusNotFound, "not found")
+	case errors.Is(err, ErrForbidden):
+		return fiber.NewError(fiber.StatusForbidden, "access denied")
 	case errors.Is(err, ErrInvalidInput):
 		return fiber.NewError(fiber.StatusBadRequest, "invalid input")
 	case errors.Is(err, ErrVersionConflict):
