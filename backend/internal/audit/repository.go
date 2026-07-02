@@ -33,6 +33,7 @@ type Repository interface {
 
 	// Системные настройки
 	GetSystemSetting(ctx context.Context, key string) (string, error)
+	GetSystemSettingsBatch(ctx context.Context, keys []string) (map[string]string, error)
 	UpsertSystemSetting(ctx context.Context, key, value, description string) error
 
 	// Корзина — листинг
@@ -195,6 +196,25 @@ func (r *entRepository) GetSystemSetting(ctx context.Context, key string) (strin
 		return "", err
 	}
 	return setting.Value, nil
+}
+
+// GetSystemSettingsBatch возвращает значения нескольких настроек одним запросом.
+// Возвращает map[key]value; отсутствующие ключи не включаются в результат.
+func (r *entRepository) GetSystemSettingsBatch(ctx context.Context, keys []string) (map[string]string, error) {
+	if len(keys) == 0 {
+		return make(map[string]string), nil
+	}
+	settings, err := r.client.SystemSetting.Query().
+		Where(systemsetting.KeyIn(keys...)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]string, len(settings))
+	for _, s := range settings {
+		result[s.Key] = s.Value
+	}
+	return result, nil
 }
 
 // UpsertSystemSetting создаёт или обновляет настройку.

@@ -118,12 +118,15 @@ func (s *AuditService) GetResourceLimits(ctx context.Context) ([]ResourceLimitRe
 		LimitProjectMaxStorageMB: "5120",
 	}
 
+	// Один batch-запрос вместо N последовательных GetSystemSetting (fix N+1).
+	values, err := s.repo.GetSystemSettingsBatch(ctx, keys)
+	if err != nil {
+		return nil, fmt.Errorf("получение лимитов ресурсов: %w", err)
+	}
+
 	result := make([]ResourceLimitResponse, 0, len(keys))
 	for _, key := range keys {
-		value, err := s.repo.GetSystemSetting(ctx, key)
-		if err != nil {
-			return nil, fmt.Errorf("получение лимита %s: %w", key, err)
-		}
+		value := values[key]
 		if value == "" {
 			value = defaults[key]
 		}

@@ -29,6 +29,9 @@ func (s *gdprStubRepo) ListAuditLogs(context.Context, audit.AuditLogFilters) ([]
 func (s *gdprStubRepo) GetSystemSetting(context.Context, string) (string, error) {
 	return "", nil
 }
+func (s *gdprStubRepo) GetSystemSettingsBatch(context.Context, []string) (map[string]string, error) {
+	return map[string]string{}, nil
+}
 func (s *gdprStubRepo) UpsertSystemSetting(context.Context, string, string, string) error {
 	return nil
 }
