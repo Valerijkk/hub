@@ -24,8 +24,7 @@ frontend/tsconfig.tsbuildinfo
 *~
 *.sublime-*
 
-# Cursor / AI agent workspace (local only — do not commit)
-.cursor/
+# .cursor/ трекается целиком (решение пользователя 2026-07-03): агенты, playbooks, правила, скилы
 
 # Claude / GSD local state
 .claude/

@@ -1,6 +1,6 @@
 ---
 name: coverage-audit
-description: Матрица требований/код/тесты. Делегирует system-analyst + verifier. Создаёт/обновляет .planning/COVERAGE.md с полной картиной покрытия.
+description: Матрица требований/код/тесты. Делегирует sa1/sa2 + qa-auto-ver. Создаёт/обновляет .planning/COVERAGE.md с полной картиной покрытия.
 disable-model-invocation: true
 ---
 

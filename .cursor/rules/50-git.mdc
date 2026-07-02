@@ -5,10 +5,17 @@ alwaysApply: true
 
 # Hub — Git Workflow
 
+## Политика коммитов и мержа (решение пользователя 2026-07-03, уточнено)
+
+- **Агенты свободно коммитят в фича-ветки** (атомарно, после ворот регрессии) и могут пушить фича-ветки на remote — без отдельного запроса пользователя.
+- **Push/мерж в `master` выполняет ТОЛЬКО пользователь лично.** Агенты (включая team-lead) НИКОГДА не пушат в master и не мержат в него. team-lead доводит ветку до состояния «merge-ready» (green CI + верификация + code-reviewer) и передаёт пользователю на мерж.
+- **PR = фича/фаза** с атомарными коммитами планов внутри. **Метод мержа: rebase-merge** (линейная история, атомарные коммиты сохранены для точечного revert). Squash не используется для фича-PR.
+- Личное ревью пользователя обязательно для: security/auth, миграций БД, деплой/CI, ADR-изменений. Остальное — цепочка агентов (кросс-ревью + `*-ver` + code-reviewer).
+
 ## Branch Naming
 
 ```
-main              — production-ready, protected
+master            — production-ready, protected
 feat/<module>/<description>     — new features
 fix/<module>/<description>      — bug fixes
 refactor/<module>/<description> — refactoring
@@ -85,7 +92,7 @@ git diff --staged | grep -E "(secret|password|token|key)" --color
 2. All CI checks must pass (lint + test + build)
 3. No `DEV_MODE=true` or hardcoded credentials in diffs
 4. Code-reviewer approval required
-5. Squash merge to main (keeps history clean)
+5. Rebase-merge to master (linear history, атомарные коммиты сохранены); мерж — только по команде пользователя
 
 ## Tag Convention
 

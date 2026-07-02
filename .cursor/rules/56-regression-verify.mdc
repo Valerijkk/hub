@@ -7,10 +7,12 @@ alwaysApply: true
 
 ## Обязательный цикл (каждая сессия с кодом)
 
+> **Уточнение для параллельных волн (решение 2026-07-03, GZ-QA-13):** агент-исполнитель гоняет **сборку + тесты своего домена** перед handoff; **полный `/qa-gate` — один раз на интеграции волны** (ответственный: team-lead) + CI на merge. Полный gate у каждого агента больше не требуется (4 дублирующих прогона на волну — расточительно). Для одиночной (не-волновой) работы полный gate перед handoff остаётся.
+
 ```
 1. Изменил код
-2. Минимальная регрессия (затронутый модуль)
-3. Полный /qa-gate перед handoff
+2. Минимальная регрессия (затронутый модуль) — обязательна для каждого агента
+3. Полный /qa-gate — на интеграции волны (team-lead) или перед handoff при одиночной работе
 4. Docs sync (.cursor/rules/55-docs-sync.mdc)
 5. *-ver или verifier для критичных изменений
 6. Обновить .planning/STATE.md
@@ -32,8 +34,9 @@ Slash: **`/qa-gate`** — останавливается на первой FAIL.
 |-----------|-------------|
 | Backend handler/service | `be-ver` |
 | Frontend UI/UX | `fe-ver` |
-| Тесты / coverage | `qa-ver` |
-| Wave / phase complete | `verifier` |
+| Автотесты / coverage | `qa-auto-ver` |
+| Ручные тест-кейсы | `qa-manual-ver` |
+| Wave / phase complete | `team-lead` (финальная приёмка) + профильные `*-ver` |
 | Security / auth / deploy | `security-auditor` + `gsd-secure-phase` |
 | Pre-merge diff | `code-reviewer` |
 

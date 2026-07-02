@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: wave-c-mostly-complete
-stopped_at: Wave B ✅ · Wave C FA-01–FA-12 ✅ (except FA-06 manual) · RU-V10 PASS · FA-10 qa-gate PASS
-last_updated: "2026-06-22T23:45:00.000Z"
-last_activity: 2026-06-22 quality-processes audit · docs sync TF paths · local qa-gate PASS (build/vet/tsc/lint/vitest)
+status: team-reorg-complete-ready-for-wave1
+stopped_at: Реорганизация AI-команды (30 агентов) + planning-пакет ГОТОВЫ · ждёт ревью пользователя → коммит → Волна 1
+last_updated: "2026-07-03T02:10:00.000Z"
+last_activity: 2026-07-03 team reorg 30 agents · 10 playbooks · A/B Fable-vs-Opus (Fable=team-lead) · ADR-MICROSERVICES accepted · gray-zones ~90 решений · BP-2026 дельты в playbooks · ROADMAP-FINAL + TF-PY(Python/Locust) + DOCS-EXCELLENCE
 progress:
   total_phases: 125
   completed_phases: 125
@@ -22,7 +22,18 @@ progress:
 
 **Ключевая ценность:** единая self-hosted среда для dev-команды и сотрудников компании — трекер, TMS, мессенджер, звонки, интранет, CRM, HR, учёт, AI — в одном интерфейсе.
 
-**Текущий фокус:** FA-06 manual ops — **единственный prod-блокер** · PR #25–#27 merged · CI green · Lighthouse artifact (FB-06)
+**Текущий фокус (2026-07-03):** planning-пакет реорганизации готов → ревью пользователя → коммит → **Волна 1** (`.planning/ROADMAP-FINAL-2026-07-03.md`). FA-06 — ручная ротация по runbook (пользователь), больше не гейтит разработку.
+
+## Session note — 2026-07-03 (реорганизация команды и планирование)
+
+- **Команда:** 30 агентов (`.cursor/agents/`), параллельные потоки be1/be2, fe1/fe2, ba1/2, sa1/2, qa-auto1/2 + верификаторы у всех; `team-lead` = **Fable 5** (по итогам 5 A/B-задач против Opus 4.8), `team-lead-opus` = эскалация; остальные Sonnet 5.
+- **Playbooks:** 10 файлов `.cursor/playbooks/` (~15k строк) + интегрированы 27 дельт best practices 2026 (Fiber v3 stable, govulncheck/gitleaks, versioned Atlas, synctest, TanStack preload-канон, React 19 Actions, WCAG 2.2, Playwright шардинг/storageState).
+- **Архитектура:** `ADR-ARCH-MICROSERVICES-2026` accepted — schema-per-service, strangler-fig, каталог: core + hub-ai + realtime-трио (ws/messenger/calls) + notification-пилот; tracker исключён; Go/No-Go композит.
+- **Серые зоны:** ~90 вопросов → решения в `GRAY-ZONES-DECISIONS-2026-07-03.md`; правила 50/56/60 обновлены (агенты коммитят/пушат фича-ветки, **push в master — только пользователь**; rebase-merge; регрессия домена у агента + полный gate на волну; SSO за ADR).
+- **QA-конвейер:** бизнес-дока → TC (qa-manual) → верификация доки → автотесты → верификация; **юниты пишут разработчики**. Целевой TF: **Python** (pytest+allure+httpx+playwright-python) + **Locust** — фаза TF-PY после микросервисного дробления.
+- **Roadmap:** `.planning/ROADMAP-FINAL-2026-07-03.md` — Волны 1–2 атомарно (24 плана), эпик DOCS-EXCELLENCE (LICENSE ✅ создана — проприетарная, README/SECURITY/тест-стратегия/онбординг — в работе), TF-PY, дальние волны укрупнённо.
+- **`.cursor/` вынут из `.gitignore`** — команда трекается целиком.
+- Research-артефакты: `EXPANSION-ANALYSIS`, `MARKET-AND-NEEDS`, `BEST-PRACTICES-2026-*`, A/B-планы (`ab-microservices/`, `ab-tests/`), gray-zones (6 областей).
 
 ---
 
@@ -265,6 +276,14 @@ progress:
 2. SSH deploy + `git tag v2.5.0`
 3. NFR-16 WCAG full sign-off · NFR-17 Lighthouse blocking gate
 4. FA-02 backlog: LiveKit `iss` (FA-02-03), RequireAuth fail-open (FA-02-04)
+
+### 2026-07-03 — Best practices 2026 → playbooks ✅
+
+- Источник: `.planning/research/BEST-PRACTICES-2026-frontend-testing.md` (21 дельта)
+- **frontend.md:** WCAG 2.2 AA (§9), Router preload `intent` + `ensureQueryData`/`useSuspenseQuery` канон (§4.4), Actions-триада React 19 (§3.9), React Compiler «пилот за ADR» (§3.7), CWV-бюджеты INP<150ms (§11.0), Tailwind `@theme` (§8.1) + container queries (§8.5); Приложение B — 8 дельт «на обсуждение»
+- **testing.md:** `test.step()` (§6.1, §8.4), storageState setup-project (§6.5), шардинг + blob/merge-reports (§6.8), Vitest 4 Browser Mode note (§5.1), Allure 3 + allure-vitest wrapper (§8.6)
+- **design.md:** цель WCAG 2.2 AA, §5.7 новые критерии (2.5.7 Dragging / 2.5.8 Target Size ≥24px / 2.4.11 Focus Not Obscured), target size в §5.5
+- Принято в playbooks: 13 дельт · на обсуждение (Приложение B frontend.md): 8 · отклонённых нет
 
 ---
 

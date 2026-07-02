@@ -1,7 +1,7 @@
 # Регламент AI-команды Hub
 
-> Полный цикл разработки: 6 ролей + 6 персональных верификаторов + вспомогательные агенты.  
-> **Ключевой принцип:** единая база знаний в `docs/`, верификация каждого действия, docs sync после каждого изменения.
+> Полный цикл разработки: **30 агентов** (лидерство/продукт, аналитика/архитектура/дизайн с верификаторами, backend/frontend/QA в параллельных потоках с кросс-ревью и верификаторами, cross-cutting специалисты). Ростер: `.cursor/playbooks/README.md`.  
+> **Ключевой принцип:** единая база знаний в `docs/` + practices-playbooks в `.cursor/playbooks/`, верификация каждого действия, docs sync после каждого изменения.
 
 *Обновлено: 2026-06-22*
 
@@ -31,38 +31,48 @@
 
 ## 2. Команда агентов
 
-### Основные роли
+> **2026-07-02.** Команда реорганизована под параллельную разработку: **30 агентов**. Полный ростер, модели и RACI — `.cursor/playbooks/README.md` и `.cursor/playbooks/team-workflow.md`. Практики ремесла вынесены в `.cursor/playbooks/*` (файлы агентов ссылаются, не дублируют). Прежние `project_skills/*_skill.md` удалены (миграция: `.cursor/project_skills/README.md`).
 
-| Агент | Skill | Cursor agent | Модель |
-|-------|-------|--------------|--------|
-| BA | `project_skills/BA_skill.md` | `ba` | sonnet (readonly) |
-| SA | `project_skills/SA_skill.md` | `sa` | sonnet (readonly) |
-| ARCH | `project_skills/ARCH_skill.md` | `arch` | sonnet (readonly) |
-| BE | `project_skills/BE_skill.md` | `be` | composer |
-| FE | `project_skills/FE_skill.md` | `fe` | composer |
-| QA | `project_skills/QA_skill.md` | `qa` | composer |
+**Модели:** `team-lead` — Fable 5 (thinking-high) дефолт; `team-lead-opus` — Opus 4.8 @ 1M эскалация (тяжёлые декомпозиции/приёмка). Все остальные — Sonnet 5, thinking-high (max effort), ~200–300k. (Fable выбран дефолтом по итогам 5 A/B-задач.)
 
-### Верификаторы
+### Лидерство и продукт
 
-| Агент | Skill | Cursor agent |
-|-------|-------|--------------|
-| BA_VER | `BA_VER_skill.md` | `ba-ver` |
-| SA_VER | `SA_VER_skill.md` | `sa-ver` |
-| ARCH_VER | `ARCH_VER_skill.md` | `arch-ver` |
-| BE_VER | `BE_VER_skill.md` | `be-ver` |
-| FE_VER | `FE_VER_skill.md` | `fe-ver` |
-| QA_VER | `QA_VER_skill.md` | `qa-ver` |
+| Агент | Cursor agent | Роль |
+|-------|--------------|------|
+| Team Lead | `team-lead` | Оркестрация волн, делегирование, финальная приёмка |
+| Tech Lead | `tech-lead` | Декомпозиция на фазы/планы, зависимости |
+| Product | `product` | Приоритеты, scope, KPI |
+| Product Ver | `product-ver` | Соответствие vision/KPI/scope |
 
-### Вспомогательные (вне основного цикла)
+### Аналитика, архитектура, дизайн (параллельные потоки + верификаторы)
+
+| Роль | Агенты | Верификатор |
+|------|--------|-------------|
+| Business Analyst | `ba1`, `ba2` | `ba-ver` |
+| System Analyst | `sa1`, `sa2` | `sa-ver` |
+| Architect | `arch` | `arch-ver` |
+| Designer | `designer` | `designer-ver` |
+
+### Разработка и QA (параллельные потоки + кросс-ревью + верификаторы)
+
+| Роль | Агенты | Верификатор |
+|------|--------|-------------|
+| Backend | `be1`, `be2` (кросс-ревью) | `be-ver` |
+| Frontend | `fe1`, `fe2` (кросс-ревью) | `fe-ver` |
+| Manual QA | `qa-manual` | `qa-manual-ver` |
+| Auto QA | `qa-auto1`, `qa-auto2` (кросс-ревью) | `qa-auto-ver` |
+
+### Cross-cutting специалисты
 
 | Агент | Назначение |
 |-------|------------|
-| `devops-engineer` | Docker, CI/CD, K3s, compose |
-| `debugger` | Root cause analysis |
-| `refactor-specialist` | Массовые rename/move |
-| `docs-writer` | README, wiki, Swagger, phase docs |
+| `devops-engineer` | Docker, CI/CD, K3s, Caddy, compose |
+| `security-auditor` | OWASP/ASVS, security-инварианты TZ |
+| `debugger` | Root-cause анализ |
+| `code-reviewer` | Pre-merge diff review |
+| `docs-writer` | docs/wiki sync, Swagger |
 
-Legacy aliases: `business-analyst`→`ba`, `system-analyst`→`sa`, `architect`→`arch`, `backend-dev`→`be`, `frontend-dev`→`fe`, `qa-auto`→`qa`.
+**Разделение параллельной работы (be1/be2, fe1/fe2, ba1/ba2, sa1/sa2, qa-auto1/qa-auto2):** разные модули/файлы в волне, общие контракты фиксируют `sa`/`arch` заранее, частый rebase, кросс-ревью парного агента перед персональным верификатором. Детали — `.cursor/playbooks/team-workflow.md` §4 и `git-workflow.md`.
 
 ---
 
@@ -97,14 +107,16 @@ Legacy aliases: `business-analyst`→`ba`, `system-analyst`→`sa`, `architect`�
 ## 5. Workflow типовой задачи
 
 ```
-1. BA  → vision_and_scope (новая фича)
-2. SA  → system_specification
-3. ARCH → architecture (если нужно)
-4. BE/FE → код + тесты (атомарно)
-5. Docs sync → .cursor/rules/55-docs-sync.mdc (STATE + domain docs)
-6. QA  → test_plan, регрессия
-7. *-ver → верификация каждого шага
-8. /qa-gate → финальный чек
+1. BA  → vision_and_scope (новая фича) → ba-ver
+2. SA  → system_specification → sa-ver
+3. ARCH → architecture (если нужно) → arch-ver
+4. BE/FE → код + UNIT-тесты (атомарно; юниты — обязанность разработчика) → be-ver/fe-ver
+5. QA-конвейер (строго последовательно, решение 2026-07-03):
+   qa-manual (TC из бизнес-доки) → qa-manual-ver (верификация тестовой доки)
+   → qa-auto1/2 (автотесты по верифицированным TC) → qa-auto-ver
+6. Docs sync → .cursor/rules/55-docs-sync.mdc (STATE + domain docs)
+7. code-reviewer → team-lead приёмка
+8. /qa-gate → финальный чек (на интеграции волны)
 ```
 
 Hotfix: `be`/`fe` → `be-ver`/`fe-ver` → `/qa-gate`
