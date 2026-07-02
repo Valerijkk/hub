@@ -24,6 +24,12 @@ progress:
 
 **Текущий фокус (2026-07-03):** planning-пакет реорганизации готов → ревью пользователя → коммит → **Волна 1** (`.planning/ROADMAP-FINAL-2026-07-03.md`). FA-06 — ручная ротация по runbook (пользователь), больше не гейтит разработку.
 
+## Session note — 2026-07-03 (be1 · Волна 1 поток B · bases security fix)
+
+- **fix(bases): owner-scoping** — `ListBases` теперь фильтрует по владельцу (`HasOwnerWith`), все операции (GetBase/Update/Delete базы, таблицы/колонки/записи) проходят через `authorizeBase`: чужая база → `403 ErrForbidden`, несуществующая → `404`. Закрыт аудит-gap «любой аутентифицированный пользователь видит/правит все базы» (аналог NF-03). Ветка `feat/bases/security-membership-fix`.
+- **test(bases): RBAC-отказы** — новые тесты в `backend/testframework/bases/`: чужая база невидима в списке, GET/PUT/DELETE чужой базы → 403, мутации таблиц/записей в чужой базе → 403, позитив владельца. `go test -tags hubtest -race ./testframework/bases/...` — PASS.
+- Docs: `docs/wiki/API.md` (Hub Base — owner-scoped доступ).
+
 ## Session note — 2026-07-03 (реорганизация команды и планирование)
 
 - **Команда:** 30 агентов (`.cursor/agents/`), параллельные потоки be1/be2, fe1/fe2, ba1/2, sa1/2, qa-auto1/2 + верификаторы у всех; `team-lead` = **Fable 5** (по итогам 5 A/B-задач против Opus 4.8), `team-lead-opus` = эскалация; остальные Sonnet 5.
