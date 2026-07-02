@@ -43,8 +43,8 @@ interface GiphyResponse {
 // Константы
 // ---------------------------------------------------------------------------
 
-/** Публичный бета-ключ Giphy для разработки. */
-const GIPHY_API_KEY = "GlVGYHkr3WSBnllca54iNt0yFbjz7L65";
+/** Ключ Giphy API из переменных окружения. */
+const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API_KEY || "";
 
 /** Базовый URL Giphy API. */
 const GIPHY_BASE = "https://api.giphy.com/v1/gifs";
