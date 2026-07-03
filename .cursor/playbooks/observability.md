@@ -1148,6 +1148,13 @@ resp, err := client.Do(req)
 
 Напоминание безопасности: для user-controlled URL используйте `safehttp.NewSafeHTTPClient` и `ValidateOutboundURL` (SSRF), а не `http.DefaultClient` — это ортогонально трейсингу, но обязательно.
 
+**NATS / outbox (есть в коде, 2026-07-03).** Трейс не рвётся на асинхронной границе REST → outbox → NATS → consumer:
+
+- `Publisher.Publish/PublishInTx` (`platform/outbox/publisher.go`) сохраняют W3C trace-context из ctx в колонку `trace_context` outbox-события; worker при publish переносит его в NATS headers (`traceparent` + `Hub-Event-Id`).
+- Хелперы: `natsclient.InjectTraceContext/ExtractTraceContext` (carrier поверх `nats.Header`), `TraceContextMap/ExtractTraceContextFromMap` (`platform/nats/trace.go`). Пропагатор явный (W3C TraceContext+Baggage), не глобальный — работает и без OTLP endpoint.
+- Прямой publish в рамках запроса: `nc.PublishJSONContext(ctx, subject, payload)` или `PublishWithTraceContext` вместо `PublishJSON` без ctx.
+- Consumer-сторона: `ctx = natsclient.ExtractTraceContext(ctx, msg.Headers())`, затем `observability.StartConsumerSpan(ctx, subject, eventID)` / `EndConsumerSpan(span, err)` — span `consume <subject>` (kind=Consumer, атрибуты `messaging.*`, `hub.event_id`). Применено в notification consumer, audit consumer, ws bridge (`traced`-обёртка).
+
 ### 5.5 Если трейсинг выключен
 
 Когда `OTEL_EXPORTER_OTLP_ENDPOINT` не задан (типичный dev/минимальный prod):

@@ -24,6 +24,14 @@ progress:
 
 **Текущий фокус (2026-07-03):** planning-пакет реорганизации готов → ревью пользователя → коммит → **Волна 1** (`.planning/ROADMAP-FINAL-2026-07-03.md`). FA-06 — ручная ротация по runbook (пользователь), больше не гейтит разработку.
 
+## Session note — 2026-07-03 (be1 · Волна 2 · задача 2.6 OTel trace через NATS)
+
+- **Ветка:** `feat/platform/otel-nats-trace` — сквозной trace-context REST → outbox → NATS → consumer (жёсткий GATE пилота микросервисов).
+- **Outbox:** новая nullable JSON-колонка `trace_context` в `OutboxEvent` (map traceparent/tracestate/baggage); `Publisher.Publish/PublishInTx` сохраняют контекст из ctx. Envelope в payload отвергнут — сломал бы `json.Unmarshal` во всех consumers.
+- **NATS:** `platform/nats/trace.go` — W3C-пропагатор (явный, не глобальный: глобальный no-op без OTLP endpoint), `Inject/ExtractTraceContext` поверх `nats.Header`, `TraceContextMap`/`ExtractTraceContextFromMap` для персистентности; header `Hub-Event-Id`. Client: `PublishMsg`, `PublishWithTraceContext`, `PublishJSONContext`. Worker кладёт traceparent + event_id в headers при publish.
+- **Consumers:** `observability.StartConsumerSpan/EndConsumerSpan` (span `consume <subject>`, kind=Consumer, атрибуты messaging.system/destination + hub.event_id) — применено в notification consumer, audit consumer, ws bridge (обёртка `traced`).
+- **Тесты:** round-trip header/map, outbox store/restore, worker headers, consumer parent span — `testframework/platform/{outbox,observability}`. Гейты: build release ✅ · vet hubtest ✅ · race platform+notification+audit+ws ✅.
+
 ## Session note — 2026-07-03 (реорганизация команды и планирование)
 
 - **Команда:** 30 агентов (`.cursor/agents/`), параллельные потоки be1/be2, fe1/fe2, ba1/2, sa1/2, qa-auto1/2 + верификаторы у всех; `team-lead` = **Fable 5** (по итогам 5 A/B-задач против Opus 4.8), `team-lead-opus` = эскалация; остальные Sonnet 5.
