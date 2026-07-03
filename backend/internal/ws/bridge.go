@@ -1,12 +1,14 @@
 package ws
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"strings"
 
 	"github.com/nats-io/nats.go"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // Bridge — связывает NATS-субъекты с WebSocket-комнатами, рассылая события
@@ -29,27 +31,21 @@ func NewBridge(hub *Hub, nc *natsclient.Client) *Bridge {
 // Для освобождения подписок вызовите Stop().
 func (b *Bridge) Start() error {
 	// project.{projectID}.{event} -> room "project:{projectID}"
-	projectSub, err := b.nats.Subscribe("project.>", func(msg *nats.Msg) {
-		b.handleProjectEvent(msg)
-	})
+	projectSub, err := b.nats.Subscribe("project.>", b.traced(b.handleProjectEvent))
 	if err != nil {
 		return err
 	}
 	b.subs = append(b.subs, projectSub)
 
 	// auth.session.{userID}.{event} -> send to specific user
-	authSub, err := b.nats.Subscribe("auth.session.>", func(msg *nats.Msg) {
-		b.handleAuthSessionEvent(msg)
-	})
+	authSub, err := b.nats.Subscribe("auth.session.>", b.traced(b.handleAuthSessionEvent))
 	if err != nil {
 		return err
 	}
 	b.subs = append(b.subs, authSub)
 
 	// messenger.channel.{channelID}.{event} -> room "channel:{channelID}"
-	messengerSub, err := b.nats.Subscribe("messenger.channel.>", func(msg *nats.Msg) {
-		b.handleMessengerEvent(msg)
-	})
+	messengerSub, err := b.nats.Subscribe("messenger.channel.>", b.traced(b.handleMessengerEvent))
 	if err != nil {
 		return err
 	}
@@ -57,9 +53,7 @@ func (b *Bridge) Start() error {
 
 	// calls.channel.{channelID}.{event} -> room "channel:{channelID}"
 	// Маршрутизирует события звонков (started/ended/joined/left) в WS-комнаты каналов мессенджера.
-	callSub, err := b.nats.Subscribe("calls.channel.>", func(msg *nats.Msg) {
-		b.handleCallEvent(msg)
-	})
+	callSub, err := b.nats.Subscribe("calls.channel.>", b.traced(b.handleCallEvent))
 	if err != nil {
 		return err
 	}
@@ -67,9 +61,7 @@ func (b *Bridge) Start() error {
 
 	// calls.chat.{callID} -> room "call:{callID}"
 	// Маршрутизирует сообщения эфемерного чата звонка для real-time доставки.
-	callChatSub, err := b.nats.Subscribe("calls.chat.>", func(msg *nats.Msg) {
-		b.handleCallChatEvent(msg)
-	})
+	callChatSub, err := b.nats.Subscribe("calls.chat.>", b.traced(b.handleCallChatEvent))
 	if err != nil {
 		return err
 	}
@@ -77,9 +69,7 @@ func (b *Bridge) Start() error {
 
 	// notification.user.{userID} -> send to specific user
 	// Маршрутизирует уведомления конкретному пользователю через WS.
-	notifSub, err := b.nats.Subscribe("notification.user.>", func(msg *nats.Msg) {
-		b.handleNotificationEvent(msg)
-	})
+	notifSub, err := b.nats.Subscribe("notification.user.>", b.traced(b.handleNotificationEvent))
 	if err != nil {
 		return err
 	}
@@ -87,6 +77,19 @@ func (b *Bridge) Start() error {
 
 	slog.Info("ws bridge started", "subscriptions", len(b.subs))
 	return nil
+}
+
+// traced оборачивает NATS-handler consumer-span'ом «consume <subject>»,
+// продолжающим трейс продюсера (traceparent из headers). Handlers bridge не
+// принимают ctx (WS-broadcast синхронный), поэтому span только фиксирует
+// факт и длительность доставки в трейсе — без изменения их сигнатур.
+func (b *Bridge) traced(handler func(*nats.Msg)) nats.MsgHandler {
+	return func(msg *nats.Msg) {
+		ctx := natsclient.ExtractTraceContext(context.Background(), msg.Header)
+		_, span := observability.StartConsumerSpan(ctx, msg.Subject, msg.Header.Get(natsclient.HeaderEventID))
+		defer observability.EndConsumerSpan(span, nil)
+		handler(msg)
+	}
 }
 
 // Stop отписывается от всех NATS-подписок.
