@@ -16,6 +16,14 @@ progress:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-03 (Волна 2, поток SA: техспеки, ветка `docs/wave2-specs` от `docs/wave1-analysis`)
+
+- **Спецификации Волны 2 (sa1+sa2)** в `docs/system_specification.md` (новый раздел «Спецификации Волны 2») + справочник `docs/wiki/API.md` (таблицы planned/spec):
+  - **Intranet v2:** FR-INTR-01…11 (poll-in-post, onboarding, постмодерация, kudos-лидерборд, coffee авто-DM), ERD news_poll/option/vote + onboarding_template/progress + coffee_pair.dm_channel_id, 11 endpoints, события `hub.intranet.*`, NFR-31/32.
+  - **Calendar v2:** FR-CAL-01…08, ERD calendar_event (новая первокласная сущность) + resource/resource_booking (exclusion constraint) + event_recurrence (d/w/m, until XOR count) + ical_subscription (ValidateOutboundURL, SSRF) + ical_export_token, 13 endpoints (вкл. availability busy/free + HR-отпуска), события `hub.calendar.*`, NFR-33…36.
+  - **Wiki (новый модуль):** FR-WIKI-01…09, ERD wiki_space/wiki_space_member/wiki_page (parent_id, restrict)/wiki_page_restriction/wiki_page_version (append-only)/wiki_issue_link, 22 endpoints, поиск через search-модуль user-scoped (NF-03), события `hub.wiki.*`, NFR-37…39.
+  - Инварианты соблюдены: UUID v4 PK, `version` optimistic lock, UTC, soft delete 30д, `{"error","request_id"}`, offset/limit, rate limits, RBAC по GZ-SEC-07/11. Трассируемость US→FR→API таблицами в каждом разделе. verified: false → sa-ver.
+
 ## Session note — 2026-07-03 (Волна 1, поток D: аналитика и доки, ветка `docs/wave1-analysis`)
 
 - **US/AC (задачи 1.10–1.12):** в `docs/vision_and_scope.md` добавлены разделы Волны 1 — Intranet v2 (US-INTR-01…05: опрос-в-посте, onboarding-шаблоны, постмодерация, kudos-лидерборд, Random Coffee авто-DM), Calendar v2 (US-CAL-01…04: ресурсы+booking, recurring d/w/m until/count, iCal export+подписки без OAuth, availability busy/free+отпуска), Wiki — новый модуль (US-WIKI-01…05: space→pages, space-RBAC+restrict, версии, issue-link, user-scope поиск NF-03). Gherkin AC позитив+негатив, KPI, MoSCoW, edge-cases; цель G-07. Scope строго по `GRAY-ZONES-DECISIONS-2026-07-03.md` §2/§4. verified: false → ba-ver.
