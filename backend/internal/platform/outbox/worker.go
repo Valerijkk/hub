@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/nats-io/nats.go"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/outboxevent"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
@@ -80,7 +81,16 @@ func (w *Worker) processEvent(ctx context.Context, evt *ent.OutboxEvent) {
 		}
 	}()
 
-	if err := w.nats.Publish(evt.EventType, evt.Payload); err != nil {
+	// Восстанавливаем trace-context исходного запроса из outbox-строки и
+	// переносим его в NATS headers: consumer продолжит тот же трейс, а не
+	// начнёт новый (async-граница REST -> outbox -> NATS).
+	msgCtx := natsclient.ExtractTraceContextFromMap(ctx, evt.TraceContext)
+	msg := nats.NewMsg(evt.EventType)
+	msg.Data = evt.Payload
+	natsclient.InjectTraceContext(msgCtx, msg.Header)
+	msg.Header.Set(natsclient.HeaderEventID, evt.ID.String())
+
+	if err := w.nats.PublishMsg(msg); err != nil {
 		slog.Warn("outbox: publish failed", "event_type", evt.EventType, "error", err)
 		if _, saveErr := w.client.OutboxEvent.UpdateOneID(evt.ID).
 			SetAttempts(evt.Attempts + 1).
