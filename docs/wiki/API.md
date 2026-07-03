@@ -932,6 +932,40 @@ Lark Base clone MVP: org-wide таблицы с typed columns и grid-редак
 
 ---
 
+## Wiki — **planned/spec** (FR-WIKI, Волны 5/8)
+
+> Новый модуль, кода ещё нет. Спецификация: `docs/system_specification.md` § «Wiki — новый модуль (FR-WIKI)».
+> RBAC: роли space (read/write/admin) + наследование + restrict-флаг страницы (GZ-SEC-07/11).
+
+| Метод | Путь | Описание | Статус |
+|---|---|---|---|
+| GET | `/wiki/spaces` | Мои space | planned |
+| POST | `/wiki/spaces` | Создать space (создатель = admin) | planned |
+| GET | `/wiki/spaces/:spaceId` | Space | planned |
+| PUT | `/wiki/spaces/:spaceId` | Обновить (space admin, `version`) | planned |
+| DELETE | `/wiki/spaces/:spaceId` | Удалить пустой space (иначе 422) | planned |
+| GET | `/wiki/spaces/:spaceId/members` | Участники и роли | planned |
+| PUT | `/wiki/spaces/:spaceId/members/:userId` | Назначить роль (последний admin → 422) | planned |
+| DELETE | `/wiki/spaces/:spaceId/members/:userId` | Убрать участника | planned |
+| GET | `/wiki/spaces/:spaceId/tree` | Дерево страниц (restrict-страницы скрыты) | planned |
+| POST | `/wiki/spaces/:spaceId/pages` | Создать страницу (markdown, `parent_id`) | planned |
+| GET | `/wiki/pages/:pageId` | Страница (read + restrict-check) | planned |
+| PUT | `/wiki/pages/:pageId` | Правка (write, `version` → 409 при конфликте) | planned |
+| DELETE | `/wiki/pages/:pageId` | Поддерево → корзина 30 д | planned |
+| POST | `/wiki/pages/:pageId/move` | Переместить (цикл/глубина → 422) | planned |
+| PUT | `/wiki/pages/:pageId/restrict` | Restrict-флаг + allow-list (space admin) | planned |
+| GET | `/wiki/pages/:pageId/versions` | История версий (offset/limit) | planned |
+| GET | `/wiki/pages/:pageId/versions/:number` | Версия + diff с текущей | planned |
+| POST | `/wiki/pages/:pageId/versions/:number/restore` | Rollback → новая версия N+1 | planned |
+| GET | `/wiki/pages/:pageId/issue-links` | Связанные задачи | planned |
+| POST | `/wiki/pages/:pageId/issue-links` | Связать с задачей (403 без доступа к проекту) | planned |
+| DELETE | `/wiki/pages/:pageId/issue-links/:issueId` | Убрать связь | planned |
+| GET | `/projects/:projectId/issues/:issueId/wiki-links` | Обратная сторона (tracker) | planned |
+
+Поиск — через существующий `GET /search?types=wiki_page` (user-scope фильтр на сервере, NF-03).
+
+---
+
 ## Accounting (V4-03, Phase 51)
 
 Hub-only double-entry ledger (admin/founder). Без НДФЛ и payroll.

@@ -38,6 +38,7 @@
 | Mail | MAIL | hub-mail admin, transactional settings |
 | Status | STAT | Public status page |
 | 1C | ONEC | Optional connector (`integrations/onec`) |
+| Wiki | WIKI | **spec (Волны 5/8):** spaces + иерархия страниц, space-RBAC + restrict, версии/rollback, issue-links, user-scoped поиск (FR-WIKI) |
 
 ## Нефункциональные требования
 
@@ -510,6 +511,153 @@ DFD booking-конфликта: `[User] → POST /calendar/events → [Auth] →
 - Фид с дубликатами UID: upsert по `(subscription_id, external_uid)` — без дублей после повторной синхронизации.
 - Отзыв export-токена: старая ссылка → 401 немедленно (проверка по hash в БД, не по кешу).
 - Availability: события iCal-подписок участвуют в busy владельца; отпуск pending — не busy; TZ смотрящего — конвертация на фронте (NFR-12).
+
+### Wiki — новый модуль (FR-WIKI)
+
+Модуля в коде нет — спецификация с нуля (реализация: Волны 5/8; handbook = пространство общей
+wiki, GZ-V4-12/13). Редактор markdown-first (WYSIWYG вне scope v1). RBAC — решение GZ-SEC-07/11:
+права на space (read/write/admin), страницы наследуют, restrict-флаг сужает круг на отдельной
+странице. Поиск — только user-scoped (инвариант NF-03 / NFR-19).
+
+#### Функциональные требования
+
+| ID | Source | Поведение | NFR link |
+|----|--------|-----------|----------|
+| FR-WIKI-01 | US-WIKI-01 | Space CRUD; страницы в иерархии `parent_id` внутри space; markdown-контент с предпросмотром; перемещение страницы по дереву (ссылки стабильны — UUID). Цикл (`A` под своего потомка) → 422; глубина >10 → 422 | NFR-37 |
+| FR-WIKI-02 | US-WIKI-01 | Конкурентная правка — optimistic lock `version`: второй save → 409. Изображения — через storage presigned upload (NFR-27), не base64 | NFR-24 |
+| FR-WIKI-03 | US-WIKI-01 | Удаление страницы с детьми — каскад **поддерева** в корзину 30 дней; восстановление возвращает поддерево. Space удаляется только пустым (иначе 422) | NFR-11 |
+| FR-WIKI-04 | US-WIKI-02 | Роли space: `read` / `write` / `admin`; страницы наследуют права space. Не-участник space → 403 на любую страницу (в т.ч. по прямой ссылке). Управление правами — только space admin. У space всегда ≥1 admin: снятие последнего → 422 | NFR-38 |
+| FR-WIKI-05 | US-WIKI-02 | Restrict-флаг страницы: явный allow-list (подмножество имеющих доступ к space — расширить доступ за пределы space нельзя, чужие id → 422). Вне списка → 403; страница скрыта из дерева и поиска. Снятие restrict возвращает наследование. System Admin — служебный доступ (восстановление/GDPR) с записью в audit log | NFR-38, NFR-39 |
+| FR-WIKI-06 | US-WIKI-03 | Версия создаётся на каждый save (autosave-черновик не версионируется): автор, дата UTC, номер. Просмотр любой версии + diff с текущей. Restrict распространяется на историю (403) | NFR-38 |
+| FR-WIKI-07 | US-WIKI-03 | Rollback: контент версии N-k становится **новой** версией N+1 (история не переписывается), фиксируется автор отката. Роль read → 403. История восстановленной из корзины страницы сохраняется | NFR-38 |
+| FR-WIKI-08 | US-WIKI-04 | Issue-link M:N (страница ↔ задачи, двусторонне): из задачи видна ссылка на страницу (только при read-доступе к странице — иначе скрыта), на странице — задача со статусом. Привязка к задаче без доступа к её проекту → 403. Удаление задачи/страницы → tombstone в UI, без битых ссылок | NFR-13 |
+| FR-WIKI-09 | US-WIKI-05 | Поиск через search-модуль (Ctrl+K, `types=wiki_page`): фильтрация по правам **на сервере на момент запроса** (space membership + restrict allow-list); страницы из корзины не выдаются; сниппет — только заголовок+фрагмент доступных страниц. Удаление из space → страницы исчезают из выдачи (0 результатов ≠ ошибка) | NFR-39 |
+
+#### Новые NFR
+
+| ID | Требование | Значение |
+|----|------------|----------|
+| NFR-37 | Лимиты wiki | Глубина дерева ≤ 10 (422); markdown ≤ 1 MB на страницу (400); title ≤ 200; страниц в space ≤ 5000; p95 чтения страницы < 300ms |
+| NFR-38 | Целостность RBAC/версий | Проверка прав — в handler/service до данных; ≥1 admin на space (инвариант БД+сервис); каждая версия неизменяема после создания (append-only); rollback не удаляет версии |
+| NFR-39 | User-scope поиска wiki | Фильтр по membership+restrict выполняется на сервере при каждом запросе (не на клиенте, не только при индексации — NF-03); негативный permission-тест: пользователь вне space получает 0 его страниц |
+
+#### ERD (новые сущности, PostgreSQL / Ent)
+
+```
+WikiSpace ──┬── WikiSpaceMember (role: read|write|admin, ≥1 admin)
+            └── WikiPage (parent_id self-FK, restricted flag)
+                   ├── WikiPageRestriction (allow-list, только при restricted)
+                   ├── WikiPageVersion (append-only)
+                   └── WikiIssueLink N──N Issue (tracker)
+```
+
+| Сущность | Поля (помимо инвариантов id UUID v4 / version / UTC / soft delete) | Индексы/ограничения |
+|----------|--------------------------------------------------------------------|---------------------|
+| `wiki_space` | `name` string(120), `slug` string(60) unique, `description` nullable, `created_by` FK | `(slug)` unique |
+| `wiki_space_member` | `space_id` FK, `user_id` FK, `role` enum{read, write, admin} | `(space_id, user_id)` unique; инвариант ≥1 admin (FR-WIKI-04) |
+| `wiki_page` | `space_id` FK, `parent_id` self-FK nullable, `title` string(200), `content_md` text (≤1MB), `restricted` bool default false, `position` int, `created_by`/`updated_by` FK | `(space_id, parent_id, position)`; `(space_id, deleted_at)`; check: parent в том же space |
+| `wiki_page_restriction` | `page_id` FK, `user_id` FK | `(page_id, user_id)` unique; только user'ы с доступом к space (FR-WIKI-05) |
+| `wiki_page_version` | `page_id` FK, `number` int, `content_md` text, `title` string(200), `author_id` FK, `restored_from` int nullable | `(page_id, number)` unique; **append-only** (NFR-38) |
+| `wiki_issue_link` | `page_id` FK, `issue_id` FK, `created_by` FK | `(page_id, issue_id)` unique |
+
+Иерархия — adjacency list (`parent_id`) + проверка цикла/глубины в сервисе (рекурсивный CTE);
+materialized path не требуется при глубине ≤10.
+
+#### API-контракты
+
+```
+### GET  /api/wiki/spaces                        · 200 {items[]} (только мои space); 401
+### POST /api/wiki/spaces                        · 201 (создатель = admin); 400; 401; 429
+### GET  /api/wiki/spaces/:spaceId               · 200; 401; 403 (не участник); 404
+### PUT  /api/wiki/spaces/:spaceId               · space admin; 200; 400; 401; 403; 404; 409 (version)
+### DELETE /api/wiki/spaces/:spaceId             · space admin; 204; 401; 403; 404; 422 (space не пуст)
+Source FR: FR-WIKI-01, FR-WIKI-03, FR-WIKI-04
+
+### GET  /api/wiki/spaces/:spaceId/members       · участники space; 200; 401; 403; 404
+### PUT  /api/wiki/spaces/:spaceId/members/:userId
+Auth: Bearer; RBAC: space admin
+Request: { "role": "read|write|admin" }
+Responses: 200; 400; 401; 403; 404; 422 (снятие последнего admin)
+### DELETE /api/wiki/spaces/:spaceId/members/:userId · space admin; 204; 401; 403; 404; 422 (последний admin)
+Source FR: FR-WIKI-04
+
+### GET  /api/wiki/spaces/:spaceId/tree
+Дерево страниц space; restrict-страницы вне allow-list запрашивающего исключены (FR-WIKI-05).
+Responses: 200 {tree}; 401; 403; 404
+
+### POST /api/wiki/spaces/:spaceId/pages
+Auth: Bearer; RBAC: write в space
+Request: { "title": "1..200", "content_md"?: "≤1MB", "parent_id"?: uuid }
+Responses: 201; 400 (лимиты NFR-37); 401; 403; 404; 422 (глубина >10); 429
+### GET  /api/wiki/pages/:pageId                 · read + restrict-check; 200; 401; 403; 404
+### PUT  /api/wiki/pages/:pageId                 · write + restrict-check
+Request: { "title"?, "content_md"?, "version" }
+Responses: 200 (+новая WikiPageVersion); 400; 401; 403; 404; 409 (version, FR-WIKI-02)
+### DELETE /api/wiki/pages/:pageId               · write; 204 (поддерево → корзина 30д); 401; 403; 404
+### POST /api/wiki/pages/:pageId/move
+Request: { "parent_id": uuid|null, "position"?: int, "version" }
+Responses: 200; 401; 403; 404; 409; 422 (цикл / глубина / другой space)
+Source FR: FR-WIKI-01..03
+
+### PUT /api/wiki/pages/:pageId/restrict
+Auth: Bearer; RBAC: space admin
+Request: { "restricted": bool, "allowed_user_ids": [uuid], "version" }
+Responses: 200; 400; 401; 403; 404; 409;
+           422 (allowed_user_ids содержит пользователей без доступа к space — FR-WIKI-05)
+Source FR: FR-WIKI-05
+
+### GET  /api/wiki/pages/:pageId/versions?offset=0&limit=50
+· read + restrict-check; 200 {items:[{number, author, created_at}], total, offset, limit}; 400; 401; 403; 404
+### GET  /api/wiki/pages/:pageId/versions/:number · содержимое версии + diff с текущей; 200; 401; 403; 404
+### POST /api/wiki/pages/:pageId/versions/:number/restore
+· RBAC: write (read → 403, FR-WIKI-07); 200 (новая версия N+1, restored_from=number); 401; 403; 404; 409
+Source FR: FR-WIKI-06, FR-WIKI-07  · Пагинация: offset/limit (NFR-14)
+
+### GET  /api/wiki/pages/:pageId/issue-links     · 200 {items:[{issue: {id,key,status,title} | tombstone}]}; 401; 403; 404
+### POST /api/wiki/pages/:pageId/issue-links
+Request: { "issue_id": uuid }
+Responses: 201; 401; 403 (нет доступа к проекту задачи ИЛИ к странице); 404; 409 (дубль связи)
+### DELETE /api/wiki/pages/:pageId/issue-links/:issueId · 204; 401; 403; 404
+### GET  /api/projects/:projectId/issues/:issueId/wiki-links   (сторона tracker)
+· 200 {items: только страницы, к которым у запрашивающего есть read — иначе скрыты (FR-WIKI-08)}; 401; 403; 404
+Source FR: FR-WIKI-08
+
+### Поиск: существующий GET /api/search?q=...&types=wiki_page
+Фильтр прав на сервере при каждом запросе (FR-WIKI-09, NFR-39); отдельного endpoint не вводится.
+```
+
+#### События NATS (`hub.wiki.*`, JetStream, outbox)
+
+| Subject | Payload (ключевое) | Потребители |
+|---------|--------------------|-------------|
+| `hub.wiki.page.created` / `.updated` | page_id, space_id, author_id, version_number | search (index/reindex), ws |
+| `hub.wiki.page.deleted` / `.restored` | page_id, space_id, subtree_page_ids[] | search (deindex/reindex поддерева), audit |
+| `hub.wiki.page.restricted_changed` | page_id, restricted, allowed_user_ids[] | search (пере-скоуп индекса) |
+| `hub.wiki.space.member_changed` | space_id, user_id, role|removed | search (инвалидация скоупа), notification |
+| `hub.wiki.issue_link.created` / `.removed` | page_id, issue_id, actor_id | tracker (обратная ссылка), ws |
+
+DFD user-scoped поиска: `[User Ctrl+K] → GET /search?types=wiki_page → [Auth]
+→ [SearchService: Meilisearch query] → [WikiScopeFilter: membership + restrict на момент запроса]
+→ результат только доступных страниц` — фильтр обязателен на сервере (NF-03).
+
+#### Трассируемость US → FR → API
+
+| US | FR | API |
+|----|----|-----|
+| US-WIKI-01 | FR-WIKI-01..03 | /wiki/spaces CRUD, /wiki/spaces/:id/tree, /wiki/spaces/:id/pages, /wiki/pages/:id (GET/PUT/DELETE), /wiki/pages/:id/move |
+| US-WIKI-02 | FR-WIKI-04..05 | /wiki/spaces/:id/members (GET/PUT/DELETE), /wiki/pages/:id/restrict |
+| US-WIKI-03 | FR-WIKI-06..07 | /wiki/pages/:id/versions, /versions/:number, /versions/:number/restore |
+| US-WIKI-04 | FR-WIKI-08 | /wiki/pages/:id/issue-links (GET/POST/DELETE), /projects/:pid/issues/:iid/wiki-links |
+| US-WIKI-05 | FR-WIKI-09 | GET /search?types=wiki_page (существующий, + WikiScopeFilter) |
+
+#### Edge-cases (сводно)
+
+- Перемещение страницы в другой space — запрещено в v1 (422): права наследуются от space, перенос между скоупами — отдельное решение.
+- Restrict на странице с детьми: флаг действует на саму страницу; дети наследуют space-права (restrict не каскадит) — иначе allow-list «протекает» вниз неявно.
+- Snapshot-вопрос diff: diff считается на чтении между `content_md` версий, ничего не хранится дополнительно.
+- Одновременный rollback двумя пользователями: второй получает 409 (version страницы).
+- GDPR/удаление пользователя: авторство версий анонимизируется (tombstone), контент сохраняется (GZ-SEC-17/18 [default]).
+- Поиск: результат не содержит restrict-страниц даже для участников space вне allow-list; membership проверяется на **момент запроса**, не индексации.
 
 ## Известные gaps (требование → код → тест)
 
