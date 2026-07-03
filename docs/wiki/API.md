@@ -798,6 +798,24 @@ Ctrl+K user search → `/intranet/directory?user={id}`.
 
 Anti-repeat: старается не повторять пары из предыдущего раунда. Уведомление обеим сторонам пары.
 
+### Intranet v2 — **planned/spec** (FR-INTR, Волна 2)
+
+> Спецификация: `docs/system_specification.md` § «Intranet v2 (FR-INTR)». Реализации в коде ещё нет.
+
+| Метод | Путь | Описание | Статус |
+|---|---|---|---|
+| POST | `/intranet/news` | + опциональный `poll` (вопрос, 2–10 вариантов) | planned |
+| GET | `/intranet/news/:newsId/poll` | Опрос поста + агрегаты голосов | planned |
+| POST | `/intranet/news/:newsId/poll/vote` | Голос (1 вариант; повторный → 422) | planned |
+| PUT | `/intranet/news/:newsId/poll` | Правка/закрытие опроса (после первого голоса → 422) | planned |
+| GET | `/intranet/onboarding/templates` | Системные шаблоны dev/non-dev (admin) | planned |
+| POST | `/intranet/onboarding/assignments` | Назначить шаблон новичку (admin; re-assign → 409 без confirm) | planned |
+| GET | `/intranet/onboarding/assignments` | Прогресс по всем новичкам (admin, offset/limit) | planned |
+| GET | `/intranet/onboarding/me` | Мой чеклист | planned |
+| PATCH | `/intranet/onboarding/me/items/:itemId` | Отметить пункт (`checked`, `version`) | planned |
+| GET | `/intranet/kudos/leaderboard` | Топ получателей за `period=month\|quarter\|all` | planned |
+| DELETE | `/intranet/news/:newsId` | Расширение: admin **или автор** (постмодерация) | planned |
+
 ---
 
 ## Calendar (MOD-04, Phase 41)
