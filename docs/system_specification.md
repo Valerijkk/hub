@@ -29,7 +29,7 @@
 | Audit | AUDIT | Full audit log, trash 30d, GDPR, alerts |
 | AI | AI | Multi-provider gateway, @hub-ai bot, JQL assist, usage audit |
 | Intranet | INTR | News, directory, kudos (+leaderboard spec), random coffee (+auto-DM spec), poll-in-post spec, onboarding spec (FR-INTR) |
-| Calendar | CAL | Unified events (calls, sprints, leave) |
+| Calendar | CAL | Unified events (calls, sprints, leave); spec: собственные события, ресурсы+booking, recurrence, iCal feeds, availability (FR-CAL) |
 | CRM | CRM | Contacts, deals (lite) |
 | HR | HR | Leave requests |
 | Accounting | ACCT | Ledger, journal entries, invoices |
@@ -373,6 +373,143 @@ Outbox hub.intranet.coffee.matched → MessengerService (создать/пере
 - Onboarding: назначение деактивированному пользователю → 422; `frozen=true` блокирует PATCH items (403).
 - Лидерборд: kudos, отправленные боту/самому себе, исключаются на уровне существующей валидации Kudo.
 - Матчинг: нечётное N → ровно одна тройка; повтор прошлой пары допустим только при отсутствии иных комбинаций; деактивация между матчингом и встречей — DM остаётся, следующий раунд исключает.
+
+### Calendar v2 (FR-CAL)
+
+Доводка модуля `calendar` до паритета: ресурсы с бронированием, recurring-события,
+iCal export/подписки, team availability. Календарь v4 — только агрегатор (calls/sprints/leave);
+Волна 2 вводит **собственные события календаря** (`calendar_event`) как первокласную сущность —
+без неё невозможны booking и recurrence.
+
+#### Функциональные требования
+
+| ID | Source | Поведение | NFR link |
+|----|--------|-----------|----------|
+| FR-CAL-01 | US-CAL-01 | Справочник ресурсов (GZ-V4-04): единая сущность, `kind` enum{room, equipment, other}. CRUD — только Admin (Member → 403); список — все. Деактивированный ресурс не предлагается для новых броней, существующие сохраняются | NFR-13 |
+| FR-CAL-02 | US-CAL-01 | Бронирование ресурса при создании/правке события. Пересечение интервалов → 409 с указанием конфликтующего интервала; смежные интервалы (конец = начало) — не конфликт. Удаление события освобождает бронь; перенос — повторная проверка (409 при занятости) | NFR-33 |
+| FR-CAL-03 | US-CAL-02 | Recurrence (GZ-V4-06): `freq` enum{daily, weekly, monthly} + ровно один из `until` (дата) / `count` (int ≥1). `until` в прошлом, `count`=0 или оба сразу → 400. Все вхождения ссылаются на одну серию | NFR-36 |
+| FR-CAL-04 | US-CAL-02 | Правка серии применяется ко **всем** вхождениям (правка отдельного вхождения — вне scope), участникам — одно уведомление. Monthly 29/30/31 в коротком месяце → последний день месяца | NFR-36 |
+| FR-CAL-05 | US-CAL-02 | Удаление серии удаляет все вхождения (корзина 30 дней). Ресурс на серии проверяется по каждому вхождению; частичный конфликт → 409 со списком конфликтных дат, серия не создаётся | NFR-11, NFR-33 |
+| FR-CAL-06 | US-CAL-03 | Персональная iCal-ссылка с непереборным секретным токеном (≥128 бит, hash at rest); отзыв генерирует новый токен, старый немедленно невалиден (401) | NFR-34 |
+| FR-CAL-07 | US-CAL-03 | Подписка на внешний iCal-фид по URL (GZ-V4-05): только https, `ValidateOutboundURL` (SSRF, NFR-21) + SafeHTTPClient + `io.LimitReader`. Невалидный/недоступный фид → ошибка валидации, подписка в статусе `error`, без дублей событий. Обновление ≥1 раз/час. События read-only (правка → 403). Лимит 10 подписок → 422. Удаление подписки убирает её события | NFR-34 |
+| FR-CAL-08 | US-CAL-04 | Availability (GZ-V4-07): агрегация busy/free по выбранным пользователям = свои события календаря + вхождения серий + события iCal-подписок + **одобренные** отпуска HR (весь день; pending не показывается). Чужие события — только интервалы busy без деталей; прямой запрос чужого события → 403. Свои — с деталями. Пользователь без событий → full free (200) | NFR-35 |
+
+#### Новые NFR
+
+| ID | Требование | Значение |
+|----|------------|----------|
+| NFR-33 | Отсутствие двойных броней | Проверка пересечения на уровне БД (PostgreSQL exclusion constraint по `(resource_id, tstzrange(starts_at, ends_at))`); конкурентные брони → ровно одна успешна, вторая 409. Тест: 2 параллельных запроса |
+| NFR-34 | Безопасность iCal-фидов | `ValidateOutboundURL` перед каждой загрузкой; SafeHTTPClient timeout 10s; `io.LimitReader` 1 MB на фид; refresh-джоба ≥1/час, ≤1 конкурентная загрузка на подписку; токен export-ссылки ≥128 бит энтропии, в БД — hash |
+| NFR-35 | Availability p95 | < 700ms для 20 пользователей × окно 7 дней (индексы по `(user_id, starts_at)`; leave по `(user_id, status, start_date)`) |
+| NFR-36 | Лимиты recurrence | `count` ≤ 365; `until` ≤ 2 года от `starts_at`; превышение → 400. Экспансия вхождений — на чтении (materialization не хранится), окно запроса ≤ 92 дня |
+
+#### ERD-дельта (PostgreSQL / Ent)
+
+```
+User ──┬── CalendarEvent ──┬── EventRecurrence (0..1)
+       │                   └── ResourceBooking N──1 Resource
+       ├── ICalSubscription (≤10)
+       └── ICalExportToken (1, rotate)
+LeaveRequest (hr, существует) → участвует в availability как busy (status=approved)
+```
+
+| Сущность | Поля (помимо инвариантов id UUID v4 / version / UTC / soft delete) | Индексы/ограничения |
+|----------|--------------------------------------------------------------------|---------------------|
+| `calendar_event` | `owner_id` FK, `title` string(200), `description` text nullable, `starts_at`/`ends_at` timestamptz (UTC, NFR-12), `participants` JSON uuid[], `source` enum{hub, ical} | `(owner_id, starts_at)`; check `ends_at > starts_at` |
+| `event_recurrence` | `event_id` FK unique, `freq` enum{daily, weekly, monthly}, `interval` int default 1, `until` timestamptz nullable, `count` int nullable | check: ровно один из until/count (FR-CAL-03) |
+| `resource` | `name` string(120), `kind` enum{room, equipment, other}, `active` bool default true | `(kind, active)` |
+| `resource_booking` | `resource_id` FK, `event_id` FK, `occurrence_date` date nullable (для серий), `starts_at`/`ends_at` timestamptz | **exclusion constraint** `(resource_id, tstzrange)` (NFR-33); `(event_id)` |
+| `ical_subscription` | `user_id` FK, `url` string(2048), `name` string(120), `status` enum{active, error}, `last_synced_at` nullable, `last_error` string nullable, `etag` string nullable | `(user_id)`; ≤10/user (FR-CAL-07) |
+| `ical_export_token` | `user_id` FK unique, `token_hash` string (SHA-256), `rotated_at` timestamptz | `(token_hash)` unique |
+
+События внешних фидов хранятся как `calendar_event` с `source=ical` + FK
+`subscription_id` (nullable), read-only на уровне сервиса; удаление подписки каскадно
+удаляет её события (жёстко — это реплика внешних данных, не пользовательский контент).
+
+#### API-контракты
+
+```
+### GET /api/calendar/resources        · 200 {items[]}; 401         (все роли)
+### POST /api/calendar/resources       · Admin; 201; 400; 401; 403  (Member → 403, FR-CAL-01)
+### PUT /api/calendar/resources/:id    · Admin; 200; 400; 401; 403; 404; 409 (version)
+### DELETE /api/calendar/resources/:id · Admin; 204 (деактивация, брони сохраняются); 401; 403; 404
+Source FR: FR-CAL-01
+
+### POST /api/calendar/events
+Auth: Bearer
+Request: { "title", "starts_at", "ends_at", "description"?, "participants"?: [uuid],
+           "resource_ids"?: [uuid],
+           "recurrence"?: { "freq": "daily|weekly|monthly", "interval"?: 1, "until"? | "count"? } }
+Responses: 201 {event};
+           400 (until в прошлом / count=0 / оба until+count / лимиты NFR-36);
+           401; 404 (ресурс);
+           409 (конфликт брони; для серии — {"error","request_id","conflicts":[даты]});
+           422 (деактивированный ресурс); 429
+Source FR: FR-CAL-02, FR-CAL-03, FR-CAL-05
+
+### PUT /api/calendar/events/:eventId          (правка серии = всех вхождений, FR-CAL-04)
+Request: как POST + "version"
+Responses: 200; 400; 401; 403 (чужое или source=ical); 404; 409 (version / бронь)
+### DELETE /api/calendar/events/:eventId       · 204 (серия целиком → корзина 30д, брони освобождены); 401; 403; 404
+Source FR: FR-CAL-04, FR-CAL-05
+
+### GET /api/calendar/events?from=&to=          (существующий, расширяется)
+Окно ≤ 92 дня (400 при превышении). Серии разворачиваются в вхождения на чтении (NFR-36).
+Ответ дополняется полями "series_id"?, "source", "resources":[...]
+
+### GET /api/calendar/availability?user_ids=uuid,uuid&from=&to=
+Auth: Bearer
+Responses: 200 { "users": [ { "user_id",
+                  "intervals": [ { "starts_at","ends_at","busy":true,
+                                   "detail": {title,...} | null } ] } ] }
+           (detail только для событий, где запрашивающий — владелец/участник; чужие — null, FR-CAL-08);
+           400 (>20 user_ids, окно >31 дня); 401
+Source FR: FR-CAL-08  · NFR-35
+
+### GET /api/calendar/subscriptions             · 200 {items[]}; 401
+### POST /api/calendar/subscriptions
+Request: { "url": "https://...", "name"? }
+Responses: 201 {subscription, status};
+           400 (не https / не прошёл ValidateOutboundURL / не-iCal контент);
+           401; 422 (>10 подписок); 429
+### DELETE /api/calendar/subscriptions/:id      · 204 (+ каскад событий фида); 401; 404
+Source FR: FR-CAL-07  · NFR-34
+
+### GET /api/calendar/export.ics?token=<secret>  (существующий переводится на токен)
+Auth: секретный токен в query (без JWT — для внешних клиентов); 401 при невалидном/отозванном
+### POST /api/calendar/export/rotate             · Bearer; 200 {"url": новая ссылка}; 401
+Source FR: FR-CAL-06
+```
+
+#### События NATS (`hub.calendar.*`, JetStream, outbox)
+
+| Subject | Payload (ключевое) | Потребители |
+|---------|--------------------|-------------|
+| `hub.calendar.event.created` / `.updated` / `.deleted` | event_id, series_id?, owner_id, participants | notification (одно уведомление на серию, FR-CAL-04), ws |
+| `hub.calendar.booking.created` / `.released` | booking_id, resource_id, event_id, interval | dashboard (занятость ресурсов) |
+| `hub.calendar.feed.sync_failed` | subscription_id, user_id, error | notification (владельцу подписки) |
+
+DFD booking-конфликта: `[User] → POST /calendar/events → [Auth] → [CalendarService.Create]
+→ [Tx: INSERT calendar_event + resource_booking (exclusion constraint)]
+→ constraint violation → 409 {"error","request_id","conflicts"} | OK → Outbox hub.calendar.event.created`.
+
+#### Трассируемость US → FR → API
+
+| US | FR | API |
+|----|----|-----|
+| US-CAL-01 | FR-CAL-01..02 | GET/POST/PUT/DELETE /calendar/resources, POST/PUT /calendar/events (resource_ids) |
+| US-CAL-02 | FR-CAL-03..05 | POST/PUT/DELETE /calendar/events (recurrence), GET /calendar/events (экспансия) |
+| US-CAL-03 | FR-CAL-06..07 | GET /calendar/export.ics?token, POST /calendar/export/rotate, GET/POST/DELETE /calendar/subscriptions |
+| US-CAL-04 | FR-CAL-08 | GET /calendar/availability |
+
+#### Edge-cases (сводно)
+
+- Смежные брони (15:00–16:00 после 14:00–15:00) — не конфликт: exclusion constraint по полуоткрытому интервалу `[)`.
+- Перенос события с бронью: старая бронь удерживается до успешной проверки новой (Tx), при 409 ничего не меняется.
+- Monthly 31-го: вхождение в феврале — 28/29 (clamp к последнему дню), серия не «теряет» месяц.
+- Фид с дубликатами UID: upsert по `(subscription_id, external_uid)` — без дублей после повторной синхронизации.
+- Отзыв export-токена: старая ссылка → 401 немедленно (проверка по hash в БД, не по кешу).
+- Availability: события iCal-подписок участвуют в busy владельца; отпуск pending — не busy; TZ смотрящего — конвертация на фронте (NFR-12).
 
 ## Известные gaps (требование → код → тест)
 

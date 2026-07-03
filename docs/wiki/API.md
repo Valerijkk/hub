@@ -829,6 +829,26 @@ Anti-repeat: старается не повторять пары из преды
 
 Типы событий в JSON: `call`, `sprint`, `deadline`, `leave`.
 
+### Calendar v2 — **planned/spec** (FR-CAL, Волна 2)
+
+> Спецификация: `docs/system_specification.md` § «Calendar v2 (FR-CAL)». Реализации в коде ещё нет.
+
+| Метод | Путь | Описание | Статус |
+|---|---|---|---|
+| GET | `/calendar/resources` | Справочник ресурсов (room/equipment/other) | planned |
+| POST | `/calendar/resources` | Создать ресурс (admin) | planned |
+| PUT | `/calendar/resources/:id` | Обновить (admin, `version`) | planned |
+| DELETE | `/calendar/resources/:id` | Деактивировать (admin, брони сохраняются) | planned |
+| POST | `/calendar/events` | Событие + `resource_ids` + `recurrence` (конфликт брони → 409) | planned |
+| PUT | `/calendar/events/:eventId` | Правка серии целиком | planned |
+| DELETE | `/calendar/events/:eventId` | Серия → корзина 30 д, брони освобождаются | planned |
+| GET | `/calendar/availability` | Busy/free по `user_ids` + одобренные отпуска HR | planned |
+| GET | `/calendar/subscriptions` | Мои iCal-подписки | planned |
+| POST | `/calendar/subscriptions` | Подписка на внешний фид (SSRF-валидация; >10 → 422) | planned |
+| DELETE | `/calendar/subscriptions/:id` | Удалить подписку и её события | planned |
+| GET | `/calendar/export.ics?token=` | Экспорт по секретному токену (замена текущего) | planned |
+| POST | `/calendar/export/rotate` | Отозвать/перевыпустить токен | planned |
+
 ---
 
 ## HR (MOD-06, Phase 43)
