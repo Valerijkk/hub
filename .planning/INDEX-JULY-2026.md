@@ -40,9 +40,11 @@
 | Артефакт | Путь | Назначение |
 |----------|------|------------|
 | Code Quality Charter | `.planning/CODE-QUALITY-CHARTER.md` | Correctness = maintainability; DoD be/fe; антипаттерны |
-| Edge / corner catalog | `.planning/EDGE-CORNER-CATALOG.md` | База 450 + индекс expansions · **≈1465 ECC** |
-| Edge expansions 01–05 | `.planning/edge-expansions/01…05-*.md` | **+427 Edge** |
-| Corner parent + C01–C05 | `.planning/edge-expansions/00-CORNER-PARENT.md`, `corners/C01…C05-*.md` | **+588 Corner** |
+| Edge / corner catalog | `.planning/EDGE-CORNER-CATALOG.md` | База + индекс · **≈4696 ECC** |
+| Edge expansions 01–05 | `.planning/edge-expansions/01…05-*.md` | Wave1 **+427 Edge** |
+| Corner parent + C01–C05 | `.planning/edge-expansions/00-CORNER-PARENT.md`, `corners/C01…C05` | Wave1 **+588 Corner** |
+| Wave2 edge+corners | `.planning/edge-expansions/wave2/` | **+771** |
+| Wave3–5 | `.planning/edge-expansions/wave{3,4,5}/` | **+2459** (781+848+830) |
 | Testing Guide | `testframework/TESTING_GUIDE.md` | Канон автотестов: SOLID/DRY/KISS/POM |
 | Guides 01–06 | `testframework/guides/` | Principles, POM, Go, Vitest, E2E, edge coverage |
 ---
