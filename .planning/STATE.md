@@ -19,7 +19,7 @@ progress:
 ## Session note — 2026-07-10 (вторая за день: LiveKit stay + QA-HARDENING planning)
 
 - **SFU:** остаёмся на **LiveKit**; миграция mediasoup **REJECTED**. `SEED-001` = rejected; M4 `hub-calls` = LiveKit-домен.
-- **QA-HARDENING (planning):** Testing Guide на диске (`testframework/TESTING_GUIDE.md` + `guides/01–06`); **edge catalog создан** — `.planning/EDGE-CORNER-CATALOG.md` (**450** активных ECC + 1 N/A, Top-50 P0, CAL-SYNC C1–C15+); индекс-ссылка в `docs/TESTING.md`.
+- **QA-HARDENING (planning):** Testing Guide на диске; **EDGE catalog ≈1465 ECC** (база 450 + Edge exp 427 + Corner exp 588) — см. `EDGE-CORNER-CATALOG.md` сводка + `.planning/edge-expansions/`.
 - **На диске:** `CODE-QUALITY-CHARTER.md`, `INDEX-JULY-2026.md`, `PROJECT-STATUS-2026-07-10.md`, `ROADMAP-DETAILED-JULY-RETURN.md`; `ROADMAP-FINAL` — статус 2026-07-10 + July Rebuild (CAL/RD/QH) + When/Entry.
 - **Ссылки:** Brief · seeds · INDEX · [EDGE-CORNER-CATALOG](EDGE-CORNER-CATALOG.md) · TESTING_GUIDE · CODE-QUALITY-CHARTER
 - Код July Rebuild **не стартовал**; Волна 1 merge-ready — **merge master = пользователь**.

@@ -825,25 +825,57 @@ Gap: TODO → Partial → Covered  (обновить этот файл)
 | 12 | v4 (all sub) | 14 | 12 | 11 | 11 | **48** |
 | 13 | AI | 7 | 6 | 4 | 5 | **22** |
 | 14 | Platform | 10 | 6 | 10 | 10 | **36** |
-| | **ИТОГО** | **122** | **98** | **101** | **129** | **450** |
+| | **ИТОГО (базовый каталог)** | **122** | **98** | **101** | **129** | **450** |
 
-\* Calls: ECC-CALL-037 mediasoup = N/A (в таблице домена есть, в активный итог **не** входит; строк в файле calls = 40).
+\* Calls: ECC-CALL-037 mediasoup = N/A (в активный итог не входит).
+
+### Expansion wave 2026-07-10 (максимизация Edge + Corner)
+
+> Полные таблицы — в `.planning/edge-expansions/` (не дублировать сюда тысячи строк).  
+> ID: Edge `*100+` · Corner parent `*C200+` · Corner agents `*C300+`.
+
+| Файл | Тип | Строк ECC |
+|------|-----|----------:|
+| `edge-expansions/01-AUTH-RBAC-PLATFORM.md` | Edge | 70 |
+| `edge-expansions/02-TRACKER-SPRINT-TMS.md` | Edge | 97 |
+| `edge-expansions/03-MESSENGER-WS-NOTIF-SEARCH.md` | Edge | 80 |
+| `edge-expansions/04-CALLS-CALENDAR-STORAGE.md` | Edge | 84 |
+| `edge-expansions/05-V4-AI-FUTURE.md` | Edge | 96 |
+| `edge-expansions/00-CORNER-PARENT.md` | Corner | 130 |
+| `edge-expansions/corners/C01-AUTH-RBAC-PLATFORM.md` | Corner | 99 |
+| `edge-expansions/corners/C02-TRACKER-SPRINT-TMS.md` | Corner | 85 |
+| `edge-expansions/corners/C03-MESSENGER-WS-NOTIF-SEARCH.md` | Corner | 94 |
+| `edge-expansions/corners/C04-CALLS-CALENDAR-MAIL.md` | Corner | 85 |
+| `edge-expansions/corners/C05-FUTURE-V4-SSO-MCP-MS-UX.md` | Corner | 95 |
+| | **Edge expansions** | **427** |
+| | **Corner expansions** | **588** |
+| | **Базовый каталог** | **450** |
+| | **ГРАНД-ИТОГ ECC** | **≈1465** |
+
+| Тип (все слои) | Оценка |
+|----------------|-------:|
+| Edge (base 101 + exp 427) | **~528** |
+| Corner (base 129 + exp 588) | **~717** |
+| Happy+Neg (base mostly) | **~220** |
 
 ### Gap snapshot (оценка)
 
 | Gap | ~доля | Комментарий |
 |-----|------:|-------------|
-| Covered / Partial | ~45% | Сильные auth/calls webhook/tms Allure/rbac unit |
-| TODO / Manual | ~35% | E2E thin; many corners; rate limits E2E |
-| Future | ~20% | CAL-SYNC RSVP C1–C25, US-INTR polls, US-CAL resources |
+| Covered / Partial | ~15–20% от гранд-итога | Сильные auth/calls webhook/tms; expansions почти все TODO/Future |
+| TODO / Manual | ~55% | QH-P2 приоритет: Top-50 + C300 P0 |
+| Future | ~25% | CAL-SYNC, Wiki, SSO, MCP, MS, Redesign |
 
 ### Рекомендованный порядок автоматизации (после formal TC)
 
 1. P0 из Top-50 без Covered (WS NF-02, search NF-03, rate limits, version races)
-2. CAL-SYNC C1–C15 сразу после ba/sa ERD (не ждать UI polish)
-3. Soft-delete restore/purge + GDPR
-4. Messenger double-send + NATS failure
-5. Storage NF-09 monitoring + file rate limit
+2. Corner C300 P0 security (auth refresh reuse, RBAC mid-flight, WS membership)
+3. CAL-SYNC C1–C15 + CAL-C300 сразу после ba/sa ERD
+4. Soft-delete restore/purge + GDPR cross-domain
+5. Messenger double-send + NATS failure + LiveKit webhook replay
+6. Future: SSO break-glass, MCP autonomy, MS route-flip — до кода как foresight TC
+
+---
 
 ---
 
@@ -851,8 +883,11 @@ Gap: TODO → Partial → Covered  (обновить этот файл)
 
 | Дата | Автор | Изменение |
 |------|-------|-----------|
-| 2026-07-10 | qa-manual | Первичное создание каталога **450** активных ECC (+1 N/A mediasoup); импорт CAL-SYNC C1–C15 + расширения; LiveKit-only; Top-50 P0 |
+| 2026-07-10 | qa-manual | Первичный каталог **450** ECC (+1 N/A); CAL-SYNC C1–C15; LiveKit-only; Top-50 P0 |
+| 2026-07-10 | 5×qa-manual Edge | Expansions `01–05`: **+427 Edge** (`*100+`) |
+| 2026-07-10 | parent + 5×qa-manual Corner | `00-CORNER-PARENT` **+130** + corners C01–C05 **+458** (`C200+`/`C300+`) |
+| 2026-07-10 | parent merge | Гранд-итог **≈1465** ECC; индекс expansions в сводке |
 
 ---
 
-*Канон TC остаётся в `docs/TESTING.md`. Этот файл — foresight backlog edge/corner для июля 2026 rebuild и последующих волн.*
+*Канон TC: `docs/TESTING.md`. Полные expansion-таблицы: `.planning/edge-expansions/`. Этот файл — индекс + базовый каталог + Top-50.*

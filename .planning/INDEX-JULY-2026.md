@@ -40,7 +40,9 @@
 | Артефакт | Путь | Назначение |
 |----------|------|------------|
 | Code Quality Charter | `.planning/CODE-QUALITY-CHARTER.md` | Correctness = maintainability; DoD be/fe; антипаттерны |
-| Edge / corner catalog | `.planning/EDGE-CORNER-CATALOG.md` | Happy / edge / corner → TC backlog (ECC-*) |
+| Edge / corner catalog | `.planning/EDGE-CORNER-CATALOG.md` | База 450 + индекс expansions · **≈1465 ECC** |
+| Edge expansions 01–05 | `.planning/edge-expansions/01…05-*.md` | **+427 Edge** |
+| Corner parent + C01–C05 | `.planning/edge-expansions/00-CORNER-PARENT.md`, `corners/C01…C05-*.md` | **+588 Corner** |
 | Testing Guide | `testframework/TESTING_GUIDE.md` | Канон автотестов: SOLID/DRY/KISS/POM |
 | Guides 01–06 | `testframework/guides/` | Principles, POM, Go, Vitest, E2E, edge coverage |
 ---
