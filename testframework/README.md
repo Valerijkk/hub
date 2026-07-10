@@ -1,11 +1,14 @@
 # Hub — Test Framework (`testframework/`)
 
-> Полная карта: [`PIPELINE.md`](PIPELINE.md)
+> **Авторам тестов:** канон написания — [`TESTING_GUIDE.md`](TESTING_GUIDE.md) (+ [`guides/`](guides/)).  
+> Полная карта CI: [`PIPELINE.md`](PIPELINE.md) · эталон практик: [`.cursor/playbooks/testing.md`](../.cursor/playbooks/testing.md)
 
 Структура повторяет CI: **стадия → job → домен**.
 
 ```
 testframework/
+├── TESTING_GUIDE.md         # канон для авторов автотестов
+├── guides/                  # deep-dives (POM, Go, Vitest, E2E, edge)
 ├── pipeline/jobs/           # манифесты CI jobs
 └── stages/
     ├── unit/

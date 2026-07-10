@@ -1,9 +1,24 @@
 # Hub — Финальный Roadmap (2026-07-03)
 
-> **Статус:** на проверку пользователю → после апрува коммит → старт Волны 1 в фича-ветках.
-> **Входы:** `GRAY-ZONES-DECISIONS-2026-07-03.md` (все решения), `ADR-ARCH-MICROSERVICES-2026`, `MICROSERVICES-ROADMAP.md`, `EXPANSION-ANALYSIS`, `MARKET-AND-NEEDS`, A/B-планы (`ab-tests/`, `ab-microservices/`).
-> **Принцип:** rolling-wave — ближние волны декомпозированы атомарно (≤200–300 строк/план), дальние укрупнённо; `tech-lead` дробит их до предела перед стартом (принцип максимальной декомпозиции, team-workflow §6.1).
-> **Процесс:** агенты коммитят в фича-ветки свободно (и пушат ветки на remote); **push/мерж в master — только пользователь лично**; PR=фича, rebase-merge; QA-конвейер: TC → qa-manual-ver → автотесты → qa-auto-ver; юниты пишут be/fe.
+> **Статус:** Волна 1 исполнена в фича-ветках (2026-07-03); мерж master — пользователь; код W2+ / July Rebuild — freeze до align ~конец июля 2026.
+> **Входы:** `GRAY-ZONES-DECISIONS-2026-07-03.md`, `ADR-ARCH-MICROSERVICES-2026`, `MICROSERVICES-ROADMAP.md`, `EXPANSION-ANALYSIS`, `MARKET-AND-NEEDS`, A/B-планы.
+> **Принцип:** rolling-wave — ближние волны атомарно (≤200–300 строк/план), дальние укрупнённо; `tech-lead` дробит перед стартом.
+> **Процесс:** агенты коммитят/пушат фича-ветки; **push/мерж в master — только пользователь**; PR=фича, rebase-merge; QA-конвейер: TC → qa-manual-ver → автотесты → qa-auto-ver; юниты пишут be/fe.
+
+## Статус на 2026-07-10
+
+> Подробный снимок: **`.planning/PROJECT-STATUS-2026-07-10.md`**.
+> Операционный план возврата: **`.planning/ROADMAP-DETAILED-JULY-RETURN.md`**.
+> Brief: `.planning/JULY-2026-REBUILD-BRIEF.md` · Индекс: `.planning/INDEX-JULY-2026.md`.
+
+| Факт | Статус |
+|------|--------|
+| Волна 1 | ✅ Исполнена в фича-ветках · `integration/wave1` merge-ready · **мерж master = пользователь** |
+| Волны 2–12 / Track P | ⏸ Код freeze до July align (~конец июля) |
+| SFU / M4 hub-calls | **LiveKit** · SEED-001 mediasoup **REJECTED** |
+| Active эпики (planning) | EPIC-CAL-SYNC · EPIC-REDESIGN · EPIC-QA-HARDENING |
+| FA-06 | ⏳ Manual ops (не гейтит feature-dev) |
+| Код July Rebuild | Не стартовал |
 
 ---
 
@@ -15,7 +30,7 @@ Track F (функционал):  W1 quick-wins → W2-3 аналитика+wiki-
                        → wiki-реализация → AI-hub (LiteLLM-паттерн) + MCP → SSO
 Track P (платформа):   W2 M0 (ADR-детали+K3s+OTel+path-CI) → W3-4 M1 hardening
                        → W5-6 M2 пилот hub-notification → GATE Go/No-Go
-                       → M3 hub-ai → M4 realtime-трио (hub-ws/hub-messenger/hub-calls)
+                       → M3 hub-ai → M4 realtime-трио (hub-ws/hub-messenger/hub-calls **на LiveKit**)
 Ops-лейн (фоновый):    FA-06 ротация (пользователь по runbook) → tag v2.5.0 → SSH deploy
 ```
 
@@ -161,6 +176,79 @@ Ops-лейн (фоновый):    FA-06 ротация (пользователь
 
 ---
 
+## Отложено: July Rebuild (~конец июля 2026) — НЕ стартовать код до align
+
+> Brief: `.planning/JULY-2026-REBUILD-BRIEF.md` · Status: `PROJECT-STATUS-2026-07-10.md` · Ops plan: `ROADMAP-DETAILED-JULY-RETURN.md`
+> Seeds: SEED-001 **REJECTED** · SEED-002 **active**
+> Edge catalog / Testing Guide: `.planning/EDGE-CORNER-CATALOG.md`, `testframework/TESTING_GUIDE.md`
+
+### EPIC-SFU — REJECTED
+
+| Поле | Значение |
+|------|----------|
+| Решение | **REJECTED 2026-07-10** — остаёмся на **LiveKit** |
+| Seed | `seeds/SEED-001-mediasoup-migration.md` |
+| M4 | `hub-calls` = **LiveKit-домен** (без смены SFU) |
+
+### EPIC-CAL-SYNC — Unified calendar + RSVP + mail (L0/L1)
+
+| # | Подзадача | Who | When | Depends on | Success criteria |
+|---|-----------|-----|------|------------|------------------|
+| CAL-0 | Align: mail L0–L3, reschedule-RSVP, приоритет vs Redesign | product + user | W0 D1–D2 | Brief §5 | Locked answers |
+| CAL-1 | US/AC RSVP + create from messenger/calendar | ba2 → ba-ver | W1–W2 | CAL-0 | US в vision; AC тестируемы |
+| CAL-2 | ERD CalendarEvent/Attendee + REST + NATS + ICS | sa2 → sa-ver | W2 | CAL-1 | Контракты + коды ошибок |
+| CAL-3 | ADR-CAL-UNIFIED (+ mail ADR если L2+) | arch → arch-ver | W2 | CAL-2 draft | ADR accepted |
+| CAL-4 | DESIGN-SPEC: invite inbox, accept/decline, conflict | designer → designer-ver | W2–W3 | CAL-0 + mockups | Токены, a11y |
+| CAL-5 | BE: schema + RSVP API | be2 → be-ver | W3+ | CAL-3 | Unit/API green |
+| CAL-6 | BE: messenger/calendar → event + NATS + ICS L0 | be1 → be-ver | W3+ | CAL-5 | ICS в письме |
+| CAL-7 | FE: inbox + RSVP + calendar projection | fe2 → fe-ver | W3+ | CAL-4, CAL-5 | Accept → в «моём» календаре |
+| CAL-8 | FE: create from messenger | fe1 → fe-ver | W3+ | CAL-6 | Happy path E2E |
+| CAL-9 | iCal L1 export/subscribe (GZ-V4-05) | be+fe | W4 | CAL-5 | Feed URL; no OAuth |
+| CAL-10 | TC C1–C15 → auto | qa-manual → qa-auto | W2–W3+ | EDGE catalog | TC↔тест |
+
+**Entry:** July Align · Wave1 merged (рекоменд.) · CAL-0 locked. **Не делать до ADR:** OAuth L3, guest email-only, mediasoup.
+
+### EPIC-REDESIGN — Cloud Code Designer → Hub UI
+
+| # | Подзадача | Who | When | Depends on | Success criteria |
+|---|-----------|-----|------|------------|------------------|
+| RD-0 | Scope: full shell vs calendar/calls/messenger | product + user | W0 | Align | MoSCoW |
+| RD-1 | Inventory макетов vs UI (gap list) | designer | W1 | RD-0 + mockups | Gap MD |
+| RD-2 | DESIGN-SPEC токены/состояния/a11y | designer → designer-ver | W1–W2 | RD-1 | Spec для fe |
+| RD-3..N | FE waves по экранам | fe1/fe2 → fe-ver | W3+ | RD-2 | Visual + a11y |
+| RD-Q | TC + visual smoke E2E | qa-manual + qa-auto2 | ∥ RD-3+ | RD-2 | Smoke green |
+
+### EPIC-QA-HARDENING — каталог → TC → автотесты + Testing Guide
+
+| Фаза | Планы | Who | When | Success criteria |
+|------|-------|-----|------|------------------|
+| **QH-P0** | Каталог + Testing Guide + Charter | qa-manual / docs / tech-lead | 2026-07-10 → W0 | Артефакты в INDEX |
+| **QH-P1** | Adoption Guide в PR/playbooks | docs-writer + team-lead | W0–W1 | Ссылка в checklist |
+| **QH-P2** | TC из catalog (auth/ws/calls/calendar/messenger) | qa-manual → qa-manual-ver | W1–W2 | TC-ID + трассировка |
+| **QH-P3** | Auto backend API/integration | qa-auto1 → qa-auto-ver | W2+ | TC link; race green |
+| **QH-P4** | Auto FE Vitest + Playwright | qa-auto2 → qa-auto-ver | W2+ | Deterministic |
+| **QH-P5** | Gate + flaky quarantine | team-lead + qa-auto-ver | Каждая волна | `/qa-gate` PASS |
+
+### When / Entry — волны 2–12 (ориентир после July Align)
+
+| Волна | When | Entry criteria |
+|-------|------|----------------|
+| **2** | После Align + merge Wave1; не раньше возврата ~конец июля | wave1 в master · Align Qs · tech-lead нарезка · NF-09 + GIPHY follow-ups |
+| **3** | После W2 ADR + спеки 2.8–2.11 | ADR drafts · Atlas plan · DESIGN-SPEC 2.11 · TC start |
+| **4** | После каркаса intranet/calendar из W3 | US-CAL/INTR · M2 schema plan · iCal без OAuth |
+| **5** | После W4 slice + M2 prep | K3s 2.7 · OTel 2.6 · **Go/No-Go** с user |
+| **6–8** | После Go на M2 (для M3); handbook ← Wiki 5.e | Go/No-Go PASS · CRM/HR US · Wiki RBAC |
+| **9–11** | Accounting → SSO → M4; **Locust baseline до M4** | ADR-AUTH-SSO · Locust WS · **hub-calls = LiveKit** |
+| **12+** | Bases ∥ с W3; polish после F-трека | BS-1 sharing design · Lighthouse/WCAG цели |
+
+## ВОЛНА / ЭПИК QA-HARDENING (параллельный лейн с возврата июля)
+
+> Не путать с TF-PY (после микросервисов). Ужесточение текущего Go/TS/Playwright контура.
+> Фазы QH-P0…P5 выше · артефакты в `INDEX-JULY-2026.md`.
+> Параллелизм с Track F: QH на доменах текущей фича-волны; полный `/qa-gate` — на интеграции (team-lead).
+
+---
+
 ## Сквозные ворота каждой волны
 
 1. Максимальная декомпозиция планов до старта (tech-lead → приёмка team-lead).
@@ -168,14 +256,17 @@ Ops-лейн (фоновый):    FA-06 ротация (пользователь
 3. QA-конвейер: TC → qa-manual-ver → автотесты → qa-auto-ver; юниты пишут be/fe.
 4. Coverage нового кода ≥82% (MCP/agents/SSO ≥80% security-critical).
 5. Docs-sync в той же волне; TC-таблицы полные для новых модулей.
-6. Мерж в master — только по команде пользователя (личное ревью: security/миграции/CI/ADR).
+6. CODE-QUALITY-CHARTER + Testing Guide в DoD be/fe/qa.
+7. Мерж в master — только по команде пользователя (личное ревью: security/миграции/CI/ADR).
 
-## Что осталось ДО коммита (текущий статус)
+## Что осталось (статус 2026-07-10)
 
 | # | Шаг | Статус |
 |---|-----|--------|
-| 1 | Best practices 2026 (2 фоновых исследования: backend, frontend/testing) | ⏳ в работе → интеграция дельт в playbooks |
-| 2 | Актуализация всей доки (docs/*, wiki, STATE, ROADMAP-дрейф) | ⏳ после п.1 |
-| 3 | Этот roadmap — проверка пользователем | ⏳ **ждёт тебя** |
-| 4 | Коммит всего пакета (30 агентов, 10 playbooks, ADR, планы, правила) | после твоего апрува |
-| 5 | Старт Волны 1 в фича-ветках | после коммита |
+| 1 | Волна 1 в фича-ветках | ✅ merge-ready (`integration/wave1`) |
+| 2 | Мерж Wave1 → master | ⏳ **пользователь** (ревью bases) |
+| 3 | FA-06 secret rotation | ⏳ manual ops |
+| 4 | July Align (Brief §5) + kickoff | ⏳ ~конец июля |
+| 5 | QA-HARDENING P0 (catalog + guide) | 🟡 planning 2026-07-10 |
+| 6 | CAL-SYNC / Redesign / W2+ execute | ⏸ после Align |
+| 7 | Tag v2.5.0 + SSH deploy | ⏸ после FA-06 + CTO |

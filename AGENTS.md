@@ -48,7 +48,7 @@
 
 Планирование: `.planning/STATE.md`, `.planning/COVERAGE.md`, `.planning/ROADMAP.md`, `.planning/DISCUSS-ROADMAP-LOCKED.md`
 
-**Active (2026-07-03):** Реорганизация команды ✅ (30 агентов + 10 playbooks) · ADR-MICROSERVICES accepted · gray-zones решены (`.planning/GRAY-ZONES-DECISIONS-2026-07-03.md`) · **Roadmap: `.planning/ROADMAP-FINAL-2026-07-03.md`** (ревью → коммит → Волна 1) · COV 83.0% · branch `master` · FA-06 — ручная ротация по runbook (не гейтит)
+**Active (2026-07-10):** July Rebuild **planning** (код freeze до ~конца июля) · **LiveKit stay** (SEED-001 mediasoup REJECTED) · Волна 1 в ветках, merge master = user · QA-HARDENING docs wave · индекс `.planning/INDEX-JULY-2026.md` · charter `.planning/CODE-QUALITY-CHARTER.md` · COV 83.0% · FA-06 manual (не гейтит разработку)
 
 GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–§11
 
@@ -106,7 +106,9 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 
 ---
 
-## Текущий статус (2026-06-23)
+## Текущий статус (2026-07-10)
+
+> July Rebuild planning · LiveKit канон · метрики ниже = baseline master (без регрессии).
 
 | Milestone | Статус |
 |-----------|--------|
@@ -120,6 +122,8 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Test framework migration | ✅ Wave B COMPLETE (0 internal tests) |
 | Final audit (FA-01–FA-12) | ✅ Wave C COMPLETE (кроме FA-06 manual) |
 | Lighthouse CI (FB-06) | ✅ artifact job PR #27 (non-blocking) |
+| Волна 1 (roadmap 2026-07-03) | ✅ в фича-ветках · merge master = user |
+| July Rebuild / QA-HARDENING | 📋 planning · kickoff ~конец июля |
 
 ### Метрики качества
 
@@ -146,6 +150,8 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
 | FA-10 e2e-smoke | ✅ 3/3 PASS |
 | PG-03 Secret rotation (FA-06) | ⏳ manual ops — **единственный prod-блокер** |
+| Merge Волна 1 → master | ⏳ user |
+| July return / CAL-SYNC / QA-HARDENING / Redesign | 📋 planning → kickoff ~конец июля |
 | TF-CLEANUP-01 legacy e2e/specs | ✅ closed 2026-06-22 |
 | RU-COMMENTS-01 top files | ✅ closed 2026-06-22 |
 | DOC-02 historical SUMMARY banner | ✅ closed 2026-06-22 |
@@ -153,7 +159,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | NFR-16 WCAG full sign-off | ⚠️ login axe PASS |
 | NFR-17 Lighthouse blocking gate | ⚠️ artifact only (PR #27) |
 
-Полный аудит: `.planning/AUDIT-2026-06-23.md` · матрица: `.planning/COVERAGE.md`
+Полный аудит: `.planning/AUDIT-2026-06-23.md` · матрица: `.planning/COVERAGE.md` · July index: `.planning/INDEX-JULY-2026.md`
 
 ---
 
@@ -198,4 +204,4 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 
 ---
 
-*Обновлено: 2026-06-22 — P1 backlog closed, product 89/100, TF pipeline, dev Docker login*
+*Обновлено: 2026-07-10 — July Rebuild planning, LiveKit stay, QA-HARDENING index*

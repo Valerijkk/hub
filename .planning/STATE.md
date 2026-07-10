@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: team-reorg-complete-ready-for-wave1
-stopped_at: Реорганизация AI-команды (30 агентов) + planning-пакет ГОТОВЫ · ждёт ревью пользователя → коммит → Волна 1
-last_updated: "2026-07-03T02:10:00.000Z"
-last_activity: 2026-07-03 team reorg 30 agents · 10 playbooks · A/B Fable-vs-Opus (Fable=team-lead) · ADR-MICROSERVICES accepted · gray-zones ~90 решений · BP-2026 дельты в playbooks · ROADMAP-FINAL + TF-PY(Python/Locust) + DOCS-EXCELLENCE
+status: july-qa-hardening-planning-awaiting-return
+stopped_at: LiveKit stay (SEED-001 REJECTED) · QA-HARDENING planning wave 2026-07-10 · код freeze до возврата ~конец июля · Волна 1 в ветках ждёт мерж пользователя
+last_updated: "2026-07-10T17:30:00.000Z"
+last_activity: 2026-07-10 LiveKit stay + CODE-QUALITY-CHARTER + INDEX-JULY + QA-HARDENING agents (Testing Guide / edge catalog / status)
 progress:
   total_phases: 125
   completed_phases: 125
@@ -15,6 +15,21 @@ progress:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-10 (вторая за день: LiveKit stay + QA-HARDENING planning)
+
+- **SFU:** остаёмся на **LiveKit**; миграция mediasoup **REJECTED**. `SEED-001` = rejected; M4 `hub-calls` = LiveKit-домен.
+- **QA-HARDENING (planning):** Testing Guide на диске (`testframework/TESTING_GUIDE.md` + `guides/01–06`); **edge catalog создан** — `.planning/EDGE-CORNER-CATALOG.md` (**450** активных ECC + 1 N/A, Top-50 P0, CAL-SYNC C1–C15+); индекс-ссылка в `docs/TESTING.md`.
+- **На диске:** `CODE-QUALITY-CHARTER.md`, `INDEX-JULY-2026.md`, `PROJECT-STATUS-2026-07-10.md`, `ROADMAP-DETAILED-JULY-RETURN.md`; `ROADMAP-FINAL` — статус 2026-07-10 + July Rebuild (CAL/RD/QH) + When/Entry.
+- **Ссылки:** Brief · seeds · INDEX · [EDGE-CORNER-CATALOG](EDGE-CORNER-CATALOG.md) · TESTING_GUIDE · CODE-QUALITY-CHARTER
+- Код July Rebuild **не стартовал**; Волна 1 merge-ready — **merge master = пользователь**.
+
+## Session note — 2026-07-10 (первая: July Rebuild brief + seeds; код не трогали)
+
+- Пользователь: изучить тонкости AI-команды → зафиксировать понимание; проработать идеи SFU и **sync почта/созвоны/календарь с RSVP**; задокументировать до возврата **~конец июля**.
+- Артефакты: `.planning/JULY-2026-REBUILD-BRIEF.md`, seeds `SEED-001` / `SEED-002`, секция «Отложено: July Rebuild» в `ROADMAP-FINAL-2026-07-03.md`.
+- **Закрыто позже в тот же день:** SFU = LiveKit (mediasoup отклонён). Открыто до возврата: уровень email L0–L3; приоритет CAL-SYNC vs Redesign vs QA-HARDENING execution; судьба волн 2–11.
+- Код/реализация **не начинались** — только planning docs.
 
 ## Session note — 2026-07-03 (Волна 1, поток D: аналитика и доки, ветка `docs/wave1-analysis`)
 
@@ -28,7 +43,7 @@ progress:
 
 **Ключевая ценность:** единая self-hosted среда для dev-команды и сотрудников компании — трекер, TMS, мессенджер, звонки, интранет, CRM, HR, учёт, AI — в одном интерфейсе.
 
-**Текущий фокус (2026-07-03):** planning-пакет реорганизации готов → ревью пользователя → коммит → **Волна 1** (`.planning/ROADMAP-FINAL-2026-07-03.md`). FA-06 — ручная ротация по runbook (пользователь), больше не гейтит разработку.
+**Текущий фокус (2026-07-10):** July Rebuild **planning** (brief + seeds + QA-HARDENING docs) · код freeze до возврата **~конец июля** · Волна 1 в фича-ветках ждёт **merge пользователя в master** · LiveKit канон · FA-06 — ручная ротация (не гейтит разработку). Индекс: `.planning/INDEX-JULY-2026.md`.
 
 ## Session note — 2026-07-03 (be1 · Волна 1 поток B · bases security fix)
 
@@ -59,19 +74,24 @@ progress:
 
 ---
 
-## Текущая позиция (2026-06-22)
+## Текущая позиция (2026-07-10)
 
 | Параметр | Значение |
 |----------|----------|
-| Фаза | **Wave C** — FA-01–FA-12 ✅ (кроме FA-06 manual) · RU-V10 PASS · FA-10 qa-gate PASS |
-| Ветка | `master` · HEAD `bbdaf16` |
-| COV overall (`internal/`) | **83.0%** (Docker, `-tags hubtest`, post FA-11/12) |
+| Фаза | **July Rebuild planning** · QA-HARDENING docs wave · код freeze до ~конца июля |
+| Baseline quality | Wave C FA-01–FA-12 ✅ (кроме FA-06 manual) · RU-V10 PASS · FA-10 qa-gate PASS |
+| Волна 1 | Done in **feature branches** · merge → `master` = **пользователь** |
+| SFU | **LiveKit** (SEED-001 mediasoup **REJECTED**) |
+| Ветка канона метрик | `master` (COV/product — как в AGENTS.md) |
+| COV overall (`internal/`) | **83.0%** (Docker, `-tags hubtest`) |
 | Security packages ≥80% | **6/6** ✅ |
-| Product score | **89/100** (post P1 backlog close) |
+| Product score | **89/100** |
 | REST API | **286+** endpoints |
-| Backend tests | **495** files в `backend/testframework/` · **0** в `internal/*_test.go` (TF-M08 ✅) |
+| Ent schemas | **82** |
+| Backend tests | **495** files в `backend/testframework/` · **0** в `internal/*_test.go` |
 | Playwright E2E | **20** specs (`testframework/stages/e2e/domains/`) |
 | Frontend Vitest | **99/99** pass · 37 files `testframework/stages/unit/frontend-test/domains/` · 0 in `src/` |
+| Planning index | `.planning/INDEX-JULY-2026.md` |
 
 ### Покрытие ключевых пакетов (Docker, Phase 125)
 
@@ -171,11 +191,14 @@ progress:
 
 ## Pending Todos
 
-- **FA-06 / PG-03:** Phase 0 ✅ · scripts: `fa06-rotate-p1.sh`, `fa06-rotate-p1-k3s.sh`, `fa06-rotate-p2-smoke.sh`, `v25-release-gate.sh` · **Phase 1–3 manual**
-- **SSH deploy:** `scripts/deploy-preflight.sh` + GitHub Secrets `SSH_HOST`/`SSH_KEY` · firewall :22
-- ~~**UX-1:**~~ ✅ PR #15 merged · ~~**CI flake:**~~ ✅ #16 docker retry · #22 gitlab test · **master CI green** (run 27962930096)
-- ~~**Dependabot batch:**~~ ✅ #17–#21 merged 2026-06-22 (recharts, happy-dom, radix select/tooltip, atlaskit dnd 2.x)
-- **v2.5.0 tag:** after FA-06 Phase 1–3 + CTO sign-off
+- **FA-06 / PG-03:** Phase 0 ✅ · scripts ready · **Phase 1–3 manual** (единственный prod-блокер ops) · runbook `docs/runbooks/fa06-secret-rotation.md`
+- **Merge Волна 1 → master:** пользователь (rebase-merge фича-веток); агенты не пушат/не мержат master
+- **July return kickoff (~конец июля):** align по brief → перестройка планов · старт EPIC-CAL-SYNC / QA-HARDENING execution / Redesign по приоритету
+- **CAL-SYNC:** SEED-002 active — unified calendar + RSVP + mail levels L0–L3 (ADR при L3/OAuth)
+- **QA-HARDENING:** Testing Guide + EDGE-CORNER-CATALOG + CODE-QUALITY-CHARTER → TC → автотесты (исполнение с возврата)
+- **Redesign:** Cloud Code Designer / UX pass — после или параллельно kickoff (brief)
+- **SSH deploy + v2.5.0 tag:** after FA-06 Phase 1–3 + CTO sign-off
+- ~~**UX-1 / Dependabot / CI flake:**~~ ✅ closed 2026-06-22
 
 ---
 
@@ -282,9 +305,9 @@ progress:
 
 ## Session Continuity
 
-**Last session:** 2026-06-22/23  
-**Stopped at:** AUTH-01 · APIGW-04 closed · WebhookDispatcher Stop race fix · FA-10 race PASS  
-**Resume:** FA-06 PG-03 Phase 1–3 (manual) → `bash scripts/fa06.sh release-gate` → `git tag v2.5.0`
+**Last session:** 2026-07-10 (LiveKit stay + QA-HARDENING planning + docs-writer charter/index)  
+**Stopped at:** Planning freeze · SEED-001 REJECTED · charter + INDEX-JULY · соседние агенты пишут Testing Guide / edge catalog / PROJECT-STATUS  
+**Resume (~конец июля):** kickoff по `JULY-2026-REBUILD-BRIEF.md` · merge Волна 1 (user) · FA-06 manual · CAL-SYNC / QA-HARDENING / Redesign по приоритету
 
 ### 2026-06-23 — Docs audit + cleanup ✅
 

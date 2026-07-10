@@ -1,6 +1,7 @@
 # Hub — Тестовая документация
 
-> **Обновлено:** 2026-06-22 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/AUDIT-2026-06-22-quality-processes.md`
+> **Обновлено:** 2026-06-22 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/AUDIT-2026-06-22-quality-processes.md`  
+> **Edge/Corner backlog:** [`.planning/EDGE-CORNER-CATALOG.md`](../.planning/EDGE-CORNER-CATALOG.md) — Happy/Neg/Edge/Corner по доменам (источник будущих TC; CAL-SYNC C1–C15)
 
 ---
 
