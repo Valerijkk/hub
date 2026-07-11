@@ -798,6 +798,24 @@ Ctrl+K user search → `/intranet/directory?user={id}`.
 
 Anti-repeat: старается не повторять пары из предыдущего раунда. Уведомление обеим сторонам пары.
 
+### Intranet v2 — **planned/spec** (FR-INTR, Волна 2)
+
+> Спецификация: `docs/system_specification.md` § «Intranet v2 (FR-INTR)». Реализации в коде ещё нет.
+
+| Метод | Путь | Описание | Статус |
+|---|---|---|---|
+| POST | `/intranet/news` | + опциональный `poll` (вопрос, 2–10 вариантов) | planned |
+| GET | `/intranet/news/:newsId/poll` | Опрос поста + агрегаты голосов | planned |
+| POST | `/intranet/news/:newsId/poll/vote` | Голос (1 вариант; повторный → 422) | planned |
+| PUT | `/intranet/news/:newsId/poll` | Правка/закрытие опроса (после первого голоса → 422) | planned |
+| GET | `/intranet/onboarding/templates` | Системные шаблоны dev/non-dev (admin) | planned |
+| POST | `/intranet/onboarding/assignments` | Назначить шаблон новичку (admin; re-assign → 409 без confirm) | planned |
+| GET | `/intranet/onboarding/assignments` | Прогресс по всем новичкам (admin, offset/limit) | planned |
+| GET | `/intranet/onboarding/me` | Мой чеклист | planned |
+| PATCH | `/intranet/onboarding/me/items/:itemId` | Отметить пункт (`checked`, `version`) | planned |
+| GET | `/intranet/kudos/leaderboard` | Топ получателей за `period=month\|quarter\|all` | planned |
+| DELETE | `/intranet/news/:newsId` | Расширение: admin **или автор** (постмодерация) | planned |
+
 ---
 
 ## Calendar (MOD-04, Phase 41)
@@ -810,6 +828,26 @@ Anti-repeat: старается не повторять пары из преды
 | GET | `/calendar/export.ics` | Экспорт iCalendar за тот же период |
 
 Типы событий в JSON: `call`, `sprint`, `deadline`, `leave`.
+
+### Calendar v2 — **planned/spec** (FR-CAL, Волна 2)
+
+> Спецификация: `docs/system_specification.md` § «Calendar v2 (FR-CAL)». Реализации в коде ещё нет.
+
+| Метод | Путь | Описание | Статус |
+|---|---|---|---|
+| GET | `/calendar/resources` | Справочник ресурсов (room/equipment/other) | planned |
+| POST | `/calendar/resources` | Создать ресурс (admin) | planned |
+| PUT | `/calendar/resources/:id` | Обновить (admin, `version`) | planned |
+| DELETE | `/calendar/resources/:id` | Деактивировать (admin, брони сохраняются) | planned |
+| POST | `/calendar/events` | Событие + `resource_ids` + `recurrence` (конфликт брони → 409) | planned |
+| PUT | `/calendar/events/:eventId` | Правка серии целиком | planned |
+| DELETE | `/calendar/events/:eventId` | Серия → корзина 30 д, брони освобождаются | planned |
+| GET | `/calendar/availability` | Busy/free по `user_ids` + одобренные отпуска HR | planned |
+| GET | `/calendar/subscriptions` | Мои iCal-подписки | planned |
+| POST | `/calendar/subscriptions` | Подписка на внешний фид (SSRF-валидация; >10 → 422) | planned |
+| DELETE | `/calendar/subscriptions/:id` | Удалить подписку и её события | planned |
+| GET | `/calendar/export.ics?token=` | Экспорт по секретному токену (замена текущего) | planned |
+| POST | `/calendar/export/rotate` | Отозвать/перевыпустить токен | planned |
 
 ---
 
@@ -893,6 +931,40 @@ Lark Base clone MVP: таблицы с typed columns и grid-редакторо�
 | DELETE | `/bases/:baseId/tables/:tableId/records/:recordId` | Soft delete строки |
 
 **Column types:** `text`, `number`, `date`, `select`, `checkbox`, `url`, `user_ref`. Cells — JSON `{ "<column_uuid>": value }`.
+
+---
+
+## Wiki — **planned/spec** (FR-WIKI, Волны 5/8)
+
+> Новый модуль, кода ещё нет. Спецификация: `docs/system_specification.md` § «Wiki — новый модуль (FR-WIKI)».
+> RBAC: роли space (read/write/admin) + наследование + restrict-флаг страницы (GZ-SEC-07/11).
+
+| Метод | Путь | Описание | Статус |
+|---|---|---|---|
+| GET | `/wiki/spaces` | Мои space | planned |
+| POST | `/wiki/spaces` | Создать space (создатель = admin) | planned |
+| GET | `/wiki/spaces/:spaceId` | Space | planned |
+| PUT | `/wiki/spaces/:spaceId` | Обновить (space admin, `version`) | planned |
+| DELETE | `/wiki/spaces/:spaceId` | Удалить пустой space (иначе 422) | planned |
+| GET | `/wiki/spaces/:spaceId/members` | Участники и роли | planned |
+| PUT | `/wiki/spaces/:spaceId/members/:userId` | Назначить роль (последний admin → 422) | planned |
+| DELETE | `/wiki/spaces/:spaceId/members/:userId` | Убрать участника | planned |
+| GET | `/wiki/spaces/:spaceId/tree` | Дерево страниц (restrict-страницы скрыты) | planned |
+| POST | `/wiki/spaces/:spaceId/pages` | Создать страницу (markdown, `parent_id`) | planned |
+| GET | `/wiki/pages/:pageId` | Страница (read + restrict-check) | planned |
+| PUT | `/wiki/pages/:pageId` | Правка (write, `version` → 409 при конфликте) | planned |
+| DELETE | `/wiki/pages/:pageId` | Поддерево → корзина 30 д | planned |
+| POST | `/wiki/pages/:pageId/move` | Переместить (цикл/глубина → 422) | planned |
+| PUT | `/wiki/pages/:pageId/restrict` | Restrict-флаг + allow-list (space admin) | planned |
+| GET | `/wiki/pages/:pageId/versions` | История версий (offset/limit) | planned |
+| GET | `/wiki/pages/:pageId/versions/:number` | Версия + diff с текущей | planned |
+| POST | `/wiki/pages/:pageId/versions/:number/restore` | Rollback → новая версия N+1 | planned |
+| GET | `/wiki/pages/:pageId/issue-links` | Связанные задачи | planned |
+| POST | `/wiki/pages/:pageId/issue-links` | Связать с задачей (403 без доступа к проекту) | planned |
+| DELETE | `/wiki/pages/:pageId/issue-links/:issueId` | Убрать связь | planned |
+| GET | `/projects/:projectId/issues/:issueId/wiki-links` | Обратная сторона (tracker) | planned |
+
+Поиск — через существующий `GET /search?types=wiki_page` (user-scope фильтр на сервере, NF-03).
 
 ---
 

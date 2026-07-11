@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: july-qa-hardening-planning-awaiting-return
-stopped_at: LiveKit stay (SEED-001 REJECTED) · QA-HARDENING planning wave 2026-07-10 · код freeze до возврата ~конец июля · Волна 1 в ветках ждёт мерж пользователя
-last_updated: "2026-07-11T21:30:00.000Z"
-last_activity: 2026-07-11 team-lead обязательный шаблон делегирования + цикличное QA/регрессия
+stopped_at: LiveKit stay · QA-HARDENING planning · код freeze ~конец июля · Волна 1+otel+wave2 docs влиты в master 2026-07-11
+last_updated: "2026-07-11T21:50:00.000Z"
+last_activity: 2026-07-11 merge в master: wave1 + otel-nats + ADR/SSO + wave2 specs; cleanup веток
 progress:
   total_phases: 125
   completed_phases: 125
@@ -15,6 +15,12 @@ progress:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-11 (merge в master + cleanup веток)
+
+- В `master` влиты: `integration/wave1` (FF), `feat/platform/otel-nats-trace`, `docs/wave2-adr-package`, `docs/wave2-specs`.
+- Feature-ветки удалены локально и на remote (dependabot оставлены).
+- Код freeze July Rebuild до возврата ~конец июля сохраняется.
 
 ## Session note — 2026-07-11 (team-lead: шаблон задач + цикличное качество)
 
@@ -28,7 +34,7 @@ progress:
 - **QA-HARDENING (planning):** Testing Guide на диске; **EDGE catalog ≈4696 ECC** (base+W1+W2+W3–5) — `EDGE-CORNER-CATALOG.md` + `.planning/edge-expansions/wave{2..5}/`.
 - **На диске:** `CODE-QUALITY-CHARTER.md`, `INDEX-JULY-2026.md`, `PROJECT-STATUS-2026-07-10.md`, `ROADMAP-DETAILED-JULY-RETURN.md`; `ROADMAP-FINAL` — статус 2026-07-10 + July Rebuild (CAL/RD/QH) + When/Entry.
 - **Ссылки:** Brief · seeds · INDEX · [EDGE-CORNER-CATALOG](EDGE-CORNER-CATALOG.md) · TESTING_GUIDE · CODE-QUALITY-CHARTER
-- Код July Rebuild **не стартовал**; Волна 1 merge-ready — **merge master = пользователь**.
+- Код July Rebuild **не стартовал**.
 
 ## Session note — 2026-07-10 (первая: July Rebuild brief + seeds; код не трогали)
 
@@ -36,6 +42,14 @@ progress:
 - Артефакты: `.planning/JULY-2026-REBUILD-BRIEF.md`, seeds `SEED-001` / `SEED-002`, секция «Отложено: July Rebuild» в `ROADMAP-FINAL-2026-07-03.md`.
 - **Закрыто позже в тот же день:** SFU = LiveKit (mediasoup отклонён). Открыто до возврата: уровень email L0–L3; приоритет CAL-SYNC vs Redesign vs QA-HARDENING execution; судьба волн 2–11.
 - Код/реализация **не начинались** — только planning docs.
+
+## Session note — 2026-07-03 (Волна 2, поток SA: техспеки, ветка `docs/wave2-specs` от `docs/wave1-analysis`)
+
+- **Спецификации Волны 2 (sa1+sa2)** в `docs/system_specification.md` (новый раздел «Спецификации Волны 2») + справочник `docs/wiki/API.md` (таблицы planned/spec):
+  - **Intranet v2:** FR-INTR-01…11 (poll-in-post, onboarding, постмодерация, kudos-лидерборд, coffee авто-DM), ERD news_poll/option/vote + onboarding_template/progress + coffee_pair.dm_channel_id, 11 endpoints, события `hub.intranet.*`, NFR-31/32.
+  - **Calendar v2:** FR-CAL-01…08, ERD calendar_event (новая первокласная сущность) + resource/resource_booking (exclusion constraint) + event_recurrence (d/w/m, until XOR count) + ical_subscription (ValidateOutboundURL, SSRF) + ical_export_token, 13 endpoints (вкл. availability busy/free + HR-отпуска), события `hub.calendar.*`, NFR-33…36.
+  - **Wiki (новый модуль):** FR-WIKI-01…09, ERD wiki_space/wiki_space_member/wiki_page (parent_id, restrict)/wiki_page_restriction/wiki_page_version (append-only)/wiki_issue_link, 22 endpoints, поиск через search-модуль user-scoped (NF-03), события `hub.wiki.*`, NFR-37…39.
+  - Инварианты соблюдены: UUID v4 PK, `version` optimistic lock, UTC, soft delete 30д, `{"error","request_id"}`, offset/limit, rate limits, RBAC по GZ-SEC-07/11. Трассируемость US→FR→API таблицами в каждом разделе. verified: false → sa-ver.
 
 ## Session note — 2026-07-03 (Волна 1, поток D: аналитика и доки, ветка `docs/wave1-analysis`)
 
@@ -49,7 +63,7 @@ progress:
 
 **Ключевая ценность:** единая self-hosted среда для dev-команды и сотрудников компании — трекер, TMS, мессенджер, звонки, интранет, CRM, HR, учёт, AI — в одном интерфейсе.
 
-**Текущий фокус (2026-07-10):** July Rebuild **planning** (brief + seeds + QA-HARDENING docs) · код freeze до возврата **~конец июля** · Волна 1 в фича-ветках ждёт **merge пользователя в master** · LiveKit канон · FA-06 — ручная ротация (не гейтит разработку). Индекс: `.planning/INDEX-JULY-2026.md`.
+**Текущий фокус (2026-07-11):** July Rebuild **planning** (brief + seeds + QA-HARDENING docs) · код freeze до возврата **~конец июля** · Волна 1 + otel-nats + wave2 ADR/specs **влиты в master** · LiveKit канон · FA-06 — ручная ротация (не гейтит разработку). Индекс: `.planning/INDEX-JULY-2026.md`.
 
 ## Session note — 2026-07-03 (be1 · Волна 1 поток B · bases security fix)
 
