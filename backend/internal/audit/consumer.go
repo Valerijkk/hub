@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
 // AuditConsumer — JetStream consumer для записи событий аудита из всех модулей.
@@ -75,6 +76,12 @@ func (c *AuditConsumer) processEvent(ctx context.Context, msg jetstream.Msg) {
 	if action == "" {
 		return
 	}
+
+	// Продолжаем трейс продюсера (traceparent из NATS headers), чтобы
+	// запись аудита была видна в том же трейсе, что и исходный запрос.
+	ctx = natsclient.ExtractTraceContext(ctx, msg.Headers())
+	ctx, span := observability.StartConsumerSpan(ctx, subject, msg.Headers().Get(natsclient.HeaderEventID))
+	defer observability.EndConsumerSpan(span, nil)
 
 	// Разбираем payload для получения ID
 	var payload map[string]interface{}

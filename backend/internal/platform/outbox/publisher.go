@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/valerii/hub/backend/ent"
+	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
 // Publisher записывает события в outbox-таблицу внутри существующей транзакции.
@@ -18,15 +19,20 @@ func NewPublisher() *Publisher {
 
 // PublishInTx записывает событие в outbox-таблицу внутри существующей Ent-транзакции.
 // Событие будет подхвачено Worker и опубликовано в NATS.
+// Trace-context запроса сохраняется вместе с событием, чтобы Worker мог
+// продолжить трейс на publish (async-граница REST -> NATS).
 func (p *Publisher) PublishInTx(ctx context.Context, tx *ent.Tx, eventType string, payload any) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
-	_, err = tx.OutboxEvent.Create().
+	create := tx.OutboxEvent.Create().
 		SetEventType(eventType).
-		SetPayload(data).
-		Save(ctx)
+		SetPayload(data)
+	if tc := natsclient.TraceContextMap(ctx); tc != nil {
+		create.SetTraceContext(tc)
+	}
+	_, err = create.Save(ctx)
 	return err
 }
 
@@ -37,9 +43,12 @@ func (p *Publisher) Publish(ctx context.Context, client *ent.Client, eventType s
 	if err != nil {
 		return err
 	}
-	_, err = client.OutboxEvent.Create().
+	create := client.OutboxEvent.Create().
 		SetEventType(eventType).
-		SetPayload(data).
-		Save(ctx)
+		SetPayload(data)
+	if tc := natsclient.TraceContextMap(ctx); tc != nil {
+		create.SetTraceContext(tc)
+	}
+	_, err = create.Save(ctx)
 	return err
 }

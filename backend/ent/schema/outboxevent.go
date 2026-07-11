@@ -21,6 +21,12 @@ func (OutboxEvent) Fields() []ent.Field {
 		field.String("event_type").
 			NotEmpty(),
 		field.Bytes("payload"),
+		// W3C trace-context (traceparent/tracestate/baggage) REST-запроса,
+		// породившего событие. Отдельная nullable-колонка вместо envelope в
+		// payload: envelope сломал бы json.Unmarshal payload'а во всех
+		// существующих consumers (notification, audit, webhook).
+		field.JSON("trace_context", map[string]string{}).
+			Optional(),
 		field.Enum("status").
 			Values("pending", "published", "failed").
 			Default("pending"),

@@ -64,6 +64,22 @@ func (c *Client) Publish(subject string, data []byte) error {
 	return c.Conn.Publish(subject, data)
 }
 
+// PublishMsg публикует подготовленное сообщение (в т.ч. с headers) в core NATS.
+// Нужен outbox-worker'у: он несёт traceparent и event_id в headers.
+func (c *Client) PublishMsg(msg *nats.Msg) error {
+	return c.Conn.PublishMsg(msg)
+}
+
+// PublishWithTraceContext публикует данные в core NATS, перенося trace-context
+// из ctx в NATS headers (W3C traceparent/tracestate). Хелпер для прямых
+// publish в обход outbox, чтобы трейс не рвался на асинхронной границе.
+func (c *Client) PublishWithTraceContext(ctx context.Context, subject string, data []byte) error {
+	msg := nats.NewMsg(subject)
+	msg.Data = data
+	InjectTraceContext(ctx, msg.Header)
+	return c.Conn.PublishMsg(msg)
+}
+
 // EnsureStreams создаёт единый JetStream stream EVENTS, агрегирующий события
 // всех модулей. Каждый consumer (audit, webhook, notification) создаёт свой
 // durable consumer на этом стриме.
@@ -113,6 +129,24 @@ func (c *Client) PublishJSON(subject string, payload interface{}) {
 	}
 	if err := c.Conn.Publish(subject, data); err != nil {
 		slog.Error("не удалось опубликовать событие", "subject", subject, "error", err)
+	}
+}
+
+// PublishJSONContext — PublishJSON с переносом trace-context из ctx в NATS
+// headers. Использовать для событий, порождённых в рамках запроса, чтобы
+// consumer продолжил трейс. Fire-and-forget, безопасен при nil receiver.
+func (c *Client) PublishJSONContext(ctx context.Context, subject string, payload interface{}) {
+	if c == nil {
+		slog.Debug("NATS не подключён, пропускаем публикацию", "subject", subject)
+		return
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		slog.ErrorContext(ctx, "не удалось сериализовать событие", "subject", subject, "error", err)
+		return
+	}
+	if err := c.PublishWithTraceContext(ctx, subject, data); err != nil {
+		slog.ErrorContext(ctx, "не удалось опубликовать событие", "subject", subject, "error", err)
 	}
 }
 

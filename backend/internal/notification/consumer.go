@@ -14,6 +14,7 @@ import (
 	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/internal/auth"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
+	"github.com/valerii/hub/backend/internal/platform/observability"
 	"github.com/valerii/hub/backend/internal/tracker"
 	"github.com/valerii/hub/backend/internal/tms"
 )
@@ -137,6 +138,12 @@ func (c *Consumer) processEvent(ctx context.Context, msg jetstream.Msg) {
 		_ = msg.Ack()
 		return
 	}
+
+	// Продолжаем трейс продюсера (traceparent из NATS headers) вместо
+	// создания нового: иначе трейс рвётся на асинхронной границе.
+	ctx = natsclient.ExtractTraceContext(ctx, msg.Headers())
+	ctx, span := observability.StartConsumerSpan(ctx, subject, msg.Headers().Get(natsclient.HeaderEventID))
+	defer observability.EndConsumerSpan(span, nil)
 
 	switch notifType {
 	case TypeAssigned:
