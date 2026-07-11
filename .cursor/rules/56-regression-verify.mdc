@@ -1,9 +1,30 @@
 ---
-description: После изменений — регрессия + верификатор + docs sync. Без green gate — не handoff.
+description: После изменений — цикличное качество новой фичи + регрессия старого + верификатор + docs sync. Без green gate — не handoff.
 alwaysApply: true
 ---
 
 # Hub — Regression & Verification Gate
+
+## Цикличное качество (MANDATORY, 2026-07-11)
+
+Проверка качества **всегда циклична** — не one-shot.
+
+```
+Новая фича / новое поведение:
+  implement → тест нового (unit / TC / сценарий)
+           → FAIL? → test-triage (ROOT=code|test) → fix → повтор до green
+
+Старый функционал (регрессия):
+  после green по новому → затронутый домен (+ смежное при shared)
+                       → FAIL? → triage → fix → повтор до green
+  интеграция волны / одиночный handoff → полный /qa-gate (тоже с циклом при FAIL)
+```
+
+**Запрещено:** один прогон «вроде зелёный» → сразу handoff/`verified: true`.
+**Обязательно:** оба контура (новое + старое) закрыты циклами до green + лог.
+
+`team-lead` при делегировании **всегда** включает оба контура в шаблон задачи
+(`.cursor/agents/team-lead.md` §5 · `team-workflow.md` §5.3.1).
 
 ## Обязательный цикл (каждая сессия с кодом)
 
@@ -11,11 +32,12 @@ alwaysApply: true
 
 ```
 1. Изменил код
-2. Минимальная регрессия (затронутый модуль) — обязательна для каждого агента
-3. Полный /qa-gate — на интеграции волны (team-lead) или перед handoff при одиночной работе
-4. Docs sync (.cursor/rules/55-docs-sync.mdc)
-5. *-ver или verifier для критичных изменений
-6. Обновить .planning/STATE.md
+2. Цикл качества НОВОГО поведения — до green
+3. Цикл регрессии СТАРОГО (затронутый модуль/домен) — до green
+4. Полный /qa-gate — на интеграции волны (team-lead) или перед handoff при одиночной работе
+5. Docs sync (.cursor/rules/55-docs-sync.mdc)
+6. *-ver или verifier для критичных изменений
+7. Обновить .planning/STATE.md
 ```
 
 ## Минимальная регрессия по слою
@@ -26,7 +48,7 @@ alwaysApply: true
 | Frontend | `cd frontend && npx tsc --noEmit && npx vitest run` |
 | Infra | Проверить diff в `ci.yml`, `deploy.yml`, `docker-compose.prod.yml` |
 
-Slash: **`/qa-gate`** — останавливается на первой FAIL.
+Slash: **`/qa-gate`** — останавливается на первой FAIL; после фикса — повтор с начала упавшего шага (цикл).
 
 ## Когда запускать верификаторов
 
@@ -40,7 +62,7 @@ Slash: **`/qa-gate`** — останавливается на первой FAIL.
 | Security / auth / deploy | `security-auditor` + `gsd-secure-phase` |
 | Pre-merge diff | `code-reviewer` |
 
-**Правило:** `verified: true` только при green regression + приложенный лог.
+**Правило:** `verified: true` только при green циклов (новое + регрессия) + приложенный лог.
 
 ## Аудит-цикл (до «production-ready UX»)
 
@@ -57,3 +79,4 @@ Slash: **`/qa-gate`** — останавливается на первой FAIL.
 - `.cursor/rules/45-artifacts-cleanup.mdc` — coverage dumps
 - `.cursor/skills/test-triage/SKILL.md` — FAIL triage
 - `.cursor/skills/qa-gate/SKILL.md` — полный gate
+- `.cursor/playbooks/team-workflow.md` §5.3.1 — шаблон задач team-lead

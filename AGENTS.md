@@ -169,12 +169,14 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 1. Загрузить docs/*
 2. ba → sa → arch (для новых фич)
 3. be/fe → атомарная реализация + тесты
-4. Docs sync (STATE + domain docs)
-5. *-ver → верификация (verified: true в skill)
-6. qa → регрессия (Docker: -tags hubtest)
-7. /qa-gate → финальный чек
+4. Цикл качества нового + регрессия старого (rule 56) — до green
+5. Docs sync (STATE + domain docs)
+6. *-ver → верификация (verified: true в skill)
+7. qa → регрессия (Docker: -tags hubtest)
+8. /qa-gate → финальный чек
 ```
 
+`team-lead` делегирует субагентам **только** по шаблону §5 (`team-lead.md` / `team-workflow.md` §5.3.1).
 ---
 
 ## Команды
@@ -204,4 +206,4 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 
 ---
 
-*Обновлено: 2026-07-10 — July Rebuild planning, LiveKit stay, QA-HARDENING index*
+*Обновлено: 2026-07-11 — team-lead шаблон делегирования + цикличное QA/регрессия*

@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: july-qa-hardening-planning-awaiting-return
 stopped_at: LiveKit stay (SEED-001 REJECTED) · QA-HARDENING planning wave 2026-07-10 · код freeze до возврата ~конец июля · Волна 1 в ветках ждёт мерж пользователя
-last_updated: "2026-07-10T17:30:00.000Z"
-last_activity: 2026-07-10 LiveKit stay + CODE-QUALITY-CHARTER + INDEX-JULY + QA-HARDENING agents (Testing Guide / edge catalog / status)
+last_updated: "2026-07-11T21:30:00.000Z"
+last_activity: 2026-07-11 team-lead обязательный шаблон делегирования + цикличное QA/регрессия
 progress:
   total_phases: 125
   completed_phases: 125
@@ -15,6 +15,12 @@ progress:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-11 (team-lead: шаблон задач + цикличное качество)
+
+- **Делегирование:** `team-lead` / `team-lead-opus` обязаны давать задачи субагентам **только** по шаблону `[РОЛЬ И ЗАДАЧА] / [КОНТЕКСТ] / [ФОРМАТ ОТВЕТА] / …` — канон `.cursor/agents/team-lead.md` §5 и `.cursor/playbooks/team-workflow.md` §5.3.1. Свободный «сделай X» — антипаттерн.
+- **Качество циклично:** новое поведение — test→fix→re-test до green; старый функционал — регрессия тем же циклом; one-shot запрещён. Закреплено в rule `56-regression-verify.mdc`, `REGULATION.md` §4/§7, `testing.md` §11.1, ворота team-workflow §8.1.
+- Код продукта не менялся — только процесс AI-команды / docs.
 
 ## Session note — 2026-07-10 (вторая за день: LiveKit stay + QA-HARDENING planning)
 
