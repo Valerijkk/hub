@@ -1,9 +1,12 @@
 # agents/templates/ — шаблоны запуска агентов
 
 > Готовые user-промпты для запуска агентов тулкита. Схема: агент (файл из `agents/`) = system prompt, шаблон отсюда = первое сообщение. Заполни `{{слоты}}` — запускай. Каждый шаблон фиксирует вход, scope и ожидаемый формат выхода, чтобы агент не выпрашивал уточнения.
+>
+> **Все шаблоны — специализации [`_MASTER-PROMPT-TEMPLATE.md`](_MASTER-PROMPT-TEMPLATE.md)** — единого скелета «кто / что / где + best practices» (role prompting, контекст-инъекция, формат вывода, few-shot, chain-of-thought, step-back/ReAct, параметры генерации, встроенная верификация). Сценарий не покрыт готовым шаблоном — бери мастер и заполняй с нуля.
 
 | Шаблон | Агент | Сценарий |
 |--------|-------|----------|
+| [_MASTER-PROMPT-TEMPLATE.md](_MASTER-PROMPT-TEMPLATE.md) | любой / делегирование | Единый скелет промпта со всеми техниками — база для остальных |
 | [review-request.md](review-request.md) | test-code-reviewer | Ревью diff/PR с тестами |
 | [naming-audit.md](naming-audit.md) | test-code-reviewer | Точечный аудит нейминга директории/домена |
 | [test-case-generation.md](test-case-generation.md) | test-case-generator | TC из документации фичи |
