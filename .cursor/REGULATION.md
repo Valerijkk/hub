@@ -536,4 +536,36 @@ Slash: `.cursor/skills/qa-gate/SKILL.md`.
 
 ---
 
-*Hub AI Team Regulation — 2026-07-18 (docs-writer: расширение §12–§19, ~171→370+ строк с примерами по доменам auth/tracker/bases/messenger/tms/calls)*
+## 20. Prompt Engineering Toolkit (`prompt-engineering/`)
+
+Переносимый (project-agnostic) тулкит промпт-инжиниринга для работы с тестовым фреймворком. Правило: [`.cursor/rules/70-prompt-engineering.mdc`](rules/70-prompt-engineering.mdc). Полный индекс: [`prompt-engineering/README.md`](../prompt-engineering/README.md).
+
+### Назначение
+
+Готовый набор агентов, скилов, правил, контекст-шаблонов, плейбуков и **1000 промптов** для тестирования, который можно скопировать в любой проект и оживить одним скилом `context-intake` (сканирует репо → заполняет `context/*.md` фактами). Обезличен: Hub-специфика живёт только в `context/*.md` и rule 70, не в самих агентах/промптах.
+
+### Состав
+
+| Блок | Путь | Содержание |
+|------|------|------------|
+| Агенты | `prompt-engineering/agents/` | `test-code-reviewer` (паттерны фреймворка + нейминг функций/файлов), `test-case-generator` (TC из документации + верификация), `test-debugger` (triage code/test/flaky), `test-documenter` (синхрон доков) |
+| Скилы | `prompt-engineering/skills/` | `context-intake` (бутстрап контекста), `anti-ai-check` (говнокод + AI-комментарии + фейковые тесты), `naming-check` (аудит нейминга), `test-verification` (гейт TC) |
+| Правила | `prompt-engineering/rules/` | `00` глобальные, `10` нейминг, `20` качество теста, `30` severity, **`40` 10-этапная верификация** |
+| Плейбуки | `prompt-engineering/playbooks/` | onboarding, test-generation, review-cycle, debugging, documentation |
+| Промпты | `prompt-engineering/prompts/` | 12 категорий × ~85 = **1000** промптов со `{{слотами}}` |
+| Шаблоны запуска | `prompt-engineering/agents/templates/` | `_MASTER-PROMPT-TEMPLATE.md` (кто/что/где + best practices) + 9 сценарных |
+
+### Ключевые механизмы
+
+1. **Единый шаблон промпта** — `_MASTER-PROMPT-TEMPLATE.md` (role prompting, контекст-инъекция, формат вывода, few-shot, chain-of-thought, step-back/ReAct, параметры генерации, верификация). Обезличенное зеркало канона `team-lead.md` §5.2 / `team-workflow.md` §5.3.1.
+2. **10-этапная верификация** (`rules/40`) — каждый агент/скил перед сдачей прогоняет self-check по 10 этапам (контекст→требование→факты→негатив→точность→критич.класс→регрессия→формат→воспроизводимость→врата); для CRITICAL — independent-проход. Согласуется с §3, §4, rule 56.
+
+### Правила для агентов Hub
+
+- Тестовые задачи (ревью тестов, генерация TC, дебаг тестов, документация фреймворка) — через агентов тулкита как инструмент **внутри** Hub QA-конвейера (§5), не вместо него.
+- Не хардкодить Hub-факты в агентов/промпты тулкита — только в `context/*.md`. Иначе теряется переносимость.
+- `anti-ai-check` тулкита — для общих AI-паттернов и фейковых тестов; Hub-специфику (minio/gorilla/SSRF) держит Hub `.cursor/skills/anti-ai-check`.
+
+---
+
+*Hub AI Team Regulation — 2026-07-19 (§20 Prompt Engineering Toolkit) / 2026-07-18 (§12–§19 примеры по доменам)*

@@ -1,0 +1,44 @@
+---
+description: Prompt Engineering Toolkit — переносимый набор агентов/скилов/промптов для тестового фреймворка (prompt-engineering/). Единый шаблон промпта и 10-этапная верификация.
+globs: prompt-engineering/**/*,testframework/**/*
+alwaysApply: false
+---
+
+# Hub — Prompt Engineering Toolkit
+
+> Обезличенный (project-agnostic) тулкит промпт-инжиниринга для работы с тестовым фреймворком: `prompt-engineering/`. Переносим в любой проект копированием + `context-intake`. Полный индекс: [`prompt-engineering/README.md`](../../prompt-engineering/README.md).
+
+## Что где
+
+| Нужно | Путь |
+|-------|------|
+| Обзор и философия тулкита | `prompt-engineering/README.md` |
+| Перенос в новый проект | `prompt-engineering/INSTALL.md` |
+| Факты о проекте (заполняемые) | `prompt-engineering/context/*.md` |
+| Агенты тестового фреймворка | `prompt-engineering/agents/{test-code-reviewer,test-case-generator,test-debugger,test-documenter}.md` |
+| Скилы | `prompt-engineering/skills/{context-intake,anti-ai-check,naming-check,test-verification}/SKILL.md` |
+| Правила агентов | `prompt-engineering/rules/{00,10,20,30,40}-*.md` |
+| Плейбуки процессов | `prompt-engineering/playbooks/*.md` |
+| Библиотека 1000 промптов | `prompt-engineering/prompts/{01..12}-*.md` |
+| Единый шаблон промпта | `prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md` |
+
+## Правила для работы с тестами через тулкит
+
+1. **Тестовые задачи (ревью тестов, генерация TC, дебаг тестов, документация фреймворка) — через агентов `prompt-engineering/agents/`**, не ad-hoc. Это дополняет, а не заменяет Hub-конвейер `qa-manual → qa-manual-ver → qa-auto1/2 → qa-auto-ver` (REGULATION §5): агенты тулкита — инструмент внутри рук qa-ролей.
+2. **Единый шаблон промпта.** Запуск агента / делегирование — по `_MASTER-PROMPT-TEMPLATE.md` (кто/что/где + best practices). Это зеркало канона `.cursor/agents/team-lead.md` §5.2 / `team-workflow.md` §5.3.1, обезличенное. Свободный «сделай X» запрещён (совпадает с REGULATION §4.9).
+3. **10-этапная верификация.** Каждый агент/скил тулкита перед сдачей прогоняет `prompt-engineering/rules/40-verification-protocol.md` (self-check; для CRITICAL — independent). Согласуется с Hub-циклом верификации (REGULATION §3, rule 56): доказанное качество, не «вроде зелёное».
+4. **Anti-AI.** `prompt-engineering/skills/anti-ai-check` — расширенный переносимый вариант Hub `.cursor/skills/anti-ai-check`; для Hub-специфики (minio/gorilla/http.DefaultClient/SSRF) остаётся Hub-версия, для общих AI-паттернов и фейковых тестов — тулкит.
+5. **Обезличенность тулкита.** `prompt-engineering/` не содержит Hub-путей/доменов вне явных примеров. Hub-специфика живёт в `context/*.md` (заполнено `context-intake` по Hub) и в этом правиле. НЕ хардкодить Hub-факты в агентов/промпты тулкита — иначе теряется переносимость.
+
+## Связь с Hub-канонами
+
+| Тулкит | Hub-канон |
+|--------|-----------|
+| `rules/40` 10-этапная верификация | REGULATION §3–§4, `.cursor/rules/56-regression-verify.mdc` |
+| `_MASTER-PROMPT-TEMPLATE.md` | `.cursor/agents/team-lead.md` §5.2, `team-workflow.md` §5.3.1 |
+| `skills/anti-ai-check` | `.cursor/skills/anti-ai-check/SKILL.md`, `.cursor/rules/10-style.mdc` |
+| `rules/20` качество теста | `.cursor/rules/40-testing.mdc`, `docs/test_plan.md` |
+| `context/TESTFRAMEWORK-MAP.md` | `testframework/PIPELINE.md`, `testframework/TESTING_GUIDE.md` |
+| `playbooks/debugging.md` | `.cursor/skills/test-triage/SKILL.md`, `gsd-debug` |
+
+Регламент: [`.cursor/REGULATION.md`](../REGULATION.md) §20.
