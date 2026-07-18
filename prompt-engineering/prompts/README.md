@@ -6,18 +6,20 @@
 
 | # | Файл | Тема | Промптов |
 |---|------|------|----------|
-| 01 | [01-test-case-design.md](01-test-case-design.md) | Дизайн тест-кейсов, техники тест-анализа | ~85 |
-| 02 | [02-unit-testing.md](02-unit-testing.md) | Юнит-тесты: написание, структура, ассерты | ~85 |
-| 03 | [03-integration-testing.md](03-integration-testing.md) | Интеграционные: БД, очереди, транзакции, изоляция | ~85 |
-| 04 | [04-api-testing.md](04-api-testing.md) | API/contract: REST, статусы, схемы, auth | ~85 |
-| 05 | [05-e2e-ui-testing.md](05-e2e-ui-testing.md) | E2E и компонентные UI-тесты, page objects | ~85 |
-| 06 | [06-test-review-quality.md](06-test-review-quality.md) | Ревью тестов, нейминг, качество, anti-AI | ~85 |
-| 07 | [07-debugging-flaky.md](07-debugging-flaky.md) | Дебаг падений, flaky, triage | ~85 |
-| 08 | [08-test-data-mocking.md](08-test-data-mocking.md) | Данные, фикстуры, фабрики, моки, стабы | ~85 |
-| 09 | [09-coverage-analysis.md](09-coverage-analysis.md) | Покрытие, gap-анализ, mutation testing | ~80 |
-| 10 | [10-ci-automation.md](10-ci-automation.md) | CI-пайплайны, гейты, параллелизация, отчёты | ~80 |
-| 11 | [11-performance-security-testing.md](11-performance-security-testing.md) | Нагрузочное и security-тестирование | ~85 |
-| 12 | [12-documentation-reporting.md](12-documentation-reporting.md) | Тест-документация, планы, отчёты, метрики | ~80 |
+| 01 | [01-test-case-design.md](01-test-case-design.md) | Дизайн тест-кейсов, техники тест-анализа | 85 |
+| 02 | [02-unit-testing.md](02-unit-testing.md) | Юнит-тесты: написание, структура, ассерты | 85 |
+| 03 | [03-integration-testing.md](03-integration-testing.md) | Интеграционные: БД, очереди, транзакции, GraphQL/gRPC/WS, наблюдаемость | 85 |
+| 04 | [04-api-testing.md](04-api-testing.md) | API/contract: REST, статусы, схемы, auth, кэш, версии | 85 |
+| 05 | [05-e2e-ui-testing.md](05-e2e-ui-testing.md) | E2E и UI: page objects, a11y, мобильные, реалтайм, perf | 85 |
+| 06 | [06-test-review-quality.md](06-test-review-quality.md) | Ревью тестов, нейминг, качество, anti-AI, самопроверка | 85 |
+| 07 | [07-debugging-flaky.md](07-debugging-flaky.md) | Дебаг падений, flaky, triage, chaos-симптомы | 70 |
+| 08 | [08-test-data-mocking.md](08-test-data-mocking.md) | Данные, фикстуры, фабрики, билдеры, моки, стабы | 85 |
+| 09 | [09-coverage-analysis.md](09-coverage-analysis.md) | Покрытие (branch/mutation), gap-анализ по риску | 80 |
+| 10 | [10-ci-automation.md](10-ci-automation.md) | CI-пайплайны, гейты, окружения, merge queue, метрики | 85 |
+| 11 | [11-performance-security-testing.md](11-performance-security-testing.md) | Нагрузочное, chaos, resilience, OWASP security | 85 |
+| 12 | [12-documentation-reporting.md](12-documentation-reporting.md) | Тест-документация, планы, отчёты, метрики, онбординг | 85 |
+
+**Итого: 1000 промптов.**
 
 ## Как пользоваться
 
