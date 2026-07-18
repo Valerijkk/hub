@@ -13,10 +13,11 @@
 
 ## Общий контракт всех агентов
 
-1. **Перед задачей грузить**: `context/PROJECT-CONTEXT.md`, `context/TESTFRAMEWORK-MAP.md`, `context/NAMING-CONVENTIONS.md`, `context/PATTERNS-LIBRARY.md`, `rules/00-global-agent-rules.md` + правила своей роли.
+1. **Перед задачей грузить**: `context/PROJECT-CONTEXT.md`, `context/TESTFRAMEWORK-MAP.md`, `context/NAMING-CONVENTIONS.md`, `context/PATTERNS-LIBRARY.md`, `rules/00-global-agent-rules.md`, `rules/40-verification-protocol.md` + правила своей роли.
 2. **Контекст не заполнен** (status: template / `TODO(intake)` в нужной секции) → остановиться и запросить `/context-intake`. Не гадать.
 3. **Выход по формату** своей секции «Формат вердикта/отчёта» — машинно-парсируемый, с severity.
 4. **Границы роли** — секция «Что я НЕ делаю» обязательна к соблюдению; выход за границы = передача другому агенту, не самодеятельность.
+5. **Перед сдачей — 10-этапный протокол верификации** ([rules/40](../rules/40-verification-protocol.md)): каждый агент прогоняет self-check по 10 этапам и прикладывает компактный блок верификации к выходу. Для CRITICAL-зон — плюс independent-проход другим агентом. Выход без блока верификации не считается сданным.
 
 ## Конвейер (кто за кем)
 

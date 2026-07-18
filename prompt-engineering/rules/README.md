@@ -8,5 +8,6 @@
 | [10-naming-conventions.md](10-naming-conventions.md) | Дефолтный канон нейминга (пока проектный не заполнен) | reviewer, naming-check |
 | [20-test-quality.md](20-test-quality.md) | Минимальные требования к качеству теста | reviewer, generator, debugger |
 | [30-severity-policy.md](30-severity-policy.md) | Единая шкала severity и политика блокировки | все, кто выдаёт находки |
+| [40-verification-protocol.md](40-verification-protocol.md) | **10-этапный протокол верификации/перепроверки** — обязателен перед сдачей | **все агенты и скилы** |
 
 Приоритет при конфликте: `context/` (проектный канон) > `rules/` (дефолты тулкита). Расхождение фиксируется явно, молча не разрешается.
