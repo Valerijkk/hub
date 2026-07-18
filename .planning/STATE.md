@@ -16,6 +16,15 @@ progress:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-19 (Prompt Engineering Toolkit — `prompt-engineering/`)
+
+- Создан **обезличенный переносимый тулкит** `prompt-engineering/` для работы с тестовым фреймворком: **53 md-файла, 1000 промптов**. Quick task: `.planning/quick/20260718-prompt-engineering-toolkit/` (PLAN + SUMMARY).
+- Состав: 4 агента (test-code-reviewer/test-case-generator/test-debugger/test-documenter), 4 скила (context-intake/anti-ai-check/naming-check/test-verification), 5 rules, 5 playbooks, context/ (4 заполняемых шаблона), agents/templates/ (мастер-шаблон «кто/что/где + best practices» + 9 сценарных), prompts/ (12 категорий × ~85 = 1000).
+- **Ключевое:** обезличен (проектная специфика только в `context/*.md`, заполняет скил `context-intake`) → переносим в любой проект копированием + 1 прогон скила. Единый мастер-шаблон промпта (зеркало `team-lead.md` §5.2). **10-этапный протокол верификации** (`rules/40`) вшит во все агенты/скилы.
+- Интеграция Hub: `.cursor/rules/70-prompt-engineering.mdc` + `REGULATION.md` §20.
+- Коммиты в `master`: e8d17c1, fc5b16c, e3ee28c, 99afba7, 9da8d7b, 299e8dc, 0b59609, 4a69e80, d36198d + финализация.
+- **Не активирован на Hub:** `context/*.md` пока в статусе template — прогнать `context-intake` для заполнения Hub-фактами, когда потребуется работа агентов на реальном коде.
+
 ## Session note — 2026-07-18 (модели AI-команды → GPT-5.6 / Codex)
 
 - **Решение пользователя:** переезд в **августе 2026** на ChatGPT: `team-lead` → **GPT-5.6 Sol Pro**; остальные агенты → **GPT-5.6 Sol**; супер-мелкие задачи → **Codex (latest)**.

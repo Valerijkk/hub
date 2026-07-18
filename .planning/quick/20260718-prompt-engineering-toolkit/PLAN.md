@@ -2,7 +2,7 @@
 slug: prompt-engineering-toolkit
 created: 2026-07-18
 type: quick
-status: in-progress
+status: complete
 ---
 
 # Quick Task: Portable Prompt Engineering Toolkit
