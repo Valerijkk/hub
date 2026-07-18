@@ -1,7 +1,7 @@
 # Edge expansions — v4 + Future (AI / Wiki / SSO / MCP / MS / UX)
 
 > **Тип:** только **Edge** (границы лимитов, TTL, пустые/max, quota hard-stop).  
-> **Не трогает** основной каталог `.planning/EDGE-CORNER-CATALOG.md` — foresight backlog для будущих `TC-*`.  
+> **Не трогает** основной каталог `.planning/july-2026/EDGE-CORNER-CATALOG.md` — foresight backlog для будущих `TC-*`.  
 > **Gap:** только `Future` | `TODO`.  
 > **Источники:** `ROADMAP-FINAL-2026-07-03.md` · `GRAY-ZONES-DECISIONS-2026-07-03.md` §2–§4 · `docs/vision_and_scope.md` (US-INTR / US-CAL / US-WIKI) · PLAN-bases (50k/200) · ADR-AUTH-SSO / ADR-AI-agents (планируемые) · WCAG 2.2 AA (24px, reduced motion).  
 > **Владелец:** `qa-manual` · 2026-07-10 · **не коммитить** из этой сессии без явной команды.

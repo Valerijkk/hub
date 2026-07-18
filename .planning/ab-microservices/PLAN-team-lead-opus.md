@@ -3,7 +3,7 @@
 > **Роль автора:** `team-lead` (оркестратор + архитектор), Opus 4.8 @ 1M.
 > **Режим:** read-only по коду; единственный создаваемый артефакт — этот файл.
 > **Дата:** 2026-07-02 · **A/B-тест качества оркестрации** (вариант Opus).
-> **Источники:** `.planning/EXPANSION-ANALYSIS-2026-07-02.md`, `docs/architecture.md`, `.cursor/rules/60-tz-constraints.mdc`, `.cursor/playbooks/{team-workflow,backend}.md`, `.cursor/rules/20-backend.mdc`, фактический код `backend/internal/**`, `backend/internal/platform/nats/client.go`, `platform/outbox/publisher.go`.
+> **Источники:** `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md`, `docs/architecture.md`, `.cursor/rules/60-tz-constraints.mdc`, `.cursor/playbooks/{team-workflow,backend}.md`, `.cursor/rules/20-backend.mdc`, фактический код `backend/internal/**`, `backend/internal/platform/nats/client.go`, `platform/outbox/publisher.go`.
 >
 > **Дисклеймер приоритета:** это план ПО ЗАПРОСУ пользователя (вынос в микросервисы). Он НЕ противоречит выводу `EXPANSION-ANALYSIS`, где микросервисный split помечен как **F2 / P3 / v4.5, «только по нагрузке»**. Данный план — это подготовленный «run-book на случай, когда решение принято», с честной рекомендацией **НЕ начинать split сейчас** (см. §0 и §12).
 

@@ -55,32 +55,75 @@ hub/
 - `docs/stack_and_tools.md` — stack versions, CI/CD
 - `docs/code_style_guide.md` — Go/TS style
 - `docs/security_guidelines.md` — OWASP, secrets, blockers
-- Index: `docs/README.md` | Regulation: `.cursor/REGULATION.md`
+- `docs/tz_constraints.md` — mandatory/forbidden (tracked mirror of `60-tz-constraints.mdc`)
+- Index: `docs/README.md` | Regulation: `.cursor/REGULATION.md` | Playbooks: `.cursor/playbooks/README.md`
 
 ## Key Planning Docs
 
+- **Навигация:** `.planning/README.md` — индекс всех папок `.planning/` (живой канон в корне + разложенные по смыслу артефакты)
 - Project requirements: `.planning/PROJECT.md`
 - Roadmap & phases: `.planning/ROADMAP.md`
-- Current state: `.planning/STATE.md`
+- Current state (старт сессии): `.planning/STATE.md`
+- July Rebuild index: `.planning/july-2026/INDEX-JULY-2026.md`
+- Prod ops (PG-03, FA-06, handoff): `.planning/production/`
+- Gap closure / Wave C tasks: `.planning/tasks/`
 - Security audit: `.planning/code-review-final/SECURITY.md`
 - Full audit summary: `.planning/code-review-final/SUMMARY.md`
-- v3.0 AI plans: `.planning/MILESTONE-3.md`
+- v3.0 AI plans: `.planning/roadmaps/MILESTONE-3.md`
 
-## Current Status
+## Current Status (2026-07-18)
 
 - **v1.0** (Phases 1-7): SHIPPED 2026-03-21
 - **v2.0** (Phases 8-14, Hub Redesign): COMPLETE 2026-05-15
-- **v2.0.1** hotfix: 12 CRITICAL security blockers **fixed in code**
-- **v2.0.2** prod cutover: Wave 6 (Dockerfile release, CI/deploy gate, Ctrl+K) — **2026-06-20**
-- **Next:** PG-03 secret rotation → v2.5 Production Hardening → v2.6 Arch → v3.0 AI
+- **v2.5 Trust / v2.6 Automate+Arch+OBS / v3.0 AI Native / v4 Super-app**: COMPLETE (см. `AGENTS.md`)
+- **Coverage wave (Phases 59–125):** COMPLETE, COV **83.0%**, 6/6 security packages ≥80%
+- **Волна 1 (roadmap 2026-07-03):** влита в `master` 2026-07-11 (integration/wave1 + otel-nats-trace + wave2 ADR/specs)
+- **Текущая фаза:** July Rebuild / QA-HARDENING **planning** — код freeze до возврата ~конец июля 2026; на диске только доки (`july-2026/*`, edge-expansions wave2–5, EDGE catalog ≈4696 ECC)
+- **SFU-решение:** остаёмся на **LiveKit** (WebRTC) — миграция на mediasoup **REJECTED** (`.planning/seeds/SEED-001-mediasoup-migration.md`); не предлагать возврат к этой теме без нового триггера
+- **Единственный prod-блокер:** **PG-03/FA-06** секрет-ротация (Resend/Telegram) — **ручная операция**, не гейтит разработку; лог — `.planning/production/FA-06-EXECUTION-LOG.md`, runbook — `docs/runbooks/fa06-secret-rotation.md`
 
-## Production checklist (Wave 6)
+## Production checklist (актуальный)
 
 | Item | Status |
 |------|--------|
 | Dockerfile `-tags release` | ✅ |
 | Deploy gated on CI success | ✅ |
-| COV-01 ≥50% / security 6×80% | ✅ 56.6% / 6/6 |
+| COV overall / security 6×80% | ✅ 83.0% / 6/6 |
 | Ctrl+K global search UI | ✅ |
-| PG-03 git secret rotation | ⚠️ manual |
+| LiveKit (SFU) канон | ✅ mediasoup REJECTED |
+| PG-03/FA-06 secret rotation | ⚠️ manual — **единственный prod-блокер** |
 | Docs sync rule | ✅ `.cursor/rules/55-docs-sync.mdc` |
+| Merge Волна 1 → master | ✅ 2026-07-11 |
+| July Rebuild / QA-HARDENING | 📋 planning, код freeze |
+
+## Быстрые команды (см. полный список в `AGENTS.md`)
+
+```bash
+# Dev-стек
+docker compose -f docker-compose.local.yml up -d
+
+# Backend regression (Docker, канон)
+docker compose -f deployments/docker-compose.test.yml up -d
+go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
+
+# Frontend regression
+cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noEmit && npm run lint && npm run test:run
+
+# Полный gate
+/qa-gate
+```
+
+## Примеры из Hub
+
+- Полный статус и метрики — читай `AGENTS.md` (секция «Текущий статус»), а не только этот rule; здесь — краткая сводка для быстрой сверки.
+- Навигация по planning: начинай с `.planning/STATE.md` → `.planning/README.md` → нужная тема (`july-2026/`, `production/`, `audits/2026-06/`, `tasks/`).
+- 82 Ent-схемы: `backend/ent/schema/*.go`; список модулей backend: `backend/internal/{auth,tracker,sprint,messenger,tms,calls,dashboard,notification,search,rbac,storage,ws,ai,crm,intranet,bases,accounting,marketplace,calendar,hr,platform,...}`.
+- Frontend feature-модули: `frontend/src/modules/{tracker,messenger,tms,calls,bases,crm,hr,accounting,calendar,intranet,marketplace,admin,settings,status}/`.
+- ADR по архитектуре/безопасности: `.planning/decisions/ADR-AUTH-SSO-2026.md`, `ADR-ARCH-MICROSERVICES-2026.md`, `ADR-AI-AGENTS-MCP-2026.md`.
+- Тест-фреймворк (канонический вход): `testframework/PIPELINE.md` — стадии CI → job → домен.
+- Не путать `docs/ROADMAP.md`-исторический с актуальным: актуальный roadmap — `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` / `ROADMAP-DETAILED-JULY-RETURN.md`.
+- Ростер и модели AI-команды (30 агентов) — не дублировать здесь, читать `.cursor/playbooks/README.md` §0/§3 (модели, тиры, обратная карта агент→playbook).
+- main.go (~629 LOC — известный tech debt) не расширять новой логикой: новая инициализация модуля идёт в `backend/cmd/server/wiring_*.go` (см. `20-backend.mdc`).
+- Реальный пример «единственного prod-блокера, не блокирующего разработку»: `.planning/production/PG-03-SECRET-ROTATION.md` описывает ручную процедуру, которая может идти параллельно с любой фичевой веткой.
+- Wiki-документация продукта (не путать с этим `.cursor/`-справочником): `docs/wiki/` — `API.md`, `SHORTCUTS.md`, `QUICKSTART.md`, `DEPLOY.md`.
+- CI-экономия минут (студенческий пакет GitHub Actions): смотри реальные джобы `.github/workflows/{ci,pr-guard,deploy}.yml` перед добавлением новой матрицы/джобы.

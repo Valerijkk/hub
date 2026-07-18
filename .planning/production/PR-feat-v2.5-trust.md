@@ -23,23 +23,23 @@ This branch delivers **v2.5 Trust** production hardening: full test-framework mi
 
 | Area | Deliverables |
 |------|--------------|
-| **FA-01** | Full file-by-file audit + remediation (`.planning/FA-01-AUDIT.md`) |
+| **FA-01** | Full file-by-file audit + remediation (`.planning/audits/2026-06/FA-01-AUDIT.md`) |
 | **APIGW** | APIGW-01 webhook CRUD RBAC · APIGW-02 Ack/`NakWithDelay` · APIGW-03 JetStream FilterSubjects · APIGW-04 deactivated-user check on API key path |
 | **AUTH** | AUTH-01 RefreshToken DB session + expiry validation before Redis rotation |
-| **RBAC** | FA-RBAC-FIBER3 — Fiber v3 middleware order fixed on **123 routes** (`.planning/FA-RBAC-FIBER3-AUDIT.md`) |
+| **RBAC** | FA-RBAC-FIBER3 — Fiber v3 middleware order fixed on **123 routes** (`.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md`) |
 | **Security** | FA-02 re-audit: **0 CRITICAL** · FA-04 github `safehttp` (no `DefaultClient`) · FA-02-03 LiveKit `iss` const-time · FA-02-04 `RequireAuth` fail-closed on DB error |
 | **Infra** | FA-05 hub-mail · FA-08 wiring split · Playwright config → `frontend/` |
 | **P3 cleanup** | WS-01 hub shutdown · APIGW-05 domain errors in apigateway |
 | **Frontend** | FA-07 admin `console.error` → `toastApiError` |
 | **Coverage** | FA-11 tms/project micro-gap closed (81.8% → **82.0%**) · FA-12 TestRail `mapTestRailType` → ent enum `classic`/`bdd` |
-| **QA** | FA-10 `/qa-gate` PASS (local) — `.planning/FA-10-QA-GATE.md` |
+| **QA** | FA-10 `/qa-gate` PASS (local) — `.planning/audits/2026-06/FA-10-QA-GATE.md` |
 | **Docs** | FA-03 docs sync (STATE, COVERAGE, API.md) |
 
 **Not in this PR (manual ops):** FA-06 / PG-03 secret rotation — see [Blockers](#blockers).
 
 ### RU-V10 — Documentation Gate ✅
 
-- Final RU comments/docs verification **PASS** (post RU-FIX-11–13) — `.planning/RU-V-REPORT.md`
+- Final RU comments/docs verification **PASS** (post RU-FIX-11–13) — `.planning/audits/2026-06/RU-V-REPORT.md`
 
 ### Security Fixes (highlights)
 
@@ -107,7 +107,7 @@ This branch delivers **v2.5 Trust** production hardening: full test-framework mi
 
 ### Production gate (before cutover)
 
-- [ ] **FA-06 / PG-03:** Execute secret rotation runbook (`.planning/PG-03-SECRET-ROTATION.md`)
+- [ ] **FA-06 / PG-03:** Execute secret rotation runbook (`.planning/production/PG-03-SECRET-ROTATION.md`)
 - [ ] Verify Resend/Telegram/LiveKit/JWT secrets rotated per runbook
 - [ ] CTO sign-off on squash merge
 
@@ -117,9 +117,9 @@ This branch delivers **v2.5 Trust** production hardening: full test-framework mi
 
 | ID | Blocker | Owner | Status |
 |----|---------|-------|--------|
-| **FA-06** | **PG-03 secret rotation** — manual ops required before production cutover | Ops / CTO | ⏳ runbook ready (`.planning/PG-03-SECRET-ROTATION.md`) |
+| **FA-06** | **PG-03 secret rotation** — manual ops required before production cutover | Ops / CTO | ⏳ runbook ready (`.planning/production/PG-03-SECRET-ROTATION.md`) |
 
-> **Note:** FA-06 does not block merge to `main` for staging/CI validation, but **must be completed before production deploy**. See `.planning/FA-06-EXECUTION-LOG.md`.
+> **Note:** FA-06 does not block merge to `main` for staging/CI validation, but **must be completed before production deploy**. See `.planning/production/FA-06-EXECUTION-LOG.md`.
 
 ---
 
@@ -134,13 +134,13 @@ This branch delivers **v2.5 Trust** production hardening: full test-framework mi
 | Document | Purpose |
 |----------|---------|
 | `.planning/STATE.md` | Current project state |
-| `.planning/TASKS-PHASES-121-FINAL-AUDIT.md` | Wave A/B/C task breakdown |
-| `.planning/FA-10-QA-GATE.md` | QA gate results |
-| `.planning/FA-01-AUDIT.md` | File-by-file audit |
-| `.planning/FA-RBAC-FIBER3-AUDIT.md` | 123-route RBAC fix |
-| `.planning/FA-02-SECURITY-REAUDIT.md` | Security re-audit |
-| `.planning/RU-V-REPORT.md` | RU documentation gate |
-| `.planning/PG-03-SECRET-ROTATION.md` | FA-06 runbook |
+| `.planning/tasks/TASKS-PHASES-121-FINAL-AUDIT.md` | Wave A/B/C task breakdown |
+| `.planning/audits/2026-06/FA-10-QA-GATE.md` | QA gate results |
+| `.planning/audits/2026-06/FA-01-AUDIT.md` | File-by-file audit |
+| `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md` | 123-route RBAC fix |
+| `.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md` | Security re-audit |
+| `.planning/audits/2026-06/RU-V-REPORT.md` | RU documentation gate |
+| `.planning/production/PG-03-SECRET-ROTATION.md` | FA-06 runbook |
 
 ---
 

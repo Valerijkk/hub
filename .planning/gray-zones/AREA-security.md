@@ -1,7 +1,7 @@
 # Серые зоны — Безопасность / Prod-готовность
 
 > Дата: 2026-07-02 · Источники: `docs/security_guidelines.md`, `docs/tz_constraints.md`,
-> `.planning/AUDIT-2026-06-23.md`, `.planning/MICROSERVICES-ROADMAP.md`.
+> `.planning/audits/2026-06/AUDIT-2026-06-23.md`, `.planning/roadmaps/MICROSERVICES-ROADMAP.md`.
 > Назначение: вопросы к пользователю до старта соответствующих волн (ADR-AUTH-SSO, ADR-AI-agents, Track P).
 
 ---

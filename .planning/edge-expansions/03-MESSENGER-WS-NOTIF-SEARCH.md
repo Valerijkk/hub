@@ -2,7 +2,7 @@
 
 > **Тип:** только **Edge** (границы: лимиты, empty/end, max size, rate, TTL, overflow, timeout, unicode).  
 > **Источник:** NFR/TZ (`docs/tz_constraints.md`, `docs/system_specification.md`) + код (`messenger/dto.go`, `middleware/ratelimit.go` MessageSendRateLimit=60/min, `ws/handler.go` maxMessageSize=4096 / pongWait=60s, `notification/telegram_bind.go` tgBindTTL=10m, `search/dto.go` q max=500).  
-> **Не дублирует** `ECC-MSG-001…040` / `ECC-NSW-001…038` из `.planning/EDGE-CORNER-CATALOG.md` (sibling-ссылки допустимы).  
+> **Не дублирует** `ECC-MSG-001…040` / `ECC-NSW-001…038` из `.planning/july-2026/EDGE-CORNER-CATALOG.md` (sibling-ссылки допустимы).  
 > **ID:** Messenger `ECC-MSG-100+`, WS `ECC-WS-100+`, Notification `ECC-NOTIF-100+`, Search `ECC-SRCH-100+`.  
 > **Gap:** только `TODO` | `Future` | `Manual`.  
 > **Владелец:** `qa-manual` · 2026-07-10 · не коммитить в каталог без ревью.

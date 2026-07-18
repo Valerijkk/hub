@@ -3,7 +3,7 @@
 > **Статус:** зафиксировано 2026-07-10 · обновлено 2026-07-10 (SFU) · код freeze до возврата конца июля  
 > **SFU-решение (пользователь 2026-07-10):** **остаёмся на LiveKit** — миграция на mediasoup **отклонена** (нет драйвера; дорогая перепись calls без user-value). SEED-001 = rejected.  
 > **Триггер старта:** конец июля 2026 — пересмотр планов, edge/corner cases, CAL-SYNC (RSVP), редизайн Cloud Code Designer  
-> **Связанные seeds:** `seeds/SEED-001-mediasoup-migration.md` (**REJECTED**), `seeds/SEED-002-calendar-calls-email-sync.md` (active)  
+> **Связанные seeds:** `../seeds/SEED-001-mediasoup-migration.md` (**REJECTED**), `../seeds/SEED-002-calendar-calls-email-sync.md` (active)  
 > **Базовый roadmap:** `ROADMAP-FINAL-2026-07-03.md` (Волна 1 исполнена в ветках; мерж master — за пользователем)
 
 ---
@@ -200,11 +200,11 @@ Projection rules:
 
 | Артефакт | Путь |
 |----------|------|
-| Этот brief | `.planning/JULY-2026-REBUILD-BRIEF.md` |
+| Этот brief | `.planning/july-2026/JULY-2026-REBUILD-BRIEF.md` |
 | Seed SFU | `.planning/seeds/SEED-001-mediasoup-migration.md` |
 | Seed calendar sync | `.planning/seeds/SEED-002-calendar-calls-email-sync.md` |
 | Roadmap pointer | `ROADMAP-FINAL-2026-07-03.md` § «Отложено: July Rebuild» |
-| GZ calendar | `GRAY-ZONES-DECISIONS-2026-07-03.md` GZ-V4-05 |
+| GZ calendar | `../gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` GZ-V4-05 |
 | AI team | `.cursor/playbooks/README.md`, `team-workflow.md` |
 | Calls as-is | `backend/internal/calls/`, `frontend/src/components/calls/` |
 | Calendar as-is | `backend/internal/calendar/`, `frontend/src/modules/calendar/` |

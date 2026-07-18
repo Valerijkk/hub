@@ -2,7 +2,7 @@
 
 > **Тип:** только **Edge** (границы лимитов, TTL, empty/max, quota hard-stop, retention).  
 > **Wave:** 4 · ID namespace `*400+` — **не пересекает** wave1 (`*100+`), wave2 (`*200+`), wave3 (`*300+`).  
-> **Не трогает** основной каталог `.planning/EDGE-CORNER-CATALOG.md` — foresight backlog для будущих `TC-*`.  
+> **Не трогает** основной каталог `.planning/july-2026/EDGE-CORNER-CATALOG.md` — foresight backlog для будущих `TC-*`.  
 > **Gap:** только `Future` | `TODO`.  
 > **Фокус wave4:** v4 **CRM pipeline/import · HR org-chart/accrual calendar · Accounting money/AR · Intranet coffee/onboarding M** · AI **embedding/RAG chunk · @hub-ai rate · provider timeout** · wiki **soft-delete 30d cascade · edit-lock TTL · slug/attachment** · SSO **JWKS cache TTL · claim bounds · break-glass daily cap · LDAP bind timeout** · MCP **autonomy levels · tool timeout · concurrent runs · revoke** · MS **NATS payload/ack/DLQ retries · JetStream retention** · a11y **zoom 200/400 · reflow · focus-visible · skip-link · text-spacing**.  
 > **Источники:** `ROADMAP-FINAL-2026-07-03.md` · `GRAY-ZONES-DECISIONS-2026-07-03.md` §2–§4 · `docs/vision_and_scope.md` (US-INTR / US-WIKI / US-F0x / US-V0x) · PLAN-bases / GZ-V4-08..20 · ADR-AUTH-SSO / ADR-AI-agents (планируемые) · WCAG 2.2 AA (1.4.4 Resize, 1.4.10 Reflow, 1.4.12 Text Spacing, 2.4.1 Bypass, 2.4.7 Focus Visible) · NFR-11 soft-delete 30d · NFR-05.  

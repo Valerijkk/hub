@@ -1,6 +1,6 @@
 # Серые зоны: релизы, командный процесс, лицензирование
 
-> Аудит 2026-07-02. Read-only. Источники: `.cursor/rules/50-git.mdc`, `.cursor/playbooks/team-workflow.md` (§4, Прил. J), `.planning/MICROSERVICES-ROADMAP.md`, `AGENTS.md`.
+> Аудит 2026-07-02. Read-only. Источники: `.cursor/rules/50-git.mdc`, `.cursor/playbooks/team-workflow.md` (§4, Прил. J), `.planning/roadmaps/MICROSERVICES-ROADMAP.md`, `AGENTS.md`.
 > Цель: собрать нерешённые вопросы для пользователя перед стартом Волны 1 и Track P.
 
 ---

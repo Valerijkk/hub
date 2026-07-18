@@ -1,6 +1,6 @@
 # SEED-002 — Unified calendar + RSVP + mail/calls sync
 
-> Planted: 2026-07-10 · Brief: `.planning/JULY-2026-REBUILD-BRIEF.md` §3
+> Planted: 2026-07-10 · Brief: `.planning/july-2026/JULY-2026-REBUILD-BRIEF.md` §3
 
 ## Idea
 

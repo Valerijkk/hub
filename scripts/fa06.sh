@@ -14,8 +14,8 @@ cmd="${1:-help}"
 
 case "${cmd}" in
   phase0-log)
-    echo "${ROOT}/.planning/FA-06-EXECUTION-LOG.md"
-    echo "${ROOT}/.planning/PG-03-SECRET-ROTATION.md"
+    echo "${ROOT}/.planning/production/FA-06-EXECUTION-LOG.md"
+    echo "${ROOT}/.planning/production/PG-03-SECRET-ROTATION.md"
     ;;
   p1-compose)  exec bash "${ROOT}/scripts/fa06-rotate-p1.sh" ;;
   p1-k3s)      exec bash "${ROOT}/scripts/fa06-rotate-p1-k3s.sh" ;;
@@ -33,7 +33,7 @@ FA-06 / PG-03 — ротация секретов (Hub v2.5 Trust)
   bash scripts/fa06.sh release-gate   Чеклист перед git tag v2.5.0
   bash scripts/fa06.sh phase0-log     Пути к FA-06-EXECUTION-LOG.md и PG-03
 
-Runbook: .planning/PG-03-SECRET-ROTATION.md
+Runbook: .planning/production/PG-03-SECRET-ROTATION.md
 EOF
     ;;
 esac

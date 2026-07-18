@@ -2,7 +2,7 @@
 
 > **Тип:** только **Corner** (редкие комбинации, races, mid-flight, multi-step, cross-domain)  
 > **Дата:** 2026-07-10 · **Владелец:** `qa-manual` · **Волна:** wave3  
-> **Не трогает** `.planning/EDGE-CORNER-CATALOG.md`, parent `00-CORNER-PARENT.md`, wave1 `corners/C04-*`, wave2 `wave2/corners/C04-*`  
+> **Не трогает** `.planning/july-2026/EDGE-CORNER-CATALOG.md`, parent `00-CORNER-PARENT.md`, wave1 `corners/C04-*`, wave2 `wave2/corners/C04-*`  
 > **ID range:** `ECC-*-C500+` (не пересекает parent `C200–C215`, wave1 `C300+`, wave2 `C400+`, catalog `C01–C25`, edge `*100+`)  
 > **SFU:** LiveKit stay — mediasoup / SEED-001 = **N/A** (строки mediasoup не добавлять)  
 > **Фокус wave3:** multi-device×ICE partition×Seaweed egress · all-day/EXDATE×LK worker×WS reorder · MIME/OOO/forwarded ICS×notif mute×rate fanout · organizer transfer×ACL mid-call · NATS invite lag×room start  
@@ -162,4 +162,4 @@
 | METHOD=REFRESH / COUNTER × LK | `ECC-MAIL-C506`, `C519` |
 
 **Handoff:** `qa-manual-ver` → после `verified: true` выборочно `qa-auto1` (NATS lag, EXDATE race, transfer, NF-07) / Manual (ICE partition, MIME clients, multi-device).  
-**Merge later:** в `.planning/EDGE-CORNER-CATALOG.md` § Corner expansion (отдельной волной; каталог сейчас не трогать).
+**Merge later:** в `.planning/july-2026/EDGE-CORNER-CATALOG.md` § Corner expansion (отдельной волной; каталог сейчас не трогать).

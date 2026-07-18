@@ -1,6 +1,6 @@
 # Gray Zones — КАЧЕСТВО / ТЕСТИРОВАНИЕ
 
-> Дата: 2026-07-02 · Read-only аудит. Источники: `docs/test_plan.md`, `.planning/COVERAGE.md`, `.planning/MICROSERVICES-ROADMAP.md`, `.planning/EXPANSION-ANALYSIS-2026-07-02.md` §4.3/§6.
+> Дата: 2026-07-02 · Read-only аудит. Источники: `docs/test_plan.md`, `.planning/COVERAGE.md`, `.planning/roadmaps/MICROSERVICES-ROADMAP.md`, `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` §4.3/§6.
 > Контекст: COV 83.0% (gate ≥82%), security 6/6 ≥80%, 495 BE test-файлов, Vitest 99/99, 20 E2E specs, Lighthouse artifact-only. Впереди: Track F (углубление v4 + wiki/AI-agents/SSO) и Track P (микросервисный split ~5–6 юнитов).
 
 ---

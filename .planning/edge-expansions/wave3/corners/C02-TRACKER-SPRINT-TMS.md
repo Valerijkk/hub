@@ -3,7 +3,7 @@
 > **Статус:** foresight backlog · 2026-07-10 · владелец: `qa-manual`  
 > **Тип:** **только Corner** (multi-actor races, mid-flight, partial fail, clock skew, dual-path)  
 > **ID ranges:** `ECC-TRCK-C500+`, `ECC-SPR-C500+`, `ECC-TMS-C500+` — **не пересекают** parent `C200…`, wave1 `C300…`, wave2 `C400…`, edge `*100+`/`*200+`/`*300+`, канон `001–040`  
-> **Не заменяет** `.planning/EDGE-CORNER-CATALOG.md`, `00-CORNER-PARENT.md`, wave1/2 `corners/C02-*.md`, `docs/TESTING.md`  
+> **Не заменяет** `.planning/july-2026/EDGE-CORNER-CATALOG.md`, `00-CORNER-PARENT.md`, wave1/2 `corners/C02-*.md`, `docs/TESTING.md`  
 > **Не копировать** сценарии C200/C300/C400 1:1 — только новые комбинации  
 > **Фокус wave3:** clone+imex+webhook mid-flight · attachment/presigned∩soft-delete · workflow-schema edit mid-transition · cross-project move · poker∩start/complete · burndown UTC skew · BDD↔classic mid-run · suite-tree move∩Allure · shared-steps∩execute · dual JUnit+Allure  
 > **Связи:** US-M03/M11/M12, US-S01/S04/S06, US-M05/S13/C02/C04 · NFR-11/12/24 · NF-03/09 · SEC-02 · TC-TRCK-*, TC-SPRINT-*, TC-TMS-*, TC-ALLURE-*, TC-JQL-*

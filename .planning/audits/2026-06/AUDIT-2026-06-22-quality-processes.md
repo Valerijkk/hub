@@ -114,7 +114,7 @@
 | CRITICAL open | 0 | **0** | ✅ |
 | Data races | 0 | 0 (CI `-race`) | ✅ |
 
-Security re-audit: `.planning/AUDIT-2026-06-23-full.md` · Guidelines: `docs/security_guidelines.md`
+Security re-audit: `.planning/audits/2026-06/AUDIT-2026-06-23-full.md` · Guidelines: `docs/security_guidelines.md`
 
 ---
 

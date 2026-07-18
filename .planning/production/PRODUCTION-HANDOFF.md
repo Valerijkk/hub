@@ -18,7 +18,7 @@ Hub v2.5 Trust wave (Phases 59–73) is **code-complete and gate-ready**:
 **Blockers before prod deploy:**
 
 1. Squash commit + PR merge to `main`
-2. PG-03 secret rotation if credentials ever touched git history (`.planning/PG-03-SECRET-ROTATION.md`)
+2. PG-03 secret rotation if credentials ever touched git history (`.planning/production/PG-03-SECRET-ROTATION.md`)
 
 ---
 
@@ -110,7 +110,7 @@ Hub v2.5 Trust wave (Phases 59–73) is **code-complete and gate-ready**:
 | messenger fan-out integration | ✅ Phase 68 | 62.1% |
 | PG-03 rotation | manual | ops runbook |
 | Secret purge from git history | manual | BFG/git-filter-repo |
-| v3.0 AI Chat Hub | future | `.planning/MILESTONE-3.md` |
+| v3.0 AI Chat Hub | future | `.planning/roadmaps/MILESTONE-3.md` |
 
 ---
 
@@ -129,7 +129,7 @@ Hub v2.5 Trust wave (Phases 59–73) is **code-complete and gate-ready**:
 | `docs/security_guidelines.md` | OWASP, blockers |
 | `docs/wiki/API.md` | REST reference |
 | `.planning/COVERAGE.md` | requirement → test matrix |
-| `.planning/PG-03-SECRET-ROTATION.md` | secret rotation |
+| `.planning/production/PG-03-SECRET-ROTATION.md` | secret rotation |
 | `.planning/phases/67-production-gate/VERIFICATION.md` | gate evidence |
 
 ---

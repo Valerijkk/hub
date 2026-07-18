@@ -16,6 +16,21 @@ progress:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-18 (модели AI-команды → GPT-5.6 / Codex)
+
+- **Решение пользователя:** переезд в **августе 2026** на ChatGPT: `team-lead` → **GPT-5.6 Sol Pro**; остальные агенты → **GPT-5.6 Sol**; супер-мелкие задачи → **Codex (latest)**.
+- ADR: `.planning/decisions/ADR-MODELS-GPT56-2026.md`. Агент micro: `.cursor/agents/codex-micro.md`.
+- `team-lead-opus` (Opus) после cutover — **deprecated**. Frontmatter Claude не трогаем до дня cutover.
+- Обновлены: playbooks README §0, team-workflow §1.1, AGENTS.md, REGULATION.md.
+- **`.cursor/` детализация (волна агентов):** ~30/32 agent-файлов раздуты примерами из репо; rules + git/code-comments playbooks; `product-ver` дописан оркестратором после unpaid-invoice стопа субагентов. `codex-micro` намеренно короткий.
+
+## Session note — 2026-07-18 (reorg `.planning/` — без удалений)
+
+- Корень `.planning/` очищен: оставлен только живой канон GSD — `PROJECT.md`, `ROADMAP.md`, `STATE.md`, `REQUIREMENTS.md`, `COVERAGE.md`, `config.json` + новый [`README.md`](README.md).
+- ~42 корневых артефакта разложены по смыслу/датам: `july-2026/`, `audits/2026-06/`, `production/`, `specs/`, `roadmaps/`, `tasks/`, `tooling/`; `GRAY-ZONES-DECISIONS` → `gray-zones/`.
+- Существующие `phases/`, `milestones/`, `decisions/`, `edge-expansions/`, `seeds/`, `research/` и т.д. не трогались.
+- Ссылки `.planning/<old>` обновлены в docs / AGENTS / scripts / `.cursor` (~126 файлов). Ничего не удаляли.
+
 ## Session note — 2026-07-11 (merge в master + cleanup веток)
 
 - В `master` влиты: `integration/wave1` (FF), `feat/platform/otel-nats-trace`, `docs/wave2-adr-package`, `docs/wave2-specs`.
@@ -31,15 +46,15 @@ progress:
 ## Session note — 2026-07-10 (вторая за день: LiveKit stay + QA-HARDENING planning)
 
 - **SFU:** остаёмся на **LiveKit**; миграция mediasoup **REJECTED**. `SEED-001` = rejected; M4 `hub-calls` = LiveKit-домен.
-- **QA-HARDENING (planning):** Testing Guide на диске; **EDGE catalog ≈4696 ECC** (base+W1+W2+W3–5) — `EDGE-CORNER-CATALOG.md` + `.planning/edge-expansions/wave{2..5}/`.
-- **На диске:** `CODE-QUALITY-CHARTER.md`, `INDEX-JULY-2026.md`, `PROJECT-STATUS-2026-07-10.md`, `ROADMAP-DETAILED-JULY-RETURN.md`; `ROADMAP-FINAL` — статус 2026-07-10 + July Rebuild (CAL/RD/QH) + When/Entry.
-- **Ссылки:** Brief · seeds · INDEX · [EDGE-CORNER-CATALOG](EDGE-CORNER-CATALOG.md) · TESTING_GUIDE · CODE-QUALITY-CHARTER
+- **QA-HARDENING (planning):** Testing Guide на диске; **EDGE catalog ≈4696 ECC** (base+W1+W2+W3–5) — `july-2026/EDGE-CORNER-CATALOG.md` + `.planning/edge-expansions/wave{2..5}/`.
+- **На диске:** `july-2026/CODE-QUALITY-CHARTER.md`, `july-2026/INDEX-JULY-2026.md`, `july-2026/PROJECT-STATUS-2026-07-10.md`, `july-2026/ROADMAP-DETAILED-JULY-RETURN.md`; `july-2026/ROADMAP-FINAL` — статус 2026-07-10 + July Rebuild (CAL/RD/QH) + When/Entry.
+- **Ссылки:** Brief · seeds · INDEX · [EDGE-CORNER-CATALOG](july-2026/EDGE-CORNER-CATALOG.md) · TESTING_GUIDE · CODE-QUALITY-CHARTER
 - Код July Rebuild **не стартовал**.
 
 ## Session note — 2026-07-10 (первая: July Rebuild brief + seeds; код не трогали)
 
 - Пользователь: изучить тонкости AI-команды → зафиксировать понимание; проработать идеи SFU и **sync почта/созвоны/календарь с RSVP**; задокументировать до возврата **~конец июля**.
-- Артефакты: `.planning/JULY-2026-REBUILD-BRIEF.md`, seeds `SEED-001` / `SEED-002`, секция «Отложено: July Rebuild» в `ROADMAP-FINAL-2026-07-03.md`.
+- Артефакты: `.planning/july-2026/JULY-2026-REBUILD-BRIEF.md`, seeds `SEED-001` / `SEED-002`, секция «Отложено: July Rebuild» в `july-2026/ROADMAP-FINAL-2026-07-03.md`.
 - **Закрыто позже в тот же день:** SFU = LiveKit (mediasoup отклонён). Открыто до возврата: уровень email L0–L3; приоритет CAL-SYNC vs Redesign vs QA-HARDENING execution; судьба волн 2–11.
 - Код/реализация **не начинались** — только planning docs.
 
@@ -53,7 +68,7 @@ progress:
 
 ## Session note — 2026-07-03 (Волна 1, поток D: аналитика и доки, ветка `docs/wave1-analysis`)
 
-- **US/AC (задачи 1.10–1.12):** в `docs/vision_and_scope.md` добавлены разделы Волны 1 — Intranet v2 (US-INTR-01…05: опрос-в-посте, onboarding-шаблоны, постмодерация, kudos-лидерборд, Random Coffee авто-DM), Calendar v2 (US-CAL-01…04: ресурсы+booking, recurring d/w/m until/count, iCal export+подписки без OAuth, availability busy/free+отпуска), Wiki — новый модуль (US-WIKI-01…05: space→pages, space-RBAC+restrict, версии, issue-link, user-scope поиск NF-03). Gherkin AC позитив+негатив, KPI, MoSCoW, edge-cases; цель G-07. Scope строго по `GRAY-ZONES-DECISIONS-2026-07-03.md` §2/§4. verified: false → ba-ver.
+- **US/AC (задачи 1.10–1.12):** в `docs/vision_and_scope.md` добавлены разделы Волны 1 — Intranet v2 (US-INTR-01…05: опрос-в-посте, onboarding-шаблоны, постмодерация, kudos-лидерборд, Random Coffee авто-DM), Calendar v2 (US-CAL-01…04: ресурсы+booking, recurring d/w/m until/count, iCal export+подписки без OAuth, availability busy/free+отпуска), Wiki — новый модуль (US-WIKI-01…05: space→pages, space-RBAC+restrict, версии, issue-link, user-scope поиск NF-03). Gherkin AC позитив+негатив, KPI, MoSCoW, edge-cases; цель G-07. Scope строго по `gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2/§4. verified: false → ba-ver.
 - **ROADMAP-drift (задача 1.13):** Phase 8/9/12 чекбоксы и таблица Progress приведены к факту (v2.0 complete 2026-05-15); удалены 5 дублирующихся блоков планов Phase 12 из Phase Details фаз 2/3/4/6; строки Progress Phase 15–17 обновлены по milestone-статусам; сноска о сверке добавлена.
 - **Runbook FA-06 (задача 1.9 доля D):** создан `docs/runbooks/fa06-secret-rotation.md` — пошаговая ручная ротация Resend/Telegram для владельца (выпуск ключей, .env/K3s/GitHub Secrets, перезапуск, тест-письмо/тест-уведомление, отзыв старых, sign-off чек-лист).
 
@@ -63,7 +78,7 @@ progress:
 
 **Ключевая ценность:** единая self-hosted среда для dev-команды и сотрудников компании — трекер, TMS, мессенджер, звонки, интранет, CRM, HR, учёт, AI — в одном интерфейсе.
 
-**Текущий фокус (2026-07-11):** July Rebuild **planning** (brief + seeds + QA-HARDENING docs) · код freeze до возврата **~конец июля** · Волна 1 + otel-nats + wave2 ADR/specs **влиты в master** · LiveKit канон · FA-06 — ручная ротация (не гейтит разработку). Индекс: `.planning/INDEX-JULY-2026.md`.
+**Текущий фокус (2026-07-11):** July Rebuild **planning** (brief + seeds + QA-HARDENING docs) · код freeze до возврата **~конец июля** · Волна 1 + otel-nats + wave2 ADR/specs **влиты в master** · LiveKit канон · FA-06 — ручная ротация (не гейтит разработку). Индекс: `.planning/july-2026/INDEX-JULY-2026.md`.
 
 ## Session note — 2026-07-03 (be1 · Волна 1 поток B · bases security fix)
 
@@ -94,9 +109,9 @@ progress:
 - **Команда:** 30 агентов (`.cursor/agents/`), параллельные потоки be1/be2, fe1/fe2, ba1/2, sa1/2, qa-auto1/2 + верификаторы у всех; `team-lead` = **Fable 5** (по итогам 5 A/B-задач против Opus 4.8), `team-lead-opus` = эскалация; остальные Sonnet 5.
 - **Playbooks:** 10 файлов `.cursor/playbooks/` (~15k строк) + интегрированы 27 дельт best practices 2026 (Fiber v3 stable, govulncheck/gitleaks, versioned Atlas, synctest, TanStack preload-канон, React 19 Actions, WCAG 2.2, Playwright шардинг/storageState).
 - **Архитектура:** `ADR-ARCH-MICROSERVICES-2026` accepted — schema-per-service, strangler-fig, каталог: core + hub-ai + realtime-трио (ws/messenger/calls) + notification-пилот; tracker исключён; Go/No-Go композит.
-- **Серые зоны:** ~90 вопросов → решения в `GRAY-ZONES-DECISIONS-2026-07-03.md`; правила 50/56/60 обновлены (агенты коммитят/пушат фича-ветки, **push в master — только пользователь**; rebase-merge; регрессия домена у агента + полный gate на волну; SSO за ADR).
+- **Серые зоны:** ~90 вопросов → решения в `gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`; правила 50/56/60 обновлены (агенты коммитят/пушат фича-ветки, **push в master — только пользователь**; rebase-merge; регрессия домена у агента + полный gate на волну; SSO за ADR).
 - **QA-конвейер:** бизнес-дока → TC (qa-manual) → верификация доки → автотесты → верификация; **юниты пишут разработчики**. Целевой TF: **Python** (pytest+allure+httpx+playwright-python) + **Locust** — фаза TF-PY после микросервисного дробления.
-- **Roadmap:** `.planning/ROADMAP-FINAL-2026-07-03.md` — Волны 1–2 атомарно (24 плана), эпик DOCS-EXCELLENCE (LICENSE ✅ создана — проприетарная, README/SECURITY/тест-стратегия/онбординг — в работе), TF-PY, дальние волны укрупнённо.
+- **Roadmap:** `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` — Волны 1–2 атомарно (24 плана), эпик DOCS-EXCELLENCE (LICENSE ✅ создана — проприетарная, README/SECURITY/тест-стратегия/онбординг — в работе), TF-PY, дальние волны укрупнённо.
 - **`.cursor/` вынут из `.gitignore`** — команда трекается целиком.
 - Research-артефакты: `EXPANSION-ANALYSIS`, `MARKET-AND-NEEDS`, `BEST-PRACTICES-2026-*`, A/B-планы (`ab-microservices/`, `ab-tests/`), gray-zones (6 областей).
 
@@ -119,7 +134,7 @@ progress:
 | Backend tests | **495** files в `backend/testframework/` · **0** в `internal/*_test.go` |
 | Playwright E2E | **20** specs (`testframework/stages/e2e/domains/`) |
 | Frontend Vitest | **99/99** pass · 37 files `testframework/stages/unit/frontend-test/domains/` · 0 in `src/` |
-| Planning index | `.planning/INDEX-JULY-2026.md` |
+| Planning index | `.planning/july-2026/INDEX-JULY-2026.md` |
 
 ### Покрытие ключевых пакетов (Docker, Phase 125)
 
@@ -158,7 +173,7 @@ progress:
 
 ## PO Decisions (locked)
 
-См.: `.planning/DISCUSS-ROADMAP-LOCKED.md`
+См.: `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
 - **AUTH:** Magic Link only · org table v2.5 · founder role · Telegram только bind/delivery
 - **NOTIF:** TG bind · hub-mail Phase 15.2 · email marketing v2.6
@@ -187,7 +202,7 @@ progress:
 
 | ID | Задача | Статус |
 |----|--------|--------|
-| FA-01 | Full file-by-file audit + remediation | ✅ 2026-06-22 · `.planning/FA-01-AUDIT.md` |
+| FA-01 | Full file-by-file audit + remediation | ✅ 2026-06-22 · `.planning/audits/2026-06/FA-01-AUDIT.md` |
 | FA-01 P0 | APIGW-01 webhook CRUD RBAC | ✅ 2026-06-22 |
 | FA-01 P1 | APIGW-02 webhook Ack semantics (`NakWithDelay`) | ✅ 2026-06-22 · `webhook_dispatcher_apigw02_test.go` |
 | FA-01 P1 | APIGW-03 JetStream FilterSubjects on webhook consumer | ✅ 2026-06-22 · `webhook_dispatcher_apigw03_test.go` |
@@ -197,8 +212,8 @@ progress:
 | FA-01 P2 | BOOT-01 notification consumer Stop cleanup | ✅ 2026-06-22 · `wiring_notification.go` |
 | FA-01 P3 | WS-01 Hub graceful shutdown | ✅ 2026-06-22 · `ws/hub.go` · `hub_shutdown_test.go` |
 | FA-01 P3 | APIGW-05 domain errors (no Fiber in services) | ✅ 2026-06-22 · `apigateway/errors.go` |
-| FA-01 CRIT | FA-RBAC-FIBER3 Fiber v3 middleware order | ✅ 2026-06-22 · **123 routes** · `.planning/FA-RBAC-FIBER3-AUDIT.md` |
-| FA-02 | Security re-audit (post TF) | ✅ 2026-06-22 · 0 CRITICAL · `.planning/FA-02-SECURITY-REAUDIT.md` |
+| FA-01 CRIT | FA-RBAC-FIBER3 Fiber v3 middleware order | ✅ 2026-06-22 · **123 routes** · `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md` |
+| FA-02 | Security re-audit (post TF) | ✅ 2026-06-22 · 0 CRITICAL · `.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md` |
 | FA-03 | Docs sync (STATE/COVERAGE/API) | ✅ 2026-06-22 |
 | FA-04 | github SafeHTTP client (no DefaultClient) | ✅ 2026-06-22 · `github/service.go:55` |
 | FA-05 | hub-mail in prod compose | ✅ 2026-06-22 |
@@ -206,14 +221,14 @@ progress:
 | FA-07 | Admin console.error → toastApiError | ✅ 2026-06-22 |
 | FA-08 | main.go bootstrap extraction | ✅ 2026-06-22 · `wiring_*.go` split |
 | FA-09 | E2E 20 specs → full POM+Steps | ✅ 2026-06-22 |
-| FA-10 | `/qa-gate` Docker + Playwright + tsc | ✅ 2026-06-22 **PASS** (local) · `.planning/FA-10-QA-GATE.md` |
+| FA-10 | `/qa-gate` Docker + Playwright + tsc | ✅ 2026-06-22 **PASS** (local) · `.planning/audits/2026-06/FA-10-QA-GATE.md` |
 | FA-11 | tms/project 81.8% → 82% micro-gap | ✅ 2026-06-22 · `service_fa11_test.go` |
 | FA-12 | TestRail `mapTestRailType` → ent `classic`/`bdd` | ✅ 2026-06-22 · `tms/testrail_import.go:69` |
-| RU-V10 | RU comments/docs final gate | ✅ 2026-06-22 PASS · `.planning/RU-V-REPORT.md` |
+| RU-V10 | RU comments/docs final gate | ✅ 2026-06-22 PASS · `.planning/audits/2026-06/RU-V-REPORT.md` |
 
 **FA-10 qa-gate:** build ✅ · hubtest ✅ · tsc ✅ · Biome ✅ · Vitest 99/99 ✅ · race ✅ · e2e-smoke 3/3 ✅ · coverage-gate CI ✅ · e2e-full/Docker cov — CI only.
 
-Детали: `.planning/TASKS-PHASES-121-FINAL-AUDIT.md`
+Детали: `.planning/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`
 
 ---
 
@@ -235,7 +250,7 @@ progress:
 ### 2026-06-22 — Quality processes audit + docs sync ✅
 
 - Полный аудит 15 процессов качества (REGULATION, rules 45/55/56, `/qa-gate`, verifiers, CI)
-- Отчёт: `.planning/AUDIT-2026-06-22-quality-processes.md` · scorecard обновлён
+- Отчёт: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md` · scorecard обновлён
 - Локальная регрессия: build ✅ · vet ✅ · tsc ✅ · lint ✅ · vitest **99/99** ✅
 - Docs sync: `test_plan`, `TESTING`, `stack_and_tools`, `code_style_guide`, `vision_and_scope`, `COVERAGE`, `AGENTS`, `REGULATION`
 - Backlog: **TF-CLEANUP-01** (legacy `testframework/e2e/specs/`), **RU-COMMENTS-01**, **FA-06**
@@ -256,7 +271,7 @@ progress:
 - **Master CI** run 27962930096: all jobs pass incl. **coverage-gate ≥82%** · e2e-full
 - **PR #16** docker compose retry · **PR #22** gitlab pipelines mock · HEAD `a9f931c`
 - **Dependabot #17–#21** merged: recharts, happy-dom, radix select/tooltip, atlaskit/pragmatic-drag-and-drop 2.x
-- **FA-06 Phase 0** git scan filled → `.planning/FA-06-EXECUTION-LOG.md` (local; no secret values)
+- **FA-06 Phase 0** git scan filled → `.planning/production/FA-06-EXECUTION-LOG.md` (local; no secret values)
 
 ### 2026-06-22 — UX-1 command palette ✅ PR #15
 
@@ -274,17 +289,17 @@ progress:
 - **AUTH-01 (P1):** `RefreshToken` — DB session lookup + expiry validation; reject missing/expired sessions before Redis rotation (`service_session.go`, `service_session_test.go`)
 - **APIGW-04 (P2):** API key auth path rejects deactivated owner — parity with JWT `RequireAuth` (`apikey.go`, `apikey_auth_test.go`)
 - **WebhookDispatcher Stop race:** `inFlight sync.WaitGroup` — consumer callbacks tracked; `Stop()` waits `inFlight` before `close(jobs)` to prevent DATA RACE on shutdown (`webhook.go`)
-- **FA-10:** `go test -tags hubtest -race` full suite **PASS** post-fix → `.planning/FA-10-QA-GATE.md`
+- **FA-10:** `go test -tags hubtest -race` full suite **PASS** post-fix → `.planning/audits/2026-06/FA-10-QA-GATE.md`
 
 ### 2026-06-22 — Wave C complete (FA-01–FA-12, кроме FA-06) ✅
 
-- **FA-01** file-by-file audit + remediation → `.planning/FA-01-AUDIT.md`
+- **FA-01** file-by-file audit + remediation → `.planning/audits/2026-06/FA-01-AUDIT.md`
 - **APIGW-01** webhook CRUD RBAC · **APIGW-02** Ack/`NakWithDelay` semantics
-- **FA-RBAC-FIBER3** Fiber v3 middleware order → **123 routes** fixed (tracker 46, sprint 11, rbac 6, github 5, gitlab 5 + tms 50 prior) → `.planning/FA-RBAC-FIBER3-AUDIT.md`
+- **FA-RBAC-FIBER3** Fiber v3 middleware order → **123 routes** fixed (tracker 46, sprint 11, rbac 6, github 5, gitlab 5 + tms 50 prior) → `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md`
 - **FA-02** security re-audit: 0 CRITICAL · **FA-04** github safehttp · **FA-11/12** tms/project + TestRail enum
 - **FA-05** hub-mail prod compose · **FA-07** admin toast · **FA-08** main.go `wiring_*.go` · **FA-09** E2E POM+Steps
-- **FA-10** qa-gate **PASS** (local): build · hubtest · tsc · Biome · Vitest 99/99 → `.planning/FA-10-QA-GATE.md`
-- **RU-V10** final gate **PASS** (post RU-FIX-11–13) → `.planning/RU-V-REPORT.md`
+- **FA-10** qa-gate **PASS** (local): build · hubtest · tsc · Biome · Vitest 99/99 → `.planning/audits/2026-06/FA-10-QA-GATE.md`
+- **RU-V10** final gate **PASS** (post RU-FIX-11–13) → `.planning/audits/2026-06/RU-V-REPORT.md`
 - **FA-03** docs sync: STATE + COVERAGE + API.md; COV **83.0%** · 488 testframework / 0 internal tests
 - **Остаётся:** FA-06 PG-03 secret rotation (manual ops)
 
@@ -339,7 +354,7 @@ progress:
 
 ### 2026-06-23 — Docs audit + cleanup ✅
 
-- **AUDIT:** `.planning/AUDIT-2026-06-23.md` — полный аудит, P0/P1/P2 остаток
+- **AUDIT:** `.planning/audits/2026-06/AUDIT-2026-06-23.md` — полный аудит, P0/P1/P2 остаток
 - **Cleanup:** удалено 169+ coverage-артефактов (`backend/cov*`, `cover*`, `*.txt` отчёты)
 - **Docs sync:** AGENTS, system_spec, vision, competitive, test_plan → master `bbdaf16`
 - **PR #27:** Lighthouse CI artifact (non-blocking)

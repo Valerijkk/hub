@@ -98,7 +98,7 @@ Hub сегодня — **модульный монолит** на Go/Fiber (31+ 
 - **Auth между сервисами:** HS256 → асимметричная подпись + JWKS; refresh/revoke централизованно в Redis (инварианты Magic Link / 15 мин / 30 дней сохраняются).
 - **Предусловия выноса:** OTel trace-context через NATS-headers, path-filtered CI, contract-тесты, K3s namespaces + Caddy ingress.
 
-Подробно: [docs/architecture.md](docs/architecture.md) · ADR: [.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md](.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md) · roadmap выноса: [.planning/MICROSERVICES-ROADMAP.md](.planning/MICROSERVICES-ROADMAP.md)
+Подробно: [docs/architecture.md](docs/architecture.md) · ADR: [.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md](.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md) · roadmap выноса: [.planning/roadmaps/MICROSERVICES-ROADMAP.md](.planning/roadmaps/MICROSERVICES-ROADMAP.md)
 
 ```
                           ┌──────────────────────┐
@@ -290,7 +290,7 @@ Hub разрабатывается **командой из 30 AI-агентов*
 - **Track P (платформа):** hardening модульного монолита → пилот выноса `hub-notification` (strangler fig) → GATE Go/No-Go → `hub-ai` → realtime-трио (`hub-ws` / `hub-messenger` / `hub-calls`); schema-per-service, NATS + outbox, K3s.
 - **Ops-лейн:** ротация секретов (FA-06) → тег v2.5.0 → SSH deploy.
 
-Детальный план: [.planning/ROADMAP-FINAL-2026-07-03.md](.planning/ROADMAP-FINAL-2026-07-03.md) · текущее состояние: [.planning/STATE.md](.planning/STATE.md)
+Детальный план: [.planning/july-2026/ROADMAP-FINAL-2026-07-03.md](.planning/july-2026/ROADMAP-FINAL-2026-07-03.md) · текущее состояние: [.planning/STATE.md](.planning/STATE.md)
 
 ## Документация
 

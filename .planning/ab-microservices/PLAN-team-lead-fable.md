@@ -2,7 +2,7 @@
 
 > **Дата:** 2026-07-02 · **Автор:** team-lead-fable (оркестратор+архитектор, A/B-тест)
 > **Статус:** ПРОЕКТ ПЛАНА — требует ADR (`ADR-MICROSERVICES-2026`) и приёмки пользователем/product.
-> **Источники:** `.planning/EXPANSION-ANALYSIS-2026-07-02.md`, `docs/architecture.md`, `docs/stack_and_tools.md`,
+> **Источники:** `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md`, `docs/architecture.md`, `docs/stack_and_tools.md`,
 > `docs/tz_constraints.md` / `.cursor/rules/60-tz-constraints.mdc`, `.cursor/playbooks/team-workflow.md`,
 > `.cursor/rules/20-backend.mdc`, фактический код `backend/internal/**`, `backend/cmd/**`, `deployments/**`.
 

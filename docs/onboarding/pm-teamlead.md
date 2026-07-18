@@ -1,7 +1,7 @@
 # Онбординг — PM / Тимлид (+ админ/ops)
 
 > Роль: управление roadmap, волнами разработки и AI-командой Hub; в конце — секция для админа/ops.
-> Главные документы: `.cursor/playbooks/team-workflow.md` (RACI, волны, handoff) + `.planning/ROADMAP-FINAL-2026-07-03.md` · Индекс: [README.md](README.md)
+> Главные документы: `.cursor/playbooks/team-workflow.md` (RACI, волны, handoff) + `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` · Индекс: [README.md](README.md)
 
 ---
 
@@ -24,7 +24,7 @@
 
 - [ ] `AGENTS.md` — статус проекта, метрики, ростер команды: стартовая точка.
 - [ ] `docs/vision_and_scope.md` — бизнес-цели, KPI, User Stories.
-- [ ] **`.planning/ROADMAP-FINAL-2026-07-03.md`** — актуальный план: два трека (F функционал / P платформа-микросервисы), волны 1–12+, эпик DOCS-EXCELLENCE, фаза TF-PY.
+- [ ] **`.planning/july-2026/ROADMAP-FINAL-2026-07-03.md`** — актуальный план: два трека (F функционал / P платформа-микросервисы), волны 1–12+, эпик DOCS-EXCELLENCE, фаза TF-PY.
 - [ ] `.planning/STATE.md` — текущее состояние сессий; `.planning/COVERAGE.md` — качество.
 - [ ] **`.cursor/playbooks/team-workflow.md`** — RACI, потоки фич, параллелизм, handoff.
 - [ ] `.cursor/playbooks/README.md` — ростер 30 агентов и карта playbooks.

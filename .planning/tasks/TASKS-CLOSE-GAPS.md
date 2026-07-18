@@ -1,6 +1,6 @@
 # TASKS — Закрытие всех пробелов Hub
 
-> Orchestrator: 2026-06-17 | План: `.planning/PLAN-CLOSE-GAPS.md`
+> Orchestrator: 2026-06-17 | План: `.planning/tasks/PLAN-CLOSE-GAPS.md`
 > Верификация gate: **2026-06-20** · Wave 6: **2026-06-20**
 > Правило: test-triage при FAIL — `.cursor/skills/test-triage/SKILL.md`
 

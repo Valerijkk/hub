@@ -4,7 +4,7 @@
 > **ID ranges:** `ECC-MSG-C400+` · `ECC-WS-C400+` · `ECC-NOTIF-C400+` · `ECC-SRCH-C400+`  
 > **Не дублирует** parent `ECC-*-C200…` и wave1 `ECC-*-C300…` — углубляет **новыми** комбинациями.  
 > **Фокус:** NF-02+NF-03 combo · NATS split-brain · unread+delete race · search index+soft-delete · telegram unbind mid-push · WS subscribe after kick.  
-> **Merge target:** `.planning/EDGE-CORNER-CATALOG.md` § Corner expansion (после ревью).  
+> **Merge target:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` § Corner expansion (после ревью).  
 > **Владелец:** `qa-manual` · 2026-07-10 · **не коммитить в каталог** без ревью.
 
 Формат: `| ID | Тип | Сценарий | Ожидание | Слой | P | Связь | Gap |`

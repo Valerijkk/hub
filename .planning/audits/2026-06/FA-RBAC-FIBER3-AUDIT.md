@@ -52,4 +52,4 @@ Modules using `Group().Use(authMw)` + handler-only routes, or in-handler `author
 
 - FA-02-02 TMS webhook IDOR
 - APIGW-01 webhook CRUD RBAC
-- `.planning/FA-01-AUDIT.md`
+- `.planning/audits/2026-06/FA-01-AUDIT.md`

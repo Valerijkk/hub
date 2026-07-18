@@ -88,3 +88,56 @@ items.map((item, idx) => <Card key={idx} ... />)
 | `panic()` in handlers | Production crash | return error |
 | `any` without comment | Loses type safety | Explicit type or `// reason` |
 | `key={index}` in lists | React reconciliation bug | Stable ID |
+
+## Naming & Formatting
+
+```go
+// ✅ Go: exported types PascalCase, unexported camelCase, acronyms consistent
+type AuthService struct{}         // не AuthSvc, не Auth_Service
+func (s *AuthService) CreateUserID(...) // ID не Id
+
+// ✅ Errors — package-level sentinel, wrap at call site
+var ErrNotFound = errors.New("not found")
+
+// ❌ Магические числа без объяснения
+if attempts > 3 { ... }             // почему 3? откуда взялось?
+// ✅
+const maxAuthAttempts = 3           // rate limiting auth: 3/10min (tz_constraints.md)
+if attempts > maxAuthAttempts { ... }
+```
+
+```typescript
+// ✅ TS: interfaces/types PascalCase, hooks camelCase с префиксом use
+interface IssueCardProps { issue: Issue }
+export function useIssueDetail(id: string) { ... }
+
+// ❌ Не смешивать default export и named export в одном файле компонента без причины
+```
+
+## Комментарии — что можно, что нельзя
+
+```go
+// ❌ Плохо: комментарий повторяет код
+// Increment counter
+counter++
+
+// ✅ Хорошо: комментарий объясняет решение/ограничение
+// HI-09: recover должен идти первым — иначе паника в logger'е не будет перехвачена
+app.Use(middleware.Recover())
+```
+
+Полная методология комментариев (godoc/TSDoc, что логировать, чего избегать) — `.cursor/playbooks/code-comments.md`.
+
+## Примеры из Hub
+
+- Комментарии «ПОЧЕМУ»: `backend/cmd/server/wiring_fiber.go` — рядом с каждым `app.Use(...)` короткая ремарка зачем именно здесь (`// HI-09: глобальный recover...`, `// ME-15: глобальный лимит...`) — образец стиля для всей команды.
+- Wrap ошибок с контекстом: `fmt.Errorf("create issue: %w", err)` — ищи паттерн в `backend/internal/tracker/service.go`, `backend/internal/bases/service.go`.
+- `subtle.ConstantTimeCompare` в проде: `backend/internal/auth/service_session.go`, `backend/internal/auth/magiclink.go`, `backend/internal/apigateway/webhook.go` (HMAC-подпись вебхуков), `backend/internal/audit/handler_alerts.go`, `backend/internal/mail/internal_auth.go`, `backend/internal/gitlab/handler.go` — все секретные сравнения идут через этот примитив, не через `==`/`!=`.
+- Rune-safe длина строк: `backend/internal/auth/handler.go` (fix `576dfbb`) — magic-link код считался в байтах вместо `utf8.RuneCountInString`, что ломало non-ASCII ввод; regression-тест — `backend/internal/auth/handler_magiclink_runes_test.go`.
+- `slog.InfoContext` с полями: смотри `backend/internal/tracker/service.go`, `backend/internal/audit/*` — единый паттерн логирования, не `fmt.Println`/`log.Printf`.
+- Commit-стиль на реальных примерах из истории: `fix(bases): scope all base operations to owner (403 for foreign bases)`, `fix(auth): count magic-link code length in runes, not bytes`, `test(bases): RBAC denial suite for foreign-base access`.
+- React hooks-порядок: ищи корректный паттерн в `frontend/src/modules/tracker/` (все хуки перед условным `return`) — нарушение = Rules of Hooks bug, ловится ESLint `eslint-plugin-react-hooks`.
+- `key={item.id}`, не `key={index}`: паттерн в `frontend/src/modules/messenger/`, `frontend/src/modules/tms/` — списки сообщений/тест-кейсов со стабильными UUID-ключами.
+- Sentinel-ошибки + `errors.Is`/`ent.IsNotFound`: `backend/internal/tracker/service.go`, `backend/internal/bases/service.go` — не голый `if err != nil { return err }` без контекста.
+- DI/wiring без `*ent.Client` в handler/service напрямую: `backend/cmd/server/wiring_modules.go` собирает repository → service → handler цепочку явно, зависимости пробрасываются конструкторами.
+- Явный `type` для API-ответов вместо `any`: `frontend/src/api/*.ts` — каждый клиент типизирован дженериком (`api.get<PaginatedResponse<Issue>>(...)`), не `Promise<any>`.

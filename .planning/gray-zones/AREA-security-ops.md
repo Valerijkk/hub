@@ -1,6 +1,6 @@
 # Gray Zones — Security + Prod-Ops
 
-> Аудит нерешённых вопросов, 2026-07-02. Источники: `docs/security_guidelines.md`, `docs/tz_constraints.md`, `.planning/TECH-DEBT-AUDIT-2026-06-23.md`, `.planning/MICROSERVICES-ROADMAP.md`.
+> Аудит нерешённых вопросов, 2026-07-02. Источники: `docs/security_guidelines.md`, `docs/tz_constraints.md`, `.planning/audits/2026-06/TECH-DEBT-AUDIT-2026-06-23.md`, `.planning/roadmaps/MICROSERVICES-ROADMAP.md`.
 > Цель: вопросы для решения пользователем/PO до реализации соответствующих фаз.
 
 ---

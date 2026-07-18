@@ -1,7 +1,7 @@
 # Hub — Project Status Snapshot (2026-07-10)
 
 > **Снимок «где мы»** перед кодовым freeze до возврата ~конец июля 2026.
-> Индекс: `.planning/INDEX-JULY-2026.md` · Brief: `JULY-2026-REBUILD-BRIEF.md` · Операционный план: `ROADMAP-DETAILED-JULY-RETURN.md`
+> Индекс: `.planning/july-2026/INDEX-JULY-2026.md` · Brief: `JULY-2026-REBUILD-BRIEF.md` · Операционный план: `ROADMAP-DETAILED-JULY-RETURN.md`
 > Метрики baseline: `AGENTS.md` / `.planning/STATE.md` / `.planning/COVERAGE.md`
 
 ---
@@ -120,9 +120,9 @@
 
 ## 8. Ссылки
 
-- Edge/corner → TC: `.planning/EDGE-CORNER-CATALOG.md`
+- Edge/corner → TC: `.planning/july-2026/EDGE-CORNER-CATALOG.md`
 - Testing Guide: `testframework/TESTING_GUIDE.md`
-- Quality: `.planning/CODE-QUALITY-CHARTER.md`
+- Quality: `.planning/july-2026/CODE-QUALITY-CHARTER.md`
 - Seeds: `seeds/SEED-001-*.md` (REJECTED), `seeds/SEED-002-*.md` (active)
 - Roadmap: `ROADMAP-FINAL-2026-07-03.md`
 

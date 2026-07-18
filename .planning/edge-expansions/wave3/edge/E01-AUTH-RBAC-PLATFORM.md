@@ -8,7 +8,7 @@
 > **Wave2 (не дублировать 1:1):** `.planning/edge-expansions/wave2/edge/E01-AUTH-RBAC-PLATFORM.md` (`ECC-*-200…`)  
 > **Фокус wave3:** refresh rotation family · session UA/label · magic resend cooldown · profile TZ/avatar · GDPR erase wipe · onboarding fields · owner transfer · cross-project role matrix · imex role pack · pending queue filters · audit retention · outbox batch · presigned TTL · webhook HMAC window  
 > **Связи:** US-M01/M08/M09/M10, US-S03 · NFR-05/06/07/08/09/10/11/12/13/24/25 · ADR-AUTH-01 · TC-AUTH-*, TC-RBAC-*, TC-ADMIN-*, TC-PROJ-*  
-> **Канон каталога:** `.planning/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом  
+> **Канон каталога:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом  
 > **Gap:** только `TODO`
 
 ### Gap-легенда (для этого файла)

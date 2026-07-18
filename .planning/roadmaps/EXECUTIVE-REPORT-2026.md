@@ -68,7 +68,7 @@ Hub сегодня — **лучший self-hosted dev suite** (tracker+messenger
 - OpenAI-compatible API `POST /api/ai/v1/chat/completions` для внутренних tools
 - Keys server-side, audit без content, rate limits
 
-**Spec:** `.planning/AI-PROVIDER-HUB-SPEC.md`
+**Spec:** `.planning/specs/AI-PROVIDER-HUB-SPEC.md`
 
 ---
 
@@ -128,9 +128,9 @@ Q4 2027  v4.0  CRM-lite + HR-lite
 
 | Document | Purpose |
 |----------|---------|
-| [PLATFORM-VISION-v4.md](./PLATFORM-VISION-v4.md) | Full vision |
+| [../specs/PLATFORM-VISION-v4.md](./PLATFORM-VISION-v4.md) | Full vision |
 | [MICROSERVICES-ROADMAP.md](./MICROSERVICES-ROADMAP.md) | Service split plan |
-| [AI-PROVIDER-HUB-SPEC.md](./AI-PROVIDER-HUB-SPEC.md) | AI technical spec |
+| [../specs/AI-PROVIDER-HUB-SPEC.md](./AI-PROVIDER-HUB-SPEC.md) | AI technical spec |
 | [FEATURE-BACKLOG-2026.md](./FEATURE-BACKLOG-2026.md) | FB-01..FB-28 + MOD-* |
 | [docs/competitive_analysis_2026.md](../docs/competitive_analysis_2026.md) | Competitors |
 | [docs/user_needs_analysis_2026.md](../docs/user_needs_analysis_2026.md) | Personas |

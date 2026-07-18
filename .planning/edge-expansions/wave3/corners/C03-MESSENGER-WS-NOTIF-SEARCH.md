@@ -4,7 +4,7 @@
 > **ID ranges:** `ECC-MSG-C500+` · `ECC-WS-C500+` · `ECC-NOTIF-C500+` · `ECC-SRCH-C500+`  
 > **Не дублирует** parent `ECC-*-C200…` · wave1 `ECC-*-C300…` · wave2 `ECC-*-C400…` — углубляет **новыми** комбинациями.  
 > **Фокус:** Redis failover/stampede · JWT/session revoke mid-WS+push · cursor×concurrent mutation · sticky-loss multi-node WS · slow-consumer backpressure · VAPID/WebPush key rotate · quiet-hours TZ flip · deep-link×soft-delete×kick · badge Redis≠Mongo · Meili rolling reindex×homoglyph/XSS highlight · channel archive/readonly×thread · attachment ACL mid-download · rolling deploy mid-fanout.  
-> **Merge target:** `.planning/EDGE-CORNER-CATALOG.md` § Corner expansion (после ревью).  
+> **Merge target:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` § Corner expansion (после ревью).  
 > **Владелец:** `qa-manual` · 2026-07-10 · **не коммитить в каталог** без ревью.
 
 Формат: `| ID | Тип | Сценарий | Ожидание | Слой | P | Связь | Gap |`

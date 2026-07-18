@@ -9,7 +9,7 @@
 > **Wave3 (не дублировать 1:1):** `.planning/edge-expansions/wave3/edge/E02-TRACKER-SPRINT-TMS.md` (`ECC-*-300…`)  
 > **Фокус wave5:** components/fix-versions · swimlanes/boards/columns · automation rule caps · bulk transition/IMEX · git autolink · due-date buckets · story-point precision · sprint commitment/% · capacity mid-edit · calendar/retro bounds · JUnit webhook caps · coverage % · compare-runs · hub-cli batch · native result attachments · case tags/title · bug-from-fail · TestRail rows · webhook clock skew  
 > **Связи:** US-M03/M11/M12, US-S01/S04/S06/S08/S09, US-M05/S13/C02 · NFR-08/11/12/14/24 · TC-TRCK-*, TC-SPRINT-*, TC-TMS-*, TC-ALLURE-*, TC-JQL-*  
-> **Канон каталога:** `.planning/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом
+> **Канон каталога:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом
 
 ### Gap-легенда (для этого файла)
 

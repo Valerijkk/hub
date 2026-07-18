@@ -2,7 +2,7 @@
 
 > **Тип:** только **Corner** (редкие комбинации, races, mid-flight, multi-step, cross-domain)  
 > **Дата:** 2026-07-10 · **Владелец:** `qa-manual` · **Волна:** wave5  
-> **Не трогает** `.planning/EDGE-CORNER-CATALOG.md`, parent `00-CORNER-PARENT.md`, wave1–4 `corners/C04-*`  
+> **Не трогает** `.planning/july-2026/EDGE-CORNER-CATALOG.md`, parent `00-CORNER-PARENT.md`, wave1–4 `corners/C04-*`  
 > **ID range:** `ECC-*-C700+` (не пересекает parent `C200–C215`, wave1 `C300+`, wave2 `C400+`, wave3 `C500+`, wave4 `C600+`, catalog `C01–C25`, edge `*100+`)  
 > **SFU:** LiveKit stay — mediasoup / SEED-001 = **N/A** (строки mediasoup не добавлять)  
 > **Фокус wave5:** webcam Ph16 × adaptive bitrate × egress layout · resource booking (US-CAL-01) × FindFreeSlots TOCTOU × LK · in-call chat × GDPR × calendar · codec/simulcast renegotiation · PWA/background lifecycle · hub-mail DKIM/TLS rotate × METHOD=REPLY · tzdb bump × series  
@@ -162,4 +162,4 @@
 | Resource LOCATION / CUTYPE in ICS | `ECC-MAIL-C705`, `C712`, `C717`–`C718` |
 
 **Handoff:** `qa-manual-ver` → после `verified: true` выборочно `qa-auto1` (resource/FindFreeSlots races, REPLY, ETag) / Manual (webcam Ph16, ABR, DKIM/TLS, PWA).  
-**Merge later:** в `.planning/EDGE-CORNER-CATALOG.md` § Corner expansion (отдельной волной; каталог сейчас не трогать).
+**Merge later:** в `.planning/july-2026/EDGE-CORNER-CATALOG.md` § Corner expansion (отдельной волной; каталог сейчас не трогать).

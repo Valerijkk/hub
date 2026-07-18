@@ -2,7 +2,7 @@
 
 > **A/B-тест оркестрации — вариант Fable 5 (max effort)**
 > Дата: 2026-07-02 · Автор: team-lead+architect (Fable 5) · Read-only анализ кода
-> Источники: `.planning/EXPANSION-ANALYSIS-2026-07-02.md` (эпик B5, XL), `backend/internal/bases/*`,
+> Источники: `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` (эпик B5, XL), `backend/internal/bases/*`,
 > `backend/ent/schema/hub{base,table,column,record}.go`, `frontend/src/modules/bases/bases-page.tsx`,
 > `.cursor/playbooks/team-workflow.md`, `.cursor/rules/60-tz-constraints.mdc`, `20-backend.mdc`, `30-frontend.mdc`
 

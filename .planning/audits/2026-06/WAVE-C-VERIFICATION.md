@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-22  
 **Branch:** `feat/v2.5-trust`  
-**Sources:** STATE.md, FA-01-AUDIT.md, FA-10-QA-GATE.md, TASKS-PHASES-121-FINAL-AUDIT.md, PR-feat-v2.5-trust.md  
+**Sources:** ../../STATE.md, FA-01-AUDIT.md, FA-10-QA-GATE.md, ../../tasks/TASKS-PHASES-121-FINAL-AUDIT.md, ../../production/PR-feat-v2.5-trust.md  
 **Verified by:** verifier agent
 
 ---
@@ -16,8 +16,8 @@
 | Wave A | COV ≥82%, security 6/6 ≥80% | ✅ COMPLETE | COV **83.0%** |
 | Wave B | TF-M01–M10: 0 internal tests, CI hubtest-only | ✅ COMPLETE | **488** / **0** · Vitest **99/99** · E2E **20** |
 | Wave C | FA-01–FA-12 audit + qa-gate | ✅ COMPLETE (code) | FA-01 backlog closed · FA-02 **0 CRITICAL** · FA-10 PASS |
-| Wave C ops | FA-06 PG-03 secret rotation | ⏳ MANUAL | `.planning/PG-03-SECRET-ROTATION.md` |
-| RU gate | RU-V10 | ✅ PASS | `.planning/RU-V-REPORT.md` |
+| Wave C ops | FA-06 PG-03 secret rotation | ⏳ MANUAL | `.planning/production/PG-03-SECRET-ROTATION.md` |
+| RU gate | RU-V10 | ✅ PASS | `.planning/audits/2026-06/RU-V-REPORT.md` |
 
 ---
 
@@ -69,7 +69,7 @@ FA-06 does not block merge to `main` for CI validation; **required before produc
 ## 5. Recommendation
 
 1. **Commit** uncommitted changes on `feat/v2.5-trust`
-2. **Open squash PR** — `.planning/PR-feat-v2.5-trust.md`
+2. **Open squash PR** — `.planning/production/PR-feat-v2.5-trust.md`
 3. **Execute FA-06** before production cutover
 4. **CTO sign-off** after CI green + FA-06
 

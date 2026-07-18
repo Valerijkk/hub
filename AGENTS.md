@@ -8,7 +8,7 @@
 
 **Hub** — self-hosted **corporate super-app** для команд 10–50 человек: Task Tracker + Messenger + TMS + Voice Calls + Dashboards **+** интранет, календарь, CRM-lite, HR, учёт, no-code базы, AI hub.
 
-**Roadmap v4:** `.planning/milestones/v4-super-app/SUMMARY.md` · Vision: `.planning/PLATFORM-VISION-v4.md`
+**Roadmap v4:** `.planning/milestones/v4-super-app/SUMMARY.md` · Vision: `.planning/specs/PLATFORM-VISION-v4.md`
 
 Монорепо: `backend/` (Go, **82 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + **`testframework/`** (E2E + Vitest)
 
@@ -46,9 +46,9 @@
 | `docs/competitive_audit.md` | Best practices + backlog |
 | `docs/user_needs_analysis_2026.md` | Персоны, JTBD, MoSCoW |
 
-Планирование: `.planning/STATE.md`, `.planning/COVERAGE.md`, `.planning/ROADMAP.md`, `.planning/DISCUSS-ROADMAP-LOCKED.md`
+Планирование: [`.planning/README.md`](.planning/README.md) (навигация) · `.planning/STATE.md` · `.planning/COVERAGE.md` · `.planning/ROADMAP.md` · `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
-**Active (2026-07-10):** July Rebuild **planning** (код freeze до ~конца июля) · **LiveKit stay** (SEED-001 mediasoup REJECTED) · Волна 1 в ветках, merge master = user · QA-HARDENING docs wave · индекс `.planning/INDEX-JULY-2026.md` · charter `.planning/CODE-QUALITY-CHARTER.md` · COV 83.0% · FA-06 manual (не гейтит разработку)
+**Active (2026-07-10):** July Rebuild **planning** (код freeze до ~конца июля) · **LiveKit stay** (SEED-001 mediasoup REJECTED) · Волна 1 в ветках, merge master = user · QA-HARDENING docs wave · индекс `.planning/july-2026/INDEX-JULY-2026.md` · charter `.planning/july-2026/CODE-QUALITY-CHARTER.md` · COV 83.0% · FA-06 manual (не гейтит разработку)
 
 GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–§11
 
@@ -56,11 +56,11 @@ GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–
 
 ## AI-команда (30 агентов)
 
-> Реорганизована 2026-07-02 под параллельную разработку. Ростер и модели: **`.cursor/playbooks/README.md`** · процессы/RACI: `.cursor/playbooks/team-workflow.md`.
-> **Модели:** `team-lead` — Fable 5 (дефолтный оркестратор); `team-lead-opus` — Opus 4.8 @ 1M (**только эскалация**: тяжёлые декомпозиции/приёмка milestone); все остальные — Sonnet 5, max effort, ~200–300k.
+> Реорганизована 2026-07-02 под параллельную разработку. Ростер: **`.cursor/playbooks/README.md`** · RACI: `.cursor/playbooks/team-workflow.md` · модели: **`.planning/decisions/ADR-MODELS-GPT56-2026.md`**.
+> **Модели (→ август 2026):** `team-lead` — **GPT-5.6 Sol Pro**; все остальные роли — **GPT-5.6 Sol**; супер-мелкие — **Codex (latest)** (`codex-micro`). До cutover в Cursor ещё Claude (Fable / Opus escalate / Sonnet). `team-lead-opus` после cutover — deprecated.
 
 ### Лидерство / продукт
-`team-lead` (оркестратор), `tech-lead` (декомпозиция), `product` + `product-ver`
+`team-lead` (оркестратор, Sol Pro), `tech-lead` (декомпозиция), `product` + `product-ver`, `codex-micro` (мелочь)
 
 ### Аналитика / архитектура / дизайн (потоки + верификаторы)
 
@@ -159,7 +159,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | NFR-16 WCAG full sign-off | ⚠️ login axe PASS |
 | NFR-17 Lighthouse blocking gate | ⚠️ artifact only (PR #27) |
 
-Полный аудит: `.planning/AUDIT-2026-06-23.md` · матрица: `.planning/COVERAGE.md` · July index: `.planning/INDEX-JULY-2026.md`
+Полный аудит: `.planning/audits/2026-06/AUDIT-2026-06-23.md` · матрица: `.planning/COVERAGE.md` · July index: `.planning/july-2026/INDEX-JULY-2026.md`
 
 ---
 

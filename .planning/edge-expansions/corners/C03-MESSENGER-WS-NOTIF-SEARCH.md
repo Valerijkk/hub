@@ -4,7 +4,7 @@
 > **ID ranges:** `ECC-MSG-C300+` · `ECC-WS-C300+` · `ECC-NOTIF-C300+` · `ECC-SRCH-C300+`  
 > **Не дублирует** parent `ECC-*-C200…C204` (msg/ws/notif/search) дословно — углубляет комбинациями.  
 > **Фокус:** NF-02 mid-subscribe · NF-03 leak · NATS down mid-send · idempotent retry · block+DM · pin+delete · reconnect storm · mute vs security · WebPush SSRF mid-update · index lag · unread race · reaction storm · channel delete mid-WS.  
-> **Merge target:** `.planning/EDGE-CORNER-CATALOG.md` § Corner expansion (после ревью).  
+> **Merge target:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` § Corner expansion (после ревью).  
 > **Владелец:** `qa-manual` · 2026-07-10 · **не коммитить в каталог** без ревью.
 
 Формат: `| ID | Тип | Сценарий | Ожидание | Слой | P | Связь | Gap |`

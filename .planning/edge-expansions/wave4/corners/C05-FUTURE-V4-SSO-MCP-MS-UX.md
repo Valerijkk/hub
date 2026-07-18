@@ -192,7 +192,7 @@
 
 **Минимум 65:** выполнен (77 ≥ 65).  
 **C200–C500:** не копировались — wave4 углубление (quadruple/multi-flip, BFCache×ACL, prompt-injection×tool, legal-hold×cascade, IdP key rotate).  
-**Основной каталог** `.planning/EDGE-CORNER-CATALOG.md`: не изменялся.  
+**Основной каталог** `.planning/july-2026/EDGE-CORNER-CATALOG.md`: не изменялся.  
 **Коммит:** не создавался.
 
 ### Фокус-покрытие (чеклист)

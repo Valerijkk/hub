@@ -134,5 +134,5 @@
 > Минимум 50 — **выполнено (74)**.  
 > Happy / Neg / Corner — **не включены**.  
 > ID `*100+` / `*200+` / каталог `*001…` — **не пересекались** (новые оси: polls/invites/voice/DM, send-buffer 256, MaxDeliver/AckWait/per_page, shard limit 10 / batch 5000).  
-> `.planning/EDGE-CORNER-CATALOG.md` — **не изменялся**.  
+> `.planning/july-2026/EDGE-CORNER-CATALOG.md` — **не изменялся**.  
 > Коммит — **не создавался**.

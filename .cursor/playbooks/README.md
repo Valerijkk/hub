@@ -1,9 +1,39 @@
 # Hub — AI Team Playbooks (индекс)
 
 > Единый справочник команды. Каждый агент **перед задачей** грузит `docs/*` (база знаний) и профильные playbook-и из этого каталога.
-> Регламент: `.cursor/REGULATION.md` · GSD: `.cursor/GSD-INTEGRATION.md` · Ростер файлов агентов: `.cursor/agents/*.md`
+> Регламент: `.cursor/REGULATION.md` · GSD: `.cursor/GSD-INTEGRATION.md` · Ростер файлов агентов: `.cursor/agents/*.md` · Planning-навигация: [`.planning/README.md`](../../.planning/README.md)
 
-*Обновлено: 2026-07-02 — реорганизация команды под параллельную разработку.*
+*Обновлено: 2026-07-18 — ADR моделей GPT-5.6 (cutover август; до cutover frontmatter ещё Claude) + секция «как читать индекс», карта «тонкий rule → толстый playbook», таблица «что обновить когда».*
+
+---
+
+## Как читать этот индекс (для новой сессии/агента)
+
+Порядок — сверху вниз, не выборочно:
+
+1. **`.planning/STATE.md`** — что происходит в проекте прямо сейчас (session notes, freeze-статус July Rebuild). 30 секунд на весь файл.
+2. **`.planning/README.md`** — если нужен конкретный planning-артефакт (аудит, ADR, roadmap, prod-runbook) — навигация по папкам, не гадать путь руками.
+3. **`docs/README.md`** → нужные файлы «Единой базы знаний» (`vision_and_scope.md`, `system_specification.md`, `architecture.md`, `tz_constraints.md`, ...) — факты о продукте.
+4. **Этот файл** → §2/§2.1 «Карта playbook-ов» / обратная карта агент→playbook — найди свой playbook по роли; §0 — актуальная модель для твоей роли.
+5. **Свой файл агента** (`.cursor/agents/<role>.md`) — конкретные обязанности, DoD, с кем взаимодействуешь; ссылается на playbooks, не дублирует их.
+6. **Always-applied rules** (`.cursor/rules/00–60-*.mdc`) — грузятся автоматически каждую сессию; не обязательно открывать вручную, но держи их constraints в голове.
+
+Не знаешь, какой документ обновлять после своего изменения — смотри §6 «Что обновить когда» в конце этого файла.
+
+---
+
+## 0. Модели (as-is → август 2026)
+
+> Канон: [`.planning/decisions/ADR-MODELS-GPT56-2026.md`](../decisions/ADR-MODELS-GPT56-2026.md)
+
+| Слот | Сейчас (до cutover) | **С августа 2026** |
+|------|---------------------|---------------------|
+| Оркестратор `team-lead` | Fable 5 | **GPT-5.6 Sol Pro** |
+| Эскалация `team-lead-opus` | Opus 4.8 @ 1M | **deprecated** (роль сливается в Sol Pro) |
+| Все ролевые + `*-ver` | Sonnet 5 | **GPT-5.6 Sol** |
+| Супер-мелкие задачи | inline / gsd-fast | **Codex (latest)** → агент [`codex-micro`](../agents/codex-micro.md) |
+
+До августа: не менять `model:` во frontmatter массово — только документация и ADR. В день cutover — обновить slug по актуальному Cursor picker.
 
 ---
 
@@ -36,20 +66,65 @@
 | `verification.md` | все `*-ver`, code-reviewer, security-auditor | Протокол верификации, чек-листы по ролям, severity |
 | `team-workflow.md` | team-lead, tech-lead, product, все | Состав, RACI, потоки фич, волны, параллелизм, handoff, GSD |
 
+### 2.1 Обратная карта: агент → playbook-и
+
+> §2 отвечает «playbook → кто использует»; здесь обратный индекс «агент → что грузить перед задачей», без пролистывания §2/§3.
+
+| Агент(ы) | Playbooks к загрузке |
+|----------|-----------------------|
+| `team-lead`, `team-lead-opus`, `tech-lead` | `team-workflow.md` (обязателен) + playbook домена, который делегируется |
+| `product`, `product-ver` | `team-workflow.md`, `analysis.md` |
+| `ba1`, `ba2`, `ba-ver` | `analysis.md` |
+| `sa1`, `sa2`, `sa-ver` | `analysis.md` |
+| `arch`, `arch-ver` | `analysis.md`, `backend.md` (реализуемость стеком), `observability.md` |
+| `designer`, `designer-ver` | `design.md` |
+| `be1`, `be2`, `be-ver` | `backend.md`, `testing.md`, `observability.md`, `code-comments.md`, `git-workflow.md` |
+| `fe1`, `fe2`, `fe-ver` | `frontend.md`, `design.md`, `testing.md`, `observability.md`, `code-comments.md`, `git-workflow.md` |
+| `qa-manual`, `qa-manual-ver` | `testing.md` |
+| `qa-auto1`, `qa-auto2`, `qa-auto-ver` | `testing.md`, `observability.md`, `git-workflow.md` |
+| `devops-engineer` | `observability.md`, `git-workflow.md` |
+| `security-auditor` | `backend.md` (security-секции), `verification.md` |
+| `debugger` | `observability.md` + `backend.md`/`frontend.md` по домену бага |
+| `code-reviewer` | `verification.md`, `git-workflow.md`, `code-comments.md` |
+| `docs-writer` | `code-comments.md` (стиль примеров) + `.cursor/rules/55-docs-sync.mdc` |
+| `codex-micro` | не грузит playbooks — только rule-файлы + свой agent-файл (задачи слишком малы для полного контекста) |
+
+**Правило:** если роль выходит за штатный сценарий (например, `fe-ver` делает разовое backend-ревью), грузить playbook **целевого домена задачи**, а не playbook своей роли по умолчанию.
+
+### 2.2 Карта «тонкий rule → толстый playbook»
+
+`.cursor/rules/*.mdc` — always-applied краткие карточки (что нельзя/обязательно + 1 пример). Playbook — глубина (почему, как тестировать, антипаттерны). Если правило не помещается в 5–10 строк с примером — это уже playbook, не rule.
+
+| Тонкое правило (`.cursor/rules/`) | Толстый playbook | Связь |
+|---|---|---|
+| `10-style.mdc`, `20-backend.mdc` | `backend.md` | Rule = запрещённые паттерны + пример; playbook = layering, конкурентность, NATS, Mongo целиком |
+| `10-style.mdc`, `30-frontend.mdc` | `frontend.md` | Rule = Rules of Hooks/design tokens кратко; playbook = TanStack Query, a11y, перф глубоко |
+| — (нет отдельного rule) | `design.md` | Дизайн-система `--hub-*` — слишком объёмно для rule, живёт только в playbook |
+| `40-testing.mdc` | `testing.md` | Rule = pipeline map + команды; playbook = пирамида, техники тест-дизайна, Allure, MD↔автотест |
+| — (нет отдельного rule) | `observability.md` | slog-паттерны, метрики, трейсинг — детально только в playbook |
+| `10-style.mdc` (кратко) | `code-comments.md` | Rule = «объясняй ПОЧЕМУ» одной строкой; playbook = godoc/TSDoc, примеры |
+| `50-git.mdc` | `git-workflow.md` | Rule = naming/commit format/что нельзя коммитить; playbook = параллельная работа, PR-флоу |
+| — (нет отдельного rule) | `analysis.md` | US/AC/SMART/FR/NFR/ERD/C4/ADR методология — только в playbook |
+| `56-regression-verify.mdc` | `verification.md`, `testing.md` §11.1 | Rule = обязательный цикл кратко; playbook = чек-листы по ролям, severity |
+| `00-project.mdc` | `team-workflow.md` | Rule = стек/статус кратко; playbook = RACI, волны, handoff, шаблон делегирования §5.3.1 |
+
+Практический вывод: не хватает контекста из rule — ожидаемо, иди в playbook по этой таблице.
+
 ---
 
 ## 3. Ростер команды (30 агентов)
 
-**Модели:** `team-lead` — **Fable 5 (thinking-high)** дефолтный оркестратор; `team-lead-opus` — **Opus 4.8 @ 1M** эскалация для самых тяжёлых декомпозиций/приёмок. Все остальные — **Sonnet 5, thinking-high (max effort), ~200–300k контекст**. Выбор Fable дефолтом — по итогам 5 A/B-задач (паритет качества + лучшее grounding + дешевле).
+**Модели (целевые с августа):** `team-lead` — **GPT-5.6 Sol Pro**; все остальные роли — **GPT-5.6 Sol**; micro — **Codex (latest)** (`codex-micro`). До cutover в Cursor ещё Claude (Fable / Opus / Sonnet) — см. §0 и ADR.
 
-> Примечание: размер контекста и «effort» задаются профилем модели в Cursor; во frontmatter фиксируется slug. `team-lead` = `claude-fable-5-thinking-high`, `team-lead-opus` = `claude-opus-4-8-thinking-high`, остальные = `claude-sonnet-5-thinking-high`.
+> Frontmatter до cutover: `team-lead` = `claude-fable-5-thinking-high`, `team-lead-opus` = `claude-opus-4-8-thinking-high`, остальные = `claude-sonnet-5-thinking-high`. После cutover: Sol Pro / Sol / Codex — по ADR.
 
 ### Тир 1 — Лидерство
-| Агент | Файл | Модель | Роль |
-|-------|------|--------|------|
-| Team Lead | `team-lead.md` | Fable 5 | Оркестратор волн, делегирование субагентам, финальная приёмка |
-| Team Lead (esc.) | `team-lead-opus.md` | Opus 4.8 (1M) | Эскалация: тяжёлые декомпозиции/приёмка milestone |
-| Tech Lead | `tech-lead.md` | Sonnet 5 | Декомпозиция на фазы/планы, зависимости, риски |
+| Агент | Файл | Модель (→ авг.) | Роль |
+|-------|------|-----------------|------|
+| Team Lead | `team-lead.md` | **Sol Pro** | Оркестратор волн, делегирование, финальная приёмка |
+| Team Lead (esc.) | `team-lead-opus.md` | deprecated | Историческая эскалация Opus; после cutover не использовать |
+| Tech Lead | `tech-lead.md` | **Sol** | Декомпозиция на фазы/планы, зависимости, риски |
+| Codex Micro | `codex-micro.md` | **Codex latest** | Супер-мелкие правки (не волны) |
 
 ### Тир 2 — Продукт
 | Агент | Файл | Роль |
@@ -137,3 +212,24 @@
 | Верификация | Каждый артефакт → персональный `*-ver`; `verified:true` только при green + лог | `verification.md` |
 | /qa-gate | Финальный чек перед handoff/merge | `.cursor/skills/qa-gate/SKILL.md` |
 | Cleanup | Удалить coverage-dumps/temp до коммита | `.cursor/rules/45-artifacts-cleanup.mdc` |
+
+---
+
+## 6. Что обновить когда (шпаргалка агента)
+
+После своего изменения — сверься с этой таблицей, чтобы не забыть doc-sync (полная матрица — `.cursor/rules/55-docs-sync.mdc`):
+
+| Что сделал | Что обновить |
+|---|---|
+| Изменил код/фичу/фикс | `.planning/STATE.md` (session note) |
+| Добавил/сломал API-контракт | `docs/system_specification.md`, `docs/wiki/API.md` |
+| Новый UI-flow/hotkey | `docs/wiki/SHORTCUTS.md`, `docs/wiki/QUICKSTART.md`, `docs/vision_and_scope.md` (если US) |
+| Написал тесты / поменял coverage | `.planning/COVERAGE.md`, `docs/test_plan.md`, `docs/TESTING.md` |
+| Тронул CI/deploy/Docker | `docs/stack_and_tools.md`, `deployments/.env.example`, `docs/wiki/DEPLOY.md` |
+| Security-фикс/аудит | `docs/security_guidelines.md`, `.planning/audits/2026-06/` (новый файл по дате) |
+| Закрыл gap/wave-задачу | `.planning/tasks/TASKS-CLOSE-GAPS.md` |
+| Prod-ops / секрет-ротация | `.planning/production/`, `docs/runbooks/` |
+| Изменил роль/модель агента | этот файл (§0, §3), сам файл агента `.cursor/agents/<role>.md` |
+| Добавил/поменял playbook | этот файл §2 + §2.1 (обратная карта агент→playbook) + §2.2, если поменялась связь с rule |
+| Переложил папки в `.planning/` | `.planning/README.md` + все ссылки на старые пути в `docs/`, `AGENTS.md`, playbooks |
+| Любое из вышеперечисленного, критично для прод/security/деплой | плюс личное ревью пользователя (`.cursor/rules/50-git.mdc`) |

@@ -3,7 +3,7 @@
 > **Статус:** planning/QA артефакт · создан 2026-07-10 · владелец: `qa-manual`  
 > **Назначение:** максимально полный каталог сценариев для снижения багов в разработке и тестировании. Источник заготовок для будущих `TC-*` в `docs/TESTING.md` и автотестов.  
 > **Не заменяет** `docs/TESTING.md` (канонические TC) — дополняет его foresight-слоем.  
-> **Связи:** `.planning/JULY-2026-REBUILD-BRIEF.md` §3 (CAL-SYNC C1–C15) · `seeds/SEED-002-calendar-calls-email-sync.md` · будущий `testframework/TESTING_GUIDE.md` · `.cursor/playbooks/testing.md`  
+> **Связи:** `.planning/july-2026/JULY-2026-REBUILD-BRIEF.md` §3 (CAL-SYNC C1–C15) · `seeds/SEED-002-calendar-calls-email-sync.md` · будущий `testframework/TESTING_GUIDE.md` · `.cursor/playbooks/testing.md`  
 > **SFU:** остаёмся на **LiveKit** (mediasoup / SEED-001 = REJECTED).
 
 ---
@@ -92,7 +92,7 @@
 ## Маппинг на QA-конвейер
 
 ```
-ECC-каталог (.planning/EDGE-CORNER-CATALOG.md)
+ECC-каталог (.planning/july-2026/EDGE-CORNER-CATALOG.md)
         │  qa-manual выбирает P0/P1 → полный TC
         ▼
 docs/TESTING.md  (TC-*-NN + колонка «Автотест»)
@@ -108,7 +108,7 @@ Gap: TODO → Partial → Covered  (обновить этот файл)
 
 **Целевой guide:** `testframework/TESTING_GUIDE.md` (будет создан другим агентом) — должен ссылаться на этот каталог как на источник edge/corner backlog.
 
-**Brief:** `.planning/JULY-2026-REBUILD-BRIEF.md` §3.4 C1–C15 → строки `ECC-CAL-C01`…`ECC-CAL-C15` (+ расширения) в [§7 Calendar](#7-calendar).
+**Brief:** `.planning/july-2026/JULY-2026-REBUILD-BRIEF.md` §3.4 C1–C15 → строки `ECC-CAL-C01`…`ECC-CAL-C15` (+ расширения) в [§7 Calendar](#7-calendar).
 
 ---
 

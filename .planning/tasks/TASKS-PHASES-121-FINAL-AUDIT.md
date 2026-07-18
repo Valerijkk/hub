@@ -64,15 +64,15 @@ docker run --rm --network deployments_default `
 
 | ID | Task | Agent/Skill | Status |
 |----|------|-------------|--------|
-| FA-01 | Full file-by-file audit (DRY/KISS/OOP/SOLID) | gsd-audit-fix + code-reviewer | ✅ 2026-06-22 · `.planning/FA-01-AUDIT.md` |
+| FA-01 | Full file-by-file audit (DRY/KISS/OOP/SOLID) | gsd-audit-fix + code-reviewer | ✅ 2026-06-22 · `.planning/audits/2026-06/FA-01-AUDIT.md` |
 | FA-01 P0 | APIGW-01 webhook CRUD RBAC | be | ✅ 2026-06-22 |
 | FA-01 P1 | APIGW-02 webhook Ack/`NakWithDelay` semantics | be | ✅ 2026-06-22 · `webhook_dispatcher_apigw02_test.go` |
 | FA-01 P1 | APIGW-03 JetStream FilterSubjects (webhook consumer) | be | ✅ 2026-06-22 · `webhook_dispatcher_apigw03_test.go` |
 | FA-01 P1 | AUTH-01 RefreshToken DB session + hash validation | be | ✅ 2026-06-22/23 · `service_session.go` · `service_session_test.go` |
 | FA-01 P2 | APIGW-04 deactivated user on API key path | be | ✅ 2026-06-22/23 · `apikey.go` · `apikey_auth_test.go` |
 | FA-01 P2 | WebhookDispatcher `Stop` inFlight race fix | be | ✅ 2026-06-22/23 · `webhook.go` (`inFlight.Wait()` before `close(jobs)`) |
-| FA-01 CRIT | FA-RBAC-FIBER3 Fiber v3 middleware order (123 routes) | be | ✅ 2026-06-22 · `.planning/FA-RBAC-FIBER3-AUDIT.md` |
-| FA-02 | Security re-audit all modules | security-auditor + gsd-secure-phase | ✅ 2026-06-22 PASS · 0 CRITICAL · `.planning/FA-02-SECURITY-REAUDIT.md` |
+| FA-01 CRIT | FA-RBAC-FIBER3 Fiber v3 middleware order (123 routes) | be | ✅ 2026-06-22 · `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md` |
+| FA-02 | Security re-audit all modules | security-auditor + gsd-secure-phase | ✅ 2026-06-22 PASS · 0 CRITICAL · `.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md` |
 | FA-03 | Update `docs/*`, `.planning/STATE.md`, `COVERAGE.md`, `API.md` | gsd-docs-update | ✅ 2026-06-22 |
 | FA-04 | Fix github `http.DefaultClient` fallback | be | ✅ 2026-06-22 · `github/service.go:55` safehttp |
 | FA-05 | hub-mail in prod compose | devops-engineer | ✅ 2026-06-22 |
@@ -80,10 +80,10 @@ docker run --rm --network deployments_default `
 | FA-07 | Admin console.error → toastApiError | fe | ✅ 2026-06-22 |
 | FA-08 | main.go bootstrap extraction | refactor-specialist | ✅ 2026-06-22 · `wiring_*.go` split |
 | FA-09 | E2E 20 specs → full POM+Steps | qa | ✅ 2026-06-22 |
-| FA-10 | `/qa-gate` Docker + Playwright + tsc | qa-gate skill | ✅ 2026-06-22 **PASS** (local) · `.planning/FA-10-QA-GATE.md` |
+| FA-10 | `/qa-gate` Docker + Playwright + tsc | qa-gate skill | ✅ 2026-06-22 **PASS** (local) · `.planning/audits/2026-06/FA-10-QA-GATE.md` |
 | FA-11 | Close tms/project 81.8% → 82% micro-gap | be + qa | ✅ 2026-06-22 · `service_fa11_test.go` |
 | FA-12 | Fix TestRail `mapTestRailType` → ent enum `classic`/`bdd` | be | ✅ 2026-06-22 · `tms/testrail_import.go:69` |
-| RU-V10 | RU comments/docs final gate | verifier | ✅ 2026-06-22 PASS · `.planning/RU-V-REPORT.md` |
+| RU-V10 | RU comments/docs final gate | verifier | ✅ 2026-06-22 PASS · `.planning/audits/2026-06/RU-V-REPORT.md` |
 
 ### FA-RBAC-FIBER3 — 123 routes fixed (2026-06-22)
 
@@ -97,7 +97,7 @@ docker run --rm --network deployments_default `
 | `internal/gitlab/handler.go` | 5 |
 | **Total** | **123** |
 
-Fiber v3: `Post(path, handler, rbacMW)` → chain `[rbacMW, handler]`. Details: `.planning/FA-RBAC-FIBER3-AUDIT.md`
+Fiber v3: `Post(path, handler, rbacMW)` → chain `[rbacMW, handler]`. Details: `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md`
 
 ### FA-10 qa-gate (2026-06-22/23)
 
@@ -113,7 +113,7 @@ Fiber v3: `Post(path, handler, rbacMW)` → chain `[rbacMW, handler]`. Details: 
 
 **Closed this session:** AUTH-01 (P1) · APIGW-04 (P2) · WebhookDispatcher `Stop` inFlight race fix.
 
-**Not run locally:** Playwright E2E · Docker coverage job. CI: e2e-full **20 specs** · backend-test `./testframework/...` only. Full report: `.planning/FA-10-QA-GATE.md`
+**Not run locally:** Playwright E2E · Docker coverage job. CI: e2e-full **20 specs** · backend-test `./testframework/...` only. Full report: `.planning/audits/2026-06/FA-10-QA-GATE.md`
 
 ### FA-02 backlog (post-fix, LOW)
 

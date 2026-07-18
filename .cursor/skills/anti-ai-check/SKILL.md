@@ -74,3 +74,24 @@ rg -n '!= "' backend/internal/auth/ backend/internal/ws/ --type go
 ```
 
 Если 0 результатов: `✅ No anti-AI patterns found`
+
+## Примеры реальных находок и фиксов (Hub)
+
+| Тип | Пример находки | Фикс |
+|-----|-----------------|------|
+| Narrating comment | `// Return the result` над `return issue, nil` в `service_issues.go` | Удалить комментарий, код самодостаточен |
+| Echo comment | `// increment counter` над `counter++` в `automation_engine.go` | Удалить; если логика неочевидна — заменить на объяснение WHY, не WHAT |
+| Placeholder | `dummy data` в seed-скрипте `provisioner.go` (не тестовый файл) | Заменить на реальный fixture-генератор или перенести в `_test.go` |
+| Deprecated pattern | `minio.New(` в старом PoC-файле calls-хранилища | Заменить на `aws-sdk-go-v2` (mandatory, `tz_constraints.md`) |
+| Security antipattern | `http.DefaultClient.Get(userURL)` в `ical_subscription` фиче (calendar) | `safehttp.NewSafeHTTPClient(10*time.Second)` + `ValidateOutboundURL` (SSRF, NF-07 аналог) |
+| Security antipattern | `io.ReadAll(r.Body)` в file upload handler без лимита | `io.LimitReader(r.Body, maxBytes)` — memory DoS |
+
+## Когда запускать
+
+- Перед `code-reviewer` pre-merge review (обязательный шаг)
+- После больших AI-сгенерированных волн (be1/be2/fe1/fe2 параллельные потоки) — команда часто оставляет narrating-комментарии по инерции
+- Входит как Phase 1 в `.cursor/skills/style-check/SKILL.md` (расширенная версия)
+
+## Связь с REGULATION
+
+`.cursor/rules/10-style.mdc` — источник правды по запрещённым паттернам (Universal Rules + Prohibited Patterns table).

@@ -155,5 +155,5 @@
 > Happy / Neg / Corner — **не включены**.  
 > ID `*100+` / `*200+` / `*300+` / `*400+` / каталог `*001…` — **не копии** (новые оси: mute enum/promote/bridge/DB-dedup/score×0.8).  
 > Явно избегали копий wave1: emoji≤32, pins, rate 60, name/desc, q=500, typoTolerance, LimitReader/batch как primary.  
-> `.planning/EDGE-CORNER-CATALOG.md` — **не изменялся**.  
+> `.planning/july-2026/EDGE-CORNER-CATALOG.md` — **не изменялся**.  
 > Коммит — **не создавался**.

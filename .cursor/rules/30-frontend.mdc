@@ -113,3 +113,28 @@ export const issueApi = {
         api.post<Issue>(`/projects/${projectId}/issues`, data),
 }
 ```
+
+## Примеры из Hub
+
+- Корневой layout + error boundary верхнего уровня: `frontend/src/routes/__root.tsx`, `frontend/src/components/layout/app-shell.tsx`.
+- Готовая реализация `ErrorBoundary`: `frontend/src/components/ui/error-boundary.tsx` — использовать её, а не писать свою.
+- Модули-обёртки в error boundary для тяжёлых доменов: `frontend/src/routes/_authenticated/messenger.tsx`, `.../crm.tsx`, `.../accounting.tsx`, `.../bases.tsx`.
+- File-based роуты с вложенными параметрами: `frontend/src/routes/_authenticated/projects/$projectId.tsx`, `.../projects/$projectId/tms.tsx`, `.../messenger/$channelId.tsx`.
+- Feature-модули (self-contained `components/`, `hooks/`, `stores/`): `frontend/src/modules/{tracker,messenger,tms,calls,bases,crm,hr,accounting,calendar,intranet,marketplace,admin,settings,status}/`.
+- Zustand-хранилища (11 stores) — образец структуры: `frontend/src/stores/`.
+- i18n-слой (если меняешь user-facing текст): `frontend/src/i18n/`.
+- Lazy-load тяжёлых зависимостей (LiveKit, графики): искать паттерн `lazy(() => import(...))` в модулях `calls/`, `dashboard/`.
+- Тестовые обёртки/утилиты для Vitest+RTL: `frontend/src/test/`.
+- Дизайн-система `--hub-*` — источник токенов и Tailwind-конфиг: `docs/wiki` + Tailwind config в корне `frontend/`; проверять на drift через `designer-ver`.
+- API-клиенты по модулям: `frontend/src/api/` — один файл на backend-модуль, зеркалит `backend/internal/<module>/dto.go`.
+
+## Примеры из Hub
+
+- Файл-клиенты по модулю бэкенда: `frontend/src/api/{auth,tracker,bases,calls,calendar,crm,dashboard,messenger}.ts` — один файл = один backend-модуль, никогда не мешать эндпоинты разных доменов в одном файле.
+- Feature-модули (self-contained): `frontend/src/modules/{tracker,messenger,tms,calls,bases,crm,hr,accounting,calendar,intranet,marketplace,admin,settings,status}/`.
+- Zustand-хранилища по домену: `frontend/src/stores/{auth-store,tracker(via board-store),sprint-store,tms-store,messenger-store,call-store,dashboard-store,ws-store,notification-store,ai-store,command-store,sidebar-store,timer-store}.ts` — один store = один домен, не общий "global state".
+- Lazy-load тяжёлых зависимостей: LiveKit-компоненты звонков (`frontend/src/modules/calls/`), дашборд-графики (`frontend/src/modules/dashboard`-эквивалент/`routes/dashboard`) — грузятся через `lazy(() => import(...))`, не в основной бандл.
+- ErrorBoundary вокруг модуля: обязателен для `calls`, `dashboard`, `tracker`, `tms`, `messenger` — паника внутри одного модуля не должна валить весь SPA.
+- Design tokens `--hub-*`: смотри применение в `frontend/src/components/ui/` (Shadcn, только `className`) — не создавать параллельную палитру.
+- Ctrl+K / global search UI: пример готовой a11y-friendly command-палитры — `frontend/src/stores/command-store.ts` + связанный компонент в `components/`.
+- TanStack Router file-based маршруты: смотри реальные пути в `frontend/src/routes/` (39 маршрутов) — имя файла = URL-путь, `_authenticated` группа для защищённых страниц.

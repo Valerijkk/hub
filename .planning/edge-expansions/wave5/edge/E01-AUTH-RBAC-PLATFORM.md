@@ -5,7 +5,7 @@
 > **ID:** `ECC-AUTH-500+`, `ECC-RBAC-500+`, `ECC-PLT-500+`.  
 > **Gap:** только `TODO` | `Future` | `Manual`.  
 > **Владелец:** `qa-manual` · 2026-07-10 · **не коммитить** без ревью.  
-> **Каталог:** `.planning/EDGE-CORNER-CATALOG.md` — **не изменялся**.
+> **Каталог:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` — **не изменялся**.
 
 ### Отличие от wave1–4 (фокус wave5)
 

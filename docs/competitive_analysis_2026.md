@@ -1,7 +1,7 @@
 # Hub — Конкурентный анализ 2026
 
 > **Обновлено:** 2026-06-23  
-> **Источники:** `docs/competitive_audit.md`, `docs/vision_and_scope.md`, `.planning/PLATFORM-VISION-v4.md`, web research (Linear, Jira, Plane, Allure TestOps, Slack, Mighty, Bitrix24, Lark).  
+> **Источники:** `docs/competitive_audit.md`, `docs/vision_and_scope.md`, `.planning/specs/PLATFORM-VISION-v4.md`, web research (Linear, Jira, Plane, Allure TestOps, Slack, Mighty, Bitrix24, Lark).  
 > **Целевой сегмент:** self-hosted команды **10–50 человек**, замена стека Jira + Slack + TestRail/Allure + Meet + Grafana **+** корпоративные сервисы (интранет, HR, CRM).
 
 ---
@@ -195,4 +195,4 @@ Hub после milestone **v4 Super-app** (Phases 39–58) — единстве�
 
 ---
 
-*Следующий документ: [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · Vision: [.planning/PLATFORM-VISION-v4.md](../.planning/PLATFORM-VISION-v4.md)*
+*Следующий документ: [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · Vision: [.planning/specs/PLATFORM-VISION-v4.md](../.planning/specs/PLATFORM-VISION-v4.md)*

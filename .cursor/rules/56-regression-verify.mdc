@@ -66,7 +66,7 @@ Slash: **`/qa-gate`** — останавливается на первой FAIL;
 
 ## Аудит-цикл (до «production-ready UX»)
 
-1. **Re-verify** findings из `.planning/AUDIT-SCORECARD.md` по коду
+1. **Re-verify** findings из `.planning/audits/2026-06/AUDIT-SCORECARD.md` по коду
 2. **Regression** full gate
 3. **Verifiers** parallel для затронутых слоёв
 4. **Fix** CRITICAL/HIGH из аудита
@@ -80,3 +80,37 @@ Slash: **`/qa-gate`** — останавливается на первой FAIL;
 - `.cursor/skills/test-triage/SKILL.md` — FAIL triage
 - `.cursor/skills/qa-gate/SKILL.md` — полный gate
 - `.cursor/playbooks/team-workflow.md` §5.3.1 — шаблон задач team-lead
+
+## Примеры из Hub (реальные циклы качества)
+
+**Кейс 1 — `bases` security fix (audit gap → fix → regression, 2026-07-03):**
+
+```
+1. Аудит нашёл gap: любой аутентифицированный юзер видит/правит все базы (аналог NF-03).
+2. Новое поведение: authorizeBase() в backend/internal/bases/service.go —
+   foreign base → 403 ErrForbidden, missing → 404.
+   Коммит: fix(bases): scope all base operations to owner (98fb3df).
+   Тест нового: backend/testframework/bases/service_test.go, service_wave115_test.go — green.
+3. Регрессия старого домена: полный прогон backend/testframework/bases/... —
+   позитивный путь владельца не сломан.
+4. Расширенный denial-suite отдельным коммитом (цикл продолжился, не one-shot):
+   test(bases): RBAC denial suite for foreign-base access (8ff10d7) —
+   backend/testframework/bases/rbac_test.go (список/GET/PUT/DELETE/мутации таблиц — все 403/404).
+5. Docs sync в том же коммите: docs/wiki/API.md.
+6. STATE.md session note зафиксирован в тот же день.
+```
+
+**Кейс 2 — `auth` magic-link rune fix (баг → тест → fix, тот же день):**
+
+```
+1. Баг: длина magic-link кода считалась в байтах (len(string)), а не в рунах —
+   ломало валидацию для non-ASCII ввода.
+2. Fix + regression-тест в ОДНОМ атомарном коммите (допустимо для маленького неделимого изменения):
+   fix(auth): count magic-link code length in runes, not bytes (576dfbb).
+   backend/internal/auth/handler.go (utf8.RuneCountInString) +
+   backend/internal/auth/handler_magiclink_runes_test.go (новый тест).
+3. Регрессия домена auth: go test -tags hubtest -race ./testframework/auth/... — green.
+4. Не потребовало отдельного doc — чистый bugfix без изменения контракта API (см. исключения rule 55).
+```
+
+Оба кейса — образец: **implement → тест нового → регрессия домена → (при необходимости) docs → STATE.md**, без пропуска шагов.

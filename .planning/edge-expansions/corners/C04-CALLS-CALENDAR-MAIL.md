@@ -2,7 +2,7 @@
 
 > **Тип:** только **Corner** (редкие комбинации, races, mid-flight, multi-step, cross-domain)  
 > **Дата:** 2026-07-10 · **Владелец:** `qa-manual`  
-> **Не трогает** `.planning/EDGE-CORNER-CATALOG.md` и parent `00-CORNER-PARENT.md`  
+> **Не трогает** `.planning/july-2026/EDGE-CORNER-CATALOG.md` и parent `00-CORNER-PARENT.md`  
 > **ID range:** `ECC-*-C300+` (не пересекает parent `C200–C215`, catalog `C01–C25`, edge `*100+`)  
 > **SFU:** LiveKit stay — mediasoup / SEED-001 = **N/A** (строки mediasoup не добавлять)  
 > **Источники:** JULY brief §3 (C1–C15, L0–L3) · SEED-002 · parent CALL/CAL C200–C215 (не дублировать дословно) · US-M06 · US-CAL-* · NFR-12 · SEC-02 · NF-07
@@ -159,4 +159,4 @@
 | Git commit | ✅ не создавался |
 
 **Handoff:** `qa-manual-ver` → затем (после verified) выборочная автоматизация `qa-auto1` (API races) / Manual для SFU+ICS clients.  
-**Merge later:** в `.planning/EDGE-CORNER-CATALOG.md` § Corner expansion (отдельной волной).
+**Merge later:** в `.planning/july-2026/EDGE-CORNER-CATALOG.md` § Corner expansion (отдельной волной).

@@ -249,7 +249,7 @@ func TestUpdateIssueOptimisticLocking(t *testing.T) { … }
 | **Edge** | Границы (лимиты, пустые коллекции, max length) | unit table-driven |
 | **Corner** | Редкие комбинации, гонки, double-submit | targeted unit + точечный E2E при user-visible риске |
 
-Каталог кейсов (источник backlog): `.planning/EDGE-CORNER-CATALOG.md` (если есть).  
+Каталог кейсов (источник backlog): `.planning/july-2026/EDGE-CORNER-CATALOG.md` (если есть).  
 Как превращать кейсы в тесты: [guides/06-edge-corner-coverage.md](guides/06-edge-corner-coverage.md).
 
 **Правило слоя:** чем экзотичнее кейс — тем ниже в пирамиде (дешевле и стабильнее).

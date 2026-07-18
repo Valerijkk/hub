@@ -214,7 +214,7 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 
 ## Реализованная архитектура v3–v4 (2026-06-21)
 
-> Ранее «planned» — теперь в monolith `cmd/server`. Детали: `.planning/PLATFORM-VISION-v4.md`, `.planning/MILESTONE-3.md`
+> Ранее «planned» — теперь в monolith `cmd/server`. Детали: `.planning/specs/PLATFORM-VISION-v4.md`, `.planning/roadmaps/MILESTONE-3.md`
 
 | Версия | Модули в коде | Frontend routes |
 |--------|---------------|-----------------|
@@ -229,8 +229,8 @@ Event bus: **NATS JetStream** (без Redis pub/sub). Search: PostgreSQL + **Mei
 - `docs/system_specification.md` — API, модели данных
 - `docs/security_guidelines.md` — OWASP, уязвимости
 - `docs/stack_and_tools.md` — версии стека
-- `.planning/PLATFORM-VISION-v4.md` — corporate super-app vision
-- `.planning/AI-PROVIDER-HUB-SPEC.md` — AI gateway spec
+- `.planning/specs/PLATFORM-VISION-v4.md` — corporate super-app vision
+- `.planning/specs/AI-PROVIDER-HUB-SPEC.md` — AI gateway spec
 
 ---
 *Последнее обновление: 2026-06-22 — RU-FIX-01: RU section headers*

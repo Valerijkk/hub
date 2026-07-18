@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # FA-06 Phase 1 — P1 secret rotation checklist for K3s (namespace hub).
 # Prints steps only; never embed or echo secret values.
-# Runbook: .planning/PG-03-SECRET-ROTATION.md · Log: .planning/FA-06-EXECUTION-LOG.md
+# Runbook: .planning/production/PG-03-SECRET-ROTATION.md · Log: .planning/production/FA-06-EXECUTION-LOG.md
 set -euo pipefail
 
 NS="${HUB_K8S_NAMESPACE:-hub}"
@@ -45,7 +45,7 @@ STEP 5 — Phase 2 smoke
   bash scripts/fa06-rotate-p2-smoke.sh
 
 STEP 6 — Sign-off
-  • Mark RESEND + TELEGRAM in .planning/FA-06-EXECUTION-LOG.md (Rotated/Verified)
+  • Mark RESEND + TELEGRAM in .planning/production/FA-06-EXECUTION-LOG.md (Rotated/Verified)
   • Revoke old keys at Resend + BotFather after smoke passes
 
 Optional pre-check (this script):

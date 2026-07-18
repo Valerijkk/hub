@@ -2,7 +2,7 @@
 
 > Оглавление planning-артефактов июля 2026.  
 > Все пути ниже — на диске (QA-HARDENING P0, 2026-07-10).  
-> Обновлено: 2026-07-10
+> Обновлено: 2026-07-18 · файлы июля лежат в `.planning/july-2026/` · навигация всего `.planning/`: [`../README.md`](../README.md)
 
 ---
 
@@ -11,8 +11,8 @@
 | Артефакт | Путь | Назначение |
 |----------|------|------------|
 | STATE | `.planning/STATE.md` | Текущая позиция, session notes, Pending Todos |
-| Project status snapshot | `.planning/PROJECT-STATUS-2026-07-10.md` | Сводка статуса на 2026-07-10 |
-| July return ops plan | `.planning/ROADMAP-DETAILED-JULY-RETURN.md` | W0–N, RACI, DoR/DoD, чек-лист D1 |
+| Project status snapshot | `.planning/july-2026/PROJECT-STATUS-2026-07-10.md` | Сводка статуса на 2026-07-10 |
+| July return ops plan | `.planning/july-2026/ROADMAP-DETAILED-JULY-RETURN.md` | W0–N, RACI, DoR/DoD, чек-лист D1 |
 | AGENTS (кратко) | `AGENTS.md` § «Текущий статус» | Метрики + next steps для агентов |
 | COVERAGE | `.planning/COVERAGE.md` | Матрица покрытия (baseline COV 83.0%) |
 
@@ -22,9 +22,9 @@
 
 | Артефакт | Путь | Назначение |
 |----------|------|------------|
-| Rebuild brief | `.planning/JULY-2026-REBUILD-BRIEF.md` | Снимок команды, as-is calls/calendar, kickoff; **LiveKit stay** |
-| Roadmap (pointer) | `.planning/ROADMAP-FINAL-2026-07-03.md` § «Отложено: July Rebuild» | Эпики CAL-SYNC / QA-HARDENING / Redesign; волны 1–11 |
-| Gray zones | `.planning/GRAY-ZONES-DECISIONS-2026-07-03.md` | Locked решения (в т.ч. calendar iCal без OAuth) |
+| Rebuild brief | `.planning/july-2026/JULY-2026-REBUILD-BRIEF.md` | Снимок команды, as-is calls/calendar, kickoff; **LiveKit stay** |
+| Roadmap (pointer) | `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` § «Отложено: July Rebuild» | Эпики CAL-SYNC / QA-HARDENING / Redesign; волны 1–11 |
+| Gray zones | `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` | Locked решения (в т.ч. calendar iCal без OAuth) |
 
 ### Seeds
 
@@ -39,8 +39,8 @@
 
 | Артефакт | Путь | Назначение |
 |----------|------|------------|
-| Code Quality Charter | `.planning/CODE-QUALITY-CHARTER.md` | Correctness = maintainability; DoD be/fe; антипаттерны |
-| Edge / corner catalog | `.planning/EDGE-CORNER-CATALOG.md` | База + индекс · **≈4696 ECC** |
+| Code Quality Charter | `.planning/july-2026/CODE-QUALITY-CHARTER.md` | Correctness = maintainability; DoD be/fe; антипаттерны |
+| Edge / corner catalog | `.planning/july-2026/EDGE-CORNER-CATALOG.md` | База + индекс · **≈4696 ECC** |
 | Edge expansions 01–05 | `.planning/edge-expansions/01…05-*.md` | Wave1 **+427 Edge** |
 | Corner parent + C01–C05 | `.planning/edge-expansions/00-CORNER-PARENT.md`, `corners/C01…C05` | Wave1 **+588 Corner** |
 | Wave2 edge+corners | `.planning/edge-expansions/wave2/` | **+771** |
@@ -69,7 +69,7 @@
 |----------|------|------------|
 | Microservices ADR | `.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md` | Strangler-fig; hub-calls = LiveKit-домен |
 | TZ rewrite ADR | `.planning/decisions/ADR-TZ-REWRITE-2026.md` | Scope by phase |
-| Expansion / market research | `.planning/EXPANSION-ANALYSIS-2026-07-02.md`, `.planning/research/MARKET-AND-NEEDS-2026-07-02.md` | Контекст продукта |
+| Expansion / market research | `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md`, `.planning/research/MARKET-AND-NEEDS-2026-07-02.md` | Контекст продукта |
 
 ---
 
@@ -78,8 +78,8 @@
 | Артефакт | Путь | Назначение |
 |----------|------|------------|
 | FA-06 runbook | `docs/runbooks/fa06-secret-rotation.md` | Ручная ротация секретов |
-| FA-06 execution log | `.planning/FA-06-EXECUTION-LOG.md` | Phase 0 scan |
-| Production handoff | `.planning/PRODUCTION-HANDOFF.md` | Cutover checklist |
+| FA-06 execution log | `.planning/production/FA-06-EXECUTION-LOG.md` | Phase 0 scan |
+| Production handoff | `.planning/production/PRODUCTION-HANDOFF.md` | Cutover checklist |
 
 ---
 

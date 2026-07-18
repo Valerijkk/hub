@@ -5,7 +5,7 @@
 > **ID:** `ECC-AUTH-200+`, `ECC-RBAC-200+`, `ECC-PLT-200+`.  
 > **Gap:** только `TODO` | `Future` | `Manual`.  
 > **Владелец:** `qa-manual` · 2026-07-10 · **не коммитить** без ревью.  
-> **Каталог:** `.planning/EDGE-CORNER-CATALOG.md` — **не изменялся**.
+> **Каталог:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` — **не изменялся**.
 
 ---
 

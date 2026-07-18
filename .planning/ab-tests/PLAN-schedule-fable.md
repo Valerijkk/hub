@@ -1,7 +1,7 @@
 # PLAN: Волновое расписание бэклога расширения (эпики A–F)
 
 > **Дата:** 2026-07-02 · **Автор:** team-lead (A/B-вариант Fable 5, max effort) · **Режим:** read-only планирование
-> **Вход:** `.planning/EXPANSION-ANALYSIS-2026-07-02.md` (эпики A–F, оценки S/M/L/XL) ·
+> **Вход:** `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` (эпики A–F, оценки S/M/L/XL) ·
 > `.cursor/playbooks/team-workflow.md` (волны ≤4, границы файлов, ворота) · `.cursor/playbooks/README.md` (ростер 30) ·
 > `.planning/ab-microservices/PLAN-team-lead-opus.md` (Фаза 0 hardening)
 > **Горизонт:** ~2.5–3 месяца (12 волн ≈ 52 рабочих дня + буфер)

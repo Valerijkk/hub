@@ -2,7 +2,7 @@
 
 > Детальный backlog для dev-команды · 2026-06-21  
 > Источники: competitive_analysis_2026.md, user_needs_analysis_2026.md, PROD-01-SPIKE, MILESTONE-3  
-> **PO LOCKED 2026-06-21:** `.planning/DISCUSS-ROADMAP-LOCKED.md`  
+> **PO LOCKED 2026-06-21:** `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`  
 > **Out of scope (still):** SSO, native apps (PWA OK), SaaS billing (later), multi-org (v5)  
 > **In scope by phase:** Gantt/webcam (16), email hub-mail (15.2+), AI (17), v4 accounting/no-code DB
 
@@ -319,7 +319,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Spec** | `.planning/AI-PROVIDER-HUB-SPEC.md` |
+| **Spec** | `.planning/specs/AI-PROVIDER-HUB-SPEC.md` |
 | **Acceptance** | Admin CRUD providers; encrypted keys; test ping; DeepSeek + Ollama presets |
 | **Effort** | L · **P0** · v3.0 |
 
@@ -400,7 +400,7 @@
 
 ## NOTIF — Telegram bind + Email alerts (v2.5–v2.6)
 
-> Spec: [NOTIF-TG-EMAIL-SPEC.md](./NOTIF-TG-EMAIL-SPEC.md)
+> Spec: [../specs/NOTIF-TG-EMAIL-SPEC.md](./NOTIF-TG-EMAIL-SPEC.md)
 
 | ID | Feature | Effort | Priority |
 |----|---------|--------|----------|
@@ -438,7 +438,7 @@ v2.0.2 SHIPPED
 
 ## Extended dependency graph note
 
-See [PLATFORM-VISION-v4.md](./PLATFORM-VISION-v4.md) for microservices split triggers.
+See [../specs/PLATFORM-VISION-v4.md](./PLATFORM-VISION-v4.md) for microservices split triggers.
 
 ---
 

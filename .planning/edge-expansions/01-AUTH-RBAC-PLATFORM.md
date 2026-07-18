@@ -2,7 +2,7 @@
 
 > **Тип:** только **Edge** (границы: лимиты, TTL, empty/full, max size, concurrent, unicode, pagination, clock).  
 > **Источник:** NFR/TZ (`docs/tz_constraints.md`, `docs/system_specification.md`) + код (`auth/magiclink.go`, `rbac/cache.go`, `wiring_fiber.go`).  
-> **Не дублирует** `ECC-*-001…033` из `.planning/EDGE-CORNER-CATALOG.md`.  
+> **Не дублирует** `ECC-*-001…033` из `.planning/july-2026/EDGE-CORNER-CATALOG.md`.  
 > **Gap:** только `TODO` | `Future`.  
 > **Владелец:** `qa-manual` · 2026-07-10 · не коммитить в каталог без ревью.
 

@@ -4,7 +4,7 @@
 > **Автор:** глубокий аудит кода + планов (read-only, без изменений кода/тестов)
 > **Цель:** подготовить разговор о РАСШИРЕНИИ функционала и ДОДЕЛЫВАНИИ планов.
 > **Гипотеза пользователя:** «реализовано всё минимально, а нужно всё» — многие фичи есть в roadmap/vision, но реализованы поверхностно/частично.
-> **Источники:** `.planning/{ROADMAP,STATE,PROJECT,COVERAGE,PLATFORM-VISION-v4,MILESTONE-3}.md`, `.planning/milestones/v4-super-app/SUMMARY.md`, `.planning/AUDIT-2026-06-23.md`, `.planning/TECH-DEBT-AUDIT-2026-06-23.md`, `docs/{vision_and_scope,competitive_audit}.md`, `.cursor/rules/60-tz-constraints.mdc`, фактический код `backend/internal/**` и `frontend/src/**`.
+> **Источники:** `.planning/{ROADMAP,STATE,PROJECT,COVERAGE,PLATFORM-VISION-v4,MILESTONE-3}.md`, `.planning/milestones/v4-super-app/SUMMARY.md`, `.planning/audits/2026-06/AUDIT-2026-06-23.md`, `.planning/audits/2026-06/TECH-DEBT-AUDIT-2026-06-23.md`, `docs/{vision_and_scope,competitive_audit}.md`, `.cursor/rules/60-tz-constraints.mdc`, фактический код `backend/internal/**` и `frontend/src/**`.
 
 ---
 
@@ -107,7 +107,7 @@
 ### 4.1 Prod-блокер (P0)
 - **FA-06 / PG-03 — ротация секретов** (`RESEND_API_KEY`, `TELEGRAM_BOT_TOKEN`, `livekit-prod.yaml` devkey утекали в git history до `859ecef`). Manual ops, скрипты готовы (`scripts/fa06.sh`). **Единственный блокер тега v2.5.0/деплоя.** Также git history purge (BFG).
 
-### 4.2 Из `TECH-DEBT-AUDIT-2026-06-23.md`
+### 4.2 Из `../audits/2026-06/TECH-DEBT-AUDIT-2026-06-23.md`
 - **CRITICAL perf:** N+1 в `audit/service.go:122` (`GetResourceLimits`, 3 запроса → батч).
 - **CRITICAL hygiene:** hardcoded GIPHY API key `frontend/src/components/messenger/gif-picker.tsx:47` → `import.meta.env`. (Файл сейчас в `git status` как изменённый — вероятно уже правится.)
 - **Bug:** `auth/handler.go` VerifyMagicLink проверяет длину кода по байтам (`len(req.Code)!=6`) → `utf8.RuneCountInString`.

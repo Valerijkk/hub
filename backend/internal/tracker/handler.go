@@ -22,7 +22,7 @@ func NewHandler(service *TrackerService, automation *AutomationService) *Handler
 //
 // ВАЖНО (Fiber v3): Post(path, handler, ...middleware) — variadic middleware выполняются
 // ПЕРЕД handler. RBAC передаётся после handler: route.Post(path, h.Handler, rbac.RequirePermission(...)).
-// См. tms/handler.go и .planning/FA-RBAC-FIBER3-AUDIT.md (FA-02-02).
+// См. tms/handler.go и .planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md (FA-02-02).
 func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
 	tracker := api.Group("/projects/:projectId", authMw)
 

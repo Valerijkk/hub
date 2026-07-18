@@ -2,7 +2,7 @@
 
 > **Статус:** принято для разработки 2026-07-10 · приоритет = корректности  
 > **Владелец:** team-lead + code-reviewer · верификация: `be-ver` / `fe-ver` / `*-ver`  
-> **Связь:** EPIC-QA-HARDENING (`.planning/ROADMAP-FINAL-2026-07-03.md` § July Rebuild)
+> **Связь:** EPIC-QA-HARDENING (`.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` § July Rebuild)
 
 ---
 
@@ -115,7 +115,7 @@ PR merge-ready только если:
 | `.cursor/rules/10-style.mdc` | Универсальный стиль |
 | `.cursor/rules/20-backend.mdc` | Backend rules |
 | `.cursor/rules/30-frontend.mdc` | Frontend rules |
-| `.planning/INDEX-JULY-2026.md` | Индекс July planning |
+| `.planning/july-2026/INDEX-JULY-2026.md` | Индекс July planning |
 | `testframework/TESTING_GUIDE.md` | Как писать/гонять тесты (QA-HARDENING) |
 
 ---

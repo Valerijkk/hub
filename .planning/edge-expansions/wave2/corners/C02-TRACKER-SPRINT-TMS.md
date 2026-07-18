@@ -3,7 +3,7 @@
 > **Статус:** foresight backlog · 2026-07-10 · владелец: `qa-manual`  
 > **Тип:** **только Corner** (multi-actor races, mid-flight, triple-path, partial fail)  
 > **ID ranges:** `ECC-TRCK-C400+`, `ECC-SPR-C400+`, `ECC-TMS-C400+` — **не пересекают** parent `C200…`, wave1 corners `C300…`, edge `*100+`, канон `001–040`  
-> **Не заменяет** `.planning/EDGE-CORNER-CATALOG.md`, `00-CORNER-PARENT.md`, wave1 `corners/C02-*.md`, `docs/TESTING.md`  
+> **Не заменяет** `.planning/july-2026/EDGE-CORNER-CATALOG.md`, `00-CORNER-PARENT.md`, wave1 `corners/C02-*.md`, `docs/TESTING.md`  
 > **Не копировать** сценарии C200/C300 1:1 — только углубление / новые комбинации  
 > **Фокус wave2:** triple-tab version conflict · workflow+WIP+assignee simultaneous · sprint complete+move race · Allure+run execute+delete case · epic delete with children mid-link  
 > **Связи:** US-M03/M11/M12, US-S01, US-M05/S13/C02/C04 · NFR-11/12/24 · NF-03 · TC-TRCK-*, TC-SPRINT-*, TC-TMS-*, TC-ALLURE-*, TC-JQL-*

@@ -2,7 +2,7 @@
 
 > **Тип:** только **Edge** (границы лимитов, TTL, empty/max, quota hard-stop, % flip).  
 > **Wave:** 3 · ID namespace `*300+` — **не пересекает** wave1 `05-V4-AI-FUTURE.md` (`*100+`) и wave2 `E05-V4-AI-FUTURE.md` (`*200+`).  
-> **Не трогает** основной каталог `.planning/EDGE-CORNER-CATALOG.md` — foresight backlog для будущих `TC-*`.  
+> **Не трогает** основной каталог `.planning/july-2026/EDGE-CORNER-CATALOG.md` — foresight backlog для будущих `TC-*`.  
 > **Gap:** только `Future` | `TODO`.  
 > **Фокус wave3:** bases **4 views / attachment / filter predicates** · AI **virtual-key TTL + content-policy max** · wiki **version retention + body size + restrict cardinality** · SSO **auth rate-limit 3/10m + JIT email bounds** · MCP **PAT TTL + confirm window** · MS **route-flip % (0→100)** · a11y **contrast 4.5:1/3:1 + reduced-motion + Focus Not Obscured**.  
 > **Источники:** `ROADMAP-FINAL-2026-07-03.md` · `GRAY-ZONES-DECISIONS-2026-07-03.md` §2–§4 · `docs/vision_and_scope.md` (US-INTR / US-WIKI / US-F0x) · PLAN-bases (GZ-V4-19/20: 4 views) · ADR-AUTH-SSO / ADR-AI-agents (планируемые) · WCAG 2.2 AA (1.4.3 Contrast, 2.3.3 / prefers-reduced-motion, 2.4.11 Focus Not Obscured) · NFR-05 (3/10m).  

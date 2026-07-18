@@ -3,7 +3,7 @@
 > **Статус:** foresight backlog · 2026-07-10 · владелец: `qa-manual`  
 > **Тип:** **только Corner** (races, mid-flight, multi-actor, partial fail, revoke-after-share)  
 > **ID ranges:** `ECC-TRCK-C300+`, `ECC-SPR-C300+`, `ECC-TMS-C300+` — **не пересекают** parent `ECC-*-C200…C206` и edge `*100+` / канон `001–040`  
-> **Не заменяет** `.planning/EDGE-CORNER-CATALOG.md`, `00-CORNER-PARENT.md`, `docs/TESTING.md`  
+> **Не заменяет** `.planning/july-2026/EDGE-CORNER-CATALOG.md`, `00-CORNER-PARENT.md`, `docs/TESTING.md`  
 > **Parent seeds (не дублировать 1:1):** TRCK-C200…C206 · SPR-C200…C202 · TMS-C200…C202  
 > **Фокус:** optimistic lock races · workflow+assignee races · WIP mid-drag · soft-delete+key · bulk partial fail · sprint complete races · Allure import mid-delete · run complete vs execute · version rollback mid-edit · JQL share after revoke  
 > **Связи:** US-M03/M11/M12, US-S01, US-M05/S13/C02/C04 · NFR-11/12/24 · NF-03 · TC-TRCK-*, TC-SPRINT-*, TC-TMS-*, TC-ALLURE-*, TC-JQL-*

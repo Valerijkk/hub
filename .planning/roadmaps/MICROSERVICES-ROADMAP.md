@@ -1,7 +1,7 @@
 # Hub — Единый Roadmap: расширение + микросервисы (2026-07-02)
 
 > Принятые решения пользователя (2026-07-02): релиз **не гейтим**; v4 — **паритет Bitrix/Lark**; accounting — **своя бухгалтерия**; направление — **микросервисы по блокам**; новые модули — **wiki + agent-native AI/MCP + SSO/LDAP — все берём**.
-> Основания: `ADR-ARCH-MICROSERVICES-2026`, A/B-планы `.planning/ab-microservices/*` и `.planning/ab-tests/*`, `.planning/research/MARKET-AND-NEEDS-2026-07-02.md`, `.planning/EXPANSION-ANALYSIS-2026-07-02.md`.
+> Основания: `ADR-ARCH-MICROSERVICES-2026`, A/B-планы `.planning/ab-microservices/*` и `.planning/ab-tests/*`, `.planning/research/MARKET-AND-NEEDS-2026-07-02.md`, `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md`.
 > Оркестратор: `team-lead` (Fable 5), эскалация `team-lead-opus`.
 
 ---
@@ -21,7 +21,7 @@ Track P Фаза 0 (Hardening) идёт **рано и параллельно** T
 
 См. `ADR-ARCH-MICROSERVICES-2026` §3 (уточнено 2026-07-03 по gray-zones-решениям):
 `hub-core` (ядро: auth/rbac/project/**tracker — исключён из выноса**/sprint/tms-условно/dashboard/…) · `hub-ai` (вынос №1) · **realtime-трио: `hub-ws` / `hub-messenger` / `hub-calls`** (вынос №2, три отдельных сервиса) · `hub-notification` (пилот) · уже вынесены `hub-mail`, `meilisearch-indexer` · внешний `LiveKit`.
-БД — **schema-per-service в одном PostgreSQL**, cross-schema запрещён грантами; CQRS-проекции через NATS. Go/No-Go после пилота — композитная метрика. Полный реестр решений: `.planning/GRAY-ZONES-DECISIONS-2026-07-03.md`.
+БД — **schema-per-service в одном PostgreSQL**, cross-schema запрещён грантами; CQRS-проекции через NATS. Go/No-Go после пилота — композитная метрика. Полный реестр решений: `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`.
 
 Детальные фазы Track P (M0 ADR+K3s+OTel → M1 Hardening → M2 пилот notification → M3 ai → M4 calls → M5 ws+messenger → M6 tms; tracker опционально) — в `.planning/ab-microservices/PLAN-team-lead-fable.md` (база) + глубина рисков/observability из `PLAN-team-lead-opus.md`.
 

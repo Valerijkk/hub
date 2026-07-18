@@ -2,7 +2,7 @@
 
 > **Тип:** только **Edge** (границы лимитов, TTL, empty/max, quota hard-stop, cardinality).  
 > **Wave:** 5 · ID namespace `*500+` — **не пересекает** wave1–4 (`*100+`…`*400+`).  
-> **Не трогает** основной каталог `.planning/EDGE-CORNER-CATALOG.md` — foresight backlog для будущих `TC-*`.  
+> **Не трогает** основной каталог `.planning/july-2026/EDGE-CORNER-CATALOG.md` — foresight backlog для будущих `TC-*`.  
 > **Gap:** только `Future` | `TODO`.  
 > **Фокус wave5:** bases **tables/base · relation/lookup/rollup depth · select options · cross-base forbid** · AI **max_tokens/top_p/stop · system prompt · OpenAI-compat body · TTFB** · wiki **issue-link max · optimistic version · base64 reject · search page** · SSO **PKCE/nonce/redirect_uri · LDAP DN/nest · issuer mismatch** · MCP **run wall-clock · write-deny · scope∩tool · confirm double** · MS **outbox batch · shadow % · upstream health · expand-contract null** · a11y **aria-live · focus order · 4.1.2 name/role · forced-colors · 3.3.1 errors**.  
 > **Источники:** `ROADMAP-FINAL-2026-07-03.md` · `GRAY-ZONES-DECISIONS-2026-07-03.md` §2–§4 · `docs/vision_and_scope.md` (US-WIKI-04 / US-F06 / US-INTR-01) · PLAN-bases (Q3: 100 tables/base, dep depth ≤10, relations) · ADR-AUTH-SSO / ADR-AI-agents (планируемые) · WCAG 2.2 AA (1.3.1, 2.4.3, 4.1.2, 3.3.1, forced-colors) · NF-07 SSRF.  

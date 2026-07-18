@@ -1,6 +1,6 @@
 # SEED-001 — Миграция LiveKit → mediasoup (SFU)
 
-> Planted: 2026-07-10 · **Status: REJECTED 2026-07-10** (решение пользователя) · Brief: `.planning/JULY-2026-REBUILD-BRIEF.md` §2
+> Planted: 2026-07-10 · **Status: REJECTED 2026-07-10** (решение пользователя) · Brief: `.planning/july-2026/JULY-2026-REBUILD-BRIEF.md` §2
 
 ## Decision
 

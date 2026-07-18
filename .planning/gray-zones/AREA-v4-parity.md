@@ -3,7 +3,7 @@
 > **Дата:** 2026-07-03 · Read-only аудит для решения пользователя
 > **Решение зафиксировано:** v4 доводим до паритета Bitrix/Lark; accounting — СВОЯ бухгалтерия (пересмотр «connector-first» из PLATFORM-VISION-v4 §3.6).
 > **Проблема:** «паритет» не определяет границы первой волны. Ниже — конкретные вопросы по каждому модулю.
-> **Источники:** `.planning/EXPANSION-ANALYSIS-2026-07-02.md` (§2, эпик B), `.planning/research/MARKET-AND-NEEDS-2026-07-02.md` (§4–§5), `.planning/ab-tests/PLAN-bases-fable.md` (§8).
+> **Источники:** `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` (§2, эпик B), `.planning/research/MARKET-AND-NEEDS-2026-07-02.md` (§4–§5), `.planning/ab-tests/PLAN-bases-fable.md` (§8).
 > **Факт:** все v4-модули — скелеты: FE 1–5 файлов на модуль (calendar 430 стр, hr 244, status 79), backend CRUD 500–1500 стр без domain-логики.
 
 ---

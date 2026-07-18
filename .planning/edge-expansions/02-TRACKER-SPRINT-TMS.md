@@ -5,7 +5,7 @@
 > **ID ranges:** `ECC-TRCK-100+`, `ECC-SPR-100+`, `ECC-TMS-100+` — **не пересекают** канон `EDGE-CORNER-CATALOG.md` (001–040)  
 > **Не заменяет** каталог и `docs/TESTING.md` — дополняет edge-глубину для July Rebuild / QA-HARDENING  
 > **Связи:** US-M03/M11/M12, US-S01, US-M05/S13/C02 · NFR-12/14/24 · TC-TRCK-*, TC-SPRINT-*, TC-TMS-*, TC-ALLURE-*, TC-JQL-*  
-> **Канон каталога:** `.planning/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом
+> **Канон каталога:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом
 
 ### Gap-легенда (для этого файла)
 

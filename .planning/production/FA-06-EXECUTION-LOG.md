@@ -1,7 +1,7 @@
 # FA-06 — PG-03 Secret Rotation Execution Log
 
 > **Blank template** for manual execution during Wave C final audit. Fill during rotation; **never** paste secret values here.  
-> Runbook: `.planning/PG-03-SECRET-ROTATION.md` · Ref: `docs/security_guidelines.md` · Task: FA-06
+> Runbook: `.planning/production/PG-03-SECRET-ROTATION.md` · Ref: `docs/security_guidelines.md` · Task: FA-06
 
 ---
 
@@ -198,4 +198,4 @@ Complete after Phases 0–2. Blocks Wave C closure and squash PR `feat/v2.5-trus
 
 ---
 
-*Template version: 2026-06-22 · Owner: devops-engineer · Task: FA-06 · Runbook: `.planning/PG-03-SECRET-ROTATION.md`*
+*Template version: 2026-06-22 · Owner: devops-engineer · Task: FA-06 · Runbook: `.planning/production/PG-03-SECRET-ROTATION.md`*

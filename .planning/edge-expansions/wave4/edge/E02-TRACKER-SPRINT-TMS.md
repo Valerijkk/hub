@@ -9,7 +9,7 @@
 > **Wave3 (не дублировать 1:1):** `.planning/edge-expansions/wave3/edge/E02-TRACKER-SPRINT-TMS.md` (`ECC-*-300…` — links/watchers/comments/worklogs, trash day, rank, saved filters, scope/carry-over/poker, native suite/run, shared steps, data-driven, version depth, env×case, flaky N, AS_ID)  
 > **Фокус wave4:** GitHub/GitLab autolink+branch/PR · workflow/board columns+transitions · swimlanes · due-date/estimate · clone/move · JQL operator depth · multi-board · velocity rolling window · multi-planning · burndown ideal/zero · person-capacity · sprint archive · hub-cli/JUnit rate · export huge · traceability/coverage matrix · compare-runs · result attachments · parallel runs · TestRail import  
 > **Связи:** US-M03/M11/M12, US-S01/S04/S06/S08, US-M05/S13/C02/C06 · NFR-08/12/14 · NF-03 · TC-TRCK-*, TC-SPRINT-*, TC-TMS-*, TC-JQL-*, TC-ALLURE-*  
-> **Канон каталога:** `.planning/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом
+> **Канон каталога:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом
 
 ### Gap-легенда (для этого файла)
 

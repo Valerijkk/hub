@@ -8,7 +8,7 @@
 > **Wave2 (не дублировать 1:1):** `.planning/edge-expansions/wave2/edge/E02-TRACKER-SPRINT-TMS.md` (`ECC-*-200…`)  
 > **Фокус wave3:** issue links/watchers/comments/worklogs · trash day 29/30/31 · board rank · saved filters · sprint scope/carry-over/poker · native suite/run caps · shared steps · data-driven · version depth · env×case matrix · flaky window · AS_ID collision  
 > **Связи:** US-M03/M11/M12, US-S01, US-M05/S13/C02 · NFR-08/11/12/14/24 · TC-TRCK-*, TC-SPRINT-*, TC-TMS-*, TC-ALLURE-*  
-> **Канон каталога:** `.planning/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом
+> **Канон каталога:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом
 
 ### Gap-легенда (для этого файла)
 

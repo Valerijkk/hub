@@ -42,3 +42,40 @@ go test -coverprofile=coverage.out ./...
 ## Git
 
 Все перечисленные паттерны — в `.gitignore`. **Никогда не коммить** coverage dumps, даже «для истории».
+
+## Расширенный список артефактов (см. `.gitignore`, актуально 2026-07)
+
+Помимо таблицы выше, `.gitignore` фиксирует ещё несколько категорий одноразового мусора — не плодить новые паттерны, использовать существующие:
+
+| Категория | Паттерн | Куда обычно попадает |
+|-----------|---------|-----------------------|
+| CI/agent session logs | `.ci-backend.log`, `SESSION_SUMMARY*.txt` | корень репо после ручных прогонов |
+| Frontend lint/test dumps | `frontend/lint-*.txt`, `frontend/biome-report.json` | после `npm run lint` с редиректом в файл |
+| Playwright артефакты | `frontend/playwright-report/`, `frontend/test-results/` | после локального E2E-прогона |
+| Planning tool output | `.planning/biome-output.txt`, `.planning/tsc-output.txt`, `.planning/*-output.txt` | редирект вывода линтера/tsc в planning-папку |
+| Local-only notes | `*.local.md` | черновики, не предназначенные для commit |
+| `.gotmp/` | временные Go-файлы агентов | не путать с `backend/tmp*` (тот — про coverage) |
+
+## Примеры из Hub
+
+- Каноничный список исключений — читать целиком `.gitignore` (секции «Coverage / benchmark dumps», «Local dev / CI / agent session artifacts») перед тем как решать «удалять или коммитить».
+- Backend regression, генерирующий `*.out`/`cov_*`: команда из `AGENTS.md` → `go build -tags release ./... && go test -race -count=1 ./...` — если добавляешь `-coverprofile`, писать **вне** `backend/` (см. пример ниже).
+- Docker canonical regression (не оставляет локальных dumps, профиль остаётся в контейнере): `docker compose -f deployments/docker-compose.test.yml up -d` + `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` — команда из `AGENTS.md`.
+- `.planning/COVERAGE.md` — единственное место, где процентные метрики фиксируются **навсегда**; сырые `.out`-профили после фиксации метрик удаляются.
+- PowerShell cleanup one-liner (Windows-хост, см. секцию выше) — предпочтительнее ручного поиска файлов через `Get-ChildItem` без фильтра.
+- Не удалять по ошибке: `.planning/**/VERIFICATION.md`, `.planning/**/REVIEW.md` — они **тоже** в `.gitignore`, но это НЕ coverage-мусор, а рабочие артефакты фазы (не коммитятся, но и не подлежат ручному удалению агентом без причины).
+
+## Примеры из Hub
+
+- Правильное расположение: пиши профиль в `${TMPDIR:-/tmp}/hub-cov.out` или Windows `$env:TEMP\hub-cov.out` — не в `backend/`.
+- После прогона `go test -tags hubtest -race -coverprofile=...` для конкретного домена (например `bases`, `auth`) — зафиксируй итоговый % в `.planning/COVERAGE.md`, затем удали файл.
+- Реальные примеры «мусора», который встречался в репо и подлежит удалению: `backend/coverage.out`, `backend/calls_cov.out`, `backend/cover_auth`, `backend/tmp-rbac`, `tmp_route_diff.py` (корень репо).
+- PowerShell-версия cleanup one-liner (используй вместо bash на Windows-агентах):
+  ```powershell
+  Get-ChildItem backend -File | Where-Object {
+    $_.Name -match '^(cover|coverage|cov_|tmp|.*_cov)' -or $_.Extension -eq '.out'
+  } | Remove-Item -Force
+  Remove-Item -Force tmp_*.py -ErrorAction SilentlyContinue
+  ```
+- Проверка перед handoff: `git status` не должен показывать `?? backend/*cov*`, `?? *.out`, `?? tmp_*` — если показывает, cleanup не выполнен.
+- Не путать с легитимными артефактами планирования: `.planning/COVERAGE.md`, `.planning/audits/2026-06/*` — это документы, не dumps, их не трогать этим правилом.

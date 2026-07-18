@@ -1,7 +1,7 @@
 # PG-03 — Secret Rotation Checklist
 
 > Manual ops runbook for **FA-06** (Wave C final audit). Secrets must never be committed; rotate if exposed in git history.  
-> Ref: `docs/security_guidelines.md` · `.planning/TASKS-PHASES-121-FINAL-AUDIT.md` (FA-06)
+> Ref: `docs/security_guidelines.md` · `.planning/tasks/TASKS-PHASES-121-FINAL-AUDIT.md` (FA-06)
 
 ## When to rotate
 

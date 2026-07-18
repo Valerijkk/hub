@@ -2,7 +2,7 @@
 
 > **Тип:** только **Corner** (редкие комбинации, races, mid-flight, multi-step failures, cross-domain).  
 > **Scope:** as-is + будущий (CAL-SYNC, Wiki, SSO, MCP/agents, microservices, Redesign, mail L0–L3).  
-> **Merge target:** `.planning/EDGE-CORNER-CATALOG.md` § «Corner expansion» + доменные секции.  
+> **Merge target:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` § «Corner expansion» + доменные секции.  
 > **ID ranges:** `ECC-*-C200+` / `ECC-FUT-*` чтобы не пересечь базовый каталог и edge-expansions `*100+`.
 
 Формат: `| ID | Тип | Сценарий | Ожидание | Слой | P | Связь | Gap |`

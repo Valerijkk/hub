@@ -1,15 +1,15 @@
 # Hub — Финальный Roadmap (2026-07-03)
 
 > **Статус:** Волна 1 исполнена в фича-ветках (2026-07-03); мерж master — пользователь; код W2+ / July Rebuild — freeze до align ~конец июля 2026.
-> **Входы:** `GRAY-ZONES-DECISIONS-2026-07-03.md`, `ADR-ARCH-MICROSERVICES-2026`, `MICROSERVICES-ROADMAP.md`, `EXPANSION-ANALYSIS`, `MARKET-AND-NEEDS`, A/B-планы.
+> **Входы:** `../gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`, `ADR-ARCH-MICROSERVICES-2026`, `../roadmaps/MICROSERVICES-ROADMAP.md`, `EXPANSION-ANALYSIS`, `MARKET-AND-NEEDS`, A/B-планы.
 > **Принцип:** rolling-wave — ближние волны атомарно (≤200–300 строк/план), дальние укрупнённо; `tech-lead` дробит перед стартом.
 > **Процесс:** агенты коммитят/пушат фича-ветки; **push/мерж в master — только пользователь**; PR=фича, rebase-merge; QA-конвейер: TC → qa-manual-ver → автотесты → qa-auto-ver; юниты пишут be/fe.
 
 ## Статус на 2026-07-10
 
-> Подробный снимок: **`.planning/PROJECT-STATUS-2026-07-10.md`**.
-> Операционный план возврата: **`.planning/ROADMAP-DETAILED-JULY-RETURN.md`**.
-> Brief: `.planning/JULY-2026-REBUILD-BRIEF.md` · Индекс: `.planning/INDEX-JULY-2026.md`.
+> Подробный снимок: **`.planning/july-2026/PROJECT-STATUS-2026-07-10.md`**.
+> Операционный план возврата: **`.planning/july-2026/ROADMAP-DETAILED-JULY-RETURN.md`**.
+> Brief: `.planning/july-2026/JULY-2026-REBUILD-BRIEF.md` · Индекс: `.planning/july-2026/INDEX-JULY-2026.md`.
 
 | Факт | Статус |
 |------|--------|
@@ -178,9 +178,9 @@ Ops-лейн (фоновый):    FA-06 ротация (пользователь
 
 ## Отложено: July Rebuild (~конец июля 2026) — НЕ стартовать код до align
 
-> Brief: `.planning/JULY-2026-REBUILD-BRIEF.md` · Status: `PROJECT-STATUS-2026-07-10.md` · Ops plan: `ROADMAP-DETAILED-JULY-RETURN.md`
+> Brief: `.planning/july-2026/JULY-2026-REBUILD-BRIEF.md` · Status: `PROJECT-STATUS-2026-07-10.md` · Ops plan: `ROADMAP-DETAILED-JULY-RETURN.md`
 > Seeds: SEED-001 **REJECTED** · SEED-002 **active**
-> Edge catalog / Testing Guide: `.planning/EDGE-CORNER-CATALOG.md`, `testframework/TESTING_GUIDE.md`
+> Edge catalog / Testing Guide: `.planning/july-2026/EDGE-CORNER-CATALOG.md`, `testframework/TESTING_GUIDE.md`
 
 ### EPIC-SFU — REJECTED
 

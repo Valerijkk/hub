@@ -14,9 +14,9 @@
 | `IMPROVEMENT-MASTER-PLAN.md` | v2.0.2→v2.6 | UX/C done, PRODUCT planned | Waves A–C ✅, PRODUCT next |
 | `FEATURE-BACKLOG-2026.md` | v2.5→v4 | Active | FB-01..28, MOD-01..08, AI-01..07, NOTIF-01..10 |
 | `PROD-01-SPIKE.md` | v2.6 | Design ready | Workflow automation |
-| `AI-PROVIDER-HUB-SPEC.md` | v3.0–v3.5 | Design ready | Multi-model AI, OpenRouter |
-| `NOTIF-TG-EMAIL-SPEC.md` | v2.5–v2.6 | Design ready | TG bind + email alerts + run_failed |
-| `PLATFORM-VISION-v4.md` | v4 2027–28 | Vision | Mighty/Bitrix super-app |
+| `../specs/AI-PROVIDER-HUB-SPEC.md` | v3.0–v3.5 | Design ready | Multi-model AI, OpenRouter |
+| `../specs/NOTIF-TG-EMAIL-SPEC.md` | v2.5–v2.6 | Design ready | TG bind + email alerts + run_failed |
+| `../specs/PLATFORM-VISION-v4.md` | v4 2027–28 | Vision | Mighty/Bitrix super-app |
 | `MICROSERVICES-ROADMAP.md` | v3–v4.5 | Strategy | Selective split |
 | `MILESTONE-3.md` | v3 AI | Requirements | M3-001..030 |
 | `EXECUTIVE-REPORT-2026.md` | Summary | Current | Score 93→98 path |

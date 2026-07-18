@@ -113,7 +113,7 @@
 
 ## 6. Чек-лист «первый день возврата»
 
-1. [ ] Открыть `.planning/INDEX-JULY-2026.md`
+1. [ ] Открыть `.planning/july-2026/INDEX-JULY-2026.md`
 2. [ ] Прочитать `PROJECT-STATUS-2026-07-10.md` + Brief §1–§5
 3. [ ] Подтвердить: **LiveKit stay** (не mediasoup)
 4. [ ] Ответить на открытые Qs Brief §5

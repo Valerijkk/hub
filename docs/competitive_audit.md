@@ -1,7 +1,7 @@
 # Hub — Конкурентный аудит и backlog фич
 
 > **Обновлено:** 2026-06-23  
-> **Связанные документы:** [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · [.planning/PLATFORM-VISION-v4.md](../.planning/PLATFORM-VISION-v4.md)  
+> **Связанные документы:** [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · [.planning/specs/PLATFORM-VISION-v4.md](../.planning/specs/PLATFORM-VISION-v4.md)  
 > **Цель:** best practices от лидеров рынка + приоритизированный backlog для Hub v2.5–v4.5+.
 
 ---
@@ -167,8 +167,8 @@ Hub API → slog (JSON) → Loki (Promtail)
 3. **NFR-16/17** — WCAG full sign-off · Lighthouse blocking gate
 4. **SSH deploy** — GitHub Secrets + firewall :22
 
-Полный аудит: `.planning/AUDIT-2026-06-23.md`
+Полный аудит: `.planning/audits/2026-06/AUDIT-2026-06-23.md`
 
 ---
 
-*См. также: [FEATURE-BACKLOG-2026.md](../.planning/FEATURE-BACKLOG-2026.md) · [COVERAGE.md](../.planning/COVERAGE.md)*
+*См. также: [FEATURE-BACKLOG-2026.md](../.planning/roadmaps/FEATURE-BACKLOG-2026.md) · [COVERAGE.md](../.planning/COVERAGE.md)*

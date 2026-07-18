@@ -3,7 +3,7 @@
 > **Статус:** foresight backlog · 2026-07-10 · владелец: `qa-manual`  
 > **Тип:** **только Corner** (multi-actor races, mid-flight, cross-domain partial fail, schema/index lag)  
 > **ID ranges:** `ECC-TRCK-C700+`, `ECC-SPR-C700+`, `ECC-TMS-C700+` — **не пересекают** parent `C200…`, wave1 `C300…`, wave2 `C400…`, wave3 `C500…`, wave4 `C600…`, edge `*100+`, канон `001–040`  
-> **Не заменяет** `.planning/EDGE-CORNER-CATALOG.md`, `00-CORNER-PARENT.md`, wave1–4 `corners/C02-*.md`, `docs/TESTING.md`  
+> **Не заменяет** `.planning/july-2026/EDGE-CORNER-CATALOG.md`, `00-CORNER-PARENT.md`, wave1–4 `corners/C02-*.md`, `docs/TESTING.md`  
 > **Не копировать** сценарии C200–C600 1:1 — только новые комбинации / углубление  
 > **Фокус wave5:** cross-project move∩rank∩search-lag · CF-schema migrate∩transition · GH/GL webhook∩trash-purge · timer∩worklog∩bulk · board-config∩multi-board · sprint scope-freeze∩carry-over-chain∩poker-commit · capacity∩deactivate · shared-steps∩data-driven∩env-matrix · AS_ID collision∩BDD convert · version-prune∩run-snapshot  
 > **Связи:** US-M03/M11/M12, US-S01, US-M05/S13/C02/C04 · NFR-11/12/24 · NF-03 · TC-TRCK-*, TC-SPRINT-*, TC-TMS-*, TC-ALLURE-*, TC-JQL-*

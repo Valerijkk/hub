@@ -4,7 +4,7 @@
 > **ID ranges:** `ECC-MSG-C700+` · `ECC-WS-C700+` · `ECC-NOTIF-C700+` · `ECC-SRCH-C700+`  
 > **Не дублирует** parent `ECC-*-C200…`, wave1 `C300…`, wave2 `C400…`, wave3 `C500…`, wave4 `C600…` — новые комбинации.  
 > **Фокус wave5:** multi-hub / pod-drain · clock-skew / DST causality · channel visibility flip · VAPID/JWT rotate mid-flight · cursor/page×ACL · link-preview SSRF · presence/typing under partition · digest×DST · NFC/NFD index · snippet XSS.  
-> **Merge target:** `.planning/EDGE-CORNER-CATALOG.md` § Corner expansion (после ревью).  
+> **Merge target:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` § Corner expansion (после ревью).  
 > **Владелец:** `qa-manual` · 2026-07-10 · **каталог не трогать** · **не коммитить**.
 
 Формат: `| ID | Тип | Сценарий | Ожидание | Слой | P | Связь | Gap |`

@@ -2,7 +2,7 @@
 
 > **Тип:** только **Corner** (редкие комбинации, races, mid-flight, multi-step, cross-domain)  
 > **Дата:** 2026-07-10 · **Владелец:** `qa-manual` · **Волна:** wave4  
-> **Не трогает** `.planning/EDGE-CORNER-CATALOG.md`, parent `00-CORNER-PARENT.md`, wave1–3 `corners/C04-*`  
+> **Не трогает** `.planning/july-2026/EDGE-CORNER-CATALOG.md`, parent `00-CORNER-PARENT.md`, wave1–3 `corners/C04-*`  
 > **ID range:** `ECC-*-C600+` (не пересекает parent `C200–C215`, wave1 `C300+`, wave2 `C400+`, wave3 `C500+`, catalog `C01–C25`, edge `*100+`)  
 > **SFU:** LiveKit stay — mediasoup / SEED-001 = **N/A** (строки mediasoup не добавлять)  
 > **Фокус wave4:** webcam×ICE/TURN×egress · multi-device×host-drain×RBAC mid-call · Hub-WS desync×LiveKit media · user-TZ flip×all-day×EXDATE · quiet-hours×due-worker · METHOD=REPLY×OOO×delayed ICS · charset/MIME×alias GDPR  
@@ -181,4 +181,4 @@
 | Charset/MIME/XSS × alias GDPR × L1/L2 | `ECC-MAIL-C608`…`C612`, `C619`–`C622`, `C629` |
 
 **Handoff:** `qa-manual-ver` → после `verified: true` выборочно `qa-auto1` (ACL/REPLY/EXDATE/UIDVALIDITY) / Manual (webcam×TURN×drain, delayed ICS clients).  
-**Merge later:** в `.planning/EDGE-CORNER-CATALOG.md` § Corner expansion (отдельной волной; каталог сейчас не трогать).
+**Merge later:** в `.planning/july-2026/EDGE-CORNER-CATALOG.md` § Corner expansion (отдельной волной; каталог сейчас не трогать).

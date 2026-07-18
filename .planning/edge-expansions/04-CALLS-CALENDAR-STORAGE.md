@@ -2,7 +2,7 @@
 
 > **Тип:** только **Edge** (границы лимитов / TTL / размеров / дат / rate)  
 > **Дата:** 2026-07-10 · **Владелец:** `qa-manual`  
-> **Не трогает** основной каталог `.planning/EDGE-CORNER-CATALOG.md`  
+> **Не трогает** основной каталог `.planning/july-2026/EDGE-CORNER-CATALOG.md`  
 > **SFU:** LiveKit only (mediasoup / SEED-001 = REJECTED — строки N/A **не** добавлять)  
 > **Связи:** NFR-03/04/08/12/27 · US-M06 · US-CAL-01…04 · US-V03 · TC-CALL-* · TC-STORAGE-* · JULY brief §3 CAL-SYNC · `backend/internal/{calls,calendar,storage}`
 

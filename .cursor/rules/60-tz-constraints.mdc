@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Hub — Technical Spec Constraints
 
-> **Updated 2026-06-21** · ADR: `.planning/decisions/ADR-TZ-REWRITE-2026.md` · Tracked copy: `docs/tz_constraints.md`
+> **Updated 2026-06-21** (constraints) / **2026-07-18** (code-location examples added) · ADR: `.planning/decisions/ADR-TZ-REWRITE-2026.md` · Tracked copy: `docs/tz_constraints.md`
 
 ## MANDATORY (нельзя убрать или изменить без явного согласования)
 
@@ -86,3 +86,50 @@ alwaysApply: true
 | Full JQL automation | 17 |
 | AI gateway BYOK + Ollama | 17 |
 | Intranet, Calendar, CRM, HR, accounting, no-code DB | v4 |
+
+## Примеры из Hub
+
+- Magic Link only, JWT 15 мин / refresh 30 дней в Redis: `backend/internal/auth/{magiclink.go,service_session.go}`; rune-safe валидация кода — `backend/internal/auth/handler.go` (см. `56-regression-verify.mdc`, кейс 2).
+- Telegram — только notification, не login (ADR-AUTH-01): `backend/internal/auth/{telegram_bot_coverage_test.go,telegram_widget_test.go,resend_telegram_test.go}` — искать попытки login через Telegram в тестах, их не должно быть.
+- Organization/invite/founder: `backend/ent/schema/organization.go`, `backend/ent/schema/invite.go`; тест — `backend/testframework/auth/{handler_organization_test.go,repository_organization_test.go,handler_invite_test.go}`.
+- UUID v4 + `version` optimistic lock во всех 82 схемах: `backend/ent/schema/{issue,project,hubbase,scheduledcall,...}.go` — новый паттерн копировать оттуда, не изобретать.
+- Единый формат ошибки `{"error","request_id"}`: искать в любом `handler.go` любого модуля — паттерн сквозной, не модуль-специфичный.
+- WS через Fiber, не gorilla: `backend/internal/ws/` — весь модуль на встроенном Fiber WebSocket.
+- NATS JetStream, не Redis pub/sub: `backend/internal/platform/outbox/publisher.go`, `backend/internal/platform/nats/`.
+- SeaweedFS через `aws-sdk-go-v2`, presigned URL: `backend/internal/storage/{handler,service}.go`; конфиг — `deployments/seaweedfs-s3.json`.
+- Shadcn className-only, дизайн-система `--hub-*`: `frontend/src/components/ui/` (не трогать Radix-поведение), токены — Tailwind-конфиг во `frontend/`.
+- SSRF guard на все user-controlled URL: `backend/internal/platform/http/safedialer.go` (используется webhook/iCal/webpush модулями).
+- Webhook signature без skip (SEC-02): `backend/internal/apigateway/webhook.go`.
+- Search user-scope фильтр (NF-03): `backend/internal/search/{service,repository}.go`.
+- WebPush + `ValidateOutboundURL` (NF-07): `backend/internal/notification/push.go`.
+- SFU-инвариант (2026-07-10, MANDATORY): остаёмся на **LiveKit** — `deployments/livekit.yaml`; попытка мигрировать на mediasoup зафиксирована как REJECTED в `.planning/seeds/SEED-001-mediasoup-migration.md`; не поднимать вопрос без нового жёсткого драйвера (лицензия/стоимость/SIP/кастомный RTP).
+- ADR как единственный путь к SSO/LDAP: `.planning/decisions/ADR-AUTH-SSO-2026.md` — реализация запрещена до принятия ADR даже при одобренном scope.
+- GitHub Actions — экономия минут: `.github/workflows/{ci,pr-guard,deploy}.yml` — не плодить лишние джобы/матрицы, студенческий пакет ограничен ~3000 мин/мес.
+
+## Где в коде это enforced (примеры из Hub)
+
+| Constraint | Файл / место |
+|---|---|
+| Magic Link only, JWT 15 мин | `backend/internal/auth/handler.go`, `backend/internal/auth/magiclink.go`, `backend/internal/auth/service_session.go` |
+| Rate limit auth 3/10мин | `backend/internal/platform/middleware/` (rate limit config), проверяется в `backend/internal/auth/*` |
+| UUID v4 PK везде | любая схема `backend/ent/schema/*.go` — `field.UUID("id", uuid.UUID{}).Default(uuid.New).Immutable()` |
+| `version` optimistic lock | те же 82 схемы в `backend/ent/schema/`, напр. `issue.go`, `base.go` |
+| `{"error","request_id"}` формат ошибок | `backend/internal/platform/middleware` — `ErrorHandler`, подключён в `backend/cmd/server/wiring_fiber.go:21` |
+| Rate limit API/файлы/сообщения | `backend/cmd/server/wiring_fiber.go` — `middleware.APIRateLimit`, `FileUploadRateLimit` (`/files`), `MessageSendRateLimit` (`/messenger`) |
+| WebSocket через Fiber, не gorilla | `backend/internal/ws/handler.go` |
+| NATS JetStream единственный pub/sub | публикации в `backend/internal/tracker/`, `backend/internal/messenger/` (subjects `hub.<domain>.<event>`) |
+| SeaweedFS через `aws-sdk-go-v2` | `backend/internal/storage/` |
+| TanStack Router единственный роутер | `frontend/src/routes/` (39 файловых маршрутов) |
+| Shadcn className-only | `frontend/src/components/ui/` |
+| `http.DefaultClient` запрещён / SSRF-guard | `backend/internal/platform/http/safedialer.go` — `ValidateOutboundURL`, `SafeDialContext`, `NewSafeHTTPClient`; используется в `apigateway/webhook.go`, `platform/http/opengraph.go`, `notification/push.go`, `ai/adapter_*.go` |
+| Webhook signature check без skip | `backend/internal/apigateway/webhook.go` (HMAC SHA-256, `X-Hub-Signature-256`), тест `backend/testframework/apigateway/webhook_test.go` |
+| WS membership/RBAC перед подпиской | `backend/internal/ws/handler.go` |
+| `*ent.Client` не в Handler/Service | layering-образец `backend/internal/tracker/{handler,service,repository,ent_repository}.go` |
+| `subtle.ConstantTimeCompare` для секретов | `backend/internal/auth/service_session.go`, `magiclink.go`, `apigateway/webhook.go`, `audit/handler_alerts.go`, `mail/internal_auth.go`, `gitlab/handler.go` |
+
+## Примеры нарушений, которые уже находили и фиксили
+
+- **NF-03-аналог (bases):** `backend/internal/bases/service.go` до фикса `98fb3df` не фильтровал базы по владельцу — любой юзер видел/менял чужие. Закрыто `authorizeBase()`; regression в `backend/testframework/bases/rbac_test.go`.
+- **Rune vs byte length (auth):** `backend/internal/auth/handler.go` до `576dfbb` считал длину magic-link кода в байтах — ломало non-ASCII. См. `.cursor/rules/56-regression-verify.mdc` для полного цикла обоих кейсов.
+- **Fiber v3 RBAC middleware order:** не TZ-constraint напрямую, но смежный class of bugs — см. `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md` и `.cursor/rules/20-backend.mdc`.
+- **SFU-решение зафиксировано:** mediasoup миграция была предложена и **отклонена** — `.planning/seeds/SEED-001-mediasoup-migration.md`; LiveKit остаётся каноном, не предлагать замену без нового ADR-триггера.

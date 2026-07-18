@@ -2,7 +2,7 @@
 
 > **Тип:** только **Edge** (границы лимитов / TTL / размеров / дат / counts / skew)  
 > **Дата:** 2026-07-10 · **Владелец:** `qa-manual` · **Волна:** wave4  
-> **Не трогает** `.planning/EDGE-CORNER-CATALOG.md` и wave1/wave2 `edge-expansions/**`  
+> **Не трогает** `.planning/july-2026/EDGE-CORNER-CATALOG.md` и wave1/wave2 `edge-expansions/**`  
 > **ID range:** `ECC-*-400+` — **не пересекает** wave1 `*100+` / wave2 `*200+` / catalog `*0xx` / Corner `*C*`  
 > **SFU:** LiveKit only (mediasoup / SEED-001 = REJECTED — строки N/A **не** добавлять)  
 > **Связи:** NFR-03/04/08/12/27 · NF-09 · SEC-02 · US-M06 · US-CAL-01…04 · SEED-002 · JULY brief §3 · TC-CALL-* · TC-STORAGE-*

@@ -1,7 +1,7 @@
 # Hub — Стратегия тестового фреймворка
 
 > **Статус:** принятая стратегия (решение пользователя 2026-07-03, эпик DOCS-EXCELLENCE / DOC-04).
-> **Реализация целевого состояния:** фаза **TF-PY** (`.planning/ROADMAP-FINAL-2026-07-03.md`), Depends on: микросервисный split Track P M2–M4.
+> **Реализация целевого состояния:** фаза **TF-PY** (`.planning/july-2026/ROADMAP-FINAL-2026-07-03.md`), Depends on: микросервисный split Track P M2–M4.
 > **Связанные документы:** `.cursor/playbooks/testing.md` (рабочие практики), `docs/test_plan.md` (тест-план), `docs/TESTING.md` (TC-матрица), `testframework/PIPELINE.md` (карта CI), `.planning/COVERAGE.md` (coverage + тайминги).
 
 ---

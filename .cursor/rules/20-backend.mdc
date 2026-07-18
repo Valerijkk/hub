@@ -55,31 +55,94 @@ func (Issue) Fields() []ent.Field {
 }
 ```
 
-## NATS Event Publishing
+## NATS Event Publishing (Outbox pattern)
 
 ```go
-// Publish domain events via NATS JetStream
-type EventPublisher interface {
-    Publish(ctx context.Context, subject string, data any) error
+// Publish domain events via NATS JetStream — НЕ напрямую из handler/service.
+// Канон: outbox-таблица внутри той же Ent-транзакции (атомарность записи +
+// события), отдельный Worker вычитывает outbox и публикует в NATS.
+// Реальная реализация: backend/internal/platform/outbox/publisher.go
+
+func (s *Service) CreateIssue(ctx context.Context, req CreateIssueRequest) (*ent.Issue, error) {
+    return WithTx(ctx, s.client, func(tx *ent.Tx) (*ent.Issue, error) {
+        issue, err := tx.Issue.Create().SetTitle(req.Title).Save(ctx)
+        if err != nil { return nil, err }
+        if err := s.outbox.PublishInTx(ctx, tx, "hub.issues.created", issue); err != nil {
+            return nil, err
+        }
+        return issue, nil
+    })
 }
 
-// Subjects: "hub.issues.created", "hub.messages.sent", etc.
+// Subjects: "hub.issues.created", "hub.messages.sent", "hub.calls.started", etc.
+// ❌ Прямой nc.Publish(...) из сервиса без outbox — теряет атомарность при rollback.
 ```
 
-## Fiber Middleware Order (main.go)
+## Fiber Middleware Order (`backend/cmd/server/wiring_fiber.go`)
 
 ```go
-// CORRECT ORDER — do not reorder
-app.Use(middleware.RequestID())
-app.Use(middleware.Recover())
+// ФАКТИЧЕСКИЙ порядок в wireFiber() — не переставлять без причины
+app.Use(middleware.RequestID())                              // request_id для всех логов ниже
+app.Use(fiberrecover.New(fiberrecover.Config{...}))          // HI-09: recover сразу после RequestID
+app.Use(observability.HTTPTraceMiddleware())
+app.Use(middleware.SecurityHeaders())
 app.Use(middleware.Logger())
-app.Use(middleware.CORS(corsConfig))
-app.Use(middleware.RateLimit(rateLimitConfig))
-app.Use(securityHeaders)                // must be early
-app.Use(apigatewaymod.APIKeyAuth(...))  // must be BEFORE routes
+app.Use(middleware.CORS())
+app.Get("/metrics", observability.MetricsEndpoint(...))       // до общего rate-limit
+app.Use(observability.HTTPMetricsMiddleware())
+app.Use(middleware.RateLimit(d.rootCtx, middleware.APIRateLimit))  // 100 req/sec global
 
 api := app.Group("/api")
-// mount all route groups here
+api.Use(auditmod.HTTPAuditMiddleware(...))                    // HTTP-аудит всех /api запросов
+api.Use("/files", middleware.RateLimitByUser(..., middleware.FileUploadRateLimit))     // 10/мин
+api.Use("/messenger", middleware.RateLimitByUser(..., middleware.MessageSendRateLimit)) // 60/мин
+// mount route groups здесь
+```
+
+## Fiber v3 Gotcha: RBAC Middleware Position
+
+```go
+// ⚠️ Fiber v3: route.Post(path, handler, ...middleware) — variadic middleware
+// выполняются ПЕРЕД handler, но синтаксически передаются ПОСЛЕ него в сигнатуре.
+
+// ✅ Правильно (см. backend/internal/tracker/handler.go, tms/handler.go)
+issues.Post("/", h.CreateIssue, rbac.RequirePermission(rbac.PermTaskCreate, rbacSvc))
+
+// ❌ Неправильно — RBAC "перед" handler по интуиции из Fiber v2/Express
+issues.Post("/", rbac.RequirePermission(rbac.PermTaskCreate, rbacSvc), h.CreateIssue)
+```
+
+Разбор инцидента и фикса: `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md` (FA-02-02).
+
+## Context Propagation & Concurrency
+
+```go
+// ✅ context всегда первым параметром, propagate до конца цепочки (включая NATS/Mongo вызовы)
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*ent.Issue, error) {
+    return r.client.Issue.Get(ctx, id)
+}
+
+// ✅ Конкурентный доступ к общему состоянию — через мьютекс, не через незащищённую map
+// Реальный пример: backend/internal/ws/hub.go (реестр активных WS-соединений)
+type Hub struct {
+    mu    sync.RWMutex
+    conns map[uuid.UUID]*Conn
+}
+
+// ❌ Гонка данных: разделяемая map без синхронизации — ловится go test -race
+```
+
+## MongoDB (сообщения, Allure-отчёты)
+
+```go
+// Mongo — только для messenger-сообщений и TMS Allure-отчётов, не для транзакционных данных.
+// Реальная реализация: backend/internal/messenger/mongo_repository.go
+func (r *MongoRepository) InsertMessage(ctx context.Context, msg *Message) error {
+    _, err := r.collection.InsertOne(ctx, msg)
+    return err
+}
+
+// ❌ Не хранить в Mongo то, что требует optimistic lock/foreign keys — это домен Postgres+Ent.
 ```
 
 ## Security Rules
@@ -104,11 +167,37 @@ if !ok || expectedHash == "" {
 ## Testing
 
 ```go
-// Use testcontainers for integration tests
+// Реальный паттерн Hub: НЕ testcontainers-go, а подключение к контейнерам
+// deployments/docker-compose.test.yml по env-переменной (см. AGENTS.md «Backend regression»)
 func TestIssueService_Create(t *testing.T) {
-    ctx := context.Background()
-    pg, _ := postgres.RunContainer(ctx, testcontainers.WithImage("postgres:17"))
-    defer pg.Terminate(ctx)
-    // setup ent client, service, run assertions
+    uri := os.Getenv("POSTGRES_TEST_URL")
+    if uri == "" {
+        uri = "postgresql://hub:hub@postgres:5432/hub?sslmode=disable"
+    }
+    db, err := sql.Open("postgres", uri)
+    require.NoError(t, err)
+    // setup ent client через drv, service, запуск сборки: -tags hubtest
 }
 ```
+
+Полный canonical запуск — `docker compose -f deployments/docker-compose.test.yml up -d`, затем `go test -tags hubtest -race -count=1 ./testframework/...` (см. `AGENTS.md`).
+
+## Примеры из Hub
+
+- Полный модуль по канону handler/service/repository/dto: `backend/internal/bases/{handler,service,repository,dto,export_hooks}.go` — образец для новых модулей.
+- RBAC-порядок в Fiber v3 middleware (RBAC ПОСЛЕ handler, не before): `backend/internal/tracker/handler.go`, `backend/internal/tms/handler.go`; разбор бага — `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md` (FA-02-02).
+- Outbox + NATS: `backend/internal/platform/outbox/publisher.go` (`PublishInTx` внутри Ent-транзакции, trace-context сохраняется для сквозного трейса REST → NATS).
+- Wiring/DI backend: `backend/cmd/server/wiring_*.go` (`wiring_fiber.go` — порядок middleware; `wiring_modules.go`, `wiring_auth.go`, `wiring_ws.go` — сборка модулей); `main.go` — только запуск.
+- SafeHTTPClient / SSRF guard: `backend/internal/platform/http/safedialer.go` — единственная реализация, использовать во всех модулях с user-controlled URL (webhooks, iCal-подписки, webpush).
+- Webhook signature check без skip: `backend/internal/apigateway/webhook.go` (HMAC + `subtle.ConstantTimeCompare`).
+- WebPush + `ValidateOutboundURL`: `backend/internal/notification/push.go`.
+- User-scope фильтр в поиске (NF-03): `backend/internal/search/{service,repository}.go`.
+- Rune-safe строковая валидация (не байты): `backend/internal/auth/handler.go` + regression-тест `backend/testframework/auth/handler_magiclink_runes_test.go`.
+- RBAC-scoping по владельцу ресурса (403 для чужих): `backend/internal/bases/service.go`, тест `backend/testframework/bases/rbac_test.go`.
+- Ent-схема с optimistic lock и UUID PK: `backend/ent/schema/issue.go`, `backend/ent/schema/project.go`, `backend/ent/schema/hubbase.go`.
+- Presigned upload через `aws-sdk-go-v2` (не minio-go): `backend/internal/storage/{handler,service}.go`.
+- WS membership-проверка перед подпиской на комнату (NF-02): `backend/internal/ws/handler.go`.
+- Rate limit по типу эндпоинта: `middleware.APIRateLimit` / `FileUploadRateLimit` / `MessageSendRateLimit` в `backend/cmd/server/wiring_fiber.go` (100/сек, 10/мин, 60/мин).
+- Webhook-подпись HMAC с заголовком `X-Hub-Signature-256`: `backend/internal/apigateway/webhook.go`.
+
+> **Проверено по коду (2026-07-18):** в Hub **нет** `mockery`-кодогенерации и `//go:generate mockery` — контракты `Repository` мокаются вручную или тестируются напрямую против реального Postgres/Mongo из `docker-compose.test.yml`. Не добавлять `mockery` без отдельного ADR по тест-стратегии.

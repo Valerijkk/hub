@@ -2,7 +2,7 @@
 
 > **Автор:** `team-lead` + `arch` (A/B-тест оркестрации, вариант Opus 4.8, max effort)
 > **Дата:** 2026-07-02 · **Режим:** декомпозиция (read-only по коду, без изменений)
-> **Эпик:** B5 из `.planning/EXPANSION-ANALYSIS-2026-07-02.md` §5 (ЭПИК B, оценка XL)
+> **Эпик:** B5 из `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` §5 (ЭПИК B, оценка XL)
 > **Формат:** `.cursor/playbooks/team-workflow.md` §6 (PLAN, волны ≤4 агента, атомарные планы ≤200–300 строк)
 > **Инварианты:** `.cursor/rules/60-tz-constraints.mdc` (UUID v4 · `version` optimistic lock · UTC в БД · soft-delete 30д · `{error, request_id}` · Fiber v3 · Ent+Atlas · TanStack Router · Shadcn/Tailwind 4)
 >

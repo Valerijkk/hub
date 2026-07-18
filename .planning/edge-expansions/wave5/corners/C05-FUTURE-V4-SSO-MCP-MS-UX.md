@@ -192,7 +192,7 @@
 
 **Минимум 65:** выполнен (77 ≥ 65).  
 **C200–C600:** не копировались — wave5 углубление (partition, IdP outage, dual-canary, PWA×ACL, legal-hold×purge×agent, marketplace×cascade).  
-**Основной каталог** `.planning/EDGE-CORNER-CATALOG.md`: не изменялся.  
+**Основной каталог** `.planning/july-2026/EDGE-CORNER-CATALOG.md`: не изменялся.  
 **Коммит:** не создавался.
 
 ### Фокус-покрытие (чеклист)

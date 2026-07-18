@@ -8,48 +8,60 @@ alwaysApply: false
 
 ## Go Backend Tests
 
-### Integration Tests (preferred)
+### Integration Tests (реальный канон Hub)
+
+> **Важно:** Hub **не использует testcontainers-go** в реальном коде — тесты подключаются к контейнерам `deployments/docker-compose.test.yml` через переменную окружения (Postgres/Mongo уже запущены отдельно). Ниже — фактический паттерн, см. `backend/testframework/search/service_wave116_postgres_test.go`.
 
 ```go
-// Use real databases via testcontainers
-func setupTestDB(t *testing.T) *ent.Client {
+func setupTestDB(t *testing.T) *sql.DB {
     t.Helper()
-    ctx := context.Background()
-    
-    pg, err := postgres.RunContainer(ctx,
-        testcontainers.WithImage("postgres:17-alpine"),
-        postgres.WithDatabase("hub_test"),
-        postgres.WithUsername("hub"),
-        postgres.WithPassword("test"),
-        testcontainers.WithWaitStrategy(wait.ForListeningPort("5432/tcp")),
-    )
+    uri := os.Getenv("POSTGRES_TEST_URL")
+    if uri == "" {
+        uri = "postgresql://hub:hub@postgres:5432/hub?sslmode=disable"
+    }
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    db, err := sql.Open("postgres", uri)
     require.NoError(t, err)
-    t.Cleanup(func() { pg.Terminate(ctx) })
-    
-    dsn, _ := pg.ConnectionString(ctx, "sslmode=disable")
-    client, err := ent.Open("postgres", dsn)
-    require.NoError(t, err)
-    require.NoError(t, client.Schema.Create(ctx))
-    return client
+    if err := db.PingContext(ctx); err != nil {
+        // Запасной вариант для локальных прогонов против опубликованного порта
+        fallback := "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"
+        db2, err2 := sql.Open("postgres", fallback)
+        require.NoError(t, err2)
+        return db2
+    }
+    return db
 }
 ```
 
-### Unit Tests with Mocks
+Каноническая команда запуска (Docker, см. `AGENTS.md`):
+
+```bash
+docker compose -f deployments/docker-compose.test.yml up -d
+docker run --rm --network deployments_default \
+  -v "${PWD}/backend:/app" -w /app \
+  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
+  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
+  golang:1.25-bookworm \
+  sh -c "go test -tags hubtest -race -count=1 -timeout=600s ./testframework/..."
+```
+
+### Unit Tests с мок-объектами (без mockery-кодогенерации)
 
 ```go
-// Use mockery: go generate ./... in package with //go:generate
-//go:generate mockery --name Repository --outpkg mocks --output ./mocks
+// Hub держит тесты рядом с реальными зависимостями (httptest.NewRequest + fiber.App),
+// а не через сгенерированные mockery-моки — mockery в проекте не подключён.
+// Пример: backend/testframework/auth/handler_magiclink_runes_test.go
 
-func TestService_CreateIssue(t *testing.T) {
-    mockRepo := mocks.NewRepository(t)
-    svc := NewService(mockRepo)
-    
-    mockRepo.On("Create", mock.Anything, mock.AnythingOfType("CreateParams")).
-        Return(&Issue{ID: uuid.New(), Title: "Test"}, nil)
-    
-    issue, err := svc.CreateIssue(context.Background(), CreateIssueRequest{Title: "Test"})
-    require.NoError(t, err)
-    assert.Equal(t, "Test", issue.Title)
+func TestVerifyMagicLink_ThreeEmojiCode_Rejected(t *testing.T) {
+    h := auth.NewHandler(&auth.AuthService{})
+    app := testApp(http.MethodPost, "/auth/magic-link/verify", h.VerifyMagicLink)
+
+    resp := postVerifyMagicLink(t, app, "emoji@example.com", "🔥🔥🔥")
+    defer resp.Body.Close()
+
+    assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 ```
 
@@ -115,6 +127,45 @@ test.describe('Issue Tracker', () => {
 })
 ```
 
+## Pipeline Stages (canonical map: `testframework/PIPELINE.md`)
+
+Структура `testframework/` повторяет CI: **стадия → job → домен**. Не путать с legacy `docs/test_plan.md` терминологией — актуальный вход всегда `testframework/PIPELINE.md`.
+
+```
+testframework/
+├── pipeline/jobs/*.yaml         # 1 YAML = 1 CI job (backend-test, frontend-test, e2e-smoke, e2e-full, coverage-gate)
+└── stages/
+    ├── unit/
+    │   ├── backend-test/        # README → реальные тесты живут в backend/testframework/{domain}/
+    │   └── frontend-test/domains/{auth,admin,ai,tracker,v4,...}/
+    ├── build/                   # только сборка, без тестов
+    ├── e2e/
+    │   ├── shared/               # POM (pages/), steps/, fixtures/
+    │   └── domains/{auth,platform,...}/  # e2e-smoke: 3 spec; e2e-full: 20 spec
+    └── quality/coverage-gate/    # README → backend coverage gate, порог ≥82%
+```
+
+| CI Job | Стадия | Путь к тестам | Команда |
+|--------|--------|----------------|---------|
+| `backend-test` | unit | `backend/testframework/{domain}/` | `cd backend && go test -tags hubtest -race -count=1 ./testframework/...` |
+| `frontend-test` | unit | `testframework/stages/unit/frontend-test/domains/{domain}/` | `cd frontend && npx vitest run ../testframework/stages/unit/frontend-test/domains/auth` |
+| `e2e-smoke` | e2e | `stages/e2e/domains/` (auth, platform — 3 spec) | `cd frontend && npm run test:e2e:smoke` |
+| `e2e-full` | e2e | `stages/e2e/domains/` (все 9 доменов — 20 spec) | `cd frontend && npm run test:e2e` |
+| `coverage-gate` | quality | `backend/testframework/` | ≥82% gate |
+
+**Почему Go-тесты физически не в `stages/unit/backend-test/`:** Go запрещает импорт `backend/internal/*` из другого модуля; тесты с `//go:build hubtest` и `export_hooks.go` обязаны жить в `backend/testframework/` (модуль `github.com/valerii/hub/backend`). Логически это job `backend-test`, физически — отдельная директория.
+
+Перед Vitest/E2E — линковка node_modules: `node frontend/scripts/link-testframework-node-modules.mjs`.
+
+## Примеры из Hub
+
+- Canonical race-регрессия в Docker: `deployments/docker-compose.test.yml` + `golang:1.25-bookworm` контейнер, команда — см. `AGENTS.md` секция «Команды».
+- Real regression fix + новый тест в одном коммите: `fix(bases)` (`98fb3df`) → `backend/internal/bases/service.go` + `backend/testframework/bases/service_test.go`, `service_wave115_test.go`; следующий коммит `test(bases)` (`8ff10d7`) добавил отдельный denial-suite `backend/testframework/bases/rbac_test.go` (403 для чужой базы, 404 для отсутствующей, позитив владельца).
+- Rune-length regression: `backend/internal/auth/handler_magiclink_runes_test.go` — тест написан **вместе** с фиксом `576dfbb`, не отдельным PR (цикл «implement → test нового» из rule 56).
+- Паттерны в тестфреймворке: Page Object — `stages/e2e/shared/pages/`; Step — `stages/e2e/shared/steps/`; Builder — `backend/testframework/env/`; Factory — `backend/testframework/factory/`; TestRenderer — `stages/unit/frontend-test/render.tsx`.
+- Coverage по security-пакетам (≥80%): `auth` 82.4%, `ws` 87.7%, `rbac` 84.7%, `audit` 80.5%, `calls` 80.2% — актуальные проценты держи в `.planning/COVERAGE.md`, не в этом rule.
+- Миграция тестфреймворка (история реорганизации): `testframework/MIGRATION.md`, скрипт `scripts/reorganize-testframework-pipeline.ps1`.
+
 ## Coverage Targets
 
 | Package | Target | Priority |
@@ -164,3 +215,18 @@ Remove-Item -Force tmp_*.py -ErrorAction SilentlyContinue
 ```
 
 **Agent rule:** если ты запускал `go test -coverprofile`, `go tool cover`, race/prof — **удали артефакты в том же PR/сессии** после фиксации метрик в `.planning/COVERAGE.md`. Не коммить dumps; они в `.gitignore`.
+
+## Примеры из Hub
+
+- Rune-safe валидация с тремя edge-кейсами в одном файле (multibyte ok / emoji reject / byte-length trap) — образец test-дизайна: `backend/testframework/auth/handler_magiclink_runes_test.go`.
+- RBAC-денай сьют для чужих ресурсов: `backend/testframework/bases/rbac_test.go` — паттерн «создать ресурс от имени A, попытаться получить/изменить от имени B → 403».
+- Postgres-тест через реальное соединение (не testcontainers): `backend/testframework/search/service_wave116_postgres_test.go`.
+- Организация тестов по волнам внутри модуля: `backend/testframework/bases/{handler_test,handler_flow_test,handler_wave107_test,handler_wave115_test,service_wave98_test,service_wave115_test,repository_wave98_test,fixtures_test}.go`.
+- Race-регрессия регистрации: `backend/testframework/auth/service_registration_race_test.go`.
+- Fail-closed middleware тест (что происходит при отказе внешней зависимости): `backend/testframework/auth/middleware_failclosed_test.go`.
+- Vitest unit-тесты по доменам: `testframework/stages/unit/frontend-test/domains/{auth,admin,ai,v4,...}/`.
+- Playwright E2E-спеки (20 всего, smoke — 3): `testframework/stages/e2e/domains/` — карта стадий CI в `testframework/PIPELINE.md`.
+- Backend unit-тесты по домену (495 тестов, 0 внутри `internal/`): `backend/testframework/{auth,tracker,tms,bases,...}/`.
+- Node-линковка testframework перед Vitest/E2E: `node frontend/scripts/link-testframework-node-modules.mjs` — обязательный шаг перед `npx vitest run`/Playwright.
+- Testing Guide (канон стратегии, Allure, замер времени): `testframework/TESTING_GUIDE.md`, `testframework/guides/06-edge-corner-coverage.md`.
+- Coverage-матрица по модулям (факт на 2026-07): `.planning/COVERAGE.md` — auth 82.4%, ws 87.7%, rbac 84.7%, audit 80.5%, calls 80.2%.

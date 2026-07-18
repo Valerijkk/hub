@@ -49,7 +49,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### v2.5+ Production & Super-app (Planned — PO LOCKED 2026-06-21)
 
-> Decisions: `.planning/DISCUSS-ROADMAP-LOCKED.md` · Branch: `feat/v2.5-trust`
+> Decisions: `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md` · Branch: `feat/v2.5-trust`
 
 - [x] **Phase 15: Trust (v2.5)** - Magic Link only, organization, NOTIF TG bind, hub-mail, E2E FB-07..09, WCAG, run_failed, Biome, LiveKit CI, coverage ≥50% (2026-06-22)
 - [x] **Phase 16: Automate (v2.6)** - PROD automation, flaky, issue↔message, webhooks log, Gantt, webcam, email marketing, triage inbox, Meilisearch (2026-06-22)

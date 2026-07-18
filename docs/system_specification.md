@@ -207,7 +207,7 @@ Rooms: `project:<id>`, `channel:<id>`, `user:<id>`, `admin:<id>`
 ## Спецификации Волны 2 — v4 parity + Wiki (2026-07-03)
 
 > Технические спецификации по верифицированным US Волны 1 (`docs/vision_and_scope.md`,
-> разделы «Волна 1 аналитика»). Границы scope: `.planning/GRAY-ZONES-DECISIONS-2026-07-03.md`
+> разделы «Волна 1 аналитика»). Границы scope: `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`
 > §2 (wiki RBAC) и §4 (intranet/calendar). Статус всех FR ниже: **spec** (реализация — Волны 4/5/8).
 > Нумерация NFR этой волны: NFR-31…NFR-39 (INTR 31–32, CAL 33–36, WIKI 37–39).
 

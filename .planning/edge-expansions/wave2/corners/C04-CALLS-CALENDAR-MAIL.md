@@ -2,7 +2,7 @@
 
 > **Тип:** только **Corner** (редкие комбинации, races, mid-flight, multi-step, cross-domain)  
 > **Дата:** 2026-07-10 · **Владелец:** `qa-manual` · **Волна:** wave2  
-> **Не трогает** `.planning/EDGE-CORNER-CATALOG.md`, parent `00-CORNER-PARENT.md`, wave1 `corners/C04-*`  
+> **Не трогает** `.planning/july-2026/EDGE-CORNER-CATALOG.md`, parent `00-CORNER-PARENT.md`, wave1 `corners/C04-*`  
 > **ID range:** `ECC-*-C400+` (не пересекает parent `C200–C215`, wave1 `C300+`, catalog `C01–C25`, edge `*100+`)  
 > **SFU:** LiveKit stay — mediasoup / SEED-001 = **N/A** (строки mediasoup не добавлять)  
 > **Фокус wave2:** RSVP×recording×LiveKit restart · ICS×reschedule×bounce · dual messenger+calendar create×conflict API · DST×series×accept instance · GDPR attendee×export iCal  
@@ -157,4 +157,4 @@
 | GDPR attendee × export iCal | `ECC-CAL-C412`…`C416`, `C424`; `ECC-MAIL-C410`…`C413`, `C422`; `ECC-CALL-C414`, `C422` |
 
 **Handoff:** `qa-manual-ver` → после `verified: true` выборочно `qa-auto1` (API races/conflict/GDPR export) / Manual (SFU restart + ICS clients).  
-**Merge later:** в `.planning/EDGE-CORNER-CATALOG.md` § Corner expansion (отдельной волной; каталог сейчас не трогать).
+**Merge later:** в `.planning/july-2026/EDGE-CORNER-CATALOG.md` § Corner expansion (отдельной волной; каталог сейчас не трогать).

@@ -45,7 +45,7 @@
 
 ## Текущие метрики (2026-06-22)
 
-Источник: `.planning/COVERAGE.md` · `.planning/AUDIT-SCORECARD.md`
+Источник: `.planning/COVERAGE.md` · `.planning/audits/2026-06/AUDIT-SCORECARD.md`
 
 | Метрика | Значение |
 |---------|----------|

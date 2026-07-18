@@ -2,7 +2,7 @@
 
 > **Тип:** только **Edge** (границы лимитов, TTL, empty/max, quota hard-stop).  
 > **Wave:** 2 · ID namespace `*200+` — **не пересекает** wave1 `05-V4-AI-FUTURE.md` (`*100+`).  
-> **Не трогает** основной каталог `.planning/EDGE-CORNER-CATALOG.md` — foresight backlog для будущих `TC-*`.  
+> **Не трогает** основной каталог `.planning/july-2026/EDGE-CORNER-CATALOG.md` — foresight backlog для будущих `TC-*`.  
 > **Gap:** только `Future` | `TODO`.  
 > **Фокус wave2:** bases **50k rows / 200 cols** · wiki **page depth** · SSO **session TTL** · MCP **tool count** · MS **contract version** · a11y **24px target** · AI **token budget boundary**.  
 > **Источники:** `ROADMAP-FINAL-2026-07-03.md` · `GRAY-ZONES-DECISIONS-2026-07-03.md` §2–§4 · `docs/vision_and_scope.md` (US-INTR / US-WIKI / US-F0x) · PLAN-bases (GZ-V4-19/20) · ADR-AUTH-SSO / ADR-AI-agents (планируемые) · WCAG 2.2 AA (2.5.8 Target Size ≥24×24px).  

@@ -7,7 +7,7 @@
 > **Wave1 (не дублировать 1:1):** `.planning/edge-expansions/02-TRACKER-SPRINT-TMS.md` (`ECC-*-100…140/124/130`)  
 > **Фокус wave2:** custom field limits · epic hierarchy depth · sprint date TZ · Allure huge suite · BDD step count · attachment count per issue  
 > **Связи:** US-M03/M11/M12, US-S01, US-M05/S13/C02 · NFR-08/12/14 · TC-TRCK-*, TC-SPRINT-*, TC-TMS-*, TC-ALLURE-*  
-> **Канон каталога:** `.planning/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом
+> **Канон каталога:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` — **не изменять** этим файлом
 
 ### Gap-легенда (для этого файла)
 

@@ -9,7 +9,7 @@
 
 ## 0. Что уже зафиксировано во внутренних docs (чтобы не дублировать)
 
-Прочитаны: `docs/vision_and_scope.md`, `docs/user_needs_analysis_2026.md`, `docs/competitive_analysis_2026.md`, `docs/competitive_audit.md`, `.planning/PLATFORM-VISION-v4.md`, `.planning/EXPANSION-ANALYSIS-2026-07-02.md`, `docs/tz_constraints.md`.
+Прочитаны: `docs/vision_and_scope.md`, `docs/user_needs_analysis_2026.md`, `docs/competitive_analysis_2026.md`, `docs/competitive_audit.md`, `.planning/specs/PLATFORM-VISION-v4.md`, `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md`, `docs/tz_constraints.md`.
 
 **Уже покрыто внутри (не повторяем подробно):**
 - Матрица «Hub vs лидеры» по категориям (Jira/Linear/Plane, Slack/Discord/Mattermost, TestRail/Allure, Zoom, Mighty/Bitrix24/Lark) — `competitive_analysis_2026.md` §2–§8.
