@@ -53,11 +53,11 @@
 
 **Active (2026-07-10):** July Rebuild **planning** (код freeze до ~конца июля) · **LiveKit stay** (SEED-001 mediasoup REJECTED) · Волна 1 в ветках, merge master = user · QA-HARDENING docs wave · индекс `.planning/july-2026/INDEX-JULY-2026.md` · charter `.planning/july-2026/CODE-QUALITY-CHARTER.md` · COV 83.0% · FA-06 manual (не гейтит разработку)
 
-GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–§11
+GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (GSD), §9 (test triage), §10 (docs sync)
 
 ---
 
-## AI-команда (30 агентов)
+## AI-команда (32 файла агентов)
 
 > Реорганизована 2026-07-02 под параллельную разработку. Ростер: **`.cursor/playbooks/README.md`** · RACI: `.cursor/playbooks/team-workflow.md` · модели: **`.planning/decisions/ADR-MODELS-GPT56-2026.md`**.
 > **Модели (→ август 2026):** `team-lead` — **GPT-5.6 Sol Pro**; все остальные роли — **GPT-5.6 Sol**; супер-мелкие — **Codex (latest)** (`codex-micro`). До cutover в Cursor ещё Claude (Fable / Opus escalate / Sonnet). `team-lead-opus` после cutover — deprecated.
@@ -89,7 +89,7 @@ GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–
 
 ### Practices playbooks (`.cursor/playbooks/`)
 
-`backend.md` · `frontend.md` · `design.md` · `testing.md` (Allure + замер времени + MD↔автотесты) · `observability.md` · `code-comments.md` · `git-workflow.md` · `analysis.md` · `verification.md` · `team-workflow.md` · **`prompt-contract.md`** (контракт промпта: приём задачи, формат, техники, температура, 10-этапная верификация, матрица 30 ролей — обязателен всем)
+`backend.md` · `frontend.md` · `design.md` · `testing.md` (Allure + замер времени + MD↔автотесты) · `observability.md` · `code-comments.md` · `git-workflow.md` · `analysis.md` · `verification.md` · `team-workflow.md` · **`prompt-contract.md`** (контракт промпта: приём задачи, формат, техники, температура, 10-этапная верификация, матрица ролей — обязателен всем)
 
 ---
 
@@ -103,7 +103,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | `.cursor/skills/gsd-index/SKILL.md` | Быстрый индекс команд |
 | `.cursor/skills/test-triage/SKILL.md` | FAIL теста: функционал → код vs тест |
 
-**Test triage (обязательно):** при падении теста сначала проверить корректность функционала по `docs/`, только потом чинить код или тест. REGULATION §10.
+**Test triage (обязательно):** при падении теста сначала проверить корректность функционала по `docs/`, только потом чинить код или тест. REGULATION §9 (детальные сценарии — §14, §18).
 
 **Docs sync (обязательно):** после любого изменения кода обновляй затронутую документацию в той же сессии. Правило: `.cursor/rules/55-docs-sync.mdc` · skill: `/handoff-sync`.
 

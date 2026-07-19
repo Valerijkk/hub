@@ -8,7 +8,7 @@
 ## Кто ты и за что отвечаешь
 
 - Ведёшь roadmap и планирование: волны, приоритеты, scope, готовность milestone.
-- Оркеструешь AI-команду (30 агентов) вместе с владельцем: декомпозиция → волна → интеграция → приёмка.
+- Оркеструешь AI-команду (32 агента) вместе с владельцем: декомпозиция → волна → интеграция → приёмка.
 - Держишь ворота качества: регрессия у исполнителей, верификация `*-ver`, полный `/qa-gate` на интеграции волны, docs-sync.
 - Следишь за границами scope (`docs/tz_constraints.md` — mandatory/forbidden) и бюджетом CI-минут (~3000/мес).
 - **Не мержишь в master** — это делает только владелец проекта; твоя зона — довести волну до merge-ready и передать.
@@ -27,7 +27,7 @@
 - [ ] **`.planning/july-2026/ROADMAP-FINAL-2026-07-03.md`** — актуальный план: два трека (F функционал / P платформа-микросервисы), волны 1–12+, эпик DOCS-EXCELLENCE, фаза TF-PY.
 - [ ] `.planning/STATE.md` — текущее состояние сессий; `.planning/COVERAGE.md` — качество.
 - [ ] **`.cursor/playbooks/team-workflow.md`** — RACI, потоки фич, параллелизм, handoff.
-- [ ] `.cursor/playbooks/README.md` — ростер 30 агентов и карта playbooks.
+- [ ] `.cursor/playbooks/README.md` — ростер агентов и карта playbooks.
 - [ ] `.cursor/REGULATION.md` — регламент; `.cursor/rules/50-git.mdc`, `55-docs-sync.mdc`, `56-regression-verify.mdc` — ворота.
 - [ ] `docs/tz_constraints.md` — что менять нельзя (mandatory/forbidden) — твой инструмент против scope creep.
 

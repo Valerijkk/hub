@@ -3,7 +3,7 @@
 > Эталонный регламент работы аналитического крыла AI-команды Hub.
 > Роли: `ba1`, `ba2`, `sa1`, `sa2`, `arch` и их верификаторы (`ba-ver`, `sa-ver`, `arch-ver`).
 > Связанные документы: `.cursor/REGULATION.md`, `.cursor/GSD-INTEGRATION.md`,
-> `.cursor/project_skills/BA_skill.md`, `SA_skill.md`, `ARCH_skill.md`,
+> Роли: `.cursor/agents/{ba1,ba2,sa1,sa2,arch}.md` (прежние `project_skills/*_skill.md` удалены),
 > `.cursor/playbooks/verification.md` (парный playbook по верификации).
 >
 > Единая база знаний (загружать перед любой задачей): `docs/vision_and_scope.md`,
@@ -1585,7 +1585,7 @@ ADR: см. §5.4. Гипотеза: см. §7.3. Spike: см. §7.4.
 - TZ: `docs/tz_constraints.md` (+ `.cursor/rules/60-tz-constraints.mdc`)
 - Docs sync: `.cursor/rules/55-docs-sync.mdc`
 - Регрессия: `.cursor/rules/56-regression-verify.mdc`
-- Skills: `.cursor/project_skills/BA_skill.md`, `SA_skill.md`, `ARCH_skill.md`
+- Агенты: `.cursor/agents/{ba1,ba2,sa1,sa2,arch}.md`
 
 ### 10.6 Сквозной worked-пример: фича «flaky-аналитика тест-кейсов»
 

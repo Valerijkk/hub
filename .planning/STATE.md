@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
 status: july-qa-hardening-planning-awaiting-return
-stopped_at: LiveKit stay · QA-HARDENING planning · код freeze ~конец июля · Волна 1+otel+wave2 docs влиты в master 2026-07-11
-last_updated: "2026-07-11T21:50:00.000Z"
-last_activity: 2026-07-11 merge в master: wave1 + otel-nats + ADR/SSO + wave2 specs; cleanup веток
+stopped_at: LiveKit stay · QA-HARDENING planning · код freeze ~конец июля · документация и AI-команда допилены (prompt-contract, prompt-engineering toolkit, runbooks)
+last_updated: "2026-07-19T00:00:00.000Z"
+last_activity: 2026-07-19 контракт промпта для 32 агентов + prompt-engineering toolkit (1000 промптов) + docs (runbooks×6, GLOSSARY, TROUBLESHOOTING)
 progress:
   total_phases: 125
   completed_phases: 125

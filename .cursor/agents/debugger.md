@@ -210,7 +210,7 @@ Skill: `.cursor/skills/test-triage/SKILL.md`. Принцип Hub: **тест —
 
 ```bash
 go test -race -count=1 ./internal/<pkg>/...   # минимум — затронутый пакет
-/qa-gate                                       # перед handoff — полный REGULATION §8
+/qa-gate                                       # перед handoff — полный REGULATION §7
 ```
 
    Запись в лог: `TRIAGE: TestX — ROOT=test (устаревший mock) | ROOT=code (BanUser не проверял reason)`, `FIX: <файл:строка>`, `VERIFIED: manual + go test green`.

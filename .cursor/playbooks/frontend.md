@@ -11,7 +11,7 @@
 > - `docs/architecture.md` — архитектура, C4, frontend-раздел
 > - `.cursor/playbooks/design.md` — дизайн-система, токены `--hub-*`, визуальный язык
 > - `.cursor/playbooks/testing.md` — тестовая стратегия (Vitest, RTL, MSW, Playwright)
-> - `.cursor/playbooks/comments.md`, `.cursor/playbooks/logging.md`, `.cursor/playbooks/git.md`
+> - `.cursor/playbooks/code-comments.md`, `.cursor/playbooks/observability.md`, `.cursor/playbooks/git-workflow.md`
 >
 > **Правило приоритета:** если этот playbook расходится с `.cursor/rules/*.mdc` или `.cursor/rules/60-tz-constraints.mdc` — **правила и ТЗ побеждают**. Playbook расширяет и объясняет, но не отменяет их.
 
@@ -75,8 +75,8 @@
 
 | Роль | Agent | Skill | Когда включается |
 |------|-------|-------|------------------|
-| Frontend Dev #1 | `fe1` | `.cursor/project_skills/FE_skill.md` | Реализация модуля/страницы A |
-| Frontend Dev #2 | `fe2` | `.cursor/project_skills/FE_skill.md` | Реализация модуля/страницы B (параллельно A) |
+| Frontend Dev #1 | `fe1` | `.cursor/agents/fe1.md` / `fe2.md` | Реализация модуля/страницы A |
+| Frontend Dev #2 | `fe2` | `.cursor/agents/fe1.md` / `fe2.md` | Реализация модуля/страницы B (параллельно A) |
 | Frontend Verifier | `fe-ver` | `.cursor/project_skills/FE_VER_skill.md` | Верификация после fe1/fe2 |
 
 `fe1` и `fe2` — **исполнители одного профиля**. Они пишут одинаково качественный код по этому playbook. Разница только в распределении зон ответственности внутри одной волны. `fe-ver` — **независимый контролёр**: он не пишет фичу, а проверяет её по разделу [19](#19-definition-of-done-и-что-проверяет-fe-ver).
@@ -2376,7 +2376,7 @@ expect(await screen.findByText(/created/i)).toBeInTheDocument();
 
 ## 17. Комментарии, логирование, git
 
-> Детали — в `.cursor/playbooks/comments.md`, `.cursor/playbooks/logging.md`, `.cursor/playbooks/git.md`. Кратко для фронта:
+> Детали — в `.cursor/playbooks/code-comments.md`, `.cursor/playbooks/observability.md`, `.cursor/playbooks/git-workflow.md`. Кратко для фронта:
 
 ### 17.1. Комментарии — WHY, не WHAT
 

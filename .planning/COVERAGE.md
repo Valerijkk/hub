@@ -152,7 +152,7 @@
 | INF-04 | BackupService nil s3 | 🔧 Fixed main.go | ⚠️ unit only |
 | FE-01 | Rules of Hooks | 🔧 Fixed | ❌ |
 
-**Verdict:** COV-01 gate **PASS** (83.0% ≥82%, security 6/6 ≥80%). Wave C FA-02 re-audit **DONE** — 0 CRITICAL regression (`.planning/FA-02-SECURITY-REAUDIT.md`).
+**Verdict:** COV-01 gate **PASS** (83.0% ≥82%, security 6/6 ≥80%). Wave C FA-02 re-audit **DONE** — 0 CRITICAL regression (`.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md`).
 
 ---
 
@@ -201,7 +201,7 @@
 1. **DevOps:** FA-06 PG-03 Phase 1–3 (manual) — scripts: `bash scripts/fa06.sh p1-compose` or `p1-k3s` → `p2-smoke` → CTO sign-off
 2. **DevOps:** SSH deploy — `bash scripts/fa06.sh deploy` · GitHub Secrets SSH_HOST/SSH_KEY
 3. **Release:** `bash scripts/fa06.sh release-gate` → `git tag v2.5.0` after FA-06 complete
-4. **Backlog:** NFR-17 Lighthouse blocking gate · NFR-16 WCAG AA sign-off · `.planning/AUDIT-2026-06-23.md`
+4. **Backlog:** NFR-17 Lighthouse blocking gate · NFR-16 WCAG AA sign-off · `.planning/audits/2026-06/AUDIT-2026-06-23.md`
 
 ---
 

@@ -268,7 +268,7 @@ Skill: `BE_VER_skill.md`. Артефакт: Go-код в `backend/internal/<modu
 [ ] go test -race -count=1 ./... — PASS (лог приложен)
 [ ] Unit-тесты: граничные случаи, классы эквивалентности, негативные сценарии
 [ ] Атомарность: ≤300 строк осмысленного кода за итерацию
-[ ] При FAIL теста: triage выполнен (ROOT=code|test, обоснование) — REGULATION §10
+[ ] При FAIL теста: triage выполнен (ROOT=code|test, обоснование) — REGULATION §9
 [ ] slog с контекстом (не fmt.Println/log.Printf)
 ```
 
@@ -855,7 +855,7 @@ docs + (для sa-ver) актуальность COVERAGE, но при измен
   прошли», а конкретный `ok ./internal/tms 12.4s` / `Test Files 37 passed (37)`.
 - Лог должен соответствовать проверяемому изменению (тот же модуль/дата).
 
-### 6.4 Test triage при FAIL (REGULATION §10)
+### 6.4 Test triage при FAIL (REGULATION §9)
 
 Если регрессия падает, верификатор требует от исполнителя (или проводит сам) triage до любого
 «озеленения»:

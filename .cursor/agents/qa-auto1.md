@@ -56,7 +56,7 @@ go test -tags hubtest -v -run TestCreateIssue ./testframework/tracker/...
 | Что | Паттерн | Пример реального файла |
 |-----|---------|------------------------|
 | Файл теста | `{layer}_{feature}_test.go` | `handler_magiclink_runes_test.go` |
-| Файл теста волны | `service_wave<NN>_test.go` | `backend/testframework/tracker/service_wave126_test.go` |
+| Файл теста волны | `service_wave<NN>_test.go` | `backend/testframework/tracker/service_wave121_test.go` |
 | Функция | `Test{Subject}_{Scenario}` | `TestVerifyTelegramAuth_InvalidHash` |
 | White-box экспорт | `export_hooks.go` (`//go:build hubtest`) | см. §7 |
 

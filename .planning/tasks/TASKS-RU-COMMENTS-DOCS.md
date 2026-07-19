@@ -82,15 +82,15 @@ Wave RU-1: 30 пакетов → 9 агентов ✅ COMPLETE (2026-06-21)
 
 | Агент | Пакеты | Масштаб |
 |-------|--------|---------|
-| [RU-D01–D03](b4d6c2d4-14f3-4a41-999f-8dee2099afab) | docs core | 5 md, gap-анализ doc↔code |
-| [RU-D04–D08](c079f13b-c5f9-43bf-8acb-4427d74132a3) | test/stack/wiki | 14 md, Magic Link fix |
-| [RU-D09–D10](a23b9473-ea76-455f-9a15-e6f6b1b15a6e) | planning | 9 md |
-| [RU-B01–B03](0bbbc4b8-b1b2-48d6-b104-62388f79fc0d) | auth/ws/rbac/audit/notification | 45 prod .go |
-| [RU-B04–B07](aacc8891-656f-4b82-bfc8-63d9a0f06002) | tracker/tms/project/sprint/messenger/calls | ~70 prod .go |
-| [RU-B08–B14](040df7bb-8b16-43d6-9ba4-f743a0c2929c) | platform/ent/cmd/остальные | ~140 prod .go |
-| [RU-F01–F03](60ac426c-b075-497a-8a86-9277ea011238) | frontend src | ~113 файлов |
-| [RU-B15](9edcf3f5-f9aa-4228-8e65-b2da3b411835) | testframework | 289 файлов (255 Go + 34 e2e) |
-| [RU-F05](cf3679a5-6a36-4309-9361-378c04e00737) | deployments/cli | 23 файла |
+| RU-D01–D03 | docs core | 5 md, gap-анализ doc↔code |
+| RU-D04–D08 | test/stack/wiki | 14 md, Magic Link fix |
+| RU-D09–D10 | planning | 9 md |
+| RU-B01–B03 | auth/ws/rbac/audit/notification | 45 prod .go |
+| RU-B04–B07 | tracker/tms/project/sprint/messenger/calls | ~70 prod .go |
+| RU-B08–B14 | platform/ent/cmd/остальные | ~140 prod .go |
+| RU-F01–F03 | frontend src | ~113 файлов |
+| RU-B15 | testframework | 289 файлов (255 Go + 34 e2e) |
+| RU-F05 | deployments/cli | 23 файла |
 
 **Известные gaps для RU-V:** битая кодировка в assert-литералах старых messenger-тестов; `frontend/README.md` отсутствует; Swagger paths under-documented.
 

@@ -30,7 +30,7 @@
 
 | Слой | Метрика |
 |------|---------|
-| Backend test files (`testframework/`) | **495** `_test.go` |
+| Backend test files (`testframework/`) | **499** `_test.go` (пересчёт: `find backend -name '*_test.go' | wc -l`) |
 | Backend `internal/*_test.go` | **0** (TF-M08) |
 | Frontend Vitest | **37** files, **99** tests |
 | Playwright | **20** spec files (`stages/e2e/domains/`) |

@@ -121,9 +121,9 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 - Frontend feature-модули: `frontend/src/modules/{tracker,messenger,tms,calls,bases,crm,hr,accounting,calendar,intranet,marketplace,admin,settings,status}/`.
 - ADR по архитектуре/безопасности: `.planning/decisions/ADR-AUTH-SSO-2026.md`, `ADR-ARCH-MICROSERVICES-2026.md`, `ADR-AI-AGENTS-MCP-2026.md`.
 - Тест-фреймворк (канонический вход): `testframework/PIPELINE.md` — стадии CI → job → домен.
-- Не путать `docs/ROADMAP.md`-исторический с актуальным: актуальный roadmap — `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` / `ROADMAP-DETAILED-JULY-RETURN.md`.
-- Ростер и модели AI-команды (30 агентов) — не дублировать здесь, читать `.cursor/playbooks/README.md` §0/§3 (модели, тиры, обратная карта агент→playbook).
-- main.go (~629 LOC — известный tech debt) не расширять новой логикой: новая инициализация модуля идёт в `backend/cmd/server/wiring_*.go` (см. `20-backend.mdc`).
+- Не путать `.planning/ROADMAP.md`-исторический с актуальным: актуальный roadmap — `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` / `ROADMAP-DETAILED-JULY-RETURN.md`.
+- Ростер и модели AI-команды (32 агента) — не дублировать здесь, читать `.cursor/playbooks/README.md` §0/§3 (модели, тиры, обратная карта агент→playbook).
+- main.go (34 строки, инициализация разнесена по 13 `wiring_*.go`) не расширять новой логикой: новая инициализация модуля идёт в `backend/cmd/server/wiring_*.go` (см. `20-backend.mdc`).
 - Реальный пример «единственного prod-блокера, не блокирующего разработку»: `.planning/production/PG-03-SECRET-ROTATION.md` описывает ручную процедуру, которая может идти параллельно с любой фичевой веткой.
 - Wiki-документация продукта (не путать с этим `.cursor/`-справочником): `docs/wiki/` — `API.md`, `SHORTCUTS.md`, `QUICKSTART.md`, `DEPLOY.md`.
 - CI-экономия минут (студенческий пакет GitHub Actions): смотри реальные джобы `.github/workflows/{ci,pr-guard,deploy}.yml` перед добавлением новой матрицы/джобы.

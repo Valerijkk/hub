@@ -5,7 +5,9 @@ description: Детектор AI-говнокода в тестах и коде 
 
 # /anti-ai-check — детектор AI-паттернов
 
-> AI-сгенерированный код имеет узнаваемые болезни. Скил грепает их масс-паттернами и классифицирует по severity. Пути для скана — из `context/PROJECT-CONTEXT.md` §3 (директории кода и тестов). Все команды — `rg` (ripgrep); подставь свои расширения из стека проекта.
+> AI-сгенерированный код имеет узнаваемые болезни. Скил грепает их масс-паттернами и классифицирует по severity. Все команды — `rg` (ripgrep); проверены на rg 14.
+>
+> **Слоты берутся из `context/PROJECT-CONTEXT.md` §3:** `{{src_dirs}}` (директории исходников), `{{test_dirs}}` (директории тестов), `{{ext}}` (расширения файлов стека). Если они не заполнены — прогони `/context-intake`, скил без них работать не будет.
 
 ## Step 1. Комментарии-нарраторы (пересказ кода словами)
 
@@ -33,7 +35,7 @@ rg -in "(fixed the|updated to|changed from|as requested|per the requirements|new
 
 ```bash
 rg -in "(lorem ipsum|placeholder|your.?(api.?key|token|url|email)|example\.com|test@test|foo@bar|dummy|fake.?data|sample.?data|changeme|xxx+)" {{src_dirs}} --glob '!**/*test*' --glob '!**/fixtures/**'
-rg -n "(TODO|FIXME|HACK)(?!\()" {{src_dirs}}   # TODO без владельца/тикета
+rg -nP "(TODO|FIXME|HACK)(?!\()" {{src_dirs}}   # TODO без владельца/тикета (-P: lookahead требует PCRE2)
 ```
 
 **Severity: HIGH** в продакшн-коде, LOW в тестовых фикстурах (там допустимо осознанно).
@@ -42,7 +44,9 @@ rg -n "(TODO|FIXME|HACK)(?!\()" {{src_dirs}}   # TODO без владельца/
 
 ```bash
 # Тест без единого ассерта
-rg -L -l "func Test|it\(|test\(" {{test_dirs}} | xargs rg -L "assert|expect|require|should"
+# ВНИМАНИЕ: в ripgrep -L это --follow (симлинки), НЕ «файлы без совпадения».
+# Для «файлов без совпадения» — только длинный флаг --files-without-match.
+rg -l "func Test|it\(|test\(" {{test_dirs}} | xargs rg --files-without-match "assert|expect|require|should"
 # Всегда-зелёные ассерты
 rg -n "(assert\.True\(t, true\)|expect\(true\)\.toBe\(true\)|assertTrue\(true\)|expect\(1\)\.toBe\(1\))" {{test_dirs}}
 # Отключённые тесты без причины
@@ -69,7 +73,7 @@ rg -n "func Test\w+(2|Copy|New|Old|Backup)\(|it\(['\"].*\(copy\)" {{test_dirs}}
 
 ## Step 6. Языко-специфичные запреты проекта
 
-Возьми список запрещённых паттернов из `context/PROJECT-CONTEXT.md` §7 и `context/PATTERNS-LIBRARY.md` §7 и прогрепай каждый. Примеры типовых (замени на свои):
+Возьми список запрещённых паттернов из `context/PROJECT-CONTEXT.md` §7 и `context/PATTERNS-LIBRARY.md` **B6** (антипаттерны этого проекта) и прогрепай каждый. Примеры типовых (замени на свои):
 
 ```bash
 rg -n "{{forbidden_pattern_1}}" {{src_dirs}}   # напр. println-debug вместо логгера

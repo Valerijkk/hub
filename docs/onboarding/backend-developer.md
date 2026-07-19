@@ -1,6 +1,6 @@
 # Онбординг — Backend-разработчик
 
-> Роль: разработка backend Hub на **Go 1.24 + Fiber v3 + Ent (PostgreSQL 17)**.
+> Роль: разработка backend Hub на **Go 1.25 + Fiber v3 + Ent (PostgreSQL 17)**.
 > Главный playbook: `.cursor/playbooks/backend.md` · Общий индекс онбординга: [README.md](README.md)
 
 ---

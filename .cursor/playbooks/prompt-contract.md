@@ -1,6 +1,6 @@
 # Prompt Contract — контракт промпта для всех агентов Hub
 
-> **Для кого:** все 30 агентов. **Тема:** как агент принимает задачу, каким форматом отвечает, какие техники применяет, с какой температурой работает, как верифицирует себя перед сдачей и кому передаёт.
+> **Для кого:** все 32 агента. **Тема:** как агент принимает задачу, каким форматом отвечает, какие техники применяет, с какой температурой работает, как верифицирует себя перед сдачей и кому передаёт.
 >
 > Канон шаблона делегирования: [`.cursor/agents/team-lead.md`](../agents/team-lead.md) §5.2 = [`team-workflow.md`](team-workflow.md) §5.3.1. Переносимый (обезличенный) аналог: [`prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md`](../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md). 10-этапная верификация: [`prompt-engineering/rules/40-verification-protocol.md`](../../prompt-engineering/rules/40-verification-protocol.md).
 

@@ -161,7 +161,7 @@ testframework/
 
 - Canonical race-регрессия в Docker: `deployments/docker-compose.test.yml` + `golang:1.25-bookworm` контейнер, команда — см. `AGENTS.md` секция «Команды».
 - Real regression fix + новый тест в одном коммите: `fix(bases)` (`98fb3df`) → `backend/internal/bases/service.go` + `backend/testframework/bases/service_test.go`, `service_wave115_test.go`; следующий коммит `test(bases)` (`8ff10d7`) добавил отдельный denial-suite `backend/testframework/bases/rbac_test.go` (403 для чужой базы, 404 для отсутствующей, позитив владельца).
-- Rune-length regression: `backend/internal/auth/handler_magiclink_runes_test.go` — тест написан **вместе** с фиксом `576dfbb`, не отдельным PR (цикл «implement → test нового» из rule 56).
+- Rune-length regression: `backend/testframework/auth/handler_magiclink_runes_test.go` — тест написан **вместе** с фиксом `576dfbb`, не отдельным PR (цикл «implement → test нового» из rule 56).
 - Паттерны в тестфреймворке: Page Object — `stages/e2e/shared/pages/`; Step — `stages/e2e/shared/steps/`; Builder — `backend/testframework/env/`; Factory — `backend/testframework/factory/`; TestRenderer — `stages/unit/frontend-test/render.tsx`.
 - Coverage по security-пакетам (≥80%): `auth` 82.4%, `ws` 87.7%, `rbac` 84.7%, `audit` 80.5%, `calls` 80.2% — актуальные проценты держи в `.planning/COVERAGE.md`, не в этом rule.
 - Миграция тестфреймворка (история реорганизации): `testframework/MIGRATION.md`, скрипт `scripts/reorganize-testframework-pipeline.ps1`.

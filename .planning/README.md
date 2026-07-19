@@ -39,6 +39,7 @@
 | [`phases/`](phases/) | Phase plans (GSD) |
 | [`ab-tests/`](ab-tests/), [`ab-microservices/`](ab-microservices/) | A/B планы |
 | [`code-review/`](code-review/), [`code-review-final/`](code-review-final/) | Code review артефакты |
+| [`quick/`](quick/) | Задачи `gsd-quick` — папка на задачу `YYYYMMDD-<slug>/` с `PLAN.md` + `SUMMARY.md` |
 | [`tooling/`](tooling/) | biome dump / parse script (не продукт) |
 | [`debug/`](debug/), [`ui-reviews/`](ui-reviews/) | Прочие артефакты |
 
