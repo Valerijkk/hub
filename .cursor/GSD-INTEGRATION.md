@@ -2,8 +2,10 @@
 
 > GSD skills: `~/.claude/skills/gsd-*/SKILL.md` · Hub slash-skills: `.cursor/skills/*/SKILL.md`.
 > Ростер команды: `.cursor/playbooks/README.md` · Регламент: `.cursor/REGULATION.md`.
+>
+> **Этот файл отвечает «какая ситуация → какой скил» (маршрутизация).** Вопрос «где в промпте объявить скил и что агент с ним делает» — [`playbooks/prompt-contract.md`](playbooks/prompt-contract.md) §13 (в т.ч. обязательные скилы-ворота: `/test-triage`, `/qa-gate`, `/handoff-sync`, `/style-check`, `/coverage-audit`).
 
-*Обновлено: 2026-07-18 — новый ростер 30 агентов + playbooks; расширенные матрицы см. ниже.*
+*Обновлено: 2026-07-19 — ссылка на контракт промпта (§13 prompt-contract) / 2026-07-18 — ростер 30 агентов + playbooks.*
 
 ---
 

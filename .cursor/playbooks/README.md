@@ -24,7 +24,7 @@
 
 ## 0. Модели (as-is → август 2026)
 
-> Канон: [`.planning/decisions/ADR-MODELS-GPT56-2026.md`](../decisions/ADR-MODELS-GPT56-2026.md)
+> Канон: [`.planning/decisions/ADR-MODELS-GPT56-2026.md`](../../.planning/decisions/ADR-MODELS-GPT56-2026.md)
 
 | Слот | Сейчас (до cutover) | **С августа 2026** |
 |------|---------------------|---------------------|
