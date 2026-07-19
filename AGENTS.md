@@ -45,6 +45,9 @@
 | `docs/competitive_analysis_2026.md` | Конкуренты + Mighty/Bitrix/Lark |
 | `docs/competitive_audit.md` | Best practices + backlog |
 | `docs/user_needs_analysis_2026.md` | Персоны, JTBD, MoSCoW |
+| `docs/GLOSSARY.md` | Термины, ID-конвенции (TC-/FR-/GZ-/ECC-…), модули backend |
+| `docs/TROUBLESHOOTING.md` | Типовые грабли разработки (сборка, тесты, окружение) |
+| `docs/runbooks/README.md` | Эксплуатация прода: инцидент, алерты, деплой/откат, БД, бэкапы |
 
 Планирование: [`.planning/README.md`](.planning/README.md) (навигация) · `.planning/STATE.md` · `.planning/COVERAGE.md` · `.planning/ROADMAP.md` · `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
@@ -86,7 +89,7 @@ GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §9–
 
 ### Practices playbooks (`.cursor/playbooks/`)
 
-`backend.md` · `frontend.md` · `design.md` · `testing.md` (Allure + замер времени + MD↔автотесты) · `observability.md` · `code-comments.md` · `git-workflow.md` · `analysis.md` · `verification.md` · `team-workflow.md`
+`backend.md` · `frontend.md` · `design.md` · `testing.md` (Allure + замер времени + MD↔автотесты) · `observability.md` · `code-comments.md` · `git-workflow.md` · `analysis.md` · `verification.md` · `team-workflow.md` · **`prompt-contract.md`** (контракт промпта: приём задачи, формат, техники, температура, 10-этапная верификация, матрица 30 ролей — обязателен всем)
 
 ---
 
@@ -186,7 +189,10 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 docker compose -f docker-compose.local.yml up -d
 
 # Backend regression (local)
-cd backend && go build -tags release ./... && go test -race -count=1 ./...
+# ВАЖНО: -tags hubtest обязателен — export_hooks.go (39 файлов) под этим тегом,
+# без него testframework не компилируется. Тестов в internal/ нет (все 499 в testframework/).
+cd backend && go build -tags release ./... && go vet ./... \
+  && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
 
 # Backend regression (Docker, canonical)
 docker compose -f deployments/docker-compose.test.yml up -d
