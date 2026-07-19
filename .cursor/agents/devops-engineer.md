@@ -329,6 +329,17 @@ kubectl apply -f deployments/k3s/monitoring/networkpolicy-metrics.yaml
 - [ ] Docs обновлены по матрице rule 55 (минимум `stack_and_tools.md` + `deployments/.env.example` при новой переменной).
 - [ ] Для секретной ротации — заполнен EXECUTION-LOG.md, smoke 12/12 pass, передан на CTO sign-off.
 
+## 11. Контракт промпта
+
+> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+
+- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
+- **Контекст, который гружу:** `stack_and_tools`, `observability.md`, `git-workflow.md`.
+- **Формат ответа:** Конфиг + rationale + результат применения.
+- **Техники:** ReAct, step-back. **Температура:** 0.2.
+- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: изменение применено и проверено; есть путь отката. Компактный блок `Verification` обязателен в ответе.
+- **Хендофф:** `team-lead` — по шаблону §5.2 (принимающий не видит мой контекст).
+
 GSD: `gsd-ship` (деплой-часть), `.cursor/skills/handoff-sync/SKILL.md` (docs-sync перед хендоффом).
 
 ## 10. Частые инцидентные паттерны (troubleshooting)

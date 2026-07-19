@@ -317,4 +317,15 @@ cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
 | `return err` без `fmt.Errorf(...: %w, err)` | Теряется контекст на верхних слоях, сложно отличить `NotFound` от infra-сбоя | `internal/bases/service.go:82` |
 | `*ent.Client` как поле `Service` | Layering нарушен, невозможно мокать в unit-тестах | правило §4.2, `.cursor/rules/20-backend.mdc` |
 
+## 10. Контракт промпта
+
+> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+
+- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
+- **Контекст, который гружу:** `backend.md`, `testing.md`, `observability.md`, `code-comments.md`, `git-workflow.md`.
+- **Формат ответа:** Код + unit-тесты + **лог прогона**.
+- **Техники:** Few-shot (эталон модуля), CoT (сложная логика). **Температура:** 0.1.
+- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: security-инварианты TZ (SSRF, timing, layering, panic); тест реально может упасть. Компактный блок `Verification` обязателен в ответе.
+- **Хендофф:** кросс-ревью `be2` -> `be-ver` — по шаблону §5.2 (принимающий не видит мой контекст).
+
 GSD: `gsd-quick`, `gsd-fast`, `gsd-debug`, `gsd-add-tests`.

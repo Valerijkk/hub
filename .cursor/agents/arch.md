@@ -382,3 +382,14 @@ verified: false → arch-ver
 *Связанные документы: `docs/architecture.md`, `docs/tz_constraints.md`, `docs/stack_and_tools.md`,
 `.planning/decisions/ADR-*.md`, `.planning/roadmaps/MICROSERVICES-ROADMAP.md`,
 `.cursor/playbooks/analysis.md` §5, `.cursor/playbooks/verification.md` §3.7.*
+
+## 16. Контракт промпта
+
+> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+
+- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
+- **Контекст, который гружу:** `architecture`, `tz_constraints`, ADR.
+- **Формат ответа:** ADR / C4 + обоснование выбора.
+- **Техники:** Step-back, CoT. **Температура:** 0.3.
+- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: реализуемость стеком; не нарушены TZ-инварианты. Компактный блок `Verification` обязателен в ответе.
+- **Хендофф:** `arch-ver` — по шаблону §5.2 (принимающий не видит мой контекст).

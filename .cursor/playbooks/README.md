@@ -65,10 +65,13 @@
 | `analysis.md` | ba1/ba2, sa1/sa2, arch, ba-ver/sa-ver/arch-ver | US/AC/SMART, FR/NFR/ERD/API, C4/ADR, трассируемость |
 | `verification.md` | все `*-ver`, code-reviewer, security-auditor | Протокол верификации, чек-листы по ролям, severity |
 | `team-workflow.md` | team-lead, tech-lead, product, все | Состав, RACI, потоки фич, волны, параллелизм, handoff, GSD |
+| `prompt-contract.md` | **все 30 агентов** | Приём задачи по шаблону §5.2, формат ответа, техники (CoT/few-shot/step-back/ReAct), температура, 10-этапная верификация, хендофф + матрица по ролям |
 
 ### 2.1 Обратная карта: агент → playbook-и
 
 > §2 отвечает «playbook → кто использует»; здесь обратный индекс «агент → что грузить перед задачей», без пролистывания §2/§3.
+
+> **`prompt-contract.md` — обязателен для всех ролей** (контракт приёма задачи, формата ответа и самопроверки). В таблице ниже не повторяется построчно: считай его нулевой строкой для каждого агента.
 
 | Агент(ы) | Playbooks к загрузке |
 |----------|-----------------------|
@@ -107,6 +110,7 @@
 | — (нет отдельного rule) | `analysis.md` | US/AC/SMART/FR/NFR/ERD/C4/ADR методология — только в playbook |
 | `56-regression-verify.mdc` | `verification.md`, `testing.md` §11.1 | Rule = обязательный цикл кратко; playbook = чек-листы по ролям, severity |
 | `00-project.mdc` | `team-workflow.md` | Rule = стек/статус кратко; playbook = RACI, волны, handoff, шаблон делегирования §5.3.1 |
+| `70-prompt-engineering.mdc` | `prompt-contract.md` | Rule = карта тулкита `prompt-engineering/`; playbook = контракт промпта для агентов Hub (приём/формат/техники/температура/верификация/хендофф + матрица ролей) |
 
 Практический вывод: не хватает контекста из rule — ожидаемо, иди в playbook по этой таблице.
 
@@ -206,6 +210,8 @@
 
 | Ворота | Правило | Ссылка |
 |--------|---------|--------|
+| Приём задачи | Задача без шаблона §5.2 (нет границ/контекста/формата) — вернуть с перечнем недостающего, не додумывать | `prompt-contract.md` §2 |
+| Самопроверка | Перед handoff — 10 этапов + блок `Verification` в ответе | `prompt-contract.md` §6 |
 | Регрессия | После изменения кода/поведения — сразу прогон; без green нет handoff | REGULATION §7 |
 | Docs-sync | После user-visible/prod изменения — обновить docs в той же сессии | `.cursor/rules/55-docs-sync.mdc` |
 | Test-triage | Упал тест → сначала проверить функционал по docs, потом чинить | `.cursor/skills/test-triage/SKILL.md` |

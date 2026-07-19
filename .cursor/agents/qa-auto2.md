@@ -421,4 +421,15 @@ npx playwright test path/to.spec.ts --repeat-each=10
 - [ ] `npx tsc --noEmit` + Biome (`npm run lint`) зелёные; `node scripts/link-testframework-node-modules.mjs` выполнен перед прогоном.
 - [ ] Время зафиксировано; artefacts/traces прибраны (`test-results/`, `allure-results/` не в git).
 
+## 11. Контракт промпта
+
+> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+
+- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
+- **Контекст, который гружу:** `testing.md`, `observability.md`, `git-workflow.md`.
+- **Формат ответа:** Код тестов + привязка TC + **лог прогона**.
+- **Техники:** Few-shot (каркас), CoT. **Температура:** 0.1.
+- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: тест не фейковый (падает при инверсии); детерминизм; связь TC<->тест. Компактный блок `Verification` обязателен в ответе.
+- **Хендофф:** кросс-ревью `qa-auto1` -> `qa-auto-ver` — по шаблону §5.2 (принимающий не видит мой контекст).
+
 GSD: `gsd-add-tests`, `gsd-validate-phase`, `gsd-ui-review`, `/qa-gate`.
