@@ -1,6 +1,6 @@
 ---
-description: Testing patterns for Hub — Go integration tests, Vitest, Playwright.
-globs: backend/**/*_test.go,frontend/**/*.test.*,frontend/**/*.spec.*
+description: Testing patterns for Hub — Go hubtest integration, Vitest, Playwright, testframework pipeline. Auto-attaches for test files and testframework/.
+globs: backend/**/*_test.go,frontend/**/*.test.*,frontend/**/*.spec.*,testframework/**/*
 alwaysApply: false
 ---
 
@@ -226,7 +226,8 @@ Remove-Item -Force tmp_*.py -ErrorAction SilentlyContinue
 - Fail-closed middleware тест (что происходит при отказе внешней зависимости): `backend/testframework/auth/middleware_failclosed_test.go`.
 - Vitest unit-тесты по доменам: `testframework/stages/unit/frontend-test/domains/{auth,admin,ai,v4,...}/`.
 - Playwright E2E-спеки (20 всего, smoke — 3): `testframework/stages/e2e/domains/` — карта стадий CI в `testframework/PIPELINE.md`.
-- Backend unit-тесты по домену (495 тестов, 0 внутри `internal/`): `backend/testframework/{auth,tracker,tms,bases,...}/`.
+- Backend unit-тесты по домену (499 test files, 0 внутри `internal/`,
+  inventory 2026-07-26): `backend/testframework/{auth,tracker,tms,bases,...}/`.
 - Node-линковка testframework перед Vitest/E2E: `node frontend/scripts/link-testframework-node-modules.mjs` — обязательный шаг перед `npx vitest run`/Playwright.
 - Testing Guide (канон стратегии, Allure, замер времени): `testframework/TESTING_GUIDE.md`, `testframework/guides/06-edge-corner-coverage.md`.
 - Coverage-матрица по модулям (факт на 2026-07): `.planning/COVERAGE.md` — auth 82.4%, ws 87.7%, rbac 84.7%, audit 80.5%, calls 80.2%.
