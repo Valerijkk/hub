@@ -243,6 +243,7 @@ func (m *mockRepo) CreateIssueLink(_ context.Context, sourceID, targetID uuid.UU
 		CustomType: customType,
 		CreatedAt:  time.Now(),
 		Edges: ent.IssueLinkEdges{
+			Source: m.issues[sourceID],
 			Target: m.issues[targetID],
 		},
 	}
@@ -258,7 +259,14 @@ func (m *mockRepo) ListIssueLinks(_ context.Context, issueID uuid.UUID) ([]*ent.
 	return result, nil
 }
 
-func (m *mockRepo) DeleteIssueLink(_ context.Context, linkID uuid.UUID) error {
+func (m *mockRepo) DeleteIssueLink(_ context.Context, sourceIssueID, linkID uuid.UUID) error {
+	link, ok := m.issueLinks[linkID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if link.Edges.Source == nil || link.Edges.Source.ID != sourceIssueID {
+		return &ent.NotFoundError{}
+	}
 	delete(m.issueLinks, linkID)
 	return nil
 }

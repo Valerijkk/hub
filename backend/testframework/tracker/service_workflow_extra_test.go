@@ -108,7 +108,7 @@ func TestListIssueLinks_AndDelete(t *testing.T) {
 	require.Len(t, links, 1)
 	assert.Equal(t, "blocks", links[0].LinkType)
 
-	require.NoError(t, svc.DeleteIssueLink(ctx, uuid.MustParse(link.ID)))
+	require.NoError(t, svc.DeleteIssueLink(ctx, projectID, source.IssueKey, uuid.MustParse(link.ID)))
 	links, err = svc.ListIssueLinks(ctx, projectID, source.IssueKey)
 	require.NoError(t, err)
 	assert.Empty(t, links)

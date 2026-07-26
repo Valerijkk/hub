@@ -78,7 +78,20 @@ func (s *TrackerService) ListIssueLinks(ctx context.Context, projectID uuid.UUID
 	return result, nil
 }
 
-// DeleteIssueLink удаляет связь между задачами.
-func (s *TrackerService) DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error {
-	return s.repo.DeleteIssueLink(ctx, linkID)
+// DeleteIssueLink удаляет связь задачи, резолвя source через projectID+issueKey (A3-011-link).
+func (s *TrackerService) DeleteIssueLink(ctx context.Context, projectID uuid.UUID, issueKey string, linkID uuid.UUID) error {
+	source, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("задача не найдена")
+		}
+		return apperrors.NewInternal("ошибка получения задачи")
+	}
+	if err := s.repo.DeleteIssueLink(ctx, source.ID, linkID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("связь не найдена")
+		}
+		return apperrors.NewInternal("ошибка удаления связи")
+	}
+	return nil
 }

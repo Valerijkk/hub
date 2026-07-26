@@ -93,7 +93,19 @@ func (r *EntRepository) ListIssueLinks(ctx context.Context, issueID uuid.UUID) (
 	return all, nil
 }
 
-// DeleteIssueLink удаляет связь между задачами.
-func (r *EntRepository) DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error {
-	return r.client.IssueLink.DeleteOneID(linkID).Exec(ctx)
+// DeleteIssueLink удаляет связь только если она принадлежит sourceIssueID (A3-011-link).
+func (r *EntRepository) DeleteIssueLink(ctx context.Context, sourceIssueID, linkID uuid.UUID) error {
+	affected, err := r.client.IssueLink.Delete().
+		Where(
+			issuelink.IDEQ(linkID),
+			issuelink.HasSourceWith(issue.IDEQ(sourceIssueID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }

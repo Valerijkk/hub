@@ -96,12 +96,20 @@ func (h *Handler) ListIssueLinks(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/links/{linkId} [delete]
 func (h *Handler) DeleteIssueLink(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	issueKey := parseIssueKey(c)
+	if issueKey == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
+	}
 	linkID, err := httputil.ParseUUIDParam(c, "linkId")
 	if err != nil {
 		return err
 	}
 
-	if err := h.service.DeleteIssueLink(c.Context(), linkID); err != nil {
+	if err := h.service.DeleteIssueLink(c.Context(), projectID, issueKey, linkID); err != nil {
 		return err
 	}
 

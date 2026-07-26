@@ -58,7 +58,7 @@ func TestEntRepository_IssueLinks(t *testing.T) {
 	_, err = env.repo.CreateIssueLink(env.ctx, source.ID, target.ID, "blocks", "")
 	require.Error(t, err)
 
-	require.NoError(t, env.repo.DeleteIssueLink(env.ctx, link.ID))
+	require.NoError(t, env.repo.DeleteIssueLink(env.ctx, source.ID, link.ID))
 	links, err = env.repo.ListIssueLinks(env.ctx, source.ID)
 	require.NoError(t, err)
 	assert.Empty(t, links)
