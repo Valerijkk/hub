@@ -48,6 +48,14 @@ inventory_measured_2026_07_27:
     ent_entity_schemas: 82
     zustand_stores: 13
     go_mod: "1.25.0"
+spec_coverage:
+    fr_total: 28
+    fr_with_phase: 9
+    ratio: "9/28"
+    decimal: 0.321
+    percent: 32.1
+    measured: "2026-07-27"
+    source: .planning/planning-audit-2026-07/SPEC-COVERAGE.md
 ---
 
 # Состояние проекта Hub
