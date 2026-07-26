@@ -4,7 +4,7 @@
 **Ветка:** `cursor-grok-4.5`  
 **Источники:** `01`–`19` (волна зон + verification + cross-cutting + red-team)  
 **Режим:** READ-ONLY product code; артефакт — только этот summary  
-**Верификация:** `17-verification.md` применена (CONFIRMED / DOWNGRADED_TO_P2; **FALSE_POSITIVE = 0**)
+**Верификация:** `17-verification.md` применена (CONFIRMED / DOWNGRADED_TO_P2; A12-001 post-hoc → P2 — severity overstatement, не FP по факту симптома)
 
 ---
 
@@ -12,22 +12,23 @@
 
 | Severity | Count (unique) |
 |----------|---------------:|
-| **P0** | **13** |
+| **P0** | **12** |
 | **P1** | **77** |
-| **P2** | **119** |
-| **P3** | **52** |
-| **Всего** | **261** |
+| **P2** | **120** |
+| **P3** | **53** |
+| **Всего** | **262** |
 
 | Метрика | Значение |
 |---------|----------|
 | Raw findings A01–A16 | ~282 строк |
 | Исключено как дубли (A9 rehash + cross-zone aliases) | 21 |
-| DOWNGRADED_TO_P2 (A17) | 8 (A8-001/002, A11-003, A12-004…007, A16-004) |
-| FALSE_POSITIVE | **0** |
+| DOWNGRADED_TO_P2 (A17 + post-hoc) | 9 (A8-001/002, A11-003, A12-001↓, A12-004…007, A16-004) |
+| FALSE_POSITIVE (факт неверен) | **0** |
+| Severity overstatement (симптом реален, blast-radius завышен) | **1** (A12-001) |
 | Composite amplifications (A18, не +к unique root) | 20 |
 | Red-team chains (A19 → existing IDs) | 12 |
 
-**Вердикт волны:** системный **Broken Access Control (OWASP A01)** внутри org + сломанный Ent codegen (тесты/gate не runnable) + несколько мёртвых FE↔BE контрактов. Периметр (SSRF, LiveKit webhook, Magic Link RL, bases owner-scope, WS room authz) держится.
+**Вердикт волны:** системный **Broken Access Control (OWASP A01)** внутри org + несколько мёртвых FE↔BE контрактов. Периметр (SSRF, LiveKit webhook, Magic Link RL, bases owner-scope, WS room authz) держится. `ent.init` panic — **локальный stale generate** (gitignore + CI `go generate`), не prod/CI blocker.
 
 ---
 
@@ -40,7 +41,7 @@
 - Severity после A17: DOWNGRADED отмечены явно.
 - A18 = комбинации (ссылки на root IDs); A19 = attack chains на те же roots.
 
-### 1.1 P0 — уникальные (13) · все CONFIRMED (A17)
+### 1.1 P0 — уникальные (12) · CONFIRMED (A17); A12-001 снят
 
 | Canonical ID | Aliases / amplify | Проблема | Где |
 |--------------|-------------------|----------|-----|
@@ -55,10 +56,9 @@
 | **A6-002** | A18-004 | `MarkInvoicePaid` вне tx → orphan journals / double post | `accounting/service_invoice.go:116-168` |
 | **A11-001** | A18-019 | FE `POST /projects/join` ≠ BE `/invites/join` (onboarding 404) | `frontend/src/api/projects.ts:133-135` |
 | **A11-002** | A18-011 | TMS FormData → `JSON.stringify` → import мёртв | `frontend/src/api/tms.ts:681-691` |
-| **A12-001** | A18-005 | `ent.init` panic (`DefaultAttempts` cast) — hubtest/ent pkgs FAIL | `ent/runtime.go:1735-1737` |
 | **A15-001** | — | Planning P0: STATE 125/125, ROADMAP без 65–125 / Progress→17 | `STATE.md` vs `ROADMAP.md` |
 
-**Downgraded from P0:** A11-003 → **P2** (TelegramButton нигде не смонтирован).
+**Downgraded from P0:** A11-003 → **P2** (мёртвый TelegramButton); **A12-001 → P2** (stale local `ent` generate; CI/fresh clone всегда `go generate` — см. FIX-W0).
 
 ### 1.2 P1 — уникальные (77) · CONFIRMED; агрегаты A9 не считаются отдельно
 
@@ -141,9 +141,9 @@
 
 **Downgraded P1→P2:** A8-001, A8-002 (indexes), A12-004…007 (test gaps/strategy), A16-004 (Fiber beta pin).
 
-### 1.3 P2 — уникальные (119) · выборочный реестр классов + ID
+### 1.3 P2 — уникальные (120) · выборочный реестр классов + ID
 
-| Класс | IDs (неполный перечень всех 119 — см. zone reports) |
+| Класс | IDs (неполный перечень всех 120 — см. zone reports) |
 |-------|-----------------------------------------------------|
 | Auth/RBAC residual | A1-010…A1-013 |
 | Realtime residual | A2-008…A2-012 |
@@ -156,16 +156,18 @@
 | Security unique | A9-014, A9-016, A9-017(=A4-008) |
 | Frontend | A10-005…A10-012, A10-008(=A13-014) |
 | API contract | A11-003↓, A11-008…A11-013 |
-| Tests | A12-004↓…A12-007↓, A12-008…A12-014 |
+| Tests | A12-001↓ (stale local ent), A12-004↓…A12-007↓, A12-008…A12-014 |
 | Perf | A13-007…A13-019 (минус aliases) |
 | Observability | A14-006…A14-015 |
 | REQ drift | A15-005…A15-007 |
 | Hygiene | A16-001…A16-003, A16-004↓, A16-005…A16-012, A16-017 |
 | Cross-cutting P2 | A18-017…A18-020 |
 
-### 1.4 P3 — уникальные (52)
+### 1.4 P3 — уникальные (53)
 
-Остаточные: rune/byte truncate, layering, N+1 cosmetic, public docs, livekit local keys, `:latest` tags, thin assert-free smokes, naming drift, ECC TODO noise — IDs **A1-014, A2-013(=A9-020), A2-014, A3-021…023, A4-019…022, A5-016…018, A6-011…014, A7-013…017, A8-019…021, A9-019(=A11-004 surface), A9-021…023, A10-013/014, A11-014, A12-015/016, A13-020…025, A14-016…019, A15-008, A16-011, A16-013…016, A16-018…020**.
+Остаточные: rune/byte truncate, layering, N+1 cosmetic, public docs, livekit local keys, `:latest` tags, thin assert-free smokes, naming drift, ECC TODO noise — IDs **A1-014, A2-013(=A9-020), A2-014, A3-021…023, A4-019…022, A5-016…018, A6-011…014, A7-013…017, A8-019…021, A9-019(=A11-004 surface), A9-021…023, A10-013/014, A11-014, A12-015/016, A12-017 (нет guard от stale ent), A13-020…025, A14-016…019, A15-008, A16-011, A16-013…016, A16-018…020**.
+
+**A12-017 P3:** после `git pull` со сменой `ent/schema` прямой `go test` может дать непонятную `ent.init` panic; `make generate` / CI генерируют, голый `go test` — нет. Фикс одной строкой: в `backend/Makefile` target `test:` → `generate` как prerequisite (`test: generate`).
 
 ### 1.5 Composite (A18) — не увеличивают unique count
 
@@ -197,12 +199,12 @@ Exploitability score A19: **8.5/10** (insider member).
 | A09 Security cross-cut | `09-security.md` | **5/10** | 0* | 1* | 3* | 4* | *unique only; rest = aliases |
 | A10 Frontend | `10-frontend.md` | **6.5/10** | 0 | 4 | 8 | 2 | WS/reconnect/pagination |
 | A11 API contract | `11-api-contract.md` | **5/10** | 2‡ | 4 | 7‡ | 1 | Join+TMS P0; TG↓P2 |
-| A12 Tests/Coverage | `12-tests.md` | **4/10** | 1 | 2‡ | 11‡ | 2 | ent panic; many↓P2 |
+| A12 Tests/Coverage | `12-tests.md` | **6/10** | 0‡ | 2‡ | 12‡ | 3 | A12-001↓P2 local stale ent; assert-free/FE gaps |
 | A13 Performance | `13-perf.md` | **5/10** | 0 | 6 | 10‡ | 6 | Hot unbounded paths |
 | A14 Observability/Ops | `14-observability.md` | **6/10** | 0 | 5 | 9‡ | 4 | Prod compose holes |
 | A15 Requirements vs code | `15-requirements-vs-code.md` | **7.2/10** | 1 | 3 | 3 | 1 | Planning drift |
 | A16 Hygiene | `16-hygiene.md` | **7/10** | 0 | 0‡ | 12‡ | 8 | Docs/rules drift |
-| A17 Verification | `17-verification.md` | **8/10** | — | — | — | — | 0 FP; 8 downgrades |
+| A17 Verification | `17-verification.md` | **8/10** | — | — | — | — | 0 FP; severity-overstatement A12-001 |
 | A18 Cross-cutting | `18-cross-cutting.md` | **3.5/10** | 5c | 11c | 4c | 0 | c=composite |
 | A19 Red team | `19-red-team.md` | **8.5/10** | 5ch | 7ch | — | — | Exploitability |
 
@@ -221,38 +223,38 @@ Exploitability score A19: **8.5/10** (insider member).
 |---|-----|------:|-------|---------------|
 | 1 | **A11-001** | **90** | 9×10/1 | Onboarding join всегда 404; one-line path fix |
 | 2 | **A11-002** | **45** | 9×10/2 | TMS import из UI полностью мёртв; multipart helper уже есть в tracker |
-| 3 | **A12-001** | **40** | 10×10/2.5 | Блокирует почти все hubtest + risk server init; `go generate` |
-| 4 | **A1-001** | **40** | 10×8/2 | Pending→JWT открывает ВСЕ IDOR (A18-001 / RT-001) |
-| 5 | **A5-001** | **35** | 7×10/2 | CSV import HTTP path мёртв; mappings/`auto-map` |
-| 6 | **A2-001** | **30** | 10×9/3 | Org-wide message exfil любым JWT (RT-002) |
-| 7 | **A5-002** | **32** | 8×8/2 | imex без RBAC — полный export чужого проекта |
-| 8 | **A6-001** | **27** | 9×9/3 | CRM PII mutate + invoice side-effect (RT-003) |
-| 9 | **A1-002+A1-003** | **23** | 10×7/3 | Role IDOR → privilege escalation (RT-004) |
-| 10 | **A3-001** | **21** | 9×7/3 | Кража задач между проектами (RT-005) |
-| 11 | **A3-002** | **19** | 8×7/3 | Issue key IDOR (класс A3-00x / RT-007) |
-| 12 | **A11-006** | **18** | 6×9/3 | Birthday profile 400 — частый user-facing fail |
-| 13 | **A7-001** | **18** | 6×9/2 | Dashboard stats IDOR — разведка (RT-011) |
-| 14 | **A6-002** | **15** | 9×5/3 | Двойные проводки при concurrent pay |
-| 15 | **A1-004** | **15** | 10×3/2 | GDPR delete founder — редкий, но необратим |
+| 3 | **A1-001** | **40** | 10×8/2 | Pending→JWT открывает ВСЕ IDOR (A18-001 / RT-001) |
+| 4 | **A5-001** | **35** | 7×10/2 | CSV import HTTP path мёртв; mappings/`auto-map` |
+| 5 | **A2-001** | **30** | 10×9/3 | Org-wide message exfil любым JWT (RT-002) |
+| 6 | **A5-002** | **32** | 8×8/2 | imex без RBAC — полный export чужого проекта |
+| 7 | **A6-001** | **27** | 9×9/3 | CRM PII mutate + invoice side-effect (RT-003) |
+| 8 | **A1-002+A1-003** | **23** | 10×7/3 | Role IDOR → privilege escalation (RT-004) |
+| 9 | **A3-001** | **21** | 9×7/3 | Кража задач между проектами (RT-005) |
+| 10 | **A3-002** | **19** | 8×7/3 | Issue key IDOR (класс A3-00x / RT-007) |
+| 11 | **A11-006** | **18** | 6×9/3 | Birthday profile 400 — частый user-facing fail |
+| 12 | **A7-001** | **18** | 6×9/2 | Dashboard stats IDOR — разведка (RT-011) |
+| 13 | **A6-002** | **15** | 9×5/3 | Двойные проводки при concurrent pay |
+| 14 | **A1-004** | **15** | 10×3/2 | GDPR delete founder — редкий, но необратим |
+| 15 | **A2-002** | **14** | 7×8/4 | CreateCall без membership (calls authz class) |
 
-**Honorable (чуть ниже порога топ-15):** A2-002…004 (calls), A5-008/009 (webhook any-secret), A14-002 (SeaweedFS secrets), A10-003 (WS reconnect), A8-004 (version mixin), A18-008 (Ack triad).
+**Honorable (чуть ниже порога топ-15):** A2-003…004 (calls), A5-008/009 (webhook any-secret), A14-002 (SeaweedFS secrets), A10-003 (WS reconnect), A8-004 (version mixin), A18-008 (Ack triad). **A12-001** снят с топа (P2 local DX).
 
 ---
 
 ## 4. План работ
 
-### 4.1 Чинить немедленно (blocker / P0 runtime + gate)
+### 4.1 Чинить немедленно (blocker / P0 runtime)
 
-1. **A12-001** — regenerate Ent; зелёный `go test -tags hubtest` smoke.  
-2. **A1-001** — нет сессии при `status ≠ active`; RequireAuth/Refresh fail-closed.  
-3. **A1-002 / A1-003** — scope role ↔ `:projectId`; deny system on update/assign.  
-4. **A2-001** — messenger search user-scope / `IsMember`.  
-5. **A3-001** — sprint ops scoped to `projectID`.  
-6. **A6-001** — `authorizeContact` / `authorizeDeal`.  
-7. **A6-002** — atomic `MarkInvoicePaid` + unique deal invoice.  
-8. **A5-001 + A5-002** — CSV mappings + RBAC на imex.  
-9. **A11-001 / A11-002** — join path + TMS multipart.  
-10. **A1-004** — deny GDPR/ban на founder.
+1. **A1-001** — нет сессии при `status ≠ active`; RequireAuth/Refresh fail-closed.  
+2. **A1-002 / A1-003** — scope role ↔ `:projectId`; deny system on update/assign.  
+3. **A2-001** — messenger search user-scope / `IsMember`.  
+4. **A3-001** — sprint ops scoped to `projectID`.  
+5. **A6-001** — `authorizeContact` / `authorizeDeal`.  
+6. **A6-002** — atomic `MarkInvoicePaid` + unique deal invoice.  
+7. **A5-001 + A5-002** — CSV mappings + RBAC на imex.  
+8. **A11-001 / A11-002** — join path + TMS multipart.  
+9. **A1-004** — deny GDPR/ban на founder.  
+10. **A12-001 / A12-017** (P2/P3 DX) — `make test` → зависит от `generate`; не путать с prod P0.
 
 *Критерий выхода:* RT-001…005 «неудавшиеся»; pending verify → 403; hubtest auth/rbac/messenger/crm/sprint green.
 
@@ -291,7 +293,6 @@ Exploitability score A19: **8.5/10** (insider member).
 
 | Claim / документ | Реальность в коде | ID |
 |------------------|-------------------|-----|
-| COVERAGE / AGENTS: **COV 83%**, gate PASS, security 6/6 | На ветке `ent.init` panic → hubtest с Ent **не runnable**; % **stale** (baseline 2026-06-22) | A12-001, A18-005 |
 | STATE: **125/125 · 100%** как «единый ROADMAP» | Каталоги фаз есть; корневой `ROADMAP.md` обрывается на Phase 17 / checklist без 65–125 и без Phase 39 | A15-001, A15-002 |
 | `PROJECT.md` почти весь `[ ]` | Модули v1–v4 **уже в коде** — ложный backlog gap | A15-003 |
 | REQ **LOGN-05** / ROADMAP Phase 1: Magic Link **+ Telegram login** | TZ + routes: Telegram **не** login; UI login без TG; dead service/API | A15-004, A11-004, A9-019 |
@@ -311,25 +312,26 @@ Exploitability score A19: **8.5/10** (insider member).
 | «API keys работают для CI» | X-API-Key не проходит RequireAuth без JWT | A9-012 |
 | Offline/Ollama AI | SafeDial блокирует loopback | A4-005 |
 
-**Можно относительно доверять (сверка A17/«Чисто» зон):** Magic Link-only routes, JWT HS256+refresh rotation, CORS fail-start, SafeHTTP/SSRF на основных outbound, LiveKit webhook sha256, bases owner-scope, storage path sanitize+CR-04, WS channel/project subscribe authz, Fiber v3 RBAC argument order на tracker/tms, inventory 499 TF / 0 internal tests / Vitest 99/99.
+**Можно относительно доверять (сверка A17/«Чисто» зон):** Magic Link-only routes, JWT HS256+refresh rotation, CORS fail-start, SafeHTTP/SSRF на основных outbound, LiveKit webhook sha256, bases owner-scope, storage path sanitize+CR-04, WS channel/project subscribe authz, Fiber v3 RBAC argument order на tracker/tms, inventory 499 TF / 0 internal tests / Vitest 99/99, **COV 83% / security 6/6 как CI baseline** (CI всегда `go generate ./ent` перед gate — локальный stale ent не опровергает цифры).
 
 ---
 
-## Приложение A — Verification snapshot (A17)
+## Приложение A — Verification snapshot (A17 + post-hoc)
 
 | Verdict | Count |
 |---------|------:|
-| CONFIRMED (same severity) | 101 / 110 P0·P1 rows |
-| DOWNGRADED_TO_P2 | 8 listed (report header said 9; explicit table has 8) |
-| FALSE_POSITIVE | **0** |
+| CONFIRMED (same severity) | 100 / 110 P0·P1 rows (после A12-001↓) |
+| DOWNGRADED_TO_P2 | 10 (A17 list + A12-001 post-hoc) |
+| FALSE_POSITIVE (факт неверен) | **0** |
+| Severity overstatement | **1** (A12-001 — симптом локальный, blast-radius/CI завышены) |
 | UPGRADED / NEEDS_INFO | 0 |
 
-Качество волны 1–2 (A17): **8/10**.
+Качество волны 1–2 (A17): **8/10** (с поправкой: не «0 FP», а «0 FP + 1 severity overstatement»).
 
 ## Приложение B — Рекомендуемый порядок фикс-волн
 
 ```
-W0  A12-001 (ent generate)           → разблокировать тесты
+W0  A12-001 DX (generate / make test) → локальный hygiene, не prod P0
 W1  A1-001 + A1-002/003 + A2-001     → срезать RT-001/002/004
 W2  A3-001 + A6-001/002 + A5-001/002 → срезать RT-003/005/006
 W3  A11-001/002 + IDOR sweep A3/A5   → UX + lateral movement
@@ -337,6 +339,21 @@ W4  Ack triad + founder unify + ops  → надёжность
 W5  FE WS/pagination + docs sync     → hygiene
 ```
 
----
+## Приложение C — Находки с риском «симптом локальный / артефакт не в git»
 
-*Синтез A20 · Grok · 2026-07-26 · product code не изменялся · path: `.planning/audits/grok-2026-07/00-SUMMARY.md`*
+Проверка тем же методом, что A12-001 (доезжает ли дефект до репо/CI/prod):
+
+| ID / класс | Вердикт | Почему |
+|------------|---------|--------|
+| **A12-001** | **DOWNGRADE P0→P2** | `backend/ent/*` gitignored; CI `go generate` ×4; fresh clone OK |
+| **A12-017** (новая P3) | DX only | Нет auto-generate перед голым `go test` |
+| A8-* на `ent/migrate/schema.go` как evidence | **оставить** | Источник правды — tracked `ent/schema/*.go`; migrate лишь локальное подтверждение |
+| A14-002 SeaweedFS `hubsecret` | **оставить P1** | Файл **в git** (`deployments/seaweedfs-s3.json`) |
+| A14-* prod compose / NATS / ports | **оставить** | Tracked compose manifests |
+| A7/dev `DEV_MODE` / `//go:build release` | **оставить как чисто** | Prod strip реален в tracked Dockerfile/`-tags release` |
+| `docker-compose.local.yml` / `.env` | **не в реестре как P0** | Уже gitignored; не путать с prod yaml |
+| COVERAGE 83% «не runnable» (старый A12 claim) | **отозвать** | CI regenerates; локальный stale ≠ gate FAIL |
+| A18-005 (ent panic × claimed coverage) | **ослабить amplify** | Amplify держался на ложном CI-блокере A12-001 |
+| Frontend `routeTree.gen.ts` | **OK / tracked** | Generated, но коммитится; не аналог ent ignore |
+
+*Синтез A20 · Grok · 2026-07-26 · post-hoc A12-001 downgrade 2026-07-26 · path: `.planning/audits/grok-2026-07/00-SUMMARY.md`*

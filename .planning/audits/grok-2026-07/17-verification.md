@@ -105,7 +105,7 @@
 | A11-005 | P1 | CONFIRMED | `api/messenger.ts:44-50` vs handler | `PUT …/notify-mode` не зарегистрирован. |
 | A11-006 | P1 | CONFIRMED | FE date `YYYY-MM-DD` vs BE `*time.Time` | RFC3339 mismatch → 400. |
 | A11-007 | P1 | CONFIRMED | `tms.ts` export + `client.ts:99-103` | `api.get<Blob>` всегда `JSON.parse`. |
-| A12-001 | P0 | CONFIRMED | `ent/runtime.go:1734-1737` + `schema/outboxevent.go:28-34` | После вставки `trace_context` fields[4]=`status` (string); cast to `DefaultAttempts int` → panic на `ent.init`. |
+| A12-001 | P0 | DOWNGRADED_TO_P2 | `ent/runtime.go` (gitignored) + `schema/outboxevent.go:28-34` | Симптом (cast panic) реален на stale local generate, но `backend/ent/*` не в git; CI/`Dockerfile` всегда `go generate` — не prod/CI P0. Post-hoc 2026-07-26 (FIX-W0). |
 | A12-002 | P1 | CONFIRMED | `notification/coverage_wave79_test.go:45-48` | Имя про Ack, assert нет. |
 | A12-003 | P1 | CONFIRMED | `github/service_mock_test.go:310-314` | «PublishesWhen…» без assert. |
 | A12-004 | P1 | DOWNGRADED_TO_P2 | `modules/settings/*` | 0 Vitest — gap покрытия, не runtime defect. |
@@ -136,35 +136,37 @@
 | Метрика | Значение |
 |---------|----------|
 | Всего P0/P1 заявлено | **110** |
-| CONFIRMED (тот же severity) | **101** |
-| DOWNGRADED_TO_P2 | **9** |
+| CONFIRMED (тот же severity) | **100** |
+| DOWNGRADED_TO_P2 | **10** |
 | UPGRADED_TO_P0 | **0** |
-| FALSE_POSITIVE | **0** |
+| FALSE_POSITIVE (факт неверен) | **0** |
+| Severity overstatement (симптом реален, severity/blast-radius завышены) | **1** (A12-001) |
 | NEEDS_INFO | **0** |
 
 ### CONFIRMED P0 (уникальные + дубли A9)
 
-**Уникальные product/runtime P0 (12):**  
-A1-001, A1-002, A1-003, A1-004, A2-001, A3-001, A5-001, A6-001, A6-002, A11-001, A11-002, A12-001  
+**Уникальные product/runtime P0 (11):**  
+A1-001, A1-002, A1-003, A1-004, A2-001, A3-001, A5-001, A6-001, A6-002, A11-001, A11-002  
 
 **Planning P0 (1):** A15-001  
 
 **A9 дубли тех же P0 (6, тоже CONFIRMED):** A9-001…A9-006  
 
-**P0 → DOWNGRADED:** A11-003 (мёртвый TelegramButton)
+**P0 → DOWNGRADED:** A11-003 (мёртвый TelegramButton); **A12-001** (stale local ent / CI regenerates)
 
 ### CONFIRMED P1 (после downgrade)
 
-**CONFIRMED P1 rows:** 101 − 19 P0-confirmed rows (13 unique+planning + 6 A9) = **82** P1-confirmed строк в таблице  
+**CONFIRMED P1 rows:** 100 − 18 P0-confirmed rows (12 unique+planning + 6 A9) = **82** P1-confirmed строк в таблице  
 (часть — дубли A9; уникальных P1 дефектов ≈ **70+**)
 
-### DOWNGRADED_TO_P2 list (9)
+### DOWNGRADED_TO_P2 list (10)
 
 | ID | Было | Почему downgrade |
 |----|------|------------------|
 | A8-001 | P1 | Missing FK index — perf, не логический баг |
 | A8-002 | P1 | То же |
 | A11-003 | P0 | Компонент не смонтирован нигде |
+| **A12-001** | **P0** | Generated `ent` gitignored; CI всегда `go generate` — локальный DX, не CI/prod blocker |
 | A12-004 | P1 | Test coverage gap |
 | A12-005 | P1 | Test coverage gap |
 | A12-006 | P1 | Test coverage gap |
@@ -173,14 +175,20 @@ A1-001, A1-002, A1-003, A1-004, A2-001, A3-001, A5-001, A6-001, A6-002, A11-001,
 
 ### FALSE_POSITIVE list
 
-*(пусто)*
+*(пусто по критерию «факт в коде неверен»)*
+
+### Severity overstatement list
+
+| ID | Было | Стало | Пояснение |
+|----|------|-------|-----------|
+| A12-001 | P0 | P2 | Симптом воспроизводим локально на stale tree; до репо/CI/prod не доезжает |
 
 ### Замечания по качеству отчётов
 
-- **Сильные стороны:** точные `file:line`, воспроизводимые security/IDOR claims (auth pending, RBAC roles, messenger search, CRM, sprint, FE/BE path mismatch, ent.runtime panic).
-- **Слабые:** A09 почти полный rehash волны 1 без новой глубины; завышение severity на test-gaps (A12-004…007) и индексы (A8-001/002); A11-003 как P0 без проверки mount.
-- **Критичный блокер регрессии:** A12-001 (`ent.init` panic) — ломает любой `go test`/сервер, импортирующий `ent`.
+- **Сильные стороны:** точные `file:line`, воспроизводимые security/IDOR claims (auth pending, RBAC roles, messenger search, CRM, sprint, FE/BE path mismatch).
+- **Слабые:** A09 почти полный rehash волны 1; завышение severity на test-gaps (A12-004…007), индексы (A8-001/002), A11-003 как P0 без mount-check; **A12-001 как P0 без проверки gitignore/CI generate**.
+- **Не блокер CI:** A12-001 — локальный stale generate (см. FIX-W0).
 
 ## Оценка качества волны 1–2: **8/10**
 
-Высокая точность находок (0 FP при 110), хорошая привязка к коду и TZ; минус за дубли A9, inflated P1 на coverage/hygiene и один ложный P0 (мёртвый Telegram UI).
+Высокая точность находок (0 FP по факту; 1 severity overstatement), хорошая привязка к коду и TZ; минус за дубли A9, inflated P1 на coverage/hygiene и два ложных P0-калибра (мёртвый Telegram UI + stale ent как «gate down»).
