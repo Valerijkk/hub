@@ -101,8 +101,8 @@ type TestRunRepository interface {
 type TestResultRepository interface {
 	// CreateTestResult создаёт результат выполнения теста.
 	CreateTestResult(ctx context.Context, runID uuid.UUID, input CreateTestResultInput) (*ent.TestResult, error)
-	// UpdateTestResult обновляет результат теста.
-	UpdateTestResult(ctx context.Context, id uuid.UUID, input UpdateTestResultInput) (*ent.TestResult, error)
+	// UpdateTestResult обновляет результат теста только внутри runID (A3-008).
+	UpdateTestResult(ctx context.Context, runID, id uuid.UUID, input UpdateTestResultInput) (*ent.TestResult, error)
 	// ListTestResults возвращает все результаты прогона.
 	ListTestResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error)
 	// BatchCreateTestResults массово создаёт результаты (для импорта Allure).

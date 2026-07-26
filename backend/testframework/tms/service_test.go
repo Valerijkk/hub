@@ -319,7 +319,7 @@ func (m *mockRepository) DeleteComponent(_ context.Context, id uuid.UUID) error 
 	return nil
 }
 
-func (m *mockRepository) CreateTestRun(_ context.Context, _ uuid.UUID, input tms.CreateTestRunInput) (*ent.TestRun, error) {
+func (m *mockRepository) CreateTestRun(_ context.Context, projectID uuid.UUID, input tms.CreateTestRunInput) (*ent.TestRun, error) {
 	id := uuid.New()
 	runType := testrun.RunType(orDefault(input.RunType, "manual"))
 	run := &ent.TestRun{
@@ -329,6 +329,9 @@ func (m *mockRepository) CreateTestRun(_ context.Context, _ uuid.UUID, input tms
 		Status:    testrun.StatusCreated,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
+		Edges: ent.TestRunEdges{
+			Project: &ent.Project{ID: projectID},
+		},
 	}
 	m.runs[id] = run
 	return run, nil
@@ -389,10 +392,25 @@ func (m *mockRepository) CreateTestResult(_ context.Context, _ uuid.UUID, input 
 	return r, nil
 }
 
-func (m *mockRepository) UpdateTestResult(_ context.Context, id uuid.UUID, input tms.UpdateTestResultInput) (*ent.TestResult, error) {
+func (m *mockRepository) UpdateTestResult(_ context.Context, runID, id uuid.UUID, input tms.UpdateTestResultInput) (*ent.TestResult, error) {
 	r, ok := m.results[id]
 	if !ok {
 		return nil, &ent.NotFoundError{}
+	}
+	if r.Edges.Run != nil && r.Edges.Run.ID != runID {
+		return nil, &ent.NotFoundError{}
+	}
+	if ids, ok := m.runResults[runID]; ok {
+		found := false
+		for _, rid := range ids {
+			if rid == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, &ent.NotFoundError{}
+		}
 	}
 	if input.Status != nil {
 		r.Status = testresult.Status(*input.Status)
@@ -930,13 +948,22 @@ func TestCreateBugFromFailedResult(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	tc, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	tc, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title: "Кейс с провалом",
 	})
 	require.NoError(t, err)
 	tcID, _ := uuid.Parse(tc.ID)
+
+	runID := uuid.New()
+	repo.runs[runID] = &ent.TestRun{
+		ID: runID,
+		Edges: ent.TestRunEdges{
+			Project: &ent.Project{ID: projectID},
+		},
+	}
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
 	resultID := uuid.New()
@@ -947,11 +974,12 @@ func TestCreateBugFromFailedResult(t *testing.T) {
 		CreatedAt:    time.Now(),
 		Edges: ent.TestResultEdges{
 			TestCase: repo.testCases[tcID],
+			Run:      repo.runs[runID],
 		},
 	}
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	bug, err := svc.CreateBugFromFailedResult(ctx, uuid.New(), uuid.New(), resultID, tms.CreateBugRequest{})
+	bug, err := svc.CreateBugFromFailedResult(ctx, projectID, uuid.New(), resultID, tms.CreateBugRequest{})
 	require.NoError(t, err)
 	assert.NotEmpty(t, bug.ID)
 	assert.Contains(t, bug.Title, "FAILED:")

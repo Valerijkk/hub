@@ -140,9 +140,14 @@ func TestImportFromXML(t *testing.T) {
 func TestUpdateTestResult_Success(t *testing.T) {
 	ctx := context.Background()
 	resultID := uuid.New()
+	runID := uuid.New()
 	repo := newMockRepo()
 	status := "failed"
-	repo.results[resultID] = &ent.TestResult{ID: resultID, Status: testresult.StatusUnknown}
+	repo.results[resultID] = &ent.TestResult{
+		ID:     resultID,
+		Status: testresult.StatusUnknown,
+		Edges:  ent.TestResultEdges{Run: &ent.TestRun{ID: runID}},
+	}
 	svc := tms.NewTMSService(repo, nil)
 	comment := "failed on step 2"
 

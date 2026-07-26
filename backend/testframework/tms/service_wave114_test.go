@@ -82,6 +82,6 @@ type notFoundResultUpdateRepo struct {
 	*mockRepository
 }
 
-func (r *notFoundResultUpdateRepo) UpdateTestResult(_ context.Context, _ uuid.UUID, _ tms.UpdateTestResultInput) (*ent.TestResult, error) {
+func (r *notFoundResultUpdateRepo) UpdateTestResult(_ context.Context, _, _ uuid.UUID, _ tms.UpdateTestResultInput) (*ent.TestResult, error) {
 	return nil, &ent.NotFoundError{}
 }

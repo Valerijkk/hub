@@ -78,14 +78,24 @@ func TestHandler_CreateBugFromResult(t *testing.T) {
 	repo.testCases[tcID] = &ent.TestCase{
 		ID: tcID, CaseKey: "HUB-TC-1", Title: "Failed case",
 	}
+	runID := uuid.New()
+	repo.runs[runID] = &ent.TestRun{
+		ID: runID,
+		Edges: ent.TestRunEdges{
+			Project: &ent.Project{ID: projectID},
+		},
+	}
 	resultID := uuid.New()
 	repo.results[resultID] = &ent.TestResult{
 		ID: resultID, Status: testresult.StatusFailed, ErrorMessage: "boom",
-		Edges: ent.TestResultEdges{TestCase: repo.testCases[tcID]},
+		Edges: ent.TestResultEdges{
+			TestCase: repo.testCases[tcID],
+			Run:      repo.runs[runID],
+		},
 	}
 
 	body := `{"title":"Custom bug title"}`
-	path := "/api/projects/" + projectID.String() + "/tms/runs/" + uuid.New().String() + "/results/" + resultID.String() + "/bug"
+	path := "/api/projects/" + projectID.String() + "/tms/runs/" + runID.String() + "/results/" + resultID.String() + "/bug"
 	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)

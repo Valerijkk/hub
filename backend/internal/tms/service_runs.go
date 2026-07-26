@@ -153,8 +153,19 @@ func (s *TMSService) CreateTestResult(ctx context.Context, runID uuid.UUID, req 
 	return toTestResultResponse(result), nil
 }
 
-// UpdateTestResult обновляет результат теста.
+// UpdateTestResult обновляет результат теста (требует принадлежности к run через Get).
 func (s *TMSService) UpdateTestResult(ctx context.Context, resultID uuid.UUID, req UpdateTestResultRequest) (*TestResultResponse, error) {
+	existing, err := s.repo.GetTestResult(ctx, resultID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("результат не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения результата")
+	}
+	if existing.Edges.Run == nil {
+		return nil, apperrors.NewNotFound("результат не найден")
+	}
+
 	input := UpdateTestResultInput{
 		Status:      req.Status,
 		Comment:     req.Comment,
@@ -162,7 +173,7 @@ func (s *TMSService) UpdateTestResult(ctx context.Context, resultID uuid.UUID, r
 		IsFlaky:     req.IsFlaky,
 	}
 
-	result, err := s.repo.UpdateTestResult(ctx, resultID, input)
+	result, err := s.repo.UpdateTestResult(ctx, existing.Edges.Run.ID, resultID, input)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("результат не найден")
@@ -232,7 +243,7 @@ func (s *TMSService) ExecuteTestResult(ctx context.Context, runID, resultID, use
 		IsFlaky:     req.IsFlaky,
 	}
 
-	result, err := s.repo.UpdateTestResult(ctx, resultID, input)
+	result, err := s.repo.UpdateTestResult(ctx, runID, resultID, input)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("результат не найден")

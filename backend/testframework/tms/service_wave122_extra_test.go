@@ -181,9 +181,18 @@ func TestService_Wave122_CreateBugFromFailedResult_NoTestCase(t *testing.T) {
 	projectID := uuid.New()
 	userID := uuid.New()
 
+	runID := uuid.New()
+	repo.runs[runID] = &ent.TestRun{
+		ID: runID,
+		Edges: ent.TestRunEdges{
+			Project: &ent.Project{ID: projectID},
+		},
+	}
+
 	resultID := uuid.New()
 	repo.results[resultID] = &ent.TestResult{
 		ID: resultID, Status: testresult.StatusFailed, ErrorMessage: "assertion failed", CreatedAt: time.Now(),
+		Edges: ent.TestResultEdges{Run: repo.runs[runID]},
 	}
 
 	bug, err := svc.CreateBugFromFailedResult(ctx, projectID, userID, resultID, tms.CreateBugRequest{})

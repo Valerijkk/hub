@@ -363,7 +363,7 @@ func (m *mockMatcherRepo) UpdateTestRunStats(_ context.Context, _ uuid.UUID, _ t
 func (m *mockMatcherRepo) CreateTestResult(_ context.Context, _ uuid.UUID, _ tms.CreateTestResultInput) (*ent.TestResult, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) UpdateTestResult(_ context.Context, _ uuid.UUID, _ tms.UpdateTestResultInput) (*ent.TestResult, error) {
+func (m *mockMatcherRepo) UpdateTestResult(_ context.Context, _, _ uuid.UUID, _ tms.UpdateTestResultInput) (*ent.TestResult, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) ListTestResults(_ context.Context, _ uuid.UUID) ([]*ent.TestResult, error) {

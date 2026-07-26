@@ -512,6 +512,7 @@ func (r *EntRepository) GetTestRun(ctx context.Context, id uuid.UUID) (*ent.Test
 	return r.client.TestRun.Query().
 		Where(testrun.ID(id)).
 		WithCreatedBy().
+		WithProject().
 		Only(ctx)
 }
 
@@ -647,9 +648,13 @@ func (r *EntRepository) CreateTestResult(ctx context.Context, runID uuid.UUID, i
 	return create.Save(ctx)
 }
 
-// UpdateTestResult обновляет результат теста.
-func (r *EntRepository) UpdateTestResult(ctx context.Context, id uuid.UUID, input UpdateTestResultInput) (*ent.TestResult, error) {
-	update := r.client.TestResult.UpdateOneID(id)
+// UpdateTestResult обновляет результат теста только если он принадлежит runID (A3-008).
+func (r *EntRepository) UpdateTestResult(ctx context.Context, runID, id uuid.UUID, input UpdateTestResultInput) (*ent.TestResult, error) {
+	update := r.client.TestResult.Update().
+		Where(
+			testresult.IDEQ(id),
+			testresult.HasRunWith(testrun.ID(runID)),
+		)
 
 	if input.Status != nil {
 		update = update.SetStatus(testresult.Status(*input.Status))
@@ -664,12 +669,15 @@ func (r *EntRepository) UpdateTestResult(ctx context.Context, id uuid.UUID, inpu
 		update = update.SetIsFlaky(*input.IsFlaky)
 	}
 
-	result, err := update.Save(ctx)
+	affected, err := update.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("обновление результата: %w", err)
 	}
+	if affected == 0 {
+		return nil, &ent.NotFoundError{}
+	}
 
-	return result, nil
+	return r.client.TestResult.Get(ctx, id)
 }
 
 // ListTestResults возвращает все результаты прогона.
@@ -891,6 +899,7 @@ func (r *EntRepository) GetTestResult(ctx context.Context, resultID uuid.UUID) (
 	return r.client.TestResult.Query().
 		Where(testresult.ID(resultID)).
 		WithTestCase().
+		WithRun().
 		WithExecutedBy().
 		WithFiles().
 		Only(ctx)

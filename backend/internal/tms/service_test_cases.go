@@ -216,7 +216,6 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, projectID uuid.UUID, 
 		}
 		return nil, apperrors.NewInternal("ошибка получения версии")
 	}
-
 	if version.Edges.TestCase == nil || version.Edges.TestCase.ID != existing.ID {
 		return nil, apperrors.NewNotFound("версия не найдена")
 	}
@@ -321,13 +320,26 @@ func (s *TMSService) GetTestCaseLinks(ctx context.Context, projectID uuid.UUID, 
 
 // CreateBugFromFailedResult создаёт баг из упавшего результата теста.
 func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, userID uuid.UUID, resultID uuid.UUID, req CreateBugRequest) (*IssueBriefResponse, error) {
-	// Получаем результат с привязанным тест-кейсом
+	// Получаем результат с привязанным тест-кейсом и прогоном (A3-008).
 	result, err := s.repo.GetTestResult(ctx, resultID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("результат не найден")
 		}
 		return nil, apperrors.NewInternal("ошибка получения результата")
+	}
+	if result.Edges.Run == nil {
+		return nil, apperrors.NewNotFound("результат не найден")
+	}
+	run, err := s.repo.GetTestRun(ctx, result.Edges.Run.ID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("результат не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона")
+	}
+	if run.Edges.Project == nil || run.Edges.Project.ID != projectID {
+		return nil, apperrors.NewNotFound("результат не найден")
 	}
 
 	// Определяем тест-кейс для заголовка бага

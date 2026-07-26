@@ -54,7 +54,7 @@ func TestEntRepository_TestResultsCRUD(t *testing.T) {
 	require.NoError(t, err)
 
 	passed := "passed"
-	updated, err := repo.UpdateTestResult(ctx, created.ID, tms.UpdateTestResultInput{
+	updated, err := repo.UpdateTestResult(ctx, run.ID, created.ID, tms.UpdateTestResultInput{
 		Status: &passed, Comment: strPtr("fixed"),
 	})
 	require.NoError(t, err)
