@@ -169,6 +169,25 @@ func (r *EntRepository) FindIssueByID(ctx context.Context, id uuid.UUID) (*ent.I
 		Only(ctx)
 }
 
+// FindIssueInProject возвращает задачу по UUID только внутри projectID (A3-011-target IDOR guard).
+// Исключает мягко удалённые задачи. Mutation: снять HasProjectWith → foreign issue находится.
+func (r *EntRepository) FindIssueInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.Issue, error) {
+	return r.client.Issue.Query().
+		Where(
+			issue.IDEQ(id),
+			issue.DeletedAtIsNil(),
+			issue.HasProjectWith(project.IDEQ(projectID)),
+		).
+		WithAssignee().
+		WithReporter().
+		WithStatus().
+		WithLabels().
+		WithParent().
+		WithChildren().
+		WithProject().
+		Only(ctx)
+}
+
 // ListIssues возвращает пагинированный список задач проекта с фильтрами.
 // Использует курсорную пагинацию по issue_key.
 func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, params ListIssuesParams) ([]*ent.Issue, int, error) {

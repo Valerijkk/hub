@@ -148,6 +148,17 @@ func (m *mockRepo) FindIssueByID(_ context.Context, id uuid.UUID) (*ent.Issue, e
 	return i, nil
 }
 
+func (m *mockRepo) FindIssueInProject(_ context.Context, projectID uuid.UUID, id uuid.UUID) (*ent.Issue, error) {
+	i, ok := m.issues[id]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if i.Edges.Project == nil || i.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return i, nil
+}
+
 func (m *mockRepo) ListIssues(_ context.Context, _ uuid.UUID, params tracker.ListIssuesParams) ([]*ent.Issue, int, error) {
 	var result []*ent.Issue
 	for _, i := range m.issues {

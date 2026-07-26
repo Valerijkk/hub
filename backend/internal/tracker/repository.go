@@ -20,6 +20,8 @@ type IssueRepository interface {
 	FindIssueByKey(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error)
 	// FindIssueByID возвращает задачу по UUID.
 	FindIssueByID(ctx context.Context, id uuid.UUID) (*ent.Issue, error)
+	// FindIssueInProject возвращает задачу по UUID только внутри projectID (A3-011-target).
+	FindIssueInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.Issue, error)
 	// ListIssues возвращает пагинированный список задач проекта с общим количеством.
 	ListIssues(ctx context.Context, projectID uuid.UUID, params ListIssuesParams) ([]*ent.Issue, int, error)
 	// UpdateIssue применяет частичное обновление задачи.

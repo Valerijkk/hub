@@ -66,6 +66,15 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (be2 · A3-011-target CreateIssueLink)
+
+- `FindIssueInProject` (Ent: `IDEQ` + `HasProjectWith` + `DeletedAtIsNil`) +
+  `CreateIssueLink` отклоняет target чужого проекта через NotFound
+  («целевая задача не найдена»), без утечки существования.
+- Тесты: `link_target_scope_a3011_test.go` (Ent + service); mutation:
+  снять `HasProjectWith` → Ent FAIL. Tracker regression green (~18.5s).
+- DeleteIssueLink не трогали (уже scoped).
+
 ## Session note — 2026-07-26 (PE · инструкции только на русском)
 
 - Политика: человекочитаемые инструкции `prompt-engineering/` — **только RU**

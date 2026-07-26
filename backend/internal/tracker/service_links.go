@@ -28,6 +28,15 @@ func (s *TrackerService) CreateIssueLink(ctx context.Context, projectID uuid.UUI
 		return nil, apperrors.NewBadRequest("некорректный target_issue_id")
 	}
 
+	// A3-011-target: цель только в том же проекте; NotFound не раскрывает существование.
+	target, err := s.repo.FindIssueInProject(ctx, projectID, targetID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("целевая задача не найдена")
+		}
+		return nil, apperrors.NewInternal("ошибка получения целевой задачи")
+	}
+
 	link, err := s.repo.CreateIssueLink(ctx, source.ID, targetID, req.LinkType, req.CustomType)
 	if err != nil {
 		return nil, err
@@ -41,11 +50,6 @@ func (s *TrackerService) CreateIssueLink(ctx context.Context, projectID uuid.UUI
 		slog.Error("не удалось записать активность", "error", err)
 	}
 
-	// Подгружаем target для ответа
-	target, err := s.repo.FindIssueByID(ctx, targetID)
-	if err != nil {
-		slog.Error("не удалось подгрузить target для ответа", "error", err)
-	}
 	return toIssueLinkResponse(link, target), nil
 }
 
