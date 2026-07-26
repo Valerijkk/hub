@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -283,13 +284,26 @@ func (s *ImExService) ExportProjectZIP(ctx context.Context, projectID uuid.UUID)
 // --- Вспомогательные функции ---
 
 // buildFieldMap создаёт маппинг индексов колонок CSV к целевым полям.
+// При пустых/nil mappings — авто-маппинг: имя колонки (без учёта регистра)
+// совпадает с целевым полем (title/type/priority).
 func buildFieldMap(mappings []FieldMapping, headers []string) map[string]int {
-	headerIdx := make(map[string]int)
+	headerIdx := make(map[string]int, len(headers))
 	for i, h := range headers {
 		headerIdx[h] = i
 	}
 
 	fieldMap := make(map[string]int)
+	if len(mappings) == 0 {
+		known := map[string]struct{}{"title": {}, "type": {}, "priority": {}}
+		for i, h := range headers {
+			key := strings.ToLower(strings.TrimSpace(h))
+			if _, ok := known[key]; ok {
+				fieldMap[key] = i
+			}
+		}
+		return fieldMap
+	}
+
 	for _, m := range mappings {
 		if idx, ok := headerIdx[m.SourceColumn]; ok {
 			fieldMap[m.TargetField] = idx
