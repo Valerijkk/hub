@@ -3,9 +3,9 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Агент:** `qa-auto-ver` (Grok 4.5) · **Дата:** 2026-07-23 01:19 UTC+3  
-> **Scope:** `.planning/COVERAGE.md`, CI `coverage-gate`, security **6×80%**, inventory/docs drift, детерминизм (sleep/timeout), TC↔автотест.  
-> **Код не менялся.** Живой `go test -cover` / полный `/qa-gate` в этом слоте **не гонялись** (scan-only).  
+> **Агент:** `qa-auto-ver` (Grok 4.5) · **Дата:** 2026-07-23 01:19 UTC+3
+> **Scope:** `.planning/COVERAGE.md`, CI `coverage-gate`, security **6×80%**, inventory/docs drift, детерминизм (sleep/timeout), TC↔автотест.
+> **Код не менялся.** Живой `go test -cover` / полный `/qa-gate` в этом слоте **не гонялись** (scan-only).
 > **Примечание:** восстановлено оркестратором — субагент был в Ask mode.
 
 ## Вердикт (кратко)
@@ -23,7 +23,7 @@
 | TC↔автотест (рубрика 2.4) | PARTIAL | Часть AUTH — без точного имени функции |
 | Coverage ≠ authz quality | **GAP** | W2 CRITICAL IDOR при COV tms/project ≥82% |
 
-**verified: false** — 2026-07-23 01:19 UTC+3  
+**verified: false** — 2026-07-23 01:19 UTC+3
 Блокеры: нет CI-энфорса 6×80%; inventory/docs drift; flaky-паттерн E2E; нет свежего cover-лога.
 
 ---
@@ -45,21 +45,21 @@
 
 ## coverage-gate
 
-**Манифест:** `testframework/pipeline/jobs/coverage-gate.yaml`  
-- `when: github.event_name != pull_request` (только master / non-PR)  
-- `threshold_percent: 82`  
+**Манифест:** `testframework/pipeline/jobs/coverage-gate.yaml`
+- `when: github.event_name != pull_request` (только master / non-PR)
+- `threshold_percent: 82`
 - `go test -tags hubtest -coverprofile=/tmp/cov -coverpkg=./internal/... ./testframework/...`
 
-**CI:** `.github/workflows/ci.yml` job `coverage-gate`  
-- Порог: `awk … >= 82.0`  
-- **Нет** `-race` в этом job (race — в `backend-test`)  
+**CI:** `.github/workflows/ci.yml` job `coverage-gate`
+- Порог: `awk … >= 82.0`
+- **Нет** `-race` в этом job (race — в `backend-test`)
 - **Нет** проверки пакетов auth/ws/rbac/audit/middleware/calls ≥80%
 
 **README:** `testframework/stages/quality/coverage-gate/README.md` — совпадает с манифестом (≥82%, master-only).
 
 ### Security 6×80%
 
-Документировано как MANDATORY в `COVERAGE.md` / `AGENTS.md` / `docs/TESTING.md`, но **ни один CI step не валит билд** при падении security-пакета ниже 80%, пока overall ≥82%.  
+Документировано как MANDATORY в `COVERAGE.md` / `AGENTS.md` / `docs/TESTING.md`, но **ни один CI step не валит билд** при падении security-пакета ниже 80%, пока overall ≥82%.
 Риск: регрессия `audit`/`calls` (у порога 80.2–80.5%) незаметна на PR и даже на master coverage-gate.
 
 ---
@@ -133,5 +133,5 @@ rg "waitForTimeout" testframework/stages/e2e
 - **qa-auto1:** IDOR denial suites (после fix be*) — см. W2.
 - **code-reviewer:** не требуется на этот docs-only scan.
 
-**Регрессия:** не запускалась (scan-only).  
+**Регрессия:** не запускалась (scan-only).
 **Вердикт:** `verified: false` — 2026-07-23 01:19 UTC+3
