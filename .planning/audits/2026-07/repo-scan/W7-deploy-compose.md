@@ -3,9 +3,9 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-**Роль:** devops-engineer (Grok 4.5)  
-**Scope:** `deployments/` — `docker-compose*.yml`, Caddy, K3s, SeaweedFS pin, LiveKit secrets  
-**Режим:** **readonly** — код и конфиги **не менялись**  
+**Роль:** devops-engineer (Grok 4.5)
+**Scope:** `deployments/` — `docker-compose*.yml`, Caddy, K3s, SeaweedFS pin, LiveKit secrets
+**Режим:** **readonly** — код и конфиги **не менялись**
 **Дата:** 2026-07-23 01:08 UTC+3
 
 ## Verdict
@@ -156,8 +156,8 @@ Monitoring overlay: prometheus v3.2.1, alertmanager v0.28.1, loki/promtail 3.4.2
 
 ## Handoff
 
-→ `team-lead` / волна 7 (CI · docs-drift · TZ-grep)  
-→ при фиксе H-01/H-02/H-03: `security-auditor` + `code-reviewer`  
+→ `team-lead` / волна 7 (CI · docs-drift · TZ-grep)
+→ при фиксе H-01/H-02/H-03: `security-auditor` + `code-reviewer`
 → FA-06: если `hubsecret` когда-либо был в prod — ротация S3 keys в логе PG-03
 
 **Код не менялся.** Отчёт: `.planning/audits/2026-07/repo-scan/W7-deploy-compose.md`
