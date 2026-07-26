@@ -14,15 +14,17 @@ scenario: плановая охота на flaky-тесты по истории 
 - История падений: {{ссылки на красные джобы CI / список тестов из quarantine /
   «собери сам: прогони сьют {{X}} раз параллельно»}}
 - Scope: {{домен/сьют | весь фреймворк}}
-- Известные болевые точки: context/TESTFRAMEWORK-MAP.md §7 — сверься и дополни.
+- Известные болевые точки: `context/projects/<profile>/TEST-ARCHITECTURE.md`
+  § Risks and known unknowns — сверься и дополни через profile refresh.
 
 ## Бюджет
 - Починить: top-{{N}} по частоте × ущербу (блокирует ли CI).
-- Остальные: классифицировать и записать в TESTFRAMEWORK-MAP §7 с классом причины.
+- Остальные: классифицировать и записать в active profile
+  `TEST-ARCHITECTURE.md` с классом причины.
 
 ## Ожидаемый выход
 1. Таблица: тест | частота | класс причины (sleep/shared-data/order/time/race/network) | статус.
 2. Для починенных — Debug Report §5 каждому.
-3. Обновлённая секция TESTFRAMEWORK-MAP §7.
+3. Обновлённая секция active profile `TEST-ARCHITECTURE.md`.
 Помни запрет §4.3: retry/таймауты/skip — не фиксы.
 ```
