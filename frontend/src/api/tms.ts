@@ -1,4 +1,5 @@
 import { buildQueryString } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
 import { api } from "./client";
 import type { PaginatedResponse } from "./types";
 
@@ -678,7 +679,7 @@ export function getRunComparison(
 // ---------------------------------------------------------------------------
 
 /** Импортировать тест-кейсы из файла (multipart). */
-export function importTestCases(
+export async function importTestCases(
 	projectId: string,
 	file: File,
 	format?: string,
@@ -688,7 +689,30 @@ export function importTestCases(
 	formData.append("file", file);
 	if (format) formData.append("format", format);
 	if (mapping) formData.append("mapping", JSON.stringify(mapping));
-	return api.post<ImportResult>(`/projects/${projectId}/tms/import`, formData);
+
+	// Не через api.post: client.ts делает JSON.stringify(FormData) + application/json.
+	const headers: Record<string, string> = {};
+	const token = useAuthStore.getState().accessToken;
+	if (token) {
+		headers.Authorization = `Bearer ${token}`;
+	}
+	const response = await fetch(`/api/projects/${projectId}/tms/import`, {
+		method: "POST",
+		headers,
+		body: formData,
+	});
+	if (!response.ok) {
+		let message = response.statusText;
+		try {
+			const err = (await response.json()) as { message?: string; error?: string };
+			message = err.message || err.error || message;
+		} catch {
+			/* ignore */
+		}
+		throw { code: response.status, message };
+	}
+	if (response.status === 204) return undefined as unknown as ImportResult;
+	return (await response.json()) as ImportResult;
 }
 
 /** Экспортировать тест-кейсы (возвращает blob URL). */
