@@ -20,6 +20,7 @@ import (
 	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/testresult"
 	"github.com/valerii/hub/backend/ent/testrun"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // ---------------------------------------------------------------------------
@@ -189,6 +190,9 @@ func (m *mockRepository) UpdateTestCase(_ context.Context, id uuid.UUID, input t
 	tc, ok := m.testCases[id]
 	if !ok {
 		return nil, &ent.NotFoundError{}
+	}
+	if tc.Version != input.Version {
+		return nil, apperrors.NewConflict("version mismatch: тест-кейс был изменён другим пользователем")
 	}
 	if input.Title != nil {
 		tc.Title = *input.Title

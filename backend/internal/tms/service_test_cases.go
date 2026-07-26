@@ -2,6 +2,7 @@ package tms
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -176,6 +177,10 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, projectID uuid.UUID, ca
 
 	updated, err := s.repo.UpdateTestCase(ctx, existing.ID, input)
 	if err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return nil, err
+		}
 		return nil, apperrors.NewInternal("ошибка обновления тест-кейса")
 	}
 
@@ -219,8 +224,9 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, projectID uuid.UUID, 
 		return nil, apperrors.NewInternal("ошибка создания снимка перед откатом")
 	}
 
-	// Применяем снимок как обновление
+	// Применяем снимок как обновление (optimistic lock на текущей version)
 	input := snapshotToUpdateInput(version.Snapshot)
+	input.Version = existing.Version
 	updated, err := s.repo.UpdateTestCase(ctx, existing.ID, input)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка применения отката")

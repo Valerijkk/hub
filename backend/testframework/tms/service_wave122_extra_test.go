@@ -56,7 +56,8 @@ func TestService_Wave122_UpdateTestCase_InvalidSuiteID(t *testing.T) {
 	require.NoError(t, err)
 
 	badSuite := "not-a-uuid"
-	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &badSuite})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &badSuite,
+		Version: 1,})
 	require.Error(t, err)
 }
 
@@ -77,11 +78,11 @@ func TestService_Wave122_UpdateTestCase_ClearSuite(t *testing.T) {
 	require.NoError(t, err)
 
 	suiteStr := suiteID.String()
-	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &suiteStr})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &suiteStr, Version: 1})
 	require.NoError(t, err)
 
 	empty := ""
-	updated, err := svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &empty})
+	updated, err := svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &empty, Version: 2})
 	require.NoError(t, err)
 	assert.NotNil(t, updated)
 }
@@ -249,7 +250,8 @@ func TestService_Wave122_UpdateTestCase_InvalidLabels(t *testing.T) {
 	require.NoError(t, err)
 
 	bad := []string{"not-uuid"}
-	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Labels: &bad})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Labels: &bad,
+		Version: 1,})
 	require.Error(t, err)
 }
 

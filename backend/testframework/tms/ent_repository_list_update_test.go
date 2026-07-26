@@ -95,6 +95,7 @@ func TestEntRepository_UpdateTestCase_AllFields(t *testing.T) {
 		SuiteID:       &suite.ID,
 		LabelIDs:      &[]uuid.UUID{label.ID},
 		ComponentIDs:  &[]uuid.UUID{comp.ID},
+		Version:       1,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, newTitle, updated.Title)
@@ -103,7 +104,7 @@ func TestEntRepository_UpdateTestCase_AllFields(t *testing.T) {
 	require.NotNil(t, updated.Edges.Suite)
 	assert.Equal(t, suite.ID, updated.Edges.Suite.ID)
 
-	cleared, err := repo.UpdateTestCase(ctx, created.ID, tms.UpdateTestCaseInput{ClearSuite: true})
+	cleared, err := repo.UpdateTestCase(ctx, created.ID, tms.UpdateTestCaseInput{ClearSuite: true, Version: 2})
 	require.NoError(t, err)
 	assert.Nil(t, cleared.Edges.Suite)
 }

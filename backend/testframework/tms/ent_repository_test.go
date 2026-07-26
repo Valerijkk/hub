@@ -110,7 +110,7 @@ func TestEntRepository_ListUpdateDeleteTestCase(t *testing.T) {
 	require.Len(t, items, 1)
 
 	newTitle := "Updated title"
-	updated, err := repo.UpdateTestCase(ctx, created.ID, tms.UpdateTestCaseInput{Title: &newTitle})
+	updated, err := repo.UpdateTestCase(ctx, created.ID, tms.UpdateTestCaseInput{Title: &newTitle, Version: 1})
 	require.NoError(t, err)
 	assert.Equal(t, newTitle, updated.Title)
 

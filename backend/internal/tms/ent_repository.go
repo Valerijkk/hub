@@ -17,6 +17,7 @@ import (
 	"github.com/valerii/hub/backend/ent/testrun"
 	"github.com/valerii/hub/backend/ent/testsuite"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // EntRepository реализует интерфейс Repository с помощью Ent ORM.
@@ -247,9 +248,14 @@ func (r *EntRepository) ListTestCases(ctx context.Context, projectID uuid.UUID, 
 	return items, total, nil
 }
 
-// UpdateTestCase обновляет тест-кейс.
+// UpdateTestCase обновляет тест-кейс с optimistic lock по Version (A3-004).
 func (r *EntRepository) UpdateTestCase(ctx context.Context, id uuid.UUID, input UpdateTestCaseInput) (*ent.TestCase, error) {
-	update := r.client.TestCase.UpdateOneID(id)
+	update := r.client.TestCase.Update().
+		Where(
+			testcase.IDEQ(id),
+			testcase.VersionEQ(input.Version),
+		).
+		AddVersion(1)
 
 	if input.Title != nil {
 		update = update.SetTitle(*input.Title)
@@ -303,12 +309,12 @@ func (r *EntRepository) UpdateTestCase(ctx context.Context, id uuid.UUID, input 
 		update = update.ClearComponents().AddComponentIDs(*input.ComponentIDs...)
 	}
 
-	// Инкрементируем версию
-	update = update.AddVersion(1)
-
-	_, err := update.Save(ctx)
+	affected, err := update.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("обновление тест-кейса: %w", err)
+	}
+	if affected == 0 {
+		return nil, apperrors.NewConflict("version mismatch: тест-кейс был изменён другим пользователем")
 	}
 
 	return r.GetTestCase(ctx, id)

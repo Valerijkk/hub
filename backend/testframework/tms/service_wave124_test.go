@@ -40,6 +40,7 @@ func TestService_Wave124_UpdateTestCase_WithComponents_Ent(t *testing.T) {
 	updated, err := svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{
 		Title:      &title,
 		Components: &compIDs,
+		Version:    1,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Updated comp case", updated.Title)
@@ -56,7 +57,7 @@ func TestService_Wave124_RollbackTestCase_Success_Ent(t *testing.T) {
 	require.NoError(t, err)
 
 	v1Title := "Rollback me"
-	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Title: &v1Title})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Title: &v1Title, Version: 1})
 	require.NoError(t, err)
 
 	versions, err := svc.ListTestCaseVersions(ctx, projectID, created.CaseKey)
@@ -140,6 +141,7 @@ func TestService_Wave124_UpdateTestCase_AllFields_Ent(t *testing.T) {
 		Postcondition: &post,
 		Status:        &status,
 		Steps:         &steps,
+		Version:       1,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Full update v2", updated.Title)

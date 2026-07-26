@@ -69,7 +69,8 @@ func TestListTestCaseVersions_AfterUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	newTitle := "Versioned v2"
-	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Title: &newTitle})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Title: &newTitle,
+		Version: 1,})
 	require.NoError(t, err)
 
 	versions, err := svc.ListTestCaseVersions(ctx, projectID, created.CaseKey)
