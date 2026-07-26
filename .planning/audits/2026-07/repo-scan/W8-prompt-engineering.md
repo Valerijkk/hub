@@ -3,7 +3,7 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> Агент: `docs-writer` (Grok 4.5) · Дата: **2026-07-23** · Scope: `prompt-engineering/` — corporate agents, `prompts/13-corporate-delivery.md`, полнота PORTABLE kit.  
+> Агент: `docs-writer` (Grok 4.5) · Дата: **2026-07-23** · Scope: `prompt-engineering/` — corporate agents, `prompts/13-corporate-delivery.md`, полнота PORTABLE kit.
 > Код **не менялся**. Только findings. Язык: RU.
 
 ## Чек-лист (результат)
@@ -43,13 +43,13 @@
 
 ### Закрытые / подтверждённые инварианты (не findings)
 
-1. **Corporate roster полный для стиля A:** 11 агентов + разведение `qa-*` / `code-reviewer` / `debugger` vs `test-*` в `agents/README.md`.  
-2. **`13-corporate-delivery.md`:** секции Planning (1–15) → Waves (16–28) → Review (29–42) → Strangler (43–56) → Reduced GitHub (57–68) → Handoff (69–80) → Verification (81–92) → Portable-kit (93–102) → AI-team ops (103–112); композиции в хвосте валидны.  
-3. **Обезличенность тела агентов:** продукт-пути Hub в `agents/*.md` не найдены; факты только через `context/` + `{{слоты}}`.  
-4. **GSD-порт в PE:** `gsd-port/README.md` ↔ playbooks/skills/templates согласованы.  
-5. **Шаблоны делегирования:** `_MASTER-PROMPT-TEMPLATE`, `wave-delegate`, `phase-kickoff`, `corporate-wave` на месте.  
-6. **Portable user path:** `PORTABLE-HUB-KIT.md` покрывает copy → intake → XOR agents → smoke wave → kit_version в STATE.  
-7. **Skills README** включает GSD-триаду (phase-plan / wave-orchestrate / verify-goal).  
+1. **Corporate roster полный для стиля A:** 11 агентов + разведение `qa-*` / `code-reviewer` / `debugger` vs `test-*` в `agents/README.md`.
+2. **`13-corporate-delivery.md`:** секции Planning (1–15) → Waves (16–28) → Review (29–42) → Strangler (43–56) → Reduced GitHub (57–68) → Handoff (69–80) → Verification (81–92) → Portable-kit (93–102) → AI-team ops (103–112); композиции в хвосте валидны.
+3. **Обезличенность тела агентов:** продукт-пути Hub в `agents/*.md` не найдены; факты только через `context/` + `{{слоты}}`.
+4. **GSD-порт в PE:** `gsd-port/README.md` ↔ playbooks/skills/templates согласованы.
+5. **Шаблоны делегирования:** `_MASTER-PROMPT-TEMPLATE`, `wave-delegate`, `phase-kickoff`, `corporate-wave` на месте.
+6. **Portable user path:** `PORTABLE-HUB-KIT.md` покрывает copy → intake → XOR agents → smoke wave → kit_version в STATE.
+7. **Skills README** включает GSD-триаду (phase-plan / wave-orchestrate / verify-goal).
 8. **Согласие с `07-ACCEPTANCE` M1:** 112 ≥ 100 corporate prompts — PASS по факту.
 
 ## Полнота PORTABLE kit (сводка L1–L5 с точки зрения L2)
@@ -94,8 +94,8 @@ INSTALL × PORTABLE|corporate|13     → 0 hits
 
 ### Next (docs / PE, не код продукта)
 
-1. Создать или удалить ссылки на `playbooks/corporate-delivery.md` (HIGH).  
-2. Синхронизировать `README.md` + `INSTALL.md` с corporate/GSD/portable.  
-3. Эталон `EXPANDED-EXAMPLES` для `13 #1`.  
-4. Поправить «7+4» → «11+4» в `05-PORTABLE-KIT.md`.  
+1. Создать или удалить ссылки на `playbooks/corporate-delivery.md` (HIGH).
+2. Синхронизировать `README.md` + `INSTALL.md` с corporate/GSD/portable.
+3. Эталон `EXPANDED-EXAMPLES` для `13 #1`.
+4. Поправить «7+4» → «11+4» в `05-PORTABLE-KIT.md`.
 5. (Polish) DoD-скелет для qa/debugger/code-reviewer; роль docs в стиле A.
