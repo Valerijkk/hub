@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/internal/audit"
 )
@@ -52,6 +51,3 @@ func TestDeleteUserGDPR_AllowsFounderSelfErase_A1_004(t *testing.T) {
 	require.Len(t, repo.hardDeleted, 1)
 	assert.Equal(t, founderID, repo.hardDeleted[0])
 }
-
-// compile-time: ent import used by gdprStubRepo embedding
-var _ = ent.AuditLog{}
