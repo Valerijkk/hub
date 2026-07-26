@@ -148,7 +148,7 @@ func TestUpdateCustomRole_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	updated, err := f.svc.UpdateCustomRole(ctx, uuid.MustParse(role.ID), rbac.CustomRoleRequest{
+	updated, err := f.svc.UpdateCustomRole(ctx, f.projectID, uuid.MustParse(role.ID), rbac.CustomRoleRequest{
 		Name: "After", Permissions: []string{"task.create", "file.upload"},
 	})
 	require.NoError(t, err)
@@ -194,7 +194,7 @@ func TestUpdateCustomRole_InvalidPermission(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = f.svc.UpdateCustomRole(ctx, uuid.MustParse(role.ID), rbac.CustomRoleRequest{
+	_, err = f.svc.UpdateCustomRole(ctx, f.projectID, uuid.MustParse(role.ID), rbac.CustomRoleRequest{
 		Name: "BadPerm", Permissions: []string{"not.a.real.permission"},
 	})
 	require.Error(t, err)

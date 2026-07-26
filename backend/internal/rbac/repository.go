@@ -167,3 +167,9 @@ func IsNotFound(err error) bool {
 
 // ErrSystemRoleDelete возвращается при попытке удалить системную роль.
 var ErrSystemRoleDelete = fmt.Errorf("system roles cannot be deleted")
+
+// ErrSystemRoleUpdate возвращается при попытке изменить системную роль.
+var ErrSystemRoleUpdate = fmt.Errorf("system roles cannot be updated")
+
+// ErrRoleProjectMismatch — роль не принадлежит указанному проекту (IDOR guard).
+var ErrRoleProjectMismatch = fmt.Errorf("role does not belong to project")

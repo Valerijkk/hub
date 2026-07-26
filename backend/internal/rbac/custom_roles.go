@@ -68,9 +68,23 @@ func (s *RBACService) ListCustomRoles(ctx context.Context, projectID uuid.UUID) 
 }
 
 // UpdateCustomRole обновляет кастомную роль (имя, описание, набор разрешений).
-//
-// Та же валидация и dual-write, что и в CreateCustomRole.
-func (s *RBACService) UpdateCustomRole(ctx context.Context, roleID uuid.UUID, req CustomRoleRequest) (*CustomRoleResponse, error) {
+// projectID из URL обязан совпадать с проектом роли; системные роли не обновляются.
+func (s *RBACService) UpdateCustomRole(ctx context.Context, projectID, roleID uuid.UUID, req CustomRoleRequest) (*CustomRoleResponse, error) {
+	existing, err := s.repo.GetRole(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+	if existing.IsSystem {
+		return nil, ErrSystemRoleUpdate
+	}
+	roleProj, err := s.repo.GetRoleProjectID(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+	if roleProj != projectID {
+		return nil, ErrRoleProjectMismatch
+	}
+
 	if err := validatePermissionNames(req.Permissions); err != nil {
 		return nil, err
 	}
@@ -87,11 +101,10 @@ func (s *RBACService) UpdateCustomRole(ctx context.Context, roleID uuid.UUID, re
 	}
 
 	members, _ := s.repo.ListRoleMembersWithUser(ctx, roleID)
-	projID, _ := s.repo.GetRoleProjectID(ctx, roleID)
-	if projID != uuid.Nil {
+	if projectID != uuid.Nil {
 		for _, m := range members {
 			if u := m.Edges.User; u != nil {
-				_ = s.cache.Invalidate(ctx, u.ID.String(), projID.String())
+				_ = s.cache.Invalidate(ctx, u.ID.String(), projectID.String())
 			}
 		}
 	}
@@ -100,7 +113,7 @@ func (s *RBACService) UpdateCustomRole(ctx context.Context, roleID uuid.UUID, re
 }
 
 // DeleteCustomRole удаляет кастомную роль. Участники с этой ролью сбрасываются на базовую роль.
-func (s *RBACService) DeleteCustomRole(ctx context.Context, roleID uuid.UUID) error {
+func (s *RBACService) DeleteCustomRole(ctx context.Context, projectID, roleID uuid.UUID) error {
 	r, err := s.repo.GetRole(ctx, roleID)
 	if err != nil {
 		return err
@@ -108,22 +121,34 @@ func (s *RBACService) DeleteCustomRole(ctx context.Context, roleID uuid.UUID) er
 	if r.IsSystem {
 		return ErrSystemRoleDelete
 	}
+	roleProj, err := s.repo.GetRoleProjectID(ctx, roleID)
+	if err != nil {
+		return err
+	}
+	if roleProj != projectID {
+		return ErrRoleProjectMismatch
+	}
 
 	memberIDs, _ := s.repo.ListRoleMemberIDs(ctx, roleID)
 	for _, id := range memberIDs {
 		_ = s.repo.ClearMemberCustomRoleByID(ctx, id)
 	}
 
-	projID, _ := s.repo.GetRoleProjectID(ctx, roleID)
-	if projID != uuid.Nil {
-		_ = s.cache.InvalidateProject(ctx, projID.String())
-	}
+	_ = s.cache.InvalidateProject(ctx, projectID.String())
 
 	return s.repo.DeleteRole(ctx, roleID)
 }
 
 // AssignCustomRole назначает кастомную роль участнику проекта.
 func (s *RBACService) AssignCustomRole(ctx context.Context, projectID, userID, roleID uuid.UUID) error {
+	roleProj, err := s.repo.GetRoleProjectID(ctx, roleID)
+	if err != nil {
+		return err
+	}
+	if roleProj != projectID {
+		return ErrRoleProjectMismatch
+	}
+
 	mem, err := s.repo.GetProjectMember(ctx, projectID, userID)
 	if err != nil {
 		return err
