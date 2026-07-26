@@ -74,21 +74,45 @@ func (r *EntRepository) ListComments(ctx context.Context, issueID uuid.UUID) ([]
 		All(ctx)
 }
 
-// UpdateComment обновляет содержимое комментария.
-func (r *EntRepository) UpdateComment(ctx context.Context, commentID uuid.UUID, input UpdateCommentInput) (*ent.Comment, error) {
-	c, err := r.client.Comment.UpdateOneID(commentID).
+// UpdateComment обновляет комментарий автора на задаче (A3-011).
+func (r *EntRepository) UpdateComment(ctx context.Context, issueID, authorID, commentID uuid.UUID, input UpdateCommentInput) (*ent.Comment, error) {
+	affected, err := r.client.Comment.Update().
+		Where(
+			comment.IDEQ(commentID),
+			comment.HasIssueWith(issue.IDEQ(issueID)),
+			comment.HasAuthorWith(user.IDEQ(authorID)),
+		).
 		SetBodyJSON(input.BodyJSON).
 		SetBodyText(input.BodyText).
 		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("обновление комментария: %w", err)
 	}
-	return c, nil
+	if affected == 0 {
+		return nil, &ent.NotFoundError{}
+	}
+	return r.client.Comment.Query().
+		Where(comment.IDEQ(commentID)).
+		WithAuthor().
+		Only(ctx)
 }
 
-// DeleteComment удаляет комментарий по ID.
-func (r *EntRepository) DeleteComment(ctx context.Context, commentID uuid.UUID) error {
-	return r.client.Comment.DeleteOneID(commentID).Exec(ctx)
+// DeleteComment удаляет комментарий автора на задаче (A3-011).
+func (r *EntRepository) DeleteComment(ctx context.Context, issueID, authorID, commentID uuid.UUID) error {
+	affected, err := r.client.Comment.Delete().
+		Where(
+			comment.IDEQ(commentID),
+			comment.HasIssueWith(issue.IDEQ(issueID)),
+			comment.HasAuthorWith(user.IDEQ(authorID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------

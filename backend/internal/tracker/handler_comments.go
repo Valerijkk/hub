@@ -98,7 +98,19 @@ func (h *Handler) ListComments(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/comments/{commentId} [put]
 func (h *Handler) UpdateComment(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	issueKey := parseIssueKey(c)
+	if issueKey == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
+	}
 	commentID, err := httputil.ParseUUIDParam(c, "commentId")
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -108,7 +120,7 @@ func (h *Handler) UpdateComment(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.UpdateComment(c.Context(), commentID, req)
+	resp, err := h.service.UpdateComment(c.Context(), projectID, issueKey, userID, commentID, req)
 	if err != nil {
 		return err
 	}
@@ -129,12 +141,24 @@ func (h *Handler) UpdateComment(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/comments/{commentId} [delete]
 func (h *Handler) DeleteComment(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	issueKey := parseIssueKey(c)
+	if issueKey == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
+	}
 	commentID, err := httputil.ParseUUIDParam(c, "commentId")
 	if err != nil {
 		return err
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
-	if err := h.service.DeleteComment(c.Context(), commentID); err != nil {
+	if err := h.service.DeleteComment(c.Context(), projectID, issueKey, userID, commentID); err != nil {
 		return err
 	}
 

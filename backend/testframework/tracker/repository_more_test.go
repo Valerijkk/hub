@@ -30,7 +30,7 @@ func TestEntRepository_CommentsAndReactions(t *testing.T) {
 	require.Len(t, comments, 1)
 
 	updatedText := "updated"
-	updated, err := env.repo.UpdateComment(env.ctx, comment.ID, tracker.UpdateCommentInput{
+	updated, err := env.repo.UpdateComment(env.ctx, issue.ID, env.userID, comment.ID, tracker.UpdateCommentInput{
 		BodyJSON: map[string]interface{}{"type": "doc", "v": 2},
 		BodyText: updatedText,
 	})
@@ -45,7 +45,7 @@ func TestEntRepository_CommentsAndReactions(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, removed)
 
-	require.NoError(t, env.repo.DeleteComment(env.ctx, comment.ID))
+	require.NoError(t, env.repo.DeleteComment(env.ctx, issue.ID, env.userID, comment.ID))
 	comments, err = env.repo.ListComments(env.ctx, issue.ID)
 	require.NoError(t, err)
 	assert.Empty(t, comments)

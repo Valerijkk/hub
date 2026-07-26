@@ -16,7 +16,7 @@ type notFoundCommentDeleteRepo struct {
 	mockRepo
 }
 
-func (r *notFoundCommentDeleteRepo) DeleteComment(_ context.Context, _ uuid.UUID) error {
+func (r *notFoundCommentDeleteRepo) DeleteComment(_ context.Context, _, _, _ uuid.UUID) error {
 	return &ent.NotFoundError{}
 }
 
@@ -33,7 +33,7 @@ func TestDeleteComment_NotFound(t *testing.T) {
 	repo := &notFoundCommentDeleteRepo{mockRepo: *newMockRepo()}
 	svc := tracker.NewTrackerService(repo, nil)
 
-	err := svc.DeleteComment(context.Background(), uuid.New())
+	err := svc.DeleteComment(context.Background(), uuid.New(), "TST-1", uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }

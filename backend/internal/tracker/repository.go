@@ -70,10 +70,10 @@ type CommentRepository interface {
 	CreateComment(ctx context.Context, issueID, authorID uuid.UUID, input CreateCommentInput) (*ent.Comment, error)
 	// ListComments возвращает все комментарии задачи.
 	ListComments(ctx context.Context, issueID uuid.UUID) ([]*ent.Comment, error)
-	// UpdateComment обновляет содержимое комментария.
-	UpdateComment(ctx context.Context, commentID uuid.UUID, input UpdateCommentInput) (*ent.Comment, error)
-	// DeleteComment удаляет комментарий по ID.
-	DeleteComment(ctx context.Context, commentID uuid.UUID) error
+	// UpdateComment обновляет комментарий автора на задаче.
+	UpdateComment(ctx context.Context, issueID, authorID, commentID uuid.UUID, input UpdateCommentInput) (*ent.Comment, error)
+	// DeleteComment удаляет комментарий автора на задаче.
+	DeleteComment(ctx context.Context, issueID, authorID, commentID uuid.UUID) error
 	// ToggleReaction добавляет или удаляет реакцию. Возвращает true если добавлена, false если удалена.
 	ToggleReaction(ctx context.Context, commentID, userID uuid.UUID, emoji string) (bool, error)
 }

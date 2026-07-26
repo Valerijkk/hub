@@ -178,7 +178,7 @@ func TestDeleteComment_Success(t *testing.T) {
 
 	commentID, err := uuid.Parse(comment.ID)
 	require.NoError(t, err)
-	require.NoError(t, svc.DeleteComment(ctx, commentID))
+	require.NoError(t, svc.DeleteComment(ctx, projectID, created.IssueKey, userID, commentID))
 	_, ok := repo.comments[commentID]
 	assert.False(t, ok)
 }

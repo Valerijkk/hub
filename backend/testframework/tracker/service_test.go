@@ -373,23 +373,33 @@ func (m *mockRepo) CreateComment(_ context.Context, issueID, authorID uuid.UUID,
 		UpdatedAt:  time.Now(),
 		Edges: ent.CommentEdges{
 			Author: &ent.User{ID: authorID, Name: "Test User", Email: "test@test.com"},
+			Issue:  &ent.Issue{ID: issueID},
 		},
 	}
 	m.comments[id] = c
 	return c, nil
 }
 
-func (m *mockRepo) ListComments(_ context.Context, _ uuid.UUID) ([]*ent.Comment, error) {
+func (m *mockRepo) ListComments(_ context.Context, issueID uuid.UUID) ([]*ent.Comment, error) {
 	var result []*ent.Comment
 	for _, c := range m.comments {
+		if c.Edges.Issue != nil && c.Edges.Issue.ID != issueID {
+			continue
+		}
 		result = append(result, c)
 	}
 	return result, nil
 }
 
-func (m *mockRepo) UpdateComment(_ context.Context, commentID uuid.UUID, input tracker.UpdateCommentInput) (*ent.Comment, error) {
+func (m *mockRepo) UpdateComment(_ context.Context, issueID, authorID, commentID uuid.UUID, input tracker.UpdateCommentInput) (*ent.Comment, error) {
 	c, ok := m.comments[commentID]
 	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if c.Edges.Issue == nil || c.Edges.Issue.ID != issueID {
+		return nil, &ent.NotFoundError{}
+	}
+	if c.Edges.Author == nil || c.Edges.Author.ID != authorID {
 		return nil, &ent.NotFoundError{}
 	}
 	c.BodyJSON = input.BodyJSON
@@ -397,7 +407,17 @@ func (m *mockRepo) UpdateComment(_ context.Context, commentID uuid.UUID, input t
 	return c, nil
 }
 
-func (m *mockRepo) DeleteComment(_ context.Context, commentID uuid.UUID) error {
+func (m *mockRepo) DeleteComment(_ context.Context, issueID, authorID, commentID uuid.UUID) error {
+	c, ok := m.comments[commentID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if c.Edges.Issue == nil || c.Edges.Issue.ID != issueID {
+		return &ent.NotFoundError{}
+	}
+	if c.Edges.Author == nil || c.Edges.Author.ID != authorID {
+		return &ent.NotFoundError{}
+	}
 	delete(m.comments, commentID)
 	return nil
 }

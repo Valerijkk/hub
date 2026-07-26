@@ -70,13 +70,20 @@ func (s *TrackerService) ListComments(ctx context.Context, projectID uuid.UUID, 
 	return result, nil
 }
 
-// UpdateComment обновляет комментарий.
-func (s *TrackerService) UpdateComment(ctx context.Context, commentID uuid.UUID, req UpdateCommentRequest) (*CommentResponse, error) {
+// UpdateComment обновляет комментарий автора на задаче (A3-011).
+func (s *TrackerService) UpdateComment(ctx context.Context, projectID uuid.UUID, issueKey string, userID, commentID uuid.UUID, req UpdateCommentRequest) (*CommentResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
+		return nil, apperrors.NewInternal("ошибка получения задачи")
+	}
 	input := UpdateCommentInput{
 		BodyJSON: req.BodyJSON,
 		BodyText: req.BodyText,
 	}
-	c, err := s.repo.UpdateComment(ctx, commentID, input)
+	c, err := s.repo.UpdateComment(ctx, existing.ID, userID, commentID, input)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("комментарий не найден")
@@ -86,9 +93,16 @@ func (s *TrackerService) UpdateComment(ctx context.Context, commentID uuid.UUID,
 	return toCommentResponse(c), nil
 }
 
-// DeleteComment удаляет комментарий.
-func (s *TrackerService) DeleteComment(ctx context.Context, commentID uuid.UUID) error {
-	if err := s.repo.DeleteComment(ctx, commentID); err != nil {
+// DeleteComment удаляет комментарий автора на задаче (A3-011).
+func (s *TrackerService) DeleteComment(ctx context.Context, projectID uuid.UUID, issueKey string, userID, commentID uuid.UUID) error {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("задача не найдена")
+		}
+		return apperrors.NewInternal("ошибка получения задачи")
+	}
+	if err := s.repo.DeleteComment(ctx, existing.ID, userID, commentID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("комментарий не найден")
 		}

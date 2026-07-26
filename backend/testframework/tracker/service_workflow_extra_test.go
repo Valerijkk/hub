@@ -195,13 +195,13 @@ func TestCommentUpdateAndDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	newBody := map[string]interface{}{"text": "updated"}
-	updated, err := svc.UpdateComment(ctx, uuid.MustParse(comment.ID), tracker.UpdateCommentRequest{
+	updated, err := svc.UpdateComment(ctx, projectID, issue.IssueKey, userID, uuid.MustParse(comment.ID), tracker.UpdateCommentRequest{
 		BodyJSON: newBody,
 		BodyText: "updated",
 	})
 	require.NoError(t, err)
 	assert.NotNil(t, updated)
 
-	require.NoError(t, svc.DeleteComment(ctx, uuid.MustParse(comment.ID)))
+	require.NoError(t, svc.DeleteComment(ctx, projectID, issue.IssueKey, userID, uuid.MustParse(comment.ID)))
 	assert.Empty(t, repo.comments)
 }
