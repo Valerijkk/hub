@@ -1,7 +1,7 @@
 # SCORECARD — Repo Scan 2026-07-23
 
-> **Non-authoritative aggregate** · readonly · код не менялся в сессии fallback  
-> **Provenance:** [`PROVENANCE.md`](./PROVENANCE.md) — rollup **одной** fallback-сессии поверх 19 pre-existing W*; **не** 40 independent runs  
+> **Non-authoritative aggregate** · readonly · код не менялся в сессии fallback
+> **Provenance:** [`PROVENANCE.md`](./PROVENANCE.md) — rollup **одной** fallback-сессии поверх 19 pre-existing W*; **не** 40 independent runs
 > **Счётчик файлов: 40 / 40** (39 domain slots + этот SCORECARD) · все W*: `current_verified: false`
 
 ## ⚠️ Ограничения (обязательно прочитать)
