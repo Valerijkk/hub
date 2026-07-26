@@ -1,8 +1,8 @@
 # Acceptance — AI-expansion (Must + maximal expand)
 
-> Дата: 2026-07-22 (Must) · re-verify **2026-07-23** (волна maximal expand)  
-> **Provenance correction:** 2026-07-26 — qualified verdict; historical PASS **не стирается**  
-> Criteria: `01-PRODUCT-SCOPE.md` · Горизонт → 15.08.2026  
+> Дата: 2026-07-22 (Must) · re-verify **2026-07-23** (волна maximal expand)
+> **Provenance correction:** 2026-07-26 — qualified verdict; historical PASS **не стирается**
+> Criteria: `01-PRODUCT-SCOPE.md` · Горизонт → 15.08.2026
 > Inventory: `03-GSD-PORT-INVENTORY.md` (P0=21 / P1=35 / P2=15 / SKIP=8)
 
 ## Verdict
