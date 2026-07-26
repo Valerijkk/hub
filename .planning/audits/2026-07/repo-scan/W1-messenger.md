@@ -3,9 +3,9 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Роль:** be-ver (Grok 4.5, readonly)  
-> **Дата:** 2026-07-23  
-> **Scope:** Mongo messages, membership, rate limits, cursor pagination, NATS  
+> **Роль:** be-ver (Grok 4.5, readonly)
+> **Дата:** 2026-07-23
+> **Scope:** Mongo messages, membership, rate limits, cursor pagination, NATS
 > **Код не менялся** · регрессия `go test` не запускалась (repo-scan / code freeze)
 
 ---
