@@ -1,8 +1,8 @@
 # Repo Scan 2026-07-23 — 40 report slots
 
-> **Счётчик: 40 / 40** файлов на диске · **не** 40 независимых Grok-прогонов  
-> **Provenance:** [`PROVENANCE.md`](./PROVENANCE.md) — [per-file registry](./PROVENANCE.md#per-file-registry-39-domain-reports): **19 PRE_EXISTING** + **20 FALLBACK_SUMMARY** + **1 SCORECARD (AGGREGATE)**  
-> **Все W*:** `current_verified: false` · embedded PASS = historical self-check only  
+> **Счётчик: 40 / 40** файлов на диске · **не** 40 независимых Grok-прогонов
+> **Provenance:** [`PROVENANCE.md`](./PROVENANCE.md) — [per-file registry](./PROVENANCE.md#per-file-registry-39-domain-reports): **19 PRE_EXISTING** + **20 FALLBACK_SUMMARY** + **1 SCORECARD (AGGREGATE)**
+> **Все W*:** `current_verified: false` · embedded PASS = historical self-check only
 > Папка: `.planning/audits/2026-07/repo-scan/`
 
 ## Происхождение (кратко)
