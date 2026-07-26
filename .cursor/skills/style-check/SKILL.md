@@ -6,11 +6,12 @@ disable-model-invocation: true
 
 # /style-check — Extended Style Check
 
-Расширенный аудит кода на стилевые нарушения. Включает всё из `/anti-ai-check` плюс дополнительные проверки.
+Расширенный аудит кода на anti-AI и другие стилевые нарушения.
 
 ## Phase 1: Anti-AI Check
 
-Запусти `/anti-ai-check` (все шаги).
+Прочитай и выполни [references/anti-ai.md](references/anti-ai.md). Подтверждай
+контекст каждой находки: grep-кандидат сам по себе не является дефектом.
 
 ## Phase 2: Go Style Violations
 
@@ -136,5 +137,6 @@ Total: N findings
 ## Связь с REGULATION / GSD
 
 - Полный gate (сборка+тесты+lint) — отдельно, `.cursor/skills/qa-gate/SKILL.md`
-- Anti-AI паттерны — базовый набор в `.cursor/skills/anti-ai-check/SKILL.md` (Phase 1 здесь его переиспользует)
+- Anti-AI паттерны — owned reference
+  [references/anti-ai.md](references/anti-ai.md), который читает Phase 1
 - GSD-эквивалент peer review: `gsd-code-review` (более широкий, не построчный grep) — см. `.cursor/GSD-INTEGRATION.md` §Hub slash-skills vs GSD skills

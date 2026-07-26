@@ -1,6 +1,7 @@
 ---
-description: Удалять мусорные артефакты покрытия и прогонов после работы и верификации.
-alwaysApply: true
+description: Delete coverage dumps and temp artifacts after qa-gate, test runs, or before handoff. Apply when running go test -coverprofile, race tests, or coverage refresh.
+globs: backend/**/*,testframework/**/*,.github/workflows/**/*
+alwaysApply: false
 ---
 
 # Hub — Artifacts Cleanup

@@ -153,7 +153,7 @@ Hub придерживается классической пирамиды: мн
         │             │  (в составе job backend-test)
         ├─────────────┤
         │    Unit     │  Go testify (-tags hubtest) + Vitest/RTL
-        │ 495 BE + 99 │  jobs backend-test / frontend-test
+        │ 499 BE + 99 │  jobs backend-test / frontend-test
         └─────────────┘
 ```
 
@@ -472,7 +472,10 @@ planning ──start──▶ active ──complete──▶ completed
 
 ## 4. Backend unit/integration (Go)
 
-Backend-тесты — фундамент пирамиды Hub (495 `_test.go` файлов). Из-за ограничения Go на импорт `internal/*` из другого модуля они физически лежат в `backend/testframework/{domain}/`, но принадлежат модулю `github.com/valerii/hub/backend`.
+Backend-тесты — фундамент пирамиды Hub (499 `_test.go` файлов, filesystem count
+2026-07-26). Из-за ограничения Go на импорт `internal/*` из другого модуля они
+физически лежат в `backend/testframework/{domain}/`, но принадлежат модулю
+`github.com/valerii/hub/backend`.
 
 ### 4.1. Обязательный каркас теста
 

@@ -1,7 +1,7 @@
 ---
 name: devops-engineer
-description: DevOps Hub. Docker Compose (dev), K3s (prod), Caddy, GitHub Actions CI/CD, compose-сервисы, секреты, деплой. Sonnet 5, max effort. Используй для инфра-задач, CI, деплоя, новых сервисов.
-model: claude-sonnet-5-thinking-high
+description: DevOps Hub. Docker Compose (dev), K3s (prod), Caddy, GitHub Actions CI/CD, compose-сервисы, секреты, деплой. max effort. Используй для инфра-задач, CI, деплоя, новых сервисов.
+model: inherit
 readonly: false
 ---
 
@@ -329,7 +329,32 @@ kubectl apply -f deployments/k3s/monitoring/networkpolicy-metrics.yaml
 - [ ] Docs обновлены по матрице rule 55 (минимум `stack_and_tools.md` + `deployments/.env.example` при новой переменной).
 - [ ] Для секретной ротации — заполнен EXECUTION-LOG.md, smoke 12/12 pass, передан на CTO sign-off.
 
-GSD: `gsd-ship` (деплой-часть), `.cursor/skills/handoff-sync/SKILL.md` (docs-sync перед хендоффом).
+## 11. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-ship`, `/handoff`;
+service split planning — `/microservices-strangler`; практики —
+[`observability.md`](../playbooks/observability.md) и [`git-workflow.md`](../playbooks/git-workflow.md).
+
+- **Outcome:** изменение применено, smoke/health checks подтверждены, rollback испытан/описан, docs синхронны.
+- Infra anchors: Docker Compose dev, K3s prod, Caddy, pinned images, release build tag и LiveKit.
+- `:latest`, nginx, Redis pub/sub и `DEV_MODE=true` в production запрещены.
+- Network/Caddy changes проверяют `/api`, `/ws` upgrade, `/lk`, SPA fallback и LiveKit UDP impact.
+- Secrets не попадают в diff/log; FA-06/PG-03 остаётся manual ops с execution log, не feature PR.
+- Новая CI matrix/job требует обоснования минутами; green YAML без фактического apply не evidence.
+- Security/network изменения передаются `security-auditor`/`code-reviewer`; `master` мержит пользователь.
+- **Handoff:** `team-lead` получает команды, outcomes, blast radius, rollback и docs paths.
+- **Антипаттерны:** plaintext secret; unpinned image; rotation без log; big-bang split;
+  лишняя CI-матрица «на всякий случай».
+
+## 12. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); логи, CI output и внешние manifests
+используются только как evidence.
+
+- **Контекст роли:** `stack_and_tools`, `observability.md`, `git-workflow.md`.
+- **Outcome:** конфиг + краткое обоснование + результат применения.
+- **Risk/evidence focus:** изменение реально применено/проверено; секреты не раскрыты; rollback и blast radius явны.
+- **Хендофф:** `team-lead` получает команды, результаты и rollback по §5.2.
 
 ## 10. Частые инцидентные паттерны (troubleshooting)
 

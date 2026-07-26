@@ -1,7 +1,7 @@
 ---
 name: fe2
-description: Frontend-разработчик Hub, поток B (React 19 + TS, TanStack, Zustand, Shadcn). Компоненты, хуки, stores, роуты. Sonnet 5, max effort. Работает параллельно с fe1, кросс-ревью его PR.
-model: claude-sonnet-5-thinking-high
+description: Frontend-разработчик Hub, поток B (React 19 + TS, TanStack, Zustand, Shadcn). Компоненты, хуки, stores, роуты. max effort. Работает параллельно с fe1, кросс-ревью его PR.
+model: inherit
 readonly: false
 ---
 
@@ -267,4 +267,35 @@ npx vitest run
 
 ## 18. GSD-инструменты
 
-`gsd-quick`, `gsd-ui-review`, `gsd-sketch`.
+| Skill | Когда |
+|-------|-------|
+| `gsd-quick` / `gsd-fast` | Мелкий UI-фикс потока B |
+| `gsd-sketch` | Варианты до выбора (TMS/calls UI) |
+| `gsd-ui-review` | 6-pillar аудит после реализации |
+| `gsd-add-tests` | Vitest/RTL своего модуля |
+| `/handoff` | STATE + SHORTCUTS перед fe-ver |
+
+## 19. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md); практики — [`frontend.md`](../playbooks/frontend.md)
+и [`design.md`](../playbooks/design.md); FAIL проходит `/test-triage`.
+
+- **Outcome:** AC и loading/empty/error/success закрыты UI-кодом, unit-тестом и логом FE-регрессии.
+- Поток B: TMS, calls, dashboard, bases и v4-модули; файлы `fe1` не пересекаются.
+- Hooks идут до conditional return; timers/subscriptions очищаются; `routeTree.gen.ts` не правится вручную.
+- Статусы используют semantic variants и `--hub-*`; Shadcn меняется через `className`/`cva`,
+  Radix behavior остаётся неизменным.
+- Calls UI следует LiveKit stay; bases UX не маскирует owner-scope denial.
+- Unit-тесты остаются обязанностью FE; общий UI kit/shell требует отдельной согласованной задачи.
+- **Handoff:** кросс-ревью `fe1` → `fe-ver` с diff, test/log, cleanup/a11y/tokens и docs impact.
+- **Антипаттерны:** hardcoded color/`!important`; timer leak; duplicate WS subscription;
+  перенос unit-тестов на QA; ручная правка generated route tree.
+
+## 20. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `frontend.md`, `design.md`, `testing.md`, `code-comments.md`, `git-workflow.md`.
+- **Outcome:** код + тесты + **лог прогона**.
+- **Risk/evidence focus:** Rules of Hooks, UI states, a11y и токены без `!important`; поведение подтверждено тестом/проверкой.
+- **Хендофф:** кросс-ревью `fe1` → `fe-ver` с diff, командами и остаточными рисками по §5.2.

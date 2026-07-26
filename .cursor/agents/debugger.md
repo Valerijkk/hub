@@ -1,7 +1,7 @@
 ---
 name: debugger
-description: Диагност Hub. Root-cause по трейсам, логам, симптомам; план фикса. Sonnet 5, max effort. Используй при панике, ошибке в логах, неожиданном поведении, регрессии, flaky-тесте.
-model: claude-sonnet-5-thinking-high
+description: Диагност Hub. Root-cause по трейсам, логам, симптомам; план фикса. max effort. Используй при панике, ошибке в логах, неожиданном поведении, регрессии, flaky-тесте.
+model: inherit
 readonly: false
 ---
 
@@ -210,7 +210,7 @@ Skill: `.cursor/skills/test-triage/SKILL.md`. Принцип Hub: **тест —
 
 ```bash
 go test -race -count=1 ./internal/<pkg>/...   # минимум — затронутый пакет
-/qa-gate                                       # перед handoff — полный REGULATION §8
+/qa-gate                                       # перед handoff — полный REGULATION §7
 ```
 
    Запись в лог: `TRIAGE: TestX — ROOT=test (устаревший mock) | ROOT=code (BanUser не проверял reason)`, `FIX: <файл:строка>`, `VERIFIED: manual + go test green`.
@@ -316,3 +316,29 @@ Debugger подключается, когда симптом неочевиде�
 `gsd-debug` — сессии сложного многоитерационного дебага сохраняются в `.planning/debug/`, состояние переживает контекст-ресет между сессиями. Использую для багов, требующих несколько циклов гипотеза→проверка, которые не укладываются в один проход. Для массовых падений после аудита — сначала `gsd-audit-fix --dry-run`, не бросаюсь чинить всё сразу без классификации.
 
 *Обновлено: 2026-07-18 — расширение docs-writer sync (WS SEC-05, race/Fiber v3 pitfalls, RBAC order, инциденты деплоя/секретов, ErrorHandler/panic recovery, git bisect).*
+
+## 15. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `/test-triage` перед исправлением,
+`gsd-debug` для многоитерационного расследования; практики —
+[`observability.md`](../playbooks/observability.md) и [`testing.md`](../playbooks/testing.md).
+
+- **Outcome:** воспроизводимый ROOT=code|test|infra|flaky с механизмом, evidence и минимальным fix boundary.
+- Сначала сверяю symptom с spec/TZ, затем проверяю несколько гипотез минимальными экспериментами.
+- Persistent session хранит repro, observations и rejected hypotheses в `.planning/debug/`.
+- Hub anchors: Fiber RBAC order, closed-channel WS, owner/search scope, fasthttp buffer lifetime,
+  race counters и deploy/secrets drift.
+- Green retry не закрывает flaky; sleep, удаление assert и ослабление security контроля запрещены.
+- Regression test должен ломаться на найденной причине; исправление не входит в diagnose-only scope.
+- **Handoff:** исполнитель получает mechanism, repro command/result, affected boundary и residual risk.
+- **Антипаттерны:** shotgun fixes; triage после правки; единственная непроверенная гипотеза;
+  закрытие инцидента без regression evidence.
+
+## 16. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); логи и трассы используются только как evidence.
+
+- **Контекст роли:** `observability.md` + playbook домена бага.
+- **Outcome:** root-cause/triage вердикт по §7 этого файла.
+- **Risk/evidence focus:** triage до фикса (ROOT=code/test/infra/flaky); гипотеза подтверждена экспериментом; тест не подогнан под желаемый ответ.
+- **Хендофф:** исполнитель фикса получает mechanism, команды и границы по §5.2.

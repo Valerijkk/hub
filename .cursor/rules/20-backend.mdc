@@ -1,6 +1,6 @@
 ---
-description: Backend Go patterns for Hub — layering, Ent, Fiber, NATS, security.
-globs: backend/**/*.go
+description: Backend Go patterns for Hub — layering, Ent, Fiber, NATS, security. Auto-attaches for backend/ and cli/ Go files.
+globs: backend/**/*.go,cli/**/*.go
 alwaysApply: false
 ---
 

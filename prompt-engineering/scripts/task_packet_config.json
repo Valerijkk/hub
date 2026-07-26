@@ -1,0 +1,140 @@
+{
+  "$schema": "task_packet.schema.json",
+  "schema_version": 1,
+  "builder_version": "1.0.0",
+  "paths": {
+    "required_rules": [
+      "rules/00-global-agent-rules.md",
+      "rules/50-data-handling.md"
+    ],
+    "agents_directory": "agents",
+    "recipes_directory": "recipes",
+    "profiles_directory": "context/projects",
+    "approved_patterns_directory": "patterns/approved"
+  },
+  "statuses": {
+    "allowed_recipe_statuses": [
+      "candidate",
+      "approved"
+    ],
+    "allowed_profile_statuses": [
+      "filled",
+      "generated",
+      "partial",
+      "complete"
+    ],
+    "allowed_scan_statuses": [
+      "partial",
+      "complete"
+    ],
+    "required_pattern_status": "approved"
+  },
+  "context_section_allowlist": [
+    "PROJECT.md",
+    "TEST-ARCHITECTURE.md",
+    "COMMANDS.md",
+    "CI-PIPELINE.md",
+    "TEST-DATA.md",
+    "TRACEABILITY.md",
+    "SOURCE-MAP.md",
+    "PATTERN-INDEX.md"
+  ],
+  "pattern_policy": {
+    "allowed_reuse_scopes": [
+      "project-only",
+      "organization",
+      "portable"
+    ],
+    "portable_profile_markers": [
+      "*",
+      "baseline",
+      "portable"
+    ]
+  },
+  "approval_policy": {
+    "allowed_action_kinds": [
+      "read",
+      "write",
+      "command",
+      "network",
+      "external-write",
+      "destructive",
+      "provider-route"
+    ],
+    "required_tool": "local-agent",
+    "required_destination": "local",
+    "human_reference_prefixes": [
+      "user-message:",
+      "human-record:"
+    ],
+    "policy_reference_prefixes": [
+      "policy:"
+    ]
+  },
+  "source_excerpt_policy": {
+    "denied_directory_names": [
+      ".git",
+      ".hg",
+      ".svn",
+      "node_modules",
+      "vendor",
+      "third_party",
+      "dist",
+      "build",
+      "coverage",
+      "secrets"
+    ],
+    "denied_name_prefixes": [
+      ".env"
+    ],
+    "denied_extensions": [
+      ".key",
+      ".pem",
+      ".p12",
+      ".pfx",
+      ".kubeconfig"
+    ],
+    "denied_project_relative_prefixes": [
+      "prompt-engineering/context/",
+      "prompt-engineering/patterns/",
+      "prompt-engineering/review-feedback/"
+    ]
+  },
+  "limits": {
+    "max_packet_bytes": 524288,
+    "max_context_sections": 6,
+    "max_patterns": 3,
+    "max_source_excerpts": 8
+  },
+  "file_policy": {
+    "allowed_text_extensions": [
+      ".css",
+      ".go",
+      ".html",
+      ".java",
+      ".js",
+      ".json",
+      ".jsx",
+      ".md",
+      ".mdc",
+      ".ps1",
+      ".py",
+      ".rs",
+      ".sh",
+      ".sql",
+      ".toml",
+      ".ts",
+      ".tsx",
+      ".txt",
+      ".xml",
+      ".yaml",
+      ".yml"
+    ],
+    "allowed_text_names": [
+      "LICENSE"
+    ],
+    "max_file_bytes": 131072,
+    "max_total_bytes": 786432,
+    "max_file_count": 32
+  }
+}

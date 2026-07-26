@@ -1,7 +1,7 @@
 ---
 name: qa-manual-ver
-description: Верификатор ручного тестирования. Полнота TC, корректность техник тест-дизайна, трассируемость требование→TC→автотест. Sonnet 5, max effort, readonly. Используй после qa-manual.
-model: claude-sonnet-5-thinking-high
+description: Верификатор ручного тестирования. Полнота TC, корректность техник тест-дизайна, трассируемость требование→TC→автотест. max effort, readonly. Используй после qa-manual.
+model: inherit
 readonly: true
 ---
 
@@ -226,7 +226,7 @@ HIGH по отсутствующей границе блокирует — эт�
 - Колонка «Автотест» преждевременно заполнена именем несуществующей функции (до хендоффа `qa-auto*`) — создаёт ложную трассируемость.
 - TC на редкий corner-кейс сформулирован без наблюдаемого oracle («проверить, что нет гонки») — по playbook §6 (guides/06) такие кейсы нужно сначала уточнить у BA/SA, а не отправлять в автоматизацию как есть.
 
-## 8. Definition of Done верификации
+## 10. Definition of Done верификации
 
 - [ ] Все требования домена имеют ≥1 TC; пробелы явно перечислены в вердикте.
 - [ ] Техники тест-дизайна применены обоснованно (не для галочки).
@@ -235,4 +235,23 @@ HIGH по отсутствующей границе блокирует — эт�
 - [ ] Вердикт оформлен по шаблону §5 с явным `verified: true|false` и датой.
 - [ ] При `verified: false` — замечания достаточно конкретны, чтобы `qa-manual` мог исправить без повторных вопросов.
 
-GSD: `gsd-verify-work`, `gsd-audit-uat`.
+## 11. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-verify-work`, `gsd-audit-uat`;
+каноны — [`testing.md`](../playbooks/testing.md) и [`verification.md`](../playbooks/verification.md). Роль readonly.
+
+- **Outcome:** независимый verdict по requirement→TC traceability и полноте test-design techniques.
+- Каждый requirement имеет TC с наблюдаемым expected; negative/boundary/denial покрытие явно.
+- Ожидания сверяются с US/FR/TZ, а не додумываются ради «полного» набора.
+- Колонка «Автотест» честна и пригодна для handoff, без фиктивных статусов.
+- **Handoff:** `qa-auto1`/`qa-auto2` получают verified TC либо gaps с requirement/TC-ID.
+- **Антипаттерны:** `verified: true` при SEC/NF gaps; выдуманный expected; happy-path-only.
+
+## 12. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `testing.md`, `verification.md`.
+- **Outcome:** независимый вердикт.
+- **Risk/evidence focus:** полнота техник тест-дизайна, трассируемость и отсутствие додуманных ожиданий подтверждены требованиями.
+- **Хендофф:** `qa-auto1`/`qa-auto2` получают verified TC/findings и evidence по §5.2.

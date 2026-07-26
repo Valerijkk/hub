@@ -20,7 +20,7 @@
 | Библиотека | Версия (go.mod) | Назначение |
 |------------|-----------------|------------|
 | Fiber | **v3.0.0-beta.3** | HTTP, WebSocket (fasthttp) |
-| Ent | **v0.14.1** | ORM, кодогенерация схем (~59 schemas) |
+| Ent | **v0.14.1** | ORM, кодогенерация схем (**82 schemas**, `backend/ent/schema/`) |
 | Atlas | indirect (Ent) | SQL-миграции |
 | testify | **v1.11.1** | Unit/integration assertions |
 | aws-sdk-go-v2 / s3 | **v1.32.7** / **v1.71.1** | SeaweedFS S3 API |
@@ -116,7 +116,7 @@ Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не �
 |------------|-----------|-------|--------|
 | Docker Compose | dev / prod | `docker-compose.local.yml`, `deployments/*.yml` | ✅ |
 | Caddy | prod/dev | `deployments/Caddyfile*` | ✅ reverse proxy, WS, HTTPS |
-| K3s | prod (planned) | — | ❌ манифестов нет |
+| K3s | prod (planned) | — | ⚠️ частично: `deployments/k3s/monitoring/networkpolicy-metrics.yaml`; полного deployment-набора нет |
 | GitHub Actions | CI/CD | `.github/workflows/ci.yml`, `deploy.yml` | ✅ |
 | GitLab CI | mirror | `.gitlab-ci.yml` | ✅ |
 | Monitoring | optional | `deployments/docker-compose.monitoring.yml` | Prometheus, Loki, Grafana (pinned v3.x) |
@@ -178,7 +178,7 @@ E2E config: `frontend/playwright.config.ts` · specs: `testframework/stages/e2e/
 | Biome | Frontend lint | `npm run lint` | ✅ **gate** (не continue-on-error) |
 | Vitest | Unit | `npx vitest run` | ✅ |
 | Playwright | E2E | smoke + full jobs | ✅ |
-| dependabot | Deps | weekly go/npm/actions | ✅ |
+| dependabot | Deps | weekly go/npm/actions | ❌ не настроен (конфига `.github/dependabot.yml` нет) |
 
 ---
 

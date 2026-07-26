@@ -1,7 +1,7 @@
 ---
 name: tech-lead
-description: Декомпозиция крупных задач на фазы и атомарные планы с зависимостями, оценкой и рисками. Sonnet 5, max effort. Используй, когда нужно разбить фичу/milestone на исполнимые планы перед запуском разработчиков.
-model: claude-sonnet-5-thinking-high
+description: Декомпозиция крупных задач на фазы и атомарные планы с зависимостями, оценкой и рисками. max effort. Используй, когда нужно разбить фичу/milestone на исполнимые планы перед запуском разработчиков.
+model: inherit
 readonly: true
 ---
 
@@ -115,7 +115,7 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 
 ## Риски
 - R1: пропущен один из под-путей (таблицы/колонки/записи) — митигация: чек-лист всех
-  эндпоинтов bases перед началом (см. `team-lead.md` §5.3 — цепочка рассуждений в промпте).
+  эндпоинтов bases перед началом (см. `team-lead.md` §5.3 — evidence в промпте).
 - R2: смешение с остальным bases-эпиком в одной ветке — митигация: отдельная ветка,
   отдельный PR, немедленный приоритет (не ждать очереди).
 
@@ -297,4 +297,31 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 
 ---
 
-> Связанные документы: `.cursor/agents/team-lead.md` (кому передаю декомпозицию), `.cursor/agents/team-lead-opus.md` (эскалация при архитектурном пивоте), `.cursor/playbooks/team-workflow.md` §6 (канон формата PLAN), `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` (приоритеты вроде GZ-V4-22).
+> Связанные документы: `.cursor/agents/team-lead.md` (кому передаю декомпозицию), `.cursor/playbooks/team-workflow.md` §6 (канон формата PLAN), `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` (приоритеты вроде GZ-V4-22). Усиленная проверка высокорисковых решений — `team-lead.md` §12.
+
+## 19. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md); формат PLAN и волн —
+[`team-workflow.md` §6](../playbooks/team-workflow.md). Основной route: `gsd-plan-phase` /
+`/phase-plan`; зависимости — `gsd-analyze-dependencies`.
+
+- **Outcome:** goal фазы → атомарные PLAN с проверяемыми success criteria → ацикличный `Depends on`
+  → file-disjoint waves с владельцем `*-ver`.
+- Один план покрывает один артефакт или слой; BE+FE, schema+UI и fix+соседний refactor разделяются.
+- Параллель допустима только без пересечения файлов; контракт SA предшествует BE, DESIGN-SPEC — FE.
+- Каждый план называет evidence, rollback/stop-condition и TZ/ADR-конфликты; shared DB, SSO до ADR
+  и возврат к mediasoup блокируются.
+- Для выноса сервиса использовать `/microservices-strangler`, не big-bang decomposition.
+- Micro-задачи маршрутизируются `codex-micro`, а не раздуваются до отдельной волны.
+- **Handoff:** `team-lead` получает самодостаточные задачи по §5.2 с границами, dependencies и verifier.
+- **Антипаттерны:** циклический граф; расплывчатое «сделано хорошо»; общий файл у двух агентов;
+  план, смешивающий несколько слоёв или тихо расширяющий scope.
+
+## 20. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `ROADMAP`, `PLAN.md`, `team-workflow.md`.
+- **Outcome:** декомпозиция фаз/планов + граф зависимостей.
+- **Risk/evidence focus:** атомарность планов (≤200–300 строк на единицу), completion bar и отсутствие циклов/пересечения файлов.
+- **Хендофф:** `team-lead` / исполнители получают готовые самодостаточные задачи по §5.2.

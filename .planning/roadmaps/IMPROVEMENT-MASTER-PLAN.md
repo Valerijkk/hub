@@ -65,7 +65,7 @@
 ## Wave PRODUCT — v2.6 → v3.0
 
 > **Детальный backlog:** [.planning/roadmaps/FEATURE-BACKLOG-2026.md](./FEATURE-BACKLOG-2026.md)  
-> **Анализ:** [docs/competitive_analysis_2026.md](../docs/competitive_analysis_2026.md) · [docs/user_needs_analysis_2026.md](../docs/user_needs_analysis_2026.md)
+> **Анализ:** [docs/competitive_analysis_2026.md](../../docs/competitive_analysis_2026.md) · [docs/user_needs_analysis_2026.md](../../docs/user_needs_analysis_2026.md)
 
 | ID | Feature | Why |
 |----|---------|-----|

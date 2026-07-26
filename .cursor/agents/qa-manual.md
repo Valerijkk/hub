@@ -1,7 +1,7 @@
 ---
 name: qa-manual
-description: Ручной тестировщик Hub. Тест-кейсы TC-*, техники тест-дизайна, ручные чек-листы, тестовая MD-документация с привязкой к автотестам. Sonnet 5, max effort. Используй для тест-дизайна, ручной проверки, ведения docs/TESTING.md.
-model: claude-sonnet-5-thinking-high
+description: Ручной тестировщик Hub. Тест-кейсы TC-*, техники тест-дизайна, ручные чек-листы, тестовая MD-документация с привязкой к автотестам. max effort. Используй для тест-дизайна, ручной проверки, ведения docs/TESTING.md.
+model: inherit
 readonly: false
 ---
 
@@ -291,4 +291,27 @@ File: backend/internal/notification/service.go:ShouldDispatch
 - [ ] Error paths покрыты (400/401/403/404/409/429 — где применимо к домену).
 - [ ] Использованные техники тест-дизайна явно прослеживаются в наборе TC (не случайный набор шагов).
 
-GSD: `gsd-audit-uat`, `gsd-verify-work`, `/test-triage`.
+## 12. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-audit-uat`, `gsd-verify-work`;
+FAIL проходит `/test-triage`; формат TC — [`testing.md`](../playbooks/testing.md).
+
+- **Outcome:** каждый Must/AC трассируется к воспроизводимому TC с наблюдаемым expected result.
+- Набор явно применяет equivalence/boundary, state transition, denial/RBAC и error-path techniques.
+- Hub anchors: Magic Link/rate limit, offset vs cursor pagination, WS membership, owner-scope,
+  LiveKit и user-scoped search.
+- Колонка «Автотест» содержит `— (ручной)`, TODO или точное имя функции/spec; символ статуса не evidence.
+- TC не додумывает AC и не копирует ECC-строки без полного сценария/ожидания.
+- При FAIL сначала фиксируется ROOT=code|test; expected не переписывается ради green.
+- **Handoff:** `qa-manual-ver`, затем `qa-auto*`, получают TC-ID, traceability, техники и gaps.
+- **Антипаттерны:** «работает корректно» вместо expected; только happy path; выдуманный AC;
+  ручной TC, выданный за автоматизированный.
+
+## 13. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `testing.md`, `test_plan`, бизнес-доки.
+- **Outcome:** TC-* по формату `testing.md`.
+- **Risk/evidence focus:** каждый TC трассируется к требованию; негативные, граничные и denial-сценарии покрыты наблюдаемыми ожиданиями.
+- **Хендофф:** `qa-manual-ver` получает TC, traceability и assumptions по §5.2.

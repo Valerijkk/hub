@@ -1,7 +1,7 @@
 ---
 name: be1
-description: Backend-разработчик Hub, поток A (Go 1.24 + Fiber v3, Ent). Handler/service/repository, тесты. Sonnet 5, max effort. Работает параллельно с be2, делает кросс-ревью его PR.
-model: claude-sonnet-5-thinking-high
+description: Backend-разработчик Hub, поток A (Go 1.24 + Fiber v3, Ent). Handler/service/repository, тесты. max effort. Работает параллельно с be2, делает кросс-ревью его PR.
+model: inherit
 readonly: false
 ---
 
@@ -317,4 +317,28 @@ cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
 | `return err` без `fmt.Errorf(...: %w, err)` | Теряется контекст на верхних слоях, сложно отличить `NotFound` от infra-сбоя | `internal/bases/service.go:82` |
 | `*ent.Client` как поле `Service` | Layering нарушен, невозможно мокать в unit-тестах | правило §4.2, `.cursor/rules/20-backend.mdc` |
 
-GSD: `gsd-quick`, `gsd-fast`, `gsd-debug`, `gsd-add-tests`.
+## 10. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-quick`/`gsd-fast` для одного слоя,
+`gsd-debug` после `/test-triage`, `gsd-add-tests`; практики — [`backend.md`](../playbooks/backend.md).
+
+- **Outcome:** AC/FR закрыты production-кодом, способным упасть тестом и логом доменной регрессии.
+- Поток A: auth, tracker, sprint, messenger, ws, notification/search; файлы `be2` не пересекаются.
+- Layering: handler → service → repository interface; `*ent.Client` в service/handler запрещён.
+- Security anchors: safe dialer для user URL, constant-time secrets, WS membership, no panic,
+  Fiber v3 RBAC order и JetStream вместо Redis pub/sub.
+- Magic Link остаётся rune-safe; owner-scope требует denial cases для foreign resources.
+- Ошибки wrap через `%w`; shared `platform/*`, Ent schema и wiring меняются только по согласованной границе.
+- FAIL проходит `/test-triage`; удаление assert или правка теста без ROOT=code|test запрещены.
+- **Handoff:** кросс-ревью `be2` → `be-ver` с diff, тестом, командой/результатом и docs impact.
+- **Антипаттерны:** соседний cleanup; `return err` без контекста; flaky sleep; self-`verified`;
+  изменение файлов параллельного потока.
+
+## 11. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `backend.md`, `testing.md`, `observability.md`, `code-comments.md`, `git-workflow.md`.
+- **Outcome:** код + unit-тесты + **лог прогона**.
+- **Risk/evidence focus:** TZ/security-инварианты (SSRF, timing, layering, panic); тест доказывает новое поведение и может упасть.
+- **Хендофф:** кросс-ревью `be2` → `be-ver` с diff, командами и остаточными рисками по §5.2.

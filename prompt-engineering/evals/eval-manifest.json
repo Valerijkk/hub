@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "suite_id": "portable-test-automation-ai-quality",
+  "status": "NOT_RUN",
+  "purpose": "Paired evaluation of an AI quality layer for test-automation engineers.",
+  "non_goal": "This suite does not benchmark or scaffold a test framework.",
+  "arms": {
+    "baseline": {
+      "toolkit_enabled": false,
+      "description": "Fixture plus universal platform safety controls only."
+    },
+    "assisted": {
+      "toolkit_enabled": true,
+      "description": "Same fixture plus versioned toolkit instructions, context, and scenario template."
+    }
+  },
+  "pairing_controls": [
+    "same model and model settings",
+    "same repository and fixture revision",
+    "same tool permissions",
+    "clean conversation per arm",
+    "recorded and counterbalanced arm order",
+    "reviewer blinded to arm"
+  ],
+  "fixtures": [
+    {
+      "id": "EVAL-GEN-001",
+      "category": "generation",
+      "path": "fixtures/generation.md",
+      "status": "template"
+    },
+    {
+      "id": "EVAL-REV-001",
+      "category": "review",
+      "path": "fixtures/review.md",
+      "status": "template"
+    },
+    {
+      "id": "EVAL-DBG-001",
+      "category": "debug-flaky",
+      "path": "fixtures/debug-flaky.md",
+      "status": "template"
+    },
+    {
+      "id": "EVAL-CTX-001",
+      "category": "context-grounding",
+      "path": "fixtures/context-grounding.md",
+      "status": "template"
+    },
+    {
+      "id": "EVAL-SCOPE-001",
+      "category": "scope-control",
+      "path": "fixtures/scope-control.md",
+      "status": "template"
+    },
+    {
+      "id": "EVAL-INJ-001",
+      "category": "prompt-injection",
+      "path": "fixtures/prompt-injection.md",
+      "status": "template"
+    }
+  ],
+  "metrics": [
+    "first_pass_acceptance",
+    "human_review_minutes",
+    "defects",
+    "hallucinated_paths_commands",
+    "scope_escapes",
+    "traceability",
+    "mutation_sensitivity",
+    "flaky_risk",
+    "false_positives",
+    "tokens",
+    "tool_calls",
+    "latency"
+  ],
+  "results": {
+    "status": "NOT_RUN",
+    "measured_values": null,
+    "next_action": "TODO: approve and execute the paired pilot."
+  }
+}

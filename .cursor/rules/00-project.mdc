@@ -1,5 +1,5 @@
 ---
-description: Hub project context — stack, architecture, key docs. Always applied.
+description: Hub project context — stack, monorepo layout, key docs, current status. Always applied (session-global).
 alwaysApply: true
 ---
 
@@ -13,7 +13,7 @@ Unified platform for dev teams (10-50 people): Task Tracker + Messenger + TMS + 
 ```
 hub/
 ├── backend/          # Go 1.24 + Fiber v3
-│   ├── cmd/server/   # main.go (entry point, ~629 LOC — tech debt)
+│   ├── cmd/server/   # main.go (thin entry; wiring in wiring_*.go)
 │   ├── ent/schema/   # 82 Ent schemas
 │   └── internal/     # 31+ modules: auth, project, tracker, sprint,
 │                     # messenger, tms, calls, dashboard, notification,
@@ -46,16 +46,19 @@ hub/
 | UI | Shadcn/ui + Tailwind CSS 4 |
 | Infra | Docker Compose (dev), K3s (prod), Caddy |
 
-## Unified Knowledge Base (load ALL before any task)
+## Knowledge routing (progressive disclosure)
 
-- `docs/vision_and_scope.md` — business goals, User Stories
-- `docs/system_specification.md` — FR/NFR, API, ERD
-- `docs/architecture.md` — C4, deployment, patterns
-- `docs/test_plan.md` — testing strategy, regression
-- `docs/stack_and_tools.md` — stack versions, CI/CD
-- `docs/code_style_guide.md` — Go/TS style
-- `docs/security_guidelines.md` — OWASP, secrets, blockers
-- `docs/tz_constraints.md` — mandatory/forbidden (tracked mirror of `60-tz-constraints.mdc`)
+Старт: `AGENTS.md` + `.planning/STATE.md` + `docs/README.md`. Затем загружать
+только документы, влияющие на задачу; полный набор — для cross-domain audit.
+
+- Product/US → `docs/vision_and_scope.md`
+- API/ERD/FR/NFR → `docs/system_specification.md`
+- C4/deployment/patterns → `docs/architecture.md`
+- Test strategy/regression → `docs/test_plan.md`
+- Versions/CI/CD → `docs/stack_and_tools.md`
+- Go/TS style → `docs/code_style_guide.md`
+- OWASP/secrets/blockers → `docs/security_guidelines.md`
+- Mandatory/forbidden → `docs/tz_constraints.md` (mirror of `60-tz-constraints.mdc`)
 - Index: `docs/README.md` | Regulation: `.cursor/REGULATION.md` | Playbooks: `.cursor/playbooks/README.md`
 
 ## Key Planning Docs
@@ -71,7 +74,7 @@ hub/
 - Full audit summary: `.planning/code-review-final/SUMMARY.md`
 - v3.0 AI plans: `.planning/roadmaps/MILESTONE-3.md`
 
-## Current Status (2026-07-18)
+## Current Status (2026-07-26)
 
 - **v1.0** (Phases 1-7): SHIPPED 2026-03-21
 - **v2.0** (Phases 8-14, Hub Redesign): COMPLETE 2026-05-15
@@ -79,6 +82,9 @@ hub/
 - **Coverage wave (Phases 59–125):** COMPLETE, COV **83.0%**, 6/6 security packages ≥80%
 - **Волна 1 (roadmap 2026-07-03):** влита в `master` 2026-07-11 (integration/wave1 + otel-nats-trace + wave2 ADR/specs)
 - **Текущая фаза:** July Rebuild / QA-HARDENING **planning** — код freeze до возврата ~конец июля 2026; на диске только доки (`july-2026/*`, edge-expansions wave2–5, EDGE catalog ≈4696 ECC)
+- **Test Automation AI Quality Layer:** `prompt-engineering/`
+  `0.1.0-alpha.1`, structural PASS; Hub context complete; paired effectiveness/
+  ROI `NOT_RUN`; product code не затронут.
 - **SFU-решение:** остаёмся на **LiveKit** (WebRTC) — миграция на mediasoup **REJECTED** (`.planning/seeds/SEED-001-mediasoup-migration.md`); не предлагать возврат к этой теме без нового триггера
 - **Единственный prod-блокер:** **PG-03/FA-06** секрет-ротация (Resend/Telegram) — **ручная операция**, не гейтит разработку; лог — `.planning/production/FA-06-EXECUTION-LOG.md`, runbook — `docs/runbooks/fa06-secret-rotation.md`
 
@@ -121,9 +127,9 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 - Frontend feature-модули: `frontend/src/modules/{tracker,messenger,tms,calls,bases,crm,hr,accounting,calendar,intranet,marketplace,admin,settings,status}/`.
 - ADR по архитектуре/безопасности: `.planning/decisions/ADR-AUTH-SSO-2026.md`, `ADR-ARCH-MICROSERVICES-2026.md`, `ADR-AI-AGENTS-MCP-2026.md`.
 - Тест-фреймворк (канонический вход): `testframework/PIPELINE.md` — стадии CI → job → домен.
-- Не путать `docs/ROADMAP.md`-исторический с актуальным: актуальный roadmap — `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` / `ROADMAP-DETAILED-JULY-RETURN.md`.
-- Ростер и модели AI-команды (30 агентов) — не дублировать здесь, читать `.cursor/playbooks/README.md` §0/§3 (модели, тиры, обратная карта агент→playbook).
-- main.go (~629 LOC — известный tech debt) не расширять новой логикой: новая инициализация модуля идёт в `backend/cmd/server/wiring_*.go` (см. `20-backend.mdc`).
+- Не путать `.planning/ROADMAP.md`-исторический с актуальным: актуальный roadmap — `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` / `ROADMAP-DETAILED-JULY-RETURN.md`.
+- Ростер и модели AI-команды (32 агента) — не дублировать здесь, читать `.cursor/playbooks/README.md` §0/§3 (модели, тиры, обратная карта агент→playbook).
+- main.go (34 строки, инициализация разнесена по 13 `wiring_*.go`) не расширять новой логикой: новая инициализация модуля идёт в `backend/cmd/server/wiring_*.go` (см. `20-backend.mdc`).
 - Реальный пример «единственного prod-блокера, не блокирующего разработку»: `.planning/production/PG-03-SECRET-ROTATION.md` описывает ручную процедуру, которая может идти параллельно с любой фичевой веткой.
 - Wiki-документация продукта (не путать с этим `.cursor/`-справочником): `docs/wiki/` — `API.md`, `SHORTCUTS.md`, `QUICKSTART.md`, `DEPLOY.md`.
 - CI-экономия минут (студенческий пакет GitHub Actions): смотри реальные джобы `.github/workflows/{ci,pr-guard,deploy}.yml` перед добавлением новой матрицы/джобы.

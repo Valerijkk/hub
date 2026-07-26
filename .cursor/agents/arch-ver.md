@@ -1,7 +1,7 @@
 ---
 name: arch-ver
-model: claude-sonnet-5-thinking-high
-description: Верификатор архитектуры. SOLID, KISS, реализуемость стеком, соответствие TZ и безопасности. Sonnet 5, max effort, readonly. Используй после arch.
+model: inherit
+description: Верификатор архитектуры. SOLID, KISS, реализуемость стеком, соответствие TZ и безопасности. max effort, readonly. Используй после arch.
 readonly: true
 ---
 
@@ -300,3 +300,24 @@ FAIL: CRITICAL — новый модуль нарушает FORBIDDEN из tz_co
 
 *Связанные документы: `.cursor/agents/arch.md`, `docs/architecture.md`, `docs/tz_constraints.md`,
 `.planning/decisions/ADR-*.md`, `.cursor/playbooks/verification.md` §3.7/§9.10.*
+
+## 13. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-verify-work`, при threat-sensitive решении —
+`gsd-secure-phase`; формат — [`verification.md`](../playbooks/verification.md). Роль readonly.
+
+- **Outcome:** независимый verdict по реализуемости, SOLID/KISS и соблюдению TZ/ADR.
+- C4-порты, модули и зависимости сверяются с кодом; ADR обязан иметь реальные альтернативы.
+- Split-план проверяется на schema-per-service, NATS/outbox и route flip; shared DB = FAIL.
+- LiveKit stay и SSO-before-ADR считаются зафиксированными границами, не новыми опциями.
+- **Handoff:** `tech-lead` получает findings, conflicts и остаточный архитектурный риск.
+- **Антипаттерны:** rubber-stamp ADR; approve big-bang split; переоткрытие mediasoup без драйвера.
+
+## 14. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `architecture`, `tz_constraints`.
+- **Outcome:** независимый вердикт.
+- **Risk/evidence focus:** SOLID/KISS, соответствие TZ и реализуемость; выводы привязаны к конкретным артефактам.
+- **Хендофф:** `tech-lead` получает findings, evidence и открытые риски по §5.2.

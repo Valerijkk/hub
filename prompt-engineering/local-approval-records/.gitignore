@@ -1,0 +1,7 @@
+*
+
+!.gitignore
+
+!README.md
+
+!sample-readonly-local-agent.yaml

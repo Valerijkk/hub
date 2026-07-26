@@ -17,8 +17,10 @@
 | [code_style_guide.md](code_style_guide.md) | Стиль Go/TS, SOLID, запреты | RU |
 | [security_guidelines.md](security_guidelines.md) | OWASP, секреты, security checklist | RU |
 | [tz_constraints.md](tz_constraints.md) | TZ mandatory/forbidden (tracked mirror) | RU |
-| [competitive_audit.md](competitive_audit.md) | Конкуренты, feature backlog | RU |
+| [competitive_analysis_2026.md](competitive_analysis_2026.md) | Конкуренты, TCO, gaps | RU |
+| [competitive_audit.md](competitive_audit.md) | Best practices, feature backlog | RU |
 | [user_needs_analysis_2026.md](user_needs_analysis_2026.md) | Персоны, JTBD | RU |
+| [GLOSSARY.md](GLOSSARY.md) | Термины, ID-конвенции (TC-/FR-/GZ-/ECC-…), модули backend | RU |
 
 ---
 
@@ -30,9 +32,11 @@
 | [TECHNICAL.md](TECHNICAL.md) | ERD, API, WebSocket, env vars, деплой |
 | [TESTING.md](TESTING.md) | Тест-кейсы TC-*, матрица автоматизации |
 | [testframework_strategy.md](testframework_strategy.md) | Стратегия тестфреймворка: слои Go/TS/Python, Locust, Allure→TMS, гейты |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Типовые грабли разработки: сборка, тесты (`-tags hubtest`), окружение, Docker |
+| [runbooks/](runbooks/README.md) | **Эксплуатация прода:** инцидент, алерты, деплой/откат, БД, бэкапы, ротация секретов |
 | [onboarding/](onboarding/README.md) | Онбординг-листы по ролям (BE/FE/QA-manual/QA-auto/PM+ops) |
 | [wiki/HOME.md](wiki/HOME.md) | Точка входа wiki |
-| [wiki/API.md](wiki/API.md) | Справочник REST API (~286 endpoints) |
+| [wiki/API.md](wiki/API.md) | Справочник REST API (число endpoints требует пересчёта: грубый счёт регистраций маршрутов даёт ~393, но пути относительны группам) |
 | [wiki/DEPLOY.md](wiki/DEPLOY.md) | Установка, Docker, CI/CD |
 | [wiki/QUICKSTART.md](wiki/QUICKSTART.md) | Быстрый старт для пользователей |
 | [wiki/SHORTCUTS.md](wiki/SHORTCUTS.md) | Горячие клавиши |
@@ -62,12 +66,12 @@
 
 | Платформа | Файлы |
 |-----------|-------|
-| GitHub | `.github/workflows/ci.yml`, `deploy.yml`, `pr-guard.yml`, `dependabot.yml` |
+| GitHub | `.github/workflows/ci.yml`, `deploy.yml`, `pr-guard.yml` |
 | GitLab | `.gitlab-ci.yml` (mirror gates) |
 
 **Версии в CI (2026-06-21):** Go **1.25**, Node **22**, Mongo **8** (service), Postgres/Redis/NATS в e2e-full via `scripts/ci-e2e-backend.sh`.
 
-**Команда агентов:** `.cursor/` **трекается в git** (решение 2026-07-03): агенты (`.cursor/agents/`, 30 ролей), playbooks (`.cursor/playbooks/`, 10 файлов), правила, скилы. Индекс: `.cursor/playbooks/README.md`.
+**Команда агентов:** `.cursor/` **трекается в git** (решение 2026-07-03): агенты (`.cursor/agents/`, 32 файла), playbooks (`.cursor/playbooks/`, 11 + README), правила, скилы. Индекс: `.cursor/playbooks/README.md`.
 
 ---
 
@@ -76,7 +80,9 @@
 ```bash
 # Полный backend regression
 cd backend && go generate ./ent && go build -tags release ./... \
-  && go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/...
+  && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
+# (в backend/internal/ нет *_test.go — все 499 тестов в backend/testframework/;
+#  покрытие internal меряется флагом -coverpkg=./internal/...)
 
 # Frontend regression
 cd frontend && npx tsc --noEmit && npm run lint && npx vitest run
@@ -88,4 +94,4 @@ docker compose --env-file .env.local -f docker-compose.local.yml up --build
 Skill: `/qa-gate` — останавливается на первой FAIL.
 
 ---
-*2026-07-03 — реорганизация AI-команды (30 агентов + playbooks), ADR-MICROSERVICES, ROADMAP-FINAL, DOCS-EXCELLENCE*
+*2026-07-19 — GLOSSARY, TROUBLESHOOTING, runbooks/, актуализация фактов и счётчиков · 2026-07-03 — реорганизация AI-команды, ADR-MICROSERVICES, ROADMAP-FINAL*

@@ -2,7 +2,28 @@
 
 > Оглавление planning-артефактов июля 2026.  
 > Все пути ниже — на диске (QA-HARDENING P0, 2026-07-10).  
-> Обновлено: 2026-07-18 · файлы июля лежат в `.planning/july-2026/` · навигация всего `.planning/`: [`../README.md`](../README.md)
+> Обновлено: 2026-07-26 · Test Automation AI Quality Layer rework · файлы июля лежат в `.planning/july-2026/` · навигация всего `.planning/`: [`../README.md`](../README.md)
+
+---
+
+## AI-expansion (22.07 → 15.08.2026)
+
+| Артефакт | Путь | Назначение |
+|----------|------|------------|
+| Index | [ai-expansion/README.md](ai-expansion/README.md) | Порт GSD + portable kit + agents/PE |
+| Product scope | [ai-expansion/01-PRODUCT-SCOPE.md](ai-expansion/01-PRODUCT-SCOPE.md) | MoSCoW, metrics |
+| Tech plan | [ai-expansion/02-TECH-PLAN.md](ai-expansion/02-TECH-PLAN.md) | 26 задач, W1–W4 + structural/package/eval gates |
+| GSD inventory | [ai-expansion/03-GSD-PORT-INVENTORY.md](ai-expansion/03-GSD-PORT-INVENTORY.md) | ~79 skills → P0/P1/P2 |
+| Portable arch | [ai-expansion/04-PORTABLE-HUB-ARCH.md](ai-expansion/04-PORTABLE-HUB-ARCH.md) | C4 + microservices + AI layer |
+| Portable kit | [ai-expansion/05-PORTABLE-KIT.md](ai-expansion/05-PORTABLE-KIT.md) | Что копировать |
+| Reduced GitHub | [ai-expansion/06-REDUCED-GITHUB-MODULE.md](ai-expansion/06-REDUCED-GITHUB-MODULE.md) | Blueprint issue/PR/checks |
+| Acceptance | [ai-expansion/07-ACCEPTANCE.md](ai-expansion/07-ACCEPTANCE.md) | Исторический Must PASS; rework-gates перепроверяются |
+| Portable kit dry-run | [ai-expansion/08-PORTABLE-KIT-DRY-RUN.md](ai-expansion/08-PORTABLE-KIT-DRY-RUN.md) | L1–L5 → `corp-hub-starter`, PASS/FAIL |
+| AI quality layer rework | [ai-expansion/09-AI-QUALITY-LAYER-REWORK.md](ai-expansion/09-AI-QUALITY-LAYER-REWORK.md) | Context bootstrap, patterns, manual colleague examples, recipes/evals |
+| GSD-RU skills | `.cursor/skills/gsd-ru/` | RU lite |
+| PE portable guide | `prompt-engineering/PORTABLE-HUB-KIT.md` | 10 шагов переноса |
+| July repo-scan index | [`../audits/2026-07/repo-scan/INDEX.md`](../audits/2026-07/repo-scan/INDEX.md) | 40 report slots, not 40 independent runs |
+| Repo-scan provenance | [`../audits/2026-07/repo-scan/PROVENANCE.md`](../audits/2026-07/repo-scan/PROVENANCE.md) | Confidence classes; SCORECARD non-authoritative |
 
 ---
 
@@ -53,7 +74,7 @@
 
 | Артефакт | Путь | Назначение |
 |----------|------|------------|
-| Playbooks index | `.cursor/playbooks/README.md` | 30 агентов, модели, RACI |
+| Playbooks index | `.cursor/playbooks/README.md` | 32 agent files, dynamic models, RACI |
 | Team workflow | `.cursor/playbooks/team-workflow.md` | Волны, кросс-ревью, merge policy |
 | Backend / Frontend / Comments | `.cursor/playbooks/backend.md`, `frontend.md`, `code-comments.md` | Практики кода |
 | Docs sync rule | `.cursor/rules/55-docs-sync.mdc` | Матрица docs после фич |
@@ -89,7 +110,7 @@
 2. Rebuild / CAL-SYNC → brief + SEED-002 (SEED-001 не поднимать).  
 3. Тесты / edge → Testing Guide + EDGE-CORNER-CATALOG (не копировать сюда).  
 4. Код PR → CODE-QUALITY-CHARTER + playbooks + `*-ver` / code-reviewer.  
-5. Мерж в `master` — **только пользователь**; Волна 1 уже в фича-ветках.
+5. Мерж в `master` — **только пользователь**; Волна 1 merged пользователем 2026-07-11.
 
 ---
 

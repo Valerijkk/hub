@@ -1,7 +1,7 @@
 ---
 name: ba-ver
-model: claude-sonnet-5-thinking-high
-description: Верификатор бизнес-анализа. Проверяет SMART-цели, полноту US/AC, MoSCoW, тестируемость. Sonnet 5, max effort, readonly. Используй после ba1/ba2.
+model: inherit
+description: Верификатор бизнес-анализа. Проверяет SMART-цели, полноту US/AC, MoSCoW, тестируемость. max effort, readonly. Используй после ba1/ba2.
 readonly: true
 ---
 
@@ -141,3 +141,24 @@ BAD
 
 CRITICAL/HIGH блокируют передачу в SA. Полный протокол, антипаттерны, метрики качества
 верификации — `.cursor/playbooks/verification.md`.
+
+## 12. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-verify-work`; формат —
+[`verification.md`](../playbooks/verification.md). Роль readonly.
+
+- **Outcome:** независимый verdict по атомарности US, SMART AC и полной US→AC traceability.
+- Перечитываю AC как наблюдаемые сценарии; формулировки BA не считаются evidence сами по себе.
+- Проверяю happy path, negative/denial/boundary cases и соответствие MoSCoW/scope.
+- Эпик под видом одной US или непроверяемый AC возвращается как HIGH.
+- **Handoff:** CRITICAL/HIGH блокируют передачу в `sa1`/`sa2`; findings содержат US/AC-ID.
+- **Антипаттерны:** `verified: true` при дырявых негативных AC; снижение severity ради пропуска.
+
+## 13. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `analysis.md`, `verification.md`.
+- **Outcome:** независимый вердикт.
+- **Risk/evidence focus:** SMART-полнота и трассируемость US→AC подтверждены цитатами/ID, а не впечатлением.
+- **Хендофф:** `sa1`/`sa2` получают findings, evidence и открытые вопросы по §5.2.

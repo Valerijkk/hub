@@ -1,6 +1,7 @@
 ---
-description: После изменений — цикличное качество новой фичи + регрессия старого + верификатор + docs sync. Без green gate — не handoff.
-alwaysApply: true
+description: Cyclic quality gate — test new behavior, regression on affected domain, verifier before handoff. Apply when implementing, fixing, or integrating code and tests.
+globs: backend/**/*,frontend/**/*,testframework/**/*,.github/workflows/**/*
+alwaysApply: false
 ---
 
 # Hub — Regression & Verification Gate

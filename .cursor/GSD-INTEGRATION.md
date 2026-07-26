@@ -2,8 +2,114 @@
 
 > GSD skills: `~/.claude/skills/gsd-*/SKILL.md` · Hub slash-skills: `.cursor/skills/*/SKILL.md`.
 > Ростер команды: `.cursor/playbooks/README.md` · Регламент: `.cursor/REGULATION.md`.
+>
+> **Этот файл отвечает «какая ситуация → какой скил» (маршрутизация).** Вопрос «где в промпте объявить скил и что агент с ним делает» — [`playbooks/prompt-contract.md`](playbooks/prompt-contract.md) §13 (в т.ч. обязательные скилы-ворота: `/test-triage`, `/qa-gate`, `/handoff-sync`, `/style-check`, `/coverage-audit`).
 
-*Обновлено: 2026-07-18 — новый ростер 30 агентов + playbooks; расширенные матрицы см. ниже.*
+*Обновлено: 2026-07-26 — P0: name/routing fix (installed vs Hub-native) · 2026-07-23 — P0/P1 port status mid-Aug / 2026-07-22 — GSD-RU lite + ai-expansion mid-Aug / 2026-07-19 — ссылка на контракт промпта (§13 prompt-contract) / 2026-07-18 — ростер 32 агента + playbooks.*
+
+---
+
+## Installed GSD vs Hub-native (source of truth)
+
+| Слой | Где лежит | Имя skill | Примеры |
+|------|-----------|-----------|---------|
+| **Installed GSD** | `~/.claude/skills/gsd-<name>/` | = имя папки | `gsd-plan-phase`, `gsd-execute-phase`, `gsd-ai-integration-phase` (79 skills) |
+| **Hub slash** | `.cursor/skills/<name>/SKILL.md` | = имя папки | `qa-gate`, `handoff-sync`, `coverage-audit`, `test-triage` |
+| **GSD-RU lite** | `.cursor/skills/gsd-ru/<name>/SKILL.md` | = имя папки | `phase-plan`, `wave-run`, `goal-verify`, `handoff` |
+
+Этот файл — каноническая Hub-матрица маршрутизации. Полный каталог installed
+skills показывает `gsd-help`, а неясный intent принимает `gsd-do`.
+Маршрутизируй только существующий installed skill или Hub-путь из таблицы выше.
+Coverage — Hub `/coverage-audit`; handoff — `/handoff` +
+`/handoff-sync`; framework selection входит в `gsd-ai-integration-phase`.
+
+Инвентарь installed: `ai-expansion/03-GSD-PORT-INVENTORY.md` (79 skills · 2026-07-22).
+
+---
+
+## GSD-RU (Hub, русский lite)
+
+Локальный pack без обязательного `~/.claude` на каждый шаг: [`.cursor/skills/gsd-ru/README.md`](skills/gsd-ru/README.md)
+
+| Intent | GSD-RU invocation |
+|--------|-------------------|
+| План фазы | `/phase-plan` |
+| Волна агентов | `/wave-run` |
+| Goal-backward | `/goal-verify` |
+| STATE / handoff | `/handoff` |
+| Перенос AI kit | `/portable-kit` |
+| Strangler checklist | `/microservices-strangler` |
+
+Планы порта и portable kit (горизонт → 15.08.2026): [`.planning/july-2026/ai-expansion/`](../.planning/july-2026/ai-expansion/README.md)
+PE project-agnostic порт: [`prompt-engineering/gsd-port/`](../prompt-engineering/gsd-port/README.md) · [`PORTABLE-HUB-KIT.md`](../prompt-engineering/PORTABLE-HUB-KIT.md)
+
+Инвентарь upstream skills: `ai-expansion/03-GSD-PORT-INVENTORY.md`.
+
+---
+
+## P0/P1 port status mid-Aug
+
+> Источник: [`03-GSD-PORT-INVENTORY.md`](../.planning/july-2026/ai-expansion/03-GSD-PORT-INVENTORY.md) (79 skills · 2026-07-22).
+> Σ: **P0=21 · P1=35 · P2=15 · SKIP=8**.
+> Политика: паттерны в RU/PE/agents — не vendor-copy upstream `SKILL.md`.
+
+### Сводка
+
+| Pri | Count | Где закрываем |
+|-----|------:|---------------|
+| **P0** | **21** | `gsd-ru` (ядро цикла) + agents/PE (качество, discuss, ship) |
+| **P1** | **35** | в основном **route-only** здесь + усиление agents/PE до 15.08 |
+| **P2** | **15** | later |
+| **SKIP** | **8** | не портировать (`autonomous`, `cleanup`, `from-gsd2`, `inbox`, `join-discord`, `reapply-patches`, `undo`, `update`) |
+
+### P0 = 21 — полный список
+
+`gsd-add-tests`, `gsd-analyze-dependencies`, `gsd-audit-uat`, `gsd-code-review`, `gsd-code-review-fix`, `gsd-debug`, `gsd-discuss-phase`, `gsd-docs-update`, `gsd-execute-phase`, `gsd-fast`, `gsd-plan-phase`, `gsd-plant-seed`, `gsd-progress`, `gsd-quick`, `gsd-resume-work`, `gsd-secure-phase`, `gsd-ship`, `gsd-spec-phase`, `gsd-validate-phase`, `gsd-verify-work`, `gsd-workstreams`.
+
+### Уже в gsd-ru (done) — 6 upstream P0 → 4 skills
+
+| Upstream P0 | GSD-RU invocation |
+|-------------|-------------------|
+| `gsd-plan-phase`, `gsd-analyze-dependencies` | `/phase-plan` |
+| `gsd-execute-phase` | `/wave-run` |
+| `gsd-verify-work` | `/goal-verify` |
+| `gsd-progress`, `gsd-resume-work` (+ pause как паттерн) | `/handoff` |
+
+Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `microservices-strangler`.
+
+### P0 ещё не как gsd-ru skill — agents / practice / route
+
+| Upstream P0 | Статус mid-Aug | Куда добить до 15.08 |
+|-------------|----------------|----------------------|
+| `gsd-discuss-phase`, `gsd-spec-phase` | practice · agents `ba1`/`ba2` | секции GSD + PE |
+| `gsd-plant-seed` | practice · `.planning/seeds/` | agents `ba2`/`product` |
+| `gsd-workstreams` | practice · team-workflow | PE `wave-execution` + `team-lead` |
+| `gsd-quick`, `gsd-fast` | partial · route | agents `be*`/`fe*` / `codex-micro` |
+| `gsd-add-tests`, `gsd-validate-phase` | partial · route | agents `qa-auto*` |
+| `gsd-audit-uat` | partial · route | agents `qa-manual` |
+| `gsd-code-review`, `gsd-code-review-fix` | practice · `code-reviewer` | agents `code-reviewer` |
+| `gsd-secure-phase` | practice · `security-auditor` | agents + при ADR — strangler |
+| `gsd-debug` | practice · `debugger` + `/test-triage` | agents `debugger` |
+| `gsd-docs-update` | practice · `docs-writer` + rule 55 | agents `docs-writer` |
+| `gsd-ship` | practice · devops | agents `devops-engineer` |
+
+**Итого P0:** 6/21 закрыты локальным `gsd-ru` skill; **15/21** — паттерн в agents/practice или route (не отдельный RU skill). Не смешивать с Hub slash: `/qa-gate` ≠ `gsd-verify-work`.
+
+### P1 — route-only и PE (ориентир до 15.08)
+
+Большинство из **35** P1 остаются **partial · route** в этой матрице (таблицы ниже) + точечное усиление:
+
+| Кластер P1 | Примеры | Port target |
+|------------|---------|-------------|
+| Roadmap / orient | `add-phase`, `insert-phase`, `remove-phase`, `complete-milestone`, `do`, `next`, `plan-milestone-gaps` | GSD-INTEGRATION (route) |
+| Intel / map | `intel`, `map-codebase`, `scan` | GSD-INTEGRATION · sa |
+| Backlog / notes | `add-backlog`, `add-todo`, `check-todos`, `note`, `review-backlog` | PE / product |
+| Design / UI | `sketch`, `sketch-wrap-up`, `ui-phase`, `ui-review` | agents designer* |
+| Research / AI | `research-phase`, `ai-integration-phase`, `explore`, `list-phase-assumptions` | PE / arch / product |
+| Ship / docs extras | `pr-branch`, `milestone-summary`, `help` | playbooks / docs-writer / `gsd-help` |
+| Models | `set-profile`, `settings` | ADR-MODELS cutover checklist (W4) |
+
+Полная построчная таблица 79 — только в `03-GSD-PORT-INVENTORY.md` (здесь не дублируем).
 
 ---
 
@@ -16,13 +122,13 @@
 | Следующий шаг | `gsd-next` | — |
 | Волны/исполнение | `gsd-execute-phase`, `gsd-workstreams` | — |
 | Мелкая задача | `gsd-quick`, `gsd-fast` | — |
-| Синхронизация STATE | `gsd-handoff` via | `/handoff-sync` |
+| Синхронизация STATE | `/handoff` | `/handoff-sync` |
 | Полный quality gate | — | `/qa-gate` |
-| Матрица покрытия | `gsd-coverage-audit` | `/coverage-audit` |
+| Матрица покрытия | — | `/coverage-audit` (Hub) |
 
 ---
 
-## Ростер 30 агентов → GSD + playbook
+## Ростер 32 агента → GSD + playbook
 
 | Agent | Primary GSD | Secondary GSD | Playbook |
 |-------|-------------|---------------|----------|
@@ -32,9 +138,9 @@
 | `product-ver` | `gsd-verify-work` | `gsd-audit-milestone` | `verification.md` |
 | `ba1`, `ba2` | `gsd-discuss-phase`, `gsd-spec-phase` | `gsd-review-backlog` | `analysis.md` |
 | `ba-ver` | `gsd-verify-work` | — | `verification.md` |
-| `sa1`, `sa2` | `gsd-coverage-audit`, `gsd-intel` | `gsd-audit-uat`, `gsd-map-codebase` | `analysis.md` |
+| `sa1`, `sa2` | Hub `coverage-audit`, `gsd-intel` | `gsd-audit-uat`, `gsd-map-codebase` | `analysis.md` |
 | `sa-ver` | `gsd-verify-work` | `gsd-audit-uat` | `verification.md` |
-| `arch` | `gsd-ai-integration-phase`, `gsd-ui-phase` | `gsd-research-phase`, `gsd-select-framework` | `analysis.md`, `backend.md`, `frontend.md` |
+| `arch` | `gsd-ai-integration-phase`, `gsd-ui-phase` | `gsd-research-phase`, `gsd-eval-review` | `analysis.md`, `backend.md`, `frontend.md` |
 | `arch-ver` | `gsd-verify-work` | `gsd-secure-phase` | `verification.md` |
 | `designer` | `gsd-sketch`, `gsd-ui-phase` | `gsd-ui-review`, `gsd-sketch-wrap-up` | `design.md` |
 | `designer-ver` | `gsd-ui-review` | `gsd-verify-work` | `verification.md`, `design.md` |
@@ -60,7 +166,7 @@
 |--------------|----------------|
 | `.planning/ROADMAP.md` | Milestone phases |
 | `.planning/STATE.md` | `gsd-progress` state |
-| `.planning/COVERAGE.md` | `gsd-coverage-audit` output |
+| `.planning/COVERAGE.md` | Hub `coverage-audit` output |
 | `.planning/EXPANSION-ANALYSIS-*.md` | backlog для `gsd-plan-phase` |
 | `.planning/quick/` | `gsd-quick` tasks |
 | `.planning/debug/` | `gsd-debug` sessions |
@@ -90,7 +196,9 @@
 
 ## Когда какую GSD-команду — расширенная матрица по фазам жизненного цикла
 
-> Дублирует часть `.cursor/skills/gsd-index/SKILL.md`, но с привязкой к реальным ситуациям Hub. Полный список GSD-команд: `~/.claude/skills/gsd-*/SKILL.md` (более 60 skills), здесь — только те, что реально используются в Hub-практике.
+> Это каноническая подробная Hub-маршрутизация с привязкой к реальным
+> ситуациям. Полный список installed-команд показывает `gsd-help`; здесь —
+> только команды, используемые в Hub-практике.
 
 ### 1. Старт / ориентация в сессии
 
@@ -110,10 +218,10 @@
 | Нужно понять зависимости фаз | `gsd-analyze-dependencies` | Перед вставкой новой фазы в roadmap |
 | Срочная задача между фазами | `gsd-insert-phase` (напр. `72.1`) | Хотфикс безопасности вне очереди |
 | Фича на конец roadmap | `gsd-add-phase` | Добавление v4 AI hub фазы |
-| Нужен research перед планом | `gsd-research-phase`, `gsd-phase-researcher` | Выбор AI framework для gateway BYOK |
+| Нужен research перед планом | `gsd-research-phase` | Выбор AI framework для gateway BYOK |
 | AI-система (провайдер/агент/RAG) | `gsd-ai-integration-phase` | AI Provider Hub Spec (`.planning/specs/AI-PROVIDER-HUB-SPEC.md`) |
 | UI-контракт перед реализацией | `gsd-ui-phase` → `gsd-ui-review` | Bases inline-edit экран |
-| Проверка плана до исполнения | `gsd-plan-checker` | team-lead перед запуском волны |
+| Независимое peer review плана | `gsd-review` | team-lead перед запуском рискованной волны |
 
 ### 3. Исполнение
 
@@ -123,7 +231,7 @@
 | Несколько долгоживущих параллельных потоков | `gsd-workstreams` | Track F (frontend) и Track P (platform) одновременно |
 | Мелкая точечная задача с трекингом | `gsd-quick` | Добавить один RBAC-guard в `bases/service.go` |
 | Тривиальный inline-фикс без оверхеда | `gsd-fast` | Опечатка в error message, переименование поля DTO |
-| Всё подряд автономно | `gsd-autonomous` | Только team-lead/team-lead-opus, финальные волны |
+| Всё подряд автономно | `gsd-autonomous` | Только `team-lead`, финальные волны |
 
 ### 4. Качество / тесты / баги
 
@@ -144,7 +252,7 @@
 | Ситуация | Команда | Пример Hub |
 |----------|---------|------------|
 | Bulk-обновление docs с верификацией по коду | `gsd-docs-update` | После `.planning/` reorg — проверка ссылок в `docs/README.md` |
-| Матрица требование×код×тест | `gsd-coverage-audit` | Обновление `.planning/COVERAGE.md` |
+| Матрица требование×код×тест | Hub `coverage-audit` | Обновление `.planning/COVERAGE.md` |
 | Codebase intelligence refresh | `gsd-intel` | После крупного рефакторинга tracker automation |
 | Глубокий анализ кодовой базы | `gsd-map-codebase` | Перед v4 super-app декомпозицией |
 | Milestone-резюме для онбординга | `gsd-milestone-summary` | `.planning/milestones/v4-super-app/SUMMARY.md` |
@@ -164,9 +272,9 @@
 
 ---
 
-## Ростер 30 агентов → GSD + playbook (детализация по use-case)
+## Ростер 32 агента → GSD + playbook (детализация по use-case)
 
-> Таблица выше (§«Ростер 30 агентов») даёт primary/secondary skill. Ниже — конкретные ситуации, когда агент реально вызывает каждый skill.
+> Таблица выше (§«Ростер 32 агента») даёт primary/secondary skill. Ниже — конкретные ситуации, когда агент реально вызывает каждый skill.
 
 | Agent | Skill | Реальная ситуация Hub |
 |-------|-------|------------------------|
@@ -174,8 +282,8 @@
 | `team-lead` | `gsd-workstreams` | Одновременное ведение Track F (frontend redesign) и Track P (platform/otel) |
 | `tech-lead` | `gsd-plan-phase` | Декомпозиция CAL-SYNC на фазы email L0-L3 + calendar + calls RSVP |
 | `ba1`/`ba2` | `gsd-discuss-phase` | Уточнение серых зон перед US для intranet v2 (poll-in-post, kudos) |
-| `sa1`/`sa2` | `gsd-coverage-audit` | Трассировка FR-CAL-01…08 → `calendar_event` ERD → тесты |
-| `arch` | `gsd-ai-integration-phase` | Framework selection для AI gateway (BYOK vs Ollama) |
+| `sa1`/`sa2` | Hub `coverage-audit` | Трассировка FR-CAL-01…08 → `calendar_event` ERD → тесты |
+| `arch` | `gsd-ai-integration-phase` | Framework selection для AI gateway (BYOK vs Ollama) — внутри skill |
 | `designer` | `gsd-sketch` | Throwaway HTML-мокапы bases inline-edit перед `gsd-ui-phase` |
 | `be1`/`be2` | `gsd-debug` | Race condition в `ws/hub_shutdown_test.go` — persistent debug session |
 | `fe1`/`fe2` | `gsd-ui-review` | Retroactive 6-pillar аудит v4 bases-page.tsx после реализации |
@@ -196,7 +304,7 @@
 | `.planning/ROADMAP.md` | Milestone phases (исторический, 125 фаз) | корень |
 | `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` | Актуальный roadmap (волны Track F/P, TF-PY, DOCS-EXCELLENCE) | `july-2026/` |
 | `.planning/STATE.md` | `gsd-progress` state | корень |
-| `.planning/COVERAGE.md` | `gsd-coverage-audit` output | корень |
+| `.planning/COVERAGE.md` | Hub `coverage-audit` output | корень |
 | `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` | backlog для `gsd-plan-phase` | `july-2026/` |
 | `.planning/quick/` | `gsd-quick` tasks | корень (если создаётся) |
 | `.planning/debug/` | `gsd-debug` sessions | корень |
@@ -215,7 +323,7 @@
 1. gsd-discuss-phase --power   → ba1/ba2 собирают серые зоны email L0-L3, calendar RSVP
 2. gsd-research-phase          → arch исследует iCal RFC 5545 constraints
 3. gsd-plan-phase               → tech-lead: PLAN.md с task breakdown + Depends on
-4. gsd-plan-checker              → team-lead верифицирует план до исполнения
+4. gsd-review                    → независимое peer review плана до исполнения
 5. gsd-execute-phase             → be1 (calendar_event ERD) + be2 (ical sync) + fe1 (UI) параллельно
    → каждый: /test-triage на FAIL → персональный *-ver
 6. gsd-add-tests                 → qa-auto1/2 добивают coverage gaps
@@ -252,7 +360,7 @@
 | Упавший тест — код или тест виноват | `.cursor/skills/test-triage/SKILL.md` | `gsd-debug` напрямую (сначала триаж, `gsd-debug` — только если триаж показал сложный root cause) |
 | STATE/COVERAGE/ROADMAP синхронизация в конце сессии | `.cursor/skills/handoff-sync/SKILL.md` | `gsd-milestone-summary` (это для завершённого milestone, не рутинный handoff) |
 | Требование×код×тест матрица | `.cursor/skills/coverage-audit/SKILL.md` | `gsd-map-codebase` (это структурный анализ, не coverage) |
-| Anti-AI паттерны + стиль | `.cursor/skills/style-check/SKILL.md`, `anti-ai-check/SKILL.md` | `gsd-code-review` (более общий peer review, не построчный grep) |
+| Anti-AI паттерны + стиль | `.cursor/skills/style-check/SKILL.md` + `references/anti-ai.md` | `gsd-code-review` (более общий peer review, не построчный grep) |
 | Новая крупная фаза с research+planning | `gsd-discuss-phase` → `gsd-plan-phase` | Hub-skills (их нет для планирования — это зона GSD) |
 | Retroactive verify реализованной фазы | `gsd-verify-work`, `gsd-validate-phase` | Hub-skills (Hub-гейты — pre-merge, GSD verify — post-hoc) |
 
@@ -266,17 +374,17 @@
 
 ## Каталог GSD skills, релевантных Hub (полный, по категориям)
 
-> `~/.claude/skills/gsd-*/SKILL.md` — более 60 skills в системе; ниже — те, что реально применимы в контексте Hub (монорепо Go+React с 30-агентной командой). Остальные (напр. `gsd-new-project`, `gsd-new-workspace`) — не актуальны, т.к. проект уже существует и не мультиворкспейс.
+> `~/.claude/skills/gsd-*/SKILL.md` — 79 installed skills; ниже — те, что реально применимы в контексте Hub (монорепо Go+React с 32-агентной командой). Остальные (напр. `gsd-new-project`, `gsd-new-workspace`) — не актуальны, т.к. проект уже существует и не мультиворкспейс.
 
 | Категория | Skills |
 |-----------|--------|
 | Оркестрация сессии | `gsd-do`, `gsd-progress`, `gsd-next`, `gsd-help`, `gsd-check-todos`, `gsd-resume-work`, `gsd-pause-work` |
-| Планирование | `gsd-discuss-phase`, `gsd-spec-phase`, `gsd-plan-phase`, `gsd-plan-checker`, `gsd-analyze-dependencies`, `gsd-insert-phase`, `gsd-add-phase`, `gsd-list-phase-assumptions`, `gsd-research-phase` |
-| AI-фичи | `gsd-ai-integration-phase`, `gsd-domain-researcher`, `gsd-eval-planner`, `gsd-eval-review`, `gsd-framework-selector` |
+| Планирование | `gsd-discuss-phase`, `gsd-spec-phase`, `gsd-plan-phase`, `gsd-review`, `gsd-analyze-dependencies`, `gsd-insert-phase`, `gsd-add-phase`, `gsd-list-phase-assumptions`, `gsd-research-phase` |
+| AI-фичи | `gsd-ai-integration-phase` (вкл. framework selection), `gsd-eval-review`, `gsd-research-phase` |
 | UI/дизайн | `gsd-ui-phase`, `gsd-ui-review`, `gsd-sketch`, `gsd-sketch-wrap-up` |
 | Исполнение | `gsd-execute-phase`, `gsd-workstreams`, `gsd-quick`, `gsd-fast`, `gsd-autonomous` |
-| Качество/тесты | `gsd-add-tests`, `gsd-validate-phase`, `gsd-verify-work`, `gsd-audit-fix`, `gsd-audit-uat`, `gsd-debug`, `gsd-forensics`, `gsd-nyquist-auditor` (внутренний, вызывается из `gsd-validate-phase`) |
-| Документация/анализ | `gsd-docs-update`, `gsd-coverage-audit`, `gsd-intel`, `gsd-map-codebase`, `gsd-code-review`, `gsd-code-review-fix`, `gsd-milestone-summary`, `gsd-extract_learnings` |
+| Качество/тесты | `gsd-add-tests`, `gsd-validate-phase`, `gsd-verify-work`, `gsd-audit-fix`, `gsd-audit-uat`, `gsd-debug`, `gsd-forensics` |
+| Документация/анализ | `gsd-docs-update`, Hub `coverage-audit`, `gsd-intel`, `gsd-map-codebase`, `gsd-code-review`, `gsd-code-review-fix`, `gsd-milestone-summary`, `gsd-extract_learnings` |
 | Безопасность | `gsd-secure-phase` |
 | Завершение | `gsd-complete-milestone`, `gsd-audit-milestone`, `gsd-ship`, `gsd-pr-branch`, `gsd-undo` |
 | Идеи/backlog | `gsd-explore`, `gsd-plant-seed`, `gsd-add-backlog`, `gsd-review-backlog`, `gsd-note`, `gsd-add-todo` |
@@ -302,7 +410,7 @@
 ### Сценарий: coverage gap найден для домена `tms`
 
 ```
-1. gsd-coverage-audit (или /coverage-audit Hub) → .planning/COVERAGE.md обновлён, виден gap tms 78%<82%
+1. Hub `/coverage-audit` → `.planning/COVERAGE.md` обновлён, виден gap tms 78%<82%
 2. qa-auto1/qa-auto2 назначаются на gap
 3. gsd-add-tests                        → новые testframework/tms/service_waveNNN_test.go
 4. Цикл: новое поведение → регрессия домена tms → /qa-gate точечный (testframework/tms/...)
@@ -310,16 +418,17 @@
 6. docs-writer: .planning/COVERAGE.md, docs/test_plan.md
 ```
 
-### Сценарий: эскалация team-lead → team-lead-opus
+### Сценарий: усиленная проверка высокорискового решения
 
 ```
-Условие эскалации: декомпозиция затрагивает >4 модуля ОДНОВРЕМЕННО,
+Условие: декомпозиция затрагивает >4 модуля одновременно,
   ИЛИ архитектурное решение без готового ADR,
   ИЛИ финальная приёмка milestone (не фазы).
 
-1. team-lead формулирует запрос эскалации с контекстом (что не может решить Fable-дефолтом)
-2. team-lead-opus (Opus 4.8 @ 1M) : gsd-plan-phase / gsd-audit-milestone на полном контексте
-3. Результат передаётся обратно team-lead для исполнения волнами
+1. team-lead формулирует самодостаточный §5.2 с полным контекстом (ADR, gray-zones, PLAN)
+2. Выбирает downstream runtime по capability/cost/risk; при высокой цене ошибки —
+   независимый challenge-pass (`*-ver`, `code-reviewer`, `gsd-audit-milestone`)
+3. Результат фиксируется в ADR/PLAN/SUMMARY; дальнейшие волны — штатная оркестрация team-lead
 ```
 
 ### Сценарий: UI-фича с нуля (bases inline-edit)
@@ -328,7 +437,7 @@
 1. gsd-sketch                    → designer: throwaway HTML варианты (2-3)
 2. Выбор варианта пользователем/PM
 3. gsd-ui-phase                  → designer: UI-SPEC.md (токены --hub-*, состояния, a11y)
-4. gsd-ui-checker                 → designer-ver: BLOCK/FLAG/PASS до реализации
+4. designer-ver                   → BLOCK/FLAG/PASS для UI-SPEC до реализации
 5. fe1/fe2 implement по UI-SPEC.md
 6. gsd-ui-review                  → fe-ver / designer-ver: 6-pillar аудит после реализации
 7. Vitest: testframework/stages/unit/frontend-test/domains/v4/bases-page.test.tsx
@@ -366,4 +475,4 @@
 
 ---
 
-*Updated: 2026-07-18 — docs-writer: расширение матриц (Когда какая GSD-команда, use-case таблица агентов, актуальные пути `.planning/`, сквозные примеры маршрута, каталог skills, частые ошибки маршрутизации, 5 многошаговых сценариев, глоссарий)*
+*Updated: 2026-07-23 — docs-writer: § P0/P1 port status mid-Aug (inventory 03) · 2026-07-19 — расширение матриц (Когда какая GSD-команда, use-case таблица агентов, актуальные пути `.planning/`, сквозные примеры маршрута, каталог skills, частые ошибки маршрутизации, 5 многошаговых сценариев, глоссарий)*

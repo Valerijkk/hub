@@ -49,7 +49,7 @@
 
 | Метрика | Значение |
 |---------|----------|
-| Backend `testframework/**/*_test.go` | **495** файлов |
+| Backend `testframework/**/*_test.go` | **499** файлов (filesystem count 2026-07-26) |
 | Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
 | Statement coverage `internal/` | **83.0%** |
 | Security-critical packages ≥80% | **6/6** ✅ |
@@ -210,4 +210,4 @@ File: path:line
 | `.cursor/skills/qa-gate/SKILL.md` | Полный gate |
 
 ---
-*Последнее обновление: 2026-06-22 — quality audit: pipeline paths, 495 BE tests, COV 83%, product score 87/100*
+*Последнее обновление: 2026-07-26 — inventory 499 BE test files; COV 83% остаётся baseline прогона 2026-06-22*

@@ -1,7 +1,7 @@
 ---
 name: designer-ver
-description: Верификатор дизайна. Консистентность токенов --hub-*, доступность (WCAG), отзывчивость, соответствие дизайн-системе. Sonnet 5, max effort, readonly. Используй после designer.
-model: claude-sonnet-5-thinking-high
+description: Верификатор дизайна. Консистентность токенов --hub-*, доступность (WCAG), отзывчивость, соответствие дизайн-системе. max effort, readonly. Используй после designer.
+model: inherit
 readonly: true
 ---
 
@@ -342,3 +342,24 @@ FAIL: 2×CRITICAL (запрещённый !important + недоступный к
 *Связанные документы: `.cursor/agents/designer.md`, `.cursor/playbooks/design.md`,
 `.cursor/rules/30-frontend.mdc`, `.cursor/rules/60-tz-constraints.mdc`, `frontend/src/app.css`,
 `.cursor/playbooks/verification.md` §3.9/§9.11.*
+
+## 13. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-ui-review`, `gsd-verify-work`;
+канон — [`design.md`](../playbooks/design.md) и [`verification.md`](../playbooks/verification.md). Роль readonly.
+
+- **Outcome:** независимый verdict по DESIGN-SPEC, tokens, responsive states и WCAG.
+- Каждый цвет/spacing сверяется с `--hub-*`; `!important` и hardcoded visual drift = FAIL.
+- Проверяю loading/empty/error/success/permission, focus, keyboard и contrast evidence.
+- Radix behavior и Shadcn contract не должны меняться ради локального макета.
+- **Handoff:** `fe1`/`fe2` получают findings, file boundaries и обязательные design constraints.
+- **Антипаттерны:** approve «похоже на макет»; пропуск empty/error; a11y только по скриншоту.
+
+## 14. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `design.md`.
+- **Outcome:** независимый вердикт.
+- **Risk/evidence focus:** консистентность реальных токенов, a11y и responsive states подтверждены проверками.
+- **Хендофф:** `fe1`/`fe2` получают findings, evidence и обязательные ограничения по §5.2.

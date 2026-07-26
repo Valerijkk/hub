@@ -3,13 +3,13 @@
 > Чек-листы первого дня и первой недели для **людей**, присоединяющихся к проекту Hub.
 > Создано в рамках эпика DOCS-EXCELLENCE (DOC-05 ⚡, 2026-07-03).
 
-Hub — self-hosted корпоративный super-app (Task Tracker + Messenger + TMS + Voice Calls + Dashboards + intranet/calendar/CRM/HR/учёт/no-code базы/AI hub). Разработку ведёт AI-команда из 30 агентов под управлением владельца проекта; люди подключаются к ролям и работают **вместе** с агентами.
+Hub — self-hosted корпоративный super-app (Task Tracker + Messenger + TMS + Voice Calls + Dashboards + intranet/calendar/CRM/HR/учёт/no-code базы/AI hub). Разработку ведёт AI-команда из 32 агентов под управлением владельца проекта; люди подключаются к ролям и работают **вместе** с агентами.
 
 ## Выбери свой лист
 
 | Роль | Файл | Кратко |
 |------|------|--------|
-| Backend-разработчик | [backend-developer.md](backend-developer.md) | Go 1.24 + Fiber v3 + Ent, layering, юниты — твоя обязанность |
+| Backend-разработчик | [backend-developer.md](backend-developer.md) | Go 1.25 + Fiber v3 + Ent, layering, юниты — твоя обязанность |
 | Frontend-разработчик | [frontend-developer.md](frontend-developer.md) | React 19 + TS + TanStack + Tailwind 4/Shadcn, юниты Vitest |
 | Ручной QA | [qa-manual.md](qa-manual.md) | Бизнес-дока → TC в `docs/TESTING.md`, тест-дизайн, верификация доки |
 | QA-автоматизатор | [qa-automation.md](qa-automation.md) | Автотесты по верифицированным TC; целевой стек Python + Allure + Locust |

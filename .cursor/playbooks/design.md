@@ -37,14 +37,15 @@ product / ba / sa           designer            designer-ver          fe1 / fe2 
                             состояния + a11y      a11y + responsive     className-only     visual diff
 ```
 
-| Агент | Модель | Роль | Артефакт | Читает | Пишет |
-|-------|--------|------|----------|--------|-------|
-| `designer` | Sonnet 5 @ 200–300k, max effort | Дизайн-система, макеты, UX-спеки, токены | Дизайн-спека (Markdown), обновления `app.css`-токенов | `vision_and_scope.md`, `30-frontend.mdc`, `app.css`, US/AC от `ba`/`sa` | `.cursor/playbooks/`-совместимые спеки, DESIGN-SPEC.md фазы |
-| `designer-ver` | Sonnet 5 @ 200–300k, max effort | Независимая верификация дизайна | Отчёт верификации `verified: true/false` + лог | Спека `designer`, `app.css`, реализацию `fe` | Verification report |
-| `fe1`, `fe2` | Sonnet 5 @ 200–300k, max effort | Реализация UI по спеке | React-компоненты, `className`-расширения Shadcn | DESIGN-SPEC, `30-frontend.mdc`, Shadcn `components/ui/*` | `frontend/src/**` |
-| `fe-ver` | Sonnet 5 @ 200–300k, max effort | Верификация реализации UI | Отчёт: a11y (axe), Lighthouse, visual, регрессия | Реализацию `fe`, спеку `designer` | Verification report |
+| Агент | Маршрутизация | Роль | Артефакт | Читает | Пишет |
+|-------|---------------|------|----------|--------|-------|
+| `designer` | `inherit` (routed; max effort) | Дизайн-система, макеты, UX-спеки, токены | Дизайн-спека (Markdown), обновления `app.css`-токенов | `vision_and_scope.md`, `30-frontend.mdc`, `app.css`, US/AC от `ba`/`sa` | `.cursor/playbooks/`-совместимые спеки, DESIGN-SPEC.md фазы |
+| `designer-ver` | `inherit` (routed; max effort) | Независимая верификация дизайна | Отчёт верификации `verified: true/false` + лог | Спека `designer`, `app.css`, реализацию `fe` | Verification report |
+| `fe1`, `fe2` | `inherit` (routed; max effort) | Реализация UI по спеке | React-компоненты, `className`-расширения Shadcn | DESIGN-SPEC, `30-frontend.mdc`, Shadcn `components/ui/*` | `frontend/src/**` |
+| `fe-ver` | `inherit` (routed; max effort) | Верификация реализации UI | Отчёт: a11y (axe), Lighthouse, visual, регрессия | Реализацию `fe`, спеку `designer` | Verification report |
 
-> `team-lead` (Fable 5; эскалация — `team-lead-opus` на Opus 4.8) — оркестратор и финальная инстанция приёмки. Он не рисует, но принимает
+> `team-lead` (GPT-5.6 Sol Pro; downstream — catalog-backed routing по
+> `team-workflow.md` §1.1) — оркестратор и финальная инстанция приёмки. Он не рисует, но принимает
 > дизайн-артефакт целиком после `designer-ver` и `fe-ver`. См. `.cursor/playbooks/team-workflow.md`.
 
 ## 1.2 Когда включается `designer`

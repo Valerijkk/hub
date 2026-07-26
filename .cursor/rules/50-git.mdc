@@ -1,5 +1,5 @@
 ---
-description: Git workflow, commit format, branch naming, what not to commit.
+description: Git safety and workflow — branch naming, commit format, never push/merge master, secrets policy. Always applied (session-global).
 alwaysApply: true
 ---
 
@@ -29,7 +29,7 @@ hotfix/<issue-id>/<description> — critical production fixes
 <type>(<scope>): <description>
 
 Types: feat | fix | refactor | test | docs | chore | perf | ci
-Scope: auth | tracker | messenger | tms | calls | dashboard | 
+Scope: auth | tracker | messenger | tms | calls | dashboard |
        notification | search | ws | platform | frontend | infra | ent
 
 Examples:

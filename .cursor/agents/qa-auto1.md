@@ -1,7 +1,7 @@
 ---
 name: qa-auto1
-description: Инженер автоматизации Hub, поток A (backend Go unit/integration, API). testframework, Allure, замер времени. Sonnet 5, max effort. Работает параллельно с qa-auto2, кросс-ревью.
-model: claude-sonnet-5-thinking-high
+description: Инженер автоматизации Hub, поток A (backend Go unit/integration, API). testframework, Allure, замер времени. max effort. Работает параллельно с qa-auto2, кросс-ревью.
+model: inherit
 readonly: false
 ---
 
@@ -56,7 +56,7 @@ go test -tags hubtest -v -run TestCreateIssue ./testframework/tracker/...
 | Что | Паттерн | Пример реального файла |
 |-----|---------|------------------------|
 | Файл теста | `{layer}_{feature}_test.go` | `handler_magiclink_runes_test.go` |
-| Файл теста волны | `service_wave<NN>_test.go` | `backend/testframework/tracker/service_wave126_test.go` |
+| Файл теста волны | `service_wave<NN>_test.go` | `backend/testframework/tracker/service_wave121_test.go` |
 | Функция | `Test{Subject}_{Scenario}` | `TestVerifyTelegramAuth_InvalidHash` |
 | White-box экспорт | `export_hooks.go` (`//go:build hubtest`) | см. §7 |
 
@@ -474,4 +474,28 @@ go tool cover -func="${TMPDIR:-/tmp}/hub-cov.out" | rg " 0.0%"   # пакеты 
 - [ ] Coverage-gate соблюдён; профили удалены (rule 45), `git status` чист.
 - [ ] White-box только через `export_hooks.go` с `//go:build hubtest`.
 
-GSD: `gsd-add-tests`, `gsd-validate-phase`, `gsd-audit-fix`, `/qa-gate`, `/coverage-audit`.
+## 17. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-add-tests`, `gsd-validate-phase`,
+`gsd-audit-fix`; FAIL — `/test-triage`, coverage — `/coverage-audit`; канон —
+[`testing.md`](../playbooks/testing.md).
+
+- **Outcome:** backend test в `backend/testframework/<domain>/`, трассированный к verified TC/Allure ID,
+  с логом `-tags hubtest -race` и замером времени.
+- Тест падает при инверсии поведения; mock моделирует not-found/conflict, а не возвращает `nil,nil`.
+- Запрещены `time.Sleep`, flaky wait и assertions только на вызов mock; подозрение проверяется ×N.
+- White-box доступ идёт только через `export_hooks.go` под `hubtest`; тесты в `internal/` не возвращаются.
+- Coverage dump не хранится в `backend/` и не коммитится; метрика синхронизируется с COVERAGE/TESTING.
+- Поток не пересекает FE/E2E файлы `qa-auto2`; audit-fix начинается с классификации, не shotgun.
+- **Handoff:** кросс-ревью `qa-auto2` → `qa-auto-ver` с TC mapping, командами и фактическим outcome.
+- **Антипаттерны:** orphan test; подгонка assert без triage; sleep; coverprofile в git;
+  traceability «потом».
+
+## 18. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `testing.md`, `observability.md`, `git-workflow.md`.
+- **Outcome:** код тестов + привязка TC + **лог прогона**.
+- **Risk/evidence focus:** тест падает при инверсии, детерминирован и трассируется TC↔автотест.
+- **Хендофф:** кросс-ревью `qa-auto2` → `qa-auto-ver` с командами и evidence по §5.2.

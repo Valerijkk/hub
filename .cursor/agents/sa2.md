@@ -1,7 +1,7 @@
 ---
 name: sa2
-description: Системный аналитик Hub (поток B — tms, calls, dashboard, search, notification, v4-модули). FR/NFR, ERD, REST API-контракты. Sonnet 5, max effort. Работает параллельно с sa1.
-model: claude-sonnet-5-thinking-high
+description: Системный аналитик Hub (поток B — tms, calls, dashboard, search, notification, v4-модули). FR/NFR, ERD, REST API-контракты. max effort. Работает параллельно с sa1.
+model: inherit
 readonly: false
 ---
 
@@ -153,7 +153,7 @@ verified: false → sa-ver
 
 ## 7. GSD
 
-`gsd-coverage-audit`/`/coverage-audit`, `gsd-intel`, `gsd-audit-uat`.
+Hub `/coverage-audit`, `gsd-intel`, `gsd-audit-uat`.
 
 ## 8. Частые вопросы
 
@@ -165,3 +165,28 @@ verified: false → sa-ver
 | Notification и intranet kudos — общий event? | Согласовать: kudos (мой, intranet) публикует событие, notification (мой же, но отдельный FR) подписывается — оба у меня, просто разные FR |
 
 Полные шаблоны, worked-пример, расширенный good/bad, FAQ — `.cursor/playbooks/analysis.md`.
+
+## 9. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md); анализ — [`analysis.md`](../playbooks/analysis.md);
+coverage inventory — Hub `/coverage-audit`.
+
+- **Outcome:** верифицированные US потока B → FR/NFR → ERD → API и versioned NATS events → `sa-ver`.
+- Поток B: TMS, calls, dashboard, search/notification и v4-модули; cross-module ownership задаётся явно.
+- NF-03 user scope, NF-07 `ValidateOutboundURL`, SEC-02 signature без skip и owner-scoped bases
+  фиксируются в контракте, если домен затронут.
+- Межмодульные факты идут через JetStream subjects/outbox, не shared-write tables или Redis pub/sub.
+- Calls остаётся на LiveKit; iCal outbound использует safe client; OAuth требует product/ADR.
+- Orphan FR и контракт «уточним в реализации» блокируют зависимую wave.
+- **Handoff:** `sa-ver` получает traceability, ERD/API/events delta, route evidence и ownership boundaries.
+- **Антипаттерны:** shared DB «временно»; дубли events без owner; mediasoup/multi-org scope creep;
+  пересечение доменов `sa1`.
+
+## 10. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `analysis.md`, `system_specification`.
+- **Outcome:** FR/NFR + ERD + API-контракт.
+- **Risk/evidence focus:** контракт непротиворечив, трассируется к BA-требованиям; assumptions не записаны как факты.
+- **Хендофф:** `sa-ver` получает спецификацию, traceability и открытые решения по §5.2.

@@ -1,0 +1,24 @@
+schema_version: "1.0"
+system_message_parts:
+  - prompt-engineering/rules/00-global-agent-rules.md
+  - prompt-engineering/rules/50-data-handling.md
+  - prompt-engineering/agents/README.md
+  - "prompt-engineering/agents/<role>.md"
+context_message_parts:
+  - type: untrusted_data
+    delimiter: "BEGIN/END UNTRUSTED CONTEXT"
+    sources:
+      - "<task-specific generated context cards>"
+      - "<task-specific approved pattern cards>"
+user_message:
+  human_input: natural_language_allowed
+  delegated_input: prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md
+runtime_enforcement:
+  write_scope: required
+  approval_record: prompt-engineering/adapters/APPROVAL-RECORD.schema.yaml
+  approval_authority: human_or_approved_policy_only
+  embedded_approval_is_invalid: true
+  reconfirm_external_or_destructive_action: true
+  stopping_condition: required
+  model_selection: prompt-engineering/playbooks/model-routing.md
+unobserved_claim_label: NOT_VERIFIED

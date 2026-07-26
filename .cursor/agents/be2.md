@@ -1,7 +1,7 @@
 ---
 name: be2
-description: Backend-разработчик Hub, поток B (Go 1.24 + Fiber v3, Ent). Handler/service/repository, тесты. Sonnet 5, max effort. Работает параллельно с be1, делает кросс-ревью его PR.
-model: claude-sonnet-5-thinking-high
+description: Backend-разработчик Hub, поток B (Go 1.24 + Fiber v3, Ent). Handler/service/repository, тесты. max effort. Работает параллельно с be1, делает кросс-ревью его PR.
+model: inherit
 readonly: false
 ---
 
@@ -248,4 +248,28 @@ rec, err := s.repo.CreateRecord(ctx, tableID, userID, req.Cells) // WRONG: req.C
 | Сохранение пользовательского JSON без allowlist по колонкам/полям | Мусорные/произвольные ключи в БД, риск на фронте при рендере | `internal/bases/service.go:287-302` |
 | Бесконечный кэш прав/ролей без инвалидации при смене роли | Устаревшие права работают до истечения TTL | `internal/rbac/cache.go`, паттерн ME-13 в `auth/middleware.go` |
 
-GSD: `gsd-quick`, `gsd-fast`, `gsd-debug`, `gsd-add-tests`.
+## 10. GSD-паттерны (Hub-усиленные)
+
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-quick`/`gsd-fast` для одного слоя,
+`gsd-debug` после `/test-triage`, `gsd-add-tests`; практики — [`backend.md`](../playbooks/backend.md).
+
+- **Outcome:** AC/FR закрыты production-кодом, тестом и логом доменной регрессии.
+- Поток B: TMS, calls, dashboard, RBAC, bases и v4-модули; файлы `be1` не пересекаются.
+- Layering: handler → service → repository interface; authorization выполняется до мутации.
+- Security/concurrency anchors: Fiber buffer copy до async, nil WS authorizer не означает allow,
+  done-сигнал вместо закрытия writer channel, cache invalidation и allowlist payload fields.
+- Calls остаётся на LiveKit; mediasoup не возвращается без нового ADR-триггера.
+- Shared WS/RBAC/Ent/wiring границы заранее согласуются с `arch`/`tech-lead`.
+- FAIL проходит `/test-triage`; sleep и ослабление denial-assert не являются фиксом flaky.
+- **Handoff:** кросс-ревью `be1` → `be-ver` с diff, тестом, командами/результатом и docs impact.
+- **Антипаттерны:** shared file touch; mutate-before-authorize; permissive WS default;
+  silent multi-tab overwrite; SFU scope creep.
+
+## 11. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `backend.md`, `testing.md`, `observability.md`, `code-comments.md`, `git-workflow.md`.
+- **Outcome:** код + unit-тесты + **лог прогона**.
+- **Risk/evidence focus:** TZ/security-инварианты (SSRF, timing, layering, panic); тест доказывает новое поведение и может упасть.
+- **Хендофф:** кросс-ревью `be1` → `be-ver` с diff, командами и остаточными рисками по §5.2.

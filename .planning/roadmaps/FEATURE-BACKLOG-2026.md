@@ -400,7 +400,7 @@
 
 ## NOTIF — Telegram bind + Email alerts (v2.5–v2.6)
 
-> Spec: [../specs/NOTIF-TG-EMAIL-SPEC.md](./NOTIF-TG-EMAIL-SPEC.md)
+> Spec: [../specs/NOTIF-TG-EMAIL-SPEC.md](../specs/NOTIF-TG-EMAIL-SPEC.md)
 
 | ID | Feature | Effort | Priority |
 |----|---------|--------|----------|
@@ -438,7 +438,7 @@ v2.0.2 SHIPPED
 
 ## Extended dependency graph note
 
-See [../specs/PLATFORM-VISION-v4.md](./PLATFORM-VISION-v4.md) for microservices split triggers.
+See [../specs/PLATFORM-VISION-v4.md](../specs/PLATFORM-VISION-v4.md) for microservices split triggers.
 
 ---
 

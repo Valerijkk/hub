@@ -8,7 +8,9 @@ disable-model-invocation: true
 
 Запусти все проверки последовательно. Останови при первой FAIL. При FAIL — не чини сразу: примени `.cursor/skills/test-triage/SKILL.md`, затем повтори **с начала упавшего шага** (rule `56-regression-verify.mdc`, цикл до green).
 
-> **Два режима:** быстрый локальный (Step 1-2, разработка) и **канонический Docker `-tags hubtest`** (Step 2a, обязателен перед handoff/PR — в `backend/testframework/` 495+ тестов, в `internal/` — 0).
+> **Два режима:** быстрый локальный (Step 1-2, разработка) и **канонический
+> Docker `-tags hubtest`** (Step 2a, обязателен перед handoff/PR — в
+> `backend/testframework/` 499 test files на 2026-07-26, в `internal/` — 0).
 
 ## Step 1: Go Build + Vet
 

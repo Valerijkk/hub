@@ -1,6 +1,6 @@
 ---
-description: Frontend React/TypeScript patterns for Hub — routing, state, design system, a11y.
-globs: frontend/**
+description: Frontend React/TypeScript patterns — TanStack Router, Zustand, Shadcn, a11y. Auto-attaches for frontend/ files.
+globs: frontend/**/*
 alwaysApply: false
 ---
 
@@ -108,7 +108,7 @@ const Dashboard = lazy(() => import('./routes/dashboard'))
 export const issueApi = {
     list: (projectId: string, params: IssueListParams) =>
         api.get<PaginatedResponse<Issue>>(`/projects/${projectId}/issues`, { params }),
-    
+
     create: (projectId: string, data: CreateIssueRequest) =>
         api.post<Issue>(`/projects/${projectId}/issues`, data),
 }

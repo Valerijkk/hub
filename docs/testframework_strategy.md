@@ -73,7 +73,7 @@ Go-тесты физически живут в `backend/testframework/` (не в
 
 | Метрика | Значение |
 |---------|----------|
-| Backend test files | 495 `_test.go` (0 в `internal/`) |
+| Backend test files | 499 `_test.go` (0 в `internal/`) |
 | Frontend Vitest | 37 файлов, 99 тестов |
 | Playwright E2E | 20 spec (smoke: 3) |
 | Statement coverage `internal/` | **83.0%** при gate ≥82% |

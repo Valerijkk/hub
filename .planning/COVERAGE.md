@@ -29,16 +29,19 @@
 
 ---
 
-## Test baseline (Wave C FA-03, Docker 2026-06-22, verified)
+## Test baseline (coverage 2026-06-22; file inventory refreshed 2026-07-26)
 
 | Layer | Count | Notes |
 |-------|-------|-------|
-| Backend `testframework/**/*_test.go` | **495** files | TF migration COMPLETE |
+| Backend `testframework/**/*_test.go` | **499** files | Filesystem count 2026-07-26; TF migration COMPLETE |
 | Backend `internal/*_test.go` (remaining) | **0** files | TF-M08 ✅ verified |
 | Frontend Vitest `testframework/stages/unit/frontend-test/domains/` | **37** files | **99/99** tests · 0 in `src/` |
 | Playwright E2E | **20** spec files | `testframework/stages/e2e/domains/` |
 | E2E shared (POM/steps) | pages, steps, helpers | `testframework/stages/e2e/shared/` |
 | Statement coverage (overall `internal/`) | **83.0%** | post FA-11/12 ✅ |
+
+`499` is a filesystem inventory, not a new coverage run. Coverage percentages
+remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
 
 ### Покрытие по пакетам (актуальное, Docker)
 
@@ -152,7 +155,7 @@
 | INF-04 | BackupService nil s3 | 🔧 Fixed main.go | ⚠️ unit only |
 | FE-01 | Rules of Hooks | 🔧 Fixed | ❌ |
 
-**Verdict:** COV-01 gate **PASS** (83.0% ≥82%, security 6/6 ≥80%). Wave C FA-02 re-audit **DONE** — 0 CRITICAL regression (`.planning/FA-02-SECURITY-REAUDIT.md`).
+**Verdict:** COV-01 gate **PASS** (83.0% ≥82%, security 6/6 ≥80%). Wave C FA-02 re-audit **DONE** — 0 CRITICAL regression (`.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md`).
 
 ---
 
@@ -183,7 +186,7 @@
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | TF test framework migration (488 / 0 internal) | ✅ COMPLETE |
+| 1 | TF test framework migration (current inventory 499 / 0 internal) | ✅ COMPLETE |
 | 2 | FA-11 tms/project → 82% | ✅ closed |
 | 3 | NFR-16 full WCAG AA sign-off | ⚠️ partial |
 | 4 | NFR-17 Lighthouse ≥90 in CI | ⚠️ artifact job (non-blocking) |
@@ -201,7 +204,7 @@
 1. **DevOps:** FA-06 PG-03 Phase 1–3 (manual) — scripts: `bash scripts/fa06.sh p1-compose` or `p1-k3s` → `p2-smoke` → CTO sign-off
 2. **DevOps:** SSH deploy — `bash scripts/fa06.sh deploy` · GitHub Secrets SSH_HOST/SSH_KEY
 3. **Release:** `bash scripts/fa06.sh release-gate` → `git tag v2.5.0` after FA-06 complete
-4. **Backlog:** NFR-17 Lighthouse blocking gate · NFR-16 WCAG AA sign-off · `.planning/AUDIT-2026-06-23.md`
+4. **Backlog:** NFR-17 Lighthouse blocking gate · NFR-16 WCAG AA sign-off · `.planning/audits/2026-06/AUDIT-2026-06-23.md`
 
 ---
 

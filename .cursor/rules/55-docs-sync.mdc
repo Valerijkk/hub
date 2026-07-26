@@ -1,6 +1,7 @@
 ---
-description: После любого изменения кода — обновить затронутую документацию (docs/, .planning/, wiki).
-alwaysApply: true
+description: Mandatory docs sync after functional code, API, CI, deploy, UX, or security changes — update STATE.md and domain docs in the same session before handoff.
+globs: backend/**/*,frontend/**/*,deployments/**/*,.github/**/*,docs/**/*,.planning/**/*
+alwaysApply: false
 ---
 
 # Hub — Documentation Sync (mandatory)

@@ -1,6 +1,6 @@
 const fs = require("fs");
 const isHex = c => (c>="0"&&c<="9")||(c>="a"&&c<="f")||(c>="A"&&c<="F");
-let raw = fs.readFileSync("C:/Users/Valerii/Desktop/hub/.planning/biome.json", "utf8");
+let raw = fs.readFileSync(require("path").join(__dirname, "biome.json"), "utf8");
 // Fix invalid backslash escapes everywhere — replace any backslash inside a
 // double-quoted string that isn't part of a valid JSON escape (" \ / b f n r t u).
 // Approach: walk the string char-by-char with a tiny state machine.
