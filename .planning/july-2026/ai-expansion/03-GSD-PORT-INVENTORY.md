@@ -1,9 +1,9 @@
 # GSD Port Inventory — Hub (русский, лучше оригинала)
 
-> **Источник фактов:** `C:\Users\Valerii\.claude\skills\gsd-*/SKILL.md` — **79** skills (filesystem 2026-07-22).  
-> Прочитано: YAML frontmatter (`name`/`description`) + первые ~40 строк каждого `SKILL.md`.  
-> Политика: **паттерны и контракты**, не vendor-copy полных upstream текстов.  
-> Цель порта: `.cursor/skills/gsd-ru/`, `prompt-engineering/`, усиление `.cursor/agents/`, маршрутизация в `.cursor/GSD-INTEGRATION.md`.  
+> **Источник фактов:** `C:\Users\Valerii\.claude\skills\gsd-*/SKILL.md` — **79** skills (filesystem 2026-07-22).
+> Прочитано: YAML frontmatter (`name`/`description`) + первые ~40 строк каждого `SKILL.md`.
+> Политика: **паттерны и контракты**, не vendor-copy полных upstream текстов.
+> Цель порта: `.cursor/skills/gsd-ru/`, `prompt-engineering/`, усиление `.cursor/agents/`, маршрутизация в `.cursor/GSD-INTEGRATION.md`.
 > Горизонт: **22.07.2026 → 15.08.2026** (см. `02-TECH-PLAN.md`).
 
 ## Статус GSD-RU (факт)
@@ -237,7 +237,7 @@ PE-зеркало (project-agnostic): `prompt-engineering/gsd-port/README.md` �
 
 `gsd-add-tests`, `gsd-analyze-dependencies`, `gsd-audit-uat`, `gsd-code-review`, `gsd-code-review-fix`, `gsd-debug`, `gsd-discuss-phase`, `gsd-docs-update`, `gsd-execute-phase`, `gsd-fast`, `gsd-plan-phase`, `gsd-plant-seed`, `gsd-progress`, `gsd-quick`, `gsd-resume-work`, `gsd-secure-phase`, `gsd-ship`, `gsd-spec-phase`, `gsd-validate-phase`, `gsd-verify-work`, `gsd-workstreams`.
 
-Из них **паттерн уже в gsd-ru (done):**  
+Из них **паттерн уже в gsd-ru (done):**
 `plan-phase` / `analyze-dependencies` → `phase-plan`; `execute-phase` → `wave-run`; `verify-work` → `goal-verify`; `progress` / `resume-work` (+ pause) → `handoff`.
 
 ### SKIP список (8)
