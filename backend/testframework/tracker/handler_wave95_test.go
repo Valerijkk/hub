@@ -107,8 +107,15 @@ func TestHandler_ListThreadIssueLinks_Validation(t *testing.T) {
 
 // TestHandler_ToggleReaction_Success проверяет HTTP-слой: HTTP-обработчик toggle reaction успех.
 func TestHandler_ToggleReaction_Success(t *testing.T) {
-	app, projectID, _, _, issueKey := setupTrackerMessageLinkApp(t)
+	app, projectID, _, repo, issueKey := setupTrackerMessageLinkApp(t)
+	issue := repo.issuesByKey[issueKey]
 	commentID := uuid.New()
+	repo.comments[commentID] = &ent.Comment{
+		ID: commentID,
+		Edges: ent.CommentEdges{
+			Issue: issue,
+		},
+	}
 	url := fmt.Sprintf("/api/projects/%s/issues/%s/comments/%s/reactions",
 		projectID, issueKey, commentID)
 	req := httptest.NewRequest(http.MethodPost, url, bytes.NewReader([]byte(`{"emoji":"👍"}`)))

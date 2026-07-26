@@ -37,11 +37,11 @@ func TestEntRepository_CommentsAndReactions(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, updatedText, updated.BodyText)
 
-	added, err := env.repo.ToggleReaction(env.ctx, comment.ID, env.userID, "👍")
+	added, err := env.repo.ToggleReaction(env.ctx, issue.ID, comment.ID, env.userID, "👍")
 	require.NoError(t, err)
 	assert.True(t, added)
 
-	removed, err := env.repo.ToggleReaction(env.ctx, comment.ID, env.userID, "👍")
+	removed, err := env.repo.ToggleReaction(env.ctx, issue.ID, comment.ID, env.userID, "👍")
 	require.NoError(t, err)
 	assert.False(t, removed)
 

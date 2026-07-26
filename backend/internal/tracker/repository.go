@@ -74,8 +74,9 @@ type CommentRepository interface {
 	UpdateComment(ctx context.Context, issueID, authorID, commentID uuid.UUID, input UpdateCommentInput) (*ent.Comment, error)
 	// DeleteComment удаляет комментарий автора на задаче.
 	DeleteComment(ctx context.Context, issueID, authorID, commentID uuid.UUID) error
-	// ToggleReaction добавляет или удаляет реакцию. Возвращает true если добавлена, false если удалена.
-	ToggleReaction(ctx context.Context, commentID, userID uuid.UUID, emoji string) (bool, error)
+	// ToggleReaction добавляет или удаляет реакцию на комментарий задачи (A3-011-react).
+	// Возвращает true если добавлена, false если удалена.
+	ToggleReaction(ctx context.Context, issueID, commentID, userID uuid.UUID, emoji string) (bool, error)
 }
 
 // ActivityRepository управляет логом активности задач.

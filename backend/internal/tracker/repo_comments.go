@@ -119,8 +119,22 @@ func (r *EntRepository) DeleteComment(ctx context.Context, issueID, authorID, co
 // Реакции
 // ---------------------------------------------------------------------------
 
-// ToggleReaction добавляет или удаляет реакцию (toggle). Возвращает true если добавлена, false если удалена.
-func (r *EntRepository) ToggleReaction(ctx context.Context, commentID, userID uuid.UUID, emoji string) (bool, error) {
+// ToggleReaction добавляет или удаляет реакцию (toggle) на комментарий задачи (A3-011-react).
+// Возвращает true если добавлена, false если удалена. Чужой issue → NotFound.
+func (r *EntRepository) ToggleReaction(ctx context.Context, issueID, commentID, userID uuid.UUID, emoji string) (bool, error) {
+	exists, err := r.client.Comment.Query().
+		Where(
+			comment.IDEQ(commentID),
+			comment.HasIssueWith(issue.IDEQ(issueID)),
+		).
+		Exist(ctx)
+	if err != nil {
+		return false, fmt.Errorf("проверка комментария: %w", err)
+	}
+	if !exists {
+		return false, &ent.NotFoundError{}
+	}
+
 	// Ищем существующую реакцию
 	existing, err := r.client.Reaction.Query().
 		Where(

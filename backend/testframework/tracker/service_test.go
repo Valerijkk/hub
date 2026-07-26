@@ -430,7 +430,14 @@ func (m *mockRepo) DeleteComment(_ context.Context, issueID, authorID, commentID
 	return nil
 }
 
-func (m *mockRepo) ToggleReaction(_ context.Context, _, _ uuid.UUID, _ string) (bool, error) {
+func (m *mockRepo) ToggleReaction(_ context.Context, issueID, commentID, _ uuid.UUID, _ string) (bool, error) {
+	c, ok := m.comments[commentID]
+	if !ok {
+		return false, &ent.NotFoundError{}
+	}
+	if c.Edges.Issue == nil || c.Edges.Issue.ID != issueID {
+		return false, &ent.NotFoundError{}
+	}
 	return true, nil
 }
 

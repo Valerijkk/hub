@@ -111,7 +111,21 @@ func (s *TrackerService) DeleteComment(ctx context.Context, projectID uuid.UUID,
 	return nil
 }
 
-// ToggleReaction добавляет или удаляет реакцию на комментарий.
-func (s *TrackerService) ToggleReaction(ctx context.Context, commentID, userID uuid.UUID, emoji string) (bool, error) {
-	return s.repo.ToggleReaction(ctx, commentID, userID, emoji)
+// ToggleReaction добавляет или удаляет реакцию на комментарий задачи (A3-011-react).
+func (s *TrackerService) ToggleReaction(ctx context.Context, projectID uuid.UUID, issueKey string, commentID, userID uuid.UUID, emoji string) (bool, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, apperrors.NewNotFound("задача не найдена")
+		}
+		return false, apperrors.NewInternal("ошибка получения задачи")
+	}
+	added, err := s.repo.ToggleReaction(ctx, existing.ID, commentID, userID, emoji)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, apperrors.NewNotFound("комментарий не найден")
+		}
+		return false, apperrors.NewInternal("ошибка переключения реакции")
+	}
+	return added, nil
 }

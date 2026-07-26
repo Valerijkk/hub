@@ -181,6 +181,14 @@ func (h *Handler) DeleteComment(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/comments/{commentId}/reactions [post]
 func (h *Handler) ToggleReaction(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	issueKey := parseIssueKey(c)
+	if issueKey == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
+	}
 	commentID, err := httputil.ParseUUIDParam(c, "commentId")
 	if err != nil {
 		return err
@@ -195,7 +203,7 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	added, err := h.service.ToggleReaction(c.Context(), commentID, userID, req.Emoji)
+	added, err := h.service.ToggleReaction(c.Context(), projectID, issueKey, commentID, userID, req.Emoji)
 	if err != nil {
 		return err
 	}
