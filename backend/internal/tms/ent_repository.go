@@ -849,13 +849,15 @@ func (r *EntRepository) CreateBugIssue(ctx context.Context, projectID, userID, t
 		return nil, fmt.Errorf("создание бага: %w", err)
 	}
 
-	// Привязываем к тест-кейсу
-	err = tx.TestCase.UpdateOneID(testCaseID).
-		AddLinkedIssueIDs(issue.ID).
-		Exec(ctx)
-	if err != nil {
-		_ = tx.Rollback()
-		return nil, fmt.Errorf("привязка бага к тест-кейсу: %w", err)
+	// Привязываем к тест-кейсу только если он известен (A3-009).
+	if testCaseID != uuid.Nil {
+		err = tx.TestCase.UpdateOneID(testCaseID).
+			AddLinkedIssueIDs(issue.ID).
+			Exec(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			return nil, fmt.Errorf("привязка бага к тест-кейсу: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
