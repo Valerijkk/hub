@@ -1,0 +1,96 @@
+schema_version: "1.0"
+
+profile:
+  slug: "{{profile_slug}}"
+  project_name: UNKNOWN
+  status: template
+
+inputs:
+  project_root: "{{project_root}}"
+  test_roots:
+    - "{{test_root}}"
+  profile_was_explicit: UNKNOWN
+
+scan:
+  mode: bootstrap
+  status: not_started
+  generated_at: UNKNOWN
+  refreshed_at: UNKNOWN
+  snapshot_commit: UNKNOWN
+  worktree_state: UNKNOWN
+  trust_boundary: untrusted_scanned_content
+  network_used: false
+  merge_request_data_used: false
+  metadata_commands_executed: false
+  project_commands_executed: false
+
+policy:
+  filesystem_scope: declared_roots_only
+  follow_symlinks: false
+  unknown_value: UNKNOWN
+  source_mutation_allowed: false
+  command_execution_requires_explicit_approval: true
+  excluded_names:
+    - .git
+    - node_modules
+    - vendor
+    - third_party
+    - dist
+    - build
+    - target
+    - coverage
+  excluded_paths:
+    - prompt-engineering/context
+    - prompt-engineering/patterns
+    - prompt-engineering/review-feedback
+  excluded_content:
+    - binary
+    - archive
+    - generated_artifact
+    - secret_or_credential_file
+
+sources:
+  - id: SRC-001
+    root: project_root
+    path: "{{relative_path}}"
+    kind: UNKNOWN
+    sha256: UNKNOWN
+    size_bytes: UNKNOWN
+    modified_at: UNKNOWN
+    observed_at: UNKNOWN
+
+outputs:
+  - path: PROJECT.md
+    status: template
+    sha256: UNKNOWN
+  - path: TEST-ARCHITECTURE.md
+    status: template
+    sha256: UNKNOWN
+  - path: COMMANDS.md
+    status: template
+    sha256: UNKNOWN
+  - path: CI-PIPELINE.md
+    status: template
+    sha256: UNKNOWN
+  - path: TEST-DATA.md
+    status: template
+    sha256: UNKNOWN
+  - path: TRACEABILITY.md
+    status: template
+    sha256: UNKNOWN
+  - path: SOURCE-MAP.md
+    status: template
+    sha256: UNKNOWN
+  - path: PATTERN-INDEX.md
+    status: template
+    sha256: UNKNOWN
+
+incremental:
+  previous_manifest_sha256: UNKNOWN
+  added_sources: []
+  changed_sources: []
+  removed_sources: []
+  unchanged_sources: []
+  preserved_manual_sections: []
+
+unknowns: []
