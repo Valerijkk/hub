@@ -1,26 +1,62 @@
-# 10 — Дефолтный канон нейминга тестов
+# 10 — Канон именования тестов по умолчанию
 
-> Действует, пока `context/NAMING-CONVENTIONS.md` не заполнен проектным каноном; после заполнения — проектный канон приоритетнее. Эти дефолты — индустриальный мейнстрим, чтобы тулкит работал «из коробки».
+> Действует, пока project profile не заполнит свой naming canon. **Приоритет
+> ниже**, чем у project context и approved pattern cards (см. [Приоритет](#приоритет)).
 
-## 1. Имена файлов (дефолты по стекам)
+## Приоритет
 
-| Стек | Unit/Integration | E2E | Хелперы/фикстуры |
-|------|------------------|-----|-------------------|
-| Go | `<unit>_test.go` рядом или в тест-модуле | — | `helpers_test.go`, `fixtures_test.go`, `factory/` |
-| TS/JS (vitest/jest) | `<unit>.test.ts(x)` | `<flow>.spec.ts` (playwright/cypress) | `test-utils.ts`, `__fixtures__/` |
+| Источник | Роль |
+|----------|------|
+| [`context/projects/<profile>/`](../context/projects/README.md) — `TEST-ARCHITECTURE.md`, `TRACEABILITY.md`, `PATTERN-INDEX.md`, [`SOURCE-MAP.md`](../context/templates/SOURCE-MAP.md) | Конвенции проекта и evidence |
+| [`patterns/approved/`](../patterns/approved/README.md) | Human-approved паттерны именования с provenance |
+| Этот файл (`rules/10`) | Переносимые defaults, когда project canon отсутствует или `template` |
+
+Когда project canon и эти defaults расходятся, **побеждает project canon**.
+Отклонение только от `rules/10` само по себе не дефект, пока оно не нарушает
+конвенцию проекта или approved card.
+
+Общие стилевые предпочтения (язык, разделитель, describe/it vs плоские имена) —
+это **рекомендации**, а не findings ревью, пока проект явно не зафиксировал их
+в profile docs или approved card.
+
+## Когда именование — finding
+
+Публиковать naming finding только когда выполнены **все** условия:
+
+1. **Указана конвенция** — ссылка на правило проекта, approved card или
+   повторяющийся in-repo паттерн, зафиксированный в `SOURCE-MAP` /
+   `PATTERN-INDEX` (по правилам provenance в [`rules/50`](50-data-handling.md)).
+2. **Сформулирован impact** — как имя мешает triage, трассируемости, поиску
+   дубликатов или искажает поведение (например, имя обещает `_ReturnsError`, а
+   ассерт проверяет успех).
+3. **Severity** — по [`rules/30`](30-severity-policy.md), не по вкусу.
+
+Эвристический grep по `test1`, `misc_`, или `temp*` даёт **candidate**, пока
+семантически не подтверждены конвенция проекта и impact
+([`rules/40`](40-verification-protocol.md), этап 3).
+
+## 1. Имена файлов (defaults по стеку)
+
+| Стек | Unit / integration | E2E | Helpers / fixtures |
+|------|-------------------|-----|-------------------|
+| Go | `<unit>_test.go` рядом или в test module | — | `helpers_test.go`, `fixtures_test.go`, `factory/` |
+| TS/JS (vitest/jest) | `<unit>.test.ts(x)` | `<flow>.spec.ts` (Playwright/Cypress) | `test-utils.ts`, `__fixtures__/` |
 | Python (pytest) | `test_<unit>.py` | `test_<flow>_e2e.py` | `conftest.py`, `factories.py` |
 | Java (JUnit) | `<Unit>Test.java` | `<Flow>IT.java` | `<X>TestFixtures.java` |
 
-Общие правила:
-- Один тестовый файл ↔ один модуль/компонент кода (best-effort; сценарные сьюты — исключение с говорящим именем).
-- Разделители/регистр — как в основном коде стека, не изобретать.
-- ⛔ `test2.go`, `new_test_final.spec.ts`, `misc_test.py`, `temp*`.
+Общее:
 
-## 2. Имена тестовых функций/кейсов
+- Один тестовый файл соответствует одному модулю или компоненту (сюит сценариев
+  может использовать описательное групповое имя).
+- Разделители и регистр — как в основном кодебазе этого стека.
+- Избегать непрозрачных имён: `test2.go`, `new_test_final.spec.ts`,
+  `misc_test.py`, `temp*`.
 
-Дефолтная структура — **три компонента**: что тестируем / при каких условиях / что ожидаем.
+## 2. Имена тестовых функций / кейсов
 
-| Раннер | Шаблон | Пример |
+Структура по умолчанию — **три части**: субъект / условие / ожидаемый исход.
+
+| Runner | Шаблон | Пример |
 |--------|--------|--------|
 | Go | `Test<Unit>_<Condition>_<Expected>` | `TestCreateOrder_EmptyCart_ReturnsValidationError` |
 | vitest/jest | `describe('<Unit>')` + `it('<condition> → <expected>')` | `it('rejects expired token with 401')` |
@@ -28,32 +64,42 @@
 | Playwright | `test('<actor> <flow> <outcome>')` | `test('user completes checkout with saved card')` |
 
 Правила:
-- Имя читается в CI-отчёте без открытия файла и отвечает «что сломалось».
-- Язык — английский (дефолт; проект может переопределить).
-- ⛔ Информационно-пустые: `TestOK`, `TestFix`, `Test1`, `it('works')`, `test('should work correctly')`, `testHappyPath` без контекста.
-- Табличные тесты: имя каждой строки — по той же трёхкомпонентной схеме, коротко.
 
-## 3. TC-ID и привязка
+- Имя должно отвечать «что сломалось?» в выводе CI без открытия файла.
+- Язык по умолчанию — English; project profile может переопределить.
+- Избегать пустых имён: `TestOK`, `TestFix`, `Test1`, `it('works')`,
+  `test('should work correctly')`, голый `testHappyPath`.
+- Подкейсы таблиц: имя каждой строки по той же трёхчастной схеме, коротко.
 
-- Дефолтный формат: `TC-<DOMAIN>-<NNN>` (`TC-AUTH-042`).
-- Привязка автотеста к TC: комментарий/аннотация у теста (`// TC-AUTH-042`) либо включение ID в имя — канон выбирает проект, но привязка обязательна для тестов, автоматизирующих формализованные TC.
-- Требования: `R<число>` внутри одного TC-набора; сквозные — формат трекера проекта.
+## 3. TC-ID и трассируемость
 
-## 4. Внутренности теста
+- Формат ID по умолчанию: `TC-<DOMAIN>-<NNN>` (пример: `TC-AUTH-042`).
+- Связывать автотесты с формальными TC через comment, annotation или встроенный
+  ID — точная форма выбирается в
+  [`TRACEABILITY.md`](../context/templates/TRACEABILITY.md) активного profile.
+- ID требований (`R<number>`) следуют формату трекера проекта в том же profile.
 
-| Сущность | Дефолт |
-|----------|--------|
-| System under test | `sut` (или доменное имя: `svc`, `handler`) |
-| Ожидание/факт | `want` / `got` (Go), `expected` / `actual` (остальные) |
-| Табличная переменная | `tests` / `tt` (Go), массив `cases` (TS) |
-| Поле имени кейса | `name` |
-| Фабрики | `make<Entity>(overrides)` / `new_test_<entity>` |
+## 4. Идентификаторы внутри теста
+
+| Сущность | Default |
+|----------|---------|
+| System under test | `sut` или доменное имя (`svc`, `handler`) |
+| Expected / actual | `want` / `got` (Go), `expected` / `actual` (остальные) |
+| Table cases | `tests` / `tt` (Go), `cases` (TS) |
+| Поле метки кейса | `name` |
+| Factories | `make<Entity>(overrides)` / `new_test_<entity>` |
 | Тестовые константы | `test<What>` / `TEST_<WHAT>` |
 
-## 5. Анти-каталог (имена-запахи)
+## 5. Анти-каталог (smell-имена)
 
-- Имя с `And`: `TestLoginAndCreateOrderAndLogout` — три теста в одном.
-- Имя-реализация: `TestCallsRepositorySaveOnce` — тестирует внутренности, не контракт.
-- Имя-враньё: обещает `ReturnsError`, ассертит отсутствие паники.
-- Имя-дубль соседа с суффиксом `2`/`New`/`Copy`.
-- Имя длиной в твит из-за перечисления всех полей — вынести детали в имя строки таблицы.
+Использовать как подсказки ревью после семантического чтения — не как
+автоматические findings:
+
+- Цепочки `And`: `TestLoginAndCreateOrderAndLogout` — вероятно несколько
+  поведений в одном тесте.
+- Имя реализации: `TestCallsRepositorySaveOnce` — тестирует internals, не
+  контракт.
+- Вводящее в заблуждение имя: обещает `ReturnsError`, а проверяет только
+  отсутствие panic.
+- Дубликат соседа с суффиксом `2` / `New` / `Copy`.
+- Имя «длиной в твит» со всеми полями — детали переносить в table row `name`.
