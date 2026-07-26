@@ -1,7 +1,7 @@
 # Portable Kit — Dry-run переноса в `corp-hub-starter`
 
-> **Дата:** 2026-07-23 · **Цель:** полный бумажный (и воспроизводимый) dry-run переноса AI kit из Hub в гипотетический **пустой** monorepo `corp-hub-starter`.  
-> **Код продукта не создаём** — только дерево AI Ops / PE / planning.  
+> **Дата:** 2026-07-23 · **Цель:** полный бумажный (и воспроизводимый) dry-run переноса AI kit из Hub в гипотетический **пустой** monorepo `corp-hub-starter`.
+> **Код продукта не создаём** — только дерево AI Ops / PE / planning.
 > **Канон слоёв:** [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md) · **User guide:** [`prompt-engineering/PORTABLE-HUB-KIT.md`](../../../prompt-engineering/PORTABLE-HUB-KIT.md)
 >
 > **SUPERSEDED EXECUTION PROCEDURE (2026-07-26):** этот файл сохраняет
@@ -79,7 +79,7 @@ corp-hub-starter/
         └── 08-PORTABLE-KIT-DRY-RUN.md  # этот файл (как инструкция)
 ```
 
-**PASS дерева:** все пути L1–L3 существуют; L4 stubs + L5 refs на месте; нет `backend/`, `frontend/` продукта (starter пустой по коду).  
+**PASS дерева:** все пути L1–L3 существуют; L4 stubs + L5 refs на месте; нет `backend/`, `frontend/` продукта (starter пустой по коду).
 **FAIL:** отсутствует packager/validator, `/bootstrap-test-context` или optional
 `gsd-ru/portable-kit`.
 
@@ -191,7 +191,7 @@ material blocker; он не придумывает framework.
 
 ```powershell
 # Незаполненные плейсхолдеры вне примеров
-Select-String -Path "$dst\prompt-engineering\context\*.md" -Pattern "\{\{[A-Za-z0-9_]+\}\}" 
+Select-String -Path "$dst\prompt-engineering\context\*.md" -Pattern "\{\{[A-Za-z0-9_]+\}\}"
 # Hub-paths не должны появиться в context как «факт starter»
 Select-String -Path "$dst\prompt-engineering\context\*.md" -Pattern "Valerii\\Desktop\\hub|backend/internal/"
 ```
@@ -268,7 +268,7 @@ Select-String -Path "$dst\prompt-engineering\context\*.md" -Pattern "Valerii\\De
 
 ---
 
-## 7. Матрица «шаг PORTABLE-HUB-KIT ↔ слой L» 
+## 7. Матрица «шаг PORTABLE-HUB-KIT ↔ слой L»
 
 | # в PORTABLE-HUB-KIT | Слой | Шаг dry-run |
 |----------------------|------|-------------|
