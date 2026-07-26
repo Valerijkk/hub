@@ -1,12 +1,16 @@
 ---
 status: template            # template | filled
-filled_by: context-intake
+compatibility: deprecated
+read_only: true
+replacement: "context/projects/<profile>/{PROJECT,COMMANDS,CI-PIPELINE}.md"
 filled_at: {{YYYY-MM-DD}}
 ---
 
 # Project Context
 
-> Заполняется скилом `context-intake`. Каждый факт — со ссылкой на источник. Не найдено → `TODO(intake): что искали, где искали`.
+> **DEPRECATED / READ-ONLY COMPATIBILITY.** Новые workflows не заполняют этот
+> файл. Используйте active profile `PROJECT.md`, `COMMANDS.md` и
+> `CI-PIPELINE.md`; неизвестное фиксируется как `UNKNOWN`.
 
 ## 1. Проект
 
