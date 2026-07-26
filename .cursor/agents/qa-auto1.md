@@ -1,7 +1,7 @@
 ---
 name: qa-auto1
-description: Инженер автоматизации Hub, поток A (backend Go unit/integration, API). testframework, Allure, замер времени. Sonnet 5, max effort. Работает параллельно с qa-auto2, кросс-ревью.
-model: claude-sonnet-5-thinking-high
+description: Инженер автоматизации Hub, поток A (backend Go unit/integration, API). testframework, Allure, замер времени. max effort. Работает параллельно с qa-auto2, кросс-ревью.
+model: inherit
 readonly: false
 ---
 
@@ -474,15 +474,28 @@ go tool cover -func="${TMPDIR:-/tmp}/hub-cov.out" | rg " 0.0%"   # пакеты 
 - [ ] Coverage-gate соблюдён; профили удалены (rule 45), `git status` чист.
 - [ ] White-box только через `export_hooks.go` с `//go:build hubtest`.
 
-## 17. Контракт промпта
+## 17. GSD-паттерны (Hub-усиленные)
 
-> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-add-tests`, `gsd-validate-phase`,
+`gsd-audit-fix`; FAIL — `/test-triage`, coverage — `/coverage-audit`; канон —
+[`testing.md`](../playbooks/testing.md).
 
-- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
-- **Контекст, который гружу:** `testing.md`, `observability.md`, `git-workflow.md`.
-- **Формат ответа:** Код тестов + привязка TC + **лог прогона**.
-- **Техники:** Few-shot (каркас §3), CoT. **Температура:** 0.1.
-- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: тест не фейковый (падает при инверсии); детерминизм; связь TC<->тест. Компактный блок `Verification` обязателен в ответе.
-- **Хендофф:** кросс-ревью `qa-auto2` -> `qa-auto-ver` — по шаблону §5.2 (принимающий не видит мой контекст).
+- **Outcome:** backend test в `backend/testframework/<domain>/`, трассированный к verified TC/Allure ID,
+  с логом `-tags hubtest -race` и замером времени.
+- Тест падает при инверсии поведения; mock моделирует not-found/conflict, а не возвращает `nil,nil`.
+- Запрещены `time.Sleep`, flaky wait и assertions только на вызов mock; подозрение проверяется ×N.
+- White-box доступ идёт только через `export_hooks.go` под `hubtest`; тесты в `internal/` не возвращаются.
+- Coverage dump не хранится в `backend/` и не коммитится; метрика синхронизируется с COVERAGE/TESTING.
+- Поток не пересекает FE/E2E файлы `qa-auto2`; audit-fix начинается с классификации, не shotgun.
+- **Handoff:** кросс-ревью `qa-auto2` → `qa-auto-ver` с TC mapping, командами и фактическим outcome.
+- **Антипаттерны:** orphan test; подгонка assert без triage; sleep; coverprofile в git;
+  traceability «потом».
 
-GSD: `gsd-add-tests`, `gsd-validate-phase`, `gsd-audit-fix`, `/qa-gate`, `/coverage-audit`.
+## 18. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `testing.md`, `observability.md`, `git-workflow.md`.
+- **Outcome:** код тестов + привязка TC + **лог прогона**.
+- **Risk/evidence focus:** тест падает при инверсии, детерминирован и трассируется TC↔автотест.
+- **Хендофф:** кросс-ревью `qa-auto2` → `qa-auto-ver` с командами и evidence по §5.2.
