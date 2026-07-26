@@ -14,8 +14,9 @@
 │    обновляет затронутые зоны по своей таблице §2, точечно
 │
 2. Если изменение затрагивает КАНОН (конвенции, структура, команды):
-│    дополнительно /context-intake --refresh (templates/context-refresh.md)
-│    → context/-доки тулкита синхронизированы с новой реальностью
+│    дополнительно skills/refresh-test-context/SKILL.md
+│    (templates/context-refresh.md)
+│    → context/projects/<profile>/ синхронизирован с новой реальностью
 │
 └─ 3. Сводка в артефакт изменения (PR/тикет): какие доки обновлены
 ```
@@ -34,7 +35,7 @@
 2. Расхождения: док прав/код прав? → каждое расхождение — решение:
 │    правится док ИЛИ заводится тикет на код (документатор код не чинит)
 │
-3. /context-intake --refresh для context/-доков
+3. skills/refresh-test-context/SKILL.md для активного profile
 │
 └─ 4. Ревизионный отчёт: проверено / исправлено / тикеты
 ```
@@ -43,10 +44,10 @@
 
 | Изменение | Обновить |
 |-----------|----------|
-| Новый домен/сьют тестов | Карта сьютов, TESTFRAMEWORK-MAP §2 |
-| Новая фабрика/фикстура/хелпер | Гайд уровня, TESTFRAMEWORK-MAP §3, PATTERNS B3/B4 |
-| Смена команд/флагов запуска | PROJECT-CONTEXT §4, TESTFRAMEWORK-MAP §4, CI-доки проекта |
-| Изменение конвенции нейминга | NAMING-CONVENTIONS + changelog фреймворка (breaking) |
+| Новый домен/сьют тестов | `TEST-ARCHITECTURE.md` § Test topology |
+| Новая фабрика/фикстура/хелпер | Гайд уровня, `TEST-ARCHITECTURE.md` § Framework components, `TEST-DATA.md` |
+| Смена команд/флагов запуска | `COMMANDS.md`, `CI-PIPELINE.md`, CI-доки проекта |
+| Изменение конвенции нейминга | `TEST-ARCHITECTURE.md` § Organization, `TRACEABILITY.md`, changelog фреймворка |
 | Автоматизирован TC-пакет | TC-каталог (TC ↔ тест), матрица покрытия |
 | Прогон coverage | Coverage-док проекта |
-| Новый антипаттерн из дебага | PATTERNS-LIBRARY B6, TESTFRAMEWORK-MAP §7 |
+| Новый антипаттерн из дебага | Evidence в profile; card только через отдельные `curate-review-feedback` → `curate-pattern-cards` gates |
