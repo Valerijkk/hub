@@ -138,13 +138,16 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 
 // ImportAllureToExistingRun импортирует результаты Allure в существующий прогон.
 func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, runID, userID uuid.UUID, req ImportAllureRequest) (*TestRunDetailResponse, error) {
-	// Проверяем существование прогона
+	// Проверяем существование прогона в рамках projectID (A3-012).
 	run, err := s.repo.GetTestRun(ctx, runID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон не найден")
 		}
 		return nil, apperrors.NewInternal("ошибка получения прогона")
+	}
+	if run.Edges.Project == nil || run.Edges.Project.ID != projectID {
+		return nil, apperrors.NewNotFound("прогон не найден")
 	}
 
 	// Парсим результаты
