@@ -2128,7 +2128,29 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14
+Phases execute in numeric order (1 → 125). Decimal insertions (if any) slot between surrounding integers.
+
+### Honest counters (synced 2026-07-27 · C2)
+
+Sources: [`PHASE-STATUS-MATRIX.md`](planning-audit-2026-07/PHASE-STATUS-MATRIX.md) (live scan A3), [`00-PLANNING-AUDIT.md`](planning-audit-2026-07/00-PLANNING-AUDIT.md) §0, `STATE.md` (`total_phases: 125` — not yet rewritten by A4/`goals_verified`).
+
+| Metric | Value | Source |
+|--------|------:|--------|
+| `total_phases` (project convention) | **125** | milestones 01–13 (**13**) + `.planning/phases/` dirs **14–125** (**112**) = 125 (`00-PLANNING-AUDIT.md` §0). `STATE.md` still lists `total_phases: 125`. |
+| Phase dirs under `.planning/phases/` (live) | **124** | Matrix: includes 14–125 plus later TF dirs 126–136 and backlog `999-test-framework` (not all counted in the 125 convention). |
+| `goals_verified` (`VERIFIED_PASS`) | **55** | Matrix classification `VERIFIED_PASS` count (has `VERIFICATION.md` + PASS). **Not** equal to `completed_phases: 125`. |
+| `VERIFIED_PARTIAL` | **5** | Matrix |
+| `CODE_GATE_DEPLOY_BLOCKED` | **2** | Phases **63**, **67** — code gate PASS, deploy blocked |
+| `NO_VERIFICATION` | **62** | Matrix (includes many early shipped phases + TF/backlog dirs) |
+
+**Deploy blockers** (do not read Progress 100% as “prod unlocked”):
+
+| Phase | Verdict | Blocker |
+|------:|---------|---------|
+| 63 | PASS (code gate) | deploy blocked on **user commit/PR** + **PG-03** ops |
+| 67 | PASS (code gate) | same — **PG-03 / FA-06** secret rotation still manual (`production/PG-03-SECRET-ROTATION.md`, `FA-06-EXECUTION-LOG.md`) |
+
+> **STATE.md note:** A4/`goals_verified` frontmatter not yet present at C2 time — counters above are matrix-backed, not copied from stale `percent: 100`.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -2139,18 +2161,131 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14
 | 5. Voice Calls | v1.0 | 4/4 | Complete | 2026-03-21 |
 | 6. Notifications, Search & Dashboards | v1.0 | 5/5 | Complete | 2026-03-21 |
 | 7. Polish & Extended Features | v1.0 | 6/6 | Complete | 2026-03-21 |
-| 8. Design System Foundation | v2.0 | 2/2 | Complete | 2026-03-28 |
-| 9. Layout Shell | v2.0 | 2/2 | Complete | 2026-03-28 |
-| 10. UI Primitives | v2.0 | 3/3 | Complete    | 2026-03-28 |
-| 11. Core Mockup Pages | v2.0 | 4/4 | Complete    | 2026-03-28 |
-| 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 5/5 | Complete    | 2026-03-28 |
-| 13. Polish & QA | v2.0 | 2/2 | Complete    | 2026-03-28 |
-| 14. Architectural Hardening | v2.0 | 5/5 | Complete    | 2026-05-15 |
-| 15. Trust (v2.5) | v2.5 | Complete | Complete | 2026-06-22 |
-| 16. Automate (v2.6) | v2.6 | Complete | Complete | 2026-06-22 |
-| 17. AI Native (v3.0) | v3.0 | Complete | Complete | 2026-06-22 |
+| 8. Design System Foundation | v2.0 | 2/2 | Complete | 2026-07-03 |
+| 9. Layout Shell | v2.0 | 2/2 | Complete | 2026-07-03 |
+| 10. UI Primitives | v2.0 | 3/3 | Complete | 2026-07-03 |
+| 11. Core Mockup Pages | v2.0 | 4/4 | Complete | 2026-07-03 |
+| 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 5/5 | Complete | 2026-07-03 |
+| 13. Polish & QA | v2.0 | 2/2 | Complete | 2026-07-03 |
+| 14. Architectural Hardening | v2.0 | 5/5 | Verified PASS | 2026-05-15 |
+| 15. Trust (v2.5) | v2.5 | Complete | Verified PASS | 2026-06-22 |
+| 16. Automate (v2.6) | v2.6 | Complete | Verified PASS | 2026-06-22 |
+| 17. AI Native (v3.0) | v3.x | Complete | Verified PASS | 2026-06-22 |
+| 18. AI Privacy (v3.5) | v3.x | see PLAN | Verified PASS | 2026-06-22 |
+| 19. AI Polish | v3.x | see PLAN | Verified PASS | 2026-06-22 |
+| 20. Milestone Gate | v3.x | see PLAN | Verified PASS | 2026-06-22 |
+| 21. Architecture Completion | arch/obs | see PLAN | Verified PASS | 2026-06-22 |
+| 22. Architecture storage | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-22 |
+| 23. Architecture apigateway | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-23 |
+| 24. Architecture imex | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-23 |
+| 25. Architecture dashboard | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-23 |
+| 26. Architecture rbac | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-23 |
+| 27. Architecture auth | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-23 |
+| 28. v2.6 Architecture Gate | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-23 |
+| 29. OBS-01 | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-23 |
+| 30. OBS-01 FE | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-23 |
+| 31. OBS-01 Prometheus | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-23 |
+| 32. OBS-01 OTel | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 33. Monitoring stack | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 34. Loki + alerts | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 35. Alertmanager | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 36. Alert webhook | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 37. Biome gate | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 38. v2.6 Milestone Gate | arch/obs | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 39. Intranet News | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 40. Org directory | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 41. Unified calendar | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 42. CRM-lite | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 43. HR-lite | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 44. Kudos | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 45. Marketplace | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 46. Status page | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 47. Random Coffee | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 48. 1C Connector | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-24 |
+| 49. Lark Base | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-25 |
+| 50. v4 Milestone Gate | v4 | see PLAN | Verified PASS | 2026-06-25 |
+| 51. Accounting MVP | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-25 |
+| 52. Accounting v4.5 | v4 | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-25 |
+| 53. v4 Module Gate | v4 | see PLAN | Verified PASS | 2026-06-25 |
+| 54. v4 Coverage Uplift | v4 | see PLAN | Verified PASS | 2026-06-25 |
+| 55. onec + intranet | v4 | see PLAN | Verified PASS | 2026-06-25 |
+| 56. v4 Final Gate | v4 | see PLAN | Verified PASS | 2026-06-25 |
+| 57. Post-v4 CI Handoff | v4 | see PLAN | Verified PASS | 2026-06-25 |
+| 58. v4 Milestone Archive | v4 | see PLAN | Verified PASS | 2026-06-25 |
+| 59. Coverage + UX Close-out | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-25 |
+| 60. UX-1 Gate | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-25 |
+| 61. Coverage + Context Tooltips | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-25 |
+| 62. Onboarding Profile RHF | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-25 |
+| 63. Production Release Gate | cov/gates | see PLAN | Code PASS / deploy blocked | 2026-06-25 |
+| 64. Auth Coverage Uplift | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-25 |
+| 65. UX-P1-05 Rate Limit Timer + Messenger Coverage | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-25 |
+| 66. Notification Coverage Uplift (42.5% → 50%) | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-25 |
+| 67. Production Release Gate (Phases 64–66) | cov/gates | see PLAN | Code PASS / deploy blocked | 2026-06-25 |
+| 68. Messenger Fan-out & Coverage (52.3% → 60%) | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-26 |
+| 69. Apigateway Coverage + COV Baseline Refresh | cov/gates | see PLAN | Verified PASS | 2026-06-26 |
+| 70. GitLab/GitHub Coverage (SEC-04) | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 71. Mail + Dashboard Coverage (MAIL-01 / BE-H3) | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 72. Production QA Gate (Post Phase 71) | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 73. Platform HTTP/Outbox Coverage (SEC-04 / NF-07) | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 74. AI Module Coverage (M3 / COV-01) | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 75. Post-AI QA Gate Refresh | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 76. Sprint Ent + Handler Routes Coverage | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 77. Storage Handler Routes (CR-04 / Presign) | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 78. Tracker + TMS Coverage Wave | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 79. Notification + Project Coverage Wave | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 80. Backup + HR + IMEX Coverage Wave | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 81. AI Coverage + QA Gate | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 82. AI Bot Hook + Doc Search RAG | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 83. AI Bot Commands + Search Query | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 84. VCS Review + Bases + Intranet Coffee | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 85. GitHub PR Review + Coverage Uplift | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 86. Search + Tracker + TMS + Notification Uplift | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 87. TMS + Notification + NATS Uplift | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 88. TMS + Notification ≥65% | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 89. E2E Wave 3 + Dashboard Uplift | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 90. IMEX Jira Import Uplift | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 91. Intranet + Observability Uplift | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 92. Messenger Polls + Search Repo | cov/gates | see PLAN | Verified PARTIAL | 2026-06-21 |
+| 93. Auto-Channels NATS + Handler Gaps | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 94. Search Meili + Bot + Notification JetStream | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 95. Notification Push/TG + Tracker Automation + TMS Export | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 96. TMS TestRail/Mongo + Excel Import | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 97. Mongo CI + Webhook Dispatcher + Marketplace | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 98. Accounting + Calendar + COV 75% | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 99. Backup + Package 75% Push | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 100. RestoreBackup + Tracker/Messenger/Search 75% | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 101. Sub-75% Package Push | cov/gates | see PLAN | Verified PASS | 2026-06-21 |
+| 102. Dev Routes + Notification Push | cov/gates | see PLAN | Verified PASS | — |
+| 103. GitHub Push + Mongo Integration Tests | cov/gates | see PLAN | Verified PASS | — |
+| 104. Flaky GitHub Fix + Mongo Testutil | cov/gates | see PLAN | Verified PASS | — |
+| 105. Boundary Package Push | cov/gates | see PLAN | Verified PASS | — |
+| 106. Triple Boundary Push (search / messenger / tracker) | cov/gates | see PLAN | Verified PASS | — |
+| 107. CRM + Dashboard + Bases Boundary Push | cov/gates | see PLAN | Verified PASS | — |
+| 108. 79% COV Milestone | cov/gates | see PLAN | Verified PASS | — |
+| 109. Triple Boundary Push (Search + Messenger + Tracker) | cov/gates | see PLAN | Verified PASS | — |
+| 110. TMS + AI + Project Boundary Push | cov/gates | see PLAN | Verified PASS | — |
+| 111. Notification + HR + CRM Push | cov/gates | see PLAN | Verified PASS | — |
+| 112. Search + Messenger + Tracker Push | cov/gates | see PLAN | Verified PASS | — |
+| 113. TMS + Project + Sprint + Messenger + Tracker Push | cov/gates | see PLAN | Verified PASS | — |
+| 114. Search + Messenger + TMS + Tracker Push | cov/gates | see PLAN | Verified PARTIAL | — |
+| 115. GitHub/GitLab + Auth + Messenger + Bases + AI Push | cov/gates | see PLAN | Verified PARTIAL | — |
+| 116. Search PG Integration + Messenger/TMS Push | cov/gates | see PLAN | Verified PASS | — |
+| 117. Storage RBAC + Notification Quiet Hours + Tracker Time | cov/gates | see PLAN | Verified PASS | — |
+| 118. Notification Consumer + Tracker Automation Push | cov/gates | see PLAN | Verified PASS | — |
+| 119. Notification/Tracker Push to 82% | cov/gates | see PLAN | Verified PARTIAL | — |
+| 120. Tracker/TMS/Project Push to 82% | cov/gates | see PLAN | Verified PASS | — |
+| 121. Notification Consumer + Tracker Push to 82% | cov/gates | see PLAN | Verified PARTIAL | — |
+| 122. TMS + Project ≥82% | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | — |
+| 123. Messenger ≥82%, Storage ≥82% | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-21 |
+| 124. Floor ≥82% (tracker / tms / project) | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | — |
+| 125. COV ≥82%, Security ≥80%, Regression Gate | cov/gates | see PLAN | Tasks done / no VERIFICATION.md | 2026-06-21 |
 
 > **Сноска о сверке (drift fixed 2026-07-03, Волна 1 задача 1.13):** чекбоксы Phase 8/9/12 и строки Progress приведены в соответствие с фактом — v2.0 Hub Redesign завершён 2026-05-15 (подтверждено по `.planning/STATE.md` «v2.0 Hub Redesign ✅ COMPLETE» и `AGENTS.md`; планы 08-01/08-02, 09-01/09-02, 12-01…12-05 отмечены [x] в Phase Details). Дополнительно удалены пять дублирующихся блоков «Plans: 12-0X-PLAN.md», ошибочно вставленных в Phase Details фаз 2, 3, 4 и 6 (v1.0), — они дублировали планы Phase 12 с противоречивыми чекбоксами. Строки Phase 15–17 обновлены по факту milestone-статусов (v2.5/v2.6/v3.0 ✅ COMPLETE, см. раздел Milestones выше).
+
+> **Сноска C2 (2026-07-27):** Progress-таблица расширена до Phase 125; статусы VERIFIED_* / deploy-blocked взяты из `PHASE-STATUS-MATRIX.md`. Чекбокс «Complete» в Phases overview ≠ `goals_verified`.
+
+---
+
 
 ---
 
