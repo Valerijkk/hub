@@ -3,9 +3,9 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Агент:** be-ver + security (Grok 4.5) · **Дата:** 2026-07-23 · **Режим:** readonly repo-scan  
-> **Scope:** `backend/internal/bases/`, `backend/internal/crm/`, `backend/internal/hr/`  
-> **Фокус:** owner-scope (аналог NF-03), layering, IDOR  
+> **Агент:** be-ver + security (Grok 4.5) · **Дата:** 2026-07-23 · **Режим:** readonly repo-scan
+> **Scope:** `backend/internal/bases/`, `backend/internal/crm/`, `backend/internal/hr/`
+> **Фокус:** owner-scope (аналог NF-03), layering, IDOR
 > **Код не менялся.**
 
 ## Вердикт (кратко)
@@ -30,9 +30,9 @@
 | MEDIUM   | 4 |
 | LOW      | 2 |
 
-**OK (не findings):**  
-- **bases:** `authorizeBase` (`service.go:45-56`) до Get/Update/Delete/table/column/record; `ListBases` + `HasOwnerWith` (`repository.go:56-69`); `GetTable` привязан к `baseID` (`repository.go:112-128`); `normalizeCells` allowlist (`service.go:287-301`); soft-delete UTC; `*ent.Client` только в `EntRepository`.  
-- **crm:** layering OK; `IsProjectMember` при привязке `project_id` (`service.go:226-234`); soft-delete UTC; stage allowlist.  
+**OK (не findings):**
+- **bases:** `authorizeBase` (`service.go:45-56`) до Get/Update/Delete/table/column/record; `ListBases` + `HasOwnerWith` (`repository.go:56-69`); `GetTable` привязан к `baseID` (`repository.go:112-128`); `normalizeCells` allowlist (`service.go:287-301`); soft-delete UTC; `*ent.Client` только в `EntRepository`.
+- **crm:** layering OK; `IsProjectMember` при привязке `project_id` (`service.go:226-234`); soft-delete UTC; stage allowlist.
 - **hr:** `ListLeaveByRequester`; `requireAdmin` на pending/approve/reject; `CancelLeave` + `HasRequesterWith` в repo; `VersionEQ` на approve/reject/cancel; тесты `CancelLeave_ForbiddenForOtherUser`, `ApproveLeave_ForbiddenForMember`.
 
 ---
@@ -76,11 +76,11 @@
 
 ## Воспроизведение CRITICAL (crm)
 
-1. User A создаёт контакт `C` и сделку `D` (`POST /api/crm/contacts`, `POST /api/crm/deals`).  
+1. User A создаёт контакт `C` и сделку `D` (`POST /api/crm/contacts`, `POST /api/crm/deals`).
 2. User B (обычный member, JWT) вызывает:
    - `PUT /api/crm/contacts/{C}` — 200, поля изменены;
    - `DELETE /api/crm/deals/{D}` — 204;
-   - `PUT /api/crm/deals/{D}` `{"stage":"won","amount_cents":10000,"version":N}` — draft invoice (если hook включён).  
+   - `PUT /api/crm/deals/{D}` `{"stage":"won","amount_cents":10000,"version":N}` — draft invoice (если hook включён).
 3. Ожидание (эталон bases): 403/404 для non-owner (или явная CRM-роль). Факт: успех.
 
 ---
@@ -104,8 +104,8 @@ CRM должен получить аналог `authorizeContact` / `authorizeDe
 
 ## Verification
 
-- Воспроизведено: по коду (handler→service→repo); crm CRITICAL сценарий выше.  
-- Layering: OK во всех трёх модулях.  
-- Security: bases OK; crm FAIL; hr OK с MEDIUM по version=0 / error text.  
-- Регрессия: не прогонялась (repo-scan).  
+- Воспроизведено: по коду (handler→service→repo); crm CRITICAL сценарий выше.
+- Layering: OK во всех трёх модулях.
+- Security: bases OK; crm FAIL; hr OK с MEDIUM по version=0 / error text.
+- Регрессия: не прогонялась (repo-scan).
 - Вердикт: **verified: false** — 2026-07-23 01:10 UTC+3
