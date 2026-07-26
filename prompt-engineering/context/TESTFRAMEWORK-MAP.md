@@ -1,12 +1,16 @@
 ---
 status: template            # template | filled
-filled_by: context-intake
+compatibility: deprecated
+read_only: true
+replacement: "context/projects/<profile>/{TEST-ARCHITECTURE,TEST-DATA,COMMANDS,CI-PIPELINE}.md"
 filled_at: {{YYYY-MM-DD}}
 ---
 
 # Test Framework Map
 
-> Карта тестового фреймворка проекта. Главный контекст-док для `test-code-reviewer`, `test-case-generator`, `test-debugger`.
+> **DEPRECATED / READ-ONLY COMPATIBILITY.** Новые workflows используют active
+> profile `TEST-ARCHITECTURE.md`, `TEST-DATA.md`, `COMMANDS.md` и
+> `CI-PIPELINE.md`.
 
 ## 1. Пирамида тестов проекта (фактическая, не желаемая)
 
