@@ -1,5 +1,5 @@
 ---
-description: Hard constraints from Hub TZ — what is mandatory and what is strictly forbidden.
+description: Hard TZ constraints — mandatory stack/auth/security invariants and forbidden patterns. Always applied (fail-safe for all sessions).
 alwaysApply: true
 ---
 
