@@ -31,3 +31,5 @@
 ## Git note
 
 `.gitignore` contains `.planning/**/VERIFICATION.md` (GSD local state). These artifacts are force-added so A2 closure is tracked in git.
+
+**Race note (2026-07-27):** first landing was `12cd0ce` with the correct subject; a parallel PW2 agent `reset HEAD~1` and re-committed the same tree as `f7b9c07` under subject `phases 14-21`. Tree content matches `12cd0ce`; this follow-up commit restores the intended subject in history.
