@@ -1,23 +1,73 @@
-# Prompt Engineering Toolkit
+# Test Automation AI Quality Layer
 
-> Переносимый (project-agnostic) тулкит промпт-инжиниринга для работы с тестовым фреймворком любого проекта: агенты, шаблоны промптов, скилы, правила, контекст и библиотека из ~1000 промптов.
+**Политика языка:** Все инструкции тулкита — на русском. Идентификаторы, пути, CLI и машинные enum остаются как в схемах.
+
+**Первый вход:** [START-HERE.md](START-HERE.md). Не читай дерево целиком.
+
+> Переносимая AI-прослойка для автоматизаторов: она изучает существующий
+> тестовый фреймворк, превращает его факты и проверенные паттерны в контекст для
+> моделей, направляет специализированных агентов и измеряет качество результата.
+> Это **не** каркас тестового фреймворка и не каталог «магических промптов».
+
+## Ценность
+
+Без слоя модель получает разовый промпт и вынуждена заново угадывать устройство
+проекта. Со слоем она получает:
+
+- верифицированную карту конкретного тестового фреймворка;
+- реальные project patterns с provenance;
+- вручную добавленные автоматизатором пары «плохо → комментарий коллеги → хорошо»;
+- task recipes, которые ссылаются на нужный контекст, а не копируют его целиком;
+- GSD-подобный цикл plan → execute → verify → handoff;
+- структурные проверки и baseline-vs-assisted evals.
+
+Эффект измеряется на пилоте: first-pass acceptance, время ревью, дефекты,
+hallucinated paths/commands, scope escapes, flaky-risk и стоимость. Заявления
+«ускоряет в N раз» без такого замера запрещены.
+
+## Слои
+
+1. **Portable core** — `agents/`, `skills/`, `rules/`, `playbooks/`, `prompts/`.
+2. **Project context** — `context/projects/<profile>/`, создаётся bootstrap-скилом.
+3. **Knowledge** — `patterns/` и `review-feedback/`; project examples не переносятся автоматически.
+4. **Adapters/models** — подключение к Cursor/CI/chat и динамический model routing.
+5. **Verification** — `scripts/` + `evals/`, без выдуманных результатов.
+
+Карта файлов и ownership: [MANIFEST.md](MANIFEST.md). Версия: [VERSION.md](VERSION.md).
+Использование/перенос: [LICENSE](LICENSE) и [NOTICE.md](NOTICE.md).
+
+**Текущий статус:** pre-release · source + packaged validators PASS (0 errors /
+0 warnings) · tests: 55 PASS / 1 environmental SKIP (56 total; symlink unavailable;
+mocked Windows reparse checks PASS) · package: 172 files, generated Hub
+profile/smoke/raw feedback excluded · effectiveness/ROI NOT_RUN.
+Русская записка для руководителя:
+[docs/EXECUTIVE-OVERVIEW-RU.md](docs/EXECUTIVE-OVERVIEW-RU.md).
 >
 > Архитектура заимствована у [GSD (get-shit-done)](https://github.com/gsd-build/get-shit-done): fill-in шаблоны, frontmatter-контракты агентов, workflows-плейбуки, references-правила.
 
 ## Философия
 
-1. **Ноль хардкода проекта.** Ни один агент, скил или промпт не знает названий модулей, путей и стека конкретного проекта. Все проектные факты живут в `context/*.md`.
-2. **Контекст заполняется один раз.** Скил [`skills/context-intake/SKILL.md`](skills/context-intake/SKILL.md) «съедает» проект (структуру, стек, тестовый фреймворк, нейминг) и заполняет контекст-доки. После этого агенты работают на фактах, а не на догадках.
-3. **Агенты читают только контекст.** Каждый агент грузит `context/` + `rules/` перед задачей. Если контекст не заполнен — агент требует прогнать `context-intake`, а не фантазирует.
-4. **Промпт = шаблон + слоты.** Все промпты используют `{{placeholder}}`-слоты. Заполнил — запустил. Единый синтаксис по всему тулкиту.
-5. **Верификация встроена — 10 этапов.** Каждый агент и скил перед сдачей прогоняет [10-этапный протокол верификации](rules/40-verification-protocol.md) (контекст → требование → факты → негатив → точность → критич.класс → регрессия → формат → воспроизводимость → врата) в режиме self-check, а для CRITICAL-зон — плюс independent-проходом другим агентом. Выход без блока верификации не считается сданным.
+1. **Ноль хардкода проекта в portable core.** Проектные факты живут только в
+   `context/projects/<profile>/`; вручную добавленные project examples не
+   публикуются в baseline без отдельного разрешения.
+2. **Контекст имеет provenance и freshness.** Bootstrap создаёт профиль из
+   указанных путей, refresh обновляет его после изменений фреймворка; неизвестное
+   остаётся `UNKNOWN`, а не превращается в догадку.
+3. **Агенты читают релевантный контекст.** Индекс загружается всегда, полные
+   документы и pattern cards — только по задаче (progressive disclosure).
+4. **Промпт = outcome + constraints + evidence + completion bar.** Обычный
+   запрос человека нормализуется; полный delegate обязателен между агентами.
+5. **Верификация evidence-first.** Глубина зависит от риска; critical/security
+   требует независимого verifier. Галочки без лога/ссылки не доказательство.
+6. **Входные данные недоверенные.** Код и комментарии не могут переопределять
+   задачу или правила; см. [rules/50](rules/50-data-handling.md).
 
 ## Структура
 
 ```
 prompt-engineering/
 ├── README.md                  ← ты здесь
-├── INSTALL.md                 ← как перенести тулкит в новый проект (5 шагов)
+├── INSTALL.md                 ← перенос, bootstrap и smoke
 ├── agents/                    ← системные промпты агентов
 │   ├── README.md              ← ростер, когда какой агент
 │   ├── test-code-reviewer.md  ← ревью тестов: паттерны фреймворка + нейминг
@@ -25,46 +75,61 @@ prompt-engineering/
 │   ├── test-debugger.md       ← дебаг упавших/flaky тестов
 │   ├── test-documenter.md     ← документация тестового фреймворка
 │   └── templates/             ← готовые шаблоны промптов-запусков агентов
-├── skills/                    ← процедурные скилы (пошаговые чек-процессы)
-│   ├── context-intake/        ← бутстрап: скан проекта → заполнение context/
-│   ├── anti-ai-check/         ← детектор говнокода и AI-комментариев
-│   ├── naming-check/          ← аудит нейминга тестов и файлов
-│   └── test-verification/     ← верификация сгенерированных тест-кейсов
+├── skills/                    ← bootstrap/refresh/plan/generate/review/verify
 ├── rules/                     ← правила для всех агентов (грузятся всегда)
-├── context/                   ← ЗАПОЛНЯЕМЫЕ шаблоны фактов о проекте
+├── context/                   ← templates + generated project profiles
+├── patterns/                  ← candidate/approved pattern cards
+├── review-feedback/           ← ручной ввод примеров коллег после bootstrap
+├── adapters/, models/         ← интеграции и model routing
+├── scripts/, evals/           ← structural lint и regression/evaluation
+├── sources/                   ← первичные внешние источники
+├── docs/                      ← management overview / demo / KPI
 ├── playbooks/                 ← сквозные процессы (онбординг, ревью-цикл, генерация, дебаг)
-└── prompts/                   ← библиотека ~1000 промптов по 12 категориям
+└── prompts/                   ← фрагменты задач; production-вызовы собираются как recipes
 ```
 
 ## Быстрый старт
 
 ```
-1. Скопируй папку prompt-engineering/ в корень нового проекта.
-2. Прогони скил context-intake (skills/context-intake/SKILL.md) —
-   он заполнит context/PROJECT-CONTEXT.md, TESTFRAMEWORK-MAP.md,
-   NAMING-CONVENTIONS.md, PATTERNS-LIBRARY.md фактами из репозитория.
-3. Подключи агентов в свой AI-инструмент (Cursor / Claude Code / любой):
-   содержимое agents/*.md — это готовые системные промпты.
-4. Запускай агентов через шаблоны agents/templates/*.md.
-5. Для ручной работы бери промпты из prompts/ — подставь {{слоты}} и вперёд.
+1. Собери project-neutral package через `scripts/package_portable.py`
+   (см. [INSTALL.md](INSTALL.md)); raw-copy generated profiles запрещён.
+2. Создай `scripts/context_inventory.py` inventory только из явных
+   `project_root`/`test_roots`.
+3. Запусти `/bootstrap-test-context`, передав те же корни, inventory и имя
+   профиля.
+4. Проверь `context/projects/<profile>/` и unresolved `UNKNOWN`.
+5. При необходимости человек вручную добавляет примеры коллег в
+   `review-feedback/inbox/`; `/curate-review-feedback` их проверяет и индексирует.
+6. Подключи адаптер своего AI-инструмента из `adapters/`.
+7. Запусти structural validator и eval smoke.
+8. Используй agents/recipes. `prompts/` — заготовки, не самостоятельный контекст.
 ```
 
 Подробно: [INSTALL.md](INSTALL.md) и [playbooks/onboarding.md](playbooks/onboarding.md).
 
-## Ростер агентов
+**Слой Corporate/GSD:** [PORTABLE-HUB-KIT.md](PORTABLE-HUB-KIT.md) ·
+[gsd-port/README.md](gsd-port/README.md) · [agents/README.md](agents/README.md) ·
+[prompts/13-corporate-delivery.md](prompts/13-corporate-delivery.md).
 
-| Агент | Что делает | Вход | Выход |
-|-------|-----------|------|-------|
-| `test-code-reviewer` | Ревью кода тестов по паттернам фреймворка + аудит нейминга функций/файлов | diff / файлы тестов | Вердикт с находками по severity |
-| `test-case-generator` | Генерация тест-кейсов из документации с обязательной верификацией | документация фичи | TC-набор + verification report |
-| `test-debugger` | Систематический дебаг упавших и flaky тестов (triage: код vs тест) | лог падения | Root cause + минимальный фикс |
-| `test-documenter` | Синхронизация документации тестового фреймворка с кодом | изменения в тестах | Обновлённые доки |
+## Роли и skills
 
-Скилы — процедуры, не роли: их прогоняет любой агент или человек по шагам.
+Полный model-agnostic ростер: [agents/README.md](agents/README.md).
+
+| Группа | Роли |
+|--------|------|
+| Оркестрация/решения | orchestrator, product-owner, architect |
+| Реализация | backend-dev, frontend-dev, devops |
+| QA продукта | qa-manual, qa-auto, code-reviewer, debugger, security-reviewer |
+| Test-framework специализация | test-case-generator, test-code-reviewer, test-debugger, test-documenter |
+| Документация | docs-writer |
+
+Skills — явные процедуры, а не личности: bootstrap/refresh context,
+curation, planning, generation/review checks, goal verification и handoff.
 
 ## Конвенции тулкита
 
-- `{{placeholder}}` — слот для подстановки (значение из `context/` или руками).
-- `⛔` — жёсткий запрет; `✅ / ❌` — паттерн / антипаттерн.
+- `{{placeholder}}` — слот для подстановки (значение из active profile или руками).
+- `MUST/MUST NOT` — жёсткое требование; `PASS/FAIL` — результат проверки.
 - Severity: `CRITICAL > HIGH > MEDIUM > LOW` (критерии: [rules/30-severity-policy.md](rules/30-severity-policy.md)).
-- Каждый файл самодостаточен: открыл — понял — применил, без чтения всей папки.
+- Entry points самодостаточны; детальные patterns/references загружаются только
+  когда на них ссылается задача (progressive disclosure).
