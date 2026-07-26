@@ -36,6 +36,8 @@ type Repository interface {
 	GetInvoice(ctx context.Context, id uuid.UUID) (*ent.Invoice, error)
 	IssueInvoice(ctx context.Context, id uuid.UUID) (*ent.Invoice, error)
 	MarkInvoicePaid(ctx context.Context, id uuid.UUID, entryID uuid.UUID) (*ent.Invoice, error)
+	// PayInvoiceAtomic — claim issued invoice + journal create/post + mark paid в одной tx.
+	PayInvoiceAtomic(ctx context.Context, userID, invoiceID, bankAccountID, revenueAccountID uuid.UUID) (*ent.Invoice, error)
 	InvoiceExistsForDeal(ctx context.Context, dealID uuid.UUID) (bool, error)
 }
 

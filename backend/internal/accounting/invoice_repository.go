@@ -9,6 +9,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/crmdeal"
 	"github.com/valerii/hub/backend/ent/invoice"
+	"github.com/valerii/hub/backend/ent/journalentry"
 	"github.com/valerii/hub/backend/ent/ledgeraccount"
 )
 
@@ -139,6 +140,95 @@ func (r *EntRepository) MarkInvoicePaid(ctx context.Context, id uuid.UUID, entry
 		return nil, err
 	}
 	return r.GetInvoice(ctx, inv.ID)
+}
+
+// PayInvoiceAtomic атомарно оплачивает issued-счёт: journal+post+paid в одной транзакции (A6-002).
+// При ошибке MarkPaid откатывается и проводка — без orphan posted journals.
+func (r *EntRepository) PayInvoiceAtomic(ctx context.Context, userID, invoiceID, bankAccountID, revenueAccountID uuid.UUID) (*ent.Invoice, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	inv, err := tx.Invoice.Query().
+		Where(
+			invoice.ID(invoiceID),
+			invoice.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	if inv.Status != invoice.StatusIssued {
+		return nil, ErrInvalidInvoice
+	}
+
+	desc := fmt.Sprintf("Оплата счёта %s", inv.Number)
+	entryDate := time.Now().UTC()
+	if inv.IssuedAt != nil {
+		entryDate = inv.IssuedAt.UTC()
+	}
+
+	entry, err := tx.JournalEntry.Create().
+		SetEntryDate(entryDate).
+		SetDescription(desc).
+		SetReference(inv.Number).
+		SetCreatedByID(userID).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create payment journal: %w", err)
+	}
+	if _, err := tx.JournalLine.Create().
+		SetEntryID(entry.ID).
+		SetAccountID(bankAccountID).
+		SetDebitCents(inv.AmountCents).
+		SetCreditCents(0).
+		SetMemo(inv.CustomerName).
+		Save(ctx); err != nil {
+		return nil, fmt.Errorf("create bank line: %w", err)
+	}
+	if _, err := tx.JournalLine.Create().
+		SetEntryID(entry.ID).
+		SetAccountID(revenueAccountID).
+		SetDebitCents(0).
+		SetCreditCents(inv.AmountCents).
+		Save(ctx); err != nil {
+		return nil, fmt.Errorf("create revenue line: %w", err)
+	}
+
+	now := time.Now().UTC()
+	_, err = tx.JournalEntry.UpdateOneID(entry.ID).
+		Where(journalentry.StatusEQ(journalentry.StatusDraft)).
+		SetStatus(journalentry.StatusPosted).
+		SetPostedAt(now).
+		AddVersion(1).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("post payment journal: %w", err)
+	}
+
+	paid, err := tx.Invoice.UpdateOneID(invoiceID).
+		Where(
+			invoice.DeletedAtIsNil(),
+			invoice.StatusEQ(invoice.StatusIssued),
+		).
+		SetStatus(invoice.StatusPaid).
+		SetPaidAt(now).
+		SetJournalEntryID(entry.ID).
+		AddVersion(1).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("mark paid: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return r.GetInvoice(ctx, paid.ID)
 }
 
 func (r *EntRepository) InvoiceExistsForDeal(ctx context.Context, dealID uuid.UUID) (bool, error) {

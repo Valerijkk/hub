@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/invoice"
 )
 
 var (
@@ -120,16 +118,6 @@ func (s *Service) MarkInvoicePaid(ctx context.Context, userID, invoiceID uuid.UU
 	if err := s.repo.EnsureDefaultChart(ctx); err != nil {
 		return nil, fmt.Errorf("ensure chart: %w", err)
 	}
-	inv, err := s.repo.GetInvoice(ctx, invoiceID)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
-		}
-		return nil, fmt.Errorf("get invoice: %w", err)
-	}
-	if inv.Status != invoice.StatusIssued {
-		return nil, ErrInvalidInvoice
-	}
 	bank, err := s.repo.GetAccountByCode(ctx, "1010")
 	if err != nil {
 		return nil, fmt.Errorf("bank account: %w", err)
@@ -138,31 +126,15 @@ func (s *Service) MarkInvoicePaid(ctx context.Context, userID, invoiceID uuid.UU
 	if err != nil {
 		return nil, fmt.Errorf("revenue account: %w", err)
 	}
-	desc := fmt.Sprintf("Оплата счёта %s", inv.Number)
-	entryDate := time.Now().UTC()
-	if inv.IssuedAt != nil {
-		entryDate = inv.IssuedAt.UTC()
-	}
-	entryReq := CreateJournalRequest{
-		EntryDate:   entryDate.Format("2006-01-02"),
-		Description: desc,
-		Reference:   inv.Number,
-		Lines: []JournalLineInput{
-			{AccountID: bank.ID, DebitCents: inv.AmountCents, CreditCents: 0, Memo: inv.CustomerName},
-			{AccountID: revenue.ID, DebitCents: 0, CreditCents: inv.AmountCents},
-		},
-	}
-	entry, err := s.repo.CreateJournalEntry(ctx, userID, entryDate, entryReq)
+	paid, err := s.repo.PayInvoiceAtomic(ctx, userID, invoiceID, bank.ID, revenue.ID)
 	if err != nil {
-		return nil, fmt.Errorf("create payment journal: %w", err)
-	}
-	posted, err := s.repo.PostJournalEntry(ctx, entry.ID)
-	if err != nil {
-		return nil, fmt.Errorf("post payment journal: %w", err)
-	}
-	paid, err := s.repo.MarkInvoicePaid(ctx, invoiceID, posted.ID)
-	if err != nil {
-		return nil, fmt.Errorf("mark paid: %w", err)
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrNotFound
+		}
+		if errors.Is(err, ErrInvalidInvoice) {
+			return nil, ErrInvalidInvoice
+		}
+		return nil, fmt.Errorf("pay invoice: %w", err)
 	}
 	resp := toInvoiceResponse(paid)
 	return &resp, nil
