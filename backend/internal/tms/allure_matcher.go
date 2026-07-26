@@ -136,7 +136,7 @@ func (m *Matcher) MatchTestCase(ctx context.Context, projectID uuid.UUID, result
 	for _, text := range searchTexts {
 		keys := caseKeyInNameRegex.FindAllString(text, -1)
 		for _, key := range keys {
-			tc, err := m.repo.FindTestCaseByKey(ctx, key)
+			tc, err := m.repo.FindTestCaseByKey(ctx, projectID, key)
 			if err == nil && tc != nil {
 				slog.Debug("allure матчинг по case_key в имени", "case_key", key, "name", result.Name)
 				return tc, MatchByCaseKey, nil

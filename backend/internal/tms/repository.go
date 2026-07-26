@@ -19,8 +19,8 @@ type TestCaseRepository interface {
 	CreateTestCase(ctx context.Context, projectID uuid.UUID, input CreateTestCaseInput) (*ent.TestCase, error)
 	// GetTestCase возвращает тест-кейс по ID с подгруженными связями.
 	GetTestCase(ctx context.Context, id uuid.UUID) (*ent.TestCase, error)
-	// FindTestCaseByKey возвращает тест-кейс по ключу (например "HUB-TC-42").
-	FindTestCaseByKey(ctx context.Context, caseKey string) (*ent.TestCase, error)
+	// FindTestCaseByKey возвращает тест-кейс по ключу только внутри projectID (A3-003).
+	FindTestCaseByKey(ctx context.Context, projectID uuid.UUID, caseKey string) (*ent.TestCase, error)
 	// FindTestCaseByExternalID возвращает тест-кейс по внешнему ID аннотации.
 	FindTestCaseByExternalID(ctx context.Context, projectID uuid.UUID, externalID string) (*ent.TestCase, error)
 	// FindTestCaseByAutomationID возвращает тест-кейс по automation_id (явная привязка автотестов).

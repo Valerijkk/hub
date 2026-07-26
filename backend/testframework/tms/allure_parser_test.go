@@ -290,7 +290,7 @@ func (m *mockMatcherRepo) CreateTestCase(_ context.Context, _ uuid.UUID, _ tms.C
 func (m *mockMatcherRepo) GetTestCase(_ context.Context, _ uuid.UUID) (*ent.TestCase, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) FindTestCaseByKey(_ context.Context, key string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByKey(_ context.Context, _ uuid.UUID, key string) (*ent.TestCase, error) {
 	if tc, ok := m.caseKeyMap[key]; ok {
 		return tc, nil
 	}

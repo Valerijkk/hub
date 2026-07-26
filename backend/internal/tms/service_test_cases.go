@@ -62,8 +62,8 @@ func (s *TMSService) CreateTestCase(ctx context.Context, projectID, userID uuid.
 }
 
 // GetTestCase возвращает тест-кейс по ключу (например, "HUB-TC-1").
-func (s *TMSService) GetTestCase(ctx context.Context, caseKey string) (*TestCaseResponse, error) {
-	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) GetTestCase(ctx context.Context, projectID uuid.UUID, caseKey string) (*TestCaseResponse, error) {
+	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("тест-кейс не найден")
@@ -114,8 +114,8 @@ func (s *TMSService) ListTestCases(ctx context.Context, projectID uuid.UUID, req
 }
 
 // UpdateTestCase обновляет тест-кейс, предварительно создавая снимок текущей версии.
-func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID uuid.UUID, req UpdateTestCaseRequest) (*TestCaseResponse, error) {
-	existing, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) UpdateTestCase(ctx context.Context, projectID uuid.UUID, caseKey string, userID uuid.UUID, req UpdateTestCaseRequest) (*TestCaseResponse, error) {
+	existing, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("тест-кейс не найден")
@@ -183,8 +183,8 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, caseKey string, userID 
 }
 
 // DeleteTestCase удаляет тест-кейс по ключу.
-func (s *TMSService) DeleteTestCase(ctx context.Context, caseKey string) error {
-	existing, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) DeleteTestCase(ctx context.Context, projectID uuid.UUID, caseKey string) error {
+	existing, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("тест-кейс не найден")
@@ -195,8 +195,8 @@ func (s *TMSService) DeleteTestCase(ctx context.Context, caseKey string) error {
 }
 
 // RollbackTestCase откатывает тест-кейс к указанной версии.
-func (s *TMSService) RollbackTestCase(ctx context.Context, caseKey string, versionID, userID uuid.UUID) (*TestCaseResponse, error) {
-	existing, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) RollbackTestCase(ctx context.Context, projectID uuid.UUID, caseKey string, versionID, userID uuid.UUID) (*TestCaseResponse, error) {
+	existing, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("тест-кейс не найден")
@@ -234,8 +234,8 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, caseKey string, versi
 // ---------------------------------------------------------------------------
 
 // ListTestCaseVersions возвращает все версии тест-кейса.
-func (s *TMSService) ListTestCaseVersions(ctx context.Context, caseKey string) ([]TestCaseVersionResponse, error) {
-	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) ListTestCaseVersions(ctx context.Context, projectID uuid.UUID, caseKey string) ([]TestCaseVersionResponse, error) {
+	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("тест-кейс не найден")
@@ -260,8 +260,8 @@ func (s *TMSService) ListTestCaseVersions(ctx context.Context, caseKey string) (
 // ---------------------------------------------------------------------------
 
 // LinkTestCaseToIssue привязывает тест-кейс к задаче трекера.
-func (s *TMSService) LinkTestCaseToIssue(ctx context.Context, caseKey string, issueID uuid.UUID) error {
-	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) LinkTestCaseToIssue(ctx context.Context, projectID uuid.UUID, caseKey string, issueID uuid.UUID) error {
+	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("тест-кейс не найден")
@@ -272,8 +272,8 @@ func (s *TMSService) LinkTestCaseToIssue(ctx context.Context, caseKey string, is
 }
 
 // UnlinkTestCaseFromIssue отвязывает тест-кейс от задачи трекера.
-func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, caseKey string, issueID uuid.UUID) error {
-	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, projectID uuid.UUID, caseKey string, issueID uuid.UUID) error {
+	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("тест-кейс не найден")
@@ -284,8 +284,8 @@ func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, caseKey string
 }
 
 // GetTestCaseLinks возвращает задачи, привязанные к тест-кейсу.
-func (s *TMSService) GetTestCaseLinks(ctx context.Context, caseKey string) ([]IssueBriefResponse, error) {
-	tc, err := s.repo.FindTestCaseByKey(ctx, caseKey)
+func (s *TMSService) GetTestCaseLinks(ctx context.Context, projectID uuid.UUID, caseKey string) ([]IssueBriefResponse, error) {
+	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("тест-кейс не найден")

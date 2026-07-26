@@ -152,7 +152,7 @@ func (m *mockRepository) GetTestCase(_ context.Context, id uuid.UUID) (*ent.Test
 	return tc, nil
 }
 
-func (m *mockRepository) FindTestCaseByKey(_ context.Context, caseKey string) (*ent.TestCase, error) {
+func (m *mockRepository) FindTestCaseByKey(_ context.Context, projectID uuid.UUID, caseKey string) (*ent.TestCase, error) {
 	for _, tc := range m.testCases {
 		if tc.CaseKey == caseKey {
 			return tc, nil
@@ -658,16 +658,17 @@ func TestUpdateTestCase_CreatesVersion(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	created, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	created, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title: "Исходный заголовок",
 	})
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
 	newTitle := "Обновлённый заголовок"
-	updated, err := svc.UpdateTestCase(ctx, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
+	updated, err := svc.UpdateTestCase(ctx, projectID, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
 		Title:   &newTitle,
 		Version: 1,
 	})
@@ -687,9 +688,10 @@ func TestRollbackTestCase(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	created, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	created, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title:    "Версия 1",
 		Priority: "high",
 	})
@@ -697,7 +699,7 @@ func TestRollbackTestCase(t *testing.T) {
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
 	newTitle := "Версия 2"
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
 		Title:   &newTitle,
 		Version: 1,
 	})
@@ -707,7 +709,7 @@ func TestRollbackTestCase(t *testing.T) {
 	versionID := repo.lastVersion.ID
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	rolledBack, err := svc.RollbackTestCase(ctx, created.CaseKey, versionID, uuid.New())
+	rolledBack, err := svc.RollbackTestCase(ctx, projectID, created.CaseKey, versionID, uuid.New())
 	require.NoError(t, err)
 	assert.Equal(t, "Версия 1", rolledBack.Title)
 }
@@ -881,9 +883,10 @@ func TestLinkTestCaseToIssue(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	tc, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	tc, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title: "Кейс для привязки",
 	})
 	require.NoError(t, err)
@@ -897,20 +900,20 @@ func TestLinkTestCaseToIssue(t *testing.T) {
 	}
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	err = svc.LinkTestCaseToIssue(ctx, tc.CaseKey, issueID)
+	err = svc.LinkTestCaseToIssue(ctx, projectID, tc.CaseKey, issueID)
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	links, err := svc.GetTestCaseLinks(ctx, tc.CaseKey)
+	links, err := svc.GetTestCaseLinks(ctx, projectID, tc.CaseKey)
 	require.NoError(t, err)
 	assert.Len(t, links, 1)
 	assert.Equal(t, "HUB-100", links[0].IssueKey)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	err = svc.UnlinkTestCaseFromIssue(ctx, tc.CaseKey, issueID)
+	err = svc.UnlinkTestCaseFromIssue(ctx, projectID, tc.CaseKey, issueID)
 	require.NoError(t, err)
 
-	links, err = svc.GetTestCaseLinks(ctx, tc.CaseKey)
+	links, err = svc.GetTestCaseLinks(ctx, projectID, tc.CaseKey)
 	require.NoError(t, err)
 	assert.Len(t, links, 0)
 }

@@ -70,7 +70,7 @@ func TestEntRepository_CreateAndGetTestCase(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, got.ID)
 
-	byKey, err := repo.FindTestCaseByKey(ctx, created.CaseKey)
+	byKey, err := repo.FindTestCaseByKey(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, byKey.ID)
 

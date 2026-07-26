@@ -71,7 +71,7 @@ func TestSuiteAndComponentCRUD(t *testing.T) {
 // TestGetTestCase_NotFound проверяет сценарий: получение test case not found.
 func TestGetTestCase_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
-	_, err := svc.GetTestCase(context.Background(), "HUB-TC-999")
+	_, err := svc.GetTestCase(context.Background(), uuid.New(), "HUB-TC-999")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }

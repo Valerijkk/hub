@@ -37,12 +37,13 @@ func TestDeleteTestCase(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	created, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{Title: "Delete me"})
+	created, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{Title: "Delete me"})
 	require.NoError(t, err)
 
-	require.NoError(t, svc.DeleteTestCase(ctx, created.CaseKey))
-	_, err = svc.GetTestCase(ctx, created.CaseKey)
+	require.NoError(t, svc.DeleteTestCase(ctx, projectID, created.CaseKey))
+	_, err = svc.GetTestCase(ctx, projectID, created.CaseKey)
 	require.Error(t, err)
 }
 
@@ -51,18 +52,19 @@ func TestListTestCaseVersions(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	created, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{Title: "Versioned"})
+	created, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{Title: "Versioned"})
 	require.NoError(t, err)
 
 	newTitle := "v2"
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, uuid.New(), tms.UpdateTestCaseRequest{
 		Title:   &newTitle,
 		Version: 1,
 	})
 	require.NoError(t, err)
 
-	versions, err := svc.ListTestCaseVersions(ctx, created.CaseKey)
+	versions, err := svc.ListTestCaseVersions(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	assert.Len(t, versions, 1)
 }

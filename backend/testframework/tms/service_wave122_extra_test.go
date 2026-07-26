@@ -38,7 +38,7 @@ func TestService_Wave122_RollbackTestCase_VersionNotFound(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = svc.RollbackTestCase(ctx, created.CaseKey, uuid.New(), userID)
+	_, err = svc.RollbackTestCase(ctx, projectID, created.CaseKey, uuid.New(), userID)
 	require.Error(t, err)
 }
 
@@ -56,7 +56,7 @@ func TestService_Wave122_UpdateTestCase_InvalidSuiteID(t *testing.T) {
 	require.NoError(t, err)
 
 	badSuite := "not-a-uuid"
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &badSuite})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &badSuite})
 	require.Error(t, err)
 }
 
@@ -77,11 +77,11 @@ func TestService_Wave122_UpdateTestCase_ClearSuite(t *testing.T) {
 	require.NoError(t, err)
 
 	suiteStr := suiteID.String()
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &suiteStr})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &suiteStr})
 	require.NoError(t, err)
 
 	empty := ""
-	updated, err := svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &empty})
+	updated, err := svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{SuiteID: &empty})
 	require.NoError(t, err)
 	assert.NotNil(t, updated)
 }
@@ -193,7 +193,7 @@ func TestService_Wave122_CreateBugFromFailedResult_NoTestCase(t *testing.T) {
 // TestService_Wave122_UnlinkTestCaseFromIssue_NotFound проверяет бизнес-логику: сервис wave 122 unlink test case from issue not found.
 func TestService_Wave122_UnlinkTestCaseFromIssue_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
-	err := svc.UnlinkTestCaseFromIssue(context.Background(), "TC-MISSING", uuid.New())
+	err := svc.UnlinkTestCaseFromIssue(context.Background(), uuid.New(), "TC-MISSING", uuid.New())
 	require.Error(t, err)
 }
 
@@ -249,7 +249,7 @@ func TestService_Wave122_UpdateTestCase_InvalidLabels(t *testing.T) {
 	require.NoError(t, err)
 
 	bad := []string{"not-uuid"}
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{Labels: &bad})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Labels: &bad})
 	require.Error(t, err)
 }
 

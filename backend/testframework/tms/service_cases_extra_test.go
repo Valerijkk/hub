@@ -27,7 +27,7 @@ func TestGetTestCase_AndList(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	got, err := svc.GetTestCase(ctx, created.CaseKey)
+	got, err := svc.GetTestCase(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	assert.Equal(t, "Login test", got.Title)
 
@@ -50,8 +50,8 @@ func TestDeleteTestCase_RemovesFromRepo(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.NoError(t, svc.DeleteTestCase(ctx, created.CaseKey))
-	_, err = svc.GetTestCase(ctx, created.CaseKey)
+	require.NoError(t, svc.DeleteTestCase(ctx, projectID, created.CaseKey))
+	_, err = svc.GetTestCase(ctx, projectID, created.CaseKey)
 	require.Error(t, err)
 }
 
@@ -69,10 +69,10 @@ func TestListTestCaseVersions_AfterUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	newTitle := "Versioned v2"
-	_, err = svc.UpdateTestCase(ctx, created.CaseKey, userID, tms.UpdateTestCaseRequest{Title: &newTitle})
+	_, err = svc.UpdateTestCase(ctx, projectID, created.CaseKey, userID, tms.UpdateTestCaseRequest{Title: &newTitle})
 	require.NoError(t, err)
 
-	versions, err := svc.ListTestCaseVersions(ctx, created.CaseKey)
+	versions, err := svc.ListTestCaseVersions(ctx, projectID, created.CaseKey)
 	require.NoError(t, err)
 	assert.NotEmpty(t, versions)
 }
@@ -92,11 +92,11 @@ func TestUnlinkTestCaseFromIssue(t *testing.T) {
 
 	issueID := uuid.New()
 	repo.issues[issueID] = &ent.Issue{ID: issueID, IssueKey: "HUB-1", Title: "Bug"}
-	entTC, _ := repo.FindTestCaseByKey(ctx, tc.CaseKey)
+	entTC, _ := repo.FindTestCaseByKey(ctx, projectID, tc.CaseKey)
 	repo.linkedIssues[entTC.ID] = []uuid.UUID{issueID}
 
-	require.NoError(t, svc.UnlinkTestCaseFromIssue(ctx, tc.CaseKey, issueID))
-	links, err := svc.GetTestCaseLinks(ctx, tc.CaseKey)
+	require.NoError(t, svc.UnlinkTestCaseFromIssue(ctx, projectID, tc.CaseKey, issueID))
+	links, err := svc.GetTestCaseLinks(ctx, projectID, tc.CaseKey)
 	require.NoError(t, err)
 	assert.Empty(t, links)
 }
@@ -122,7 +122,7 @@ func TestGetTestRun_AndListResults(t *testing.T) {
 		Title: "Case A", CaseType: "functional", Priority: "medium",
 	})
 	require.NoError(t, err)
-	entTC, _ := repo.FindTestCaseByKey(ctx, tc.CaseKey)
+	entTC, _ := repo.FindTestCaseByKey(ctx, projectID, tc.CaseKey)
 
 	_, err = svc.CreateTestResult(ctx, runID, tms.CreateTestResultRequest{
 		TestCaseID: entTC.ID.String(),

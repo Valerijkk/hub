@@ -146,10 +146,14 @@ func (r *EntRepository) GetTestCase(ctx context.Context, id uuid.UUID) (*ent.Tes
 		Only(ctx)
 }
 
-// FindTestCaseByKey возвращает тест-кейс по ключу (например "HUB-TC-42").
-func (r *EntRepository) FindTestCaseByKey(ctx context.Context, caseKey string) (*ent.TestCase, error) {
+// FindTestCaseByKey возвращает тест-кейс по ключу внутри projectID (A3-003 IDOR guard).
+func (r *EntRepository) FindTestCaseByKey(ctx context.Context, projectID uuid.UUID, caseKey string) (*ent.TestCase, error) {
 	return r.client.TestCase.Query().
-		Where(testcase.CaseKey(caseKey), testcase.DeletedAtIsNil()).
+		Where(
+			testcase.CaseKey(caseKey),
+			testcase.DeletedAtIsNil(),
+			testcase.HasProjectWith(entproject.ID(projectID)),
+		).
 		WithSuite().
 		WithCreatedBy().
 		WithLabels().
