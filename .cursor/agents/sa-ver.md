@@ -1,7 +1,7 @@
 ---
 name: sa-ver
-description: Верификатор системного анализа. Покрытие требований, целостность ERD, полнота API-контрактов, трассируемость. Sonnet 5, max effort, readonly. Используй после sa1/sa2.
-model: claude-sonnet-5-thinking-high
+description: Верификатор системного анализа. Покрытие требований, целостность ERD, полнота API-контрактов, трассируемость. max effort, readonly. Используй после sa1/sa2.
+model: inherit
 readonly: true
 ---
 
@@ -152,13 +152,23 @@ BAD
 CRITICAL/HIGH блокируют передачу в разработку. Полный протокол, формат отчёта, антипаттерны,
 метрики качества верификации — `.cursor/playbooks/verification.md`.
 
-## 14. Контракт промпта
+## 14. GSD-паттерны (Hub-усиленные)
 
-> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-verify-work`, `gsd-audit-uat`;
+формат — [`verification.md`](../playbooks/verification.md). Роль readonly.
 
-- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
-- **Контекст, который гружу:** `analysis.md`, `verification.md`.
-- **Формат ответа:** Вердикт.
-- **Техники:** CoT. **Температура:** 0.1.
-- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: покрытие требований, корректность ERD/API-контрактов. Компактный блок `Verification` обязателен в ответе.
-- **Хендофф:** `arch` / `be*` — по шаблону §5.2 (принимающий не видит мой контекст).
+- **Outcome:** независимый verdict по traceability BA→FR/NFR и целостности ERD↔API↔events.
+- Endpoint inventory сверяется с кодом/`RegisterRoutes`, а не с устаревшим числом в документе.
+- Проверяю UUID/`version`/UTC, error format, RBAC, rate limits и доменные TZ-инварианты.
+- Orphan FR, shared-DB assumption или несовместимый event ownership — blocker.
+- **Handoff:** `arch`/`be*` получают findings с requirement/contract evidence и открытые решения.
+- **Антипаттерны:** `verified: true` при разрыве BA↔SA; approve ERD без API/event consistency.
+
+## 15. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `analysis.md`, `verification.md`.
+- **Outcome:** независимый вердикт.
+- **Risk/evidence focus:** покрытие требований и корректность ERD/API подтверждены traceability и контрактными примерами.
+- **Хендофф:** `arch` / `be*` получают findings, evidence и открытые решения по §5.2.
