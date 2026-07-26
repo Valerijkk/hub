@@ -3,10 +3,10 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-**Роль:** be-ver + security-auditor (readonly)  
-**Scope:** `backend/internal/storage/`, `backend/internal/apigateway/`  
-**Фокус:** SeaweedFS `aws-sdk-go-v2`, presigned URLs, webhook signature no-skip (SEC-02), BodyLimit  
-**Код не менялся.**  
+**Роль:** be-ver + security-auditor (readonly)
+**Scope:** `backend/internal/storage/`, `backend/internal/apigateway/`
+**Фокус:** SeaweedFS `aws-sdk-go-v2`, presigned URLs, webhook signature no-skip (SEC-02), BodyLimit
+**Код не менялся.**
 **Примечание:** отчёт восстановлен оркестратором — субагент был в Ask mode и не смог записать файл.
 
 ## Verdict
