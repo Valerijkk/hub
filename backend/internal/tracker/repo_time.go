@@ -20,10 +20,13 @@ import (
 
 // LogTime записывает вручную введённое время на задачу.
 func (r *EntRepository) LogTime(ctx context.Context, issueID, userID uuid.UUID, minutes int, description string) (*ent.TimeLog, error) {
+	now := time.Now()
 	create := r.client.TimeLog.Create().
 		SetIssueID(issueID).
 		SetUserID(userID).
-		SetMinutes(minutes)
+		SetMinutes(minutes).
+		SetStartedAt(now).
+		SetEndedAt(now)
 
 	if description != "" {
 		create = create.SetDescription(description)
@@ -64,12 +67,13 @@ func (r *EntRepository) StartTimer(ctx context.Context, issueID, userID uuid.UUI
 
 // StopTimer останавливает запущенный таймер и записывает прошедшее время.
 func (r *EntRepository) StopTimer(ctx context.Context, issueID, userID uuid.UUID) (*ent.TimeLog, error) {
-	// Ищем открытый таймер (ended_at is nil)
+	// Ищем открытый таймер (ended_at is nil, started_at задан — не manual LogTime).
 	openTimer, err := r.client.TimeLog.Query().
 		Where(
 			timelog.HasIssueWith(issue.IDEQ(issueID)),
 			timelog.HasUserWith(user.IDEQ(userID)),
 			timelog.EndedAtIsNil(),
+			timelog.StartedAtNotNil(),
 		).
 		Only(ctx)
 	if err != nil {
