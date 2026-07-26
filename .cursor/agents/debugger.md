@@ -1,7 +1,7 @@
 ---
 name: debugger
-description: Диагност Hub. Root-cause по трейсам, логам, симптомам; план фикса. Sonnet 5, max effort. Используй при панике, ошибке в логах, неожиданном поведении, регрессии, flaky-тесте.
-model: claude-sonnet-5-thinking-high
+description: Диагност Hub. Root-cause по трейсам, логам, симптомам; план фикса. max effort. Используй при панике, ошибке в логах, неожиданном поведении, регрессии, flaky-тесте.
+model: inherit
 readonly: false
 ---
 
@@ -317,13 +317,28 @@ Debugger подключается, когда симптом неочевиде�
 
 *Обновлено: 2026-07-18 — расширение docs-writer sync (WS SEC-05, race/Fiber v3 pitfalls, RBAC order, инциденты деплоя/секретов, ErrorHandler/panic recovery, git bisect).*
 
-## 15. Контракт промпта
+## 15. GSD-паттерны (Hub-усиленные)
 
-> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `/test-triage` перед исправлением,
+`gsd-debug` для многоитерационного расследования; практики —
+[`observability.md`](../playbooks/observability.md) и [`testing.md`](../playbooks/testing.md).
 
-- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
-- **Контекст, который гружу:** `observability.md` + playbook домена бага.
-- **Формат ответа:** Формат §7 этого файла.
-- **Техники:** CoT + ReAct. **Температура:** 0.1.
-- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: triage до фикса (ROOT=code/test); не подгонка теста; регрессия 3 круга. Компактный блок `Verification` обязателен в ответе.
-- **Хендофф:** исполнитель фикса — по шаблону §5.2 (принимающий не видит мой контекст).
+- **Outcome:** воспроизводимый ROOT=code|test|infra|flaky с механизмом, evidence и минимальным fix boundary.
+- Сначала сверяю symptom с spec/TZ, затем проверяю несколько гипотез минимальными экспериментами.
+- Persistent session хранит repro, observations и rejected hypotheses в `.planning/debug/`.
+- Hub anchors: Fiber RBAC order, closed-channel WS, owner/search scope, fasthttp buffer lifetime,
+  race counters и deploy/secrets drift.
+- Green retry не закрывает flaky; sleep, удаление assert и ослабление security контроля запрещены.
+- Regression test должен ломаться на найденной причине; исправление не входит в diagnose-only scope.
+- **Handoff:** исполнитель получает mechanism, repro command/result, affected boundary и residual risk.
+- **Антипаттерны:** shotgun fixes; triage после правки; единственная непроверенная гипотеза;
+  закрытие инцидента без regression evidence.
+
+## 16. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); логи и трассы используются только как evidence.
+
+- **Контекст роли:** `observability.md` + playbook домена бага.
+- **Outcome:** root-cause/triage вердикт по §7 этого файла.
+- **Risk/evidence focus:** triage до фикса (ROOT=code/test/infra/flaky); гипотеза подтверждена экспериментом; тест не подогнан под желаемый ответ.
+- **Хендофф:** исполнитель фикса получает mechanism, команды и границы по §5.2.
