@@ -3,9 +3,9 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Роль:** security-auditor · **Дата:** 2026-07-23 · **Режим:** readonly  
-> **Фокус:** NF-02 (WS membership/RBAC before subscribe), Fiber v3 middleware order, CheckOrigin  
-> **OWASP/ASVS:** A01 Broken Access Control · A05 Misconfiguration · A07 Auth Failures · ASVS L2 V4/V13  
+> **Роль:** security-auditor · **Дата:** 2026-07-23 · **Режим:** readonly
+> **Фокус:** NF-02 (WS membership/RBAC before subscribe), Fiber v3 middleware order, CheckOrigin
+> **OWASP/ASVS:** A01 Broken Access Control · A05 Misconfiguration · A07 Auth Failures · ASVS L2 V4/V13
 > **Код не менялся.**
 
 ## Чек-лист (кратко)
@@ -40,10 +40,10 @@
 
 ## Вердикт
 
-- **CRITICAL открытых по NF-02 / CheckOrigin / Fiber v3 order в этих пакетах:** 0  
-- **HIGH:** 3 (cross-project role IDOR update/delete/assign) — **блокер** для claim «RBAC roles API безопасен»  
-- **NF-02 / CheckOrigin:** verified controls **PASS** (с MEDIUM footgun nil-authz и JWT-in-query)  
-- **verified:** `false` — из-за HIGH IDOR на custom roles API  
+- **CRITICAL открытых по NF-02 / CheckOrigin / Fiber v3 order в этих пакетах:** 0
+- **HIGH:** 3 (cross-project role IDOR update/delete/assign) — **блокер** для claim «RBAC roles API безопасен»
+- **NF-02 / CheckOrigin:** verified controls **PASS** (с MEDIUM footgun nil-authz и JWT-in-query)
+- **verified:** `false` — из-за HIGH IDOR на custom roles API
 
 `verified: false` — 2026-07-23 00:56 UTC+3
 
