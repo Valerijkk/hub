@@ -5,6 +5,10 @@ type: quick
 status: complete
 ---
 
+> **Historical baseline.** Current architecture/status:
+> [`09-AI-QUALITY-LAYER-REWORK.md`](../../july-2026/ai-expansion/09-AI-QUALITY-LAYER-REWORK.md)
+> and `prompt-engineering/VERSION.md`.
+
 # Quick Task: Portable Prompt Engineering Toolkit
 
 ## Цель
