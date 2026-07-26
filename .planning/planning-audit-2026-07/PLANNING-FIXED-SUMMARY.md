@@ -6,7 +6,7 @@
 
 | # | Находка | До | После | Закрыто? |
 |---|---------|----|-------|----------|
-| 1 | 51 фаза без VERIFICATION при статусе 100% | 52 без артефакта (скан) | Большинство батчей PW2 закрыты артефактами; **22–37 ещё догоняются** | **PARTIAL** |
+| 1 | 51 фаза без VERIFICATION при статусе 100% | 52 без артефакта (скан) | Артефакты на диске для всех phase dirs; **часть не в git** из‑за `.gitignore` → `.planning/**/VERIFICATION.md` | **PARTIAL** — файлы есть; remote/git visibility broken until owner clears ignore / approves `git add -f` |
 | 2 | Фазы 122/124 закрыты с недостигнутой целью coverage | Goal missed, статус complete | VERIFICATION с FAIL/PARTIAL (не подгонка под PASS) | **PARTIAL** (честный статус; gap не «исправлен» кодом) |
 | 3 | Production-gate deploy blocked при 100% | Скрыто в агрегате | STATE `deploy_blockers` + PG-03/FA-06 раскрыты | **YES** (прозрачность) |
 | 4 | COVERAGE.md протух (2026-06-22 как текущий) | 83.0% без свежего прогона | **81.9% measured 2026-07-27** Docker; historical section | **YES** (метрика честная; gate MISS) |
