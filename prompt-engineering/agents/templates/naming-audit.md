@@ -16,8 +16,10 @@ scenario: аудит нейминга тестов директории/доме
 - Режим «имя ↔ содержимое»: {{все | 10 случайных | пропустить}}
 
 ## Канон
-context/NAMING-CONVENTIONS.md (если статус template — остановись и скажи).
-Легаси-зоны из §5 канона репорти как WARN, не ERROR.
+`context/projects/<profile>/TEST-ARCHITECTURE.md` § Organization,
+`TRACEABILITY.md` и approved naming cards из `PATTERN-INDEX.md`.
+Если profile отсутствует — bootstrap; если stale — refresh. Project-specific
+exceptions из `PATTERN-INDEX.md` репорти как WARN, не ERROR.
 
 ## Ожидаемый выход
 Отчёт по формату naming-check: ERROR/WARN со счётчиками, каждому ERROR —
