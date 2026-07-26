@@ -3,9 +3,9 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Роль:** docs-writer (Grok 4.5), readonly  
-> **Дата:** 2026-07-23  
-> **Scope (выборка):** `docs/wiki/API.md`, `docs/wiki/QUICKSTART.md`, `docs/wiki/SHORTCUTS.md` (смежно), `docs/vision_and_scope.md` vs `backend/internal/{auth,notification,search,calls,ai,bases,project}/*`, `frontend/src/{components/layout/app-shell.tsx,components/search/command-palette.tsx,routes/onboarding.lazy.tsx,routes/.../gantt.tsx}`  
+> **Роль:** docs-writer (Grok 4.5), readonly
+> **Дата:** 2026-07-23
+> **Scope (выборка):** `docs/wiki/API.md`, `docs/wiki/QUICKSTART.md`, `docs/wiki/SHORTCUTS.md` (смежно), `docs/vision_and_scope.md` vs `backend/internal/{auth,notification,search,calls,ai,bases,project}/*`, `frontend/src/{components/layout/app-shell.tsx,components/search/command-palette.tsx,routes/onboarding.lazy.tsx,routes/.../gantt.tsx}`
 > **Код не менялся** · правки wiki/vision — backlog docs-sync (rule 55)
 
 ---
@@ -78,10 +78,10 @@
 
 ## Рекомендации (docs-only, без кода)
 
-1. **P0:** `API.md` — секции Auth/Admin (pending*) + Notifications (telegram*).  
-2. **P0:** `vision_and_scope.md` — SSO wording ↔ `tz_constraints.md`; статус Gantt / US-F06 / «Текущий фокус».  
-3. **P1:** `QUICKSTART.md` — 4-step onboarding + canonical test commands из `AGENTS.md`.  
-4. **P1:** `SHORTCUTS.md` (+ UI hotkeys page) — `Ctrl+Shift+A`.  
+1. **P0:** `API.md` — секции Auth/Admin (pending*) + Notifications (telegram*).
+2. **P0:** `vision_and_scope.md` — SSO wording ↔ `tz_constraints.md`; статус Gantt / US-F06 / «Текущий фокус».
+3. **P1:** `QUICKSTART.md` — 4-step onboarding + canonical test commands из `AGENTS.md`.
+4. **P1:** `SHORTCUTS.md` (+ UI hotkeys page) — `Ctrl+Shift+A`.
 5. **P2:** Search types; Wiki search note; `wiring_fiber.go` вместо `main.go`; bump «Обновлено».
 
 ---
@@ -100,6 +100,6 @@
 
 ## Handoff
 
-- **Артефакт:** `.planning/audits/2026-07/repo-scan/W7-docs-drift.md`  
-- **Next:** `docs-writer` (write-mode) или волна docs-fix по P0; `team-lead` — учесть в SCORECARD волны 8  
+- **Артефакт:** `.planning/audits/2026-07/repo-scan/W7-docs-drift.md`
+- **Next:** `docs-writer` (write-mode) или волна docs-fix по P0; `team-lead` — учесть в SCORECARD волны 8
 - **Связанные аудиты:** W1-auth (pending session), W2-notification-search (TG bind PASS в коде)
