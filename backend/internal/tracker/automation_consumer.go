@@ -83,11 +83,13 @@ func (c *AutomationConsumer) Stop() {
 
 func (c *AutomationConsumer) processMessage(ctx context.Context, msg jetstream.Msg) {
 	kind := parseIssueEventKind(msg.Subject())
+	var processErr error
 	switch kind {
 	case "moved":
 		var evt IssueMovedEvent
 		if err := json.Unmarshal(msg.Data(), &evt); err != nil {
 			slog.Error("automation: unmarshal moved", "error", err)
+			processErr = err
 		} else {
 			c.engine.HandleStatusChanged(ctx, evt)
 		}
@@ -95,6 +97,7 @@ func (c *AutomationConsumer) processMessage(ctx context.Context, msg jetstream.M
 		var evt IssueCreatedEvent
 		if err := json.Unmarshal(msg.Data(), &evt); err != nil {
 			slog.Error("automation: unmarshal created", "error", err)
+			processErr = err
 		} else {
 			c.engine.HandleIssueCreated(ctx, evt)
 		}
@@ -102,11 +105,20 @@ func (c *AutomationConsumer) processMessage(ctx context.Context, msg jetstream.M
 		var evt IssueAssignedEvent
 		if err := json.Unmarshal(msg.Data(), &evt); err != nil {
 			slog.Error("automation: unmarshal assigned", "error", err)
+			processErr = err
 		} else {
 			c.engine.HandleIssueAssigned(ctx, evt)
 		}
 	}
-	_ = msg.Ack()
+	if processErr != nil {
+		if nakErr := msg.Nak(); nakErr != nil {
+			slog.Error("automation: nak failed", "error", nakErr)
+		}
+		return
+	}
+	if err := msg.Ack(); err != nil {
+		slog.Error("automation: ack failed", "error", err)
+	}
 }
 
 func parseIssueEventKind(subject string) string {
