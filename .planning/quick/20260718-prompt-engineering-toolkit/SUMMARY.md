@@ -6,6 +6,10 @@ type: quick
 status: complete
 ---
 
+> **Historical baseline (2026-07-19).** Superseded for current use by
+> [`09-AI-QUALITY-LAYER-REWORK.md`](../../july-2026/ai-expansion/09-AI-QUALITY-LAYER-REWORK.md)
+> and `prompt-engineering/VERSION.md`.
+
 # Summary: Portable Prompt Engineering Toolkit
 
 ## Что сделано
