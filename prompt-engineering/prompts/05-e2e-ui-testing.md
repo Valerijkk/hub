@@ -1,8 +1,8 @@
 # 05 — E2E и UI-тестирование
 
-> Промпты для компонентных UI-тестов и E2E (Playwright/Cypress-класс). Слоты: `{{компонент}}`, `{{флоу}}`, `{{страница}}`, `{{спека}}`.
+> Фрагменты для компонентных UI-тестов и E2E (Playwright/Cypress-класс). Слоты: `{{компонент}}`, `{{флоу}}`, `{{страница}}`, `{{спека}}`.
 
-> **Разворачивание по мастер-шаблону.** Промпты ниже — слоты `[ЧТО]` [мастер-шаблона](../agents/templates/_MASTER-PROMPT-TEMPLATE.md). Профиль категории: **[РОЛЬ]** инженер-автотестер UI · **[КОНТЕКСТ]** `context/PATTERNS-LIBRARY.md` A10 + `TESTFRAMEWORK-MAP.md` §3 · **[ФОРМАТ]** код (accessible queries) + таблица состояний + команда · **техники** — · **temp** 0.0–0.3 · **[УСЛОВИЯ]** верификация `rules/40` (состояния + a11y, селекторы role/label). Полный разворот `#1` → [EXPANDED-EXAMPLES.md](EXPANDED-EXAMPLES.md#05--e2e--ui-разворот-05-1).
+> **Recipe assembly.** Фрагменты ниже — слоты `[ЧТО]` [мастер-шаблона](../agents/templates/_MASTER-PROMPT-TEMPLATE.md). Профиль категории: **[РОЛЬ]** инженер-автотестер UI · **[КОНТЕКСТ]** `context/projects/<profile>/{TEST-ARCHITECTURE,COMMANDS,PATTERN-INDEX}.md` + approved cards + `rules/20` · **[ФОРМАТ]** код (accessible queries) + таблица состояний + команда · **rationale** пользовательские действия и видимый результат · **assumptions** компонент рендерится в runner из profile · **evidence** profile-approved selectors; все состояния UI · **[УСЛОВИЯ]** верификация `rules/40`. Полный recipe `#1` → [EXPANDED-EXAMPLES.md](EXPANDED-EXAMPLES.md#05--e2e--ui-разворот-05-1).
 
 ## Компонентные тесты
 
