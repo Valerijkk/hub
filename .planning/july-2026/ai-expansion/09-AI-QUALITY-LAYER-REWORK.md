@@ -1,8 +1,8 @@
 # AI Quality Layer Rework — test automation
 
-> Дата решения: 2026-07-26  
-> Scope: `.cursor/`, `prompt-engineering/`, связанная `.planning/`  
-> Product code: не менять  
+> Дата решения: 2026-07-26
+> Scope: `.cursor/`, `prompt-engineering/`, связанная `.planning/`
+> Product code: не менять
 > Commit: только по отдельному запросу пользователя
 
 ## Goal
