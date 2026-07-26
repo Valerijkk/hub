@@ -1,12 +1,16 @@
 ---
 status: template            # template | filled
-filled_by: context-intake
+compatibility: deprecated
+read_only: true
+replacement: "context/projects/<profile>/{TEST-ARCHITECTURE,TRACEABILITY,PATTERN-INDEX}.md"
 filled_at: {{YYYY-MM-DD}}
 ---
 
 # Naming Conventions — тесты
 
-> Источник истины для `test-code-reviewer` и скила `naming-check`. Заполняется из style guide проекта + фактических паттернов кода (если расходятся — фиксируется расхождение, канон выбирает владелец проекта).
+> **DEPRECATED / READ-ONLY COMPATIBILITY.** Источник истины — active profile
+> `TEST-ARCHITECTURE.md`, `TRACEABILITY.md`, `PATTERN-INDEX.md` и linked
+> human-approved cards.
 
 ## 1. Файлы тестов
 
