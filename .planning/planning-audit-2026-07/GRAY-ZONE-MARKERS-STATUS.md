@@ -93,4 +93,6 @@
 
 ---
 
+Связано: `DECISIONS-PENDING.md` (D4/D5 owner questions).
+
 *D6 · planning-audit-2026-07*
