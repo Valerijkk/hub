@@ -2,16 +2,52 @@
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
-status: ai-quality-layer-pre-release-structural-pass-eval-pending
-stopped_at: Test Automation AI Quality Layer · structural+package PASS · RU instructions · paired eval/ROI NOT_RUN · code freeze
-last_updated: "2026-07-26T17:30:00.000Z"
-last_activity: 2026-07-26 · STATE compacted · PE RU instructions · package 172 PASS
+status: planning-audit-pw-in-progress
+stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
+last_updated: "2026-07-27T00:45:00.000Z"
+last_activity: 2026-07-27 · planning-audit PW waves · coverage 81.9% (2026-07-27)
 progress:
     total_phases: 125
-    completed_phases: 125
-    total_plans: 250+
-    completed_plans: 250+
-    percent: 100
+    tasks_completed: 125
+    goals_verified: 55
+    phases_percent: 100
+    notes: >-
+      tasks_completed = checkbox/legacy completed_phases claim.
+      goals_verified = VERIFIED_PASS in PHASE-STATUS-MATRIX.md (scanned 2026-07-27):
+      55 PASS / 5 PARTIAL / 2 CODE_GATE_DEPLOY_BLOCKED / 52 NO_VERIFICATION
+      among 114 dirs under .planning/phases/ (01–13 live in milestones/).
+      phases_percent remains tasks_completed/total_phases — NOT goals_verified.
+deploy_blockers:
+  - id: PG-03
+    aka: FA-06
+    title: Secret rotation (Resend/Telegram P1 + inventory)
+    status: open
+    blocks: production_cutover
+    does_not_block: feature_dev_july_rebuild_planning
+    phase_refs:
+      - "63-production-gate (VERIFICATION: code PASS, deploy blocked)"
+      - "67-production-gate (VERIFICATION: code PASS, deploy blocked)"
+    docs:
+      - .planning/production/PG-03-SECRET-ROTATION.md
+      - .planning/production/FA-06-EXECUTION-LOG.md
+      - docs/runbooks/fa06-secret-rotation.md
+    progress:
+      phase_0_git_scan: done
+      phase_1_rotate: pending
+      phase_2_smoke: pending
+      phase_3_cto_signoff: pending
+coverage:
+    overall_internal_statements: 81.9
+    measured: "2026-07-27"
+    baseline_2026_06_22: 83.0
+    delta_pp: -1.1
+    gate_floor_82: miss
+inventory_measured_2026_07_27:
+    frontend_route_tsx: 72
+    backend_testframework_test_go: 515
+    ent_entity_schemas: 82
+    zustand_stores: 13
+    go_mod: "1.25.0"
 ---
 
 # Состояние проекта Hub
