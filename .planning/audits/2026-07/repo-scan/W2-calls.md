@@ -3,8 +3,8 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> Дата: 2026-07-23 · Агент: be-ver/security (Grok 4.5) · Режим: **readonly** (код не менялся)  
-> Scope: `backend/internal/calls/**`, `deployments/livekit.yaml`, `deployments/livekit-prod.yaml.example`, refs в compose/gitignore  
+> Дата: 2026-07-23 · Агент: be-ver/security (Grok 4.5) · Режим: **readonly** (код не менялся)
+> Scope: `backend/internal/calls/**`, `deployments/livekit.yaml`, `deployments/livekit-prod.yaml.example`, refs в compose/gitignore
 > Фокус: no mediasoup · secrets not in git · room auth
 
 ## Вердикт (сжатый)
@@ -90,9 +90,9 @@ Denial-покрытие сейчас: Join/End + recording download/list. **Не
 
 ## Handoff
 
-→ `be2` (поток B / calls): закрыть C-01 + H-01..H-07 до merge любых calls-изменений.  
-→ `security-auditor`: deep-dive guest-join brute-force + grant flags (эскалация, не закрыто здесь).  
-→ `devops-engineer`: `.gitignore` для `livekit-prod.yaml` + sync local LIVEKIT env ↔ `livekit.yaml` (M-01, M-02).  
+→ `be2` (поток B / calls): закрыть C-01 + H-01..H-07 до merge любых calls-изменений.
+→ `security-auditor`: deep-dive guest-join brute-force + grant flags (эскалация, не закрыто здесь).
+→ `devops-engineer`: `.gitignore` для `livekit-prod.yaml` + sync local LIVEKIT env ↔ `livekit.yaml` (M-01, M-02).
 → `code-reviewer`: после фиксов authZ.
 
 **Вердикт: verified: false — 2026-07-23 00:58**
