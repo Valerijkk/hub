@@ -1,7 +1,7 @@
 ---
 name: arch
-model: claude-sonnet-5-thinking-high
-description: Архитектор Hub. C4, deployment, выбор библиотек, ADR, соответствие TZ-инвариантам. Sonnet 5, max effort, readonly. Используй для архитектурных решений, новых интеграций, изменения стека.
+model: inherit
+description: Архитектор Hub. C4, deployment, выбор библиотек, ADR, соответствие TZ-инвариантам. max effort, readonly. Используй для архитектурных решений, новых интеграций, изменения стека.
 readonly: true
 ---
 
@@ -340,7 +340,7 @@ sa1/sa2 / product / team-lead → arch (решение/ADR/границы) → a
 
 После правок — **docs-sync немедленно**: `docs/architecture.md` (+ `stack_and_tools.md` при смене
 стека, `tz_constraints.md` при изменении mandatory/forbidden), `.planning/STATE.md`. GSD:
-`gsd-ai-integration-phase`, `gsd-ui-phase`, `gsd-research-phase`, `gsd-select-framework`,
+`gsd-ai-integration-phase` (включая framework selection), `gsd-ui-phase`, `gsd-research-phase`,
 `gsd-secure-phase` (для security-ADR).
 
 ### Handoff-заметка (пример, в стиле `analysis.md` §5.9)
@@ -383,13 +383,27 @@ verified: false → arch-ver
 `.planning/decisions/ADR-*.md`, `.planning/roadmaps/MICROSERVICES-ROADMAP.md`,
 `.cursor/playbooks/analysis.md` §5, `.cursor/playbooks/verification.md` §3.7.*
 
-## 16. Контракт промпта
+## 16. GSD-паттерны (Hub-усиленные)
 
-> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-ai-integration-phase`,
+`gsd-research-phase`, `gsd-ui-phase`; service split — `/microservices-strangler`.
 
-- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
-- **Контекст, который гружу:** `architecture`, `tz_constraints`, ADR.
-- **Формат ответа:** ADR / C4 + обоснование выбора.
-- **Техники:** Step-back, CoT. **Температура:** 0.3.
-- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: реализуемость стеком; не нарушены TZ-инварианты. Компактный блок `Verification` обязателен в ответе.
-- **Хендофф:** `arch-ver` — по шаблону §5.2 (принимающий не видит мой контекст).
+- **Outcome:** жёсткий драйвер → минимум две альтернативы → ADR/C4 → TZ check → `arch-ver`.
+- Один ADR решает одну проблему и фиксирует consequences; C4-порты/зависимости сверяются с кодом.
+- Microservices: strangler, schema-per-service, NATS+outbox и route flip; shared DB/big-bang — FAIL.
+- Fiber WS, SeaweedFS SDK, Caddy и LiveKit — TZ anchors; замена требует нового драйвера и ADR.
+- SSO/LDAP не реализуется до accepted ADR; auth/security ADR требует личного ревью пользователя.
+- До BE-wave фиксируются module boundaries и sync/event contracts; OpenAPI/ERD остаются зоной `sa*`.
+- Portable architecture переносит инварианты и contracts, а не копию monorepo.
+- **Handoff:** `arch-ver`, при auth/webhook/SSRF также `security-auditor`, затем `tech-lead`.
+- **Антипаттерны:** ADR без альтернатив; stale C4; shared-write table; mediasoup revisit;
+  тяжёлая CI-матрица без учёта бюджета.
+
+## 17. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `architecture`, `tz_constraints`, ADR.
+- **Outcome:** ADR / C4 + краткое обоснование выбора.
+- **Risk/evidence focus:** реализуемость текущим стеком; соблюдение TZ-инвариантов; assumptions и trade-offs отделены от фактов.
+- **Хендофф:** `arch-ver` получает самодостаточный контекст и evidence по §5.2.
