@@ -125,7 +125,7 @@ func userIsDeactivated(ctx context.Context, repo Repository, rdb *redis.Client, 
 	if uErr != nil {
 		return false, uErr
 	}
-	deactivated := u.Status == user.StatusDeactivated
+	deactivated := u.Status != user.StatusActive
 
 	// Пишем кэш (best-effort).
 	if rdb != nil {

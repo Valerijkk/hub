@@ -61,6 +61,10 @@ func (s *LoginService) LoginWithMagicLink(ctx context.Context, email, code, invi
 			slog.Info("new user registered via magic link", "user_id", u.ID.String(), "email", email, "status", u.Status)
 		}
 
+		if u.Status != user.StatusActive {
+			return nil, ErrAccountNotActive
+		}
+
 		return s.sessions.CreateSession(ctx, u.ID, device, ip)
 	})
 }
@@ -108,6 +112,10 @@ func (s *LoginService) LoginWithTelegram(ctx context.Context, initData, device, 
 		slog.Info("new user registered via telegram", "user_id", u.ID.String(), "telegram_id", telegramID)
 	}
 
+	if u.Status != user.StatusActive {
+		return nil, ErrAccountNotActive
+	}
+
 	return s.sessions.CreateSession(ctx, u.ID, device, ip)
 }
 
@@ -120,6 +128,9 @@ func (s *LoginService) LoginWithTelegramUser(ctx context.Context, tgUser *Telegr
 	}
 	if isNew {
 		slog.Info("new user registered via telegram bot code", "user_id", u.ID.String(), "telegram_id", telegramID)
+	}
+	if u.Status != user.StatusActive {
+		return nil, ErrAccountNotActive
 	}
 	return s.sessions.CreateSession(ctx, u.ID, device, ip)
 }

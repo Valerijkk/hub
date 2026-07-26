@@ -19,6 +19,7 @@ import (
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/enttest"
+	"github.com/valerii/hub/backend/ent/user"
 )
 
 func newLoginTestEnv(t *testing.T) (*auth.LoginService, *ent.Client, *auth.MagicLinkService) {
@@ -40,6 +41,30 @@ func newLoginTestEnv(t *testing.T) (*auth.LoginService, *ent.Client, *auth.Magic
 	org := auth.NewOrganizationService(repo)
 	login := auth.NewLoginService(repo, magic, "telegram-bot-token", sessions, regMode, org)
 	return login, client, magic
+}
+
+// TestLoginWithMagicLink_PendingUserDenied — A1-001 / ORG-06: pending не получает JWT до admin approve.
+func TestLoginWithMagicLink_PendingUserDenied(t *testing.T) {
+	login, client, magic := newLoginTestEnv(t)
+	ctx := context.Background()
+	email := "pending-" + uuid.New().String()[:8] + "@example.com"
+
+	_, err := client.User.Create().
+		SetEmail(email).
+		SetStatus(user.StatusPending).
+		Save(ctx)
+	require.NoError(t, err)
+
+	code, err := magic.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+
+	pair, err := login.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
+	require.ErrorIs(t, err, auth.ErrAccountNotActive)
+	assert.Nil(t, pair)
+
+	sessions, err := client.Session.Query().Count(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 0, sessions)
 }
 
 // TestLoginWithMagicLink_Success проверяет сценарий: вход with magic link успех.

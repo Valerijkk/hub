@@ -99,6 +99,8 @@ var ErrInvalidInviteToken = fmt.Errorf("invalid invite token")
 var (
 	ErrRegistrationInviteOnly = fmt.Errorf("registration is by invite only")
 	ErrUserNotFound           = fmt.Errorf("user not found")
+	// ErrAccountNotActive — login/refresh запрещены для pending/deactivated (ORG-06 / ECC-AUTH-224).
+	ErrAccountNotActive = fmt.Errorf("account is not active")
 )
 
 // generateInviteToken генерирует криптостойкий invite-токен org (32 hex-символа).

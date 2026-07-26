@@ -137,6 +137,9 @@ func (h *Handler) VerifyMagicLink(c fiber.Ctx) error {
 		if err == ErrRegistrationInviteOnly || err == ErrInvalidInviteToken {
 			return fiber.NewError(fiber.StatusForbidden, "registration is by invite only")
 		}
+		if err == ErrAccountNotActive {
+			return fiber.NewError(fiber.StatusForbidden, "account pending approval")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "login failed")
 	}
 
