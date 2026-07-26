@@ -130,7 +130,7 @@ export function createInvite(projectId: string, data: CreateInviteRequest) {
 	return api.post<InviteResponse>(`/projects/${projectId}/invites`, data);
 }
 
-/** Endpoint: POST /projects/join — присоединиться к проекту по инвайт-коду. */
+/** Endpoint: POST /invites/join — присоединиться к проекту по инвайт-коду. */
 export function joinByInvite(code: string) {
-	return api.post<void>("/projects/join", { code });
+	return api.post<void>("/invites/join", { code });
 }
