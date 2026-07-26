@@ -40,11 +40,15 @@ let refreshing: Promise<boolean> | null = null;
  * Если refresh не удался — выполняет logout.
  */
 class ApiClient {
-	/** Формирует заголовки запроса, включая Content-Type и Authorization. */
-	private getHeaders(): Record<string, string> {
-		const headers: Record<string, string> = {
-			"Content-Type": "application/json",
-		};
+	/**
+	 * Формирует заголовки запроса, включая Authorization.
+	 * Для FormData не ставим Content-Type — браузер сам добавит multipart boundary.
+	 */
+	private getHeaders(body?: unknown): Record<string, string> {
+		const headers: Record<string, string> = {};
+		if (!(body instanceof FormData)) {
+			headers["Content-Type"] = "application/json";
+		}
 		const token = useAuthStore.getState().accessToken;
 		if (token) {
 			headers.Authorization = `Bearer ${token}`;
@@ -58,13 +62,18 @@ class ApiClient {
 	 * При 204 или пустом теле возвращает undefined.
 	 * @param method - HTTP-метод (GET, POST, PUT, PATCH, DELETE)
 	 * @param path - путь относительно API_BASE (например, "/auth/me")
-	 * @param body - тело запроса (будет сериализовано в JSON)
+	 * @param body - тело запроса (JSON-объект или FormData без stringify)
 	 */
 	async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+		const isFormData = body instanceof FormData;
 		const response = await fetch(`${API_BASE}${path}`, {
 			method,
-			headers: this.getHeaders(),
-			body: body ? JSON.stringify(body) : undefined,
+			headers: this.getHeaders(body),
+			body: body === undefined || body === null
+				? undefined
+				: isFormData
+					? (body as FormData)
+					: JSON.stringify(body),
 		});
 
 		if (response.status === 401) {
