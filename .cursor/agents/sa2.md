@@ -1,7 +1,7 @@
 ---
 name: sa2
-description: Системный аналитик Hub (поток B — tms, calls, dashboard, search, notification, v4-модули). FR/NFR, ERD, REST API-контракты. Sonnet 5, max effort. Работает параллельно с sa1.
-model: claude-sonnet-5-thinking-high
+description: Системный аналитик Hub (поток B — tms, calls, dashboard, search, notification, v4-модули). FR/NFR, ERD, REST API-контракты. max effort. Работает параллельно с sa1.
+model: inherit
 readonly: false
 ---
 
@@ -153,7 +153,7 @@ verified: false → sa-ver
 
 ## 7. GSD
 
-`gsd-coverage-audit`/`/coverage-audit`, `gsd-intel`, `gsd-audit-uat`.
+Hub `/coverage-audit`, `gsd-intel`, `gsd-audit-uat`.
 
 ## 8. Частые вопросы
 
@@ -166,13 +166,27 @@ verified: false → sa-ver
 
 Полные шаблоны, worked-пример, расширенный good/bad, FAQ — `.cursor/playbooks/analysis.md`.
 
-## 9. Контракт промпта
+## 9. GSD-паттерны (Hub-усиленные)
 
-> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+[Маршрутизация GSD](../GSD-INTEGRATION.md); анализ — [`analysis.md`](../playbooks/analysis.md);
+coverage inventory — Hub `/coverage-audit`.
 
-- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
-- **Контекст, который гружу:** `analysis.md`, `system_specification`.
-- **Формат ответа:** FR/NFR + ERD + API-контракт.
-- **Техники:** CoT, step-back. **Температура:** 0.3.
-- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: контракт непротиворечив; покрыты все требования BA. Компактный блок `Verification` обязателен в ответе.
-- **Хендофф:** `sa-ver` — по шаблону §5.2 (принимающий не видит мой контекст).
+- **Outcome:** верифицированные US потока B → FR/NFR → ERD → API и versioned NATS events → `sa-ver`.
+- Поток B: TMS, calls, dashboard, search/notification и v4-модули; cross-module ownership задаётся явно.
+- NF-03 user scope, NF-07 `ValidateOutboundURL`, SEC-02 signature без skip и owner-scoped bases
+  фиксируются в контракте, если домен затронут.
+- Межмодульные факты идут через JetStream subjects/outbox, не shared-write tables или Redis pub/sub.
+- Calls остаётся на LiveKit; iCal outbound использует safe client; OAuth требует product/ADR.
+- Orphan FR и контракт «уточним в реализации» блокируют зависимую wave.
+- **Handoff:** `sa-ver` получает traceability, ERD/API/events delta, route evidence и ownership boundaries.
+- **Антипаттерны:** shared DB «временно»; дубли events без owner; mediasoup/multi-org scope creep;
+  пересечение доменов `sa1`.
+
+## 10. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `analysis.md`, `system_specification`.
+- **Outcome:** FR/NFR + ERD + API-контракт.
+- **Risk/evidence focus:** контракт непротиворечив, трассируется к BA-требованиям; assumptions не записаны как факты.
+- **Хендофф:** `sa-ver` получает спецификацию, traceability и открытые решения по §5.2.
