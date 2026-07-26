@@ -3,9 +3,9 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Роль:** qa-auto-ver (Grok 4.5), readonly  
-> **Дата:** 2026-07-23  
-> **Scope:** `testframework/stages/unit/frontend-test/` + конфиг Vitest (`frontend/vite.config.ts`, `frontend/src/test/setup.ts`)  
+> **Роль:** qa-auto-ver (Grok 4.5), readonly
+> **Дата:** 2026-07-23
+> **Scope:** `testframework/stages/unit/frontend-test/` + конфиг Vitest (`frontend/vite.config.ts`, `frontend/src/test/setup.ts`)
 > **Код не менялся**
 
 ---
