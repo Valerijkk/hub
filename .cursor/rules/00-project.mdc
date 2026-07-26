@@ -12,9 +12,9 @@ Unified platform for dev teams (10-50 people): Task Tracker + Messenger + TMS + 
 **Monorepo layout:**
 ```
 hub/
-├── backend/          # Go 1.24 + Fiber v3
+├── backend/          # Go 1.25 + Fiber v3
 │   ├── cmd/server/   # main.go (thin entry; wiring in wiring_*.go)
-│   ├── ent/schema/   # 82 Ent schemas
+│   ├── ent/schema/   # 82 Ent schemas (+ helpers.go)
 │   └── internal/     # 31+ modules: auth, project, tracker, sprint,
 │                     # messenger, tms, calls, dashboard, notification,
 │                     # search, github, gitlab, rbac, storage, imex,
@@ -31,7 +31,7 @@ hub/
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Go 1.24, Fiber v3 (fasthttp) |
+| Backend | Go 1.25.0, Fiber v3 (fasthttp) — measured 2026-07-27 from `backend/go.mod` |
 | ORM | Ent + Atlas migrations |
 | Primary DB | PostgreSQL 17 |
 | Document DB | MongoDB 8 (messages, Allure reports) |
@@ -41,8 +41,8 @@ hub/
 | Voice/Video | LiveKit (WebRTC) |
 | File Storage | SeaweedFS (S3-compatible) |
 | Frontend | React 19, TypeScript 5.7, Vite |
-| Routing | TanStack Router (39 routes) |
-| State | TanStack Query + Zustand (11 stores) |
+| Routing | TanStack Router (**72** file routes under `frontend/src/routes/`, measured 2026-07-27; was claimed 39) |
+| State | TanStack Query + Zustand (**13** stores, measured 2026-07-27; was claimed 11) |
 | UI | Shadcn/ui + Tailwind CSS 4 |
 | Infra | Docker Compose (dev), K3s (prod), Caddy |
 
@@ -79,7 +79,7 @@ hub/
 - **v1.0** (Phases 1-7): SHIPPED 2026-03-21
 - **v2.0** (Phases 8-14, Hub Redesign): COMPLETE 2026-05-15
 - **v2.5 Trust / v2.6 Automate+Arch+OBS / v3.0 AI Native / v4 Super-app**: COMPLETE (см. `AGENTS.md`)
-- **Coverage wave (Phases 59–125):** COMPLETE, COV **83.0%**, 6/6 security packages ≥80%
+- **Coverage wave (Phases 59–125):** COMPLETE, COV **83.0%** (2026-06-22 Docker baseline), 6/6 security packages ≥80%
 - **Волна 1 (roadmap 2026-07-03):** влита в `master` 2026-07-11 (integration/wave1 + otel-nats-trace + wave2 ADR/specs)
 - **Текущая фаза:** July Rebuild / QA-HARDENING **planning** — код freeze до возврата ~конец июля 2026; на диске только доки (`july-2026/*`, edge-expansions wave2–5, EDGE catalog ≈4696 ECC)
 - **Test Automation AI Quality Layer:** `prompt-engineering/`
@@ -94,7 +94,7 @@ hub/
 |------|--------|
 | Dockerfile `-tags release` | ✅ |
 | Deploy gated on CI success | ✅ |
-| COV overall / security 6×80% | ✅ 83.0% / 6/6 |
+| COV overall / security 6×80% | ✅ 83.0% / 6/6 (2026-06-22 Docker baseline) |
 | Ctrl+K global search UI | ✅ |
 | LiveKit (SFU) канон | ✅ mediasoup REJECTED |
 | PG-03/FA-06 secret rotation | ⚠️ manual — **единственный prod-блокер** |

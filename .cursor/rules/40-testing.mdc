@@ -163,7 +163,7 @@ testframework/
 - Real regression fix + новый тест в одном коммите: `fix(bases)` (`98fb3df`) → `backend/internal/bases/service.go` + `backend/testframework/bases/service_test.go`, `service_wave115_test.go`; следующий коммит `test(bases)` (`8ff10d7`) добавил отдельный denial-suite `backend/testframework/bases/rbac_test.go` (403 для чужой базы, 404 для отсутствующей, позитив владельца).
 - Rune-length regression: `backend/testframework/auth/handler_magiclink_runes_test.go` — тест написан **вместе** с фиксом `576dfbb`, не отдельным PR (цикл «implement → test нового» из rule 56).
 - Паттерны в тестфреймворке: Page Object — `stages/e2e/shared/pages/`; Step — `stages/e2e/shared/steps/`; Builder — `backend/testframework/env/`; Factory — `backend/testframework/factory/`; TestRenderer — `stages/unit/frontend-test/render.tsx`.
-- Coverage по security-пакетам (≥80%): `auth` 82.4%, `ws` 87.7%, `rbac` 84.7%, `audit` 80.5%, `calls` 80.2% — актуальные проценты держи в `.planning/COVERAGE.md`, не в этом rule.
+- Coverage по security-пакетам (≥80%): `auth` 82.4%, `ws` 87.7%, `rbac` 84.7%, `audit` 80.5%, `calls` 80.2% (2026-06-22 Docker baseline) — актуальные проценты держи в `.planning/COVERAGE.md`, не в этом rule.
 - Миграция тестфреймворка (история реорганизации): `testframework/MIGRATION.md`, скрипт `scripts/reorganize-testframework-pipeline.ps1`.
 
 ## Coverage Targets
@@ -226,8 +226,7 @@ Remove-Item -Force tmp_*.py -ErrorAction SilentlyContinue
 - Fail-closed middleware тест (что происходит при отказе внешней зависимости): `backend/testframework/auth/middleware_failclosed_test.go`.
 - Vitest unit-тесты по доменам: `testframework/stages/unit/frontend-test/domains/{auth,admin,ai,v4,...}/`.
 - Playwright E2E-спеки (20 всего, smoke — 3): `testframework/stages/e2e/domains/` — карта стадий CI в `testframework/PIPELINE.md`.
-- Backend unit-тесты по домену (499 test files, 0 внутри `internal/`,
-  inventory 2026-07-26): `backend/testframework/{auth,tracker,tms,bases,...}/`.
+- Backend unit-тесты по домену (**515** test files measured 2026-07-27, was 499 on 2026-07-26; 0 внутри `internal/`): `backend/testframework/{auth,tracker,tms,bases,...}/`.
 - Node-линковка testframework перед Vitest/E2E: `node frontend/scripts/link-testframework-node-modules.mjs` — обязательный шаг перед `npx vitest run`/Playwright.
 - Testing Guide (канон стратегии, Allure, замер времени): `testframework/TESTING_GUIDE.md`, `testframework/guides/06-edge-corner-coverage.md`.
-- Coverage-матрица по модулям (факт на 2026-07): `.planning/COVERAGE.md` — auth 82.4%, ws 87.7%, rbac 84.7%, audit 80.5%, calls 80.2%.
+- Coverage-матрица по модулям (2026-06-22 Docker baseline): `.planning/COVERAGE.md` — auth 82.4%, ws 87.7%, rbac 84.7%, audit 80.5%, calls 80.2%.

@@ -49,9 +49,9 @@
 
 | Метрика | Значение |
 |---------|----------|
-| Backend `testframework/**/*_test.go` | **499** файлов (filesystem count 2026-07-26) |
+| Backend `testframework/**/*_test.go` | **515** файлов (measured 2026-07-27; was 499 on 2026-07-26) |
 | Backend `internal/*_test.go` | **0** (TF-M08 ✅) |
-| Statement coverage `internal/` | **83.0%** |
+| Statement coverage `internal/` | **83.0%** (2026-06-22 Docker baseline) |
 | Security-critical packages ≥80% | **6/6** ✅ |
 | Frontend Vitest | **37** files, **99/99** tests ✅ |
 | Playwright specs | **20** files в `testframework/stages/e2e/domains/` |
@@ -125,17 +125,19 @@ Infra: `scripts/ci-e2e-backend.sh` (postgres:17, redis:7.4, mongo:8, nats:2.11).
 
 ## Матрица модулей (краткая)
 
+Покрытие unit — **2026-06-22 Docker baseline** (`.planning/COVERAGE.md`).
+
 | Модуль | Unit | E2E | Security |
 |--------|------|-----|----------|
-| auth | ✅ 82.4% | login, logout | SEC-06, SEC-07, magic-link timing |
-| tracker | ✅ 82.4% | project-lifecycle | optimistic lock |
-| messenger | ✅ 82.3% | messenger.spec | NF-02 WS authz |
-| tms | ✅ 82.0% | tms.spec | webhook API key |
+| auth | ✅ 82.4% (2026-06-22) | login, logout | SEC-06, SEC-07, magic-link timing |
+| tracker | ✅ 82.4% (2026-06-22) | project-lifecycle | optimistic lock |
+| messenger | ✅ 82.3% (2026-06-22) | messenger.spec | NF-02 WS authz |
+| tms | ✅ 82.0% (2026-06-22) | tms.spec | webhook API key |
 | calls | ✅ | partial | SEC-02 webhook sha256 |
 | ws | ✅ | real-time | SEC-05, NF-02 |
-| search | ✅ ~92% | command-palette | NF-03 user scope |
+| search | ✅ ~92% (2026-06-22) | command-palette | NF-03 user scope |
 | apigateway | ✅ | — | SEC-01 API key order |
-| notification | ✅ ~82% | notifications | NF-07 WebPush URL |
+| notification | ✅ ~82% (2026-06-22) | notifications | NF-07 WebPush URL |
 | v4 (crm, hr, intranet…) | ✅ | v4-superapp | RBAC |
 
 Полная матрица: `.planning/COVERAGE.md`.
@@ -210,4 +212,4 @@ File: path:line
 | `.cursor/skills/qa-gate/SKILL.md` | Полный gate |
 
 ---
-*Последнее обновление: 2026-07-26 — inventory 499 BE test files; COV 83% остаётся baseline прогона 2026-06-22*
+*Последнее обновление: 2026-07-27 — inventory **515** BE test files (was 499 on 2026-07-26); COV 83% остаётся baseline прогона 2026-06-22*

@@ -10,7 +10,7 @@
 <p>
   <!-- Бейджи-плейсхолдеры: заменить на реальные URL CI после публикации -->
   <img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build" />
-  <img src="https://img.shields.io/badge/coverage-83%25-brightgreen" alt="Coverage" />
+  <img src="https://img.shields.io/badge/coverage-83%25_(2026--06--22)-brightgreen" alt="Coverage 83% (2026-06-22 Docker baseline)" />
   <img src="https://img.shields.io/badge/license-proprietary-red" alt="License" />
   <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=flat&logo=go&logoColor=white" alt="Go" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black" alt="React" />
@@ -21,7 +21,8 @@
 </p>
 
 <p>
-  <strong>286+ API endpoints</strong> · <strong>82 Ent-схемы</strong> · <strong>39+ frontend-маршрутов</strong> · <strong>495 backend-тестов</strong> · <strong>Product score 89/100</strong>
+  <strong>286+ API endpoints</strong> · <strong>82 Ent-схемы</strong> · <strong>72 frontend route files</strong> · <strong>515 backend-тестов</strong> · <strong>Product score 89/100</strong>
+  <!-- inventory measured 2026-07-27; was 39+/495 -->
 </p>
 
 </div>
@@ -111,7 +112,7 @@ Hub сегодня — **модульный монолит** на Go/Fiber (31+ 
           ┌─────────────────┐              ┌─────────────────────┐
           │  Frontend (SPA) │              │  Backend (Go+Fiber) │
           │  React 19       │   REST/WS    │  286+ endpoints     │
-          │  39+ routes     │ ◄──────────► │  WebSocket + NATS   │
+          │  72 route files │ ◄──────────► │  WebSocket + NATS   │
           └─────────────────┘              └──────────┬──────────┘
                                                       │
           ┌────────────┬────────────┬───────┴───────┬──────────┐
@@ -151,7 +152,7 @@ SeaweedFS    LiveKit      Prometheus    testframework/
 | React | 19 | UI |
 | TypeScript | 5.7 | Типобезопасность |
 | Vite | 6 | Dev server, сборка, PWA |
-| TanStack Router | 1.x | File-based routing (39+ маршрутов) |
+| TanStack Router | 1.x | File-based routing (**72** `.tsx` under `frontend/src/routes/`, measured 2026-07-27; was claimed 39+) |
 | TanStack Query + Zustand | 5.x | Server / client state (11+ stores) |
 | Tailwind CSS 4 + Shadcn/ui | — | Дизайн-система (токены `--hub-*`) |
 | Plate | 48.x | Rich-text редактор |
@@ -230,7 +231,7 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 | Слой | Стек | Кто пишет | Статус |
 |---|---|---|---|
-| Unit backend | Go (testify, `-tags hubtest`, `-race`) | be-разработчики | ✅ 495 тестов, coverage **83%** |
+| Unit backend | Go (testify, `-tags hubtest`, `-race`) | be-разработчики | ✅ **515** test files (measured 2026-07-27; was 495), coverage **83%** (2026-06-22 Docker baseline) |
 | Unit frontend | TypeScript: Vitest + RTL | fe-разработчики | ✅ 99+ тестов |
 | E2E | Playwright (TS), smoke + full | QA | ✅ 20+ спеков (сейчас) |
 | Integration / API / contract / regression | **Python: pytest + allure-pytest + httpx + playwright-python** | QA-конвейер | 📋 целевой слой (фаза TF-PY, после выноса микросервисов) |
@@ -238,7 +239,7 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 Качество и ворота:
 
-- **Coverage-gate:** backend ≥ 82% (сейчас **83.0%**), security-пакеты (auth/ws/rbac/audit/calls +1) ≥ 80% — **6/6** ✅.
+- **Coverage-gate:** backend ≥ 82% (сейчас **83.0%**, 2026-06-22 Docker baseline), security-пакеты (auth/ws/rbac/audit/calls +1) ≥ 80% — **6/6** ✅.
 - **`/qa-gate`** перед handoff/merge: release-build → hubtest → race → Biome → e2e-smoke.
 - **QA-конвейер:** тест-кейсы (TC-\*) → верификация → автотесты по TC → верификация автотестов; трассируемость TC↔автотест через Allure, результаты заливаются в собственный TMS Hub.
 

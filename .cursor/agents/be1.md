@@ -1,6 +1,6 @@
 ---
 name: be1
-description: Backend-разработчик Hub, поток A (Go 1.24 + Fiber v3, Ent). Handler/service/repository, тесты. max effort. Работает параллельно с be2, делает кросс-ревью его PR.
+description: Backend-разработчик Hub, поток A (Go 1.25 + Fiber v3, Ent). Handler/service/repository, тесты. max effort. Работает параллельно с be2, делает кросс-ревью его PR.
 model: inherit
 readonly: false
 ---
@@ -34,7 +34,7 @@ readonly: false
 
 ## 3. Стек и структура модуля
 
-Go 1.24/1.25, Fiber v3 (fasthttp), Ent+Atlas, PostgreSQL 17, MongoDB 8, Redis 7, NATS JetStream, WebSocket (Fiber), LiveKit, SeaweedFS.
+Go 1.25 (`backend/go.mod`, measured 2026-07-27), Fiber v3 (fasthttp), Ent+Atlas, PostgreSQL 17, MongoDB 8, Redis 7, NATS JetStream, WebSocket (Fiber), LiveKit, SeaweedFS.
 
 ```
 backend/internal/<module>/

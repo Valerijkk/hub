@@ -73,10 +73,10 @@ Go-тесты физически живут в `backend/testframework/` (не в
 
 | Метрика | Значение |
 |---------|----------|
-| Backend test files | 499 `_test.go` (0 в `internal/`) |
+| Backend test files | **515** `_test.go` (0 в `internal/`; measured 2026-07-27; was 499) |
 | Frontend Vitest | 37 файлов, 99 тестов |
 | Playwright E2E | 20 spec (smoke: 3) |
-| Statement coverage `internal/` | **83.0%** при gate ≥82% |
+| Statement coverage `internal/` | **83.0%** (2026-06-22 Docker baseline) при gate ≥82% |
 | Security-пакеты (auth/ws/rbac/audit/calls + platform) | 6/6 ≥80% |
 
 ### 2.3. Команды прогона (локально)
@@ -259,7 +259,7 @@ def test_create_project_lifecycle(api_client, project_factory):
 
 | Область | Порог |
 |---------|-------|
-| Core-монолит `internal/` (statement) | **≥ 82%** (текущий gate; факт 83.0%) |
+| Core-монолит `internal/` (statement) | **≥ 82%** (текущий gate; факт 83.0%, 2026-06-22 Docker baseline) |
 | Выделенные сервисы (после split: hub-notification, hub-ai, realtime-трио) | **≥ 80%** каждый |
 | Security-критичные пакеты (auth, ws, rbac, audit, calls; после split — соответствующие сервисы) | **≥ 80%** |
 

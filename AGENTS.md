@@ -127,7 +127,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | v2.6 Automate + Arch + OBS | ✅ COMPLETE 2026-06-24 |
 | v3.0 AI Native | ✅ COMPLETE 2026-06-22 |
 | v4 Super-app | ✅ COMPLETE 2026-06-25 |
-| Coverage wave (Ph 59–125) | ✅ COV **83.0%** |
+| Coverage wave (Ph 59–125) | ✅ COV **83.0%** (2026-06-22 Docker baseline) |
 | Test framework migration | ✅ Wave B COMPLETE (0 internal tests) |
 | Final audit (FA-01–FA-12) | ✅ Wave C COMPLETE (кроме FA-06 manual) |
 | Lighthouse CI (FB-06) | ✅ artifact job PR #27 (non-blocking) |
@@ -139,14 +139,14 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 
 | Метрика | Значение |
 |---------|----------|
-| COV overall | **83.0%** |
-| Security packages ≥80% | **6/6** ✅ |
-| auth / ws / rbac / audit / calls | 82.4% / 87.7% / 84.7% / 80.5% / 80.2% |
-| tracker / messenger / notification / tms / project | 82.4% / 82.3% / 82.5% / 82.0% / 82.0% |
+| COV overall | **83.0%** (2026-06-22 Docker baseline) |
+| Security packages ≥80% | **6/6** ✅ (2026-06-22 Docker baseline) |
+| auth / ws / rbac / audit / calls | 82.4% / 87.7% / 84.7% / 80.5% / 80.2% (2026-06-22 Docker baseline) |
+| tracker / messenger / notification / tms / project | 82.4% / 82.3% / 82.5% / 82.0% / 82.0% (2026-06-22 Docker baseline) |
 | Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Backend tests (`testframework/`) | **499** files · 0 in `internal/` (filesystem count 2026-07-26) |
+| Backend tests (`testframework/`) | **515** files · 0 in `internal/` (measured 2026-07-27; was 499 on 2026-07-26) |
 | Vitest | **99/99** pass |
 | Playwright E2E | **20** specs |
 | qa-gate (FA-10) | build ✅ · hubtest ✅ · race ✅ · Biome ✅ · e2e-smoke **3/3** ✅ |
@@ -198,7 +198,7 @@ docker compose -f docker-compose.local.yml up -d
 
 # Backend regression (local)
 # ВАЖНО: -tags hubtest обязателен — export_hooks.go (39 файлов) под этим тегом,
-# без него testframework не компилируется. Тестов в internal/ нет (все 499 в testframework/).
+# без него testframework не компилируется. Тестов в internal/ нет (все 515 в testframework/, measured 2026-07-27).
 cd backend && go build -tags release ./... && go vet ./... \
   && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
 

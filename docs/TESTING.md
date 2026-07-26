@@ -21,7 +21,7 @@
 ### Принципы
 
 1. **Backend CI:** `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`
-2. **Coverage floor:** statement coverage `internal/` **83.0%** (≥82% gate); security packages **≥80%**
+2. **Coverage floor:** statement coverage `internal/` **83.0%** (2026-06-22 Docker baseline; ≥82% gate); security packages **≥80%**
 3. **Auth тесты:** Magic Link only (v2.5) — Telegram login endpoints **удалены**
 4. **E2E:** 20 spec files; config `frontend/playwright.config.ts` (см. `docs/test_plan.md`)
 5. **Triage:** spec-first — `.cursor/skills/test-triage/SKILL.md`
@@ -34,7 +34,7 @@
 | Backend `internal/*_test.go` | **0** (TF-M08) |
 | Frontend Vitest | **37** files, **99** tests |
 | Playwright | **20** spec files (`stages/e2e/domains/`) |
-| Overall `internal/` coverage | **83.0%** |
+| Overall `internal/` coverage | **83.0%** (2026-06-22 Docker baseline) |
 
 ---
 

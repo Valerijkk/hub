@@ -96,30 +96,30 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 | Волна 1 | ✅ merged to `master` пользователем 2026-07-11 |
 | SFU | **LiveKit** (SEED-001 mediasoup **REJECTED**) |
 | Ветка канона метрик | `master` (COV/product — как в AGENTS.md) |
-| COV overall (`internal/`) | **83.0%** (Docker, `-tags hubtest`) |
+| COV overall (`internal/`) | **83.0%** (2026-06-22 Docker baseline, `-tags hubtest`) |
 | Security packages ≥80% | **6/6** ✅ |
 | Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Backend tests | **499** files в `backend/testframework/` (filesystem 2026-07-26) · **0** в `internal/*_test.go` |
+| Backend tests | **515** files в `backend/testframework/` (measured 2026-07-27; was 499 on 2026-07-26) · **0** в `internal/*_test.go` |
 | Playwright E2E | **20** specs (`testframework/stages/e2e/domains/`) |
 | Frontend Vitest | **99/99** pass · 37 files `testframework/stages/unit/frontend-test/domains/` · 0 in `src/` |
 | Planning index | `.planning/july-2026/INDEX-JULY-2026.md` |
 
-### Покрытие ключевых пакетов (Docker, Phase 125)
+### Покрытие ключевых пакетов (2026-06-22 Docker baseline, Phase 125 / FA-11)
 
 | Пакет | Coverage |
 |-------|----------|
-| notification | **82.5%** |
-| auth | **82.4%** |
-| tracker | **82.4%** |
-| messenger | **82.3%** |
-| ws | **87.7%** |
-| storage | **86.8%** |
-| rbac | **84.7%** |
-| audit | **80.5%** |
-| tms | **82.0%** (FA-11 ✅ micro-gap closed) |
-| project | **82.0%** (FA-11 ✅ micro-gap closed) |
+| notification | **82.5%** (2026-06-22) |
+| auth | **82.4%** (2026-06-22) |
+| tracker | **82.4%** (2026-06-22) |
+| messenger | **82.3%** (2026-06-22) |
+| ws | **87.7%** (2026-06-22) |
+| storage | **86.8%** (2026-06-22) |
+| rbac | **84.7%** (2026-06-22) |
+| audit | **80.5%** (2026-06-22) |
+| tms | **82.0%** (2026-06-22; FA-11 ✅ micro-gap closed) |
+| project | **82.0%** (2026-06-22; FA-11 ✅ micro-gap closed) |
 
 ---
 
@@ -155,8 +155,8 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Test Framework / Wave C — live summary
 
-- **TF Wave B:** COMPLETE — backend tests только в `testframework/` (**499** files,
-  filesystem 2026-07-26; earlier migration note had 495) · `internal/` = **0** ·
+- **TF Wave B:** COMPLETE — backend tests только в `testframework/` (**515** files,
+  measured 2026-07-27; was 499 on 2026-07-26 / earlier migration note had 495) · `internal/` = **0** ·
   Vitest **99/99** · E2E **20** specs · CI `-tags hubtest`.
 - **Wave C FA-01–FA-12:** COMPLETE кроме **FA-06** (PG-03 secret rotation, manual).
   FA-10 qa-gate PASS. Детали: `.planning/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`,

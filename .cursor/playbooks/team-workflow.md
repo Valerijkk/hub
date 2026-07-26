@@ -1016,7 +1016,7 @@ FR/API. Единый источник истины.
 ```
 Что сделано: 12 ручных TC (все PASS), 8 backend integration + 1 e2e Playwright spec (все green).
 Что проверить (team-lead): соответствие AC US-M11.1, покрытие edge-cases, coverage не упал.
-Артефакты: test_plan.md §Backlog, COVERAGE.md (tracker 82.5%), лог /qa-gate green.
+Артефакты: test_plan.md §Backlog, COVERAGE.md (tracker 82.4%, 2026-06-22 Docker baseline), лог /qa-gate green.
 Следующий шаг: team-lead финальная приёмка → docs-sync → merge-ready → пользовательский rebase-merge.
 Статус ворот: /qa-gate green (build/test/lint/security/e2e-smoke), verified: true (qa-*-ver 2026-07-02 23:30).
 ```
@@ -1389,12 +1389,12 @@ CRITICAL/HIGH + приложенный лог регрессии.
 | Метрика | Значение |
 |---|---|
 | Milestone | v4 Super-app ✅ + Wave C audit ✅ |
-| COV overall | 83.0% |
-| Security-пакеты ≥80% | 6/6 (auth 82.4 / ws 87.7 / rbac 84.7 / audit 80.5 / calls 80.2 / storage) |
+| COV overall | 83.0% (2026-06-22 Docker baseline) |
+| Security-пакеты ≥80% | 6/6 (auth 82.4 / ws 87.7 / rbac 84.7 / audit 80.5 / calls 80.2 / storage; 2026-06-22 Docker baseline) |
 | Product score | 87–89/100 |
 | REST API | 286+ endpoints |
 | Ent schemas | 82 |
-| Backend tests (testframework) | 499 files (2026-07-26), 0 в internal/ |
+| Backend tests (testframework) | 515 files (measured 2026-07-27; was 499 on 2026-07-26), 0 в internal/ |
 | Vitest | 99/99 pass |
 | Playwright E2E | 20 spec |
 | Branch | master |

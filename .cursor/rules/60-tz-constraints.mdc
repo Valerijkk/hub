@@ -119,7 +119,7 @@ alwaysApply: true
 | WebSocket через Fiber, не gorilla | `backend/internal/ws/handler.go` |
 | NATS JetStream единственный pub/sub | публикации в `backend/internal/tracker/`, `backend/internal/messenger/` (subjects `hub.<domain>.<event>`) |
 | SeaweedFS через `aws-sdk-go-v2` | `backend/internal/storage/` |
-| TanStack Router единственный роутер | `frontend/src/routes/` (39 файловых маршрутов) |
+| TanStack Router единственный роутер | `frontend/src/routes/` (**72** `.tsx` file routes, measured 2026-07-27; was claimed 39) |
 | Shadcn className-only | `frontend/src/components/ui/` |
 | `http.DefaultClient` запрещён / SSRF-guard | `backend/internal/platform/http/safedialer.go` — `ValidateOutboundURL`, `SafeDialContext`, `NewSafeHTTPClient`; используется в `apigateway/webhook.go`, `platform/http/opengraph.go`, `notification/push.go`, `ai/adapter_*.go` |
 | Webhook signature check без skip | `backend/internal/apigateway/webhook.go` (HMAC SHA-256, `X-Hub-Signature-256`), тест `backend/testframework/apigateway/webhook_test.go` |

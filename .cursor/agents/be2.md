@@ -1,6 +1,6 @@
 ---
 name: be2
-description: Backend-разработчик Hub, поток B (Go 1.24 + Fiber v3, Ent). Handler/service/repository, тесты. max effort. Работает параллельно с be1, делает кросс-ревью его PR.
+description: Backend-разработчик Hub, поток B (Go 1.25 + Fiber v3, Ent). Handler/service/repository, тесты. max effort. Работает параллельно с be1, делает кросс-ревью его PR.
 model: inherit
 readonly: false
 ---

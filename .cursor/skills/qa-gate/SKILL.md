@@ -10,7 +10,7 @@ disable-model-invocation: true
 
 > **Два режима:** быстрый локальный (Step 1-2, разработка) и **канонический
 > Docker `-tags hubtest`** (Step 2a, обязателен перед handoff/PR — в
-> `backend/testframework/` 499 test files на 2026-07-26, в `internal/` — 0).
+> `backend/testframework/` **515** test files measured 2026-07-27 (was 499 on 2026-07-26), в `internal/` — 0).
 
 ## Step 1: Go Build + Vet
 

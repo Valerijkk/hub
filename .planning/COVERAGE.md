@@ -29,25 +29,25 @@
 
 ---
 
-## Test baseline (coverage 2026-06-22; file inventory refreshed 2026-07-26)
+## Test baseline (coverage 2026-06-22; file inventory refreshed 2026-07-27)
 
 | Layer | Count | Notes |
 |-------|-------|-------|
-| Backend `testframework/**/*_test.go` | **499** files | Filesystem count 2026-07-26; TF migration COMPLETE |
+| Backend `testframework/**/*_test.go` | **515** files | Measured 2026-07-27 (was 499 on 2026-07-26); TF migration COMPLETE |
 | Backend `internal/*_test.go` (remaining) | **0** files | TF-M08 ✅ verified |
 | Frontend Vitest `testframework/stages/unit/frontend-test/domains/` | **37** files | **99/99** tests · 0 in `src/` |
 | Playwright E2E | **20** spec files | `testframework/stages/e2e/domains/` |
 | E2E shared (POM/steps) | pages, steps, helpers | `testframework/stages/e2e/shared/` |
-| Statement coverage (overall `internal/`) | **83.0%** | post FA-11/12 ✅ |
+| Statement coverage (overall `internal/`) | **83.0%** | 2026-06-22 Docker baseline; post FA-11/12 ✅ |
 
-`499` is a filesystem inventory, not a new coverage run. Coverage percentages
+`515` is a filesystem inventory (measured 2026-07-27), not a new coverage run. Coverage percentages
 remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
 
-### Покрытие по пакетам (актуальное, Docker)
+### Покрытие по пакетам (2026-06-22 Docker baseline)
 
 | Package | Coverage | Phase / Notes |
 |---------|----------|---------------|
-| **Overall `internal/`** | **83.0%** | Wave C post FA-11/12 |
+| **Overall `internal/`** | **83.0%** | 2026-06-22 Docker baseline; Wave C post FA-11/12 |
 | ws | **87.7%** | security wave |
 | storage | **86.8%** | Phase 123 |
 | rbac | **84.7%** | security wave |
@@ -77,16 +77,16 @@ remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
 | backup | **85.8%** | Phase 100 |
 | integrations/onec | **83.4%** | Phase 101 |
 
-### Security-critical packages (Wave 1 + Phase 125)
+### Security-critical packages (Wave 1 + Phase 125; 2026-06-22 Docker baseline)
 
 | Package | Coverage | Status |
 |---------|----------|--------|
-| auth | **82.4%** | ✅ ≥80% |
-| ws | **87.7%** | ✅ ≥80% |
-| rbac | **84.7%** | ✅ ≥80% |
-| audit | **80.5%** | ✅ ≥80% |
-| platform/middleware | **84.0%** | ✅ ≥80% |
-| calls | **80.2%** | ✅ ≥80% |
+| auth | **82.4%** (2026-06-22) | ✅ ≥80% |
+| ws | **87.7%** (2026-06-22) | ✅ ≥80% |
+| rbac | **84.7%** (2026-06-22) | ✅ ≥80% |
+| audit | **80.5%** (2026-06-22) | ✅ ≥80% |
+| platform/middleware | **84.0%** (2026-06-22) | ✅ ≥80% |
+| calls | **80.2%** (2026-06-22) | ✅ ≥80% |
 
 **Target Wave 1:** ≥80% per security package — **6/6 met** ✅
 
@@ -116,7 +116,7 @@ remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
 | **SEC-PROD** | 0 CRITICAL blockers | G-04 | ✅ | ✅ | 12/12 fixed |
 | **NFR-13** | Error JSON `{error, request_id}` | NFR-13 | ✅ | ✅ | — |
 | **NFR-16** | WCAG 2.1 AA | NFR-16 | ⚠️ | ✅ login axe | full audit pending |
-| **COV-01** | Coverage ≥82% / security ≥80% | G-04 | ✅ | ✅ | **83.0%** / **6/6** ✅ |
+| **COV-01** | Coverage ≥82% / security ≥80% | G-04 | ✅ | ✅ | **83.0%** / **6/6** ✅ (2026-06-22) |
 
 ---
 
@@ -155,7 +155,7 @@ remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
 | INF-04 | BackupService nil s3 | 🔧 Fixed main.go | ⚠️ unit only |
 | FE-01 | Rules of Hooks | 🔧 Fixed | ❌ |
 
-**Verdict:** COV-01 gate **PASS** (83.0% ≥82%, security 6/6 ≥80%). Wave C FA-02 re-audit **DONE** — 0 CRITICAL regression (`.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md`).
+**Verdict:** COV-01 gate **PASS** (83.0% ≥82%, 2026-06-22 Docker baseline; security 6/6 ≥80%). Wave C FA-02 re-audit **DONE** — 0 CRITICAL regression (`.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md`).
 
 ---
 
@@ -186,7 +186,7 @@ remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | TF test framework migration (current inventory 499 / 0 internal) | ✅ COMPLETE |
+| 1 | TF test framework migration (current inventory 515 / 0 internal, measured 2026-07-27) | ✅ COMPLETE |
 | 2 | FA-11 tms/project → 82% | ✅ closed |
 | 3 | NFR-16 full WCAG AA sign-off | ⚠️ partial |
 | 4 | NFR-17 Lighthouse ≥90 in CI | ⚠️ artifact job (non-blocking) |
@@ -208,4 +208,4 @@ remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
 
 ---
 
-*Generated: 2026-06-17 · Verified: 2026-06-23 (AUDIT-2026-06-23: COV 83.0%, master bbdaf16, CI green)*
+*Generated: 2026-06-17 · Verified: 2026-06-23 (AUDIT-2026-06-23: COV 83.0% = 2026-06-22 Docker baseline, master bbdaf16, CI green)*
