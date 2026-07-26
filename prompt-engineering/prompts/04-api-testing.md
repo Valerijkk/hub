@@ -1,8 +1,8 @@
 # 04 — API-тестирование
 
-> Промпты для тестов REST/RPC API: контракты, статусы, auth, пагинация, вебхуки. Слоты: `{{эндпоинт}}`, `{{метод}}`, `{{ресурс}}`, `{{API}}`.
+> Фрагменты для тестов REST/RPC API: контракты, статусы, auth, пагинация, вебхуки. Слоты: `{{эндпоинт}}`, `{{метод}}`, `{{ресурс}}`, `{{API}}`.
 
-> **Разворачивание по мастер-шаблону.** Промпты ниже — слоты `[ЧТО]` [мастер-шаблона](../agents/templates/_MASTER-PROMPT-TEMPLATE.md). Профиль категории: **[РОЛЬ]** инженер-автотестер · **[КОНТЕКСТ]** `context/PATTERNS-LIBRARY.md` A9 + `TESTFRAMEWORK-MAP.md` + `NAMING-CONVENTIONS.md` · **[ФОРМАТ]** код (ассерты схемы) + матрица классов + команда · **техники** — · **temp** 0.0–0.3 (код) · **[УСЛОВИЯ]** верификация `rules/40` (401 + denial 403 обязательны). Полный разворот `#1` → [EXPANDED-EXAMPLES.md](EXPANDED-EXAMPLES.md#04--api-тесты-разворот-04-1).
+> **Recipe assembly.** Фрагменты ниже — слоты `[ЧТО]` [мастер-шаблона](../agents/templates/_MASTER-PROMPT-TEMPLATE.md). Профиль категории: **[РОЛЬ]** инженер-автотестер · **[КОНТЕКСТ]** `context/projects/<profile>/{TEST-ARCHITECTURE,COMMANDS,PATTERN-INDEX}.md` + approved cards + `rules/20` · **[ФОРМАТ]** код (ассерты схемы) + матрица классов + команда · **rationale** контрактное покрытие по project/profile requirements · **assumptions** OpenAPI/спека актуальны · **evidence** 401 + denial 403; ассерты схемы, не снапшот · **[УСЛОВИЯ]** верификация `rules/40`. Полный recipe `#1` → [EXPANDED-EXAMPLES.md](EXPANDED-EXAMPLES.md#04--api-тесты-разворот-04-1).
 
 ## Базовый контракт эндпоинта
 
