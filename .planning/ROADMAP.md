@@ -2138,10 +2138,11 @@ Sources: [`PHASE-STATUS-MATRIX.md`](planning-audit-2026-07/PHASE-STATUS-MATRIX.m
 |--------|------:|--------|
 | `total_phases` (project convention) | **125** | milestones 01–13 (**13**) + `.planning/phases/` dirs **14–125** (**112**) = 125 (`00-PLANNING-AUDIT.md` §0). `STATE.md` still lists `total_phases: 125`. |
 | Phase dirs under `.planning/phases/` (live) | **124** | Matrix: includes 14–125 plus later TF dirs 126–136 and backlog `999-test-framework` (not all counted in the 125 convention). |
-| `goals_verified` (`VERIFIED_PASS`) | **55** | Matrix classification `VERIFIED_PASS` count (has `VERIFICATION.md` + PASS). **Not** equal to `completed_phases: 125`. |
+| `goals_verified` (`VERIFIED_PASS`) | **63** | Matrix classification `VERIFIED_PASS` count (has `VERIFICATION.md` + PASS; includes PW2 retro-PASS). **Not** equal to `completed_phases: 125`. |
 | `VERIFIED_PARTIAL` | **5** | Matrix |
 | `CODE_GATE_DEPLOY_BLOCKED` | **2** | Phases **63**, **67** — code gate PASS, deploy blocked |
-| `NO_VERIFICATION` | **62** | Matrix (includes many early shipped phases + TF/backlog dirs) |
+| `NO_VERIFICATION` | **54** | Matrix (includes many early shipped phases + TF/backlog dirs) |
+| `VERIFICATION.md` present (dir root) | **70** | Matrix summary (`63` PASS + `5` PARTIAL + `2` CODE_GATE_DEPLOY_BLOCKED) |
 
 **Deploy blockers** (do not read Progress 100% as “prod unlocked”):
 
@@ -2161,12 +2162,12 @@ Sources: [`PHASE-STATUS-MATRIX.md`](planning-audit-2026-07/PHASE-STATUS-MATRIX.m
 | 5. Voice Calls | v1.0 | 4/4 | Complete | 2026-03-21 |
 | 6. Notifications, Search & Dashboards | v1.0 | 5/5 | Complete | 2026-03-21 |
 | 7. Polish & Extended Features | v1.0 | 6/6 | Complete | 2026-03-21 |
-| 8. Design System Foundation | v2.0 | 2/2 | Complete | 2026-07-03 |
-| 9. Layout Shell | v2.0 | 2/2 | Complete | 2026-07-03 |
-| 10. UI Primitives | v2.0 | 3/3 | Complete | 2026-07-03 |
-| 11. Core Mockup Pages | v2.0 | 4/4 | Complete | 2026-07-03 |
-| 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 5/5 | Complete | 2026-07-03 |
-| 13. Polish & QA | v2.0 | 2/2 | Complete | 2026-07-03 |
+| 8. Design System Foundation | v2.0 | 2/2 | Complete | 2026-03-28 |
+| 9. Layout Shell | v2.0 | 2/2 | Complete | 2026-03-28 |
+| 10. UI Primitives | v2.0 | 3/3 | Complete | 2026-03-28 |
+| 11. Core Mockup Pages | v2.0 | 4/4 | Complete | 2026-03-28 |
+| 12. Remaining Mockup Pages + Unmocked Pages | v2.0 | 5/5 | Complete | 2026-03-28 |
+| 13. Polish & QA | v2.0 | 2/2 | Complete | 2026-03-28 |
 | 14. Architectural Hardening | v2.0 | 5/5 | Verified PASS | 2026-05-15 |
 | 15. Trust (v2.5) | v2.5 | Complete | Verified PASS | 2026-06-22 |
 | 16. Automate (v2.6) | v2.6 | Complete | Verified PASS | 2026-06-22 |
