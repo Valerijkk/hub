@@ -120,7 +120,7 @@ ls testframework/stages/e2e/domains/tracker/
 | SEC-01 | APIKeyAuth dead code | OPEN/FIXED | — |
 ...
 
-## Requirements Matrix  
+## Requirements Matrix
 | ID | Requirement | Code Location | Tests | Status |
 |----|-------------|---------------|-------|--------|
 | AUTH-01 | Magic Link login | auth/magiclink.go | TestMagicLink | ✅ |
