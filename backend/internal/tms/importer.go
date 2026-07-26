@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
+	"github.com/valerii/hub/backend/ent"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -460,10 +461,13 @@ func handleExportTestCases(svc *TMSService, ctx context.Context, projectID uuid.
 	return bytes.NewReader(buf.Bytes()), filename, nil
 }
 
-// handleExportTestRunReport экспортирует отчёт прогона.
-func handleExportTestRunReport(svc *TMSService, ctx context.Context, runID uuid.UUID, format string) (io.Reader, string, error) {
-	run, err := svc.repo.GetTestRunWithResults(ctx, runID)
+// handleExportTestRunReport экспортирует отчёт прогона (W4-run-export / A3-012).
+func handleExportTestRunReport(svc *TMSService, ctx context.Context, projectID, runID uuid.UUID, format string) (io.Reader, string, error) {
+	run, err := svc.repo.GetTestRunWithResultsInProject(ctx, projectID, runID)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, "", apperrors.NewNotFound("прогон не найден")
+		}
 		return nil, "", apperrors.NewInternal("ошибка получения прогона для экспорта")
 	}
 

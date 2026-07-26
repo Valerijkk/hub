@@ -160,6 +160,7 @@ func TestGetRunComparison_StatusChanges(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	tcID := uuid.New()
 	repo.testCases[tcID] = &ent.TestCase{ID: tcID, CaseKey: "HUB-TC-50", Title: "Compare case"}
@@ -170,10 +171,12 @@ func TestGetRunComparison_StatusChanges(t *testing.T) {
 	repo.runs[run1ID] = &ent.TestRun{
 		ID: run1ID, Title: "Run A", TotalCount: 1, PassedCount: 1,
 		CreatedAt: now, UpdatedAt: now,
+		Edges:     ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
 	}
 	repo.runs[run2ID] = &ent.TestRun{
 		ID: run2ID, Title: "Run B", TotalCount: 1, FailedCount: 1,
 		CreatedAt: now.Add(time.Hour), UpdatedAt: now.Add(time.Hour),
+		Edges:     ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
 	}
 
 	r1 := uuid.New()
@@ -191,7 +194,7 @@ func TestGetRunComparison_StatusChanges(t *testing.T) {
 		run2ID: {r2},
 	}
 
-	cmp, err := svc.GetRunComparison(ctx, run1ID, run2ID)
+	cmp, err := svc.GetRunComparison(ctx, projectID, run1ID, run2ID)
 	require.NoError(t, err)
 	require.Len(t, cmp.Changes, 1)
 	assert.Equal(t, "HUB-TC-50", cmp.Changes[0].CaseKey)

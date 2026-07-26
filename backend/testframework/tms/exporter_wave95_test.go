@@ -94,6 +94,7 @@ func TestTMSService_ExportTestCases_Excel(t *testing.T) {
 // TestTMSService_ExportTestRunReport_PDF проверяет бизнес-логику: tms сервис экспорт test run report pdf.
 func TestTMSService_ExportTestRunReport_PDF(t *testing.T) {
 	ctx := context.Background()
+	projectID := uuid.New()
 	runID := uuid.New()
 	tcID := uuid.New()
 	dur := int64(1500)
@@ -101,6 +102,7 @@ func TestTMSService_ExportTestRunReport_PDF(t *testing.T) {
 	repo.runs[runID] = &ent.TestRun{
 		ID: runID, Title: "Wave 95 run", TotalCount: 1, PassedCount: 1,
 		CreatedAt: time.Now(),
+		Edges:     ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
 	}
 	repo.results[uuid.New()] = &ent.TestResult{
 		ID: uuid.New(), Status: testresult.StatusPassed, Comment: "ok", DurationMs: &dur,
@@ -110,7 +112,7 @@ func TestTMSService_ExportTestRunReport_PDF(t *testing.T) {
 	}
 	svc := tms.NewTMSService(repo, nil)
 
-	reader, filename, err := svc.ExportTestRunReport(ctx, runID, "pdf")
+	reader, filename, err := svc.ExportTestRunReport(ctx, projectID, runID, "pdf")
 	require.NoError(t, err)
 	assert.Equal(t, "run-report.pdf", filename)
 	data, err := io.ReadAll(reader)

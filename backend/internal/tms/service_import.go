@@ -133,21 +133,18 @@ func (s *TMSService) ImportAllureResults(ctx context.Context, projectID, userID 
 	})
 
 	// 9. Возвращаем детальный ответ
-	return s.GetTestRunDetail(ctx, run.ID)
+	return s.GetTestRunDetail(ctx, projectID, run.ID)
 }
 
 // ImportAllureToExistingRun импортирует результаты Allure в существующий прогон.
 func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, runID, userID uuid.UUID, req ImportAllureRequest) (*TestRunDetailResponse, error) {
-	// Проверяем существование прогона в рамках projectID (A3-012).
-	run, err := s.repo.GetTestRun(ctx, runID)
+	// Ent-level project scope (A3-012) — чужой run → NotFound.
+	run, err := s.repo.GetTestRunInProject(ctx, projectID, runID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон не найден")
 		}
 		return nil, apperrors.NewInternal("ошибка получения прогона")
-	}
-	if run.Edges.Project == nil || run.Edges.Project.ID != projectID {
-		return nil, apperrors.NewNotFound("прогон не найден")
 	}
 
 	// Парсим результаты
@@ -209,7 +206,7 @@ func (s *TMSService) ImportAllureToExistingRun(ctx context.Context, projectID, r
 		return nil, err
 	}
 
-	return s.GetTestRunDetail(ctx, run.ID)
+	return s.GetTestRunDetail(ctx, projectID, run.ID)
 }
 
 // ---------------------------------------------------------------------------
@@ -227,7 +224,7 @@ func (s *TMSService) ExportTestCases(ctx context.Context, projectID uuid.UUID, f
 }
 
 // ExportTestRunReport экспортирует отчёт прогона в указанном формате.
-func (s *TMSService) ExportTestRunReport(ctx context.Context, runID uuid.UUID, format string) (io.Reader, string, error) {
-	return handleExportTestRunReport(s, ctx, runID, format)
+func (s *TMSService) ExportTestRunReport(ctx context.Context, projectID, runID uuid.UUID, format string) (io.Reader, string, error) {
+	return handleExportTestRunReport(s, ctx, projectID, runID, format)
 }
 

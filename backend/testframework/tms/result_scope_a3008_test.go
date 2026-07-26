@@ -15,18 +15,25 @@ import (
 	"github.com/valerii/hub/backend/internal/tms"
 )
 
-// TestExecuteTestResult_RejectsWrongRun_A3_008 — result чужого run не обновляется.
-// Mutation: UpdateTestResult без HasRunWith / без runID → обновление чужого result.
+// TestExecuteTestResult_RejectsWrongRun_A3_008 — сервисный контракт на моке (Edges.Run / runResults).
+// Prod HasRunWith: TestEntRepository_UpdateTestResult_RejectsWrongRun_A3_008.
 func TestExecuteTestResult_RejectsWrongRun_A3_008(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
 	userID := uuid.New()
 
+	projectID := uuid.New()
 	runA := uuid.New()
 	runB := uuid.New()
-	repo.runs[runA] = &ent.TestRun{ID: runA, Status: testrun.StatusInProgress}
-	repo.runs[runB] = &ent.TestRun{ID: runB, Status: testrun.StatusInProgress}
+	repo.runs[runA] = &ent.TestRun{
+		ID: runA, Status: testrun.StatusInProgress,
+		Edges: ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
+	}
+	repo.runs[runB] = &ent.TestRun{
+		ID: runB, Status: testrun.StatusInProgress,
+		Edges: ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
+	}
 
 	resultB := uuid.New()
 	repo.results[resultB] = &ent.TestResult{
@@ -36,7 +43,7 @@ func TestExecuteTestResult_RejectsWrongRun_A3_008(t *testing.T) {
 	repo.runResults[runB] = []uuid.UUID{resultB}
 
 	status := "passed"
-	_, err := svc.ExecuteTestResult(ctx, runA, resultB, userID, tms.UpdateTestResultRequest{Status: &status})
+	_, err := svc.ExecuteTestResult(ctx, projectID, runA, resultB, userID, tms.UpdateTestResultRequest{Status: &status})
 	require.Error(t, err)
 	assert.Equal(t, testresult.StatusUnknown, repo.results[resultB].Status)
 }

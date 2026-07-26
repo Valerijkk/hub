@@ -115,7 +115,7 @@ func TestGetTestRun_AndListResults(t *testing.T) {
 	runID, err := uuid.Parse(run.ID)
 	require.NoError(t, err)
 
-	got, err := svc.GetTestRun(ctx, runID)
+	got, err := svc.GetTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "Smoke", got.Title)
 
@@ -125,13 +125,13 @@ func TestGetTestRun_AndListResults(t *testing.T) {
 	require.NoError(t, err)
 	entTC, _ := repo.FindTestCaseByKey(ctx, projectID, tc.CaseKey)
 
-	_, err = svc.CreateTestResult(ctx, runID, tms.CreateTestResultRequest{
+	_, err = svc.CreateTestResult(ctx, projectID, runID, tms.CreateTestResultRequest{
 		TestCaseID: entTC.ID.String(),
 		Status:     "passed",
 	})
 	require.NoError(t, err)
 
-	results, err := svc.ListTestResults(ctx, runID)
+	results, err := svc.ListTestResults(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.NotEmpty(t, results)
 }

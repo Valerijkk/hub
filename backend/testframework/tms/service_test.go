@@ -348,6 +348,17 @@ func (m *mockRepository) GetTestRun(_ context.Context, id uuid.UUID) (*ent.TestR
 	return run, nil
 }
 
+func (m *mockRepository) GetTestRunInProject(_ context.Context, projectID, id uuid.UUID) (*ent.TestRun, error) {
+	run, ok := m.runs[id]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if run.Edges.Project == nil || run.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return run, nil
+}
+
 func (m *mockRepository) ListTestRuns(_ context.Context, _ uuid.UUID, _ tms.ListTestRunsParams) ([]*ent.TestRun, int, error) {
 	items := make([]*ent.TestRun, 0, len(m.runs))
 	for _, r := range m.runs {
@@ -593,6 +604,19 @@ func (m *mockRepository) GetTestRunWithResults(_ context.Context, runID uuid.UUI
 	return run, nil
 }
 
+func (m *mockRepository) GetTestRunWithResultsInProject(_ context.Context, projectID, runID uuid.UUID) (*ent.TestRun, error) {
+	run, ok := m.runs[runID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if run.Edges.Project == nil || run.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	results := m.listResultsSlice()
+	run.Edges.Results = results
+	return run, nil
+}
+
 func (m *mockRepository) AddFilesToResult(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
 }
@@ -747,9 +771,10 @@ func TestUpdateRunStatus_ValidTransitions(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон 1",
 	})
 	require.NoError(t, err)
@@ -758,12 +783,12 @@ func TestUpdateRunStatus_ValidTransitions(t *testing.T) {
 	runID, _ := uuid.Parse(run.ID)
 
 	// created -> in_progress (создан -> в работе)
-	updated, err := svc.UpdateRunStatus(ctx, runID, "in_progress")
+	updated, err := svc.UpdateRunStatus(ctx, projectID, runID, "in_progress")
 	require.NoError(t, err)
 	assert.Equal(t, "in_progress", updated.Status)
 
 	// in_progress -> completed (в работе -> завершён)
-	completed, err := svc.UpdateRunStatus(ctx, runID, "completed")
+	completed, err := svc.UpdateRunStatus(ctx, projectID, runID, "completed")
 	require.NoError(t, err)
 	assert.Equal(t, "completed", completed.Status)
 }
@@ -773,9 +798,10 @@ func TestUpdateRunStatus_InvalidTransition(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон 2",
 	})
 	require.NoError(t, err)
@@ -783,7 +809,7 @@ func TestUpdateRunStatus_InvalidTransition(t *testing.T) {
 	runID, _ := uuid.Parse(run.ID)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	_, err = svc.UpdateRunStatus(ctx, runID, "completed")
+	_, err = svc.UpdateRunStatus(ctx, projectID, runID, "completed")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "недопустимый переход статуса")
 }
@@ -793,22 +819,23 @@ func TestReopenTestRun(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон для переоткрытия",
 	})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
 	// created -> in_progress -> completed (создан -> в работе -> завершён)
-	_, err = svc.UpdateRunStatus(ctx, runID, "in_progress")
+	_, err = svc.UpdateRunStatus(ctx, projectID, runID, "in_progress")
 	require.NoError(t, err)
-	_, err = svc.UpdateRunStatus(ctx, runID, "completed")
+	_, err = svc.UpdateRunStatus(ctx, projectID, runID, "completed")
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	reopened, err := svc.ReopenTestRun(ctx, runID)
+	reopened, err := svc.ReopenTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "in_progress", reopened.Status)
 }
@@ -818,6 +845,7 @@ func TestAddTestCasesToRun(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
 	tc1, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
@@ -830,14 +858,14 @@ func TestAddTestCasesToRun(t *testing.T) {
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон с кейсами",
 	})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	detail, err := svc.AddTestCasesToRun(ctx, runID, tms.AddTestCasesToRunRequest{
+	detail, err := svc.AddTestCasesToRun(ctx, projectID, runID, tms.AddTestCasesToRunRequest{
 		CaseIDs: []string{tc1.ID, tc2.ID},
 	})
 	require.NoError(t, err)
@@ -849,15 +877,16 @@ func TestExecuteTestResult_UpdatesStats(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон для выполнения",
 	})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
-	_, err = svc.UpdateRunStatus(ctx, runID, "in_progress")
+	_, err = svc.UpdateRunStatus(ctx, projectID, runID, "in_progress")
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
@@ -871,7 +900,7 @@ func TestExecuteTestResult_UpdatesStats(t *testing.T) {
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
 	passedStatus := "passed"
 	comment := "Тест пройден"
-	resp, err := svc.ExecuteTestResult(ctx, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
+	resp, err := svc.ExecuteTestResult(ctx, projectID, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
 		Status:  &passedStatus,
 		Comment: &comment,
 	})
@@ -889,19 +918,20 @@ func TestCompleteTestRun(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Создаём и стартуем прогон
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон для завершения",
 	})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
-	_, err = svc.StartTestRun(ctx, runID)
+	_, err = svc.StartTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	completed, err := svc.CompleteTestRun(ctx, runID)
+	completed, err := svc.CompleteTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "completed", completed.Status)
 }
@@ -1098,21 +1128,22 @@ func TestStartTestRun_InvalidTransition(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{
 		Title: "Прогон",
 	})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
-	_, err = svc.StartTestRun(ctx, runID)
+	_, err = svc.StartTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
-	_, err = svc.CompleteTestRun(ctx, runID)
+	_, err = svc.CompleteTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	_, err = svc.StartTestRun(ctx, runID)
+	_, err = svc.StartTestRun(ctx, projectID, runID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "недопустимый переход статуса")
 }

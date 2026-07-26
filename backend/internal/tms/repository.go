@@ -79,8 +79,10 @@ type ComponentRepository interface {
 type TestRunRepository interface {
 	// CreateTestRun создаёт новый прогон тестов.
 	CreateTestRun(ctx context.Context, projectID uuid.UUID, input CreateTestRunInput) (*ent.TestRun, error)
-	// GetTestRun возвращает прогон по ID с подгруженными связями.
+	// GetTestRun возвращает прогон по ID с подгруженными связями (внутренний, без project-scope).
 	GetTestRun(ctx context.Context, id uuid.UUID) (*ent.TestRun, error)
+	// GetTestRunInProject возвращает прогон только если он принадлежит projectID (A3-012).
+	GetTestRunInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.TestRun, error)
 	// ListTestRuns возвращает пагинированный список прогонов проекта.
 	ListTestRuns(ctx context.Context, projectID uuid.UUID, params ListTestRunsParams) ([]*ent.TestRun, int, error)
 	// UpdateTestRunStatus обновляет статус прогона.
@@ -95,6 +97,8 @@ type TestRunRepository interface {
 	AssignTestersToRun(ctx context.Context, runID uuid.UUID, userIDs []uuid.UUID) error
 	// GetTestRunWithResults возвращает прогон с результатами, тест-кейсами, файлами и назначенными.
 	GetTestRunWithResults(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error)
+	// GetTestRunWithResultsInProject — то же, но только внутри projectID (A3-012).
+	GetTestRunWithResultsInProject(ctx context.Context, projectID, runID uuid.UUID) (*ent.TestRun, error)
 }
 
 // TestResultRepository управляет результатами выполнения тестов.

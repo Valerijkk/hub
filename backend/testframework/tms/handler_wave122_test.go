@@ -87,13 +87,13 @@ func TestService_Wave122_ReopenTestRun(t *testing.T) {
 	require.NoError(t, err)
 	runID := uuid.MustParse(run.ID)
 
-	_, err = svc.StartTestRun(ctx, runID)
+	_, err = svc.StartTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 
-	_, err = svc.CompleteTestRun(ctx, runID)
+	_, err = svc.CompleteTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 
-	reopened, err := svc.ReopenTestRun(ctx, runID)
+	reopened, err := svc.ReopenTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, "in_progress", reopened.Status)
 }

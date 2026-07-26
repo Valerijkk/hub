@@ -511,9 +511,22 @@ func (r *EntRepository) CreateTestRun(ctx context.Context, projectID uuid.UUID, 
 }
 
 // GetTestRun возвращает прогон по ID с подгруженными связями.
+// Без project-scope — для post-create / внутренних путей; HTTP-facing — GetTestRunInProject.
 func (r *EntRepository) GetTestRun(ctx context.Context, id uuid.UUID) (*ent.TestRun, error) {
 	return r.client.TestRun.Query().
 		Where(testrun.ID(id)).
+		WithCreatedBy().
+		WithProject().
+		Only(ctx)
+}
+
+// GetTestRunInProject возвращает прогон по ID только внутри projectID (A3-012 IDOR guard).
+func (r *EntRepository) GetTestRunInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.TestRun, error) {
+	return r.client.TestRun.Query().
+		Where(
+			testrun.ID(id),
+			testrun.HasProjectWith(entproject.ID(projectID)),
+		).
 		WithCreatedBy().
 		WithProject().
 		Only(ctx)
@@ -930,9 +943,28 @@ func (r *EntRepository) AssignTestersToRun(ctx context.Context, runID uuid.UUID,
 }
 
 // GetTestRunWithResults возвращает прогон с результатами, тест-кейсами, файлами и назначенными.
+// Без project-scope — для внутренних путей; HTTP-facing — GetTestRunWithResultsInProject.
 func (r *EntRepository) GetTestRunWithResults(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error) {
 	return r.client.TestRun.Query().
 		Where(testrun.ID(runID)).
+		WithCreatedBy().
+		WithAssignees().
+		WithResults(func(q *ent.TestResultQuery) {
+			q.WithTestCase().
+				WithExecutedBy().
+				WithFiles().
+				Order(ent.Asc(testresult.FieldCreatedAt))
+		}).
+		Only(ctx)
+}
+
+// GetTestRunWithResultsInProject — detail/export только внутри projectID (A3-012).
+func (r *EntRepository) GetTestRunWithResultsInProject(ctx context.Context, projectID, runID uuid.UUID) (*ent.TestRun, error) {
+	return r.client.TestRun.Query().
+		Where(
+			testrun.ID(runID),
+			testrun.HasProjectWith(entproject.ID(projectID)),
+		).
 		WithCreatedBy().
 		WithAssignees().
 		WithResults(func(q *ent.TestResultQuery) {

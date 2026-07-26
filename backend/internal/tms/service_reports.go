@@ -92,16 +92,16 @@ func (s *TMSService) GetTestTrends(ctx context.Context, projectID uuid.UUID, las
 }
 
 // GetRunComparison сравнивает два прогона, показывая изменения статусов.
-func (s *TMSService) GetRunComparison(ctx context.Context, runID1, runID2 uuid.UUID) (*RunComparison, error) {
-	// Получаем оба прогона
-	run1, err := s.repo.GetTestRun(ctx, runID1)
+func (s *TMSService) GetRunComparison(ctx context.Context, projectID, runID1, runID2 uuid.UUID) (*RunComparison, error) {
+	// Оба прогона должны принадлежать projectID (W4-run-export / A3-012).
+	run1, err := s.repo.GetTestRunInProject(ctx, projectID, runID1)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон 1 не найден")
 		}
 		return nil, apperrors.NewInternal("ошибка получения прогона 1")
 	}
-	run2, err := s.repo.GetTestRun(ctx, runID2)
+	run2, err := s.repo.GetTestRunInProject(ctx, projectID, runID2)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон 2 не найден")

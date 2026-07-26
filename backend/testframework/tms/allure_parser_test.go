@@ -348,6 +348,9 @@ func (m *mockMatcherRepo) CreateTestRun(_ context.Context, _ uuid.UUID, _ tms.Cr
 func (m *mockMatcherRepo) GetTestRun(_ context.Context, _ uuid.UUID) (*ent.TestRun, error) {
 	return nil, nil
 }
+func (m *mockMatcherRepo) GetTestRunInProject(_ context.Context, _, _ uuid.UUID) (*ent.TestRun, error) {
+	return nil, nil
+}
 func (m *mockMatcherRepo) ListTestRuns(_ context.Context, _ uuid.UUID, _ tms.ListTestRunsParams) ([]*ent.TestRun, int, error) {
 	return nil, 0, nil
 }
@@ -392,6 +395,9 @@ func (m *mockMatcherRepo) AssignTestersToRun(_ context.Context, _ uuid.UUID, _ [
 	return nil
 }
 func (m *mockMatcherRepo) GetTestRunWithResults(_ context.Context, _ uuid.UUID) (*ent.TestRun, error) {
+	return nil, nil
+}
+func (m *mockMatcherRepo) GetTestRunWithResultsInProject(_ context.Context, _, _ uuid.UUID) (*ent.TestRun, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) AddFilesToResult(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {

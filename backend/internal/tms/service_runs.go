@@ -34,9 +34,9 @@ func (s *TMSService) CreateTestRun(ctx context.Context, projectID, userID uuid.U
 	})
 }
 
-// GetTestRun возвращает прогон по ID.
-func (s *TMSService) GetTestRun(ctx context.Context, runID uuid.UUID) (*TestRunResponse, error) {
-	run, err := s.repo.GetTestRun(ctx, runID)
+// GetTestRun возвращает прогон по ID в рамках projectID (A3-012).
+func (s *TMSService) GetTestRun(ctx context.Context, projectID, runID uuid.UUID) (*TestRunResponse, error) {
+	run, err := s.repo.GetTestRunInProject(ctx, projectID, runID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон не найден")
@@ -78,8 +78,8 @@ func (s *TMSService) ListTestRuns(ctx context.Context, projectID uuid.UUID, req 
 }
 
 // UpdateRunStatus обновляет статус прогона с валидацией переходов конечного автомата.
-func (s *TMSService) UpdateRunStatus(ctx context.Context, runID uuid.UUID, newStatus string) (*TestRunResponse, error) {
-	run, err := s.repo.GetTestRun(ctx, runID)
+func (s *TMSService) UpdateRunStatus(ctx context.Context, projectID, runID uuid.UUID, newStatus string) (*TestRunResponse, error) {
+	run, err := s.repo.GetTestRunInProject(ctx, projectID, runID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон не найден")
@@ -101,8 +101,8 @@ func (s *TMSService) UpdateRunStatus(ctx context.Context, runID uuid.UUID, newSt
 }
 
 // ReopenTestRun переоткрывает завершённый или прерванный прогон.
-func (s *TMSService) ReopenTestRun(ctx context.Context, runID uuid.UUID) (*TestRunResponse, error) {
-	run, err := s.repo.GetTestRun(ctx, runID)
+func (s *TMSService) ReopenTestRun(ctx context.Context, projectID, runID uuid.UUID) (*TestRunResponse, error) {
+	run, err := s.repo.GetTestRunInProject(ctx, projectID, runID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон не найден")
@@ -126,8 +126,15 @@ func (s *TMSService) ReopenTestRun(ctx context.Context, runID uuid.UUID) (*TestR
 // Результаты тестов
 // ---------------------------------------------------------------------------
 
-// CreateTestResult создаёт результат теста в прогоне.
-func (s *TMSService) CreateTestResult(ctx context.Context, runID uuid.UUID, req CreateTestResultRequest) (*TestResultResponse, error) {
+// CreateTestResult создаёт результат теста в прогоне (прогон должен принадлежать projectID).
+func (s *TMSService) CreateTestResult(ctx context.Context, projectID, runID uuid.UUID, req CreateTestResultRequest) (*TestResultResponse, error) {
+	if _, err := s.repo.GetTestRunInProject(ctx, projectID, runID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("прогон не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона")
+	}
+
 	input := CreateTestResultInput{
 		Status:        req.Status,
 		Comment:       req.Comment,
@@ -184,8 +191,15 @@ func (s *TMSService) UpdateTestResult(ctx context.Context, resultID uuid.UUID, r
 	return toTestResultResponse(result), nil
 }
 
-// ListTestResults возвращает все результаты прогона.
-func (s *TMSService) ListTestResults(ctx context.Context, runID uuid.UUID) ([]TestResultResponse, error) {
+// ListTestResults возвращает все результаты прогона в рамках projectID (A3-012).
+func (s *TMSService) ListTestResults(ctx context.Context, projectID, runID uuid.UUID) ([]TestResultResponse, error) {
+	if _, err := s.repo.GetTestRunInProject(ctx, projectID, runID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("прогон не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона")
+	}
+
 	results, err := s.repo.ListTestResults(ctx, runID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения результатов")
@@ -203,7 +217,14 @@ func (s *TMSService) ListTestResults(ctx context.Context, runID uuid.UUID) ([]Te
 // ---------------------------------------------------------------------------
 
 // AddTestCasesToRun добавляет тест-кейсы в прогон, создавая записи TestResult со статусом unknown.
-func (s *TMSService) AddTestCasesToRun(ctx context.Context, runID uuid.UUID, req AddTestCasesToRunRequest) (*TestRunDetailResponse, error) {
+func (s *TMSService) AddTestCasesToRun(ctx context.Context, projectID, runID uuid.UUID, req AddTestCasesToRunRequest) (*TestRunDetailResponse, error) {
+	if _, err := s.repo.GetTestRunInProject(ctx, projectID, runID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("прогон не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона")
+	}
+
 	caseIDs, err := parseUUIDs(req.CaseIDs)
 	if err != nil {
 		return nil, apperrors.NewBadRequest("некорректный ID тест-кейса")
@@ -218,13 +239,13 @@ func (s *TMSService) AddTestCasesToRun(ctx context.Context, runID uuid.UUID, req
 		return nil, err
 	}
 
-	return s.GetTestRunDetail(ctx, runID)
+	return s.GetTestRunDetail(ctx, projectID, runID)
 }
 
 // ExecuteTestResult обновляет результат теста с валидацией статуса прогона.
-func (s *TMSService) ExecuteTestResult(ctx context.Context, runID, resultID, userID uuid.UUID, req UpdateTestResultRequest) (*TestResultResponse, error) {
-	// Проверяем что прогон в статусе in_progress
-	run, err := s.repo.GetTestRun(ctx, runID)
+func (s *TMSService) ExecuteTestResult(ctx context.Context, projectID, runID, resultID, userID uuid.UUID, req UpdateTestResultRequest) (*TestResultResponse, error) {
+	// Проверяем что прогон принадлежит проекту и в статусе in_progress (A3-012).
+	run, err := s.repo.GetTestRunInProject(ctx, projectID, runID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон не найден")
@@ -278,7 +299,14 @@ func (s *TMSService) ExecuteTestResult(ctx context.Context, runID, resultID, use
 }
 
 // AssignTestersToRun назначает тестировщиков на прогон.
-func (s *TMSService) AssignTestersToRun(ctx context.Context, runID uuid.UUID, req AssignTestersRequest) (*TestRunDetailResponse, error) {
+func (s *TMSService) AssignTestersToRun(ctx context.Context, projectID, runID uuid.UUID, req AssignTestersRequest) (*TestRunDetailResponse, error) {
+	if _, err := s.repo.GetTestRunInProject(ctx, projectID, runID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("прогон не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона")
+	}
+
 	userIDs, err := parseUUIDs(req.UserIDs)
 	if err != nil {
 		return nil, apperrors.NewBadRequest("некорректный ID пользователя")
@@ -288,12 +316,12 @@ func (s *TMSService) AssignTestersToRun(ctx context.Context, runID uuid.UUID, re
 		return nil, apperrors.NewInternal("ошибка назначения тестировщиков")
 	}
 
-	return s.GetTestRunDetail(ctx, runID)
+	return s.GetTestRunDetail(ctx, projectID, runID)
 }
 
 // GetTestRunDetail возвращает полную информацию о прогоне с результатами и назначенными.
-func (s *TMSService) GetTestRunDetail(ctx context.Context, runID uuid.UUID) (*TestRunDetailResponse, error) {
-	run, err := s.repo.GetTestRunWithResults(ctx, runID)
+func (s *TMSService) GetTestRunDetail(ctx context.Context, projectID, runID uuid.UUID) (*TestRunDetailResponse, error) {
+	run, err := s.repo.GetTestRunWithResultsInProject(ctx, projectID, runID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("прогон не найден")
@@ -305,13 +333,13 @@ func (s *TMSService) GetTestRunDetail(ctx context.Context, runID uuid.UUID) (*Te
 }
 
 // StartTestRun переводит прогон из created в in_progress.
-func (s *TMSService) StartTestRun(ctx context.Context, runID uuid.UUID) (*TestRunResponse, error) {
-	return s.UpdateRunStatus(ctx, runID, "in_progress")
+func (s *TMSService) StartTestRun(ctx context.Context, projectID, runID uuid.UUID) (*TestRunResponse, error) {
+	return s.UpdateRunStatus(ctx, projectID, runID, "in_progress")
 }
 
 // CompleteTestRun переводит прогон из in_progress в completed и публикует NATS-событие.
-func (s *TMSService) CompleteTestRun(ctx context.Context, runID uuid.UUID) (*TestRunResponse, error) {
-	resp, err := s.UpdateRunStatus(ctx, runID, "completed")
+func (s *TMSService) CompleteTestRun(ctx context.Context, projectID, runID uuid.UUID) (*TestRunResponse, error) {
+	resp, err := s.UpdateRunStatus(ctx, projectID, runID, "completed")
 	if err != nil {
 		return nil, err
 	}

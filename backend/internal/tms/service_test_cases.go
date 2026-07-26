@@ -329,15 +329,12 @@ func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, u
 	if result.Edges.Run == nil {
 		return nil, apperrors.NewNotFound("результат не найден")
 	}
-	run, err := s.repo.GetTestRun(ctx, result.Edges.Run.ID)
-	if err != nil {
+	// Ent-level project scope via run (A3-012 / A3-008).
+	if _, err := s.repo.GetTestRunInProject(ctx, projectID, result.Edges.Run.ID); err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("результат не найден")
 		}
 		return nil, apperrors.NewInternal("ошибка получения прогона")
-	}
-	if run.Edges.Project == nil || run.Edges.Project.ID != projectID {
-		return nil, apperrors.NewNotFound("результат не найден")
 	}
 
 	// Определяем тест-кейс для заголовка бага

@@ -148,6 +148,10 @@ func (h *Handler) ExportTestCases(c fiber.Ctx) error {
 // @Success 200 {file} binary
 // @Router /api/projects/{projectId}/tms/runs/{runId}/export [get]
 func (h *Handler) ExportTestRunReport(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	runID, err := httputil.ParseUUIDParam(c, "runId")
 	if err != nil {
 		return err
@@ -155,7 +159,7 @@ func (h *Handler) ExportTestRunReport(c fiber.Ctx) error {
 
 	format := c.Query("format", "csv")
 
-	reader, filename, err := h.service.ExportTestRunReport(c.Context(), runID, format)
+	reader, filename, err := h.service.ExportTestRunReport(c.Context(), projectID, runID, format)
 	if err != nil {
 		return err
 	}

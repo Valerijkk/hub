@@ -92,11 +92,12 @@ func TestService_Wave122_ExecuteTestResult_WithFiles(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{Title: "Files run"})
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{Title: "Files run"})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
-	_, err = svc.UpdateRunStatus(ctx, runID, "in_progress")
+	_, err = svc.UpdateRunStatus(ctx, projectID, runID, "in_progress")
 	require.NoError(t, err)
 
 	resultID := uuid.New()
@@ -104,7 +105,7 @@ func TestService_Wave122_ExecuteTestResult_WithFiles(t *testing.T) {
 
 	fileID := uuid.New()
 	passed := "passed"
-	resp, err := svc.ExecuteTestResult(ctx, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
+	resp, err := svc.ExecuteTestResult(ctx, projectID, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
 		Status:  &passed,
 		FileIDs: []string{fileID.String()},
 	})
@@ -134,22 +135,22 @@ func TestService_Wave122_RecomputeRunStats_AllStatuses(t *testing.T) {
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
-	detail, err := svc.AddTestCasesToRun(ctx, runID, tms.AddTestCasesToRunRequest{CaseIDs: caseIDs})
+	detail, err := svc.AddTestCasesToRun(ctx, projectID, runID, tms.AddTestCasesToRunRequest{CaseIDs: caseIDs})
 	require.NoError(t, err)
 	require.Len(t, detail.Results, 5)
 
-	_, err = svc.StartTestRun(ctx, runID)
+	_, err = svc.StartTestRun(ctx, projectID, runID)
 	require.NoError(t, err)
 
 	for i, st := range statuses {
 		resultID, err := uuid.Parse(detail.Results[i].ID)
 		require.NoError(t, err)
 		status := st
-		_, err = svc.ExecuteTestResult(ctx, runID, resultID, userID, tms.UpdateTestResultRequest{Status: &status})
+		_, err = svc.ExecuteTestResult(ctx, projectID, runID, resultID, userID, tms.UpdateTestResultRequest{Status: &status})
 		require.NoError(t, err)
 	}
 
-	got, err := svc.GetTestRunDetail(ctx, runID)
+	got, err := svc.GetTestRunDetail(ctx, projectID, runID)
 	require.NoError(t, err)
 	assert.Equal(t, 5, got.TotalCount)
 	assert.Equal(t, 1, got.PassedCount)

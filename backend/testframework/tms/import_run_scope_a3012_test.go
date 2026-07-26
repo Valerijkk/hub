@@ -12,7 +12,8 @@ import (
 )
 
 // TestImportAllureToExistingRun_RejectsForeignProject_A3_012 —
-// Mutation: убрать Edges.Project check → импорт в чужой run.
+// Mutation: снять HasProjectWith в GetTestRunInProject (или mock GetTestRunInProject
+// без project-check) → импорт в чужой run проходит.
 func TestImportAllureToExistingRun_RejectsForeignProject_A3_012(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)

@@ -17,7 +17,7 @@ import (
 func TestExecuteTestResult_RunNotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
 	status := "passed"
-	_, err := svc.ExecuteTestResult(context.Background(), uuid.New(), uuid.New(), uuid.New(), tms.UpdateTestResultRequest{
+	_, err := svc.ExecuteTestResult(context.Background(), uuid.New(), uuid.New(), uuid.New(), uuid.New(), tms.UpdateTestResultRequest{
 		Status: &status,
 	})
 	require.Error(t, err)
@@ -30,7 +30,8 @@ func TestExecuteTestResult_RunNotInProgress(t *testing.T) {
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
 
-	run, err := svc.CreateTestRun(ctx, uuid.New(), uuid.New(), tms.CreateTestRunRequest{Title: "Draft run"})
+	projectID := uuid.New()
+	run, err := svc.CreateTestRun(ctx, projectID, uuid.New(), tms.CreateTestRunRequest{Title: "Draft run"})
 	require.NoError(t, err)
 	runID, _ := uuid.Parse(run.ID)
 
@@ -38,7 +39,7 @@ func TestExecuteTestResult_RunNotInProgress(t *testing.T) {
 	repo.results[resultID] = &ent.TestResult{ID: resultID, Status: "unknown"}
 
 	status := "passed"
-	_, err = svc.ExecuteTestResult(ctx, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{Status: &status})
+	_, err = svc.ExecuteTestResult(ctx, projectID, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{Status: &status})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "in_progress")
 }
@@ -49,13 +50,17 @@ func TestExecuteTestResult_InvalidFileID(t *testing.T) {
 	svc := tms.NewTMSService(repo, nil)
 	ctx := context.Background()
 
+	projectID := uuid.New()
 	runID := uuid.New()
-	repo.runs[runID] = &ent.TestRun{ID: runID, Status: testrun.StatusInProgress}
+	repo.runs[runID] = &ent.TestRun{
+		ID: runID, Status: testrun.StatusInProgress,
+		Edges: ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
+	}
 	resultID := uuid.New()
 	repo.results[resultID] = &ent.TestResult{ID: resultID, Status: "unknown"}
 
 	status := "passed"
-	_, err := svc.ExecuteTestResult(ctx, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
+	_, err := svc.ExecuteTestResult(ctx, projectID, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
 		Status:  &status,
 		FileIDs: []string{"bad-file-id"},
 	})
@@ -69,11 +74,15 @@ func TestExecuteTestResult_ResultNotFound(t *testing.T) {
 	svc := tms.NewTMSService(&notFoundResultUpdateRepo{mockRepository: repo}, nil)
 	ctx := context.Background()
 
+	projectID := uuid.New()
 	runID := uuid.New()
-	repo.runs[runID] = &ent.TestRun{ID: runID, Status: testrun.StatusInProgress}
+	repo.runs[runID] = &ent.TestRun{
+		ID: runID, Status: testrun.StatusInProgress,
+		Edges: ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
+	}
 
 	status := "passed"
-	_, err := svc.ExecuteTestResult(ctx, runID, uuid.New(), uuid.New(), tms.UpdateTestResultRequest{Status: &status})
+	_, err := svc.ExecuteTestResult(ctx, projectID, runID, uuid.New(), uuid.New(), tms.UpdateTestResultRequest{Status: &status})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }
