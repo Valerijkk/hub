@@ -4,10 +4,20 @@
 
 | Скил | Назначение | Когда запускать |
 |------|-----------|-----------------|
-| [context-intake](context-intake/SKILL.md) | Скан проекта → заполнение `context/*.md` фактами | Онбординг тулкита; после реорганизации фреймворка (`--refresh`) |
-| [anti-ai-check](anti-ai-check/SKILL.md) | Детектор AI-говнокода: комментарии-нарраторы, плейсхолдеры, мёртвые паттерны | После AI-сгенерированных волн кода; перед ревью |
-| [naming-check](naming-check/SKILL.md) | Аудит нейминга тестовых функций и файлов против `context/NAMING-CONVENTIONS.md` | Перед мержем тестов; периодический аудит |
+| [bootstrap-test-context](bootstrap-test-context/SKILL.md) | Read-only скан заданных project/test roots → generated profile | Первый запуск слоя в проекте |
+| [refresh-test-context](refresh-test-context/SKILL.md) | Инкрементальный refresh profile с provenance/freshness | После изменения framework/CI/config |
+| [curate-review-feedback](curate-review-feedback/SKILL.md) | Проверка вручную добавленных before/comment/after examples | После ручного заполнения `review-feedback/inbox/` |
+| [curate-pattern-cards](curate-pattern-cards/SKILL.md) | Candidate → approved/deprecated с human gate | После context refresh или feedback curation |
+| [anti-ai-check](anti-ai-check/SKILL.md) | Скан качества generated-кода; heuristics → semantic confirmation | После AI-изменений; перед ревью |
+| [naming-check](naming-check/SKILL.md) | Аудит нейминга тестовых функций и файлов против активного profile | Перед мержем тестов; периодический аудит |
 | [test-verification](test-verification/SKILL.md) | Верификация сгенерированных тест-кейсов против документации | После `test-case-generator`; перед автоматизацией TC |
+| [phase-plan](phase-plan/SKILL.md) | Атомарные планы фазы (GSD-порт) | Перед волной |
+| [wave-orchestrate](wave-orchestrate/SKILL.md) | Оркестрация волны агентов | Во время execute |
+| [verify-goal](verify-goal/SKILL.md) | Goal-backward приёмка | После волны/фазы |
+
+Всего: **10 skills**, каждый в собственной папке. Нормализация feedback и
+approval паттернов — разные trust gates: первый skill не создаёт cards, второй
+читает только human-approved feedback.
 
 ## Формат скила
 
@@ -21,4 +31,8 @@ description: <одна строка — что делает>
 Шаги с командами → формат отчёта → критерии PASS/FAIL
 ```
 
-Каждый скил обязан: (1) читать `context/` вместо угадывания путей; (2) заканчиваться машинно-проверяемым вердиктом; (3) не менять код без явного на то шага; (4) **перед сдачей результата прогнать 10-этапный протокол верификации** ([rules/40](../rules/40-verification-protocol.md)) и приложить компактный блок верификации к отчёту.
+Каждый skill обязан: (1) читать `context/projects/<profile>/` вместо угадывания
+путей; (2) завершаться evidence block и честным PASS/FAIL/PARTIAL/NOT_RUN;
+(3) не менять source code без явного шага/разрешения; (4) применять
+[rules/40](../rules/40-verification-protocol.md) по риску и
+[rules/50](../rules/50-data-handling.md) ко всему scanned/manual content.
