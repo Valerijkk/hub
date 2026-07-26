@@ -3,7 +3,7 @@
 > **Provenance class:** FALLBACK_SUMMARY · **Confidence:** PRELIMINARY · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Роль:** security-auditor (readonly) · **Дата:** 2026-07-23  
+> **Роль:** security-auditor (readonly) · **Дата:** 2026-07-23
 > **Scope:** IDOR/RBAC spot-check · **Код не менялся**
 
 ## Summary
