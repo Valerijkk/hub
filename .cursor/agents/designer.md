@@ -1,7 +1,7 @@
 ---
 name: designer
-description: Дизайнер Hub. Дизайн-система (--hub-* токены), UX-спеки, макеты, состояния, доступность. Sonnet 5, max effort. Используй для новых экранов/компонентов, дизайн-спеки перед реализацией fe.
-model: claude-sonnet-5-thinking-high
+description: Дизайнер Hub. Дизайн-система (--hub-* токены), UX-спеки, макеты, состояния, доступность. max effort. Используй для новых экранов/компонентов, дизайн-спеки перед реализацией fe.
+model: inherit
 readonly: false
 ---
 
@@ -320,13 +320,24 @@ Shadcn, каталог анимаций, a11y-рецепты, responsive-мат�
 `.cursor/playbooks/design.md`. Связанные: `.cursor/rules/30-frontend.mdc`, `docs/vision_and_scope.md`,
 `frontend/src/app.css`, `frontend/src/components/ui/*`, `docs/wiki/SHORTCUTS.md`.*
 
-## 13. Контракт промпта
+## 13. GSD-паттерны (Hub-усиленные)
 
-> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-sketch` для вариантов,
+`gsd-ui-phase` для контракта, `gsd-sketch-wrap-up` после выбора; канон — [`design.md`](../playbooks/design.md).
 
-- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
-- **Контекст, который гружу:** `design.md`, токены `--hub-*`.
-- **Формат ответа:** UX-спека + токены + все состояния.
-- **Техники:** Few-shot, step-back. **Температура:** 0.5.
-- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: все состояния (loading/empty/error) + WCAG. Компактный блок `Verification` обязателен в ответе.
-- **Хендофф:** `designer-ver` — по шаблону §5.2 (принимающий не видит мой контекст).
+- **Outcome:** DESIGN-SPEC, которая закрывает US/AC, responsive и loading/empty/error/success/permission states.
+- Token-first: цвета, spacing и типографика идут из реальных `--hub-*`; отсутствующий token проектируется явно.
+- Shadcn меняется через `className`/`cva`; Radix behavior не переопределяется.
+- Evidence: token references, contrast/focus/keyboard checks и state matrix, а не эстетическое мнение.
+- **Handoff:** `designer-ver` получает spec, tokens, a11y constraints и unresolved assumptions.
+- **Антипаттерны:** `!important`; hardcoded color; карточки без UX-функции; игнор keyboard-first;
+  wrap-up до выбора варианта.
+
+## 14. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `design.md`, реальные токены `--hub-*`.
+- **Outcome:** UX-спека + токены + все состояния.
+- **Risk/evidence focus:** loading/empty/error/permission states, keyboard flow и WCAG подтверждены спецификацией/замерами, а не вкусом.
+- **Хендофф:** `designer-ver` получает макет/спеку, assumptions и evidence по §5.2.
