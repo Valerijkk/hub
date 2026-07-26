@@ -26,6 +26,10 @@ import (
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/links [post]
 func (h *Handler) CreateIssueLink(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
@@ -40,7 +44,7 @@ func (h *Handler) CreateIssueLink(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.CreateIssueLink(c.Context(), issueKey, userID, req)
+	resp, err := h.service.CreateIssueLink(c.Context(), projectID, issueKey, userID, req)
 	if err != nil {
 		return err
 	}
@@ -61,12 +65,16 @@ func (h *Handler) CreateIssueLink(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/links [get]
 func (h *Handler) ListIssueLinks(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
 
-	resp, err := h.service.ListIssueLinks(c.Context(), issueKey)
+	resp, err := h.service.ListIssueLinks(c.Context(), projectID, issueKey)
 	if err != nil {
 		return err
 	}

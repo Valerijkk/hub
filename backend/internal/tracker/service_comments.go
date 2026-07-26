@@ -14,8 +14,8 @@ import (
 // ---------------------------------------------------------------------------
 
 // CreateComment добавляет комментарий к задаче.
-func (s *TrackerService) CreateComment(ctx context.Context, issueKey string, userID uuid.UUID, req CreateCommentRequest) (*CommentResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) CreateComment(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID, req CreateCommentRequest) (*CommentResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -49,8 +49,8 @@ func (s *TrackerService) CreateComment(ctx context.Context, issueKey string, use
 }
 
 // ListComments возвращает все комментарии задачи.
-func (s *TrackerService) ListComments(ctx context.Context, issueKey string) ([]CommentResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) ListComments(ctx context.Context, projectID uuid.UUID, issueKey string) ([]CommentResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")

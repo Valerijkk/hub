@@ -65,7 +65,7 @@ func (s *TrackerService) CreateIssueMessageLink(
 	userID uuid.UUID,
 	req CreateIssueMessageLinkRequest,
 ) (*IssueMessageLinkResponse, error) {
-	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
+	issue, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -122,7 +122,7 @@ func (s *TrackerService) LinkThreadToIssue(
 
 // ListIssueMessageLinks возвращает связи для задачи.
 func (s *TrackerService) ListIssueMessageLinks(ctx context.Context, projectID uuid.UUID, issueKey string) ([]IssueMessageLinkResponse, error) {
-	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
+	issue, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -175,7 +175,7 @@ func (s *TrackerService) ListThreadIssueLinks(
 
 // DeleteIssueMessageLink удаляет связь задача↔тред.
 func (s *TrackerService) DeleteIssueMessageLink(ctx context.Context, projectID uuid.UUID, issueKey string, linkID uuid.UUID) error {
-	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
+	issue, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("задача не найдена")

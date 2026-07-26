@@ -3,6 +3,7 @@ package tracker
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
@@ -12,8 +13,8 @@ import (
 // ---------------------------------------------------------------------------
 
 // GetActivity возвращает лог активности задачи.
-func (s *TrackerService) GetActivity(ctx context.Context, issueKey string) ([]ActivityLogResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) GetActivity(ctx context.Context, projectID uuid.UUID, issueKey string) ([]ActivityLogResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")

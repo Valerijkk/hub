@@ -14,8 +14,8 @@ import (
 // ---------------------------------------------------------------------------
 
 // CreateIssueLink создаёт связь между двумя задачами.
-func (s *TrackerService) CreateIssueLink(ctx context.Context, issueKey string, userID uuid.UUID, req CreateIssueLinkRequest) (*IssueLinkResponse, error) {
-	source, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) CreateIssueLink(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID, req CreateIssueLinkRequest) (*IssueLinkResponse, error) {
+	source, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("исходная задача не найдена")
@@ -50,8 +50,8 @@ func (s *TrackerService) CreateIssueLink(ctx context.Context, issueKey string, u
 }
 
 // ListIssueLinks возвращает все связи задачи.
-func (s *TrackerService) ListIssueLinks(ctx context.Context, issueKey string) ([]IssueLinkResponse, error) {
-	source, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) ListIssueLinks(ctx context.Context, projectID uuid.UUID, issueKey string) ([]IssueLinkResponse, error) {
+	source, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")

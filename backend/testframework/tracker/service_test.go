@@ -112,6 +112,7 @@ func (m *mockRepo) CreateIssue(_ context.Context, projectID uuid.UUID, input tra
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
 		Edges: ent.IssueEdges{
+			Project:  &ent.Project{ID: projectID},
 			Status:   status,
 			Reporter: &ent.User{ID: input.ReporterID, Name: "Test User", Email: "test@test.com"},
 		},
@@ -128,9 +129,12 @@ func (m *mockRepo) CreateIssue(_ context.Context, projectID uuid.UUID, input tra
 	return i, nil
 }
 
-func (m *mockRepo) FindIssueByKey(_ context.Context, issueKey string) (*ent.Issue, error) {
+func (m *mockRepo) FindIssueByKey(_ context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error) {
 	i, ok := m.issuesByKey[issueKey]
 	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if i.Edges.Project == nil || i.Edges.Project.ID != projectID {
 		return nil, &ent.NotFoundError{}
 	}
 	return i, nil
@@ -797,7 +801,7 @@ func TestUpdateIssueOptimisticLocking(t *testing.T) {
 		Title:   &newTitle,
 		Version: 1,
 	}
-	updated, err := svc.UpdateIssue(ctx, resp.IssueKey, userID, updateReq)
+	updated, err := svc.UpdateIssue(ctx, projectID, resp.IssueKey, userID, updateReq)
 	require.NoError(t, err)
 	assert.Equal(t, "Updated", updated.Title)
 	assert.Equal(t, 2, updated.Version)
@@ -808,7 +812,7 @@ func TestUpdateIssueOptimisticLocking(t *testing.T) {
 		Title:   &newTitle,
 		Version: 1, // старая версия
 	}
-	_, err = svc.UpdateIssue(ctx, resp.IssueKey, userID, updateReq2)
+	_, err = svc.UpdateIssue(ctx, projectID, resp.IssueKey, userID, updateReq2)
 	require.Error(t, err)
 	appErr, ok := err.(*apperrors.AppError)
 	require.True(t, ok)
@@ -840,7 +844,7 @@ func TestMoveIssueValidTransition(t *testing.T) {
 		StatusID: inProgressID.String(),
 		Rank:     "aaa|bbb",
 	}
-	moved, err := svc.MoveIssue(ctx, created.IssueKey, userID, moveReq)
+	moved, err := svc.MoveIssue(ctx, projectID, created.IssueKey, userID, moveReq)
 	require.NoError(t, err)
 	assert.Equal(t, "In Progress", moved.Status.Name)
 	assert.Equal(t, "aaa|bbb", moved.Rank)
@@ -867,7 +871,7 @@ func TestMoveIssueInvalidTransition(t *testing.T) {
 		StatusID: uuid.New().String(),
 		Rank:     "aaa",
 	}
-	_, err = svc.MoveIssue(ctx, created.IssueKey, userID, moveReq)
+	_, err = svc.MoveIssue(ctx, projectID, created.IssueKey, userID, moveReq)
 	require.Error(t, err)
 	appErr, ok := err.(*apperrors.AppError)
 	require.True(t, ok)
@@ -925,7 +929,7 @@ func TestCreateIssueLink(t *testing.T) {
 		TargetIssueID: issue2.ID,
 		LinkType:      "blocks",
 	}
-	link, err := svc.CreateIssueLink(ctx, issue1.IssueKey, userID, linkReq)
+	link, err := svc.CreateIssueLink(ctx, projectID, issue1.IssueKey, userID, linkReq)
 	require.NoError(t, err)
 	assert.Equal(t, "blocks", link.LinkType)
 }
@@ -1083,8 +1087,9 @@ func TestCreateIssue_InvalidUUIDs(t *testing.T) {
 func TestGetIssue_NotFound(t *testing.T) {
 	svc, _ := newTestService()
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	_, err := svc.GetIssue(ctx, "MISSING-1")
+	_, err := svc.GetIssue(ctx, projectID, "MISSING-1")
 	require.Error(t, err)
 	appErr, ok := err.(*apperrors.AppError)
 	require.True(t, ok)
@@ -1095,8 +1100,9 @@ func TestGetIssue_NotFound(t *testing.T) {
 func TestDeleteIssue_NotFound(t *testing.T) {
 	svc, _ := newTestService()
 	ctx := context.Background()
+	projectID := uuid.New()
 
-	err := svc.DeleteIssue(ctx, "MISSING-1", uuid.New())
+	err := svc.DeleteIssue(ctx, projectID, "MISSING-1", uuid.New())
 	require.Error(t, err)
 	appErr, ok := err.(*apperrors.AppError)
 	require.True(t, ok)
@@ -1115,7 +1121,7 @@ func TestCreateIssueLink_InvalidTargetID(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = svc.CreateIssueLink(ctx, created.IssueKey, userID, tracker.CreateIssueLinkRequest{
+	_, err = svc.CreateIssueLink(ctx, projectID, created.IssueKey, userID, tracker.CreateIssueLinkRequest{
 		TargetIssueID: "not-a-uuid",
 		LinkType:      "blocks",
 	})
@@ -1145,30 +1151,30 @@ func TestCommentsAndTimeTracking(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	comment, err := svc.CreateComment(ctx, issue.IssueKey, userID, tracker.CreateCommentRequest{
+	comment, err := svc.CreateComment(ctx, projectID, issue.IssueKey, userID, tracker.CreateCommentRequest{
 		BodyJSON: map[string]interface{}{"text": "hi"},
 		BodyText: "hi",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "hi", comment.BodyText)
 
-	comments, err := svc.ListComments(ctx, issue.IssueKey)
+	comments, err := svc.ListComments(ctx, projectID, issue.IssueKey)
 	require.NoError(t, err)
 	assert.Len(t, comments, 1)
 
-	tl, err := svc.LogTime(ctx, issue.IssueKey, userID, tracker.LogTimeRequest{Minutes: 30, Description: "work"})
+	tl, err := svc.LogTime(ctx, projectID, issue.IssueKey, userID, tracker.LogTimeRequest{Minutes: 30, Description: "work"})
 	require.NoError(t, err)
 	assert.Equal(t, 30, tl.Minutes)
 
-	timer, err := svc.StartTimer(ctx, issue.IssueKey, userID)
+	timer, err := svc.StartTimer(ctx, projectID, issue.IssueKey, userID)
 	require.NoError(t, err)
 	assert.NotNil(t, timer.StartedAt)
 
-	stopped, err := svc.StopTimer(ctx, issue.IssueKey, userID)
+	stopped, err := svc.StopTimer(ctx, projectID, issue.IssueKey, userID)
 	require.NoError(t, err)
 	assert.NotNil(t, stopped.EndedAt)
 
-	logs, err := svc.ListTimeLogs(ctx, issue.IssueKey)
+	logs, err := svc.ListTimeLogs(ctx, projectID, issue.IssueKey)
 	require.NoError(t, err)
 	assert.NotEmpty(t, logs)
 }

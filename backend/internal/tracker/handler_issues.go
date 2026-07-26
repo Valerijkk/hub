@@ -97,12 +97,16 @@ func (h *Handler) ListIssues(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey} [get]
 func (h *Handler) GetIssue(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
 
-	resp, err := h.service.GetIssue(c.Context(), issueKey)
+	resp, err := h.service.GetIssue(c.Context(), projectID, issueKey)
 	if err != nil {
 		return err
 	}
@@ -126,6 +130,10 @@ func (h *Handler) GetIssue(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey} [put]
 func (h *Handler) UpdateIssue(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
@@ -140,7 +148,7 @@ func (h *Handler) UpdateIssue(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.UpdateIssue(c.Context(), issueKey, userID, req)
+	resp, err := h.service.UpdateIssue(c.Context(), projectID, issueKey, userID, req)
 	if err != nil {
 		return err
 	}
@@ -161,6 +169,10 @@ func (h *Handler) UpdateIssue(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey} [delete]
 func (h *Handler) DeleteIssue(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
@@ -170,7 +182,7 @@ func (h *Handler) DeleteIssue(c fiber.Ctx) error {
 		return err
 	}
 
-	if err := h.service.DeleteIssue(c.Context(), issueKey, userID); err != nil {
+	if err := h.service.DeleteIssue(c.Context(), projectID, issueKey, userID); err != nil {
 		return err
 	}
 
@@ -193,6 +205,10 @@ func (h *Handler) DeleteIssue(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/position [put]
 func (h *Handler) MoveIssue(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
@@ -207,7 +223,7 @@ func (h *Handler) MoveIssue(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.MoveIssue(c.Context(), issueKey, userID, req)
+	resp, err := h.service.MoveIssue(c.Context(), projectID, issueKey, userID, req)
 	if err != nil {
 		return err
 	}

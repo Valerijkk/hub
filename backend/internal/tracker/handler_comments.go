@@ -26,6 +26,10 @@ import (
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/comments [post]
 func (h *Handler) CreateComment(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
@@ -40,7 +44,7 @@ func (h *Handler) CreateComment(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.CreateComment(c.Context(), issueKey, userID, req)
+	resp, err := h.service.CreateComment(c.Context(), projectID, issueKey, userID, req)
 	if err != nil {
 		return err
 	}
@@ -61,12 +65,16 @@ func (h *Handler) CreateComment(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/comments [get]
 func (h *Handler) ListComments(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
 
-	resp, err := h.service.ListComments(c.Context(), issueKey)
+	resp, err := h.service.ListComments(c.Context(), projectID, issueKey)
 	if err != nil {
 		return err
 	}
@@ -188,12 +196,16 @@ func (h *Handler) ToggleReaction(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/activity [get]
 func (h *Handler) GetActivity(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
 
-	resp, err := h.service.GetActivity(c.Context(), issueKey)
+	resp, err := h.service.GetActivity(c.Context(), projectID, issueKey)
 	if err != nil {
 		return err
 	}

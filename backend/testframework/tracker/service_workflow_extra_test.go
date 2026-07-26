@@ -73,7 +73,7 @@ func TestGetActivity_ReturnsLogs(t *testing.T) {
 	_, err = repo.LogActivity(ctx, entIssue.ID, userID, "created", nil)
 	require.NoError(t, err)
 
-	logs, err := svc.GetActivity(ctx, issue.IssueKey)
+	logs, err := svc.GetActivity(ctx, projectID, issue.IssueKey)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(logs), 1)
 	assert.Equal(t, "created", logs[0].Action)
@@ -97,19 +97,19 @@ func TestListIssueLinks_AndDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	targetIssue := repo.issuesByKey[target.IssueKey]
-	link, err := svc.CreateIssueLink(ctx, source.IssueKey, userID, tracker.CreateIssueLinkRequest{
+	link, err := svc.CreateIssueLink(ctx, projectID, source.IssueKey, userID, tracker.CreateIssueLinkRequest{
 		TargetIssueID: targetIssue.ID.String(),
 		LinkType:      "blocks",
 	})
 	require.NoError(t, err)
 
-	links, err := svc.ListIssueLinks(ctx, source.IssueKey)
+	links, err := svc.ListIssueLinks(ctx, projectID, source.IssueKey)
 	require.NoError(t, err)
 	require.Len(t, links, 1)
 	assert.Equal(t, "blocks", links[0].LinkType)
 
 	require.NoError(t, svc.DeleteIssueLink(ctx, uuid.MustParse(link.ID)))
-	links, err = svc.ListIssueLinks(ctx, source.IssueKey)
+	links, err = svc.ListIssueLinks(ctx, projectID, source.IssueKey)
 	require.NoError(t, err)
 	assert.Empty(t, links)
 }
@@ -126,7 +126,7 @@ func TestGetIssue_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	got, err := svc.GetIssue(ctx, created.IssueKey)
+	got, err := svc.GetIssue(ctx, projectID, created.IssueKey)
 	require.NoError(t, err)
 	assert.Equal(t, "Lookup me", got.Title)
 }
@@ -188,7 +188,7 @@ func TestCommentUpdateAndDelete(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	comment, err := svc.CreateComment(ctx, issue.IssueKey, userID, tracker.CreateCommentRequest{
+	comment, err := svc.CreateComment(ctx, projectID, issue.IssueKey, userID, tracker.CreateCommentRequest{
 		BodyJSON: map[string]interface{}{"text": "first"},
 		BodyText: "first",
 	})

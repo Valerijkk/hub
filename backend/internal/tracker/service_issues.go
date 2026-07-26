@@ -119,9 +119,9 @@ func (s *TrackerService) CreateIssueFromPromotion(
 	return resp.IssueKey, resp.ID, nil
 }
 
-// GetIssue возвращает задачу по ключу (например "HUB-1").
-func (s *TrackerService) GetIssue(ctx context.Context, issueKey string) (*IssueResponse, error) {
-	i, err := s.repo.FindIssueByKey(ctx, issueKey)
+// GetIssue возвращает задачу по ключу внутри projectID (например "HUB-1").
+func (s *TrackerService) GetIssue(ctx context.Context, projectID uuid.UUID, issueKey string) (*IssueResponse, error) {
+	i, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -186,9 +186,9 @@ func (s *TrackerService) ListIssues(ctx context.Context, projectID uuid.UUID, re
 }
 
 // UpdateIssue обновляет задачу с проверкой workflow-переходов и оптимистичной блокировкой.
-func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userID uuid.UUID, req UpdateIssueRequest) (*IssueResponse, error) {
+func (s *TrackerService) UpdateIssue(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID, req UpdateIssueRequest) (*IssueResponse, error) {
 	// Находим задачу
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")
@@ -284,8 +284,8 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, issueKey string, userI
 }
 
 // DeleteIssue удаляет задачу по ключу.
-func (s *TrackerService) DeleteIssue(ctx context.Context, issueKey string, userID uuid.UUID) error {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) DeleteIssue(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID) error {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("задача не найдена")
@@ -296,8 +296,8 @@ func (s *TrackerService) DeleteIssue(ctx context.Context, issueKey string, userI
 }
 
 // MoveIssue перемещает задачу в другой статус на Kanban-доске.
-func (s *TrackerService) MoveIssue(ctx context.Context, issueKey string, userID uuid.UUID, req MoveIssueRequest) (*IssueResponse, error) {
-	existing, err := s.repo.FindIssueByKey(ctx, issueKey)
+func (s *TrackerService) MoveIssue(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID, req MoveIssueRequest) (*IssueResponse, error) {
+	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("задача не найдена")

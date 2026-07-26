@@ -135,11 +135,15 @@ func (r *EntRepository) findDefaultStatusTx(ctx context.Context, tx *ent.Tx, pro
 		Only(ctx)
 }
 
-// FindIssueByKey возвращает задачу по её ключу (например "HUB-1") с eager loading связей.
+// FindIssueByKey возвращает задачу по ключу внутри projectID (A3-002 IDOR guard).
 // Исключает мягко удалённые задачи.
-func (r *EntRepository) FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error) {
+func (r *EntRepository) FindIssueByKey(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error) {
 	return r.client.Issue.Query().
-		Where(issue.IssueKeyEQ(issueKey), issue.DeletedAtIsNil()).
+		Where(
+			issue.IssueKeyEQ(issueKey),
+			issue.DeletedAtIsNil(),
+			issue.HasProjectWith(project.ID(projectID)),
+		).
 		WithAssignee().
 		WithReporter().
 		WithStatus().

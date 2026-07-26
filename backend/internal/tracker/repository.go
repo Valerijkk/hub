@@ -16,8 +16,8 @@ import (
 type IssueRepository interface {
 	// CreateIssue создаёт новую задачу в указанном проекте.
 	CreateIssue(ctx context.Context, projectID uuid.UUID, input CreateIssueInput) (*ent.Issue, error)
-	// FindIssueByKey возвращает задачу по проектному ключу (например "HUB-1").
-	FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error)
+	// FindIssueByKey возвращает задачу по ключу только внутри projectID (A3-002).
+	FindIssueByKey(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error)
 	// FindIssueByID возвращает задачу по UUID.
 	FindIssueByID(ctx context.Context, id uuid.UUID) (*ent.Issue, error)
 	// ListIssues возвращает пагинированный список задач проекта с общим количеством.

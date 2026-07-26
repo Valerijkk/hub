@@ -26,6 +26,10 @@ import (
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/time [post]
 func (h *Handler) LogTime(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
@@ -40,7 +44,7 @@ func (h *Handler) LogTime(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.LogTime(c.Context(), issueKey, userID, req)
+	resp, err := h.service.LogTime(c.Context(), projectID, issueKey, userID, req)
 	if err != nil {
 		return err
 	}
@@ -62,6 +66,10 @@ func (h *Handler) LogTime(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/timer/start [post]
 func (h *Handler) StartTimer(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
@@ -71,7 +79,7 @@ func (h *Handler) StartTimer(c fiber.Ctx) error {
 		return err
 	}
 
-	resp, err := h.service.StartTimer(c.Context(), issueKey, userID)
+	resp, err := h.service.StartTimer(c.Context(), projectID, issueKey, userID)
 	if err != nil {
 		return err
 	}
@@ -93,6 +101,10 @@ func (h *Handler) StartTimer(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/timer/stop [post]
 func (h *Handler) StopTimer(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
@@ -102,7 +114,7 @@ func (h *Handler) StopTimer(c fiber.Ctx) error {
 		return err
 	}
 
-	resp, err := h.service.StopTimer(c.Context(), issueKey, userID)
+	resp, err := h.service.StopTimer(c.Context(), projectID, issueKey, userID)
 	if err != nil {
 		return err
 	}
@@ -123,12 +135,16 @@ func (h *Handler) StopTimer(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/issues/{issueKey}/time-logs [get]
 func (h *Handler) ListTimeLogs(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	issueKey := parseIssueKey(c)
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
 
-	resp, err := h.service.ListTimeLogs(c.Context(), issueKey)
+	resp, err := h.service.ListTimeLogs(c.Context(), projectID, issueKey)
 	if err != nil {
 		return err
 	}

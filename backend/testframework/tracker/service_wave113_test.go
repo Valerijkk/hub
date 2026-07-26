@@ -68,7 +68,7 @@ func TestGetActivity_EmptyIssue(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	logs, err := svc.GetActivity(ctx, created.IssueKey)
+	logs, err := svc.GetActivity(ctx, projectID, created.IssueKey)
 	require.NoError(t, err)
 	assert.NotNil(t, logs)
 }
