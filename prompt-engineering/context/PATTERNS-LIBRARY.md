@@ -1,12 +1,16 @@
 ---
 status: template            # template | filled (относится к Части B; Часть A готова из коробки)
-filled_by: context-intake
+compatibility: deprecated
+read_only: true
+replacement: "rules/20-test-quality.md + context/projects/<profile>/PATTERN-INDEX.md + patterns/approved/"
 filled_at: {{YYYY-MM-DD}}
 ---
 
 # Patterns Library — эталоны тестов
 
-> Двухслойная библиотека. **Часть A — индустриальный baseline**: стандартные best practices, действуют в любом проекте из коробки. **Часть B — проектный overlay**: реальные примеры из кодовой базы, заполняет `context-intake`. При конфликте overlay побеждает baseline (проект знает лучше), но конфликт фиксируется явно.
+> **DEPRECATED / READ-ONLY COMPATIBILITY.** Portable baseline теперь задаёт
+> `rules/20-test-quality.md`; project patterns живут в approved cards и active
+> profile `PATTERN-INDEX.md`. Этот файл не обновляется новыми workflows.
 
 ---
 
@@ -167,7 +171,7 @@ E2E:
 
 ---
 
-# Часть B. Проектный overlay (заполняет context-intake)
+# Часть B. Проектный overlay (legacy compatibility only)
 
 ## B1. Эталонные тесты проекта
 
