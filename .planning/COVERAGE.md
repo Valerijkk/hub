@@ -2,7 +2,9 @@
 
 > Phase 0 reconciliation: требование → код → тест.  
 > **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/code-review-final/SUMMARY.md`  
-> **Верификация:** 2026-06-22 (quality audit + Wave C FA-03, Docker `-tags hubtest`, post FA-11/12)
+> **Верификация coverage gate:** **2026-07-27** (Docker `-tags hubtest`, overall **81.9%**)  
+> Historical package table: 2026-06-22 (see ## Historical baselines)  
+> **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/code-review-final/SUMMARY.md`
 
 ---
 
@@ -29,21 +31,45 @@
 
 ---
 
-## Test baseline (coverage 2026-06-22; file inventory refreshed 2026-07-27)
+## Current coverage gate (measured **2026-07-27**, Docker)
+
+| Metric | Value | Measured |
+|--------|------:|----------|
+| Overall `internal/` statements | **81.9%** | **2026-07-27** |
+| Gate floor (≥82%) | **MISS (−0.1 pp under floor)** | 2026-07-27 |
+| vs previous baseline | **−1.1 pp** (was 83.0% on 2026-06-22) | — |
+| Backend `testframework/**/*_test.go` | **515** files | 2026-07-27 inventory |
+| Backend `internal/*_test.go` | **0** | 2026-07-27 |
+
+**Method:** `golang:1.25-bookworm` on `hub_default`,  
+`go test -tags hubtest -count=1 -timeout=900s -covermode=atomic -coverpkg=./internal/... ./testframework/...`,  
+`go tool cover -func` → overall statements.
+
+**Evidence:** `.planning/planning-audit-2026-07/cov-2026-07-27-REPORT.md`, `cov-2026-07-27-total.txt`.
+
+### Packages that declined vs 2026-06-22
+
+Per-package **statement** table for 2026-07-27 is **pending** a successful coverprofile export (second Docker run hit `proxy.golang.org` EOF).  
+Until that lands, the **only method-comparable decline** is overall: **83.0% → 81.9% (−1.1 pp)**.
+
+Do **not** mix 2026-06-22 statement package % with 2026-07-27 func-mean proxies.
+
+### Historical baselines
+
+Moved prior “current” package table here. Do not present as live without re-run date.
+
+#### Test baseline (coverage **2026-06-22**; file inventory later refreshed)
 
 | Layer | Count | Notes |
 |-------|-------|-------|
-| Backend `testframework/**/*_test.go` | **515** files | Measured 2026-07-27 (was 499 on 2026-07-26); TF migration COMPLETE |
+| Backend `testframework/**/*_test.go` | **515** files | Inventory 2026-07-27 (was 499 on 2026-07-26) |
 | Backend `internal/*_test.go` (remaining) | **0** files | TF-M08 ✅ verified |
 | Frontend Vitest `testframework/stages/unit/frontend-test/domains/` | **37** files | **99/99** tests · 0 in `src/` |
 | Playwright E2E | **20** spec files | `testframework/stages/e2e/domains/` |
 | E2E shared (POM/steps) | pages, steps, helpers | `testframework/stages/e2e/shared/` |
-| Statement coverage (overall `internal/`) | **83.0%** | 2026-06-22 Docker baseline; post FA-11/12 ✅ |
+| Statement coverage (overall `internal/`) | **83.0%** | **2026-06-22** Docker baseline; post FA-11/12 |
 
-`515` is a filesystem inventory (measured 2026-07-27), not a new coverage run. Coverage percentages
-remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
-
-### Покрытие по пакетам (2026-06-22 Docker baseline)
+#### Покрытие по пакетам (**2026-06-22** Docker baseline — historical)
 
 | Package | Coverage | Phase / Notes |
 |---------|----------|---------------|
@@ -77,7 +103,7 @@ remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
 | backup | **85.8%** | Phase 100 |
 | integrations/onec | **83.4%** | Phase 101 |
 
-### Security-critical packages (Wave 1 + Phase 125; 2026-06-22 Docker baseline)
+#### Security-critical packages (Wave 1 + Phase 125; **2026-06-22** Docker baseline — historical)
 
 | Package | Coverage | Status |
 |---------|----------|--------|
@@ -88,7 +114,8 @@ remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
 | platform/middleware | **84.0%** (2026-06-22) | ✅ ≥80% |
 | calls | **80.2%** (2026-06-22) | ✅ ≥80% |
 
-**Target Wave 1:** ≥80% per security package — **6/6 met** ✅
+**Target Wave 1:** ≥80% per security package — **6/6 met** on 2026-06-22 baseline ✅  
+(2026-07-27 security package statement re-check: pending coverprofile.)
 
 ---
 
@@ -116,7 +143,7 @@ remain the 2026-06-22 Docker baseline until a new approved coverage gate run.
 | **SEC-PROD** | 0 CRITICAL blockers | G-04 | ✅ | ✅ | 12/12 fixed |
 | **NFR-13** | Error JSON `{error, request_id}` | NFR-13 | ✅ | ✅ | — |
 | **NFR-16** | WCAG 2.1 AA | NFR-16 | ⚠️ | ✅ login axe | full audit pending |
-| **COV-01** | Coverage ≥82% / security ≥80% | G-04 | ✅ | ✅ | **83.0%** / **6/6** ✅ (2026-06-22) |
+| **COV-01** | Coverage ≥82% / security ≥80% | G-04 | ⚠️ | ⚠️ | **81.9%** overall (**2026-07-27**); below 82% floor; security 6-pack stmt re-check pending coverprofile |
 
 ---
 
