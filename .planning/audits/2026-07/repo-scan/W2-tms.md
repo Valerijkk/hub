@@ -3,8 +3,8 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Агент:** be-ver (Grok 4.5) · **Дата:** 2026-07-23 · **Режим:** readonly repo-scan  
-> **Scope:** layering, RBAC/Fiber v3, project-scope IDOR, Allure/Mongo, optimistic lock, NATS, тесты `testframework/tms`  
+> **Агент:** be-ver (Grok 4.5) · **Дата:** 2026-07-23 · **Режим:** readonly repo-scan
+> **Scope:** layering, RBAC/Fiber v3, project-scope IDOR, Allure/Mongo, optimistic lock, NATS, тесты `testframework/tms`
 > **Код не менялся.**
 
 ## Вердикт (кратко)
@@ -78,10 +78,10 @@
 
 ## Воспроизведение CRITICAL (минимальный сценарий)
 
-1. User U — member проекта A (`PermTestCaseEdit`), **не** member проекта B.  
-2. В B существует кейс `B-TC-1` (или известный UUID run/suite/env).  
-3. `GET|PUT|DELETE /api/projects/{A}/tms/cases/B-TC-1` с JWT U.  
-4. RBAC: View/Edit на A → **проходит**.  
+1. User U — member проекта A (`PermTestCaseEdit`), **не** member проекта B.
+2. В B существует кейс `B-TC-1` (или известный UUID run/suite/env).
+3. `GET|PUT|DELETE /api/projects/{A}/tms/cases/B-TC-1` с JWT U.
+4. RBAC: View/Edit на A → **проходит**.
 5. Service: `FindTestCaseByKey("B-TC-1")` → возвращает/мутирует кейс B.
 
 Аналогично: `PUT .../A/tms/runs/{runB}/status`, `PUT .../A/environments/{envB}`, `POST .../A/tms/runs/{runB}/allure`.
