@@ -12,8 +12,9 @@ import (
 	"github.com/valerii/hub/backend/internal/tms"
 )
 
-// TestUpdateTestCase_OptimisticLock_A3_004 — stale version → 409.
-// Mutation: убрать VersionEQ в UpdateTestCase → stale update проходит → FAIL.
+// TestUpdateTestCase_OptimisticLock_A3_004 — сервисный контракт: stale version → 409.
+// Проверяет mockRepository + TMSService (не Ent VersionEQ).
+// Prod VersionEQ: TestEntRepository_UpdateTestCase_OptimisticLock_A3_004.
 func TestUpdateTestCase_OptimisticLock_A3_004(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)
