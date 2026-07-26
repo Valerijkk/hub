@@ -3,8 +3,8 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> Агент: `security-auditor` (Grok 4.5) · Дата: **2026-07-23** · Scope: `backend/internal/notification/`, `backend/internal/search/`  
-> Фокус: **NF-03** user-scope search · **NF-07** WebPush `ValidateOutboundURL` · **Telegram notify-only** (не login, ADR-AUTH-01)  
+> Агент: `security-auditor` (Grok 4.5) · Дата: **2026-07-23** · Scope: `backend/internal/notification/`, `backend/internal/search/`
+> Фокус: **NF-03** user-scope search · **NF-07** WebPush `ValidateOutboundURL` · **Telegram notify-only** (не login, ADR-AUTH-01)
 > Код **не менялся**.
 
 ## Чек-лист (результат)
@@ -39,15 +39,15 @@
 
 ### Закрытые / подтверждённые инварианты (не findings)
 
-1. **NF-07 / SEC-H3:** `ValidateOutboundURL` на регистрации и перед каждой отправкой; небезопасные записи удаляются (`push.go:157-164`).  
-2. **NF-07 DNS rebinding:** исходящий HTTP через `safehttp.NewSafeHTTPClient` (`push.go:25,175`), не `http.DefaultClient`.  
-3. **NF-03 messages:** `getUserChannelIDs` + Mongo filter `channel_id $in` (`service.go:178-196,578-582`); empty channels → early nil.  
-4. **NF-03 core shards:** issues/test_cases/files/projects — `projectIDs` fail-closed при `len==0`.  
-5. **NF-03 users:** HI-12 shared-project; `IsSystemAdmin` = founder\|admin (`repository.go:56-61`) — осознанный bypass.  
-6. **Search auth:** `RegisterRoutes` — Group + `authMw` (`handler.go:26-38`); userID из Locals.  
-7. **Notification auth:** все routes под `api.Group("/notifications", authMw)` (`handler.go:24-48`).  
-8. **Telegram notify-only (модуль):** polling обрабатывает только `/start bind_`, `/link`, `/unlink`, `/test` (`telegram_bind.go:202-219`); `linkTelegramID` пишет `telegram_id` профиля, **не** создаёт session. Delivery: `service.go:186-204` → `TelegramSender.Send`.  
-9. **ADR-AUTH-01 HTTP:** публичный auth — magic-link only (`auth/handler.go:35-36`); Telegram login route отсутствует.  
+1. **NF-07 / SEC-H3:** `ValidateOutboundURL` на регистрации и перед каждой отправкой; небезопасные записи удаляются (`push.go:157-164`).
+2. **NF-07 DNS rebinding:** исходящий HTTP через `safehttp.NewSafeHTTPClient` (`push.go:25,175`), не `http.DefaultClient`.
+3. **NF-03 messages:** `getUserChannelIDs` + Mongo filter `channel_id $in` (`service.go:178-196,578-582`); empty channels → early nil.
+4. **NF-03 core shards:** issues/test_cases/files/projects — `projectIDs` fail-closed при `len==0`.
+5. **NF-03 users:** HI-12 shared-project; `IsSystemAdmin` = founder\|admin (`repository.go:56-61`) — осознанный bypass.
+6. **Search auth:** `RegisterRoutes` — Group + `authMw` (`handler.go:26-38`); userID из Locals.
+7. **Notification auth:** все routes под `api.Group("/notifications", authMw)` (`handler.go:24-48`).
+8. **Telegram notify-only (модуль):** polling обрабатывает только `/start bind_`, `/link`, `/unlink`, `/test` (`telegram_bind.go:202-219`); `linkTelegramID` пишет `telegram_id` профиля, **не** создаёт session. Delivery: `service.go:186-204` → `TelegramSender.Send`.
+9. **ADR-AUTH-01 HTTP:** публичный auth — magic-link only (`auth/handler.go:35-36`); Telegram login route отсутствует.
 10. **http.DefaultClient:** в notification только комментарий (`push.go:21`); prod client = SafeHTTPClient.
 
 ## Grep-лог (кратко)
@@ -79,7 +79,7 @@ LoginWithTelegram в auth                 → service only, no route  INFO
 - NF-03 message/project search — **закрыт**; channels + saved filters — **дыры MEDIUM**.
 - Telegram notify-only в `notification/` — **PASS**; HTTP login через Telegram — **не экспонирован**.
 
-**verified: false** — 2026-07-23 01:00 UTC+3  
+**verified: false** — 2026-07-23 01:00 UTC+3
 
 Причина: 4× MEDIUM (A01) без mitigation/accepted. Блокеров CRITICAL/HIGH нет; для merge-ready волны желательно закрыть MEDIUM или зафиксировать accepted-risk с владельцем.
 
