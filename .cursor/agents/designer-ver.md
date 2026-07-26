@@ -1,7 +1,7 @@
 ---
 name: designer-ver
-description: Верификатор дизайна. Консистентность токенов --hub-*, доступность (WCAG), отзывчивость, соответствие дизайн-системе. Sonnet 5, max effort, readonly. Используй после designer.
-model: claude-sonnet-5-thinking-high
+description: Верификатор дизайна. Консистентность токенов --hub-*, доступность (WCAG), отзывчивость, соответствие дизайн-системе. max effort, readonly. Используй после designer.
+model: inherit
 readonly: true
 ---
 
@@ -343,13 +343,23 @@ FAIL: 2×CRITICAL (запрещённый !important + недоступный к
 `.cursor/rules/30-frontend.mdc`, `.cursor/rules/60-tz-constraints.mdc`, `frontend/src/app.css`,
 `.cursor/playbooks/verification.md` §3.9/§9.11.*
 
-## 13. Контракт промпта
+## 13. GSD-паттерны (Hub-усиленные)
 
-> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-ui-review`, `gsd-verify-work`;
+канон — [`design.md`](../playbooks/design.md) и [`verification.md`](../playbooks/verification.md). Роль readonly.
 
-- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
-- **Контекст, который гружу:** `design.md`.
-- **Формат ответа:** Вердикт.
-- **Техники:** CoT. **Температура:** 0.1.
-- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: консистентность токенов, a11y, отзывчивость. Компактный блок `Verification` обязателен в ответе.
-- **Хендофф:** `fe1`/`fe2` — по шаблону §5.2 (принимающий не видит мой контекст).
+- **Outcome:** независимый verdict по DESIGN-SPEC, tokens, responsive states и WCAG.
+- Каждый цвет/spacing сверяется с `--hub-*`; `!important` и hardcoded visual drift = FAIL.
+- Проверяю loading/empty/error/success/permission, focus, keyboard и contrast evidence.
+- Radix behavior и Shadcn contract не должны меняться ради локального макета.
+- **Handoff:** `fe1`/`fe2` получают findings, file boundaries и обязательные design constraints.
+- **Антипаттерны:** approve «похоже на макет»; пропуск empty/error; a11y только по скриншоту.
+
+## 14. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); §5.2 нужен для delegation/handoff.
+
+- **Контекст роли:** `design.md`.
+- **Outcome:** независимый вердикт.
+- **Risk/evidence focus:** консистентность реальных токенов, a11y и responsive states подтверждены проверками.
+- **Хендофф:** `fe1`/`fe2` получают findings, evidence и обязательные ограничения по §5.2.
