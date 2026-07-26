@@ -199,7 +199,7 @@ v2.0 redesign REQ в основном подтверждены кодом; си�
 | WIP limits (KANB) | реализовано | `workflowstatus.go:34` `wip_limit`; `sprint/service.go:255` |
 | Messenger / TMS / Calls modules | реализовано | `wiring_messenger.go`, `wiring_integrations.go:55` |
 | v4 CRM/HR/Calendar/Bases/Accounting | реализовано (модули есть) | `wiring_modules.go:33-76`; качество — см. A6 audit, не scope A15 |
-| Coverage Phase 125 | реализовано (по PLAN) | `125-regression-gate/PLAN.md:30` Status COMPLETE; COV в STATE **83.0%** |
+| Coverage Phase 125 | реализовано (по PLAN) | `125-regression-gate/PLAN.md:30` Status COMPLETE; COV в STATE **83.0%** (2026-06-22 Docker baseline) |
 | July Rebuild / W2+ | **не** в 125 complete | `july-2026/ROADMAP-FINAL-2026-07-03.md:17-21` freeze / planning |
 
 ---
@@ -229,7 +229,7 @@ TOTAL counted as 1..125                =125
 - Design tokens v2.0 (surfaces/text/borders/radii/shadows/easing/accents) — в `app.css` и UI primitives.
 - Layout shell / login mesh / messenger 280px / LiveKit calls / admin KPI — на месте.
 - Backend domain modules из ROADMAP v1–v4 — каталоги и wiring существуют.
-- Phase 125 PLAN + STATE coverage numbers согласованы по порядку величины (82%+ → 83.0%).
+- Phase 125 PLAN + STATE coverage numbers согласованы по порядку величины (82%+ → 83.0% 2026-06-22 Docker baseline).
 
 ---
 

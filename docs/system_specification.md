@@ -72,7 +72,7 @@
 | NFR-26 | Pub/sub transport | NATS JetStream only — Redis pub/sub запрещён |
 | NFR-27 | File upload path | Presigned PUT в SeaweedFS; backend buffer max 25 MB |
 | NFR-28 | Tenancy | Single-tenant (1 instance = 1 team) |
-| NFR-29 | Test coverage gate | ≥50% overall ✅ **83.0%**; ≥80% security-critical ✅ **6/6** |
+| NFR-29 | Test coverage gate | ≥50% overall ✅ **83.0%** (2026-06-22 Docker baseline); ≥80% security-critical ✅ **6/6** |
 | NFR-30 | Frontend test gate | Vitest **99+** tests; Playwright **20** E2E specs ✅ |
 
 ## Модель данных (ER — ключевые сущности)
@@ -667,7 +667,7 @@ DFD user-scoped поиска: `[User Ctrl+K] → GET /search?types=wiki_page →
 
 | Область | Статус | Gap |
 |---------|--------|-----|
-| Backend coverage overall | **83.0%** ✅ | Gate ≥82% PASS |
+| Backend coverage overall | **83.0%** ✅ (2026-06-22 Docker baseline) | Gate ≥82% PASS |
 | PG-03 secret rotation | ⏳ Manual | FA-06 Phase 1–3 — **единственный prod-блокер** |
 | Lighthouse ≥90 formal | ⚠️ Partial | CI artifact job (PR #27, non-blocking) |
 | NFR-16 WCAG 2.1 AA | ⚠️ Partial | Login axe PASS; full human audit pending |
@@ -681,7 +681,7 @@ DFD user-scoped поиска: `[User Ctrl+K] → GET /search?types=wiki_page →
 | Область | Было | Сейчас |
 |---------|------|--------|
 | CRITICAL security (12) | Blockers | **FIXED** в коде |
-| Overall coverage | 11.5% → 56.6% | **83.0%** |
+| Overall coverage | 11.5% → 56.6% | **83.0%** (2026-06-22 Docker baseline) |
 | Playwright E2E | not present | **20 specs** |
 | Frontend Vitest | 0 | **99/99 tests** |
 | Test framework migration | in progress | **488 / 0 internal** ✅ |
@@ -689,4 +689,4 @@ DFD user-scoped поиска: `[User Ctrl+K] → GET /search?types=wiki_page →
 | Squash PR v2.5-trust | pending | **merged PR #1** ✅ |
 
 ---
-*Последнее обновление: 2026-06-23 — Wave C complete, COV 83.0%, FA-06 manual blocker, Lighthouse CI*
+*Последнее обновление: 2026-06-23 — Wave C complete, COV 83.0% (2026-06-22 Docker baseline), FA-06 manual blocker, Lighthouse CI*

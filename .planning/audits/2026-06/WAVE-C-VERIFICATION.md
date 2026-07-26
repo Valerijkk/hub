@@ -13,7 +13,7 @@
 
 | Layer | Goal | Status | Evidence |
 |-------|------|--------|----------|
-| Wave A | COV ≥82%, security 6/6 ≥80% | ✅ COMPLETE | COV **83.0%** |
+| Wave A | COV ≥82%, security 6/6 ≥80% | ✅ COMPLETE | COV **83.0%** (2026-06-22 Docker baseline) |
 | Wave B | TF-M01–M10: 0 internal tests, CI hubtest-only | ✅ COMPLETE | **488** / **0** · Vitest **99/99** · E2E **20** |
 | Wave C | FA-01–FA-12 audit + qa-gate | ✅ COMPLETE (code) | FA-01 backlog closed · FA-02 **0 CRITICAL** · FA-10 PASS |
 | Wave C ops | FA-06 PG-03 secret rotation | ⏳ MANUAL | `.planning/production/PG-03-SECRET-ROTATION.md` |
@@ -77,4 +77,4 @@ FA-06 does not block merge to `main` for CI validation; **required before produc
 
 ## Verdict: **PASS** (with FA-06 caveat)
 
-Wave B + Wave C code deliverables complete. QA gate PASS. COV 83.0%. Security 0 CRITICAL. **FA-06** remains the sole Wave C gap for production.
+Wave B + Wave C code deliverables complete. QA gate PASS. COV 83.0% (2026-06-22 Docker baseline). Security 0 CRITICAL. **FA-06** remains the sole Wave C gap for production.

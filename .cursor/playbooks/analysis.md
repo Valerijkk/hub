@@ -882,7 +882,7 @@ SA поддерживает сквозную матрицу в `.planning/COVERA
 ```
 | US | FR | API | Code (файл) | Tests | Cov | Gap |
 |----|----|----|-------------|-------|-----|-----|
-| US-S16 | TMS-14 | PATCH /tms/cases/:id, GET /tms/cases?flaky | tms/handler_cases.go, tms/service.go | testframework/tms/*_test.go | 82.0% | — |
+| US-S16 | TMS-14 | PATCH /tms/cases/:id, GET /tms/cases?flaky | tms/handler_cases.go, tms/service.go | testframework/tms/*_test.go | 82.0% (2026-06-22) | — |
 ```
 
 Правила ведения матрицы:
@@ -1229,8 +1229,8 @@ Business Goal (G-XX, vision_and_scope)
 ```
 | Goal | US    | AC | FR      | NFR    | API                         | Code                              | TC        | Autotest                          | Cov   | Gap |
 |------|-------|----|---------|--------|-----------------------------|-----------------------------------|-----------|-----------------------------------|-------|-----|
-| G-02 | US-S16| 3  | TMS-14  | NFR-24 | PATCH /tms/cases/:id        | tms/handler_cases.go, service.go  | TC-TMS-14 | testframework/tms/flaky_test.go   | 82.0% | —   |
-| G-01 | US-M03| 5  | TASK-01 | NFR-14 | POST /projects/:id/issues   | tracker/handler_issues.go         | TC-TASK-01| testframework/tracker/*_test.go   | 82.4% | —   |
+| G-02 | US-S16| 3  | TMS-14  | NFR-24 | PATCH /tms/cases/:id        | tms/handler_cases.go, service.go  | TC-TMS-14 | testframework/tms/flaky_test.go   | 82.0% (2026-06-22) | —   |
+| G-01 | US-M03| 5  | TASK-01 | NFR-14 | POST /projects/:id/issues   | tracker/handler_issues.go         | TC-TASK-01| testframework/tracker/*_test.go   | 82.4% (2026-06-22) | —   |
 ```
 
 Статусы (методология COVERAGE.md): Code = ✅ Implemented / ⚠️ Partial / ❌ Missing /
@@ -1273,7 +1273,7 @@ G-02  Сквозная traceability задача→тест→баг
                       └ Code: tms/allure_parser.go, tms/handler_runs.go, tracker/service.go
                           └ TC-TMS-05 (happy/alt/error)
                               └ Autotest: testframework/tms/allure_test.go
-                                  └ Cov: 82.0%
+                                  └ Cov: 82.0% (2026-06-22)
 ```
 
 Разрыв на любом уровне ловится верификатором соответствующего слоя.

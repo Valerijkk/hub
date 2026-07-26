@@ -224,7 +224,7 @@ Hub придерживается классической пирамиды: мн
 ### 2.5. Принципы Hub (закреплены в rules)
 
 1. **Backend CI-инвариант:** `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`. `-race` всегда, `-count=1` отключает кэш.
-2. **Coverage floor:** statement coverage `internal/` ≥ 82% (сейчас 83.0%); security-пакеты ≥ 80%.
+2. **Coverage floor:** statement coverage `internal/` ≥ 82% (сейчас 83.0%, 2026-06-22 Docker baseline); security-пакеты ≥ 80%.
 3. **Тесты в модуле backend:** Go запрещает импорт `internal/*` из другого модуля, поэтому тесты живут в `backend/testframework/` и используют `export_hooks.go` для white-box доступа.
 4. **Triage перед фиксом:** падающий тест ≠ баг в коде. Сначала спека (раздел 12).
 5. **Docs sync:** новый автотест → обновить колонку «Автотест» в `docs/TESTING.md` в той же сессии (rule 55).
@@ -2391,7 +2391,7 @@ Verifier обязан проверять: нет ли `t.Skip`/`test.skip` бе�
 
 | Область | Порог | Текущее |
 |---------|-------|---------|
-| Statement coverage `internal/` | ≥ 82% (gate) | 83.0% |
+| Statement coverage `internal/` | ≥ 82% (gate) | 83.0% (2026-06-22 Docker baseline) |
 | Security-пакеты (auth, ws, rbac, audit, calls) | ≥ 80% | 6/6 ✅ |
 
 Gate живёт в CI job `coverage-gate` (push в master). Падение ниже порога блокирует.

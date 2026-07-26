@@ -1,7 +1,7 @@
 # Hub — Post-Phase-14 Cross-Cutting Audit Summary
 
 > **ИСТОРИЧЕСКИЙ BASELINE (2026-05-15).** Не использовать для текущего статуса продакшена.  
-> Актуально: COV **83%**, CRITICAL **0/12**, product score **87/100** — `.planning/audits/2026-06/AUDIT-SCORECARD.md`, Wave C FA-02.
+> Актуально: COV **83%** (2026-06-22 Docker baseline), CRITICAL **0/12**, product score **87/100** — `.planning/audits/2026-06/AUDIT-SCORECARD.md`, Wave C FA-02.
 
 **Date:** 2026-05-15
 **Scope:** 6 параллельных аудитов после закрытия milestone v2.0 (Hub Redesign) + Phase 14 (Architectural Hardening) + 6 волн audit-фиксов (CR-01..LO-08).

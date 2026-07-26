@@ -8,7 +8,7 @@
 
 ## 1. Резюме для руководства
 
-Hub после milestone **v4 Super-app** (Phases 39–58) — единственный self-hosted продукт в нише, объединяющий **dev-suite + corporate super-app** с AI hub и data residency. Покрытие тестами backend **83.0%**, product score **93/100**, 286+ REST endpoints. Wave C ✅; prod-блокер — FA-06 manual.
+Hub после milestone **v4 Super-app** (Phases 39–58) — единственный self-hosted продукт в нише, объединяющий **dev-suite + corporate super-app** с AI hub и data residency. Покрытие тестами backend **83.0%** (2026-06-22 Docker baseline), product score **93/100**, 286+ REST endpoints. Wave C ✅; prod-блокер — FA-06 manual.
 
 **Ключевое конкурентное преимущество:** TCO на горизонте 2–3 лет + сквозная traceability (задача → тест → PR → уведомление) + RU-friendly AI без VPN.
 

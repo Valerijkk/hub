@@ -233,7 +233,7 @@ routing по `description`, когда задача требует docs-sync в�
 | Показатель | Значение (2026-06-22) |
 |------------|----------------------|
 | Milestone | v4 Super-app ✅ + Wave C audit ✅ |
-| COV overall | **83.0%** |
+| COV overall | **83.0%** (2026-06-22 Docker baseline) |
 | Security 6/6 | ✅ ≥80% |
 | Product score | **87/100** (`.planning/audits/2026-06/AUDIT-SCORECARD.md`) |
 | Active work | FA-06 manual ops · TF-CLEANUP-01 |

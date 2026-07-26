@@ -36,7 +36,7 @@
 | BE `internal/*_test.go` | 0 | 0 | OK |
 | Vitest domain files | 37 / 99 tests | 37 | OK |
 | Playwright specs | 20 | 20 | OK |
-| Overall `internal/` | **83.0%** | не переизмерено | STALE |
+| Overall `internal/` | **83.0%** (2026-06-22 Docker baseline) | не переизмерено | STALE |
 | Security 6×80% | **6/6 ✅** (auth 82.4, ws 87.7, rbac 84.7, audit 80.5, middleware 84.0, calls 80.2) | не переизмерено; **CI не проверяет** | PROCESS GAP |
 
 Примечание: `AGENTS.md` внутри себя противоречит — таблица **495**, блок команд «все **499**». `docs/TESTING.md` §счётчики = **499** (ближе к диску).
@@ -70,7 +70,7 @@
 |-----|----------------------|------------|--------------|
 | **HIGH** | `.github/workflows/ci.yml:117-129` · `coverage-gate.yaml` | Security **6×80%** заявлены как gate, в CI **не enforced** — только overall ≥82%. | Добавить post-step `go tool cover -func` + awk по 6 пакетам; FAIL если любой <80. Документировать в README coverage-gate. |
 | **HIGH** | `.planning/COVERAGE.md:36` · `AGENTS.md:143` vs диск **499** | Inventory drift: канон coverage matrix отстаёт на 4 файла; `AGENTS` 495 vs 499. | Синхронизировать COVERAGE + AGENTS → **499**; одна цифра в каноне. |
-| **HIGH** | `COVERAGE.md` footer Verified 2026-06-23 | Package % / 83.0% / 6/6 — **месяц без remeasure** в этом scan. Нельзя считать COV-01 live PASS. | Перегнать Docker cover → обновить таблицу; зафиксировать commit SHA. |
+| **HIGH** | `COVERAGE.md` footer Verified 2026-06-23 | Package % / 83.0% (2026-06-22 Docker baseline) / 6/6 — **месяц без remeasure** в этом scan. Нельзя считать COV-01 live PASS. | Перегнать Docker cover → обновить таблицу; зафиксировать commit SHA. |
 | **HIGH** | `testframework/stages/e2e/domains/ai/ai-hub.spec.ts:228` | `await page.waitForTimeout(3_000)` — синхронизация «на удачу» (CRITICAL по рубрике qa-auto-ver §2.1). | Web-first assert / `expect.poll` на содержимое composer; убрать timeout. |
 | **MEDIUM** | `backend/testframework/**` (15 файлов, 16 Sleep) | `time.Sleep` для lifecycle/rate-window (ws, notification consumers, middleware rate, webhook dispatcher, cron…). Часть оправдана (окно rate limit), часть — polling без канала. | Rate-limit: оставить с комментарием WHY; lifecycle → channel/`Eventually`/fake clock. |
 | **MEDIUM** | `docs/TESTING.md:43` vs `:33` | В том же файле: актуальные **499** файлов и устаревшая секция «**33** тестовых файла / 272 функции» (pre-TF migration). | Удалить/переписать legacy-таблицу или пометить HISTORICAL. |

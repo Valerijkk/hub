@@ -58,7 +58,7 @@ This branch delivers **v2.5 Trust** production hardening: full test-framework mi
 |--------|-------|
 | Go test files (`backend/testframework/`) | **488** |
 | Go test files (`backend/internal/`) | **0** |
-| COV overall (`internal/`, Docker `-tags hubtest`) | **83.0%** |
+| COV overall (`internal/`, Docker `-tags hubtest`) | **83.0%** (2026-06-22 Docker baseline) |
 | Security packages ≥80% | **6/6** ✅ |
 | RBAC routes fixed (FA-RBAC-FIBER3) | **123** |
 | Product score | **93/100** |
@@ -67,20 +67,20 @@ This branch delivers **v2.5 Trust** production hardening: full test-framework mi
 | Playwright E2E specs | **20** |
 | Ent schemas | **82** |
 
-### Package coverage (Docker, post FA-11/12)
+### Package coverage (2026-06-22 Docker baseline, post FA-11/12)
 
 | Package | Coverage |
 |---------|----------|
-| ws | 87.7% |
-| storage | 86.8% |
-| rbac | 84.7% |
-| notification | 82.5% |
-| auth | 82.4% |
-| tracker | 82.4% |
-| messenger | 82.3% |
-| tms | 82.0% |
-| project | 82.0% |
-| audit | 80.5% |
+| ws | 87.7% (2026-06-22) |
+| storage | 86.8% (2026-06-22) |
+| rbac | 84.7% (2026-06-22) |
+| notification | 82.5% (2026-06-22) |
+| auth | 82.4% (2026-06-22) |
+| tracker | 82.4% (2026-06-22) |
+| messenger | 82.3% (2026-06-22) |
+| tms | 82.0% (2026-06-22) |
+| project | 82.0% (2026-06-22) |
+| audit | 80.5% (2026-06-22) |
 
 ---
 

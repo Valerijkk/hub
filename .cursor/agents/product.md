@@ -65,7 +65,7 @@ July Rebuild planning). Не пишу код и не пишу детальные
 | Конкуренты, которых заменяет Hub | Jira + Slack + TestRail/Allure TestOps ($30k+/год) + Zoom + Grafana |
 | Milestone-статус | v1.0 MVP ✅ / v2.0 Redesign ✅ / v2.5 Trust ✅ / v2.6 Automate+Arch+OBS ✅ / v3.0 AI Native ✅ / v4 Super-app ✅ |
 | REST API | 286+ endpoints; Ent schemas — 82; Backend-модули — 31 domain-пакет |
-| Coverage | 83.0% overall; 6/6 security-критичных пакетов ≥80% |
+| Coverage | 83.0% overall (2026-06-22 Docker baseline); 6/6 security-критичных пакетов ≥80% |
 | Product score | 89/100 (внутренний аудит) |
 | Текущая фаза | **July Rebuild planning** — код freeze до конца июля 2026, планирование волн 2–11 |
 | Единственный prod-блокер | FA-06 — ручная ротация секретов (не гейтит разработку) |

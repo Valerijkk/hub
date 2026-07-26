@@ -18,7 +18,7 @@
 |----------|----------|----------|
 | Milestone | v4 Super-app ✅ · post-v4 planning (July Rebuild) | STATE |
 | Phases 1–125 | 100% completed | STATE progress |
-| COV overall | **83.0%** (`-tags hubtest`, Docker) | COVERAGE / AGENTS |
+| COV overall | **83.0%** (2026-06-22 Docker baseline, `-tags hubtest`) | COVERAGE / AGENTS |
 | Security pkgs ≥80% | **6/6** | AGENTS |
 | Product score | **89/100** | AGENTS / AUDIT |
 | REST API | **286+** endpoints | AGENTS |
@@ -38,7 +38,7 @@
 | v2.6 Automate + Arch + OBS | ✅ COMPLETE | 2026-06-24 |
 | v3.0 AI Native | ✅ COMPLETE | 2026-06-22 |
 | v4 Super-app | ✅ COMPLETE | 2026-06-25 |
-| Coverage wave Ph 59–125 | ✅ COV 83.0% | 2026-06-21..22 |
+| Coverage wave Ph 59–125 | ✅ COV 83.0% (2026-06-22 Docker baseline) | 2026-06-21..22 |
 | TF migration Wave B | ✅ 0 internal tests | 2026-06-23 |
 | Final audit Wave C | ✅ кроме FA-06 manual | 2026-06-22 |
 

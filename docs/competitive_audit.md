@@ -15,7 +15,7 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 | Milestone v4 Super-app | ✅ Phases 39–58 (2026-06-25) |
 | Milestone v2.5 Trust / v2.6 Automate / v3.0 AI | ✅ Phases 15–19 |
 | Wave C final audit FA-01–FA-12 | ✅ (кроме FA-06 manual) |
-| Покрытие backend (`internal/`) | **83.0%** (Wave C) |
+| Покрытие backend (`internal/`) | **83.0%** (2026-06-22 Docker baseline; Wave C) |
 | Security-critical пакеты ≥80% | **6/6** ✅ |
 | REST API endpoints | **286+** |
 | Product score (AUDIT-SCORECARD) | **93/100** |
@@ -96,7 +96,7 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 ### Must Have (production trust — в основном закрыто)
 
 1. ~~12 CRITICAL security blockers~~ — ✅ v2.0.1
-2. ~~Test coverage ≥50% overall / ≥80% security~~ — ✅ **83.0%** / **6/6 ≥80%**
+2. ~~Test coverage ≥50% overall / ≥80% security~~ — ✅ **83.0%** / **6/6 ≥80%** (2026-06-22 Docker baseline)
 3. Secret rotation в git history — ⏳ **FA-06 manual** — единственный prod-блокер
 4. ~~Vitest smoke tests auth + admin~~ — ✅ 99/99 tests
 5. ~~E2E critical paths~~ — ✅ 20 Playwright specs
@@ -106,7 +106,7 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 ### Should Have (v4.5 / Wave C audit — в основном закрыто)
 
 1. ~~Test framework migration~~ — ✅ TF-M01–M10 COMPLETE
-2. ~~tms/project micro-gap~~ — ✅ FA-11 (82.0%)
+2. ~~tms/project micro-gap~~ — ✅ FA-11 (82.0%, 2026-06-22 Docker baseline)
 3. **Webhook delivery log polish** — PROD-04 базово есть; admin UI depth
 4. **Flaky test detection** — PROD-02 partial
 5. **Notification digest** — backlog
@@ -151,7 +151,7 @@ Hub API → slog (JSON) → Loki (Promtail)
 
 | KPI | Target | Текущее (2026-06-23) |
 |-----|--------|----------------------|
-| Statement coverage (`internal/`) | ≥82% | **83.0%** ✅ |
+| Statement coverage (`internal/`) | ≥82% | **83.0%** ✅ (2026-06-22 Docker baseline) |
 | Security packages ≥80% | 6/6 | **6/6** ✅ |
 | Mean API latency (p95) | < 200ms | Измеряется через `duration_ms` в audit |
 | Audit coverage admin + auth | 100% | ✅ |

@@ -258,7 +258,7 @@
 - **FA-05** hub-mail prod compose · **FA-07** admin toast · **FA-08** main.go `wiring_*.go` · **FA-09** E2E POM+Steps
 - **FA-10** qa-gate **PASS** (local): build · hubtest · tsc · Biome · Vitest 99/99 → `.planning/audits/2026-06/FA-10-QA-GATE.md`
 - **RU-V10** final gate **PASS** (post RU-FIX-11–13) → `.planning/audits/2026-06/RU-V-REPORT.md`
-- **FA-03** docs sync: STATE + COVERAGE + API.md; COV **83.0%** · 488 testframework / 0 internal tests
+- **FA-03** docs sync: STATE + COVERAGE + API.md; COV **83.0%** (2026-06-22 Docker baseline) · 488 testframework / 0 internal tests
 - **Остаётся:** FA-06 PG-03 secret rotation (manual ops)
 
 ### 2026-06-22 — Wave B Test Framework Migration ✅

@@ -12,7 +12,7 @@
 | **Регрессионный gate (`/qa-gate`)** | **92/100** | build/tsc/lint/vitest PASS локально; hubtest — CI + sample PASS |
 | **CI pipeline** | **90/100** | 7 jobs; coverage-gate master-only; lighthouse non-blocking |
 | **Test pyramid (TF pipeline)** | **88/100** | 495 BE / 37 FE / 20 E2E; legacy `testframework/e2e/` — дубликат |
-| **Coverage floor ≥82%** | **95/100** | 83.0% Docker; gate в CI |
+| **Coverage floor ≥82%** | **95/100** | 83.0% (2026-06-22 Docker baseline); gate в CI |
 | **Security process** | **88/100** | 0 CRITICAL; FA-06 manual ops |
 | **Docs sync (rule 55)** | **78/100** | drift по путям TF — исправлен в этой сессии |
 | **Verifier cycle (REG §3)** | **85/100** | skills в `.cursor/project_skills/`; процесс формализован |
@@ -90,7 +90,7 @@
 | `frontend-test` | `testframework/stages/unit/frontend-test/domains/{domain}/` | **37** files, **99** tests |
 | `e2e-smoke` / `e2e-full` | `testframework/stages/e2e/domains/{domain}/` | **20** specs |
 | E2E shared (POM/steps) | `testframework/stages/e2e/shared/` | pages, steps, helpers, fixtures |
-| `coverage-gate` | `backend/testframework/` + `-coverpkg=./internal/...` | **83.0%** |
+| `coverage-gate` | `backend/testframework/` + `-coverpkg=./internal/...` | **83.0%** (2026-06-22) |
 
 ### Legacy (удалить в TF-CLEANUP-01)
 
@@ -109,7 +109,7 @@
 
 | Метрика | Target | Actual | Gate |
 |---------|--------|--------|------|
-| Overall `internal/` | ≥82% | **83.0%** | ✅ CI coverage-gate |
+| Overall `internal/` | ≥82% | **83.0%** (2026-06-22) | ✅ CI coverage-gate |
 | Security 6× packages | ≥80% | **6/6** | ✅ |
 | CRITICAL open | 0 | **0** | ✅ |
 | Data races | 0 | 0 (CI `-race`) | ✅ |
@@ -148,7 +148,7 @@ Security re-audit: `.planning/audits/2026-06/AUDIT-2026-06-23-full.md` · Guidel
 | `docs/vision_and_scope.md` | `e2e/specs/` | `stages/e2e/domains/` |
 | `.planning/STATE.md` | 488 BE tests, product 93 | 495 BE, product 87 |
 | `.planning/COVERAGE.md` | legacy vitest/e2e paths | pipeline paths |
-| `AGENTS.md` | branch `feat/v2.5-trust`, COV 82.6% | master, COV 83.0% |
+| `AGENTS.md` | branch `feat/v2.5-trust`, COV 82.6% (2026-06-21 phase exit) | master, COV 83.0% (2026-06-22 Docker baseline) |
 
 ---
 

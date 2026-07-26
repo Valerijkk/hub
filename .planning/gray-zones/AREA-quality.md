@@ -1,7 +1,7 @@
 # Gray Zones — КАЧЕСТВО / ТЕСТИРОВАНИЕ
 
 > Дата: 2026-07-02 · Read-only аудит. Источники: `docs/test_plan.md`, `.planning/COVERAGE.md`, `.planning/roadmaps/MICROSERVICES-ROADMAP.md`, `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` §4.3/§6.
-> Контекст: COV 83.0% (gate ≥82%), security 6/6 ≥80%, 495 BE test-файлов, Vitest 99/99, 20 E2E specs, Lighthouse artifact-only. Впереди: Track F (углубление v4 + wiki/AI-agents/SSO) и Track P (микросервисный split ~5–6 юнитов).
+> Контекст: COV 83.0% (2026-06-22 Docker baseline; gate ≥82%), security 6/6 ≥80%, 495 BE test-файлов, Vitest 99/99, 20 E2E specs, Lighthouse artifact-only. Впереди: Track F (углубление v4 + wiki/AI-agents/SSO) и Track P (микросервисный split ~5–6 юнитов).
 
 ---
 
@@ -17,7 +17,7 @@
 - Варианты: A) wiki ≥82%, MCP/agents ≥80% как security-critical [Рекомендую] B) Оба ≥50% MVP-стилем, uplift позже C) wiki ≥70%, MCP ≥80%
 - Влияние: размер задач be1/be2, список security-critical пакетов в COVERAGE.md, поверхность атаки MCP.
 
-### GZ-QA-03: Отстающие пакеты ниже gate (gitlab 68.5%, ai 78.9%, bases 78.6%)
+### GZ-QA-03: Отстающие пакеты ниже gate (gitlab 68.5%, ai 78.9%, bases 78.6% — 2026-06-22 Docker baseline)
 - Контекст: E3 в EXPANSION предлагает uplift до 80%. При этом ai и bases будут активно перерабатываться (AI-agents, bases→Lark) — тесты частично устареют.
 - Вопрос: делать uplift сейчас отдельной задачей или совместить с волнами переработки этих модулей?
 - Варианты: A) Совместить с переработкой — новый код сразу с тестами, старый uplift не делать [Рекомендую] B) Uplift сейчас (E3 как S/M-задача) C) Только gitlab сейчас (не переписывается), ai/bases — с волнами

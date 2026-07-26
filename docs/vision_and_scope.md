@@ -38,7 +38,7 @@
 | v2.0 UI requirements (DSFN–XTRA) | 85/85 | ✅ COMPLETE (Phases 8–14) |
 | CRITICAL security blockers | 0 | **12/12 FIXED** в коде (v2.0.1); PG-03 ротация секретов в git history — manual ops |
 | Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (auth, ws, storage, rbac, audit, calls) |
-| Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **83.0%** ✅ (Wave C, Docker `-tags hubtest`) |
+| Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **83.0%** ✅ (2026-06-22 Docker baseline; Wave C, `-tags hubtest`) |
 | Frontend Vitest | Unit-тесты модулей | **99/99** ✅ |
 | E2E critical paths | Playwright | **20 spec-файлов** ✅ (`testframework/stages/e2e/domains/`) |
 | Global search Ctrl+K (US-M07) | UI + user-scope backend | **UI ✅** (PR #15: Calls, Settings, Admin) |

@@ -55,7 +55,7 @@
 |------------|----------|
 | Milestones shipped | v1.0 · v2.0 · v2.5 Trust · v2.6 Automate · v3.0 AI · **v4 Super-app** |
 | Product score | **93/100** |
-| Backend coverage (`internal/`) | **83.0%** (Wave C, Docker `-tags hubtest`) |
+| Backend coverage (`internal/`) | **83.0%** (2026-06-22 Docker baseline; Wave C, `-tags hubtest`) |
 | Security-critical ≥80% | **6/6** |
 | REST API endpoints | **286+** |
 | Frontend Vitest | **99/99** tests |
@@ -170,7 +170,7 @@
 
 | ID | Feature | Статус |
 |----|---------|--------|
-| COV ≥82% | Backend coverage | ✅ **83.0%** |
+| COV ≥82% | Backend coverage | ✅ **83.0%** (2026-06-22 Docker baseline) |
 | Security ≥80% | 6 critical packages | ✅ **6/6** |
 | TF-M04–M08 | Test framework migration | ✅ COMPLETE |
 | FA-10 | Full `/qa-gate` Docker | ✅ PASS |
@@ -229,7 +229,7 @@ Email notifications (кроме magic link + hub-mail marketing) — Telegram + 
 ### Retain triggers
 
 1. **Automation lite** — «Done → #releases» без Zapier ✅
-2. **Reliability** — 82.6% cov, e2e 20 specs, no WS panics
+2. **Reliability** — 82.6% cov (2026-06-21 phase-125 exit; superseded by 83.0% 2026-06-22 Docker baseline), e2e 20 specs, no WS panics
 3. **AI @hub-ai RU providers** — GigaChat/YandexGPT/Ollama
 4. **Keyboard UX** — Ctrl+K как Linear
 5. **Single audit trail** — dev + corp actions в одном месте

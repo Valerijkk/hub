@@ -457,7 +457,7 @@ Permissions хранятся как bitmask (uint64) в поле `permissions` �
 | **v2.6** | Architecture completion, OBS stack (Prometheus/Loki/Grafana), automation rules | ✅ COMPLETE 2026-06-24 |
 | **v3.0** | AI Hub: providers, @hub-ai bot, JQL assist, PR review | ✅ COMPLETE 2026-06-22 |
 | **v4.0** | Super-app: intranet, calendar, CRM, HR, accounting, bases, marketplace | ✅ COMPLETE 2026-06-25 |
-| **Coverage wave** | Phases 59–125, COV 82.6%, test framework migration | ✅ COMPLETE 2026-06-21 |
+| **Coverage wave** | Phases 59–125, COV 82.6% (2026-06-21 phase-125 exit; later **83.0%** 2026-06-22 Docker baseline), test framework migration | ✅ COMPLETE 2026-06-21 |
 | **Phase 16+** | Gantt, webcam, full JQL automation, hub-mail transactional | ⏳ Planned |
 
 ---

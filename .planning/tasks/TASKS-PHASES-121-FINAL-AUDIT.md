@@ -129,7 +129,7 @@ Fiber v3: `Post(path, handler, rbacMW)` → chain `[rbacMW, handler]`. Details: 
 
 | Metric | Value |
 |--------|-------|
-| COV overall | **83.0%** (post FA-11/12) |
+| COV overall | **83.0%** (2026-06-22 Docker baseline; post FA-11/12) |
 | notification | **82.5%** (testframework) |
 | auth | **82.4%** |
 | ws | **87.7%** |

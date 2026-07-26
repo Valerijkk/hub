@@ -35,7 +35,7 @@
 | Project status snapshot | `.planning/july-2026/PROJECT-STATUS-2026-07-10.md` | Сводка статуса на 2026-07-10 |
 | July return ops plan | `.planning/july-2026/ROADMAP-DETAILED-JULY-RETURN.md` | W0–N, RACI, DoR/DoD, чек-лист D1 |
 | AGENTS (кратко) | `AGENTS.md` § «Текущий статус» | Метрики + next steps для агентов |
-| COVERAGE | `.planning/COVERAGE.md` | Матрица покрытия (baseline COV 83.0%) |
+| COVERAGE | `.planning/COVERAGE.md` | Матрица покрытия (baseline COV 83.0%, 2026-06-22 Docker) |
 
 ---
 

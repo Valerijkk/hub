@@ -312,7 +312,7 @@ Exploitability score A19: **8.5/10** (insider member).
 | «API keys работают для CI» | X-API-Key не проходит RequireAuth без JWT | A9-012 |
 | Offline/Ollama AI | SafeDial блокирует loopback | A4-005 |
 
-**Можно относительно доверять (сверка A17/«Чисто» зон):** Magic Link-only routes, JWT HS256+refresh rotation, CORS fail-start, SafeHTTP/SSRF на основных outbound, LiveKit webhook sha256, bases owner-scope, storage path sanitize+CR-04, WS channel/project subscribe authz, Fiber v3 RBAC argument order на tracker/tms, inventory 499 TF / 0 internal tests / Vitest 99/99, **COV 83% / security 6/6 как CI baseline** (CI всегда `go generate ./ent` перед gate — локальный stale ent не опровергает цифры).
+**Можно относительно доверять (сверка A17/«Чисто» зон):** Magic Link-only routes, JWT HS256+refresh rotation, CORS fail-start, SafeHTTP/SSRF на основных outbound, LiveKit webhook sha256, bases owner-scope, storage path sanitize+CR-04, WS channel/project subscribe authz, Fiber v3 RBAC argument order на tracker/tms, inventory 499 TF / 0 internal tests / Vitest 99/99, **COV 83% / security 6/6 как CI baseline (2026-06-22 Docker)** (CI всегда `go generate ./ent` перед gate — локальный stale ent не опровергает цифры).
 
 ---
 

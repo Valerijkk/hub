@@ -1,4 +1,4 @@
-# Hub — Анализ расширения и доведения функционала
+﻿# Hub — Анализ расширения и доведения функционала
 
 > **Дата:** 2026-07-02
 > **Автор:** глубокий аудит кода + планов (read-only, без изменений кода/тестов)
@@ -34,19 +34,19 @@
 
 | Модуль | Заявлено (roadmap/vision) | Реализовано (факт, глубина) | Основные пробелы | Приоритет |
 |--------|---------------------------|------------------------------|------------------|-----------|
-| **auth** | Magic Link + Telegram bind, JWT 15м + refresh 30д, сессии, rate limit, онбординг | **полное** (2452 стр, cov 82.4%). Split-сервисы session/login/profile. | 2FA — только placeholder (`routes/.../settings/security.tsx:35`); «уведомление о новом входе» — проверить. | P2 |
-| **tracker** | 9 типов, кастомные поля, связи, workflow, комментарии, таймтрекинг, метки | **полное** (5462 стр, cov 82.4%). | Кастомные поля: схема есть, **UI-билдер отсутствует** (competitive_audit §4 Could Have); метки на карточке — заглушка (`issue-card.tsx:223`). | P1 |
+| **auth** | Magic Link + Telegram bind, JWT 15м + refresh 30д, сессии, rate limit, онбординг | **полное** (2452 стр, cov 82.4%, 2026-06-22). Split-сервисы session/login/profile. | 2FA — только placeholder (`routes/.../settings/security.tsx:35`); «уведомление о новом входе» — проверить. | P2 |
+| **tracker** | 9 типов, кастомные поля, связи, workflow, комментарии, таймтрекинг, метки | **полное** (5462 стр, cov 82.4%, 2026-06-22). | Кастомные поля: схема есть, **UI-билдер отсутствует** (competitive_audit §4 Could Have); метки на карточке — заглушка (`issue-card.tsx:223`). | P1 |
 | **kanban/board** | колонки=статусы, WIP, swimlanes, несколько досок, фильтры | **частичное/полное**. WIP/swimlanes есть. | «Несколько досок в проекте», сохранённые/расшариваемые фильтры — проверить глубину. | P2 |
 | **sprint/scrum** | спринты, burndown, velocity, retro, автоперенос, Planning Poker | **полное** (1179 стр backend, `burndown-chart.tsx`, `velocity-chart.tsx`, `planning-poker.tsx` 191 стр). | Retrospective и автоперенос — проверить полноту. | P2 |
 | **messenger** | DM/группы/каналы, треды, реакции, голосовые, превью ссылок, поиск, статусы | **полное** (backend 5681, FE-компоненты 6308 стр). | `message-composer.tsx` >500 стр (god-component, tech-debt); optimistic reactions — partial. | P1 |
-| **tms** | кейсы classic/BDD, папки, версии, прогоны, Allure, окружения, отчёты Allure-уровня, импорт/экспорт | **полное** (backend 6834, FE 4672; cov 82%). Flaky, autotest, traceability, environments — есть отдельные экраны. | Отчёты «уровня Allure TestOps» (тренды, run diff, категории дефектов) — **частично**; flaky detection — partial (competitive_audit §2). | P1 |
-| **calls** | голос+screen share (без вебкамер по vision), запись, запланированные, чат звонка | **полное** (2848 стр; cov 80.2%). **Webcam ФАКТИЧЕСКИ реализован** (`CallControls.tsx`, `ParticipantList.tsx`) — превышает исходный vision (Phase 16 IN). | Breakout rooms, noise cancel (competitive_audit — Zoom-gap) — не в scope. | P3 |
+| **tms** | кейсы classic/BDD, папки, версии, прогоны, Allure, окружения, отчёты Allure-уровня, импорт/экспорт | **полное** (backend 6834, FE 4672; cov 82.0%, 2026-06-22). Flaky, autotest, traceability, environments — есть отдельные экраны. | Отчёты «уровня Allure TestOps» (тренды, run diff, категории дефектов) — **частично**; flaky detection — partial (competitive_audit §2). | P1 |
+| **calls** | голос+screen share (без вебкамер по vision), запись, запланированные, чат звонка | **полное** (2848 стр; cov 80.2%, 2026-06-22). **Webcam ФАКТИЧЕСКИ реализован** (`CallControls.tsx`, `ParticipantList.tsx`) — превышает исходный vision (Phase 16 IN). | Breakout rooms, noise cancel (competitive_audit — Zoom-gap) — не в scope. | P3 |
 | **dashboard** | личный/проектный/админский, drag&drop виджеты, шаблоны Dev/QA/Manager | **частичное** (1071 backend / 1455 FE). Виджеты есть. | Виджеты «статичные» (competitive_audit §2); шаблоны дашбордов Dev/QA/Manager — проверить; кастомные панели — нет. | P2 |
-| **search** | Ctrl+K глобальный, JQL, локальный поиск, Meilisearch | **полное**. `jql.go` 348 стр — реальный парсер; Meilisearch (Phase 94); cov 92.2%. | Сохранённые/расшариваемые фильтры-запросы — частично. | P2 |
-| **notification** | триггеры, in-app+Telegram+WebPush, настройки по типам/каналам/проектам, quiet hours, digest | **частичное/полное** (2681 стр; cov 82.5%). Quiet hours ✅. | **Digest — backlog** (competitive_audit §3); smart notifications нет. | P2 |
-| **rbac** | системные + проектные роли (Owner/Dev/Tester/Viewer) + кастомные с полным набором прав | **полное** (881 стр; cov 84.7%). Repository split (Phase 26). | Permission representation расширен; UI редактора кастомных ролей — проверить глубину. | P2 |
-| **github/gitlab** | PR/коммиты, автопривязка HUB-123, статус PR, автосмена статуса, создание ветки | **полное** (github 1601 / gitlab 1276; cov 80.8%/68.5%). SafeHTTP. | gitlab cov 68.5% (ниже gate); «создание ветки из задачи» — проверить. | P2 |
-| **ai** | 5+ провайдеров (GigaChat/YandexGPT/DeepSeek/Mistral/Ollama), @hub-ai, стриминг, /ai команды, RAG, BYOK, model picker, лимиты | **полное** (3634 стр; cov 78.9%). Все M3-001..030 отмечены done. | cov 78.9% (<80); RAG «по докам проекта» — глубину проверить; Tab-suggest в composer. | P2 |
+| **search** | Ctrl+K глобальный, JQL, локальный поиск, Meilisearch | **полное**. `jql.go` 348 стр — реальный парсер; Meilisearch (Phase 94); cov 92.2% (2026-06-22). | Сохранённые/расшариваемые фильтры-запросы — частично. | P2 |
+| **notification** | триггеры, in-app+Telegram+WebPush, настройки по типам/каналам/проектам, quiet hours, digest | **частичное/полное** (2681 стр; cov 82.5%, 2026-06-22). Quiet hours ✅. | **Digest — backlog** (competitive_audit §3); smart notifications нет. | P2 |
+| **rbac** | системные + проектные роли (Owner/Dev/Tester/Viewer) + кастомные с полным набором прав | **полное** (881 стр; cov 84.7%, 2026-06-22). Repository split (Phase 26). | Permission representation расширен; UI редактора кастомных ролей — проверить глубину. | P2 |
+| **github/gitlab** | PR/коммиты, автопривязка HUB-123, статус PR, автосмена статуса, создание ветки | **полное** (github 1601 / gitlab 1276; cov 80.8%/68.5%, 2026-06-22). SafeHTTP. | gitlab cov 68.5% (2026-06-22; ниже gate); «создание ветки из задачи» — проверить. | P2 |
+| **ai** | 5+ провайдеров (GigaChat/YandexGPT/DeepSeek/Mistral/Ollama), @hub-ai, стриминг, /ai команды, RAG, BYOK, model picker, лимиты | **полное** (3634 стр; cov 78.9%, 2026-06-22). Все M3-001..030 отмечены done. | cov 78.9% (2026-06-22; <80); RAG «по докам проекта» — глубину проверить; Tab-suggest в composer. | P2 |
 | **intranet** | news feed, org directory, kudos, polls, marketplace, onboarding paths, Random Coffee | **скелет** (backend 1516; FE 5 файлов/754 стр). News/kudos/directory/coffee — по одному экрану. | Polls company-wide, onboarding paths (не-dev), лента: pin/reactions глубина, модерация. | **P1** |
 | **calendar** | unified (спринты/созвоны/отпуска/дедлайны), iCal export, room booking, team availability | **скелет** (backend 517; FE **1 файл** 430 стр). Unified view + iCal есть. | Room booking, team availability, двусторонний Google Calendar sync, recurring. | **P1** |
 | **crm** | контакты/компании, deals pipeline (kanban), link deal→project, won→invoice | **скелет** (backend 757; FE 2 файла/358 стр). Won→draft invoice hook есть. | Компании как сущность, активности/задачи по сделке, воронка-аналитика, импорт. | P2 |
@@ -72,7 +72,7 @@
 | **hub-mail: транзакционные письма** | 15.2 | ✅ модуль `mail` (516 стр) + FA-05 prod compose. Глубину шаблонов проверить. |
 | **hub-mail: маркетинговые письма/кампании** | 16 | ⚠️ есть `/admin/mail`; полноценные кампании/сегменты/аналитика — **проверить/доработать (P2)**. |
 | **Full JQL automation** | 17 | ✅ JQL-парсер `search/jql.go`; automation Phase 16 (PROD-01). Триаж-инбокс — **polish**; полнота JQL-функций и сохранённых автоматизаций — проверить. |
-| **AI gateway BYOK + Ollama** | 17 | ✅ реализовано (M3-001..030, `ai/byok-settings.tsx`, `admin/ai-settings.tsx`). cov 78.9%. |
+| **AI gateway BYOK + Ollama** | 17 | ✅ реализовано (M3-001..030, `ai/byok-settings.tsx`, `admin/ai-settings.tsx`). cov 78.9% (2026-06-22). |
 | **No-code DB (Lark Base)** | v4 | ⚠️ **скелет** — без формул/relations/views. → **углубить (P2)**. |
 | **Accounting** | v4 | ⚠️ **MVP** — без PDF/НДФЛ/мультивалюты/баланса. → **углубить или ограничить 1C-коннектором (P2)**. |
 | **Intranet / Calendar / CRM / HR / Marketplace** | v4 | ⚠️ **скелеты** (см. §2). → **основной фронт работ по «полноте» (P1–P2)**. |
@@ -118,7 +118,7 @@
 ### 4.3 Качество/compliance (P1, не блокер)
 - **NFR-16 WCAG 2.1 AA** — только login axe PASS, полного human-аудита (dark+light) нет.
 - **NFR-17 Lighthouse ≥90** — job non-blocking (artifact only), нет blocking-gate.
-- **Покрытие ниже цели:** gitlab 68.5%, ai 78.9%, bases 78.6% (при overall gate 82%).
+- **Покрытие ниже цели:** gitlab 68.5%, ai 78.9%, bases 78.6% (2026-06-22 Docker baseline; при overall gate 82%).
 - **FA-02 backlog:** LiveKit JWT `iss` constant-time compare (FA-02-03); RequireAuth fail-open edge (FA-02-04).
 - **Biome:** ~477 pre-existing warnings (tech debt).
 
@@ -198,4 +198,4 @@ tms 6834 · messenger 5681 · tracker 5462 · ai 3634 · calls 2848 · notificat
 tms 19/4672 · tracker 17/3352 · calls 10/2234 · settings 5/815 · **intranet 5/754** · **calendar 1/430** · messenger 2/406 · **accounting 1/362** · **crm 2/358** · **bases 1/341** · **marketplace 1/331** · **hr 1/244** · admin 1/204 · **status 1/79**.
 (Основной UI messenger/admin/dashboard живёт в `src/components/`: messenger 28/6308, admin 9/2363, dashboard 13/1455.)
 
-**Контекст качества:** overall coverage 83.0%, security 6/6 ≥80%, 286+ REST, 83 Ent-схемы, 495 backend test-файлов, Vitest 99/99, 20 Playwright specs. Литеральных «not implemented/заглушка» стубов в коде почти нет — «минимальность» проявляется в **узости фич v4 и глубине polish**, а не в TODO-заглушках.
+**Контекст качества:** overall coverage 83.0% (2026-06-22 Docker baseline), security 6/6 ≥80%, 286+ REST, 83 Ent-схемы, 495 backend test-файлов, Vitest 99/99, 20 Playwright specs. Литеральных «not implemented/заглушка» стубов в коде почти нет — «минимальность» проявляется в **узости фич v4 и глубине polish**, а не в TODO-заглушках.
