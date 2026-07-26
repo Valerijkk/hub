@@ -3,7 +3,7 @@
 > **Provenance class:** FALLBACK_SUMMARY · **Confidence:** PRELIMINARY · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Роль:** fe-ver (readonly) · **Дата:** 2026-07-23  
+> **Роль:** fe-ver (readonly) · **Дата:** 2026-07-23
 > **Scope:** `modules/admin`, `api/admin*.ts`, backup UI · **Код не менялся**
 
 ## Summary
