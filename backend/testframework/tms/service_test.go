@@ -227,6 +227,9 @@ func (m *mockRepository) CreateTestCaseVersion(_ context.Context, testCaseID, us
 		Snapshot:          snapshot,
 		ChangeDescription: description,
 		CreatedAt:         time.Now(),
+		Edges: ent.TestCaseVersionEdges{
+			TestCase: &ent.TestCase{ID: testCaseID},
+		},
 	}
 	m.versions[id] = v
 	m.lastVersion = v

@@ -217,6 +217,10 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, projectID uuid.UUID, 
 		return nil, apperrors.NewInternal("ошибка получения версии")
 	}
 
+	if version.Edges.TestCase == nil || version.Edges.TestCase.ID != existing.ID {
+		return nil, apperrors.NewNotFound("версия не найдена")
+	}
+
 	// Создаём снимок текущего состояния перед откатом
 	currentSnapshot := buildSnapshot(existing)
 	_, err = s.repo.CreateTestCaseVersion(ctx, existing.ID, userID, existing.Version, currentSnapshot, "перед откатом к версии")
