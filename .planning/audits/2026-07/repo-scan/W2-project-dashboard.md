@@ -3,8 +3,8 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **be-ver** · readonly scan · 2026-07-23  
-> Scope: `backend/internal/project/`, `backend/internal/dashboard/`  
+> **be-ver** · readonly scan · 2026-07-23
+> Scope: `backend/internal/project/`, `backend/internal/dashboard/`
 > Код не менялся. Регрессия hubtest в этом прогоне не запускалась (scan-only волна).
 
 ## Верификация (BE): project + dashboard
@@ -64,16 +64,16 @@
 
 ## Рекомендуемый порядок фикса
 
-1. Project routes + service authorize (CRITICAL CRUD/members/invites).  
-2. Dashboard project membership (CRITICAL).  
-3. Teams + template delete ownership (HIGH).  
+1. Project routes + service authorize (CRITICAL CRUD/members/invites).
+2. Dashboard project membership (CRITICAL).
+3. Teams + template delete ownership (HIGH).
 4. Denial-suite tests + admin/founder + layering Admin (HIGH/MEDIUM).
 
 ---
 
 ## Verification block
 
-- Goal: RBAC/IDOR audit project+dashboard — **FAIL** (дыры подтверждены по коду).  
-- Layering: в основном OK; dashboard Admin handler→repo — MEDIUM.  
-- TZ: membership до мутации/чтения — нарушено.  
+- Goal: RBAC/IDOR audit project+dashboard — **FAIL** (дыры подтверждены по коду).
+- Layering: в основном OK; dashboard Admin handler→repo — MEDIUM.
+- TZ: membership до мутации/чтения — нарушено.
 - verified: **false**
