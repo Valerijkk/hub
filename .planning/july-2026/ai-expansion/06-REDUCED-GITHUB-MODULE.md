@@ -1,9 +1,9 @@
 # Reduced GitHub Module — blueprint (расширенный)
 
-> Продуктово-архитектурный blueprint **урезанного аналога GitHub-flow** внутри корпоративного хаба.  
-> **Код не пишем** в горизонте AI-expansion (код-freeze продукта). Это карта для будущей фазы реализации.  
-> Канон микросервисов: `.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md`.  
-> Связанные: [`04-PORTABLE-HUB-ARCH.md`](04-PORTABLE-HUB-ARCH.md), [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md),  
+> Продуктово-архитектурный blueprint **урезанного аналога GitHub-flow** внутри корпоративного хаба.
+> **Код не пишем** в горизонте AI-expansion (код-freeze продукта). Это карта для будущей фазы реализации.
+> Канон микросервисов: `.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md`.
+> Связанные: [`04-PORTABLE-HUB-ARCH.md`](04-PORTABLE-HUB-ARCH.md), [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md),
 > существующий интеграционный модуль `backend/internal/github/` (forge adapter, не замена).
 
 - **Статус:** Blueprint / docs-only (2026-07)
@@ -35,7 +35,7 @@
 | **A. Forge adapter** | OAuth/token, webhook от GitHub/GitLab, link PR→issue | `internal/github`, `internal/gitlab` (уже в hub-core) |
 | **B. DevFlow (reduced GitHub)** | Собственные сущности PR/Check/Review/MergePolicy как source of truth process | **Новый** пакет `devflow` в **hub-core** (Later код) |
 
-Сегодня (MVP docs/AI): слой B **эмулируется агентами** (atomic commits, code-reviewer, CI-aware ship).  
+Сегодня (MVP docs/AI): слой B **эмулируется агентами** (atomic commits, code-reviewer, CI-aware ship).
 Later: слой B как runtime-модуль; слой A остаётся адаптером к forge.
 
 ---
