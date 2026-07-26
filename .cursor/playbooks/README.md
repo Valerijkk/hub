@@ -1,39 +1,42 @@
 # Hub — AI Team Playbooks (индекс)
 
-> Единый справочник команды. Каждый агент **перед задачей** грузит `docs/*` (база знаний) и профильные playbook-и из этого каталога.
+> Единый справочник команды. Агент начинает с STATE/индекса и загружает только
+> профильные docs/playbooks, необходимые для текущего outcome.
 > Регламент: `.cursor/REGULATION.md` · GSD: `.cursor/GSD-INTEGRATION.md` · Ростер файлов агентов: `.cursor/agents/*.md` · Planning-навигация: [`.planning/README.md`](../../.planning/README.md)
 
-*Обновлено: 2026-07-19 — prompt-contract (контракт промпта для всех ролей), актуализация счётчиков и карты rules; 2026-07-18 — ADR моделей GPT-5.6 (cutover август; до cutover frontmatter ещё Claude) + секция «как читать индекс», карта «тонкий rule → толстый playbook», таблица «что обновить когда».*
+*Обновлено: 2026-07-26 — evidence-first prompt contract, dynamic model routing (ADR-MODELS-GPT56 amendment), agent frontmatter synced.*
 
 ---
 
 ## Как читать этот индекс (для новой сессии/агента)
 
-Порядок — сверху вниз, не выборочно:
+Порядок progressive disclosure:
 
 1. **`.planning/STATE.md`** — что происходит в проекте прямо сейчас (session notes, freeze-статус July Rebuild). 30 секунд на весь файл.
 2. **`.planning/README.md`** — если нужен конкретный planning-артефакт (аудит, ADR, roadmap, prod-runbook) — навигация по папкам, не гадать путь руками.
 3. **`docs/README.md`** → нужные файлы «Единой базы знаний» (`vision_and_scope.md`, `system_specification.md`, `architecture.md`, `tz_constraints.md`, ...) — факты о продукте.
-4. **Этот файл** → §2/§2.1 «Карта playbook-ов» / обратная карта агент→playbook — найди свой playbook по роли; §0 — актуальная модель для твоей роли.
+4. **Этот файл** → §2/§2.1 «Карта playbook-ов» / обратная карта агент→playbook — найди свой playbook по роли; §0 — актуальная runtime-routing policy.
 5. **Свой файл агента** (`.cursor/agents/<role>.md`) — конкретные обязанности, DoD, с кем взаимодействуешь; ссылается на playbooks, не дублирует их.
-6. **Rules** (`.cursor/rules/*.mdc`). Always-applied (грузятся каждую сессию): `00`, `10`, `45`, `50`, `55`, `56`, `60`. Glob-scoped (только при работе с профильными файлами): `20-backend`, `30-frontend`, `40-testing`, `70-prompt-engineering`.
+6. **Rules** (`.cursor/rules/*.mdc`). Always-applied: `00`, `50`, `60`.
+   Glob/intelligent: `10`, `20`, `30`, `40`, `45`, `55`, `56`, `70`.
 
 Не знаешь, какой документ обновлять после своего изменения — смотри §6 «Что обновить когда» в конце этого файла.
 
 ---
 
-## 0. Модели (as-is → август 2026)
+## 0. Runtime routing моделей
 
-> Канон: [`.planning/decisions/ADR-MODELS-GPT56-2026.md`](../../.planning/decisions/ADR-MODELS-GPT56-2026.md)
+> **Policy (ADR-MODELS-GPT56, amended 2026-07-26):** `team-lead` оркестрирует на **GPT-5.6 Sol Pro** (`model: gpt-5.6-sol`; Pro = picker/catalog mode). Downstream-работу он маршрутизирует на любую реально доступную Cursor-модель по capability/cost/risk/context. Portable/role prompts не владеют model params — downstream agents используют `model: inherit`.
 
-| Слот | Сейчас (до cutover) | **С августа 2026** |
-|------|---------------------|---------------------|
-| Оркестратор `team-lead` | Fable 5 | **GPT-5.6 Sol Pro** |
-| Эскалация `team-lead-opus` | Opus 4.8 @ 1M | **deprecated** (роль сливается в Sol Pro) |
-| Все ролевые + `*-ver` | Sonnet 5 | **GPT-5.6 Sol** |
-| Супер-мелкие задачи | inline / gsd-fast | **Codex (latest)** → агент [`codex-micro`](../agents/codex-micro.md) |
+| Слот | Frontmatter | Runtime policy |
+|------|-------------|----------------|
+| Оркестратор `team-lead` | `gpt-5.6-sol` | **GPT-5.6 Sol Pro** (catalog resolves Pro mode) |
+| Ролевые исполнители и `*-ver` | `inherit` | Dynamic routing; parent override только после catalog-backed choice + logging |
+| Micro `codex-micro` | `inherit` | Lowest sufficient coding model for completion bar |
+| Portable agents | `inherit` | Launcher/model-router owns slug and sampling |
+| `team-lead-opus` | `inherit` | Deprecated compatibility redirect; not an escalation slot |
 
-До августа: не менять `model:` во frontmatter массово — только документация и ADR. В день cutover — обновить slug по актуальному Cursor picker.
+Parent/orchestrator may explicitly override downstream model at launch only after catalog-backed routing and logging in handoff.
 
 ---
 
@@ -65,13 +68,13 @@
 | `analysis.md` | ba1/ba2, sa1/sa2, arch, ba-ver/sa-ver/arch-ver | US/AC/SMART, FR/NFR/ERD/API, C4/ADR, трассируемость |
 | `verification.md` | все `*-ver`, code-reviewer, security-auditor | Протокол верификации, чек-листы по ролям, severity |
 | `team-workflow.md` | team-lead, tech-lead, product, все | Состав, RACI, потоки фич, волны, параллелизм, handoff, GSD |
-| `prompt-contract.md` | **все агенты (32 файла)** | Приём задачи по шаблону §5.2, формат ответа, техники (CoT/few-shot/step-back/ReAct), температура, 10-этапная верификация, хендофф + матрица по ролям |
+| `prompt-contract.md` | **все агенты (32 файла)** | Natural-language intake → внутренний task contract; concise rationale/assumptions/evidence; prompt-injection boundary; risk-scaled verification; строгий §5.2 только для delegation/handoff |
 
 ### 2.1 Обратная карта: агент → playbook-и
 
 > §2 отвечает «playbook → кто использует»; здесь обратный индекс «агент → что грузить перед задачей», без пролистывания §2/§3.
 
-> **`prompt-contract.md` — обязателен для всех ролей** (контракт приёма задачи, формата ответа и самопроверки). В таблице ниже не повторяется построчно: считай его нулевой строкой для каждого агента.
+> **`prompt-contract.md` — обязателен для всех ролей** (нормализация задачи, evidence-first output, untrusted-data boundary и handoff). В таблице ниже не повторяется построчно: считай его нулевой строкой для каждого агента.
 
 | Агент(ы) | Playbooks к загрузке |
 |----------|-----------------------|
@@ -110,7 +113,7 @@
 | — (нет отдельного rule) | `analysis.md` | US/AC/SMART/FR/NFR/ERD/C4/ADR методология — только в playbook |
 | `56-regression-verify.mdc` | `verification.md`, `testing.md` §11.1 | Rule = обязательный цикл кратко; playbook = чек-листы по ролям, severity |
 | `00-project.mdc` | `team-workflow.md` | Rule = стек/статус кратко; playbook = RACI, волны, handoff, шаблон делегирования §5.3.1 |
-| `70-prompt-engineering.mdc` | `prompt-contract.md` | Rule = карта тулкита `prompt-engineering/`; playbook = контракт промпта для агентов Hub (приём/формат/техники/температура/верификация/хендофф + матрица ролей) |
+| `70-prompt-engineering.mdc` | `prompt-contract.md` | Rule = карта тулкита `prompt-engineering/`; playbook = task normalization, concise rationale/assumptions/evidence, risk-scaled verification и handoff |
 
 Практический вывод: не хватает контекста из rule — ожидаемо, иди в playbook по этой таблице.
 
@@ -118,17 +121,15 @@
 
 ## 3. Ростер команды (32 файла агентов)
 
-**Модели (целевые с августа):** `team-lead` — **GPT-5.6 Sol Pro**; все остальные роли — **GPT-5.6 Sol**; micro — **Codex (latest)** (`codex-micro`). До cutover в Cursor ещё Claude (Fable / Opus / Sonnet) — см. §0 и ADR.
-
-> Frontmatter до cutover: `team-lead` = `claude-fable-5-thinking-high`, `team-lead-opus` = `claude-opus-4-8-thinking-high`, остальные = `claude-sonnet-5-thinking-high`. После cutover: Sol Pro / Sol / Codex — по ADR.
+**Runtime:** `team-lead` — GPT-5.6 Sol Pro (`gpt-5.6-sol` + Pro via catalog); downstream — `inherit`, routing по capability/cost/risk среди реально доступных Cursor-моделей (§0).
 
 ### Тир 1 — Лидерство
-| Агент | Файл | Модель (→ авг.) | Роль |
+| Агент | Файл | Runtime | Роль |
 |-------|------|-----------------|------|
 | Team Lead | `team-lead.md` | **Sol Pro** | Оркестратор волн, делегирование, финальная приёмка |
-| Team Lead (esc.) | `team-lead-opus.md` | deprecated | Историческая эскалация Opus; после cutover не использовать |
-| Tech Lead | `tech-lead.md` | **Sol** | Декомпозиция на фазы/планы, зависимости, риски |
-| Codex Micro | `codex-micro.md` | **Codex latest** | Супер-мелкие правки (не волны) |
+| Team Lead (esc.) | `team-lead-opus.md` | deprecated | Исторический профиль; routing теперь внутри `team-lead` |
+| Tech Lead | `tech-lead.md` | routed | Декомпозиция на фазы/планы, зависимости, риски |
+| Codex Micro | `codex-micro.md` | `inherit` (routed micro) | Супер-мелкие правки (не волны) |
 
 ### Тир 2 — Продукт
 | Агент | Файл | Роль |
@@ -210,8 +211,8 @@
 
 | Ворота | Правило | Ссылка |
 |--------|---------|--------|
-| Приём задачи | Задача без шаблона §5.2 (нет границ/контекста/формата) — вернуть с перечнем недостающего, не додумывать | `prompt-contract.md` §2 |
-| Самопроверка | Перед handoff — 10 этапов + блок `Verification` в ответе | `prompt-contract.md` §6 |
+| Приём задачи | Принять natural-language запрос, внутренне нормализовать outcome/constraints/evidence/completion bar; спросить только при material ambiguity/destructive choice | `prompt-contract.md` §2 |
+| Evidence | Перед handoff — risk-scaled evidence; `verified: true` только независимым verifier | `prompt-contract.md` §6 |
 | Регрессия | После изменения кода/поведения — сразу прогон; без green нет handoff | REGULATION §7 |
 | Docs-sync | После user-visible/prod изменения — обновить docs в той же сессии | `.cursor/rules/55-docs-sync.mdc` |
 | Test-triage | Упал тест → сначала проверить функционал по docs, потом чинить | `.cursor/skills/test-triage/SKILL.md` |
