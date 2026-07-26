@@ -92,7 +92,10 @@ func TestUnlinkTestCaseFromIssue(t *testing.T) {
 	require.NoError(t, err)
 
 	issueID := uuid.New()
-	repo.issues[issueID] = &ent.Issue{ID: issueID, IssueKey: "HUB-1", Title: "Bug"}
+	repo.issues[issueID] = &ent.Issue{
+		ID: issueID, IssueKey: "HUB-1", Title: "Bug",
+		Edges: ent.IssueEdges{Project: &ent.Project{ID: projectID}},
+	}
 	entTC, _ := repo.FindTestCaseByKey(ctx, projectID, tc.CaseKey)
 	repo.linkedIssues[entTC.ID] = []uuid.UUID{issueID}
 

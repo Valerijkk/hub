@@ -761,6 +761,18 @@ func (r *EntRepository) BatchCreateTestResults(ctx context.Context, runID uuid.U
 // Привязка к задачам
 // ---------------------------------------------------------------------------
 
+// FindIssueInProject возвращает задачу по UUID только внутри projectID (A3-003-link IDOR guard).
+// Исключает мягко удалённые задачи. Mutation: снять HasProjectWith → foreign issue находится.
+func (r *EntRepository) FindIssueInProject(ctx context.Context, projectID, issueID uuid.UUID) (*ent.Issue, error) {
+	return r.client.Issue.Query().
+		Where(
+			entissue.IDEQ(issueID),
+			entissue.DeletedAtIsNil(),
+			entissue.HasProjectWith(entproject.IDEQ(projectID)),
+		).
+		Only(ctx)
+}
+
 // LinkTestCaseToIssue привязывает тест-кейс к задаче.
 func (r *EntRepository) LinkTestCaseToIssue(ctx context.Context, testCaseID, issueID uuid.UUID) error {
 	return r.client.TestCase.UpdateOneID(testCaseID).

@@ -267,6 +267,7 @@ func (s *TMSService) ListTestCaseVersions(ctx context.Context, projectID uuid.UU
 // ---------------------------------------------------------------------------
 
 // LinkTestCaseToIssue привязывает тест-кейс к задаче трекера.
+// Issue должна принадлежать тому же projectID (A3-003-link) — иначе NotFound.
 func (s *TMSService) LinkTestCaseToIssue(ctx context.Context, projectID uuid.UUID, caseKey string, issueID uuid.UUID) error {
 	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
@@ -275,10 +276,17 @@ func (s *TMSService) LinkTestCaseToIssue(ctx context.Context, projectID uuid.UUI
 		}
 		return apperrors.NewInternal("ошибка получения тест-кейса")
 	}
+	if _, err := s.repo.FindIssueInProject(ctx, projectID, issueID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("задача не найдена")
+		}
+		return apperrors.NewInternal("ошибка получения задачи")
+	}
 	return s.repo.LinkTestCaseToIssue(ctx, tc.ID, issueID)
 }
 
 // UnlinkTestCaseFromIssue отвязывает тест-кейс от задачи трекера.
+// Симметрично Link: foreign issue → NotFound (A3-003-link).
 func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, projectID uuid.UUID, caseKey string, issueID uuid.UUID) error {
 	tc, err := s.repo.FindTestCaseByKey(ctx, projectID, caseKey)
 	if err != nil {
@@ -286,6 +294,12 @@ func (s *TMSService) UnlinkTestCaseFromIssue(ctx context.Context, projectID uuid
 			return apperrors.NewNotFound("тест-кейс не найден")
 		}
 		return apperrors.NewInternal("ошибка получения тест-кейса")
+	}
+	if _, err := s.repo.FindIssueInProject(ctx, projectID, issueID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("задача не найдена")
+		}
+		return apperrors.NewInternal("ошибка получения задачи")
 	}
 	return s.repo.UnlinkTestCaseFromIssue(ctx, tc.ID, issueID)
 }

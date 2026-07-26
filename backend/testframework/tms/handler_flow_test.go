@@ -14,11 +14,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/valerii/hub/backend/ent"
 )
 
 func setupTMSHandlerApp(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID) {
 	t.Helper()
-	svc := tms.NewTMSService(newMockRepo(), nil)
+	app, projectID, userID, _ := setupTMSHandlerAppWithRepo(t)
+	return app, projectID, userID
+}
+
+func setupTMSHandlerAppWithRepo(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID, *mockRepository) {
+	t.Helper()
+	repo := newMockRepo()
+	svc := tms.NewTMSService(repo, nil)
 	h := tms.NewHandler(svc)
 	projectID := uuid.New()
 	userID := uuid.New()
@@ -79,7 +87,7 @@ func setupTMSHandlerApp(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID) {
 	envs.Put("/:envId", h.UpdateEnvironmentHandler)
 	envs.Delete("/:envId", h.DeleteEnvironmentHandler)
 
-	return app, projectID, userID
+	return app, projectID, userID, repo
 }
 
 // TestHandler_CreateAndGetTestCase проверяет HTTP-слой: HTTP-обработчик создание and получение test case.
@@ -616,7 +624,7 @@ func TestHandler_ExtendedReports(t *testing.T) {
 
 // TestHandler_LinkTestCaseToIssue проверяет HTTP-слой: HTTP-обработчик link test case to issue.
 func TestHandler_LinkTestCaseToIssue(t *testing.T) {
-	app, projectID, _ := setupTMSHandlerApp(t)
+	app, projectID, _, repo := setupTMSHandlerAppWithRepo(t)
 	base := "/api/projects/" + projectID.String() + "/tms/cases"
 
 	body := `{"title":"Linked case","case_type":"classic","priority":"medium"}`
@@ -629,6 +637,12 @@ func TestHandler_LinkTestCaseToIssue(t *testing.T) {
 	resp.Body.Close()
 
 	issueID := uuid.New()
+	repo.issues[issueID] = &ent.Issue{
+		ID:       issueID,
+		IssueKey: "HUB-LINK",
+		Title:    "Linked issue",
+		Edges:    ent.IssueEdges{Project: &ent.Project{ID: projectID}},
+	}
 	linkBody := `{"issue_id":"` + issueID.String() + `"}`
 	req = httptest.NewRequest(http.MethodPost, base+"/"+created.CaseKey+"/links", bytes.NewReader([]byte(linkBody)))
 	req.Header.Set("Content-Type", "application/json")

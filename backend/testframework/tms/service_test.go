@@ -468,6 +468,17 @@ func (m *mockRepository) IncrementTestCaseCounter(_ context.Context, _ uuid.UUID
 	return m.caseCounter, nil
 }
 
+func (m *mockRepository) FindIssueInProject(_ context.Context, projectID, issueID uuid.UUID) (*ent.Issue, error) {
+	issue, ok := m.issues[issueID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if issue.Edges.Project == nil || issue.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return issue, nil
+}
+
 func (m *mockRepository) LinkTestCaseToIssue(_ context.Context, testCaseID, issueID uuid.UUID) error {
 	m.linkedIssues[testCaseID] = append(m.linkedIssues[testCaseID], issueID)
 	return nil
@@ -529,7 +540,7 @@ func (m *mockRepository) GetProjectIssuesWithTestCases(_ context.Context, _ uuid
 	return result, nil
 }
 
-func (m *mockRepository) CreateBugIssue(_ context.Context, _ , _, testCaseID uuid.UUID, title, _ , _ string) (*ent.Issue, error) {
+func (m *mockRepository) CreateBugIssue(_ context.Context, projectID, _, testCaseID uuid.UUID, title, _, _ string) (*ent.Issue, error) {
 	m.issueCounter++
 	id := uuid.New()
 	issue := &ent.Issue{
@@ -541,6 +552,7 @@ func (m *mockRepository) CreateBugIssue(_ context.Context, _ , _, testCaseID uui
 		Priority:    entissue.Priority("high"),
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
+		Edges:       ent.IssueEdges{Project: &ent.Project{ID: projectID}},
 	}
 	m.issues[id] = issue
 	m.linkedIssues[testCaseID] = append(m.linkedIssues[testCaseID], id)
@@ -955,6 +967,7 @@ func TestLinkTestCaseToIssue(t *testing.T) {
 		ID:       issueID,
 		IssueKey: "HUB-100",
 		Title:    "Задача для привязки",
+		Edges:    ent.IssueEdges{Project: &ent.Project{ID: projectID}},
 	}
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).

@@ -148,6 +148,8 @@ type EnvironmentRepository interface {
 
 // IssueLinkRepository управляет привязкой тест-кейсов к задачам трекера.
 type IssueLinkRepository interface {
+	// FindIssueInProject возвращает задачу по UUID только внутри projectID (A3-003-link).
+	FindIssueInProject(ctx context.Context, projectID, issueID uuid.UUID) (*ent.Issue, error)
 	// LinkTestCaseToIssue привязывает тест-кейс к задаче.
 	LinkTestCaseToIssue(ctx context.Context, testCaseID, issueID uuid.UUID) error
 	// UnlinkTestCaseFromIssue отвязывает тест-кейс от задачи.

@@ -378,6 +378,9 @@ func (m *mockMatcherRepo) BatchCreateTestResults(_ context.Context, _ uuid.UUID,
 func (m *mockMatcherRepo) IncrementTestCaseCounter(_ context.Context, _ uuid.UUID) (int, error) {
 	return 0, nil
 }
+func (m *mockMatcherRepo) FindIssueInProject(_ context.Context, _, _ uuid.UUID) (*ent.Issue, error) {
+	return nil, &ent.NotFoundError{}
+}
 func (m *mockMatcherRepo) LinkTestCaseToIssue(_ context.Context, _, _ uuid.UUID) error { return nil }
 func (m *mockMatcherRepo) UnlinkTestCaseFromIssue(_ context.Context, _, _ uuid.UUID) error {
 	return nil
