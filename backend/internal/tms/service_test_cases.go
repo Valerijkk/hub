@@ -209,15 +209,13 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, projectID uuid.UUID, 
 		return nil, apperrors.NewInternal("ошибка получения тест-кейса")
 	}
 
-	version, err := s.repo.GetTestCaseVersion(ctx, versionID)
+	// Ownership enforced in EntRepository via HasTestCaseWith (A3-007).
+	version, err := s.repo.GetTestCaseVersion(ctx, existing.ID, versionID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("версия не найдена")
 		}
 		return nil, apperrors.NewInternal("ошибка получения версии")
-	}
-	if version.Edges.TestCase == nil || version.Edges.TestCase.ID != existing.ID {
-		return nil, apperrors.NewNotFound("версия не найдена")
 	}
 
 	// Создаём снимок текущего состояния перед откатом

@@ -45,8 +45,8 @@ type TestCaseVersionRepository interface {
 	CreateTestCaseVersion(ctx context.Context, testCaseID, userID uuid.UUID, versionNumber int, snapshot map[string]interface{}, description string) (*ent.TestCaseVersion, error)
 	// ListTestCaseVersions возвращает все версии тест-кейса.
 	ListTestCaseVersions(ctx context.Context, testCaseID uuid.UUID) ([]*ent.TestCaseVersion, error)
-	// GetTestCaseVersion возвращает конкретную версию по ID.
-	GetTestCaseVersion(ctx context.Context, versionID uuid.UUID) (*ent.TestCaseVersion, error)
+	// GetTestCaseVersion возвращает версию по ID только если она принадлежит testCaseID (A3-007).
+	GetTestCaseVersion(ctx context.Context, testCaseID, versionID uuid.UUID) (*ent.TestCaseVersion, error)
 }
 
 // SuiteRepository управляет папками/секциями тест-кейсов.

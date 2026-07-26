@@ -316,7 +316,7 @@ func (m *mockMatcherRepo) CreateTestCaseVersion(_ context.Context, _, _ uuid.UUI
 func (m *mockMatcherRepo) ListTestCaseVersions(_ context.Context, _ uuid.UUID) ([]*ent.TestCaseVersion, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) GetTestCaseVersion(_ context.Context, _ uuid.UUID) (*ent.TestCaseVersion, error) {
+func (m *mockMatcherRepo) GetTestCaseVersion(_ context.Context, _, _ uuid.UUID) (*ent.TestCaseVersion, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) CreateSuite(_ context.Context, _ uuid.UUID, _ tms.CreateSuiteInput) (*ent.TestSuite, error) {

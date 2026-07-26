@@ -12,8 +12,10 @@ import (
 	"github.com/valerii/hub/backend/internal/tms"
 )
 
-// TestRollbackTestCase_RejectsForeignVersion_A3_007 — версия чужого TC не откатывает текущий.
-// Mutation: убрать Edges.TestCase check → PASS на чужой versionID (corruption).
+// TestRollbackTestCase_RejectsForeignVersion_A3_007 — service/mock contract:
+// GetTestCaseVersion(testCaseID, versionID) rejects foreign ownership.
+// Prod Ent ownership is covered by rollback_a3007_ent_test.go
+// (HasTestCaseWith on Postgres).
 func TestRollbackTestCase_RejectsForeignVersion_A3_007(t *testing.T) {
 	repo := newMockRepo()
 	svc := tms.NewTMSService(repo, nil)

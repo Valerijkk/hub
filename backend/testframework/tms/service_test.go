@@ -244,9 +244,12 @@ func (m *mockRepository) ListTestCaseVersions(_ context.Context, _ uuid.UUID) ([
 	return items, nil
 }
 
-func (m *mockRepository) GetTestCaseVersion(_ context.Context, versionID uuid.UUID) (*ent.TestCaseVersion, error) {
+func (m *mockRepository) GetTestCaseVersion(_ context.Context, testCaseID, versionID uuid.UUID) (*ent.TestCaseVersion, error) {
 	v, ok := m.versions[versionID]
 	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if v.Edges.TestCase == nil || v.Edges.TestCase.ID != testCaseID {
 		return nil, &ent.NotFoundError{}
 	}
 	return v, nil

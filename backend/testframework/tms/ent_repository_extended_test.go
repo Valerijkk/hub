@@ -33,7 +33,7 @@ func TestEntRepository_TestCaseVersions(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, versions, 1)
 
-	got, err := repo.GetTestCaseVersion(ctx, v1.ID)
+	got, err := repo.GetTestCaseVersion(ctx, tc.ID, v1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, v1.ID, got.ID)
 }

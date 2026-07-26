@@ -355,10 +355,13 @@ func (r *EntRepository) ListTestCaseVersions(ctx context.Context, testCaseID uui
 		All(ctx)
 }
 
-// GetTestCaseVersion возвращает конкретную версию по ID.
-func (r *EntRepository) GetTestCaseVersion(ctx context.Context, versionID uuid.UUID) (*ent.TestCaseVersion, error) {
+// GetTestCaseVersion возвращает версию по ID только если она принадлежит testCaseID (A3-007).
+func (r *EntRepository) GetTestCaseVersion(ctx context.Context, testCaseID, versionID uuid.UUID) (*ent.TestCaseVersion, error) {
 	return r.client.TestCaseVersion.Query().
-		Where(testcaseversion.ID(versionID)).
+		Where(
+			testcaseversion.ID(versionID),
+			testcaseversion.HasTestCaseWith(testcase.ID(testCaseID)),
+		).
 		WithCreatedBy().
 		WithTestCase().
 		Only(ctx)
