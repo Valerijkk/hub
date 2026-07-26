@@ -28,9 +28,12 @@
 
 ---
 
-## Единая база знаний (`docs/`)
+## Маршрутизация контекста (`docs/`)
 
-Перед любой задачей загрузи **все** файлы:
+Всегда начинай с `AGENTS.md`, `.planning/STATE.md` и `docs/README.md`.
+Затем загружай **только документы, влияющие на текущую задачу**, по таблице
+ниже. Полный набор нужен для cross-domain аудита/архитектурной приёмки, но
+вреден для точечной правки: раздувает контекст и увеличивает drift.
 
 | Файл | Когда нужен |
 |------|-------------|
@@ -51,7 +54,10 @@
 
 Планирование: [`.planning/README.md`](.planning/README.md) (навигация) · `.planning/STATE.md` · `.planning/COVERAGE.md` · `.planning/ROADMAP.md` · `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
-**Active (2026-07-10):** July Rebuild **planning** (код freeze до ~конца июля) · **LiveKit stay** (SEED-001 mediasoup REJECTED) · Волна 1 в ветках, merge master = user · QA-HARDENING docs wave · индекс `.planning/july-2026/INDEX-JULY-2026.md` · charter `.planning/july-2026/CODE-QUALITY-CHARTER.md` · COV 83.0% · FA-06 manual (не гейтит разработку)
+**Active (2026-07-26):** Test Automation AI Quality Layer
+`0.1.0-alpha.1` — structural PASS, paired effectiveness/ROI **NOT_RUN**;
+[ai-expansion](.planning/july-2026/ai-expansion/README.md) qualified · July
+Rebuild product-code freeze · LiveKit stay · FA-06 manual.
 
 GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (GSD), §9 (test triage), §10 (docs sync)
 
@@ -60,7 +66,7 @@ GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (G
 ## AI-команда (32 файла агентов)
 
 > Реорганизована 2026-07-02 под параллельную разработку. Ростер: **`.cursor/playbooks/README.md`** · RACI: `.cursor/playbooks/team-workflow.md` · модели: **`.planning/decisions/ADR-MODELS-GPT56-2026.md`**.
-> **Модели (→ август 2026):** `team-lead` — **GPT-5.6 Sol Pro**; все остальные роли — **GPT-5.6 Sol**; супер-мелкие — **Codex (latest)** (`codex-micro`). До cutover в Cursor ещё Claude (Fable / Opus escalate / Sonnet). `team-lead-opus` после cutover — deprecated.
+> **Модели (ADR-MODELS-GPT56, amended 2026-07-26):** `team-lead` — **GPT-5.6 Sol Pro** (`model: gpt-5.6-sol`; Pro via catalog). Все downstream agents (включая `*-ver` и `codex-micro`) — `model: inherit`; orchestrator выбирает runtime по capability/cost/risk/context. `team-lead-opus` — deprecated redirect, не escalation slot.
 
 ### Лидерство / продукт
 `team-lead` (оркестратор, Sol Pro), `tech-lead` (декомпозиция), `product` + `product-ver`, `codex-micro` (мелочь)
@@ -109,7 +115,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 
 ---
 
-## Текущий статус (2026-07-10)
+## Текущий статус (2026-07-26)
 
 > July Rebuild planning · LiveKit канон · метрики ниже = baseline master (без регрессии).
 
@@ -125,8 +131,9 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Test framework migration | ✅ Wave B COMPLETE (0 internal tests) |
 | Final audit (FA-01–FA-12) | ✅ Wave C COMPLETE (кроме FA-06 manual) |
 | Lighthouse CI (FB-06) | ✅ artifact job PR #27 (non-blocking) |
-| Волна 1 (roadmap 2026-07-03) | ✅ в фича-ветках · merge master = user |
+| Волна 1 (roadmap 2026-07-03) | ✅ merged to `master` by user 2026-07-11 |
 | July Rebuild / QA-HARDENING | 📋 planning · kickoff ~конец июля |
+| AI quality layer / GSD / portable kit | Structural PASS · Hub profile complete · assisted smoke PARTIAL · paired eval NOT_RUN |
 
 ### Метрики качества
 
@@ -139,7 +146,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Product score | **89/100** |
 | REST API | **286+** endpoints |
 | Ent schemas | **82** |
-| Backend tests (`testframework/`) | **495** · 0 in `internal/` |
+| Backend tests (`testframework/`) | **499** files · 0 in `internal/` (filesystem count 2026-07-26) |
 | Vitest | **99/99** pass |
 | Playwright E2E | **20** specs |
 | qa-gate (FA-10) | build ✅ · hubtest ✅ · race ✅ · Biome ✅ · e2e-smoke **3/3** ✅ |
@@ -153,8 +160,9 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | Wave C final audit FA-01–FA-12 | ✅ COMPLETE (кроме FA-06 manual) |
 | FA-10 e2e-smoke | ✅ 3/3 PASS |
 | PG-03 Secret rotation (FA-06) | ⏳ manual ops — **единственный prod-блокер** |
-| Merge Волна 1 → master | ⏳ user |
+| Merge Волна 1 → master | ✅ user merged 2026-07-11 |
 | July return / CAL-SYNC / QA-HARDENING / Redesign | 📋 planning → kickoff ~конец июля |
+| AI-layer paired pilot / physical empty-repo installation | ⏳ pre-release acceptance; package build/validation PASS |
 | TF-CLEANUP-01 legacy e2e/specs | ✅ closed 2026-06-22 |
 | RU-COMMENTS-01 top files | ✅ closed 2026-06-22 |
 | DOC-02 historical SUMMARY banner | ✅ closed 2026-06-22 |
