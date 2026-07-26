@@ -17,6 +17,7 @@ var (
 	ErrInvalidInput     = errors.New("invalid crm input")
 	ErrVersionConflict  = errors.New("crm version conflict")
 	ErrProjectForbidden = errors.New("project access required")
+	ErrForbidden        = errors.New("crm access denied")
 )
 
 // Service — бизнес-логика CRM-lite.
@@ -77,13 +78,10 @@ func (s *Service) CreateContact(ctx context.Context, userID uuid.UUID, req Creat
 	return &resp, nil
 }
 
-func (s *Service) UpdateContact(ctx context.Context, id uuid.UUID, req UpdateContactRequest) (*ContactResponse, error) {
-	current, err := s.repo.GetContact(ctx, id)
+func (s *Service) UpdateContact(ctx context.Context, userID, id uuid.UUID, req UpdateContactRequest) (*ContactResponse, error) {
+	current, err := s.authorizeContactWrite(ctx, userID, id)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
-		}
-		return nil, fmt.Errorf("get contact: %w", err)
+		return nil, err
 	}
 	if req.Version > 0 && current.Version != req.Version {
 		return nil, ErrVersionConflict
@@ -112,7 +110,10 @@ func (s *Service) UpdateContact(ctx context.Context, id uuid.UUID, req UpdateCon
 	return &resp, nil
 }
 
-func (s *Service) DeleteContact(ctx context.Context, id uuid.UUID) error {
+func (s *Service) DeleteContact(ctx context.Context, userID, id uuid.UUID) error {
+	if _, err := s.authorizeContactWrite(ctx, userID, id); err != nil {
+		return err
+	}
 	if err := s.repo.SoftDeleteContact(ctx, id); err != nil {
 		if ent.IsNotFound(err) {
 			return ErrNotFound
@@ -170,12 +171,9 @@ func (s *Service) CreateDeal(ctx context.Context, userID uuid.UUID, req CreateDe
 }
 
 func (s *Service) UpdateDeal(ctx context.Context, userID, id uuid.UUID, req UpdateDealRequest) (*DealResponse, error) {
-	current, err := s.repo.GetDeal(ctx, id)
+	current, err := s.authorizeDealWrite(ctx, userID, id)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
-		}
-		return nil, fmt.Errorf("get deal: %w", err)
+		return nil, err
 	}
 	if req.Version > 0 && current.Version != req.Version {
 		return nil, ErrVersionConflict
@@ -204,7 +202,10 @@ func (s *Service) UpdateDeal(ctx context.Context, userID, id uuid.UUID, req Upda
 	return &resp, nil
 }
 
-func (s *Service) DeleteDeal(ctx context.Context, id uuid.UUID) error {
+func (s *Service) DeleteDeal(ctx context.Context, userID, id uuid.UUID) error {
+	if _, err := s.authorizeDealWrite(ctx, userID, id); err != nil {
+		return err
+	}
 	if err := s.repo.SoftDeleteDeal(ctx, id); err != nil {
 		if ent.IsNotFound(err) {
 			return ErrNotFound
@@ -212,6 +213,50 @@ func (s *Service) DeleteDeal(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("delete deal: %w", err)
 	}
 	return nil
+}
+
+// authorizeContactWrite — owner (created_by) или system admin/founder (A6-001).
+func (s *Service) authorizeContactWrite(ctx context.Context, actorID, contactID uuid.UUID) (*ent.CrmContact, error) {
+	c, err := s.repo.GetContact(ctx, contactID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("get contact: %w", err)
+	}
+	if c.Edges.CreatedBy != nil && c.Edges.CreatedBy.ID == actorID {
+		return c, nil
+	}
+	ok, err := s.repo.IsSystemAdmin(ctx, actorID)
+	if err != nil {
+		return nil, fmt.Errorf("check admin: %w", err)
+	}
+	if ok {
+		return c, nil
+	}
+	return nil, ErrForbidden
+}
+
+// authorizeDealWrite — owner сделки или system admin/founder (A6-001).
+func (s *Service) authorizeDealWrite(ctx context.Context, actorID, dealID uuid.UUID) (*ent.CrmDeal, error) {
+	d, err := s.repo.GetDeal(ctx, dealID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("get deal: %w", err)
+	}
+	if d.Edges.Owner != nil && d.Edges.Owner.ID == actorID {
+		return d, nil
+	}
+	ok, err := s.repo.IsSystemAdmin(ctx, actorID)
+	if err != nil {
+		return nil, fmt.Errorf("check admin: %w", err)
+	}
+	if ok {
+		return d, nil
+	}
+	return nil, ErrForbidden
 }
 
 func (s *Service) validateDealRefs(ctx context.Context, userID uuid.UUID, contactID, projectID *uuid.UUID) error {

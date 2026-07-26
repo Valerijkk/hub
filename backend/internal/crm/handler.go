@@ -57,6 +57,10 @@ func (h *Handler) CreateContact(c fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateContact(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	id, err := parseContactID(c)
 	if err != nil {
 		return err
@@ -65,7 +69,7 @@ func (h *Handler) UpdateContact(c fiber.Ctx) error {
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
-	resp, err := h.service.UpdateContact(c.Context(), id, req)
+	resp, err := h.service.UpdateContact(c.Context(), userID, id, req)
 	if err != nil {
 		return mapServiceError(err)
 	}
@@ -73,11 +77,15 @@ func (h *Handler) UpdateContact(c fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteContact(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	id, err := parseContactID(c)
 	if err != nil {
 		return err
 	}
-	if err := h.service.DeleteContact(c.Context(), id); err != nil {
+	if err := h.service.DeleteContact(c.Context(), userID, id); err != nil {
 		return mapServiceError(err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
@@ -128,11 +136,15 @@ func (h *Handler) UpdateDeal(c fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteDeal(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	id, err := parseDealID(c)
 	if err != nil {
 		return err
 	}
-	if err := h.service.DeleteDeal(c.Context(), id); err != nil {
+	if err := h.service.DeleteDeal(c.Context(), userID, id); err != nil {
 		return mapServiceError(err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
@@ -166,6 +178,8 @@ func mapServiceError(err error) error {
 		return fiber.NewError(fiber.StatusConflict, "crm version conflict")
 	case errors.Is(err, ErrProjectForbidden):
 		return fiber.NewError(fiber.StatusForbidden, "project access required")
+	case errors.Is(err, ErrForbidden):
+		return fiber.NewError(fiber.StatusForbidden, "crm access denied")
 	default:
 		return fiber.NewError(fiber.StatusInternalServerError, "crm operation failed")
 	}

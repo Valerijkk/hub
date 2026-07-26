@@ -29,6 +29,7 @@ type Repository interface {
 
 	IsProjectMember(ctx context.Context, projectID, userID uuid.UUID) (bool, error)
 	UserExists(ctx context.Context, userID uuid.UUID) (bool, error)
+	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
 // EntRepository реализует Repository через Ent.
@@ -75,6 +76,7 @@ func (r *EntRepository) GetContact(ctx context.Context, id uuid.UUID) (*ent.CrmC
 	return r.client.CrmContact.Query().
 		Where(crmcontact.ID(id), crmcontact.DeletedAtIsNil()).
 		WithLinkedUser().
+		WithCreatedBy().
 		Only(ctx)
 }
 
@@ -213,4 +215,12 @@ func (r *EntRepository) UserExists(ctx context.Context, userID uuid.UUID) (bool,
 	return r.client.User.Query().
 		Where(user.IDEQ(userID)).
 		Exist(ctx)
+}
+
+func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
+	u, err := r.client.User.Get(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+	return u.SystemRole == user.SystemRoleAdmin || u.SystemRole == user.SystemRoleFounder, nil
 }

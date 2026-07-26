@@ -35,7 +35,7 @@ func TestService_DeleteContact(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 
-	require.NoError(t, svc.DeleteContact(ctx, created.ID))
+	require.NoError(t, svc.DeleteContact(ctx, owner.ID, created.ID))
 	list, err = svc.ListContacts(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, list)
@@ -47,7 +47,7 @@ func TestService_UpdateContact_NotFound(t *testing.T) {
 
 	svc := crm.NewService(crm.NewEntRepository(client))
 	name := "X"
-	_, err := svc.UpdateContact(context.Background(), uuid.New(), crm.UpdateContactRequest{Name: &name})
+	_, err := svc.UpdateContact(context.Background(), uuid.New(), uuid.New(), crm.UpdateContactRequest{Name: &name})
 	require.ErrorIs(t, err, crm.ErrNotFound)
 }
 

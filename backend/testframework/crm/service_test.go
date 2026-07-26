@@ -66,20 +66,20 @@ func TestService_ContactLifecycle(t *testing.T) {
 	assert.Len(t, list, 1)
 
 	newName := "Acme International"
-	updated, err := svc.UpdateContact(ctx, created.ID, crm.UpdateContactRequest{
+	updated, err := svc.UpdateContact(ctx, ownerID, created.ID, crm.UpdateContactRequest{
 		Name:    &newName,
 		Version: created.Version,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, newName, updated.Name)
 
-	_, err = svc.UpdateContact(ctx, created.ID, crm.UpdateContactRequest{
+	_, err = svc.UpdateContact(ctx, ownerID, created.ID, crm.UpdateContactRequest{
 		Name:    &newName,
 		Version: created.Version,
 	})
 	assert.ErrorIs(t, err, crm.ErrVersionConflict)
 
-	err = svc.DeleteContact(ctx, created.ID)
+	err = svc.DeleteContact(ctx, ownerID, created.ID)
 	require.NoError(t, err)
 
 	list, err = svc.ListContacts(ctx)
@@ -144,10 +144,10 @@ func TestService_DealValidationAndDelete(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, crm.StageLost, updated.Stage)
 
-	err = svc.DeleteDeal(ctx, deal.ID)
+	err = svc.DeleteDeal(ctx, ownerID, deal.ID)
 	require.NoError(t, err)
 
-	err = svc.DeleteDeal(ctx, uuid.New())
+	err = svc.DeleteDeal(ctx, ownerID, uuid.New())
 	assert.ErrorIs(t, err, crm.ErrNotFound)
 }
 
@@ -179,7 +179,6 @@ func TestService_UpdateContactNotFound(t *testing.T) {
 	svc, ownerID, _, _ := setupCRMService(t)
 	ctx := context.Background()
 	name := "X"
-	_, err := svc.UpdateContact(ctx, uuid.New(), crm.UpdateContactRequest{Name: &name, Version: 1})
+	_, err := svc.UpdateContact(ctx, ownerID, uuid.New(), crm.UpdateContactRequest{Name: &name, Version: 1})
 	assert.ErrorIs(t, err, crm.ErrNotFound)
-	_ = ownerID
 }

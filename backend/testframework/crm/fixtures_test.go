@@ -36,6 +36,7 @@ var (
 	ErrInvalidInput     = crm.ErrInvalidInput
 	ErrVersionConflict  = crm.ErrVersionConflict
 	ErrProjectForbidden = crm.ErrProjectForbidden
+	ErrForbidden        = crm.ErrForbidden
 )
 
 func mapServiceError(err error) error {
