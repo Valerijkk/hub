@@ -3,9 +3,9 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Роль:** security-auditor + be-ver (readonly)  
-> **Дата:** 2026-07-23  
-> **Scope:** `backend/internal/auth/*`, wiring `cmd/server/wiring_auth.go`, schema `ent/schema/{organization,invite}.go`, конфиг JWT/rate-limit  
+> **Роль:** security-auditor + be-ver (readonly)
+> **Дата:** 2026-07-23
+> **Scope:** `backend/internal/auth/*`, wiring `cmd/server/wiring_auth.go`, schema `ent/schema/{organization,invite}.go`, конфиг JWT/rate-limit
 > **Код не менялся**
 
 ---
