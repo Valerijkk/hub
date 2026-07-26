@@ -1266,7 +1266,7 @@ Wave N: параллельные be/fe/qa агенты
   → каждый запускает /qa-gate subset на затронутых пакетах
   → соответствующий *-ver верифицирует свой артефакт (независимо)
   → оркестратор мержит только verified: true артефакты
-  → gsd-handoff-sync (STATE + COVERAGE)
+  → `/handoff` + `/handoff-sync` (STATE + COVERAGE)
 Wave N+1: зависит от verified-артефактов Wave N
 ```
 
