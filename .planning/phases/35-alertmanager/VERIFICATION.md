@@ -1,17 +1,30 @@
-﻿# VERIFICATION — 35-alertmanager
+﻿# Phase 35 — Alertmanager — VERIFICATION
 
-**Date:** 2026-07-27
-**Verdict:** PASS (artifact presence)
+**Date:** 2026-07-27  
+**Auditor:** Grok 4.5 (PW2 retro-verify)  
+**Mode:** documentation-only · deployments presence against HEAD  
+**Verdict:** PASS
 
-## Method
-Filesystem evidence check during planning-audit PW2 closeout. Runtime smoke of full monitoring stack was **not** re-run in this wave.
+## Goal (exit criteria)
 
-## Evidence
+Prometheus → Alertmanager routing · AM in monitoring compose · Grafana AM datasource · `HubBackendMetricsDown` alert · prod webhook example.
 
-- `deployments/monitoring/alertmanager/alertmanager.yml`
+## Measured evidence
 
-## Goal
-Deliverables from PLAN.md are present in tree. Full Goal metrics that require live Prom/Loki stack = not re-measured here; mark PARTIAL if runtime required.
+| Criterion | Evidence (2026-07-27) | Result |
+|-----------|----------------------|--------|
+| AM config | `deployments/monitoring/alertmanager/alertmanager.yml` | PASS |
+| Prod webhook template | `deployments/monitoring/alertmanager/alertmanager.prod.example.yml` | PASS |
+| Prometheus → AM | `prometheus.yml` — `alerting.alertmanagers` target `alertmanager:9093` | PASS |
+| Compose service | `docker-compose.monitoring.yml` — `alertmanager:` image `prom/alertmanager:v0.28.1`, port/docs `:9093` | PASS |
+| Grafana AM datasource | `grafana/provisioning/datasources/alertmanager.yml` — `uid: hub-alertmanager` | PASS |
+| `HubBackendMetricsDown` | `prometheus/alerts/hub.yml` — `alert: HubBackendMetricsDown` | PASS |
 
-## Note
-If later audits require live scrape/alert fire tests, upgrade this file with command output and date.
+## Notes
+
+- AM UI / firing-alert visibility **not** live-tested; connectivity is config-level only.
+- Notification channel = ops webhook template (native Telegram deferred per PLAN backlog).
+
+## Residual
+
+None for PLAN deliverable presence. M2-058 routing complete at config layer.

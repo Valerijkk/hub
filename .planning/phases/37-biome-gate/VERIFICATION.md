@@ -1,18 +1,29 @@
-﻿# VERIFICATION — 37-biome-gate
+﻿# Phase 37 — PG-02 Biome Lint Gate — VERIFICATION
 
-**Date:** 2026-07-27
-**Verdict:** PASS (artifact presence)
+**Date:** 2026-07-27  
+**Auditor:** Grok 4.5 (PW2 retro-verify)  
+**Mode:** documentation-only · CI/config presence against HEAD  
+**Verdict:** PARTIAL
 
-## Method
-Filesystem evidence check during planning-audit PW2 closeout. Runtime smoke of full monitoring stack was **not** re-run in this wave.
+## Goal (exit criteria)
 
-## Evidence
+`npm run lint` → **0 errors, 0 warnings** · Biome as CI gate · keyboard helper · tsc/vitest historically green.
 
-- `frontend/biome.json`
-- `frontend/package.json biome scripts`
+## Measured evidence
 
-## Goal
-Deliverables from PLAN.md are present in tree. Full Goal metrics that require live Prom/Loki stack = not re-measured here; mark PARTIAL if runtime required.
+| Criterion | Evidence (2026-07-27) | Result |
+|-----------|----------------------|--------|
+| Lint script = Biome | `frontend/package.json` — `"lint": "biome check ./src"`; `frontend/biome.json` schema present | PASS |
+| CI Biome gate (hard) | `.github/workflows/ci.yml` — step `Biome lint (gate)` under `frontend-test`; no `continue-on-error` on that step | PASS |
+| `@/lib/keyboard` helper | `frontend/src/lib/keyboard.ts` present | PASS |
+| Live `npm run lint` → 0/0 | **Not executed** this session (docs-only; host lint invoke blocked by policy) | UNVERIFIED |
+| Live `tsc` / vitest counts from PLAN | Not re-run | UNVERIFIED |
 
-## Note
-If later audits require live scrape/alert fire tests, upgrade this file with command output and date.
+## Notes
+
+- Structural PG-02 wiring (Biome as gate + helper) is present — same bar as Phase 38 CI Biome check.
+- Numeric Goal «0 errors, 0 warnings» cannot be PASS without a measured lint run on current HEAD → **PARTIAL**.
+
+## Residual
+
+Re-run `cd frontend && npm run lint` (and optionally `tsc --noEmit`) on merge-ready HEAD; upgrade verdict to PASS only with command output + date.
