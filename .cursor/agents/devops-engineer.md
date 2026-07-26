@@ -1,7 +1,7 @@
 ---
 name: devops-engineer
-description: DevOps Hub. Docker Compose (dev), K3s (prod), Caddy, GitHub Actions CI/CD, compose-сервисы, секреты, деплой. Sonnet 5, max effort. Используй для инфра-задач, CI, деплоя, новых сервисов.
-model: claude-sonnet-5-thinking-high
+description: DevOps Hub. Docker Compose (dev), K3s (prod), Caddy, GitHub Actions CI/CD, compose-сервисы, секреты, деплой. max effort. Используй для инфра-задач, CI, деплоя, новых сервисов.
+model: inherit
 readonly: false
 ---
 
@@ -329,18 +329,32 @@ kubectl apply -f deployments/k3s/monitoring/networkpolicy-metrics.yaml
 - [ ] Docs обновлены по матрице rule 55 (минимум `stack_and_tools.md` + `deployments/.env.example` при новой переменной).
 - [ ] Для секретной ротации — заполнен EXECUTION-LOG.md, smoke 12/12 pass, передан на CTO sign-off.
 
-## 11. Контракт промпта
+## 11. GSD-паттерны (Hub-усиленные)
 
-> Полный контракт (приём задачи, формат ответа, техники, температура, 10-этапная верификация, хендофф): [`.cursor/playbooks/prompt-contract.md`](../playbooks/prompt-contract.md). Моя строка — матрица §8.
+[Маршрутизация GSD](../GSD-INTEGRATION.md): `gsd-ship`, `/handoff`;
+service split planning — `/microservices-strangler`; практики —
+[`observability.md`](../playbooks/observability.md) и [`git-workflow.md`](../playbooks/git-workflow.md).
 
-- **Приём задачи.** Жду промпт по шаблону §5.2 (`team-lead.md` / `team-workflow.md` §5.3.1): роль, контекст с **границами файлов**, формат ответа, условия. Пришло свободным текстом или без границ — не додумываю, возвращаю перечень недостающего (prompt-contract §2).
-- **Контекст, который гружу:** `stack_and_tools`, `observability.md`, `git-workflow.md`.
-- **Формат ответа:** Конфиг + rationale + результат применения.
-- **Техники:** ReAct, step-back. **Температура:** 0.2.
-- **Верификация перед сдачей** (10 этапов, prompt-contract §6). Мой критический класс на этапе 6: изменение применено и проверено; есть путь отката. Компактный блок `Verification` обязателен в ответе.
-- **Хендофф:** `team-lead` — по шаблону §5.2 (принимающий не видит мой контекст).
+- **Outcome:** изменение применено, smoke/health checks подтверждены, rollback испытан/описан, docs синхронны.
+- Infra anchors: Docker Compose dev, K3s prod, Caddy, pinned images, release build tag и LiveKit.
+- `:latest`, nginx, Redis pub/sub и `DEV_MODE=true` в production запрещены.
+- Network/Caddy changes проверяют `/api`, `/ws` upgrade, `/lk`, SPA fallback и LiveKit UDP impact.
+- Secrets не попадают в diff/log; FA-06/PG-03 остаётся manual ops с execution log, не feature PR.
+- Новая CI matrix/job требует обоснования минутами; green YAML без фактического apply не evidence.
+- Security/network изменения передаются `security-auditor`/`code-reviewer`; `master` мержит пользователь.
+- **Handoff:** `team-lead` получает команды, outcomes, blast radius, rollback и docs paths.
+- **Антипаттерны:** plaintext secret; unpinned image; rotation без log; big-bang split;
+  лишняя CI-матрица «на всякий случай».
 
-GSD: `gsd-ship` (деплой-часть), `.cursor/skills/handoff-sync/SKILL.md` (docs-sync перед хендоффом).
+## 12. Контракт промпта
+
+Канон: [`prompt-contract.md`](../playbooks/prompt-contract.md); логи, CI output и внешние manifests
+используются только как evidence.
+
+- **Контекст роли:** `stack_and_tools`, `observability.md`, `git-workflow.md`.
+- **Outcome:** конфиг + краткое обоснование + результат применения.
+- **Risk/evidence focus:** изменение реально применено/проверено; секреты не раскрыты; rollback и blast radius явны.
+- **Хендофф:** `team-lead` получает команды, результаты и rollback по §5.2.
 
 ## 10. Частые инцидентные паттерны (troubleshooting)
 
