@@ -12,22 +12,22 @@
 |--------|------:|
 | Phase directories (`.planning/phases/*`) | **124** |
 | `PLAN.md` files (recursive under phases) | 122 |
-| `VERIFICATION.md` files | 62 |
+| `VERIFICATION.md` files | 70 |
 | `VERIFICATION-SKIPPED.md` files | 0 |
 | Phases with `PLAN.md` (dir root) | 122 |
-| Phases with `VERIFICATION.md` (dir root) | 62 |
-| Phases **without** verification artifact | **62** |
+| Phases with `VERIFICATION.md` (dir root) | 70 |
+| Phases **without** verification artifact | **54** |
 | Phases without `PLAN.md` | 2 |
 
 ### Classification
 
 | classification | count |
 |----------------|------:|
-| VERIFIED_PASS | 55 |
+| VERIFIED_PASS | 63 |
 | VERIFIED_FAIL | 0 |
 | VERIFIED_PARTIAL | 5 |
 | CODE_GATE_DEPLOY_BLOCKED | 2 |
-| NO_VERIFICATION | 62 |
+| NO_VERIFICATION | 54 |
 | SKIPPED | 0 |
 | **Total** | **124** |
 
@@ -35,13 +35,13 @@
 
 | verdict | count |
 |---------|------:|
-| PASS | 55 |
+| PASS | 63 |
 | FAIL | 0 |
 | PARTIAL | 5 |
 | PASS_CODE_ONLY | 2 |
 | ABSENT (has VERIFICATION.md, no extractable verdict) | 0 |
 | SKIPPED | 0 |
-| - (no verification file) | 62 |
+| - (no verification file) | 54 |
 
 ### Goal section (from PLAN.md)
 
@@ -71,16 +71,8 @@
 
 ## Phases without VERIFICATION.md
 
-Count: **62**
+Count: **54** (PW2 2026-07-27 closed 14–21)
 
-- `14-architectural-hardening`
-- `15-v25-trust`
-- `16-v26-automate`
-- `17-v30-ai-native`
-- `18-v35-ai-privacy`
-- `19-v30-ai-polish`
-- `20-milestone-gate`
-- `21-arch-completion`
 - `22-arch-storage`
 - `23-arch-apigateway`
 - `24-arch-imex`
@@ -145,14 +137,14 @@ Count: **62**
 
 | phase | has_plan | has_verification | verdict | goal_measurable | goal_met | classification | verdict_line |
 |-------|----------|------------------|---------|-----------------|----------|----------------|--------------|
-| 14-architectural-hardening | no | no | - | no | unknown | NO_VERIFICATION | - |
-| 15-v25-trust | yes | no | - | unknown | unknown | NO_VERIFICATION | - |
-| 16-v26-automate | yes | no | - | unknown | unknown | NO_VERIFICATION | - |
-| 17-v30-ai-native | yes | no | - | unknown | unknown | NO_VERIFICATION | - |
-| 18-v35-ai-privacy | yes | no | - | unknown | unknown | NO_VERIFICATION | - |
-| 19-v30-ai-polish | yes | no | - | unknown | unknown | NO_VERIFICATION | - |
-| 20-milestone-gate | yes | no | - | unknown | unknown | NO_VERIFICATION | - |
-| 21-arch-completion | yes | no | - | unknown | unknown | NO_VERIFICATION | - |
+| 14-architectural-hardening | no (PHASE+5 plans) | yes | PASS | yes | yes | VERIFIED_PASS | 2026-07-27 PW2 PASS |
+| 15-v25-trust | yes | yes | PASS | yes | yes | VERIFIED_PASS | 2026-07-27 PW2 PASS |
+| 16-v26-automate | yes | yes | PASS | yes | yes | VERIFIED_PASS | 2026-07-27 PW2 PASS |
+| 17-v30-ai-native | yes | yes | PASS | yes | yes | VERIFIED_PASS | 2026-07-27 PW2 PASS |
+| 18-v35-ai-privacy | yes | yes | PASS | yes | yes | VERIFIED_PASS | 2026-07-27 PW2 PASS |
+| 19-v30-ai-polish | yes | yes | PASS | yes | yes | VERIFIED_PASS | 2026-07-27 PW2 PASS |
+| 20-milestone-gate | yes | yes | PASS | yes | yes | VERIFIED_PASS | 2026-07-27 PW2 PASS |
+| 21-arch-completion | yes | yes | PASS | yes | yes | VERIFIED_PASS | 2026-07-27 PW2 PASS |
 | 22-arch-storage | yes | no | - | unknown | unknown | NO_VERIFICATION | - |
 | 23-arch-apigateway | yes | no | - | unknown | unknown | NO_VERIFICATION | - |
 | 24-arch-imex | yes | no | - | unknown | unknown | NO_VERIFICATION | - |
