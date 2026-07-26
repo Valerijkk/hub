@@ -3,9 +3,9 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> Агент: `devops-engineer` (Grok 4.5, **readonly**) · Дата: **2026-07-23**  
-> Scope: `.github/workflows/{ci,pr-guard,deploy}.yml`  
-> Фокус: **minutes waste** (~3000 мин/мес), **`DEV_MODE`**, **secrets**  
+> Агент: `devops-engineer` (Grok 4.5, **readonly**) · Дата: **2026-07-23**
+> Scope: `.github/workflows/{ci,pr-guard,deploy}.yml`
+> Фокус: **minutes waste** (~3000 мин/мес), **`DEV_MODE`**, **secrets**
 > Код **не менялся**.
 
 ## Verdict
@@ -121,10 +121,10 @@
 
 ## Рекомендуемый порядок фиксов (не в этом PR)
 
-1. **Path-filters / skip docs-only** — максимальный ROI по минутам.  
-2. **e2e-full off PR** (оставить smoke) — второй по ROI.  
-3. Расширить **secret-scan** (+ опционально запрет `DEV_MODE=true` в prod-путях diff).  
-4. Убрать двойной `go generate` / упростить job `build`.  
+1. **Path-filters / skip docs-only** — максимальный ROI по минутам.
+2. **e2e-full off PR** (оставить smoke) — второй по ROI.
+3. Расширить **secret-scan** (+ опционально запрет `DEV_MODE=true` в prod-путях diff).
+4. Убрать двойной `go generate` / упростить job `build`.
 5. `timeout-minutes` на frontend/build/e2e-smoke; `permissions: contents: read` на `ci.yml`.
 
 ---
@@ -138,7 +138,7 @@
 | Код / workflow **не менялись** | confirmed |
 | Docs product | n/a (audit artifact only) |
 
-**verified: false** — 2026-07-23 · открыты 4× MEDIUM (minutes ×3 + secret-scan).  
-CRITICAL/HIGH по DEV_MODE/prod-secrets: **0**.  
+**verified: false** — 2026-07-23 · открыты 4× MEDIUM (minutes ×3 + secret-scan).
+CRITICAL/HIGH по DEV_MODE/prod-secrets: **0**.
 Handoff: `team-lead` / волна 7 слоты deploy·compose; фиксы CI — отдельная chore-ветка после code-freeze продукта или с явным ок на infra.
 )
