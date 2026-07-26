@@ -1,30 +1,38 @@
-﻿# Phase 30 — OBS-01 Wave 2 (Frontend) — VERIFICATION
+﻿# Phase 30 — Verification (PW2 retro)
 
 **Date:** 2026-07-27  
-**Auditor:** Grok 4.5 (PW2 retro-verify)  
-**Mode:** documentation-only · code/artifact presence against HEAD  
-**Verdict:** PASS
+**Agent:** Grok 4.5  
+**Verdict:** PARTIAL
 
-## Goal (exit criteria)
+## Goal
 
-Admin UI for in-memory operation metrics · API client · Vitest/E2E smoke · `Timed()` on project/tms create paths.
+Admin UI for in-memory operation metrics from Phase 29.
 
-## Measured evidence
+## Goal-backward check
 
-| Criterion | Evidence (2026-07-27) | Result |
-|-----------|----------------------|--------|
-| `OperationMetric` + `getOperationMetrics()` | `frontend/src/api/admin.ts` — `export interface OperationMetric`; `getOperationMetrics()` → `GET /admin/observability/ops` | PASS |
-| `OperationMetricsPanel` | `frontend/src/components/admin/operation-metrics.tsx` — `export function OperationMetricsPanel` | PASS |
-| Tab on `/admin/dashboard` | `frontend/src/routes/_authenticated/admin/dashboard.tsx` imports + renders `<OperationMetricsPanel />` | PASS |
-| Vitest | `testframework/stages/unit/frontend-test/domains/admin/operation-metrics.test.tsx` present | PASS |
-| E2E metrics smoke | `testframework/stages/e2e/domains/admin/admin-metrics.spec.ts` present | PASS |
-| Backend Timed instrumentation | `project/service.go` — `observability.Timed(..., "project.CreateProject", ...)`; `tms/service_runs.go` — `"tms.CreateTestRun"` | PASS |
+| Criterion | Expected | Actual (2026-07-27) | Status |
+|-----------|----------|---------------------|--------|
+| `OperationMetric` + `getOperationMetrics()` | in `frontend/src/api/admin.ts` | Present (`admin.ts:72`, `:103–104`) → `GET /admin/observability/ops` | PASS |
+| `OperationMetricsPanel` table | count / errors / avg / max / last seen | `frontend/src/components/admin/operation-metrics.tsx` renders those columns | PASS |
+| Tab «Метрики» on `/admin/dashboard` | tab value `metrics` | `dashboard.tsx:70`, `:142–143` wires `OperationMetricsPanel` | PASS |
+| Backend `Timed()` on create paths | project + tms | `project/service.go:55` `project.CreateProject`; `tms/service_runs.go:20` `tms.CreateTestRun` | PASS |
+| Vitest green | operation-metrics + admin API | Specs exist under `testframework/stages/unit/frontend-test/domains/admin/` (`operation-metrics.test.tsx`, `admin-api.test.ts`); **Vitest not executed this session** (auto-review blocked FE test run) | NOT_RUN |
+| E2E smoke | `admin-metrics.spec.ts` | File present: `testframework/stages/e2e/domains/admin/admin-metrics.spec.ts`; **not run** (no live stack) | NOT_RUN |
+
+## Evidence commands
+
+```text
+# file / symbol presence (2026-07-27)
+rg -n "getOperationMetrics|OperationMetric|OperationMetricsPanel" frontend/src
+rg -n "Timed\(" backend/internal/project backend/internal/tms
+# Vitest / E2E: NOT_RUN this session
+```
 
 ## Notes
 
-- Vitest/E2E paths moved under `testframework/` (Wave B); PLAN still cites `frontend/src/...` — outcome preserved.
-- Live browser/E2E and `vitest run` **not** re-executed in this docs-only pass; verdict is structural presence.
+- Deliverable code is in tree; path drift vs PLAN: panel is `operation-metrics.tsx` (not `OperationMetricsPanel.tsx`), unit tests live under `testframework/` (TF migration).
+- Verdict cannot be PASS without measured Vitest/E2E green.
 
-## Residual
+## Sign-off
 
-None for PLAN deliverable presence. Optional backlog (auto-refresh, OTel) deferred to later phases by PLAN.
+Structural UI + API + Timed instrumentation **met**. Runtime test criteria **unverified** → **PARTIAL**.

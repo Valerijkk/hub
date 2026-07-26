@@ -1,30 +1,37 @@
-﻿# Phase 35 — Alertmanager — VERIFICATION
+﻿# Phase 35 — Verification (PW2 retro)
 
 **Date:** 2026-07-27  
-**Auditor:** Grok 4.5 (PW2 retro-verify)  
-**Mode:** documentation-only · deployments presence against HEAD  
-**Verdict:** PASS
+**Agent:** Grok 4.5  
+**Verdict:** PARTIAL
 
-## Goal (exit criteria)
+## Goal
 
-Prometheus → Alertmanager routing · AM in monitoring compose · Grafana AM datasource · `HubBackendMetricsDown` alert · prod webhook example.
+Route Prometheus alerts through Alertmanager; Grafana AM datasource.
 
-## Measured evidence
+## Goal-backward check
 
-| Criterion | Evidence (2026-07-27) | Result |
-|-----------|----------------------|--------|
-| AM config | `deployments/monitoring/alertmanager/alertmanager.yml` | PASS |
-| Prod webhook template | `deployments/monitoring/alertmanager/alertmanager.prod.example.yml` | PASS |
-| Prometheus → AM | `prometheus.yml` — `alerting.alertmanagers` target `alertmanager:9093` | PASS |
-| Compose service | `docker-compose.monitoring.yml` — `alertmanager:` image `prom/alertmanager:v0.28.1`, port/docs `:9093` | PASS |
-| Grafana AM datasource | `grafana/provisioning/datasources/alertmanager.yml` — `uid: hub-alertmanager` | PASS |
-| `HubBackendMetricsDown` | `prometheus/alerts/hub.yml` — `alert: HubBackendMetricsDown` | PASS |
+| Criterion | Expected | Actual (2026-07-27) | Status |
+|-----------|----------|---------------------|--------|
+| `alertmanager.yml` | routes, inhibit, null receivers (dev) | `deployments/monitoring/alertmanager/alertmanager.yml` **EXISTS** | PASS |
+| Prod webhook example | `alertmanager.prod.example.yml` | **EXISTS** (webhook → `backend:3000/api/webhooks/alertmanager`) | PASS |
+| Prometheus → AM | `alerting.alertmanagers` → `:9093` | `prometheus.yml:12–14` targets `alertmanager:9093` | PASS |
+| Compose service | Alertmanager `:9093` | `docker-compose.monitoring.yml` service `alertmanager` image `prom/alertmanager:v0.28.1` | PASS |
+| Grafana AM datasource | `hub-alertmanager` | `grafana/provisioning/datasources/alertmanager.yml` uid `hub-alertmanager` | PASS |
+| Alert `HubBackendMetricsDown` | critical `up==0` | `prometheus/alerts/hub.yml:48` | PASS |
+| Firing alerts visible in AM UI | runtime | **NOT_RUN** (stack/UI not started) | NOT_RUN |
+
+## Evidence commands
+
+```text
+# 2026-07-27 — static path + rg on alertmanager / HubBackendMetricsDown
+# open http://localhost:9093 — NOT_RUN
+```
 
 ## Notes
 
-- AM UI / firing-alert visibility **not** live-tested; connectivity is config-level only.
-- Notification channel = ops webhook template (native Telegram deferred per PLAN backlog).
+- Connectivity is configured in YAML (Prometheus → Alertmanager).
+- Success criterion “Firing alerts visible in AM UI” requires a live stack → unmet as measured evidence.
 
-## Residual
+## Sign-off
 
-None for PLAN deliverable presence. M2-058 routing complete at config layer.
+Config deliverables **met**; live AM UI smoke **unverified** → **PARTIAL**.

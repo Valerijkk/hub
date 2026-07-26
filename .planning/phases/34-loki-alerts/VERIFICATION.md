@@ -1,31 +1,38 @@
-﻿# Phase 34 — Loki + Prometheus Alerts — VERIFICATION
+﻿# Phase 34 — Verification (PW2 retro)
 
 **Date:** 2026-07-27  
-**Auditor:** Grok 4.5 (PW2 retro-verify)  
-**Mode:** documentation-only · deployments presence against HEAD  
-**Verdict:** PASS
+**Agent:** Grok 4.5  
+**Verdict:** PARTIAL
 
-## Goal (exit criteria)
+## Goal
 
-Loki/Promtail in monitoring compose · Grafana Loki datasource · Prometheus alert rules for Hub SLOs · slog `service` label.
+Log aggregation via Loki/Promtail + Prometheus alert rules for Hub SLOs.
 
-## Measured evidence
+## Goal-backward check
 
-| Criterion | Evidence (2026-07-27) | Result |
-|-----------|----------------------|--------|
-| Loki config | `deployments/monitoring/loki/loki-config.yml` | PASS |
-| Promtail config | `deployments/monitoring/promtail/promtail-config.yml` | PASS |
-| Compose services | `docker-compose.monitoring.yml` — `loki:` / `promtail:` services + volume mounts | PASS |
-| Grafana Loki datasource | `grafana/provisioning/datasources/loki.yml` — `uid: hub-loki` | PASS |
-| Alert rules file | `deployments/monitoring/prometheus/alerts/hub.yml` — `HubHighHTTP5xxRate`, `HubHighHTTPLatencyP95`, `HubOperationErrorRate` | PASS |
-| `rule_files` wired | `deployments/monitoring/prometheus.yml` includes `rule_files:` | PASS |
-| slog `service` label | `wiring_bootstrap.go` — `slog.New(...).With("service", serviceName)` + `slog.SetDefault` | PASS |
+| Criterion | Expected | Actual (2026-07-27) | Status |
+|-----------|----------|---------------------|--------|
+| Loki config | `loki-config.yml` | `deployments/monitoring/loki/loki-config.yml` **EXISTS** | PASS |
+| Promtail config | Docker SD + JSON pipeline | `deployments/monitoring/promtail/promtail-config.yml` **EXISTS** | PASS |
+| Compose services | Loki + Promtail | `docker-compose.monitoring.yml` services `loki` / `promtail` (images `grafana/loki:3.4.2`, `grafana/promtail:3.4.2`) | PASS |
+| Grafana Loki datasource | `hub-loki` | `grafana/provisioning/datasources/loki.yml` uid `hub-loki`; dashboard panel refs same uid | PASS |
+| Alert rules | 5xx, p95, op errors | `prometheus/alerts/hub.yml`: `HubHighHTTP5xxRate`, `HubHighHTTPLatencyP95`, `HubOperationErrorRate` | PASS |
+| Prometheus `rule_files` | wired | `prometheus.yml:8` `rule_files` | PASS |
+| slog `service` label | for Loki JSON filter | `wiring_bootstrap.go:22` `With("service", serviceName)` | PASS |
+| Loki ready probe | `http://localhost:3100/ready` | **NOT_RUN** (stack not started) | NOT_RUN |
+
+## Evidence commands
+
+```text
+# 2026-07-27 — file presence + rg on alert names / compose services
+# Manual: Loki ready — NOT_RUN
+```
 
 ## Notes
 
-- Loki ready probe / Prom UI Alerts tab **not** exercised live; structural configs only.
-- Alertmanager routing is Phase 35 (not required here).
+- Config/wiring deliverables are complete in repo.
+- PLAN manual check (`Loki ready`) not executed → cannot claim full operational PASS.
 
-## Residual
+## Sign-off
 
-None for PLAN Wave 1–2 deliverables.
+Artifacts and alert rules **present**; live Loki readiness **unverified** → **PARTIAL**.

@@ -1,31 +1,38 @@
-﻿# Phase 33 — Monitoring Stack — VERIFICATION
+﻿# Phase 33 — Verification (PW2 retro)
 
 **Date:** 2026-07-27  
-**Auditor:** Grok 4.5 (PW2 retro-verify)  
-**Mode:** documentation-only · deployments + code presence against HEAD  
+**Agent:** Grok 4.5  
 **Verdict:** PASS
 
-## Goal (exit criteria)
+## Goal
 
-Grafana/Prometheus deploy overlay · scrape backend `/metrics` · CIDR allowlist hardening · K3s networkpolicy template.
+Grafana dashboard provisioning + Prometheus scrape + `/metrics` hardening.
 
-## Measured evidence
+## Goal-backward check
 
-| Criterion | Evidence (2026-07-27) | Result |
-|-----------|----------------------|--------|
-| `deployments/monitoring/prometheus.yml` | present (scrape + rule_files + alertmanagers section) | PASS |
-| Grafana dashboard | `deployments/monitoring/grafana/dashboards/hub-observability.json` | PASS |
-| Grafana provisioning | `grafana/provisioning/dashboards/hub.yml` + datasources `prometheus.yml` | PASS |
-| Compose overlay | `deployments/docker-compose.monitoring.yml` present | PASS |
-| `METRICS_ALLOWED_CIDRS` + middleware | `config.go` field + env parse; `metrics_allowlist.go` `MetricsAllowMiddleware`; tests `metrics_allowlist_test.go` / `metrics_allow_middleware_test.go` | PASS |
-| K3s networkpolicy template | `deployments/k3s/monitoring/networkpolicy-metrics.yaml` | PASS |
-| `.env.example` obs vars | `deployments/.env.example` — `METRICS_ALLOWED_CIDRS`, OTEL, `ALERT_WEBHOOK_SECRET` | PASS |
+| Criterion | Expected | Actual (2026-07-27) | Status |
+|-----------|----------|---------------------|--------|
+| `deployments/monitoring/prometheus.yml` | scrape backend `/metrics` | **EXISTS** | PASS |
+| Grafana provisioning + dashboard | datasource + `hub-observability.json` | `deployments/monitoring/grafana/provisioning/**` + `dashboards/hub-observability.json` | PASS |
+| `docker-compose.monitoring.yml` | Prometheus + Grafana overlay | **EXISTS** | PASS |
+| `METRICS_ALLOWED_CIDRS` + `MetricsAllowMiddleware` | env + middleware | `config.go:52,147`; `metrics_allowlist.go:10`; `deployments/.env.example:61`; `docker-compose.prod.yml:206` | PASS |
+| K3s networkpolicy template | present | `deployments/k3s/monitoring/networkpolicy-metrics.yaml` **EXISTS** | PASS |
+| Middleware unit tests | allow/deny CIDR | `metrics_allow_middleware_test.go` in testframework | PASS |
+
+## Tests / checks run (2026-07-27)
+
+```text
+# artifact existence — all listed paths present
+cd backend
+go test -tags hubtest -count=1 -timeout=120s ./testframework/platform/observability/...
+# ok (includes MetricsAllowMiddleware tests)
+```
 
 ## Notes
 
-- Stack **not** brought up (`docker compose … monitoring`) this session; verdict is artifact + wiring presence.
-- `/metrics` live scrape not re-measured.
+- Full monitoring compose stack (`docker compose … monitoring.yml up`) and live Grafana UI **not** started this session. Verdict is on deliverable artifacts + middleware tests, matching PLAN verification commands that center on Go tests + scrape wiring.
+- Live `curl /metrics` not run (no local backend).
 
-## Residual
+## Sign-off
 
-None for PLAN Wave 1–2 file deliverables.
+Monitoring stack artifacts and `/metrics` CIDR hardening **PASS** (static + unit).

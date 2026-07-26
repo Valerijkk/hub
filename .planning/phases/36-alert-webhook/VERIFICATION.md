@@ -1,30 +1,41 @@
-﻿# Phase 36 — Alert Webhook → Audit Log — VERIFICATION
+﻿# Phase 36 — Verification (PW2 retro)
 
 **Date:** 2026-07-27  
-**Auditor:** Grok 4.5 (PW2 retro-verify)  
-**Mode:** documentation-only · code presence against HEAD  
+**Agent:** Grok 4.5  
 **Verdict:** PASS
 
-## Goal (exit criteria)
+## Goal
 
-`POST /api/webhooks/alertmanager` with Bearer secret · audit `alert.firing` / `alert.resolved` · disabled when secret empty · tests + deploy examples.
+Close OBS-01 production loop — Alertmanager fires/resolves alerts appear in admin Audit Log.
 
-## Measured evidence
+## Goal-backward check
 
-| Criterion | Evidence (2026-07-27) | Result |
-|-----------|----------------------|--------|
-| Webhook handler | `backend/internal/audit/handler_alerts.go` — `RegisterAlertWebhook`, `ReceiveAlertmanagerWebhook`, route `POST .../alertmanager` | PASS |
-| Audit recording | `RecordAlertmanagerWebhook` → actions `alert.firing` / `alert.resolved`, entity `alert` | PASS |
-| Wiring | `wiring_audit_ai.go` — `auditHandler.RegisterAlertWebhook(api, cfg.Server.AlertWebhookSecret)` | PASS |
-| Config / env | `ALERT_WEBHOOK_SECRET` in `deployments/.env.example`; prod AM example points at webhook | PASS |
-| Tests | `backend/testframework/audit/handler_alerts_test.go` | PASS |
-| API docs | `docs/wiki/API.md` documents alertmanager webhook (cross-checked via Phase 38 VERIFICATION) | PASS |
+| Criterion | Expected | Actual (2026-07-27) | Status |
+|-----------|----------|---------------------|--------|
+| `POST /api/webhooks/alertmanager` | Bearer `ALERT_WEBHOOK_SECRET` | `handler_alerts.go` `RegisterAlertWebhook` / `ReceiveAlertmanagerWebhook`; Swagger in `docs.go` | PASS |
+| Audit actions | `alert.firing` / `alert.resolved`, entity `alert` | `handler_alerts.go:86–88`, `:111` | PASS |
+| Skip HTTP audit middleware for path | webhook excluded | `middleware.go:38` includes `/api/webhooks/alertmanager` | PASS |
+| Config | `ALERT_WEBHOOK_SECRET` | `config.go:53,148`; `deployments/.env.example:62`; `docker-compose.prod.yml:207` | PASS |
+| Wired in server | `RegisterAlertWebhook` | `wiring_audit_ai.go:36` | PASS |
+| Disabled when secret empty | route not registered | `TestRegisterAlertWebhook_DisabledWhenSecretEmpty` | PASS |
+| Frontend audit filters/badges | alert actions | `frontend/src/components/admin/audit-log.tsx:27–28`, `:166`, `:179` | PASS |
+| Deploy example | AM prod webhook | `alertmanager.prod.example.yml` bearer → hub webhook | PASS |
+| Tests | auth / record / disabled | `backend/testframework/audit/handler_alerts_test.go` | PASS |
+
+## Tests run (2026-07-27)
+
+```text
+cd backend
+go test -tags hubtest -count=1 -timeout=120s ./testframework/audit/ -run "Alert"
+# package ok (included in ./testframework/audit/ run; full package ~1.1s OK)
+go test -tags hubtest -count=1 -timeout=120s ./testframework/audit/
+# ok  github.com/valerii/hub/backend/testframework/audit  ~1.081s
+```
 
 ## Notes
 
-- Constant-time Bearer compare / skip-when-empty behavior claimed in PLAN; not line-audited beyond handler/register presence this pass.
-- `go test ./testframework/audit/...` **not** re-run in docs-only PW2.
+- Frontend `tsc` / full Vitest suite not re-run this session; FE evidence is symbol/filter presence only. Backend webhook contract is green under hubtest.
 
-## Residual
+## Sign-off
 
-None for PLAN task checklist presence.
+Alertmanager → audit webhook loop (code + tests) **PASS**.

@@ -1,29 +1,37 @@
-﻿# Phase 32 — OBS-01 Wave 4 (OpenTelemetry Traces) — VERIFICATION
+﻿# Phase 32 — Verification (PW2 retro)
 
 **Date:** 2026-07-27  
-**Auditor:** Grok 4.5 (PW2 retro-verify)  
-**Mode:** documentation-only · code presence against HEAD  
+**Agent:** Grok 4.5  
 **Verdict:** PASS
 
-## Goal (exit criteria)
+## Goal
 
-OTLP traces when `OTEL_EXPORTER_OTLP_ENDPOINT` set · HTTP + Timed spans · W3C propagation · noop without endpoint.
+OTLP trace export when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (FB-21).
 
-## Measured evidence
+## Goal-backward check
 
-| Criterion | Evidence (2026-07-27) | Result |
-|-----------|----------------------|--------|
-| `observability/otel.go` | file present — `InitTracing`, `HTTPTraceMiddleware`, `TracingEnabled` | PASS |
-| Wiring init + middleware | `wiring_bootstrap.go` — `observability.InitTracing(...)`; `wiring_fiber.go` — `HTTPTraceMiddleware()` after RequestID | PASS |
-| Env examples | `.env.local.example` + `deployments/.env.example` — `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME` | PASS |
-| Unit / propagation tests | `backend/testframework/platform/observability/otel_test.go`, `trace_propagation_test.go` | PASS |
-| Timed child spans when enabled | `timing.go` / otel integration paths gated by `TracingEnabled()` (consumer + otel) | PASS |
+| Criterion | Expected | Actual (2026-07-27) | Status |
+|-----------|----------|---------------------|--------|
+| `observability/otel.go` — `InitTracing`, `HTTPTraceMiddleware` | present | `backend/internal/platform/observability/otel.go` (`InitTracing` :42, `HTTPTraceMiddleware` :97, `TracingEnabled` :36) | PASS |
+| Wired in server | init + middleware after RequestID | `wiring_bootstrap.go:81` `InitTracing`; `wiring_fiber.go:42` `HTTPTraceMiddleware` | PASS |
+| No endpoint → noop | `TracingEnabled=false` | Covered by `TestInitTracing_NoEndpointIsNoop` | PASS |
+| With tracing → spans | Timed + HTTP | `TestTimed_CreatesSpanWhenTracingEnabled`, `TestHTTPTraceMiddleware_CreatesServerSpan` | PASS |
+| Env example OTEL vars | documented | `.env.local.example:15–16`; `deployments/.env.example:63–64` | PASS |
+| Unit tests | `otel_test.go` | `backend/testframework/platform/observability/otel_test.go` | PASS |
+
+## Tests run (2026-07-27)
+
+```text
+cd backend
+go test -tags hubtest -count=1 -timeout=120s ./testframework/platform/observability/...
+# ok  github.com/valerii/hub/backend/testframework/platform/observability  ~1.4s
+```
 
 ## Notes
 
-- Live OTLP export to Tempo/Jaeger **not** exercised this session; noop-vs-export behavior inferred from `TracingEnabled()` + InitTracing wiring.
-- OBS-01 stack (metrics UI + Prometheus + traces) structurally complete per PLAN success criteria.
+- Live OTLP export to Tempo/Jaeger not exercised (no collector). Unit tests use tracetest recorder.
+- OTEL tests relocated from colocated `otel_test.go` to `testframework/`.
 
-## Residual
+## Sign-off
 
-K3s network policy / Grafana dashboards → Phase 33+ (verified separately).
+OTel wiring + noop/enabled unit paths **PASS**.
