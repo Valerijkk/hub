@@ -1,8 +1,8 @@
 # Portable Hub Architecture (расширенный)
 
-> Шаблон корпоративного хаба: **AI-команда + урезанный GitHub-flow + микросервисы (ADR)**.  
-> Не код — переносимая архитектура kit. База: `ADR-ARCH-MICROSERVICES-2026`, стек Hub, TZ.  
-> Связанные: [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md), [`06-REDUCED-GITHUB-MODULE.md`](06-REDUCED-GITHUB-MODULE.md),  
+> Шаблон корпоративного хаба: **AI-команда + урезанный GitHub-flow + микросервисы (ADR)**.
+> Не код — переносимая архитектура kit. База: `ADR-ARCH-MICROSERVICES-2026`, стек Hub, TZ.
+> Связанные: [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md), [`06-REDUCED-GITHUB-MODULE.md`](06-REDUCED-GITHUB-MODULE.md),
 > skill `gsd-ru/microservices-strangler`, roadmap `.planning/roadmaps/MICROSERVICES-ROADMAP.md`.
 
 - **Статус:** Architecture template / docs-only
@@ -141,11 +141,11 @@ hub-notification consumer → delivery (in-app / TG / push)
 
 ### 5.5 Порядок выноса (не менять без пользователя)
 
-1. **hub-notification** (пилот)  
-2. **hub-ai** (после JWKS)  
-3. **realtime-трио:** hub-ws · hub-messenger · hub-calls (раздельно)  
-4. tms — условно M6 после Go пилота  
-5. **tracker — исключён** из горизонта  
+1. **hub-notification** (пилот)
+2. **hub-ai** (после JWKS)
+3. **realtime-трио:** hub-ws · hub-messenger · hub-calls (раздельно)
+4. tms — условно M6 после Go пилота
+5. **tracker — исключён** из горизонта
 
 ---
 
@@ -244,7 +244,7 @@ prompt-engineering/ # project-agnostic
 .planning/          # STATE, ROADMAP, decisions, ai-expansion refs
 ```
 
-Порядок копирования — [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md).  
+Порядок копирования — [`05-PORTABLE-KIT.md`](05-PORTABLE-KIT.md).
 DoD переноса: context-intake → агент по шаблону делегирования → 10-этап verification → STATE ведётся.
 
 ---
