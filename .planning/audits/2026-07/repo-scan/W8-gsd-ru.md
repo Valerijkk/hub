@@ -3,8 +3,8 @@
 > **Provenance class:** PRE_EXISTING · **Confidence:** MIXED · **current_verified:** false (pending code/source recheck)
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
-> **Агент:** docs-writer (Grok 4.5) · **Дата:** 2026-07-23 · **Режим:** readonly repo-scan  
-> **Scope:** глубина pack `gsd-ru` (6 skills + README), сверка с P0 из `03-GSD-PORT-INVENTORY.md` / `GSD-INTEGRATION.md`, PE-зеркало, маршрутизация `gsd-index`.  
+> **Агент:** docs-writer (Grok 4.5) · **Дата:** 2026-07-23 · **Режим:** readonly repo-scan
+> **Scope:** глубина pack `gsd-ru` (6 skills + README), сверка с P0 из `03-GSD-PORT-INVENTORY.md` / `GSD-INTEGRATION.md`, PE-зеркало, маршрутизация `gsd-index`.
 > **Код не менялся.** Язык отчёта: **RU**.
 
 ## Вердикт (кратко)
@@ -128,7 +128,7 @@ Hub-native (не из списка 21 P0, но в pack): `portable-kit`, `micros
 | LOW | **2** (README DoD unchecked; `gsd-handoff` typo) |
 | INFO/accepted | **3** |
 
-**Блокер Must AI-expansion (G4):** нет.  
+**Блокер Must AI-expansion (G4):** нет.
 **До 15.08:** polish M6 (agents P0) + углубление PE stubs + правка маршрутизации gsd-index / typo INTEGRATION.
 
 **verified: false** · **historical_self_check:** PASS (filesystem/inventory/ACCEPTANCE scope) — 2026-07-23 · readonly.
