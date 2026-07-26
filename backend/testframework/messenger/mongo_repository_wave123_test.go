@@ -69,7 +69,7 @@ func TestMongoRepository_Wave123_SearchWithoutChannelFilter(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	hits, err := repo.SearchMessages(ctx, "unique-search-token", nil, 5)
+	hits, err := repo.SearchMessages(ctx, "unique-search-token", []uuid.UUID{channelID}, 5)
 	require.NoError(t, err)
 	assert.NotEmpty(t, hits)
 }

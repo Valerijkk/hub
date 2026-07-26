@@ -289,14 +289,15 @@ func TestForwardMessage_CreatesNewMessage(t *testing.T) {
 func TestSearchMessages_TextQuery(t *testing.T) {
 	svc, repo, _ := newTestService()
 	ctx := context.Background()
-	channelID := uuid.New()
+	userID := uuid.New()
+	channelID := setupChannelWithMembers(repo, "public", false, userID)
 
 	// Создаём публичный канал.
 	for _, text := range []string{"hello world", "goodbye world", "hello there"} {
 		doc := &messenger.MessageDocument{
 			ID:          uuid.New().String(),
 			ChannelID:   channelID,
-			SenderID:    uuid.New(),
+			SenderID:    userID,
 			ContentText: text,
 			CreatedAt:   time.Now(),
 		}
@@ -304,12 +305,12 @@ func TestSearchMessages_TextQuery(t *testing.T) {
 	}
 
 	// Поиск по тексту «hello».
-	results, err := svc.SearchMessages(ctx, "hello", channelID.String(), 10)
+	results, err := svc.SearchMessages(ctx, userID, "hello", channelID.String(), 10)
 	require.NoError(t, err)
 	assert.Len(t, results, 2, "должны найти 2 сообщения с 'hello'")
 
 	// Поиск по тексту «goodbye».
-	results, err = svc.SearchMessages(ctx, "goodbye", channelID.String(), 10)
+	results, err = svc.SearchMessages(ctx, userID, "goodbye", channelID.String(), 10)
 	require.NoError(t, err)
 	assert.Len(t, results, 1, "должны найти 1 сообщение с 'goodbye'")
 }

@@ -105,7 +105,7 @@ func TestSearchMessages_FindsByQuery(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	results, err := svc.SearchMessages(ctx, "unique-token", channelID.String(), 10)
+	results, err := svc.SearchMessages(ctx, ownerID, "unique-token", channelID.String(), 10)
 	require.NoError(t, err)
 	require.Len(t, results, 1)
 }

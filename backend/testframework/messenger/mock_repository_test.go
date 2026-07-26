@@ -347,16 +347,22 @@ func (m *mockRepository) FindReaction(_ context.Context, messageID, userID, emoj
 
 // --- Поиск ---
 
-func (m *mockRepository) SearchMessages(_ context.Context, query string, channelID *uuid.UUID, limit int) ([]*messenger.MessageDocument, error) {
+func (m *mockRepository) SearchMessages(_ context.Context, query string, channelIDs []uuid.UUID, limit int) ([]*messenger.MessageDocument, error) {
+	allowed := make(map[uuid.UUID]struct{}, len(channelIDs))
+	for _, id := range channelIDs {
+		allowed[id] = struct{}{}
+	}
 	var result []*messenger.MessageDocument
 	for _, doc := range m.messages {
 		if doc.DeletedAt != nil {
 			continue
 		}
-		if channelID != nil && doc.ChannelID != *channelID {
+		if len(allowed) == 0 {
 			continue
 		}
-		// Простой поиск по подстроке для тестов
+		if _, ok := allowed[doc.ChannelID]; !ok {
+			continue
+		}
 		if contains(doc.ContentText, query) {
 			result = append(result, doc)
 		}

@@ -86,8 +86,9 @@ type ReactionRepository interface {
 
 // SearchRepository обеспечивает полнотекстовый поиск сообщений (MongoDB).
 type SearchRepository interface {
-	// SearchMessages выполняет полнотекстовый поиск по сообщениям.
-	SearchMessages(ctx context.Context, query string, channelID *uuid.UUID, limit int) ([]*MessageDocument, error)
+	// SearchMessages выполняет полнотекстовый поиск по сообщениям в заданных каналах.
+	// Пустой channelIDs → пустой результат (не «все каналы»).
+	SearchMessages(ctx context.Context, query string, channelIDs []uuid.UUID, limit int) ([]*MessageDocument, error)
 }
 
 // PinRepository управляет закреплёнными сообщениями (Ent/PG).

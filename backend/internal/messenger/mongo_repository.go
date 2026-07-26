@@ -273,18 +273,19 @@ func (r *MongoRepository) FindReaction(ctx context.Context, messageID, userID, e
 	return count > 0, nil
 }
 
-// SearchMessages выполняет полнотекстовый поиск по content_text.
-func (r *MongoRepository) SearchMessages(ctx context.Context, query string, channelID *uuid.UUID, limit int) ([]*MessageDocument, error) {
+// SearchMessages выполняет полнотекстовый поиск по content_text в указанных каналах.
+func (r *MongoRepository) SearchMessages(ctx context.Context, query string, channelIDs []uuid.UUID, limit int) ([]*MessageDocument, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
+	if len(channelIDs) == 0 {
+		return []*MessageDocument{}, nil
+	}
 
 	filter := bson.M{
-		"$text":      bson.M{"$search": query},
-		"deleted_at": nil,
-	}
-	if channelID != nil {
-		filter["channel_id"] = *channelID
+		"$text":       bson.M{"$search": query},
+		"deleted_at":  nil,
+		"channel_id":  bson.M{"$in": channelIDs},
 	}
 
 	opts := options.Find().
