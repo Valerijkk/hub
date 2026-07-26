@@ -15,7 +15,7 @@ func TestTrackerIssueLookup_NilSafe(t *testing.T) {
 	assert.Empty(t, title)
 	assert.Empty(t, desc)
 
-	l = ai.NewTrackerIssueLookup(nil)
+	l = ai.NewTrackerIssueLookup(nil, nil)
 	title, desc, err = l.IssueContext(context.Background(), "HUB-1")
 	require.NoError(t, err)
 	assert.Empty(t, title)
