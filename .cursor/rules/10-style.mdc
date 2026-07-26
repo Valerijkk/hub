@@ -1,6 +1,7 @@
 ---
-description: Code style, prohibited patterns, tone for all Hub code.
-alwaysApply: true
+description: Hub code style, prohibited patterns, and commit format for Go/TS source. Auto-attaches when editing backend/, frontend/, or cli/ code.
+globs: backend/**/*.go,cli/**/*.go,frontend/**/*.ts,frontend/**/*.tsx
+alwaysApply: false
 ---
 
 # Hub — Code Style
