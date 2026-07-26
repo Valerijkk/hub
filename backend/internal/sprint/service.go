@@ -105,7 +105,7 @@ func (s *SprintService) StartSprint(ctx context.Context, projectID, sprintID uui
 
 // CompleteSprint завершает спринт и переносит незавершённые задачи (SCRM-04).
 func (s *SprintService) CompleteSprint(ctx context.Context, projectID, sprintID uuid.UUID) (*SprintResponse, error) {
-	sp, err := s.repo.GetSprint(ctx, sprintID)
+	sp, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")

@@ -60,14 +60,16 @@ func TestCompleteSprint_RejectsNonActive(t *testing.T) {
 	repo := newMockRepository()
 	svc := sprint.NewSprintService(repo, nil, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	sprintID := uuid.New()
 	repo.sprints[sprintID] = &ent.Sprint{
 		ID: sprintID, Name: "Planning sprint", Status: sprintEnt.StatusPlanning,
 		StartDate: time.Now(), EndDate: time.Now().AddDate(0, 0, 14),
 	}
+	repo.sprintProject[sprintID] = projectID
 
-	_, err := svc.CompleteSprint(ctx, uuid.New(), sprintID)
+	_, err := svc.CompleteSprint(ctx, projectID, sprintID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "активный")
 }

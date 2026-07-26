@@ -19,6 +19,7 @@ import (
 
 type mockRepository struct {
 	sprints          map[uuid.UUID]*ent.Sprint
+	sprintProject    map[uuid.UUID]uuid.UUID
 	issues           map[uuid.UUID]*ent.Issue
 	statuses         map[uuid.UUID]*ent.WorkflowStatus
 	movedToSprint    uuid.UUID
@@ -28,9 +29,10 @@ type mockRepository struct {
 
 func newMockRepository() *mockRepository {
 	return &mockRepository{
-		sprints:  make(map[uuid.UUID]*ent.Sprint),
-		issues:   make(map[uuid.UUID]*ent.Issue),
-		statuses: make(map[uuid.UUID]*ent.WorkflowStatus),
+		sprints:       make(map[uuid.UUID]*ent.Sprint),
+		sprintProject: make(map[uuid.UUID]uuid.UUID),
+		issues:        make(map[uuid.UUID]*ent.Issue),
+		statuses:      make(map[uuid.UUID]*ent.WorkflowStatus),
 	}
 }
 
@@ -47,12 +49,24 @@ func (m *mockRepository) CreateSprint(_ context.Context, projectID uuid.UUID, re
 		UpdatedAt: time.Now(),
 	}
 	m.sprints[id] = s
+	m.sprintProject[id] = projectID
 	return s, nil
 }
 
 func (m *mockRepository) GetSprint(_ context.Context, sprintID uuid.UUID) (*ent.Sprint, error) {
 	s, ok := m.sprints[sprintID]
 	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	return s, nil
+}
+
+func (m *mockRepository) GetSprintInProject(_ context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error) {
+	s, ok := m.sprints[sprintID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if m.sprintProject[sprintID] != projectID {
 		return nil, &ent.NotFoundError{}
 	}
 	return s, nil
@@ -288,6 +302,7 @@ func TestCompleteSprint_MovesIncompleteIssues(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+	repo.sprintProject[sprintID] = projectID
 
 	// Незавершённая задача
 	issueID := uuid.New()
@@ -303,6 +318,36 @@ func TestCompleteSprint_MovesIncompleteIssues(t *testing.T) {
 	assert.Equal(t, "completed", resp.Status)
 	assert.Len(t, repo.movedIssueIDs, 1)
 	assert.Equal(t, issueID, repo.movedIssueIDs[0])
+}
+
+// TestCompleteSprint_RejectsForeignProject — A3-001: нельзя завершить чужой спринт и утащить issues.
+func TestCompleteSprint_RejectsForeignProject(t *testing.T) {
+	repo := newMockRepository()
+	svc := sprint.NewSprintService(repo, nil, nil)
+	ctx := context.Background()
+	ownerProject := uuid.New()
+	attackerProject := uuid.New()
+	sprintID := uuid.New()
+
+	repo.sprints[sprintID] = &ent.Sprint{
+		ID:        sprintID,
+		Name:      "Victim Sprint",
+		Status:    sprintEnt.StatusActive,
+		StartDate: time.Now().AddDate(0, 0, -14),
+		EndDate:   time.Now(),
+	}
+	repo.sprintProject[sprintID] = ownerProject
+
+	issueID := uuid.New()
+	repo.issues[issueID] = &ent.Issue{
+		ID: issueID,
+		Edges: ent.IssueEdges{Sprint: repo.sprints[sprintID]},
+	}
+
+	_, err := svc.CompleteSprint(ctx, attackerProject, sprintID)
+	require.Error(t, err)
+	assert.Empty(t, repo.movedIssueIDs, "foreign CompleteSprint must not move issues")
+	assert.Equal(t, sprintEnt.StatusActive, repo.sprints[sprintID].Status)
 }
 
 func TestWIPLimit_BlocksWhenLimitReached(t *testing.T) {

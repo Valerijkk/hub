@@ -17,6 +17,8 @@ type Repository interface {
 	CreateSprint(ctx context.Context, projectID uuid.UUID, req CreateSprintRequest) (*ent.Sprint, error)
 	// GetSprint возвращает спринт по ID.
 	GetSprint(ctx context.Context, sprintID uuid.UUID) (*ent.Sprint, error)
+	// GetSprintInProject возвращает спринт только если он принадлежит projectID (IDOR guard).
+	GetSprintInProject(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error)
 	// ListSprints возвращает все спринты проекта.
 	ListSprints(ctx context.Context, projectID uuid.UUID) ([]*ent.Sprint, error)
 	// UpdateSprint обновляет спринт.
@@ -79,6 +81,18 @@ func (r *EntRepository) GetSprint(ctx context.Context, sprintID uuid.UUID) (*ent
 	return r.client.Sprint.
 		Query().
 		Where(sprintEnt.ID(sprintID)).
+		WithIssues().
+		Only(ctx)
+}
+
+// GetSprintInProject возвращает спринт по ID в рамках проекта.
+func (r *EntRepository) GetSprintInProject(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error) {
+	return r.client.Sprint.
+		Query().
+		Where(
+			sprintEnt.ID(sprintID),
+			sprintEnt.HasProjectWith(project.ID(projectID)),
+		).
 		WithIssues().
 		Only(ctx)
 }
