@@ -95,16 +95,16 @@ Playbook описывает **единый способ работы** для п
 
 ### 2.1 Обзор ролей
 
-| Агент | Роль | Основной артефакт | Модель | Режим |
-|-------|------|-------------------|--------|-------|
-| `ba1` | Business Analyst (поток A) | `docs/vision_and_scope.md` (разделы A) | sonnet | readonly-анализ |
-| `ba2` | Business Analyst (поток B) | `docs/vision_and_scope.md` (разделы B) | sonnet | readonly-анализ |
-| `sa1` | System Analyst (модули A) | `docs/system_specification.md` (модули A) | sonnet | readonly-анализ |
-| `sa2` | System Analyst (модули B) | `docs/system_specification.md` (модули B) | sonnet | readonly-анализ |
-| `arch` | Architect | `docs/architecture.md`, `docs/stack_and_tools.md` | sonnet | readonly-анализ |
-| `ba-ver` | Верификатор BA | проверка vision_and_scope | sonnet | readonly |
-| `sa-ver` | Верификатор SA | проверка system_specification | sonnet | readonly |
-| `arch-ver` | Верификатор ARCH | проверка architecture | sonnet | readonly |
+| Агент | Роль | Основной артефакт | Маршрутизация | Режим |
+|-------|------|-------------------|---------------|-------|
+| `ba1` | Business Analyst (поток A) | `docs/vision_and_scope.md` (разделы A) | `inherit` | readonly-анализ |
+| `ba2` | Business Analyst (поток B) | `docs/vision_and_scope.md` (разделы B) | `inherit` | readonly-анализ |
+| `sa1` | System Analyst (модули A) | `docs/system_specification.md` (модули A) | `inherit` | readonly-анализ |
+| `sa2` | System Analyst (модули B) | `docs/system_specification.md` (модули B) | `inherit` | readonly-анализ |
+| `arch` | Architect | `docs/architecture.md`, `docs/stack_and_tools.md` | `inherit` | readonly-анализ |
+| `ba-ver` | Верификатор BA | проверка vision_and_scope | `inherit` | readonly |
+| `sa-ver` | Верификатор SA | проверка system_specification | `inherit` | readonly |
+| `arch-ver` | Верификатор ARCH | проверка architecture | `inherit` | readonly |
 
 `ba1`/`ba2` и `sa1`/`sa2` — это **две параллельные инстанции одной роли**, работающие над
 разными доменами/эпиками одновременно, чтобы ускорить анализ крупного milestone. `arch`
@@ -1372,7 +1372,7 @@ SPIKE S-01: производительность фильтра flaky на 100k 
 | Собрать контекст фазы адаптивными вопросами | `gsd-discuss-phase` | BA |
 | Исследовать реализацию перед планированием | `gsd-research-phase` | ARCH/SA |
 | Проверить реализуемость экспериментом | `gsd-spike` / `gsd-sketch` | ARCH/FE |
-| Аудит покрытия требований | `gsd-coverage-audit` / `/coverage-audit` | SA |
+| Аудит покрытия требований | Hub `/coverage-audit` | SA |
 | Не знаю, какая команда | `gsd-do` | любой |
 
 `gsd-spec-phase` даёт SPEC.md с falsifiable-требованиями до обсуждения реализации;
@@ -1531,7 +1531,7 @@ SPIKE S-01: производительность фильтра flaky на 100k 
 | Роль | Primary GSD | Secondary GSD |
 |------|-------------|---------------|
 | ba1/ba2 | `gsd-discuss-phase`, `gsd-spec-phase` | `gsd-new-milestone`, `gsd-review-backlog`, `gsd-add-backlog` |
-| sa1/sa2 | `gsd-coverage-audit`, `gsd-intel` | `gsd-audit-uat`, `gsd-map-codebase` |
+| sa1/sa2 | Hub `/coverage-audit`, `gsd-intel` | `gsd-audit-uat`, `gsd-map-codebase` |
 | arch | `gsd-ai-integration-phase`, `gsd-ui-phase` | `gsd-research-phase`, `gsd-secure-phase` |
 | ba-ver/sa-ver/arch-ver | `gsd-verify-work` | `gsd-audit-uat` / `gsd-secure-phase` |
 
