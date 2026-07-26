@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/user"
 )
 
 // gdprStubRepo — минимальный stub audit.Repository для проверки BE-H6:
@@ -110,6 +111,9 @@ func (s *gdprStubRepo) HardDeleteUser(context.Context, uuid.UUID) error { return
 func (s *gdprStubRepo) IsSystemAdmin(context.Context, uuid.UUID) (bool, error) {
 	return false, nil
 }
+func (s *gdprStubRepo) GetUserSystemRole(context.Context, uuid.UUID) (user.SystemRole, error) {
+	return user.SystemRoleMember, nil
+}
 
 // TestDeleteUserGDPR_JoinsCascadeErrors — BE-H6: частичные ошибки каскада
 // не должны проглатываться; handler должен получить combined error.
@@ -120,7 +124,7 @@ func TestDeleteUserGDPR_JoinsCascadeErrors(t *testing.T) {
 		failTimeLogs:  true,
 	}, nil)
 
-	err := svc.DeleteUserGDPR(context.Background(), userID, nil)
+	err := svc.DeleteUserGDPR(context.Background(), uuid.New(), userID, nil)
 	if err == nil {
 		t.Fatal("expected joined cascade errors, got nil")
 	}

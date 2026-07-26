@@ -72,6 +72,8 @@ type Repository interface {
 	DeleteUserTimeLogs(ctx context.Context, userID uuid.UUID) (int, error)
 	HardDeleteUser(ctx context.Context, userID uuid.UUID) error
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
+	// GetUserSystemRole — для GDPR founder-guard (A1-004).
+	GetUserSystemRole(ctx context.Context, userID uuid.UUID) (user.SystemRole, error)
 }
 
 const slowRequestThresholdMS = 500
@@ -515,4 +517,13 @@ func (r *entRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bo
 		return false, err
 	}
 	return u.SystemRole == user.SystemRoleFounder || u.SystemRole == user.SystemRoleAdmin, nil
+}
+
+// GetUserSystemRole возвращает system_role пользователя.
+func (r *entRepository) GetUserSystemRole(ctx context.Context, userID uuid.UUID) (user.SystemRole, error) {
+	u, err := r.client.User.Get(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	return u.SystemRole, nil
 }

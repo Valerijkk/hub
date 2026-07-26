@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/internal/audit"
 )
 
@@ -171,6 +172,9 @@ func (m *mockAuditRepo) DeleteUserActivityLogs(context.Context, uuid.UUID) (int,
 func (m *mockAuditRepo) DeleteUserTimeLogs(context.Context, uuid.UUID) (int, error) { return 0, nil }
 func (m *mockAuditRepo) HardDeleteUser(context.Context, uuid.UUID) error            { return nil }
 func (m *mockAuditRepo) IsSystemAdmin(context.Context, uuid.UUID) (bool, error)     { return false, nil }
+func (m *mockAuditRepo) GetUserSystemRole(context.Context, uuid.UUID) (user.SystemRole, error) {
+	return user.SystemRoleMember, nil
+}
 
 // TestBanUser проверяет сценарий: ban user.
 func TestBanUser(t *testing.T) {

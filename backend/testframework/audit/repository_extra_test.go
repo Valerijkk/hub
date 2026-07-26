@@ -82,7 +82,7 @@ func TestAuditService_DeleteUserGDPR_Success(t *testing.T) {
 	svc := audit.NewAuditService(repo, nil)
 	target := uuid.New()
 
-	require.NoError(t, svc.DeleteUserGDPR(context.Background(), target, nil))
+	require.NoError(t, svc.DeleteUserGDPR(context.Background(), uuid.New(), target, nil))
 	assert.Equal(t, target, repo.gdprUserID)
 }
 
@@ -189,7 +189,7 @@ func TestAuditService_DeleteUserGDPR_WithReassign(t *testing.T) {
 	reassign := env.userB
 	svc := audit.NewAuditService(env.repo, nil)
 
-	require.NoError(t, svc.DeleteUserGDPR(env.ctx, target, &reassign))
+	require.NoError(t, svc.DeleteUserGDPR(env.ctx, uuid.New(), target, &reassign))
 
 	_, err := env.client.User.Get(env.ctx, target)
 	require.Error(t, err)

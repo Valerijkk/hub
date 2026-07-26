@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -376,6 +377,15 @@ func (h *Handler) DeleteUserGDPR(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный ID пользователя")
 	}
 
+	actorStr, ok := c.Locals("userID").(string)
+	if !ok || actorStr == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "пользователь не аутентифицирован")
+	}
+	actorID, err := uuid.Parse(actorStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "некорректный user ID")
+	}
+
 	var reassignTo *uuid.UUID
 	if reassignStr := c.Query("reassign_to"); reassignStr != "" {
 		id, err := uuid.Parse(reassignStr)
@@ -385,7 +395,10 @@ func (h *Handler) DeleteUserGDPR(c fiber.Ctx) error {
 		reassignTo = &id
 	}
 
-	if err := h.service.DeleteUserGDPR(c.Context(), userID, reassignTo); err != nil {
+	if err := h.service.DeleteUserGDPR(c.Context(), actorID, userID, reassignTo); err != nil {
+		if errors.Is(err, ErrCannotDeleteFounder) {
+			return fiber.NewError(fiber.StatusForbidden, "cannot delete founder account")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 

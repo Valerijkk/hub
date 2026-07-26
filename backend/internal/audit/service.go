@@ -12,9 +12,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/internal/auth"
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
+
+// ErrCannotDeleteFounder — admin не может GDPR-удалить единственного founder (ORG-04).
+// Самоудаление founder (actor == target) разрешено — легитимный right to erasure.
+var ErrCannotDeleteFounder = errors.New("cannot delete founder account")
 
 // Настройки аудита, лимитов и корзины.
 const (
@@ -371,12 +376,23 @@ func (s *AuditService) ReassignTasks(ctx context.Context, fromUserID, toUserID u
 // 4. Hard-delete записи пользователя
 // 5. Записывает аудит-лог "GDPR deletion"
 //
+// A1-004 / ORG-04: target=founder запрещён, если actor != target.
+// Founder может удалить сам себя (свой GDPR-запрос).
+//
 // BE-H6: ошибки каскадного удаления (reactions, sessions, time_logs,
 // activity_logs, comments) накапливаются через errors.Join и возвращаются
 // после Hard-delete пользователя — раньше они молча проглатывались
 // (`_, _ = ...`), и handler возвращал 200 даже при частично проваленной
 // GDPR-операции, что нарушает требование "right to erasure".
-func (s *AuditService) DeleteUserGDPR(ctx context.Context, userID uuid.UUID, reassignTo *uuid.UUID) error {
+func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.UUID, reassignTo *uuid.UUID) error {
+	role, err := s.repo.GetUserSystemRole(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("get user role (GDPR): %w", err)
+	}
+	if role == user.SystemRoleFounder && actorID != userID {
+		return ErrCannotDeleteFounder
+	}
+
 	// 1. Переназначаем или очищаем задачи
 	if reassignTo != nil {
 		if _, err := s.repo.ReassignAssignedIssues(ctx, userID, *reassignTo); err != nil {
