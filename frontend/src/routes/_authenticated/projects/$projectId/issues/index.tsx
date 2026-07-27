@@ -1,11 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
-import {
-	type IssueResponse,
-	type ListIssuesParams,
-	listIssues,
-} from "@/api/tracker";
+import { useMemo, useState } from "react";
+import { type ListIssuesParams, listIssues } from "@/api/tracker";
 import { QueryStateView } from "@/components/query-state-view";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +15,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+	flattenIssuePages,
+	nextIssuesCursor,
+} from "@/modules/tracker/issues-cursor";
 
 /** Конфигурация цветов приоритетов. */
 const PRIORITY_COLORS: Record<string, string> = {
@@ -53,41 +53,38 @@ function IssueListPage() {
 	const [statusFilter, setStatusFilter] = useState<string>("");
 	const [priorityFilter, setPriorityFilter] = useState<string>("");
 	const [typeFilter, setTypeFilter] = useState<string>("");
-	const [cursor, setCursor] = useState<string | undefined>();
-	const [allIssues, setAllIssues] = useState<IssueResponse[]>([]);
 
-	const params: ListIssuesParams = {
-		cursor,
-		limit: 50,
-		search: search || undefined,
-		status: statusFilter ? [statusFilter] : undefined,
-		priority: priorityFilter ? [priorityFilter] : undefined,
-		issue_type: typeFilter || undefined,
-	};
+	const filterParams = useMemo(
+		(): Omit<ListIssuesParams, "cursor"> => ({
+			limit: 50,
+			search: search || undefined,
+			status: statusFilter ? [statusFilter] : undefined,
+			priority: priorityFilter ? [priorityFilter] : undefined,
+			issue_type: typeFilter || undefined,
+		}),
+		[search, statusFilter, priorityFilter, typeFilter],
+	);
 
-	const issuesQuery = useQuery({
-		queryKey: ["issues", projectId, params],
-		queryFn: () => listIssues(projectId, params),
+	const issuesQuery = useInfiniteQuery({
+		queryKey: ["issues", projectId, filterParams],
+		queryFn: ({ pageParam }) =>
+			listIssues(projectId, { ...filterParams, cursor: pageParam }),
+		initialPageParam: undefined as string | undefined,
+		getNextPageParam: nextIssuesCursor,
 	});
-	const { data, isLoading } = issuesQuery;
+	const { data, isLoading, isFetchingNextPage, fetchNextPage, hasNextPage } =
+		issuesQuery;
 
-	// Для cursor-based: накапливаем задачи
-	const displayIssues = cursor ? allIssues : (data?.items ?? []);
-
-	const loadMore = useCallback(() => {
-		if (data?.has_more && data.next_cursor) {
-			setAllIssues((prev) => [...prev, ...(data.items ?? [])]);
-			setCursor(data.next_cursor);
-		}
-	}, [data]);
+	const displayIssues = useMemo(
+		() => flattenIssuePages(data?.pages),
+		[data?.pages],
+	);
 
 	const resetFilters = () => {
 		setSearch("");
 		setStatusFilter("");
 		setPriorityFilter("");
 		setTypeFilter("");
-		setCursor(undefined);
-		setAllIssues([]);
 	};
 
 	return (
@@ -110,16 +107,12 @@ function IssueListPage() {
 					value={search}
 					onChange={(e) => {
 						setSearch(e.target.value);
-						setCursor(undefined);
-						setAllIssues([]);
 					}}
 				/>
 				<Select
 					value={priorityFilter || "all"}
 					onValueChange={(v) => {
 						setPriorityFilter(v === "all" ? "" : v);
-						setCursor(undefined);
-						setAllIssues([]);
 					}}
 				>
 					<SelectTrigger className="rounded-xl border bg-base px-3 py-1.5 text-sm w-auto min-w-[140px]">
@@ -138,8 +131,6 @@ function IssueListPage() {
 					value={typeFilter || "all"}
 					onValueChange={(v) => {
 						setTypeFilter(v === "all" ? "" : v);
-						setCursor(undefined);
-						setAllIssues([]);
 					}}
 				>
 					<SelectTrigger className="rounded-xl border bg-base px-3 py-1.5 text-sm w-auto min-w-[120px]">
@@ -213,10 +204,10 @@ function IssueListPage() {
 			>
 				{() => (
 					<>
-						<div className="rounded-md border overflow-x-auto">
+						<div className="overflow-x-auto rounded-md border">
 							<table className="w-full">
 								<thead>
-									<tr className="border-b bg-raised/50">
+									<tr className="border-b bg-raised/30">
 										<th className="px-4 py-3 text-left text-xs font-medium text-t2">
 											Ключ
 										</th>
@@ -318,14 +309,16 @@ function IssueListPage() {
 							</table>
 						</div>
 
-						{data?.has_more && (
+						{hasNextPage && (
 							<div className="mt-4 flex justify-center">
 								<Button
 									variant="outline"
-									onClick={loadMore}
-									disabled={isLoading}
+									onClick={() => {
+										void fetchNextPage();
+									}}
+									disabled={isLoading || isFetchingNextPage}
 								>
-									Загрузить ещё
+									{isFetchingNextPage ? "Загрузка…" : "Загрузить ещё"}
 								</Button>
 							</div>
 						)}
