@@ -200,6 +200,7 @@ export function MentionAutocomplete({
 		<div
 			ref={listRef}
 			role="listbox"
+			aria-label="Участники для упоминания"
 			className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto rounded-lg border bg-popover shadow-lg z-50"
 			// Предотвращаем потерю фокуса textarea при клике по списку.
 			onMouseDown={(e) => e.preventDefault()}
@@ -208,6 +209,9 @@ export function MentionAutocomplete({
 				<button
 					key={member.id}
 					type="button"
+					role="option"
+					aria-selected={index === selectedIndex}
+					id={`mention-option-${member.id}`}
 					className={cn(
 						"flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors",
 						index === selectedIndex
