@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -9,8 +10,11 @@ import {
 import { getOrgInvite } from "@/api/admin-org";
 import { api } from "@/api/client";
 import { PendingUsersPanel } from "@/components/admin/pending-users-panel";
+import { QueryStateView } from "@/components/query-state-view";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toastApiError } from "@/lib/format-api-error";
+
+const ADMIN_USERS_QUERY_KEY = ["admin", "users"] as const;
 
 /** Пользователь для управления. */
 interface ManagedUser {
@@ -27,6 +31,13 @@ interface ManagedUser {
 interface UsersResponse {
 	items?: ManagedUser[];
 	users?: ManagedUser[];
+}
+
+/** Нормализует ответ GET /admin/users к массиву. */
+async function fetchAdminUsers(): Promise<ManagedUser[]> {
+	const data = await api.get<UsersResponse | ManagedUser[]>("/admin/users");
+	if (Array.isArray(data)) return data;
+	return data.items ?? data.users ?? [];
 }
 
 /** Props для диалога переназначения задач. */
@@ -153,8 +164,11 @@ function GdprDeleteDialog({
  * Позволяет деактивировать, переназначить задачи и удалить данные (GDPR).
  */
 export function UserManagement() {
-	const [users, setUsers] = useState<ManagedUser[]>([]);
-	const [loading, setLoading] = useState(false);
+	const queryClient = useQueryClient();
+	const usersQuery = useQuery({
+		queryKey: ADMIN_USERS_QUERY_KEY,
+		queryFn: fetchAdminUsers,
+	});
 	const [search, setSearch] = useState("");
 	const [actionUserId, setActionUserId] = useState<string | null>(null);
 	const [reassignDialogUser, setReassignDialogUser] =
@@ -170,51 +184,40 @@ export function UserManagement() {
 	const [inviteLoading, setInviteLoading] = useState(false);
 
 	useEffect(() => {
+		let cancelled = false;
 		setInviteLoading(true);
 		getOrgInvite()
 			.then((res) => {
+				if (cancelled) return;
 				const url =
 					typeof window !== "undefined"
 						? `${window.location.origin}/login?invite=${encodeURIComponent(res.invite_token)}`
 						: res.invite_url;
 				setInviteLink(url);
 			})
-			.catch(() => setInviteLink(""))
-			.finally(() => setInviteLoading(false));
-	}, []);
-
-	useEffect(() => {
-		setLoading(true);
-		api
-			.get<UsersResponse | ManagedUser[]>("/admin/users")
-			.then((data) => {
-				if (Array.isArray(data)) {
-					setUsers(data);
-				} else if (data.items) {
-					setUsers(data.items);
-				} else if (data.users) {
-					setUsers(data.users);
-				}
-			})
 			.catch(() => {
-				setUsers([]);
+				if (!cancelled) setInviteLink("");
 			})
-			.finally(() => setLoading(false));
+			.finally(() => {
+				if (!cancelled) setInviteLoading(false);
+			});
+		return () => {
+			cancelled = true;
+		};
 	}, []);
 
-	/** Фильтрованные пользователи. */
-	const filtered = users.filter(
-		(u) =>
-			u.email.toLowerCase().includes(search.toLowerCase()) ||
-			(u.name ?? "").toLowerCase().includes(search.toLowerCase()),
-	);
+	const patchUsers = (updater: (prev: ManagedUser[]) => ManagedUser[]) => {
+		queryClient.setQueryData<ManagedUser[]>(ADMIN_USERS_QUERY_KEY, (prev) =>
+			updater(prev ?? []),
+		);
+	};
 
 	/** Деактивировать пользователя. */
 	const handleDeactivate = async (user: ManagedUser) => {
 		setActionUserId(user.id);
 		try {
 			await deactivateUser(user.id);
-			setUsers((prev) =>
+			patchUsers((prev) =>
 				prev.map((u) =>
 					u.id === user.id ? { ...u, status: "deactivated" } : u,
 				),
@@ -249,7 +252,7 @@ export function UserManagement() {
 		setActionUserId(gdprDialogUser.id);
 		try {
 			await gdprDeleteUser(gdprDialogUser.id);
-			setUsers((prev) => prev.filter((u) => u.id !== gdprDialogUser.id));
+			patchUsers((prev) => prev.filter((u) => u.id !== gdprDialogUser.id));
 			setGdprDialogUser(null);
 		} catch (err) {
 			toastApiError(err, "Не удалось выполнить GDPR удаление");
@@ -264,7 +267,7 @@ export function UserManagement() {
 		setActionUserId(banDialogUser.id);
 		try {
 			await banUser(banDialogUser.id, banReason.trim());
-			setUsers((prev) =>
+			patchUsers((prev) =>
 				prev.map((u) =>
 					u.id === banDialogUser.id ? { ...u, status: "deactivated" } : u,
 				),
@@ -321,7 +324,8 @@ export function UserManagement() {
 					type="text"
 					value={search}
 					onChange={(e) => setSearch(e.target.value)}
-					placeholder="Email нового пользователя"
+					placeholder="Email или имя"
+					aria-label="Поиск пользователей"
 					className="flex-1 h-10 px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 outline-none focus:border-[rgba(91,156,245,0.3)] placeholder:text-t3"
 				/>
 				<button
@@ -333,6 +337,46 @@ export function UserManagement() {
 			</div>
 
 			{/* Таблица пользователей */}
+			<QueryStateView
+				query={usersQuery}
+				isEmpty={(users) => users.length === 0}
+				emptyFallback={
+					<p className="px-4 py-8 text-center text-t3 text-[13px]" role="status">
+						Пользователи не найдены
+					</p>
+				}
+				loadingFallback={
+					<div
+						className="space-y-2 px-4 py-6"
+						aria-busy="true"
+						aria-live="polite"
+					>
+						{[1, 2, 3, 4].map((i) => (
+							<div
+								key={`admin-user-sk-${i}`}
+								className="h-12 rounded-[var(--r2)] animate-shimmer"
+							/>
+						))}
+					</div>
+				}
+			>
+				{(users) => {
+					const filtered = users.filter(
+						(u) =>
+							u.email.toLowerCase().includes(search.toLowerCase()) ||
+							(u.name ?? "").toLowerCase().includes(search.toLowerCase()),
+					);
+					if (filtered.length === 0) {
+						return (
+							<p
+								className="px-4 py-8 text-center text-t3 text-[13px]"
+								role="status"
+							>
+								Пользователи не найдены
+							</p>
+						);
+					}
+					return (
 			<table
 				className="w-full"
 				style={{ borderCollapse: "separate", borderSpacing: 0 }}
@@ -357,26 +401,7 @@ export function UserManagement() {
 					</tr>
 				</thead>
 				<tbody>
-					{loading ? (
-						<tr>
-							<td
-								colSpan={5}
-								className="px-4 py-8 text-center text-t3 text-[13px]"
-							>
-								Загрузка...
-							</td>
-						</tr>
-					) : filtered.length === 0 ? (
-						<tr>
-							<td
-								colSpan={5}
-								className="px-4 py-8 text-center text-t3 text-[13px]"
-							>
-								Пользователи не найдены
-							</td>
-						</tr>
-					) : (
-						filtered.map((user) => (
+					{filtered.map((user) => (
 							<tr
 								key={user.id}
 								className={user.status === "deactivated" ? "opacity-50" : ""}
@@ -473,10 +498,12 @@ export function UserManagement() {
 									</div>
 								</td>
 							</tr>
-						))
-					)}
+						))}
 				</tbody>
 			</table>
+					);
+				}}
+			</QueryStateView>
 
 			{/* Диалог переназначения */}
 			{reassignDialogUser && (
@@ -513,6 +540,7 @@ export function UserManagement() {
 							value={banReason}
 							onChange={(e) => setBanReason(e.target.value)}
 							placeholder="Причина блокировки"
+							aria-label="Причина блокировки"
 							rows={3}
 							className="mb-4 w-full px-3 py-2 bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[13px] text-t1 outline-none resize-none"
 						/>
