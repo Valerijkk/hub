@@ -52,8 +52,29 @@ func (r *EntRepository) LogTime(ctx context.Context, issueID, userID uuid.UUID, 
 // A3-005: отклоняет повторный старт, если у пользователя уже есть открытый
 // таймер на этой задаче (EndedAtIsNil + StartedAtNotNil) — иначе StopTimer.Only
 // становится неоднозначным.
+// Exist→Create сериализованы в tx с row-lock parent issue (UPDATE … WHERE id) —
+// Ent/SQLite отвергает SELECT FOR UPDATE; UPDATE даёт эквивалентный lock на PG
+// и сериализует writers на SQLite. Без lock два concurrent StartTimer оба видят
+// «нет открытого» и создают два.
 func (r *EntRepository) StartTimer(ctx context.Context, issueID, userID uuid.UUID) (*ent.TimeLog, error) {
-	exists, err := r.client.TimeLog.Query().
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin start timer tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Lock parent issue row so concurrent open-timer creates serialize.
+	err = tx.Issue.UpdateOneID(issueID).
+		SetUpdatedAt(time.Now().UTC()).
+		Exec(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
+		return nil, fmt.Errorf("lock issue for timer: %w", err)
+	}
+
+	exists, err := tx.TimeLog.Query().
 		Where(
 			timelog.HasIssueWith(issue.IDEQ(issueID)),
 			timelog.HasUserWith(user.IDEQ(userID)),
@@ -71,7 +92,7 @@ func (r *EntRepository) StartTimer(ctx context.Context, issueID, userID uuid.UUI
 	now := time.Now()
 	// Создаём TimeLog с started_at, но без ended_at и минимальным minutes=1
 	// (minutes будет пересчитан при StopTimer)
-	tl, err := r.client.TimeLog.Create().
+	tl, err := tx.TimeLog.Create().
 		SetIssueID(issueID).
 		SetUserID(userID).
 		SetMinutes(1). // placeholder, будет пересчитано при остановке
@@ -79,6 +100,9 @@ func (r *EntRepository) StartTimer(ctx context.Context, issueID, userID uuid.UUI
 		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("запуск таймера: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit start timer: %w", err)
 	}
 	return tl, nil
 }
