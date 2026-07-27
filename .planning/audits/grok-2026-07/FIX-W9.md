@@ -18,7 +18,7 @@ Docker: `postgres` / `mongo` / `redis` healthy; `POSTGRES_TEST_URL=postgresql://
 |----|--------|-----|
 | A3-004 | CLOSED_ALREADY | `cd852a8` / Ent `9d0cec1` (W3/W4) |
 | A6-003 | FIXED | `cc43d4b` |
-| A3-005 | CLOSED_ALREADY | `d280eaa` (W3) |
+| A3-005 | FIXED (+ recheck) | `d280eaa` (W3 LogTime/StopTimer) + `c502395` (2026-07-28 StartTimer open-timer reject) |
 | A6-004 | FIXED | `d3e8122` |
 | A7-006 | FIXED | `9e2bdda` |
 
@@ -34,12 +34,13 @@ Docker: `postgres` / `mongo` / `redis` healthy; `POSTGRES_TEST_URL=postgresql://
 - Тесты: `TestUpdateTestCase_OptimisticLock_A3_004` (mock) + `TestEntRepository_UpdateTestCase_OptimisticLock_A3_004` (Postgres Ent).
 - Re-verify 2026-07-27: `go test -tags hubtest ./testframework/tms/ -run A3_004` → **PASS**.
 
-### A3-005 — LogTime + StopTimer nil panic
+### A3-005 — LogTime + StopTimer nil panic (+ StartTimer duplicate)
 
-**Вердикт:** CLOSED_ALREADY (W3 `d280eaa`).
+**Вердикт:** FIXED (W3 `d280eaa` + remediation `c502395` 2026-07-28).
 
-- Prod: `LogTime` пишет `StartedAt`+`EndedAt`; `StopTimer` — `EndedAtIsNil` **и** `StartedAtNotNil`.
-- Тест: `TestEntRepository_LogTime_DoesNotMatchStopTimer_A3_005`.
+- Prod (W3): `LogTime` пишет `StartedAt`+`EndedAt`; `StopTimer` — `EndedAtIsNil` **и** `StartedAtNotNil`.
+- Prod (2026-07-28): `StartTimer` rejects if open timer already exists (`EndedAtIsNil`+`StartedAtNotNil`) → 409 — иначе `StopTimer.Only` неоднозначен.
+- Тесты: `TestEntRepository_LogTime_DoesNotMatchStopTimer_A3_005`; `c502395` extends open-timer coverage in `log_time_a3005_test.go`.
 - Re-verify 2026-07-27: `go test -tags hubtest ./testframework/tracker/ -run A3_005` → **PASS**.
 
 ---
@@ -96,6 +97,12 @@ Docker: `postgres` / `mongo` / `redis` healthy; `POSTGRES_TEST_URL=postgresql://
 cc43d4b fix(crm,marketplace): enforce VersionEQ optimistic lock (A6-003)
 d3e8122 fix(accounting): atomic invoice-per-deal create under deal lock (A6-004)
 9e2bdda fix(intranet): use latest coffee round for rematch avoid-set (A7-006)
+```
+
+### Remediation recheck (2026-07-28)
+
+```text
+c502395 fix(tracker): reject StartTimer when open timer exists (A3-005)
 ```
 
 *Merge в `master` — только пользователем.*

@@ -18,17 +18,19 @@
 | A13-001 | FIXED (prior) | `456636f` | `MaxBoardIssuesPerColumn=200` — non-schema amp for A8-001. |
 | A13-011 | FIXED | `2ae0f1f` | Board: `effectiveBoardId` from list → no effect waterfall. |
 | A13-012 | FIXED | `2ae0f1f` | Dashboard: `Promise.all([fetchPersonal(), loadLayout])`. |
-| A13-014 | FIXED | `015cc4c` | Kanban virtualize ≥24 cards + Vitest. |
+| A13-014 | FIXED | `015cc4c` + WEAK `3536e0e` | Kanban virtualize ≥24 cards + Vitest; **WEAK close 2026-07-28:** threshold assertion in `board-column-virtual.test.tsx`. |
 | A13-015 | FIXED | `7510125` | Lazy AI/Command/Shortcuts in AppShell. |
 | A13-016 | FIXED | `1de2e13` | Eager common+help; other ns dynamic import. |
 | A13-017 | FIXED | `94760b7` (+ board lazy in `2ae0f1f`) | crm/accounting/marketplace/gantt/board lazy routes. |
-| A13-018 | FIXED | `cf4dbd5` | Channel list virtualize ≥40 rows. |
+| A13-018 | FIXED | `cf4dbd5` + WEAK `53d72c8` | Channel list virtualize ≥40 rows; **WEAK close 2026-07-28:** `channel-list-virtual.test.tsx` threshold. |
 | Bundle | FIXED | via `7510125`…`94760b7` | Cold graph drops shell panels + heavy modules + most locale JSON. |
 | Report | docs | `4621d9c` | This file + STATE session note. |
 
 ---
 
 ## NEEDS_APPROVAL (schema)
+
+> **Unchanged 2026-07-28 remediation recheck** — indexes still require explicit schema approval; query rewrites remain FIXED.
 
 ### A8-001 — `issues`
 

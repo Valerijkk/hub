@@ -24,7 +24,7 @@ CreateCall / chat / recording / RaiseHand без membership; push hijack; instan
 | A2-004 | `ef72607` | recording start/stop → membership |
 | A2-005 | `a90fb5a` | push Update/Delete Endpoint+UserID |
 | A2-006 | `cb80edd` | RaiseHand → active participant |
-| A2-007 | `2b78dd3` | instant WS → IsCallParticipant |
+| A2-007 | `2b78dd3` + WEAK `cce9265` | instant WS → IsCallParticipant; **WEAK close 2026-07-28:** `ws_authorizer_integration_a2007_test.go` (prod Authorizer + stranger deny) |
 
 Каждый: regression + mutation (снять guard → red → restore → green).
 

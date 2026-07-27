@@ -16,14 +16,23 @@ Checklist: authz scoped · input validation · pagination limits · status 400/4
 | ID | Sev | Status | SHA | Notes |
 |----|-----|--------|-----|-------|
 | A4-001 | P1 | FIXED | `27f0374` | JQL `assignee` → `HasAssigneeWith(user.IDEQ)` |
-| A4-002 | P1 | FIXED | `31002d7` | Ctrl+K shards: `deleted_at IS NULL` (+ files `status=confirmed`) |
-| A4-006 | P1 | FIXED | `06c1856` | `ConfirmUpload` only `pending` → 409 if already confirmed |
+| A4-002 | P1 | FIXED | `31002d7` + WEAK `c3bc077` | Ctrl+K shards: `deleted_at IS NULL` (+ files `status=confirmed`); **runtime Postgres** soft-delete exclusion |
+| A4-006 | P1 | FIXED | `06c1856` + WEAK `1b19d13` | `ConfirmUpload` only `pending` → 409 if already confirmed; **HTTP** re-confirm |
 | A4-007 | P2 | FIXED | `3074dca` | Download/`GetActiveByID` only `confirmed` |
 | A2-008 | P2 | FIXED | `adbc03e` | `GetActiveCall` requires `IsChannelMember` → 403 |
 | Block F board/label | P2 | FIXED | `dbd03cf` | `GetBoardData`/`DeleteLabel` scoped to `:projectId` |
-| A3-016 | P2 | FIXED | `0a3a3ad` | `StartSprint` fail-closed on `FindActiveSprint` DB error |
+| A3-016 | P2 | FIXED | `0a3a3ad` + scope `8e0c9f2` | `StartSprint` fail-closed on `FindActiveSprint` DB error; **2026-07-28:** `GetSprintInProject` before activate (RT-005 sibling) |
 | A3-015 | P2 | FIXED | `bc5d61a` | `CheckWIPLimit` fail-closed on missing status / count error |
 | A3-017 | P2 | FIXED | `369f852` | `ExecuteTestResult` sets `ExecutedByID` |
+
+### WEAK close (2026-07-28 · qa-auto2)
+
+| ID | Gap closed | Test SHA | Autotest |
+|----|------------|----------|----------|
+| A4-002 | Source-grep / fixture only; runtime soft-delete unproven | `c3bc077` | `TestPostgresSearch_ExcludesSoftDeleted_A4_002` |
+| A4-006 | Service path only; HTTP 409 unproven | `1b19d13` | `TestHandler_ConfirmUpload_AlreadyConfirmed_409_A4_006` |
+
+Prod fixes remain `31002d7` / `06c1856`; StartSprint project-scope fix `8e0c9f2`.
 
 ---
 
@@ -74,7 +83,7 @@ Residual GAP: A3-013 MoveIssue version · A3-018 HasMore off-by-one — deferred
 
 | Handler / svc | authz | validate | page | status | AppError | 404≠403 | no PII | idempotency |
 |---------------|-------|----------|------|--------|----------|---------|---------|-------------|
-| `StartSprint` | PASS RBAC | PASS UUID | n/a | PASS 409 conflict · **FIXED** A3-016 fail-closed | PASS | PASS | PASS | n/a |
+| `StartSprint` | PASS RBAC + **FIXED** `GetSprintInProject` (`8e0c9f2`) | PASS UUID | n/a | PASS 409 conflict · **FIXED** A3-016 fail-closed | PASS | PASS | PASS | n/a |
 | `CheckWIPLimit` | via move path | PASS | n/a | PASS 409 · **FIXED** A3-015 fail-closed | PASS | PASS | PASS | n/a |
 | `CompleteSprint` | PASS project scope (A3-001) | PASS | n/a | PASS | PASS | PASS | PASS | n/a |
 

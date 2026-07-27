@@ -2,7 +2,49 @@
 
 **Branch:** `cursor-grok-4.5`  
 **Finale:** 2026-07-27 · [`FIX-W20.md`](./FIX-W20.md)  
+**Remediation recheck:** 2026-07-28 (WEAK / evidence closure wave)  
 **Audit root:** `.planning/audits/grok-2026-07/` (zones `00`–`19` + FIX-W*)
+
+---
+
+## Remediation recheck (2026-07-28)
+
+Post-W20 wave closed **WEAK** evidence gaps (mutation-resistant / HTTP / Postgres / Vitest threshold tests) and one residual product fix (`StartSprint` project-scope). **No new coverage % claimed** — gate remains **81.9%** (2026-07-27).
+
+### Newly closed / WEAK→CLOSED
+
+| ID | Wave home | Close type | Evidence SHA(s) |
+|----|-----------|------------|-----------------|
+| A3-005 | W9 | Fix + test — reject `StartTimer` if open timer | `c502395` |
+| A3-016 / RT-005 sibling | W18 | Fix — `StartSprint` → `GetSprintInProject` | `8e0c9f2` |
+| A2-007 | W6 | WEAK — Authorizer deny integration | `cce9265` |
+| A2-010 | W8 | WEAK — Nak on Dispatch failure mutation | `612cf22` |
+| A3-011-link/react/target | W4 | WEAK — Postgres Ent twins (not sqlite) | `6342059` |
+| A1-009 | W17 | WEAK — HTTP 403 founder ban/deactivate | `957472e` |
+| A1-013 | W17 | WEAK — HTTP 400 retention allowlist | `9764850` |
+| A14-006 | W17 | WEAK — OTP not logged (slog spy) | `0cbc7d2` |
+| A14-007 | W17 | WEAK — `EnableStackTrace`↔DevMode | `4ebd8c3` |
+| A4-002 | W18 | WEAK — runtime soft-delete exclusion | `c3bc077` |
+| A4-006 | W18 | WEAK — ConfirmUpload HTTP 409 | `1b19d13` |
+| A10-001 | W12 | WEAK — WS→Query handler path Vitest | `575106d` |
+| A13-014 | W15 | WEAK — board column virtualizes at threshold | `3536e0e` |
+| A13-018 | W15 | WEAK — channel list virtualizes at threshold | `53d72c8` |
+| A14-005 | W16 | Tighten metrics CIDR default (FIXED*) | `c5613f6` |
+
+Honesty pass (no fake CLOSED): [`76080f8`](./FIX-W5.md) — W5/W10/W13/W16 residuals.
+
+### Still schema-blocked / NEEDS_APPROVAL (unchanged)
+
+| ID | Status | Notes |
+|----|--------|-------|
+| **A8-006** | **BLOCKED** | Comment hard-delete; TZ soft-delete needs `deleted_at` on `ent/schema/comment.go` |
+| **A8-001** indexes | **NEEDS_APPROVAL** | Query rewrite FIXED (`0ce8cd7`); composite index pending |
+| **A8-002** indexes | **NEEDS_APPROVAL** | Query rewrite FIXED (`443a569`); TC FK index pending |
+
+### RT residual (honest)
+
+- **RT-003** PARTIAL — CRM writes CLOSED; List/Pipeline org-wide read remains (**ADR-blocked** — see FIX-W20 §1.1).
+- **RT-005** **CLOSED** — Complete/Start/Get/Update/Retro/Burndown/AddIssues all `GetSprintInProject` (`1ac8669` / `8e0c9f2` / `716c823`).
 
 ---
 
@@ -36,11 +78,11 @@ W4–W20 = remediation program after readonly zones `01`–`19`. Earlier W0–W3
 
 ---
 
-## RT outcome (W20)
+## RT outcome (W20 + 2026-07-28 recheck)
 
 | CLOSED | PARTIAL | ALIVE |
 |-------:|--------:|------:|
-| 10 | 2 (RT-003, RT-005) | 0 |
+| 11 | 1 (RT-003 ADR-blocked) | 0 |
 
 Full table → [FIX-W20.md §1](./FIX-W20.md).
 
@@ -63,4 +105,4 @@ Full table → [FIX-W20.md §1](./FIX-W20.md).
 
 - Feature code freeze for July Rebuild planning remains product context; this branch holds security/quality fixes pending user merge.
 - Do **not** push/merge `master` from agents.
-- Next engineering priority: close RT-005 siblings (`GetSprintInProject` everywhere) → CRM list ADR → schema approvals → FA-06 ops.
+- Next engineering priority: CRM list ADR (RT-003) → schema approvals (A8-006 / A8-001/002 indexes) → FA-06 ops.

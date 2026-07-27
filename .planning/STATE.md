@@ -90,7 +90,7 @@ spec_coverage:
 
 - Recorded remediation recheck in `PROGRAM-W4-W20-SUMMARY.md` + FIX-W9/W12/W15/W17/W18 (+ W6/W8 A2-007/010) + FIX-W20 residual scoreboard.
 - Closed WEAK list with SHAs; schema A8-006 / A8-001/002 indexes still BLOCKED/NEEDS_APPROVAL; RT-003 ADR-blocked.
-- RT-005 on **committed HEAD**: StartSprint closed (`8e0c9f2`); Get/Update/Retro/Burndown still open until be1 sibling commit lands (WC has the fix — not credited in scoreboard yet).
+- RT-005 **CLOSED** on HEAD: Complete/Start/Get/Update/Retro/Burndown/AddIssues via `GetSprintInProject` (`1ac8669` / `8e0c9f2` / `716c823`).
 - No coverage remasure invented (gate remains 81.9% 2026-07-27).
 
 ## Session note — 2026-07-28 (qa-auto1 · close W17 WEAK A14-006 / A14-007)

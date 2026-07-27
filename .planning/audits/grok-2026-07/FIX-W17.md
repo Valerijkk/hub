@@ -15,8 +15,8 @@ Checklist: authz scoped · input validation · pagination limits · status 400/4
 
 | ID | Sev | Status | SHA | Notes |
 |----|-----|--------|-----|-------|
-| A1-009 | P1 | FIXED | `7002ce6` | Ban/Deactivate reject `SystemRoleFounder` → 403 |
-| A1-013 | P2 | FIXED | `4884fb9` | `UpdateResourceLimit` 3-key allowlist (`limit.file.max_size_mb`, `limit.user.max_projects`, `limit.project.max_storage_mb`); reject `retention.*` / unknown → 400 |
+| A1-009 | P1 | FIXED | `7002ce6` + WEAK `957472e` | Ban/Deactivate reject `SystemRoleFounder` → 403; **HTTP handler** `handler_founder_ban_a1009_test.go` |
+| A1-013 | P2 | FIXED | `4884fb9` + WEAK `9764850` | `UpdateResourceLimit` 3-key allowlist (`limit.file.max_size_mb`, `limit.user.max_projects`, `limit.project.max_storage_mb`); reject `retention.*` / unknown → 400; **HTTP** `handler_limits_a1013_test.go` |
 | A2-009 | P2 | FIXED | `ed3b772` | `PublishTyping` requires `IsMember` → 403 |
 | A14-007 | P2 | FIXED | `ec2e23f` | Fiber recover `EnableStackTrace` only if `DevMode` |
 | A14-006 | P2 | FIXED | `a619a04` | Mask email in logs; never log OTP (even dev) |
@@ -26,10 +26,12 @@ Checklist: authz scoped · input validation · pagination limits · status 400/4
 
 | ID | Gap closed | Test SHA | Autotest |
 |----|------------|----------|----------|
+| A1-009 | Service-level only; HTTP 403 unproven | `957472e` | `TestHandler_BanUser_FounderForbidden_A1_009` / `TestHandler_DeactivateUser_FounderForbidden_A1_009` |
+| A1-013 | Allowlist unproven at HTTP | `9764850` | `TestHandler_UpdateLimit_RejectsUnknownKey_A1_013` / `TestHandler_UpdateLimit_AllowlistKeysOK_A1_013` |
 | A14-006 | OTP slog path unproven (only maskEmail) | `0cbc7d2` | `TestMagicLink_OTPNotLogged_A14_006` (slog spy; mutation: `"code", code`) |
 | A14-007 | EnableStackTrace↔DevMode untested | `4ebd8c3` | `TestFiberRecoverEnableStackTrace_FollowsDevMode_A14_007` + wiring → helper |
 
-Prod fixes remain `a619a04` / `ec2e23f`; helper already in tree (`c5613f6`); this wave closes WEAK with mutation-resistant tests.
+Prod fixes remain `7002ce6` / `4884fb9` / `a619a04` / `ec2e23f`; helper already in tree (`c5613f6`); this wave closes WEAK with mutation-resistant / HTTP tests.
 
 ---
 
