@@ -210,7 +210,7 @@ function IssueDetailPage() {
 					<IssueAttachments
 						projectId={projectId}
 						issueId={issue.id}
-						attachments={issue.attachments ?? []}
+						attachments={[]}
 						onAttachmentAdded={() =>
 							queryClient.invalidateQueries({
 								queryKey: ["issue", projectId, issueKey],

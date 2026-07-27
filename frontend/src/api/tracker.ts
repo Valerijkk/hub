@@ -113,13 +113,6 @@ export interface IssueResponse {
 	parent?: IssueBriefResponse;
 	children_count: number;
 	labels: LabelResponse[];
-	attachments?: {
-		file_id: string;
-		file_name: string;
-		file_size: number;
-		mime_type: string;
-		url?: string;
-	}[];
 	created_at: string;
 	updated_at: string;
 }
