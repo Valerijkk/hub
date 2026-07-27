@@ -69,23 +69,27 @@ type DispatchEvent struct {
 }
 
 // Dispatch создаёт и отправляет уведомление пользователю.
-// Проверяет предпочтения и тихие часы перед отправкой.
+// A13-005: prefs одним ResolveChannelPrefs + один GetUser (quiet/telegram), не 3×IsEnabled+2×GetUser.
 func (s *NotificationService) Dispatch(ctx context.Context, evt DispatchEvent) error {
-	// Проверяем предпочтения in_app.
-	inAppEnabled, err := s.repo.IsEnabled(ctx, evt.UserID, evt.Type, ChannelInApp, evt.ProjectID)
+	prefs, err := s.repo.ResolveChannelPrefs(ctx, evt.UserID, evt.Type, evt.ProjectID)
 	if err != nil {
 		slog.Error("ошибка проверки предпочтений", "error", err, "user_id", evt.UserID)
 		return err
 	}
 
-	// Проверяем тихие часы.
-	inQuietHours := s.isQuietHours(ctx, evt.UserID)
-	if inQuietHours && !evt.IsUrgent {
+	user, err := s.repo.GetUser(ctx, evt.UserID)
+	if err != nil {
+		slog.Error("ошибка загрузки пользователя", "error", err, "user_id", evt.UserID)
+		// Fail-open для delivery: без user не проверить quiet hours / telegram.
+		user = nil
+	}
+
+	if user != nil && !evt.IsUrgent && isQuietHoursForUser(user) {
 		slog.Debug("уведомление подавлено тихими часами", "user_id", evt.UserID, "type", evt.Type)
 		return nil
 	}
 
-	// Сохраняем уведомление в БД если in_app включён.
+	inAppEnabled := prefs[ChannelInApp]
 	var notif *ent.Notification
 	if inAppEnabled {
 		notif, err = s.repo.CreateNotification(ctx, evt.UserID, evt.Type, evt.Title, evt.Body,
@@ -95,30 +99,16 @@ func (s *NotificationService) Dispatch(ctx context.Context, evt DispatchEvent) e
 			return err
 		}
 		if notif == nil {
-			// Дедупликация: пропущено.
 			return nil
 		}
-
-		// Отправляем через NATS -> WS bridge.
 		s.publishToWS(evt.UserID, notif)
 	}
 
-	// Отправляем в Telegram если канал включён и у пользователя есть telegram_id.
-	telegramEnabled, err := s.repo.IsEnabled(ctx, evt.UserID, evt.Type, ChannelTelegram, evt.ProjectID)
-	if err != nil {
-		slog.Error("ошибка проверки предпочтений telegram", "error", err, "user_id", evt.UserID)
-	}
-	if telegramEnabled && s.telegram != nil {
-		s.sendTelegram(ctx, evt.UserID, evt.Title, evt.Body)
+	if prefs[ChannelTelegram] && s.telegram != nil && user != nil {
+		s.sendTelegramToUser(user, evt.Title, evt.Body)
 	}
 
-	// Отправляем через Web Push если канал включён и есть подписки.
-	pushEnabled, err := s.repo.IsEnabled(ctx, evt.UserID, evt.Type, ChannelPush, evt.ProjectID)
-	if err != nil {
-		slog.Error("ошибка проверки предпочтений push", "error", err, "user_id", evt.UserID)
-	}
-	if pushEnabled && s.push != nil {
-		// URL для навигации при клике на уведомление.
+	if prefs[ChannelPush] && s.push != nil {
 		pushURL := buildPushURL(evt.EntityType, evt.EntityID)
 		s.push.Send(evt.UserID, evt.Title, evt.Body, pushURL)
 	}
@@ -190,8 +180,11 @@ func (s *NotificationService) sendTelegram(ctx context.Context, userID uuid.UUID
 		slog.Error("ошибка загрузки пользователя для telegram", "error", err, "user_id", userID)
 		return
 	}
+	s.sendTelegramToUser(user, title, body)
+}
 
-	if user.TelegramID == nil || *user.TelegramID == "" {
+func (s *NotificationService) sendTelegramToUser(user *ent.User, title, body string) {
+	if user == nil || user.TelegramID == nil || *user.TelegramID == "" {
 		return
 	}
 
@@ -208,6 +201,13 @@ func (s *NotificationService) sendTelegram(ctx context.Context, userID uuid.UUID
 func (s *NotificationService) isQuietHours(ctx context.Context, userID uuid.UUID) bool {
 	user, err := s.repo.GetUser(ctx, userID)
 	if err != nil {
+		return false
+	}
+	return isQuietHoursForUser(user)
+}
+
+func isQuietHoursForUser(user *ent.User) bool {
+	if user == nil {
 		return false
 	}
 

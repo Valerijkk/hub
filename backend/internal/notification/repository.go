@@ -250,40 +250,60 @@ func (r *Repository) ListIssuesWithUpcomingDeadline(ctx context.Context, now, de
 // IsEnabled проверяет, включено ли уведомление данного типа для канала и пользователя.
 // Сначала проверяет per-project настройку, потом глобальную. По умолчанию — включено.
 func (r *Repository) IsEnabled(ctx context.Context, userID uuid.UUID, notifType, channel string, projectID *uuid.UUID) (bool, error) {
-	// Проверяем per-project настройку.
-	if projectID != nil {
-		pref, err := r.db.NotificationPreference.Query().
-			Where(
-				notificationpreference.UserID(userID),
-				notificationpreference.NotificationType(notifType),
-				notificationpreference.Channel(channel),
-				notificationpreference.ProjectID(*projectID),
-			).
-			First(ctx)
-		if err == nil {
-			return pref.Enabled, nil
-		}
-		if !ent.IsNotFound(err) {
-			return false, err
-		}
+	prefs, err := r.ResolveChannelPrefs(ctx, userID, notifType, projectID)
+	if err != nil {
+		return false, err
+	}
+	enabled, ok := prefs[channel]
+	if !ok {
+		return true, nil
+	}
+	return enabled, nil
+}
+
+// ResolveChannelPrefs — A13-005: одним (до двух с project) запросом читает prefs
+// для всех каналов user+type вместо 3× IsEnabled.
+func (r *Repository) ResolveChannelPrefs(ctx context.Context, userID uuid.UUID, notifType string, projectID *uuid.UUID) (map[string]bool, error) {
+	out := map[string]bool{
+		ChannelInApp:    true,
+		ChannelTelegram: true,
+		ChannelPush:     true,
 	}
 
-	// Проверяем глобальную настройку.
-	pref, err := r.db.NotificationPreference.Query().
-		Where(
-			notificationpreference.UserID(userID),
-			notificationpreference.NotificationType(notifType),
-			notificationpreference.Channel(channel),
-			notificationpreference.ProjectIDIsNil(),
-		).
-		First(ctx)
-	if err == nil {
-		return pref.Enabled, nil
+	q := r.db.NotificationPreference.Query().Where(
+		notificationpreference.UserID(userID),
+		notificationpreference.NotificationType(notifType),
+	)
+	if projectID != nil {
+		q = q.Where(
+			notificationpreference.Or(
+				notificationpreference.ProjectID(*projectID),
+				notificationpreference.ProjectIDIsNil(),
+			),
+		)
+	} else {
+		q = q.Where(notificationpreference.ProjectIDIsNil())
 	}
-	if ent.IsNotFound(err) {
-		return true, nil // По умолчанию включено.
+
+	rows, err := q.All(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return false, err
+
+	// Глобальные сначала, затем project override.
+	for _, pref := range rows {
+		if pref.ProjectID == nil {
+			out[pref.Channel] = pref.Enabled
+		}
+	}
+	if projectID != nil {
+		for _, pref := range rows {
+			if pref.ProjectID != nil && *pref.ProjectID == *projectID {
+				out[pref.Channel] = pref.Enabled
+			}
+		}
+	}
+	return out, nil
 }
 
 // GetUserTelegram загружает поля telegram пользователя для статуса bind.
