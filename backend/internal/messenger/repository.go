@@ -22,9 +22,9 @@ type ChannelRepository interface {
 	ListUserChannels(ctx context.Context, userID uuid.UUID) ([]*ent.Channel, error)
 	// UpdateChannel обновляет канал.
 	UpdateChannel(ctx context.Context, channelID uuid.UUID, input UpdateChannelInput) (*ent.Channel, error)
-	// DeleteChannel удаляет канал.
+	// DeleteChannel мягко удаляет канал (deleted_at).
 	DeleteChannel(ctx context.Context, channelID uuid.UUID) error
-	// IsMember проверяет, является ли пользователь участником канала.
+	// IsMember проверяет участие в активном (не soft-deleted) канале.
 	IsMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error)
 	// GetMemberRole возвращает роль участника в канале.
 	GetMemberRole(ctx context.Context, channelID, userID uuid.UUID) (string, error)

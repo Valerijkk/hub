@@ -228,16 +228,16 @@ func (r *EntRepository) IsCallParticipantOrChannelMember(ctx context.Context, ca
 	return r.IsActiveParticipant(ctx, callID, userID)
 }
 
-// IsChannelMember проверяет, состоит ли пользователь в канале мессенджера.
+// IsChannelMember проверяет, состоит ли пользователь в активном канале мессенджера.
 // HI-03: используется для авторизации JoinCall/EndCall — у звонка есть
 // channel_id (для канальных звонков), членство в этом канале — необходимое
-// условие для участия/завершения. Эта проверка делается через ту же таблицу
-// channel_members, что и в messenger.EntRepository.IsMember.
+// условие для участия/завершения. Soft-deleted каналы не считаются (A8-005).
 func (r *EntRepository) IsChannelMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
 	return r.db.ChannelMember.Query().
 		Where(
 			channelmember.ChannelID(channelID),
 			channelmember.UserID(userID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
 		).
 		Exist(ctx)
 }
@@ -269,7 +269,10 @@ func (r *EntRepository) GetChannelMemberRole(ctx context.Context, channelID, use
 // Необходим для привязки записей к проекту.
 func (r *EntRepository) GetProjectIDByChannel(ctx context.Context, channelID uuid.UUID) (uuid.UUID, error) {
 	ch, err := r.db.Channel.Query().
-		Where(channel.ID(channelID)).
+		Where(
+			channel.ID(channelID),
+			channel.DeletedAtIsNil(),
+		).
 		Only(ctx)
 	if err != nil {
 		return uuid.Nil, err

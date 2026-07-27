@@ -8,18 +8,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/bookmark"
-	"github.com/valerii/hub/backend/ent/call"
 	"github.com/valerii/hub/backend/ent/channel"
 	"github.com/valerii/hub/backend/ent/channelinvite"
 	"github.com/valerii/hub/backend/ent/channelmember"
-	"github.com/valerii/hub/backend/ent/issuemessagelink"
 	"github.com/valerii/hub/backend/ent/pinnedmessage"
 	"github.com/valerii/hub/backend/ent/poll"
 	"github.com/valerii/hub/backend/ent/polloption"
 	"github.com/valerii/hub/backend/ent/pollvote"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
-	"github.com/valerii/hub/backend/ent/scheduledcall"
 )
 
 // EntRepository реализует Ent/PG-часть интерфейса Repository.
@@ -57,23 +54,30 @@ func (r *EntRepository) CreateChannel(ctx context.Context, input CreateChannelIn
 }
 
 // GetChannel возвращает канал по ID с загрузкой участников.
+// Soft-deleted каналы скрыты (A8-005 / TZ trash).
 func (r *EntRepository) GetChannel(ctx context.Context, channelID uuid.UUID) (*ent.Channel, error) {
 	return r.client.Channel.Query().
-		Where(channel.ID(channelID)).
+		Where(
+			channel.ID(channelID),
+			channel.DeletedAtIsNil(),
+		).
 		WithMembers().
 		Only(ctx)
 }
 
-// ListUserChannels возвращает все каналы, в которых состоит пользователь.
+// ListUserChannels возвращает все активные каналы, в которых состоит пользователь.
 func (r *EntRepository) ListUserChannels(ctx context.Context, userID uuid.UUID) ([]*ent.Channel, error) {
 	return r.client.Channel.Query().
-		Where(channel.HasMembersWith(channelmember.UserID(userID))).
+		Where(
+			channel.DeletedAtIsNil(),
+			channel.HasMembersWith(channelmember.UserID(userID)),
+		).
 		All(ctx)
 }
 
 // UpdateChannel обновляет данные канала.
 func (r *EntRepository) UpdateChannel(ctx context.Context, channelID uuid.UUID, input UpdateChannelInput) (*ent.Channel, error) {
-	q := r.client.Channel.UpdateOneID(channelID)
+	q := r.client.Channel.UpdateOneID(channelID).Where(channel.DeletedAtIsNil())
 	if input.Name != nil {
 		q.SetName(*input.Name)
 	}
@@ -86,91 +90,39 @@ func (r *EntRepository) UpdateChannel(ctx context.Context, channelID uuid.UUID, 
 	return q.Save(ctx)
 }
 
-// DeleteChannel удаляет канал и связанные PG-данные в одной транзакции (A8-005).
-// Soft-delete (deleted_at) требует Ent-схему — без approval остаёмся на hard-delete,
-// но сначала чистим children (members/pins/polls/…), иначе FK NoAction ломает удаление.
+// DeleteChannel мягко удаляет канал (A8-005): SetDeletedAt, children остаются для
+// admin hard-purge / restore. List/Get/IsMember фильтруют soft-deleted.
 func (r *EntRepository) DeleteChannel(ctx context.Context, channelID uuid.UUID) error {
-	tx, err := r.client.Tx(ctx)
+	now := time.Now().UTC()
+	err := r.client.Channel.UpdateOneID(channelID).
+		Where(channel.DeletedAtIsNil()).
+		SetDeletedAt(now).
+		Exec(ctx)
 	if err != nil {
-		return fmt.Errorf("delete channel begin tx: %w", err)
-	}
-	rollback := func() { _ = tx.Rollback() }
-
-	pollIDs, err := tx.Poll.Query().Where(poll.ChannelIDEQ(channelID)).IDs(ctx)
-	if err != nil {
-		rollback()
-		return fmt.Errorf("list channel polls: %w", err)
-	}
-	if len(pollIDs) > 0 {
-		if _, err := tx.PollVote.Delete().Where(pollvote.HasPollWith(poll.IDIn(pollIDs...))).Exec(ctx); err != nil {
-			rollback()
-			return fmt.Errorf("delete poll votes: %w", err)
-		}
-		if _, err := tx.PollOption.Delete().Where(polloption.HasPollWith(poll.IDIn(pollIDs...))).Exec(ctx); err != nil {
-			rollback()
-			return fmt.Errorf("delete poll options: %w", err)
-		}
-		if _, err := tx.Poll.Delete().Where(poll.IDIn(pollIDs...)).Exec(ctx); err != nil {
-			rollback()
-			return fmt.Errorf("delete polls: %w", err)
-		}
-	}
-
-	if _, err := tx.PinnedMessage.Delete().Where(pinnedmessage.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
-		rollback()
-		return fmt.Errorf("delete pins: %w", err)
-	}
-	if _, err := tx.ChannelInvite.Delete().Where(channelinvite.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
-		rollback()
-		return fmt.Errorf("delete invites: %w", err)
-	}
-	if _, err := tx.IssueMessageLink.Delete().Where(issuemessagelink.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
-		rollback()
-		return fmt.Errorf("delete issue-message links: %w", err)
-	}
-	if _, err := tx.Bookmark.Delete().Where(bookmark.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
-		rollback()
-		return fmt.Errorf("delete bookmarks: %w", err)
-	}
-	if _, err := tx.ScheduledCall.Delete().Where(scheduledcall.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
-		rollback()
-		return fmt.Errorf("delete scheduled calls: %w", err)
-	}
-	// Calls.channel_id optional — отвязываем историю звонков, не удаляем.
-	if _, err := tx.Call.Update().Where(call.ChannelIDEQ(channelID)).ClearChannelID().Save(ctx); err != nil {
-		rollback()
-		return fmt.Errorf("clear call channel_id: %w", err)
-	}
-	if _, err := tx.ChannelMember.Delete().Where(channelmember.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
-		rollback()
-		return fmt.Errorf("delete members: %w", err)
-	}
-	if err := tx.Channel.DeleteOneID(channelID).Exec(ctx); err != nil {
-		rollback()
-		return fmt.Errorf("delete channel: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("delete channel commit: %w", err)
+		return fmt.Errorf("soft-delete channel: %w", err)
 	}
 	return nil
 }
 
-// IsMember проверяет, является ли пользователь участником канала.
+// IsMember проверяет участие в активном (не soft-deleted) канале.
+// Используется WS Authorizer (NF-02) — soft-deleted комнаты не подписываем.
 func (r *EntRepository) IsMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
 	return r.client.ChannelMember.Query().
 		Where(
 			channelmember.ChannelID(channelID),
 			channelmember.UserID(userID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
 		).
 		Exist(ctx)
 }
 
-// GetMemberRole возвращает роль участника в канале.
+// GetMemberRole возвращает роль участника в активном канале.
 func (r *EntRepository) GetMemberRole(ctx context.Context, channelID, userID uuid.UUID) (string, error) {
 	m, err := r.client.ChannelMember.Query().
 		Where(
 			channelmember.ChannelID(channelID),
 			channelmember.UserID(userID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
 		).
 		Only(ctx)
 	if err != nil {
@@ -222,7 +174,10 @@ func (r *EntRepository) RemoveMember(ctx context.Context, channelID, userID uuid
 // FindDMChannel ищет существующий DM-канал по ключу дедупликации.
 func (r *EntRepository) FindDMChannel(ctx context.Context, dmKey string) (*ent.Channel, error) {
 	return r.client.Channel.Query().
-		Where(channel.DmKey(dmKey)).
+		Where(
+			channel.DmKey(dmKey),
+			channel.DeletedAtIsNil(),
+		).
 		WithMembers().
 		Only(ctx)
 }
@@ -644,6 +599,7 @@ func (r *EntRepository) FindGlobalChannelByName(ctx context.Context, name string
 		Where(
 			channel.NameEQ(name),
 			channel.ProjectIDIsNil(),
+			channel.DeletedAtIsNil(),
 			channel.ChannelTypeIn(channel.ChannelTypePublic, channel.ChannelTypePrivate),
 		).
 		First(ctx)
