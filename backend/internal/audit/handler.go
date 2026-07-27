@@ -179,6 +179,9 @@ func (h *Handler) UpdateLimit(c fiber.Ctx) error {
 	}
 
 	if err := h.service.UpdateResourceLimit(c.Context(), key, req.Value); err != nil {
+		if errors.Is(err, ErrInvalidResourceLimitKey) {
+			return fiber.NewError(fiber.StatusBadRequest, "unknown resource limit key")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 

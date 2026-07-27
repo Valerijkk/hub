@@ -24,6 +24,9 @@ var ErrCannotDeleteFounder = errors.New("cannot delete founder account")
 // ErrCannotModifyFounder — A1-009: ban/deactivate founder запрещены (ORG-04).
 var ErrCannotModifyFounder = errors.New("cannot ban or deactivate founder account")
 
+// ErrInvalidResourceLimitKey — A1-013: PUT /admin/limits/{key} только allowlist.
+var ErrInvalidResourceLimitKey = errors.New("invalid resource limit key")
+
 // Настройки аудита, лимитов и корзины.
 const (
 	// Ключи лимитов в SystemSetting.
@@ -145,7 +148,14 @@ func (s *AuditService) GetResourceLimits(ctx context.Context) ([]ResourceLimitRe
 }
 
 // UpdateResourceLimit обновляет лимит ресурса в SystemSetting (только для администратора).
+// A1-013: ключ обязан быть из allowlist — иначе можно перезаписать retention.* и др.
 func (s *AuditService) UpdateResourceLimit(ctx context.Context, key, value string) error {
+	switch key {
+	case LimitFileMaxSizeMB, LimitUserMaxProjects, LimitProjectMaxStorageMB:
+		// ok
+	default:
+		return ErrInvalidResourceLimitKey
+	}
 	return s.repo.UpsertSystemSetting(ctx, key, value, fmt.Sprintf("Лимит ресурса: %s", key))
 }
 

@@ -198,6 +198,20 @@ func TestAuditService_UpdateResourceLimit(t *testing.T) {
 	assert.Equal(t, "100", val)
 }
 
+// TestAuditService_UpdateResourceLimit_RejectsUnknownKey_A1_013 — allowlist keys only.
+func TestAuditService_UpdateResourceLimit_RejectsUnknownKey_A1_013(t *testing.T) {
+	repo := newAuditRepoTestEnv(t)
+	svc := audit.NewAuditService(repo, nil)
+	ctx := context.Background()
+
+	err := svc.UpdateResourceLimit(ctx, "retention.chat_messages_days", "1")
+	require.ErrorIs(t, err, audit.ErrInvalidResourceLimitKey)
+
+	val, err := repo.GetSystemSetting(ctx, "retention.chat_messages_days")
+	require.NoError(t, err)
+	assert.Empty(t, val, "unknown key must not be upserted")
+}
+
 // TestAuditService_CheckLimit_NoSetting проверяет бизнес-логику: audit сервис проверка limit no setting.
 func TestAuditService_CheckLimit_NoSetting(t *testing.T) {
 	repo := newAuditRepoTestEnv(t)
