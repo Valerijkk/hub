@@ -66,6 +66,13 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (be1 · W19 Block F handler polish)
+
+- FIX: `.planning/audits/grok-2026-07/FIX-W19.md`
+- Closed clear P1/P2: A7-002, A5-002, A6-005, A7-005, A7-008, A7-007/009, A6-006
+- Domains sampled: crm/hr/accounting/calendar/github/gitlab/imex/marketplace/intranet/mail/dashboard/backup/apigateway/status/dev
+- No schema · no push master · hubtest green on touched packages
+
 ## Session note — 2026-07-27 (be2 · W18 Block F handler polish)
 
 - Domains: tms/tracker/sprint/calls/notification/search/bases/storage/ai (same checklist as W17).
