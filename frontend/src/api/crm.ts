@@ -62,6 +62,24 @@ export function createContact(data: {
 	return api.post<CrmContact>("/crm/contacts", data);
 }
 
+export function updateContact(
+	id: string,
+	data: {
+		name?: string;
+		email?: string;
+		phone?: string;
+		company?: string;
+		notes?: string;
+		version: number;
+	},
+): Promise<CrmContact> {
+	return api.put<CrmContact>(`/crm/contacts/${id}`, data);
+}
+
+export function deleteContact(id: string): Promise<void> {
+	return api.delete(`/crm/contacts/${id}`);
+}
+
 export function getPipeline(): Promise<PipelineResponse> {
 	return api.get<PipelineResponse>("/crm/pipeline");
 }
