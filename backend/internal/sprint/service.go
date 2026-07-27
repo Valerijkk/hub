@@ -86,6 +86,14 @@ func (s *SprintService) UpdateSprint(ctx context.Context, sprintID uuid.UUID, re
 // StartSprint переводит спринт в статус active.
 // Возвращает ошибку если в проекте уже есть активный спринт.
 func (s *SprintService) StartSprint(ctx context.Context, projectID, sprintID uuid.UUID) (*SprintResponse, error) {
+	// A3-016 / RT-005 sibling: project-scope before status mutation (same as CompleteSprint).
+	if _, err := s.repo.GetSprintInProject(ctx, projectID, sprintID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("спринт не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения спринта")
+	}
+
 	// A3-016: DB error from FindActiveSprint must fail closed (not skip conflict check).
 	existing, err := s.repo.FindActiveSprint(ctx, projectID)
 	if err != nil && !ent.IsNotFound(err) {

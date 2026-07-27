@@ -237,6 +237,7 @@ func TestStartSprint_Success(t *testing.T) {
 	repo := newMockRepository()
 	svc := sprint.NewSprintService(repo, nil, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	// Создаём спринт
 	sprintID := uuid.New()
@@ -249,8 +250,41 @@ func TestStartSprint_Success(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+	repo.sprintProject[sprintID] = projectID
 
-	resp, err := svc.StartSprint(ctx, uuid.New(), sprintID)
+	resp, err := svc.StartSprint(ctx, projectID, sprintID)
+	require.NoError(t, err)
+	assert.Equal(t, "active", resp.Status)
+}
+
+// TestStartSprint_RejectsForeignProject_A3_016 — RT-005 sibling: foreign projectID
+// + real sprintID must NotFound; same project starts OK.
+func TestStartSprint_RejectsForeignProject_A3_016(t *testing.T) {
+	repo := newMockRepository()
+	svc := sprint.NewSprintService(repo, nil, nil)
+	ctx := context.Background()
+	ownerProject := uuid.New()
+	attackerProject := uuid.New()
+	sprintID := uuid.New()
+
+	repo.sprints[sprintID] = &ent.Sprint{
+		ID:        sprintID,
+		Name:      "Victim Sprint",
+		Status:    sprintEnt.StatusPlanning,
+		StartDate: time.Now(),
+		EndDate:   time.Now().AddDate(0, 0, 14),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	repo.sprintProject[sprintID] = ownerProject
+
+	_, err := svc.StartSprint(ctx, attackerProject, sprintID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "не найден")
+	assert.Equal(t, sprintEnt.StatusPlanning, repo.sprints[sprintID].Status,
+		"foreign StartSprint must not activate sprint")
+
+	resp, err := svc.StartSprint(ctx, ownerProject, sprintID)
 	require.NoError(t, err)
 	assert.Equal(t, "active", resp.Status)
 }
@@ -270,6 +304,7 @@ func TestStartSprint_RejectsWhenActiveExists(t *testing.T) {
 		StartDate: time.Now(),
 		EndDate:   time.Now().AddDate(0, 0, 14),
 	}
+	repo.sprintProject[activeID] = projectID
 
 	// Создаём planning спринт
 	newID := uuid.New()
@@ -280,6 +315,7 @@ func TestStartSprint_RejectsWhenActiveExists(t *testing.T) {
 		StartDate: time.Now().AddDate(0, 0, 15),
 		EndDate:   time.Now().AddDate(0, 0, 28),
 	}
+	repo.sprintProject[newID] = projectID
 
 	_, err := svc.StartSprint(ctx, projectID, newID)
 	require.Error(t, err)

@@ -28,6 +28,7 @@ func (m *errFindActiveRepo) FindActiveSprint(context.Context, uuid.UUID) (*ent.S
 // must not skip the active-sprint conflict check (mutation: ignore err → FAIL).
 func TestStartSprint_FailClosedOnFindError_A3_016(t *testing.T) {
 	base := newMockRepository()
+	projectID := uuid.New()
 	sprintID := uuid.New()
 	base.sprints[sprintID] = &ent.Sprint{
 		ID:        sprintID,
@@ -38,10 +39,11 @@ func TestStartSprint_FailClosedOnFindError_A3_016(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+	base.sprintProject[sprintID] = projectID
 	repo := &errFindActiveRepo{mockRepository: base, findErr: errors.New("db down")}
 	svc := sprint.NewSprintService(repo, nil, nil)
 
-	_, err := svc.StartSprint(context.Background(), uuid.New(), sprintID)
+	_, err := svc.StartSprint(context.Background(), projectID, sprintID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "активного спринта")
 	assert.Equal(t, sprintEnt.StatusPlanning, base.sprints[sprintID].Status,
