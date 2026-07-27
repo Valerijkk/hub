@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestService_RejectLeave_VersionZeroWithNotifier(t *testing.T) {
+func TestService_RejectLeave_RequiresVersion_A6_006(t *testing.T) {
 	repo, ctx, memberID, adminID := newHRRepoEnv(t)
 	notifier := &stubHRNotifier{}
 	svc := hr.NewService(repo, notifier, nil)
@@ -24,15 +24,22 @@ func TestService_RejectLeave_VersionZeroWithNotifier(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	_, err = svc.RejectLeave(ctx, adminID, created.ID, hr.ReviewLeaveRequest{
+		ReviewNote: "team capacity",
+		// Version omitted / 0 — A6-006
+	})
+	require.ErrorIs(t, err, hr.ErrInvalidInput)
+
 	rejected, err := svc.RejectLeave(ctx, adminID, created.ID, hr.ReviewLeaveRequest{
 		ReviewNote: "team capacity",
+		Version:    created.Version,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, hr.StatusRejected, rejected.Status)
 	assert.Equal(t, 1, notifier.decisions)
 }
 
-func TestService_ApproveLeave_VersionZero(t *testing.T) {
+func TestService_ApproveLeave_RequiresVersion_A6_006(t *testing.T) {
 	repo, ctx, memberID, adminID := newHRRepoEnv(t)
 	svc := hr.NewService(repo, nil, nil)
 
@@ -45,8 +52,14 @@ func TestService_ApproveLeave_VersionZero(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	_, err = svc.ApproveLeave(ctx, adminID, created.ID, hr.ReviewLeaveRequest{
+		ReviewNote: "approved",
+	})
+	require.ErrorIs(t, err, hr.ErrInvalidInput)
+
 	approved, err := svc.ApproveLeave(ctx, adminID, created.ID, hr.ReviewLeaveRequest{
 		ReviewNote: "approved",
+		Version:    created.Version,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, hr.StatusApproved, approved.Status)

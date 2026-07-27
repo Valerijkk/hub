@@ -107,21 +107,14 @@ func (s *Service) ApproveLeave(ctx context.Context, reviewerID, leaveID uuid.UUI
 	if err := s.requireAdmin(ctx, reviewerID); err != nil {
 		return nil, err
 	}
-	version := req.Version
-	if version == 0 {
-		current, err := s.repo.GetLeaveRequest(ctx, leaveID)
-		if err != nil {
-			if ent.IsNotFound(err) {
-				return nil, ErrNotFound
-			}
-			return nil, fmt.Errorf("get leave: %w", err)
-		}
-		version = current.Version
+	if req.Version < 1 {
+		return nil, ErrInvalidInput
 	}
+	version := req.Version
 	l, err := s.repo.ApproveLeave(ctx, leaveID, reviewerID, strings.TrimSpace(req.ReviewNote), version)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
+			return nil, s.mapVersionedNotFound(ctx, leaveID)
 		}
 		return nil, fmt.Errorf("approve leave: %w", err)
 	}
@@ -146,21 +139,14 @@ func (s *Service) RejectLeave(ctx context.Context, reviewerID, leaveID uuid.UUID
 	if err := s.requireAdmin(ctx, reviewerID); err != nil {
 		return nil, err
 	}
-	version := req.Version
-	if version == 0 {
-		current, err := s.repo.GetLeaveRequest(ctx, leaveID)
-		if err != nil {
-			if ent.IsNotFound(err) {
-				return nil, ErrNotFound
-			}
-			return nil, fmt.Errorf("get leave: %w", err)
-		}
-		version = current.Version
+	if req.Version < 1 {
+		return nil, ErrInvalidInput
 	}
+	version := req.Version
 	l, err := s.repo.RejectLeave(ctx, leaveID, reviewerID, strings.TrimSpace(req.ReviewNote), version)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
+			return nil, s.mapVersionedNotFound(ctx, leaveID)
 		}
 		return nil, fmt.Errorf("reject leave: %w", err)
 	}
@@ -176,23 +162,23 @@ func (s *Service) RejectLeave(ctx context.Context, reviewerID, leaveID uuid.UUID
 }
 
 func (s *Service) CancelLeave(ctx context.Context, userID, leaveID uuid.UUID, version int) (*LeaveRequestResponse, error) {
-	if version == 0 {
-		current, err := s.repo.GetLeaveRequest(ctx, leaveID)
-		if err != nil {
-			if ent.IsNotFound(err) {
-				return nil, ErrNotFound
-			}
-			return nil, fmt.Errorf("get leave: %w", err)
+	if version < 1 {
+		return nil, ErrInvalidInput
+	}
+	current, err := s.repo.GetLeaveRequest(ctx, leaveID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
 		}
-		if current.Edges.Requester != nil && current.Edges.Requester.ID != userID {
-			return nil, ErrForbidden
-		}
-		version = current.Version
+		return nil, fmt.Errorf("get leave: %w", err)
+	}
+	if current.Edges.Requester == nil || current.Edges.Requester.ID != userID {
+		return nil, ErrForbidden
 	}
 	l, err := s.repo.CancelLeave(ctx, leaveID, userID, version)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
+			return nil, ErrVersionConflict
 		}
 		return nil, fmt.Errorf("cancel leave: %w", err)
 	}
@@ -213,6 +199,17 @@ func (s *Service) requireAdmin(ctx context.Context, userID uuid.UUID) error {
 		return ErrForbidden
 	}
 	return nil
+}
+
+// mapVersionedNotFound — missing leave → 404; stale version on existing → 409.
+func (s *Service) mapVersionedNotFound(ctx context.Context, leaveID uuid.UUID) error {
+	if _, err := s.repo.GetLeaveRequest(ctx, leaveID); err != nil {
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("get leave after conflict: %w", err)
+	}
+	return ErrVersionConflict
 }
 
 func parseDateRange(startRaw, endRaw string) (time.Time, time.Time, error) {

@@ -83,7 +83,7 @@ func (h *Handler) ApproveLeave(c fiber.Ctx) error {
 	}
 	var req ReviewLeaveRequest
 	if err := c.Bind().JSON(&req); err != nil {
-		req = ReviewLeaveRequest{}
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
 	resp, err := h.service.ApproveLeave(c.Context(), userID, leaveID, req)
 	if err != nil {

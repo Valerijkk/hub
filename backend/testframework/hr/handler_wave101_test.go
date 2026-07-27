@@ -21,7 +21,7 @@ func TestHandler_MapServiceError(t *testing.T) {
 	assert.Equal(t, fiber.StatusInternalServerError, mapServiceError(assert.AnError).(*fiber.Error).Code)
 }
 
-func TestService_CancelLeave_VersionZero(t *testing.T) {
+func TestService_CancelLeave_RequiresVersion_A6_006(t *testing.T) {
 	svc, ctx, memberID, _ := newHRServiceEnv(t)
 	start := time.Now().UTC().AddDate(0, 0, 10).Format("2006-01-02")
 	end := time.Now().UTC().AddDate(0, 0, 12).Format("2006-01-02")
@@ -33,7 +33,10 @@ func TestService_CancelLeave_VersionZero(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	cancelled, err := svc.CancelLeave(ctx, memberID, created.ID, 0)
+	_, err = svc.CancelLeave(ctx, memberID, created.ID, 0)
+	require.ErrorIs(t, err, hr.ErrInvalidInput)
+
+	cancelled, err := svc.CancelLeave(ctx, memberID, created.ID, created.Version)
 	require.NoError(t, err)
 	assert.Equal(t, hr.StatusCancelled, cancelled.Status)
 }
@@ -50,7 +53,7 @@ func TestService_CancelLeave_ForbiddenForOtherUser(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = svc.CancelLeave(ctx, adminID, created.ID, 0)
+	_, err = svc.CancelLeave(ctx, adminID, created.ID, created.Version)
 	require.ErrorIs(t, err, hr.ErrForbidden)
 }
 
