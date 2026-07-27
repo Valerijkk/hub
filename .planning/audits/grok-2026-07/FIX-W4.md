@@ -117,7 +117,7 @@ fe9fedc fix(tms): scope GetTestRun by project at Ent (A3-012)
 3d4d163 fix(tms): scope LinkTestCaseToIssue by project issue (A3-003-link)
 9d0cec1 test(tms): cover UpdateTestCase VersionEQ on Postgres Ent (A3-004)
 42ec64f test(tms): cover UpdateTestResult HasRunWith on Postgres Ent (A3-008)
-(pending) test(tracker): Postgres Ent twins for A3-011 IDOR guards
+6342059 test(tracker): Postgres Ent twins for A3-011 IDOR guards
 ```
 
 > **WEAK close (2026-07-28):** A3-011-link/react/target ранее числились как «Postgres Ent», но тесты шли через `env.New` → sqlite. Добавлены Postgres twins + Skip без `POSTGRES_TEST_URL`; mutation-комментарии target обновлены на `issueProjectIDEQ` (A8-001).
