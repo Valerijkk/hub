@@ -45,7 +45,8 @@ IDOR в GitHub/GitLab/imex: delete/trigger/CreateBranch, webhook any-secret, PDF
 ## Закрытые находки
 
 ### A5-003 — GitHub DeleteIntegration
-**Коммит:** `7937060` (+ Ent в `2ffd60f`)  
+**Prod SHA:** `2ffd60f` (Ent `DeleteIntegration(ctx, projectID, id)` + `HasProjectWith` — smuggled into A5-006 commit)  
+**Label-only SHA:** `7937060` — **mock only** (`testframework/ai` signature update); **not** production code.  
 **Фикс:** `DeleteIntegration(ctx, projectID, id)` + `HasProjectWith`.  
 **Mutation:** снять `HasProjectWith` → Ent FAIL.
 
@@ -61,7 +62,8 @@ IDOR в GitHub/GitLab/imex: delete/trigger/CreateBranch, webhook any-secret, PDF
 
 ### A5-006 — GitHub CreateBranch
 **Коммит:** `2ffd60f`  
-**Фикс:** route under `/projects/:projectId/...` + `PermTaskEdit` + Ent scope.  
+**Фикс:** route under `/projects/:projectId/...` + `PermTaskEdit` + Ent scope (`FindIssueByKeyInProject` / `GetIntegrationInProject`).  
+**Note:** тот же SHA **smuggles** A5-003 prod `DeleteIntegration` — не приписывать A5-003 к `7937060`.  
 **Mutation:** снять `HasProjectWith` → Ent FAIL.
 
 ### A5-007 — GitLab CreateBranch
@@ -94,9 +96,11 @@ c0df516 fix(gitlab): scope DeleteIntegration by projectID (A5-004)
 bd7a898 fix(gitlab): scope TriggerPipeline by project integration (A5-005)
 c2dd881 fix(github): bind webhook HMAC to matched integration (A5-008)
 5318fed fix(gitlab): bind webhook token to matched integration (A5-009)
-2ffd60f fix(github): scope CreateBranch to project RBAC (A5-006)
-7937060 fix(github): scope DeleteIntegration by projectID (A5-003)
+2ffd60f fix(github): scope CreateBranch to project RBAC (A5-006)  # ALSO smuggles A5-003 prod DeleteIntegration
+7937060 fix(github): scope DeleteIntegration by projectID (A5-003)  # MOCK ONLY (ai testframework)
 72f55e7 fix(gitlab): scope CreateBranch to project RBAC (A5-007)
 ```
+
+**Honesty (2026-07-28):** A5-003 production = `2ffd60f`; `7937060` = mock signature only. Do not treat message subject of `7937060` as evidence of prod IDOR fix.
 
 *Merge в `master` — только пользователем. Next: W6.*

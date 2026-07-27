@@ -19,7 +19,7 @@
 | A10-005 | FIXED | `bba4666` | Channel list: `isError` + retry; Bookmarks/CreateChannel `aria-label` (A10-013 partial) |
 | A10-010 | FIXED | `ed8cff6` | Mention autocomplete: `role="option"` + `aria-selected` + listbox `aria-label` |
 | A10-007 | DEFERRED | — | notification-store → InfiniteQuery (larger refactor) |
-| A10-008 | DEFERRED | — | Kanban column virtualization |
+| A10-008 | FIXED | `015cc4c` (A13-014) | Kanban column virtualization (`@tanstack/react-virtual` at 24+ cards) — closed via A13-014 alias |
 | A10-009 | DEFERRED | — | timer-store selector deps |
 | A10-011 | DEFERRED | — | Full QueryStateView rollout (gantt/notifications) — only admin+messenger touched |
 | A10-012 | DEFERRED | — | Dead `KanbanBoard` module cleanup |

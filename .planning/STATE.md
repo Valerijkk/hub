@@ -66,6 +66,12 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-28 (devops · A14-005 tighten + audit honesty)
+
+- A14-005: prod compose `METRICS_ALLOWED_CIDRS` default `127.0.0.1/32` (was RFC1918); fail-closed empty unchanged (`c5613f6`).
+- Honesty docs: FIX-W5 A5-003/006 SHA attribution; FIX-W10 A8-005 PARTIAL; FIX-W13 A10-008 FIXED via A13-014; FIX-W16 A14-005 FIXED*.
+- No Ent schema approval for A8-006/indexes.
+
 ## Session note — 2026-07-28 (qa-auto1 · close WEAK A2-007 / A2-010)
 
 - A2-007: `ws_authorizer_integration_a2007_test.go` — prod `ws.NewAuthorizer` + calls repo через `readPump`; stranger deny / participant allow.

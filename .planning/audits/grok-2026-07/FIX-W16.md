@@ -17,7 +17,7 @@
 | A14-002 | OPEN→FIXED | FIXED* | `7c03388` | *Repo fixed; **MANUAL** rotate S3 if `hub`/`hubsecret` ever deployed |
 | A14-003 | OPEN→FIXED | FIXED* | `53f0436` | *Compose+redact; **MANUAL** set `NATS_USER`/`NATS_PASSWORD` on existing prod + recreate |
 | A14-004 | OPEN→FIXED | FIXED | `14fc94f` | Monitoring ports → `127.0.0.1` only |
-| A14-005 | OPEN→FIXED | FIXED | `cb40522` | Compose default CIDRs + `config.validate` requires non-empty in production |
+| A14-005 | OPEN→FIXED* | FIXED* | `cb40522` + `c5613f6` | *Fail-closed empty in production (`cb40522`); compose default tightened to `127.0.0.1/32` (`c5613f6`). **Residual:** ops may still set blanket RFC1918 in `.env` (re-opens Docker peers); Prometheus overlay needs explicit scrape CIDR |
 | A14-009 | OPEN→FIXED | FIXED* | `68cbd14` | *OTEL_* wired; Tempo `--profile otel`; **MANUAL** set endpoint to enable spans |
 
 \* = config/code PASS, live prod enablement remains ops.
@@ -51,9 +51,11 @@
 
 ### A14-005 — open `/metrics`
 
-- Compose default: `172.16.0.0/12,10.0.0.0/8,192.168.0.0/16`.
-- `ENVIRONMENT=production` + empty CIDRs → `config.Load` error.
+- Prod compose default: **`127.0.0.1/32`** (`c5613f6`) — not blanket RFC1918 (that allowed any Docker peer).
+- `ENVIRONMENT=production` + empty CIDRs → `config.Load` error (`cb40522`).
+- Monitoring overlay: set `METRICS_ALLOWED_CIDRS` to Prometheus scrape CIDR/IP in `.env`.
 - Optional: `kubectl apply -f deployments/k3s/monitoring/networkpolicy-metrics.yaml`.
+- **FIXED\*** residual: broad `.env` override or missing NP still allows peer scrape by choice.
 
 ### A14-009 — OTEL in prod
 
