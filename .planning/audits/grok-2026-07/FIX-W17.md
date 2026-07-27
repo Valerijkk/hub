@@ -16,7 +16,7 @@ Checklist: authz scoped · input validation · pagination limits · status 400/4
 | ID | Sev | Status | SHA | Notes |
 |----|-----|--------|-----|-------|
 | A1-009 | P1 | FIXED | `7002ce6` | Ban/Deactivate reject `SystemRoleFounder` → 403 |
-| A1-013 | P2 | FIXED | `4884fb9` | `UpdateResourceLimit` allowlist `limit.*` only → 400 |
+| A1-013 | P2 | FIXED | `4884fb9` | `UpdateResourceLimit` 3-key allowlist (`limit.file.max_size_mb`, `limit.user.max_projects`, `limit.project.max_storage_mb`); reject `retention.*` / unknown → 400 |
 | A2-009 | P2 | FIXED | `ed3b772` | `PublishTyping` requires `IsMember` → 403 |
 | A14-007 | P2 | FIXED | `ec2e23f` | Fiber recover `EnableStackTrace` only if `DevMode` |
 | A14-006 | P2 | FIXED | `a619a04` | Mask email in logs; never log OTP (even dev) |
