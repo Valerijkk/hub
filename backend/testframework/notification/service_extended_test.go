@@ -304,7 +304,7 @@ func TestRemoveSubscription_DeletesByEndpoint(t *testing.T) {
 
 	endpoint := "https://push.example.com/sub/remove"
 	require.NoError(t, push.SaveSubscription(ctx, userID, endpoint, "k", "a", "ua"))
-	require.NoError(t, push.RemoveSubscription(ctx, endpoint))
+	require.NoError(t, push.RemoveSubscription(ctx, userID, endpoint))
 
 	count, err := notification.ExportRepositoryDB(repo).PushSubscription.Query().Count(ctx)
 	require.NoError(t, err)

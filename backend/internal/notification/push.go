@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,12 @@ import (
 	"github.com/valerii/hub/backend/ent/pushsubscription"
 	"github.com/valerii/hub/backend/internal/platform/config"
 	safehttp "github.com/valerii/hub/backend/internal/platform/http"
+)
+
+// A2-005: чужой endpoint нельзя перепривязать/удалить.
+var (
+	ErrSubscriptionNotFound  = errors.New("push subscription not found")
+	ErrSubscriptionForbidden = errors.New("push subscription access denied")
 )
 
 // pushHTTPClient — SafeHTTPClient с SafeDialContext, блокирующим SSRF на
@@ -203,7 +210,7 @@ func (p *PushSender) sendToSubscription(ctx context.Context, sub *ent.PushSubscr
 }
 
 // SaveSubscription сохраняет или обновляет подписку на push-уведомления.
-// При существующем endpoint — обновляет ключи и привязку к пользователю.
+// Update только для Endpoint AND UserID=caller — без SetUserID (A2-005 hijack).
 //
 // SEC-H3: endpoint валидируется ValidateOutboundURL (http/https-only, без
 // userinfo, непустой host). Это отбрасывает javascript:/file:/data:/gopher:
@@ -219,26 +226,34 @@ func (p *PushSender) SaveSubscription(ctx context.Context, userID uuid.UUID, end
 		return fmt.Errorf("некорректный endpoint push-подписки: %w", err)
 	}
 
-	// Проверяем, существует ли подписка с таким endpoint.
-	existing, err := p.db.PushSubscription.Query().
+	// Mutation: снять UserID из Where → чужой endpoint перезаписывается → FAIL (A2-005).
+	n, err := p.db.PushSubscription.Update().
+		Where(
+			pushsubscription.Endpoint(endpoint),
+			pushsubscription.UserID(userID),
+		).
+		SetP256dhKey(p256dhKey).
+		SetAuthKey(authKey).
+		SetUserAgent(userAgent).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		return nil
+	}
+
+	// Endpoint уже занят другим пользователем — без rebind.
+	taken, err := p.db.PushSubscription.Query().
 		Where(pushsubscription.Endpoint(endpoint)).
-		First(ctx)
-	if err != nil && !ent.IsNotFound(err) {
+		Exist(ctx)
+	if err != nil {
 		return err
 	}
-
-	if existing != nil {
-		// Обновляем существующую подписку (ключи могут измениться при переподписке).
-		_, err = existing.Update().
-			SetUserID(userID).
-			SetP256dhKey(p256dhKey).
-			SetAuthKey(authKey).
-			SetUserAgent(userAgent).
-			Save(ctx)
-		return err
+	if taken {
+		return ErrSubscriptionForbidden
 	}
 
-	// Создаём новую подписку.
 	_, err = p.db.PushSubscription.Create().
 		SetUserID(userID).
 		SetEndpoint(endpoint).
@@ -249,16 +264,26 @@ func (p *PushSender) SaveSubscription(ctx context.Context, userID uuid.UUID, end
 	return err
 }
 
-// RemoveSubscription удаляет подписку по endpoint.
-func (p *PushSender) RemoveSubscription(ctx context.Context, endpoint string) error {
+// RemoveSubscription удаляет подписку по Endpoint AND UserID=caller (A2-005).
+func (p *PushSender) RemoveSubscription(ctx context.Context, userID uuid.UUID, endpoint string) error {
 	if p == nil {
 		return nil
 	}
 
-	_, err := p.db.PushSubscription.Delete().
-		Where(pushsubscription.Endpoint(endpoint)).
+	// Mutation: снять UserID из Where → чужой unsubscribe проходит → FAIL (A2-005).
+	n, err := p.db.PushSubscription.Delete().
+		Where(
+			pushsubscription.Endpoint(endpoint),
+			pushsubscription.UserID(userID),
+		).
 		Exec(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrSubscriptionNotFound
+	}
+	return nil
 }
 
 // VAPIDPublicKey возвращает публичный VAPID-ключ для передачи на фронтенд.
