@@ -84,42 +84,42 @@ Security 6-pack: last full statement pack still **2026-06-22** (≥80% each); 20
 
 ---
 
-## 4. Hygiene — remaining DEFERRED / BLOCKED / MANUAL
+## 4. Hygiene — remaining DEFERRED / MANUAL (schema cleared)
 
-### Schema / approval
+### Schema / approval — CLEARED (residual-close 2026-07-28)
 
 | ID | Status | Notes |
 |----|--------|-------|
-| **A8-006** | **BLOCKED** | Comment hard-delete; TZ soft-delete needs `deleted_at` on `ent/schema/comment.go` (FIX-W10) |
-| **A8-001** indexes | **NEEDS_APPROVAL** | Query rewrite FIXED (`0ce8cd7`); composite index `(project_issues, deleted_at)` pending (FIX-W15) |
-| **A8-002** indexes | **NEEDS_APPROVAL** | Query rewrite FIXED (`443a569`); TC FK index pending (FIX-W15) |
-| A8-005 soft-delete Channel | PARTIAL | Tx cascade FIXED (`b77ba23`); `deleted_at` not added |
+| **A8-006** | **CLOSED** | Comment `deleted_at` + soft-delete (`5c74170` / `9f4ce5b` / `c40c621`) |
+| **A8-001** indexes | **CLOSED** | Query rewrite + composite index (`0ce8cd7` / `6031985`) |
+| **A8-002** indexes | **CLOSED** | Query rewrite + composite index (`443a569` / `6031985`) |
+| **A8-005** | **CLOSED** | Channel soft-delete (`25028b5` / `293dee7` / `14c7929`) |
 
 ### MANUAL ops (repo FIXED*, ops pending)
 
 | ID | Repo | MANUAL |
 |----|------|--------|
-| **A14-002** | `7c03388` SeaweedFS secrets out of defaults | Rotate S3 if `hub`/`hubsecret` ever deployed |
-| **A14-003** | `53f0436` NATS auth + redact | Set `NATS_USER`/`NATS_PASSWORD` on existing prod + recreate |
-| **A14-009** | `68cbd14` OTEL wired | Set OTEL endpoint to enable spans |
+| **A14-002** | `7c03388` + fail-closed `f626397` | Rotate S3 if `hub`/`hubsecret` ever deployed |
+| **A14-003** | `53f0436` + fail-closed `f626397` | Set `NATS_USER`/`NATS_PASSWORD` on existing prod + recreate |
+| **A14-009** | `68cbd14` OTEL wired | Set `OTEL_EXPORTER_OTLP_ENDPOINT` to enable spans (**true residual**) |
 | **PG-03 / FA-06** | — | Resend/Telegram secret rotation — sole prod cutover blocker (unchanged) |
 
-### FE / product DEFERRED (from FIX-W11/W13/W17–19)
+### FE / product residuals (post residual-close)
 
 | IDs | Notes |
 |-----|-------|
-| A10-007…009, A10-011, A10-012, A10-014 | InfiniteQuery notifications, Kanban/Gantt virtual, timer selectors, dead KanbanBoard, QueryStateView rollout |
-| A10-013 | PARTIAL a11y labels |
-| A11-014 | TZ error-shape wording vs live AppError |
-| A15-004 | REQ LOGN-05 / wiki drift |
-| BE `LoginWithTelegram*` / notify_mode write API | Dead FE removed; BE DTO/API deferred |
+| A11-009…013 | **CLOSED** — SPA wire (`68f9b0b`…`cbfae6c`) |
+| A15-004 | **CLOSED** — REQUIREMENTS Magic Link only (`d8e787b`) |
+| BE `LoginWithTelegram*` | **CLOSED** — service purge (`8ab8f76`) |
+| A10-007…014 class | Partial closes on a11y/QueryState/kanban dead code; deeper InfiniteQuery/Gantt virt may remain P2 |
+| A11-014 | TZ error-shape wording vs live AppError (docs) |
 | A4-005/008/009…012, A2-011, A3-013/014/018–020 | Block F time-box residuals (W18) |
 | A6-007…009, A5-012…015, A7-010…012 | W19 out of time-box |
 | A14-008 | access-log without InfoContext (P2 obs) |
 
 ### Dead code / deps
 
-No new obvious dead-deps sweep in W20. Prior: FE telegram client / notify_mode client / TelegramButton removed (W11/W13). Residual unused FE wrappers (teams/trash/RBAC/imex HTTP) still **DEFERRED** product work (FIX-W11).
+FE telegram client / notify_mode / TelegramButton removed (W11/W13); BE login surface purged (`8ab8f76`). Unused FE wrappers (teams/trash/RBAC/imex HTTP) remain optional product debt.
 
 ---
 
@@ -131,8 +131,8 @@ Canonical unique count from `00-SUMMARY.md`: **262** (user shorthand «261» ≈
 |--------|-------:|-------|
 | Unique findings (deduped) | **262** | `00-SUMMARY.md` |
 | Closed in FIX-W0…W19 (IDs with FIXED/CLOSED in reports) | **~110–140** | Regex over FIX reports under-counts (~81) where waves used ✅/SHA tables without keyword; commit volume W1–W19 supports **≥120** discrete closes |
-| Still open / deferred / blocked / P2–P3 untouched | **~120–150** | Mostly P2/P3 polish, schema, FE refactors, docs |
-| **Remaining P0 (security/product)** | **0** full ALIVE | All 12 original P0 primary paths closed or downgraded; residuals are PARTIAL siblings / planning narrative |
+| Still open / deferred / blocked / P2–P3 untouched | **~100–140** | Mostly P2/P3 polish, FE debt, Block F leftovers, ops MANUAL (schema A8 cleared) |
+| **Remaining P0 (security/product)** | **0** full ALIVE | All 12 original P0 primary paths closed; RT **12 / 0 / 0** |
 | **Remaining P0-class residual** | **0** | RT-003 list scope CLOSED (owner / admin org-wide) |
 | **Remaining clear P1** | **~15–25** | Mix of deferred FE (A10-*), integrations residuals (A5-012+), Block F leftovers, A3-001-siblings |
 
@@ -172,28 +172,30 @@ Canonical unique count from `00-SUMMARY.md`: **262** (user shorthand «261» ≈
 | A13-014 / A13-018 threshold Vitest WEAK | **CLOSED** | `3536e0e` / `53d72c8` |
 | A14-005 metrics CIDR default (repo) | **FIXED*** (ops residual) | `c5613f6` |
 
-#### Still open / blocked (accurate)
+#### Still open (accurate — residual-close 2026-07-28)
 
-1. **A8-006** comment soft-delete schema — **BLOCKED** on approval.
-2. **A8-001/002** Ent composite indexes — **NEEDS_APPROVAL** (query rewrites FIXED).
-3. **MANUAL** A14-002/003/009 + **PG-03/FA-06** secret rotation.
-4. **FE deferred** A10-007…014 class residuals (InfiniteQuery notifications, Gantt virtual, dead KanbanBoard, QueryStateView) — A10-001 / A13-014/018 product paths CLOSED with WEAK tests.
-5. **Block F leftovers** A4-005+, A3-013+, A5-012+, A7-010+, A14-008.
+1. **A14-009 OTEL** — FIXED\* repo; **MANUAL** enable endpoint (`68cbd14`).
+2. **A14-002/003** — FIXED\* fail-closed; **MANUAL** rotate/recreate if old defaults deployed.
+3. **PG-03 / FA-06** secret rotation — sole prod cutover blocker.
+4. **Hubtest gate artifact** — STALE vs HEAD; re-run required.
+5. **Block F leftovers** A4-005+, A3-013+, A5-012+, A7-010+, A14-008 (P2/P3).
 6. **COV-01 floor** — 81.9% &lt; 82% (2026-07-27); security 6-pack not remeasured 2026-07-27/28 — **no invented remeasure**.
 7. **GetProject non-member metadata** — product-grey GAP (W17).
 8. **TZ AppError wording** A11-014 / docs-only.
 9. **A14-005 ops residual** — compose default tightened; blanket RFC1918 in `.env` can re-open Docker peers.
 
+Schema A8-005/006 + A8-001/002 indexes, RT-003, A3-005 race, Telegram BE purge, A11 SPA wire, A15-004 — **CLOSED** (not listed above).
+
 ---
 
 ## 6. Verdict
 
-Grok FIX program W0–W19 closed the **critical insider Broken Access Control** surface from A19: **0 fully ALIVE RT chains**, **0 PARTIAL RT**. **RT-005** and **RT-003** CLOSED 2026-07-28 (owner/admin CRM list scope + sprint siblings). Planning/coverage truth is **81.9%** (2026-07-27), not the stale 83.0 narrative alone. Schema indexes / comment soft-delete / prod secret ops remain outside code-only waves.
+Grok FIX program W0–W19 + residual-close closed the **critical insider Broken Access Control** surface from A19: **12 CLOSED / 0 PARTIAL / 0 ALIVE** RT chains. **RT-005** and **RT-003** CLOSED 2026-07-28. Schema soft-delete/indexes CLOSED. Planning/coverage truth is **81.9%** (2026-07-27), not the stale 83.0 narrative alone. True residuals are ops MANUAL (A14-009 OTEL, A14-002/003, FA-06) + stale hubtest artifact.
 
 **Recommended next (human / next wave):**
 
-1. Approve A8-001/002 indexes + A8-006 `deleted_at`.
-2. Ops: FA-06 + A14 MANUAL checklist.
-3. Optional coverage uplift wave to restore ≥82%.
+1. Re-run hubtest gate on HEAD.
+2. Ops: FA-06 + A14-009 OTEL enable (+ A14-002/003 rotate if needed).
+3. Optional coverage uplift wave to restore ≥82% (remeasure only — do not invent %).
 
 *Merge to `master` — only by user.*

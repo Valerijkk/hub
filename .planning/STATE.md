@@ -46,7 +46,7 @@ inventory_measured_2026_07_27:
     frontend_route_tsx: 72
     backend_testframework_test_go: 515
     ent_entity_schemas: 82
-    zustand_stores: 13
+    zustand_stores: 12
     go_mod: "1.25.0"
 spec_coverage:
     fr_total: 28
@@ -65,6 +65,13 @@ spec_coverage:
 Полный архив заметок **до 2026-07-23 включительно** и старых completion logs:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
+
+## Session note — 2026-07-28 (docs · residual-close scoreboard)
+
+- Updated `VERIFY-W4-W20.md` Still open: removed CLOSED residuals (RT-003, A8-005/006, A8-001/002 indexes, A3-005 race, Telegram BE, A11 SPA, A15-004); keep A14-009 OTEL MANUAL + A14-002/003 MANUAL + FA-06 + stale hubtest.
+- `PROGRAM-W4-W20-SUMMARY.md`: RT **12 / 0 / 0**; schema blocked cleared; residual list honest.
+- `FIX-W20.md`: scoreboard **12 CLOSED / 0 PARTIAL / 0 ALIVE**; hygiene schema CLEARED.
+- Coverage % unchanged (no invent) — still **81.9%** (2026-07-27).
 
 ## Session note — 2026-07-28 (fe1 · A11-009…013 SPA wire residual)
 
