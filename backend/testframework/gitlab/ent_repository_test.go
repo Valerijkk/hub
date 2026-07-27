@@ -196,6 +196,26 @@ func TestEntRepository_FindIssueByKey(t *testing.T) {
 	assert.NotNil(t, got.Edges.Project)
 }
 
+// TestEntRepository_FindIssueByKeyInProject_RejectsForeign_A5_007 — issue чужого проекта
+// не находится по ключу. Mutation: снять HasProjectWith → тест краснеет.
+func TestEntRepository_FindIssueByKeyInProject_RejectsForeign_A5_007(t *testing.T) {
+	env := newGitLabRepoEnv(t)
+	iss := env.createIssue(t, 1)
+
+	foreign, err := env.client.Project.Create().
+		SetName("Foreign GL Issue Project A5007").
+		SetKey("FIG" + strings.ToUpper(uuid.New().String()[:3])).
+		Save(env.ctx)
+	require.NoError(t, err)
+
+	_, err = env.repo.FindIssueByKeyInProject(env.ctx, foreign.ID, iss.IssueKey)
+	require.True(t, ent.IsNotFound(err), "issue must not be visible via foreign project, got %v", err)
+
+	got, err := env.repo.FindIssueByKeyInProject(env.ctx, env.projectID, iss.IssueKey)
+	require.NoError(t, err)
+	assert.Equal(t, iss.ID, got.ID)
+}
+
 func TestEntRepository_CreateIntegration_CustomURL(t *testing.T) {
 	env := newGitLabRepoEnv(t)
 

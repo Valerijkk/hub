@@ -95,6 +95,16 @@ func (m *gitlabMockRepo) FindIssueByKey(_ context.Context, key string) (*ent.Iss
 	}
 	return nil, &ent.NotFoundError{}
 }
+func (m *gitlabMockRepo) FindIssueByKeyInProject(_ context.Context, projectID uuid.UUID, key string) (*ent.Issue, error) {
+	iss, err := m.FindIssueByKey(context.Background(), key)
+	if err != nil {
+		return nil, err
+	}
+	if iss.Edges.Project == nil || iss.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return iss, nil
+}
 func (m *gitlabMockRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
 	return m.webhookSecrets, nil
 }

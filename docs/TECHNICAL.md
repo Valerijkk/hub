@@ -1470,7 +1470,7 @@ backend/internal/
 | DELETE | /projects/:projectId/gitlab/integrations/:integrationId | Удалить интеграцию | JWT + RBAC |
 | GET | /projects/:projectId/gitlab/pipelines | Список pipelines | JWT + RBAC |
 | POST | /projects/:projectId/gitlab/pipelines/trigger | Запустить pipeline | JWT + RBAC |
-| POST | /issues/:issueKey/gitlab/create-branch | Создать ветку из задачи | JWT |
+| POST | /projects/:projectId/issues/:issueKey/gitlab/create-branch | Создать ветку из задачи | JWT + task.edit |
 
 ### Storage (4 эндпоинта)
 

@@ -31,6 +31,8 @@ type Repository interface {
 
 	// Задачи (используется для поиска по ключу)
 	FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error)
+	// FindIssueByKeyInProject ищет задачу по ключу только внутри projectID (A5-007).
+	FindIssueByKeyInProject(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error)
 
 	// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
 	ListAllWebhookSecrets(ctx context.Context) ([]string, error)
@@ -213,6 +215,20 @@ func (r *EntRepository) FindIntegrationByProjectPath(ctx context.Context, projec
 func (r *EntRepository) FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error) {
 	return r.client.Issue.Query().
 		Where(issue.IssueKey(issueKey)).
+		WithStatus().
+		WithAssignee().
+		WithProject().
+		Only(ctx)
+}
+
+// FindIssueByKeyInProject ищет задачу по ключу только внутри projectID (A5-007).
+// Mutation: снять HasProjectWith → cross-project issue key IDOR.
+func (r *EntRepository) FindIssueByKeyInProject(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error) {
+	return r.client.Issue.Query().
+		Where(
+			issue.IssueKey(issueKey),
+			issue.HasProjectWith(project.IDEQ(projectID)),
+		).
 		WithStatus().
 		WithAssignee().
 		WithProject().

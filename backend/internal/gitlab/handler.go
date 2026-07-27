@@ -38,8 +38,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	proj.Get("/gitlab/pipelines", h.ListPipelines, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 	proj.Post("/gitlab/pipelines/trigger", h.TriggerPipeline, rbac.RequirePermission(rbac.PermProjectManageWorkflow, rbacSvc))
 
-	// Создание ветки из задачи
-	api.Post("/issues/:issueKey/gitlab/create-branch", authMw, h.CreateBranch)
+	// Создание ветки из задачи (A5-007): RBAC на project + service scope issue↔integration.
+	proj.Post("/issues/:issueKey/gitlab/create-branch", h.CreateBranch, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
 }
 
 // HandleWebhook godoc
@@ -246,14 +246,21 @@ func (h *Handler) TriggerPipeline(c fiber.Ctx) error {
 // @Tags GitLab
 // @Accept json
 // @Produce json
+// @Param projectId path string true "ID проекта"
 // @Param issueKey path string true "Ключ задачи"
 // @Param body body CreateBranchRequest true "Параметры ветки"
 // @Success 201 {object} CreateBranchResponse "Ветка создана"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Недостаточно прав"
 // @Security BearerAuth
-// @Router /api/issues/{issueKey}/gitlab/create-branch [post]
+// @Router /api/projects/{projectId}/issues/{issueKey}/gitlab/create-branch [post]
 func (h *Handler) CreateBranch(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
 	issueKey := utils.CopyString(c.Params("issueKey"))
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
@@ -264,7 +271,7 @@ func (h *Handler) CreateBranch(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.CreateBranch(c.Context(), issueKey, req)
+	resp, err := h.service.CreateBranch(c.Context(), projectID, issueKey, req)
 	if err != nil {
 		return err
 	}

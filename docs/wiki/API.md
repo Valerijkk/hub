@@ -615,7 +615,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | DELETE | `/projects/:projectId/gitlab/integrations/:integrationId` | Удалить интеграцию |
 | GET | `/projects/:projectId/gitlab/pipelines` | Список пайплайнов |
 | POST | `/projects/:projectId/gitlab/pipelines/trigger` | Запустить пайплайн |
-| POST | `/issues/:issueKey/gitlab/create-branch` | Создать ветку из задачи |
+| POST | `/projects/:projectId/issues/:issueKey/gitlab/create-branch` | Создать ветку из задачи (`task.edit`) |
 
 ---
 

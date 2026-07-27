@@ -443,8 +443,9 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 // ---------------------------------------------------------------------------
 
 // CreateBranch создаёт ветку в GitLab-репозитории через API.
-func (s *GitLabService) CreateBranch(ctx context.Context, issueKey string, req CreateBranchRequest) (*CreateBranchResponse, error) {
-	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
+// A5-007: issue и integration обязаны принадлежать одному projectID (RBAC на маршруте).
+func (s *GitLabService) CreateBranch(ctx context.Context, projectID uuid.UUID, issueKey string, req CreateBranchRequest) (*CreateBranchResponse, error) {
+	issue, err := s.repo.FindIssueByKeyInProject(ctx, projectID, issueKey)
 	if err != nil {
 		return nil, apperrors.NewNotFound("задача не найдена")
 	}
@@ -454,7 +455,7 @@ func (s *GitLabService) CreateBranch(ctx context.Context, issueKey string, req C
 		return nil, apperrors.NewBadRequest("некорректный integration_id")
 	}
 
-	integration, err := s.repo.GetIntegration(ctx, integrationID)
+	integration, err := s.repo.GetIntegrationInProject(ctx, projectID, integrationID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("интеграция не найдена")
 	}
