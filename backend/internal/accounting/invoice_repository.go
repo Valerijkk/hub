@@ -70,14 +70,57 @@ func (r *EntRepository) ListInvoices(ctx context.Context, limit int) ([]*ent.Inv
 }
 
 func (r *EntRepository) CreateInvoice(ctx context.Context, userID uuid.UUID, req CreateInvoiceRequest, number string) (*ent.Invoice, error) {
+	if req.CrmDealID == nil {
+		return r.insertInvoice(ctx, r.client, userID, req, number)
+	}
+	// A6-004: check+create атомарно под row-lock сделки (без schema unique — запрещено в волне).
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Touch deal → RowExclusiveLock до конца tx; concurrent create ждёт и видит invoice.
+	if _, err := tx.CrmDeal.UpdateOneID(*req.CrmDealID).AddVersion(0).Save(ctx); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrInvalidInput
+		}
+		return nil, fmt.Errorf("lock deal for invoice: %w", err)
+	}
+
+	exists, err := tx.Invoice.Query().
+		Where(
+			invoice.HasCrmDealWith(crmdeal.ID(*req.CrmDealID)),
+			invoice.DeletedAtIsNil(),
+			invoice.StatusNEQ(invoice.StatusCancelled),
+		).
+		Exist(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("check deal invoice: %w", err)
+	}
+	if exists {
+		return nil, ErrInvoiceExists
+	}
+
+	inv, err := r.insertInvoice(ctx, tx.Client(), userID, req, number)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return inv, nil
+}
+
+func (r *EntRepository) insertInvoice(ctx context.Context, client *ent.Client, userID uuid.UUID, req CreateInvoiceRequest, number string) (*ent.Invoice, error) {
 	if number == "" {
 		var err error
-		number, err = r.nextInvoiceNumber(ctx)
+		number, err = (&EntRepository{client: client}).nextInvoiceNumber(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
-	b := r.client.Invoice.Create().
+	b := client.Invoice.Create().
 		SetNumber(number).
 		SetCustomerName(req.CustomerName).
 		SetAmountCents(req.AmountCents).

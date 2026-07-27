@@ -26,13 +26,6 @@ func (s *Service) CreateInvoiceFromWonDeal(
 	if amountCents <= 0 || strings.TrimSpace(title) == "" {
 		return nil
 	}
-	exists, err := s.repo.InvoiceExistsForDeal(ctx, dealID)
-	if err != nil {
-		return fmt.Errorf("check deal invoice: %w", err)
-	}
-	if exists {
-		return nil
-	}
 	name := strings.TrimSpace(customerName)
 	if name == "" {
 		name = "Клиент"
@@ -44,7 +37,11 @@ func (s *Service) CreateInvoiceFromWonDeal(
 		Currency:     currency,
 		CrmDealID:    &dealID,
 	}
-	_, err = s.createInvoice(ctx, userID, req)
+	_, err := s.createInvoice(ctx, userID, req)
+	// A6-004: concurrent won-hook / HTTP create — duplicate = idempotent success.
+	if errors.Is(err, ErrInvoiceExists) {
+		return nil
+	}
 	return err
 }
 
@@ -80,17 +77,11 @@ func (s *Service) createInvoice(ctx context.Context, userID uuid.UUID, req Creat
 	if req.CustomerName == "" || req.AmountCents <= 0 {
 		return nil, ErrInvalidInput
 	}
-	if req.CrmDealID != nil {
-		exists, err := s.repo.InvoiceExistsForDeal(ctx, *req.CrmDealID)
-		if err != nil {
-			return nil, fmt.Errorf("check deal invoice: %w", err)
-		}
-		if exists {
-			return nil, ErrInvoiceExists
-		}
-	}
 	inv, err := s.repo.CreateInvoice(ctx, userID, req, "")
 	if err != nil {
+		if errors.Is(err, ErrInvoiceExists) {
+			return nil, ErrInvoiceExists
+		}
 		return nil, fmt.Errorf("create invoice: %w", err)
 	}
 	return s.repo.GetInvoice(ctx, inv.ID)
