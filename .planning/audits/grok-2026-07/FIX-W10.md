@@ -10,7 +10,7 @@ Verify vs `17-verification.md` / `08-data-layer.md` / `07-infra-domains.md` — 
 | ID | Status | SHA | Notes |
 |----|--------|-----|-------|
 | A8-005 | FIXED | `25028b5`+`293dee7`+`14c7929` | Soft-delete `deleted_at` on Channel + filtered List/Get/IsMember; cascade hard path retired (parent soft-delete enough for TZ) |
-| A8-006 | BLOCKED | — | Comment hard-delete confirmed; TZ soft-delete requires `deleted_at` on `ent/schema/comment.go` — **no schema without approval** |
+| A8-006 | FIXED | `5c74170` / `9f4ce5b` / `e85d882` | Comment `deleted_at` + soft-delete via SetDeletedAt; List/Update/Toggle filter DeletedAtIsNil; reactions kept, hidden with comment |
 | A8-007 | FIXED | `f3dbad4` | `MongoDisconnectCleanup` + `addCleanup` in `wiring_messenger`. Mutation: skip Disconnect → Ping still OK → FAIL |
 | A8-008 | FIXED | `23d6abb` | `lifecycle.CancelOnListenError` instead of `os.Exit(1)` on Listen err. Mutation: skip cancel → FAIL |
 | A7-003 | FIXED | `0dd0dd7` | `MaintenanceGate` + Fiber middleware 503; `setMaintenanceMode` flips gate. Mutation: log-only setMaintenance → FAIL |
@@ -21,7 +21,9 @@ Verify vs `17-verification.md` / `08-data-layer.md` / `07-infra-domains.md` — 
 **Status FIXED:** TZ soft-delete closed after Ent schema approval.
 
 ## A8-006 detail
-Still `Comment.Delete()` hard path in `tracker/repo_comments.go`. Remediations in audit require schema `deleted_at` — deferred pending approval.
+`DeleteComment` soft-deletes via `SetDeletedAt` (A8-006). `ListComments` / `UpdateComment` / `ToggleReaction` filter `DeletedAtIsNil`. Reactions are not hard-deleted — they remain on the row but disappear from lists with the soft-deleted comment. Schema: `ent/schema/comment.go` `deleted_at` + index.
+
+**Status FIXED:** TZ soft-delete / 30-day trash closed after Ent schema approval.
 
 ## A8-007 / A8-008
 Graceful shutdown path: Listen fail → `rootCancel` → `<-rootCtx.Done()` → Shutdown → `defer runCleanups()` (incl. Mongo Disconnect).
