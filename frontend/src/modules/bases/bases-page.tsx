@@ -6,13 +6,16 @@ import {
 	createBase,
 	createColumn,
 	createRecord,
+	deleteBase,
 	deleteRecord,
 	getBase,
 	getTableView,
 	listBases,
+	updateBase,
 	updateRecord,
 } from "@/api/bases";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 
 const COLUMN_TYPES: Array<{ value: ColumnType; label: string }> = [
@@ -29,6 +32,8 @@ export function BasesPage() {
 	const [selectedBaseId, setSelectedBaseId] = useState<string | null>(null);
 	const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
 	const [newBaseName, setNewBaseName] = useState("");
+	const [renameValue, setRenameValue] = useState("");
+	const [deleteBaseOpen, setDeleteBaseOpen] = useState(false);
 	const [newColName, setNewColName] = useState("");
 	const [newColType, setNewColType] = useState<ColumnType>("text");
 	const [newRowCells, setNewRowCells] = useState<Record<string, string>>({});
@@ -65,6 +70,7 @@ export function BasesPage() {
 		onSuccess: (data) => {
 			setNewBaseName("");
 			setSelectedBaseId(data.id);
+			setRenameValue(data.name);
 			if (data.tables[0]) {
 				setSelectedTableId(data.tables[0].id);
 			}
@@ -72,6 +78,40 @@ export function BasesPage() {
 			toast.success("База создана");
 		},
 		onError: () => toast.error("Не удалось создать базу"),
+	});
+
+	const updateBaseMutation = useMutation({
+		mutationFn: ({
+			id,
+			name,
+			version,
+		}: {
+			id: string;
+			name: string;
+			version: number;
+		}) => updateBase(id, { name, version }),
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["bases"] });
+			if (selectedBaseId) {
+				void queryClient.invalidateQueries({
+					queryKey: ["bases", selectedBaseId],
+				});
+			}
+			toast.success("База обновлена");
+		},
+		onError: () => toast.error("Не удалось обновить базу"),
+	});
+
+	const deleteBaseMutation = useMutation({
+		mutationFn: (id: string) => deleteBase(id),
+		onSuccess: () => {
+			setSelectedBaseId(null);
+			setSelectedTableId(null);
+			setRenameValue("");
+			void queryClient.invalidateQueries({ queryKey: ["bases"] });
+			toast.success("База удалена");
+		},
+		onError: () => toast.error("Не удалось удалить базу"),
 	});
 
 	const createColumnMutation = useMutation({
@@ -148,9 +188,10 @@ export function BasesPage() {
 		}
 	};
 
-	const handleSelectBase = (id: string) => {
+	const handleSelectBase = (id: string, name: string) => {
 		setSelectedBaseId(id);
 		setSelectedTableId(null);
+		setRenameValue(name);
 	};
 
 	return (
@@ -195,7 +236,7 @@ export function BasesPage() {
 								<li key={b.id}>
 									<button
 										type="button"
-										onClick={() => handleSelectBase(b.id)}
+										onClick={() => handleSelectBase(b.id, b.name)}
 										className={`w-full rounded-md px-2 py-1.5 text-left text-[13px] transition-colors ${
 											selectedBaseId === b.id
 												? "bg-red/10 text-t1 font-medium"
@@ -219,6 +260,53 @@ export function BasesPage() {
 
 					{selectedBaseId && baseDetail && (
 						<>
+							<form
+								className="flex flex-wrap items-end gap-2 rounded-lg border border-b1 bg-[var(--card)] p-3"
+								aria-label="Управление базой"
+								onSubmit={(e) => {
+									e.preventDefault();
+									if (!renameValue.trim()) return;
+									updateBaseMutation.mutate({
+										id: baseDetail.id,
+										name: renameValue.trim(),
+										version: baseDetail.version,
+									});
+								}}
+							>
+								<div className="min-w-[180px] flex-1 space-y-1">
+									<label
+										htmlFor="base-rename"
+										className="text-[11px] font-medium text-t3"
+									>
+										Название базы
+									</label>
+									<Input
+										id="base-rename"
+										value={renameValue}
+										onChange={(e) => setRenameValue(e.target.value)}
+										className="h-8 text-[13px]"
+									/>
+								</div>
+								<Button
+									type="submit"
+									size="sm"
+									disabled={updateBaseMutation.isPending}
+								>
+									Сохранить
+								</Button>
+								<Button
+									type="button"
+									size="sm"
+									variant="outline"
+									className="text-[var(--red)]"
+									aria-label={`Удалить базу ${baseDetail.name}`}
+									onClick={() => setDeleteBaseOpen(true)}
+									disabled={deleteBaseMutation.isPending}
+								>
+									Удалить
+								</Button>
+							</form>
+
 							<div className="flex flex-wrap gap-2 border-b border-b1 pb-3">
 								{baseDetail.tables.map((t) => (
 									<button
@@ -353,6 +441,23 @@ export function BasesPage() {
 					)}
 				</main>
 			</div>
+
+			<ConfirmDialog
+				open={deleteBaseOpen}
+				onOpenChange={setDeleteBaseOpen}
+				title="Удалить базу?"
+				description={
+					baseDetail
+						? `База «${baseDetail.name}» и все таблицы будут удалены.`
+						: undefined
+				}
+				confirmLabel="Удалить"
+				disabled={deleteBaseMutation.isPending}
+				onConfirm={() => {
+					if (!selectedBaseId) return;
+					deleteBaseMutation.mutate(selectedBaseId);
+				}}
+			/>
 		</div>
 	);
 }
