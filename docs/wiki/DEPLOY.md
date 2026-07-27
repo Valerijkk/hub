@@ -75,6 +75,10 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate livekit
 ```
 
+**SeaweedFS (A14-002):** S3 identity генерируется из `S3_ACCESS_KEY` / `S3_SECRET_KEY` при старте контейнера (как LiveKit).  
+Не коммитьте `seaweedfs-s3.json` с реальными ключами; справочник — `seaweedfs-s3.json.example`.  
+`hub` / `hubsecret` запрещены `config.validate` при `DEV_MODE=false`.
+
 ### 5. Проверка
 
 ```bash

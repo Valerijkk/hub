@@ -15,7 +15,7 @@
 | `livekit.yaml` | Конфиг LiveKit для локальной разработки |
 | `livekit-prod.yaml.example` | Справочник production-конфига (реальный конфиг генерируется из env) |
 | `.env.example` | Шаблон переменных окружения для production |
-| `seaweedfs-s3.json` | S3-идентичности для SeaweedFS (access/secret key) |
+| `seaweedfs-s3.json.example` | Справочник S3-identity; **prod генерирует s3.json из `S3_*` env** (A14-002) |
 | `monitoring/` | Prometheus, Loki, Promtail, Alertmanager, Grafana provisioning |
 | `k3s/` | Kubernetes-манифесты (NetworkPolicy и др.) |
 
@@ -62,6 +62,7 @@ docker compose \
 **Важно:**
 - `DEV_MODE` в prod всегда `false` (задаётся в compose).
 - LiveKit-ключи только через `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — не коммитьте `livekit-prod.yaml` с plaintext-секретами.
+- SeaweedFS S3 identity — из `S3_ACCESS_KEY` / `S3_SECRET_KEY` (не committed `hub`/`hubsecret`).
 - Образы SeaweedFS и прочих сервисов закреплены по тегу (не `latest`).
 
 ## Caddy (production)

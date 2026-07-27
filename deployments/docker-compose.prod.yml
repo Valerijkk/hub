@@ -92,14 +92,37 @@ services:
 
   seaweedfs:
     # LO-Inf: pinned tag (раньше :latest — невоспроизводимый билд).
+    # A14-002: s3.json генерируется из S3_* env (как LiveKit yaml) — не монтировать
+    # committed seaweedfs-s3.json с hub/hubsecret (validate() запрещает в prod).
     image: chrislusf/seaweedfs:3.97
     restart: unless-stopped
     mem_limit: 512m
     cpus: 0.5
-    command: ["server", "-s3", "-dir=/data", "-s3.config=/etc/seaweedfs/s3.json"]
+    environment:
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /tmp/s3.json <<EOF
+        {
+          "identities": [
+            {
+              "name": "hub",
+              "credentials": [
+                {
+                  "accessKey": "$${S3_ACCESS_KEY}",
+                  "secretKey": "$${S3_SECRET_KEY}"
+                }
+              ],
+              "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+            }
+          ]
+        }
+        EOF
+        exec weed server -s3 -dir=/data -s3.config=/tmp/s3.json
     volumes:
       - seaweeddata:/data
-      - ./seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9333/cluster/status"]
       interval: 15s

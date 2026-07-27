@@ -4,8 +4,8 @@
       "name": "hub",
       "credentials": [
         {
-          "accessKey": "hub",
-          "secretKey": "hubsecret"
+          "accessKey": "CHANGE_ME_NON_DEFAULT_KEY",
+          "secretKey": "CHANGE_ME_STRONG_PASSWORD"
         }
       ],
       "actions": ["Admin", "Read", "Write", "List", "Tagging"]
