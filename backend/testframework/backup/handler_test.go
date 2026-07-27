@@ -73,13 +73,22 @@ func TestHandler_ListBackups_Empty(t *testing.T) {
 }
 
 func TestHandler_TriggerBackup_CreatesRecord(t *testing.T) {
-	app := testBackupApp(t)
+	svc, client, ctx := newBackupTestService(t)
+	h := backup.NewHandler(svc)
+	app := fiber.New()
+	h.RegisterRoutes(app, func(c fiber.Ctx) error { return c.Next() }, func(c fiber.Ctx) error { return c.Next() })
+
 	req := httptest.NewRequest(http.MethodPost, "/admin/backups", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	// pg_dump недоступен в unit-test окружении — сервис помечает ошибку, но возвращает 201
-	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	// A7-004: pg_dump недоступен в unit-test — sync fail → HTTP 500; запись всё же создаётся как failed.
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+
+	records, err := client.BackupRecord.Query().All(ctx)
+	require.NoError(t, err)
+	require.Len(t, records, 1)
+	assert.Equal(t, backuprecord.StatusFailed, records[0].Status)
 }
 
 func TestHandler_RestoreBackup_InvalidJSON(t *testing.T) {
