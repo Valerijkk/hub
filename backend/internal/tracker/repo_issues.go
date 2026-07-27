@@ -16,6 +16,16 @@ import (
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
+// issueProjectIDEQ — A8-001 query rewrite: filter by FK column `project_issues`
+// instead of EXISTS via HasProjectWith. Same semantics for M2O required edge;
+// once composite index (project_issues, deleted_at) lands (NEEDS_APPROVAL),
+// ListIssues / board hot path can use Index Scan.
+func issueProjectIDEQ(projectID uuid.UUID) predicate.Issue {
+	return predicate.Issue(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(issue.ProjectColumn), projectID))
+	})
+}
+
 // ---------------------------------------------------------------------------
 // CRUD задач
 // ---------------------------------------------------------------------------
@@ -176,7 +186,7 @@ func (r *EntRepository) FindIssueInProject(ctx context.Context, projectID, id uu
 		Where(
 			issue.IDEQ(id),
 			issue.DeletedAtIsNil(),
-			issue.HasProjectWith(project.IDEQ(projectID)),
+			issueProjectIDEQ(projectID),
 		).
 		WithAssignee().
 		WithReporter().
@@ -193,7 +203,7 @@ func (r *EntRepository) FindIssueInProject(ctx context.Context, projectID, id uu
 func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, params ListIssuesParams) ([]*ent.Issue, int, error) {
 	// Базовый запрос с фильтром по проекту (исключаем мягко удалённые)
 	query := r.client.Issue.Query().
-		Where(issue.HasProjectWith(project.IDEQ(projectID)), issue.DeletedAtIsNil())
+		Where(issueProjectIDEQ(projectID), issue.DeletedAtIsNil())
 
 	// Фильтры
 	if len(params.Status) > 0 {
@@ -236,7 +246,7 @@ func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, par
 		cursorIssue, err := r.client.Issue.Query().
 			Where(
 				issue.IssueKeyEQ(params.Cursor),
-				issue.HasProjectWith(project.IDEQ(projectID)),
+				issueProjectIDEQ(projectID),
 				issue.DeletedAtIsNil(),
 			).
 			Only(ctx)
