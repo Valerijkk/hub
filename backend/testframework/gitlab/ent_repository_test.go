@@ -119,7 +119,7 @@ func TestEntRepository_IntegrationCRUDAndSecrets(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, secrets, cached)
 
-	require.NoError(t, env.repo.DeleteIntegration(env.ctx, created.ID))
+	require.NoError(t, env.repo.DeleteIntegration(env.ctx, env.projectID, created.ID))
 
 	afterDelete, err := env.repo.ListAllWebhookSecrets(env.ctx)
 	require.NoError(t, err)
@@ -127,6 +127,37 @@ func TestEntRepository_IntegrationCRUDAndSecrets(t *testing.T) {
 
 	_, err = env.repo.GetIntegration(env.ctx, created.ID)
 	require.Error(t, err)
+}
+
+// TestEntRepository_DeleteIntegration_RejectsForeignProject_A5_004 — интеграция проекта B
+// не удаляется через project A. Mutation: снять HasProjectWith → чужой delete проходит → FAIL.
+func TestEntRepository_DeleteIntegration_RejectsForeignProject_A5_004(t *testing.T) {
+	env := newGitLabRepoEnv(t)
+
+	foreign, err := env.client.Project.Create().
+		SetName("Foreign GL Project").
+		SetKey("FGL" + strings.ToUpper(uuid.New().String()[:3])).
+		Save(env.ctx)
+	require.NoError(t, err)
+
+	foreignRepo := gitlab.NewEntRepository(env.client, nil)
+	created, err := foreignRepo.CreateIntegration(env.ctx, foreign.ID, gitlab.CreateIntegrationInput{
+		ProjectPath:   "other/secret",
+		AccessToken:   "glpat-foreign",
+		WebhookSecret: "foreign-wh",
+	})
+	require.NoError(t, err)
+
+	err = env.repo.DeleteIntegration(env.ctx, env.projectID, created.ID)
+	require.True(t, ent.IsNotFound(err), "foreign integration must not delete via project A, got %v", err)
+
+	stillThere, err := foreignRepo.GetIntegration(env.ctx, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, stillThere.ID)
+
+	require.NoError(t, foreignRepo.DeleteIntegration(env.ctx, foreign.ID, created.ID))
+	_, err = foreignRepo.GetIntegration(env.ctx, created.ID)
+	require.True(t, ent.IsNotFound(err))
 }
 
 func TestEntRepository_FindIssueByKey(t *testing.T) {

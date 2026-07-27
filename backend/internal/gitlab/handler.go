@@ -183,13 +183,18 @@ func (h *Handler) ListIntegrations(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/gitlab/integrations/{integrationId} [delete]
 func (h *Handler) DeleteIntegration(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
 	idStr := utils.CopyString(c.Params("integrationId"))
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный integration ID")
 	}
 
-	if err := h.service.DeleteIntegration(c.Context(), id); err != nil {
+	if err := h.service.DeleteIntegration(c.Context(), projectID, id); err != nil {
 		return err
 	}
 

@@ -23,7 +23,8 @@ type Repository interface {
 	CreateIntegration(ctx context.Context, projectID uuid.UUID, input CreateIntegrationInput) (*ent.GitLabIntegration, error)
 	ListIntegrations(ctx context.Context, projectID uuid.UUID) ([]*ent.GitLabIntegration, error)
 	GetIntegration(ctx context.Context, id uuid.UUID) (*ent.GitLabIntegration, error)
-	DeleteIntegration(ctx context.Context, id uuid.UUID) error
+	// DeleteIntegration удаляет интеграцию только если она принадлежит projectID (A5-004).
+	DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error
 	FindIntegrationByProjectPath(ctx context.Context, projectPath string) (*ent.GitLabIntegration, error)
 
 	// Задачи (используется для поиска по ключу)
@@ -158,10 +159,20 @@ func (r *EntRepository) GetIntegration(ctx context.Context, id uuid.UUID) (*ent.
 	return ig, nil
 }
 
-// DeleteIntegration удаляет интеграцию по ID.
-func (r *EntRepository) DeleteIntegration(ctx context.Context, id uuid.UUID) error {
-	if err := r.client.GitLabIntegration.DeleteOneID(id).Exec(ctx); err != nil {
+// DeleteIntegration удаляет интеграцию по ID только в рамках projectID (A5-004).
+// Чужой projectId в URL при UUID интеграции другого проекта → NotFound (0 rows).
+func (r *EntRepository) DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error {
+	affected, err := r.client.GitLabIntegration.Delete().
+		Where(
+			gitlabintegration.IDEQ(id),
+			gitlabintegration.HasProjectWith(project.ID(projectID)),
+		).
+		Exec(ctx)
+	if err != nil {
 		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
 	}
 	// ME-08: удалённый секрет должен немедленно исчезнуть из HMAC-сверки.
 	r.invalidateSecretsCache()

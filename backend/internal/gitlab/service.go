@@ -109,9 +109,9 @@ func (s *GitLabService) ListIntegrations(ctx context.Context, projectID uuid.UUI
 	return result, nil
 }
 
-// DeleteIntegration удаляет интеграцию по ID.
-func (s *GitLabService) DeleteIntegration(ctx context.Context, id uuid.UUID) error {
-	return s.repo.DeleteIntegration(ctx, id)
+// DeleteIntegration удаляет интеграцию по ID в рамках projectID (A5-004).
+func (s *GitLabService) DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error {
+	return s.repo.DeleteIntegration(ctx, projectID, id)
 }
 
 // ---------------------------------------------------------------------------

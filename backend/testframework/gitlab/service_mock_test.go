@@ -56,7 +56,7 @@ func (m *gitlabMockRepo) GetIntegration(_ context.Context, id uuid.UUID) (*ent.G
 	}
 	return nil, &ent.NotFoundError{}
 }
-func (m *gitlabMockRepo) DeleteIntegration(context.Context, uuid.UUID) error { return nil }
+func (m *gitlabMockRepo) DeleteIntegration(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 func (m *gitlabMockRepo) FindIntegrationByProjectPath(_ context.Context, path string) (*ent.GitLabIntegration, error) {
 	if ig, ok := m.integrations[path]; ok {
 		return ig, nil
@@ -222,7 +222,7 @@ func TestDeleteIntegration_DelegatesToRepo(t *testing.T) {
 	id := uuid.New()
 	repo := &gitlabMockRepo{}
 	svc := gitlab.NewGitLabService(repo, nil)
-	require.NoError(t, svc.DeleteIntegration(context.Background(), id))
+	require.NoError(t, svc.DeleteIntegration(context.Background(), uuid.New(), id))
 }
 
 func TestCreateIntegration_CustomGitLabURL(t *testing.T) {
