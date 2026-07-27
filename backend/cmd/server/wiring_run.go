@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"log/slog"
-	"os"
+
+	"github.com/valerii/hub/backend/internal/platform/lifecycle"
 )
 
 func runServer(d *serverDeps) {
@@ -17,8 +18,9 @@ func runServer(d *serverDeps) {
 		addr := fmt.Sprintf(":%d", cfg.Server.Port)
 		slog.Info("starting server", "addr", addr)
 		if err := app.Listen(addr); err != nil {
-			slog.Error("server failed", "error", err)
-			os.Exit(1)
+			// A8-008: os.Exit обходит defer runCleanups — отменяем rootCtx,
+			// чтобы main дошёл до Shutdown + LIFO cleanup (NATS/Redis/PG/Mongo).
+			lifecycle.CancelOnListenError(d.rootCancel, err)
 		}
 	}()
 

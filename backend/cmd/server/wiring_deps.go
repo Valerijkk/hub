@@ -41,7 +41,8 @@ import (
 type serverDeps struct {
 	cfg *config.Config
 	ctx context.Context
-	rootCtx context.Context
+	rootCtx    context.Context
+	rootCancel context.CancelFunc
 
 	integrationCipher *cryptopkg.Cipher
 	traceShutdown     func(context.Context) error
