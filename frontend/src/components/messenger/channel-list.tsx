@@ -1,7 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { Channel, PresenceStatus } from "@/api/messenger";
 import {
 	deleteChannel,
@@ -36,6 +37,11 @@ import { PresenceIndicator } from "./presence-indicator";
 // Типы и константы
 // ---------------------------------------------------------------------------
 
+/** A13-018: virtualize when channel rows exceed this (headers count too). */
+const CHANNEL_VIRTUALIZE_THRESHOLD = 40;
+const CHANNEL_ROW_ESTIMATE = 52;
+const CHANNEL_HEADER_ESTIMATE = 28;
+
 /** Варианты длительности мьюта канала. */
 const MUTE_OPTIONS = [
 	{ duration: "1h" as const, label: "1 час" },
@@ -44,6 +50,10 @@ const MUTE_OPTIONS = [
 	{ duration: "1d" as const, label: "1 день" },
 	{ duration: "forever" as const, label: "Навсегда" },
 ] as const;
+
+type ChannelListRow =
+	| { kind: "header"; id: string; label: string }
+	| { kind: "channel"; id: string; channel: Channel };
 
 // ---------------------------------------------------------------------------
 // Утилиты
@@ -72,6 +82,27 @@ function groupChannels(channels: Channel[]) {
 	if (rest.length > 0)
 		groups.push(["channels", { label: "Каналы", channels: rest }]);
 	return groups;
+}
+
+/** Flat rows for virtualization (section headers + channels). */
+function buildChannelRows(
+	starred: Channel[],
+	grouped: [string, { label: string; channels: Channel[] }][],
+): ChannelListRow[] {
+	const rows: ChannelListRow[] = [];
+	if (starred.length > 0) {
+		rows.push({ kind: "header", id: "hdr-starred", label: "Закреплённые" });
+		for (const ch of starred) {
+			rows.push({ kind: "channel", id: ch.id, channel: ch });
+		}
+	}
+	for (const [type, group] of grouped) {
+		rows.push({ kind: "header", id: `hdr-${type}`, label: group.label });
+		for (const ch of group.channels) {
+			rows.push({ kind: "channel", id: ch.id, channel: ch });
+		}
+	}
+	return rows;
 }
 
 /** Проверяет, замьючен ли канал (muted_until в будущем). */
@@ -183,6 +214,134 @@ function ChannelSection({
 				</div>
 			</div>
 			{!collapsed && <div className="space-y-px">{children}</div>}
+		</div>
+	);
+}
+
+/**
+ * A13-018: scrollable channel rows — virtualize when list is long.
+ * Isolated component so useVirtualizer is always called (Rules of Hooks).
+ */
+function ChannelRowsScroll({
+	rows,
+	empty,
+	renderChannel,
+}: {
+	rows: ChannelListRow[];
+	empty: boolean;
+	renderChannel: (channel: Channel) => React.ReactNode;
+}) {
+	const parentRef = useRef<HTMLDivElement>(null);
+	const useVirtual = rows.length >= CHANNEL_VIRTUALIZE_THRESHOLD;
+
+	const virtualizer = useVirtualizer({
+		count: useVirtual ? rows.length : 0,
+		getScrollElement: () => parentRef.current,
+		estimateSize: (index) =>
+			rows[index]?.kind === "header"
+				? CHANNEL_HEADER_ESTIMATE
+				: CHANNEL_ROW_ESTIMATE,
+		overscan: 8,
+	});
+
+	const renderRow = (row: ChannelListRow) => {
+		if (row.kind === "header") {
+			return (
+				<div
+					key={row.id}
+					className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--t4)]"
+				>
+					{row.label}
+				</div>
+			);
+		}
+		return renderChannel(row.channel);
+	};
+
+	return (
+		<div ref={parentRef} className="flex-1 overflow-y-auto">
+			<div className="py-1">
+				{useVirtual ? (
+					<div
+						className="relative w-full"
+						style={{ height: `${virtualizer.getTotalSize()}px` }}
+					>
+						{virtualizer.getVirtualItems().map((vRow) => {
+							const row = rows[vRow.index];
+							if (!row) return null;
+							return (
+								<div
+									key={row.id}
+									data-index={vRow.index}
+									ref={virtualizer.measureElement}
+									className="absolute left-0 top-0 w-full"
+									style={{ transform: `translateY(${vRow.start}px)` }}
+								>
+									{renderRow(row)}
+								</div>
+							);
+						})}
+					</div>
+				) : (
+					<div className="space-y-2">
+						{(() => {
+							const sections: {
+								type: string;
+								label: string;
+								channels: Channel[];
+							}[] = [];
+							let current: {
+								type: string;
+								label: string;
+								channels: Channel[];
+							} | null = null;
+							for (const row of rows) {
+								if (row.kind === "header") {
+									current = {
+										type: row.id.replace(/^hdr-/, ""),
+										label: row.label,
+										channels: [],
+									};
+									sections.push(current);
+								} else if (current) {
+									current.channels.push(row.channel);
+								}
+							}
+							return sections.map((sec) => (
+								<ChannelSection
+									key={sec.type}
+									type={sec.type}
+									label={sec.label}
+								>
+									{sec.channels.map((ch) => renderChannel(ch))}
+								</ChannelSection>
+							));
+						})()}
+					</div>
+				)}
+
+				{empty && (
+					<div className="flex flex-col items-center justify-center py-12 px-4">
+						<svg
+							aria-hidden="true"
+							className="mb-3 h-10 w-10 text-sidebar-foreground/20"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							strokeWidth={1}
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+							/>
+						</svg>
+						<p className="text-xs text-sidebar-foreground/40 text-center">
+							Нет каналов
+						</p>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }
@@ -579,6 +738,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 	const starredChannels = filteredChannels.filter((ch) => ch.is_starred);
 	const regularChannels = filteredChannels.filter((ch) => !ch.is_starred);
 	const grouped = groupChannels(regularChannels);
+	const channelRows = buildChannelRows(starredChannels, grouped);
 
 	/** Рендер одного элемента канала. */
 	const renderChannelItem = (channel: Channel) => {
@@ -630,46 +790,12 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 				</div>
 			</div>
 
-			{/* Список каналов */}
-			<div className="flex-1 overflow-y-auto">
-				<div className="py-1 space-y-2">
-					{/* Закреплённые каналы (starred) */}
-					{starredChannels.length > 0 && (
-						<ChannelSection type="starred" label="Закреплённые">
-							{starredChannels.map(renderChannelItem)}
-						</ChannelSection>
-					)}
-
-					{/* Обычные каналы по группам */}
-					{grouped.map(([type, group]) => (
-						<ChannelSection key={type} type={type} label={group.label}>
-							{group.channels.map(renderChannelItem)}
-						</ChannelSection>
-					))}
-
-					{allChannels.length === 0 && (
-						<div className="flex flex-col items-center justify-center py-12 px-4">
-							<svg
-								aria-hidden="true"
-								className="mb-3 h-10 w-10 text-sidebar-foreground/20"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								strokeWidth={1}
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-								/>
-							</svg>
-							<p className="text-xs text-sidebar-foreground/40 text-center">
-								Нет каналов
-							</p>
-						</div>
-					)}
-				</div>
-			</div>
+			{/* Список каналов (A13-018 virtualized when long) */}
+			<ChannelRowsScroll
+				rows={channelRows}
+				empty={allChannels.length === 0}
+				renderChannel={renderChannelItem}
+			/>
 
 			{/* Нижняя панель: канал + новый DM */}
 			<div className="border-t border-[var(--b1)] px-3.5 h-12 flex items-center gap-2">
