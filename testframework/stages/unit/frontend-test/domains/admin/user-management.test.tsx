@@ -4,11 +4,13 @@ import { api } from "@/api/client";
 import { UserManagement } from "@/components/admin/user-management";
 import { renderWithProviders } from "../../render";
 
+const getOrgInvite = vi.fn().mockResolvedValue({
+	invite_token: "tok",
+	invite_url: "http://localhost/login?invite=tok",
+});
+
 vi.mock("@/api/admin-org", () => ({
-	getOrgInvite: vi.fn().mockResolvedValue({
-		invite_token: "tok",
-		invite_url: "http://localhost/login?invite=tok",
-	}),
+	getOrgInvite: (...args: unknown[]) => getOrgInvite(...args),
 }));
 
 vi.mock("@/components/admin/pending-users-panel", () => ({
@@ -17,7 +19,11 @@ vi.mock("@/components/admin/pending-users-panel", () => ({
 
 describe("UserManagement (A10-006)", () => {
 	beforeEach(() => {
-		vi.restoreAllMocks();
+		getOrgInvite.mockClear();
+		getOrgInvite.mockResolvedValue({
+			invite_token: "tok",
+			invite_url: "http://localhost/login?invite=tok",
+		});
 	});
 
 	it("shows error UI instead of empty when /admin/users fails", async () => {
@@ -25,13 +31,13 @@ describe("UserManagement (A10-006)", () => {
 
 		renderWithProviders(<UserManagement />);
 
-		expect(
-			await screen.findByRole("alert"),
-		).toBeInTheDocument();
+		expect(await screen.findByRole("alert")).toBeInTheDocument();
 		expect(
 			screen.getByRole("button", { name: /попробовать снова/i }),
 		).toBeInTheDocument();
-		expect(screen.queryByText("Пользователи не найдены")).not.toBeInTheDocument();
+		expect(
+			screen.queryByText("Пользователи не найдены"),
+		).not.toBeInTheDocument();
 	});
 
 	it("renders users when API succeeds", async () => {
