@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { type IssueResponse, listIssueLinks, listIssues } from "@/api/tracker";
+import {
+	type IssueResponse,
+	listIssues,
+	listProjectIssueLinks,
+} from "@/api/tracker";
 import { cn } from "@/lib/utils";
 
 interface GanttChartProps {
@@ -23,6 +27,23 @@ export function GanttChart({ projectId }: GanttChartProps) {
 		queryFn: () =>
 			listIssues(projectId, { limit: 100, order_by: "updated_at" }),
 	});
+
+	// A13-004: один batch вместо N× listIssueLinks per row.
+	const { data: projectLinks } = useQuery({
+		queryKey: ["project-issue-links", projectId],
+		queryFn: () => listProjectIssueLinks(projectId),
+	});
+
+	const blockersByKey = useMemo(() => {
+		const map = new Map<string, number>();
+		for (const link of projectLinks ?? []) {
+			if (link.link_type !== "blocked_by") continue;
+			const key = link.source_issue_key;
+			if (!key) continue;
+			map.set(key, (map.get(key) ?? 0) + 1);
+		}
+		return map;
+	}, [projectLinks]);
 
 	const issues = useMemo(
 		() => (data?.items ?? []).filter((i) => i.due_date),
@@ -90,6 +111,7 @@ export function GanttChart({ projectId }: GanttChartProps) {
 								bar={bar}
 								left={left}
 								width={width}
+								blockers={blockersByKey.get(bar.issue.issue_key) ?? 0}
 							/>
 						);
 					})}
@@ -104,20 +126,14 @@ function GanttRow({
 	bar,
 	left,
 	width,
+	blockers,
 }: {
 	projectId: string;
 	bar: GanttBar;
 	left: number;
 	width: number;
+	blockers: number;
 }) {
-	const { data: links } = useQuery({
-		queryKey: ["issue-links", bar.issue.issue_key],
-		queryFn: () => listIssueLinks(projectId, bar.issue.issue_key),
-	});
-
-	const blockers =
-		links?.filter((l) => l.link_type === "blocked_by").length ?? 0;
-
 	return (
 		<div className="flex items-center gap-3 border-b border-b1 px-4 py-2 last:border-0">
 			<div className="w-36 shrink-0 truncate">

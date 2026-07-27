@@ -42,6 +42,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	issues.Post("/:issueKey/links", h.CreateIssueLink, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
 	issues.Get("/:issueKey/links", h.ListIssueLinks, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 	issues.Delete("/:issueKey/links/:linkId", h.DeleteIssueLink, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+	// A13-004: batch links для Gantt (до /issues/:issueKey чтобы не конфликтовать)
+	tracker.Get("/issue-links", h.ListProjectIssueLinks, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
 	// Связи задача ↔ тред мессенджера (PROD-03)
 	issues.Get("/:issueKey/message-links", h.ListIssueMessageLinks, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))

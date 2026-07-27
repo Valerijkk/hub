@@ -125,6 +125,15 @@ export interface IssueLinkResponse {
 	issue: IssueBriefResponse;
 }
 
+/** A13-004: batch-связь проекта (Gantt без N+1). */
+export interface ProjectIssueLinkResponse {
+	id: string;
+	link_type: string;
+	custom_type?: string;
+	source_issue_key: string;
+	target_issue_key: string;
+}
+
 /** Комментарий к задаче. */
 export interface CommentResponse {
 	id: string;
@@ -410,6 +419,13 @@ export function createIssueLink(
 export function listIssueLinks(projectId: string, issueKey: string) {
 	return api.get<IssueLinkResponse[]>(
 		`/projects/${projectId}/issues/${issueKey}/links`,
+	);
+}
+
+/** A13-004: все связи проекта одним запросом (Gantt). */
+export function listProjectIssueLinks(projectId: string) {
+	return api.get<ProjectIssueLinkResponse[]>(
+		`/projects/${projectId}/issue-links`,
 	);
 }
 

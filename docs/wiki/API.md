@@ -162,6 +162,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | POST | `/projects/:projectId/issues/:issueKey/links` | Создать связь |
 | GET | `/projects/:projectId/issues/:issueKey/links` | Список связей |
 | DELETE | `/projects/:projectId/issues/:issueKey/links/:linkId` | Удалить связь |
+| GET | `/projects/:projectId/issue-links` | Batch связей проекта (Gantt, A13-004; cap 2000) |
 
 ### Комментарии и реакции
 

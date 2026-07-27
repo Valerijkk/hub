@@ -82,6 +82,26 @@ func (h *Handler) ListIssueLinks(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
+// ListProjectIssueLinks — A13-004: batch связей проекта (Gantt без N+1).
+// @Summary Список связей задач проекта
+// @Tags Трекер
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 200 {array} ProjectIssueLinkResponse
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/issue-links [get]
+func (h *Handler) ListProjectIssueLinks(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	resp, err := h.service.ListProjectIssueLinks(c.Context(), projectID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(resp)
+}
+
 // DeleteIssueLink — Удалить связь задачи
 // @Summary Удалить связь задачи
 // @Description Удаляет связь между задачами по ID связи.

@@ -38,6 +38,8 @@ type IssueLinkRepository interface {
 	CreateIssueLink(ctx context.Context, sourceID, targetID uuid.UUID, linkType string, customType string) (*ent.IssueLink, error)
 	// ListIssueLinks возвращает все связи (входящие и исходящие) для задачи.
 	ListIssueLinks(ctx context.Context, issueID uuid.UUID) ([]*ent.IssueLink, error)
+	// ListProjectIssueLinks — A13-004: все связи проекта одним запросом (Gantt batch).
+	ListProjectIssueLinks(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, error)
 	// DeleteIssueLink удаляет связь только если она принадлежит sourceIssueID (A3-011-link).
 	DeleteIssueLink(ctx context.Context, sourceIssueID, linkID uuid.UUID) error
 }

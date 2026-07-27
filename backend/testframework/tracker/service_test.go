@@ -270,6 +270,14 @@ func (m *mockRepo) ListIssueLinks(_ context.Context, issueID uuid.UUID) ([]*ent.
 	return result, nil
 }
 
+func (m *mockRepo) ListProjectIssueLinks(_ context.Context, _ uuid.UUID) ([]*ent.IssueLink, error) {
+	result := make([]*ent.IssueLink, 0, len(m.issueLinks))
+	for _, l := range m.issueLinks {
+		result = append(result, l)
+	}
+	return result, nil
+}
+
 func (m *mockRepo) DeleteIssueLink(_ context.Context, sourceIssueID, linkID uuid.UUID) error {
 	link, ok := m.issueLinks[linkID]
 	if !ok {

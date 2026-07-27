@@ -8,6 +8,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/issuelink"
+	"github.com/valerii/hub/backend/ent/project"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
@@ -91,6 +92,30 @@ func (r *EntRepository) ListIssueLinks(ctx context.Context, issueID uuid.UUID) (
 	all = append(all, outgoing...)
 	all = append(all, incoming...)
 	return all, nil
+}
+
+// MaxProjectIssueLinks — A13-004: hard cap batch-загрузки связей проекта для Gantt.
+const MaxProjectIssueLinks = 2000
+
+// ListProjectIssueLinks возвращает связи, где source или target принадлежит проекту.
+func (r *EntRepository) ListProjectIssueLinks(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, error) {
+	return r.client.IssueLink.Query().
+		Where(
+			issuelink.Or(
+				issuelink.HasSourceWith(
+					issue.HasProjectWith(project.IDEQ(projectID)),
+					issue.DeletedAtIsNil(),
+				),
+				issuelink.HasTargetWith(
+					issue.HasProjectWith(project.IDEQ(projectID)),
+					issue.DeletedAtIsNil(),
+				),
+			),
+		).
+		WithSource().
+		WithTarget().
+		Limit(MaxProjectIssueLinks).
+		All(ctx)
 }
 
 // DeleteIssueLink удаляет связь только если она принадлежит sourceIssueID (A3-011-link).

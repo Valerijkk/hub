@@ -321,6 +321,15 @@ type IssueLinkResponse struct {
 	Issue      IssueBriefResponse `json:"issue"`
 }
 
+// ProjectIssueLinkResponse — A13-004: связь с ключами source/target для batch Gantt.
+type ProjectIssueLinkResponse struct {
+	ID             string `json:"id"`
+	LinkType       string `json:"link_type"`
+	CustomType     string `json:"custom_type,omitempty"`
+	SourceIssueKey string `json:"source_issue_key"`
+	TargetIssueKey string `json:"target_issue_key"`
+}
+
 // PaginatedResponse — обёртка для пагинированного ответа с курсором.
 type PaginatedResponse[T any] struct {
 	Items      []T    `json:"items"`

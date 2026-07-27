@@ -82,6 +82,30 @@ func (s *TrackerService) ListIssueLinks(ctx context.Context, projectID uuid.UUID
 	return result, nil
 }
 
+// ListProjectIssueLinks — A13-004: batch связей проекта (1 запрос вместо N+1 на Gantt).
+func (s *TrackerService) ListProjectIssueLinks(ctx context.Context, projectID uuid.UUID) ([]ProjectIssueLinkResponse, error) {
+	links, err := s.repo.ListProjectIssueLinks(ctx, projectID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения связей проекта")
+	}
+	result := make([]ProjectIssueLinkResponse, 0, len(links))
+	for _, l := range links {
+		item := ProjectIssueLinkResponse{
+			ID:         l.ID.String(),
+			LinkType:   string(l.LinkType),
+			CustomType: l.CustomType,
+		}
+		if l.Edges.Source != nil {
+			item.SourceIssueKey = l.Edges.Source.IssueKey
+		}
+		if l.Edges.Target != nil {
+			item.TargetIssueKey = l.Edges.Target.IssueKey
+		}
+		result = append(result, item)
+	}
+	return result, nil
+}
+
 // DeleteIssueLink удаляет связь задачи, резолвя source через projectID+issueKey (A3-011-link).
 func (s *TrackerService) DeleteIssueLink(ctx context.Context, projectID uuid.UUID, issueKey string, linkID uuid.UUID) error {
 	source, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
