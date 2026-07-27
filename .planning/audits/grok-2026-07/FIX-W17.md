@@ -27,9 +27,9 @@ Checklist: authz scoped · input validation · pagination limits · status 400/4
 | ID | Gap closed | Test SHA | Autotest |
 |----|------------|----------|----------|
 | A14-006 | OTP slog path unproven (only maskEmail) | `0cbc7d2` | `TestMagicLink_OTPNotLogged_A14_006` (slog spy; mutation: `"code", code`) |
-| A14-007 | EnableStackTrace↔DevMode untested | *(this commit)* | `TestFiberRecoverEnableStackTrace_FollowsDevMode_A14_007` + wiring → helper |
+| A14-007 | EnableStackTrace↔DevMode untested | `4ebd8c3` | `TestFiberRecoverEnableStackTrace_FollowsDevMode_A14_007` + wiring → helper |
 
-SHAs: A14-006=`0cbc7d2`; A14-007 filled after commit.
+Prod fixes remain `a619a04` / `ec2e23f`; helper already in tree (`c5613f6`); this wave closes WEAK with mutation-resistant tests.
 
 ---
 
