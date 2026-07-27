@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/component"
 	"github.com/valerii/hub/backend/ent/environment"
 	entissue "github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/predicate"
 	entproject "github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/testcaseversion"
@@ -19,6 +21,15 @@ import (
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
+
+// testCaseProjectIDEQ — A8-002 query rewrite: FK column `project_test_cases`
+// instead of EXISTS via HasProjectWith. Index (project_test_cases, deleted_at)
+// remains NEEDS_APPROVAL (schema/Atlas).
+func testCaseProjectIDEQ(projectID uuid.UUID) predicate.TestCase {
+	return predicate.TestCase(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(testcase.ProjectColumn), projectID))
+	})
+}
 
 // EntRepository реализует интерфейс Repository с помощью Ent ORM.
 type EntRepository struct {
@@ -207,7 +218,7 @@ func (r *EntRepository) FindTestCaseByClassMethod(ctx context.Context, projectID
 // ListTestCases возвращает пагинированный список тест-кейсов с фильтрацией.
 func (r *EntRepository) ListTestCases(ctx context.Context, projectID uuid.UUID, params ListTestCasesParams) ([]*ent.TestCase, int, error) {
 	query := r.client.TestCase.Query().
-		Where(testcase.HasProjectWith(entproject.ID(projectID)), testcase.DeletedAtIsNil())
+		Where(testCaseProjectIDEQ(projectID), testcase.DeletedAtIsNil())
 
 	if params.SuiteID != nil {
 		query = query.Where(testcase.HasSuiteWith(testsuite.ID(*params.SuiteID)))
