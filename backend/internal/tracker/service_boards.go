@@ -36,8 +36,9 @@ func (s *TrackerService) ListBoards(ctx context.Context, projectID uuid.UUID) ([
 
 // GetBoardData возвращает данные доски с задачами, сгруппированными по статусам.
 // Если передан параметр swimlane (assignee|priority|type), группирует задачи по этому полю.
-func (s *TrackerService) GetBoardData(ctx context.Context, boardID uuid.UUID, swimlane string) (*BoardDataResponse, error) {
-	b, err := s.repo.GetBoardData(ctx, boardID)
+// Board F: board must belong to projectID.
+func (s *TrackerService) GetBoardData(ctx context.Context, projectID, boardID uuid.UUID, swimlane string) (*BoardDataResponse, error) {
+	b, err := s.repo.GetBoardData(ctx, projectID, boardID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("доска не найдена")

@@ -109,8 +109,8 @@ type LabelRepository interface {
 	CreateLabel(ctx context.Context, projectID uuid.UUID, name, color string, groupID *uuid.UUID) (*ent.Label, error)
 	// ListLabels возвращает все метки проекта.
 	ListLabels(ctx context.Context, projectID uuid.UUID) ([]*ent.Label, error)
-	// DeleteLabel удаляет метку по ID.
-	DeleteLabel(ctx context.Context, labelID uuid.UUID) error
+	// DeleteLabel удаляет метку по ID в рамках проекта (Block F IDOR).
+	DeleteLabel(ctx context.Context, projectID, labelID uuid.UUID) error
 	// CreateLabelGroup создаёт новую группу меток в проекте.
 	CreateLabelGroup(ctx context.Context, projectID uuid.UUID, name string) (*ent.LabelGroup, error)
 	// ListLabelGroups возвращает все группы меток проекта с вложенными метками.
@@ -123,8 +123,8 @@ type BoardRepository interface {
 	CreateBoard(ctx context.Context, projectID uuid.UUID, name string, filters map[string]interface{}) (*ent.Board, error)
 	// ListBoards возвращает все доски проекта.
 	ListBoards(ctx context.Context, projectID uuid.UUID) ([]*ent.Board, error)
-	// GetBoardData возвращает доску по ID с данными для рендеринга.
-	GetBoardData(ctx context.Context, boardID uuid.UUID) (*ent.Board, error)
+	// GetBoardData возвращает доску по ID с данными для рендеринга (scoped to project).
+	GetBoardData(ctx context.Context, projectID, boardID uuid.UUID) (*ent.Board, error)
 }
 
 // CustomFieldRepository управляет определениями кастомных полей проекта.

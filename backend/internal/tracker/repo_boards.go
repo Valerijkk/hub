@@ -43,17 +43,26 @@ func (r *EntRepository) ListBoards(ctx context.Context, projectID uuid.UUID) ([]
 }
 
 // GetBoardData возвращает доску по ID для рендеринга (доска + данные).
+// Board F: boardID scoped to projectID — чужая доска → NotFound (IDOR).
 // Применяет сохранённые фильтры доски (assignee_id, issue_type, label_ids, priority)
 // к запросу задач, чтобы вернуть только релевантные задачи.
-func (r *EntRepository) GetBoardData(ctx context.Context, boardID uuid.UUID) (*ent.Board, error) {
-	// Загружаем доску отдельно для доступа к фильтрам.
-	b, err := r.client.Board.Get(ctx, boardID)
+func (r *EntRepository) GetBoardData(ctx context.Context, projectID, boardID uuid.UUID) (*ent.Board, error) {
+	// Загружаем доску отдельно для доступа к фильтрам — только в рамках проекта.
+	b, err := r.client.Board.Query().
+		Where(
+			board.IDEQ(boardID),
+			board.HasProjectWith(project.IDEQ(projectID)),
+		).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("загрузка доски: %w", err)
 	}
 
 	return r.client.Board.Query().
-		Where(board.IDEQ(boardID)).
+		Where(
+			board.IDEQ(boardID),
+			board.HasProjectWith(project.IDEQ(projectID)),
+		).
 		WithProject(func(q *ent.ProjectQuery) {
 			q.WithWorkflowStatuses(func(sq *ent.WorkflowStatusQuery) {
 				sq.Order(ent.Asc(workflowstatus.FieldSortOrder))

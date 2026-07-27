@@ -558,7 +558,7 @@ func (m *mockRepo) ListLabels(_ context.Context, _ uuid.UUID) ([]*ent.Label, err
 	return result, nil
 }
 
-func (m *mockRepo) DeleteLabel(_ context.Context, labelID uuid.UUID) error {
+func (m *mockRepo) DeleteLabel(_ context.Context, _, labelID uuid.UUID) error {
 	delete(m.labels, labelID)
 	return nil
 }
@@ -602,7 +602,7 @@ func (m *mockRepo) ListBoards(_ context.Context, _ uuid.UUID) ([]*ent.Board, err
 	return result, nil
 }
 
-func (m *mockRepo) GetBoardData(_ context.Context, boardID uuid.UUID) (*ent.Board, error) {
+func (m *mockRepo) GetBoardData(_ context.Context, _, boardID uuid.UUID) (*ent.Board, error) {
 	b, ok := m.boards[boardID]
 	if !ok {
 		return nil, &ent.NotFoundError{}
@@ -1088,7 +1088,7 @@ func TestBoardData(t *testing.T) {
 	// Получаем данные доски
 	boardID, _ := uuid.Parse(board.ID)
 	_ = repo
-	data, err := svc.GetBoardData(ctx, boardID, "")
+	data, err := svc.GetBoardData(ctx, projectID, boardID, "")
 	require.NoError(t, err)
 	assert.Equal(t, "Sprint Board", data.Board.Name)
 	assert.NotEmpty(t, data.Columns)

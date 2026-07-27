@@ -28,7 +28,7 @@ func TestEntRepository_LabelsAndGroups(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, groups, 1)
 
-	require.NoError(t, env.repo.DeleteLabel(env.ctx, label.ID))
+	require.NoError(t, env.repo.DeleteLabel(env.ctx, env.projectID, label.ID))
 	labels, err = env.repo.ListLabels(env.ctx, env.projectID)
 	require.NoError(t, err)
 	assert.Empty(t, labels)

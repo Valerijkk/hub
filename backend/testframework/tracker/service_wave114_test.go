@@ -83,7 +83,7 @@ func TestCreateWorkflowTransition_InvalidToStatusID(t *testing.T) {
 func TestDeleteLabel_NotFound(t *testing.T) {
 	repo := &notFoundLabelDeleteRepo{mockRepo: *newMockRepo()}
 	svc := tracker.NewTrackerService(repo, nil)
-	err := svc.DeleteLabel(context.Background(), uuid.New())
+	err := svc.DeleteLabel(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдена")
 }
@@ -92,7 +92,7 @@ type notFoundLabelDeleteRepo struct {
 	mockRepo
 }
 
-func (r *notFoundLabelDeleteRepo) DeleteLabel(_ context.Context, _ uuid.UUID) error {
+func (r *notFoundLabelDeleteRepo) DeleteLabel(_ context.Context, _, _ uuid.UUID) error {
 	return &ent.NotFoundError{}
 }
 

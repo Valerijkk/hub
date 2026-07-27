@@ -81,6 +81,10 @@ func (h *Handler) CreateBoard(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/boards/{boardId} [get]
 func (h *Handler) GetBoardData(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	boardID, err := httputil.ParseUUIDParam(c, "boardId")
 	if err != nil {
 		return err
@@ -88,7 +92,7 @@ func (h *Handler) GetBoardData(c fiber.Ctx) error {
 
 	swimlane := c.Query("swimlane") // assignee|priority|type
 
-	resp, err := h.service.GetBoardData(c.Context(), boardID, swimlane)
+	resp, err := h.service.GetBoardData(c.Context(), projectID, boardID, swimlane)
 	if err != nil {
 		return err
 	}

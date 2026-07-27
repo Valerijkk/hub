@@ -157,7 +157,7 @@ func TestDeleteLabel(t *testing.T) {
 	require.NoError(t, err)
 
 	labelID := uuid.MustParse(label.ID)
-	require.NoError(t, svc.DeleteLabel(ctx, labelID))
+	require.NoError(t, svc.DeleteLabel(ctx, projectID, labelID))
 	assert.NotContains(t, repo.labels, labelID)
 }
 

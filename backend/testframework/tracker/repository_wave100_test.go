@@ -213,7 +213,7 @@ func TestEntRepository_GetBoardData_AssigneeAndLabelFilters(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	data, err := env.repo.GetBoardData(env.ctx, board.ID)
+	data, err := env.repo.GetBoardData(env.ctx, env.projectID, board.ID)
 	require.NoError(t, err)
 	require.NotNil(t, data.Edges.Project)
 	statuses := data.Edges.Project.Edges.WorkflowStatuses

@@ -81,12 +81,16 @@ func (h *Handler) CreateLabel(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/labels/{labelId} [delete]
 func (h *Handler) DeleteLabel(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	labelID, err := httputil.ParseUUIDParam(c, "labelId")
 	if err != nil {
 		return err
 	}
 
-	if err := h.service.DeleteLabel(c.Context(), labelID); err != nil {
+	if err := h.service.DeleteLabel(c.Context(), projectID, labelID); err != nil {
 		return err
 	}
 

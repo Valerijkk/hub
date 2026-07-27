@@ -40,7 +40,7 @@ func TestGetBoardData_SwimlaneByAssignee(t *testing.T) {
 	boardID, err := uuid.Parse(board.ID)
 	require.NoError(t, err)
 
-	data, err := svc.GetBoardData(ctx, boardID, "assignee")
+	data, err := svc.GetBoardData(ctx, projectID, boardID, "assignee")
 	require.NoError(t, err)
 	require.NotEmpty(t, data.Swimlanes)
 	assert.NotEmpty(t, data.Columns)
@@ -65,7 +65,7 @@ func TestGetBoardData_SwimlaneByPriority(t *testing.T) {
 	boardID, err := uuid.Parse(board.ID)
 	require.NoError(t, err)
 
-	data, err := svc.GetBoardData(ctx, boardID, "priority")
+	data, err := svc.GetBoardData(ctx, projectID, boardID, "priority")
 	require.NoError(t, err)
 	require.NotEmpty(t, data.Swimlanes)
 }
@@ -73,7 +73,7 @@ func TestGetBoardData_SwimlaneByPriority(t *testing.T) {
 // TestGetBoardData_NotFound проверяет сценарий: получение board data not found.
 func TestGetBoardData_NotFound(t *testing.T) {
 	svc, _ := newTestService()
-	_, err := svc.GetBoardData(context.Background(), uuid.New(), "")
+	_, err := svc.GetBoardData(context.Background(), uuid.New(), uuid.New(), "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдена")
 }

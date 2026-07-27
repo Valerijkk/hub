@@ -36,9 +36,21 @@ func (r *EntRepository) ListLabels(ctx context.Context, projectID uuid.UUID) ([]
 		All(ctx)
 }
 
-// DeleteLabel удаляет метку по ID.
-func (r *EntRepository) DeleteLabel(ctx context.Context, labelID uuid.UUID) error {
-	return r.client.Label.DeleteOneID(labelID).Exec(ctx)
+// DeleteLabel удаляет метку по ID только если она принадлежит проекту (Block F IDOR).
+func (r *EntRepository) DeleteLabel(ctx context.Context, projectID, labelID uuid.UUID) error {
+	affected, err := r.client.Label.Delete().
+		Where(
+			label.IDEQ(labelID),
+			label.HasProjectWith(project.IDEQ(projectID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // CreateLabelGroup создаёт новую группу меток в проекте.

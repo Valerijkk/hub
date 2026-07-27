@@ -47,9 +47,9 @@ func (s *TrackerService) ListLabels(ctx context.Context, projectID uuid.UUID) ([
 	return result, nil
 }
 
-// DeleteLabel удаляет метку.
-func (s *TrackerService) DeleteLabel(ctx context.Context, labelID uuid.UUID) error {
-	if err := s.repo.DeleteLabel(ctx, labelID); err != nil {
+// DeleteLabel удаляет метку в рамках проекта (Block F IDOR).
+func (s *TrackerService) DeleteLabel(ctx context.Context, projectID, labelID uuid.UUID) error {
+	if err := s.repo.DeleteLabel(ctx, projectID, labelID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("метка не найдена")
 		}
