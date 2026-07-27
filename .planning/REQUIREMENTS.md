@@ -51,7 +51,7 @@
 - [x] **LOGN-02**: User sees floating animated feature cards on left panel
 - [x] **LOGN-03**: User sees email→code flow with redesigned inputs and code fields
 - [x] **LOGN-04**: User sees mesh gradient background animation
-- [x] **LOGN-05**: Login flow (magic link + Telegram) works without regression
+- [x] **LOGN-05**: Login flow (Magic Link only) works without regression; Telegram is notification bind only (ADR-AUTH-01), not login
 
 ### Dashboard Page (DASH)
 
