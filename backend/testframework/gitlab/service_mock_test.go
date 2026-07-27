@@ -22,10 +22,11 @@ type gitlabMockRepo struct {
 
 func (m *gitlabMockRepo) CreateIntegration(_ context.Context, projectID uuid.UUID, input gitlab.CreateIntegrationInput) (*ent.GitLabIntegration, error) {
 	ig := &ent.GitLabIntegration{
-		ID:          uuid.New(),
-		GitlabURL:   input.GitLabURL,
-		ProjectPath: input.ProjectPath,
-		AccessToken: input.AccessToken,
+		ID:            uuid.New(),
+		GitlabURL:     input.GitLabURL,
+		ProjectPath:   input.ProjectPath,
+		AccessToken:   input.AccessToken,
+		WebhookSecret: input.WebhookSecret,
 	}
 	if m.integrations == nil {
 		m.integrations = make(map[string]*ent.GitLabIntegration)

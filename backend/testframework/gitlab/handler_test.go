@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/valerii/hub/backend/ent"
 )
 
 func testGitLabHandlerApp(t *testing.T, repo gitlab.Repository) *fiber.App {
@@ -48,12 +49,20 @@ func TestHandler_HandleWebhook_MissingToken(t *testing.T) {
 }
 
 func TestHandler_HandleWebhook_ValidToken(t *testing.T) {
-	repo := &gitlabMockRepo{webhookSecrets: []string{"secret-token"}}
+	repo := &gitlabMockRepo{
+		integrations: map[string]*ent.GitLabIntegration{
+			"hub/backend": {
+				ID:            uuid.New(),
+				ProjectPath:   "hub/backend",
+				WebhookSecret: "secret-token",
+			},
+		},
+	}
 	app := testGitLabHandlerApp(t, repo)
 
 	body, err := json.Marshal(gitlab.WebhookPushEvent{
 		ObjectKind: "push",
-		Project:    gitlab.WebhookProject{PathWithNamespace: "unknown/project"},
+		Project:    gitlab.WebhookProject{PathWithNamespace: "hub/backend"},
 	})
 	require.NoError(t, err)
 

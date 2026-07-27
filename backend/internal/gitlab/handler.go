@@ -1,7 +1,6 @@
 package gitlab
 
 import (
-	"crypto/subtle"
 	"io"
 
 	"github.com/gofiber/fiber/v3"
@@ -71,8 +70,8 @@ func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusRequestEntityTooLarge, apperr.MsgBadRequest)
 	}
 
-	// Валидируем X-Gitlab-Token по секретам всех интеграций.
-	if err := h.validateWebhookToken(c, webhookToken); err != nil {
+	// A5-009: X-Gitlab-Token только секретом интеграции, найденной по project_path.
+	if err := h.service.VerifyWebhookToken(c.Context(), body, webhookToken); err != nil {
 		return err
 	}
 
@@ -81,28 +80,6 @@ func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusOK)
-}
-
-// validateWebhookToken проверяет X-Gitlab-Token webhook-запроса.
-// GitLab отправляет токен в plain text (не HMAC), поэтому просто
-// сравниваем с зарегистрированными секретами.
-func (h *Handler) validateWebhookToken(c fiber.Ctx, token string) error {
-	if token == "" {
-		return fiber.NewError(fiber.StatusForbidden, "отсутствует заголовок X-Gitlab-Token")
-	}
-
-	secrets, err := h.service.repo.ListAllWebhookSecrets(c.Context())
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "ошибка получения секретов интеграций")
-	}
-
-	for _, secret := range secrets {
-		if subtle.ConstantTimeCompare([]byte(token), []byte(secret)) == 1 {
-			return nil
-		}
-	}
-
-	return fiber.NewError(fiber.StatusForbidden, "невалидный X-Gitlab-Token")
 }
 
 // CreateIntegration godoc
