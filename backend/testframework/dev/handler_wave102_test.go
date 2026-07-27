@@ -43,7 +43,7 @@ func newDevHandlerApp(t *testing.T, devMode bool) (*fiber.App, *ent.Client) {
 		rdb, nil,
 		"dev-handler-secret",
 		15*time.Minute, 30*24*time.Hour,
-		magic, "bot", nil,
+		magic, nil,
 	)
 
 	h := dev.NewHandler(client, authSvc)

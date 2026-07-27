@@ -1,4 +1,5 @@
-// Package auth реализует аутентификацию через Magic Link и Telegram, управление JWT-сессиями и профилями пользователей.
+// Package auth реализует аутентификацию через Magic Link, управление JWT-сессиями и профилями пользователей.
+// Telegram login удалён (AUTH-01 / A11-004); notify bind живёт в notification.
 package auth
 
 import (
@@ -34,13 +35,12 @@ func NewAuthService(
 	jwtSecret string,
 	accessTTL, refreshTTL time.Duration,
 	magicLink *MagicLinkService,
-	botToken string,
 	sqlDB *sql.DB,
 ) *AuthService {
 	sessions := NewSessionService(repo, rdb, nats, jwtSecret, accessTTL, refreshTTL)
 	regMode := NewRegistrationModeService(repo, sqlDB)
 	org := NewOrganizationService(repo)
-	login := NewLoginService(repo, magicLink, botToken, sessions, regMode, org)
+	login := NewLoginService(repo, magicLink, sessions, regMode, org)
 	profile := NewProfileService(repo)
 	return &AuthService{
 		Sessions:  sessions,
@@ -101,16 +101,6 @@ func (s *AuthService) LoginWithMagicLink(ctx context.Context, email, code, invit
 // Позволяет handler-у проверить существование пользователя без прямого доступа к *ent.Client.
 func (s *AuthService) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
 	return s.Login.UserExistsByEmail(ctx, email)
-}
-
-// LoginWithTelegram — back-compat для handler.LoginTelegram.
-func (s *AuthService) LoginWithTelegram(ctx context.Context, initData, dev, ip string) (*TokenPairResponse, error) {
-	return s.Login.LoginWithTelegram(ctx, initData, dev, ip)
-}
-
-// LoginWithTelegramUser — back-compat для handler.LoginTelegramCode.
-func (s *AuthService) LoginWithTelegramUser(ctx context.Context, tg *TelegramUser, dev, ip string) (*TokenPairResponse, error) {
-	return s.Login.LoginWithTelegramUser(ctx, tg, dev, ip)
 }
 
 // GetMe — back-compat для handler.GetMe.

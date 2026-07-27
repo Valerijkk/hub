@@ -35,7 +35,7 @@ func newWSAuthService(t *testing.T) (*auth.AuthService, *auth.MagicLinkService, 
 	t.Cleanup(func() { _ = rdb.Close() })
 
 	magic := auth.NewMagicLinkService(rdb, nil, "test@example.com")
-	svc := auth.NewAuthService(auth.NewEntRepository(client), rdb, nil, "ws-test-secret", 15*time.Minute, 30*24*time.Hour, magic, "bot", nil)
+	svc := auth.NewAuthService(auth.NewEntRepository(client), rdb, nil, "ws-test-secret", 15*time.Minute, 30*24*time.Hour, magic, nil)
 	return svc, magic, client
 }
 

@@ -17,11 +17,6 @@ type VerifyMagicLinkRequest struct {
 	InviteToken string `json:"invite_token,omitempty"`
 }
 
-// TelegramAuthRequest — тело запроса для POST /auth/telegram.
-type TelegramAuthRequest struct {
-	InitData string `json:"init_data" validate:"required"`
-}
-
 // RefreshRequest — тело запроса для POST /auth/refresh.
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`

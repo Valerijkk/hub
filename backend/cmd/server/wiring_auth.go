@@ -32,7 +32,6 @@ func wireAuth(d *serverDeps) {
 		cfg.JWT.AccessTokenTTL,
 		cfg.JWT.RefreshTokenTTL,
 		magicLinkSvc,
-		cfg.Telegram.BotToken,
 		d.rawDB,
 	)
 	d.authSvc = authSvc

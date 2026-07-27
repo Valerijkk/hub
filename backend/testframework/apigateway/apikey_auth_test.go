@@ -72,7 +72,7 @@ func TestAPIKeyAuth_AlonePassesRequireAuth_A9012(t *testing.T) {
 	t.Cleanup(func() { _ = rdb.Close() })
 
 	magic := auth.NewMagicLinkService(rdb, nil, "test@example.com")
-	authSvc := auth.NewAuthService(auth.NewEntRepository(client), rdb, nil, "a9012-secret", 15*time.Minute, 30*24*time.Hour, magic, "bot", nil)
+	authSvc := auth.NewAuthService(auth.NewEntRepository(client), rdb, nil, "a9012-secret", 15*time.Minute, 30*24*time.Hour, magic, nil)
 
 	app := fiber.New()
 	app.Use(apigateway.APIKeyAuth(apiKeySvc))
