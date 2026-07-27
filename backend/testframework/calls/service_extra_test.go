@@ -174,7 +174,9 @@ func TestCallService_CreateInstantCall_LiveKitUnavailable(t *testing.T) {
 
 func TestHandler_RaiseHand_LiveKitUnavailable(t *testing.T) {
 	f := newCallsTestFixture(t)
+	ctx := context.Background()
 	callEnt := f.createChannelCall(t, f.owner)
+	require.NoError(t, f.repo.AddParticipant(ctx, callEnt.ID, f.owner.ID))
 	app := newCallsHandlerApp(f)
 
 	req := httptest.NewRequest(fiber.MethodPost, "/calls/"+callEnt.ID.String()+"/raise-hand", bytes.NewReader([]byte(`{"raised":true}`)))

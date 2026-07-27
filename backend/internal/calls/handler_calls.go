@@ -267,6 +267,7 @@ func (h *Handler) EndCall(c fiber.Ctx) error {
 // @Success 200 {object} map[string]bool "raised: true/false"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Не участник звонка"
 // @Failure 404 {object} fiber.Error "Звонок не найден"
 // @Security BearerAuth
 // @Router /api/calls/{callId}/raise-hand [post]
@@ -286,12 +287,14 @@ func (h *Handler) RaiseHand(c fiber.Ctx) error {
 		return err
 	}
 
-	callEnt, err := h.service.repo.GetCall(c.Context(), callID)
-	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "звонок не найден")
-	}
-
-	if err := h.service.SetRaiseHand(c.Context(), callEnt.RoomName, userID.String(), req.Raised); err != nil {
+	// A2-006: authz в сервисе (active participant), без прямого доступа к repo.
+	if err := h.service.RaiseHand(c.Context(), callID, userID, req.Raised); err != nil {
+		if errors.Is(err, ErrCallNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "звонок не найден")
+		}
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для поднятия руки")
+		}
 		slog.Error("ошибка поднятия руки", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось обновить статус руки")
 	}

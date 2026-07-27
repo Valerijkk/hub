@@ -9,12 +9,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/platform/config"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
 // ErrCallForbidden — HI-03: 403 для CreateCall/JoinCall/EndCall / A2-002 без утечки причины.
 var ErrCallForbidden = errors.New("forbidden")
+
+// ErrCallNotFound — звонок отсутствует (RaiseHand и др. без утечки деталей).
+var ErrCallNotFound = errors.New("call not found")
 
 // defaultMaxCallParticipants — потолок участников комнаты LiveKit.
 const defaultMaxCallParticipants = 50
@@ -199,6 +203,27 @@ func (s *CallService) GetActiveCallByChannel(ctx context.Context, channelID uuid
 		return nil, nil
 	}
 	return toCallResponse(callEnt, ""), nil
+}
+
+// RaiseHand — A2-006: поднять/опустить руку только для активного участника звонка.
+// Раньше handler брал call по ID и звал LiveKit без authz — любой user с callId
+// мог дергать UpdateParticipantMetadata для своего identity.
+func (s *CallService) RaiseHand(ctx context.Context, callID, userID uuid.UUID, raised bool) error {
+	callEnt, err := s.repo.GetCall(ctx, callID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrCallNotFound
+		}
+		return fmt.Errorf("get call: %w", err)
+	}
+	ok, pErr := s.repo.IsActiveParticipant(ctx, callID, userID)
+	if pErr != nil {
+		return fmt.Errorf("check participant: %w", pErr)
+	}
+	if !ok {
+		return ErrCallForbidden
+	}
+	return s.SetRaiseHand(ctx, callEnt.RoomName, userID.String(), raised)
 }
 
 // SetRaiseHand обновляет LiveKit-метаданные участника ("поднять руку").
