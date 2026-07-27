@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/valerii/hub/backend/ent/issue"
-	"github.com/valerii/hub/backend/ent/workflowstatus"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -205,36 +204,15 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, userID, projectI
 		TeamActivity:  make([]ActivityEntry, 0),
 	}
 
-	// Задачи по статусам
-	issues, err := s.repo.ListProjectIssuesWithStatusAssignee(ctx, projectID)
+	// Задачи по статусам (A13-003: агрегаты, не .All всех issues)
+	issueAgg, err := s.repo.AggregateProjectIssueStats(ctx, projectID)
 	if err != nil {
-		slog.Error("ошибка загрузки задач проекта", "error", err)
+		slog.Error("ошибка агрегации задач проекта", "error", err)
 	} else {
-		now := time.Now()
-		for _, iss := range issues {
-			statusName := "unknown"
-			isDone := false
-			if iss.Edges.Status != nil {
-				statusName = iss.Edges.Status.Name
-				isDone = iss.Edges.Status.Category == workflowstatus.CategoryDone
-			}
-			stats.TasksByStatus[statusName]++
-
-			// Баги: тип bug, не завершены
-			if iss.IssueType == issue.IssueTypeBug && !isDone {
-				stats.BugCount++
-			}
-
-			// Без исполнителя
-			if iss.Edges.Assignee == nil {
-				stats.Unassigned++
-			}
-
-			// Просроченные
-			if iss.DueDate != nil && iss.DueDate.Before(now) && !isDone {
-				stats.Overdue++
-			}
-		}
+		stats.TasksByStatus = issueAgg.TasksByStatus
+		stats.BugCount = issueAgg.BugCount
+		stats.Unassigned = issueAgg.Unassigned
+		stats.Overdue = issueAgg.Overdue
 	}
 
 	// Burndown: завершённые задачи по дням за последние 30 дней

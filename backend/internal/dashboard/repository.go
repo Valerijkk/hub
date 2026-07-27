@@ -29,6 +29,9 @@ type Repository interface {
 	ListUserRecentTestRuns(ctx context.Context, userID uuid.UUID, limit int) ([]*ent.TestRun, error)
 	ListUserDeadlineIssues(ctx context.Context, userID uuid.UUID, from, to time.Time, limit int) ([]*ent.Issue, error)
 	ListUserTimeLogsBetween(ctx context.Context, userID uuid.UUID, from, to time.Time) ([]*ent.TimeLog, error)
+	// AggregateProjectIssueStats — A13-003: COUNT/GROUP агрегаты без материализации всех rows.
+	AggregateProjectIssueStats(ctx context.Context, projectID uuid.UUID) (*ProjectIssueAgg, error)
+	// ListProjectIssuesWithStatusAssignee устарел для hot path; оставлен для совместимости тестов.
 	ListProjectIssuesWithStatusAssignee(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error)
 	ListProjectCompletedIssuesSince(ctx context.Context, projectID uuid.UUID, since time.Time) ([]*ent.Issue, error)
 	CountProjectCompletedIssuesInRange(ctx context.Context, projectID uuid.UUID, start, end time.Time) (int, error)
@@ -112,6 +115,78 @@ func (r *EntRepository) ListUserTimeLogsBetween(ctx context.Context, userID uuid
 			timelog.CreatedAtLTE(to),
 		).
 		All(ctx)
+}
+
+// ProjectIssueAgg — агрегированная статистика задач проекта (A13-003).
+type ProjectIssueAgg struct {
+	TasksByStatus map[string]int
+	BugCount      int
+	Unassigned    int
+	Overdue       int
+}
+
+// AggregateProjectIssueStats считает TasksByStatus / bugs / unassigned / overdue
+// через Count, без `.All` всех issues проекта.
+func (r *EntRepository) AggregateProjectIssueStats(ctx context.Context, projectID uuid.UUID) (*ProjectIssueAgg, error) {
+	agg := &ProjectIssueAgg{TasksByStatus: make(map[string]int)}
+
+	statuses, err := r.client.WorkflowStatus.Query().
+		Where(workflowstatus.HasProjectWith(project.ID(projectID))).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list workflow statuses: %w", err)
+	}
+
+	projectIssues := func() *ent.IssueQuery {
+		return r.client.Issue.Query().Where(
+			issue.HasProjectWith(project.ID(projectID)),
+			issue.DeletedAtIsNil(),
+		)
+	}
+
+	for _, st := range statuses {
+		cnt, err := projectIssues().
+			Where(issue.HasStatusWith(workflowstatus.IDEQ(st.ID))).
+			Count(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("count issues status %s: %w", st.Name, err)
+		}
+		agg.TasksByStatus[st.Name] = cnt
+	}
+
+	bugCount, err := projectIssues().
+		Where(
+			issue.IssueTypeEQ(issue.IssueTypeBug),
+			issue.HasStatusWith(workflowstatus.CategoryNEQ(workflowstatus.CategoryDone)),
+		).
+		Count(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("count open bugs: %w", err)
+	}
+	agg.BugCount = bugCount
+
+	unassigned, err := projectIssues().
+		Where(issue.Not(issue.HasAssignee())).
+		Count(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("count unassigned: %w", err)
+	}
+	agg.Unassigned = unassigned
+
+	now := time.Now().UTC()
+	overdue, err := projectIssues().
+		Where(
+			issue.DueDateNotNil(),
+			issue.DueDateLT(now),
+			issue.HasStatusWith(workflowstatus.CategoryNEQ(workflowstatus.CategoryDone)),
+		).
+		Count(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("count overdue: %w", err)
+	}
+	agg.Overdue = overdue
+
+	return agg, nil
 }
 
 func (r *EntRepository) ListProjectIssuesWithStatusAssignee(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error) {
