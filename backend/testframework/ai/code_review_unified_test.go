@@ -162,6 +162,9 @@ func (m *gitlabReviewRepo) ListIntegrations(context.Context, uuid.UUID) ([]*ent.
 func (m *gitlabReviewRepo) GetIntegration(context.Context, uuid.UUID) (*ent.GitLabIntegration, error) {
 	return nil, nil
 }
+func (m *gitlabReviewRepo) GetIntegrationInProject(context.Context, uuid.UUID, uuid.UUID) (*ent.GitLabIntegration, error) {
+	return nil, nil
+}
 func (m *gitlabReviewRepo) DeleteIntegration(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 func (m *gitlabReviewRepo) FindIntegrationByProjectPath(_ context.Context, path string) (*ent.GitLabIntegration, error) {
 	if ig, ok := m.integrations[path]; ok {

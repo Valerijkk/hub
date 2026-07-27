@@ -160,6 +160,32 @@ func TestEntRepository_DeleteIntegration_RejectsForeignProject_A5_004(t *testing
 	require.True(t, ent.IsNotFound(err))
 }
 
+// TestEntRepository_GetIntegrationInProject_RejectsForeign_A5_005 — интеграция проекта B
+// не находится через project A. Mutation: снять HasProjectWith → FAIL.
+func TestEntRepository_GetIntegrationInProject_RejectsForeign_A5_005(t *testing.T) {
+	env := newGitLabRepoEnv(t)
+
+	foreign, err := env.client.Project.Create().
+		SetName("Foreign GL Trigger").
+		SetKey("FGT" + strings.ToUpper(uuid.New().String()[:3])).
+		Save(env.ctx)
+	require.NoError(t, err)
+
+	foreignRepo := gitlab.NewEntRepository(env.client, nil)
+	created, err := foreignRepo.CreateIntegration(env.ctx, foreign.ID, gitlab.CreateIntegrationInput{
+		ProjectPath: "other/ci",
+		AccessToken: "glpat-ci",
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.GetIntegrationInProject(env.ctx, env.projectID, created.ID)
+	require.True(t, ent.IsNotFound(err), "foreign integration must not resolve via project A, got %v", err)
+
+	got, err := foreignRepo.GetIntegrationInProject(env.ctx, foreign.ID, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, got.ID)
+}
+
 func TestEntRepository_FindIssueByKey(t *testing.T) {
 	env := newGitLabRepoEnv(t)
 	iss := env.createIssue(t, 1)

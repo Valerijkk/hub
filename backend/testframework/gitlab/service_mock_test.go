@@ -56,6 +56,31 @@ func (m *gitlabMockRepo) GetIntegration(_ context.Context, id uuid.UUID) (*ent.G
 	}
 	return nil, &ent.NotFoundError{}
 }
+func (m *gitlabMockRepo) GetIntegrationInProject(_ context.Context, projectID, id uuid.UUID) (*ent.GitLabIntegration, error) {
+	ig, err := m.GetIntegration(context.Background(), id)
+	if err != nil {
+		return nil, err
+	}
+	if m.byProject != nil {
+		for _, candidate := range m.byProject[projectID] {
+			if candidate.ID == id {
+				return ig, nil
+			}
+		}
+		// Integration exists but not under this project — IDOR guard.
+		for pid, list := range m.byProject {
+			if pid == projectID {
+				continue
+			}
+			for _, candidate := range list {
+				if candidate.ID == id {
+					return nil, &ent.NotFoundError{}
+				}
+			}
+		}
+	}
+	return ig, nil
+}
 func (m *gitlabMockRepo) DeleteIntegration(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 func (m *gitlabMockRepo) FindIntegrationByProjectPath(_ context.Context, path string) (*ent.GitLabIntegration, error) {
 	if ig, ok := m.integrations[path]; ok {

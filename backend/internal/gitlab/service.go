@@ -350,7 +350,8 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 		return nil, apperrors.NewBadRequest("некорректный integration_id")
 	}
 
-	integration, err := s.repo.GetIntegration(ctx, integrationID)
+	// A5-005: интеграция должна принадлежать projectID из URL (не чужой PAT).
+	integration, err := s.repo.GetIntegrationInProject(ctx, projectID, integrationID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("интеграция не найдена")
 	}

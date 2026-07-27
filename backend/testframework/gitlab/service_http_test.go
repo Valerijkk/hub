@@ -91,19 +91,24 @@ func TestTriggerPipeline_Success(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	integrationID := uuid.New()
+	projectID := uuid.New()
+	ig := &ent.GitLabIntegration{
+		ID:          integrationID,
+		GitlabURL:   srv.URL,
+		ProjectPath: "team/app",
+		AccessToken: "glpat-test",
+	}
 	repo := &gitlabMockRepo{
 		byID: map[uuid.UUID]*ent.GitLabIntegration{
-			integrationID: {
-				ID:          integrationID,
-				GitlabURL:   srv.URL,
-				ProjectPath: "team/app",
-				AccessToken: "glpat-test",
-			},
+			integrationID: ig,
+		},
+		byProject: map[uuid.UUID][]*ent.GitLabIntegration{
+			projectID: {ig},
 		},
 	}
 	svc := gitlabServiceWithTestHTTPClient(t, repo)
 
-	resp, err := svc.TriggerPipeline(context.Background(), uuid.New(), gitlab.TriggerPipelineRequest{
+	resp, err := svc.TriggerPipeline(context.Background(), projectID, gitlab.TriggerPipelineRequest{
 		IntegrationID: integrationID.String(),
 		Ref:           "main",
 		Variables:     map[string]string{"CI_ENV": "staging"},
@@ -111,6 +116,32 @@ func TestTriggerPipeline_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(55), resp.PipelineID)
 	assert.Equal(t, "pending", resp.Status)
+}
+
+func TestTriggerPipeline_RejectsForeignProject_A5_005(t *testing.T) {
+	integrationID := uuid.New()
+	projectA := uuid.New()
+	projectB := uuid.New()
+	ig := &ent.GitLabIntegration{
+		ID:          integrationID,
+		GitlabURL:   "https://gitlab.example",
+		ProjectPath: "team/app",
+		AccessToken: "glpat-test",
+	}
+	repo := &gitlabMockRepo{
+		byID: map[uuid.UUID]*ent.GitLabIntegration{integrationID: ig},
+		byProject: map[uuid.UUID][]*ent.GitLabIntegration{
+			projectB: {ig},
+		},
+	}
+	svc := gitlabServiceWithTestHTTPClient(t, repo)
+
+	_, err := svc.TriggerPipeline(context.Background(), projectA, gitlab.TriggerPipelineRequest{
+		IntegrationID: integrationID.String(),
+		Ref:           "main",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "не найдена")
 }
 
 func TestTriggerPipeline_InvalidIntegrationID(t *testing.T) {

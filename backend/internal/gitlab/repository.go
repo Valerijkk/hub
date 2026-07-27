@@ -23,6 +23,8 @@ type Repository interface {
 	CreateIntegration(ctx context.Context, projectID uuid.UUID, input CreateIntegrationInput) (*ent.GitLabIntegration, error)
 	ListIntegrations(ctx context.Context, projectID uuid.UUID) ([]*ent.GitLabIntegration, error)
 	GetIntegration(ctx context.Context, id uuid.UUID) (*ent.GitLabIntegration, error)
+	// GetIntegrationInProject возвращает интеграцию только если она принадлежит projectID (A5-005).
+	GetIntegrationInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.GitLabIntegration, error)
 	// DeleteIntegration удаляет интеграцию только если она принадлежит projectID (A5-004).
 	DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error
 	FindIntegrationByProjectPath(ctx context.Context, projectPath string) (*ent.GitLabIntegration, error)
@@ -152,6 +154,22 @@ func (r *EntRepository) ListIntegrations(ctx context.Context, projectID uuid.UUI
 // GetIntegration возвращает интеграцию по ID.
 func (r *EntRepository) GetIntegration(ctx context.Context, id uuid.UUID) (*ent.GitLabIntegration, error) {
 	ig, err := r.client.GitLabIntegration.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	r.decryptIntegration(ig)
+	return ig, nil
+}
+
+// GetIntegrationInProject возвращает интеграцию по ID только в рамках projectID (A5-005).
+// Чужой projectId при UUID интеграции другого проекта → NotFound.
+func (r *EntRepository) GetIntegrationInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.GitLabIntegration, error) {
+	ig, err := r.client.GitLabIntegration.Query().
+		Where(
+			gitlabintegration.IDEQ(id),
+			gitlabintegration.HasProjectWith(project.ID(projectID)),
+		).
+		Only(ctx)
 	if err != nil {
 		return nil, err
 	}
