@@ -51,7 +51,8 @@ func (s *TrackerService) StartTimer(ctx context.Context, projectID uuid.UUID, is
 
 	tl, err := s.repo.StartTimer(ctx, existing.ID, userID)
 	if err != nil {
-		return nil, apperrors.NewInternal("ошибка запуска таймера")
+		// AppError (409 Conflict при уже открытом таймере) пробрасываем как есть.
+		return nil, err
 	}
 
 	return toTimeLogResponse(tl), nil

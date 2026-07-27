@@ -49,7 +49,25 @@ func (r *EntRepository) LogTime(ctx context.Context, issueID, userID uuid.UUID, 
 }
 
 // StartTimer запускает таймер на задаче для пользователя.
+// A3-005: отклоняет повторный старт, если у пользователя уже есть открытый
+// таймер на этой задаче (EndedAtIsNil + StartedAtNotNil) — иначе StopTimer.Only
+// становится неоднозначным.
 func (r *EntRepository) StartTimer(ctx context.Context, issueID, userID uuid.UUID) (*ent.TimeLog, error) {
+	exists, err := r.client.TimeLog.Query().
+		Where(
+			timelog.HasIssueWith(issue.IDEQ(issueID)),
+			timelog.HasUserWith(user.IDEQ(userID)),
+			timelog.EndedAtIsNil(),
+			timelog.StartedAtNotNil(),
+		).
+		Exist(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("проверка открытого таймера: %w", err)
+	}
+	if exists {
+		return nil, apperrors.NewConflict("таймер уже запущен")
+	}
+
 	now := time.Now()
 	// Создаём TimeLog с started_at, но без ended_at и минимальным minutes=1
 	// (minutes будет пересчитан при StopTimer)
