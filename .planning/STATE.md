@@ -66,11 +66,45 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (be2 · W10 tx/data A8-005/007/008 + A7-003)
+
+- A8-005: `DeleteChannel` tx-cascade children (`b77ba23`); soft-delete schema deferred.
+- A8-006: **BLOCKED** — Comment soft-delete needs Ent `deleted_at` approval.
+- A8-007: Mongo `Disconnect` LIFO cleanup (`f3dbad4`).
+- A8-008: Listen fail → `rootCancel`, not `os.Exit` (`23d6abb`).
+- A7-003: real `MaintenanceGate` + 503 middleware (`0dd0dd7`).
+- Report: `.planning/audits/grok-2026-07/FIX-W10.md`.
+
+## Session note — 2026-07-27 (be1 · A7-001 dashboard project stats membership)
+
+- `GetProjectStats(userID, projectID)`: `IsProjectMember` **до** Redis cache/DB; иначе `ErrForbidden`.
+- Handler `Project`: использует `userID` (не `_`); 403 на `ErrForbidden`.
+- Тест: `TestGetProjectStats_NonMemberForbidden` (+ mutation: shared cache leak).
+- Docs: `docs/wiki/API.md` — GET `/dashboard/project/:id` только член / 403.
+- Commit: `c5edd70`.
+
+## Session note — 2026-07-27 (be1 · A4-004 ListSavedFilters membership)
+
+- `ListSavedFilters`: `IsProjectMember` **до** `repo.ListSavedFilters`; иначе `ErrFilterForbidden`.
+- Handler: 403 на `ErrFilterForbidden` (не 500; без утечки shared `filter_config`).
+- Тест: `TestListSavedFilters_NonMemberForbidden` (+ mutation: shared leak).
+- Docs: `docs/wiki/API.md` — GET `/filters/` только член проекта / 403.
+- Commit: `4f9b2bb`.
+
+## Session note — 2026-07-27 (be1 · A4-003 CreateSavedFilter membership)
+
+- `CreateSavedFilter`: `IsProjectMember` **до** `repo.CreateSavedFilter`; иначе `ErrFilterForbidden`.
+- Handler: 403 на `ErrFilterForbidden` (не 500).
+- Тест: `TestCreateSavedFilter_NonMemberForbidden` (+ mutation: 0 filters).
+- Docs: `docs/wiki/API.md` — POST `/filters/` только член проекта / 403.
+- Commit: `5d2e590`.
+
 ## Session note — 2026-07-27 (be2 · A9-012 APIKey + RequireAuth)
 
 - `RequireAuth`: если `Locals("userID")` уже set (APIKeyAuth) — skip JWT.
 - Тест: `TestAPIKeyAuth_AlonePassesRequireAuth_A9012` (X-API-Key alone → 200).
 - Mutation: force JWT always → 401 `missing authorization header`.
+- Commit: `c7a4589` (message mislabeled as A1-005; tree is A9-012 only — real A1-005 is `428865c`).
 
 ## Session note — 2026-07-27 (be1 · A2-002 CreateCall channel membership)
 
