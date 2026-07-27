@@ -13,8 +13,8 @@
 
 | ID | Status | SHA | Notes |
 |----|--------|-----|-------|
-| A8-001 | FIXED | *(see close commit)* | Query rewrite `0ce8cd7` + schema `index.Edges("project").Fields("deleted_at")` on Issue. Ent generate local (gitignored); `Schema.Create` applies at runtime. |
-| A8-002 | FIXED | *(see close commit)* | Query rewrite `443a569` + schema `index.Edges("project").Fields("deleted_at")` on TestCase. Same generate / migrate path. |
+| A8-001 | FIXED | `6031985` | Query rewrite `0ce8cd7` + schema `index.Edges("project").Fields("deleted_at")` on Issue. Ent generate local (gitignored); `Schema.Create` applies at runtime. |
+| A8-002 | FIXED | `6031985` | Query rewrite `443a569` + schema `index.Edges("project").Fields("deleted_at")` on TestCase. Same generate / migrate path. |
 | A13-001 | FIXED (prior) | `456636f` | `MaxBoardIssuesPerColumn=200` — non-schema amp for A8-001. |
 | A13-011 | FIXED | `2ae0f1f` | Board: `effectiveBoardId` from list → no effect waterfall. |
 | A13-012 | FIXED | `2ae0f1f` | Dashboard: `Promise.all([fetchPersonal(), loadLayout])`. |
