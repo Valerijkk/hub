@@ -76,12 +76,17 @@ func (r *EntRepository) CreateSprint(ctx context.Context, projectID uuid.UUID, r
 		Save(ctx)
 }
 
-// GetSprint возвращает спринт по ID с загруженными issues.
+// MaxSprintIssues — A13-006: hard cap issues при GetSprint (detail).
+const MaxSprintIssues = 500
+
+// GetSprint возвращает спринт по ID с загруженными issues (capped).
 func (r *EntRepository) GetSprint(ctx context.Context, sprintID uuid.UUID) (*ent.Sprint, error) {
 	return r.client.Sprint.
 		Query().
 		Where(sprintEnt.ID(sprintID)).
-		WithIssues().
+		WithIssues(func(q *ent.IssueQuery) {
+			q.Limit(MaxSprintIssues)
+		}).
 		Only(ctx)
 }
 
@@ -93,17 +98,19 @@ func (r *EntRepository) GetSprintInProject(ctx context.Context, projectID, sprin
 			sprintEnt.ID(sprintID),
 			sprintEnt.HasProjectWith(project.ID(projectID)),
 		).
-		WithIssues().
+		WithIssues(func(q *ent.IssueQuery) {
+			q.Limit(MaxSprintIssues)
+		}).
 		Only(ctx)
 }
 
 // ListSprints возвращает все спринты проекта отсортированные по дате начала.
+// A13-006: без WithIssues() — issue_count через GetSprintIssueCount в toSprintResponse.
 func (r *EntRepository) ListSprints(ctx context.Context, projectID uuid.UUID) ([]*ent.Sprint, error) {
 	return r.client.Sprint.
 		Query().
 		Where(sprintEnt.HasProjectWith(project.ID(projectID))).
 		Order(ent.Desc(sprintEnt.FieldStartDate)).
-		WithIssues().
 		All(ctx)
 }
 
