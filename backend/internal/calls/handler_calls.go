@@ -26,6 +26,7 @@ import (
 // @Success 201 {object} CallResponse "Звонок создан"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет членства в канале"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/calls [post]
@@ -47,6 +48,10 @@ func (h *Handler) CreateCall(c fiber.Ctx) error {
 	userName := userNameFromCtx(c)
 	resp, err := h.service.CreateCall(c.Context(), req.ChannelID, userID, userName)
 	if err != nil {
+		// A2-002: non-member -> 403
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для создания звонка")
+		}
 		slog.Error("ошибка создания звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось создать звонок")
 	}

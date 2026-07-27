@@ -2,6 +2,7 @@
 import (
 	"github.com/valerii/hub/backend/internal/calls"
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
@@ -152,6 +153,28 @@ func TestJoinCall_NonMemberForbidden(t *testing.T) {
 	_, err := f.svc.JoinCall(ctx, callEnt.ID, f.stranger.ID, "Stranger")
 	require.Error(t, err)
 	assert.ErrorIs(t, err, calls.ErrCallForbidden)
+}
+
+// TestCreateCall_NonMemberForbidden — A2-002: CreateCall требует IsChannelMember
+// до provisionRoom. Mutation guard: при снятии проверки stranger создаст call-row
+// (count>0) и тест упадёт; при живой проверке ErrCallForbidden и 0 call rows.
+func TestCreateCall_NonMemberForbidden(t *testing.T) {
+	f := newCallsTestFixture(t)
+	ctx := context.Background()
+	cfg := liveKitTestConfig(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	calls.ExportCallServiceSetRoom(f.svc, calls.NewCallRoomService(cfg))
+
+	_, err := f.svc.CreateCall(ctx, f.channel.ID, f.stranger.ID, "Stranger")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, calls.ErrCallForbidden)
+
+	count, err := f.client.Call.Query().
+		Where(call.HasChannelWith(channel.IDEQ(f.channel.ID))).
+		Count(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count, "non-member must not create a call row (A2-002)")
 }
 
 func TestJoinCall_InstantOnlyCreator(t *testing.T) {

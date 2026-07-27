@@ -498,7 +498,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | Метод | Путь | Описание |
 |---|---|---|
 | POST | `/calls/guest-join` | Присоединиться к звонку как гость (без аккаунта) |
-| POST | `/calls/` | Создать звонок |
+| POST | `/calls/` | Создать звонок в канале (только член канала; иначе 403) |
 | POST | `/calls/instant` | Создать мгновенный звонок |
 | GET | `/calls/invite/:code` | Присоединиться по коду приглашения |
 | GET | `/calls/channel/:channelId` | Получить активный звонок канала |

@@ -13,7 +13,7 @@ import (
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
-// ErrCallForbidden — HI-03: 403 для JoinCall/EndCall без утечки причины.
+// ErrCallForbidden — HI-03: 403 для CreateCall/JoinCall/EndCall / A2-002 без утечки причины.
 var ErrCallForbidden = errors.New("forbidden")
 
 // defaultMaxCallParticipants — потолок участников комнаты LiveKit.
@@ -46,7 +46,15 @@ func (s *CallService) GenerateToken(roomName, userID, userName string) (string, 
 }
 
 // CreateCall создаёт звонок в канале (room + БД + участник + событие старта).
+// A2-002: IsChannelMember before provisionRoom; else ErrCallForbidden.
 func (s *CallService) CreateCall(ctx context.Context, channelID, userID uuid.UUID, userName string) (*CallResponse, error) {
+	isMember, mErr := s.repo.IsChannelMember(ctx, channelID, userID)
+	if mErr != nil {
+		return nil, fmt.Errorf("channel membership check: %w", mErr)
+	}
+	if !isMember {
+		return nil, ErrCallForbidden
+	}
 	roomName, err := provisionRoom(ctx, s.room)
 	if err != nil {
 		return nil, err

@@ -66,6 +66,13 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (be1 · A2-002 CreateCall channel membership)
+
+- `CreateCall`: `IsChannelMember` **до** `provisionRoom`; иначе `ErrCallForbidden`.
+- Handler: 403 на `ErrCallForbidden` (не 500).
+- Тест: `TestCreateCall_NonMemberForbidden` (+ mutation guard: 0 call rows).
+- Docs: `docs/wiki/API.md` — POST `/calls/` только член канала / 403.
+
 ## Session note — 2026-07-27 (be2 · A2-003 call chat authz)
 
 - `CallChatService.authorizeCallChatAccess`: channel-call — active participant
