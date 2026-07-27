@@ -66,6 +66,13 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (fe2 · W15 perf A8/A13 lazy+virtual+waterfalls)
+
+- A8-001/002: FK-column query rewrite FIXED; Ent composite indexes **NEEDS_APPROVAL**.
+- A13-011/012 waterfalls, A13-014 Kanban virtual, A13-015–017 lazy shell/i18n/routes, A13-018 channel virtual FIXED.
+- A13-001 board cap already on branch (`456636f`).
+- Report: `.planning/audits/grok-2026-07/FIX-W15.md`. Vitest 147 PASS.
+
 ## Session note — 2026-07-27 (devops · W16 Block E ops A14)
 
 - A14-001/002/003/004/005/009 verified OPEN → FIXED (config/docs/wiring).
