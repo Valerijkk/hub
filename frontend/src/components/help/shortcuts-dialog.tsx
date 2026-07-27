@@ -15,18 +15,23 @@ interface ShortcutsDialogProps {
 export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
 	const { t } = useTranslation("help");
 
+	const asLines = (value: unknown): string[] =>
+		Array.isArray(value)
+			? value.filter((v): v is string => typeof v === "string")
+			: [];
+
 	const groups = [
 		{
 			key: "navigation",
-			items: t("shortcuts.navigation", { returnObjects: true }) as string[],
+			items: asLines(t("shortcuts.navigation", { returnObjects: true })),
 		},
 		{
 			key: "tracker",
-			items: t("shortcuts.tracker", { returnObjects: true }) as string[],
+			items: asLines(t("shortcuts.tracker", { returnObjects: true })),
 		},
 		{
 			key: "messenger",
-			items: t("shortcuts.messenger", { returnObjects: true }) as string[],
+			items: asLines(t("shortcuts.messenger", { returnObjects: true })),
 		},
 	] as const;
 
