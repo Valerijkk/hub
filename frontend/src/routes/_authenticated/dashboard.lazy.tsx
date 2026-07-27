@@ -74,9 +74,9 @@ function PersonalDashboard() {
 	const displayName =
 		user?.display_name || user?.name || user?.email?.split("@")[0] || "";
 
+	// A13-012: personal data + layout in parallel (was serial .then waterfall).
 	useEffect(() => {
-		fetchPersonal();
-		void loadLayout("personal").then(() => {
+		void Promise.all([fetchPersonal(), loadLayout("personal")]).then(() => {
 			const current = useDashboardStore.getState().layouts.personal;
 			if (!current || current.length === 0) {
 				setLayout("personal", personalDefault);
