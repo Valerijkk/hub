@@ -58,22 +58,25 @@ W4: residual IDOR на том же контуре (issues / TC / runs / results 
 
 **Коммит:** `058a47c`  
 **Фикс:** `DeleteIssueLink(sourceIssueID, linkID)` + `HasSourceWith`.  
-**Тест:** `TestEntRepository_DeleteIssueLink_Scoped_A3_011`.  
+**Тест (sqlite Ent):** `TestEntRepository_DeleteIssueLink_Scoped_A3_011`.  
+**Тест (Postgres Ent twin):** `TestEntRepository_DeleteIssueLink_Scoped_Postgres_A3_011` — Skip без `POSTGRES_TEST_URL`.  
 **Mutation:** снять `HasSourceWith` → FAIL.
 
 ### A3-011-react — ToggleReaction
 
 **Коммит:** `7a03fad`  
 **Фикс:** `ToggleReaction(issueID, commentID, …)` + comment `HasIssueWith`.  
-**Тест:** `TestEntRepository_ToggleReaction_Scoped_A3_011`.  
+**Тест (sqlite Ent):** `TestEntRepository_ToggleReaction_Scoped_A3_011`.  
+**Тест (Postgres Ent twin):** `TestEntRepository_ToggleReaction_Scoped_Postgres_A3_011` — Skip без `POSTGRES_TEST_URL`.  
 **Mutation:** снять `HasIssueWith` → FAIL.
 
 ### A3-011-target — CreateIssueLink cross-project
 
 **Коммит:** `ca8b8d4`  
-**Фикс:** `FindIssueInProject` + reject foreign target → 404.  
-**Тест:** `TestEntRepository_FindIssueInProject_RejectsForeignProject_A3_011`.  
-**Mutation:** снять `HasProjectWith` → FAIL.
+**Фикс:** `FindIssueInProject` + `issueProjectIDEQ` + reject foreign target → 404.  
+**Тест (sqlite Ent):** `TestEntRepository_FindIssueInProject_RejectsForeignProject_A3_011`.  
+**Тест (Postgres Ent twin):** `TestEntRepository_FindIssueInProject_RejectsForeignProject_Postgres_A3_011` — Skip без `POSTGRES_TEST_URL`.  
+**Mutation:** снять `issueProjectIDEQ` → FAIL (не `HasProjectWith` — A8-001 rewrite).
 
 ### A3-012 — GetTestRun project scope (+ run UUID class)
 
@@ -114,7 +117,10 @@ fe9fedc fix(tms): scope GetTestRun by project at Ent (A3-012)
 3d4d163 fix(tms): scope LinkTestCaseToIssue by project issue (A3-003-link)
 9d0cec1 test(tms): cover UpdateTestCase VersionEQ on Postgres Ent (A3-004)
 42ec64f test(tms): cover UpdateTestResult HasRunWith on Postgres Ent (A3-008)
+(pending) test(tracker): Postgres Ent twins for A3-011 IDOR guards
 ```
+
+> **WEAK close (2026-07-28):** A3-011-link/react/target ранее числились как «Postgres Ent», но тесты шли через `env.New` → sqlite. Добавлены Postgres twins + Skip без `POSTGRES_TEST_URL`; mutation-комментарии target обновлены на `issueProjectIDEQ` (A8-001).
 
 ---
 

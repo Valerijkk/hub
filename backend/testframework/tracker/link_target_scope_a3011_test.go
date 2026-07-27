@@ -14,7 +14,9 @@ import (
 )
 
 // TestEntRepository_FindIssueInProject_RejectsForeignProject_A3_011 — issue проекта B
-// не находится через project A. Mutation: снять HasProjectWith → PASS на чужом проекте.
+// не находится через project A (sqlite Ent). Postgres twin:
+// TestEntRepository_FindIssueInProject_RejectsForeignProject_Postgres_A3_011.
+// Mutation: снять issueProjectIDEQ → PASS на чужом проекте.
 func TestEntRepository_FindIssueInProject_RejectsForeignProject_A3_011(t *testing.T) {
 	env := newTrackerRepoTestEnv(t)
 

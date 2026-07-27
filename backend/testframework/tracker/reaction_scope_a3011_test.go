@@ -9,7 +9,8 @@ import (
 	"github.com/valerii/hub/backend/internal/tracker"
 )
 
-// TestEntRepository_ToggleReaction_Scoped_A3_011 — реакция через чужой issueID → NotFound.
+// TestEntRepository_ToggleReaction_Scoped_A3_011 — реакция через чужой issueID → NotFound (sqlite Ent).
+// Postgres twin: TestEntRepository_ToggleReaction_Scoped_Postgres_A3_011.
 // Mutation: убрать HasIssueWith → PASS на чужом issue.
 func TestEntRepository_ToggleReaction_Scoped_A3_011(t *testing.T) {
 	env := newTrackerRepoTestEnv(t)

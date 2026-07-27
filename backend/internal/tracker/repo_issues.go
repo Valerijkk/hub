@@ -180,7 +180,7 @@ func (r *EntRepository) FindIssueByID(ctx context.Context, id uuid.UUID) (*ent.I
 }
 
 // FindIssueInProject возвращает задачу по UUID только внутри projectID (A3-011-target IDOR guard).
-// Исключает мягко удалённые задачи. Mutation: снять HasProjectWith → foreign issue находится.
+// Исключает мягко удалённые задачи. Mutation: снять issueProjectIDEQ → foreign issue находится.
 func (r *EntRepository) FindIssueInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.Issue, error) {
 	return r.client.Issue.Query().
 		Where(

@@ -9,7 +9,8 @@ import (
 	"github.com/valerii/hub/backend/internal/tracker"
 )
 
-// TestEntRepository_DeleteIssueLink_Scoped_A3_011 — чужой source issue → NotFound.
+// TestEntRepository_DeleteIssueLink_Scoped_A3_011 — чужой source issue → NotFound (sqlite Ent).
+// Postgres twin: TestEntRepository_DeleteIssueLink_Scoped_Postgres_A3_011.
 // Mutation: снять HasSourceWith → PASS на чужом source.
 func TestEntRepository_DeleteIssueLink_Scoped_A3_011(t *testing.T) {
 	env := newTrackerRepoTestEnv(t)
