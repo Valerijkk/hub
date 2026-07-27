@@ -1,6 +1,6 @@
 ﻿package imex_test
+
 import (
-	"github.com/valerii/hub/backend/internal/imex"
 	"bytes"
 	"io"
 	"mime/multipart"
@@ -8,24 +8,43 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/imex"
+	"github.com/valerii/hub/backend/internal/rbac"
 )
 
 func setupImexHandlerApp(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID) {
 	t.Helper()
-	svc, _, _, projectID, userID := newImexTestEnv(t)
-	h := imex.NewHandler(svc)
+	svc, client, ctx, projectID, userID := newImexTestEnv(t)
 
+	_, err := client.ProjectMember.Create().
+		SetUserID(userID).
+		SetProjectID(projectID).
+		SetProjectRole("developer").
+		Save(ctx)
+	require.NoError(t, err)
+
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	rbacSvc := rbac.NewRBACService(rbac.NewEntRepository(client), rbac.NewPermissionCache(rdb))
+
+	h := imex.NewHandler(svc)
 	app := fiber.New()
 	api := app.Group("/api")
 	authMw := func(c fiber.Ctx) error {
 		c.Locals("userID", userID.String())
 		return c.Next()
 	}
-	h.RegisterRoutes(api, authMw)
+	h.RegisterRoutes(api, authMw, rbacSvc)
 	return app, projectID, userID
 }
 
@@ -183,11 +202,20 @@ func TestHandler_ImportIssues_ImportMode(t *testing.T) {
 }
 
 func TestHandler_ImportJira_Unauthenticated(t *testing.T) {
-	svc, _, _, projectID, _ := newImexTestEnv(t)
+	svc, client, _, projectID, _ := newImexTestEnv(t)
 	h := imex.NewHandler(svc)
+
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	rbacSvc := rbac.NewRBACService(rbac.NewEntRepository(client), rbac.NewPermissionCache(rdb))
+
 	app := fiber.New()
 	api := app.Group("/api")
-	h.RegisterRoutes(api, func(c fiber.Ctx) error { return c.Next() })
+	// Auth mw that does not set userID — RequirePermission → 401.
+	h.RegisterRoutes(api, func(c fiber.Ctx) error { return c.Next() }, rbacSvc)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/projects/"+projectID.String()+"/import/jira", nil)
 	resp, err := app.Test(req)

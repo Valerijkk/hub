@@ -118,7 +118,7 @@ func wireIntegrations(d *serverDeps) {
 	// Модуль import/export
 	imexSvc := imexmod.NewImExService(imexmod.NewEntRepository(d.db))
 	imexHandler := imexmod.NewHandler(imexSvc)
-	imexHandler.RegisterRoutes(api, requireAuth)
+	imexHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 
 	// Шаблоны проектов — быстрый старт tracker/TMS из preset.
 	templateSvc := projectmod.NewTemplateService(d.projectRepo)

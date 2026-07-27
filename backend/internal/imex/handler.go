@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/internal/rbac"
 )
 
 // maxImportFileBytes — лимит загружаемого файла импорта (совпадает с Fiber BodyLimit 25 MB).
@@ -23,16 +24,17 @@ func NewHandler(svc *ImExService) *Handler {
 }
 
 // RegisterRoutes регистрирует маршруты импорта/экспорта.
-func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
+// A5-002: RBAC как у tracker/GitHub — export = ProjectView, import = TaskCreate.
+func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
 	projects := api.Group("/projects/:projectId", authMw)
-	projects.Post("/import/issues", h.ImportIssues)
-	projects.Post("/import/jira", h.ImportJira)
-	projects.Get("/export/issues", h.ExportIssues)
-	projects.Get("/export/full", h.ExportProjectZIP)
+	projects.Post("/import/issues", h.ImportIssues, rbac.RequirePermission(rbac.PermTaskCreate, rbacSvc))
+	projects.Post("/import/jira", h.ImportJira, rbac.RequirePermission(rbac.PermTaskCreate, rbacSvc))
+	projects.Get("/export/issues", h.ExportIssues, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	projects.Get("/export/full", h.ExportProjectZIP, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
 	// PDF-экспорт прогонов и спринтов
-	api.Get("/projects/:projectId/test-runs/:runId/export/pdf", authMw, h.ExportRunPDF)
-	api.Get("/projects/:projectId/sprints/:sprintId/export/pdf", authMw, h.ExportSprintPDF)
+	api.Get("/projects/:projectId/test-runs/:runId/export/pdf", authMw, h.ExportRunPDF, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	api.Get("/projects/:projectId/sprints/:sprintId/export/pdf", authMw, h.ExportSprintPDF, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 }
 
 // ImportIssues godoc
