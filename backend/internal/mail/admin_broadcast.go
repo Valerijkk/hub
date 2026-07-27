@@ -37,7 +37,10 @@ func (s *AdminService) Broadcast(ctx context.Context, db *ent.Client, sender Bro
 	}
 
 	users, err := db.User.Query().
-		Where(user.EmailNEQ("")).
+		Where(
+			user.EmailNEQ(""),
+			user.StatusEQ(user.StatusActive), // A7-008: не слать pending/deactivated
+		).
 		All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
