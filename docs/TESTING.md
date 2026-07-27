@@ -217,6 +217,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-AUTH-10 | Rate limit | — | 4 auth запроса за 10 мин | 429 на 4-м | manual / middleware test |
 | TC-AUTH-11 | Онбординг | onboarding=false | POST /auth/me/onboarding | 200 | `onboarding-profile.spec.ts` |
 | TC-AUTH-12 | Logout | Авторизован | POST /auth/logout | 200, refresh revoked | `logout.spec.ts` |
+| TC-AUTH-13 | Magic Link: OTP не в slog (A14-006) | Dev/Resend paths | SendMagicLink + VerifyCode; capture slog | raw OTP и `"code"` отсутствуют; email masked | `TestMagicLink_OTPNotLogged_A14_006`, `TestMaskEmailMinimized_A14_006` |
 
 ### PROJ — Проекты
 
@@ -364,6 +365,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-APIKEY-03 | Event filtering | `TestContainsEvent`, `TestContainsEventWildcard` |
 | TC-APIKEY-04 | Webhook signing | `TestSignPayload` |
 | TC-NATS-01 | Stream config | `TestStreamNameConstant`, `TestStreamSubjects`, `TestClientStructFields` |
+| TC-PLATFORM-01 | Fiber recover EnableStackTrace == DevMode (A14-007) | `TestFiberRecoverEnableStackTrace_FollowsDevMode_A14_007` |
 | TC-SEED-01 | Demo data validity | `TestDemoUsersValid`, `TestDemoStatusesValid`, `TestDemoIssuesValid`, `TestDemoTestCasesValid`, `TestDemoChannelsValid` |
 | TC-DASH-01 | Layout serialization | `TestLayoutItemSerialization`, `TestLayoutDTOEmptyItems` |
 | TC-DASH-02 | Data defaults | `TestPersonalDataDefaults`, `TestProjectStatsDefaults` |

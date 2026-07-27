@@ -2,22 +2,25 @@ package auth_test
 
 // Тесты модуля аутентификации: интеграционные и unit-сценарии testframework.
 import (
-	"github.com/valerii/hub/backend/internal/auth"
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/auth"
 )
 
 // newTestMagicLinkService поднимает miniredis + redis client + auth.MagicLinkService
-// без Resend (dev-mode: код пишется в логи, но возвращается из SendMagicLink).
+// без Resend (dev-mode: код возвращается из SendMagicLink, в slog не пишется — A14-006).
 // Регистрирует cleanup'ы через t.Cleanup.
 func newTestMagicLinkService(t *testing.T) (*auth.MagicLinkService, *miniredis.Miniredis) {
 	t.Helper()
@@ -269,6 +272,55 @@ func TestMaskEmailMinimized_A14_006(t *testing.T) {
 	assert.Equal(t, "a***@example.com", auth.ExportMaskEmailMinimized("alice@example.com"))
 	assert.Equal(t, "***", auth.ExportMaskEmailMinimized("noperiod"))
 	assert.NotContains(t, auth.ExportMaskEmailMinimized("secret.user@hub.local"), "secret.user")
+}
+
+// TC-AUTH-13 / A14-006: raw OTP must never appear in slog on magic-link issue or verify
+// (dev path returns code to handler; logs must stay mask-only). Mutation: slog.Info(..., "code", code).
+func TestMagicLink_OTPNotLogged_A14_006(t *testing.T) {
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	svc, _ := newTestMagicLinkService(t)
+	ctx := context.Background()
+	email := "otp-spy-" + uuid.New().String()[:8] + "@example.com"
+
+	code, err := svc.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+	require.Len(t, code, 6)
+
+	require.NoError(t, svc.VerifyCode(ctx, email, code))
+
+	code2, err := svc.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+	require.Len(t, code2, 6)
+	err = svc.VerifyCode(ctx, email, "000000")
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, auth.ErrMagicLinkInvalid))
+
+	// Resend-fail path: code exists in Redis but must not land in slog.
+	mr2, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr2.Close)
+	rdb2 := redis.NewClient(&redis.Options{Addr: mr2.Addr()})
+	t.Cleanup(func() { _ = rdb2.Close() })
+	failEmail := "otp-resend-" + uuid.New().String()[:8] + "@example.com"
+	resendSvc := auth.NewMagicLinkService(rdb2, &stubResendClient{err: errors.New("smtp down")}, "hub@example.com")
+	_, err = resendSvc.SendMagicLink(ctx, failEmail)
+	require.Error(t, err)
+	storedFail, getErr := mr2.Get("magiclink:" + failEmail)
+	require.NoError(t, getErr)
+	require.Len(t, storedFail, 6)
+
+	logged := buf.String()
+	require.Contains(t, logged, "magic link issued (dev mode)", "slog spy must observe SendMagicLink logs")
+	assert.NotContains(t, logged, code, "raw OTP from first issue must not appear in slog")
+	assert.NotContains(t, logged, code2, "raw OTP from second issue must not appear in slog")
+	assert.NotContains(t, logged, storedFail, "raw OTP after Resend failure must not appear in slog")
+	assert.NotContains(t, logged, `"code"`, "slog must not carry a code attribute key")
+	assert.NotContains(t, logged, email, "full email must not appear (mask only)")
+	assert.NotContains(t, logged, failEmail, "full email on Resend error must not appear (mask only)")
 }
 
 type failDelHook struct{}
