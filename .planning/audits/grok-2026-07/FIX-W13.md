@@ -20,10 +20,10 @@
 | A10-010 | FIXED | `ed8cff6` | Mention autocomplete: `role="option"` + `aria-selected` + listbox `aria-label` |
 | A10-007 | DEFERRED | — | notification-store → InfiniteQuery (larger refactor) |
 | A10-008 | FIXED | `015cc4c` (A13-014) | Kanban column virtualization (`@tanstack/react-virtual` at 24+ cards) — closed via A13-014 alias |
-| A10-009 | FIXED | (pending commit) | `time-tracker.tsx`: narrow `useTimerStore` selectors; tick effect deps = `[isTimerForThisIssue, tick]` |
-| A10-011 | PARTIAL | (fe2 A10-013 commit) | Gantt wrapped in `QueryStateView` (error ≠ empty); notifications still zustand — full rollout deferred |
+| A10-009 | FIXED | `bbdb5fb` | `time-tracker.tsx`: narrow `useTimerStore` selectors; tick effect deps = `[isTimerForThisIssue, tick]` |
+| A10-011 | PARTIAL | `a3e35cc` | Gantt wrapped in `QueryStateView` (error ≠ empty); notifications still zustand — full rollout deferred |
 | A10-012 | FIXED | `866fb7f` | Deleted unused `modules/tracker/kanban-board.tsx` (zero importers; canon = board route) |
-| A10-013 | FIXED | (fe2 A10-013 commit) | Mute indicator + star `aria-label` (title kept); bookmarks remove label; Bookmarks/CreateChannel already done W13 |
+| A10-013 | FIXED | `a3e35cc` | Mute indicator + star `aria-label` (title kept); bookmarks remove label; Bookmarks/CreateChannel already done W13 |
 | A10-014 | DEFERRED | — | Gantt limit/virtual |
 | A15-004 | DEFERRED | — | REQ LOGN-05 / wiki drift (docs, not FE code) |
 | BE LoginWithTelegram* | DEFERRED | — | Backend service/DTO — out of fe1 scope (cross-cut A18-010) |
