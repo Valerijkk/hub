@@ -61,7 +61,9 @@
 		"endSession": "Завершить",
 		"unknownDevice": "Неизвестное устройство",
 		"lastActive": "Последняя активность",
-		"noSessions": "Нет активных сессий"
+		"noSessions": "Нет активных сессий",
+		"magicLinkOnly": "Вход только по Magic Link (email)",
+		"telegramLoginRemoved": "Вход через Telegram недоступен"
 	},
 	"search": {
 		"globalSearch": "Глобальный поиск",

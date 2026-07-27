@@ -61,7 +61,9 @@
 		"endSession": "End session",
 		"unknownDevice": "Unknown device",
 		"lastActive": "Last active",
-		"noSessions": "No active sessions"
+		"noSessions": "No active sessions",
+		"magicLinkOnly": "Sign in with Magic Link (email) only",
+		"telegramLoginRemoved": "Telegram sign-in is not available"
 	},
 	"search": {
 		"globalSearch": "Global search",
