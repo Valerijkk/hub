@@ -84,12 +84,13 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate
 
 **SeaweedFS (A14-002):** S3 identity генерируется из `S3_ACCESS_KEY` / `S3_SECRET_KEY` при старте контейнера (как LiveKit).  
 Не коммитьте `seaweedfs-s3.json` с реальными ключами; справочник — `seaweedfs-s3.json.example`.  
-`hub` / `hubsecret` запрещены `config.validate` при `DEV_MODE=false`.
+`hub` / `hubsecret` — fail-closed: `config.validate` отказывает старт при `DEV_MODE=false`.  
+Residual: если эти ключи когда-либо были в живом деплое — ротировать (исторический git secret).
 
 **NATS (A14-003):** в prod включён user/pass (`NATS_USER` / `NATS_PASSWORD`).  
 `NATS_URL` для backend: `nats://USER:PASS@nats:4222`. Пароль без `@ : / ? #`.  
-После смены кредов: `docker compose ... up -d --force-recreate nats backend`.  
-Если раньше JetStream крутился без auth — **MANUAL**: задать креды в `.env`, recreate nats+backend, проверить outbox/consumers.
+При `ENVIRONMENT=production` backend **не стартует**, если в `NATS_URL` нет non-empty user и password.  
+После смены кредов: `docker compose ... up -d --force-recreate nats backend`.
 
 ### 5. Проверка
 

@@ -4,6 +4,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -104,7 +105,8 @@ type ResendConfig struct {
 	FromEmail string
 }
 
-// TelegramConfig — параметры Telegram-бота для аутентификации и уведомлений.
+// TelegramConfig — параметры Telegram-бота для уведомлений (bind/delivery).
+// Login через Telegram запрещён (ADR-AUTH-01); Magic Link only.
 type TelegramConfig struct {
 	BotToken    string
 	BotUsername string
@@ -216,6 +218,8 @@ func Load() (*Config, error) {
 // в production (DevMode=false) запрещены dev-дефолты JWT/S3/LiveKit и
 // JWT_SECRET короче minJWTSecretLen. Также запрещена комбинация
 // ENVIRONMENT=production + DEV_MODE=true — запрещено в config.validate.
+// A14-002/A14-003: SeaweedFS hub/hubsecret и NATS без user/pass —
+// fail-closed при ENVIRONMENT=production (и S3-дефолты при любом DEV_MODE=false).
 func (c *Config) validate() error {
 	if c.Server.DevMode && strings.EqualFold(c.Server.Environment, "production") {
 		return errors.New("DEV_MODE=true несовместим с ENVIRONMENT=production — отключите DEV_MODE")
@@ -237,12 +241,12 @@ func (c *Config) validate() error {
 		problems = append(problems, fmt.Sprintf("JWT_SECRET короче %d байт", minJWTSecretLen))
 	}
 
-	// S3 credentials: запрещаем dev-дефолты (hub/hubsecret).
+	// A14-002: S3 credentials — запрещаем SeaweedFS dev-дефолты (hub/hubsecret).
 	if isDevDefault("S3_ACCESS_KEY", c.S3.AccessKey) {
-		problems = append(problems, "S3_ACCESS_KEY использует dev-дефолт")
+		problems = append(problems, "S3_ACCESS_KEY использует dev-дефолт (hub)")
 	}
 	if isDevDefault("S3_SECRET_KEY", c.S3.SecretKey) {
-		problems = append(problems, "S3_SECRET_KEY использует dev-дефолт")
+		problems = append(problems, "S3_SECRET_KEY использует dev-дефолт (hubsecret)")
 	}
 
 	// LiveKit credentials: запрещаем dev-дефолты (devkey/devsecret).
@@ -265,10 +269,35 @@ func (c *Config) validate() error {
 		problems = append(problems, "METRICS_ALLOWED_CIDRS пуст в production — задайте CIDR scrape-источника (напр. 127.0.0.1/32 или CIDR Prometheus)")
 	}
 
+	// A14-003: в ENVIRONMENT=production NATS URL обязан содержать non-empty user и password.
+	if strings.EqualFold(c.Server.Environment, "production") {
+		if msg := natsProductionCredsProblem(c.NATS.URL); msg != "" {
+			problems = append(problems, msg)
+		}
+	}
+
 	if len(problems) > 0 {
 		return fmt.Errorf("небезопасная конфигурация (DEV_MODE=false): %s", strings.Join(problems, "; "))
 	}
 	return nil
+}
+
+// natsProductionCredsProblem — пустая строка если NATS_URL содержит user+password;
+// иначе человекочитаемая причина fail-start (A14-003).
+func natsProductionCredsProblem(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme == "" {
+		return "NATS_URL некорректен в production"
+	}
+	if u.User == nil {
+		return "NATS_URL без user/password в production — задайте nats://USER:PASS@host:4222"
+	}
+	user := strings.TrimSpace(u.User.Username())
+	pass, hasPass := u.User.Password()
+	if user == "" || !hasPass || pass == "" {
+		return "NATS_URL: пустой user или password в production"
+	}
+	return ""
 }
 
 // isDevDefault сравнивает значение со списком известных небезопасных

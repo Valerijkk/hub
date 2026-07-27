@@ -1,10 +1,28 @@
 ﻿package config_test
+
 import (
-	"github.com/valerii/hub/backend/internal/platform/config"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/valerii/hub/backend/internal/platform/config"
 )
+
+// setProductionBaseEnv — минимальный безопасный prod-набор кроме переопределяемых ключей теста.
+func setProductionBaseEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("DEV_MODE", "false")
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("JWT_SECRET", strings.Repeat("s", 40))
+	t.Setenv("S3_ACCESS_KEY", "prod-access")
+	t.Setenv("S3_SECRET_KEY", "prod-secret-key-32chars-minimum!!")
+	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
+	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
+	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
+	t.Setenv("METRICS_ALLOWED_CIDRS", "127.0.0.1/32")
+	// A14-003: production требует userinfo в NATS_URL.
+	t.Setenv("NATS_URL", "nats://hubnats:hubnatspass@nats:4222")
+}
 
 func TestLoad_devModeAllowsDefaults(t *testing.T) {
 	t.Setenv("DEV_MODE", "true")
@@ -23,10 +41,8 @@ func TestLoad_devModeAllowsDefaults(t *testing.T) {
 }
 
 func TestLoad_productionRejectsDevJWT(t *testing.T) {
-	t.Setenv("DEV_MODE", "false")
-	t.Setenv("ENVIRONMENT", "production")
+	setProductionBaseEnv(t)
 	t.Setenv("JWT_SECRET", "dev-secret-change-in-production")
-	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("a", 64))
 
 	_, err := config.Load()
 	if err == nil {
@@ -38,13 +54,7 @@ func TestLoad_productionRejectsDevJWT(t *testing.T) {
 }
 
 func TestLoad_productionRequiresEncryptionKey(t *testing.T) {
-	t.Setenv("DEV_MODE", "false")
-	t.Setenv("ENVIRONMENT", "production")
-	t.Setenv("JWT_SECRET", strings.Repeat("x", 32))
-	t.Setenv("S3_ACCESS_KEY", "prod-access")
-	t.Setenv("S3_SECRET_KEY", "prod-secret-key-32chars-minimum!!")
-	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
-	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
+	setProductionBaseEnv(t)
 	t.Setenv("INTEGRATION_ENCRYPTION_KEY", "")
 
 	_, err := config.Load()
@@ -67,15 +77,7 @@ func TestLoad_productionDevModeConflict(t *testing.T) {
 }
 
 func TestLoad_productionValidConfig(t *testing.T) {
-	t.Setenv("DEV_MODE", "false")
-	t.Setenv("ENVIRONMENT", "production")
-	t.Setenv("JWT_SECRET", strings.Repeat("s", 40))
-	t.Setenv("S3_ACCESS_KEY", "prod-access")
-	t.Setenv("S3_SECRET_KEY", "prod-secret-key-32chars-minimum!!")
-	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
-	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
-	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
-	t.Setenv("METRICS_ALLOWED_CIDRS", "127.0.0.1/32")
+	setProductionBaseEnv(t)
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -90,14 +92,7 @@ func TestLoad_productionValidConfig(t *testing.T) {
 }
 
 func TestLoad_productionAcceptsLoopbackMetricsCIDR_A14_005(t *testing.T) {
-	t.Setenv("DEV_MODE", "false")
-	t.Setenv("ENVIRONMENT", "production")
-	t.Setenv("JWT_SECRET", strings.Repeat("s", 40))
-	t.Setenv("S3_ACCESS_KEY", "prod-access")
-	t.Setenv("S3_SECRET_KEY", "prod-secret-key-32chars-minimum!!")
-	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
-	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
-	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
+	setProductionBaseEnv(t)
 	// Compose prod default — loopback, не blanket RFC1918.
 	t.Setenv("METRICS_ALLOWED_CIDRS", "127.0.0.1/32")
 
@@ -111,14 +106,7 @@ func TestLoad_productionAcceptsLoopbackMetricsCIDR_A14_005(t *testing.T) {
 }
 
 func TestLoad_productionRejectsEmptyMetricsCIDRs_A14_005(t *testing.T) {
-	t.Setenv("DEV_MODE", "false")
-	t.Setenv("ENVIRONMENT", "production")
-	t.Setenv("JWT_SECRET", strings.Repeat("s", 40))
-	t.Setenv("S3_ACCESS_KEY", "prod-access")
-	t.Setenv("S3_SECRET_KEY", "prod-secret-key-32chars-minimum!!")
-	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
-	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
-	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
+	setProductionBaseEnv(t)
 	t.Setenv("METRICS_ALLOWED_CIDRS", "")
 
 	_, err := config.Load()
@@ -127,6 +115,67 @@ func TestLoad_productionRejectsEmptyMetricsCIDRs_A14_005(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "METRICS_ALLOWED_CIDRS") {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+// A14-002: SeaweedFS hub/hubsecret must fail-closed when DEV_MODE=false.
+func TestLoad_productionRejectsDefaultSeaweedFSKeys_A14_002(t *testing.T) {
+	setProductionBaseEnv(t)
+	t.Setenv("S3_ACCESS_KEY", "hub")
+	t.Setenv("S3_SECRET_KEY", "hubsecret")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error for default SeaweedFS keys in production")
+	}
+	if !strings.Contains(err.Error(), "S3_ACCESS_KEY") && !strings.Contains(err.Error(), "S3_SECRET_KEY") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+// A14-003: ENVIRONMENT=production rejects NATS URL without user/password.
+func TestLoad_productionRejectsNATSWithoutCreds_A14_003(t *testing.T) {
+	cases := []struct {
+		name string
+		url  string
+	}{
+		{name: "no_userinfo", url: "nats://nats:4222"},
+		{name: "empty_password", url: "nats://hubnats:@nats:4222"},
+		{name: "user_only", url: "nats://hubnats@nats:4222"},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			setProductionBaseEnv(t)
+			t.Setenv("NATS_URL", tt.url)
+
+			_, err := config.Load()
+			if err == nil {
+				t.Fatal("expected error for NATS URL without credentials")
+			}
+			if !strings.Contains(err.Error(), "NATS_URL") {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestLoad_nonProductionAllowsNATSWithoutCreds(t *testing.T) {
+	t.Setenv("DEV_MODE", "false")
+	t.Setenv("ENVIRONMENT", "staging")
+	t.Setenv("JWT_SECRET", strings.Repeat("s", 40))
+	t.Setenv("S3_ACCESS_KEY", "prod-access")
+	t.Setenv("S3_SECRET_KEY", "prod-secret-key-32chars-minimum!!")
+	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
+	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
+	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
+	t.Setenv("NATS_URL", "nats://nats:4222")
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("staging without NATS auth should load: %v", err)
+	}
+	if cfg.NATS.URL != "nats://nats:4222" {
+		t.Errorf("NATS.URL = %q", cfg.NATS.URL)
 	}
 }
 
