@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import en from "@/i18n/locales/en/common.json";
 import ru from "@/i18n/locales/ru/common.json";
@@ -7,10 +10,19 @@ import ru from "@/i18n/locales/ru/common.json";
  * Old component called POST /auth/telegram-code (no BE route → always 404).
  */
 describe("TelegramButton absent (A11-003)", () => {
-	it("does not resolve telegram-button module", async () => {
-		await expect(
-			import("@/components/auth/telegram-button"),
-		).rejects.toBeTruthy();
+	it("does not ship telegram-button.tsx under components/auth", () => {
+		const here = dirname(fileURLToPath(import.meta.url));
+		// domains/auth → … → repo root (6 levels)
+		const repoRoot = join(here, "..", "..", "..", "..", "..", "..");
+		const deadPath = join(
+			repoRoot,
+			"frontend",
+			"src",
+			"components",
+			"auth",
+			"telegram-button.tsx",
+		);
+		expect(existsSync(deadPath)).toBe(false);
 	});
 
 	it("documents Magic Link-only auth copy in i18n (no Telegram login CTA)", () => {
