@@ -135,7 +135,7 @@ func TestEntRepository_AllocateIssueKey_UnknownProject(t *testing.T) {
 }
 
 func TestIsNotFound(t *testing.T) {
-	repo, ctx, _, _ := newImexRepoTestEnv(t)
-	_, err := repo.GetTestRun(ctx, uuid.New())
+	repo, ctx, projectID, _ := newImexRepoTestEnv(t)
+	_, err := repo.GetTestRunInProject(ctx, projectID, uuid.New())
 	assert.True(t, imex.IsNotFound(err))
 }

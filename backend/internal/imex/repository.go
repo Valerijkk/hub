@@ -8,6 +8,8 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/sprint"
+	"github.com/valerii/hub/backend/ent/testrun"
 )
 
 // CreateIssueInput — импортированная строка issue.
@@ -31,9 +33,11 @@ type Repository interface {
 	SetIssueParent(ctx context.Context, issueID, parentID uuid.UUID) error
 	ListProjectIssuesForExport(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error)
 	ListProjectIssuesPlain(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error)
-	GetTestRun(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error)
+	// GetTestRunInProject — прогон только внутри projectID (A5-010 IDOR guard).
+	GetTestRunInProject(ctx context.Context, projectID, runID uuid.UUID) (*ent.TestRun, error)
 	ListTestRunResults(ctx context.Context, run *ent.TestRun) ([]*ent.TestResult, error)
-	GetSprint(ctx context.Context, sprintID uuid.UUID) (*ent.Sprint, error)
+	// GetSprintInProject — спринт только внутри projectID (A5-010 IDOR guard).
+	GetSprintInProject(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error)
 	ListSprintIssues(ctx context.Context, sp *ent.Sprint) ([]*ent.Issue, error)
 }
 
@@ -138,8 +142,15 @@ func (r *EntRepository) ListProjectIssuesPlain(ctx context.Context, projectID uu
 		All(ctx)
 }
 
-func (r *EntRepository) GetTestRun(ctx context.Context, runID uuid.UUID) (*ent.TestRun, error) {
-	return r.client.TestRun.Get(ctx, runID)
+// GetTestRunInProject возвращает прогон по ID только внутри projectID.
+// Mutation: снять testrun.HasProjectWith → foreign run находится (A5-010).
+func (r *EntRepository) GetTestRunInProject(ctx context.Context, projectID, runID uuid.UUID) (*ent.TestRun, error) {
+	return r.client.TestRun.Query().
+		Where(
+			testrun.ID(runID),
+			testrun.HasProjectWith(project.ID(projectID)),
+		).
+		Only(ctx)
 }
 
 func (r *EntRepository) ListTestRunResults(ctx context.Context, run *ent.TestRun) ([]*ent.TestResult, error) {
@@ -148,8 +159,15 @@ func (r *EntRepository) ListTestRunResults(ctx context.Context, run *ent.TestRun
 		All(ctx)
 }
 
-func (r *EntRepository) GetSprint(ctx context.Context, sprintID uuid.UUID) (*ent.Sprint, error) {
-	return r.client.Sprint.Get(ctx, sprintID)
+// GetSprintInProject возвращает спринт по ID только внутри projectID.
+// Mutation: снять sprint.HasProjectWith → foreign sprint находится (A5-010).
+func (r *EntRepository) GetSprintInProject(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error) {
+	return r.client.Sprint.Query().
+		Where(
+			sprint.ID(sprintID),
+			sprint.HasProjectWith(project.ID(projectID)),
+		).
+		Only(ctx)
 }
 
 func (r *EntRepository) ListSprintIssues(ctx context.Context, sp *ent.Sprint) ([]*ent.Issue, error) {

@@ -51,7 +51,7 @@ func TestEntRepository_ListTestRunResultsAndSprint(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	gotRun, err := repo.GetTestRun(ctx, run.ID)
+	gotRun, err := repo.GetTestRunInProject(ctx, proj.ID, run.ID)
 	require.NoError(t, err)
 
 	results, err := repo.ListTestRunResults(ctx, gotRun)
@@ -67,12 +67,12 @@ func TestEntRepository_ListTestRunResultsAndSprint(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	gotSprint, err := repo.GetSprint(ctx, sprint.ID)
+	gotSprint, err := repo.GetSprintInProject(ctx, proj.ID, sprint.ID)
 	require.NoError(t, err)
 	issues, err := repo.ListSprintIssues(ctx, gotSprint)
 	require.NoError(t, err)
 	assert.Empty(t, issues)
 
-	_, err = repo.GetTestRun(ctx, uuid.New())
+	_, err = repo.GetTestRunInProject(ctx, proj.ID, uuid.New())
 	assert.True(t, imex.IsNotFound(err))
 }

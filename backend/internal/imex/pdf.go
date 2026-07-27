@@ -20,7 +20,8 @@ import (
 // ExportRunPDF генерирует PDF-отчёт по тестовому прогону.
 // Содержит заголовок, метаданные прогона и таблицу результатов.
 func (s *ImExService) ExportRunPDF(ctx context.Context, projectID, runID uuid.UUID) ([]byte, error) {
-	run, err := s.repo.GetTestRun(ctx, runID)
+	// A5-010: scope by projectID — без HasProjectWith возможен IDOR PDF чужого прогона.
+	run, err := s.repo.GetTestRunInProject(ctx, projectID, runID)
 	if err != nil {
 		if IsNotFound(err) {
 			return nil, fmt.Errorf("прогон не найден")
@@ -72,7 +73,8 @@ func (s *ImExService) ExportRunPDF(ctx context.Context, projectID, runID uuid.UU
 // ExportSprintPDF генерирует PDF-отчёт по спринту.
 // Содержит заголовок, метаданные спринта и таблицу задач.
 func (s *ImExService) ExportSprintPDF(ctx context.Context, projectID, sprintID uuid.UUID) ([]byte, error) {
-	sp, err := s.repo.GetSprint(ctx, sprintID)
+	// A5-010: scope by projectID — без HasProjectWith возможен IDOR PDF чужого спринта.
+	sp, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
 	if err != nil {
 		if IsNotFound(err) {
 			return nil, fmt.Errorf("спринт не найден")
