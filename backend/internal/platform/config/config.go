@@ -252,6 +252,11 @@ func (c *Config) validate() error {
 		problems = append(problems, "INTEGRATION_ENCRYPTION_KEY не задан (требуется 32 байта в hex или base64)")
 	}
 
+	// A14-005: в production /metrics обязан иметь CIDR allowlist.
+	if strings.EqualFold(c.Server.Environment, "production") && len(c.Server.MetricsAllowedCIDRs) == 0 {
+		problems = append(problems, "METRICS_ALLOWED_CIDRS пуст в production — задайте CIDR scrape-сети (напр. 172.16.0.0/12)")
+	}
+
 	if len(problems) > 0 {
 		return fmt.Errorf("небезопасная конфигурация (DEV_MODE=false): %s", strings.Join(problems, "; "))
 	}

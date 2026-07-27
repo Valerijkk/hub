@@ -234,7 +234,8 @@ services:
       LIVEKIT_API_KEY: "${LIVEKIT_API_KEY}"
       LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET}"
       DEV_MODE: "false"
-      METRICS_ALLOWED_CIDRS: "${METRICS_ALLOWED_CIDRS:-}"
+      # A14-005: default Docker/K8s private ranges — не оставлять /metrics открытым.
+      METRICS_ALLOWED_CIDRS: "${METRICS_ALLOWED_CIDRS:-172.16.0.0/12,10.0.0.0/8,192.168.0.0/16}"
       ALERT_WEBHOOK_SECRET: "${ALERT_WEBHOOK_SECRET:-}"
     depends_on:
       postgres:

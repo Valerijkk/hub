@@ -75,6 +75,7 @@ func TestLoad_productionValidConfig(t *testing.T) {
 	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
 	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
 	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
+	t.Setenv("METRICS_ALLOWED_CIDRS", "10.0.0.0/8")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -82,6 +83,29 @@ func TestLoad_productionValidConfig(t *testing.T) {
 	}
 	if cfg.Server.Environment != "production" {
 		t.Errorf("Environment = %q", cfg.Server.Environment)
+	}
+	if len(cfg.Server.MetricsAllowedCIDRs) != 1 {
+		t.Errorf("MetricsAllowedCIDRs = %v", cfg.Server.MetricsAllowedCIDRs)
+	}
+}
+
+func TestLoad_productionRejectsEmptyMetricsCIDRs_A14_005(t *testing.T) {
+	t.Setenv("DEV_MODE", "false")
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("JWT_SECRET", strings.Repeat("s", 40))
+	t.Setenv("S3_ACCESS_KEY", "prod-access")
+	t.Setenv("S3_SECRET_KEY", "prod-secret-key-32chars-minimum!!")
+	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
+	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
+	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
+	t.Setenv("METRICS_ALLOWED_CIDRS", "")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error for empty METRICS_ALLOWED_CIDRS in production")
+	}
+	if !strings.Contains(err.Error(), "METRICS_ALLOWED_CIDRS") {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
 
