@@ -86,6 +86,37 @@ export function verifyMagicLink(data: VerifyMagicLinkRequest) {
 	return api.post<TokenPairResponse>("/auth/magic-link/verify", data);
 }
 
+/**
+ * BE `*time.Time` accepts RFC3339 JSON; `<input type="date">` yields YYYY-MM-DD.
+ * Normalize date-only to UTC midnight so encoding/json does not 400 (A11-006).
+ */
+export function toBirthdayRFC3339(
+	birthday: string | undefined,
+): string | undefined {
+	if (!birthday) return undefined;
+	const trimmed = birthday.trim();
+	if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+		return `${trimmed}T00:00:00Z`;
+	}
+	return trimmed;
+}
+
+/** Slice RFC3339 / ISO birthday to YYYY-MM-DD for date inputs. */
+export function birthdayForDateInput(
+	birthday: string | undefined | null,
+): string {
+	if (!birthday) return "";
+	const m = /^(\d{4}-\d{2}-\d{2})/.exec(birthday.trim());
+	return m?.[1] ?? "";
+}
+
+function withNormalizedBirthday(
+	data: UpdateProfileRequest,
+): UpdateProfileRequest {
+	if (data.birthday === undefined) return data;
+	return { ...data, birthday: toBirthdayRFC3339(data.birthday) };
+}
+
 /** Endpoint: GET /auth/me — получить данные текущего пользователя. */
 export function getMe() {
 	return api.get<UserResponse>("/auth/me");
@@ -93,12 +124,14 @@ export function getMe() {
 
 /** Endpoint: PUT /auth/me — обновить профиль текущего пользователя. */
 export function updateProfile(data: UpdateProfileRequest) {
-	return api.put<UserResponse>("/auth/me", data);
+	return api.put<UserResponse>("/auth/me", withNormalizedBirthday(data));
 }
 
 /** Endpoint: POST /auth/me/onboarding — завершить онбординг с данными профиля. */
 export function completeOnboarding(data: { profile: UpdateProfileRequest }) {
-	return api.post<UserResponse>("/auth/me/onboarding", data);
+	return api.post<UserResponse>("/auth/me/onboarding", {
+		profile: withNormalizedBirthday(data.profile),
+	});
 }
 
 /** Endpoint: GET /auth/sessions — получить список активных сессий. */

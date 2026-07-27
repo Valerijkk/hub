@@ -4,6 +4,7 @@ import { type FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { SessionResponse } from "@/api/auth";
 import {
+	birthdayForDateInput,
 	getMe,
 	listSessions,
 	logout,
@@ -46,7 +47,7 @@ function ProfilePage() {
 		department: user?.department ?? "",
 		timezone: user?.timezone ?? "",
 		language: user?.language ?? "",
-		birthday: user?.birthday ?? "",
+		birthday: birthdayForDateInput(user?.birthday),
 	});
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,7 +92,7 @@ function ProfilePage() {
 			department: user.department ?? "",
 			timezone: user.timezone ?? "",
 			language: user.language ?? "",
-			birthday: user.birthday ?? "",
+			birthday: birthdayForDateInput(user.birthday),
 		});
 		setInitialized(true);
 	}
