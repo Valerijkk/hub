@@ -233,6 +233,7 @@ func (s *SearchService) searchIssues(ctx context.Context, query string, projectI
 		FROM issues
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND project_issues = ANY($2)
+			AND deleted_at IS NULL
 		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
@@ -272,6 +273,7 @@ func (s *SearchService) searchTestCases(ctx context.Context, query string, proje
 		FROM test_cases
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND project_test_cases = ANY($2)
+			AND deleted_at IS NULL
 		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
@@ -438,6 +440,7 @@ func (s *SearchService) searchProjects(ctx context.Context, query string, projec
 		FROM projects
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND id = ANY($2)
+			AND deleted_at IS NULL
 		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
@@ -476,6 +479,8 @@ func (s *SearchService) searchFiles(ctx context.Context, query string, projectID
 		FROM file_metadata
 		WHERE search_vector @@ plainto_tsquery('simple', $1)
 			AND project_files = ANY($2)
+			AND deleted_at IS NULL
+			AND status = 'confirmed'
 		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
 		query, uuidSliceToPgArray(projectIDs))
 	if err != nil {
