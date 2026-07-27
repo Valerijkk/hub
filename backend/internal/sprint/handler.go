@@ -122,12 +122,16 @@ func (h *Handler) ListSprints(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId} [get]
 func (h *Handler) GetSprint(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
 	if err != nil {
 		return err
 	}
 
-	resp, err := h.service.GetSprint(c.Context(), sprintID)
+	resp, err := h.service.GetSprint(c.Context(), projectID, sprintID)
 	if err != nil {
 		return err
 	}
@@ -151,7 +155,11 @@ func (h *Handler) GetSprint(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId} [put]
 func (h *Handler) UpdateSprint(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
 	if err != nil {
 		return err
 	}
@@ -161,7 +169,7 @@ func (h *Handler) UpdateSprint(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.UpdateSprint(c.Context(), sprintID, req)
+	resp, err := h.service.UpdateSprint(c.Context(), projectID, sprintID, req)
 	if err != nil {
 		return err
 	}
@@ -247,7 +255,11 @@ func (h *Handler) CompleteSprint(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId}/retro [put]
 func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
 	if err != nil {
 		return err
 	}
@@ -257,7 +269,7 @@ func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.UpdateRetroNotes(c.Context(), sprintID, req)
+	resp, err := h.service.UpdateRetroNotes(c.Context(), projectID, sprintID, req)
 	if err != nil {
 		return err
 	}
@@ -278,12 +290,16 @@ func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId}/burndown [get]
 func (h *Handler) GetBurndown(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
 	if err != nil {
 		return err
 	}
 
-	resp, err := h.service.GetBurndown(c.Context(), sprintID)
+	resp, err := h.service.GetBurndown(c.Context(), projectID, sprintID)
 	if err != nil {
 		return err
 	}
@@ -331,7 +347,11 @@ func (h *Handler) GetVelocity(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId}/issues [post]
 func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
 	if err != nil {
 		return err
 	}
@@ -350,7 +370,7 @@ func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 		issueIDs = append(issueIDs, id)
 	}
 
-	if err := h.service.AddIssuesToSprint(c.Context(), sprintID, issueIDs); err != nil {
+	if err := h.service.AddIssuesToSprint(c.Context(), projectID, sprintID, issueIDs); err != nil {
 		return err
 	}
 
@@ -376,8 +396,17 @@ func (h *Handler) AddIssuesToSprint(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId}/poker [post]
 func (h *Handler) StartPokerSession(c fiber.Ctx) error {
-	sprintID, err := httputil.ParseUUIDParam(c,"sprintId")
+	projectID, err := httputil.ParseProjectID(c)
 	if err != nil {
+		return err
+	}
+	sprintID, err := httputil.ParseUUIDParam(c, "sprintId")
+	if err != nil {
+		return err
+	}
+
+	// RT-005 sibling: poker session must not bind to a foreign sprint UUID.
+	if _, err := h.service.GetSprint(c.Context(), projectID, sprintID); err != nil {
 		return err
 	}
 

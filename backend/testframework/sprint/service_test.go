@@ -289,6 +289,139 @@ func TestStartSprint_RejectsForeignProject_A3_016(t *testing.T) {
 	assert.Equal(t, "active", resp.Status)
 }
 
+// TestGetSprint_RejectsForeignProject_RT005 — RT-005 sibling: foreign projectID + real sprintID → NotFound.
+func TestGetSprint_RejectsForeignProject_RT005(t *testing.T) {
+	repo := newMockRepository()
+	svc := sprint.NewSprintService(repo, nil, nil)
+	ctx := context.Background()
+	ownerProject := uuid.New()
+	attackerProject := uuid.New()
+	sprintID := uuid.New()
+
+	repo.sprints[sprintID] = &ent.Sprint{
+		ID: sprintID, Name: "Secret Sprint", Status: sprintEnt.StatusPlanning,
+		StartDate: time.Now(), EndDate: time.Now().AddDate(0, 0, 14),
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	repo.sprintProject[sprintID] = ownerProject
+
+	_, err := svc.GetSprint(ctx, attackerProject, sprintID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "не найден")
+
+	resp, err := svc.GetSprint(ctx, ownerProject, sprintID)
+	require.NoError(t, err)
+	assert.Equal(t, "Secret Sprint", resp.Name)
+}
+
+// TestUpdateSprint_RejectsForeignProject_RT005 — RT-005 sibling: foreign Update must not mutate.
+func TestUpdateSprint_RejectsForeignProject_RT005(t *testing.T) {
+	repo := newMockRepository()
+	svc := sprint.NewSprintService(repo, nil, nil)
+	ctx := context.Background()
+	ownerProject := uuid.New()
+	attackerProject := uuid.New()
+	sprintID := uuid.New()
+
+	repo.sprints[sprintID] = &ent.Sprint{
+		ID: sprintID, Name: "Original", Status: sprintEnt.StatusPlanning,
+		StartDate: time.Now(), EndDate: time.Now().AddDate(0, 0, 14),
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	repo.sprintProject[sprintID] = ownerProject
+
+	stolen := "Stolen"
+	_, err := svc.UpdateSprint(ctx, attackerProject, sprintID, sprint.UpdateSprintRequest{Name: &stolen})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "не найден")
+	assert.Equal(t, "Original", repo.sprints[sprintID].Name, "foreign UpdateSprint must not rename")
+
+	okName := "Owned update"
+	resp, err := svc.UpdateSprint(ctx, ownerProject, sprintID, sprint.UpdateSprintRequest{Name: &okName})
+	require.NoError(t, err)
+	assert.Equal(t, "Owned update", resp.Name)
+}
+
+// TestUpdateRetroNotes_RejectsForeignProject_RT005 — RT-005 sibling: foreign Retro must not write notes.
+func TestUpdateRetroNotes_RejectsForeignProject_RT005(t *testing.T) {
+	repo := newMockRepository()
+	svc := sprint.NewSprintService(repo, nil, nil)
+	ctx := context.Background()
+	ownerProject := uuid.New()
+	attackerProject := uuid.New()
+	sprintID := uuid.New()
+
+	repo.sprints[sprintID] = &ent.Sprint{
+		ID: sprintID, Name: "Retro victim", Status: sprintEnt.StatusCompleted,
+		StartDate: time.Now().AddDate(0, 0, -14), EndDate: time.Now(),
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	repo.sprintProject[sprintID] = ownerProject
+
+	_, err := svc.UpdateRetroNotes(ctx, attackerProject, sprintID, sprint.RetroNotesRequest{
+		WentWell: []string{"leak"},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "не найден")
+	assert.Nil(t, repo.sprints[sprintID].RetroNotes, "foreign UpdateRetroNotes must not write")
+
+	resp, err := svc.UpdateRetroNotes(ctx, ownerProject, sprintID, sprint.RetroNotesRequest{
+		WentWell: []string{"ok"},
+	})
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.RetroNotes["went_well"])
+}
+
+// TestGetBurndown_RejectsForeignProject_RT005 — RT-005 sibling: foreign burndown read denied.
+func TestGetBurndown_RejectsForeignProject_RT005(t *testing.T) {
+	repo := newMockRepository()
+	svc := sprint.NewSprintService(repo, nil, nil)
+	ctx := context.Background()
+	ownerProject := uuid.New()
+	attackerProject := uuid.New()
+	sprintID := uuid.New()
+
+	repo.sprints[sprintID] = &ent.Sprint{
+		ID: sprintID, Name: "Burn", Status: sprintEnt.StatusActive,
+		StartDate: time.Now().AddDate(0, 0, -7), EndDate: time.Now().AddDate(0, 0, 7),
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	repo.sprintProject[sprintID] = ownerProject
+
+	_, err := svc.GetBurndown(ctx, attackerProject, sprintID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "не найден")
+
+	points, err := svc.GetBurndown(ctx, ownerProject, sprintID)
+	require.NoError(t, err)
+	assert.NotEmpty(t, points)
+}
+
+// TestAddIssuesToSprint_RejectsForeignProject_RT005 — RT-005 sibling: foreign AddIssues must not bind.
+func TestAddIssuesToSprint_RejectsForeignProject_RT005(t *testing.T) {
+	repo := newMockRepository()
+	svc := sprint.NewSprintService(repo, nil, nil)
+	ctx := context.Background()
+	ownerProject := uuid.New()
+	attackerProject := uuid.New()
+	sprintID := uuid.New()
+	issueID := uuid.New()
+
+	repo.sprints[sprintID] = &ent.Sprint{
+		ID: sprintID, Name: "Victim", Status: sprintEnt.StatusPlanning,
+		StartDate: time.Now(), EndDate: time.Now().AddDate(0, 0, 14),
+	}
+	repo.sprintProject[sprintID] = ownerProject
+
+	err := svc.AddIssuesToSprint(ctx, attackerProject, sprintID, []uuid.UUID{issueID})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "не найден")
+	assert.Empty(t, repo.movedIssueIDs, "foreign AddIssuesToSprint must not move issues")
+
+	require.NoError(t, svc.AddIssuesToSprint(ctx, ownerProject, sprintID, []uuid.UUID{issueID}))
+	assert.Equal(t, []uuid.UUID{issueID}, repo.movedIssueIDs)
+}
+
 func TestStartSprint_RejectsWhenActiveExists(t *testing.T) {
 	repo := newMockRepository()
 	svc := sprint.NewSprintService(repo, nil, nil)
@@ -442,6 +575,7 @@ func TestGetBurndown(t *testing.T) {
 	repo := newMockRepository()
 	svc := sprint.NewSprintService(repo, nil, nil)
 	ctx := context.Background()
+	projectID := uuid.New()
 
 	sprintID := uuid.New()
 	repo.sprints[sprintID] = &ent.Sprint{
@@ -453,8 +587,9 @@ func TestGetBurndown(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+	repo.sprintProject[sprintID] = projectID
 
-	points, err := svc.GetBurndown(ctx, sprintID)
+	points, err := svc.GetBurndown(ctx, projectID, sprintID)
 	require.NoError(t, err)
 	assert.NotEmpty(t, points)
 	// Первая точка — полное количество задач

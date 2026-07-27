@@ -43,9 +43,9 @@ func (s *SprintService) CreateSprint(ctx context.Context, projectID uuid.UUID, r
 	return s.toSprintResponse(ctx, sp), nil
 }
 
-// GetSprint возвращает спринт по ID.
-func (s *SprintService) GetSprint(ctx context.Context, sprintID uuid.UUID) (*SprintResponse, error) {
-	sp, err := s.repo.GetSprint(ctx, sprintID)
+// GetSprint возвращает спринт по ID в рамках проекта (RT-005 / A3-001 sibling).
+func (s *SprintService) GetSprint(ctx context.Context, projectID, sprintID uuid.UUID) (*SprintResponse, error) {
+	sp, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")
@@ -70,8 +70,15 @@ func (s *SprintService) ListSprints(ctx context.Context, projectID uuid.UUID) ([
 	return result, nil
 }
 
-// UpdateSprint обновляет спринт.
-func (s *SprintService) UpdateSprint(ctx context.Context, sprintID uuid.UUID, req UpdateSprintRequest) (*SprintResponse, error) {
+// UpdateSprint обновляет спринт в рамках проекта (RT-005 / A3-001 sibling).
+func (s *SprintService) UpdateSprint(ctx context.Context, projectID, sprintID uuid.UUID, req UpdateSprintRequest) (*SprintResponse, error) {
+	if _, err := s.repo.GetSprintInProject(ctx, projectID, sprintID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("спринт не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения спринта")
+	}
+
 	sp, err := s.repo.UpdateSprint(ctx, sprintID, req)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -165,8 +172,15 @@ func (s *SprintService) CompleteSprint(ctx context.Context, projectID, sprintID 
 	return s.toSprintResponse(ctx, updated), nil
 }
 
-// UpdateRetroNotes сохраняет заметки ретроспективы (SCRM-03).
-func (s *SprintService) UpdateRetroNotes(ctx context.Context, sprintID uuid.UUID, req RetroNotesRequest) (*SprintResponse, error) {
+// UpdateRetroNotes сохраняет заметки ретроспективы (SCRM-03; RT-005 / A3-001 sibling).
+func (s *SprintService) UpdateRetroNotes(ctx context.Context, projectID, sprintID uuid.UUID, req RetroNotesRequest) (*SprintResponse, error) {
+	if _, err := s.repo.GetSprintInProject(ctx, projectID, sprintID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("спринт не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения спринта")
+	}
+
 	notes := map[string]interface{}{
 		"went_well":  req.WentWell,
 		"to_improve": req.ToImprove,
@@ -184,9 +198,9 @@ func (s *SprintService) UpdateRetroNotes(ctx context.Context, sprintID uuid.UUID
 	return s.toSprintResponse(ctx, sp), nil
 }
 
-// GetBurndown возвращает данные для графика burndown (SCRM-02).
-func (s *SprintService) GetBurndown(ctx context.Context, sprintID uuid.UUID) ([]BurndownPoint, error) {
-	sp, err := s.repo.GetSprint(ctx, sprintID)
+// GetBurndown возвращает данные для графика burndown (SCRM-02; RT-005 / A3-001 sibling).
+func (s *SprintService) GetBurndown(ctx context.Context, projectID, sprintID uuid.UUID) ([]BurndownPoint, error) {
+	sp, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")
@@ -253,8 +267,14 @@ func (s *SprintService) GetVelocity(ctx context.Context, projectID uuid.UUID) ([
 	return s.repo.GetVelocityData(ctx, projectID)
 }
 
-// AddIssuesToSprint добавляет задачи в спринт.
-func (s *SprintService) AddIssuesToSprint(ctx context.Context, sprintID uuid.UUID, issueIDs []uuid.UUID) error {
+// AddIssuesToSprint добавляет задачи в спринт в рамках проекта (RT-005 sibling).
+func (s *SprintService) AddIssuesToSprint(ctx context.Context, projectID, sprintID uuid.UUID, issueIDs []uuid.UUID) error {
+	if _, err := s.repo.GetSprintInProject(ctx, projectID, sprintID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("спринт не найден")
+		}
+		return apperrors.NewInternal("ошибка получения спринта")
+	}
 	return s.repo.SetIssuesSprint(ctx, issueIDs, sprintID)
 }
 
