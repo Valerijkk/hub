@@ -66,6 +66,13 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (fe1 · W11 API contract A11-004…013)
+
+- A11-004…013 FIXED (minimal FE): dead telegram/notify-mode clients removed; birthday RFC3339; TMS `getBlob`; IssueResponse attachments drop; CRM/bases/marketplace/dashboard templates/registration-mode FE wrappers.
+- SHAs: `7687f20` `ebfc6b0` `29526f6` `8bb37ab` `0a4ddb7` `b3cf6df` `0d4e3ff` `35310c7` `d631197` `9b32eaf`.
+- Report: `.planning/audits/grok-2026-07/FIX-W11.md`.
+- Vitest: 72 pass in touched domains; residual FAIL `telegram-button-absent.test.ts` (A11-003 parallel).
+
 ## Session note — 2026-07-27 (be2 · W10 tx/data A8-005/007/008 + A7-003)
 
 - A8-005: `DeleteChannel` tx-cascade children (`b77ba23`); soft-delete schema deferred.
