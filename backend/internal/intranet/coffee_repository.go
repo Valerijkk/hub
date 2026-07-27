@@ -72,14 +72,13 @@ func (r *EntRepository) GetLatestCoffeeRound(ctx context.Context) (*ent.CoffeeRo
 }
 
 func (r *EntRepository) GetPreviousRoundPairKeys(ctx context.Context) (map[string]struct{}, error) {
+	// A7-006: вызывается ДО CreateCoffeeRound — «предыдущий» = latest (First, без Offset).
 	prev, err := r.client.CoffeeRound.Query().
 		Order(ent.Desc(coffeeround.FieldCreatedAt)).
-		Offset(1).
-		Limit(1).
 		WithPairs(func(q *ent.CoffeePairQuery) {
 			q.WithParticipantA().WithParticipantB()
 		}).
-		Only(ctx)
+		First(ctx)
 	if ent.IsNotFound(err) {
 		return map[string]struct{}{}, nil
 	}

@@ -50,18 +50,20 @@ func TestEntRepository_CoffeeUpsertAndPreviousPairs(t *testing.T) {
 	_, err = repo.CreateCoffeePair(ctx, round1.ID, u2.ID, u3.ID)
 	require.NoError(t, err)
 
+	// A7-006: до CreateRound следующего — previous = latest (round1), не Offset(1).
 	keys, err := repo.GetPreviousRoundPairKeys(ctx)
 	require.NoError(t, err)
-	assert.Empty(t, keys)
+	assert.Contains(t, keys, pairKey(u2.ID, u3.ID))
 
 	round2, err := repo.CreateCoffeeRound(ctx, admin.ID, 1, 0)
 	require.NoError(t, err)
-	_, err = repo.CreateCoffeePair(ctx, round2.ID, u2.ID, u3.ID)
+	_, err = repo.CreateCoffeePair(ctx, round2.ID, u1.ID, u2.ID)
 	require.NoError(t, err)
 
 	keys, err = repo.GetPreviousRoundPairKeys(ctx)
 	require.NoError(t, err)
-	assert.Contains(t, keys, pairKey(u2.ID, u3.ID))
+	assert.Contains(t, keys, pairKey(u1.ID, u2.ID), "latest round pairs")
+	assert.NotContains(t, keys, pairKey(u2.ID, u3.ID), "must not skip to round-before-last")
 
 	rounds, err := repo.ListCoffeeRounds(ctx, 0)
 	require.NoError(t, err)
