@@ -192,7 +192,10 @@ func (m *githubReviewRepo) ListIntegrations(context.Context, uuid.UUID) ([]*ent.
 func (m *githubReviewRepo) GetIntegration(context.Context, uuid.UUID) (*ent.GitHubIntegration, error) {
 	return nil, nil
 }
-func (m *githubReviewRepo) DeleteIntegration(context.Context, uuid.UUID) error { return nil }
+func (m *githubReviewRepo) GetIntegrationInProject(context.Context, uuid.UUID, uuid.UUID) (*ent.GitHubIntegration, error) {
+	return nil, nil
+}
+func (m *githubReviewRepo) DeleteIntegration(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 func (m *githubReviewRepo) FindIntegrationByRepo(_ context.Context, owner, repo string) (*ent.GitHubIntegration, error) {
 	if ig, ok := m.integrations[owner+"/"+repo]; ok {
 		return ig, nil
@@ -210,6 +213,9 @@ func (m *githubReviewRepo) ListGitHubLinks(context.Context, uuid.UUID) ([]*ent.G
 	return nil, nil
 }
 func (m *githubReviewRepo) FindIssueByKey(context.Context, string) (*ent.Issue, error) { return nil, nil }
+func (m *githubReviewRepo) FindIssueByKeyInProject(context.Context, uuid.UUID, string) (*ent.Issue, error) {
+	return nil, &ent.NotFoundError{}
+}
 func (m *githubReviewRepo) UpdateIssueStatus(context.Context, uuid.UUID, uuid.UUID) error {
 	return nil
 }
