@@ -1,0 +1,4 @@
+package	pct	covered	total	baseline_2026_06_22	delta
+platform/config	83.6	46	55		
+platform/crypto	78.0	46	59		
+platform/telegram	100.0	4	4		

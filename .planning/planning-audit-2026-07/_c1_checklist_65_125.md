@@ -1,0 +1,61 @@
+- [x] **Phase 65: UX-P1-05 Rate Limit Timer + Messenger Coverage** - 1. **UX-P1-05 / FB-03:** Live countdown toast on 429 + actionable `request_id` in error toasts 2. **Coverage:** `mess… (2026-06-25)
+- [x] **Phase 66: Notification Coverage Uplift (42.5% → 50%)** - Close COV gap: `notification/` package **≥50%** + telegram handler route fix. (2026-06-25)
+- [x] **Phase 67: Production Release Gate (Phases 64–66)** - Re-run full `/qa-gate` after Phases 64–66; publish `PRODUCTION-HANDOFF.md`; refresh coverage baseline. (2026-06-25)
+- [x] **Phase 68: Messenger Fan-out & Coverage (52.3% → 60%)** - PLAN-CLOSE-GAPS **2.5**: messenger fan-out integration + coverage **≥60%**. (2026-06-26)
+- [x] **Phase 69: Apigateway Coverage + COV Baseline Refresh** - 1. **SEC-01 / API-01:** `apigateway/` **54% → ≥60%** 2. Refresh overall COV baseline post Phase 68 (2026-06-26)
+- [x] **Phase 70: GitLab/GitHub Coverage (SEC-04)** - 1. **SEC-04 / GH-01:** `gitlab/` and `github/` **48% / 45% → ≥50%** 2. Cover `EntRepository` (0%) and `RegisterRoutes… (2026-06-21)
+- [x] **Phase 71: Mail + Dashboard Coverage (MAIL-01 / BE-H3)** - 1. **MAIL-01 / Phase 15.2:** `mail/` **44.6% → ≥50%** — hub-mail handlers + admin API 2. **BE-H3:** `dashboard/` proj… (2026-06-21)
+- [x] **Phase 72: Production QA Gate (Post Phase 71)** - Full `/qa-gate` re-run after Phases 70–71 (gitlab/github/mail/dashboard coverage). (2026-06-21)
+- [x] **Phase 73: Platform HTTP/Outbox Coverage (SEC-04 / NF-07)** - 1. `platform/http` **20.4% → ≥50%** — SafeDialer + OpenGraph (SSRF / NF-07) 2. `platform/outbox` **28.6% → ≥50%** — P… (2026-06-21)
+- [x] **Phase 74: AI Module Coverage (M3 / COV-01)** - `internal/ai/` **24.8% → ≥50%** — handlers, repository, settings, privacy, adapters (unit paths without live LLM). (2026-06-21)
+- [x] **Phase 75: Post-AI QA Gate Refresh** - Re-run full `/qa-gate` after Phase 74 AI coverage additions; refresh overall COV baseline. (2026-06-21)
+- [x] **Phase 76: Sprint Ent + Handler Routes Coverage** - `internal/sprint/` **58.0% → ≥60%** — EntRepository + RegisterRoutes (RBAC) (2026-06-21)
+- [x] **Phase 77: Storage Handler Routes (CR-04 / Presign)** - `internal/storage/` **55.7% → ≥60%** — NewHandler, RegisterRoutes, RBAC authorizeProject, NewStorageService (2026-06-21)
+- [x] **Phase 78: Tracker + TMS Coverage Wave** - - `internal/tracker/` **52.1% → ≥60%** - `internal/tms/` **55.5% → ≥60%** (2026-06-21)
+- [x] **Phase 79: Notification + Project Coverage Wave** - - `internal/notification/` **55.7% → ≥60%** - `internal/project/` **59.4% → ≥60%** (2026-06-21)
+- [x] **Phase 80: Backup + HR + IMEX Coverage Wave** - - `internal/backup/` **53.4% → ≥60%** - `internal/hr/` **53.1% → ≥60%** - `internal/imex/` **57.8% → ≥60%** (2026-06-21)
+- [x] **Phase 81: AI Coverage + QA Gate** - - `internal/ai/` **50.7% → ≥60%** - Full `/qa-gate` PASS on branch (2026-06-21)
+- [x] **Phase 82: AI Bot Hook + Doc Search RAG** - - Close Phase 81 deferred: `@hub-ai` messenger bot hook + `SearchDocProvider` full path - `internal/ai/` **68.5% → ≥7… (2026-06-21)
+- [x] **Phase 83: AI Bot Commands + Search Query** - - Complete `@hub-ai` slash commands (test-cases, review, explain, translate, sql) - `internal/search/` **60.5% → ≥60%… (2026-06-21)
+- [x] **Phase 84: VCS Review + Bases + Intranet Coffee** - - `UnifiedCodeReviewProvider.FetchReview` GitLab path via mock HTTP - `internal/bases/` **60.8% → ≥65%** - `internal/… (2026-06-21)
+- [x] **Phase 85: GitHub PR Review + Coverage Uplift** - - `UnifiedCodeReviewProvider.FetchReview` **GitHub** path via mock HTTP - `FetchPRForReview` httptest coverage - Quie… (2026-06-21)
+- [x] **Phase 86: Search + Tracker + TMS + Notification Uplift** - Поднять пакеты ниже 65%: `search`, `tracker`, `tms`, `notification`. (2026-06-21)
+- [x] **Phase 87: TMS + Notification + NATS Uplift** - Поднять покрытие `tms`, `notification`, `platform/nats` — закрыть пробелы в consumer events, ent batch repo и NATS pu… (2026-06-21)
+- [x] **Phase 88: TMS + Notification ≥65%** - Довести `tms` и `notification` до **≥65%** statement coverage. (2026-06-21)
+- [x] **Phase 89: E2E Wave 3 + Dashboard Uplift** - Закрыть **E2E-01** (5 critical Playwright paths) и поднять `dashboard/` coverage. (2026-06-21)
+- [x] **Phase 90: IMEX Jira Import Uplift** - Поднять `imex/` — ImportJira JSON/handler flows и edge cases. (2026-06-21)
+- [x] **Phase 91: Intranet + Observability Uplift** - Поднять `intranet/` и `platform/observability/` до ≥80% — coffee/news handler gaps и metrics allowlist. (2026-06-21)
+- [x] **Phase 92: Messenger Polls + Search Repo** - Закрыть 0% gaps в messenger poll repo + handler DeleteChannel/AddMembers; GetSavedFilter в search. (2026-06-21)
+- [x] **Phase 93: Auto-Channels NATS + Handler Gaps** - Поднять `messenger/` до ≥70% — auto_channels NATS lifecycle, thread replies, revoke invite, poll handlers; search ind… (2026-06-21)
+- [x] **Phase 94: Search Meili + Bot + Notification JetStream** - Поднять `search/` до ≥70%, `service_bot` coverage, notification consumer Start с JetStream. (2026-06-21)
+- [x] **Phase 95: Notification Push/TG + Tracker Automation + TMS Export** - Поднять `notification/`, `tracker/`, `tms/` до ≥70% через push/telegram bind, automation consumer, issue message link… (2026-06-21)
+- [x] **Phase 96: TMS TestRail/Mongo + Excel Import** - Закрыть deferred Phase 95: `mongo_repository`, `testrail_import`, `ImportFromExcel`; подготовить messenger mongo inte… (2026-06-21)
+- [x] **Phase 97: Mongo CI + Webhook Dispatcher + Marketplace** - Mongo integration tests в CI, закрыть 0% webhook dispatcher, marketplace handlers, telegram sendMessage. (2026-06-21)
+- [x] **Phase 98: Accounting + Calendar + COV 75%** - Закрыть gaps **accounting** (65%) и **calendar** (65.6%); довести overall `internal/` COV до **≥75%** (deferred из Ph… (2026-06-21)
+- [x] **Phase 99: Backup + Package 75% Push** - Довести **backup** (65.7%) и пакеты на грани 75% (**notification**, **tms**, **marketplace**) до целевого порога; укр… (2026-06-21)
+- [x] **Phase 100: RestoreBackup + Tracker/Messenger/Search 75%** - Закрыть **RestoreBackup** S3 happy path; довести **tracker**, **messenger**, **search** до ≥75%; удержать overall COV… (2026-06-21)
+- [x] **Phase 101: Sub-75% Package Push** - Довести пакеты ниже 75% (**project**, **github**, **crm**, **hr**, **platform/outbox**, **platform/errors**, **integr… (2026-06-21)
+- [x] **Phase 102: Dev Routes + Notification Push** - Close deferred gaps: `internal/dev` (0%) and `notification` (74.8% → ≥75%)
+- [x] **Phase 103: GitHub Push + Mongo Integration Tests** - Push boundary packages (github 75%→80%+) and add mongo integration tests (skip without MongoDB)
+- [x] **Phase 104: Flaky GitHub Fix + Mongo Testutil** - Eliminate network-dependent github handler tests; unify MongoDB test setup for CI
+- [x] **Phase 105: Boundary Package Push** - Поднять пакеты на грани 75% (**marketplace**, **project**, **tms**) и удержать overall COV ≥78.4%.
+- [x] **Phase 106: Triple Boundary Push (search / messenger / tracker)** - Поднять три пакета на грани 75% и overall COV ≥78.7%.
+- [x] **Phase 107: CRM + Dashboard + Bases Boundary Push** - Push `crm`, `dashboard`, `bases` toward 79%+ and lift overall COV past 78.8%.
+- [x] **Phase 108: 79% COV Milestone** - Cross **79%** overall statement coverage via accounting + search + tms boundary tests.
+- [x] **Phase 109: Triple Boundary Push (Search + Messenger + Tracker)** - Push lowest packages toward 76%+ and maintain COV ≥79%.
+- [x] **Phase 110: TMS + AI + Project Boundary Push** - Push `tms`, `ai`, `project` toward 78%+ and lift COV toward 79.5%.
+- [x] **Phase 111: Notification + HR + CRM Push** - Triple push `notification (77.8%) + hr (77.9%) + crm (78%)` → COV **≥79.5%**.
+- [x] **Phase 112: Search + Messenger + Tracker Push** - Triple push `search (75.8%) + messenger (75.8%) + tracker (75.9%)` → COV **≥80%**.
+- [x] **Phase 113: TMS + Project + Sprint + Messenger + Tracker Push** - Cross-module push to COV **≥80%** (from 79.7%).
+- [x] **Phase 114: Search + Messenger + TMS + Tracker Push** - Push COV **≥81%** (from 80.0%).
+- [x] **Phase 115: GitHub/GitLab + Auth + Messenger + Bases + AI Push** - Push COV **≥81%** (from 80.2%).
+- [x] **Phase 116: Search PG Integration + Messenger/TMS Push** - COV **≥81%** (from 80.7%).
+- [x] **Phase 117: Storage RBAC + Notification Quiet Hours + Tracker Time** - Push low packages toward 82%; maintain COV **≥81%** (from 81.6%).
+- [x] **Phase 118: Notification Consumer + Tracker Automation Push** - Push `notification`/`tracker` to **≥80%**; maintain COV **≥81%** (from 81.8%).
+- [x] **Phase 119: Notification/Tracker Push to 82%** - Push `notification`/`tracker` toward **82%**; maintain COV **≥81%** (from 81.9%).
+- [x] **Phase 120: Tracker/TMS/Project Push to 82%** - Push `tracker`/`tms`/`project` toward **82%**; maintain COV **≥82%** (from 82.0%).
+- [x] **Phase 121: Notification Consumer + Tracker Push to 82%** - notification ≥82%, tracker ≥82%, COV ≥82%
+- [x] **Phase 122: TMS + Project ≥82%** - tms: 79.3% → ≥82%; project: 80.4% → ≥82%
+- [x] **Phase 123: Messenger ≥82%, Storage ≥82%** - messenger: 77.6% → ≥82%; storage: 86.8% → ✅ already ≥82% (2026-06-21)
+- [x] **Phase 124: Floor ≥82% (tracker / tms / project)** - tracker: 81.3% → ≥82%; tms: 81.7% → ≥82%; project: 81.0% → ≥82%
+- [x] **Phase 125: COV ≥82%, Security ≥80%, Regression Gate** - COV overall: ≥82% → ✅ **82.6%**; auth: ≥80% → ✅ **82.4%**; ws: ≥80% → ✅ **87.7%**; rbac: ≥80% → ✅ **84.7%** (2026-06-21)
