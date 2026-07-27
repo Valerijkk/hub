@@ -37,17 +37,6 @@ export interface ChannelMember {
 	user_name?: string;
 	role: string;
 	joined_at: string;
-	notify_mode?: "all" | "mentions" | "nothing";
-}
-
-/** Обновить режим уведомлений для канала. */
-export function updateChannelNotifyMode(
-	channelId: string,
-	notifyMode: "all" | "mentions" | "nothing",
-) {
-	return api.put<void>(`/messenger/channels/${channelId}/notify-mode`, {
-		notify_mode: notifyMode,
-	});
 }
 
 /** Реакция на сообщение (raw от backend — содержит user_ids). */
