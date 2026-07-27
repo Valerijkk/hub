@@ -8,11 +8,8 @@
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AIChatPanel } from "@/components/ai/ai-chat-panel";
-import { ShortcutsDialog } from "@/components/help/shortcuts-dialog";
 import { SkipLink } from "@/components/layout/skip-link";
 import { MobileNav } from "@/components/mobile-nav";
-import { CommandPalette } from "@/components/search/command-palette";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -25,6 +22,23 @@ import { Topbar } from "./topbar";
 const CallPanel = lazy(() =>
 	import("@/components/calls/CallPanel").then((m) => ({
 		default: m.CallPanel,
+	})),
+);
+
+/** A13-015: AI / search / help — не в initial graph каждого authenticated page. */
+const AIChatPanel = lazy(() =>
+	import("@/components/ai/ai-chat-panel").then((m) => ({
+		default: m.AIChatPanel,
+	})),
+);
+const CommandPalette = lazy(() =>
+	import("@/components/search/command-palette").then((m) => ({
+		default: m.CommandPalette,
+	})),
+);
+const ShortcutsDialog = lazy(() =>
+	import("@/components/help/shortcuts-dialog").then((m) => ({
+		default: m.ShortcutsDialog,
 	})),
 );
 
@@ -45,7 +59,9 @@ function projectIdFromPath(pathname: string): string | null {
 export function AppShell() {
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
+	const commandOpen = useCommandStore((s) => s.open);
 	const toggleCommand = useCommandStore((s) => s.toggle);
+	const aiPanelOpen = useAIStore((s) => s.panelOpen);
 	const toggleAIPanel = useAIStore((s) => s.togglePanel);
 	const navigate = useNavigate();
 
@@ -150,9 +166,24 @@ export function AppShell() {
 				</Suspense>
 			)}
 
-			<CommandPalette />
-			<AIChatPanel />
-			<ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+			{commandOpen && (
+				<Suspense fallback={null}>
+					<CommandPalette />
+				</Suspense>
+			)}
+			{aiPanelOpen && (
+				<Suspense fallback={null}>
+					<AIChatPanel />
+				</Suspense>
+			)}
+			{shortcutsOpen && (
+				<Suspense fallback={null}>
+					<ShortcutsDialog
+						open={shortcutsOpen}
+						onOpenChange={setShortcutsOpen}
+					/>
+				</Suspense>
+			)}
 		</TooltipProvider>
 	);
 }
