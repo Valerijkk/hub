@@ -432,6 +432,9 @@ func (m *mockRepository) UpdateTestResult(_ context.Context, runID, id uuid.UUID
 	if input.Comment != nil {
 		r.Comment = *input.Comment
 	}
+	if input.ExecutedByID != nil {
+		r.Edges.ExecutedBy = &ent.User{ID: *input.ExecutedByID}
+	}
 	return r, nil
 }
 

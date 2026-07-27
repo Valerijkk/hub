@@ -258,10 +258,11 @@ func (s *TMSService) ExecuteTestResult(ctx context.Context, projectID, runID, re
 
 	// Обновляем результат
 	input := UpdateTestResultInput{
-		Status:      req.Status,
-		Comment:     req.Comment,
-		StepResults: req.StepResults,
-		IsFlaky:     req.IsFlaky,
+		Status:       req.Status,
+		Comment:      req.Comment,
+		StepResults:  req.StepResults,
+		IsFlaky:      req.IsFlaky,
+		ExecutedByID: &userID, // A3-017: audit who executed
 	}
 
 	result, err := s.repo.UpdateTestResult(ctx, runID, resultID, input)

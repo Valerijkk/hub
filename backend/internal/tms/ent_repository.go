@@ -695,6 +695,9 @@ func (r *EntRepository) UpdateTestResult(ctx context.Context, runID, id uuid.UUI
 	if input.IsFlaky != nil {
 		update = update.SetIsFlaky(*input.IsFlaky)
 	}
+	if input.ExecutedByID != nil {
+		update = update.SetExecutedByID(*input.ExecutedByID)
+	}
 
 	affected, err := update.Save(ctx)
 	if err != nil {

@@ -299,10 +299,11 @@ type CreateTestResultInput struct {
 
 // UpdateTestResultInput содержит данные для обновления результата теста.
 type UpdateTestResultInput struct {
-	Status      *string
-	Comment     *string
-	StepResults *[]schema.StepResult
-	IsFlaky     *bool
+	Status       *string
+	Comment      *string
+	StepResults  *[]schema.StepResult
+	IsFlaky      *bool
+	ExecutedByID *uuid.UUID // A3-017: кто выполнил результат
 }
 
 // CreateEnvironmentInput содержит данные для создания тестового окружения.
