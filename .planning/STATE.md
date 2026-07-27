@@ -66,6 +66,32 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-28 (be1 · RT-005 sibling close Get/Update/Retro)
+
+- Scoped `GetSprint` / `UpdateSprint` / `UpdateRetroNotes` / `GetBurndown` / `AddIssuesToSprint` (+ poker start gate) via `GetSprintInProject(projectID, sprintID)`.
+- Already scoped: `CompleteSprint`, `StartSprint` (`8e0c9f2`).
+- IDOR hubtests: `Test*RejectsForeignProject_RT005` for each newly scoped service method.
+- Schema unchanged.
+
+## Session note — 2026-07-28 (be2 · A13-006 residual batch counts)
+
+- `GetSprintIssueCounts` (Ent `GROUP BY sprint_issues`) + `ListSprints` preload — no N× `GetSprintIssueCount`.
+- Tests: `TestListSprints_BatchIssueCounts_A13_006` (≤1–2 batch, 0 single), `TestGetSprintIssueCounts_Ent_A13_006`.
+- Docs: `.planning/audits/grok-2026-07/FIX-W14.md` residual close.
+
+## Session note — 2026-07-28 (be2 · close W19 WEAK A6-006 / A7-007 / A7-008)
+
+- A6-006: CancelLeave bind errors → 400; HTTP version=0 approve/cancel.
+- A7-007: exact `pg_restore failed` / `mongorestore failed` without DSN/CombinedOutput.
+- A7-008: broadcast dry-run excludes deactivated (not only pending).
+- Docs: `docs/TESTING.md` TC-ADMIN-06/07, TC-HR-01; `.planning/audits/grok-2026-07/FIX-W19.md` WEAK close.
+
+## Session note — 2026-07-28 (docs-writer · post-audit WEAK closure wave)
+
+- Recorded remediation recheck in `PROGRAM-W4-W20-SUMMARY.md` + FIX-W9/W12/W15/W17/W18 (+ W6/W8 A2-007/010) + FIX-W20 residual scoreboard.
+- Closed WEAK list with SHAs; schema A8-006 / A8-001/002 indexes still BLOCKED/NEEDS_APPROVAL; RT-003 ADR-blocked; RT-005 StartSprint closed, Get/Update/Retro/Burndown open on HEAD.
+- No coverage remasure invented (gate remains 81.9% 2026-07-27).
+
 ## Session note — 2026-07-28 (qa-auto1 · close W17 WEAK A14-006 / A14-007)
 
 - A14-006: `TestMagicLink_OTPNotLogged_A14_006` — slog spy proves raw OTP never logged on magic-link issue/verify/Resend-fail.

@@ -332,6 +332,9 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-ADMIN-03 | GDPR удаление | Admin | DELETE users/:id/gdpr | 200, все данные удалены | — (ручной) |
 | TC-ADMIN-04 | Бэкап | Admin | POST /admin/backups | 200, backup started | `TestCreateZIP` |
 | TC-ADMIN-05 | Restore | Admin, backup exists | POST /admin/backups/:id/restore | 200, восстановлено | `TestCreateZIPEmptyData` |
+| TC-ADMIN-06 | Restore/dump errors без секретов (A7-007) | Admin; pg_restore/mongorestore fail | Restore / ExportRestore* | ошибка без DSN/CombinedOutput | `TestRestorePostgres_DoesNotEmbedDumpOutput_A7_007`, `TestRestoreMongo_DoesNotEmbedDumpOutput_A7_007`, `TestRestoreHandler_DoesNotLeakSecrets_A7_007` |
+| TC-ADMIN-07 | Mail broadcast только active (A7-008) | Admin; pending+deactivated users | POST broadcast dry-run | recipients = active only | `TestAdminService_Broadcast` |
+| TC-HR-01 | Leave approve/cancel version≥1 (A6-006) | Member leave pending | approve/cancel version=0 / bad JSON | 400 | `TestHandler_ApproveLeave_VersionZero_A6_006`, `TestHandler_CancelLeave_BindAndVersion_A6_006` |
 
 ### Дополнительные модули
 

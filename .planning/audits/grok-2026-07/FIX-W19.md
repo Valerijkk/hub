@@ -24,6 +24,16 @@ Checklist: authz scoped · input validation · pagination limits · status 400/4
 | A7-009 | P2 | FIXED | `8083a60` | pre-restore backup fail → abort restore |
 | A6-006 | P2 | FIXED | `beaf382` | HR approve/reject/cancel require `version >= 1`; bind errors → 400 |
 
+### WEAK close (2026-07-28 · be2)
+
+| ID | Gap closed | Test/fix SHA | Autotest |
+|----|------------|--------------|----------|
+| A6-006 | CancelLeave swallowed bind errors; HTTP version<1 unproven | `cfc4959` | `TestHandler_ApproveLeave_VersionZero_A6_006`, `TestHandler_CancelLeave_BindAndVersion_A6_006` + CancelLeave bind→400 |
+| A7-007 | Dump path only `Contains("pg_restore")` — not mutation-proof vs embedding CombinedOutput/DSN | `fbc20a1` | `TestRestorePostgres_DoesNotEmbedDumpOutput_A7_007`, `TestRestoreMongo_DoesNotEmbedDumpOutput_A7_007` |
+| A7-008 | Broadcast fixture only pending — `StatusNEQ(pending)` would still pass | `ab580a3` | `TestAdminService_Broadcast` + deactivated user |
+
+Prod fixes remain `beaf382` / `8083a60` / `31ee093`; this wave closes WEAK with prod guard + mutation-resistant tests.
+
 ---
 
 ## Coverage matrix (sampled handlers)
