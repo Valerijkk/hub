@@ -130,9 +130,10 @@ func TestLoad_productionRejectsEmptyMetricsCIDRs_A14_005(t *testing.T) {
 	}
 }
 
-// TC-PLATFORM-01 / A14-007: Fiber recover EnableStackTrace mirrors DevMode
-// (wiring_fiber uses ServerConfig.FiberRecoverEnableStackTrace).
-// Mutation: return true always → false case FAIL; hardcode EnableStackTrace:true in wiring bypasses helper.
+// TC-PLATFORM-01 / A14-007: FiberRecoverEnableStackTrace mirrors DevMode.
+// Wiring evidence (mutation-proof): cmd/server TestFiberRecoverConfig_* +
+// TestWiringFiber_UsesFiberRecoverConfig_A14_007 (source assert).
+// Mutation here: return true always → false case FAIL.
 func TestFiberRecoverEnableStackTrace_FollowsDevMode_A14_007(t *testing.T) {
 	cases := []struct {
 		name    string

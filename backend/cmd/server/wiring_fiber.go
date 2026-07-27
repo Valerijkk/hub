@@ -6,9 +6,19 @@ import (
 	auditmod "github.com/valerii/hub/backend/internal/audit"
 	backupmod "github.com/valerii/hub/backend/internal/backup"
 	devmod "github.com/valerii/hub/backend/internal/dev"
+	"github.com/valerii/hub/backend/internal/platform/config"
 	"github.com/valerii/hub/backend/internal/platform/middleware"
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
+
+// fiberRecoverConfig — A14-007: единственная точка сборки recover.Config.
+// EnableStackTrace берётся только из ServerConfig.FiberRecoverEnableStackTrace
+// (DevMode); не хардкодить true — иначе stack paths утекут в Loki на prod.
+func fiberRecoverConfig(serverCfg config.ServerConfig) fiberrecover.Config {
+	return fiberrecover.Config{
+		EnableStackTrace: serverCfg.FiberRecoverEnableStackTrace(),
+	}
+}
 
 func wireFiber(d *serverDeps) {
 	cfg := d.cfg
@@ -40,7 +50,7 @@ func wireFiber(d *serverDeps) {
 	// Стоит сразу после RequestID, чтобы паническая ошибка уже несла request_id
 	// в лог — но раньше всех бизнес-middleware (логгер, CORS, rate-limit).
 	// A14-007: stack traces только в DevMode — иначе шум + утечка путей в Loki.
-	app.Use(fiberrecover.New(fiberrecover.Config{EnableStackTrace: cfg.Server.FiberRecoverEnableStackTrace()}))
+	app.Use(fiberrecover.New(fiberRecoverConfig(cfg.Server)))
 	app.Use(observability.HTTPTraceMiddleware())
 	app.Use(middleware.SecurityHeaders())
 	app.Use(middleware.Logger())

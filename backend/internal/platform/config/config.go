@@ -55,7 +55,7 @@ type ServerConfig struct {
 
 // FiberRecoverEnableStackTrace — A14-007: Fiber recover пишет stack только в DevMode
 // (иначе шум + утечка локальных путей в централизованные логи / Loki).
-// Wiring: cmd/server/wiring_fiber.go → fiberrecover.Config.EnableStackTrace.
+// Wiring: cmd/server/wiring_fiber.go → fiberRecoverConfig → EnableStackTrace.
 func (c ServerConfig) FiberRecoverEnableStackTrace() bool {
 	return c.DevMode
 }
