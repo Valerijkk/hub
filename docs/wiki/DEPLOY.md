@@ -79,6 +79,11 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate
 Не коммитьте `seaweedfs-s3.json` с реальными ключами; справочник — `seaweedfs-s3.json.example`.  
 `hub` / `hubsecret` запрещены `config.validate` при `DEV_MODE=false`.
 
+**NATS (A14-003):** в prod включён user/pass (`NATS_USER` / `NATS_PASSWORD`).  
+`NATS_URL` для backend: `nats://USER:PASS@nats:4222`. Пароль без `@ : / ? #`.  
+После смены кредов: `docker compose ... up -d --force-recreate nats backend`.  
+Если раньше JetStream крутился без auth — **MANUAL**: задать креды в `.env`, recreate nats+backend, проверить outbox/consumers.
+
 ### 5. Проверка
 
 ```bash

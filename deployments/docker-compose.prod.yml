@@ -72,11 +72,18 @@ services:
           cpus: "0.5"
 
   nats:
+    # A14-003: auth required in prod — credentials via NATS_USER/NATS_PASSWORD.
     image: nats:2.11
     restart: unless-stopped
     mem_limit: 256m
     cpus: 0.5
-    command: ["-js", "--store_dir", "/data"]
+    command:
+      [
+        "-js",
+        "--store_dir", "/data",
+        "--user", "${NATS_USER}",
+        "--pass", "${NATS_PASSWORD}",
+      ]
     volumes:
       - natsdata:/data
     healthcheck:
@@ -204,7 +211,8 @@ services:
       MONGODB_URL: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin"
       MONGODB_DATABASE: "${MONGO_DB:-hub}"
       REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379/0"
-      NATS_URL: "nats://nats:4222"
+      # A14-003: credentials in URL (nats.go UserInfo from URL). Avoid @/: in password.
+      NATS_URL: "nats://${NATS_USER}:${NATS_PASSWORD}@nats:4222"
       S3_ENDPOINT: "http://seaweedfs:8333"
       S3_ACCESS_KEY: "${S3_ACCESS_KEY}"
       S3_SECRET_KEY: "${S3_SECRET_KEY}"

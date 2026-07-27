@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/url"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -49,8 +50,21 @@ func NewClient(ctx context.Context, url string) (*Client, error) {
 		return nil, err
 	}
 
-	slog.Info("connected to NATS", "url", url)
+	slog.Info("connected to NATS", "url", redactNATSURL(url))
 	return &Client{Conn: nc, JetStream: js}, nil
+}
+
+// redactNATSURL скрывает userinfo в логах (A14-003 credentials in URL).
+func redactNATSURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.User == nil {
+		return raw
+	}
+	host := u.Host
+	if host == "" {
+		return "nats://***"
+	}
+	return u.Scheme + "://***:***@" + host
 }
 
 // Close закрывает NATS-соединение.

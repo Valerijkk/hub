@@ -63,6 +63,7 @@ docker compose \
 - `DEV_MODE` в prod всегда `false` (задаётся в compose).
 - LiveKit-ключи только через `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — не коммитьте `livekit-prod.yaml` с plaintext-секретами.
 - SeaweedFS S3 identity — из `S3_ACCESS_KEY` / `S3_SECRET_KEY` (не committed `hub`/`hubsecret`).
+- NATS в prod — с `NATS_USER` / `NATS_PASSWORD` (URL с credentials).
 - Образы SeaweedFS и прочих сервисов закреплены по тегу (не `latest`).
 
 ## Caddy (production)
