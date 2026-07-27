@@ -57,15 +57,25 @@ func (s *SprintService) GetSprint(ctx context.Context, projectID, sprintID uuid.
 }
 
 // ListSprints возвращает все спринты проекта.
+// A13-006: issue_count через один GetSprintIssueCounts, не N× GetSprintIssueCount.
 func (s *SprintService) ListSprints(ctx context.Context, projectID uuid.UUID) ([]SprintResponse, error) {
 	sprints, err := s.repo.ListSprints(ctx, projectID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения спринтов")
 	}
 
+	ids := make([]uuid.UUID, len(sprints))
+	for i, sp := range sprints {
+		ids[i] = sp.ID
+	}
+	counts, err := s.repo.GetSprintIssueCounts(ctx, ids)
+	if err != nil {
+		counts = make(map[uuid.UUID]int) // запасной вариант: нули (как project.MemberCountBatch)
+	}
+
 	result := make([]SprintResponse, 0, len(sprints))
 	for _, sp := range sprints {
-		result = append(result, *s.toSprintResponse(ctx, sp))
+		result = append(result, *s.sprintToResponse(sp, counts[sp.ID]))
 	}
 	return result, nil
 }
@@ -313,7 +323,7 @@ func (s *SprintService) CheckWIPLimit(ctx context.Context, statusID uuid.UUID) e
 	return nil
 }
 
-// toSprintResponse конвертирует Ent Sprint в DTO.
+// toSprintResponse конвертирует Ent Sprint в DTO (single-item: edges или 1× Count).
 func (s *SprintService) toSprintResponse(ctx context.Context, sp *ent.Sprint) *SprintResponse {
 	issueCount := 0
 	if sp.Edges.Issues != nil {
@@ -324,7 +334,11 @@ func (s *SprintService) toSprintResponse(ctx context.Context, sp *ent.Sprint) *S
 			issueCount = cnt
 		}
 	}
+	return s.sprintToResponse(sp, issueCount)
+}
 
+// sprintToResponse собирает DTO с уже известным issue_count (list path preload).
+func (s *SprintService) sprintToResponse(sp *ent.Sprint, issueCount int) *SprintResponse {
 	return &SprintResponse{
 		ID:         sp.ID.String(),
 		Name:       sp.Name,

@@ -43,6 +43,8 @@ type Repository interface {
 
 	// GetSprintIssueCount возвращает количество задач в спринте.
 	GetSprintIssueCount(ctx context.Context, sprintID uuid.UUID) (int, error)
+	// GetSprintIssueCounts возвращает количество задач по списку спринтов одним GROUP BY (A13-006 N+1).
+	GetSprintIssueCounts(ctx context.Context, sprintIDs []uuid.UUID) (map[uuid.UUID]int, error)
 	// GetBurndownData возвращает данные для графика burndown.
 	GetBurndownData(ctx context.Context, sprintID uuid.UUID) (total int, doneCount int, err error)
 	// GetVelocityData возвращает данные velocity по завершённым спринтам проекта.
@@ -105,7 +107,7 @@ func (r *EntRepository) GetSprintInProject(ctx context.Context, projectID, sprin
 }
 
 // ListSprints возвращает все спринты проекта отсортированные по дате начала.
-// A13-006: без WithIssues() — issue_count через GetSprintIssueCount в toSprintResponse.
+// A13-006: без WithIssues() — issue_count через GetSprintIssueCounts в ListSprints (service).
 func (r *EntRepository) ListSprints(ctx context.Context, projectID uuid.UUID) ([]*ent.Sprint, error) {
 	return r.client.Sprint.
 		Query().
@@ -234,6 +236,33 @@ func (r *EntRepository) GetSprintIssueCount(ctx context.Context, sprintID uuid.U
 		Query().
 		Where(issue.HasSprintWith(sprintEnt.ID(sprintID))).
 		Count(ctx)
+}
+
+// GetSprintIssueCounts возвращает количество задач для нескольких спринтов одним запросом.
+// Паттерн как project.MemberCountBatch — GROUP BY FK, без N× Count.
+func (r *EntRepository) GetSprintIssueCounts(ctx context.Context, sprintIDs []uuid.UUID) (map[uuid.UUID]int, error) {
+	if len(sprintIDs) == 0 {
+		return make(map[uuid.UUID]int), nil
+	}
+
+	var rows []struct {
+		SprintID uuid.UUID `json:"sprint_issues"`
+		Count    int       `json:"count"`
+	}
+	err := r.client.Issue.Query().
+		Where(issue.HasSprintWith(sprintEnt.IDIn(sprintIDs...))).
+		GroupBy(issue.SprintColumn).
+		Aggregate(ent.Count()).
+		Scan(ctx, &rows)
+	if err != nil {
+		return nil, err
+	}
+
+	counts := make(map[uuid.UUID]int, len(rows))
+	for _, row := range rows {
+		counts[row.SprintID] = row.Count
+	}
+	return counts, nil
 }
 
 // GetBurndownData возвращает общее количество задач и количество завершённых.

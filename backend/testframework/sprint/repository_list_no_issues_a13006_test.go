@@ -13,7 +13,8 @@ import (
 )
 
 // TestListSprints_DoesNotEagerLoadIssues_A13_006 — ListSprints без WithIssues;
-// issue_count через Count. Mutation: вернуть WithIssues() → Edges.Issues != nil FAIL.
+// issue_count через batch/Count (см. list_batch_counts_a13006_test.go).
+// Mutation: вернуть WithIssues() → Edges.Issues != nil FAIL.
 func TestListSprints_DoesNotEagerLoadIssues_A13_006(t *testing.T) {
 	env := newSprintRepoEnv(t)
 	start := time.Now().UTC().Truncate(time.Second)

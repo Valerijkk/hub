@@ -171,6 +171,14 @@ func (m *mockRepository) GetSprintIssueCount(_ context.Context, _ uuid.UUID) (in
 	return 0, nil
 }
 
+func (m *mockRepository) GetSprintIssueCounts(_ context.Context, sprintIDs []uuid.UUID) (map[uuid.UUID]int, error) {
+	counts := make(map[uuid.UUID]int, len(sprintIDs))
+	for _, id := range sprintIDs {
+		counts[id] = 0
+	}
+	return counts, nil
+}
+
 func (m *mockRepository) GetBurndownData(_ context.Context, _ uuid.UUID) (int, int, error) {
 	return 10, 3, nil
 }
