@@ -175,6 +175,9 @@ func (m *gitlabReviewRepo) FindIntegrationByProjectPath(_ context.Context, path 
 func (m *gitlabReviewRepo) FindIssueByKey(context.Context, string) (*ent.Issue, error) {
 	return nil, nil
 }
+func (m *gitlabReviewRepo) FindIssueByKeyInProject(context.Context, uuid.UUID, string) (*ent.Issue, error) {
+	return nil, &ent.NotFoundError{}
+}
 func (m *gitlabReviewRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
 	return nil, nil
 }
