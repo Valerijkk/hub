@@ -138,6 +138,7 @@ func (h *Handler) createFilter(c fiber.Ctx) error {
 // @Success 200 {object} SavedFilterListResponse "Список фильтров"
 // @Failure 400 {object} fiber.Error "project_id обязателен"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/filters [get]
@@ -158,6 +159,10 @@ func (h *Handler) listFilters(c fiber.Ctx) error {
 
 	filters, err := h.svc.ListSavedFilters(c.Context(), userID, projectID)
 	if err != nil {
+		// A4-004: non-member -> 403 (не отдаём shared configs)
+		if errors.Is(err, ErrFilterForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для просмотра фильтров")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 

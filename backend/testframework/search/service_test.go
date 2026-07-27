@@ -149,6 +149,33 @@ func TestCreateSavedFilter_NonMemberForbidden(t *testing.T) {
 	assert.Empty(t, repo.filters, "non-member must not create a saved filter (A4-003)")
 }
 
+// TestListSavedFilters_NonMemberForbidden — A4-004: ListSavedFilters требует
+// IsProjectMember до repo.ListSavedFilters. Mutation guard: при снятии проверки
+// stranger получит shared filter (len==1) и тест упадёт; при живой проверке
+// ErrFilterForbidden без утечки filter_config.
+func TestListSavedFilters_NonMemberForbidden(t *testing.T) {
+	deny := false
+	repo := newStatefulSearchRepo()
+	repo.memberOK = &deny
+	svc := search.NewSearchService(repo, newScopeTestDB(t), nil)
+	ctx := context.Background()
+	owner := uuid.New()
+	stranger := uuid.New()
+	projectID := uuid.New()
+	now := time.Now().UTC()
+	filterID := uuid.New()
+	repo.filters[filterID] = &ent.SavedFilter{
+		ID: filterID, Name: "Shared bugs", OwnerID: owner, ProjectID: projectID,
+		Shared: true, FilterConfig: map[string]interface{}{"secret": "leak"},
+		CreatedAt: now, UpdatedAt: now,
+	}
+
+	list, err := svc.ListSavedFilters(ctx, stranger, projectID)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrFilterForbidden)
+	assert.Nil(t, list, "non-member must not see shared filters (A4-004)")
+}
+
 func TestSavedFilter_CRUDAndShare(t *testing.T) {
 	svc, _, ctx, userID, projectID := newSearchServiceTestEnv(t)
 	otherUser := uuid.New()

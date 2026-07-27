@@ -667,6 +667,10 @@ func (s *SearchService) requireProjectMembership(ctx context.Context, userID, pr
 
 // ListSavedFilters возвращает фильтры пользователя и расшаренные фильтры проекта.
 func (s *SearchService) ListSavedFilters(ctx context.Context, userID, projectID uuid.UUID) ([]SavedFilterDTO, error) {
+	if err := s.requireProjectMembership(ctx, userID, projectID); err != nil {
+		return nil, err
+	}
+
 	filters, err := s.repo.ListSavedFilters(ctx, userID, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить фильтры: %w", err)
