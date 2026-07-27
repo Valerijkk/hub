@@ -205,6 +205,12 @@ func TestReadPump_CallAuthorizer_ParticipantAllowed_A2_007(t *testing.T) {
 	})
 	conn := dialCallsWS(t, url)
 	subscribeViaReadPump(t, conn, client, room)
+	// Hub.Subscribe is async (HI-07); pong only proves readPump handled the messages.
+	if !waitCallsWS(500*time.Millisecond, func() bool {
+		return ws.ExportClientInRoom(client, room)
+	}) {
+		t.Fatal("participant subscribe accepted but hub room membership not applied")
+	}
 
 	hub.BroadcastToRoom(room, ws.ServerMessage{Type: ws.TypeEvent, Event: "chat.message"})
 	select {

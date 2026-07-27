@@ -81,6 +81,13 @@ func ExportReadPump(conn *websocket.Conn, client *Client, hub *Hub, authz Author
 
 func ExportClientRooms(c *Client) map[string]bool { return c.rooms }
 
+// ExportClientInRoom reports whether client is subscribed to room (locked; race-safe).
+func ExportClientInRoom(c *Client, room string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.rooms[room]
+}
+
 func ExportResetOriginCheck() { resetOriginCheck() }
 
 func ExportCheckOrigin(ctx *fasthttp.RequestCtx) bool { return checkOrigin(ctx) }
