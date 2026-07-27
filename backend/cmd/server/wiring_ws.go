@@ -38,19 +38,8 @@ func wireWebSocket(d *serverDeps) {
 		IsChannelMember: func(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
 			return d.messengerEntRepo.IsMember(ctx, channelID, userID)
 		},
-		IsCallParticipantOrChannelMember: func(ctx context.Context, callID, userID uuid.UUID) (bool, error) {
-			// Звонок может быть канальным (есть ChannelID) или instant
-			// (по invite-коду). Для канального — членство в канале;
-			// для instant — fail-closed, т.к. подписка идёт не по invite.
-			call, err := d.callsRepo.GetCall(ctx, callID)
-			if err != nil {
-				return false, err
-			}
-			if call.ChannelID == nil {
-				return false, nil
-			}
-			return d.callsRepo.IsChannelMember(ctx, *call.ChannelID, userID)
-		},
+		// A2-007: instant (ChannelID==nil) — IsActiveParticipant; channel — member OR participant.
+		IsCallParticipantOrChannelMember: d.callsRepo.IsCallParticipantOrChannelMember,
 		IsProjectMember: func(ctx context.Context, projectID, userID uuid.UUID) (bool, error) {
 			_, err := d.projectRepo.FindMember(ctx, projectID, userID)
 			if err != nil {

@@ -193,7 +193,7 @@ func (r *EntRepository) ListParticipants(ctx context.Context, callID uuid.UUID) 
 }
 
 // IsActiveParticipant — true, если user сейчас в звонке (left_at IS NULL).
-// A2-003: chat send/list authz (participant OR channel member / created_by).
+// A2-003 / A2-006 / A2-007: chat, RaiseHand, WS call:{id}.
 func (r *EntRepository) IsActiveParticipant(ctx context.Context, callID, userID uuid.UUID) (bool, error) {
 	return r.db.CallParticipant.Query().
 		Where(
@@ -202,6 +202,30 @@ func (r *EntRepository) IsActiveParticipant(ctx context.Context, callID, userID 
 			callparticipant.LeftAtIsNil(),
 		).
 		Exist(ctx)
+}
+
+
+// IsCallParticipantOrChannelMember — A2-007: доступ к WS-комнате call:{id}.
+// Канальный звонок: член канала ИЛИ активный участник.
+// Instant (ChannelID == nil): только активный участник (раньше всегда deny).
+func (r *EntRepository) IsCallParticipantOrChannelMember(ctx context.Context, callID, userID uuid.UUID) (bool, error) {
+	call, err := r.GetCall(ctx, callID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if call.ChannelID != nil {
+		isMember, mErr := r.IsChannelMember(ctx, *call.ChannelID, userID)
+		if mErr != nil {
+			return false, mErr
+		}
+		if isMember {
+			return true, nil
+		}
+	}
+	return r.IsActiveParticipant(ctx, callID, userID)
 }
 
 // IsChannelMember проверяет, состоит ли пользователь в канале мессенджера.
