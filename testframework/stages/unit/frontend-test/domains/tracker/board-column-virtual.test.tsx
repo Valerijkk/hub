@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tanstack/react-router", () => ({
 	Link: ({
@@ -31,6 +31,9 @@ vi.mock("@/components/tracker/issue-card", () => ({
 import { BoardColumn } from "@/components/tracker/board-column";
 import type { IssueBriefResponse, WorkflowStatusResponse } from "@/api/tracker";
 
+/** Mirrors `VIRTUALIZE_THRESHOLD` in board-column.tsx (A13-014). */
+const VIRTUALIZE_THRESHOLD = 24;
+
 function makeIssue(i: number): IssueBriefResponse {
 	return {
 		id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
@@ -51,10 +54,34 @@ const status: WorkflowStatusResponse = {
 	sort_order: 0,
 } as WorkflowStatusResponse;
 
+/** jsdom reports 0 scroll height — stub so @tanstack/react-virtual mounts rows. */
+function stubScrollMetrics() {
+	Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+		configurable: true,
+		get() {
+			return 480;
+		},
+	});
+	Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+		configurable: true,
+		get() {
+			return 96;
+		},
+	});
+}
+
 describe("BoardColumn virtualization (A13-014)", () => {
+	beforeEach(() => {
+		stubScrollMetrics();
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
 	it("renders all cards when below virtualize threshold", () => {
 		const issues = Array.from({ length: 3 }, (_, i) => makeIssue(i + 1));
-		render(
+		const { container } = render(
 			<BoardColumn
 				status={status}
 				issues={issues}
@@ -65,11 +92,14 @@ describe("BoardColumn virtualization (A13-014)", () => {
 		expect(screen.getByText("Task 1")).toBeInTheDocument();
 		expect(screen.getByText("Task 3")).toBeInTheDocument();
 		expect(screen.getByText("3")).toBeInTheDocument();
+		expect(screen.getAllByTestId(/^issue-/)).toHaveLength(3);
+		expect(container.querySelectorAll("[data-index]")).toHaveLength(0);
 	});
 
-	it("still shows column count when many cards (virtualized path)", () => {
-		const issues = Array.from({ length: 30 }, (_, i) => makeIssue(i + 1));
-		render(
+	it("mounts virtual path when issues >= VIRTUALIZE_THRESHOLD", () => {
+		const count = VIRTUALIZE_THRESHOLD;
+		const issues = Array.from({ length: count }, (_, i) => makeIssue(i + 1));
+		const { container } = render(
 			<BoardColumn
 				status={status}
 				issues={issues}
@@ -77,7 +107,25 @@ describe("BoardColumn virtualization (A13-014)", () => {
 				onDrop={() => {}}
 			/>,
 		);
+
 		expect(screen.getByText("Todo")).toBeInTheDocument();
-		expect(screen.getByText("30")).toBeInTheDocument();
+		expect(screen.getByText(String(count))).toBeInTheDocument();
+
+		const virtualRows = container.querySelectorAll("[data-index]");
+		expect(virtualRows.length).toBeGreaterThan(0);
+		expect(virtualRows.length).toBeLessThan(count);
+
+		const spacer = Array.from(
+			container.querySelectorAll<HTMLElement>("div.relative.w-full"),
+		).find((el) => el.style.height && Number.parseFloat(el.style.height) > 0);
+		expect(spacer).toBeTruthy();
+		expect(Number.parseFloat(spacer?.style.height ?? "0")).toBeGreaterThan(
+			count * 50,
+		);
+
+		expect(screen.getAllByTestId(/^issue-/).length).toBeLessThan(count);
+		expect(
+			within(container).queryByText(`Task ${count}`),
+		).not.toBeInTheDocument();
 	});
 });
