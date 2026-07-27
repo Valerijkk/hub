@@ -23,7 +23,9 @@ Post-W20 wave closed **WEAK** evidence gaps (mutation-resistant / HTTP / Postgre
 | A1-009 | W17 | WEAK — HTTP 403 founder ban/deactivate | `957472e` |
 | A1-013 | W17 | WEAK — HTTP 400 retention allowlist | `9764850` |
 | A14-006 | W17 | WEAK — OTP not logged (slog spy) | `0cbc7d2` |
-| A14-007 | W17 | WEAK — `EnableStackTrace`↔DevMode | `4ebd8c3` |
+| A14-007 | W17 | WEAK — `EnableStackTrace`↔DevMode (mutation-proof) | `4ebd8c3` / `586d3f5` |
+| A13-006 | W14 | residual N+1 Counts → batch `GetSprintIssueCounts` | `0eaea5f` |
+| RT-005 siblings | W20 | Get/Update/Retro/Burndown/AddIssues scoped | `716c823` |
 | A4-002 | W18 | WEAK — runtime soft-delete exclusion | `c3bc077` |
 | A4-006 | W18 | WEAK — ConfirmUpload HTTP 409 | `1b19d13` |
 | A10-001 | W12 | WEAK — WS→Query handler path Vitest | `575106d` |
