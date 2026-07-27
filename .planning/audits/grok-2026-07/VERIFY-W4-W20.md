@@ -1,147 +1,188 @@
-# VERIFY W4–W20 — post-closure agent recheck
+# VERIFY W4–W20 — FINAL (post residual-close + 4×5 recheck)
 
 **Branch:** `cursor-grok-4.5`  
 **Date:** 2026-07-28  
-**Method:** 3 fix waves × 5 agents → close WEAK/PARTIAL → 4 recheck waves × 5 agents → residual-close wave  
-**HEAD at residual-close scoreboard:** includes A11 SPA wire (`cbfae6c`) + A14 fail-closed (`f626397`) + RT-003 (`5e636f2`)
+**Status:** **FINAL** after residual-close wave + hubtest gate refresh  
+**Method:** 3 fix waves × 5 agents → close WEAK/PARTIAL → 4 recheck waves × 5 agents → residual-close → hubtest re-run  
+**Hubtest gate SHA:** [`1b83560`](https://github.com/) (`docs(audit): refresh hubtest gate artifact after residual close`)  
+**Pre-artifact HEAD:** `3d313bf` (A10-007 notifications Query) · gate package run then artifact-committed as `1b83560`
 
-Related: [`PROGRAM-W4-W20-SUMMARY.md`](./PROGRAM-W4-W20-SUMMARY.md) · [`FIX-W20.md`](./FIX-W20.md)
+Related: [`PROGRAM-W4-W20-SUMMARY.md`](./PROGRAM-W4-W20-SUMMARY.md) · [`FIX-W20.md`](./FIX-W20.md) · [`w20-gate-summary.txt`](./w20-gate-summary.txt)
 
 ---
 
-## Executive verdict
+## 1. Executive verdict — V1–V4
 
-| Recheck wave | Waves | Overall |
-|--------------|-------|---------|
+| Recheck wave | Waves covered | Overall |
+|--------------|---------------|---------|
 | **V1** | W4–W8 | **SOLID / PASS\*** |
-| **V2** | W9–W13 | **PASS** (residuals later closed in residual-close wave) |
-| **V3** | W14–W18 | **PASS** (A8 indexes closed `6031985`) |
-| **V4** | W19–W20 + RT + scoreboard + gate | **PASS** (hubtest artifact **stale**; RT **12 / 0 / 0**) |
+| **V2** | W9–W13 | **PASS** (residuals closed in residual-close) |
+| **V3** | W14–W18 | **PASS** (A8 indexes CLOSED `6031985`) |
+| **V4** | W19–W20 + RT + scoreboard + gate | **PASS** |
 
-**No ALIVE RT chains. No PARTIAL RT.** RT-003 + RT-005 CLOSED. Schema soft-delete/indexes CLOSED in residual-close wave (do not re-open as BLOCKED).
+| Dimension | Verdict |
+|-----------|---------|
+| **RT chains** | **12 CLOSED / 0 PARTIAL / 0 ALIVE** |
+| **Schema soft-delete / indexes** | **CLOSED** (A8-005/006 + A8-001/002) — do not re-open as BLOCKED |
+| **Hubtest gate** | **PASS** — **45 ok / 0 fail / 3 ?** @ commit **`1b83560`** (`-race`, exit 0) |
+| **Zero debt claim** | **NO** — see §5 asterisks (ops MANUAL + polish leftovers) |
 
----
-
-## Fix waves executed (before recheck)
-
-### Fix Wave 1
-| SHA | Close |
-|-----|--------|
-| `c502395` | A3-005 StartTimer reject open |
-| `8e0c9f2` | StartSprint → GetSprintInProject |
-| `cce9265` / `612cf22` | A2-007 Authorizer + A2-010 Nak Dispatch |
-| `6342059` | A3-011 Postgres Ent twins |
-| `957472e` / `9764850` | A1-009/013 HTTP |
-
-### Fix Wave 2
-| SHA | Close |
-|-----|--------|
-| `0cbc7d2` / `4ebd8c3` / `586d3f5` | A14-006 OTP slog + A14-007 wiring |
-| `c3bc077` / `1b19d13` | A4-002 runtime + ConfirmUpload 409 |
-| `575106d` | A10-001 WS→setQueryData Vitest |
-| `3536e0e` / `53d72c8` | A13-014/018 virt thresholds |
-| `c5613f6` / `76080f8` | A14-005 loopback CIDR + honesty docs |
-
-### Fix Wave 3
-| SHA | Close |
-|-----|--------|
-| `716c823` | RT-005 Get/Update/Retro/Burndown/AddIssues |
-| `cfc4959` / `fbc20a1` / `ab580a3` | W19 A6-006 / A7-007 / A7-008 |
-| `35b13c1` | RT-003 ADR-blocked honesty (superseded — RT-003 CLOSED) |
-| `0eaea5f` | A13-006 batch ListSprints counts |
-| `54e6cb4` | PROGRAM scoreboard update |
-
-### Residual-close wave (2026-07-28)
-| SHA | Close |
-|-----|--------|
-| `25028b5` / `293dee7` / `14c7929` | A8-005 Channel soft-delete |
-| `5c74170` / `9f4ce5b` / `c40c621` | A8-006 Comment soft-delete |
-| `6031985` | A8-001/002 project+deleted_at indexes |
-| `bc06be9` / `54ac814` | A3-005 StartTimer serialize (TOCTOU) |
-| `5e636f2` / `573c6fc` | RT-003 List/Pipeline owner scope |
-| `b4ab72d` | AddIssues issue↔project FK filter |
-| `8ab8f76` | BE Telegram login surface purge |
-| `d8e787b` | A15-004 REQUIREMENTS Magic Link only |
-| `68f9b0b`…`cbfae6c` | A11-009…013 SPA wire |
-| A10-* / A14-002/003 | UX/a11y + fail-closed Seaweed/NATS (`f626397`) |
+**No ALIVE RT. No PARTIAL RT.** Critical insider Broken Access Control surface from A19 is closed on this branch.
 
 ---
 
-## V1 — W4–W8 (5 agents)
+## 2. What residual-close closed (2026-07-28)
+
+Schema / security / product gaps that recheck left honest-open, then closed in the residual-close wave:
+
+| ID / theme | Close type | Evidence SHA(s) |
+|------------|------------|-----------------|
+| **A8-005** Channel soft-delete | Ent `deleted_at` + service filter + hubtest | `25028b5` / `293dee7` / `14c7929` |
+| **A8-006** Comment soft-delete | Ent `deleted_at` + service filter + hubtest | `5c74170` / `9f4ce5b` / `c40c621` |
+| **A8-001 / A8-002** indexes | `(project, deleted_at)` on Issue / TestCase | `6031985` (query rewrite earlier) |
+| **A3-005** StartTimer race | Serialize open-timer create (tx / row-lock) | `bc06be9` / `54ac814` (+ prior `c502395`) |
+| **RT-003** CRM List/Pipeline | Owner-scoped reads; admin/founder org-wide | `5e636f2` / `573c6fc` |
+| **RT-005** AddIssues FK | Issues must belong to sprint project | `b4ab72d` (+ siblings `716c823`) |
+| **BE Telegram login** | Dead `LoginWithTelegram*` service purge | `8ab8f76` |
+| **A15-004** | REQUIREMENTS → Magic Link only (no TG login) | `d8e787b` |
+| **A11-009…013** | SPA wire CRM / bases / marketplace / dashboard / admin | `68f9b0b` … `cbfae6c` |
+| **A14-002 / A14-003** | Fail-closed SeaweedFS / NATS defaults in production | `f626397` |
+| **A10-\*** class | notifications Query, Gantt virt, a11y, timer selectors, dead kanban | `3d313bf` / `108a6ca` / `a3e35cc` / `bbdb5fb` / `866fb7f` |
+| **A2-007** flake | Await async Hub.Subscribe before broadcast | `5ffc26f` (unblocked hubtest green) |
+
+Earlier WEAK→CLOSED evidence wave (pre residual-close): A2-007/010, A3-011, A1-009/013, A14-006/007, A4-002/006, A10-001, A13-014/018, A13-006, RT-005 siblings, W19 A6-006/A7-007/A7-008 — see [`PROGRAM-W4-W20-SUMMARY.md`](./PROGRAM-W4-W20-SUMMARY.md).
+
+---
+
+## 3. V1–V4 wave table (post residual-close)
+
+### V1 — W4–W8
 
 | Wave | Overall | Notes |
 |------|---------|-------|
-| **W4** | **SOLID** | A3-011 Postgres twins CLOSED (`6342059`) |
-| **W5** | **PASS\*** | Product IDOR CLOSED; honesty fixed (`7937060`=mock; prod `2ffd60f`); residual under-disclose `c2dd881` handler smuggle |
-| **W6** | **SOLID** | A2-007 Authorizer integration CLOSED (`cce9265`) |
-| **W7** | **SOLID** | Six claims hold; `w67-after-hubtest.txt` still MISSING (artifact only) |
+| **W4** | **SOLID** | A3-011 Postgres Ent twins CLOSED (`6342059`) |
+| **W5** | **PASS\*** | Product IDOR CLOSED; honesty on mock vs prod SHAs |
+| **W6** | **SOLID** | A2-007 Authorizer integration CLOSED (`cce9265`); flake fix `5ffc26f` |
+| **W7** | **SOLID** | Founder / filters / dashboard / API key claims hold |
 | **W8** | **CLOSED** | A2-010 Nak-on-Dispatch CLOSED (`612cf22`) |
 
----
-
-## V2 — W9–W13 (5 agents)
+### V2 — W9–W13
 
 | Wave | Overall | Notes |
 |------|---------|-------|
-| **W9** | **PASS** | A3-005 sequential + serialize CLOSED (`c502395` / `bc06be9`) |
-| **W10** | **CLOSED** | A8-005/006 soft-delete CLOSED (residual-close) |
-| **W11** | **CLOSED** | Dead FE + BE Telegram purge; A11-009–013 SPA wired |
-| **W12** | **PASS** | A10-001 WS Vitest CLOSED (`575106d`) |
-| **W13** | **PASS** | A10-008 FIXED via A13-014; a11y/QueryState sample closed |
+| **W9** | **PASS** | A3-005 sequential + serialize CLOSED |
+| **W10** | **CLOSED** | A8-005/006 soft-delete CLOSED (\* trash basket nuance — §5) |
+| **W11** | **CLOSED** | Dead FE + BE Telegram login purge; A11-009–013 SPA wired |
+| **W12** | **PASS** | A10-001 WS→Query Vitest CLOSED (`575106d`) |
+| **W13** | **PASS** | a11y / QueryState sample / TelegramButton absence |
 
----
-
-## V3 — W14–W18 (5 agents)
+### V3 — W14–W18
 
 | Wave | Overall | Notes |
 |------|---------|-------|
 | **W14** | **FIXED** | A13-006 N+1 Counts CLOSED (`0eaea5f`) |
-| **W15** | **CLOSED** | Virt tests + A8-001/002 indexes CLOSED (`6031985`) |
-| **W16** | **PASS** | A14-005 FIXED\* loopback (`c5613f6`); **A14-009 OTEL still MANUAL** |
-| **W17** | **PASS** | A1-009/013/A14-006 CLOSED; A14-007 hardened (`586d3f5`) |
-| **W18** | **CLOSED** | A4-002/A4-006/StartSprint/RT-005 siblings CLOSED |
+| **W15** | **CLOSED** | Virt thresholds + A8-001/002 indexes CLOSED |
+| **W16** | **PASS** | A14-005 FIXED\*; **A14-009 OTEL still MANUAL** |
+| **W17** | **PASS** | A1-009/013/A14-006 CLOSED; A14-007 mutation-proof (`586d3f5`) |
+| **W18** | **CLOSED** | A4-002/A4-006 + StartSprint / RT-005 siblings CLOSED |
 
----
-
-## V4 — W19–W20 + RT + gate (5 agents)
+### V4 — W19–W20 + RT + gate
 
 | Check | Overall | Notes |
 |-------|---------|-------|
 | **W19** | **CLOSED** | A6-006 / A7-007 / A7-008 hold |
-| **W20 scoreboard** | **PASS** | **12 CLOSED / 0 PARTIAL / 0 ALIVE** |
-| **RT code** | **12 / 0 / 0** | RT-003 CLOSED (`5e636f2`); RT-005 CLOSED; RT-001–002,004,006–012 CLOSED |
-| **Hubtest gate** | **WEAK (stale)** | `w20-gate-*.txt` @ `831da02` — not a gate for HEAD; re-run pending |
-| **Residual honesty** | **HIGH** | Schema/Telegram/RT-003 not falsely left open; only ops MANUAL residuals |
+| **W20 scoreboard** | **PASS** | **12 / 0 / 0** RT |
+| **RT code** | **12 / 0 / 0** | RT-003 + RT-005 CLOSED; RT-001–002,004,006–012 CLOSED |
+| **Hubtest gate** | **PASS** | **45 ok / 0 fail / 3 ?** @ **`1b83560`** |
+| **Residual honesty** | **HIGH** | Not claiming zero debt — §5 |
 
 ---
 
-## Still open (intentional — do not fake-close)
+## 4. True remaining (intentional — do not fake-close)
 
-| ID | Status | Needs |
-|----|--------|-------|
-| **A14-009** | FIXED\* / **MANUAL** | Set `OTEL_EXPORTER_OTLP_ENDPOINT` in env to enable spans (`68cbd14` wired; no-op without endpoint) |
-| **A14-002 / A14-003** | FIXED\* / **MANUAL** | Rotate Seaweed S3 if defaults ever deployed; set `NATS_USER`/`NATS_PASSWORD` + recreate on existing prod (`f626397` fail-closed defaults) |
-| **PG-03 / FA-06** | MANUAL | Resend/Telegram secret rotation — sole prod cutover blocker |
-| **Hubtest gate** | STALE | Re-run full `go test -tags hubtest ./testframework/...` on HEAD; replace `w20-gate-*.txt` |
+| ID / item | Status | Needs |
+|-----------|--------|-------|
+| **A14-009 OTEL** | FIXED\* / **MANUAL** | Set `OTEL_EXPORTER_OTLP_ENDPOINT` to enable spans (`68cbd14` wired; no-op without endpoint) |
+| **PG-03 / FA-06** | **MANUAL** | Resend/Telegram secret rotation — **sole prod cutover blocker** |
+| **A14-002 / A14-003** | FIXED\* / **MANUAL** | Rotate Seaweed S3 / set NATS creds + recreate if old defaults ever deployed (`f626397`) |
+| **Trash basket 30d (Channel / Comment)** | **PARTIAL product\*** | Soft-delete + list filters CLOSED; full TZ **корзина 30 дней** (admin trash UI / restore / hard-purge job) for Channel/Comment **may still be incomplete** — orphans kept for future purge (`FIX-W10`) |
+| **Orphan TG bot cemetery** | **Hygiene debt\*** | Login routes/UI/service purged; leftover legacy surfaces (`auth/telegram.go` VerifyTelegramAuth, `auth/telegram_bot.go` polling-disabled helpers, test export hooks) — not login paths, but dead cemetery until cleanup wave |
 
-Closed in residual-close (removed from open): RT-003, A8-005/006, A8-001/002 indexes, A3-005 race, BE `LoginWithTelegram*`, A11-009…013 SPA wire, A15-004, AddIssues FK (`b4ab72d`).
+Closed in residual-close (removed from open): RT-003, A8-005/006 schema soft-delete, A8-001/002 indexes, A3-005 race, BE `LoginWithTelegram*`, A11-009…013 SPA wire, A15-004, AddIssues FK, stale-hubtest claim (refreshed).
 
 ---
 
-## RT scoreboard (post residual-close)
+## 5. Honest asterisks — not “100% zero debt”
+
+Do **not** market this branch as debt-free. Residual-close + hubtest green close the **security/RT/schema P0–P1 program**; the following asterisks remain:
+
+1. **Ops MANUAL:** A14-009 OTEL enable; PG-03/FA-06 secret rotation; A14-002/003 rotate-if-deployed.
+2. **FIXED\* config:** A14-005 metrics CIDR — compose tightened; blanket RFC1918 in `.env` can re-open Docker peers.
+3. **Trash / restore product gap:** Channel/Comment soft-delete ≠ full 30-day trash basket UX + scheduled hard-delete (TZ complete story).
+4. **TG bot cemetery:** disabled/legacy auth-bot helpers still in tree after Magic-Link-only purge.
+5. **Coverage floor:** COV **81.9%** (2026-07-27) — COV-01 ≥82% **MISS**; security 6-pack not remeasured 2026-07-27/28 — **no invented %**.
+6. **Mild docs drift:** AGENTS / older STATE tables still quote **83.0%** baseline alongside gate **81.9%**.
+7. **Block F / P2–P3 leftovers:** A4-005+, A3-013+, A5-012+, A7-010+, A14-008, deeper A10 InfiniteQuery polish — time-boxed out.
+8. **Hubtest `?` packages:** 3 packages reported `?` (no test files / build skip pattern) — not failures; still listed for honesty.
+9. **Uncommitted WIP:** working tree may hold unrelated FE API edits / planning-audit scripts — **not** part of this VERIFY commit.
+
+**Post-FIX residual exploitability (honest):** ~**1.5/10** ops/schema-product nuance — **not** full named RT chains.
+
+---
+
+## 6. Hubtest gate (canonical)
+
+| Field | Value |
+|-------|-------|
+| Artifact commit | **`1b83560`** |
+| Pre-artifact HEAD | `3d313bf` |
+| Command | `go test -tags hubtest -race -count=1 -timeout=900s ./testframework/...` |
+| **ok** | **45** |
+| **fail** | **0** |
+| **?** | **3** |
+| Exit | **0** |
+| Logs | [`w20-gate-summary.txt`](./w20-gate-summary.txt) · [`w20-gate-hubtest.txt`](./w20-gate-hubtest.txt) |
+
+Note: first full run after residual-close failed `TestReadPump_CallAuthorizer_ParticipantAllowed_A2_007` (async Subscribe race); fixed in `5ffc26f`, then gate green.
+
+---
+
+## 7. RT scoreboard (FINAL)
 
 | CLOSED | PARTIAL | ALIVE |
 |-------:|--------:|------:|
 | **12** | **0** | **0** |
 
----
-
-## Recommended next (engineering)
-
-1. Re-run hubtest gate on HEAD; replace `w20-gate-*.txt` with SHA-pinned summary (`ok/fail/?`, `-race`, exit).
-2. Ops: enable OTEL endpoint where tracing is desired (A14-009); FA-06 secret rotation.
-3. Optional: coverage uplift to restore ≥82% (do not invent % — remeasure only).
+Full chain table → [`FIX-W20.md` §1](./FIX-W20.md).
 
 ---
 
-*Updated 2026-07-28 residual-close scoreboard. No master push/merge.*
+## 8. Recommended next (human / ops)
+
+1. Ops: **FA-06** secret rotation; enable **A14-009** OTEL where tracing is desired; rotate A14-002/003 if historical defaults were ever live.
+2. Optional product: Channel/Comment → trash basket restore + 30d hard-purge; delete TG bot cemetery files/hooks.
+3. Optional quality: coverage uplift remeasure to restore ≥82% (do not invent %).
+4. User merge of `cursor-grok-4.5` when ready — **agents do not push/merge `master`**.
+
+---
+
+## 9. Key SHA index (residual-close + gate)
+
+```
+25028b5 / 293dee7 / 14c7929   A8-005 Channel soft-delete
+5c74170 / 9f4ce5b / c40c621   A8-006 Comment soft-delete
+6031985                       A8-001/002 indexes
+bc06be9 / 54ac814             A3-005 serialize
+5e636f2 / 573c6fc             RT-003 CRM list scope
+b4ab72d                       AddIssues FK
+8ab8f76 / d8e787b             Telegram login purge + REQUIREMENTS
+68f9b0b … cbfae6c             A11-009…013 SPA wire
+f626397                       A14-002/003 fail-closed
+5ffc26f                       A2-007 hubtest flake
+1b83560                       hubtest gate artifact 45/0/3
+5a3d469                       residual-close scoreboard docs
+```
+
+---
+
+*FINAL VERIFY W4–W20 · 2026-07-28 · residual-close closed · hubtest 45/0/3 @ `1b83560` · RT 12/0/0 · not zero-debt. No master push/merge.*
