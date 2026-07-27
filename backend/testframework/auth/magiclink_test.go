@@ -245,8 +245,9 @@ func TestMagicLink_SendMagicLink_ResendPath(t *testing.T) {
 	assert.True(t, resend.called)
 }
 
-// TestMagicLink_SendMagicLink_ResendErrorStillReturnsCode проверяет сценарий: magic link отправка magic link resend ошибка still returns code.
-func TestMagicLink_SendMagicLink_ResendErrorStillReturnsCode(t *testing.T) {
+// TestMagicLink_SendMagicLink_ResendErrorPropagates_A1_007 — сбой Resend → error, не (code, nil).
+// Mutation: return code, nil при Resend err → require.Error FAIL.
+func TestMagicLink_SendMagicLink_ResendErrorPropagates_A1_007(t *testing.T) {
 	mr, err := miniredis.Run()
 	require.NoError(t, err)
 	t.Cleanup(mr.Close)
@@ -257,7 +258,8 @@ func TestMagicLink_SendMagicLink_ResendErrorStillReturnsCode(t *testing.T) {
 	svc := auth.NewMagicLinkService(rdb, resend, "hub@example.com")
 
 	code, err := svc.SendMagicLink(context.Background(), "fail-"+uuid.New().String()[:6]+"@example.com")
-	require.NoError(t, err)
-	require.NotEmpty(t, code)
+	require.Error(t, err, "Resend failure must not be masked as success")
+	assert.Empty(t, code)
 	assert.True(t, resend.called)
+	assert.Contains(t, err.Error(), "send magic link email")
 }
