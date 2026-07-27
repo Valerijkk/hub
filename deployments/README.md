@@ -80,12 +80,15 @@ docker compose \
 
 После overlay `docker-compose.monitoring.yml`:
 
-| Сервис | URL (локально) |
+| Сервис | URL (только loopback, A14-004) |
 |--------|----------------|
-| Grafana | http://localhost:3001 (admin / `GRAFANA_ADMIN_PASSWORD`) |
-| Prometheus | http://localhost:9090 |
-| Alertmanager | http://localhost:9093 |
-| Loki | http://localhost:3100 |
+| Grafana | http://127.0.0.1:3001 (admin / `GRAFANA_ADMIN_PASSWORD`) |
+| Prometheus | http://127.0.0.1:9090 |
+| Alertmanager | http://127.0.0.1:9093 |
+| Loki | http://127.0.0.1:3100 |
+
+Доступ с ноутбука: `ssh -L 3001:127.0.0.1:3001 -L 9090:127.0.0.1:9090 user@vps`.  
+Порты **не** публикуются на `0.0.0.0` (раньше были открыты на public IP).
 
 Алерты backend описаны в `monitoring/prometheus/alerts/hub.yml`. Для production webhook скопируйте `monitoring/alertmanager/alertmanager.prod.example.yml` → `alertmanager.yml` и задайте `ALERT_WEBHOOK_SECRET` (то же значение в env backend).
 

@@ -2,10 +2,12 @@
 # Запуск вместе с prod:
 #   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
 #
-# Grafana:       http://localhost:3001
-# Prometheus:    http://localhost:9090
-# Alertmanager:  http://localhost:9093
-# Loki:          http://localhost:3100
+# A14-004: порты только на loopback — доступ через SSH tunnel / VPN.
+#   ssh -L 3001:127.0.0.1:3001 -L 9090:127.0.0.1:9090 user@host
+# Grafana:       http://127.0.0.1:3001
+# Prometheus:    http://127.0.0.1:9090
+# Alertmanager:  http://127.0.0.1:9093
+# Loki:          http://127.0.0.1:3100
 
 services:
   # Сбор метрик и правила алертов
@@ -23,7 +25,7 @@ services:
       - ./monitoring/prometheus/alerts:/etc/prometheus/alerts:ro
       - promdata:/prometheus
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     depends_on:
       alertmanager:
         condition: service_started
@@ -44,7 +46,7 @@ services:
       - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanagerdata:/alertmanager
     ports:
-      - "9093:9093"
+      - "127.0.0.1:9093:9093"
 
   # Агрегация и хранение логов
   loki:
@@ -57,7 +59,7 @@ services:
       - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
       - lokidata:/loki
     ports:
-      - "3100:3100"
+      - "127.0.0.1:3100:3100"
 
   # Сбор логов из Docker-контейнеров → Loki
   promtail:
@@ -89,7 +91,7 @@ services:
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafanadata:/var/lib/grafana
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     depends_on:
       prometheus:
         condition: service_started

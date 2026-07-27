@@ -32,7 +32,8 @@
 | hub-mail | `ghcr.io/valerijkk/hub/backend:SHA` (entrypoint `./hub-mail`) | 3001 |
 | Frontend | `ghcr.io/valerijkk/hub/frontend:SHA` | 80 |
 
-Опционально: `deployments/docker-compose.monitoring.yml` — Prometheus v3.2.1, Loki/Grafana 11.5.2.
+Опционально: `deployments/docker-compose.monitoring.yml` — Prometheus v3.2.1, Loki/Grafana 11.5.2.  
+Порты мониторинга bind на `127.0.0.1` только (A14-004) — доступ через SSH tunnel.
 
 ---
 
