@@ -18,13 +18,13 @@
 | A10-006 | FIXED | `04d98f8` | Admin users: `useQuery` + `QueryStateView` (error ≠ empty); invite fetch cancelled; search `aria-label` (test polish `4ae5e20`) |
 | A10-005 | FIXED | `bba4666` | Channel list: `isError` + retry; Bookmarks/CreateChannel `aria-label` (A10-013 partial) |
 | A10-010 | FIXED | `ed8cff6` | Mention autocomplete: `role="option"` + `aria-selected` + listbox `aria-label` |
-| A10-007 | DEFERRED | — | notification-store → InfiniteQuery (larger refactor) |
+| A10-007 | FIXED | `ba476ac` | notifications → InfiniteQuery + unread Query; silent warn removed; toastApiError; QueryStateView error ≠ empty |
 | A10-008 | FIXED | `015cc4c` (A13-014) | Kanban column virtualization (`@tanstack/react-virtual` at 24+ cards) — closed via A13-014 alias |
 | A10-009 | FIXED | `bbdb5fb` | `time-tracker.tsx`: narrow `useTimerStore` selectors; tick effect deps = `[isTimerForThisIssue, tick]` |
-| A10-011 | PARTIAL | `a3e35cc` | Gantt wrapped in `QueryStateView` (error ≠ empty); notifications still zustand — full rollout deferred |
+| A10-011 | PARTIAL | `a3e35cc` | Gantt wrapped in `QueryStateView` (error ≠ empty); notifications Query closed via A10-007 |
 | A10-012 | FIXED | `866fb7f` | Deleted unused `modules/tracker/kanban-board.tsx` (zero importers; canon = board route) |
 | A10-013 | FIXED | `a3e35cc` | Mute indicator + star `aria-label` (title kept); bookmarks remove label; Bookmarks/CreateChannel already done W13 |
-| A10-014 | FIXED | pending | Gantt: `@tanstack/react-virtual` rows at ≥24 + cursor `useInfiniteQuery` (auto-fetch pages) + «показано N из M»; Vitest threshold assert |
+| A10-014 | FIXED | `108a6ca` | Gantt: `@tanstack/react-virtual` rows at ≥24 + cursor `useInfiniteQuery` (auto-fetch pages) + «показано N из M»; Vitest threshold assert |
 | A15-004 | DEFERRED | — | REQ LOGN-05 / wiki drift (docs, not FE code) |
 | BE LoginWithTelegram* | DEFERRED | — | Backend service/DTO — out of fe1 scope (cross-cut A18-010) |
 

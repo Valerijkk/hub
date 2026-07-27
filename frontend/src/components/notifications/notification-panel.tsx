@@ -14,12 +14,17 @@ import {
 import { memo, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import type { NotificationDTO } from "@/api/notifications";
+import { QueryStateView } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+	flattenNotificationPages,
+	useNotificationList,
+	useNotificationMutations,
+} from "@/hooks/use-notifications";
 import i18n from "@/i18n";
 import { formatRelativeTime } from "@/lib/format-time";
-import { useNotificationStore } from "@/stores/notification-store";
 
 /** Карта иконок по типу уведомления. */
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -76,23 +81,28 @@ const TYPE_LABELS: Record<string, string> = {
 	blocker_added: "Блокировщик",
 };
 
+interface NotificationPanelProps {
+	/** Загружать список только когда панель открыта. */
+	enabled?: boolean;
+}
+
 /**
- * NotificationPanel — содержимое панели уведомлений.
- * Показывает список уведомлений с возможностью пометить прочитанным.
+ * NotificationPanel — список уведомлений через InfiniteQuery (A10-007).
+ * Ошибка fetch ≠ пустой список / console.warn — QueryStateView + retry.
  */
-export function NotificationPanel() {
-	const notifications = useNotificationStore((s) => s.notifications);
-	const loading = useNotificationStore((s) => s.loading);
-	const hasMore = useNotificationStore((s) => s.hasMore);
-	const markRead = useNotificationStore((s) => s.markRead);
-	const markAllRead = useNotificationStore((s) => s.markAllRead);
-	const clearAll = useNotificationStore((s) => s.clearAll);
-	const deleteNotification = useNotificationStore((s) => s.deleteNotification);
-	const fetchMore = useNotificationStore((s) => s.fetchMore);
+export function NotificationPanel({ enabled = true }: NotificationPanelProps) {
+	const listQuery = useNotificationList(enabled);
+	const { markRead, markAllRead, clearAll, deleteNotification } =
+		useNotificationMutations();
+
+	const notifications = flattenNotificationPages(listQuery.data);
+	const loading = listQuery.isLoading || listQuery.isFetchingNextPage;
+	const hasMore = Boolean(listQuery.hasNextPage);
 
 	const scrollRef = useRef<HTMLDivElement>(null);
 
-	/** Обработчик прокрутки для подгрузки следующей страницы. */
+	const fetchNextPage = listQuery.fetchNextPage;
+
 	const handleScroll = useCallback(
 		(e: React.UIEvent<HTMLDivElement>) => {
 			const target = e.currentTarget;
@@ -101,18 +111,14 @@ export function NotificationPanel() {
 				hasMore &&
 				!loading
 			) {
-				void fetchMore();
+				void fetchNextPage();
 			}
 		},
-		[hasMore, loading, fetchMore],
+		[hasMore, loading, fetchNextPage],
 	);
 
 	const navigate = useNavigate();
 
-	/**
-	 * Определяет маршрут навигации по типу и связанной сущности уведомления.
-	 * Поддерживает переход к задачам, каналам, тест-прогонам и звонкам.
-	 */
 	const resolveNotificationRoute = useCallback(
 		(notif: NotificationDTO): string | null => {
 			const { entity_type, entity_id, project_id } = notif;
@@ -120,7 +126,6 @@ export function NotificationPanel() {
 
 			switch (entity_type) {
 				case "issue":
-					// entity_id содержит issueKey (например "HUB-1")
 					return project_id
 						? `/projects/${project_id}/issues/${entity_id}`
 						: null;
@@ -131,7 +136,6 @@ export function NotificationPanel() {
 						? `/projects/${project_id}/tms/runs/${entity_id}`
 						: null;
 				case "call":
-					// Для звонков переходим к каналу, в котором начался звонок
 					return entity_id ? `/messenger/${entity_id}` : null;
 				default:
 					return null;
@@ -140,7 +144,6 @@ export function NotificationPanel() {
 		[],
 	);
 
-	/** Обработчик клика по уведомлению — помечает прочитанным и переходит к сущности. */
 	const handleItemClick = useCallback(
 		(notif: NotificationDTO) => {
 			if (!notif.is_read) {
@@ -161,7 +164,6 @@ export function NotificationPanel() {
 		[markRead, navigate, resolveNotificationRoute],
 	);
 
-	/** Обработчик удаления уведомления. */
 	const handleDelete = useCallback(
 		(e: React.MouseEvent, notifId: string) => {
 			e.stopPropagation();
@@ -172,11 +174,11 @@ export function NotificationPanel() {
 
 	return (
 		<div className="flex flex-col animate-dropdown-in">
-			{/* Заголовок */}
 			<div className="flex items-center justify-between px-4 py-3">
 				<h3 className="text-sm font-semibold">Уведомления</h3>
 				<div className="flex items-center gap-1">
 					<Button
+						type="button"
 						variant="ghost"
 						size="sm"
 						className="h-auto px-2 py-1 text-xs text-t2"
@@ -185,6 +187,7 @@ export function NotificationPanel() {
 						Прочитать все
 					</Button>
 					<Button
+						type="button"
 						variant="ghost"
 						size="sm"
 						className="h-auto px-2 py-1 text-xs text-destructive/70 hover:text-destructive"
@@ -196,33 +199,56 @@ export function NotificationPanel() {
 			</div>
 			<Separator />
 
-			{/* Список уведомлений */}
 			<ScrollArea
 				className="h-96"
 				ref={scrollRef}
 				onScrollCapture={handleScroll}
 			>
-				{notifications.length === 0 && !loading ? (
-					<div className="flex h-32 items-center justify-center text-sm text-t2">
-						Нет уведомлений
-					</div>
-				) : (
-					<div className="flex flex-col">
-						{notifications.map((notif) => (
-							<NotificationItem
-								key={notif.id}
-								notification={notif}
-								onClick={() => handleItemClick(notif)}
-								onDelete={(e) => handleDelete(e, notif.id)}
-							/>
-						))}
-						{loading && (
-							<div className="flex items-center justify-center py-4 text-xs text-t2">
-								Загрузка...
-							</div>
-						)}
-					</div>
-				)}
+				<QueryStateView
+					query={listQuery}
+					isEmpty={() => notifications.length === 0}
+					emptyFallback={
+						<div className="flex h-32 items-center justify-center text-sm text-t2">
+							Нет уведомлений
+						</div>
+					}
+					loadingFallback={
+						<div className="flex items-center justify-center py-8 text-xs text-t2">
+							Загрузка...
+						</div>
+					}
+					errorFallback={(_error, retry) => (
+						<div
+							role="alert"
+							className="flex flex-col items-center justify-center gap-3 px-4 py-8 text-center"
+						>
+							<p className="text-[13px] font-semibold text-[var(--t1)]">
+								Не удалось загрузить уведомления
+							</p>
+							<Button type="button" variant="outline" size="sm" onClick={retry}>
+								Попробовать снова
+							</Button>
+						</div>
+					)}
+				>
+					{() => (
+						<div className="flex flex-col">
+							{notifications.map((notif) => (
+								<NotificationItem
+									key={notif.id}
+									notification={notif}
+									onClick={() => handleItemClick(notif)}
+									onDelete={(e) => handleDelete(e, notif.id)}
+								/>
+							))}
+							{listQuery.isFetchingNextPage && (
+								<div className="flex items-center justify-center py-4 text-xs text-t2">
+									Загрузка...
+								</div>
+							)}
+						</div>
+					)}
+				</QueryStateView>
 			</ScrollArea>
 		</div>
 	);
@@ -255,7 +281,6 @@ const NotificationItem = memo(function NotificationItem({
 			}`}
 			onClick={onClick}
 		>
-			{/* Иконка */}
 			<div
 				className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
 				style={{ backgroundColor: iconBg }}
@@ -263,7 +288,6 @@ const NotificationItem = memo(function NotificationItem({
 				<Icon className={`h-4 w-4 ${iconTextColor}`} />
 			</div>
 
-			{/* Содержимое */}
 			<div className="min-w-0 flex-1">
 				<div className="flex items-start justify-between gap-2">
 					<p className="text-sm font-medium leading-tight">
@@ -271,7 +295,6 @@ const NotificationItem = memo(function NotificationItem({
 						{notification.title}
 					</p>
 					<div className="flex items-center gap-1 flex-shrink-0">
-						{/* Кнопка удаления — видна при hover */}
 						<button
 							type="button"
 							className="mt-0.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors"
@@ -281,7 +304,6 @@ const NotificationItem = memo(function NotificationItem({
 						>
 							<X className="h-3 w-3" />
 						</button>
-						{/* Индикатор непрочитанного */}
 						{!notification.is_read && (
 							<span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
 						)}

@@ -66,6 +66,14 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-28 (fe1 · A10-007 notifications Query)
+
+- Deleted `stores/notification-store.ts` (zustand server-state + silent warn).
+- List → `useInfiniteQuery`, unread → `useQuery` in `hooks/use-notifications.ts`; mutations use `toastApiError`.
+- Panel: `QueryStateView` error ≠ empty; WS prepend via Query cache.
+- Vitest: `domains/notifications/notification-panel-query.test.tsx`.
+- Audit: FIX-W13 A10-007 → FIXED.
+
 ## Session note — 2026-07-28 (fe2 · A10-014 Gantt virtualize)
 
 - A10-014 FIXED: Gantt rows virtualize at ≥24 (`@tanstack/react-virtual`); issues via cursor `useInfiniteQuery` + auto-fetch; caption «показано N из M».

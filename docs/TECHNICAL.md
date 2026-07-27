@@ -1687,7 +1687,7 @@ routes/
 | call-store | Активный звонок, участники, mute/hand |
 | dashboard-store | Виджеты, раскладка |
 | messenger-store | Каналы, сообщения, unread, typing |
-| notification-store | Список уведомлений, unread count |
+| (removed) notification-store | A10-007: list/unread → TanStack Query (`hooks/use-notifications.ts`) |
 | sidebar-store | Состояние сайдбара (collapsed/expanded) |
 | sprint-store | Спринты, бэклог |
 | timer-store | Таймтрекинг (активные таймеры) |
