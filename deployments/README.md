@@ -110,7 +110,7 @@ kubectl apply -f deployments/k3s/monitoring/networkpolicy-metrics.yaml
 
 - Не коммитьте `.env` и файлы с реальными ключами.
 - Ротация LiveKit: см. комментарии в `livekit-prod.yaml.example`.
-- `METRICS_ALLOWED_CIDRS` ограничивает доступ к `/metrics` backend.
+- `METRICS_ALLOWED_CIDRS` ограничивает доступ к `/metrics` backend (prod compose default `127.0.0.1/32`; пусто в production → fail-start; для Prometheus overlay задайте scrape CIDR явно).
 - Telegram — только уведомления; вход в Hub — Magic Link (email).
 
 Подробнее: `docs/wiki/DEPLOY.md`, `docs/security_guidelines.md`.

@@ -234,8 +234,10 @@ services:
       LIVEKIT_API_KEY: "${LIVEKIT_API_KEY}"
       LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET}"
       DEV_MODE: "false"
-      # A14-005: default Docker/K8s private ranges — не оставлять /metrics открытым.
-      METRICS_ALLOWED_CIDRS: "${METRICS_ALLOWED_CIDRS:-172.16.0.0/12,10.0.0.0/8,192.168.0.0/16}"
+      # A14-005: default loopback-only — RFC1918 default позволял любому Docker peer scrape.
+      # Для Prometheus overlay задайте CIDR scrape-сети в .env (не blanket 10/8+172.16/12+192.168/16).
+      # Пустой METRICS_ALLOWED_CIDRS в production → config.Load fail-closed.
+      METRICS_ALLOWED_CIDRS: "${METRICS_ALLOWED_CIDRS:-127.0.0.1/32}"
       ALERT_WEBHOOK_SECRET: "${ALERT_WEBHOOK_SECRET:-}"
       # A14-009: optional OTLP; без endpoint InitTracing — no-op.
       OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT:-}"

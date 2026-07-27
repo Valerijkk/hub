@@ -75,7 +75,7 @@ func TestLoad_productionValidConfig(t *testing.T) {
 	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
 	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
 	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
-	t.Setenv("METRICS_ALLOWED_CIDRS", "10.0.0.0/8")
+	t.Setenv("METRICS_ALLOWED_CIDRS", "127.0.0.1/32")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -84,8 +84,29 @@ func TestLoad_productionValidConfig(t *testing.T) {
 	if cfg.Server.Environment != "production" {
 		t.Errorf("Environment = %q", cfg.Server.Environment)
 	}
-	if len(cfg.Server.MetricsAllowedCIDRs) != 1 {
+	if len(cfg.Server.MetricsAllowedCIDRs) != 1 || cfg.Server.MetricsAllowedCIDRs[0] != "127.0.0.1/32" {
 		t.Errorf("MetricsAllowedCIDRs = %v", cfg.Server.MetricsAllowedCIDRs)
+	}
+}
+
+func TestLoad_productionAcceptsLoopbackMetricsCIDR_A14_005(t *testing.T) {
+	t.Setenv("DEV_MODE", "false")
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("JWT_SECRET", strings.Repeat("s", 40))
+	t.Setenv("S3_ACCESS_KEY", "prod-access")
+	t.Setenv("S3_SECRET_KEY", "prod-secret-key-32chars-minimum!!")
+	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
+	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
+	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
+	// Compose prod default — loopback, не blanket RFC1918.
+	t.Setenv("METRICS_ALLOWED_CIDRS", "127.0.0.1/32")
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("config.Load() error = %v", err)
+	}
+	if got := cfg.Server.MetricsAllowedCIDRs; len(got) != 1 || got[0] != "127.0.0.1/32" {
+		t.Errorf("MetricsAllowedCIDRs = %v, want [127.0.0.1/32]", got)
 	}
 }
 

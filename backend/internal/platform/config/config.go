@@ -49,8 +49,15 @@ type ServerConfig struct {
 	Immutable    bool   // true в dev для отлова повторного использования Fiber RequestCtx (Pitfall 1)
 	DevMode             bool     // DevMode включает dev-эндпоинты (seed, login без Magic Link)
 	Environment         string   // ENVIRONMENT: production, staging, development (по умолчанию)
-	MetricsAllowedCIDRs []string // METRICS_ALLOWED_CIDRS — пусто = /metrics без IP-фильтра
+	MetricsAllowedCIDRs []string // METRICS_ALLOWED_CIDRS — пусто = open (non-prod); production validate fail-closed
 	AlertWebhookSecret  string   // ALERT_WEBHOOK_SECRET — Bearer для Alertmanager webhook
+}
+
+// FiberRecoverEnableStackTrace — A14-007: Fiber recover пишет stack только в DevMode
+// (иначе шум + утечка локальных путей в централизованные логи / Loki).
+// Wiring: cmd/server/wiring_fiber.go → fiberrecover.Config.EnableStackTrace.
+func (c ServerConfig) FiberRecoverEnableStackTrace() bool {
+	return c.DevMode
 }
 
 // PostgresConfig — параметры подключения к PostgreSQL.
@@ -252,9 +259,10 @@ func (c *Config) validate() error {
 		problems = append(problems, "INTEGRATION_ENCRYPTION_KEY не задан (требуется 32 байта в hex или base64)")
 	}
 
-	// A14-005: в production /metrics обязан иметь CIDR allowlist.
+	// A14-005: в production /metrics обязан иметь CIDR allowlist (fail-closed).
+	// Compose prod default — 127.0.0.1/32; blanket RFC1918 небезопасен (любой Docker peer).
 	if strings.EqualFold(c.Server.Environment, "production") && len(c.Server.MetricsAllowedCIDRs) == 0 {
-		problems = append(problems, "METRICS_ALLOWED_CIDRS пуст в production — задайте CIDR scrape-сети (напр. 172.16.0.0/12)")
+		problems = append(problems, "METRICS_ALLOWED_CIDRS пуст в production — задайте CIDR scrape-источника (напр. 127.0.0.1/32 или CIDR Prometheus)")
 	}
 
 	if len(problems) > 0 {

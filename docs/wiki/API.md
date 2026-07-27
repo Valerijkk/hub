@@ -1058,7 +1058,7 @@ AI gateway, @hub-ai bot, ModelPicker, JQL assist. User routes требуют JWT
 | GET | `/ready` | Readiness — Postgres/Redis/Mongo/NATS → 200 или 503 (Compose healthcheck) |
 | GET | `/health` | Alias `/ready` (обратная совместимость; не использовать как liveness) |
 | GET | `/status` | Public status page JSON (Postgres, Redis, Mongo, NATS, API) — V4-06 |
-| GET | `/metrics` | Prometheus scrape; prod требует `METRICS_ALLOWED_CIDRS` (A14-005; пусто в non-prod = без IP-фильтра) |
+| GET | `/metrics` | Prometheus scrape; prod: `METRICS_ALLOWED_CIDRS` обязателен (fail-closed если пусто; compose default `127.0.0.1/32`; non-prod пусто = без IP-фильтра) |
 | GET | `/docs` | Swagger UI |
 | GET | `/docs/doc.json` | OpenAPI JSON |
 
