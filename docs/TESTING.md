@@ -372,6 +372,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-SEARCH-02 | UUID array | `TestUUIDSliceToPgArray`, `TestUUIDSliceToPgArrayEmpty` |
 | TC-SEARCH-03 | Saved filters | `TestSavedFilterToDTO` |
 | TC-SEARCH-04 | Defaults | `TestSearchRequestDefaultLimit`, `TestSearchResultTypes` |
+| TC-SEARCH-05 | Soft-delete exclusion Ctrl+K (A4-002) | `TestPostgresSearch_ExcludesSoftDeleted_A4_002`, `TestSearchSQL_ExcludesSoftDeleted_A4_002` |
 | TC-JQL-01 | JQL parsing | `TestParseJQLSimple` .. `TestParseJQLOR` (13 тестов) |
 | TC-JQL-02 | JQL to Ent predicates | `TestToEntPredicates`, `TestToEntPredicatesIN` |
 | TC-ALLURE-01 | Parse valid JSON | `TestParseAllureResults_ValidJSON` |
