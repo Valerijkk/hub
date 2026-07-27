@@ -41,6 +41,43 @@ interface WsState {
 	removeListener: (handler: EventHandler) => void;
 }
 
+/** Базовая задержка reconnect (мс); растёт экспоненциально. */
+const RECONNECT_BASE_MS = 1_000;
+/** Потолок backoff (мс). */
+const RECONNECT_MAX_MS = 30_000;
+
+/** Модульные поля вне zustand — таймеры не должны жить в React state. */
+let lastToken: string | null = null;
+let intentionalClose = false;
+let reconnectAttempt = 0;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Сброс таймера reconnect (logout / intentional disconnect). */
+export function clearWsReconnectTimer(): void {
+	if (reconnectTimer !== null) {
+		clearTimeout(reconnectTimer);
+		reconnectTimer = null;
+	}
+}
+
+/** Экспоненциальный backoff с потолком (для тестов и schedule). */
+export function wsReconnectDelayMs(attempt: number): number {
+	return Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** attempt);
+}
+
+function scheduleReconnect(connectFn: (token: string) => void): void {
+	clearWsReconnectTimer();
+	if (intentionalClose || !lastToken) return;
+	const delay = wsReconnectDelayMs(reconnectAttempt);
+	reconnectAttempt += 1;
+	const token = lastToken;
+	reconnectTimer = setTimeout(() => {
+		reconnectTimer = null;
+		if (intentionalClose || !token) return;
+		connectFn(token);
+	}, delay);
+}
+
 /** Стор WebSocket-подключения. Без персиста — пересоздаётся при каждой загрузке. */
 export const useWsStore = create<WsState>((set, get) => ({
 	connected: false,
@@ -48,8 +85,17 @@ export const useWsStore = create<WsState>((set, get) => ({
 	listeners: new Set(),
 
 	connect: (token: string) => {
+		lastToken = token;
+		intentionalClose = false;
+
 		const { socket } = get();
-		if (socket) return;
+		if (
+			socket &&
+			(socket.readyState === WebSocket.OPEN ||
+				socket.readyState === WebSocket.CONNECTING)
+		) {
+			return;
+		}
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 		const ws = new WebSocket(
@@ -57,11 +103,17 @@ export const useWsStore = create<WsState>((set, get) => ({
 		);
 
 		ws.onopen = () => {
+			reconnectAttempt = 0;
+			clearWsReconnectTimer();
 			set({ connected: true, socket: ws });
 		};
 
+		// A10-003: обрыв сети не должен убивать real-time до remount/logout.
 		ws.onclose = () => {
 			set({ connected: false, socket: null });
+			if (!intentionalClose) {
+				scheduleReconnect(get().connect);
+			}
 		};
 
 		ws.onerror = () => {
@@ -86,9 +138,15 @@ export const useWsStore = create<WsState>((set, get) => ({
 	},
 
 	disconnect: () => {
+		intentionalClose = true;
+		lastToken = null;
+		reconnectAttempt = 0;
+		clearWsReconnectTimer();
 		const { socket } = get();
 		if (socket) {
 			socket.close();
+			set({ connected: false, socket: null });
+		} else {
 			set({ connected: false, socket: null });
 		}
 	},
