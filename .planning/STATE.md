@@ -66,6 +66,12 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (be1 · W14 Block D perf A13-001…006)
+
+- A13-001…006 FIXED (hard caps / aggregates / batch links / prefs prefetch).
+- SHAs: `456636f` `f961fec` `60149a0` `e76d5ef` `6d15338` `3b224e4`.
+- Report: `.planning/audits/grok-2026-07/FIX-W14.md`. Indexes → W15.
+
 ## Session note — 2026-07-27 (fe2 · W15 perf A8/A13 lazy+virtual+waterfalls)
 
 - A8-001/002: FK-column query rewrite FIXED; Ent composite indexes **NEEDS_APPROVAL**.
