@@ -143,8 +143,13 @@ func (s *MagicLinkService) VerifyCode(ctx context.Context, email, code string) e
 		return ErrMagicLinkInvalid
 	}
 
-	s.redis.Del(ctx, codeKey)
-	s.redis.Del(ctx, failsKey)
+	// A1-010: при сбое Del код остаётся → повторное использование; fail-closed.
+	if err := s.redis.Del(ctx, codeKey).Err(); err != nil {
+		return fmt.Errorf("invalidate magic link code: %w", err)
+	}
+	if err := s.redis.Del(ctx, failsKey).Err(); err != nil {
+		slog.Warn("magiclink fails counter delete error", "email", masked, "error", err)
+	}
 	return nil
 }
 

@@ -270,3 +270,44 @@ func TestMaskEmailMinimized_A14_006(t *testing.T) {
 	assert.Equal(t, "***", auth.ExportMaskEmailMinimized("noperiod"))
 	assert.NotContains(t, auth.ExportMaskEmailMinimized("secret.user@hub.local"), "secret.user")
 }
+
+type failDelHook struct{}
+
+func (failDelHook) DialHook(next redis.DialHook) redis.DialHook { return next }
+func (failDelHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
+	return func(ctx context.Context, cmd redis.Cmder) error {
+		if cmd.Name() == "del" {
+			return errors.New("injected del failure")
+		}
+		return next(ctx, cmd)
+	}
+}
+func (failDelHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+	return next
+}
+
+// TestMagicLink_VerifyCode_DelFailure_A1_010 — сбой Del после compare → login fail.
+func TestMagicLink_VerifyCode_DelFailure_A1_010(t *testing.T) {
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	rdb.AddHook(failDelHook{})
+
+	svc := auth.NewMagicLinkService(rdb, nil, "test@example.com")
+	ctx := context.Background()
+	email := "del-fail-" + uuid.New().String()[:6] + "@example.com"
+
+	code, err := svc.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+
+	err = svc.VerifyCode(ctx, email, code)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalidate magic link code")
+
+	// Код всё ещё в Redis — одноразовость не «съедена» ложным success.
+	stored, getErr := mr.Get("magiclink:" + email)
+	require.NoError(t, getErr)
+	assert.Equal(t, code, stored)
+}
