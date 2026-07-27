@@ -2,6 +2,7 @@ package sprint
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -10,6 +11,9 @@ import (
 	sprintEnt "github.com/valerii/hub/backend/ent/sprint"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
+
+// ErrIssueNotInProject — RT-005: AddIssues получил UUID задачи вне projectID.
+var ErrIssueNotInProject = errors.New("issue not in project")
 
 // Repository определяет интерфейс доступа к данным для модуля спринтов.
 type Repository interface {
@@ -36,8 +40,9 @@ type Repository interface {
 	FindIncompleteIssues(ctx context.Context, sprintID uuid.UUID) ([]*ent.Issue, error)
 	// MoveIssuesToSprint переносит задачи в целевой спринт.
 	MoveIssuesToSprint(ctx context.Context, issueIDs []uuid.UUID, targetSprintID uuid.UUID) error
-	// SetIssuesSprint устанавливает sprint_id для задач.
-	SetIssuesSprint(ctx context.Context, issueIDs []uuid.UUID, sprintID uuid.UUID) error
+	// SetIssuesSprint устанавливает sprint_id для задач, принадлежащих projectID (RT-005).
+	// Возвращает ErrIssueNotInProject, если хотя бы один UUID чужой/отсутствует.
+	SetIssuesSprint(ctx context.Context, projectID uuid.UUID, issueIDs []uuid.UUID, sprintID uuid.UUID) error
 	// ClearIssuesSprint убирает sprint_id у задач (возврат в бэклог).
 	ClearIssuesSprint(ctx context.Context, issueIDs []uuid.UUID) error
 
@@ -212,11 +217,32 @@ func (r *EntRepository) MoveIssuesToSprint(ctx context.Context, issueIDs []uuid.
 		Exec(ctx)
 }
 
-// SetIssuesSprint устанавливает sprint_id для задач.
-func (r *EntRepository) SetIssuesSprint(ctx context.Context, issueIDs []uuid.UUID, sprintID uuid.UUID) error {
+// SetIssuesSprint устанавливает sprint_id только для задач проекта (HasProjectWith).
+// Reject: любой issueID вне projectID или soft-deleted → ErrIssueNotInProject.
+func (r *EntRepository) SetIssuesSprint(ctx context.Context, projectID uuid.UUID, issueIDs []uuid.UUID, sprintID uuid.UUID) error {
+	if len(issueIDs) == 0 {
+		return nil
+	}
+	n, err := r.client.Issue.Query().
+		Where(
+			issue.IDIn(issueIDs...),
+			issue.DeletedAtIsNil(),
+			issue.HasProjectWith(project.IDEQ(projectID)),
+		).
+		Count(ctx)
+	if err != nil {
+		return err
+	}
+	if n != len(issueIDs) {
+		return ErrIssueNotInProject
+	}
 	return r.client.Issue.
 		Update().
-		Where(issue.IDIn(issueIDs...)).
+		Where(
+			issue.IDIn(issueIDs...),
+			issue.DeletedAtIsNil(),
+			issue.HasProjectWith(project.IDEQ(projectID)),
+		).
 		SetSprintID(sprintID).
 		Exec(ctx)
 }

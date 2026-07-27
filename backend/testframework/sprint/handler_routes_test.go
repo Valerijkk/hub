@@ -18,15 +18,19 @@ import (
 	"github.com/stretchr/testify/require"
 	_ "github.com/mattn/go-sqlite3"
 
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/enttest"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	"github.com/valerii/hub/backend/internal/rbac"
+	"github.com/valerii/hub/backend/internal/platform/middleware"
 )
 
 type sprintRoutesEnv struct {
 	app       *fiber.App
+	client    *ent.Client
 	projectID uuid.UUID
 	ownerID   uuid.UUID
+	todoID    uuid.UUID
 }
 
 func newSprintRoutesEnv(t *testing.T) sprintRoutesEnv {
@@ -62,7 +66,7 @@ func newSprintRoutesEnv(t *testing.T) sprintRoutesEnv {
 		Save(ctx)
 	require.NoError(t, err)
 
-	_, err = client.WorkflowStatus.Create().
+	todo, err := client.WorkflowStatus.Create().
 		SetName("Todo").
 		SetCategory(workflowstatus.CategoryTodo).
 		SetColor("#6B7280").
@@ -77,7 +81,7 @@ func newSprintRoutesEnv(t *testing.T) sprintRoutesEnv {
 	poker := sprint.NewPokerService(rdb, nil)
 	h := sprint.NewHandler(svc, poker)
 
-	app := fiber.New()
+	app := fiber.New(fiber.Config{ErrorHandler: middleware.ErrorHandler})
 	api := app.Group("/api")
 	authMw := func(c fiber.Ctx) error {
 		c.Locals("userID", owner.ID.String())
@@ -85,7 +89,24 @@ func newSprintRoutesEnv(t *testing.T) sprintRoutesEnv {
 	}
 	h.RegisterRoutes(api, authMw, rbacSvc)
 
-	return sprintRoutesEnv{app: app, projectID: proj.ID, ownerID: owner.ID}
+	return sprintRoutesEnv{
+		app: app, client: client, projectID: proj.ID, ownerID: owner.ID, todoID: todo.ID,
+	}
+}
+
+func (e sprintRoutesEnv) createIssueInProject(t *testing.T) uuid.UUID {
+	t.Helper()
+	iss, err := e.client.Issue.Create().
+		SetTitle("Route issue").
+		SetIssueType("task").
+		SetIssueNumber(1).
+		SetIssueKey("RT-1").
+		SetProjectID(e.projectID).
+		SetStatusID(e.todoID).
+		SetReporterID(e.ownerID).
+		Save(context.Background())
+	require.NoError(t, err)
+	return iss.ID
 }
 
 func TestHandler_RegisterRoutes_UpdateAndAddIssues(t *testing.T) {
@@ -117,7 +138,8 @@ func TestHandler_RegisterRoutes_UpdateAndAddIssues(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&updated))
 	assert.Equal(t, "Updated Sprint Name", updated.Name)
 
-	issueID := uuid.New()
+	// RT-005: issue must belong to the same project (random UUID → reject).
+	issueID := env.createIssueInProject(t)
 	moveBody := fmt.Sprintf(`{"issue_ids":[%q]}`, issueID.String())
 	req = httptest.NewRequest(http.MethodPost, base+"/"+created.ID+"/issues", bytes.NewReader([]byte(moveBody)))
 	req.Header.Set("Content-Type", "application/json")
@@ -125,6 +147,15 @@ func TestHandler_RegisterRoutes_UpdateAndAddIssues(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	foreignID := uuid.New()
+	foreignBody := fmt.Sprintf(`{"issue_ids":[%q]}`, foreignID.String())
+	req = httptest.NewRequest(http.MethodPost, base+"/"+created.ID+"/issues", bytes.NewReader([]byte(foreignBody)))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = env.app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestHandler_AddIssuesToSprint_InvalidIssueID(t *testing.T) {

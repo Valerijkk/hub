@@ -21,6 +21,7 @@ type mockRepository struct {
 	sprints          map[uuid.UUID]*ent.Sprint
 	sprintProject    map[uuid.UUID]uuid.UUID
 	issues           map[uuid.UUID]*ent.Issue
+	issueProject     map[uuid.UUID]uuid.UUID
 	statuses         map[uuid.UUID]*ent.WorkflowStatus
 	movedToSprint    uuid.UUID
 	movedIssueIDs    []uuid.UUID
@@ -32,6 +33,7 @@ func newMockRepository() *mockRepository {
 		sprints:       make(map[uuid.UUID]*ent.Sprint),
 		sprintProject: make(map[uuid.UUID]uuid.UUID),
 		issues:        make(map[uuid.UUID]*ent.Issue),
+		issueProject:  make(map[uuid.UUID]uuid.UUID),
 		statuses:      make(map[uuid.UUID]*ent.WorkflowStatus),
 	}
 }
@@ -156,7 +158,12 @@ func (m *mockRepository) MoveIssuesToSprint(_ context.Context, issueIDs []uuid.U
 	return nil
 }
 
-func (m *mockRepository) SetIssuesSprint(_ context.Context, issueIDs []uuid.UUID, sprintID uuid.UUID) error {
+func (m *mockRepository) SetIssuesSprint(_ context.Context, projectID uuid.UUID, issueIDs []uuid.UUID, sprintID uuid.UUID) error {
+	for _, id := range issueIDs {
+		if pid, ok := m.issueProject[id]; ok && pid != projectID {
+			return sprint.ErrIssueNotInProject
+		}
+	}
 	m.movedIssueIDs = issueIDs
 	m.movedToSprint = sprintID
 	return nil
@@ -420,6 +427,7 @@ func TestAddIssuesToSprint_RejectsForeignProject_RT005(t *testing.T) {
 		StartDate: time.Now(), EndDate: time.Now().AddDate(0, 0, 14),
 	}
 	repo.sprintProject[sprintID] = ownerProject
+	repo.issueProject[issueID] = ownerProject
 
 	err := svc.AddIssuesToSprint(ctx, attackerProject, sprintID, []uuid.UUID{issueID})
 	require.Error(t, err)
@@ -428,6 +436,34 @@ func TestAddIssuesToSprint_RejectsForeignProject_RT005(t *testing.T) {
 
 	require.NoError(t, svc.AddIssuesToSprint(ctx, ownerProject, sprintID, []uuid.UUID{issueID}))
 	assert.Equal(t, []uuid.UUID{issueID}, repo.movedIssueIDs)
+}
+
+// TestAddIssuesToSprint_RejectsForeignIssue_RT005 — RT-005: issue UUID из чужого проекта отклоняется.
+func TestAddIssuesToSprint_RejectsForeignIssue_RT005(t *testing.T) {
+	repo := newMockRepository()
+	svc := sprint.NewSprintService(repo, nil, nil)
+	ctx := context.Background()
+	ownerProject := uuid.New()
+	foreignProject := uuid.New()
+	sprintID := uuid.New()
+	ownIssue := uuid.New()
+	foreignIssue := uuid.New()
+
+	repo.sprints[sprintID] = &ent.Sprint{
+		ID: sprintID, Name: "Sprint", Status: sprintEnt.StatusPlanning,
+		StartDate: time.Now(), EndDate: time.Now().AddDate(0, 0, 14),
+	}
+	repo.sprintProject[sprintID] = ownerProject
+	repo.issueProject[ownIssue] = ownerProject
+	repo.issueProject[foreignIssue] = foreignProject
+
+	err := svc.AddIssuesToSprint(ctx, ownerProject, sprintID, []uuid.UUID{ownIssue, foreignIssue})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "не принадлежат проекту")
+	assert.Empty(t, repo.movedIssueIDs, "foreign issue UUID must not bind to sprint")
+
+	require.NoError(t, svc.AddIssuesToSprint(ctx, ownerProject, sprintID, []uuid.UUID{ownIssue}))
+	assert.Equal(t, []uuid.UUID{ownIssue}, repo.movedIssueIDs)
 }
 
 func TestStartSprint_RejectsWhenActiveExists(t *testing.T) {

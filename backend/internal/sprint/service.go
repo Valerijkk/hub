@@ -3,6 +3,7 @@ package sprint
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -277,7 +278,8 @@ func (s *SprintService) GetVelocity(ctx context.Context, projectID uuid.UUID) ([
 	return s.repo.GetVelocityData(ctx, projectID)
 }
 
-// AddIssuesToSprint добавляет задачи в спринт в рамках проекта (RT-005 sibling).
+// AddIssuesToSprint добавляет задачи в спринт в рамках проекта (RT-005).
+// После GetSprintInProject проверяет, что все issueIDs принадлежат тому же project.
 func (s *SprintService) AddIssuesToSprint(ctx context.Context, projectID, sprintID uuid.UUID, issueIDs []uuid.UUID) error {
 	if _, err := s.repo.GetSprintInProject(ctx, projectID, sprintID); err != nil {
 		if ent.IsNotFound(err) {
@@ -285,7 +287,13 @@ func (s *SprintService) AddIssuesToSprint(ctx context.Context, projectID, sprint
 		}
 		return apperrors.NewInternal("ошибка получения спринта")
 	}
-	return s.repo.SetIssuesSprint(ctx, issueIDs, sprintID)
+	if err := s.repo.SetIssuesSprint(ctx, projectID, issueIDs, sprintID); err != nil {
+		if errors.Is(err, ErrIssueNotInProject) {
+			return apperrors.NewBadRequest("задачи не принадлежат проекту")
+		}
+		return apperrors.NewInternal("ошибка добавления задач в спринт")
+	}
+	return nil
 }
 
 // RemoveIssuesFromSprint убирает задачи из спринта (возвращает в бэклог).

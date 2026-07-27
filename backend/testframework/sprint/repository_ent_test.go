@@ -171,7 +171,7 @@ func TestEntRepository_IssueSprintOperations(t *testing.T) {
 	open := env.createIssue(t, 1, env.todoID, nil)
 	done := env.createIssue(t, 2, env.doneID, nil)
 
-	require.NoError(t, env.repo.SetIssuesSprint(env.ctx, []uuid.UUID{open.ID, done.ID}, sp.ID))
+	require.NoError(t, env.repo.SetIssuesSprint(env.ctx, env.projectID, []uuid.UUID{open.ID, done.ID}, sp.ID))
 
 	count, err := env.repo.GetSprintIssueCount(env.ctx, sp.ID)
 	require.NoError(t, err)
