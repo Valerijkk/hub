@@ -74,7 +74,7 @@ func (s *Service) ListEvents(ctx context.Context, userID uuid.UUID, from, to tim
 		}
 	}
 
-	leaves, err := s.repo.ListApprovedLeaveInRange(ctx, from, to)
+	leaves, err := s.repo.ListApprovedLeaveInRange(ctx, userID, projectIDs, from, to)
 	if err != nil {
 		return nil, fmt.Errorf("list approved leave: %w", err)
 	}
@@ -212,9 +212,7 @@ func leaveEvent(lv *ent.LeaveRequest) EventResponse {
 		if name == "" {
 			name = lv.Edges.Requester.Name
 		}
-		if name == "" {
-			name = lv.Edges.Requester.Email
-		}
+		// A6-005: не класть email в title (PII в календаре/iCal).
 	}
 	start := lv.StartDate.UTC()
 	end := lv.EndDate.UTC()
