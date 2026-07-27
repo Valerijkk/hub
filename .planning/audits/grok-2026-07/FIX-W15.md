@@ -13,8 +13,8 @@
 
 | ID | Status | SHA | Notes |
 |----|--------|-----|-------|
-| A8-001 | PARTIAL / NEEDS_APPROVAL | `0ce8cd7` | Query rewrite FIXED: `issueProjectIDEQ` on FK `project_issues`. **Index** `(project_issues, deleted_at)` → **NEEDS_APPROVAL**. |
-| A8-002 | PARTIAL / NEEDS_APPROVAL | `443a569` | Query rewrite FIXED: `testCaseProjectIDEQ` on FK `project_test_cases`. **Index** → **NEEDS_APPROVAL**. |
+| A8-001 | FIXED | *(see close commit)* | Query rewrite `0ce8cd7` + schema `index.Edges("project").Fields("deleted_at")` on Issue. Ent generate local (gitignored); `Schema.Create` applies at runtime. |
+| A8-002 | FIXED | *(see close commit)* | Query rewrite `443a569` + schema `index.Edges("project").Fields("deleted_at")` on TestCase. Same generate / migrate path. |
 | A13-001 | FIXED (prior) | `456636f` | `MaxBoardIssuesPerColumn=200` — non-schema amp for A8-001. |
 | A13-011 | FIXED | `2ae0f1f` | Board: `effectiveBoardId` from list → no effect waterfall. |
 | A13-012 | FIXED | `2ae0f1f` | Dashboard: `Promise.all([fetchPersonal(), loadLayout])`. |
@@ -28,34 +28,32 @@
 
 ---
 
-## NEEDS_APPROVAL (schema)
+## Schema indexes — FIXED (2026-07-28, user-approved)
 
-> **Unchanged 2026-07-28 remediation recheck** — indexes still require explicit schema approval; query rewrites remain FIXED.
+> A8-001 / A8-002 indexes **FIXED**. Generated Ent under `backend/ent/*` is gitignored; only `ent/schema` is committed. Runtime migrate via `client.Schema.Create` (no Atlas SQL migrations in repo).
 
-### A8-001 — `issues`
+### A8-001 — `issues` — FIXED
 
 ```go
 // ent/schema/issue.go Indexes():
 index.Edges("project").Fields("deleted_at"),
-// optional Kanban:
-// index.Edges("project").Fields("rank"),
 ```
 
-Atlas migrate required. Real query after rewrite:
+Generated index name: `issue_deleted_at_project_issues` (Ent: Fields then Edges columns).
 
 ```sql
 WHERE project_issues = $1 AND deleted_at IS NULL
 -- (+ filters / ORDER BY rank|issue_key / LIMIT)
 ```
 
-### A8-002 — `test_cases`
+### A8-002 — `test_cases` — FIXED
 
 ```go
 // ent/schema/testcase.go Indexes():
 index.Edges("project").Fields("deleted_at"),
 ```
 
-Real query after rewrite:
+Generated index name: `testcase_deleted_at_project_test_cases`.
 
 ```sql
 WHERE project_test_cases = $1 AND deleted_at IS NULL

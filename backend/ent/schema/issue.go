@@ -124,5 +124,7 @@ func (Issue) Indexes() []ent.Index {
 		index.Fields("priority"),
 		index.Fields("due_date"),
 		index.Fields("deleted_at"),
+		// A8-001: ListIssues WHERE project_issues = $1 AND deleted_at IS NULL
+		index.Edges("project").Fields("deleted_at"),
 	}
 }

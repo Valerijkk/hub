@@ -124,5 +124,7 @@ func (TestCase) Indexes() []ent.Index {
 		index.Fields("status"),
 		index.Fields("priority"),
 		index.Fields("deleted_at"),
+		// A8-002: ListTestCases WHERE project_test_cases = $1 AND deleted_at IS NULL
+		index.Edges("project").Fields("deleted_at"),
 	}
 }

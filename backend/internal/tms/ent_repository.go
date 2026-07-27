@@ -23,8 +23,8 @@ import (
 )
 
 // testCaseProjectIDEQ — A8-002 query rewrite: FK column `project_test_cases`
-// instead of EXISTS via HasProjectWith. Index (project_test_cases, deleted_at)
-// remains NEEDS_APPROVAL (schema/Atlas).
+// instead of EXISTS via HasProjectWith. Composite index (project_test_cases,
+// deleted_at) is on TestCase schema (A8-002 FIXED).
 func testCaseProjectIDEQ(projectID uuid.UUID) predicate.TestCase {
 	return predicate.TestCase(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(testcase.ProjectColumn), projectID))

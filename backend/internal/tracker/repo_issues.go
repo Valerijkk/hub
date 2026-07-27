@@ -18,8 +18,7 @@ import (
 
 // issueProjectIDEQ — A8-001 query rewrite: filter by FK column `project_issues`
 // instead of EXISTS via HasProjectWith. Same semantics for M2O required edge;
-// once composite index (project_issues, deleted_at) lands (NEEDS_APPROVAL),
-// ListIssues / board hot path can use Index Scan.
+// composite index (project_issues, deleted_at) is on Issue schema (A8-001 FIXED).
 func issueProjectIDEQ(projectID uuid.UUID) predicate.Issue {
 	return predicate.Issue(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(issue.ProjectColumn), projectID))
