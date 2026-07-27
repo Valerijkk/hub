@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
 
@@ -79,7 +80,22 @@ func (s *MessengerService) GetCustomStatus(ctx context.Context, userID string) (
 // ---------------------------------------------------------------------------
 
 // PublishTyping публикует событие набора текста в NATS (ephemeral, без записи в БД).
+// A2-009: только участник канала может инжектить typing в NATS room канала.
 func (s *MessengerService) PublishTyping(ctx context.Context, channelID string, userID uuid.UUID) error {
+	chID, err := uuid.Parse(channelID)
+	if err != nil {
+		return apperrors.NewBadRequest("некорректный ID канала")
+	}
+	if s.repo != nil {
+		ok, err := s.repo.IsMember(ctx, chID, userID)
+		if err != nil {
+			return apperrors.NewInternal("ошибка проверки участия")
+		}
+		if !ok {
+			return apperrors.NewForbidden("вы не являетесь участником канала")
+		}
+	}
+
 	// Определяем отображаемое имя пользователя через репозиторий.
 	userName := "user"
 	if s.repo != nil {
