@@ -187,14 +187,13 @@ func (s *Service) CreateColumn(ctx context.Context, userID, baseID, tableID uuid
 	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
 		return nil, err
 	}
-	t, err := s.repo.GetTable(ctx, baseID, tableID)
-	if err != nil {
+	// A13-002: meta only — column create не нуждается в records.
+	if _, err := s.repo.GetTableMeta(ctx, baseID, tableID); err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrNotFound
 		}
-		return nil, fmt.Errorf("get table: %w", err)
+		return nil, fmt.Errorf("get table meta: %w", err)
 	}
-	_ = t
 	req.Name = strings.TrimSpace(req.Name)
 	if req.ColType == "" {
 		req.ColType = ColumnText
@@ -211,12 +210,13 @@ func (s *Service) CreateRecord(ctx context.Context, baseID, tableID, userID uuid
 	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
 		return nil, err
 	}
-	t, err := s.repo.GetTable(ctx, baseID, tableID)
+	// A13-002: write-path использует GetTableMeta, не полный GetTable.
+	t, err := s.repo.GetTableMeta(ctx, baseID, tableID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrNotFound
 		}
-		return nil, fmt.Errorf("get table: %w", err)
+		return nil, fmt.Errorf("get table meta: %w", err)
 	}
 	cells := normalizeCells(req.Cells, t.Edges.Columns)
 	rec, err := s.repo.CreateRecord(ctx, tableID, userID, cells)
@@ -231,22 +231,19 @@ func (s *Service) UpdateRecord(ctx context.Context, userID, baseID, tableID, rec
 	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
 		return nil, err
 	}
-	t, err := s.repo.GetTable(ctx, baseID, tableID)
+	t, err := s.repo.GetTableMeta(ctx, baseID, tableID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrNotFound
 		}
-		return nil, fmt.Errorf("get table: %w", err)
+		return nil, fmt.Errorf("get table meta: %w", err)
 	}
-	var current *ent.HubRecord
-	for _, r := range t.Edges.Records {
-		if r.ID == recordID {
-			current = r
-			break
+	current, err := s.repo.GetRecord(ctx, tableID, recordID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrNotFound
 		}
-	}
-	if current == nil {
-		return nil, ErrNotFound
+		return nil, fmt.Errorf("get record: %w", err)
 	}
 	if req.Version > 0 && current.Version != req.Version {
 		return nil, ErrVersionConflict
@@ -264,22 +261,17 @@ func (s *Service) DeleteRecord(ctx context.Context, userID, baseID, tableID, rec
 	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
 		return err
 	}
-	t, err := s.repo.GetTable(ctx, baseID, tableID)
-	if err != nil {
+	if _, err := s.repo.GetTableMeta(ctx, baseID, tableID); err != nil {
 		if ent.IsNotFound(err) {
 			return ErrNotFound
 		}
-		return fmt.Errorf("get table: %w", err)
+		return fmt.Errorf("get table meta: %w", err)
 	}
-	found := false
-	for _, r := range t.Edges.Records {
-		if r.ID == recordID {
-			found = true
-			break
+	if _, err := s.repo.GetRecord(ctx, tableID, recordID); err != nil {
+		if ent.IsNotFound(err) {
+			return ErrNotFound
 		}
-	}
-	if !found {
-		return ErrNotFound
+		return fmt.Errorf("get record: %w", err)
 	}
 	return s.repo.SoftDeleteRecord(ctx, recordID)
 }

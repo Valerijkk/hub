@@ -13,6 +13,10 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
+// MaxTableRecords — A13-002: hard cap records в GetTable / GetTableView.
+// Без лимита мутации и view тянут полный table scan.
+const MaxTableRecords = 500
+
 // Repository — персистентность no-code баз (V4-04).
 type Repository interface {
 	CreateBase(ctx context.Context, ownerID uuid.UUID, req CreateBaseRequest) (*ent.HubBase, error)
@@ -22,7 +26,12 @@ type Repository interface {
 	SoftDeleteBase(ctx context.Context, id uuid.UUID) error
 
 	CreateTable(ctx context.Context, baseID uuid.UUID, req CreateTableRequest) (*ent.HubTable, error)
+	// GetTable возвращает таблицу с колонками и records (cap MaxTableRecords).
 	GetTable(ctx context.Context, baseID, tableID uuid.UUID) (*ent.HubTable, error)
+	// GetTableMeta возвращает таблицу только с колонками (без records) — write-path.
+	GetTableMeta(ctx context.Context, baseID, tableID uuid.UUID) (*ent.HubTable, error)
+	// GetRecord возвращает одну запись таблицы (для update/delete без полного scan).
+	GetRecord(ctx context.Context, tableID, recordID uuid.UUID) (*ent.HubRecord, error)
 	UpdateTable(ctx context.Context, tableID uuid.UUID, req UpdateTableRequest) (*ent.HubTable, error)
 	SoftDeleteTable(ctx context.Context, tableID uuid.UUID) error
 
@@ -123,8 +132,36 @@ func (r *EntRepository) GetTable(ctx context.Context, baseID, tableID uuid.UUID)
 		WithRecords(func(q *ent.HubRecordQuery) {
 			q.Where(hubrecord.DeletedAtIsNil()).
 				WithCreatedBy().
-				Order(ent.Desc(hubrecord.FieldUpdatedAt))
+				Order(ent.Desc(hubrecord.FieldUpdatedAt)).
+				Limit(MaxTableRecords)
 		}).
+		Only(ctx)
+}
+
+// GetTableMeta — columns only; write-path не должен грузить все records (A13-002).
+func (r *EntRepository) GetTableMeta(ctx context.Context, baseID, tableID uuid.UUID) (*ent.HubTable, error) {
+	return r.client.HubTable.Query().
+		Where(
+			hubtable.ID(tableID),
+			hubtable.DeletedAtIsNil(),
+			hubtable.HasBaseWith(hubbase.ID(baseID), hubbase.DeletedAtIsNil()),
+		).
+		WithColumns(func(q *ent.HubColumnQuery) {
+			q.Where(hubcolumn.DeletedAtIsNil()).
+				Order(ent.Asc(hubcolumn.FieldSortOrder), ent.Asc(hubcolumn.FieldName))
+		}).
+		Only(ctx)
+}
+
+// GetRecord загружает одну запись в рамках таблицы.
+func (r *EntRepository) GetRecord(ctx context.Context, tableID, recordID uuid.UUID) (*ent.HubRecord, error) {
+	return r.client.HubRecord.Query().
+		Where(
+			hubrecord.ID(recordID),
+			hubrecord.DeletedAtIsNil(),
+			hubrecord.HasTableWith(hubtable.ID(tableID), hubtable.DeletedAtIsNil()),
+		).
+		WithCreatedBy().
 		Only(ctx)
 }
 
