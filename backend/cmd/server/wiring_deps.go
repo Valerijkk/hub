@@ -103,6 +103,7 @@ type serverDeps struct {
 	autoChannelSvc    *messengermod.AutoChannelService
 	webhookDispatcher *apigatewaymod.WebhookDispatcher
 	backupSvc         *backupmod.BackupService
+	maintGate         *backupmod.MaintenanceGate
 
 	retentionS3Client *s3.Client
 	retentionS3Bucket string

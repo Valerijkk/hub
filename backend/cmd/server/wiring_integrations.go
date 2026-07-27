@@ -103,7 +103,7 @@ func wireIntegrations(d *serverDeps) {
 	}
 	d.backupS3Client = backupS3Client
 	d.backupS3Bucket = backupS3Bucket
-	backupSvc := backupmod.NewBackupService(d.rootCtx, backupmod.NewEntRepository(d.db), backupS3Client, backupS3Bucket, cfg.Postgres.URL, cfg.MongoDB.URL)
+	backupSvc := backupmod.NewBackupServiceWithGate(d.rootCtx, backupmod.NewEntRepository(d.db), backupS3Client, backupS3Bucket, cfg.Postgres.URL, cfg.MongoDB.URL, d.maintGate)
 	backupHandler := backupmod.NewHandler(backupSvc)
 	backupHandler.RegisterRoutes(api, requireAuth, rbac.RequireAdmin(d.rbacRepo))
 	d.backupSvc = backupSvc

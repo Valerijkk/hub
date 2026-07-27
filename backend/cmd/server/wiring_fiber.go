@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	fiberrecover "github.com/gofiber/fiber/v3/middleware/recover"
 	auditmod "github.com/valerii/hub/backend/internal/audit"
+	backupmod "github.com/valerii/hub/backend/internal/backup"
 	devmod "github.com/valerii/hub/backend/internal/dev"
 	"github.com/valerii/hub/backend/internal/platform/middleware"
 	"github.com/valerii/hub/backend/internal/platform/observability"
@@ -50,6 +51,10 @@ func wireFiber(d *serverDeps) {
 	app.Use(middleware.RateLimit(d.rootCtx, middleware.APIRateLimit))
 
 	api := app.Group("/api")
+	// A7-003: maintenance gate до любых бизнес-маршрутов (создаётся здесь,
+	// BackupService подключается к тому же gate в wireIntegrations).
+	d.maintGate = backupmod.NewMaintenanceGate()
+	api.Use(backupmod.MaintenanceMiddleware(d.maintGate))
 	// HTTP-аудит: все API-запросы пишутся в журнал (кроме health/docs).
 	api.Use(auditmod.HTTPAuditMiddleware(d.auditSvc.RecordHTTPRequest))
 

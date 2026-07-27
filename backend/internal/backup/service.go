@@ -28,6 +28,7 @@ type BackupService struct {
 	pgURL      string
 	mongoURL   string
 	maxBackups int
+	gate       *MaintenanceGate
 
 	// lifecycleCtx — долгоживущий контекст (rootCtx из main), используемый
 	// для фоновых goroutine'ов (например, ротация старых бэкапов в
@@ -42,7 +43,14 @@ type BackupService struct {
 // rootCtx должен быть долгоживущим контекстом (обычно signal.NotifyContext
 // из main) — он используется для фоновых задач сервиса (ротация старых
 // бэкапов и т.п.). Передавайте именно rootCtx, а не request-ctx Fiber'а.
+//
+// gate — опциональный MaintenanceGate (A7-003); nil = только лог (тесты без HTTP).
 func NewBackupService(rootCtx context.Context, repo Repository, s3Client *s3.Client, s3Bucket, pgURL, mongoURL string) *BackupService {
+	return NewBackupServiceWithGate(rootCtx, repo, s3Client, s3Bucket, pgURL, mongoURL, nil)
+}
+
+// NewBackupServiceWithGate как NewBackupService, но с явным MaintenanceGate.
+func NewBackupServiceWithGate(rootCtx context.Context, repo Repository, s3Client *s3.Client, s3Bucket, pgURL, mongoURL string, gate *MaintenanceGate) *BackupService {
 	if rootCtx == nil {
 		rootCtx = context.Background()
 	}
@@ -54,6 +62,7 @@ func NewBackupService(rootCtx context.Context, repo Repository, s3Client *s3.Cli
 		mongoURL:     mongoURL,
 		maxBackups:   4,
 		lifecycleCtx: rootCtx,
+		gate:         gate,
 	}
 }
 
@@ -204,14 +213,25 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 // strPtr возвращает указатель на строку.
 func strPtr(s string) *string { return &s }
 
-// setMaintenanceMode устанавливает/снимает режим обслуживания.
-// Логирует переключение для наблюдаемости.
+// setMaintenanceMode устанавливает/снимает режим обслуживания (A7-003).
+// Переключает MaintenanceGate (если задан) и логирует для наблюдаемости.
 func (s *BackupService) setMaintenanceMode(enabled bool) {
+	if s.gate != nil {
+		s.gate.Set(enabled)
+	}
 	if enabled {
 		slog.Warn("включён режим обслуживания для восстановления бэкапа")
 	} else {
 		slog.Info("режим обслуживания выключен")
 	}
+}
+
+// IsMaintenanceMode сообщает, активен ли гейт обслуживания.
+func (s *BackupService) IsMaintenanceMode() bool {
+	if s == nil || s.gate == nil {
+		return false
+	}
+	return s.gate.Enabled()
 }
 
 // extractZIP извлекает файлы postgres.dump и mongo.archive из ZIP-архива.

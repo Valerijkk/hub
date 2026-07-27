@@ -91,6 +91,16 @@ func ExportBackupSetMaintenanceMode(s *BackupService, enabled bool) {
 	s.setMaintenanceMode(enabled)
 }
 
+// ExportBackupIsMaintenanceMode возвращает состояние gate для hubtest (A7-003).
+func ExportBackupIsMaintenanceMode(s *BackupService) bool {
+	return s.IsMaintenanceMode()
+}
+
+// ExportNewBackupServiceWithGate создаёт BackupService с MaintenanceGate для hubtest.
+func ExportNewBackupServiceWithGate(rootCtx context.Context, repo Repository, gate *MaintenanceGate) *BackupService {
+	return NewBackupServiceWithGate(rootCtx, repo, nil, "", "", "", gate)
+}
+
 // ExportBackupSetS3 задаёт S3 клиент и bucket для hubtest.
 func ExportBackupSetS3(s *BackupService, bucket string, client *s3.Client) {
 	s.s3Bucket = bucket
