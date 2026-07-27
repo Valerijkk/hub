@@ -5,17 +5,21 @@ import {
 	approveListing,
 	CATEGORY_LABELS,
 	createListing,
+	deleteListing,
 	formatListingPrice,
 	type ListingCategory,
 	listMarketplaceListings,
 	listMyListings,
 	listPendingListings,
+	type MarketplaceListing,
 	markListingSold,
 	rejectListing,
 	STATUS_LABELS,
+	updateListing,
 	withdrawListing,
 } from "@/api/marketplace";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { isSystemAdmin } from "@/lib/is-system-admin";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -33,6 +37,11 @@ export function MarketplacePage() {
 	const [listingCategory, setListingCategory] =
 		useState<ListingCategory>("other");
 	const [priceRub, setPriceRub] = useState("");
+	const [editingId, setEditingId] = useState<string | null>(null);
+	const [editTitle, setEditTitle] = useState("");
+	const [deleteTarget, setDeleteTarget] = useState<MarketplaceListing | null>(
+		null,
+	);
 
 	const { data: browseData, isLoading: browseLoading } = useQuery({
 		queryKey: ["marketplace", "browse", category],
@@ -98,6 +107,34 @@ export function MarketplacePage() {
 			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
 			toast.success("Объявление снято");
 		},
+	});
+
+	const updateMutation = useMutation({
+		mutationFn: ({
+			id,
+			title,
+			version,
+		}: {
+			id: string;
+			title: string;
+			version: number;
+		}) => updateListing(id, { title, version }),
+		onSuccess: () => {
+			setEditingId(null);
+			setEditTitle("");
+			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+			toast.success("Объявление обновлено");
+		},
+		onError: () => toast.error("Не удалось обновить объявление"),
+	});
+
+	const deleteMutation = useMutation({
+		mutationFn: (id: string) => deleteListing(id),
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+			toast.success("Объявление удалено");
+		},
+		onError: () => toast.error("Не удалось удалить объявление"),
 	});
 
 	const handleCreate = (e: React.FormEvent) => {
@@ -304,35 +341,101 @@ export function MarketplacePage() {
 								<span className="text-xs text-t3">
 									{STATUS_LABELS[item.status]}
 								</span>
-								{item.status === "approved" && (
-									<Button
-										type="button"
-										size="sm"
-										variant="outline"
-										onClick={() =>
-											soldMutation.mutate({
-												id: item.id,
-												version: item.version,
-											})
-										}
-									>
-										Продано
-									</Button>
-								)}
-								{(item.status === "pending" || item.status === "approved") && (
-									<Button
-										type="button"
-										size="sm"
-										variant="outline"
-										onClick={() =>
-											withdrawMutation.mutate({
-												id: item.id,
-												version: item.version,
-											})
-										}
-									>
-										Снять
-									</Button>
+								{editingId === item.id ? (
+									<>
+										<input
+											type="text"
+											value={editTitle}
+											onChange={(e) => setEditTitle(e.target.value)}
+											aria-label="Новый заголовок объявления"
+											className="min-w-[140px] flex-1 rounded-lg border border-b1 bg-[var(--card)] px-2 py-1 text-sm text-[var(--t1)]"
+										/>
+										<Button
+											type="button"
+											size="sm"
+											disabled={!editTitle.trim() || updateMutation.isPending}
+											onClick={() =>
+												updateMutation.mutate({
+													id: item.id,
+													title: editTitle.trim(),
+													version: item.version,
+												})
+											}
+										>
+											Сохранить
+										</Button>
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											onClick={() => {
+												setEditingId(null);
+												setEditTitle("");
+											}}
+										>
+											Отмена
+										</Button>
+									</>
+								) : (
+									<>
+										{(item.status === "pending" ||
+											item.status === "approved" ||
+											item.status === "rejected") && (
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												onClick={() => {
+													setEditingId(item.id);
+													setEditTitle(item.title);
+												}}
+											>
+												Изменить
+											</Button>
+										)}
+										{item.status === "approved" && (
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												onClick={() =>
+													soldMutation.mutate({
+														id: item.id,
+														version: item.version,
+													})
+												}
+											>
+												Продано
+											</Button>
+										)}
+										{(item.status === "pending" ||
+											item.status === "approved") && (
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												onClick={() =>
+													withdrawMutation.mutate({
+														id: item.id,
+														version: item.version,
+													})
+												}
+											>
+												Снять
+											</Button>
+										)}
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											className="text-[var(--red)]"
+											aria-label={`Удалить объявление ${item.title}`}
+											onClick={() => setDeleteTarget(item)}
+											disabled={deleteMutation.isPending}
+										>
+											Удалить
+										</Button>
+									</>
 								)}
 							</div>
 						)}
@@ -344,6 +447,26 @@ export function MarketplacePage() {
 					{tab === "browse" ? "Объявлений пока нет" : "У вас нет объявлений"}
 				</p>
 			)}
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				title="Удалить объявление?"
+				description={
+					deleteTarget
+						? `Объявление «${deleteTarget.title}» будет удалено безвозвратно.`
+						: undefined
+				}
+				confirmLabel="Удалить"
+				disabled={deleteMutation.isPending}
+				onConfirm={() => {
+					if (!deleteTarget) return;
+					deleteMutation.mutate(deleteTarget.id);
+					setDeleteTarget(null);
+				}}
+			/>
 		</div>
 	);
 }
