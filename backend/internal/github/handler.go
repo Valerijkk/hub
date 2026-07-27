@@ -1,12 +1,8 @@
 package github
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"io"
 	"strconv"
-	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
@@ -44,11 +40,11 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	proj.Get("/github/workflows", h.ListWorkflowRuns, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 	proj.Get("/github/workflows/:runId", h.GetWorkflowRunDetail, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
+	// Создание ветки из задачи (GHUB-05 / A5-006): RBAC на project + service scope issue↔integration.
+	proj.Post("/issues/:issueKey/github/create-branch", h.CreateBranch, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
+
 	// GitHub ссылки для задачи
 	api.Get("/issues/:issueKey/github-links", authMw, h.ListGitHubLinks)
-
-	// Создание ветки из задачи (GHUB-05)
-	api.Post("/issues/:issueKey/github/create-branch", authMw, h.CreateBranch)
 
 	// Превью ссылок (MSG-11)
 	api.Get("/link-preview", authMw, h.GetLinkPreview)
@@ -81,8 +77,8 @@ func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusRequestEntityTooLarge, apperr.MsgBadRequest)
 	}
 
-	// Валидируем HMAC-SHA256 подпись по секретам всех зарегистрированных интеграций.
-	if err := h.validateWebhookSignature(c, body, signature); err != nil {
+	// A5-008: HMAC только секретом интеграции, найденной по repo из payload.
+	if err := h.service.VerifyWebhookSignature(c.Context(), body, signature); err != nil {
 		return err
 	}
 
@@ -91,42 +87,6 @@ func (h *Handler) HandleWebhook(c fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusOK)
-}
-
-// validateWebhookSignature проверяет HMAC-SHA256 подпись webhook-запроса.
-// Перебирает все зарегистрированные секреты интеграций и возвращает 403,
-// если ни один не совпал. Формат подписи: "sha256=<hex>".
-func (h *Handler) validateWebhookSignature(c fiber.Ctx, body []byte, signature string) error {
-	if signature == "" {
-		return fiber.NewError(fiber.StatusForbidden, "отсутствует заголовок X-Hub-Signature-256")
-	}
-
-	// Извлекаем hex-часть из "sha256=<hex>".
-	const prefix = "sha256="
-	if !strings.HasPrefix(signature, prefix) {
-		return fiber.NewError(fiber.StatusForbidden, "некорректный формат подписи")
-	}
-	receivedMAC, err := hex.DecodeString(signature[len(prefix):])
-	if err != nil {
-		return fiber.NewError(fiber.StatusForbidden, "некорректная hex-подпись")
-	}
-
-	secrets, err := h.service.repo.ListAllWebhookSecrets(c.Context())
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "ошибка получения секретов интеграций")
-	}
-
-	// Проверяем подпись по каждому секрету — хотя бы один должен совпасть.
-	for _, secret := range secrets {
-		mac := hmac.New(sha256.New, []byte(secret))
-		mac.Write(body)
-		expectedMAC := mac.Sum(nil)
-		if hmac.Equal(receivedMAC, expectedMAC) {
-			return nil
-		}
-	}
-
-	return fiber.NewError(fiber.StatusForbidden, "невалидная подпись webhook")
 }
 
 // CreateIntegration godoc
@@ -200,13 +160,18 @@ func (h *Handler) ListIntegrations(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/github/integrations/{integrationId} [delete]
 func (h *Handler) DeleteIntegration(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
 	idStr := utils.CopyString(c.Params("integrationId"))
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный integration ID")
 	}
 
-	if err := h.service.DeleteIntegration(c.Context(), id); err != nil {
+	if err := h.service.DeleteIntegration(c.Context(), projectID, id); err != nil {
 		return err
 	}
 
@@ -244,14 +209,21 @@ func (h *Handler) ListGitHubLinks(c fiber.Ctx) error {
 // @Tags GitHub
 // @Accept json
 // @Produce json
+// @Param projectId path string true "ID проекта"
 // @Param issueKey path string true "Ключ задачи"
 // @Param body body CreateBranchRequest true "Параметры ветки"
 // @Success 201 {object} CreateBranchResponse "Ветка создана"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Недостаточно прав"
 // @Security BearerAuth
-// @Router /api/issues/{issueKey}/github/create-branch [post]
+// @Router /api/projects/{projectId}/issues/{issueKey}/github/create-branch [post]
 func (h *Handler) CreateBranch(c fiber.Ctx) error {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		return err
+	}
+
 	issueKey := utils.CopyString(c.Params("issueKey"))
 	if issueKey == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
@@ -262,7 +234,7 @@ func (h *Handler) CreateBranch(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.CreateBranch(c.Context(), issueKey, req)
+	resp, err := h.service.CreateBranch(c.Context(), projectID, issueKey, req)
 	if err != nil {
 		return err
 	}

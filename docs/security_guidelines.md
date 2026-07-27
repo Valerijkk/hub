@@ -251,7 +251,7 @@ if expectedHash != "" { ... }
 | `!=` для секретов | ✅ Magic-link/GitLab webhook `ConstantTimeCompare`; LiveKit `iss` string compare — LOW |
 | WS `CheckOrigin` + authz | ✅ FIXED (`ws/handler.go:84-105,218-231`) |
 | Search user scope | ✅ FIXED (`search/service.go:585` channel_id filter) |
-| Webhook signature skip | ✅ FIXED (LiveKit sha256 required; GitHub/GitLab reject empty) |
+| Webhook signature skip | ✅ FIXED (LiveKit sha256 required; GitHub/GitLab reject empty; **A5-008/009**: HMAC/token bound to matched integration repo/path, not any-of instance secrets) |
 | `*ent.Client` в handler | ⚠️ `auth/handler.go` service методы (рефакторинг Phase 19) |
 | `panic()` в production | ✅ 0 найдено |
 | `DEV_MODE=true` в CI | ✅ FIXED (deploy.yml:63-65 удалён) |

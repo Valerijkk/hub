@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/valerii/hub/backend/ent"
 )
 
 func testGitHubHandlerApp(t *testing.T, repo *githubMockRepo) *fiber.App {
@@ -24,7 +25,7 @@ func testGitHubHandlerApp(t *testing.T, repo *githubMockRepo) *fiber.App {
 	app := fiber.New()
 	app.Post("/github/webhook", h.HandleWebhook)
 	app.Get("/issues/:issueKey/github-links", func(c fiber.Ctx) error { return c.Next() }, h.ListGitHubLinks)
-	app.Post("/issues/:issueKey/github/create-branch", func(c fiber.Ctx) error { return c.Next() }, h.CreateBranch)
+	app.Post("/projects/:projectId/issues/:issueKey/github/create-branch", func(c fiber.Ctx) error { return c.Next() }, h.CreateBranch)
 	app.Get("/projects/:projectId/github/workflows", func(c fiber.Ctx) error { return c.Next() }, h.ListWorkflowRuns)
 	app.Get("/projects/:projectId/github/workflows/:runId", func(c fiber.Ctx) error { return c.Next() }, h.GetWorkflowRunDetail)
 	return app
@@ -89,10 +90,19 @@ func TestParseProjectID_Validation(t *testing.T) {
 
 func TestHandler_HandleWebhook_ValidSignature(t *testing.T) {
 	secret := "webhook-secret"
-	repo := &githubMockRepo{webhookSecrets: []string{secret}}
+	repo := &githubMockRepo{
+		integrations: map[string]*ent.GitHubIntegration{
+			"acme/hub": {
+				ID:            uuid.New(),
+				RepoOwner:     "acme",
+				RepoName:      "hub",
+				WebhookSecret: secret,
+			},
+		},
+	}
 	app := testGitHubHandlerApp(t, repo)
 
-	body := []byte(`{"zen":"test"}`)
+	body := []byte(`{"zen":"test","repository":{"name":"hub","owner":{"login":"acme"}}}`)
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write(body)
 	sig := "sha256=" + hex.EncodeToString(mac.Sum(nil))
