@@ -31,6 +31,8 @@ func ExportMagicLinkTTL() time.Duration { return magicLinkTTL }
 
 func ExportMagicLinkFailsPrefix() string { return magicLinkFailsPrefix }
 
+func ExportMaskEmailMinimized(email string) string { return maskEmailMinimized(email) }
+
 func ExportAuthServiceMagicLink(s *AuthService) *MagicLinkService {
 	return s.magicLink
 }

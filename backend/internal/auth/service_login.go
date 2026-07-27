@@ -58,7 +58,8 @@ func (s *LoginService) LoginWithMagicLink(ctx context.Context, email, code, invi
 		}
 
 		if isNew {
-			slog.Info("new user registered via magic link", "user_id", u.ID.String(), "email", email, "status", u.Status)
+			// A14-006: не логировать полный email.
+			slog.Info("new user registered via magic link", "user_id", u.ID.String(), "email", maskEmailMinimized(email), "status", u.Status)
 		}
 
 		if u.Status != user.StatusActive {

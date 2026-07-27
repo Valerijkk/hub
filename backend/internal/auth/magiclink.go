@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -22,7 +23,7 @@ const (
 	magicLinkFailsPrefix = "magiclink:fails:"
 )
 
-// ResendClient — интерфейс отправки email; в prod — Resend API, в dev (пустой ключ) — лог кода.
+// ResendClient — интерфейс отправки email; в prod — Resend API, в dev (пустой ключ) — код в HTTP-ответе handler'а.
 type ResendClient interface {
 	SendMagicLinkEmail(ctx context.Context, to, code string) error
 }
@@ -52,14 +53,28 @@ func generateCode() (string, error) {
 	return fmt.Sprintf("%06d", n.Int64()), nil
 }
 
-// IsDevMode возвращает true, когда Resend не настроен — код пишется в лог, а не в email.
+// IsDevMode возвращает true, когда Resend не настроен — код возвращается handler'у, не в email.
 func (s *MagicLinkService) IsDevMode() bool {
 	return s.resend == nil
+}
+
+// maskEmailMinimized — A14-006: не писать полный email в stdout/Loki.
+func maskEmailMinimized(email string) string {
+	at := strings.LastIndex(email, "@")
+	if at <= 0 {
+		return "***"
+	}
+	local, domain := email[:at], email[at:]
+	if len(local) == 0 {
+		return "***" + domain
+	}
+	return string(local[0]) + "***" + domain
 }
 
 // SendMagicLink генерирует код, сохраняет в Redis и отправляет email.
 // Лимит: 3 запроса на 10 минут на email (TZ mandatory).
 func (s *MagicLinkService) SendMagicLink(ctx context.Context, email string) (string, error) {
+	masked := maskEmailMinimized(email)
 	// ME-05: атомарное окно rate-limit через SET NX EX — без гонки Incr+Expire,
 	// при которой счётчик мог остаться без TTL после сбоя Redis между командами.
 	rateKey := fmt.Sprintf("magiclink_rate:%s", email)
@@ -89,12 +104,13 @@ func (s *MagicLinkService) SendMagicLink(ctx context.Context, email string) (str
 
 	if s.resend != nil {
 		if err := s.resend.SendMagicLinkEmail(ctx, email, code); err != nil {
-			slog.Error("не удалось отправить magic link email", "email", email, "error", err)
+			slog.Error("не удалось отправить magic link email", "email", masked, "error", err)
 			// A1-007: не маскировать сбой Resend успехом — клиент получит 500, не «sent».
 			return "", fmt.Errorf("send magic link email: %w", err)
 		}
 	} else {
-		slog.Info("magic link code (dev mode)", "email", email, "code", code)
+		// A14-006: OTP никогда в лог — даже в dev (код возвращается handler'у для DX).
+		slog.Info("magic link issued (dev mode)", "email", masked)
 	}
 
 	return code, nil
@@ -103,13 +119,14 @@ func (s *MagicLinkService) SendMagicLink(ctx context.Context, email string) (str
 // VerifyCode сверяет код в Redis; при успехе ключ удаляется (одноразовость).
 // После magicLinkVerifyMax неудач в окне TTL дальнейшие попытки отклоняются (HI-04).
 func (s *MagicLinkService) VerifyCode(ctx context.Context, email, code string) error {
+	masked := maskEmailMinimized(email)
 	codeKey := fmt.Sprintf("magiclink:%s", email)
 	failsKey := magicLinkFailsPrefix + email
 
 	if cnt, err := s.redis.Get(ctx, failsKey).Int(); err == nil && cnt >= magicLinkVerifyMax {
 		return ErrMagicLinkVerifyLimited
 	} else if err != nil && !errors.Is(err, redis.Nil) {
-		slog.Warn("magiclink fails counter read error", "email", email, "error", err)
+		slog.Warn("magiclink fails counter read error", "email", masked, "error", err)
 	}
 
 	stored, err := s.redis.Get(ctx, codeKey).Result()

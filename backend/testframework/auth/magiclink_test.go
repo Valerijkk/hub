@@ -263,3 +263,10 @@ func TestMagicLink_SendMagicLink_ResendErrorPropagates_A1_007(t *testing.T) {
 	assert.True(t, resend.called)
 	assert.Contains(t, err.Error(), "send magic link email")
 }
+
+// TestMaskEmailMinimized_A14_006 — полный email не попадает в маску 1:1.
+func TestMaskEmailMinimized_A14_006(t *testing.T) {
+	assert.Equal(t, "a***@example.com", auth.ExportMaskEmailMinimized("alice@example.com"))
+	assert.Equal(t, "***", auth.ExportMaskEmailMinimized("noperiod"))
+	assert.NotContains(t, auth.ExportMaskEmailMinimized("secret.user@hub.local"), "secret.user")
+}
