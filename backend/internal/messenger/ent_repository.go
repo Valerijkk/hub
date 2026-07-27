@@ -8,15 +8,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/bookmark"
+	"github.com/valerii/hub/backend/ent/call"
 	"github.com/valerii/hub/backend/ent/channel"
 	"github.com/valerii/hub/backend/ent/channelinvite"
 	"github.com/valerii/hub/backend/ent/channelmember"
+	"github.com/valerii/hub/backend/ent/issuemessagelink"
 	"github.com/valerii/hub/backend/ent/pinnedmessage"
 	"github.com/valerii/hub/backend/ent/poll"
 	"github.com/valerii/hub/backend/ent/polloption"
 	"github.com/valerii/hub/backend/ent/pollvote"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
+	"github.com/valerii/hub/backend/ent/scheduledcall"
 )
 
 // EntRepository реализует Ent/PG-часть интерфейса Repository.
@@ -83,9 +86,73 @@ func (r *EntRepository) UpdateChannel(ctx context.Context, channelID uuid.UUID, 
 	return q.Save(ctx)
 }
 
-// DeleteChannel удаляет канал и связанные данные.
+// DeleteChannel удаляет канал и связанные PG-данные в одной транзакции (A8-005).
+// Soft-delete (deleted_at) требует Ent-схему — без approval остаёмся на hard-delete,
+// но сначала чистим children (members/pins/polls/…), иначе FK NoAction ломает удаление.
 func (r *EntRepository) DeleteChannel(ctx context.Context, channelID uuid.UUID) error {
-	return r.client.Channel.DeleteOneID(channelID).Exec(ctx)
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("delete channel begin tx: %w", err)
+	}
+	rollback := func() { _ = tx.Rollback() }
+
+	pollIDs, err := tx.Poll.Query().Where(poll.ChannelIDEQ(channelID)).IDs(ctx)
+	if err != nil {
+		rollback()
+		return fmt.Errorf("list channel polls: %w", err)
+	}
+	if len(pollIDs) > 0 {
+		if _, err := tx.PollVote.Delete().Where(pollvote.HasPollWith(poll.IDIn(pollIDs...))).Exec(ctx); err != nil {
+			rollback()
+			return fmt.Errorf("delete poll votes: %w", err)
+		}
+		if _, err := tx.PollOption.Delete().Where(polloption.HasPollWith(poll.IDIn(pollIDs...))).Exec(ctx); err != nil {
+			rollback()
+			return fmt.Errorf("delete poll options: %w", err)
+		}
+		if _, err := tx.Poll.Delete().Where(poll.IDIn(pollIDs...)).Exec(ctx); err != nil {
+			rollback()
+			return fmt.Errorf("delete polls: %w", err)
+		}
+	}
+
+	if _, err := tx.PinnedMessage.Delete().Where(pinnedmessage.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
+		rollback()
+		return fmt.Errorf("delete pins: %w", err)
+	}
+	if _, err := tx.ChannelInvite.Delete().Where(channelinvite.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
+		rollback()
+		return fmt.Errorf("delete invites: %w", err)
+	}
+	if _, err := tx.IssueMessageLink.Delete().Where(issuemessagelink.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
+		rollback()
+		return fmt.Errorf("delete issue-message links: %w", err)
+	}
+	if _, err := tx.Bookmark.Delete().Where(bookmark.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
+		rollback()
+		return fmt.Errorf("delete bookmarks: %w", err)
+	}
+	if _, err := tx.ScheduledCall.Delete().Where(scheduledcall.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
+		rollback()
+		return fmt.Errorf("delete scheduled calls: %w", err)
+	}
+	// Calls.channel_id optional — отвязываем историю звонков, не удаляем.
+	if _, err := tx.Call.Update().Where(call.ChannelIDEQ(channelID)).ClearChannelID().Save(ctx); err != nil {
+		rollback()
+		return fmt.Errorf("clear call channel_id: %w", err)
+	}
+	if _, err := tx.ChannelMember.Delete().Where(channelmember.ChannelIDEQ(channelID)).Exec(ctx); err != nil {
+		rollback()
+		return fmt.Errorf("delete members: %w", err)
+	}
+	if err := tx.Channel.DeleteOneID(channelID).Exec(ctx); err != nil {
+		rollback()
+		return fmt.Errorf("delete channel: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("delete channel commit: %w", err)
+	}
+	return nil
 }
 
 // IsMember проверяет, является ли пользователь участником канала.

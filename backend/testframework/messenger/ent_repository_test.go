@@ -91,9 +91,12 @@ func TestEntRepository_CreateChannel_Get_Update_Delete(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 
-	// DeleteChannel без каскада участников — FK на sqlite; фиксируем текущее поведение.
+	// A8-005: DeleteChannel чистит members в tx — hard-delete канала больше не падает на FK.
 	err = env.repo.DeleteChannel(env.ctx, ch.ID)
+	require.NoError(t, err)
+	_, err = env.repo.GetChannel(env.ctx, ch.ID)
 	require.Error(t, err)
+	assert.True(t, ent.IsNotFound(err))
 }
 
 // TestEntRepository_MembersAndRoles проверяет слой репозитория: ent репозиторий members and roles.
