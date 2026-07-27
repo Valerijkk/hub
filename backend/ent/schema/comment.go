@@ -29,6 +29,10 @@ func (Comment) Fields() []ent.Field {
 		field.JSON("mentions", []string{}).
 			Optional().
 			Comment("User IDs mentioned"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Soft-delete timestamp (30-day trash)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -58,5 +62,6 @@ func (Comment) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("issue").
 			Fields("created_at"),
+		index.Fields("deleted_at"),
 	}
 }
