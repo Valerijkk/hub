@@ -19,6 +19,9 @@ import (
 // projectStatsTTL время жизни кеша статистики проекта.
 const projectStatsTTL = 5 * time.Minute
 
+// ErrForbidden — A7-001: нет membership в проекте (403 без утечки метрик).
+var ErrForbidden = errors.New("forbidden")
+
 // DashboardService предоставляет агрегированные данные для дашбордов.
 type DashboardService struct {
 	repo    Repository
@@ -173,7 +176,16 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 }
 
 // GetProjectStats возвращает статистику проекта с кешированием в Redis.
-func (s *DashboardService) GetProjectStats(ctx context.Context, projectID uuid.UUID) (*ProjectStats, error) {
+// A7-001: membership check до cache/DB — иначе IDOR + утечка через shared Redis key.
+func (s *DashboardService) GetProjectStats(ctx context.Context, userID, projectID uuid.UUID) (*ProjectStats, error) {
+	isMember, err := s.repo.IsProjectMember(ctx, userID, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("project membership check: %w", err)
+	}
+	if !isMember {
+		return nil, ErrForbidden
+	}
+
 	cacheKey := fmt.Sprintf("dashboard:project:%s", projectID.String())
 
 	// Попытка чтения из кеша

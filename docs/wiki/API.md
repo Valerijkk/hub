@@ -543,7 +543,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | Метод | Путь | Описание |
 |---|---|---|
 | GET | `/dashboard/personal` | Персональный дашборд (мои задачи, активность) |
-| GET | `/dashboard/project/:projectId` | Проектный дашборд (статистика проекта) |
+| GET | `/dashboard/project/:projectId` | Проектный дашборд (статистика; только член проекта; иначе 403) |
 | GET | `/dashboard/admin` | Админский дашборд (общая статистика) |
 | GET | `/dashboard/layout` | Получить layout дашборда |
 | PUT | `/dashboard/layout` | Сохранить layout (позиции виджетов) |

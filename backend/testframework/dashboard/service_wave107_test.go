@@ -133,7 +133,7 @@ func TestGetProjectStats_OverdueVelocityAndActivity(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	stats, err := svc.GetProjectStats(ctx, projectID)
+	stats, err := svc.GetProjectStats(ctx, userID, projectID)
 	require.NoError(t, err)
 	assert.Equal(t, 1, stats.BugCount)
 	assert.Equal(t, 1, stats.Overdue)

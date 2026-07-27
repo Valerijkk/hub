@@ -1,6 +1,8 @@
 package dashboard
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
@@ -64,11 +66,12 @@ func (h *Handler) Personal(c fiber.Ctx) error {
 // @Success 200 {object} ProjectStats "Статистика проекта"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/dashboard/project/{projectId} [get]
 func (h *Handler) Project(c fiber.Ctx) error {
-	_, err := getUserID(c)
+	userID, err := getUserID(c)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
@@ -78,8 +81,12 @@ func (h *Handler) Project(c fiber.Ctx) error {
 		return err
 	}
 
-	stats, err := h.service.GetProjectStats(c.Context(), projectID)
+	stats, err := h.service.GetProjectStats(c.Context(), userID, projectID)
 	if err != nil {
+		// A7-001: non-member -> 403 (не отдаём метрики чужого проекта)
+		if errors.Is(err, ErrForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для просмотра статистики проекта")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка загрузки статистики проекта")
 	}
 

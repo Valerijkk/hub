@@ -286,6 +286,12 @@ func TestHandler_Project_Success(t *testing.T) {
 		SetKey("STP").
 		Save(ctx)
 	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().
+		SetUserID(userID).
+		SetProjectID(proj.ID).
+		SetProjectRole("developer").
+		Save(ctx)
+	require.NoError(t, err)
 
 	h := dashboard.NewHandler(svc)
 	app := fiber.New()

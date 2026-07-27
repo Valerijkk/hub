@@ -14,6 +14,7 @@ import (
 	"github.com/valerii/hub/backend/ent/dashboardlayout"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/session"
 	"github.com/valerii/hub/backend/ent/testrun"
 	"github.com/valerii/hub/backend/ent/timelog"
@@ -39,6 +40,8 @@ type Repository interface {
 	CountIssues(ctx context.Context) (int, error)
 	ListProjectsWithIssues(ctx context.Context) ([]*ent.Project, error)
 	GetUser(ctx context.Context, userID uuid.UUID) (*ent.User, error)
+	// IsProjectMember — A7-001: GetProjectStats требует membership до cache/DB.
+	IsProjectMember(ctx context.Context, userID, projectID uuid.UUID) (bool, error)
 	GetDashboardLayout(ctx context.Context, userID uuid.UUID, dashboardType string, projectID *uuid.UUID) (*ent.DashboardLayout, error)
 	SaveDashboardLayout(ctx context.Context, userID uuid.UUID, req SaveLayoutRequest) error
 }
@@ -258,6 +261,20 @@ func (r *EntRepository) SaveDashboardLayout(ctx context.Context, userID uuid.UUI
 
 	_, err = creator.Save(ctx)
 	return err
+}
+
+// IsProjectMember реализует Repository.
+func (r *EntRepository) IsProjectMember(ctx context.Context, userID, projectID uuid.UUID) (bool, error) {
+	exists, err := r.client.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(project.IDEQ(projectID)),
+			projectmember.HasUserWith(user.IDEQ(userID)),
+		).
+		Exist(ctx)
+	if err != nil {
+		return false, fmt.Errorf("project membership: %w", err)
+	}
+	return exists, nil
 }
 
 // IsNotFound — сообщает об ошибках ent not-found.

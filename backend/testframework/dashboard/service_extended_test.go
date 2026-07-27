@@ -91,8 +91,16 @@ func TestGetLayout_NotFoundReturnsNil(t *testing.T) {
 }
 
 func TestGetProjectStats_CacheHit(t *testing.T) {
-	svc, _, ctx, _ := newDashboardTestEnv(t)
-	projectID := uuid.New()
+	svc, client, ctx, userID := newDashboardTestEnv(t)
+	proj, err := client.Project.Create().SetName("Cached").SetKey("CCH").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().
+		SetUserID(userID).
+		SetProjectID(proj.ID).
+		SetProjectRole("developer").
+		Save(ctx)
+	require.NoError(t, err)
+	projectID := proj.ID
 
 	cached := &dashboard.ProjectStats{
 		TasksByStatus: map[string]int{"todo": 3},
@@ -103,7 +111,7 @@ func TestGetProjectStats_CacheHit(t *testing.T) {
 	cacheKey := "dashboard:project:" + projectID.String()
 	require.NoError(t, dashboard.ExportDashboardServiceRedis(svc).Set(ctx, cacheKey, string(data), dashboard.ExportProjectStatsTTL()).Err())
 
-	stats, err := svc.GetProjectStats(ctx, projectID)
+	stats, err := svc.GetProjectStats(ctx, userID, projectID)
 	require.NoError(t, err)
 	assert.Equal(t, 3, stats.TasksByStatus["todo"])
 	assert.Equal(t, 1, stats.BugCount)
@@ -179,7 +187,7 @@ func TestGetProjectStats_ComputesFromDB(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	stats, err := svc.GetProjectStats(ctx, projectID)
+	stats, err := svc.GetProjectStats(ctx, userID, projectID)
 	require.NoError(t, err)
 	assert.Equal(t, 1, stats.BugCount)
 	assert.Equal(t, 1, stats.Unassigned)
@@ -188,6 +196,38 @@ func TestGetProjectStats_ComputesFromDB(t *testing.T) {
 	cached, err := rdb.Get(ctx, "dashboard:project:"+projectID.String()).Result()
 	require.NoError(t, err)
 	assert.Contains(t, cached, `"bug_count":1`)
+}
+
+// TestGetProjectStats_NonMemberForbidden — A7-001: GetProjectStats требует
+// IsProjectMember до cache/DB. Mutation guard: при снятии проверки stranger
+// получит stats (err==nil) через shared Redis cache; при живой — ErrForbidden.
+func TestGetProjectStats_NonMemberForbidden(t *testing.T) {
+	repo, client, ctx, ownerID, projectID := newDashboardRepoEnv(t)
+
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	svc := dashboard.NewDashboardService(repo, rdb, nil)
+
+	// Seed cache as if a member already warmed it — IDOR would leak via Redis.
+	cached := &dashboard.ProjectStats{BugCount: 99, TasksByStatus: map[string]int{"todo": 7}}
+	raw, err := json.Marshal(cached)
+	require.NoError(t, err)
+	require.NoError(t, rdb.Set(ctx, "dashboard:project:"+projectID.String(), string(raw), dashboard.ExportProjectStatsTTL()).Err())
+
+	stranger, err := client.User.Create().
+		SetEmail("stranger-" + uuid.New().String()[:8] + "@test.com").
+		Save(ctx)
+	require.NoError(t, err)
+	_ = ownerID
+
+	stats, err := svc.GetProjectStats(ctx, stranger.ID, projectID)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, dashboard.ErrForbidden)
+	assert.Nil(t, stats, "non-member must not see project stats (A7-001)")
 }
 
 func TestGetAdminStats_BasicCounts(t *testing.T) {
