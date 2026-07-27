@@ -66,6 +66,13 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (fe1 · W13 A11-003 + UX/a11y)
+
+- A11-003: deleted dead TelegramButton + Magic Link i18n (`5112ab2`).
+- A11-004 regression test (`375783b`; code prior `7687f20`).
+- A10-006 / A10-005 / A10-010 FIXED (`04d98f8` `bba4666` `ed8cff6`).
+- Report: `.planning/audits/grok-2026-07/FIX-W13.md`. Vitest W13 suites 9/9 PASS.
+
 ## Session note — 2026-07-27 (fe2 · W12 FE A10-001…004)
 
 - A10-001: WS channel events → React Query cache (`903c3b7`).

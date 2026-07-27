@@ -341,7 +341,10 @@ export function UserManagement() {
 				query={usersQuery}
 				isEmpty={(users) => users.length === 0}
 				emptyFallback={
-					<p className="px-4 py-8 text-center text-t3 text-[13px]" role="status">
+					<p
+						className="px-4 py-8 text-center text-t3 text-[13px]"
+						role="status"
+					>
 						Пользователи не найдены
 					</p>
 				}
@@ -377,130 +380,142 @@ export function UserManagement() {
 						);
 					}
 					return (
-			<table
-				className="w-full"
-				style={{ borderCollapse: "separate", borderSpacing: 0 }}
-			>
-				<thead>
-					<tr>
-						<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
-							Пользователь
-						</th>
-						<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
-							Роль
-						</th>
-						<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
-							Статус
-						</th>
-						<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
-							Последняя активность
-						</th>
-						<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2 w-[100px]">
-							Действия
-						</th>
-					</tr>
-				</thead>
-				<tbody>
-					{filtered.map((user) => (
-							<tr
-								key={user.id}
-								className={user.status === "deactivated" ? "opacity-50" : ""}
-							>
-								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
-									<div className="flex items-center gap-[11px]">
-										<div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)]">
-											{(user.name?.[0] ?? user.email[0] ?? "?").toUpperCase()}
-										</div>
-										<div>
-											<div className="text-[14px] font-semibold">
-												{user.name || user.display_name || "-"}
-											</div>
-											<div className="text-[12px] text-t3">{user.email}</div>
-										</div>
-									</div>
-								</td>
-								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
-									<span
-										className={`inline-flex px-[10px] py-[3px] rounded-full text-[11px] font-[650] ${
-											user.system_role === "founder" ||
-											user.system_role === "admin"
-												? "bg-blue/[0.08] text-blue border border-blue/[0.15]"
-												: user.system_role === "moderator"
-													? "bg-purple/[0.08] text-purple border border-purple/[0.15]"
-													: user.status === "deactivated"
-														? "bg-[var(--gray)]/[0.08] text-[var(--gray)] border border-[var(--gray)]/[0.15]"
-														: "bg-green/[0.08] text-green border border-green/[0.15]"
-										}`}
+						<table
+							className="w-full"
+							style={{ borderCollapse: "separate", borderSpacing: 0 }}
+						>
+							<thead>
+								<tr>
+									<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+										Пользователь
+									</th>
+									<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+										Роль
+									</th>
+									<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+										Статус
+									</th>
+									<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2">
+										Последняя активность
+									</th>
+									<th className="sticky top-0 z-[5] bg-[var(--base)] text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-4 py-3 border-b border-b2 w-[100px]">
+										Действия
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{filtered.map((user) => (
+									<tr
+										key={user.id}
+										className={
+											user.status === "deactivated" ? "opacity-50" : ""
+										}
 									>
-										{user.system_role}
-									</span>
-								</td>
-								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
-									{user.status === "pending" ? (
-										<span className="text-amber-400">{"\u25CF"} Ожидает</span>
-									) : user.status === "deactivated" ? (
-										<span className="text-t4">{"\u25CB"} Деактивирован</span>
-									) : (
-										<span className="text-green">{"\u25CF"} Активен</span>
-									)}
-								</td>
-								<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] text-t2 hover:bg-[var(--hover)]">
-									{user.created_at
-										? new Date(user.created_at).toLocaleDateString("ru-RU")
-										: "-"}
-								</td>
-								<td className="px-4 py-[14px] border-b border-b1 align-middle hover:bg-[var(--hover)]">
-									<div className="flex gap-1">
-										{user.status !== "deactivated" && (
-											<>
+										<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
+											<div className="flex items-center gap-[11px]">
+												<div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)]">
+													{(
+														user.name?.[0] ??
+														user.email[0] ??
+														"?"
+													).toUpperCase()}
+												</div>
+												<div>
+													<div className="text-[14px] font-semibold">
+														{user.name || user.display_name || "-"}
+													</div>
+													<div className="text-[12px] text-t3">
+														{user.email}
+													</div>
+												</div>
+											</div>
+										</td>
+										<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
+											<span
+												className={`inline-flex px-[10px] py-[3px] rounded-full text-[11px] font-[650] ${
+													user.system_role === "founder" ||
+													user.system_role === "admin"
+														? "bg-blue/[0.08] text-blue border border-blue/[0.15]"
+														: user.system_role === "moderator"
+															? "bg-purple/[0.08] text-purple border border-purple/[0.15]"
+															: user.status === "deactivated"
+																? "bg-[var(--gray)]/[0.08] text-[var(--gray)] border border-[var(--gray)]/[0.15]"
+																: "bg-green/[0.08] text-green border border-green/[0.15]"
+												}`}
+											>
+												{user.system_role}
+											</span>
+										</td>
+										<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] hover:bg-[var(--hover)]">
+											{user.status === "pending" ? (
+												<span className="text-amber-400">
+													{"\u25CF"} Ожидает
+												</span>
+											) : user.status === "deactivated" ? (
+												<span className="text-t4">
+													{"\u25CB"} Деактивирован
+												</span>
+											) : (
+												<span className="text-green">{"\u25CF"} Активен</span>
+											)}
+										</td>
+										<td className="px-4 py-[14px] border-b border-b1 align-middle text-[13px] text-t2 hover:bg-[var(--hover)]">
+											{user.created_at
+												? new Date(user.created_at).toLocaleDateString("ru-RU")
+												: "-"}
+										</td>
+										<td className="px-4 py-[14px] border-b border-b1 align-middle hover:bg-[var(--hover)]">
+											<div className="flex gap-1">
+												{user.status !== "deactivated" && (
+													<>
+														<button
+															type="button"
+															onClick={() => setBanDialogUser(user)}
+															disabled={actionUserId === user.id}
+															className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-red/[0.1] hover:text-red disabled:opacity-50"
+															title="Заблокировать"
+															aria-label="Заблокировать пользователя"
+														>
+															{"\u26D4"}
+														</button>
+														<button
+															type="button"
+															onClick={() => setDeactivateDialogUser(user)}
+															disabled={actionUserId === user.id}
+															className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
+															title="Деактивировать"
+															aria-label="Деактивировать пользователя"
+														>
+															{"\u2718"}
+														</button>
+													</>
+												)}
 												<button
 													type="button"
-													onClick={() => setBanDialogUser(user)}
-													disabled={actionUserId === user.id}
-													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-red/[0.1] hover:text-red disabled:opacity-50"
-													title="Заблокировать"
-													aria-label="Заблокировать пользователя"
-												>
-													{"\u26D4"}
-												</button>
-												<button
-													type="button"
-													onClick={() => setDeactivateDialogUser(user)}
+													onClick={() => setReassignDialogUser(user)}
 													disabled={actionUserId === user.id}
 													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
-													title="Деактивировать"
-													aria-label="Деактивировать пользователя"
+													title="Переназначить"
+													aria-label="Переназначить задачи пользователя"
 												>
-													{"\u2718"}
+													{"\u270E"}
 												</button>
-											</>
-										)}
-										<button
-											type="button"
-											onClick={() => setReassignDialogUser(user)}
-											disabled={actionUserId === user.id}
-											className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-t1 disabled:opacity-50"
-											title="Переназначить"
-											aria-label="Переназначить задачи пользователя"
-										>
-											{"\u270E"}
-										</button>
-										<button
-											type="button"
-											onClick={() => setGdprDialogUser(user)}
-											disabled={actionUserId === user.id}
-											className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-red disabled:opacity-50"
-											title="GDPR удаление"
-											aria-label="GDPR удаление данных пользователя"
-										>
-											{"\uD83D\uDDD1"}
-										</button>
-									</div>
-								</td>
-							</tr>
-						))}
-				</tbody>
-			</table>
+												<button
+													type="button"
+													onClick={() => setGdprDialogUser(user)}
+													disabled={actionUserId === user.id}
+													className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:bg-[var(--hover)] hover:text-red disabled:opacity-50"
+													title="GDPR удаление"
+													aria-label="GDPR удаление данных пользователя"
+												>
+													{"\uD83D\uDDD1"}
+												</button>
+											</div>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
 					);
 				}}
 			</QueryStateView>
