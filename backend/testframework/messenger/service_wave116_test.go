@@ -51,8 +51,12 @@ func TestDeleteChannel_SuccessForOwner(t *testing.T) {
 	channelID := setupChannelWithMembers(repo, "public", false, ownerID)
 
 	require.NoError(t, svc.DeleteChannel(ctx, channelID, ownerID))
-	_, ok := repo.channels[channelID]
-	assert.False(t, ok)
+	ch, ok := repo.channels[channelID]
+	require.True(t, ok, "soft-delete keeps row")
+	require.NotNil(t, ch.DeletedAt)
+	_, err := repo.GetChannel(ctx, channelID)
+	require.Error(t, err)
+	assert.True(t, ent.IsNotFound(err))
 }
 
 // TestAddMembers_ForbiddenForMember проверяет отклонение при add members запрещённый for участник.

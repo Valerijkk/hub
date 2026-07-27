@@ -91,7 +91,7 @@ func TestEntRepository_CreateChannel_Get_Update_Delete(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 
-	// A8-005: DeleteChannel чистит members в tx — hard-delete канала больше не падает на FK.
+	// A8-005: DeleteChannel — soft-delete (deleted_at); Get скрывает канал.
 	err = env.repo.DeleteChannel(env.ctx, ch.ID)
 	require.NoError(t, err)
 	_, err = env.repo.GetChannel(env.ctx, ch.ID)

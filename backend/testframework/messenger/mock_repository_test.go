@@ -93,6 +93,9 @@ func (m *mockRepository) GetChannel(_ context.Context, channelID uuid.UUID) (*en
 	if !ok {
 		return nil, &ent.NotFoundError{}
 	}
+	if ch.DeletedAt != nil {
+		return nil, &ent.NotFoundError{}
+	}
 	return ch, nil
 }
 
@@ -100,7 +103,7 @@ func (m *mockRepository) ListUserChannels(_ context.Context, userID uuid.UUID) (
 	var result []*ent.Channel
 	for chID, members := range m.members {
 		if _, ok := members[userID]; ok {
-			if ch, ok := m.channels[chID]; ok {
+			if ch, ok := m.channels[chID]; ok && ch.DeletedAt == nil {
 				result = append(result, ch)
 			}
 		}
@@ -126,12 +129,20 @@ func (m *mockRepository) UpdateChannel(_ context.Context, channelID uuid.UUID, i
 }
 
 func (m *mockRepository) DeleteChannel(_ context.Context, channelID uuid.UUID) error {
-	delete(m.channels, channelID)
-	delete(m.members, channelID)
+	ch, ok := m.channels[channelID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	now := time.Now().UTC()
+	ch.DeletedAt = &now
 	return nil
 }
 
 func (m *mockRepository) IsMember(_ context.Context, channelID, userID uuid.UUID) (bool, error) {
+	ch, ok := m.channels[channelID]
+	if !ok || ch.DeletedAt != nil {
+		return false, nil
+	}
 	members, ok := m.members[channelID]
 	if !ok {
 		return false, nil
@@ -141,6 +152,10 @@ func (m *mockRepository) IsMember(_ context.Context, channelID, userID uuid.UUID
 }
 
 func (m *mockRepository) GetMemberRole(_ context.Context, channelID, userID uuid.UUID) (string, error) {
+	ch, ok := m.channels[channelID]
+	if !ok || ch.DeletedAt != nil {
+		return "", &ent.NotFoundError{}
+	}
 	members, ok := m.members[channelID]
 	if !ok {
 		return "", &ent.NotFoundError{}
@@ -189,7 +204,7 @@ func (m *mockRepository) RemoveMember(_ context.Context, channelID, userID uuid.
 
 func (m *mockRepository) FindDMChannel(_ context.Context, dmKey string) (*ent.Channel, error) {
 	ch, ok := m.dmChannels[dmKey]
-	if !ok {
+	if !ok || ch.DeletedAt != nil {
 		return nil, &ent.NotFoundError{}
 	}
 	return ch, nil

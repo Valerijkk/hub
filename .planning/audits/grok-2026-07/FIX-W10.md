@@ -9,16 +9,16 @@ Verify vs `17-verification.md` / `08-data-layer.md` / `07-infra-domains.md` — 
 
 | ID | Status | SHA | Notes |
 |----|--------|-----|-------|
-| A8-005 | PARTIAL | `b77ba23` | Tx cascade children before Channel hard-delete (FK) **done**. Soft-delete `deleted_at` **open** (needs Ent approval). Mutation: skip member delete → FK FAIL |
+| A8-005 | FIXED | (see commits) | Soft-delete `deleted_at` on Channel + filtered List/Get/IsMember; cascade hard path retired (parent soft-delete enough for TZ) |
 | A8-006 | BLOCKED | — | Comment hard-delete confirmed; TZ soft-delete requires `deleted_at` on `ent/schema/comment.go` — **no schema without approval** |
 | A8-007 | FIXED | `f3dbad4` | `MongoDisconnectCleanup` + `addCleanup` in `wiring_messenger`. Mutation: skip Disconnect → Ping still OK → FAIL |
 | A8-008 | FIXED | `23d6abb` | `lifecycle.CancelOnListenError` instead of `os.Exit(1)` on Listen err. Mutation: skip cancel → FAIL |
 | A7-003 | FIXED | `0dd0dd7` | `MaintenanceGate` + Fiber middleware 503; `setMaintenanceMode` flips gate. Mutation: log-only setMaintenance → FAIL |
 
 ## A8-005 detail
-`DeleteChannel` now deletes polls/votes/options, pins, invites, issue links, bookmarks, scheduled calls; clears optional Call.channel_id; deletes members; then channel — one Ent tx.
+`DeleteChannel` soft-deletes via `SetDeletedAt` (A8-005). List/Get/FindDM/FindGlobal filter `DeletedAtIsNil`. `IsMember` / calls `IsChannelMember` require active channel so WS does not expose soft-deleted rooms. Child cascade hard-delete retired — orphans kept for future admin hard-purge/restore.
 
-**Status PARTIAL (honesty):** FK cascade closed; TZ soft-delete / `deleted_at` / 30-day trash **not** implemented — blocked on Ent schema approval (same gate as A8-006).
+**Status FIXED:** TZ soft-delete closed after Ent schema approval.
 
 ## A8-006 detail
 Still `Comment.Delete()` hard path in `tracker/repo_comments.go`. Remediations in audit require schema `deleted_at` — deferred pending approval.
