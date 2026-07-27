@@ -354,6 +354,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-STORAGE-01 | Upload URL TTL | `TestUploadURLTTL` |
 | TC-STORAGE-02 | Download URL TTL | `TestDownloadURLTTL` |
 | TC-STORAGE-03 | Result fields | `TestUploadResult_Fields` |
+| TC-STORAGE-04 | ConfirmUpload already confirmed → 409 (A4-006) | `TestHandler_ConfirmUpload_AlreadyConfirmed_409_A4_006`, `TestConfirmUpload_RejectsAlreadyConfirmed_A4_006` |
 | TC-WS-01 | Message type constants | `TestMessageTypeConstants` |
 | TC-WS-02 | Client/Server JSON | `TestClientMessage_JSON`, `TestServerMessage_JSON` |
 | TC-WS-03 | Ping protocol | `TestClientMessage_PingHasNoRoom` |
