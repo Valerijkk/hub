@@ -1530,11 +1530,11 @@ backend/internal/
 
 | Метод | Путь | Описание | Auth |
 |-------|------|----------|------|
-| GET | /crm/contacts | Список контактов | JWT |
+| GET | /crm/contacts | Список контактов (owner; admin=org) | JWT |
 | POST | /crm/contacts | Создать контакт | JWT |
 | PUT | /crm/contacts/:contactId | Обновить (version) | JWT |
 | DELETE | /crm/contacts/:contactId | Soft delete | JWT |
-| GET | /crm/pipeline | Kanban сделок по stage | JWT |
+| GET | /crm/pipeline | Kanban сделок (owner; admin=org) | JWT |
 | POST | /crm/deals | Создать сделку | JWT |
 | PUT | /crm/deals/:dealId | Обновить / переместить stage | JWT |
 | DELETE | /crm/deals/:dealId | Soft delete | JWT |

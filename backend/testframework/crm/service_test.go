@@ -61,7 +61,7 @@ func TestService_ContactLifecycle(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	list, err := svc.ListContacts(ctx)
+	list, err := svc.ListContacts(ctx, ownerID)
 	require.NoError(t, err)
 	assert.Len(t, list, 1)
 
@@ -82,7 +82,7 @@ func TestService_ContactLifecycle(t *testing.T) {
 	err = svc.DeleteContact(ctx, ownerID, created.ID)
 	require.NoError(t, err)
 
-	list, err = svc.ListContacts(ctx)
+	list, err = svc.ListContacts(ctx, ownerID)
 	require.NoError(t, err)
 	assert.Empty(t, list)
 }
@@ -132,7 +132,7 @@ func TestService_DealValidationAndDelete(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pipeline, err := svc.GetPipeline(ctx)
+	pipeline, err := svc.GetPipeline(ctx, ownerID)
 	require.NoError(t, err)
 	assert.Len(t, pipeline.Stages, len(crm.PipelineStages))
 

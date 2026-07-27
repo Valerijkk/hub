@@ -41,8 +41,14 @@ func (s *Service) SetDealInvoiceCreator(c DealInvoiceCreator) {
 	s.invoiceCreator = c
 }
 
-func (s *Service) ListContacts(ctx context.Context) ([]ContactResponse, error) {
-	items, err := s.repo.ListContacts(ctx)
+// ListContacts — RT-003: member видит только свои контакты (created_by);
+// system admin/founder — полный org-list (CRM-lite admin view).
+func (s *Service) ListContacts(ctx context.Context, userID uuid.UUID) ([]ContactResponse, error) {
+	scope, err := s.listOwnerScope(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	items, err := s.repo.ListContacts(ctx, scope)
 	if err != nil {
 		return nil, fmt.Errorf("list contacts: %w", err)
 	}
@@ -122,8 +128,14 @@ func (s *Service) DeleteContact(ctx context.Context, userID, id uuid.UUID) error
 	return nil
 }
 
-func (s *Service) GetPipeline(ctx context.Context) (*PipelineResponse, error) {
-	deals, err := s.repo.ListDeals(ctx)
+// GetPipeline — RT-003: member видит только свои deals (owner_id);
+// system admin/founder — полный org pipeline.
+func (s *Service) GetPipeline(ctx context.Context, userID uuid.UUID) (*PipelineResponse, error) {
+	scope, err := s.listOwnerScope(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	deals, err := s.repo.ListDeals(ctx, scope)
 	if err != nil {
 		return nil, fmt.Errorf("list deals: %w", err)
 	}
@@ -212,6 +224,18 @@ func (s *Service) DeleteDeal(ctx context.Context, userID, id uuid.UUID) error {
 		return fmt.Errorf("delete deal: %w", err)
 	}
 	return nil
+}
+
+// listOwnerScope — nil = org-wide (admin/founder); иначе filter по caller.
+func (s *Service) listOwnerScope(ctx context.Context, userID uuid.UUID) (*uuid.UUID, error) {
+	ok, err := s.repo.IsSystemAdmin(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("check admin: %w", err)
+	}
+	if ok {
+		return nil, nil
+	}
+	return &userID, nil
 }
 
 // authorizeContactWrite — owner (created_by) или system admin/founder (A6-001).

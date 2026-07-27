@@ -33,7 +33,11 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 }
 
 func (h *Handler) ListContacts(c fiber.Ctx) error {
-	items, err := h.service.ListContacts(c.Context())
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	items, err := h.service.ListContacts(c.Context(), userID)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to list contacts")
 	}
@@ -92,7 +96,11 @@ func (h *Handler) DeleteContact(c fiber.Ctx) error {
 }
 
 func (h *Handler) GetPipeline(c fiber.Ctx) error {
-	resp, err := h.service.GetPipeline(c.Context())
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	resp, err := h.service.GetPipeline(c.Context(), userID)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to get pipeline")
 	}

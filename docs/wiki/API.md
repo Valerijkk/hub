@@ -896,13 +896,15 @@ HR-lite: заявки на отсутствие (отпуск, больничн�
 
 CRM-lite: контакты (отдельная сущность от User) и kanban pipeline сделок. Связь сделки с проектом — optional `project_id` (требуется членство в проекте).
 
+**Доступ (RT-003):** `GET /crm/contacts` и `GET /crm/pipeline` для member — только свои записи (`created_by` / `owner_id`); system admin/founder — полный org-list (CRM-lite admin view). Update/Delete — owner или admin (A6-001).
+
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/crm/contacts` | Список контактов |
+| GET | `/crm/contacts` | Список контактов (owner-scoped; admin = org-wide) |
 | POST | `/crm/contacts` | Создать контакт |
 | PUT | `/crm/contacts/:contactId` | Обновить (optimistic `version`) |
 | DELETE | `/crm/contacts/:contactId` | Soft delete |
-| GET | `/crm/pipeline` | Kanban: сделки по stage |
+| GET | `/crm/pipeline` | Kanban: сделки по stage (owner-scoped; admin = org-wide) |
 | POST | `/crm/deals` | Создать сделку |
 | PUT | `/crm/deals/:dealId` | Обновить / переместить stage |
 | DELETE | `/crm/deals/:dealId` | Soft delete |

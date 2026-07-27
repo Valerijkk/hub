@@ -17,7 +17,7 @@ Re-verified against current `backend/internal/**` on `cursor-grok-4.5` (HEAD at 
 |----|----------|--------|-----------------|-------------------|--------------|
 | **RT-001** Pending→JWT | CRITICAL | **CLOSED** | `auth/service_login.go` — `u.Status != user.StatusActive` → deny before `CreateSession`; `auth/middleware.go` `userIsDeactivated` = any non-`active`; refresh path same | `f8e17f9` (A1-001) | Dev-only `dev/handler` CreateSession bypass (out of attacker model / `-tags release`) |
 | **RT-002** Messenger search all channels | CRITICAL | **CLOSED** | `messenger/service_search.go` — `channel_id` → `IsMember`; else `ListUserChannels` allowlist before search | `449c2c3` (A2-001); W17 matrix PASS | — |
-| **RT-003** CRM PII mutate + invoice | CRITICAL | **PARTIAL** (**ADR-blocked** residual) | **Writes CLOSED:** `authorizeContactWrite` / `authorizeDealWrite` on Update/Delete (`crm/service.go`) | W2 CRM authorize* | **Reads still org-wide (ADR-blocked):** `ListContacts` / `GetPipeline` dump all contacts/deals to any JWT (`authMw` only; no `PermCrm*`). See §1.1 |
+| **RT-003** CRM PII mutate + invoice | CRITICAL | **CLOSED** | **Writes:** `authorizeContactWrite` / `authorizeDealWrite`. **Reads:** `ListContacts` / `GetPipeline` owner-scoped (`created_by` / `owner_id`); `IsSystemAdmin` → org-wide | W2 authorize* + RT-003 list scope | — |
 | **RT-004** Cross-project role IDOR | CRITICAL | **CLOSED** | `rbac/custom_roles.go` — `GetRoleProjectID` + `ErrRoleProjectMismatch` on Update/Delete/Assign | `48bedbb` (A1-002/003) | — |
 | **RT-005** CompleteSprint steals issues | CRITICAL | **CLOSED** | All service paths use `GetSprintInProject(projectID, sprintID)`: Complete/Start/Get/Update/Retro/Burndown/AddIssues | `1ac8669` (Complete); `8e0c9f2` (Start); `716c823` (Get/Update/Retro/Burndown/AddIssues + hubtests) | — |
 | **RT-006** Imex export without RBAC | HIGH | **CLOSED** | `imex/handler.go` — import/export/PDF wrapped in `rbac.RequirePermission` | `2686bb4` (A5-002); PDF project scope `0d5d862` (A5-010) | — |
@@ -33,38 +33,28 @@ Re-verified against current `backend/internal/**` on `cursor-grok-4.5` (HEAD at 
 | Metric | Value |
 |--------|------:|
 | Chains | 12 |
-| **CLOSED** | **11** |
-| **PARTIAL** | **1** (RT-003 **ADR-blocked** read) |
+| **CLOSED** | **12** |
+| **PARTIAL** | **0** |
 | **ALIVE** (full named chain) | **0** |
 | Original exploitability | 8.5/10 |
-| Post-FIX residual (honest) | **~2.5/10** insider (org CRM read ADR-blocked) |
+| Post-FIX residual (honest) | **~1.5/10** (schema/ops residuals, not RT) |
 
 **RT-005 closed 2026-07-28:** siblings scoped in `716c823` after StartSprint `8e0c9f2` / CompleteSprint `1ac8669`.
 
-### 1.1 RT-003 residual honesty (ADR-blocked — do not claim code-closable)
+### 1.1 RT-003 — CLOSED (product decision 2026-07-28)
 
-**What is still open (reads only):**
+**RT-003 closed 2026-07-28:** product decision — non-admin List/Pipeline owner-scoped; admin/founder org-wide.
 
-| Endpoint | Gate today | Scope |
-|----------|------------|-------|
-| `GET /api/crm/contacts` → `ListContacts` | `authMw` only | All non-deleted contacts (email/phone/notes) — org dump |
-| `GET /api/crm/pipeline` → `GetPipeline` → `ListDeals` | `authMw` only | All non-deleted deals by stage — org dump |
+| Endpoint | Gate | Scope |
+|----------|------|-------|
+| `GET /api/crm/contacts` → `ListContacts(userID)` | `authMw` + service scope | Member: `created_by`; admin/founder: org-wide |
+| `GET /api/crm/pipeline` → `GetPipeline(userID)` → `ListDeals` | same | Member: `owner_id`; admin/founder: org-wide |
 
-Writes (Update/Delete + won→invoice) remain **CLOSED** via owner/admin `authorize*Write`. No project/member filter on list paths. Contacts have **no** `project_id`; deal `project_id` is optional (membership checked only on create/update refs).
+Writes remain owner/admin via `authorize*Write`. Product policy (user-approved): personal CRM for members + CRM-lite admin view for system admin/founder — closes former ADR-blocked org dump without inventing `PermCrm*` / project filters.
 
-**Why a “minimal safe scope” is not shippable without ADR:**
-
-1. **No existing RBAC hook** — `backend/internal/rbac` has **zero** `PermCrm*` / CRM module permissions; routes are not under `/projects/:projectId`, so project RBAC cannot be “already required”.
-2. **Owner-only List/Pipeline** would invent personal CRM semantics: wiki (`docs/wiki/API.md` CRM) documents org list without owner-scope (contrast: Bases explicitly owner-scoped). FE pipeline expects shared kanban. That is a **product** choice, not a bugfix.
-3. **Admin-only List** (accounting pattern) would lock CRM-lite to founder/admin and break member sales workflow — also product ADR.
-4. **Project-membership filter** is incomplete: contacts are not project-bound; deals without `project_id` have no project to scope — inventing rules here risks silent data loss or fake “safety”.
-5. **Gray zone already open:** `GZ-SEC-13` (modular `crm:manager` + field masking) — default in `GRAY-ZONES-DECISIONS-2026-07-03.md`, **not** implemented as code yet. Closing read dump = accept **org-shared CRM** in ADR **or** implement that role model via ADR — not a silent be1 patch.
-6. Pagination alone (A6-009) reduces unbounded blast but **does not** close PII visibility to every JWT member.
-
-**Verdict:** RT-003 read residual = **ADR-blocked**. Code-only `fix(crm):` for list scope without product ADR is **out of bounds** (would invent multi-role / personal-CRM policy). Track until ADR: org-shared accept **or** `crm:manager` / owner-read scope (+ optional pagination).
+**Verdict:** RT-003 **CLOSED**.
 
 ---
-
 ## 2. Planning sync (drift check — no rewrite)
 
 | Artifact | Claim | Reality (2026-07-27) | Drift? |
@@ -143,7 +133,7 @@ Canonical unique count from `00-SUMMARY.md`: **262** (user shorthand «261» ≈
 | Closed in FIX-W0…W19 (IDs with FIXED/CLOSED in reports) | **~110–140** | Regex over FIX reports under-counts (~81) where waves used ✅/SHA tables without keyword; commit volume W1–W19 supports **≥120** discrete closes |
 | Still open / deferred / blocked / P2–P3 untouched | **~120–150** | Mostly P2/P3 polish, schema, FE refactors, docs |
 | **Remaining P0 (security/product)** | **0** full ALIVE | All 12 original P0 primary paths closed or downgraded; residuals are PARTIAL siblings / planning narrative |
-| **Remaining P0-class residual** | **1 PARTIAL RT** | RT-003 org CRM read (**ADR-blocked**, §1.1) |
+| **Remaining P0-class residual** | **0** | RT-003 list scope CLOSED (owner / admin org-wide) |
 | **Remaining clear P1** | **~15–25** | Mix of deferred FE (A10-*), integrations residuals (A5-012+), Block F leftovers, A3-001-siblings |
 
 ### Original P0 map → status
@@ -156,7 +146,7 @@ Canonical unique count from `00-SUMMARY.md`: **262** (user shorthand «261» ≈
 | A2-001 / RT-002 | CLOSED `449c2c3` |
 | A3-001 / RT-005 | **CLOSED** `1ac8669` + `8e0c9f2` + `716c823` |
 | A5-001 CSV mappings | CLOSED `ce3bbd2` |
-| A6-001 / RT-003 | PARTIAL **ADR-blocked** (writes CLOSED; list org-wide — §1.1) |
+| A6-001 / RT-003 | **CLOSED** (writes + owner/admin list scope) |
 | A6-002 invoice pay tx | CLOSED W2 |
 | A11-001 join path | CLOSED `da3fe4b` |
 | A11-002 TMS FormData | CLOSED W2/W3 |
@@ -168,7 +158,8 @@ Canonical unique count from `00-SUMMARY.md`: **262** (user shorthand «261» ≈
 
 | Prior residual | Status after 2026-07-28 | SHA |
 |----------------|-------------------------|-----|
-| A3-005 StartTimer open-timer race | **CLOSED** | `c502395` |
+| A3-005 StartTimer open-timer race | **CLOSED** (tx + UPDATE row-lock on issue) | *(this wave — see git log)* |
+| RT-003 CRM List/Pipeline org dump | **CLOSED** (owner scope; admin org-wide) | *(this wave)* |
 | RT-005 StartSprint foreign UUID activate | **CLOSED** (sibling) | `8e0c9f2` |
 | RT-005 Get/Update/Retro/Burndown/AddIssues | **CLOSED** | `716c823` |
 | A2-007 Authorizer integration WEAK | **CLOSED** | `cce9265` |
@@ -183,28 +174,26 @@ Canonical unique count from `00-SUMMARY.md`: **262** (user shorthand «261» ≈
 
 #### Still open / blocked (accurate)
 
-1. **CRM org-wide List/Pipeline** — **ADR-blocked** residual (RT-003 / A6-009): any JWT lists all contacts/deals; no `PermCrm*`; owner/admin/project filters would invent product policy (§1.1).
-2. **A8-006** comment soft-delete schema — **BLOCKED** on approval.
-3. **A8-001/002** Ent composite indexes — **NEEDS_APPROVAL** (query rewrites FIXED).
-4. **MANUAL** A14-002/003/009 + **PG-03/FA-06** secret rotation.
-5. **FE deferred** A10-007…014 class residuals (InfiniteQuery notifications, Gantt virtual, dead KanbanBoard, QueryStateView) — A10-001 / A13-014/018 product paths CLOSED with WEAK tests.
-6. **Block F leftovers** A4-005+, A3-013+, A5-012+, A7-010+, A14-008.
-7. **COV-01 floor** — 81.9% &lt; 82% (2026-07-27); security 6-pack not remeasured 2026-07-27/28 — **no invented remeasure**.
-8. **GetProject non-member metadata** — product-grey GAP (W17).
-9. **TZ AppError wording** A11-014 / docs-only.
-10. **A14-005 ops residual** — compose default tightened; blanket RFC1918 in `.env` can re-open Docker peers.
+1. **A8-006** comment soft-delete schema — **BLOCKED** on approval.
+2. **A8-001/002** Ent composite indexes — **NEEDS_APPROVAL** (query rewrites FIXED).
+3. **MANUAL** A14-002/003/009 + **PG-03/FA-06** secret rotation.
+4. **FE deferred** A10-007…014 class residuals (InfiniteQuery notifications, Gantt virtual, dead KanbanBoard, QueryStateView) — A10-001 / A13-014/018 product paths CLOSED with WEAK tests.
+5. **Block F leftovers** A4-005+, A3-013+, A5-012+, A7-010+, A14-008.
+6. **COV-01 floor** — 81.9% &lt; 82% (2026-07-27); security 6-pack not remeasured 2026-07-27/28 — **no invented remeasure**.
+7. **GetProject non-member metadata** — product-grey GAP (W17).
+8. **TZ AppError wording** A11-014 / docs-only.
+9. **A14-005 ops residual** — compose default tightened; blanket RFC1918 in `.env` can re-open Docker peers.
 
 ---
 
 ## 6. Verdict
 
-Grok FIX program W0–W19 closed the **critical insider Broken Access Control** surface from A19: **0 fully ALIVE RT chains**. **RT-005 CLOSED** 2026-07-28 (`716c823` siblings + prior Complete/Start). One PARTIAL residual remains: CRM read dump (**ADR-blocked**, §1.1). Planning/coverage truth is **81.9%** (2026-07-27), not the stale 83.0 narrative alone. Schema indexes / comment soft-delete / prod secret ops remain outside code-only waves. Remediation recheck 2026-07-28 closed WEAK evidence gaps listed above without inventing new COV metrics.
+Grok FIX program W0–W19 closed the **critical insider Broken Access Control** surface from A19: **0 fully ALIVE RT chains**, **0 PARTIAL RT**. **RT-005** and **RT-003** CLOSED 2026-07-28 (owner/admin CRM list scope + sprint siblings). Planning/coverage truth is **81.9%** (2026-07-27), not the stale 83.0 narrative alone. Schema indexes / comment soft-delete / prod secret ops remain outside code-only waves.
 
 **Recommended next (human / next wave):**
 
-1. **Product ADR (required):** CRM list scope vs org-shared CRM / `crm:manager` (GZ-SEC-13) — **blocks** code close of RT-003 read; do not ship silent owner-scope List.
-2. Approve A8-001/002 indexes + A8-006 `deleted_at`.
-3. Ops: FA-06 + A14 MANUAL checklist.
-4. Optional coverage uplift wave to restore ≥82%.
+1. Approve A8-001/002 indexes + A8-006 `deleted_at`.
+2. Ops: FA-06 + A14 MANUAL checklist.
+3. Optional coverage uplift wave to restore ≥82%.
 
 *Merge to `master` — only by user.*

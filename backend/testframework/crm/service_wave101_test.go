@@ -31,12 +31,12 @@ func TestService_DeleteContact(t *testing.T) {
 	created, err := svc.CreateContact(ctx, owner.ID, crm.CreateContactRequest{Name: "To Delete", Email: "del@test.com"})
 	require.NoError(t, err)
 
-	list, err := svc.ListContacts(ctx)
+	list, err := svc.ListContacts(ctx, owner.ID)
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 
 	require.NoError(t, svc.DeleteContact(ctx, owner.ID, created.ID))
-	list, err = svc.ListContacts(ctx)
+	list, err = svc.ListContacts(ctx, owner.ID)
 	require.NoError(t, err)
 	assert.Empty(t, list)
 }

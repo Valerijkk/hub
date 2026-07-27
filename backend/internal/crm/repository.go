@@ -16,13 +16,15 @@ import (
 // Repository — доступ к данным CRM.
 type Repository interface {
 	CreateContact(ctx context.Context, userID uuid.UUID, req CreateContactRequest) (*ent.CrmContact, error)
-	ListContacts(ctx context.Context) ([]*ent.CrmContact, error)
+	// ListContacts — ownerID == nil → org-wide (admin); иначе только created_by = ownerID (RT-003).
+	ListContacts(ctx context.Context, ownerID *uuid.UUID) ([]*ent.CrmContact, error)
 	GetContact(ctx context.Context, id uuid.UUID) (*ent.CrmContact, error)
 	UpdateContact(ctx context.Context, id uuid.UUID, req UpdateContactRequest) (*ent.CrmContact, error)
 	SoftDeleteContact(ctx context.Context, id uuid.UUID) error
 
 	CreateDeal(ctx context.Context, ownerID uuid.UUID, req CreateDealRequest) (*ent.CrmDeal, error)
-	ListDeals(ctx context.Context) ([]*ent.CrmDeal, error)
+	// ListDeals — ownerID == nil → org-wide (admin); иначе только owner = ownerID (RT-003).
+	ListDeals(ctx context.Context, ownerID *uuid.UUID) ([]*ent.CrmDeal, error)
 	GetDeal(ctx context.Context, id uuid.UUID) (*ent.CrmDeal, error)
 	UpdateDeal(ctx context.Context, id uuid.UUID, req UpdateDealRequest) (*ent.CrmDeal, error)
 	SoftDeleteDeal(ctx context.Context, id uuid.UUID) error
@@ -64,12 +66,15 @@ func (r *EntRepository) CreateContact(ctx context.Context, userID uuid.UUID, req
 	return create.Save(ctx)
 }
 
-func (r *EntRepository) ListContacts(ctx context.Context) ([]*ent.CrmContact, error) {
-	return r.client.CrmContact.Query().
+func (r *EntRepository) ListContacts(ctx context.Context, ownerID *uuid.UUID) ([]*ent.CrmContact, error) {
+	q := r.client.CrmContact.Query().
 		Where(crmcontact.DeletedAtIsNil()).
 		WithLinkedUser().
-		Order(ent.Desc(crmcontact.FieldUpdatedAt)).
-		All(ctx)
+		Order(ent.Desc(crmcontact.FieldUpdatedAt))
+	if ownerID != nil {
+		q = q.Where(crmcontact.HasCreatedByWith(user.IDEQ(*ownerID)))
+	}
+	return q.All(ctx)
 }
 
 func (r *EntRepository) GetContact(ctx context.Context, id uuid.UUID) (*ent.CrmContact, error) {
@@ -143,8 +148,8 @@ func (r *EntRepository) CreateDeal(ctx context.Context, ownerID uuid.UUID, req C
 	return create.Save(ctx)
 }
 
-func (r *EntRepository) ListDeals(ctx context.Context) ([]*ent.CrmDeal, error) {
-	return r.client.CrmDeal.Query().
+func (r *EntRepository) ListDeals(ctx context.Context, ownerID *uuid.UUID) ([]*ent.CrmDeal, error) {
+	q := r.client.CrmDeal.Query().
 		Where(crmdeal.DeletedAtIsNil()).
 		WithOwner().
 		WithContact().
@@ -153,8 +158,11 @@ func (r *EntRepository) ListDeals(ctx context.Context) ([]*ent.CrmDeal, error) {
 			ent.Asc(crmdeal.FieldStage),
 			ent.Asc(crmdeal.FieldRank),
 			ent.Desc(crmdeal.FieldUpdatedAt),
-		).
-		All(ctx)
+		)
+	if ownerID != nil {
+		q = q.Where(crmdeal.HasOwnerWith(user.IDEQ(*ownerID)))
+	}
+	return q.All(ctx)
 }
 
 func (r *EntRepository) GetDeal(ctx context.Context, id uuid.UUID) (*ent.CrmDeal, error) {
