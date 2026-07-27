@@ -145,3 +145,16 @@ export function saveLayout(
 		items,
 	});
 }
+
+/** Список пресетов шаблонов раскладки (GET /dashboard/templates). */
+export function listDashboardTemplates() {
+	return api.get<Record<string, LayoutItem[]>>("/dashboard/templates");
+}
+
+/** Применить шаблон к проектному дашборду (POST /dashboard/templates/apply). */
+export function applyDashboardTemplate(projectId: string, template: string) {
+	return api.post<void>("/dashboard/templates/apply", {
+		project_id: projectId,
+		template,
+	});
+}
