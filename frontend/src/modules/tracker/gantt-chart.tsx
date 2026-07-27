@@ -6,6 +6,7 @@ import {
 	listIssues,
 	listProjectIssueLinks,
 } from "@/api/tracker";
+import { QueryStateView } from "@/components/query-state-view";
 import { cn } from "@/lib/utils";
 
 interface GanttChartProps {
@@ -22,7 +23,7 @@ const DAY_MS = 86_400_000;
 
 /** GANTT-01: шкала created_at → due_date с подсказками зависимостей. */
 export function GanttChart({ projectId }: GanttChartProps) {
-	const { data, isLoading } = useQuery({
+	const issuesQuery = useQuery({
 		queryKey: ["gantt-issues", projectId],
 		queryFn: () =>
 			listIssues(projectId, { limit: 100, order_by: "updated_at" }),
@@ -46,8 +47,8 @@ export function GanttChart({ projectId }: GanttChartProps) {
 	}, [projectLinks]);
 
 	const issues = useMemo(
-		() => (data?.items ?? []).filter((i) => i.due_date),
-		[data?.items],
+		() => (issuesQuery.data?.items ?? []).filter((i) => i.due_date),
+		[issuesQuery.data?.items],
 	);
 
 	const { bars, rangeStart, rangeEnd, totalDays } = useMemo(() => {
@@ -78,46 +79,49 @@ export function GanttChart({ projectId }: GanttChartProps) {
 		return { bars: parsed, rangeStart, rangeEnd, totalDays };
 	}, [issues]);
 
-	if (isLoading) {
-		return <p className="text-sm text-t3">Загрузка Gantt…</p>;
-	}
-
-	if (bars.length === 0) {
-		return (
-			<p className="text-sm text-t3">
-				Нет задач с due date — задайте срок в карточке задачи
-			</p>
-		);
-	}
-
+	// A10-011: QueryStateView — loading/error/empty вместо ad-hoc текста без error.
 	return (
-		<div className="space-y-4">
-			<p className="text-sm text-t2">
-				{totalDays} дн. · {bars.length} задач с дедлайном
-			</p>
-			<div className="overflow-x-auto rounded-lg border border-b1">
-				<div className="min-w-[640px]">
-					{bars.map((bar) => {
-						const left =
-							((bar.start - rangeStart) / (rangeEnd - rangeStart || 1)) * 100;
-						const width = Math.max(
-							2,
-							((bar.end - bar.start) / (rangeEnd - rangeStart || 1)) * 100,
-						);
-						return (
-							<GanttRow
-								key={bar.issue.id}
-								projectId={projectId}
-								bar={bar}
-								left={left}
-								width={width}
-								blockers={blockersByKey.get(bar.issue.issue_key) ?? 0}
-							/>
-						);
-					})}
+		<QueryStateView
+			query={issuesQuery}
+			loadingFallback={<p className="text-sm text-t3">Загрузка Gantt…</p>}
+			isEmpty={() => bars.length === 0}
+			emptyFallback={
+				<p className="text-sm text-t3">
+					Нет задач с due date — задайте срок в карточке задачи
+				</p>
+			}
+		>
+			{() => (
+				<div className="space-y-4">
+					<p className="text-sm text-t2">
+						{totalDays} дн. · {bars.length} задач с дедлайном
+					</p>
+					<div className="overflow-x-auto rounded-lg border border-b1">
+						<div className="min-w-[640px]">
+							{bars.map((bar) => {
+								const left =
+									((bar.start - rangeStart) / (rangeEnd - rangeStart || 1)) *
+									100;
+								const width = Math.max(
+									2,
+									((bar.end - bar.start) / (rangeEnd - rangeStart || 1)) * 100,
+								);
+								return (
+									<GanttRow
+										key={bar.issue.id}
+										projectId={projectId}
+										bar={bar}
+										left={left}
+										width={width}
+										blockers={blockersByKey.get(bar.issue.issue_key) ?? 0}
+									/>
+								);
+							})}
+						</div>
+					</div>
 				</div>
-			</div>
-		</div>
+			)}
+		</QueryStateView>
 	);
 }
 

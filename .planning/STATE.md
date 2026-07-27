@@ -1,4 +1,4 @@
----
+﻿---
 gsd_state_version: 1.0
 milestone: v4
 milestone_name: Hub One Super-app
@@ -65,6 +65,25 @@ spec_coverage:
 Полный архив заметок **до 2026-07-23 включительно** и старых completion logs:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
+
+## Session note — 2026-07-28 (devops · A15-004 + A14-002/003 validate)
+
+- A15-004: `REQUIREMENTS.md` LOGN-05 → Magic Link only; Telegram = notify bind (wiki already ADR-AUTH-01).
+- A14-002/003: `config.validate` fail-closed SeaweedFS defaults + empty NATS user/pass in `ENVIRONMENT=production`; hubtests added.
+- A14-009: remains **FIXED\*** — OTEL endpoint **MANUAL** enable (cannot close from code).
+
+## Session note — 2026-07-28 (fe2 · A10-013 mute/star a11y + A10-011 Gantt QueryStateView)
+
+- A10-013 FIXED: channel mute indicator `aria-label`/`role="img"`; star title+aria-label aligned; bookmarks remove `aria-label`.
+- A10-011 sample: `gantt-chart.tsx` uses `QueryStateView` (loading/error/empty) instead of ad-hoc loading text without error.
+- Vitest: `channel-list-a11y-mute-star.test.tsx`, `gantt-query-state-a10011.test.tsx` (+ A13-004 static assert).
+- Audit: `.planning/audits/grok-2026-07/FIX-W13.md` A10-013 FIXED, A10-011 PARTIAL.
+
+## Session note — 2026-07-28 (fe2 · W13 A10-012 / A10-009)
+
+- A10-012: deleted unused `frontend/src/modules/tracker/kanban-board.tsx` (zero importers; canon board route).
+- A10-009: `time-tracker.tsx` narrow `useTimerStore` slice selectors; tick effect no longer depends on whole store.
+- Audit: `.planning/audits/grok-2026-07/FIX-W13.md` marked FIXED.
 
 ## Session note — 2026-07-28 (be1 · RT-005 sibling close Get/Update/Retro)
 

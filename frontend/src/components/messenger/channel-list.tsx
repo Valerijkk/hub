@@ -584,9 +584,14 @@ function ChannelItem({
 					</div>
 				</div>
 
-				{/* Индикатор mute */}
+				{/* Индикатор mute — title + aria-label (A10-013, как Bookmarks/CreateChannel) */}
 				{muted && (
-					<span className="shrink-0" title="Канал замьючен">
+					<span
+						className="shrink-0"
+						title="Канал замьючен"
+						aria-label="Канал замьючен"
+						role="img"
+					>
 						<MutedIcon />
 					</span>
 				)}
@@ -600,7 +605,9 @@ function ChannelItem({
 							? "opacity-100"
 							: "opacity-0 group-hover/item:opacity-100",
 					)}
-					title={channel.is_starred ? "Убрать из закреплённых" : "Закрепить"}
+					title={
+						channel.is_starred ? "Убрать из закреплённых" : "Закрепить канал"
+					}
 					aria-label={
 						channel.is_starred ? "Убрать из закреплённых" : "Закрепить канал"
 					}

@@ -77,6 +77,7 @@ export function BookmarksPanel() {
 									size="icon"
 									className="h-7 w-7 shrink-0"
 									title="Удалить из закладок"
+									aria-label="Удалить из закладок"
 									onClick={() => void handleRemove(bm)}
 								>
 									<svg

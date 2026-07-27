@@ -28,6 +28,12 @@ describe("gantt batch links (A13-004)", () => {
 		expect(src).not.toMatch(/queryKey:\s*\[["']issue-links["']/);
 	});
 
+	it("gantt-chart wraps issues query in QueryStateView (A10-011)", () => {
+		const src = readFileSync(ganttPath, "utf8");
+		expect(src).toContain("QueryStateView");
+		expect(src).toContain("issuesQuery");
+	});
+
 	it("exposes listProjectIssueLinks API helper", () => {
 		expect(typeof listProjectIssueLinks).toBe("function");
 	});
