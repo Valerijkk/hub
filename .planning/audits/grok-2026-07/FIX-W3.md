@@ -86,7 +86,7 @@ FormData доходит до fetch неизменной; `Content-Type` не в�
 - Postgres/Ent: `GetSprintInProject` — спринт чужого проекта не находится (`TestEntRepository_GetSprintInProject_RejectsForeign_A3_001`).
 - Messenger (A2-001): empty `channelIDs` → empty search на repo-слое (закрыта дыра «guard только в моке»).
 
-**Аудит W1 mock-only:** аналогичная дыра у comments/results закрыта в этой волне Ent-тестами A3-008/A3-011 (не только моки).
+**Аудит W1/W3 mock-only:** comments (A3-011) и results (A3-008) закрыты Ent-тестами; A3-004 VersionEQ — Postgres Ent + mutation proof 2026-07-27.
 
 ---
 
@@ -108,7 +108,9 @@ FormData доходит до fetch неизменной; `Content-Type` не в�
 ## A3-004 — UpdateTestCase без optimistic lock
 
 **Severity:** P1 · **Коммит:** `cd852a8`  
-**Фикс:** `VersionEQ` + 409 на mismatch.
+**Фикс:** `VersionEQ` + 409 на mismatch.  
+**Тесты:** mock `TestUpdateTestCase_OptimisticLock_A3_004` (контракт сервиса) + Postgres Ent  
+`TestEntRepository_UpdateTestCase_OptimisticLock_A3_004` (Mutation: снять VersionEQ → Ent FAIL, mock PASS).
 
 ## A3-005 — LogTime / StopTimer panic
 
@@ -133,7 +135,8 @@ FormData доходит до fetch неизменной; `Content-Type` не в�
 
 **Severity:** P1 · **Коммит:** `20cd8e0`  
 **Фикс:** `UpdateTestResult(runID, id)` + `HasRunWith`; `CreateBugFromFailedResult` сверяет `run.Edges.Project`.  
-**Тесты:** `TestExecuteTestResult_RejectsWrongRun_A3_008`, `TestCreateBugFromFailedResult_RejectsForeignProject_A3_008`
+**Тесты:** mock `TestExecuteTestResult_RejectsWrongRun_A3_008` / `TestCreateBugFromFailedResult_RejectsForeignProject_A3_008` + Postgres Ent  
+`TestEntRepository_UpdateTestResult_RejectsWrongRun_A3_008` (Mutation: снять HasRunWith → Ent FAIL).
 
 ## A3-009 — CreateBugIssue(uuid.Nil)
 
