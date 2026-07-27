@@ -223,9 +223,9 @@ func (s *CallService) SendChatMessage(ctx context.Context, callID string, userID
 	return s.chat.SendMessage(ctx, callID, userID, userName, text, ephemeral)
 }
 
-// ListChatMessages делегирует в CallChatService.
-func (s *CallService) ListChatMessages(ctx context.Context, callID string, limit int) ([]CallChatMessage, error) {
-	return s.chat.ListMessages(ctx, callID, limit)
+// ListChatMessages делегирует в CallChatService (A2-003: userID для authz).
+func (s *CallService) ListChatMessages(ctx context.Context, callID, userID string, limit int) ([]CallChatMessage, error) {
+	return s.chat.ListMessages(ctx, callID, userID, limit)
 }
 
 // OnParticipantJoined — webhook participant_joined от LiveKit.

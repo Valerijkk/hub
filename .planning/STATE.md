@@ -66,6 +66,14 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (be2 · A2-003 call chat authz)
+
+- `CallChatService.authorizeCallChatAccess`: channel-call — active participant
+  OR `IsChannelMember`; instant — participant OR `created_by`.
+- Handler send/list: 403 на `ErrCallForbidden`; list передаёт `userID`.
+- Тесты: `chat_authz_a2003_test.go`; mutation: снять authz → stranger PASS.
+- Docs: `docs/wiki/API.md` chat endpoints.
+
 ## Session note — 2026-07-27 (be2 · A3-011-target CreateIssueLink)
 
 - `FindIssueInProject` (Ent: `IDEQ` + `HasProjectWith` + `DeletedAtIsNil`) +

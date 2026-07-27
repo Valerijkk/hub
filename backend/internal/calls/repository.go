@@ -192,6 +192,18 @@ func (r *EntRepository) ListParticipants(ctx context.Context, callID uuid.UUID) 
 		All(ctx)
 }
 
+// IsActiveParticipant — true, если user сейчас в звонке (left_at IS NULL).
+// A2-003: chat send/list authz (participant OR channel member / created_by).
+func (r *EntRepository) IsActiveParticipant(ctx context.Context, callID, userID uuid.UUID) (bool, error) {
+	return r.db.CallParticipant.Query().
+		Where(
+			callparticipant.CallID(callID),
+			callparticipant.UserID(userID),
+			callparticipant.LeftAtIsNil(),
+		).
+		Exist(ctx)
+}
+
 // IsChannelMember проверяет, состоит ли пользователь в канале мессенджера.
 // HI-03: используется для авторизации JoinCall/EndCall — у звонка есть
 // channel_id (для канальных звонков), членство в этом канале — необходимое

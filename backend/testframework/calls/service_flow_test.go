@@ -357,7 +357,7 @@ func TestListChatMessages_NotConfigured(t *testing.T) {
 	ctx := context.Background()
 	callEnt := f.createChannelCall(t, f.owner)
 
-	_, err := f.svc.ListChatMessages(ctx, callEnt.ID.String(), 10)
+	_, err := f.svc.ListChatMessages(ctx, callEnt.ID.String(), f.owner.ID.String(), 10)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не настроен")
 }

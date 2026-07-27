@@ -305,6 +305,7 @@ func (h *Handler) RaiseHand(c fiber.Ctx) error {
 // @Success 201 {object} CallChatMessage "Сообщение отправлено"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа к чату звонка"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/calls/{callId}/chat [post]
@@ -332,6 +333,9 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 	userName := userNameFromCtx(c)
 	msg, err := h.service.SendChatMessage(c.Context(), callID.String(), userID.String(), userName, req.Text, req.Ephemeral)
 	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для чата звонка")
+		}
 		slog.Error("ошибка отправки сообщения чата звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось отправить сообщение")
 	}
@@ -348,11 +352,17 @@ func (h *Handler) SendChatMessage(c fiber.Ctx) error {
 // @Param limit query int false "Лимит сообщений (по умолчанию 50, макс 200)"
 // @Success 200 {object} map[string][]CallChatMessage "messages: массив сообщений"
 // @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа к чату звонка"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/calls/{callId}/chat [get]
 func (h *Handler) ListChatMessages(c fiber.Ctx) error {
 	callID, err := parseCallID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
 		return err
 	}
@@ -364,8 +374,11 @@ func (h *Handler) ListChatMessages(c fiber.Ctx) error {
 		}
 	}
 
-	msgs, err := h.service.ListChatMessages(c.Context(), callID.String(), limit)
+	msgs, err := h.service.ListChatMessages(c.Context(), callID.String(), userID.String(), limit)
 	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для чтения чата звонка")
+		}
 		slog.Error("ошибка получения сообщений чата звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось получить сообщения")
 	}
