@@ -61,14 +61,16 @@ func resetPostgresSearchSchema(t *testing.T, db *sql.DB) {
 			issue_key TEXT NOT NULL,
 			title TEXT NOT NULL,
 			description_text TEXT,
-			project_issues UUID NOT NULL
+			project_issues UUID NOT NULL,
+			deleted_at TIMESTAMPTZ
 		)`,
 		`CREATE TABLE test_cases (
 			id UUID PRIMARY KEY,
 			case_key TEXT NOT NULL,
 			title TEXT NOT NULL,
 			description TEXT,
-			project_test_cases UUID NOT NULL
+			project_test_cases UUID NOT NULL,
+			deleted_at TIMESTAMPTZ
 		)`,
 		`CREATE TABLE users (
 			id UUID PRIMARY KEY,
@@ -80,12 +82,15 @@ func resetPostgresSearchSchema(t *testing.T, db *sql.DB) {
 			id UUID PRIMARY KEY,
 			key TEXT NOT NULL,
 			name TEXT NOT NULL,
-			description TEXT
+			description TEXT,
+			deleted_at TIMESTAMPTZ
 		)`,
 		`CREATE TABLE file_metadata (
 			id UUID PRIMARY KEY,
 			filename TEXT NOT NULL,
-			project_files UUID NOT NULL
+			project_files UUID NOT NULL,
+			status TEXT NOT NULL DEFAULT 'confirmed',
+			deleted_at TIMESTAMPTZ
 		)`,
 		`CREATE TABLE project_members (
 			project_members UUID NOT NULL,
