@@ -44,6 +44,10 @@ func (Channel) Fields() []ent.Field {
 			Unique().
 			Nillable().
 			Comment("РљР»СЋС‡ РґРµРґСѓРїР»РёРєР°С†РёРё DM: РѕС‚СЃРѕСЂС‚РёСЂРѕРІР°РЅРЅС‹Рµ user IDs С‡РµСЂРµР· '-'"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Soft-delete timestamp (A8-005); null = active channel"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -80,5 +84,6 @@ func (Channel) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_type"),
 		index.Fields("project_id"),
+		index.Fields("deleted_at"),
 	}
 }
