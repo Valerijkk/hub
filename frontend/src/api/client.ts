@@ -154,6 +154,39 @@ class ApiClient {
 	get<T>(path: string) {
 		return this.request<T>("GET", path);
 	}
+
+	/**
+	 * GET binary body as Blob (CSV/XLSX/ICS exports).
+	 * Не использует JSON.parse — в отличие от request() (A11-007).
+	 */
+	async getBlob(path: string): Promise<Blob> {
+		const doFetch = async (): Promise<Response> => {
+			const response = await fetch(`${API_BASE}${path}`, {
+				method: "GET",
+				headers: this.getHeaders(),
+			});
+			if (response.status === 401) {
+				const refreshed = await this.tryRefresh();
+				if (refreshed) return doFetch();
+				useAuthStore.getState().logout();
+				throw new Error("Session expired");
+			}
+			return response;
+		};
+
+		const response = await doFetch();
+		if (!response.ok) {
+			let error: ApiError;
+			try {
+				error = await response.json();
+				if (!error.code) error.code = response.status;
+			} catch {
+				error = { code: response.status, message: response.statusText };
+			}
+			throw error;
+		}
+		return response.blob();
+	}
 	/** POST-запрос. */
 	post<T>(path: string, body?: unknown) {
 		return this.request<T>("POST", path, body);

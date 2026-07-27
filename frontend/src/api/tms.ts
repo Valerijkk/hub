@@ -692,18 +692,18 @@ export async function importTestCases(
 	return api.post<ImportResult>(`/projects/${projectId}/tms/import`, formData);
 }
 
-/** Экспортировать тест-кейсы (возвращает blob URL). */
+/** Экспортировать тест-кейсы (binary CSV/XLSX — не JSON client). */
 export function exportTestCases(projectId: string, format: string = "csv") {
-	return api.get<Blob>(`/projects/${projectId}/tms/export?format=${format}`);
+	return api.getBlob(`/projects/${projectId}/tms/export?format=${format}`);
 }
 
-/** Экспортировать отчёт прогона (возвращает blob URL). */
+/** Экспортировать отчёт прогона (binary — не JSON client). */
 export function exportTestRunReport(
 	projectId: string,
 	runId: string,
 	format: string = "csv",
 ) {
-	return api.get<Blob>(
+	return api.getBlob(
 		`/projects/${projectId}/tms/runs/${runId}/export?format=${format}`,
 	);
 }
