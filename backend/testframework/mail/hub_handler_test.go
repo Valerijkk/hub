@@ -73,10 +73,25 @@ func TestHubHandler_Send_AuthAndValidation(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
 
+	// A7-005: fake Resend key → real HTTP attempt fails (not silent 200 stub).
 	req = httptest.NewRequest(http.MethodPost, "/v1/send", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(mail.ExportInternalTokenHeader(), "hub-mail-secret")
 	resp, err = app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
+
+	// Dev no-op when key empty → 200.
+	devApp := fiber.New()
+	mail.NewHubHandler(mail.NewService(mail.Config{
+		InternalToken: "hub-mail-secret",
+		FromAlerts:    "alerts@hub.local",
+	})).RegisterRoutes(devApp)
+	req = httptest.NewRequest(http.MethodPost, "/v1/send", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(mail.ExportInternalTokenHeader(), "hub-mail-secret")
+	resp, err = devApp.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
