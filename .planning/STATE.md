@@ -66,6 +66,12 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (be2 · A9-012 APIKey + RequireAuth)
+
+- `RequireAuth`: если `Locals("userID")` уже set (APIKeyAuth) — skip JWT.
+- Тест: `TestAPIKeyAuth_AlonePassesRequireAuth_A9012` (X-API-Key alone → 200).
+- Mutation: force JWT always → 401 `missing authorization header`.
+
 ## Session note — 2026-07-27 (be1 · A2-002 CreateCall channel membership)
 
 - `CreateCall`: `IsChannelMember` **до** `provisionRoom`; иначе `ErrCallForbidden`.

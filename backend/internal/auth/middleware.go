@@ -53,11 +53,19 @@ func InvalidateUserStatusCache(ctx context.Context, rdb *redis.Client, uid uuid.
 // RequireAuth возвращает Fiber middleware для валидации JWT access-токенов.
 // Сохраняет userID и sessionID в Locals для последующих обработчиков.
 //
+// A9-012: если upstream middleware (APIKeyAuth) уже выставил userID в Locals,
+// JWT не требуется — X-API-Key alone должен проходить защищённые роуты.
+//
 // ME-13: статус пользователя (active/deactivated) кэшируется в Redis на
 // userStatusCacheTTL (~30s), чтобы не дёргать БД на каждом запросе.
 // При деактивации кэш явно инвалидируется (см. InvalidateUserStatusCache).
 func RequireAuth(svc *AuthService) fiber.Handler {
 	return func(c fiber.Ctx) error {
+		// A9-012: APIKeyAuth уже аутентифицировал — не требовать Bearer JWT.
+		if uid, ok := c.Locals("userID").(string); ok && uid != "" {
+			return c.Next()
+		}
+
 		authHeader := utils.CopyString(c.Get("Authorization"))
 		if authHeader == "" {
 			return fiber.NewError(fiber.StatusUnauthorized, "missing authorization header")
