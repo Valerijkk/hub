@@ -294,7 +294,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 | TC-CALL-06 | End call | В звонке | POST calls/:id/end | 200, status=ended | — (ручной) |
 | TC-CALL-07 | Start recording | В звонке | POST calls/:id/recording/start | 200, egress started | `TestMaxActiveRecordingsLimit` |
 | TC-CALL-08 | Stop recording | Запись идёт | POST calls/:id/recording/stop | 200, status=processing | `TestRecordingStatusValues` |
-| TC-CALL-09 | Chat в звонке | В звонке | POST calls/:id/chat {text} | 200, NATS event | `TestSendMessage`, `TestSendMessage_TextTooLong` |
+| TC-CALL-09 | Chat в звонке | В звонке | POST calls/:id/chat {text} | 200, NATS event | `TestSendMessage`, `TestSendMessage_TextTooLong`, `TestWSAuthorizer_CallRoom_CanSubscribe_A2_007`, `TestReadPump_CallAuthorizer_StrangerDenied_A2_007`, `TestReadPump_CallAuthorizer_ParticipantAllowed_A2_007` |
 | TC-CALL-10 | Raise hand | В звонке | POST calls/:id/raise-hand | 200, NATS event | — (ручной) |
 | TC-CALL-11 | Webhook: participant_joined | LiveKit event | POST calls/webhook | 200, participant_count++ | `TestVerifyWebhookSignature_EmptyAuth`, `TestVerifyWebhookSignature_InvalidJWT` |
 
@@ -314,7 +314,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 
 | ID | Название | Предусловие | Шаги | Ожидаемый результат | Автотест |
 |----|----------|-------------|------|---------------------|----------|
-| TC-NOTIF-01 | Назначение задачи -> уведомление | Задача существует | PUT issue {assignee: userId} | Уведомление type=assigned | `TestSubjectToType` |
+| TC-NOTIF-01 | Назначение задачи -> уведомление | Задача существует | PUT issue {assignee: userId} | Уведомление type=assigned | `TestSubjectToType`, `TestNotificationConsumer_NakOnBadJSON_A2_010`, `TestNotificationConsumer_AckOnSuccess_A2_010`, `TestNotificationConsumer_NakOnDispatchError_A2_010` |
 | TC-NOTIF-02 | @mention -> уведомление | Комментарий с mention | POST comment {mentions: [userId]} | Уведомление type=mentioned | `TestSubjectToType` |
 | TC-NOTIF-03 | Mark as read | Уведомление unread | PATCH notifications/:id/read | 200, is_read=true | — (ручной) |
 | TC-NOTIF-04 | Mark all read | 5 unread | PATCH notifications/read-all | 200, все is_read=true | — (ручной) |

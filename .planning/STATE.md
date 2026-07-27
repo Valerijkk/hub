@@ -66,6 +66,14 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-28 (qa-auto1 · close WEAK A2-007 / A2-010)
+
+- A2-007: `ws_authorizer_integration_a2007_test.go` — prod `ws.NewAuthorizer` + calls repo через `readPump`; stranger deny / participant allow.
+- A2-010: `TestNotificationConsumer_NakOnDispatchError_A2_010` — Nak when Dispatch fails (not only bad JSON).
+- Mutation evidence: skip CanSubscribe → StrangerDenied FAIL; always-Ack → NakOnDispatchError FAIL.
+- Docs: `docs/TESTING.md` TC-CALL-09 / TC-NOTIF-01.
+- No push master.
+
 ## Session note — 2026-07-27 (be1 · W19 Block F handler polish)
 
 - FIX: `.planning/audits/grok-2026-07/FIX-W19.md`
