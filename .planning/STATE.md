@@ -66,6 +66,13 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (be2 · W18 Block F handler polish)
+
+- Domains: tms/tracker/sprint/calls/notification/search/bases/storage/ai (same checklist as W17).
+- FIXED: A4-001/002/006/007, A2-008, board/label IDOR, A3-016/015/017 (1 commit each).
+- SHAs: `27f0374` `31002d7` `06c1856` `3074dca` `adbc03e` `dbd03cf` `0a3a3ad` `bc5d61a` `369f852`.
+- Report: `.planning/audits/grok-2026-07/FIX-W18.md`. Deferred: A4-005/008/009+, A2-011, A3-013/014/018–020.
+
 ## Session note — 2026-07-27 (be1 · W17 Block F handler polish)
 
 - Sampled auth/rbac/audit/platform/project/messenger/ws handlers vs checklist.
