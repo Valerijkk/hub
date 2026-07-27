@@ -1457,7 +1457,7 @@ backend/internal/
 | GET | /projects/:projectId/github/workflows | Список workflow runs | JWT + RBAC |
 | GET | /projects/:projectId/github/workflows/:runId | Детали workflow run | JWT + RBAC |
 | GET | /issues/:issueKey/github-links | Список GitHub-ссылок задачи | JWT |
-| POST | /issues/:issueKey/github/create-branch | Создать ветку из задачи | JWT |
+| POST | /projects/:projectId/issues/:issueKey/github/create-branch | Создать ветку из задачи | JWT + task.edit |
 | GET | /link-preview | Preview URL (GitHub/external) | JWT |
 
 ### GitLab (7 эндпоинтов)

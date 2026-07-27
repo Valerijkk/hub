@@ -95,6 +95,7 @@ function GitCommitIcon({ className }: { className?: string }) {
 /** Пропсы диалога создания ветки из задачи. */
 interface CreateBranchDialogProps {
 	issueKey: string;
+	projectId: string;
 	integrations: IntegrationResponse[];
 	onClose: () => void;
 	onCreated: (branchName: string) => void;
@@ -103,6 +104,7 @@ interface CreateBranchDialogProps {
 /** Диалог создания ветки из задачи (GHUB-05). */
 function CreateBranchDialog({
 	issueKey,
+	projectId,
 	integrations,
 	onClose,
 	onCreated,
@@ -120,7 +122,7 @@ function CreateBranchDialog({
 		setLoading(true);
 		setError("");
 		try {
-			const result = await createBranch(issueKey, {
+			const result = await createBranch(projectId, issueKey, {
 				integration_id: selectedIntegration,
 				branch_name: branchName || undefined,
 			});
@@ -322,6 +324,7 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 			{showBranchDialog && (
 				<CreateBranchDialog
 					issueKey={issueKey}
+					projectId={projectId}
 					integrations={integrations}
 					onClose={() => setShowBranchDialog(false)}
 					onCreated={() => {

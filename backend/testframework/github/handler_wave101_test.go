@@ -49,7 +49,7 @@ func TestHandler_GetLinkPreview_MissingURL(t *testing.T) {
 func TestHandler_CreateBranch_InvalidJSON(t *testing.T) {
 	env := newGitHubRoutesEnv(t)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/issues/HUB-1/github/create-branch", bytes.NewReader([]byte("{")))
+	req := httptest.NewRequest(http.MethodPost, "/api/projects/"+env.projectID.String()+"/issues/HUB-1/github/create-branch", bytes.NewReader([]byte("{")))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := env.app.Test(req)
 	require.NoError(t, err)

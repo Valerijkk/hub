@@ -105,9 +105,13 @@ export function listGitHubLinks(issueKey: string) {
 }
 
 /** Создать ветку из задачи (GHUB-05). */
-export function createBranch(issueKey: string, data: CreateBranchRequest) {
+export function createBranch(
+	projectId: string,
+	issueKey: string,
+	data: CreateBranchRequest,
+) {
 	return api.post<CreateBranchResponse>(
-		`/issues/${issueKey}/github/create-branch`,
+		`/projects/${projectId}/issues/${issueKey}/github/create-branch`,
 		data,
 	);
 }

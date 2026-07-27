@@ -31,8 +31,13 @@ type Repository interface {
 	CreateIntegration(ctx context.Context, projectID uuid.UUID, input CreateIntegrationInput) (*ent.GitHubIntegration, error)
 	ListIntegrations(ctx context.Context, projectID uuid.UUID) ([]*ent.GitHubIntegration, error)
 	GetIntegration(ctx context.Context, id uuid.UUID) (*ent.GitHubIntegration, error)
-	DeleteIntegration(ctx context.Context, id uuid.UUID) error
+	// GetIntegrationInProject возвращает интеграцию только если она принадлежит projectID (A5-006).
+	GetIntegrationInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.GitHubIntegration, error)
+	// DeleteIntegration удаляет интеграцию только если она принадлежит projectID (A5-003).
+	DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error
 	FindIntegrationByRepo(ctx context.Context, owner, repo string) (*ent.GitHubIntegration, error)
+	// FindIssueByKeyInProject ищет задачу по ключу только внутри projectID (A5-006).
+	FindIssueByKeyInProject(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error)
 
 	// GitHub-ссылки
 	CreateGitHubLink(ctx context.Context, issueID, integrationID uuid.UUID, input CreateGitHubLinkInput) (*ent.GitHubLink, error)
@@ -211,10 +216,37 @@ func (r *EntRepository) GetIntegration(ctx context.Context, id uuid.UUID) (*ent.
 	return ig, nil
 }
 
-// DeleteIntegration удаляет интеграцию по ID.
-func (r *EntRepository) DeleteIntegration(ctx context.Context, id uuid.UUID) error {
-	if err := r.client.GitHubIntegration.DeleteOneID(id).Exec(ctx); err != nil {
+// GetIntegrationInProject возвращает интеграцию по ID только в рамках projectID (A5-006).
+// Чужой projectId при UUID интеграции другого проекта → NotFound.
+// Mutation: снять HasProjectWith → cross-project PAT доступен.
+func (r *EntRepository) GetIntegrationInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.GitHubIntegration, error) {
+	ig, err := r.client.GitHubIntegration.Query().
+		Where(
+			githubintegration.IDEQ(id),
+			githubintegration.HasProjectWith(project.ID(projectID)),
+		).
+		Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r.decryptIntegration(ig)
+	return ig, nil
+}
+
+// DeleteIntegration удаляет интеграцию по ID только в рамках projectID (A5-003).
+// Чужой projectId в URL при UUID интеграции другого проекта → NotFound (0 rows).
+func (r *EntRepository) DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error {
+	affected, err := r.client.GitHubIntegration.Delete().
+		Where(
+			githubintegration.IDEQ(id),
+			githubintegration.HasProjectWith(project.ID(projectID)),
+		).
+		Exec(ctx)
+	if err != nil {
 		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
 	}
 	// ME-08: удалённый секрет должен немедленно исчезнуть из HMAC-сверки.
 	r.invalidateSecretsCache()
@@ -288,6 +320,20 @@ func (r *EntRepository) ListGitHubLinks(ctx context.Context, issueID uuid.UUID) 
 func (r *EntRepository) FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error) {
 	return r.client.Issue.Query().
 		Where(issue.IssueKey(issueKey)).
+		WithStatus().
+		WithAssignee().
+		WithProject().
+		Only(ctx)
+}
+
+// FindIssueByKeyInProject ищет задачу по ключу только внутри projectID (A5-006).
+// Mutation: снять HasProjectWith → cross-project issue key IDOR.
+func (r *EntRepository) FindIssueByKeyInProject(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error) {
+	return r.client.Issue.Query().
+		Where(
+			issue.IssueKey(issueKey),
+			issue.HasProjectWith(project.IDEQ(projectID)),
+		).
 		WithStatus().
 		WithAssignee().
 		WithProject().

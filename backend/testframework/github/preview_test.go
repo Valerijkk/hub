@@ -28,9 +28,15 @@ func (m *previewMockRepo) ListIntegrations(context.Context, uuid.UUID) ([]*ent.G
 func (m *previewMockRepo) GetIntegration(context.Context, uuid.UUID) (*ent.GitHubIntegration, error) {
 	return nil, nil
 }
-func (m *previewMockRepo) DeleteIntegration(context.Context, uuid.UUID) error { return nil }
+func (m *previewMockRepo) GetIntegrationInProject(context.Context, uuid.UUID, uuid.UUID) (*ent.GitHubIntegration, error) {
+	return nil, nil
+}
+func (m *previewMockRepo) DeleteIntegration(context.Context, uuid.UUID, uuid.UUID) error { return nil }
 func (m *previewMockRepo) FindIntegrationByRepo(context.Context, string, string) (*ent.GitHubIntegration, error) {
 	return nil, nil
+}
+func (m *previewMockRepo) FindIssueByKeyInProject(context.Context, uuid.UUID, string) (*ent.Issue, error) {
+	return nil, &ent.NotFoundError{}
 }
 func (m *previewMockRepo) CreateGitHubLink(context.Context, uuid.UUID, uuid.UUID, github.CreateGitHubLinkInput) (*ent.GitHubLink, error) {
 	return nil, nil

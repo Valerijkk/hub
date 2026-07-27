@@ -16,18 +16,19 @@ import (
 )
 
 type githubMockRepo struct {
-	integrations map[string]*ent.GitHubIntegration
-	issues       map[string]*ent.Issue
-	links        map[string]*ent.GitHubLink
-	webhookSecrets []string
-	outdatedKeys   []string
+	integrations       map[string]*ent.GitHubIntegration
+	integrationProject map[uuid.UUID]uuid.UUID // integrationID -> Hub projectID (A5-006)
+	issues             map[string]*ent.Issue
+	links              map[string]*ent.GitHubLink
+	webhookSecrets     []string
+	outdatedKeys       []string
 }
 
 func (m *githubMockRepo) integrationKey(owner, repo string) string {
 	return owner + "/" + repo
 }
 
-func (m *githubMockRepo) CreateIntegration(_ context.Context, _ uuid.UUID, input github.CreateIntegrationInput) (*ent.GitHubIntegration, error) {
+func (m *githubMockRepo) CreateIntegration(_ context.Context, projectID uuid.UUID, input github.CreateIntegrationInput) (*ent.GitHubIntegration, error) {
 	ig := &ent.GitHubIntegration{
 		ID:            uuid.New(),
 		RepoOwner:     input.RepoOwner,
@@ -40,7 +41,11 @@ func (m *githubMockRepo) CreateIntegration(_ context.Context, _ uuid.UUID, input
 	if m.integrations == nil {
 		m.integrations = make(map[string]*ent.GitHubIntegration)
 	}
+	if m.integrationProject == nil {
+		m.integrationProject = make(map[uuid.UUID]uuid.UUID)
+	}
 	m.integrations[m.integrationKey(input.RepoOwner, input.RepoName)] = ig
+	m.integrationProject[ig.ID] = projectID
 	if input.WebhookSecret != "" {
 		m.webhookSecrets = append(m.webhookSecrets, input.WebhookSecret)
 	}
@@ -64,7 +69,29 @@ func (m *githubMockRepo) GetIntegration(_ context.Context, id uuid.UUID) (*ent.G
 	return nil, &ent.NotFoundError{}
 }
 
-func (m *githubMockRepo) DeleteIntegration(_ context.Context, id uuid.UUID) error {
+func (m *githubMockRepo) GetIntegrationInProject(_ context.Context, projectID, id uuid.UUID) (*ent.GitHubIntegration, error) {
+	ig, err := m.GetIntegration(context.Background(), id)
+	if err != nil {
+		return nil, err
+	}
+	if m.integrationProject == nil || m.integrationProject[id] != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return ig, nil
+}
+
+func (m *githubMockRepo) FindIssueByKeyInProject(_ context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error) {
+	iss, err := m.FindIssueByKey(context.Background(), issueKey)
+	if err != nil {
+		return nil, err
+	}
+	if iss.Edges.Project == nil || iss.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return iss, nil
+}
+
+func (m *githubMockRepo) DeleteIntegration(_ context.Context, _projectID, id uuid.UUID) error {
 	for k, ig := range m.integrations {
 		if ig.ID == id {
 			delete(m.integrations, k)
@@ -281,18 +308,48 @@ func TestListGitHubLinks_IssueNotFound(t *testing.T) {
 }
 
 func TestCreateBranch_InvalidIntegrationID(t *testing.T) {
+	projectID := uuid.New()
 	repo := &githubMockRepo{
 		issues: map[string]*ent.Issue{
-			"HUB-2": {ID: uuid.New(), IssueKey: "HUB-2", Title: "Task"},
+			"HUB-2": {
+				ID: uuid.New(), IssueKey: "HUB-2", Title: "Task",
+				Edges: ent.IssueEdges{Project: &ent.Project{ID: projectID}},
+			},
 		},
 	}
 	svc := github.NewGitHubService(repo, nil)
 
-	_, err := svc.CreateBranch(context.Background(), "HUB-2", github.CreateBranchRequest{
+	_, err := svc.CreateBranch(context.Background(), projectID, "HUB-2", github.CreateBranchRequest{
 		IntegrationID: "bad-id",
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "integration_id")
+}
+
+func TestCreateBranch_RejectsForeignIntegration_A5_006(t *testing.T) {
+	projectA := uuid.New()
+	projectB := uuid.New()
+	foreignID := uuid.New()
+	repo := &githubMockRepo{
+		issues: map[string]*ent.Issue{
+			"HUB-2": {
+				ID: uuid.New(), IssueKey: "HUB-2", Title: "Task",
+				Edges: ent.IssueEdges{Project: &ent.Project{ID: projectA}},
+			},
+		},
+		integrations: map[string]*ent.GitHubIntegration{
+			"other/secret": {ID: foreignID, RepoOwner: "other", RepoName: "secret", AccessToken: "pat"},
+		},
+		integrationProject: map[uuid.UUID]uuid.UUID{foreignID: projectB},
+	}
+	svc := github.NewGitHubService(repo, nil)
+
+	_, err := svc.CreateBranch(context.Background(), projectA, "HUB-2", github.CreateBranchRequest{
+		IntegrationID: foreignID.String(),
+		BranchName:    "should-not-create",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "интеграция")
 }
 
 func TestDeleteIntegration_DelegatesToRepo(t *testing.T) {
@@ -303,7 +360,7 @@ func TestDeleteIntegration_DelegatesToRepo(t *testing.T) {
 		},
 	}
 	svc := github.NewGitHubService(repo, nil)
-	require.NoError(t, svc.DeleteIntegration(context.Background(), id))
+	require.NoError(t, svc.DeleteIntegration(context.Background(), uuid.New(), id))
 	assert.Empty(t, repo.integrations)
 }
 

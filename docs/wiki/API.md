@@ -598,7 +598,7 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 | GET | `/projects/:projectId/github/workflows` | CI/CD workflow runs |
 | GET | `/projects/:projectId/github/workflows/:runId` | Детали workflow run |
 | GET | `/issues/:issueKey/github-links` | GitHub-ссылки задачи (PR, коммиты) |
-| POST | `/issues/:issueKey/github/create-branch` | Создать ветку из задачи |
+| POST | `/projects/:projectId/issues/:issueKey/github/create-branch` | Создать ветку из задачи (`task.edit`) |
 | GET | `/link-preview` | Превью ссылки (OG-данные) |
 
 ---
