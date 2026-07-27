@@ -10,7 +10,7 @@ Verify vs `17-verification.md` / `08-data-layer.md` / `07-infra-domains.md` — 
 | ID | Status | SHA | Notes |
 |----|--------|-----|-------|
 | A8-005 | FIXED | `25028b5`+`293dee7`+`14c7929` | Soft-delete `deleted_at` on Channel + filtered List/Get/IsMember; cascade hard path retired (parent soft-delete enough for TZ) |
-| A8-006 | FIXED | `5c74170` / `9f4ce5b` / `e85d882` | Comment `deleted_at` + soft-delete via SetDeletedAt; List/Update/Toggle filter DeletedAtIsNil; reactions kept, hidden with comment |
+| A8-006 | FIXED | `5c74170` / `9f4ce5b` / `c40c621` | Comment `deleted_at` + soft-delete via SetDeletedAt; List/Update/Toggle filter DeletedAtIsNil; reactions kept, hidden with comment |
 | A8-007 | FIXED | `f3dbad4` | `MongoDisconnectCleanup` + `addCleanup` in `wiring_messenger`. Mutation: skip Disconnect → Ping still OK → FAIL |
 | A8-008 | FIXED | `23d6abb` | `lifecycle.CancelOnListenError` instead of `os.Exit(1)` on Listen err. Mutation: skip cancel → FAIL |
 | A7-003 | FIXED | `0dd0dd7` | `MaintenanceGate` + Fiber middleware 503; `setMaintenanceMode` flips gate. Mutation: log-only setMaintenance → FAIL |
