@@ -76,7 +76,7 @@ type CommentRepository interface {
 	ListComments(ctx context.Context, issueID uuid.UUID) ([]*ent.Comment, error)
 	// UpdateComment обновляет комментарий автора на задаче.
 	UpdateComment(ctx context.Context, issueID, authorID, commentID uuid.UUID, input UpdateCommentInput) (*ent.Comment, error)
-	// DeleteComment удаляет комментарий автора на задаче.
+	// DeleteComment мягко удаляет комментарий автора (A8-006 soft-delete / 30-day trash).
 	DeleteComment(ctx context.Context, issueID, authorID, commentID uuid.UUID) error
 	// ToggleReaction добавляет или удаляет реакцию на комментарий задачи (A3-011-react).
 	// Возвращает true если добавлена, false если удалена.

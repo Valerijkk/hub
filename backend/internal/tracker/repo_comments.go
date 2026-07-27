@@ -3,6 +3,7 @@ package tracker
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -63,9 +64,13 @@ func (r *EntRepository) CreateComment(ctx context.Context, issueID, authorID uui
 }
 
 // ListComments возвращает все комментарии к задаче с авторами и реакциями.
+// Soft-deleted (A8-006 / TZ 30-day trash) не попадают в список — реакции на них тоже скрыты.
 func (r *EntRepository) ListComments(ctx context.Context, issueID uuid.UUID) ([]*ent.Comment, error) {
 	return r.client.Comment.Query().
-		Where(comment.HasIssueWith(issue.IDEQ(issueID))).
+		Where(
+			comment.HasIssueWith(issue.IDEQ(issueID)),
+			comment.DeletedAtIsNil(),
+		).
 		WithAuthor().
 		WithReactions(func(q *ent.ReactionQuery) {
 			q.WithUser()
@@ -81,6 +86,7 @@ func (r *EntRepository) UpdateComment(ctx context.Context, issueID, authorID, co
 			comment.IDEQ(commentID),
 			comment.HasIssueWith(issue.IDEQ(issueID)),
 			comment.HasAuthorWith(user.IDEQ(authorID)),
+			comment.DeletedAtIsNil(),
 		).
 		SetBodyJSON(input.BodyJSON).
 		SetBodyText(input.BodyText).
@@ -92,22 +98,25 @@ func (r *EntRepository) UpdateComment(ctx context.Context, issueID, authorID, co
 		return nil, &ent.NotFoundError{}
 	}
 	return r.client.Comment.Query().
-		Where(comment.IDEQ(commentID)).
+		Where(comment.IDEQ(commentID), comment.DeletedAtIsNil()).
 		WithAuthor().
 		Only(ctx)
 }
 
-// DeleteComment удаляет комментарий автора на задаче (A3-011).
+// DeleteComment мягко удаляет комментарий автора (A8-006): SetDeletedAt, без hard Delete.
+// Реакции не трогаем — они скрываются вместе с комментарием через ListComments DeletedAtIsNil.
 func (r *EntRepository) DeleteComment(ctx context.Context, issueID, authorID, commentID uuid.UUID) error {
-	affected, err := r.client.Comment.Delete().
+	affected, err := r.client.Comment.Update().
 		Where(
 			comment.IDEQ(commentID),
 			comment.HasIssueWith(issue.IDEQ(issueID)),
 			comment.HasAuthorWith(user.IDEQ(authorID)),
+			comment.DeletedAtIsNil(),
 		).
-		Exec(ctx)
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("мягкое удаление комментария: %w", err)
 	}
 	if affected == 0 {
 		return &ent.NotFoundError{}
@@ -126,6 +135,7 @@ func (r *EntRepository) ToggleReaction(ctx context.Context, issueID, commentID, 
 		Where(
 			comment.IDEQ(commentID),
 			comment.HasIssueWith(issue.IDEQ(issueID)),
+			comment.DeletedAtIsNil(),
 		).
 		Exist(ctx)
 	if err != nil {
