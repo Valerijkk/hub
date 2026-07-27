@@ -29,6 +29,8 @@ func wireMessenger(d *serverDeps) {
 		os.Exit(1)
 	}
 	d.mongoDB = mongoDB
+	// A8-007: PG/Redis/NATS уже в LIFO cleanup — Mongo тоже должен закрываться.
+	d.addCleanup(database.MongoDisconnectCleanup(mongoDB))
 
 	// Health: PostgreSQL, Redis, MongoDB (без auth) — K8s liveness.
 	api.Get("/health", func(c fiber.Ctx) error {
