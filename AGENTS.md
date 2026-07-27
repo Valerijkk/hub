@@ -188,6 +188,8 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 ```
 
 `team-lead` делегирует субагентам **только** по шаблону §5 (`team-lead.md` / `team-workflow.md` §5.3.1).
+
+**Git / коммиты:** **запрещено** писать `Co-authored-by` / AI attribution (Cursor, Claude, Codex, Cloud, Copilot) — все модели и агенты. См. `.cursor/rules/51-no-ai-coauthor.mdc`, `.cursor/rules/50-git.mdc`. Хук: `.githooks/commit-msg` → `git config core.hooksPath .githooks`.
 ---
 
 ## Команды

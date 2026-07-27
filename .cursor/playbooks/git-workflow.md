@@ -109,6 +109,15 @@ wave3                   (для интеграционной ветки нуже
 **Типы:** `feat | fix | refactor | test | docs | chore | perf | ci`
 **Scope:** `auth | tracker | sprint | messenger | tms | calls | dashboard | notification | search | ws | rbac | platform | frontend | infra | ent | ai | crm | intranet | calendar | hr | accounting | bases | marketplace`
 
+### 3.0. FORBIDDEN — AI co-author (жёстко, все модели/агенты)
+
+**Никогда** не добавлять в коммит:
+
+- `Co-authored-by:` / `Co-Authored-By:` (Cursor, Claude, Codex, Cloud Agent, Copilot, Anthropic, OpenAI, `cursoragent@…`, любой AI)
+- `Generated-by:` / «Made with Cursor|Claude|Codex»
+
+Автор = только git user владельца репо. После каждого коммита агент проверяет `git log -1 --format=%B` и сдирает trailer, если среда его дописала. Правило: `.cursor/rules/51-no-ai-coauthor.mdc` · хук: `.githooks/commit-msg` (`git config core.hooksPath .githooks`).
+
 ### 3.1. Реальные примеры по каждому типу (из `git log` Hub)
 
 **`feat` — новая функциональность:**
@@ -608,6 +617,7 @@ v2.0.0   новый milestone
 | `push --force` в `master` | Уничтожает чужую историю |
 | Пропускать хуки (`--no-verify`) | Обходит проверки безопасности/качества |
 | `commit --amend` по запушенному коммиту | Требует force-push, ломает чужие клоны |
+| **`Co-authored-by` / AI attribution в коммите** | Запрет пользователя: Cursor/Claude/Codex/Cloud — не соавторы (§3.0, `51-no-ai-coauthor.mdc`) |
 | Коммитить секреты «временно» | Утечка навсегда в истории (нужен git-purge) |
 | Гигантский PR «всё сразу» | Не ревьюится, не откатывается |
 | `git rebase -i` в общих скриптах агента | Требует интерактивного ввода — агент зависнет |

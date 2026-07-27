@@ -1,0 +1,36 @@
+---
+description: ABSOLUTE ban — never put Cursor/Claude/Codex/Cloud Co-authored-by (or any AI co-author) in git commits. Always applied.
+alwaysApply: true
+---
+
+# FORBIDDEN — AI co-author in commits
+
+**ЖЕЛЕЗНЫЙ ЗАПРЕТ для ВСЕХ моделей, агентов, субагентов, cloud/local, GSD, Cursor Agent, Claude Code, Codex.**
+
+## Никогда не писать в сообщении коммита
+
+```
+Co-authored-by: …
+Co-Authored-By: …
+Generated-by: …
+Made with Cursor / Claude / Codex / Cloud Agent / Copilot
+```
+
+в том числе:
+
+- `Cursor <cursoragent@cursor.com>`
+- Claude / Anthropic / `noreply@anthropic.com`
+- Codex / OpenAI
+- GitHub Copilot
+- любой `noreply@*` AI trailer
+
+## Обязанности агента при каждом `git commit`
+
+1. Сообщение = только Conventional Commit (subject + optional body *why*).
+2. **Не** добавлять trailer co-author «потому что так делает Cursor».
+3. Сразу после коммита: `git log -1 --format=%B` — если есть `Co-authored-by` / AI attribution → **немедленно** убрать (`git commit --amend` только своего незапушенного HEAD) и перепроверить.
+4. `--no-verify` для обхода хука **запрещён**.
+
+Автор коммита — только `user.name` / `user.email` владельца репо. AI **не** соавтор.
+
+Первоисточник также: `.cursor/rules/50-git.mdc` · playbook `git-workflow.md` §3 / §12.

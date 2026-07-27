@@ -42,6 +42,20 @@ chore(deps): update Go to 1.24.3
 ci(deploy): remove DEV_MODE=true from production workflow
 ```
 
+## FORBIDDEN commit trailers (ABSOLUTE — all models / agents / subagents)
+
+**ЖЕЛЕЗНЫЙ ЗАПРЕТ.** Никогда не добавлять в тело/trailer коммита:
+
+- `Co-authored-by:` / `Co-Authored-By:` — **любые**, в т.ч. Cursor, Claude, Codex, Cloud Agent, Anthropic, OpenAI, Copilot, `cursoragent@cursor.com`, `noreply@*`
+- `Generated-by:` / `Signed-off-by:` от AI-инструментов
+- любые «Made with Cursor / Claude / Codex / Cloud Code» строки в сообщении коммита
+
+Это относится ко **всем** моделям и агентам Hub (team-lead, be/fe, docs-writer, GSD, cloud, local — без исключений).  
+Нельзя «потому что Cursor сам дописал», нельзя «стандартный trailer», нельзя «для attribution».  
+Если среда/хук пытается дописать co-author — **убрать** перед финализацией коммита (`git commit` без trailer; при необходимости `--amend` только своего незапушенного HEAD по git-safety правилам, после ручной проверки `git log -1`).
+
+Допустимый автор коммита: **только** git `user.name` / `user.email` человека-владельца репо. AI не co-author.
+
 ## What NEVER to Commit
 
 ```gitignore
@@ -84,7 +98,12 @@ cd frontend && npx tsc --noEmit && npm run lint
 
 # Security scan
 git diff --staged | grep -E "(secret|password|token|key)" --color
+
+# AI co-author ban (must be empty)
+git log -1 --format=%B | grep -Ei '^(Co-authored-by|Generated-by):' && echo FAIL || true
 ```
+
+One-time (human, not agent): `git config core.hooksPath .githooks` — включает `.githooks/commit-msg` отказ с AI trailers.
 
 ## PR Rules
 
