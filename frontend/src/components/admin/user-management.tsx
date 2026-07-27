@@ -7,7 +7,12 @@ import {
 	gdprDeleteUser,
 	reassignTasks,
 } from "@/api/admin";
-import { getOrgInvite } from "@/api/admin-org";
+import {
+	getOrgInvite,
+	getRegistrationMode,
+	type RegistrationMode,
+	setRegistrationMode,
+} from "@/api/admin-org";
 import { api } from "@/api/client";
 import { PendingUsersPanel } from "@/components/admin/pending-users-panel";
 import { QueryStateView } from "@/components/query-state-view";
@@ -182,6 +187,9 @@ export function UserManagement() {
 	const [banReason, setBanReason] = useState("");
 	const [inviteLink, setInviteLink] = useState("");
 	const [inviteLoading, setInviteLoading] = useState(false);
+	const [regMode, setRegMode] = useState<RegistrationMode>("invite_only");
+	const [regModeLoading, setRegModeLoading] = useState(true);
+	const [regModeSaving, setRegModeSaving] = useState(false);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -205,6 +213,41 @@ export function UserManagement() {
 			cancelled = true;
 		};
 	}, []);
+
+	useEffect(() => {
+		let cancelled = false;
+		setRegModeLoading(true);
+		getRegistrationMode()
+			.then((res) => {
+				if (!cancelled) setRegMode(res.mode);
+			})
+			.catch(() => {
+				/* оставляем invite_only по умолчанию */
+			})
+			.finally(() => {
+				if (!cancelled) setRegModeLoading(false);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	const handleSaveRegistrationMode = async () => {
+		setRegModeSaving(true);
+		try {
+			const res = await setRegistrationMode(regMode);
+			setRegMode(res.mode);
+			toast.success(
+				res.mode === "open"
+					? "Регистрация открыта"
+					: "Регистрация только по инвайту",
+			);
+		} catch (err) {
+			toastApiError(err, "Не удалось сохранить режим регистрации");
+		} finally {
+			setRegModeSaving(false);
+		}
+	};
 
 	const patchUsers = (updater: (prev: ManagedUser[]) => ManagedUser[]) => {
 		queryClient.setQueryData<ManagedUser[]>(ADMIN_USERS_QUERY_KEY, (prev) =>
@@ -314,6 +357,39 @@ export function UserManagement() {
 						className="inline-flex items-center px-4 py-2 rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white disabled:opacity-50"
 					>
 						Копировать
+					</button>
+				</div>
+			</div>
+
+			{/* Режим регистрации (A11-013) */}
+			<div className="flex flex-col gap-2 mb-5 p-4 bg-gradient-to-br from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r3)]">
+				<h3 className="text-[14px] font-bold">Режим регистрации</h3>
+				<p className="text-[12px] text-t3">
+					open — любой может зарегистрироваться; invite_only — только по
+					инвайт-ссылке
+				</p>
+				<div className="flex flex-wrap items-center gap-2">
+					<label htmlFor="admin-reg-mode" className="sr-only">
+						Режим регистрации
+					</label>
+					<select
+						id="admin-reg-mode"
+						aria-label="Режим регистрации"
+						value={regMode}
+						disabled={regModeLoading || regModeSaving}
+						onChange={(e) => setRegMode(e.target.value as RegistrationMode)}
+						className="h-10 min-w-[180px] px-[14px] bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[13px] text-t1 outline-none"
+					>
+						<option value="invite_only">Только по инвайту</option>
+						<option value="open">Открытая регистрация</option>
+					</select>
+					<button
+						type="button"
+						disabled={regModeLoading || regModeSaving}
+						onClick={() => void handleSaveRegistrationMode()}
+						className="inline-flex items-center px-4 py-2 rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white disabled:opacity-50"
+					>
+						{regModeSaving ? "Сохранение…" : "Сохранить"}
 					</button>
 				</div>
 			</div>
