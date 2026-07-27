@@ -14,6 +14,10 @@ import (
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
+// MaxBoardIssuesPerColumn — A13-001: hard cap задач на колонку Kanban.
+// Без лимита GetBoardData тянет весь проект в память на hot path.
+const MaxBoardIssuesPerColumn = 200
+
 // ---------------------------------------------------------------------------
 // Доски
 // ---------------------------------------------------------------------------
@@ -59,6 +63,7 @@ func (r *EntRepository) GetBoardData(ctx context.Context, boardID uuid.UUID) (*e
 					iq.WithAssignee()
 					iq.WithLabels()
 					iq.Order(ent.Asc(issue.FieldRank))
+					iq.Limit(MaxBoardIssuesPerColumn)
 				})
 			})
 		}).
