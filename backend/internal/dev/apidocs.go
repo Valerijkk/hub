@@ -120,7 +120,7 @@ func guessModule(path string) string {
 		return "Import/Export"
 	case seg == "dev":
 		return "Dev"
-	case seg == "docs" || seg == "health":
+	case seg == "docs" || seg == "health" || seg == "live" || seg == "ready" || seg == "status" || seg == "metrics":
 		return "System"
 	case seg == "teams":
 		return "Teams"

@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
 
-	"github.com/gofiber/fiber/v3"
 	"github.com/valerii/hub/backend/internal/platform/database"
+	"github.com/valerii/hub/backend/internal/platform/health"
 	messengermod "github.com/valerii/hub/backend/internal/messenger"
 	searchmod "github.com/valerii/hub/backend/internal/search"
 	statusmod "github.com/valerii/hub/backend/internal/status"
@@ -32,61 +31,28 @@ func wireMessenger(d *serverDeps) {
 	// A8-007: PG/Redis/NATS уже в LIFO cleanup — Mongo тоже должен закрываться.
 	d.addCleanup(database.MongoDisconnectCleanup(mongoDB))
 
-	// Health: PostgreSQL, Redis, MongoDB (без auth) — K8s liveness.
-	api.Get("/health", func(c fiber.Ctx) error {
-		healthCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		services := fiber.Map{}
-		overall := "ok"
-
-		// PostgreSQL
-		// BE-H5: переиспользуем pool вместо нового
-		// *sql.DB на каждый probe — утечка connections под нагрузкой.
-		if pingErr := d.rawDB.PingContext(healthCtx); pingErr != nil {
-			services["postgres"] = "error"
-			overall = "degraded"
-		} else {
-			services["postgres"] = "ok"
+	// A14-001: /live = liveness (процесс), /ready = deps (readiness).
+	// /health — alias /ready для обратной совместимости (не использовать как liveness).
+	pingPG := func(ctx context.Context) error { return d.rawDB.PingContext(ctx) }
+	pingRedis := func(ctx context.Context) error { return d.rdb.Ping(ctx).Err() }
+	pingMongo := func(ctx context.Context) error { return mongoDB.Client().Ping(ctx, nil) }
+	pingNATS := func(ctx context.Context) error {
+		if d.nc == nil || d.nc.Conn == nil || !d.nc.Conn.IsConnected() {
+			return fmt.Errorf("nats disconnected")
 		}
-
-		// Клиент Redis
-		if pingErr := d.rdb.Ping(healthCtx).Err(); pingErr != nil {
-			services["redis"] = "error"
-			overall = "degraded"
-		} else {
-			services["redis"] = "ok"
-		}
-
-		// MongoDB
-		if pingErr := mongoDB.Client().Ping(healthCtx, nil); pingErr != nil {
-			services["mongo"] = "error"
-			overall = "degraded"
-		} else {
-			services["mongo"] = "ok"
-		}
-
-		status := fiber.StatusOK
-		if overall != "ok" {
-			status = fiber.StatusServiceUnavailable
-		}
-		return c.Status(status).JSON(fiber.Map{
-			"status":   overall,
-			"services": services,
-		})
+		return nil
+	}
+	readyHandler := health.Ready(health.Deps{
+		PingPostgres: pingPG,
+		PingRedis:    pingRedis,
+		PingMongo:    pingMongo,
+		PingNATS:     pingNATS,
 	})
+	api.Get("/live", health.Live)
+	api.Get("/ready", readyHandler)
+	api.Get("/health", readyHandler)
 
-	statusSvc := statusmod.NewService(
-		func(ctx context.Context) error { return d.rawDB.PingContext(ctx) },
-		func(ctx context.Context) error { return d.rdb.Ping(ctx).Err() },
-		func(ctx context.Context) error { return mongoDB.Client().Ping(ctx, nil) },
-		func(ctx context.Context) error {
-			if d.nc == nil || d.nc.Conn == nil || !d.nc.Conn.IsConnected() {
-				return fmt.Errorf("nats disconnected")
-			}
-			return nil
-		},
-	)
+	statusSvc := statusmod.NewService(pingPG, pingRedis, pingMongo, pingNATS)
 	statusmod.NewHandler(statusSvc).RegisterRoutes(api)
 
 	messengerEntRepo := messengermod.NewEntRepository(d.db)
@@ -122,7 +88,7 @@ func wireMessenger(d *serverDeps) {
 	d.tmsSvc = tmsSvc
 
 	// Search routes (глобальный поиск + сохранённые фильтры)
-	// Поиск переиспользует тот же raw `*sql.DB`, что и /health probe (BE-H5):
+	// Поиск переиспользует тот же raw `*sql.DB`, что и /ready probe (BE-H5):
 	// pool разделяется с Ent, отдельного pgx-подключения не открываем.
 	if err := searchmod.EnsureSearchIndexes(d.ctx, d.rawDB); err != nil {
 		slog.Error("failed to ensure search indexes", "error", err)

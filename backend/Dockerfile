@@ -52,7 +52,9 @@ USER hub:hub
 
 EXPOSE 3000
 
+# A14-001: Dockerfile HEALTHCHECK = liveness (процесс up).
+# Compose depends_on использует /api/ready (см. docker-compose.prod.yml).
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
+  CMD wget -qO- http://127.0.0.1:3000/api/live || exit 1
 
 ENTRYPOINT ["./hub-server"]

@@ -50,7 +50,7 @@ func TestGuessModule(t *testing.T) {
 		"/api/export/csv":      "Import/Export",
 		"/api/dev/status":      "Dev",
 		"/api/docs":            "System",
-		"/api/health/live":     "System",
+		"/api/live":            "System",
 		"/api/teams":           "Teams",
 		"/api/templates":       "Templates",
 		"/api/roles":           "RBAC",

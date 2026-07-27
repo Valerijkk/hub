@@ -79,10 +79,12 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate
 
 ```bash
 docker compose -f docker-compose.prod.yml ps
-curl -fsS http://localhost/api/health
+curl -fsS http://localhost/api/live    # liveness — всегда 200 если процесс жив
+curl -fsS http://localhost/api/ready   # readiness — 200/503 по deps
 ```
 
-Ожидаемый ответ: `{"status":"ok",...}`.
+Ожидаемый `/ready`: `{"status":"ok","services":{...}}`.  
+K8s: liveness=`/api/live`, readiness=`/api/ready`. Compose `healthcheck` backend = `/api/ready`.
 
 ---
 

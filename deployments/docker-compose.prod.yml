@@ -218,8 +218,9 @@ services:
         condition: service_started
       hub-mail:
         condition: service_healthy
+    # A14-001: readiness для depends_on (deps). Liveness в Dockerfile = /api/live.
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/ready"]
       interval: 10s
       timeout: 5s
       retries: 5

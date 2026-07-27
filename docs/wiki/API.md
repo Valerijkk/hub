@@ -1053,7 +1053,9 @@ AI gateway, @hub-ai bot, ModelPicker, JQL assist. User routes требуют JWT
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/health` | Health check (Postgres, Redis, Mongo) |
+| GET | `/live` | Liveness — процесс up → всегда 200 (K8s/Docker liveness; A14-001) |
+| GET | `/ready` | Readiness — Postgres/Redis/Mongo/NATS → 200 или 503 (Compose healthcheck) |
+| GET | `/health` | Alias `/ready` (обратная совместимость; не использовать как liveness) |
 | GET | `/status` | Public status page JSON (Postgres, Redis, Mongo, NATS, API) — V4-06 |
 | GET | `/metrics` | Prometheus scrape (`METRICS_ALLOWED_CIDRS` — пусто = без IP-фильтра) |
 | GET | `/docs` | Swagger UI |

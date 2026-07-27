@@ -55,7 +55,7 @@ func MaintenanceMiddleware(gate *MaintenanceGate) fiber.Handler {
 func isMaintenanceBypassPath(path string) bool {
 	p := strings.TrimSuffix(path, "/")
 	switch p {
-	case "/api/health", "/health", "/metrics":
+	case "/api/health", "/api/live", "/api/ready", "/health", "/metrics":
 		return true
 	default:
 		return false
