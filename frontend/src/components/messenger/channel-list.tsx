@@ -93,6 +93,7 @@ function BookmarksButton() {
 				type="button"
 				className="w-[34px] h-[34px] flex items-center justify-center rounded-[var(--r2)] text-[var(--t3)] hover:bg-[var(--hover)] hover:text-[var(--t2)] hover:scale-[1.08] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity]"
 				title="Закладки"
+				aria-label="Закладки"
 				onClick={() => setOpen(true)}
 			>
 				<svg
@@ -490,7 +491,7 @@ interface ChannelListProps {
 }
 
 export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
-	const { data: channels, isLoading } = useChannels();
+	const { data: channels, isLoading, isError, refetch } = useChannels();
 	useUnread();
 	const unreadCounts = useMessengerStore((s) => s.unreadCounts);
 	const matchRoute = useMatchRoute();
@@ -539,6 +540,36 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 							</div>
 						))}
 					</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div
+				className="w-[280px] min-w-[280px] h-full border-r border-[var(--b1)] flex flex-col bg-[var(--void)] msg-enter-x"
+				data-testid="messenger-channel-list"
+			>
+				<div className="px-3.5 pt-3.5 pb-2">
+					<span className="text-sm font-semibold text-[var(--t1)]">
+						Мессенджер
+					</span>
+				</div>
+				<div
+					role="alert"
+					className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center"
+				>
+					<p className="text-[13px] font-semibold text-[var(--t1)]">
+						Не удалось загрузить каналы
+					</p>
+					<button
+						type="button"
+						onClick={() => void refetch()}
+						className="h-9 px-3 rounded-[var(--r2)] border border-[var(--b1)] text-[13px] text-[var(--t2)] hover:text-[var(--t1)] hover:border-[var(--b2)] transition-colors"
+					>
+						Попробовать снова
+					</button>
 				</div>
 			</div>
 		);

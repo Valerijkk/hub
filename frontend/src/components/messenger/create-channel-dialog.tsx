@@ -23,6 +23,7 @@ export function CreateChannelDialog() {
 					type="button"
 					className="inline-flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/60 hover:bg-white/10 hover:text-sidebar-foreground transition-colors"
 					title="Создать канал"
+					aria-label="Создать канал"
 				>
 					<svg
 						aria-hidden="true"
