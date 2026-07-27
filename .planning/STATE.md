@@ -66,6 +66,12 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (devops · W16 Block E ops A14)
+
+- A14-001/002/003/004/005/009 verified OPEN → FIXED (config/docs/wiring).
+- MANUAL: rotate SeaweedFS if git defaults were live; set NATS creds on existing prod; enable OTEL endpoint for spans.
+- Report: `.planning/audits/grok-2026-07/FIX-W16.md` (`4aa77f5`…`68cbd14`, report `e882016`).
+
 ## Session note — 2026-07-27 (fe1 · W13 A11-003 + UX/a11y)
 
 - A11-003: deleted dead TelegramButton + Magic Link i18n (`5112ab2`).
