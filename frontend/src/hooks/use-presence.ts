@@ -13,6 +13,14 @@ const PRESENCE_POLL_INTERVAL = 30_000;
 const HEARTBEAT_INTERVAL = 25_000;
 
 /**
+ * Стабильный ключ presence-query без мутации входного массива.
+ * A10-004: Array.prototype.sort() мутирует in-place → ломает props/caller state.
+ */
+export function presenceQueryKeyPart(userIds: string[]): string {
+	return [...userIds].sort().join(",");
+}
+
+/**
  * usePresence загружает статусы присутствия для списка пользователей
  * с поллингом каждые 30 секунд и отправляет heartbeat каждые 25 секунд.
  */
@@ -21,7 +29,7 @@ export function usePresence(userIds: string[]) {
 	stableIds.current = userIds;
 
 	const query = useQuery({
-		queryKey: ["messenger", "presence", userIds.sort().join(",")],
+		queryKey: ["messenger", "presence", presenceQueryKeyPart(userIds)],
 		queryFn: () => getPresence(stableIds.current),
 		enabled: userIds.length > 0,
 		refetchInterval: PRESENCE_POLL_INTERVAL,
