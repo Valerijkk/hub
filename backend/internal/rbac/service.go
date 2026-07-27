@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/valerii/hub/backend/ent/user"
+
+	"github.com/valerii/hub/backend/internal/auth"
 )
 
 const defaultCacheTTL = 5 * time.Minute
@@ -39,12 +40,12 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 		return perm, nil
 	}
 
-	// Системный admin обходит project membership — полный набор разрешений.
+	// Системный admin/founder обходит project membership — полный набор разрешений (ORG-04).
 	u, err := s.repo.GetUser(ctx, userID)
 	if err != nil {
 		return 0, err
 	}
-	if u.SystemRole == user.SystemRoleAdmin {
+	if auth.IsSystemAdmin(u.SystemRole) {
 		allPerms := ^Permission(0)
 		_ = s.cache.Set(ctx, userStr, projectStr, allPerms, s.ttl)
 		return allPerms, nil

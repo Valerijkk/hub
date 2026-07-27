@@ -49,6 +49,25 @@ func TestGetEffectivePermissions_SystemAdminAllPerms(t *testing.T) {
 	assert.True(t, perm.Has(rbac.PermTeamManage))
 }
 
+// TestGetEffectivePermissions_FounderBypassWithoutMembership — A1-005:
+// founder без project membership получает полный bypass (как IsSystemAdmin).
+func TestGetEffectivePermissions_FounderBypassWithoutMembership(t *testing.T) {
+	f := newRBACFixture(t)
+	ctx := context.Background()
+
+	founder, err := f.client.User.Create().
+		SetEmail("founder-" + uuid.New().String()[:6] + "@example.com").
+		SetSystemRole(user.SystemRoleFounder).
+		Save(ctx)
+	require.NoError(t, err)
+
+	perm, err := f.svc.GetEffectivePermissions(ctx, founder.ID, f.projectID)
+	require.NoError(t, err)
+	assert.Equal(t, ^rbac.Permission(0), perm)
+	assert.True(t, perm.Has(rbac.PermProjectDelete))
+	assert.True(t, perm.Has(rbac.PermTeamManage))
+}
+
 // TestGetEffectivePermissions_NonMemberNotFound проверяет сценарий: получение effective права non участник not found.
 func TestGetEffectivePermissions_NonMemberNotFound(t *testing.T) {
 	f := newRBACFixture(t)
