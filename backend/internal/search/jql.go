@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/predicate"
+	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
@@ -102,10 +103,22 @@ func conditionToPredicate(c JQLCondition, currentUserID uuid.UUID) predicate.Iss
 			return issue.IssueTypeIn(vals...)
 		}
 	case "assignee":
-		if value == "currentUser()" || value == currentUserID.String() {
-			return issue.HasAssignee()
+		// A4-001: filter by concrete assignee, not merely "has any assignee".
+		assigneeID := currentUserID
+		if value != "currentUser()" {
+			parsed, err := uuid.Parse(value)
+			if err != nil {
+				return nil
+			}
+			assigneeID = parsed
 		}
-		return issue.HasAssignee()
+		switch c.Operator {
+		case "=", "":
+			return issue.HasAssigneeWith(user.IDEQ(assigneeID))
+		case "!=":
+			return issue.Not(issue.HasAssigneeWith(user.IDEQ(assigneeID)))
+		}
+		return nil
 	case "created":
 		return dateFieldPredicate(value, c.Operator, "created")
 	case "updated":
