@@ -131,11 +131,14 @@ func TestStrPtr(t *testing.T) {
 	assert.Equal(t, "test", *s)
 }
 
-func TestPerformBackup_MarksFailedWhenPgDumpUnavailable(t *testing.T) {
+// TestPerformBackup_PgDumpFailReturnsError_A7_004 — dump fail → error (не HTTP success).
+// Mutation: return toBackupResponse(record), nil → require.Error FAIL.
+func TestPerformBackup_PgDumpFailReturnsError_A7_004(t *testing.T) {
 	svc, client, ctx := newBackupTestService(t)
 	resp, err := svc.PerformBackup(ctx)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	require.Error(t, err, "A7-004: failed dump must not return nil error")
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "pg_dump")
 
 	records, err := client.BackupRecord.Query().All(ctx)
 	require.NoError(t, err)

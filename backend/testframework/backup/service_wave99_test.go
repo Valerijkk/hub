@@ -82,8 +82,9 @@ func TestPerformBackup_MongoDumpFailsAfterPgSuccess(t *testing.T) {
 	backup.ExportBackupSetURLs(svc, "postgres://localhost/hub_test", "mongodb://localhost:27017/hub_test")
 
 	resp, err := svc.PerformBackup(ctx)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	require.Error(t, err, "A7-004: mongodump failure must not return nil error")
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "mongodump")
 
 	records, err := client.BackupRecord.Query().All(ctx)
 	require.NoError(t, err)

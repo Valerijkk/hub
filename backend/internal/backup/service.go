@@ -74,21 +74,22 @@ func (s *BackupService) PerformBackup(ctx context.Context) (*BackupResponse, err
 	pgData, err := s.dumpPostgres(ctx)
 	if err != nil {
 		s.markFailed(ctx, record.ID, err)
-		return toBackupResponse(record), nil
+		// A7-004: не отдавать HTTP success при failed dump.
+		return nil, fmt.Errorf("pg_dump: %w", err)
 	}
 
 	// Выполняем mongodump
 	mongoData, err := s.dumpMongo(ctx)
 	if err != nil {
 		s.markFailed(ctx, record.ID, err)
-		return toBackupResponse(record), nil
+		return nil, fmt.Errorf("mongodump: %w", err)
 	}
 
 	// Архивируем в ZIP
 	zipData, err := s.createZIP(pgData, mongoData)
 	if err != nil {
 		s.markFailed(ctx, record.ID, err)
-		return toBackupResponse(record), nil
+		return nil, fmt.Errorf("zip backup: %w", err)
 	}
 
 	// Загружаем в S3
@@ -100,7 +101,7 @@ func (s *BackupService) PerformBackup(ctx context.Context) (*BackupResponse, err
 		})
 		if err != nil {
 			s.markFailed(ctx, record.ID, fmt.Errorf("ошибка загрузки в S3: %w", err))
-			return toBackupResponse(record), nil
+			return nil, fmt.Errorf("s3 upload: %w", err)
 		}
 	}
 
