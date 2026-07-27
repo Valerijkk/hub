@@ -82,7 +82,7 @@ func TestRecordingService_StopRecording_Success(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.StopRecording(ctx, rec.ID))
+	require.NoError(t, svc.StopRecording(ctx, callEnt.ID, rec.ID, f.owner.ID))
 
 	updated, err := f.client.Recording.Get(ctx, rec.ID)
 	require.NoError(t, err)

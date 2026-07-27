@@ -145,6 +145,28 @@ func TestHandler_StartRecording_Success(t *testing.T) {
 	assert.Equal(t, fiber.StatusCreated, resp.StatusCode)
 }
 
+// A2-004: stranger → 403 на start recording.
+func TestHandler_StartRecording_ForbiddenNonMember(t *testing.T) {
+	f := newCallsTestFixture(t)
+	ctx := context.Background()
+	proj, err := f.client.Project.Create().SetName("HRecDeny").SetKey(testCallsProjectKey("D")).Save(ctx)
+	require.NoError(t, err)
+	_, err = f.client.Channel.UpdateOne(f.channel).SetProjectID(proj.ID).Save(ctx)
+	require.NoError(t, err)
+	callEnt := f.createChannelCall(t, f.owner)
+
+	svc, _ := newRecordingServiceWithMockEgress(t, f.repo)
+	h := calls.ExportNewHandlerWithRecSvc(svc)
+	app := newHandlerValidationApp(h)
+
+	req := httptest.NewRequest(fiber.MethodPost, "/calls/"+callEnt.ID.String()+"/recording/start", nil)
+	req.Header.Set("X-Test-User-ID", f.stranger.ID.String())
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusForbidden, resp.StatusCode)
+}
+
 func TestHandler_StopRecording_Success(t *testing.T) {
 	f := newCallsTestFixture(t)
 	ctx := context.Background()
@@ -172,6 +194,36 @@ func TestHandler_StopRecording_Success(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+}
+
+// A2-004: stranger → 403 на stop recording.
+func TestHandler_StopRecording_ForbiddenNonMember(t *testing.T) {
+	f := newCallsTestFixture(t)
+	ctx := context.Background()
+	proj, err := f.client.Project.Create().SetName("HStopDeny").SetKey(testCallsProjectKey("Q")).Save(ctx)
+	require.NoError(t, err)
+	callEnt := f.createChannelCall(t, f.owner)
+	svc, _ := newRecordingServiceWithMockEgress(t, f.repo)
+
+	rec, err := f.client.Recording.Create().
+		SetEgressID("egress-hstop-deny").
+		SetStatus(recording.StatusRecording).
+		SetCallID(callEnt.ID).
+		SetProjectID(proj.ID).
+		SetStartedBy(f.owner.ID).
+		Save(ctx)
+	require.NoError(t, err)
+
+	h := calls.ExportNewHandlerWithRecSvc(svc)
+	app := newHandlerValidationApp(h)
+	body, _ := json.Marshal(map[string]string{"recording_id": rec.ID.String()})
+	req := httptest.NewRequest(fiber.MethodPost, "/calls/"+callEnt.ID.String()+"/recording/stop", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Test-User-ID", f.stranger.ID.String())
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusForbidden, resp.StatusCode)
 }
 
 func TestHandler_ListProjectRecordings_MemberSuccess(t *testing.T) {

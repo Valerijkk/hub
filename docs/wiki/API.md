@@ -514,8 +514,8 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/calls/:callId/recording/start` | Начать запись |
-| POST | `/calls/:callId/recording/stop` | Остановить запись |
+| POST | `/calls/:callId/recording/start` | Начать запись (только член канала звонка) |
+| POST | `/calls/:callId/recording/stop` | Остановить запись (член канала; `recording_id` принадлежит `callId`) |
 | GET | `/projects/:projectId/recordings` | Список записей проекта |
 | GET | `/recordings/:recordingId/download` | URL для скачивания записи |
 

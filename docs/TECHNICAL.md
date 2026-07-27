@@ -1319,8 +1319,8 @@ backend/internal/
 | POST | /calls/:callId/raise-hand | Поднять руку | JWT |
 | POST | /calls/:callId/chat | Отправить сообщение в чат звонка | JWT |
 | GET | /calls/:callId/chat | Список сообщений чата звонка | JWT |
-| POST | /calls/:callId/recording/start | Начать запись | JWT |
-| POST | /calls/:callId/recording/stop | Остановить запись | JWT |
+| POST | /calls/:callId/recording/start | Начать запись (channel member) | JWT |
+| POST | /calls/:callId/recording/stop | Остановить запись (channel member + call ownership) | JWT |
 | GET | /projects/:projectId/recordings | Список записей проекта | JWT |
 | POST | /projects/:projectId/scheduled-calls | Создать запланированный звонок | JWT |
 | GET | /recordings/:recordingId/download | Получить URL для скачивания записи | JWT |

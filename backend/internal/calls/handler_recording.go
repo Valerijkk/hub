@@ -1,6 +1,7 @@
 package calls
 
 import (
+	"errors"
 	"log/slog"
 	"strconv"
 
@@ -26,6 +27,7 @@ import (
 // @Success 201 {object} RecordingResponse "Запись начата"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа к каналу звонка"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/calls/{callId}/recording/start [post]
@@ -41,6 +43,9 @@ func (h *Handler) StartRecording(c fiber.Ctx) error {
 
 	resp, err := h.recSvc.StartRecording(c.Context(), callID, userID)
 	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для записи звонка")
+		}
 		slog.Error("ошибка начала записи", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось начать запись")
 	}
@@ -57,11 +62,21 @@ func (h *Handler) StartRecording(c fiber.Ctx) error {
 // @Param body body object true "recording_id: ID записи"
 // @Success 200 "Запись остановлена"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет доступа к записи"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/calls/{callId}/recording/stop [post]
 func (h *Handler) StopRecording(c fiber.Ctx) error {
-	// Получаем recording_id из тела запроса
+	callID, err := parseCallID(c)
+	if err != nil {
+		return err
+	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
 	var req struct {
 		RecordingID uuid.UUID `json:"recording_id"`
 	}
@@ -72,7 +87,10 @@ func (h *Handler) StopRecording(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "recording_id обязателен")
 	}
 
-	if err := h.recSvc.StopRecording(c.Context(), req.RecordingID); err != nil {
+	if err := h.recSvc.StopRecording(c.Context(), callID, req.RecordingID, userID); err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для остановки записи")
+		}
 		slog.Error("ошибка остановки записи", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось остановить запись")
 	}

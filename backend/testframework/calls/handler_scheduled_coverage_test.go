@@ -84,7 +84,7 @@ func TestRecordingService_StopRecording_NotActive(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := calls.ExportNewRecordingServiceForTest(f.repo, nil, config.S3Config{})
-	err = svc.StopRecording(ctx, rec.ID)
+	err = svc.StopRecording(ctx, callEnt.ID, rec.ID, f.owner.ID)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не активна")
 }
