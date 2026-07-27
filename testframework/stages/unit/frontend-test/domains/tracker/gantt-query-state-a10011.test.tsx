@@ -17,6 +17,7 @@ vi.mock("@tanstack/react-query", async () => {
 	return {
 		...actual,
 		useQuery: vi.fn(),
+		useInfiniteQuery: vi.fn(),
 	};
 });
 
@@ -36,32 +37,30 @@ vi.mock("@tanstack/react-router", () => ({
 	),
 }));
 
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 describe("GanttChart QueryStateView (A10-011)", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.mocked(useQuery).mockReturnValue({
+			data: [],
+			isLoading: false,
+			isError: false,
+			refetch: vi.fn(),
+		} as ReturnType<typeof useQuery>);
 	});
 
 	it("shows alert + retry instead of empty due-date copy when issues query fails", () => {
-		vi.mocked(useQuery).mockImplementation(((opts: { queryKey?: unknown[] }) => {
-			const key = opts.queryKey?.[0];
-			if (key === "gantt-issues") {
-				return {
-					data: undefined,
-					isLoading: false,
-					isError: true,
-					error: new Error("network"),
-					refetch,
-				};
-			}
-			return {
-				data: [],
-				isLoading: false,
-				isError: false,
-				refetch: vi.fn(),
-			};
-		}) as typeof useQuery);
+		vi.mocked(useInfiniteQuery).mockReturnValue({
+			data: undefined,
+			isLoading: false,
+			isError: true,
+			error: new Error("network"),
+			refetch,
+			hasNextPage: false,
+			isFetchingNextPage: false,
+			fetchNextPage: vi.fn(),
+		} as unknown as ReturnType<typeof useInfiniteQuery>);
 
 		renderWithProviders(<GanttChart projectId="proj-1" />);
 

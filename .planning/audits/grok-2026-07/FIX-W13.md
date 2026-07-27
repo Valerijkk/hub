@@ -24,7 +24,7 @@
 | A10-011 | PARTIAL | `a3e35cc` | Gantt wrapped in `QueryStateView` (error ≠ empty); notifications still zustand — full rollout deferred |
 | A10-012 | FIXED | `866fb7f` | Deleted unused `modules/tracker/kanban-board.tsx` (zero importers; canon = board route) |
 | A10-013 | FIXED | `a3e35cc` | Mute indicator + star `aria-label` (title kept); bookmarks remove label; Bookmarks/CreateChannel already done W13 |
-| A10-014 | DEFERRED | — | Gantt limit/virtual |
+| A10-014 | FIXED | pending | Gantt: `@tanstack/react-virtual` rows at ≥24 + cursor `useInfiniteQuery` (auto-fetch pages) + «показано N из M»; Vitest threshold assert |
 | A15-004 | DEFERRED | — | REQ LOGN-05 / wiki drift (docs, not FE code) |
 | BE LoginWithTelegram* | DEFERRED | — | Backend service/DTO — out of fe1 scope (cross-cut A18-010) |
 

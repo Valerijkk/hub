@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useEffect, useMemo, useRef } from "react";
 import {
 	type IssueResponse,
 	listIssues,
@@ -8,6 +9,10 @@ import {
 } from "@/api/tracker";
 import { QueryStateView } from "@/components/query-state-view";
 import { cn } from "@/lib/utils";
+import {
+	flattenIssuePages,
+	nextIssuesCursor,
+} from "@/modules/tracker/issues-cursor";
 
 interface GanttChartProps {
 	projectId: string;
@@ -21,13 +26,35 @@ interface GanttBar {
 
 const DAY_MS = 86_400_000;
 
+/** Above this count, prefer row virtualization over full DOM map (A10-014; mirrors board A13-014). */
+export const GANTT_VIRTUALIZE_THRESHOLD = 24;
+const ESTIMATED_ROW_HEIGHT = 56;
+const PAGE_LIMIT = 100;
+
 /** GANTT-01: шкала created_at → due_date с подсказками зависимостей. */
 export function GanttChart({ projectId }: GanttChartProps) {
-	const issuesQuery = useQuery({
+	// A10-014: cursor pages instead of hard-capped single limit:100 fetch.
+	const issuesQuery = useInfiniteQuery({
 		queryKey: ["gantt-issues", projectId],
-		queryFn: () =>
-			listIssues(projectId, { limit: 100, order_by: "updated_at" }),
+		queryFn: ({ pageParam }) =>
+			listIssues(projectId, {
+				limit: PAGE_LIMIT,
+				order_by: "updated_at",
+				cursor: pageParam,
+			}),
+		initialPageParam: undefined as string | undefined,
+		getNextPageParam: nextIssuesCursor,
 	});
+
+	useEffect(() => {
+		if (issuesQuery.hasNextPage && !issuesQuery.isFetchingNextPage) {
+			void issuesQuery.fetchNextPage();
+		}
+	}, [
+		issuesQuery.hasNextPage,
+		issuesQuery.isFetchingNextPage,
+		issuesQuery.fetchNextPage,
+	]);
 
 	// A13-004: один batch вместо N× listIssueLinks per row.
 	const { data: projectLinks } = useQuery({
@@ -46,9 +73,17 @@ export function GanttChart({ projectId }: GanttChartProps) {
 		return map;
 	}, [projectLinks]);
 
+	const allIssues = useMemo(
+		() => flattenIssuePages(issuesQuery.data?.pages),
+		[issuesQuery.data?.pages],
+	);
+
+	const issuesTotal = issuesQuery.data?.pages?.[0]?.total;
+	const loadedCount = allIssues.length;
+
 	const issues = useMemo(
-		() => (issuesQuery.data?.items ?? []).filter((i) => i.due_date),
-		[issuesQuery.data?.items],
+		() => allIssues.filter((i) => i.due_date),
+		[allIssues],
 	);
 
 	const { bars, rangeStart, rangeEnd, totalDays } = useMemo(() => {
@@ -84,7 +119,7 @@ export function GanttChart({ projectId }: GanttChartProps) {
 		<QueryStateView
 			query={issuesQuery}
 			loadingFallback={<p className="text-sm text-t3">Загрузка Gantt…</p>}
-			isEmpty={() => bars.length === 0}
+			isEmpty={() => bars.length === 0 && !issuesQuery.hasNextPage}
 			emptyFallback={
 				<p className="text-sm text-t3">
 					Нет задач с due date — задайте срок в карточке задачи
@@ -95,33 +130,106 @@ export function GanttChart({ projectId }: GanttChartProps) {
 				<div className="space-y-4">
 					<p className="text-sm text-t2">
 						{totalDays} дн. · {bars.length} задач с дедлайном
+						{typeof issuesTotal === "number" && issuesTotal > loadedCount
+							? ` · показано ${loadedCount} из ${issuesTotal}`
+							: null}
+						{issuesQuery.hasNextPage || issuesQuery.isFetchingNextPage
+							? " · загружаем…"
+							: null}
 					</p>
-					<div className="overflow-x-auto rounded-lg border border-b1">
-						<div className="min-w-[640px]">
-							{bars.map((bar) => {
-								const left =
-									((bar.start - rangeStart) / (rangeEnd - rangeStart || 1)) *
-									100;
-								const width = Math.max(
-									2,
-									((bar.end - bar.start) / (rangeEnd - rangeStart || 1)) * 100,
-								);
-								return (
+					<GanttBarsList
+						projectId={projectId}
+						bars={bars}
+						rangeStart={rangeStart}
+						rangeEnd={rangeEnd}
+						blockersByKey={blockersByKey}
+					/>
+				</div>
+			)}
+		</QueryStateView>
+	);
+}
+
+function GanttBarsList({
+	projectId,
+	bars,
+	rangeStart,
+	rangeEnd,
+	blockersByKey,
+}: {
+	projectId: string;
+	bars: GanttBar[];
+	rangeStart: number;
+	rangeEnd: number;
+	blockersByKey: Map<string, number>;
+}) {
+	const listRef = useRef<HTMLDivElement>(null);
+	const useVirtual = bars.length >= GANTT_VIRTUALIZE_THRESHOLD;
+	const span = rangeEnd - rangeStart || 1;
+
+	const virtualizer = useVirtualizer({
+		count: useVirtual ? bars.length : 0,
+		getScrollElement: () => listRef.current,
+		estimateSize: () => ESTIMATED_ROW_HEIGHT,
+		overscan: 6,
+	});
+
+	return (
+		<div
+			ref={listRef}
+			className="max-h-[min(70vh,720px)] overflow-auto rounded-lg border border-b1"
+			data-testid="gantt-bars-list"
+		>
+			<div className="min-w-[640px]">
+				{useVirtual ? (
+					<div
+						className="relative w-full"
+						style={{ height: `${virtualizer.getTotalSize()}px` }}
+					>
+						{virtualizer.getVirtualItems().map((virtualRow) => {
+							const bar = bars[virtualRow.index];
+							if (!bar) return null;
+							const left = ((bar.start - rangeStart) / span) * 100;
+							const width = Math.max(2, ((bar.end - bar.start) / span) * 100);
+							return (
+								<div
+									key={bar.issue.id}
+									data-index={virtualRow.index}
+									ref={virtualizer.measureElement}
+									className="absolute left-0 top-0 w-full"
+									style={{
+										transform: `translateY(${virtualRow.start}px)`,
+									}}
+								>
 									<GanttRow
-										key={bar.issue.id}
 										projectId={projectId}
 										bar={bar}
 										left={left}
 										width={width}
 										blockers={blockersByKey.get(bar.issue.issue_key) ?? 0}
 									/>
-								);
-							})}
-						</div>
+								</div>
+							);
+						})}
 					</div>
-				</div>
-			)}
-		</QueryStateView>
+				) : (
+					bars.map((bar) => {
+						const left = ((bar.start - rangeStart) / span) * 100;
+						const width = Math.max(2, ((bar.end - bar.start) / span) * 100);
+						return (
+							<GanttRow
+								key={bar.issue.id}
+								projectId={projectId}
+								bar={bar}
+								left={left}
+								width={width}
+								blockers={blockersByKey.get(bar.issue.issue_key) ?? 0}
+							/>
+						);
+					})
+				)}
+			</div>
+		</div>
 	);
 }
 

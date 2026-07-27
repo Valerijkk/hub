@@ -34,6 +34,15 @@ describe("gantt batch links (A13-004)", () => {
 		expect(src).toContain("issuesQuery");
 	});
 
+	it("gantt-chart virtualizes rows at threshold and uses cursor pages (A10-014)", () => {
+		const src = readFileSync(ganttPath, "utf8");
+		expect(src).toContain("useInfiniteQuery");
+		expect(src).toContain("useVirtualizer");
+		expect(src).toContain("GANTT_VIRTUALIZE_THRESHOLD");
+		expect(src).toMatch(/GANTT_VIRTUALIZE_THRESHOLD\s*=\s*24/);
+		expect(src).not.toMatch(/listIssues\([^)]*\{\s*limit:\s*100[^}]*\}\s*\)/);
+	});
+
 	it("exposes listProjectIssueLinks API helper", () => {
 		expect(typeof listProjectIssueLinks).toBe("function");
 	});
