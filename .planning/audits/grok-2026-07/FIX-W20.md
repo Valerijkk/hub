@@ -158,8 +158,8 @@ Canonical unique count from `00-SUMMARY.md`: **262** (user shorthand «261» ≈
 
 | Prior residual | Status after 2026-07-28 | SHA |
 |----------------|-------------------------|-----|
-| A3-005 StartTimer open-timer race | **CLOSED** (tx + UPDATE row-lock on issue) | *(this wave — see git log)* |
-| RT-003 CRM List/Pipeline org dump | **CLOSED** (owner scope; admin org-wide) | *(this wave)* |
+| A3-005 StartTimer open-timer race | **CLOSED** (tx + UPDATE row-lock on issue) | `bc06be9` |
+| RT-003 CRM List/Pipeline org dump | **CLOSED** (owner scope; admin org-wide) | `5e636f2` + `573c6fc` |
 | RT-005 StartSprint foreign UUID activate | **CLOSED** (sibling) | `8e0c9f2` |
 | RT-005 Get/Update/Retro/Burndown/AddIssues | **CLOSED** | `716c823` |
 | A2-007 Authorizer integration WEAK | **CLOSED** | `cce9265` |
