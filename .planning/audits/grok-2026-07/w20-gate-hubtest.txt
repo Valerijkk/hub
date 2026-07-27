@@ -1,48 +1,216 @@
-ok  	github.com/valerii/hub/backend/testframework/accounting	0.992s
-ok  	github.com/valerii/hub/backend/testframework/ai	0.162s
-ok  	github.com/valerii/hub/backend/testframework/apigateway	37.061s
-ok  	github.com/valerii/hub/backend/testframework/audit	0.708s
-ok  	github.com/valerii/hub/backend/testframework/auth	1.412s
-ok  	github.com/valerii/hub/backend/testframework/backup	0.497s
-ok  	github.com/valerii/hub/backend/testframework/bases	0.614s
-ok  	github.com/valerii/hub/backend/testframework/calendar	0.099s
-ok  	github.com/valerii/hub/backend/testframework/calls	1.803s
-ok  	github.com/valerii/hub/backend/testframework/crm	0.450s
-ok  	github.com/valerii/hub/backend/testframework/dashboard	0.454s
-ok  	github.com/valerii/hub/backend/testframework/dev	0.105s
-ok  	github.com/valerii/hub/backend/testframework/env	0.024s
+go: downloading github.com/alicebob/miniredis/v2 v2.33.0
+go: downloading github.com/gofiber/fiber/v3 v3.0.0-beta.3
+go: downloading github.com/google/uuid v1.6.0
+go: downloading github.com/mattn/go-sqlite3 v1.14.16
+go: downloading github.com/redis/go-redis/v9 v9.17.2
+go: downloading github.com/stretchr/testify v1.11.1
+go: downloading github.com/aws/aws-sdk-go-v2 v1.32.7
+go: downloading github.com/aws/aws-sdk-go-v2/config v1.28.7
+go: downloading github.com/aws/aws-sdk-go-v2/credentials v1.17.48
+go: downloading github.com/aws/aws-sdk-go-v2/service/s3 v1.71.1
+go: downloading github.com/nats-io/nats-server/v2 v2.11.6
+go: downloading github.com/nats-io/nats.go v1.48.0
+go: downloading github.com/lib/pq v1.10.9
+go: downloading github.com/google/go-github/v68 v68.0.0
+go: downloading github.com/golang-jwt/jwt/v5 v5.3.0
+go: downloading github.com/fasthttp/websocket v1.5.11
+go: downloading go.mongodb.org/mongo-driver/v2 v2.0.0
+go: downloading github.com/mymmrac/telego v0.31.0
+go: downloading github.com/livekit/protocol v1.45.1
+go: downloading github.com/teambition/rrule-go v1.8.2
+go: downloading github.com/SherClockHolmes/webpush-go v1.4.0
+go: downloading go.opentelemetry.io/otel v1.40.0
+go: downloading go.opentelemetry.io/otel/sdk v1.40.0
+go: downloading go.opentelemetry.io/otel/trace v1.40.0
+go: downloading github.com/xuri/excelize/v2 v2.10.1
+go: downloading github.com/valyala/fasthttp v1.69.0
+go: downloading google.golang.org/protobuf v1.36.11
+go: downloading entgo.io/ent v0.14.1
+go: downloading github.com/gofiber/utils/v2 v2.0.0-beta.4
+go: downloading github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+go: downloading github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+go: downloading github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a
+go: downloading github.com/yuin/gopher-lua v1.1.1
+go: downloading github.com/aws/smithy-go v1.22.1
+go: downloading github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.22
+go: downloading github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1
+go: downloading github.com/aws/aws-sdk-go-v2/service/sso v1.24.8
+go: downloading github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.7
+go: downloading github.com/aws/aws-sdk-go-v2/service/sts v1.33.3
+go: downloading github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.7
+go: downloading github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.26
+go: downloading github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.26
+go: downloading github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1
+go: downloading github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.4.7
+go: downloading github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.7
+go: downloading github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.7
+go: downloading github.com/klauspost/compress v1.18.4
+go: downloading github.com/nats-io/nkeys v0.4.15
+go: downloading github.com/nats-io/nuid v1.0.1
+go: downloading github.com/mattn/go-colorable v0.1.14
+go: downloading github.com/mattn/go-isatty v0.0.20
+go: downloading github.com/valyala/bytebufferpool v1.0.0
+go: downloading golang.org/x/net v0.51.0
+go: downloading github.com/savsgio/gotils v0.0.0-20240704082632-aef3928b8a38
+go: downloading github.com/johnfercher/maroto/v2 v2.2.3
+go: downloading github.com/prometheus/client_golang v1.23.2
+go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.40.0
+go: downloading github.com/google/go-querystring v1.1.0
+go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.40.0
+go: downloading github.com/cespare/xxhash/v2 v2.3.0
+go: downloading github.com/minio/highwayhash v1.0.3
+go: downloading github.com/nats-io/jwt/v2 v2.7.4
+go: downloading github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
+go: downloading golang.org/x/crypto v0.49.0
+go: downloading golang.org/x/time v0.14.0
+go: downloading github.com/fasthttp/router v1.5.2
+go: downloading buf.build/go/protoyaml v0.6.0
+go: downloading github.com/dennwc/iters v1.2.2
+go: downloading github.com/twitchtv/twirp v8.1.3+incompatible
+go: downloading github.com/livekit/psrpc v0.7.1
+go: downloading golang.org/x/text v0.35.0
+go: downloading google.golang.org/grpc v1.79.1
+go: downloading gopkg.in/yaml.v3 v3.0.1
+go: downloading github.com/livekit/server-sdk-go/v2 v2.4.0
+go: downloading github.com/andybalholm/brotli v1.2.0
+go: downloading github.com/richardlehane/mscfb v1.0.6
+go: downloading github.com/tiendc/go-deepcopy v1.7.2
+go: downloading github.com/xuri/efp v0.0.1
+go: downloading github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9
+go: downloading github.com/go-logr/logr v1.4.3
+go: downloading go.opentelemetry.io/otel/metric v1.40.0
+go: downloading ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43
+go: downloading github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
+go: downloading github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.26
+go: downloading golang.org/x/sys v0.42.0
+go: downloading github.com/beorn7/perks v1.0.1
+go: downloading github.com/prometheus/client_model v0.6.2
+go: downloading github.com/prometheus/common v0.67.5
+go: downloading github.com/prometheus/procfs v0.19.2
+go: downloading go.opentelemetry.io/proto/otlp v1.9.0
+go: downloading github.com/grbit/go-json v0.11.0
+go: downloading github.com/valyala/fastjson v1.6.4
+go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57
+go: downloading buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260209202127-80ab13bee0bf.1
+go: downloading buf.build/go/protovalidate v1.1.2
+go: downloading golang.org/x/exp v0.0.0-20260212183809-81e46e3db34a
+go: downloading github.com/go-jose/go-jose/v3 v3.0.4
+go: downloading go.uber.org/zap v1.27.1
+go: downloading github.com/bep/debounce v1.2.1
+go: downloading github.com/go-logr/stdr v1.2.2
+go: downloading github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
+go: downloading github.com/livekit/mediatransportutil v0.0.0-20251128105421-19c7a7b81c22
+go: downloading github.com/pion/interceptor v0.1.44
+go: downloading github.com/pion/rtcp v1.2.16
+go: downloading github.com/pion/dtls/v3 v3.1.2
+go: downloading github.com/pion/rtp v1.10.1
+go: downloading github.com/pion/sdp/v3 v3.0.17
+go: downloading github.com/pion/webrtc/v4 v4.2.6
+go: downloading go.uber.org/atomic v1.11.0
+go: downloading github.com/richardlehane/msoleps v1.0.6
+go: downloading go.opentelemetry.io/auto/sdk v1.2.1
+go: downloading github.com/hashicorp/hcl/v2 v2.13.0
+go: downloading github.com/zclconf/go-cty v1.8.0
+go: downloading github.com/golang/snappy v0.0.4
+go: downloading github.com/xdg-go/scram v1.1.2
+go: downloading github.com/xdg-go/stringprep v1.0.4
+go: downloading github.com/f-amaral/go-async v0.3.0
+go: downloading github.com/johnfercher/go-tree v1.1.0
+go: downloading github.com/cenkalti/backoff/v5 v5.0.3
+go: downloading github.com/jung-kurt/gofpdf v1.16.2
+go: downloading github.com/gammazero/deque v1.2.1
+go: downloading github.com/zeebo/xxh3 v1.1.0
+go: downloading go.uber.org/multierr v1.11.0
+go: downloading github.com/puzpuzpuz/xsync/v3 v3.5.1
+go: downloading go.uber.org/zap/exp v0.3.0
+go: downloading github.com/benbjohnson/clock v1.3.5
+go: downloading github.com/frostbyte73/core v0.1.1
+go: downloading github.com/fsnotify/fsnotify v1.9.0
+go: downloading github.com/jxskiss/base62 v1.1.0
+go: downloading github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.7
+go: downloading github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+go: downloading github.com/lithammer/shortuuid/v4 v4.2.0
+go: downloading go.yaml.in/yaml/v2 v2.4.3
+go: downloading github.com/google/cel-go v0.27.0
+go: downloading github.com/go-openapi/inflect v0.19.0
+go: downloading github.com/pion/randutil v0.1.0
+go: downloading golang.org/x/mod v0.33.0
+go: downloading github.com/pion/logging v0.2.4
+go: downloading golang.org/x/sync v0.20.0
+go: downloading github.com/pdfcpu/pdfcpu v0.11.1
+go: downloading github.com/pion/transport/v4 v4.0.1
+go: downloading github.com/xdg-go/pbkdf2 v1.0.0
+go: downloading github.com/pion/datachannel v1.6.0
+go: downloading github.com/pion/ice/v4 v4.2.0
+go: downloading github.com/pion/sctp v1.9.2
+go: downloading github.com/pion/srtp/v3 v3.0.10
+go: downloading github.com/pion/stun/v3 v3.1.1
+go: downloading github.com/klauspost/cpuid/v2 v2.3.0
+go: downloading github.com/agext/levenshtein v1.2.1
+go: downloading github.com/google/go-cmp v0.7.0
+go: downloading github.com/apparentlymart/go-textseg/v13 v13.0.0
+go: downloading github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7
+go: downloading github.com/boombuler/barcode v1.1.0
+go: downloading cel.dev/expr v0.25.1
+go: downloading google.golang.org/genproto/googleapis/api v0.0.0-20260209200024-4cfbd4190f57
+go: downloading github.com/antlr4-go/antlr/v4 v4.13.1
+go: downloading github.com/wlynxg/anet v0.0.5
+go: downloading github.com/pion/mdns/v2 v2.1.0
+go: downloading github.com/pion/turn/v4 v4.1.4
+go: downloading github.com/pkg/errors v0.9.1
+go: downloading gopkg.in/yaml.v2 v2.4.0
+go: downloading github.com/mattn/go-runewidth v0.0.21
+go: downloading golang.org/x/image v0.37.0
+go: downloading github.com/hhrutter/tiff v1.0.2
+go: downloading github.com/hhrutter/pkcs7 v0.2.0
+go: downloading github.com/hhrutter/lzw v1.0.0
+go: downloading github.com/clipperhouse/uax29/v2 v2.7.0
+ok  	github.com/valerii/hub/backend/testframework/accounting	2.431s
+ok  	github.com/valerii/hub/backend/testframework/ai	1.357s
+ok  	github.com/valerii/hub/backend/testframework/apigateway	38.722s
+ok  	github.com/valerii/hub/backend/testframework/audit	2.278s
+ok  	github.com/valerii/hub/backend/testframework/auth	3.696s
+ok  	github.com/valerii/hub/backend/testframework/backup	1.887s
+ok  	github.com/valerii/hub/backend/testframework/bases	2.204s
+ok  	github.com/valerii/hub/backend/testframework/calendar	1.204s
+ok  	github.com/valerii/hub/backend/testframework/calls	4.692s
+ok  	github.com/valerii/hub/backend/testframework/crm	1.898s
+ok  	github.com/valerii/hub/backend/testframework/dashboard	1.956s
+ok  	github.com/valerii/hub/backend/testframework/dev	1.201s
+ok  	github.com/valerii/hub/backend/testframework/env	1.068s
 ?   	github.com/valerii/hub/backend/testframework/factory	[no test files]
-ok  	github.com/valerii/hub/backend/testframework/github	0.768s
-ok  	github.com/valerii/hub/backend/testframework/gitlab	0.169s
-ok  	github.com/valerii/hub/backend/testframework/hr	0.326s
-ok  	github.com/valerii/hub/backend/testframework/imex	0.849s
-ok  	github.com/valerii/hub/backend/testframework/intranet	0.275s
-ok  	github.com/valerii/hub/backend/testframework/mail	0.560s
-ok  	github.com/valerii/hub/backend/testframework/marketplace	0.281s
-ok  	github.com/valerii/hub/backend/testframework/messenger	0.722s
+ok  	github.com/valerii/hub/backend/testframework/github	2.596s
+ok  	github.com/valerii/hub/backend/testframework/gitlab	1.597s
+ok  	github.com/valerii/hub/backend/testframework/hr	1.730s
+ok  	github.com/valerii/hub/backend/testframework/imex	2.623s
+ok  	github.com/valerii/hub/backend/testframework/intranet	1.510s
+ok  	github.com/valerii/hub/backend/testframework/mail	1.943s
+ok  	github.com/valerii/hub/backend/testframework/marketplace	1.565s
+ok  	github.com/valerii/hub/backend/testframework/messenger	2.272s
 ?   	github.com/valerii/hub/backend/testframework/mongotest	[no test files]
-ok  	github.com/valerii/hub/backend/testframework/notification	6.148s
-ok  	github.com/valerii/hub/backend/testframework/onec	0.157s
-ok  	github.com/valerii/hub/backend/testframework/platform/config	0.007s
-ok  	github.com/valerii/hub/backend/testframework/platform/cron	0.124s
-ok  	github.com/valerii/hub/backend/testframework/platform/crypto	0.008s
-ok  	github.com/valerii/hub/backend/testframework/platform/database	0.025s
-ok  	github.com/valerii/hub/backend/testframework/platform/errors	0.008s
-ok  	github.com/valerii/hub/backend/testframework/platform/health	0.011s
-ok  	github.com/valerii/hub/backend/testframework/platform/http	0.014s
-ok  	github.com/valerii/hub/backend/testframework/platform/lifecycle	0.007s
-ok  	github.com/valerii/hub/backend/testframework/platform/middleware	0.107s
-ok  	github.com/valerii/hub/backend/testframework/platform/nats	0.234s
-ok  	github.com/valerii/hub/backend/testframework/platform/observability	0.026s
-ok  	github.com/valerii/hub/backend/testframework/platform/outbox	0.603s
-ok  	github.com/valerii/hub/backend/testframework/platform/telegram	0.007s
-ok  	github.com/valerii/hub/backend/testframework/project	1.242s
-ok  	github.com/valerii/hub/backend/testframework/rbac	0.810s
-ok  	github.com/valerii/hub/backend/testframework/search	0.834s
-ok  	github.com/valerii/hub/backend/testframework/sprint	1.043s
-ok  	github.com/valerii/hub/backend/testframework/status	0.007s
+ok  	github.com/valerii/hub/backend/testframework/notification	8.822s
+ok  	github.com/valerii/hub/backend/testframework/onec	1.214s
+ok  	github.com/valerii/hub/backend/testframework/platform/config	1.023s
+ok  	github.com/valerii/hub/backend/testframework/platform/cron	1.152s
+ok  	github.com/valerii/hub/backend/testframework/platform/crypto	1.023s
+ok  	github.com/valerii/hub/backend/testframework/platform/database	1.132s
+ok  	github.com/valerii/hub/backend/testframework/platform/errors	1.028s
+ok  	github.com/valerii/hub/backend/testframework/platform/health	1.024s
+ok  	github.com/valerii/hub/backend/testframework/platform/http	1.044s
+ok  	github.com/valerii/hub/backend/testframework/platform/lifecycle	1.038s
+ok  	github.com/valerii/hub/backend/testframework/platform/middleware	1.158s
+ok  	github.com/valerii/hub/backend/testframework/platform/nats	1.301s
+ok  	github.com/valerii/hub/backend/testframework/platform/observability	1.085s
+ok  	github.com/valerii/hub/backend/testframework/platform/outbox	1.801s
+ok  	github.com/valerii/hub/backend/testframework/platform/telegram	1.016s
+ok  	github.com/valerii/hub/backend/testframework/project	2.743s
+ok  	github.com/valerii/hub/backend/testframework/rbac	2.184s
+ok  	github.com/valerii/hub/backend/testframework/search	3.081s
+ok  	github.com/valerii/hub/backend/testframework/sprint	3.221s
+ok  	github.com/valerii/hub/backend/testframework/status	1.021s
 ?   	github.com/valerii/hub/backend/testframework/steps	[no test files]
-ok  	github.com/valerii/hub/backend/testframework/storage	1.746s
-ok  	github.com/valerii/hub/backend/testframework/tms	3.077s
-ok  	github.com/valerii/hub/backend/testframework/tracker	1.859s
-ok  	github.com/valerii/hub/backend/testframework/ws	0.806s
+ok  	github.com/valerii/hub/backend/testframework/storage	5.243s
+ok  	github.com/valerii/hub/backend/testframework/tms	5.592s
+ok  	github.com/valerii/hub/backend/testframework/tracker	6.339s
+ok  	github.com/valerii/hub/backend/testframework/ws	2.073s
+EXIT_CODE=0

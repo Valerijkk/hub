@@ -1,48 +1,37 @@
-ok  	github.com/valerii/hub/backend/testframework/accounting	0.992s
-ok  	github.com/valerii/hub/backend/testframework/ai	0.162s
-ok  	github.com/valerii/hub/backend/testframework/apigateway	37.061s
-ok  	github.com/valerii/hub/backend/testframework/audit	0.708s
-ok  	github.com/valerii/hub/backend/testframework/auth	1.412s
-ok  	github.com/valerii/hub/backend/testframework/backup	0.497s
-ok  	github.com/valerii/hub/backend/testframework/bases	0.614s
-ok  	github.com/valerii/hub/backend/testframework/calendar	0.099s
-ok  	github.com/valerii/hub/backend/testframework/calls	1.803s
-ok  	github.com/valerii/hub/backend/testframework/crm	0.450s
-ok  	github.com/valerii/hub/backend/testframework/dashboard	0.454s
-ok  	github.com/valerii/hub/backend/testframework/dev	0.105s
-ok  	github.com/valerii/hub/backend/testframework/env	0.024s
-?   	github.com/valerii/hub/backend/testframework/factory	[no test files]
-ok  	github.com/valerii/hub/backend/testframework/github	0.768s
-ok  	github.com/valerii/hub/backend/testframework/gitlab	0.169s
-ok  	github.com/valerii/hub/backend/testframework/hr	0.326s
-ok  	github.com/valerii/hub/backend/testframework/imex	0.849s
-ok  	github.com/valerii/hub/backend/testframework/intranet	0.275s
-ok  	github.com/valerii/hub/backend/testframework/mail	0.560s
-ok  	github.com/valerii/hub/backend/testframework/marketplace	0.281s
-ok  	github.com/valerii/hub/backend/testframework/messenger	0.722s
-?   	github.com/valerii/hub/backend/testframework/mongotest	[no test files]
-ok  	github.com/valerii/hub/backend/testframework/notification	6.148s
-ok  	github.com/valerii/hub/backend/testframework/onec	0.157s
-ok  	github.com/valerii/hub/backend/testframework/platform/config	0.007s
-ok  	github.com/valerii/hub/backend/testframework/platform/cron	0.124s
-ok  	github.com/valerii/hub/backend/testframework/platform/crypto	0.008s
-ok  	github.com/valerii/hub/backend/testframework/platform/database	0.025s
-ok  	github.com/valerii/hub/backend/testframework/platform/errors	0.008s
-ok  	github.com/valerii/hub/backend/testframework/platform/health	0.011s
-ok  	github.com/valerii/hub/backend/testframework/platform/http	0.014s
-ok  	github.com/valerii/hub/backend/testframework/platform/lifecycle	0.007s
-ok  	github.com/valerii/hub/backend/testframework/platform/middleware	0.107s
-ok  	github.com/valerii/hub/backend/testframework/platform/nats	0.234s
-ok  	github.com/valerii/hub/backend/testframework/platform/observability	0.026s
-ok  	github.com/valerii/hub/backend/testframework/platform/outbox	0.603s
-ok  	github.com/valerii/hub/backend/testframework/platform/telegram	0.007s
-ok  	github.com/valerii/hub/backend/testframework/project	1.242s
-ok  	github.com/valerii/hub/backend/testframework/rbac	0.810s
-ok  	github.com/valerii/hub/backend/testframework/search	0.834s
-ok  	github.com/valerii/hub/backend/testframework/sprint	1.043s
-ok  	github.com/valerii/hub/backend/testframework/status	0.007s
-?   	github.com/valerii/hub/backend/testframework/steps	[no test files]
-ok  	github.com/valerii/hub/backend/testframework/storage	1.746s
-ok  	github.com/valerii/hub/backend/testframework/tms	3.077s
-ok  	github.com/valerii/hub/backend/testframework/tracker	1.859s
-ok  	github.com/valerii/hub/backend/testframework/ws	0.806s
+Hubtest gate summary (W20 residual close refresh)
+================================================
+Date (UTC): 2026-07-28 02:25:02 UTC (host local: 2026-07-28 02:25:02 +03:00)
+Branch: cursor-grok-4.5
+HEAD SHA (pre-artifact-commit): 3d313bfe278f1057687e13df85e0be8cec478144
+Network: hub_default (hub-postgres-1, hub-mongo-1 healthy)
+Image: golang:1.25-bookworm
+
+Command:
+docker run --rm --network hub_default \
+  -v "<repo>/backend:/workspace/backend" \
+  -v "<repo>/.planning/audits/grok-2026-07:/artifacts" \
+  -e POSTGRES_TEST_URL="postgresql://hub:hub@postgres:5432/hub?sslmode=disable" \
+  -e MONGODB_TEST_URL="mongodb://hub:hub@mongo:27017/?authSource=admin" \
+  -e CGO_ENABLED=1 \
+  -e PATH="/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+  -w /workspace/backend \
+  golang:1.25-bookworm \
+  bash /artifacts/_run_hubtest_gate.sh
+
+Inner test invocation:
+  go test -tags hubtest -race -count=1 -timeout=900s ./testframework/...
+
+Package counts:
+  ok:   45
+  fail: 0
+  ?:    3
+
+Exit code: 0
+Log artifact: .planning/audits/grok-2026-07/w20-gate-hubtest.txt
+
+Notes:
+- search / crm / messenger: ok
+- First full run failed testframework/calls TestReadPump_CallAuthorizer_ParticipantAllowed_A2_007
+  (race: Hub.Subscribe is async; pong != room membership applied).
+- Fix: ExportClientInRoom + wait in A2-007 before BroadcastToRoom; verified -count=10 then full gate green.
+- FAIL packages: (none)
