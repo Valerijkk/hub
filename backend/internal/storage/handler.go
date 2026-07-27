@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"log/slog"
 
 	"github.com/gofiber/fiber/v3"
@@ -173,6 +174,12 @@ func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 	}
 
 	if err := h.storage.ConfirmUpload(c.Context(), fileID, req.EntityType, req.EntityID); err != nil {
+		if errors.Is(err, ErrAlreadyConfirmed) {
+			return fiber.NewError(fiber.StatusConflict, "file already confirmed")
+		}
+		if ent.IsNotFound(err) || errors.Is(err, ErrNotPending) {
+			return fiber.NewError(fiber.StatusNotFound, "file not found")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to confirm upload")
 	}
 

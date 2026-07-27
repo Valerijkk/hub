@@ -100,8 +100,12 @@ func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, conten
 }
 
 // ConfirmUpload помечает файл как подтверждённый и устанавливает тип и ID сущности.
+// A4-006: только pending → confirmed; ErrAlreadyConfirmed при повторном confirm.
 func (s *StorageService) ConfirmUpload(ctx context.Context, fileID uuid.UUID, entityType, entityID string) error {
-	return s.repo.ConfirmUpload(ctx, fileID, entityType, entityID)
+	if err := s.repo.ConfirmUpload(ctx, fileID, entityType, entityID); err != nil {
+		return err
+	}
+	return nil
 }
 
 // FileProjectID возвращает ID проекта, которому принадлежит файл.
