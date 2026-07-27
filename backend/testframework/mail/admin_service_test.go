@@ -67,8 +67,10 @@ func TestAdminService_Broadcast(t *testing.T) {
 	require.NoError(t, err)
 	_, err = client.User.Create().SetEmail("b@test.local").SetStatus(user.StatusActive).Save(ctx)
 	require.NoError(t, err)
-	// A7-008: pending must not be counted/sent
+	// A7-008: pending/deactivated must not be counted/sent
 	_, err = client.User.Create().SetEmail("pending@test.local").SetStatus(user.StatusPending).Save(ctx)
+	require.NoError(t, err)
+	_, err = client.User.Create().SetEmail("gone@test.local").SetStatus(user.StatusDeactivated).Save(ctx)
 	require.NoError(t, err)
 
 	store := mail.NewEntSettingsStore(client)
@@ -86,6 +88,7 @@ func TestAdminService_Broadcast(t *testing.T) {
 			DryRun:   true,
 		})
 		require.NoError(t, err)
+		// Mutation: StatusNEQ(pending) only → deactivated counted (3); drop StatusEQ → 4.
 		assert.Equal(t, 2, resp.Recipients, "A7-008: only active users")
 		assert.True(t, resp.DryRun)
 	})
