@@ -82,6 +82,24 @@ export function createListing(data: {
 	return api.post("/marketplace/listings", data);
 }
 
+export function updateListing(
+	id: string,
+	data: {
+		title?: string;
+		description?: string;
+		category?: ListingCategory;
+		price_cents?: number;
+		currency?: string;
+		version: number;
+	},
+): Promise<MarketplaceListing> {
+	return api.put(`/marketplace/listings/${id}`, data);
+}
+
+export function deleteListing(id: string): Promise<void> {
+	return api.delete(`/marketplace/listings/${id}`);
+}
+
 export function approveListing(
 	id: string,
 	version: number,
