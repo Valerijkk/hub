@@ -270,6 +270,9 @@ func (h *Handler) DeactivateUser(c fiber.Ctx) error {
 	}
 
 	if err := h.service.DeactivateUser(c.Context(), userID); err != nil {
+		if errors.Is(err, ErrCannotModifyFounder) {
+			return fiber.NewError(fiber.StatusForbidden, "cannot ban or deactivate founder account")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -312,6 +315,9 @@ func (h *Handler) BanUser(c fiber.Ctx) error {
 	}
 
 	if err := h.service.BanUser(c.Context(), targetID, adminID, req.Reason, c.IP(), c.Get("User-Agent")); err != nil {
+		if errors.Is(err, ErrCannotModifyFounder) {
+			return fiber.NewError(fiber.StatusForbidden, "cannot ban or deactivate founder account")
+		}
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 

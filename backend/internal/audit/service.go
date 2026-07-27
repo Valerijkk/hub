@@ -21,6 +21,9 @@ import (
 // Самоудаление founder (actor == target) разрешено — легитимный right to erasure.
 var ErrCannotDeleteFounder = errors.New("cannot delete founder account")
 
+// ErrCannotModifyFounder — A1-009: ban/deactivate founder запрещены (ORG-04).
+var ErrCannotModifyFounder = errors.New("cannot ban or deactivate founder account")
+
 // Настройки аудита, лимитов и корзины.
 const (
 	// Ключи лимитов в SystemSetting.
@@ -286,6 +289,15 @@ func (s *AuditService) DeactivateUser(ctx context.Context, userID uuid.UUID) err
 }
 
 func (s *AuditService) deactivateUser(ctx context.Context, userID uuid.UUID) error {
+	// A1-009 / ORG-04: founder нельзя деактивировать (в т.ч. через BanUser).
+	role, err := s.repo.GetUserSystemRole(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("get user role (deactivate): %w", err)
+	}
+	if role == user.SystemRoleFounder {
+		return ErrCannotModifyFounder
+	}
+
 	// Обновляем статус пользователя
 	if err := s.repo.DeactivateUser(ctx, userID); err != nil {
 		return fmt.Errorf("деактивация пользователя: %w", err)
