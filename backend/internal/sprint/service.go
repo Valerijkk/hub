@@ -257,10 +257,14 @@ func (s *SprintService) RemoveIssuesFromSprint(ctx context.Context, issueIDs []u
 
 // CheckWIPLimit проверяет WIP-лимит для целевого статуса (KANB-02).
 // Возвращает ошибку 409 если лимит достигнут.
+// A3-015: status not found / count error → fail closed (не silent skip).
 func (s *SprintService) CheckWIPLimit(ctx context.Context, statusID uuid.UUID) error {
 	ws, err := s.repo.GetWorkflowStatus(ctx, statusID)
 	if err != nil {
-		return nil // Если статус не найден, пропускаем проверку
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("статус не найден")
+		}
+		return apperrors.NewInternal("ошибка проверки WIP-лимита")
 	}
 
 	if ws.WipLimit <= 0 {
@@ -269,7 +273,7 @@ func (s *SprintService) CheckWIPLimit(ctx context.Context, statusID uuid.UUID) e
 
 	count, err := s.repo.CountIssuesInStatus(ctx, statusID)
 	if err != nil {
-		return nil // В случае ошибки пропускаем
+		return apperrors.NewInternal("ошибка подсчёта задач для WIP-лимита")
 	}
 
 	if count >= ws.WipLimit {
