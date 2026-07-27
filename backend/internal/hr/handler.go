@@ -124,7 +124,10 @@ func (h *Handler) CancelLeave(c fiber.Ctx) error {
 	var body struct {
 		Version int `json:"version"`
 	}
-	_ = c.Bind().JSON(&body)
+	// A6-006: bind errors → 400 (same as Approve/Reject; do not swallow).
+	if err := c.Bind().JSON(&body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+	}
 	resp, err := h.service.CancelLeave(c.Context(), userID, leaveID, body.Version)
 	if err != nil {
 		return mapServiceError(err)
