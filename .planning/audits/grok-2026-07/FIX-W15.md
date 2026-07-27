@@ -11,19 +11,20 @@
 
 ## Итог
 
-| ID | Status | Notes |
-|----|--------|-------|
-| A8-001 | PARTIAL / NEEDS_APPROVAL | Query rewrite FIXED: `issueProjectIDEQ` on FK `project_issues` (ListIssues / FindIssueInProject / cursor). **Index** `index.Edges("project").Fields("deleted_at")` (+ optional `(project, rank)`) → **NEEDS_APPROVAL** (Ent schema + Atlas migrate). |
-| A8-002 | PARTIAL / NEEDS_APPROVAL | Query rewrite FIXED: `testCaseProjectIDEQ` on FK `project_test_cases` (ListTestCases). **Index** `(project_test_cases, deleted_at)` → **NEEDS_APPROVAL**. |
-| A13-001 | FIXED (prior) | `MaxBoardIssuesPerColumn=200` in `repo_boards.go` (`456636f`) — non-schema amp for A8-001. |
-| A13-011 | FIXED | Board: `effectiveBoardId` from list → `getBoardData` without effect waterfall. |
-| A13-012 | FIXED | Dashboard: `Promise.all([fetchPersonal(), loadLayout("personal")])`. |
-| A13-014 | FIXED | Kanban `BoardColumn`: `@tanstack/react-virtual` when ≥24 cards; motion path kept for small cols. Test: `board-column-virtual.test.tsx`. |
-| A13-015 | FIXED | AppShell: lazy `AIChatPanel` / `CommandPalette` / `ShortcutsDialog` mount only when open. |
-| A13-016 | FIXED | i18n: eager `common`+`help`; other ns via dynamic `import()` backend. |
-| A13-017 | FIXED | Lazy routes: crm, accounting, marketplace, gantt, board (`*.lazy.tsx` + stubs). `routeTree.gen.ts` regenerated. |
-| A13-018 | FIXED | Channel list: virtualize when ≥40 flat rows; section UI kept below threshold. |
-| Bundle | FIXED (via 015–017) | Existing `manualChunks` retained; cold graph drops AI/search/help + heavy modules + most locale JSON. |
+| ID | Status | SHA | Notes |
+|----|--------|-----|-------|
+| A8-001 | PARTIAL / NEEDS_APPROVAL | `0ce8cd7` | Query rewrite FIXED: `issueProjectIDEQ` on FK `project_issues`. **Index** `(project_issues, deleted_at)` → **NEEDS_APPROVAL**. |
+| A8-002 | PARTIAL / NEEDS_APPROVAL | `443a569` | Query rewrite FIXED: `testCaseProjectIDEQ` on FK `project_test_cases`. **Index** → **NEEDS_APPROVAL**. |
+| A13-001 | FIXED (prior) | `456636f` | `MaxBoardIssuesPerColumn=200` — non-schema amp for A8-001. |
+| A13-011 | FIXED | `2ae0f1f` | Board: `effectiveBoardId` from list → no effect waterfall. |
+| A13-012 | FIXED | `2ae0f1f` | Dashboard: `Promise.all([fetchPersonal(), loadLayout])`. |
+| A13-014 | FIXED | `015cc4c` | Kanban virtualize ≥24 cards + Vitest. |
+| A13-015 | FIXED | `7510125` | Lazy AI/Command/Shortcuts in AppShell. |
+| A13-016 | FIXED | `1de2e13` | Eager common+help; other ns dynamic import. |
+| A13-017 | FIXED | `94760b7` (+ board lazy in `2ae0f1f`) | crm/accounting/marketplace/gantt/board lazy routes. |
+| A13-018 | FIXED | `cf4dbd5` | Channel list virtualize ≥40 rows. |
+| Bundle | FIXED | via `7510125`…`94760b7` | Cold graph drops shell panels + heavy modules + most locale JSON. |
+| Report | docs | `4621d9c` | This file + STATE session note. |
 
 ---
 
