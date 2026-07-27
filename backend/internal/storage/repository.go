@@ -109,9 +109,14 @@ func (r *EntRepository) ProjectIDForActiveFile(ctx context.Context, fileID uuid.
 		OnlyID(ctx)
 }
 
+// GetActiveByID — A4-007: download только confirmed + not deleted.
 func (r *EntRepository) GetActiveByID(ctx context.Context, fileID uuid.UUID) (*ent.FileMetadata, error) {
 	return r.client.FileMetadata.Query().
-		Where(filemetadata.IDEQ(fileID), filemetadata.DeletedAtIsNil()).
+		Where(
+			filemetadata.IDEQ(fileID),
+			filemetadata.DeletedAtIsNil(),
+			filemetadata.StatusEQ(filemetadata.StatusConfirmed),
+		).
 		Only(ctx)
 }
 
