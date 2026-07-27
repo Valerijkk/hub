@@ -17,11 +17,6 @@ interface VerifyMagicLinkRequest {
 	invite_token?: string;
 }
 
-/** Запрос на авторизацию через Telegram. */
-interface TelegramAuthRequest {
-	init_data: string;
-}
-
 /** Запрос на обновление профиля пользователя. */
 export interface UpdateProfileRequest {
 	name?: string;
@@ -89,11 +84,6 @@ export function sendMagicLink(data: MagicLinkRequest) {
 /** Endpoint: POST /auth/magic-link/verify — верифицировать код из magic-link. */
 export function verifyMagicLink(data: VerifyMagicLinkRequest) {
 	return api.post<TokenPairResponse>("/auth/magic-link/verify", data);
-}
-
-/** Endpoint: POST /auth/telegram — deprecated (AUTH-01). */
-export function loginTelegram(data: TelegramAuthRequest) {
-	return api.post<TokenPairResponse>("/auth/telegram", data);
 }
 
 /** Endpoint: GET /auth/me — получить данные текущего пользователя. */
