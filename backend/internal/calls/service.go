@@ -194,7 +194,16 @@ func (s *CallService) EndCall(ctx context.Context, callID, userID uuid.UUID) err
 }
 
 // GetActiveCallByChannel — активный звонок в канале или nil.
-func (s *CallService) GetActiveCallByChannel(ctx context.Context, channelID uuid.UUID) (*CallResponse, error) {
+// A2-008: только член канала видит метаданные активного звонка.
+func (s *CallService) GetActiveCallByChannel(ctx context.Context, channelID, userID uuid.UUID) (*CallResponse, error) {
+	isMember, mErr := s.repo.IsChannelMember(ctx, channelID, userID)
+	if mErr != nil {
+		return nil, fmt.Errorf("проверка членства в канале: %w", mErr)
+	}
+	if !isMember {
+		return nil, ErrCallForbidden
+	}
+
 	callEnt, err := s.repo.GetActiveCallByChannel(ctx, channelID)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка поиска активного звонка: %w", err)

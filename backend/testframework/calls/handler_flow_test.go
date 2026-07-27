@@ -63,6 +63,19 @@ func TestHandler_GetActiveCall_Empty(t *testing.T) {
 	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
 }
 
+func TestHandler_GetActiveCall_NonMemberForbidden_A2_008(t *testing.T) {
+	f := newCallsTestFixture(t)
+	f.createChannelCall(t, f.owner)
+	app := newCallsHandlerApp(f)
+
+	req := httptest.NewRequest(fiber.MethodGet, "/calls/channel/"+f.channel.ID.String(), nil)
+	req.Header.Set("X-Test-User-ID", f.stranger.ID.String())
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusForbidden, resp.StatusCode)
+}
+
 func TestHandler_JoinCall_Success(t *testing.T) {
 	f := newCallsTestFixture(t)
 	callEnt := f.createChannelCall(t, f.owner)

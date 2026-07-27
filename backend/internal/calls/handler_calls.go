@@ -145,9 +145,16 @@ func (h *Handler) GetActiveCall(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный channel ID")
 	}
-
-	resp, err := h.service.GetActiveCallByChannel(c.Context(), channelID)
+	userID, err := httputil.UserIDFromCtx(c)
 	if err != nil {
+		return err
+	}
+
+	resp, err := h.service.GetActiveCallByChannel(c.Context(), channelID, userID)
+	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для просмотра звонка")
+		}
 		slog.Error("ошибка получения активного звонка", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка поиска звонка")
 	}

@@ -209,15 +209,26 @@ func TestGetActiveCallByChannel(t *testing.T) {
 	f := newCallsTestFixture(t)
 	ctx := context.Background()
 
-	none, err := f.svc.GetActiveCallByChannel(ctx, f.channel.ID)
+	none, err := f.svc.GetActiveCallByChannel(ctx, f.channel.ID, f.member.ID)
 	require.NoError(t, err)
 	assert.Nil(t, none)
 
 	callEnt := f.createChannelCall(t, f.owner)
-	active, err := f.svc.GetActiveCallByChannel(ctx, f.channel.ID)
+	active, err := f.svc.GetActiveCallByChannel(ctx, f.channel.ID, f.member.ID)
 	require.NoError(t, err)
 	require.NotNil(t, active)
 	assert.Equal(t, callEnt.ID, active.ID)
+}
+
+// TestGetActiveCallByChannel_NonMemberForbidden_A2_008 — stranger must not
+// see active call metadata (mutation: drop IsChannelMember → FAIL).
+func TestGetActiveCallByChannel_NonMemberForbidden_A2_008(t *testing.T) {
+	f := newCallsTestFixture(t)
+	ctx := context.Background()
+	_ = f.createChannelCall(t, f.owner)
+
+	_, err := f.svc.GetActiveCallByChannel(ctx, f.channel.ID, f.stranger.ID)
+	require.ErrorIs(t, err, calls.ErrCallForbidden)
 }
 
 func TestOnRoomStarted_UpdatesCall(t *testing.T) {
