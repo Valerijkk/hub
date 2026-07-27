@@ -66,6 +66,13 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (be1 · W17 Block F handler polish)
+
+- Sampled auth/rbac/audit/platform/project/messenger/ws handlers vs checklist.
+- FIXED: A1-009, A1-013, A2-009, A14-007, A14-006, A1-010 (1 commit each).
+- SHAs: `7002ce6` `4884fb9` `ed3b772` `ec2e23f` `a619a04` `5a1858d`.
+- Report: `.planning/audits/grok-2026-07/FIX-W17.md`. Residual: project GetProject non-member metadata GAP; A2-013/014 P3.
+
 ## Session note — 2026-07-27 (be1 · W14 Block D perf A13-001…006)
 
 - A13-001…006 FIXED (hard caps / aggregates / batch links / prefs prefetch).
