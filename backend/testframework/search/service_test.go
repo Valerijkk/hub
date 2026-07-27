@@ -126,6 +126,29 @@ func TestCreateSavedFilter_InvalidProjectID(t *testing.T) {
 	assert.Contains(t, err.Error(), "project_id")
 }
 
+// TestCreateSavedFilter_NonMemberForbidden — A4-003: CreateSavedFilter требует
+// IsProjectMember до repo.CreateSavedFilter. Mutation guard: при снятии проверки
+// stranger создаст filter (len>0) и тест упадёт; при живой проверке ErrFilterForbidden
+// и 0 filters в repo.
+func TestCreateSavedFilter_NonMemberForbidden(t *testing.T) {
+	deny := false
+	repo := newStatefulSearchRepo()
+	repo.memberOK = &deny
+	svc := search.NewSearchService(repo, newScopeTestDB(t), nil)
+	ctx := context.Background()
+	stranger := uuid.New()
+	projectID := uuid.New()
+
+	_, err := svc.CreateSavedFilter(ctx, stranger, search.SavedFilterCreateRequest{
+		Name:         "Leak",
+		FilterConfig: map[string]interface{}{"status": "open"},
+		ProjectID:    projectID.String(),
+	})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrFilterForbidden)
+	assert.Empty(t, repo.filters, "non-member must not create a saved filter (A4-003)")
+}
+
 func TestSavedFilter_CRUDAndShare(t *testing.T) {
 	svc, _, ctx, userID, projectID := newSearchServiceTestEnv(t)
 	otherUser := uuid.New()
@@ -295,6 +318,35 @@ func TestEntRepository_IsSystemAdmin(t *testing.T) {
 	assert.True(t, ok)
 
 	ok, err = repo.IsSystemAdmin(ctx, member.ID)
+	require.NoError(t, err)
+	assert.False(t, ok)
+}
+
+func TestEntRepository_IsProjectMember(t *testing.T) {
+	dsn := "file:searchpm_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
+	client := enttest.Open(t, "sqlite3", dsn)
+	t.Cleanup(func() { _ = client.Close() })
+	ctx := context.Background()
+
+	member, err := client.User.Create().SetEmail("pm-" + uuid.New().String()[:8] + "@test.com").Save(ctx)
+	require.NoError(t, err)
+	stranger, err := client.User.Create().SetEmail("str-" + uuid.New().String()[:8] + "@test.com").Save(ctx)
+	require.NoError(t, err)
+	proj, err := client.Project.Create().SetName("PM Proj").SetKey("PMP").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().
+		SetUserID(member.ID).
+		SetProjectID(proj.ID).
+		SetProjectRole("developer").
+		Save(ctx)
+	require.NoError(t, err)
+
+	repo := search.NewEntRepository(client)
+	ok, err := repo.IsProjectMember(ctx, member.ID, proj.ID)
+	require.NoError(t, err)
+	assert.True(t, ok)
+
+	ok, err = repo.IsProjectMember(ctx, stranger.ID, proj.ID)
 	require.NoError(t, err)
 	assert.False(t, ok)
 }

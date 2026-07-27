@@ -15,8 +15,11 @@ import (
 
 // mockSearchRepo реализует search.Repository для unit-тестов области видимости.
 type mockSearchRepo struct {
-	isAdmin bool
+	isAdmin  bool
 	adminErr error
+	// memberOK: nil = allow (legacy tests); иначе *memberOK.
+	memberOK  *bool
+	memberErr error
 }
 
 func (m *mockSearchRepo) IsSystemAdmin(_ context.Context, _ uuid.UUID) (bool, error) {
@@ -24,6 +27,16 @@ func (m *mockSearchRepo) IsSystemAdmin(_ context.Context, _ uuid.UUID) (bool, er
 		return false, m.adminErr
 	}
 	return m.isAdmin, nil
+}
+
+func (m *mockSearchRepo) IsProjectMember(_ context.Context, _, _ uuid.UUID) (bool, error) {
+	if m.memberErr != nil {
+		return false, m.memberErr
+	}
+	if m.memberOK != nil {
+		return *m.memberOK, nil
+	}
+	return true, nil
 }
 
 func (m *mockSearchRepo) CreateSavedFilter(context.Context, search.CreateSavedFilterInput) (*ent.SavedFilter, error) {

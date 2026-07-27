@@ -1,6 +1,7 @@
 package search
 
 import (
+	"errors"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -98,6 +99,7 @@ func (h *Handler) search(c fiber.Ctx) error {
 // @Success 201 {object} SavedFilterDTO "Фильтр создан"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Нет членства в проекте"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/filters [post]
@@ -117,6 +119,10 @@ func (h *Handler) createFilter(c fiber.Ctx) error {
 
 	filter, err := h.svc.CreateSavedFilter(c.Context(), userID, req)
 	if err != nil {
+		// A4-003: non-member -> 403
+		if errors.Is(err, ErrFilterForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для создания фильтра")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 

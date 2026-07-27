@@ -25,6 +25,9 @@ import (
 // несколько десятков задач) и при этом не нагружал tsvector indexes.
 const defaultSearchLimit = 10
 
+// ErrFilterForbidden — A4-003/A4-004: 403 без утечки причины (нет membership).
+var ErrFilterForbidden = errors.New("forbidden")
+
 // SearchService реализует глобальный поиск по всем сущностям платформы.
 // Выполняет параллельные запросы к PostgreSQL (tsvector) и MongoDB ($text),
 // затем объединяет результаты по релевантности.
@@ -626,10 +629,15 @@ func (s *SearchService) searchMessages(ctx context.Context, query string, userID
 }
 
 // CreateSavedFilter создаёт новый сохранённый фильтр.
+// A4-003: IsProjectMember before create; else ErrFilterForbidden.
 func (s *SearchService) CreateSavedFilter(ctx context.Context, userID uuid.UUID, req SavedFilterCreateRequest) (*SavedFilterDTO, error) {
 	projectID, err := uuid.Parse(req.ProjectID)
 	if err != nil {
 		return nil, fmt.Errorf("некорректный project_id: %w", err)
+	}
+
+	if err := s.requireProjectMembership(ctx, userID, projectID); err != nil {
+		return nil, err
 	}
 
 	filter, err := s.repo.CreateSavedFilter(ctx, CreateSavedFilterInput{
@@ -643,6 +651,18 @@ func (s *SearchService) CreateSavedFilter(ctx context.Context, userID uuid.UUID,
 	}
 
 	return savedFilterToDTO(filter), nil
+}
+
+// requireProjectMembership — fail-closed: non-member → ErrFilterForbidden.
+func (s *SearchService) requireProjectMembership(ctx context.Context, userID, projectID uuid.UUID) error {
+	isMember, err := s.repo.IsProjectMember(ctx, userID, projectID)
+	if err != nil {
+		return fmt.Errorf("project membership check: %w", err)
+	}
+	if !isMember {
+		return ErrFilterForbidden
+	}
+	return nil
 }
 
 // ListSavedFilters возвращает фильтры пользователя и расшаренные фильтры проекта.
