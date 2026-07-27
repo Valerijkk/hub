@@ -6,8 +6,9 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
+
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/user"
+	"github.com/valerii/hub/backend/internal/auth"
 )
 
 // RequireAuth возвращает middleware для валидации JWT-токенов и сохранения userID в Locals.
@@ -109,9 +110,30 @@ func RequirePermission(perm Permission, svc *RBACService) fiber.Handler {
 	}
 }
 
-// RequireAdmin — вспомогательный middleware, проверяющий роль системного администратора.
+// RequireAdmin — middleware для системных админов: founder || admin (ORG-04 / auth.IsSystemAdmin).
 func RequireAdmin(repo Repository) fiber.Handler {
-	return RequireSystemRole(string(user.SystemRoleAdmin), repo)
+	return func(c fiber.Ctx) error {
+		userIDStr, ok := c.Locals("userID").(string)
+		if !ok || userIDStr == "" {
+			return fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
+		}
+
+		userUUID, err := uuid.Parse(userIDStr)
+		if err != nil {
+			return fiber.NewError(fiber.StatusUnauthorized, "invalid user ID")
+		}
+
+		u, err := repo.GetUser(c.Context(), userUUID)
+		if err != nil {
+			return fiber.NewError(fiber.StatusUnauthorized, "user not found")
+		}
+
+		if !auth.IsSystemAdmin(u.SystemRole) {
+			return fiber.NewError(fiber.StatusForbidden, "insufficient system role")
+		}
+
+		return c.Next()
+	}
 }
 
 // UserIDFromCtx извлекает строку userID из Fiber Locals.
