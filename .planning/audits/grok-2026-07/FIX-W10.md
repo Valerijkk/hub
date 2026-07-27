@@ -9,7 +9,7 @@ Verify vs `17-verification.md` / `08-data-layer.md` / `07-infra-domains.md` — 
 
 | ID | Status | SHA | Notes |
 |----|--------|-----|-------|
-| A8-005 | FIXED | (see commits) | Soft-delete `deleted_at` on Channel + filtered List/Get/IsMember; cascade hard path retired (parent soft-delete enough for TZ) |
+| A8-005 | FIXED | `25028b5`+`293dee7`+`14c7929` | Soft-delete `deleted_at` on Channel + filtered List/Get/IsMember; cascade hard path retired (parent soft-delete enough for TZ) |
 | A8-006 | BLOCKED | — | Comment hard-delete confirmed; TZ soft-delete requires `deleted_at` on `ent/schema/comment.go` — **no schema without approval** |
 | A8-007 | FIXED | `f3dbad4` | `MongoDisconnectCleanup` + `addCleanup` in `wiring_messenger`. Mutation: skip Disconnect → Ping still OK → FAIL |
 | A8-008 | FIXED | `23d6abb` | `lifecycle.CancelOnListenError` instead of `os.Exit(1)` on Listen err. Mutation: skip cancel → FAIL |
