@@ -39,7 +39,8 @@ func wireFiber(d *serverDeps) {
 	// HI-09: глобальный recover, чтобы паника в обработчике не валила процесс.
 	// Стоит сразу после RequestID, чтобы паническая ошибка уже несла request_id
 	// в лог — но раньше всех бизнес-middleware (логгер, CORS, rate-limit).
-	app.Use(fiberrecover.New(fiberrecover.Config{EnableStackTrace: true}))
+	// A14-007: stack traces только в DevMode — иначе шум + утечка путей в Loki.
+	app.Use(fiberrecover.New(fiberrecover.Config{EnableStackTrace: cfg.Server.DevMode}))
 	app.Use(observability.HTTPTraceMiddleware())
 	app.Use(middleware.SecurityHeaders())
 	app.Use(middleware.Logger())
