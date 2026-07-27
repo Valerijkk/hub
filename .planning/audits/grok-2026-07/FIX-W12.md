@@ -9,7 +9,7 @@ Verify vs `10-frontend.md` / `17-verification.md` — все четыре findin
 
 | ID | Status | SHA | Notes |
 |----|--------|-----|-------|
-| A10-001 | FIXED | `903c3b7` | WS `channel_created`/`channel_updated` → `queryClient.setQueryData` (`upsertChannelInList` / `patchChannelInList`); UI читает Query. Тест: `use-channels-cache.test.ts` |
+| A10-001 | FIXED | `903c3b7` + WS Vitest | WS `channel_created`/`channel_updated` → `queryClient.setQueryData` (`upsertChannelInList` / `patchChannelInList`); UI читает Query. Helpers: `use-channels-cache.test.ts`. **Handler path (WEAK close):** `use-channels-ws.test.tsx` — FakeWS → `setQueryData` / `useChannels().data` |
 | A10-002 | FIXED | `35ad363` | Issues list → `useInfiniteQuery` + `flattenIssuePages` / `nextIssuesCursor`; «Загрузить ещё» мержит все pages. Тест: `issues-cursor.test.ts` |
 | A10-003 | FIXED | `9b5e1ad` | WS backoff reconnect on unexpected `onclose`; `disconnect` cancels timer (no leak). Тест: `ws-store-reconnect.test.ts` |
 | A10-004 | FIXED | `257e3f6` | `presenceQueryKeyPart` = `[...userIds].sort().join(',')` — без mutate props. Тест: `use-presence-key.test.ts` |
@@ -17,6 +17,8 @@ Verify vs `10-frontend.md` / `17-verification.md` — все четыре findin
 ## A10-001 detail
 
 `ChannelList` читает `useChannels()` → React Query. Раньше WS писал только в zustand → store↔query drift. Теперь WS обновляет `["messenger","channels"]`; sync effect по-прежнему копирует query → store для unread/side panels.
+
+> **WEAK close (2026-07-28):** ранее покрывались только pure helpers. Добавлен `use-channels-ws.test.tsx` (FakeWS как A10-003): `channel_created` / `channel_updated` → spy `queryClient.setQueryData` + обновление `useChannels().data`.
 
 ## A10-002 detail
 
