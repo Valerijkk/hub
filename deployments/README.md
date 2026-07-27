@@ -90,6 +90,10 @@ docker compose \
 Доступ с ноутбука: `ssh -L 3001:127.0.0.1:3001 -L 9090:127.0.0.1:9090 user@vps`.  
 Порты **не** публикуются на `0.0.0.0` (раньше были открыты на public IP).
 
+**Tracing (A14-009):** backend env `OTEL_*` прокинут в prod compose.  
+Опциональный Tempo: `--profile otel` + `OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318`.  
+Без endpoint — tracing no-op (ожидаемо).
+
 Алерты backend описаны в `monitoring/prometheus/alerts/hub.yml`. Для production webhook скопируйте `monitoring/alertmanager/alertmanager.prod.example.yml` → `alertmanager.yml` и задайте `ALERT_WEBHOOK_SECRET` (то же значение в env backend).
 
 ## K3s

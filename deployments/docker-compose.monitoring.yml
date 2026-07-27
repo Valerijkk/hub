@@ -100,9 +100,27 @@ services:
       loki:
         condition: service_started
 
+  # A14-009: optional Tempo (OTLP HTTP :4318). Enable:
+  #   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml
+  #     --profile otel --env-file .env up -d
+  # Then set OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318 in .env / backend env.
+  tempo:
+    profiles: ["otel"]
+    image: grafana/tempo:2.7.1
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./monitoring/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempodata:/var/tempo
+    ports:
+      - "127.0.0.1:4318:4318"
+
 volumes:
   promdata:
   alertmanagerdata:
   lokidata:
   promtail-positions:
   grafanadata:
+  tempodata:

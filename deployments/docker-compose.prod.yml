@@ -237,6 +237,9 @@ services:
       # A14-005: default Docker/K8s private ranges — не оставлять /metrics открытым.
       METRICS_ALLOWED_CIDRS: "${METRICS_ALLOWED_CIDRS:-172.16.0.0/12,10.0.0.0/8,192.168.0.0/16}"
       ALERT_WEBHOOK_SECRET: "${ALERT_WEBHOOK_SECRET:-}"
+      # A14-009: optional OTLP; без endpoint InitTracing — no-op.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT:-}"
+      OTEL_SERVICE_NAME: "${OTEL_SERVICE_NAME:-hub-backend}"
     depends_on:
       postgres:
         condition: service_healthy

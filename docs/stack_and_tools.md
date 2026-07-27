@@ -119,7 +119,7 @@ Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не �
 | K3s | prod (planned) | — | ⚠️ частично: `deployments/k3s/monitoring/networkpolicy-metrics.yaml`; полного deployment-набора нет |
 | GitHub Actions | CI/CD | `.github/workflows/ci.yml`, `deploy.yml` | ✅ |
 | GitLab CI | mirror | `.gitlab-ci.yml` | ✅ |
-| Monitoring | optional | `deployments/docker-compose.monitoring.yml` | Prometheus, Loki, Grafana (pinned v3.x) |
+| Monitoring | optional | `deployments/docker-compose.monitoring.yml` | Prometheus, Loki, Grafana (pinned); Tempo via `--profile otel` (A14-009) |
 
 ### Caddy routing (prod)
 

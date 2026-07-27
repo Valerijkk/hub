@@ -76,6 +76,12 @@ docker compose -f docker-compose.prod.yml --env-file .env up -d
 docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate livekit
 ```
 
+**OTEL / tracing (A14-009):** prod compose прокидывает `OTEL_EXPORTER_OTLP_ENDPOINT` и `OTEL_SERVICE_NAME`.  
+Без endpoint — `InitTracing` no-op (код готов, spans не экспортируются).  
+Варианты:
+1. External collector/Tempo — задать URL в `.env`.
+2. Overlay Tempo: `docker compose ... --profile otel` + `OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318`.
+
 **SeaweedFS (A14-002):** S3 identity генерируется из `S3_ACCESS_KEY` / `S3_SECRET_KEY` при старте контейнера (как LiveKit).  
 Не коммитьте `seaweedfs-s3.json` с реальными ключами; справочник — `seaweedfs-s3.json.example`.  
 `hub` / `hubsecret` запрещены `config.validate` при `DEV_MODE=false`.
