@@ -115,8 +115,12 @@ func (r *EntRepository) ListPendingListings(ctx context.Context) ([]*ent.Marketp
 }
 
 func (r *EntRepository) UpdateListing(ctx context.Context, id uuid.UUID, req UpdateListingRequest) (*ent.MarketplaceListing, error) {
+	// A6-003: Version всегда в WHERE — version:0 больше не обходит optimistic lock.
 	upd := r.client.MarketplaceListing.UpdateOneID(id).
-		Where(marketplacelisting.DeletedAtIsNil()).
+		Where(
+			marketplacelisting.DeletedAtIsNil(),
+			marketplacelisting.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Title != nil {
 		upd.SetTitle(*req.Title)
@@ -132,9 +136,6 @@ func (r *EntRepository) UpdateListing(ctx context.Context, id uuid.UUID, req Upd
 	}
 	if req.Currency != nil {
 		upd.SetCurrency(*req.Currency)
-	}
-	if req.Version > 0 {
-		upd.Where(marketplacelisting.Version(req.Version))
 	}
 	return upd.Save(ctx)
 }

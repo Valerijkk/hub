@@ -118,7 +118,7 @@ func (s *Service) UpdateListing(ctx context.Context, userID, id uuid.UUID, req U
 	if current.Status != marketplacelisting.StatusPending && current.Status != marketplacelisting.StatusApproved {
 		return nil, ErrInvalidStatus
 	}
-	if req.Version > 0 && current.Version != req.Version {
+	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
 	if req.Title != nil || req.Description != nil || req.Category != nil {
@@ -213,13 +213,13 @@ func (s *Service) WithdrawListing(ctx context.Context, userID, id uuid.UUID, req
 	if current.Edges.Author == nil || current.Edges.Author.ID != userID {
 		return nil, ErrNotOwner
 	}
-	if req.Version > 0 && current.Version != req.Version {
+	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
 	if current.Status != marketplacelisting.StatusPending && current.Status != marketplacelisting.StatusApproved {
 		return nil, ErrInvalidStatus
 	}
-	l, err := s.repo.SetListingStatus(ctx, id, marketplacelisting.StatusWithdrawn, nil, "", current.Version)
+	l, err := s.repo.SetListingStatus(ctx, id, marketplacelisting.StatusWithdrawn, nil, "", req.Version)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrVersionConflict
@@ -267,10 +267,10 @@ func (s *Service) transitionReview(ctx context.Context, id uuid.UUID, req Review
 	if current.Status != marketplacelisting.StatusPending {
 		return nil, ErrInvalidStatus
 	}
-	if req.Version > 0 && current.Version != req.Version {
+	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
-	l, err := s.repo.SetListingStatus(ctx, id, status, &reviewerID, req.ReviewNote, current.Version)
+	l, err := s.repo.SetListingStatus(ctx, id, status, &reviewerID, req.ReviewNote, req.Version)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrVersionConflict
@@ -291,13 +291,13 @@ func (s *Service) ownerStatusChange(ctx context.Context, userID, id uuid.UUID, v
 	if current.Edges.Author == nil || current.Edges.Author.ID != userID {
 		return nil, ErrNotOwner
 	}
-	if version > 0 && current.Version != version {
+	if version < 1 {
 		return nil, ErrVersionConflict
 	}
 	if current.Status != from {
 		return nil, ErrInvalidStatus
 	}
-	l, err := s.repo.SetListingStatus(ctx, id, to, nil, "", current.Version)
+	l, err := s.repo.SetListingStatus(ctx, id, to, nil, "", version)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrVersionConflict

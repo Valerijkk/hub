@@ -81,8 +81,12 @@ func (r *EntRepository) GetContact(ctx context.Context, id uuid.UUID) (*ent.CrmC
 }
 
 func (r *EntRepository) UpdateContact(ctx context.Context, id uuid.UUID, req UpdateContactRequest) (*ent.CrmContact, error) {
+	// A6-003: VersionEQ в WHERE — иначе concurrent update = lost write (app-check TOCTOU).
 	upd := r.client.CrmContact.UpdateOneID(id).
-		Where(crmcontact.DeletedAtIsNil()).
+		Where(
+			crmcontact.DeletedAtIsNil(),
+			crmcontact.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Name != nil {
 		upd.SetName(*req.Name)
@@ -163,8 +167,12 @@ func (r *EntRepository) GetDeal(ctx context.Context, id uuid.UUID) (*ent.CrmDeal
 }
 
 func (r *EntRepository) UpdateDeal(ctx context.Context, id uuid.UUID, req UpdateDealRequest) (*ent.CrmDeal, error) {
+	// A6-003: VersionEQ в WHERE — иначе concurrent update = lost write (app-check TOCTOU).
 	upd := r.client.CrmDeal.UpdateOneID(id).
-		Where(crmdeal.DeletedAtIsNil()).
+		Where(
+			crmdeal.DeletedAtIsNil(),
+			crmdeal.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Title != nil {
 		upd.SetTitle(*req.Title)

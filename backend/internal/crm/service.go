@@ -79,11 +79,10 @@ func (s *Service) CreateContact(ctx context.Context, userID uuid.UUID, req Creat
 }
 
 func (s *Service) UpdateContact(ctx context.Context, userID, id uuid.UUID, req UpdateContactRequest) (*ContactResponse, error) {
-	current, err := s.authorizeContactWrite(ctx, userID, id)
-	if err != nil {
+	if _, err := s.authorizeContactWrite(ctx, userID, id); err != nil {
 		return nil, err
 	}
-	if req.Version > 0 && current.Version != req.Version {
+	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
 	if req.LinkedUserID != nil {
@@ -98,7 +97,7 @@ func (s *Service) UpdateContact(ctx context.Context, userID, id uuid.UUID, req U
 	c, err := s.repo.UpdateContact(ctx, id, req)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
+			return nil, ErrVersionConflict
 		}
 		return nil, fmt.Errorf("update contact: %w", err)
 	}
@@ -175,7 +174,7 @@ func (s *Service) UpdateDeal(ctx context.Context, userID, id uuid.UUID, req Upda
 	if err != nil {
 		return nil, err
 	}
-	if req.Version > 0 && current.Version != req.Version {
+	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
 	if req.Stage != nil && !isValidStage(*req.Stage) {
@@ -187,7 +186,7 @@ func (s *Service) UpdateDeal(ctx context.Context, userID, id uuid.UUID, req Upda
 	d, err := s.repo.UpdateDeal(ctx, id, req)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
+			return nil, ErrVersionConflict
 		}
 		return nil, fmt.Errorf("update deal: %w", err)
 	}
