@@ -178,6 +178,27 @@ func TestHandler_Admin_AllowedForAdmin(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
+// TestHandler_Admin_AllowedForFounder_A7_002 — founder must reach admin dashboard (ORG-04).
+func TestHandler_Admin_AllowedForFounder_A7_002(t *testing.T) {
+	svc, client, ctx, userID := newDashboardTestEnv(t)
+	_, err := client.User.UpdateOneID(userID).SetSystemRole(user.SystemRoleFounder).Save(ctx)
+	require.NoError(t, err)
+
+	h := dashboard.NewHandler(svc)
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("userID", userID)
+		return c.Next()
+	})
+	h.RegisterRoutes(app, func(c fiber.Ctx) error { return c.Next() }, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/dashboard/admin", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
 func TestHandler_SaveLayout_Success(t *testing.T) {
 	app, _ := testDashboardApp(t)
 

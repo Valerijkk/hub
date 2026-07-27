@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/internal/auth"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 	"github.com/valerii/hub/backend/internal/rbac"
@@ -110,12 +111,12 @@ func (h *Handler) Admin(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, apperr.MsgUnauthorized)
 	}
 
-	// Проверяем роль администратора через запрос к БД
+	// A7-002: founder || admin (auth.IsSystemAdmin), не только "admin".
 	u, uErr := h.service.repo.GetUser(c.Context(), userID)
 	if uErr != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "пользователь не найден")
 	}
-	if string(u.SystemRole) != "admin" {
+	if !auth.IsSystemAdmin(u.SystemRole) {
 		return fiber.NewError(fiber.StatusForbidden, "требуются права администратора")
 	}
 
