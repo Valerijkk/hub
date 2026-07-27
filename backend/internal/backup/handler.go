@@ -41,7 +41,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, adminMw
 func (h *Handler) TriggerBackup(c fiber.Ctx) error {
 	resp, err := h.svc.PerformBackup(c.Context())
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, "backup failed")
 	}
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
@@ -60,7 +60,7 @@ func (h *Handler) TriggerBackup(c fiber.Ctx) error {
 func (h *Handler) ListBackups(c fiber.Ctx) error {
 	backups, err := h.svc.ListBackups(c.Context())
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to list backups")
 	}
 	return c.JSON(backups)
 }
@@ -96,7 +96,8 @@ func (h *Handler) RestoreBackup(c fiber.Ctx) error {
 	}
 
 	if err := h.svc.RestoreBackup(c.Context(), backupID); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// A7-007: generic client message — stderr/URI не утекают в HTTP.
+		return fiber.NewError(fiber.StatusInternalServerError, "restore failed")
 	}
 
 	return c.JSON(fiber.Map{"message": "восстановление запущено"})
@@ -122,7 +123,7 @@ func (h *Handler) DeleteBackup(c fiber.Ctx) error {
 	}
 
 	if err := h.svc.DeleteBackup(c.Context(), backupID); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, "delete failed")
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)

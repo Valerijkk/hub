@@ -157,7 +157,8 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 	slog.Info("создание бэкапа текущего состояния перед восстановлением")
 	if _, preBackupErr := s.PerformBackup(ctx); preBackupErr != nil {
 		slog.Error("не удалось создать бэкап перед восстановлением", "error", preBackupErr)
-		// Продолжаем — pre-restore backup необязателен для выполнения restore.
+		// A7-009: fail-closed — не разрушаем инстанс без safety-net.
+		return fmt.Errorf("pre-restore backup failed: %w", preBackupErr)
 	}
 
 	// Скачиваем ZIP из S3.
@@ -276,7 +277,9 @@ func (s *BackupService) restorePostgres(ctx context.Context, data []byte) error 
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("pg_restore завершился с ошибкой: %w (output: %s)", err, string(output))
+		// A7-007: не вшивать CombinedOutput (могут быть connection strings) в ошибку клиенту.
+		slog.ErrorContext(ctx, "pg_restore failed", "error", err, "output_len", len(output))
+		return fmt.Errorf("pg_restore failed")
 	}
 	return nil
 }
@@ -292,7 +295,8 @@ func (s *BackupService) restoreMongo(ctx context.Context, data []byte) error {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("mongorestore завершился с ошибкой: %w (output: %s)", err, string(output))
+		slog.ErrorContext(ctx, "mongorestore failed", "error", err, "output_len", len(output))
+		return fmt.Errorf("mongorestore failed")
 	}
 	return nil
 }

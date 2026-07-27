@@ -49,7 +49,8 @@ func TestRestoreBackup_NoS3Client(t *testing.T) {
 
 	err = svc.RestoreBackup(ctx, record.ID)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "S3")
+	// A7-009: aborts at pre-restore when dump/S3 unavailable (message may cite pg_dump or S3).
+	assert.Contains(t, err.Error(), "pre-restore backup failed")
 }
 
 func TestRestoreBackup_GetNotFound(t *testing.T) {
