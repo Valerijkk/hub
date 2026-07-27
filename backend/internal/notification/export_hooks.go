@@ -17,35 +17,35 @@ import (
 )
 
 func ExportHandleStatusChanged(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleStatusChanged(ctx, data, subject)
+	_ = c.handleStatusChanged(ctx, data, subject)
 }
 
 func ExportHandleMessageReceived(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleMessageReceived(ctx, data, subject)
+	_ = c.handleMessageReceived(ctx, data, subject)
 }
 
 func ExportHandleCallStarted(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleCallStarted(ctx, data, subject)
+	_ = c.handleCallStarted(ctx, data, subject)
 }
 
 func ExportHandleAssigned(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleAssigned(ctx, data, subject)
+	_ = c.handleAssigned(ctx, data, subject)
 }
 
 func ExportHandleBlockerAdded(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleBlockerAdded(ctx, data, subject)
+	_ = c.handleBlockerAdded(ctx, data, subject)
 }
 
 func ExportHandleCommentAdded(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleCommentAdded(ctx, data, subject)
+	_ = c.handleCommentAdded(ctx, data, subject)
 }
 
 func ExportHandleRunCompleted(c *Consumer, ctx context.Context, data []byte, subject string) {
-	c.handleRunCompleted(ctx, data, subject)
+	_ = c.handleRunCompleted(ctx, data, subject)
 }
 
 func ExportHandleNewLogin(c *Consumer, ctx context.Context, data []byte) {
-	c.handleNewLogin(ctx, data)
+	_ = c.handleNewLogin(ctx, data)
 }
 
 func ExportProcessEvent(c *Consumer, ctx context.Context, msg jetstream.Msg) {
