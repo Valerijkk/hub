@@ -66,6 +66,15 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-27 (fe2 · W12 FE A10-001…004)
+
+- A10-001: WS channel events → React Query cache (`903c3b7`).
+- A10-002: issues list `useInfiniteQuery` merge pages (`35ad363`).
+- A10-003: WS reconnect backoff + timer cleanup (`9b5e1ad`).
+- A10-004: presence key copy-before-sort (`257e3f6`).
+- Report: `.planning/audits/grok-2026-07/FIX-W12.md`.
+- Vitest: 20 pass (messenger + issues-cursor + ws-store-reconnect).
+
 ## Session note — 2026-07-27 (fe1 · W11 API contract A11-004…013)
 
 - A11-004…013 FIXED (minimal FE): dead telegram/notify-mode clients removed; birthday RFC3339; TMS `getBlob`; IssueResponse attachments drop; CRM/bases/marketplace/dashboard templates/registration-mode FE wrappers.

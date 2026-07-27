@@ -20,7 +20,9 @@ export function upsertChannelInList(
 ): Channel[] {
 	if (!channels) return [channel];
 	if (channels.some((c) => c.id === channel.id)) {
-		return channels.map((c) => (c.id === channel.id ? { ...c, ...channel } : c));
+		return channels.map((c) =>
+			c.id === channel.id ? { ...c, ...channel } : c,
+		);
 	}
 	return [channel, ...channels];
 }
