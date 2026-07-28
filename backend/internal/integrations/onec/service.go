@@ -23,10 +23,11 @@ type UserLookup interface {
 
 // Service — коннектор webhook 1С (MOD-07).
 type Service struct {
-	store  SettingsStore
-	users  UserLookup
-	client *http.Client
-	cipher *cryptopkg.Cipher
+	store               SettingsStore
+	users               UserLookup
+	client              *http.Client
+	cipher              *cryptopkg.Cipher
+	skipOutboundValidate bool // hubtest: ExportServiceSetClient для httptest
 }
 
 // NewService создаёт сервис коннектора 1С.
@@ -106,7 +107,7 @@ func (s *Service) UpdateSettings(ctx context.Context, req UpdateSettingsRequest)
 	}
 	if req.WebhookURL != nil {
 		cfg.WebhookURL = *req.WebhookURL
-		if cfg.WebhookURL != "" {
+		if cfg.WebhookURL != "" && !s.skipOutboundValidate {
 			if err := safehttp.ValidateOutboundURL(cfg.WebhookURL); err != nil {
 				return nil, ErrInvalidConfig
 			}
@@ -225,8 +226,10 @@ func buildLeavePayload(req hrmod.LeaveRequestResponse, reviewerID uuid.UUID, ema
 }
 
 func (s *Service) post(ctx context.Context, cfg Config, body []byte) (int, error) {
-	if err := safehttp.ValidateOutboundURL(cfg.WebhookURL); err != nil {
-		return 0, err
+	if !s.skipOutboundValidate {
+		if err := safehttp.ValidateOutboundURL(cfg.WebhookURL); err != nil {
+			return 0, err
+		}
 	}
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.WebhookURL, bytes.NewReader(body))
 	if err != nil {

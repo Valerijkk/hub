@@ -26,10 +26,11 @@ var mutableNeedsVersion = []string{
 	"user", "webhookendpoint", "workflowstatus", "workflowtransition",
 }
 
-// unclear12 — owner exclusion: no version (TASK-095).
+// unclear12 — owner exclusion без VersionMixin; invite/notification имеют
+// отдельный Fields version (A2W8-3-002/006 OL) и не в этом списке.
 var unclear12 = []string{
 	"apikey", "call", "channelinvite", "coffeeenrollment", "coffeeround",
-	"filemetadata", "invite", "notification", "pushsubscription", "recording",
+	"filemetadata", "pushsubscription", "recording",
 	"session", "timelog",
 }
 

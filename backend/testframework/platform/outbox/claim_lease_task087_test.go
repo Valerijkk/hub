@@ -27,7 +27,7 @@ func TestProcessBatch_ClaimReleasedBeforePublish_TASK087(t *testing.T) {
 	w := outbox.NewWorker(client, nc)
 	ctx := context.Background()
 
-	insertOutboxEvent(t, client, "test.claim.lease", []byte(`{"ok":true}`))
+	insertOutboxEvent(t, client, "project.outbox.claim.lease", []byte(`{"ok":true}`))
 
 	var claimCommitted atomic.Bool
 	var publishSawClaimCommitted atomic.Bool
@@ -67,7 +67,7 @@ func TestProcessBatch_ConcurrentWorkerDuringFlush_TASK087(t *testing.T) {
 	w := outbox.NewWorker(client, nc)
 	ctx := context.Background()
 
-	insertOutboxEvent(t, client, "test.claim.a", []byte(`{"i":1}`))
+	insertOutboxEvent(t, client, "project.outbox.claim.a", []byte(`{"i":1}`))
 
 	var concurrentOK atomic.Bool
 	var hookFired atomic.Bool
@@ -76,7 +76,7 @@ func TestProcessBatch_ConcurrentWorkerDuringFlush_TASK087(t *testing.T) {
 		if !hookFired.CompareAndSwap(false, true) {
 			return // только первый Flush батча A
 		}
-		evtB := insertOutboxEvent(t, client, "test.claim.b", []byte(`{"i":2}`))
+		evtB := insertOutboxEvent(t, client, "project.outbox.claim.b", []byte(`{"i":2}`))
 
 		done := make(chan struct{})
 		go func() {

@@ -150,6 +150,9 @@ func (c *Client) FlushTimeout(timeout time.Duration) error {
 // Использовать, когда subject входит в stream EVENTS.
 func (c *Client) PublishMsgAck(ctx context.Context, msg *nats.Msg) error {
 	ack, err := c.JetStream.PublishMsg(ctx, msg)
+	if afterCorePublishHook != nil {
+		afterCorePublishHook()
+	}
 	if err != nil {
 		return err
 	}

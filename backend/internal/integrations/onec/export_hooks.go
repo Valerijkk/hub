@@ -30,9 +30,10 @@ func ExportEncodeConfig(c Config) (string, error) {
 	return encodeConfig(c)
 }
 
-// ExportServiceSetClient внедряет HTTP-клиент для hubtest.
+// ExportServiceSetClient внедряет HTTP-клиент для hubtest (httptest loopback).
 func ExportServiceSetClient(s *Service, client *http.Client) {
 	s.client = client
+	s.skipOutboundValidate = true
 }
 
 // ExportServicePost оборачивает Service.post для hubtest.
