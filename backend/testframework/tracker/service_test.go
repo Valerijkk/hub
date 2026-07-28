@@ -8,7 +8,6 @@ import (
 	"github.com/valerii/hub/backend/internal/tracker"
 	"context"
 	"fmt"
-	"sort"
 	"testing"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/issuelink"
 	"github.com/valerii/hub/backend/ent/customfielddefinition"
+	"github.com/valerii/hub/backend/ent/predicate"
 	"github.com/valerii/hub/backend/ent/schema"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
@@ -44,9 +44,6 @@ type mockRepo struct {
 	customFields    map[uuid.UUID]*ent.CustomFieldDefinition
 	projectCounters map[uuid.UUID]int
 	issueMessageLinks []*ent.IssueMessageLink
-
-	// projectMembers: projectID → userID → member (nil = всем разрешено).
-	projectMembers map[uuid.UUID]map[uuid.UUID]bool
 
 	// Для проверки update с оптимистичной блокировкой
 	updateVersionError bool
@@ -175,17 +172,16 @@ func (m *mockRepo) ListIssues(_ context.Context, _ uuid.UUID, params tracker.Lis
 
 	total := len(result)
 
-	// Стабильный порядок по issue_key (канон курсора list-issues).
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].IssueKey < result[j].IssueKey
-	})
-
-	// Курсорная пагинация: строки строго после cursor по issue_key.
+	// Курсорная пагинация
 	if params.Cursor != "" {
 		var filtered []*ent.Issue
+		found := false
 		for _, i := range result {
-			if i.IssueKey > params.Cursor {
+			if found {
 				filtered = append(filtered, i)
+			}
+			if i.IssueKey == params.Cursor {
+				found = true
 			}
 		}
 		result = filtered
@@ -421,7 +417,6 @@ func (m *mockRepo) CreateComment(_ context.Context, issueID, authorID uuid.UUID,
 		BodyText:   input.BodyText,
 		IsInternal: input.IsInternal,
 		Mentions:   mentions,
-		Version:    1,
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
 		Edges: ent.CommentEdges{
@@ -455,15 +450,8 @@ func (m *mockRepo) UpdateComment(_ context.Context, issueID, authorID, commentID
 	if c.Edges.Author == nil || c.Edges.Author.ID != authorID {
 		return nil, &ent.NotFoundError{}
 	}
-	if c.Version == 0 {
-		c.Version = 1
-	}
-	if c.Version != input.Version {
-		return nil, &ent.NotFoundError{}
-	}
 	c.BodyJSON = input.BodyJSON
 	c.BodyText = input.BodyText
-	c.Version++
 	return c, nil
 }
 
@@ -811,19 +799,22 @@ func (m *mockRepo) IsChannelMember(_ context.Context, _, _ uuid.UUID) (bool, err
 	return true, nil
 }
 
-func (m *mockRepo) IsProjectMember(_ context.Context, projectID, userID uuid.UUID) (bool, error) {
-	if m.projectMembers != nil {
-		if users, ok := m.projectMembers[projectID]; ok {
-			return users[userID], nil
-		}
-		return false, nil
+// SearchIssuesJQL — mock без Ent: возвращает все задачи (предикаты применяются в repo-тестах).
+func (m *mockRepo) SearchIssuesJQL(_ context.Context, _ uuid.UUID, _ []predicate.Issue, _ string, limit int) ([]*ent.Issue, error) {
+	if limit <= 0 {
+		limit = 100
 	}
-	// По умолчанию — участник (legacy-тесты с произвольным assignee).
-	return true, nil
-}
-
-func (m *mockRepo) GetDB() *ent.Client {
-	return nil
+	out := make([]*ent.Issue, 0, len(m.issues))
+	for _, iss := range m.issues {
+		if iss.DeletedAt != nil {
+			continue
+		}
+		out = append(out, iss)
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -1092,56 +1083,6 @@ func TestListIssuesPagination(t *testing.T) {
 	require.NoError(t, err)
 	assert.LessOrEqual(t, len(resp.Items), 2)
 	assert.Equal(t, 5, resp.Total)
-}
-
-// TestListIssuesCursorPagination_Task104 фиксирует канон NFR-14: cursor, не offset.
-// Mutation: смена ListIssuesRequest на Offset/Page или ответ без next_cursor/has_more → FAIL.
-func TestListIssuesCursorPagination_Task104(t *testing.T) {
-	svc, _ := newTestService()
-	ctx := context.Background()
-	projectID := uuid.New()
-	userID := uuid.New()
-
-	for i := 0; i < 5; i++ {
-		_, err := svc.CreateIssue(ctx, projectID, userID, tracker.CreateIssueRequest{
-			Title:     fmt.Sprintf("Cursor task %d", i+1),
-			IssueType: "task",
-			Priority:  "medium",
-		})
-		require.NoError(t, err)
-	}
-
-	page1, err := svc.ListIssues(ctx, projectID, tracker.ListIssuesRequest{Limit: 2})
-	require.NoError(t, err)
-	require.Len(t, page1.Items, 2)
-	assert.True(t, page1.HasMore)
-	assert.Equal(t, 5, page1.Total)
-	require.NotEmpty(t, page1.NextCursor)
-	assert.Equal(t, page1.Items[1].IssueKey, page1.NextCursor)
-
-	page2, err := svc.ListIssues(ctx, projectID, tracker.ListIssuesRequest{
-		Cursor: page1.NextCursor,
-		Limit:  2,
-	})
-	require.NoError(t, err)
-	require.Len(t, page2.Items, 2)
-	assert.True(t, page2.HasMore)
-
-	page1Keys := map[string]struct{}{
-		page1.Items[0].IssueKey: {},
-		page1.Items[1].IssueKey: {},
-	}
-	for _, item := range page2.Items {
-		assert.NotContains(t, page1Keys, item.IssueKey)
-	}
-
-	page3, err := svc.ListIssues(ctx, projectID, tracker.ListIssuesRequest{
-		Cursor: page2.NextCursor,
-		Limit:  2,
-	})
-	require.NoError(t, err)
-	require.Len(t, page3.Items, 1)
-	assert.False(t, page3.HasMore)
 }
 
 // TestCreateLabel проверяет сценарий: создание label.

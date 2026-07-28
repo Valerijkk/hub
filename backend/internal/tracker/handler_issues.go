@@ -274,7 +274,7 @@ func (h *Handler) SearchIssuesJQL(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "query обязателен")
 	}
 
-	// W1-A1-008 / P3-BE-07: JQL только через service (не GetDB из handler).
+	// W1-A1-008 / P3-BE-07 / A2W1-A2-001: JQL только через service → repo (не GetDB).
 	resp, err := h.service.SearchIssuesJQL(c.Context(), projectID, userID, req.Query)
 	if err != nil {
 		return err

@@ -448,6 +448,32 @@ func (m *mockRepo) DeleteIssueLink(_ context.Context, _ uuid.UUID) error {
 	return nil
 }
 
+// SoftDeleteWithCrossLinkCleanup — mock fail-closed: list → delete → UpdateStatus.
+func (m *mockRepo) SoftDeleteWithCrossLinkCleanup(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, []*ent.IssueLink, error) {
+	outgoing, err := m.ListOutgoingCrossProjectLinks(ctx, projectID)
+	if err != nil {
+		return nil, nil, err
+	}
+	incoming, err := m.ListIncomingCrossProjectLinks(ctx, projectID)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, link := range outgoing {
+		if err := m.DeleteIssueLink(ctx, link.ID); err != nil {
+			return nil, nil, err
+		}
+	}
+	for _, link := range incoming {
+		if err := m.DeleteIssueLink(ctx, link.ID); err != nil {
+			return nil, nil, err
+		}
+	}
+	if _, err := m.UpdateStatus(ctx, projectID, entproject.StatusDeleted, true); err != nil {
+		return nil, nil, err
+	}
+	return outgoing, incoming, nil
+}
+
 // --- Операции с шаблонами проектов (no-op для unit-тестов) ---
 
 func (m *mockRepo) ListTemplates(_ context.Context) ([]*ent.ProjectTemplate, error) {

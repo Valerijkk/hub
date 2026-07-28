@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/predicate"
 )
 
 // ---------------------------------------------------------------------------
@@ -32,8 +33,9 @@ type IssueRepository interface {
 	// MoveIssue изменяет статус и ранг задачи (перемещение на Kanban-доске).
 	// expectedVersion — optimistic lock (W1-A3-004): без VersionEQ concurrent drag → last-write-wins.
 	MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string, expectedVersion int) (*ent.Issue, error)
-	// IsProjectMember проверяет, что userID — участник projectID (A2W1-A2-002 / TASK-088).
-	IsProjectMember(ctx context.Context, projectID, userID uuid.UUID) (bool, error)
+	// SearchIssuesJQL выполняет JQL-предикаты в рамках проекта (A2W1-A2-001).
+	// orderByField: "", "created", "priority", "updated". Service не ходит в *ent.Client.
+	SearchIssuesJQL(ctx context.Context, projectID uuid.UUID, predicates []predicate.Issue, orderByField string, limit int) ([]*ent.Issue, error)
 }
 
 // IssueLinkRepository управляет направленными связями между задачами.
@@ -187,10 +189,6 @@ type Repository interface {
 	CustomFieldRepository
 	AutomationRepository
 	IssueMessageLinkRepository
-
-	// GetDB возвращает Ent-клиент для service-level запросов (JQL).
-	// Handler не должен вызывать GetDB напрямую (W1-A1-008 / P3-BE-07).
-	GetDB() *ent.Client
 }
 
 // ---------------------------------------------------------------------------
@@ -241,13 +239,9 @@ type ListIssuesParams struct {
 	Priority       []string
 	Assignee       *uuid.UUID
 	UnassignedOnly bool
-	// BacklogOnly — только задачи без спринта (sprint_id=none|unassigned).
-	BacklogOnly bool
-	// Sprint — фильтр по конкретному спринту.
-	Sprint    *uuid.UUID
-	IssueType string
-	Search    string
-	OrderBy   string
+	IssueType      string
+	Search         string
+	OrderBy        string
 }
 
 // CreateCommentInput — распарсенные данные для создания комментария.
@@ -262,7 +256,6 @@ type CreateCommentInput struct {
 type UpdateCommentInput struct {
 	BodyJSON map[string]interface{}
 	BodyText string
-	Version  int
 }
 
 // CreateCustomFieldInput — распарсенные данные для создания определения кастомного поля.
@@ -302,9 +295,4 @@ type EntRepository struct {
 // NewEntRepository создаёт новый Ent-репозиторий трекера задач.
 func NewEntRepository(client *ent.Client, publisher OutboxPublisher) *EntRepository {
 	return &EntRepository{client: client, publisher: publisher}
-}
-
-// GetDB возвращает Ent-клиент для прямых запросов (JQL и др.).
-func (r *EntRepository) GetDB() *ent.Client {
-	return r.client
 }

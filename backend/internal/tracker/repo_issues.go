@@ -11,7 +11,6 @@ import (
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/predicate"
 	"github.com/valerii/hub/backend/ent/project"
-	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
@@ -476,12 +475,25 @@ func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, status
 	return moved, nil
 }
 
-// IsProjectMember проверяет membership пользователя в проекте (A2W1-A2-002 / TASK-088).
-func (r *EntRepository) IsProjectMember(ctx context.Context, projectID, userID uuid.UUID) (bool, error) {
-	return r.client.ProjectMember.Query().
-		Where(
-			projectmember.HasProjectWith(project.IDEQ(projectID)),
-			projectmember.HasUserWith(user.IDEQ(userID)),
-		).
-		Exist(ctx)
+// SearchIssuesJQL выполняет JQL-предикаты в рамках проекта (A2W1-A2-001).
+// Ent-клиент остаётся внутри репозитория — service не вызывает GetDB.
+func (r *EntRepository) SearchIssuesJQL(ctx context.Context, projectID uuid.UUID, predicates []predicate.Issue, orderByField string, limit int) ([]*ent.Issue, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	q := r.client.Issue.Query().
+		Where(issueProjectIDEQ(projectID)).
+		Where(issue.DeletedAtIsNil())
+	for _, pred := range predicates {
+		q = q.Where(pred)
+	}
+	switch orderByField {
+	case "created":
+		q = q.Order(issue.ByCreatedAt())
+	case "priority":
+		q = q.Order(issue.ByPriority())
+	case "updated":
+		q = q.Order(issue.ByUpdatedAt())
+	}
+	return q.WithStatus().WithAssignee().Limit(limit).All(ctx)
 }
