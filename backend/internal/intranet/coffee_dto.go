@@ -14,10 +14,10 @@ type CoffeeEnrollmentResponse struct {
 }
 
 // CoffeePartnerResponse — напарник в текущем/прошлом раунде.
+// P3-BE-15 / W7-A2-014: без email (PII) — достаточно display_name + department.
 type CoffeePartnerResponse struct {
 	UserID      uuid.UUID `json:"user_id"`
 	DisplayName string    `json:"display_name,omitempty"`
-	Email       string    `json:"email,omitempty"`
 	Department  string    `json:"department,omitempty"`
 }
 

@@ -35,7 +35,7 @@ func setupIntranetServiceWithCoffee(t *testing.T) (*intranet.Service, uuid.UUID,
 
 func setupIntranetServiceWithNotifiers(t *testing.T, coffeeNotifier CoffeeNotifier) (*intranet.Service, uuid.UUID, uuid.UUID) {
 	t.Helper()
-	client := enttest.Open(t, "sqlite3", "file:intra_svc?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:intra_svc_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 	ctx := context.Background()
 

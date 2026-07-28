@@ -56,9 +56,17 @@ func TestGetTemplates_ReturnsIndependentCopy(t *testing.T) {
 }
 
 func TestApplyTemplate_UnknownTemplate(t *testing.T) {
-	svc, _, ctx, userID := newDashboardTestEnv(t)
+	svc, client, ctx, userID := newDashboardTestEnv(t)
+	proj, err := client.Project.Create().SetName("Tpl").SetKey("TPL").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().
+		SetUserID(userID).
+		SetProjectID(proj.ID).
+		SetProjectRole("developer").
+		Save(ctx)
+	require.NoError(t, err)
 
-	err := svc.ApplyTemplate(ctx, userID, uuid.New(), "nonexistent")
+	err = svc.ApplyTemplate(ctx, userID, proj.ID, "nonexistent")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }
@@ -118,12 +126,19 @@ func TestGetProjectStats_CacheHit(t *testing.T) {
 }
 
 func TestApplyTemplate_DevPreset(t *testing.T) {
-	svc, _, ctx, userID := newDashboardTestEnv(t)
-	projectID := uuid.New()
+	svc, client, ctx, userID := newDashboardTestEnv(t)
+	proj, err := client.Project.Create().SetName("DevPreset").SetKey("DVP").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().
+		SetUserID(userID).
+		SetProjectID(proj.ID).
+		SetProjectRole("developer").
+		Save(ctx)
+	require.NoError(t, err)
 
-	require.NoError(t, svc.ApplyTemplate(ctx, userID, projectID, "dev"))
+	require.NoError(t, svc.ApplyTemplate(ctx, userID, proj.ID, "dev"))
 
-	layout, err := svc.GetLayout(ctx, userID, "project", &projectID)
+	layout, err := svc.GetLayout(ctx, userID, "project", &proj.ID)
 	require.NoError(t, err)
 	require.NotNil(t, layout)
 	assert.Equal(t, "project", layout.DashboardType)
@@ -264,13 +279,20 @@ func TestSaveLayout_UpdatesExisting(t *testing.T) {
 }
 
 func TestProvisioner_CreateDefaultDashboard(t *testing.T) {
-	svc, _, ctx, userID := newDashboardTestEnv(t)
-	projectID := uuid.New()
+	svc, client, ctx, userID := newDashboardTestEnv(t)
+	proj, err := client.Project.Create().SetName("Prov").SetKey("PRV").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().
+		SetUserID(userID).
+		SetProjectID(proj.ID).
+		SetProjectRole("owner").
+		Save(ctx)
+	require.NoError(t, err)
+
 	prov := dashboard.NewDashboardProjectProvisioner(svc)
+	require.NoError(t, prov.CreateDefaultDashboard(ctx, userID, proj.ID))
 
-	require.NoError(t, prov.CreateDefaultDashboard(ctx, userID, projectID))
-
-	layout, err := svc.GetLayout(ctx, userID, "project", &projectID)
+	layout, err := svc.GetLayout(ctx, userID, "project", &proj.ID)
 	require.NoError(t, err)
 	require.NotNil(t, layout)
 	assert.NotEmpty(t, layout.Items)

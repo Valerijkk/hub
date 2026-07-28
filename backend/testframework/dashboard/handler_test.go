@@ -245,11 +245,26 @@ func TestHandler_Project_ReturnsStats(t *testing.T) {
 }
 
 func TestHandler_ApplyTemplate_Success(t *testing.T) {
-	app, _ := testDashboardApp(t)
-	projectID := uuid.New()
+	svc, client, ctx, userID := newDashboardTestEnv(t)
+	proj, err := client.Project.Create().SetName("Apply").SetKey("APL").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().
+		SetUserID(userID).
+		SetProjectID(proj.ID).
+		SetProjectRole("owner").
+		Save(ctx)
+	require.NoError(t, err)
+
+	h := dashboard.NewHandler(svc)
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("userID", userID)
+		return c.Next()
+	})
+	h.RegisterRoutes(app, func(c fiber.Ctx) error { return c.Next() }, nil)
 
 	body, _ := json.Marshal(map[string]string{
-		"project_id": projectID.String(),
+		"project_id": proj.ID.String(),
 		"template":   "qa",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/dashboard/templates/apply", bytes.NewReader(body))

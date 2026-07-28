@@ -462,7 +462,16 @@ func (s *DashboardService) GetTemplates() map[string][]LayoutItem {
 
 // ApplyTemplate применяет шаблон дашборда для пользователя в проекте.
 // Перезаписывает существующую раскладку типа "project" для указанного пользователя.
+// P3-BE-15 / W7-A4-016: stranger без membership → ErrForbidden.
 func (s *DashboardService) ApplyTemplate(ctx context.Context, userID uuid.UUID, projectID uuid.UUID, templateName string) error {
+	isMember, err := s.repo.IsProjectMember(ctx, userID, projectID)
+	if err != nil {
+		return fmt.Errorf("project membership check: %w", err)
+	}
+	if !isMember {
+		return ErrForbidden
+	}
+
 	items, ok := templatePresets[templateName]
 	if !ok {
 		return fmt.Errorf("шаблон %q не найден", templateName)
@@ -503,6 +512,16 @@ func (s *DashboardService) GetLayout(ctx context.Context, userID uuid.UUID, dash
 }
 
 // SaveLayout сохраняет или обновляет раскладку дашборда.
+// P3-BE-15 / W7-A4-016: при project_id — только член проекта.
 func (s *DashboardService) SaveLayout(ctx context.Context, userID uuid.UUID, req SaveLayoutRequest) error {
+	if req.ProjectID != nil {
+		isMember, err := s.repo.IsProjectMember(ctx, userID, *req.ProjectID)
+		if err != nil {
+			return fmt.Errorf("project membership check: %w", err)
+		}
+		if !isMember {
+			return ErrForbidden
+		}
+	}
 	return s.repo.SaveDashboardLayout(ctx, userID, req)
 }

@@ -20,7 +20,7 @@ import (
 
 func setupIntranetTest(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID) {
 	t.Helper()
-	client := enttest.Open(t, "sqlite3", "file:intranet?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:intranet_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 
 	admin, err := client.User.Create().
@@ -115,7 +115,7 @@ func TestHandler_DeleteNews(t *testing.T) {
 }
 
 func TestHandler_ListDirectory_GroupsByDepartment(t *testing.T) {
-	client := enttest.Open(t, "sqlite3", "file:dir?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:dir_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 	ctx := context.Background()
 
@@ -179,7 +179,7 @@ func TestHandler_ListDirectory_GroupsByDepartment(t *testing.T) {
 }
 
 func TestHandler_GetDirectoryUser_NotFoundForPending(t *testing.T) {
-	client := enttest.Open(t, "sqlite3", "file:pend?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:pend_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 	ctx := context.Background()
 
@@ -248,7 +248,7 @@ func TestHandler_CreateKudos_FeedAndReceived(t *testing.T) {
 }
 
 func TestHandler_RandomCoffee_EnrollAndRun(t *testing.T) {
-	client := enttest.Open(t, "sqlite3", "file:coffee?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:coffee_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 	ctx := context.Background()
 

@@ -71,3 +71,10 @@ func ExportValidateUploadContentType(contentType string) error {
 func ExportIsS3NotFound(err error) bool {
 	return isS3NotFound(err)
 }
+
+// ExportSetOrphanBatchLimit — P3-BE-15: снижаем батч в hubtest для drain-цикла.
+func ExportSetOrphanBatchLimit(n int) (restore func()) {
+	prev := orphanBatchLimit
+	orphanBatchLimit = n
+	return func() { orphanBatchLimit = prev }
+}

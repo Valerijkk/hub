@@ -2,6 +2,7 @@ package intranet
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,7 +18,8 @@ type Repository interface {
 	GetNewsPost(ctx context.Context, id uuid.UUID) (*ent.NewsPost, error)
 	ListNewsPosts(ctx context.Context, publishedOnly bool, page, perPage int) ([]*ent.NewsPost, int, error)
 	UpdateNewsPost(ctx context.Context, id uuid.UUID, req UpdateNewsRequest) (*ent.NewsPost, error)
-	SoftDeleteNewsPost(ctx context.Context, id uuid.UUID) error
+	// SoftDeleteNewsPost — soft-delete + domain audit (actor, post_id); FR-INTR-07 / P3-BE-15.
+	SoftDeleteNewsPost(ctx context.Context, id, actorID uuid.UUID) error
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 	ListActiveUsers(ctx context.Context) ([]*ent.User, error)
 	GetActiveUser(ctx context.Context, id uuid.UUID) (*ent.User, error)
@@ -121,13 +123,38 @@ func (r *EntRepository) UpdateNewsPost(ctx context.Context, id uuid.UUID, req Up
 	return upd.Save(ctx)
 }
 
-func (r *EntRepository) SoftDeleteNewsPost(ctx context.Context, id uuid.UUID) error {
+func (r *EntRepository) SoftDeleteNewsPost(ctx context.Context, id, actorID uuid.UUID) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin news soft-delete tx: %w", err)
+	}
 	now := time.Now().UTC()
-	_, err := r.client.NewsPost.UpdateOneID(id).
+	_, err = tx.NewsPost.UpdateOneID(id).
 		Where(newspost.DeletedAtIsNil()).
 		SetDeletedAt(now).
 		Save(ctx)
-	return err
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	_, err = tx.AuditLog.Create().
+		SetAction("delete").
+		SetEntityType("news_post").
+		SetEntityID(id.String()).
+		SetUserID(actorID).
+		SetDetails(map[string]interface{}{
+			"actor_id": actorID.String(),
+			"post_id":  id.String(),
+		}).
+		Save(ctx)
+	if err != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("audit news delete: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit news soft-delete: %w", err)
+	}
+	return nil
 }
 
 func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {

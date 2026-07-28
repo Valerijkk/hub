@@ -139,12 +139,11 @@ func toCoffeePartner(u *ent.User) CoffeePartnerResponse {
 		name = u.Name
 	}
 	if name == "" {
-		name = u.Email
+		name = "Участник"
 	}
 	return CoffeePartnerResponse{
 		UserID:      u.ID,
 		DisplayName: name,
-		Email:       u.Email,
 		Department:  u.Department,
 	}
 }

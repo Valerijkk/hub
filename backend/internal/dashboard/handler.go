@@ -198,6 +198,9 @@ func (h *Handler) SaveLayout(c fiber.Ctx) error {
 	}
 
 	if err := h.service.SaveLayout(c.Context(), userID, req); err != nil {
+		if errors.Is(err, ErrForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "нет доступа к проекту")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка сохранения раскладки")
 	}
 
@@ -254,6 +257,9 @@ func (h *Handler) ApplyTemplate(c fiber.Ctx) error {
 	}
 
 	if err := h.service.ApplyTemplate(c.Context(), userID, projectID, req.Template); err != nil {
+		if errors.Is(err, ErrForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "нет доступа к проекту")
+		}
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 

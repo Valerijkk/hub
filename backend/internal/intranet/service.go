@@ -164,12 +164,12 @@ func (s *Service) UpdateNews(ctx context.Context, userID, id uuid.UUID, req Upda
 	return &resp, nil
 }
 
-// DeleteNews — мягкое удаление (admin).
+// DeleteNews — мягкое удаление (admin) + domain audit (FR-INTR-07).
 func (s *Service) DeleteNews(ctx context.Context, userID, id uuid.UUID) error {
 	if err := s.requireAdmin(ctx, userID); err != nil {
 		return err
 	}
-	if err := s.repo.SoftDeleteNewsPost(ctx, id); err != nil {
+	if err := s.repo.SoftDeleteNewsPost(ctx, id, userID); err != nil {
 		if ent.IsNotFound(err) {
 			return ErrNotFound
 		}

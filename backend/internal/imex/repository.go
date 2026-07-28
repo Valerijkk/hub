@@ -10,6 +10,7 @@ import (
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/sprint"
 	"github.com/valerii/hub/backend/ent/testrun"
+	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
 // CreateIssueInput — импортированная строка issue.
@@ -65,13 +66,26 @@ func (r *EntRepository) AllocateIssueKey(ctx context.Context, projectID uuid.UUI
 		return 0, "", uuid.Nil, fmt.Errorf("инкремент счётчика задач: %w", err)
 	}
 
-	status, err := tx.Project.Query().
-		Where(project.ID(projectID)).
-		QueryWorkflowStatuses().
-		First(ctx)
+	// P3-BE-15 / W7-A3-013: стабильный стартовый статус — is_default, иначе sort_order.
+	status, err := tx.WorkflowStatus.Query().
+		Where(
+			workflowstatus.HasProjectWith(project.ID(projectID)),
+			workflowstatus.IsDefaultEQ(true),
+		).
+		Only(ctx)
 	if err != nil {
-		_ = tx.Rollback()
-		return 0, "", uuid.Nil, fmt.Errorf("получение дефолтного статуса: %w", err)
+		if !ent.IsNotFound(err) {
+			_ = tx.Rollback()
+			return 0, "", uuid.Nil, fmt.Errorf("получение дефолтного статуса: %w", err)
+		}
+		status, err = tx.WorkflowStatus.Query().
+			Where(workflowstatus.HasProjectWith(project.ID(projectID))).
+			Order(ent.Asc(workflowstatus.FieldSortOrder)).
+			First(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			return 0, "", uuid.Nil, fmt.Errorf("получение дефолтного статуса: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
