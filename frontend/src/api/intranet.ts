@@ -95,7 +95,6 @@ export interface CoffeeEnrollment {
 export interface CoffeePartner {
 	user_id: string;
 	display_name?: string;
-	email?: string;
 	department?: string;
 }
 
