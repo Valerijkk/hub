@@ -416,6 +416,7 @@ func (m *mockRepo) CreateComment(_ context.Context, issueID, authorID uuid.UUID,
 		BodyText:   input.BodyText,
 		IsInternal: input.IsInternal,
 		Mentions:   mentions,
+		Version:    1,
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
 		Edges: ent.CommentEdges{
@@ -449,8 +450,15 @@ func (m *mockRepo) UpdateComment(_ context.Context, issueID, authorID, commentID
 	if c.Edges.Author == nil || c.Edges.Author.ID != authorID {
 		return nil, &ent.NotFoundError{}
 	}
+	if c.Version == 0 {
+		c.Version = 1
+	}
+	if c.Version != input.Version {
+		return nil, &ent.NotFoundError{}
+	}
 	c.BodyJSON = input.BodyJSON
 	c.BodyText = input.BodyText
+	c.Version++
 	return c, nil
 }
 

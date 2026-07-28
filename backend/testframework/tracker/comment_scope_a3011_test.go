@@ -1,3 +1,5 @@
+//go:build hubtest
+
 package tracker_test
 
 import (
@@ -39,12 +41,14 @@ func TestEntRepository_UpdateDeleteComment_Scoped_A3_011(t *testing.T) {
 	_, err = env.repo.UpdateComment(env.ctx, issueB.ID, env.userID, comment.ID, tracker.UpdateCommentInput{
 		BodyJSON: map[string]interface{}{"type": "doc"},
 		BodyText: "hijack",
+		Version:  1,
 	})
 	require.True(t, ent.IsNotFound(err), "wrong issue must 404, got %v", err)
 
 	_, err = env.repo.UpdateComment(env.ctx, issueA.ID, otherUser.ID, comment.ID, tracker.UpdateCommentInput{
 		BodyJSON: map[string]interface{}{"type": "doc"},
 		BodyText: "hijack",
+		Version:  1,
 	})
 	require.True(t, ent.IsNotFound(err), "wrong author must 404, got %v", err)
 

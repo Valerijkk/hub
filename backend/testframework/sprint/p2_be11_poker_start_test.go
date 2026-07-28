@@ -83,7 +83,7 @@ func TestUpdateSprint_EndBeforeStart_BadRequest(t *testing.T) {
 	repo.sprintProject[sprintID] = projectID
 
 	badEnd := start.Add(-24 * time.Hour)
-	_, err := svc.UpdateSprint(ctx, projectID, sprintID, sprint.UpdateSprintRequest{EndDate: &badEnd})
+	_, err := svc.UpdateSprint(ctx, projectID, sprintID, sprint.UpdateSprintRequest{EndDate: &badEnd, Version: 1})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "дата окончания")
 	assert.Equal(t, end, repo.sprints[sprintID].EndDate, "invalid Update must not mutate EndDate")

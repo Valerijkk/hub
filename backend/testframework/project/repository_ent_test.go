@@ -122,7 +122,7 @@ func TestEntRepository_UpdateAndStatus(t *testing.T) {
 
 	name := "Gamma Renamed"
 	desc := "new desc"
-	updated, err := env.repo.Update(env.ctx, created.ID, &name, &desc, nil)
+	updated, err := env.repo.Update(env.ctx, created.ID, 1, &name, &desc, nil)
 	require.NoError(t, err)
 	assert.Equal(t, name, updated.Name)
 	assert.Equal(t, desc, updated.Description)

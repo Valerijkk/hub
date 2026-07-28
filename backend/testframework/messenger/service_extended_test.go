@@ -311,11 +311,11 @@ func TestUpdateChannel_RequiresAdmin(t *testing.T) {
 	memberID := uuid.New()
 	channelID := setupChannelWithMembers(repo, "public", false, ownerID, memberID)
 
-	_, err := svc.UpdateChannel(ctx, channelID, memberID, messenger.CreateChannelRequest{Name: "new-name"})
+	_, err := svc.UpdateChannel(ctx, channelID, memberID, messenger.CreateChannelRequest{Name: "new-name", Version: 1})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "owner или admin")
 
-	resp, err := svc.UpdateChannel(ctx, channelID, ownerID, messenger.CreateChannelRequest{Name: "renamed"})
+	resp, err := svc.UpdateChannel(ctx, channelID, ownerID, messenger.CreateChannelRequest{Name: "renamed", Version: 1})
 	require.NoError(t, err)
 	assert.Equal(t, "renamed", resp.Name)
 }

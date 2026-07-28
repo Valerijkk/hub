@@ -67,7 +67,7 @@ func TestHandler_Wave103_UpdateAndDeleteComment(t *testing.T) {
 	require.NotEmpty(t, created.ID)
 
 	upURL := fmt.Sprintf("%s/%s", base, created.ID)
-	req = httptest.NewRequest(http.MethodPut, upURL, bytes.NewReader([]byte(`{"body_text":"updated"}`)))
+	req = httptest.NewRequest(http.MethodPut, upURL, bytes.NewReader([]byte(`{"body_text":"updated","body_json":{"type":"doc"},"version":1}`)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)
 	require.NoError(t, err)

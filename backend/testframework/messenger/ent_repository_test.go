@@ -82,7 +82,7 @@ func TestEntRepository_CreateChannel_Get_Update_Delete(t *testing.T) {
 	newName := "announcements"
 	updated, err := env.repo.UpdateChannel(env.ctx, ch.ID, messenger.UpdateChannelInput{
 		Name:        &newName,
-		Description: strPtr("updated"),
+		Description: strPtr("updated"), Version: 1,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "announcements", updated.Name)

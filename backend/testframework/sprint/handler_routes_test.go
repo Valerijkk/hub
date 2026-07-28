@@ -126,7 +126,7 @@ func TestHandler_RegisterRoutes_UpdateAndAddIssues(t *testing.T) {
 	var created sprint.SprintResponse
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
 
-	updateBody := `{"name":"Updated Sprint Name"}`
+	updateBody := fmt.Sprintf(`{"name":"Updated Sprint Name","version":%d}`, created.Version)
 	req = httptest.NewRequest(http.MethodPut, base+"/"+created.ID, bytes.NewReader([]byte(updateBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = env.app.Test(req)

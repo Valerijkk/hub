@@ -33,7 +33,7 @@ func TestEntRepository_CommentsAndReactions(t *testing.T) {
 	updated, err := env.repo.UpdateComment(env.ctx, issue.ID, env.userID, comment.ID, tracker.UpdateCommentInput{
 		BodyJSON: map[string]interface{}{"type": "doc", "v": 2},
 		BodyText: updatedText,
-	})
+		Version: 1,})
 	require.NoError(t, err)
 	assert.Equal(t, updatedText, updated.BodyText)
 

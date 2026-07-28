@@ -323,7 +323,7 @@ func TestHandler_GetAndUpdateChannel(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&channel))
 	assert.Equal(t, channelID.String(), channel.ID)
 
-	updateBody := `{"name":"renamed-via-handler","description":"updated desc"}`
+	updateBody := `{"name":"renamed-via-handler","description":"updated desc","version":1}`
 	req = httptest.NewRequest(http.MethodPut, "/api/messenger/channels/"+channelID.String(), bytes.NewReader([]byte(updateBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)

@@ -51,7 +51,7 @@ func TestUpdateProject_JavascriptAvatar_Rejected_P2_BE_12(t *testing.T) {
 
 	svc := projmod.NewProjectService(projmod.NewEntRepository(client, nil), nil, nil)
 	bad := "javascript:alert(1)"
-	_, err = svc.UpdateProject(ctx, p.ID, projmod.UpdateProjectRequest{AvatarURL: &bad})
+	_, err = svc.UpdateProject(ctx, p.ID, projmod.UpdateProjectRequest{AvatarURL: &bad, Version: 1})
 	require.Error(t, err)
 	var appErr *apperrors.AppError
 	require.ErrorAs(t, err, &appErr)

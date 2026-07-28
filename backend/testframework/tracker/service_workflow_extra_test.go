@@ -197,8 +197,7 @@ func TestCommentUpdateAndDelete(t *testing.T) {
 	newBody := map[string]interface{}{"text": "updated"}
 	updated, err := svc.UpdateComment(ctx, projectID, issue.IssueKey, userID, uuid.MustParse(comment.ID), tracker.UpdateCommentRequest{
 		BodyJSON: newBody,
-		BodyText: "updated",
-	})
+		BodyText: "updated", Version: 1})
 	require.NoError(t, err)
 	assert.NotNil(t, updated)
 

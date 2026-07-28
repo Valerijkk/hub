@@ -61,7 +61,7 @@ func TestEntRepository_CommentSoftDelete_A8_006(t *testing.T) {
 	_, err = env.repo.UpdateComment(env.ctx, issue.ID, env.userID, cmt.ID, tracker.UpdateCommentInput{
 		BodyJSON: map[string]interface{}{"type": "doc"},
 		BodyText: "hijack",
-	})
+		Version: 1,})
 	require.Error(t, err)
 
 	// Idempotent soft-delete → NotFound (already deleted).

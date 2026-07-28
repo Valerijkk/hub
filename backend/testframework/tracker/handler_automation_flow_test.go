@@ -108,7 +108,7 @@ func TestHandler_UpdateAndDeleteComment(t *testing.T) {
 	var comment tracker.CommentResponse
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&comment))
 
-	updateBody := `{"body_json":{"text":"updated"},"body_text":"updated"}`
+	updateBody := `{"body_json":{"text":"updated"},"body_text":"updated","version":1}`
 	req = httptest.NewRequest(http.MethodPut, base+"/issues/"+issue.IssueKey+"/comments/"+comment.ID, bytes.NewReader([]byte(updateBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)
