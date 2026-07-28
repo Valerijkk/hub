@@ -1,4 +1,4 @@
-﻿package onec_test
+package onec_test
 
 import (
 	"bytes"
@@ -37,7 +37,7 @@ func TestConfig_validateAndDecode(t *testing.T) {
 
 func TestService_UpdateSettings(t *testing.T) {
 	store := &memStore{data: map[string]string{}}
-	svc := onec.NewService(store, stubUsers{})
+	svc := onec.NewService(store, stubUsers{}, nil)
 
 	enabled := true
 	url := "https://1c.example.local/webhook"
@@ -60,14 +60,14 @@ func TestService_UpdateSettings(t *testing.T) {
 	assert.ErrorIs(t, err, onec.ErrInvalidConfig)
 
 	enabledOnly := true
-	fresh := onec.NewService(&memStore{data: map[string]string{}}, stubUsers{})
+	fresh := onec.NewService(&memStore{data: map[string]string{}}, stubUsers{}, nil)
 	_, err = fresh.UpdateSettings(context.Background(), onec.UpdateSettingsRequest{Enabled: &enabledOnly})
 	assert.ErrorIs(t, err, onec.ErrInvalidConfig)
 }
 
 func TestService_TestWebhook(t *testing.T) {
 	store := &memStore{data: map[string]string{}}
-	svc := onec.NewService(store, stubUsers{})
+	svc := onec.NewService(store, stubUsers{}, nil)
 	onec.ExportServiceSetClient(svc, &http.Client{Timeout: 5 * time.Second})
 
 	_, err := svc.TestWebhook(context.Background())
@@ -102,7 +102,7 @@ func TestService_TestWebhook(t *testing.T) {
 
 func TestService_ExportApprovedLeave_disabledSkips(t *testing.T) {
 	store := &memStore{data: map[string]string{}}
-	svc := onec.NewService(store, stubUsers{})
+	svc := onec.NewService(store, stubUsers{}, nil)
 	err := svc.ExportApprovedLeave(context.Background(), hrmod.LeaveRequestResponse{ID: uuid.New()}, uuid.New())
 	require.NoError(t, err)
 }
@@ -114,7 +114,7 @@ func TestService_ExportApprovedLeave_badStatus(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	store := &memStore{data: map[string]string{}}
-	svc := onec.NewService(store, stubUsers{})
+	svc := onec.NewService(store, stubUsers{}, nil)
 	onec.ExportServiceSetClient(svc, &http.Client{Timeout: 5 * time.Second})
 	cfg := onec.Config{Enabled: true, WebhookURL: srv.URL, EmployeeIDField: onec.EmployeeIDHubUUID}
 	raw, _ := onec.ExportEncodeConfig(cfg)
@@ -139,7 +139,7 @@ func TestService_ExportApprovedLeave_phoneExternalID(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	store := &memStore{data: map[string]string{}}
-	svc := onec.NewService(store, stubUsers{})
+	svc := onec.NewService(store, stubUsers{}, nil)
 	onec.ExportServiceSetClient(svc, &http.Client{Timeout: 5 * time.Second})
 	cfg := onec.Config{
 		Enabled:         true,
@@ -184,7 +184,7 @@ func TestBuildLeavePayload_fields(t *testing.T) {
 
 func TestAdminHandler_UpdateSettingsAndTest(t *testing.T) {
 	store := &memStore{data: map[string]string{}}
-	svc := onec.NewService(store, stubUsers{})
+	svc := onec.NewService(store, stubUsers{}, nil)
 	onec.ExportServiceSetClient(svc, &http.Client{Timeout: 5 * time.Second})
 
 	h := onec.NewAdminHandler(svc, func(c fiber.Ctx, _ uuid.UUID) (bool, error) { return true, nil })
@@ -221,7 +221,7 @@ func TestAdminHandler_UpdateSettingsAndTest(t *testing.T) {
 }
 
 func TestAdminHandler_ForbiddenForNonAdmin(t *testing.T) {
-	svc := onec.NewService(&memStore{data: map[string]string{}}, stubUsers{})
+	svc := onec.NewService(&memStore{data: map[string]string{}}, stubUsers{}, nil)
 	h := onec.NewAdminHandler(svc, func(c fiber.Ctx, _ uuid.UUID) (bool, error) { return false, nil })
 	app := fiber.New()
 	api := app.Group("/api")

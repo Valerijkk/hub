@@ -109,15 +109,11 @@ func TestEntRepository_IntegrationCRUDAndSecrets(t *testing.T) {
 	byRepo, err := env.repo.FindIntegrationByRepo(env.ctx, "acme", "hub")
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, byRepo.ID)
-
-	secrets, err := env.repo.ListAllWebhookSecrets(env.ctx)
-	require.NoError(t, err)
-	assert.Contains(t, secrets, "gh-secret")
+	assert.Equal(t, "gh-secret", byRepo.WebhookSecret)
 
 	require.NoError(t, env.repo.DeleteIntegration(env.ctx, env.projectID, created.ID))
-	after, err := env.repo.ListAllWebhookSecrets(env.ctx)
-	require.NoError(t, err)
-	assert.Empty(t, after)
+	_, err = env.repo.FindIntegrationByRepo(env.ctx, "acme", "hub")
+	require.Error(t, err)
 }
 
 // TestEntRepository_DeleteIntegration_RejectsForeignProject_A5_003 — интеграция проекта B

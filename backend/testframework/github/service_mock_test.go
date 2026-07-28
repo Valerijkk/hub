@@ -175,10 +175,6 @@ func (m *githubMockRepo) LogActivity(_ context.Context, _ uuid.UUID, _ string) e
 	return nil
 }
 
-func (m *githubMockRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
-	return m.webhookSecrets, nil
-}
-
 func (m *githubMockRepo) IsProjectMember(_ context.Context, _, _ uuid.UUID) (bool, error) {
 	if m.denyMembership {
 		return false, nil

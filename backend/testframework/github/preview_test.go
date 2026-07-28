@@ -59,9 +59,6 @@ func (m *previewMockRepo) FindDoneStatus(context.Context, uuid.UUID) (*ent.Workf
 	return nil, nil
 }
 func (m *previewMockRepo) LogActivity(context.Context, uuid.UUID, string) error { return nil }
-func (m *previewMockRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
-	return nil, nil
-}
 func (m *previewMockRepo) IsProjectMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
 	return true, nil
 }

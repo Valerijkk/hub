@@ -45,7 +45,7 @@ func wireModules(d *serverDeps) {
 
 	hrRepo := hrmod.NewEntRepository(d.db)
 	onecStore := onecmod.NewEntSettingsStore(d.db)
-	onecSvc := onecmod.NewService(onecStore, onecmod.NewEntUserLookup(d.db))
+	onecSvc := onecmod.NewService(onecStore, onecmod.NewEntUserLookup(d.db), d.integrationCipher)
 	onecAdminHandler := onecmod.NewAdminHandler(onecSvc, func(c fiber.Ctx, userID uuid.UUID) (bool, error) {
 		return d.auditSvc.IsSystemAdmin(c.Context(), userID)
 	})

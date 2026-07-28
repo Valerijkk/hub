@@ -150,9 +150,11 @@ func (r *EntRepository) ListProjectIssuesForExport(ctx context.Context, projectI
 }
 
 func (r *EntRepository) ListProjectIssuesPlain(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error) {
+	// W7-A3-008: ZIP/xlsx path must exclude soft-deleted (trash) issues — same as CSV export.
 	return r.client.Project.Query().
 		Where(project.ID(projectID)).
 		QueryIssues().
+		Where(issue.DeletedAtIsNil()).
 		All(ctx)
 }
 

@@ -88,11 +88,11 @@
 | W7-A3-001 | FIXED-OK | P1 | `gitlab/service.go:423-442` | Pipeline variables plaintext в NATS | Закрыто TASK-024: `redactPipelineVariables` |
 | W7-A3-002 | FIXED-OK | P1 | `github/service.go:472-489` | ListGitHubLinks без membership | Закрыто TASK-024: `IsProjectMember` |
 | W7-A3-003 | FIXED-OK | P2 | `gitlab/webhook_verify.go:44-54` | CTC length-oracle на сырых строках | Закрыто TASK-045: sha256 digests + CTC |
-| W7-A3-004 | RESIDUAL | P2 | `github/repository.go` / `gitlab/repository.go` ListAllWebhookSecrets | Decrypt всех секретов в RAM; dead path | Attack-surface / ошибочный reuse |
+| W7-A3-004 | FIXED-OK | P2 | `github/repository.go` / `gitlab/repository.go` ListAllWebhookSecrets | Decrypt всех секретов в RAM; dead path | Закрыто TASK-120: API+cache удалены; verify = FindByRepo/Path |
 | W7-A3-005 | FIXED-OK | P2 | `github/dto.go` validate tags + Bind | Пустые repo/token/secret не rejected | Закрыто P2-BE-01: `StructValidator` в `wiring_fiber.go` исполняет `validate:"required"` |
-| W7-A3-006 | RESIDUAL | P2 | `gitlab/service.go:306,410,510,566` | Upstream `respBody` в client error | Утечка тела GitLab API клиенту Hub |
-| W7-A3-007 | RESIDUAL | P2 | `onec/dto.go` + `settings_store.go` | BearerToken plaintext в `system_setting` | Компрометация БД = 1С token |
-| W7-A3-008 | RESIDUAL | P2 | `imex/repository.go:152-156` | `ListProjectIssuesPlain` **без** `DeletedAtIsNil` (CSV path фильтрует) | ZIP/xlsx trash issues; TASK-038 пометил out-of-scope — **код не закрыт** |
+| W7-A3-006 | FIXED-OK | P2 | `gitlab/service.go` | Upstream `respBody` в client error | Закрыто TASK-120: body только в slog; клиенту HTTP status |
+| W7-A3-007 | FIXED-OK | P2 | `onec/service.go` | BearerToken plaintext в `system_setting` | Закрыто TASK-120: AES-GCM via `integrationCipher` |
+| W7-A3-008 | FIXED-OK | P2 | `imex/repository.go` ListProjectIssuesPlain | Без `DeletedAtIsNil` (CSV path фильтрует) | Закрыто TASK-120: trash filter на ZIP path |
 | W7-A3-009 | FIXED-OK | P2 | `imex/service.go:247+` | Excel = CSV под xlsx MIME | Закрыто TASK-045: excelize XLSX |
 | W7-A3-010 | **FIXED** (TASK-097) | P2 | `github/repository.go`; `gitlab/repository.go` | Soft-delete integrations | github/gitlab soft_delete_task097 |
 | W7-A3-011 | FIXED-OK | P3 | github service `_ = LogActivity` / Publish | Silent swallow | Закрыто TASK-057 (slog path) |
@@ -106,7 +106,7 @@
 | GH/GL webhook bind + no-skip | Держит (A5-008/009) |
 | SSRF SafeHTTP / ValidateOutboundURL | Держит |
 | Body LimitReader | Держит |
-| GH/GL token at-rest AES-GCM | Держит (1С — нет) |
+| GH/GL token at-rest AES-GCM | Держит (+ 1С BearerToken — TASK-120) |
 | imex RBAC / PDF project scope | Держит |
 
 ## Counts
@@ -114,8 +114,8 @@
 | Метрика | n |
 |---------|--:|
 | Файлов | 71 |
-| Open (RESIDUAL) | **5** |
-| FIXED-OK | 8 |
+| Open (RESIDUAL) | **1** |
+| FIXED-OK | 12 |
 | NEW | 0 |
 | REGRESS | 0 |
-| Open by sev | P0:0 · P1:0 · P2:5 · P3:0 |
+| Open by sev | P0:0 · P1:0 · P2:1 · P3:0 |

@@ -105,9 +105,6 @@ func (m *gitlabMockRepo) FindIssueByKeyInProject(_ context.Context, projectID uu
 	}
 	return iss, nil
 }
-func (m *gitlabMockRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
-	return m.webhookSecrets, nil
-}
 
 func TestCreateIntegration_DefaultGitLabURL(t *testing.T) {
 	repo := &gitlabMockRepo{}

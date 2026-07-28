@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	hrmod "github.com/valerii/hub/backend/internal/hr"
+	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -25,14 +26,17 @@ type Service struct {
 	store  SettingsStore
 	users  UserLookup
 	client *http.Client
+	cipher *cryptopkg.Cipher
 }
 
 // NewService создаёт сервис коннектора 1С.
-func NewService(store SettingsStore, users UserLookup) *Service {
+// cipher шифрует BearerToken at-rest (W7-A3-007); nil — plaintext (тесты/legacy).
+func NewService(store SettingsStore, users UserLookup, cipher *cryptopkg.Cipher) *Service {
 	return &Service{
 		store:  store,
 		users:  users,
 		client: safehttp.NewSafeHTTPClient(15 * time.Second),
+		cipher: cipher,
 	}
 }
 
@@ -41,18 +45,44 @@ func (s *Service) loadConfig(ctx context.Context) (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("load 1c config: %w", err)
 	}
-	return decodeConfig(raw)
+	cfg, err := decodeConfig(raw)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.BearerToken = s.decryptToken(cfg.BearerToken)
+	return cfg, nil
 }
 
 func (s *Service) saveConfig(ctx context.Context, cfg Config) error {
 	if err := cfg.validate(); err != nil {
 		return err
 	}
-	encoded, err := encodeConfig(cfg)
+	toStore := cfg
+	enc, err := s.encryptToken(cfg.BearerToken)
+	if err != nil {
+		return err
+	}
+	toStore.BearerToken = enc
+	encoded, err := encodeConfig(toStore)
 	if err != nil {
 		return err
 	}
 	return s.store.Upsert(ctx, settingsKey, encoded, "1C leave webhook connector (MOD-07)")
+}
+
+func (s *Service) encryptToken(token string) (string, error) {
+	if s.cipher == nil || token == "" {
+		return token, nil
+	}
+	return s.cipher.EncryptString(token)
+}
+
+func (s *Service) decryptToken(token string) string {
+	if s.cipher == nil || token == "" {
+		return token
+	}
+	pt, _ := s.cipher.MaybeDecryptString(token)
+	return pt
 }
 
 // GetSettings возвращает настройки для админа (токен замаскирован).

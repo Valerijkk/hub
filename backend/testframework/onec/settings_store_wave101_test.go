@@ -1,4 +1,4 @@
-﻿package onec_test
+package onec_test
 import (
 	"github.com/valerii/hub/backend/internal/integrations/onec"
 	"context"

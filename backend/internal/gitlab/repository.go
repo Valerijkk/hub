@@ -2,9 +2,6 @@ package gitlab
 
 import (
 	"context"
-	"log/slog"
-	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -13,9 +10,6 @@ import (
 	"github.com/valerii/hub/backend/ent/project"
 	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 )
-
-// ME-08: TTL для кеша webhook-секретов GitLab-интеграций.
-const webhookSecretsCacheTTL = 60 * time.Second
 
 // Repository определяет интерфейс доступа к данным для модуля GitLab-интеграции.
 type Repository interface {
@@ -33,9 +27,6 @@ type Repository interface {
 	FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error)
 	// FindIssueByKeyInProject ищет задачу по ключу только внутри projectID (A5-007).
 	FindIssueByKeyInProject(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error)
-
-	// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
-	ListAllWebhookSecrets(ctx context.Context) ([]string, error)
 }
 
 // CreateIntegrationInput -- входные данные для создания интеграции.
@@ -58,11 +49,6 @@ type CreateIntegrationInput struct {
 type EntRepository struct {
 	client *ent.Client
 	cipher *cryptopkg.Cipher
-
-	// ME-08: in-memory кеш webhook-секретов с TTL.
-	secretsMu     sync.RWMutex
-	secretsCache  []string
-	secretsExpire time.Time
 }
 
 // NewEntRepository создаёт новый репозиторий GitLab-интеграции.
@@ -70,14 +56,6 @@ type EntRepository struct {
 // в открытом виде. В production cipher обязателен.
 func NewEntRepository(client *ent.Client, cipher *cryptopkg.Cipher) *EntRepository {
 	return &EntRepository{client: client, cipher: cipher}
-}
-
-// invalidateSecretsCache сбрасывает кеш webhook-секретов.
-func (r *EntRepository) invalidateSecretsCache() {
-	r.secretsMu.Lock()
-	r.secretsCache = nil
-	r.secretsExpire = time.Time{}
-	r.secretsMu.Unlock()
 }
 
 func (r *EntRepository) encryptField(v string) (string, error) {
@@ -115,36 +93,32 @@ func (r *EntRepository) CreateIntegration(ctx context.Context, projectID uuid.UU
 		return nil, err
 	}
 
-	encSecret, err := r.encryptField(input.WebhookSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	// A2W8-2-007: webhook_secret обязателен на уровне схемы и репозитория.
-	created, err := r.client.GitLabIntegration.Create().
+	q := r.client.GitLabIntegration.Create().
 		SetGitlabURL(gitlabURL).
 		SetProjectPath(input.ProjectPath).
 		SetAccessToken(encToken).
-		SetWebhookSecret(encSecret).
-		SetProjectID(projectID).
-		Save(ctx)
+		SetProjectID(projectID)
+
+	if input.WebhookSecret != "" {
+		encSecret, err := r.encryptField(input.WebhookSecret)
+		if err != nil {
+			return nil, err
+		}
+		q.SetWebhookSecret(encSecret)
+	}
+
+	created, err := q.Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	// ME-08: сбрасываем кеш — новый secret должен немедленно учитываться.
-	r.invalidateSecretsCache()
 	r.decryptIntegration(created)
 	return created, nil
 }
 
-// ListIntegrations возвращает все GitLab-интеграции проекта (без корзины).
-// W7-A3-010: DeletedAtIsNil.
+// ListIntegrations возвращает все GitLab-интеграции проекта.
 func (r *EntRepository) ListIntegrations(ctx context.Context, projectID uuid.UUID) ([]*ent.GitLabIntegration, error) {
 	list, err := r.client.GitLabIntegration.Query().
-		Where(
-			gitlabintegration.HasProjectWith(project.ID(projectID)),
-			gitlabintegration.DeletedAtIsNil(),
-		).
+		Where(gitlabintegration.HasProjectWith(project.ID(projectID))).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -155,11 +129,9 @@ func (r *EntRepository) ListIntegrations(ctx context.Context, projectID uuid.UUI
 	return list, nil
 }
 
-// GetIntegration возвращает интеграцию по ID (без корзины).
+// GetIntegration возвращает интеграцию по ID.
 func (r *EntRepository) GetIntegration(ctx context.Context, id uuid.UUID) (*ent.GitLabIntegration, error) {
-	ig, err := r.client.GitLabIntegration.Query().
-		Where(gitlabintegration.IDEQ(id), gitlabintegration.DeletedAtIsNil()).
-		Only(ctx)
+	ig, err := r.client.GitLabIntegration.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +145,6 @@ func (r *EntRepository) GetIntegrationInProject(ctx context.Context, projectID, 
 	ig, err := r.client.GitLabIntegration.Query().
 		Where(
 			gitlabintegration.IDEQ(id),
-			gitlabintegration.DeletedAtIsNil(),
 			gitlabintegration.HasProjectWith(project.ID(projectID)),
 		).
 		Only(ctx)
@@ -184,35 +155,28 @@ func (r *EntRepository) GetIntegrationInProject(ctx context.Context, projectID, 
 	return ig, nil
 }
 
-// DeleteIntegration мягко удаляет интеграцию по ID только в рамках projectID (A5-004 / W7-A3-010).
+// DeleteIntegration удаляет интеграцию по ID только в рамках projectID (A5-004).
 // Чужой projectId в URL при UUID интеграции другого проекта → NotFound (0 rows).
 func (r *EntRepository) DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error {
-	affected, err := r.client.GitLabIntegration.Update().
+	affected, err := r.client.GitLabIntegration.Delete().
 		Where(
 			gitlabintegration.IDEQ(id),
 			gitlabintegration.HasProjectWith(project.ID(projectID)),
-			gitlabintegration.DeletedAtIsNil(),
 		).
-		SetDeletedAt(time.Now().UTC()).
-		Save(ctx)
+		Exec(ctx)
 	if err != nil {
 		return err
 	}
 	if affected == 0 {
 		return &ent.NotFoundError{}
 	}
-	// ME-08: удалённый секрет должен немедленно исчезнуть из HMAC-сверки.
-	r.invalidateSecretsCache()
 	return nil
 }
 
-// FindIntegrationByProjectPath ищет интеграцию по пути проекта GitLab (без корзины).
+// FindIntegrationByProjectPath ищет интеграцию по пути проекта GitLab.
 func (r *EntRepository) FindIntegrationByProjectPath(ctx context.Context, projectPath string) (*ent.GitLabIntegration, error) {
 	ig, err := r.client.GitLabIntegration.Query().
-		Where(
-			gitlabintegration.ProjectPath(projectPath),
-			gitlabintegration.DeletedAtIsNil(),
-		).
+		Where(gitlabintegration.ProjectPath(projectPath)).
 		WithProject().
 		Only(ctx)
 	if err != nil {
@@ -244,54 +208,4 @@ func (r *EntRepository) FindIssueByKeyInProject(ctx context.Context, projectID u
 		WithAssignee().
 		WithProject().
 		Only(ctx)
-}
-
-// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных
-// GitLab-интеграций. Расшифровывает каждое значение через MaybeDecrypt,
-// чтобы поддерживать как новые (encrypted) так и legacy (plaintext) записи.
-// Caller использует значения только для HMAC-сверки и не сохраняет.
-//
-// ME-08: результат кешируется на webhookSecretsCacheTTL (60s) ровно тем
-// же способом, что и в github/repository.go. Инвалидируется явно после
-// Create/Delete интеграции; новые секреты подхватываются с задержкой не
-// более 60 секунд.
-func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, error) {
-	r.secretsMu.RLock()
-	if !r.secretsExpire.IsZero() && time.Now().Before(r.secretsExpire) {
-		out := make([]string, len(r.secretsCache))
-		copy(out, r.secretsCache)
-		r.secretsMu.RUnlock()
-		return out, nil
-	}
-	r.secretsMu.RUnlock()
-
-	integrations, err := r.client.GitLabIntegration.Query().
-		Where(gitlabintegration.DeletedAtIsNil()).
-		Select(gitlabintegration.FieldWebhookSecret).
-		All(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	secrets := make([]string, 0, len(integrations))
-	for _, ig := range integrations {
-		if ig.WebhookSecret == "" {
-			continue
-		}
-		pt := r.decryptField(ig.WebhookSecret)
-		if pt == "" {
-			slog.Warn("gitlab webhook secret decrypted to empty value — skipping")
-			continue
-		}
-		secrets = append(secrets, pt)
-	}
-
-	r.secretsMu.Lock()
-	r.secretsCache = secrets
-	r.secretsExpire = time.Now().Add(webhookSecretsCacheTTL)
-	r.secretsMu.Unlock()
-
-	out := make([]string, len(secrets))
-	copy(out, secrets)
-	return out, nil
 }
