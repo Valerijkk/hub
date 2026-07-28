@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
+
+- Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.
+- «Мои задачи» фильтрует assignee; dead UI: invite/search/Bell/KPI/trash/onboarding/suite+.
+- Viewer: create/delete webhook/env, issue delete, version rollback скрыты (`canMutateProject`).
+- Vitest: `tokens-dead-ui-authz-p2`, `board-my-tasks-filter-p2`; статус «На проверке».
+
 ## Session note — 2026-07-28 (fe2 · TASK-053 P2-FE-09..11 auth/WS/upload)
 
 - P2-FE-09: failed refresh → best-effort `POST /auth/logout` + `clearSessionLocal` без re-broadcast.
