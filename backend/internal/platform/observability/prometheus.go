@@ -106,6 +106,7 @@ func MetricsHandler() fiber.Handler {
 }
 
 // HTTPMetricsMiddleware — count и latency для Prometheus.
+// W4-A3-002: label route — только шаблон; unmatched → "unmatched" (не c.Path()).
 func HTTPMetricsMiddleware() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if c.Path() == metricsPath {
@@ -115,10 +116,7 @@ func HTTPMetricsMiddleware() fiber.Handler {
 		start := time.Now()
 		err := c.Next()
 
-		route := c.Path()
-		if r := c.Route(); r != nil && r.Path != "" {
-			route = r.Path
-		}
+		route := httpRouteLabel(c)
 
 		status := c.Response().StatusCode()
 		if status == 0 {

@@ -13,3 +13,8 @@ func ExportApplyPoolLimits(db *dbsql.DB) {
 func ExportDefaultMaxOpenConns() int {
 	return defaultMaxOpenConns
 }
+
+// ExportEnvBool wraps envBool for hubtest (W4-A4-003 Schema.Create gate).
+func ExportEnvBool(key string, fallback bool) bool {
+	return envBool(key, fallback)
+}

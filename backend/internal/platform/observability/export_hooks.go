@@ -23,3 +23,8 @@ func ExportIpAllowed(ip net.IP, nets []*net.IPNet) bool {
 func ExportSetTracingActiveForTest(active bool) {
 	tracingActive.Store(active)
 }
+
+// ExportUnmatchedRouteLabel returns the sentinel for unmatched routes (W4-A3-002).
+func ExportUnmatchedRouteLabel() string {
+	return unmatchedRouteLabel
+}

@@ -5,6 +5,8 @@ import (
 	"context"
 	dbsql "database/sql"
 	"log/slog"
+	"os"
+	"strconv"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -31,7 +33,8 @@ func applyPoolLimits(db *dbsql.DB) {
 }
 
 // NewPostgresClient создаёт Ent-клиент, подключённый к PostgreSQL.
-// Выполняет автомиграцию в режиме разработки; для продакшена используйте Atlas.
+// W4-A4-003: Schema.Create (auto-migrate) только при DEV_MODE=true;
+// в production схема применяется через Atlas migrate apply.
 //
 // Возвращает также raw `*sql.DB`, разделяющий пул соединений с Ent —
 // его можно переиспользовать в health-probe (BE-H5) и других местах,
@@ -45,10 +48,11 @@ func NewPostgresClient(ctx context.Context, url string) (*ent.Client, *dbsql.DB,
 	applyPoolLimits(rawDB)
 	client := ent.NewClient(ent.Driver(drv))
 
-	// Auto-migrate в dev; в production — Atlas migrations.
-	if err := client.Schema.Create(ctx); err != nil {
-		slog.Error("failed to create schema", "error", err)
-		return nil, nil, err
+	if envBool("DEV_MODE", false) {
+		if err := client.Schema.Create(ctx); err != nil {
+			slog.Error("failed to create schema", "error", err)
+			return nil, nil, err
+		}
 	}
 
 	slog.Info("connected to PostgreSQL")
@@ -64,4 +68,13 @@ func OpenRawDB(url string) (*dbsql.DB, error) {
 	}
 	applyPoolLimits(db)
 	return db, nil
+}
+
+func envBool(key string, fallback bool) bool {
+	if v := os.Getenv(key); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			return b
+		}
+	}
+	return fallback
 }

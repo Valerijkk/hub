@@ -4,12 +4,22 @@ import (
 	"context"
 	"log/slog"
 	"runtime/debug"
+	"strings"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"github.com/nats-io/nats.go"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/outboxevent"
+	"github.com/valerii/hub/backend/ent/predicate"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
+)
+
+const (
+	// maxPublishAttempts — после этого события помечаются status=failed (dead-letter).
+	maxPublishAttempts = 10
+	batchLimit         = 50
 )
 
 // Worker опрашивает outbox-таблицу на наличие ожидающих событий и публикует их в NATS.
@@ -41,30 +51,103 @@ func (w *Worker) ProcessLoop(ctx context.Context) {
 }
 
 // processBatch обрабатывает пачку ожидающих событий (до 50 за раз).
-// HI-09: одно сбойное событие не должно валить весь loop — обработка каждой
-// записи обёрнута в локальный recover, а update'ы статуса больше не используют
-// SaveX (паника при transient DB-ошибке). Сбойные апдейты логируются и
-// событие попадает в следующую итерацию (Attempts инкрементируются при
-// очередном publish-fail; для published-успехов запись остаётся в pending
-// до следующего успешного UpdateOne — это безопасно, мы скорее доставим
-// событие дважды, чем потеряем его).
+// W4-A2-002: exhausted pending (attempts≥10) → status=failed.
+// W4-A2-003: claim через Tx + FOR UPDATE SKIP LOCKED (Postgres); SQLite —
+// fallback без lock (Ent/SQLite отвергает SELECT FOR UPDATE, см. tracker StartTimer).
+// HI-09: одно сбойное событие не должно валить весь loop.
 func (w *Worker) processBatch(ctx context.Context) {
-	events, err := w.client.OutboxEvent.Query().
-		Where(
-			outboxevent.StatusEQ(outboxevent.StatusPending),
-			outboxevent.AttemptsLT(10),
-		).
-		Order(ent.Asc(outboxevent.FieldCreatedAt)).
-		Limit(50).
-		All(ctx)
+	w.markExhaustedFailed(ctx)
+
+	tx, err := w.client.Tx(ctx)
 	if err != nil {
-		slog.Error("outbox: failed to query events", "error", err)
+		slog.Error("outbox: failed to begin claim tx", "error", err)
+		return
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	events, err := w.claimPending(ctx, tx)
+	if err != nil {
+		slog.Error("outbox: failed to claim events", "error", err)
 		return
 	}
 
+	tw := &Worker{client: tx.Client(), nats: w.nats}
 	for _, evt := range events {
-		w.processEvent(ctx, evt)
+		tw.processEvent(ctx, evt)
 	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("outbox: failed to commit claim tx", "error", err)
+		return
+	}
+	committed = true
+}
+
+// markExhaustedFailed переводит застрявшие pending с attempts≥10 в failed
+// (исторический dead-letter до фикса W4-A2-002).
+func (w *Worker) markExhaustedFailed(ctx context.Context) {
+	n, err := w.client.OutboxEvent.Update().
+		Where(
+			outboxevent.StatusEQ(outboxevent.StatusPending),
+			outboxevent.AttemptsGTE(maxPublishAttempts),
+		).
+		SetStatus(outboxevent.StatusFailed).
+		Save(ctx)
+	if err != nil {
+		slog.Error("outbox: failed to mark exhausted events", "error", err)
+		return
+	}
+	if n > 0 {
+		slog.Warn("outbox: marked exhausted pending as failed", "count", n)
+	}
+}
+
+// claimPending выбирает pending-события под row-lock (SKIP LOCKED на Postgres).
+func (w *Worker) claimPending(ctx context.Context, tx *ent.Tx) ([]*ent.OutboxEvent, error) {
+	base := func(extra ...predicate.OutboxEvent) *ent.OutboxEventQuery {
+		preds := []predicate.OutboxEvent{
+			outboxevent.StatusEQ(outboxevent.StatusPending),
+			outboxevent.AttemptsLT(maxPublishAttempts),
+		}
+		preds = append(preds, extra...)
+		return tx.OutboxEvent.Query().
+			Where(preds...).
+			Order(ent.Asc(outboxevent.FieldCreatedAt)).
+			Limit(batchLimit)
+	}
+
+	events, err := base(skipLockedPredicate()).All(ctx)
+	if err != nil {
+		// SQLite и драйверы без SKIP LOCKED — обычная выборка в той же tx.
+		if isUnsupportedLockError(err) {
+			return base().All(ctx)
+		}
+		return nil, err
+	}
+	return events, nil
+}
+
+// skipLockedPredicate добавляет FOR UPDATE SKIP LOCKED к SELECT (W4-A2-003).
+func skipLockedPredicate() predicate.OutboxEvent {
+	return predicate.OutboxEvent(func(s *sql.Selector) {
+		s.ForUpdate(sql.WithLockAction(sql.SkipLocked))
+	})
+}
+
+func isUnsupportedLockError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "syntax error") ||
+		strings.Contains(msg, "for update") ||
+		strings.Contains(msg, "skip locked") ||
+		strings.Contains(msg, dialect.SQLite)
 }
 
 // processEvent обрабатывает одно outbox-событие с локальным recover'ом,
@@ -112,13 +195,22 @@ func (w *Worker) processEvent(ctx context.Context, evt *ent.OutboxEvent) {
 	}
 }
 
-// recordPublishFailure инкрементирует attempts и сохраняет last_error, оставляя
-// status=pending для повторной доставки.
+// recordPublishFailure инкрементирует attempts и сохраняет last_error.
+// W4-A2-002: при attempts≥10 статус → failed (dead-letter), иначе pending.
 func (w *Worker) recordPublishFailure(ctx context.Context, evt *ent.OutboxEvent, err error) {
-	if _, saveErr := w.client.OutboxEvent.UpdateOneID(evt.ID).
-		SetAttempts(evt.Attempts + 1).
-		SetLastError(err.Error()).
-		Save(ctx); saveErr != nil {
+	attempts := evt.Attempts + 1
+	upd := w.client.OutboxEvent.UpdateOneID(evt.ID).
+		SetAttempts(attempts).
+		SetLastError(err.Error())
+	if attempts >= maxPublishAttempts {
+		upd = upd.SetStatus(outboxevent.StatusFailed)
+		slog.Error("outbox: event dead-lettered after max attempts",
+			"event_id", evt.ID,
+			"event_type", evt.EventType,
+			"attempts", attempts,
+		)
+	}
+	if _, saveErr := upd.Save(ctx); saveErr != nil {
 		slog.Error("outbox: failed to record publish failure",
 			"event_id", evt.ID,
 			"event_type", evt.EventType,

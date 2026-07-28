@@ -15,11 +15,13 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // nonceSize для AES-GCM по стандарту NIST.
@@ -51,42 +53,62 @@ func NewCipherFromKey(key []byte) (*Cipher, error) {
 	return &Cipher{aead: aead}, nil
 }
 
-// NewCipherFromString принимает ключ как 64-char hex или base64
-// (std/url-safe, с padding или без) и возвращает Cipher.
-// Декодированный ключ — ровно 32 байта (AES-256).
-func NewCipherFromString(raw string) (*Cipher, error) {
+// DecodeKeyMaterial декодирует 32-байтовый AES-ключ из hex или base64
+// (std/url-safe, с padding или без).
+func DecodeKeyMaterial(raw string) ([]byte, error) {
 	if raw == "" {
 		return nil, ErrCipherKeyNotConfigured
 	}
-	// Сначала пробуем hex — наиболее частый формат ключа в prod.
+	// Сначала hex — наиболее частый формат ключа в prod.
 	if len(raw) == 64 {
 		if key, err := hex.DecodeString(raw); err == nil && len(key) == 32 {
-			return NewCipherFromKey(key)
+			return key, nil
 		}
 	}
 	// Затем base64 (std, потом url) — для ключей из секрет-хранилищ.
 	if key, err := base64.StdEncoding.DecodeString(raw); err == nil && len(key) == 32 {
-		return NewCipherFromKey(key)
+		return key, nil
 	}
 	if key, err := base64.RawStdEncoding.DecodeString(raw); err == nil && len(key) == 32 {
-		return NewCipherFromKey(key)
+		return key, nil
 	}
 	if key, err := base64.URLEncoding.DecodeString(raw); err == nil && len(key) == 32 {
-		return NewCipherFromKey(key)
+		return key, nil
 	}
 	if key, err := base64.RawURLEncoding.DecodeString(raw); err == nil && len(key) == 32 {
-		return NewCipherFromKey(key)
+		return key, nil
 	}
 	return nil, fmt.Errorf("integration encryption key must be 32 bytes encoded as hex or base64")
+}
+
+// NewCipherFromString принимает ключ как 64-char hex или base64
+// (std/url-safe, с padding или без) и возвращает Cipher.
+// Декодированный ключ — ровно 32 байта (AES-256).
+func NewCipherFromString(raw string) (*Cipher, error) {
+	key, err := DecodeKeyMaterial(raw)
+	if err != nil {
+		return nil, err
+	}
+	return NewCipherFromKey(key)
 }
 
 // DeriveDevKey — детерминированный ключ ТОЛЬКО для DevMode.
 // SHA-256 от фиксированной строки — dev не падает при старте
 // без INTEGRATION_ENCRYPTION_KEY; ключ ЗАПРЕЩЁН в
-// production — см. config.validate.
+// production — см. config.validate / IsDevDerivedKey.
 func DeriveDevKey() []byte {
 	sum := sha256.Sum256([]byte("hub-dev-integration-encryption-key-v1"))
 	return sum[:]
+}
+
+// IsDevDerivedKey — true, если raw декодируется в DeriveDevKey().
+// W4-A4-009: config.validate отклоняет такой ключ при !DevMode.
+func IsDevDerivedKey(raw string) bool {
+	key, err := DecodeKeyMaterial(strings.TrimSpace(raw))
+	if err != nil || len(key) != 32 {
+		return false
+	}
+	return subtle.ConstantTimeCompare(key, DeriveDevKey()) == 1
 }
 
 // Encrypt шифрует с новым random nonce и возвращает одну

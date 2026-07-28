@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/valerii/hub/backend/internal/platform/crypto"
 )
 
 // minJWTSecretLen — минимальная длина JWT_SECRET в production. 32 байта
@@ -63,7 +65,8 @@ func (c ServerConfig) FiberRecoverEnableStackTrace() bool {
 
 // PostgresConfig — параметры подключения к PostgreSQL.
 type PostgresConfig struct {
-	URL string
+	URL                 string
+	AllowInsecureDBSSL  bool // ALLOW_INSECURE_DB_SSL — явный override sslmode=disable в production
 }
 
 // MongoDBConfig — параметры подключения к MongoDB.
@@ -157,7 +160,8 @@ func Load() (*Config, error) {
 			AlertWebhookSecret:  getEnv("ALERT_WEBHOOK_SECRET", ""),
 		},
 		Postgres: PostgresConfig{
-			URL: getEnv("DATABASE_URL", "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"),
+			URL:                getEnv("DATABASE_URL", "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"),
+			AllowInsecureDBSSL: getEnvBool("ALLOW_INSECURE_DB_SSL", false),
 		},
 		MongoDB: MongoDBConfig{
 			URL:      getEnv("MONGODB_URL", "mongodb://hub:hub@localhost:27017"),
@@ -268,6 +272,10 @@ func (c *Config) validate() error {
 	// шифрования GitHub/GitLab tokens и webhook secrets at rest.
 	if c.Integration.EncryptionKey == "" {
 		problems = append(problems, "INTEGRATION_ENCRYPTION_KEY не задан (требуется 32 байта в hex или base64)")
+	} else if crypto.IsDevDerivedKey(c.Integration.EncryptionKey) {
+		// W4-A4-009: DeriveDevKey() запрещён вне DevMode — иначе at-rest
+		// секреты интеграций шифруются известным hardcoded ключом.
+		problems = append(problems, "INTEGRATION_ENCRYPTION_KEY совпадает с DeriveDevKey — задайте уникальный production-ключ")
 	}
 
 	// A14-005: в production /metrics обязан иметь CIDR allowlist (fail-closed).
@@ -277,8 +285,13 @@ func (c *Config) validate() error {
 	}
 
 	// A14-003: в ENVIRONMENT=production NATS URL обязан содержать non-empty user и password.
+	// W4-A4-004: Postgres TLS обязателен (sslmode=require|verify-ca|verify-full),
+	// кроме явного ALLOW_INSECURE_DB_SSL=true.
 	if strings.EqualFold(c.Server.Environment, "production") {
 		if msg := natsProductionCredsProblem(c.NATS.URL); msg != "" {
+			problems = append(problems, msg)
+		}
+		if msg := postgresTLSProblem(c.Postgres.URL, c.Postgres.AllowInsecureDBSSL); msg != "" {
 			problems = append(problems, msg)
 		}
 	}
@@ -308,6 +321,27 @@ func weakDataStoreURLProblem(name, raw string) string {
 		return fmt.Sprintf("%s использует weak credentials hub:hub — задайте сильные учётные данные", name)
 	}
 	return ""
+}
+
+// postgresTLSProblem — пустая строка если DATABASE_URL требует TLS к Postgres
+// (W4-A4-004). sslmode=disable/allow/prefer без ALLOW_INSECURE_DB_SSL — fail.
+func postgresTLSProblem(raw string, allowInsecure bool) string {
+	if allowInsecure {
+		return ""
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme == "" {
+		return "DATABASE_URL некорректен в production"
+	}
+	mode := strings.ToLower(strings.TrimSpace(u.Query().Get("sslmode")))
+	switch mode {
+	case "require", "verify-ca", "verify-full":
+		return ""
+	case "":
+		return "DATABASE_URL без sslmode в production — задайте sslmode=require|verify-ca|verify-full (или ALLOW_INSECURE_DB_SSL=true)"
+	default:
+		return fmt.Sprintf("DATABASE_URL sslmode=%s небезопасен в production — используйте require|verify-ca|verify-full (или ALLOW_INSECURE_DB_SSL=true)", mode)
+	}
 }
 
 // natsProductionCredsProblem — пустая строка если NATS_URL содержит user+password;
