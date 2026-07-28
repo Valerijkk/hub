@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toastApiError } from "@/lib/format-api-error";
+import { WebhooksPage } from "@/modules/settings/webhooks";
 
 // ---------------------------------------------------------------------------
 // Секция GitHub
@@ -566,12 +567,18 @@ function IntegrationsSettingsPage() {
 						<GitLabIcon className="h-4 w-4" />
 						GitLab
 					</TabsTrigger>
+					<TabsTrigger value="webhooks" className="gap-1.5">
+						Вебхуки
+					</TabsTrigger>
 				</TabsList>
 				<TabsContent value="github" className="mt-4">
 					<GitHubSection projectId={projectId} />
 				</TabsContent>
 				<TabsContent value="gitlab" className="mt-4">
 					<GitLabSection projectId={projectId} />
+				</TabsContent>
+				<TabsContent value="webhooks" className="mt-4">
+					<WebhooksPage projectId={projectId} />
 				</TabsContent>
 			</Tabs>
 		</div>

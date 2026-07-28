@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { ProjectResponse } from "@/api/projects";
-import { listProjects, restoreProject } from "@/api/projects";
+import { listTrash, restoreProject } from "@/api/projects";
 import { toastApiError } from "@/lib/format-api-error";
 
 /**
@@ -33,14 +33,15 @@ function TrashPage() {
 		null,
 	);
 
-	const { data: allProjects, isLoading } = useQuery({
-		queryKey: ["projects", "all"],
-		queryFn: listProjects,
+	const {
+		data: deletedProjects,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
+		queryKey: ["projects", "trash"],
+		queryFn: listTrash,
 	});
-
-	const deletedProjects = allProjects?.filter(
-		(p: ProjectResponse) => p.status === "deleted" || p.status === "archived",
-	);
 
 	const restoreMutation = useMutation({
 		mutationFn: restoreProject,
@@ -120,33 +121,54 @@ function TrashPage() {
 						</div>
 					)}
 
-					{/* Пустое состояние */}
-					{!isLoading && (!deletedProjects || deletedProjects.length === 0) && (
-						<div className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-dashed border-b2 bg-card/50 py-16 px-6">
-							<div className="flex h-12 w-12 items-center justify-center rounded-full bg-raised mb-4">
-								<svg
-									aria-hidden="true"
-									className="h-6 w-6 text-t3"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="1.8"
-								>
-									<polyline points="3 6 5 6 21 6" />
-									<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-									<line x1="10" y1="11" x2="10" y2="17" />
-									<line x1="14" y1="11" x2="14" y2="17" />
-								</svg>
-							</div>
-							<h3 className="text-[18px] font-bold mb-2">Корзина пуста</h3>
-							<p className="text-[14px] text-t2 text-center max-w-sm">
-								Здесь будут отображаться удалённые элементы
+					{/* Ошибка загрузки — не путать с пустой корзиной */}
+					{!isLoading && isError && (
+						<div
+							role="alert"
+							className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-b1 bg-card/50 py-16 px-6 gap-3"
+						>
+							<p className="text-[14px] font-medium text-t1">
+								Не удалось загрузить корзину
 							</p>
+							<button
+								type="button"
+								className="text-[13px] text-blue font-semibold hover:underline"
+								onClick={() => void refetch()}
+							>
+								Попробовать снова
+							</button>
 						</div>
 					)}
 
+					{/* Пустое состояние */}
+					{!isLoading &&
+						!isError &&
+						(!deletedProjects || deletedProjects.length === 0) && (
+							<div className="flex flex-col items-center justify-center rounded-[var(--r4)] border border-dashed border-b2 bg-card/50 py-16 px-6">
+								<div className="flex h-12 w-12 items-center justify-center rounded-full bg-raised mb-4">
+									<svg
+										aria-hidden="true"
+										className="h-6 w-6 text-t3"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.8"
+									>
+										<polyline points="3 6 5 6 21 6" />
+										<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+										<line x1="10" y1="11" x2="10" y2="17" />
+										<line x1="14" y1="11" x2="14" y2="17" />
+									</svg>
+								</div>
+								<h3 className="text-[18px] font-bold mb-2">Корзина пуста</h3>
+								<p className="text-[14px] text-t2 text-center max-w-sm">
+									Здесь будут отображаться удалённые элементы
+								</p>
+							</div>
+						)}
+
 					{/* Таблица */}
-					{deletedProjects && deletedProjects.length > 0 && (
+					{!isError && deletedProjects && deletedProjects.length > 0 && (
 						<table className="w-full border-collapse-separate border-spacing-0">
 							<thead>
 								<tr>

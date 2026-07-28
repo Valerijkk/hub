@@ -31,7 +31,14 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 	);
 	const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
 
+	const hasProjectId = Boolean(projectId?.trim());
+
 	const fetchEndpoints = useCallback(async () => {
+		if (!projectId?.trim()) {
+			setEndpoints([]);
+			setLoading(false);
+			return;
+		}
 		try {
 			setLoading(true);
 			const data = await listWebhooks(projectId);
@@ -46,13 +53,27 @@ export function WebhooksPage({ projectId }: { projectId: string }) {
 	}, [fetchEndpoints]);
 
 	const handleCreate = async () => {
-		if (!url.trim() || selectedEvents.length === 0) return;
+		if (!projectId?.trim() || !url.trim() || selectedEvents.length === 0)
+			return;
 		await createWebhook(projectId, { url: url.trim(), events: selectedEvents });
 		setUrl("");
 		setSelectedEvents([]);
 		setShowCreate(false);
 		fetchEndpoints();
 	};
+
+	if (!hasProjectId) {
+		return (
+			<div
+				role="alert"
+				className="rounded-[var(--r3)] border border-b1 bg-card p-4 text-[13px] text-t2"
+				data-testid="webhooks-missing-project"
+			>
+				Вебхуки доступны только в настройках проекта. Выберите проект и откройте
+				раздел «Интеграции».
+			</div>
+		);
+	}
 
 	const handleToggleActive = async (ep: WebhookEndpoint) => {
 		await updateWebhook(ep.id, { is_active: !ep.is_active });

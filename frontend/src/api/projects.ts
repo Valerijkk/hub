@@ -80,6 +80,11 @@ export function listProjects() {
 	return api.get<ProjectResponse[]>("/projects");
 }
 
+/** Endpoint: GET /projects/trash — удалённые проекты (soft-delete, ListTrash). */
+export function listTrash() {
+	return api.get<ProjectResponse[]>("/projects/trash");
+}
+
 /** Endpoint: POST /projects — создать новый проект. */
 export function createProject(data: CreateProjectRequest) {
 	return api.post<ProjectResponse>("/projects", data);
