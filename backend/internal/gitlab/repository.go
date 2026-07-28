@@ -2,9 +2,6 @@ package gitlab
 
 import (
 	"context"
-	"log/slog"
-	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -13,9 +10,6 @@ import (
 	"github.com/valerii/hub/backend/ent/project"
 	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 )
-
-// ME-08: TTL для кеша webhook-секретов GitLab-интеграций.
-const webhookSecretsCacheTTL = 60 * time.Second
 
 // Repository определяет интерфейс доступа к данным для модуля GitLab-интеграции.
 type Repository interface {
@@ -33,9 +27,6 @@ type Repository interface {
 	FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error)
 	// FindIssueByKeyInProject ищет задачу по ключу только внутри projectID (A5-007).
 	FindIssueByKeyInProject(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error)
-
-	// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
-	ListAllWebhookSecrets(ctx context.Context) ([]string, error)
 }
 
 // CreateIntegrationInput -- входные данные для создания интеграции.
@@ -58,11 +49,6 @@ type CreateIntegrationInput struct {
 type EntRepository struct {
 	client *ent.Client
 	cipher *cryptopkg.Cipher
-
-	// ME-08: in-memory кеш webhook-секретов с TTL.
-	secretsMu     sync.RWMutex
-	secretsCache  []string
-	secretsExpire time.Time
 }
 
 // NewEntRepository создаёт новый репозиторий GitLab-интеграции.
@@ -70,14 +56,6 @@ type EntRepository struct {
 // в открытом виде. В production cipher обязателен.
 func NewEntRepository(client *ent.Client, cipher *cryptopkg.Cipher) *EntRepository {
 	return &EntRepository{client: client, cipher: cipher}
-}
-
-// invalidateSecretsCache сбрасывает кеш webhook-секретов.
-func (r *EntRepository) invalidateSecretsCache() {
-	r.secretsMu.Lock()
-	r.secretsCache = nil
-	r.secretsExpire = time.Time{}
-	r.secretsMu.Unlock()
 }
 
 func (r *EntRepository) encryptField(v string) (string, error) {
@@ -133,8 +111,6 @@ func (r *EntRepository) CreateIntegration(ctx context.Context, projectID uuid.UU
 	if err != nil {
 		return nil, err
 	}
-	// ME-08: сбрасываем кеш — новый secret должен немедленно учитываться.
-	r.invalidateSecretsCache()
 	r.decryptIntegration(created)
 	return created, nil
 }
@@ -194,8 +170,6 @@ func (r *EntRepository) DeleteIntegration(ctx context.Context, projectID, id uui
 	if affected == 0 {
 		return &ent.NotFoundError{}
 	}
-	// ME-08: удалённый секрет должен немедленно исчезнуть из HMAC-сверки.
-	r.invalidateSecretsCache()
 	return nil
 }
 
@@ -234,53 +208,4 @@ func (r *EntRepository) FindIssueByKeyInProject(ctx context.Context, projectID u
 		WithAssignee().
 		WithProject().
 		Only(ctx)
-}
-
-// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных
-// GitLab-интеграций. Расшифровывает каждое значение через MaybeDecrypt,
-// чтобы поддерживать как новые (encrypted) так и legacy (plaintext) записи.
-// Caller использует значения только для HMAC-сверки и не сохраняет.
-//
-// ME-08: результат кешируется на webhookSecretsCacheTTL (60s) ровно тем
-// же способом, что и в github/repository.go. Инвалидируется явно после
-// Create/Delete интеграции; новые секреты подхватываются с задержкой не
-// более 60 секунд.
-func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, error) {
-	r.secretsMu.RLock()
-	if !r.secretsExpire.IsZero() && time.Now().Before(r.secretsExpire) {
-		out := make([]string, len(r.secretsCache))
-		copy(out, r.secretsCache)
-		r.secretsMu.RUnlock()
-		return out, nil
-	}
-	r.secretsMu.RUnlock()
-
-	integrations, err := r.client.GitLabIntegration.Query().
-		Select(gitlabintegration.FieldWebhookSecret).
-		All(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	secrets := make([]string, 0, len(integrations))
-	for _, ig := range integrations {
-		if ig.WebhookSecret == "" {
-			continue
-		}
-		pt := r.decryptField(ig.WebhookSecret)
-		if pt == "" {
-			slog.Warn("gitlab webhook secret decrypted to empty value — skipping")
-			continue
-		}
-		secrets = append(secrets, pt)
-	}
-
-	r.secretsMu.Lock()
-	r.secretsCache = secrets
-	r.secretsExpire = time.Now().Add(webhookSecretsCacheTTL)
-	r.secretsMu.Unlock()
-
-	out := make([]string, len(secrets))
-	copy(out, secrets)
-	return out, nil
 }

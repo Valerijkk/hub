@@ -110,20 +110,9 @@ func TestEntRepository_IntegrationCRUDAndSecrets(t *testing.T) {
 	byPath, err := env.repo.FindIntegrationByProjectPath(env.ctx, "group/repo")
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, byPath.ID)
-
-	secrets, err := env.repo.ListAllWebhookSecrets(env.ctx)
-	require.NoError(t, err)
-	assert.Contains(t, secrets, "wh-secret-1")
-
-	cached, err := env.repo.ListAllWebhookSecrets(env.ctx)
-	require.NoError(t, err)
-	assert.Equal(t, secrets, cached)
+	assert.Equal(t, "wh-secret-1", byPath.WebhookSecret)
 
 	require.NoError(t, env.repo.DeleteIntegration(env.ctx, env.projectID, created.ID))
-
-	afterDelete, err := env.repo.ListAllWebhookSecrets(env.ctx)
-	require.NoError(t, err)
-	assert.Empty(t, afterDelete)
 
 	_, err = env.repo.GetIntegration(env.ctx, created.ID)
 	require.Error(t, err)

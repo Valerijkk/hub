@@ -178,9 +178,6 @@ func (m *gitlabReviewRepo) FindIssueByKey(context.Context, string) (*ent.Issue, 
 func (m *gitlabReviewRepo) FindIssueByKeyInProject(context.Context, uuid.UUID, string) (*ent.Issue, error) {
 	return nil, &ent.NotFoundError{}
 }
-func (m *gitlabReviewRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
-	return nil, nil
-}
 
 type githubReviewRepo struct {
 	integrations map[string]*ent.GitHubIntegration
@@ -226,9 +223,6 @@ func (m *githubReviewRepo) FindDoneStatus(context.Context, uuid.UUID) (*ent.Work
 	return nil, nil
 }
 func (m *githubReviewRepo) LogActivity(context.Context, uuid.UUID, string) error { return nil }
-func (m *githubReviewRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
-	return nil, nil
-}
 func (m *githubReviewRepo) IsProjectMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
 	return true, nil
 }
