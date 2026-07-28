@@ -205,9 +205,10 @@ func TestEntRepository_GitHubLinksAndIssueLookup(t *testing.T) {
 	iss := env.createIssue(t)
 
 	ig, err := env.repo.CreateIntegration(env.ctx, env.projectID, github.CreateIntegrationInput{
-		RepoOwner:   "acme",
-		RepoName:    "app",
-		AccessToken: "token",
+		RepoOwner:     "acme",
+		RepoName:      "app",
+		AccessToken:   "token",
+		WebhookSecret: "gh-secret",
 	})
 	require.NoError(t, err)
 
