@@ -5,7 +5,7 @@
 > Threat actor: **ordinary authenticated user** (JWT valid; **not** `system_role` admin/founder)  
 > Метод: цепочки на **текущем** коде после Stage B; evidence = `path:line` + W18 FAIL reopen  
 > Product code: **READ-ONLY** · этот файл — audit artifact  
-> Re-verify pass: **2026-07-28 19:35 UTC+3** (post–Stage B HEAD на `cursor-grok-4.5`)
+> Re-verify pass: **2026-07-28 19:38 UTC+3** (post–Stage B HEAD на `cursor-grok-4.5`; path:line сверены с source)
 
 ## Scope / assumptions
 
@@ -40,13 +40,13 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 
 1. Attacker is **project owner** (non-admin): `DefaultRolePermissions["owner"]` = all bits incl. `PermTeamManage` — `backend/internal/rbac/permissions.go:42-46`.
 2. Learns foreign `teamId` (not current member; `ListTeams` only own teams — `project/service.go:521-531`).
-3. `POST /api/teams/:teamId/projects/:projectId` — RBAC only checks project `team.manage` — `project/handler.go:58`, `688-701`.
-4. Service **does not** call `requireTeamMember` (unlike `AddTeamMember` / `RemoveTeamMember`) — `project/service.go:545-579` vs `:534-543`.
-5. Repo attaches team + loops members → `AddMember(..., ProjectRoleDeveloper)` — `project/repository.go:600-624`.
+3. `POST /api/teams/:teamId/projects/:projectId` — RBAC only checks project `team.manage` — `project/handler.go:58`, `688-701`. Fiber v3 order OK (handler then MW).
+4. Service **does not** call `requireTeamMember` and **does not** take `actorID` (unlike `AddTeamMember` / `RemoveTeamMember`) — `project/service.go:545-579` vs `:534-543`.
+5. Repo attaches team + loops members → `AddMember(..., ProjectRoleDeveloper)` (errors swallowed) — `project/repository.go:600-624`.
 
 **PoC sketch:** owner of Project P + UUID of Team T (attacker not in T) → 200 → every T member is developer on P.
 
-**Fix direction:** `requireTeamMember(ctx, teamID, actorID)` before `repo.AddTeamToProject`; hubtest stranger denial (W18-C2 FAIL criterion).
+**Fix direction:** pass `actorID`; `requireTeamMember(ctx, teamID, actorID)` before `repo.AddTeamToProject`; hubtest stranger denial (W18-C2 FAIL criterion).
 
 ---
 
@@ -63,7 +63,7 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 
 1. Presign upload (project member) → pending `FileMetadata`.
 2. `ConfirmUpload`: if `s3Client != nil`, `assertObjectWithinLimit` maps S3 404 → `ErrObjectNotFound` — `storage/service.go:154-157`, `:174-183`.
-3. W18-C2b: mutating only `isS3NotFound` mapping **does not RED** Confirm suites; task test tautology — residual **unproven** Confirm→404.
+3. W18-C2b: mutating only `isS3NotFound` mapping **does not RED** Confirm suites; task test tautology — residual **unproven** Confirm→404 (`isS3NotFound` string-match — `:209-218`).
 4. `validateEntityScope`: `message`/`avatar`/`voice`/`channel` = non-empty string only — **no** membership / live-entity check — `storage/service.go:240-245`.
 5. Empty `entityType`+`entityID` → **nil** (allow) — `:247-248`.
 
@@ -150,10 +150,10 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 
 | # | Chain | L / I | TASK | Evidence |
 |---|-------|-------|------|----------|
-| 6 | Dual `StartSprintAtomic` → two active (SQLite masks) | Low–Med / Med | **041** | Guard present `sprint/repository.go:189-238`; W18-C3 Ent concurrent GREEN without conflict assert |
+| 6 | Dual `StartSprintAtomic` → two active (SQLite masks) | Low–Med / Med | **041** | Guard present `sprint/repository.go:189-238`; schema index **not Unique** `ent/schema/sprint.go:57-64`; W18-C3 Ent concurrent GREEN without conflict assert |
 | 7 | `via_invite` payload assert handmade (invite join integrity signal) | Low / Low–Med | **042** PARTIAL | Production sets `"via_invite": true` — `messenger/service_channel_invites.go:194`; mutation false stays GREEN |
-| 8 | Ent unique/CHECK source-grep only | Low / Med | **046** PARTIAL | No runtime duplicate Create / XOR debit-credit |
-| 9 | FE DTO type-lie (`version` / guest cast) | Low / Low | **052** | Quality; weak optimistic-lock UX |
+| 8 | Ent unique/CHECK source-grep only | Low / Med | **046** PARTIAL | No runtime duplicate Create / XOR debit-credit; stacks with 041 → A3 **C-002** CRITICAL |
+| 9 | FE DTO type-lie (`version` / guest cast) | Low / Low | **052** | Quality; weak optimistic-lock UX — not BE authz bypass |
 | 10 | Docs metrics drift | N/A exploit | **054** | No runtime attack; TASK-080 autotest |
 
 ---
@@ -162,9 +162,9 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 
 | TASK | Reopens for red-team? | Why (current code) |
 |------|----------------------|---------------------|
-| **014** | **YES** | `AddTeamToProject` skips `requireTeamMember` — `project/service.go:571-579` |
+| **014** | **YES** | `AddTeamToProject` skips `requireTeamMember` — `project/service.go:571-579`; no `actorID` |
 | **019** | **YES** (residual) | To4 present but mutation-blind; push/OG user URLs |
-| **041** | **YES** | Dual Start unproven under real concurrency |
+| **041** | **YES** | Dual Start unproven under real concurrency; no DB unique active |
 | **042** | **PARTIAL** | via_invite static assert only; other ClassIDs mutation-PASS |
 | **044** | **YES** | No Meili SSRF / stream-cancel hubtest; AI nil-access fail-open |
 | **045** | **YES** | Confirm→404 unproven; weak non-issue entity bind |
@@ -180,7 +180,7 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 | Check | Result |
 |-------|--------|
 | Fiber v3 RBAC order on `AddTeamToProject` | OK — handler then MW (`handler.go:58`) |
-| Team ACL on attach | **FAIL** — missing `requireTeamMember` |
+| Team ACL on attach | **FAIL** — missing `requireTeamMember` / `actorID` |
 | Storage Confirm object proof | **Residual** — code path exists, mutation FAIL |
 | SSRF SafeDial + ValidateOutboundURL | Present; To4 residual |
 | AI access fail-closed | Adapter OK; **consumers** fail-open on nil |
@@ -193,12 +193,14 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 
 - **0 new CRITICAL** proven as single-step exploit by non-admin **alone**.
 - **1 CRITICAL combo** (TASK-079 + admin GDPR) leaves residual PII for ordinary members — treat as Stage C blocker with A3 C-001.
-- Residual **Med/High** chains tied to W18 FAILs: **014, 045, 079, 019, 044** (then 041).
+- Residual **Med/High** chains tied to W18 FAILs: **014, 045, 079, 019, 044** (then 041+046 dual-active).
 
-**Priority reopen-fix:** `014` → `079` → `045` → `044`/`019` → `041`.
+**Priority reopen-fix:** `014` → `079` → `045` → `044`/`019` → `041`/`046`.
 
 ```
-verified: true — 2026-07-28 19:35 UTC+3
+verified: true — 2026-07-28 19:38 UTC+3
 ```
 
 `verified: true` = audit complete with file:line evidence; **not** «product secure». Open HIGH/CRITICAL residuals above block «mutation-closed» for Stage C.
+
+*Артефакт W19-A4 · TASK-008 · readonly product review · docs-only commit.*
