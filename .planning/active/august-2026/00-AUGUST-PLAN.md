@@ -87,7 +87,7 @@ tracker, identity, business, integrations, platform.
 | Аудит кода `grok-2026-07` | 261 находка, волны W1–W20 отработаны |
 | Аудит планирования | [`../planning-audit-2026-07/`](../planning-audit-2026-07/) — 11 находок |
 | Свежий замер покрытия | 81.9% (2026-07-27), падение −1.1 п.п. от baseline |
-| Разведение счётчиков в `STATE.md` | `tasks_completed: 125` ≠ `goals_verified: 55` |
+| Разведение счётчиков в `STATE.md` | `tasks_completed: 125` ≠ `goals_verified: 63` (TASK-004) |
 | Фазы под невыполненные FR | 126 (FR-INTR-08), 127 (FR-CAL-05) |
 
 ---

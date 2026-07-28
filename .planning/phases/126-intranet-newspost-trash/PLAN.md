@@ -48,6 +48,11 @@ Close confirmed gap **FR-INTR-08**: restoring a soft-deleted news post from the 
 - Wiki module (FR-WIKI-*) or other NFR-11 entity rollouts (B4).
 - Production code in this planning commit — **PLAN only**.
 
+## Depends on
+
+- Нет фазовой зависимости (схема `NewsPost.deleted_at` уже есть).
+- Soft: единый Trash API (`backend/internal/audit`) — расширяется в этой фазе.
+
 ## Dependencies / notes
 
 - Depends on existing soft-delete field in `backend/ent/schema/newspost.go` (no schema migration for `deleted_at`).

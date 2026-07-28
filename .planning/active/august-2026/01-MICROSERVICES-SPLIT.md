@@ -203,6 +203,7 @@ i18n, WS-соединение. Выносится в `hub-shell` — хост-п
   Э2. Схемы БД по сервисам            schema-per-service внутри текущего PG,
                                       отдельные роли и grants, кросс-доступ закрыт
   Э3. hub-shell + Module Federation    каркас микрофронтендов, один модуль вынесен
+                                      **BLOCKED until phase 133 VERIFIED** (TASK-005)
   Э4. Пилот hub-notification           полный вертикальный срез: бэк + фронт +
                                       swagger + контейнеры. Strangler Fig.
   Э5. GATE Go/No-Go                    решение по результату пилота

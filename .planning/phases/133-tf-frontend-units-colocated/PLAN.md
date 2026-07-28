@@ -13,9 +13,14 @@
 
 ## Depends on
 
-- Нет hard-dep на 132 (можно параллелить после 128)
-- Soft: стабильный frontend test script / link-testframework пока старые пути живы
+- **128** tf-python-scaffold (scaffold + Vitest tooling conventions) — soft-hard: начинать после каркаса `/tests` и решения по colocated frontend layout.
+- Нет hard-dep на **132** (можно параллелить после 128).
+- Soft: стабильный frontend test script / link-testframework пока старые пути живы.
 
+## Blocks (machine-readable)
+
+- **BLOCKS:** Microservices split **Э3** (`hub-shell` + Module Federation / first front module) — см. [`.planning/active/august-2026/00-AUGUST-PLAN.md`](../../active/august-2026/00-AUGUST-PLAN.md) «Жёсткая зависимость» и [`01-MICROSERVICES-SPLIT.md`](../../active/august-2026/01-MICROSERVICES-SPLIT.md).
+- Причина: `frontend/src/**/*.test.ts(x)` сейчас **0**; резать SPA без colocated unit-тестов = регрессии без сигнала.
 ## Deliverables
 
 - [ ] Конвенция `__tests__/` vs `*.test.tsx` рядом с файлом (зафиксировать в PLAN/README)

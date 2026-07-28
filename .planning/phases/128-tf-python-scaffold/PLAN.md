@@ -23,8 +23,9 @@
 
 ## Depends on
 
-- A3 (planning-audit) — **hard**
+- **A3 coverage baseline** (planning-audit) — **hard**: свежий прогон coverage gate + запись в `COVERAGE.md` с датой **до** старта миграции (иначе потеря покрытия при переносе 515 файлов незаметна). См. [`01-PLANNING-FIXES.md`](../../audits/planning-audit-2026-07/01-PLANNING-FIXES.md) §A3 · [`02-TEST-FRAMEWORK-MIGRATION.md`](../../audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md).
 - Docker compose local/test stack доступен
+- Soft: фазы 126–127 (FR trash) не блокируют scaffold, но желательно закрыть P0 до большой миграции тестов.
 
 ## Deliverables
 

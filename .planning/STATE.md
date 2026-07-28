@@ -71,6 +71,12 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-28 (team-lead · TASK-005 august phase deps)
+
+- ROADMAP: фазы 126–136 + граф Depends on; 133 BLOCKS MS Э3.
+- `02-PHASE-DEPENDENCIES.md`; Depends on в PLAN 126/127/128/133.
+- Progress согласован с goals_verified=63 (TASK-004).
+
 ## Session note — 2026-07-28 (team-lead · TASK-004 goals_verified reconcile)
 
 - Источник правды: колонка `classification` в PHASE-STATUS-MATRIX (не full-file grep).

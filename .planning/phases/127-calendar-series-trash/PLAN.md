@@ -51,11 +51,17 @@ Close confirmed gap **FR-CAL-05** for the **existing** recurring series entity `
 - Frontend redesign of trash or calendar UI beyond wiring restore if an admin trash type picker needs a new label.
 - Production code in this planning commit — **PLAN only**.
 
+## Depends on
+
+- **126** intranet-newspost-trash — shared admin trash registration pattern (`ListTrash` / `RestoreItem` / `PurgeExpired`).
+- Soft: `ScheduledCall.rrule` already in schema (no Wave 2 calendar_event required).
+
 ## Dependencies / notes
 
 - Pattern: `backend/internal/audit/service.go` issue/project soft-delete + restore + purge.
 - Keep UTC timestamps (NFR-12 / TZ constraints).
 - Coordinate type string with FE/docs (`scheduled_call` preferred for readability in `/admin/trash/:type/...`).
+- **Ent schema change** requires owner review before merge (`50-git.mdc`).
 
 ## Verify (when implementing)
 

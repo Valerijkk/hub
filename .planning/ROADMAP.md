@@ -165,6 +165,49 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 124: Floor ≥82% (tracker / tms / project)** - tracker: 81.3% → ≥82%; tms: 81.7% → ≥82%; project: 81.0% → ≥82%
 - [x] **Phase 125: COV ≥82%, Security ≥80%, Regression Gate** - COV overall: ≥82% → ✅ **82.6%**; auth: ≥80% → ✅ **82.4%**; ws: ≥80% → ✅ **87.7%**; rbac: ≥80% → ✅ **84.7%** (2026-06-21)
 
+### August 2026 — FR gaps + Python testframework + MS gate (TASK-005)
+
+План: [`.planning/active/august-2026/00-AUGUST-PLAN.md`](active/august-2026/00-AUGUST-PLAN.md) · MS: [`01-MICROSERVICES-SPLIT.md`](active/august-2026/01-MICROSERVICES-SPLIT.md)
+
+**Жёсткая зависимость треков:** фазы 128–136 (тестовый фундамент) → Трек 2 микросервисов.  
+**Фаза 133 — блокер этапа Э3** (`hub-shell` + Module Federation): во фронте сейчас 0 colocated unit-тестов.
+
+| Phase | Status | Depends on | Notes |
+|------:|--------|------------|-------|
+| 126 Intranet NewsPost trash (FR-INTR-08) | IMPLEMENTED 2026-07-28 | — (schema `deleted_at` already) | TASK-001 |
+| 127 Calendar series trash (FR-CAL-05) | IMPLEMENTED 2026-07-28 | **126** (shared trash registration pattern) | TASK-002 · ent schema review |
+| 128 TF Python scaffold `/tests` | PLANNED | **A3 coverage baseline** (hard) | свежий COV перед миграцией |
+| 129 TF E2E shared (POM/fixtures) | PLANNED | **128** | |
+| 130 TF E2E mechanical port | PLANNED | **129** | |
+| 131 TF E2E rewrite | PLANNED | **129**; soft **130** | |
+| 132 TF backend units colocated | PLANNED | **128**; **A3 coverage** hard before cov drop | |
+| 133 TF frontend units colocated | PLANNED | **128**; parallel-ok vs 132 | **BLOCKS MS Э3** |
+| 134 TF integration Python | PLANNED | **128**; soft **132** | |
+| 135 TF Locust load | PLANNED | **128**; soft **134** | |
+| 136 TF CI cleanup | PLANNED | **130+131+132+133**; soft 134/135 | cutover old framework |
+
+```
+126 ──► 127
+         │
+A3 cov ──► 128 ─┬─► 129 ─► 130 ─► 131 ─┐
+                ├─► 132 ───────────────┼─► 136
+                ├─► 133 ──(блокирует Э3 MS)─┤
+                ├─► 134 ───────────────┘
+                └─► 135
+```
+
+- [ ] **Phase 126: Intranet NewsPost trash** - FR-INTR-08 restore via admin trash (`newspost`)
+- [ ] **Phase 127: Calendar series trash** - FR-CAL-05 `scheduled_call` soft-delete + trash 30d
+- [ ] **Phase 128: TF Python scaffold** - `/tests` pytest каркас; **blocked on coverage baseline**
+- [ ] **Phase 129: TF E2E shared** - Playwright Python shared POM/fixtures
+- [ ] **Phase 130: TF E2E mechanical** - mechanical port of specs
+- [ ] **Phase 131: TF E2E rewrite** - idiomatic Python E2E
+- [ ] **Phase 132: TF backend units colocated** - Go tests → `backend/internal/**`
+- [ ] **Phase 133: TF frontend units colocated** - Vitest → `frontend/src/**` — **blocker for MS Э3**
+- [ ] **Phase 134: TF integration Python** - httpx integration suite
+- [ ] **Phase 135: TF Locust load** - load layer
+- [ ] **Phase 136: TF CI cleanup** - CI cutover + remove legacy testframework trees
+
 ## Phase Details
 
 <details>
@@ -2130,19 +2173,19 @@ Plans:
 **Execution Order:**
 Phases execute in numeric order (1 → 125). Decimal insertions (if any) slot between surrounding integers.
 
-### Honest counters (synced 2026-07-27 · C2)
+### Honest counters (synced 2026-07-28 · TASK-004/005)
 
-Sources: [`PHASE-STATUS-MATRIX.md`](audits/planning-audit-2026-07/PHASE-STATUS-MATRIX.md) (live scan A3), [`00-PLANNING-AUDIT.md`](audits/planning-audit-2026-07/00-PLANNING-AUDIT.md) §0, `STATE.md` (`total_phases: 125` — not yet rewritten by A4/`goals_verified`).
+Sources: [`PHASE-STATUS-MATRIX.md`](audits/planning-audit-2026-07/PHASE-STATUS-MATRIX.md) (live scan A3 + counting method in header), [`STATE.md`](STATE.md) (`goals_verified: 63`).
 
 | Metric | Value | Source |
 |--------|------:|--------|
-| `total_phases` (project convention) | **125** | milestones 01–13 (**13**) + `.planning/phases/` dirs **14–125** (**112**) = 125 (`00-PLANNING-AUDIT.md` §0). `STATE.md` still lists `total_phases: 125`. |
-| Phase dirs under `.planning/phases/` (live) | **124** | Matrix: includes 14–125 plus later TF dirs 126–136 and backlog `999-test-framework` (not all counted in the 125 convention). |
-| `goals_verified` (`VERIFIED_PASS`) | **63** | Matrix classification `VERIFIED_PASS` count (has `VERIFICATION.md` + PASS; includes PW2 retro-PASS). **Not** equal to `completed_phases: 125`. |
+| `total_phases` (project convention) | **125** | milestones 01–13 (**13**) + `.planning/phases/` dirs **14–125** (**112**) = 125. August phases **126–136** are additional (not yet in `total_phases` convention). |
+| Phase dirs under `.planning/phases/` (live) | **124** | Matrix scan 2026-07-27 (includes TF 126–136 + `999-test-framework` within the 124 dirs). |
+| `goals_verified` (`VERIFIED_PASS`) | **63** | Matrix **classification** column only (TASK-004). Matches `STATE.md`. |
 | `VERIFIED_PARTIAL` | **5** | Matrix |
 | `CODE_GATE_DEPLOY_BLOCKED` | **2** | Phases **63**, **67** — code gate PASS, deploy blocked |
-| `NO_VERIFICATION` | **54** | Matrix (includes many early shipped phases + TF/backlog dirs) |
-| `VERIFICATION.md` present (dir root) | **70** | Matrix summary (`63` PASS + `5` PARTIAL + `2` CODE_GATE_DEPLOY_BLOCKED) |
+| `NO_VERIFICATION` | **54** | Matrix |
+| `VERIFICATION.md` present (dir root) | **70** | Matrix summary at scan; 126/127 VERIFICATION added 2026-07-28 not yet re-scanned into matrix |
 
 **Deploy blockers** (do not read Progress 100% as “prod unlocked”):
 
@@ -2151,7 +2194,7 @@ Sources: [`PHASE-STATUS-MATRIX.md`](audits/planning-audit-2026-07/PHASE-STATUS-M
 | 63 | PASS (code gate) | deploy blocked on **user commit/PR** + **PG-03** ops |
 | 67 | PASS (code gate) | same — **PG-03 / FA-06** secret rotation still manual (`production/PG-03-SECRET-ROTATION.md`, `FA-06-EXECUTION-LOG.md`) |
 
-> **STATE.md note:** A4/`goals_verified` frontmatter not yet present at C2 time — counters above are matrix-backed, not copied from stale `percent: 100`.
+> **STATE.md note (TASK-004):** `goals_verified: 63` — считать только колонку `classification` в матрице; метод в шапке `PHASE-STATUS-MATRIX.md`.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
