@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/predicate"
 )
 
 // ---------------------------------------------------------------------------
@@ -32,6 +33,9 @@ type IssueRepository interface {
 	// MoveIssue изменяет статус и ранг задачи (перемещение на Kanban-доске).
 	// expectedVersion — optimistic lock (W1-A3-004): без VersionEQ concurrent drag → last-write-wins.
 	MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string, expectedVersion int) (*ent.Issue, error)
+	// SearchIssuesJQL выполняет JQL-предикаты в рамках проекта (A2W1-A2-001).
+	// orderByField: "", "created", "priority", "updated". Service не ходит в *ent.Client.
+	SearchIssuesJQL(ctx context.Context, projectID uuid.UUID, predicates []predicate.Issue, orderByField string, limit int) ([]*ent.Issue, error)
 }
 
 // IssueLinkRepository управляет направленными связями между задачами.
@@ -185,10 +189,6 @@ type Repository interface {
 	CustomFieldRepository
 	AutomationRepository
 	IssueMessageLinkRepository
-
-	// GetDB возвращает Ent-клиент для service-level запросов (JQL).
-	// Handler не должен вызывать GetDB напрямую (W1-A1-008 / P3-BE-07).
-	GetDB() *ent.Client
 }
 
 // ---------------------------------------------------------------------------
@@ -295,9 +295,4 @@ type EntRepository struct {
 // NewEntRepository создаёт новый Ent-репозиторий трекера задач.
 func NewEntRepository(client *ent.Client, publisher OutboxPublisher) *EntRepository {
 	return &EntRepository{client: client, publisher: publisher}
-}
-
-// GetDB возвращает Ent-клиент для прямых запросов (JQL и др.).
-func (r *EntRepository) GetDB() *ent.Client {
-	return r.client
 }

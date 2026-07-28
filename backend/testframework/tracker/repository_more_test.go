@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
 // TestEntRepository_CommentsAndReactions проверяет слой репозитория: ent репозиторий comments and reactions.
@@ -198,8 +200,53 @@ func TestEntRepository_StartStopTimer(t *testing.T) {
 	assert.GreaterOrEqual(t, stopped.Minutes, 1)
 }
 
-// TestEntRepository_GetDB проверяет слой репозитория: ent репозиторий получение db.
-func TestEntRepository_GetDB(t *testing.T) {
+// TestEntRepository_SearchIssuesJQL_ProjectScoped проверяет слой репозитория:
+// JQL идёт через SearchIssuesJQL (без GetDB) и ограничен projectID (A2W1-A2-001).
+func TestEntRepository_SearchIssuesJQL_ProjectScoped(t *testing.T) {
 	env := newTrackerRepoTestEnv(t)
-	assert.NotNil(t, env.repo.GetDB())
+
+	mine, err := env.repo.CreateIssue(env.ctx, env.projectID, tracker.CreateIssueInput{
+		Title:      "JQL in project",
+		IssueType:  "task",
+		Priority:   "high",
+		ReporterID: env.userID,
+		StatusID:   &env.statusID,
+	})
+	require.NoError(t, err)
+
+	foreign, err := env.client.Project.Create().
+		SetName("Foreign JQL").
+		SetKey("FJQ").
+		Save(env.ctx)
+	require.NoError(t, err)
+	foreignStatus, err := env.client.WorkflowStatus.Create().
+		SetName("Todo").
+		SetCategory(workflowstatus.CategoryTodo).
+		SetColor("#6B7280").
+		SetSortOrder(0).
+		SetIsDefault(true).
+		SetProjectID(foreign.ID).
+		Save(env.ctx)
+	require.NoError(t, err)
+	_, err = env.repo.CreateIssue(env.ctx, foreign.ID, tracker.CreateIssueInput{
+		Title:      "Other project issue",
+		IssueType:  "task",
+		Priority:   "high",
+		ReporterID: env.userID,
+		StatusID:   &foreignStatus.ID,
+	})
+	require.NoError(t, err)
+
+	found, err := env.repo.SearchIssuesJQL(env.ctx, env.projectID, nil, "priority", 100)
+	require.NoError(t, err)
+	require.Len(t, found, 1)
+	assert.Equal(t, mine.ID, found[0].ID)
+	assert.Equal(t, "JQL in project", found[0].Title)
+
+	// Service path тоже не использует GetDB.
+	svc := tracker.NewTrackerService(env.repo, nil)
+	resp, err := svc.SearchIssuesJQL(env.ctx, env.projectID, env.userID, "priority = high ORDER BY created DESC")
+	require.NoError(t, err)
+	require.Equal(t, 1, resp.Total)
+	require.Equal(t, mine.IssueKey, resp.Results[0].Key)
 }

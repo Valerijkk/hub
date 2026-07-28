@@ -7,8 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/issue"
-	"github.com/valerii/hub/backend/ent/project"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 	"github.com/valerii/hub/backend/internal/platform/observability"
 	"github.com/valerii/hub/backend/internal/search"
@@ -343,8 +341,8 @@ func (s *TrackerService) DeleteIssue(ctx context.Context, projectID uuid.UUID, i
 	return s.repo.DeleteIssue(ctx, existing.ID)
 }
 
-// SearchIssuesJQL выполняет JQL-поиск задач проекта (W1-A1-008 / P3-BE-07).
-// Handler не ходит в Ent напрямую — только через service.
+// SearchIssuesJQL выполняет JQL-поиск задач проекта (W1-A1-008 / P3-BE-07 / A2W1-A2-001).
+// Handler и service не ходят в Ent напрямую — только через repo.SearchIssuesJQL.
 func (s *TrackerService) SearchIssuesJQL(ctx context.Context, projectID, userID uuid.UUID, query string) (*JQLSearchResponse, error) {
 	if query == "" {
 		return nil, apperrors.NewBadRequest("query обязателен")
@@ -355,24 +353,11 @@ func (s *TrackerService) SearchIssuesJQL(ctx context.Context, projectID, userID 
 	}
 	predicates := search.ToEntPredicates(parsed, userID)
 
-	q := s.repo.GetDB().Issue.Query().
-		Where(issue.HasProjectWith(project.ID(projectID))).
-		Where(issue.DeletedAtIsNil())
-	for _, pred := range predicates {
-		q = q.Where(pred)
-	}
+	orderBy := ""
 	if parsed.OrderBy != nil {
-		switch parsed.OrderBy.Field {
-		case "created":
-			q = q.Order(issue.ByCreatedAt())
-		case "priority":
-			q = q.Order(issue.ByPriority())
-		case "updated":
-			q = q.Order(issue.ByUpdatedAt())
-		}
+		orderBy = parsed.OrderBy.Field
 	}
-
-	issues, err := q.WithStatus().WithAssignee().Limit(100).All(ctx)
+	issues, err := s.repo.SearchIssuesJQL(ctx, projectID, predicates, orderBy, 100)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка выполнения JQL: " + err.Error())
 	}

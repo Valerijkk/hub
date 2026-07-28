@@ -18,6 +18,7 @@ import (
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/issuelink"
 	"github.com/valerii/hub/backend/ent/customfielddefinition"
+	"github.com/valerii/hub/backend/ent/predicate"
 	"github.com/valerii/hub/backend/ent/schema"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
@@ -798,8 +799,22 @@ func (m *mockRepo) IsChannelMember(_ context.Context, _, _ uuid.UUID) (bool, err
 	return true, nil
 }
 
-func (m *mockRepo) GetDB() *ent.Client {
-	return nil
+// SearchIssuesJQL — mock без Ent: возвращает все задачи (предикаты применяются в repo-тестах).
+func (m *mockRepo) SearchIssuesJQL(_ context.Context, _ uuid.UUID, _ []predicate.Issue, _ string, limit int) ([]*ent.Issue, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	out := make([]*ent.Issue, 0, len(m.issues))
+	for _, iss := range m.issues {
+		if iss.DeletedAt != nil {
+			continue
+		}
+		out = append(out, iss)
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out, nil
 }
 
 // ---------------------------------------------------------------------------
