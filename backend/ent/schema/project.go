@@ -51,6 +51,13 @@ func (Project) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (Project) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности Project.
 func (Project) Edges() []ent.Edge {

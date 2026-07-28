@@ -36,6 +36,13 @@ func (CustomFieldDefinition) Fields() []ent.Field {
 			Immutable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (CustomFieldDefinition) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности CustomFieldDefinition.
 func (CustomFieldDefinition) Edges() []ent.Edge {

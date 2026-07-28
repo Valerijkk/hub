@@ -62,6 +62,13 @@ func (ScheduledCall) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (ScheduledCall) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Edges описывает связи сущности ScheduledCall.
 func (ScheduledCall) Edges() []ent.Edge {

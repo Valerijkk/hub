@@ -29,8 +29,6 @@ func (JournalEntry) Fields() []ent.Field {
 		field.Enum("status").
 			Values("draft", "posted").
 			Default("draft"),
-		field.Int("version").
-			Default(1),
 		field.Time("posted_at").
 			Optional().
 			Nillable(),
@@ -45,6 +43,13 @@ func (JournalEntry) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (JournalEntry) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (JournalEntry) Edges() []ent.Edge {
 	return []ent.Edge{

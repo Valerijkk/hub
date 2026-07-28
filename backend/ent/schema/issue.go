@@ -43,9 +43,6 @@ func (Issue) Fields() []ent.Field {
 		field.String("rank").
 			Optional().
 			Comment("LexoRank for Kanban positioning"),
-		field.Int("version").
-			Default(1).
-			Comment("Optimistic locking"),
 		field.Int("story_points").
 			Optional().
 			Nillable().
@@ -76,6 +73,13 @@ func (Issue) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (Issue) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности Issue.
 func (Issue) Edges() []ent.Edge {

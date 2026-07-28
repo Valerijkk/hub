@@ -39,8 +39,6 @@ func (MarketplaceListing) Fields() []ent.Field {
 			MaxLen(3),
 		field.Text("review_note").
 			Optional(),
-		field.Int("version").
-			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -55,6 +53,13 @@ func (MarketplaceListing) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (MarketplaceListing) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (MarketplaceListing) Edges() []ent.Edge {
 	return []ent.Edge{

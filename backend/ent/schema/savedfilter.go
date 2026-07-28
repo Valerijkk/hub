@@ -41,6 +41,13 @@ func (SavedFilter) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (SavedFilter) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Edges описывает связи сохранённого фильтра.
 func (SavedFilter) Edges() []ent.Edge {

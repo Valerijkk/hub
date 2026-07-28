@@ -23,8 +23,6 @@ func (HubTable) Fields() []ent.Field {
 			MaxLen(200),
 		field.Int("sort_order").
 			Default(0),
-		field.Int("version").
-			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -36,6 +34,13 @@ func (HubTable) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (HubTable) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (HubTable) Edges() []ent.Edge {
 	return []ent.Edge{

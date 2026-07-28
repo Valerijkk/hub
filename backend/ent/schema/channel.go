@@ -56,6 +56,13 @@ func (Channel) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (Channel) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Edges описывает связи сущности Channel.
 func (Channel) Edges() []ent.Edge {

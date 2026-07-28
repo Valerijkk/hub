@@ -39,6 +39,13 @@ func (GitLabIntegration) Fields() []ent.Field {
 			Immutable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (GitLabIntegration) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности GitLabIntegration.
 func (GitLabIntegration) Edges() []ent.Edge {

@@ -33,6 +33,13 @@ func (Component) Fields() []ent.Field {
 			Immutable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (Component) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности Component.
 func (Component) Edges() []ent.Edge {

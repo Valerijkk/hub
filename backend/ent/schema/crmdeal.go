@@ -36,8 +36,6 @@ func (CrmDeal) Fields() []ent.Field {
 		field.String("rank").
 			Optional().
 			Comment("LexoRank-подобный порядок внутри колонки"),
-		field.Int("version").
-			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -49,6 +47,13 @@ func (CrmDeal) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (CrmDeal) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (CrmDeal) Edges() []ent.Edge {
 	return []ent.Edge{

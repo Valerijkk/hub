@@ -43,6 +43,13 @@ func (NotificationPreference) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (NotificationPreference) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Edges описывает связи сущности NotificationPreference.
 func (NotificationPreference) Edges() []ent.Edge {

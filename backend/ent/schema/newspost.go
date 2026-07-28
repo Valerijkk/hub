@@ -29,8 +29,6 @@ func (NewsPost) Fields() []ent.Field {
 			Default(false),
 		field.Bool("published").
 			Default(true),
-		field.Int("version").
-			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -42,6 +40,13 @@ func (NewsPost) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (NewsPost) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (NewsPost) Edges() []ent.Edge {
 	return []ent.Edge{
