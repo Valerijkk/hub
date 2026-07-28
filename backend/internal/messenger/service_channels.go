@@ -114,7 +114,11 @@ func (s *MessengerService) ListMyChannels(ctx context.Context, userID uuid.UUID)
 }
 
 // UpdateChannel обновляет канал (только owner/admin).
+// TASK-095: version обязателен; VersionEQ в repo → 409 при conflict.
 func (s *MessengerService) UpdateChannel(ctx context.Context, channelID, userID uuid.UUID, req CreateChannelRequest) (*ChannelResponse, error) {
+	if req.Version < 1 {
+		return nil, apperrors.NewBadRequest("version обязателен и должен быть ≥ 1")
+	}
 	role, err := s.repo.GetMemberRole(ctx, channelID, userID)
 	if err != nil {
 		return nil, apperrors.NewForbidden("нет доступа к каналу")
@@ -123,7 +127,7 @@ func (s *MessengerService) UpdateChannel(ctx context.Context, channelID, userID 
 		return nil, apperrors.NewForbidden("только owner или admin может редактировать канал")
 	}
 
-	input := UpdateChannelInput{}
+	input := UpdateChannelInput{Version: req.Version}
 	if req.Name != "" {
 		input.Name = &req.Name
 	}
@@ -134,6 +138,9 @@ func (s *MessengerService) UpdateChannel(ctx context.Context, channelID, userID 
 
 	ch, err := s.repo.UpdateChannel(ctx, channelID, input)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewConflict("version mismatch: канал был изменён другим пользователем")
+		}
 		return nil, apperrors.NewInternal("ошибка обновления канала")
 	}
 	return toChannelResponse(ch), nil

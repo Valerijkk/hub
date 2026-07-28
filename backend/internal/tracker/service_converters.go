@@ -152,6 +152,7 @@ func toCommentResponse(c *ent.Comment) *CommentResponse {
 		BodyText:   c.BodyText,
 		IsInternal: c.IsInternal,
 		Mentions:   mentions,
+		Version:    c.Version,
 		CreatedAt:  c.CreatedAt,
 		UpdatedAt:  c.UpdatedAt,
 	}

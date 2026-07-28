@@ -126,15 +126,16 @@ func (s *Service) UpdateNews(ctx context.Context, userID, id uuid.UUID, req Upda
 	if err := s.requireAdmin(ctx, userID); err != nil {
 		return nil, err
 	}
+	// TASK-095 / ADR-ENT-VERSION-MIXIN: version обязателен (400); VersionEQ в repo.
+	if req.Version < 1 {
+		return nil, ErrInvalidInput
+	}
 	current, err := s.repo.GetNewsPost(ctx, id)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("get news for update: %w", err)
-	}
-	if req.Version > 0 && current.Version != req.Version {
-		return nil, ErrVersionConflict
 	}
 	if req.Title != nil || req.Body != nil {
 		title := current.Title
@@ -152,7 +153,7 @@ func (s *Service) UpdateNews(ctx context.Context, userID, id uuid.UUID, req Upda
 	post, err := s.repo.UpdateNewsPost(ctx, id, req)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, ErrNotFound
+			return nil, ErrVersionConflict
 		}
 		return nil, fmt.Errorf("update news: %w", err)
 	}

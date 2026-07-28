@@ -105,8 +105,12 @@ func (r *EntRepository) ListNewsPosts(ctx context.Context, publishedOnly bool, p
 }
 
 func (r *EntRepository) UpdateNewsPost(ctx context.Context, id uuid.UUID, req UpdateNewsRequest) (*ent.NewsPost, error) {
+	// W7-A2-003 / TASK-095: VersionEQ в WHERE — иначе TOCTOU app-check → lost update.
 	upd := r.client.NewsPost.UpdateOneID(id).
-		Where(newspost.DeletedAtIsNil()).
+		Where(
+			newspost.DeletedAtIsNil(),
+			newspost.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Title != nil {
 		upd.SetTitle(*req.Title)

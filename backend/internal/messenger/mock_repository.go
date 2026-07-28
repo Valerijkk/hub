@@ -73,6 +73,7 @@ func (m *mockRepository) CreateChannel(_ context.Context, input CreateChannelInp
 		IsReadonly:  input.IsReadonly,
 		CreatedBy:   input.CreatedBy,
 		ProjectID:   input.ProjectID,
+		Version:     1,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -113,6 +114,12 @@ func (m *mockRepository) UpdateChannel(_ context.Context, channelID uuid.UUID, i
 	if !ok {
 		return nil, &ent.NotFoundError{}
 	}
+	if ch.Version == 0 {
+		ch.Version = 1
+	}
+	if ch.DeletedAt != nil || ch.Version != input.Version {
+		return nil, &ent.NotFoundError{}
+	}
 	if input.Name != nil {
 		ch.Name = *input.Name
 	}
@@ -122,6 +129,7 @@ func (m *mockRepository) UpdateChannel(_ context.Context, channelID uuid.UUID, i
 	if input.IsReadonly != nil {
 		ch.IsReadonly = *input.IsReadonly
 	}
+	ch.Version++
 	return ch, nil
 }
 

@@ -243,6 +243,7 @@ func toChannelResponse(ch *ent.Channel) *ChannelResponse {
 		Description: ch.Description,
 		IsReadonly:  ch.IsReadonly,
 		CreatedBy:   ch.CreatedBy.String(),
+		Version:     ch.Version,
 		CreatedAt:   ch.CreatedAt,
 		UpdatedAt:   ch.UpdatedAt,
 	}

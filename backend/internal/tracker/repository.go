@@ -256,6 +256,7 @@ type CreateCommentInput struct {
 type UpdateCommentInput struct {
 	BodyJSON map[string]interface{}
 	BodyText string
+	Version  int
 }
 
 // CreateCustomFieldInput — распарсенные данные для создания определения кастомного поля.

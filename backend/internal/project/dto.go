@@ -14,6 +14,7 @@ type UpdateProjectRequest struct {
 	Name        *string `json:"name" validate:"omitempty,min=2,max=100"`
 	Description *string `json:"description" validate:"omitempty,max=2000"`
 	AvatarURL   *string `json:"avatar_url"`
+	Version     int     `json:"version" validate:"required,min=1"`
 }
 
 // AddMemberRequest — тело запроса на добавление участника.
@@ -62,6 +63,7 @@ type ProjectResponse struct {
 	Status      string    `json:"status"`
 	MemberCount int       `json:"member_count"`
 	MyRole      string    `json:"my_role,omitempty"`
+	Version     int       `json:"version"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

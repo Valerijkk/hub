@@ -143,7 +143,10 @@ func (r *EntRepository) ListSprints(ctx context.Context, projectID uuid.UUID) ([
 
 // UpdateSprint обновляет спринт.
 func (r *EntRepository) UpdateSprint(ctx context.Context, sprintID uuid.UUID, req UpdateSprintRequest) (*ent.Sprint, error) {
-	upd := r.client.Sprint.UpdateOneID(sprintID)
+	// TASK-095: VersionEQ + AddVersion — optimistic lock (NFR-24).
+	upd := r.client.Sprint.UpdateOneID(sprintID).
+		Where(sprintEnt.VersionEQ(req.Version)).
+		AddVersion(1)
 	if req.Name != nil {
 		upd.SetName(*req.Name)
 	}
