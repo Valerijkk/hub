@@ -1,6 +1,7 @@
 # TASK-045 — RBAC/GDPR + imex + storage/mail/dashboard
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> W18-C2b: FAIL (Confirm без object→404 не ловится мутацией) · артефакт `.planning/audits/total-2026-07/W18-C2b-MUTATION.md`  
 > Источник: TASK-008 W12 · Classes: P2-BE-19..21 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]

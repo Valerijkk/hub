@@ -41,16 +41,16 @@
 | [TASK-033](TASK-033-fe-error-empty-auth-race.md) | FE error≠empty + auth race | P1 | Исправлена · W18-C5 | fe2 | W12 FE-P1-ERROR-AS-EMPTY |
 | [TASK-034](TASK-034-fe-a11y-nested-sidebar-notifications.md) | FE a11y nested interactive | P1 | Исправлена · W18-C5 | fe2 | W12 FE-P1-A11Y-CONTROLS |
 | [TASK-035](TASK-035-fe-tms-compare-and-docs-testpath.md) | FE TMS compare + docs drift | P1 | Исправлена | fe1 | W12 FE-P1-TMS-DOCS |
-| [TASK-036](TASK-036-be-p2-dto-error-contract.md) | BE DTO validator + error contract | P2 | На проверке | be2 | W12 P2-BE-01,07 |
-| [TASK-037](TASK-037-be-p2-authz-ent-negative-tests.md) | BE Ent-negative authz tests | P2 | На проверке | be2 | W12 P2-BE-02 |
+| [TASK-036](TASK-036-be-p2-dto-error-contract.md) | BE DTO validator + error contract | P2 | Исправлена · W18-C2b | be2 | W12 P2-BE-01,07 |
+| [TASK-037](TASK-037-be-p2-authz-ent-negative-tests.md) | BE Ent-negative authz tests | P2 | Исправлена · W18-C2b | be2 | W12 P2-BE-02 |
 | [TASK-038](TASK-038-be-p2-ol-softdelete-tx-lists.md) | BE OL/soft-mutate/tx/lists | P2 | Исправлена | be1 | W12 P2-BE-03..06 · W18-C3 PASS (partial residual OK) |
-| [TASK-039](TASK-039-be-p2-soft-delete-secrets.md) | BE soft-delete + secrets | P2 | На проверке | be2 | W12 P2-BE-08,09 |
+| [TASK-039](TASK-039-be-p2-soft-delete-secrets.md) | BE soft-delete + secrets | P2 | Исправлена · W18-C2b | be2 | W12 P2-BE-08,09 |
 | [TASK-040](TASK-040-be-p2-fail-closed-ratelimit.md) | BE fail-closed + rate-limit | P2 | Исправлена | be1 | W12 P2-BE-10 · W18-C3 PASS |
 | [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | Открыта | be1 | W12 P2-BE-11 · W18-C3 FAIL |
 | [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | Открыта | be1 | W12 P2-BE-12..15 · W18-C3 FAIL |
-| [TASK-043](TASK-043-be-p2-platform-outbox-obs.md) | BE platform outbox/obs | P2 | На проверке | be2 | W12 P2-BE-16 |
+| [TASK-043](TASK-043-be-p2-platform-outbox-obs.md) | BE platform outbox/obs | P2 | Исправлена · W18-C2b | be2 | W12 P2-BE-16 |
 | [TASK-044](TASK-044-be-p2-ai-search.md) | BE AI privacy + search | P2 | Открыта | be1 | W12 P2-BE-17,18 · W18-C3 FAIL |
-| [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | На проверке | be2 | W12 P2-BE-19..21 |
+| [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | Открыта · W18-C2b FAIL | be2 | W12 P2-BE-19..21 |
 | [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Открыта | be1 | W12 P2-BE-22 · W18-C3 FAIL |
 | [TASK-047](TASK-047-fe-p2-error-vs-empty.md) | FE error≠empty sweep | P2 | Исправлена | fe1 | W12 P2-FE-01 |
 | [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-02 |

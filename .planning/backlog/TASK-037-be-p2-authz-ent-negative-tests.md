@@ -1,6 +1,7 @@
 # TASK-037 — Ent-negative authz tests (не mock-only)
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> W18-C2b: PASS (be1 mutation) · артефакт `.planning/audits/total-2026-07/W18-C2b-MUTATION.md`  
 
 > Источник: TASK-008 W12 · Classes: P2-BE-02 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
