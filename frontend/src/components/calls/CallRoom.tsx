@@ -193,14 +193,23 @@ export function CallRoomContent({
 /** Блок приглашения в стиле Телемост — когда ты один в звонке. */
 function InviteBlock({ inviteCode }: { inviteCode: string }) {
 	const [copied, setCopied] = useState(false);
+	const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const url = `${window.location.origin}/call/${inviteCode}`;
+
+	useEffect(
+		() => () => {
+			if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+		},
+		[],
+	);
 
 	const copyLink = () => {
 		navigator.clipboard.writeText(url).catch(() => {
 			window.prompt("Скопируйте ссылку:", url);
 		});
 		setCopied(true);
-		setTimeout(() => setCopied(false), 3000);
+		if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+		copyTimerRef.current = setTimeout(() => setCopied(false), 3000);
 	};
 
 	const shareViaTelegram = () => {

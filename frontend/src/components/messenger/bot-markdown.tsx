@@ -1,5 +1,5 @@
 import { Check, Copy } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -85,12 +85,22 @@ function renderInline(line: string): React.ReactNode[] {
 
 function CodeBlock({ lang, code }: { lang: string; code: string }) {
 	const [copied, setCopied] = useState(false);
+	const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(
+		() => () => {
+			if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+		},
+		[],
+	);
+
 	const onCopy = useCallback(async () => {
 		try {
 			await navigator.clipboard.writeText(code);
 			setCopied(true);
 			toast.success("Скопировано");
-			setTimeout(() => setCopied(false), 2000);
+			if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+			copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
 		} catch {
 			toast.error("Не удалось скопировать");
 		}
