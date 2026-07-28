@@ -147,6 +147,9 @@ func (s *ScheduledCallService) UpdateScheduledCall(ctx context.Context, id, user
 
 	updated, err := s.repo.UpdateScheduledCall(ctx, id, req)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrCallNotFound
+		}
 		return nil, fmt.Errorf("не удалось обновить запланированный звонок: %w", err)
 	}
 

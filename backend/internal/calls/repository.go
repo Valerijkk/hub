@@ -401,8 +401,10 @@ func (r *EntRepository) ListScheduledCalls(ctx context.Context, channelID uuid.U
 }
 
 // UpdateScheduledCall обновляет запланированный звонок.
+// W3-A5-011: DeletedAtIsNil — нельзя мутировать soft-deleted серию в обход корзины.
 func (r *EntRepository) UpdateScheduledCall(ctx context.Context, id uuid.UUID, req UpdateScheduledCallRequest) (*ent.ScheduledCall, error) {
-	q := r.db.ScheduledCall.UpdateOneID(id)
+	q := r.db.ScheduledCall.UpdateOneID(id).
+		Where(scheduledcall.DeletedAtIsNil())
 
 	if req.Title != nil {
 		q = q.SetTitle(*req.Title)
