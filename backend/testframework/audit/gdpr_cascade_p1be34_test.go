@@ -67,6 +67,10 @@ func (r *gdprFullCascadeRepo) HardDeleteUser(_ context.Context, id uuid.UUID) er
 	return nil
 }
 
+func (r *gdprFullCascadeRepo) WithTx(_ context.Context, fn func(audit.Repository) error) error {
+	return fn(r)
+}
+
 // TestDeleteUserGDPR_CascadeIncludesFilesMembershipsScrub_P1BE34 —
 // после успешного erase вызваны расширенные шаги; HardDelete один раз.
 func TestDeleteUserGDPR_CascadeIncludesFilesMembershipsScrub_P1BE34(t *testing.T) {

@@ -13,6 +13,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/audit"
 )
 
 type userMgmtMockRepo struct {
@@ -65,6 +67,10 @@ func (m *userMgmtMockRepo) ReassignReportedIssues(_ context.Context, _, _ uuid.U
 
 func (m *userMgmtMockRepo) ClearUserAssignments(_ context.Context, _ uuid.UUID) (int, error) {
 	return 0, nil
+}
+
+func (m *userMgmtMockRepo) WithTx(_ context.Context, fn func(audit.Repository) error) error {
+	return fn(m)
 }
 
 // TestHandler_DeactivateUser_AdminOK проверяет HTTP-слой: HTTP-обработчик deactivate user админ ok.

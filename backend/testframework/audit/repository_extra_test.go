@@ -43,6 +43,57 @@ func TestRepository_SoftDeleteAndRestoreTestCase(t *testing.T) {
 	items, total, err = env.repo.ListDeletedTestCases(env.ctx, &env.projectID, when.Add(-time.Hour), 0, 10)
 	require.NoError(t, err)
 	assert.Equal(t, 0, total)
+
+	got, err := env.client.TestCase.Get(env.ctx, tc.ID)
+	require.NoError(t, err)
+	assert.Nil(t, got.DeletedAt, "A2W6-A5-007")
+}
+
+// TestRepository_TestCase_RetentionHidesOlderThan30Days — A2W6-A5-003.
+func TestRepository_TestCase_RetentionHidesOlderThan30Days(t *testing.T) {
+	env := newAuditTrashEnv(t)
+	tc, err := env.client.TestCase.Create().
+		SetProjectID(env.projectID).
+		SetCaseNumber(7).
+		SetCaseKey("TRH-TC-7").
+		SetTitle("Old case").
+		SetCaseType(testcase.CaseTypeClassic).
+		SetCreatedByID(env.userA).
+		Save(env.ctx)
+	require.NoError(t, err)
+
+	old := time.Now().UTC().Add(-40 * 24 * time.Hour)
+	cutoff := time.Now().UTC().Add(-30 * 24 * time.Hour)
+	require.NoError(t, env.repo.SoftDeleteTestCase(env.ctx, tc.ID, old))
+
+	items, total, err := env.repo.ListDeletedTestCases(env.ctx, &env.projectID, cutoff, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, 0, total)
+	assert.Empty(t, items)
+}
+
+// TestRepository_File_RetentionHidesOlderThan30Days — A2W6-A5-003.
+func TestRepository_File_RetentionHidesOlderThan30Days(t *testing.T) {
+	env := newAuditTrashEnv(t)
+	file, err := env.client.FileMetadata.Create().
+		SetFilename("old.pdf").
+		SetContentType("application/pdf").
+		SetSize(10).
+		SetS3Key("k-old").
+		SetS3Bucket("b1").
+		SetProjectID(env.projectID).
+		SetUploaderID(env.userA).
+		Save(env.ctx)
+	require.NoError(t, err)
+
+	old := time.Now().UTC().Add(-40 * 24 * time.Hour)
+	cutoff := time.Now().UTC().Add(-30 * 24 * time.Hour)
+	require.NoError(t, env.repo.SoftDeleteFile(env.ctx, file.ID, old))
+
+	items, total, err := env.repo.ListDeletedFiles(env.ctx, &env.projectID, cutoff, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, 0, total)
+	assert.Empty(t, items)
 }
 
 // TestRepository_PurgeExpiredTestCases проверяет отклонение при репозиторий очистка просроченный test cases.
@@ -64,6 +115,10 @@ func TestRepository_PurgeExpiredTestCases(t *testing.T) {
 	n, err := env.repo.PurgeExpiredTestCases(env.ctx, time.Now().UTC().Add(-30*24*time.Hour))
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
+
+	_, err = env.client.TestCase.Get(env.ctx, tc.ID)
+	require.Error(t, err)
+	assert.True(t, ent.IsNotFound(err), "A2W6-A5-005: hard delete must remove row")
 }
 
 // TestRepository_ClearUserAssignments проверяет слой репозитория: репозиторий clear user assignments.
@@ -108,6 +163,10 @@ func TestRepository_PurgeExpiredFiles(t *testing.T) {
 	n, err := env.repo.PurgeExpiredFiles(env.ctx, when.Add(-30*24*time.Hour))
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
+
+	_, err = env.client.FileMetadata.Get(env.ctx, file.ID)
+	require.Error(t, err)
+	assert.True(t, ent.IsNotFound(err), "A2W6-A5-005: hard delete must remove file")
 }
 
 // TestRepository_PurgeExpiredProjects проверяет отклонение при репозиторий очистка просроченный projects.
@@ -127,6 +186,10 @@ func TestRepository_PurgeExpiredProjects(t *testing.T) {
 	n, err := env.repo.PurgeExpiredProjects(env.ctx, when.Add(-30*24*time.Hour))
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
+
+	_, err = env.client.Project.Get(env.ctx, emptyProj.ID)
+	require.Error(t, err)
+	assert.True(t, ent.IsNotFound(err), "A2W6-A5-005: hard delete must remove project")
 }
 
 // TestRepository_DeleteUserRelatedData проверяет слой репозитория: репозиторий удаление user related data.

@@ -96,6 +96,10 @@ func TestRepository_SoftDeleteAndRestoreFile(t *testing.T) {
 	require.Len(t, items, 1)
 
 	require.NoError(t, env.repo.RestoreFile(env.ctx, file.ID))
+
+	got, err := env.client.FileMetadata.Get(env.ctx, file.ID)
+	require.NoError(t, err)
+	assert.Nil(t, got.DeletedAt, "A2W6-A5-007: RestoreFile must ClearDeletedAt")
 }
 
 // TestRepository_ReassignReportedIssues проверяет слой репозитория: репозиторий reassign reported issues.

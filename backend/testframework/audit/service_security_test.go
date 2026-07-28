@@ -31,6 +31,8 @@ type mockAuditRepo struct {
 	reassignReportedCalls  [][2]uuid.UUID
 	reassignAssignedN      int
 	reassignErr            error
+	softDeleteCalls        []string
+	restoreCalls           []string
 }
 
 type createAuditLogCall struct {
@@ -153,26 +155,52 @@ func (m *mockAuditRepo) ListDeletedNewsPosts(context.Context, time.Time, int, in
 func (m *mockAuditRepo) ListDeletedScheduledCalls(context.Context, *uuid.UUID, time.Time, int, int) ([]audit.TrashItem, int, error) {
 	return nil, 0, nil
 }
-func (m *mockAuditRepo) RestoreIssue(context.Context, uuid.UUID) error   { return nil }
-func (m *mockAuditRepo) RestoreTestCase(context.Context, uuid.UUID) error { return nil }
-func (m *mockAuditRepo) RestoreFile(context.Context, uuid.UUID) error    { return nil }
-func (m *mockAuditRepo) RestoreProject(context.Context, uuid.UUID) error { return nil }
-func (m *mockAuditRepo) RestoreNewsPost(context.Context, uuid.UUID) error { return nil }
-func (m *mockAuditRepo) RestoreScheduledCall(context.Context, uuid.UUID) error { return nil }
-func (m *mockAuditRepo) SoftDeleteIssue(context.Context, uuid.UUID, time.Time) error {
+func (m *mockAuditRepo) RestoreIssue(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "issue")
 	return nil
 }
-func (m *mockAuditRepo) SoftDeleteTestCase(context.Context, uuid.UUID, time.Time) error {
+func (m *mockAuditRepo) RestoreTestCase(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "test_case")
 	return nil
 }
-func (m *mockAuditRepo) SoftDeleteFile(context.Context, uuid.UUID, time.Time) error { return nil }
-func (m *mockAuditRepo) SoftDeleteProject(context.Context, uuid.UUID, time.Time) error {
+func (m *mockAuditRepo) RestoreFile(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "file")
 	return nil
 }
-func (m *mockAuditRepo) SoftDeleteNewsPost(context.Context, uuid.UUID, time.Time) error {
+func (m *mockAuditRepo) RestoreProject(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "project")
 	return nil
 }
-func (m *mockAuditRepo) SoftDeleteScheduledCall(context.Context, uuid.UUID, time.Time) error {
+func (m *mockAuditRepo) RestoreNewsPost(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "newspost")
+	return nil
+}
+func (m *mockAuditRepo) RestoreScheduledCall(_ context.Context, _ uuid.UUID) error {
+	m.restoreCalls = append(m.restoreCalls, "scheduled_call")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteIssue(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "issue")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteTestCase(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "test_case")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteFile(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "file")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteProject(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "project")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteNewsPost(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "newspost")
+	return nil
+}
+func (m *mockAuditRepo) SoftDeleteScheduledCall(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	m.softDeleteCalls = append(m.softDeleteCalls, "scheduled_call")
 	return nil
 }
 func (m *mockAuditRepo) PurgeExpiredIssues(context.Context, time.Time) (int, error)    { return 0, nil }
@@ -216,6 +244,11 @@ func (m *mockAuditRepo) HardDeleteUser(context.Context, uuid.UUID) error        
 func (m *mockAuditRepo) IsSystemAdmin(context.Context, uuid.UUID) (bool, error)     { return false, nil }
 func (m *mockAuditRepo) GetUserSystemRole(context.Context, uuid.UUID) (user.SystemRole, error) {
 	return user.SystemRoleMember, nil
+}
+
+// WithTx — mock: без реальной транзакции, fn вызывается на том же mock (A2W6-A4-003).
+func (m *mockAuditRepo) WithTx(_ context.Context, fn func(audit.Repository) error) error {
+	return fn(m)
 }
 
 // TestBanUser проверяет сценарий: ban user.

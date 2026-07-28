@@ -28,6 +28,10 @@ func (r *founderGDPRRepo) HardDeleteUser(_ context.Context, id uuid.UUID) error 
 	return nil
 }
 
+func (r *founderGDPRRepo) WithTx(_ context.Context, fn func(audit.Repository) error) error {
+	return fn(r)
+}
+
 // TestDeleteUserGDPR_RejectsFounderByAdmin_A1_004 — admin не может стереть founder.
 func TestDeleteUserGDPR_RejectsFounderByAdmin_A1_004(t *testing.T) {
 	repo := &founderGDPRRepo{targetRole: user.SystemRoleFounder}
