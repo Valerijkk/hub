@@ -1,6 +1,6 @@
 # ADR-ENT-VERSION-MIXIN-2026 — Ent VersionMixin + optimistic lock rollout
 
-- Статус: **Proposed / Accepted-by-owner-pending**
+- Статус: **Accepted** (owner 2026-07-28: отдельный approve ADR/migrate не требуется)
 - Дата: 2026-07-28
 - Автор: arch · Верифицирует: arch-ver
 - Связанные: NFR-24, TZ optimistic lock, P1-BE-U06, TASK-095,
@@ -28,15 +28,14 @@ TZ/NFR-24 требуют `version` на изменяемых Ent. Сейчас �
 3. Exclusion (документировать здесь):
    - **append_only**: ActivityLog, AuditLog, OutboxEvent, и аналоги
    - **immutable_link**: ChannelMember, IssueLink, Reaction, и аналоги
-4. **Unclear (12)** — вне scope TASK-095 до owner reclassify:
-   apikey, call, channelinvite, coffeeenrollment, coffeeround, filemetadata,
-   invite, notification, pushsubscription, recording, session, timelog.
-   Finding A2W8-1-002/006 для unclear → FIXED только docs+PO exclusion, не schema.
+4. **Unclear (12)** — по умолчанию **exclusion** (не добавлять version), пока
+   отдельная задача не reclassify. Finding A2W8-1-002/006 для unclear →
+   FIXED docs+exclusion list в ADR, не schema.
 5. Update-пути: `Where(VersionEQ(v)).AddVersion(1)`; conflict → 409;
    `version≤0` → 400 InvalidInput (паттерн CRM/bases).
-6. Migrate: additive `ALTER TABLE … ADD COLUMN version INT NOT NULL DEFAULT 1` —
-   **только после owner approve**; SQL в `backend/migrations/` с пометкой
-   `needs-owner-apply`.
+6. Migrate: additive `ALTER TABLE … ADD COLUMN version INT NOT NULL DEFAULT 1`.
+   Применять в test/dev вместе с фичей; отдельный owner-approve **не требуется**
+   (решение владельца 2026-07-28).
 
 ## Finding IDs (TASK-095)
 
@@ -51,6 +50,5 @@ A2W8-5-001..007, A2W1-A4-001, W7-A2-003 (19 rows).
 
 ## Approval record
 
-- Owner approve ADR: ⏳ pending
-- Owner approve migrate apply (test/prod): ⏳ pending
-- Owner reclassify unclear (12): ⏳ pending
+- Owner: **апрув ADR/migrate не требуется** (2026-07-28)
+- Unclear-12: exclusion by default (см. Решение §4)
