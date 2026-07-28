@@ -1,6 +1,6 @@
 # Total Audit 2026-07 — индекс
 
-> TASK-008 · A ✅ · **A2 ✅** ([A2-PLAN.md](A2-PLAN.md) · [00-STAGE-A2-COMPLETE.md](00-STAGE-A2-COMPLETE.md)) · B P0–P3 ✅ (W21) · C ⚠️ · FINAL: [00-FINAL.md](00-FINAL.md) · 2026-07-28
+> TASK-008 · A ✅ · A2 ✅ · **A3 FINAL ✅** ([00-STAGE-A3-COMPLETE.md](00-STAGE-A3-COMPLETE.md)) · B P0–P3 ✅ (W21) · C ⚠️ · FINAL: [00-FINAL.md](00-FINAL.md) · 2026-07-29
 
 | Волна | Зона | Статус | Файлов | P0 | P1 | P2 | P3 |
 |-------|------|--------|-------:|---:|---:|---:|---:|
@@ -39,6 +39,26 @@
 **Итого Stage A2:** файлов **1405** · open Σ (сырые, до дедупа) **254** (P0=0 · P1=24 · P2=172 · P3=58).  
 Сводки: `A2-W{n}-SUMMARY.md` · финал: [`00-STAGE-A2-COMPLETE.md`](00-STAGE-A2-COMPLETE.md) · **все 254 → TASK-081…123**: [`A2-DEDUP-2026-07-28.md`](A2-DEDUP-2026-07-28.md).
 
+## Stage A3 FINAL (после remediation 081…123)
+
+> План: [`A3-PLAN.md`](A3-PLAN.md) · HEAD baseline: `ee353287` (`cursor-grok-4.5`)
+
+| Волна | Зона | Статус | Файлов | P0 | P1 | P2 | P3 | open Σ |
+|-------|------|--------|-------:|---:|---:|---:|---:|-------:|
+| A3-W1 | tracker+sprint+project | ✅ | 163 | 0 | 1 | 6 | 12 | **19** |
+| A3-W2 | tms+bases | ✅ | 109 | 0 | 0 | 7 | 11 | **18** |
+| A3-W3 | messenger+ws+calls | ✅ | 131 | 0 | 0 | 6 | 9 | **15** |
+| A3-W4 | platform+apigateway | ✅ | 83 | 0 | 0 | 6 | 7 | **12** |
+| A3-W5 | ai+search | ✅ | 96 | 0 | 0 | 9 | 11 | **20** |
+| A3-W6 | auth+rbac+audit | ✅ | 92 | 0 | 0 | 8 | 9 | **17** |
+| A3-W7 | remaining backend | ✅ | 284 | 0 | 0 | 7 | 10 | **17** |
+| A3-W8 | ent/schema | ✅ | 83 | 0 | 1 | 13 | 5 | **19** |
+| A3-W9 | frontend/components | ✅ | 127 | 0 | 0 | 9 | 14 | **23** |
+| A3-W10 | routes+modules | ✅ | 144 | 0 | 1 | 14 | 10 | **25** |
+| A3-W11 | fe lib+docs+api | ✅ | 93 | 0 | 2 | 5 | 4 | **11** |
+
+**A3 COMPLETE:** [`00-STAGE-A3-COMPLETE.md`](00-STAGE-A3-COMPLETE.md) · файлов **1405** · open сырые **196** (P0=0 · P1=5 · P2=90 · P3=102) · CSV **195** → **TASK-124…176** (53) · [`A3-DEDUP-2026-07-29.md`](A3-DEDUP-2026-07-29.md)
+
 ## Стадии B/C
 
 | Волна | Статус |
@@ -49,4 +69,4 @@
 | W19 cross | **COMPLETE** — [`W19-SUMMARY.md`](W19-SUMMARY.md) |
 | W20 FINAL | **COMPLETE** — [`00-FINAL.md`](00-FINAL.md) · hubtest local PASS · COV vs 81.9% NOT VERIFIED |
 
-**TASK-008 не закрывать** до reopen 014/079/045… и method-comparable coverage.
+**Audit + backlog A3 done** (дедуп → TASK-124…176). **TASK-008** остаётся открытым до remediation + method-comparable COV + owner merge.
