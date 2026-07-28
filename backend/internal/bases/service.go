@@ -74,6 +74,7 @@ func (s *Service) CreateBase(ctx context.Context, ownerID uuid.UUID, req CreateB
 	if name == "" {
 		return nil, ErrInvalidInput
 	}
+	// W2-A5-001: base+Main+Name атомарно в repo.CreateBase (одна Ent tx).
 	b, err := s.repo.CreateBase(ctx, ownerID, CreateBaseRequest{
 		Name:        name,
 		Description: strings.TrimSpace(req.Description),
@@ -81,28 +82,15 @@ func (s *Service) CreateBase(ctx context.Context, ownerID uuid.UUID, req CreateB
 	if err != nil {
 		return nil, fmt.Errorf("create base: %w", err)
 	}
-
-	table, err := s.repo.CreateTable(ctx, b.ID, CreateTableRequest{Name: "Main"})
-	if err != nil {
-		return nil, fmt.Errorf("create default table: %w", err)
-	}
-	_, err = s.repo.CreateColumn(ctx, table.ID, CreateColumnRequest{
-		Name:    "Name",
-		ColType: ColumnText,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create default column: %w", err)
-	}
-
 	return s.GetBase(ctx, ownerID, b.ID)
 }
 
 func (s *Service) UpdateBase(ctx context.Context, userID, id uuid.UUID, req UpdateBaseRequest) (*BaseResponse, error) {
-	current, err := s.authorizeBase(ctx, id, userID)
-	if err != nil {
+	if _, err := s.authorizeBase(ctx, id, userID); err != nil {
 		return nil, err
 	}
-	if req.Version > 0 && current.Version != req.Version {
+	// W2-A5-004: version обязателен; VersionEQ в repo WHERE (не app-check TOCTOU).
+	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
 	if req.Name != nil && strings.TrimSpace(*req.Name) == "" {
@@ -113,6 +101,9 @@ func (s *Service) UpdateBase(ctx context.Context, userID, id uuid.UUID, req Upda
 		req.Name = &trimmed
 	}
 	if _, err := s.repo.UpdateBase(ctx, id, req); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrVersionConflict
+		}
 		return nil, fmt.Errorf("update base: %w", err)
 	}
 	b, err := s.repo.GetBase(ctx, id)
@@ -138,16 +129,10 @@ func (s *Service) CreateTable(ctx context.Context, userID, baseID uuid.UUID, req
 	if _, err := s.authorizeBase(ctx, baseID, userID); err != nil {
 		return nil, err
 	}
+	// W2-A5-001 residual: table+Name column атомарно в repo.CreateTable.
 	t, err := s.repo.CreateTable(ctx, baseID, CreateTableRequest{Name: name})
 	if err != nil {
 		return nil, fmt.Errorf("create table: %w", err)
-	}
-	_, err = s.repo.CreateColumn(ctx, t.ID, CreateColumnRequest{
-		Name:    "Name",
-		ColType: ColumnText,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create default column: %w", err)
 	}
 	summary := toTableSummary(t)
 	return &summary, nil
@@ -172,11 +157,18 @@ func (s *Service) GetTableView(ctx context.Context, userID, baseID, tableID uuid
 	for _, rec := range t.Edges.Records {
 		recs = append(recs, toRecordResponse(rec))
 	}
+	// W2-A5-005: has_more/total — иначе silent truncate при N>MaxTableRecords.
+	total, err := s.repo.CountTableRecords(ctx, tableID)
+	if err != nil {
+		return nil, fmt.Errorf("count table records: %w", err)
+	}
 	return &TableViewResponse{
 		BaseID:  baseID,
 		Table:   toTableSummary(t),
 		Columns: cols,
 		Records: recs,
+		Total:   total,
+		HasMore: total > MaxTableRecords,
 	}, nil
 }
 
@@ -245,12 +237,24 @@ func (s *Service) UpdateRecord(ctx context.Context, userID, baseID, tableID, rec
 		}
 		return nil, fmt.Errorf("get record: %w", err)
 	}
-	if req.Version > 0 && current.Version != req.Version {
+	// W2-A5-004: version обязателен; VersionEQ в repo.
+	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
-	cells := normalizeCells(req.Cells, t.Edges.Columns)
-	rec, err := s.repo.UpdateRecord(ctx, recordID, UpdateRecordRequest{Cells: cells})
+	patch := normalizeCells(req.Cells, t.Edges.Columns)
+	// W2-A5-002: merge с current.Cells — partial PUT не затирает остальные ячейки.
+	merged := make(map[string]interface{}, len(current.Cells)+len(patch))
+	for k, v := range current.Cells {
+		merged[k] = v
+	}
+	for k, v := range patch {
+		merged[k] = v
+	}
+	rec, err := s.repo.UpdateRecord(ctx, recordID, UpdateRecordRequest{Cells: merged, Version: req.Version})
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrVersionConflict
+		}
 		return nil, fmt.Errorf("update record: %w", err)
 	}
 	resp := toRecordResponse(rec)

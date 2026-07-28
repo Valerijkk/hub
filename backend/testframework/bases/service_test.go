@@ -114,6 +114,8 @@ func TestService_TableColumnRecordLifecycle(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Desktop", updated.Cells[nameColID])
+	// W2-A5-002: partial PUT merge — Qty не затирается.
+	assert.Equal(t, float64(3), updated.Cells[col.ID.String()])
 
 	err = svc.DeleteRecord(ctx, ownerID, base.ID, table.ID, rec.ID)
 	require.NoError(t, err)

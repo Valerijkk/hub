@@ -2,6 +2,7 @@ package bases
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,6 +29,8 @@ type Repository interface {
 	CreateTable(ctx context.Context, baseID uuid.UUID, req CreateTableRequest) (*ent.HubTable, error)
 	// GetTable возвращает таблицу с колонками и records (cap MaxTableRecords).
 	GetTable(ctx context.Context, baseID, tableID uuid.UUID) (*ent.HubTable, error)
+	// CountTableRecords — число живых records (для has_more после cap).
+	CountTableRecords(ctx context.Context, tableID uuid.UUID) (int, error)
 	// GetTableMeta возвращает таблицу только с колонками (без records) — write-path.
 	GetTableMeta(ctx context.Context, baseID, tableID uuid.UUID) (*ent.HubTable, error)
 	// GetRecord возвращает одну запись таблицы (для update/delete без полного scan).
@@ -54,12 +57,41 @@ func NewEntRepository(client *ent.Client) *EntRepository {
 	return &EntRepository{client: client}
 }
 
+// CreateBase создаёт базу вместе с Main-таблицей и колонкой Name в одной tx (W2-A5-001).
 func (r *EntRepository) CreateBase(ctx context.Context, ownerID uuid.UUID, req CreateBaseRequest) (*ent.HubBase, error) {
-	return r.client.HubBase.Create().
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin create base tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	b, err := tx.HubBase.Create().
 		SetName(req.Name).
 		SetDescription(req.Description).
 		SetOwnerID(ownerID).
 		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create base: %w", err)
+	}
+	table, err := tx.HubTable.Create().
+		SetName("Main").
+		SetBaseID(b.ID).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create default table: %w", err)
+	}
+	_, err = tx.HubColumn.Create().
+		SetName("Name").
+		SetColType(hubcolumn.ColTypeText).
+		SetTableID(table.ID).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create default column: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit create base: %w", err)
+	}
+	return r.GetBase(ctx, b.ID)
 }
 
 func (r *EntRepository) ListBases(ctx context.Context, ownerID uuid.UUID) ([]*ent.HubBase, error) {
@@ -90,8 +122,12 @@ func (r *EntRepository) GetBase(ctx context.Context, id uuid.UUID) (*ent.HubBase
 }
 
 func (r *EntRepository) UpdateBase(ctx context.Context, id uuid.UUID, req UpdateBaseRequest) (*ent.HubBase, error) {
+	// W2-A5-004: VersionEQ в WHERE — иначе TOCTOU app-check → lost update.
 	upd := r.client.HubBase.UpdateOneID(id).
-		Where(hubbase.DeletedAtIsNil()).
+		Where(
+			hubbase.DeletedAtIsNil(),
+			hubbase.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Name != nil {
 		upd.SetName(*req.Name)
@@ -112,10 +148,31 @@ func (r *EntRepository) SoftDeleteBase(ctx context.Context, id uuid.UUID) error 
 }
 
 func (r *EntRepository) CreateTable(ctx context.Context, baseID uuid.UUID, req CreateTableRequest) (*ent.HubTable, error) {
-	return r.client.HubTable.Create().
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin create table tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	table, err := tx.HubTable.Create().
 		SetName(req.Name).
 		SetBaseID(baseID).
 		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create table: %w", err)
+	}
+	_, err = tx.HubColumn.Create().
+		SetName("Name").
+		SetColType(hubcolumn.ColTypeText).
+		SetTableID(table.ID).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create default column: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit create table: %w", err)
+	}
+	return table, nil
 }
 
 func (r *EntRepository) GetTable(ctx context.Context, baseID, tableID uuid.UUID) (*ent.HubTable, error) {
@@ -136,6 +193,15 @@ func (r *EntRepository) GetTable(ctx context.Context, baseID, tableID uuid.UUID)
 				Limit(MaxTableRecords)
 		}).
 		Only(ctx)
+}
+
+func (r *EntRepository) CountTableRecords(ctx context.Context, tableID uuid.UUID) (int, error) {
+	return r.client.HubRecord.Query().
+		Where(
+			hubrecord.DeletedAtIsNil(),
+			hubrecord.HasTableWith(hubtable.ID(tableID), hubtable.DeletedAtIsNil()),
+		).
+		Count(ctx)
 }
 
 // GetTableMeta — columns only; write-path не должен грузить все records (A13-002).
@@ -167,7 +233,10 @@ func (r *EntRepository) GetRecord(ctx context.Context, tableID, recordID uuid.UU
 
 func (r *EntRepository) UpdateTable(ctx context.Context, tableID uuid.UUID, req UpdateTableRequest) (*ent.HubTable, error) {
 	upd := r.client.HubTable.UpdateOneID(tableID).
-		Where(hubtable.DeletedAtIsNil()).
+		Where(
+			hubtable.DeletedAtIsNil(),
+			hubtable.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Name != nil {
 		upd.SetName(*req.Name)
@@ -205,7 +274,10 @@ func (r *EntRepository) CreateColumn(ctx context.Context, tableID uuid.UUID, req
 
 func (r *EntRepository) UpdateColumn(ctx context.Context, columnID uuid.UUID, req UpdateColumnRequest) (*ent.HubColumn, error) {
 	upd := r.client.HubColumn.UpdateOneID(columnID).
-		Where(hubcolumn.DeletedAtIsNil()).
+		Where(
+			hubcolumn.DeletedAtIsNil(),
+			hubcolumn.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Name != nil {
 		upd.SetName(*req.Name)
@@ -242,8 +314,12 @@ func (r *EntRepository) CreateRecord(ctx context.Context, tableID, userID uuid.U
 }
 
 func (r *EntRepository) UpdateRecord(ctx context.Context, recordID uuid.UUID, req UpdateRecordRequest) (*ent.HubRecord, error) {
+	// W2-A5-004: VersionEQ в WHERE — иначе concurrent PUT → lost update.
 	upd := r.client.HubRecord.UpdateOneID(recordID).
-		Where(hubrecord.DeletedAtIsNil()).
+		Where(
+			hubrecord.DeletedAtIsNil(),
+			hubrecord.VersionEQ(req.Version),
+		).
 		AddVersion(1)
 	if req.Cells != nil {
 		upd.SetCells(req.Cells)

@@ -39,6 +39,7 @@ func TestEntRepository_UpdateAndSoftDeleteTable(t *testing.T) {
 	updated, err := repo.UpdateTable(ctx, table.ID, UpdateTableRequest{
 		Name:      strPtr("Updated"),
 		SortOrder: &sort,
+		Version:   table.Version,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Updated", updated.Name)
@@ -66,6 +67,7 @@ func TestEntRepository_UpdateAndSoftDeleteColumn(t *testing.T) {
 	updated, err := repo.UpdateColumn(ctx, col.ID, UpdateColumnRequest{
 		Name:    strPtr("Title"),
 		ColType: &colType,
+		Version: col.Version,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Title", updated.Name)
@@ -73,7 +75,9 @@ func TestEntRepository_UpdateAndSoftDeleteColumn(t *testing.T) {
 	require.NoError(t, repo.SoftDeleteColumn(ctx, col.ID))
 	view, err := repo.GetTable(ctx, base.ID, table.ID)
 	require.NoError(t, err)
-	assert.Empty(t, view.Edges.Columns)
+	// CreateTable атомарно создаёт Name — soft-delete Status оставляет Name.
+	require.Len(t, view.Edges.Columns, 1)
+	assert.Equal(t, "Name", view.Edges.Columns[0].Name)
 }
 
 func strPtr(s string) *string { return &s }
