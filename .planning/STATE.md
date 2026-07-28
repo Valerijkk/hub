@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (fe2+docs · TASK-123 dead export + docs drift)
+
+- **Сделано:** удалён dead export `useRooms`; BUSINESS webcam consistency; NF-11 → `wiring_fiber.go`; REST summary ~252 OpenAPI.
+- **ID:** A2W11-4-001/002, A2W11-5-003/004 — FIXED.
+- **Тесты:** vitest `i18n-push-rooms-p2`, `docs-drift-task123`; mutation: вернуть useRooms / «REST **286**» → FAIL.
+- **Docs:** backlog TASK-123 → Исправлена; audit A2W11-4/5 + SUMMARY.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.

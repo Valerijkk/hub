@@ -9,7 +9,7 @@
 | Файл | Строк | Находок | Вердикт |
 |------|------:|--------:|---------|
 | `frontend/src/hooks/use-unread.ts` | 57 | 0 | FIXED-OK replace map + rollback |
-| `frontend/src/hooks/use-websocket.ts` | 113 | 1 | RESIDUAL dead `useRooms` |
+| `frontend/src/hooks/use-websocket.ts` | 113 | 0 | FIXED TASK-123 — dead `useRooms` удалён |
 | `frontend/src/lib/onboarding/profile-schema.ts` | 53 | 0 | чисто |
 | `frontend/src/lib/onboarding/project-schema.ts` | 59 | 0 | чисто |
 | `frontend/src/lib/format-api-error.ts` | 92 | 0 | FIXED-OK code/request_id guard |
@@ -21,7 +21,7 @@
 | `frontend/src/lib/sanitize-color.ts` | 8 | 0 | чисто |
 | `frontend/src/lib/utils.ts` | 21 | 0 | чисто |
 | `docs/architecture.md` | 239 | 0 | FIXED-OK thin main + wiring |
-| `docs/BUSINESS.md` | 465 | 1 | NEW internal webcam/Phase16 drift |
+| `docs/BUSINESS.md` | 465 | 0 | FIXED TASK-123 — webcam/Phase16 consistency |
 | `docs/code_style_guide.md` | 290 | 0 | FIXED-OK RU comments + TF paths |
 | `docs/competitive_analysis_2026.md` | 198 | 0 | FIXED-OK Telegram notify bind |
 | `docs/competitive_audit.md` | 175 | 0 | FIXED-OK SSO after ADR |
@@ -34,8 +34,14 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
-| A2W11-4-001 | NEW | P2 | `BUSINESS.md:189` vs `:443` vs `:462` | Внутри файла: webcam «Phase 16» / «UI shipped» / Phase 16+ «Planned» одновременно | Post-fix drift: W11-A4-010 закрыл out-of-scope, но таблица Phase 16+ и голос-секция противоречат shipped UI | Одна формулировка: camera shipped + polish backlog; Phase 16+ без «webcam» как blocker **или** явный residual gap |
-| A2W11-4-002 | RESIDUAL | P3 | `use-websocket.ts:80-112` | `useRooms` экспортирован, **0** call sites в `frontend/src` | W11-A4-007: deps по join починены, но мёртвый API остался | Удалить **или** начать использовать; иначе dead export |
+| — | — | — | — | Нет открытых (TASK-123) | — | — |
+
+## FIXED (TASK-123 · 2026-07-28)
+
+| ID | Evidence |
+|----|----------|
+| A2W11-4-001 | `docs/BUSINESS.md`: голос + Out of Scope + Phase 16+ — webcam UI shipped; residual = JQL/hub-mail + polish |
+| A2W11-4-002 | удалён dead export `useRooms` из `frontend/src/hooks/use-websocket.ts`; Vitest `i18n-push-rooms-p2` |
 
 ## FIXED-OK (Stage A → закрыто после B/C)
 
@@ -68,8 +74,8 @@ Zod onboarding schemas; `permissions` iota 0…25; sanitize `#RRGGBB`; GLOSSARY/
 | Метрика | Значение |
 |---------|----------|
 | Файлов | 19/19/0 |
-| Открытых находок | **2** |
-| NEW | 1 (P2) |
+| Открытых находок | **0** (TASK-123) |
+| NEW | 0 |
 | REGRESS | 0 |
-| RESIDUAL | 1 (P3) |
-| FIXED-OK | 17 |
+| RESIDUAL | 0 |
+| FIXED-OK | 17 + TASK-123 (2) |

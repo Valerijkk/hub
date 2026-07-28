@@ -1,7 +1,8 @@
 # TASK-123 — 🧹 FE lib dead export + docs drift NF-11
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
-> Источник: A2W11 residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
+> Источник: A2W11 residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
+> Закрыта: 2026-07-28 · Исполнитель: fe2+docs · ветка `fix/frontend/task-123-dead-export-docs`
 
 ## [OUTCOME]
 
@@ -50,3 +51,14 @@ useRooms удалён; BUSINESS.md webcam consistency; NF-11 + REST count header
 
 - Не оставлять ID «WONTFIX» без явного owner cancel в задаче
 - ADR-first: код только после approve в Approval record
+
+## [EVIDENCE — 2026-07-28]
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A2W11-4-001 | FIXED | `docs/BUSINESS.md`: голос + Phase 16+ + Out of Scope — webcam UI shipped; residual JQL/hub-mail |
+| A2W11-4-002 | FIXED | удалён `useRooms` из `frontend/src/hooks/use-websocket.ts`; Vitest asserts no export |
+| A2W11-5-003 | FIXED | `docs/security_guidelines.md` NF-11 → `cmd/server/wiring_fiber.go` |
+| A2W11-5-004 | FIXED | `docs/system_specification.md` summary REST **~252** OpenAPI / ~286 inventory |
+
+**Mutation:** вернуть `export function useRooms` → `i18n-push-rooms-p2` FAIL; вернуть `REST **286** endpoints` в summary → `docs-drift-task123` FAIL.

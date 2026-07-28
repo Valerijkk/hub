@@ -8,9 +8,9 @@
 
 | Файл | Строк | Находок | Вердикт |
 |------|------:|--------:|---------|
-| `docs/security_guidelines.md` | 353 | 1 | RESIDUAL NF-11 → main.go |
+| `docs/security_guidelines.md` | 353 | 0 | FIXED TASK-123 — NF-11 → wiring_fiber.go |
 | `docs/stack_and_tools.md` | 182 | 0 | FIXED-OK stores/pins |
-| `docs/system_specification.md` | 692 | 1 | RESIDUAL «286» в summary vs 252 |
+| `docs/system_specification.md` | 692 | 0 | FIXED TASK-123 — summary ~252 OpenAPI |
 | `docs/TECHNICAL.md` | 1899 | 0 | FIXED-OK Magic Link + TF path |
 | `docs/testframework_strategy.md` | 258 | 0 | FIXED-OK counts |
 | `docs/TESTING.md` | 511 | 0 | FIXED-OK только `./testframework/...` |
@@ -34,8 +34,13 @@
 |----|-----|----------|-------------|----------|---------------|------------|
 | A2W11-5-001 | RESIDUAL | P1 | `vision_and_scope.md:28` vs `:428-431` | G-07: «US-INTR/US-CAL/**US-WIKI реализованы**» ↔ KPI wiki — **планируется** | W11-A5-006 не закрыт PO; wiki-модуля как shipped G-07 нет | G-07 → Partial (INTR+CAL shipped, WIKI planned) |
 | A2W11-5-002 | RESIDUAL | P2 | `tz_constraints.md:44` | «Задачи — offset/limit» при cursor list issues в FE/BE | W11-A2-009 / P2-FE-U04; правило 60 зеркалит drift | Обновить TZ+rule 60 под cursor **или** вернуть offset в API |
-| A2W11-5-003 | RESIDUAL | P3 | `security_guidelines.md:99` | NF-11 evidence всё ещё `cmd/server/main.go` | W11-A5-010 почти закрыт wiring-refs; один leftover | Ссылка → `wiring_fiber.go` / фактический EnableTrustedProxyCheck |
-| A2W11-5-004 | RESIDUAL | P3 | `system_specification.md:27` | Summary table «REST **286**» при `:160` каноне **~252** OpenAPI | W11-A5-013 частично: деталь поправлена, шапка нет | Выровнять `:27` под методику `:160` |
+
+## FIXED (TASK-123 · 2026-07-28)
+
+| ID | Evidence |
+|----|----------|
+| A2W11-5-003 | `docs/security_guidelines.md` NF-11 → `cmd/server/wiring_fiber.go` |
+| A2W11-5-004 | `docs/system_specification.md:27` summary → REST **~252** OpenAPI / ~286 inventory (как `:160`) |
 
 ## FIXED-OK (Stage A → закрыто после B/C)
 
@@ -67,8 +72,8 @@ DEPLOY/SHORTCUTS/HOME — compose pins, hotkeys, magic TTL согласован�
 | Метрика | Значение |
 |---------|----------|
 | Файлов | 17/17/0 |
-| Открытых находок | **4** |
+| Открытых находок | **2** (001/002 вне TASK-123) |
 | NEW | 0 |
 | REGRESS | 0 |
-| RESIDUAL | 4 (P1×1, P2×1, P3×2) |
-| FIXED-OK | 20 |
+| RESIDUAL | 2 (P1×1, P2×1); P3×2 закрыты TASK-123 |
+| FIXED-OK | 20 + TASK-123 (2) |
