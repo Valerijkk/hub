@@ -1,6 +1,6 @@
 # TASK-038 — OL VersionEQ + soft-delete mutate + tx + list caps
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке (partial)  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P2-BE-03..06 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -84,3 +84,13 @@
 
 - `go test -tags hubtest -count=1 ./testframework/{tracker,bases,tms,calls}/` — PASS
 - Тесты: `ol_softdelete_tx_task038_test.go`, `softdelete_find_update_task038_test.go`, `ol_tx_merge_hasmore_task038_test.go`, `softdelete_update_task038_test.go`
+
+## [W18-C3 MUTATION — 2026-07-28 be2]
+
+**PASS** (closed mutation-ready subset). Evidence: `.planning/audits/total-2026-07/W18-C3-MUTATION.md`
+
+- MoveIssue drop VersionEQ → `TestEntRepository_MoveIssue_OptimisticLock_W1A3004` RED
+- UpdateIssue drop DeletedAtIsNil → `TestEntRepository_UpdateIssue_SoftDeleted_W1A3005` RED
+- UpdateBase drop VersionEQ → `TestUpdateBase_OptimisticLock_VersionEQ_W2A5004` RED
+- HasMore forced false → `TestGetTableView_HasMore_W2A5005` RED  
+All restore GREEN. Ent-repo layer. Remaining Source IDs still deferred (migration/out-of-scope).

@@ -1,6 +1,6 @@
 ﻿# TASK-025 — Ent: coffee unique, notif pref partial unique, journal↔invoice O2O
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
 
 > Источник: TASK-008 W12 · Classes: P1-BE-40..42 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
@@ -58,3 +58,10 @@ Dev/test: Ent `Schema.Create` / `enttest` поднимает индексы на
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [W18-C3 MUTATION — 2026-07-28 be2]
+
+**PASS.** Evidence: `.planning/audits/total-2026-07/W18-C3-MUTATION.md`
+
+- Mutated runtime Unique in `ent/migrate/schema.go` (generated DDL used by enttest).
+- Coffee / notif partial unique / invoice O2O → respective TASK025 tests RED then GREEN. Ent-runtime layer.

@@ -19,18 +19,18 @@
 | [TASK-011](TASK-011-webhook-event-match.md) | webhook UI events ≠ NATS subjects | **P0** | Исправлена | be1 | W4-A5-001 |
 | [TASK-012](TASK-012-webhook-project-scope.md) | webhook dispatch без project-scope | **P0** | Исправлена | be1 | W4-A5-002 |
 | [TASK-013](TASK-013-tracker-project-scope-idor.md) | Tracker IDOR workflow/fields/refs | P1 | Исправлена | be1 | W12 P1-BE-01..04 |
-| [TASK-014](TASK-014-project-acl-sprint-tx.md) | Project ACL + sprint atomic | P1 | На проверке | be2 | W12 P1-BE-05..09 |
-| [TASK-015](TASK-015-tms-project-scope-idor-refs.md) | TMS suite/env IDOR + FK | P1 | На проверке | be2 | W12 P1-BE-10..12 |
-| [TASK-016](TASK-016-tms-import-limits-steps.md) | TMS import limits + steps | P1 | На проверке | be2 | W12 P1-BE-13..14 |
+| [TASK-014](TASK-014-project-acl-sprint-tx.md) | Project ACL + sprint atomic | P1 | Открыта | be2 | W12 P1-BE-05..09 · W18-C2 FAIL |
+| [TASK-015](TASK-015-tms-project-scope-idor-refs.md) | TMS suite/env IDOR + FK | P1 | Исправлена | be2 | W12 P1-BE-10..12 · W18-C2 PASS |
+| [TASK-016](TASK-016-tms-import-limits-steps.md) | TMS import limits + steps | P1 | Исправлена | be2 | W12 P1-BE-13..14 · W18-C2 PASS |
 | [TASK-017](TASK-017-messenger-membership-idor.md) | Messenger membership IDOR | P1 | Исправлена | be1 | W12 P1-BE-15..20 |
 | [TASK-018](TASK-018-ws-calls-authz-race.md) | WS race + scheduled calls authz | P1 | Исправлена | be1 | W12 P1-BE-21..22 |
-| [TASK-019](TASK-019-platform-ssrf-outbox-pool-config.md) | Platform SSRF/outbox/pool/config | P1 | На проверке | be2 | W12 P1-BE-23..26 |
-| [TASK-020](TASK-020-apigateway-webhook-create-contract.md) | Webhook secret once + allowlist | P1 | На проверке | be2 | W12 P1-BE-27..28 |
+| [TASK-019](TASK-019-platform-ssrf-outbox-pool-config.md) | Platform SSRF/outbox/pool/config | P1 | Открыта | be2 | W12 P1-BE-23..26 · W18-C2 FAIL |
+| [TASK-020](TASK-020-apigateway-webhook-create-contract.md) | Webhook secret once + allowlist | P1 | Исправлена | be2 | W12 P1-BE-27..28 · W18-C2 PASS |
 | [TASK-021](TASK-021-ai-policy-bot-authz.md) | AI policy + bot authz | P1 | Исправлена | be1 | W12 P1-BE-29..31 |
-| [TASK-022](TASK-022-search-nf03-softdelete.md) | Search soft-delete + private | P1 | На проверке | be2 | W12 P1-BE-32 |
-| [TASK-023](TASK-023-rbac-cache-gdpr.md) | RBAC cache + GDPR erase | P1 | На проверке | be1 | W12 P1-BE-33..34 |
-| [TASK-024](TASK-024-notif-integrations-storage-backup.md) | Notif/Git*/storage/backup/coffee | P1 | На проверке | be2 | W12 P1-BE-35..39,43 |
-| [TASK-025](TASK-025-ent-schema-constraints.md) | Ent unique/O2O constraints | P1 | На проверке | be1 | W12 P1-BE-40..42 |
+| [TASK-022](TASK-022-search-nf03-softdelete.md) | Search soft-delete + private | P1 | Исправлена | be2 | W12 P1-BE-32 · W18-C2 PASS |
+| [TASK-023](TASK-023-rbac-cache-gdpr.md) | RBAC cache + GDPR erase | P1 | Исправлена | be1 | W12 P1-BE-33..34 · W18-C3 PASS |
+| [TASK-024](TASK-024-notif-integrations-storage-backup.md) | Notif/Git*/storage/backup/coffee | P1 | Исправлена | be2 | W12 P1-BE-35..39,43 · W18-C2 PASS |
+| [TASK-025](TASK-025-ent-schema-constraints.md) | Ent unique/O2O constraints | P1 | Исправлена | be1 | W12 P1-BE-40..42 · W18-C3 PASS |
 | [TASK-026](TASK-026-fe-api-client-auth-retry.md) | FE api client auth retry | P1 | Исправлена | fe1 | W12 FE-P1-API-CLIENT |
 | [TASK-027](TASK-027-fe-callchat-ws-subscribe.md) | FE CallChat WS subscribe | P1 | Исправлена | fe1 | W12 FE-P1-CALLS-CHAT |
 | [TASK-028](TASK-028-fe-calls-join-create-lifecycle.md) | FE calls lifecycle | P1 | Исправлена | fe1 | W12 FE-P1-CALLS-LIFECYCLE |
@@ -43,15 +43,15 @@
 | [TASK-035](TASK-035-fe-tms-compare-and-docs-testpath.md) | FE TMS compare + docs drift | P1 | Исправлена | fe1 | W12 FE-P1-TMS-DOCS |
 | [TASK-036](TASK-036-be-p2-dto-error-contract.md) | BE DTO validator + error contract | P2 | На проверке | be2 | W12 P2-BE-01,07 |
 | [TASK-037](TASK-037-be-p2-authz-ent-negative-tests.md) | BE Ent-negative authz tests | P2 | На проверке | be2 | W12 P2-BE-02 |
-| [TASK-038](TASK-038-be-p2-ol-softdelete-tx-lists.md) | BE OL/soft-mutate/tx/lists | P2 | На проверке (partial) | be1 | W12 P2-BE-03..06 |
+| [TASK-038](TASK-038-be-p2-ol-softdelete-tx-lists.md) | BE OL/soft-mutate/tx/lists | P2 | Исправлена | be1 | W12 P2-BE-03..06 · W18-C3 PASS (partial residual OK) |
 | [TASK-039](TASK-039-be-p2-soft-delete-secrets.md) | BE soft-delete + secrets | P2 | На проверке | be2 | W12 P2-BE-08,09 |
-| [TASK-040](TASK-040-be-p2-fail-closed-ratelimit.md) | BE fail-closed + rate-limit | P2 | На проверке | be1 | W12 P2-BE-10 |
-| [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | На проверке | be1 | W12 P2-BE-11 |
-| [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | На проверке | be1 | W12 P2-BE-12..15 |
+| [TASK-040](TASK-040-be-p2-fail-closed-ratelimit.md) | BE fail-closed + rate-limit | P2 | Исправлена | be1 | W12 P2-BE-10 · W18-C3 PASS |
+| [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | Открыта | be1 | W12 P2-BE-11 · W18-C3 FAIL |
+| [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | Открыта | be1 | W12 P2-BE-12..15 · W18-C3 FAIL |
 | [TASK-043](TASK-043-be-p2-platform-outbox-obs.md) | BE platform outbox/obs | P2 | На проверке | be2 | W12 P2-BE-16 |
-| [TASK-044](TASK-044-be-p2-ai-search.md) | BE AI privacy + search | P2 | На проверке | be1 | W12 P2-BE-17,18 |
+| [TASK-044](TASK-044-be-p2-ai-search.md) | BE AI privacy + search | P2 | Открыта | be1 | W12 P2-BE-17,18 · W18-C3 FAIL |
 | [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | На проверке | be2 | W12 P2-BE-19..21 |
-| [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | На проверке | be1 | W12 P2-BE-22 |
+| [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Открыта | be1 | W12 P2-BE-22 · W18-C3 FAIL |
 | [TASK-047](TASK-047-fe-p2-error-vs-empty.md) | FE error≠empty sweep | P2 | Исправлена | fe1 | W12 P2-FE-01 |
 | [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | На проверке | fe2 | W12 P2-FE-02 |
 | [TASK-049](TASK-049-fe-p2-a11y-names-dialogs.md) | FE a11y names/dialogs | P2 | Исправлена | fe1 | W12 P2-FE-03,04 |

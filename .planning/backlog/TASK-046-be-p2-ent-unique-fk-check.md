@@ -1,6 +1,6 @@
 # TASK-046 — Ent unique/FK/CHECK (без VersionMixin ADR)
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
 > Источник: TASK-008 W12 · Classes: P2-BE-22 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,10 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [W18-C3 MUTATION — 2026-07-28 be2]
+
+**FAIL.** Evidence: `.planning/audits/total-2026-07/W18-C3-MUTATION.md`
+
+- `TestSchema_P2BE22_UniqueFKCheck` RED when Unique/CHECK strings removed from schema source — but test is **source grep only**, not Ent-runtime duplicate Create / XOR insert.
+- Insufficient vs ACCEPTANCE «duplicate (project,name)→unique; XOR debit/credit CHECK». Need enttest like TASK-025.

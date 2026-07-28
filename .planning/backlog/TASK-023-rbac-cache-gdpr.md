@@ -1,6 +1,6 @@
 ﻿# TASK-023 — RBAC cache invalidate + GDPR erase atomic
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P1-BE-33..34 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
 ## [OUTCOME]
@@ -59,3 +59,10 @@
 
 ### Tests
 `go test -tags hubtest -race -count=1 -timeout=300s ./testframework/rbac/... ./testframework/audit/...` → ok
+
+## [W18-C3 MUTATION — 2026-07-28 be2]
+
+**PASS.** Evidence: `.planning/audits/total-2026-07/W18-C3-MUTATION.md`
+
+- Demote: drop full-mask recheck → `TestDemoteAdmin_RequirePermission403_P1BE33` RED (200≠403); restore GREEN. Layer: Ent+miniredis.
+- GDPR: ignore cascade errors → `TestDeleteUserGDPR_FilesFailAbortsHardDelete_P1BE34` RED; restore GREEN. Guard in service (stub repo OK).

@@ -1,6 +1,6 @@
 # TASK-042 — Weak perm + messenger + WS revoke + calls guest
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
 > Источник: TASK-008 W12 · Classes: P2-BE-12..15 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -72,3 +72,12 @@
 ### Evidence
 
 - `go test -tags hubtest -race` packages: tracker/project/messenger/ws/calls (P2_BE_* filters) — PASS
+
+## [W18-C3 MUTATION — 2026-07-28 be2]
+
+**FAIL.** Evidence: `.planning/audits/total-2026-07/W18-C3-MUTATION.md`
+
+- CreateBoard PermTaskEdit→View → `TestCreateBoard_ViewerForbidden_P2_BE_12` RED ✓
+- Skip UnregisterBySession → `TestBridge_AuthRevoked_UnregistersClient_P2_BE_14` RED ✓
+- Invite code [:12]→[:8] → `TestCreateInstantCall_InviteCodeFullUUID_P2_BE_15` RED ✓
+- **Fail:** `via_invite: true→false` → `TestAcceptInvite_PayloadViaInviteBool_P2_BE_13` stays GREEN (handmade JSON map, AcceptInvite path does not assert production payload).

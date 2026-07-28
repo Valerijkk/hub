@@ -1,6 +1,6 @@
 # TASK-040 — Fail-closed defaults + rate-limit ZSET
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P2-BE-10 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,12 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [W18-C3 MUTATION — 2026-07-28 be2]
+
+**PASS.** Evidence: `.planning/audits/total-2026-07/W18-C3-MUTATION.md`
+
+- authz==nil→allowAll → `TestWSHandler_NilAuthorizer_RefusesUpgrade` RED
+- skip ZRem on 429 → `TestRateLimitRedis_RejectedDoesNotInflateZSET` RED (card 7≠2)
+- settings fail→open → `TestCheckRegistrationAllowed_SettingsFail_InviteOnly` RED  
+Restore GREEN.

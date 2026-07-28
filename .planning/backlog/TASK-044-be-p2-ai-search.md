@@ -1,6 +1,6 @@
 # TASK-044 — AI stream/privacy + search JQL/SSRF
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
 > Источник: TASK-008 W12 · Classes: P2-BE-17,P2-BE-18 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,12 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [W18-C3 MUTATION — 2026-07-28 be2]
+
+**FAIL.** Evidence: `.planning/audits/total-2026-07/W18-C3-MUTATION.md`
+
+- AllowExternalAI default false→true → `TestGetUserPreference_DefaultAllowExternalAIFalse` RED ✓
+- Drop `issue.Or` wrap → `TestToEntPredicates_ORBuildsUnion` RED ✓
+- **Fail:** no hubtest for Meili SSRF (`MEILI_HOST=http://169.254.169.254` → nil indexer)
+- **Fail:** no hubtest for stream cancel mid-read (`adapter_stream` ctx.Err)
