@@ -19,9 +19,16 @@ import (
 // ---------------------------------------------------------------------------
 
 // LogTime записывает вручную введённое время на задачу.
+// W1-A3-006: TimeLog + AddTimeSpentMinutes в одной tx — иначе orphan log без суммы (или наоборот).
 func (r *EntRepository) LogTime(ctx context.Context, issueID, userID uuid.UUID, minutes int, description string) (*ent.TimeLog, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin log time tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	now := time.Now()
-	create := r.client.TimeLog.Create().
+	create := tx.TimeLog.Create().
 		SetIssueID(issueID).
 		SetUserID(userID).
 		SetMinutes(minutes).
@@ -37,14 +44,20 @@ func (r *EntRepository) LogTime(ctx context.Context, issueID, userID uuid.UUID, 
 		return nil, fmt.Errorf("запись времени: %w", err)
 	}
 
-	// Обновляем суммарное время на задаче
-	err = r.client.Issue.UpdateOneID(issueID).
+	err = tx.Issue.UpdateOneID(issueID).
+		Where(issue.DeletedAtIsNil()).
 		AddTimeSpentMinutes(minutes).
 		Exec(ctx)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
 		return nil, fmt.Errorf("обновление суммарного времени: %w", err)
 	}
 
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit log time: %w", err)
+	}
 	return tl, nil
 }
 
@@ -108,9 +121,16 @@ func (r *EntRepository) StartTimer(ctx context.Context, issueID, userID uuid.UUI
 }
 
 // StopTimer останавливает запущенный таймер и записывает прошедшее время.
+// W1-A3-006: закрытие таймера + AddTimeSpentMinutes в одной tx.
 func (r *EntRepository) StopTimer(ctx context.Context, issueID, userID uuid.UUID) (*ent.TimeLog, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin stop timer tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	// Ищем открытый таймер (ended_at is nil, started_at задан — не manual LogTime).
-	openTimer, err := r.client.TimeLog.Query().
+	openTimer, err := tx.TimeLog.Query().
 		Where(
 			timelog.HasIssueWith(issue.IDEQ(issueID)),
 			timelog.HasUserWith(user.IDEQ(userID)),
@@ -131,8 +151,7 @@ func (r *EntRepository) StopTimer(ctx context.Context, issueID, userID uuid.UUID
 		elapsed = 1
 	}
 
-	// Обновляем таймер
-	tl, err := r.client.TimeLog.UpdateOneID(openTimer.ID).
+	tl, err := tx.TimeLog.UpdateOneID(openTimer.ID).
 		SetEndedAt(now).
 		SetMinutes(elapsed).
 		Save(ctx)
@@ -140,14 +159,20 @@ func (r *EntRepository) StopTimer(ctx context.Context, issueID, userID uuid.UUID
 		return nil, fmt.Errorf("остановка таймера: %w", err)
 	}
 
-	// Обновляем суммарное время на задаче
-	err = r.client.Issue.UpdateOneID(issueID).
+	err = tx.Issue.UpdateOneID(issueID).
+		Where(issue.DeletedAtIsNil()).
 		AddTimeSpentMinutes(elapsed).
 		Exec(ctx)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
 		return nil, fmt.Errorf("обновление суммарного времени: %w", err)
 	}
 
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit stop timer: %w", err)
+	}
 	return tl, nil
 }
 

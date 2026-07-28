@@ -313,10 +313,12 @@ func applyListIssuesCursorFilter(query *ent.IssueQuery, cursorIssue *ent.Issue, 
 // UpdateIssue обновляет задачу с оптимистичной блокировкой по полю version.
 // Возвращает ошибку конфликта при несовпадении версий.
 func (r *EntRepository) UpdateIssue(ctx context.Context, issueID uuid.UUID, input UpdateIssueInput) (*ent.Issue, error) {
+	// W1-A3-005: DeletedAtIsNil — иначе зная ID+version можно править задачу в корзине.
 	update := r.client.Issue.Update().
 		Where(
 			issue.IDEQ(issueID),
 			issue.VersionEQ(input.Version),
+			issue.DeletedAtIsNil(),
 		).
 		AddVersion(1)
 
@@ -362,6 +364,15 @@ func (r *EntRepository) UpdateIssue(ctx context.Context, issueID uuid.UUID, inpu
 		return nil, fmt.Errorf("обновление задачи: %w", err)
 	}
 	if affected == 0 {
+		alive, existErr := r.client.Issue.Query().
+			Where(issue.IDEQ(issueID), issue.DeletedAtIsNil()).
+			Exist(ctx)
+		if existErr != nil {
+			return nil, fmt.Errorf("проверка задачи после conflict: %w", existErr)
+		}
+		if !alive {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
 		return nil, apperrors.NewConflict("version mismatch: задача была изменена другим пользователем")
 	}
 
@@ -401,8 +412,9 @@ func (r *EntRepository) DeleteIssue(ctx context.Context, issueID uuid.UUID) erro
 }
 
 // MoveIssue перемещает задачу в другой статус и обновляет ранг (для Kanban drag-and-drop).
+// W1-A3-004 / W1-A2-007: VersionEQ + DeletedAtIsNil + AddVersion — без guard concurrent drag = last-write-wins.
 // Публикует outbox-событие project.{projectID}.issue.moved.
-func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string) (*ent.Issue, error) {
+func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string, expectedVersion int) (*ent.Issue, error) {
 	// Получаем текущий статус до обновления для события.
 	current, err := r.FindIssueByID(ctx, issueID)
 	if err != nil {
@@ -413,12 +425,30 @@ func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, status
 		oldStatusID = current.Edges.Status.ID.String()
 	}
 
-	err = r.client.Issue.UpdateOneID(issueID).
+	affected, err := r.client.Issue.Update().
+		Where(
+			issue.IDEQ(issueID),
+			issue.VersionEQ(expectedVersion),
+			issue.DeletedAtIsNil(),
+		).
 		SetStatusID(statusID).
 		SetRank(rank).
-		Exec(ctx)
+		AddVersion(1).
+		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("перемещение задачи: %w", err)
+	}
+	if affected == 0 {
+		alive, existErr := r.client.Issue.Query().
+			Where(issue.IDEQ(issueID), issue.DeletedAtIsNil()).
+			Exist(ctx)
+		if existErr != nil {
+			return nil, fmt.Errorf("проверка задачи после move conflict: %w", existErr)
+		}
+		if !alive {
+			return nil, apperrors.NewNotFound("задача не найдена")
+		}
+		return nil, apperrors.NewConflict("version mismatch: задача была изменена другим пользователем")
 	}
 
 	moved, err := r.FindIssueByID(ctx, issueID)

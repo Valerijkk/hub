@@ -234,15 +234,19 @@ func (m *mockRepo) DeleteIssue(_ context.Context, issueID uuid.UUID) error {
 	return nil
 }
 
-func (m *mockRepo) MoveIssue(_ context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string) (*ent.Issue, error) {
+func (m *mockRepo) MoveIssue(_ context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string, expectedVersion int) (*ent.Issue, error) {
 	i, ok := m.issues[issueID]
 	if !ok {
 		return nil, &ent.NotFoundError{}
+	}
+	if expectedVersion > 0 && i.Version != expectedVersion {
+		return nil, apperrors.NewConflict("version mismatch")
 	}
 	if st, ok := m.statuses[statusID]; ok {
 		i.Edges.Status = st
 	}
 	i.Rank = rank
+	i.Version++
 	return i, nil
 }
 

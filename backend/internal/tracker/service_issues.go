@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -354,8 +355,12 @@ func (s *TrackerService) MoveIssue(ctx context.Context, projectID uuid.UUID, iss
 		}
 	}
 
-	moved, err := s.repo.MoveIssue(ctx, existing.ID, newStatusID, req.Rank)
+	moved, err := s.repo.MoveIssue(ctx, existing.ID, newStatusID, req.Rank, existing.Version)
 	if err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return nil, err
+		}
 		return nil, apperrors.NewInternal("ошибка перемещения задачи")
 	}
 

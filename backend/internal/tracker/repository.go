@@ -29,7 +29,8 @@ type IssueRepository interface {
 	// DeleteIssue удаляет задачу по ID.
 	DeleteIssue(ctx context.Context, issueID uuid.UUID) error
 	// MoveIssue изменяет статус и ранг задачи (перемещение на Kanban-доске).
-	MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string) (*ent.Issue, error)
+	// expectedVersion — optimistic lock (W1-A3-004): без VersionEQ concurrent drag → last-write-wins.
+	MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string, expectedVersion int) (*ent.Issue, error)
 }
 
 // IssueLinkRepository управляет направленными связями между задачами.

@@ -149,7 +149,7 @@ func TestEntRepository_DeleteAndMoveIssue(t *testing.T) {
 	done, err := env.repo.CreateWorkflowStatus(env.ctx, env.projectID, "Done2", "done", "#0F0", 50)
 	require.NoError(t, err)
 
-	moved, err := env.repo.MoveIssue(env.ctx, issue.ID, done.ID, "rank-1")
+	moved, err := env.repo.MoveIssue(env.ctx, issue.ID, done.ID, "rank-1", issue.Version)
 	require.NoError(t, err)
 	assert.Equal(t, done.ID, moved.Edges.Status.ID)
 
