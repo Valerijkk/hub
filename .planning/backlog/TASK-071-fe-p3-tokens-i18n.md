@@ -1,6 +1,6 @@
 # TASK-071 — FE tokens + i18n primitives
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P3-FE-03,P3-FE-04 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P3-FRONTEND.md`
 
 ## [OUTCOME]

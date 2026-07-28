@@ -1,4 +1,5 @@
 import { Children, cloneElement, isValidElement, useId } from "react";
+import { useTranslation } from "react-i18next";
 
 /** Поле формы с лейблом — переиспользуемый компонент. */
 export function FormField({
@@ -14,6 +15,7 @@ export function FormField({
 	required?: boolean;
 	hint?: string;
 }) {
+	const { t } = useTranslation("common");
 	const autoId = useId();
 	const hintId = hint ? `${htmlFor || autoId}-hint` : undefined;
 
@@ -48,7 +50,7 @@ export function FormField({
 				{label}
 				{required && (
 					<span className="text-red ml-0.5">
-						*<span className="sr-only"> (обязательно)</span>
+						*<span className="sr-only"> ({t("validation.required")})</span>
 					</span>
 				)}
 			</label>

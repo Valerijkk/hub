@@ -353,7 +353,7 @@ function StarIcon({ filled }: { filled: boolean }) {
 			aria-hidden="true"
 			className={cn(
 				"h-3.5 w-3.5",
-				filled ? "text-yellow-400" : "text-sidebar-foreground/40",
+				filled ? "text-[var(--amber)]" : "text-sidebar-foreground/40",
 			)}
 			fill={filled ? "currentColor" : "none"}
 			viewBox="0 0 24 24"

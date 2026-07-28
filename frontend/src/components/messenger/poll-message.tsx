@@ -172,7 +172,7 @@ export function PollMessage({ pollId, channelId }: PollMessageProps) {
 							{poll.is_anonymous && <span>Анонимное</span>}
 							{poll.is_multi_choice && <span>Несколько вариантов</span>}
 							{poll.is_closed && (
-								<span className="flex items-center gap-0.5 text-orange-500">
+								<span className="flex items-center gap-0.5 text-[var(--orange)]">
 									<Lock className="h-3 w-3" />
 									Завершён
 								</span>
@@ -280,7 +280,7 @@ export function PollMessage({ pollId, channelId }: PollMessageProps) {
 						type="button"
 						onClick={() => void handleClose()}
 						disabled={voting}
-						className="text-[11px] font-medium text-orange-500 hover:text-orange-600 transition-colors disabled:opacity-50"
+						className="text-[11px] font-medium text-[var(--orange)] hover:text-[var(--orange)]/80 transition-colors disabled:opacity-50"
 					>
 						Закрыть голосование
 					</button>

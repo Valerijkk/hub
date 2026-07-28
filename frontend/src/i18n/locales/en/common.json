@@ -67,6 +67,7 @@
 	},
 	"search": {
 		"globalSearch": "Global search",
+		"globalSearchDesc": "Search issues, projects, test cases, and messages",
 		"placeholder": "Search...",
 		"placeholderExtended": "Search issues, projects, people…",
 		"noResults": "No results found",
@@ -119,6 +120,8 @@
 		"pageNotFound": "Page not found",
 		"somethingWrong": "Something went wrong",
 		"tryRefresh": "Try refreshing the page",
+		"renderFailed": "An error occurred while rendering this section. Try again or refresh the page.",
+		"tryAgain": "Try again",
 		"goHome": "Go to home",
 		"updateFailed": "Update failed",
 		"saveFailed": "Save failed",
@@ -238,6 +241,7 @@
 		"statusesMustDiffer": "Statuses must be different",
 		"pushPermissionDenied": "Browser denied notification permission",
 		"pushSubscribeFailed": "Failed to subscribe to notifications",
-		"objectNotFound": "Object not found"
+		"objectNotFound": "Object not found",
+		"required": "required"
 	}
 }

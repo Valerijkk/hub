@@ -183,7 +183,7 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 				<>
 					{/* Индикатор записи */}
 					<div className="flex items-center gap-2">
-						<span className="h-3 w-3 animate-pulse rounded-full bg-red-500" />
+						<span className="h-3 w-3 animate-pulse rounded-full bg-[var(--red)]" />
 						<span className="text-sm font-medium">
 							{formatDuration(duration)}
 						</span>

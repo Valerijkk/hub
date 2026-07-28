@@ -75,8 +75,8 @@
 | [TASK-067](TASK-067-be-p3-v4-dev-storage.md) | BE v4/dev/storage | P3 | Исправлена | be1 | W12 P3-BE-15,16 |
 | [TASK-068](TASK-068-be-p3-ent-hygiene-mojibake.md) | BE Ent hygiene/mojibake | P3 | Исправлена | be2 | W12 P3-BE-17,18 |
 | [TASK-069](TASK-069-fe-p3-a11y-names.md) | FE a11y names residual | P3 | Исправлена | fe1 | W12 P3-FE-01 |
-| [TASK-070](TASK-070-fe-p3-a11y-structure.md) | FE a11y structure | P3 | Открыта | fe2 | W12 P3-FE-02 |
-| [TASK-071](TASK-071-fe-p3-tokens-i18n.md) | FE tokens + i18n | P3 | Открыта | fe1 | W12 P3-FE-03,04 |
+| [TASK-070](TASK-070-fe-p3-a11y-structure.md) | FE a11y structure | P3 | Исправлена | fe1 | W12 P3-FE-02 |
+| [TASK-071](TASK-071-fe-p3-tokens-i18n.md) | FE tokens + i18n | P3 | Исправлена | fe1 | W12 P3-FE-03,04 |
 | [TASK-072](TASK-072-fe-p3-timers-cleanup.md) | FE timers + NaN | P3 | Исправлена | fe2 | W12 P3-FE-05,16 |
 | [TASK-073](TASK-073-fe-p3-silent-fail-empty.md) | FE silent fail residual | P3 | Исправлена | fe2 | W12 P3-FE-06 |
 | [TASK-074](TASK-074-fe-p3-type-casts.md) | FE type casts | P3 | Исправлена | fe2 | W12 P3-FE-07 |

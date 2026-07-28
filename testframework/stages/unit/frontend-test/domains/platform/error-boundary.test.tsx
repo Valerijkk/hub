@@ -1,12 +1,17 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import i18n from "@/i18n";
 
 function BrokenChild(): never {
 	throw new Error("render boom");
 }
 
 describe("ErrorBoundary", () => {
+	beforeEach(async () => {
+		await i18n.changeLanguage("ru");
+	});
+
 	it("renders children when there is no error", () => {
 		render(
 			<ErrorBoundary>
@@ -26,9 +31,11 @@ describe("ErrorBoundary", () => {
 			</ErrorBoundary>,
 		);
 
-		expect(screen.getByText("Что-то пошло не так")).toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: "Обновить" }),
+			screen.getByText(i18n.t("error.somethingWrong")),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: i18n.t("btn.refresh") }),
 		).toBeInTheDocument();
 
 		consoleSpy.mockRestore();
@@ -60,7 +67,9 @@ describe("ErrorBoundary", () => {
 			</ErrorBoundary>,
 		);
 
-		fireEvent.click(screen.getByRole("button", { name: "Обновить" }));
+		fireEvent.click(
+			screen.getByRole("button", { name: i18n.t("btn.refresh") }),
+		);
 
 		expect(reloadSpy).toHaveBeenCalledOnce();
 

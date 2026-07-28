@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import { Component } from "react";
+import { useTranslation } from "react-i18next";
+
+import "@/i18n";
 
 interface Props {
 	children: ReactNode;
@@ -10,6 +13,37 @@ interface Props {
 
 interface State {
 	hasError: boolean;
+}
+
+function DefaultErrorFallback({ onSoftReset }: { onSoftReset: () => void }) {
+	const { t } = useTranslation("common");
+	return (
+		<div
+			role="alert"
+			className="flex flex-col items-center justify-center gap-3 p-8 text-center"
+		>
+			<p className="text-[15px] font-semibold text-t1">
+				{t("error.somethingWrong")}
+			</p>
+			<p className="text-[13px] text-t3 max-w-md">{t("error.renderFailed")}</p>
+			<div className="flex gap-2">
+				<button
+					type="button"
+					onClick={onSoftReset}
+					className="rounded-[var(--r2)] bg-primary px-4 py-2 text-[13px] font-medium text-primary-foreground hover:bg-primary/90"
+				>
+					{t("error.tryAgain")}
+				</button>
+				<button
+					type="button"
+					onClick={() => window.location.reload()}
+					className="rounded-[var(--r2)] border border-b1 px-4 py-2 text-[13px] text-t2 hover:text-t1"
+				>
+					{t("btn.refresh")}
+				</button>
+			</div>
+		</div>
+	);
 }
 
 /**
@@ -46,34 +80,7 @@ export class ErrorBoundary extends Component<Props, State> {
 		if (this.state.hasError) {
 			return (
 				this.props.fallback ?? (
-					<div
-						role="alert"
-						className="flex flex-col items-center justify-center gap-3 p-8 text-center"
-					>
-						<p className="text-[15px] font-semibold text-t1">
-							Что-то пошло не так
-						</p>
-						<p className="text-[13px] text-t3 max-w-md">
-							Произошла ошибка при отображении раздела. Попробуйте снова или
-							обновите страницу.
-						</p>
-						<div className="flex gap-2">
-							<button
-								type="button"
-								onClick={this.softReset}
-								className="rounded-[var(--r2)] bg-primary px-4 py-2 text-[13px] font-medium text-primary-foreground hover:bg-primary/90"
-							>
-								Попробовать снова
-							</button>
-							<button
-								type="button"
-								onClick={() => window.location.reload()}
-								className="rounded-[var(--r2)] border border-b1 px-4 py-2 text-[13px] text-t2 hover:text-t1"
-							>
-								Обновить
-							</button>
-						</div>
-					</div>
+					<DefaultErrorFallback onSoftReset={this.softReset} />
 				)
 			);
 		}

@@ -1,6 +1,7 @@
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 
 import {
 	Dialog,
@@ -29,13 +30,14 @@ function CommandDialog({
 	children,
 	...props
 }: React.ComponentProps<typeof Dialog>) {
+	const { t } = useTranslation("common");
 	return (
 		<Dialog {...props}>
 			{/* Keep DialogDescription association — do not set aria-describedby={undefined} (W9-A5-005). */}
 			<DialogContent className="top-[18%] max-w-xl translate-y-0 overflow-hidden p-0 [&>button]:hidden">
-				<DialogTitle className="sr-only">Глобальный поиск</DialogTitle>
+				<DialogTitle className="sr-only">{t("search.globalSearch")}</DialogTitle>
 				<DialogDescription className="sr-only">
-					Поиск по задачам, проектам, тест-кейсам и сообщениям
+					{t("search.globalSearchDesc")}
 				</DialogDescription>
 				<Command
 					shouldFilter={false}

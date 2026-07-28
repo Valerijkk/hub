@@ -1,6 +1,7 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,16 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
+function DialogCloseControl() {
+	const { t } = useTranslation("common");
+	return (
+		<DialogPrimitive.Close className="absolute right-4 top-4 rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:text-t1 hover:bg-[var(--hover)] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+			<X className="h-4 w-4" aria-hidden="true" />
+			<span className="sr-only">{t("btn.close")}</span>
+		</DialogPrimitive.Close>
+	);
+}
+
 const DialogContent = React.forwardRef<
 	React.ElementRef<typeof DialogPrimitive.Content>,
 	React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
@@ -42,10 +53,7 @@ const DialogContent = React.forwardRef<
 			{...props}
 		>
 			{children}
-			<DialogPrimitive.Close className="absolute right-4 top-4 rounded-[var(--r1)] text-t3 transition-colors duration-150 hover:text-t1 hover:bg-[var(--hover)] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-				<X className="h-4 w-4" />
-				<span className="sr-only">Close</span>
-			</DialogPrimitive.Close>
+			<DialogCloseControl />
 		</DialogPrimitive.Content>
 	</DialogPortal>
 ));
