@@ -74,9 +74,12 @@ export function ConfirmDialog({
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>{title}</AlertDialogTitle>
-					{description && (
-						<AlertDialogDescription>{description}</AlertDialogDescription>
-					)}
+					{/* Always render Description so Radix associates aria-describedby (W9-A5-004). */}
+					<AlertDialogDescription
+						className={description ? undefined : "sr-only"}
+					>
+						{description ?? title}
+					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel disabled={busy}>{cancelLabel}</AlertDialogCancel>

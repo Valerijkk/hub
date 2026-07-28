@@ -31,10 +31,8 @@ function CommandDialog({
 }: React.ComponentProps<typeof Dialog>) {
 	return (
 		<Dialog {...props}>
-			<DialogContent
-				className="top-[18%] max-w-xl translate-y-0 overflow-hidden p-0 [&>button]:hidden"
-				aria-describedby={undefined}
-			>
+			{/* Keep DialogDescription association — do not set aria-describedby={undefined} (W9-A5-005). */}
+			<DialogContent className="top-[18%] max-w-xl translate-y-0 overflow-hidden p-0 [&>button]:hidden">
 				<DialogTitle className="sr-only">Глобальный поиск</DialogTitle>
 				<DialogDescription className="sr-only">
 					Поиск по задачам, проектам, тест-кейсам и сообщениям

@@ -65,10 +65,25 @@ function ReassignDialog({
 }: ReassignDialogProps) {
 	const [targetId, setTargetId] = useState("");
 
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") onClose();
+		};
+		document.addEventListener("keydown", onKey);
+		return () => document.removeEventListener("keydown", onKey);
+	}, [onClose]);
+
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-			<div className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
-				<h3 className="mb-4 text-[16px] font-bold">Переназначить задачи</h3>
+			<div
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="reassign-dialog-title"
+				className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]"
+			>
+				<h3 id="reassign-dialog-title" className="mb-4 text-[16px] font-bold">
+					Переназначить задачи
+				</h3>
 				<p className="mb-3 text-[13px] text-t2">
 					Все задачи пользователя <strong>{user.name || user.email}</strong>{" "}
 					будут переназначены.
@@ -122,10 +137,26 @@ function GdprDeleteDialog({
 }: GdprDeleteDialogProps) {
 	const [confirmText, setConfirmText] = useState("");
 
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") onClose();
+		};
+		document.addEventListener("keydown", onKey);
+		return () => document.removeEventListener("keydown", onKey);
+	}, [onClose]);
+
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-			<div className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
-				<h3 className="mb-2 text-[16px] font-bold text-red">
+			<div
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="gdpr-dialog-title"
+				className="w-96 rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]"
+			>
+				<h3
+					id="gdpr-dialog-title"
+					className="mb-2 text-[16px] font-bold text-red"
+				>
 					Удаление данных (GDPR)
 				</h3>
 				<p className="mb-2 text-[13px] text-t2">
@@ -190,6 +221,18 @@ export function UserManagement() {
 	const [regMode, setRegMode] = useState<RegistrationMode>("invite_only");
 	const [regModeLoading, setRegModeLoading] = useState(true);
 	const [regModeSaving, setRegModeSaving] = useState(false);
+
+	useEffect(() => {
+		if (!banDialogUser) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				setBanDialogUser(null);
+				setBanReason("");
+			}
+		};
+		document.addEventListener("keydown", onKey);
+		return () => document.removeEventListener("keydown", onKey);
+	}, [banDialogUser]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -619,8 +662,16 @@ export function UserManagement() {
 			{/* Диалог блокировки */}
 			{banDialogUser && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-					<div className="w-[420px] rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]">
-						<h3 className="mb-2 text-[16px] font-bold text-red">
+					<div
+						role="dialog"
+						aria-modal="true"
+						aria-labelledby="ban-dialog-title"
+						className="w-[420px] rounded-[var(--r3)] bg-[var(--card)] border border-b1 p-6 shadow-[var(--sh3)]"
+					>
+						<h3
+							id="ban-dialog-title"
+							className="mb-2 text-[16px] font-bold text-red"
+						>
 							Блокировка пользователя
 						</h3>
 						<p className="mb-3 text-[13px] text-t2">
