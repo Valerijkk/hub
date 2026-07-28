@@ -28,8 +28,6 @@ func (LedgerAccount) Fields() []ent.Field {
 			Values("asset", "liability", "equity", "revenue", "expense"),
 		field.Bool("is_active").
 			Default(true),
-		field.Int("version").
-			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -41,6 +39,13 @@ func (LedgerAccount) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (LedgerAccount) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (LedgerAccount) Edges() []ent.Edge {
 	return []ent.Edge{

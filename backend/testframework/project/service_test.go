@@ -122,6 +122,7 @@ func (m *mockRepo) Create(_ context.Context, name, key, description string, owne
 		Key:         key,
 		Description: description,
 		Status:      entproject.StatusActive,
+		Version:     1,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -136,9 +137,15 @@ func (m *mockRepo) Create(_ context.Context, name, key, description string, owne
 	return p, nil
 }
 
-func (m *mockRepo) Update(_ context.Context, id uuid.UUID, name, description, avatarURL *string) (*ent.Project, error) {
+func (m *mockRepo) Update(_ context.Context, id uuid.UUID, version int, name, description, avatarURL *string) (*ent.Project, error) {
 	p, ok := m.projects[id]
 	if !ok {
+		return nil, notFoundErr()
+	}
+	if p.Version == 0 {
+		p.Version = 1
+	}
+	if p.Version != version {
 		return nil, notFoundErr()
 	}
 	if name != nil {
@@ -150,6 +157,7 @@ func (m *mockRepo) Update(_ context.Context, id uuid.UUID, name, description, av
 	if avatarURL != nil {
 		p.AvatarURL = *avatarURL
 	}
+	p.Version++
 	p.UpdatedAt = time.Now()
 	return p, nil
 }

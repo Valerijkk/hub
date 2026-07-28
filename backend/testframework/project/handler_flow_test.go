@@ -122,7 +122,7 @@ func TestHandler_UpdateProject(t *testing.T) {
 	app, _ := setupProjectHandlerApp(t)
 	created := createProjectViaHandler(t, app, "UPDH")
 
-	body := `{"name":"Updated Name","description":"new desc"}`
+	body := `{"name":"Updated Name","description":"new desc","version":1}`
 	req := httptest.NewRequest(http.MethodPut, "/api/projects/"+created.ID, bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)

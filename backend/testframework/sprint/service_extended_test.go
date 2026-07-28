@@ -35,7 +35,7 @@ func TestUpdateSprint_Success(t *testing.T) {
 	repo.sprintProject[sprintID] = projectID
 
 	newName := "Sprint 1 updated"
-	resp, err := svc.UpdateSprint(ctx, projectID, sprintID, sprint.UpdateSprintRequest{Name: &newName})
+	resp, err := svc.UpdateSprint(ctx, projectID, sprintID, sprint.UpdateSprintRequest{Name: &newName, Version: 1})
 	require.NoError(t, err)
 	assert.Equal(t, "Sprint 1 updated", resp.Name)
 }

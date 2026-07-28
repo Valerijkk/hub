@@ -85,6 +85,7 @@ type CreateCommentRequest struct {
 type UpdateCommentRequest struct {
 	BodyJSON map[string]interface{} `json:"body_json" validate:"required"`
 	BodyText string                 `json:"body_text" validate:"required"`
+	Version  int                    `json:"version" validate:"required,min=1"`
 }
 
 // LogTimeRequest — тело запроса на списание времени на задачу.
@@ -242,6 +243,7 @@ type CommentResponse struct {
 	Mentions   []string               `json:"mentions,omitempty"`
 	Author     UserBriefResponse      `json:"author"`
 	Reactions  []ReactionResponse     `json:"reactions,omitempty"`
+	Version    int                    `json:"version"`
 	CreatedAt  time.Time              `json:"created_at"`
 	UpdatedAt  time.Time              `json:"updated_at"`
 }

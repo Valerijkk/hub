@@ -32,8 +32,6 @@ func (LeaveRequest) Fields() []ent.Field {
 			Optional(),
 		field.Text("review_note").
 			Optional(),
-		field.Int("version").
-			Default(1),
 		field.Time("reviewed_at").
 			Optional().
 			Nillable(),
@@ -45,6 +43,13 @@ func (LeaveRequest) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (LeaveRequest) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (LeaveRequest) Edges() []ent.Edge {
 	return []ent.Edge{

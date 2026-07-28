@@ -197,6 +197,7 @@ type UpdateChannelInput struct {
 	Name        *string
 	Description *string
 	IsReadonly  *bool
+	Version     int
 }
 
 // CreateChannelInviteInput — данные для создания пригласительной ссылки.

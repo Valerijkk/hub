@@ -162,16 +162,26 @@ func (s *ProjectService) ListProjects(ctx context.Context, userID uuid.UUID, inc
 
 // UpdateProject обновляет имя, описание или аватар проекта.
 // W1-A5-007 / P2-BE-12: avatar_url — только https/http или относительный путь `/…`.
+// TASK-095: version обязателен; VersionEQ в repo → 409 при conflict.
 func (s *ProjectService) UpdateProject(ctx context.Context, projectID uuid.UUID, req UpdateProjectRequest) (*ProjectResponse, error) {
+	if req.Version < 1 {
+		return nil, apperrors.NewBadRequest("version обязателен и должен быть ≥ 1")
+	}
 	if req.AvatarURL != nil {
 		if err := validateProjectAvatarURL(*req.AvatarURL); err != nil {
 			return nil, apperrors.NewBadRequest("invalid avatar_url")
 		}
 	}
-	p, err := s.repo.Update(ctx, projectID, req.Name, req.Description, req.AvatarURL)
-	if err != nil {
+	if _, err := s.repo.FindByID(ctx, projectID); err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("project not found")
+		}
+		return nil, apperrors.NewInternal("failed to get project")
+	}
+	p, err := s.repo.Update(ctx, projectID, req.Version, req.Name, req.Description, req.AvatarURL)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewConflict("version mismatch: проект был изменён другим пользователем")
 		}
 		return nil, apperrors.NewInternal("failed to update project")
 	}
@@ -491,6 +501,7 @@ func toProjectResponse(p *ent.Project, memberCount int, myRole string) *ProjectR
 		Status:      string(p.Status),
 		MemberCount: memberCount,
 		MyRole:      myRole,
+		Version:     p.Version,
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
 	}

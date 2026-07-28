@@ -55,7 +55,7 @@ func TestUpdateProject_Success(t *testing.T) {
 	newDesc := "updated"
 	updated, err := svc.UpdateProject(ctx, projectID, project.UpdateProjectRequest{
 		Name:        &newName,
-		Description: &newDesc,
+		Description: &newDesc, Version: 1,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "New Name", updated.Name)
@@ -373,7 +373,8 @@ func TestListMembers_ReturnsAll(t *testing.T) {
 func TestUpdateProject_NotFound(t *testing.T) {
 	svc, _, _ := newTestService()
 	name := "nope"
-	_, err := svc.UpdateProject(context.Background(), uuid.New(), project.UpdateProjectRequest{Name: &name})
+	_, err := svc.UpdateProject(context.Background(), uuid.New(), project.UpdateProjectRequest{Name: &name, Version: 1,
+	})
 	require.Error(t, err)
 }
 

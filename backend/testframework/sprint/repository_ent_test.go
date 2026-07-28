@@ -117,7 +117,7 @@ func TestEntRepository_SprintCRUD(t *testing.T) {
 	require.Len(t, list, 1)
 
 	newName := "Renamed"
-	updated, err := env.repo.UpdateSprint(env.ctx, created.ID, sprint.UpdateSprintRequest{Name: &newName})
+	updated, err := env.repo.UpdateSprint(env.ctx, created.ID, sprint.UpdateSprintRequest{Name: &newName, Version: 1})
 	require.NoError(t, err)
 	assert.Equal(t, "Renamed", updated.Name)
 

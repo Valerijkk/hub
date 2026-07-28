@@ -77,7 +77,11 @@ func (r *EntRepository) ListUserChannels(ctx context.Context, userID uuid.UUID) 
 
 // UpdateChannel обновляет данные канала.
 func (r *EntRepository) UpdateChannel(ctx context.Context, channelID uuid.UUID, input UpdateChannelInput) (*ent.Channel, error) {
-	q := r.client.Channel.UpdateOneID(channelID).Where(channel.DeletedAtIsNil())
+	// TASK-095: VersionEQ + AddVersion — optimistic lock (NFR-24).
+	q := r.client.Channel.UpdateOneID(channelID).Where(
+		channel.DeletedAtIsNil(),
+		channel.VersionEQ(input.Version),
+	).AddVersion(1)
 	if input.Name != nil {
 		q.SetName(*input.Name)
 	}

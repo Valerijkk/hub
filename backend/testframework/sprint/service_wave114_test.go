@@ -12,7 +12,7 @@ import (
 func TestUpdateSprint_NotFound(t *testing.T) {
 	svc := sprint.NewSprintService(newMockRepository(), nil, nil)
 	name := "Missing"
-	_, err := svc.UpdateSprint(context.Background(), uuid.New(), uuid.New(), sprint.UpdateSprintRequest{Name: &name})
+	_, err := svc.UpdateSprint(context.Background(), uuid.New(), uuid.New(), sprint.UpdateSprintRequest{Name: &name, Version: 1})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }

@@ -44,8 +44,6 @@ func (Invoice) Fields() []ent.Field {
 		field.Time("paid_at").
 			Optional().
 			Nillable(),
-		field.Int("version").
-			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -57,6 +55,13 @@ func (Invoice) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (Invoice) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 func (Invoice) Edges() []ent.Edge {
 	return []ent.Edge{

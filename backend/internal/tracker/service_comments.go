@@ -71,7 +71,11 @@ func (s *TrackerService) ListComments(ctx context.Context, projectID uuid.UUID, 
 }
 
 // UpdateComment обновляет комментарий автора на задаче (A3-011).
+// TASK-095: version обязателен; VersionEQ в repo → 409 при conflict.
 func (s *TrackerService) UpdateComment(ctx context.Context, projectID uuid.UUID, issueKey string, userID, commentID uuid.UUID, req UpdateCommentRequest) (*CommentResponse, error) {
+	if req.Version < 1 {
+		return nil, apperrors.NewBadRequest("version обязателен и должен быть ≥ 1")
+	}
 	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -82,11 +86,12 @@ func (s *TrackerService) UpdateComment(ctx context.Context, projectID uuid.UUID,
 	input := UpdateCommentInput{
 		BodyJSON: req.BodyJSON,
 		BodyText: req.BodyText,
+		Version:  req.Version,
 	}
 	c, err := s.repo.UpdateComment(ctx, existing.ID, userID, commentID, input)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, apperrors.NewNotFound("комментарий не найден")
+			return nil, apperrors.NewConflict("version mismatch: комментарий был изменён другим пользователем")
 		}
 		return nil, apperrors.NewInternal("ошибка обновления комментария")
 	}

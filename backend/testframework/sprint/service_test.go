@@ -49,6 +49,7 @@ func (m *mockRepository) CreateSprint(_ context.Context, projectID uuid.UUID, re
 		Status:    sprintEnt.StatusPlanning,
 		StartDate: req.StartDate,
 		EndDate:   req.EndDate,
+		Version:   1,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -89,6 +90,12 @@ func (m *mockRepository) UpdateSprint(_ context.Context, sprintID uuid.UUID, req
 	if !ok {
 		return nil, &ent.NotFoundError{}
 	}
+	if s.Version == 0 {
+		s.Version = 1
+	}
+	if s.Version != req.Version {
+		return nil, &ent.NotFoundError{}
+	}
 	if req.Name != nil {
 		s.Name = *req.Name
 	}
@@ -101,6 +108,7 @@ func (m *mockRepository) UpdateSprint(_ context.Context, sprintID uuid.UUID, req
 	if req.EndDate != nil {
 		s.EndDate = *req.EndDate
 	}
+	s.Version++
 	return s, nil
 }
 
@@ -399,13 +407,13 @@ func TestUpdateSprint_RejectsForeignProject_RT005(t *testing.T) {
 	repo.sprintProject[sprintID] = ownerProject
 
 	stolen := "Stolen"
-	_, err := svc.UpdateSprint(ctx, attackerProject, sprintID, sprint.UpdateSprintRequest{Name: &stolen})
+	_, err := svc.UpdateSprint(ctx, attackerProject, sprintID, sprint.UpdateSprintRequest{Name: &stolen, Version: 1})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 	assert.Equal(t, "Original", repo.sprints[sprintID].Name, "foreign UpdateSprint must not rename")
 
 	okName := "Owned update"
-	resp, err := svc.UpdateSprint(ctx, ownerProject, sprintID, sprint.UpdateSprintRequest{Name: &okName})
+	resp, err := svc.UpdateSprint(ctx, ownerProject, sprintID, sprint.UpdateSprintRequest{Name: &okName, Version: 1})
 	require.NoError(t, err)
 	assert.Equal(t, "Owned update", resp.Name)
 }

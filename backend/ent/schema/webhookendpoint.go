@@ -40,6 +40,13 @@ func (WebhookEndpoint) Fields() []ent.Field {
 			Immutable(),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (WebhookEndpoint) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности WebhookEndpoint.
 func (WebhookEndpoint) Edges() []ent.Edge {

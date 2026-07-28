@@ -95,15 +95,18 @@ func (r *EntRepository) ListComments(ctx context.Context, issueID uuid.UUID) ([]
 
 // UpdateComment обновляет комментарий автора на задаче (A3-011).
 func (r *EntRepository) UpdateComment(ctx context.Context, issueID, authorID, commentID uuid.UUID, input UpdateCommentInput) (*ent.Comment, error) {
+	// TASK-095: VersionEQ + AddVersion — optimistic lock (NFR-24).
 	affected, err := r.client.Comment.Update().
 		Where(
 			comment.IDEQ(commentID),
 			comment.HasIssueWith(issue.IDEQ(issueID)),
 			comment.HasAuthorWith(user.IDEQ(authorID)),
 			comment.DeletedAtIsNil(),
+			comment.VersionEQ(input.Version),
 		).
 		SetBodyJSON(input.BodyJSON).
 		SetBodyText(input.BodyText).
+		AddVersion(1).
 		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("обновление комментария: %w", err)

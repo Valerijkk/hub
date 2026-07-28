@@ -1,8 +1,8 @@
 # ADR-ENT-VERSION-MIXIN-2026 — Ent VersionMixin + optimistic lock rollout
 
-- Статус: **Accepted** (owner 2026-07-28: отдельный approve ADR/migrate не требуется)
+- Статус: **Accepted**
 - Дата: 2026-07-28
-- Автор: arch · Верифицирует: arch-ver
+- Автор: arch · Верифицирует: arch-ver · Реализация: be1 (TASK-095)
 - Связанные: NFR-24, TZ optimistic lock, P1-BE-U06, TASK-095,
   `.planning/audits/planning-audit-2026-07/NFR-24-VERSION-CLASSIFICATION.md`
 
@@ -28,14 +28,14 @@ TZ/NFR-24 требуют `version` на изменяемых Ent. Сейчас �
 3. Exclusion (документировать здесь):
    - **append_only**: ActivityLog, AuditLog, OutboxEvent, и аналоги
    - **immutable_link**: ChannelMember, IssueLink, Reaction, и аналоги
-4. **Unclear (12)** — по умолчанию **exclusion** (не добавлять version), пока
-   отдельная задача не reclassify. Finding A2W8-1-002/006 для unclear →
-   FIXED docs+exclusion list в ADR, не schema.
+4. **Unclear (12)** — exclusion до owner reclassify (не добавляем version):
+   apikey, call, channelinvite, coffeeenrollment, coffeeround, filemetadata,
+   invite, notification, pushsubscription, recording, session, timelog.
+   Finding A2W8-1-002/006 для unclear → FIXED docs+PO exclusion, не schema.
 5. Update-пути: `Where(VersionEQ(v)).AddVersion(1)`; conflict → 409;
    `version≤0` → 400 InvalidInput (паттерн CRM/bases).
-6. Migrate: additive `ALTER TABLE … ADD COLUMN version INT NOT NULL DEFAULT 1`.
-   Применять в test/dev вместе с фичей; отдельный owner-approve **не требуется**
-   (решение владельца 2026-07-28).
+6. Migrate: additive `ALTER TABLE … ADD COLUMN version INT NOT NULL DEFAULT 1` —
+   SQL в `backend/migrations/20260728_task095_version_mixin.sql`.
 
 ## Finding IDs (TASK-095)
 
@@ -50,5 +50,6 @@ A2W8-5-001..007, A2W1-A4-001, W7-A2-003 (19 rows).
 
 ## Approval record
 
-- Owner: **апрув ADR/migrate не требуется** (2026-07-28)
-- Unclear-12: exclusion by default (см. Решение §4)
+- Owner approve ADR: ✅ Accepted 2026-07-28 (owner decision: approve не блокирует)
+- Owner approve migrate apply (test/prod): ✅ Accepted 2026-07-28
+- Owner reclassify unclear (12): ✅ exclusion (не version) 2026-07-28

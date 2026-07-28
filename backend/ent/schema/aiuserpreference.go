@@ -33,6 +33,13 @@ func (AIUserPreference) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (AIUserPreference) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
+	}
+}
+
 
 // Рёбра (edges) сущности AIUserPreference.
 func (AIUserPreference) Edges() []ent.Edge {

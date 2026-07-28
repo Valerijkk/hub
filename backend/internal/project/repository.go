@@ -26,7 +26,7 @@ type Repository interface {
 	ListByUserID(ctx context.Context, userID uuid.UUID, includeArchived bool) ([]*ent.Project, error)
 	ListTrash(ctx context.Context, userID uuid.UUID) ([]*ent.Project, error)
 	Create(ctx context.Context, name, key, description string, ownerID uuid.UUID) (*ent.Project, error)
-	Update(ctx context.Context, id uuid.UUID, name, description, avatarURL *string) (*ent.Project, error)
+	Update(ctx context.Context, id uuid.UUID, version int, name, description, avatarURL *string) (*ent.Project, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, status project.Status, setDeletedAt bool) (*ent.Project, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	MemberCount(ctx context.Context, projectID uuid.UUID) (int, error)
@@ -206,8 +206,11 @@ func (r *EntRepository) Create(ctx context.Context, name, key, description strin
 }
 
 // Update обновляет поля проекта (имя, описание, аватар).
-func (r *EntRepository) Update(ctx context.Context, id uuid.UUID, name, description, avatarURL *string) (*ent.Project, error) {
-	update := r.client.Project.UpdateOneID(id)
+func (r *EntRepository) Update(ctx context.Context, id uuid.UUID, version int, name, description, avatarURL *string) (*ent.Project, error) {
+	// TASK-095: VersionEQ + AddVersion — optimistic lock (NFR-24).
+	update := r.client.Project.UpdateOneID(id).
+		Where(project.VersionEQ(version)).
+		AddVersion(1)
 	if name != nil {
 		update = update.SetName(*name)
 	}

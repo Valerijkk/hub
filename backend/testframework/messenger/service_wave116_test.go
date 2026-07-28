@@ -21,7 +21,7 @@ func TestUpdateChannel_ForbiddenForMember(t *testing.T) {
 	memberID := uuid.New()
 	channelID := setupChannelWithMembers(repo, "public", false, ownerID, memberID)
 
-	_, err := svc.UpdateChannel(ctx, channelID, memberID, messenger.CreateChannelRequest{Name: "nope"})
+	_, err := svc.UpdateChannel(ctx, channelID, memberID, messenger.CreateChannelRequest{Name: "nope", Version: 1})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "admin")
 }

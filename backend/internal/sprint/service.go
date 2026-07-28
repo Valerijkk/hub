@@ -84,7 +84,11 @@ func (s *SprintService) ListSprints(ctx context.Context, projectID uuid.UUID) ([
 
 // UpdateSprint обновляет спринт в рамках проекта (RT-005 / A3-001 sibling).
 // W1-A4-007: после merge дат — end не раньше start (как в CreateSprint).
+// TASK-095: version обязателен; VersionEQ в repo → 409 при conflict.
 func (s *SprintService) UpdateSprint(ctx context.Context, projectID, sprintID uuid.UUID, req UpdateSprintRequest) (*SprintResponse, error) {
+	if req.Version < 1 {
+		return nil, apperrors.NewBadRequest("version обязателен и должен быть ≥ 1")
+	}
 	current, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -107,7 +111,7 @@ func (s *SprintService) UpdateSprint(ctx context.Context, projectID, sprintID uu
 	sp, err := s.repo.UpdateSprint(ctx, sprintID, req)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, apperrors.NewNotFound("спринт не найден")
+			return nil, apperrors.NewConflict("version mismatch: спринт был изменён другим пользователем")
 		}
 		return nil, apperrors.NewInternal("ошибка обновления спринта")
 	}
@@ -366,6 +370,7 @@ func (s *SprintService) sprintToResponse(sp *ent.Sprint, issueCount int) *Sprint
 		EndDate:    sp.EndDate,
 		RetroNotes: sp.RetroNotes,
 		IssueCount: issueCount,
+		Version:    sp.Version,
 		CreatedAt:  sp.CreatedAt,
 		UpdatedAt:  sp.UpdatedAt,
 	}

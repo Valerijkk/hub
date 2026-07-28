@@ -71,9 +71,6 @@ func (TestCase) Fields() []ent.Field {
 		field.String("automation_id").
 			Optional().
 			Comment("Явный ID для привязки автотестов. QA-инженер задаёт вручную, автотест включает этот ID в имя или аннотацию для автоматического сопоставления результатов"),
-		field.Int("version").
-			Default(1).
-			Comment("Версия тест-кейса"),
 		field.Enum("sync_status").
 			Values("synced", "outdated", "unlinked").
 			Default("unlinked").
@@ -88,6 +85,13 @@ func (TestCase) Fields() []ent.Field {
 		field.Time("updated_at").
 			Default(nowUTC).
 			UpdateDefault(nowUTC),
+	}
+}
+
+// Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
+func (TestCase) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		VersionMixin{},
 	}
 }
 
