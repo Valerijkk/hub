@@ -124,6 +124,17 @@ function GenericPreview({ url }: { url: string }) {
 		return null;
 	}
 
+	const imageSrc = data.image_url ?? data.image;
+	const hostname =
+		data.domain ??
+		(() => {
+			try {
+				return new URL(url).hostname;
+			} catch {
+				return url;
+			}
+		})();
+
 	return (
 		<a
 			href={url}
@@ -131,10 +142,10 @@ function GenericPreview({ url }: { url: string }) {
 			rel="noopener noreferrer"
 			className="mt-2 flex overflow-hidden rounded-lg border transition-colors hover:bg-raised/30"
 		>
-			{data.image && (
+			{imageSrc && (
 				<div className="w-20 shrink-0 bg-raised">
 					<img
-						src={data.image}
+						src={imageSrc}
 						alt=""
 						className="h-full w-full object-cover"
 						loading="lazy"
@@ -151,13 +162,7 @@ function GenericPreview({ url }: { url: string }) {
 					</span>
 				)}
 				<span className="text-[10px] text-t2/60 truncate mt-0.5">
-					{(() => {
-						try {
-							return new URL(url).hostname;
-						} catch {
-							return url;
-						}
-					})()}
+					{hostname}
 				</span>
 			</div>
 		</a>

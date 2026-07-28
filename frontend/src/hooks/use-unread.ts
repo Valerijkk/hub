@@ -11,7 +11,7 @@ const UNREAD_POLL_INTERVAL = 60_000;
  * Обновляет messenger-store при получении данных.
  */
 export function useUnread() {
-	const updateUnread = useMessengerStore((s) => s.updateUnread);
+	const setUnreadCounts = useMessengerStore((s) => s.setUnreadCounts);
 
 	const query = useQuery({
 		queryKey: ["messenger", "unread"],
@@ -20,14 +20,12 @@ export function useUnread() {
 		staleTime: UNREAD_POLL_INTERVAL - 5_000,
 	});
 
-	// Синхронизация данных в store.
+	// Полная замена карты: каналы, исчезнувшие из Redis HGetAll (MarkRead/HDel), обнуляются.
 	useEffect(() => {
 		if (query.data) {
-			for (const [channelId, count] of Object.entries(query.data)) {
-				updateUnread(channelId, count);
-			}
+			setUnreadCounts(query.data);
 		}
-	}, [query.data, updateUnread]);
+	}, [query.data, setUnreadCounts]);
 
 	return query;
 }

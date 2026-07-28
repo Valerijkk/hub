@@ -226,6 +226,8 @@ export function MessageComposer({
 
 	const replyToMessage = useMessengerStore((s) => s.replyToMessage);
 	const setReplyTo = useMessengerStore((s) => s.setReplyTo);
+	/** threadId из панели треда или id сообщения при «Ответить». */
+	const effectiveThreadId = threadId ?? replyToMessage?.id;
 
 	/** Время последней отправки typing-индикатора (троттлинг 3 сек). */
 	const lastTypingSentRef = useRef(0);
@@ -320,7 +322,7 @@ export function MessageComposer({
 			await sendMessage(channelId, {
 				content_json: contentJson,
 				content_text: trimmed || undefined,
-				thread_id: threadId,
+				thread_id: effectiveThreadId,
 				attachment_ids:
 					pendingAttachments.length > 0
 						? pendingAttachments.map((a) => a.fileId)
@@ -342,7 +344,7 @@ export function MessageComposer({
 		}
 	}, [
 		channelId,
-		threadId,
+		effectiveThreadId,
 		text,
 		pendingAttachments,
 		mentionedUserIds,
@@ -461,14 +463,14 @@ export function MessageComposer({
 				await sendMessage(channelId, {
 					content_json: contentJson,
 					content_text: gifUrl,
-					thread_id: threadId,
+					thread_id: effectiveThreadId,
 				});
 				invalidateMessages();
 			} catch (err) {
 				toastApiError(err, "Не удалось отправить GIF");
 			}
 		},
-		[channelId, threadId, invalidateMessages],
+		[channelId, effectiveThreadId, invalidateMessages],
 	);
 
 	/** Отправка стикера. */
@@ -479,14 +481,14 @@ export function MessageComposer({
 				await sendMessage(channelId, {
 					content_json: contentJson,
 					content_text: `[sticker: ${sticker.label}]`,
-					thread_id: threadId,
+					thread_id: effectiveThreadId,
 				});
 				invalidateMessages();
 			} catch (err) {
 				toastApiError(err, "Не удалось отправить стикер");
 			}
 		},
-		[channelId, threadId, invalidateMessages],
+		[channelId, effectiveThreadId, invalidateMessages],
 	);
 
 	/** Отправка голосового сообщения. */
@@ -500,7 +502,7 @@ export function MessageComposer({
 					},
 					voice_url: voiceUrl,
 					voice_duration_ms: durationMs,
-					thread_id: threadId,
+					thread_id: effectiveThreadId,
 				});
 				invalidateMessages();
 			} catch (err) {
@@ -508,7 +510,7 @@ export function MessageComposer({
 			}
 			setShowVoice(false);
 		},
-		[channelId, threadId, invalidateMessages],
+		[channelId, effectiveThreadId, invalidateMessages],
 	);
 
 	const hasContent = text.trim().length > 0 || pendingAttachments.length > 0;

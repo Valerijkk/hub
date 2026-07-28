@@ -45,7 +45,8 @@ export function IssueMessageLinksPanel({
 						className="flex items-center justify-between gap-2 text-xs"
 					>
 						<Link
-							to="/messenger"
+							to="/messenger/$channelId"
+							params={{ channelId: link.channel_id }}
 							className="text-primary hover:underline truncate"
 						>
 							Канал · тред …{link.message_id.slice(-6)}

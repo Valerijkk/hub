@@ -415,15 +415,21 @@ export function removeBookmark(bookmarkId: string) {
 // API-функции: Превью ссылок (Link Preview)
 // ---------------------------------------------------------------------------
 
-/** Данные превью ссылки, полученные из OG-тегов страницы. */
+/** Данные превью ссылки — контракт совпадает с backend / github.LinkPreviewResponse. */
 export interface LinkPreviewData {
+	url?: string;
+	type?: string;
 	/** Заголовок страницы (og:title). */
 	title?: string;
 	/** Описание страницы (og:description). */
 	description?: string;
-	/** URL изображения превью (og:image). */
+	/** URL изображения превью (og:image) — канон API. */
+	image_url?: string;
+	/** Домен сайта. */
+	domain?: string;
+	/** @deprecated используйте image_url */
 	image?: string;
-	/** Имя сайта (og:site_name). */
+	/** @deprecated используйте domain */
 	site_name?: string;
 }
 

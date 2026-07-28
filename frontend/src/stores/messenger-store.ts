@@ -37,6 +37,8 @@ interface MessengerState {
 	updateChannel: (channelId: string, partial: Partial<Channel>) => void;
 	/** Обновить количество непрочитанных для канала. */
 	updateUnread: (channelId: string, count: number) => void;
+	/** Заменить всю карту непрочитанных ответом poll (HDel на другом клиенте). */
+	setUnreadCounts: (counts: Record<string, number>) => void;
 	/** Увеличить счётчик непрочитанных на 1. */
 	incrementUnread: (channelId: string) => void;
 	/** Сбросить счётчик непрочитанных для канала. */
@@ -84,6 +86,8 @@ export const useMessengerStore = create<MessengerState>()((set) => ({
 		set((state) => ({
 			unreadCounts: { ...state.unreadCounts, [channelId]: count },
 		})),
+
+	setUnreadCounts: (counts) => set({ unreadCounts: { ...counts } }),
 
 	incrementUnread: (channelId) =>
 		set((state) => ({
