@@ -17,16 +17,26 @@
 - **P1 FE:** TASK-026 … TASK-035
 - **Blocked (нужен ADR/scope):** U01–U06 backend + 4 FE «уточнение» — в реестрах, без TASK
 
-## W13 — исполнение P0 (код готов локально, коммиты не сделаны)
+## W13 — исполнение P0 (закоммичено)
 
-| TASK | Тесты | Статус кода |
-|------|-------|-------------|
-| 009 project RBAC | `./testframework/project/...` ok | готово |
-| 010 promote RBAC | `./testframework/messenger/...` ok | готово |
-| 011 webhook match | `./testframework/apigateway/...` ok | готово |
-| 012 webhook scope | вместе с 011 | готово |
+| TASK | Коммит | Тесты |
+|------|--------|-------|
+| 009 project RBAC | `b81ee8f7` | project ok |
+| 010 promote RBAC | `a0fc6928` | messenger ok |
+| 011+012 webhooks | `b7281200` | apigateway ok |
 
-Следующий шаг владельца: **коммиты** по TASK-009…012 (или «продолжай» = коммитить + P1).
+W12 docs: `929a01d2`
+
+## W14 — P1 в работе (агенты)
+
+| TASK | Агент |
+|------|-------|
+| 013 tracker IDOR | be1 |
+| 014 project/sprint ACL | be2 |
+| 015 tms IDOR | generalPurpose |
+
+Следующий шаг после green: коммиты 013–015 → TASK-016+.
+
 
 ## P2/P3
 
