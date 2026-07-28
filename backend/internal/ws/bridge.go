@@ -229,6 +229,7 @@ func (b *Bridge) handleCallChatEvent(msg *nats.Msg) {
 
 // handleAuthSessionEvent маршрутизирует NATS-событие авторизационной сессии конкретному пользователю.
 // Формат subject: auth.session.{userID}.{event}
+// W3-A4-004 / P2-BE-14: revoked/logout → Unregister (рвёт комнаты), затем уведомление клиенту.
 func (b *Bridge) handleAuthSessionEvent(msg *nats.Msg) {
 	parts := strings.SplitN(msg.Subject, ".", 4)
 	if len(parts) < 3 {
@@ -243,18 +244,30 @@ func (b *Bridge) handleAuthSessionEvent(msg *nats.Msg) {
 	}
 
 	var payload any
+	var sessionID string
 	if len(msg.Data) > 0 {
 		if err := json.Unmarshal(msg.Data, &payload); err != nil {
 			slog.Warn("ws bridge: malformed payload", "subject", msg.Subject, "error", err)
 			return
 		}
+		if m, ok := payload.(map[string]any); ok {
+			if sid, ok := m["session_id"].(string); ok {
+				sessionID = sid
+			}
+		}
 	}
 
+	// Сначала уведомляем (пока conn ещё в maps), затем рвём комнаты.
 	b.hub.SendToUser(userID, ServerMessage{
 		Type:    TypeEvent,
 		Event:   event,
 		Payload: payload,
 	})
+
+	switch event {
+	case "revoked", "logout":
+		b.hub.UnregisterBySession(userID, sessionID)
+	}
 }
 
 // handleNotificationEvent маршрутизирует уведомления конкретному пользователю.

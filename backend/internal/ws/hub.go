@@ -183,6 +183,50 @@ func (h *Hub) Register(client *Client) {
 	}
 }
 
+// UnregisterUser удаляет все WS-соединения пользователя (W3-A4-004 / P2-BE-14).
+// Используется при revoke/logout сессии: instant revocation не должна оставлять
+// клиента в rooms до pong-timeout.
+func (h *Hub) UnregisterUser(userID string) {
+	val, ok := h.userClients.Load(userID)
+	if !ok {
+		return
+	}
+	inner := val.(*sync.Map)
+	var clients []*Client
+	inner.Range(func(_, value any) bool {
+		clients = append(clients, value.(*Client))
+		return true
+	})
+	for _, c := range clients {
+		h.Unregister(c)
+	}
+}
+
+// UnregisterBySession удаляет соединения с совпадающим SessionID.
+// Если sessionID пуст — UnregisterUser(userID).
+func (h *Hub) UnregisterBySession(userID, sessionID string) {
+	if sessionID == "" {
+		h.UnregisterUser(userID)
+		return
+	}
+	val, ok := h.userClients.Load(userID)
+	if !ok {
+		return
+	}
+	inner := val.(*sync.Map)
+	var clients []*Client
+	inner.Range(func(_, value any) bool {
+		c := value.(*Client)
+		if c.SessionID == sessionID {
+			clients = append(clients, c)
+		}
+		return true
+	})
+	for _, c := range clients {
+		h.Unregister(c)
+	}
+}
+
 // Unregister удаляет клиента из Hub и всех его комнат.
 func (h *Hub) Unregister(client *Client) {
 	if h.isStopping() {
