@@ -5,6 +5,7 @@ package apigateway
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -73,6 +74,18 @@ func ExportWebhookDispatcherHandleMessage(d *WebhookDispatcher, ctx context.Cont
 // ExportWebhookDispatcherDeliverWithRetry вызывает deliverWithRetry для hubtest.
 func ExportWebhookDispatcherDeliverWithRetry(d *WebhookDispatcher, ctx context.Context, ep *ent.WebhookEndpoint, eventType string, body []byte, payload map[string]interface{}) {
 	d.deliverWithRetry(ctx, webhookJob{ep: ep, eventType: eventType, body: body, payload: payload})
+}
+
+// ExportSetWebhookRetryDelays подменяет backoff deliverWithRetry (A2W4-5-005).
+// Возвращает предыдущий слайс для restore в t.Cleanup.
+func ExportSetWebhookRetryDelays(delays []time.Duration) []time.Duration {
+	prev := append([]time.Duration(nil), webhookRetryDelays...)
+	if delays == nil {
+		webhookRetryDelays = append([]time.Duration(nil), defaultWebhookRetryDelays...)
+	} else {
+		webhookRetryDelays = append([]time.Duration(nil), delays...)
+	}
+	return prev
 }
 
 // ExportWebhookDispatcherInitJobs инициализирует jobs channel для hubtest.

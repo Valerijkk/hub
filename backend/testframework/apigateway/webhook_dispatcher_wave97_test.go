@@ -133,7 +133,7 @@ func TestWebhookDispatcher_deliverWithRetry_Success(t *testing.T) {
 	epID := uuid.New()
 	repo := &stubWebhookRepo{
 		endpoints: []*ent.WebhookEndpoint{{
-			ID: epID, URL: srv.URL, Secret: "secret", Events: []string{"*"}, IsActive: true,
+			ID: epID, URL: localTestURL(srv), Secret: "secret", Events: []string{"*"}, IsActive: true,
 		}},
 	}
 	d := apigateway.NewWebhookDispatcher(repo, nil)
