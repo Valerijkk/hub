@@ -28,9 +28,15 @@ func ExportContainsEvent(events []string, event string) bool {
 	return containsEvent(events, event)
 }
 
-// ExportWebhookSendWebhook вызывает sendWebhook для hubtest.
-func ExportWebhookSendWebhook(d *WebhookDispatcher, url string, body []byte, signature, eventType string) (int, string, error) {
-	return d.sendWebhook(url, body, signature, eventType)
+// ExportWebhookSendWebhook вызывает sendWebhook для hubtest (новый delivery id).
+func ExportWebhookSendWebhook(d *WebhookDispatcher, ctx context.Context, url string, body []byte, signature, eventType string) (int, string, error) {
+	return d.sendWebhook(ctx, url, body, signature, eventType, uuid.New().String())
+}
+
+// ExportWebhookSendWebhookWithDelivery вызывает sendWebhook с заданным
+// X-Hub-Delivery (для проверки заголовка в hubtest).
+func ExportWebhookSendWebhookWithDelivery(d *WebhookDispatcher, ctx context.Context, url string, body []byte, signature, eventType, deliveryID string) (int, string, error) {
+	return d.sendWebhook(ctx, url, body, signature, eventType, deliveryID)
 }
 
 // ExportSetWebhookHTTPClient подменяет webhookHTTPClient для hubtest.
