@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/valerii/hub/backend/internal/storage"
 )
 
@@ -22,5 +21,4 @@ func TestIsS3NotFound(t *testing.T) {
 	assert.True(t, storage.ExportIsS3NotFound(errors.New("api error NotFound")))
 	assert.True(t, storage.ExportIsS3NotFound(errors.New("NoSuchKey")))
 	assert.False(t, storage.ExportIsS3NotFound(errors.New("timeout")))
-	require.ErrorIs(t, storage.ErrObjectNotFound, storage.ErrObjectNotFound)
 }
