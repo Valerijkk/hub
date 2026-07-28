@@ -129,7 +129,9 @@ func (h *Handler) createFilter(c fiber.Ctx) error {
 		if errors.Is(err, ErrFilterForbidden) {
 			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для создания фильтра")
 		}
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// P3-BE-08 / W5-A4-011: стабильное сообщение; internals — только в slog.
+		slog.Error("create saved filter failed", "error", err, "user_id", userID)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось создать фильтр")
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(filter)
@@ -169,7 +171,9 @@ func (h *Handler) listFilters(c fiber.Ctx) error {
 		if errors.Is(err, ErrFilterForbidden) {
 			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для просмотра фильтров")
 		}
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// P3-BE-08 / W5-A4-011
+		slog.Error("list saved filters failed", "error", err, "user_id", userID, "project_id", projectID)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось получить фильтры")
 	}
 
 	return c.JSON(SavedFilterListResponse{Filters: filters})
@@ -198,7 +202,8 @@ func (h *Handler) deleteFilter(c fiber.Ctx) error {
 	}
 
 	if err := h.svc.DeleteSavedFilter(c.Context(), userID, filterID); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		slog.Error("delete saved filter failed", "error", err, "user_id", userID, "filter_id", filterID)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось удалить фильтр")
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
@@ -236,7 +241,8 @@ func (h *Handler) shareFilter(c fiber.Ctx) error {
 
 	filter, err := h.svc.ShareFilter(c.Context(), userID, filterID, req.Shared)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		slog.Error("share filter failed", "error", err, "user_id", userID, "filter_id", filterID)
+		return fiber.NewError(fiber.StatusInternalServerError, "не удалось обновить фильтр")
 	}
 
 	return c.JSON(filter)

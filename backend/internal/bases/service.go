@@ -89,9 +89,9 @@ func (s *Service) UpdateBase(ctx context.Context, userID, id uuid.UUID, req Upda
 	if _, err := s.authorizeBase(ctx, id, userID); err != nil {
 		return nil, err
 	}
-	// W2-A5-004: version обязателен; VersionEQ в repo WHERE (не app-check TOCTOU).
+	// W2-A5-004 / P3-BE-09: version обязателен (400); VersionEQ в repo WHERE.
 	if req.Version < 1 {
-		return nil, ErrVersionConflict
+		return nil, ErrInvalidInput
 	}
 	if req.Name != nil && strings.TrimSpace(*req.Name) == "" {
 		return nil, ErrInvalidInput
@@ -190,6 +190,10 @@ func (s *Service) CreateColumn(ctx context.Context, userID, baseID, tableID uuid
 	if req.ColType == "" {
 		req.ColType = ColumnText
 	}
+	// P3-BE-09 / W2-A5-008: allowlist ColType → 400, не 500 от Ent.
+	if !isValidColumnType(req.ColType) {
+		return nil, ErrInvalidInput
+	}
 	c, err := s.repo.CreateColumn(ctx, tableID, req)
 	if err != nil {
 		return nil, fmt.Errorf("create column: %w", err)
@@ -237,9 +241,9 @@ func (s *Service) UpdateRecord(ctx context.Context, userID, baseID, tableID, rec
 		}
 		return nil, fmt.Errorf("get record: %w", err)
 	}
-	// W2-A5-004: version обязателен; VersionEQ в repo.
+	// W2-A5-004 / P3-BE-09: version обязателен (400); VersionEQ в repo.
 	if req.Version < 1 {
-		return nil, ErrVersionConflict
+		return nil, ErrInvalidInput
 	}
 	patch := normalizeCells(req.Cells, t.Edges.Columns)
 	// W2-A5-002: merge с current.Cells — partial PUT не затирает остальные ячейки.
@@ -295,6 +299,16 @@ func normalizeCells(cells map[string]interface{}, columns []*ent.HubColumn) map[
 		}
 	}
 	return out
+}
+
+// isValidColumnType — allowlist ColType (P3-BE-09 / W2-A5-008).
+func isValidColumnType(t ColumnType) bool {
+	switch t {
+	case ColumnText, ColumnNumber, ColumnDate, ColumnSelect, ColumnCheckbox, ColumnURL, ColumnUserRef:
+		return true
+	default:
+		return false
+	}
 }
 
 func toBaseResponse(b *ent.HubBase) BaseResponse {

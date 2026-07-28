@@ -308,6 +308,23 @@ func ValidateImportData(inputs []CreateTestCaseInput) []ImportValidationError {
 // Обработка импорта
 // ---------------------------------------------------------------------------
 
+// detectImportFormat — case-insensitive определение формата по имени файла (P3-BE-09 / W2-A4-012).
+func detectImportFormat(filename string) string {
+	name := strings.ToLower(filename)
+	switch {
+	case strings.HasSuffix(name, ".csv"):
+		return "csv"
+	case strings.HasSuffix(name, ".json"):
+		return "json"
+	case strings.HasSuffix(name, ".xml"):
+		return "xml"
+	case strings.HasSuffix(name, ".xlsx"):
+		return "excel"
+	default:
+		return ""
+	}
+}
+
 // handleImport обрабатывает HTTP-запрос импорта тест-кейсов.
 func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*ImportResult, error) {
 	file, err := c.FormFile("file")
@@ -317,18 +334,9 @@ func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*I
 
 	format := c.FormValue("format", "")
 	if format == "" {
-		// Автоопределение формата по расширению
-		name := file.Filename
-		switch {
-		case strings.HasSuffix(name, ".csv"):
-			format = "csv"
-		case strings.HasSuffix(name, ".json"):
-			format = "json"
-		case strings.HasSuffix(name, ".xml"):
-			format = "xml"
-		case strings.HasSuffix(name, ".xlsx"):
-			format = "excel"
-		default:
+		// Автоопределение формата по расширению (case-insensitive — P3-BE-09 / W2-A4-012).
+		format = detectImportFormat(file.Filename)
+		if format == "" {
 			return nil, apperrors.NewBadRequest("не удалось определить формат файла")
 		}
 	}

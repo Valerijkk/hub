@@ -54,7 +54,7 @@ func TestService_CancelLeave_ForbiddenForOtherUser(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = svc.CancelLeave(ctx, adminID, created.ID, created.Version)
-	require.ErrorIs(t, err, hr.ErrForbidden)
+	require.ErrorIs(t, err, hr.ErrAccessDenied)
 }
 
 func TestHandler_ApproveLeave_NotFound(t *testing.T) {

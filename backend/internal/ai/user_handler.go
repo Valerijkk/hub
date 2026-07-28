@@ -64,7 +64,7 @@ func (h *UserHandler) UpdateProvider(c fiber.Ctx) error {
 		return err
 	}
 	id, err := uuid.Parse(c.Params("id"))
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid id")
 	}
 	var req UpdateProviderRequest

@@ -9,11 +9,17 @@ import (
 )
 
 const (
-	composerSuggestMinChars   = 8
-	composerSuggestMaxTokens  = 80
+	composerSuggestMinChars     = 8
+	composerSuggestMaxTokens    = 80
 	composerSuggestSystemPrompt = `You complete short chat messages for a dev team messenger.
 Return ONLY the continuation text in Russian — do not repeat the prefix, no quotes, no markdown.
 One short sentence or phrase max.`
+)
+
+// Sentinels для SuggestComposer — handler мапит через errors.Is (P3-BE-08 / W5-A1-008).
+var (
+	ErrInvalidPrefix   = fmt.Errorf("prefix must be at least %d characters", composerSuggestMinChars)
+	ErrEmptySuggestion = fmt.Errorf("empty suggestion")
 )
 
 // ComposerSuggestRequest — частичный text для Tab completion (M3-024).
@@ -33,7 +39,7 @@ type ComposerSuggestResponse struct {
 func (s *Service) SuggestComposer(ctx context.Context, userID uuid.UUID, req ComposerSuggestRequest, ip, userAgent string) (*ComposerSuggestResponse, error) {
 	prefix := strings.TrimSpace(req.Prefix)
 	if len([]rune(prefix)) < composerSuggestMinChars {
-		return nil, fmt.Errorf("prefix must be at least %d characters", composerSuggestMinChars)
+		return nil, ErrInvalidPrefix
 	}
 	if err := CheckContentPolicy([]ChatMessage{{Role: "user", Content: prefix}}); err != nil {
 		return nil, err
@@ -73,7 +79,7 @@ func (s *Service) SuggestComposer(ctx context.Context, userID uuid.UUID, req Com
 	raw := strings.TrimSpace(resp.Choices[0].Message.Content)
 	suggestion := normalizeComposerCompletion(prefix, raw)
 	if suggestion == "" {
-		return nil, fmt.Errorf("empty suggestion")
+		return nil, ErrEmptySuggestion
 	}
 
 	s.recordUsage(ctx, userID, used, model, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, latency, ip, userAgent)

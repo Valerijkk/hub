@@ -49,8 +49,7 @@ func TestSuggestComposer_PrefixTooShort(t *testing.T) {
 	_, err := svc.SuggestComposer(context.Background(), uuid.New(), ai.ComposerSuggestRequest{
 		Prefix: "hi",
 	}, "", "")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "prefix must be")
+	require.ErrorIs(t, err, ai.ErrInvalidPrefix)
 }
 
 func TestSuggestComposer_ContentPolicy(t *testing.T) {

@@ -3,7 +3,6 @@ package ai
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -165,7 +164,8 @@ func (h *Handler) SuggestComposer(c fiber.Ctx) error {
 		if errors.Is(err, ErrContentPolicyViolation) {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
-		if strings.Contains(err.Error(), "prefix must be") || strings.Contains(err.Error(), "empty suggestion") {
+		// P3-BE-08 / W5-A1-008: sentinel + errors.Is, не strings.Contains на err.Error().
+		if errors.Is(err, ErrInvalidPrefix) || errors.Is(err, ErrEmptySuggestion) {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 		return fiber.NewError(fiber.StatusBadGateway, err.Error())

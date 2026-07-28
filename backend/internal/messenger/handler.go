@@ -23,14 +23,18 @@ func splitComma(s string) []string {
 	return result
 }
 
+// queryIntMax — верхняя граница для query-int (совпадает с mongo ListMessages cap).
+const queryIntMax = 100
+
 // queryInt извлекает целочисленный параметр из строки запроса с дефолтным значением.
+// P3-BE-09 / W3-A1-011: отрицательные и out-of-range значения → default (не уходят в List*).
 func queryInt(c fiber.Ctx, key string, defaultVal int) int {
 	s := c.Query(key)
 	if s == "" {
 		return defaultVal
 	}
 	v, err := strconv.Atoi(s)
-	if err != nil {
+	if err != nil || v < 1 || v > queryIntMax {
 		return defaultVal
 	}
 	return v

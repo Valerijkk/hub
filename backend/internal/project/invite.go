@@ -37,7 +37,7 @@ func (s *ProjectService) CreateInvite(ctx context.Context, projectID, creatorID 
 		return nil, apperrors.NewInternal("failed to create invite")
 	}
 
-	return toInviteResponse(inv, ""), nil
+	return toInviteResponse(inv, s.resolveFrontendURL()), nil
 }
 
 // JoinByInvite позволяет пользователю вступить в проект по invite-коду.

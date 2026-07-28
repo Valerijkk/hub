@@ -45,6 +45,10 @@ func NewService(repo Repository, notifier Notifier, broadcaster ChannelBroadcast
 }
 
 func (s *Service) ListApproved(ctx context.Context, category string, page, perPage int) (*ListingListResponse, error) {
+	// P3-BE-09 / W7-A5-010: невалидная category → 400, не Ent 500.
+	if category != "" && !isValidCategory(ListingCategory(category)) {
+		return nil, ErrInvalidInput
+	}
 	items, total, err := s.repo.ListApprovedListings(ctx, category, page, perPage)
 	if err != nil {
 		return nil, fmt.Errorf("list approved listings: %w", err)
@@ -250,7 +254,8 @@ func (s *Service) DeleteListing(ctx context.Context, userID, id uuid.UUID) error
 	}
 	isOwner := current.Edges.Author != nil && current.Edges.Author.ID == userID
 	if !isOwner && !isAdmin {
-		return ErrForbidden
+		// P3-BE-08 / W7-A5-008: stranger-delete — не admin-кейс.
+		return ErrNotOwner
 	}
 	if err := s.repo.SoftDeleteListing(ctx, id, current.Version); err != nil {
 		if ent.IsNotFound(err) {

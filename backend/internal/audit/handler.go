@@ -2,6 +2,7 @@ package audit
 
 import (
 	"errors"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
@@ -53,7 +55,12 @@ func (h *Handler) requireAdmin() fiber.Handler {
 
 		isAdmin, err := h.service.IsSystemAdmin(c.Context(), userID)
 		if err != nil {
-			return fiber.NewError(fiber.StatusUnauthorized, "пользователь не найден")
+			// P3-BE-08 / W6-A4-011: DB outage → 500; 401 только при отсутствии пользователя.
+			if ent.IsNotFound(err) {
+				return fiber.NewError(fiber.StatusUnauthorized, "пользователь не найден")
+			}
+			slog.Error("IsSystemAdmin failed", "error", err, "user_id", userID)
+			return fiber.NewError(fiber.StatusInternalServerError, "не удалось проверить права администратора")
 		}
 
 		if !isAdmin {

@@ -107,7 +107,9 @@ func (h *Handler) WebhookAllure(c fiber.Ctx) error {
 	// Пытаемся распарсить как JSON-массив результатов
 	var rawResults json.RawMessage
 	if err := json.Unmarshal(allureData, &rawResults); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "невалидный JSON: "+err.Error())
+		// P3-BE-08 / W2-A1-011: не отдаём internals парсера клиенту.
+		slog.Error("невалидный Allure JSON в webhook", "error", err)
+		return fiber.NewError(fiber.StatusBadRequest, "невалидный JSON")
 	}
 
 	req := ImportAllureRequest{
@@ -201,8 +203,9 @@ func (h *Handler) WebhookJUnit(c fiber.Ctx) error {
 	// Парсим JUnit XML -> AllureResult[]
 	allureResults, err := ParseJUnitXML(xmlData)
 	if err != nil {
+		// P3-BE-08 / W2-A1-011: детали парсера только в slog.
 		slog.Error("ошибка парсинга JUnit XML", "error", err)
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return fiber.NewError(fiber.StatusBadRequest, "невалидный JUnit XML")
 	}
 
 	// Конвертируем обратно в JSON для ImportAllureRequest

@@ -1,6 +1,6 @@
 # TASK-063 — Safe errors + input hygiene
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P3-BE-08,P3-BE-09 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P3-BACKEND.md`
 
 ## [OUTCOME]

@@ -16,6 +16,7 @@ import (
 var (
 	ErrNotFound        = errors.New("leave request not found")
 	ErrForbidden       = errors.New("admin access required")
+	ErrAccessDenied    = errors.New("leave access denied")
 	ErrInvalidInput    = errors.New("invalid leave request input")
 	ErrVersionConflict = errors.New("leave request version conflict")
 	ErrOverlap         = errors.New("leave dates overlap existing request")
@@ -183,7 +184,8 @@ func (s *Service) CancelLeave(ctx context.Context, userID, leaveID uuid.UUID, ve
 		return nil, fmt.Errorf("get leave: %w", err)
 	}
 	if current.Edges.Requester == nil || current.Edges.Requester.ID != userID {
-		return nil, ErrForbidden
+		// P3-BE-08 / W7-A2-011: non-owner cancel — не admin-кейс.
+		return nil, ErrAccessDenied
 	}
 	l, err := s.repo.CancelLeave(ctx, leaveID, userID, version)
 	if err != nil {

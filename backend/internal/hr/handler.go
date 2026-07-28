@@ -148,6 +148,9 @@ func mapServiceError(err error) error {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		return fiber.NewError(fiber.StatusNotFound, "leave request not found")
+	case errors.Is(err, ErrAccessDenied):
+		// P3-BE-08 / W7-A2-011: не путать с admin-only путём.
+		return fiber.NewError(fiber.StatusForbidden, "leave access denied")
 	case errors.Is(err, ErrForbidden):
 		return fiber.NewError(fiber.StatusForbidden, "admin access required")
 	case errors.Is(err, ErrInvalidInput):

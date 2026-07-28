@@ -64,6 +64,18 @@ func TestQueryInt(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 25, got)
 	})
+
+	t.Run("negative falls back to default", func(t *testing.T) {
+		var got int
+		app.Get("/neg", func(c fiber.Ctx) error {
+			got = messenger.ExportQueryInt(c, "limit", 25)
+			return c.SendStatus(200)
+		})
+		req := httptest.NewRequest(fiber.MethodGet, "/neg?limit=-5", nil)
+		_, err := app.Test(req)
+		require.NoError(t, err)
+		assert.Equal(t, 25, got)
+	})
 }
 
 type mockIssuePromoter struct {

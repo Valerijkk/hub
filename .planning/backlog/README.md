@@ -68,7 +68,7 @@
 | [TASK-060](TASK-060-be-p3-utf8-rune-truncate.md) | BE UTF-8 rune truncate | P3 | Исправлена | be2 | W12 P3-BE-04 |
 | [TASK-061](TASK-061-be-p3-repo-lists-defense.md) | BE repo/lists defense | P3 | Исправлена | be1 | W12 P3-BE-05,06 |
 | [TASK-062](TASK-062-be-p3-dead-code-layering.md) | BE dead code/layering | P3 | Исправлена | be2 | W12 P3-BE-07 |
-| [TASK-063](TASK-063-be-p3-errors-input-hygiene.md) | BE errors + input hygiene | P3 | Открыта | be1 | W12 P3-BE-08,09 |
+| [TASK-063](TASK-063-be-p3-errors-input-hygiene.md) | BE errors + input hygiene | P3 | Исправлена | be1 | W12 P3-BE-08,09 |
 | [TASK-064](TASK-064-be-p3-ws-calls-lifecycle.md) | BE WS/calls lifecycle | P3 | Исправлена | be2 | W12 P3-BE-10 |
 | [TASK-065](TASK-065-be-p3-platform-http-obs.md) | BE platform HTTP/obs | P3 | Исправлена | be1 | W12 P3-BE-11,12 |
 | [TASK-066](TASK-066-be-p3-ai-auth-rbac-audit.md) | BE AI/auth/rbac/audit | P3 | Исправлена | be2 | W12 P3-BE-13,14 |

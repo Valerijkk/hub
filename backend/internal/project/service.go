@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/google/uuid"
@@ -27,6 +28,27 @@ type ProjectService struct {
 	trackerProv  TrackerProvisioner
 	tmsProv      TMSProvisioner
 	dashProv     DashboardProvisioner
+	frontendURL  string // P3-BE-09 / W1-A5-011: base для invite Link
+}
+
+// SetFrontendURL задаёт публичный URL фронтенда для invite-ссылок.
+func (s *ProjectService) SetFrontendURL(url string) {
+	s.frontendURL = strings.TrimRight(strings.TrimSpace(url), "/")
+}
+
+// resolveFrontendURL — FRONTEND_URL env, иначе поле сервиса, иначе первый CORS_ORIGINS.
+func (s *ProjectService) resolveFrontendURL() string {
+	if u := strings.TrimRight(strings.TrimSpace(os.Getenv("FRONTEND_URL")), "/"); u != "" {
+		return u
+	}
+	if s != nil && s.frontendURL != "" {
+		return s.frontendURL
+	}
+	if cors := strings.TrimSpace(os.Getenv("CORS_ORIGINS")); cors != "" {
+		first := strings.TrimSpace(strings.Split(cors, ",")[0])
+		return strings.TrimRight(first, "/")
+	}
+	return ""
 }
 
 // memberCountOrZero безопасно читает количество участников проекта для UI-ответа.
@@ -599,9 +621,10 @@ func (s *ProjectService) ListInvites(ctx context.Context, projectID uuid.UUID) (
 	if err != nil {
 		return nil, apperrors.NewInternal("failed to list invites")
 	}
+	base := s.resolveFrontendURL()
 	result := make([]InviteResponse, 0, len(invites))
 	for _, inv := range invites {
-		result = append(result, *toInviteResponse(inv, ""))
+		result = append(result, *toInviteResponse(inv, base))
 	}
 	return result, nil
 }

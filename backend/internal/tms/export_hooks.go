@@ -31,3 +31,8 @@ func ExportAllureStatusToTMS(status string) string {
 func ExportParseUUIDs(strs []string) ([]uuid.UUID, error) {
 	return parseUUIDs(strs)
 }
+
+// ExportDetectImportFormat — case-insensitive format detect (P3-BE-09).
+func ExportDetectImportFormat(filename string) string {
+	return detectImportFormat(filename)
+}

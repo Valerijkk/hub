@@ -191,7 +191,7 @@ func TestService_DeleteListingPermissions(t *testing.T) {
 	require.NoError(t, err)
 
 	err = svc.DeleteListing(ctx, stranger.ID, created.ID)
-	assert.ErrorIs(t, err, ErrForbidden)
+	assert.ErrorIs(t, err, marketplace.ErrNotOwner)
 
 	err = svc.DeleteListing(ctx, memberID, created.ID)
 	require.NoError(t, err)

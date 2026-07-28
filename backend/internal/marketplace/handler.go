@@ -40,7 +40,7 @@ func (h *Handler) ListApproved(c fiber.Ctx) error {
 	category := c.Query("category")
 	resp, err := h.service.ListApproved(c.Context(), category, page, perPage)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "failed to list listings")
+		return mapServiceError(err)
 	}
 	return c.JSON(resp)
 }

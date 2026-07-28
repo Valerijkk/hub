@@ -391,7 +391,7 @@ func (h *Handler) ImportTestRailCases(c fiber.Ctx) error {
 	// Определяем формат по расширению файла или полю формы.
 	format := c.FormValue("format", "")
 	if format == "" {
-		name := file.Filename
+		name := strings.ToLower(file.Filename)
 		switch {
 		case strings.HasSuffix(name, ".xml"):
 			format = "xml"

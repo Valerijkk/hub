@@ -17,7 +17,7 @@ import (
 	"github.com/valerii/hub/backend/internal/bases"
 )
 
-// TestUpdateBase_OptimisticLock_VersionEQ_W2A5004 — stale/zero version → conflict;
+// TestUpdateBase_OptimisticLock_VersionEQ_W2A5004 — stale → conflict; version=0 → 400 InvalidInput.
 // VersionEQ в Ent WHERE. Mutation: снять VersionEQ → stale write проходит → FAIL.
 func TestUpdateBase_OptimisticLock_VersionEQ_W2A5004(t *testing.T) {
 	client := enttest.Open(t, "sqlite3", "file:bases_ol_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
@@ -50,7 +50,7 @@ func TestUpdateBase_OptimisticLock_VersionEQ_W2A5004(t *testing.T) {
 	_, err = svc.UpdateBase(ctx, owner.ID, created.ID, bases.UpdateBaseRequest{
 		Name: &stale, Version: 0,
 	})
-	require.ErrorIs(t, err, bases.ErrVersionConflict)
+	require.ErrorIs(t, err, bases.ErrInvalidInput)
 }
 
 // TestCreateBase_AtomicTx_W2A5001 — base+Main+Name в одной tx (нет orphan base).
