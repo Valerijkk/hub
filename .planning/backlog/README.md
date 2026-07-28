@@ -31,7 +31,7 @@
 | [TASK-023](TASK-023-rbac-cache-gdpr.md) | RBAC cache + GDPR erase | P1 | Открыта | be1 | W12 P1-BE-33..34 |
 | [TASK-024](TASK-024-notif-integrations-storage-backup.md) | Notif/Git*/storage/backup/coffee | P1 | Открыта | be2 | W12 P1-BE-35..39,43 |
 | [TASK-025](TASK-025-ent-schema-constraints.md) | Ent unique/O2O constraints | P1 | Открыта | be1 | W12 P1-BE-40..42 |
-| [TASK-026](TASK-026-fe-api-client-auth-retry.md) | FE api client auth retry | P1 | Открыта | fe1 | W12 FE-P1-API-CLIENT |
+| [TASK-026](TASK-026-fe-api-client-auth-retry.md) | FE api client auth retry | P1 | На проверке | fe1 | W12 FE-P1-API-CLIENT |
 | [TASK-027](TASK-027-fe-callchat-ws-subscribe.md) | FE CallChat WS subscribe | P1 | Открыта | fe1 | W12 FE-P1-CALLS-CHAT |
 | [TASK-028](TASK-028-fe-calls-join-create-lifecycle.md) | FE calls lifecycle | P1 | Открыта | fe2 | W12 FE-P1-CALLS-LIFECYCLE |
 | [TASK-029](TASK-029-fe-messenger-reply-thread-unread.md) | FE messenger reply/unread | P1 | Открыта | fe1 | W12 FE-P1-MESSENGER |

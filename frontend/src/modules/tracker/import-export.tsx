@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { api } from "@/api/client";
 
 /** Диалог импорта задач из CSV/JSON. */
 export function ImportExportToolbar({ projectId }: { projectId: string }) {
@@ -19,15 +20,15 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 		const formData = new FormData();
 		formData.append("file", file);
 
-		const resp = await fetch(
-			`/api/projects/${projectId}/import/issues?mode=preview`,
-			{
-				method: "POST",
-				body: formData,
-			},
-		);
-		if (resp.ok) {
-			setPreview(await resp.json());
+		try {
+			const data = await api.post<{
+				headers: string[];
+				rows: { fields: Record<string, string> }[];
+				total: number;
+			}>(`/projects/${projectId}/import/issues?mode=preview`, formData);
+			setPreview(data);
+		} catch {
+			// Preview fail — оставляем форму без данных
 		}
 	};
 
@@ -38,28 +39,34 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 			const formData = new FormData();
 			formData.append("file", fileRef.current.files[0]);
 
-			const resp = await fetch(
-				`/api/projects/${projectId}/import/issues?mode=commit`,
-				{
-					method: "POST",
-					body: formData,
-				},
+			const data = await api.post<{ imported: number; skipped: number }>(
+				`/projects/${projectId}/import/issues?mode=commit`,
+				formData,
 			);
-			if (resp.ok) {
-				const data = await resp.json();
-				setResult(data);
-				setPreview(null);
-			}
+			setResult(data);
+			setPreview(null);
+		} catch {
+			// Commit fail — UI остаётся на preview
 		} finally {
 			setImporting(false);
 		}
 	};
 
 	const handleExport = async (format: "csv" | "excel") => {
-		window.open(
-			`/api/projects/${projectId}/export/issues?format=${format}`,
-			"_blank",
-		);
+		try {
+			const blob = await api.getBlob(
+				`/projects/${projectId}/export/issues?format=${format}`,
+			);
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download =
+				format === "excel" ? `issues-${projectId}.xlsx` : `issues-${projectId}.csv`;
+			a.click();
+			URL.revokeObjectURL(url);
+		} catch {
+			// Export fail — без silent window.open без JWT
+		}
 	};
 
 	return (

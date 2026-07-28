@@ -58,13 +58,20 @@ class ApiClient {
 
 	/**
 	 * Выполняет HTTP-запрос к API.
-	 * При 401 пытается обновить токены и повторить запрос.
+	 * При 401 пытается обновить токены и повторить запрос **один раз**
+	 * (`_retried`): повторный 401 после refresh → logout, без рекурсии.
 	 * При 204 или пустом теле возвращает undefined.
 	 * @param method - HTTP-метод (GET, POST, PUT, PATCH, DELETE)
 	 * @param path - путь относительно API_BASE (например, "/auth/me")
 	 * @param body - тело запроса (JSON-объект или FormData без stringify)
+	 * @param _retried - внутренний флаг: уже был один retry после refresh
 	 */
-	async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+	async request<T>(
+		method: string,
+		path: string,
+		body?: unknown,
+		_retried = false,
+	): Promise<T> {
 		const isFormData = body instanceof FormData;
 		const response = await fetch(`${API_BASE}${path}`, {
 			method,
@@ -77,9 +84,13 @@ class ApiClient {
 		});
 
 		if (response.status === 401) {
+			if (_retried) {
+				useAuthStore.getState().logout();
+				throw new Error("Session expired");
+			}
 			const refreshed = await this.tryRefresh();
 			if (refreshed) {
-				return this.request(method, path, body);
+				return this.request(method, path, body, true);
 			}
 			useAuthStore.getState().logout();
 			throw new Error("Session expired");
@@ -160,14 +171,18 @@ class ApiClient {
 	 * Не использует JSON.parse — в отличие от request() (A11-007).
 	 */
 	async getBlob(path: string): Promise<Blob> {
-		const doFetch = async (): Promise<Response> => {
+		const doFetch = async (retried = false): Promise<Response> => {
 			const response = await fetch(`${API_BASE}${path}`, {
 				method: "GET",
 				headers: this.getHeaders(),
 			});
 			if (response.status === 401) {
+				if (retried) {
+					useAuthStore.getState().logout();
+					throw new Error("Session expired");
+				}
 				const refreshed = await this.tryRefresh();
-				if (refreshed) return doFetch();
+				if (refreshed) return doFetch(true);
 				useAuthStore.getState().logout();
 				throw new Error("Session expired");
 			}
