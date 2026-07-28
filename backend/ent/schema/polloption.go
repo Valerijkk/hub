@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -32,6 +33,7 @@ func (PollOption) Fields() []ent.Field {
 }
 
 // Edges описывает связи сущности PollOption.
+// OnDelete: ADR-ENT-ONDELETE-CASCADE-2026 — votes CASCADE (A2W8-4-006).
 func (PollOption) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("poll", Poll.Type).
@@ -39,7 +41,8 @@ func (PollOption) Edges() []ent.Edge {
 			Field("poll_id").
 			Unique().
 			Required(),
-		edge.To("votes", PollVote.Type),
+		edge.To("votes", PollVote.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

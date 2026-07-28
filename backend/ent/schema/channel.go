@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -58,9 +59,11 @@ func (Channel) Fields() []ent.Field {
 }
 
 // Edges описывает связи сущности Channel.
+// OnDelete: ADR-ENT-ONDELETE-CASCADE-2026 — owned_junction CASCADE (A2W8-1-003).
 func (Channel) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("members", ChannelMember.Type),
+		edge.To("members", ChannelMember.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("project", Project.Type).
 			Ref("channels").
 			Field("project_id").
@@ -70,13 +73,20 @@ func (Channel) Edges() []ent.Edge {
 			Field("created_by").
 			Unique().
 			Required(),
-		edge.To("pinned_messages", PinnedMessage.Type),
-		edge.To("calls", Call.Type),
-		edge.To("scheduled_calls", ScheduledCall.Type),
-		edge.To("polls", Poll.Type),
-		edge.To("invites", ChannelInvite.Type),
-		edge.To("issue_message_links", IssueMessageLink.Type),
-		edge.To("bookmarks", Bookmark.Type),
+		edge.To("pinned_messages", PinnedMessage.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("calls", Call.Type).
+			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("scheduled_calls", ScheduledCall.Type).
+			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("polls", Poll.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("invites", ChannelInvite.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("issue_message_links", IssueMessageLink.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("bookmarks", Bookmark.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"regexp"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -43,10 +44,13 @@ func (Organization) Fields() []ent.Field {
 	}
 }
 
+// Edges — ADR-ENT-ONDELETE-CASCADE-2026: Org→users/projects = RESTRICT + app purge (A2W8-4-002).
 func (Organization) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("users", User.Type),
-		edge.To("projects", Project.Type),
+		edge.To("users", User.Type).
+			Annotations(entsql.OnDelete(entsql.NoAction)),
+		edge.To("projects", Project.Type).
+			Annotations(entsql.OnDelete(entsql.NoAction)),
 	}
 }
 

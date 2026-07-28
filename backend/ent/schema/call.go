@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -62,6 +63,7 @@ func (Call) Fields() []ent.Field {
 }
 
 // Edges описывает связи сущности Call.
+// OnDelete: ADR-ENT-ONDELETE-CASCADE-2026 — owned_junction CASCADE (A2W8-1-003).
 func (Call) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("channel", Channel.Type).
@@ -73,8 +75,10 @@ func (Call) Edges() []ent.Edge {
 			Field("created_by").
 			Unique().
 			Required(),
-		edge.To("participants", CallParticipant.Type),
-		edge.To("recordings", Recording.Type),
+		edge.To("participants", CallParticipant.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("recordings", Recording.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

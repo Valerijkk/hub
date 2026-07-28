@@ -17,20 +17,21 @@ import (
 // ---------------------------------------------------------------------------
 
 // CreateIssueLink создаёт направленную связь между двумя задачами.
-// Проверяет отсутствие дубликата. Публикует outbox-событие project.{projectID}.issue.link_created.
+// Дубликат = та же тройка (source, target, link_type); blocks+relates на одной паре допустимы (A2W8-3-003).
+// Публикует outbox-событие project.{projectID}.issue.link_created.
 func (r *EntRepository) CreateIssueLink(ctx context.Context, sourceID, targetID uuid.UUID, linkType string, customType string) (*ent.IssueLink, error) {
-	// Проверяем дубликат
 	exists, err := r.client.IssueLink.Query().
 		Where(
 			issuelink.HasSourceWith(issue.IDEQ(sourceID)),
 			issuelink.HasTargetWith(issue.IDEQ(targetID)),
+			issuelink.LinkTypeEQ(issuelink.LinkType(linkType)),
 		).
 		Exist(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("проверка дубликата связи: %w", err)
 	}
 	if exists {
-		return nil, apperrors.NewConflict("связь между этими задачами уже существует")
+		return nil, apperrors.NewConflict("связь этого типа между этими задачами уже существует")
 	}
 
 	create := r.client.IssueLink.Create().

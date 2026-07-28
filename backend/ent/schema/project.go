@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -53,37 +54,40 @@ func (Project) Fields() []ent.Field {
 }
 
 // Рёбра (edges) сущности Project.
+// OnDelete Cascade на всех owned children: soft-delete не вызывает FK OnDelete;
+// PermanentDelete / hard-purge — намеренный wipe (ADR-ENT-ONDELETE-CASCADE-2026 / A2W8-4-002).
 func (Project) Edges() []ent.Edge {
+	cascade := entsql.OnDelete(entsql.Cascade)
 	return []ent.Edge{
 		edge.From("organization", Organization.Type).
 			Ref("projects").
 			Unique(),
-		edge.To("members", ProjectMember.Type),
-		edge.To("roles", Role.Type),
-		edge.To("teams", Team.Type),
-		edge.To("invites", Invite.Type),
-		edge.To("files", FileMetadata.Type),
-		edge.To("issues", Issue.Type),
-		edge.To("workflow_statuses", WorkflowStatus.Type),
-		edge.To("labels", Label.Type),
-		edge.To("label_groups", LabelGroup.Type),
-		edge.To("boards", Board.Type),
-		edge.To("custom_fields", CustomFieldDefinition.Type),
-		edge.To("channels", Channel.Type),
-		edge.To("test_cases", TestCase.Type),
-		edge.To("test_runs", TestRun.Type),
-		edge.To("test_suites", TestSuite.Type),
-		edge.To("components", Component.Type),
-		edge.To("saved_filters", SavedFilter.Type),
-		edge.To("github_integrations", GitHubIntegration.Type),
-		edge.To("gitlab_integrations", GitLabIntegration.Type),
-		edge.To("recordings", Recording.Type),
-		edge.To("scheduled_calls", ScheduledCall.Type),
-		edge.To("webhook_endpoints", WebhookEndpoint.Type),
-		edge.To("environments", Environment.Type),
-		edge.To("sprints", Sprint.Type),
-		edge.To("automation_rules", AutomationRule.Type),
-		edge.To("crm_deals", CrmDeal.Type),
+		edge.To("members", ProjectMember.Type).Annotations(cascade),
+		edge.To("roles", Role.Type).Annotations(cascade),
+		edge.To("teams", Team.Type).Annotations(cascade),
+		edge.To("invites", Invite.Type).Annotations(cascade),
+		edge.To("files", FileMetadata.Type).Annotations(cascade),
+		edge.To("issues", Issue.Type).Annotations(cascade),
+		edge.To("workflow_statuses", WorkflowStatus.Type).Annotations(cascade),
+		edge.To("labels", Label.Type).Annotations(cascade),
+		edge.To("label_groups", LabelGroup.Type).Annotations(cascade),
+		edge.To("boards", Board.Type).Annotations(cascade),
+		edge.To("custom_fields", CustomFieldDefinition.Type).Annotations(cascade),
+		edge.To("channels", Channel.Type).Annotations(cascade),
+		edge.To("test_cases", TestCase.Type).Annotations(cascade),
+		edge.To("test_runs", TestRun.Type).Annotations(cascade),
+		edge.To("test_suites", TestSuite.Type).Annotations(cascade),
+		edge.To("components", Component.Type).Annotations(cascade),
+		edge.To("saved_filters", SavedFilter.Type).Annotations(cascade),
+		edge.To("github_integrations", GitHubIntegration.Type).Annotations(cascade),
+		edge.To("gitlab_integrations", GitLabIntegration.Type).Annotations(cascade),
+		edge.To("recordings", Recording.Type).Annotations(cascade),
+		edge.To("scheduled_calls", ScheduledCall.Type).Annotations(cascade),
+		edge.To("webhook_endpoints", WebhookEndpoint.Type).Annotations(cascade),
+		edge.To("environments", Environment.Type).Annotations(cascade),
+		edge.To("sprints", Sprint.Type).Annotations(cascade),
+		edge.To("automation_rules", AutomationRule.Type).Annotations(cascade),
+		edge.To("crm_deals", CrmDeal.Type).Annotations(cascade),
 	}
 }
 

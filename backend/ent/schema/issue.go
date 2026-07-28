@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -78,7 +79,9 @@ func (Issue) Fields() []ent.Field {
 }
 
 // Рёбра (edges) сущности Issue.
+// OnDelete Cascade на owned children — hard-purge проекта/задачи (ADR-ENT-ONDELETE-CASCADE-2026).
 func (Issue) Edges() []ent.Edge {
+	cascade := entsql.OnDelete(entsql.Cascade)
 	return []ent.Edge{
 		edge.From("project", Project.Type).
 			Ref("issues").
@@ -89,25 +92,28 @@ func (Issue) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("assignee", User.Type).
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("reporter", User.Type).
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("children", Issue.Type).
 			From("parent").
-			Unique(),
-		edge.To("comments", Comment.Type),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("comments", Comment.Type).Annotations(cascade),
 		edge.To("labels", Label.Type),
-		edge.To("time_logs", TimeLog.Type),
-		edge.To("activities", ActivityLog.Type),
-		edge.To("files", FileMetadata.Type),
-		edge.To("outgoing_links", IssueLink.Type),
+		edge.To("time_logs", TimeLog.Type).Annotations(cascade),
+		edge.To("activities", ActivityLog.Type).Annotations(cascade),
+		edge.To("files", FileMetadata.Type).Annotations(cascade),
+		edge.To("outgoing_links", IssueLink.Type).Annotations(cascade),
 		edge.From("incoming_links", IssueLink.Type).
 			Ref("target"),
 		edge.From("linked_test_cases", TestCase.Type).
 			Ref("linked_issues"),
-		edge.To("github_links", GitHubLink.Type),
-		edge.To("gitlab_links", GitLabLink.Type),
-		edge.To("message_links", IssueMessageLink.Type),
+		edge.To("github_links", GitHubLink.Type).Annotations(cascade),
+		edge.To("gitlab_links", GitLabLink.Type).Annotations(cascade),
+		edge.To("message_links", IssueMessageLink.Type).Annotations(cascade),
 		edge.From("sprint", Sprint.Type).
 			Ref("issues").
 			Unique(),
