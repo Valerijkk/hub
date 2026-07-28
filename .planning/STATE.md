@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (be1+docs · TASK-104 list-issues cursor canon)
+
+- Канон: list-issues = **cursor** (`ADR-PAGINATION-CURSOR-ISSUES-2026`); TZ/rule-60/NFR-14 выровнены под код.
+- A2W11-2-002 / A2W11-5-002 → FIXED; chat cursor не тронут.
+- Тесты: `TestListIssuesCursorPagination_Task104`, `TestHandler_ListIssues_CursorPagination_Task104`.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.
