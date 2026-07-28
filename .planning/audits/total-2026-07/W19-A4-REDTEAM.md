@@ -4,7 +4,8 @@
 > Задача: [TASK-008](../../backlog/TASK-008-total-audit-program.md) § Stage C / W19  
 > Threat actor: **ordinary authenticated user** (JWT valid; **not** `system_role` admin/founder)  
 > Метод: цепочки на **текущем** коде после Stage B; evidence = `path:line` + W18 FAIL reopen  
-> Product code: **READ-ONLY** · этот файл — audit artifact
+> Product code: **READ-ONLY** · этот файл — audit artifact  
+> Re-verify pass: **2026-07-28 19:35 UTC+3** (post–Stage B HEAD на `cursor-grok-4.5`)
 
 ## Scope / assumptions
 
@@ -55,7 +56,7 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 |--|--|
 | **Likelihood** | **Med–High** — any member with `PermFileUpload` (developer/tester); HEAD path unproven by mutation |
 | **Impact** | **Med** (→ High if combined with empty entity) — phantom metadata / bind to arbitrary message|channel UUID; NF-09-adjacent |
-| **Reopens** | **TASK-045** (P2-BE-21 Confirm без object→404); combo W19-A3 **C-004** |
+| **Reopens** | **TASK-045** (P2-BE-21 Confirm без object→404); combo W19-A3 **C-007** |
 | **OWASP** | A01 · A04 |
 
 **Chain**
@@ -76,22 +77,24 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 
 | | |
 |--|--|
-| **Likelihood** | **Low–Med** — erase is **admin** endpoint; trigger = admin GDPR + nil/`coll==nil` eraser (mis-wire / mongoDB nil). Residual read by **any remaining non-admin** channel member |
+| **Likelihood** | **Low–Med** — erase is **admin** endpoint; trigger = admin GDPR + nil/`coll==nil` eraser (mis-wire / `mongoDB` nil). Residual read by **any remaining non-admin** channel member |
 | **Impact** | **Critical** (compliance / right-to-erasure) — user HardDeleted, Mongo messages remain; A3 **C-001** |
 | **Reopens** | **TASK-079** (catch-up W18-C5-001/002); related TASK-034 cascade PASS but eraser fail-open |
 | **OWASP** | A01 · A04 Insecure Design |
 
 **Chain**
 
-1. Admin calls `DELETE /api/admin/users/:id/gdpr` — `audit/handler.go:38`, `:382+`.
-2. Cascade runs `msgEraser.DeleteMessagesBySender` — `audit/service.go:523-529`.
-3. `MongoMessageEraser`: `e==nil || coll==nil` → **`(0, nil)`** — `audit/gdpr_mongo.go:27-30` (comment `:18` advertises no-op).
-4. Cascade treats Mongo as OK → audit log → `HardDeleteUser` — `service.go:532-544`.
-5. **Non-admin** members still read residual messages in Mongo channels (PII of «erased» user).
+1. Admin calls `DELETE /api/admin/users/:id/gdpr` — `audit/handler.go` GDPR route.
+2. Wiring always calls `SetMessageEraser(NewMongoMessageEraser(mongoDB))` — `cmd/server/wiring_messenger.go:66`.
+3. `NewMongoMessageEraser(nil)` → struct with `coll==nil` (documented no-op) — `audit/gdpr_mongo.go:17-23`.
+4. Cascade runs `msgEraser.DeleteMessagesBySender` — `audit/service.go:523-529`.
+5. `DeleteMessagesBySender`: `e==nil || coll==nil` → **`(0, nil)`** — `gdpr_mongo.go:27-30`.
+6. Cascade treats Mongo as OK → audit log → `HardDeleteUser` — `service.go:532-544`.
+7. **Non-admin** members still read residual messages in Mongo channels (PII of «erased» user).
 
-**PoC sketch:** wire `NewMongoMessageEraser(nil)` → GDPR 200 → count messages by `sender_id` > 0.
+**PoC sketch:** wire `NewMongoMessageEraser(nil)` (or nil `mongoDB` at boot) → GDPR 200 → count messages by `sender_id` > 0.
 
-**Fix direction:** nil coll → error; hubtest real `DeleteMany`; cascade abort (TASK-079 ACCEPTANCE).
+**Fix direction:** nil coll → error; hubtest real `DeleteMany`; cascade abort (TASK-079 ACCEPTANCE). Also fail-closed if `msgEraser` unset (`service.go:523` skip path).
 
 > Actor note: step 1 is admin; **impact surface for ordinary non-admin** = continued access to data that must be gone + false compliance. Included per W19 catch-up + C-001 CRITICAL.
 
@@ -109,7 +112,7 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 **Chain**
 
 1. Non-admin registers WebPush endpoint — `ValidateOutboundURL` only (scheme/userinfo) — `notification/push.go:220-227`; dial-time block in `SafeDialContext`.
-2. Or posts URL → `FetchOpenGraphMetadata` — `platform/http/opengraph.go:25-35`.
+2. Or posts URL → `FetchOpenGraphMetadata` — `platform/http/opengraph.go` (ValidateOutboundURL + SafeHTTPClient).
 3. Defense: `isBlockedIP` normalizes via `To4()` — `platform/http/safedialer.go:66-81`.
 4. W18 FAIL: remove `To4()` → tests stay GREEN on Go 1.25 → **regression unwatched** for `::ffff:169.254.169.254`.
 5. Parallel: Meili indexer has To4 link-local check — `search/meilisearch_indexer.go:70` — **no hubtest** SSRF (TASK-044).
@@ -126,7 +129,7 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 |--|--|
 | **Likelihood** | **Low–Med** — prod wiring sets checker (`wiring_audit_ai.go`, `wiring_integrations.go`); fail-open if forgotten; user can set `allow_external_ai` |
 | **Impact** | **High** — IDOR issue title/description / PR context via @hub-ai; external LLM data exfil if consent default regresses |
-| **Reopens** | **TASK-044** (stream cancel + Meili SSRF hubtests missing); W18-C5-004 consumers; combo W19-A3 **C-003** |
+| **Reopens** | **TASK-044** (stream cancel + Meili SSRF hubtests missing); W18-C5-004 consumers; combo W19-A3 **C-006** |
 | **OWASP** | A01 · A07 |
 
 **Chain**
@@ -134,7 +137,7 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 1. `TrackerIssueLookup`: `if access != nil` only — **skip** when nil — `ai/issue_lookup.go:56-65`.
 2. `authorizeReview`: `if p.access == nil { return nil }` — `ai/code_review.go:66-69`.
 3. Contrast: `RBACProjectAccess` fail-closed on `Svc==nil` — `ai/project_access.go:21-25`.
-4. Preference default `AllowExternalAI: false` mutation-proven — `ai/service.go:302-306` — but stream cancel mid-read **no hubtest** (TASK-044).
+4. Preference default `AllowExternalAI: false` mutation-proven — `ai/service.go` GetOrCreatePreference — but stream cancel mid-read **no hubtest** (TASK-044).
 5. Non-admin @mentions bot / code-review URL on foreign project → context leak if checker unset.
 
 **PoC sketch:** unit without `SetAccessChecker` + foreign issue key → expect NotFound; today returns title/desc.
@@ -168,7 +171,7 @@ Owner ≠ system admin — **in scope** (any user who created a project).
 | **046** | **PARTIAL** | Schema grep ≠ runtime unique/CHECK |
 | **052** | **LOW** | FE types — no direct BE authz bypass |
 | **054** | **NO** (exploit) | Docs drift only |
-| **079** | **YES** | `gdpr_mongo.go:27-30` `(0,nil)` + cascade HardDelete |
+| **079** | **YES** | `gdpr_mongo.go:27-30` `(0,nil)` + cascade HardDelete; wiring `wiring_messenger.go:66` |
 
 ---
 
