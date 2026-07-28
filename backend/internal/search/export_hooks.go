@@ -66,8 +66,8 @@ func ExportSearchFiles(s *SearchService, ctx context.Context, query string, proj
 	return s.searchFiles(ctx, query, projectIDs)
 }
 
-func ExportSearchChannels(s *SearchService, ctx context.Context, query string, projectIDs []uuid.UUID) ([]SearchResult, error) {
-	return s.searchChannels(ctx, query, projectIDs)
+func ExportSearchChannels(s *SearchService, ctx context.Context, query string, projectIDs []uuid.UUID, userID uuid.UUID) ([]SearchResult, error) {
+	return s.searchChannels(ctx, query, projectIDs, userID)
 }
 
 func ExportSearchMessages(s *SearchService, ctx context.Context, query string, userID uuid.UUID) ([]SearchResult, error) {

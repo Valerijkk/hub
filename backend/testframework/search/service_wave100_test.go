@@ -25,7 +25,7 @@ func TestSearchUsers_AdminUnscopedQueryFails(t *testing.T) {
 
 func TestSearchChannels_EmptyProjects(t *testing.T) {
 	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchChannels(svc, context.Background(), "general", nil)
+	results, err := search.ExportSearchChannels(svc, context.Background(), "general", nil, uuid.Nil)
 	require.NoError(t, err)
 	assert.Nil(t, results)
 }
@@ -64,7 +64,7 @@ func wave100ProjectScope() []uuid.UUID {
 
 func TestSearchChannels_QueryFailsWithProjects(t *testing.T) {
 	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	_, err := search.ExportSearchChannels(svc, context.Background(), "general", wave100ProjectScope())
+	_, err := search.ExportSearchChannels(svc, context.Background(), "general", wave100ProjectScope(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "каналов")
 }

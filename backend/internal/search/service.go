@@ -138,7 +138,8 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			items, searchErr := s.searchChannels(ctx, query, projectIDs)
+			// P1-BE-32 / NF-03: private/group требуют membership; soft-delete исключаем.
+			items, searchErr := s.searchChannels(ctx, query, projectIDs, userID)
 			appendResults(items, searchErr)
 		}()
 	}
@@ -173,14 +174,16 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 	return results, nil
 }
 
-// getUserChannelIDs возвращает ID каналов мессенджера, в которых состоит
-// пользователь. Используется SEC-H2 для скоупа Mongo $text-поиска.
-// Таблица channel_members имеет колонки channel_id и user_id (см.
-// ent/migrate/schema.go), что соответствует тому же шаблону, что и в
-// messenger.EntRepository.IsMember.
+// getUserChannelIDs возвращает ID активных каналов мессенджера, в которых
+// состоит пользователь. Используется SEC-H2 для скоупа Mongo $text-поиска.
+// JOIN на channels + deleted_at IS NULL (W5-A4-004): после soft-delete канала
+// строки membership остаются, но корзина не должна индексироваться в Ctrl+K.
 func (s *SearchService) getUserChannelIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
 	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT channel_id FROM channel_members WHERE user_id = $1`,
+		`SELECT cm.channel_id
+		FROM channel_members cm
+		INNER JOIN channels c ON c.id = cm.channel_id
+		WHERE cm.user_id = $1 AND c.deleted_at IS NULL`,
 		userID.String())
 	if err != nil {
 		return nil, fmt.Errorf("getUserChannelIDs: %w", err)
@@ -509,7 +512,10 @@ func (s *SearchService) searchFiles(ctx context.Context, query string, projectID
 
 // searchChannels ищет каналы по tsvector с фильтрацией по проектам.
 // Fallback на ILIKE если tsvector-колонка отсутствует.
-func (s *SearchService) searchChannels(ctx context.Context, query string, projectIDs []uuid.UUID) ([]SearchResult, error) {
+//
+// P1-BE-32 (W5-A4-001/002): soft-deleted исключены; public виден участникам
+// проекта; private/group — только при membership в channel_members (NF-03/NFR-19).
+func (s *SearchService) searchChannels(ctx context.Context, query string, projectIDs []uuid.UUID, userID uuid.UUID) ([]SearchResult, error) {
 	if len(projectIDs) == 0 {
 		return nil, nil
 	}
@@ -521,8 +527,13 @@ func (s *SearchService) searchChannels(ctx context.Context, query string, projec
 		FROM channels
 		WHERE to_tsvector('simple', name) @@ plainto_tsquery('simple', $1)
 			AND project_id = ANY($2)
+			AND deleted_at IS NULL
+			AND (
+				channel_type = 'public'
+				OR id IN (SELECT channel_id FROM channel_members WHERE user_id = $3)
+			)
 		ORDER BY rank DESC LIMIT %d`, defaultSearchLimit),
-		query, uuidSliceToPgArray(projectIDs))
+		query, uuidSliceToPgArray(projectIDs), userID.String())
 	if err != nil {
 		// Fallback на ILIKE если tsvector не работает
 		rows, err = s.sqlDB.QueryContext(ctx,
@@ -530,8 +541,13 @@ func (s *SearchService) searchChannels(ctx context.Context, query string, projec
 			FROM channels
 			WHERE name ILIKE '%%' || $1 || '%%'
 				AND project_id = ANY($2)
+				AND deleted_at IS NULL
+				AND (
+					channel_type = 'public'
+					OR id IN (SELECT channel_id FROM channel_members WHERE user_id = $3)
+				)
 			ORDER BY name ASC LIMIT %d`, defaultSearchLimit),
-			query, uuidSliceToPgArray(projectIDs))
+			query, uuidSliceToPgArray(projectIDs), userID.String())
 		if err != nil {
 			return nil, fmt.Errorf("поиск каналов: %w", err)
 		}
@@ -584,8 +600,11 @@ func (s *SearchService) searchMessages(ctx context.Context, query string, userID
 	}
 
 	coll := s.mongoDB.Collection("messages")
+	// P1-BE-32 / W5-A4-003: soft-deleted сообщения (messenger SoftDeleteMessage)
+	// не должны попадать в Ctrl+K — тот же фильтр, что ListMessages.
 	filter := bson.M{
 		"channel_id": bson.M{"$in": channelIDs},
+		"deleted_at": nil,
 		"$text":      bson.M{"$search": query},
 	}
 	opts := options.Find().

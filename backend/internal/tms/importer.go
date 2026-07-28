@@ -30,6 +30,13 @@ const (
 	ImportFormatJSON  ImportFormat = "json"
 	ImportFormatXML   ImportFormat = "xml"
 	ImportFormatExcel ImportFormat = "excel"
+
+	// maxImportFileBytes — лимит тела файла импорта (как TestRail / Fiber BodyLimit).
+	maxImportFileBytes = 25 * 1024 * 1024
+	// maxImportRecords — hard-cap числа кейсов за один импорт (DoS/memory).
+	maxImportRecords = 5000
+	// maxImportNestDepth — лимит вложенности JSON/XML (bomb amplification).
+	maxImportNestDepth = 32
 )
 
 // FieldMapping описывает соответствие колонок источника полям TMS.
@@ -75,6 +82,10 @@ func ImportFromCSV(reader io.Reader, mapping FieldMapping) ([]CreateTestCaseInpu
 		return nil, fmt.Errorf("CSV файл пуст или содержит только заголовки")
 	}
 
+	if len(records)-1 > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
+	}
+
 	headers := records[0]
 	if len(mapping) == 0 {
 		mapping = AutoDetectMapping(headers)
@@ -117,9 +128,23 @@ type jsonTestCase struct {
 
 // ImportFromJSON парсит JSON-массив и возвращает входные данные для создания тест-кейсов.
 func ImportFromJSON(reader io.Reader) ([]CreateTestCaseInput, error) {
+	data, err := io.ReadAll(io.LimitReader(reader, maxImportFileBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения JSON: %w", err)
+	}
+	if len(data) > maxImportFileBytes {
+		return nil, fmt.Errorf("файл слишком большой")
+	}
+	if err := assertJSONMaxDepth(data, maxImportNestDepth); err != nil {
+		return nil, err
+	}
+
 	var items []jsonTestCase
-	if err := json.NewDecoder(reader).Decode(&items); err != nil {
+	if err := json.Unmarshal(data, &items); err != nil {
 		return nil, fmt.Errorf("ошибка разбора JSON: %w", err)
+	}
+	if len(items) > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
 	}
 
 	inputs := make([]CreateTestCaseInput, 0, len(items))
@@ -131,6 +156,7 @@ func ImportFromJSON(reader io.Reader) ([]CreateTestCaseInput, error) {
 			Priority:     item.Priority,
 			Status:       item.Status,
 			CaseType:     item.CaseType,
+			Steps:        parseTestRailSteps(item.Steps, ""),
 		}
 		inputs = append(inputs, input)
 	}
@@ -156,9 +182,23 @@ type xmlTestCase struct {
 
 // ImportFromXML парсит XML с корневым элементом <testcases> и возвращает входные данные.
 func ImportFromXML(reader io.Reader) ([]CreateTestCaseInput, error) {
+	data, err := io.ReadAll(io.LimitReader(reader, maxImportFileBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("ошибка чтения XML: %w", err)
+	}
+	if len(data) > maxImportFileBytes {
+		return nil, fmt.Errorf("файл слишком большой")
+	}
+	if err := assertXMLMaxDepth(data, maxImportNestDepth); err != nil {
+		return nil, err
+	}
+
 	var root xmlTestCases
-	if err := xml.NewDecoder(reader).Decode(&root); err != nil {
+	if err := xml.Unmarshal(data, &root); err != nil {
 		return nil, fmt.Errorf("ошибка разбора XML: %w", err)
+	}
+	if len(root.TestCases) > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
 	}
 
 	inputs := make([]CreateTestCaseInput, 0, len(root.TestCases))
@@ -200,6 +240,10 @@ func ImportFromExcel(reader io.Reader, sheetName string, mapping FieldMapping) (
 
 	if len(rows) < 2 {
 		return nil, fmt.Errorf("Excel файл пуст или содержит только заголовки")
+	}
+
+	if len(rows)-1 > maxImportRecords {
+		return nil, fmt.Errorf("слишком много записей для импорта (макс. %d)", maxImportRecords)
 	}
 
 	headers := rows[0]
@@ -295,6 +339,16 @@ func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*I
 	}
 	defer f.Close()
 
+	// P1-BE-13: LimitReader + явный 413 при превышении лимита (не полагаться только на Fiber BodyLimit).
+	data, err := io.ReadAll(io.LimitReader(f, maxImportFileBytes+1))
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка чтения файла")
+	}
+	if len(data) > maxImportFileBytes {
+		return nil, fiber.NewError(fiber.StatusRequestEntityTooLarge, "файл слишком большой")
+	}
+	limited := bytes.NewReader(data)
+
 	// Маппинг из формы
 	mappingStr := c.FormValue("mapping", "")
 	var mapping FieldMapping
@@ -307,18 +361,22 @@ func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*I
 	var inputs []CreateTestCaseInput
 	switch format {
 	case "csv":
-		inputs, err = ImportFromCSV(f, mapping)
+		inputs, err = ImportFromCSV(limited, mapping)
 	case "json":
-		inputs, err = ImportFromJSON(f)
+		inputs, err = ImportFromJSON(limited)
 	case "xml":
-		inputs, err = ImportFromXML(f)
+		inputs, err = ImportFromXML(limited)
 	case "excel":
-		inputs, err = ImportFromExcel(f, "", mapping)
+		inputs, err = ImportFromExcel(limited, "", mapping)
 	default:
 		return nil, apperrors.NewBadRequest("неподдерживаемый формат: " + format)
 	}
 	if err != nil {
-		return nil, apperrors.NewBadRequest("ошибка парсинга файла: " + err.Error())
+		msg := err.Error()
+		if strings.Contains(msg, "файл слишком большой") {
+			return nil, fiber.NewError(fiber.StatusRequestEntityTooLarge, "файл слишком большой")
+		}
+		return nil, apperrors.NewBadRequest("ошибка парсинга файла: " + msg)
 	}
 
 	// Валидация
@@ -363,12 +421,63 @@ func applyFieldToInput(input *CreateTestCaseInput, field, value string) {
 		input.Description = value
 	case "precondition":
 		input.Precondition = value
+	case "steps":
+		// P1-BE-14: колонка Steps/Шаги больше не отбрасывается молча.
+		input.Steps = parseTestRailSteps(value, "")
 	case "priority":
 		input.Priority = strings.ToLower(value)
 	case "status":
 		input.Status = strings.ToLower(value)
 	case "case_type":
 		input.CaseType = strings.ToLower(value)
+	}
+}
+
+// assertJSONMaxDepth отклоняет JSON с вложенностью выше maxDepth (XML/JSON bomb).
+func assertJSONMaxDepth(data []byte, maxDepth int) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	depth := 0
+	for {
+		tok, err := dec.Token()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("ошибка разбора JSON: %w", err)
+		}
+		switch tok {
+		case json.Delim('{'), json.Delim('['):
+			depth++
+			if depth > maxDepth {
+				return fmt.Errorf("превышена максимальная глубина JSON (%d)", maxDepth)
+			}
+		case json.Delim('}'), json.Delim(']'):
+			depth--
+		}
+	}
+}
+
+// assertXMLMaxDepth отклоняет XML с вложенностью выше maxDepth.
+func assertXMLMaxDepth(data []byte, maxDepth int) error {
+	dec := xml.NewDecoder(bytes.NewReader(data))
+	depth := 0
+	for {
+		tok, err := dec.Token()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("ошибка разбора XML: %w", err)
+		}
+		switch tok.(type) {
+		case xml.StartElement:
+			depth++
+			if depth > maxDepth {
+				return fmt.Errorf("превышена максимальная глубина XML (%d)", maxDepth)
+			}
+		case xml.EndElement:
+			depth--
+		}
 	}
 }
 

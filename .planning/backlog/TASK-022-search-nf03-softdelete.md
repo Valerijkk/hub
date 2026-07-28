@@ -1,6 +1,6 @@
 ﻿# TASK-022 — Search: soft-delete + private channel scope
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
 > Источник: TASK-008 W12 · Classes: P1-BE-32 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
 ## [OUTCOME]

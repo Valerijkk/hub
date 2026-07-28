@@ -41,7 +41,7 @@ func TestSearchMessages_NoMongo(t *testing.T) {
 
 func TestSearchChannels_EmptyScope(t *testing.T) {
 	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchChannels(svc, context.Background(), "general", nil)
+	results, err := search.ExportSearchChannels(svc, context.Background(), "general", nil, uuid.Nil)
 	require.NoError(t, err)
 	assert.Nil(t, results)
 }

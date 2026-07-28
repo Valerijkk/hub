@@ -25,7 +25,7 @@ func TestSearchTestCases_EmptyProjectIDs(t *testing.T) {
 
 func TestSearchChannels_EmptyProjectIDs(t *testing.T) {
 	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchChannels(svc, context.Background(), "general", nil)
+	results, err := search.ExportSearchChannels(svc, context.Background(), "general", nil, uuid.Nil)
 	require.NoError(t, err)
 	assert.Nil(t, results)
 }

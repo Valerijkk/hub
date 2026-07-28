@@ -52,21 +52,14 @@ func TestSearch_LimitCappedAtFifty(t *testing.T) {
 func TestSearchChannels_TriggersFallbackBeforeError(t *testing.T) {
 	db := newScopeTestDB(t)
 	projectID := uuid.New()
-	_, err := db.Exec(`CREATE TABLE channels (
-		id TEXT NOT NULL,
-		name TEXT NOT NULL,
-		channel_type TEXT NOT NULL,
-		project_id TEXT
-	)`)
-	require.NoError(t, err)
-	_, err = db.Exec(
+	_, err := db.Exec(
 		`INSERT INTO channels (id, name, channel_type, project_id) VALUES (?, ?, ?, ?)`,
 		uuid.New().String(), "general", "public", projectID.String(),
 	)
 	require.NoError(t, err)
 
 	svc := search.ExportNewSearchServiceSQL(db)
-	_, err = search.ExportSearchChannels(svc, context.Background(), "general", []uuid.UUID{projectID})
+	_, err = search.ExportSearchChannels(svc, context.Background(), "general", []uuid.UUID{projectID}, uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "каналов")
 }

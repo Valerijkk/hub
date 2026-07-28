@@ -59,6 +59,13 @@ func newScopeTestDB(t *testing.T) *sql.DB {
 	t.Cleanup(func() { db.Close() })
 
 	_, err = db.Exec(`
+		CREATE TABLE channels (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL DEFAULT '',
+			channel_type TEXT NOT NULL DEFAULT 'public',
+			project_id TEXT,
+			deleted_at TEXT
+		);
 		CREATE TABLE channel_members (channel_id TEXT NOT NULL, user_id TEXT NOT NULL);
 		CREATE TABLE project_members (project_members TEXT NOT NULL, user_project_members TEXT NOT NULL);
 	`)
@@ -85,18 +92,25 @@ func TestGetUserChannelIDs_ReturnsOnlyUserMemberships(t *testing.T) {
 	userID := uuid.New()
 	ownChannel := uuid.New()
 	otherChannel := uuid.New()
+	deletedChannel := uuid.New()
 
 	_, err := db.Exec(
-		`INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?), (?, ?)`,
+		`INSERT INTO channels (id, name, channel_type, deleted_at) VALUES (?, 'own', 'public', NULL), (?, 'other', 'public', NULL), (?, 'gone', 'public', '2026-01-01')`,
+		ownChannel.String(), otherChannel.String(), deletedChannel.String(),
+	)
+	require.NoError(t, err)
+	_, err = db.Exec(
+		`INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?), (?, ?), (?, ?)`,
 		ownChannel.String(), userID.String(),
 		otherChannel.String(), uuid.New().String(),
+		deletedChannel.String(), userID.String(),
 	)
 	require.NoError(t, err)
 
 	svc := search.ExportNewSearchServiceSQL(db)
 	ids, err := search.ExportGetUserChannelIDs(svc, context.Background(), userID)
 	require.NoError(t, err)
-	require.Len(t, ids, 1)
+	require.Len(t, ids, 1, "soft-deleted channel membership must be excluded")
 	assert.Equal(t, ownChannel, ids[0])
 }
 
@@ -144,7 +158,7 @@ func TestSearchScopedEntities_EmptyProjectIDsReturnNothing(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, files)
 
-	channels, err := search.ExportSearchChannels(svc, ctx, "test", nil)
+	channels, err := search.ExportSearchChannels(svc, ctx, "test", nil, uuid.Nil)
 	require.NoError(t, err)
 	assert.Nil(t, channels)
 }

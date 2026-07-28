@@ -115,10 +115,16 @@ func TestSearch_AllShardTypesWithMembership(t *testing.T) {
 func TestGetUserChannelIDs_SkipsInvalidRows(t *testing.T) {
 	db := newScopeTestDB(t)
 	userID := uuid.New()
+	validChannel := uuid.New()
 	_, err := db.Exec(
+		`INSERT INTO channels (id, name, channel_type, deleted_at) VALUES (?, 'valid', 'public', NULL)`,
+		validChannel.String(),
+	)
+	require.NoError(t, err)
+	_, err = db.Exec(
 		`INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?), (?, ?)`,
 		"not-a-uuid", userID.String(),
-		uuid.New().String(), userID.String(),
+		validChannel.String(), userID.String(),
 	)
 	require.NoError(t, err)
 
