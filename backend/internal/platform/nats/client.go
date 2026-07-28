@@ -4,6 +4,7 @@ package nats
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/url"
 	"time"
@@ -78,10 +79,44 @@ func (c *Client) Publish(subject string, data []byte) error {
 	return c.Conn.Publish(subject, data)
 }
 
-// PublishMsg публикует подготовленное сообщение (в т.ч. с headers) в core NATS.
-// Нужен outbox-worker'у: он несёт traceparent и event_id в headers.
+// publishFlushTimeout — сколько ждать подтверждения сервером после Publish
+// (P1-BE-24). Без Flush сообщение может остаться только в клиентском буфере.
+const publishFlushTimeout = 5 * time.Second
+
+// afterCorePublishHook — только для hubtest: вставка между Publish и Flush,
+// чтобы симулировать drop соединения до подтверждения сервером.
+var afterCorePublishHook func()
+
+// PublishMsg публикует подготовленное сообщение (в т.ч. с headers) в NATS и
+// ждёт FlushTimeout / серверный ack буфера. Нужен outbox-worker'у: он несёт
+// traceparent и event_id в headers и помечает status=published только после
+// успешного возврата (P1-BE-24 — иначе crash между Publish и Flush теряет событие).
 func (c *Client) PublishMsg(msg *nats.Msg) error {
-	return c.Conn.PublishMsg(msg)
+	if err := c.Conn.PublishMsg(msg); err != nil {
+		return err
+	}
+	if afterCorePublishHook != nil {
+		afterCorePublishHook()
+	}
+	return c.Conn.FlushTimeout(publishFlushTimeout)
+}
+
+// FlushTimeout прокидывает nats.Conn.FlushTimeout (подтверждение буфера сервером).
+func (c *Client) FlushTimeout(timeout time.Duration) error {
+	return c.Conn.FlushTimeout(timeout)
+}
+
+// PublishMsgAck публикует через JetStream и ждёт PubAck (durable path).
+// Использовать, когда subject входит в stream EVENTS.
+func (c *Client) PublishMsgAck(ctx context.Context, msg *nats.Msg) error {
+	ack, err := c.JetStream.PublishMsg(ctx, msg)
+	if err != nil {
+		return err
+	}
+	if ack == nil {
+		return errors.New("nats: empty PubAck")
+	}
+	return nil
 }
 
 // PublishWithTraceContext публикует данные в core NATS, перенося trace-context

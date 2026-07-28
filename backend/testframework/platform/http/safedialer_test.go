@@ -45,6 +45,34 @@ func TestIsBlockedIP(t *testing.T) {
 	assert.True(t, httputil.ExportIsBlockedIP(net.ParseIP("192.168.1.1")))
 	assert.True(t, httputil.ExportIsBlockedIP(net.ParseIP("169.254.169.254")))
 	assert.False(t, httputil.ExportIsBlockedIP(net.ParseIP("8.8.8.8")))
+
+	// P1-BE-23: IPv4-mapped IPv6 must hit the same IPv4 blocklist.
+	mappedBlocked := []string{
+		"::ffff:127.0.0.1",
+		"::ffff:169.254.169.254",
+		"::ffff:10.0.0.1",
+		"::ffff:192.168.0.1",
+	}
+	for _, s := range mappedBlocked {
+		ip := net.ParseIP(s)
+		require.NotNil(t, ip, s)
+		assert.True(t, httputil.ExportIsBlockedIP(ip), "expected blocked: %s", s)
+	}
+	assert.False(t, httputil.ExportIsBlockedIP(net.ParseIP("::ffff:8.8.8.8")))
+}
+
+func TestSafeDialContext_BlocksIPv4MappedLoopback(t *testing.T) {
+	dial := httputil.SafeDialContext()
+	_, err := dial(context.Background(), "tcp", "[::ffff:127.0.0.1]:80")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, httputil.ErrBlockedAddress)
+}
+
+func TestSafeDialContext_BlocksIPv4MappedMetadata(t *testing.T) {
+	dial := httputil.SafeDialContext()
+	_, err := dial(context.Background(), "tcp", "[::ffff:169.254.169.254]:80")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, httputil.ErrBlockedAddress)
 }
 
 func TestSafeDialContext_BlocksLoopback(t *testing.T) {

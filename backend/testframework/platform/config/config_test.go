@@ -22,6 +22,10 @@ func setProductionBaseEnv(t *testing.T) {
 	t.Setenv("METRICS_ALLOWED_CIDRS", "127.0.0.1/32")
 	// A14-003: production требует userinfo в NATS_URL.
 	t.Setenv("NATS_URL", "nats://hubnats:hubnatspass@nats:4222")
+	// P1-BE-26: prod не принимает compose-defaults hub:hub@.
+	t.Setenv("DATABASE_URL", "postgresql://produser:prodpass@db:5432/hub?sslmode=require")
+	t.Setenv("MONGODB_URL", "mongodb://produser:prodpass@mongo:27017")
+	t.Setenv("REDIS_URL", "redis://:strongredispass@redis:6379/0")
 }
 
 func TestLoad_devModeAllowsDefaults(t *testing.T) {
@@ -199,6 +203,10 @@ func TestLoad_nonProductionAllowsNATSWithoutCreds(t *testing.T) {
 	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
 	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
 	t.Setenv("NATS_URL", "nats://nats:4222")
+	// P1-BE-26: !DevMode всё равно отвергает hub:hub@ — задаём сильные URL.
+	t.Setenv("DATABASE_URL", "postgresql://stage:stagepass@db:5432/hub?sslmode=disable")
+	t.Setenv("MONGODB_URL", "mongodb://stage:stagepass@mongo:27017")
+	t.Setenv("REDIS_URL", "redis://:stagepass@redis:6379/0")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -206,6 +214,61 @@ func TestLoad_nonProductionAllowsNATSWithoutCreds(t *testing.T) {
 	}
 	if cfg.NATS.URL != "nats://nats:4222" {
 		t.Errorf("NATS.URL = %q", cfg.NATS.URL)
+	}
+}
+
+// P1-BE-26: DEV_MODE=false + hub:hub@ в data-store URL → validate fail.
+func TestLoad_rejectsWeakHubCreds_P1_BE_26(t *testing.T) {
+	cases := []struct {
+		envKey string
+		url    string
+	}{
+		{"DATABASE_URL", "postgresql://hub:hub@localhost:5432/hub?sslmode=disable"},
+		{"MONGODB_URL", "mongodb://hub:hub@localhost:27017"},
+		{"REDIS_URL", "redis://hub:hub@localhost:6379/0"},
+	}
+	for _, tt := range cases {
+		t.Run(tt.envKey, func(t *testing.T) {
+			setProductionBaseEnv(t)
+			t.Setenv(tt.envKey, tt.url)
+
+			_, err := config.Load()
+			if err == nil {
+				t.Fatalf("expected error for weak %s", tt.envKey)
+			}
+			if !strings.Contains(err.Error(), tt.envKey) {
+				t.Errorf("error must mention %s, got: %v", tt.envKey, err)
+			}
+			if !strings.Contains(err.Error(), "hub:hub") {
+				t.Errorf("error must mention hub:hub, got: %v", err)
+			}
+		})
+	}
+}
+
+// P1-BE-26: дефолты Load() без явных DATABASE/MONGO/REDIS env — hub:hub@ → fail.
+func TestLoad_productionRejectsDefaultDataStoreURLs_P1_BE_26(t *testing.T) {
+	t.Setenv("DEV_MODE", "false")
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("JWT_SECRET", strings.Repeat("s", 40))
+	t.Setenv("S3_ACCESS_KEY", "prod-access")
+	t.Setenv("S3_SECRET_KEY", "prod-secret-key-32chars-minimum!!")
+	t.Setenv("LIVEKIT_API_KEY", "prod-lk-key")
+	t.Setenv("LIVEKIT_API_SECRET", "prod-lk-secret")
+	t.Setenv("INTEGRATION_ENCRYPTION_KEY", strings.Repeat("b", 64))
+	t.Setenv("METRICS_ALLOWED_CIDRS", "127.0.0.1/32")
+	t.Setenv("NATS_URL", "nats://hubnats:hubnatspass@nats:4222")
+	// Не задаём DATABASE_URL / MONGODB_URL / REDIS_URL — сработают code defaults с hub:hub@.
+	os.Unsetenv("DATABASE_URL")
+	os.Unsetenv("MONGODB_URL")
+	os.Unsetenv("REDIS_URL")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected error for default hub:hub data-store URLs in production")
+	}
+	if !strings.Contains(err.Error(), "hub:hub") {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
 

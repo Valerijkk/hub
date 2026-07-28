@@ -276,10 +276,31 @@ func (c *Config) validate() error {
 		}
 	}
 
+	// P1-BE-26: weak DB/Mongo/Redis defaults (hub:hub@) запрещены при !DevMode —
+	// симметрия с A14-002 (S3 hub/hubsecret).
+	if msg := weakDataStoreURLProblem("DATABASE_URL", c.Postgres.URL); msg != "" {
+		problems = append(problems, msg)
+	}
+	if msg := weakDataStoreURLProblem("MONGODB_URL", c.MongoDB.URL); msg != "" {
+		problems = append(problems, msg)
+	}
+	if msg := weakDataStoreURLProblem("REDIS_URL", c.Redis.URL); msg != "" {
+		problems = append(problems, msg)
+	}
+
 	if len(problems) > 0 {
 		return fmt.Errorf("небезопасная конфигурация (DEV_MODE=false): %s", strings.Join(problems, "; "))
 	}
 	return nil
+}
+
+// weakDataStoreURLProblem — непустая строка, если URL содержит известные
+// weak credentials hub:hub@ (compose/dev defaults).
+func weakDataStoreURLProblem(name, raw string) string {
+	if strings.Contains(strings.ToLower(raw), "hub:hub@") {
+		return fmt.Sprintf("%s использует weak credentials hub:hub — задайте сильные учётные данные", name)
+	}
+	return ""
 }
 
 // natsProductionCredsProblem — пустая строка если NATS_URL содержит user+password;

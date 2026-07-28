@@ -90,18 +90,12 @@ func (w *Worker) processEvent(ctx context.Context, evt *ent.OutboxEvent) {
 	natsclient.InjectTraceContext(msgCtx, msg.Header)
 	msg.Header.Set(natsclient.HeaderEventID, evt.ID.String())
 
+	// P1-BE-24: PublishMsg ждёт FlushTimeout (серверный ack буфера) до возврата.
+	// status=published выставляем только после успешного Confirm — иначе crash/
+	// разрыв между Publish и Flush оставляет «published» в БД без события в NATS.
 	if err := w.nats.PublishMsg(msg); err != nil {
 		slog.Warn("outbox: publish failed", "event_type", evt.EventType, "error", err)
-		if _, saveErr := w.client.OutboxEvent.UpdateOneID(evt.ID).
-			SetAttempts(evt.Attempts + 1).
-			SetLastError(err.Error()).
-			Save(ctx); saveErr != nil {
-			slog.Error("outbox: failed to record publish failure",
-				"event_id", evt.ID,
-				"event_type", evt.EventType,
-				"error", saveErr,
-			)
-		}
+		w.recordPublishFailure(ctx, evt, err)
 		return
 	}
 
@@ -111,6 +105,21 @@ func (w *Worker) processEvent(ctx context.Context, evt *ent.OutboxEvent) {
 		SetPublishedAt(now).
 		Save(ctx); saveErr != nil {
 		slog.Error("outbox: failed to mark event published",
+			"event_id", evt.ID,
+			"event_type", evt.EventType,
+			"error", saveErr,
+		)
+	}
+}
+
+// recordPublishFailure инкрементирует attempts и сохраняет last_error, оставляя
+// status=pending для повторной доставки.
+func (w *Worker) recordPublishFailure(ctx context.Context, evt *ent.OutboxEvent, err error) {
+	if _, saveErr := w.client.OutboxEvent.UpdateOneID(evt.ID).
+		SetAttempts(evt.Attempts + 1).
+		SetLastError(err.Error()).
+		Save(ctx); saveErr != nil {
+		slog.Error("outbox: failed to record publish failure",
 			"event_id", evt.ID,
 			"event_type", evt.EventType,
 			"error", saveErr,

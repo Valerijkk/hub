@@ -266,6 +266,31 @@ func TestProcessEvent_PublishSuccess_MarksPublished(t *testing.T) {
 	assert.NotNil(t, reloaded.PublishedAt)
 }
 
+// P1-BE-24: drop соединения между Publish и Flush → status остаётся pending.
+// Мутация «убрать Flush из PublishMsg» → Publish вернёт nil после Close и
+// событие ошибочно станет published — этот тест краснеет.
+func TestProcessEvent_DropBeforeFlush_StaysPending_P1_BE_24(t *testing.T) {
+	client := newTestEntClient(t)
+	nc := startTestNATSServer(t)
+	w := outbox.NewWorker(client, nc)
+	ctx := context.Background()
+
+	natsclient.ExportSetAfterCorePublishHook(func() {
+		nc.Close()
+	})
+	t.Cleanup(func() { natsclient.ExportSetAfterCorePublishHook(nil) })
+
+	evt := insertOutboxEvent(t, client, "test.drop.flush", []byte(`{"ok":false}`))
+	outbox.ExportWorkerProcessEvent(w, ctx, evt)
+
+	reloaded, err := client.OutboxEvent.Get(ctx, evt.ID)
+	require.NoError(t, err)
+	assert.Equal(t, outboxevent.StatusPending, reloaded.Status,
+		"event must stay pending when Flush fails after Publish")
+	assert.Equal(t, 1, reloaded.Attempts)
+	assert.NotEmpty(t, reloaded.LastError)
+}
+
 func TestProcessLoop_StopsOnContextCancel(t *testing.T) {
 	client := newTestEntClient(t)
 	nats := startTestNATSServer(t)

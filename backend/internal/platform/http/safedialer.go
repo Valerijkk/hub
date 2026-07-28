@@ -62,9 +62,16 @@ var blockedCIDRs = func() []*net.IPNet {
 
 // isBlockedIP возвращает true, если IP принадлежит одному из запрещённых
 // диапазонов (приватная сеть, loopback, link-local и т.п.).
+//
+// P1-BE-23: IPv4-mapped IPv6 (::ffff:a.b.c.d) нормализуем через To4() —
+// иначе net.IPNet.Contains для IPv4-CIDR (4 байта) не матчит 16-байтный
+// mapped-адрес и SSRF обходит blocklist (метаданные/loopback/RFC1918).
 func isBlockedIP(ip net.IP) bool {
 	if ip == nil {
 		return true
+	}
+	if v4 := ip.To4(); v4 != nil {
+		ip = v4
 	}
 	for _, n := range blockedCIDRs {
 		if n.Contains(ip) {
