@@ -10,10 +10,10 @@
 |-------|------|-------:|-----:|---------:|----:|--------:|--------:|---:|---:|---:|
 | A2W7-1 | notification+mail | 66 | 7 | 3 | 0 | 0 | 0 | 0 | 7 | 0 |
 | A2W7-2 | intranet+crm+hr+acct+cal | 72 | 11 | 6 | 1 | 0 | 0 | 1 | 8 | 2 |
-| A2W7-3 | github+gitlab+imex+onec | 71 | 6 | 7 | 0 | 0 | 0 | 0 | 6 | 0 |
+| A2W7-3 | github+gitlab+imex+onec | 71 | 5 | 8 | 0 | 0 | 0 | 0 | 5 | 0 |
 | A2W7-4 | storage+dashboard+backup | 48 | 11 | 9 | 0 | 0 | 0 | 3 | 6 | 2 |
 | A2W7-5 | marketplace+status+dev | 27 | 6 | 10 | 0 | 0 | 0 | 0 | 6 | 0 |
-| **Σ** | | **284** | **41** | **35** | **1** | **0** | **0** | **4** | **33** | **4** |
+| **Σ** | | **284** | **40** | **36** | **1** | **0** | **0** | **4** | **32** | **4** |
 
 > Open = RESIDUAL + NEW (уникальные ID в отчётах агентов).  
 > FIXED-OK не входят в Open. REGRESS = 0 по всему W7.
@@ -22,10 +22,10 @@
 
 | Tag | Count |
 |-----|------:|
-| RESIDUAL (open) | **40** |
+| RESIDUAL (open) | **39** |
 | NEW (open) | **1** |
 | REGRESS | **0** |
-| FIXED-OK (verified closed) | **35** |
+| FIXED-OK (verified closed) | **36** |
 
 ## P1 open (приоритет handoff)
 
@@ -38,7 +38,7 @@
 
 | Было (W7 Stage A) | Стало (A2 open) |
 |-------------------:|----------------:|
-| 75 findings | 41 open + 35 FIXED-OK (+1 NEW внутри open) |
+| 75 findings | 40 open + 36 FIXED-OK (+1 NEW внутри open) |
 | P1: 9 | P1 open: **4** (все RESIDUAL / partial) |
 | P0: 0 | P0: 0 |
 

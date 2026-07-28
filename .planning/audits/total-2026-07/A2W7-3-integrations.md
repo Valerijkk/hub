@@ -89,7 +89,7 @@
 | W7-A3-002 | FIXED-OK | P1 | `github/service.go:472-489` | ListGitHubLinks без membership | Закрыто TASK-024: `IsProjectMember` |
 | W7-A3-003 | FIXED-OK | P2 | `gitlab/webhook_verify.go:44-54` | CTC length-oracle на сырых строках | Закрыто TASK-045: sha256 digests + CTC |
 | W7-A3-004 | RESIDUAL | P2 | `github/repository.go` / `gitlab/repository.go` ListAllWebhookSecrets | Decrypt всех секретов в RAM; dead path | Attack-surface / ошибочный reuse |
-| W7-A3-005 | RESIDUAL | P2 | `github/handler.go` CreateIntegration | Пустые repo/token/secret не rejected (в отличие от gitlab) | Мёртвая интеграция / webhook 403 |
+| W7-A3-005 | FIXED-OK | P2 | `github/dto.go` validate tags + Bind | Пустые repo/token/secret не rejected | Закрыто P2-BE-01: `StructValidator` в `wiring_fiber.go` исполняет `validate:"required"` |
 | W7-A3-006 | RESIDUAL | P2 | `gitlab/service.go:306,410,510,566` | Upstream `respBody` в client error | Утечка тела GitLab API клиенту Hub |
 | W7-A3-007 | RESIDUAL | P2 | `onec/dto.go` + `settings_store.go` | BearerToken plaintext в `system_setting` | Компрометация БД = 1С token |
 | W7-A3-008 | RESIDUAL | P2 | `imex/repository.go:152-156` | `ListProjectIssuesPlain` **без** `DeletedAtIsNil` (CSV path фильтрует) | ZIP/xlsx trash issues; TASK-038 пометил out-of-scope — **код не закрыт** |
@@ -114,8 +114,8 @@
 | Метрика | n |
 |---------|--:|
 | Файлов | 71 |
-| Open (RESIDUAL) | **6** |
-| FIXED-OK | 7 |
+| Open (RESIDUAL) | **5** |
+| FIXED-OK | 8 |
 | NEW | 0 |
 | REGRESS | 0 |
-| Open by sev | P0:0 · P1:0 · P2:6 · P3:0 |
+| Open by sev | P0:0 · P1:0 · P2:5 · P3:0 |
