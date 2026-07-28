@@ -1,6 +1,6 @@
 # TASK-041 — Sprint poker CAS/RBAC + StartSprint atomic
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P2-BE-11 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -43,6 +43,10 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [REWORK 2026-07-28]
+
+Ent sequential second Start → ErrActiveSprintConflict (не SQLite race).
 
 ## [W18-C3 MUTATION — 2026-07-28 be2]
 

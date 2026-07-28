@@ -198,6 +198,43 @@ func TestStartSprintAtomic_Ent_Concurrent(t *testing.T) {
 	assert.Equal(t, 1, active)
 }
 
+// TestStartSprintAtomic_Ent_SecondActiveConflicts — P2-BE-11 / TASK-041.
+// Последовательный второй Start при уже active → *ErrActiveSprintConflict.
+// Мутация: убрать conflict-check → B становится active → RED (не зависит от SQLite tx race).
+func TestStartSprintAtomic_Ent_SecondActiveConflicts(t *testing.T) {
+	env := newSprintRepoEnv(t)
+	start := time.Now().UTC().Truncate(time.Second)
+	end := start.AddDate(0, 0, 14)
+
+	a, err := env.repo.CreateSprint(env.ctx, env.projectID, sprint.CreateSprintRequest{
+		Name: "First", StartDate: start, EndDate: end,
+	})
+	require.NoError(t, err)
+	b, err := env.repo.CreateSprint(env.ctx, env.projectID, sprint.CreateSprintRequest{
+		Name: "Second", StartDate: start.AddDate(0, 0, 14), EndDate: end.AddDate(0, 0, 14),
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.StartSprintAtomic(env.ctx, env.projectID, a.ID)
+	require.NoError(t, err)
+
+	_, err = env.repo.StartSprintAtomic(env.ctx, env.projectID, b.ID)
+	require.Error(t, err)
+	var conflict *sprint.ErrActiveSprintConflict
+	require.ErrorAs(t, err, &conflict)
+	assert.Equal(t, "First", conflict.Name)
+
+	all, err := env.repo.ListSprints(env.ctx, env.projectID)
+	require.NoError(t, err)
+	active := 0
+	for _, s := range all {
+		if s.Status == sprintEnt.StatusActive {
+			active++
+		}
+	}
+	assert.Equal(t, 1, active)
+}
+
 // TestPoker_RBAC_StrangerForbidden — W1-A4-005: outsider с sessionId → 403; member vote OK.
 func TestPoker_RBAC_StrangerForbidden(t *testing.T) {
 	dsn := "file:sprpoker_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
