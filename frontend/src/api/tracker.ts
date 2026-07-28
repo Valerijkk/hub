@@ -134,10 +134,13 @@ export interface ProjectIssueLinkResponse {
 	target_issue_key: string;
 }
 
+/** Plate body: массив узлов или doc-объект (исторический wire format — массив). */
+export type CommentBodyJson = unknown[] | Record<string, unknown>;
+
 /** Комментарий к задаче. */
 export interface CommentResponse {
 	id: string;
-	body_json: Record<string, unknown>;
+	body_json: CommentBodyJson;
 	body_text: string;
 	is_internal: boolean;
 	mentions: string[];
@@ -285,7 +288,7 @@ export interface CreateIssueLinkRequest {
 
 /** Запрос на создание комментария. */
 export interface CreateCommentRequest {
-	body_json: Record<string, unknown>;
+	body_json: CommentBodyJson;
 	body_text: string;
 	is_internal?: boolean;
 	mentions?: string[];
@@ -293,7 +296,7 @@ export interface CreateCommentRequest {
 
 /** Запрос на обновление комментария. */
 export interface UpdateCommentRequest {
-	body_json: Record<string, unknown>;
+	body_json: CommentBodyJson;
 	body_text: string;
 }
 

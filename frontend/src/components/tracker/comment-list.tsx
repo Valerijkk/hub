@@ -3,6 +3,7 @@ import type { Value } from "@udecode/plate";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+	type CommentBodyJson,
 	type CommentResponse,
 	createComment,
 	deleteComment,
@@ -26,11 +27,9 @@ import i18n from "@/i18n";
 import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 
-/** Plate Value → JSON-объект для API без double-cast. */
-function plateValueToBodyJson(
-	value: Value | undefined,
-): Record<string, unknown> {
-	return { type: "doc", children: value ?? [] };
+/** Plate Value → CommentBodyJson без double-cast (wire = массив узлов). */
+function plateValueToBodyJson(value: Value | undefined): CommentBodyJson {
+	return value ?? [];
 }
 
 /** body_json из API → Plate Value с runtime-guard. */
