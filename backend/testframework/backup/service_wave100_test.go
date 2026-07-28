@@ -119,8 +119,8 @@ func TestRestoreBackup_FromS3Zip(t *testing.T) {
 
 	updated, err := client.BackupRecord.Get(ctx, record.ID)
 	require.NoError(t, err)
-	require.NotNil(t, updated.ErrorMessage)
-	assert.Contains(t, *updated.ErrorMessage, "restored at")
+	require.NotNil(t, updated.RestoredAt)
+	assert.Nil(t, updated.ErrorMessage, "W7-A4-018: restore note must not use error_message")
 }
 
 func TestRestoreBackup_S3GetObjectFails(t *testing.T) {

@@ -2,12 +2,16 @@ package backup
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/backuprecord"
 )
+
+// ErrNotFound — отсутствующая запись backup (W7-A4-011 → HTTP 404).
+var ErrNotFound = errors.New("бэкап не найден")
 
 // Repository — персистентность записей backup (ARCH-01).
 type Repository interface {
@@ -15,7 +19,7 @@ type Repository interface {
 	Get(ctx context.Context, id uuid.UUID) (*ent.BackupRecord, error)
 	MarkCompleted(ctx context.Context, id uuid.UUID, fileSize int64) (*ent.BackupRecord, error)
 	MarkFailed(ctx context.Context, id uuid.UUID, errMsg string) error
-	SetRestoredNote(ctx context.Context, id uuid.UUID, note string) error
+	SetRestoredAt(ctx context.Context, id uuid.UUID, at time.Time) error
 	ListAll(ctx context.Context) ([]*ent.BackupRecord, error)
 	ListCompletedNewestFirst(ctx context.Context) ([]*ent.BackupRecord, error)
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -57,9 +61,10 @@ func (r *EntRepository) MarkFailed(ctx context.Context, id uuid.UUID, errMsg str
 	return err
 }
 
-func (r *EntRepository) SetRestoredNote(ctx context.Context, id uuid.UUID, note string) error {
+// SetRestoredAt фиксирует факт restore в restored_at (W7-A4-018), не в error_message.
+func (r *EntRepository) SetRestoredAt(ctx context.Context, id uuid.UUID, at time.Time) error {
 	_, err := r.client.BackupRecord.UpdateOneID(id).
-		SetNillableErrorMessage(&note).
+		SetRestoredAt(at).
 		Save(ctx)
 	return err
 }
@@ -88,5 +93,5 @@ func IsNotFound(err error) bool {
 
 // NotFoundError — отсутствующая запись backup.
 func NotFoundError() error {
-	return fmt.Errorf("бэкап не найден")
+	return ErrNotFound
 }

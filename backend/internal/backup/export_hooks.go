@@ -30,6 +30,26 @@ func ExportBackupMarkFailed(s *BackupService, ctx context.Context, id uuid.UUID,
 	s.markFailed(ctx, id, err)
 }
 
+// ExportSanitizeBackupErrorMessage — W7-A4-007 sanitize для hubtest.
+func ExportSanitizeBackupErrorMessage(err error) string {
+	return sanitizeBackupErrorMessage(err)
+}
+
+// ExportPgDumpArgsEnv — W7-A4-013 argv без пароля для hubtest.
+func ExportPgDumpArgsEnv(pgURL string, extraArgs ...string) (args []string, env []string, err error) {
+	return pgDumpArgsEnv(pgURL, extraArgs...)
+}
+
+// ExportWriteMongoConfig — W7-A4-013 mongo --config для hubtest.
+func ExportWriteMongoConfig(dir, mongoURL string) (string, func(), error) {
+	return writeMongoConfig(dir, mongoURL)
+}
+
+// ExportMongoConfigArg wraps mongoConfigArg for hubtest.
+func ExportMongoConfigArg(configPath string) string {
+	return mongoConfigArg(configPath)
+}
+
 // ExportBackupLifecycleCtx возвращает lifecycle context сервиса для hubtest.
 func ExportBackupLifecycleCtx(s *BackupService) context.Context {
 	return s.lifecycleCtx

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"os/exec"
 	"time"
 
@@ -207,10 +208,10 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 		slog.Info("MongoDB восстановлен из бэкапа")
 	}
 
-	// Обновляем статус записи бэкапа — фиксируем факт восстановления.
-	if err := s.repo.SetRestoredNote(ctx, backupID, "restored at "+time.Now().UTC().Format(time.RFC3339)); err != nil {
-		// W7-A4-019 / P3-BE-01: восстановление прошло, но audit note потерян.
-		slog.WarnContext(ctx, "backup: set restored note failed", "backup_id", backupID, "error", err)
+	// W7-A4-018: restored_at отдельно от error_message.
+	if err := s.repo.SetRestoredAt(ctx, backupID, time.Now().UTC()); err != nil {
+		// W7-A4-019 / P3-BE-01: восстановление прошло, но audit timestamp потерян.
+		slog.WarnContext(ctx, "backup: set restored_at failed", "backup_id", backupID, "error", err)
 	}
 
 	slog.Info("восстановление завершено", "s3_key", record.S3Key)
@@ -273,12 +274,12 @@ func (s *BackupService) extractZIP(zipData []byte) (pgData, mongoData []byte, er
 
 // restorePostgres выполняет pg_restore --clean --if-exists из дампа.
 func (s *BackupService) restorePostgres(ctx context.Context, data []byte) error {
-	cmd := exec.CommandContext(ctx, "pg_restore",
-		"--clean",
-		"--if-exists",
-		"--no-owner",
-		"--dbname="+s.pgURL,
-	)
+	args, env, err := pgDumpArgsEnv(s.pgURL, "--clean", "--if-exists", "--no-owner")
+	if err != nil {
+		return fmt.Errorf("pg_restore failed")
+	}
+	cmd := exec.CommandContext(ctx, "pg_restore", args...)
+	cmd.Env = env
 	cmd.Stdin = bytes.NewReader(data)
 
 	output, err := cmd.CombinedOutput()
@@ -292,8 +293,14 @@ func (s *BackupService) restorePostgres(ctx context.Context, data []byte) error 
 
 // restoreMongo выполняет mongorestore --archive из дампа.
 func (s *BackupService) restoreMongo(ctx context.Context, data []byte) error {
+	cfgPath, cleanup, err := writeMongoConfig(os.TempDir(), s.mongoURL)
+	if err != nil {
+		return fmt.Errorf("mongorestore failed")
+	}
+	defer cleanup()
+
 	cmd := exec.CommandContext(ctx, "mongorestore",
-		"--uri="+s.mongoURL,
+		mongoConfigArg(cfgPath),
 		"--archive",
 		"--drop",
 	)
@@ -342,22 +349,37 @@ func (s *BackupService) DeleteBackup(ctx context.Context, backupID uuid.UUID) er
 	return s.repo.Delete(ctx, backupID)
 }
 
-// dumpPostgres выполняет pg_dump --format=custom.
+// dumpPostgres выполняет pg_dump --format=custom (W7-A4-013: пароль в PGPASSWORD).
 func (s *BackupService) dumpPostgres(ctx context.Context) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, "pg_dump", "--format=custom", s.pgURL)
+	args, env, err := pgDumpArgsEnv(s.pgURL, "--format=custom")
+	if err != nil {
+		slog.ErrorContext(ctx, "pg_dump url parse failed", "error", err)
+		return nil, fmt.Errorf("pg_dump failed")
+	}
+	cmd := exec.CommandContext(ctx, "pg_dump", args...)
+	cmd.Env = env
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("ошибка pg_dump: %w", err)
+		slog.ErrorContext(ctx, "pg_dump failed", "error", err)
+		return nil, fmt.Errorf("pg_dump failed")
 	}
 	return out, nil
 }
 
-// dumpMongo выполняет mongodump --archive.
+// dumpMongo выполняет mongodump --archive (W7-A4-013: секреты в --config, не argv).
 func (s *BackupService) dumpMongo(ctx context.Context) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, "mongodump", "--uri="+s.mongoURL, "--archive")
+	cfgPath, cleanup, err := writeMongoConfig(os.TempDir(), s.mongoURL)
+	if err != nil {
+		slog.ErrorContext(ctx, "mongodump config failed", "error", err)
+		return nil, fmt.Errorf("mongodump failed")
+	}
+	defer cleanup()
+
+	cmd := exec.CommandContext(ctx, "mongodump", mongoConfigArg(cfgPath), "--archive")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("ошибка mongodump: %w", err)
+		slog.ErrorContext(ctx, "mongodump failed", "error", err)
+		return nil, fmt.Errorf("mongodump failed")
 	}
 	return out, nil
 }
@@ -417,9 +439,11 @@ func (s *BackupService) cleanupOldBackups(ctx context.Context) {
 	slog.Info("ротация бэкапов завершена", "удалено", len(records)-s.maxBackups)
 }
 
-// markFailed обновляет статус бэкапа на failed.
+// markFailed обновляет статус бэкапа на failed (W7-A4-007: sanitized ErrorMessage).
 func (s *BackupService) markFailed(ctx context.Context, id uuid.UUID, err error) {
-	if updateErr := s.repo.MarkFailed(ctx, id, err.Error()); updateErr != nil {
+	safe := sanitizeBackupErrorMessage(err)
+	slog.ErrorContext(ctx, "backup marked failed", "backup_id", id, "error", err, "safe_message", safe)
+	if updateErr := s.repo.MarkFailed(ctx, id, safe); updateErr != nil {
 		slog.Error("не удалось обновить статус бэкапа на failed", "error", updateErr)
 	}
 }
@@ -436,6 +460,7 @@ func toBackupResponse(r *ent.BackupRecord) *BackupResponse {
 		FileSize:     r.FileSize,
 		Status:       string(r.Status),
 		ErrorMessage: errMsg,
+		RestoredAt:   r.RestoredAt,
 		CreatedAt:    r.CreatedAt,
 	}
 }
