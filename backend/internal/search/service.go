@@ -25,8 +25,12 @@ import (
 // несколько десятков задач) и при этом не нагружал tsvector indexes.
 const defaultSearchLimit = 10
 
-// ErrFilterForbidden — A4-003/A4-004: 403 без утечки причины (нет membership).
+// ErrFilterForbidden — A4-003/A4-004 / A2W5-A4-001/004: 403 без утечки причины
+// (нет membership или не владелец фильтра).
 var ErrFilterForbidden = errors.New("forbidden")
+
+// ErrFilterNotFound — A2W5-A4-001: отсутствующий фильтр → 404, не 500.
+var ErrFilterNotFound = errors.New("фильтр не найден")
 
 // SearchService реализует глобальный поиск по всем сущностям платформы.
 // Выполняет параллельные запросы к PostgreSQL (tsvector) и MongoDB ($text),
@@ -718,10 +722,13 @@ func (s *SearchService) ListSavedFilters(ctx context.Context, userID, projectID 
 func (s *SearchService) DeleteSavedFilter(ctx context.Context, userID uuid.UUID, filterID uuid.UUID) error {
 	filter, err := s.repo.GetSavedFilter(ctx, filterID)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrFilterNotFound
+		}
 		return fmt.Errorf("фильтр не найден: %w", err)
 	}
 	if filter.OwnerID != userID {
-		return fmt.Errorf("доступ запрещён: только владелец может удалить фильтр")
+		return ErrFilterForbidden
 	}
 	return s.repo.DeleteSavedFilter(ctx, filterID)
 }
@@ -730,10 +737,13 @@ func (s *SearchService) DeleteSavedFilter(ctx context.Context, userID uuid.UUID,
 func (s *SearchService) ShareFilter(ctx context.Context, userID uuid.UUID, filterID uuid.UUID, shared bool) (*SavedFilterDTO, error) {
 	filter, err := s.repo.GetSavedFilter(ctx, filterID)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrFilterNotFound
+		}
 		return nil, fmt.Errorf("фильтр не найден: %w", err)
 	}
 	if filter.OwnerID != userID {
-		return nil, fmt.Errorf("доступ запрещён: только владелец может изменить расшаривание")
+		return nil, ErrFilterForbidden
 	}
 
 	updated, err := s.repo.UpdateSavedFilterShared(ctx, filterID, shared)

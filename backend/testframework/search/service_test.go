@@ -208,7 +208,7 @@ func TestSavedFilter_CRUDAndShare(t *testing.T) {
 
 	err = svc.DeleteSavedFilter(ctx, otherUser, filterID)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "доступ запрещён")
+	assert.ErrorIs(t, err, search.ErrFilterForbidden)
 
 	require.NoError(t, svc.DeleteSavedFilter(ctx, userID, filterID))
 	list, err = svc.ListSavedFilters(ctx, userID, projectID)
@@ -227,7 +227,7 @@ func TestShareFilter_NotOwnerForbidden(t *testing.T) {
 
 	_, err := svc.ShareFilter(ctx, uuid.New(), filterID, true)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "доступ запрещён")
+	assert.ErrorIs(t, err, search.ErrFilterForbidden)
 }
 
 func TestSearch_NormalizesLimit(t *testing.T) {

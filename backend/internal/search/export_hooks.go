@@ -120,6 +120,14 @@ func ExportMeiliIndexerHost(m *MeiliIndexer) string {
 	return m.host
 }
 
+// ExportMeiliIndexerClient — TASK-092: SafeDial client для hubtest.
+func ExportMeiliIndexerClient(m *MeiliIndexer) *http.Client {
+	if m == nil {
+		return nil
+	}
+	return m.client
+}
+
 type ExportMeiliIssueDoc struct {
 	ID        string
 	IssueKey  string

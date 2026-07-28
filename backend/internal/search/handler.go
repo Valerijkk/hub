@@ -187,6 +187,8 @@ func (h *Handler) listFilters(c fiber.Ctx) error {
 // @Success 204 "Фильтр удалён"
 // @Failure 400 {object} fiber.Error "Неверный ID"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Не владелец фильтра"
+// @Failure 404 {object} fiber.Error "Фильтр не найден"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/filters/{id} [delete]
@@ -202,6 +204,13 @@ func (h *Handler) deleteFilter(c fiber.Ctx) error {
 	}
 
 	if err := h.svc.DeleteSavedFilter(c.Context(), userID, filterID); err != nil {
+		// A2W5-A4-001/004: non-owner → 403; missing → 404 (не 500).
+		if errors.Is(err, ErrFilterForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для удаления фильтра")
+		}
+		if errors.Is(err, ErrFilterNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "фильтр не найден")
+		}
 		slog.Error("delete saved filter failed", "error", err, "user_id", userID, "filter_id", filterID)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось удалить фильтр")
 	}
@@ -220,6 +229,8 @@ func (h *Handler) deleteFilter(c fiber.Ctx) error {
 // @Success 200 {object} SavedFilterDTO "Фильтр обновлён"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 403 {object} fiber.Error "Не владелец фильтра"
+// @Failure 404 {object} fiber.Error "Фильтр не найден"
 // @Failure 500 {object} fiber.Error "Внутренняя ошибка"
 // @Security BearerAuth
 // @Router /api/filters/{id}/share [patch]
@@ -241,6 +252,13 @@ func (h *Handler) shareFilter(c fiber.Ctx) error {
 
 	filter, err := h.svc.ShareFilter(c.Context(), userID, filterID, req.Shared)
 	if err != nil {
+		// A2W5-A4-001/004: non-owner → 403; missing → 404 (не 500).
+		if errors.Is(err, ErrFilterForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "недостаточно прав для изменения фильтра")
+		}
+		if errors.Is(err, ErrFilterNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "фильтр не найден")
+		}
 		slog.Error("share filter failed", "error", err, "user_id", userID, "filter_id", filterID)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось обновить фильтр")
 	}
