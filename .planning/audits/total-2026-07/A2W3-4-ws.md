@@ -8,7 +8,7 @@
 | Файл | Строк | Находок | Вердикт |
 |------|------:|--------:|---------|
 | `backend/internal/ws/authorizer.go` | 81 | 0 | чисто NF-02 fail-closed |
-| `backend/internal/ws/bridge.go` | 240 | 1 | RESIDUAL auth publish; FIXED Start rollback + revoke Unregister |
+| `backend/internal/ws/bridge.go` | 240 | 0 | FIXED-OK Start rollback + revoke Unregister; auth publish → TASK-109 |
 | `backend/internal/ws/export_hooks.go` | 90 | 0 | FIXED-OK ExportClientRooms under mu |
 | `backend/internal/ws/handler.go` | 293 | 1 | RESIDUAL JWT `?token=`; FIXED nil authz + deny frames |
 | `backend/internal/ws/hub.go` | 398 | 0 | FIXED-OK register race, late subscribe, empty rooms |
@@ -29,8 +29,7 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
-| A2W3-4-001 | **FIXED** (TASK-103) | P3 | `handler.go` + ticket subprotocol | Access JWT в `?token=` убран | Evidence: `TestWSHandler_QueryToken_Denied`; ADR-WS-JWT-HANDSHAKE-2026 |
-| A2W3-4-002 | RESIDUAL | P2 | `bridge.go:249-252` + auth `service_session.go:265-276` (вне списка, сверка) | WS `UnregisterBySession` готов на `revoked`/`logout`, но **auth Logout/Revoke не публикует** `auth.session.{uid}.*` | W3-A4-004 half-fixed (TASK-042): instant revoke refresh не рвёт открытый WS end-to-end | Publish NATS на Logout/Revoke с `session_id`; тест revoke→client.done |
+| A2W3-4-001 | RESIDUAL | P3 | `handler.go:140-157` | Access JWT всё ещё в `?token=` | W3-A4-006 deferred (TASK-064 / product ADR): токен в access/proxy logs, Referer | Short-lived WS ticket exchange |
 
 ## FIXED-OK
 
@@ -40,6 +39,7 @@
 | W3-A4-002 | `subscribeClient` checks `done`; late Subscribe не реанимирует |
 | W3-A4-003 | `authz == nil` → 503 refuse upgrade; `handler_nil_authz_test.go` |
 | W3-A4-004 (WS) | `UnregisterBySession` + bridge on revoked/logout |
+| A2W3-4-002 | TASK-109: auth `publishSessionEnded` на Logout/Revoke → `auth.session.{uid}.{logout\|revoked}` + `session_id`; IT `session_revoke_nats_task109_test.go`, `revoke_nats_e2e_task109_test.go` |
 | W3-A4-005 | pump deny/error: `ExportClientInRoom` / no delivery (`authz_deny_room_task037`) |
 | W3-A4-007 | empty room → `h.rooms.Delete` |
 | W3-A4-008 | `Start` fail → `Stop()` rollback |
@@ -55,8 +55,8 @@
 | Метрика | Значение |
 |---------|----------|
 | Файлов | 15/15/0 |
-| Открытых | **2** |
+| Открытых | **1** |
 | NEW | 0 |
 | REGRESS | 0 |
-| RESIDUAL | 2 (P2×1, P3×1) |
-| FIXED-OK | 9 |
+| RESIDUAL | 1 (P3×1 — A2W3-4-001 JWT query) |
+| FIXED-OK | 10 (+A2W3-4-002 via TASK-109) |

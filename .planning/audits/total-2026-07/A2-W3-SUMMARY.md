@@ -40,7 +40,7 @@
 1. **Invite Accept RMW + orphan CreateChannel/DM** (A2W3-2-001/002, A2W3-3-001) — TASK-038 messenger out-of-scope  
 2. **Unread TTL / unbounded Ent lists** (A2W3-3-002/003) — TASK-042 deferred  
 3. **Recording orphan egress + finalizeCreate** (A2W3-5-001/002) — TASK-038 remaining  
-4. **WS revoke end-to-end** (A2W3-4-002): Hub Unregister готов, auth не публикует revoked  
+4. ~~**WS revoke end-to-end** (A2W3-4-002)~~ — FIXED TASK-109: auth publish + UnregisterBySession IT  
 5. **JWT `?token=`** (A2W3-4-001) — product ADR  
 6. **GetPresence** без shared-channel scope (A2W3-1-001); **wave114** wrong poll URL (A2W3-1-002)
 

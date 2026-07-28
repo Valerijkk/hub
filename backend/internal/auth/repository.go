@@ -213,7 +213,11 @@ func (r *EntRepository) CreateSessionRecord(ctx context.Context, input SessionRe
 }
 
 func (r *EntRepository) GetSession(ctx context.Context, sessionID uuid.UUID) (*ent.Session, error) {
-	return r.client.Session.Get(ctx, sessionID)
+	// WithUser: Logout публикует auth.session.{uid}.logout и нужен user_id (TASK-109).
+	return r.client.Session.Query().
+		Where(session.ID(sessionID)).
+		WithUser().
+		Only(ctx)
 }
 
 func (r *EntRepository) UpdateSessionRefreshHash(ctx context.Context, sessionID uuid.UUID, hash string, lastActive time.Time) error {
