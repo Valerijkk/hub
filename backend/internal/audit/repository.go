@@ -494,7 +494,7 @@ func (r *entRepository) ListDeletedNewsPosts(ctx context.Context, cutoff time.Ti
 }
 
 // RestoreNewsPost сбрасывает deleted_at у новости (FR-INTR-08).
-// Связанный опрос/голоса (когда появятся news_poll*) скрываются через soft-delete поста
+// Опрос/голоса (news_poll*) скрыты через soft-delete поста (ADR-INTRANET-U03)
 // и снова видны после ClearDeletedAt без отдельной операции.
 func (r *entRepository) RestoreNewsPost(ctx context.Context, id uuid.UUID) error {
 	return r.client.NewsPost.UpdateOneID(id).ClearDeletedAt().Exec(ctx)

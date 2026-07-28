@@ -9,10 +9,17 @@ import (
 
 // CreateNewsRequest — создание новости (admin).
 type CreateNewsRequest struct {
-	Title     string `json:"title"`
-	Body      string `json:"body"`
-	Pinned    bool   `json:"pinned"`
-	Published bool   `json:"published"`
+	Title     string             `json:"title"`
+	Body      string             `json:"body"`
+	Pinned    bool               `json:"pinned"`
+	Published bool               `json:"published"`
+	Poll      *CreatePollPayload `json:"poll,omitempty"`
+}
+
+// CreatePollPayload — опциональный опрос при создании новости (FR-INTR-01).
+type CreatePollPayload struct {
+	Question string   `json:"question"`
+	Options  []string `json:"options"`
 }
 
 // UpdateNewsRequest — обновление новости (admin).
@@ -24,18 +31,51 @@ type UpdateNewsRequest struct {
 	Version   int     `json:"version"`
 }
 
+// VoteNewsPollRequest — голос в news-опросе.
+type VoteNewsPollRequest struct {
+	OptionID uuid.UUID `json:"option_id"`
+}
+
+// UpdateNewsPollRequest — правка news-опроса (FR-INTR-03).
+type UpdateNewsPollRequest struct {
+	Question *string  `json:"question,omitempty"`
+	Options  []string `json:"options,omitempty"`
+	Closed   *bool    `json:"closed,omitempty"`
+	Version  int      `json:"version"`
+}
+
+// NewsPollOptionResponse — вариант с агрегатами.
+type NewsPollOptionResponse struct {
+	ID         uuid.UUID `json:"id"`
+	Text       string    `json:"text"`
+	VotesCount int       `json:"votes_count"`
+	Percent    *float64  `json:"percent,omitempty"`
+}
+
+// NewsPollResponse — GET/vote ответ по опросу.
+type NewsPollResponse struct {
+	ID            uuid.UUID                `json:"id"`
+	Question      string                   `json:"question"`
+	Closed        bool                     `json:"closed"`
+	Version       int                      `json:"version"`
+	VotedOptionID *uuid.UUID               `json:"voted_option_id"`
+	Options       []NewsPollOptionResponse `json:"options"`
+	TotalVotes    int                      `json:"total_votes"`
+}
+
 // NewsPostResponse — DTO новости для API.
 type NewsPostResponse struct {
-	ID          uuid.UUID `json:"id"`
-	Title       string    `json:"title"`
-	Body        string    `json:"body"`
-	Pinned      bool      `json:"pinned"`
-	Published   bool      `json:"published"`
-	Version     int       `json:"version"`
-	AuthorID    uuid.UUID `json:"author_id"`
-	AuthorName  string    `json:"author_name,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID         uuid.UUID         `json:"id"`
+	Title      string            `json:"title"`
+	Body       string            `json:"body"`
+	Pinned     bool              `json:"pinned"`
+	Published  bool              `json:"published"`
+	Version    int               `json:"version"`
+	AuthorID   uuid.UUID         `json:"author_id"`
+	AuthorName string            `json:"author_name,omitempty"`
+	CreatedAt  time.Time         `json:"created_at"`
+	UpdatedAt  time.Time         `json:"updated_at"`
+	Poll       *NewsPollResponse `json:"poll,omitempty"`
 }
 
 // NewsListResponse — пагинированный список новостей.

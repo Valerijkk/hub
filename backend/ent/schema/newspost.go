@@ -49,6 +49,9 @@ func (NewsPost) Edges() []ent.Edge {
 			Ref("news_posts").
 			Unique().
 			Required(),
+		// FR-INTR-01: 0..1 опрос; soft-hide через deleted_at поста (ADR-INTRANET-U03).
+		edge.To("poll", NewsPoll.Type).
+			Unique(),
 	}
 }
 

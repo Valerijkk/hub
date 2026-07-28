@@ -123,6 +123,7 @@ func (User) Edges() []ent.Edge {
 		edge.To("ai_usage_daily", AIUsageDaily.Type),
 		edge.To("ai_preference", AIUserPreference.Type),
 		edge.To("news_posts", NewsPost.Type),
+		edge.To("news_poll_votes", NewsPollVote.Type),
 		edge.To("crm_contacts_created", CrmContact.Type),
 		edge.To("crm_contact_link", CrmContact.Type),
 		edge.To("crm_deals_owned", CrmDeal.Type),
