@@ -303,7 +303,9 @@ func (s *GitLabService) fetchPipelines(ctx context.Context, integration *ent.Git
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
-		return nil, fmt.Errorf("GitLab API вернул %d: %s", resp.StatusCode, string(body))
+		// W7-A3-006: upstream body только в server log, клиенту — статус.
+		slog.Error("GitLab API error", "op", "pipelines", "status", resp.StatusCode, "body", string(body))
+		return nil, fmt.Errorf("GitLab API вернул %d", resp.StatusCode)
 	}
 
 	var pipelines []struct {
@@ -407,7 +409,9 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
-		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка запуска пайплайна GitLab: %d %s", resp.StatusCode, string(respBody)))
+		// W7-A3-006: upstream body только в server log, клиенту — статус.
+		slog.Error("GitLab API error", "op", "trigger_pipeline", "status", resp.StatusCode, "body", string(respBody))
+		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка запуска пайплайна GitLab: HTTP %d", resp.StatusCode))
 	}
 
 	var pipeline struct {
@@ -507,7 +511,9 @@ func (s *GitLabService) CreateBranch(ctx context.Context, projectID uuid.UUID, i
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
-		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка создания ветки в GitLab: %d %s", resp.StatusCode, string(body)))
+		// W7-A3-006: upstream body только в server log, клиенту — статус.
+		slog.Error("GitLab API error", "op", "create_branch", "status", resp.StatusCode, "body", string(body))
+		return nil, apperrors.NewInternal(fmt.Sprintf("ошибка создания ветки в GitLab: HTTP %d", resp.StatusCode))
 	}
 
 	return &CreateBranchResponse{BranchName: branchName}, nil
@@ -563,7 +569,9 @@ func (s *GitLabService) fetchMergeRequests(ctx context.Context, integration *ent
 		if readErr != nil {
 			slog.Error("не удалось прочитать тело ответа GitLab API", "error", readErr)
 		}
-		return nil, fmt.Errorf("GitLab API вернул %d: %s", resp.StatusCode, string(body))
+		// W7-A3-006: upstream body только в server log, клиенту — статус.
+		slog.Error("GitLab API error", "op", "merge_requests", "status", resp.StatusCode, "body", string(body))
+		return nil, fmt.Errorf("GitLab API вернул %d", resp.StatusCode)
 	}
 
 	var mrs []map[string]interface{}
