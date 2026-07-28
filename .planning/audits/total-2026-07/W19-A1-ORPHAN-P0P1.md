@@ -71,7 +71,7 @@ W12 §«Требует уточнения» (ADR / product-scope / BE+PO), за�
 | 7 | **W10-A3-001** | P1 | Sprint backlog UI «без спринта» без `sprint_id` в API/DTO | **U-section** — нужен BE confirm / кросс-задача; FE-only неполон |
 | 8 | **W10-A5-002** | P1 | Trash «Удалить навсегда» — fake success без API | **U-section** — есть ли admin permanent-delete + роль; иначе только UX-убрать кнопку |
 | 9 | **W11-A5-005** | P1 | Docs: webcams = Production vs TZ Phase 16 | **U-section** — решение PO (правка docs vs признать partial) |
-| 10 | **W11-A5-006** | P1 | G-07 «US-WIKI реализованы» ↔ KPI wiki «планируется» | **U-section** — решение PO по статусу G-07; wiki-модуля нет |
+| 10 | **W11-A5-006** | P1 | G-07 «US-WIKI реализованы» ↔ KPI wiki «планируется» | **FIXED** TASK-105 (G-07 Partial; A2W11-5-001) |
 
 \* U06 сырые: `W8-A1-002`, `W8-A1-003`, `W8-A2-001`…`004`, `W8-A3-002`, `W8-A4-001`, `W8-A4-003`, `W8-A5-002`, `W8-A5-005`, `W8-A5-006`, `W8-A5-008`…`010` (15 ID).
 

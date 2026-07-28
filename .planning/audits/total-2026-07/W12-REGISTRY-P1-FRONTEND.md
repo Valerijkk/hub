@@ -60,7 +60,7 @@
 | W10-A3-001 | P1 | `frontend/src/modules/tracker/sprint-backlog.tsx:28` | UI обещает «без спринта», API/`IssueResponse` без `sprint_id` / фильтра | Подтвердить BE: `sprint_id=null` (или backlog endpoint) + поле в DTO; иначе FE-only guard неполон → кросс-задача be+fe |
 | W10-A5-002 | P1 | `frontend/src/routes/_auth/trash.tsx:439` | Fake success «Удалить навсегда» без API | Есть ли admin permanent-delete для project trash и какая роль; иначе критерий = только убрать кнопку (UX), не «починить hard delete» |
 | W11-A5-005 | P1 | `docs/user_needs_analysis_2026.md:23` | Claims «webcams = Production» vs TZ Phase 16 | Решение PO: правка статуса в docs **или** признать partial (конфликт с `BUSINESS.md` / W11-A4-010 P2) |
-| W11-A5-006 | P1 | `docs/vision_and_scope.md:28` vs `:428` | G-07 «US-WIKI реализованы» ↔ KPI wiki «планируется» | Решение PO по статусу G-07; мутация кода wiki-модуля неприменима (модуля нет) |
+| W11-A5-006 | P1 | `docs/vision_and_scope.md` G-07 | G-07 «US-WIKI реализованы» ↔ KPI wiki «планируется» | **FIXED** TASK-105 (G-07 Partial; A2W11-5-001) |
 
 ---
 
@@ -121,7 +121,7 @@
 | W11-A5-003 | TECHNICAL.md CI path | FE-P1-TMS-DOCS |
 | W11-A5-004 | QUICKSTART.md internal | FE-P1-TMS-DOCS |
 | W11-A5-005 | webcams Production claim | **уточнение** |
-| W11-A5-006 | G-07 wiki drift | **уточнение** |
+| W11-A5-006 | G-07 wiki drift | **FIXED** TASK-105 |
 
 ---
 

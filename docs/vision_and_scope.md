@@ -25,7 +25,7 @@
 | G-04 | Production-ready безопасность и стабильность | 0 CRITICAL findings, unit ≥ 80% security-critical, e2e критические пути | v2.5 |
 | G-05 | Pixel-perfect UX после редизайна v2.0 | 11 страниц по макетам (v2.0 ✓); WCAG 2.1 AA + Lighthouse ≥ 90 — цель v2.5, верификация pending | v2.0 partial |
 | G-06 | Снизить стоимость владения TMS vs Allure TestOps | Собственный Allure-парсер + TMS без лицензии TestOps | v1.0 ✓ |
-| G-07 | Закрыть потребности корпоративного портала (intranet, calendar, wiki) без сторонних инструментов | US-INTR/US-CAL/US-WIKI реализованы и приняты; команда не использует Confluence/Notion/внешний календарь для этих сценариев | Волны 1–8 (ROADMAP-FINAL-2026-07-03) |
+| G-07 | Закрыть потребности корпоративного портала (intranet, calendar, wiki) без сторонних инструментов | **Partial (PO reconcile 2026-07-28, A2W11-5-001 / TASK-105):** базовый Intranet + Calendar shipped (v4 UI/API); US-INTR/US-CAL v2 — частично/планируется; **US-WIKI — planned** (продуктового модуля нет: нет `backend/internal/wiki`, нет FE routes; `docs/wiki/API.md` — planned/spec). Целевой критерий «US-INTR/US-CAL/US-WIKI реализованы и приняты; 0 Confluence/Notion/внешний календарь» — только после ship wiki (Волны 5/8). Не путать с репозиторной `docs/wiki/` (документация продукта) | Волны 1–8 · Partial |
 
 ## KPI
 
@@ -420,15 +420,17 @@ Edge-cases: неутверждённая заявка на отпуск (pending
 
 > Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2 (GZ-SEC-07/11: space-level RBAC + наследование + restrict-флаг) и §4 (GZ-V4-12/13: handbook = пространство общей wiki, wiki раньше HR-волны); `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.12), реализация — Волны 5/8. Не расширять без нового решения PO.
 > Модуля в коде ещё нет — это спецификация нового модуля. Редактор — **markdown-first** (WYSIWYG-редактор уровня Confluence — вне scope v1). Поиск — только user-scoped (инвариант NF-03). Персоны: Игорь (Member), Виктор (PO), Елена (Admin), Алексей (Developer).
+>
+> **PO reconcile (2026-07-28, TASK-105 / A2W11-5-001):** G-07 = **Partial**. KPI ниже остаются **планируется** — согласовано с отсутствием shipped-модуля. Не считать G-07 done, пока US-WIKI-01..05 не приняты. `docs/wiki/` в репозитории — документация продукта, не замена Confluence/Notion.
 
 ### KPI (Wiki v1)
 
 | Метрика | Целевое значение | Текущий статус |
 |---------|------------------|----------------|
-| Замена внешней wiki | Handbook и командная документация ведутся в Hub (0 активных Confluence/Notion-страниц у команды) | планируется (US-WIKI-01..05) |
-| Изоляция доступа | 0 инцидентов чтения страниц вне прав (space RBAC + restrict + user-scope поиск) | планируется (US-WIKI-02, US-WIKI-05) |
-| Восстановимость правок | Любая правка страницы откатывается к прежней версии | планируется (US-WIKI-03) |
-| Traceability | Страницы решений связаны с задачами (issue-link) в обе стороны | планируется (US-WIKI-04) |
+| Замена внешней wiki | Handbook и командная документация ведутся в Hub (0 активных Confluence/Notion-страниц у команды) | **планируется** (US-WIKI-01..05) — не shipped; G-07 Partial |
+| Изоляция доступа | 0 инцидентов чтения страниц вне прав (space RBAC + restrict + user-scope поиск) | **планируется** (US-WIKI-02, US-WIKI-05) |
+| Восстановимость правок | Любая правка страницы откатывается к прежней версии | **планируется** (US-WIKI-03) |
+| Traceability | Страницы решений связаны с задачами (issue-link) в обе стороны | **планируется** (US-WIKI-04) |
 
 ### User Stories (MoSCoW)
 
@@ -633,4 +635,4 @@ Edge-cases: сниппет результата не раскрывает кон
 | `.planning/archive/roadmaps/MILESTONE-3.md` | v3.0 AI Chat Hub (30 требований) |
 
 ---
-*Последнее обновление: 2026-07-03 — Волна 1 поток D: US/AC Intranet v2 (US-INTR), Calendar v2 (US-CAL), Wiki (US-WIKI) по GRAY-ZONES-DECISIONS-2026-07-03 §4*
+*Последнее обновление: 2026-07-28 — TASK-105 / A2W11-5-001: G-07 → Partial (INTR+CAL base shipped, US-WIKI planned); KPI Wiki остаются «планируется». Ранее: 2026-07-03 Волна 1 поток D US-INTR/US-CAL/US-WIKI.*
