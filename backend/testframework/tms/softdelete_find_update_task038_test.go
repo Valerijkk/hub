@@ -24,7 +24,7 @@ func TestEntRepository_UpdateTestCase_SoftDeleted_W2A3004(t *testing.T) {
 		CreatedByID: userID,
 	})
 	require.NoError(t, err)
-	require.NoError(t, repo.DeleteTestCase(ctx, tc.ID))
+	require.NoError(t, repo.DeleteTestCase(ctx, projectID, tc.ID))
 
 	title := "nope"
 	_, err = repo.UpdateTestCase(ctx, tc.ID, tms.UpdateTestCaseInput{
@@ -50,7 +50,7 @@ func TestEntRepository_FindTestCase_SkipsSoftDeleted_W2A3005(t *testing.T) {
 		FullName: full, ClassName: "Class", MethodName: "method",
 	})
 	require.NoError(t, err)
-	require.NoError(t, repo.DeleteTestCase(ctx, tc.ID))
+	require.NoError(t, repo.DeleteTestCase(ctx, projectID, tc.ID))
 
 	_, err = repo.FindTestCaseByExternalID(ctx, projectID, ext)
 	require.True(t, ent.IsNotFound(err), "soft-deleted by external_id must be hidden")

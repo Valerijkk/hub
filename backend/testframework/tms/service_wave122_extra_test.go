@@ -21,7 +21,7 @@ import (
 func TestService_Wave122_UpdateTestResult_NotFound(t *testing.T) {
 	svc := tms.NewTMSService(newMockRepo(), nil)
 	status := "passed"
-	_, err := svc.UpdateTestResult(context.Background(), uuid.New(), tms.UpdateTestResultRequest{Status: &status})
+	_, err := svc.UpdateTestResult(context.Background(), uuid.New(), uuid.New(), uuid.New(), tms.UpdateTestResultRequest{Status: &status})
 	require.Error(t, err)
 }
 

@@ -33,8 +33,8 @@ type TestCaseRepository interface {
 	ListTestCases(ctx context.Context, projectID uuid.UUID, params ListTestCasesParams) ([]*ent.TestCase, int, error)
 	// UpdateTestCase обновляет тест-кейс.
 	UpdateTestCase(ctx context.Context, id uuid.UUID, input UpdateTestCaseInput) (*ent.TestCase, error)
-	// DeleteTestCase удаляет тест-кейс по ID.
-	DeleteTestCase(ctx context.Context, id uuid.UUID) error
+	// DeleteTestCase удаляет тест-кейс по ID внутри projectID (A2W2-3-003).
+	DeleteTestCase(ctx context.Context, projectID, id uuid.UUID) error
 	// IncrementTestCaseCounter атомарно увеличивает счётчик тест-кейсов проекта.
 	IncrementTestCaseCounter(ctx context.Context, projectID uuid.UUID) (int, error)
 	// CountTestCasesInProject считает тест-кейсы из ids, принадлежащие projectID (P1-BE-12).

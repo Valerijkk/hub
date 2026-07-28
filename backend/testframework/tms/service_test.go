@@ -232,7 +232,7 @@ func (m *mockRepository) UpdateTestCase(_ context.Context, id uuid.UUID, input t
 	return tc, nil
 }
 
-func (m *mockRepository) DeleteTestCase(_ context.Context, id uuid.UUID) error {
+func (m *mockRepository) DeleteTestCase(_ context.Context, _ uuid.UUID, id uuid.UUID) error {
 	delete(m.testCases, id)
 	return nil
 }
@@ -451,12 +451,28 @@ func (m *mockRepository) GetTestRunInProject(_ context.Context, projectID, id uu
 	return run, nil
 }
 
-func (m *mockRepository) ListTestRuns(_ context.Context, _ uuid.UUID, _ tms.ListTestRunsParams) ([]*ent.TestRun, int, error) {
+func (m *mockRepository) ListTestRuns(_ context.Context, _ uuid.UUID, params tms.ListTestRunsParams) ([]*ent.TestRun, int, error) {
 	items := make([]*ent.TestRun, 0, len(m.runs))
 	for _, r := range m.runs {
 		items = append(items, r)
 	}
-	return items, len(items), nil
+	total := len(items)
+	limit := params.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	offset := params.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= total {
+		return []*ent.TestRun{}, total, nil
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	return items[offset:end], total, nil
 }
 
 func (m *mockRepository) UpdateTestRunStatus(_ context.Context, id uuid.UUID, status string, _ *time.Time) (*ent.TestRun, error) {

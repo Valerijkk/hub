@@ -143,8 +143,13 @@ func TestUpdateTestResult_Success(t *testing.T) {
 	ctx := context.Background()
 	resultID := uuid.New()
 	runID := uuid.New()
+	projectID := uuid.New()
 	repo := newMockRepo()
 	status := "failed"
+	repo.runs[runID] = &ent.TestRun{
+		ID: runID,
+		Edges: ent.TestRunEdges{Project: &ent.Project{ID: projectID}},
+	}
 	repo.results[resultID] = &ent.TestResult{
 		ID:     resultID,
 		Status: testresult.StatusUnknown,
@@ -153,7 +158,7 @@ func TestUpdateTestResult_Success(t *testing.T) {
 	svc := tms.NewTMSService(repo, nil)
 	comment := "failed on step 2"
 
-	resp, err := svc.UpdateTestResult(ctx, resultID, tms.UpdateTestResultRequest{
+	resp, err := svc.UpdateTestResult(ctx, projectID, runID, resultID, tms.UpdateTestResultRequest{
 		Status:  &status,
 		Comment: &comment,
 	})

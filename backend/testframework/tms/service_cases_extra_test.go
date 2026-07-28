@@ -163,5 +163,5 @@ func TestListTestRuns_Pagination(t *testing.T) {
 	page, err := svc.ListTestRuns(ctx, projectID, tms.ListTestRunsRequest{Offset: 0, Limit: 1})
 	require.NoError(t, err)
 	assert.Equal(t, 2, page.Total)
-	assert.Len(t, page.Items, 2) // mock repo ignores pagination params
+	assert.Len(t, page.Items, 1) // A2W2-2-009: Limit=1 → одна страница
 }

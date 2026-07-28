@@ -70,9 +70,13 @@ func (r *MongoRepository) EnsureIndexes(ctx context.Context) error {
 
 // StoreAllureResults сохраняет массив результатов Allure в MongoDB.
 // Использует InsertMany для пакетной вставки.
+// A2W2-3-001: hard cap len(results).
 func (r *MongoRepository) StoreAllureResults(ctx context.Context, runID uuid.UUID, results []AllureResult) error {
 	if len(results) == 0 {
 		return nil
+	}
+	if len(results) > maxMongoAllureResults {
+		return fmt.Errorf("слишком много allure-результатов для Mongo (макс. %d)", maxMongoAllureResults)
 	}
 
 	now := time.Now()
@@ -93,10 +97,12 @@ func (r *MongoRepository) StoreAllureResults(ctx context.Context, runID uuid.UUI
 	return nil
 }
 
-// GetAllureResultsByRunID возвращает все сырые результаты Allure для указанного прогона.
+// GetAllureResultsByRunID возвращает сырые результаты Allure для указанного прогона.
+// A2W2-3-001: SetLimit против unbounded Mongo read.
 func (r *MongoRepository) GetAllureResultsByRunID(ctx context.Context, runID uuid.UUID) ([]AllureResult, error) {
 	opts := options.Find().
-		SetSort(bson.D{{Key: "created_at", Value: -1}})
+		SetSort(bson.D{{Key: "created_at", Value: -1}}).
+		SetLimit(int64(maxMongoAllureResults))
 
 	cursor, err := r.allureResults().Find(ctx, bson.M{"run_id": runID}, opts)
 	if err != nil {
