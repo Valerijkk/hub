@@ -26,7 +26,7 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-086](TASK-086-2026-07-28-webhook-delivery-ctx-id.md) | ♻️ Webhook ctx + X-Hub-Delivery | P2 | Открыта | be2 | A2W4-5-002/003 |
 | [TASK-087](TASK-087-2026-07-28-outbox-claim-lease-flush.md) | 🐛 Outbox claim lease during flush | P2 | Открыта | be1 | A2W4-2-001 NEW |
 | [TASK-088](TASK-088-2026-07-28-tracker-assignee-team-tx-automation.md) | 🔒 Tracker assignee/team tx/automation Nak | P2 | Открыта | be1 | A2W1 |
-| [TASK-089](TASK-089-2026-07-28-messenger-crm-invoice-guards.md) | 🔒 Messenger reaction + CRM + invoice | P2 | Открыта | be2 | A2W3/W7 |
+| [TASK-089](TASK-089-2026-07-28-messenger-crm-invoice-guards.md) | 🔒 Messenger reaction + CRM + invoice | P2 | Исправлена | be2 | A2W3/W7 |
 | [TASK-090](TASK-090-2026-07-28-audit-purge-error-contract.md) | 🔒 Audit purge fail-closed + errors | P2 | Открыта | be1 | A2W6 |
 | [TASK-091](TASK-091-2026-07-28-tms-createbug-reports-batch.md) | 🐛 TMS createBug + reports N+1 | P2 | Открыта | be2 | A2W2 |
 | [TASK-092](TASK-092-2026-07-28-search-filter-status-safedial.md) | 🔒 Search 403 + Meili SafeDial | P2 | Открыта | be2 | A2W5-A4 |

@@ -1,6 +1,6 @@
 # TASK-089 — 🔒 Messenger reaction + CRM contact + invoice serial
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: A2W3/W7 · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]
