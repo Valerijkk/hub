@@ -1,6 +1,6 @@
 # TASK-121 — 🛒 Marketplace/status/docs exposure gates
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
 > Источник: W7 marketplace · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]
@@ -49,3 +49,16 @@
 
 - Не оставлять ID «WONTFIX» без явного owner cancel в задаче
 - ADR-first: код только после approve в Approval record
+
+## [EVIDENCE — be1 2026-07-29]
+
+| ID | Статус | Evidence |
+|----|--------|----------|
+| W7-A5-001 | FIXED | `/api/docs` + `/docs/doc.json` → `requireAuth` + `RequireAdmin` в `wiring_core.go`; тест `TestAPIDocs_RequiresAuthAdmin_W7A5001` |
+| W7-A5-002 | FIXED | публичный `/api/status` — агрегат `hub`; детали `/api/status/details` за auth; тесты status handler/service |
+| W7-A5-003 | FIXED | `ListMine`/`ListPending`/`ListApproved` — page/per_page cap 100 + `has_more`; `TestListMine_PaginationCap_W7A5003` |
+| W7-A5-004 | FIXED | `UpdateApprovedListingToPending` — один UPDATE; `TestUpdateApproved_AtomicRemoderation_W7A5004` |
+| W7-A5-005 | FIXED | публичный `author_name` без email; `TestAuthorName_NoEmailOnPublicCatalog_W7A5005` |
+| W7-A5-006 | FIXED | `price_cents≥0` + currency allowlist; `TestValidatePriceCurrency_W7A5006` |
+
+Команда: `go test -tags hubtest -race -count=1 ./testframework/marketplace/ ./testframework/status/ ./testframework/dev/` → PASS

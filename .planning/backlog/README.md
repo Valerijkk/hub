@@ -58,7 +58,7 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-118](TASK-118-2026-07-28-v4-crm-hr-calendar-lists-trash.md) | 💼 v4 CRM/HR/calendar residual | P2 | Открыта | be2 | W7-A2 · 5 |
 | [TASK-119](TASK-119-2026-07-28-storage-backup-dashboard-residual.md) | 🔒 Storage/backup/dashboard residual | P2 | Открыта | be1 | W7-A4 · 8 |
 | [TASK-120](TASK-120-2026-07-28-integrations-secrets-imex-trash.md) | 🔌 Git*/1C/imex secrets+trash | P2 | Открыта | be2 | W7-A3 · 4 |
-| [TASK-121](TASK-121-2026-07-28-marketplace-status-dev-exposure.md) | 🛒 Marketplace/status/docs gates | P2 | Открыта | be1 | W7-A5 · 6 |
+| [TASK-121](TASK-121-2026-07-28-marketplace-status-dev-exposure.md) | 🛒 Marketplace/status/docs gates | P2 | Исправлена | be1 | W7-A5 · 6 |
 | [TASK-122](TASK-122-2026-07-28-tracker-project-jql-cleanup-links.md) | 🔒 Tracker JQL + DeleteProject links | P2 | Открыта | be1 | A2W1 · 2 |
 | [TASK-123](TASK-123-2026-07-28-fe-lib-dead-export-docs-drift.md) | 🧹 FE dead export + docs drift | P2 | Открыта | fe2+docs | A2W11 · 4 |
 | [TASK-009](TASK-009-project-routes-rbac.md) | project routes без RBAC | **P0** | Исправлена | be1 | W1-A5-001 |

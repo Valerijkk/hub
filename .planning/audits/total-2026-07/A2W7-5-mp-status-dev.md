@@ -41,12 +41,12 @@
 
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект / статус |
 |----|-----|-----|-------------|---------|------------------------|
-| W7-A5-001 | RESIDUAL | P2 | `dev/apidocs.go`; `wiring_fiber.go:77-86` | `/api/docs` публичен в release без auth/`!release` | W12 P2-BE-U04 product decision |
-| W7-A5-002 | RESIDUAL | P2 | `status/handler.go` + service | Публичный `/api/status` раскрывает outage deps | Recon поверх V4-06; U04 |
-| W7-A5-003 | RESIDUAL | P2 | `marketplace` ListByAuthor / admin lists | Unbounded author/admin lists; catalog имеет page но без `has_more` | Рост marketplace → large JSON |
-| W7-A5-004 | RESIDUAL | P2 | `marketplace/service.go` edit approved | Update approved → pending без одной tx | Окно «approved + новый контент» |
-| W7-A5-005 | RESIDUAL | P2 | `marketplace/dto.go:124` | `author_name` fallback = Email | PII email в публичном каталоге |
-| W7-A5-006 | RESIDUAL | P2 | `marketplace/service.go:331-342` | `validateListingInput` без `price_cents`/`currency` | Отрицательная цена / произвольная currency |
+| W7-A5-001 | FIXED | P2 | `dev/apidocs.go`; `wiring_core.go` | `/api/docs` за auth+admin (TASK-121) | — |
+| W7-A5-002 | FIXED | P2 | `status/handler.go` + service | публичный aggregate `hub`; детали `/status/details` (TASK-121) | — |
+| W7-A5-003 | FIXED | P2 | `marketplace` lists | page/per_page + `has_more` (TASK-121) | — |
+| W7-A5-004 | FIXED | P2 | `marketplace/repository.go` | atomic UpdateApprovedListingToPending (TASK-121) | — |
+| W7-A5-005 | FIXED | P2 | `marketplace/dto.go` | author_name без email на витрине (TASK-121) | — |
+| W7-A5-006 | FIXED | P2 | `marketplace/service.go` | price≥0 + currency allowlist (TASK-121) | — |
 | W7-A5-007 | FIXED-OK | P3 | DeleteListing IsSystemAdmin err | Swallow → Forbidden | Закрыто TASK-057 |
 | W7-A5-008 | FIXED-OK | P3 | ErrForbidden message | «admin access required» для stranger | Закрыто TASK-063 path |
 | W7-A5-009 | FIXED-OK | P3 | title/desc `len` bytes | Mid-rune | Закрыто TASK-060: RuneCount |

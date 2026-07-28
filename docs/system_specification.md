@@ -156,12 +156,12 @@ rate_limit:<key> → counter
 |-----------|-------|------------|
 | Documented in `docs/wiki/API.md` | **287+** | v4 + AI routes |
 | Handler `RegisterRoutes` (code) | **283** | 21+ domain handlers |
-| Infra (`/docs`, `/live`, `/ready`, `/health`, `/metrics`) | **+5** | `wiring_messenger.go` (probes), `wiring_fiber.go` (`/metrics`); OpenAPI `/docs` |
+| Infra (`/docs`, `/live`, `/ready`, `/health`, `/metrics`, `/status`, `/status/details`) | **+7** | probes + status; `/docs` — system admin (W7-A5-001); `/status` aggregate, `/status/details` auth (W7-A5-002) |
 | **Total REST `/api/*`** | **~252** OpenAPI paths (`backend/docs/swagger.json`, measured 2026-07-28); handler `RegisterRoutes` inventory historically ~286 — методика: swagger paths vs route registrations | Wiki / Swagger |
 | WebSocket `GET /ws` | **+1** | Вне префикса `/api` (`wiring_ws.go`) |
 | Dev-only `/api/dev/*` | **3** | `DEV_MODE`, не в `-tags release` |
 
-**По модулям (handler routes, выборочно):** auth 11 · project 24 · tracker 48 · messenger 44 · tms 52 · calls 24 · search 9 · notification 18 · ai 10+ · intranet 19 · bases 13 · accounting 13 · crm 10 · hr 8 · calendar 4 · marketplace 12 · github 13 · gitlab 11 · sprint 16 · dashboard 9 · audit 13 · apigateway 10 · backup 6 · imex 8 · storage 6 · rbac 8 · status 3 · mail (admin) · onec 5.
+**По модулям (handler routes, выборочно):** auth 11 · project 24 · tracker 48 · messenger 44 · tms 52 · calls 24 · search 9 · notification 18 · ai 10+ · intranet 19 · bases 13 · accounting 13 · crm 10 · hr 8 · calendar 4 · marketplace 12 · github 13 · gitlab 11 · sprint 16 · dashboard 9 · audit 13 · apigateway 10 · backup 6 · imex 8 · storage 6 · rbac 8 · status 2 (`/status`, `/status/details`) · mail (admin) · onec 5.
 
 ### WebSocket Protocol
 
