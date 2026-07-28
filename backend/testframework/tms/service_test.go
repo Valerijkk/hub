@@ -42,6 +42,11 @@ type mockRepository struct {
 	caseCounter  int
 	issueCounter int
 	lastVersion  *ent.TestCaseVersion
+
+	// A2W2-2-001: счётчики batch-вызовов (mutation: N+1 снова → FAIL).
+	getLastResultsBatchCalls  int
+	listResultsByRunIDsCalls  int
+	getLastResultSingleCalls  int
 }
 
 func (m *mockRepository) CreateEnvironment(_ context.Context, projectID uuid.UUID, input tms.CreateEnvironmentInput) (*ent.Environment, error) {
@@ -655,6 +660,7 @@ func (m *mockRepository) CreateBugIssue(_ context.Context, projectID, _, testCas
 }
 
 func (m *mockRepository) GetLastResultForTestCase(_ context.Context, testCaseID uuid.UUID) (*ent.TestResult, error) {
+	m.getLastResultSingleCalls++
 	var latest *ent.TestResult
 	for _, r := range m.results {
 		if r.Edges.TestCase != nil && r.Edges.TestCase.ID == testCaseID {
@@ -667,6 +673,84 @@ func (m *mockRepository) GetLastResultForTestCase(_ context.Context, testCaseID 
 		return nil, &ent.NotFoundError{}
 	}
 	return latest, nil
+}
+
+func (m *mockRepository) GetLastResultsForTestCases(_ context.Context, testCaseIDs []uuid.UUID) (map[uuid.UUID]*ent.TestResult, error) {
+	m.getLastResultsBatchCalls++
+	out := make(map[uuid.UUID]*ent.TestResult, len(testCaseIDs))
+	want := make(map[uuid.UUID]struct{}, len(testCaseIDs))
+	for _, id := range testCaseIDs {
+		want[id] = struct{}{}
+	}
+	for _, r := range m.results {
+		if r.Edges.TestCase == nil {
+			continue
+		}
+		tcID := r.Edges.TestCase.ID
+		if _, ok := want[tcID]; !ok {
+			continue
+		}
+		prev, exists := out[tcID]
+		if !exists || r.CreatedAt.After(prev.CreatedAt) {
+			out[tcID] = r
+		}
+	}
+	return out, nil
+}
+
+func (m *mockRepository) ListTestResultsByRunIDs(_ context.Context, runIDs []uuid.UUID) ([]*ent.TestResult, error) {
+	m.listResultsByRunIDsCalls++
+	if len(runIDs) == 0 {
+		return nil, nil
+	}
+	seen := make(map[uuid.UUID]struct{})
+	var out []*ent.TestResult
+	anyMapped := false
+	for _, runID := range runIDs {
+		ids, ok := m.runResults[runID]
+		if !ok {
+			continue
+		}
+		anyMapped = true
+		run := m.runs[runID]
+		for _, id := range ids {
+			if _, dup := seen[id]; dup {
+				continue
+			}
+			r, ok := m.results[id]
+			if !ok {
+				continue
+			}
+			seen[id] = struct{}{}
+			if r.Edges.Run == nil && run != nil {
+				r.Edges.Run = run
+			}
+			out = append(out, r)
+		}
+	}
+	if anyMapped {
+		return out, nil
+	}
+	want := make(map[uuid.UUID]struct{}, len(runIDs))
+	for _, id := range runIDs {
+		want[id] = struct{}{}
+	}
+	for _, r := range m.results {
+		if r.Edges.Run == nil {
+			continue
+		}
+		if _, ok := want[r.Edges.Run.ID]; ok {
+			out = append(out, r)
+		}
+	}
+	if len(out) > 0 {
+		return out, nil
+	}
+	// Legacy mock: results без Edges.Run / runResults (GetDefectCategories).
+	for _, r := range m.results {
+		out = append(out, r)
+	}
+	return out, nil
 }
 
 func (m *mockRepository) AddTestCasesToRun(_ context.Context, runID uuid.UUID, caseIDs []uuid.UUID) error {
@@ -683,6 +767,17 @@ func (m *mockRepository) AddTestCasesToRun(_ context.Context, runID uuid.UUID, c
 		m.results[id] = r
 	}
 	return nil
+}
+
+func (m *mockRepository) GetTestResultInRun(_ context.Context, runID, resultID uuid.UUID) (*ent.TestResult, error) {
+	r, err := m.GetTestResult(context.Background(), resultID)
+	if err != nil {
+		return nil, err
+	}
+	if r.Edges.Run == nil || r.Edges.Run.ID != runID {
+		return nil, &ent.NotFoundError{}
+	}
+	return r, nil
 }
 
 func (m *mockRepository) GetTestResult(_ context.Context, resultID uuid.UUID) (*ent.TestResult, error) {
@@ -1120,7 +1215,7 @@ func TestCreateBugFromFailedResult(t *testing.T) {
 	}
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	bug, err := svc.CreateBugFromFailedResult(ctx, projectID, uuid.New(), resultID, tms.CreateBugRequest{})
+	bug, err := svc.CreateBugFromFailedResult(ctx, projectID, runID, uuid.New(), resultID, tms.CreateBugRequest{})
 	require.NoError(t, err)
 	assert.NotEmpty(t, bug.ID)
 	assert.Contains(t, bug.Title, "FAILED:")

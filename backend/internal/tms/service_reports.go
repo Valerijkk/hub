@@ -25,6 +25,18 @@ func (s *TMSService) GetCoverageReport(ctx context.Context, projectID uuid.UUID)
 		Issues: make([]IssueCoverage, 0),
 	}
 
+	// A2W2-2-001: один batch GetLastResultsForTestCases вместо N+1 GetLastResultForTestCase.
+	caseIDs := make([]uuid.UUID, 0)
+	for _, issue := range issues {
+		for _, tc := range issue.Edges.LinkedTestCases {
+			caseIDs = append(caseIDs, tc.ID)
+		}
+	}
+	lastByCase, err := s.repo.GetLastResultsForTestCases(ctx, caseIDs)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения последних результатов тест-кейсов")
+	}
+
 	for _, issue := range issues {
 		if len(issue.Edges.LinkedTestCases) == 0 {
 			continue
@@ -39,8 +51,7 @@ func (s *TMSService) GetCoverageReport(ctx context.Context, projectID uuid.UUID)
 
 		for _, tc := range issue.Edges.LinkedTestCases {
 			lastStatus := "no_results"
-			lastResult, err := s.repo.GetLastResultForTestCase(ctx, tc.ID)
-			if err == nil && lastResult != nil {
+			if lastResult := lastByCase[tc.ID]; lastResult != nil {
 				lastStatus = string(lastResult.Status)
 			}
 
@@ -255,15 +266,26 @@ func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) (*F
 
 	tcStatuses := make(map[uuid.UUID]*tcMeta)
 	tcMap := make(map[uuid.UUID]*ent.TestCase)
+
+	// A2W2-2-001: один ListTestResultsByRunIDs вместо N ListTestResults.
+	runIDs := make([]uuid.UUID, 0, len(runs))
 	for _, run := range runs {
-		results, err := s.repo.ListTestResults(ctx, run.ID)
-		if err != nil {
-			// W2-A2-020 / P3-BE-01: частичный flaky-отчёт без сигнала в ops.
-			slog.WarnContext(ctx, "flaky report: list test results failed",
-				"run_id", run.ID, "error", err)
+		runIDs = append(runIDs, run.ID)
+	}
+	allResults, err := s.repo.ListTestResultsByRunIDs(ctx, runIDs)
+	if err != nil {
+		slog.WarnContext(ctx, "flaky report: batch list test results failed", "error", err)
+		allResults = nil
+	}
+	byRun := make(map[uuid.UUID][]*ent.TestResult, len(runs))
+	for _, r := range allResults {
+		if r.Edges.Run == nil {
 			continue
 		}
-		for _, r := range results {
+		byRun[r.Edges.Run.ID] = append(byRun[r.Edges.Run.ID], r)
+	}
+	for _, run := range runs {
+		for _, r := range byRun[run.ID] {
 			if r.Edges.TestCase == nil {
 				continue
 			}
@@ -337,6 +359,17 @@ func (s *TMSService) GetTraceabilityMatrix(ctx context.Context, projectID uuid.U
 		return nil, apperrors.NewInternal("ошибка получения задач для матрицы трассировки")
 	}
 
+	caseIDs := make([]uuid.UUID, 0)
+	for _, iss := range issues {
+		for _, tc := range iss.Edges.LinkedTestCases {
+			caseIDs = append(caseIDs, tc.ID)
+		}
+	}
+	lastByCase, err := s.repo.GetLastResultsForTestCases(ctx, caseIDs)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка получения последних результатов для матрицы")
+	}
+
 	rows := make([]TraceabilityRow, 0, len(issues))
 	for _, iss := range issues {
 		if iss.Edges.LinkedTestCases == nil || len(iss.Edges.LinkedTestCases) == 0 {
@@ -348,8 +381,7 @@ func (s *TMSService) GetTraceabilityMatrix(ctx context.Context, projectID uuid.U
 		}
 		for _, tc := range iss.Edges.LinkedTestCases {
 			lastStatus := "no_results"
-			lastResult, err := s.repo.GetLastResultForTestCase(ctx, tc.ID)
-			if err == nil && lastResult != nil {
+			if lastResult := lastByCase[tc.ID]; lastResult != nil {
 				lastStatus = string(lastResult.Status)
 			}
 			row.TestCases = append(row.TestCases, TraceabilityCell{
@@ -372,31 +404,33 @@ func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUI
 		return nil, apperrors.NewInternal("ошибка получения прогонов для анализа дефектов")
 	}
 
+	// A2W2-2-001: batch ListTestResultsByRunIDs вместо N+1 по прогонам.
+	runIDs := make([]uuid.UUID, 0, len(runs))
+	for _, run := range runs {
+		runIDs = append(runIDs, run.ID)
+	}
+	allResults, err := s.repo.ListTestResultsByRunIDs(ctx, runIDs)
+	if err != nil {
+		slog.WarnContext(ctx, "defect categories: batch list test results failed", "error", err)
+		allResults = nil
+	}
+
 	// Собираем упавшие результаты и группируем по паттерну ошибки
 	categories := make(map[string][]string) // паттерн -> []caseKey
-	for _, run := range runs {
-		results, err := s.repo.ListTestResults(ctx, run.ID)
-		if err != nil {
-			// W2-A2-020 / P3-BE-01
-			slog.WarnContext(ctx, "defect categories: list test results failed",
-				"run_id", run.ID, "error", err)
+	for _, r := range allResults {
+		if string(r.Status) != "failed" && string(r.Status) != "broken" {
 			continue
 		}
-		for _, r := range results {
-			if string(r.Status) != "failed" && string(r.Status) != "broken" {
-				continue
-			}
-			pattern := "unknown"
-			if r.ErrorMessage != "" {
-				pattern = normalizeErrorPattern(r.ErrorMessage)
-			}
-			caseKey := ""
-			if r.Edges.TestCase != nil {
-				caseKey = r.Edges.TestCase.CaseKey
-			}
-			if caseKey != "" {
-				categories[pattern] = append(categories[pattern], caseKey)
-			}
+		pattern := "unknown"
+		if r.ErrorMessage != "" {
+			pattern = normalizeErrorPattern(r.ErrorMessage)
+		}
+		caseKey := ""
+		if r.Edges.TestCase != nil {
+			caseKey = r.Edges.TestCase.CaseKey
+		}
+		if caseKey != "" {
+			categories[pattern] = append(categories[pattern], caseKey)
 		}
 	}
 

@@ -117,16 +117,22 @@ type TestResultRepository interface {
 	UpdateTestResult(ctx context.Context, runID, id uuid.UUID, input UpdateTestResultInput) (*ent.TestResult, error)
 	// ListTestResults возвращает все результаты прогона.
 	ListTestResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error)
+	// ListTestResultsByRunIDs возвращает результаты нескольких прогонов одним запросом (A2W2-2-001).
+	ListTestResultsByRunIDs(ctx context.Context, runIDs []uuid.UUID) ([]*ent.TestResult, error)
 	// BatchCreateTestResults массово создаёт результаты (для импорта Allure).
 	BatchCreateTestResults(ctx context.Context, runID uuid.UUID, inputs []CreateTestResultInput) ([]*ent.TestResult, error)
 	// GetTestResult возвращает результат по ID с подгруженными связями.
 	GetTestResult(ctx context.Context, resultID uuid.UUID) (*ent.TestResult, error)
+	// GetTestResultInRun возвращает результат только если он принадлежит runID (A2W2-1-001).
+	GetTestResultInRun(ctx context.Context, runID, resultID uuid.UUID) (*ent.TestResult, error)
 	// ListTestRunResults возвращает результаты прогона с подгруженными тест-кейсами и файлами.
 	ListTestRunResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error)
 	// AddFilesToResult привязывает файлы к результату внутри run (P3-BE-05).
 	AddFilesToResult(ctx context.Context, runID, resultID uuid.UUID, fileIDs []uuid.UUID) error
 	// GetLastResultForTestCase возвращает последний результат для тест-кейса.
 	GetLastResultForTestCase(ctx context.Context, testCaseID uuid.UUID) (*ent.TestResult, error)
+	// GetLastResultsForTestCases возвращает последний результат по каждому caseID одним запросом (A2W2-2-001).
+	GetLastResultsForTestCases(ctx context.Context, caseIDs []uuid.UUID) (map[uuid.UUID]*ent.TestResult, error)
 }
 
 // AllureRepository управляет сырыми результатами Allure в MongoDB.

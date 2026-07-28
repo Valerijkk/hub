@@ -1,4 +1,4 @@
-# Бэклог задач
+﻿# Бэклог задач
 
 > Единый вход для агентов и владельца. Одна папка, одна таблица, один формат.
 > Обновлено: 2026-07-28 (A2: **все 254 → TASK-081…123** · naming `TASK-NNN-YYYY-MM-DD-slug`)
@@ -28,7 +28,7 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-088](TASK-088-2026-07-28-tracker-assignee-team-tx-automation.md) | 🔒 Tracker assignee/team tx/automation Nak | P2 | Открыта | be1 | A2W1 |
 | [TASK-089](TASK-089-2026-07-28-messenger-crm-invoice-guards.md) | 🔒 Messenger reaction + CRM + invoice | P2 | Открыта | be2 | A2W3/W7 |
 | [TASK-090](TASK-090-2026-07-28-audit-purge-error-contract.md) | 🔒 Audit purge fail-closed + errors | P2 | Открыта | be1 | A2W6 |
-| [TASK-091](TASK-091-2026-07-28-tms-createbug-reports-batch.md) | 🐛 TMS createBug + reports N+1 | P2 | Открыта | be2 | A2W2 |
+| [TASK-091](TASK-091-2026-07-28-tms-createbug-reports-batch.md) | 🐛 TMS createBug + reports N+1 | P2 | Исправлена | be2 | A2W2 |
 | [TASK-092](TASK-092-2026-07-28-search-filter-status-safedial.md) | 🔒 Search 403 + Meili SafeDial | P2 | Открыта | be2 | A2W5-A4 |
 | [TASK-093](TASK-093-2026-07-28-fe-a2-error-empty-a11y-sweep.md) | 🧹 FE A2 error≠empty + a11y | P2 | Открыта | fe1 | A2W9/W10/W11 |
 | [TASK-094](TASK-094-2026-07-28-coffee-pairs-triple-edge.md) | ☕ Coffee Pairs[] triple-edges | P3 | Открыта | be2 | A2W7-2-N01 |
