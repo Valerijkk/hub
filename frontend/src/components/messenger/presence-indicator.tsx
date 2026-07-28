@@ -11,11 +11,11 @@ interface PresenceIndicatorProps {
 	className?: string;
 }
 
-/** Цвета для каждого статуса присутствия. */
+/** Цвета для каждого статуса присутствия (дизайн-токены `--green`/`--gray`/`--amber`). */
 const statusColors: Record<PresenceStatus, string> = {
-	online: "bg-green-500",
-	offline: "bg-gray-400",
-	away: "bg-yellow-500",
+	online: "bg-[var(--green)]",
+	offline: "bg-[var(--gray)]",
+	away: "bg-[var(--amber)]",
 };
 
 /** Подписи для каждого статуса (для aria-label). */

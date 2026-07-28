@@ -373,7 +373,7 @@ function MessageItemInner({
 								<span
 									className={cn(
 										"text-[13.5px] font-bold tracking-[-0.01em] hover:underline cursor-pointer",
-										fromBot && "text-purple-500",
+										fromBot && "text-[var(--purple)]",
 									)}
 								>
 									{fromBot ? botDisplayName : message.sender_id}

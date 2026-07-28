@@ -8,6 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+/** Статические классы бейджей — Tailwind JIT не видит `bg-${color}-500`. */
+const INFO_STEP_BADGE = [
+	"bg-[var(--gB)] text-[var(--blue)]",
+	"bg-[var(--gG)] text-[var(--green)]",
+	"bg-[var(--gP)] text-[var(--purple)]",
+] as const;
+
 /**
  * Страница списка проектов — сетка карточек, пустое состояние,
  * скелетон-загрузка, CTA для создания нового проекта.
@@ -23,7 +30,7 @@ function ProjectsPage() {
 		() =>
 			(["1", "2", "3"] as const).map((n, i) => ({
 				n,
-				color: (["blue", "green", "violet"] as const)[i],
+				badgeClass: INFO_STEP_BADGE[i] ?? INFO_STEP_BADGE[0],
 				title: t(`projectsPage.infoSteps.${n}.title`),
 				desc: t(`projectsPage.infoSteps.${n}.desc`),
 			})),
@@ -118,7 +125,7 @@ function ProjectsPage() {
 								{infoSteps.map((s) => (
 									<div key={s.n} className="flex gap-3">
 										<div
-											className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r2)] bg-${s.color}-500/10 text-${s.color}-500 text-sm font-bold`}
+											className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r2)] text-sm font-bold ${s.badgeClass}`}
 										>
 											{s.n}
 										</div>
