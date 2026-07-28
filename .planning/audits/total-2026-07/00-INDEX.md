@@ -27,17 +27,17 @@
 | A2-W1 | tracker+sprint+project | 🔄 | | | | | | |
 | A2-W2 | tms+bases | 🔄 | | | | | | |
 | A2-W3 | messenger+ws+calls | ✅ | 131 | 0 | 0 | 12 | 4 | **16** |
-| A2-W4 | platform+apigateway | 🔄 | | | | | | |
+| A2-W4 | platform+apigateway | ✅ | 83 | 0 | 1 | 4 | 8 | **13** |
 | A2-W5 | ai+search | ✅ | 96 | 0 | 1 | 18 | 13 | **32** |
 | A2-W6 | auth+rbac+audit | 🔄 | | | | | | |
 | A2-W7 | remaining backend | 🔄 | | | | | | |
 | A2-W8 | ent/schema | 🔄 | | | | | | |
-| A2-W9 | frontend/components | 🔄 | | | | | | |
+| A2-W9 | frontend/components | ✅ | 127 | 0 | 0 | 4 | 7 | **11** |
 | A2-W10 | routes+modules | 🔄 | | | | | | |
-| A2-W11 | api/stores/hooks/lib+docs | 🔄 | | | | | | |
+| A2-W11 | api/stores/hooks/lib+docs | ✅ | 93 | 0 | 1 | 6 | 4 | **11** |
 
-Сводки: [`A2-W3-SUMMARY.md`](A2-W3-SUMMARY.md) · [`A2-W5-SUMMARY.md`](A2-W5-SUMMARY.md)  
-A2-W5: NEW=2 · **REGRESS=9** · RESIDUAL=21 (P1: adapter/RPM — см. summary)
+Сводки: [`A2-W3`](A2-W3-SUMMARY.md) · [`A2-W4`](A2-W4-SUMMARY.md) · [`A2-W5`](A2-W5-SUMMARY.md) · [`A2-W9`](A2-W9-SUMMARY.md) · [`A2-W11`](A2-W11-SUMMARY.md)  
+A2-W4 P1 REGRESS: CompleteTestRun без `project_id` (TMS webhooks). A2-W5: REGRESS=9.
 
 ## Стадии B/C
 
