@@ -379,24 +379,23 @@ func (s *TMSService) GetTestCaseLinks(ctx context.Context, projectID uuid.UUID, 
 }
 
 // CreateBugFromFailedResult создаёт баг из упавшего результата теста.
-func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, userID uuid.UUID, resultID uuid.UUID, req CreateBugRequest) (*IssueBriefResponse, error) {
-	// Получаем результат с привязанным тест-кейсом и прогоном (A3-008).
-	result, err := s.repo.GetTestResult(ctx, resultID)
+// runID из URL сверяется с принадлежностью result к прогону (A2W2-1-001 / A3-008).
+func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, runID, userID, resultID uuid.UUID, req CreateBugRequest) (*IssueBriefResponse, error) {
+	// Project scope на URL-прогоне до чтения result (не доверяем произвольному resultId).
+	if _, err := s.repo.GetTestRunInProject(ctx, projectID, runID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("результат не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка получения прогона")
+	}
+
+	// HasRunWith(runID): result из другого прогона того же проекта → 404.
+	result, err := s.repo.GetTestResultInRun(ctx, runID, resultID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("результат не найден")
 		}
 		return nil, apperrors.NewInternal("ошибка получения результата")
-	}
-	if result.Edges.Run == nil {
-		return nil, apperrors.NewNotFound("результат не найден")
-	}
-	// Ent-level project scope via run (A3-012 / A3-008).
-	if _, err := s.repo.GetTestRunInProject(ctx, projectID, result.Edges.Run.ID); err != nil {
-		if ent.IsNotFound(err) {
-			return nil, apperrors.NewNotFound("результат не найден")
-		}
-		return nil, apperrors.NewInternal("ошибка получения прогона")
 	}
 
 	// Определяем тест-кейс для заголовка бага
@@ -420,7 +419,7 @@ func (s *TMSService) CreateBugFromFailedResult(ctx context.Context, projectID, u
 
 	issue, err := s.repo.CreateBugIssue(ctx, projectID, userID, testCaseID, title, description, req.Priority)
 	if err != nil {
-		return nil, apperrors.NewInternal("ошибка создания бага: " + err.Error())
+		return nil, apperrors.NewInternal("ошибка создания бага")
 	}
 
 	return &IssueBriefResponse{

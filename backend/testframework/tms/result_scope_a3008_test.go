@@ -69,6 +69,6 @@ func TestCreateBugFromFailedResult_RejectsForeignProject_A3_008(t *testing.T) {
 		Edges: ent.TestResultEdges{Run: repo.runs[runID]},
 	}
 
-	_, err := svc.CreateBugFromFailedResult(ctx, projectA, uuid.New(), resultID, tms.CreateBugRequest{Title: "x"})
+	_, err := svc.CreateBugFromFailedResult(ctx, projectA, uuid.New(), uuid.New(), resultID, tms.CreateBugRequest{Title: "x"})
 	require.Error(t, err)
 }

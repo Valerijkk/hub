@@ -41,13 +41,13 @@ func TestCreateBugFromFailedResult_RejectsForeignProject_Ent_TASK037(t *testing.
 		Save(ctx)
 	require.NoError(t, err)
 
-	_, err = svc.CreateBugFromFailedResult(ctx, foreign.ID, userID, result.ID, tms.CreateBugRequest{
+	_, err = svc.CreateBugFromFailedResult(ctx, foreign.ID, run.ID, userID, result.ID, tms.CreateBugRequest{
 		Title: "IDOR bug",
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "не найден")
 
-	bug, err := svc.CreateBugFromFailedResult(ctx, projectA, userID, result.ID, tms.CreateBugRequest{
+	bug, err := svc.CreateBugFromFailedResult(ctx, projectA, run.ID, userID, result.ID, tms.CreateBugRequest{
 		Title: "Real bug",
 	})
 	require.NoError(t, err)

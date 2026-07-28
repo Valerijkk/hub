@@ -28,7 +28,7 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-088](TASK-088-2026-07-28-tracker-assignee-team-tx-automation.md) | ЁЯФТ Tracker assignee/team tx/automation Nak | P2 | ╨Ш╤Б╨┐╤А╨░╨▓╨╗╨╡╨╜╨░ | be1 | A2W1 |
 | [TASK-089](TASK-089-2026-07-28-messenger-crm-invoice-guards.md) | ЁЯФТ Messenger reaction + CRM + invoice | P2 | ╨Ш╤Б╨┐╤А╨░╨▓╨╗╨╡╨╜╨░ | be2 | A2W3/W7 |
 | [TASK-090](TASK-090-2026-07-28-audit-purge-error-contract.md) | ЁЯФТ Audit purge fail-closed + errors | P2 | ╨Ш╤Б╨┐╤А╨░╨▓╨╗╨╡╨╜╨░ | be1 | A2W6 |
-| [TASK-091](TASK-091-2026-07-28-tms-createbug-reports-batch.md) | ЁЯРЫ TMS createBug + reports N+1 | P2 | ╨Ю╤В╨║╤А╤Л╤В╨░ | be2 | A2W2 |
+| [TASK-091](TASK-091-2026-07-28-tms-createbug-reports-batch.md) | ЁЯРЫ TMS createBug + reports N+1 | P2 | Исправлена | be2 | A2W2 |
 | [TASK-092](TASK-092-2026-07-28-search-filter-status-safedial.md) | ЁЯФТ Search 403 + Meili SafeDial | P2 | ╨Ш╤Б╨┐╤А╨░╨▓╨╗╨╡╨╜╨░ | be2 | A2W5-A4 |
 | [TASK-093](TASK-093-2026-07-28-fe-a2-error-empty-a11y-sweep.md) | ЁЯз╣ FE A2 errorтЙаempty + a11y | P2 | ╨Ш╤Б╨┐╤А╨░╨▓╨╗╨╡╨╜╨░ | fe1 | A2W9/W10/W11 |
 | [TASK-094](TASK-094-2026-07-28-coffee-pairs-triple-edge.md) | тШХ Coffee Pairs[] triple-edges | P3 | ╨Ш╤Б╨┐╤А╨░╨▓╨╗╨╡╨╜╨░ | be2 | A2W7-2-N01 |

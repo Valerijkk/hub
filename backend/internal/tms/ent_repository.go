@@ -869,6 +869,20 @@ func (r *EntRepository) ListTestResults(ctx context.Context, runID uuid.UUID) ([
 		All(ctx)
 }
 
+// ListTestResultsByRunIDs возвращает результаты нескольких прогонов одним запросом (A2W2-2-001).
+func (r *EntRepository) ListTestResultsByRunIDs(ctx context.Context, runIDs []uuid.UUID) ([]*ent.TestResult, error) {
+	if len(runIDs) == 0 {
+		return nil, nil
+	}
+	return r.client.TestResult.Query().
+		Where(testresult.HasRunWith(testrun.IDIn(runIDs...))).
+		WithTestCase().
+		WithExecutedBy().
+		WithRun().
+		Order(ent.Asc(testresult.FieldCreatedAt)).
+		All(ctx)
+}
+
 // BatchCreateTestResults массово создаёт результаты (для импорта Allure).
 // A2W2-3-002: max batch size.
 func (r *EntRepository) BatchCreateTestResults(ctx context.Context, runID uuid.UUID, inputs []CreateTestResultInput) ([]*ent.TestResult, error) {
@@ -1074,6 +1088,34 @@ func (r *EntRepository) GetLastResultForTestCase(ctx context.Context, testCaseID
 		First(ctx)
 }
 
+// GetLastResultsForTestCases возвращает последний результат по каждому caseID одним запросом (A2W2-2-001).
+// Результаты отсортированы по created_at DESC; в map остаётся первый (самый свежий) на case.
+func (r *EntRepository) GetLastResultsForTestCases(ctx context.Context, caseIDs []uuid.UUID) (map[uuid.UUID]*ent.TestResult, error) {
+	out := make(map[uuid.UUID]*ent.TestResult, len(caseIDs))
+	if len(caseIDs) == 0 {
+		return out, nil
+	}
+	results, err := r.client.TestResult.Query().
+		Where(testresult.HasTestCaseWith(testcase.IDIn(caseIDs...))).
+		WithTestCase().
+		Order(ent.Desc(testresult.FieldCreatedAt)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, res := range results {
+		if res.Edges.TestCase == nil {
+			continue
+		}
+		tcID := res.Edges.TestCase.ID
+		if _, exists := out[tcID]; exists {
+			continue
+		}
+		out[tcID] = res
+	}
+	return out, nil
+}
+
 // ---------------------------------------------------------------------------
 // Расширенные операции прогонов
 // ---------------------------------------------------------------------------
@@ -1099,6 +1141,20 @@ func (r *EntRepository) AddTestCasesToRun(ctx context.Context, runID uuid.UUID, 
 func (r *EntRepository) GetTestResult(ctx context.Context, resultID uuid.UUID) (*ent.TestResult, error) {
 	return r.client.TestResult.Query().
 		Where(testresult.ID(resultID)).
+		WithTestCase().
+		WithRun().
+		WithExecutedBy().
+		WithFiles().
+		Only(ctx)
+}
+
+// GetTestResultInRun возвращает результат только внутри runID (A2W2-1-001 / HasRunWith).
+func (r *EntRepository) GetTestResultInRun(ctx context.Context, runID, resultID uuid.UUID) (*ent.TestResult, error) {
+	return r.client.TestResult.Query().
+		Where(
+			testresult.ID(resultID),
+			testresult.HasRunWith(testrun.IDEQ(runID)),
+		).
 		WithTestCase().
 		WithRun().
 		WithExecutedBy().

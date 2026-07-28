@@ -344,6 +344,10 @@ func (h *Handler) CreateBugFromResult(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	runID, err := httputil.ParseUUIDParam(c, "runId")
+	if err != nil {
+		return err
+	}
 	resultID, err := httputil.ParseUUIDParam(c, "resultId")
 	if err != nil {
 		return err
@@ -358,7 +362,8 @@ func (h *Handler) CreateBugFromResult(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.CreateBugFromFailedResult(c.Context(), projectID, userID, resultID, req)
+	// A2W2-1-001: URL :runId обязателен — result должен принадлежать именно этому прогону.
+	resp, err := h.service.CreateBugFromFailedResult(c.Context(), projectID, runID, userID, resultID, req)
 	if err != nil {
 		return err
 	}

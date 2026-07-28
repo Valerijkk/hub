@@ -199,7 +199,7 @@ func TestService_Wave122_CreateBugFromFailedResult_NoTestCase(t *testing.T) {
 		Edges: ent.TestResultEdges{Run: repo.runs[runID]},
 	}
 
-	bug, err := svc.CreateBugFromFailedResult(ctx, projectID, userID, resultID, tms.CreateBugRequest{})
+	bug, err := svc.CreateBugFromFailedResult(ctx, projectID, runID, userID, resultID, tms.CreateBugRequest{})
 	require.NoError(t, err)
 	assert.Contains(t, bug.Title, "FAILED")
 }
