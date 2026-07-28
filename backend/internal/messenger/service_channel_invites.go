@@ -3,7 +3,9 @@ package messenger
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"time"
 
@@ -164,8 +166,11 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 		return nil, apperrors.NewBadRequest("исчерпан лимит использований")
 	}
 
-	// Проверяем, не является ли пользователь уже участником.
-	isMember, _ := s.repo.IsMember(ctx, found.ChannelID, userID)
+	// Проверяем, не является ли пользователь уже участником (A2W3-2-004: err не глотать).
+	isMember, err := s.repo.IsMember(ctx, found.ChannelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки участия")
+	}
 	if isMember {
 		// Уже участник — просто возвращаем канал.
 		ch, err := s.repo.GetChannel(ctx, found.ChannelID)
@@ -175,15 +180,19 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 		return toChannelResponse(ch), nil
 	}
 
-	// Атомарный инкремент use_count.
-	// NOTE: После go generate репозиторий сможет использовать .AddUseCount(1)
-	// с WHERE use_count < max_uses для строго атомарной проверки.
-	if err := s.repo.IncrementInviteUses(ctx, found.ID); err != nil {
+	// A2W3-2-001 / A2W3-3-001: атомарный инкремент с UseCountLT.
+	if err := s.repo.IncrementInviteUses(ctx, found.ID, found.MaxUses); err != nil {
+		if errors.Is(err, ErrInviteUsesExhausted) {
+			return nil, apperrors.NewBadRequest("исчерпан лимит использований")
+		}
 		return nil, apperrors.NewInternal("ошибка обновления счётчика использований")
 	}
 
-	// Добавляем пользователя в канал.
+	// Добавляем пользователя в канал; при fail — откат слота (A2W3-2-001).
 	if err := s.repo.AddMembers(ctx, found.ChannelID, []uuid.UUID{userID}, "member"); err != nil {
+		if decErr := s.repo.DecrementInviteUses(ctx, found.ID); decErr != nil {
+			slog.Error("не удалось откатить use_count invite", "error", decErr, "invite_id", found.ID)
+		}
 		return nil, apperrors.NewInternal("ошибка вступления в канал")
 	}
 

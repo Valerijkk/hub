@@ -129,6 +129,9 @@ func (s *MessengerService) UpdateBotMessage(ctx context.Context, messageID, cont
 }
 
 func (s *MessengerService) FindMessageForBot(ctx context.Context, messageID string) (*MessageResponse, error) {
+	if s.systemBotID == uuid.Nil {
+		return nil, apperrors.NewInternal("system bot not configured")
+	}
 	doc, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
 		return nil, apperrors.NewNotFound("сообщение не найдено")
@@ -139,11 +142,17 @@ func (s *MessengerService) FindMessageForBot(ctx context.Context, messageID stri
 
 // GetChannelEntity возвращает сущность канала для внутренних ботов.
 func (s *MessengerService) GetChannelEntity(ctx context.Context, channelID uuid.UUID) (*ent.Channel, error) {
+	if s.systemBotID == uuid.Nil {
+		return nil, apperrors.NewInternal("system bot not configured")
+	}
 	return s.repo.GetChannel(ctx, channelID)
 }
 
 // GetChannelMemberIDsInternal возвращает ID участников без auth (только system bot).
 func (s *MessengerService) GetChannelMemberIDsInternal(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
+	if s.systemBotID == uuid.Nil {
+		return nil, apperrors.NewInternal("system bot not configured")
+	}
 	return s.repo.GetChannelMemberIDs(ctx, channelID)
 }
 

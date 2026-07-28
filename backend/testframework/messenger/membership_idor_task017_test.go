@@ -86,7 +86,7 @@ func TestToggleReaction_RejectsNonMember_P1BE16(t *testing.T) {
 	}
 	repo.messages[doc.ID] = doc
 
-	_, err := svc.ToggleReaction(ctx, doc.ID, outsiderID, "🔥")
+	_, err := svc.ToggleReaction(ctx, channelID, doc.ID, outsiderID, "🔥")
 	requireMessengerAppErrorCode(t, err, 403)
 }
 

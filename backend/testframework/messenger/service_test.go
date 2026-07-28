@@ -193,11 +193,11 @@ func TestToggleReaction_AddRemove(t *testing.T) {
 	}
 	repo.messages[doc.ID] = doc
 
-	added, err := svc.ToggleReaction(ctx, doc.ID, userID, "thumbsup")
+	added, err := svc.ToggleReaction(ctx, channelID, doc.ID, userID, "thumbsup")
 	require.NoError(t, err)
 	assert.True(t, added, "первый toggle должен добавить реакцию")
 
-	added, err = svc.ToggleReaction(ctx, doc.ID, userID, "thumbsup")
+	added, err = svc.ToggleReaction(ctx, channelID, doc.ID, userID, "thumbsup")
 	require.NoError(t, err)
 	assert.False(t, added, "второй toggle должен удалить реакцию")
 }

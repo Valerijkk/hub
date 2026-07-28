@@ -63,7 +63,7 @@ func TestEntRepository_Wave123_ChannelInviteLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, inv.ID, found.ID)
 
-	require.NoError(t, env.repo.IncrementInviteUses(env.ctx, inv.ID))
+	require.NoError(t, env.repo.IncrementInviteUses(env.ctx, inv.ID, inv.MaxUses))
 
 	list, err := env.repo.ListChannelInvites(env.ctx, ch.ID)
 	require.NoError(t, err)

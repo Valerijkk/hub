@@ -133,12 +133,14 @@ func (r *EntRepository) GetMemberRole(ctx context.Context, channelID, userID uui
 
 // GetChannelMemberIDs возвращает ID участников активного (не soft-deleted) канала.
 // P3-BE-05 / W3-A3-008: тот же soft-delete predicate, что у IsMember.
+// A2W3-3-002: hard cap.
 func (r *EntRepository) GetChannelMemberIDs(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
 	members, err := r.client.ChannelMember.Query().
 		Where(
 			channelmember.ChannelID(channelID),
 			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
 		).
+		Limit(channelMemberIDsCap).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -148,6 +150,52 @@ func (r *EntRepository) GetChannelMemberIDs(ctx context.Context, channelID uuid.
 		ids = append(ids, m.UserID)
 	}
 	return ids, nil
+}
+
+// FilterUsersSharingChannel — A2W3-1-001: только UUID, пересекающиеся с caller по активным каналам.
+func (r *EntRepository) FilterUsersSharingChannel(ctx context.Context, callerID uuid.UUID, candidateIDs []uuid.UUID) ([]uuid.UUID, error) {
+	if len(candidateIDs) == 0 {
+		return nil, nil
+	}
+	callerChannels, err := r.client.ChannelMember.Query().
+		Where(
+			channelmember.UserIDEQ(callerID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
+		Limit(userChannelMembershipCap).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(callerChannels) == 0 {
+		return nil, nil
+	}
+	channelIDs := make([]uuid.UUID, 0, len(callerChannels))
+	for _, m := range callerChannels {
+		channelIDs = append(channelIDs, m.ChannelID)
+	}
+	shared, err := r.client.ChannelMember.Query().
+		Where(
+			channelmember.ChannelIDIn(channelIDs...),
+			channelmember.UserIDIn(candidateIDs...),
+			channelmember.UserIDNEQ(callerID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
+		Limit(listMembersCap).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[uuid.UUID]struct{}, len(shared))
+	out := make([]uuid.UUID, 0, len(shared))
+	for _, m := range shared {
+		if _, ok := seen[m.UserID]; ok {
+			continue
+		}
+		seen[m.UserID] = struct{}{}
+		out = append(out, m.UserID)
+	}
+	return out, nil
 }
 
 // AddMembers добавляет участников в канал с указанной ролью.
@@ -186,11 +234,12 @@ func (r *EntRepository) FindDMChannel(ctx context.Context, dmKey string) (*ent.C
 		Only(ctx)
 }
 
-// ListMembers возвращает всех участников канала с загрузкой связи user.
+// ListMembers возвращает участников канала с загрузкой связи user (cap A2W3-3-002).
 func (r *EntRepository) ListMembers(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelMember, error) {
 	return r.client.ChannelMember.Query().
 		Where(channelmember.ChannelID(channelID)).
 		WithUser().
+		Limit(listMembersCap).
 		All(ctx)
 }
 
@@ -292,10 +341,11 @@ func (r *EntRepository) IsChannelMuted(ctx context.Context, channelID, userID uu
 	return m.MutedUntil.After(time.Now()), nil
 }
 
-// GetUserChannelMemberships возвращает membership-записи пользователя.
+// GetUserChannelMemberships возвращает membership-записи пользователя (cap A2W3-3-002).
 func (r *EntRepository) GetUserChannelMemberships(ctx context.Context, userID uuid.UUID) ([]*ent.ChannelMember, error) {
 	return r.client.ChannelMember.Query().
 		Where(channelmember.UserID(userID)).
+		Limit(userChannelMembershipCap).
 		All(ctx)
 }
 
@@ -330,10 +380,11 @@ func (r *EntRepository) FindPin(ctx context.Context, channelID uuid.UUID, messag
 		Only(ctx)
 }
 
-// ListPins возвращает все закреплённые сообщения канала.
+// ListPins возвращает закреплённые сообщения канала (cap A2W3-3-002).
 func (r *EntRepository) ListPins(ctx context.Context, channelID uuid.UUID) ([]*ent.PinnedMessage, error) {
 	return r.client.PinnedMessage.Query().
 		Where(pinnedmessage.ChannelID(channelID)).
+		Limit(listPinsCap).
 		All(ctx)
 }
 
@@ -364,10 +415,11 @@ func (r *EntRepository) RemoveBookmark(ctx context.Context, userID, bookmarkID u
 	return nil
 }
 
-// ListBookmarks возвращает все закладки пользователя.
+// ListBookmarks возвращает закладки пользователя (cap A2W3-3-002).
 func (r *EntRepository) ListBookmarks(ctx context.Context, userID uuid.UUID) ([]*ent.Bookmark, error) {
 	return r.client.Bookmark.Query().
 		Where(bookmark.UserID(userID)).
+		Limit(listBookmarksCap).
 		All(ctx)
 }
 
@@ -377,6 +429,7 @@ func (r *EntRepository) ListProjectMembers(ctx context.Context, projectID uuid.U
 	members, err := r.client.ProjectMember.Query().
 		Where(projectmember.HasProjectWith(project.IDEQ(projectID))).
 		WithUser().
+		Limit(listProjectMembersCap).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -407,6 +460,7 @@ func (r *EntRepository) ListProjectMembersByRole(ctx context.Context, projectID 
 			projectmember.ProjectRoleEQ(projectmember.ProjectRole(role)),
 		).
 		WithUser().
+		Limit(listProjectMembersCap).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -463,18 +517,40 @@ func (r *EntRepository) FindChannelInviteByToken(ctx context.Context, token stri
 		Only(ctx)
 }
 
-// IncrementInviteUses увеличивает use_count приглашения на 1.
-// NOTE: После go generate можно использовать .AddUseCount(1) с WHERE-предикатом
-// для атомарной проверки лимита; пока read-modify-write.
-func (r *EntRepository) IncrementInviteUses(ctx context.Context, inviteID uuid.UUID) error {
-	inv, err := r.client.ChannelInvite.Get(ctx, inviteID)
+// IncrementInviteUses атомарно увеличивает use_count (A2W3-3-001 / A2W3-2-001).
+// maxUses > 0 → WHERE use_count < maxUses; иначе без лимита.
+func (r *EntRepository) IncrementInviteUses(ctx context.Context, inviteID uuid.UUID, maxUses int) error {
+	q := r.client.ChannelInvite.Update().
+		Where(channelinvite.IDEQ(inviteID))
+	if maxUses > 0 {
+		q = q.Where(channelinvite.UseCountLT(maxUses))
+	}
+	n, err := q.AddUseCount(1).Save(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = r.client.ChannelInvite.UpdateOneID(inviteID).
-		SetUseCount(inv.UseCount + 1).
+	if n == 0 {
+		return ErrInviteUsesExhausted
+	}
+	return nil
+}
+
+// DecrementInviteUses откатывает слот после fail AddMembers (A2W3-2-001).
+func (r *EntRepository) DecrementInviteUses(ctx context.Context, inviteID uuid.UUID) error {
+	n, err := r.client.ChannelInvite.Update().
+		Where(
+			channelinvite.IDEQ(inviteID),
+			channelinvite.UseCountGT(0),
+		).
+		AddUseCount(-1).
 		Save(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // RevokeChannelInvite отзывает приглашение в рамках канала (ChannelIDEQ).
@@ -496,13 +572,14 @@ func (r *EntRepository) RevokeChannelInvite(ctx context.Context, channelID, invi
 	return nil
 }
 
-// ListChannelInvites возвращает активные (не отозванные) приглашения канала.
+// ListChannelInvites возвращает активные (не отозванные) приглашения канала (cap A2W3-3-002).
 func (r *EntRepository) ListChannelInvites(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelInvite, error) {
 	return r.client.ChannelInvite.Query().
 		Where(
 			channelinvite.ChannelIDEQ(channelID),
 			channelinvite.IsRevokedEQ(false),
 		).
+		Limit(listInvitesCap).
 		All(ctx)
 }
 
@@ -614,10 +691,11 @@ func (r *EntRepository) VotePoll(ctx context.Context, pollID, userID uuid.UUID, 
 	return nil
 }
 
-// ListVotes возвращает все голоса опроса.
+// ListVotes возвращает голоса опроса (cap A2W3-3-002).
 func (r *EntRepository) ListVotes(ctx context.Context, pollID uuid.UUID) ([]*ent.PollVote, error) {
 	return r.client.PollVote.Query().
 		Where(pollvote.PollIDEQ(pollID)).
+		Limit(listVotesCap).
 		All(ctx)
 }
 

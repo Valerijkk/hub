@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"strconv"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -24,17 +25,21 @@ func NewUnreadService(rdb *redis.Client) *UnreadService {
 
 // Increment увеличивает счётчик непрочитанных на 1 для всех участников канала,
 // кроме отправителя (senderID). Использует pipeline для атомарности и производительности.
+// A2W3-3-003: обновляет TTL ключа, чтобы orphan hash не жили вечно.
 func (s *UnreadService) Increment(ctx context.Context, channelID string, memberIDs []string, senderID string) error {
 	if len(memberIDs) == 0 {
 		return nil
 	}
 
 	pipe := s.rdb.Pipeline()
+	ttl := time.Duration(unreadKeyTTLSeconds) * time.Second
 	for _, mid := range memberIDs {
 		if mid == senderID {
 			continue
 		}
-		pipe.HIncrBy(ctx, unreadKeyPrefix+mid, channelID, 1)
+		key := unreadKeyPrefix + mid
+		pipe.HIncrBy(ctx, key, channelID, 1)
+		pipe.Expire(ctx, key, ttl)
 	}
 	_, err := pipe.Exec(ctx)
 	return err
@@ -43,6 +48,20 @@ func (s *UnreadService) Increment(ctx context.Context, channelID string, memberI
 // MarkRead сбрасывает счётчик непрочитанных для конкретного канала пользователя.
 func (s *UnreadService) MarkRead(ctx context.Context, userID, channelID string) error {
 	return s.rdb.HDel(ctx, unreadKeyPrefix+userID, channelID).Err()
+}
+
+// ClearChannelForUsers удаляет поле channelID из unread-hash всех указанных пользователей
+// (leave / soft-delete канала — A2W3-3-003).
+func (s *UnreadService) ClearChannelForUsers(ctx context.Context, channelID string, userIDs []string) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+	pipe := s.rdb.Pipeline()
+	for _, uid := range userIDs {
+		pipe.HDel(ctx, unreadKeyPrefix+uid, channelID)
+	}
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
 // GetAll возвращает все счётчики непрочитанных для пользователя.

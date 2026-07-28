@@ -41,14 +41,14 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
-| A2W3-1-001 | RESIDUAL | P2 | `handler_presence.go:55-67`; `service.go:53-61` | `GetPresence` с cap 50, но **без** фильтра общих каналов / org-policy; handler не передаёт caller `userID` в service | W3-A1-007 частично: DoS/enumeration смягчён, но любой auth-user всё ещё читает online/away произвольных UUID (до 50) | Пересечь `user_ids` с контактами / общими каналами caller; передавать `UserIDFromCtx` |
 | A2W3-1-002 | RESIDUAL | P2 | `handler_wave114_test.go:40-49` | Тест бьёт `GET /channels/{bad}/polls/{id}/results` — реального маршрута нет (`GET /polls/:pollId`) | W3-A1-009 **не закрыт**: любой 4xx «проходит»; регресс GetPollResults parse не ловится | Хитнуть `/api/messenger/polls/not-a-uuid` → 400 |
-| A2W3-1-003 | RESIDUAL | P3 | `handler_reactions.go:29-44` | `ToggleReaction` по-прежнему **не парсит** `:channelId`; membership только в service по `msg.ChannelID` | IDOR закрыт (P1-BE-16), но URL-канал декоративен — mismatch path/msg не даёт 404 | Парсить channelID + сверять с `msg.ChannelID` (как Edit/Pin) |
 
 ## FIXED-OK (Stage A → закрыто после B/C)
 
 | Stage A ID | Evidence |
 |------------|----------|
+| A2W3-1-001 | TASK-108: GetPresence(callerID) + FilterUsersSharingChannel |
+| A2W3-1-003 | TASK-108: ToggleReaction парсит channelID + msg.ChannelID match → 404 |
 | W3-A1-001 | `RemoveBookmark(ctx, userID, id)` + repo owner-scope; `membership_idor_task017_test.go` |
 | W3-A1-002 | service `IsMember(msg.ChannelID)` + denial-тесты P1-BE-16 |
 | W3-A1-003 | `DeleteMessage` channel match + role по `existing.ChannelID` |

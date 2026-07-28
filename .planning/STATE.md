@@ -65,6 +65,16 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (be2 · TASK-108 messenger invite/DM/unread/presence/bot)
+
+- Закрыты A2W3-2-001..004, A2W3-3-001..003, A2W3-1-001/003 (9 ID).
+- AcceptInvite: атомарный `UseCountLT` + rollback use_count; IsMember err → 500.
+- CreateChannel/DM: fail AddMembers → soft-delete orphan.
+- Unread: TTL 30d + cleanup на leave/DeleteChannel; Ent list hard caps.
+- GetPresence: shared-channel filter; ToggleReaction: path channel match; bot guards.
+- Тесты: `go test -tags hubtest -race ./testframework/messenger/` PASS.
+- Ветка: `fix/messenger/task-108-invite-dm`.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.

@@ -41,6 +41,9 @@ type mockRepository struct {
 	// Состояние избранного/mute по ключу channelID:userID
 	starred map[string]bool
 	muted   map[string]*time.Time
+	// Инъекция ошибок для тестов (A2W3-2-001/002/004).
+	addMembersErr error
+	isMemberErr   error
 }
 
 func newMockRepository() *mockRepository {
@@ -136,6 +139,9 @@ func (m *mockRepository) DeleteChannel(_ context.Context, channelID uuid.UUID) e
 }
 
 func (m *mockRepository) IsMember(_ context.Context, channelID, userID uuid.UUID) (bool, error) {
+	if m.isMemberErr != nil {
+		return false, m.isMemberErr
+	}
 	ch, ok := m.channels[channelID]
 	if !ok || ch.DeletedAt != nil {
 		return false, nil
@@ -177,6 +183,9 @@ func (m *mockRepository) GetChannelMemberIDs(_ context.Context, channelID uuid.U
 }
 
 func (m *mockRepository) AddMembers(_ context.Context, channelID uuid.UUID, userIDs []uuid.UUID, role string) error {
+	if m.addMembersErr != nil {
+		return m.addMembersErr
+	}
 	if _, ok := m.members[channelID]; !ok {
 		m.members[channelID] = make(map[uuid.UUID]*ent.ChannelMember)
 	}
@@ -217,6 +226,36 @@ func (m *mockRepository) ListMembers(_ context.Context, channelID uuid.UUID) ([]
 		result = append(result, mem)
 	}
 	return result, nil
+}
+
+func (m *mockRepository) FilterUsersSharingChannel(_ context.Context, callerID uuid.UUID, candidateIDs []uuid.UUID) ([]uuid.UUID, error) {
+	if len(candidateIDs) == 0 {
+		return nil, nil
+	}
+	want := make(map[uuid.UUID]struct{}, len(candidateIDs))
+	for _, id := range candidateIDs {
+		want[id] = struct{}{}
+	}
+	shared := make(map[uuid.UUID]struct{})
+	for chID, members := range m.members {
+		ch, ok := m.channels[chID]
+		if !ok || ch.DeletedAt != nil {
+			continue
+		}
+		if _, ok := members[callerID]; !ok {
+			continue
+		}
+		for uid := range members {
+			if _, ok := want[uid]; ok {
+				shared[uid] = struct{}{}
+			}
+		}
+	}
+	out := make([]uuid.UUID, 0, len(shared))
+	for id := range shared {
+		out = append(out, id)
+	}
+	return out, nil
 }
 
 // --- Сообщения ---
@@ -558,12 +597,27 @@ func (m *mockRepository) FindChannelInviteByToken(_ context.Context, token strin
 	return inv, nil
 }
 
-func (m *mockRepository) IncrementInviteUses(_ context.Context, inviteID uuid.UUID) error {
+func (m *mockRepository) IncrementInviteUses(_ context.Context, inviteID uuid.UUID, maxUses int) error {
 	inv, ok := m.invites[inviteID]
 	if !ok {
 		return &ent.NotFoundError{}
 	}
+	if maxUses > 0 && inv.UseCount >= maxUses {
+		return ErrInviteUsesExhausted
+	}
 	inv.UseCount++
+	return nil
+}
+
+func (m *mockRepository) DecrementInviteUses(_ context.Context, inviteID uuid.UUID) error {
+	inv, ok := m.invites[inviteID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if inv.UseCount <= 0 {
+		return &ent.NotFoundError{}
+	}
+	inv.UseCount--
 	return nil
 }
 
