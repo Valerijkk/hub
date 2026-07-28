@@ -63,6 +63,10 @@ func (s *stubRepo) ListRoleMemberIDs(context.Context, uuid.UUID) ([]uuid.UUID, e
 	return nil, nil
 }
 func (s *stubRepo) ClearMemberCustomRoleByID(context.Context, uuid.UUID) error { return nil }
+func (s *stubRepo) ClearMembersAndDeleteRole(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	s.deleteCalled = true
+	return nil
+}
 func (s *stubRepo) DeleteRole(_ context.Context, _ uuid.UUID) error {
 	s.deleteCalled = true
 	return nil

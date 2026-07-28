@@ -1,7 +1,8 @@
 # TASK-115 — 🔒 RBAC: unknown perm/custom-role/cache/rename
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
-> Источник: A2W6 rbac · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
+> Источник: A2W6 rbac · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
+> Закрыто: 2026-07-28 · be2 · A2W6-A3-001..005 FIXED
 
 ## [OUTCOME]
 

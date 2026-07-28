@@ -34,16 +34,16 @@
 | W6-A3-003 | FIXED-OK | закрыт | full-mask cache → recheck system_role; demote test RED→GREEN |
 | W6-A3-004 | FIXED-OK | закрыт | `permission_names` source of truth |
 | W6-A3-005 | FIXED-OK | закрыт | `Has(0)` → false |
-| W6-A3-006 | RESIDUAL | жив | unknown permission name → 500 (Create/Update) |
+| W6-A3-006 | FIXED | TASK-115 | unknown permission name → 400 (ErrUnknownPermission) |
 | W6-A3-007 | FIXED-OK | закрыт | StructValidator + `validate:"required"` на CustomRoleRequest |
-| W6-A3-008 | RESIDUAL | частичный | clear+delete без одной Ent-tx (ошибок меньше, атомарности нет) |
-| W6-A3-009 | RESIDUAL | жив | ClearCustomRole: DB clear → Invalidate; Invalidate fail → 500 при demotion в БД |
+| W6-A3-008 | FIXED | TASK-115 | ClearMembersAndDeleteRole Ent Tx |
+| W6-A3-009 | FIXED | TASK-115 | ClearCustomRole: cache-fail ≠ 500 после demotion |
 | W6-A3-010 | FIXED-OK | закрыт | `authz_ent_negative_task037_test.go` CreateRole Forbidden |
 | W6-A3-011 | FIXED-OK | закрыт | `cache_invalidate_p1be33_test.go` |
 | W6-A3-012 | FIXED-OK | закрыт | UnassignRole парсит `:roleId` + match current |
-| W6-A3-013 | RESIDUAL | жив | `RequireAuth` не валидирует JWT (только Locals token) |
+| W6-A3-013 | FIXED | TASK-115 | `CaptureBearerToken` rename; `RequireAuth` deprecated alias |
 | W6-A3-014 | FIXED-OK | закрыт | InvalidateProject/User через Lua SCAN+UNLINK |
-| W6-A3-015 | RESIDUAL | жив | `TestRequireAuth_ValidBearerNext` на fake Bearer |
+| W6-A3-015 | FIXED | TASK-115 | extract-only тест CaptureBearerToken (не ValidBearer) |
 
 REGRESS: **0**. Fiber v3 MW order: **OK**.
 
@@ -51,11 +51,11 @@ REGRESS: **0**. Fiber v3 MW order: **OK**.
 
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|-----|-------------|----------|---------------|------------|
-| A2W6-A3-001 | RESIDUAL | P2 | `handler.go:56-59`, `117-124` | `unknown permission name` → 500 | Клиентская валидация должна быть 400 | `strings.Contains` / typed err → 400 |
-| A2W6-A3-002 | RESIDUAL | P2 | `custom_roles.go:146-160` | Delete: clear members → invalidate → DeleteRole без Ent Tx | Partial clear + fail delete → inconsistency | Tx: clear+delete; invalidate после commit |
-| A2W6-A3-003 | RESIDUAL | P2 | `custom_roles.go:209-214` | Clear: demotion в БД, затем Invalidate; err → 500 при уже cleared | Privilege retention до TTL при cache fail | Invalidate до clear / InvalidateProject + не 500 на cache-only fail |
-| A2W6-A3-004 | RESIDUAL | P3 | `middleware.go:14-40` | `RequireAuth` misnomer — JWT не проверяет | Копипаст = fail-open «любой Bearer» | Rename `CaptureBearerToken` / deprecate |
-| A2W6-A3-005 | RESIDUAL | P3 | `middleware_test.go` ValidBearer | Цементирует отсутствие JWT check | Misleading green | Удалить helper из публичного API или явный extract-only тест |
+| A2W6-A3-001 | FIXED | P2 | `handler.go` Create/Update | `unknown permission name` → 500 | Клиентская валидация должна быть 400 | TASK-115: `ErrUnknownPermission` → 400 |
+| A2W6-A3-002 | FIXED | P2 | `repository.go` ClearMembersAndDeleteRole | Delete без Ent Tx | Partial clear + fail delete | TASK-115: Ent Tx clear+delete; invalidate после commit |
+| A2W6-A3-003 | FIXED | P2 | `custom_roles.go` ClearCustomRole | Invalidate fail → 500 после demotion | Misleading 500 | TASK-115: best-effort Invalidate→InvalidateProject, не 500 |
+| A2W6-A3-004 | FIXED | P3 | `middleware.go` | `RequireAuth` misnomer | Копипаст fail-open | TASK-115: `CaptureBearerToken` + deprecated alias |
+| A2W6-A3-005 | FIXED | P3 | `middleware_test.go` | ValidBearer misleading green | Цементирует no-JWT | TASK-115: extract-only тест `CaptureBearerToken` |
 
 ## Counts
 
@@ -63,7 +63,7 @@ REGRESS: **0**. Fiber v3 MW order: **OK**.
 |--|--:|
 | NEW | 0 |
 | REGRESS | 0 |
-| RESIDUAL | 5 |
-| FIXED-OK | 10 |
-| P0 / P1 / P2 / P3 (open) | 0 / 0 / 3 / 2 |
-| **Σ open** | **5** |
+| RESIDUAL | 0 |
+| FIXED-OK | 15 |
+| P0 / P1 / P2 / P3 (open) | 0 / 0 / 0 / 0 |
+| **Σ open** | **0** (TASK-115 2026-07-28) |

@@ -1,6 +1,6 @@
 package rbac_test
 
-// Тесты middleware RBAC: интеграционные и unit-сценарии testframework.
+// Тесты middleware RBAC: extract-only CaptureBearerToken (не JWT auth).
 import (
 	"io"
 	"net/http/httptest"
@@ -15,24 +15,24 @@ import (
 	"github.com/valerii/hub/backend/internal/rbac"
 )
 
-// TestRequireAuth_MissingHeader проверяет отклонение при require auth отсутствующий header.
-func TestRequireAuth_MissingHeader(t *testing.T) {
+// TestCaptureBearerToken_MissingHeader — нет Authorization → 401.
+func TestCaptureBearerToken_MissingHeader(t *testing.T) {
 	app := fiber.New()
 	app.Get("/", func(c fiber.Ctx) error {
 		return c.SendString("ok")
-	}, rbac.RequireAuth())
+	}, rbac.CaptureBearerToken())
 
 	status, body := doGet(t, app, "/")
 	assert.Equal(t, fiber.StatusUnauthorized, status)
 	assert.Contains(t, body, "missing authorization header")
 }
 
-// TestRequireAuth_InvalidFormat проверяет отклонение при require auth некорректный форматирование.
-func TestRequireAuth_InvalidFormat(t *testing.T) {
+// TestCaptureBearerToken_InvalidFormat — не Bearer-схема → 401.
+func TestCaptureBearerToken_InvalidFormat(t *testing.T) {
 	app := fiber.New()
 	app.Get("/", func(c fiber.Ctx) error {
 		return c.SendString("ok")
-	}, rbac.RequireAuth())
+	}, rbac.CaptureBearerToken())
 
 	req := httptest.NewRequest(fiber.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Token abc")
@@ -42,12 +42,12 @@ func TestRequireAuth_InvalidFormat(t *testing.T) {
 	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
 }
 
-// TestRequireAuth_EmptyBearerToken проверяет сценарий: require auth пустой bearer token.
-func TestRequireAuth_EmptyBearerToken(t *testing.T) {
+// TestCaptureBearerToken_EmptyBearerToken — "Bearer " без токена → 401.
+func TestCaptureBearerToken_EmptyBearerToken(t *testing.T) {
 	app := fiber.New()
 	app.Get("/", func(c fiber.Ctx) error {
 		return c.SendString("ok")
-	}, rbac.RequireAuth())
+	}, rbac.CaptureBearerToken())
 
 	req := httptest.NewRequest(fiber.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer ")
@@ -57,15 +57,15 @@ func TestRequireAuth_EmptyBearerToken(t *testing.T) {
 	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
 }
 
-// TestRequireAuth_ExtractsBearerTokenWithoutJWTValidation — rbac.RequireAuth только
-// извлекает Bearer в Locals("token"); JWT-валидация — в auth.RequireAuth (fail-closed suite).
-// W6-A3-015 / P3-BE-02: имя ValidBearerNext цементировало отсутствие проверки JWT.
-func TestRequireAuth_ExtractsBearerTokenWithoutJWTValidation(t *testing.T) {
+// TestCaptureBearerToken_ExtractOnlyNoJWTValidation — A2W6-A3-004/005:
+// CaptureBearerToken только кладёт raw Bearer в Locals("token"); JWT не проверяет.
+// Имя теста явно: extract-only, не ValidBearer/auth success.
+func TestCaptureBearerToken_ExtractOnlyNoJWTValidation(t *testing.T) {
 	app := fiber.New()
 	app.Get("/", func(c fiber.Ctx) error {
 		token, _ := c.Locals("token").(string)
 		return c.SendString(token)
-	}, rbac.RequireAuth())
+	}, rbac.CaptureBearerToken())
 
 	req := httptest.NewRequest(fiber.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer jwt-token-123")
@@ -76,6 +76,25 @@ func TestRequireAuth_ExtractsBearerTokenWithoutJWTValidation(t *testing.T) {
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024))
 	require.NoError(t, err)
 	assert.Equal(t, "jwt-token-123", string(body))
+}
+
+// TestRequireAuth_DeprecatedAliasOfCaptureBearerToken — legacy RequireAuth == CaptureBearerToken.
+func TestRequireAuth_DeprecatedAliasOfCaptureBearerToken(t *testing.T) {
+	app := fiber.New()
+	app.Get("/", func(c fiber.Ctx) error {
+		token, _ := c.Locals("token").(string)
+		return c.SendString(token)
+	}, rbac.RequireAuth())
+
+	req := httptest.NewRequest(fiber.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer legacy-alias")
+	resp, err := app.Test(req, 5*time.Second)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024))
+	require.NoError(t, err)
+	assert.Equal(t, "legacy-alias", string(body))
 }
 
 // TestUserIDFromCtx проверяет сценарий: user id from ctx.

@@ -55,6 +55,9 @@ func (h *CustomRoleHandler) CreateRole(c fiber.Ctx) error {
 
 	role, err := h.svc.CreateCustomRole(c.Context(), projectID, req)
 	if err != nil {
+		if errors.Is(err, ErrUnknownPermission) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка создания роли")
 	}
 	return c.Status(fiber.StatusCreated).JSON(role)
@@ -115,6 +118,9 @@ func (h *CustomRoleHandler) UpdateRole(c fiber.Ctx) error {
 
 	role, err := h.svc.UpdateCustomRole(c.Context(), projectID, roleID, req)
 	if err != nil {
+		if errors.Is(err, ErrUnknownPermission) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
 		if errors.Is(err, ErrRoleProjectMismatch) {
 			return fiber.NewError(fiber.StatusNotFound, "роль не найдена")
 		}
