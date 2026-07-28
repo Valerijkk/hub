@@ -4,6 +4,7 @@ package outbox
 
 import (
 	"context"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/valerii/hub/backend/ent"
@@ -49,4 +50,14 @@ func ExportApplySkipLocked(s *sql.Selector) {
 // ExportMaxPublishAttempts returns the dead-letter threshold.
 func ExportMaxPublishAttempts() int {
 	return maxPublishAttempts
+}
+
+// ExportBatchLimit — W4-A2-008 / P3-BE-02: размер claim-batch outbox worker.
+func ExportBatchLimit() int {
+	return batchLimit
+}
+
+// ExportPollInterval — W4-A2-008 / P3-BE-02: интервал ProcessLoop.
+func ExportPollInterval() time.Duration {
+	return pollInterval
 }

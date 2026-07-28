@@ -103,6 +103,12 @@ func TestWorkerConstants(t *testing.T) {
 		assert.Equal(t, 10, outbox.ExportMaxPublishAttempts(),
 			"maxPublishAttempts must stay 10 (dead-letter threshold)")
 	})
+	t.Run("BatchLimit", func(t *testing.T) {
+		assert.Equal(t, 50, outbox.ExportBatchLimit())
+	})
+	t.Run("PollInterval", func(t *testing.T) {
+		assert.Equal(t, 100*time.Millisecond, outbox.ExportPollInterval())
+	})
 }
 
 // ---------------------------------------------------------------------------

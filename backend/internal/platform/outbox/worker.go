@@ -20,6 +20,7 @@ const (
 	// maxPublishAttempts — после этого события помечаются status=failed (dead-letter).
 	maxPublishAttempts = 10
 	batchLimit         = 50
+	pollInterval       = 100 * time.Millisecond
 )
 
 // Worker опрашивает outbox-таблицу на наличие ожидающих событий и публикует их в NATS.
@@ -37,7 +38,7 @@ func NewWorker(client *ent.Client, nats *natsclient.Client) *Worker {
 // ProcessLoop опрашивает outbox-таблицу каждые 100мс и публикует ожидающие события в NATS.
 // Работает до отмены контекста.
 func (w *Worker) ProcessLoop(ctx context.Context) {
-	ticker := time.NewTicker(100 * time.Millisecond)
+	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
 
 	for {
