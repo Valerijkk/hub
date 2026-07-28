@@ -94,7 +94,7 @@ func TestNewHandler_AndRegisterRoutes(t *testing.T) {
 	app, projectID, _, client := newStorageRoutesEnv(t)
 	_ = client
 
-	payload := fmt.Sprintf(`{"filename":"notes.txt","contentType":"text/plain","projectId":%q}`, projectID.String())
+	payload := fmt.Sprintf(`{"filename":"notes.txt","contentType":"text/plain","projectId":%q,"size":12}`, projectID.String())
 	req := httptest.NewRequest(http.MethodPost, "/api/files/upload-url", bytes.NewReader([]byte(payload)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
