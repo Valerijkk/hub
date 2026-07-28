@@ -42,7 +42,7 @@ function formatCallTime(isoDate: string): string {
 export function UpcomingCallsWidget({ data }: Props) {
 	const personalData = data as PersonalData | undefined;
 	const calls = (personalData?.upcoming_calls ?? []).slice(0, 3);
-	const startCall = useCallStore((s) => s.startCall);
+	const joinCall = useCallStore((s) => s.joinCall);
 
 	if (calls.length === 0) {
 		return (
@@ -77,7 +77,7 @@ export function UpcomingCallsWidget({ data }: Props) {
 								: "border border-white/[0.10] text-t2 hover:text-white hover:border-white/20"
 						}`}
 						onClick={() => {
-							if (call.channel_id) void startCall(call.channel_id);
+							void joinCall(call.id);
 						}}
 					>
 						<span className="flex items-center gap-1">

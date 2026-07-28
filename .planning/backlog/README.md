@@ -33,7 +33,7 @@
 | [TASK-025](TASK-025-ent-schema-constraints.md) | Ent unique/O2O constraints | P1 | Открыта | be1 | W12 P1-BE-40..42 |
 | [TASK-026](TASK-026-fe-api-client-auth-retry.md) | FE api client auth retry | P1 | На проверке | fe1 | W12 FE-P1-API-CLIENT |
 | [TASK-027](TASK-027-fe-callchat-ws-subscribe.md) | FE CallChat WS subscribe | P1 | На проверке | fe1 | W12 FE-P1-CALLS-CHAT |
-| [TASK-028](TASK-028-fe-calls-join-create-lifecycle.md) | FE calls lifecycle | P1 | Открыта | fe2 | W12 FE-P1-CALLS-LIFECYCLE |
+| [TASK-028](TASK-028-fe-calls-join-create-lifecycle.md) | FE calls lifecycle | P1 | На проверке | fe1 | W12 FE-P1-CALLS-LIFECYCLE |
 | [TASK-029](TASK-029-fe-messenger-reply-thread-unread.md) | FE messenger reply/unread | P1 | Открыта | fe1 | W12 FE-P1-MESSENGER |
 | [TASK-030](TASK-030-fe-board-dnd-single-path-rank.md) | FE board DnD + rank | P1 | Открыта | fe2 | W12 FE-P1-BOARD-DND |
 | [TASK-031](TASK-031-fe-sprint-loading-error-states.md) | FE sprint loading/error | P1 | Открыта | fe1 | W12 FE-P1-SPRINT-UI |

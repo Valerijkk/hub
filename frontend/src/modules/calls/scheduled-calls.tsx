@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import type {
 	CreateScheduledCallData,
@@ -12,6 +14,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 
 // ---------------------------------------------------------------------------
 // ScheduledCalls — запланированные и повторяющиеся звонки (CALL-02)
@@ -45,41 +48,31 @@ const RECURRENCE_OPTIONS = [
 /**
  * ScheduledCalls отображает список запланированных звонков в канале
  * и форму для создания нового запланированного звонка с поддержкой повторений.
+ * Список на TanStack Query — тот же префикс key, что invalidate в CreateCallDialog.
  */
 export function ScheduledCalls({ channelId, projectId }: ScheduledCallsProps) {
-	const [calls, setCalls] = useState<ScheduledCallResponse[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
+	const queryClient = useQueryClient();
 	const [showForm, setShowForm] = useState(false);
 
-	/** Загрузить запланированные звонки. */
-	const loadCalls = useCallback(async () => {
-		setIsLoading(true);
-		try {
-			const data = await callsApi.listScheduledCalls(channelId);
-			setCalls(data.scheduled_calls ?? []);
-		} catch {
-			// Ошибка загрузки
-		} finally {
-			setIsLoading(false);
-		}
-	}, [channelId]);
+	const { data, isLoading, isError } = useQuery({
+		queryKey: ["calls", "scheduled", channelId],
+		queryFn: () => callsApi.listScheduledCalls(channelId),
+		enabled: !!channelId,
+	});
 
-	useEffect(() => {
-		loadCalls();
-	}, [loadCalls]);
+	const calls: ScheduledCallResponse[] = data?.scheduled_calls ?? [];
 
-	/** Удалить запланированный звонок. */
-	const handleDelete = useCallback(
-		async (id: string) => {
-			try {
-				await callsApi.deleteScheduledCall(id);
-				await loadCalls();
-			} catch {
-				// Ошибка удаления
-			}
+	const deleteMutation = useMutation({
+		mutationFn: (id: string) => callsApi.deleteScheduledCall(id),
+		onSuccess: () => {
+			void queryClient.invalidateQueries({
+				queryKey: ["calls", "scheduled", channelId],
+			});
 		},
-		[loadCalls],
-	);
+		onError: (err) => {
+			toastApiError(err, "Не удалось удалить звонок");
+		},
+	});
 
 	/** Получить человекочитаемое описание RRULE. */
 	const getRecurrenceLabel = (rrule?: string) => {
@@ -114,7 +107,9 @@ export function ScheduledCalls({ channelId, projectId }: ScheduledCallsProps) {
 					projectId={projectId}
 					onCreated={() => {
 						setShowForm(false);
-						loadCalls();
+						void queryClient.invalidateQueries({
+							queryKey: ["calls", "scheduled", channelId],
+						});
 					}}
 				/>
 			)}
@@ -122,6 +117,10 @@ export function ScheduledCalls({ channelId, projectId }: ScheduledCallsProps) {
 			{/* Список */}
 			{isLoading ? (
 				<div className="py-4 text-center text-sm text-t2">Загрузка...</div>
+			) : isError ? (
+				<div className="py-4 text-center text-sm text-destructive">
+					Не удалось загрузить запланированные звонки
+				</div>
 			) : calls.length === 0 ? (
 				<div className="py-4 text-center text-sm text-t2">
 					Нет запланированных звонков
@@ -145,7 +144,8 @@ export function ScheduledCalls({ channelId, projectId }: ScheduledCallsProps) {
 							</div>
 							<button
 								type="button"
-								onClick={() => handleDelete(sc.id)}
+								onClick={() => deleteMutation.mutate(sc.id)}
+								disabled={deleteMutation.isPending}
 								className="rounded-md border border-border px-2 py-1 text-xs text-t2 transition-colors hover:border-destructive hover:text-destructive"
 								title="Удалить"
 								aria-label={`Удалить запланированный звонок "${sc.title}"`}
@@ -180,16 +180,10 @@ function CreateScheduledCallForm({
 	const [scheduledAt, setScheduledAt] = useState("");
 	const [recurrence, setRecurrence] = useState("");
 	const [customRRule, setCustomRRule] = useState("");
-	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!title.trim() || !scheduledAt) return;
-
-		setIsSubmitting(true);
-		try {
+	const createMutation = useMutation({
+		mutationFn: async () => {
 			const rrule = recurrence === "custom" ? customRRule : recurrence;
-
 			const data: CreateScheduledCallData = {
 				title: title.trim(),
 				scheduled_at: new Date(scheduledAt).toISOString(),
@@ -197,14 +191,21 @@ function CreateScheduledCallForm({
 			};
 			if (description.trim()) data.description = description.trim();
 			if (rrule) data.rrule = rrule;
-
-			await callsApi.createScheduledCall(projectId, data);
+			return callsApi.createScheduledCall(projectId, data);
+		},
+		onSuccess: () => {
+			toast.success("Звонок запланирован");
 			onCreated();
-		} catch {
-			// Ошибка создания
-		} finally {
-			setIsSubmitting(false);
-		}
+		},
+		onError: (err) => {
+			toastApiError(err, "Не удалось создать звонок");
+		},
+	});
+
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!title.trim() || !scheduledAt) return;
+		createMutation.mutate();
 	};
 
 	return (
@@ -278,10 +279,12 @@ function CreateScheduledCallForm({
 
 			<button
 				type="submit"
-				disabled={isSubmitting || !title.trim() || !scheduledAt}
+				disabled={
+					createMutation.isPending || !title.trim() || !scheduledAt
+				}
 				className="rounded-md bg-primary px-4 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
 			>
-				{isSubmitting ? "Создание..." : "Создать"}
+				{createMutation.isPending ? "Создание..." : "Создать"}
 			</button>
 		</form>
 	);

@@ -140,8 +140,10 @@ export async function getActiveCall(
 		return raw as CallResponse;
 	} catch (err: unknown) {
 		const apiErr = err as { code?: number };
+		// Только 404 = «нет активного звонка»; сеть/403 не маскируем как null
+		// (иначе CallButton стартует второй create — W11-A3-002).
 		if (apiErr.code === 404) return null;
-		return null;
+		throw err;
 	}
 }
 
