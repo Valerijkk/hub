@@ -115,8 +115,10 @@
 ## Аутентификация и авторизация
 
 ```
-Magic Link (email) → JWT access (15 min, memory)
-                  → Refresh token (Redis, 30 days, revocable)
+Magic Link (email) → JWT access (15 min, memory — не sessionStorage)
+                  → Refresh token (Redis, 30 days, revocable; FE memory-only)
+                  → WS: POST /auth/ws-ticket → GET /ws Sec-WebSocket-Protocol hub.ws.ticket.*
+                    (?token= denied; ADR-WS-JWT-HANDSHAKE-2026)
                   → Session record (PostgreSQL)
 Telegram         → Только notify bind/delivery (НЕ login)
 ```

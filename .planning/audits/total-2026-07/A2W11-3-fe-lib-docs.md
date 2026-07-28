@@ -35,7 +35,7 @@
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
 | A2W11-3-001 | RESIDUAL | P2 | `use-presence.ts:55-59` | Возврат только `statuses` / `isLoading` / `getStatus` — **нет** `isError` | W11-A3-012 остался в TODO TASK-047 при статусе «Исправлена» (ложное закрытие). Fail poll → UI «все offline» | Прокинуть `isError`/`error`/`refetch`; channel-list — «статус недоступен» |
-| A2W11-3-002 | RESIDUAL | P2 | `ws-store.ts:101-102` | Access JWT в `/ws?token=` query string | W11-A3-013 / P2-FE-U02: токен в access/proxy logs. FE-only не закрывает | BE: subprotocol / first-message auth; FE перейти на новый handshake |
+| A2W11-3-002 | **FIXED** (TASK-103) | P2 | `ws-store.ts` ticket subprotocol | Access JWT убран из `/ws?token=` | Evidence: `connects via ticket subprotocol without ?token=`; BE `TestWSHandler_QueryToken_Denied` |
 | A2W11-3-003 | NEW | P3 | `use-presence.ts:41-44` | `sendHeartbeat().catch(() => {})` — silent swallow | Сеть/403 heartbeat невидимы; смежно с отсутствием isError на poll | Логировать/счётчик fail; не маскировать длительный fail |
 
 ## FIXED-OK (Stage A → закрыто после B/C)

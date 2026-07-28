@@ -388,7 +388,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 
 ### WebSocket Regression
 
-1. Подключение /ws?token=JWT
+1. Подключение /ws через ticket subprotocol (не ?token=JWT)
 2. Subscribe to project:{id}
 3. Создать задачу через API
 4. Получить event issue_created через WS

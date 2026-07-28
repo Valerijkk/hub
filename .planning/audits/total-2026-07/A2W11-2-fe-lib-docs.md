@@ -34,7 +34,7 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
-| A2W11-2-001 | RESIDUAL | P2 | `auth-store.ts:161` (+ `:13-15`) | Access + refresh JWT по-прежнему в `sessionStorage` (`hub-auth`) | W11-A2-005 / P2-FE-U01: XSS → кража refresh (30d). Фикс B не трогал persist (нужен ADR cookie/memory) | httpOnly refresh **или** memory-only access + не persist refresh в `partialize` |
+| A2W11-2-001 | **FIXED** (TASK-103) | P2 | `auth-store.ts` memory-only | JWT не в sessionStorage | Evidence: auth-store unit `does not persist JWT into sessionStorage`; ADR-WS-JWT-HANDSHAKE-2026 |
 | A2W11-2-002 | RESIDUAL | P2 | `docs/tz_constraints.md:44` (контракт vs `tracker.ts` cursor) | ТЗ: задачи — offset/limit; FE+BE list issues — cursor; `types.ts` уже dual | W11-A2-009 / P2-FE-U04: PO/ADR не закрыт; агенты читают TZ как канон | Выровнять TZ под cursor **или** мигрировать list issues на offset |
 
 ## FIXED-OK (Stage A → закрыто после B/C)

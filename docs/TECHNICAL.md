@@ -1592,7 +1592,7 @@ backend/internal/
 ### Подключение
 
 ```
-ws://host/ws?token=<JWT_ACCESS_TOKEN>
+ws://host/ws  (+ Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>; ?token= forbidden)
 ```
 
 JWT передаётся через query-параметр, так как WebSocket не поддерживает кастомные заголовки при handshake.
