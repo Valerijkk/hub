@@ -13,19 +13,19 @@
 | backend/internal/auth/handler.go | 551 | 0 | чисто (Magic Link only routes) |
 | backend/internal/auth/magiclink.go | 175 | 0 | чисто |
 | backend/internal/auth/middleware.go | 150 | 0 | чисто |
-| backend/internal/auth/repository.go | 463 | 2 | RESIDUAL |
+| backend/internal/auth/repository.go | 463 | 1 | RESIDUAL (GetUserByTelegramID; AvatarURL → service) |
 | backend/internal/auth/resend.go | 87 | 0 | чисто |
 | backend/internal/auth/service.go | 129 | 0 | чисто |
 | backend/internal/auth/service_login.go | 109 | 0 | чисто |
 | backend/internal/auth/service_organization.go | 113 | 0 | чисто |
-| backend/internal/auth/service_profile.go | 68 | 0 | FIXED-OK |
+| backend/internal/auth/service_profile.go | 106 | 0 | FIXED-OK (TASK-116 avatar whitelist) |
 | backend/internal/auth/service_registration.go | 100 | 0 | FIXED-OK |
 | backend/internal/auth/service_session.go | 294 | 0 | чисто |
 | backend/internal/auth/telegram.go | 122 | 1 | RESIDUAL |
 | backend/internal/auth/telegram_bot.go | 187 | 1 | RESIDUAL |
 | backend/testframework/auth/handler_admin_extra_test.go | 45 | 0 | чисто |
 | backend/testframework/auth/handler_admin_test.go | 162 | 0 | чисто |
-| backend/testframework/auth/handler_extra_test.go | 134 | 1 | RESIDUAL |
+| backend/testframework/auth/handler_extra_test.go | 154 | 0 | FIXED-OK (TASK-116 is_current assert) |
 | backend/testframework/auth/handler_integration_test.go | 169 | 0 | чисто |
 | backend/testframework/auth/handler_invite_coverage_test.go | 62 | 0 | чисто |
 | backend/testframework/auth/handler_invite_test.go | 120 | 0 | чисто |
