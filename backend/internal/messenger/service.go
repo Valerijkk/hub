@@ -51,9 +51,14 @@ func (s *MessengerService) Heartbeat(ctx context.Context, userID string) error {
 }
 
 // GetPresence возвращает статусы присутствия для списка пользователей.
+// W3-A1-007 / P2-BE-12: cap длины списка (DoS/enumeration).
 func (s *MessengerService) GetPresence(ctx context.Context, userIDs []string) (map[string]string, error) {
 	if s.presence == nil {
 		return map[string]string{}, nil
+	}
+	const maxPresenceQueryIDs = 50
+	if len(userIDs) > maxPresenceQueryIDs {
+		return nil, apperrors.NewBadRequest("слишком много user_ids (макс. 50)")
 	}
 	return s.presence.GetBulkStatus(ctx, userIDs)
 }
@@ -140,31 +145,34 @@ func (s *MessengerService) MarkChannelRead(ctx context.Context, userID, channelI
 // resolveGroupMentions разрешает групповые упоминания (@all, @online, @role)
 // в конкретные user ID. Объединяет с индивидуальными упоминаниями из поля Mentions.
 // Исключает отправителя из результата.
+// W3-A2-013 / P2-BE-13: individual Mentions тоже пересекаются с memberSet.
 func (s *MessengerService) resolveGroupMentions(ctx context.Context, channelID uuid.UUID, projectID *uuid.UUID, groups []string, individualMentions []string, senderID uuid.UUID) []string {
 	seen := make(map[string]struct{})
 	senderStr := senderID.String()
 
-	// Добавляем индивидуальные упоминания.
+	// Участники канала нужны и для individual mentions, и для group.
+	memberIDs, err := s.repo.GetChannelMemberIDs(ctx, channelID)
+	if err != nil {
+		slog.Error("не удалось получить участников канала для упоминаний", "error", err)
+		return nil
+	}
+	memberSet := make(map[string]struct{}, len(memberIDs))
+	for _, m := range memberIDs {
+		memberSet[m.String()] = struct{}{}
+	}
+
+	// Индивидуальные упоминания — только члены канала (не spam UUID вне канала).
 	for _, uid := range individualMentions {
-		if uid != senderStr {
+		if uid == senderStr {
+			continue
+		}
+		if _, ok := memberSet[uid]; ok {
 			seen[uid] = struct{}{}
 		}
 	}
 
 	if len(groups) == 0 {
 		return mapKeys(seen)
-	}
-
-	// Получаем участников канала (нужно для @all и пересечения с @online).
-	memberIDs, err := s.repo.GetChannelMemberIDs(ctx, channelID)
-	if err != nil {
-		slog.Error("не удалось получить участников канала для упоминаний", "error", err)
-		return mapKeys(seen)
-	}
-
-	memberSet := make(map[string]struct{}, len(memberIDs))
-	for _, m := range memberIDs {
-		memberSet[m.String()] = struct{}{}
 	}
 
 	for _, g := range groups {

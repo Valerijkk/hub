@@ -124,9 +124,8 @@ func TestEditMessage_AuthorOnly(t *testing.T) {
 	ctx := context.Background()
 	authorID := uuid.New()
 	otherID := uuid.New()
-	channelID := uuid.New()
+	channelID := setupChannelWithMembers(repo, "public", false, authorID, otherID)
 
-	// Обычный участник не может писать в readonly-канале.
 	doc := &messenger.MessageDocument{
 		ID:          uuid.New().String(),
 		ChannelID:   channelID,
@@ -142,13 +141,11 @@ func TestEditMessage_AuthorOnly(t *testing.T) {
 		ContentText: "edited",
 	}
 
-	// Owner может писать в readonly-канале.
-	_, err := svc.EditMessage(ctx, doc.ID, otherID, editReq)
+	_, err := svc.EditMessage(ctx, channelID, doc.ID, otherID, editReq)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "свои сообщения")
 
-	// Помещаем удалённое сообщение в repo.
-	resp, err := svc.EditMessage(ctx, doc.ID, authorID, editReq)
+	resp, err := svc.EditMessage(ctx, channelID, doc.ID, authorID, editReq)
 	require.NoError(t, err)
 	assert.Equal(t, "edited", resp.ContentText)
 	assert.NotNil(t, resp.EditedAt)

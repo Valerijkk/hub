@@ -107,6 +107,10 @@ func (h *Handler) ListMessages(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/messenger/channels/{channelId}/messages/{messageId} [put]
 func (h *Handler) EditMessage(c fiber.Ctx) error {
+	channelID, err := parseChannelID(c)
+	if err != nil {
+		return err
+	}
 	messageID := parseMessageID(c)
 	if messageID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "message ID обязателен")
@@ -121,7 +125,7 @@ func (h *Handler) EditMessage(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.EditMessage(c.Context(), messageID, userID, req)
+	resp, err := h.service.EditMessage(c.Context(), channelID, messageID, userID, req)
 	if err != nil {
 		return err
 	}

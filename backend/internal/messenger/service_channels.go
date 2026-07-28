@@ -191,7 +191,28 @@ func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uu
 }
 
 // LeaveChannel позволяет покинуть канал.
+// W3-A2-012 / P2-BE-13: единственный owner не может уйти без transfer/delete.
 func (s *MessengerService) LeaveChannel(ctx context.Context, channelID, userID uuid.UUID) error {
+	role, err := s.repo.GetMemberRole(ctx, channelID, userID)
+	if err != nil {
+		return apperrors.NewForbidden("нет доступа к каналу")
+	}
+	if role == "owner" {
+		members, listErr := s.repo.ListMembers(ctx, channelID)
+		if listErr != nil {
+			return apperrors.NewInternal("ошибка проверки участников канала")
+		}
+		ownerCount := 0
+		for _, m := range members {
+			if string(m.Role) == "owner" {
+				ownerCount++
+			}
+		}
+		if ownerCount <= 1 {
+			return apperrors.NewBadRequest("единственный owner не может покинуть канал; передайте роль или удалите канал")
+		}
+	}
+
 	if err := s.repo.RemoveMember(ctx, channelID, userID); err != nil {
 		return apperrors.NewInternal("ошибка выхода из канала")
 	}

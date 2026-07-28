@@ -16,10 +16,11 @@ const (
 	presenceOnlineKey = "presence:online"
 	// presenceStatusKeyPrefix — hash-ключ для кастомного статуса пользователя.
 	presenceStatusKeyPrefix = "presence:status:"
-	// presenceAwayThreshold — порог перехода в статус "away" (5 минут).
-	presenceAwayThreshold = 5 * time.Minute
-	// presenceStaleThreshold — порог удаления устаревших записей (90 секунд).
-	presenceStaleThreshold = 90 * time.Second
+	// presenceAwayThreshold — порог перехода в статус "away" (90 секунд).
+	// W3-A3-003: раньше away=5m > stale=90s → Cleanup удалял запись до появления away.
+	presenceAwayThreshold = 90 * time.Second
+	// presenceStaleThreshold — порог удаления устаревших записей (10 минут).
+	presenceStaleThreshold = 10 * time.Minute
 	// presenceCleanupInterval — интервал между запусками очистки (60 секунд).
 	presenceCleanupInterval = 60 * time.Second
 )

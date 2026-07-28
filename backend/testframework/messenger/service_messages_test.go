@@ -25,7 +25,7 @@ func TestEditMessage_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	edited, err := svc.EditMessage(ctx, sent.ID, ownerID, messenger.EditMessageRequest{
+	edited, err := svc.EditMessage(ctx, channelID, sent.ID, ownerID, messenger.EditMessageRequest{
 		ContentJSON: map[string]interface{}{"text": "edited"},
 		ContentText: "edited",
 	})
@@ -47,7 +47,7 @@ func TestEditMessage_ForbiddenForOtherUser(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = svc.EditMessage(ctx, sent.ID, memberID, messenger.EditMessageRequest{
+	_, err = svc.EditMessage(ctx, channelID, sent.ID, memberID, messenger.EditMessageRequest{
 		ContentJSON: map[string]interface{}{"text": "hack"},
 		ContentText: "hack",
 	})

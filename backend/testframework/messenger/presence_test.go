@@ -89,9 +89,9 @@ func TestCleanupStale(t *testing.T) {
 	err := svc.Heartbeat(ctx, "fresh-user")
 	require.NoError(t, err)
 
-	// Старый heartbeat (2 минуты назад, > 90 секунд порога)
-	twoMinAgo := time.Now().Add(-2 * time.Minute).Unix()
-	mr.ZAdd(messenger.ExportPresenceOnlineKey(), float64(twoMinAgo), "stale-user")
+	// Старый heartbeat (11 минут назад, > 10 минут порога stale)
+	elevenMinAgo := time.Now().Add(-11 * time.Minute).Unix()
+	mr.ZAdd(messenger.ExportPresenceOnlineKey(), float64(elevenMinAgo), "stale-user")
 
 	// Очистка
 	err = svc.CleanupStale(ctx)

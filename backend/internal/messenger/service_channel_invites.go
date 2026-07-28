@@ -187,11 +187,12 @@ func (s *MessengerService) AcceptInvite(ctx context.Context, token string, userI
 		return nil, apperrors.NewInternal("ошибка вступления в канал")
 	}
 
-	// Публикуем NATS-событие.
+	// Публикуем NATS-событие без raw invite token (W3-A2-010 / P2-BE-13).
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMemberJoined, found.ChannelID.String()), map[string]interface{}{
 		"channel_id": found.ChannelID,
 		"user_id":    userID,
-		"via_invite": token,
+		"via_invite": true,
+		"invite_id":  found.ID,
 	})
 
 	// Возвращаем канал.
