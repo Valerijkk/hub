@@ -53,7 +53,7 @@
 | [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | Открыта | be2 | W12 P2-BE-19..21 |
 | [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Открыта | be1 | W12 P2-BE-22 |
 | [TASK-047](TASK-047-fe-p2-error-vs-empty.md) | FE error≠empty sweep | P2 | Открыта | fe1 | W12 P2-FE-01 |
-| [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | Открыта | fe2 | W12 P2-FE-02 |
+| [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | На проверке | fe2 | W12 P2-FE-02 |
 | [TASK-049](TASK-049-fe-p2-a11y-names-dialogs.md) | FE a11y names/dialogs | P2 | Открыта | fe1 | W12 P2-FE-03,04 |
 | [TASK-050](TASK-050-fe-p2-tokens-dead-ui.md) | FE tokens/dead UI/authz | P2 | Открыта | fe2 | W12 P2-FE-05,06,16 |
 | [TASK-051](TASK-051-fe-p2-effects-hooks-race.md) | FE effects/hooks race | P2 | Открыта | fe1 | W12 P2-FE-07 |

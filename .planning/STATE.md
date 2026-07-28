@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (fe2 · TASK-048 P2-FE-02 mutation feedback)
+
+- ConfirmDialog: close только после successful `onConfirm` (reject → open).
+- Silent mutations: recording/coffee/marketplace/triage/retro/instant-call/hand/layout + markRead rollback.
+- Vitest: confirm-dialog, mark-read-rollback, toggle-hand, layout-save-rollback — green.
+- Регрессия: `tsc` + lint + vitest **227/227** (~22s). Статус TASK-048 → На проверке.
+
 ## Session note — 2026-07-28 (fe2 · TASK-032/033/034 FE P1)
 
 - TASK-032: `listTrash` → `/projects/trash`; webhooks guard + project settings tab; Vitest `trash-webhooks-p1`.
