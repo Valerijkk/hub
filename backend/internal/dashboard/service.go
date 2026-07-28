@@ -67,26 +67,26 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	// Мои задачи: назначены на меня, не завершены, до 20 штук
 	issues, err := s.repo.ListMyOpenTasks(ctx, userID, 20)
 	if err != nil {
-		slog.Error("ошибка загрузки задач", "error", err)
-	} else {
-		for _, iss := range issues {
-			ts := TaskSummary{
-				ID:       iss.ID,
-				Key:      iss.IssueKey,
-				Title:    iss.Title,
-				Priority: priorityRank(iss.Priority),
-			}
-			if iss.Edges.Status != nil {
-				ts.Status = iss.Edges.Status.Name
-			}
-			if iss.DueDate != nil {
-				ts.DueDate = iss.DueDate
-			}
-			data.MyTasks = append(data.MyTasks, ts)
+		// W7-A4-009: critical PG widget → 500, не silent 200 с пустым списком.
+		return nil, fmt.Errorf("load my tasks: %w", err)
+	}
+	for _, iss := range issues {
+		ts := TaskSummary{
+			ID:       iss.ID,
+			Key:      iss.IssueKey,
+			Title:    iss.Title,
+			Priority: priorityRank(iss.Priority),
 		}
+		if iss.Edges.Status != nil {
+			ts.Status = iss.Edges.Status.Name
+		}
+		if iss.DueDate != nil {
+			ts.DueDate = iss.DueDate
+		}
+		data.MyTasks = append(data.MyTasks, ts)
 	}
 
-	// Непрочитанные сообщения: Redis HGETALL
+	// Непрочитанные сообщения: Redis HGETALL (мягкая деградация — виджет не critical).
 	unreadMap, err := s.rdb.HGetAll(ctx, fmt.Sprintf("unread:%s", userID.String())).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		slog.Error("ошибка загрузки непрочитанных", "error", err)
@@ -105,39 +105,37 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	// личный дашборд показывал чужие звонки.
 	activeCalls, err := s.repo.ListUserActiveCalls(ctx, userID, 10)
 	if err != nil {
-		slog.Error("ошибка загрузки звонков", "error", err)
-	} else {
-		for _, c := range activeCalls {
-			cs := CallSummary{
-				ID:          c.ID,
-				ScheduledAt: c.CreatedAt,
-			}
-			if c.Edges.Channel != nil {
-				cs.ChannelName = c.Edges.Channel.Name
-				cs.Title = c.Edges.Channel.Name
-			} else {
-				cs.Title = c.RoomName
-			}
-			data.UpcomingCalls = append(data.UpcomingCalls, cs)
+		return nil, fmt.Errorf("load active calls: %w", err)
+	}
+	for _, c := range activeCalls {
+		cs := CallSummary{
+			ID:          c.ID,
+			ScheduledAt: c.CreatedAt,
 		}
+		if c.Edges.Channel != nil {
+			cs.ChannelName = c.Edges.Channel.Name
+			cs.Title = c.Edges.Channel.Name
+		} else {
+			cs.Title = c.RoomName
+		}
+		data.UpcomingCalls = append(data.UpcomingCalls, cs)
 	}
 
 	// Последние прогоны тестов
 	runs, err := s.repo.ListUserRecentTestRuns(ctx, userID, 5)
 	if err != nil {
-		slog.Error("ошибка загрузки прогонов", "error", err)
-	} else {
-		for _, r := range runs {
-			data.RecentRuns = append(data.RecentRuns, RunSummary{
-				ID:        r.ID,
-				Name:      r.Title,
-				Status:    string(r.Status),
-				Passed:    r.PassedCount,
-				Failed:    r.FailedCount,
-				Skipped:   r.SkippedCount,
-				CreatedAt: r.CreatedAt,
-			})
-		}
+		return nil, fmt.Errorf("load recent test runs: %w", err)
+	}
+	for _, r := range runs {
+		data.RecentRuns = append(data.RecentRuns, RunSummary{
+			ID:        r.ID,
+			Name:      r.Title,
+			Status:    string(r.Status),
+			Passed:    r.PassedCount,
+			Failed:    r.FailedCount,
+			Skipped:   r.SkippedCount,
+			CreatedAt: r.CreatedAt,
+		})
 	}
 
 	// Дедлайны: задачи с due_date в ближайшие 7 дней (UTC, W7-A4-010 / P2-BE-21).
@@ -145,34 +143,32 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	weekLater := now.Add(7 * 24 * time.Hour)
 	deadlineIssues, err := s.repo.ListUserDeadlineIssues(ctx, userID, now, weekLater, 10)
 	if err != nil {
-		slog.Error("ошибка загрузки дедлайнов", "error", err)
-	} else {
-		for _, iss := range deadlineIssues {
-			ts := TaskSummary{
-				ID:       iss.ID,
-				Key:      iss.IssueKey,
-				Title:    iss.Title,
-				Priority: priorityRank(iss.Priority),
-			}
-			if iss.Edges.Status != nil {
-				ts.Status = iss.Edges.Status.Name
-			}
-			if iss.DueDate != nil {
-				ts.DueDate = iss.DueDate
-			}
-			data.Deadlines = append(data.Deadlines, ts)
+		return nil, fmt.Errorf("load deadlines: %w", err)
+	}
+	for _, iss := range deadlineIssues {
+		ts := TaskSummary{
+			ID:       iss.ID,
+			Key:      iss.IssueKey,
+			Title:    iss.Title,
+			Priority: priorityRank(iss.Priority),
 		}
+		if iss.Edges.Status != nil {
+			ts.Status = iss.Edges.Status.Name
+		}
+		if iss.DueDate != nil {
+			ts.DueDate = iss.DueDate
+		}
+		data.Deadlines = append(data.Deadlines, ts)
 	}
 
 	// Время за сегодня: сумма time_logs
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	timeLogs, err := s.repo.ListUserTimeLogsBetween(ctx, userID, today, today.Add(24*time.Hour))
 	if err != nil {
-		slog.Error("ошибка загрузки тайм-логов", "error", err)
-	} else {
-		for _, tl := range timeLogs {
-			data.TimeToday += tl.Minutes
-		}
+		return nil, fmt.Errorf("load time logs: %w", err)
+	}
+	for _, tl := range timeLogs {
+		data.TimeToday += tl.Minutes
 	}
 
 	return data, nil
@@ -385,38 +381,12 @@ func (s *DashboardService) GetAdminStats(ctx context.Context) (*AdminStats, erro
 	stats.ServiceHealth["nats"] = "unknown"
 	stats.ServiceHealth["seaweedfs"] = "unknown"
 
-	// Топ-5 проектов по количеству задач
-	projects, err := s.repo.ListProjectsWithIssues(ctx)
-	if err == nil {
-		type pRank struct {
-			id    uuid.UUID
-			name  string
-			count int
-		}
-		ranks := make([]pRank, 0, len(projects))
-		for _, p := range projects {
-			ranks = append(ranks, pRank{id: p.ID, name: p.Name, count: len(p.Edges.Issues)})
-		}
-		// Сортируем по количеству задач
-		for i := 0; i < len(ranks); i++ {
-			for j := i + 1; j < len(ranks); j++ {
-				if ranks[j].count > ranks[i].count {
-					ranks[i], ranks[j] = ranks[j], ranks[i]
-				}
-			}
-		}
-		limit := 5
-		if len(ranks) < limit {
-			limit = len(ranks)
-		}
-		for _, r := range ranks[:limit] {
-			stats.TopProjects = append(stats.TopProjects, ProjectRank{
-				ID:         r.id,
-				Name:       r.name,
-				IssueCount: r.count,
-			})
-		}
+	// Топ-5 проектов по количеству задач (W7-A4-008: агрегат без WithIssues.All).
+	top, err := s.repo.ListTopProjectsByIssueCount(ctx, 5)
+	if err != nil {
+		return nil, fmt.Errorf("load top projects: %w", err)
 	}
+	stats.TopProjects = top
 
 	return stats, nil
 }

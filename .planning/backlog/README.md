@@ -55,8 +55,8 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-115](TASK-115-2026-07-28-rbac-permission-middleware-hygiene.md) | 🔒 RBAC permission hygiene | P2 | Открыта | be2 | A2W6 · 5 |
 | [TASK-116](TASK-116-2026-07-28-auth-avatar-xss-validation-tests.md) | 🔒 Auth AvatarURL + session assert | P2 | Открыта | be1 | A2W6 · 2 |
 | [TASK-117](TASK-117-2026-07-28-notification-mail-push-limits-tests.md) | 📧 Notification/mail/push limits | P2 | Открыта | be2 | W7-A1 · 7 |
-| [TASK-118](TASK-118-2026-07-28-v4-crm-hr-calendar-lists-trash.md) | 💼 v4 CRM/HR/calendar residual | P2 | Исправлена | be2 | W7-A2 · 5 |
-| [TASK-119](TASK-119-2026-07-28-storage-backup-dashboard-residual.md) | 🔒 Storage/backup/dashboard residual | P2 | Открыта | be1 | W7-A4 · 8 |
+| [TASK-118](TASK-118-2026-07-28-v4-crm-hr-calendar-lists-trash.md) | 💼 v4 CRM/HR/calendar residual | P2 | Открыта | be2 | W7-A2 · 5 |
+| [TASK-119](TASK-119-2026-07-28-storage-backup-dashboard-residual.md) | 🔒 Storage/backup/dashboard residual | P2 | Исправлена | be1 | W7-A4 · 8 |
 | [TASK-120](TASK-120-2026-07-28-integrations-secrets-imex-trash.md) | 🔌 Git*/1C/imex secrets+trash | P2 | Открыта | be2 | W7-A3 · 4 |
 | [TASK-121](TASK-121-2026-07-28-marketplace-status-dev-exposure.md) | 🛒 Marketplace/status/docs gates | P2 | Открыта | be1 | W7-A5 · 6 |
 | [TASK-122](TASK-122-2026-07-28-tracker-project-jql-cleanup-links.md) | 🔒 Tracker JQL + DeleteProject links | P2 | Открыта | be1 | A2W1 · 2 |

@@ -1,6 +1,6 @@
 # TASK-119 — 🔒 Storage/backup/dashboard residual hygiene
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
 > Источник: W7 storage residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]

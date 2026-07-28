@@ -3,6 +3,7 @@ import (
 	"github.com/valerii/hub/backend/internal/backup"
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -61,18 +62,20 @@ func TestEntRepository_ListCompletedNewestFirst(t *testing.T) {
 	assert.Equal(t, "backups/b.zip", list[0].S3Key)
 }
 
-func TestEntRepository_SetRestoredNoteAndDelete(t *testing.T) {
+func TestEntRepository_SetRestoredAtAndDelete(t *testing.T) {
 	repo, ctx := newBackupRepo(t)
 	rec, err := repo.CreateInProgress(ctx, "backups/restore.zip")
 	require.NoError(t, err)
 	_, err = repo.MarkCompleted(ctx, rec.ID, 2048)
 	require.NoError(t, err)
 
-	require.NoError(t, repo.SetRestoredNote(ctx, rec.ID, "restored 2026-06-21"))
+	at := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	require.NoError(t, repo.SetRestoredAt(ctx, rec.ID, at))
 	got, err := repo.Get(ctx, rec.ID)
 	require.NoError(t, err)
-	require.NotNil(t, got.ErrorMessage)
-	assert.Equal(t, "restored 2026-06-21", *got.ErrorMessage)
+	require.NotNil(t, got.RestoredAt)
+	assert.True(t, got.RestoredAt.Equal(at))
+	assert.Nil(t, got.ErrorMessage, "W7-A4-018: restore must not pollute error_message")
 
 	all, err := repo.ListAll(ctx)
 	require.NoError(t, err)

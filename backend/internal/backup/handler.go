@@ -1,6 +1,8 @@
 package backup
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
@@ -96,7 +98,10 @@ func (h *Handler) RestoreBackup(c fiber.Ctx) error {
 	}
 
 	if err := h.svc.RestoreBackup(c.Context(), backupID); err != nil {
-		// A7-007: generic client message — stderr/URI не утекают в HTTP.
+		// W7-A4-011: missing id → 404; иначе generic 500 без stderr/URI (A7-007).
+		if errors.Is(err, ErrNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "backup not found")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "restore failed")
 	}
 
@@ -123,6 +128,10 @@ func (h *Handler) DeleteBackup(c fiber.Ctx) error {
 	}
 
 	if err := h.svc.DeleteBackup(c.Context(), backupID); err != nil {
+		// W7-A4-011: missing id → 404.
+		if errors.Is(err, ErrNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "backup not found")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "delete failed")
 	}
 

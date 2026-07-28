@@ -68,18 +68,18 @@
 | W7-A4-004 | FIXED-OK | P1 | `backup/service.go:104-110` | MarkCompleted без S3 | Закрыто TASK-024: fail-closed MarkFailed |
 | W7-A4-005 | FIXED-OK | P2 | `storage/service.go:159-162` | Confirm без HEAD | Закрыто TASK-045: `assertObjectWithinLimit` / ErrObjectNotFound |
 | W7-A4-006 | FIXED-OK | P2 | `storage/service.go:207-217` | contentType без allowlist | Закрыто TASK-045: HTML/SVG/JS reject |
-| W7-A4-007 | RESIDUAL | P2 | `backup/service.go:420-422` | `markFailed` пишет `err.Error()` (pg_dump wrap) в ErrorMessage | Host/DSN фрагменты админу |
-| W7-A4-008 | RESIDUAL | P2 | `dashboard/repository.go:269-272` | `ListProjectsWithIssues` = WithIssues().All() | Unbounded memory на admin top |
-| W7-A4-009 | RESIDUAL | P2 | `dashboard/service.go:178` | Repo/Redis err → всё равно `return data, nil` | Silent 200 с пустыми виджетами |
+| W7-A4-007 | FIXED | P2 | `backup/service.go` + `sanitize.go` | `markFailed` пишет `err.Error()` (pg_dump wrap) в ErrorMessage | Host/DSN фрагменты админу — **FIXED** TASK-119: sanitizeBackupErrorMessage |
+| W7-A4-008 | FIXED | P2 | `dashboard/repository.go` | `ListProjectsWithIssues` = WithIssues().All() | Unbounded memory на admin top — **FIXED** TASK-119: ListTopProjectsByIssueCount GROUP BY |
+| W7-A4-009 | FIXED | P2 | `dashboard/service.go` | Repo/Redis err → всё равно `return data, nil` | Silent 200 с пустыми виджетами — **FIXED** TASK-119: PG widgets fail-visible |
 | W7-A4-010 | FIXED-OK | P2 | `dashboard/service.go:143-169` | today через process TZ | Закрыто TASK-045: UTC midnight |
-| W7-A4-011 | RESIDUAL | P2 | `backup/handler.go` restore/delete | NotFound → generic 500 | Клиент не отличает 404 |
-| W7-A4-012 | RESIDUAL | P2 | `backup/handler_test.go` | adminMw stubbed Next(); нет denial | Регресс снятия RequireAdmin зелёный |
-| W7-A4-013 | RESIDUAL | P2 | `backup/service.go:347` | pg_dump/mongodump URI с паролем в argv | `/proc` / auditd leak |
+| W7-A4-011 | FIXED | P2 | `backup/handler.go` restore/delete | NotFound → generic 500 | Клиент не отличает 404 — **FIXED** TASK-119: ErrNotFound → 404 |
+| W7-A4-012 | FIXED | P2 | `backup/handler_test.go` | adminMw stubbed Next(); нет denial | Регресс снятия RequireAdmin — **FIXED** TASK-119: RequireAdmin denial test |
+| W7-A4-013 | FIXED | P2 | `backup/sanitize.go` + `service.go` | pg_dump/mongodump URI с паролем в argv | `/proc` / auditd leak — **FIXED** TASK-119: PGPASSWORD + mongo --config |
 | W7-A4-014 | FIXED-OK | P3 | storage SoftDelete | Без DeletedAtIsNil | Закрыто TASK-061 path |
 | W7-A4-015 | FIXED-OK | P3 | orphan_cleanup | Один батч 500 | Закрыто TASK-067: drain loop |
 | W7-A4-016 | FIXED-OK | P3 | dashboard ApplyTemplate/SaveLayout | Без membership | Закрыто TASK-067: IsProjectMember |
-| W7-A4-017 | RESIDUAL | P3 | `dashboard/handler.go` Admin | Handler читает repo.GetUser | Layering |
-| W7-A4-018 | RESIDUAL | P3 | backup SetRestoredNote | Пишет в ErrorMessage | Путает fail и restore note |
+| W7-A4-017 | FIXED-OK | P3 | `dashboard/handler.go` Admin | Handler читает repo.GetUser | Layering — уже RequireSystemAdmin (TASK-062) + evidence test |
+| W7-A4-018 | FIXED | P3 | backup SetRestoredAt | Пишет в ErrorMessage | Путает fail и restore note — **FIXED** TASK-119: restored_at column |
 | W7-A4-019 | FIXED-OK | P3 | storage/backup `_ =` cleanup | Silent | Закрыто TASK-057: slog |
 | W7-A4-020 | FIXED-OK | P3 | service_wave117 orphan assert | `_ = err` | Закрыто TASK-058 |
 

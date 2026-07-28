@@ -41,7 +41,8 @@ type Repository interface {
 	CountDistinctUsersFromSessionsSince(ctx context.Context, since time.Time) (int, error)
 	CountProjects(ctx context.Context) (int, error)
 	CountIssues(ctx context.Context) (int, error)
-	ListProjectsWithIssues(ctx context.Context) ([]*ent.Project, error)
+	// ListTopProjectsByIssueCount — W7-A4-008: GROUP BY count LIMIT, без WithIssues().All().
+	ListTopProjectsByIssueCount(ctx context.Context, limit int) ([]ProjectRank, error)
 	GetUser(ctx context.Context, userID uuid.UUID) (*ent.User, error)
 	// IsProjectMember — A7-001: GetProjectStats требует membership до cache/DB.
 	IsProjectMember(ctx context.Context, userID, projectID uuid.UUID) (bool, error)
@@ -266,10 +267,64 @@ func (r *EntRepository) CountIssues(ctx context.Context) (int, error) {
 		Count(ctx)
 }
 
-func (r *EntRepository) ListProjectsWithIssues(ctx context.Context) ([]*ent.Project, error) {
-	return r.client.Project.Query().
-		WithIssues().
+// ListTopProjectsByIssueCount — топ проектов по числу неудалённых issues (W7-A4-008).
+// Агрегат GROUP BY без материализации всех issues.
+func (r *EntRepository) ListTopProjectsByIssueCount(ctx context.Context, limit int) ([]ProjectRank, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	var rows []struct {
+		ProjectID uuid.UUID `json:"project_issues"`
+		Count     int       `json:"count"`
+	}
+	err := r.client.Issue.Query().
+		Where(issue.DeletedAtIsNil()).
+		GroupBy(issue.ProjectColumn).
+		Aggregate(ent.Count()).
+		Scan(ctx, &rows)
+	if err != nil {
+		return nil, fmt.Errorf("group issue counts by project: %w", err)
+	}
+	if len(rows) == 0 {
+		return []ProjectRank{}, nil
+	}
+
+	// Сортировка по count DESC (bubble — N проектов обычно << 1k).
+	for i := 0; i < len(rows); i++ {
+		for j := i + 1; j < len(rows); j++ {
+			if rows[j].Count > rows[i].Count {
+				rows[i], rows[j] = rows[j], rows[i]
+			}
+		}
+	}
+	if len(rows) > limit {
+		rows = rows[:limit]
+	}
+
+	ids := make([]uuid.UUID, len(rows))
+	for i, row := range rows {
+		ids[i] = row.ProjectID
+	}
+	projects, err := r.client.Project.Query().
+		Where(project.IDIn(ids...)).
 		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("load top projects: %w", err)
+	}
+	names := make(map[uuid.UUID]string, len(projects))
+	for _, p := range projects {
+		names[p.ID] = p.Name
+	}
+
+	out := make([]ProjectRank, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, ProjectRank{
+			ID:         row.ProjectID,
+			Name:       names[row.ProjectID],
+			IssueCount: row.Count,
+		})
+	}
+	return out, nil
 }
 
 func (r *EntRepository) GetUser(ctx context.Context, userID uuid.UUID) (*ent.User, error) {

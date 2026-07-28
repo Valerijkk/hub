@@ -32,6 +32,10 @@ func (BackupRecord) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("Сообщение об ошибке при неудаче"),
+		field.Time("restored_at").
+			Optional().
+			Nillable().
+			Comment("W7-A4-018: момент успешного restore (не путать с error_message)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
