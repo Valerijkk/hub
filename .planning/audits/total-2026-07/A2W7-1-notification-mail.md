@@ -82,13 +82,13 @@
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект / статус |
 |----|-----|-----|-------------|---------|------------------------|
 | W7-A1-001 | FIXED-OK | P1 | `notification/consumer.go:23-28`, handlers | Soft `return nil` на repo err → Ack | Закрыто TASK-024 / W18-C2: `repoLookupErr` → Nak на transient; not-found → Ack |
-| W7-A1-002 | RESIDUAL | P2 | `notification/handler.go:318-325` | `ValidateOutboundURL` fail → **500** | Клиент с `javascript:`/`file:` получает Internal Server Error; 400 не мапится |
-| W7-A1-003 | RESIDUAL | P2 | `mail/service.go:51-110` | `DailyLimit` / `alerts_enabled` не enforcement в `SendAlert`; `Status().AlertsEnabled` всегда `true` | Admin settings декоративные; unlimited send при ключе |
-| W7-A1-004 | RESIDUAL | P2 | `mail/admin_broadcast.go:57-68` | Ошибка `SendAlert` → `continue`; только `Sent`, нет `Failed` | Частичный фейл выглядит как успех |
-| W7-A1-005 | RESIDUAL | P2 | `mail/admin_handler.go:10-19` | `AdminHandler` держит `*ent.Client` | TZ layering: `*ent.Client` не в Handler |
-| W7-A1-006 | RESIDUAL | P2 | `testframework/notification/telegram_wave97_test.go:17-34` | Тесты без meaningful assert (только `NotNil` + вызов) | Assert-free; TASK-058 не закрыл этот файл |
-| W7-A1-007 | RESIDUAL | P2 | `telegram_lifecycle_test.go:32-47,93-99` | `SendAndQueueOverflow` / `StartStopWithoutWorkerSend` / `MissingUser` без assert | Регрессия drop/queue не ловится |
-| W7-A1-008 | RESIDUAL | P2 | `push_wave95_test.go:19-38` | `ValidEndpointSendFails` вызывает send без assert | Не ловит panic / удаление валидной https-sub |
+| W7-A1-002 | FIXED | P2 | `notification/handler.go` | `ValidateOutboundURL` fail → **400** | TASK-117: ErrInvalidPushEndpoint |
+| W7-A1-003 | FIXED | P2 | `mail/service.go` | `DailyLimit` / `alerts_enabled` enforcement в `SendAlert` | TASK-117: store+cfg policy |
+| W7-A1-004 | FIXED | P2 | `mail/admin_broadcast.go` | `Failed` count + slog | TASK-117 |
+| W7-A1-005 | FIXED | P2 | `mail/admin_handler.go` | без `*ent.Client`; ActiveUserEmailSource | TASK-117 |
+| W7-A1-006 | FIXED | P2 | `telegram_wave97_test.go` | meaningful asserts | TASK-117 |
+| W7-A1-007 | FIXED | P2 | `telegram_lifecycle_test.go` | queue/empty asserts | TASK-117 |
+| W7-A1-008 | FIXED | P2 | `push_wave95_test.go` | https-sub остаётся в БД | TASK-117 |
 | W7-A1-009 | FIXED-OK | P3 | `service_extended_test.go:314-342` | Cross-midnight quiet hours без assert | Закрыто TASK-058: таблица expected bool |
 | W7-A1-010 | FIXED-OK | P3 | `telegram_bind.go:127-130`, `:245+` | `rdb.Del` без проверки err | Закрыто TASK-057: `slog.Warn` на Del fail |
 
@@ -107,8 +107,8 @@
 | Метрика | n |
 |---------|--:|
 | Файлов | 66 |
-| Open (RESIDUAL) | **7** |
-| FIXED-OK | 3 |
+| Open (RESIDUAL) | **0** |
+| FIXED-OK | 10 |
 | NEW | 0 |
 | REGRESS | 0 |
-| Open by sev | P0:0 · P1:0 · P2:7 · P3:0 |
+| Open by sev | P0:0 · P1:0 · P2:0 · P3:0 |
