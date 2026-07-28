@@ -66,7 +66,7 @@
 | [TASK-058](TASK-058-be-p3-assert-free-tests.md) | BE assert-free tests | P3 | Исправлена | be2 | W12 P3-BE-02 |
 | [TASK-059](TASK-059-be-p3-mutation-proof-gaps.md) | BE mutation-proof gaps | P3 | Исправлена | be1 | W12 P3-BE-03 |
 | [TASK-060](TASK-060-be-p3-utf8-rune-truncate.md) | BE UTF-8 rune truncate | P3 | Исправлена | be2 | W12 P3-BE-04 |
-| [TASK-061](TASK-061-be-p3-repo-lists-defense.md) | BE repo/lists defense | P3 | Открыта | be1 | W12 P3-BE-05,06 |
+| [TASK-061](TASK-061-be-p3-repo-lists-defense.md) | BE repo/lists defense | P3 | Исправлена | be1 | W12 P3-BE-05,06 |
 | [TASK-062](TASK-062-be-p3-dead-code-layering.md) | BE dead code/layering | P3 | Исправлена | be2 | W12 P3-BE-07 |
 | [TASK-063](TASK-063-be-p3-errors-input-hygiene.md) | BE errors + input hygiene | P3 | Открыта | be1 | W12 P3-BE-08,09 |
 | [TASK-064](TASK-064-be-p3-ws-calls-lifecycle.md) | BE WS/calls lifecycle | P3 | Открыта | be2 | W12 P3-BE-10 |

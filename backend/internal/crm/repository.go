@@ -66,11 +66,16 @@ func (r *EntRepository) CreateContact(ctx context.Context, userID uuid.UUID, req
 	return create.Save(ctx)
 }
 
+// MaxCRMList — P3-BE-06 / W7-A2-013: hard cap ListContacts / ListDeals (как accounting invoices 50).
+// Mutation: снять Limit → unbounded All при N>cap.
+const MaxCRMList = 100
+
 func (r *EntRepository) ListContacts(ctx context.Context, ownerID *uuid.UUID) ([]*ent.CrmContact, error) {
 	q := r.client.CrmContact.Query().
 		Where(crmcontact.DeletedAtIsNil()).
 		WithLinkedUser().
-		Order(ent.Desc(crmcontact.FieldUpdatedAt))
+		Order(ent.Desc(crmcontact.FieldUpdatedAt)).
+		Limit(MaxCRMList)
 	if ownerID != nil {
 		q = q.Where(crmcontact.HasCreatedByWith(user.IDEQ(*ownerID)))
 	}
@@ -158,7 +163,8 @@ func (r *EntRepository) ListDeals(ctx context.Context, ownerID *uuid.UUID) ([]*e
 			ent.Asc(crmdeal.FieldStage),
 			ent.Asc(crmdeal.FieldRank),
 			ent.Desc(crmdeal.FieldUpdatedAt),
-		)
+		).
+		Limit(MaxCRMList)
 	if ownerID != nil {
 		q = q.Where(crmdeal.HasOwnerWith(user.IDEQ(*ownerID)))
 	}

@@ -72,7 +72,11 @@ func (r *EntRepository) CreateComment(ctx context.Context, issueID, authorID uui
 		Only(ctx)
 }
 
-// ListComments возвращает все комментарии к задаче с авторами и реакциями.
+// MaxIssueComments — P3-BE-06 / W1-A3-010: hard cap комментариев задачи.
+// Mutation: снять Limit → unbounded All при N>cap.
+const MaxIssueComments = 200
+
+// ListComments возвращает комментарии к задаче с авторами и реакциями (cap MaxIssueComments).
 // Soft-deleted (A8-006 / TZ 30-day trash) не попадают в список — реакции на них тоже скрыты.
 func (r *EntRepository) ListComments(ctx context.Context, issueID uuid.UUID) ([]*ent.Comment, error) {
 	return r.client.Comment.Query().
@@ -85,6 +89,7 @@ func (r *EntRepository) ListComments(ctx context.Context, issueID uuid.UUID) ([]
 			q.WithUser()
 		}).
 		Order(ent.Asc(comment.FieldCreatedAt)).
+		Limit(MaxIssueComments).
 		All(ctx)
 }
 

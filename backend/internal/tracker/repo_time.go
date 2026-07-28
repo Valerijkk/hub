@@ -176,11 +176,16 @@ func (r *EntRepository) StopTimer(ctx context.Context, issueID, userID uuid.UUID
 	return tl, nil
 }
 
-// ListTimeLogs возвращает все записи времени для задачи.
+// MaxIssueTimeLogs — P3-BE-06 / W1-A3-010: hard cap записей учёта времени задачи.
+// Mutation: снять Limit → unbounded All при N>cap.
+const MaxIssueTimeLogs = 200
+
+// ListTimeLogs возвращает записи времени для задачи (cap MaxIssueTimeLogs).
 func (r *EntRepository) ListTimeLogs(ctx context.Context, issueID uuid.UUID) ([]*ent.TimeLog, error) {
 	return r.client.TimeLog.Query().
 		Where(timelog.HasIssueWith(issue.IDEQ(issueID))).
 		WithUser().
 		Order(ent.Desc(timelog.FieldCreatedAt)).
+		Limit(MaxIssueTimeLogs).
 		All(ctx)
 }

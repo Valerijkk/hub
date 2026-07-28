@@ -38,11 +38,16 @@ func (r *EntRepository) LogActivity(ctx context.Context, issueID, userID uuid.UU
 	return create.Save(ctx)
 }
 
-// ListActivities возвращает все записи лога активности задачи.
+// MaxIssueActivities — P3-BE-06 / W1-A3-010: hard cap ленты активности задачи.
+// Mutation: снять Limit → unbounded All при N>cap.
+const MaxIssueActivities = 200
+
+// ListActivities возвращает записи лога активности задачи (cap MaxIssueActivities).
 func (r *EntRepository) ListActivities(ctx context.Context, issueID uuid.UUID) ([]*ent.ActivityLog, error) {
 	return r.client.ActivityLog.Query().
 		Where(activitylog.HasIssueWith(issue.IDEQ(issueID))).
 		WithUser().
 		Order(ent.Desc(activitylog.FieldCreatedAt)).
+		Limit(MaxIssueActivities).
 		All(ctx)
 }

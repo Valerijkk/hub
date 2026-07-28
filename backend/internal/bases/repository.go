@@ -94,6 +94,10 @@ func (r *EntRepository) CreateBase(ctx context.Context, ownerID uuid.UUID, req C
 	return r.GetBase(ctx, b.ID)
 }
 
+// MaxOwnerBases — P3-BE-06 / W2-A5-012: hard cap списка баз владельца.
+// Mutation: снять Limit → unbounded All при N>cap.
+const MaxOwnerBases = 100
+
 func (r *EntRepository) ListBases(ctx context.Context, ownerID uuid.UUID) ([]*ent.HubBase, error) {
 	// Владелец видит только свои базы: без owner-фильтра любой аутентифицированный
 	// пользователь получал полный список чужих баз (аналог NF-03).
@@ -107,6 +111,7 @@ func (r *EntRepository) ListBases(ctx context.Context, ownerID uuid.UUID) ([]*en
 			q.Where(hubtable.DeletedAtIsNil())
 		}).
 		Order(ent.Desc(hubbase.FieldUpdatedAt)).
+		Limit(MaxOwnerBases).
 		All(ctx)
 }
 
