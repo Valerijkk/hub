@@ -100,11 +100,23 @@ func (s *RBACService) UpdateCustomRole(ctx context.Context, projectID, roleID uu
 		return nil, err
 	}
 
-	members, _ := s.repo.ListRoleMembersWithUser(ctx, roleID)
-	if projectID != uuid.Nil {
-		for _, m := range members {
-			if u := m.Edges.User; u != nil {
-				_ = s.cache.Invalidate(ctx, u.ID.String(), projectID.String())
+	// P1-BE-33 / W6-A3-001: ошибки list/invalidate нельзя глотать — иначе
+	// участники держат elevated mask до TTL после сужения permissions.
+	members, err := s.repo.ListRoleMembersWithUser(ctx, roleID)
+	if err != nil {
+		// Fallback: сбросить весь project-кэш, если не удалось перечислить members.
+		if invErr := s.cache.InvalidateProject(ctx, projectID.String()); invErr != nil {
+			return nil, fmt.Errorf("list role members after update: %w (invalidate project: %v)", err, invErr)
+		}
+		return nil, fmt.Errorf("list role members after update: %w", err)
+	}
+	for _, m := range members {
+		if u := m.Edges.User; u != nil {
+			if invErr := s.cache.Invalidate(ctx, u.ID.String(), projectID.String()); invErr != nil {
+				if projErr := s.cache.InvalidateProject(ctx, projectID.String()); projErr != nil {
+					return nil, fmt.Errorf("invalidate member cache: %w (invalidate project: %v)", invErr, projErr)
+				}
+				return nil, fmt.Errorf("invalidate member cache: %w", invErr)
 			}
 		}
 	}
@@ -129,12 +141,21 @@ func (s *RBACService) DeleteCustomRole(ctx context.Context, projectID, roleID uu
 		return ErrRoleProjectMismatch
 	}
 
-	memberIDs, _ := s.repo.ListRoleMemberIDs(ctx, roleID)
+	// P1-BE-33 / W6-A3-002: clear + invalidate с проверкой ошибок — иначе
+	// dangling custom_role edge и stale elevated cache после удаления роли.
+	memberIDs, err := s.repo.ListRoleMemberIDs(ctx, roleID)
+	if err != nil {
+		return fmt.Errorf("list role members before delete: %w", err)
+	}
 	for _, id := range memberIDs {
-		_ = s.repo.ClearMemberCustomRoleByID(ctx, id)
+		if clearErr := s.repo.ClearMemberCustomRoleByID(ctx, id); clearErr != nil {
+			return fmt.Errorf("clear member custom role %s: %w", id, clearErr)
+		}
 	}
 
-	_ = s.cache.InvalidateProject(ctx, projectID.String())
+	if invErr := s.cache.InvalidateProject(ctx, projectID.String()); invErr != nil {
+		return fmt.Errorf("invalidate project cache before delete role: %w", invErr)
+	}
 
 	return s.repo.DeleteRole(ctx, roleID)
 }

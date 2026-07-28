@@ -38,7 +38,20 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 
 	// Сначала Redis-кэш — снижает нагрузку на БД при частых RBAC-проверках.
 	if perm, ok := s.cache.Get(ctx, userStr, projectStr); ok {
-		return perm, nil
+		// P1-BE-33 / W6-A3-003: full-mask (^0) мог быть закэширован для admin/founder.
+		// При demote SystemRole нельзя отдавать stale bypass до TTL — перепроверяем роль.
+		if perm != ^Permission(0) {
+			return perm, nil
+		}
+		u, err := s.repo.GetUser(ctx, userID)
+		if err != nil {
+			return 0, err
+		}
+		if auth.IsSystemAdmin(u.SystemRole) {
+			return perm, nil
+		}
+		_ = s.cache.Invalidate(ctx, userStr, projectStr)
+		// fall through: пересчитать по membership (owner тоже может дать ^0)
 	}
 
 	// Системный admin/founder обходит project membership — полный набор разрешений (ORG-04).
@@ -75,6 +88,12 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 // InvalidateCache удаляет кешированные разрешения пользователя в проекте.
 func (s *RBACService) InvalidateCache(ctx context.Context, userID, projectID string) error {
 	return s.cache.Invalidate(ctx, userID, projectID)
+}
+
+// InvalidateUserCache удаляет все кешированные разрешения пользователя (все проекты).
+// Вызывать при смене system_role / demote admin→member (P1-BE-33).
+func (s *RBACService) InvalidateUserCache(ctx context.Context, userID string) error {
+	return s.cache.InvalidateUser(ctx, userID)
 }
 
 // CanCreateTaskInProject возвращает true, если user имеет PermTaskCreate в проекте.

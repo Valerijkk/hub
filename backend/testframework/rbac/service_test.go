@@ -164,8 +164,10 @@ func TestGetEffectivePermissions_UnknownUser(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestGetEffectivePermissions_AdminCachedInRedis проверяет сценарий: получение effective права админ cached in redis.
-func TestGetEffectivePermissions_AdminCachedInRedis(t *testing.T) {
+// TestGetEffectivePermissions_AdminDemoteInvalidatesStaleCache_P1BE33 —
+// раньше тест фиксировал privilege retention после demote; теперь full-mask
+// не переживает смену system_role (W6-A3-003).
+func TestGetEffectivePermissions_AdminDemoteInvalidatesStaleCache_P1BE33(t *testing.T) {
 	f := newRBACFixture(t)
 	ctx := context.Background()
 
@@ -177,7 +179,9 @@ func TestGetEffectivePermissions_AdminCachedInRedis(t *testing.T) {
 	_, err = f.client.User.UpdateOne(u).SetSystemRole(user.SystemRoleMember).Save(ctx)
 	require.NoError(t, err)
 
-	cached, ok := rbac.ExportRBACServiceCache(f.svc).Get(ctx, f.adminID.String(), f.projectID.String())
-	require.True(t, ok)
-	assert.Equal(t, ^rbac.Permission(0), cached)
+	_, err = f.svc.GetEffectivePermissions(ctx, f.adminID, f.projectID)
+	require.Error(t, err)
+
+	_, ok := rbac.ExportRBACServiceCache(f.svc).Get(ctx, f.adminID.String(), f.projectID.String())
+	assert.False(t, ok)
 }

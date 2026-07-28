@@ -60,3 +60,17 @@ func (c *PermissionCache) InvalidateProject(ctx context.Context, projectID strin
 	}
 	return iter.Err()
 }
+
+// InvalidateUser удаляет все кешированные разрешения пользователя во всех проектах
+// (ключ `rbac:<userID>:<projectID>`). Нужно при demote system_role / смене прав,
+// когда projectID заранее неизвестен (P1-BE-33 / W6-A3-003).
+func (c *PermissionCache) InvalidateUser(ctx context.Context, userID string) error {
+	pattern := fmt.Sprintf("rbac:%s:*", userID)
+	iter := c.rdb.Scan(ctx, 0, pattern, 100).Iterator()
+	for iter.Next(ctx) {
+		if err := c.rdb.Del(ctx, iter.Val()).Err(); err != nil {
+			return err
+		}
+	}
+	return iter.Err()
+}
