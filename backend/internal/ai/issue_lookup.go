@@ -4,13 +4,15 @@ import (
 	"context"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	trackermod "github.com/valerii/hub/backend/internal/tracker"
 )
 
 // IssueLookup — context issue для @hub-ai slash (M3-015..016).
+// P1-BE-31: userID обязателен — lookup только при доступе к проекту issue.
 type IssueLookup interface {
-	IssueContext(ctx context.Context, issueKey string) (title, description string, err error)
+	IssueContext(ctx context.Context, userID uuid.UUID, issueKey string) (title, description string, err error)
 }
 
 // ProjectByKey — резолв projectID по ключу проекта (часть issue key до последнего '-').
@@ -22,6 +24,7 @@ type ProjectByKey interface {
 type TrackerIssueLookup struct {
 	tracker  *trackermod.TrackerService
 	projects ProjectByKey
+	access   ProjectAccessChecker
 }
 
 // NewTrackerIssueLookup — issue lookup через tracker + project key (A3-002 scope).
@@ -29,8 +32,16 @@ func NewTrackerIssueLookup(tracker *trackermod.TrackerService, projects ProjectB
 	return &TrackerIssueLookup{tracker: tracker, projects: projects}
 }
 
-// IssueContext — title и plain-text description issue.
-func (l *TrackerIssueLookup) IssueContext(ctx context.Context, issueKey string) (string, string, error) {
+// SetAccessChecker включает RBAC/membership перед чтением issue (P1-BE-31).
+func (l *TrackerIssueLookup) SetAccessChecker(c ProjectAccessChecker) {
+	if l == nil {
+		return
+	}
+	l.access = c
+}
+
+// IssueContext — title и plain-text description issue (с authz по userID).
+func (l *TrackerIssueLookup) IssueContext(ctx context.Context, userID uuid.UUID, issueKey string) (string, string, error) {
 	if l == nil || l.tracker == nil || l.projects == nil {
 		return "", "", nil
 	}
@@ -41,6 +52,16 @@ func (l *TrackerIssueLookup) IssueContext(ctx context.Context, issueKey string) 
 	proj, err := l.projects.FindByKey(ctx, projectKey)
 	if err != nil {
 		return "", "", err
+	}
+	if l.access != nil {
+		ok, err := l.access.CanViewProject(ctx, userID, proj.ID)
+		if err != nil {
+			return "", "", err
+		}
+		if !ok {
+			// Не раскрываем существование чужой задачи.
+			return "", "", &ent.NotFoundError{}
+		}
 	}
 	issue, err := l.tracker.GetIssue(ctx, proj.ID, issueKey)
 	if err != nil {

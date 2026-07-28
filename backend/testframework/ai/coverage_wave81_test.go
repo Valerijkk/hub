@@ -152,7 +152,7 @@ func TestRedisProviderRPMLimiter_AllowAndBlock(t *testing.T) {
 func TestNewUnifiedCodeReviewProvider(t *testing.T) {
 	p := ai.NewUnifiedCodeReviewProvider(nil, nil)
 	require.NotNil(t, p)
-	_, err := p.FetchReview(context.Background(), "https://github.com/o/r/pull/1")
+	_, err := p.FetchReview(context.Background(), uuid.New(), "https://github.com/o/r/pull/1")
 	require.Error(t, err)
 }
 

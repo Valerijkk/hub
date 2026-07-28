@@ -19,10 +19,15 @@ var contentPolicyPatterns = []*regexp.Regexp{
 }
 
 // CheckContentPolicy сканирует messages на injection/abuse (SEC-R8).
+// P1-BE-29: проверяются все роли allowlist (user|assistant|system), не только user —
+// иначе jailbreak через role:"system" обходил фильтр.
 func CheckContentPolicy(messages []ChatMessage) error {
 	for _, m := range messages {
-		if m.Role != "user" {
-			continue
+		role := strings.ToLower(strings.TrimSpace(m.Role))
+		switch role {
+		case "user", "assistant", "system":
+		default:
+			return fmt.Errorf("%w: invalid role %q", ErrContentPolicyViolation, m.Role)
 		}
 		text := strings.TrimSpace(m.Content)
 		if text == "" {

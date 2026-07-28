@@ -29,15 +29,28 @@ func TestMessengerBot_shouldRespond(t *testing.T) {
 
 	assert.True(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{
 		ContentText: "@hub-ai что такое REST?",
-	}, groupChannel, []uuid.UUID{uuid.New()}))
+	}, groupChannel, []uuid.UUID{uuid.New(), botID}))
 
 	assert.True(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{
+		Mentions: []string{botID.String()},
+	}, groupChannel, []uuid.UUID{uuid.New(), botID}))
+
+	assert.False(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{
+		ContentText: "hello team",
+	}, groupChannel, []uuid.UUID{uuid.New(), botID}))
+
+	// P1-BE-31 / W5-A3-001: mention без bot∈members → denial.
+	assert.False(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{
+		ContentText: "@hub-ai leak private history",
+	}, groupChannel, []uuid.UUID{uuid.New()}))
+
+	assert.False(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{
 		Mentions: []string{botID.String()},
 	}, groupChannel, []uuid.UUID{uuid.New()}))
 
 	assert.False(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{
-		ContentText: "hello team",
-	}, groupChannel, []uuid.UUID{uuid.New()}))
+		ContentText: "hello",
+	}, dmChannel, []uuid.UUID{uuid.New()}))
 }
 
 func TestMarkdownToPlateJSON(t *testing.T) {

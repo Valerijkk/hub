@@ -78,7 +78,9 @@ func wireAuditMailAI(d *serverDeps) {
 	d.messengerSvc.SetSystemBotID(botUserID)
 	aiHandler.SetBotUserID(botUserID)
 	aiBot := aimod.NewMessengerBot(aiSvc, d.messengerSvc, botUserID)
-	aiBot.SetIssueLookup(aimod.NewTrackerIssueLookup(d.trackerSvc, d.projectRepo))
+	issueLookup := aimod.NewTrackerIssueLookup(d.trackerSvc, d.projectRepo)
+	issueLookup.SetAccessChecker(aimod.RBACProjectAccess{Svc: d.rbacSvc})
+	aiBot.SetIssueLookup(issueLookup)
 	aiBot.SetDocSearch(aimod.NewSearchDocProvider(d.searchSvc))
 	d.messengerSvc.SetMessageSentHook(aiBot)
 	d.aiBot = aiBot

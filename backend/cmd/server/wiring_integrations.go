@@ -40,7 +40,9 @@ func wireIntegrations(d *serverDeps) {
 	gitlabHandler := gitlabmod.NewHandler(gitlabSvc)
 	gitlabHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 	d.gitlabSvc = gitlabSvc
-	d.aiBot.SetCodeReview(aimod.NewUnifiedCodeReviewProvider(githubSvc, gitlabSvc))
+	review := aimod.NewUnifiedCodeReviewProvider(githubSvc, gitlabSvc)
+	review.SetAccessChecker(aimod.RBACProjectAccess{Svc: rbacSvc})
+	d.aiBot.SetCodeReview(review)
 
 	// Calls routes (голосовые звонки через LiveKit)
 	callsRepo := callsmod.NewEntRepository(d.db)

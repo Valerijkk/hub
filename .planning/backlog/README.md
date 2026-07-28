@@ -26,7 +26,7 @@
 | [TASK-018](TASK-018-ws-calls-authz-race.md) | WS race + scheduled calls authz | P1 | Открыта | be2 | W12 P1-BE-21..22 |
 | [TASK-019](TASK-019-platform-ssrf-outbox-pool-config.md) | Platform SSRF/outbox/pool/config | P1 | На проверке | be1 | W12 P1-BE-23..26 |
 | [TASK-020](TASK-020-apigateway-webhook-create-contract.md) | Webhook secret once + allowlist | P1 | На проверке | be2 | W12 P1-BE-27..28 |
-| [TASK-021](TASK-021-ai-policy-bot-authz.md) | AI policy + bot authz | P1 | Открыта | be1 | W12 P1-BE-29..31 |
+| [TASK-021](TASK-021-ai-policy-bot-authz.md) | AI policy + bot authz | P1 | На проверке | be1 | W12 P1-BE-29..31 |
 | [TASK-022](TASK-022-search-nf03-softdelete.md) | Search soft-delete + private | P1 | На проверке | be2 | W12 P1-BE-32 |
 | [TASK-023](TASK-023-rbac-cache-gdpr.md) | RBAC cache + GDPR erase | P1 | Открыта | be1 | W12 P1-BE-33..34 |
 | [TASK-024](TASK-024-notif-integrations-storage-backup.md) | Notif/Git*/storage/backup/coffee | P1 | Открыта | be2 | W12 P1-BE-35..39,43 |

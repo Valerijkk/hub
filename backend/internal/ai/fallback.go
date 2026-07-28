@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
-	"github.com/valerii/hub/backend/ent/aiprovider"
 )
 
 // ErrAllProvidersFailed — все провайдеры fallback chain упали (M3-008).
@@ -48,17 +48,39 @@ func isRetryableProviderError(err error) bool {
 	return false
 }
 
+// isOfflineProvider — локальный LLM (loopback/unix), допустимый без AllowExternalAI.
+// P1-BE-30: нельзя считать offline по ProviderTypeOllama или substring "ollama" —
+// иначе https://evil.example/ollama обходит consent.
 func isOfflineProvider(p *ent.AIProvider) bool {
 	if p == nil {
 		return false
 	}
-	if p.ProviderType == aiprovider.ProviderTypeOllama {
+	return isOfflineBaseURL(p.BaseURL)
+}
+
+func isOfflineBaseURL(baseURL string) bool {
+	raw := strings.TrimSpace(baseURL)
+	if raw == "" {
+		return false
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	scheme := strings.ToLower(u.Scheme)
+	if scheme == "unix" || scheme == "http+unix" {
 		return true
 	}
-	base := strings.ToLower(p.BaseURL)
-	return strings.Contains(base, "127.0.0.1") ||
-		strings.Contains(base, "localhost") ||
-		strings.Contains(base, "ollama")
+	host := strings.ToLower(u.Hostname())
+	if host == "" {
+		return false
+	}
+	switch host {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Service) resolveProviders(ctx context.Context, userID uuid.UUID, model string) ([]*ent.AIProvider, error) {

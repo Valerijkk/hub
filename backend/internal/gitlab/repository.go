@@ -203,6 +203,7 @@ func (r *EntRepository) DeleteIntegration(ctx context.Context, projectID, id uui
 func (r *EntRepository) FindIntegrationByProjectPath(ctx context.Context, projectPath string) (*ent.GitLabIntegration, error) {
 	ig, err := r.client.GitLabIntegration.Query().
 		Where(gitlabintegration.ProjectPath(projectPath)).
+		WithProject().
 		Only(ctx)
 	if err != nil {
 		return nil, err

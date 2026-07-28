@@ -4,19 +4,20 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestTrackerIssueLookup_NilSafe(t *testing.T) {
 	var l *ai.TrackerIssueLookup
-	title, desc, err := l.IssueContext(context.Background(), "HUB-1")
+	title, desc, err := l.IssueContext(context.Background(), uuid.New(), "HUB-1")
 	require.NoError(t, err)
 	assert.Empty(t, title)
 	assert.Empty(t, desc)
 
 	l = ai.NewTrackerIssueLookup(nil, nil)
-	title, desc, err = l.IssueContext(context.Background(), "HUB-1")
+	title, desc, err = l.IssueContext(context.Background(), uuid.New(), "HUB-1")
 	require.NoError(t, err)
 	assert.Empty(t, title)
 }

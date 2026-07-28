@@ -43,7 +43,7 @@ func TestUnifiedCodeReviewProvider_FetchReviewGitLab(t *testing.T) {
 	glSvc := gitlabmod.NewGitLabServiceWithHTTPClient(repo, nil, srv.Client())
 	p := ai.NewUnifiedCodeReviewProvider(nil, glSvc)
 
-	rc, err := p.FetchReview(context.Background(), srv.URL+"/group/app/-/merge_requests/7")
+	rc, err := p.FetchReview(context.Background(), uuid.New(), srv.URL+"/group/app/-/merge_requests/7")
 	require.NoError(t, err)
 	require.NotNil(t, rc)
 	assert.Equal(t, "AI review MR", rc.Title)
@@ -79,7 +79,7 @@ func TestUnifiedCodeReviewProvider_FetchReviewGitHub(t *testing.T) {
 	ghSvc := githubmod.NewGitHubServiceWithHTTPClient(ghRepo, nil, srv.Client(), srv.URL)
 	p := ai.NewUnifiedCodeReviewProvider(ghSvc, nil)
 
-	rc, err := p.FetchReview(context.Background(), "https://github.com/acme/app/pull/9")
+	rc, err := p.FetchReview(context.Background(), uuid.New(), "https://github.com/acme/app/pull/9")
 	require.NoError(t, err)
 	require.NotNil(t, rc)
 	assert.Equal(t, "Add feature", rc.Title)

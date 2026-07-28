@@ -260,6 +260,7 @@ func (r *EntRepository) FindIntegrationByRepo(ctx context.Context, owner, repo s
 			githubintegration.RepoOwner(owner),
 			githubintegration.RepoName(repo),
 		).
+		WithProject().
 		Only(ctx)
 	if err != nil {
 		return nil, err

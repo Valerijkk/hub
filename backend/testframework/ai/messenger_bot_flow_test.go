@@ -156,7 +156,7 @@ func (s searchDocStub) SearchContext(_ context.Context, _ uuid.UUID, _ string) (
 
 type stubIssueLookup struct{}
 
-func (stubIssueLookup) IssueContext(_ context.Context, key string) (string, string, error) {
+func (stubIssueLookup) IssueContext(_ context.Context, _ uuid.UUID, key string) (string, string, error) {
 	return "Title " + key, "Description", nil
 }
 
@@ -177,7 +177,7 @@ type stubCodeReviewProvider struct {
 	err error
 }
 
-func (s stubCodeReviewProvider) FetchReview(_ context.Context, _ string) (*ai.ReviewContext, error) {
+func (s stubCodeReviewProvider) FetchReview(_ context.Context, _ uuid.UUID, _ string) (*ai.ReviewContext, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -186,8 +186,26 @@ func (s stubCodeReviewProvider) FetchReview(_ context.Context, _ string) (*ai.Re
 
 type stubIssueLookupErr struct{}
 
-func (stubIssueLookupErr) IssueContext(_ context.Context, _ string) (string, string, error) {
+func (stubIssueLookupErr) IssueContext(_ context.Context, _ uuid.UUID, _ string) (string, string, error) {
 	return "", "", assert.AnError
+}
+
+type denyIssueLookup struct {
+	called bool
+}
+
+func (d *denyIssueLookup) IssueContext(_ context.Context, _ uuid.UUID, _ string) (string, string, error) {
+	d.called = true
+	return "", "", &ent.NotFoundError{}
+}
+
+type denyCodeReviewProvider struct {
+	called bool
+}
+
+func (d *denyCodeReviewProvider) FetchReview(_ context.Context, _ uuid.UUID, _ string) (*ai.ReviewContext, error) {
+	d.called = true
+	return nil, assert.AnError
 }
 
 func TestMessengerBot_HandleCommand_TestCasesSuccess(t *testing.T) {
@@ -244,6 +262,57 @@ func TestMessengerBot_HandleCommand_ReviewFetchError(t *testing.T) {
 		MessageID:   "m-rev-err",
 	})
 	require.NoError(t, err)
+}
+
+func TestMessengerBot_HandleCommand_TestCasesForeignKeyDenial(t *testing.T) {
+	// P1-BE-31 / W5-A3-002: foreign issue key → denial (not found), без утечки.
+	bot, hookRepo, userID, channelID, _ := setupHubAIBot(t, &mockAdapter{})
+	lookup := &denyIssueLookup{}
+	bot.SetIssueLookup(lookup)
+
+	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
+		ChannelID:   channelID,
+		SenderID:    userID,
+		ContentText: "/ai test-cases OTHER-42",
+		MessageID:   "m-tc-foreign",
+	})
+	require.NoError(t, err)
+	assert.True(t, lookup.called)
+	ch := hookRepo.Channel(channelID)
+	require.NotNil(t, ch)
+}
+
+func TestMessengerBot_HandleCommand_ReviewOutsideProjectDenial(t *testing.T) {
+	// P1-BE-31 / W5-A3-003: review вне project → denial без сырого err.Error().
+	bot, _, userID, channelID, _ := setupHubAIBot(t, &mockAdapter{})
+	deny := &denyCodeReviewProvider{}
+	bot.SetCodeReview(deny)
+
+	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
+		ChannelID:   channelID,
+		SenderID:    userID,
+		ContentText: "/ai review https://github.com/secret/repo/pull/9",
+		MessageID:   "m-rev-deny",
+	})
+	require.NoError(t, err)
+	assert.True(t, deny.called)
+}
+
+func TestMessengerBot_OnMessageSent_PublicMentionWithoutBotMember(t *testing.T) {
+	// P1-BE-31 / W5-A3-001: mention без bot∈members → no reply / no history load.
+	adapter := &streamingMockAdapter{chunks: []string{"should not run"}}
+	bot, hookRepo, userID, _, botID := setupHubAIBot(t, adapter)
+	// Канал только с user, без bot.
+	channelID := hookRepo.SetupPublicChannel(userID)
+
+	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
+		ChannelID:   channelID,
+		SenderID:    userID,
+		ContentText: "@hub-ai summarize secrets",
+		MessageID:   "msg-no-bot",
+	})
+	require.NoError(t, err)
+	_ = botID
 }
 
 func TestMessengerBot_HandleCommand_ExplainTranslateSQL(t *testing.T) {
