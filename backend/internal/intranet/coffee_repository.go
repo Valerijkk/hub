@@ -2,6 +2,7 @@ package intranet
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -59,6 +60,50 @@ func (r *EntRepository) CreateCoffeePair(ctx context.Context, roundID, userA, us
 		SetParticipantAID(userA).
 		SetParticipantBID(userB).
 		Save(ctx)
+}
+
+// CreateCoffeeRoundWithPairs атомарно создаёт раунд и все рёбра пар/троек (W7-A2-004).
+// Mutation: убрать tx / Commit после round → mid-fail оставляет orphan round.
+func (r *EntRepository) CreateCoffeeRoundWithPairs(
+	ctx context.Context,
+	adminID uuid.UUID,
+	pairCount, unpairedCount int,
+	edges [][2]uuid.UUID,
+) (*ent.CoffeeRound, []*ent.CoffeePair, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("begin coffee round tx: %w", err)
+	}
+	rnd, err := tx.CoffeeRound.Create().
+		SetTriggeredByID(adminID).
+		SetPairCount(pairCount).
+		SetUnpairedCount(unpairedCount).
+		Save(ctx)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, nil, fmt.Errorf("create coffee round: %w", err)
+	}
+	created := make([]*ent.CoffeePair, 0, len(edges))
+	for _, edge := range edges {
+		a, b := edge[0], edge[1]
+		if a.String() > b.String() {
+			a, b = b, a
+		}
+		cp, err := tx.CoffeePair.Create().
+			SetRoundID(rnd.ID).
+			SetParticipantAID(a).
+			SetParticipantBID(b).
+			Save(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			return nil, nil, fmt.Errorf("create coffee pair: %w", err)
+		}
+		created = append(created, cp)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, nil, fmt.Errorf("commit coffee round: %w", err)
+	}
+	return rnd, created, nil
 }
 
 func (r *EntRepository) GetLatestCoffeeRound(ctx context.Context) (*ent.CoffeeRound, error) {

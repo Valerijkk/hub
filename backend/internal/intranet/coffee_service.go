@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"math/rand"
 	"time"
 
@@ -13,31 +12,13 @@ import (
 )
 
 var (
-	ErrCoffeeNotEnough   = errors.New("not enough participants for matching")
+	ErrCoffeeNotEnough = errors.New("not enough participants for matching")
 	ErrCoffeeNotEnrolled = errors.New("not enrolled in random coffee")
 )
 
-// CoffeeMatchDeliveryMode — канон FR-INTR-11 / ADR-INTRANET-U05-COFFEE-NOTIFY-2026.
-// Auto-DM в messenger отложен; матч доставляется только через CoffeeNotifier.
-const CoffeeMatchDeliveryMode = "notify_only"
-
-// CoffeeNotifier уведомляет участников о новой паре (notify-only, ADR-INTRANET-U05).
+// CoffeeNotifier уведомляет участников о новой паре (V4-05).
 type CoffeeNotifier interface {
 	NotifyCoffeeMatch(ctx context.Context, userID uuid.UUID, partner CoffeePartnerResponse) error
-}
-
-// notifyCoffeeMatch — best-effort in-app notify; ошибка логируется, раунд не откатывается.
-func (s *Service) notifyCoffeeMatch(ctx context.Context, userID uuid.UUID, partner CoffeePartnerResponse) {
-	if s.coffeeNotifier == nil {
-		return
-	}
-	if err := s.coffeeNotifier.NotifyCoffeeMatch(ctx, userID, partner); err != nil {
-		slog.WarnContext(ctx, "intranet: coffee match notify failed",
-			"user_id", userID,
-			"partner_id", partner.UserID,
-			"error", err,
-		)
-	}
 }
 
 // GetCoffeeEnrollment возвращает статус участия.
@@ -156,58 +137,68 @@ func (s *Service) RunCoffeeMatching(ctx context.Context, adminID uuid.UUID) (*Co
 	pairs, triples := buildCoffeeMatches(ids, prevPairs)
 	// pair_count в БД = число бинарных пар + троек (групп матчинга); unpaired всегда 0 при N>=2.
 	matchGroups := len(pairs) + len(triples)
-	rnd, err := s.repo.CreateCoffeeRound(ctx, adminID, matchGroups, 0)
-	if err != nil {
-		return nil, fmt.Errorf("create round: %w", err)
-	}
 
 	userByID := make(map[uuid.UUID]*ent.User, len(users))
 	for _, u := range users {
 		userByID[u.ID] = u
 	}
 
-	// A2W7-2-N01: Pairs[] — только бинарные пары; рёбра троек живут в Triples[], не дублируются.
-	createdPairs := make([]CoffeePairResponse, 0, len(pairs))
+	// W7-A2-004: все рёбра (пары + тройки как A-B/A-C) в одной tx с round.
+	edges := make([][2]uuid.UUID, 0, len(pairs)+2*len(triples))
 	for _, p := range pairs {
-		cp, err := s.repo.CreateCoffeePair(ctx, rnd.ID, p[0], p[1])
-		if err != nil {
-			return nil, fmt.Errorf("create pair: %w", err)
-		}
+		edges = append(edges, [2]uuid.UUID{p[0], p[1]})
+	}
+	for _, t := range triples {
+		edges = append(edges, [2]uuid.UUID{t[0], t[1]}, [2]uuid.UUID{t[0], t[2]})
+	}
+	rnd, created, err := s.repo.CreateCoffeeRoundWithPairs(ctx, adminID, matchGroups, 0, edges)
+	if err != nil {
+		return nil, fmt.Errorf("create round: %w", err)
+	}
+
+	createdPairs := make([]CoffeePairResponse, 0, len(created))
+	edgeIdx := 0
+	for _, p := range pairs {
+		cp := created[edgeIdx]
+		edgeIdx++
 		cp.Edges.ParticipantA = userByID[p[0]]
 		cp.Edges.ParticipantB = userByID[p[1]]
 		createdPairs = append(createdPairs, toCoffeePairResponse(cp))
 
-		// ADR-INTRANET-U05: notify-only — без auto-DM / CreateDM.
-		pa := toCoffeePartner(userByID[p[0]])
-		pb := toCoffeePartner(userByID[p[1]])
-		s.notifyCoffeeMatch(ctx, p[0], pb)
-		s.notifyCoffeeMatch(ctx, p[1], pa)
+		if s.coffeeNotifier != nil {
+			pa := toCoffeePartner(userByID[p[0]])
+			pb := toCoffeePartner(userByID[p[1]])
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, p[0], pb)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, p[1], pa)
+		}
 	}
 
 	createdTriples := make([]CoffeeTripleResponse, 0, len(triples))
 	for _, t := range triples {
-		// Тройка хранится как две рёберные пары (A-B, A-C) без schema migration —
-		// в БД для anti-repeat / GetMyCoffeeMatch, но не в API Pairs[].
+		// Тройка хранится как две рёберные пары (A-B, A-C) без schema migration.
 		for _, edge := range [][2]uuid.UUID{{t[0], t[1]}, {t[0], t[2]}} {
-			if _, err := s.repo.CreateCoffeePair(ctx, rnd.ID, edge[0], edge[1]); err != nil {
-				return nil, fmt.Errorf("create triple edge: %w", err)
-			}
+			cp := created[edgeIdx]
+			edgeIdx++
+			cp.Edges.ParticipantA = userByID[edge[0]]
+			cp.Edges.ParticipantB = userByID[edge[1]]
+			createdPairs = append(createdPairs, toCoffeePairResponse(cp))
 		}
 		createdTriples = append(createdTriples, CoffeeTripleResponse{
 			ParticipantA: toCoffeePartner(userByID[t[0]]),
 			ParticipantB: toCoffeePartner(userByID[t[1]]),
 			ParticipantC: toCoffeePartner(userByID[t[2]]),
 		})
-		// ADR-INTRANET-U05: notify-only — каждый участник тройки узнаёт о двух партнёрах.
-		pa := toCoffeePartner(userByID[t[0]])
-		pb := toCoffeePartner(userByID[t[1]])
-		pc := toCoffeePartner(userByID[t[2]])
-		s.notifyCoffeeMatch(ctx, t[0], pb)
-		s.notifyCoffeeMatch(ctx, t[0], pc)
-		s.notifyCoffeeMatch(ctx, t[1], pa)
-		s.notifyCoffeeMatch(ctx, t[1], pc)
-		s.notifyCoffeeMatch(ctx, t[2], pa)
-		s.notifyCoffeeMatch(ctx, t[2], pb)
+		if s.coffeeNotifier != nil {
+			pa := toCoffeePartner(userByID[t[0]])
+			pb := toCoffeePartner(userByID[t[1]])
+			pc := toCoffeePartner(userByID[t[2]])
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[0], pb)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[0], pc)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[1], pa)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[1], pc)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[2], pa)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[2], pb)
+		}
 	}
 
 	resp := CoffeeRoundResponse{
@@ -236,69 +227,9 @@ func (s *Service) ListCoffeeRounds(ctx context.Context, userID uuid.UUID) ([]Cof
 	}
 	out := make([]CoffeeRoundResponse, 0, len(rounds))
 	for _, rnd := range rounds {
-		resp := toCoffeeRoundResponse(rnd)
-		stripTripleEdgesFromRoundResponse(&resp)
-		out = append(out, resp)
+		out = append(out, toCoffeeRoundResponse(rnd))
 	}
 	return out, nil
-}
-
-// stripTripleEdgesFromRoundResponse — A2W7-2-N01 / FR-INTR-10: storage-рёбра троек
-// (hub degree 2: A-B, A-C) убираются из Pairs[] и собираются в Triples[].
-func stripTripleEdgesFromRoundResponse(resp *CoffeeRoundResponse) {
-	if len(resp.Pairs) == 0 {
-		resp.PairCount = len(resp.Pairs)
-		if len(resp.Triples) > 0 {
-			resp.TripleCount = len(resp.Triples)
-		}
-		return
-	}
-
-	deg := make(map[uuid.UUID]int, len(resp.Pairs)*2)
-	for _, p := range resp.Pairs {
-		deg[p.ParticipantA.UserID]++
-		deg[p.ParticipantB.UserID]++
-	}
-
-	type nbr struct {
-		part CoffeePartnerResponse
-		hub  CoffeePartnerResponse
-	}
-	hubNbrs := make(map[uuid.UUID][]nbr)
-	binary := make([]CoffeePairResponse, 0, len(resp.Pairs))
-
-	for _, p := range resp.Pairs {
-		aID, bID := p.ParticipantA.UserID, p.ParticipantB.UserID
-		if deg[aID] == 1 && deg[bID] == 1 {
-			binary = append(binary, p)
-			continue
-		}
-		switch {
-		case deg[aID] >= 2:
-			hubNbrs[aID] = append(hubNbrs[aID], nbr{part: p.ParticipantB, hub: p.ParticipantA})
-		case deg[bID] >= 2:
-			hubNbrs[bID] = append(hubNbrs[bID], nbr{part: p.ParticipantA, hub: p.ParticipantB})
-		}
-	}
-
-	resp.Pairs = binary
-	resp.PairCount = len(binary)
-
-	if len(resp.Triples) == 0 && len(hubNbrs) > 0 {
-		triples := make([]CoffeeTripleResponse, 0, len(hubNbrs))
-		for _, nbrs := range hubNbrs {
-			if len(nbrs) < 2 {
-				continue
-			}
-			triples = append(triples, CoffeeTripleResponse{
-				ParticipantA: nbrs[0].hub,
-				ParticipantB: nbrs[0].part,
-				ParticipantC: nbrs[1].part,
-			})
-		}
-		resp.Triples = triples
-	}
-	resp.TripleCount = len(resp.Triples)
 }
 
 // buildCoffeeMatches — FR-INTR-10 / P1-BE-43: пары; при нечётном N — ровно одна тройка, без unpaired.

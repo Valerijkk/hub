@@ -16,7 +16,7 @@ import (
 	"github.com/valerii/hub/backend/internal/crm"
 )
 
-// TestEntRepository_ListContactsAndDeals_Caps_P3BE06 — N>MaxCRMList → Limit.
+// TestEntRepository_ListContactsAndDeals_Caps_P3BE06 — N>MaxCRMList → Limit (W7-A2-013 / TASK-118).
 // Mutation: снять Limit → FAIL (len > MaxCRMList).
 func TestEntRepository_ListContactsAndDeals_Caps_P3BE06(t *testing.T) {
 	client := enttest.Open(t, "sqlite3", "file:crm_listcap?mode=memory&cache=shared&_fk=1")

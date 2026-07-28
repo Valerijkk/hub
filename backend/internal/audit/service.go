@@ -253,6 +253,10 @@ func (s *AuditService) ListTrash(ctx context.Context, entityType string, project
 		items, total, err = s.repo.ListDeletedNewsPosts(ctx, cutoff, offset, perPage)
 	case "scheduled_call":
 		items, total, err = s.repo.ListDeletedScheduledCalls(ctx, projectID, cutoff, offset, perPage)
+	case "crm_contact":
+		items, total, err = s.repo.ListDeletedCRMContacts(ctx, cutoff, offset, perPage)
+	case "crm_deal":
+		items, total, err = s.repo.ListDeletedCRMDeals(ctx, cutoff, offset, perPage)
 	default:
 		return resp, nil
 	}
@@ -288,6 +292,10 @@ func (s *AuditService) RestoreItem(ctx context.Context, entityType string, entit
 		return s.repo.RestoreNewsPost(ctx, entityID)
 	case "scheduled_call":
 		return s.repo.RestoreScheduledCall(ctx, entityID)
+	case "crm_contact":
+		return s.repo.RestoreCRMContact(ctx, entityID)
+	case "crm_deal":
+		return s.repo.RestoreCRMDeal(ctx, entityID)
 	default:
 		return fmt.Errorf("неизвестный тип сущности: %s", entityType)
 	}
@@ -309,6 +317,10 @@ func (s *AuditService) SoftDelete(ctx context.Context, entityType string, entity
 		return s.repo.SoftDeleteNewsPost(ctx, entityID, now)
 	case "scheduled_call":
 		return s.repo.SoftDeleteScheduledCall(ctx, entityID, now)
+	case "crm_contact":
+		return s.repo.SoftDeleteCRMContact(ctx, entityID, now)
+	case "crm_deal":
+		return s.repo.SoftDeleteCRMDeal(ctx, entityID, now)
 	default:
 		return fmt.Errorf("неизвестный тип сущности: %s", entityType)
 	}
@@ -340,6 +352,8 @@ func (s *AuditService) PurgeExpired(ctx context.Context) error {
 	purge("projects", func() (int, error) { return s.repo.PurgeExpiredProjects(ctx, cutoff) })
 	purge("newsposts", func() (int, error) { return s.repo.PurgeExpiredNewsPosts(ctx, cutoff) })
 	purge("scheduled_calls", func() (int, error) { return s.repo.PurgeExpiredScheduledCalls(ctx, cutoff) })
+	purge("crm_contacts", func() (int, error) { return s.repo.PurgeExpiredCRMContacts(ctx, cutoff) })
+	purge("crm_deals", func() (int, error) { return s.repo.PurgeExpiredCRMDeals(ctx, cutoff) })
 
 	return errors.Join(errs...)
 }
