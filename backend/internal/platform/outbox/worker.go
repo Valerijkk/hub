@@ -26,6 +26,10 @@ const (
 // betweenOutboxEventsHook — только hubtest: между событиями батча (cancel mid-batch).
 var betweenOutboxEventsHook func()
 
+// afterClaimCommitHook — только hubtest: сразу после Commit короткого claim,
+// до первого PublishMsg (A2W4-2-001 / TASK-087).
+var afterClaimCommitHook func()
+
 // Worker опрашивает outbox-таблицу на наличие ожидающих событий и публикует их в NATS.
 // События, не обработанные после 10 попыток, помечаются как failed.
 type Worker struct {
@@ -58,14 +62,42 @@ func (w *Worker) ProcessLoop(ctx context.Context) {
 // W4-A2-002: exhausted pending (attempts≥10) → status=failed.
 // W4-A2-003: claim через Tx + FOR UPDATE SKIP LOCKED (Postgres); SQLite —
 // fallback без lock (Ent/SQLite отвергает SELECT FOR UPDATE, см. tracker StartTimer).
+// A2W4-2-001 / TASK-087: claim Commit ДО NATS PublishMsg/Flush — row-lock не
+// держится на время flush (до 50×5s). Publish и mark published — вне claim-tx.
 // HI-09: одно сбойное событие не должно валить весь loop.
 func (w *Worker) processBatch(ctx context.Context) {
 	w.markExhaustedFailed(ctx)
 
+	events, err := w.claimAndRelease(ctx)
+	if err != nil {
+		slog.Error("outbox: failed to claim events", "error", err)
+		return
+	}
+	if afterClaimCommitHook != nil {
+		afterClaimCommitHook()
+	}
+
+	for _, evt := range events {
+		// W4-A2-009 / P3-BE-12: cancel mid-batch — не дожимаем до 50 при shutdown.
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		w.processEvent(ctx, evt)
+		if betweenOutboxEventsHook != nil {
+			betweenOutboxEventsHook()
+		}
+	}
+}
+
+// claimAndRelease выбирает pending под SKIP LOCKED и сразу Commit'ит claim-tx.
+// Дальнейший NATS publish идёт уже без открытой транзакции/row-lock
+// (A2W4-2-001: publish after commit claim).
+func (w *Worker) claimAndRelease(ctx context.Context) ([]*ent.OutboxEvent, error) {
 	tx, err := w.client.Tx(ctx)
 	if err != nil {
-		slog.Error("outbox: failed to begin claim tx", "error", err)
-		return
+		return nil, err
 	}
 	committed := false
 	defer func() {
@@ -76,29 +108,13 @@ func (w *Worker) processBatch(ctx context.Context) {
 
 	events, err := w.claimPending(ctx, tx)
 	if err != nil {
-		slog.Error("outbox: failed to claim events", "error", err)
-		return
+		return nil, err
 	}
-
-	tw := &Worker{client: tx.Client(), nats: w.nats}
-	for _, evt := range events {
-		// W4-A2-009 / P3-BE-12: cancel mid-batch — не дожимаем до 50 при shutdown.
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-		tw.processEvent(ctx, evt)
-		if betweenOutboxEventsHook != nil {
-			betweenOutboxEventsHook()
-		}
-	}
-
 	if err := tx.Commit(); err != nil {
-		slog.Error("outbox: failed to commit claim tx", "error", err)
-		return
+		return nil, err
 	}
 	committed = true
+	return events, nil
 }
 
 // markExhaustedFailed переводит застрявшие pending с attempts≥10 в failed

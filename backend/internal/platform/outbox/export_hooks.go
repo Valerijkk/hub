@@ -57,6 +57,12 @@ func ExportSetBetweenOutboxEventsHook(fn func()) {
 	betweenOutboxEventsHook = fn
 }
 
+// ExportSetAfterClaimCommitHook — hubtest: после Commit короткого claim, до Publish
+// (A2W4-2-001 / TASK-087). Мутация hold-during-flush → hook не срабатывает до Flush.
+func ExportSetAfterClaimCommitHook(fn func()) {
+	afterClaimCommitHook = fn
+}
+
 // ExportBatchLimit — W4-A2-008 / P3-BE-02: размер claim-batch outbox worker.
 func ExportBatchLimit() int {
 	return batchLimit
