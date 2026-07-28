@@ -35,9 +35,11 @@ function AuthenticatedLayout() {
 				}
 				void navigate({ to: "/login" });
 			} else if (event.type === "login") {
-				// Другая вкладка залогинилась под, возможно, другим user_id:
-				// чистим cache и перезагружаем приложение, чтобы переподписаться
-				// на корректный WebSocket-канал.
+				const currentId = useAuthStore.getState().user?.id ?? null;
+				// Same-user re-login (token refresh /me) — не перезагружаем вкладку.
+				if (event.userId && currentId && event.userId === currentId) {
+					return;
+				}
 				queryClient.clear();
 				window.location.reload();
 			}

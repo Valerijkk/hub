@@ -62,14 +62,23 @@ if (typeof BroadcastChannel !== "undefined") {
 
 /**
  * Транслирует событие auth-sync в другие вкладки.
- * Используется внутри setTokens/logout стора.
+ * Пишет в BroadcastChannel и зеркало localStorage (storage fallback).
  */
 function broadcastAuth(event: AuthSyncEvent): void {
-	if (!authChannel) return;
+	if (authChannel) {
+		try {
+			authChannel.postMessage(event);
+		} catch {
+			// игнорируем: канал мог закрыться
+		}
+	}
+	// Mirror для storage-event fallback (старые браузеры / без BroadcastChannel).
 	try {
-		authChannel.postMessage(event);
+		localStorage.setItem(`${AUTH_CHANNEL_NAME}-event`, JSON.stringify(event));
+		// Удаляем сразу — storage срабатывает на setItem в других вкладках.
+		localStorage.removeItem(`${AUTH_CHANNEL_NAME}-event`);
 	} catch {
-		// игнорируем: канал мог закрыться
+		// private mode / quota — не критично
 	}
 }
 
@@ -123,9 +132,14 @@ export const useAuthStore = create<AuthState>()(
 					refreshToken: refresh,
 					isAuthenticated: true,
 				});
-				broadcastAuth({ type: "login", userId: null });
+				const userId = useAuthStore.getState().user?.id ?? null;
+				broadcastAuth({ type: "login", userId });
 			},
-			setUser: (user) => set({ user }),
+			setUser: (user) => {
+				set({ user });
+				// После /auth/me соседние вкладки узнают userId (same-user skip в _authenticated).
+				broadcastAuth({ type: "login", userId: user.id });
+			},
 			clearSessionLocal: () => {
 				set({
 					accessToken: null,

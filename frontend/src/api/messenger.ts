@@ -122,8 +122,7 @@ export function buildMessageFromWsEvent(
 			data.content_json && typeof data.content_json === "object"
 				? (data.content_json as Record<string, unknown>)
 				: undefined,
-		reply_count:
-			typeof data.reply_count === "number" ? data.reply_count : 0,
+		reply_count: typeof data.reply_count === "number" ? data.reply_count : 0,
 		created_at:
 			typeof data.created_at === "string"
 				? data.created_at
@@ -451,10 +450,10 @@ export function removeBookmark(bookmarkId: string) {
 // API-функции: Превью ссылок (Link Preview)
 // ---------------------------------------------------------------------------
 
-/** Данные превью ссылки — контракт совпадает с backend / github.LinkPreviewResponse. */
+/** Данные превью ссылки — канон /link-preview (MSG-11). */
 export interface LinkPreviewData {
 	url?: string;
-	type?: string;
+	type?: "issue" | "test_case" | "github" | "external" | string;
 	/** Заголовок страницы (og:title). */
 	title?: string;
 	/** Описание страницы (og:description). */
@@ -463,17 +462,28 @@ export interface LinkPreviewData {
 	image_url?: string;
 	/** Домен сайта. */
 	domain?: string;
+	issue_key?: string;
+	status?: string;
+	issue_type?: string;
+	assignee_name?: string;
+	avatar_url?: string;
 	/** @deprecated используйте image_url */
 	image?: string;
 	/** @deprecated используйте domain */
 	site_name?: string;
 }
 
-/** Получить превью ссылки по URL (OG-теги). */
+/** Alias канонического DTO (ранее дублировался в github.ts). */
+export type LinkPreviewResponse = LinkPreviewData;
+
+/** Получить превью ссылки по URL (OG-теги / внутренние сущности). */
 export function fetchLinkPreview(url: string) {
 	const params = new URLSearchParams({ url });
 	return api.get<LinkPreviewData>(`/link-preview?${params.toString()}`);
 }
+
+/** @deprecated используйте fetchLinkPreview */
+export const getLinkPreview = fetchLinkPreview;
 
 // ---------------------------------------------------------------------------
 // API-функции: Опросы (Polls)

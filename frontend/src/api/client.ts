@@ -149,7 +149,15 @@ class ApiClient {
 
 		const text = await response.text();
 		if (!text) return undefined as T;
-		return JSON.parse(text) as T;
+		try {
+			return JSON.parse(text) as T;
+		} catch {
+			const parseError: ApiError = {
+				code: 502,
+				message: "invalid json",
+			};
+			throw parseError;
+		}
 	}
 
 	/**

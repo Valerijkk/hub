@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getLinkPreview, type LinkPreviewResponse } from "@/api/github";
+import { getLinkPreview, type LinkPreviewResponse } from "@/api/messenger";
 
 // ---------------------------------------------------------------------------
 // Типы

@@ -32,21 +32,6 @@ export interface CreateBranchResponse {
 	branch_name: string;
 }
 
-/** Ответ с превью ссылки. */
-export interface LinkPreviewResponse {
-	url: string;
-	type: "issue" | "test_case" | "github" | "external";
-	title: string;
-	description?: string;
-	image_url?: string;
-	domain?: string;
-	issue_key?: string;
-	status?: string;
-	issue_type?: string;
-	assignee_name?: string;
-	avatar_url?: string;
-}
-
 // ---------------------------------------------------------------------------
 // Типы запросов
 // ---------------------------------------------------------------------------
@@ -172,16 +157,5 @@ export function listWorkflowRuns(projectId: string) {
 export function getWorkflowRunDetail(projectId: string, runId: number) {
 	return api.get<WorkflowRunDetailResponse>(
 		`/projects/${projectId}/github/workflows/${runId}`,
-	);
-}
-
-// ---------------------------------------------------------------------------
-// API-функции: Превью ссылок
-// ---------------------------------------------------------------------------
-
-/** Получить превью для URL (MSG-11). */
-export function getLinkPreview(url: string) {
-	return api.get<LinkPreviewResponse>(
-		`/link-preview?url=${encodeURIComponent(url)}`,
 	);
 }
