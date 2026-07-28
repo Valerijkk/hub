@@ -41,8 +41,8 @@
 
 ## Топ открытых
 
-1. **A2W6-A2-001** (P1 RESIDUAL) — позитивный Telegram `HandleLogin_StoresCode` / `tglogin:` (ADR-AUTH-01).
-2. **Telegram login surface** (P2 RESIDUAL) — A1-001/002 + A2-002/003 — мёртвый login API + suite (P1/P2-U unresolved).
+1. ~~**A2W6-A2-001** (P1 RESIDUAL) — позитивный Telegram `HandleLogin_StoresCode` / `tglogin:`~~ — **FIXED TASK-102**.
+2. ~~**Telegram login surface** (P2 RESIDUAL) — A1-001/002 + A2-002/003~~ — **FIXED TASK-102** (delete + denial).
 3. **PurgeExpired fail-open** (P2 RESIDUAL + NEW cement) — A4-001 + A5-002 `LogsErrorsWithoutFailing`.
 4. **CheckLimit / numeric limits** (P2 RESIDUAL) — A4-002; TASK-040 не покрыл audit.
 5. **GDPR cascade non-atomic** (P2 RESIDUAL) — A4-003 partial erase без rollback.
@@ -50,7 +50,7 @@
 
 ## Вердикт
 
-- Критичных P0 нет; единственный P1 — Telegram login positive test.
+- Критичных P0 нет; P1 Telegram login positive test — **закрыт TASK-102**.
 - P1 Stage A (RBAC cache, GDPR HardDelete abort) — **FIXED-OK**, мутации W18 зелёные.
-- Unresolved product decisions: Telegram login delete vs quarantine (P*-U*).
-- Код **не менялся** (A2 read-only).
+- Telegram login: **удалён** (не quarantine); notification bind не тронут.
+- Код A2 волны был read-only; правка — TASK-102 (be1).

@@ -1,17 +1,15 @@
 package auth_test
 
-// Тесты модуля аутентификации: интеграционные и unit-сценарии testframework.
+// Тесты Resend email-клиента (magic link). Telegram login suite удалён (ADR-AUTH-01 / TASK-102).
 import (
-	"github.com/valerii/hub/backend/internal/auth"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/valerii/hub/backend/internal/auth"
 )
 
 // TestNewResendEmailClient проверяет сценарий: new resend email client.
@@ -71,114 +69,4 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
-}
-
-// TestTelegramBotAuth_VerifyCode_Success проверяет сценарий: Telegram бот auth verify code успех.
-func TestTelegramBotAuth_VerifyCode_Success(t *testing.T) {
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	bot := auth.ExportNewTelegramBotAuthForTest(rdb)
-	require.NoError(t, mr.Set(auth.ExportTGCodePrefix()+"654321", "42|Alice|Smith|alice"))
-
-	user, err := bot.VerifyCode(context.Background(), "654321", "")
-	require.NoError(t, err)
-	require.NotNil(t, user)
-	assert.Equal(t, int64(42), user.ID)
-	assert.Equal(t, "Alice", user.FirstName)
-}
-
-// TestTelegramBotAuth_VerifyCode_InvalidCode проверяет отклонение при Telegram бот auth verify code некорректный code.
-func TestTelegramBotAuth_VerifyCode_InvalidCode(t *testing.T) {
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	bot := auth.ExportNewTelegramBotAuthForTest(rdb)
-	_, err = bot.VerifyCode(context.Background(), "000000", "10.0.0.1")
-	require.Error(t, err)
-}
-
-// TestTelegramBotAuth_VerifyCode_RateLimited проверяет сценарий: Telegram бот auth verify code rate limited.
-func TestTelegramBotAuth_VerifyCode_RateLimited(t *testing.T) {
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	clientKey := "10.0.0.2"
-	require.NoError(t, mr.Set(auth.ExportTGFailsPrefix()+clientKey, "5"))
-
-	bot := auth.ExportNewTelegramBotAuthForTest(rdb)
-	_, err = bot.VerifyCode(context.Background(), "111111", clientKey)
-	require.Error(t, err)
-	assert.ErrorIs(t, err, auth.ErrTelegramVerifyLimited)
-}
-
-// TestGenerateTGCode проверяет сценарий: generate tg code.
-func TestGenerateTGCode(t *testing.T) {
-	code, err := auth.ExportGenerateTGCode()
-	require.NoError(t, err)
-	assert.Len(t, code, 6)
-}
-
-// TestNewTelegramBotAuth_EmptyToken проверяет сценарий: new Telegram бот auth пустой token.
-func TestNewTelegramBotAuth_EmptyToken(t *testing.T) {
-	assert.Nil(t, auth.NewTelegramBotAuth("", nil))
-}
-
-// TestTelegramBotAuth_RecordVerifyFailure проверяет сценарий: Telegram бот auth record verify failure.
-func TestTelegramBotAuth_RecordVerifyFailure(t *testing.T) {
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	bot := auth.ExportNewTelegramBotAuthForTest(rdb)
-	clientKey := "10.0.0.9"
-	auth.ExportTelegramRecordVerifyFailure(bot, context.Background(), auth.ExportTGFailsPrefix()+clientKey)
-	auth.ExportTelegramRecordVerifyFailure(bot, context.Background(), auth.ExportTGFailsPrefix()+clientKey)
-
-	val, err := mr.Get(auth.ExportTGFailsPrefix() + clientKey)
-	require.NoError(t, err)
-	assert.Equal(t, "2", val)
-}
-
-// TestTelegramBotAuth_VerifyCode_CorruptData проверяет сценарий: Telegram бот auth verify code corrupt data.
-func TestTelegramBotAuth_VerifyCode_CorruptData(t *testing.T) {
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	bot := auth.ExportNewTelegramBotAuthForTest(rdb)
-	require.NoError(t, mr.Set(auth.ExportTGCodePrefix()+"111111", "bad|data"))
-	_, err = bot.VerifyCode(context.Background(), "111111", "1.2.3.4")
-	require.Error(t, err)
-
-	require.NoError(t, mr.Set(auth.ExportTGCodePrefix()+"222222", "notint|a|b|c"))
-	_, err = bot.VerifyCode(context.Background(), "222222", "1.2.3.4")
-	require.Error(t, err)
-}
-
-// TestTelegramBotAuth_VerifyCode_EmptyClientKeySkipsRateLimit проверяет сценарий: Telegram бот auth verify code пустой client key skips rate limit.
-func TestTelegramBotAuth_VerifyCode_EmptyClientKeySkipsRateLimit(t *testing.T) {
-	mr, err := miniredis.Run()
-	require.NoError(t, err)
-	t.Cleanup(mr.Close)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	require.NoError(t, mr.Set(auth.ExportTGFailsPrefix()+"blocked", "99"))
-	bot := auth.ExportNewTelegramBotAuthForTest(rdb)
-	_, err = bot.VerifyCode(context.Background(), "000000", "")
-	require.Error(t, err)
 }
