@@ -94,7 +94,7 @@
 | W7-A3-007 | RESIDUAL | P2 | `onec/dto.go` + `settings_store.go` | BearerToken plaintext в `system_setting` | Компрометация БД = 1С token |
 | W7-A3-008 | RESIDUAL | P2 | `imex/repository.go:152-156` | `ListProjectIssuesPlain` **без** `DeletedAtIsNil` (CSV path фильтрует) | ZIP/xlsx trash issues; TASK-038 пометил out-of-scope — **код не закрыт** |
 | W7-A3-009 | FIXED-OK | P2 | `imex/service.go:247+` | Excel = CSV под xlsx MIME | Закрыто TASK-045: excelize XLSX |
-| W7-A3-010 | RESIDUAL | P2 | `github/repository.go:244` Delete integration | Hard delete | TZ soft-delete/trash |
+| W7-A3-010 | **FIXED** (TASK-097) | P2 | `github/repository.go`; `gitlab/repository.go` | Soft-delete integrations | github/gitlab soft_delete_task097 |
 | W7-A3-011 | FIXED-OK | P3 | github service `_ = LogActivity` / Publish | Silent swallow | Закрыто TASK-057 (slog path) |
 | W7-A3-012 | FIXED-OK | P3 | `imex/pdf.go` byte truncate | Mid-rune UTF-8 | Закрыто TASK-060 |
 | W7-A3-013 | FIXED-OK | P3 | `imex/repository.go:83` First() без Order | Нестабильный default status | Закрыто TASK-067: Order SortOrder |

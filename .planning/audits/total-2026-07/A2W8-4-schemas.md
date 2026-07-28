@@ -55,8 +55,8 @@
 | A2W8-4-001 | RESIDUAL (W8-A4-001) | P1 | `project.go:17-52` | Mutable Project без `version` | TZ OL; concurrent Update/UpdateStatus LWW | `version` + VersionEQ |
 | A2W8-4-002 | RESIDUAL (W8-A4-002/010) | P1 | `project.go:55-87`; `organization.go:46-50` | Нет `entsql.OnDelete` на parent→child | PermanentDelete FK trap / silent data loss | ADR Cascade vs app purge + OnDelete |
 | A2W8-4-003 | RESIDUAL (W8-A4-003/012) | P1 | org/poll/role/savedfilter/scheduledcall/sprint | Mutable без `version` | Системный P1-BE-U06 | VersionMixin + exclusion list |
-| A2W8-4-004 | RESIDUAL (W8-A4-004) | P2 | `sprint.go:17-43` | Нет `deleted_at` | Issue/Project soft; Sprint без trash | deleted_at **или** ADR no-delete lifecycle |
-| A2W8-4-005 | RESIDUAL (W8-A4-008) | P2 | `recording.go:18-56` | Нет soft-delete media metadata | Нет корзины/GDPR soft-path | deleted_at + List filter |
+| A2W8-4-004 | **FIXED** (TASK-097) | P2 | `sprint.go` | `deleted_at` + SoftDeleteSprint + list filters | sprint/soft_delete_task097_test.go |
+| A2W8-4-005 | **FIXED** (TASK-097) | P2 | `recording.go` | `deleted_at` + SoftDeleteRecording + List filter | calls/soft_delete_recording_task097_test.go |
 | A2W8-4-006 | RESIDUAL (W8-A4-009) | P2 | `poll.go` (+ option/vote) | Нет soft-delete / OnDelete children | User content + FK trap | soft Poll **или** tx delete + OnDelete |
 
 ## Чисто

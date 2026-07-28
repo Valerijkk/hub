@@ -84,6 +84,16 @@ func (m *mockRepository) ListSprints(_ context.Context, _ uuid.UUID) ([]*ent.Spr
 	return result, nil
 }
 
+func (m *mockRepository) SoftDeleteSprint(_ context.Context, projectID, sprintID uuid.UUID) error {
+	s, ok := m.sprints[sprintID]
+	if !ok || m.sprintProject[sprintID] != projectID {
+		return &ent.NotFoundError{}
+	}
+	now := time.Now().UTC()
+	s.DeletedAt = &now
+	return nil
+}
+
 func (m *mockRepository) UpdateSprint(_ context.Context, sprintID uuid.UUID, req sprint.UpdateSprintRequest) (*ent.Sprint, error) {
 	s, ok := m.sprints[sprintID]
 	if !ok {
