@@ -41,7 +41,7 @@
 
 | Страница | Описание |
 |----------|----------|
-| [API Reference](API.md) | REST API (~286 endpoints под `/api`) |
+| [API Reference](API.md) | REST API (~252 OpenAPI paths; route inventory ~286 — см. API.md) |
 | [Архитектура](ARCHITECTURE.md) | C4, NATS, WebSocket bridge |
 | `docs/TECHNICAL.md` | ERD, полные контракты, env vars |
 | `docs/test_plan.md` | Стратегия тестирования, CI jobs |

@@ -13,7 +13,7 @@
 | Категория | Статус |
 |-----------|--------|
 | CRITICAL findings (v2.0.1) | **12/12 FIXED** ✅ |
-| HIGH findings | **14 FIXED**, 2 PARTIAL, 1 DEFERRED (bundle size) |
+| HIGH findings | **15 FIXED**, 1 PARTIAL (BE-H1), 1 DEFERRED (bundle size) |
 | Production readiness | ✅ YES с оговорками (PG-03 rotation, FE-H5 audit) |
 | Auth model | **Magic Link only** — Telegram notify-only (ADR-AUTH-01) |
 
@@ -41,7 +41,7 @@
 
 | ID | Статус | Файл:строка | Верификация |
 |----|--------|-------------|-------------|
-| SEC-01 / NF-01 | ✅ **FIXED** | `cmd/server/main.go:265` | `api.Use(APIKeyAuth)` перед `RegisterRoutes` |
+| SEC-01 / NF-01 | ✅ **FIXED** | `cmd/server/wiring_auth.go:75-84` | `api.Use(APIKeyAuth)` перед `RegisterRoutes` |
 | SEC-02 / NF-04 | ✅ **FIXED** | `calls/handler.go:261-265` | `sha256` claim mandatory + `hmac.Equal` |
 | SEC-03 / NF-05 | ✅ **FIXED** | `docker-compose.prod.yml:130-153` | `livekit-prod.yaml` удалён; heredoc из env |
 | SEC-04 / C-01 | ✅ **FIXED** | `gitlab/service.go:55,71` | `safehttp.NewSafeHTTPClient` + `ValidateOutboundURL` |
@@ -51,7 +51,7 @@
 | INF-01 | ✅ **FIXED** | `docker-compose.prod.yml:150` | `departure_timeout: 120` |
 | INF-02 | ✅ **FIXED** | `.github/workflows/deploy.yml:63-65` | `DEV_MODE` удалён из CI |
 | INF-03 | ✅ **FIXED** | `docker-compose.local.yml:120-122` | `${RESEND_API_KEY:-}` placeholder |
-| INF-04 | ✅ **FIXED** | `cmd/server/main.go:544-550` | `backupS3Client` проверка + warn |
+| INF-04 | ✅ **FIXED** | `cmd/server/wiring_integrations.go:97-108` | `backupS3Client` проверка + warn при пустом S3 |
 | FE-01 | ✅ **FIXED** | `messenger/message-item.tsx:1-100` | Hooks до conditional return |
 
 **CRITICAL Verdict:** 12/12 FIXED ✅
@@ -68,8 +68,8 @@
 | BE-H1 / H-01 | ⚠️ **PARTIAL** | `backup/service.go:173,237` | `LimitReader` ✅; `imex/handler.go:66` unbounded но BodyLimit 25MB |
 | BE-H2 / H-02 | ✅ **FIXED** | `apigateway/webhook.go:280` | `io.Copy(io.LimitReader)` замена `ReadFrom` |
 | BE-H3 / H-03 | ✅ **FIXED** | `dashboard/service.go:180-210` | Фильтр по `userID` / `projectID` |
-| BE-H4 / H-04 | ✅ **FIXED** | `apigateway/service.go` + `main.go:264` | Worker pool + `defer Close()` |
-| BE-H5 / H-05 | ✅ **FIXED** | `cmd/server/main.go:117-119,341` | `rawDB` shared pool в `/health` |
+| BE-H4 / H-04 | ✅ **FIXED** | `apigateway/service.go` + `wiring_integrations.go` (API gateway worker) | Worker pool + `defer Close()` |
+| BE-H5 / H-05 | ✅ **FIXED** | `wiring_infra.go:18-26` + `wiring_messenger.go:36-54` | `rawDB` shared pool в `/health` (`/live`/`/ready`) |
 | BE-H6 / H-06 | ✅ **FIXED** | `audit/service.go:376-451`, `audit/handler.go:364` | `DeleteUserGDPR` каскад + `errors.Join` частичных ошибок |
 | BE-H7 / H-07 | ✅ **FIXED** | `audit/retention.go:98-127`, `audit/service.go:252-268` | `RunRetentionCleanup` cron + S3 purge записей; `PurgeExpired` корзины 30d |
 | FE-H1 | ✅ **FIXED** | `api/client.ts:97-108` | Single-flight mutex `refreshing` |
@@ -77,9 +77,9 @@
 | FE-H3 | ✅ **FIXED** | `api/auth.ts:121-123` | `POST /auth/logout` endpoint |
 | FE-H4 | ✅ **FIXED** | `ui/error-boundary.tsx` + routes | ErrorBoundary в 7 модулях |
 | FE-H5 | 🔄 **DEFERRED** | — | Bundle size требует build analysis |
-| ARCH-H1 | ⚠️ **PARTIAL** | `auth/handler.go:505` | `h.service.GetMe` может прямо DB |
+| ARCH-H1 | ✅ **FIXED** | `auth/handler.go:17-26,206-212` | Handler держит только `*AuthService`; `GetMe` → `h.service.GetMe` (без `*ent.Client`) |
 
-**HIGH Verdict:** 14 FIXED, 0 NOT FOUND, 2 PARTIAL, 0 OPEN
+**HIGH Verdict:** 15 FIXED, 0 NOT FOUND, 1 PARTIAL (BE-H1), 0 OPEN
 
 ---
 
@@ -131,7 +131,8 @@ Telegram         → Только notify bind/delivery (НЕ login)
 | Session list | User видит device/IP, может отозвать | `/auth/sessions` |
 | RBAC | System (Admin/Member) → Project roles → Custom | `rbac/` |
 
-**Запрещено (v1–v4 scope):** пароли, SSO, LDAP, OAuth login providers.
+**Запрещено (v1–v4 без ADR):** пароли; OAuth-провайдеры соцсетей.  
+**SSO/LDAP:** одобрено в scope (2026-07-03); реализация только после принятого `ADR-AUTH-SSO`. До принятия ADR вход — **Magic Link only**.
 
 ## Валидация и санитизация
 
@@ -204,7 +205,7 @@ if expectedHash != "" { ... }
 
 **HIGH (16):**
 - ✅ 14 FIXED (SEC-H1-H3, BE-H2-H7, FE-H1-H4)
-- ⚠️ 2 PARTIAL (BE-H1 imex unbounded но BodyLimit; ARCH-H1 handler→service layering)
+- ⚠️ 1 PARTIAL (BE-H1 imex unbounded но BodyLimit; ARCH-H1 layering ✅ FIXED)
 - ❌ 0 NOT FOUND
 - 🔄 1 DEFERRED (FE-H5 bundle size — требует отдельного анализа)
 
@@ -224,7 +225,6 @@ if expectedHash != "" { ... }
 | BE-H1 | `imex/handler.go:66` unbounded ReadAll | Fiber BodyLimit 25MB срабатывает до ReadAll |
 | BE-H6 | GDPR cascade partial errors | `DeleteUserGDPR` логирует и агрегирует через `errors.Join`; мониторить WARN |
 | BE-H7 | Retention S3 fail-soft | При nil s3Client записи удаляются из PG, объекты S3 — WARN (dev) |
-| ARCH-H1 | `auth/handler.go` прямой DB | Рефакторинг в Phase 19 (Repository pattern) |
 | NF-10 | 6-digit magic-link | Accepted: 10⁶ entropy + rate-limit 3/10m + TTL 10m |
 | NF-13 | WS drop на full buffer | Accepted: fail-soft лучше блокировки room |
 | FE-H5 | Bundle 1.1 MB | Deferred: code-splitting в Phase 17 (v2.5) |
@@ -310,9 +310,11 @@ if expectedHash != "" { ... }
 - FE-H3: POST /auth/logout
 - FE-H4: Error Boundaries
 
-**⚠️ PARTIAL (2):**
+**⚠️ PARTIAL (1):**
 - BE-H1: Unbounded io.ReadAll (imex handlers — mitigated by Fiber BodyLimit 25MB)
-- ARCH-H1: Direct DB in handler (auth/handler.go service calls — refactor Phase 19)
+
+**✅ FIXED (ARCH-H1):**
+- ARCH-H1: `auth/handler.go` — только `*AuthService`; без прямого `*ent.Client` (комментарий ARCH-H1 + `GetMe` → service)
 
 **✅ FIXED (дополнительно к списку выше):**
 - BE-H6: GDPR delete (`audit/service.go:376`, handler `audit/handler.go:364`)
@@ -342,7 +344,7 @@ if expectedHash != "" { ... }
 
 **Risk Profile:**
 - 0 OPEN CRITICAL vulnerabilities
-- 2 PARTIAL HIGH (mitigated by existing controls)
+- 1 PARTIAL HIGH (BE-H1 mitigated by BodyLimit)
 - 0 NOT FOUND HIGH
 
 **Recommendation:** Clear for production deployment. Residual risks are LOW severity or architectural debt scheduled for v2.6 Phase 19-20.

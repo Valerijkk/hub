@@ -2,14 +2,16 @@
 
 > **Обновлено:** 2026-06-22 (Wave C FA-03) · Базовый путь: `/api` · WebSocket: `GET /ws` (вне `/api`)
 
-Hub предоставляет REST API с **~286 endpoints** под `/api/*`:
+Hub предоставляет REST API под `/api/*`. Подсчёт:
 
 | Категория | Количество | Примечание |
 |-----------|------------|------------|
-| Prod handler routes | **283** | 21+ модулей, v4 super-app |
+| OpenAPI paths (`backend/docs/swagger.json`) | **252** | Measured 2026-07-28 — канон для drift-check |
+| Prod handler `RegisterRoutes` (исторический inventory) | **~283** | 21+ модулей; число выше swagger из-за группировки/alias |
 | Dev-only (`/dev/*`) | **+3** | Только без `-tags release` |
-| Infra (`/health`, `/docs`) | **+3** | `main.go` |
-| **Итого REST** | **~286** | См. `.planning/COVERAGE.md` |
+| Infra probes | `/live`, `/ready`, `/health` | `wiring_messenger.go` |
+| Metrics | `GET /metrics` | `wiring_fiber.go` |
+| **Итого (ориентир wiki)** | **~252 OpenAPI / ~286 route inventory** | См. `docs/system_specification.md` §Endpoint inventory |
 
 Полная спецификация: `docs/system_specification.md`, `docs/TECHNICAL.md`.  
 OpenAPI (dev): `GET /docs`, `GET /docs/doc.json`.
@@ -36,9 +38,13 @@ X-API-Key: <api_key>
 
 ### Ошибки
 
+Публичный HTTP JSON (NFR-13 / TZ, `platform/errors` + `middleware.ErrorHandler`):
+
 ```json
 {"error": "описание", "request_id": "uuid"}
 ```
+
+На фронте тип `ApiError` (`frontend/src/api/client.ts`) — **клиентское** представление: `code` = HTTP status, `message` = поле `error` из тела, опционально `request_id`. Это не отдельный wire-контракт.
 
 ---
 
@@ -64,7 +70,7 @@ X-API-Key: <api_key>
 ### Пример: Magic Link
 
 ```bash
-# 1. Запрос кода
+# 1. Запрос кода (backend напрямую :3000; через Caddy — :8080)
 curl -sS -X POST http://localhost:3000/api/auth/magic-link \
   -H 'Content-Type: application/json' \
   -d '{"email":"user@company.com"}'
@@ -74,6 +80,8 @@ curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
   -H 'Content-Type: application/json' \
   -d '{"email":"user@company.com","code":"123456"}'
 ```
+
+> Локальный UX-путь — Caddy `:8080` (см. QUICKSTART/DEPLOY); `:3000` — прямой backend.
 
 ---
 
@@ -717,7 +725,7 @@ API-ключи для программного доступа, webhook-подп�
 
 ### HTTP audit (middleware)
 
-Не отдельный endpoint. `HTTPAuditMiddleware` (`audit/middleware.go`) подключён ко всем `/api/*` в `main.go` и асинхронно пишет каждый HTTP-запрос в журнал аудита (method, path без query, status, duration, request_id, user_id, IP, User-Agent). Пропускает: `OPTIONS`, `/api/health`, `/api/docs*`, `/api/webhooks/alertmanager`.
+Не отдельный endpoint. `HTTPAuditMiddleware` (`audit/middleware.go`) подключён ко всем `/api/*` в `wiring_fiber.go` и асинхронно пишет каждый HTTP-запрос в журнал аудита (method, path без query, status, duration, request_id, user_id, IP, User-Agent). Пропускает: `OPTIONS`, `/api/health`, `/api/docs*`, `/api/webhooks/alertmanager`.
 
 ### Лимиты и корзина
 
@@ -1161,4 +1169,4 @@ ws://host/ws?token=<jwt>
 | 500 | Internal Server Error |
 
 ---
-*Последнее обновление: 2026-06-21 — Magic Link auth, error format, ~286 endpoints*
+*Последнее обновление: 2026-07-28 — Magic Link auth; error wire `{"error","request_id"}`; OpenAPI **252** paths / route inventory ~286*

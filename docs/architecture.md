@@ -102,7 +102,7 @@ backend/internal/
 
 ```
 frontend/src/
-├── routes/           TanStack Router file-based (~60+ UI pages)
+├── routes/           TanStack Router file-based (**77** `.tsx` routes, measured 2026-07-28)
 │   ├── _authenticated/   projects, messenger, tms, calls, dashboard
 │   ├── intranet/, crm/, hr/, accounting/, bases/, marketplace/
 │   ├── calendar/, settings/, admin/

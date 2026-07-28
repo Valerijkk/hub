@@ -80,7 +80,7 @@ backend/internal/<module>/
 
 | Слой | Технология |
 |------|------------|
-| Router | TanStack Router (~60+ страниц, `frontend/src/routes/`) |
+| Router | TanStack Router (**77** `.tsx` routes, `frontend/src/routes/`, measured 2026-07-28) |
 | Server state | TanStack Query |
 | Client state | Zustand |
 | UI | Shadcn/ui + Tailwind CSS 4 |

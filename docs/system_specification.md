@@ -56,7 +56,7 @@
 | NFR-10 | Refresh token TTL | 30 дней, instant revoke |
 | NFR-11 | Soft delete retention | 30 дней |
 | NFR-12 | UTC in DB | Всегда, TZ на фронте |
-| NFR-13 | Error format | `{"error": "...", "request_id": "uuid"}` |
+| NFR-13 | Error format | Wire JSON: `{"error": "...", "request_id": "uuid"}` (`platform/errors`, `middleware.ErrorHandler`). FE `ApiError` maps status→`code`, body.error→`message` — не отдельный wire-контракт |
 | NFR-14 | Pagination tasks | offset/limit |
 | NFR-15 | Pagination chat | cursor (infinite scroll) |
 | NFR-16 | Accessibility | WCAG 2.1 AA |
@@ -156,9 +156,9 @@ rate_limit:<key> → counter
 |-----------|-------|------------|
 | Documented in `docs/wiki/API.md` | **287+** | v4 + AI routes |
 | Handler `RegisterRoutes` (code) | **283** | 21+ domain handlers |
-| Infra (`/docs`, `/health`, `/metrics`) | **+3** | `cmd/server/main.go` |
-| **Total REST `/api/*`** | **286** | Wiki synced |
-| WebSocket `GET /ws` | **+1** | Вне префикса `/api` |
+| Infra (`/docs`, `/live`, `/ready`, `/health`, `/metrics`) | **+5** | `wiring_messenger.go` (probes), `wiring_fiber.go` (`/metrics`); OpenAPI `/docs` |
+| **Total REST `/api/*`** | **~252** OpenAPI paths (`backend/docs/swagger.json`, measured 2026-07-28); handler `RegisterRoutes` inventory historically ~286 — методика: swagger paths vs route registrations | Wiki / Swagger |
+| WebSocket `GET /ws` | **+1** | Вне префикса `/api` (`wiring_ws.go`) |
 | Dev-only `/api/dev/*` | **3** | `DEV_MODE`, не в `-tags release` |
 
 **По модулям (handler routes, выборочно):** auth 11 · project 24 · tracker 48 · messenger 44 · tms 52 · calls 24 · search 9 · notification 18 · ai 10+ · intranet 19 · bases 13 · accounting 13 · crm 10 · hr 8 · calendar 4 · marketplace 12 · github 13 · gitlab 11 · sprint 16 · dashboard 9 · audit 13 · apigateway 10 · backup 6 · imex 8 · storage 6 · rbac 8 · status 3 · mail (admin) · onec 5.
@@ -683,7 +683,7 @@ DFD user-scoped поиска: `[User Ctrl+K] → GET /search?types=wiki_page →
 | CRITICAL security (12) | Blockers | **FIXED** в коде |
 | Overall coverage | 11.5% → 56.6% | **83.0%** (2026-06-22 Docker baseline) |
 | Playwright E2E | not present | **20 specs** |
-| Frontend Vitest | 0 | **99/99 tests** |
+| Frontend Vitest | 0 | **94** files (`testframework/stages/unit/frontend-test/`, measured 2026-07-28) |
 | Test framework migration | in progress | **488 / 0 internal** ✅ |
 | Lighthouse CI | missing | **artifact job** (PR #27) |
 | Squash PR v2.5-trust | pending | **merged PR #1** ✅ |

@@ -14,7 +14,7 @@
 | Эмодзи | Запрещены в коде и комментариях |
 | Commits | `feat(scope): desc` \| `fix(scope): desc` \| `refactor(scope): desc` |
 | Scope | `auth`, `tracker`, `messenger`, `tms`, `calls`, `dashboard`, `notification`, `search`, `ws`, `platform`, `frontend`, `infra`, `ent` |
-| Язык комментариев | **English** в Go/TS коде; **русский** в docs |
+| Язык комментариев | **Русский** в Go/TS (канон после RU-COMMENTS); docs — русский; английский допустим в godoc-экспортах/публичных API-именах |
 
 ---
 
@@ -40,8 +40,10 @@ backend/internal/<module>/
 ├── repository.go       # Interface
 ├── ent_repository.go   # Ent implementation
 ├── dto.go              # Request/Response structs
-└── *_test.go           # Unit tests (testify)
+└── export_hooks.go     # //go:build hubtest — re-export для testframework
 ```
+
+Тесты модуля: `backend/testframework/<module>/` (0 `*_test.go` в `internal/` после TF-M08).
 
 **Запрещено:** `*ent.Client` в Handler или Service — только через Repository interface.
 
@@ -72,7 +74,8 @@ if err != nil { return nil, err }  // теряет контекст
 panic(err)                         // в production paths
 ```
 
-Публичные API-ошибки: `platform/errors` → `{"error","request_id"}`.
+Публичные API-ошибки (wire JSON, NFR-13): `platform/errors` → `{"error","request_id"}`.  
+FE `ApiError` (`code`/`message`/`request_id`) — клиентский маппинг HTTP status + тела, не отдельный контракт.
 
 ---
 
@@ -148,10 +151,11 @@ frontend/src/
 ├── components/<feature>/ # Feature components
 ├── hooks/use<Name>.ts
 ├── modules/<module>/     # Self-contained features
-├── routes/               # TanStack Router file-based
-├── stores/<module>.ts    # Zustand
-└── testframework/unit/   # Vitest (предпочтительно)
+├── routes/               # TanStack Router file-based (**77** `.tsx`, 2026-07-28)
+├── stores/<module>-store.ts  # Zustand (**12** stores)
 ```
+
+Unit-тесты FE: `testframework/stages/unit/frontend-test/domains/` (не `frontend/src/testframework/`).
 
 ---
 
