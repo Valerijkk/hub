@@ -6,9 +6,10 @@ import (
 	"log/slog"
 	"os"
 
+	auditmod "github.com/valerii/hub/backend/internal/audit"
+	messengermod "github.com/valerii/hub/backend/internal/messenger"
 	"github.com/valerii/hub/backend/internal/platform/database"
 	"github.com/valerii/hub/backend/internal/platform/health"
-	messengermod "github.com/valerii/hub/backend/internal/messenger"
 	searchmod "github.com/valerii/hub/backend/internal/search"
 	statusmod "github.com/valerii/hub/backend/internal/status"
 	tmsmod "github.com/valerii/hub/backend/internal/tms"
@@ -59,6 +60,10 @@ func wireMessenger(d *serverDeps) {
 	messengerMongoRepo := messengermod.NewMongoRepository(mongoDB)
 	if err := messengerMongoRepo.EnsureIndexes(d.ctx); err != nil {
 		slog.Error("failed to ensure messenger indexes", "error", err)
+	}
+	// P1-BE-34 / TASK-023: GDPR erase стирает Mongo-сообщения по sender_id.
+	if d.auditSvc != nil {
+		d.auditSvc.SetMessageEraser(auditmod.NewMongoMessageEraser(mongoDB))
 	}
 	messengerRepo := messengermod.NewCombinedRepository(messengerEntRepo, messengerMongoRepo)
 	presenceSvc := messengermod.NewPresenceService(d.rdb)
