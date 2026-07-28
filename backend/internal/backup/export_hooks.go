@@ -88,7 +88,7 @@ func ExportBackupCleanupOldBackups(s *BackupService, ctx context.Context) {
 
 // ExportBackupSetMaintenanceMode переключает maintenance mode для hubtest.
 func ExportBackupSetMaintenanceMode(s *BackupService, enabled bool) {
-	s.setMaintenanceMode(enabled)
+	s.setMaintenanceMode(context.Background(), enabled)
 }
 
 // ExportBackupIsMaintenanceMode возвращает состояние gate для hubtest (A7-003).
