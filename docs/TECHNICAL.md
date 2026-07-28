@@ -58,7 +58,7 @@ Coverage floor `internal/`: **~82%** (`.planning/COVERAGE.md`).
 ```
 backend/internal/
   +-- apigateway/    API Key аутентификация
-  +-- auth/          Авторизация (Magic Link, Telegram, JWT, сессии)
+  +-- auth/          Авторизация (Magic Link + JWT/сессии; Telegram — notify bind, не login)
   +-- project/       Проекты, участники, invite, команды
   +-- tracker/       Задачи, workflow, комментарии, метки, кастомные поля, доски
   +-- sprint/        Спринты, burndown, velocity, planning poker
@@ -1583,7 +1583,7 @@ backend/internal/
 | POST | /marketplace/listings/:listingId/approve | Одобрить | JWT (Admin) |
 | POST | /marketplace/listings/:listingId/sold | Отметить проданным | JWT |
 
-**Итого: ~286+ эндпоинтов** (полный перечень: `docs/wiki/API.md`)
+**Итого:** OpenAPI **252** paths (`backend/docs/swagger.json`, 2026-07-28); исторический route inventory ~286+ — см. `docs/wiki/API.md`
 
 ---
 
@@ -1649,7 +1649,7 @@ routes/
   __root.tsx                    # Корневой layout
   index.tsx                     # Redirect на dashboard
   login.tsx                     # Страница авторизации
-  onboarding.tsx                # Онбординг (3 шага)
+  onboarding.tsx                # Онбординг (4 шага: профиль → тур → тема → проект)
   _authenticated.tsx            # Layout для авторизованных (sidebar + topbar)
   _authenticated/
     dashboard.tsx               # Личный дашборд
@@ -1896,4 +1896,4 @@ Caddy (prod):
 
 ---
 
-*Последнее обновление: 2026-06-22 — RU-FIX-01/02: RU headers, v4 modules API/schema sample, ~286 endpoints*
+*Последнее обновление: 2026-07-28 — auth Magic Link + Telegram notify bind; OpenAPI 252 / inventory ~286; онбординг 4 шага*

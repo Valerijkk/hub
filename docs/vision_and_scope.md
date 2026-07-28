@@ -31,15 +31,15 @@
 
 | Метрика | Целевое значение | Текущий статус |
 |---------|------------------|----------------|
-| REST API (`/api/*`) | 280+ production routes | **286** ✅ (+3 infra, +1 WS `GET /ws`; см. `docs/wiki/API.md`) |
-| Frontend UI-маршруты | Покрытие всех модулей | **60+** страниц ✅ (`frontend/src/routeTree.gen.ts`, v4 super-app) |
+| REST API (`/api/*`) | 250+ production routes | **252** OpenAPI paths ✅ (`swagger.json`, 2026-07-28); route inventory historically ~286 |
+| Frontend UI-маршруты | Покрытие всех модулей | **77** `.tsx` routes ✅ (`frontend/src/routes/`, measured 2026-07-28) |
 | Ent schemas (PostgreSQL) | Полная модель домена | **82** сущности ✅ (`backend/ent/schema/`, без `helpers.go`) |
 | Backend domain-модули | Модульный монолит | **31** пакет в `backend/internal/` (+ `platform/`, `testutil/`) |
 | v2.0 UI requirements (DSFN–XTRA) | 85/85 | ✅ COMPLETE (Phases 8–14) |
 | CRITICAL security blockers | 0 | **12/12 FIXED** в коде (v2.0.1); PG-03 ротация секретов в git history — manual ops |
-| Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (auth, ws, storage, rbac, audit, calls) |
+| Unit coverage (security-critical) | ≥ 80% | **6/6 пакетов ≥80%** ✅ (auth, ws, rbac, audit, calls, platform/middleware) |
 | Unit coverage (overall `internal/`) | ≥ 50% (gate), ≥ 82% (wave) | **83.0%** ✅ (2026-06-22 Docker baseline; Wave C, `-tags hubtest`) |
-| Frontend Vitest | Unit-тесты модулей | **99/99** ✅ |
+| Frontend Vitest | Unit-тесты модулей | **94** files ✅ (`testframework/stages/unit/frontend-test/`, measured 2026-07-28) |
 | E2E critical paths | Playwright | **20 spec-файлов** ✅ (`testframework/stages/e2e/domains/`) |
 | Global search Ctrl+K (US-M07) | UI + user-scope backend | **UI ✅** (PR #15: Calls, Settings, Admin) |
 | Lighthouse Performance/Accessibility | ≥ 90 | CI artifact job (PR #27, non-blocking); formal gate — backlog |
@@ -112,10 +112,10 @@
 
 ### Won't Have (v1–v2) — updated v2.5 PO lock
 
-- ~~Видеозвонки с вебкамерами~~ → **Phase 16** (ADR-TZ-REWRITE)
+- ~~Видеозвонки с вебкамерами~~ → UI shipped (`CallControls` / LiveKit); polish backlog
 - Нативные мобильные приложения (PWA достаточно)
 - ~~Email только magic link~~ → transactional + marketing via **hub-mail** (v2.5+)
-- SSO/LDAP/OAuth, SaaS billing (later), ~~Gantt~~ → Phase 16, multi-org (v5)
+- SSO/LDAP — после `ADR-AUTH-SSO` (до ADR = Magic Link only); OAuth соцсетей — out; SaaS billing (later); ~~Gantt~~ → UI shipped; multi-org (v5)
 - Remote control (управление чужим экраном)
 - Видео/аудио сообщения в мессенджере (кроме голосовых)
 - Route-level page transition animations
@@ -147,7 +147,7 @@
 
 **Дополнительно в v4 (код):** no-code DB (`/bases`, `HubBase/HubTable/HubRecord`), marketplace (`/marketplace`), kudos и random coffee (`intranet`), status page (`/status`), hub-mail (`/admin/mail`), 1C connector (`integrations/onec`).
 
-**Won't Have v4:** payroll/НДФЛ calc, multi-tenant SaaS (v5), SSO, native apps.
+**Won't Have v4:** payroll/НДФЛ calc, multi-tenant SaaS (v5), SSO до принятия `ADR-AUTH-SSO`, native apps.
 
 ## Волна 1 аналитика — Intranet v2 (US-INTR)
 

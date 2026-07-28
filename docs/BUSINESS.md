@@ -435,11 +435,12 @@ Permissions хранятся как bitmask (uint64) в поле `permissions` �
 
 | Что НЕ входит | Почему / когда |
 |----------------|----------------|
-| SSO/LDAP/OAuth | Запрещено до ADR; Magic Link only |
+| SSO/LDAP (OIDC/AD) | В scope после принятого `ADR-AUTH-SSO`; до ADR — Magic Link only |
+| OAuth соцсетей (Google/GitHub login и т.п.) | Вне scope |
 | Multi-tenant multi-org | 1 instance = 1 org; v5 |
 | Native App Store/Play | PWA достаточно |
 | SaaS billing/подписки | Internal tool, не commercial SaaS |
-| Webcam в звонках | **Phase 16** (запланировано, ADR-TZ-REWRITE) |
+| Webcam в звонках | UI shipped (`CallControls` / LiveKit `setCameraEnabled`); остаточный polish — backlog |
 | Payroll / НДФЛ | v4 accounting — ledger/invoices, не зарплатный модуль |
 | Remote control экрана | Сложность vs ценность |
 | Route-level page transitions | Productivity tool, не marketing site |

@@ -18,7 +18,7 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 | Покрытие backend (`internal/`) | **83.0%** (2026-06-22 Docker baseline; Wave C) |
 | Security-critical пакеты ≥80% | **6/6** ✅ |
 | REST API endpoints | **286+** |
-| Product score (AUDIT-SCORECARD) | **93/100** |
+| Product score (AUDIT-SCORECARD / AGENTS) | **89/100** |
 | Ветка | `master` · HEAD `bbdaf16` |
 | CI | ✅ green (coverage-gate, e2e-full 20 specs, lighthouse artifact) |
 
@@ -124,11 +124,12 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 ### Won't Have (per ADR / `.cursor/rules/60-tz-constraints.mdc`)
 
 - Native mobile apps (PWA достаточно)
-- SSO/LDAP/OAuth провайдеры (до v5 ADR)
+- SSO/LDAP — реализация только после принятого `ADR-AUTH-SSO` (до ADR вход = Magic Link only)
+- OAuth-провайдеры соцсетей — out of scope
 - Multi-tenant SaaS billing
 - Multi-org на одном инстансе (v5)
 
-**IN SCOPE by phase (PO 2026-06-21):** Gantt (Phase 16), webcams in calls (Phase 16), hub-mail marketing (Phase 15.2/16), full JQL automation (Phase 17), no-code bases + accounting (v4).
+**IN SCOPE by phase (PO 2026-06-21, уточнено 2026-07-28):** Gantt UI shipped (`gantt.lazy.tsx` / `GanttChart`); webcam UI shipped (`CallControls` / LiveKit); AI Hub v3.0 shipped; hub-mail marketing / full JQL automation — остаток Phase 15.2–17; v4 bases/accounting — shipped.
 
 ---
 
@@ -156,7 +157,7 @@ Hub API → slog (JSON) → Loki (Promtail)
 | Mean API latency (p95) | < 200ms | Измеряется через `duration_ms` в audit |
 | Audit coverage admin + auth | 100% | ✅ |
 | Security findings CRITICAL open | 0 | ✅ (12/12 fixed) |
-| Product score | ≥80 | **93/100** ✅ |
+| Product score | ≥80 | **89/100** ✅ |
 
 ---
 

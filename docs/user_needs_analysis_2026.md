@@ -1,7 +1,7 @@
 # Hub — Анализ продукта и потребностей пользователей 2026
 
 > **Обновлено:** 2026-06-21  
-> **Основано на:** `docs/vision_and_scope.md`, `.planning/PROJECT.md`, `AUDIT-SCORECARD` (93/100), `competitive_analysis_2026.md`, `.planning/archive/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`.
+> **Основано на:** `docs/vision_and_scope.md`, `.planning/PROJECT.md`, `AUDIT-SCORECARD` / `AGENTS.md` (**89/100**), `competitive_analysis_2026.md`, `.planning/archive/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`.
 
 ---
 
@@ -20,7 +20,7 @@
 | **Tracker** | Production | 9 типов задач, Kanban, Scrum, JQL, automation lite, Git links |
 | **Messenger** | Production | Каналы, треды, reactions, polls, voice msgs, #hub-ci, @hub-ai |
 | **TMS** | Production | Classic/BDD, runs, Allure CI, traceability, reports, env compare |
-| **Calls** | Production | LiveKit voice, screen share, webcams, recordings, scheduled |
+| **Calls** | Production | LiveKit voice/video (`CallControls` camera), screen share, recordings, scheduled |
 | **Dashboards** | Mature | Personal/project/admin widgets, burndown, velocity, health |
 | **Search** | Mature | Ctrl+K, Meilisearch, user-scope API, saved filters |
 | **Integrations** | Mature | GitHub, GitLab, Jira import, webhooks, hub-cli, 1C connector |
@@ -54,11 +54,11 @@
 | Показатель | Значение |
 |------------|----------|
 | Milestones shipped | v1.0 · v2.0 · v2.5 Trust · v2.6 Automate · v3.0 AI · **v4 Super-app** |
-| Product score | **93/100** |
+| Product score | **89/100** |
 | Backend coverage (`internal/`) | **83.0%** (2026-06-22 Docker baseline; Wave C, `-tags hubtest`) |
-| Security-critical ≥80% | **6/6** |
-| REST API endpoints | **286+** |
-| Frontend Vitest | **99/99** tests |
+| Security-critical ≥80% | **6/6** (auth, ws, rbac, audit, calls, platform/middleware) |
+| REST API (OpenAPI paths) | **252** (`swagger.json`, 2026-07-28); route inventory ~286 |
+| Frontend Vitest | **94** files (`testframework/stages/unit/frontend-test/`) |
 | Playwright E2E | **20** specs |
 | 12 CRITICAL security blockers | **Закрыты** (v2.0.1) |
 | Ветка | `master` · HEAD `bbdaf16` |

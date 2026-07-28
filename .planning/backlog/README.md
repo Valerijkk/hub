@@ -59,7 +59,7 @@
 | [TASK-051](TASK-051-fe-p2-effects-hooks-race.md) | FE effects/hooks race | P2 | Открыта | fe1 | W12 P2-FE-07 |
 | [TASK-052](TASK-052-fe-p2-api-dto-gaps.md) | FE API DTO gaps | P2 | Открыта | fe2 | W12 P2-FE-08 |
 | [TASK-053](TASK-053-fe-p2-auth-ws-upload.md) | FE auth/WS/upload | P2 | На проверке | fe2 | W12 P2-FE-09..11 |
-| [TASK-054](TASK-054-fe-p2-docs-metrics-drift.md) | Docs metrics/wiring drift | P2 | Открыта | docs-writer | W12 P2-FE-12 |
+| [TASK-054](TASK-054-fe-p2-docs-metrics-drift.md) | Docs metrics/wiring drift | P2 | На проверке | docs-writer | W12 P2-FE-12 |
 | [TASK-055](TASK-055-fe-p2-shell-tracker-ux.md) | FE shell + tracker UX | P2 | Открыта | fe2 | W12 P2-FE-13,14 |
 | [TASK-056](TASK-056-fe-p2-i18n-push-rooms.md) | FE i18n/push/rooms | P2 | Открыта | fe1 | W12 P2-FE-15 |
 

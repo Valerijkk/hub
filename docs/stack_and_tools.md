@@ -57,20 +57,20 @@ go build -tags release -o bin/server ./cmd/server
 | TypeScript | **~5.7.0** | Типизация |
 | TanStack Router | **^1.0.0** | File-based routing |
 | TanStack Query | **^5.0.0** | Server state |
-| Zustand | **^5.0.0** | Client state (11+ stores) |
+| Zustand | **^5.0.0** | Client state (**12** stores в `frontend/src/stores/`) |
 | Tailwind CSS | **^4.0.0** | Styling (`@tailwindcss/vite`) |
 | Shadcn/ui + Radix | pinned | UI primitives |
 | Plate (`@udecode/plate`) | **^48.0.5** | Rich-text |
 | pragmatic-drag-and-drop | **^1.7.9** | Kanban DnD |
 | Recharts | **^3.8.0** | Dashboard charts |
 | i18next | **^25.9.0** | Локализация RU/EN |
-| motion | **^12.38.0** | UI animations |
+| motion | **^12.40.0** | UI animations |
 | livekit-client | **^2.17.3** | WebRTC UI |
 | Vitest | **^3.0.0** | Unit tests |
 | @testing-library/react | **^16.0.0** | Component tests |
 | @playwright/test | **^1.52.0** | E2E |
 | @biomejs/biome | latest | Lint + format |
-| vite-plugin-pwa | **^1.2.0** | PWA |
+| vite-plugin-pwa | **^1.3.0** | PWA |
 
 ### Скрипты npm
 

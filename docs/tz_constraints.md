@@ -115,14 +115,14 @@
 
 Ранее запрещённые фичи, разрешённые по roadmap:
 
-| Фича | Фаза |
+| Фича | Фаза / факт (2026-07-28) |
 |------|------|
-| Gantt | 16 |
-| Webcam в звонках | 16 |
+| Gantt | UI shipped (`frontend/.../gantt.lazy.tsx`, `GanttChart`); остаток scope — backlog |
+| Webcam в звонках | UI shipped (`CallControls` / LiveKit `setCameraEnabled`); polish — backlog |
 | Transactional email + marketing (hub-mail) | 15.2 / 16 |
 | Full JQL automation | 17 |
-| AI gateway BYOK + Ollama | 17 |
-| Intranet, Calendar, CRM, HR, accounting, no-code DB | v4 |
+| AI gateway BYOK + Ollama | AI Hub v3.0 shipped; BYOK/Ollama depth — Phase 17 остаток |
+| Intranet, Calendar, CRM, HR, accounting, no-code DB | v4 ✅ shipped |
 
 ---
 
