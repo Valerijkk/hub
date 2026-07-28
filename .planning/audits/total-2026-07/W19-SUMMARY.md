@@ -74,24 +74,26 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 
 | Severity | Count | Actionable |
 |----------|------:|-----------:|
-| CRITICAL | 1 | 1 |
-| HIGH | 5 | 5 |
+| CRITICAL | 2 | 2 |
+| HIGH | 6 | 6 |
 | MEDIUM | 5 | 5 |
-| LOW | 2 | 1 (C-013 = closed ref) |
-| **Total** | **13** | **12** |
+| LOW | 3 | 3 |
+| **Total** | **16** | **15** |
 
 ### Top risks (CRITICAL + HIGH)
 
 | ID | Цепочка | Связь |
 |----|---------|--------|
 | **C-001** CRITICAL | GDPR Mongo eraser `(0,nil)` + HardDelete cascade → erase без удаления сообщений | TASK-079 · W18-C5-001 |
-| **C-002** HIGH | Soft-delete project + webhooks ListActive без `project.deleted_at` → события в корзину 30д | residual после 009/012 |
-| **C-003** HIGH | AI `access==nil` fail-open + issue/review consumers → IDOR | W18-C5-004 · residual 021 |
-| **C-004** HIGH | Confirm empty entity + Confirm без object (TASK-045 FAIL) | **045** reopen |
-| **C-005** HIGH | CallChat empty при error + send enabled | TASK-073 |
-| **C-006** HIGH | SQL soft-delete OK + Meili upsert orphans | residual после 022 |
+| **C-002** CRITICAL | Dual StartSprint race unproven + schema без unique active → persistent dual active | **041** + **046** |
+| **C-003** HIGH | AddTeamToProject без team ACL + только PermTeamManage → forced membership | **014** |
+| **C-004** HIGH | Bulk team inject + CompleteSprint mid-fail unproven | **014** |
+| **C-005** HIGH | To4 mutation-blind + Meili SSRF hubtest gap | **019** + **044** |
+| **C-006** HIGH | AI `access==nil` fail-open + stream cancel unproven | **044** |
+| **C-007** HIGH | Confirm empty entity + Confirm-without-object | **045** |
+| **C-008/009** HIGH | Soft-delete project/webhooks · SQL OK + Meili orphans | residual |
 
-Catch-up усиливает C-001/C-003: P2 eraser no-op (079) и P3 consumer fail-open уже в product-коде.
+Все W18 FAIL 014/019/041/042/044/045/046/052/054 + TASK-079 в матрице `W19-A3-COMBOS.md`.
 
 ---
 
@@ -133,9 +135,9 @@ Catch-up усиливает C-001/C-003: P2 eraser no-op (079) и P3 consumer fa
 
 1. **Не закрывать TASK-008.** W20 = FINAL + полный hubtest + coverage; W19 не гейтит закрытие программы.
 2. **Reopen / дожать mutation (be):** **014 → 041 → 045** (red-team blockers), затем **019, 042, 044, 046**.
-3. **CRITICAL combo (be):** **C-001 / TASK-079** — fail-closed Mongo eraser + cascade abort; hubtest на реальном eraser (W18-C5-002).
-4. **HIGH combos (be):** C-002 (webhook filter на soft-deleted project), C-003 (fail-closed nil access в consumers), C-006 (Meili delete на soft-delete), C-004 вместе с 045.
-5. **FE empty+mutate:** C-005 / C-008 / C-009 через **TASK-073** (+ WebhooksPage `isError`).
+3. **CRITICAL combos (be):** **C-001 / TASK-079** (Mongo eraser fail-closed); **C-002** (041+046: PG race + unique active).
+4. **HIGH combos (be):** C-003/C-004 (014 team ACL + CompleteSprint Ent), C-007/C-013 (045), C-005/C-006 (019/044 SSRF+AI), C-008/C-009 (webhook/Meili soft-delete).
+5. **FE/docs:** C-014 (052), C-015 (054/080), C-016 (073 CallChat empty+mutate).
 6. **Evidence hygiene (optional, docs):** backfill SHA Stage B в 39 PASS TASK (`git log --grep=TASK-0NN`); thin 28 — скопировать имя RED-теста из W18 в тело TASK; синхронизировать Progress TASK-038.
 7. **U\* orphans:** не заводить TASK до ADR/PO; оставить Blocked в README.
 8. **TASK-080** (docs drift autotest) — не security-блокер; можно параллельно с W20 quality gate.
@@ -149,7 +151,7 @@ Catch-up усиливает C-001/C-003: P2 eraser no-op (079) и P3 consumer fa
 |-------|------|-----------|
 | W19-A1 | `W19-A1-ORPHAN-P0P1.md` | P0=0 · P1 orphans=10 (U only) · missed=0 |
 | W19-A2 | `W19-A2-EVIDENCE-GAPS.md` | 39 SHA-gaps · triad иначе OK |
-| W19-A3 | `W19-A3-COMBOS.md` | 13 combos · 1 CRITICAL · 5 HIGH |
+| W19-A3 | `W19-A3-COMBOS.md` | 16 combos · 2 CRITICAL · 6 HIGH |
 | W19-A4 | `W19-A4-REDTEAM.md` | top-5 · blockers 014/041/045 |
 | W19-A5 | **этот файл** | синтез + handoff → W20 |
 
