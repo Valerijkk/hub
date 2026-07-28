@@ -101,7 +101,7 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 
 Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md)
 
-**Вердикт A4:** 0 новых CRITICAL, доказанно открытых для ordinary non-admin; остаточные Med/High привязаны к W18 FAIL.
+**Вердикт A4:** 0 новых CRITICAL как single-step non-admin exploit; CRITICAL combo **TASK-079** (admin erase + residual PII for members); остаточные Med/High → W18 FAIL.
 
 ### Top 5 chains
 
@@ -109,19 +109,22 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 |--:|---------|-----|---------|
 | 1 | Team attach → forced project membership (нет `requireTeamMember`) | Med × High | **014** |
 | 2 | ConfirmUpload ghost / weak entity bind | Med–High × Med | **045** |
-| 3 | Concurrent StartSprint → dual active | Low–Med × Med | **041** |
+| 3 | GDPR Mongo eraser `(0,nil)` → HardDelete + live messages | Low–Med × Critical | **079** |
 | 4 | User SSRF (push / link-preview) + To4 mutation blind | Low × High | **019** |
-| 5 | AI privacy / nil access fail-open + stream cancel gap | Low–Med × High | **044** |
+| 5 | AI privacy / nil access fail-open + stream/Meili gaps | Low–Med × High | **044** |
+
+Dual StartSprint (**041**) — residual #6 (Low–Med × Med).
 
 ### W18 FAIL → reopen map (сводка)
 
 | TASK | Red-team | Приоритет до W20 |
 |------|----------|------------------|
 | **014** | YES | **P0 reopen** |
-| **041** | YES | **P0 reopen** |
+| **079** | YES (catch-up) | **P0 reopen** |
 | **045** | YES | **P0 reopen** |
-| 019 | YES (residual) | next |
 | 044 | YES | next |
+| 019 | YES (residual) | next |
+| 041 | YES | next |
 | 042 | PARTIAL | next |
 | 046 | PARTIAL | next |
 | 052 | LOW | hygiene |
@@ -134,14 +137,14 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 Порядок — блокеры «mutation-closed» и CRITICAL combo первыми.
 
 1. **Не закрывать TASK-008.** W20 = FINAL + полный hubtest + coverage; W19 не гейтит закрытие программы.
-2. **Reopen / дожать mutation (be):** **014 → 041 → 045** (red-team blockers), затем **019, 042, 044, 046**.
-3. **CRITICAL combos (be):** **C-001 / TASK-079** (Mongo eraser fail-closed); **C-002** (041+046: PG race + unique active).
-4. **HIGH combos (be):** C-003/C-004 (014 team ACL + CompleteSprint Ent), C-007/C-013 (045), C-005/C-006 (019/044 SSRF+AI), C-008/C-009 (webhook/Meili soft-delete).
-5. **FE/docs:** C-014 (052), C-015 (054/080), C-016 (073 CallChat empty+mutate).
-6. **Evidence hygiene (optional, docs):** backfill SHA Stage B в 39 PASS TASK (`git log --grep=TASK-0NN`); thin 28 — скопировать имя RED-теста из W18 в тело TASK; синхронизировать Progress TASK-038.
+2. **Reopen / дожать mutation (be):** **014 → 079 → 045** (red-team blockers), затем **044, 019, 041, 042, 046**.
+3. **CRITICAL combos (be):** **C-001 / TASK-079** (Mongo eraser fail-closed); dual-sprint/unique (**041**/**046**) — next.
+4. **HIGH combos (be):** team ACL (**014**), Confirm (**045**), SSRF/AI (**019**/**044**), soft-delete webhook/Meili (A3).
+5. **FE/docs:** 052, 054/080, CallChat empty+mutate (073).
+6. **Evidence hygiene (optional, docs):** backfill SHA Stage B в 39 PASS TASK; thin 28 — имя RED-теста в тело TASK; Progress TASK-038.
 7. **U\* orphans:** не заводить TASK до ADR/PO; оставить Blocked в README.
 8. **TASK-080** (docs drift autotest) — не security-блокер; можно параллельно с W20 quality gate.
-9. **W20 входной критерий (рекомендация):** нет открытых CRITICAL combo; mutation-closed по **014, 041, 045**; hubtest green на затронутых пакетах; coverage baseline без регрессии.
+9. **W20 входной критерий (рекомендация):** нет открытых CRITICAL combo; mutation-closed по **014, 079, 045**; hubtest green на затронутых пакетах; coverage baseline без регрессии.
 
 ---
 
