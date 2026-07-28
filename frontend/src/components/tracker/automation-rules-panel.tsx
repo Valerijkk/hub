@@ -8,7 +8,7 @@ import {
 	listAutomationRules,
 	updateAutomationRule,
 } from "@/api/automation";
-import { type Channel, getChannels } from "@/api/messenger";
+import { getChannels } from "@/api/messenger";
 import {
 	listWorkflowStatuses,
 	type WorkflowStatusResponse,
@@ -93,9 +93,7 @@ export function AutomationRulesPanel({ projectId }: AutomationRulesPanelProps) {
 		onError: (err) => toastApiError(err),
 	});
 
-	const projectChannels = (channels as Channel[]).filter(
-		(c) => c.project_id === projectId,
-	);
+	const projectChannels = channels.filter((c) => c.project_id === projectId);
 
 	return (
 		<div className="space-y-6 max-w-2xl">

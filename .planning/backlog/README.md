@@ -74,16 +74,16 @@
 | [TASK-066](TASK-066-be-p3-ai-auth-rbac-audit.md) | BE AI/auth/rbac/audit | P3 | Исправлена | be2 | W12 P3-BE-13,14 |
 | [TASK-067](TASK-067-be-p3-v4-dev-storage.md) | BE v4/dev/storage | P3 | Исправлена | be1 | W12 P3-BE-15,16 |
 | [TASK-068](TASK-068-be-p3-ent-hygiene-mojibake.md) | BE Ent hygiene/mojibake | P3 | Исправлена | be2 | W12 P3-BE-17,18 |
-| [TASK-069](TASK-069-fe-p3-a11y-names.md) | FE a11y names residual | P3 | Открыта | fe1 | W12 P3-FE-01 |
+| [TASK-069](TASK-069-fe-p3-a11y-names.md) | FE a11y names residual | P3 | Исправлена | fe1 | W12 P3-FE-01 |
 | [TASK-070](TASK-070-fe-p3-a11y-structure.md) | FE a11y structure | P3 | Открыта | fe2 | W12 P3-FE-02 |
 | [TASK-071](TASK-071-fe-p3-tokens-i18n.md) | FE tokens + i18n | P3 | Открыта | fe1 | W12 P3-FE-03,04 |
-| [TASK-072](TASK-072-fe-p3-timers-cleanup.md) | FE timers + NaN | P3 | Открыта | fe2 | W12 P3-FE-05,16 |
-| [TASK-073](TASK-073-fe-p3-silent-fail-empty.md) | FE silent fail residual | P3 | Открыта | fe1 | W12 P3-FE-06 |
-| [TASK-074](TASK-074-fe-p3-type-casts.md) | FE type casts | P3 | Открыта | fe2 | W12 P3-FE-07 |
-| [TASK-075](TASK-075-fe-p3-dead-ui-state.md) | FE dead UI/state | P3 | Открыта | fe1 | W12 P3-FE-08 |
-| [TASK-076](TASK-076-fe-p3-perf-stale.md) | FE perf stale | P3 | Открыта | fe2 | W12 P3-FE-09 |
-| [TASK-077](TASK-077-fe-p3-api-auth-naming.md) | FE api/auth/naming | P3 | Открыта | fe1 | W12 P3-FE-10..12 |
-| [TASK-078](TASK-078-fe-p3-docs-spa-ux.md) | FE docs/SPA/preview | P3 | Открыта | docs-writer | W12 P3-FE-13..15 |
+| [TASK-072](TASK-072-fe-p3-timers-cleanup.md) | FE timers + NaN | P3 | Исправлена | fe2 | W12 P3-FE-05,16 |
+| [TASK-073](TASK-073-fe-p3-silent-fail-empty.md) | FE silent fail residual | P3 | Исправлена | fe2 | W12 P3-FE-06 |
+| [TASK-074](TASK-074-fe-p3-type-casts.md) | FE type casts | P3 | Исправлена | fe2 | W12 P3-FE-07 |
+| [TASK-075](TASK-075-fe-p3-dead-ui-state.md) | FE dead UI/state | P3 | Исправлена | fe1 | W12 P3-FE-08 |
+| [TASK-076](TASK-076-fe-p3-perf-stale.md) | FE perf stale | P3 | Исправлена | fe1 | W12 P3-FE-09 |
+| [TASK-077](TASK-077-fe-p3-api-auth-naming.md) | FE api/auth/naming | P3 | Исправлена | fe1 | W12 P3-FE-10..12 |
+| [TASK-078](TASK-078-fe-p3-docs-spa-ux.md) | FE docs/SPA/preview | P3 | Исправлена | fe1 | W12 P3-FE-13..15 |
 | [TASK-079](TASK-079-gdpr-mongo-eraser-fail-closed.md) | GDPR Mongo eraser fail-closed + IT | P2 | Исправлена | be1 | W18-C5-001/002 |
 | [TASK-080](TASK-080-docs-metrics-drift-autotest.md) | Docs metrics drift autotest | P2 | Исправлена | docs-writer | W18-C5 / closes 054 gate |
 

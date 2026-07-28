@@ -2,15 +2,18 @@
  * Виджет «Непрочитанные» — счётчик с визуальным индикатором.
  */
 import { CheckCheck, MailOpen, MessageCircle } from "lucide-react";
-import type { PersonalData } from "@/api/dashboard";
+import {
+	type DashboardWidgetData,
+	isPersonalData,
+} from "@/components/dashboard/widget-data";
 
 interface Props {
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /** Виджет непрочитанных сообщений. */
 export function UnreadMessagesWidget({ data }: Props) {
-	const personalData = data as PersonalData | undefined;
+	const personalData = isPersonalData(data) ? data : undefined;
 	const count = personalData?.unread_count ?? 0;
 
 	if (count === 0) {

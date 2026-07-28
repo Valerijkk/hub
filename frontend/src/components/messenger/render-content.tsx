@@ -157,19 +157,15 @@ export function RenderContent({
 
 	// content_json может быть массивом напрямую (некоторые редакторы Plate так отдают).
 	if (Array.isArray(contentJson)) {
-		const nodes = contentJson as unknown[];
+		const nodes: unknown[] = contentJson;
 		if (nodes.length === 0) return null;
 		return (
 			<div className="prose prose-sm dark:prose-invert max-w-none">
 				{nodes.map((node) => {
 					if (!node || typeof node !== "object" || Array.isArray(node))
 						return null;
-					return (
-						<RenderNode
-							key={nodeKey(node as Record<string, unknown>)}
-							node={node as Record<string, unknown>}
-						/>
-					);
+					const record = node as Record<string, unknown>;
+					return <RenderNode key={nodeKey(record)} node={record} />;
 				})}
 			</div>
 		);

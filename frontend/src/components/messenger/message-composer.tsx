@@ -6,13 +6,14 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { useInvalidateMessages } from "@/hooks/use-invalidate";
 import {
 	applyComposerSuggestion,
 	canSuggestComposer,
 	fetchComposerSuggestion,
-} from "@/hooks/use-composer-ai-suggest";
-import { useInvalidateMessages } from "@/hooks/use-invalidate";
+} from "@/lib/composer-ai-suggest";
 import { toastApiError } from "@/lib/format-api-error";
+import { type PlateDoc, plateDocToContentJson } from "@/lib/plate-doc";
 import { cn } from "@/lib/utils";
 import { useMessengerStore } from "@/stores/messenger-store";
 import { CreatePollDialog } from "./create-poll-dialog";
@@ -61,6 +62,7 @@ interface PlateTextNode {
 interface PlateElementNode {
 	type: string;
 	children: (PlateTextNode | PlateElementNode)[];
+	url?: string;
 }
 
 /**
@@ -110,7 +112,7 @@ function parseMarkdownToPlateChildren(line: string): PlateTextNode[] {
  * Преобразует текст с базовым markdown в Plate JSON документ.
  * Каждая строка -- отдельный параграф.
  */
-function textToPlateJson(raw: string): PlateElementNode {
+function textToPlateJson(raw: string): PlateDoc {
 	const lines = raw.split("\n");
 	const children: PlateElementNode[] = lines.map((line) => ({
 		type: "p" as const,
@@ -312,12 +314,14 @@ export function MessageComposer({
 
 		setIsSending(true);
 		try {
-			const contentJson = (trimmed
-				? textToPlateJson(trimmed)
-				: {
-						type: "doc",
-						children: [{ type: "p", children: [{ text: "" }] }],
-					}) as unknown as Record<string, unknown>;
+			const contentJson = plateDocToContentJson(
+				trimmed
+					? textToPlateJson(trimmed)
+					: {
+							type: "doc",
+							children: [{ type: "p", children: [{ text: "" }] }],
+						},
+			);
 
 			await sendMessage(channelId, {
 				content_json: contentJson,
@@ -445,7 +449,7 @@ export function MessageComposer({
 	const handleGifSend = useCallback(
 		async (gifUrl: string) => {
 			try {
-				const contentJson = {
+				const contentJson = plateDocToContentJson({
 					type: "doc",
 					children: [
 						{
@@ -459,7 +463,7 @@ export function MessageComposer({
 							],
 						},
 					],
-				} as unknown as Record<string, unknown>;
+				});
 				await sendMessage(channelId, {
 					content_json: contentJson,
 					content_text: gifUrl,
@@ -555,6 +559,7 @@ export function MessageComposer({
 								onClick={() => removePendingAttachment(att.fileId)}
 								className="shrink-0 h-4 w-4 flex items-center justify-center rounded-full hover:bg-raised transition-colors"
 								title="Убрать вложение"
+								aria-label="Убрать вложение"
 							>
 								<svg
 									aria-hidden="true"
@@ -703,6 +708,7 @@ export function MessageComposer({
 										type="button"
 										className="flex h-8 w-8 items-center justify-center rounded text-lg hover:bg-accent transition-colors"
 										onClick={() => handleEmojiSelect(emoji)}
+										aria-label={emoji}
 									>
 										{emoji}
 									</button>

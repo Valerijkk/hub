@@ -5,7 +5,7 @@
 
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { CalendarPlus, MessageSquarePlus, Plus, Search } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { personalDefault } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -67,7 +67,13 @@ function PersonalDashboard() {
 
 	const greeting = useMemo(() => getGreeting(), []);
 	const todayDate = useMemo(() => formatTodayDate(), []);
-	const currentTime = useMemo(() => formatTime(), []);
+	const [currentTime, setCurrentTime] = useState(() => formatTime());
+
+	useEffect(() => {
+		const id = window.setInterval(() => setCurrentTime(formatTime()), 30_000);
+		return () => window.clearInterval(id);
+	}, []);
+
 	const displayName =
 		user?.display_name || user?.name || user?.email?.split("@")[0] || "";
 
@@ -225,7 +231,7 @@ function PersonalDashboard() {
 					<WidgetGrid
 						items={items}
 						dashboardType="personal"
-						data={personalData}
+						data={personalData ?? undefined}
 					/>
 				)}
 			</div>

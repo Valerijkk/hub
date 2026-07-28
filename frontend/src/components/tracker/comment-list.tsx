@@ -26,6 +26,22 @@ import i18n from "@/i18n";
 import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 
+/** Plate Value → JSON-объект для API без double-cast. */
+function plateValueToBodyJson(
+	value: Value | undefined,
+): Record<string, unknown> {
+	return { type: "doc", children: value ?? [] };
+}
+
+/** body_json из API → Plate Value с runtime-guard. */
+function bodyJsonToPlateValue(body: unknown): Value {
+	if (Array.isArray(body)) return body as Value;
+	if (!body || typeof body !== "object") return [];
+	const children = (body as Record<string, unknown>).children;
+	if (Array.isArray(children)) return children as Value;
+	return [];
+}
+
 /** Пропсы компонента CommentList. */
 interface CommentListProps {
 	/** ID проекта. */
@@ -53,7 +69,7 @@ export function CommentList({ projectId, issueKey }: CommentListProps) {
 	const createMutation = useMutation({
 		mutationFn: () =>
 			createComment(projectId, issueKey, {
-				body_json: (newBody ?? []) as unknown as Record<string, unknown>,
+				body_json: plateValueToBodyJson(newBody),
 				body_text: extractPlainText(newBody),
 				is_internal: isInternal,
 			}),
@@ -233,7 +249,7 @@ function CommentItem({ comment, onDelete, onReaction }: CommentItemProps) {
 				{/* Тело */}
 				<div className="text-[14px] leading-[1.65] text-t2">
 					<PlateEditor
-						value={comment.body_json as unknown as Value}
+						value={bodyJsonToPlateValue(comment.body_json)}
 						readOnly
 						className="border-none bg-transparent p-0"
 					/>

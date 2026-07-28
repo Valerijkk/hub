@@ -11,10 +11,13 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-import type { ProjectStats } from "@/api/dashboard";
+import {
+	type DashboardWidgetData,
+	isProjectStats,
+} from "@/components/dashboard/widget-data";
 
 interface Props {
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /** Кастомный tooltip для Recharts. */
@@ -46,7 +49,7 @@ function ChartTooltip({
 
 /** Виджет burndown-графика. */
 export function BurndownChartWidget({ data }: Props) {
-	const projectData = data as ProjectStats | undefined;
+	const projectData = isProjectStats(data) ? data : undefined;
 	const burndownData = projectData?.burndown_data ?? [];
 
 	if (burndownData.length === 0) {

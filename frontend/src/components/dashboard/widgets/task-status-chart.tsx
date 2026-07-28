@@ -10,7 +10,10 @@ import {
 	ResponsiveContainer,
 	Tooltip,
 } from "recharts";
-import type { ProjectStats } from "@/api/dashboard";
+import {
+	type DashboardWidgetData,
+	isProjectStats,
+} from "@/components/dashboard/widget-data";
 
 /** Цвета статусов. */
 const STATUS_COLORS = [
@@ -25,7 +28,7 @@ const STATUS_COLORS = [
 ];
 
 interface Props {
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /** Кастомный tooltip. */
@@ -55,7 +58,7 @@ function ChartTooltip({
 
 /** Виджет диаграммы статусов задач. */
 export function TaskStatusChartWidget({ data }: Props) {
-	const projectData = data as ProjectStats | undefined;
+	const projectData = isProjectStats(data) ? data : undefined;
 	const statusMap = projectData?.tasks_by_status ?? {};
 
 	const chartData = Object.entries(statusMap).map(([name, value]) => ({

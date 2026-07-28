@@ -2,7 +2,11 @@
  * Виджет «Мои задачи» — назначенные задачи с приоритетом и статусом.
  */
 import { Circle, CircleCheck, Clock, Inbox } from "lucide-react";
-import type { PersonalData, TaskSummary } from "@/api/dashboard";
+import type { TaskSummary } from "@/api/dashboard";
+import {
+	type DashboardWidgetData,
+	isPersonalData,
+} from "@/components/dashboard/widget-data";
 import { Badge } from "@/components/ui/badge";
 
 /** Цветовые точки приоритетов. */
@@ -45,12 +49,12 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 interface Props {
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /** Виджет списка задач пользователя. */
 export function MyTasksWidget({ data }: Props) {
-	const personalData = data as PersonalData | undefined;
+	const personalData = isPersonalData(data) ? data : undefined;
 	const tasks = personalData?.my_tasks ?? [];
 
 	if (tasks.length === 0) {

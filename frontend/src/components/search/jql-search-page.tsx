@@ -12,9 +12,17 @@ import { ContextHelpTip } from "@/components/help/context-help-tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toastApiError } from "@/lib/format-api-error";
+import { formatApiError, toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 import { JQLEditor } from "./jql-editor";
+
+/** Извлекает JQL-строку из filter_config без unsafe cast. */
+function jqlFromFilterConfig(
+	config: Record<string, unknown> | undefined,
+): string {
+	const jql = config?.jql;
+	return typeof jql === "string" ? jql : "";
+}
 
 // ---------------------------------------------------------------------------
 // Конфигурация отображения
@@ -99,7 +107,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 
 	/** Применение сохранённого фильтра. */
 	const handleApplyFilter = useCallback((filter: SavedFilter) => {
-		const jql = (filter.filter_config as Record<string, string>)?.jql ?? "";
+		const jql = jqlFromFilterConfig(filter.filter_config);
 		if (jql) {
 			setQuery(jql);
 			setSubmittedQuery(jql);
@@ -268,8 +276,7 @@ export function JQLSearchPage({ projectId }: JQLSearchPageProps) {
 			{/* Ошибка */}
 			{error && (
 				<div className="rounded-[var(--r3)] border border-red/20 bg-red/[0.05] p-3 text-[13px] text-red">
-					{(error as { message?: string }).message ??
-						"Ошибка выполнения запроса"}
+					{formatApiError(error)}
 				</div>
 			)}
 

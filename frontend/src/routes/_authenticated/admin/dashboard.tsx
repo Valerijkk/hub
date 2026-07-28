@@ -137,7 +137,11 @@ function AdminDashboard() {
 							</button>
 						</div>
 					) : (
-						<WidgetGrid items={items} dashboardType="admin" data={adminData} />
+						<WidgetGrid
+							items={items}
+							dashboardType="admin"
+							data={adminData ?? undefined}
+						/>
 					)}
 				</TabsContent>
 

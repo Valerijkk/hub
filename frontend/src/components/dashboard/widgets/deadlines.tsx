@@ -2,11 +2,15 @@
  * Виджет «Дедлайны» — задачи с приближающимся due_date.
  */
 import { CalendarCheck, CalendarClock } from "lucide-react";
-import type { PersonalData, TaskSummary } from "@/api/dashboard";
+import type { TaskSummary } from "@/api/dashboard";
+import {
+	type DashboardWidgetData,
+	isPersonalData,
+} from "@/components/dashboard/widget-data";
 import { Badge } from "@/components/ui/badge";
 
 interface Props {
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /** Дней до дедлайна (отрицательное — просрочка). */
@@ -39,7 +43,7 @@ function getDeadlineStyle(days: number): {
 
 /** Виджет дедлайнов. */
 export function DeadlinesWidget({ data }: Props) {
-	const personalData = data as PersonalData | undefined;
+	const personalData = isPersonalData(data) ? data : undefined;
 	const deadlines = personalData?.deadlines ?? [];
 
 	if (deadlines.length === 0) {
@@ -61,7 +65,7 @@ export function DeadlinesWidget({ data }: Props) {
 				return (
 					<div
 						key={task.id}
-						className="group flex items-center justify-between gap-2 rounded-lg border border-border/50 p-2.5 text-sm transition-colors duration-150 hover:bg-accent/50"
+						className="flex items-center justify-between gap-2 rounded-lg border border-border/50 p-2.5 text-sm"
 					>
 						<div className="flex items-center gap-2.5 min-w-0">
 							<CalendarClock

@@ -2,10 +2,13 @@
  * Виджет «System Health» — статусы PG, Redis, NATS, MongoDB, SeaweedFS.
  */
 import { Activity, Server } from "lucide-react";
-import type { AdminStats } from "@/api/dashboard";
+import {
+	type DashboardWidgetData,
+	isAdminStats,
+} from "@/components/dashboard/widget-data";
 
 interface Props {
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /** Конфиг статусов с glow-цветами. */
@@ -42,7 +45,7 @@ const DEFAULT_STATUS = {
 
 /** Виджет здоровья сервисов. */
 export function SystemHealthWidget({ data }: Props) {
-	const adminData = data as AdminStats | undefined;
+	const adminData = isAdminStats(data) ? data : undefined;
 	const health = adminData?.service_health ?? {};
 
 	const services = Object.entries(health);

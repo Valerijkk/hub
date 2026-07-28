@@ -11,10 +11,13 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-import type { ProjectStats } from "@/api/dashboard";
+import {
+	type DashboardWidgetData,
+	isProjectStats,
+} from "@/components/dashboard/widget-data";
 
 interface Props {
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /** Кастомный tooltip. */
@@ -46,7 +49,7 @@ function ChartTooltip({
 
 /** Виджет трендов тестирования. */
 export function TestTrendsWidget({ data }: Props) {
-	const projectData = data as ProjectStats | undefined;
+	const projectData = isProjectStats(data) ? data : undefined;
 	const trends = projectData?.test_trends ?? [];
 
 	if (trends.length === 0) {

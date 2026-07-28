@@ -14,10 +14,14 @@ function clearRateLimitTimer(): void {
 }
 
 function extractApiError(error: unknown): ApiError | null {
-	if (error && typeof error === "object" && "message" in error) {
-		return error as ApiError;
-	}
-	return null;
+	if (!error || typeof error !== "object") return null;
+	const candidate = error as Record<string, unknown>;
+	if (typeof candidate.message !== "string") return null;
+	// Обычный Error/DOMException тоже имеют message — требуем API-маркер.
+	const hasCode = typeof candidate.code === "number";
+	const hasRequestId = typeof candidate.request_id === "string";
+	if (!hasCode && !hasRequestId) return null;
+	return error as ApiError;
 }
 
 function requestIdDescription(requestId?: string): string | undefined {

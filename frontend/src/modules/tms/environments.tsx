@@ -15,9 +15,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { formatEnvConfigValue } from "@/lib/format-env-config";
 import { canMutateProject } from "@/lib/permissions";
 
 const LABELS = ["dev", "staging", "prod", "custom"] as const;
+
+export { formatEnvConfigValue };
 
 /** Страница управления тестовыми окружениями. */
 export function EnvironmentsPage({
@@ -192,7 +195,7 @@ export function EnvironmentsPage({
 								<td className="p-2 text-gray-500">
 									{env.config
 										? Object.entries(env.config)
-												.map(([k, v]) => `${k}: ${v}`)
+												.map(([k, v]) => `${k}: ${formatEnvConfigValue(v)}`)
 												.join(", ")
 										: "-"}
 								</td>

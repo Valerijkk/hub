@@ -141,25 +141,28 @@ export function isStickerMessage(
 	contentJson?: Record<string, unknown> | null,
 ): boolean {
 	if (!contentJson) return false;
-	const children = contentJson.children as unknown[];
+	const children = contentJson.children;
 	if (!Array.isArray(children) || children.length !== 1) return false;
-	const child = children[0] as Record<string, unknown> | undefined;
-	return child?.type === "sticker";
+	const child = children[0];
+	if (!child || typeof child !== "object" || Array.isArray(child)) return false;
+	return (child as Record<string, unknown>).type === "sticker";
 }
 
 /** Извлекает данные стикера из content_json. */
 export function extractStickerData(
 	contentJson: Record<string, unknown>,
 ): StickerData | null {
-	const children = contentJson.children as unknown[];
+	const children = contentJson.children;
 	if (!Array.isArray(children) || children.length !== 1) return null;
-	const child = children[0] as Record<string, unknown>;
-	if (child?.type !== "sticker") return null;
+	const child = children[0];
+	if (!child || typeof child !== "object" || Array.isArray(child)) return null;
+	const node = child as Record<string, unknown>;
+	if (node.type !== "sticker") return null;
 	return {
-		pack_id: String(child.pack_id ?? ""),
-		sticker_id: String(child.sticker_id ?? ""),
-		emoji: String(child.emoji ?? ""),
-		label: String(child.label ?? ""),
+		pack_id: String(node.pack_id ?? ""),
+		sticker_id: String(node.sticker_id ?? ""),
+		emoji: String(node.emoji ?? ""),
+		label: String(node.label ?? ""),
 	};
 }
 
@@ -255,11 +258,18 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
 			>
 				<div className="flex flex-col max-h-[380px]">
 					{/* Табы паков */}
-					<div className="flex gap-0.5 px-2 py-1.5 border-b border-border/50 bg-raised/20">
+					<div
+						role="tablist"
+						aria-label="Наборы стикеров"
+						className="flex gap-0.5 px-2 py-1.5 border-b border-border/50 bg-raised/20"
+					>
 						{STICKER_PACKS.map((pack) => (
 							<button
 								key={pack.id}
 								type="button"
+								role="tab"
+								aria-selected={activePackId === pack.id}
+								aria-label={pack.name}
 								className={cn(
 									"flex items-center justify-center h-8 w-8 rounded-md text-lg transition-colors",
 									activePackId === pack.id
@@ -295,6 +305,7 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
 									)}
 									onClick={() => handleSelect(activePack, sticker)}
 									title={sticker.label}
+									aria-label={sticker.label}
 								>
 									<span className="text-4xl leading-none select-none">
 										{sticker.emoji}

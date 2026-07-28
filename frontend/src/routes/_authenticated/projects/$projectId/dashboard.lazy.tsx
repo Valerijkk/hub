@@ -150,7 +150,7 @@ function ProjectDashboard() {
 					items={items}
 					dashboardType="project"
 					projectId={projectId}
-					data={projectData}
+					data={projectData ?? undefined}
 				/>
 			)}
 		</div>

@@ -29,6 +29,7 @@ import {
 } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import type { LayoutItem } from "@/api/dashboard";
+import type { DashboardWidgetData } from "@/components/dashboard/widget-data";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -79,7 +80,7 @@ function ChartWidgetSkeleton() {
 
 /** Определение виджета: компонент, название, иконка, акцентный градиент, ограничения размеров. */
 interface WidgetDefinition {
-	component: React.ComponentType<{ data?: unknown }>;
+	component: React.ComponentType<{ data?: DashboardWidgetData }>;
 	name: string;
 	icon: LucideIcon;
 	accent: string;
@@ -178,7 +179,7 @@ interface WidgetGridProps {
 	/** ID проекта (для проектных дашбордов). */
 	projectId?: string;
 	/** Данные для виджетов. */
-	data?: unknown;
+	data?: DashboardWidgetData;
 }
 
 /**
