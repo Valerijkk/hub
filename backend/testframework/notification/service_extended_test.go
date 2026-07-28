@@ -31,13 +31,15 @@ func TestBuildPushURL(t *testing.T) {
 func TestNotifToDTO(t *testing.T) {
 	projectID := uuid.New()
 	actorID := uuid.New()
+	entityID := uuid.New()
 	now := time.Now()
 	dto := notification.ExportNotifToDTO(&ent.Notification{
 		ID: uuid.New(), Type: notification.TypeAssigned, Title: "Assigned", Body: "body",
-		EntityType: "issue", EntityID: "iss-1", ProjectID: &projectID, ActorID: &actorID,
+		EntityType: "issue", EntityID: &entityID, ProjectID: &projectID, ActorID: &actorID,
 		IsRead: false, IsUrgent: true, CreatedAt: now,
 	})
 	assert.Equal(t, notification.TypeAssigned, dto.Type)
+	assert.Equal(t, entityID.String(), dto.EntityID)
 	assert.True(t, dto.IsUrgent)
 	require.NotNil(t, dto.ProjectID)
 }

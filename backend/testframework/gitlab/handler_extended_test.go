@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -91,10 +90,9 @@ func TestHandler_RegisterRoutes_WebhookAndIntegrations(t *testing.T) {
 	env := newGitLabRoutesEnv(t)
 	base := "/api/projects/" + env.projectID.String() + "/gitlab"
 
-	payload := fmt.Sprintf(
-		`{"project_path":"group/routes","access_token":"glpat-routes","webhook_secret":"route-secret","gitlab_url":%q}`,
-		env.gitlabURL,
-	)
+	// gitlab_url не задаём: loopback из httptest блокируется ValidateOutboundURL (SEC-04);
+	// дефолт https://gitlab.com проходит SSRF-guard. webhook_secret обязателен (A2W8-2-007).
+	payload := `{"project_path":"group/routes","access_token":"glpat-routes","webhook_secret":"route-secret"}`
 	req := httptest.NewRequest(http.MethodPost, base+"/integrations", bytes.NewReader([]byte(payload)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := env.app.Test(req)
@@ -105,6 +103,7 @@ func TestHandler_RegisterRoutes_WebhookAndIntegrations(t *testing.T) {
 	var created gitlab.IntegrationResponse
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
 	require.NotEmpty(t, created.ID)
+	_ = env.gitlabURL // test server остаётся для HTTP-клиента сервиса
 
 	req = httptest.NewRequest(http.MethodGet, base+"/integrations", nil)
 	resp, err = env.app.Test(req)
