@@ -1,4 +1,4 @@
-﻿# Бэклог задач
+# Бэклог задач
 
 > Единый вход для агентов и владельца. Одна папка, одна таблица, один формат.
 > Обновлено: 2026-07-28 (TASK-008 стадия B · W12)
@@ -13,7 +13,7 @@
 
 | ID | Задача | Приоритет | Статус | Исполнитель | Источник |
 |----|--------|-----------|--------|-------------|----------|
-| [TASK-008](TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | В работе (B: W13 P0✅ → W14 P1) | Grok + субагенты | Owner 2026-07-28 |
+| [TASK-008](TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | В работе (B: P0/P1✅ → P2 TASK-036…056) | Grok + субагенты | Owner 2026-07-28 |
 | [TASK-009](TASK-009-project-routes-rbac.md) | project routes без RBAC | **P0** | На проверке | be1 | W1-A5-001 |
 | [TASK-010](TASK-010-promote-to-issue-rbac.md) | promote-to-issue без PermTaskCreate | **P0** | На проверке | be1 | W3-A2-001 |
 | [TASK-011](TASK-011-webhook-event-match.md) | webhook UI events ≠ NATS subjects | **P0** | На проверке | be1 | W4-A5-001 |
@@ -41,6 +41,27 @@
 | [TASK-033](TASK-033-fe-error-empty-auth-race.md) | FE error≠empty + auth race | P1 | На проверке | fe2 | W12 FE-P1-ERROR-AS-EMPTY |
 | [TASK-034](TASK-034-fe-a11y-nested-sidebar-notifications.md) | FE a11y nested interactive | P1 | На проверке | fe2 | W12 FE-P1-A11Y-CONTROLS |
 | [TASK-035](TASK-035-fe-tms-compare-and-docs-testpath.md) | FE TMS compare + docs drift | P1 | На проверке | fe1 | W12 FE-P1-TMS-DOCS |
+| [TASK-036](TASK-036-be-p2-dto-error-contract.md) | BE DTO validator + error contract | P2 | Открыта | be1 | W12 P2-BE-01,07 |
+| [TASK-037](TASK-037-be-p2-authz-ent-negative-tests.md) | BE Ent-negative authz tests | P2 | Открыта | be2 | W12 P2-BE-02 |
+| [TASK-038](TASK-038-be-p2-ol-softdelete-tx-lists.md) | BE OL/soft-mutate/tx/lists | P2 | Открыта | be1 | W12 P2-BE-03..06 |
+| [TASK-039](TASK-039-be-p2-soft-delete-secrets.md) | BE soft-delete + secrets | P2 | Открыта | be2 | W12 P2-BE-08,09 |
+| [TASK-040](TASK-040-be-p2-fail-closed-ratelimit.md) | BE fail-closed + rate-limit | P2 | Открыта | be1 | W12 P2-BE-10 |
+| [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | Открыта | be2 | W12 P2-BE-11 |
+| [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | Открыта | be1 | W12 P2-BE-12..15 |
+| [TASK-043](TASK-043-be-p2-platform-outbox-obs.md) | BE platform outbox/obs | P2 | Открыта | be2 | W12 P2-BE-16 |
+| [TASK-044](TASK-044-be-p2-ai-search.md) | BE AI privacy + search | P2 | Открыта | be1 | W12 P2-BE-17,18 |
+| [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | Открыта | be2 | W12 P2-BE-19..21 |
+| [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Открыта | be1 | W12 P2-BE-22 |
+| [TASK-047](TASK-047-fe-p2-error-vs-empty.md) | FE error≠empty sweep | P2 | Открыта | fe1 | W12 P2-FE-01 |
+| [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | Открыта | fe2 | W12 P2-FE-02 |
+| [TASK-049](TASK-049-fe-p2-a11y-names-dialogs.md) | FE a11y names/dialogs | P2 | Открыта | fe1 | W12 P2-FE-03,04 |
+| [TASK-050](TASK-050-fe-p2-tokens-dead-ui.md) | FE tokens/dead UI/authz | P2 | Открыта | fe2 | W12 P2-FE-05,06,16 |
+| [TASK-051](TASK-051-fe-p2-effects-hooks-race.md) | FE effects/hooks race | P2 | Открыта | fe1 | W12 P2-FE-07 |
+| [TASK-052](TASK-052-fe-p2-api-dto-gaps.md) | FE API DTO gaps | P2 | Открыта | fe2 | W12 P2-FE-08 |
+| [TASK-053](TASK-053-fe-p2-auth-ws-upload.md) | FE auth/WS/upload | P2 | Открыта | fe1 | W12 P2-FE-09..11 |
+| [TASK-054](TASK-054-fe-p2-docs-metrics-drift.md) | Docs metrics/wiring drift | P2 | Открыта | docs-writer | W12 P2-FE-12 |
+| [TASK-055](TASK-055-fe-p2-shell-tracker-ux.md) | FE shell + tracker UX | P2 | Открыта | fe2 | W12 P2-FE-13,14 |
+| [TASK-056](TASK-056-fe-p2-i18n-push-rooms.md) | FE i18n/push/rooms | P2 | Открыта | fe1 | W12 P2-FE-15 |
 
 ## Закрытые
 
