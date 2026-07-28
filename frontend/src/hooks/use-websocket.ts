@@ -72,39 +72,42 @@ export function useWsEventListener(handler: EventHandler) {
 
 /**
  * useRooms подписывается на список WebSocket-комнат.
- * Автоматически отписывается при изменении списка комнат или размонтировании компонента.
- * Должен вызываться как хук (не внутри callbacks).
+ * Сравнивает rooms по содержимому (join), а не по reference — иначе churn
+ * subscribe/unsubscribe каждый render (P2-FE-15 / W11-A4-007).
  *
  * @param rooms - массив имён комнат (например, ["channel:abc", "project:xyz"])
  */
 export function useRooms(rooms: string[]) {
 	const { connected, subscribe, unsubscribe } = useWsStore();
 	const prevRooms = useRef<string[]>([]);
+	const roomsKey = rooms.join("\0");
 
 	useEffect(() => {
 		if (!connected) return;
 
+		const nextRooms = roomsKey ? roomsKey.split("\0") : [];
+
 		// Отписываемся от комнат, которые больше не нужны.
 		for (const room of prevRooms.current) {
-			if (!rooms.includes(room)) {
+			if (!nextRooms.includes(room)) {
 				unsubscribe(room);
 			}
 		}
 
 		// Подписываемся на новые комнаты.
-		for (const room of rooms) {
+		for (const room of nextRooms) {
 			if (!prevRooms.current.includes(room)) {
 				subscribe(room);
 			}
 		}
 
-		prevRooms.current = rooms;
+		prevRooms.current = nextRooms;
 
 		return () => {
-			for (const room of rooms) {
+			for (const room of nextRooms) {
 				unsubscribe(room);
 			}
 			prevRooms.current = [];
 		};
-	}, [rooms, connected, subscribe, unsubscribe]);
+	}, [roomsKey, connected, subscribe, unsubscribe]);
 }
