@@ -1,4 +1,3 @@
-import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
@@ -20,6 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { computeInsertRank } from "@/lib/board-rank";
 import { toastApiError } from "@/lib/format-api-error";
 import { useBoardStore } from "@/stores/board-store";
 
@@ -108,36 +108,23 @@ function BoardPage() {
 		},
 	});
 
-	// Обработчик drop в колонку
+	// Единственный путь moveIssue: BoardColumn dropTarget (W10-A4-001).
+	// Rank от соседей целевой колонки (W10-A4-002) — не константа.
 	const handleDrop = useCallback(
-		(issueKey: string, statusId: string, _index: number) => {
+		(issueKey: string, statusId: string, index: number) => {
+			const col = boardData?.columns.find((c) => c.status.id === statusId);
+			const neighbors = (col?.issues ?? []).filter(
+				(i) => i.issue_key !== issueKey,
+			);
+			const rank = computeInsertRank(neighbors, index);
 			moveCardMutation.mutate({
 				issueKey,
 				statusId,
-				rank: "0|aaaaaa:",
+				rank,
 			});
 		},
-		[moveCardMutation],
+		[moveCardMutation, boardData],
 	);
-
-	// Глобальный монитор drag-and-drop
-	useEffect(() => {
-		return monitorForElements({
-			onDrop: ({ source, location }) => {
-				const dest = location.current.dropTargets[0];
-				if (!dest) return;
-				const issueKey = source.data.issueKey as string;
-				const statusId = dest.data.statusId as string;
-				const currentStatusId = source.data.currentStatusId as string;
-				if (currentStatusId === statusId) return;
-				moveCardMutation.mutate({
-					issueKey,
-					statusId,
-					rank: "0|aaaaaa:",
-				});
-			},
-		});
-	}, [moveCardMutation]);
 
 	// Фильтрация задач в колонках
 	const filteredColumns = useMemo(() => {
@@ -349,7 +336,7 @@ function BoardPage() {
  */
 function reorderBoard(
 	board: BoardDataResponse,
-	data: { issueKey: string; statusId: string },
+	data: { issueKey: string; statusId: string; rank: string },
 ): BoardDataResponse {
 	const columns = board.columns.map((col) => ({
 		...col,
@@ -368,7 +355,11 @@ function reorderBoard(
 	if (movedIssue) {
 		const targetCol = columns.find((c) => c.status.id === data.statusId);
 		if (targetCol) {
-			targetCol.issues.push({ ...movedIssue, status: data.statusId });
+			targetCol.issues.push({
+				...movedIssue,
+				status: data.statusId,
+				rank: data.rank,
+			});
 		}
 	}
 
