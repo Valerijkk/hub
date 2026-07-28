@@ -47,8 +47,15 @@ const (
 // Phase-14: Repository теперь интерфейс (а не *struct), что позволяет
 // подменять реализацию в тестах без cgo-зависимостей Ent.
 type AuditService struct {
-	repo  Repository
-	redis *redis.Client // optional — используется для инвалидации auth-кэшей (ME-13).
+	repo       Repository
+	redis      *redis.Client // optional — используется для инвалидации auth-кэшей (ME-13).
+	msgEraser  MessageEraser // optional — Mongo messages by sender_id (P1-BE-34).
+}
+
+// MessageEraser удаляет персональные сообщения пользователя (Mongo messenger).
+// Опциональная зависимость: если nil, шаг пропускается (тесты без Mongo).
+type MessageEraser interface {
+	DeleteMessagesBySender(ctx context.Context, senderID uuid.UUID) (int64, error)
 }
 
 // NewAuditService создаёт новый сервис аудита.
@@ -58,6 +65,11 @@ type AuditService struct {
 // применён по истечении TTL (~30s).
 func NewAuditService(repo Repository, rdb *redis.Client) *AuditService {
 	return &AuditService{repo: repo, redis: rdb}
+}
+
+// SetMessageEraser подключает стирание Mongo-сообщений при GDPR erase (P1-BE-34).
+func (s *AuditService) SetMessageEraser(e MessageEraser) {
+	s.msgEraser = e
 }
 
 // IsSystemAdmin возвращает true, если пользователь — системный администратор.
@@ -407,19 +419,17 @@ func (s *AuditService) ReassignTasks(ctx context.Context, fromUserID, toUserID u
 
 // DeleteUserGDPR выполняет каскадное удаление пользователя в соответствии с GDPR:
 // 1. Переназначает задачи на указанного пользователя (или очищает assignee)
-// 2. Удаляет комментарии пользователя
-// 3. Удаляет все сессии
-// 4. Hard-delete записи пользователя
-// 5. Записывает аудит-лог "GDPR deletion"
+// 2. Удаляет комментарии/реакции/сессии/activity/time_logs
+// 3. Удаляет файлы, memberships; scrub IP/UA в audit_log
+// 4. (опционально) Mongo messages по sender_id
+// 5. Hard-delete пользователя — только если весь каскад успешен
+// 6. Записывает аудит-лог "GDPR deletion"
 //
 // A1-004 / ORG-04: target=founder запрещён, если actor != target.
 // Founder может удалить сам себя (свой GDPR-запрос).
 //
-// BE-H6: ошибки каскадного удаления (reactions, sessions, time_logs,
-// activity_logs, comments) накапливаются через errors.Join и возвращаются
-// после Hard-delete пользователя — раньше они молча проглатывались
-// (`_, _ = ...`), и handler возвращал 200 даже при частично проваленной
-// GDPR-операции, что нарушает требование "right to erasure".
+// P1-BE-34 / W6-A4-002: при любой ошибке каскада HardDelete НЕ вызывается
+// (раньше cascadeErrs копились и HardDelete мог пройти при 500 в handler).
 func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.UUID, reassignTo *uuid.UUID) error {
 	role, err := s.repo.GetUserSystemRole(ctx, userID)
 	if err != nil {
@@ -434,7 +444,6 @@ func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.
 		if _, err := s.repo.ReassignAssignedIssues(ctx, userID, *reassignTo); err != nil {
 			return fmt.Errorf("переназначение задач (GDPR): %w", err)
 		}
-		// Также переназначаем задачи где пользователь reporter
 		if _, err := s.repo.ReassignReportedIssues(ctx, userID, *reassignTo); err != nil {
 			return fmt.Errorf("переназначение reporter-задач (GDPR): %w", err)
 		}
@@ -444,66 +453,100 @@ func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.
 		}
 	}
 
-	// Каскадные удаления связанных сущностей. Ошибки накапливаем —
-	// часть данных пользователя может остаться, и админ должен узнать.
-	var cascadeErrs []error
-
-	// 2. Удаляем комментарии пользователя
-	if n, err := s.repo.DeleteUserComments(ctx, userID); err != nil {
-		slog.Error("delete comments (GDPR)", "error", err, "user_id", userID)
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("delete comments: %w", err))
-	} else if n > 0 {
-		slog.Info("deleted user comments (GDPR)", "count", n, "user_id", userID)
+	// Каскад: любая ошибка → abort до HardDelete (P1-BE-34).
+	run := func(step string, fn func() error) error {
+		if err := fn(); err != nil {
+			slog.Error("GDPR cascade step failed", "step", step, "error", err, "user_id", userID)
+			return fmt.Errorf("%s: %w", step, err)
+		}
+		return nil
 	}
 
-	// 3. Удаляем реакции пользователя
-	if _, err := s.repo.DeleteUserReactions(ctx, userID); err != nil {
-		slog.Error("delete reactions (GDPR)", "error", err, "user_id", userID)
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("delete reactions: %w", err))
+	if err := run("delete comments", func() error {
+		_, e := s.repo.DeleteUserComments(ctx, userID)
+		return e
+	}); err != nil {
+		return err
+	}
+	if err := run("delete reactions", func() error {
+		_, e := s.repo.DeleteUserReactions(ctx, userID)
+		return e
+	}); err != nil {
+		return err
+	}
+	if err := run("delete sessions", func() error {
+		_, e := s.repo.DeleteUserSessions(ctx, userID)
+		return e
+	}); err != nil {
+		return err
+	}
+	if err := run("delete activity_logs", func() error {
+		_, e := s.repo.DeleteUserActivityLogs(ctx, userID)
+		return e
+	}); err != nil {
+		return err
+	}
+	if err := run("delete time_logs", func() error {
+		_, e := s.repo.DeleteUserTimeLogs(ctx, userID)
+		return e
+	}); err != nil {
+		return err
+	}
+	if err := run("delete files", func() error {
+		_, e := s.repo.DeleteUserFiles(ctx, userID)
+		return e
+	}); err != nil {
+		return err
+	}
+	if err := run("delete project memberships", func() error {
+		_, e := s.repo.DeleteUserProjectMemberships(ctx, userID)
+		return e
+	}); err != nil {
+		return err
+	}
+	if err := run("delete channel memberships", func() error {
+		_, e := s.repo.DeleteUserChannelMemberships(ctx, userID)
+		return e
+	}); err != nil {
+		return err
+	}
+	if err := run("delete team memberships", func() error {
+		_, e := s.repo.DeleteUserTeamMemberships(ctx, userID)
+		return e
+	}); err != nil {
+		return err
+	}
+	if err := run("scrub audit PII", func() error {
+		_, e := s.repo.ScrubUserAuditPII(ctx, userID)
+		return e
+	}); err != nil {
+		return err
 	}
 
-	// 4. Удаляем все сессии
-	if _, err := s.repo.DeleteUserSessions(ctx, userID); err != nil {
-		slog.Error("delete sessions (GDPR)", "error", err, "user_id", userID)
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("delete sessions: %w", err))
-	}
-
-	// 5. Удаляем логи активности пользователя
-	if _, err := s.repo.DeleteUserActivityLogs(ctx, userID); err != nil {
-		slog.Error("delete activity_logs (GDPR)", "error", err, "user_id", userID)
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("delete activity_logs: %w", err))
-	}
-
-	// 6. Удаляем записи времени пользователя
-	if _, err := s.repo.DeleteUserTimeLogs(ctx, userID); err != nil {
-		slog.Error("delete time_logs (GDPR)", "error", err, "user_id", userID)
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("delete time_logs: %w", err))
-	}
-
-	// 7. Записываем аудит-лог перед удалением пользователя
-	if s.repo != nil {
-		if _, err := s.repo.CreateAuditLog(ctx, "gdpr_deletion", "user", userID.String(),
-			&userID, nil, map[string]interface{}{"deleted_user_id": userID.String()}, "", ""); err != nil {
-			slog.Error("create gdpr audit_log", "error", err, "user_id", userID)
-			cascadeErrs = append(cascadeErrs, fmt.Errorf("create audit_log: %w", err))
+	if s.msgEraser != nil {
+		if err := run("delete mongo messages", func() error {
+			_, e := s.msgEraser.DeleteMessagesBySender(ctx, userID)
+			return e
+		}); err != nil {
+			return err
 		}
 	}
 
-	// 8. Hard-delete пользователя
+	// Аудит до HardDelete — actor в details (accountability).
+	if _, err := s.repo.CreateAuditLog(ctx, "gdpr_deletion", "user", userID.String(),
+		&actorID, nil, map[string]interface{}{
+			"deleted_user_id": userID.String(),
+			"deleted_by":      actorID.String(),
+		}, "", ""); err != nil {
+		slog.Error("create gdpr audit_log", "error", err, "user_id", userID)
+		return fmt.Errorf("create audit_log: %w", err)
+	}
+
 	if err := s.repo.HardDeleteUser(ctx, userID); err != nil {
-		cascadeErrs = append(cascadeErrs, fmt.Errorf("удаление пользователя (GDPR): %w", err))
-		return errors.Join(cascadeErrs...)
+		return fmt.Errorf("удаление пользователя (GDPR): %w", err)
 	}
 
-	if len(cascadeErrs) > 0 {
-		// Пользователь удалён, но часть связанных данных не очистилась —
-		// возвращаем combined error, чтобы handler вернул 500 и админ
-		// видел, что именно не удалось зачистить.
-		slog.Warn("user deleted (GDPR) with cascade errors", "user_id", userID, "cascade_error_count", len(cascadeErrs))
-		return errors.Join(cascadeErrs...)
-	}
-
-	slog.Info("user deleted (GDPR)", "user_id", userID)
+	slog.Info("user deleted (GDPR)", "user_id", userID, "actor_id", actorID)
 	return nil
 }
 

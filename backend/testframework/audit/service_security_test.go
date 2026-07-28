@@ -188,6 +188,17 @@ func (m *mockAuditRepo) DeleteUserActivityLogs(context.Context, uuid.UUID) (int,
 	return 0, nil
 }
 func (m *mockAuditRepo) DeleteUserTimeLogs(context.Context, uuid.UUID) (int, error) { return 0, nil }
+func (m *mockAuditRepo) DeleteUserFiles(context.Context, uuid.UUID) (int, error)    { return 0, nil }
+func (m *mockAuditRepo) DeleteUserProjectMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (m *mockAuditRepo) DeleteUserChannelMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (m *mockAuditRepo) DeleteUserTeamMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (m *mockAuditRepo) ScrubUserAuditPII(context.Context, uuid.UUID) (int, error) { return 0, nil }
 func (m *mockAuditRepo) HardDeleteUser(context.Context, uuid.UUID) error            { return nil }
 func (m *mockAuditRepo) IsSystemAdmin(context.Context, uuid.UUID) (bool, error)     { return false, nil }
 func (m *mockAuditRepo) GetUserSystemRole(context.Context, uuid.UUID) (user.SystemRole, error) {

@@ -10,15 +10,18 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/activitylog"
 	"github.com/valerii/hub/backend/ent/auditlog"
+	"github.com/valerii/hub/backend/ent/channelmember"
 	"github.com/valerii/hub/backend/ent/comment"
 	"github.com/valerii/hub/backend/ent/filemetadata"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/newspost"
 	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/reaction"
 	"github.com/valerii/hub/backend/ent/scheduledcall"
 	"github.com/valerii/hub/backend/ent/session"
 	"github.com/valerii/hub/backend/ent/systemsetting"
+	"github.com/valerii/hub/backend/ent/teammember"
 	"github.com/valerii/hub/backend/ent/testcase"
 	"github.com/valerii/hub/backend/ent/timelog"
 	"github.com/valerii/hub/backend/ent/user"
@@ -80,6 +83,12 @@ type Repository interface {
 	DeleteUserReactions(ctx context.Context, userID uuid.UUID) (int, error)
 	DeleteUserActivityLogs(ctx context.Context, userID uuid.UUID) (int, error)
 	DeleteUserTimeLogs(ctx context.Context, userID uuid.UUID) (int, error)
+	// P1-BE-34 / W6-A4-001: расширенный GDPR-каскад.
+	DeleteUserFiles(ctx context.Context, userID uuid.UUID) (int, error)
+	DeleteUserProjectMemberships(ctx context.Context, userID uuid.UUID) (int, error)
+	DeleteUserChannelMemberships(ctx context.Context, userID uuid.UUID) (int, error)
+	DeleteUserTeamMemberships(ctx context.Context, userID uuid.UUID) (int, error)
+	ScrubUserAuditPII(ctx context.Context, userID uuid.UUID) (int, error)
 	HardDeleteUser(ctx context.Context, userID uuid.UUID) error
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 	// GetUserSystemRole — для GDPR founder-guard (A1-004).
@@ -612,6 +621,45 @@ func (r *entRepository) DeleteUserTimeLogs(ctx context.Context, userID uuid.UUID
 	return r.client.TimeLog.Delete().
 		Where(timelog.HasUserWith(user.IDEQ(userID))).
 		Exec(ctx)
+}
+
+// DeleteUserFiles удаляет FileMetadata, загруженные пользователем (GDPR / W6-A4-001).
+func (r *entRepository) DeleteUserFiles(ctx context.Context, userID uuid.UUID) (int, error) {
+	return r.client.FileMetadata.Delete().
+		Where(filemetadata.HasUploaderWith(user.IDEQ(userID))).
+		Exec(ctx)
+}
+
+// DeleteUserProjectMemberships удаляет членства пользователя в проектах.
+func (r *entRepository) DeleteUserProjectMemberships(ctx context.Context, userID uuid.UUID) (int, error) {
+	return r.client.ProjectMember.Delete().
+		Where(projectmember.HasUserWith(user.IDEQ(userID))).
+		Exec(ctx)
+}
+
+// DeleteUserChannelMemberships удаляет членства пользователя в каналах.
+func (r *entRepository) DeleteUserChannelMemberships(ctx context.Context, userID uuid.UUID) (int, error) {
+	return r.client.ChannelMember.Delete().
+		Where(channelmember.HasUserWith(user.IDEQ(userID))).
+		Exec(ctx)
+}
+
+// DeleteUserTeamMemberships удаляет членства пользователя в командах.
+func (r *entRepository) DeleteUserTeamMemberships(ctx context.Context, userID uuid.UUID) (int, error) {
+	return r.client.TeamMember.Delete().
+		Where(teammember.HasUserWith(user.IDEQ(userID))).
+		Exec(ctx)
+}
+
+// ScrubUserAuditPII очищает IP/UA и отвязывает user_id в audit_log (оставляя
+// факт действия для accountability без персональных идентификаторов).
+func (r *entRepository) ScrubUserAuditPII(ctx context.Context, userID uuid.UUID) (int, error) {
+	return r.client.AuditLog.Update().
+		Where(auditlog.UserIDEQ(userID)).
+		ClearIPAddress().
+		ClearUserAgent().
+		ClearUserID().
+		Save(ctx)
 }
 
 // HardDeleteUser окончательно удаляет запись пользователя.

@@ -1,6 +1,6 @@
 ﻿# TASK-023 — RBAC cache invalidate + GDPR erase atomic
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Исправлена**  
 > Источник: TASK-008 W12 · Classes: P1-BE-33..34 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
 ## [OUTCOME]
@@ -9,7 +9,7 @@
 
 ## [ROLE]
 
-- Role: be1
+- Role: be2
 - Responsibility: фикс + тесты на слое guard
 - Handoff to: стадия C (мутация независимым агентом)
 
@@ -43,3 +43,19 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [EXECUTION NOTES — 2026-07-28 be2]
+
+### P1-BE-33 (RBAC)
+- `UpdateCustomRole` / `DeleteCustomRole`: ошибки list/clear/invalidate пробрасываются (+ project invalidate fallback)
+- Full-mask cache hit перепроверяет `system_role` (demote → miss / 403)
+- `InvalidateUser` / `InvalidateUserCache` для SCAN по user
+
+### P1-BE-34 (audit GDPR)
+- Каскад abort до `HardDelete` при любой ошибке шага
+- Расширение: files, project/channel/team memberships, scrub audit IP/UA/user_id
+- Опциональный `MessageEraser` (Mongo `sender_id`); `SetMessageEraser` / `NewMongoMessageEraser`
+- Residual: wiring `SetMessageEraser(NewMongoMessageEraser(mongoDB))` вне scope файлов задачи
+
+### Tests
+`go test -tags hubtest -race -count=1 -timeout=300s ./testframework/rbac/... ./testframework/audit/...` → ok

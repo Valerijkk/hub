@@ -4,7 +4,6 @@ package audit_test
 import (
 	"github.com/valerii/hub/backend/internal/audit"
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -14,8 +13,7 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
-// gdprStubRepo — минимальный stub audit.Repository для проверки BE-H6:
-// ошибки каскадного удаления должны накапливаться и возвращаться через errors.Join.
+// gdprStubRepo — минимальный stub audit.Repository для GDPR-каскада (P1-BE-34).
 type gdprStubRepo struct {
 	failReactions bool
 	failTimeLogs  bool
@@ -127,6 +125,17 @@ func (s *gdprStubRepo) DeleteUserTimeLogs(context.Context, uuid.UUID) (int, erro
 	}
 	return 0, nil
 }
+func (s *gdprStubRepo) DeleteUserFiles(context.Context, uuid.UUID) (int, error) { return 0, nil }
+func (s *gdprStubRepo) DeleteUserProjectMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (s *gdprStubRepo) DeleteUserChannelMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (s *gdprStubRepo) DeleteUserTeamMemberships(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (s *gdprStubRepo) ScrubUserAuditPII(context.Context, uuid.UUID) (int, error) { return 0, nil }
 func (s *gdprStubRepo) HardDeleteUser(context.Context, uuid.UUID) error { return nil }
 func (s *gdprStubRepo) IsSystemAdmin(context.Context, uuid.UUID) (bool, error) {
 	return false, nil
@@ -135,28 +144,34 @@ func (s *gdprStubRepo) GetUserSystemRole(context.Context, uuid.UUID) (user.Syste
 	return user.SystemRoleMember, nil
 }
 
-// TestDeleteUserGDPR_JoinsCascadeErrors — BE-H6: частичные ошибки каскада
-// не должны проглатываться; handler должен получить combined error.
-func TestDeleteUserGDPR_JoinsCascadeErrors(t *testing.T) {
+// TestDeleteUserGDPR_CascadeFailAbortsHardDelete — P1-BE-34 / W6-A4-002:
+// ошибка каскада → HardDelete не вызывается (раньше пользователь мог быть
+// стёрт при cascadeErrs != nil).
+func TestDeleteUserGDPR_CascadeFailAbortsHardDelete(t *testing.T) {
 	userID := uuid.New()
-	svc := audit.NewAuditService(&gdprStubRepo{
-		failReactions: true,
-		failTimeLogs:  true,
-	}, nil)
+	repo := &gdprCascadeTrackingRepo{
+		gdprStubRepo:  gdprStubRepo{failReactions: true},
+		hardDeleteIDs: nil,
+	}
+	svc := audit.NewAuditService(repo, nil)
 
 	err := svc.DeleteUserGDPR(context.Background(), uuid.New(), userID, nil)
 	if err == nil {
-		t.Fatal("expected joined cascade errors, got nil")
+		t.Fatal("expected cascade error, got nil")
 	}
+	if len(repo.hardDeleteIDs) != 0 {
+		t.Fatalf("HardDelete must not run on cascade fail, got %v", repo.hardDeleteIDs)
+	}
+}
 
-	var joined interface{ Unwrap() []error }
-	if !errors.As(err, &joined) {
-		t.Fatalf("expected errors.Join aggregate, got %T: %v", err, err)
-	}
-	unwrapped := joined.Unwrap()
-	if len(unwrapped) != 2 {
-		t.Fatalf("expected 2 cascade errors, got %d: %v", len(unwrapped), unwrapped)
-	}
+type gdprCascadeTrackingRepo struct {
+	gdprStubRepo
+	hardDeleteIDs []uuid.UUID
+}
+
+func (r *gdprCascadeTrackingRepo) HardDeleteUser(_ context.Context, id uuid.UUID) error {
+	r.hardDeleteIDs = append(r.hardDeleteIDs, id)
+	return nil
 }
 
 // TestDaysRemaining проверяет вычисление оставшихся дней до окончательного удаления.
