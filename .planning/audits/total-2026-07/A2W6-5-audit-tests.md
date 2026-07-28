@@ -43,15 +43,15 @@ REGRESS: **0**. assert-free: **не найдено**.
 
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|-----|-------------|----------|---------------|------------|
-| A2W6-A5-001 | RESIDUAL | P2 | `service_purge_test.go:79-94` | PurgeExpired_Succeeds hollow | Prod всегда nil — тест не ловит пропуск purge | Captured cutoffs + call counts ×6 |
+| A2W6-A5-001 | FIXED | P2 | `service_purge_test.go` / task114 | PurgeExpired_Succeeds hollow | Prod всегда nil — тест не ловит пропуск purge | Captured cutoffs + call counts ×6 |
 | A2W6-A5-002 | NEW | P2 | `service_purge_test.go:96-103` | `PurgeExpired_LogsErrorsWithoutFailing` **требует** NoError при db fail | Цементирует W6-A4-004 fail-open после Stage B | Удалить/перевернуть: err != nil при purge fail |
-| A2W6-A5-003 | RESIDUAL | P2 | repo trash/extra | Нет RetentionHides для issue/test_case/file/project | Guard `DeletedAtGT` в repo не mutation-proof | Зеркало NewsPost −40d |
-| A2W6-A5-004 | RESIDUAL | P2 | `service_purge_test.go:145-167` | AllTypes SoftDelete/Restore без map[type]called | Switch collapse → зелёный | Call-recording mock |
-| A2W6-A5-005 | RESIDUAL | P2 | `repository_extra_test.go` purge TC/files/projects | Нет IsNotFound после hard delete | `n==1` при soft-only возможен | Get → IsNotFound |
-| A2W6-A5-006 | RESIDUAL | P2 | `service_deactivate_test.go:48-63` | project_id filter HTTP без captured projectID | Снятие filter → 200 green | Assert mock got projectID |
-| A2W6-A5-007 | RESIDUAL | P3 | trash restore paths | Нет DeletedAt==nil после restore (issue/file) | Ложный PASS на list empty | Get + Nil(DeletedAt) |
-| A2W6-A5-008 | RESIDUAL | P3 | `service_limits_test.go` Reassign | mock returns 0 без proof call | Service no-op → green | Counters assigned/reported |
-| A2W6-A5-009 | RESIDUAL | P3 | `repository_extra_test.go` GDPR Success | mock wiring only | Не ловит пропуск cascade | Оставить mock; cascade — p1be34 suite |
+| A2W6-A5-003 | FIXED | P2 | repo trash/extra | Нет RetentionHides для issue/test_case/file/project | Guard `DeletedAtGT` в repo не mutation-proof | Зеркало NewsPost −40d |
+| A2W6-A5-004 | FIXED | P2 | `service_purge_test.go` SoftDelete/Restore | AllTypes SoftDelete/Restore без map[type]called | Switch collapse → зелёный | Call-recording mock |
+| A2W6-A5-005 | FIXED | P2 | `repository_extra_test.go` purge | Нет IsNotFound после hard delete | `n==1` при soft-only возможен | Get → IsNotFound |
+| A2W6-A5-006 | FIXED | P2 | `task114_residual_test.go` | project_id filter HTTP без captured projectID | Снятие filter → 200 green | Assert mock got projectID |
+| A2W6-A5-007 | FIXED | P3 | trash restore paths | Нет DeletedAt==nil после restore (issue/file) | Ложный PASS на list empty | Get + Nil(DeletedAt) |
+| A2W6-A5-008 | FIXED | P3 | `service_limits_test.go` Reassign | mock returns 0 без proof call | Service no-op → green | Counters assigned/reported |
+| A2W6-A5-009 | FIXED | P3 | `task114_residual_test.go` GDPR Success | mock wiring only | Не ловит пропуск cascade | Оставить mock; cascade — p1be34 suite |
 
 ## Counts
 

@@ -51,7 +51,7 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-111](TASK-111-2026-07-28-tms-wave2-services-import-batch.md) | 🐛 TMS W2 residual batch | P2 | Открыта | be2 | A2W2 · 24 |
 | [TASK-112](TASK-112-2026-07-28-platform-outbox-nats-aes-hsts.md) | 🐛 Platform NATS/HSTS/AES/RL | P2 | Открыта | be1 | A2W4 · 9 |
 | [TASK-113](TASK-113-2026-07-28-ai-residual-sanitize-tests-policy.md) | 🔒 AI residual sanitize/tests | P2 | Открыта | be1 | A2W5 · 18 |
-| [TASK-114](TASK-114-2026-07-28-audit-gdpr-limits-layering-tests.md) | 🔒 Audit/GDPR residual | P2 | Открыта | be1 | A2W6 · 14 |
+| [TASK-114](TASK-114-2026-07-28-audit-gdpr-limits-layering-tests.md) | 🔒 Audit/GDPR residual | P2 | Исправлена | be1 | A2W6 · 14 |
 | [TASK-115](TASK-115-2026-07-28-rbac-permission-middleware-hygiene.md) | 🔒 RBAC permission hygiene | P2 | Открыта | be2 | A2W6 · 5 |
 | [TASK-116](TASK-116-2026-07-28-auth-avatar-xss-validation-tests.md) | 🔒 Auth AvatarURL + session assert | P2 | Открыта | be1 | A2W6 · 2 |
 | [TASK-117](TASK-117-2026-07-28-notification-mail-push-limits-tests.md) | 📧 Notification/mail/push limits | P2 | Открыта | be2 | W7-A1 · 7 |

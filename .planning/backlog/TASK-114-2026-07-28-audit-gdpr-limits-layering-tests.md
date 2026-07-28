@@ -1,6 +1,6 @@
 # TASK-114 — 🔒 Audit/GDPR: limits/layering/purge tests
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: A2W6 audit residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]
