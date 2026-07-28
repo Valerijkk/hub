@@ -2,8 +2,14 @@
 
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
+
+function AvatarOnlineLabel() {
+	const { t } = useTranslation("common");
+	return <span className="sr-only">{t("status.online")}</span>;
+}
 
 const Avatar = React.forwardRef<
 	React.ElementRef<typeof AvatarPrimitive.Root>,
@@ -28,7 +34,7 @@ const Avatar = React.forwardRef<
 				className="absolute bottom-0 right-0 z-10 h-2.5 w-2.5 rounded-full border-2 border-[var(--base)] bg-emerald-500 opacity-0 pointer-events-none transition-opacity group-data-[online=true]:opacity-100 group-data-[online=true]:shadow-[0_0_8px_var(--gG)] group-data-[online=true]:animate-pulse-online"
 				aria-hidden="true"
 			/>
-			{isOnline && <span className="sr-only">В сети</span>}
+			{isOnline && <AvatarOnlineLabel />}
 		</AvatarPrimitive.Root>
 	);
 });
