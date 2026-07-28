@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (fe2 · TASK-053 P2-FE-09..11 auth/WS/upload)
+
+- P2-FE-09: failed refresh → best-effort `POST /auth/logout` + `clearSessionLocal` без re-broadcast.
+- P2-FE-10: null/object guard в `use-messages` / `use-typing` / `use-notifications`.
+- P2-FE-11: dragCounter только на dragenter; paste на drop-zone (не document).
+- Vitest: client-api, auth-store, ws-payload-guards, file-upload-drag-paste — green. Статус «На проверке».
+
 ## Session note — 2026-07-28 (fe1 · TASK-047 P2-FE-01 error≠empty)
 
 - Экспорт `QueryErrorAlert`; admin mail/ai/onec, bookmarks, bases, TMS reports/runs, user-picker, telegram, ai-store, leave/kudos/marketplace, call-calendar + `listScheduledCallsForChannels`.

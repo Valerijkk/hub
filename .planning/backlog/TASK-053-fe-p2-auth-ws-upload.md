@@ -1,6 +1,6 @@
 # TASK-053 — FE auth session + WS guards + dropzone
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: TASK-008 W12 · Classes: P2-FE-09..11 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]
@@ -9,7 +9,7 @@
 
 ## [ROLE]
 
-- Role: fe1
+- Role: fe2
 - Responsibility: фикс + тесты на слое guard
 - Handoff to: стадия C (мутация независимым агентом)
 
