@@ -25,4 +25,19 @@ describe("OnecSettingsPanel", () => {
 		expect(screen.getByText(/Коннектор 1C/i)).toBeInTheDocument();
 		expect(screen.getByLabelText(/Webhook URL/i)).toBeInTheDocument();
 	});
+
+	it("shows error + retry instead of empty form when load fails (W9-A1-013)", async () => {
+		vi.mocked(onecApi.getOnecSettings).mockRejectedValue(new Error("network"));
+		render(<OnecSettingsPanel />);
+
+		await waitFor(() => {
+			expect(screen.getByRole("alert")).toHaveTextContent(
+				/не удалось загрузить настройки 1c/i,
+			);
+		});
+		expect(
+			screen.getByRole("button", { name: /попробовать снова/i }),
+		).toBeInTheDocument();
+		expect(screen.queryByLabelText(/Webhook URL/i)).not.toBeInTheDocument();
+	});
 });

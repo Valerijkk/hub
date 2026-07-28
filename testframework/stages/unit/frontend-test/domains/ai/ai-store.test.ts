@@ -11,6 +11,8 @@ function resetAIStore(): void {
 		panelOpen: false,
 		prefillInput: null,
 		loaded: false,
+		botLoadError: false,
+		modelsError: false,
 	});
 }
 
@@ -83,5 +85,38 @@ describe("ai-store", () => {
 		await useAIStore.getState().saveSelectedModel("llama3");
 		expect(patchSpy).toHaveBeenCalledWith({ default_model: "llama3" });
 		expect(useAIStore.getState().selectedModel).toBe("llama3");
+	});
+
+	it("loadBotInfo fail does not set loaded (W11-A2-002)", async () => {
+		vi.spyOn(aiApi, "getAIBotInfo").mockRejectedValue(new Error("network"));
+		await useAIStore.getState().loadBotInfo();
+		const s = useAIStore.getState();
+		expect(s.loaded).toBe(false);
+		expect(s.botLoadError).toBe(true);
+		// retry still possible
+		vi.spyOn(aiApi, "getAIBotInfo").mockResolvedValue({
+			user_id: "bot-uuid",
+			display_name: "@hub-ai",
+			email: "hub-ai@system.local",
+		});
+		await useAIStore.getState().loadBotInfo();
+		expect(useAIStore.getState().loaded).toBe(true);
+		expect(useAIStore.getState().botLoadError).toBe(false);
+	});
+
+	it("loadModels fail sets modelsError (W11-A2-003)", async () => {
+		vi.spyOn(aiApi, "getAIModels").mockRejectedValue(new Error("network"));
+		await useAIStore.getState().loadModels();
+		expect(useAIStore.getState().modelsError).toBe(true);
+		expect(useAIStore.getState().models).toEqual([]);
+	});
+
+	it("saveSelectedModel rolls back on fail (W11-A2-003)", async () => {
+		useAIStore.setState({ selectedModel: "prev-model" });
+		vi.spyOn(aiApi, "updateAIPreferences").mockRejectedValue(
+			new Error("network"),
+		);
+		await useAIStore.getState().saveSelectedModel("new-model");
+		expect(useAIStore.getState().selectedModel).toBe("prev-model");
 	});
 });
