@@ -112,9 +112,23 @@ func TestHandler_RegisterRoutes_ConfirmAndDownload(t *testing.T) {
 	app, projectID, userID, client := newStorageRoutesEnv(t)
 	ctx := context.Background()
 
+	ch, err := client.Channel.Create().
+		SetName("routes").
+		SetChannelType("public").
+		SetProjectID(projectID).
+		SetCreatedBy(userID).
+		Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ChannelMember.Create().
+		SetChannelID(ch.ID).
+		SetUserID(userID).
+		SetRole("member").
+		Save(ctx)
+	require.NoError(t, err)
+
 	fileID := uuid.New()
 	s3Key := projectID.String() + "/files/" + fileID.String() + "/doc.txt"
-	_, err := client.FileMetadata.Create().
+	_, err = client.FileMetadata.Create().
 		SetID(fileID).
 		SetFilename("doc.txt").
 		SetContentType("text/plain").
@@ -127,7 +141,7 @@ func TestHandler_RegisterRoutes_ConfirmAndDownload(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	confirmBody := `{"entityType":"message","entityId":"msg-1"}`
+	confirmBody := fmt.Sprintf(`{"entityType":"message","entityId":%q}`, ch.ID.String())
 	req := httptest.NewRequest(http.MethodPost, "/api/files/"+fileID.String()+"/confirm", bytes.NewReader([]byte(confirmBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)

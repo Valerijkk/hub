@@ -8,6 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/channel"
+	"github.com/valerii/hub/backend/ent/channelmember"
 	"github.com/valerii/hub/backend/ent/filemetadata"
 	"github.com/valerii/hub/backend/ent/issue"
 )
@@ -36,9 +38,14 @@ type Repository interface {
 	DeleteByID(ctx context.Context, id uuid.UUID) error
 	ConfirmUpload(ctx context.Context, fileID uuid.UUID, entityType, entityID string) error
 	ProjectIDForActiveFile(ctx context.Context, fileID uuid.UUID) (uuid.UUID, error)
+	UploaderIDForActiveFile(ctx context.Context, fileID uuid.UUID) (uuid.UUID, error)
 	GetActiveByID(ctx context.Context, fileID uuid.UUID) (*ent.FileMetadata, error)
 	GetPendingByID(ctx context.Context, fileID uuid.UUID) (*ent.FileMetadata, error)
 	IssueProjectID(ctx context.Context, issueID uuid.UUID) (uuid.UUID, error)
+	// IsChannelMember — W7-A4-002: участник активного (не soft-deleted) канала.
+	IsChannelMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error)
+	// ActiveChannelProjectID — project_id активного канала; nil для DM/global.
+	ActiveChannelProjectID(ctx context.Context, channelID uuid.UUID) (*uuid.UUID, error)
 	SoftDelete(ctx context.Context, fileID uuid.UUID, at time.Time) error
 	ListOrphanPending(ctx context.Context, olderThan time.Time, limit int) ([]*ent.FileMetadata, error)
 }
@@ -113,6 +120,14 @@ func (r *EntRepository) ProjectIDForActiveFile(ctx context.Context, fileID uuid.
 		OnlyID(ctx)
 }
 
+// UploaderIDForActiveFile — владелец pending/active файла (edge uploader, не exported FK).
+func (r *EntRepository) UploaderIDForActiveFile(ctx context.Context, fileID uuid.UUID) (uuid.UUID, error) {
+	return r.client.FileMetadata.Query().
+		Where(filemetadata.IDEQ(fileID), filemetadata.DeletedAtIsNil()).
+		QueryUploader().
+		OnlyID(ctx)
+}
+
 // GetPendingByID — метаданные pending-файла (для HEAD/size check перед confirm).
 func (r *EntRepository) GetPendingByID(ctx context.Context, fileID uuid.UUID) (*ent.FileMetadata, error) {
 	return r.client.FileMetadata.Query().
@@ -130,6 +145,28 @@ func (r *EntRepository) IssueProjectID(ctx context.Context, issueID uuid.UUID) (
 		Where(issue.IDEQ(issueID), issue.DeletedAtIsNil()).
 		QueryProject().
 		OnlyID(ctx)
+}
+
+// IsChannelMember — тот же soft-delete predicate, что messenger.IsMember (NF-02).
+func (r *EntRepository) IsChannelMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+	return r.client.ChannelMember.Query().
+		Where(
+			channelmember.ChannelIDEQ(channelID),
+			channelmember.UserIDEQ(userID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
+		Exist(ctx)
+}
+
+// ActiveChannelProjectID возвращает project_id живого канала или NotFound.
+func (r *EntRepository) ActiveChannelProjectID(ctx context.Context, channelID uuid.UUID) (*uuid.UUID, error) {
+	ch, err := r.client.Channel.Query().
+		Where(channel.IDEQ(channelID), channel.DeletedAtIsNil()).
+		Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return ch.ProjectID, nil
 }
 
 // GetActiveByID — A4-007: download только confirmed + not deleted.

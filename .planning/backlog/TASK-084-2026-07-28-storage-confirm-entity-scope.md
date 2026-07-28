@@ -1,6 +1,6 @@
 # TASK-084 — 🔒 Storage Confirm: scope для non-issue entity
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
 > Источник: W7-A4-002 · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]
