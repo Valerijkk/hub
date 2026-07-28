@@ -42,3 +42,8 @@ func ExportMaxWebhookBodyBytes() int {
 func ExportRedactPipelineVariables(vars map[string]string) map[string]string {
 	return redactPipelineVariables(vars)
 }
+
+// ExportConstantTimeEqualDigest — W7-A3-003 digest CTC для hubtest.
+func ExportConstantTimeEqualDigest(a, b string) bool {
+	return constantTimeEqualDigest(a, b)
+}

@@ -425,17 +425,14 @@ func (s *AuditService) ReassignTasks(ctx context.Context, fromUserID, toUserID u
 // 5. Hard-delete пользователя — только если весь каскад успешен
 // 6. Записывает аудит-лог "GDPR deletion"
 //
-// A1-004 / ORG-04: target=founder запрещён, если actor != target.
-// Founder может удалить сам себя (свой GDPR-запрос).
-//
-// P1-BE-34 / W6-A4-002: при любой ошибке каскада HardDelete НЕ вызывается
-// (раньше cascadeErrs копились и HardDelete мог пройти при 500 в handler).
+// A1-004 / ORG-04 / P2-BE-19: target=founder запрещён всегда (включая self-erase).
+// Self-erase founder оставляет org без founder — break-glass только через ADR.
 func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.UUID, reassignTo *uuid.UUID) error {
 	role, err := s.repo.GetUserSystemRole(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("get user role (GDPR): %w", err)
 	}
-	if role == user.SystemRoleFounder && actorID != userID {
+	if role == user.SystemRoleFounder {
 		return ErrCannotDeleteFounder
 	}
 

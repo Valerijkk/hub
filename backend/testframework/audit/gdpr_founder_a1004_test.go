@@ -40,14 +40,13 @@ func TestDeleteUserGDPR_RejectsFounderByAdmin_A1_004(t *testing.T) {
 	assert.Empty(t, repo.hardDeleted)
 }
 
-// TestDeleteUserGDPR_AllowsFounderSelfErase_A1_004 — founder может удалить себя (GDPR).
-func TestDeleteUserGDPR_AllowsFounderSelfErase_A1_004(t *testing.T) {
+// TestDeleteUserGDPR_RejectsFounderSelfErase_P2BE19 — founder self-erase → 403.
+func TestDeleteUserGDPR_RejectsFounderSelfErase_P2BE19(t *testing.T) {
 	repo := &founderGDPRRepo{targetRole: user.SystemRoleFounder}
 	svc := audit.NewAuditService(repo, nil)
 	founderID := uuid.New()
 
 	err := svc.DeleteUserGDPR(context.Background(), founderID, founderID, nil)
-	require.NoError(t, err)
-	require.Len(t, repo.hardDeleted, 1)
-	assert.Equal(t, founderID, repo.hardDeleted[0])
+	require.ErrorIs(t, err, audit.ErrCannotDeleteFounder)
+	assert.Empty(t, repo.hardDeleted)
 }

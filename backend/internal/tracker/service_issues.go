@@ -184,9 +184,21 @@ func (s *TrackerService) ListIssues(ctx context.Context, projectID uuid.UUID, re
 			}
 		}
 
+		limit := req.Limit
+		if limit <= 0 || limit > 100 {
+			limit = 50
+		}
+		// W1-A2-008 / P2-BE-21: запрос limit+1 для корректного HasMore.
+		params.Limit = limit + 1
+
 		items, total, err := s.repo.ListIssues(ctx, projectID, params)
 		if err != nil {
 			return nil, apperrors.NewInternal("ошибка получения списка задач")
+		}
+
+		hasMore := len(items) > limit
+		if hasMore {
+			items = items[:limit]
 		}
 
 		responses := make([]IssueResponse, 0, len(items))
@@ -199,15 +211,10 @@ func (s *TrackerService) ListIssues(ctx context.Context, projectID uuid.UUID, re
 			nextCursor = items[len(items)-1].IssueKey
 		}
 
-		limit := req.Limit
-		if limit <= 0 || limit > 100 {
-			limit = 50
-		}
-
 		return &PaginatedResponse[IssueResponse]{
 			Items:      responses,
 			NextCursor: nextCursor,
-			HasMore:    len(items) == limit,
+			HasMore:    hasMore,
 			Total:      total,
 		}, nil
 	})

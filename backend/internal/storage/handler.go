@@ -124,7 +124,7 @@ func (h *Handler) GenerateUploadURL(c fiber.Ctx) error {
 
 	result, err := h.storage.GenerateUploadURL(c.Context(), req.Filename, req.ContentType, userID, projectID, req.Size)
 	if err != nil {
-		if errors.Is(err, ErrFileTooLarge) || errors.Is(err, ErrInvalidFileSize) {
+		if errors.Is(err, ErrFileTooLarge) || errors.Is(err, ErrInvalidFileSize) || errors.Is(err, ErrContentTypeNotAllowed) {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to generate upload URL")
@@ -183,6 +183,12 @@ func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 		}
 		if errors.Is(err, ErrFileTooLarge) {
 			return fiber.NewError(fiber.StatusRequestEntityTooLarge, "file too large")
+		}
+		if errors.Is(err, ErrObjectNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "object not found")
+		}
+		if errors.Is(err, ErrContentTypeNotAllowed) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 		if errors.Is(err, ErrInvalidEntityType) || errors.Is(err, ErrInvalidEntity) || errors.Is(err, ErrEntityProjectMismatch) {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())

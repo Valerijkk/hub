@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent/issue"
+	"github.com/xuri/excelize/v2"
 )
 
 // ImExService реализует импорт и экспорт задач, прогонов и проектов.
@@ -243,9 +244,55 @@ func (s *ImExService) ExportIssuesCSV(ctx context.Context, projectID uuid.UUID) 
 	return buf.Bytes(), nil
 }
 
-// ExportIssuesExcel экспортирует задачи проекта в XLSX (упрощённая версия — CSV).
+// ExportIssuesExcel экспортирует задачи проекта в настоящий XLSX (excelize).
+// W7-A3-009 / P2-BE-20: раньше отдавался CSV с xlsx Content-Type.
 func (s *ImExService) ExportIssuesExcel(ctx context.Context, projectID uuid.UUID) ([]byte, error) {
-	return s.ExportIssuesCSV(ctx, projectID)
+	issues, err := s.repo.ListProjectIssuesForExport(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения задач: %w", err)
+	}
+
+	f := excelize.NewFile()
+	defer func() { _ = f.Close() }()
+	sheet := f.GetSheetName(0)
+	headers := []string{"Key", "Title", "Type", "Priority", "Status", "Assignee", "Created", "Updated"}
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		_ = f.SetCellValue(sheet, cell, h)
+	}
+	for rowIdx, iss := range issues {
+		status := ""
+		if iss.Edges.Status != nil {
+			status = iss.Edges.Status.Name
+		}
+		assignee := ""
+		if iss.Edges.Assignee != nil {
+			if iss.Edges.Assignee.Name != "" {
+				assignee = iss.Edges.Assignee.Name
+			} else {
+				assignee = iss.Edges.Assignee.Email
+			}
+		}
+		vals := []any{
+			iss.IssueKey,
+			iss.Title,
+			string(iss.IssueType),
+			string(iss.Priority),
+			status,
+			assignee,
+			iss.CreatedAt.Format(time.RFC3339),
+			iss.UpdatedAt.Format(time.RFC3339),
+		}
+		for colIdx, v := range vals {
+			cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx+2)
+			_ = f.SetCellValue(sheet, cell, v)
+		}
+	}
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return nil, fmt.Errorf("write xlsx: %w", err)
+	}
+	return buf.Bytes(), nil
 }
 
 // ExportProjectZIP создаёт полный бэкап проекта: задачи JSON + metadata.

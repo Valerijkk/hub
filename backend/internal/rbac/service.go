@@ -74,9 +74,13 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 	// Базовые права по фиксированной роли проекта (owner/member/viewer).
 	perm := DefaultRolePermissions[string(member.ProjectRole)]
 
-	// Кастомная роль перекрывает базовую bitmask проекта.
+	// Кастомная роль: permission_names — source of truth (W6-A3-004 / P2-BE-19).
 	if customRole := member.Edges.CustomRole; customRole != nil {
-		perm = Permission(customRole.Permissions)
+		if len(customRole.PermissionNames) > 0 {
+			perm = permissionsFromNames(customRole.PermissionNames)
+		} else {
+			perm = Permission(customRole.Permissions)
+		}
 	}
 
 	// Кэшируем эффективную маску на defaultCacheTTL.

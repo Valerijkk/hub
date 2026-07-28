@@ -136,8 +136,8 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 		}
 	}
 
-	// Дедлайны: задачи с due_date в ближайшие 7 дней
-	now := time.Now()
+	// Дедлайны: задачи с due_date в ближайшие 7 дней (UTC, W7-A4-010 / P2-BE-21).
+	now := time.Now().UTC()
 	weekLater := now.Add(7 * 24 * time.Hour)
 	deadlineIssues, err := s.repo.ListUserDeadlineIssues(ctx, userID, now, weekLater, 10)
 	if err != nil {
@@ -161,7 +161,7 @@ func (s *DashboardService) GetPersonalDashboardData(ctx context.Context, userID 
 	}
 
 	// Время за сегодня: сумма time_logs
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	timeLogs, err := s.repo.ListUserTimeLogsBetween(ctx, userID, today, today.Add(24*time.Hour))
 	if err != nil {
 		slog.Error("ошибка загрузки тайм-логов", "error", err)

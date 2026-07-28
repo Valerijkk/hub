@@ -2,6 +2,7 @@ package gitlab
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
@@ -39,11 +40,18 @@ func (s *GitLabService) VerifyWebhookToken(ctx context.Context, body []byte, tok
 	}
 
 	secret := integration.WebhookSecret
-	// Constant-time compare; unequal lengths → mismatch (no early == on secret content).
-	if subtle.ConstantTimeCompare([]byte(token), []byte(secret)) != 1 {
+	// W7-A3-003 / P2-BE-20: сравниваем SHA-256 дайджесты — равная длина,
+	// ConstantTimeCompare без length-oracle на сырых строках.
+	if !constantTimeEqualDigest(token, secret) {
 		return fiber.NewError(fiber.StatusForbidden, "невалидный X-Gitlab-Token")
 	}
 	return nil
+}
+
+func constantTimeEqualDigest(a, b string) bool {
+	sumA := sha256.Sum256([]byte(a))
+	sumB := sha256.Sum256([]byte(b))
+	return subtle.ConstantTimeCompare(sumA[:], sumB[:]) == 1
 }
 
 func extractProjectPathFromWebhookPayload(body []byte) (string, error) {

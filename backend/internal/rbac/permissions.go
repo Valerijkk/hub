@@ -123,7 +123,11 @@ func ListAllPermissionDefs() []PermissionDef {
 }
 
 // Has проверяет, содержит ли набор разрешений указанное разрешение.
+// W6-A3-005 / P2-BE-19: Bit=0 → всегда false (раньше p&0==0 давало fail-open).
 func (p Permission) Has(perm Permission) bool {
+	if perm == 0 {
+		return false
+	}
 	return p&perm == perm
 }
 

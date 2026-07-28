@@ -61,3 +61,13 @@ func ExportMaxUploadBytes() int64 {
 func ExportValidateEntityScope(s *StorageService, ctx context.Context, fileProjectID uuid.UUID, entityType, entityID string) error {
 	return s.validateEntityScope(ctx, fileProjectID, entityType, entityID)
 }
+
+// ExportValidateUploadContentType — W7-A4-006 MIME guard для hubtest.
+func ExportValidateUploadContentType(contentType string) error {
+	return validateUploadContentType(contentType)
+}
+
+// ExportIsS3NotFound — W7-A4-005 NotFound detect для hubtest.
+func ExportIsS3NotFound(err error) bool {
+	return isS3NotFound(err)
+}

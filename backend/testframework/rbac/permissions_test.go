@@ -22,6 +22,9 @@ func TestPermission_Has(t *testing.T) {
 		{"combined permissions", rbac.PermProjectView | rbac.PermTaskCreate, rbac.PermTaskCreate, true},
 		{"zero permission", rbac.Permission(0), rbac.PermProjectView, false},
 		{"owner has everything", ^rbac.Permission(0), rbac.PermProjectDelete, true},
+		// W6-A3-005 / P2-BE-19: Has(0) must never be fail-open.
+		{"bit zero check denied", rbac.PermProjectView, rbac.Permission(0), false},
+		{"owner has zero still false", ^rbac.Permission(0), rbac.Permission(0), false},
 	}
 
 	for _, tt := range tests {

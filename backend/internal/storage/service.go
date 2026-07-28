@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -35,6 +36,10 @@ var (
 	ErrInvalidEntity = errors.New("invalid entity")
 	// ErrEntityProjectMismatch — сущность принадлежит другому проекту, чем файл.
 	ErrEntityProjectMismatch = errors.New("entity project mismatch")
+	// ErrObjectNotFound — Confirm без объекта в S3 (W7-A4-005 / P2-BE-21).
+	ErrObjectNotFound = errors.New("object not found in storage")
+	// ErrContentTypeNotAllowed — опасный MIME (W7-A4-006 / P2-BE-21).
+	ErrContentTypeNotAllowed = errors.New("content type not allowed")
 )
 
 // UploadResult содержит результат генерации presigned URL для загрузки файла.
@@ -91,6 +96,10 @@ func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, conten
 
 	fileID := uuid.New()
 	s3Key := fmt.Sprintf("%s/files/%s/%s", projectID.String(), fileID.String(), sanitizeFilename(filename))
+
+	if err := validateUploadContentType(contentType); err != nil {
+		return nil, err
+	}
 
 	fileMeta, err := s.repo.CreatePending(ctx, CreateFileInput{
 		ID:          fileID,
@@ -168,6 +177,9 @@ func (s *StorageService) assertObjectWithinLimit(ctx context.Context, fileMeta *
 		Key:    aws.String(fileMeta.S3Key),
 	})
 	if err != nil {
+		if isS3NotFound(err) {
+			return ErrObjectNotFound
+		}
 		return fmt.Errorf("head object: %w", err)
 	}
 	if out.ContentLength != nil && *out.ContentLength > maxUploadBytes {
@@ -179,6 +191,31 @@ func (s *StorageService) assertObjectWithinLimit(ctx context.Context, fileMeta *
 		return ErrFileTooLarge
 	}
 	return nil
+}
+
+// validateUploadContentType — W7-A4-006: блокируем HTML/SVG (XSS via download).
+func validateUploadContentType(contentType string) error {
+	ct := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
+	switch ct {
+	case "text/html", "application/xhtml+xml", "image/svg+xml", "text/javascript", "application/javascript":
+		return ErrContentTypeNotAllowed
+	}
+	if ct == "" {
+		return ErrContentTypeNotAllowed
+	}
+	return nil
+}
+
+func isS3NotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "notfound") ||
+		strings.Contains(msg, "not found") ||
+		strings.Contains(msg, "nosuchkey") ||
+		strings.Contains(msg, "statuscode: 404") ||
+		strings.Contains(msg, "status code: 404")
 }
 
 // validateEntityScope — W7-A4-002: allowlist + для issue UUID и project match.
