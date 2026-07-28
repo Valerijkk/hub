@@ -13,7 +13,12 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ projectId, issueKey }: ActivityFeedProps) {
-	const { data: activities, isLoading } = useQuery({
+	const {
+		data: activities,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["activities", projectId, issueKey],
 		queryFn: () => listActivities(projectId, issueKey),
 	});
@@ -46,6 +51,21 @@ export function ActivityFeed({ projectId, issueKey }: ActivityFeedProps) {
 
 	if (isLoading) {
 		return <p className="text-sm text-t2">Загрузка активности...</p>;
+	}
+
+	if (isError) {
+		return (
+			<div role="alert" className="space-y-2 text-sm text-t2">
+				<p>Не удалось загрузить активность</p>
+				<button
+					type="button"
+					className="text-blue font-semibold hover:underline"
+					onClick={() => void refetch()}
+				>
+					Попробовать снова
+				</button>
+			</div>
+		);
 	}
 
 	if (!activities || activities.length === 0) {

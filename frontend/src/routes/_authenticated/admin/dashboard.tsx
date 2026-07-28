@@ -36,6 +36,7 @@ function AdminDashboard() {
 	const layouts = useDashboardStore((s) => s.layouts);
 	const setLayout = useDashboardStore((s) => s.setLayout);
 	const loading = useDashboardStore((s) => s.loading);
+	const error = useDashboardStore((s) => s.error);
 	const [activeTab, setActiveTab] = useState("dashboard");
 
 	useEffect(() => {
@@ -124,6 +125,20 @@ function AdminDashboard() {
 						<p className="text-[var(--t2)] text-[13px]">
 							{"\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430..."}
 						</p>
+					) : error && !adminData ? (
+						<div
+							role="alert"
+							className="flex flex-col items-center justify-center py-16 gap-3 text-t2"
+						>
+							<p className="text-sm font-medium">{error}</p>
+							<button
+								type="button"
+								className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+								onClick={() => void fetchAdmin()}
+							>
+								Попробовать снова
+							</button>
+						</div>
 					) : (
 						<WidgetGrid items={items} dashboardType="admin" data={adminData} />
 					)}

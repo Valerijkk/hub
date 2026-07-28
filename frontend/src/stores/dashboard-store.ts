@@ -73,24 +73,26 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
 	},
 
 	fetchProject: async (projectId: string) => {
-		set({ loading: true });
+		set({ loading: true, error: null });
 		try {
 			const data = await getProjectDashboard(projectId);
 			set({ projectData: data });
 		} catch (err) {
 			console.error("Ошибка загрузки проектного дашборда", err);
+			set({ error: "Не удалось загрузить данные дашборда" });
 		} finally {
 			set({ loading: false });
 		}
 	},
 
 	fetchAdmin: async () => {
-		set({ loading: true });
+		set({ loading: true, error: null });
 		try {
 			const data = await getAdminDashboard();
 			set({ adminData: data });
 		} catch (err) {
 			console.error("Ошибка загрузки админского дашборда", err);
+			set({ error: "Не удалось загрузить данные дашборда" });
 		} finally {
 			set({ loading: false });
 		}

@@ -58,6 +58,7 @@ function ProjectDashboard() {
 	const layouts = useDashboardStore((s) => s.layouts);
 	const setLayout = useDashboardStore((s) => s.setLayout);
 	const loading = useDashboardStore((s) => s.loading);
+	const error = useDashboardStore((s) => s.error);
 	const [template, setTemplate] = useState("dev");
 
 	const { data: remoteTemplates } = useQuery({
@@ -130,6 +131,20 @@ function ProjectDashboard() {
 
 			{loading && !projectData ? (
 				<p className="text-t2 text-[13px]">Загрузка...</p>
+			) : error && !projectData ? (
+				<div
+					role="alert"
+					className="flex flex-col items-center justify-center py-16 gap-3 text-t2"
+				>
+					<p className="text-sm font-medium">{error}</p>
+					<button
+						type="button"
+						className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+						onClick={() => void fetchProject(projectId)}
+					>
+						Попробовать снова
+					</button>
+				</div>
 			) : (
 				<WidgetGrid
 					items={items}

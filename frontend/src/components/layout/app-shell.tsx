@@ -5,7 +5,7 @@
  * На мобильных: sidebar скрыт, открывается как overlay. Нижняя навигация.
  */
 
-import { Outlet, useNavigate } from "@tanstack/react-router";
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SkipLink } from "@/components/layout/skip-link";
@@ -64,6 +64,7 @@ export function AppShell() {
 	const aiPanelOpen = useAIStore((s) => s.panelOpen);
 	const toggleAIPanel = useAIStore((s) => s.togglePanel);
 	const navigate = useNavigate();
+	const pathname = useRouterState({ select: (s) => s.location.pathname });
 
 	useEffect(() => {
 		function onKeyDown(e: KeyboardEvent) {
@@ -151,7 +152,7 @@ export function AppShell() {
 						id="main-content"
 						className="flex-1 overflow-y-auto px-4 py-4 pb-20 md:px-6 md:py-6 md:pb-6"
 					>
-						<ErrorBoundary>
+						<ErrorBoundary resetKey={pathname}>
 							<Outlet />
 						</ErrorBoundary>
 					</main>
