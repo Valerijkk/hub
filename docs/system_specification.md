@@ -165,6 +165,10 @@ rate_limit:<key> → counter
 
 ### WebSocket Protocol
 
+Handshake (ADR-WS-JWT-HANDSHAKE-2026): `POST /auth/ws-ticket` →
+`GET /ws` with `Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>`.
+Query `?token=` is rejected (401). Room subscribe still requires membership/RBAC (NFR-18).
+
 ```json
 { "type": "subscribe", "room": "project:<uuid>" }
 { "type": "event", "room": "...", "payload": { ... } }

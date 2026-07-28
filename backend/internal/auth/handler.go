@@ -44,6 +44,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
 	authGroup.Post("/me/onboarding", h.CompleteOnboarding)
 	authGroup.Get("/sessions", h.ListSessions)
 	authGroup.Delete("/sessions/:sessionId", h.RevokeSession)
+	// ADR-WS-JWT-HANDSHAKE-2026: short-lived ticket для WS (не access JWT в query).
+	authGroup.Post("/ws-ticket", h.CreateWSTicket)
 
 	// Эндпоинты только для администраторов.
 	admin := api.Group("/admin", authMw)
@@ -192,6 +194,32 @@ func (h *Handler) Logout(c fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "Logged out"})
+}
+
+// CreateWSTicket выдаёт одноразовый short-lived ticket для WebSocket handshake.
+// @Summary Выдать WS ticket
+// @Description Одноразовый ticket (TTL 30s) для Sec-WebSocket-Protocol hub.ws.ticket.<ticket>
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} WSTicketResponse
+// @Failure 401 {object} map[string]string "Не аутентифицирован"
+// @Router /auth/ws-ticket [post]
+func (h *Handler) CreateWSTicket(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
+	}
+	sessionID, err := sessionIDFromCtx(c)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid session")
+	}
+
+	ticket, expiresIn, err := h.service.IssueWSTicket(c.Context(), userID.String(), sessionID.String())
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to issue ws ticket")
+	}
+	return c.JSON(WSTicketResponse{Ticket: ticket, ExpiresIn: expiresIn})
 }
 
 // GetMe возвращает профиль текущего аутентифицированного пользователя.

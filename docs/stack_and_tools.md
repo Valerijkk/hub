@@ -104,7 +104,7 @@ go build -tags release -o bin/server ./cmd/server
 | Сервис | Образ | Назначение |
 |--------|-------|------------|
 | LiveKit | `livekit/livekit-server:v1.8` | Voice, screen share, recording (egress) |
-| Fiber WS | built-in | Client events (`GET /ws?token=JWT`) |
+| Fiber WS | built-in | Client events (`GET /ws` + ticket subprotocol) |
 
 Prod LiveKit: конфиг из env heredoc в `docker-compose.prod.yml` (не монтировать `livekit-prod.yaml` с секретами).
 

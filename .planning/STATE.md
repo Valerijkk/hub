@@ -548,11 +548,16 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-07-26 (AI quality layer · RU instructions · STATE compact)
-**Stopped at:** structural/package validators PASS · tests 55 PASS / 1 SKIP ·
-package 172 files · smoke PARTIAL · paired eval/ROI NOT_RUN
-**Resume:** empty-repo portable install dry-run → paired baseline-vs-assisted
-pilot; FA-06 manual; затем CAL-SYNC / QA-HARDENING / Redesign по приоритету.
+**Last session:** 2026-07-28 · TASK-103 JWT/WS handshake
+**Stopped at:** ADR-WS-JWT-HANDSHAKE-2026 + ticket/subprotocol + memory JWT · статус Исправлена
+**Resume:** be-ver / code-reviewer на ветке `fix/ws/task-103-jwt-handshake`
+
+### Session note 2026-07-28 — TASK-103 (be1)
+
+- ADR: `.planning/decisions/ADR-WS-JWT-HANDSHAKE-2026.md`
+- BE: `POST /auth/ws-ticket`, `/ws` via `hub.ws.ticket.*`, deny `?token=`
+- FE: auth-store memory-only JWT; ws-store ticket handshake
+- Findings FIXED: A2W3-4-001, A2W11-2-001, A2W11-3-002
 
 Исторические session notes (≤2026-07-23) и старые completion logs:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md)

@@ -70,6 +70,12 @@ type TokenPairResponse struct {
 	ExpiresIn    int64  `json:"expires_in"`
 }
 
+// WSTicketResponse — ответ POST /auth/ws-ticket (ADR-WS-JWT-HANDSHAKE-2026).
+type WSTicketResponse struct {
+	Ticket    string `json:"ticket"`
+	ExpiresIn int    `json:"expires_in"`
+}
+
 // UserResponse — ответ для GET /auth/me и обновления профиля.
 type UserResponse struct {
 	ID                  string                 `json:"id"`

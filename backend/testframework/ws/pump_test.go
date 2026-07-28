@@ -178,11 +178,12 @@ func TestWritePump_ForwardsSendChannel(t *testing.T) {
 	}
 }
 
-// TestWSHandler_ValidToken_Upgrades проверяет HTTP-слой: ws HTTP-обработчик корректный token upgrades.
-func TestWSHandler_ValidToken_Upgrades(t *testing.T) {
+// TestWSHandler_ValidTicket_Upgrades проверяет HTTP-слой: ws handshake через ticket subprotocol.
+func TestWSHandler_ValidTicket_Upgrades(t *testing.T) {
 	hub, _ := startTestHub(t)
 	svc, magic, _ := newWSAuthService(t)
 	token := wsAccessToken(t, svc, magic)
+	ticket := wsTicketForAccess(t, svc, token)
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -192,8 +193,11 @@ func TestWSHandler_ValidToken_Upgrades(t *testing.T) {
 	go func() { _ = app.Listener(ln) }()
 	t.Cleanup(func() { _ = ln.Close() })
 
-	wsURL := "ws://" + ln.Addr().String() + "/ws?token=" + token
-	conn, resp, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	wsURL := "ws://" + ln.Addr().String() + "/ws"
+	dialer := websocket.Dialer{
+		Subprotocols: []string{ws.WSTicketProtocolPrefix + ticket},
+	}
+	conn, resp, err := dialer.Dial(wsURL, nil)
 	if resp != nil {
 		defer resp.Body.Close()
 	}

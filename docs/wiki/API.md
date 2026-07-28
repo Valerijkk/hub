@@ -1099,10 +1099,16 @@ AI gateway, @hub-ai bot, ModelPicker, JQL assist. User routes требуют JWT
 
 ## WebSocket
 
-Подключение к WebSocket для realtime-событий.
+Подключение к WebSocket для realtime-событий (ADR-WS-JWT-HANDSHAKE-2026).
+
+1. `POST /api/auth/ws-ticket` (Bearer access JWT) → `{ "ticket", "expires_in": 30 }`
+2. `GET /ws` с заголовком:
+   `Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>`
+3. Query `?token=` **запрещён** (401).
 
 ```
-ws://host/ws?token=<jwt>
+ws://host/ws
+Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>
 ```
 
 События: новые сообщения, обновления задач, присутствие, уведомления, звонки, typing-индикаторы.

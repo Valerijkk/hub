@@ -137,8 +137,10 @@ func (allowAllAuthorizer) CanSubscribe(_ context.Context, _, _ string) (bool, er
 }
 
 // Handler возвращает Fiber-обработчик для апгрейда HTTP-соединения в WebSocket.
-// JWT-токен передаётся через query-параметр ?token=, так как WebSocket
-// не поддерживает кастомные заголовки при рукопожатии.
+//
+// Auth (ADR-WS-JWT-HANDSHAKE-2026): short-lived one-shot ticket через
+// Sec-WebSocket-Protocol `hub.ws.ticket.<ticket>` (выдаётся POST /auth/ws-ticket).
+// Query `?token=` запрещён — 401 (токен не должен попадать в access/proxy logs).
 //
 // ВАЖНО (Pitfall 1): Все значения извлекаются из fiber.Ctx ДО апгрейда
 // через utils.CopyString для предотвращения проблем переиспользования fasthttp RequestCtx.
@@ -151,25 +153,31 @@ func Handler(hub *Hub, authSvc *auth.AuthService, authz Authorizer) fiber.Handle
 			slog.Error("ws Handler: Authorizer is nil — refusing upgrade (fail-closed)")
 			return fiber.NewError(fiber.StatusServiceUnavailable, "websocket authorizer not configured")
 		}
-		// JWT из query до upgrade — после hijack fiber.Ctx недоступен (Pitfall 1).
-		tokenStr := utils.CopyString(c.Query("token"))
-		if tokenStr == "" {
-			return fiber.NewError(fiber.StatusUnauthorized, "missing token query parameter")
+
+		// A2W3-4-001: явный отказ query-JWT (даже если параллельно передан subprotocol).
+		if utils.CopyString(c.Query("token")) != "" {
+			return fiber.NewError(fiber.StatusUnauthorized, "token query parameter is not allowed")
 		}
 
-		claims, err := authSvc.ParseAccessToken(tokenStr)
+		protoHeader := utils.CopyString(c.Get("Sec-WebSocket-Protocol"))
+		ticket, negotiated, ok := ParseWSTicketProtocols(SplitSecWebSocketProtocol(protoHeader))
+		if !ok {
+			return fiber.NewError(fiber.StatusUnauthorized, "missing ws ticket subprotocol")
+		}
+
+		ticketClaims, err := authSvc.RedeemWSTicket(c.Context(), ticket)
 		if err != nil {
-			return fiber.NewError(fiber.StatusUnauthorized, "invalid or expired token")
+			return fiber.NewError(fiber.StatusUnauthorized, "invalid or expired ws ticket")
 		}
 
 		// Копируем userID/sessionID до upgrade (Pitfall 1).
-		userID := utils.CopyString(claims.UserID)
-		sessionID := utils.CopyString(claims.SessionID)
+		userID := utils.CopyString(ticketClaims.UserID)
+		sessionID := utils.CopyString(ticketClaims.SessionID)
 
 		// ME-13: та же проверка deactivated, что и RequireAuth — до WS upgrade.
 		uid, parseErr := uuid.Parse(userID)
 		if parseErr != nil {
-			return fiber.NewError(fiber.StatusUnauthorized, "invalid token claims")
+			return fiber.NewError(fiber.StatusUnauthorized, "invalid ticket claims")
 		}
 		deactivated, statusErr := authSvc.IsUserDeactivated(c.Context(), uid)
 		if statusErr != nil {
@@ -179,7 +187,11 @@ func Handler(hub *Hub, authSvc *auth.AuthService, authz Authorizer) fiber.Handle
 			return fiber.NewError(fiber.StatusForbidden, "user account is deactivated")
 		}
 
-		return upgrader.Upgrade(c.Context(), func(conn *websocket.Conn) {
+		// Сообщаем клиенту выбранный subprotocol (Subprotocols==nil → из Response header).
+		fasthttpCtx := c.Context()
+		fasthttpCtx.Response.Header.Set("Sec-WebSocket-Protocol", negotiated)
+
+		return upgrader.Upgrade(fasthttpCtx, func(conn *websocket.Conn) {
 			client := NewClient(userID, sessionID)
 			hub.Register(client)
 

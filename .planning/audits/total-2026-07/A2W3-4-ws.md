@@ -29,7 +29,7 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
-| A2W3-4-001 | RESIDUAL | P3 | `handler.go:140-157` | Access JWT всё ещё в `?token=` | W3-A4-006 deferred (TASK-064 / product ADR): токен в access/proxy logs, Referer | Short-lived WS ticket exchange |
+| A2W3-4-001 | **FIXED** (TASK-103) | P3 | `handler.go` + ticket subprotocol | Access JWT в `?token=` убран | Evidence: `TestWSHandler_QueryToken_Denied`; ADR-WS-JWT-HANDSHAKE-2026 |
 | A2W3-4-002 | RESIDUAL | P2 | `bridge.go:249-252` + auth `service_session.go:265-276` (вне списка, сверка) | WS `UnregisterBySession` готов на `revoked`/`logout`, но **auth Logout/Revoke не публикует** `auth.session.{uid}.*` | W3-A4-004 half-fixed (TASK-042): instant revoke refresh не рвёт открытый WS end-to-end | Publish NATS на Logout/Revoke с `session_id`; тест revoke→client.done |
 
 ## FIXED-OK

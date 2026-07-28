@@ -148,3 +148,14 @@ export function revokeSession(sessionId: string) {
 export function logout() {
 	return api.post<void>("/auth/logout");
 }
+
+/** Ответ POST /auth/ws-ticket (ADR-WS-JWT-HANDSHAKE-2026). */
+export interface WSTicketResponse {
+	ticket: string;
+	expires_in: number;
+}
+
+/** Endpoint: POST /auth/ws-ticket — одноразовый ticket для WS handshake. */
+export function createWSTicket() {
+	return api.post<WSTicketResponse>("/auth/ws-ticket");
+}

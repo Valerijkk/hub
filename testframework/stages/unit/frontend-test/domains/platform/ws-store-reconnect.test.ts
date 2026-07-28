@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	clearWsReconnectTimer,
 	useWsStore,
+	WS_TICKET_PROTOCOL_PREFIX,
 	wsReconnectDelayMs,
 } from "@/stores/ws-store";
 
@@ -16,14 +17,16 @@ class FakeWebSocket {
 
 	readyState = FakeWebSocket.CONNECTING;
 	url: string;
+	protocols: string | string[] | undefined;
 	onopen: Handler = null;
 	onclose: Handler = null;
 	onerror: Handler = null;
 	onmessage: Handler = null;
 	sent: string[] = [];
 
-	constructor(url: string) {
+	constructor(url: string, protocols?: string | string[]) {
 		this.url = url;
+		this.protocols = protocols;
 		FakeWebSocket.instances.push(this);
 	}
 
@@ -49,11 +52,17 @@ class FakeWebSocket {
 	}
 }
 
-describe("ws-store reconnect (A10-003)", () => {
+describe("ws-store reconnect (A10-003) + ticket handshake (TASK-103)", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		FakeWebSocket.instances = [];
 		vi.stubGlobal("WebSocket", FakeWebSocket);
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () =>
+				Response.json({ ticket: "ticket-test-1", expires_in: 30 }),
+			),
+		);
 		useWsStore.getState().disconnect();
 		clearWsReconnectTimer();
 		useWsStore.setState({ connected: false, socket: null, listeners: new Set() });
@@ -73,8 +82,23 @@ describe("ws-store reconnect (A10-003)", () => {
 		expect(wsReconnectDelayMs(10)).toBe(30_000);
 	});
 
-	it("schedules reconnect after unexpected close", () => {
+	it("connects via ticket subprotocol without ?token= (A2W11-3-002)", async () => {
 		useWsStore.getState().connect("tok-1");
+		await vi.runAllTimersAsync();
+
+		expect(FakeWebSocket.instances).toHaveLength(1);
+		const sock = FakeWebSocket.instances[0];
+		expect(sock?.url).not.toContain("token=");
+		expect(sock?.url).toMatch(/\/ws$/);
+		expect(sock?.protocols).toBe(`${WS_TICKET_PROTOCOL_PREFIX}ticket-test-1`);
+
+		sock?.open();
+		expect(useWsStore.getState().connected).toBe(true);
+	});
+
+	it("schedules reconnect after unexpected close", async () => {
+		useWsStore.getState().connect("tok-1");
+		await vi.runAllTimersAsync();
 		expect(FakeWebSocket.instances).toHaveLength(1);
 		FakeWebSocket.instances[0]?.open();
 		expect(useWsStore.getState().connected).toBe(true);
@@ -83,28 +107,31 @@ describe("ws-store reconnect (A10-003)", () => {
 		expect(useWsStore.getState().connected).toBe(false);
 		expect(useWsStore.getState().socket).toBeNull();
 
-		vi.advanceTimersByTime(1_000);
+		await vi.advanceTimersByTimeAsync(1_000);
+		await vi.runAllTimersAsync();
 		expect(FakeWebSocket.instances).toHaveLength(2);
-		expect(FakeWebSocket.instances[1]?.url).toContain("tok-1");
+		expect(FakeWebSocket.instances[1]?.url).not.toContain("token=");
 	});
 
-	it("does not reconnect after intentional disconnect", () => {
+	it("does not reconnect after intentional disconnect", async () => {
 		useWsStore.getState().connect("tok-2");
+		await vi.runAllTimersAsync();
 		FakeWebSocket.instances[0]?.open();
 		useWsStore.getState().disconnect();
 
-		vi.advanceTimersByTime(60_000);
+		await vi.advanceTimersByTimeAsync(60_000);
 		expect(FakeWebSocket.instances).toHaveLength(1);
 		expect(useWsStore.getState().connected).toBe(false);
 	});
 
-	it("clears pending reconnect timer on disconnect (no leak)", () => {
+	it("clears pending reconnect timer on disconnect (no leak)", async () => {
 		useWsStore.getState().connect("tok-3");
+		await vi.runAllTimersAsync();
 		FakeWebSocket.instances[0]?.open();
 		FakeWebSocket.instances[0]?.drop();
 
 		useWsStore.getState().disconnect();
-		vi.advanceTimersByTime(60_000);
+		await vi.advanceTimersByTimeAsync(60_000);
 		expect(FakeWebSocket.instances).toHaveLength(1);
 	});
 });
