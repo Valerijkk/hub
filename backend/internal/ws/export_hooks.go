@@ -31,6 +31,12 @@ func ExportConnectionsForUser(h *Hub, userID string) int {
 	return count
 }
 
+// ExportHasConnection сообщает, есть ли connectionID в h.clients (P1-BE-21).
+func ExportHasConnection(h *Hub, connectionID string) bool {
+	_, ok := h.clients.Load(connectionID)
+	return ok
+}
+
 func ExportBridgeHandleProjectEvent(b *Bridge, msg *nats.Msg) {
 	b.handleProjectEvent(msg)
 }

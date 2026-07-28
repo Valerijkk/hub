@@ -218,7 +218,17 @@ func (h *Hub) Unsubscribe(client *Client, room string) {
 
 // registerClient вставляет клиента в обе карты (clients + userClients).
 // Вызывается только из горутины Run, поэтому не требует внешней синхронизации.
+//
+// W3-A4-001 / P1-BE-21: если Unregister (removeClient) уже закрыл done до того,
+// как select в Run дошёл до register, клиента нельзя класть в maps — иначе
+// получается зомби (writePump уже вышел, повторного Unregister нет).
 func (h *Hub) registerClient(client *Client) {
+	select {
+	case <-client.done:
+		return
+	default:
+	}
+
 	h.clients.Store(client.ConnectionID, client)
 
 	inner, _ := h.userClients.LoadOrStore(client.UserID, &sync.Map{})
@@ -229,7 +239,17 @@ func (h *Hub) registerClient(client *Client) {
 // что серилизует её с register/unregister/unsubscribe для того же клиента.
 // Ключом во внутренней карте служит ConnectionID, чтобы два соединения
 // одного и того же юзера могли независимо состоять в одной комнате.
+//
+// W3-A4-002: late Subscribe после Unregister (done уже закрыт) не реанимирует
+// мёртвый Client в rooms. Не требуем clients.Load: Register и Subscribe могут
+// одновременно ждать в select Run — Subscribe раньше Register валиден.
 func (h *Hub) subscribeClient(client *Client, room string) {
+	select {
+	case <-client.done:
+		return
+	default:
+	}
+
 	client.mu.Lock()
 	client.rooms[room] = true
 	client.mu.Unlock()
