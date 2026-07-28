@@ -65,13 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (be2 · TASK-097 Ent soft-delete schema gaps)
+## Session note — 2026-07-28 (be1 · TASK-098 FR-INTR-07/08 author-delete + news_poll*)
 
-- ADR-ENT-SOFT-DELETE-GAPS-2026 Accepted; migrate `20260728_task097_soft_delete_gaps.sql`.
-- `deleted_at` + list filters: LeaveRequest, Label/LabelGroup, CustomField, Sprint, Recording, Kudo, GitHub/GitLab Integration; JournalLine = join-filter via entry.
-- Soft-delete repos: DeleteLabel/CustomField/Integration → SetDeletedAt; SoftDeleteSprint/Leave/Recording/Kudo/JournalEntry.
-- Tests: `*soft_delete*task097*` + `schema_soft_delete_task097` — PASS (hubtest -race). GitLab handler SSRF 127.0.0.1 — pre-existing residual, не регрессия soft-delete.
-- Статус TASK-097 → **Исправлена**. Version на Label/CFD/Sprint — зона TASK-095 (без конфликта Mixin).
+- ADR-INTRANET-U03 Accepted (owner: ADR/migrate без отдельного approve).
+- `news_poll*` Ent + SQL migrate; soft-hide через `NewsPost.deleted_at` (30d без обхода).
+- `DeleteNews`: admin **или** автор; poll create/get/vote/update; restore счётчиков.
+- Тесты: `task098_author_delete_poll_test.go`; `./testframework/intranet/` race PASS.
+- Статус TASK-098 → **Исправлена**.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

@@ -2,8 +2,6 @@ package intranet
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -20,6 +18,12 @@ type Repository interface {
 	UpdateNewsPost(ctx context.Context, id uuid.UUID, req UpdateNewsRequest) (*ent.NewsPost, error)
 	// SoftDeleteNewsPost — soft-delete + domain audit (actor, post_id); FR-INTR-07 / P3-BE-15.
 	SoftDeleteNewsPost(ctx context.Context, id, actorID uuid.UUID) error
+	GetNewsPollByPostID(ctx context.Context, newsPostID uuid.UUID) (*ent.NewsPoll, error)
+	GetNewsPollByPostIDIncludingDeleted(ctx context.Context, newsPostID uuid.UUID) (*ent.NewsPoll, error)
+	GetUserNewsPollVote(ctx context.Context, pollID, userID uuid.UUID) (*ent.NewsPollVote, error)
+	CountNewsPollVotes(ctx context.Context, pollID uuid.UUID) (int, error)
+	VoteNewsPoll(ctx context.Context, pollID, optionID, userID uuid.UUID) error
+	UpdateNewsPoll(ctx context.Context, pollID uuid.UUID, in UpdateNewsPollInput) (*ent.NewsPoll, error)
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 	ListActiveUsers(ctx context.Context) ([]*ent.User, error)
 	GetActiveUser(ctx context.Context, id uuid.UUID) (*ent.User, error)
@@ -48,17 +52,6 @@ type EntRepository struct {
 // NewEntRepository создаёт Ent-репозиторий intranet.
 func NewEntRepository(client *ent.Client) *EntRepository {
 	return &EntRepository{client: client}
-}
-
-func (r *EntRepository) CreateNewsPost(ctx context.Context, authorID uuid.UUID, req CreateNewsRequest) (*ent.NewsPost, error) {
-	return r.client.NewsPost.
-		Create().
-		SetTitle(req.Title).
-		SetBody(req.Body).
-		SetPinned(req.Pinned).
-		SetPublished(req.Published).
-		SetAuthorID(authorID).
-		Save(ctx)
 }
 
 func (r *EntRepository) GetNewsPost(ctx context.Context, id uuid.UUID) (*ent.NewsPost, error) {
@@ -127,40 +120,6 @@ func (r *EntRepository) UpdateNewsPost(ctx context.Context, id uuid.UUID, req Up
 		upd.SetPublished(*req.Published)
 	}
 	return upd.Save(ctx)
-}
-
-func (r *EntRepository) SoftDeleteNewsPost(ctx context.Context, id, actorID uuid.UUID) error {
-	tx, err := r.client.Tx(ctx)
-	if err != nil {
-		return fmt.Errorf("begin news soft-delete tx: %w", err)
-	}
-	now := time.Now().UTC()
-	_, err = tx.NewsPost.UpdateOneID(id).
-		Where(newspost.DeletedAtIsNil()).
-		SetDeletedAt(now).
-		Save(ctx)
-	if err != nil {
-		_ = tx.Rollback()
-		return err
-	}
-	_, err = tx.AuditLog.Create().
-		SetAction("delete").
-		SetEntityType("news_post").
-		SetEntityID(id.String()).
-		SetUserID(actorID).
-		SetDetails(map[string]interface{}{
-			"actor_id": actorID.String(),
-			"post_id":  id.String(),
-		}).
-		Save(ctx)
-	if err != nil {
-		_ = tx.Rollback()
-		return fmt.Errorf("audit news delete: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit news soft-delete: %w", err)
-	}
-	return nil
 }
 
 func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {

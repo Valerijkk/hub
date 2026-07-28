@@ -774,7 +774,7 @@ API-ключи для программного доступа, webhook-подп�
 | GET | `/intranet/news/:newsId` | Одна новость |
 | POST | `/intranet/news` | Создать (admin) |
 | PUT | `/intranet/news/:newsId` | Обновить (admin, optimistic `version`) |
-| DELETE | `/intranet/news/:newsId` | Soft delete (admin) |
+| DELETE | `/intranet/news/:newsId` | Soft delete (admin **или автор** поста → корзина 30д) |
 
 ### Directory (MOD-02)
 
@@ -814,17 +814,17 @@ Anti-repeat: старается не повторять пары из преды
 
 | Метод | Путь | Описание | Статус |
 |---|---|---|---|
-| POST | `/intranet/news` | + опциональный `poll` (вопрос, 2–10 вариантов) | planned |
-| GET | `/intranet/news/:newsId/poll` | Опрос поста + агрегаты голосов | planned |
-| POST | `/intranet/news/:newsId/poll/vote` | Голос (1 вариант; повторный → 422) | planned |
-| PUT | `/intranet/news/:newsId/poll` | Правка/закрытие опроса (после первого голоса → 422) | planned |
+| POST | `/intranet/news` | + опциональный `poll` (вопрос, 2–10 вариантов) | shipped (TASK-098) |
+| GET | `/intranet/news/:newsId/poll` | Опрос поста + агрегаты голосов | shipped (TASK-098) |
+| POST | `/intranet/news/:newsId/poll/vote` | Голос (1 вариант; повторный → 422) | shipped (TASK-098) |
+| PUT | `/intranet/news/:newsId/poll` | Правка/закрытие опроса (после первого голоса → 422) | shipped (TASK-098) |
 | GET | `/intranet/onboarding/templates` | Системные шаблоны dev/non-dev (admin) | planned |
 | POST | `/intranet/onboarding/assignments` | Назначить шаблон новичку (admin; re-assign → 409 без confirm) | planned |
 | GET | `/intranet/onboarding/assignments` | Прогресс по всем новичкам (admin, offset/limit) | planned |
 | GET | `/intranet/onboarding/me` | Мой чеклист | planned |
 | PATCH | `/intranet/onboarding/me/items/:itemId` | Отметить пункт (`checked`, `version`) | planned |
 | GET | `/intranet/kudos/leaderboard` | Топ получателей за `period=month\|quarter\|all` | planned |
-| DELETE | `/intranet/news/:newsId` | Расширение: admin **или автор** (постмодерация) | planned |
+| DELETE | `/intranet/news/:newsId` | Расширение: admin **или автор** (постмодерация) | shipped (TASK-098) |
 
 ---
 
