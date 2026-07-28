@@ -1,6 +1,6 @@
 # TASK-048 — FE mutation feedback + confirm on reject
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
 > Источник: TASK-008 W12 · Classes: P2-FE-02 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,9 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [W18-C5 EVIDENCE]
+
+- Проверяющий: fe1 (W18-C5), автор Stage B ≠ проверяющий
+- Mutation: PASS — см. .planning/audits/total-2026-07/W18-C5-MUTATION.md
+- Статус: Исправлена

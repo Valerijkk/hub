@@ -1,6 +1,6 @@
 ﻿# TASK-032 — FE trash API + webhooks projectId
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Исправлена**  
 > Источник: TASK-008 W12 · Classes: FE-P1-TRASH-WEBHOOKS · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-FRONTEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,9 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [W18-C5 EVIDENCE]
+
+- Проверяющий: fe1 (W18-C5), автор Stage B ≠ проверяющий
+- Mutation: PASS — см. .planning/audits/total-2026-07/W18-C5-MUTATION.md
+- Статус: Исправлена

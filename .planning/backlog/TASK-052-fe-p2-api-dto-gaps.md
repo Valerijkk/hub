@@ -1,6 +1,6 @@
 # TASK-052 — FE API DTO gaps / type-lie
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
 > Источник: TASK-008 W12 · Classes: P2-FE-08 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,9 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [W18-C5 EVIDENCE]
+
+- Проверяющий: fe1 (W18-C5)
+- Mutation: **FAIL** — FAIL: expectTypeOf/version не краснеет при vitest run
+- Статус: Открыта

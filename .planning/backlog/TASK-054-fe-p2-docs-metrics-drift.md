@@ -1,6 +1,6 @@
 # TASK-054 — Docs metrics/wiring/SSO drift
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
 > Источник: TASK-008 W12 · Classes: P2-FE-12 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,9 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [W18-C5 EVIDENCE]
+
+- Проверяющий: fe1 (W18-C5)
+- Mutation: **FAIL** — FAIL: нет автотеста на docs drift; см. TASK-080
+- Статус: Открыта

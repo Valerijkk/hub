@@ -1,7 +1,7 @@
 # Бэклог задач
 
 > Единый вход для агентов и владельца. Одна папка, одна таблица, один формат.
-> Обновлено: 2026-07-28 (TASK-008 стадия B · W12)
+> Обновлено: 2026-07-28 (W18-C5 mutation + catch-up TASK-079/080)
 
 Каждая задача — отдельный файл, написанный по
 [мастер-промпту](../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
@@ -37,9 +37,9 @@
 | [TASK-029](TASK-029-fe-messenger-reply-thread-unread.md) | FE messenger reply/unread | P1 | Исправлена | fe1 | W12 FE-P1-MESSENGER |
 | [TASK-030](TASK-030-fe-board-dnd-single-path-rank.md) | FE board DnD + rank | P1 | Исправлена | fe1 | W12 FE-P1-BOARD-DND |
 | [TASK-031](TASK-031-fe-sprint-loading-error-states.md) | FE sprint loading/error | P1 | Исправлена | fe1 | W12 FE-P1-SPRINT-UI |
-| [TASK-032](TASK-032-fe-trash-list-and-webhooks-project.md) | FE trash + webhooks projectId | P1 | На проверке | fe2 | W12 FE-P1-TRASH-WEBHOOKS |
-| [TASK-033](TASK-033-fe-error-empty-auth-race.md) | FE error≠empty + auth race | P1 | На проверке | fe2 | W12 FE-P1-ERROR-AS-EMPTY |
-| [TASK-034](TASK-034-fe-a11y-nested-sidebar-notifications.md) | FE a11y nested interactive | P1 | На проверке | fe2 | W12 FE-P1-A11Y-CONTROLS |
+| [TASK-032](TASK-032-fe-trash-list-and-webhooks-project.md) | FE trash + webhooks projectId | P1 | Исправлена · W18-C5 | fe2 | W12 FE-P1-TRASH-WEBHOOKS |
+| [TASK-033](TASK-033-fe-error-empty-auth-race.md) | FE error≠empty + auth race | P1 | Исправлена · W18-C5 | fe2 | W12 FE-P1-ERROR-AS-EMPTY |
+| [TASK-034](TASK-034-fe-a11y-nested-sidebar-notifications.md) | FE a11y nested interactive | P1 | Исправлена · W18-C5 | fe2 | W12 FE-P1-A11Y-CONTROLS |
 | [TASK-035](TASK-035-fe-tms-compare-and-docs-testpath.md) | FE TMS compare + docs drift | P1 | Исправлена | fe1 | W12 FE-P1-TMS-DOCS |
 | [TASK-036](TASK-036-be-p2-dto-error-contract.md) | BE DTO validator + error contract | P2 | На проверке | be2 | W12 P2-BE-01,07 |
 | [TASK-037](TASK-037-be-p2-authz-ent-negative-tests.md) | BE Ent-negative authz tests | P2 | На проверке | be2 | W12 P2-BE-02 |
@@ -53,15 +53,15 @@
 | [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | На проверке | be2 | W12 P2-BE-19..21 |
 | [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Открыта | be1 | W12 P2-BE-22 · W18-C3 FAIL |
 | [TASK-047](TASK-047-fe-p2-error-vs-empty.md) | FE error≠empty sweep | P2 | Исправлена | fe1 | W12 P2-FE-01 |
-| [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | На проверке | fe2 | W12 P2-FE-02 |
+| [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-02 |
 | [TASK-049](TASK-049-fe-p2-a11y-names-dialogs.md) | FE a11y names/dialogs | P2 | Исправлена | fe1 | W12 P2-FE-03,04 |
 | [TASK-050](TASK-050-fe-p2-tokens-dead-ui.md) | FE tokens/dead UI/authz | P2 | Исправлена | fe1 | W12 P2-FE-05,06,16 |
-| [TASK-051](TASK-051-fe-p2-effects-hooks-race.md) | FE effects/hooks race | P2 | На проверке | fe2 | W12 P2-FE-07 |
-| [TASK-052](TASK-052-fe-p2-api-dto-gaps.md) | FE API DTO gaps | P2 | На проверке | fe2 | W12 P2-FE-08 |
-| [TASK-053](TASK-053-fe-p2-auth-ws-upload.md) | FE auth/WS/upload | P2 | На проверке | fe2 | W12 P2-FE-09..11 |
-| [TASK-054](TASK-054-fe-p2-docs-metrics-drift.md) | Docs metrics/wiring drift | P2 | На проверке | docs-writer | W12 P2-FE-12 |
-| [TASK-055](TASK-055-fe-p2-shell-tracker-ux.md) | FE shell + tracker UX | P2 | На проверке | fe2 | W12 P2-FE-13,14 |
-| [TASK-056](TASK-056-fe-p2-i18n-push-rooms.md) | FE i18n/push/rooms | P2 | На проверке | fe2 | W12 P2-FE-15 |
+| [TASK-051](TASK-051-fe-p2-effects-hooks-race.md) | FE effects/hooks race | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-07 |
+| [TASK-052](TASK-052-fe-p2-api-dto-gaps.md) | FE API DTO gaps | P2 | Открыта · W18-C5 FAIL | fe2 | W12 P2-FE-08 |
+| [TASK-053](TASK-053-fe-p2-auth-ws-upload.md) | FE auth/WS/upload | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-09..11 |
+| [TASK-054](TASK-054-fe-p2-docs-metrics-drift.md) | Docs metrics/wiring drift | P2 | Открыта · W18-C5 FAIL | docs-writer | W12 P2-FE-12 |
+| [TASK-055](TASK-055-fe-p2-shell-tracker-ux.md) | FE shell + tracker UX | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-13,14 |
+| [TASK-056](TASK-056-fe-p2-i18n-push-rooms.md) | FE i18n/push/rooms | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-15 |
 | [TASK-057](TASK-057-be-p3-silent-error-swallow.md) | BE silent error swallow | P3 | Открыта | be1 | W12 P3-BE-01 |
 | [TASK-058](TASK-058-be-p3-assert-free-tests.md) | BE assert-free tests | P3 | Открыта | be2 | W12 P3-BE-02 |
 | [TASK-059](TASK-059-be-p3-mutation-proof-gaps.md) | BE mutation-proof gaps | P3 | Открыта | be1 | W12 P3-BE-03 |
@@ -84,6 +84,8 @@
 | [TASK-076](TASK-076-fe-p3-perf-stale.md) | FE perf stale | P3 | Открыта | fe2 | W12 P3-FE-09 |
 | [TASK-077](TASK-077-fe-p3-api-auth-naming.md) | FE api/auth/naming | P3 | Открыта | fe1 | W12 P3-FE-10..12 |
 | [TASK-078](TASK-078-fe-p3-docs-spa-ux.md) | FE docs/SPA/preview | P3 | Открыта | docs-writer | W12 P3-FE-13..15 |
+| [TASK-079](TASK-079-gdpr-mongo-eraser-fail-closed.md) | GDPR Mongo eraser fail-closed + IT | P2 | Открыта | be1 | W18-C5-001/002 |
+| [TASK-080](TASK-080-docs-metrics-drift-autotest.md) | Docs metrics drift autotest | P2 | Открыта | docs-writer | W18-C5 TASK-054 FAIL |
 
 ## Закрытые
 
