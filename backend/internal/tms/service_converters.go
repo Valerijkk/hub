@@ -380,10 +380,12 @@ func snapshotToUpdateInput(snapshot map[string]interface{}) UpdateTestCaseInput 
 	return input
 }
 
-// normalizeErrorPattern извлекает основной паттерн из сообщения об ошибке (первые 100 символов).
+// normalizeErrorPattern извлекает основной паттерн из сообщения об ошибке (первые 100 рун).
+// P3-BE-04 / W2-A2-019 / TASK-060 residual: msg[:100] по байтам ломал UTF-8.
 func normalizeErrorPattern(msg string) string {
-	if len(msg) > 100 {
-		return msg[:100]
+	runes := []rune(msg)
+	if len(runes) > 100 {
+		return string(runes[:100])
 	}
 	return msg
 }
