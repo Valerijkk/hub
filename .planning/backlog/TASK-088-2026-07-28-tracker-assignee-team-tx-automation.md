@@ -1,6 +1,6 @@
 # TASK-088 — 🔒 Tracker: assignee membership + AddTeam tx + automation Nak
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: A2W1 · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]
@@ -53,3 +53,11 @@ Assignee вне проекта отклоняется; AddTeam+members атом�
 
 - Не закрывать соседние A2 ID «заодно» без evidence
 - Docs sync только если контракт API изменился
+
+
+## [EVIDENCE] (be1 2026-07-28)
+
+- \IsProjectMember\ + check в Create/UpdateIssue
+- \AddTeamToProject\ в одной Ent-tx + mid-fail inject rollback
+- Engine \Handle*\ → \error\; consumer Nak на engine err / unknown subject + metric
+- Tests: \ssignee_membership_task088_test.go\, \dd_team_tx_task088_test.go\, \utomation_nak_task088_test.go- Regression: \go test -tags hubtest -race ./testframework/tracker/... ./testframework/project/...\ PASS

@@ -44,6 +44,9 @@ type mockRepo struct {
 	projectCounters map[uuid.UUID]int
 	issueMessageLinks []*ent.IssueMessageLink
 
+	// projectMembers: projectID → userID → member (nil = всем разрешено).
+	projectMembers map[uuid.UUID]map[uuid.UUID]bool
+
 	// Для проверки update с оптимистичной блокировкой
 	updateVersionError bool
 }
@@ -795,6 +798,17 @@ func (m *mockRepo) FindChannelInProject(_ context.Context, _, channelID uuid.UUI
 }
 
 func (m *mockRepo) IsChannelMember(_ context.Context, _, _ uuid.UUID) (bool, error) {
+	return true, nil
+}
+
+func (m *mockRepo) IsProjectMember(_ context.Context, projectID, userID uuid.UUID) (bool, error) {
+	if m.projectMembers != nil {
+		if users, ok := m.projectMembers[projectID]; ok {
+			return users[userID], nil
+		}
+		return false, nil
+	}
+	// По умолчанию — участник (legacy-тесты с произвольным assignee).
 	return true, nil
 }
 

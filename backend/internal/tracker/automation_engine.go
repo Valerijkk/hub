@@ -23,15 +23,16 @@ func NewAutomationEngine(repo Repository, messenger ChannelMessenger, notifier A
 }
 
 // HandleStatusChanged запускает правила при смене статуса задачи.
-func (e *AutomationEngine) HandleStatusChanged(ctx context.Context, evt IssueMovedEvent) {
+// A2W1-A3-001 / TASK-088: ошибка ListEnabledAutomationRules пробрасывается → consumer Nak.
+func (e *AutomationEngine) HandleStatusChanged(ctx context.Context, evt IssueMovedEvent) error {
 	projectID, err := uuid.Parse(evt.ProjectID)
 	if err != nil {
-		return
+		return nil
 	}
 	rules, err := e.repo.ListEnabledAutomationRules(ctx, projectID, TriggerStatusChanged)
 	if err != nil {
 		slog.Error("automation: list rules", "error", err)
-		return
+		return fmt.Errorf("list automation rules: %w", err)
 	}
 	for _, rule := range rules {
 		if configString(rule.TriggerConfig, "to_status_id") != evt.NewStatusID {
@@ -39,18 +40,19 @@ func (e *AutomationEngine) HandleStatusChanged(ctx context.Context, evt IssueMov
 		}
 		e.executeRule(ctx, rule, evt.IssueKey, evt.IssueID, evt.ProjectID, evt.MovedByID, "")
 	}
+	return nil
 }
 
 // HandleIssueCreated запускает правила при создании задачи.
-func (e *AutomationEngine) HandleIssueCreated(ctx context.Context, evt IssueCreatedEvent) {
+func (e *AutomationEngine) HandleIssueCreated(ctx context.Context, evt IssueCreatedEvent) error {
 	projectID, err := uuid.Parse(evt.ProjectID)
 	if err != nil {
-		return
+		return nil
 	}
 	rules, err := e.repo.ListEnabledAutomationRules(ctx, projectID, TriggerIssueCreated)
 	if err != nil {
 		slog.Error("automation: list rules", "error", err)
-		return
+		return fmt.Errorf("list automation rules: %w", err)
 	}
 	for _, rule := range rules {
 		filterType := configString(rule.TriggerConfig, "issue_type")
@@ -59,22 +61,24 @@ func (e *AutomationEngine) HandleIssueCreated(ctx context.Context, evt IssueCrea
 		}
 		e.executeRule(ctx, rule, evt.IssueKey, evt.IssueID, evt.ProjectID, evt.CreatedByID, evt.Title)
 	}
+	return nil
 }
 
 // HandleIssueAssigned запускает правила при смене исполнителя.
-func (e *AutomationEngine) HandleIssueAssigned(ctx context.Context, evt IssueAssignedEvent) {
+func (e *AutomationEngine) HandleIssueAssigned(ctx context.Context, evt IssueAssignedEvent) error {
 	projectID, err := uuid.Parse(evt.ProjectID)
 	if err != nil {
-		return
+		return nil
 	}
 	rules, err := e.repo.ListEnabledAutomationRules(ctx, projectID, TriggerIssueAssigned)
 	if err != nil {
 		slog.Error("automation: list rules", "error", err)
-		return
+		return fmt.Errorf("list automation rules: %w", err)
 	}
 	for _, rule := range rules {
 		e.executeRule(ctx, rule, evt.IssueKey, evt.IssueID, evt.ProjectID, evt.AssignedByID, evt.AssigneeID)
 	}
+	return nil
 }
 
 func (e *AutomationEngine) executeRule(ctx context.Context, rule *ent.AutomationRule, issueKey, issueID, projectID, actorID, extra string) {
