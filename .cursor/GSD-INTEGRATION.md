@@ -40,7 +40,7 @@ Coverage — Hub `/coverage-audit`; handoff — `/handoff` +
 | Перенос AI kit | `/portable-kit` |
 | Strangler checklist | `/microservices-strangler` |
 
-Планы порта и portable kit (горизонт → 15.08.2026): [`.planning/july-2026/ai-expansion/`](../.planning/july-2026/ai-expansion/README.md)
+Планы порта и portable kit (горизонт → 15.08.2026): [`.planning/archive/july-2026/ai-expansion/`](../.planning/archive/july-2026/ai-expansion/README.md)
 PE project-agnostic порт: [`prompt-engineering/gsd-port/`](../prompt-engineering/gsd-port/README.md) · [`PORTABLE-HUB-KIT.md`](../prompt-engineering/PORTABLE-HUB-KIT.md)
 
 Инвентарь upstream skills: `ai-expansion/03-GSD-PORT-INVENTORY.md`.
@@ -49,7 +49,7 @@ PE project-agnostic порт: [`prompt-engineering/gsd-port/`](../prompt-enginee
 
 ## P0/P1 port status mid-Aug
 
-> Источник: [`03-GSD-PORT-INVENTORY.md`](../.planning/july-2026/ai-expansion/03-GSD-PORT-INVENTORY.md) (79 skills · 2026-07-22).
+> Источник: [`03-GSD-PORT-INVENTORY.md`](../.planning/archive/july-2026/ai-expansion/03-GSD-PORT-INVENTORY.md) (79 skills · 2026-07-22).
 > Σ: **P0=21 · P1=35 · P2=15 · SKIP=8**.
 > Политика: паттерны в RU/PE/agents — не vendor-copy upstream `SKILL.md`.
 
@@ -82,7 +82,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Upstream P0 | Статус mid-Aug | Куда добить до 15.08 |
 |-------------|----------------|----------------------|
 | `gsd-discuss-phase`, `gsd-spec-phase` | practice · agents `ba1`/`ba2` | секции GSD + PE |
-| `gsd-plant-seed` | practice · `.planning/seeds/` | agents `ba2`/`product` |
+| `gsd-plant-seed` | practice · `.planning/reference/seeds/` | agents `ba2`/`product` |
 | `gsd-workstreams` | practice · team-workflow | PE `wave-execution` + `team-lead` |
 | `gsd-quick`, `gsd-fast` | partial · route | agents `be*`/`fe*` / `codex-micro` |
 | `gsd-add-tests`, `gsd-validate-phase` | partial · route | agents `qa-auto*` |
@@ -168,7 +168,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | `.planning/STATE.md` | `gsd-progress` state |
 | `.planning/COVERAGE.md` | Hub `coverage-audit` output |
 | `.planning/EXPANSION-ANALYSIS-*.md` | backlog для `gsd-plan-phase` |
-| `.planning/quick/` | `gsd-quick` tasks |
+| `.planning/archive/quick/` | `gsd-quick` tasks |
 | `.planning/debug/` | `gsd-debug` sessions |
 
 ---
@@ -219,7 +219,7 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Срочная задача между фазами | `gsd-insert-phase` (напр. `72.1`) | Хотфикс безопасности вне очереди |
 | Фича на конец roadmap | `gsd-add-phase` | Добавление v4 AI hub фазы |
 | Нужен research перед планом | `gsd-research-phase` | Выбор AI framework для gateway BYOK |
-| AI-система (провайдер/агент/RAG) | `gsd-ai-integration-phase` | AI Provider Hub Spec (`.planning/specs/AI-PROVIDER-HUB-SPEC.md`) |
+| AI-система (провайдер/агент/RAG) | `gsd-ai-integration-phase` | AI Provider Hub Spec (`.planning/decisions/specs/AI-PROVIDER-HUB-SPEC.md`) |
 | UI-контракт перед реализацией | `gsd-ui-phase` → `gsd-ui-review` | Bases inline-edit экран |
 | Независимое peer review плана | `gsd-review` | team-lead перед запуском рискованной волны |
 
@@ -302,18 +302,18 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Hub Artifact | GSD Equivalent | Путь |
 |--------------|-----------------|------|
 | `.planning/ROADMAP.md` | Milestone phases (исторический, 125 фаз) | корень |
-| `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` | Актуальный roadmap (волны Track F/P, TF-PY, DOCS-EXCELLENCE) | `july-2026/` |
+| `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` | Актуальный roadmap (волны Track F/P, TF-PY, DOCS-EXCELLENCE) | `july-2026/` |
 | `.planning/STATE.md` | `gsd-progress` state | корень |
 | `.planning/COVERAGE.md` | Hub `coverage-audit` output | корень |
-| `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` | backlog для `gsd-plan-phase` | `july-2026/` |
-| `.planning/quick/` | `gsd-quick` tasks | корень (если создаётся) |
+| `.planning/archive/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` | backlog для `gsd-plan-phase` | `july-2026/` |
+| `.planning/archive/quick/` | `gsd-quick` tasks | корень (если создаётся) |
 | `.planning/debug/` | `gsd-debug` sessions | корень |
-| `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` | Зафиксированные gray-area решения (аналог `gsd-list-phase-assumptions` output) | `gray-zones/` |
+| `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` | Зафиксированные gray-area решения (аналог `gsd-list-phase-assumptions` output) | `gray-zones/` |
 | `.planning/audits/2026-06/AUDIT-SCORECARD.md` | `gsd-audit-uat` / `gsd-validate-phase` output | `audits/2026-06/` |
 | `.planning/decisions/ADR-*.md` | ADR (аналог decisions log GSD) | `decisions/` |
-| `.planning/seeds/SEED-*.md` | `gsd-plant-seed` output | `seeds/` |
+| `.planning/reference/seeds/SEED-*.md` | `gsd-plant-seed` output | `seeds/` |
 | `.planning/milestones/v4-super-app/SUMMARY.md` | `gsd-milestone-summary` output | `milestones/` |
-| `.planning/production/PRODUCTION-HANDOFF.md` | `gsd-ship` / prod handoff | `production/` |
+| `.planning/ops/production/PRODUCTION-HANDOFF.md` | `gsd-ship` / prod handoff | `production/` |
 
 ---
 
@@ -466,12 +466,12 @@ Hub-native (не 1:1 из P0-списка, но в pack): `portable-kit`, `micro
 | Phase | Фаза (`.planning/phases/NN-*/PLAN.md`) | В Hub фазы нумеруются сквозно (1-125+), не сбрасываются на milestone |
 | Plan | План внутри фазы, атомарные коммиты | PR = фаза, коммиты внутри = планы (rule `50-git.mdc`) |
 | Milestone | v1.0 / v2.0 / v2.5 / v2.6 / v3.0 / v4 | Архивируется в `.planning/milestones/` |
-| Gray area | Серая зона | `.planning/gray-zones/AREA-*.md` + `GRAY-ZONES-DECISIONS-*.md` |
+| Gray area | Серая зона | `.planning/decisions/gray-zones/AREA-*.md` + `GRAY-ZONES-DECISIONS-*.md` |
 | Verification loop | Цикл верификации | REGULATION.md §3, §16 (цикличное качество) |
 | UAT | Приёмка пользователем | `qa-manual` + `gsd-verify-work` |
-| Seed | Отложенная идея с триггером | `.planning/seeds/SEED-*.md` |
+| Seed | Отложенная идея с триггером | `.planning/reference/seeds/SEED-*.md` |
 | Workstream | Параллельный поток разработки | Track F / Track P в `july-2026/ROADMAP-FINAL-2026-07-03.md` |
-| Backlog parking lot | Бэклог 999.x | `.planning/roadmaps/FEATURE-BACKLOG-2026.md` |
+| Backlog parking lot | Бэклог 999.x | `.planning/archive/roadmaps/FEATURE-BACKLOG-2026.md` |
 
 ---
 

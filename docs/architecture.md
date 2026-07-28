@@ -2,7 +2,7 @@
 
 > Единая база знаний. Обновляется ARCH при изменении архитектуры.
 > Детали: `docs/TECHNICAL.md`, `docs/wiki/ARCHITECTURE.md`
-> Аудит кода: `.planning/code-review-final/ARCHITECTURE.md` (2026-05-15)
+> Аудит кода: `.planning/audits/code-review-final/ARCHITECTURE.md` (2026-05-15)
 
 ---
 
@@ -214,7 +214,7 @@ Client → POST presign URL → Backend (RBAC check) → SeaweedFS PUT (direct)
 
 ## Реализованная архитектура v3–v4 (2026-06-21)
 
-> Ранее «planned» — теперь в monolith `cmd/server`. Детали: `.planning/specs/PLATFORM-VISION-v4.md`, `.planning/roadmaps/MILESTONE-3.md`
+> Ранее «planned» — теперь в monolith `cmd/server`. Детали: `.planning/decisions/specs/PLATFORM-VISION-v4.md`, `.planning/archive/roadmaps/MILESTONE-3.md`
 
 | Версия | Модули в коде | Frontend routes |
 |--------|---------------|-----------------|
@@ -229,8 +229,8 @@ Event bus: **NATS JetStream** (без Redis pub/sub). Search: PostgreSQL + **Mei
 - `docs/system_specification.md` — API, модели данных
 - `docs/security_guidelines.md` — OWASP, уязвимости
 - `docs/stack_and_tools.md` — версии стека
-- `.planning/specs/PLATFORM-VISION-v4.md` — corporate super-app vision
-- `.planning/specs/AI-PROVIDER-HUB-SPEC.md` — AI gateway spec
+- `.planning/decisions/specs/PLATFORM-VISION-v4.md` — corporate super-app vision
+- `.planning/decisions/specs/AI-PROVIDER-HUB-SPEC.md` — AI gateway spec
 
 ---
 *Последнее обновление: 2026-06-22 — RU-FIX-01: RU section headers*

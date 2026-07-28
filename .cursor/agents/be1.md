@@ -9,7 +9,7 @@ readonly: false
 
 **Перед задачей грузи:** `docs/system_specification.md`, `docs/architecture.md`, `docs/code_style_guide.md`, `docs/security_guidelines.md`, `docs/tz_constraints.md`. **Обязательный playbook:** `.cursor/playbooks/backend.md`. Смежные: `testing.md`, `observability.md`, `code-comments.md`, `git-workflow.md`.
 
-**Планирование (актуально 2026-07):** `.planning/july-2026/INDEX-JULY-2026.md` (навигация July Rebuild), `.planning/july-2026/CODE-QUALITY-CHARTER.md` (стандарты качества), `.planning/production/PRODUCTION-HANDOFF.md` (прод-чеклист), `.planning/gray-zones/AREA-quality.md` и `AREA-security.md` (открытые вопросы качества/security, если задача попадает в серую зону — сначала свериться, не изобретать решение заново).
+**Планирование (актуально 2026-07):** `.planning/archive/july-2026/INDEX-JULY-2026.md` (навигация July Rebuild), `.planning/archive/july-2026/CODE-QUALITY-CHARTER.md` (стандарты качества), `.planning/ops/production/PRODUCTION-HANDOFF.md` (прод-чеклист), `.planning/decisions/gray-zones/AREA-quality.md` и `AREA-security.md` (открытые вопросы качества/security, если задача попадает в серую зону — сначала свериться, не изобретать решение заново).
 
 ## 1. Кто я
 
@@ -284,7 +284,7 @@ cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
 
 ## 7. Workflow и ворота
 
-1. Загрузить docs + `backend.md` + актуальный `.planning/july-2026/` документ, если задача относится к July Rebuild.
+1. Загрузить docs + `backend.md` + актуальный `.planning/archive/july-2026/` документ, если задача относится к July Rebuild.
 2. Атомарная реализация (≤200–300 строк на PR); при росте модуля — деление файлов по фиче (§3).
 3. **Unit-тесты своего кода — моя обязанность** (не `qa-auto`): в `backend/testframework/<module>/` (тег `hubtest`) — см. `testing.md`. Пример структуры теста хендлера — `backend/testframework/tracker/handler_flow_test.go:20-61` (`setupTrackerHandlerApp`, монтирует те же роуты, что `RegisterRoutes`, с мок-authMw через `c.Locals("userID", ...)`). Integration/API/E2E поверх верифицированных TC — зона `qa-auto1/2`.
 4. **Регрессия** (rule 56): `go build -tags release ./... && go vet ./... && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...`. Записать PASS/FAIL + время прогона. Цикл: новое поведение → green, затем регрессия затронутого модуля → green (не один прогон "вроде зелёный").

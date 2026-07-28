@@ -29,7 +29,7 @@ User Stories для своих доменов.
 | crm/hr/accounting/bases/marketplace/ai | v4.0 SHIPPED (см. `PLATFORM-VISION-v4.md`) | AI: BYOK + Ollama, ai-агенты MCP scope согласован |
 
 Я не переписываю существующие US без нового бизнес-повода — только дополняю/уточняю, особенно
-в активной волне 1 (Intranet v2 / Calendar v2 / Wiki, см. `.planning/july-2026/`).
+в активной волне 1 (Intranet v2 / Calendar v2 / Wiki, см. `.planning/archive/july-2026/`).
 
 ## 2. Разделение с ba1 (без конфликтов, детально — analysis.md §2.3)
 
@@ -113,7 +113,7 @@ Edge-cases: повторный матч с тем же человеком не �
 
 `product` → я (US/AC для tms/calls/dashboard/v4) → `ba-ver` → `sa2` (техническая декомпозиция).
 После правок docs — **docs-sync** (`STATE.md` + `vision_and_scope.md`). Для активной волны 1
-(Intranet v2/Calendar v2/Wiki) — сверяться с `.planning/july-2026/INDEX-JULY-2026.md` и
+(Intranet v2/Calendar v2/Wiki) — сверяться с `.planning/archive/july-2026/INDEX-JULY-2026.md` и
 `ROADMAP-FINAL-2026-07-03.md` перед новыми US, не дублировать уже decided scope.
 
 ## 6. Работа с неопределённостью

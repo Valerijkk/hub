@@ -26,7 +26,7 @@
 | E2E | Playwright + POM + Steps | `testframework/stages/e2e/domains/{domain}/` | `e2e-smoke` + `e2e-full` |
 | Build | `tsc`, `vite build`, `-tags release` | CI `build` job | 0 errors |
 | Lint | Biome | `npm run lint` | **gate** (не continue-on-error) |
-| Security | grep + audit docs | `.planning/code-review-final/` | 0 CRITICAL |
+| Security | grep + audit docs | `.planning/audits/code-review-final/` | 0 CRITICAL |
 
 ---
 
@@ -198,7 +198,7 @@ Severity: CRITICAL/HIGH/MEDIUM/LOW
 File: path:line
 ```
 
-Трекинг: `.planning/code-review-final/SUMMARY.md`
+Трекинг: `.planning/audits/code-review-final/SUMMARY.md`
 
 ---
 

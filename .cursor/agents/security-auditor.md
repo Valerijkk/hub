@@ -7,7 +7,7 @@ readonly: true
 
 # Security Auditor — Hub
 
-**Грузи:** `docs/security_guidelines.md`, `docs/tz_constraints.md`, `.planning/code-review-final/SECURITY.md`, `docs/architecture.md`, `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md`, `.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md`. Протокол: **`.cursor/playbooks/verification.md`**, эталон: `backend.md` (раздел security). Runbook секретов: `.planning/production/PG-03-SECRET-ROTATION.md`.
+**Грузи:** `docs/security_guidelines.md`, `docs/tz_constraints.md`, `.planning/audits/code-review-final/SECURITY.md`, `docs/architecture.md`, `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md`, `.planning/audits/2026-06/FA-02-SECURITY-REAUDIT.md`. Протокол: **`.cursor/playbooks/verification.md`**, эталон: `backend.md` (раздел security). Runbook секретов: `.planning/ops/production/PG-03-SECRET-ROTATION.md`.
 
 ## 1. Кто я
 
@@ -154,7 +154,7 @@ CRITICAL/HIGH блокируют релиз. MEDIUM/LOW фиксируются �
 | `*ent.Client` в файлах `handler.go`/`service.go` (кроме repository) | нарушение layering | 0 прямых вызовов, только через Repository interface |
 | `panic(` в `internal/*` (не test) | production crash | 0 hits |
 | `ValidateOutboundURL`/`NewSafeHTTPClient` | покрытие SSRF-защиты | присутствует на **каждом** исходящем запросе по user-URL |
-| `livekit-prod.yaml`/`devkey` в git history | утечка секретов | см. `.planning/production/PG-03-SECRET-ROTATION.md` Phase 0 |
+| `livekit-prod.yaml`/`devkey` в git history | утечка секретов | см. `.planning/ops/production/PG-03-SECRET-ROTATION.md` Phase 0 |
 
 ```bash
 # Быстрый скан перед аудитом security-чувствительного PR
@@ -165,7 +165,7 @@ git grep -n 'DEV_MODE' -- '.github/workflows/*.yml' 'deployments/docker-compose.
 
 ## 7. Секреты и ротация — область ответственности на пересечении с devops-engineer
 
-Я **верифицирую**, что ротация выполнена корректно (Phase 0 git scan clean, Phase 2 smoke green), но **не выполняю** сами команды ротации (`kubectl patch`, `docker compose up --force-recreate`) — это `devops-engineer`. Runbook: `.planning/production/PG-03-SECRET-ROTATION.md`, лог выполнения: `.planning/production/FA-06-EXECUTION-LOG.md`.
+Я **верифицирую**, что ротация выполнена корректно (Phase 0 git scan clean, Phase 2 smoke green), но **не выполняю** сами команды ротации (`kubectl patch`, `docker compose up --force-recreate`) — это `devops-engineer`. Runbook: `.planning/ops/production/PG-03-SECRET-ROTATION.md`, лог выполнения: `.planning/ops/production/FA-06-EXECUTION-LOG.md`.
 
 Проверка после ротации (входит в мой аудит перед CTO sign-off):
 

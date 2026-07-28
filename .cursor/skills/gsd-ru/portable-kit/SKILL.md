@@ -21,8 +21,8 @@ disable-model-invocation: true
 
 | Документ | Роль |
 |----------|------|
-| `.planning/july-2026/ai-expansion/05-PORTABLE-KIT.md` | слои L1–L6, DoD переноса |
-| `.planning/july-2026/ai-expansion/08-PORTABLE-KIT-DRY-RUN.md` | полный dry-run L1–L5 + PASS/FAIL (`corp-hub-starter`) |
+| `.planning/archive/july-2026/ai-expansion/05-PORTABLE-KIT.md` | слои L1–L6, DoD переноса |
+| `.planning/archive/july-2026/ai-expansion/08-PORTABLE-KIT-DRY-RUN.md` | полный dry-run L1–L5 + PASS/FAIL (`corp-hub-starter`) |
 | `prompt-engineering/PORTABLE-HUB-KIT.md` | user-facing 10 шагов |
 | `prompt-engineering/INSTALL.md` | установка PE |
 | `ai-expansion/04-PORTABLE-HUB-ARCH.md` | архитектурный контекст kit |

@@ -102,7 +102,7 @@ alwaysApply: true
 - Webhook signature без skip (SEC-02): `backend/internal/apigateway/webhook.go`.
 - Search user-scope фильтр (NF-03): `backend/internal/search/{service,repository}.go`.
 - WebPush + `ValidateOutboundURL` (NF-07): `backend/internal/notification/push.go`.
-- SFU-инвариант (2026-07-10, MANDATORY): остаёмся на **LiveKit** — `deployments/livekit.yaml`; попытка мигрировать на mediasoup зафиксирована как REJECTED в `.planning/seeds/SEED-001-mediasoup-migration.md`; не поднимать вопрос без нового жёсткого драйвера (лицензия/стоимость/SIP/кастомный RTP).
+- SFU-инвариант (2026-07-10, MANDATORY): остаёмся на **LiveKit** — `deployments/livekit.yaml`; попытка мигрировать на mediasoup зафиксирована как REJECTED в `.planning/reference/seeds/SEED-001-mediasoup-migration.md`; не поднимать вопрос без нового жёсткого драйвера (лицензия/стоимость/SIP/кастомный RTP).
 - ADR как единственный путь к SSO/LDAP: `.planning/decisions/ADR-AUTH-SSO-2026.md` — реализация запрещена до принятия ADR даже при одобренном scope.
 - GitHub Actions — экономия минут: `.github/workflows/{ci,pr-guard,deploy}.yml` — не плодить лишние джобы/матрицы, студенческий пакет ограничен ~3000 мин/мес.
 
@@ -132,4 +132,4 @@ alwaysApply: true
 - **NF-03-аналог (bases):** `backend/internal/bases/service.go` до фикса `98fb3df` не фильтровал базы по владельцу — любой юзер видел/менял чужие. Закрыто `authorizeBase()`; regression в `backend/testframework/bases/rbac_test.go`.
 - **Rune vs byte length (auth):** `backend/internal/auth/handler.go` до `576dfbb` считал длину magic-link кода в байтах — ломало non-ASCII. См. `.cursor/rules/56-regression-verify.mdc` для полного цикла обоих кейсов.
 - **Fiber v3 RBAC middleware order:** не TZ-constraint напрямую, но смежный class of bugs — см. `.planning/audits/2026-06/FA-RBAC-FIBER3-AUDIT.md` и `.cursor/rules/20-backend.mdc`.
-- **SFU-решение зафиксировано:** mediasoup миграция была предложена и **отклонена** — `.planning/seeds/SEED-001-mediasoup-migration.md`; LiveKit остаётся каноном, не предлагать замену без нового ADR-триггера.
+- **SFU-решение зафиксировано:** mediasoup миграция была предложена и **отклонена** — `.planning/reference/seeds/SEED-001-mediasoup-migration.md`; LiveKit остаётся каноном, не предлагать замену без нового ADR-триггера.

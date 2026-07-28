@@ -1,7 +1,7 @@
 # Hub — Руководство по безопасности
 
 > Единая база знаний. Обновляется ARCH/BE при изменении политик.  
-> Аудит: `.planning/code-review-final/SECURITY.md` · TZ: `docs/tz_constraints.md`
+> Аудит: `.planning/audits/code-review-final/SECURITY.md` · TZ: `docs/tz_constraints.md`
 
 ---
 
@@ -20,7 +20,7 @@
 ## OWASP Top 10 — чек-лист Hub
 
 > **Последний аудит:** 2026-06-17 (comprehensive re-audit all CRITICAL + HIGH findings).
-> **Baseline:** `.planning/code-review-final/SUMMARY.md` (2026-05-15).
+> **Baseline:** `.planning/audits/code-review-final/SUMMARY.md` (2026-05-15).
 
 | # | Угроза | Статус Hub | Открытые ID |
 |---|--------|------------|-------------|
@@ -268,7 +268,7 @@ if expectedHash != "" { ... }
 
 ## Итоговое резюме — формальный re-audit 2026-06-17
 
-**Scope:** All 12 CRITICAL + 16 HIGH findings from `.planning/code-review-final/SUMMARY.md` (2026-05-15)  
+**Scope:** All 12 CRITICAL + 16 HIGH findings from `.planning/audits/code-review-final/SUMMARY.md` (2026-05-15)  
 **Method:** File-level verification (Grep + Read actual code) against current codebase  
 **Auditor:** security-auditor (readonly analysis)
 

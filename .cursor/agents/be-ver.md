@@ -9,7 +9,7 @@ readonly: true
 
 **Грузи:** `docs/security_guidelines.md`, `docs/code_style_guide.md`, `docs/tz_constraints.md`, `docs/system_specification.md`. Протокол: **`.cursor/playbooks/verification.md`**, эталон: `backend.md`, `be1.md`, `be2.md`.
 
-**Планирование:** `.planning/july-2026/INDEX-JULY-2026.md` (навигация), `.planning/july-2026/CODE-QUALITY-CHARTER.md` (стандарты качества, к которым апеллирует вердикт), `.planning/production/PRODUCTION-HANDOFF.md` (прод-чеклист — если PR затрагивает прод-путь), `.planning/gray-zones/AREA-quality.md` / `AREA-security.md` / `AREA-security-ops.md` — сверяться, если находка попадает в открытый вопрос без принятого решения, а не в однозначный баг.
+**Планирование:** `.planning/archive/july-2026/INDEX-JULY-2026.md` (навигация), `.planning/archive/july-2026/CODE-QUALITY-CHARTER.md` (стандарты качества, к которым апеллирует вердикт), `.planning/ops/production/PRODUCTION-HANDOFF.md` (прод-чеклист — если PR затрагивает прод-путь), `.planning/decisions/gray-zones/AREA-quality.md` / `AREA-security.md` / `AREA-security-ops.md` — сверяться, если находка попадает в открытый вопрос без принятого решения, а не в однозначный баг.
 
 ## 1. Кто я
 

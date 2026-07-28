@@ -67,12 +67,12 @@ hub/
 - Project requirements: `.planning/PROJECT.md`
 - Roadmap & phases: `.planning/ROADMAP.md`
 - Current state (старт сессии): `.planning/STATE.md`
-- July Rebuild index: `.planning/july-2026/INDEX-JULY-2026.md`
-- Prod ops (PG-03, FA-06, handoff): `.planning/production/`
-- Gap closure / Wave C tasks: `.planning/tasks/`
-- Security audit: `.planning/code-review-final/SECURITY.md`
-- Full audit summary: `.planning/code-review-final/SUMMARY.md`
-- v3.0 AI plans: `.planning/roadmaps/MILESTONE-3.md`
+- July Rebuild index: `.planning/archive/july-2026/INDEX-JULY-2026.md`
+- Prod ops (PG-03, FA-06, handoff): `.planning/ops/production/`
+- Gap closure / Wave C tasks: `.planning/archive/tasks/`
+- Security audit: `.planning/audits/code-review-final/SECURITY.md`
+- Full audit summary: `.planning/audits/code-review-final/SUMMARY.md`
+- v3.0 AI plans: `.planning/archive/roadmaps/MILESTONE-3.md`
 
 ## Current Status (2026-07-26)
 
@@ -85,8 +85,8 @@ hub/
 - **Test Automation AI Quality Layer:** `prompt-engineering/`
   `0.1.0-alpha.1`, structural PASS; Hub context complete; paired effectiveness/
   ROI `NOT_RUN`; product code не затронут.
-- **SFU-решение:** остаёмся на **LiveKit** (WebRTC) — миграция на mediasoup **REJECTED** (`.planning/seeds/SEED-001-mediasoup-migration.md`); не предлагать возврат к этой теме без нового триггера
-- **Единственный prod-блокер:** **PG-03/FA-06** секрет-ротация (Resend/Telegram) — **ручная операция**, не гейтит разработку; лог — `.planning/production/FA-06-EXECUTION-LOG.md`, runbook — `docs/runbooks/fa06-secret-rotation.md`
+- **SFU-решение:** остаёмся на **LiveKit** (WebRTC) — миграция на mediasoup **REJECTED** (`.planning/reference/seeds/SEED-001-mediasoup-migration.md`); не предлагать возврат к этой теме без нового триггера
+- **Единственный prod-блокер:** **PG-03/FA-06** секрет-ротация (Resend/Telegram) — **ручная операция**, не гейтит разработку; лог — `.planning/ops/production/FA-06-EXECUTION-LOG.md`, runbook — `docs/runbooks/fa06-secret-rotation.md`
 
 ## Production checklist (актуальный)
 
@@ -127,9 +127,9 @@ cd frontend && node scripts/link-testframework-node-modules.mjs && npx tsc --noE
 - Frontend feature-модули: `frontend/src/modules/{tracker,messenger,tms,calls,bases,crm,hr,accounting,calendar,intranet,marketplace,admin,settings,status}/`.
 - ADR по архитектуре/безопасности: `.planning/decisions/ADR-AUTH-SSO-2026.md`, `ADR-ARCH-MICROSERVICES-2026.md`, `ADR-AI-AGENTS-MCP-2026.md`.
 - Тест-фреймворк (канонический вход): `testframework/PIPELINE.md` — стадии CI → job → домен.
-- Не путать `.planning/ROADMAP.md`-исторический с актуальным: актуальный roadmap — `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` / `ROADMAP-DETAILED-JULY-RETURN.md`.
+- Не путать `.planning/ROADMAP.md`-исторический с актуальным: актуальный roadmap — `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` / `ROADMAP-DETAILED-JULY-RETURN.md`.
 - Ростер и модели AI-команды (32 агента) — не дублировать здесь, читать `.cursor/playbooks/README.md` §0/§3 (модели, тиры, обратная карта агент→playbook).
 - main.go (34 строки, инициализация разнесена по 13 `wiring_*.go`) не расширять новой логикой: новая инициализация модуля идёт в `backend/cmd/server/wiring_*.go` (см. `20-backend.mdc`).
-- Реальный пример «единственного prod-блокера, не блокирующего разработку»: `.planning/production/PG-03-SECRET-ROTATION.md` описывает ручную процедуру, которая может идти параллельно с любой фичевой веткой.
+- Реальный пример «единственного prod-блокера, не блокирующего разработку»: `.planning/ops/production/PG-03-SECRET-ROTATION.md` описывает ручную процедуру, которая может идти параллельно с любой фичевой веткой.
 - Wiki-документация продукта (не путать с этим `.cursor/`-справочником): `docs/wiki/` — `API.md`, `SHORTCUTS.md`, `QUICKSTART.md`, `DEPLOY.md`.
 - CI-экономия минут (студенческий пакет GitHub Actions): смотри реальные джобы `.github/workflows/{ci,pr-guard,deploy}.yml` перед добавлением новой матрицы/джобы.

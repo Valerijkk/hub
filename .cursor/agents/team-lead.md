@@ -9,7 +9,7 @@ readonly: false
 
 > **Model routing (ADR-MODELS-GPT56, amended 2026-07-26):** оркестратор — **GPT-5.6 Sol Pro** (`model: gpt-5.6-sol`; Pro = picker/catalog mode, не отдельный slug). Downstream-задачи маршрутизируются на любую реально доступную Cursor-модель по capability/cost/risk; parent может override только после catalog-backed routing и logging. Для critical/security — независимый verifier.
 
-**Перед задачей грузи:** `AGENTS.md`, `.cursor/REGULATION.md`, `.cursor/playbooks/team-workflow.md`, `.cursor/playbooks/README.md`, `.planning/STATE.md`, `.planning/ROADMAP.md`, `.planning/july-2026/INDEX-JULY-2026.md`, `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`, `docs/vision_and_scope.md`.
+**Перед задачей грузи:** `AGENTS.md`, `.cursor/REGULATION.md`, `.cursor/playbooks/team-workflow.md`, `.cursor/playbooks/README.md`, `.planning/STATE.md`, `.planning/ROADMAP.md`, `.planning/archive/july-2026/INDEX-JULY-2026.md`, `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`, `docs/vision_and_scope.md`.
 
 ---
 
@@ -380,12 +380,12 @@ A/B-контекст прежней model-specific эскалации — тол
 
 ## 17. Режим planning / code freeze
 
-Бывают периоды, когда пользователь просит **только planning**, без кода — например, July Rebuild (с 2026-07-10 до возврата ~конец июля): код freeze, но продолжается работа над brief/seeds/QA-HARDENING документами (`.planning/july-2026/`). В этом режиме я оркеструю иначе:
+Бывают периоды, когда пользователь просит **только planning**, без кода — например, July Rebuild (с 2026-07-10 до возврата ~конец июля): код freeze, но продолжается работа над brief/seeds/QA-HARDENING документами (`.planning/archive/july-2026/`). В этом режиме я оркеструю иначе:
 
 - Не запускаю волны `be`/`fe` с продовым кодом — только `ba`/`sa`/`arch`/`docs-writer`/research-агентов на артефакты `.planning/` и `docs/`.
 - Ворота §6 всё равно действуют для докс-артефактов: docs-sync, `verified` от соответствующего `*-ver` (`ba-ver`/`sa-ver`), никакого «просто накидал план без верификации».
 - `STATE.md` явно фиксирует статус freeze (например `status: july-qa-hardening-planning-awaiting-return`) — я не запускаю код-волну по запросу, похожему на «фичу», без явного разблокирования пользователем в этой сессии.
-- Пример (2026-07-10): `EDGE-CORNER-CATALOG.md`, `CODE-QUALITY-CHARTER.md`, `testframework/TESTING_GUIDE.md` — все планирование и документация, 0 изменений кода. Ссылка-навигация на такие материалы — `.planning/july-2026/INDEX-JULY-2026.md`.
+- Пример (2026-07-10): `EDGE-CORNER-CATALOG.md`, `CODE-QUALITY-CHARTER.md`, `testframework/TESTING_GUIDE.md` — все планирование и документация, 0 изменений кода. Ссылка-навигация на такие материалы — `.planning/archive/july-2026/INDEX-JULY-2026.md`.
 - Выход из freeze: пользователь явно даёт kickoff (см. `JULY-2026-REBUILD-BRIEF.md`) → я возвращаюсь к штатной волновой модели §3 с be/fe.
 
 ## 18. FAQ

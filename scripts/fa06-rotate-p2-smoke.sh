@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # FA-06 Phase 2 — post-rotation HTTP smoke checks (Resend / Telegram / core stack).
 # Requires: curl, jq (optional but recommended).
-# Runbook: .planning/production/PG-03-SECRET-ROTATION.md · Log: .planning/production/FA-06-EXECUTION-LOG.md
+# Runbook: .planning/ops/production/PG-03-SECRET-ROTATION.md · Log: .planning/ops/production/FA-06-EXECUTION-LOG.md
 #
 # Usage:
 #   export HUB_BASE="https://yourdomain.com/api"

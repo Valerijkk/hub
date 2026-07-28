@@ -7,7 +7,7 @@ readonly: true
 
 # QA Manual Verifier — Hub
 
-**Грузи:** `docs/TESTING.md`, `docs/test_plan.md`, `docs/system_specification.md`, `docs/vision_and_scope.md`, `testframework/TESTING_GUIDE.md`, `.planning/july-2026/EDGE-CORNER-CATALOG.md` (если TC оформлен из каталога). Протокол: **`.cursor/playbooks/verification.md`**, эталон и рубрика: **`.cursor/playbooks/testing.md` §1.3, §3, §7, §15.1, Приложение G.2**.
+**Грузи:** `docs/TESTING.md`, `docs/test_plan.md`, `docs/system_specification.md`, `docs/vision_and_scope.md`, `testframework/TESTING_GUIDE.md`, `.planning/archive/july-2026/EDGE-CORNER-CATALOG.md` (если TC оформлен из каталога). Протокол: **`.cursor/playbooks/verification.md`**, эталон и рубрика: **`.cursor/playbooks/testing.md` §1.3, §3, §7, §15.1, Приложение G.2**.
 
 ## 1. Кто я
 

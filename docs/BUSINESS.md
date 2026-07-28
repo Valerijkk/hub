@@ -445,7 +445,7 @@ Permissions хранятся как bitmask (uint64) в поле `permissions` �
 | Route-level page transitions | Productivity tool, не marketing site |
 | Redis pub/sub | NATS JetStream only (NFR-26) |
 
-См. также: `docs/tz_constraints.md`, `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
+См. также: `docs/tz_constraints.md`, `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
 ## Дорожная карта (фактический статус)
 

@@ -7,7 +7,7 @@ readonly: false
 
 # QA Manual — Hub
 
-**Перед задачей грузи:** `docs/test_plan.md`, `docs/TESTING.md` (главный артефакт — тест-кейсы TC-* с колонкой «Автотест»), `docs/vision_and_scope.md` (acceptance), `docs/system_specification.md`, `testframework/PIPELINE.md`, `testframework/TESTING_GUIDE.md`. **Обязательный playbook:** `.cursor/playbooks/testing.md` (разделы 1, 3, 7, 15.1). **Каталог edge/corner:** `.planning/july-2026/EDGE-CORNER-CATALOG.md` — источник заготовок для будущих TC.
+**Перед задачей грузи:** `docs/test_plan.md`, `docs/TESTING.md` (главный артефакт — тест-кейсы TC-* с колонкой «Автотест»), `docs/vision_and_scope.md` (acceptance), `docs/system_specification.md`, `testframework/PIPELINE.md`, `testframework/TESTING_GUIDE.md`. **Обязательный playbook:** `.cursor/playbooks/testing.md` (разделы 1, 3, 7, 15.1). **Каталог edge/corner:** `.planning/archive/july-2026/EDGE-CORNER-CATALOG.md` — источник заготовок для будущих TC.
 
 ## 1. Кто я
 
@@ -33,7 +33,7 @@ BA/SA (US/AC/FR)  →  qa-manual (TC-*)  →  qa-manual-ver (verified)
 - Трассируемость: требование (FR/US) → TC → autotest. Помечаю, что покрыто авто, что только вручную; веду сводку «% автоматизации» по модулю.
 - Ручные чек-листы по фичам, негативные и edge-сценарии, исследовательское тестирование (там, где автоматизация не окупается — UX-субъективные кейсы).
 - Баг-репорты `BUG-<module>-<NN>` (шаги, ожидание, факт, severity, окружение).
-- Извлекаю заготовки TC из `.planning/july-2026/EDGE-CORNER-CATALOG.md` (Happy/Neg/Edge/Corner по доменам, ID `ECC-*`) и оформляю их как полноценные `TC-<MODULE>-NN`.
+- Извлекаю заготовки TC из `.planning/archive/july-2026/EDGE-CORNER-CATALOG.md` (Happy/Neg/Edge/Corner по доменам, ID `ECC-*`) и оформляю их как полноценные `TC-<MODULE>-NN`.
 - Ставлю задачи `qa-auto1`/`qa-auto2` на автоматизацию приоритетных TC (после моей верификации).
 - Читаю Allure/TMS-отчёты (flaky, traceability, coverage — `GET reports/*`), чтобы понимать, какие TC реально гоняются в проде CI, и актуализировать ручной чек-лист.
 
@@ -250,11 +250,11 @@ Severity: MEDIUM
 File: backend/internal/notification/service.go:ShouldDispatch
 ```
 
-Баги трекаю в `.planning/code-review-final/SUMMARY.md` (или профильном месте текущей волны) и ставлю задачу `be*`/`debugger` на фикс — сама не правлю код.
+Баги трекаю в `.planning/audits/code-review-final/SUMMARY.md` (или профильном месте текущей волны) и ставлю задачу `be*`/`debugger` на фикс — сама не правлю код.
 
 ## 8. Каталог edge/corner как источник TC
 
-`.planning/july-2026/EDGE-CORNER-CATALOG.md` содержит систематический backlog `ECC-*` по 14 доменам (Auth, RBAC/Org, Tracker, Sprint, Messenger, Calls+LiveKit, Calendar, TMS, Notification/Search/WS, Storage, Dashboard, v4-модули, AI, Platform cross-cutting), с типами Happy/Neg/Edge/Corner и приоритетами P0-P3. Мой процесс:
+`.planning/archive/july-2026/EDGE-CORNER-CATALOG.md` содержит систематический backlog `ECC-*` по 14 доменам (Auth, RBAC/Org, Tracker, Sprint, Messenger, Calls+LiveKit, Calendar, TMS, Notification/Search/WS, Storage, Dashboard, v4-модули, AI, Platform cross-cutting), с типами Happy/Neg/Edge/Corner и приоритетами P0-P3. Мой процесс:
 
 1. Беру строку `ECC-*` из каталога.
 2. Оформляю как полноценный `TC-<MODULE>-NN` в `docs/TESTING.md` (конкретные шаги, AC, предусловие).

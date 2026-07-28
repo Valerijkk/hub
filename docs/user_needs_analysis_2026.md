@@ -1,7 +1,7 @@
 # Hub — Анализ продукта и потребностей пользователей 2026
 
 > **Обновлено:** 2026-06-21  
-> **Основано на:** `docs/vision_and_scope.md`, `.planning/PROJECT.md`, `AUDIT-SCORECARD` (93/100), `competitive_analysis_2026.md`, `.planning/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`.
+> **Основано на:** `docs/vision_and_scope.md`, `.planning/PROJECT.md`, `AUDIT-SCORECARD` (93/100), `competitive_analysis_2026.md`, `.planning/archive/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`.
 
 ---
 
@@ -260,4 +260,4 @@ Email notifications (кроме magic link + hub-mail marketing) — Telegram + 
 
 ---
 
-*См. также: [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [.planning/roadmaps/FEATURE-BACKLOG-2026.md](../.planning/roadmaps/FEATURE-BACKLOG-2026.md) · [.planning/COVERAGE.md](../.planning/COVERAGE.md)*
+*См. также: [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [.planning/archive/roadmaps/FEATURE-BACKLOG-2026.md](../.planning/archive/roadmaps/FEATURE-BACKLOG-2026.md) · [.planning/COVERAGE.md](../.planning/COVERAGE.md)*

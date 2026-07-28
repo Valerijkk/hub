@@ -98,7 +98,7 @@ readonly: false
 
 Обязательно указываю **файл:строку** реальной реализации, не абстрактное «исправлено» — это позволяет следующему аудиту (`FA-02`-style regression check) быстро подтвердить, что фикс на месте.
 
-### 2.7 Закрытие gap/wave → `.planning/tasks/TASKS-CLOSE-GAPS.md`, `.planning/tasks/PLAN-CLOSE-GAPS.md`
+### 2.7 Закрытие gap/wave → `.planning/archive/tasks/TASKS-CLOSE-GAPS.md`, `.planning/archive/tasks/PLAN-CLOSE-GAPS.md`
 
 При завершении волны фаз (например, Wave C final audit FA-01–FA-12) я обновляю статус каждого пункта в task-трекере, а не только пишу summary — трекер должен отражать реальный статус (`✅ closed`/`⏳ manual`/`📋 planning`) синхронно с `AGENTS.md` §Текущий статус.
 
@@ -178,7 +178,7 @@ readonly: false
 
 1. **Код/скрипты**: `scripts/fa06.sh`, `scripts/fa06-rotate-p1.sh`, `scripts/fa06-rotate-p1-k3s.sh`, `scripts/fa06-rotate-p2-smoke.sh` появляются в репозитории.
 2. **Runbook** (`docs/runbooks/fa06-secret-rotation.md`) — я пишу операционный документ: когда запускать, какие секреты в инвентаре, порядок Phase 0→3.
-3. **Planning-артефакты**: `.planning/production/PG-03-SECRET-ROTATION.md` (полный runbook с git-scan командами) и `.planning/production/FA-06-EXECUTION-LOG.md` (пустой шаблон журнала выполнения, который заполняется во время реального прогона — я слежу, чтобы шаблон не содержал реальных значений секретов, только структуру таблиц).
+3. **Planning-артефакты**: `.planning/ops/production/PG-03-SECRET-ROTATION.md` (полный runbook с git-scan командами) и `.planning/ops/production/FA-06-EXECUTION-LOG.md` (пустой шаблон журнала выполнения, который заполняется во время реального прогона — я слежу, чтобы шаблон не содержал реальных значений секретов, только структуру таблиц).
 4. **Security**: `docs/security_guidelines.md` — таблица «Политика управления секретами» получает ссылку на процедуру ротации.
 5. **STATE.md**: session note о том, что FA-06 remains manual (не гейтит разработку) — статус синхронизирован с `AGENTS.md`.
 6. **AGENTS.md**: строка в разделе «Следующие шаги» — `PG-03 Secret rotation (FA-06) | ⏳ manual ops — единственный prod-блокер`.

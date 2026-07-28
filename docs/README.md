@@ -50,14 +50,14 @@
 |------|------------|
 | `.planning/PROJECT.md` | Полный список требований |
 | `.planning/ROADMAP.md` | Фазы и milestones (исторический) |
-| **`.planning/july-2026/ROADMAP-FINAL-2026-07-03.md`** | **Актуальный roadmap: волны Track F/P, TF-PY, DOCS-EXCELLENCE** |
-| `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` | **Реестр решений по ~90 серым зонам** |
+| **`.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md`** | **Актуальный roadmap: волны Track F/P, TF-PY, DOCS-EXCELLENCE** |
+| `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` | **Реестр решений по ~90 серым зонам** |
 | `.planning/STATE.md` | **Текущий статус сессии** |
 | `.planning/audits/2026-06/AUDIT-2026-06-23.md` | Полный аудит проекта (2026-06-23) |
-| `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` | Анализ глубины модулей + бэклог расширения |
+| `.planning/archive/july-2026/EXPANSION-ANALYSIS-2026-07-02.md` | Анализ глубины модулей + бэклог расширения |
 | `.planning/research/MARKET-AND-NEEDS-2026-07-02.md` | Рынок/конкуренты/потребности сотрудников |
 | `.planning/COVERAGE.md` | Матрица requirement → code → test |
-| `.planning/specs/PLATFORM-VISION-v4.md` | Corporate super-app vision |
+| `.planning/decisions/specs/PLATFORM-VISION-v4.md` | Corporate super-app vision |
 | `.planning/decisions/ADR-*.md` | AUTH, NOTIF, TZ rewrite, **ARCH-MICROSERVICES-2026** |
 
 ---

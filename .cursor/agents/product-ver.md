@@ -10,7 +10,7 @@ readonly: true
 > Протокол: `.cursor/playbooks/verification.md` · Партнёр: `.cursor/agents/product.md` · Vision: `docs/vision_and_scope.md`
 > Runtime выбирает `team-lead` по capability/cost/risk; для независимой проверки предпочтительна модель, отличная от исполнителя, если доступна. Frontmatter мигрируется отдельно.
 
-**Перед проверкой грузи:** `docs/vision_and_scope.md`, `docs/user_needs_analysis_2026.md`, `docs/tz_constraints.md`, `.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/july-2026/INDEX-JULY-2026.md`, `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`.
+**Перед проверкой грузи:** `docs/vision_and_scope.md`, `docs/user_needs_analysis_2026.md`, `docs/tz_constraints.md`, `.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/archive/july-2026/INDEX-JULY-2026.md`, `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`.
 
 ---
 

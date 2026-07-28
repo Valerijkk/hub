@@ -264,20 +264,20 @@ routing по `description`, когда задача требует docs-sync в�
 
 | Папка | Что внутри | Примеры файлов |
 |-------|------------|-----------------|
-| `.planning/july-2026/` | July Rebuild / QA-HARDENING | `INDEX-JULY-2026.md`, `JULY-2026-REBUILD-BRIEF.md`, `ROADMAP-FINAL-2026-07-03.md`, `ROADMAP-DETAILED-JULY-RETURN.md`, `PROJECT-STATUS-2026-07-10.md`, `CODE-QUALITY-CHARTER.md`, `EDGE-CORNER-CATALOG.md`, `EXPANSION-ANALYSIS-2026-07-02.md` |
+| `.planning/archive/july-2026/` | July Rebuild / QA-HARDENING | `INDEX-JULY-2026.md`, `JULY-2026-REBUILD-BRIEF.md`, `ROADMAP-FINAL-2026-07-03.md`, `ROADMAP-DETAILED-JULY-RETURN.md`, `PROJECT-STATUS-2026-07-10.md`, `CODE-QUALITY-CHARTER.md`, `EDGE-CORNER-CATALOG.md`, `EXPANSION-ANALYSIS-2026-07-02.md` |
 | `.planning/audits/2026-06/` | Аудиты июня | `AUDIT-2026-06-23.md`, `AUDIT-2026-06-23-full.md`, `AUDIT-SCORECARD.md`, `FA-01-AUDIT.md`, `FA-02-SECURITY-REAUDIT.md`, `FA-10-QA-GATE.md`, `FA-RBAC-FIBER3-AUDIT.md`, `TECH-DEBT-AUDIT-2026-06-23.md`, `WAVE-C-VERIFICATION.md`, `RU-V-REPORT.md`, `AUDIT-2026-06-22-quality-processes.md` |
-| `.planning/production/` | Prod ops | `PG-03-SECRET-ROTATION.md`, `PRODUCTION-HANDOFF.md`, `FA-06-EXECUTION-LOG.md`, `PROD-01-SPIKE.md`, `PR-feat-v2.5-trust.md` |
-| `.planning/gray-zones/` | Серые зоны + зафиксированные решения | `GRAY-ZONES-DECISIONS-2026-07-03.md`, `AREA-quality.md`, `AREA-release-process.md`, `AREA-security.md`, `AREA-security-ops.md`, `AREA-v4-parity.md`, `AREA-arch-services.md` |
-| `.planning/roadmaps/` | Исторические roadmap/backlog | `EXECUTIVE-REPORT-2026.md`, `FEATURE-BACKLOG-2026.md`, `IMPROVEMENT-MASTER-PLAN.md`, `MICROSERVICES-ROADMAP.md`, `MILESTONE-2.md`, `MILESTONE-3.md`, `DISCUSS-ROADMAP-LOCKED.md`, `DISCUSS-ROADMAP-2026-CONTEXT.md` |
-| `.planning/specs/` | Технические спеки | `AI-PROVIDER-HUB-SPEC.md`, `NOTIF-TG-EMAIL-SPEC.md`, `PLATFORM-VISION-v4.md` |
-| `.planning/tasks/` | Закрытие gaps / финальный аудит фаз | `TASKS-CLOSE-GAPS.md`, `PLAN-CLOSE-GAPS.md`, `TASKS-RU-COMMENTS-DOCS.md`, `TASKS-PHASES-121-FINAL-AUDIT.md` |
+| `.planning/ops/production/` | Prod ops | `PG-03-SECRET-ROTATION.md`, `PRODUCTION-HANDOFF.md`, `FA-06-EXECUTION-LOG.md`, `PROD-01-SPIKE.md`, `PR-feat-v2.5-trust.md` |
+| `.planning/decisions/gray-zones/` | Серые зоны + зафиксированные решения | `GRAY-ZONES-DECISIONS-2026-07-03.md`, `AREA-quality.md`, `AREA-release-process.md`, `AREA-security.md`, `AREA-security-ops.md`, `AREA-v4-parity.md`, `AREA-arch-services.md` |
+| `.planning/archive/roadmaps/` | Исторические roadmap/backlog | `EXECUTIVE-REPORT-2026.md`, `FEATURE-BACKLOG-2026.md`, `IMPROVEMENT-MASTER-PLAN.md`, `MICROSERVICES-ROADMAP.md`, `MILESTONE-2.md`, `MILESTONE-3.md`, `DISCUSS-ROADMAP-LOCKED.md`, `DISCUSS-ROADMAP-2026-CONTEXT.md` |
+| `.planning/decisions/specs/` | Технические спеки | `AI-PROVIDER-HUB-SPEC.md`, `NOTIF-TG-EMAIL-SPEC.md`, `PLATFORM-VISION-v4.md` |
+| `.planning/archive/tasks/` | Закрытие gaps / финальный аудит фаз | `TASKS-CLOSE-GAPS.md`, `PLAN-CLOSE-GAPS.md`, `TASKS-RU-COMMENTS-DOCS.md`, `TASKS-PHASES-121-FINAL-AUDIT.md` |
 | `.planning/decisions/` | ADR | `ADR-AUTH-01-magic-link-only.md`, `ADR-AUTH-SSO-2026.md`, `ADR-TZ-REWRITE-2026.md`, `ADR-ARCH-MICROSERVICES-2026.md`, `ADR-AI-AGENTS-MCP-2026.md`, `ADR-NOTIF-01-transactional-email.md` |
-| `.planning/seeds/` | Forward-looking идеи (GSD `gsd-plant-seed`) | `SEED-001-mediasoup-migration.md` (rejected), `SEED-002-calendar-calls-email-sync.md` (active) |
-| `.planning/edge-expansions/` | Edge/corner каталог по волнам | `00-CORNER-PARENT.md`, `wave2..5/edge/E0{1-5}-*.md`, `wave2..5/corners/C0{2-5}-*.md` |
+| `.planning/reference/seeds/` | Forward-looking идеи (GSD `gsd-plant-seed`) | `SEED-001-mediasoup-migration.md` (rejected), `SEED-002-calendar-calls-email-sync.md` (active) |
+| `.planning/reference/edge-expansions/` | Edge/corner каталог по волнам | `00-CORNER-PARENT.md`, `wave2..5/edge/E0{1-5}-*.md`, `wave2..5/corners/C0{2-5}-*.md` |
 | `.planning/milestones/` | Архив milestone-фаз (v1.0–v4) | `v4-super-app/SUMMARY.md`, `v2.0-phases/*`, `v1.0-phases/*` |
 | `.planning/phases/` | Актуальные phase-планы (GSD) | `16-v26-automate/PLAN.md`, `63-production-gate/PLAN.md`, `67-production-gate/PLAN.md` |
-| `.planning/code-review-final/` | Итоговый code review v2.0.1 | `SUMMARY.md` (12 CRITICAL findings, статус) |
-| `.planning/ab-tests/`, `.planning/ab-microservices/` | A/B планы двух моделей (fable/opus) | `PLAN-bases-fable.md` / `-opus.md`, `PLAN-schedule-*`, `PLAN-team-lead-*` |
+| `.planning/audits/code-review-final/` | Итоговый code review v2.0.1 | `SUMMARY.md` (12 CRITICAL findings, статус) |
+| `.planning/archive/ab-tests/`, `.planning/decisions/ab-microservices/` | A/B планы двух моделей (fable/opus) | `PLAN-bases-fable.md` / `-opus.md`, `PLAN-schedule-*`, `PLAN-team-lead-*` |
 | `.planning/research/` | Research notes | `MARKET-AND-NEEDS-2026-07-02.md` |
 
 ### Быстрые ссылки (частые запросы)
@@ -285,12 +285,12 @@ routing по `description`, когда задача требует docs-sync в�
 | Нужно | Путь |
 |-------|------|
 | Что сейчас происходит | `.planning/STATE.md` → `.planning/README.md` |
-| Актуальный roadmap (не исторический) | `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` |
-| Решения по серым зонам | `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` |
-| Секреты / прод | `.planning/production/PG-03-SECRET-ROTATION.md`, `.planning/production/FA-06-EXECUTION-LOG.md` |
+| Актуальный roadmap (не исторический) | `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` |
+| Решения по серым зонам | `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` |
+| Секреты / прод | `.planning/ops/production/PG-03-SECRET-ROTATION.md`, `.planning/ops/production/FA-06-EXECUTION-LOG.md` |
 | Полный аудит проекта | `.planning/audits/2026-06/AUDIT-2026-06-23.md` |
 | Coverage | `.planning/COVERAGE.md` |
-| Vision v4 | `.planning/specs/PLATFORM-VISION-v4.md` |
+| Vision v4 | `.planning/decisions/specs/PLATFORM-VISION-v4.md` |
 
 ---
 
@@ -307,7 +307,7 @@ routing по `description`, когда задача требует docs-sync в�
 | Новые тесты / coverage | `backend/testframework/tracker/service_wave121_test.go` | `.planning/COVERAGE.md`, `docs/test_plan.md`, `docs/TESTING.md` |
 | CI/CD, Docker, K3s | `docker-compose.test.yml`, `.github/workflows/ci.yml` | `docs/stack_and_tools.md`, `deployments/.env.example`, `docs/wiki/DEPLOY.md` |
 | Security fix | webhook signature, SSRF guard | `docs/security_guidelines.md` + запись в `.planning/audits/2026-06/AUDIT-SCORECARD.md` если закрывает finding |
-| Закрытие gap/wave | Волна интеграции | `.planning/tasks/TASKS-CLOSE-GAPS.md`, `.planning/STATE.md` |
+| Закрытие gap/wave | Волна интеграции | `.planning/archive/tasks/TASKS-CLOSE-GAPS.md`, `.planning/STATE.md` |
 | Архитектурное решение | Микросервисы, SSO | `.planning/decisions/ADR-*.md` + `docs/architecture.md` |
 | Best practice / backlog идея | Конкурентная фича | `docs/competitive_audit.md` |
 | Статус проекта / milestone | Завершение фазы | `AGENTS.md` (кратко), `.planning/STATE.md`, при завершении milestone — `.planning/milestones/` |
@@ -594,8 +594,8 @@ Hub-сторона тулкита: [`.cursor/playbooks/prompt-contract.md`](play
 ### 20.2 GSD-RU и AI-expansion (2026-07-22)
 
 - Executable русский GSD-lite: [`.cursor/skills/gsd-ru/`](skills/gsd-ru/README.md)
-- Планы mid-Aug (порт GSD, agents, PE, portable kit, reduced-GitHub, microservices blueprint): [`.planning/july-2026/ai-expansion/`](../.planning/july-2026/ai-expansion/README.md)
-- Приёмка Must: [`07-ACCEPTANCE.md`](../.planning/july-2026/ai-expansion/07-ACCEPTANCE.md)
+- Планы mid-Aug (порт GSD, agents, PE, portable kit, reduced-GitHub, microservices blueprint): [`.planning/archive/july-2026/ai-expansion/`](../.planning/archive/july-2026/ai-expansion/README.md)
+- Приёмка Must: [`07-ACCEPTANCE.md`](../.planning/archive/july-2026/ai-expansion/07-ACCEPTANCE.md)
 
 ---
 

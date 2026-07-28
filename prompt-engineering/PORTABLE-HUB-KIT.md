@@ -16,7 +16,7 @@
 - Blueprint микросервисов (strangler) и «урезанного GitHub»
 - Planning-шаблоны
 
-Спека слоёв: `.planning/july-2026/ai-expansion/05-PORTABLE-KIT.md` (в репо-источнике Hub).
+Спека слоёв: `.planning/archive/july-2026/ai-expansion/05-PORTABLE-KIT.md` (в репо-источнике Hub).
 
 ## Шаги
 
@@ -56,7 +56,7 @@
 - Microservices: `gsd-ru/microservices-strangler` / ADR pattern
 - Reduced GitHub: blueprint `06-REDUCED-GITHUB-MODULE.md`
 - Индекс GSD-порта: `prompt-engineering/gsd-port/README.md`
-- Полный dry-run: `.planning/july-2026/ai-expansion/08-PORTABLE-KIT-DRY-RUN.md` (в репо-источнике)
+- Полный dry-run: `.planning/archive/july-2026/ai-expansion/08-PORTABLE-KIT-DRY-RUN.md` (в репо-источнике)
 
 ---
 

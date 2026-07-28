@@ -130,7 +130,7 @@ v2.0.0   — new milestone
 - PR = фаза/фича с планами внутри — пример декомпозиции: `.planning/phases/63-production-gate/PLAN.md`, `.planning/phases/67-production-gate/PLAN.md` (атомарные коммиты плана внутри одной фичи).
 - ADR как обязательное личное ревью пользователя: `.planning/decisions/ADR-AUTH-SSO-2026.md`, `ADR-ARCH-MICROSERVICES-2026.md`, `ADR-AI-AGENTS-MCP-2026.md` — изменения auth/архитектуры без merge-approval пользователя не мержить.
 - CI-джобы, которые обязаны быть green перед merge: `.github/workflows/ci.yml` (build+test+lint), `.github/workflows/pr-guard.yml` (PR-гейт), `.github/workflows/deploy.yml` (деплой, гейтится на success CI).
-- Секрет-ротация как отдельный процесс, не блокирующий обычные PR: `.planning/production/PG-03-SECRET-ROTATION.md`, `.planning/production/FA-06-EXECUTION-LOG.md`, скрипты `scripts/fa06*.sh` — ручной запуск DevOps, не часть стандартного git-flow фичи.
+- Секрет-ротация как отдельный процесс, не блокирующий обычные PR: `.planning/ops/production/PG-03-SECRET-ROTATION.md`, `.planning/ops/production/FA-06-EXECUTION-LOG.md`, скрипты `scripts/fa06*.sh` — ручной запуск DevOps, не часть стандартного git-flow фичи.
 - git-workflow playbook с деталями параллельной разработки (be1/be2, fe1/fe2 и т.д.): `.cursor/playbooks/git-workflow.md`.
 
 ## Примеры из Hub
@@ -142,5 +142,5 @@ v2.0.0   — new milestone
 - Ветки Волны 1 (пример naming): `feat/bases/security-membership-fix`, `integration/wave1`, `feat/platform/otel-nats-trace`, `docs/wave2-adr-package`, `docs/wave2-specs` — все смержены в `master` 2026-07-11 пользователем.
 - Feature-ветки удаляются локально и на remote **после** мержа (dependabot-ветки — исключение, не трогать).
 - Rebase-merge в действии: линейная история `master` сохраняет отдельные коммиты `fix(bases)` / `test(bases)` для точечного `git revert`, а не squash в один блоб.
-- Credentials-паттерны, которые реально фигурируют в repo и требуют бдительности: `livekit-prod.yaml` (`devkey:` секция), `docker-compose.local.yml` (Resend/Telegram токены) — см. `.planning/production/PG-03-SECRET-ROTATION.md` для процедуры ротации, если что-то утекло.
+- Credentials-паттерны, которые реально фигурируют в repo и требуют бдительности: `livekit-prod.yaml` (`devkey:` секция), `docker-compose.local.yml` (Resend/Telegram токены) — см. `.planning/ops/production/PG-03-SECRET-ROTATION.md` для процедуры ротации, если что-то утекло.
 - Кто мержит: агенты доводят ветку до green CI + verified + code-reviewer approval и передают **пользователю**; team-lead никогда не мержит в `master` самостоятельно — см. session note 2026-07-11 в `.planning/STATE.md`.

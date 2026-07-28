@@ -163,7 +163,7 @@ kubectl describe pod <pod> -n hub                        # events, restarts, res
 
 ## 6. Прошлые инциденты Hub как справочник паттернов
 
-Реальные CRITICAL/HIGH из `.planning/code-review-final/SECURITY.md` — использую как библиотеку "уже виденных" root causes при похожем симптоме:
+Реальные CRITICAL/HIGH из `.planning/audits/code-review-final/SECURITY.md` — использую как библиотеку "уже виденных" root causes при похожем симптоме:
 
 | Симптом | Прошлый инцидент | Root cause |
 |---------|-------------------|-------------|
@@ -284,7 +284,7 @@ Debugger подключается, когда симптом неочевиде�
 | `DEV_MODE`-зависимое поведение вылезло в prod | `git log -S 'DEV_MODE=true' --oneline -- '.github/workflows/deploy.yml'` — проверить, не попал ли `DEV_MODE=true` в prod-путь через override |
 | LiveKit no media после изменения инфры | UDP 50000–50100 закрыт firewall? `LIVEKIT_API_KEY/SECRET` не совпадают backend↔livekit после ротации? |
 
-Для этого класса первый шаг — не читать бизнес-код, а прогнать Phase 0 git scan (`.planning/production/PG-03-SECRET-ROTATION.md`) или сверить diff `Caddyfile.prod`/`docker-compose.prod.yml` последнего деплоя. Реализацию фикса инфраструктурной причины передаю `devops-engineer` с точным диагнозом.
+Для этого класса первый шаг — не читать бизнес-код, а прогнать Phase 0 git scan (`.planning/ops/production/PG-03-SECRET-ROTATION.md`) или сверить diff `Caddyfile.prod`/`docker-compose.prod.yml` последнего деплоя. Реализацию фикса инфраструктурной причины передаю `devops-engineer` с точным диагнозом.
 
 ## 13. Что я не делаю
 

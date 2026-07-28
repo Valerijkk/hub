@@ -19,12 +19,12 @@ disable-model-invocation: true
 | Tests / coverage | `.planning/COVERAGE.md`, `docs/test_plan.md`, `docs/TESTING.md` |
 | CI / deploy | `docs/stack_and_tools.md`, `deployments/.env.example`, `docs/wiki/DEPLOY.md` |
 | Security | `docs/security_guidelines.md`, при закрытии finding — `.planning/audits/2026-06/AUDIT-SCORECARD.md` |
-| Waves / gaps | `.planning/tasks/TASKS-CLOSE-GAPS.md`, `.planning/tasks/PLAN-CLOSE-GAPS.md`, `.planning/tasks/TASKS-PHASES-121-FINAL-AUDIT.md` |
-| Roadmap-решение / gray-zone | `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`, доменный `.planning/gray-zones/AREA-*.md` |
+| Waves / gaps | `.planning/archive/tasks/TASKS-CLOSE-GAPS.md`, `.planning/archive/tasks/PLAN-CLOSE-GAPS.md`, `.planning/archive/tasks/TASKS-PHASES-121-FINAL-AUDIT.md` |
+| Roadmap-решение / gray-zone | `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`, доменный `.planning/decisions/gray-zones/AREA-*.md` |
 | Архитектурное решение | `.planning/decisions/ADR-*.md`, `docs/architecture.md` |
-| July Rebuild / QA-HARDENING статус | `.planning/july-2026/PROJECT-STATUS-2026-07-10.md`, `.planning/july-2026/INDEX-JULY-2026.md` |
-| Прод-операции / секреты | `.planning/production/PRODUCTION-HANDOFF.md`, `.planning/production/FA-06-EXECUTION-LOG.md` |
-| Спека модуля (Intranet/Calendar/CRM/HR/AI/no-code DB) | `.planning/specs/*.md`, `docs/system_specification.md` |
+| July Rebuild / QA-HARDENING статус | `.planning/archive/july-2026/PROJECT-STATUS-2026-07-10.md`, `.planning/archive/july-2026/INDEX-JULY-2026.md` |
+| Прод-операции / секреты | `.planning/ops/production/PRODUCTION-HANDOFF.md`, `.planning/ops/production/FA-06-EXECUTION-LOG.md` |
+| Спека модуля (Intranet/Calendar/CRM/HR/AI/no-code DB) | `.planning/decisions/specs/*.md`, `docs/system_specification.md` |
 | Завершение milestone | `.planning/milestones/<name>/SUMMARY.md` |
 | Всегда | `.planning/STATE.md`, `AGENTS.md` (если менился статус) |
 
@@ -37,9 +37,9 @@ disable-model-invocation: true
 - .planning/STATE.md         — текущая позиция в roadmap
 - .planning/README.md        — навигация по тематическим папкам
 - .planning/ROADMAP.md       — статус фаз (исторический)
-- .planning/july-2026/ROADMAP-FINAL-2026-07-03.md — актуальный roadmap волн
+- .planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md — актуальный roadmap волн
 - .planning/COVERAGE.md      — метрики coverage
-- .planning/code-review-final/SUMMARY.md  — открытые findings
+- .planning/audits/code-review-final/SUMMARY.md  — открытые findings
 ```
 
 ## Step 2: Обновить STATE.md
@@ -72,7 +72,7 @@ Last activity: <YYYY-MM-DD>
 
 ## Step 5: Проверить открытые criticals
 
-Сверить список CRITICAL findings с `.planning/code-review-final/SUMMARY.md`.
+Сверить список CRITICAL findings с `.planning/audits/code-review-final/SUMMARY.md`.
 
 ## Step 6: Git commit handoff (только по запросу пользователя)
 
@@ -115,5 +115,5 @@ Resume file: None
 ```markdown
 ## Blockers/Concerns
 - TestBasesService_ColumnTypeCast — ROOT неясен (Stop→clarify), эскалировано sa2, ждём уточнения contract в docs/system_specification.md §Bases
-- PG-03 secret rotation — manual ops, единственный prod-блокер (см. .planning/production/PG-03-SECRET-ROTATION.md)
+- PG-03 secret rotation — manual ops, единственный prod-блокер (см. .planning/ops/production/PG-03-SECRET-ROTATION.md)
 ```

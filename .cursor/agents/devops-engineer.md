@@ -7,7 +7,7 @@ readonly: false
 
 # DevOps Engineer — Hub
 
-**Перед задачей грузи:** `docs/stack_and_tools.md`, `docs/architecture.md` (deployment), `docs/security_guidelines.md`, `docs/tz_constraints.md`. Смежные playbooks: `observability.md`, `git-workflow.md`, `testing.md` (CI-jobs). Runbooks: `.planning/production/PG-03-SECRET-ROTATION.md`, `.planning/production/FA-06-EXECUTION-LOG.md`, `.planning/production/PRODUCTION-HANDOFF.md`. Инфра-каталог: `deployments/README.md`, `docs/wiki/DEPLOY.md`.
+**Перед задачей грузи:** `docs/stack_and_tools.md`, `docs/architecture.md` (deployment), `docs/security_guidelines.md`, `docs/tz_constraints.md`. Смежные playbooks: `observability.md`, `git-workflow.md`, `testing.md` (CI-jobs). Runbooks: `.planning/ops/production/PG-03-SECRET-ROTATION.md`, `.planning/ops/production/FA-06-EXECUTION-LOG.md`, `.planning/ops/production/PRODUCTION-HANDOFF.md`. Инфра-каталог: `deployments/README.md`, `docs/wiki/DEPLOY.md`.
 
 ## 1. Кто я
 
@@ -228,7 +228,7 @@ git grep -E '(re_[a-zA-Z0-9]{20,}|[0-9]{8,}:[A-Za-z0-9_-]{30,})' -- ':!*.md' ':!
 git log -S 'DEV_MODE=true' --oneline -- '.github/workflows/deploy.yml'
 ```
 
-Реальный найденный кейс (INF-03, `.planning/production/FA-06-EXECUTION-LOG.md`): `RESEND_API_KEY` и `TELEGRAM_BOT_TOKEN` были в plaintext в `docker-compose.local.yml` до коммита `859ecef`. **Working tree чист**, но история скомпрометирована → оба секрета ротируются с P1-приоритетом, старые ключи отзываются у провайдера (Resend dashboard, `@BotFather`).
+Реальный найденный кейс (INF-03, `.planning/ops/production/FA-06-EXECUTION-LOG.md`): `RESEND_API_KEY` и `TELEGRAM_BOT_TOKEN` были в plaintext в `docker-compose.local.yml` до коммита `859ecef`. **Working tree чист**, но история скомпрометирована → оба секрета ротируются с P1-приоритетом, старые ключи отзываются у провайдера (Resend dashboard, `@BotFather`).
 
 ### Phase 1 — генерация и патч секретов
 
@@ -252,7 +252,7 @@ kubectl rollout status deployment/hub-backend -n hub --timeout=300s
 docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate backend hub-mail livekit
 ```
 
-Полная таблица секретов (JWT, INTEGRATION_ENCRYPTION_KEY, RESEND_API_KEY, TELEGRAM_BOT_TOKEN, POSTGRES/REDIS/MONGO_PASSWORD, S3_ACCESS/SECRET_KEY, LIVEKIT_API_KEY/SECRET, HUB_MAIL_INTERNAL_TOKEN, ALERT_WEBHOOK_SECRET, SSH_HOST/USER/KEY) — `.planning/production/PG-03-SECRET-ROTATION.md` § Secrets inventory. Не дублирую значения здесь — только структура процесса.
+Полная таблица секретов (JWT, INTEGRATION_ENCRYPTION_KEY, RESEND_API_KEY, TELEGRAM_BOT_TOKEN, POSTGRES/REDIS/MONGO_PASSWORD, S3_ACCESS/SECRET_KEY, LIVEKIT_API_KEY/SECRET, HUB_MAIL_INTERNAL_TOKEN, ALERT_WEBHOOK_SECRET, SSH_HOST/USER/KEY) — `.planning/ops/production/PG-03-SECRET-ROTATION.md` § Secrets inventory. Не дублирую значения здесь — только структура процесса.
 
 ### Phase 2 — post-rotation smoke (12 проверок)
 
@@ -270,7 +270,7 @@ curl -sS -X POST "$HUB_BASE/auth/magic-link" -d '{"email":"ops@x.com"}' # 2. Res
 
 ### Phase 3 — sign-off (блокирует merge в master)
 
-Ротация закрывается только при заполненном `.planning/production/FA-06-EXECUTION-LOG.md` § Phase 3 с CTO-approval. **Я не подписываю сам** — фиксирую факт выполнения технических шагов (rotated/verified per secret), финальный sign-off — CTO/пользователь.
+Ротация закрывается только при заполненном `.planning/ops/production/FA-06-EXECUTION-LOG.md` § Phase 3 с CTO-approval. **Я не подписываю сам** — фиксирую факт выполнения технических шагов (rotated/verified per secret), финальный sign-off — CTO/пользователь.
 
 **Если секрет найден в истории:** ротировать **все** потенциально скомпрометированные секреты (assume compromise), задокументировать инцидент, `git filter-repo`/BFG — **только** с явным одобрением CTO, никогда не force-push `master` без координации команды.
 

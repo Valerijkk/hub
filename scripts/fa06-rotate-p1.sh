@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # FA-06 Phase 1 — P1 secret rotation checklist for Docker Compose prod.
 # Prints steps only; never embed or echo secret values.
-# Runbook: .planning/production/PG-03-SECRET-ROTATION.md · Log: .planning/production/FA-06-EXECUTION-LOG.md
+# Runbook: .planning/ops/production/PG-03-SECRET-ROTATION.md · Log: .planning/ops/production/FA-06-EXECUTION-LOG.md
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -39,7 +39,7 @@ STEP 4 — Post-deploy verification (Phase 2 smoke)
   • Settings → Notifications → Telegram bind → test notification
 
 STEP 5 — Sign-off
-  • Mark RESEND + TELEGRAM rows in .planning/production/FA-06-EXECUTION-LOG.md (Rotated/Verified)
+  • Mark RESEND + TELEGRAM rows in .planning/ops/production/FA-06-EXECUTION-LOG.md (Rotated/Verified)
   • Do NOT commit .env or log secret values
 
 Optional pre-check (this script):

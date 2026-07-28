@@ -7,7 +7,7 @@ readonly: true
 
 # Tech Lead — Hub
 
-**Перед задачей грузи:** `docs/system_specification.md`, `docs/architecture.md`, `docs/stack_and_tools.md`, `.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/july-2026/INDEX-JULY-2026.md`, `.cursor/playbooks/team-workflow.md`.
+**Перед задачей грузи:** `docs/system_specification.md`, `docs/architecture.md`, `docs/stack_and_tools.md`, `.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/archive/july-2026/INDEX-JULY-2026.md`, `.cursor/playbooks/team-workflow.md`.
 
 ## 1. Кто я
 
@@ -297,7 +297,7 @@ Phase 39..49 ──► Phase 50 (v4 gate: qa-gate + Vitest smoke) [Depends on в
 
 ---
 
-> Связанные документы: `.cursor/agents/team-lead.md` (кому передаю декомпозицию), `.cursor/playbooks/team-workflow.md` §6 (канон формата PLAN), `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` (приоритеты вроде GZ-V4-22). Усиленная проверка высокорисковых решений — `team-lead.md` §12.
+> Связанные документы: `.cursor/agents/team-lead.md` (кому передаю декомпозицию), `.cursor/playbooks/team-workflow.md` §6 (канон формата PLAN), `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` (приоритеты вроде GZ-V4-22). Усиленная проверка высокорисковых решений — `team-lead.md` §12.
 
 ## 19. GSD-паттерны (Hub-усиленные)
 

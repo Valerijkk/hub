@@ -41,8 +41,8 @@ npx vitest run --coverage --reporter=json 2>/dev/null | \
 - .planning/PROJECT.md §Активные требования
 - .planning/REQUIREMENTS.md
 - .planning/ROADMAP.md §Success Criteria для каждой фазы
-- .planning/july-2026/ROADMAP-FINAL-2026-07-03.md §Success Criteria (актуальные волны)
-- .planning/specs/*.md — если модуль в стадии спеки (Intranet/Calendar/AI Provider Hub/Notif)
+- .planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md §Success Criteria (актуальные волны)
+- .planning/decisions/specs/*.md — если модуль в стадии спеки (Intranet/Calendar/AI Provider Hub/Notif)
 ```
 
 ## Step 3: Трассировать требования к коду
@@ -91,7 +91,7 @@ ls testframework/stages/e2e/domains/tracker/
 
 Всегда проверить статус 12 CRITICAL findings:
 ```
-Читай: .planning/code-review-final/SUMMARY.md §CRITICAL
+Читай: .planning/audits/code-review-final/SUMMARY.md §CRITICAL
 ```
 
 Для каждого: OPEN / FIXED / PARTIAL?

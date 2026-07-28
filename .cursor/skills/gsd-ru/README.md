@@ -25,7 +25,7 @@
 | Оркестрация | часто solo-agent | `team-lead` + 32 роли |
 | Quality | phase verify | + цикл новое/старое ([rule 56](../../rules/56-regression-verify.mdc)) |
 | Делегирование | свободно | **только** шаблон [team-lead.md §5.2](../../agents/team-lead.md) |
-| Portable | project GSD | PE + agents kit ([05-PORTABLE-KIT](../../../.planning/july-2026/ai-expansion/05-PORTABLE-KIT.md)) |
+| Portable | project GSD | PE + agents kit ([05-PORTABLE-KIT](../../../.planning/archive/july-2026/ai-expansion/05-PORTABLE-KIT.md)) |
 | Microservices | generic | [ADR-ARCH-MICROSERVICES](../../../.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md) + strangler checklist |
 
 ## Типовой день
@@ -50,7 +50,7 @@ phase-plan → wave-run (×N) → goal-verify → handoff
 | Artifacts cleanup | `.cursor/rules/45-artifacts-cleanup.mdc` |
 | Контракт промпта | `.cursor/playbooks/prompt-contract.md` |
 | Microservices ADR | `.planning/decisions/ADR-ARCH-MICROSERVICES-2026.md` |
-| AI-expansion | `.planning/july-2026/ai-expansion/` |
+| AI-expansion | `.planning/archive/july-2026/ai-expansion/` |
 | PE-зеркало | `prompt-engineering/skills/{phase-plan,wave-orchestrate,verify-goal}/` |
 
 ## Worked example (сквозной): bases security
@@ -82,7 +82,7 @@ example и таблица anti-patterns не копируются в кажды�
 | Полная матрица агент→GSD | `.cursor/GSD-INTEGRATION.md` |
 | Выбор команды | `.cursor/GSD-INTEGRATION.md` (канон), `gsd-help` / `gsd-do` |
 | FAIL теста | `.cursor/skills/test-triage/SKILL.md` |
-| Планы mid-Aug | `.planning/july-2026/ai-expansion/README.md` |
+| Планы mid-Aug | `.planning/archive/july-2026/ai-expansion/README.md` |
 | Приёмка Must AI-expansion | `ai-expansion/07-ACCEPTANCE.md` |
 
 ## DoD пакета GSD-RU

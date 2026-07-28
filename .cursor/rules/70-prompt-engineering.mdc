@@ -31,7 +31,7 @@ alwaysApply: false
 | Sources / management docs | `prompt-engineering/sources/`, `prompt-engineering/docs/` |
 | GSD-порт / portable kit | `prompt-engineering/gsd-port/`, `PORTABLE-HUB-KIT.md` |
 | Hub GSD-RU skills | `.cursor/skills/gsd-ru/` |
-| AI-expansion plans | `.planning/july-2026/ai-expansion/` |
+| AI-expansion plans | `.planning/archive/july-2026/ai-expansion/` |
 
 ## Правила для работы с тестами через тулкит
 

@@ -8,7 +8,7 @@
 
 **Hub** — self-hosted **corporate super-app** для команд 10–50 человек: Task Tracker + Messenger + TMS + Voice Calls + Dashboards **+** интранет, календарь, CRM-lite, HR, учёт, no-code базы, AI hub.
 
-**Roadmap v4:** `.planning/milestones/v4-super-app/SUMMARY.md` · Vision: `.planning/specs/PLATFORM-VISION-v4.md`
+**Roadmap v4:** `.planning/milestones/v4-super-app/SUMMARY.md` · Vision: `.planning/decisions/specs/PLATFORM-VISION-v4.md`
 
 Монорепо: `backend/` (Go, **82 Ent schemas**) + `frontend/` (React) + `cli/` + `deployments/` + **`testframework/`** (E2E + Vitest)
 
@@ -52,11 +52,11 @@
 | `docs/TROUBLESHOOTING.md` | Типовые грабли разработки (сборка, тесты, окружение) |
 | `docs/runbooks/README.md` | Эксплуатация прода: инцидент, алерты, деплой/откат, БД, бэкапы |
 
-Планирование: [`.planning/README.md`](.planning/README.md) (навигация) · `.planning/STATE.md` · `.planning/COVERAGE.md` · `.planning/ROADMAP.md` · `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
+Планирование: [`.planning/README.md`](.planning/README.md) (навигация) · `.planning/STATE.md` · `.planning/COVERAGE.md` · `.planning/ROADMAP.md` · `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
 **Active (2026-07-26):** Test Automation AI Quality Layer
 `0.1.0-alpha.1` — structural PASS, paired effectiveness/ROI **NOT_RUN**;
-[ai-expansion](.planning/july-2026/ai-expansion/README.md) qualified · July
+[ai-expansion](.planning/archive/july-2026/ai-expansion/README.md) qualified · July
 Rebuild product-code freeze · LiveKit stay · FA-06 manual.
 
 GSD + агенты: `.cursor/GSD-INTEGRATION.md`, `.cursor/REGULATION.md` §8 (GSD), §9 (test triage), §10 (docs sync)
@@ -170,7 +170,7 @@ Hub использует **GSD skills** (`~/.claude/skills/gsd-*`) + Hub slash-s
 | NFR-16 WCAG full sign-off | ⚠️ login axe PASS |
 | NFR-17 Lighthouse blocking gate | ⚠️ artifact only (PR #27) |
 
-Полный аудит: `.planning/audits/2026-06/AUDIT-2026-06-23.md` · матрица: `.planning/COVERAGE.md` · July index: `.planning/july-2026/INDEX-JULY-2026.md`
+Полный аудит: `.planning/audits/2026-06/AUDIT-2026-06-23.md` · матрица: `.planning/COVERAGE.md` · July index: `.planning/archive/july-2026/INDEX-JULY-2026.md`
 
 ---
 

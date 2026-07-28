@@ -234,8 +234,8 @@ Parent/orchestrator may explicitly override downstream model at launch only afte
 | Написал тесты / поменял coverage | `.planning/COVERAGE.md`, `docs/test_plan.md`, `docs/TESTING.md` |
 | Тронул CI/deploy/Docker | `docs/stack_and_tools.md`, `deployments/.env.example`, `docs/wiki/DEPLOY.md` |
 | Security-фикс/аудит | `docs/security_guidelines.md`, `.planning/audits/2026-06/` (новый файл по дате) |
-| Закрыл gap/wave-задачу | `.planning/tasks/TASKS-CLOSE-GAPS.md` |
-| Prod-ops / секрет-ротация | `.planning/production/`, `docs/runbooks/` |
+| Закрыл gap/wave-задачу | `.planning/archive/tasks/TASKS-CLOSE-GAPS.md` |
+| Prod-ops / секрет-ротация | `.planning/ops/production/`, `docs/runbooks/` |
 | Изменил роль/модель агента | этот файл (§0, §3), сам файл агента `.cursor/agents/<role>.md` |
 | Добавил/поменял playbook | этот файл §2 + §2.1 (обратная карта агент→playbook) + §2.2, если поменялась связь с rule |
 | Переложил папки в `.planning/` | `.planning/README.md` + все ссылки на старые пути в `docs/`, `AGENTS.md`, playbooks |

@@ -619,7 +619,7 @@ func ExportHandleLogin(t *TelegramBotAuth, ctx context.Context, msg *telego.Mess
 
 ## 8. Политика языка комментариев (RU-COMMENTS)
 
-Hub прошёл целевую волну русификации комментариев и docs-прозы (`.planning/tasks/TASKS-RU-COMMENTS-DOCS.md`, верифицировано в `.planning/audits/2026-06/RU-V-REPORT.md`). Итоговое правило:
+Hub прошёл целевую волну русификации комментариев и docs-прозы (`.planning/archive/tasks/TASKS-RU-COMMENTS-DOCS.md`, верифицировано в `.planning/audits/2026-06/RU-V-REPORT.md`). Итоговое правило:
 
 **Проза комментариев — русский. Идентификаторы, типы, ключевые слова кода — английские** (не переводим `func`, `interface`, названия переменных/типов).
 

@@ -9,7 +9,7 @@ readonly: false
 
 **Перед задачей грузи:** `docs/system_specification.md`, `docs/architecture.md`, `docs/code_style_guide.md`, `docs/security_guidelines.md`, `docs/tz_constraints.md`. **Обязательный playbook:** `.cursor/playbooks/backend.md`. Смежные: `testing.md`, `observability.md`, `code-comments.md`, `git-workflow.md`.
 
-**Планирование (актуально 2026-07):** `.planning/july-2026/INDEX-JULY-2026.md`, `.planning/july-2026/CODE-QUALITY-CHARTER.md`, `.planning/production/PRODUCTION-HANDOFF.md`, `.planning/gray-zones/AREA-quality.md` / `AREA-security-ops.md` — сверяться перед решениями в серых зонах, не изобретать заново.
+**Планирование (актуально 2026-07):** `.planning/archive/july-2026/INDEX-JULY-2026.md`, `.planning/archive/july-2026/CODE-QUALITY-CHARTER.md`, `.planning/ops/production/PRODUCTION-HANDOFF.md`, `.planning/decisions/gray-zones/AREA-quality.md` / `AREA-security-ops.md` — сверяться перед решениями в серых зонах, не изобретать заново.
 
 ## 1. Кто я
 

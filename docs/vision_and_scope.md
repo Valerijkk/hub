@@ -121,9 +121,9 @@
 - Route-level page transition animations
 - Parallax/3D-анимации на карточках
 
-См. также: [tz_constraints.md](tz_constraints.md) · `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
+См. также: [tz_constraints.md](tz_constraints.md) · `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
-### v3.0 AI Chat Hub — SHIPPED (`.planning/roadmaps/MILESTONE-3.md`)
+### v3.0 AI Chat Hub — SHIPPED (`.planning/archive/roadmaps/MILESTONE-3.md`)
 
 | ID | История | Статус |
 |----|---------|--------|
@@ -134,7 +134,7 @@
 | US-F05 | Как Admin, хочу rate limits и audit AI без утечки содержимого | ✅ `AIUsageDaily`, content policy |
 | US-F06 | Как разработчик, хочу OpenAI-compatible API Hub | ⏳ v3.5 backlog |
 
-### v4.0 Corporate Super-App — SHIPPED (`.planning/specs/PLATFORM-VISION-v4.md`)
+### v4.0 Corporate Super-App — SHIPPED (`.planning/decisions/specs/PLATFORM-VISION-v4.md`)
 
 | ID | История | Статус |
 |----|---------|--------|
@@ -151,7 +151,7 @@
 
 ## Волна 1 аналитика — Intranet v2 (US-INTR)
 
-> Границы scope зафиксированы пользователем: `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-01/02/03) и `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.10). Не расширять без нового решения PO.
+> Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-01/02/03) и `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.10). Не расширять без нового решения PO.
 > Базовый функционал (лента `intranet/news`, kudos, random coffee) реализован в v4 — истории ниже описывают доводку до паритета. Персоны: Игорь (Member), Елена (Admin), Виктор (PO).
 
 ### KPI (Intranet v2)
@@ -292,7 +292,7 @@ Edge-cases: повторение прошлой пары допускается 
 
 ## Волна 1 аналитика — Calendar v2 (US-CAL)
 
-> Границы scope зафиксированы пользователем: `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-04/05/06/07) и `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.11). Не расширять без нового решения PO.
+> Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §4 (GZ-V4-04/05/06/07) и `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.11). Не расширять без нового решения PO.
 > Базовый календарь (`/calendar`, iCal export) реализован в v4 (US-V03) — истории ниже доводят его до паритета. Синхронизация — iCal двусторонне-упрощённо: export + подписка на внешние фиды, **без OAuth** (Google/Outlook API вне scope). Персоны: Игорь (Member), Дмитрий (Team Lead), Елена (Admin).
 
 ### KPI (Calendar v2)
@@ -418,7 +418,7 @@ Edge-cases: неутверждённая заявка на отпуск (pending
 
 ## Волна 1 аналитика — Wiki, новый модуль (US-WIKI)
 
-> Границы scope зафиксированы пользователем: `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2 (GZ-SEC-07/11: space-level RBAC + наследование + restrict-флаг) и §4 (GZ-V4-12/13: handbook = пространство общей wiki, wiki раньше HR-волны); `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.12), реализация — Волны 5/8. Не расширять без нового решения PO.
+> Границы scope зафиксированы пользователем: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2 (GZ-SEC-07/11: space-level RBAC + наследование + restrict-флаг) и §4 (GZ-V4-12/13: handbook = пространство общей wiki, wiki раньше HR-волны); `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md` Волна 1 (задача 1.12), реализация — Волны 5/8. Не расширять без нового решения PO.
 > Модуля в коде ещё нет — это спецификация нового модуля. Редактор — **markdown-first** (WYSIWYG-редактор уровня Confluence — вне scope v1). Поиск — только user-scoped (инвариант NF-03). Персоны: Игорь (Member), Виктор (PO), Елена (Admin), Алексей (Developer).
 
 ### KPI (Wiki v1)
@@ -630,7 +630,7 @@ Edge-cases: сниппет результата не раскрывает кон
 | `.planning/REQUIREMENTS.md` | v2.0 redesign requirements (85 шт., complete) |
 | `.planning/ROADMAP.md` | Фазы и success criteria |
 | `.planning/STATE.md` | Текущая позиция и blockers |
-| `.planning/roadmaps/MILESTONE-3.md` | v3.0 AI Chat Hub (30 требований) |
+| `.planning/archive/roadmaps/MILESTONE-3.md` | v3.0 AI Chat Hub (30 требований) |
 
 ---
 *Последнее обновление: 2026-07-03 — Волна 1 поток D: US/AC Intranet v2 (US-INTR), Calendar v2 (US-CAL), Wiki (US-WIKI) по GRAY-ZONES-DECISIONS-2026-07-03 §4*
