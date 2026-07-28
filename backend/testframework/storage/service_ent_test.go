@@ -75,7 +75,7 @@ func TestGenerateUploadURL_CreatesPendingMetadata(t *testing.T) {
 	client, ctx, userID, projectID := newStorageTestClient(t)
 	svc := newStorageServiceWithPresign(t, client)
 
-	result, err := svc.GenerateUploadURL(ctx, "report.pdf", "application/pdf", userID, projectID)
+	result, err := svc.GenerateUploadURL(ctx, "report.pdf", "application/pdf", userID, projectID, 1024)
 	require.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, result.FileID)
 	assert.NotEmpty(t, result.UploadURL)
@@ -165,13 +165,13 @@ func TestConfirmUpload_UpdatesMetadata(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.ConfirmUpload(ctx, fileID, "issue", "issue-123"))
+	require.NoError(t, svc.ConfirmUpload(ctx, fileID, "message", "msg-123"))
 
 	meta, err := client.FileMetadata.Get(ctx, fileID)
 	require.NoError(t, err)
 	assert.Equal(t, filemetadata.StatusConfirmed, meta.Status)
-	assert.Equal(t, "issue", meta.EntityType)
-	assert.Equal(t, "issue-123", meta.EntityID)
+	assert.Equal(t, "message", meta.EntityType)
+	assert.Equal(t, "msg-123", meta.EntityID)
 }
 
 func TestFileProjectID_ReturnsOwnerProject(t *testing.T) {

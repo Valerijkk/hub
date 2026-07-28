@@ -66,7 +66,7 @@ func TestHandler_ConfirmUpload_AlreadyConfirmed_409_A4_006(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	body := `{"entityType":"issue","entityId":"ISSUE-1"}`
+	body := `{"entityType":"message","entityId":"MSG-1"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/files/"+fileID.String()+"/confirm", bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
@@ -75,7 +75,7 @@ func TestHandler_ConfirmUpload_AlreadyConfirmed_409_A4_006(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	req = httptest.NewRequest(http.MethodPost, "/api/files/"+fileID.String()+"/confirm", bytes.NewReader([]byte(
-		`{"entityType":"issue","entityId":"ISSUE-HIJACK"}`,
+		`{"entityType":"message","entityId":"MSG-HIJACK"}`,
 	)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)
@@ -85,6 +85,6 @@ func TestHandler_ConfirmUpload_AlreadyConfirmed_409_A4_006(t *testing.T) {
 
 	got, err := client.FileMetadata.Get(ctx, fileID)
 	require.NoError(t, err)
-	assert.Equal(t, "ISSUE-1", got.EntityID, "entity must not rebind on HTTP re-confirm")
+	assert.Equal(t, "MSG-1", got.EntityID, "entity must not rebind on HTTP re-confirm")
 	assert.Equal(t, filemetadata.StatusConfirmed, got.Status)
 }

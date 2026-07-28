@@ -3,6 +3,7 @@
 package storage
 
 import (
+	"context"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -49,4 +50,14 @@ func ExportUserIDFromCtx(c fiber.Ctx) (uuid.UUID, error) {
 // ExportHandlerAuthorizeProject вызывает authorizeProject для hubtest.
 func ExportHandlerAuthorizeProject(h *Handler, c fiber.Ctx, userID, projectID uuid.UUID, perm rbac.Permission) error {
 	return h.authorizeProject(c, userID, projectID, perm)
+}
+
+// ExportMaxUploadBytes возвращает лимит размера файла (NF-09) для hubtest.
+func ExportMaxUploadBytes() int64 {
+	return maxUploadBytes
+}
+
+// ExportValidateEntityScope вызывает validateEntityScope для hubtest.
+func ExportValidateEntityScope(s *StorageService, ctx context.Context, fileProjectID uuid.UUID, entityType, entityID string) error {
+	return s.validateEntityScope(ctx, fileProjectID, entityType, entityID)
 }

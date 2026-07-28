@@ -3,6 +3,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/platform/config"
 )
 
@@ -18,6 +20,21 @@ import (
 const (
 	uploadURLTTL   = 5 * time.Minute
 	downloadURLTTL = 1 * time.Hour
+	// maxUploadBytes — TZ NF-09: Fiber BodyLimit 25 MB; тот же потолок для presigned PUT.
+	maxUploadBytes int64 = 25 * 1024 * 1024
+)
+
+var (
+	// ErrFileTooLarge — размер загрузки превышает maxUploadBytes.
+	ErrFileTooLarge = errors.New("file too large")
+	// ErrInvalidFileSize — size <= 0 при явном указании.
+	ErrInvalidFileSize = errors.New("invalid file size")
+	// ErrInvalidEntityType — entityType вне allowlist.
+	ErrInvalidEntityType = errors.New("invalid entity type")
+	// ErrInvalidEntity — entityId невалиден / сущность не найдена.
+	ErrInvalidEntity = errors.New("invalid entity")
+	// ErrEntityProjectMismatch — сущность принадлежит другому проекту, чем файл.
+	ErrEntityProjectMismatch = errors.New("entity project mismatch")
 )
 
 // UploadResult содержит результат генерации presigned URL для загрузки файла.
@@ -62,8 +79,16 @@ func NewStorageService(cfg config.S3Config, repo Repository) (*StorageService, e
 }
 
 // GenerateUploadURL создаёт presigned PUT URL для загрузки файла.
-// Создаёт запись FileMetadata со статусом pending и возвращает URL загрузки.
-func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, contentType string, uploaderID, projectID uuid.UUID) (*UploadResult, error) {
+// size > 0 — ContentLength в presign (NF-09); size == 0 — legacy без bind (клиент без size).
+// size > maxUploadBytes → ErrFileTooLarge.
+func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, contentType string, uploaderID, projectID uuid.UUID, size int64) (*UploadResult, error) {
+	if size < 0 {
+		return nil, ErrInvalidFileSize
+	}
+	if size > maxUploadBytes {
+		return nil, ErrFileTooLarge
+	}
+
 	fileID := uuid.New()
 	s3Key := fmt.Sprintf("%s/files/%s/%s", projectID.String(), fileID.String(), sanitizeFilename(filename))
 
@@ -75,19 +100,24 @@ func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, conten
 		S3Bucket:    s.bucket,
 		UploaderID:  uploaderID,
 		ProjectID:   projectID,
+		Size:        size,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create file metadata: %w", err)
 	}
 
-	// Генерируем presigned PUT URL — клиент грузит напрямую в S3, без буфера backend.
-	presignResult, err := s.presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
+	putInput := &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucket),
 		Key:         aws.String(s3Key),
 		ContentType: aws.String(contentType),
-	}, s3.WithPresignExpires(uploadURLTTL))
+	}
+	// W7-A4-001: при известном size подписываем ContentLength — oversized PUT отклонит S3.
+	if size > 0 {
+		putInput.ContentLength = aws.Int64(size)
+	}
+
+	presignResult, err := s.presignClient.PresignPutObject(ctx, putInput, s3.WithPresignExpires(uploadURLTTL))
 	if err != nil {
-		// Удаляем метаданные при ошибке presign — иначе осиротевшая pending-запись.
 		_ = s.repo.DeleteByID(ctx, fileMeta.ID)
 		return nil, fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
@@ -101,11 +131,87 @@ func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, conten
 
 // ConfirmUpload помечает файл как подтверждённый и устанавливает тип и ID сущности.
 // A4-006: только pending → confirmed; ErrAlreadyConfirmed при повторном confirm.
+// W7-A4-001/002: size через HEAD (если S3) + entity scope к project файла.
 func (s *StorageService) ConfirmUpload(ctx context.Context, fileID uuid.UUID, entityType, entityID string) error {
+	fileMeta, err := s.repo.GetPendingByID(ctx, fileID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			// A4-006 path: уже confirmed / deleted — делегируем repo.ConfirmUpload.
+			return s.repo.ConfirmUpload(ctx, fileID, entityType, entityID)
+		}
+		return err
+	}
+
+	if s.s3Client != nil {
+		if err := s.assertObjectWithinLimit(ctx, fileMeta); err != nil {
+			return err
+		}
+	}
+
+	projectID, err := s.repo.ProjectIDForActiveFile(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("file project: %w", err)
+	}
+	if err := s.validateEntityScope(ctx, projectID, entityType, entityID); err != nil {
+		return err
+	}
+
 	if err := s.repo.ConfirmUpload(ctx, fileID, entityType, entityID); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (s *StorageService) assertObjectWithinLimit(ctx context.Context, fileMeta *ent.FileMetadata) error {
+	out, err := s.s3Client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(fileMeta.S3Bucket),
+		Key:    aws.String(fileMeta.S3Key),
+	})
+	if err != nil {
+		return fmt.Errorf("head object: %w", err)
+	}
+	if out.ContentLength != nil && *out.ContentLength > maxUploadBytes {
+		_, _ = s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			Bucket: aws.String(fileMeta.S3Bucket),
+			Key:    aws.String(fileMeta.S3Key),
+		})
+		_ = s.repo.DeleteByID(ctx, fileMeta.ID)
+		return ErrFileTooLarge
+	}
+	return nil
+}
+
+// validateEntityScope — W7-A4-002: allowlist + для issue UUID и project match.
+func (s *StorageService) validateEntityScope(ctx context.Context, fileProjectID uuid.UUID, entityType, entityID string) error {
+	switch entityType {
+	case "issue":
+		entityUUID, err := uuid.Parse(entityID)
+		if err != nil {
+			return ErrInvalidEntity
+		}
+		issueProjectID, err := s.repo.IssueProjectID(ctx, entityUUID)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return ErrInvalidEntity
+			}
+			return fmt.Errorf("issue project: %w", err)
+		}
+		if issueProjectID != fileProjectID {
+			return ErrEntityProjectMismatch
+		}
+		return nil
+	case "message", "avatar", "voice", "channel":
+		// Не project-scoped в том же смысле / legacy callers — достаточно allowlist.
+		if entityID == "" {
+			return ErrInvalidEntity
+		}
+		return nil
+	default:
+		if entityType == "" && entityID == "" {
+			return nil
+		}
+		return ErrInvalidEntityType
+	}
 }
 
 // FileProjectID возвращает ID проекта, которому принадлежит файл.

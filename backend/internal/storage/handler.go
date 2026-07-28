@@ -80,6 +80,7 @@ type uploadRequest struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"contentType"`
 	ProjectID   string `json:"projectId"`
+	Size        int64  `json:"size"` // байты; 0 = legacy без ContentLength bind
 }
 
 // GenerateUploadURL godoc
@@ -121,8 +122,11 @@ func (h *Handler) GenerateUploadURL(c fiber.Ctx) error {
 		return err
 	}
 
-	result, err := h.storage.GenerateUploadURL(c.Context(), req.Filename, req.ContentType, userID, projectID)
+	result, err := h.storage.GenerateUploadURL(c.Context(), req.Filename, req.ContentType, userID, projectID, req.Size)
 	if err != nil {
+		if errors.Is(err, ErrFileTooLarge) || errors.Is(err, ErrInvalidFileSize) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "failed to generate upload URL")
 	}
 
@@ -176,6 +180,12 @@ func (h *Handler) ConfirmUpload(c fiber.Ctx) error {
 	if err := h.storage.ConfirmUpload(c.Context(), fileID, req.EntityType, req.EntityID); err != nil {
 		if errors.Is(err, ErrAlreadyConfirmed) {
 			return fiber.NewError(fiber.StatusConflict, "file already confirmed")
+		}
+		if errors.Is(err, ErrFileTooLarge) {
+			return fiber.NewError(fiber.StatusRequestEntityTooLarge, "file too large")
+		}
+		if errors.Is(err, ErrInvalidEntityType) || errors.Is(err, ErrInvalidEntity) || errors.Is(err, ErrEntityProjectMismatch) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 		if ent.IsNotFound(err) || errors.Is(err, ErrNotPending) {
 			return fiber.NewError(fiber.StatusNotFound, "file not found")

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/filemetadata"
+	"github.com/valerii/hub/backend/ent/issue"
 )
 
 // ErrAlreadyConfirmed — A4-006: повторный confirm уже confirmed файла.
@@ -26,6 +27,7 @@ type CreateFileInput struct {
 	S3Bucket    string
 	UploaderID  uuid.UUID
 	ProjectID   uuid.UUID
+	Size        int64
 }
 
 // Repository — персистентность метаданных файлов (ARCH-01).
@@ -35,6 +37,8 @@ type Repository interface {
 	ConfirmUpload(ctx context.Context, fileID uuid.UUID, entityType, entityID string) error
 	ProjectIDForActiveFile(ctx context.Context, fileID uuid.UUID) (uuid.UUID, error)
 	GetActiveByID(ctx context.Context, fileID uuid.UUID) (*ent.FileMetadata, error)
+	GetPendingByID(ctx context.Context, fileID uuid.UUID) (*ent.FileMetadata, error)
+	IssueProjectID(ctx context.Context, issueID uuid.UUID) (uuid.UUID, error)
 	SoftDelete(ctx context.Context, fileID uuid.UUID, at time.Time) error
 	ListOrphanPending(ctx context.Context, olderThan time.Time, limit int) ([]*ent.FileMetadata, error)
 }
@@ -54,7 +58,7 @@ func (r *EntRepository) CreatePending(ctx context.Context, input CreateFileInput
 		SetID(input.ID).
 		SetFilename(input.Filename).
 		SetContentType(input.ContentType).
-		SetSize(0).
+		SetSize(input.Size).
 		SetS3Key(input.S3Key).
 		SetS3Bucket(input.S3Bucket).
 		SetStatus(filemetadata.StatusPending).
@@ -105,6 +109,25 @@ func (r *EntRepository) ConfirmUpload(ctx context.Context, fileID uuid.UUID, ent
 func (r *EntRepository) ProjectIDForActiveFile(ctx context.Context, fileID uuid.UUID) (uuid.UUID, error) {
 	return r.client.FileMetadata.Query().
 		Where(filemetadata.IDEQ(fileID), filemetadata.DeletedAtIsNil()).
+		QueryProject().
+		OnlyID(ctx)
+}
+
+// GetPendingByID — метаданные pending-файла (для HEAD/size check перед confirm).
+func (r *EntRepository) GetPendingByID(ctx context.Context, fileID uuid.UUID) (*ent.FileMetadata, error) {
+	return r.client.FileMetadata.Query().
+		Where(
+			filemetadata.IDEQ(fileID),
+			filemetadata.DeletedAtIsNil(),
+			filemetadata.StatusEQ(filemetadata.StatusPending),
+		).
+		Only(ctx)
+}
+
+// IssueProjectID — project_id задачи по UUID (W7-A4-002 entity scope).
+func (r *EntRepository) IssueProjectID(ctx context.Context, issueID uuid.UUID) (uuid.UUID, error) {
+	return r.client.Issue.Query().
+		Where(issue.IDEQ(issueID), issue.DeletedAtIsNil()).
 		QueryProject().
 		OnlyID(ctx)
 }

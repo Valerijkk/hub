@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -56,7 +57,7 @@ func newStorageRoutesEnv(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID, *ent.C
 		Save(ctx)
 	require.NoError(t, err)
 
-	svc, err := storage.NewStorageService(config.S3Config{
+	base, err := storage.NewStorageService(config.S3Config{
 		Region:    "us-east-1",
 		Endpoint:  "http://127.0.0.1:9999",
 		AccessKey: "test",
@@ -64,6 +65,13 @@ func newStorageRoutesEnv(t *testing.T) (*fiber.App, uuid.UUID, uuid.UUID, *ent.C
 		Bucket:    "hub-files",
 	}, storage.NewEntRepository(client))
 	require.NoError(t, err)
+	// Unit-тесты без SeaweedFS: s3Client=nil → Confirm без HEAD; PresignClient остаётся.
+	svc := storage.ExportNewStorageServiceForTestWithS3(
+		storage.NewEntRepository(client),
+		"hub-files",
+		nil,
+		s3.NewPresignClient(base.S3Client()),
+	)
 
 	h := storage.NewHandler(svc)
 	app := fiber.New()
@@ -119,7 +127,7 @@ func TestHandler_RegisterRoutes_ConfirmAndDownload(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	confirmBody := `{"entityType":"issue","entityId":"issue-1"}`
+	confirmBody := `{"entityType":"message","entityId":"msg-1"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/files/"+fileID.String()+"/confirm", bytes.NewReader([]byte(confirmBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
