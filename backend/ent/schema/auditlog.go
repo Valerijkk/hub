@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// AuditLog С…СЂР°РЅРёС‚ Р·Р°РїРёСЃРё Р¶СѓСЂРЅР°Р»Р° Р°СѓРґРёС‚Р° РІСЃРµС… РґРµР№СЃС‚РІРёР№ РІ СЃРёСЃС‚РµРјРµ.
+// AuditLog хранит записи журнала аудита всех действий в системе.
 type AuditLog struct {
 	ent.Schema
 }
@@ -20,30 +20,30 @@ func (AuditLog) Fields() []ent.Field {
 			Immutable(),
 		field.String("action").
 			NotEmpty().
-			Comment("Р”РµР№СЃС‚РІРёРµ: login, logout, create, update, delete"),
+			Comment("Действие: login, logout, create, update, delete"),
 		field.String("entity_type").
 			NotEmpty().
-			Comment("РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё: issue, project, test_case, channel, file, user"),
+			Comment("Тип сущности: issue, project, test_case, channel, file, user"),
 		field.String("entity_id").
 			Optional().
-			Comment("ID СЃСѓС‰РЅРѕСЃС‚Рё (UUID РёР»Рё РєР»СЋС‡)"),
+			Comment("ID сущности (UUID или ключ)"),
 		field.UUID("user_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, РІС‹РїРѕР»РЅРёРІС€РµРіРѕ РґРµР№СЃС‚РІРёРµ"),
+			Comment("ID пользователя, выполнившего действие"),
 		field.UUID("project_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID РїСЂРѕРµРєС‚Р° (РµСЃР»Рё РґРµР№СЃС‚РІРёРµ РїСЂРёРІСЏР·Р°РЅРѕ Рє РїСЂРѕРµРєС‚Сѓ)"),
+			Comment("ID проекта (если действие привязано к проекту)"),
 		field.JSON("details", map[string]interface{}{}).
 			Optional().
-			Comment("Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ РґР°РЅРЅС‹Рµ Рѕ РґРµР№СЃС‚РІРёРё РІ JSON"),
+			Comment("Дополнительные данные о действии в JSON"),
 		field.String("ip_address").
 			Optional().
-			Comment("IP-Р°РґСЂРµСЃ РєР»РёРµРЅС‚Р°"),
+			Comment("IP-адрес клиента"),
 		field.String("user_agent").
 			Optional().
-			Comment("User-Agent РєР»РёРµРЅС‚Р°"),
+			Comment("User-Agent клиента"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),

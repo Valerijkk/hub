@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Sprint СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ СЃСѓС‰РЅРѕСЃС‚Рё Sprint.
+// Sprint содержит определение схемы сущности Sprint.
 type Sprint struct {
 	ent.Schema
 }
 
-// Fields РѕРїСЂРµРґРµР»СЏРµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Sprint.
+// Fields определяет поля сущности Sprint.
 func (Sprint) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
@@ -25,7 +25,7 @@ func (Sprint) Fields() []ent.Field {
 		field.String("goal").
 			Optional().
 			MaxLen(1000).
-			Comment("Р¦РµР»СЊ СЃРїСЂРёРЅС‚Р°"),
+			Comment("Цель спринта"),
 		field.Enum("status").
 			Values("planning", "active", "completed").
 			Default("planning"),
@@ -33,7 +33,7 @@ func (Sprint) Fields() []ent.Field {
 		field.Time("end_date"),
 		field.JSON("retro_notes", map[string]interface{}{}).
 			Optional().
-			Comment("JSONB Р·Р°РјРµС‚РєРё СЂРµС‚СЂРѕСЃРїРµРєС‚РёРІС‹: went_well, to_improve, actions"),
+			Comment("JSONB заметки ретроспективы: went_well, to_improve, actions"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -43,7 +43,7 @@ func (Sprint) Fields() []ent.Field {
 	}
 }
 
-// Edges РѕРїСЂРµРґРµР»СЏРµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё Sprint.
+// Edges определяет связи сущности Sprint.
 func (Sprint) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
@@ -54,7 +54,7 @@ func (Sprint) Edges() []ent.Edge {
 	}
 }
 
-// Indexes РѕРїСЂРµРґРµР»СЏРµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё Sprint.
+// Indexes определяет индексы сущности Sprint.
 func (Sprint) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("project").

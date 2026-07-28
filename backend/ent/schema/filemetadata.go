@@ -39,14 +39,14 @@ func (FileMetadata) Fields() []ent.Field {
 		field.Time("deleted_at").
 			Optional().
 			Nillable().
-			Comment("Р’СЂРµРјСЏ РјСЏРіРєРѕРіРѕ СѓРґР°Р»РµРЅРёСЏ (РєРѕСЂР·РёРЅР° 30 РґРЅРµР№)"),
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Рёбра (edges) сущности FileMetadata.
+// ибра (edges) сущности FileMetadata.
 func (FileMetadata) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("uploader", User.Type).

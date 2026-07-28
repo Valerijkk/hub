@@ -21,19 +21,19 @@ func (TestCaseVersion) Fields() []ent.Field {
 			Immutable(),
 		field.Int("version_number").
 			Positive().
-			Comment("РќРѕРјРµСЂ РІРµСЂСЃРёРё СЃРЅРёРјРєР°"),
+			Comment("Номер версии снимка"),
 		field.JSON("snapshot", map[string]interface{}{}).
-			Comment("РџРѕР»РЅС‹Р№ СЃРЅРёРјРѕРє С‚РµСЃС‚-РєРµР№СЃР°"),
+			Comment("Полный снимок тест-кейса"),
 		field.Text("change_description").
 			Optional().
-			Comment("РћРїРёСЃР°РЅРёРµ РёР·РјРµРЅРµРЅРёР№"),
+			Comment("Описание изменений"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Рёбра (edges) сущности TestCaseVersion.
+// ибра (edges) сущности TestCaseVersion.
 func (TestCaseVersion) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("test_case", TestCase.Type).

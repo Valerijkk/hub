@@ -8,9 +8,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// UserBlock С…СЂР°РЅРёС‚ Р±Р»РѕРєРёСЂРѕРІРєСѓ РѕРґРЅРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РґСЂСѓРіРёРј.
-// Р—Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹Р№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РјРѕР¶РµС‚ РґРѕР±Р°РІРёС‚СЊ Р±Р»РѕРєРёСЂСѓСЋС‰РµРіРѕ РІ РєР°РЅР°Р»С‹
-// Рё РЅРµ РјРѕР¶РµС‚ РѕС‚РїСЂР°РІРёС‚СЊ РµРјСѓ DM.
+// UserBlock хранит блокировку одного пользователя другим.
+// Заблокированный пользователь не может добавить блокирующего в каналы
+// и не может отправить ему DM.
 type UserBlock struct {
 	ent.Schema
 }
@@ -22,16 +22,16 @@ func (UserBlock) Fields() []ent.Field {
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("blocker_id", uuid.UUID{}).
-			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, РєРѕС‚РѕСЂС‹Р№ Р±Р»РѕРєРёСЂСѓРµС‚"),
+			Comment("ID пользователя, который блокирует"),
 		field.UUID("blocked_id", uuid.UUID{}).
-			Comment("ID Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ"),
+			Comment("ID заблокированного пользователя"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Рёбра (edges) сущности UserBlock.
+// ибра (edges) сущности UserBlock.
 func (UserBlock) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("blocker", User.Type).

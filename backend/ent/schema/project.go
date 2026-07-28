@@ -39,7 +39,7 @@ func (Project) Fields() []ent.Field {
 			Default(0),
 		field.Int("test_case_counter").
 			Default(0).
-			Comment("РЎС‡С‘С‚С‡РёРє С‚РµСЃС‚-РєРµР№СЃРѕРІ РґР»СЏ РіРµРЅРµСЂР°С†РёРё РєР»СЋС‡РµР№"),
+			Comment("Счётчик тест-кейсов для генерации ключей"),
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
@@ -52,7 +52,7 @@ func (Project) Fields() []ent.Field {
 	}
 }
 
-// Рёбра (edges) сущности Project.
+// ибра (edges) сущности Project.
 func (Project) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("organization", Organization.Type).

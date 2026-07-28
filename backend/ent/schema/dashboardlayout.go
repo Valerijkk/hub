@@ -8,28 +8,28 @@ import (
 	"github.com/google/uuid"
 )
 
-// DashboardLayout С…СЂР°РЅРёС‚ СЂР°СЃРєР»Р°РґРєСѓ РІРёРґР¶РµС‚РѕРІ РґР°С€Р±РѕСЂРґР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.
+// DashboardLayout хранит раскладку виджетов дашборда пользователя.
 type DashboardLayout struct {
 	ent.Schema
 }
 
-// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё DashboardLayout.
+// Fields описывает поля сущности DashboardLayout.
 func (DashboardLayout) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("user_id", uuid.UUID{}).
-			Comment("ID РІР»Р°РґРµР»СЊС†Р° СЂР°СЃРєР»Р°РґРєРё"),
+			Comment("ID владельца раскладки"),
 		field.Enum("dashboard_type").
 			Values("personal", "project", "admin").
-			Comment("РўРёРї РґР°С€Р±РѕСЂРґР°: personal, project, admin"),
+			Comment("Тип дашборда: personal, project, admin"),
 		field.UUID("project_id", uuid.UUID{}).
 			Optional().
 			Nillable().
-			Comment("ID РїСЂРѕРµРєС‚Р° (С‚РѕР»СЊРєРѕ РґР»СЏ project-РґР°С€Р±РѕСЂРґР°)"),
+			Comment("ID проекта (только для project-дашборда)"),
 		field.JSON("items", []map[string]interface{}{}).
-			Comment("JSON-РјР°СЃСЃРёРІ РІРёРґР¶РµС‚РѕРІ СЃ РїРѕР·РёС†РёРµР№ Рё СЂР°Р·РјРµСЂР°РјРё"),
+			Comment("JSON-массив виджетов с позицией и размерами"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -39,7 +39,7 @@ func (DashboardLayout) Fields() []ent.Field {
 	}
 }
 
-// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё DashboardLayout.
+// Edges описывает связи сущности DashboardLayout.
 func (DashboardLayout) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
@@ -50,7 +50,7 @@ func (DashboardLayout) Edges() []ent.Edge {
 	}
 }
 
-// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё DashboardLayout.
+// Indexes описывает индексы сущности DashboardLayout.
 func (DashboardLayout) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("user_id", "dashboard_type", "project_id").

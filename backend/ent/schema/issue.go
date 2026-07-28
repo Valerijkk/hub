@@ -67,7 +67,7 @@ func (Issue) Fields() []ent.Field {
 		field.Time("deleted_at").
 			Optional().
 			Nillable().
-			Comment("Р’СЂРµРјСЏ РјСЏРіРєРѕРіРѕ СѓРґР°Р»РµРЅРёСЏ (РєРѕСЂР·РёРЅР° 30 РґРЅРµР№)"),
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -77,7 +77,7 @@ func (Issue) Fields() []ent.Field {
 	}
 }
 
-// Рёбра (edges) сущности Issue.
+// ибра (edges) сущности Issue.
 func (Issue) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

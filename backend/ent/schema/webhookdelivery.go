@@ -21,25 +21,25 @@ func (WebhookDelivery) Fields() []ent.Field {
 			Immutable(),
 		field.String("event_type").
 			NotEmpty().
-			Comment("РўРёРї СЃРѕР±С‹С‚РёСЏ (issue.created, test_run.completed Рё С‚.Рґ.)"),
+			Comment("Тип события (issue.created, test_run.completed и т.д.)"),
 		field.JSON("payload", map[string]interface{}{}).
-			Comment("РўРµР»Рѕ РѕС‚РїСЂР°РІР»РµРЅРЅРѕРіРѕ Р·Р°РїСЂРѕСЃР°"),
+			Comment("Тело отправленного запроса"),
 		field.Int("status_code").
-			Comment("HTTP-РєРѕРґ РѕС‚РІРµС‚Р°"),
+			Comment("HTTP-код ответа"),
 		field.Text("response_body").
 			Optional().
-			Comment("РўРµР»Рѕ РѕС‚РІРµС‚Р°"),
+			Comment("Тело ответа"),
 		field.Text("error").
 			Optional().
 			Nillable().
-			Comment("РЎРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ РїСЂРё РЅРµСѓРґР°С‡Рµ"),
+			Comment("Сообщение об ошибке при неудаче"),
 		field.Time("delivered_at").
 			Default(nowUTC).
-			Comment("Р’СЂРµРјСЏ РґРѕСЃС‚Р°РІРєРё"),
+			Comment("Время доставки"),
 	}
 }
 
-// Рёбра (edges) сущности WebhookDelivery.
+// ибра (edges) сущности WebhookDelivery.
 func (WebhookDelivery) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("endpoint", WebhookEndpoint.Type).

@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// GitLabIntegration С…СЂР°РЅРёС‚ РЅР°СЃС‚СЂРѕР№РєРё РёРЅС‚РµРіСЂР°С†РёРё РїСЂРѕРµРєС‚Р° СЃ GitLab-СЂРµРїРѕР·РёС‚РѕСЂРёРµРј.
+// GitLabIntegration хранит настройки интеграции проекта с GitLab-репозиторием.
 type GitLabIntegration struct {
 	ent.Schema
 }
@@ -22,24 +22,24 @@ func (GitLabIntegration) Fields() []ent.Field {
 		field.String("gitlab_url").
 			Default("https://gitlab.com").
 			MaxLen(500).
-			Comment("URL РёРЅСЃС‚Р°РЅСЃР° GitLab (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ https://gitlab.com)"),
+			Comment("URL инстанса GitLab (по умолчанию https://gitlab.com)"),
 		field.String("project_path").
 			NotEmpty().
 			MaxLen(500).
-			Comment("РџСѓС‚СЊ Рє РїСЂРѕРµРєС‚Сѓ РІ GitLab (РЅР°РїСЂРёРјРµСЂ group/repo)"),
+			Comment("Путь к проекту в GitLab (например group/repo)"),
 		field.String("access_token").
 			Sensitive().
 			Comment("GitLab Personal Access Token"),
 		field.String("webhook_secret").
 			Optional().
-			Comment("РЎРµРєСЂРµС‚ РґР»СЏ РІР°Р»РёРґР°С†РёРё GitLab webhook (X-Gitlab-Token)"),
+			Comment("Секрет для валидации GitLab webhook (X-Gitlab-Token)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Рёбра (edges) сущности GitLabIntegration.
+// ибра (edges) сущности GitLabIntegration.
 func (GitLabIntegration) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

@@ -8,31 +8,31 @@ import (
 	"github.com/google/uuid"
 )
 
-// Bookmark СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ РґР»СЏ Р·Р°РєР»Р°РґРєРё РЅР° СЃРѕРѕР±С‰РµРЅРёРµ.
+// Bookmark содержит определение схемы для закладки на сообщение.
 type Bookmark struct {
 	ent.Schema
 }
 
-// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Bookmark.
+// Fields описывает поля сущности Bookmark.
 func (Bookmark) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("user_id", uuid.UUID{}).
-			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, СЃРѕР·РґР°РІС€РµРіРѕ Р·Р°РєР»Р°РґРєСѓ"),
+			Comment("ID пользователя, создавшего закладку"),
 		field.String("message_id").
 			NotEmpty().
-			Comment("ID СЃРѕРѕР±С‰РµРЅРёСЏ РІ MongoDB"),
+			Comment("ID сообщения в MongoDB"),
 		field.UUID("channel_id", uuid.UUID{}).
-			Comment("ID РєР°РЅР°Р»Р° СЃРѕРѕР±С‰РµРЅРёСЏ"),
+			Comment("ID канала сообщения"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё Bookmark.
+// Edges описывает связи сущности Bookmark.
 func (Bookmark) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
@@ -43,7 +43,7 @@ func (Bookmark) Edges() []ent.Edge {
 	}
 }
 
-// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё Bookmark.
+// Indexes описывает индексы сущности Bookmark.
 func (Bookmark) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("user_id", "message_id").Unique(),

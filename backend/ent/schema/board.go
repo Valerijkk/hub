@@ -29,14 +29,14 @@ func (Board) Fields() []ent.Field {
 		field.Enum("swimlane_mode").
 			Values("none", "assignee", "priority", "type").
 			Default("none").
-			Comment("Р РµР¶РёРј swimlanes РЅР° РґРѕСЃРєРµ"),
+			Comment("Режим swimlanes на доске"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Рёбра (edges) сущности Board.
+// ибра (edges) сущности Board.
 func (Board) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

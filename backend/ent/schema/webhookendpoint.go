@@ -21,15 +21,15 @@ func (WebhookEndpoint) Fields() []ent.Field {
 			Immutable(),
 		field.String("url").
 			NotEmpty().
-			Comment("URL РґР»СЏ РѕС‚РїСЂР°РІРєРё POST-Р·Р°РїСЂРѕСЃРѕРІ"),
+			Comment("URL для отправки POST-запросов"),
 		field.String("secret").
 			NotEmpty().
-			Comment("РЎРµРєСЂРµС‚ РґР»СЏ HMAC-SHA256 РїРѕРґРїРёСЃРё payload"),
+			Comment("Секрет для HMAC-SHA256 подписи payload"),
 		field.JSON("events", []string{}).
-			Comment("РњР°СЃСЃРёРІ РїРѕРґРїРёСЃР°РЅРЅС‹С… СЃРѕР±С‹С‚РёР№"),
+			Comment("Массив подписанных событий"),
 		field.Bool("is_active").
 			Default(true).
-			Comment("РђРєС‚РёРІРµРЅ Р»Рё РІРµР±С…СѓРє"),
+			Comment("Активен ли вебхук"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),

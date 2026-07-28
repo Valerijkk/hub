@@ -8,34 +8,34 @@ import (
 	"github.com/google/uuid"
 )
 
-// Poll СЃРѕРґРµСЂР¶РёС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃС…РµРјС‹ РґР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё РіРѕР»РѕСЃРѕРІР°РЅРёСЏ (РѕРїСЂРѕСЃР°).
+// Poll содержит определение схемы для сущности голосования (опроса).
 type Poll struct {
 	ent.Schema
 }
 
-// Fields РѕРїРёСЃС‹РІР°РµС‚ РїРѕР»СЏ СЃСѓС‰РЅРѕСЃС‚Рё Poll.
+// Fields описывает поля сущности Poll.
 func (Poll) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
 		field.UUID("channel_id", uuid.UUID{}).
-			Comment("ID РєР°РЅР°Р»Р°, РІ РєРѕС‚РѕСЂРѕРј СЃРѕР·РґР°РЅ РѕРїСЂРѕСЃ"),
+			Comment("ID канала, в котором создан опрос"),
 		field.UUID("creator_id", uuid.UUID{}).
-			Comment("ID СЃРѕР·РґР°С‚РµР»СЏ РѕРїСЂРѕСЃР°"),
+			Comment("ID создателя опроса"),
 		field.String("question").
 			NotEmpty().
 			MaxLen(500).
-			Comment("РўРµРєСЃС‚ РІРѕРїСЂРѕСЃР° РѕРїСЂРѕСЃР°"),
+			Comment("Текст вопроса опроса"),
 		field.Bool("is_anonymous").
 			Default(false).
-			Comment("РђРЅРѕРЅРёРјРЅРѕРµ РіРѕР»РѕСЃРѕРІР°РЅРёРµ (РЅРµ РїРѕРєР°Р·С‹РІР°С‚СЊ РєС‚Рѕ РіРѕР»РѕСЃРѕРІР°Р»)"),
+			Comment("Анонимное голосование (не показывать кто голосовал)"),
 		field.Bool("is_multi_choice").
 			Default(false).
-			Comment("РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Р№ РІС‹Р±РѕСЂ (РјРѕР¶РЅРѕ РІС‹Р±СЂР°С‚СЊ РЅРµСЃРєРѕР»СЊРєРѕ РІР°СЂРёР°РЅС‚РѕРІ)"),
+			Comment("Множественный выбор (можно выбрать несколько вариантов)"),
 		field.Bool("is_closed").
 			Default(false).
-			Comment("Р—Р°РєСЂС‹С‚ Р»Рё РѕРїСЂРѕСЃ РґР»СЏ РіРѕР»РѕСЃРѕРІР°РЅРёСЏ"),
+			Comment("Закрыт ли опрос для голосования"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -45,7 +45,7 @@ func (Poll) Fields() []ent.Field {
 	}
 }
 
-// Edges РѕРїРёСЃС‹РІР°РµС‚ СЃРІСЏР·Рё СЃСѓС‰РЅРѕСЃС‚Рё Poll.
+// Edges описывает связи сущности Poll.
 func (Poll) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("channel", Channel.Type).
@@ -63,7 +63,7 @@ func (Poll) Edges() []ent.Edge {
 	}
 }
 
-// Indexes РѕРїРёСЃС‹РІР°РµС‚ РёРЅРґРµРєСЃС‹ СЃСѓС‰РЅРѕСЃС‚Рё Poll.
+// Indexes описывает индексы сущности Poll.
 func (Poll) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id"),

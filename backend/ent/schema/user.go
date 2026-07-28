@@ -64,14 +64,14 @@ func (User) Fields() []ent.Field {
 		field.String("quiet_hours_start").
 			Optional().
 			Nillable().
-			Comment("РќР°С‡Р°Р»Рѕ С‚РёС…РёС… С‡Р°СЃРѕРІ РІ С„РѕСЂРјР°С‚Рµ HH:MM"),
+			Comment("Начало тихих часов в формате HH:MM"),
 		field.String("quiet_hours_end").
 			Optional().
 			Nillable().
-			Comment("РљРѕРЅРµС† С‚РёС…РёС… С‡Р°СЃРѕРІ РІ С„РѕСЂРјР°С‚Рµ HH:MM"),
+			Comment("Конец тихих часов в формате HH:MM"),
 		field.JSON("custom_fields", map[string]interface{}{}).
 			Optional().
-			Comment("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРµ РєР°СЃС‚РѕРјРЅС‹Рµ РїРѕР»СЏ РїСЂРѕС„РёР»СЏ (JSONB)"),
+			Comment("Пользовательские кастомные поля профиля (JSONB)"),
 		field.Time("updated_at").
 			Default(nowUTC).
 			UpdateDefault(nowUTC),

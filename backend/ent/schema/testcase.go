@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// TestStep РѕРїРёСЃС‹РІР°РµС‚ РѕРґРёРЅ С€Р°Рі С‚РµСЃС‚-РєРµР№СЃР° (РєР»Р°СЃСЃРёС‡РµСЃРєРёР№ РёР»Рё BDD).
+// TestStep описывает один шаг тест-кейса (классический или BDD).
 type TestStep struct {
 	Order          int    `json:"order"`
 	Action         string `json:"action"`
 	ExpectedResult string `json:"expected_result"`
-	Keyword        string `json:"keyword,omitempty"` // Given/When/Then РґР»СЏ BDD
+	Keyword        string `json:"keyword,omitempty"` // Given/When/Then для BDD
 }
 
 // TestCase — определение Ent-схемы сущности TestCase.
@@ -30,11 +30,11 @@ func (TestCase) Fields() []ent.Field {
 		field.Int("case_number").
 			Positive().
 			Immutable().
-			Comment("РџРѕСЂСЏРґРєРѕРІС‹Р№ РЅРѕРјРµСЂ РІ РїСЂРѕРµРєС‚Рµ"),
+			Comment("Порядковый номер в проекте"),
 		field.String("case_key").
 			Unique().
 			Immutable().
-			Comment("РљР»СЋС‡ С‚РµСЃС‚-РєРµР№СЃР°: HUB-TC-42"),
+			Comment("Ключ тест-кейса: HUB-TC-42"),
 		field.String("title").
 			NotEmpty().
 			MaxLen(500),
@@ -55,33 +55,33 @@ func (TestCase) Fields() []ent.Field {
 			Default("draft"),
 		field.JSON("steps", []TestStep{}).
 			Optional().
-			Comment("РЁР°РіРё С‚РµСЃС‚-РєРµР№СЃР° РІ С„РѕСЂРјР°С‚Рµ JSON"),
+			Comment("Шаги тест-кейса в формате JSON"),
 		field.String("full_name").
 			Optional().
-			Comment("РџРѕР»РЅРѕРµ РёРјСЏ РґР»СЏ Allure matching"),
+			Comment("Полное имя для Allure matching"),
 		field.String("class_name").
 			Optional().
-			Comment("РРјСЏ РєР»Р°СЃСЃР° РґР»СЏ Allure matching"),
+			Comment("Рмя класса для Allure matching"),
 		field.String("method_name").
 			Optional().
-			Comment("РРјСЏ РјРµС‚РѕРґР° РґР»СЏ Allure matching"),
+			Comment("Рмя метода для Allure matching"),
 		field.String("external_id").
 			Optional().
-			Comment("Р’РЅРµС€РЅРёР№ ID РґР»СЏ @TestCase Р°РЅРЅРѕС‚Р°С†РёРё"),
+			Comment("Внешний ID для @TestCase аннотации"),
 		field.String("automation_id").
 			Optional().
-			Comment("РЇРІРЅС‹Р№ ID РґР»СЏ РїСЂРёРІСЏР·РєРё Р°РІС‚РѕС‚РµСЃС‚РѕРІ. QA-РёРЅР¶РµРЅРµСЂ Р·Р°РґР°С‘С‚ РІСЂСѓС‡РЅСѓСЋ, Р°РІС‚РѕС‚РµСЃС‚ РІРєР»СЋС‡Р°РµС‚ СЌС‚РѕС‚ ID РІ РёРјСЏ РёР»Рё Р°РЅРЅРѕС‚Р°С†РёСЋ РґР»СЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРіРѕ СЃРѕРїРѕСЃС‚Р°РІР»РµРЅРёСЏ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ"),
+			Comment("Явный ID для привязки автотестов. QA-инженер задаёт вручную, автотест включает этот ID в имя или аннотацию для автоматического сопоставления результатов"),
 		field.Int("version").
 			Default(1).
-			Comment("Р’РµСЂСЃРёСЏ С‚РµСЃС‚-РєРµР№СЃР°"),
+			Comment("Версия тест-кейса"),
 		field.Enum("sync_status").
 			Values("synced", "outdated", "unlinked").
 			Default("unlinked").
-			Comment("РЎС‚Р°С‚СѓСЃ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё СЃ GitHub: synced/outdated/unlinked"),
+			Comment("Статус синхронизации с GitHub: synced/outdated/unlinked"),
 		field.Time("deleted_at").
 			Optional().
 			Nillable().
-			Comment("Р’СЂРµРјСЏ РјСЏРіРєРѕРіРѕ СѓРґР°Р»РµРЅРёСЏ (РєРѕСЂР·РёРЅР° 30 РґРЅРµР№)"),
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -91,7 +91,7 @@ func (TestCase) Fields() []ent.Field {
 	}
 }
 
-// Рёбра (edges) сущности TestCase.
+// ибра (edges) сущности TestCase.
 func (TestCase) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

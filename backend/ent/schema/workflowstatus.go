@@ -33,14 +33,14 @@ func (WorkflowStatus) Fields() []ent.Field {
 			Default(false),
 		field.Int("wip_limit").
 			Default(0).
-			Comment("WIP Р»РёРјРёС‚: 0 = Р±РµР· Р»РёРјРёС‚Р°"),
+			Comment("WIP лимит: 0 = без лимита"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Рёбра (edges) сущности WorkflowStatus.
+// ибра (edges) сущности WorkflowStatus.
 func (WorkflowStatus) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

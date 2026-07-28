@@ -22,26 +22,26 @@ func (ProjectTemplate) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty().
 			MaxLen(255).
-			Comment("РќР°Р·РІР°РЅРёРµ С€Р°Р±Р»РѕРЅР°"),
+			Comment("Название шаблона"),
 		field.Text("description").
 			Optional().
-			Comment("РћРїРёСЃР°РЅРёРµ С€Р°Р±Р»РѕРЅР°"),
+			Comment("Описание шаблона"),
 		field.Enum("template_type").
 			Values("empty", "software_dev", "qa", "kanban_simple", "custom").
 			Default("custom").
-			Comment("РўРёРї С€Р°Р±Р»РѕРЅР°"),
+			Comment("Тип шаблона"),
 		field.JSON("config", map[string]interface{}{}).
-			Comment("РЎРЅРёРјРѕРє РєРѕРЅС„РёРіСѓСЂР°С†РёРё: statuses, labels, boards, custom_fields"),
+			Comment("Снимок конфигурации: statuses, labels, boards, custom_fields"),
 		field.Bool("is_system").
 			Default(false).
-			Comment("РЎРёСЃС‚РµРјРЅС‹Р№ С€Р°Р±Р»РѕРЅ (РЅРµР»СЊР·СЏ СѓРґР°Р»РёС‚СЊ)"),
+			Comment("Системный шаблон (нельзя удалить)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Рёбра (edges) сущности ProjectTemplate.
+// ибра (edges) сущности ProjectTemplate.
 func (ProjectTemplate) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("created_by", User.Type).

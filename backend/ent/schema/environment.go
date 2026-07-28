@@ -22,21 +22,21 @@ func (Environment) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty().
 			MaxLen(100).
-			Comment("РќР°Р·РІР°РЅРёРµ РѕРєСЂСѓР¶РµРЅРёСЏ"),
+			Comment("Название окружения"),
 		field.Enum("env_label").
 			Values("dev", "staging", "prod", "custom").
 			Default("custom").
-			Comment("РњРµС‚РєР° РѕРєСЂСѓР¶РµРЅРёСЏ"),
+			Comment("Метка окружения"),
 		field.JSON("config", map[string]interface{}{}).
 			Optional().
-			Comment("РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ: {browser, os, version}"),
+			Comment("Конфигурация: {browser, os, version}"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
 	}
 }
 
-// Рёбра (edges) сущности Environment.
+// ибра (edges) сущности Environment.
 func (Environment) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).
