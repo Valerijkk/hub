@@ -267,45 +267,47 @@ function TestRunDetailPage() {
 						<DialogTitle>Добавить тест-кейсы в прогон</DialogTitle>
 					</DialogHeader>
 					<div className="space-y-1.5">
-						{(casesData?.items ?? []).map((tc) => {
+						{(() => {
 							const existingIds = new Set(
 								(run.results ?? []).map((r) => r.test_case?.id).filter(Boolean),
 							);
-							const alreadyAdded = existingIds.has(tc.id);
-							const isSelected = selectedCaseIds.includes(tc.id);
-							return (
-								<label
-									key={tc.id}
-									className={cn(
-										"flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-colors cursor-pointer",
-										alreadyAdded && "opacity-40 cursor-not-allowed",
-										isSelected &&
-											!alreadyAdded &&
-											"bg-primary/5 border-primary/30",
-										!alreadyAdded && !isSelected && "hover:bg-raised/50",
-									)}
-								>
-									<input
-										type="checkbox"
-										checked={isSelected}
-										disabled={alreadyAdded}
-										onChange={() => toggleCaseSelection(tc.id)}
-										className="rounded"
-									/>
-									<div className="min-w-0 flex-1">
-										<span className="font-mono text-xs font-bold text-primary">
-											{tc.case_key}
-										</span>
-										<span className="ml-2 text-sm">{tc.title}</span>
-										{alreadyAdded && (
-											<span className="ml-2 text-[10px] text-t2">
-												(уже добавлен)
-											</span>
+							return (casesData?.items ?? []).map((tc) => {
+								const alreadyAdded = existingIds.has(tc.id);
+								const isSelected = selectedCaseIds.includes(tc.id);
+								return (
+									<label
+										key={tc.id}
+										className={cn(
+											"flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-colors cursor-pointer",
+											alreadyAdded && "opacity-40 cursor-not-allowed",
+											isSelected &&
+												!alreadyAdded &&
+												"bg-primary/5 border-primary/30",
+											!alreadyAdded && !isSelected && "hover:bg-raised/50",
 										)}
-									</div>
-								</label>
-							);
-						})}
+									>
+										<input
+											type="checkbox"
+											checked={isSelected}
+											disabled={alreadyAdded}
+											onChange={() => toggleCaseSelection(tc.id)}
+											className="rounded"
+										/>
+										<div className="min-w-0 flex-1">
+											<span className="font-mono text-xs font-bold text-primary">
+												{tc.case_key}
+											</span>
+											<span className="ml-2 text-sm">{tc.title}</span>
+											{alreadyAdded && (
+												<span className="ml-2 text-[10px] text-t2">
+													(уже добавлен)
+												</span>
+											)}
+										</div>
+									</label>
+								);
+							});
+						})()}
 					</div>
 					<Button
 						className="mt-4 w-full gradient-tms text-white"

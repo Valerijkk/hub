@@ -196,7 +196,15 @@ export function PipelineStatus({ projectId }: PipelineStatusProps) {
 	} = useQuery({
 		queryKey: ["github-workflows", projectId],
 		queryFn: () => listWorkflowRuns(projectId),
-		refetchInterval: 30_000, // Обновляем каждые 30 секунд для in_progress
+		// Poll only while CI runs are active (queued / in_progress).
+		refetchInterval: (query) => {
+			const data = query.state.data;
+			if (!data?.length) return false;
+			const active = data.some(
+				(r) => r.status === "queued" || r.status === "in_progress",
+			);
+			return active ? 30_000 : false;
+		},
 	});
 
 	if (isLoading) {
