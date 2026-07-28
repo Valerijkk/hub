@@ -7,7 +7,7 @@ package tms
 const (
 	// EventTestRunCreated публикуется при создании нового прогона.
 	EventTestRunCreated = "tms.testrun.created"
-	// EventTestRunCompleted публикуется при завершении прогона.
+	// EventTestRunCompleted публикуется при завершении прогона (A2W2-2-007 канон).
 	EventTestRunCompleted = "tms.testrun.completed"
 	// EventCoverageUpdated публикуется при изменении покрытия требований.
 	EventCoverageUpdated = "tms.coverage.updated"

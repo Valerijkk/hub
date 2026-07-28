@@ -2,7 +2,6 @@ package tms
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -167,17 +166,13 @@ func (s *TMSService) CreateTestResult(ctx context.Context, projectID, runID uuid
 	return toTestResultResponse(result), nil
 }
 
-// UpdateTestResult обновляет результат теста (требует принадлежности к run через Get).
-func (s *TMSService) UpdateTestResult(ctx context.Context, resultID uuid.UUID, req UpdateTestResultRequest) (*TestResultResponse, error) {
-	existing, err := s.repo.GetTestResult(ctx, resultID)
-	if err != nil {
+// UpdateTestResult обновляет результат теста внутри project/run (A2W2-2-008).
+func (s *TMSService) UpdateTestResult(ctx context.Context, projectID, runID, resultID uuid.UUID, req UpdateTestResultRequest) (*TestResultResponse, error) {
+	if _, err := s.repo.GetTestRunInProject(ctx, projectID, runID); err != nil {
 		if ent.IsNotFound(err) {
-			return nil, apperrors.NewNotFound("результат не найден")
+			return nil, apperrors.NewNotFound("прогон не найден")
 		}
-		return nil, apperrors.NewInternal("ошибка получения результата")
-	}
-	if existing.Edges.Run == nil {
-		return nil, apperrors.NewNotFound("результат не найден")
+		return nil, apperrors.NewInternal("ошибка получения прогона")
 	}
 
 	input := UpdateTestResultInput{
@@ -187,7 +182,7 @@ func (s *TMSService) UpdateTestResult(ctx context.Context, resultID uuid.UUID, r
 		IsFlaky:     req.IsFlaky,
 	}
 
-	result, err := s.repo.UpdateTestResult(ctx, existing.Edges.Run.ID, resultID, input)
+	result, err := s.repo.UpdateTestResult(ctx, runID, resultID, input)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("результат не найден")
@@ -360,7 +355,7 @@ func (s *TMSService) CompleteTestRun(ctx context.Context, projectID, runID uuid.
 	}
 
 	// Публикуем событие завершения прогона для уведомлений.
-	s.nats.PublishJSON(fmt.Sprintf(SubjectTestRunCompleted, runID.String()), map[string]interface{}{
+	s.nats.PublishJSON(EventTestRunCompleted, map[string]interface{}{
 		"run_id": runID,
 		"title":  resp.Title,
 		"total":  resp.TotalCount,

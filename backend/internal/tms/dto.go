@@ -451,6 +451,7 @@ type ImportResult struct {
 	Created          int                     `json:"created"`
 	Skipped          int                     `json:"skipped"`
 	Errors           int                     `json:"errors"`
+	Partial          bool                    `json:"partial"` // A2W2-4-004: true если были ошибки/пропуски
 	ValidationErrors []ImportValidationError `json:"validation_errors,omitempty"`
 }
 
