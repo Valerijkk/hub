@@ -249,14 +249,28 @@ func TestEntRepository_TeamFlow(t *testing.T) {
 	assert.Equal(t, 0, count)
 }
 
-// TestEntRepository_DeleteHard_RequiresNoMembers проверяет слой репозитория: ent репозиторий удаление hard requires no members.
-func TestEntRepository_DeleteHard_RequiresNoMembers(t *testing.T) {
+// TestEntRepository_DeleteHard_CascadesMembers — ADR-ENT-ONDELETE-CASCADE-2026 / A2W8-4-002:
+// hard DELETE проекта каскадно удаляет project_members (soft-delete путь не затронут).
+func TestEntRepository_DeleteHard_CascadesMembers(t *testing.T) {
 	env := newProjectRepoEnv(t)
 
 	created, err := env.repo.Create(env.ctx, "DeleteMe", "DEL", "", env.owner.ID)
 	require.NoError(t, err)
 
-	err = env.repo.Delete(env.ctx, created.ID)
-	require.Error(t, err)
-	assert.True(t, ent.IsConstraintError(err))
+	nBefore, err := env.client.ProjectMember.Query().
+		Where(projectmember.HasProjectWith(entproject.IDEQ(created.ID))).
+		Count(env.ctx)
+	require.NoError(t, err)
+	require.Greater(t, nBefore, 0, "Create must add owner membership")
+
+	require.NoError(t, env.repo.Delete(env.ctx, created.ID))
+
+	_, err = env.client.Project.Get(env.ctx, created.ID)
+	require.True(t, ent.IsNotFound(err))
+
+	nAfter, err := env.client.ProjectMember.Query().
+		Where(projectmember.HasProjectWith(entproject.IDEQ(created.ID))).
+		Count(env.ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 0, nAfter)
 }
