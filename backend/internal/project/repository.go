@@ -605,19 +605,36 @@ func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bo
 }
 
 // AddTeamToProject привязывает команду к проекту и bulk-добавляет участников.
+// A2W1-A5-002 / TASK-088: AddTeamIDs + AddMember в одной Ent-tx — mid-fail откатывает связь команды.
 func (r *EntRepository) AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error {
-	// Привязываем команду к проекту
-	err := r.client.Project.UpdateOneID(projectID).
-		AddTeamIDs(teamID).
-		Exec(ctx)
+	tx, err := r.client.Tx(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin add team to project tx: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if err := tx.Project.UpdateOneID(projectID).AddTeamIDs(teamID).Exec(ctx); err != nil {
+		return fmt.Errorf("link team to project: %w", err)
 	}
 
-	// Массово добавляем участников команды как участников проекта с ролью "developer"
-	members, err := r.ListTeamMembers(ctx, teamID)
+	// hubtest-инъекция mid-fail после AddTeamIDs (см. ExportSetAfterAddTeamLinkHook).
+	if afterAddTeamLinkHook != nil {
+		if err := afterAddTeamLinkHook(ctx); err != nil {
+			return err
+		}
+	}
+
+	members, err := tx.TeamMember.Query().
+		Where(teammember.HasTeamWith(team.IDEQ(teamID))).
+		WithUser().
+		All(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("list team members: %w", err)
 	}
 
 	for _, m := range members {
@@ -626,7 +643,12 @@ func (r *EntRepository) AddTeamToProject(ctx context.Context, teamID, projectID 
 		}
 		// W1-A5-009 / P3-BE-01: игнорировать только constraint (уже участник);
 		// прочие ошибки БД — fail-closed, не частичный membership без err клиенту.
-		if _, err := r.AddMember(ctx, projectID, m.Edges.User.ID, projectmember.ProjectRoleDeveloper); err != nil {
+		_, err := tx.ProjectMember.Create().
+			SetProjectID(projectID).
+			SetUserID(m.Edges.User.ID).
+			SetProjectRole(projectmember.ProjectRoleDeveloper).
+			Save(ctx)
+		if err != nil {
 			if ent.IsConstraintError(err) {
 				continue
 			}
@@ -634,5 +656,13 @@ func (r *EntRepository) AddTeamToProject(ctx context.Context, teamID, projectID 
 		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit add team to project: %w", err)
+	}
+	committed = true
 	return nil
 }
+
+// afterAddTeamLinkHook — опциональная инъекция после AddTeamIDs внутри tx (только hubtest).
+var afterAddTeamLinkHook func(ctx context.Context) error
+

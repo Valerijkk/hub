@@ -294,15 +294,20 @@ func (s *AuditService) SoftDelete(ctx context.Context, entityType string, entity
 
 // PurgeExpired окончательно удаляет элементы, находящиеся в корзине дольше 30 дней.
 // Запускается по cron (горутина с 24-часовым тикером).
+// A2W6-A4-001: ошибка любого purge_* пробрасывается наружу (fail-closed для cron),
+// иначе tick trash-purge-expired считается успешным при полном отказе БД.
 func (s *AuditService) PurgeExpired(ctx context.Context) error {
 	cutoff := time.Now().Add(-TrashRetentionDays * 24 * time.Hour)
 
-	// purge вызывает deleteFunc и логирует результат.
+	var errs []error
 	purge := func(entity string, deleteFunc func() (int, error)) {
 		n, err := deleteFunc()
 		if err != nil {
 			slog.Error("purge expired "+entity, "error", err)
-		} else if n > 0 {
+			errs = append(errs, fmt.Errorf("purge expired %s: %w", entity, err))
+			return
+		}
+		if n > 0 {
 			slog.Info("purged expired "+entity, "count", n)
 		}
 	}
@@ -314,7 +319,7 @@ func (s *AuditService) PurgeExpired(ctx context.Context) error {
 	purge("newsposts", func() (int, error) { return s.repo.PurgeExpiredNewsPosts(ctx, cutoff) })
 	purge("scheduled_calls", func() (int, error) { return s.repo.PurgeExpiredScheduledCalls(ctx, cutoff) })
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // ---- Управление пользователями ----

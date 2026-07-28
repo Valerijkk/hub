@@ -123,8 +123,8 @@ func TestAutomationConsumer_processMessage_Events(t *testing.T) {
 
 	unknown := &countingAutomationJSMsg{subject: "project." + pid + ".issue.unknown", data: []byte(`{}`)}
 	tracker.ExportAutomationConsumerProcessMessage(c, ctx, unknown)
-	assert.Equal(t, 1, unknown.acks, "unknown kind is noop + Ack")
-	assert.Equal(t, 0, unknown.naks)
+	assert.Equal(t, 1, unknown.naks, "unknown kind must Nak (A2W1-A3-002)")
+	assert.Equal(t, 0, unknown.acks)
 
 	badJSON := &countingAutomationJSMsg{subject: "project." + pid + ".issue.moved", data: []byte(`not-json`)}
 	tracker.ExportAutomationConsumerProcessMessage(c, ctx, badJSON)

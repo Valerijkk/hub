@@ -104,6 +104,16 @@ func (s *TrackerService) CreateIssue(ctx context.Context, projectID, userID uuid
 				return nil, apperrors.NewBadRequest("метка не принадлежит проекту")
 			}
 		}
+		// A2W1-A2-002 / TASK-088: assignee должен быть участником проекта.
+		if input.AssigneeID != nil {
+			ok, err := s.repo.IsProjectMember(ctx, projectID, *input.AssigneeID)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка проверки участника")
+			}
+			if !ok {
+				return nil, apperrors.NewBadRequest("assignee не является участником проекта")
+			}
+		}
 
 		created, err := s.repo.CreateIssue(ctx, projectID, input)
 		if err != nil {
@@ -301,6 +311,14 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, projectID uuid.UUID, i
 		id, err := uuid.Parse(*req.AssigneeID)
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный assignee_id")
+		}
+		// A2W1-A2-002 / TASK-088: assignee должен быть участником проекта.
+		ok, err := s.repo.IsProjectMember(ctx, projectID, id)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки участника")
+		}
+		if !ok {
+			return nil, apperrors.NewBadRequest("assignee не является участником проекта")
 		}
 		input.AssigneeID = &id
 	}

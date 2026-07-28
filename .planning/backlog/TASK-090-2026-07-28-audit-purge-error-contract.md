@@ -1,6 +1,6 @@
 # TASK-090 — 🔒 Audit: purge fail-closed + admin error contract
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: A2W6 · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]

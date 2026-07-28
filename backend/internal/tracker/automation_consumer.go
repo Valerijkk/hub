@@ -3,13 +3,26 @@ package tracker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/nats-io/nats.go/jetstream"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
+
+// errAutomationUnknownSubject — неизвестный/битый subject JetStream (A2W1-A3-002).
+var errAutomationUnknownSubject = errors.New("automation: unknown subject")
+
+// automationUnknownSubjectTotal — счётчик неизвестных subject (метрика для тестов/observability).
+var automationUnknownSubjectTotal atomic.Uint64
+
+// AutomationUnknownSubjectTotal возвращает число неизвестных subject с момента старта процесса.
+func AutomationUnknownSubjectTotal() uint64 {
+	return automationUnknownSubjectTotal.Load()
+}
 
 // AutomationConsumer выполняет правила автоматизации по JetStream-событиям трекера.
 type AutomationConsumer struct {
@@ -91,7 +104,7 @@ func (c *AutomationConsumer) processMessage(ctx context.Context, msg jetstream.M
 			slog.Error("automation: unmarshal moved", "error", err)
 			processErr = err
 		} else {
-			c.engine.HandleStatusChanged(ctx, evt)
+			processErr = c.engine.HandleStatusChanged(ctx, evt)
 		}
 	case "created":
 		var evt IssueCreatedEvent
@@ -99,7 +112,7 @@ func (c *AutomationConsumer) processMessage(ctx context.Context, msg jetstream.M
 			slog.Error("automation: unmarshal created", "error", err)
 			processErr = err
 		} else {
-			c.engine.HandleIssueCreated(ctx, evt)
+			processErr = c.engine.HandleIssueCreated(ctx, evt)
 		}
 	case "assigned":
 		var evt IssueAssignedEvent
@@ -107,8 +120,13 @@ func (c *AutomationConsumer) processMessage(ctx context.Context, msg jetstream.M
 			slog.Error("automation: unmarshal assigned", "error", err)
 			processErr = err
 		} else {
-			c.engine.HandleIssueAssigned(ctx, evt)
+			processErr = c.engine.HandleIssueAssigned(ctx, evt)
 		}
+	default:
+		// A2W1-A3-002 / TASK-088: неизвестный subject → Nak + метрика (не молчаливый Ack).
+		slog.Warn("automation: unknown subject", "subject", msg.Subject(), "kind", kind)
+		automationUnknownSubjectTotal.Add(1)
+		processErr = errAutomationUnknownSubject
 	}
 	if processErr != nil {
 		if nakErr := msg.Nak(); nakErr != nil {

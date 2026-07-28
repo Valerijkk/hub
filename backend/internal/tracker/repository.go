@@ -32,6 +32,8 @@ type IssueRepository interface {
 	// MoveIssue изменяет статус и ранг задачи (перемещение на Kanban-доске).
 	// expectedVersion — optimistic lock (W1-A3-004): без VersionEQ concurrent drag → last-write-wins.
 	MoveIssue(ctx context.Context, issueID uuid.UUID, statusID uuid.UUID, rank string, expectedVersion int) (*ent.Issue, error)
+	// IsProjectMember проверяет, что userID — участник projectID (A2W1-A2-002 / TASK-088).
+	IsProjectMember(ctx context.Context, projectID, userID uuid.UUID) (bool, error)
 }
 
 // IssueLinkRepository управляет направленными связями между задачами.

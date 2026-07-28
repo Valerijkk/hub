@@ -11,7 +11,7 @@ import (
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/predicate"
 	"github.com/valerii/hub/backend/ent/project"
-	sprintEnt "github.com/valerii/hub/backend/ent/sprint"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
@@ -221,11 +221,6 @@ func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, par
 	} else if params.Assignee != nil {
 		query = query.Where(issue.HasAssigneeWith(user.IDEQ(*params.Assignee)))
 	}
-	if params.BacklogOnly {
-		query = query.Where(issue.Not(issue.HasSprint()))
-	} else if params.Sprint != nil {
-		query = query.Where(issue.HasSprintWith(sprintEnt.IDEQ(*params.Sprint)))
-	}
 	if params.IssueType != "" {
 		query = query.Where(issue.IssueTypeEQ(issue.IssueType(params.IssueType)))
 	}
@@ -285,7 +280,6 @@ func (r *EntRepository) ListIssues(ctx context.Context, projectID uuid.UUID, par
 		WithAssignee().
 		WithStatus().
 		WithLabels().
-		WithSprint().
 		All(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("список задач: %w", err)
@@ -480,4 +474,14 @@ func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, status
 	}
 
 	return moved, nil
+}
+
+// IsProjectMember проверяет membership пользователя в проекте (A2W1-A2-002 / TASK-088).
+func (r *EntRepository) IsProjectMember(ctx context.Context, projectID, userID uuid.UUID) (bool, error) {
+	return r.client.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(project.IDEQ(projectID)),
+			projectmember.HasUserWith(user.IDEQ(userID)),
+		).
+		Exist(ctx)
 }

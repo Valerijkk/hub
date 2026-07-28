@@ -43,3 +43,8 @@ func ExportProjectServiceNotifyLinkDeleted(s *ProjectService, ctx context.Contex
 func ExportToTemplateResponse(t *ent.ProjectTemplate) *TemplateResponse {
 	return toTemplateResponse(t)
 }
+
+// ExportSetAfterAddTeamLinkHook инъектирует mid-fail после AddTeamIDs внутри tx (TASK-088).
+func ExportSetAfterAddTeamLinkHook(fn func(ctx context.Context) error) {
+	afterAddTeamLinkHook = fn
+}
