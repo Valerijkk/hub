@@ -1,6 +1,6 @@
 # TASK-038 — OL VersionEQ + soft-delete mutate + tx + list caps
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке (partial)  
 > Источник: TASK-008 W12 · Classes: P2-BE-03..06 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,44 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+---
+
+## Progress (2026-07-28, be1)
+
+**Статус:** На проверке (partial) — приоритетные in-scope баги с мутацией закрыты; остаток ниже.
+
+### Closed Source IDs
+
+| Class | Closed | Что сделано |
+|-------|--------|-------------|
+| P2-BE-03 | W1-A2-007, W1-A3-004, W2-A5-004 | `MoveIssue` VersionEQ+AddVersion; bases Update* VersionEQ в WHERE |
+| P2-BE-04 | W1-A3-005, W2-A3-004, W2-A3-005, W3-A5-011 | UpdateIssue/UpdateTestCase + FindTestCase* + UpdateScheduledCall: `DeletedAtIsNil` |
+| P2-BE-05 | W1-A3-006, W2-A5-001, W2-A5-002 | LogTime/StopTimer tx; CreateBase/CreateTable atomic tx; UpdateRecord cells merge |
+| P2-BE-06 | W2-A5-005 | TableView `total`/`has_more` при cap MaxTableRecords |
+
+### Remaining Source IDs
+
+**In-scope (allowed modules), not done this wave:**
+
+- W1-A4-008 — Sprint `version` schema + VersionEQ (**нужна Ent-миграция / approval**)
+- W2-A2-009 — TMS `CreateTestCaseVersion`+`UpdateTestCase` одна tx
+- W2-A2-011 — ImportAllureResults multi-step cleanup/tx
+- W2-A4-006 — importer batch без all-or-nothing tx
+- W2-A5-006 — bases sqlite DSN unique per test (flaky hygiene)
+- W3-A5-009 — recording orphan egress compensation
+- W3-A5-012 — finalizeCreate fail on AddParticipant
+- W2-A2-006, W2-A2-007, W2-A2-008 — TMS reports N+1 batch
+- W2-A3-006, W2-A3-007 — TMS mongo/list unbounded caps
+- W2-A4-007 — export silent trunc / has_more
+
+**Out of scope (files not allowed by TASK):**
+
+- W7-A2-003 (intranet OL), W7-A3-008 (imex ZIP trash)
+- W1-A5-008 (project cleanup), W3-A2-009/011, W3-A3-006/007 (messenger)
+- W6-A3-008 (rbac), W7-A2-004/010 (intranet/calendar), W7-A4-008 (dashboard), W7-A5-003/004 (marketplace)
+
+### Evidence
+
+- `go test -tags hubtest -count=1 ./testframework/{tracker,bases,tms,calls}/` — PASS
+- Тесты: `ol_softdelete_tx_task038_test.go`, `softdelete_find_update_task038_test.go`, `ol_tx_merge_hasmore_task038_test.go`, `softdelete_update_task038_test.go`
