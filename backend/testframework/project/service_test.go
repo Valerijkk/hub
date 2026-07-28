@@ -104,7 +104,7 @@ func (m *mockRepo) ListTrash(_ context.Context, _ uuid.UUID) ([]*ent.Project, er
 	return result, nil
 }
 
-func (m *mockRepo) Create(_ context.Context, name, key, description string, _ uuid.UUID) (*ent.Project, error) {
+func (m *mockRepo) Create(_ context.Context, name, key, description string, ownerID uuid.UUID) (*ent.Project, error) {
 	if m.createErr != nil {
 		return nil, m.createErr
 	}
@@ -126,6 +126,12 @@ func (m *mockRepo) Create(_ context.Context, name, key, description string, _ uu
 		UpdatedAt:   now,
 	}
 	m.projects[id] = p
+	// Зеркало EntRepository.Create: создатель — owner (нужно после P2-BE-12 / GetProject membership).
+	m.members[id] = []*ent.ProjectMember{{
+		ID:          uuid.New(),
+		ProjectRole: projectmember.ProjectRoleOwner,
+		Edges:       ent.ProjectMemberEdges{User: &ent.User{ID: ownerID}},
+	}}
 	m.memberCountMap[id] = 1
 	return p, nil
 }

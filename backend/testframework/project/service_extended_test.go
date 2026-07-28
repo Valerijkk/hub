@@ -33,9 +33,7 @@ func TestGetProject_ReturnsMyRole(t *testing.T) {
 	require.NoError(t, err)
 	projectID, err := uuid.Parse(created.ID)
 	require.NoError(t, err)
-
-	_, err = repo.AddMember(ctx, projectID, ownerID, projectmember.ProjectRoleOwner)
-	require.NoError(t, err)
+	_ = repo // Create уже добавляет owner (зеркало EntRepository)
 
 	got, err := svc.GetProject(ctx, projectID, ownerID)
 	require.NoError(t, err)
@@ -144,7 +142,7 @@ func TestAddMember_InvalidatesCache(t *testing.T) {
 	_, err = svc.AddMember(ctx, projectID, memberID, "developer")
 	require.NoError(t, err)
 	assert.Contains(t, cache.invalidated, projectID.String())
-	assert.Len(t, repo.members[projectID], 1)
+	assert.Len(t, repo.members[projectID], 2) // owner (Create) + developer
 }
 
 // TestAddMember_Duplicate проверяет сценарий: add участник duplicate.
@@ -340,7 +338,8 @@ func TestRemoveMember_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, svc.RemoveMember(ctx, projectID, memberID))
-	assert.Empty(t, repo.members[projectID])
+	require.Len(t, repo.members[projectID], 1) // остаётся owner из Create
+	assert.Equal(t, projectmember.ProjectRoleOwner, repo.members[projectID][0].ProjectRole)
 	assert.Contains(t, cache.invalidated, projectID.String())
 }
 
@@ -361,8 +360,13 @@ func TestListMembers_ReturnsAll(t *testing.T) {
 
 	members, err := svc.ListMembers(ctx, projectID)
 	require.NoError(t, err)
-	assert.Len(t, members, 1)
-	assert.Equal(t, "tester", members[0].Role)
+	require.Len(t, members, 2) // owner + tester
+	roles := map[string]bool{}
+	for _, m := range members {
+		roles[m.Role] = true
+	}
+	assert.True(t, roles["owner"])
+	assert.True(t, roles["tester"])
 }
 
 // TestUpdateProject_NotFound проверяет сценарий: обновление project not found.
