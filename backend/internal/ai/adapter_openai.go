@@ -25,14 +25,38 @@ type ChatAdapter interface {
 // OpenAIAdapter — DeepSeek, Ollama, OpenRouter и др.
 type OpenAIAdapter struct {
 	client *http.Client
+	// offlineClient — loopback-only dialer (ADR-AI-OLLAMA-LOOPBACK / P1-BE-U01).
+	// nil в hubtest с ExportNewOpenAIAdapterWithClient (custom transport).
+	offlineClient *http.Client
 	// skipOutboundURLValidate — только hubtest (ExportNewOpenAIAdapterWithClient + httptest).
 	// Production NewOpenAIAdapter всегда валидирует BaseURL (SSRF).
 	skipOutboundURLValidate bool
 }
 
-// NewOpenAIAdapter — adapter с SSRF-safe HTTP client.
+// NewOpenAIAdapter — adapter с SSRF-safe HTTP client + offline loopback client.
 func NewOpenAIAdapter() *OpenAIAdapter {
-	return &OpenAIAdapter{client: safehttp.NewSafeHTTPClient(90 * time.Second)}
+	return &OpenAIAdapter{
+		client:        safehttp.NewSafeHTTPClient(90 * time.Second),
+		offlineClient: safehttp.NewOfflineAIHTTPClient(90 * time.Second),
+	}
+}
+
+// resolveHTTPClient — cloud BYOK → SafeDial; Ollama loopback → AllowLoopback
+// только после ValidateOfflineAIURL (явный consent-path, не ослабляет SSRF).
+func (a *OpenAIAdapter) resolveHTTPClient(base string) (*http.Client, error) {
+	if a.skipOutboundURLValidate {
+		return a.client, nil
+	}
+	if err := safehttp.ValidateOfflineAIURL(base); err == nil {
+		if a.offlineClient == nil {
+			return nil, errors.New("offline AI HTTP client not configured")
+		}
+		return a.offlineClient, nil
+	}
+	if err := safehttp.ValidateOutboundURL(base); err != nil {
+		return nil, fmt.Errorf("invalid provider URL: %w", err)
+	}
+	return a.client, nil
 }
 
 // ChatCompletion POST {baseURL}/chat/completions
@@ -41,10 +65,9 @@ func (a *OpenAIAdapter) ChatCompletion(ctx context.Context, baseURL, apiKey, mod
 		return nil, errors.New("use stream_id with stream=true for WebSocket delivery")
 	}
 	base := strings.TrimRight(baseURL, "/")
-	if !a.skipOutboundURLValidate {
-		if err := safehttp.ValidateOutboundURL(base); err != nil {
-			return nil, fmt.Errorf("invalid provider URL: %w", err)
-		}
+	httpClient, err := a.resolveHTTPClient(base)
+	if err != nil {
+		return nil, err
 	}
 	req.Model = model
 	body, err := json.Marshal(req)
@@ -60,7 +83,7 @@ func (a *OpenAIAdapter) ChatCompletion(ctx context.Context, baseURL, apiKey, mod
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}
-	resp, err := a.client.Do(httpReq)
+	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("provider request: %w", err)
 	}

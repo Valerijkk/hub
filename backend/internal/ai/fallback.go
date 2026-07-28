@@ -75,6 +75,7 @@ func isOfflineBaseURL(baseURL string) bool {
 	if host == "" {
 		return false
 	}
+	// Согласовано с safehttp.IsOfflineAIHost / ADR-AI-OLLAMA-LOOPBACK.
 	switch host {
 	case "localhost", "127.0.0.1", "::1":
 		return true
