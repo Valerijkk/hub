@@ -24,7 +24,7 @@
 | Notification | NOTF | In-app, Telegram bind, Web Push, quiet hours |
 | Search | SRCH | Ctrl+K, Meilisearch indexer, JQL, saved filters |
 | GitHub/GitLab | GHUB/GLAB | Webhooks, PR/MR linking, AI PR review |
-| API | API | REST **286** endpoints (+1 WS), API keys, outbound webhooks |
+| API | API | REST **~252** OpenAPI paths / ~286 route inventory (+1 WS); API keys, outbound webhooks |
 | Import/Export | IMEX | CSV, JSON, PDF, ZIP backup, Jira import |
 | Audit | AUDIT | Full audit log, trash 30d, GDPR, alerts |
 | AI | AI | Multi-provider gateway, @hub-ai bot, JQL assist, usage audit |

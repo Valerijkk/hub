@@ -65,13 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-29 (be1 · TASK-121 marketplace/status/docs exposure)
+## Session note — 2026-07-28 (fe2+docs · TASK-123 dead export + docs drift)
 
-- W7-A5-001..006 FIXED: `/api/docs` admin-only; `/status` aggregate + `/status/details` auth;
-  marketplace pagination/`has_more`, atomic remoderation, no email on catalog, price/currency validation.
-- Тесты: `go test -tags hubtest -race ./testframework/{marketplace,status,dev}/` PASS.
-- Docs: `docs/wiki/API.md`, `docs/system_specification.md`; backlog «Исправлена».
-- Ветка: `fix/marketplace/task-121-exposure`.
+- **Сделано:** удалён dead export `useRooms`; BUSINESS webcam consistency; NF-11 → `wiring_fiber.go`; REST summary ~252 OpenAPI.
+- **ID:** A2W11-4-001/002, A2W11-5-003/004 — FIXED.
+- **Тесты:** vitest `i18n-push-rooms-p2`, `docs-drift-task123`; mutation: вернуть useRooms / «REST **286**» → FAIL.
+- **Docs:** backlog TASK-123 → Исправлена; audit A2W11-4/5 + SUMMARY.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

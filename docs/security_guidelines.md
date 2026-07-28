@@ -96,7 +96,7 @@
 | NEW-07 | INFO | ✅ **PASS** | `observability/timing.go` | Timed wrapper, no secrets logged |
 | NEW-08 | INFO | ✅ **PASS** | `storage/filename.go` | `sanitizeFilename` 200-char cap |
 | NF-10 | MEDIUM | ⚠️ **ACCEPTED** | `auth/magiclink.go:46-52` | 6-digit (~10⁶ entropy) + rate-limit 3/10m |
-| NF-11 | MEDIUM | ✅ **FIXED** | `cmd/server/main.go` | `EnableTrustedProxyCheck` + private CIDRs |
+| NF-11 | MEDIUM | ✅ **FIXED** | `cmd/server/wiring_fiber.go` | `EnableTrustedProxyCheck` + private CIDRs |
 | NF-12 | MEDIUM | ✅ **FIXED** | `auth/service_session.go` | SHA-256 hash refresh tokens |
 | NF-13 | LOW | ⚠️ **ACCEPTED** | `ws/hub.go:217-220` | Drop message on full buffer (не блокируем room) |
 | NF-14 | INFO | ⚠️ **ACCEPTED** | — | CSRF токены moot при Bearer JWT |
