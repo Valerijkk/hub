@@ -24,20 +24,20 @@
 
 | Волна | Зона | Статус | Файлов | P0 | P1 | P2 | P3 | open Σ |
 |-------|------|--------|-------:|---:|---:|---:|---:|-------:|
-| A2-W1 | tracker+sprint+project | 🔄 | | | | | | |
+| A2-W1 | tracker+sprint+project | ✅ | 163 | 0 | 0 | 5 | 3 | **8** |
 | A2-W2 | tms+bases | 🔄 | | | | | | |
 | A2-W3 | messenger+ws+calls | ✅ | 131 | 0 | 0 | 12 | 4 | **16** |
 | A2-W4 | platform+apigateway | ✅ | 83 | 0 | 1 | 4 | 8 | **13** |
 | A2-W5 | ai+search | ✅ | 96 | 0 | 1 | 18 | 13 | **32** |
-| A2-W6 | auth+rbac+audit | 🔄 | | | | | | |
+| A2-W6 | auth+rbac+audit | ✅ | 92 | 0 | 1 | 22 | 8 | **31** |
 | A2-W7 | remaining backend | 🔄 | | | | | | |
 | A2-W8 | ent/schema | 🔄 | | | | | | |
 | A2-W9 | frontend/components | ✅ | 127 | 0 | 0 | 4 | 7 | **11** |
-| A2-W10 | routes+modules | 🔄 | | | | | | |
+| A2-W10 | routes+modules | ✅ | 144 | 0 | 2 | 25 | 2 | **29** |
 | A2-W11 | api/stores/hooks/lib+docs | ✅ | 93 | 0 | 1 | 6 | 4 | **11** |
 
-Сводки: [`A2-W3`](A2-W3-SUMMARY.md) · [`A2-W4`](A2-W4-SUMMARY.md) · [`A2-W5`](A2-W5-SUMMARY.md) · [`A2-W9`](A2-W9-SUMMARY.md) · [`A2-W11`](A2-W11-SUMMARY.md)  
-A2-W4 P1 REGRESS: CompleteTestRun без `project_id` (TMS webhooks). A2-W5: REGRESS=9.
+Сводки: W1 · W3 · W4 · W5 · W6 · W9 · W10 · W11 (см. `A2-W*-SUMMARY.md`)  
+Осталось: **W2, W7, W8**. Open Σ пока (без W2/7/8): **151**.
 
 ## Стадии B/C
 
