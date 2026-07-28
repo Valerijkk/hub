@@ -25,6 +25,9 @@ type ChatAdapter interface {
 // OpenAIAdapter — DeepSeek, Ollama, OpenRouter и др.
 type OpenAIAdapter struct {
 	client *http.Client
+	// streamClient — SSE без whole-request Timeout (W5-A2-008 / TASK-085).
+	// Если nil (hubtest custom client) — используется client.
+	streamClient *http.Client
 	// skipOutboundURLValidate — только hubtest (ExportNewOpenAIAdapterWithClient + httptest).
 	// Production NewOpenAIAdapter всегда валидирует BaseURL (SSRF).
 	skipOutboundURLValidate bool
@@ -32,7 +35,10 @@ type OpenAIAdapter struct {
 
 // NewOpenAIAdapter — adapter с SSRF-safe HTTP client.
 func NewOpenAIAdapter() *OpenAIAdapter {
-	return &OpenAIAdapter{client: safehttp.NewSafeHTTPClient(90 * time.Second)}
+	return &OpenAIAdapter{
+		client:       safehttp.NewSafeHTTPClient(90 * time.Second),
+		streamClient: newSafeStreamHTTPClient(),
+	}
 }
 
 // ChatCompletion POST {baseURL}/chat/completions

@@ -64,8 +64,9 @@ func wireAuditMailAI(d *serverDeps) {
 	})
 	aiRateLimit := middleware.RateLimitByUser(d.rootCtx, middleware.AIRateLimit)
 	aiHandler.RegisterRoutes(api, requireAuth, aiRateLimit)
-	aiAdminHandler.RegisterRoutes(api, requireAuth)
-	aimod.NewUserHandler(aiSvc).RegisterRoutes(api, requireAuth)
+	// A2W5-A1-002 / TASK-085: AIRateLimit также на admin TestProvider и /ai/my (BYOK).
+	aiAdminHandler.RegisterRoutes(api, requireAuth, aiRateLimit)
+	aimod.NewUserHandler(aiSvc).RegisterRoutes(api, requireAuth, aiRateLimit)
 	d.aiSvc = aiSvc
 	d.aiHandler = aiHandler
 

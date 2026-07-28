@@ -72,6 +72,7 @@ func TestAdminUpdate_UserScopeProvider_404_TASK066(t *testing.T) {
 // TestFetchReview_GitLabURL_NilGitLab_TASK066 — W5-A3-013: GitLab URL + nil gitlab → явная ошибка.
 func TestFetchReview_GitLabURL_NilGitLab_TASK066(t *testing.T) {
 	p := ai.NewUnifiedCodeReviewProvider(&githubmod.GitHubService{}, nil)
+	p.SetAccessChecker(stubAccess{allow: map[uuid.UUID]bool{}})
 	_, err := p.FetchReview(context.Background(), uuid.New(), "https://gitlab.com/g/p/-/merge_requests/5")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "GitLab not configured")

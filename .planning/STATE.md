@@ -65,11 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-29 (fe2 · TASK-083 trash hard-delete API)
+## Session note — 2026-07-29 (be1 · TASK-085 AI RPM/JQL/stream fail-closed)
 
-- **Сделано:** «Удалить навсегда» → `DELETE /projects/:id/permanent` (`permanentDeleteProject` + `hardDeleteMutation`); BE route `PermanentDeleteProject`; fail → toast.error без success.
-- **Тесты:** vitest `trash-hard-delete-p1` (+ регрессия `trash-webhooks-p1`); mutation: stub reject → нет success toast.
-- **Docs:** `docs/wiki/API.md` (hard-delete), backlog TASK-083 → Исправлена.
+- RPM Redis err → ErrProviderRPMUnavailable; ZRem reject; unique ZSET member.
+- AssistJQL sentinel map как SuggestComposer; AIRateLimit на admin + /ai/my.
+- Stream: SSE без Client.Timeout; no fallback после content-delta; code_review nil deny.
+- hubtest ai PASS (~15.7s); статус «Исправлена».
+
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

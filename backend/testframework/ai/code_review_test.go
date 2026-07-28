@@ -22,6 +22,15 @@ func TestUnifiedCodeReviewProvider_NoVCS(t *testing.T) {
 	p := ai.NewUnifiedCodeReviewProvider(nil, nil)
 	_, err := p.FetchReview(t.Context(), uuid.New(), "https://gitlab.com/g/p/-/merge_requests/5")
 	require.Error(t, err)
+	// TASK-085: access==nil fail-closed раньше, чем ветка «no VCS».
+	assert.Contains(t, err.Error(), "access checker not configured")
+}
+
+func TestUnifiedCodeReviewProvider_GitLabURLWithoutGitlabService(t *testing.T) {
+	p := ai.NewUnifiedCodeReviewProvider(nil, nil)
+	p.SetAccessChecker(stubAccess{allow: map[uuid.UUID]bool{}})
+	_, err := p.FetchReview(t.Context(), uuid.New(), "https://gitlab.com/g/p/-/merge_requests/5")
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "GitLab not configured")
 }
 

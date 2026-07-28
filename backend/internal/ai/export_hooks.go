@@ -5,6 +5,7 @@ package ai
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -185,7 +186,7 @@ func ExportSettingBotSystemPrompt() string {
 func ExportNewOpenAIAdapterWithClient(client *http.Client) *OpenAIAdapter {
 	// httptest → 127.0.0.1; ValidateOutboundURL блокирует loopback (SSRF).
 	// Custom client в hubtest = явный test transport, не user-controlled URL path.
-	return &OpenAIAdapter{client: client, skipOutboundURLValidate: true}
+	return &OpenAIAdapter{client: client, streamClient: client, skipOutboundURLValidate: true}
 }
 
 func ExportNewYandexGPTAdapterWithClient(client *http.Client) *YandexGPTAdapter {
@@ -225,4 +226,23 @@ func ExportOpenAIAdapterClient(a *OpenAIAdapter) *http.Client {
 		return nil
 	}
 	return a.client
+}
+
+func ExportOpenAIAdapterStreamClient(a *OpenAIAdapter) *http.Client {
+	if a == nil {
+		return nil
+	}
+	return a.streamClient
+}
+
+// ExportServiceStreamCompletionWithFallback — hubtest hook для W5-A2-005 / TASK-085.
+func ExportServiceStreamCompletionWithFallback(
+	s *Service,
+	ctx context.Context,
+	userID uuid.UUID,
+	model string,
+	req ChatCompletionRequest,
+	onDelta func(StreamDelta) error,
+) (*ent.AIProvider, time.Duration, error) {
+	return s.streamCompletionWithFallback(ctx, userID, model, req, onDelta)
 }

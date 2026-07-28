@@ -1,6 +1,6 @@
 # TASK-085 — ♻️ AI: закрыть false-close TASK-044 (RPM/AssistJQL/stream)
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: A2W5 REGRESS · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]
@@ -54,3 +54,15 @@ AI rate-limit и stream-пути fail-closed по контракту TASK-040/04
 
 - Не закрывать соседние A2 ID «заодно» без evidence
 - Docs sync только если контракт API изменился
+
+## [REWORK 2026-07-29 be1]
+
+**Исправлена.** Evidence (worktree `fix/ai/task-085-regress-bundle` ← `cursor-grok-4.5`):
+
+- RPM: Redis err → `ErrProviderRPMUnavailable` (не Allow); ZRem on reject; unique ZSET member
+- AssistJQL: sentinel map как SuggestComposer; AIRateLimit на admin + `/ai/my`
+- Stream: SSE client без `Client.Timeout`; no provider switch после первого content-delta
+- code_review: `access==nil` → deny
+- Тесты: `backend/testframework/ai/task085_regress_test.go` + правки unified/scope
+- Mutation: `return nil` на Redis err → `TestRedisProviderRPMLimiter_FailClosedOnRedisErr` RED
+- Регрессия: `go test -tags hubtest -race -count=1 ./testframework/ai/` PASS (~15.7s)

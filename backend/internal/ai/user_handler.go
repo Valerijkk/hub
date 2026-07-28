@@ -16,9 +16,12 @@ func NewUserHandler(svc *Service) *UserHandler {
 	return &UserHandler{svc: svc}
 }
 
-// RegisterRoutes монтирует /ai/my/*.
-func (h *UserHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
+// RegisterRoutes монтирует /ai/my/* (rateLimitMw — AIRateLimit, A2W5-A1-002 / TASK-085).
+func (h *UserHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rateLimitMw ...fiber.Handler) {
 	my := api.Group("/ai/my", authMw)
+	for _, mw := range rateLimitMw {
+		my.Use(mw)
+	}
 	my.Get("/providers", h.ListProviders)
 	my.Post("/providers", h.CreateProvider)
 	my.Patch("/providers/:id", h.UpdateProvider)
