@@ -1,6 +1,6 @@
 # Total Audit 2026-07 — индекс
 
-> TASK-008 · Стадия A **COMPLETE** · Стадия B **W12 COMPLETE** · 2026-07-28
+> TASK-008 · A ✅ · B P0–P2 ✅ · C ⚠️ PARTIAL · FINAL: [`00-FINAL.md`](00-FINAL.md) · 2026-07-28
 
 | Волна | Зона | Статус | Файлов | P0 | P1 | P2 | P3 |
 |-------|------|--------|-------:|---:|---:|---:|---:|
@@ -24,7 +24,10 @@
 
 | Волна | Статус |
 |-------|--------|
-| W12 постановка | **COMPLETE** — [`W12-COMPLETE.md`](W12-COMPLETE.md) · TASK-009…035 |
-| W13 P0 фиксы | код готов (009–012), **коммиты ждут** |
-| W14–W17 P1→P3 | ожидает |
-| W18–W20 мутация+финал | ожидает |
+| W12 постановка | **COMPLETE** — [`W12-COMPLETE.md`](W12-COMPLETE.md) · TASK-009…056 + P3 057–078 |
+| W13–W17 фиксы | **COMPLETE** (P0–P2 код; P3 backlog) |
+| W18 мутация | **PARTIAL** — 39 PASS / 9 FAIL — [`W18-SUMMARY.md`](W18-SUMMARY.md) |
+| W19 cross | **COMPLETE** — [`W19-SUMMARY.md`](W19-SUMMARY.md) |
+| W20 FINAL | **COMPLETE** — [`00-FINAL.md`](00-FINAL.md) · hubtest local PASS · COV vs 81.9% NOT VERIFIED |
+
+**TASK-008 не закрывать** до reopen 014/079/045… и method-comparable coverage.

@@ -1,0 +1,304 @@
+go: downloading github.com/alicebob/miniredis/v2 v2.33.0
+go: downloading github.com/gofiber/fiber/v3 v3.0.0-beta.3
+go: downloading github.com/google/go-github/v68 v68.0.0
+go: downloading github.com/google/uuid v1.6.0
+go: downloading github.com/mattn/go-sqlite3 v1.14.16
+go: downloading github.com/redis/go-redis/v9 v9.17.2
+go: downloading github.com/stretchr/testify v1.11.1
+go: downloading github.com/nats-io/nats-server/v2 v2.11.6
+go: downloading github.com/nats-io/nats.go v1.48.0
+go: downloading github.com/lib/pq v1.10.9
+go: downloading go.mongodb.org/mongo-driver/v2 v2.0.0
+go: downloading go.opentelemetry.io/otel v1.40.0
+go: downloading go.opentelemetry.io/otel/sdk v1.40.0
+go: downloading go.opentelemetry.io/otel/trace v1.40.0
+go: downloading entgo.io/ent v0.14.1
+go: downloading github.com/SherClockHolmes/webpush-go v1.4.0
+go: downloading github.com/mymmrac/telego v0.31.0
+go: downloading github.com/aws/aws-sdk-go-v2 v1.32.7
+go: downloading github.com/aws/aws-sdk-go-v2/config v1.28.7
+go: downloading github.com/aws/aws-sdk-go-v2/credentials v1.17.48
+go: downloading github.com/aws/aws-sdk-go-v2/service/s3 v1.71.1
+go: downloading github.com/fasthttp/websocket v1.5.11
+go: downloading github.com/valyala/fasthttp v1.69.0
+go: downloading github.com/xuri/excelize/v2 v2.10.1
+go: downloading github.com/golang-jwt/jwt/v5 v5.3.0
+go: downloading github.com/livekit/protocol v1.45.1
+go: downloading github.com/teambition/rrule-go v1.8.2
+go: downloading google.golang.org/protobuf v1.36.11
+go: downloading github.com/gofiber/utils/v2 v2.0.0-beta.4
+go: downloading github.com/prometheus/client_golang v1.23.2
+go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.40.0
+go: downloading github.com/johnfercher/maroto/v2 v2.2.3
+go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.40.0
+go: downloading golang.org/x/net v0.51.0
+go: downloading github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+go: downloading github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+go: downloading github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a
+go: downloading github.com/yuin/gopher-lua v1.1.1
+go: downloading github.com/go-playground/validator/v10 v10.26.0
+go: downloading github.com/klauspost/compress v1.18.4
+go: downloading github.com/minio/highwayhash v1.0.3
+go: downloading github.com/nats-io/jwt/v2 v2.7.4
+go: downloading github.com/nats-io/nkeys v0.4.15
+go: downloading github.com/nats-io/nuid v1.0.1
+go: downloading golang.org/x/crypto v0.49.0
+go: downloading golang.org/x/time v0.14.0
+go: downloading github.com/cespare/xxhash/v2 v2.3.0
+go: downloading github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
+go: downloading github.com/mattn/go-isatty v0.0.20
+go: downloading github.com/mattn/go-colorable v0.1.14
+go: downloading github.com/valyala/bytebufferpool v1.0.0
+go: downloading github.com/google/go-querystring v1.1.0
+go: downloading github.com/go-logr/logr v1.4.3
+go: downloading go.opentelemetry.io/otel/metric v1.40.0
+go: downloading github.com/aws/smithy-go v1.22.1
+go: downloading github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.22
+go: downloading github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1
+go: downloading github.com/aws/aws-sdk-go-v2/service/sso v1.24.8
+go: downloading github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.7
+go: downloading github.com/aws/aws-sdk-go-v2/service/sts v1.33.3
+go: downloading github.com/livekit/server-sdk-go/v2 v2.4.0
+go: downloading ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43
+go: downloading github.com/andybalholm/brotli v1.2.0
+go: downloading golang.org/x/sys v0.42.0
+go: downloading github.com/fasthttp/router v1.5.2
+go: downloading github.com/savsgio/gotils v0.0.0-20240704082632-aef3928b8a38
+go: downloading github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
+go: downloading github.com/richardlehane/mscfb v1.0.6
+go: downloading github.com/tiendc/go-deepcopy v1.7.2
+go: downloading github.com/xuri/efp v0.0.1
+go: downloading github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9
+go: downloading golang.org/x/text v0.35.0
+go: downloading buf.build/go/protoyaml v0.6.0
+go: downloading github.com/dennwc/iters v1.2.2
+go: downloading github.com/livekit/psrpc v0.7.1
+go: downloading github.com/twitchtv/twirp v8.1.3+incompatible
+go: downloading google.golang.org/grpc v1.79.1
+go: downloading gopkg.in/yaml.v3 v3.0.1
+go: downloading github.com/beorn7/perks v1.0.1
+go: downloading github.com/prometheus/common v0.67.5
+go: downloading github.com/prometheus/client_model v0.6.2
+go: downloading github.com/prometheus/procfs v0.19.2
+go: downloading github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.7
+go: downloading github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.26
+go: downloading github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.26
+go: downloading github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1
+go: downloading github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.7
+go: downloading github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.4.7
+go: downloading github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.7
+go: downloading go.opentelemetry.io/proto/otlp v1.9.0
+go: downloading github.com/gabriel-vasile/mimetype v1.4.8
+go: downloading github.com/go-playground/universal-translator v0.18.1
+go: downloading github.com/leodido/go-urn v1.4.0
+go: downloading github.com/go-logr/stdr v1.2.2
+go: downloading go.opentelemetry.io/auto/sdk v1.2.1
+go: downloading github.com/go-jose/go-jose/v3 v3.0.4
+go: downloading go.uber.org/zap v1.27.1
+go: downloading golang.org/x/exp v0.0.0-20260212183809-81e46e3db34a
+go: downloading github.com/bep/debounce v1.2.1
+go: downloading github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
+go: downloading github.com/livekit/mediatransportutil v0.0.0-20251128105421-19c7a7b81c22
+go: downloading github.com/pion/dtls/v3 v3.1.2
+go: downloading github.com/pion/interceptor v0.1.44
+go: downloading github.com/pion/rtcp v1.2.16
+go: downloading github.com/pion/rtp v1.10.1
+go: downloading github.com/pion/sdp/v3 v3.0.17
+go: downloading github.com/pion/webrtc/v4 v4.2.6
+go: downloading go.uber.org/atomic v1.11.0
+go: downloading github.com/hashicorp/hcl/v2 v2.13.0
+go: downloading github.com/zclconf/go-cty v1.8.0
+go: downloading github.com/grbit/go-json v0.11.0
+go: downloading github.com/valyala/fastjson v1.6.4
+go: downloading github.com/golang/snappy v0.0.4
+go: downloading github.com/xdg-go/scram v1.1.2
+go: downloading github.com/xdg-go/stringprep v1.0.4
+go: downloading github.com/f-amaral/go-async v0.3.0
+go: downloading github.com/johnfercher/go-tree v1.1.0
+go: downloading github.com/jung-kurt/gofpdf v1.16.2
+go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57
+go: downloading github.com/richardlehane/msoleps v1.0.6
+go: downloading buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260209202127-80ab13bee0bf.1
+go: downloading buf.build/go/protovalidate v1.1.2
+go: downloading github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+go: downloading go.yaml.in/yaml/v2 v2.4.3
+go: downloading github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.26
+go: downloading github.com/cenkalti/backoff/v5 v5.0.3
+go: downloading github.com/puzpuzpuz/xsync/v3 v3.5.1
+go: downloading go.uber.org/multierr v1.11.0
+go: downloading go.uber.org/zap/exp v0.3.0
+go: downloading github.com/benbjohnson/clock v1.3.5
+go: downloading github.com/frostbyte73/core v0.1.1
+go: downloading github.com/fsnotify/fsnotify v1.9.0
+go: downloading github.com/gammazero/deque v1.2.1
+go: downloading github.com/jxskiss/base62 v1.1.0
+go: downloading github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.7
+go: downloading github.com/go-playground/locales v0.14.1
+go: downloading github.com/lithammer/shortuuid/v4 v4.2.0
+go: downloading github.com/go-openapi/inflect v0.19.0
+go: downloading github.com/pion/logging v0.2.4
+go: downloading golang.org/x/mod v0.33.0
+go: downloading github.com/pion/randutil v0.1.0
+go: downloading golang.org/x/sync v0.20.0
+go: downloading github.com/pion/transport/v4 v4.0.1
+go: downloading github.com/pdfcpu/pdfcpu v0.11.1
+go: downloading github.com/xdg-go/pbkdf2 v1.0.0
+go: downloading github.com/zeebo/xxh3 v1.1.0
+go: downloading github.com/pion/datachannel v1.6.0
+go: downloading github.com/pion/ice/v4 v4.2.0
+go: downloading github.com/pion/sctp v1.9.2
+go: downloading github.com/pion/srtp/v3 v3.0.10
+go: downloading github.com/pion/stun/v3 v3.1.1
+go: downloading github.com/agext/levenshtein v1.2.1
+go: downloading github.com/apparentlymart/go-textseg/v13 v13.0.0
+go: downloading github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7
+go: downloading github.com/google/go-cmp v0.7.0
+go: downloading github.com/google/cel-go v0.27.0
+go: downloading github.com/boombuler/barcode v1.1.0
+go: downloading google.golang.org/genproto/googleapis/api v0.0.0-20260209200024-4cfbd4190f57
+go: downloading github.com/klauspost/cpuid/v2 v2.3.0
+go: downloading github.com/wlynxg/anet v0.0.5
+go: downloading github.com/pion/mdns/v2 v2.1.0
+go: downloading github.com/pion/turn/v4 v4.1.4
+go: downloading cel.dev/expr v0.25.1
+go: downloading github.com/antlr4-go/antlr/v4 v4.13.1
+go: downloading github.com/pkg/errors v0.9.1
+go: downloading github.com/hhrutter/tiff v1.0.2
+go: downloading github.com/hhrutter/lzw v1.0.0
+go: downloading gopkg.in/yaml.v2 v2.4.0
+go: downloading golang.org/x/image v0.37.0
+go: downloading github.com/hhrutter/pkcs7 v0.2.0
+go: downloading github.com/mattn/go-runewidth v0.0.21
+go: downloading github.com/clipperhouse/uax29/v2 v2.7.0
+--- FAIL: TestCreateInvoice_ConcurrentSinglePerDeal_A6_004 (0.01s)
+    create_invoice_concurrent_a6004_test.go:21: PostgreSQL недоступен для A6-002 (POSTGRES_TEST_URL="postgresql://hub:hub@localhost:5432/hub?sslmode=disable"): dial tcp [::1]:5432: connect: connection refused
+--- FAIL: TestMarkInvoicePaid_ConcurrentSingleJournal_A6_002 (0.01s)
+    pay_concurrent_a6002_test.go:88: PostgreSQL недоступен для A6-002 (POSTGRES_TEST_URL="postgresql://hub:hub@localhost:5432/hub?sslmode=disable"): dial tcp [::1]:5432: connect: connection refused
+FAIL
+coverage: 66.1% of statements in ./internal/...
+FAIL	github.com/valerii/hub/backend/testframework/accounting	0.616s
+ok  	github.com/valerii/hub/backend/testframework/ai	10.394s	coverage: 15.5% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/apigateway	1.056s	coverage: 24.5% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/audit	1.700s	coverage: 35.4% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/auth	2.947s	coverage: 61.6% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/backup	1.088s	coverage: 83.5% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/bases	1.857s	coverage: 69.0% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/calendar	0.288s	coverage: 59.0% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/calls	15.466s	coverage: 31.3% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/crm	1.383s	coverage: 64.5% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/dashboard	1.011s	coverage: 16.4% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/dev	0.209s	coverage: 24.8% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/ent	0.040s	coverage: [no statements]
+ok  	github.com/valerii/hub/backend/testframework/env	0.064s	coverage: [no statements]
+?   	github.com/valerii/hub/backend/testframework/factory	[no test files]
+ok  	github.com/valerii/hub/backend/testframework/github	1.456s	coverage: 27.9% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/gitlab	0.301s	coverage: 22.3% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/hr	0.756s	coverage: 61.6% of statements in ./internal/...
+--- FAIL: TestEntRepository_PDFExport_RejectsForeignRunAndSprint_A5_010 (0.00s)
+    pdf_scope_a5010_ent_test.go:77: PostgreSQL недоступен для imex A5-010 ent-теста (POSTGRES_TEST_URL="postgresql://hub:hub@localhost:5432/hub?sslmode=disable"): dial tcp [::1]:5432: connect: connection refused
+FAIL
+coverage: 21.8% of statements in ./internal/...
+FAIL	github.com/valerii/hub/backend/testframework/imex	0.679s
+ok  	github.com/valerii/hub/backend/testframework/intranet	0.412s	coverage: 70.6% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/mail	0.783s	coverage: 85.2% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/marketplace	0.399s	coverage: 65.7% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/messenger	18.534s	coverage: 37.3% of statements in ./internal/...
+?   	github.com/valerii/hub/backend/testframework/mongotest	[no test files]
+ok  	github.com/valerii/hub/backend/testframework/notification	5.684s	coverage: 11.4% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/onec	0.138s	coverage: 32.9% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform	0.047s	coverage: [no statements]
+ok  	github.com/valerii/hub/backend/testframework/platform/config	0.010s	coverage: 61.3% of statements in ./internal/...
+2026/07/28 17:18:39 INFO cron task started name=test-job interval=20ms tick_timeout=10m0s
+2026/07/28 17:18:39 INFO cron task stopped name=test-job
+2026/07/28 17:18:39 INFO cron task started name=stop-job interval=10ms tick_timeout=10m0s
+2026/07/28 17:18:39 INFO cron task stopped name=stop-job
+--- FAIL: TestSchedule_StopsOnContextCancel (0.07s)
+    cron_test.go:46: 
+        	Error Trace:	/app/testframework/platform/cron/cron_test.go:46
+        	Error:      	Not equal: 
+        	            	expected: 1
+        	            	actual  : 2
+        	Test:       	TestSchedule_StopsOnContextCancel
+2026/07/28 17:18:40 INFO cron task started name=err-job interval=15ms tick_timeout=10m0s
+2026/07/28 17:18:40 ERROR cron task failed name=err-job error=transient duration=12.955µs
+2026/07/28 17:18:40 INFO cron task stopped name=err-job
+2026/07/28 17:18:40 ERROR cron task failed name=hang-job error="context deadline exceeded" duration=30.496163ms
+2026/07/28 17:18:40 INFO cron task started name=budget-job interval=20ms tick_timeout=25ms
+2026/07/28 17:18:40 ERROR cron task failed name=budget-job error="context deadline exceeded" duration=25.349093ms
+2026/07/28 17:18:40 INFO cron task stopped name=budget-job
+FAIL
+coverage: 91.7% of statements in ./internal/...
+FAIL	github.com/valerii/hub/backend/testframework/platform/cron	0.232s
+ok  	github.com/valerii/hub/backend/testframework/platform/crypto	0.008s	coverage: 74.6% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform/database	7.019s	coverage: 54.9% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform/errors	0.011s	coverage: 100.0% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform/health	0.012s	coverage: 100.0% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform/http	0.017s	coverage: 88.0% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform/lifecycle	0.011s	coverage: 100.0% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform/middleware	0.131s	coverage: 82.7% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform/nats	0.231s	coverage: 35.9% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform/observability	0.030s	coverage: 66.8% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform/outbox	0.777s	coverage: 64.4% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/platform/telegram	0.007s	coverage: 100.0% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/project	2.083s	coverage: 33.1% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/rbac	1.013s	coverage: 17.0% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/search	89.242s	coverage: 12.4% of statements in ./internal/...
+--- FAIL: TestEntRepository_GetSprintInProject_RejectsForeign_A3_001 (0.00s)
+    repository_get_in_project_a3001_test.go:76: PostgreSQL недоступен для sprint ent-теста: dial tcp [::1]:5432: connect: connection refused
+2026/07/28 17:18:44 INFO перенесены незавершённые задачи count=1 from_sprint=23950bd4-6aa0-4584-8688-9586895b8806
+FAIL
+coverage: 21.7% of statements in ./internal/...
+FAIL	github.com/valerii/hub/backend/testframework/sprint	0.497s
+ok  	github.com/valerii/hub/backend/testframework/status	0.031s	coverage: 100.0% of statements in ./internal/...
+?   	github.com/valerii/hub/backend/testframework/steps	[no test files]
+ok  	github.com/valerii/hub/backend/testframework/storage	4.477s	coverage: 12.4% of statements in ./internal/...
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:46 ERROR ошибка парсинга JUnit XML error="ошибка парсинга JUnit XML: XML syntax error on line 1: unexpected EOF (также пробовали testsuite: XML syntax error on line 1: unexpected EOF)"
+--- FAIL: TestLinkTestCaseToIssue_RejectsForeignIssue_A3_003 (0.00s)
+    link_issue_scope_a3003_ent_test.go:20: PostgreSQL недоступен для TMS ent-теста (POSTGRES_TEST_URL="postgresql://hub:hub@localhost:5432/hub?sslmode=disable"): dial tcp [::1]:5432: connect: connection refused
+--- FAIL: TestEntRepository_UpdateTestResult_RejectsWrongRun_A3_008 (0.00s)
+    result_scope_a3008_ent_test.go:17: PostgreSQL недоступен для TMS ent-теста (POSTGRES_TEST_URL="postgresql://hub:hub@localhost:5432/hub?sslmode=disable"): dial tcp [::1]:5432: connect: connection refused
+--- FAIL: TestEntRepository_GetTestCaseVersion_ScopedByTestCase_A3_007 (0.00s)
+    rollback_a3007_ent_test.go:16: PostgreSQL недоступен для TMS ent-теста (POSTGRES_TEST_URL="postgresql://hub:hub@localhost:5432/hub?sslmode=disable"): dial tcp [::1]:5432: connect: connection refused
+--- FAIL: TestEntRepository_GetTestRunInProject_RejectsForeign_A3_012 (0.00s)
+    run_scope_a3012_ent_test.go:18: PostgreSQL недоступен для TMS ent-теста (POSTGRES_TEST_URL="postgresql://hub:hub@localhost:5432/hub?sslmode=disable"): dial tcp [::1]:5432: connect: connection refused
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+2026/07/28 17:18:52 INFO operation completed operation=tms.CreateTestRun duration_ms=0
+--- FAIL: TestEntRepository_UpdateTestCase_OptimisticLock_A3_004 (0.00s)
+    update_optimistic_a3004_ent_test.go:18: PostgreSQL недоступен для TMS ent-теста (POSTGRES_TEST_URL="postgresql://hub:hub@localhost:5432/hub?sslmode=disable"): dial tcp [::1]:5432: connect: connection refused
+FAIL
+coverage: 49.6% of statements in ./internal/...
+FAIL	github.com/valerii/hub/backend/testframework/tms	7.310s
+ok  	github.com/valerii/hub/backend/testframework/tracker	2.215s	coverage: 41.5% of statements in ./internal/...
+ok  	github.com/valerii/hub/backend/testframework/ws	1.282s	coverage: 32.9% of statements in ./internal/...
+FAIL
