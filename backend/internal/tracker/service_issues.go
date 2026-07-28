@@ -224,7 +224,7 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, projectID uuid.UUID, i
 		return nil, apperrors.NewInternal("ошибка получения задачи")
 	}
 
-	// Если меняется статус — валидируем переход
+	// Если меняется статус — валидируем переход и принадлежность статуса проекту (W1-A2-009).
 	if req.StatusID != nil {
 		newStatusID, err := uuid.Parse(*req.StatusID)
 		if err != nil {
@@ -232,6 +232,12 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, projectID uuid.UUID, i
 		}
 		if existing.Edges.Status == nil {
 			return nil, apperrors.NewBadRequest("задача не имеет статуса")
+		}
+		if _, err := s.repo.FindWorkflowStatusInProject(ctx, projectID, newStatusID); err != nil {
+			if ent.IsNotFound(err) {
+				return nil, apperrors.NewNotFound("статус не найден")
+			}
+			return nil, apperrors.NewInternal("ошибка проверки статуса")
 		}
 		currentStatusID := existing.Edges.Status.ID
 		if newStatusID != currentStatusID {
@@ -338,9 +344,15 @@ func (s *TrackerService) MoveIssue(ctx context.Context, projectID uuid.UUID, iss
 		return nil, apperrors.NewBadRequest("некорректный status_id")
 	}
 
-	// Валидируем переход
+	// Валидируем переход и что статус ∈ project (W1-A2-009).
 	if existing.Edges.Status == nil {
 		return nil, apperrors.NewBadRequest("задача не имеет статуса")
+	}
+	if _, err := s.repo.FindWorkflowStatusInProject(ctx, projectID, newStatusID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("статус не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка проверки статуса")
 	}
 	currentStatusID := existing.Edges.Status.ID
 	if newStatusID != currentStatusID {

@@ -6,12 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
@@ -83,6 +86,7 @@ func (s *ProjectService) CreateProject(ctx context.Context, userID uuid.UUID, na
 }
 
 // GetProject возвращает проект по ID и роль текущего пользователя (если userID задан).
+// W1-A5-006 / P2-BE-12: soft-deleted (status=deleted) → 404; не член → 404 (без утечки метаданных).
 func (s *ProjectService) GetProject(ctx context.Context, projectID, userID uuid.UUID) (*ProjectResponse, error) {
 	p, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
@@ -91,12 +95,20 @@ func (s *ProjectService) GetProject(ctx context.Context, projectID, userID uuid.
 		}
 		return nil, apperrors.NewInternal("failed to get project")
 	}
+	if p.Status == project.StatusDeleted {
+		return nil, apperrors.NewNotFound("project not found")
+	}
 
 	myRole := ""
 	if userID != uuid.Nil {
-		if mem, err := s.repo.FindMember(ctx, projectID, userID); err == nil {
-			myRole = string(mem.ProjectRole)
+		mem, err := s.repo.FindMember(ctx, projectID, userID)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return nil, apperrors.NewNotFound("project not found")
+			}
+			return nil, apperrors.NewInternal("failed to get project membership")
 		}
+		myRole = string(mem.ProjectRole)
 	}
 
 	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), myRole), nil
@@ -127,7 +139,13 @@ func (s *ProjectService) ListProjects(ctx context.Context, userID uuid.UUID, inc
 }
 
 // UpdateProject обновляет имя, описание или аватар проекта.
+// W1-A5-007 / P2-BE-12: avatar_url — только https/http или относительный путь `/…`.
 func (s *ProjectService) UpdateProject(ctx context.Context, projectID uuid.UUID, req UpdateProjectRequest) (*ProjectResponse, error) {
+	if req.AvatarURL != nil {
+		if err := validateProjectAvatarURL(*req.AvatarURL); err != nil {
+			return nil, apperrors.NewBadRequest("invalid avatar_url")
+		}
+	}
 	p, err := s.repo.Update(ctx, projectID, req.Name, req.Description, req.AvatarURL)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -136,6 +154,30 @@ func (s *ProjectService) UpdateProject(ctx context.Context, projectID uuid.UUID,
 		return nil, apperrors.NewInternal("failed to update project")
 	}
 	return toProjectResponse(p, s.memberCountOrZero(ctx, projectID), ""), nil
+}
+
+// validateProjectAvatarURL отклоняет javascript:/data: и прочие не-http(s) схемы.
+// Пустая строка и относительные пути (`/files/...`) допустимы.
+func validateProjectAvatarURL(raw string) error {
+	if raw == "" {
+		return nil
+	}
+	if strings.HasPrefix(raw, "/") && !strings.HasPrefix(raw, "//") {
+		return nil
+	}
+	if err := safehttp.ValidateOutboundURL(raw); err != nil {
+		return err
+	}
+	// Доп. защита: отклоняем URL без явного host после parse (ValidateOutboundURL уже проверяет).
+	u, err := url.Parse(raw)
+	if err != nil {
+		return err
+	}
+	scheme := strings.ToLower(u.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return fmt.Errorf("unsupported avatar scheme: %s", scheme)
+	}
+	return nil
 }
 
 // ArchiveProject переводит проект в статус archived.

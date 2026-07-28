@@ -70,7 +70,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	// Доски
 	boards := tracker.Group("/boards")
 	boards.Get("/", h.ListBoards, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
-	boards.Post("/", h.CreateBoard, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	// W1-A1-006 / P2-BE-12: создание доски — мутация; viewer с одним PermProjectView → 403.
+	boards.Post("/", h.CreateBoard, rbac.RequirePermission(rbac.PermTaskEdit, rbacSvc))
 	boards.Get("/:boardId", h.GetBoardData, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
 
 	// Рабочий процесс
