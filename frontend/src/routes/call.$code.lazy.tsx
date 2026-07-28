@@ -98,18 +98,16 @@ function JoinCallByCodePage() {
 
 		try {
 			const res = await guestJoinCall(code, trimmed);
-			// Заполняем callStore чтобы CallRoomContent/CallControls работали как у зарег. юзера
+			// GuestCallSession — без type-lie полного CallResponse (W10-A5-013).
 			useCallStore.setState({
 				activeCall: {
 					id: res.id,
 					room_name: res.room_name,
 					token: res.token,
 					invite_code: code,
-					channel_id: "",
 					status: "active",
-					created_by: "",
 					created_at: new Date().toISOString(),
-				} as import("@/api/calls").CallResponse,
+				},
 				token: res.token,
 				isInCall: true,
 				isConnecting: false,

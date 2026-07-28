@@ -71,7 +71,7 @@ export function createBase(data: { name: string; description?: string }) {
 
 export function updateBase(
 	baseId: string,
-	data: { name?: string; description?: string; version?: number },
+	data: { name?: string; description?: string; version: number },
 ) {
 	return api.put<BaseDetail>(`/bases/${baseId}`, data);
 }
@@ -113,7 +113,7 @@ export function updateRecord(
 	baseId: string,
 	tableId: string,
 	recordId: string,
-	data: { cells: Record<string, unknown>; version?: number },
+	data: { cells: Record<string, unknown>; version: number },
 ) {
 	return api.put<TableRecord>(
 		`/bases/${baseId}/tables/${tableId}/records/${recordId}`,

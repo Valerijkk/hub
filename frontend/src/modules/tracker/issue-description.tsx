@@ -12,6 +12,15 @@ import { Label } from "@/components/ui/label";
 import { activateOnEnterOrSpace } from "@/lib/keyboard";
 import { useAIStore } from "@/stores/ai-store";
 
+/** Узкий type-guard Plate Value — без unsafe cast (P2-FE-08 / W10-A2-018). */
+export function parsePlateValue(raw: unknown): Value | undefined {
+	if (!Array.isArray(raw) || raw.length === 0) return undefined;
+	const first = raw[0];
+	if (!first || typeof first !== "object") return undefined;
+	if (!("children" in first) || !Array.isArray(first.children)) return undefined;
+	return raw as Value;
+}
+
 export function IssueTitle({
 	title,
 	onSave,
@@ -100,6 +109,8 @@ export function IssueDescription({
 		setIsEditing(false);
 	};
 
+	const plateValue = parsePlateValue(descriptionJson);
+
 	return (
 		<div>
 			<div className="mb-2 flex items-center justify-between gap-2">
@@ -142,17 +153,17 @@ export function IssueDescription({
 					type="button"
 					className="cursor-pointer rounded-md p-2 hover:bg-[var(--hover)] text-[14px] leading-[1.75] text-t2 w-full text-left"
 					onClick={() => {
-						setEditValue(descriptionJson as Value | undefined);
+						setEditValue(plateValue);
 						setIsEditing(true);
 					}}
 					onKeyDown={activateOnEnterOrSpace(() => {
-						setEditValue(descriptionJson as Value | undefined);
+						setEditValue(plateValue);
 						setIsEditing(true);
 					})}
 				>
-					{descriptionJson ? (
+					{plateValue ? (
 						<PlateEditor
-							value={descriptionJson as unknown as Value}
+							value={plateValue}
 							readOnly
 							className="border-none p-0"
 						/>

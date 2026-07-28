@@ -11,6 +11,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { formatApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -313,8 +314,7 @@ export function EnvironmentComparison({
 			{/* Ошибка */}
 			{compError && (
 				<div className="rounded-lg border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-400">
-					{(compError as { message?: string }).message ??
-						"Ошибка сравнения окружений"}
+					{formatApiError(compError) || "Ошибка сравнения окружений"}
 				</div>
 			)}
 

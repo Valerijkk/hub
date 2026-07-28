@@ -1,6 +1,6 @@
 # TASK-052 — FE API DTO gaps / type-lie
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
 > Источник: TASK-008 W12 · Classes: P2-FE-08 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]

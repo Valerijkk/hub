@@ -1,7 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/api/client";
 import { getProject } from "@/api/projects";
+import {
+	createEnvironment,
+	deleteEnvironment,
+	type EnvironmentResponse,
+	listEnvironments,
+} from "@/api/tms";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
 	Select,
@@ -11,15 +16,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { canMutateProject } from "@/lib/permissions";
-
-/** Тестовое окружение. */
-interface Environment {
-	id: string;
-	name: string;
-	label: string;
-	config?: Record<string, unknown>;
-	created_at: string;
-}
 
 const LABELS = ["dev", "staging", "prod", "custom"] as const;
 
@@ -31,7 +27,7 @@ export function EnvironmentsPage({
 	projectId: string;
 	canMutate?: boolean;
 }) {
-	const [envs, setEnvs] = useState<Environment[]>([]);
+	const [envs, setEnvs] = useState<EnvironmentResponse[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [showCreate, setShowCreate] = useState(false);
 	const [name, setName] = useState("");
@@ -50,9 +46,7 @@ export function EnvironmentsPage({
 	const fetchEnvs = useCallback(async () => {
 		try {
 			setLoading(true);
-			const data = await api.get<Environment[]>(
-				`/projects/${projectId}/environments`,
-			);
+			const data = await listEnvironments(projectId);
 			setEnvs(data ?? []);
 		} finally {
 			setLoading(false);
@@ -60,7 +54,7 @@ export function EnvironmentsPage({
 	}, [projectId]);
 
 	useEffect(() => {
-		fetchEnvs();
+		void fetchEnvs();
 	}, [fetchEnvs]);
 
 	const handleCreate = async () => {
@@ -69,7 +63,7 @@ export function EnvironmentsPage({
 		if (configBrowser) config.browser = configBrowser;
 		if (configOS) config.os = configOS;
 
-		await api.post(`/projects/${projectId}/environments`, {
+		await createEnvironment(projectId, {
 			name: name.trim(),
 			label,
 			config: Object.keys(config).length > 0 ? config : undefined,
@@ -79,12 +73,12 @@ export function EnvironmentsPage({
 		setConfigBrowser("");
 		setConfigOS("");
 		setShowCreate(false);
-		fetchEnvs();
+		void fetchEnvs();
 	};
 
 	const handleDelete = async (id: string) => {
-		await api.delete(`/projects/${projectId}/environments/${id}`);
-		fetchEnvs();
+		await deleteEnvironment(projectId, id);
+		void fetchEnvs();
 	};
 
 	const labelBadge = (l: string) => {

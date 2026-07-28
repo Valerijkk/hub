@@ -51,6 +51,7 @@ export function UserPicker({
 		queryKey: ["project-members", projectId],
 		queryFn: () => listMembers(projectId),
 		staleTime: 60_000,
+		enabled: Boolean(projectId),
 	});
 
 	const selected = useMemo(

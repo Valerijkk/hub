@@ -33,6 +33,24 @@ export interface CallResponse {
 	updated_at: string;
 }
 
+/**
+ * Узкий shape для guest-join (нет полного CallResponse с channel_id/created_by).
+ * CallRoom/controls используют только эти поля (P2-FE-08 / W10-A5-013).
+ */
+export interface GuestCallSession {
+	id: string;
+	room_name: string;
+	token: string;
+	invite_code?: string;
+	status: CallStatus;
+	/** Guest join не знает creator — всегда undefined. */
+	created_by?: undefined;
+	created_at?: string;
+}
+
+/** Сессия активного звонка: полный API-ответ или guest-join. */
+export type ActiveCallSession = CallResponse | GuestCallSession;
+
 /** Участник звонка. */
 export interface CallParticipantResponse {
 	/** ID записи участника. */

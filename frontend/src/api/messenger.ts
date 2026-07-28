@@ -90,33 +90,69 @@ export interface Bookmark {
 /**
  * Конструирует объект Message из WS-события (MessageSentEvent).
  * WS присылает частичные данные — заполняем недостающие поля безопасными дефолтами.
+ * Битый payload (нет id / не-object) → null (P2-FE-08 / W11-A2-010).
  */
 export function buildMessageFromWsEvent(
-	evt: Record<string, unknown>,
+	evt: unknown,
 	fallbackChannelId: string,
 ): Message | null {
-	const id = (evt.message_id ?? evt.id ?? "") as string;
+	if (!evt || typeof evt !== "object") return null;
+	const data = evt as Record<string, unknown>;
+	const idRaw = data.message_id ?? data.id;
+	const id = typeof idRaw === "string" ? idRaw : "";
 	if (!id) return null;
+	const senderRaw = data.sender_id;
+	const sender_id = typeof senderRaw === "string" ? senderRaw : "";
+	if (!sender_id) return null;
+	const channelRaw = data.channel_id;
+	const channel_id =
+		typeof channelRaw === "string" && channelRaw
+			? channelRaw
+			: fallbackChannelId;
 	return {
 		id,
-		channel_id: (evt.channel_id ?? fallbackChannelId) as string,
-		sender_id: (evt.sender_id ?? "") as string,
-		message_type: (evt.message_type as string) ?? undefined,
-		poll_id: (evt.poll_id as string) ?? undefined,
-		content_text: (evt.content_text as string) ?? undefined,
-		content_json: (evt.content_json as Record<string, unknown>) ?? undefined,
-		reply_count: (evt.reply_count as number) ?? 0,
-		created_at: (evt.created_at as string) ?? new Date().toISOString(),
-		thread_id: (evt.thread_id as string) ?? undefined,
-		reactions: (evt.reactions as Message["reactions"]) ?? undefined,
-		attachments: (evt.attachments as Message["attachments"]) ?? undefined,
-		forwarded_from_id: (evt.forwarded_from_id as string) ?? undefined,
-		edited_at: (evt.edited_at as string) ?? undefined,
-		deleted_at: (evt.deleted_at as string) ?? undefined,
-		voice_url: (evt.voice_url as string) ?? undefined,
-		voice_duration_ms: (evt.voice_duration_ms as number) ?? undefined,
-		mentions: (evt.mentions as string[]) ?? undefined,
-		mention_groups: (evt.mention_groups as string[]) ?? undefined,
+		channel_id,
+		sender_id,
+		message_type:
+			typeof data.message_type === "string" ? data.message_type : undefined,
+		poll_id: typeof data.poll_id === "string" ? data.poll_id : undefined,
+		content_text:
+			typeof data.content_text === "string" ? data.content_text : undefined,
+		content_json:
+			data.content_json && typeof data.content_json === "object"
+				? (data.content_json as Record<string, unknown>)
+				: undefined,
+		reply_count:
+			typeof data.reply_count === "number" ? data.reply_count : 0,
+		created_at:
+			typeof data.created_at === "string"
+				? data.created_at
+				: new Date().toISOString(),
+		thread_id: typeof data.thread_id === "string" ? data.thread_id : undefined,
+		reactions: Array.isArray(data.reactions)
+			? (data.reactions as Message["reactions"])
+			: undefined,
+		attachments: Array.isArray(data.attachments)
+			? (data.attachments as Message["attachments"])
+			: undefined,
+		forwarded_from_id:
+			typeof data.forwarded_from_id === "string"
+				? data.forwarded_from_id
+				: undefined,
+		edited_at: typeof data.edited_at === "string" ? data.edited_at : undefined,
+		deleted_at:
+			typeof data.deleted_at === "string" ? data.deleted_at : undefined,
+		voice_url: typeof data.voice_url === "string" ? data.voice_url : undefined,
+		voice_duration_ms:
+			typeof data.voice_duration_ms === "number"
+				? data.voice_duration_ms
+				: undefined,
+		mentions: Array.isArray(data.mentions)
+			? (data.mentions as string[])
+			: undefined,
+		mention_groups: Array.isArray(data.mention_groups)
+			? (data.mention_groups as string[])
+			: undefined,
 	};
 }
 

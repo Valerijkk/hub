@@ -125,6 +125,18 @@ export function addMember(projectId: string, data: AddMemberRequest) {
 	return api.post<MemberResponse>(`/projects/${projectId}/members`, data);
 }
 
+/** Endpoint: PUT /projects/:id/members/:userId — сменить роль участника. */
+export function updateMemberRole(
+	projectId: string,
+	userId: string,
+	role: AddMemberRequest["role"],
+) {
+	return api.put<MemberResponse>(
+		`/projects/${projectId}/members/${userId}`,
+		{ role },
+	);
+}
+
 /** Endpoint: DELETE /projects/:id/members/:userId — удалить участника из проекта. */
 export function removeMember(projectId: string, userId: string) {
 	return api.delete<void>(`/projects/${projectId}/members/${userId}`);

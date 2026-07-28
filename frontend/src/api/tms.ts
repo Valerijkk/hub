@@ -774,6 +774,26 @@ export function listEnvironments(projectId: string) {
 	return api.get<EnvironmentResponse[]>(`/projects/${projectId}/environments`);
 }
 
+/** Создать тестовое окружение. */
+export function createEnvironment(
+	projectId: string,
+	data: {
+		name: string;
+		label?: string;
+		config?: Record<string, string>;
+	},
+) {
+	return api.post<EnvironmentResponse>(
+		`/projects/${projectId}/environments`,
+		data,
+	);
+}
+
+/** Удалить тестовое окружение. */
+export function deleteEnvironment(projectId: string, envId: string) {
+	return api.delete<void>(`/projects/${projectId}/environments/${envId}`);
+}
+
 // ---------------------------------------------------------------------------
 // Интерфейсы: Сравнение окружений
 // ---------------------------------------------------------------------------

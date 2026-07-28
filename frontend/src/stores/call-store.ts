@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { CallResponse } from "@/api/calls";
+import type { ActiveCallSession, CallResponse } from "@/api/calls";
 import * as callsApi from "@/api/calls";
 
 /** Извлечь сообщение из Error / ApiError. */
@@ -16,7 +16,7 @@ function errorMessage(err: unknown, fallback: string): string {
 /** Состояние стора звонков. */
 interface CallState {
 	/** Активный звонок (null если не в звонке). */
-	activeCall: CallResponse | null;
+	activeCall: ActiveCallSession | null;
 	/** JWT-токен для подключения к LiveKit. */
 	token: string | null;
 	/** Пользователь находится в звонке. */
