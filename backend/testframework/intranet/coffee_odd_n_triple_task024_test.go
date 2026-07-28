@@ -69,5 +69,7 @@ func TestRunCoffeeMatching_OddN_NoUnpaired_P1_BE_43(t *testing.T) {
 	assert.Equal(t, 0, round.UnpairedCount)
 	assert.Equal(t, 1, round.TripleCount)
 	assert.Equal(t, 0, round.PairCount)
+	assert.Empty(t, round.Pairs) // A2W7-2-N01: рёбра тройки не в Pairs[]
+	assert.Equal(t, round.PairCount, len(round.Pairs))
 	require.Len(t, round.Triples, 1)
 }
