@@ -80,7 +80,7 @@ type uploadRequest struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"contentType"`
 	ProjectID   string `json:"projectId"`
-	Size        int64  `json:"size"` // байты; 0 = legacy без ContentLength bind
+	Size        int64  `json:"size"` // байты; обязательно 1…25MiB (ADR-STORAGE-NF09-SIZE-2026)
 }
 
 // GenerateUploadURL godoc
