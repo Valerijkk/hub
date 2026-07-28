@@ -68,8 +68,9 @@ func (p *UnifiedCodeReviewProvider) FetchReview(ctx context.Context, userID uuid
 }
 
 func (p *UnifiedCodeReviewProvider) authorizeReview(ctx context.Context, userID uuid.UUID, rawURL string) error {
+	// A2W5-A3-005 / TASK-085: access==nil → deny (fail-closed), не allow.
 	if p.access == nil {
-		return nil
+		return fmt.Errorf("code review access checker not configured")
 	}
 	var (
 		projectID uuid.UUID

@@ -47,7 +47,11 @@ func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKe
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}
-	resp, err := a.client.Do(httpReq)
+	httpClient := a.client
+	if a.streamClient != nil {
+		httpClient = a.streamClient
+	}
+	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("provider request: %w", err)
 	}

@@ -19,9 +19,12 @@ func NewAdminHandler(svc *Service, isAdminFn func(c fiber.Ctx, userID uuid.UUID)
 	return &AdminHandler{svc: svc, isAdminFn: isAdminFn}
 }
 
-// RegisterRoutes монтирует /admin/ai/*.
-func (h *AdminHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
+// RegisterRoutes монтирует /admin/ai/* (rateLimitMw — AIRateLimit, A2W5-A1-002 / TASK-085).
+func (h *AdminHandler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rateLimitMw ...fiber.Handler) {
 	admin := api.Group("/admin/ai", authMw, h.requireAdmin())
+	for _, mw := range rateLimitMw {
+		admin.Use(mw)
+	}
 	admin.Get("/providers", h.ListProviders)
 	admin.Post("/providers", h.CreateProvider)
 	admin.Patch("/providers/:id", h.UpdateProvider)

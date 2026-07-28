@@ -172,7 +172,16 @@ func (s *Service) streamCompletionWithFallback(
 	var lastErr error
 	for i, p := range providers {
 		start := time.Now()
-		err := s.chatAdapterFor(p).ChatCompletionStream(ctx, p.BaseURL, p.APIKeyEnc, model, req, onDelta)
+		// W5-A2-005 / TASK-085: после первого content-delta не переключаем провайдера
+		// (склейка двух ответов ломает stream UX).
+		var emittedContent bool
+		wrapDelta := func(d StreamDelta) error {
+			if d.Content != "" {
+				emittedContent = true
+			}
+			return onDelta(d)
+		}
+		err := s.chatAdapterFor(p).ChatCompletionStream(ctx, p.BaseURL, p.APIKeyEnc, model, req, wrapDelta)
 		latency := time.Since(start)
 		if err == nil {
 			if i > 0 {
@@ -181,6 +190,11 @@ func (s *Service) streamCompletionWithFallback(
 			return p, latency, nil
 		}
 		lastErr = err
+		if emittedContent {
+			slog.WarnContext(ctx, "ai stream failed after delta, no provider switch",
+				"provider", p.Name, "model", model, "error", err)
+			return nil, latency, err
+		}
 		if !isRetryableProviderError(err) {
 			return nil, latency, err
 		}

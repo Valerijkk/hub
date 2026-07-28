@@ -124,8 +124,29 @@ func (h *Handler) AssistJQL(c fiber.Ctx) error {
 	}
 	resp, err := h.svc.AssistJQL(c.Context(), userID, req)
 	if err != nil {
-		if errors.Is(err, ErrNoProvider) {
+		// A2W5-A1-001 / TASK-085: те же sentinel, что SuggestComposer (не всё → 502).
+		if errors.Is(err, ErrNoProvider) || errors.Is(err, ErrProviderDisabled) {
 			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+		}
+		if errors.Is(err, ErrProviderRPMUnavailable) {
+			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+		}
+		if errors.Is(err, ErrDailyQuotaExceeded) {
+			c.Set("Retry-After", secondsUntilMidnightUTC())
+			return fiber.NewError(fiber.StatusTooManyRequests, err.Error())
+		}
+		if errors.Is(err, ErrProviderRateLimited) {
+			c.Set("Retry-After", "60")
+			return fiber.NewError(fiber.StatusTooManyRequests, err.Error())
+		}
+		if errors.Is(err, ErrExternalAIConsentRequired) {
+			return fiber.NewError(fiber.StatusForbidden, err.Error())
+		}
+		if errors.Is(err, ErrAllProvidersFailed) {
+			return fiber.NewError(fiber.StatusBadGateway, err.Error())
+		}
+		if errors.Is(err, ErrContentPolicyViolation) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 		return fiber.NewError(fiber.StatusBadGateway, err.Error())
 	}
@@ -145,6 +166,9 @@ func (h *Handler) SuggestComposer(c fiber.Ctx) error {
 	resp, err := h.svc.SuggestComposer(c.Context(), userID, req, c.IP(), string(c.Request().Header.UserAgent()))
 	if err != nil {
 		if errors.Is(err, ErrNoProvider) || errors.Is(err, ErrProviderDisabled) {
+			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+		}
+		if errors.Is(err, ErrProviderRPMUnavailable) {
 			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
 		}
 		if errors.Is(err, ErrDailyQuotaExceeded) {
@@ -193,6 +217,9 @@ func (h *Handler) ChatCompletions(c fiber.Ctx) error {
 				c.Set("Retry-After", "60")
 				return fiber.NewError(fiber.StatusTooManyRequests, err.Error())
 			}
+			if errors.Is(err, ErrProviderRPMUnavailable) {
+				return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+			}
 			if errors.Is(err, ErrExternalAIConsentRequired) {
 				return fiber.NewError(fiber.StatusForbidden, err.Error())
 			}
@@ -209,6 +236,9 @@ func (h *Handler) ChatCompletions(c fiber.Ctx) error {
 	resp, err := h.svc.ChatCompletion(c.Context(), userID, req, c.IP(), string(c.Request().Header.UserAgent()))
 	if err != nil {
 		if errors.Is(err, ErrNoProvider) || errors.Is(err, ErrProviderDisabled) {
+			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
+		}
+		if errors.Is(err, ErrProviderRPMUnavailable) {
 			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
 		}
 		if errors.Is(err, ErrDailyQuotaExceeded) {
