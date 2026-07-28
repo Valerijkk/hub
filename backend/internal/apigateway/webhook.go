@@ -265,7 +265,10 @@ func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, job webhookJob
 			}
 		}
 
-		statusCode, respBody, deliveryErr := d.sendWebhook(job.ep.URL, job.body, sig, job.eventType)
+		// Уникальный X-Hub-Delivery на каждую попытку (A2W4-5-003) —
+		// consumer отличает retry от «нового» события.
+		deliveryID := uuid.New().String()
+		statusCode, respBody, deliveryErr := d.sendWebhook(ctx, job.ep.URL, job.body, sig, job.eventType, deliveryID)
 
 		errMsg := ""
 		if deliveryErr != nil {
@@ -297,12 +300,15 @@ func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, job webhookJob
 // sendWebhook выполняет HTTP POST к эндпоинту с подписью HMAC-SHA256.
 // URL предварительно валидируется (только http/https, без userinfo) и
 // отправляется через webhookHTTPClient с SafeDialContext (защита от SSRF).
-func (d *WebhookDispatcher) sendWebhook(url string, body []byte, signature, eventType string) (int, string, error) {
+// ctx прокидывается в NewRequestWithContext (A2W4-5-002): cancel/timeout
+// прерывает Do, а не ждёт полный client Timeout × retries.
+// deliveryID — значение заголовка X-Hub-Delivery (UUID на попытку).
+func (d *WebhookDispatcher) sendWebhook(ctx context.Context, url string, body []byte, signature, eventType, deliveryID string) (int, string, error) {
 	if err := safehttp.ValidateOutboundURL(url); err != nil {
 		return 0, "", fmt.Errorf("отклонён небезопасный URL: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return 0, "", fmt.Errorf("ошибка создания запроса: %w", err)
 	}
@@ -310,6 +316,7 @@ func (d *WebhookDispatcher) sendWebhook(url string, body []byte, signature, even
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Hub-Signature-256", "sha256="+signature)
 	req.Header.Set("X-Hub-Event", eventType)
+	req.Header.Set("X-Hub-Delivery", deliveryID)
 	req.Header.Set("User-Agent", "Hub-Webhook/1.0")
 
 	resp, err := webhookHTTPClient.Do(req)
