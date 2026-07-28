@@ -136,9 +136,7 @@ func (h *Handler) ListAuditLogs(c fiber.Ctx) error {
 
 	resp, err := h.service.ListAuditLogs(c.Context(), filters)
 	if err != nil {
-		// A2W6-A4-007: не отдаём err.Error() в 500 — детали только в slog.
-		slog.Error("ListAuditLogs failed", "error", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "не удалось загрузить журнал аудита")
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(resp)
@@ -157,8 +155,7 @@ func (h *Handler) ListAuditLogs(c fiber.Ctx) error {
 func (h *Handler) GetLimits(c fiber.Ctx) error {
 	limits, err := h.service.GetResourceLimits(c.Context())
 	if err != nil {
-		slog.Error("GetResourceLimits failed", "error", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "не удалось загрузить лимиты")
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(limits)
 }
@@ -192,8 +189,10 @@ func (h *Handler) UpdateLimit(c fiber.Ctx) error {
 		if errors.Is(err, ErrInvalidResourceLimitKey) {
 			return fiber.NewError(fiber.StatusBadRequest, "unknown resource limit key")
 		}
-		slog.Error("UpdateResourceLimit failed", "error", err, "key", key)
-		return fiber.NewError(fiber.StatusInternalServerError, "не удалось обновить лимит")
+		if errors.Is(err, ErrInvalidResourceLimitValue) {
+			return fiber.NewError(fiber.StatusBadRequest, "resource limit value must be a positive integer")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to update resource limit")
 	}
 
 	return c.JSON(fiber.Map{"success": true})
@@ -229,8 +228,7 @@ func (h *Handler) ListTrash(c fiber.Ctx) error {
 
 	resp, err := h.service.ListTrash(c.Context(), entityType, projectID, page, perPage)
 	if err != nil {
-		slog.Error("ListTrash failed", "error", err, "entity_type", entityType)
-		return fiber.NewError(fiber.StatusInternalServerError, "не удалось загрузить корзину")
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(resp)
@@ -259,8 +257,7 @@ func (h *Handler) RestoreItem(c fiber.Ctx) error {
 	}
 
 	if err := h.service.RestoreItem(c.Context(), entityType, entityID); err != nil {
-		slog.Error("RestoreItem failed", "error", err, "entity_type", entityType, "entity_id", entityID)
-		return fiber.NewError(fiber.StatusInternalServerError, "не удалось восстановить элемент")
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(UserManagementResponse{Success: true, Message: "Элемент восстановлен"})
@@ -289,8 +286,7 @@ func (h *Handler) DeactivateUser(c fiber.Ctx) error {
 		if errors.Is(err, ErrCannotModifyFounder) {
 			return fiber.NewError(fiber.StatusForbidden, "cannot ban or deactivate founder account")
 		}
-		slog.Error("DeactivateUser failed", "error", err, "user_id", userID)
-		return fiber.NewError(fiber.StatusInternalServerError, "не удалось деактивировать пользователя")
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(UserManagementResponse{Success: true, Message: "Пользователь деактивирован"})
@@ -335,13 +331,7 @@ func (h *Handler) BanUser(c fiber.Ctx) error {
 		if errors.Is(err, ErrCannotModifyFounder) {
 			return fiber.NewError(fiber.StatusForbidden, "cannot ban or deactivate founder account")
 		}
-		// Валидация сервиса — безопасные user-facing сообщения; infra — fixed 500.
-		msg := err.Error()
-		if msg == "укажите причину блокировки" || msg == "нельзя заблокировать самого себя" {
-			return fiber.NewError(fiber.StatusBadRequest, msg)
-		}
-		slog.Error("BanUser failed", "error", err, "target_id", targetID)
-		return fiber.NewError(fiber.StatusInternalServerError, "не удалось заблокировать пользователя")
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	return c.JSON(UserManagementResponse{Success: true, Message: "Пользователь заблокирован"})
@@ -380,8 +370,7 @@ func (h *Handler) ReassignTasks(c fiber.Ctx) error {
 
 	count, err := h.service.ReassignTasks(c.Context(), fromUserID, toUserID)
 	if err != nil {
-		slog.Error("ReassignTasks failed", "error", err, "from_user_id", fromUserID, "to_user_id", toUserID)
-		return fiber.NewError(fiber.StatusInternalServerError, "не удалось переназначить задачи")
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(fiber.Map{"success": true, "reassigned_count": count})
@@ -429,8 +418,7 @@ func (h *Handler) DeleteUserGDPR(c fiber.Ctx) error {
 		if errors.Is(err, ErrCannotDeleteFounder) {
 			return fiber.NewError(fiber.StatusForbidden, "cannot delete founder account")
 		}
-		slog.Error("DeleteUserGDPR failed", "error", err, "user_id", userID, "actor_id", actorID)
-		return fiber.NewError(fiber.StatusInternalServerError, "не удалось удалить данные пользователя")
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(UserManagementResponse{Success: true, Message: "Данные пользователя удалены (GDPR)"})

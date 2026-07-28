@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-28T23:50:00.000Z"
-last_activity: 2026-07-28 · be1 TASK-112 platform NATS/HSTS/AES/RL FIXED
+last_updated: "2026-07-27T00:45:00.000Z"
+last_activity: 2026-07-27 · planning-audit PW waves · coverage 81.9% (2026-07-27)
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -65,12 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (be1 · TASK-112 platform NATS/HSTS/AES/RL)
+## Session note — 2026-07-28 (be1 · TASK-114 Audit/GDPR residual)
 
-Закрыты 9 A2W4 residual: HSTS→Caddy, nil-UUID test, Redis RL Lua, outbox PubAck,
-StreamSubjects×9, W4-ASSIGNMENTS A3 drift, AES AAD API, docs CTC webhook, deliverWithRetry test.
-`go test -tags hubtest -race` platform/{http,middleware,nats,crypto,outbox}+apigateway → PASS.
-Статус backlog: Исправлена.
+- **Закрыто 14 ID:** A2W6-A4-002..006/008 + A2W6-A5-001/003..009 (A5-002 / A4-001/007 → TASK-090).
+- **Код:** CheckLimit/Update fail-closed; GDPR `WithTx` rollback; RetentionStore; middleware recover; founder godoc.
+- **Тесты:** `go test -tags hubtest -race -count=1 ./testframework/audit/` PASS (~3.3s).
+- **Ветка:** `fix/audit/task-114-gdpr-residual` (worktree).
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

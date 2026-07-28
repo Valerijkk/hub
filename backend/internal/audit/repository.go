@@ -93,6 +93,10 @@ type Repository interface {
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 	// GetUserSystemRole — для GDPR founder-guard (A1-004).
 	GetUserSystemRole(ctx context.Context, userID uuid.UUID) (user.SystemRole, error)
+
+	// WithTx выполняет fn в одной Ent-транзакции (A2W6-A4-003 GDPR cascade).
+	// txRepo разделяет те же методы Repository, но пишет через tx.Client().
+	WithTx(ctx context.Context, fn func(txRepo Repository) error) error
 }
 
 const slowRequestThresholdMS = 500
@@ -105,6 +109,25 @@ type entRepository struct {
 // NewRepository создаёт новый репозиторий журнала аудита поверх Ent.
 func NewRepository(client *ent.Client) Repository {
 	return &entRepository{client: client}
+}
+
+// WithTx выполняет fn внутри Ent-транзакции. Ошибка fn → Rollback.
+func (r *entRepository) WithTx(ctx context.Context, fn func(txRepo Repository) error) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin audit tx: %w", err)
+	}
+	txRepo := &entRepository{client: tx.Client()}
+	if err := fn(txRepo); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("%w (rollback: %v)", err, rbErr)
+		}
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit audit tx: %w", err)
+	}
+	return nil
 }
 
 // CreateAuditLog записывает новую запись в журнал аудита.

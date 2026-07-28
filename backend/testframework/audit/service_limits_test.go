@@ -212,27 +212,27 @@ func TestAuditService_UpdateResourceLimit_RejectsUnknownKey_A1_013(t *testing.T)
 	assert.Empty(t, val, "unknown key must not be upserted")
 }
 
-// TestAuditService_CheckLimit_NoSetting проверяет бизнес-логику: audit сервис проверка limit no setting.
+// TestAuditService_CheckLimit_NoSetting — известный ключ без записи → дефолт (A2W6-A4-002).
 func TestAuditService_CheckLimit_NoSetting(t *testing.T) {
 	repo := newAuditRepoTestEnv(t)
 	svc := audit.NewAuditService(repo, nil)
 	ctx := context.Background()
 
-	ok, err := svc.CheckLimit(ctx, "limit.missing", 999)
+	ok, err := svc.CheckLimit(ctx, audit.LimitUserMaxProjects, 0)
 	require.NoError(t, err)
-	assert.True(t, ok)
+	assert.True(t, ok, "default 20 allows current=0")
 }
 
-// TestAuditService_CheckLimit_InvalidValue проверяет отклонение при audit сервис проверка limit некорректный value.
+// TestAuditService_CheckLimit_InvalidValue — мусор в БД → deny (A2W6-A4-002 fail-closed).
 func TestAuditService_CheckLimit_InvalidValue(t *testing.T) {
 	repo := newAuditRepoTestEnv(t)
 	svc := audit.NewAuditService(repo, nil)
 	ctx := context.Background()
 
-	require.NoError(t, repo.UpsertSystemSetting(ctx, "limit.bad", "not-a-number", "test"))
-	ok, err := svc.CheckLimit(ctx, "limit.bad", 999)
+	require.NoError(t, repo.UpsertSystemSetting(ctx, audit.LimitUserMaxProjects, "not-a-number", "test"))
+	ok, err := svc.CheckLimit(ctx, audit.LimitUserMaxProjects, 999)
 	require.NoError(t, err)
-	assert.True(t, ok)
+	assert.False(t, ok)
 }
 
 // TestAuditService_ListTrash_UnknownType проверяет бизнес-логику: audit сервис список корзина unknown type.

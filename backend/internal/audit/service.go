@@ -17,8 +17,8 @@ import (
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
-// ErrCannotDeleteFounder — admin не может GDPR-удалить единственного founder (ORG-04).
-// Самоудаление founder (actor == target) разрешено — легитимный right to erasure.
+// ErrCannotDeleteFounder — GDPR-erase founder запрещён всегда (ORG-04 / P2-BE-19),
+// включая self-erase: иначе org остаётся без founder (break-glass только через ADR).
 var ErrCannotDeleteFounder = errors.New("cannot delete founder account")
 
 // ErrCannotModifyFounder — A1-009: ban/deactivate founder запрещены (ORG-04).
@@ -26,6 +26,9 @@ var ErrCannotModifyFounder = errors.New("cannot ban or deactivate founder accoun
 
 // ErrInvalidResourceLimitKey — A1-013: PUT /admin/limits/{key} только allowlist.
 var ErrInvalidResourceLimitKey = errors.New("invalid resource limit key")
+
+// ErrInvalidResourceLimitValue — A2W6-A4-002: значение лимита — целое > 0.
+var ErrInvalidResourceLimitValue = errors.New("invalid resource limit value")
 
 // Настройки аудита, лимитов и корзины.
 const (
@@ -161,6 +164,7 @@ func (s *AuditService) GetResourceLimits(ctx context.Context) ([]ResourceLimitRe
 
 // UpdateResourceLimit обновляет лимит ресурса в SystemSetting (только для администратора).
 // A1-013: ключ обязан быть из allowlist — иначе можно перезаписать retention.* и др.
+// A2W6-A4-002: value — положительное целое (Atoi + >0); иначе fail-closed.
 func (s *AuditService) UpdateResourceLimit(ctx context.Context, key, value string) error {
 	switch key {
 	case LimitFileMaxSizeMB, LimitUserMaxProjects, LimitProjectMaxStorageMB:
@@ -168,22 +172,40 @@ func (s *AuditService) UpdateResourceLimit(ctx context.Context, key, value strin
 	default:
 		return ErrInvalidResourceLimitKey
 	}
+	n, err := strconv.Atoi(value)
+	if err != nil || n <= 0 {
+		return ErrInvalidResourceLimitValue
+	}
 	return s.repo.UpsertSystemSetting(ctx, key, value, fmt.Sprintf("Лимит ресурса: %s", key))
 }
 
+// defaultResourceLimits — канонические дефолты (совпадают с GetResourceLimits).
+var defaultResourceLimits = map[string]int{
+	LimitFileMaxSizeMB:       50,
+	LimitUserMaxProjects:     20,
+	LimitProjectMaxStorageMB: 5120,
+}
+
 // CheckLimit проверяет, не превышен ли лимит ресурса.
+// A2W6-A4-002: пустой ключ без дефолта / невалидный Atoi / non-positive → deny (fail-closed).
+// Известные ключи без записи в БД используют defaultResourceLimits.
 func (s *AuditService) CheckLimit(ctx context.Context, limitKey string, currentValue int) (bool, error) {
 	value, err := s.repo.GetSystemSetting(ctx, limitKey)
 	if err != nil {
 		return false, err
 	}
+	var limitVal int
 	if value == "" {
-		return true, nil // Лимит не задан — разрешаем
-	}
-
-	limitVal, err := strconv.Atoi(value)
-	if err != nil {
-		return true, nil // Невалидное значение — разрешаем
+		def, ok := defaultResourceLimits[limitKey]
+		if !ok {
+			return false, nil // неизвестный ключ без значения — deny
+		}
+		limitVal = def
+	} else {
+		limitVal, err = strconv.Atoi(value)
+		if err != nil || limitVal <= 0 {
+			return false, nil // мусор в БД — deny, не fail-open
+		}
 	}
 
 	return currentValue < limitVal, nil
@@ -433,6 +455,10 @@ func (s *AuditService) ReassignTasks(ctx context.Context, fromUserID, toUserID u
 //
 // A1-004 / ORG-04 / P2-BE-19: target=founder запрещён всегда (включая self-erase).
 // Self-erase founder оставляет org без founder — break-glass только через ADR.
+//
+// A2W6-A4-003: все Ent-шаги (включая HardDelete) выполняются в одной транзакции;
+// ошибка mid-cascade → Rollback (нет partial erasure). Mongo eraser вызывается
+// внутри tx до HardDelete: fail → Rollback Ent.
 func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.UUID, reassignTo *uuid.UUID) error {
 	role, err := s.repo.GetUserSystemRole(ctx, userID)
 	if err != nil {
@@ -442,111 +468,115 @@ func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.
 		return ErrCannotDeleteFounder
 	}
 
-	// 1. Переназначаем или очищаем задачи
-	if reassignTo != nil {
-		if _, err := s.repo.ReassignAssignedIssues(ctx, userID, *reassignTo); err != nil {
-			return fmt.Errorf("переназначение задач (GDPR): %w", err)
+	if err := s.repo.WithTx(ctx, func(txRepo Repository) error {
+		// 1. Переназначаем или очищаем задачи
+		if reassignTo != nil {
+			if _, err := txRepo.ReassignAssignedIssues(ctx, userID, *reassignTo); err != nil {
+				return fmt.Errorf("переназначение задач (GDPR): %w", err)
+			}
+			if _, err := txRepo.ReassignReportedIssues(ctx, userID, *reassignTo); err != nil {
+				return fmt.Errorf("переназначение reporter-задач (GDPR): %w", err)
+			}
+		} else {
+			if _, err := txRepo.ClearUserAssignments(ctx, userID); err != nil {
+				return fmt.Errorf("очистка задач пользователя (GDPR): %w", err)
+			}
 		}
-		if _, err := s.repo.ReassignReportedIssues(ctx, userID, *reassignTo); err != nil {
-			return fmt.Errorf("переназначение reporter-задач (GDPR): %w", err)
-		}
-	} else {
-		if _, err := s.repo.ClearUserAssignments(ctx, userID); err != nil {
-			return fmt.Errorf("очистка задач пользователя (GDPR): %w", err)
-		}
-	}
 
-	// Каскад: любая ошибка → abort до HardDelete (P1-BE-34).
-	run := func(step string, fn func() error) error {
-		if err := fn(); err != nil {
-			slog.Error("GDPR cascade step failed", "step", step, "error", err, "user_id", userID)
-			return fmt.Errorf("%s: %w", step, err)
+		run := func(step string, fn func() error) error {
+			if err := fn(); err != nil {
+				slog.Error("GDPR cascade step failed", "step", step, "error", err, "user_id", userID)
+				return fmt.Errorf("%s: %w", step, err)
+			}
+			return nil
 		}
-		return nil
-	}
 
-	if err := run("delete comments", func() error {
-		_, e := s.repo.DeleteUserComments(ctx, userID)
-		return e
-	}); err != nil {
-		return err
-	}
-	if err := run("delete reactions", func() error {
-		_, e := s.repo.DeleteUserReactions(ctx, userID)
-		return e
-	}); err != nil {
-		return err
-	}
-	if err := run("delete sessions", func() error {
-		_, e := s.repo.DeleteUserSessions(ctx, userID)
-		return e
-	}); err != nil {
-		return err
-	}
-	if err := run("delete activity_logs", func() error {
-		_, e := s.repo.DeleteUserActivityLogs(ctx, userID)
-		return e
-	}); err != nil {
-		return err
-	}
-	if err := run("delete time_logs", func() error {
-		_, e := s.repo.DeleteUserTimeLogs(ctx, userID)
-		return e
-	}); err != nil {
-		return err
-	}
-	if err := run("delete files", func() error {
-		_, e := s.repo.DeleteUserFiles(ctx, userID)
-		return e
-	}); err != nil {
-		return err
-	}
-	if err := run("delete project memberships", func() error {
-		_, e := s.repo.DeleteUserProjectMemberships(ctx, userID)
-		return e
-	}); err != nil {
-		return err
-	}
-	if err := run("delete channel memberships", func() error {
-		_, e := s.repo.DeleteUserChannelMemberships(ctx, userID)
-		return e
-	}); err != nil {
-		return err
-	}
-	if err := run("delete team memberships", func() error {
-		_, e := s.repo.DeleteUserTeamMemberships(ctx, userID)
-		return e
-	}); err != nil {
-		return err
-	}
-	if err := run("scrub audit PII", func() error {
-		_, e := s.repo.ScrubUserAuditPII(ctx, userID)
-		return e
-	}); err != nil {
-		return err
-	}
-
-	if s.msgEraser != nil {
-		if err := run("delete mongo messages", func() error {
-			_, e := s.msgEraser.DeleteMessagesBySender(ctx, userID)
+		if err := run("delete comments", func() error {
+			_, e := txRepo.DeleteUserComments(ctx, userID)
 			return e
 		}); err != nil {
 			return err
 		}
-	}
+		if err := run("delete reactions", func() error {
+			_, e := txRepo.DeleteUserReactions(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete sessions", func() error {
+			_, e := txRepo.DeleteUserSessions(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete activity_logs", func() error {
+			_, e := txRepo.DeleteUserActivityLogs(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete time_logs", func() error {
+			_, e := txRepo.DeleteUserTimeLogs(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete files", func() error {
+			_, e := txRepo.DeleteUserFiles(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete project memberships", func() error {
+			_, e := txRepo.DeleteUserProjectMemberships(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete channel memberships", func() error {
+			_, e := txRepo.DeleteUserChannelMemberships(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("delete team memberships", func() error {
+			_, e := txRepo.DeleteUserTeamMemberships(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
+		if err := run("scrub audit PII", func() error {
+			_, e := txRepo.ScrubUserAuditPII(ctx, userID)
+			return e
+		}); err != nil {
+			return err
+		}
 
-	// Аудит до HardDelete — actor в details (accountability).
-	if _, err := s.repo.CreateAuditLog(ctx, "gdpr_deletion", "user", userID.String(),
-		&actorID, nil, map[string]interface{}{
-			"deleted_user_id": userID.String(),
-			"deleted_by":      actorID.String(),
-		}, "", ""); err != nil {
-		slog.Error("create gdpr audit_log", "error", err, "user_id", userID)
-		return fmt.Errorf("create audit_log: %w", err)
-	}
+		if s.msgEraser != nil {
+			if err := run("delete mongo messages", func() error {
+				_, e := s.msgEraser.DeleteMessagesBySender(ctx, userID)
+				return e
+			}); err != nil {
+				return err
+			}
+		}
 
-	if err := s.repo.HardDeleteUser(ctx, userID); err != nil {
-		return fmt.Errorf("удаление пользователя (GDPR): %w", err)
+		// Аудит до HardDelete — actor в details (accountability).
+		if _, err := txRepo.CreateAuditLog(ctx, "gdpr_deletion", "user", userID.String(),
+			&actorID, nil, map[string]interface{}{
+				"deleted_user_id": userID.String(),
+				"deleted_by":      actorID.String(),
+			}, "", ""); err != nil {
+			slog.Error("create gdpr audit_log", "error", err, "user_id", userID)
+			return fmt.Errorf("create audit_log: %w", err)
+		}
+
+		if err := txRepo.HardDeleteUser(ctx, userID); err != nil {
+			return fmt.Errorf("удаление пользователя (GDPR): %w", err)
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	slog.Info("user deleted (GDPR)", "user_id", userID, "actor_id", actorID)

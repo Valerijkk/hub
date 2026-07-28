@@ -111,6 +111,10 @@ func TestRepository_SoftDeleteAndRestoreIssue(t *testing.T) {
 	items, total, err = env.repo.ListDeletedIssues(env.ctx, &env.projectID, when.Add(-time.Hour), 0, 10)
 	require.NoError(t, err)
 	assert.Equal(t, 0, total)
+
+	got, err := env.client.Issue.Get(env.ctx, iss.ID)
+	require.NoError(t, err)
+	assert.Nil(t, got.DeletedAt, "A2W6-A5-007: RestoreIssue must ClearDeletedAt")
 }
 
 // TestRepository_SoftDeleteAndRestoreProject проверяет слой репозитория: репозиторий soft удаление and restore project.
@@ -200,4 +204,33 @@ func TestRepository_HardDeleteUser(t *testing.T) {
 	_, err := env.client.User.Get(env.ctx, env.userA)
 	require.Error(t, err)
 	assert.True(t, ent.IsNotFound(err))
+}
+
+// TestRepository_Issue_RetentionHidesOlderThan30Days — A2W6-A5-003: DeletedAtGT guard.
+func TestRepository_Issue_RetentionHidesOlderThan30Days(t *testing.T) {
+	env := newAuditTrashEnv(t)
+	iss := env.createIssue(t, nil)
+	old := time.Now().UTC().Add(-40 * 24 * time.Hour)
+	cutoff := time.Now().UTC().Add(-30 * 24 * time.Hour)
+
+	require.NoError(t, env.repo.SoftDeleteIssue(env.ctx, iss.ID, old))
+
+	items, total, err := env.repo.ListDeletedIssues(env.ctx, &env.projectID, cutoff, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, 0, total)
+	assert.Empty(t, items)
+}
+
+// TestRepository_Project_RetentionHidesOlderThan30Days — A2W6-A5-003.
+func TestRepository_Project_RetentionHidesOlderThan30Days(t *testing.T) {
+	env := newAuditTrashEnv(t)
+	old := time.Now().UTC().Add(-40 * 24 * time.Hour)
+	cutoff := time.Now().UTC().Add(-30 * 24 * time.Hour)
+
+	require.NoError(t, env.repo.SoftDeleteProject(env.ctx, env.projectID, old))
+
+	items, total, err := env.repo.ListDeletedProjects(env.ctx, cutoff, 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, 0, total)
+	assert.Empty(t, items)
 }

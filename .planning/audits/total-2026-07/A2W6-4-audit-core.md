@@ -60,13 +60,13 @@ REGRESS: **0**.
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|-----|-------------|----------|---------------|------------|
 | A2W6-A4-001 | RESIDUAL | P2 | `service.go:297-317` | `PurgeExpired` всегда `nil` при purge err | Cron «успех» при полном отказе БД; TASK-040 не трогал audit | `errors.Join` / return err |
-| A2W6-A4-002 | RESIDUAL | P2 | `service.go:174-187` | CheckLimit empty/Atoi → allow; Update без `>0` | Admin `"abc"` → fail-open limits | Validate Atoi+positive; CheckLimit fail-closed |
-| A2W6-A4-003 | RESIDUAL | P2 | `service.go:454-521` | Cascade abort без rollback prior steps | Comments deleted, HardDelete aborted → partial erasure | Ent tx (+ compensations Mongo) |
-| A2W6-A4-004 | RESIDUAL | P2 | `retention.go:40-51` | `*ent.Client` в Service | TZ layering | RetentionStore / Repository |
-| A2W6-A4-005 | RESIDUAL | P2 | `middleware.go:77-81` | goroutine recorder без recover | Panic → process crash на `/api` | `defer recover` + slog |
-| A2W6-A4-006 | RESIDUAL | P2 | `handler_user_mgmt_test.go` | Нет HTTP DELETE GDPR founder → 403 | Регресс маппинга Err→status | `TestHandler_DeleteUserGDPR_FounderForbidden` |
+| A2W6-A4-002 | FIXED | P2 | `service.go` CheckLimit/Update | CheckLimit empty/Atoi → allow; Update без `>0` | Admin `"abc"` → fail-open limits | Validate Atoi+positive; CheckLimit fail-closed |
+| A2W6-A4-003 | FIXED | P2 | `service.go` DeleteUserGDPR + `Repository.WithTx` | Cascade abort без rollback prior steps | Comments deleted, HardDelete aborted → partial erasure | Ent tx (+ compensations Mongo) |
+| A2W6-A4-004 | FIXED | P2 | `retention_store.go` / `retention.go` | `*ent.Client` в Service | TZ layering | RetentionStore / Repository |
+| A2W6-A4-005 | FIXED | P2 | `middleware.go` | goroutine recorder без recover | Panic → process crash на `/api` | `defer recover` + slog |
+| A2W6-A4-006 | FIXED | P2 | `task114_residual_test.go` | Нет HTTP DELETE GDPR founder → 403 | Регресс маппинга Err→status | `TestHandler_DeleteUserGDPR_FounderForbidden` |
 | A2W6-A4-007 | NEW | P2 | `handler.go:139+` | Несколько admin paths: `fiber.NewError(500, err.Error())` | Утечка internals ≠ `{"error","request_id"}` канон | Фиксированные сообщения; детали в slog |
-| A2W6-A4-008 | NEW | P3 | `service.go:20-22` vs `:429-437` | Godoc `ErrCannotDeleteFounder`: «self-erase разрешён»; код запрещает всегда | Drift после P2-BE-19 | Синхронизировать комментарий с кодом |
+| A2W6-A4-008 | FIXED | P3 | `service.go` ErrCannotDeleteFounder | Godoc drift «self-erase разрешён» | Drift после P2-BE-19 | Синхронизировать комментарий с кодом |
 
 ## Counts
 

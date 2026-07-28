@@ -144,6 +144,10 @@ func (s *gdprStubRepo) GetUserSystemRole(context.Context, uuid.UUID) (user.Syste
 	return user.SystemRoleMember, nil
 }
 
+func (s *gdprStubRepo) WithTx(_ context.Context, fn func(audit.Repository) error) error {
+	return fn(s)
+}
+
 // TestDeleteUserGDPR_CascadeFailAbortsHardDelete — P1-BE-34 / W6-A4-002:
 // ошибка каскада → HardDelete не вызывается (раньше пользователь мог быть
 // стёрт при cascadeErrs != nil).
@@ -172,6 +176,10 @@ type gdprCascadeTrackingRepo struct {
 func (r *gdprCascadeTrackingRepo) HardDeleteUser(_ context.Context, id uuid.UUID) error {
 	r.hardDeleteIDs = append(r.hardDeleteIDs, id)
 	return nil
+}
+
+func (r *gdprCascadeTrackingRepo) WithTx(_ context.Context, fn func(audit.Repository) error) error {
+	return fn(r)
 }
 
 // TestDaysRemaining проверяет вычисление оставшихся дней до окончательного удаления.
