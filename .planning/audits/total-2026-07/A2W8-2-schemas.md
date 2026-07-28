@@ -64,11 +64,11 @@
 | A2W8-2-002 | RESIDUAL (W8-A2-002) | P1 | `dashboardlayout.go:17-39` | Нет `version` при mutable `items` JSON | Concurrent SaveLayout LWW | `version` + CAS в dashboard Save |
 | A2W8-2-003 | RESIDUAL (W8-A2-004∩version) | P1 | `component.go`; `environment.go` | Soft-delete есть, `version` нет | Mutable TMS catalog без CAS | `version` + VersionEQ на Update |
 | A2W8-2-004 | RESIDUAL (W8-A2-005) | P2 | `customfielddefinition.go:17-37` | Нет version/updated_at/deleted_at | Config mutate + hard delete | version + soft-delete **или** ADR hard-delete |
-| A2W8-2-005 | RESIDUAL (W8-A2-008/009) | P2 | `crmcontact.go:62-66`; `crmdeal.go:69-73` | Нет email index; нет owner+deleted_at | Lookup/list hot-path full scan | `index.Fields("email")`; `Edges("owner").Fields("deleted_at")` |
+| A2W8-2-005 | FIXED (TASK-107) | P2 | `crmcontact.go`; `crmdeal.go` | email index; owner+deleted_at | — | TASK-107 |
 | A2W8-2-006 | RESIDUAL (W8-A2-010/011) | P2 | `filemetadata.go:17-46` | `entity_id` String; нет version; size/uploader | TZ UUID; soft без OL; отрицательный size | UUID entity_id; version; Min(0); uploader Required |
-| A2W8-2-007 | RESIDUAL (W8-A2-013) | P2 | `gitlabintegration.go:33-36` | `webhook_secret` Optional после Sensitive | Схема разрешает интеграцию без секрета | Required/NotEmpty (как GitHub) |
-| A2W8-2-008 | RESIDUAL (W8-A2-014/015) | P2 | `githublink.go`; `gitlablink.go` | `updated_at` без version; нет unique external | Гонки status; дубликаты links | version; unique Edges(integration)+external+type |
-| A2W8-2-009 | RESIDUAL (W8-A2-016…018) | P2 | `hubbase.go`; `hubcolumn.go`; `hubrecord.go` | Нет composite owner/table+deleted_at; column name unique | ListBases/ListRecords hot-path; дубли колонок | A8-001 pattern + unique `(table, name)` |
+| A2W8-2-007 | FIXED (TASK-107) | P2 | `gitlabintegration.go` | `webhook_secret` Required/NotEmpty | — | TASK-107 |
+| A2W8-2-008 | FIXED (TASK-107) | P2 | `githublink.go`; `gitlablink.go` | version + unique (integration, external, type) | — | TASK-107 |
+| A2W8-2-009 | FIXED (TASK-107) | P2 | `hubbase.go`; `hubcolumn.go`; `hubrecord.go` | owner/table+deleted_at; unique `(table, name)` | — | TASK-107 |
 
 ## Чисто
 
