@@ -45,3 +45,8 @@ func ExportBuildTableHeader(headers []string) core.Row {
 func ExportBuildTableRow(values []string) core.Row {
 	return buildTableRow(values)
 }
+
+// ExportTruncateCell — P3-BE-04 / TASK-060: rune-safe PDF cell truncate для hubtest.
+func ExportTruncateCell(s string, maxRunes int) string {
+	return truncateCell(s, maxRunes)
+}

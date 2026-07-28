@@ -202,10 +202,7 @@ func buildTableRow(values []string) core.Row {
 	colSize := 12 / len(values)
 	r := row.New(7)
 	for _, v := range values {
-		cellVal := v
-		if len(cellVal) > 50 {
-			cellVal = cellVal[:47] + "..."
-		}
+		cellVal := truncateCell(v, 50)
 		r.Add(col.New(colSize).Add(
 			text.New(cellVal, props.Text{
 				Size: 8,

@@ -104,9 +104,7 @@ func (s *MessengerService) PromoteToIssue(
 	if title == "" {
 		return nil, apperrors.NewBadRequest("title обязателен")
 	}
-	if len(title) > 500 {
-		title = title[:500]
-	}
+	title = truncateRunes(title, 500)
 
 	issueType := strings.TrimSpace(req.IssueType)
 	if issueType == "" {

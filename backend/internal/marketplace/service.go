@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -242,7 +243,11 @@ func (s *Service) DeleteListing(ctx context.Context, userID, id uuid.UUID) error
 		}
 		return fmt.Errorf("get listing: %w", err)
 	}
-	isAdmin, _ := s.repo.IsSystemAdmin(ctx, userID)
+	isAdmin, err := s.repo.IsSystemAdmin(ctx, userID)
+	if err != nil {
+		// W7-A5-007 / P3-BE-01: DB blip → 500, не маскировать как Forbidden.
+		return fmt.Errorf("check system admin: %w", err)
+	}
 	isOwner := current.Edges.Author != nil && current.Edges.Author.ID == userID
 	if !isOwner && !isAdmin {
 		return ErrForbidden
@@ -322,7 +327,8 @@ func validateListingInput(title, description string, category ListingCategory) e
 	if strings.TrimSpace(title) == "" || strings.TrimSpace(description) == "" {
 		return ErrInvalidInput
 	}
-	if len(title) > 200 || len(description) > 2000 {
+	// P3-BE-04 / TASK-060: лимиты по рунам, не по байтам (кириллица/emoji).
+	if utf8.RuneCountInString(title) > 200 || utf8.RuneCountInString(description) > 2000 {
 		return ErrInvalidInput
 	}
 	if !isValidCategory(category) {

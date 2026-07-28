@@ -137,3 +137,8 @@ func ExportInviteTokenLength() int {
 func ExportBase62Chars() string {
 	return base62Chars
 }
+
+// ExportTruncateRunes — P3-BE-04 / TASK-060: rune-safe truncate для hubtest.
+func ExportTruncateRunes(s string, maxRunes int) string {
+	return truncateRunes(s, maxRunes)
+}

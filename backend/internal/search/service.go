@@ -646,10 +646,7 @@ func (s *SearchService) searchMessages(ctx context.Context, query string, userID
 		if err := cursor.Decode(&doc); err != nil {
 			continue
 		}
-		title := doc.ContentText
-		if len(title) > 100 {
-			title = title[:100] + "..."
-		}
+		title := truncateRunes(doc.ContentText, 100)
 		results = append(results, SearchResult{
 			ID:       doc.ID,
 			Type:     "message",
