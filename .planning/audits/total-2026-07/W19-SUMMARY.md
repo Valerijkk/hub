@@ -4,7 +4,7 @@
 > Входы: [`W18-SUMMARY.md`](W18-SUMMARY.md), [`W18-CATCHUP-PRODUCT.md`](W18-CATCHUP-PRODUCT.md),  
 > [`W19-A1-ORPHAN-P0P1.md`](W19-A1-ORPHAN-P0P1.md), [`W19-A2-EVIDENCE-GAPS.md`](W19-A2-EVIDENCE-GAPS.md),  
 > [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md), [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md)  
-> Re-verify входов: A1 (19:43) · A2 · A3 (19:40) · A4 (19:44) UTC+3.
+> Re-verify входов: A1 (19:49) · A2 · A3 (19:52) · A4 (19:50) UTC+3.
 
 ## Контекст после W18
 
@@ -73,7 +73,7 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 
 ## 3. Combinatorial defects
 
-Источник: [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md) (re-verify path:line 19:40)
+Источник: [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md) (re-verify path:line 19:52)
 
 | Severity | Count | Actionable |
 |----------|------:|-----------:|
@@ -103,9 +103,9 @@ MEDIUM (не top, но в матрице): C-004 (014 mid-fail proof), C-010 (01
 
 ---
 
-## 4. Red team (auth non-admin)
+## 4. Red team (auth non-admin) — top risks
 
-Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md) (re-verify 19:44)
+Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md) (re-verify 19:50)
 
 **Вердикт A4:** 0 новых CRITICAL как single-step non-admin exploit; CRITICAL combo **TASK-079** (admin erase + residual PII for members); остаточные Med/High → W18 FAIL.
 
@@ -116,7 +116,7 @@ MEDIUM (не top, но в матрице): C-004 (014 mid-fail proof), C-010 (01
 | 1 | Team attach → forced project membership (нет `requireTeamMember`) | Med × High | **014** |
 | 2 | ConfirmUpload ghost / weak entity bind | Med–High × Med | **045** |
 | 3 | GDPR Mongo eraser `(0,nil)` → HardDelete + live messages | Low–Med × Critical | **079** |
-| 4 | User SSRF (push / link-preview) + To4 mutation blind | Low × High | **019** |
+| 4 | User SSRF (push / link-preview) + To4 mutation blind | Low × High | **019** (+**044**) |
 | 5 | AI privacy / nil access fail-open + stream/Meili gaps | Low–Med × High | **044** |
 
 Dual StartSprint (**041**) — residual #6 (Low–Med × Med); stacks with **046** → A3 C-002 CRITICAL.
