@@ -21,8 +21,16 @@ interface AuthState {
 	setTokens: (access: string, refresh: string) => void;
 	/** Установить данные пользователя. */
 	setUser: (user: UserResponse) => void;
-	/** Очистить все данные аутентификации (выход). */
+	/**
+	 * Очистить локальную сессию и транслировать logout в другие вкладки.
+	 * Для remote-sync используйте clearSessionLocal — без повторного broadcast.
+	 */
 	logout: () => void;
+	/**
+	 * Очистить локальную сессию без BroadcastChannel (W11-A2-004).
+	 * Вызывается при получении remote logout, чтобы не зациклить sync.
+	 */
+	clearSessionLocal: () => void;
 }
 
 /**
@@ -118,6 +126,14 @@ export const useAuthStore = create<AuthState>()(
 				broadcastAuth({ type: "login", userId: null });
 			},
 			setUser: (user) => set({ user }),
+			clearSessionLocal: () => {
+				set({
+					accessToken: null,
+					refreshToken: null,
+					user: null,
+					isAuthenticated: false,
+				});
+			},
 			logout: () => {
 				set({
 					accessToken: null,

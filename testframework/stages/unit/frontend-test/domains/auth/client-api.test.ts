@@ -88,11 +88,45 @@ describe("api client", () => {
 		expect(fetchMock).toHaveBeenCalledOnce();
 	});
 
+	it("refresh failure best-effort POSTs /auth/logout then clears session", async () => {
+		const logoutBodies: string[] = [];
+		const fetchMock = vi.fn(
+			async (input: RequestInfo | URL, init?: RequestInit) => {
+				const url = String(input);
+				if (url.endsWith("/api/auth/refresh")) {
+					return new Response("", { status: 401 });
+				}
+				if (url.endsWith("/api/auth/logout")) {
+					logoutBodies.push(String(init?.method ?? "GET"));
+					const headers = init?.headers as Record<string, string> | undefined;
+					expect(headers?.Authorization).toBe("Bearer stale-access");
+					return new Response(JSON.stringify({ message: "Logged out" }), {
+						status: 200,
+						headers: { "Content-Type": "application/json" },
+					});
+				}
+				return new Response("", { status: 401 });
+			},
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		await expect(api.get("/protected/x")).rejects.toThrow("Session expired");
+
+		expect(logoutBodies).toEqual(["POST"]);
+		const state = useAuthStore.getState();
+		expect(state.isAuthenticated).toBe(false);
+		expect(state.accessToken).toBeNull();
+		expect(state.refreshToken).toBeNull();
+	});
+
 	it("refresh failure logs out the session", async () => {
 		const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
 			const url = String(input);
 			if (url.endsWith("/api/auth/refresh")) {
 				return new Response("", { status: 401 });
+			}
+			if (url.endsWith("/api/auth/logout")) {
+				return new Response("", { status: 200 });
 			}
 			return new Response("", { status: 401 });
 		});
@@ -121,6 +155,9 @@ describe("api client", () => {
 					}),
 					{ status: 200, headers: { "Content-Type": "application/json" } },
 				);
+			}
+			if (url.endsWith("/api/auth/logout")) {
+				return new Response("", { status: 200 });
 			}
 			if (url.includes("/api/forbidden")) {
 				protectedCalls += 1;
@@ -152,6 +189,9 @@ describe("api client", () => {
 					}),
 					{ status: 200, headers: { "Content-Type": "application/json" } },
 				);
+			}
+			if (url.endsWith("/api/auth/logout")) {
+				return new Response("", { status: 200 });
 			}
 			if (url.includes("/api/calendar/export.ics")) {
 				blobCalls += 1;

@@ -57,6 +57,34 @@ class ApiClient {
 	}
 
 	/**
+	 * Best-effort POST /auth/logout до локальной очистки (W11-A1-007 / P2-FE-09).
+	 *
+	 * Идёт через сырой fetch, а не api.post — иначе 401 на logout снова
+	 * запустит refresh и возможный цикл. Токен захватываем до clear.
+	 */
+	private async revokeSessionBestEffort(): Promise<void> {
+		const token = useAuthStore.getState().accessToken;
+		if (!token) return;
+		try {
+			await fetch(`${API_BASE}/auth/logout`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+			});
+		} catch {
+			// сеть/CORS — локальный logout всё равно выполним ниже
+		}
+	}
+
+	/** Инвалидировать серверную сессию (best-effort) и очистить локальный стор. */
+	private async expireSession(): Promise<void> {
+		await this.revokeSessionBestEffort();
+		useAuthStore.getState().logout();
+	}
+
+	/**
 	 * Выполняет HTTP-запрос к API.
 	 * При 401 пытается обновить токены и повторить запрос **один раз**
 	 * (`_retried`): повторный 401 после refresh → logout, без рекурсии.
@@ -76,23 +104,24 @@ class ApiClient {
 		const response = await fetch(`${API_BASE}${path}`, {
 			method,
 			headers: this.getHeaders(body),
-			body: body === undefined || body === null
-				? undefined
-				: isFormData
-					? (body as FormData)
-					: JSON.stringify(body),
+			body:
+				body === undefined || body === null
+					? undefined
+					: isFormData
+						? (body as FormData)
+						: JSON.stringify(body),
 		});
 
 		if (response.status === 401) {
 			if (_retried) {
-				useAuthStore.getState().logout();
+				await this.expireSession();
 				throw new Error("Session expired");
 			}
 			const refreshed = await this.tryRefresh();
 			if (refreshed) {
 				return this.request(method, path, body, true);
 			}
-			useAuthStore.getState().logout();
+			await this.expireSession();
 			throw new Error("Session expired");
 		}
 
@@ -178,12 +207,12 @@ class ApiClient {
 			});
 			if (response.status === 401) {
 				if (retried) {
-					useAuthStore.getState().logout();
+					await this.expireSession();
 					throw new Error("Session expired");
 				}
 				const refreshed = await this.tryRefresh();
 				if (refreshed) return doFetch(true);
-				useAuthStore.getState().logout();
+				await this.expireSession();
 				throw new Error("Session expired");
 			}
 			return response;
