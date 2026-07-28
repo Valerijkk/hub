@@ -62,6 +62,20 @@ func (m *purgeMockRepo) PurgeExpiredScheduledCalls(_ context.Context, _ time.Tim
 	return m.purgeCounts["scheduled_calls"], nil
 }
 
+func (m *purgeMockRepo) PurgeExpiredCRMContacts(_ context.Context, _ time.Time) (int, error) {
+	if m.purgeErr != nil {
+		return 0, m.purgeErr
+	}
+	return m.purgeCounts["crm_contacts"], nil
+}
+
+func (m *purgeMockRepo) PurgeExpiredCRMDeals(_ context.Context, _ time.Time) (int, error) {
+	if m.purgeErr != nil {
+		return 0, m.purgeErr
+	}
+	return m.purgeCounts["crm_deals"], nil
+}
+
 type trashListMockRepo struct {
 	mockAuditRepo
 	items        []audit.TrashItem
@@ -149,7 +163,7 @@ func TestAuditService_SoftDelete_AllTypes(t *testing.T) {
 	ctx := context.Background()
 	id := uuid.New()
 
-	for _, entityType := range []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call"} {
+	for _, entityType := range []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call", "crm_contact", "crm_deal"} {
 		require.NoError(t, svc.SoftDelete(ctx, entityType, id), entityType)
 	}
 }
@@ -161,7 +175,7 @@ func TestAuditService_RestoreItem_AllTypes(t *testing.T) {
 	ctx := context.Background()
 	id := uuid.New()
 
-	for _, entityType := range []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call"} {
+	for _, entityType := range []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call", "crm_contact", "crm_deal"} {
 		require.NoError(t, svc.RestoreItem(ctx, entityType, id), entityType)
 	}
 }

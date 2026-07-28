@@ -733,8 +733,8 @@ API-ключи для программного доступа, webhook-подп�
 |---|---|---|
 | GET | `/admin/limits` | Лимиты ресурсов (проекты, участники и др.) |
 | PUT | `/admin/limits/:key` | Обновить лимит |
-| GET | `/admin/trash` | Корзина (удалённые сущности). Query `type`: `issue` \| `test_case` \| `file` \| `project` \| `newspost` \| `scheduled_call` (retention 30 дней, NFR-11) |
-| POST | `/admin/trash/:type/:id/restore` | Восстановить из корзины (`newspost` — FR-INTR-08; `scheduled_call` — FR-CAL-05: вся RRULE-серия) |
+| GET | `/admin/trash` | Корзина (удалённые сущности). Query `type`: `issue` \| `test_case` \| `file` \| `project` \| `newspost` \| `scheduled_call` \| `crm_contact` \| `crm_deal` (retention 30 дней, NFR-11) |
+| POST | `/admin/trash/:type/:id/restore` | Восстановить из корзины (`newspost` — FR-INTR-08; `scheduled_call` — FR-CAL-05: вся RRULE-серия; `crm_contact`/`crm_deal` — W7-A2-006) |
 
 ### Управление пользователями
 

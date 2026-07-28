@@ -12,6 +12,8 @@ import (
 	"github.com/valerii/hub/backend/ent/auditlog"
 	"github.com/valerii/hub/backend/ent/channelmember"
 	"github.com/valerii/hub/backend/ent/comment"
+	"github.com/valerii/hub/backend/ent/crmcontact"
+	"github.com/valerii/hub/backend/ent/crmdeal"
 	"github.com/valerii/hub/backend/ent/filemetadata"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/newspost"
@@ -48,6 +50,9 @@ type Repository interface {
 	ListDeletedProjects(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 	ListDeletedNewsPosts(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 	ListDeletedScheduledCalls(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
+	// W7-A2-006: CRM soft-delete → единая admin trash.
+	ListDeletedCRMContacts(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
+	ListDeletedCRMDeals(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 
 	// Корзина — восстановление
 	RestoreIssue(ctx context.Context, id uuid.UUID) error
@@ -56,6 +61,8 @@ type Repository interface {
 	RestoreProject(ctx context.Context, id uuid.UUID) error
 	RestoreNewsPost(ctx context.Context, id uuid.UUID) error
 	RestoreScheduledCall(ctx context.Context, id uuid.UUID) error
+	RestoreCRMContact(ctx context.Context, id uuid.UUID) error
+	RestoreCRMDeal(ctx context.Context, id uuid.UUID) error
 
 	// Корзина — мягкое удаление
 	SoftDeleteIssue(ctx context.Context, id uuid.UUID, when time.Time) error
@@ -64,6 +71,8 @@ type Repository interface {
 	SoftDeleteProject(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteNewsPost(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteScheduledCall(ctx context.Context, id uuid.UUID, when time.Time) error
+	SoftDeleteCRMContact(ctx context.Context, id uuid.UUID, when time.Time) error
+	SoftDeleteCRMDeal(ctx context.Context, id uuid.UUID, when time.Time) error
 
 	// Корзина — окончательное удаление
 	PurgeExpiredIssues(ctx context.Context, cutoff time.Time) (int, error)
@@ -72,6 +81,8 @@ type Repository interface {
 	PurgeExpiredProjects(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredNewsPosts(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredScheduledCalls(ctx context.Context, cutoff time.Time) (int, error)
+	PurgeExpiredCRMContacts(ctx context.Context, cutoff time.Time) (int, error)
+	PurgeExpiredCRMDeals(ctx context.Context, cutoff time.Time) (int, error)
 
 	// Администрирование пользователей
 	DeactivateUser(ctx context.Context, userID uuid.UUID) error
@@ -561,6 +572,90 @@ func (r *entRepository) SoftDeleteScheduledCall(ctx context.Context, id uuid.UUI
 func (r *entRepository) PurgeExpiredScheduledCalls(ctx context.Context, cutoff time.Time) (int, error) {
 	return r.client.ScheduledCall.Delete().
 		Where(scheduledcall.DeletedAtNotNil(), scheduledcall.DeletedAtLT(cutoff)).
+		Exec(ctx)
+}
+
+// ListDeletedCRMContacts — мягко удалённые CRM-контакты в окне retention (W7-A2-006).
+func (r *entRepository) ListDeletedCRMContacts(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
+	query := r.client.CrmContact.Query().
+		Where(crmcontact.DeletedAtNotNil(), crmcontact.DeletedAtGT(cutoff))
+	total, err := query.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("подсчёт удалённых crm_contact: %w", err)
+	}
+	items, err := query.
+		Order(ent.Desc(crmcontact.FieldDeletedAt)).
+		Offset(offset).
+		Limit(limit).
+		All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("список удалённых crm_contact: %w", err)
+	}
+	result := make([]TrashItem, 0, len(items))
+	for _, item := range items {
+		result = append(result, TrashItem{
+			ID:         item.ID,
+			Name:       item.Name,
+			EntityType: "crm_contact",
+			DeletedAt:  *item.DeletedAt,
+		})
+	}
+	return result, total, nil
+}
+
+// ListDeletedCRMDeals — мягко удалённые CRM-сделки в окне retention (W7-A2-006).
+func (r *entRepository) ListDeletedCRMDeals(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
+	query := r.client.CrmDeal.Query().
+		Where(crmdeal.DeletedAtNotNil(), crmdeal.DeletedAtGT(cutoff))
+	total, err := query.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("подсчёт удалённых crm_deal: %w", err)
+	}
+	items, err := query.
+		Order(ent.Desc(crmdeal.FieldDeletedAt)).
+		Offset(offset).
+		Limit(limit).
+		All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("список удалённых crm_deal: %w", err)
+	}
+	result := make([]TrashItem, 0, len(items))
+	for _, item := range items {
+		result = append(result, TrashItem{
+			ID:         item.ID,
+			Name:       item.Title,
+			EntityType: "crm_deal",
+			DeletedAt:  *item.DeletedAt,
+		})
+	}
+	return result, total, nil
+}
+
+func (r *entRepository) RestoreCRMContact(ctx context.Context, id uuid.UUID) error {
+	return r.client.CrmContact.UpdateOneID(id).ClearDeletedAt().Exec(ctx)
+}
+
+func (r *entRepository) RestoreCRMDeal(ctx context.Context, id uuid.UUID) error {
+	return r.client.CrmDeal.UpdateOneID(id).ClearDeletedAt().Exec(ctx)
+}
+
+func (r *entRepository) SoftDeleteCRMContact(ctx context.Context, id uuid.UUID, when time.Time) error {
+	return r.client.CrmContact.UpdateOneID(id).SetDeletedAt(when).Exec(ctx)
+}
+
+func (r *entRepository) SoftDeleteCRMDeal(ctx context.Context, id uuid.UUID, when time.Time) error {
+	return r.client.CrmDeal.UpdateOneID(id).SetDeletedAt(when).Exec(ctx)
+}
+
+func (r *entRepository) PurgeExpiredCRMContacts(ctx context.Context, cutoff time.Time) (int, error) {
+	return r.client.CrmContact.Delete().
+		Where(crmcontact.DeletedAtNotNil(), crmcontact.DeletedAtLT(cutoff)).
+		Exec(ctx)
+}
+
+func (r *entRepository) PurgeExpiredCRMDeals(ctx context.Context, cutoff time.Time) (int, error) {
+	return r.client.CrmDeal.Delete().
+		Where(crmdeal.DeletedAtNotNil(), crmdeal.DeletedAtLT(cutoff)).
 		Exec(ctx)
 }
 
