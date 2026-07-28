@@ -32,6 +32,8 @@ type Repository interface {
 	ListActiveCoffeeEnrollments(ctx context.Context) ([]*ent.User, error)
 	CreateCoffeeRound(ctx context.Context, adminID uuid.UUID, pairCount, unpairedCount int) (*ent.CoffeeRound, error)
 	CreateCoffeePair(ctx context.Context, roundID, userA, userB uuid.UUID) (*ent.CoffeePair, error)
+	// CreateCoffeeRoundWithPairs — W7-A2-004: round + все рёбра пар в одной tx (mid-fail → rollback).
+	CreateCoffeeRoundWithPairs(ctx context.Context, adminID uuid.UUID, pairCount, unpairedCount int, edges [][2]uuid.UUID) (*ent.CoffeeRound, []*ent.CoffeePair, error)
 	GetLatestCoffeeRound(ctx context.Context) (*ent.CoffeeRound, error)
 	GetPreviousRoundPairKeys(ctx context.Context) (map[string]struct{}, error)
 	ListCoffeeRounds(ctx context.Context, limit int) ([]*ent.CoffeeRound, error)
