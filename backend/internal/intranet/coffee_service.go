@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"time"
 
@@ -12,13 +13,31 @@ import (
 )
 
 var (
-	ErrCoffeeNotEnough = errors.New("not enough participants for matching")
+	ErrCoffeeNotEnough   = errors.New("not enough participants for matching")
 	ErrCoffeeNotEnrolled = errors.New("not enrolled in random coffee")
 )
 
-// CoffeeNotifier уведомляет участников о новой паре (V4-05).
+// CoffeeMatchDeliveryMode — канон FR-INTR-11 / ADR-INTRANET-U05-COFFEE-NOTIFY-2026.
+// Auto-DM в messenger отложен; матч доставляется только через CoffeeNotifier.
+const CoffeeMatchDeliveryMode = "notify_only"
+
+// CoffeeNotifier уведомляет участников о новой паре (notify-only, ADR-INTRANET-U05).
 type CoffeeNotifier interface {
 	NotifyCoffeeMatch(ctx context.Context, userID uuid.UUID, partner CoffeePartnerResponse) error
+}
+
+// notifyCoffeeMatch — best-effort in-app notify; ошибка логируется, раунд не откатывается.
+func (s *Service) notifyCoffeeMatch(ctx context.Context, userID uuid.UUID, partner CoffeePartnerResponse) {
+	if s.coffeeNotifier == nil {
+		return
+	}
+	if err := s.coffeeNotifier.NotifyCoffeeMatch(ctx, userID, partner); err != nil {
+		slog.WarnContext(ctx, "intranet: coffee match notify failed",
+			"user_id", userID,
+			"partner_id", partner.UserID,
+			"error", err,
+		)
+	}
 }
 
 // GetCoffeeEnrollment возвращает статус участия.
@@ -157,12 +176,11 @@ func (s *Service) RunCoffeeMatching(ctx context.Context, adminID uuid.UUID) (*Co
 		cp.Edges.ParticipantB = userByID[p[1]]
 		createdPairs = append(createdPairs, toCoffeePairResponse(cp))
 
-		if s.coffeeNotifier != nil {
-			pa := toCoffeePartner(userByID[p[0]])
-			pb := toCoffeePartner(userByID[p[1]])
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, p[0], pb)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, p[1], pa)
-		}
+		// ADR-INTRANET-U05: notify-only — без auto-DM / CreateDM.
+		pa := toCoffeePartner(userByID[p[0]])
+		pb := toCoffeePartner(userByID[p[1]])
+		s.notifyCoffeeMatch(ctx, p[0], pb)
+		s.notifyCoffeeMatch(ctx, p[1], pa)
 	}
 
 	createdTriples := make([]CoffeeTripleResponse, 0, len(triples))
@@ -182,17 +200,16 @@ func (s *Service) RunCoffeeMatching(ctx context.Context, adminID uuid.UUID) (*Co
 			ParticipantB: toCoffeePartner(userByID[t[1]]),
 			ParticipantC: toCoffeePartner(userByID[t[2]]),
 		})
-		if s.coffeeNotifier != nil {
-			pa := toCoffeePartner(userByID[t[0]])
-			pb := toCoffeePartner(userByID[t[1]])
-			pc := toCoffeePartner(userByID[t[2]])
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[0], pb)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[0], pc)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[1], pa)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[1], pc)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[2], pa)
-			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[2], pb)
-		}
+		// ADR-INTRANET-U05: notify-only — каждый участник тройки узнаёт о двух партнёрах.
+		pa := toCoffeePartner(userByID[t[0]])
+		pb := toCoffeePartner(userByID[t[1]])
+		pc := toCoffeePartner(userByID[t[2]])
+		s.notifyCoffeeMatch(ctx, t[0], pb)
+		s.notifyCoffeeMatch(ctx, t[0], pc)
+		s.notifyCoffeeMatch(ctx, t[1], pa)
+		s.notifyCoffeeMatch(ctx, t[1], pc)
+		s.notifyCoffeeMatch(ctx, t[2], pa)
+		s.notifyCoffeeMatch(ctx, t[2], pb)
 	}
 
 	resp := CoffeeRoundResponse{
