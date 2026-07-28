@@ -28,15 +28,24 @@ type CoffeePairResponse struct {
 	ParticipantB CoffeePartnerResponse `json:"participant_b"`
 }
 
+// CoffeeTripleResponse — тройка при нечётном N (FR-INTR-10).
+type CoffeeTripleResponse struct {
+	ParticipantA CoffeePartnerResponse `json:"participant_a"`
+	ParticipantB CoffeePartnerResponse `json:"participant_b"`
+	ParticipantC CoffeePartnerResponse `json:"participant_c"`
+}
+
 // CoffeeRoundResponse — результат раунда matching.
 type CoffeeRoundResponse struct {
-	ID            uuid.UUID            `json:"id"`
-	PairCount     int                  `json:"pair_count"`
-	UnpairedCount int                  `json:"unpaired_count"`
-	Pairs         []CoffeePairResponse `json:"pairs"`
+	ID            uuid.UUID              `json:"id"`
+	PairCount     int                    `json:"pair_count"`
+	TripleCount   int                    `json:"triple_count"`
+	UnpairedCount int                    `json:"unpaired_count"`
+	Pairs         []CoffeePairResponse   `json:"pairs"`
+	Triples       []CoffeeTripleResponse `json:"triples,omitempty"`
 	Unpaired      []CoffeePartnerResponse `json:"unpaired,omitempty"`
-	CreatedAt     time.Time            `json:"created_at"`
-	TriggeredBy   string               `json:"triggered_by,omitempty"`
+	CreatedAt     time.Time              `json:"created_at"`
+	TriggeredBy   string                 `json:"triggered_by,omitempty"`
 }
 
 // CoffeeMyMatchResponse — текущий match пользователя (последний раунд).

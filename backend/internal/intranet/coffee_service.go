@@ -134,8 +134,10 @@ func (s *Service) RunCoffeeMatching(ctx context.Context, adminID uuid.UUID) (*Co
 	}
 	shuffleUUIDs(ids)
 
-	pairs, unpaired := buildCoffeePairs(ids, prevPairs)
-	rnd, err := s.repo.CreateCoffeeRound(ctx, adminID, len(pairs), len(unpaired))
+	pairs, triples := buildCoffeeMatches(ids, prevPairs)
+	// pair_count в БД = число бинарных пар + троек (групп матчинга); unpaired всегда 0 при N>=2.
+	matchGroups := len(pairs) + len(triples)
+	rnd, err := s.repo.CreateCoffeeRound(ctx, adminID, matchGroups, 0)
 	if err != nil {
 		return nil, fmt.Errorf("create round: %w", err)
 	}
@@ -145,7 +147,7 @@ func (s *Service) RunCoffeeMatching(ctx context.Context, adminID uuid.UUID) (*Co
 		userByID[u.ID] = u
 	}
 
-	createdPairs := make([]CoffeePairResponse, 0, len(pairs))
+	createdPairs := make([]CoffeePairResponse, 0, len(pairs)+2*len(triples))
 	for _, p := range pairs {
 		cp, err := s.repo.CreateCoffeePair(ctx, rnd.ID, p[0], p[1])
 		if err != nil {
@@ -163,17 +165,43 @@ func (s *Service) RunCoffeeMatching(ctx context.Context, adminID uuid.UUID) (*Co
 		}
 	}
 
-	unpairedResp := make([]CoffeePartnerResponse, 0, len(unpaired))
-	for _, uid := range unpaired {
-		unpairedResp = append(unpairedResp, toCoffeePartner(userByID[uid]))
+	createdTriples := make([]CoffeeTripleResponse, 0, len(triples))
+	for _, t := range triples {
+		// Тройка хранится как две рёберные пары (A-B, A-C) без schema migration.
+		for _, edge := range [][2]uuid.UUID{{t[0], t[1]}, {t[0], t[2]}} {
+			cp, err := s.repo.CreateCoffeePair(ctx, rnd.ID, edge[0], edge[1])
+			if err != nil {
+				return nil, fmt.Errorf("create triple edge: %w", err)
+			}
+			cp.Edges.ParticipantA = userByID[edge[0]]
+			cp.Edges.ParticipantB = userByID[edge[1]]
+			createdPairs = append(createdPairs, toCoffeePairResponse(cp))
+		}
+		createdTriples = append(createdTriples, CoffeeTripleResponse{
+			ParticipantA: toCoffeePartner(userByID[t[0]]),
+			ParticipantB: toCoffeePartner(userByID[t[1]]),
+			ParticipantC: toCoffeePartner(userByID[t[2]]),
+		})
+		if s.coffeeNotifier != nil {
+			pa := toCoffeePartner(userByID[t[0]])
+			pb := toCoffeePartner(userByID[t[1]])
+			pc := toCoffeePartner(userByID[t[2]])
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[0], pb)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[0], pc)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[1], pa)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[1], pc)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[2], pa)
+			_ = s.coffeeNotifier.NotifyCoffeeMatch(ctx, t[2], pb)
+		}
 	}
 
 	resp := CoffeeRoundResponse{
 		ID:            rnd.ID,
 		PairCount:     len(pairs),
-		UnpairedCount: len(unpaired),
+		TripleCount:   len(triples),
+		UnpairedCount: 0,
 		Pairs:         createdPairs,
-		Unpaired:      unpairedResp,
+		Triples:       createdTriples,
 		CreatedAt:     rnd.CreatedAt,
 	}
 	if u, ok := userByID[adminID]; ok {
@@ -198,22 +226,21 @@ func (s *Service) ListCoffeeRounds(ctx context.Context, userID uuid.UUID) ([]Cof
 	return out, nil
 }
 
-func buildCoffeePairs(ids []uuid.UUID, avoid map[string]struct{}) ([][2]uuid.UUID, []uuid.UUID) {
+// buildCoffeeMatches — FR-INTR-10 / P1-BE-43: пары; при нечётном N — ровно одна тройка, без unpaired.
+func buildCoffeeMatches(ids []uuid.UUID, avoid map[string]struct{}) (pairs [][2]uuid.UUID, triples [][3]uuid.UUID) {
 	if len(ids) < 2 {
-		return nil, ids
+		return nil, nil
 	}
 	remaining := append([]uuid.UUID(nil), ids...)
-	var pairs [][2]uuid.UUID
 
-	for len(remaining) >= 2 {
+	// Пока остаётся больше 3 — формируем обычные пары.
+	for len(remaining) > 3 {
 		a := remaining[0]
 		bIdx := 1
-		if len(remaining) > 2 {
-			for i := 1; i < len(remaining); i++ {
-				if _, bad := avoid[pairKey(a, remaining[i])]; !bad {
-					bIdx = i
-					break
-				}
+		for i := 1; i < len(remaining); i++ {
+			if _, bad := avoid[pairKey(a, remaining[i])]; !bad {
+				bIdx = i
+				break
 			}
 		}
 		b := remaining[bIdx]
@@ -222,11 +249,13 @@ func buildCoffeePairs(ids []uuid.UUID, avoid map[string]struct{}) ([][2]uuid.UUI
 		remaining = remaining[1:]
 	}
 
-	var unpaired []uuid.UUID
-	if len(remaining) == 1 {
-		unpaired = []uuid.UUID{remaining[0]}
+	switch len(remaining) {
+	case 3:
+		triples = append(triples, [3]uuid.UUID{remaining[0], remaining[1], remaining[2]})
+	case 2:
+		pairs = append(pairs, [2]uuid.UUID{remaining[0], remaining[1]})
 	}
-	return pairs, unpaired
+	return pairs, triples
 }
 
 func shuffleUUIDs(ids []uuid.UUID) {

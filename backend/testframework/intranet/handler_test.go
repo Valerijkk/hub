@@ -291,6 +291,8 @@ func TestHandler_RandomCoffee_EnrollAndRun(t *testing.T) {
 
 	var round intranet.CoffeeRoundResponse
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&round))
-	assert.Equal(t, 1, round.PairCount)
-	assert.Equal(t, 1, round.UnpairedCount)
+	// FR-INTR-10 / P1-BE-43: нечётное N → одна тройка, не unpaired.
+	assert.Equal(t, 0, round.PairCount)
+	assert.Equal(t, 1, round.TripleCount)
+	assert.Equal(t, 0, round.UnpairedCount)
 }

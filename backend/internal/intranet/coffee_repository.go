@@ -109,6 +109,7 @@ func (r *EntRepository) ListCoffeeRounds(ctx context.Context, limit int) ([]*ent
 }
 
 func (r *EntRepository) FindUserPairInRound(ctx context.Context, roundID, userID uuid.UUID) (*ent.CoffeePair, error) {
+	// First: участник тройки имеет 2 рёберные пары — Only() ломал бы GetMyCoffeeMatch.
 	return r.client.CoffeePair.Query().
 		Where(
 			coffeepair.HasRoundWith(coffeeround.ID(roundID)),
@@ -119,7 +120,7 @@ func (r *EntRepository) FindUserPairInRound(ctx context.Context, roundID, userID
 		).
 		WithParticipantA().
 		WithParticipantB().
-		Only(ctx)
+		First(ctx)
 }
 
 func pairKey(a, b uuid.UUID) string {
