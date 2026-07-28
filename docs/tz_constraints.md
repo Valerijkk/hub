@@ -1,7 +1,7 @@
 # Hub — Технические ограничения (tracked mirror)
 
 > **Канон для агентов (локально):** `.cursor/rules/60-tz-constraints.mdc`  
-> **Обновлено:** 2026-06-21 · **ADR:** `.planning/decisions/ADR-TZ-REWRITE-2026.md`
+> **Обновлено:** 2026-07-28 · **ADR:** `.planning/decisions/ADR-TZ-REWRITE-2026.md` · пагинация задач: `ADR-PAGINATION-CURSOR-ISSUES-2026.md`
 
 Документ фиксирует то, что **нельзя менять** без явного согласования с PO/архитектором, и то, что **строго запрещено** в коде и инфраструктуре.
 
@@ -41,7 +41,7 @@
 | Правило | Детали |
 |---------|--------|
 | Ошибки | `{"error": "message", "request_id": "uuid"}` |
-| Пагинация | Задачи — offset/limit; чат — **cursor** (infinite scroll) |
+| Пагинация | Задачи (list-issues) — **cursor** + limit (max 100); чат — **cursor** (infinite scroll). Offset/limit — для admin/intranet/wiki списков, не для list-issues (`ADR-PAGINATION-CURSOR-ISSUES-2026`) |
 | Rate limiting | API **100/сек**, файлы **10/мин**, сообщения **60/мин** |
 
 ### Real-time

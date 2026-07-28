@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Hub — Technical Spec Constraints
 
-> **Updated 2026-06-21** (constraints) / **2026-07-18** (code-location examples added) · ADR: `.planning/decisions/ADR-TZ-REWRITE-2026.md` · Tracked copy: `docs/tz_constraints.md`
+> **Updated 2026-06-21** (constraints) / **2026-07-18** (code-location examples) / **2026-07-28** (list-issues cursor) · ADR: `.planning/decisions/ADR-TZ-REWRITE-2026.md`, `ADR-PAGINATION-CURSOR-ISSUES-2026.md` · Tracked copy: `docs/tz_constraints.md`
 
 ## MANDATORY (нельзя убрать или изменить без явного согласования)
 
@@ -29,7 +29,7 @@ alwaysApply: true
 
 ### API
 - Ответ на ошибки: `{"error": "message", "request_id": "uuid"}`
-- Пагинация: задачи — offset/limit страницами; чат — cursor (infinite scroll)
+- Пагинация: задачи (list-issues) — **cursor** + limit (max 100); чат — cursor (infinite scroll). Offset/limit — admin/intranet/wiki списки, не list-issues (`ADR-PAGINATION-CURSOR-ISSUES-2026`)
 - Rate limiting: API 100/сек, файлы 10/мин, сообщения 60/мин
 
 ### Real-time

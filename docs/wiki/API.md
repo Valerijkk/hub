@@ -1133,6 +1133,8 @@ ws://host/ws?token=<jwt>
 
 ### Пагинация (cursor)
 
+Канон для **list-issues** и чата (`ADR-PAGINATION-CURSOR-ISSUES-2026`, NFR-14/NFR-15):
+
 ```json
 {
   "items": [],
@@ -1142,7 +1144,11 @@ ws://host/ws?token=<jwt>
 }
 ```
 
+Query: `?cursor=<issue_key>&limit=1..100` (default limit 50). Параметр `offset` для list-issues **не** поддерживается.
+
 ### Пагинация (offset)
+
+Для admin/intranet/wiki и прочих списков (не list-issues):
 
 ```json
 {
@@ -1153,6 +1159,7 @@ ws://host/ws?token=<jwt>
 }
 ```
 
+либо `{ items, total, offset, limit }`.
 ### HTTP-коды
 
 | Код | Значение |
