@@ -203,8 +203,10 @@ func (r *MongoRepository) ListThreadReplies(ctx context.Context, threadID string
 }
 
 // AddReaction добавляет реакцию пользователя к сообщению.
+// A2W3-3-004: после MatchedCount-фикса concurrent first-react всё ещё TOCTOU —
+// оба видят emoji absent и оба $push. Push только при "reactions.emoji" $ne;
+// проигравший гонку добивает userID через $addToSet.
 func (r *MongoRepository) AddReaction(ctx context.Context, messageID, userID, emoji string) error {
-	// Проверяем, существует ли уже запись для данного emoji
 	filter := bson.M{
 		"_id":             messageID,
 		"reactions.emoji": emoji,
@@ -219,21 +221,41 @@ func (r *MongoRepository) AddReaction(ctx context.Context, messageID, userID, em
 	if err != nil {
 		return err
 	}
-
 	// MatchedCount>0: emoji уже есть — $addToSet либо добавил userID, либо no-op
 	// при повторном клике (ModifiedCount==0). Нельзя $push второй ReactionEntry.
 	if result.MatchedCount > 0 {
 		return nil
 	}
 
-	// Emoji ещё нет — создаём новую запись реакции.
-	filter = bson.M{"_id": messageID}
+	// Emoji отсутствует — атомарный push только пока emoji ещё нет.
+	filter = bson.M{
+		"_id":             messageID,
+		"reactions.emoji": bson.M{"$ne": emoji},
+	}
 	update = bson.M{
 		"$push": bson.M{
 			"reactions": ReactionEntry{
 				Emoji:   emoji,
 				UserIDs: []string{userID},
 			},
+		},
+	}
+	result, err = r.messages().UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount > 0 {
+		return nil
+	}
+
+	// Гонка: peer уже создал ReactionEntry — добавляем userID через $addToSet.
+	filter = bson.M{
+		"_id":             messageID,
+		"reactions.emoji": emoji,
+	}
+	update = bson.M{
+		"$addToSet": bson.M{
+			"reactions.$.user_ids": userID,
 		},
 	}
 	_, err = r.messages().UpdateOne(ctx, filter, update)

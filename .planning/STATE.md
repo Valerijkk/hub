@@ -65,13 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-29 (be1 · TASK-085 AI RPM/JQL/stream fail-closed)
+## Session note — 2026-07-29 (be2 · TASK-089 messenger/crm/invoice guards)
 
-- RPM Redis err → ErrProviderRPMUnavailable; ZRem reject; unique ZSET member.
-- AssistJQL sentinel map как SuggestComposer; AIRateLimit на admin + /ai/my.
-- Stream: SSE без Client.Timeout; no fallback после content-delta; code_review nil deny.
-- hubtest ai PASS (~15.7s); статус «Исправлена».
-
+- A2W3-3-004: Mongo `AddReaction` — push только при `$ne` emoji + retry `$addToSet`.
+- W7-A2-005: `validateDealRefs` → `authorizeContactWrite` (stranger contact → ErrForbidden).
+- W7-A2-007: `nextInvoiceNumber` MAX+1 (вкл. soft-deleted) + retry на unique constraint.
+- Тесты: `reaction_concurrent_task089`, `deal_contact_owner_task089`, `invoice_number_concurrent_task089`.
+- Регрессия: messenger/crm/accounting hubtest+race PASS. Статус TASK-089 → Исправлена. Ветка `fix/messenger/task-089-crm-invoice`.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
