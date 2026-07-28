@@ -32,6 +32,21 @@ function formatTime(dateStr: string): string {
 	}
 }
 
+/** Проверка payload WS chat.message перед записью в ленту. */
+function isCallChatMessage(
+	payload: unknown,
+	callId: string,
+): payload is CallChatMessage {
+	if (!payload || typeof payload !== "object") return false;
+	const msg = payload as Partial<CallChatMessage>;
+	return (
+		msg.call_id === callId &&
+		typeof msg.id === "string" &&
+		msg.id.length > 0 &&
+		typeof msg.text === "string"
+	);
+}
+
 /** Эфемерный чат звонка — сворачиваемая панель справа, 280px. */
 export function CallChat({ callId }: CallChatProps) {
 	const [text, setText] = useState("");
@@ -48,19 +63,33 @@ export function CallChat({ callId }: CallChatProps) {
 		refetchInterval: false,
 	});
 
-	/** Подписка на новые сообщения через WebSocket. */
+	/** Подписка на WS-комнату call:{id} и фильтр chat.message. */
+	const connected = useWsStore((s) => s.connected);
+	const subscribe = useWsStore((s) => s.subscribe);
+	const unsubscribe = useWsStore((s) => s.unsubscribe);
 	const addListener = useWsStore((s) => s.addListener);
 	const removeListener = useWsStore((s) => s.removeListener);
 
 	useEffect(() => {
-		const handler = (_event: string, payload: unknown) => {
-			const msg = payload as CallChatMessage;
-			if (msg.call_id === callId) {
-				queryClient.setQueryData<CallChatMessage[]>(
-					["call-chat", callId],
-					(old = []) => [...old, msg],
-				);
-			}
+		if (!connected || !callId) return;
+		const room = `call:${callId}`;
+		subscribe(room);
+		return () => {
+			unsubscribe(room);
+		};
+	}, [connected, callId, subscribe, unsubscribe]);
+
+	useEffect(() => {
+		const handler = (event: string, payload: unknown) => {
+			if (event !== "chat.message") return;
+			if (!isCallChatMessage(payload, callId)) return;
+			queryClient.setQueryData<CallChatMessage[]>(
+				["call-chat", callId],
+				(old = []) => {
+					if (old.some((m) => m.id === payload.id)) return old;
+					return [...old, payload];
+				},
+			);
 		};
 		addListener(handler);
 		return () => removeListener(handler);
@@ -70,7 +99,20 @@ export function CallChat({ callId }: CallChatProps) {
 	const sendMutation = useMutation({
 		mutationFn: (msg: string) =>
 			sendChatMessage(callId, msg, !chatLoggingEnabled),
-		onSuccess: () => setText(""),
+		onSuccess: (sent) => {
+			setText("");
+			if (!sent?.id) {
+				void queryClient.invalidateQueries({ queryKey: ["call-chat", callId] });
+				return;
+			}
+			queryClient.setQueryData<CallChatMessage[]>(
+				["call-chat", callId],
+				(old = []) => {
+					if (old.some((m) => m.id === sent.id)) return old;
+					return [...old, sent];
+				},
+			);
+		},
 	});
 
 	/** Авто-скролл при новых сообщениях. */
