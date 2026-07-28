@@ -34,13 +34,13 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
-| A2W11-2-001 | **FIXED** (TASK-103) | P2 | `auth-store.ts` memory-only | JWT не в sessionStorage | Evidence: auth-store unit `does not persist JWT into sessionStorage`; ADR-WS-JWT-HANDSHAKE-2026 |
-| A2W11-2-002 | RESIDUAL | P2 | `docs/tz_constraints.md:44` (контракт vs `tracker.ts` cursor) | ТЗ: задачи — offset/limit; FE+BE list issues — cursor; `types.ts` уже dual | W11-A2-009 / P2-FE-U04: PO/ADR не закрыт; агенты читают TZ как канон | Выровнять TZ под cursor **или** мигрировать list issues на offset |
+| A2W11-2-001 | RESIDUAL | P2 | `auth-store.ts:161` (+ `:13-15`) | Access + refresh JWT по-прежнему в `sessionStorage` (`hub-auth`) | W11-A2-005 / P2-FE-U01: XSS → кража refresh (30d). Фикс B не трогал persist (нужен ADR cookie/memory) | httpOnly refresh **или** memory-only access + не persist refresh в `partialize` |
 
 ## FIXED-OK (Stage A → закрыто после B/C)
 
 | Stage A ID | Evidence |
 |------------|----------|
+| A2W11-2-002 | TASK-104 · `ADR-PAGINATION-CURSOR-ISSUES-2026` · TZ/rule-60/NFR-14 = cursor · `TestListIssuesCursorPagination_Task104` + HTTP |
 | W11-A2-001 | `LinkPreviewData.image_url`/`domain`; consumers на каноне |
 | W11-A2-002 | `ai-store`: `loaded` только на success; `botLoadError` |
 | W11-A2-003 | `modelsError` + `saveSelectedModel` rollback |
@@ -64,8 +64,8 @@ gitlab/hr/issue-links/notifications/search/sprint/status/webhooks/board-store �
 | Метрика | Значение |
 |---------|----------|
 | Файлов | 19/19/0 |
-| Открытых находок | **2** |
+| Открытых находок | **1** |
 | NEW | 0 |
 | REGRESS | 0 |
-| RESIDUAL | 2 (P2×2) |
-| FIXED-OK | 13 |
+| RESIDUAL | 1 (P2×1) |
+| FIXED-OK | 14 |

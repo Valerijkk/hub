@@ -57,7 +57,7 @@
 | NFR-11 | Soft delete retention | 30 дней |
 | NFR-12 | UTC in DB | Всегда, TZ на фронте |
 | NFR-13 | Error format | Wire JSON: `{"error": "...", "request_id": "uuid"}` (`platform/errors`, `middleware.ErrorHandler`). FE `ApiError` maps status→`code`, body.error→`message` — не отдельный wire-контракт |
-| NFR-14 | Pagination tasks | offset/limit |
+| NFR-14 | Pagination tasks (list-issues) | cursor + limit (max 100); `next_cursor` / `has_more` / `total` — `ADR-PAGINATION-CURSOR-ISSUES-2026` |
 | NFR-15 | Pagination chat | cursor (infinite scroll) |
 | NFR-16 | Accessibility | WCAG 2.1 AA |
 | NFR-17 | Lighthouse score | ≥ 90 (цель v2.5) |
@@ -315,7 +315,7 @@ Source FR: FR-INTR-04, FR-INTR-06
 Auth: Bearer; RBAC: admin
 Responses: 200 { "items":[{"user":{...},"template_id","done_count","total_count","percent","frozen"}],
                  "total","offset","limit" }; 400 (limit>100); 401; 403
-Source FR: FR-INTR-05  · Пагинация: offset/limit (NFR-14)
+Source FR: FR-INTR-05  · Пагинация: offset/limit (не NFR-14; NFR-14 = cursor list-issues)
 
 ### GET /api/intranet/onboarding/me
 Auth: Bearer
@@ -333,7 +333,7 @@ Auth: Bearer
 Responses: 200 { "items":[{"user":{"id","name","avatar","deactivated"},"received_count"}],
                  "period","total","offset","limit" } (пустой период → items:[]);
            400 (period вне enum, limit>100); 401
-Source FR: FR-INTR-09  · Пагинация: offset/limit (NFR-14)
+Source FR: FR-INTR-09  · Пагинация: offset/limit (не NFR-14; NFR-14 = cursor list-issues)
 
 ### DELETE /api/intranet/news/:newsId  (расширение существующего)
 Auth: Bearer; RBAC: admin ЛИБО автор поста (FR-INTR-07); Member на чужой → 403
@@ -615,7 +615,7 @@ Source FR: FR-WIKI-05
 ### GET  /api/wiki/pages/:pageId/versions/:number · содержимое версии + diff с текущей; 200; 401; 403; 404
 ### POST /api/wiki/pages/:pageId/versions/:number/restore
 · RBAC: write (read → 403, FR-WIKI-07); 200 (новая версия N+1, restored_from=number); 401; 403; 404; 409
-Source FR: FR-WIKI-06, FR-WIKI-07  · Пагинация: offset/limit (NFR-14)
+Source FR: FR-WIKI-06, FR-WIKI-07  · Пагинация: offset/limit (не NFR-14; NFR-14 = cursor list-issues)
 
 ### GET  /api/wiki/pages/:pageId/issue-links     · 200 {items:[{issue: {id,key,status,title} | tombstone}]}; 401; 403; 404
 ### POST /api/wiki/pages/:pageId/issue-links

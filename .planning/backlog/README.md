@@ -40,8 +40,8 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-100](TASK-100-2026-07-28-backup-maintenance-gate-distributed-adr.md) | 📐 Backup MaintenanceGate U04 | **P1** | Открыта | devops→be1 | W7-A4-003 |
 | [TASK-101](TASK-101-2026-07-28-ai-ollama-localhost-consent-adr.md) | 📐 AI Ollama localhost consent | **P1** | Открыта | product→be1 | A2W5-A2-005 |
 | [TASK-102](TASK-102-2026-07-28-telegram-login-removal-adr-auth01.md) | 📐 Telegram login cleanup ADR-AUTH-01 | **P1** | Открыта | be1 | A2W6 · 7 |
-| [TASK-103](TASK-103-2026-07-28-jwt-ws-handshake-adr.md) | 📐 JWT/WS handshake (no ?token=) | P2 | Исправлена | arch→be+fe | A2W3/W11 · 3 |
-| [TASK-104](TASK-104-2026-07-28-docs-cursor-pagination-adr.md) | 📐 Docs/API cursor vs offset | P2 | Открыта | sa→be+docs | A2W11 · 2 |
+| [TASK-103](TASK-103-2026-07-28-jwt-ws-handshake-adr.md) | 📐 JWT/WS handshake (no ?token=) | P2 | Открыта | arch→be+fe | A2W3/W11 · 3 |
+| [TASK-104](TASK-104-2026-07-28-docs-cursor-pagination-adr.md) | 📐 Docs/API cursor vs offset | P2 | Исправлена | be1+docs | A2W11 · 2 |
 | [TASK-105](TASK-105-2026-07-28-docs-vision-g07-wiki-kpi-adr.md) | 📐 Docs G-07 wiki KPI | **P1** | Открыта | product→docs | A2W11-5-001 |
 | [TASK-106](TASK-106-2026-07-28-intranet-coffee-dm-notify-adr.md) | 📐 Intranet FR-INTR-11 DM/notify U05 | P2 | Открыта | product→be2 | W7-A2-008 |
 | [TASK-107](TASK-107-2026-07-28-ent-indexes-composite-fk-polymorphic.md) | 🔒 Ent indexes/FK/polymorphic | P2 | Открыта | be1 | A2W8 · 8 |

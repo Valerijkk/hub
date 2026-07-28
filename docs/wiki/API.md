@@ -1140,6 +1140,8 @@ Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>
 
 ### Пагинация (cursor)
 
+Канон для **list-issues** и чата (`ADR-PAGINATION-CURSOR-ISSUES-2026`, NFR-14/NFR-15):
+
 ```json
 {
   "items": [],
@@ -1149,7 +1151,11 @@ Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>
 }
 ```
 
+Query: `?cursor=<issue_key>&limit=1..100` (default limit 50). Параметр `offset` для list-issues **не** поддерживается.
+
 ### Пагинация (offset)
+
+Для admin/intranet/wiki и прочих списков (не list-issues):
 
 ```json
 {
@@ -1160,6 +1166,7 @@ Sec-WebSocket-Protocol: hub.ws.ticket.<ticket>
 }
 ```
 
+либо `{ items, total, offset, limit }`.
 ### HTTP-коды
 
 | Код | Значение |

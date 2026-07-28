@@ -65,11 +65,11 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (be1 · TASK-102 Telegram login ADR-AUTH-01)
+## Session note — 2026-07-28 (be1+docs · TASK-104 list-issues cursor canon)
 
-- Удалены `internal/auth/telegram.go`, `telegram_bot.go`, export hooks login, `GetUserByTelegramID`.
-- Удалены позитивные login-тесты (polling/widget/VerifyCode); denial `telegram_login_removed_task102_test.go`.
-- Notification bind не тронут. Статус TASK-102 → Исправлена. Handoff: be-ver → code-reviewer.
+- Канон: list-issues = **cursor** (`ADR-PAGINATION-CURSOR-ISSUES-2026`); TZ/rule-60/NFR-14 выровнены под код.
+- A2W11-2-002 / A2W11-5-002 → FIXED; chat cursor не тронут.
+- Тесты: `TestListIssuesCursorPagination_Task104`, `TestHandler_ListIssues_CursorPagination_Task104`.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
@@ -548,16 +548,11 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## Session Continuity
 
-**Last session:** 2026-07-28 · TASK-103 JWT/WS handshake
-**Stopped at:** ADR-WS-JWT-HANDSHAKE-2026 + ticket/subprotocol + memory JWT · статус Исправлена
-**Resume:** be-ver / code-reviewer на ветке `fix/ws/task-103-jwt-handshake`
-
-### Session note 2026-07-28 — TASK-103 (be1)
-
-- ADR: `.planning/decisions/ADR-WS-JWT-HANDSHAKE-2026.md`
-- BE: `POST /auth/ws-ticket`, `/ws` via `hub.ws.ticket.*`, deny `?token=`
-- FE: auth-store memory-only JWT; ws-store ticket handshake
-- Findings FIXED: A2W3-4-001, A2W11-2-001, A2W11-3-002
+**Last session:** 2026-07-26 (AI quality layer · RU instructions · STATE compact)
+**Stopped at:** structural/package validators PASS · tests 55 PASS / 1 SKIP ·
+package 172 files · smoke PARTIAL · paired eval/ROI NOT_RUN
+**Resume:** empty-repo portable install dry-run → paired baseline-vs-assisted
+pilot; FA-06 manual; затем CAL-SYNC / QA-HARDENING / Redesign по приоритету.
 
 Исторические session notes (≤2026-07-23) и старые completion logs:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md)

@@ -29,7 +29,7 @@
 1. **A2W11-5-001 (RESIDUAL P1)** — `vision` G-07 «US-WIKI реализованы» ↔ KPI wiki planned.
 2. **A2W11-3-001 (RESIDUAL P2)** — `use-presence` без `isError`; ложное закрытие в TASK-047 TODO.
 3. **A2W11-2-001 / A2W11-3-002 (RESIDUAL P2)** — JWT в `sessionStorage` + `/ws?token=` (нужен ADR/BE).
-4. **A2W11-2-002 / A2W11-5-002 (RESIDUAL P2)** — TZ offset для задач vs cursor в коде.
+4. ~~**A2W11-2-002 / A2W11-5-002**~~ — **FIXED** TASK-104 (`ADR-PAGINATION-CURSOR-ISSUES-2026`, cursor list-issues).
 5. **A2W11-4-001 (NEW P2)** — `BUSINESS.md` внутренний drift webcam/Phase 16.
 
 ## REGRESS

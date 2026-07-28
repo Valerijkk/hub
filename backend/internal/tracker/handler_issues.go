@@ -49,14 +49,19 @@ func (h *Handler) CreateIssue(c fiber.Ctx) error {
 
 // ListIssues — Список задач проекта
 // @Summary Список задач проекта
-// @Description Возвращает список задач проекта с фильтрацией по статусу, приоритету, исполнителю и т.д.
+// @Description Курсорная пагинация (NFR-14): cursor=issue_key, limit 1..100. Offset не поддерживается.
 // @Tags Трекер
 // @Produce json
 // @Param projectId path string true "ID проекта"
+// @Param cursor query string false "issue_key последней строки предыдущей страницы"
+// @Param limit query int false "Размер страницы (1..100, default 50)"
 // @Param status query string false "Фильтр по статусу"
 // @Param priority query string false "Фильтр по приоритету"
-// @Param assignee_id query string false "Фильтр по исполнителю"
-// @Success 200 {object} PaginatedResponse[IssueResponse] "Список задач"
+// @Param assignee query string false "Фильтр по исполнителю (uuid | none | unassigned)"
+// @Param issue_type query string false "Фильтр по типу задачи"
+// @Param search query string false "Полнотекстовый поиск"
+// @Param order_by query string false "created_at | priority | updated_at"
+// @Success 200 {object} PaginatedResponse[IssueResponse] "Список задач (items, next_cursor, has_more, total)"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth
