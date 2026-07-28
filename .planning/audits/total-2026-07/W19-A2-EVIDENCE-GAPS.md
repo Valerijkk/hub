@@ -4,8 +4,10 @@
 > Задача: [TASK-008](../../backlog/TASK-008-total-audit-program.md) § Stage C / W19  
 > Фокус: задачи в статусе **«Исправлена»** без адекватного evidence  
 > Режим: read-only по product code; сверка task body ↔ `W18-*-MUTATION.md`  
-> Перепроверка: повторный проход README + тела TASK-009…056 + все 6 mutation-логов  
->   + `git log --grep=TASK-0NN` (SHA есть в истории, **не** в evidence)
+> Перепроверка (повтор W19-A2): README + тела TASK-009…056 + все 6 mutation-логов  
+>   (`W18-C{1,2,2b,3,4,5}-MUTATION.md`) + сверка PASS/FAIL с [`W18-SUMMARY.md`](W18-SUMMARY.md)  
+>   + `git log --grep=TASK-0NN` (SHA есть в истории, **не** в evidence)  
+> Итог перепроверки: **count=39** без изменений (все «Исправлена» = incomplete triad по SHA)
 
 ## Определение «адекватного evidence»
 
@@ -260,4 +262,4 @@ Stage B fix SHA нужно уточнять по пути файла / subject `
 
 ---
 
-*Артефакт W19-A2 · 2026-07-28 · count=**39** · gap IDs выше*
+*Артефакт W19-A2 · 2026-07-28 · count=**39** · gap IDs выше · re-verified same pass*
