@@ -5,7 +5,6 @@ import (
 	fiberrecover "github.com/gofiber/fiber/v3/middleware/recover"
 	auditmod "github.com/valerii/hub/backend/internal/audit"
 	backupmod "github.com/valerii/hub/backend/internal/backup"
-	devmod "github.com/valerii/hub/backend/internal/dev"
 	"github.com/valerii/hub/backend/internal/platform/config"
 	"github.com/valerii/hub/backend/internal/platform/middleware"
 	"github.com/valerii/hub/backend/internal/platform/observability"
@@ -76,19 +75,7 @@ func wireFiber(d *serverDeps) {
 	// Rate limit для отправки сообщений: 60/мин на пользователя
 	api.Use("/messenger", middleware.RateLimitByUser(d.rootCtx, middleware.MessageSendRateLimit))
 
-	// API-документация: динамическая страница со списком всех эндпоинтов.
-	// gofiber/swagger несовместим с Fiber v3, поэтому генерируем HTML из зарегистрированных маршрутов.
-	api.Get("/docs", func(c fiber.Ctx) error {
-		return c.Type("html").SendString(devmod.BuildAPIDocsHTML(app))
-	})
-	api.Get("/docs/doc.json", func(c fiber.Ctx) error {
-		c.Set("Content-Type", "application/json")
-		body, err := devmod.BuildAPIDocsJSON(app)
-		if err != nil {
-			return err
-		}
-		return c.SendString(body)
-	})
+	// W7-A5-001: /api/docs регистрируется в wireCore за auth+admin (не публично).
 
 	d.api = api
 }

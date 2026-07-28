@@ -3,6 +3,7 @@ package status
 import "time"
 
 // ComponentStatus — состояние одного компонента инфраструктуры.
+// Отдаётся только авторизованным клиентам (см. GetStatusDetails).
 type ComponentStatus struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
@@ -10,9 +11,10 @@ type ComponentStatus struct {
 	Description string `json:"description,omitempty"`
 }
 
-// Response — публичный статус Hub (V4-06).
+// Response — статус Hub (V4-06).
+// Публичный ответ содержит только агрегат (W7-A5-002: без id компонентов).
 type Response struct {
 	Status     string            `json:"status"`
 	UpdatedAt  time.Time         `json:"updated_at"`
-	Components []ComponentStatus `json:"components"`
+	Components []ComponentStatus `json:"components,omitempty"`
 }
