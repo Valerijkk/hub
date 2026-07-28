@@ -189,7 +189,10 @@ func (h *Handler) UpdateLimit(c fiber.Ctx) error {
 		if errors.Is(err, ErrInvalidResourceLimitKey) {
 			return fiber.NewError(fiber.StatusBadRequest, "unknown resource limit key")
 		}
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		if errors.Is(err, ErrInvalidResourceLimitValue) {
+			return fiber.NewError(fiber.StatusBadRequest, "resource limit value must be a positive integer")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to update resource limit")
 	}
 
 	return c.JSON(fiber.Map{"success": true})
