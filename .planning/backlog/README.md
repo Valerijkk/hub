@@ -22,6 +22,8 @@
 | [TASK-004](TASK-004-state-goals-verified-reconcile.md) | STATE расходится с матрицей фаз | P1 | Закрыта | team-lead | Ревью W4–W20 |
 | [TASK-005](TASK-005-august-phase-dependencies.md) | Связать августовские фазы зависимостями | P1 | Закрыта | team-lead | Аудит планирования |
 | [TASK-003](TASK-003-a14-002-test-granularity.md) | Тест пропускает удаление одного guard'а | P2 | Закрыта | qa-auto1 | Ревью W4–W20 |
+| [TASK-006](TASK-006-disable-cursor-coauthor-attribution.md) | Навсегда выключить Cursor Co-authored-by | **P0** | Закрыта | devops/docs | Owner 2026-07-28 |
+| [TASK-007](TASK-007-utf8-mojibake-audit-fix.md) | Аудит и починка битой UTF-8 кодировки | P1 | Закрыта | docs+be1 | Owner 2026-07-28 |
 
 ---
 

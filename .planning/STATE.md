@@ -71,6 +71,12 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-28 (owner wave · TASK-006/007 + branch hygiene)
+
+- TASK-006: `cli-config.json` attribution=false; docs в `51-no-ai-coauthor` + `git-workflow` §3.0 (куда кликнуть).
+- TASK-007: 39 schema-файлов mojibake → UTF-8; scan HITS=0; отчёт `audits/2026-07/ENCODING-MOJIBAKE-SCAN.md`.
+- Ветки волны FF в `cursor-grok-4.5`; удалены feat/chore/test волны + `anthropic`.
+
 ## Session note — 2026-07-28 (qa-auto1 · TASK-003 A14-002 granular)
 
 - `TestLoad_productionRejectsEachDevDefault_A14_002` — 5 subtests (JWT/S3×2/LiveKit×2).

@@ -118,6 +118,25 @@ wave3                   (для интеграционной ветки нуже
 
 Автор = только git user владельца репо. После каждого коммита агент проверяет `git log -1 --format=%B` и сдирает trailer, если среда его дописала. Правило: `.cursor/rules/51-no-ai-coauthor.mdc` · хук: `.githooks/commit-msg` (`git config core.hooksPath .githooks`).
 
+#### Выключить attribution в Cursor навсегда (владелец, один раз)
+
+1. **Cursor Settings** (не VS Code Settings): `Ctrl+Shift+J` / Command Palette → «Cursor Settings»
+2. Раздел **Agents → Attribution** — выключить:
+   - **Commit Attribution**
+   - **PR Attribution**
+3. Перезапустить Cursor.
+4. CLI (файл вне репо): `%USERPROFILE%\.cursor\cli-config.json`:
+
+```json
+"attribution": {
+  "attributeCommitsToAgent": false,
+  "attributePRsToAgent": false
+}
+```
+
+Cloud Agents могут форсить trailer серверным хуком — на IDE-тоггл не опираться;
+для Hub cloud-коммиты без личного review владельца запрещены.
+
 ### 3.1. Реальные примеры по каждому типу (из `git log` Hub)
 
 **`feat` — новая функциональность:**

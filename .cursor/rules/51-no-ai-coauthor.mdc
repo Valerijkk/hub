@@ -33,4 +33,10 @@ Made with Cursor / Claude / Codex / Cloud Agent / Copilot
 
 Автор коммита — только `user.name` / `user.email` владельца репо. AI **не** соавтор.
 
+## Выключить дописывание Cursor (владелец)
+
+1. Cursor Settings → **Agents → Attribution** → OFF (Commit + PR).
+2. `%USERPROFILE%\.cursor\cli-config.json`: `attributeCommitsToAgent` / `attributePRsToAgent` = `false`.
+3. Рестарт Cursor. Хук `.githooks/commit-msg` остаётся страховкой.
+
 Первоисточник также: `.cursor/rules/50-git.mdc` · playbook `git-workflow.md` §3 / §12.
