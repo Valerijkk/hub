@@ -173,8 +173,9 @@ func TestEntRepository_GetIntegrationInProject_RejectsForeign_A5_005(t *testing.
 
 	foreignRepo := gitlab.NewEntRepository(env.client, nil)
 	created, err := foreignRepo.CreateIntegration(env.ctx, foreign.ID, gitlab.CreateIntegrationInput{
-		ProjectPath: "other/ci",
-		AccessToken: "glpat-ci",
+		ProjectPath:   "other/ci",
+		AccessToken:   "glpat-ci",
+		WebhookSecret: "ci-wh",
 	})
 	require.NoError(t, err)
 
@@ -220,9 +221,10 @@ func TestEntRepository_CreateIntegration_CustomURL(t *testing.T) {
 	env := newGitLabRepoEnv(t)
 
 	created, err := env.repo.CreateIntegration(env.ctx, env.projectID, gitlab.CreateIntegrationInput{
-		GitLabURL:   "https://gitlab.example.com",
-		ProjectPath: "acme/app",
-		AccessToken: "token",
+		GitLabURL:     "https://gitlab.example.com",
+		ProjectPath:   "acme/app",
+		AccessToken:   "token",
+		WebhookSecret: "custom-wh",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "https://gitlab.example.com", created.GitlabURL)

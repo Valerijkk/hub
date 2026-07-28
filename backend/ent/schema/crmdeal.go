@@ -75,5 +75,7 @@ func (CrmDeal) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("stage", "rank"),
 		index.Fields("deleted_at"),
+		// A2W8-2-005: ListDeals WHERE owner AND deleted_at IS NULL
+		index.Edges("owner").Fields("deleted_at"),
 	}
 }

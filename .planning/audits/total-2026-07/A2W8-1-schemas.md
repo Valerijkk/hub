@@ -53,8 +53,8 @@
 | A2W8-1-001 | RESIDUAL (W8-A1-002) | P1 | `channel.go:17-57` | Нет `field.Int("version")` при `updated_at` + soft-delete | TZ optimistic lock; concurrent rename/mute/settings → LWW | VersionMixin + `VersionEQ` в messenger repo |
 | A2W8-1-002 | RESIDUAL (W8-A1-003) | P1 | `aiprovider.go`; `automationrule.go`; `aiuserpreference.go`; `board.go`; `channelmember.go`; `channelinvite.go`; `call.go`; `apikey.go`; `coffeeenrollment.go` | Mutable-схемы A1 без `version` | Системный TZ-gap P1-BE-U06 | ADR VersionMixin + exclusion list |
 | A2W8-1-003 | RESIDUAL (W8-A1-004) | P2 | `channel.go:63-78`; `call.go:76-77` (+ пакет) | Нет `entsql.OnDelete` на parent→child | FK trap / orphan при hard-purge | ADR Cascade vs SetNull vs app purge |
-| A2W8-1-004 | RESIDUAL (W8-A1-005/008) | P2 | `board.go:16-47` | Нет `Indexes()`, `updated_at`, `deleted_at` | List без index; нет OL/trash для user board | `index.Edges("project")` + timestamps + soft-delete **или** ADR hard-delete |
-| A2W8-1-005 | RESIDUAL (W8-A1-006) | P2 | `aiuserpreference.go:22-24` | `default_provider_id` без edge | Orphan UUID провайдера | `edge` + Optional Field / SetNull |
+| A2W8-1-004 | FIXED (TASK-107) | P2 | `board.go` | `updated_at`/`deleted_at` + project+deleted_at index | — | TASK-107 |
+| A2W8-1-005 | FIXED (TASK-107) | P2 | `aiuserpreference.go` | FK edge `default_provider` → AIProvider | — | TASK-107 |
 | A2W8-1-006 | RESIDUAL (W8-A1-003∩APIKey) | P2 | `apikey.go:17-48` | Soft-delete есть, `version` нет | Concurrent revoke/update без CAS | `version` + VersionEQ на revoke |
 
 ## Чисто

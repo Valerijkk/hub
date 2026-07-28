@@ -62,7 +62,7 @@ func TestResolveChannelPrefs_SingleQuery_A13_005(t *testing.T) {
 		Type:       notification.TypeAssigned,
 		Title:      "A13-005",
 		EntityType: "issue",
-		EntityID:   "iss-a13005",
+		EntityID:   uuid.MustParse("00000000-0000-4000-8000-00000000a130").String(),
 		ProjectID:  &projectID,
 	}))
 }

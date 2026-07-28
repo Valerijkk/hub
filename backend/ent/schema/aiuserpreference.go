@@ -19,6 +19,7 @@ func (AIUserPreference) Fields() []ent.Field {
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Immutable(),
+		// A2W8-1-005: FK edge на AIProvider (orphan UUID запрещён).
 		field.UUID("default_provider_id", uuid.UUID{}).
 			Optional().
 			Nillable(),
@@ -48,6 +49,9 @@ func (AIUserPreference) Edges() []ent.Edge {
 			Ref("ai_preference").
 			Unique().
 			Required(),
+		edge.To("default_provider", AIProvider.Type).
+			Field("default_provider_id").
+			Unique(),
 	}
 }
 

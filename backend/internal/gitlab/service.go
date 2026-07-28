@@ -80,6 +80,10 @@ func (s *GitLabService) CreateIntegration(ctx context.Context, projectID uuid.UU
 		return nil, apperrors.NewBadRequest("некорректный gitlab_url: " + err.Error())
 	}
 
+	if strings.TrimSpace(req.WebhookSecret) == "" {
+		return nil, apperrors.NewBadRequest("webhook_secret обязателен")
+	}
+
 	input := CreateIntegrationInput{
 		GitLabURL:     gitlabURL,
 		ProjectPath:   req.ProjectPath,

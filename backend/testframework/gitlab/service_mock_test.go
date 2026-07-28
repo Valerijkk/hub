@@ -114,8 +114,9 @@ func TestCreateIntegration_DefaultGitLabURL(t *testing.T) {
 	svc := gitlab.NewGitLabService(repo, nil)
 
 	resp, err := svc.CreateIntegration(context.Background(), uuid.New(), gitlab.CreateIntegrationRequest{
-		ProjectPath: "group/repo",
-		AccessToken: "token",
+		ProjectPath:   "group/repo",
+		AccessToken:   "token",
+		WebhookSecret: "wh",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "https://gitlab.com", resp.GitLabURL)
@@ -126,9 +127,10 @@ func TestCreateIntegration_RejectsUnsafeURL(t *testing.T) {
 	svc := gitlab.NewGitLabService(&gitlabMockRepo{}, nil)
 
 	_, err := svc.CreateIntegration(context.Background(), uuid.New(), gitlab.CreateIntegrationRequest{
-		GitLabURL:   "file:///etc/passwd",
-		ProjectPath: "group/repo",
-		AccessToken: "token",
+		GitLabURL:     "file:///etc/passwd",
+		ProjectPath:   "group/repo",
+		AccessToken:   "token",
+		WebhookSecret: "wh",
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "gitlab_url")
@@ -266,9 +268,10 @@ func TestCreateIntegration_CustomGitLabURL(t *testing.T) {
 	svc := gitlab.NewGitLabService(repo, nil)
 
 	resp, err := svc.CreateIntegration(context.Background(), uuid.New(), gitlab.CreateIntegrationRequest{
-		GitLabURL:   "https://gitlab.example.com",
-		ProjectPath: "team/app",
-		AccessToken: "glpat-test",
+		GitLabURL:     "https://gitlab.example.com",
+		ProjectPath:   "team/app",
+		AccessToken:   "glpat-test",
+		WebhookSecret: "wh",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "https://gitlab.example.com", resp.GitLabURL)

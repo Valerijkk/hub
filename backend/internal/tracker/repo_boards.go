@@ -35,10 +35,13 @@ func (r *EntRepository) CreateBoard(ctx context.Context, projectID uuid.UUID, na
 	return create.Save(ctx)
 }
 
-// ListBoards возвращает все доски проекта.
+// ListBoards возвращает активные доски проекта (A2W8-1-004: deleted_at IS NULL).
 func (r *EntRepository) ListBoards(ctx context.Context, projectID uuid.UUID) ([]*ent.Board, error) {
 	return r.client.Board.Query().
-		Where(board.HasProjectWith(project.IDEQ(projectID))).
+		Where(
+			board.HasProjectWith(project.IDEQ(projectID)),
+			board.DeletedAtIsNil(),
+		).
 		All(ctx)
 }
 
@@ -52,6 +55,7 @@ func (r *EntRepository) GetBoardData(ctx context.Context, projectID, boardID uui
 		Where(
 			board.IDEQ(boardID),
 			board.HasProjectWith(project.IDEQ(projectID)),
+			board.DeletedAtIsNil(),
 		).
 		Only(ctx)
 	if err != nil {
@@ -62,6 +66,7 @@ func (r *EntRepository) GetBoardData(ctx context.Context, projectID, boardID uui
 		Where(
 			board.IDEQ(boardID),
 			board.HasProjectWith(project.IDEQ(projectID)),
+			board.DeletedAtIsNil(),
 		).
 		WithProject(func(q *ent.ProjectQuery) {
 			q.WithWorkflowStatuses(func(sq *ent.WorkflowStatusQuery) {

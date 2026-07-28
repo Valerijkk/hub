@@ -345,10 +345,13 @@ func (r *EntRepository) CountOwners(ctx context.Context, projectID uuid.UUID) (i
 		Count(ctx)
 }
 
-// FindInviteByCode ищет приглашение по коду с загруженным проектом.
+// FindInviteByCode ищет активное приглашение по коду с загруженным проектом.
 func (r *EntRepository) FindInviteByCode(ctx context.Context, code string) (*ent.Invite, error) {
 	return r.client.Invite.Query().
-		Where(invite.CodeEQ(code)).
+		Where(
+			invite.CodeEQ(code),
+			invite.RevokedAtIsNil(),
+		).
 		WithProject().
 		Only(ctx)
 }
@@ -387,7 +390,10 @@ func (r *EntRepository) IncrementInviteUseCount(ctx context.Context, inviteID uu
 // Ent возвращает ErrNotFound, если ни одна строка не удовлетворила условию,
 // и мы трактуем это как "лимит достигнут" (HI-06).
 func (r *EntRepository) TryConsumeInvite(ctx context.Context, inviteID uuid.UUID, maxUses int) (bool, error) {
-	upd := r.client.Invite.UpdateOneID(inviteID).AddUseCount(1)
+	upd := r.client.Invite.UpdateOneID(inviteID).
+		Where(invite.RevokedAtIsNil()).
+		AddUseCount(1).
+		AddVersion(1)
 	if maxUses > 0 {
 		upd = upd.Where(invite.UseCountLT(maxUses))
 	}
@@ -401,21 +407,27 @@ func (r *EntRepository) TryConsumeInvite(ctx context.Context, inviteID uuid.UUID
 	return true, nil
 }
 
-// ListInvites возвращает все приглашения проекта.
+// ListInvites возвращает активные (не revoked) приглашения проекта.
 func (r *EntRepository) ListInvites(ctx context.Context, projectID uuid.UUID) ([]*ent.Invite, error) {
 	return r.client.Invite.Query().
-		Where(invite.HasProjectWith(project.IDEQ(projectID))).
+		Where(
+			invite.HasProjectWith(project.IDEQ(projectID)),
+			invite.RevokedAtIsNil(),
+		).
 		All(ctx)
 }
 
-// DeleteInvite удаляет приглашение только если оно принадлежит projectID (P1-BE-06).
+// DeleteInvite мягко отзывает приглашение (A2W8-3-002: revoked_at вместо hard delete).
 func (r *EntRepository) DeleteInvite(ctx context.Context, projectID, inviteID uuid.UUID) error {
-	n, err := r.client.Invite.Delete().
+	n, err := r.client.Invite.Update().
 		Where(
 			invite.IDEQ(inviteID),
 			invite.HasProjectWith(project.IDEQ(projectID)),
+			invite.RevokedAtIsNil(),
 		).
-		Exec(ctx)
+		SetRevokedAt(time.Now().UTC()).
+		AddVersion(1).
+		Save(ctx)
 	if err != nil {
 		return err
 	}

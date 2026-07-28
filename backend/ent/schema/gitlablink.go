@@ -43,6 +43,9 @@ func (GitLabLink) Fields() []ent.Field {
 		field.String("project_path").
 			Optional().
 			Comment("Путь проекта в GitLab (group/repo)"),
+		// A2W8-2-008: optimistic lock для status updates.
+		field.Int("version").
+			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -70,6 +73,7 @@ func (GitLabLink) Edges() []ent.Edge {
 func (GitLabLink) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("issue"),
-		index.Fields("external_id", "link_type"),
+		// A2W8-2-008: уникальность внешней ссылки в рамках интеграции.
+		index.Edges("integration").Fields("external_id", "link_type").Unique(),
 	}
 }

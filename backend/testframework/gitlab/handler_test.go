@@ -112,7 +112,7 @@ func TestHandler_CreateIntegration_Success(t *testing.T) {
 	app := testGitLabHandlerApp(t, &gitlabMockRepo{})
 	projectID := uuid.New()
 
-	payload := `{"project_path":"group/repo","access_token":"glpat-test"}`
+	payload := `{"project_path":"group/repo","access_token":"glpat-test","webhook_secret":"wh-test"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/projects/"+projectID.String()+"/gitlab/integrations",
 		bytes.NewReader([]byte(payload)))
 	req.Header.Set("Content-Type", "application/json")

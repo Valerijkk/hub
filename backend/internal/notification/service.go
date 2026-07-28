@@ -58,7 +58,7 @@ type DispatchEvent struct {
 	Body string
 	// EntityType — тип связанной сущности ("issue", "channel", "testrun", "call").
 	EntityType string
-	// EntityID — ID связанной сущности (string, т.к. не всегда UUID).
+	// EntityID — ID связанной сущности (UUID-строка; A2W8-3-006).
 	EntityID string
 	// ProjectID — необязательная привязка к проекту (используется в IsEnabled).
 	ProjectID *uuid.UUID
@@ -150,7 +150,7 @@ func (s *NotificationService) publishToWS(userID uuid.UUID, notif *ent.Notificat
 		Title:      notif.Title,
 		Body:       notif.Body,
 		EntityType: notif.EntityType,
-		EntityID:   notif.EntityID,
+		EntityID:   entityIDString(notif.EntityID),
 		IsUrgent:   notif.IsUrgent,
 		CreatedAt:  notif.CreatedAt,
 	}
@@ -382,7 +382,7 @@ func notifToDTO(n *ent.Notification) NotificationDTO {
 		Title:      n.Title,
 		Body:       n.Body,
 		EntityType: n.EntityType,
-		EntityID:   n.EntityID,
+		EntityID:   entityIDString(n.EntityID),
 		IsRead:     n.IsRead,
 		IsUrgent:   n.IsUrgent,
 		CreatedAt:  n.CreatedAt,
@@ -394,4 +394,11 @@ func notifToDTO(n *ent.Notification) NotificationDTO {
 		dto.ActorID = n.ActorID
 	}
 	return dto
+}
+
+func entityIDString(id *uuid.UUID) string {
+	if id == nil {
+		return ""
+	}
+	return id.String()
 }

@@ -58,12 +58,12 @@
 
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|-----|-------------|---------|---------------|------------|
-| A2W8-3-001 | **FIXED** (TASK-097) | P1 | `leaverequest.go` | `deleted_at` + SoftDeleteLeave + list filters | hr/soft_delete_task097_test.go |
-| A2W8-3-002 | RESIDUAL (W8-A3-004/005) | P2 | `invite.go:17-41` | Нет version; revoke = hard delete | Mutable use_count; потеря аудита кода | version + `revoked_at`/`deleted_at` |
+| A2W8-3-001 | RESIDUAL (W8-A3-002) | P1 | `leaverequest.go:16-46` | HR-PII (`reason`, sick) без `deleted_at` | TZ корзина 30д; CrmContact с PII имеет soft-delete | `deleted_at` + index; soft-delete / GDPR purge |
+| A2W8-3-002 | FIXED (TASK-107) | P2 | `invite.go` | version + `revoked_at` soft revoke | — | TASK-107 |
 | A2W8-3-003 | RESIDUAL (W8-A3-006/007) | P2 | `issuelink.go:22-57` | Unique без `link_type`; parent/child dual | Нельзя blocks+relates; рассинхрон дерева | Unique (source,target,type); убрать parent/child **или** self-edge |
-| A2W8-3-004 | **FIXED** (TASK-097) | P2 | `journalline.go`; `kudo.go` | Kudo `deleted_at`; JournalLine join-filter ADR | intranet + accounting soft_delete_task097 |
-| A2W8-3-005 | **FIXED** (TASK-097) | P2 | `label.go`; `labelgroup.go` | `deleted_at` + soft DeleteLabel (version → TASK-095) | tracker/soft_delete_task097_test.go |
-| A2W8-3-006 | RESIDUAL (W8-A3-013/014) | P2 | `notification.go:36-48` | entity_id String; is_read без version | Полиморф без FK; mark-read race | UUID where applicable; version |
+| A2W8-3-004 | RESIDUAL (W8-A3-009/010) | P2 | `journalline.go`; `kudo.go` | Нет soft-delete на line/kudo | Orphan lines / нет GDPR soft-path | deleted_at **или** join-filter + ADR |
+| A2W8-3-005 | RESIDUAL (W8-A3-011/012) | P2 | `label.go`; `labelgroup.go` | Нет version/updated_at/deleted_at | Hard DeleteLabel; catalog без OL | version + soft-delete |
+| A2W8-3-006 | FIXED (TASK-107) | P2 | `notification.go` | entity_id UUID + version; MarkRead AddVersion | — | TASK-107 |
 | A2W8-3-007 | RESIDUAL (W8-A3-015) | P2 | `notificationpreference.go:31-43` | Mutable enabled без version | Lost update parallel toggle | `version` + VersionEQ |
 
 ## Чисто

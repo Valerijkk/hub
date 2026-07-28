@@ -65,11 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (be2 · TASK-106 FR-INTR-11 notify-only)
+## Session note — 2026-07-28 (be1 · TASK-107 Ent indexes/FK/polymorphic)
 
-- ADR-INTRANET-U05: канон **notify-only** (auto-DM отложен; без spam DM / migrate).
-- `CoffeeMatchDeliveryMode`; `notifyCoffeeMatch` + slog вместо `_ =`; FR-INTR-11 в спеке синхронизирован.
-- IT: `coffee_notify_task106_test.go` (пара=2 notify, тройка=6). Статус TASK-106 → Исправлена.
+- 8 findings A2W8-1-004/005, A2W8-2-005/007/008/009, A2W8-3-002/006: indexes/FK/UUID/version/soft-revoke.
+- Migrate: `backend/migrations/20260728_task107_ent_indexes_fk_polymorphic.sql` (owner: approve не требуется).
+- Тесты: `testframework/ent/schema_task107_*` + notification/gitlab/project/ai/tracker/bases/crm/github PASS.
+- Ветка `fix/ent/task-107-indexes-fk`; backlog → **Исправлена**.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
