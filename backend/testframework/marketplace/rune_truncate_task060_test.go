@@ -20,7 +20,7 @@ func TestValidateListingInput_CyrillicTitle_RuneLimit(t *testing.T) {
 	require.Equal(t, 150, utf8.RuneCountInString(title))
 	require.Greater(t, len(title), 200, "байтовая проверка ошибочно отклонила бы этот title")
 
-	err := marketplace.ExportValidateListingInput(title, "описание товара", marketplace.CategoryBooks)
+	err := marketplace.ExportValidateListingInput(title, "описание товара", marketplace.CategoryBooks, nil, "")
 	assert.NoError(t, err, "150 рун кириллицы должны пройти лимит 200")
 }
 
@@ -29,7 +29,7 @@ func TestValidateListingInput_CyrillicTitle_OverRuneLimit(t *testing.T) {
 	title := strings.Repeat("я", 201)
 	require.Equal(t, 201, utf8.RuneCountInString(title))
 
-	err := marketplace.ExportValidateListingInput(title, "описание", marketplace.CategoryBooks)
+	err := marketplace.ExportValidateListingInput(title, "описание", marketplace.CategoryBooks, nil, "")
 	assert.ErrorIs(t, err, marketplace.ErrInvalidInput)
 }
 
@@ -40,10 +40,10 @@ func TestValidateListingInput_EmojiDescription_RuneLimit(t *testing.T) {
 	require.Equal(t, 400, len(desc))
 	require.Equal(t, 100, utf8.RuneCountInString(desc))
 
-	err := marketplace.ExportValidateListingInput("title", desc, marketplace.CategoryBooks)
+	err := marketplace.ExportValidateListingInput("title", desc, marketplace.CategoryBooks, nil, "")
 	assert.NoError(t, err)
 
 	over := strings.Repeat("🔥", 2001)
-	err = marketplace.ExportValidateListingInput("title", over, marketplace.CategoryBooks)
+	err = marketplace.ExportValidateListingInput("title", over, marketplace.CategoryBooks, nil, "")
 	assert.ErrorIs(t, err, marketplace.ErrInvalidInput)
 }

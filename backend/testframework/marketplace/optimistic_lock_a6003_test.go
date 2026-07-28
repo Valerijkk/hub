@@ -38,9 +38,9 @@ func TestUpdateListing_OptimisticLock_A6_003(t *testing.T) {
 	})
 	require.ErrorIs(t, err, marketplace.ErrVersionConflict)
 
-	mine, err := svc.ListMine(ctx, memberID)
+	mine, err := svc.ListMine(ctx, memberID, 1, 25)
 	require.NoError(t, err)
-	require.Len(t, mine, 1)
-	assert.Equal(t, title, mine[0].Title)
-	assert.Equal(t, 2, mine[0].Version)
+	require.Len(t, mine.Items, 1)
+	assert.Equal(t, title, mine.Items[0].Title)
+	assert.Equal(t, 2, mine.Items[0].Version)
 }
