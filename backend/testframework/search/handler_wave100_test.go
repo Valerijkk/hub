@@ -70,7 +70,7 @@ func TestDeleteSavedFilter_NotOwner(t *testing.T) {
 
 	err := svc.DeleteSavedFilter(ctx, uuid.New(), filterID)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "доступ запрещён")
+	assert.ErrorIs(t, err, search.ErrFilterForbidden)
 }
 
 func TestShareFilter_Success(t *testing.T) {
