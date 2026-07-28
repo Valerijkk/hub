@@ -65,6 +65,14 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (be1 · TASK-095 Ent VersionMixin)
+
+- ADR-ENT-VERSION-MIXIN-2026 → **Accepted** (owner); unclear-12 exclusion.
+- `mixin_version.go` + Mixin на 45 `mutable_needs_version`; migrate SQL `20260728_task095_version_mixin.sql`.
+- VersionEQ: sprint update, intranet news (W7-A2-003), pilot project/channel/comment.
+- Tests PASS: ent/intranet/sprint/project/messenger/tracker + tms/bases/crm.
+- TASK-095 → **Исправлена**. Ветка: `fix/ent/task-095-version-mixin`.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.
