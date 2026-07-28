@@ -4,7 +4,7 @@
 > Входы: [`W18-SUMMARY.md`](W18-SUMMARY.md), [`W18-CATCHUP-PRODUCT.md`](W18-CATCHUP-PRODUCT.md),  
 > [`W19-A1-ORPHAN-P0P1.md`](W19-A1-ORPHAN-P0P1.md), [`W19-A2-EVIDENCE-GAPS.md`](W19-A2-EVIDENCE-GAPS.md),  
 > [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md), [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md)  
-> Re-verify входов: A1 · A2 · A3 (19:40 UTC+3) · A4 (19:38 UTC+3).
+> Re-verify входов: A1 (19:43) · A2 · A3 (19:40) · A4 (19:44) UTC+3.
 
 ## Контекст после W18
 
@@ -105,7 +105,7 @@ MEDIUM (не top, но в матрице): C-004 (014 mid-fail proof), C-010 (01
 
 ## 4. Red team (auth non-admin)
 
-Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md) (re-verify 19:38)
+Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md) (re-verify 19:44)
 
 **Вердикт A4:** 0 новых CRITICAL как single-step non-admin exploit; CRITICAL combo **TASK-079** (admin erase + residual PII for members); остаточные Med/High → W18 FAIL.
 
