@@ -1,8 +1,9 @@
 # TASK-079 — GDPR Mongo eraser fail-closed + integration test
 
-> Заведено: 2026-07-28 · Автор: W18-C5 (auditor) · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: W18-C5 (auditor) · Приоритет: **P2** · Статус: Исправлена  
 > Источник: TASK-008 W18 catch-up · Findings: W18-C5-001, W18-C5-002  
-> Отчёт: `.planning/audits/total-2026-07/W18-CATCHUP-PRODUCT.md`
+> Отчёт: `.planning/audits/total-2026-07/W18-CATCHUP-PRODUCT.md`  
+> Rework 2026-07-28: fail-closed nil coll + Mongo DeleteMany IT (`gdpr_mongo_eraser_task079_test.go`)
 
 ## [OUTCOME]
 

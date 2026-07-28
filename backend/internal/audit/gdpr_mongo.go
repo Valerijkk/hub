@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -9,13 +10,16 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
+// ErrMongoMessageEraserUnavailable — Mongo eraser без коллекции (fail-closed, W18-C5-001).
+var ErrMongoMessageEraserUnavailable = errors.New("mongo message eraser unavailable")
+
 // MongoMessageEraser стирает messenger-сообщения пользователя по sender_id (P1-BE-34).
 type MongoMessageEraser struct {
 	coll *mongo.Collection
 }
 
 // NewMongoMessageEraser создаёт eraser для коллекции messages.
-// db может быть nil — тогда eraser no-op (удобно в unit без Mongo).
+// db == nil → eraser с nil coll; DeleteMessagesBySender вернёт error (не silent success).
 func NewMongoMessageEraser(db *mongo.Database) *MongoMessageEraser {
 	if db == nil {
 		return &MongoMessageEraser{}
@@ -24,9 +28,10 @@ func NewMongoMessageEraser(db *mongo.Database) *MongoMessageEraser {
 }
 
 // DeleteMessagesBySender удаляет документы messages с данным sender_id.
+// W18-C5-001: nil eraser/coll → error (GDPR cascade не считает шаг успешным).
 func (e *MongoMessageEraser) DeleteMessagesBySender(ctx context.Context, senderID uuid.UUID) (int64, error) {
 	if e == nil || e.coll == nil {
-		return 0, nil
+		return 0, ErrMongoMessageEraserUnavailable
 	}
 	res, err := e.coll.DeleteMany(ctx, bson.M{"sender_id": senderID})
 	if err != nil {
