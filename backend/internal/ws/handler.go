@@ -143,13 +143,14 @@ func (allowAllAuthorizer) CanSubscribe(_ context.Context, _, _ string) (bool, er
 // ВАЖНО (Pitfall 1): Все значения извлекаются из fiber.Ctx ДО апгрейда
 // через utils.CopyString для предотвращения проблем переиспользования fasthttp RequestCtx.
 //
-// SEC-H1: authz — обязательный параметр для production. Если передан nil,
-// используется allowAllAuthorizer (только для тестов).
+// SEC-H1 / W3-A4-003: authz обязателен. nil → отказ upgrade (fail-closed).
+// Для тестов без БД передавайте ExportAllowAllAuthorizer() явно (hubtest).
 func Handler(hub *Hub, authSvc *auth.AuthService, authz Authorizer) fiber.Handler {
-	if authz == nil {
-		authz = allowAllAuthorizer{}
-	}
 	return func(c fiber.Ctx) error {
+		if authz == nil {
+			slog.Error("ws Handler: Authorizer is nil — refusing upgrade (fail-closed)")
+			return fiber.NewError(fiber.StatusServiceUnavailable, "websocket authorizer not configured")
+		}
 		// JWT из query до upgrade — после hijack fiber.Ctx недоступен (Pitfall 1).
 		tokenStr := utils.CopyString(c.Query("token"))
 		if tokenStr == "" {
