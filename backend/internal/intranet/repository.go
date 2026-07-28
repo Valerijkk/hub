@@ -27,6 +27,8 @@ type Repository interface {
 	GetKudo(ctx context.Context, id uuid.UUID) (*ent.Kudo, error)
 	ListPublicKudos(ctx context.Context, page, perPage int) ([]*ent.Kudo, int, error)
 	ListReceivedKudos(ctx context.Context, recipientID uuid.UUID, page, perPage int) ([]*ent.Kudo, int, error)
+	// SoftDeleteKudo — GDPR soft-path (A2W8-3-004 / ADR-ENT-SOFT-DELETE-GAPS-2026).
+	SoftDeleteKudo(ctx context.Context, id uuid.UUID) error
 	GetCoffeeEnrollment(ctx context.Context, userID uuid.UUID) (*ent.CoffeeEnrollment, error)
 	UpsertCoffeeEnrollment(ctx context.Context, userID uuid.UUID, active bool) (*ent.CoffeeEnrollment, error)
 	ListActiveCoffeeEnrollments(ctx context.Context) ([]*ent.User, error)
@@ -198,7 +200,7 @@ func (r *EntRepository) CreateKudo(ctx context.Context, senderID, recipientID uu
 
 func (r *EntRepository) GetKudo(ctx context.Context, id uuid.UUID) (*ent.Kudo, error) {
 	return r.client.Kudo.Query().
-		Where(kudo.ID(id)).
+		Where(kudo.ID(id), kudo.DeletedAtIsNil()).
 		WithSender().
 		WithRecipient().
 		Only(ctx)
@@ -211,7 +213,7 @@ func (r *EntRepository) ListPublicKudos(ctx context.Context, page, perPage int) 
 	if perPage < 1 || perPage > 100 {
 		perPage = 25
 	}
-	q := r.client.Kudo.Query().Where(kudo.IsPublic(true))
+	q := r.client.Kudo.Query().Where(kudo.IsPublic(true), kudo.DeletedAtIsNil())
 	total, err := q.Clone().Count(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -236,7 +238,10 @@ func (r *EntRepository) ListReceivedKudos(ctx context.Context, recipientID uuid.
 	if perPage < 1 || perPage > 100 {
 		perPage = 25
 	}
-	q := r.client.Kudo.Query().Where(kudo.HasRecipientWith(user.ID(recipientID)))
+	q := r.client.Kudo.Query().Where(
+		kudo.HasRecipientWith(user.ID(recipientID)),
+		kudo.DeletedAtIsNil(),
+	)
 	total, err := q.Clone().Count(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -252,4 +257,19 @@ func (r *EntRepository) ListReceivedKudos(ctx context.Context, recipientID uuid.
 		return nil, 0, err
 	}
 	return items, total, nil
+}
+
+// SoftDeleteKudo — A2W8-3-004 / ADR-ENT-SOFT-DELETE-GAPS-2026: GDPR soft-path.
+func (r *EntRepository) SoftDeleteKudo(ctx context.Context, id uuid.UUID) error {
+	affected, err := r.client.Kudo.Update().
+		Where(kudo.IDEQ(id), kudo.DeletedAtIsNil()).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }

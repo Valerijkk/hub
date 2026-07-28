@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -28,22 +29,29 @@ func (r *EntRepository) CreateLabel(ctx context.Context, projectID uuid.UUID, na
 	return create.Save(ctx)
 }
 
-// ListLabels возвращает все метки проекта.
+// ListLabels возвращает все метки проекта (без корзины).
+// A2W8-3-005: DeletedAtIsNil. Mutation: снять фильтр → soft-deleted в списке → FAIL.
 func (r *EntRepository) ListLabels(ctx context.Context, projectID uuid.UUID) ([]*ent.Label, error) {
 	return r.client.Label.Query().
-		Where(label.HasProjectWith(project.IDEQ(projectID))).
+		Where(
+			label.HasProjectWith(project.IDEQ(projectID)),
+			label.DeletedAtIsNil(),
+		).
 		WithGroup().
 		All(ctx)
 }
 
-// DeleteLabel удаляет метку по ID только если она принадлежит проекту (Block F IDOR).
+// DeleteLabel мягко удаляет метку по ID только если она принадлежит проекту (Block F IDOR).
+// A2W8-3-005 / ADR-ENT-SOFT-DELETE-GAPS-2026: SetDeletedAt, не hard Delete.
 func (r *EntRepository) DeleteLabel(ctx context.Context, projectID, labelID uuid.UUID) error {
-	affected, err := r.client.Label.Delete().
+	affected, err := r.client.Label.Update().
 		Where(
 			label.IDEQ(labelID),
 			label.HasProjectWith(project.IDEQ(projectID)),
+			label.DeletedAtIsNil(),
 		).
-		Exec(ctx)
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
 	if err != nil {
 		return err
 	}
@@ -62,6 +70,7 @@ func (r *EntRepository) CountLabelsInProject(ctx context.Context, projectID uuid
 		Where(
 			label.IDIn(labelIDs...),
 			label.HasProjectWith(project.IDEQ(projectID)),
+			label.DeletedAtIsNil(),
 		).
 		Count(ctx)
 }
@@ -74,10 +83,15 @@ func (r *EntRepository) CreateLabelGroup(ctx context.Context, projectID uuid.UUI
 		Save(ctx)
 }
 
-// ListLabelGroups возвращает все группы меток проекта с их метками.
+// ListLabelGroups возвращает все группы меток проекта с их метками (без корзины).
 func (r *EntRepository) ListLabelGroups(ctx context.Context, projectID uuid.UUID) ([]*ent.LabelGroup, error) {
 	return r.client.LabelGroup.Query().
-		Where(labelgroup.HasProjectWith(project.IDEQ(projectID))).
-		WithLabels().
+		Where(
+			labelgroup.HasProjectWith(project.IDEQ(projectID)),
+			labelgroup.DeletedAtIsNil(),
+		).
+		WithLabels(func(q *ent.LabelQuery) {
+			q.Where(label.DeletedAtIsNil())
+		}).
 		All(ctx)
 }
