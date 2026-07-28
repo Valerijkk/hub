@@ -26,6 +26,32 @@ describe("auth-store", () => {
 		expect(state.isAuthenticated).toBe(true);
 	});
 
+	it("does not persist JWT into sessionStorage (A2W11-2-001)", () => {
+		useAuthStore.getState().setTokens("access-abc", "refresh-xyz");
+		useAuthStore.getState().setUser({
+			id: "user-1",
+			email: "dev@hub.local",
+			name: "Dev",
+			display_name: "Dev",
+			timezone: "UTC",
+			language: "ru",
+			system_role: "member",
+			onboarding_completed: true,
+		});
+
+		expect(sessionStorage.getItem("hub-auth")).toBeNull();
+		const raw = sessionStorage.getItem("hub-auth");
+		expect(raw).toBeNull();
+		// Defence: nowhere in sessionStorage should JWT substrings appear.
+		for (let i = 0; i < sessionStorage.length; i++) {
+			const key = sessionStorage.key(i);
+			if (!key) continue;
+			const val = sessionStorage.getItem(key) ?? "";
+			expect(val).not.toContain("access-abc");
+			expect(val).not.toContain("refresh-xyz");
+		}
+	});
+
 	it("setUser stores user profile", () => {
 		const user = {
 			id: "user-1",

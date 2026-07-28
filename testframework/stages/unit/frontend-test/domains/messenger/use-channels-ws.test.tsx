@@ -88,6 +88,12 @@ describe("useChannels WS → Query cache (A10-001)", () => {
 	beforeEach(() => {
 		FakeWebSocket.instances = [];
 		vi.stubGlobal("WebSocket", FakeWebSocket);
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () =>
+				Response.json({ ticket: "ticket-channels", expires_in: 30 }),
+			),
+		);
 
 		useWsStore.getState().disconnect();
 		clearWsReconnectTimer();
@@ -139,8 +145,15 @@ describe("useChannels WS → Query cache (A10-001)", () => {
 	}
 
 	async function mountUseChannels() {
-		act(() => {
+		await act(async () => {
 			useWsStore.getState().connect("tok-a10-001");
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+		await waitFor(() => {
+			expect(FakeWebSocket.instances.length).toBeGreaterThan(0);
+		});
+		act(() => {
 			FakeWebSocket.instances[0]?.open();
 		});
 

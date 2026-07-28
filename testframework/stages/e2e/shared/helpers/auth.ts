@@ -1,5 +1,5 @@
 /**
- * Хелперы E2E: dev-login, seed и инъекция сессии в sessionStorage.
+ * Хелперы E2E: dev-login, seed и инъекция сессии в memory (без JWT в sessionStorage).
  */
 import type { Page } from "@playwright/test";
 
@@ -51,22 +51,25 @@ export async function devLogin(
 	return (await res.json()) as DevLoginResult;
 }
 
+/**
+ * Инъекция сессии до загрузки приложения (ADR-WS-JWT-HANDSHAKE-2026):
+ * JWT только через memory bootstrap, не sessionStorage.
+ */
 export async function authenticatePage(
 	page: Page,
 	login: DevLoginResult,
 ): Promise<void> {
-	const persistPayload = {
-		state: {
-			accessToken: login.access_token,
-			refreshToken: login.refresh_token,
-			user: login.user,
-			isAuthenticated: true,
-		},
-		version: 0,
+	const bootstrap = {
+		accessToken: login.access_token,
+		refreshToken: login.refresh_token,
+		user: login.user,
+		isAuthenticated: true,
 	};
 
 	await page.addInitScript((payload) => {
 		localStorage.setItem("i18nextLng", "ru");
-		sessionStorage.setItem("hub-auth", JSON.stringify(payload));
-	}, persistPayload);
+		(
+			window as unknown as { __HUB_AUTH_BOOTSTRAP__: typeof payload }
+		).__HUB_AUTH_BOOTSTRAP__ = payload;
+	}, bootstrap);
 }
