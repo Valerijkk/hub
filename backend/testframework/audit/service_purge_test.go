@@ -76,7 +76,7 @@ func (m *trashListMockRepo) ListDeletedIssues(_ context.Context, _ *uuid.UUID, c
 	return m.items, m.total, nil
 }
 
-// TestAuditService_PurgeExpired_Succeeds проверяет отклонение при audit сервис очистка просроченный succeeds.
+// TestAuditService_PurgeExpired_Succeeds проверяет успешный purge без ошибок.
 func TestAuditService_PurgeExpired_Succeeds(t *testing.T) {
 	repo := &purgeMockRepo{
 		purgeCounts: map[string]int{
@@ -93,13 +93,17 @@ func TestAuditService_PurgeExpired_Succeeds(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestAuditService_PurgeExpired_LogsErrorsWithoutFailing проверяет отклонение при audit сервис очистка просроченный logs errors without failing.
-func TestAuditService_PurgeExpired_LogsErrorsWithoutFailing(t *testing.T) {
+// TestAuditService_PurgeExpired_PropagatesError — A2W6-A4-001 / A2W6-A5-002:
+// ошибка purge не глотается (fail-closed для cron).
+// Мутация: снова return nil после slog.Error в PurgeExpired → require.Error краснеет.
+func TestAuditService_PurgeExpired_PropagatesError(t *testing.T) {
 	repo := &purgeMockRepo{purgeErr: errors.New("db unavailable")}
 	svc := audit.NewAuditService(repo, nil)
 
 	err := svc.PurgeExpired(context.Background())
-	require.NoError(t, err)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "db unavailable")
+	assert.ErrorContains(t, err, "purge expired")
 }
 
 // TestAuditService_ListTrash_WithItems — W6-A5-007 / P3-BE-02: cutoff ≈ now−30d.
