@@ -1,11 +1,26 @@
 # TASK-110 — 📞 Calls: recording/room rollback/guest entropy
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: A2W3 calls · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]
 
 Stop orphan egress; rollback room on AddParticipant fail; invite code entropy увеличен.
+
+## [EVIDENCE — be2 2026-07-28]
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A2W3-5-001 | **FIXED** | `compensateOrphanEgress` / `StopEgress` после fail `CreateRecording`; IT `TestStartRecording_CreateRecordingFail_StopsEgress_A2W3_5_001` |
+| A2W3-5-002 | **FIXED** | `finalizeCreate` возвращает err + `DeleteRoom` + `HardDeleteCall`; IT `TestFinalizeCreate_AddParticipantFail_RollsBackRoomAndCall_A2W3_5_002` |
+| A2W3-5-003 | **FIXED** | crypto/rand base62×12 (~71 bit) within MaxLen(12); IT `TestCreateInstantCall_InviteCodeBase62Entropy_A2W3_5_003` |
+
+**Mutation:** убрать `compensateOrphanEgress` → StopEgress=0 RED; slog-only AddParticipant → call active + DeleteRoom=0 RED; uuid-hex[:12] → non-hex letter assert RED.
+
+**Команды (PASS):**
+```
+go test -tags hubtest -race -count=1 -timeout=300s ./testframework/calls/
+```
 
 ## [ROLE]
 

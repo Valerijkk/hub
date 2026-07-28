@@ -3,10 +3,11 @@ package calls
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
+	"math/big"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +15,26 @@ import (
 	"github.com/valerii/hub/backend/internal/platform/config"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
+
+// inviteCodeAlphabet — base62; 12 символов ≈ 71 bit (A2W3-5-003; MaxLen(12) без Ent-миграции).
+const inviteCodeAlphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+// inviteCodeLength — длина invite_code (совпадает с Call.invite_code MaxLen).
+const inviteCodeLength = 12
+
+// generateInviteCode — crypto/rand base62, не усечённый UUID-hex (~48 bit).
+func generateInviteCode() (string, error) {
+	b := make([]byte, inviteCodeLength)
+	max := big.NewInt(int64(len(inviteCodeAlphabet)))
+	for i := range b {
+		n, err := rand.Int(rand.Reader, max)
+		if err != nil {
+			return "", fmt.Errorf("генерация invite_code: %w", err)
+		}
+		b[i] = inviteCodeAlphabet[n.Int64()]
+	}
+	return string(b), nil
+}
 
 // ErrCallForbidden — HI-03: 403 для CreateCall/JoinCall/EndCall / A2-002 без утечки причины.
 var ErrCallForbidden = errors.New("forbidden")
@@ -84,8 +105,15 @@ func (s *CallService) CreateInstantCall(ctx context.Context, userID uuid.UUID, u
 	if err != nil {
 		return nil, err
 	}
-	// W3-A5-008: 12 hex (~48 bit) вместо 8 (~32 bit); MaxLen(12) в schema Call.invite_code.
-	inviteCode := strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
+	// A2W3-5-003: crypto/rand base62×12 (~71 bit). Полный UUID — после MaxLen-миграции.
+	inviteCode, err := generateInviteCode()
+	if err != nil {
+		if delErr := s.room.DeleteRoom(ctx, roomName); delErr != nil {
+			slog.Error("CreateInstantCall: не удалось удалить комнату после ошибки invite",
+				"room", roomName, "error", delErr)
+		}
+		return nil, err
+	}
 	if title == "" {
 		title = userName + " — быстрый звонок"
 	}

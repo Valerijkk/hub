@@ -153,6 +153,24 @@ func ExportRecordingServiceRepo(s *RecordingService) *EntRepository {
 	return s.repo
 }
 
+// ExportRecordingServiceSetCreateRecording подменяет CreateRecording для hubtest (A2W3-5-001).
+func ExportRecordingServiceSetCreateRecording(
+	s *RecordingService,
+	fn func(ctx context.Context, egressID string, callID, projectID, userID uuid.UUID, filePath string) (*ent.Recording, error),
+) {
+	s.createRecording = fn
+}
+
+// ExportGenerateInviteCode — crypto/rand base62 invite для hubtest (A2W3-5-003).
+func ExportGenerateInviteCode() (string, error) {
+	return generateInviteCode()
+}
+
+// ExportInviteCodeLength возвращает длину invite_code для hubtest.
+func ExportInviteCodeLength() int {
+	return inviteCodeLength
+}
+
 // ExportRecordingServicePresignClient возвращает S3 presign client для hubtest.
 func ExportRecordingServicePresignClient(s *RecordingService) *s3.PresignClient {
 	return s.presignClient

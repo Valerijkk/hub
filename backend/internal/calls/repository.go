@@ -43,6 +43,14 @@ func (r *EntRepository) CreateInstantCall(ctx context.Context, roomName string, 
 		Save(ctx)
 }
 
+// HardDeleteCall удаляет звонок и его участников (rollback finalizeCreate, A2W3-5-002).
+func (r *EntRepository) HardDeleteCall(ctx context.Context, callID uuid.UUID) error {
+	if _, err := r.db.CallParticipant.Delete().Where(callparticipant.CallID(callID)).Exec(ctx); err != nil {
+		return err
+	}
+	return r.db.Call.DeleteOneID(callID).Exec(ctx)
+}
+
 // GetCallByInviteCode возвращает активный звонок по invite-коду.
 func (r *EntRepository) GetCallByInviteCode(ctx context.Context, code string) (*ent.Call, error) {
 	return r.db.Call.Query().

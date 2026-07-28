@@ -26,9 +26,9 @@ func TestCreateInstantCall_InviteCodeFullUUID_P2_BE_15(t *testing.T) {
 	resp, err := f.svc.CreateInstantCall(context.Background(), f.owner.ID, "Owner", "Quick")
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.InviteCode)
-	// W3-A5-008: 12 hex (~48 bit), не усечённые 8.
-	assert.Len(t, resp.InviteCode, 12)
-	assert.Regexp(t, `^[0-9a-f]{12}$`, resp.InviteCode)
+	// A2W3-5-003 / TASK-110: base62×12 (~71 bit), не усечённый UUID-hex.
+	assert.Len(t, resp.InviteCode, calls.ExportInviteCodeLength())
+	assert.Regexp(t, `^[0-9A-Za-z]{12}$`, resp.InviteCode)
 }
 
 func TestCheckConflicts_StrangerForbidden_P2_BE_15(t *testing.T) {

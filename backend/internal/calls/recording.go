@@ -55,6 +55,8 @@ type RecordingService struct {
 	presignClient *s3.PresignClient
 	repo          *EntRepository
 	nats          *natsclient.Client
+	// createRecording — опциональный override для hubtest (orphan egress compensation).
+	createRecording func(ctx context.Context, egressID string, callID, projectID, userID uuid.UUID, filePath string) (*ent.Recording, error)
 }
 
 // NewRecordingService создаёт новый сервис записи звонков.
@@ -174,9 +176,10 @@ func (s *RecordingService) StartRecording(ctx context.Context, callID, userID uu
 		return nil, fmt.Errorf("не удалось запустить запись: %w", err)
 	}
 
-	// Сохраняем запись в БД
-	rec, err := s.repo.CreateRecording(ctx, egressInfo.EgressId, callID, projectID, userID, filePath)
+	// Сохраняем запись в БД. A2W3-5-001: при ошибке — StopEgress, иначе orphan egress в LiveKit/S3.
+	rec, err := s.createRecordingRow(ctx, egressInfo.EgressId, callID, projectID, userID, filePath)
 	if err != nil {
+		s.compensateOrphanEgress(ctx, egressInfo.EgressId)
 		return nil, fmt.Errorf("не удалось сохранить запись: %w", err)
 	}
 
@@ -189,6 +192,26 @@ func (s *RecordingService) StartRecording(ctx context.Context, callID, userID uu
 	})
 
 	return toRecordingResponse(rec), nil
+}
+
+// createRecordingRow пишет метаданные записи. В hubtest можно подменить через
+// ExportRecordingServiceSetCreateRecording (мутация A2W3-5-001).
+func (s *RecordingService) createRecordingRow(ctx context.Context, egressID string, callID, projectID, userID uuid.UUID, filePath string) (*ent.Recording, error) {
+	if s.createRecording != nil {
+		return s.createRecording(ctx, egressID, callID, projectID, userID, filePath)
+	}
+	return s.repo.CreateRecording(ctx, egressID, callID, projectID, userID, filePath)
+}
+
+// compensateOrphanEgress останавливает LiveKit egress после провала CreateRecording (A2W3-5-001).
+func (s *RecordingService) compensateOrphanEgress(ctx context.Context, egressID string) {
+	if s.egressClient == nil || egressID == "" {
+		return
+	}
+	if _, stopErr := s.egressClient.StopEgress(ctx, &livekit.StopEgressRequest{EgressId: egressID}); stopErr != nil {
+		slog.Error("recording: не удалось остановить orphan egress после ошибки CreateRecording",
+			"egress_id", egressID, "error", stopErr)
+	}
 }
 
 // StopRecording останавливает запись звонка через LiveKit Egress.
