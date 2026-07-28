@@ -1,7 +1,7 @@
 # Hub — `.planning/` index
 
-> Навигация по planning-артефактам. **Ничего не удаляем** — только раскладка по смыслу и датам.  
-> Обновлено: 2026-07-26 (STATE compact + AI quality layer + July audit provenance)
+> Навигация по planning-артефактам. **Ничего не удаляем** — только раскладка по смыслу и датам.
+> Обновлено: 2026-07-28 (реорганизация 24 папок → 11 по смыслу и истории)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Файл | Назначение |
 |------|------------|
-| [`STATE.md`](STATE.md) | **Live** позиция, текущие session notes, Pending Todos, blockers |
+| [`STATE.md`](STATE.md) | **Live** позиция, session notes, Pending Todos, blockers, deploy_blockers |
 | [`PROJECT.md`](PROJECT.md) | Проект, цели, контекст |
 | [`ROADMAP.md`](ROADMAP.md) | Дорожная карта фаз (GSD) |
 | [`REQUIREMENTS.md`](REQUIREMENTS.md) | Требования |
@@ -18,56 +18,122 @@
 
 Старт сессии: **STATE** → этот README → нужная тема ниже.
 
-**History vs live:** dated session notes ≤2026-07-23 и старые completion logs
-живут в [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md)
-(historical / non-canonical). Текущая правда — только `STATE.md` + domain docs.
-
 ---
 
-## По смыслу
+## Структура
+
+Одиннадцать папок вместо прежних двадцати четырёх. Деление — по **назначению**,
+а не по дате: активное отдельно от исторического, решения отдельно от аудитов.
+
+### Управляется GSD — пути зашиты в скилах, не переименовывать
 
 | Папка | Что внутри |
 |-------|------------|
-| [`july-2026/`](july-2026/) | July Rebuild / QA-HARDENING: INDEX, brief, status, roadmaps return/final, charter, EDGE catalog, expansion |
-| [`audits/2026-06/`](audits/2026-06/) | Аудиты июня: AUDIT-*, FA-01/02/10/RBAC, TECH-DEBT, WAVE-C, RU-V, SCORECARD |
-| [`audits/2026-07/`](audits/2026-07/) | July repo-scan: 40 report slots, provenance/confidence policy, non-authoritative scorecard |
-| [`production/`](production/) | Prod ops: PG-03, handoff, FA-06 log, PROD-01, PR v2.5 trust |
-| [`specs/`](specs/) | Спеки: AI Provider Hub, Notif TG/Email, Platform Vision v4 |
-| [`roadmaps/`](roadmaps/) | Исторические roadmap/backlog: DISCUSS-*, FEATURE-BACKLOG, MICROSERVICES, MILESTONE-2/3, IMPROVEMENT, EXECUTIVE |
-| [`tasks/`](tasks/) | Закрытие gaps / Wave C tasks: TASKS-*, PLAN-CLOSE-GAPS |
-| [`gray-zones/`](gray-zones/) | Gray-zone areas + locked decisions (`GRAY-ZONES-DECISIONS-2026-07-03.md`) |
-| [`decisions/`](decisions/) | ADR |
-| [`seeds/`](seeds/) | Seeds (SEED-001 rejected / SEED-002 active) |
-| [`edge-expansions/`](edge-expansions/) | Edge/corner expansions (wave1–5) |
-| [`research/`](research/) | Research notes |
-| [`milestones/`](milestones/) | Архивы milestone phases (v1–v4) |
-| [`phases/`](phases/) | Phase plans (GSD) |
-| [`ab-tests/`](ab-tests/), [`ab-microservices/`](ab-microservices/) | A/B планы |
-| [`code-review/`](code-review/), [`code-review-final/`](code-review-final/) | Code review артефакты |
-| [`quick/`](quick/) | Задачи `gsd-quick` — папка на задачу `YYYYMMDD-<slug>/` с `PLAN.md` + `SUMMARY.md` |
-| [`history/`](history/) | Архив session notes / completion logs (не live STATE) |
-| [`tooling/`](tooling/) | biome dump / parse script (не продукт) |
-| [`debug/`](debug/), [`ui-reviews/`](ui-reviews/) | Прочие артефакты |
+| [`phases/`](phases/) | Phase plans (GSD), 124 фазы + backlog `999-*` |
+| [`milestones/`](milestones/) | Архивы завершённых milestone: v1.0 (01–07), v2.0 (08–13), v4 |
+| [`research/`](research/) | Research notes перед планированием фаз |
+| [`debug/`](debug/) | Сессии `gsd-debug` |
+| [`ui-reviews/`](ui-reviews/) | Отчёты `gsd-ui-review` |
+
+> ⚠️ Эти пути жёстко прописаны в `~/.claude/agents/gsd-*` и `~/.claude/skills/gsd-*`.
+> Перемещение сломает GSD-команды. Остальные папки ниже — свободны.
+
+### Активная работа
+
+| Папка | Что внутри |
+|-------|------------|
+| [`active/august-2026/`](active/august-2026/) | Планы на август: [индекс](active/august-2026/00-AUGUST-PLAN.md), [микросервисы](active/august-2026/01-MICROSERVICES-SPLIT.md) |
+
+### Решения и спецификации
+
+| Папка | Что внутри |
+|-------|------------|
+| [`decisions/`](decisions/) | ADR — архитектурные решения |
+| [`decisions/gray-zones/`](decisions/gray-zones/) | 6 областей серых зон + [зафиксированные решения](decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md) |
+| [`decisions/specs/`](decisions/specs/) | Спеки модулей: AI Provider Hub, Notif TG/Email, Platform Vision v4 |
+| [`decisions/ab-microservices/`](decisions/ab-microservices/) | A/B-планы выноса в микросервисы (fable / opus) |
+
+### Аудиты и ревью
+
+| Папка | Что внутри |
+|-------|------------|
+| [`audits/2026-06/`](audits/2026-06/) | Аудиты июня: FA-01/02/10, RBAC, TECH-DEBT, WAVE-C, SCORECARD |
+| [`audits/2026-07/`](audits/2026-07/) | July repo-scan + provenance policy |
+| [`audits/grok-2026-07/`](audits/grok-2026-07/) | Аудит кода: 261 находка, волны фиксов W1–W20 |
+| [`audits/planning-audit-2026-07/`](audits/planning-audit-2026-07/) | Аудит планирования: 11 находок, матрица фаз, классификации NFR |
+| [`audits/code-review/`](audits/code-review/), [`audits/code-review-final/`](audits/code-review-final/) | Code review артефакты |
+
+### Референс
+
+| Папка | Что внутри |
+|-------|------------|
+| [`reference/edge-expansions/`](reference/edge-expansions/) | Edge/corner-кейсы по доменам — источник TC и материал для Swagger |
+| [`reference/seeds/`](reference/seeds/) | Отложенные идеи (SEED-001 rejected, SEED-002 active) |
+
+### Операционное
+
+| Папка | Что внутри |
+|-------|------------|
+| [`ops/production/`](ops/production/) | Prod ops: PG-03, FA-06, handoff, PR v2.5 trust |
+| [`ops/tooling/`](ops/tooling/) | biome dump и парсер — не продукт |
+
+### Архив — историческое, завершённое
+
+| Папка | Что внутри |
+|-------|------------|
+| [`archive/july-2026/`](archive/july-2026/) | July Rebuild / QA-HARDENING: индекс, brief, charter, EDGE catalog, AI expansion |
+| [`archive/roadmaps/`](archive/roadmaps/) | Исторические roadmap и backlog: DISCUSS-*, FEATURE-BACKLOG, MICROSERVICES, EXECUTIVE |
+| [`archive/tasks/`](archive/tasks/) | Закрытие gaps, Wave C tasks |
+| [`archive/ab-tests/`](archive/ab-tests/) | A/B-планы оркестрации (bases, incident) |
+| [`archive/quick/`](archive/quick/) | Задачи `gsd-quick`, папка на задачу `YYYYMMDD-<slug>/` |
+| [`archive/history/`](archive/history/) | Session notes и completion logs ≤2026-07-23 — **не** live STATE |
 
 ---
 
-## Быстрые входы (июль 2026)
+## Быстрые входы
 
 | Нужно | Путь |
 |-------|------|
-| Индекс июля | [`july-2026/INDEX-JULY-2026.md`](july-2026/INDEX-JULY-2026.md) |
-| Rebuild brief | [`july-2026/JULY-2026-REBUILD-BRIEF.md`](july-2026/JULY-2026-REBUILD-BRIEF.md) |
-| Gray zones locked | [`gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`](gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md) |
-| FA-06 / secrets | [`production/FA-06-EXECUTION-LOG.md`](production/FA-06-EXECUTION-LOG.md), [`production/PG-03-SECRET-ROTATION.md`](production/PG-03-SECRET-ROTATION.md) |
-| Coverage | [`COVERAGE.md`](COVERAGE.md) |
-| AI quality layer plan | [`july-2026/ai-expansion/09-AI-QUALITY-LAYER-REWORK.md`](july-2026/ai-expansion/09-AI-QUALITY-LAYER-REWORK.md) |
-| Repo-scan provenance | [`audits/2026-07/repo-scan/PROVENANCE.md`](audits/2026-07/repo-scan/PROVENANCE.md) |
+| Планы на август | [`active/august-2026/00-AUGUST-PLAN.md`](active/august-2026/00-AUGUST-PLAN.md) |
+| Что не так с планированием | [`audits/planning-audit-2026-07/00-PLANNING-AUDIT.md`](audits/planning-audit-2026-07/00-PLANNING-AUDIT.md) |
+| Реальный статус фаз | [`audits/planning-audit-2026-07/PHASE-STATUS-MATRIX.md`](audits/planning-audit-2026-07/PHASE-STATUS-MATRIX.md) |
+| Решения, ждущие владельца | [`audits/planning-audit-2026-07/DECISIONS-PENDING.md`](audits/planning-audit-2026-07/DECISIONS-PENDING.md) |
+| Свежее покрытие | [`audits/planning-audit-2026-07/cov-2026-07-27-REPORT.md`](audits/planning-audit-2026-07/cov-2026-07-27-REPORT.md) |
+| Gray zones locked | [`decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`](decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md) |
+| FA-06 / секреты | [`ops/production/PG-03-SECRET-ROTATION.md`](ops/production/PG-03-SECRET-ROTATION.md) |
+| Индекс июля | [`archive/july-2026/INDEX-JULY-2026.md`](archive/july-2026/INDEX-JULY-2026.md) |
 
 ---
 
 ## Правила
 
-1. **Не удалять** артефакты — только перенос / архив по папкам.
+1. **Не удалять** артефакты — только перенос и архив по папкам.
 2. Живой канон GSD остаётся в **корне** `.planning/`.
-3. Новые разовые отчёты → в тему (`audits/YYYY-MM/`, `production/`, `july-YYYY/` и т.д.), не в корень.
-4. После переноса обновлять ссылки в `docs/`, `AGENTS.md`, playbooks.
+3. Папки из раздела «Управляется GSD» **не переименовывать и не перемещать** —
+   их пути зашиты в скилах.
+4. Новые разовые отчёты — в тему (`audits/YYYY-MM/`, `ops/production/`), не в корень.
+5. Завершённое переносить в `archive/`, а не оставлять рядом с активным.
+6. После любого переноса — прогнать проверку ссылок и обновить этот README.
+
+### Проверка ссылок после переноса
+
+```bash
+python - <<'PY'
+import os,re
+broken=[]
+for root,dirs,fs in os.walk("."):
+    dirs[:]=[d for d in dirs if d not in {".git","node_modules","ent",".venv","dist"}]
+    for f in fs:
+        if not f.endswith(".md"): continue
+        p=os.path.join(root,f)
+        try: s=open(p,encoding="utf-8").read()
+        except Exception: continue
+        for m in re.finditer(r'\]\(([^)#\s]+\.md)(#[^)]*)?\)', s):
+            t=m.group(1)
+            if t.startswith(("http","mailto")): continue
+            if not os.path.exists(os.path.normpath(os.path.join(root,t))):
+                broken.append(f"{p} -> {t}")
+print("битых ссылок:", len(broken))
+for b in broken[:20]: print("  ", b)
+PY
+```
