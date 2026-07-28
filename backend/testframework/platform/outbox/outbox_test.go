@@ -272,7 +272,8 @@ func TestProcessEvent_DropBeforeFlush_StaysPending_P1_BE_24(t *testing.T) {
 	ctx := context.Background()
 
 	natsclient.ExportSetAfterCorePublishHook(func() {
-		nc.Close()
+		// ForceClose: без Drain, иначе Flush успеет и тест не поймает drop.
+		nc.ForceClose()
 	})
 	t.Cleanup(func() { natsclient.ExportSetAfterCorePublishHook(nil) })
 
@@ -305,4 +306,32 @@ func TestProcessLoop_StopsOnContextCancel(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("ProcessLoop did not stop after context cancel")
 	}
+}
+
+// TestProcessBatch_CancelMidBatch_Stops_P3BE12 — W4-A2-009:
+// cancel после 1-го события → остальные не processEvent (не дожимаем батч).
+func TestProcessBatch_CancelMidBatch_Stops_P3BE12(t *testing.T) {
+	client := newTestEntClient(t)
+	nc := startTestNATSServer(t)
+	w := outbox.NewWorker(client, nc)
+
+	for i := 0; i < 5; i++ {
+		insertOutboxEvent(t, client, "test.batch.cancel", []byte(`{"i":1}`))
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	var processed int
+	outbox.ExportSetBetweenOutboxEventsHook(func() {
+		processed++
+		if processed == 1 {
+			cancel()
+		}
+	})
+	t.Cleanup(func() { outbox.ExportSetBetweenOutboxEventsHook(nil) })
+
+	require.NotPanics(t, func() {
+		outbox.ExportWorkerProcessBatch(w, ctx)
+	})
+	assert.Equal(t, 1, processed,
+		"without ctx.Done check mid-batch, all 5 events would run the between-hook")
 }

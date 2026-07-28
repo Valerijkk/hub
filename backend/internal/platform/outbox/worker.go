@@ -23,6 +23,9 @@ const (
 	pollInterval       = 100 * time.Millisecond
 )
 
+// betweenOutboxEventsHook — только hubtest: между событиями батча (cancel mid-batch).
+var betweenOutboxEventsHook func()
+
 // Worker опрашивает outbox-таблицу на наличие ожидающих событий и публикует их в NATS.
 // События, не обработанные после 10 попыток, помечаются как failed.
 type Worker struct {
@@ -79,7 +82,16 @@ func (w *Worker) processBatch(ctx context.Context) {
 
 	tw := &Worker{client: tx.Client(), nats: w.nats}
 	for _, evt := range events {
+		// W4-A2-009 / P3-BE-12: cancel mid-batch — не дожимаем до 50 при shutdown.
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		tw.processEvent(ctx, evt)
+		if betweenOutboxEventsHook != nil {
+			betweenOutboxEventsHook()
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

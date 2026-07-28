@@ -24,6 +24,16 @@ func ExportSetTracingActiveForTest(active bool) {
 	tracingActive.Store(active)
 }
 
+// ExportSanitizeOperationLabel wraps sanitizeOperationLabel for hubtest (W4-A3-008).
+func ExportSanitizeOperationLabel(operation string) string {
+	return sanitizeOperationLabel(operation)
+}
+
+// ExportUnknownOperationLabel returns the cardinality bucket for unknown ops.
+func ExportUnknownOperationLabel() string {
+	return unknownOperationLabel
+}
+
 // ExportUnmatchedRouteLabel returns the sentinel for unmatched routes (W4-A3-002).
 func ExportUnmatchedRouteLabel() string {
 	return unmatchedRouteLabel

@@ -8,7 +8,7 @@ import (
 )
 
 // Timed выполняет fn и логирует длительность в миллисекундах.
-// Ошибки логируются на уровне Error, успех — Info.
+// Ошибки — Error; успех — Debug (W4-A3-006 / P3-BE-12: hot-path не шумит в Info).
 func Timed[T any](ctx context.Context, operation string, fn func(context.Context) (T, error)) (T, error) {
 	ctx, span := startOperationSpan(ctx, operation)
 	start := time.Now()
@@ -24,7 +24,7 @@ func Timed[T any](ctx context.Context, operation string, fn func(context.Context
 		slog.ErrorContext(ctx, "operation failed", append(attrs, "error", err)...)
 		return result, err
 	}
-	slog.InfoContext(ctx, "operation completed", attrs...)
+	slog.DebugContext(ctx, "operation completed", attrs...)
 	return result, nil
 }
 

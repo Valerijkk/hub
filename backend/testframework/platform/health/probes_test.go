@@ -86,3 +86,21 @@ func TestReady_NoProbesConfigured_503(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 	assert.Contains(t, string(body), `"status":"degraded"`)
 }
+
+// TestReady_ProbeParentIsRequestContext_P3BE12 — W4-A4-012:
+// parent для WithTimeout = c.Context() (RequestCtx), не Background.
+func TestReady_ProbeParentIsRequestContext_P3BE12(t *testing.T) {
+	app := fiber.New()
+	app.Get("/check", func(c fiber.Ctx) error {
+		parent := health.ExportProbeParentContext(c)
+		assert.Equal(t, c.Context(), parent, "Ready must use c.Context() as probe parent")
+		assert.NotEqual(t, context.Background(), parent)
+		return c.SendStatus(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/check", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}

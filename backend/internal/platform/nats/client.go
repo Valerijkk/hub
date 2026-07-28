@@ -68,8 +68,34 @@ func redactNATSURL(raw string) string {
 	return u.Scheme + "://***:***@" + host
 }
 
-// Close закрывает NATS-соединение.
+// Close закрывает NATS-соединение через Drain (W4-A2-006 / P3-BE-12):
+// in-flight publishes успевают уйти; при таймауте или если Drain не закрыл — force Close.
 func (c *Client) Close() {
+	if c == nil || c.Conn == nil {
+		return
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = c.Conn.Drain()
+	}()
+	select {
+	case <-done:
+	case <-time.After(natsDrainTimeout):
+	}
+	if !c.Conn.IsClosed() {
+		c.Conn.Close()
+	}
+}
+
+// natsDrainTimeout — сколько ждать Drain перед force Close на shutdown.
+const natsDrainTimeout = 5 * time.Second
+
+// ForceClose закрывает соединение без Drain (hubtest / аварийный путь).
+func (c *Client) ForceClose() {
+	if c == nil || c.Conn == nil {
+		return
+	}
 	c.Conn.Close()
 }
 

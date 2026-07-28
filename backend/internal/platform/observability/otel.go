@@ -79,10 +79,8 @@ func InitTracing(ctx context.Context, cfg TracingConfig) (func(context.Context) 
 		sdktrace.WithResource(res),
 	)
 	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
+	// W4-A3-005 / P3-BE-12: только TraceContext — без client-controlled Baggage.
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 	tracingActive.Store(true)
 
 	slog.InfoContext(ctx, "OpenTelemetry tracing enabled",

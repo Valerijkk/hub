@@ -43,6 +43,19 @@ func TestNewClient_ConnectAndClose(t *testing.T) {
 	assert.True(t, client.Conn.IsClosed())
 }
 
+// TestClient_Close_Drains_P3BE12 — W4-A2-006: Close идёт через Drain (не голый Conn.Close).
+func TestClient_Close_Drains_P3BE12(t *testing.T) {
+	assert.Equal(t, 5*time.Second, natsclient.ExportNATSDrainTimeout())
+
+	url := startTestNATSServer(t)
+	client, err := natsclient.NewClient(context.Background(), url)
+	require.NoError(t, err)
+
+	require.NoError(t, client.Publish("hub.test.drain", []byte("x")))
+	client.Close()
+	assert.True(t, client.Conn.IsClosed(), "Drain/Close must leave connection closed")
+}
+
 func TestClient_PublishSubscribe(t *testing.T) {
 	url := startTestNATSServer(t)
 	client, err := natsclient.NewClient(context.Background(), url)

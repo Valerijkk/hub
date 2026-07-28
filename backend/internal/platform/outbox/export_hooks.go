@@ -52,6 +52,11 @@ func ExportMaxPublishAttempts() int {
 	return maxPublishAttempts
 }
 
+// ExportSetBetweenOutboxEventsHook — hubtest: между событиями processBatch (cancel mid-batch).
+func ExportSetBetweenOutboxEventsHook(fn func()) {
+	betweenOutboxEventsHook = fn
+}
+
 // ExportBatchLimit — W4-A2-008 / P3-BE-02: размер claim-batch outbox worker.
 func ExportBatchLimit() int {
 	return batchLimit

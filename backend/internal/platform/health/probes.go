@@ -25,13 +25,14 @@ func Live(c fiber.Ctx) error {
 
 // Ready — зависимости; 503 при любой деградации (K8s readiness / Compose healthcheck).
 // W4-A4-007: ни одного ping → 503 (fail-closed miswiring), не 200 с пустым services.
+// W4-A4-012 / P3-BE-12: timeout от c.Context() (RequestCtx), не Background.
 func Ready(deps Deps) fiber.Handler {
 	timeout := deps.Timeout
 	if timeout <= 0 {
 		timeout = 5 * time.Second
 	}
 	return func(c fiber.Ctx) error {
-		healthCtx, cancel := context.WithTimeout(context.Background(), timeout)
+		healthCtx, cancel := context.WithTimeout(probeParentContext(c), timeout)
 		defer cancel()
 
 		services := fiber.Map{}
@@ -73,4 +74,9 @@ func Ready(deps Deps) fiber.Handler {
 			"services": services,
 		})
 	}
+}
+
+// probeParentContext — parent для WithTimeout (W4-A4-012). Вынесено для hubtest.
+func probeParentContext(c fiber.Ctx) context.Context {
+	return c.Context()
 }
