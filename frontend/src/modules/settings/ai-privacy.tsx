@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getAIPreferences, updateAIPreferences } from "@/api/ai";
 import { BYOKSettings } from "@/components/ai/byok-settings";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { toastApiError } from "@/lib/format-api-error";
 
@@ -9,6 +10,8 @@ import { toastApiError } from "@/lib/format-api-error";
 export function UserAISettings() {
 	const [allowExternal, setAllowExternal] = useState(true);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
+	const [loaded, setLoaded] = useState(false);
 	const [saving, setSaving] = useState(false);
 
 	const refresh = useCallback(async () => {
@@ -16,7 +19,11 @@ export function UserAISettings() {
 		try {
 			const pref = await getAIPreferences();
 			setAllowExternal(pref.allow_external_ai ?? true);
+			setLoadError(false);
+			setLoaded(true);
 		} catch (err) {
+			setLoadError(true);
+			setLoaded(false);
 			toastApiError(err, "Не удалось загрузить настройки AI");
 		} finally {
 			setLoading(false);
@@ -41,6 +48,15 @@ export function UserAISettings() {
 
 	if (loading) {
 		return <p className="text-[13px] text-t3 py-8 text-center">Загрузка...</p>;
+	}
+
+	if (loadError || !loaded) {
+		return (
+			<QueryErrorAlert
+				message="Не удалось загрузить настройки AI"
+				retry={() => void refresh()}
+			/>
+		);
 	}
 
 	return (

@@ -1,11 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Inbox, ListTodo } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import {
-	filterIssuesWithoutSprint,
-	type IssueResponse,
-	listIssues,
-} from "@/api/tracker";
+import { type IssueResponse, listIssues } from "@/api/tracker";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { toastApiError } from "@/lib/format-api-error";
 import { useSprintStore } from "@/stores/sprint-store";
@@ -20,6 +17,8 @@ interface SprintBacklogProps {
  * SprintBacklog отображает задачи без спринта (бэклог)
  * и задачи в спринтах со статусом planning.
  * Поддерживает выбор задач и перемещение в спринт.
+ *
+ * A2W10-A3-002: fail load ≠ empty «Бэклог пуст».
  */
 export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	const { sprints, fetchSprints, moveIssueToSprint } = useSprintStore();
@@ -30,17 +29,13 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 
 	const loadBacklog = useCallback(async () => {
 		setLoading(true);
-		setLoadError(false);
 		try {
-			// sprint_id=none — серверный фильтр бэклога; client filter — defense-in-depth.
-			const resp = await listIssues(projectId, {
-				limit: 100,
-				sprint_id: "none",
-			});
-			setBacklogIssues(filterIssuesWithoutSprint(resp.items));
+			const resp = await listIssues(projectId, { limit: 100 });
+			setBacklogIssues(resp.items);
+			setLoadError(false);
 		} catch (err) {
-			setBacklogIssues([]);
 			setLoadError(true);
+			setBacklogIssues([]);
 			toastApiError(err, "Не удалось загрузить бэклог");
 		}
 		setLoading(false);
@@ -99,7 +94,6 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 						{planningSprints.map((s) => (
 							<Button
 								key={s.id}
-								type="button"
 								size="sm"
 								className="btn-glow bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/20 hover:from-blue-500 hover:to-blue-400"
 								onClick={() => void handleMoveToSprint(s.id)}
@@ -120,22 +114,10 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 					</div>
 				</div>
 			) : loadError ? (
-				<div className="flex flex-col items-center justify-center py-16 text-center">
-					<h3 className="text-lg font-semibold text-t1">
-						Не удалось загрузить бэклог
-					</h3>
-					<p className="mt-1 max-w-sm text-sm text-t2">
-						Проверьте соединение и попробуйте снова
-					</p>
-					<Button
-						type="button"
-						variant="outline"
-						className="mt-4"
-						onClick={() => void loadBacklog()}
-					>
-						Повторить
-					</Button>
-				</div>
+				<QueryErrorAlert
+					message="Не удалось загрузить бэклог"
+					retry={() => void loadBacklog()}
+				/>
 			) : backlogIssues.length === 0 ? (
 				<div className="flex flex-col items-center justify-center py-16 text-center">
 					<div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-blue-500/20">

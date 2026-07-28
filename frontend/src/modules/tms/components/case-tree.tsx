@@ -148,7 +148,7 @@ export function CaseTreePanel({
 	total: number;
 }) {
 	return (
-		<div className="w-[290px] min-w-[290px] border-r border-b1 flex flex-col bg-void animate-[enterRight_400ms_var(--spring)_both]">
+		<div className="w-full md:w-[290px] md:min-w-[290px] border-r border-b1 flex flex-col bg-void animate-[enterRight_400ms_var(--spring)_both]">
 			<div className="px-[18px] py-4 border-b border-b1 flex items-center justify-between">
 				<span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-t4">
 					Тест-сьюты

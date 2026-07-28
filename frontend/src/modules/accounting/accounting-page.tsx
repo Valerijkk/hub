@@ -15,6 +15,7 @@ import {
 	payInvoice,
 	postJournal,
 } from "@/api/accounting";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -29,12 +30,17 @@ export function AccountingPage() {
 	const [invoiceAmount, setInvoiceAmount] = useState("");
 	const [invoiceDesc, setInvoiceDesc] = useState("");
 
-	const { data: accounts = [] } = useQuery({
+	const {
+		data: accounts = [],
+		isLoading: accountsLoading,
+		isError: accountsError,
+		refetch: refetchAccounts,
+	} = useQuery({
 		queryKey: ["accounting", "accounts"],
 		queryFn: listAccounts,
 	});
 
-	const { data: entries = [] } = useQuery({
+	const { data: entries = [], isError: journalError } = useQuery({
 		queryKey: ["accounting", "journal"],
 		queryFn: listJournal,
 	});
@@ -53,6 +59,8 @@ export function AccountingPage() {
 		queryKey: ["accounting", "income-statement"],
 		queryFn: getIncomeStatement,
 	});
+
+	const accountsLoadError = accountsError || journalError;
 
 	const expenseAccount = useMemo(
 		() => accounts.find((a) => a.code === "5010"),
@@ -144,6 +152,37 @@ export function AccountingPage() {
 			amount_cents: Math.round(rub * 100),
 		});
 	};
+
+	if (accountsLoading) {
+		return (
+			<div className="mx-auto max-w-[1200px] space-y-6 px-4 py-6">
+				<header className="space-y-1">
+					<h1 className="text-2xl font-bold tracking-tight">Бухгалтерия</h1>
+					<p className="text-sm text-t2">
+						Двойная запись · счета · P&L · Hub-only (V4-03)
+					</p>
+				</header>
+				<p className="text-sm text-t2">Загрузка...</p>
+			</div>
+		);
+	}
+
+	if (accountsLoadError) {
+		return (
+			<div className="mx-auto max-w-[1200px] space-y-6 px-4 py-6">
+				<header className="space-y-1">
+					<h1 className="text-2xl font-bold tracking-tight">Бухгалтерия</h1>
+					<p className="text-sm text-t2">
+						Двойная запись · счета · P&L · Hub-only (V4-03)
+					</p>
+				</header>
+				<QueryErrorAlert
+					message="Не удалось загрузить данные учёта"
+					retry={() => void refetchAccounts()}
+				/>
+			</div>
+		);
+	}
 
 	return (
 		<div className="mx-auto max-w-[1200px] space-y-6 px-4 py-6">

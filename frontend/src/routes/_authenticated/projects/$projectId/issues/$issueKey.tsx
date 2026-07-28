@@ -47,7 +47,12 @@ function IssueDetailPage() {
 
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-	const { data: issue, isLoading } = useQuery({
+	const {
+		data: issue,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["issue", projectId, issueKey],
 		queryFn: () => getIssue(projectId, issueKey),
 	});
@@ -137,6 +142,26 @@ function IssueDetailPage() {
 						<div className="h-10 w-full rounded-lg bg-card/50 animate-shimmer" />
 					</div>
 				</div>
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div
+				role="alert"
+				className="flex flex-col items-center justify-center gap-3 py-12 text-center"
+			>
+				<p className="text-[14px] font-semibold text-t1">
+					Не удалось загрузить задачу
+				</p>
+				<button
+					type="button"
+					onClick={() => void refetch()}
+					className="h-9 px-3 rounded-[var(--r2)] border border-b1 text-[13px] text-t2 hover:text-t1 hover:border-b2 transition-colors"
+				>
+					Попробовать снова
+				</button>
 			</div>
 		);
 	}

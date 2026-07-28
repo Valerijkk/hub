@@ -507,6 +507,7 @@ function ChannelItem({
 	isActive,
 	unread,
 	getStatus,
+	presenceUnavailable,
 	getDmPartnerId,
 	onSelect,
 }: {
@@ -514,6 +515,7 @@ function ChannelItem({
 	isActive: boolean;
 	unread: number;
 	getStatus: (userId: string) => PresenceStatus;
+	presenceUnavailable?: boolean;
 	getDmPartnerId: (ch: Channel) => string | undefined;
 	onSelect?: () => void;
 }) {
@@ -562,7 +564,11 @@ function ChannelItem({
 					<ChannelIcon type={channel.channel_type} />
 					{channel.channel_type === "dm" && partnerId && (
 						<span className="absolute bottom-0 right-0 w-[9px] h-[9px] rounded-full border-2 border-[var(--void)]">
-							<PresenceIndicator status={getStatus(partnerId)} size="sm" />
+							<PresenceIndicator
+								status={getStatus(partnerId)}
+								unavailable={presenceUnavailable}
+								size="sm"
+							/>
 						</span>
 					)}
 				</div>
@@ -665,7 +671,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 
 	// Presence для DM недоступен — ChannelResponse не содержит members.
 	const dmUserIds: string[] = [];
-	const { getStatus } = usePresence(dmUserIds);
+	const { getStatus, isError: presenceError } = usePresence(dmUserIds);
 
 	const allChannels = channels ?? [];
 
@@ -763,6 +769,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 				isActive={!!isActive}
 				unread={unread}
 				getStatus={getStatus}
+				presenceUnavailable={presenceError}
 				getDmPartnerId={getDmPartnerId}
 				onSelect={onChannelSelect}
 			/>

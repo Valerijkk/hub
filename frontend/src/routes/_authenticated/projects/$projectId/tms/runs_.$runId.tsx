@@ -37,7 +37,12 @@ function TestRunDetailPage() {
 	const [selectedCaseIds, setSelectedCaseIds] = useState<string[]>([]);
 
 	// Загрузка деталей прогона
-	const { data: run, isLoading } = useQuery({
+	const {
+		data: run,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["tms-run-detail", projectId, runId],
 		queryFn: () => getTestRunDetail(projectId, runId),
 	});
@@ -121,7 +126,7 @@ function TestRunDetailPage() {
 		);
 	}, []);
 
-	if (isLoading || !run) {
+	if (isLoading) {
 		return (
 			<div className="mx-auto max-w-6xl animate-fade-in">
 				<div className="mb-4 flex items-center gap-2">
@@ -139,6 +144,34 @@ function TestRunDetailPage() {
 					))}
 				</div>
 				<div className="h-64 w-full rounded-xl animate-shimmer" />
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div
+				role="alert"
+				className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-3 py-16 text-center"
+			>
+				<p className="text-[14px] font-semibold text-t1">
+					Не удалось загрузить прогон
+				</p>
+				<button
+					type="button"
+					onClick={() => void refetch()}
+					className="h-9 px-3 rounded-[var(--r2)] border border-b1 text-[13px] text-t2 hover:text-t1"
+				>
+					Попробовать снова
+				</button>
+			</div>
+		);
+	}
+
+	if (!run) {
+		return (
+			<div className="mx-auto flex max-w-6xl items-center justify-center py-16">
+				<p className="text-t2">Прогон не найден</p>
 			</div>
 		);
 	}

@@ -143,11 +143,17 @@ export function PlanningPoker({
 			<div className="space-y-6">
 				{/* Карточки для голосования */}
 				{!pokerSession.revealed && (
-					<div className="flex flex-wrap gap-2">
+					<div
+						role="radiogroup"
+						aria-label="Оценка Planning Poker"
+						className="flex flex-wrap gap-2"
+					>
 						{FIBONACCI_VALUES.map((value) => (
 							<button
 								type="button"
+								role="radio"
 								key={value}
+								aria-checked={selectedValue === value}
 								onClick={() => void handleVote(value)}
 								disabled={voting}
 								className={`flex h-16 w-12 items-center justify-center rounded-[var(--r3)] border transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:border-b2 hover:-translate-y-1 ${

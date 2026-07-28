@@ -7,6 +7,7 @@ import {
 	type EnvironmentResponse,
 	listEnvironments,
 } from "@/api/tms";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
 	Select,
@@ -15,6 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 import { formatEnvConfigValue } from "@/lib/format-env-config";
 import { canMutateProject } from "@/lib/permissions";
 
@@ -32,6 +34,7 @@ export function EnvironmentsPage({
 }) {
 	const [envs, setEnvs] = useState<EnvironmentResponse[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [showCreate, setShowCreate] = useState(false);
 	const [name, setName] = useState("");
 	const [label, setLabel] = useState<string>("custom");
@@ -51,6 +54,11 @@ export function EnvironmentsPage({
 			setLoading(true);
 			const data = await listEnvironments(projectId);
 			setEnvs(data ?? []);
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			setEnvs([]);
+			toastApiError(err, "Не удалось загрузить окружения");
 		} finally {
 			setLoading(false);
 		}
@@ -66,17 +74,21 @@ export function EnvironmentsPage({
 		if (configBrowser) config.browser = configBrowser;
 		if (configOS) config.os = configOS;
 
-		await createEnvironment(projectId, {
-			name: name.trim(),
-			label,
-			config: Object.keys(config).length > 0 ? config : undefined,
-		});
-		setName("");
-		setLabel("custom");
-		setConfigBrowser("");
-		setConfigOS("");
-		setShowCreate(false);
-		void fetchEnvs();
+		try {
+			await createEnvironment(projectId, {
+				name: name.trim(),
+				label,
+				config: Object.keys(config).length > 0 ? config : undefined,
+			});
+			setName("");
+			setLabel("custom");
+			setConfigBrowser("");
+			setConfigOS("");
+			setShowCreate(false);
+			void fetchEnvs();
+		} catch (err) {
+			toastApiError(err, "Не удалось создать окружение");
+		}
 	};
 
 	const handleDelete = async (id: string) => {
@@ -175,6 +187,11 @@ export function EnvironmentsPage({
 
 			{loading ? (
 				<p className="text-gray-500">Загрузка...</p>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить окружения"
+					retry={() => void fetchEnvs()}
+				/>
 			) : envs.length === 0 ? (
 				<p className="text-gray-500">Нет окружений</p>
 			) : (

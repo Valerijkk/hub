@@ -5,6 +5,11 @@ import { cn } from "@/lib/utils";
 interface PresenceIndicatorProps {
 	/** Статус присутствия пользователя. */
 	status: PresenceStatus;
+	/**
+	 * Poll presence упал (A2W11-3-001): не показывать «Не в сети» —
+	 * статус недоступен.
+	 */
+	unavailable?: boolean;
 	/** Размер индикатора. */
 	size?: "sm" | "md";
 	/** Дополнительные CSS классы. */
@@ -31,16 +36,22 @@ const statusLabels: Record<PresenceStatus, string> = {
  */
 export function PresenceIndicator({
 	status,
+	unavailable = false,
 	size = "sm",
 	className,
 }: PresenceIndicatorProps) {
+	const label = unavailable ? "Статус недоступен" : statusLabels[status];
+	const color = unavailable
+		? "bg-[var(--amber)] opacity-60"
+		: statusColors[status];
+
 	return (
 		<span
 			role="status"
-			aria-label={statusLabels[status]}
+			aria-label={label}
 			className={cn(
 				"inline-block shrink-0 rounded-full",
-				statusColors[status],
+				color,
 				size === "sm" ? "h-2.5 w-2.5" : "h-3.5 w-3.5",
 				className,
 			)}

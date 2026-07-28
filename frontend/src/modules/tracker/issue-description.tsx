@@ -5,6 +5,7 @@
 import type { Value } from "@udecode/plate";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
+import { z } from "zod";
 import { PlateEditor } from "@/components/tracker/plate-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,13 +13,28 @@ import { Label } from "@/components/ui/label";
 import { activateOnEnterOrSpace } from "@/lib/keyboard";
 import { useAIStore } from "@/stores/ai-store";
 
-/** Узкий type-guard Plate Value — без unsafe cast (P2-FE-08 / W10-A2-018). */
+/** Рекурсивный zod-guard Plate Value (A2W10-A2-006 / W10-A2-018). */
+const plateTextNodeSchema = z.object({ text: z.string() }).passthrough();
+
+type PlateNode =
+	| z.infer<typeof plateTextNodeSchema>
+	| { children: PlateNode[]; [key: string]: unknown };
+
+const plateElementSchema: z.ZodType<PlateNode> = z.lazy(() =>
+	z
+		.object({
+			children: z.array(z.union([plateTextNodeSchema, plateElementSchema])),
+		})
+		.passthrough(),
+);
+
+const plateValueSchema = z.array(plateElementSchema).min(1);
+
+/** Узкий type-guard Plate Value — zod, без bare `as Value`. */
 export function parsePlateValue(raw: unknown): Value | undefined {
-	if (!Array.isArray(raw) || raw.length === 0) return undefined;
-	const first = raw[0];
-	if (!first || typeof first !== "object") return undefined;
-	if (!("children" in first) || !Array.isArray(first.children)) return undefined;
-	return raw as Value;
+	const parsed = plateValueSchema.safeParse(raw);
+	if (!parsed.success) return undefined;
+	return parsed.data as Value;
 }
 
 export function IssueTitle({

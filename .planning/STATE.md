@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-27T00:45:00.000Z"
-last_activity: 2026-07-27 · planning-audit PW waves · coverage 81.9% (2026-07-27)
+last_updated: "2026-07-28T23:20:00.000Z"
+last_activity: 2026-07-28 · fe1 TASK-093 WONTFIX=0 (tokens/a11y/dead UI)
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -65,13 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-29 (be2 · TASK-089 messenger/crm/invoice guards)
+## Session note — 2026-07-28 (fe1 · TASK-093 A2 error≠empty + a11y delete)
 
-- A2W3-3-004: Mongo `AddReaction` — push только при `$ne` emoji + retry `$addToSet`.
-- W7-A2-005: `validateDealRefs` → `authorizeContactWrite` (stranger contact → ErrForbidden).
-- W7-A2-007: `nextInvoiceNumber` MAX+1 (вкл. soft-deleted) + retry на unique constraint.
-- Тесты: `reaction_concurrent_task089`, `deal_contact_owner_task089`, `invoice_number_concurrent_task089`.
-- Регрессия: messenger/crm/accounting hubtest+race PASS. Статус TASK-089 → Исправлена. Ветка `fix/messenger/task-089-crm-invoice`.
+- Residual A2W9/W10/W11: saved-filters toast+loadError; notification delete `group-focus-within`; usePresence `isError` ≠ offline; A2W10 modules/routes fail≠empty.
+- Sweep 2 (owner lock): закрыты бывшие WONTFIX — tokens notification-panel; zod Plate; coverage keyboard; CaseTreePanel wired; Label/htmlFor; sprint-board unnest; poker radiogroup; admin TabsTrigger; assignee dead UI. WONTFIX=0.
+- Vitest 17 PASS (tokens/keyboard/radiogroup/sidebar/nested/case-tree + prior); статус «Исправлена».
+- Ветка: `fix/frontend/task-093-error-empty-a11y`.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

@@ -88,7 +88,12 @@ function TestCaseDetailPage() {
 	const [editSteps, setEditSteps] = useState<TestStep[]>([]);
 
 	// Загрузка тест-кейса
-	const { data: tc, isLoading } = useQuery({
+	const {
+		data: tc,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["tms-case", projectId, caseKey],
 		queryFn: () => getTestCase(projectId, caseKey),
 	});
@@ -257,7 +262,7 @@ function TestCaseDetailPage() {
 		});
 	};
 
-	if (isLoading || !tc) {
+	if (isLoading) {
 		return (
 			<div className="mx-auto max-w-6xl animate-fade-in">
 				<div className="mb-4 flex items-center gap-2">
@@ -275,6 +280,34 @@ function TestCaseDetailPage() {
 						<div className="h-80 w-full rounded-xl animate-shimmer" />
 					</div>
 				</div>
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div
+				role="alert"
+				className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-3 py-16 text-center"
+			>
+				<p className="text-[14px] font-semibold text-t1">
+					Не удалось загрузить тест-кейс
+				</p>
+				<button
+					type="button"
+					onClick={() => void refetch()}
+					className="h-9 px-3 rounded-[var(--r2)] border border-b1 text-[13px] text-t2 hover:text-t1"
+				>
+					Попробовать снова
+				</button>
+			</div>
+		);
+	}
+
+	if (!tc) {
+		return (
+			<div className="mx-auto flex max-w-6xl items-center justify-center py-16">
+				<p className="text-t2">Тест-кейс не найден</p>
 			</div>
 		);
 	}

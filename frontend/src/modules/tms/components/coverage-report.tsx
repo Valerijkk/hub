@@ -3,6 +3,7 @@ import { useState } from "react";
 import { getCoverageReport, type IssueCoverage } from "@/api/tms";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { activateOnEnterOrSpace } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 
 /** Цвета статусов результатов для покрытия. */
@@ -38,11 +39,18 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
 	const passRate =
 		totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0;
 
+	const toggle = () => setExpanded((v) => !v);
+
 	return (
 		<>
 			<tr
-				className="cursor-pointer border-b transition-colors hover:bg-raised/50"
-				onClick={() => setExpanded(!expanded)}
+				role="button"
+				tabIndex={0}
+				aria-expanded={expanded}
+				aria-label={`${expanded ? "Свернуть" : "Развернуть"} покрытие ${issue.issue_key}`}
+				className="cursor-pointer border-b transition-colors hover:bg-raised/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue)]"
+				onClick={toggle}
+				onKeyDown={activateOnEnterOrSpace(toggle)}
 			>
 				<td className="px-4 py-3">
 					<span className="font-medium text-primary">{issue.issue_key}</span>

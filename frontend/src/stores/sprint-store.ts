@@ -107,13 +107,27 @@ export const useSprintStore = create<SprintState>()((set, get) => ({
 	},
 
 	fetchBurndown: async (projectId, sprintId) => {
-		const burndown = await sprintApi.getBurndown(projectId, sprintId);
-		set({ burndown });
+		try {
+			const burndown = await sprintApi.getBurndown(projectId, sprintId);
+			set({ burndown, error: null });
+		} catch {
+			set({
+				burndown: [],
+				error: "Не удалось загрузить burndown",
+			});
+		}
 	},
 
 	fetchVelocity: async (projectId) => {
-		const velocity = await sprintApi.getVelocity(projectId);
-		set({ velocity });
+		try {
+			const velocity = await sprintApi.getVelocity(projectId);
+			set({ velocity, error: null });
+		} catch {
+			set({
+				velocity: [],
+				error: "Не удалось загрузить velocity",
+			});
+		}
 	},
 
 	saveRetroNotes: async (projectId, sprintId, data) => {

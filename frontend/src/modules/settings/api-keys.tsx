@@ -5,12 +5,15 @@ import {
 	listAPIKeys,
 	revokeAPIKey,
 } from "@/api/apikeys";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Страница управления API-ключами в настройках профиля. */
 export function APIKeysPage() {
 	const [keys, setKeys] = useState<APIKeyInfo[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [showCreate, setShowCreate] = useState(false);
 	const [newKeyName, setNewKeyName] = useState("");
 	const [createdKey, setCreatedKey] = useState<string | null>(null);
@@ -30,27 +33,40 @@ export function APIKeysPage() {
 			setLoading(true);
 			const data = await listAPIKeys();
 			setKeys(data ?? []);
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			setKeys([]);
+			toastApiError(err, "Не удалось загрузить API-ключи");
 		} finally {
 			setLoading(false);
 		}
 	}, []);
 
 	useEffect(() => {
-		fetchKeys();
+		void fetchKeys();
 	}, [fetchKeys]);
 
 	const handleCreate = async () => {
 		if (!newKeyName.trim()) return;
-		const resp = await createAPIKey({ name: newKeyName.trim() });
-		setCreatedKey(resp.key);
-		setNewKeyName("");
-		setShowCreate(false);
-		fetchKeys();
+		try {
+			const resp = await createAPIKey({ name: newKeyName.trim() });
+			setCreatedKey(resp.key);
+			setNewKeyName("");
+			setShowCreate(false);
+			void fetchKeys();
+		} catch (err) {
+			toastApiError(err, "Не удалось создать API-ключ");
+		}
 	};
 
 	const handleRevoke = async (id: string) => {
-		await revokeAPIKey(id);
-		fetchKeys();
+		try {
+			await revokeAPIKey(id);
+			void fetchKeys();
+		} catch (err) {
+			toastApiError(err, "Не удалось отозвать API-ключ");
+		}
 	};
 
 	const handleCopy = () => {
@@ -135,6 +151,11 @@ export function APIKeysPage() {
 
 			{loading ? (
 				<p className="text-t3 text-[13px]">Загрузка...</p>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить API-ключи"
+					retry={() => void fetchKeys()}
+				/>
 			) : keys.length === 0 ? (
 				<p className="text-t3 text-[13px]">Нет API-ключей</p>
 			) : (
