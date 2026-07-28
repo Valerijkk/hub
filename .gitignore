@@ -30,8 +30,6 @@ frontend/tsconfig.tsbuildinfo
 .claude/
 .gsd/
 .planning/intel/
-.planning/**/VERIFICATION.md
-.planning/**/REVIEW.md
 
 # Environment & secrets
 .env
