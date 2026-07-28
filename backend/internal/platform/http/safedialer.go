@@ -169,3 +169,96 @@ func NewSafeHTTPClient(timeout time.Duration) *http.Client {
 		},
 	}
 }
+
+// isLoopbackIP — только loopback (127.0.0.0/8, ::1), с To4-нормализацией mapped.
+func isLoopbackIP(ip net.IP) bool {
+	ip = normalizeIPForBlocklist(ip)
+	if ip == nil {
+		return false
+	}
+	return ip.IsLoopback()
+}
+
+// IsOfflineAIHost — allowlist hostname для локального LLM (ADR-AI-OLLAMA-LOOPBACK).
+// Согласован с ai.isOfflineBaseURL (без unix — HTTP adapter).
+func IsOfflineAIHost(host string) bool {
+	switch strings.ToLower(strings.TrimSpace(host)) {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	default:
+		return false
+	}
+}
+
+// ValidateOfflineAIURL — явный consent-path для Ollama/local LLM:
+// только http(s) + host из IsOfflineAIHost. Не ослабляет ValidateOutboundURL
+// (тот по-прежнему блокирует loopback IP-литералы для webhook/OG/прочего).
+// P1-BE-U01 / A2W5-A2-005 / TASK-101.
+func ValidateOfflineAIURL(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+	scheme := strings.ToLower(u.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return fmt.Errorf("%w: %s", ErrBlockedScheme, u.Scheme)
+	}
+	if u.User != nil {
+		return ErrUserInfoNotAllowed
+	}
+	host := u.Hostname()
+	if host == "" {
+		return fmt.Errorf("invalid URL: empty host")
+	}
+	if !IsOfflineAIHost(host) {
+		return fmt.Errorf("%w: offline AI requires loopback host, got %q", ErrBlockedAddress, host)
+	}
+	// IP-литерал вне loopback не должен пройти даже при опечатке allowlist.
+	if ip := net.ParseIP(host); ip != nil && !isLoopbackIP(ip) {
+		return fmt.Errorf("%w: %s", ErrBlockedAddress, host)
+	}
+	return nil
+}
+
+// SafeDialContextAllowLoopback — dial только к loopback IP.
+// RFC1918 / link-local / metadata / публичные IP — ErrBlockedAddress.
+// Использовать ТОЛЬКО после ValidateOfflineAIURL (hostname allowlist).
+func SafeDialContextAllowLoopback() func(ctx context.Context, network, addr string) (net.Conn, error) {
+	d := &net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid addr %q: %w", addr, err)
+		}
+		ips, err := (&net.Resolver{}).LookupIPAddr(ctx, host)
+		if err != nil {
+			return nil, fmt.Errorf("resolve %s: %w", host, err)
+		}
+		if len(ips) == 0 {
+			return nil, fmt.Errorf("resolve %s: no addresses", host)
+		}
+		for _, ip := range ips {
+			if !isLoopbackIP(ip.IP) {
+				return nil, fmt.Errorf("%w: offline AI dial requires loopback, %s -> %s", ErrBlockedAddress, host, ip.IP.String())
+			}
+		}
+		return d.DialContext(ctx, network, net.JoinHostPort(ips[0].IP.String(), port))
+	}
+}
+
+// NewOfflineAIHTTPClient — HTTP client для локального LLM (Ollama на loopback).
+// Не использовать для user-controlled произвольных URL (webhook/OG/BYOK cloud).
+func NewOfflineAIHTTPClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			DialContext:           SafeDialContextAllowLoopback(),
+			TLSHandshakeTimeout:   5 * time.Second,
+			ResponseHeaderTimeout: 10 * time.Second,
+			IdleConnTimeout:       60 * time.Second,
+		},
+	}
+}

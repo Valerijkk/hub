@@ -9,8 +9,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 // StreamDelta — чанк OpenAI-совместимого SSE.
@@ -27,10 +25,9 @@ type ChatStreamAdapter interface {
 // ChatCompletionStream — POST {baseURL}/chat/completions со stream=true (SSE).
 func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKey, model string, req ChatCompletionRequest, onDelta func(StreamDelta) error) error {
 	base := strings.TrimRight(baseURL, "/")
-	if !a.skipOutboundURLValidate {
-		if err := safehttp.ValidateOutboundURL(base); err != nil {
-			return fmt.Errorf("invalid provider URL: %w", err)
-		}
+	httpClient, err := a.resolveHTTPClient(base)
+	if err != nil {
+		return err
 	}
 	req.Model = model
 	req.Stream = true
@@ -46,10 +43,6 @@ func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKe
 	httpReq.Header.Set("Accept", "text/event-stream")
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
-	}
-	httpClient := a.client
-	if a.streamClient != nil {
-		httpClient = a.streamClient
 	}
 	resp, err := httpClient.Do(httpReq)
 	if err != nil {

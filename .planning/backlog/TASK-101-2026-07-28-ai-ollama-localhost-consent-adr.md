@@ -1,7 +1,8 @@
 # TASK-101 — 📐 AI Ollama localhost consent vs SafeDial
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
-> Источник: A2W5-A2-005 · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
+> Источник: A2W5-A2-005 · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008  
+> Approval record: owner 2026-07-28 — отдельный ADR approve не требуется; код + ADR-AI-OLLAMA-LOOPBACK-2026
 
 ## [OUTCOME]
 
@@ -23,7 +24,7 @@ Ollama loopback разрешён только по явному consent/ADR бе
 - Do not touch:
   - глобальный bypass ValidateOutboundURL
 - Constraints: Conventional Commits RU; no Co-authored-by; Ent migrate только с owner approve
-- Approval record: требуется ADR/owner approve перед кодом/migrate
+- Approval record: owner 2026-07-28 — approve не требуется (trusted offline dialer)
 
 ## [REFERENCES]
 

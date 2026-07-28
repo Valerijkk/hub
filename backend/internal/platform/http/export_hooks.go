@@ -18,3 +18,8 @@ func ExportIsBlockedIP(ip net.IP) bool {
 func ExportNormalizeIPForBlocklist(ip net.IP) net.IP {
 	return normalizeIPForBlocklist(ip)
 }
+
+// ExportIsLoopbackIP — P1-BE-U01 / TASK-101: только loopback для offline dialer.
+func ExportIsLoopbackIP(ip net.IP) bool {
+	return isLoopbackIP(ip)
+}
