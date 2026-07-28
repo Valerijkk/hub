@@ -24,7 +24,7 @@
 | [TASK-016](TASK-016-tms-import-limits-steps.md) | TMS import limits + steps | P1 | На проверке | be2 | W12 P1-BE-13..14 |
 | [TASK-017](TASK-017-messenger-membership-idor.md) | Messenger membership IDOR | P1 | На проверке | be1 | W12 P1-BE-15..20 |
 | [TASK-018](TASK-018-ws-calls-authz-race.md) | WS race + scheduled calls authz | P1 | На проверке | be1 | W12 P1-BE-21..22 |
-| [TASK-019](TASK-019-platform-ssrf-outbox-pool-config.md) | Platform SSRF/outbox/pool/config | P1 | На проверке | be1 | W12 P1-BE-23..26 |
+| [TASK-019](TASK-019-platform-ssrf-outbox-pool-config.md) | Platform SSRF/outbox/pool/config | P1 | На проверке | be2 | W12 P1-BE-23..26 |
 | [TASK-020](TASK-020-apigateway-webhook-create-contract.md) | Webhook secret once + allowlist | P1 | На проверке | be2 | W12 P1-BE-27..28 |
 | [TASK-021](TASK-021-ai-policy-bot-authz.md) | AI policy + bot authz | P1 | На проверке | be1 | W12 P1-BE-29..31 |
 | [TASK-022](TASK-022-search-nf03-softdelete.md) | Search soft-delete + private | P1 | На проверке | be2 | W12 P1-BE-32 |
