@@ -33,7 +33,7 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-093](TASK-093-2026-07-28-fe-a2-error-empty-a11y-sweep.md) | 🧹 FE A2 error≠empty + a11y | P2 | Открыта | fe1 | A2W9/W10/W11 |
 | [TASK-094](TASK-094-2026-07-28-coffee-pairs-triple-edge.md) | ☕ Coffee Pairs[] triple-edges | P3 | Открыта | be2 | A2W7-2-N01 |
 | [TASK-095](TASK-095-2026-07-28-ent-version-mixin-adr-rollout.md) | 📐 Ent VersionMixin ADR + rollout | **P1** | Открыта | arch→be1 | A2W8 · 19 rows |
-| [TASK-096](TASK-096-2026-07-28-ent-ondelete-cascade-adr.md) | 📐 Ent OnDelete/cascade ADR | **P1** | Открыта | arch→be1 | A2W8 · 4 |
+| [TASK-096](TASK-096-2026-07-28-ent-ondelete-cascade-adr.md) | 📐 Ent OnDelete/cascade ADR | **P1** | Исправлена | arch→be1 | A2W8 · 4 |
 | [TASK-097](TASK-097-2026-07-28-ent-soft-delete-schema-gaps.md) | 📐 Ent soft-delete schema gaps | **P1** | Открыта | be2 | A2W8/W7 · 7 |
 | [TASK-098](TASK-098-2026-07-28-intranet-author-delete-polls-adr.md) | 📐 Intranet author-delete + polls U03 | **P1** | Открыта | product→be1 | W7-A2-001 |
 | [TASK-099](TASK-099-2026-07-28-storage-nf09-size-zero-adr.md) | 📐 Storage NF-09 size==0 | **P1** | Открыта | product→be2 | W7-A4-001 |
