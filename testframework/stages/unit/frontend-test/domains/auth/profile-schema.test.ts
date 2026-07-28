@@ -12,6 +12,7 @@ describe("validateOnboardingProfileStep", () => {
 				surname: "Ivanov",
 				position: "Developer",
 				department: "Backend",
+				timezone: "Europe/Moscow",
 				language: "ru",
 			}),
 		).toBeNull();
@@ -23,6 +24,7 @@ describe("validateOnboardingProfileStep", () => {
 			surname: "",
 			position: "",
 			department: "",
+			timezone: "UTC",
 			language: "en",
 		});
 		expect(errors?.name).toBeTruthy();
@@ -34,6 +36,7 @@ describe("validateOnboardingProfileStep", () => {
 			surname: "",
 			position: "x".repeat(101),
 			department: "",
+			timezone: "UTC",
 			language: "ru",
 		});
 		expect(errors?.position).toBeTruthy();
@@ -48,6 +51,7 @@ describe("buildProfileDisplayName", () => {
 				surname: "Ivanov",
 				position: "",
 				department: "",
+				timezone: "UTC",
 				language: "ru",
 			}),
 		).toBe("Alex Ivanov");
@@ -60,6 +64,7 @@ describe("buildProfileDisplayName", () => {
 				surname: "",
 				position: "",
 				department: "",
+				timezone: "UTC",
 				language: "ru",
 			}),
 		).toBe("Alex");
