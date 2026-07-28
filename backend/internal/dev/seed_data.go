@@ -104,8 +104,8 @@ var demoIssues = []demoIssue{
 	{"DEMO-2", issue.IssueTypeStory, "Magic Link вход по email", "На ревью", "dev1@hub.local", issue.PriorityHigh, "DEMO-1"},
 	{"DEMO-3", issue.IssueTypeTask, "Реализовать отправку кода через Resend", "Готово", "dev1@hub.local", issue.PriorityMedium, "DEMO-2"},
 	{"DEMO-4", issue.IssueTypeBug, "Код не приходит на Gmail", "К выполнению", "dev2@hub.local", issue.PriorityCritical, ""},
-	{"DEMO-5", issue.IssueTypeStory, "Telegram авторизация", "В работе", "dev2@hub.local", issue.PriorityHigh, ""},
-	{"DEMO-6", issue.IssueTypeSubTask, "Верификация HMAC подписи", "Тестирование", "dev2@hub.local", issue.PriorityMedium, "DEMO-5"},
+	{"DEMO-5", issue.IssueTypeStory, "Привязка Telegram для уведомлений", "В работе", "dev2@hub.local", issue.PriorityHigh, ""},
+	{"DEMO-6", issue.IssueTypeSubTask, "Верификация HMAC подписи Telegram bind", "Тестирование", "dev2@hub.local", issue.PriorityMedium, "DEMO-5"},
 	{"DEMO-7", issue.IssueTypeEpic, "Трекер задач", "Бэклог", "pm@hub.local", issue.PriorityHigh, ""},
 	{"DEMO-8", issue.IssueTypeImprovement, "Ускорить загрузку Kanban доски", "К выполнению", "dev1@hub.local", issue.PriorityMedium, ""},
 	{"DEMO-9", issue.IssueTypeTechDebt, "Рефакторинг RBAC мидлвары", "Бэклог", "dev2@hub.local", issue.PriorityLow, ""},
@@ -165,11 +165,11 @@ var demoTestCases = []demoTestCase{
 		},
 	},
 	{
-		CaseKey: "TC-DEMO-2", Title: "Вход через Telegram",
-		Description: "Проверка входа через Telegram бота",
+		CaseKey: "TC-DEMO-2", Title: "Привязка Telegram для уведомлений",
+		Description: "Проверка bind Telegram-бота для доставки уведомлений (не login, ADR-AUTH-01)",
 		Steps: []schema.TestStep{
-			{Order: 1, Action: "Нажать 'Войти через Telegram'", ExpectedResult: "Открывается Telegram виджет"},
-			{Order: 2, Action: "Подтвердить вход в Telegram", ExpectedResult: "Выполнен вход, редирект на /dashboard"},
+			{Order: 1, Action: "Открыть настройки профиля → Уведомления", ExpectedResult: "Показана кнопка привязки Telegram"},
+			{Order: 2, Action: "Подтвердить bind в Telegram-боте", ExpectedResult: "Telegram привязан, тестовое уведомление доставлено"},
 		},
 	},
 	{
@@ -253,7 +253,7 @@ var demoTestRuns = []demoTestRun{
 		TotalCount: 5, PassedCount: 3, FailedCount: 1, SkippedCount: 1,
 		Results: []demoTestResult{
 			{CaseIdx: 0, Status: testresult.StatusPassed, DurationMs: 12000, Comment: "Вход выполнен успешно"},
-			{CaseIdx: 1, Status: testresult.StatusPassed, DurationMs: 8000, Comment: "Telegram верификация пройдена"},
+			{CaseIdx: 1, Status: testresult.StatusPassed, DurationMs: 8000, Comment: "Telegram notification bind пройден"},
 			{CaseIdx: 2, Status: testresult.StatusPassed, DurationMs: 15000, Comment: "Проект создан корректно"},
 			{CaseIdx: 3, Status: testresult.StatusFailed, DurationMs: 23000, Comment: "Карточка не переместилась — drag event не срабатывает"},
 			{CaseIdx: 4, Status: testresult.StatusSkipped, DurationMs: 0, Comment: "Пропущено — SeaweedFS не запущен"},
