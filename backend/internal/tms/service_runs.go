@@ -360,11 +360,14 @@ func (s *TMSService) CompleteTestRun(ctx context.Context, projectID, runID uuid.
 	}
 
 	// Публикуем событие завершения прогона для уведомлений.
+	// project_id обязателен: subject tms.run.completed.<id> без UUID проекта,
+	// а TASK-012 fail-closed дропает webhook без project_id в payload (A2W4-5-001).
 	s.nats.PublishJSON(fmt.Sprintf(SubjectTestRunCompleted, runID.String()), map[string]interface{}{
-		"run_id": runID,
-		"title":  resp.Title,
-		"total":  resp.TotalCount,
-		"passed": resp.PassedCount,
+		"run_id":     runID,
+		"project_id": projectID,
+		"title":      resp.Title,
+		"total":      resp.TotalCount,
+		"passed":     resp.PassedCount,
 	})
 
 	return resp, nil
