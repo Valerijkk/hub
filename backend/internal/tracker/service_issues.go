@@ -7,8 +7,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/project"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 	"github.com/valerii/hub/backend/internal/platform/observability"
+	"github.com/valerii/hub/backend/internal/search"
 )
 
 // ---------------------------------------------------------------------------
@@ -325,6 +328,7 @@ func (s *TrackerService) UpdateIssue(ctx context.Context, projectID uuid.UUID, i
 }
 
 // DeleteIssue удаляет задачу по ключу.
+// W1-A2-014 / P3-BE-07: userID пишет activity «deleted» до soft-delete.
 func (s *TrackerService) DeleteIssue(ctx context.Context, projectID uuid.UUID, issueKey string, userID uuid.UUID) error {
 	existing, err := s.repo.FindIssueByKey(ctx, projectID, issueKey)
 	if err != nil {
@@ -333,7 +337,71 @@ func (s *TrackerService) DeleteIssue(ctx context.Context, projectID uuid.UUID, i
 		}
 		return apperrors.NewInternal("ошибка получения задачи")
 	}
+	if _, err := s.repo.LogActivity(ctx, existing.ID, userID, "deleted", nil); err != nil {
+		slog.Error("не удалось записать активность удаления", "error", err, "issue_id", existing.ID)
+	}
 	return s.repo.DeleteIssue(ctx, existing.ID)
+}
+
+// SearchIssuesJQL выполняет JQL-поиск задач проекта (W1-A1-008 / P3-BE-07).
+// Handler не ходит в Ent напрямую — только через service.
+func (s *TrackerService) SearchIssuesJQL(ctx context.Context, projectID, userID uuid.UUID, query string) (*JQLSearchResponse, error) {
+	if query == "" {
+		return nil, apperrors.NewBadRequest("query обязателен")
+	}
+	parsed, err := search.ParseJQL(query)
+	if err != nil {
+		return nil, apperrors.NewBadRequest("ошибка JQL: " + err.Error())
+	}
+	predicates := search.ToEntPredicates(parsed, userID)
+
+	q := s.repo.GetDB().Issue.Query().
+		Where(issue.HasProjectWith(project.ID(projectID))).
+		Where(issue.DeletedAtIsNil())
+	for _, pred := range predicates {
+		q = q.Where(pred)
+	}
+	if parsed.OrderBy != nil {
+		switch parsed.OrderBy.Field {
+		case "created":
+			q = q.Order(issue.ByCreatedAt())
+		case "priority":
+			q = q.Order(issue.ByPriority())
+		case "updated":
+			q = q.Order(issue.ByUpdatedAt())
+		}
+	}
+
+	issues, err := q.WithStatus().WithAssignee().Limit(100).All(ctx)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка выполнения JQL: " + err.Error())
+	}
+
+	result := make([]JQLIssueItem, 0, len(issues))
+	for _, iss := range issues {
+		status := ""
+		if iss.Edges.Status != nil {
+			status = iss.Edges.Status.Name
+		}
+		assignee := ""
+		if iss.Edges.Assignee != nil {
+			if iss.Edges.Assignee.Name != "" {
+				assignee = iss.Edges.Assignee.Name
+			} else {
+				assignee = iss.Edges.Assignee.Email
+			}
+		}
+		result = append(result, JQLIssueItem{
+			Key:       iss.IssueKey,
+			Title:     iss.Title,
+			Type:      string(iss.IssueType),
+			Priority:  string(iss.Priority),
+			Status:    status,
+			Assignee:  assignee,
+			CreatedAt: iss.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		})
+	}
+	return &JQLSearchResponse{Query: query, Total: len(result), Results: result}, nil
 }
 
 // MoveIssue перемещает задачу в другой статус на Kanban-доске.

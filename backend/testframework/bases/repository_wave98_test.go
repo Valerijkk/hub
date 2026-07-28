@@ -15,11 +15,11 @@ import (
 
 func setupBasesRepo(t *testing.T) (*EntRepository, context.Context, uuid.UUID) {
 	t.Helper()
-	client := enttest.Open(t, "sqlite3", "file:bases_repo?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:bases_repo_"+t.Name()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 	ctx := context.Background()
 	owner, err := client.User.Create().
-		SetEmail("owner-repo@hub.local").
+		SetEmail("owner-repo-"+t.Name()+"@hub.local").
 		SetSystemRole(user.SystemRoleMember).
 		Save(ctx)
 	require.NoError(t, err)

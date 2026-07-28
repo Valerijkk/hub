@@ -28,11 +28,5 @@ func TestApplyPoolLimits_MaxOpenConns_P1_BE_25(t *testing.T) {
 	assert.LessOrEqual(t, db.Stats().OpenConnections, want)
 }
 
-func TestOpenRawDB_AppliesPoolLimits_P1_BE_25(t *testing.T) {
-	// Open не коннектится сразу — URL может быть недостижимым.
-	db, err := database.OpenRawDB("postgresql://hub:hub@127.0.0.1:1/hub?sslmode=disable")
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = db.Close() })
-
-	assert.Equal(t, database.ExportDefaultMaxOpenConns(), db.Stats().MaxOpenConnections)
-}
+// OpenRawDB удалён (W4-A4-010 / P3-BE-07): второй unbounded pool API без callers;
+// пул задаётся через NewPostgresClient → applyPoolLimits (см. TestApplyPoolLimits выше).

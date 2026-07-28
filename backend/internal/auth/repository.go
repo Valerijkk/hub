@@ -56,7 +56,7 @@ type Repository interface {
 	CountOrganizations(ctx context.Context) (int, error)
 	GetOrganization(ctx context.Context) (*ent.Organization, error)
 	OrganizationExistsByInviteToken(ctx context.Context, token string) (bool, error)
-	CreateOrganizationWithFounder(ctx context.Context, email, inviteToken string) (*ent.User, error)
+	CreateOrganizationWithFounder(ctx context.Context, email string) (*ent.User, error)
 	CreatePendingMember(ctx context.Context, email string, orgID uuid.UUID) (*ent.User, error)
 	CreateActiveMember(ctx context.Context, email string, orgID uuid.UUID) (*ent.User, error)
 
@@ -260,7 +260,8 @@ func (r *EntRepository) OrganizationExistsByInviteToken(ctx context.Context, tok
 		Exist(ctx)
 }
 
-func (r *EntRepository) CreateOrganizationWithFounder(ctx context.Context, email, inviteToken string) (*ent.User, error) {
+func (r *EntRepository) CreateOrganizationWithFounder(ctx context.Context, email string) (*ent.User, error) {
+	// W6-A1-009 / P3-BE-07: inviteToken-параметр убран — org всегда получает generateInviteToken().
 	token, err := generateInviteToken()
 	if err != nil {
 		return nil, err
@@ -367,7 +368,7 @@ func (r *EntRepository) RegisterNewUserByEmail(ctx context.Context, email, invit
 		return nil, fmt.Errorf("count users: %w", err)
 	}
 	if count == 0 {
-		return r.CreateOrganizationWithFounder(ctx, email, inviteToken)
+		return r.CreateOrganizationWithFounder(ctx, email)
 	}
 
 	org, err := r.GetOrganization(ctx)

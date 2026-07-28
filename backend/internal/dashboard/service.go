@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/internal/auth"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -20,6 +21,9 @@ const projectStatsTTL = 5 * time.Minute
 
 // ErrForbidden — A7-001: нет membership в проекте (403 без утечки метрик).
 var ErrForbidden = errors.New("forbidden")
+
+// ErrUnauthorized — пользователь не найден / нет сессии для admin-гейта.
+var ErrUnauthorized = errors.New("unauthorized")
 
 // DashboardService предоставляет агрегированные данные для дашбордов.
 type DashboardService struct {
@@ -297,6 +301,19 @@ func (s *DashboardService) GetProjectStats(ctx context.Context, userID, projectI
 	}
 
 	return stats, nil
+}
+
+// RequireSystemAdmin проверяет system_role founder|admin (W7-A4-017 / P3-BE-07).
+// Handler не ходит в repo напрямую.
+func (s *DashboardService) RequireSystemAdmin(ctx context.Context, userID uuid.UUID) error {
+	u, err := s.repo.GetUser(ctx, userID)
+	if err != nil {
+		return ErrUnauthorized
+	}
+	if !auth.IsSystemAdmin(u.SystemRole) {
+		return ErrForbidden
+	}
+	return nil
 }
 
 // GetAdminStats возвращает статистику для админского дашборда.

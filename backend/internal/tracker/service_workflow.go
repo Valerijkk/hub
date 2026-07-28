@@ -68,6 +68,10 @@ func (s *TrackerService) ListWorkflowTransitions(ctx context.Context, projectID 
 	}
 	result := make([]WorkflowTransitionResponse, 0, len(transitions))
 	for _, t := range transitions {
+		// W1-A2-015 / P3-BE-07: без eager edges — skip, не nil deref.
+		if t.Edges.FromStatus == nil || t.Edges.ToStatus == nil {
+			continue
+		}
 		result = append(result, WorkflowTransitionResponse{
 			ID:           t.ID.String(),
 			FromStatusID: t.Edges.FromStatus.ID.String(),

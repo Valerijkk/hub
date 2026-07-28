@@ -262,6 +262,10 @@ func (s *MessengerService) ForwardMessage(ctx context.Context, channelID, userID
 	if err != nil {
 		return nil, apperrors.NewNotFound("исходное сообщение не найдено")
 	}
+	// W3-A2-018 / P3-BE-07: path channelID обязан совпадать с source.ChannelID.
+	if source.ChannelID != channelID {
+		return nil, apperrors.NewNotFound("исходное сообщение не найдено")
+	}
 
 	// HI-02: проверяем membership в ИСХОДНОМ канале — иначе UUID сообщения
 	// позволяет любому auth-пользователю эксфильтровать контент из закрытых каналов.

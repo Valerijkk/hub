@@ -211,6 +211,24 @@ type WorkflowTransitionResponse struct {
 	ToStatusID   string `json:"to_status_id"`
 }
 
+// JQLIssueItem — элемент результата JQL-поиска (W1-A1-008 / P3-BE-07).
+type JQLIssueItem struct {
+	Key       string `json:"key"`
+	Title     string `json:"title"`
+	Type      string `json:"type"`
+	Priority  string `json:"priority"`
+	Status    string `json:"status,omitempty"`
+	Assignee  string `json:"assignee,omitempty"`
+	CreatedAt string `json:"created_at"`
+}
+
+// JQLSearchResponse — ответ service.SearchIssuesJQL.
+type JQLSearchResponse struct {
+	Query   string         `json:"query"`
+	Total   int            `json:"total"`
+	Results []JQLIssueItem `json:"results"`
+}
+
 // CommentResponse — представление комментария в API-ответах.
 type CommentResponse struct {
 	ID         string                 `json:"id"`

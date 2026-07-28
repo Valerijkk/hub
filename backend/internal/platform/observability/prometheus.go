@@ -1,7 +1,6 @@
 package observability
 
 import (
-	"net"
 	"strconv"
 	"time"
 
@@ -71,26 +70,12 @@ func recordPrometheusOperation(operation string, durationMs int64, failed bool) 
 // MetricsEndpoint — /metrics с CIDR allowlist (OBS-01).
 // W4-A3-004: пустой список → 403 (fail-closed). Явный allow-all —
 // MetricsAllowAllCIDRs / sentinel "*".
+// W4-A3-007 / P3-BE-07: CIDR через authorizeMetricsIP (мёртвый MetricsAllowMiddleware удалён).
 func MetricsEndpoint(allowedCIDRs []string) fiber.Handler {
 	scrape := MetricsHandler()
-	if metricsAllowsAll(allowedCIDRs) {
-		return scrape
-	}
-	if len(allowedCIDRs) == 0 {
-		return func(c fiber.Ctx) error {
-			return fiber.NewError(fiber.StatusForbidden, "metrics endpoint forbidden")
-		}
-	}
-	nets := parseCIDRs(allowedCIDRs)
-	denyAll := len(nets) == 0
-
 	return func(c fiber.Ctx) error {
-		if denyAll {
-			return fiber.NewError(fiber.StatusForbidden, "metrics endpoint forbidden")
-		}
-		ip := net.ParseIP(c.IP())
-		if ip == nil || !ipAllowed(ip, nets) {
-			return fiber.NewError(fiber.StatusForbidden, "metrics endpoint forbidden")
+		if err := authorizeMetricsIP(c, allowedCIDRs); err != nil {
+			return err
 		}
 		return scrape(c)
 	}

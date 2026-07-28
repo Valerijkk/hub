@@ -281,8 +281,7 @@ func (s *TMSService) ExecuteTestResult(ctx context.Context, projectID, runID, re
 		ExecutedByID: &userID, // A3-017: audit who executed
 	}
 
-	result, err := s.repo.UpdateTestResult(ctx, runID, resultID, input)
-	if err != nil {
+	if _, err := s.repo.UpdateTestResult(ctx, runID, resultID, input); err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("результат не найден")
 		}
@@ -295,7 +294,7 @@ func (s *TMSService) ExecuteTestResult(ctx context.Context, projectID, runID, re
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный ID файла")
 		}
-		if err := s.repo.AddFilesToResult(ctx, resultID, fileUUIDs); err != nil {
+		if err := s.repo.AddFilesToResult(ctx, runID, resultID, fileUUIDs); err != nil {
 			return nil, apperrors.NewInternal("ошибка привязки файлов к результату")
 		}
 	}
@@ -305,8 +304,7 @@ func (s *TMSService) ExecuteTestResult(ctx context.Context, projectID, runID, re
 		return nil, err
 	}
 
-	_ = result
-	// Перезагружаем результат с полными связями
+	// Перезагружаем результат с полными связями (Update не возвращает edges).
 	updated, err := s.repo.GetTestResult(ctx, resultID)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка получения обновлённого результата")

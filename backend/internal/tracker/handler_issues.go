@@ -2,11 +2,8 @@ package tracker
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/valerii/hub/backend/ent/issue"
-	"github.com/valerii/hub/backend/ent/project"
 	apperr "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
-	"github.com/valerii/hub/backend/internal/search"
 )
 
 // ---------------------------------------------------------------------------
@@ -272,87 +269,10 @@ func (h *Handler) SearchIssuesJQL(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "query обязателен")
 	}
 
-	// Парсинг JQL-запроса.
-	parsed, err := search.ParseJQL(req.Query)
+	// W1-A1-008 / P3-BE-07: JQL только через service (не GetDB из handler).
+	resp, err := h.service.SearchIssuesJQL(c.Context(), projectID, userID, req.Query)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "ошибка JQL: "+err.Error())
+		return err
 	}
-
-	// Конвертация в Ent-предикаты.
-	predicates := search.ToEntPredicates(parsed, userID)
-
-	// Базовый запрос по проекту.
-	query := h.service.repo.GetDB().Issue.Query().
-		Where(issue.HasProjectWith(project.ID(projectID))).
-		Where(issue.DeletedAtIsNil())
-
-	// Применяем JQL-предикаты.
-	for _, pred := range predicates {
-		query = query.Where(pred)
-	}
-
-	// Сортировка из JQL.
-	if parsed.OrderBy != nil {
-		switch parsed.OrderBy.Field {
-		case "created":
-			query = query.Order(issue.ByCreatedAt())
-		case "priority":
-			query = query.Order(issue.ByPriority())
-		case "updated":
-			query = query.Order(issue.ByUpdatedAt())
-		}
-	}
-
-	// Выполнение запроса с eager-loading связей.
-	issues, err := query.
-		WithStatus().
-		WithAssignee().
-		Limit(100).
-		All(c.Context())
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "ошибка выполнения JQL: "+err.Error())
-	}
-
-	// Конвертация в ответ — переиспользуем формат ListIssues.
-	_ = projectID // projectID используется для контекста RBAC (проверяется middleware)
-	type jqlIssueItem struct {
-		Key       string `json:"key"`
-		Title     string `json:"title"`
-		Type      string `json:"type"`
-		Priority  string `json:"priority"`
-		Status    string `json:"status,omitempty"`
-		Assignee  string `json:"assignee,omitempty"`
-		CreatedAt string `json:"created_at"`
-	}
-
-	result := make([]jqlIssueItem, 0, len(issues))
-	for _, iss := range issues {
-		status := ""
-		if iss.Edges.Status != nil {
-			status = iss.Edges.Status.Name
-		}
-		assignee := ""
-		if iss.Edges.Assignee != nil {
-			if iss.Edges.Assignee.Name != "" {
-				assignee = iss.Edges.Assignee.Name
-			} else {
-				assignee = iss.Edges.Assignee.Email
-			}
-		}
-		result = append(result, jqlIssueItem{
-			Key:       iss.IssueKey,
-			Title:     iss.Title,
-			Type:      string(iss.IssueType),
-			Priority:  string(iss.Priority),
-			Status:    status,
-			Assignee:  assignee,
-			CreatedAt: iss.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		})
-	}
-
-	return c.JSON(fiber.Map{
-		"query":   req.Query,
-		"total":   len(result),
-		"results": result,
-	})
+	return c.JSON(resp)
 }

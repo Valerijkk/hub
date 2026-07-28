@@ -46,7 +46,8 @@ func (s *PresenceService) Heartbeat(ctx context.Context, userID string) error {
 }
 
 // GetStatus возвращает статус присутствия пользователя.
-// Логика: если score < 5 мин назад -> "online", < 90 сек -> "away", иначе/нет записи -> "offline".
+// Логика (W3-A3-009 / P3-BE-07): elapsed < presenceAwayThreshold (90s) → "online",
+// иначе при наличии записи → "away"; нет записи / ошибка → "offline".
 func (s *PresenceService) GetStatus(ctx context.Context, userID string) (string, error) {
 	score, err := s.rdb.ZScore(ctx, presenceOnlineKey, userID).Result()
 	if errors.Is(err, redis.Nil) {

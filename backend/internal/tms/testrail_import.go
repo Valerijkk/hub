@@ -84,6 +84,12 @@ func mapTestRailType(trType string) string {
 // htmlTagRegexp используется для удаления HTML-тегов из шагов TestRail.
 var htmlTagRegexp = regexp.MustCompile(`<[^>]*>`)
 
+// W2-A4-011 / P3-BE-07: compile once — trimStepNumbering вызывается на каждый шаг CSV.
+var (
+	stepNumberPrefixRegexp = regexp.MustCompile(`^\d+[\.\)]\s*`)
+	stepLabelPrefixRegexp  = regexp.MustCompile(`(?i)^step\s*\d+[:\s]*`)
+)
+
 // stripHTML удаляет HTML-теги и обрезает пробелы.
 func stripHTML(s string) string {
 	text := htmlTagRegexp.ReplaceAllString(s, "")
@@ -145,12 +151,8 @@ func parseTestRailSteps(stepsText, expectedText string) []schema.TestStep {
 
 // trimStepNumbering удаляет типичные префиксы нумерации шагов: "1. ", "1) ", "Step 1: ".
 func trimStepNumbering(s string) string {
-	// "1. text" или "1) text"
-	re := regexp.MustCompile(`^\d+[\.\)]\s*`)
-	s = re.ReplaceAllString(s, "")
-	// префикс вида "Step N: text"
-	re2 := regexp.MustCompile(`(?i)^step\s*\d+[:\s]*`)
-	s = re2.ReplaceAllString(s, "")
+	s = stepNumberPrefixRegexp.ReplaceAllString(s, "")
+	s = stepLabelPrefixRegexp.ReplaceAllString(s, "")
 	return strings.TrimSpace(s)
 }
 
@@ -277,11 +279,7 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 
 // parseTestRailCSV парсит CSV-экспорт TestRail в структуры TestRailCase.
 func parseTestRailCSV(data []byte) ([]TestRailCase, error) {
-	reader := csv.NewReader(bytes.NewReader(data))
-	reader.LazyQuotes = true
-	reader.TrimLeadingSpace = true
-
-	// Сначала пробуем запятую, затем точку с запятой, затем табуляцию.
+	// W2-A4-010 / P3-BE-07: только tryReadCSV (мёртвый csv.NewReader удалён).
 	records, err := tryReadCSV(data, ',')
 	if err != nil || len(records) < 2 {
 		records, err = tryReadCSV(data, ';')

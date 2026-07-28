@@ -59,17 +59,6 @@ func NewPostgresClient(ctx context.Context, url string) (*ent.Client, *dbsql.DB,
 	return client, rawDB, nil
 }
 
-// OpenRawDB открывает прямое подключение к PostgreSQL для raw SQL-запросов.
-// Используется модулем поиска для tsvector-запросов, которые не поддерживает Ent ORM.
-func OpenRawDB(url string) (*dbsql.DB, error) {
-	db, err := dbsql.Open("postgres", url)
-	if err != nil {
-		return nil, err
-	}
-	applyPoolLimits(db)
-	return db, nil
-}
-
 func envBool(key string, fallback bool) bool {
 	if v := os.Getenv(key); v != "" {
 		if b, err := strconv.ParseBool(v); err == nil {

@@ -42,7 +42,6 @@ type APIKeyService struct {
 	touchJobs chan apiKeyTouchJob
 	touchWG   sync.WaitGroup
 	stopOnce  sync.Once
-	stopCh    chan struct{}
 }
 
 // NewAPIKeyService создаёт новый сервис API-ключей.
@@ -53,7 +52,6 @@ func NewAPIKeyService(repo APIKeyRepository) *APIKeyService {
 	svc := &APIKeyService{
 		repo:      repo,
 		touchJobs: make(chan apiKeyTouchJob, apiKeyTouchQueueSize),
-		stopCh:    make(chan struct{}),
 	}
 	for i := 0; i < apiKeyTouchWorkers; i++ {
 		svc.touchWG.Add(1)

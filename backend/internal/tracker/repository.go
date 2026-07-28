@@ -162,7 +162,7 @@ type AutomationRepository interface {
 	CountAutomationRules(ctx context.Context, projectID uuid.UUID) (int, error)
 	CreateAutomationRule(ctx context.Context, projectID, createdBy uuid.UUID, input CreateAutomationRuleInput) (*ent.AutomationRule, error)
 	FindAutomationRule(ctx context.Context, projectID, ruleID uuid.UUID) (*ent.AutomationRule, error)
-	UpdateAutomationRule(ctx context.Context, ruleID uuid.UUID, input UpdateAutomationRuleInput) (*ent.AutomationRule, error)
+	UpdateAutomationRule(ctx context.Context, projectID, ruleID uuid.UUID, input UpdateAutomationRuleInput) (*ent.AutomationRule, error)
 	DeleteAutomationRule(ctx context.Context, projectID, ruleID uuid.UUID) error
 	ListEnabledAutomationRules(ctx context.Context, projectID uuid.UUID, triggerType string) ([]*ent.AutomationRule, error)
 }
@@ -186,7 +186,8 @@ type Repository interface {
 	AutomationRepository
 	IssueMessageLinkRepository
 
-	// GetDB возвращает Ent-клиент для прямых запросов (JQL и др.).
+	// GetDB возвращает Ent-клиент для service-level запросов (JQL).
+	// Handler не должен вызывать GetDB напрямую (W1-A1-008 / P3-BE-07).
 	GetDB() *ent.Client
 }
 
