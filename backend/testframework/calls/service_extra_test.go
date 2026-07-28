@@ -16,16 +16,12 @@ import (
 )
 
 func TestHandler_ListProjectRecordings_Success(t *testing.T) {
-	svc, projectID, client := newRecordingListFixture(t)
-	ctx := context.Background()
-	owner, err := client.User.Query().First(ctx)
-	require.NoError(t, err)
-
-	h := calls.ExportNewHandlerWithRecSvc(svc)
+	// W3-A5-015 / TASK-064: success через RBAC-фикстуру (не nil rbac).
+	h, ownerID, _, _, projectID := newRecordingHandlerRBACFixture(t)
 	app := newHandlerValidationApp(h)
 
 	req := httptest.NewRequest(fiber.MethodGet, "/projects/"+projectID.String()+"/recordings?offset=0&limit=10", nil)
-	req.Header.Set("X-Test-User-ID", owner.ID.String())
+	req.Header.Set("X-Test-User-ID", ownerID.String())
 	resp, err := app.Test(req, 5*time.Second)
 	require.NoError(t, err)
 	defer resp.Body.Close()

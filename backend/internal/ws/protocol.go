@@ -10,6 +10,15 @@ const (
 	TypeEvent       MessageType = "event"
 	TypePing        MessageType = "ping"
 	TypePong        MessageType = "pong"
+	// TypeError — серверный кадр отказа/ошибки (W3-A4-009: deny subscribe).
+	// Event несёт стабильный код без внутренних деталей authz.
+	TypeError MessageType = "error"
+)
+
+// Коды Event для TypeError (клиент отличает deny от infra-fail).
+const (
+	EventSubscribeDenied = "subscribe_denied"
+	EventSubscribeError  = "subscribe_error"
 )
 
 // ClientMessage — сообщение, отправляемое клиентом на сервер через WebSocket.

@@ -35,7 +35,17 @@ func TestReadPump_DeniedSubscribe_NotInRoom_TASK037(t *testing.T) {
 	sub, _ := json.Marshal(ws.ClientMessage{Type: ws.TypeSubscribe, Room: room})
 	require.NoError(t, conn.WriteMessage(websocket.TextMessage, sub))
 
-	// Дать readPump обработать deny до закрытия.
+	// W3-A4-009: deny шлёт error-кадр — сливаем его до проверки broadcast.
+	select {
+	case raw := <-ws.ExportClientSendCh(client):
+		var msg ws.ServerMessage
+		require.NoError(t, json.Unmarshal(raw, &msg))
+		require.Equal(t, ws.TypeError, msg.Type)
+		require.Equal(t, ws.EventSubscribeDenied, msg.Event)
+	case <-time.After(time.Second):
+		t.Fatal("expected subscribe_denied frame before broadcast check")
+	}
+
 	require.Eventually(t, func() bool {
 		return !ws.ExportClientInRoom(client, room)
 	}, time.Second, 20*time.Millisecond)
@@ -73,6 +83,16 @@ func TestReadPump_AuthorizerError_NotInRoom_TASK037(t *testing.T) {
 	conn := dialTestWS(t, url)
 	sub, _ := json.Marshal(ws.ClientMessage{Type: ws.TypeSubscribe, Room: room})
 	require.NoError(t, conn.WriteMessage(websocket.TextMessage, sub))
+
+	select {
+	case raw := <-ws.ExportClientSendCh(client):
+		var msg ws.ServerMessage
+		require.NoError(t, json.Unmarshal(raw, &msg))
+		require.Equal(t, ws.TypeError, msg.Type)
+		require.Equal(t, ws.EventSubscribeError, msg.Event)
+	case <-time.After(time.Second):
+		t.Fatal("expected subscribe_error frame before broadcast check")
+	}
 
 	require.Eventually(t, func() bool {
 		return !ws.ExportClientInRoom(client, room)

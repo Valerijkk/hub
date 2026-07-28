@@ -309,9 +309,26 @@ func (h *Hub) unsubscribeClient(client *Client, room string) {
 	delete(client.rooms, room)
 	client.mu.Unlock()
 
-	if val, ok := h.rooms.Load(room); ok {
-		members := val.(*sync.Map)
-		members.Delete(client.ConnectionID)
+	h.removeRoomMember(room, client.ConnectionID)
+}
+
+// removeRoomMember убирает conn из комнаты и удаляет пустой ключ из h.rooms
+// (W3-A4-007): иначе уникальные room id копят пустые *sync.Map при uptime.
+// Мутации rooms сериализованы в Run — concurrent Store здесь не конкурирует.
+func (h *Hub) removeRoomMember(room, connID string) {
+	val, ok := h.rooms.Load(room)
+	if !ok {
+		return
+	}
+	members := val.(*sync.Map)
+	members.Delete(connID)
+	empty := true
+	members.Range(func(_, _ any) bool {
+		empty = false
+		return false
+	})
+	if empty {
+		h.rooms.Delete(room)
 	}
 }
 
@@ -411,10 +428,7 @@ func (h *Hub) removeClient(client *Client) {
 	client.mu.Unlock()
 
 	for _, room := range rooms {
-		if val, ok := h.rooms.Load(room); ok {
-			members := val.(*sync.Map)
-			members.Delete(client.ConnectionID)
-		}
+		h.removeRoomMember(room, client.ConnectionID)
 	}
 
 	// SEC-05: закрываем ТОЛЬКО done. Канал send намеренно не закрывается,

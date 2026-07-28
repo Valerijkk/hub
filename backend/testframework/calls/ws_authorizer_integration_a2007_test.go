@@ -90,11 +90,21 @@ func dialCallsWS(t *testing.T, url string) *websocket.Conn {
 }
 
 // subscribeViaReadPump sends subscribe then ping; pong proves readPump processed subscribe.
+// W3-A4-009: при deny сначала приходит TypeError — сливаем его до ожидания pong.
 func subscribeViaReadPump(t *testing.T, conn *websocket.Conn, client *ws.Client, room string) {
 	t.Helper()
 	sub, err := json.Marshal(ws.ClientMessage{Type: ws.TypeSubscribe, Room: room})
 	require.NoError(t, err)
 	require.NoError(t, conn.WriteMessage(websocket.TextMessage, sub))
+
+	select {
+	case raw := <-ws.ExportClientSendCh(client):
+		var msg ws.ServerMessage
+		require.NoError(t, json.Unmarshal(raw, &msg))
+		require.Equal(t, ws.TypeError, msg.Type, "unexpected non-error frame before ping")
+	case <-time.After(80 * time.Millisecond):
+		// allow path: нет error-кадра
+	}
 
 	ping, err := json.Marshal(ws.ClientMessage{Type: ws.TypePing})
 	require.NoError(t, err)

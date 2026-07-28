@@ -237,11 +237,22 @@ func readPump(conn *websocket.Conn, client *Client, hub *Hub, authz Authorizer) 
 			if authErr != nil {
 				slog.Warn("ws subscribe authz error",
 					"userID", client.UserID, "room", msg.Room, "error", authErr)
+				// W3-A4-009: клиенту — стабильный error-кадр (без internals).
+				enqueueServerMessage(client, ServerMessage{
+					Type:  TypeError,
+					Event: EventSubscribeError,
+					Room:  msg.Room,
+				})
 				continue
 			}
 			if !allowed {
 				slog.Warn("ws subscribe denied",
 					"userID", client.UserID, "room", msg.Room)
+				enqueueServerMessage(client, ServerMessage{
+					Type:  TypeError,
+					Event: EventSubscribeDenied,
+					Room:  msg.Room,
+				})
 				continue
 			}
 			hub.Subscribe(client, msg.Room)
@@ -260,6 +271,19 @@ func readPump(conn *websocket.Conn, client *Client, hub *Hub, authz Authorizer) 
 			default:
 			}
 		}
+	}
+}
+
+// enqueueServerMessage кладёт кадр в client.send с учётом SEC-05 (done / buffer full).
+func enqueueServerMessage(client *Client, msg ServerMessage) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return
+	}
+	select {
+	case <-client.done:
+	case client.send <- data:
+	default:
 	}
 }
 

@@ -1,6 +1,6 @@
 # TASK-064 — WS/calls lifecycle residuals
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P3-BE-10 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P3-BACKEND.md`
 
 ## [OUTCOME]
@@ -33,6 +33,10 @@
 - Regression: соответствующий `testframework` / Vitest domain package
 - Evidence: вывод тестов, SHA коммитов
 - Stop when: green + статус «Исправлена» в README
+
+### Residual
+
+- **W3-A4-006** JWT `?token=` → short-lived WS ticket: отложено (реестр: «после product»). Access JWT в query остаётся до ADR/product ticket exchange.
 
 ## [OUTPUT SCHEMA]
 

@@ -6,13 +6,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/valerii/hub/backend/ent/recording"
 	"github.com/valerii/hub/backend/internal/platform/config"
+	"github.com/valerii/hub/backend/internal/rbac"
 )
 
 func TestFinalizeCreate_ReturnsTokenAndParticipant(t *testing.T) {
@@ -112,6 +115,13 @@ func TestHandler_GetRecordingDownloadURL_NotReady(t *testing.T) {
 	base, err := client.Recording.Query().First(ctx)
 	require.NoError(t, err)
 
+	_, err = client.ProjectMember.Create().
+		SetUserID(owner.ID).
+		SetProjectID(base.ProjectID).
+		SetProjectRole("owner").
+		Save(ctx)
+	require.NoError(t, err)
+
 	rec, err := client.Recording.Create().
 		SetEgressID("egress-handler-processing").
 		SetStatus(recording.StatusProcessing).
@@ -121,7 +131,14 @@ func TestHandler_GetRecordingDownloadURL_NotReady(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	h := calls.ExportNewHandlerWithRecSvc(svc)
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	rbacSvc := rbac.NewRBACService(rbac.NewEntRepository(client), rbac.NewPermissionCache(rdb))
+
+	h := calls.ExportNewHandlerWithRecSvcAndRBAC(svc, rbacSvc)
 	app := newHandlerValidationApp(h)
 
 	req := httptest.NewRequest(fiber.MethodGet, "/recordings/"+rec.ID.String()+"/download", nil)

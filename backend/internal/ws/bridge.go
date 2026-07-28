@@ -29,51 +29,33 @@ func NewBridge(hub *Hub, nc *natsclient.Client) *Bridge {
 
 // Start подписывается на NATS-субъекты и маршрутизирует события в WebSocket-комнаты.
 // Для освобождения подписок вызовите Stop().
+//
+// W3-A4-008: при ошибке N-й подписки откатываем уже созданные через Stop(),
+// иначе утечка NATS subscriptions при переиспользовании Bridge.
 func (b *Bridge) Start() error {
-	// project.{projectID}.{event} -> room "project:{projectID}"
-	projectSub, err := b.nats.Subscribe("project.>", b.traced(b.handleProjectEvent))
-	if err != nil {
-		return err
+	type subDef struct {
+		subject string
+		handler nats.MsgHandler
 	}
-	b.subs = append(b.subs, projectSub)
+	defs := []subDef{
+		{"project.>", b.traced(b.handleProjectEvent)},
+		{"auth.session.>", b.traced(b.handleAuthSessionEvent)},
+		{"messenger.channel.>", b.traced(b.handleMessengerEvent)},
+		// calls.channel — события звонков в WS-комнаты каналов мессенджера.
+		{"calls.channel.>", b.traced(b.handleCallEvent)},
+		// calls.chat — эфемерный чат звонка.
+		{"calls.chat.>", b.traced(b.handleCallChatEvent)},
+		{"notification.user.>", b.traced(b.handleNotificationEvent)},
+	}
 
-	// auth.session.{userID}.{event} -> send to specific user
-	authSub, err := b.nats.Subscribe("auth.session.>", b.traced(b.handleAuthSessionEvent))
-	if err != nil {
-		return err
+	for _, d := range defs {
+		sub, err := b.nats.Subscribe(d.subject, d.handler)
+		if err != nil {
+			b.Stop()
+			return err
+		}
+		b.subs = append(b.subs, sub)
 	}
-	b.subs = append(b.subs, authSub)
-
-	// messenger.channel.{channelID}.{event} -> room "channel:{channelID}"
-	messengerSub, err := b.nats.Subscribe("messenger.channel.>", b.traced(b.handleMessengerEvent))
-	if err != nil {
-		return err
-	}
-	b.subs = append(b.subs, messengerSub)
-
-	// calls.channel.{channelID}.{event} -> room "channel:{channelID}"
-	// Маршрутизирует события звонков (started/ended/joined/left) в WS-комнаты каналов мессенджера.
-	callSub, err := b.nats.Subscribe("calls.channel.>", b.traced(b.handleCallEvent))
-	if err != nil {
-		return err
-	}
-	b.subs = append(b.subs, callSub)
-
-	// calls.chat.{callID} -> room "call:{callID}"
-	// Маршрутизирует сообщения эфемерного чата звонка для real-time доставки.
-	callChatSub, err := b.nats.Subscribe("calls.chat.>", b.traced(b.handleCallChatEvent))
-	if err != nil {
-		return err
-	}
-	b.subs = append(b.subs, callChatSub)
-
-	// notification.user.{userID} -> send to specific user
-	// Маршрутизирует уведомления конкретному пользователю через WS.
-	notifSub, err := b.nats.Subscribe("notification.user.>", b.traced(b.handleNotificationEvent))
-	if err != nil {
-		return err
-	}
-	b.subs = append(b.subs, notifSub)
 
 	slog.Info("ws bridge started", "subscriptions", len(b.subs))
 	return nil
