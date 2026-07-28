@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (be2 · TASK-111 TMS W2 residual)
+
+- Закрыты 24 ID A2W2 residual (handlers/services/repos/import/bases): tx snapshot+update, ImportAllure Ent tx, parser/webhook caps, NATS Event*, SoftDeleteBase cascade, Partial import, export pagination.
+- Тесты: `go test -tags hubtest ./testframework/tms/ ./testframework/bases/` PASS; TASK-015/016 smoke OK.
+- Ветка: `fix/tms/task-111-w2-residual`
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.
