@@ -254,8 +254,10 @@ func (s *Service) TestProvider(ctx context.Context, id uuid.UUID) (*TestProvider
 	})
 	latency := time.Since(start).Milliseconds()
 	if err != nil {
+		// A2W5-A1-004: JSON.error без upstream URL/auth/internals.
 		return &TestProviderResponse{
-			OK: false, Provider: p.Name, Model: model, Latency: latency, Error: err.Error(),
+			OK: false, Provider: p.Name, Model: model, Latency: latency,
+			Error: sanitizeProviderTestError(err),
 		}, nil
 	}
 	return &TestProviderResponse{

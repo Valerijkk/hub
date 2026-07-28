@@ -226,3 +226,18 @@ func ExportOpenAIAdapterClient(a *OpenAIAdapter) *http.Client {
 	}
 	return a.client
 }
+
+// ExportSanitizeProviderTestError — hubtest для A2W5-A1-004.
+func ExportSanitizeProviderTestError(err error) string {
+	return sanitizeProviderTestError(err)
+}
+
+// ExportMapProviderMutateError — hubtest для A2W5-A1-003.
+func ExportMapProviderMutateError(err error) (int, string) {
+	return mapProviderMutateError(err)
+}
+
+// ExportNormalizePolicyText — hubtest для A2W5-A2-006.
+func ExportNormalizePolicyText(s string) string {
+	return normalizePolicyText(s)
+}
