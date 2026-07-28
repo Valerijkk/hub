@@ -31,12 +31,12 @@
 | A2-W5 | ai+search | OK | 96 | 0 | 1 | 18 | 13 | **32** |
 | A2-W6 | auth+rbac+audit | OK | 92 | 0 | 1 | 22 | 8 | **31** |
 | A2-W7 | remaining backend | OK | 284 | 0 | 4 | 33 | 4 | **41** |
-| A2-W8 | ent/schema | OK | 83 | 0 | 14 | 29 | 1 | **44** |
+| A2-W8 | ent/schema | OK | 83 | 0 | 14 | 21 | 0 | **35** |
 | A2-W9 | frontend/components | OK | 127 | 0 | 0 | 4 | 7 | **11** |
 | A2-W10 | routes+modules | OK | 144 | 0 | 2 | 25 | 2 | **29** |
 | A2-W11 | api/stores/hooks/lib+docs | OK | 93 | 0 | 1 | 6 | 4 | **11** |
 
-**Итого Stage A2:** файлов **1405** · open Σ (сырые, до дедупа) **264** (P0=0 · P1=24 · P2=181 · P3=59).  
+**Итого Stage A2:** файлов **1405** · open Σ (сырые, до дедупа) **255** (P0=0 · P1=24 · P2=173 · P3=58).  
 Сводки: `A2-W{n}-SUMMARY.md` · финал: [`00-STAGE-A2-COMPLETE.md`](00-STAGE-A2-COMPLETE.md).
 
 ## Стадии B/C

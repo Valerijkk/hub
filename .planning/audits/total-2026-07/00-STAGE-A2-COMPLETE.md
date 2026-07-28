@@ -9,8 +9,8 @@
 |---------|----------|
 | Волн | **11/11** ✅ |
 | Файлов | **1405 / 1405** |
-| Open Σ (сырые, до дедупа) | **264** |
-| P0 / P1 / P2 / P3 (open) | **0 / 24 / 181 / 59** |
+| Open Σ (сырые, до дедупа) | **255** |
+| P0 / P1 / P2 / P3 (open) | **0 / 24 / 173 / 58** |
 | REGRESS (по сводкам волн) | см. ниже — есть в W4/W5/W6/W10; W7/W8 = **0** |
 
 ## По волнам
@@ -24,11 +24,11 @@
 | A2-W5 | 96 | 0 | 1 | 18 | 13 | 32 | [A2-W5-SUMMARY](A2-W5-SUMMARY.md) |
 | A2-W6 | 92 | 0 | 1 | 22 | 8 | 31 | [A2-W6-SUMMARY](A2-W6-SUMMARY.md) |
 | A2-W7 | 284 | 0 | 4 | 33 | 4 | 41 | [A2-W7-SUMMARY](A2-W7-SUMMARY.md) |
-| A2-W8 | 83 | 0 | 14 | 29 | 1 | 44 | [A2-W8-SUMMARY](A2-W8-SUMMARY.md) |
+| A2-W8 | 83 | 0 | 14 | 21 | 0 | 35 | [A2-W8-SUMMARY](A2-W8-SUMMARY.md) |
 | A2-W9 | 127 | 0 | 0 | 4 | 7 | 11 | [A2-W9-SUMMARY](A2-W9-SUMMARY.md) |
 | A2-W10 | 144 | 0 | 2 | 25 | 2 | 29 | [A2-W10-SUMMARY](A2-W10-SUMMARY.md) |
 | A2-W11 | 93 | 0 | 1 | 6 | 4 | 11 | [A2-W11-SUMMARY](A2-W11-SUMMARY.md) |
-| **Σ** | **1405** | **0** | **24** | **181** | **59** | **264** | |
+| **Σ** | **1405** | **0** | **24** | **173** | **58** | **255** | |
 
 ## High-signal (фикс после дедупа)
 
@@ -43,7 +43,7 @@
 | P1 | A2-W8 | VersionMixin gaps (~14/82); soft-delete / OnDelete residuals |
 | P1 | A2-W10 / W11 | см. сводки (FE routes/modules + api) |
 | NEW | A2W7-2-N01 P3 | Coffee `Pairs[]` triple-edges after FR-INTR-10 |
-| NEW | A2-W8 ×4 | unique/partial/nullable composite; TestSuite asymmetry; Org dup Unique |
+| — | A2-W8 | NEW=0 после финальной сводки; open=35 RESIDUAL (VersionMixin/OnDelete/trash) |
 
 ## Следующие шаги оркестратора
 
