@@ -61,6 +61,18 @@ func TestIsBlockedIP(t *testing.T) {
 	assert.False(t, httputil.ExportIsBlockedIP(net.ParseIP("::ffff:8.8.8.8")))
 }
 
+// TestNormalizeIPForBlocklist_IPv4MappedFourBytes_P1BE23 — мутация: drop To4() → len 16 → RED.
+func TestNormalizeIPForBlocklist_IPv4MappedFourBytes_P1BE23(t *testing.T) {
+	mapped := net.ParseIP("::ffff:169.254.169.254")
+	require.NotNil(t, mapped)
+	require.Equal(t, net.IPv6len, len(mapped), "ParseIP даёт 16-байтный mapped")
+
+	n := httputil.ExportNormalizeIPForBlocklist(mapped)
+	require.Equal(t, net.IPv4len, len(n), "P1-BE-23: blocklist должен видеть 4-байтный IPv4")
+	require.True(t, n.Equal(net.IPv4(169, 254, 169, 254)))
+	require.True(t, httputil.ExportIsBlockedIP(mapped))
+}
+
 func TestSafeDialContext_BlocksIPv4MappedLoopback(t *testing.T) {
 	dial := httputil.SafeDialContext()
 	_, err := dial(context.Background(), "tcp", "[::ffff:127.0.0.1]:80")

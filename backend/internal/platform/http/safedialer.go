@@ -60,6 +60,21 @@ var blockedCIDRs = func() []*net.IPNet {
 	return nets
 }()
 
+// normalizeIPForBlocklist приводит IPv4-mapped IPv6 (::ffff:a.b.c.d) к 4 байтам.
+// P1-BE-23: без To4() Contains на IPv4-CIDR может пропускать mapped (и на Go,
+// где Contains уже матчит, мутация «drop To4» должна краснеть по len==4).
+func normalizeIPForBlocklist(ip net.IP) net.IP {
+	if ip == nil {
+		return nil
+	}
+	if v4 := ip.To4(); v4 != nil {
+		out := make(net.IP, net.IPv4len)
+		copy(out, v4)
+		return out
+	}
+	return ip
+}
+
 // isBlockedIP возвращает true, если IP принадлежит одному из запрещённых
 // диапазонов (приватная сеть, loopback, link-local и т.п.).
 //
@@ -67,11 +82,9 @@ var blockedCIDRs = func() []*net.IPNet {
 // иначе net.IPNet.Contains для IPv4-CIDR (4 байта) не матчит 16-байтный
 // mapped-адрес и SSRF обходит blocklist (метаданные/loopback/RFC1918).
 func isBlockedIP(ip net.IP) bool {
+	ip = normalizeIPForBlocklist(ip)
 	if ip == nil {
 		return true
-	}
-	if v4 := ip.To4(); v4 != nil {
-		ip = v4
 	}
 	for _, n := range blockedCIDRs {
 		if n.Contains(ip) {
