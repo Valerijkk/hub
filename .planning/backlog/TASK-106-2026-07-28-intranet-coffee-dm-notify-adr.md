@@ -63,7 +63,8 @@ FR-INTR-11 реализован по ADR U05 (**notify-only**) — поведе�
 
 **Тесты:**
 ```
-go test -tags hubtest -race -count=1 -timeout=180s ./testframework/intranet/ -run Task106
+go test -tags hubtest -race -count=1 -timeout=300s ./testframework/intranet/
+→ ok (2.389s) · Task106 + domain regression PASS
 ```
 
 **Мутация:** убрать вызовы `s.notifyCoffeeMatch` в `RunCoffeeMatching` → краснеют
