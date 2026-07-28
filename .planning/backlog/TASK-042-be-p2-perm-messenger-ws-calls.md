@@ -1,6 +1,6 @@
 # TASK-042 — Weak perm + messenger + WS revoke + calls guest
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P2-BE-12..15 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
@@ -72,6 +72,10 @@
 ### Evidence
 
 - `go test -tags hubtest -race` packages: tracker/project/messenger/ws/calls (P2_BE_* filters) — PASS
+
+## [REWORK 2026-07-28]
+
+NATS capture AcceptInvite via_invite=true из production PublishJSON.
 
 ## [W18-C3 MUTATION — 2026-07-28 be2]
 
