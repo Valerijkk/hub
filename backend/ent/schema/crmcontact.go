@@ -61,6 +61,8 @@ func (CrmContact) Edges() []ent.Edge {
 
 func (CrmContact) Indexes() []ent.Index {
 	return []ent.Index{
+		// A2W8-2-005: lookup по email — hot-path CRM.
+		index.Fields("email"),
 		index.Fields("deleted_at"),
 		index.Fields("company"),
 	}

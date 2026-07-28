@@ -33,9 +33,11 @@ func (Notification) Fields() []ent.Field {
 		field.String("entity_type").
 			Optional().
 			Comment("Тип сущности: issue, channel, testrun и т.д."),
-		field.String("entity_id").
+		// A2W8-3-006: polymorphic entity_id — UUID (без FK на разные таблицы).
+		field.UUID("entity_id", uuid.UUID{}).
 			Optional().
-			Comment("ID связанной сущности"),
+			Nillable().
+			Comment("ID связанной сущности (UUID; полиморф без FK)"),
 		field.UUID("project_id", uuid.UUID{}).
 			Optional().
 			Nillable().
@@ -50,6 +52,9 @@ func (Notification) Fields() []ent.Field {
 		field.Bool("is_urgent").
 			Default(false).
 			Comment("Срочное уведомление (пробивает тихие часы)"),
+		// A2W8-3-006: OL для mark-read race.
+		field.Int("version").
+			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),

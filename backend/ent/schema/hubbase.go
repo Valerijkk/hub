@@ -50,5 +50,7 @@ func (HubBase) Edges() []ent.Edge {
 func (HubBase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("deleted_at"),
+		// A2W8-2-009: ListBases WHERE owner AND deleted_at IS NULL
+		index.Edges("owner").Fields("deleted_at"),
 	}
 }

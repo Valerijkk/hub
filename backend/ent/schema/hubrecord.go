@@ -49,5 +49,7 @@ func (HubRecord) Edges() []ent.Edge {
 func (HubRecord) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("deleted_at"),
+		// A2W8-2-009: ListRecords WHERE table AND deleted_at IS NULL
+		index.Edges("table").Fields("deleted_at"),
 	}
 }

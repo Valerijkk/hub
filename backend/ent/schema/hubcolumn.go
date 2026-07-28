@@ -56,5 +56,8 @@ func (HubColumn) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("deleted_at"),
 		index.Fields("sort_order"),
+		// A2W8-2-009: unique name в таблице + list по table+deleted_at
+		index.Edges("table").Fields("name").Unique(),
+		index.Edges("table").Fields("deleted_at"),
 	}
 }

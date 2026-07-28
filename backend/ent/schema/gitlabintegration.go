@@ -30,9 +30,10 @@ func (GitLabIntegration) Fields() []ent.Field {
 		field.String("access_token").
 			Sensitive().
 			Comment("GitLab Personal Access Token"),
+		// A2W8-2-007: секрет обязателен (симметрия с GitHubIntegration).
 		field.String("webhook_secret").
-			Optional().
 			Sensitive().
+			NotEmpty().
 			Comment("Секрет для валидации GitLab webhook (X-Gitlab-Token)"),
 		field.Time("created_at").
 			Default(nowUTC).

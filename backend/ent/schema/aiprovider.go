@@ -61,6 +61,9 @@ func (AIProvider) Edges() []ent.Edge {
 		edge.From("owner", User.Type).
 			Ref("ai_providers").
 			Unique(),
+		// A2W8-1-005: обратная сторона FK из AIUserPreference.default_provider_id.
+		edge.From("user_preferences", AIUserPreference.Type).
+			Ref("default_provider"),
 	}
 }
 

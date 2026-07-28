@@ -40,6 +40,9 @@ func (GitHubLink) Fields() []ent.Field {
 		field.String("branch").
 			Optional().
 			Comment("Имя ветки (для PR)"),
+		// A2W8-2-008: optimistic lock для status updates.
+		field.Int("version").
+			Default(1),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -67,6 +70,7 @@ func (GitHubLink) Edges() []ent.Edge {
 func (GitHubLink) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Edges("issue"),
-		index.Fields("external_id", "link_type"),
+		// A2W8-2-008: уникальность внешней ссылки в рамках интеграции.
+		index.Edges("integration").Fields("external_id", "link_type").Unique(),
 	}
 }
