@@ -1,7 +1,8 @@
 # TASK-120 — 🔌 Git*/1C/imex: secrets RAM + trash filter
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: W7 integrations · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
+> Закрыто: 2026-07-29 · be2 · ветка `fix/integrations/task-120-secrets-imex`
 
 ## [OUTCOME]
 

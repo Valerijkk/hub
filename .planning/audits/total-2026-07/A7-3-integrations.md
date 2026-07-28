@@ -104,11 +104,11 @@
 | W7-A3-001 | P1 | `gitlab/service.go:424-431` | `PublishJSON("gitlab.pipeline.triggered", … "variables": req.Variables)` | CI variables часто содержат токены/пароли; NATS/outbox/логи consumers получают plaintext | Публиковать только keys или redact values (`***`); тест: trigger с secret var → payload без plaintext |
 | W7-A3-002 | P1 | `github/handler.go:47`; `github/service.go:468-484` | `ListGitHubLinks` по `issueKey` под общим `authMw` без `PermProjectView` / membership | Остальные github-роуты scoped к project+RBAC; любой auth-юзер, знающий ключ, читает PR/commit links чужого проекта | Route под project group + RBAC, либо resolve issue→project + membership check; denial-тест |
 | W7-A3-003 | P2 | `gitlab/webhook_verify.go:41-45` | `subtle.ConstantTimeCompare([]byte(token), []byte(secret))` без выравнивания длин | Go CTC при разной длине сразу `0` (не constant-time по длине) → oracle длины webhook secret | Сравнивать `sha256(token)` vs `sha256(secret)` или HMAC обоих; тест unequal-length reject без early `==` |
-| W7-A3-004 | P2 | `github/repository.go:381-424`; `gitlab/repository.go:247-284` | `ListAllWebhookSecrets` + in-memory cache всех plaintext секретов; verify path (A5-008/009) больше не вызывает | Мёртвый attack-surface: decrypt всех секретов инстанса в RAM; риск при ошибочном reuse any-of loop | Удалить API/cache или оставить unused с deprecate; verify только через FindByRepo/Path |
+| W7-A3-004 | P2 | `github/repository.go`; `gitlab/repository.go` | **FIXED (TASK-120):** `ListAllWebhookSecrets` + in-memory cache удалены; verify = FindByRepo/Path | — | — |
 | W7-A3-005 | P2 | `github/handler.go:106-122` | CreateIntegration не проверяет пустые `repo_owner`/`repo_name`/`access_token`/`webhook_secret` (в отличие от gitlab handler) | `validate` tags не enforced Bind; пустой PAT/secret → мёртвая интеграция / webhook 403 «secret не настроен» | Require nonempty как gitlab; 400-тесты |
-| W7-A3-006 | P2 | `gitlab/service.go:306`, `410`, `498`, `554` | Ошибки GitLab API: `fmt.Sprintf/… + string(respBody)` в Internal/error | Тело upstream (сообщения, иногда фрагменты контекста) утекает клиенту Hub | Логировать body server-side; клиенту только статус/generic message |
-| W7-A3-007 | P2 | `onec/dto.go:26-31`, `101-107`; `onec/settings_store.go:40-58` | `Config.BearerToken` пишется plaintext JSON в `system_setting.value` | Компрометация БД = bearer 1С; github/gitlab токены уже AES-GCM (HI-05) | Шифровать token через `platform/crypto` до Upsert; GET по-прежнему только `bearer_token_set` |
-| W7-A3-008 | P2 | `imex/repository.go:138-142` vs `128-135` | `ListProjectIssuesPlain` (ZIP) без `DeletedAtIsNil`; CSV export фильтрует soft-delete | Полный ZIP отдаёт задачи из корзины | Добавить `issue.DeletedAtIsNil()`; тест trash не в ZIP |
+| W7-A3-006 | P2 | `gitlab/service.go` | **FIXED (TASK-120):** upstream body только в slog; клиенту generic + HTTP status | — | — |
+| W7-A3-007 | P2 | `onec/service.go` | **FIXED (TASK-120):** BearerToken AES-GCM at-rest; GET `bearer_token_set` | — | — |
+| W7-A3-008 | P2 | `imex/repository.go` | **FIXED (TASK-120):** `ListProjectIssuesPlain` + `DeletedAtIsNil` | — | — |
 | W7-A3-009 | P2 | `imex/service.go:246-248`; `imex/handler.go:118-121` | `ExportIssuesExcel` = CSV, но Content-Type `…spreadsheetml.sheet` / `issues.xlsx` | Клиент получает CSV под видом XLSX — сломанный Excel-экспорт | Реализовать xlsx или убрать format=excel до реализации; тест magic bytes |
 | W7-A3-010 | P2 | `github/repository.go:236-253`; `gitlab/repository.go:182-199` | Hard delete интеграций (`Delete().Exec`) | TZ: soft delete / корзина 30д; случайный delete необратим (токены/links) | Soft-delete + cascade links или ADR-исключение для credentials |
 | W7-A3-011 | P3 | `github/service.go:282-283`, `288-292`, `547-549` | `_ = LogActivity`; `PublishJSON` без проверки ошибки | Потеря аудита автосмены статуса / silent drop NATS | Проверять/логировать err; не глотать `_` |
@@ -135,8 +135,8 @@
 
 | Тема | Статус |
 |------|--------|
-| Webhook signatures | **OK** (bind + no-skip); мёртвый `ListAllWebhookSecrets` — tech debt (004) |
-| OAuth tokens in logs | **OK** (не логируются); риск — NATS variables (001) и plaintext 1С token in DB (007) |
+| Webhook signatures | **OK** (bind + no-skip); `ListAllWebhookSecrets` удалён (TASK-120 / W7-A3-004) |
+| OAuth tokens in logs | **OK** (не логируются); риск NATS variables (001) закрыт redact; 1С token at-rest AES-GCM (TASK-120 / 007) |
 | SSRF | **OK** SafeHTTP + ValidateOutboundURL на user URLs |
 | ConstantTimeCompare gitlab | **Используется**, но сырые строки → length oracle (003); GitHub HMAC digests — равной длины, ок |
 
