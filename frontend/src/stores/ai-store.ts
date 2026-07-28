@@ -14,7 +14,10 @@ interface AIStore {
 	selectedModel: string | null;
 	panelOpen: boolean;
 	prefillInput: string | null;
+	/** true только после успешного loadBotInfo — fail не блокирует retry. */
 	loaded: boolean;
+	botLoadError: boolean;
+	modelsError: boolean;
 	loadBotInfo: () => Promise<void>;
 	loadModels: () => Promise<void>;
 	setSelectedModel: (model: string) => void;
@@ -34,6 +37,8 @@ export const useAIStore = create<AIStore>((set, get) => ({
 	panelOpen: false,
 	prefillInput: null,
 	loaded: false,
+	botLoadError: false,
+	modelsError: false,
 	loadBotInfo: async () => {
 		if (get().loaded) return;
 		try {
@@ -42,9 +47,11 @@ export const useAIStore = create<AIStore>((set, get) => ({
 				botUserId: info.user_id,
 				botDisplayName: info.display_name,
 				loaded: true,
+				botLoadError: false,
 			});
 		} catch {
-			set({ loaded: true });
+			// W11-A2-002: не ставить loaded:true — иначе retry навсегда заблокирован
+			set({ botLoadError: true });
 		}
 	},
 	loadModels: async () => {
@@ -62,18 +69,22 @@ export const useAIStore = create<AIStore>((set, get) => ({
 			set((s) => ({
 				models: resp.models,
 				selectedModel: s.selectedModel ?? preferred ?? first,
+				modelsError: false,
 			}));
 		} catch {
-			/* Админ мог ещё не настроить провайдеров — UI остаётся с пустым списком моделей. */
+			// W11-A2-003: fail ≠ «список моделей пуст»
+			set({ modelsError: true });
 		}
 	},
 	setSelectedModel: (model) => set({ selectedModel: model }),
 	saveSelectedModel: async (model) => {
+		const prev = get().selectedModel;
 		set({ selectedModel: model });
 		try {
 			await updateAIPreferences({ default_model: model });
 		} catch {
-			/* Синхронизация предпочтений best-effort: локальный выбор важнее серверного ответа. */
+			// rollback optimistic выбора при fail sync
+			set({ selectedModel: prev });
 		}
 	},
 	setPanelOpen: (open) => set({ panelOpen: open }),
