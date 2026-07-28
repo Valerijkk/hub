@@ -3,7 +3,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { ProjectResponse } from "@/api/projects";
-import { listTrash, restoreProject } from "@/api/projects";
+import {
+	listTrash,
+	permanentDeleteProject,
+	restoreProject,
+} from "@/api/projects";
 import { toastApiError } from "@/lib/format-api-error";
 
 /**
@@ -26,7 +30,7 @@ function daysBadgeClass(days: number): string {
 	return "bg-blue/[0.08] text-blue";
 }
 
-function TrashPage() {
+export function TrashPage() {
 	const queryClient = useQueryClient();
 	const [activeTab, setActiveTab] = useState<"items" | "about">("items");
 	const [confirmProject, setConfirmProject] = useState<ProjectResponse | null>(
@@ -50,6 +54,20 @@ function TrashPage() {
 			toast.success("Проект восстановлен");
 		},
 		onError: (err) => toastApiError(err, "Не удалось восстановить проект"),
+	});
+
+	const hardDeleteMutation = useMutation({
+		mutationFn: permanentDeleteProject,
+		onSuccess: () => {
+			setConfirmProject(null);
+			void queryClient.invalidateQueries({ queryKey: ["projects", "trash"] });
+			void queryClient.invalidateQueries({ queryKey: ["projects"] });
+			toast.success("Элемент удален навсегда");
+		},
+		onError: (err) => {
+			// Элемент остаётся в списке — корзина не инвалидируется при ошибке.
+			toastApiError(err, "Не удалось удалить навсегда");
+		},
 	});
 
 	return (
@@ -454,13 +472,19 @@ function TrashPage() {
 							</button>
 							<button
 								type="button"
+								data-testid="trash-hard-delete-confirm"
+								disabled={
+									hardDeleteMutation.isPending || confirmProject === null
+								}
 								onClick={() => {
-									setConfirmProject(null);
-									toast.success("Элемент удален навсегда");
+									if (confirmProject === null) return;
+									hardDeleteMutation.mutate(confirmProject.id);
 								}}
-								className="px-[22px] py-[9px] rounded-[var(--r2)] text-[14px] font-bold bg-[var(--redS)] text-white transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 shadow-[0_2px_12px_var(--gR)] hover:brightness-110 hover:-translate-y-px"
+								className="px-[22px] py-[9px] rounded-[var(--r2)] text-[14px] font-bold bg-[var(--redS)] text-white transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 shadow-[0_2px_12px_var(--gR)] hover:brightness-110 hover:-translate-y-px disabled:opacity-60 disabled:pointer-events-none"
 							>
-								Удалить навсегда
+								{hardDeleteMutation.isPending
+									? "Удаление…"
+									: "Удалить навсегда"}
 							</button>
 						</div>
 					</div>

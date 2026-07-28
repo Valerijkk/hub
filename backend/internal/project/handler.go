@@ -34,6 +34,7 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	projects.Post("/:projectId/unarchive", h.UnarchiveProject, rbac.RequirePermission(rbac.PermProjectEdit, rbacSvc))
 	projects.Delete("/:projectId", h.DeleteProject, rbac.RequirePermission(rbac.PermProjectDelete, rbacSvc))
 	projects.Post("/:projectId/restore", h.RestoreProject, rbac.RequirePermission(rbac.PermProjectDelete, rbacSvc))
+	projects.Delete("/:projectId/permanent", h.PermanentDeleteProject, rbac.RequirePermission(rbac.PermProjectDelete, rbacSvc))
 
 	// Участники
 	projects.Get("/:projectId/members", h.ListMembers, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
@@ -274,6 +275,31 @@ func (h *Handler) RestoreProject(c fiber.Ctx) error {
 	}
 
 	return c.JSON(resp)
+}
+
+// PermanentDeleteProject — Жёсткое удаление проекта из корзины
+// @Summary Удалить проект навсегда
+// @Description Безвозвратно удаляет проект (hard-delete). TZ: Admin/GDPR.
+// @Tags Проекты
+// @Produce json
+// @Param projectId path string true "ID проекта"
+// @Success 204 "Удалён"
+// @Failure 400 {object} fiber.Error "Неверный ID"
+// @Failure 401 {object} fiber.Error "Не авторизован"
+// @Failure 404 {object} fiber.Error "Не найден"
+// @Security BearerAuth
+// @Router /api/projects/{projectId}/permanent [delete]
+func (h *Handler) PermanentDeleteProject(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.PermanentDelete(c.Context(), projectID); err != nil {
+		return err
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 // ListTrash — Корзина проектов

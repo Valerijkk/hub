@@ -65,12 +65,11 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-29 (fe1 · TASK-082 SprintBacklog without-sprint filter)
+## Session note — 2026-07-29 (fe2 · TASK-083 trash hard-delete API)
 
-- `SprintBacklog`: `listIssues({ sprint_id: "none" })` + `filterIssuesWithoutSprint`; error path → toast + retry (не «Бэклог пуст»).
-- BE additive: `ListIssuesRequest.sprint_id` (`none`/`unassigned`/UUID), `IssueResponse.sprint_id`, `WithSprint` в ListIssues.
-- Tests: `sprint-backlog-filter.test.tsx`, `sprint-backlog-without-sprint.test.ts`.
-- Статус TASK-082 → Исправлена.
+- **Сделано:** «Удалить навсегда» → `DELETE /projects/:id/permanent` (`permanentDeleteProject` + `hardDeleteMutation`); BE route `PermanentDeleteProject`; fail → toast.error без success.
+- **Тесты:** vitest `trash-hard-delete-p1` (+ регрессия `trash-webhooks-p1`); mutation: stub reject → нет success toast.
+- **Docs:** `docs/wiki/API.md` (hard-delete), backlog TASK-083 → Исправлена.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

@@ -115,6 +115,14 @@ export function restoreProject(projectId: string) {
 	return api.post<void>(`/projects/${projectId}/restore`);
 }
 
+/**
+ * Endpoint: DELETE /projects/:id/permanent — жёсткое удаление из корзины.
+ * Зеркалит backend `ProjectService.PermanentDelete` (HTTP: PermanentDeleteProject).
+ */
+export function permanentDeleteProject(projectId: string) {
+	return api.delete<void>(`/projects/${projectId}/permanent`);
+}
+
 /** Endpoint: GET /projects/:id/members — получить список участников проекта. */
 export function listMembers(projectId: string) {
 	return api.get<MemberResponse[]>(`/projects/${projectId}/members`);
@@ -131,10 +139,9 @@ export function updateMemberRole(
 	userId: string,
 	role: AddMemberRequest["role"],
 ) {
-	return api.put<MemberResponse>(
-		`/projects/${projectId}/members/${userId}`,
-		{ role },
-	);
+	return api.put<MemberResponse>(`/projects/${projectId}/members/${userId}`, {
+		role,
+	});
 }
 
 /** Endpoint: DELETE /projects/:id/members/:userId — удалить участника из проекта. */
