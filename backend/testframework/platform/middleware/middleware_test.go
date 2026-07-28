@@ -277,6 +277,12 @@ func TestParseCORSOrigins_TrimsAndRejectsWildcardAndEmpty(t *testing.T) {
 		{"wildcard rejected", "http://a,*", []string{"http://a"}, 1},
 		{"empty entries", "http://a,, ,http://b", []string{"http://a", "http://b"}, 2},
 		{"all bad", "*, ,,", nil, 4},
+		// W4-A1-011 / P3-BE-11: shape — только абсолютный origin без path/query.
+		{"null string", "null", nil, 1},
+		{"path rejected", "https://hub.example.com/app", nil, 1},
+		{"query rejected", "https://hub.example.com?x=1", nil, 1},
+		{"ftp rejected", "ftp://hub.example.com", nil, 1},
+		{"mixed valid invalid", "https://ok.example,null,https://hub.example.com/path", []string{"https://ok.example"}, 2},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

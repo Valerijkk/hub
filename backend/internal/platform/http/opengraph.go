@@ -101,8 +101,11 @@ func parseOpenGraphHTML(doc string) *OpenGraphMeta {
 					meta.Description = content
 				}
 			case "og:image":
+				// W4-A1-008 / P3-BE-11: og:image без Validate → SSRF у потребителей meta.
 				if content != "" && meta.ImageURL == "" {
-					meta.ImageURL = content
+					if err := ValidateOutboundURL(content); err == nil {
+						meta.ImageURL = content
+					}
 				}
 			}
 		case html.TextToken:

@@ -36,6 +36,23 @@ func TestValidateOutboundURL(t *testing.T) {
 		err := httputil.ValidateOutboundURL("://bad")
 		require.Error(t, err)
 	})
+
+	// W4-A1-009 / P3-BE-11: IP-литералы из blocklist → ErrBlocked на Validate (до dial).
+	t.Run("blocked link-local IP literal", func(t *testing.T) {
+		err := httputil.ValidateOutboundURL("http://169.254.169.254/latest/meta-data/")
+		require.ErrorIs(t, err, httputil.ErrBlockedAddress)
+	})
+	t.Run("blocked loopback IP literal", func(t *testing.T) {
+		err := httputil.ValidateOutboundURL("http://127.0.0.1:8080/")
+		require.ErrorIs(t, err, httputil.ErrBlockedAddress)
+	})
+	t.Run("blocked IPv4-mapped literal", func(t *testing.T) {
+		err := httputil.ValidateOutboundURL("http://[::ffff:169.254.169.254]/")
+		require.ErrorIs(t, err, httputil.ErrBlockedAddress)
+	})
+	t.Run("public IP literal allowed at validate", func(t *testing.T) {
+		require.NoError(t, httputil.ValidateOutboundURL("https://8.8.8.8/"))
+	})
 }
 
 func TestIsBlockedIP(t *testing.T) {

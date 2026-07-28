@@ -95,8 +95,10 @@ func isBlockedIP(ip net.IP) bool {
 }
 
 // ValidateOutboundURL проверяет, что URL безопасен для серверного fetch:
-// схема http/https, отсутствует userinfo и хост не пуст. Сам IP-резолвинг
-// выполняется в SafeDialContext, чтобы покрыть DNS-rebinding.
+// схема http/https, отсутствует userinfo и хост не пуст.
+// W4-A1-009 / P3-BE-11: IP-литералы из blockedCIDRs режем на parse
+// (ранний fail до dial; контракт «Validate до Do» достаточен один).
+// DNS-rebinding для hostname по-прежнему закрывает SafeDialContext.
 func ValidateOutboundURL(rawURL string) error {
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -111,6 +113,10 @@ func ValidateOutboundURL(rawURL string) error {
 	}
 	if u.Host == "" {
 		return fmt.Errorf("invalid URL: empty host")
+	}
+	// Hostname() без порта; ParseIP ловит IPv4/IPv6/mapped литералы.
+	if ip := net.ParseIP(u.Hostname()); ip != nil && isBlockedIP(ip) {
+		return fmt.Errorf("%w: %s", ErrBlockedAddress, u.Hostname())
 	}
 	return nil
 }
