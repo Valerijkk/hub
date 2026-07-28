@@ -4,7 +4,7 @@
 > Входы: [`W18-SUMMARY.md`](W18-SUMMARY.md), [`W18-CATCHUP-PRODUCT.md`](W18-CATCHUP-PRODUCT.md),  
 > [`W19-A1-ORPHAN-P0P1.md`](W19-A1-ORPHAN-P0P1.md), [`W19-A2-EVIDENCE-GAPS.md`](W19-A2-EVIDENCE-GAPS.md),  
 > [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md), [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md)  
-> **Статус входов:** A1–A4 на диске, re-verify A1 / A3 (19:32) / A4 (19:35). **TODO по siblings: нет.**
+> Re-verify входов: A1 · A2 · A3 (19:40 UTC+3) · A4 (19:38 UTC+3).
 
 ## Контекст после W18
 
@@ -73,7 +73,7 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 
 ## 3. Combinatorial defects
 
-Источник: [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md) (re-verify path:line 19:32)
+Источник: [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md) (re-verify path:line 19:40)
 
 | Severity | Count | Actionable |
 |----------|------:|-----------:|
@@ -90,11 +90,13 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 | **C-001** CRITICAL | GDPR Mongo eraser `(0,nil)` + HardDelete cascade → erase без удаления сообщений | TASK-079 · W18-C5-001 |
 | **C-002** CRITICAL | Dual StartSprint race unproven + schema без unique active → persistent dual active | **041** + **046** |
 | **C-003** HIGH | AddTeamToProject без team ACL + только PermTeamManage → forced membership | **014** |
-| **C-004** HIGH | Bulk team inject + CompleteSprint mid-fail unproven | **014** |
 | **C-005** HIGH | To4 mutation-blind + Meili SSRF hubtest gap | **019** + **044** |
 | **C-006** HIGH | AI `access==nil` fail-open + stream cancel unproven | **044** |
 | **C-007** HIGH | Confirm empty entity + Confirm-without-object | **045** |
-| **C-008/009** HIGH | Soft-delete project/webhooks · SQL OK + Meili orphans | residual |
+| **C-008** HIGH | Soft-delete project + webhooks ListActive без `deleted_at` | residual |
+| **C-009** HIGH | SQL soft-delete OK + Meili upsert orphans | **044** adjacent |
+
+MEDIUM (не top, но в матрице): C-004 (014 mid-fail proof), C-010 (014×041 blast), C-011 (042 via_invite), C-012 (search outage UX), C-013 (045 legacy entity).
 
 Все W18 FAIL 014/019/041/042/044/045/046/052/054 + TASK-079 в матрице A3.  
 Порядок фикса A3: **C-001/079 → C-002 (041+046) → C-003/004 (014) → C-007/013 (045) → C-005/006 (019/044)**.
@@ -103,7 +105,7 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 
 ## 4. Red team (auth non-admin)
 
-Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md) (re-verify 19:35)
+Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md) (re-verify 19:38)
 
 **Вердикт A4:** 0 новых CRITICAL как single-step non-admin exploit; CRITICAL combo **TASK-079** (admin erase + residual PII for members); остаточные Med/High → W18 FAIL.
 
@@ -117,7 +119,7 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 | 4 | User SSRF (push / link-preview) + To4 mutation blind | Low × High | **019** |
 | 5 | AI privacy / nil access fail-open + stream/Meili gaps | Low–Med × High | **044** |
 
-Dual StartSprint (**041**) — residual #6 (Low–Med × Med).
+Dual StartSprint (**041**) — residual #6 (Low–Med × Med); stacks with **046** → A3 C-002 CRITICAL.
 
 ### W18 FAIL → reopen map (сводка)
 
@@ -134,7 +136,7 @@ Dual StartSprint (**041**) — residual #6 (Low–Med × Med).
 | 052 | LOW | hygiene |
 | 054 | NO (exploit) | docs → TASK-080 |
 
-Порядок reopen-fix (A4): **014 → 079 → 045 → 044/019 → 041**.
+Порядок reopen-fix (A4): **014 → 079 → 045 → 044/019 → 041/046**.
 
 ---
 
