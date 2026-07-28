@@ -44,17 +44,46 @@ func ParseJQL(input string) (*JQLQuery, error) {
 }
 
 // ToEntPredicates конвертирует JQLQuery в предикаты Ent для фильтрации задач.
+// W5-A4-005 / P2-BE-18: учитывает Logic AND/OR между условиями (раньше всё было AND).
 func ToEntPredicates(q *JQLQuery, currentUserID uuid.UUID) []predicate.Issue {
-	var preds []predicate.Issue
-
-	for _, cond := range q.Conditions {
-		pred := conditionToPredicate(cond, currentUserID)
-		if pred != nil {
-			preds = append(preds, pred)
-		}
+	if q == nil || len(q.Conditions) == 0 {
+		return nil
 	}
 
-	return preds
+	var andGroup []predicate.Issue
+	var orParts []predicate.Issue
+
+	flushAnd := func() {
+		if len(andGroup) == 0 {
+			return
+		}
+		if len(andGroup) == 1 {
+			orParts = append(orParts, andGroup[0])
+		} else {
+			orParts = append(orParts, issue.And(andGroup...))
+		}
+		andGroup = nil
+	}
+
+	for i, cond := range q.Conditions {
+		pred := conditionToPredicate(cond, currentUserID)
+		if pred == nil {
+			continue
+		}
+		if i > 0 && strings.EqualFold(cond.Logic, "OR") {
+			flushAnd()
+		}
+		andGroup = append(andGroup, pred)
+	}
+	flushAnd()
+
+	if len(orParts) == 0 {
+		return nil
+	}
+	if len(orParts) == 1 {
+		return orParts
+	}
+	return []predicate.Issue{issue.Or(orParts...)}
 }
 
 // conditionToPredicate конвертирует одно условие JQL в Ent predicate.

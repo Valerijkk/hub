@@ -299,7 +299,8 @@ func (s *Service) GetUserPreference(ctx context.Context, userID uuid.UUID) (*Use
 	if err != nil {
 		return nil, err
 	}
-	resp := &UserPreferenceResponse{AllowExternalAI: true}
+	// W5-A3-012 / P2-BE-17: default AllowExternalAI=false (opt-in).
+	resp := &UserPreferenceResponse{AllowExternalAI: false}
 	if rec != nil {
 		resp.DefaultModel = rec.DefaultModel
 		resp.AllowExternalAI = rec.AllowExternalAI
@@ -464,7 +465,23 @@ func (s *Service) StartChatStream(ctx context.Context, userID uuid.UUID, req Cha
 	if s.streams == nil {
 		return fmt.Errorf("streaming not configured")
 	}
-	go s.runChatStream(context.Background(), userID, req, ip, userAgent)
+	// W5-A1-002: preflight consent/RPM до 202 — те же sentinel, что non-stream.
+	if _, err := s.resolveProviders(ctx, userID, req.Model); err != nil {
+		return err
+	}
+	// W5-A3-005: не Background() — cancel родителя/таймаут останавливает SSE.
+	// WithoutCancel: HTTP handler отдаёт 202 и завершает request ctx; стрим живёт
+	// по собственному deadline, но отмена явного parent (тесты/WS) пробрасывается
+	// через отдельный cancel, если ctx уже отменён до старта.
+	streamCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Minute)
+	if err := ctx.Err(); err != nil {
+		cancel()
+		return err
+	}
+	go func() {
+		defer cancel()
+		s.runChatStream(streamCtx, userID, req, ip, userAgent)
+	}()
 	return nil
 }
 

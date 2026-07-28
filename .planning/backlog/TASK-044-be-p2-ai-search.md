@@ -1,6 +1,6 @@
 # TASK-044 — AI stream/privacy + search JQL/SSRF
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
 > Источник: TASK-008 W12 · Classes: P2-BE-17,P2-BE-18 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]

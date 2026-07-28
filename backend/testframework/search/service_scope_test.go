@@ -192,7 +192,7 @@ func TestSearch_UsesProjectScopeForIssues(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.ExportNewSearchServiceFull(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "hub", userID, []string{"issue"}, 20)
+	results, _, err := svc.Search(context.Background(), "hub", userID, []string{"issue"}, 20)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }

@@ -165,11 +165,11 @@ type searchBackendStub struct {
 	err     error
 }
 
-func (s searchBackendStub) Search(_ context.Context, _ string, _ uuid.UUID, _ []string, _ int) ([]searchmod.SearchResult, error) {
+func (s searchBackendStub) Search(_ context.Context, _ string, _ uuid.UUID, _ []string, _ int) ([]searchmod.SearchResult, bool, error) {
 	if s.err != nil {
-		return nil, s.err
+		return nil, false, s.err
 	}
-	return s.results, nil
+	return s.results, false, nil
 }
 
 type stubCodeReviewProvider struct {

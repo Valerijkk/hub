@@ -14,7 +14,7 @@ func TestSearch_NoProjectMemberships_ReturnsEmpty(t *testing.T) {
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
 	userID := uuid.New()
 
-	results, err := svc.Search(context.Background(), "login", userID, nil, 10)
+	results, _, err := svc.Search(context.Background(), "login", userID, nil, 10)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -30,7 +30,7 @@ func TestSearch_TypeFilterIssueOnly(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "bug", userID, []string{"issue"}, 5)
+	results, _, err := svc.Search(context.Background(), "bug", userID, []string{"issue"}, 5)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -40,7 +40,7 @@ func TestSearch_LimitClampedToDefault(t *testing.T) {
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
 	userID := uuid.New()
 
-	results, err := svc.Search(context.Background(), "x", userID, []string{"user"}, 0)
+	results, _, err := svc.Search(context.Background(), "x", userID, []string{"user"}, 0)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -56,7 +56,7 @@ func TestSearch_MessageTypeWithoutMongo(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "hello", userID, []string{"message"}, 10)
+	results, _, err := svc.Search(context.Background(), "hello", userID, []string{"message"}, 10)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -65,6 +65,6 @@ func TestSearch_ProjectIDsLookupError(t *testing.T) {
 	db := newScopeTestDB(t)
 	_ = db.Close()
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	_, err := svc.Search(context.Background(), "q", uuid.New(), nil, 10)
+	_, _, err := svc.Search(context.Background(), "q", uuid.New(), nil, 10)
 	require.Error(t, err)
 }

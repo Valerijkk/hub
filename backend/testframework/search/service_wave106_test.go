@@ -27,7 +27,7 @@ func TestSearch_AllEntityTypesParallel(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
-	results, err := svc.Search(context.Background(), "hub", userID,
+	results, _, err := svc.Search(context.Background(), "hub", userID,
 		[]string{"issue", "test_case", "user", "project", "file", "channel", "message"}, 50)
 	require.NoError(t, err)
 	assert.Empty(t, results)
@@ -44,7 +44,7 @@ func TestSearch_LimitCappedAtFifty(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "x", userID, []string{"issue"}, 100)
+	results, _, err := svc.Search(context.Background(), "x", userID, []string{"issue"}, 100)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }

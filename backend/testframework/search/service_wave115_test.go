@@ -14,7 +14,7 @@ func TestSearch_UserShardOnly_Admin(t *testing.T) {
 	userID := uuid.New()
 	svc := search.NewSearchService(&adminSearchRepo{admin: true}, db, nil)
 
-	results, err := svc.Search(context.Background(), "alice", userID, []string{"user"}, 10)
+	results, _, err := svc.Search(context.Background(), "alice", userID, []string{"user"}, 10)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -30,7 +30,7 @@ func TestSearch_FileShardOnly(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "readme", userID, []string{"file"}, 5)
+	results, _, err := svc.Search(context.Background(), "readme", userID, []string{"file"}, 5)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -46,7 +46,7 @@ func TestSearch_TestCaseShardOnly(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "login", userID, []string{"test_case"}, 5)
+	results, _, err := svc.Search(context.Background(), "login", userID, []string{"test_case"}, 5)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }

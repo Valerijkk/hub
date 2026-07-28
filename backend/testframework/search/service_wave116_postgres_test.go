@@ -151,7 +151,7 @@ func TestPostgresSearch_IssuesAndProjects(t *testing.T) {
 	require.NotEmpty(t, projects)
 	assert.Equal(t, "project", projects[0].Type)
 
-	results, err := svc.Search(ctx, "login", userID, []string{"issue", "project"}, 10)
+	results, _, err := svc.Search(ctx, "login", userID, []string{"issue", "project"}, 10)
 	require.NoError(t, err)
 	assert.NotEmpty(t, results)
 }

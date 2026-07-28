@@ -27,7 +27,7 @@ func TestSearch_AllShardsWithMembership_RecoversFromMissingTables(t *testing.T) 
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "hub query", userID, nil, 20)
+	results, _, err := svc.Search(context.Background(), "hub query", userID, nil, 20)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }

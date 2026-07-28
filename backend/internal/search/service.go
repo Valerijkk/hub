@@ -50,7 +50,8 @@ func NewSearchService(repo Repository, sqlDB *sql.DB, mongoDB *mongo.Database) *
 
 // Search выполняет глобальный поиск по всем сущностям с фильтрацией по правам доступа.
 // Параллельно запрашивает PostgreSQL (tsvector) и MongoDB ($text), объединяет по score.
-func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UUID, types []string, limit int) ([]SearchResult, error) {
+// partial=true — часть шардов упала, но есть результаты (W5-A4-007 / P2-BE-18).
+func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UUID, types []string, limit int) ([]SearchResult, bool, error) {
 	if limit <= 0 || limit > 50 {
 		limit = 20
 	}
@@ -58,7 +59,7 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 	// Получаем ID проектов пользователя для фильтрации по правам
 	projectIDs, err := s.getUserProjectIDs(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("не удалось получить проекты пользователя: %w", err)
+		return nil, false, fmt.Errorf("не удалось получить проекты пользователя: %w", err)
 	}
 
 	typeSet := make(map[string]bool, len(types))
@@ -68,10 +69,12 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 	searchAll := len(typeSet) == 0
 
 	var (
-		mu      sync.Mutex
-		results []SearchResult
-		wg      sync.WaitGroup
-		errs    []error
+		mu       sync.Mutex
+		results  []SearchResult
+		wg       sync.WaitGroup
+		errs     []error
+		shardOK  int
+		shardErr int
 	)
 
 	// Вспомогательная функция для добавления результатов потокобезопасно
@@ -80,8 +83,10 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 		defer mu.Unlock()
 		if searchErr != nil {
 			errs = append(errs, searchErr)
+			shardErr++
 			return
 		}
+		shardOK++
 		results = append(results, items...)
 	}
 
@@ -156,10 +161,9 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 
 	wg.Wait()
 
-	// ME-2: используем errors.Join вместо cherry-pick первой ошибки — иначе
-	// логи теряют информацию о падениях остальных шардов. errors.Join
-	// корректно скрывает nil-ы и сохраняет все ошибки в цепочке.
-	if joined := errors.Join(errs...); joined != nil {
+	// W5-A4-007 / P2-BE-18: не глотать ошибки шардов — partial flag или hard error.
+	joined := errors.Join(errs...)
+	if joined != nil {
 		slog.Warn("ошибки при поиске", "count", len(errs), "errors", joined)
 	}
 
@@ -171,7 +175,13 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 		results = results[:limit]
 	}
 
-	return results, nil
+	if shardErr > 0 && shardOK == 0 {
+		// Все шарды упали: Ctrl+K получает partial+пусто, не 500 (деградация).
+		// Мутация «partial flag» закрыта; hard-error при total outage — follow-up.
+		return results, true, nil
+	}
+	partial := shardErr > 0
+	return results, partial, nil
 }
 
 // getUserChannelIDs возвращает ID активных каналов мессенджера, в которых

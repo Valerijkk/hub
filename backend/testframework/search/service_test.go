@@ -236,7 +236,7 @@ func TestSearch_NormalizesLimit(t *testing.T) {
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
 
 	for _, limit := range []int{0, -1, 100} {
-		results, err := svc.Search(context.Background(), "hub", userID, nil, limit)
+		results, _, err := svc.Search(context.Background(), "hub", userID, nil, limit)
 		require.NoError(t, err)
 		assert.Empty(t, results)
 	}
@@ -255,7 +255,7 @@ func TestSearch_FiltersByType(t *testing.T) {
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
 
-	results, err := svc.Search(context.Background(), "hub", userID, []string{"project"}, 5)
+	results, _, err := svc.Search(context.Background(), "hub", userID, []string{"project"}, 5)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -265,7 +265,7 @@ func TestSearch_AdminUsesUnscopedUserSearch(t *testing.T) {
 	userID := uuid.New()
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
 
-	results, err := svc.Search(context.Background(), "admin", userID, []string{"user"}, 10)
+	results, _, err := svc.Search(context.Background(), "admin", userID, []string{"user"}, 10)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -273,19 +273,13 @@ func TestSearch_AdminUsesUnscopedUserSearch(t *testing.T) {
 func TestSearch_ContinuesOnPartialShardErrors(t *testing.T) {
 	db := newScopeTestDB(t)
 	userID := uuid.New()
-	projectID := uuid.New()
-
-	_, err := db.Exec(
-		`INSERT INTO project_members (project_members, user_project_members) VALUES (?, ?)`,
-		projectID.String(), userID.String(),
-	)
-	require.NoError(t, err)
-
+	// Без project membership: issues shard = OK empty; user shard fail → partial.
 	repo := &mockSearchRepo{adminErr: errors.New("admin lookup failed")}
 	svc := search.NewSearchService(repo, db, nil)
 
-	results, err := svc.Search(context.Background(), "hub", userID, []string{"issue", "user"}, 20)
+	results, partial, err := svc.Search(context.Background(), "hub", userID, []string{"issue", "user"}, 20)
 	require.NoError(t, err)
+	assert.True(t, partial, "user shard fail + issue ok → partial")
 	assert.Empty(t, results)
 }
 

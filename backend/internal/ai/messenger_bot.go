@@ -244,10 +244,16 @@ func (b *MessengerBot) shouldRespond(evt messengermod.MessageHookEvent, ch *ent.
 	if !botIsMember {
 		return false
 	}
-	if ch.ChannelType == channel.ChannelTypeDm {
+	// W5-A3-011 / P2-BE-17: в DM тоже нужен mention или /ai — иначе любой текст
+	// уходит во внешний LLM без opt-in на сообщение.
+	if hubAIMentionRe.MatchString(evt.ContentText) {
 		return true
 	}
-	if hubAIMentionRe.MatchString(evt.ContentText) {
+	if parseBotCommand(evt.ContentText) != nil {
+		return true
+	}
+	// Короткий префикс /ai без подкоманды (например «/ai привет»).
+	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(evt.ContentText)), "/ai") {
 		return true
 	}
 	botStr := b.botID.String()

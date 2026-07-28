@@ -168,7 +168,8 @@ func (m *mockRepo) GetUserPreferenceRecord(_ context.Context, userID uuid.UUID) 
 	if m.prefModel != nil {
 		model = m.prefModel[userID]
 	}
-	allow := true
+	// P2-BE-17: default opt-in false; тесты с cloud явно ставят allowExternal.
+	allow := false
 	if m.allowExternal != nil {
 		if v, ok := m.allowExternal[userID]; ok {
 			allow = v
@@ -290,16 +291,20 @@ func TestChatCompletion_IncrementsUsage(t *testing.T) {
 }
 
 func TestChatCompletion_FallbackOn503(t *testing.T) {
-	repo := &mockRepo{providers: []*ent.AIProvider{
-		{
-			ID: uuid.New(), Name: "Primary", BaseURL: "https://api.deepseek.com/v1",
-			Models: []string{"deepseek-chat"}, Enabled: true, Scope: aiprovider.ScopeSystem, Priority: 0,
+	userID := uuid.New()
+	repo := &mockRepo{
+		providers: []*ent.AIProvider{
+			{
+				ID: uuid.New(), Name: "Primary", BaseURL: "https://api.deepseek.com/v1",
+				Models: []string{"deepseek-chat"}, Enabled: true, Scope: aiprovider.ScopeSystem, Priority: 0,
+			},
+			{
+				ID: uuid.New(), Name: "Backup", BaseURL: "https://openrouter.ai/api/v1",
+				Models: []string{"deepseek-chat"}, Enabled: true, Scope: aiprovider.ScopeSystem, Priority: 1,
+			},
 		},
-		{
-			ID: uuid.New(), Name: "Backup", BaseURL: "https://openrouter.ai/api/v1",
-			Models: []string{"deepseek-chat"}, Enabled: true, Scope: aiprovider.ScopeSystem, Priority: 1,
-		},
-	}}
+		allowExternal: map[uuid.UUID]bool{userID: true},
+	}
 	adapter := &mockAdapter{failUntil: 1, resp: &ai.ChatCompletionResponse{}}
 	adapter.resp.Choices = []struct {
 		Index        int         `json:"index"`
@@ -307,7 +312,7 @@ func TestChatCompletion_FallbackOn503(t *testing.T) {
 		FinishReason string      `json:"finish_reason"`
 	}{{Message: ai.ChatMessage{Role: "assistant", Content: "ok"}}}
 	svc := ai.NewService(repo, adapter, nil)
-	resp, err := svc.ChatCompletion(context.Background(), uuid.New(), ai.ChatCompletionRequest{
+	resp, err := svc.ChatCompletion(context.Background(), userID, ai.ChatCompletionRequest{
 		Model:    "deepseek-chat",
 		Messages: []ai.ChatMessage{{Role: "user", Content: "hi"}},
 	}, "", "")

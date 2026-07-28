@@ -21,7 +21,7 @@ func TestSearch_AdminUserShard(t *testing.T) {
 	db := newScopeTestDB(t)
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
 
-	results, err := svc.Search(context.Background(), "admin-user", uuid.New(), []string{"user"}, 10)
+	results, _, err := svc.Search(context.Background(), "admin-user", uuid.New(), []string{"user"}, 10)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }

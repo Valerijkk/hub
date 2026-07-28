@@ -18,12 +18,15 @@ import (
 func testAIService(t *testing.T) (*ai.Service, uuid.UUID) {
 	t.Helper()
 	userID := uuid.New()
-	repo := &mockRepo{providers: []*ent.AIProvider{
-		{
-			ID: uuid.New(), Name: "System", BaseURL: "https://api.deepseek.com/v1",
-			Models: []string{"deepseek-chat"}, Enabled: true, Scope: aiprovider.ScopeSystem,
+	repo := &mockRepo{
+		providers: []*ent.AIProvider{
+			{
+				ID: uuid.New(), Name: "System", BaseURL: "https://api.deepseek.com/v1",
+				Models: []string{"deepseek-chat"}, Enabled: true, Scope: aiprovider.ScopeSystem,
+			},
 		},
-	}}
+		allowExternal: map[uuid.UUID]bool{userID: true},
+	}
 	svc := ai.NewService(repo, &mockAdapter{resp: &ai.ChatCompletionResponse{
 		Choices: []struct {
 			Index        int         `json:"index"`

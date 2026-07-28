@@ -24,6 +24,8 @@ type SearchRequest struct {
 type SearchResponse struct {
 	Results []SearchResult `json:"results"`
 	Total   int            `json:"total"`
+	// Partial — true, если хотя бы один шард упал, но есть результаты (W5-A4-007).
+	Partial bool `json:"partial,omitempty"`
 }
 
 // SavedFilterDTO представляет сохранённый фильтр в ответе API.

@@ -128,7 +128,7 @@ func TestToEntPredicates(t *testing.T) {
 	require.NoError(t, err)
 
 	preds := search.ToEntPredicates(q, uuid.New())
-	assert.Len(t, preds, 2)
+	assert.Len(t, preds, 1) // AND-группа → один issue.And
 }
 
 // TestToEntPredicatesIN проверяет предикат для IN.
@@ -158,7 +158,7 @@ func TestToEntPredicatesDateFields(t *testing.T) {
 	}{
 		{`created = 2024-06-01`, 1},
 		{`updated >= 2024-01-01`, 1},
-		{`created > 2024-06-01 AND updated < 2024-12-31`, 2},
+		{`created > 2024-06-01 AND updated < 2024-12-31`, 1},
 		{`created = not-a-date`, 0},
 	}
 

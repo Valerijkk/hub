@@ -57,6 +57,10 @@ func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKe
 	scanner := bufio.NewScanner(io.LimitReader(resp.Body, maxResponseBytes))
 	scanner.Buffer(make([]byte, 0, 64*1024), 256*1024)
 	for scanner.Scan() {
+		// W5-A2-004 / P2-BE-17: cancel mid-stream — не ждать следующего Read.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, ":") {
 			continue

@@ -23,8 +23,16 @@ func TestMessengerBot_shouldRespond(t *testing.T) {
 	dmChannel := &ent.Channel{ChannelType: channel.ChannelTypeDm}
 	groupChannel := &ent.Channel{ChannelType: channel.ChannelTypePublic}
 
-	assert.True(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{
+	assert.False(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{
 		ContentText: "hello",
+	}, dmChannel, []uuid.UUID{uuid.New(), botID}))
+
+	assert.True(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{
+		ContentText: "@hub-ai help",
+	}, dmChannel, []uuid.UUID{uuid.New(), botID}))
+
+	assert.True(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{
+		ContentText: "/ai help",
 	}, dmChannel, []uuid.UUID{uuid.New(), botID}))
 
 	assert.True(t, ai.ExportMessengerBotShouldRespond(b, messengermod.MessageHookEvent{

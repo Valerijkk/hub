@@ -72,7 +72,7 @@ func TestSearch_SearchAllEntityTypes(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "hub", userID, nil, 10)
+	results, _, err := svc.Search(context.Background(), "hub", userID, nil, 10)
 	require.NoError(t, err)
 	assert.Len(t, results, 0)
 }
@@ -88,7 +88,7 @@ func TestSearch_InvalidTypeIgnored(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, err := svc.Search(context.Background(), "x", userID, []string{"issue", "unknown_type"}, 5)
+	results, _, err := svc.Search(context.Background(), "x", userID, []string{"issue", "unknown_type"}, 5)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }

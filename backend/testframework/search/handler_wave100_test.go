@@ -106,7 +106,7 @@ func TestSearch_AllShardTypesWithMembership(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
-	results, err := svc.Search(context.Background(), "hub", userID,
+	results, _, err := svc.Search(context.Background(), "hub", userID,
 		[]string{"issue", "test_case", "user", "project", "file", "channel", "message"}, 10)
 	require.NoError(t, err)
 	assert.Empty(t, results)

@@ -7,12 +7,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/issue"
+	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 )
 
 const issuesIndex = "hub_issues"
@@ -25,16 +30,48 @@ type MeiliIndexer struct {
 }
 
 // NewMeiliIndexerFromEnv возвращает nil без MEILI_HOST — Meili опционален.
+// W5-A4-009 / P2-BE-18: ValidateOutboundURL + блок metadata/link-local SSRF.
+// RFC1918 (Docker Meili) разрешён — host задаёт оператор, не пользователь.
 func NewMeiliIndexerFromEnv() *MeiliIndexer {
-	host := os.Getenv("MEILI_HOST")
+	host := strings.TrimSpace(os.Getenv("MEILI_HOST"))
 	if host == "" {
 		return nil
 	}
+	if err := validateMeiliHost(host); err != nil {
+		slog.Warn("MEILI_HOST rejected (SSRF guard)", "host", host, "error", err)
+		return nil
+	}
 	return &MeiliIndexer{
-		host:   host,
+		host:   strings.TrimRight(host, "/"),
 		apiKey: os.Getenv("MEILI_MASTER_KEY"),
 		client: &http.Client{Timeout: 30 * time.Second},
 	}
+}
+
+// validateMeiliHost — схема/userinfo через SafeURL + запрет cloud-metadata pivots.
+func validateMeiliHost(host string) error {
+	if err := safehttp.ValidateOutboundURL(host); err != nil {
+		return err
+	}
+	u, err := url.Parse(host)
+	if err != nil {
+		return err
+	}
+	h := strings.ToLower(u.Hostname())
+	switch h {
+	case "169.254.169.254", "metadata.google.internal", "metadata":
+		return fmt.Errorf("%w: %s", safehttp.ErrBlockedAddress, h)
+	}
+	if ip := net.ParseIP(h); ip != nil {
+		if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+			return fmt.Errorf("%w: %s", safehttp.ErrBlockedAddress, h)
+		}
+		// IPv4 link-local / AWS metadata
+		if v4 := ip.To4(); v4 != nil && v4[0] == 169 && v4[1] == 254 {
+			return fmt.Errorf("%w: %s", safehttp.ErrBlockedAddress, h)
+		}
+	}
+	return nil
 }
 
 type meiliIssueDoc struct {
@@ -81,8 +118,8 @@ func (m *MeiliIndexer) upsertDocuments(ctx context.Context, index string, docs a
 	if err != nil {
 		return err
 	}
-	url := fmt.Sprintf("%s/indexes/%s/documents", m.host, index)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	reqURL := fmt.Sprintf("%s/indexes/%s/documents", m.host, index)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}

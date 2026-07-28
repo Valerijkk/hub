@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -64,6 +65,10 @@ func (h *Handler) search(c fiber.Ctx) error {
 	if q == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "параметр q обязателен")
 	}
+	// W5-A4-008 / P2-BE-18: max=500 из DTO — rune-safe (не байты).
+	if utf8.RuneCountInString(q) > 500 {
+		return fiber.NewError(fiber.StatusBadRequest, "параметр q слишком длинный (макс. 500)")
+	}
 
 	var types []string
 	if t := c.Query("type"); t != "" {
@@ -75,7 +80,7 @@ func (h *Handler) search(c fiber.Ctx) error {
 		limit = l
 	}
 
-	results, err := h.svc.Search(c.Context(), q, userID, types, limit)
+	results, partial, err := h.svc.Search(c.Context(), q, userID, types, limit)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка поиска")
 	}
@@ -86,6 +91,7 @@ func (h *Handler) search(c fiber.Ctx) error {
 	return c.JSON(SearchResponse{
 		Results: results,
 		Total:   len(results),
+		Partial: partial,
 	})
 }
 
