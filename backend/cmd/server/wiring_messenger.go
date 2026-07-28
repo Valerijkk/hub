@@ -66,6 +66,8 @@ func wireMessenger(d *serverDeps) {
 	messengerSvc := messengermod.NewMessengerService(messengerRepo, d.nc, presenceSvc, unreadSvc)
 	// Feature #58 (Thread → Issue): MessengerService.PromoteToIssue делегирует в trackerSvc.
 	messengerSvc.SetIssuePromoter(trackerSvc)
+	// TASK-010: обязательный PermTaskCreate в целевом проекте (fail-closed при nil).
+	messengerSvc.SetPromotePermissionChecker(rbacSvc)
 	trackerSvc.SetThreadMirror(&threadMirrorAdapter{svc: messengerSvc})
 	messengerSvc.SetIssueThreadLinker(trackerSvc)
 	messengerHandler := messengermod.NewHandler(messengerSvc)

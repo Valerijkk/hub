@@ -387,6 +387,7 @@ func TestHandler_PromoteToIssue_Success(t *testing.T) {
 	projectID := uuid.New()
 	channelID := setupChannelWithMembers(repo, "public", false, userID)
 	svc.SetIssuePromoter(&mockIssuePromoter{issueKey: "HUB-42", issueID: uuid.New().String()})
+	svc.SetPromotePermissionChecker(&stubPromoteChecker{allowed: true})
 
 	msgID := uuid.New().String()
 	repo.messages[msgID] = &messenger.MessageDocument{

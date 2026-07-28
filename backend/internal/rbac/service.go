@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/auth"
 )
 
@@ -74,4 +75,18 @@ func (s *RBACService) GetEffectivePermissions(ctx context.Context, userID, proje
 // InvalidateCache удаляет кешированные разрешения пользователя в проекте.
 func (s *RBACService) InvalidateCache(ctx context.Context, userID, projectID string) error {
 	return s.cache.Invalidate(ctx, userID, projectID)
+}
+
+// CanCreateTaskInProject возвращает true, если user имеет PermTaskCreate в проекте.
+// Реализует messenger.PromotePermissionChecker. Не-участник (ent.IsNotFound) →
+// false, nil — чтобы promote-to-issue отдавал 403, а не 500.
+func (s *RBACService) CanCreateTaskInProject(ctx context.Context, userID, projectID uuid.UUID) (bool, error) {
+	eff, err := s.GetEffectivePermissions(ctx, userID, projectID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return eff.Has(PermTaskCreate), nil
 }
