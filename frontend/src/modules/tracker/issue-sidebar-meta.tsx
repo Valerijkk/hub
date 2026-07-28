@@ -4,6 +4,7 @@
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -54,14 +55,20 @@ export function IssueSidebarMeta({
 		<div className="w-[320px] min-w-[320px] border-l border-b1 overflow-y-auto p-[22px] bg-void">
 			{/* Статус */}
 			<div className="mb-[18px]">
-				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
+				<Label
+					htmlFor="issue-sidebar-status"
+					className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px] block"
+				>
 					Статус
-				</div>
+				</Label>
 				<Select
 					value={issue.status.id}
 					onValueChange={(v) => onUpdateField({ status_id: v })}
 				>
-					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
+					<SelectTrigger
+						id="issue-sidebar-status"
+						className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent"
+					>
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -81,14 +88,20 @@ export function IssueSidebarMeta({
 
 			{/* Приоритет */}
 			<div className="mb-[18px]">
-				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
+				<Label
+					htmlFor="issue-sidebar-priority"
+					className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px] block"
+				>
 					Приоритет
-				</div>
+				</Label>
 				<Select
 					value={issue.priority}
 					onValueChange={(v) => onUpdateField({ priority: v })}
 				>
-					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
+					<SelectTrigger
+						id="issue-sidebar-priority"
+						className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent"
+					>
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -112,7 +125,7 @@ export function IssueSidebarMeta({
 				</Badge>
 			</div>
 
-			{/* Исполнитель */}
+			{/* Исполнитель — read-only, без мёртвого cursor-pointer (A2W10-A3-008) */}
 			<div className="mb-[18px]">
 				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
 					Исполнитель
@@ -176,9 +189,12 @@ export function IssueSidebarMeta({
 
 			{/* Оценка сложности (SP) */}
 			<div className="mb-[18px]">
-				<div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px]">
+				<Label
+					htmlFor="issue-sidebar-story-points"
+					className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-t4 mb-[7px] block"
+				>
 					Story Points
-				</div>
+				</Label>
 				<Select
 					value={
 						issue.story_points != null ? String(issue.story_points) : "none"
@@ -189,7 +205,10 @@ export function IssueSidebarMeta({
 						})
 					}
 				>
-					<SelectTrigger className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent">
+					<SelectTrigger
+						id="issue-sidebar-story-points"
+						className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px] w-full border-0 bg-transparent"
+					>
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>

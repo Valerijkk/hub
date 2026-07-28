@@ -252,16 +252,17 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 					const daysLeft = getDaysRemaining(sprint.end_date);
 
 					return (
-						<Link
+						<div
 							key={sprint.id}
-							to="/projects/$projectId/sprints/$sprintId"
-							params={{ projectId, sprintId: sprint.id }}
-							className="group block"
+							className={`group bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 relative overflow-hidden hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)] ${
+								sprint.status === "active" ? "ring-1 ring-emerald-500/20" : ""
+							}`}
 						>
-							<div
-								className={`bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5 transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 relative overflow-hidden hover:border-b2 hover:-translate-y-[2px] hover:shadow-[var(--sh2)] ${
-									sprint.status === "active" ? "ring-1 ring-emerald-500/20" : ""
-								}`}
+							{/* Навигация по карточке — без nested Button внутри Link (A2W10-A3-005) */}
+							<Link
+								to="/projects/$projectId/sprints/$sprintId"
+								params={{ projectId, sprintId: sprint.id }}
+								className="block"
 							>
 								{/* Строка заголовка */}
 								<div className="flex items-start justify-between gap-3">
@@ -336,11 +337,14 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 										</div>
 									</div>
 								)}
+							</Link>
 
-								{/* Действия */}
+							{/* Действия — вне Link */}
+							{(sprint.status === "planning" || sprint.status === "active") && (
 								<div className="mt-4 flex items-center gap-2">
 									{sprint.status === "planning" && (
 										<Button
+											type="button"
 											size="sm"
 											disabled={!!activeSprint}
 											className="btn-glow bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/20 hover:from-blue-500 hover:to-blue-400"
@@ -352,6 +356,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 									)}
 									{sprint.status === "active" && (
 										<Button
+											type="button"
 											size="sm"
 											variant="outline"
 											className="border-b1 text-t2 hover:bg-[var(--hover)] hover:text-t1"
@@ -362,8 +367,8 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 										</Button>
 									)}
 								</div>
-							</div>
-						</Link>
+							)}
+						</div>
 					);
 				})}
 			</div>

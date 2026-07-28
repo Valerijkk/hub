@@ -14,7 +14,7 @@ import { ResourceLimits } from "@/components/admin/resource-limits";
 import { UserManagement } from "@/components/admin/user-management";
 import { adminDefault } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isSystemAdmin } from "@/lib/is-system-admin";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
@@ -55,7 +55,7 @@ function AdminDashboard() {
 		<div className="flex-1 overflow-y-auto p-6 animate-[eu_450ms_var(--spring)]">
 			{/* Панель вкладок */}
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
-				<div className="flex gap-[3px] mb-5 border-b border-b1 pb-[2px]">
+				<TabsList className="flex h-auto w-full justify-start gap-[3px] mb-5 rounded-none border-b border-b1 bg-transparent p-0 pb-[2px]">
 					{[
 						{
 							value: "dashboard",
@@ -76,20 +76,15 @@ function AdminDashboard() {
 						{ value: "ai", label: "AI" },
 						{ value: "onec", label: "1C" },
 					].map((tab) => (
-						<button
+						<TabsTrigger
 							key={tab.value}
-							type="button"
-							onClick={() => setActiveTab(tab.value)}
-							className={`px-[14px] py-[7px] text-[13px] font-medium text-[var(--t2)] rounded-t-[var(--r2)] transition-colors duration-200 cursor-pointer relative hover:text-t1 ${
-								activeTab === tab.value
-									? "text-t1 font-semibold after:absolute after:bottom-[-2px] after:left-1/4 after:right-1/4 after:h-[2px] after:bg-red after:rounded-[1px] after:shadow-[0_0_6px_var(--red)]"
-									: ""
-							}`}
+							value={tab.value}
+							className="rounded-t-[var(--r2)] rounded-b-none border-b-0 px-[14px] py-[7px] text-[13px] font-medium text-[var(--t2)] shadow-none data-[state=active]:border-transparent data-[state=active]:bg-transparent data-[state=active]:text-t1 data-[state=active]:font-semibold data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-[-2px] data-[state=active]:after:left-1/4 data-[state=active]:after:right-1/4 data-[state=active]:after:h-[2px] data-[state=active]:after:bg-red data-[state=active]:after:rounded-[1px] data-[state=active]:after:shadow-[0_0_6px_var(--red)] relative"
 						>
 							{tab.label}
-						</button>
+						</TabsTrigger>
 					))}
-				</div>
+				</TabsList>
 
 				{/* Вкладка дашборда */}
 				<TabsContent value="dashboard">

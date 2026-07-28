@@ -89,11 +89,15 @@
 | A2W10-A3-001 | **N/A** | TASK-082 |
 | A2W10-A5-001 | **N/A** | TASK-083 |
 | A2W11-3-002 | **N/A** | TASK-103 |
-| A2W9-4-003 | **WONTFIX** | P3 token drift (`border-blue-500`); не в REFERENCES 001/002; не error≠empty |
-| A2W10-A2-006 | **WONTFIX** | Plate `as Value` type-guard — не error≠empty |
-| A2W10-A2-007 | **WONTFIX** | coverage-report keyboard expand — a11y вне delete-focus |
-| A2W10-A2-008 | **WONTFIX** | CaseTreePanel dead export — не error≠empty |
-| A2W10-A3-004…008 | **WONTFIX** | nested interactive / Label / tabs a11y — вне OUTCOME delete-focus |
+| A2W9-4-003 | **FIXED** | `notification-panel.tsx` — `var(--blue)` / `--gB` / semantic TYPE_* colors |
+| A2W10-A2-006 | **FIXED** | `issue-description.tsx` — zod `plateValueSchema.safeParse` |
+| A2W10-A2-007 | **FIXED** | `coverage-report.tsx` — `role=button` + `tabIndex` + Enter/Space |
+| A2W10-A2-008 | **FIXED** | `CaseTreePanel` wired in `cases.lazy.tsx`; duplicate tree removed |
+| A2W10-A3-004 | **FIXED** | `issue-sidebar-meta.tsx` — `Label htmlFor` на Статус/Приоритет/SP |
+| A2W10-A3-005 | **FIXED** | `sprint-board.tsx` — actions вне `<Link>` (no nested interactive) |
+| A2W10-A3-006 | **FIXED** | `planning-poker.tsx` — `radiogroup` + `role=radio` + `aria-checked` |
+| A2W10-A3-007 | **FIXED** | `admin/dashboard.tsx` — `TabsList`/`TabsTrigger` |
+| A2W10-A3-008 | **FIXED** | assignee read-only без мёртвого `cursor-pointer` |
 
 ### Тесты
 
@@ -102,12 +106,17 @@ cd frontend
 node scripts/link-testframework-node-modules.mjs
 npx tsc --noEmit   # PASS
 npx vitest run \
-  ../testframework/stages/unit/frontend-test/domains/platform/saved-filters-error.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/platform/notification-tokens.test.tsx \
   ../testframework/stages/unit/frontend-test/domains/platform/notification-delete-focus.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/tms/coverage-report-keyboard.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/tms/case-tree-panel.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/tracker/planning-poker-radiogroup.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/tracker/issue-sidebar-meta-a11y.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/tracker/sprint-board-nested.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/platform/api-dto-gaps-p2.test.ts \
   ../testframework/stages/unit/frontend-test/domains/tracker/sprint-backlog-error.test.tsx \
-  ../testframework/stages/unit/frontend-test/domains/messenger/use-presence-error.test.tsx \
-  ../testframework/stages/unit/frontend-test/domains/messenger/channel-list-error.test.tsx
-# 5 files · 7 tests · PASS
+  ../testframework/stages/unit/frontend-test/domains/messenger/use-presence-error.test.tsx
+# 10 files · 17 tests · PASS
 ```
 
 ### Mutation note
@@ -116,7 +125,15 @@ npx vitest run \
 - `sprint-backlog-error`: вернуть silent `catch {}` без `loadError` → снова «Бэклог пуст», alert пропадает.
 - `notification-delete-focus`: убрать `group-focus-within:flex` → className assertion FAIL.
 - `use-presence-error`: не прокидывать `isError` → assertion FAIL.
+- `notification-tokens`: вернуть `border-blue-500` / `bg-blue-500` → FAIL.
+- `coverage-report-keyboard`: убрать `role=button`/`tabIndex` → FAIL.
+- `planning-poker-radiogroup`: убрать `role=radiogroup` → FAIL.
+- `sprint-board-nested`: обернуть Button снова в Link → `closest("a")` FAIL.
 
 ### Ветка
 
 `fix/frontend/task-093-error-empty-a11y` (worktree)
+
+### Sweep 2 (fe1 · 2026-07-28)
+
+Owner lock: все WONTFIX закрыты (WONTFIX=0). Статус остаётся **Исправлена**.

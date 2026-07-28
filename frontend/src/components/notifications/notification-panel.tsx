@@ -40,31 +40,31 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
 	blocker_added: Link2,
 };
 
-/** Цвета фона иконок по типу уведомления. */
+/** Цвета фона иконок по типу уведомления (токены --hub / app.css). */
 const TYPE_ICON_COLORS: Record<string, string> = {
-	assigned: "rgba(59,130,246,0.15)",
-	mentioned: "rgba(168,85,247,0.15)",
-	status_changed: "rgba(34,197,94,0.15)",
-	comment_added: "rgba(59,130,246,0.15)",
-	message_received: "rgba(59,130,246,0.15)",
-	call_started: "rgba(34,197,94,0.15)",
-	run_completed: "rgba(168,85,247,0.15)",
-	run_failed: "rgba(239,68,68,0.15)",
-	deadline_approaching: "rgba(249,115,22,0.15)",
-	blocker_added: "rgba(239,68,68,0.15)",
+	assigned: "color-mix(in srgb, var(--blue) 15%, transparent)",
+	mentioned: "color-mix(in srgb, var(--purple) 15%, transparent)",
+	status_changed: "color-mix(in srgb, var(--green) 15%, transparent)",
+	comment_added: "color-mix(in srgb, var(--blue) 15%, transparent)",
+	message_received: "color-mix(in srgb, var(--blue) 15%, transparent)",
+	call_started: "color-mix(in srgb, var(--green) 15%, transparent)",
+	run_completed: "color-mix(in srgb, var(--purple) 15%, transparent)",
+	run_failed: "color-mix(in srgb, var(--red) 15%, transparent)",
+	deadline_approaching: "color-mix(in srgb, var(--orange) 15%, transparent)",
+	blocker_added: "color-mix(in srgb, var(--red) 15%, transparent)",
 };
 
 const TYPE_ICON_TEXT_COLORS: Record<string, string> = {
-	assigned: "text-blue-400",
-	mentioned: "text-purple-400",
-	status_changed: "text-emerald-400",
-	comment_added: "text-blue-400",
-	message_received: "text-blue-400",
-	call_started: "text-emerald-400",
-	run_completed: "text-purple-400",
-	run_failed: "text-red-400",
-	deadline_approaching: "text-orange-400",
-	blocker_added: "text-red-400",
+	assigned: "text-[var(--blue)]",
+	mentioned: "text-[var(--purple)]",
+	status_changed: "text-[var(--green)]",
+	comment_added: "text-[var(--blue)]",
+	message_received: "text-[var(--blue)]",
+	call_started: "text-[var(--green)]",
+	run_completed: "text-[var(--purple)]",
+	run_failed: "text-[var(--red)]",
+	deadline_approaching: "text-[var(--orange)]",
+	blocker_added: "text-[var(--red)]",
 };
 
 /** Русские названия типов уведомлений. */
@@ -275,7 +275,7 @@ const NotificationItem = memo(function NotificationItem({
 		<div
 			className={`group flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-raised/50 ${
 				!notification.is_read
-					? "border-l-2 border-blue-500 bg-blue-500/[0.04]"
+					? "border-l-2 border-[var(--blue)] bg-[var(--gB)]"
 					: ""
 			}`}
 		>
@@ -299,7 +299,7 @@ const NotificationItem = memo(function NotificationItem({
 						</p>
 						{!notification.is_read && (
 							<span
-								className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500"
+								className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-[var(--blue)]"
 								role="img"
 								aria-label="Непрочитано"
 							/>
