@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (fe1 · TASK-082 SprintBacklog without-sprint filter)
+
+- `SprintBacklog`: `listIssues({ sprint_id: "none" })` + `filterIssuesWithoutSprint`; error path → toast + retry (не «Бэклог пуст»).
+- BE additive: `ListIssuesRequest.sprint_id` (`none`/`unassigned`/UUID), `IssueResponse.sprint_id`, `WithSprint` в ListIssues.
+- Tests: `sprint-backlog-filter.test.tsx`, `sprint-backlog-without-sprint.test.ts`.
+- Статус TASK-082 → Исправлена.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.

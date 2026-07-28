@@ -76,6 +76,10 @@ func toIssueResponse(i *ent.Issue) *IssueResponse {
 		}
 		resp.Labels = labels
 	}
+	if i.Edges.Sprint != nil {
+		sid := i.Edges.Sprint.ID.String()
+		resp.SprintID = &sid
+	}
 
 	return resp
 }

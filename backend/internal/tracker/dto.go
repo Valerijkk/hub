@@ -54,14 +54,16 @@ type MoveIssueRequest struct {
 
 // ListIssuesRequest — параметры фильтрации и пагинации для списка задач.
 type ListIssuesRequest struct {
-	Cursor    string   `json:"cursor,omitempty" query:"cursor"`
-	Limit     int      `json:"limit,omitempty" query:"limit" validate:"omitempty,min=1,max=100"`
-	Status    []string `json:"status,omitempty" query:"status"`
-	Priority  []string `json:"priority,omitempty" query:"priority"`
-	Assignee  string   `json:"assignee,omitempty" query:"assignee"`
-	IssueType string   `json:"issue_type,omitempty" query:"issue_type"`
-	Search    string   `json:"search,omitempty" query:"search"`
-	OrderBy   string   `json:"order_by,omitempty" query:"order_by" validate:"omitempty,oneof=created_at priority updated_at"`
+	Cursor   string   `json:"cursor,omitempty" query:"cursor"`
+	Limit    int      `json:"limit,omitempty" query:"limit" validate:"omitempty,min=1,max=100"`
+	Status   []string `json:"status,omitempty" query:"status"`
+	Priority []string `json:"priority,omitempty" query:"priority"`
+	Assignee string   `json:"assignee,omitempty" query:"assignee"`
+	// SprintID: UUID спринта; "none"/"unassigned" — только задачи без спринта (бэклог).
+	SprintID  string `json:"sprint_id,omitempty" query:"sprint_id"`
+	IssueType string `json:"issue_type,omitempty" query:"issue_type"`
+	Search    string `json:"search,omitempty" query:"search"`
+	OrderBy   string `json:"order_by,omitempty" query:"order_by" validate:"omitempty,oneof=created_at priority updated_at"`
 }
 
 // CreateIssueLinkRequest — тело запроса на создание связи между двумя задачами.
@@ -170,8 +172,10 @@ type IssueResponse struct {
 	Parent           *IssueBriefResponse     `json:"parent,omitempty"`
 	ChildrenCount    int                     `json:"children_count"`
 	Labels           []LabelResponse         `json:"labels,omitempty"`
-	CreatedAt        time.Time               `json:"created_at"`
-	UpdatedAt        time.Time               `json:"updated_at"`
+	// SprintID — спринт задачи; omitempty/nil = бэклог (без спринта).
+	SprintID  *string   `json:"sprint_id,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // IssueBriefResponse — краткое представление задачи для ссылок и списков.
@@ -303,9 +307,9 @@ type BoardResponse struct {
 
 // BoardDataResponse — полные данные доски включая колонки и задачи.
 type BoardDataResponse struct {
-	Board     BoardResponse          `json:"board"`
-	Columns   []BoardColumnResponse  `json:"columns"`
-	Swimlanes []SwimlaneGroup        `json:"swimlanes,omitempty"`
+	Board     BoardResponse         `json:"board"`
+	Columns   []BoardColumnResponse `json:"columns"`
+	Swimlanes []SwimlaneGroup       `json:"swimlanes,omitempty"`
 }
 
 // SwimlaneGroup — группа задач в swimlane (по assignee/priority/type).

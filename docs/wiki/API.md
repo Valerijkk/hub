@@ -156,7 +156,7 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 | Метод | Путь | Описание |
 |---|---|---|
 | POST | `/projects/:projectId/issues/` | Создать задачу |
-| GET | `/projects/:projectId/issues/` | Список задач (cursor pagination) |
+| GET | `/projects/:projectId/issues/` | Список задач (cursor pagination; query `sprint_id`: UUID / `none`\|`unassigned` = бэклог) |
 | GET | `/projects/:projectId/issues/:issueKey` | Получить задачу по ключу |
 | PUT | `/projects/:projectId/issues/:issueKey` | Обновить задачу |
 | DELETE | `/projects/:projectId/issues/:issueKey` | Удалить задачу |

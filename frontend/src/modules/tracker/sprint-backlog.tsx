@@ -1,8 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Inbox, ListTodo } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { type IssueResponse, listIssues } from "@/api/tracker";
+import {
+	filterIssuesWithoutSprint,
+	type IssueResponse,
+	listIssues,
+} from "@/api/tracker";
 import { Button } from "@/components/ui/button";
+import { toastApiError } from "@/lib/format-api-error";
 import { useSprintStore } from "@/stores/sprint-store";
 
 /** Пропсы компонента SprintBacklog. */
@@ -21,14 +26,22 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 	const [backlogIssues, setBacklogIssues] = useState<IssueResponse[]>([]);
 	const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set());
 	const [loading, setLoading] = useState(false);
+	const [loadError, setLoadError] = useState(false);
 
 	const loadBacklog = useCallback(async () => {
 		setLoading(true);
+		setLoadError(false);
 		try {
-			const resp = await listIssues(projectId, { limit: 100 });
-			setBacklogIssues(resp.items);
-		} catch {
-			// ошибка загрузки бэклога
+			// sprint_id=none — серверный фильтр бэклога; client filter — defense-in-depth.
+			const resp = await listIssues(projectId, {
+				limit: 100,
+				sprint_id: "none",
+			});
+			setBacklogIssues(filterIssuesWithoutSprint(resp.items));
+		} catch (err) {
+			setBacklogIssues([]);
+			setLoadError(true);
+			toastApiError(err, "Не удалось загрузить бэклог");
 		}
 		setLoading(false);
 	}, [projectId]);
@@ -52,7 +65,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 		if (selectedIssues.size === 0) return;
 		await moveIssueToSprint(projectId, sprintId, Array.from(selectedIssues));
 		setSelectedIssues(new Set());
-		loadBacklog();
+		void loadBacklog();
 	};
 
 	const planningSprints = sprints.filter((s) => s.status === "planning");
@@ -70,7 +83,9 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 							Бэклог
 						</h1>
 						<p className="mt-0.5 text-[13px] text-t2">
-							{backlogIssues.length} задач без спринта
+							{loadError
+								? "Ошибка загрузки"
+								: `${backlogIssues.length} задач без спринта`}
 						</p>
 					</div>
 				</div>
@@ -84,9 +99,10 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 						{planningSprints.map((s) => (
 							<Button
 								key={s.id}
+								type="button"
 								size="sm"
 								className="btn-glow bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/20 hover:from-blue-500 hover:to-blue-400"
-								onClick={() => handleMoveToSprint(s.id)}
+								onClick={() => void handleMoveToSprint(s.id)}
 							>
 								<ArrowRight className="mr-1.5 h-3.5 w-3.5" />В {s.name}
 							</Button>
@@ -102,6 +118,23 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 						<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
 						<p className="text-sm text-t2">Загрузка бэклога...</p>
 					</div>
+				</div>
+			) : loadError ? (
+				<div className="flex flex-col items-center justify-center py-16 text-center">
+					<h3 className="text-lg font-semibold text-t1">
+						Не удалось загрузить бэклог
+					</h3>
+					<p className="mt-1 max-w-sm text-sm text-t2">
+						Проверьте соединение и попробуйте снова
+					</p>
+					<Button
+						type="button"
+						variant="outline"
+						className="mt-4"
+						onClick={() => void loadBacklog()}
+					>
+						Повторить
+					</Button>
 				</div>
 			) : backlogIssues.length === 0 ? (
 				<div className="flex flex-col items-center justify-center py-16 text-center">
@@ -132,6 +165,7 @@ export function SprintBacklog({ projectId }: SprintBacklogProps) {
 										type="checkbox"
 										checked={isSelected}
 										onChange={() => toggleSelect(issue.id)}
+										aria-label={`Выбрать ${issue.issue_key}`}
 										className="h-4 w-4 shrink-0 cursor-pointer accent-blue-400"
 									/>
 									{/* Ключ задачи */}

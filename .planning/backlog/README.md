@@ -18,8 +18,8 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | ID | Задача | Приоритет | Статус | Исполнитель | Источник |
 |----|--------|-----------|--------|-------------|----------|
 | [TASK-008](TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | В работе (A✅ · **A2✅** · **254→TASK-081…123** · B P0–P3✅ · не закрывать) | Grok + субагенты | Owner 2026-07-28 |
-| [TASK-081](TASK-081-2026-07-28-tms-completerun-project-id-webhook.md) | ♻️🐛 TMS CompleteTestRun → webhook `project_id` | **P1** | Исправлена | be1 | A2W4-5-001 REGRESS |
-| [TASK-082](TASK-082-2026-07-28-fe-sprint-backlog-without-sprint-filter.md) | 🐛 FE SprintBacklog без фильтра sprint | **P1** | Открыта | fe1 | A2W10-A3-001 |
+| [TASK-081](TASK-081-2026-07-28-tms-completerun-project-id-webhook.md) | ♻️🐛 TMS CompleteTestRun → webhook `project_id` | **P1** | Открыта | be1 | A2W4-5-001 REGRESS |
+| [TASK-082](TASK-082-2026-07-28-fe-sprint-backlog-without-sprint-filter.md) | 🐛 FE SprintBacklog без фильтра sprint | **P1** | Исправлена | fe1 | A2W10-A3-001 |
 | [TASK-083](TASK-083-2026-07-28-fe-trash-hard-delete-api.md) | 🐛 FE Trash hard-delete без API | **P1** | Открыта | fe2 | A2W10-A5-001 |
 | [TASK-084](TASK-084-2026-07-28-storage-confirm-entity-scope.md) | 🔒 Storage Confirm non-issue scope | **P1** | Открыта | be2 | W7-A4-002 |
 | [TASK-085](TASK-085-2026-07-28-ai-task044-regress-bundle.md) | ♻️ AI TASK-044 false-close (RPM/JQL/stream) | P2 | Открыта | be1 | A2W5 REGRESS |
