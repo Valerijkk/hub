@@ -1,6 +1,6 @@
 # TASK-050 — FE tokens/JIT + dead UI + authz hide
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P2-FE-05,P2-FE-06,P2-FE-16 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,11 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+---
+
+## Stage C mutation (W18-C4 · fe2 · 2026-07-28)
+
+- Verdict: **PASS**
+- Evidence: `.planning/audits/total-2026-07/W18-C4-MUTATION.md`
+- RED→restore→GREEN: `tokens-dead-ui-authz-p2.test.tsx`, `board-my-tasks-filter-p2.test.ts`

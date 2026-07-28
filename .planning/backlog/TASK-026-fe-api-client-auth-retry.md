@@ -1,6 +1,6 @@
 ﻿# TASK-026 — FE: api client Bearer + one-retry refresh
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: FE-P1-API-CLIENT · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-FRONTEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,11 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+---
+
+## Stage C mutation (W18-C4 · fe2 · 2026-07-28)
+
+- Verdict: **PASS**
+- Evidence: `.planning/audits/total-2026-07/W18-C4-MUTATION.md`
+- RED→restore→GREEN: `client-api.test.ts` one-retry / getBlob one-retry

@@ -1,6 +1,6 @@
 # TASK-047 — FE fail/сеть ≠ empty (isError+retry)
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
 > Источник: TASK-008 W12 · Classes: P2-FE-01 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]
@@ -105,3 +105,11 @@ Reusable: экспортирован `QueryErrorAlert` из `query-state-view.ts
 
 - Vitest (19 tests, 8 files): ai-store, onec-settings, bases-page(+error), leave-requests, bookmarks-error, coverage-report-error, marketplace-page — **PASS**
 - `npx tsc --noEmit` — **PASS**
+
+---
+
+## Stage C mutation (W18-C4 · fe2 · 2026-07-28)
+
+- Verdict: **PASS**
+- Evidence: `.planning/audits/total-2026-07/W18-C4-MUTATION.md`
+- RED→restore→GREEN: `bases-page-error.test.tsx` (listBases reject → alert/retry ≠ empty)
