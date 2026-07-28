@@ -1,6 +1,6 @@
-# TASK-012 — webhook dispatch: фильтр по проекту эндпоинта
+﻿# TASK-012 — webhook dispatch: фильтр по проекту эндпоинта
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P0** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P0** · Статус: Исправлена  
 > Источник аудита: W4-A5-002 · TASK-008 стадия B
 
 ## [OUTCOME]
@@ -64,3 +64,10 @@
 
 - Делать в одной волне с TASK-011
 - Co-authored-by запрещён
+
+## Stage C (W18-C1 mutation) — PASS
+
+- Mutation: remove project-scope filter in `dispatchEvent`
+- RED: `TestWebhookDispatcher_dispatchEvent_ProjectScope_Denial` — both A+B endpoints enqueued
+- GREEN: after restore
+- Mock-only?: no (guard in dispatcher; stub list is OK)

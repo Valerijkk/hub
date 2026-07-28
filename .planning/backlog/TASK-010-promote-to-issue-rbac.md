@@ -1,6 +1,6 @@
-# TASK-010 — promote-to-issue: обязательный PermTaskCreate в целевом проекте
+﻿# TASK-010 — promote-to-issue: обязательный PermTaskCreate в целевом проекте
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P0** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P0** · Статус: Исправлена  
 > Источник аудита: W3-A2-001 · TASK-008 стадия B
 
 ## [OUTCOME]
@@ -71,3 +71,10 @@ checker prod fail-closed (403), а не silent skip.
 
 - Guard на слое service messenger (не только handler)
 - Co-authored-by запрещён
+
+## Stage C (W18-C1 mutation) — PASS
+
+- Mutation: remove `promoteCheck` block in `PromoteToIssue`
+- RED: `TestPromoteToIssue_ValidationAndFlow/nil_promote_checker_forbidden` + `denied_by_promote_checker` — expected error, got nil
+- GREEN: after restore
+- Mock-only?: no (guard in service layer; mock repo is appropriate)

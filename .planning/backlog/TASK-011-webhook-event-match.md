@@ -1,6 +1,6 @@
-# TASK-011 — webhook: матчинг UI-событий с NATS subjects
+﻿# TASK-011 — webhook: матчинг UI-событий с NATS subjects
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P0** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P0** · Статус: Исправлена  
 > Источник аудита: W4-A5-001 · TASK-008 стадия B
 
 ## [OUTCOME]
@@ -66,6 +66,13 @@ NATS шлёт `project.<uuid>.issue.created` → продуктовый путь
 
 - Не ломать существующие exact subjects в тестах
 - Co-authored-by запрещён
+
+## Stage C (W18-C1 mutation) — PASS
+
+- Mutation: `eventMatchesSubscription` → exact-only (`*` / `==`)
+- RED: `TestContainsEvent_UIShortName_MatchesProjectSubject` + `TestWebhookDispatcher_dispatchEvent_EnqueuesOnUIShortMatch`
+- GREEN: after restore
+- Mock-only?: no (real `containsEvent` via export)
 
 ## Зависимость
 

@@ -1,6 +1,6 @@
 ﻿# TASK-018 — WS Register race + scheduled calls authz
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P1-BE-21..22 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,12 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## Stage C (W18-C1 mutation) — PASS
+
+- Mutation WS: remove `<-client.done` guard in `registerClient`
+- RED: `TestHub_UnregisterBeforeRegister_NoZombie_P1_BE_21` — zombie in maps
+- Mutation calls: skip `authorizeScheduledCallMutate` in Update
+- RED: `TestScheduledCall_Update_RejectsStranger_P1_BE_22` — expected forbidden, got nil
+- GREEN: both after restore
+- Mock-only?: no (real Hub / Ent calls fixture)

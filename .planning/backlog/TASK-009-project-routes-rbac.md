@@ -1,6 +1,6 @@
-# TASK-009 — project routes: навесить RBAC на CRUD/members/invites/teams
+﻿# TASK-009 — project routes: навесить RBAC на CRUD/members/invites/teams
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P0** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P0** · Статус: Исправлена  
 > Источник аудита: W1-A5-001 · TASK-008 стадия B
 
 ## [OUTCOME]
@@ -77,3 +77,10 @@ archive, менять members/roles (в т.ч. на owner), создавать i
 - Не ослаблять List/Create без явной причины
 - Не добавлять `*ent.Client` в handler/service
 - Co-authored-by запрещён
+
+## Stage C (W18-C1 mutation) — PASS
+
+- Mutation: strip `RequirePermission` from `DeleteProject` route
+- RED: `TestProjectRoutes_RBAC_OutsiderForbidden/delete` — expected 403, got 200
+- GREEN: same suite after restore
+- Mock-only?: no (Fiber + real RBACService / Ent sqlite)

@@ -1,6 +1,6 @@
 ﻿# TASK-013 — Tracker: IDOR workflow/custom-field/cross-project refs
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P1-BE-01..04 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
 ## [OUTCOME]
@@ -43,3 +43,10 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## Stage C (W18-C1 mutation) — PASS
+
+- Mutation: drop `HasProjectWith` in `DeleteCustomField` (Ent)
+- RED: `TestDeleteCustomField_RejectsForeignProject_P1BE02` — expected NotFound, got nil
+- GREEN: after restore
+- Mock-only?: no (Ent sqlite repo test)
