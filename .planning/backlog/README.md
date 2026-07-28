@@ -13,7 +13,7 @@
 
 | ID | Задача | Приоритет | Статус | Исполнитель | Источник |
 |----|--------|-----------|--------|-------------|----------|
-| [TASK-008](TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | В работе (B: P0/P1✅ → P2 TASK-036…056) | Grok + субагенты | Owner 2026-07-28 |
+| [TASK-008](TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | В работе (B: P0/P1/P2✅ → P3 TASK-057…078) | Grok + субагенты | Owner 2026-07-28 |
 | [TASK-009](TASK-009-project-routes-rbac.md) | project routes без RBAC | **P0** | На проверке | be1 | W1-A5-001 |
 | [TASK-010](TASK-010-promote-to-issue-rbac.md) | promote-to-issue без PermTaskCreate | **P0** | На проверке | be1 | W3-A2-001 |
 | [TASK-011](TASK-011-webhook-event-match.md) | webhook UI events ≠ NATS subjects | **P0** | На проверке | be1 | W4-A5-001 |
@@ -61,7 +61,29 @@
 | [TASK-053](TASK-053-fe-p2-auth-ws-upload.md) | FE auth/WS/upload | P2 | На проверке | fe2 | W12 P2-FE-09..11 |
 | [TASK-054](TASK-054-fe-p2-docs-metrics-drift.md) | Docs metrics/wiring drift | P2 | На проверке | docs-writer | W12 P2-FE-12 |
 | [TASK-055](TASK-055-fe-p2-shell-tracker-ux.md) | FE shell + tracker UX | P2 | На проверке | fe2 | W12 P2-FE-13,14 |
-| [TASK-056](TASK-056-fe-p2-i18n-push-rooms.md) | FE i18n/push/rooms | P2 | На проверке | fe2 | W12 P2-FE-15 |
+| [TASK-056](TASK-056-fe-p2-i18n-push-rooms.md) | FE i18n/push/rooms | P2 | На проверке | fe2 | W12 P2-FE-15 |
+| [TASK-057](TASK-057-be-p3-silent-error-swallow.md) | BE silent error swallow | P3 | Открыта | be1 | W12 P3-BE-01 |
+| [TASK-058](TASK-058-be-p3-assert-free-tests.md) | BE assert-free tests | P3 | Открыта | be2 | W12 P3-BE-02 |
+| [TASK-059](TASK-059-be-p3-mutation-proof-gaps.md) | BE mutation-proof gaps | P3 | Открыта | be1 | W12 P3-BE-03 |
+| [TASK-060](TASK-060-be-p3-utf8-rune-truncate.md) | BE UTF-8 rune truncate | P3 | Открыта | be2 | W12 P3-BE-04 |
+| [TASK-061](TASK-061-be-p3-repo-lists-defense.md) | BE repo/lists defense | P3 | Открыта | be1 | W12 P3-BE-05,06 |
+| [TASK-062](TASK-062-be-p3-dead-code-layering.md) | BE dead code/layering | P3 | Открыта | be2 | W12 P3-BE-07 |
+| [TASK-063](TASK-063-be-p3-errors-input-hygiene.md) | BE errors + input hygiene | P3 | Открыта | be1 | W12 P3-BE-08,09 |
+| [TASK-064](TASK-064-be-p3-ws-calls-lifecycle.md) | BE WS/calls lifecycle | P3 | Открыта | be2 | W12 P3-BE-10 |
+| [TASK-065](TASK-065-be-p3-platform-http-obs.md) | BE platform HTTP/obs | P3 | Открыта | be1 | W12 P3-BE-11,12 |
+| [TASK-066](TASK-066-be-p3-ai-auth-rbac-audit.md) | BE AI/auth/rbac/audit | P3 | Открыта | be2 | W12 P3-BE-13,14 |
+| [TASK-067](TASK-067-be-p3-v4-dev-storage.md) | BE v4/dev/storage | P3 | Открыта | be1 | W12 P3-BE-15,16 |
+| [TASK-068](TASK-068-be-p3-ent-hygiene-mojibake.md) | BE Ent hygiene/mojibake | P3 | Открыта | be2 | W12 P3-BE-17,18 |
+| [TASK-069](TASK-069-fe-p3-a11y-names.md) | FE a11y names residual | P3 | Открыта | fe1 | W12 P3-FE-01 |
+| [TASK-070](TASK-070-fe-p3-a11y-structure.md) | FE a11y structure | P3 | Открыта | fe2 | W12 P3-FE-02 |
+| [TASK-071](TASK-071-fe-p3-tokens-i18n.md) | FE tokens + i18n | P3 | Открыта | fe1 | W12 P3-FE-03,04 |
+| [TASK-072](TASK-072-fe-p3-timers-cleanup.md) | FE timers + NaN | P3 | Открыта | fe2 | W12 P3-FE-05,16 |
+| [TASK-073](TASK-073-fe-p3-silent-fail-empty.md) | FE silent fail residual | P3 | Открыта | fe1 | W12 P3-FE-06 |
+| [TASK-074](TASK-074-fe-p3-type-casts.md) | FE type casts | P3 | Открыта | fe2 | W12 P3-FE-07 |
+| [TASK-075](TASK-075-fe-p3-dead-ui-state.md) | FE dead UI/state | P3 | Открыта | fe1 | W12 P3-FE-08 |
+| [TASK-076](TASK-076-fe-p3-perf-stale.md) | FE perf stale | P3 | Открыта | fe2 | W12 P3-FE-09 |
+| [TASK-077](TASK-077-fe-p3-api-auth-naming.md) | FE api/auth/naming | P3 | Открыта | fe1 | W12 P3-FE-10..12 |
+| [TASK-078](TASK-078-fe-p3-docs-spa-ux.md) | FE docs/SPA/preview | P3 | Открыта | docs-writer | W12 P3-FE-13..15 |
 
 ## Закрытые
 
