@@ -152,9 +152,10 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 		return fmt.Errorf("невозможно восстановить бэкап со статусом %s", record.Status)
 	}
 
-	// Включаем режим обслуживания (устанавливаем флаг).
-	s.setMaintenanceMode(true)
-	defer s.setMaintenanceMode(false)
+	// Включаем режим обслуживания (cluster-wide через Redis, U04).
+	// defer без cancel ctx: иначе после отмены запроса DEL в Redis не выполнится.
+	s.setMaintenanceMode(ctx, true)
+	defer s.setMaintenanceMode(context.WithoutCancel(ctx), false)
 
 	// Создаём бэкап текущего состояния перед восстановлением (safety net).
 	slog.Info("создание бэкапа текущего состояния перед восстановлением")
@@ -220,16 +221,16 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 // strPtr возвращает указатель на строку.
 func strPtr(s string) *string { return &s }
 
-// setMaintenanceMode устанавливает/снимает режим обслуживания (A7-003).
+// setMaintenanceMode устанавливает/снимает режим обслуживания (A7-003 / U04).
 // Переключает MaintenanceGate (если задан) и логирует для наблюдаемости.
-func (s *BackupService) setMaintenanceMode(enabled bool) {
+func (s *BackupService) setMaintenanceMode(ctx context.Context, enabled bool) {
 	if s.gate != nil {
-		s.gate.Set(enabled)
+		s.gate.Set(ctx, enabled)
 	}
 	if enabled {
-		slog.Warn("включён режим обслуживания для восстановления бэкапа")
+		slog.WarnContext(ctx, "включён режим обслуживания для восстановления бэкапа")
 	} else {
-		slog.Info("режим обслуживания выключен")
+		slog.InfoContext(ctx, "режим обслуживания выключен")
 	}
 }
 
@@ -238,7 +239,11 @@ func (s *BackupService) IsMaintenanceMode() bool {
 	if s == nil || s.gate == nil {
 		return false
 	}
-	return s.gate.Enabled()
+	ctx := s.lifecycleCtx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return s.gate.Enabled(ctx)
 }
 
 // extractZIP извлекает файлы postgres.dump и mongo.archive из ZIP-архива.

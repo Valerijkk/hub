@@ -64,7 +64,7 @@
 |----|-----|-----|-------------|---------|------------------------|
 | W7-A4-001 | FIXED | P1 | `storage/service.go` GenerateUploadURL | NF-09: `size==0` legacy **без** ContentLength bind | **FIXED TASK-099**: reject size≤0 + always ContentLength; ADR-STORAGE-NF09-SIZE-2026; тест `nf09_size_zero_task099_test.go` |
 | W7-A4-002 | RESIDUAL | P1 | `storage/service.go:232-262` | Confirm entity scope: `issue` проверен; `message`/`avatar`/… без project match | Частичный фикс TASK-024/045; чужая привязка non-issue типов |
-| W7-A4-003 | RESIDUAL | P1 | `backup/maintenance.go:13-15` | Gate = process-local `atomic.Bool` | W12 U04; multi-replica K3s не блокируется |
+| W7-A4-003 | FIXED-OK | P1 | `backup/maintenance.go` | Gate был process-local `atomic.Bool` | **FIXED TASK-100:** Redis key `hub:backup:maintenance` + IT multi-instance; ADR-BACKUP-MAINTENANCE-GATE-2026 |
 | W7-A4-004 | FIXED-OK | P1 | `backup/service.go:104-110` | MarkCompleted без S3 | Закрыто TASK-024: fail-closed MarkFailed |
 | W7-A4-005 | FIXED-OK | P2 | `storage/service.go:159-162` | Confirm без HEAD | Закрыто TASK-045: `assertObjectWithinLimit` / ErrObjectNotFound |
 | W7-A4-006 | FIXED-OK | P2 | `storage/service.go:207-217` | contentType без allowlist | Закрыто TASK-045: HTML/SVG/JS reject |

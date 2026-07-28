@@ -64,9 +64,9 @@ func wireFiber(d *serverDeps) {
 	app.Use(middleware.RateLimit(d.rootCtx, middleware.APIRateLimit))
 
 	api := app.Group("/api")
-	// A7-003: maintenance gate до любых бизнес-маршрутов (создаётся здесь,
-	// BackupService подключается к тому же gate в wireIntegrations).
-	d.maintGate = backupmod.NewMaintenanceGate()
+	// A7-003 / U04: cluster-wide maintenance gate (Redis) до бизнес-маршрутов.
+	// BackupService подключается к тому же gate в wireIntegrations.
+	d.maintGate = backupmod.NewRedisMaintenanceGate(d.rdb)
 	api.Use(backupmod.MaintenanceMiddleware(d.maintGate))
 	// HTTP-аудит: все API-запросы пишутся в журнал (кроме health/docs).
 	api.Use(auditmod.HTTPAuditMiddleware(d.auditSvc.RecordHTTPRequest))
