@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -57,7 +58,13 @@ func (NotificationPreference) Edges() []ent.Edge {
 // Indexes описывает индексы сущности NotificationPreference.
 func (NotificationPreference) Indexes() []ent.Index {
 	return []ent.Index{
+		// P1-BE-41 / W8-A3-001: Postgres/SQLite NULL≠NULL в обычном UNIQUE —
+		// два partial unique закрывают глобальные (project_id IS NULL) и per-project prefs.
+		index.Fields("user_id", "notification_type", "channel").
+			Unique().
+			Annotations(entsql.IndexWhere("project_id IS NULL")),
 		index.Fields("user_id", "notification_type", "channel", "project_id").
-			Unique(),
+			Unique().
+			Annotations(entsql.IndexWhere("project_id IS NOT NULL")),
 	}
 }

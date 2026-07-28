@@ -53,7 +53,8 @@ func (JournalEntry) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("lines", JournalLine.Type),
-		edge.To("invoice", Invoice.Type),
+		// P1-BE-42 / W8-A3-003: O2O с Invoice (From уже Unique).
+		edge.To("invoice", Invoice.Type).Unique(),
 	}
 }
 

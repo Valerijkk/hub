@@ -1,6 +1,7 @@
 ﻿# TASK-025 — Ent: coffee unique, notif pref partial unique, journal↔invoice O2O
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
+
 > Источник: TASK-008 W12 · Classes: P1-BE-40..42 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
 ## [OUTCOME]
@@ -33,6 +34,20 @@
 - Regression: соответствующий `testframework` / Vitest domain package
 - Evidence: вывод тестов, SHA коммитов
 - Stop when: green + статус «Исправлена» в README
+
+## [IMPLEMENTATION NOTE — 2026-07-28 be1]
+
+Схемы обновлены:
+
+- `CoffeeEnrollment`: `index.Edges("user").Unique()` + `User.To("coffee_enrollment").Unique()`
+- `NotificationPreference`: два partial unique (`project_id IS NULL` / `IS NOT NULL`)
+- `JournalEntry.To("invoice").Unique()` + `Invoice` `index.Edges("journal_entry").Unique()`
+
+Миграция (additive SQL): `backend/migrations/20260728_task025_ent_schema_constraints.sql`.
+**Prod apply — только с явным согласованием владельца** (pre-check дубликатов в файле).
+Dev/test: Ent `Schema.Create` / `enttest` поднимает индексы на чистой БД.
+
+Тесты мутации: `*_task025_test.go` в intranet / notification / accounting.
 
 ## [OUTPUT SCHEMA]
 

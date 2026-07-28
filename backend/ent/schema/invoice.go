@@ -78,5 +78,7 @@ func (Invoice) Indexes() []ent.Index {
 		index.Fields("number").Unique(),
 		index.Fields("status"),
 		index.Fields("deleted_at"),
+		// P1-BE-42: уникальный FK journal_entry → не более одного счёта на проводку.
+		index.Edges("journal_entry").Unique(),
 	}
 }

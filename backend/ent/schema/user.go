@@ -132,7 +132,7 @@ func (User) Edges() []ent.Edge {
 		edge.To("kudos_received", Kudo.Type),
 		edge.To("marketplace_listings", MarketplaceListing.Type),
 		edge.To("marketplace_reviews", MarketplaceListing.Type),
-		edge.To("coffee_enrollment", CoffeeEnrollment.Type),
+		edge.To("coffee_enrollment", CoffeeEnrollment.Type).Unique(),
 		edge.To("coffee_rounds_triggered", CoffeeRound.Type),
 		edge.To("coffee_pairs_a", CoffeePair.Type),
 		edge.To("coffee_pairs_b", CoffeePair.Type),
