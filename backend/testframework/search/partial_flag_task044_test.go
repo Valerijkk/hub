@@ -27,3 +27,23 @@ func TestSearch_PartialFlagOnShardError(t *testing.T) {
 	assert.True(t, partial)
 	assert.Empty(t, results)
 }
+
+// TestSearch_TotalOutageHardError_TASK113 — A2W5-A4-003.
+// Все шарды failed → error (не partial+пусто).
+func TestSearch_TotalOutageHardError_TASK113(t *testing.T) {
+	db := newScopeTestDB(t)
+	userID := uuid.New()
+	projectID := uuid.New()
+	_, err := db.Exec(
+		`INSERT INTO project_members (project_members, user_project_members) VALUES (?, ?)`,
+		projectID.String(), userID.String(),
+	)
+	require.NoError(t, err)
+
+	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
+	results, partial, err := svc.Search(context.Background(), "hub", userID, []string{"issue"}, 20)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
+	assert.False(t, partial)
+	assert.Nil(t, results)
+}

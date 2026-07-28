@@ -182,18 +182,7 @@ func TestSearchMessages_NoChannelsReturnsEmpty(t *testing.T) {
 }
 
 func TestSearch_UsesProjectScopeForIssues(t *testing.T) {
-	db := newScopeTestDB(t)
-	userID := uuid.New()
-	allowedProject := uuid.New()
-
-	_, err := db.Exec(
-		`INSERT INTO project_members (project_members, user_project_members) VALUES (?, ?)`,
-		allowedProject.String(), userID.String(),
-	)
-	require.NoError(t, err)
-
-	svc := search.ExportNewSearchServiceFull(&mockSearchRepo{}, db, nil)
-	results, _, err := svc.Search(context.Background(), "hub", userID, []string{"issue"}, 20)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// A2W5-A5-001: hollow sqlite Empty убран. Канон NF-03 — Postgres:
+	// TestPostgresSearch_RejectsForeignProjectIssues_TASK037 (live+foreign).
+	t.Run("delegates_to_postgres_scope_proof", TestPostgresSearch_RejectsForeignProjectIssues_TASK037)
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// A2W5-A5-006 / A2W5-A4-003: missing entity tables → total outage error, не empty success.
+
 func TestSearch_AllShardsWithMembership_RecoversFromMissingTables(t *testing.T) {
 	db := newScopeTestDB(t)
 	userID := uuid.New()
@@ -27,9 +29,11 @@ func TestSearch_AllShardsWithMembership_RecoversFromMissingTables(t *testing.T) 
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, _, err := svc.Search(context.Background(), "hub query", userID, nil, 20)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// searchAll включает message (nil mongo = OK) — исключаем, чтобы проверить total outage.
+	_, _, err = svc.Search(context.Background(), "hub query", userID,
+		[]string{"issue", "test_case", "user", "project", "file", "channel"}, 20)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestGetUserChannelIDs_DBClosed(t *testing.T) {
@@ -47,4 +51,3 @@ func TestSearchMessages_NoChannelMembership(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, results)
 }
-

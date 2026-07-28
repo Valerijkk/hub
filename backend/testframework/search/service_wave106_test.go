@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// A2W5-A5-006: sqlite Empty без entity tables — НЕ NF-03 proof.
+// После A2W5-A4-003 missing-table shards → ErrSearchUnavailable.
+
 func TestSearch_AllEntityTypesParallel(t *testing.T) {
 	db := newScopeTestDB(t)
 	userID := uuid.New()
@@ -27,10 +30,11 @@ func TestSearch_AllEntityTypesParallel(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
-	results, _, err := svc.Search(context.Background(), "hub", userID,
-		[]string{"issue", "test_case", "user", "project", "file", "channel", "message"}, 50)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// Без message: nil-mongo shard = OK и маскирует total outage.
+	_, _, err = svc.Search(context.Background(), "hub", userID,
+		[]string{"issue", "test_case", "user", "project", "file", "channel"}, 50)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearch_LimitCappedAtFifty(t *testing.T) {
@@ -44,9 +48,9 @@ func TestSearch_LimitCappedAtFifty(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, _, err := svc.Search(context.Background(), "x", userID, []string{"issue"}, 100)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	_, _, err = svc.Search(context.Background(), "x", userID, []string{"issue"}, 100)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearchChannels_TriggersFallbackBeforeError(t *testing.T) {

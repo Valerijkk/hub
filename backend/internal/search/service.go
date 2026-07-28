@@ -28,6 +28,9 @@ const defaultSearchLimit = 10
 // ErrFilterForbidden — A4-003/A4-004: 403 без утечки причины (нет membership).
 var ErrFilterForbidden = errors.New("forbidden")
 
+// ErrSearchUnavailable — A2W5-A4-003: все шарды упали (total outage → hard error).
+var ErrSearchUnavailable = errors.New("search unavailable: all shards failed")
+
 // SearchService реализует глобальный поиск по всем сущностям платформы.
 // Выполняет параллельные запросы к PostgreSQL (tsvector) и MongoDB ($text),
 // затем объединяет результаты по релевантности.
@@ -176,9 +179,11 @@ func (s *SearchService) Search(ctx context.Context, query string, userID uuid.UU
 	}
 
 	if shardErr > 0 && shardOK == 0 {
-		// Все шарды упали: Ctrl+K получает partial+пусто, не 500 (деградация).
-		// Мутация «partial flag» закрыта; hard-error при total outage — follow-up.
-		return results, true, nil
+		// A2W5-A4-003: total outage → hard error (не partial+пусто).
+		if joined != nil {
+			return nil, false, fmt.Errorf("%w: %w", ErrSearchUnavailable, joined)
+		}
+		return nil, false, ErrSearchUnavailable
 	}
 	partial := shardErr > 0
 	return results, partial, nil

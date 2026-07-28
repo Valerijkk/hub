@@ -255,9 +255,10 @@ func TestSearch_FiltersByType(t *testing.T) {
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
 
-	results, _, err := svc.Search(context.Background(), "hub", userID, []string{"project"}, 5)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	// A2W5-A4-003: type filter сужает шарды; sqlite без tables → hard error.
+	_, _, err = svc.Search(context.Background(), "hub", userID, []string{"project"}, 5)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearch_AdminUsesUnscopedUserSearch(t *testing.T) {
@@ -265,9 +266,9 @@ func TestSearch_AdminUsesUnscopedUserSearch(t *testing.T) {
 	userID := uuid.New()
 	svc := search.NewSearchService(&mockSearchRepo{isAdmin: true}, db, nil)
 
-	results, _, err := svc.Search(context.Background(), "admin", userID, []string{"user"}, 10)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	_, _, err := svc.Search(context.Background(), "admin", userID, []string{"user"}, 10)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearch_ContinuesOnPartialShardErrors(t *testing.T) {

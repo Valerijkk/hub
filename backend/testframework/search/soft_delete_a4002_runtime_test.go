@@ -13,8 +13,8 @@ import (
 )
 
 // TestPostgresSearch_ExcludesSoftDeleted_A4_002 — runtime proof that Ctrl+K
-// shards omit soft-deleted issues/files (and pending files). Mutation: drop
-// deleted_at / status filters in searchIssues/searchFiles → FAIL.
+// shards omit soft-deleted issues/files/test_cases/projects (A2W5-A5-002).
+// Mutation: drop deleted_at / status filters → FAIL.
 func TestPostgresSearch_ExcludesSoftDeleted_A4_002(t *testing.T) {
 	db := connectPostgresSearchTest(t)
 	defer db.Close()
@@ -27,11 +27,17 @@ func TestPostgresSearch_ExcludesSoftDeleted_A4_002(t *testing.T) {
 	activeFileID := uuid.New()
 	deletedFileID := uuid.New()
 	pendingFileID := uuid.New()
+	activeCaseID := uuid.New()
+	deletedCaseID := uuid.New()
+	activeProjectID := projectID
+	deletedProjectID := uuid.New()
 	deletedAt := time.Now().UTC()
 
 	_, err := db.ExecContext(ctx,
-		`INSERT INTO projects (id, key, name, description) VALUES ($1, $2, $3, $4)`,
-		projectID, "SDF", "Soft Delete Filter", "A4-002 runtime")
+		`INSERT INTO projects (id, key, name, description, deleted_at) VALUES
+			($1, $2, $3, $4, NULL), ($5, $6, $7, $8, $9)`,
+		activeProjectID, "SDF", "softdel active project", "live project for ctrlk",
+		deletedProjectID, "SDX", "softdel deleted project", "trashed project must hide", deletedAt)
 	require.NoError(t, err)
 
 	_, err = db.ExecContext(ctx,
@@ -39,6 +45,13 @@ func TestPostgresSearch_ExcludesSoftDeleted_A4_002(t *testing.T) {
 		 VALUES ($1, $2, $3, $4, $5, NULL), ($6, $7, $8, $9, $5, $10)`,
 		activeIssueID, "SDF-1", "softdel active issue", "live row for ctrlk", projectID,
 		deletedIssueID, "SDF-2", "softdel deleted issue", "trashed row must hide", deletedAt)
+	require.NoError(t, err)
+
+	_, err = db.ExecContext(ctx,
+		`INSERT INTO test_cases (id, case_key, title, description, project_test_cases, deleted_at)
+		 VALUES ($1, $2, $3, $4, $5, NULL), ($6, $7, $8, $9, $5, $10)`,
+		activeCaseID, "SDF-C1", "softdel active case", "live case", projectID,
+		deletedCaseID, "SDF-C2", "softdel deleted case", "trashed case", deletedAt)
 	require.NoError(t, err)
 
 	_, err = db.ExecContext(ctx,
@@ -64,4 +77,14 @@ func TestPostgresSearch_ExcludesSoftDeleted_A4_002(t *testing.T) {
 	require.Len(t, files, 1, "soft-deleted and pending files must be excluded")
 	assert.Equal(t, activeFileID.String(), files[0].ID)
 	assert.Equal(t, "softdel active report.pdf", files[0].Title)
+
+	cases, err := search.ExportSearchTestCases(svc, ctx, "softdel", []uuid.UUID{projectID})
+	require.NoError(t, err)
+	require.Len(t, cases, 1, "soft-deleted test_case must be excluded")
+	assert.Equal(t, activeCaseID.String(), cases[0].ID)
+
+	projects, err := search.ExportSearchProjects(svc, ctx, "softdel", []uuid.UUID{activeProjectID, deletedProjectID})
+	require.NoError(t, err)
+	require.Len(t, projects, 1, "soft-deleted project must be excluded")
+	assert.Equal(t, activeProjectID.String(), projects[0].ID)
 }
