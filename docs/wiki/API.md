@@ -947,8 +947,9 @@ Lark Base clone MVP: таблицы с typed columns и grid-редакторо�
 
 ## Wiki — **planned/spec** (FR-WIKI, Волны 5/8)
 
-> Новый модуль, кода ещё нет. Спецификация: `docs/system_specification.md` § «Wiki — новый модуль (FR-WIKI)».
+> Новый модуль, кода ещё нет (`backend/internal/wiki` / FE routes отсутствуют). Спецификация: `docs/system_specification.md` § «Wiki — новый модуль (FR-WIKI)».
 > RBAC: роли space (read/write/admin) + наследование + restrict-флаг страницы (GZ-SEC-07/11).
+> **G-07 Partial (PO reconcile 2026-07-28, TASK-105 / A2W11-5-001):** endpoints ниже — **planned**, не production; цель G-07 «US-WIKI реализованы» не выполнена. Не путать с репозиторной `docs/wiki/` (эта документация).
 
 | Метод | Путь | Описание | Статус |
 |---|---|---|---|

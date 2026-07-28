@@ -26,11 +26,12 @@
 
 ## Топ открытых
 
-1. **A2W11-5-001 (RESIDUAL P1)** — `vision` G-07 «US-WIKI реализованы» ↔ KPI wiki planned.
-2. **A2W11-3-001 (RESIDUAL P2)** — `use-presence` без `isError`; ложное закрытие в TASK-047 TODO.
-3. **A2W11-2-001 / A2W11-3-002 (RESIDUAL P2)** — JWT в `sessionStorage` + `/ws?token=` (нужен ADR/BE).
-4. **A2W11-2-002 / A2W11-5-002 (RESIDUAL P2)** — TZ offset для задач vs cursor в коде.
-5. **A2W11-4-001 (NEW P2)** — `BUSINESS.md` внутренний drift webcam/Phase 16.
+1. **A2W11-3-001 (RESIDUAL P2)** — `use-presence` без `isError`; ложное закрытие в TASK-047 TODO.
+2. **A2W11-2-001 / A2W11-3-002 (RESIDUAL P2)** — JWT в `sessionStorage` + `/ws?token=` (нужен ADR/BE).
+3. **A2W11-2-002 / A2W11-5-002 (RESIDUAL P2)** — TZ offset для задач vs cursor в коде.
+4. **A2W11-4-001 (NEW P2)** — `BUSINESS.md` внутренний drift webcam/Phase 16.
+
+Закрыто docs: **A2W11-5-001** → FIXED (TASK-105, G-07 Partial).
 
 ## REGRESS
 
@@ -38,4 +39,4 @@
 
 ## Вердикт волны
 
-Stage A2 W11 **закрыта** (read-only). Код api-клиента и большинство stores/hooks после B/C — **FIXED-OK**. Остаток: ADR-security (tokens/WS), docs PO (G-07, TZ pagination), false-close presence `isError`, мелкий docs/API dead-export.
+Stage A2 W11 **закрыта** (read-only). Код api-клиента и большинство stores/hooks после B/C — **FIXED-OK**. Остаток: ADR-security (tokens/WS), docs TZ pagination (A2W11-5-002), false-close presence `isError`, мелкий docs/API dead-export. **G-07 wiki KPI drift закрыт** (TASK-105).

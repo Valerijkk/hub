@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (docs-writer · TASK-105 G-07 wiki KPI)
+
+- **PO reconcile:** G-07 → **Partial** (INTR+CAL base shipped; US-WIKI planned). Не утверждать «US-WIKI реализованы».
+- **Docs:** `vision_and_scope.md` G-07 + KPI Wiki; `docs/wiki/API.md` / `HOME.md` (docs-wiki ≠ product wiki).
+- **Finding:** A2W11-5-001 → FIXED (docs+PO). Статус задачи → **Исправлена**. Код продукта не менялся.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.
