@@ -37,7 +37,7 @@
 | A2-W11 | api/stores/hooks/lib+docs | OK | 93 | 0 | 1 | 6 | 4 | **11** |
 
 **Итого Stage A2:** файлов **1405** · open Σ (сырые, до дедупа) **254** (P0=0 · P1=24 · P2=172 · P3=58).  
-Сводки: `A2-W{n}-SUMMARY.md` · финал: [`00-STAGE-A2-COMPLETE.md`](00-STAGE-A2-COMPLETE.md).
+Сводки: `A2-W{n}-SUMMARY.md` · финал: [`00-STAGE-A2-COMPLETE.md`](00-STAGE-A2-COMPLETE.md) · дедуп→backlog: [`A2-DEDUP-2026-07-28.md`](A2-DEDUP-2026-07-28.md) (14 TASK-081…094).
 
 ## Стадии B/C
 

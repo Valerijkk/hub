@@ -47,7 +47,8 @@
 
 ## Следующие шаги оркестратора
 
-1. **Дедуп** open findings (W12-style) → actionable NEW/REGRESS → новые TASK-* (не дублировать закрытые W13–W21).
-2. **Fix wave** приоритет: P1 REGRESS → P1 NEW → P2 NEW; RESIDUAL/U* — только с ADR или owner approve (Ent migrate MaxLen/DROP INDEX / `restored_note`).
-3. **Не закрывать TASK-008** до remediation path + method-comparable COV vs 81.9%.
-4. Product code freeze A2 снят для **фиксов по новым TASK**; не править «вслепую» по сырым отчётам до дедупа.
+1. ~~**Дедуп**~~ → [`A2-DEDUP-2026-07-28.md`](A2-DEDUP-2026-07-28.md) · **14** code-TASK (**081…094**); сырые 254 ≠ 254 багов.
+2. **Fix wave** приоритет: P1 REGRESS **081** → P1 **082–084** → P2 **085…093** → P3 **094**.
+3. Deferred ADR/U* — **не** трогать без owner/ADR (VersionMixin, OnDelete, U03/U04, Telegram login, NF-09…).
+4. **Не закрывать TASK-008** до remediation path + method-comparable COV vs 81.9%.
+5. Naming задач: `TASK-<NNN>-<YYYY-MM-DD>-<slug>.md` — [`.cursor/rules/57-backlog-tasks.mdc`](../../.cursor/rules/57-backlog-tasks.mdc).

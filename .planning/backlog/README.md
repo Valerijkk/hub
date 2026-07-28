@@ -1,11 +1,14 @@
 # Бэклог задач
 
 > Единый вход для агентов и владельца. Одна папка, одна таблица, один формат.
-> Обновлено: 2026-07-28 (W18-C5 mutation + catch-up TASK-079/080)
+> Обновлено: 2026-07-28 (A2 dedup → TASK-081…094 · naming `TASK-NNN-YYYY-MM-DD-slug`)
 
 Каждая задача — отдельный файл, написанный по
 [мастер-промпту](../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
-Правила ведения: [`.cursor/rules/57-backlog-tasks.mdc`](../../.cursor/rules/57-backlog-tasks.mdc).
+Правила ведения: [`.cursor/rules/57-backlog-tasks.mdc`](../../.cursor/rules/57-backlog-tasks.mdc)
+(с 2026-07-28: **`TASK-<NNN>-<YYYY-MM-DD>-<функциональный-слаг>.md`**, emoji в заголовке/таблице).
+
+Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../audits/total-2026-07/A2-DEDUP-2026-07-28.md) — сырые **254** open ≠ 254 задач; заведено **14** кластеров.
 
 ---
 
@@ -13,7 +16,21 @@
 
 | ID | Задача | Приоритет | Статус | Исполнитель | Источник |
 |----|--------|-----------|--------|-------------|----------|
-| [TASK-008](TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | В работе (B: P0/P1/P2✅ → P3 TASK-057…078) | Grok + субагенты | Owner 2026-07-28 |
+| [TASK-008](TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | В работе (A✅ · **A2✅** · dedup→081…094 · B P0–P3✅ · не закрывать) | Grok + субагенты | Owner 2026-07-28 |
+| [TASK-081](TASK-081-2026-07-28-tms-completerun-project-id-webhook.md) | ♻️🐛 TMS CompleteTestRun → webhook `project_id` | **P1** | Открыта | be1 | A2W4-5-001 REGRESS |
+| [TASK-082](TASK-082-2026-07-28-fe-sprint-backlog-without-sprint-filter.md) | 🐛 FE SprintBacklog без фильтра sprint | **P1** | Открыта | fe1 | A2W10-A3-001 |
+| [TASK-083](TASK-083-2026-07-28-fe-trash-hard-delete-api.md) | 🐛 FE Trash hard-delete без API | **P1** | Открыта | fe2 | A2W10-A5-001 |
+| [TASK-084](TASK-084-2026-07-28-storage-confirm-entity-scope.md) | 🔒 Storage Confirm non-issue scope | **P1** | Открыта | be2 | W7-A4-002 |
+| [TASK-085](TASK-085-2026-07-28-ai-task044-regress-bundle.md) | ♻️ AI TASK-044 false-close (RPM/JQL/stream) | P2 | Открыта | be1 | A2W5 REGRESS |
+| [TASK-086](TASK-086-2026-07-28-webhook-delivery-ctx-id.md) | ♻️ Webhook ctx + X-Hub-Delivery | P2 | Открыта | be2 | A2W4-5-002/003 |
+| [TASK-087](TASK-087-2026-07-28-outbox-claim-lease-flush.md) | 🐛 Outbox claim lease during flush | P2 | Открыта | be1 | A2W4-2-001 NEW |
+| [TASK-088](TASK-088-2026-07-28-tracker-assignee-team-tx-automation.md) | 🔒 Tracker assignee/team tx/automation Nak | P2 | Открыта | be1 | A2W1 |
+| [TASK-089](TASK-089-2026-07-28-messenger-crm-invoice-guards.md) | 🔒 Messenger reaction + CRM + invoice | P2 | Открыта | be2 | A2W3/W7 |
+| [TASK-090](TASK-090-2026-07-28-audit-purge-error-contract.md) | 🔒 Audit purge fail-closed + errors | P2 | Открыта | be1 | A2W6 |
+| [TASK-091](TASK-091-2026-07-28-tms-createbug-reports-batch.md) | 🐛 TMS createBug + reports N+1 | P2 | Открыта | be2 | A2W2 |
+| [TASK-092](TASK-092-2026-07-28-search-filter-status-safedial.md) | 🔒 Search 403 + Meili SafeDial | P2 | Открыта | be2 | A2W5-A4 |
+| [TASK-093](TASK-093-2026-07-28-fe-a2-error-empty-a11y-sweep.md) | 🧹 FE A2 error≠empty + a11y | P2 | Открыта | fe1 | A2W9/W10/W11 |
+| [TASK-094](TASK-094-2026-07-28-coffee-pairs-triple-edge.md) | ☕ Coffee Pairs[] triple-edges | P3 | Открыта | be2 | A2W7-2-N01 |
 | [TASK-009](TASK-009-project-routes-rbac.md) | project routes без RBAC | **P0** | Исправлена | be1 | W1-A5-001 |
 | [TASK-010](TASK-010-promote-to-issue-rbac.md) | promote-to-issue без PermTaskCreate | **P0** | Исправлена | be1 | W3-A2-001 |
 | [TASK-011](TASK-011-webhook-event-match.md) | webhook UI events ≠ NATS subjects | **P0** | Исправлена | be1 | W4-A5-001 |
