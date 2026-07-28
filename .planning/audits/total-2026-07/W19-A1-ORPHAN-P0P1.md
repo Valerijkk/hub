@@ -30,6 +30,7 @@
 | U\* ClassID / FE U Source ID в телах TASK-009…080 | **0** вхождений |
 | Stage A P0/P1 вне W12-реестров | **0** (W18 catch-up: P0=0 · P1=0) |
 | README Blocked ADR | только BE U01–U06; FE U (4 ID) — тоже сироты, без строки Blocked |
+| Независимый re-scan (скрипт по `A*-*.md` + TASK-009…080) | P0 orphan **0**; mutation BE/FE **0** missed; U\* ClassID+Source **0** hits → **10** orphan units |
 
 ---
 
