@@ -1,6 +1,6 @@
 # Total Audit 2026-07 — индекс
 
-> TASK-008 · A ✅ · A2 ⏸ после P3 ([`A2-PLAN.md`](A2-PLAN.md)) · B P0–P2 ✅ · P3 W21 🔄 ([`W21-P3-WAVE.md`](W21-P3-WAVE.md)) · C ⚠️ · FINAL: [`00-FINAL.md`](00-FINAL.md) · 2026-07-28
+> TASK-008 · A ✅ · **A2 🔄** ([A2-PLAN.md](A2-PLAN.md)) · B P0–P3 ✅ (W21) · C ⚠️ · FINAL: [00-FINAL.md](00-FINAL.md) · 2026-07-28
 
 | Волна | Зона | Статус | Файлов | P0 | P1 | P2 | P3 |
 |-------|------|--------|-------:|---:|---:|---:|---:|
