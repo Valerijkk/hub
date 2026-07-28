@@ -164,7 +164,7 @@ func TestEntRepository_WorkflowTransition(t *testing.T) {
 	inProgress, err := env.repo.CreateWorkflowStatus(env.ctx, env.projectID, "In Progress", "in_progress", "#3B82F6", 1)
 	require.NoError(t, err)
 
-	_, err = env.repo.CreateWorkflowTransition(env.ctx, env.statusID, inProgress.ID)
+	_, err = env.repo.CreateWorkflowTransition(env.ctx, env.projectID, env.statusID, inProgress.ID)
 	require.NoError(t, err)
 
 	found, err := env.repo.FindTransition(env.ctx, env.statusID, inProgress.ID)

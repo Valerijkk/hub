@@ -64,7 +64,7 @@ func TestEntRepository_CustomFields(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, fields, 1)
 
-	require.NoError(t, env.repo.DeleteCustomField(env.ctx, field.ID))
+	require.NoError(t, env.repo.DeleteCustomField(env.ctx, env.projectID, field.ID))
 	fields, err = env.repo.ListCustomFields(env.ctx, env.projectID)
 	require.NoError(t, err)
 	assert.Empty(t, fields)
@@ -120,11 +120,11 @@ func TestEntRepository_WorkflowTransitionsAndDefault(t *testing.T) {
 	require.NoError(t, err)
 
 	newName := "Code Review"
-	updated, err := env.repo.UpdateWorkflowStatus(env.ctx, done.ID, &newName, nil, nil)
+	updated, err := env.repo.UpdateWorkflowStatus(env.ctx, env.projectID, done.ID, &newName, nil, nil)
 	require.NoError(t, err)
 	assert.Equal(t, newName, updated.Name)
 
-	tr, err := env.repo.CreateWorkflowTransition(env.ctx, env.statusID, done.ID)
+	tr, err := env.repo.CreateWorkflowTransition(env.ctx, env.projectID, env.statusID, done.ID)
 	require.NoError(t, err)
 
 	transitions, err := env.repo.ListWorkflowTransitions(env.ctx, env.projectID)
@@ -134,7 +134,7 @@ func TestEntRepository_WorkflowTransitionsAndDefault(t *testing.T) {
 	_, err = env.repo.FindTransition(env.ctx, env.statusID, done.ID)
 	require.NoError(t, err)
 
-	require.NoError(t, env.repo.DeleteWorkflowTransition(env.ctx, tr.ID))
+	require.NoError(t, env.repo.DeleteWorkflowTransition(env.ctx, env.projectID, tr.ID))
 }
 
 // TestEntRepository_DeleteAndMoveIssue проверяет слой репозитория: ent репозиторий удаление and move issue.

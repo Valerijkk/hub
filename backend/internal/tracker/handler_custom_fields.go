@@ -81,12 +81,16 @@ func (h *Handler) CreateCustomField(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/custom-fields/{fieldId} [delete]
 func (h *Handler) DeleteCustomField(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	fieldID, err := httputil.ParseUUIDParam(c, "fieldId")
 	if err != nil {
 		return err
 	}
 
-	if err := h.service.DeleteCustomField(c.Context(), fieldID); err != nil {
+	if err := h.service.DeleteCustomField(c.Context(), projectID, fieldID); err != nil {
 		return err
 	}
 

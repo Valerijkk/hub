@@ -196,6 +196,6 @@ func TestDeleteCustomField_Success(t *testing.T) {
 
 	fieldID, err := uuid.Parse(field.ID)
 	require.NoError(t, err)
-	require.NoError(t, svc.DeleteCustomField(ctx, fieldID))
+	require.NoError(t, svc.DeleteCustomField(ctx, projectID, fieldID))
 	assert.Empty(t, repo.customFields)
 }

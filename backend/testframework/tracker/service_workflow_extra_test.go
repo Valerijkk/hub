@@ -33,7 +33,7 @@ func TestListWorkflowStatuses(t *testing.T) {
 	assert.Equal(t, "Review", created.Name)
 	_ = statusID
 
-	require.NoError(t, svc.DeleteWorkflowStatus(ctx, uuid.MustParse(created.ID)))
+	require.NoError(t, svc.DeleteWorkflowStatus(ctx, projectID, uuid.MustParse(created.ID)))
 }
 
 // TestWorkflowTransitions_CRUD проверяет сценарий: workflow transitions crud.
@@ -44,7 +44,7 @@ func TestWorkflowTransitions_CRUD(t *testing.T) {
 	fromID := repo.getDefaultStatusID()
 	toID := repo.addStatusWithTransition("Doing", workflowstatus.CategoryInProgress, fromID)
 
-	trans, err := svc.CreateWorkflowTransition(ctx, tracker.CreateWorkflowTransitionRequest{
+	trans, err := svc.CreateWorkflowTransition(ctx, projectID, tracker.CreateWorkflowTransitionRequest{
 		FromStatusID: fromID.String(),
 		ToStatusID:   toID.String(),
 	})
@@ -54,7 +54,7 @@ func TestWorkflowTransitions_CRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, list)
 
-	require.NoError(t, svc.DeleteWorkflowTransition(ctx, uuid.MustParse(trans.ID)))
+	require.NoError(t, svc.DeleteWorkflowTransition(ctx, projectID, uuid.MustParse(trans.ID)))
 }
 
 // TestGetActivity_ReturnsLogs проверяет сценарий: получение activity returns logs.

@@ -85,6 +85,21 @@ func (s *TrackerService) CreateIssueMessageLink(
 		return nil, apperrors.NewBadRequest("message_id обязателен")
 	}
 
+	// P1-BE-04: канал должен принадлежать проекту; пользователь — member канала.
+	if _, err := s.repo.FindChannelInProject(ctx, projectID, channelID); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("канал не найден")
+		}
+		return nil, apperrors.NewInternal("ошибка проверки канала")
+	}
+	ok, err := s.repo.IsChannelMember(ctx, channelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки membership канала")
+	}
+	if !ok {
+		return nil, apperrors.NewForbidden("нет доступа к каналу")
+	}
+
 	mirror := true
 	if req.MirrorToThread != nil {
 		mirror = *req.MirrorToThread
@@ -112,6 +127,13 @@ func (s *TrackerService) LinkThreadToIssue(
 	}
 	if issue.Edges.Project == nil || issue.Edges.Project.ID != projectID {
 		return fmt.Errorf("issue not in project")
+	}
+	// P1-BE-04: канал должен принадлежать проекту (promote-path).
+	if _, err := s.repo.FindChannelInProject(ctx, projectID, channelID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("канал не найден")
+		}
+		return fmt.Errorf("check channel in project: %w", err)
 	}
 	_, err = s.repo.CreateIssueMessageLink(ctx, issueID, channelID, userID, threadRootMessageID, true)
 	if err != nil && ent.IsConstraintError(err) {

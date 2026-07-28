@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/channel"
+	"github.com/valerii/hub/backend/ent/channelmember"
 	"github.com/valerii/hub/backend/ent/issuemessagelink"
 )
 
@@ -65,4 +67,26 @@ func (r *EntRepository) DeleteIssueMessageLink(ctx context.Context, linkID, issu
 		return fmt.Errorf("issue message link not found")
 	}
 	return nil
+}
+
+// FindChannelInProject возвращает канал только если он привязан к projectID (P1-BE-04).
+func (r *EntRepository) FindChannelInProject(ctx context.Context, projectID, channelID uuid.UUID) (*ent.Channel, error) {
+	return r.client.Channel.Query().
+		Where(
+			channel.IDEQ(channelID),
+			channel.DeletedAtIsNil(),
+			channel.ProjectIDEQ(projectID),
+		).
+		Only(ctx)
+}
+
+// IsChannelMember проверяет, состоит ли пользователь в канале (P1-BE-04).
+func (r *EntRepository) IsChannelMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
+	return r.client.ChannelMember.Query().
+		Where(
+			channelmember.ChannelIDEQ(channelID),
+			channelmember.UserIDEQ(userID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
+		Exist(ctx)
 }

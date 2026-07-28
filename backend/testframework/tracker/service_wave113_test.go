@@ -24,7 +24,7 @@ type notFoundFieldDeleteRepo struct {
 	mockRepo
 }
 
-func (r *notFoundFieldDeleteRepo) DeleteCustomField(_ context.Context, _ uuid.UUID) error {
+func (r *notFoundFieldDeleteRepo) DeleteCustomField(_ context.Context, _, _ uuid.UUID) error {
 	return &ent.NotFoundError{}
 }
 
@@ -43,7 +43,7 @@ func TestDeleteCustomField_NotFound(t *testing.T) {
 	repo := &notFoundFieldDeleteRepo{mockRepo: *newMockRepo()}
 	svc := tracker.NewTrackerService(repo, nil)
 
-	err := svc.DeleteCustomField(context.Background(), uuid.New())
+	err := svc.DeleteCustomField(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдено")
 }

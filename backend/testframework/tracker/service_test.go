@@ -311,7 +311,7 @@ func (m *mockRepo) CreateWorkflowStatus(_ context.Context, _ uuid.UUID, name, ca
 	return st, nil
 }
 
-func (m *mockRepo) UpdateWorkflowStatus(_ context.Context, statusID uuid.UUID, name, color *string, sortOrder *int) (*ent.WorkflowStatus, error) {
+func (m *mockRepo) UpdateWorkflowStatus(_ context.Context, _, statusID uuid.UUID, name, color *string, sortOrder *int) (*ent.WorkflowStatus, error) {
 	st, ok := m.statuses[statusID]
 	if !ok {
 		return nil, &ent.NotFoundError{}
@@ -328,7 +328,7 @@ func (m *mockRepo) UpdateWorkflowStatus(_ context.Context, statusID uuid.UUID, n
 	return st, nil
 }
 
-func (m *mockRepo) DeleteWorkflowStatus(_ context.Context, statusID uuid.UUID) error {
+func (m *mockRepo) DeleteWorkflowStatus(_ context.Context, _, statusID uuid.UUID) error {
 	delete(m.statuses, statusID)
 	return nil
 }
@@ -342,6 +342,14 @@ func (m *mockRepo) FindDefaultStatus(_ context.Context, _ uuid.UUID) (*ent.Workf
 	return nil, &ent.NotFoundError{}
 }
 
+func (m *mockRepo) FindWorkflowStatusInProject(_ context.Context, _, statusID uuid.UUID) (*ent.WorkflowStatus, error) {
+	st, ok := m.statuses[statusID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	return st, nil
+}
+
 func (m *mockRepo) ListWorkflowTransitions(_ context.Context, _ uuid.UUID) ([]*ent.WorkflowTransition, error) {
 	var result []*ent.WorkflowTransition
 	for _, t := range m.transitions {
@@ -350,7 +358,7 @@ func (m *mockRepo) ListWorkflowTransitions(_ context.Context, _ uuid.UUID) ([]*e
 	return result, nil
 }
 
-func (m *mockRepo) CreateWorkflowTransition(_ context.Context, fromStatusID, toStatusID uuid.UUID) (*ent.WorkflowTransition, error) {
+func (m *mockRepo) CreateWorkflowTransition(_ context.Context, _, fromStatusID, toStatusID uuid.UUID) (*ent.WorkflowTransition, error) {
 	id := uuid.New()
 	t := &ent.WorkflowTransition{
 		ID:        id,
@@ -365,7 +373,7 @@ func (m *mockRepo) CreateWorkflowTransition(_ context.Context, fromStatusID, toS
 	return t, nil
 }
 
-func (m *mockRepo) DeleteWorkflowTransition(_ context.Context, transitionID uuid.UUID) error {
+func (m *mockRepo) DeleteWorkflowTransition(_ context.Context, _, transitionID uuid.UUID) error {
 	for key, t := range m.transitions {
 		if t.ID == transitionID {
 			delete(m.transitions, key)
@@ -563,6 +571,16 @@ func (m *mockRepo) DeleteLabel(_ context.Context, _, labelID uuid.UUID) error {
 	return nil
 }
 
+func (m *mockRepo) CountLabelsInProject(_ context.Context, _ uuid.UUID, labelIDs []uuid.UUID) (int, error) {
+	n := 0
+	for _, id := range labelIDs {
+		if _, ok := m.labels[id]; ok {
+			n++
+		}
+	}
+	return n, nil
+}
+
 func (m *mockRepo) CreateLabelGroup(_ context.Context, _ uuid.UUID, name string) (*ent.LabelGroup, error) {
 	id := uuid.New()
 	g := &ent.LabelGroup{
@@ -654,7 +672,7 @@ func (m *mockRepo) ListCustomFields(_ context.Context, _ uuid.UUID) ([]*ent.Cust
 	return result, nil
 }
 
-func (m *mockRepo) DeleteCustomField(_ context.Context, fieldID uuid.UUID) error {
+func (m *mockRepo) DeleteCustomField(_ context.Context, _, fieldID uuid.UUID) error {
 	delete(m.customFields, fieldID)
 	return nil
 }
@@ -758,6 +776,14 @@ func (m *mockRepo) DeleteIssueMessageLink(_ context.Context, linkID, issueID uui
 		}
 	}
 	return &ent.NotFoundError{}
+}
+
+func (m *mockRepo) FindChannelInProject(_ context.Context, _, channelID uuid.UUID) (*ent.Channel, error) {
+	return &ent.Channel{ID: channelID}, nil
+}
+
+func (m *mockRepo) IsChannelMember(_ context.Context, _, _ uuid.UUID) (bool, error) {
+	return true, nil
 }
 
 func (m *mockRepo) GetDB() *ent.Client {
@@ -1238,14 +1264,14 @@ func TestWorkflowTransitions_InvalidUUID(t *testing.T) {
 	svc, _ := newTestService()
 	ctx := context.Background()
 
-	_, err := svc.CreateWorkflowTransition(ctx, tracker.CreateWorkflowTransitionRequest{
+	_, err := svc.CreateWorkflowTransition(ctx, uuid.New(), tracker.CreateWorkflowTransitionRequest{
 		FromStatusID: "bad",
 		ToStatusID:   uuid.New().String(),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "from_status_id")
 
-	_, err = svc.CreateWorkflowTransition(ctx, tracker.CreateWorkflowTransitionRequest{
+	_, err = svc.CreateWorkflowTransition(ctx, uuid.New(), tracker.CreateWorkflowTransitionRequest{
 		FromStatusID: uuid.New().String(),
 		ToStatusID:   "bad",
 	})

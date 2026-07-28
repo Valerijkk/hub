@@ -123,5 +123,5 @@ func TestEntRepository_DeleteWorkflowStatus(t *testing.T) {
 	status, err := env.repo.CreateWorkflowStatus(env.ctx, env.projectID, "Done", "done", "#00FF00", 99)
 	require.NoError(t, err)
 
-	require.NoError(t, env.repo.DeleteWorkflowStatus(env.ctx, status.ID))
+	require.NoError(t, env.repo.DeleteWorkflowStatus(env.ctx, env.projectID, status.ID))
 }

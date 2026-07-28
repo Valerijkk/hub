@@ -16,7 +16,7 @@ type notFoundWorkflowStatusDeleteRepo struct {
 	mockRepo
 }
 
-func (r *notFoundWorkflowStatusDeleteRepo) DeleteWorkflowStatus(_ context.Context, _ uuid.UUID) error {
+func (r *notFoundWorkflowStatusDeleteRepo) DeleteWorkflowStatus(_ context.Context, _, _ uuid.UUID) error {
 	return &ent.NotFoundError{}
 }
 
@@ -24,7 +24,7 @@ type notFoundWorkflowTransitionDeleteRepo struct {
 	mockRepo
 }
 
-func (r *notFoundWorkflowTransitionDeleteRepo) DeleteWorkflowTransition(_ context.Context, _ uuid.UUID) error {
+func (r *notFoundWorkflowTransitionDeleteRepo) DeleteWorkflowTransition(_ context.Context, _, _ uuid.UUID) error {
 	return &ent.NotFoundError{}
 }
 
@@ -32,7 +32,7 @@ func (r *notFoundWorkflowTransitionDeleteRepo) DeleteWorkflowTransition(_ contex
 func TestUpdateWorkflowStatus_NotFound(t *testing.T) {
 	svc, _ := newTestService()
 	name := "Updated"
-	_, err := svc.UpdateWorkflowStatus(context.Background(), uuid.New(), tracker.CreateWorkflowStatusRequest{
+	_, err := svc.UpdateWorkflowStatus(context.Background(), uuid.New(), uuid.New(), tracker.CreateWorkflowStatusRequest{
 		Name: name, Category: "todo", Color: "#000000",
 	})
 	require.Error(t, err)
@@ -43,7 +43,7 @@ func TestUpdateWorkflowStatus_NotFound(t *testing.T) {
 func TestDeleteWorkflowStatus_NotFound(t *testing.T) {
 	repo := &notFoundWorkflowStatusDeleteRepo{mockRepo: *newMockRepo()}
 	svc := tracker.NewTrackerService(repo, nil)
-	err := svc.DeleteWorkflowStatus(context.Background(), uuid.New())
+	err := svc.DeleteWorkflowStatus(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }
@@ -52,7 +52,7 @@ func TestDeleteWorkflowStatus_NotFound(t *testing.T) {
 func TestDeleteWorkflowTransition_NotFound(t *testing.T) {
 	repo := &notFoundWorkflowTransitionDeleteRepo{mockRepo: *newMockRepo()}
 	svc := tracker.NewTrackerService(repo, nil)
-	err := svc.DeleteWorkflowTransition(context.Background(), uuid.New())
+	err := svc.DeleteWorkflowTransition(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }
@@ -60,7 +60,7 @@ func TestDeleteWorkflowTransition_NotFound(t *testing.T) {
 // TestCreateWorkflowTransition_InvalidFromStatusID проверяет отклонение при создание workflow transition некорректный from status id.
 func TestCreateWorkflowTransition_InvalidFromStatusID(t *testing.T) {
 	svc, _ := newTestService()
-	_, err := svc.CreateWorkflowTransition(context.Background(), tracker.CreateWorkflowTransitionRequest{
+	_, err := svc.CreateWorkflowTransition(context.Background(), uuid.New(), tracker.CreateWorkflowTransitionRequest{
 		FromStatusID: "bad",
 		ToStatusID:   uuid.New().String(),
 	})
@@ -71,7 +71,7 @@ func TestCreateWorkflowTransition_InvalidFromStatusID(t *testing.T) {
 // TestCreateWorkflowTransition_InvalidToStatusID проверяет отклонение при создание workflow transition некорректный to status id.
 func TestCreateWorkflowTransition_InvalidToStatusID(t *testing.T) {
 	svc, _ := newTestService()
-	_, err := svc.CreateWorkflowTransition(context.Background(), tracker.CreateWorkflowTransitionRequest{
+	_, err := svc.CreateWorkflowTransition(context.Background(), uuid.New(), tracker.CreateWorkflowTransitionRequest{
 		FromStatusID: uuid.New().String(),
 		ToStatusID:   "bad",
 	})

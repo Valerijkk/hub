@@ -35,9 +35,13 @@ func (r *EntRepository) CreateWorkflowStatus(ctx context.Context, projectID uuid
 	return create.Save(ctx)
 }
 
-// UpdateWorkflowStatus обновляет статус workflow (имя, цвет, порядок).
-func (r *EntRepository) UpdateWorkflowStatus(ctx context.Context, statusID uuid.UUID, name, color *string, sortOrder *int) (*ent.WorkflowStatus, error) {
-	update := r.client.WorkflowStatus.UpdateOneID(statusID)
+// UpdateWorkflowStatus обновляет статус workflow только внутри projectID (P1-BE-01).
+func (r *EntRepository) UpdateWorkflowStatus(ctx context.Context, projectID, statusID uuid.UUID, name, color *string, sortOrder *int) (*ent.WorkflowStatus, error) {
+	update := r.client.WorkflowStatus.Update().
+		Where(
+			workflowstatus.IDEQ(statusID),
+			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+		)
 	if name != nil {
 		update = update.SetName(*name)
 	}
@@ -47,12 +51,31 @@ func (r *EntRepository) UpdateWorkflowStatus(ctx context.Context, statusID uuid.
 	if sortOrder != nil {
 		update = update.SetSortOrder(*sortOrder)
 	}
-	return update.Save(ctx)
+	n, err := update.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if n == 0 {
+		return nil, &ent.NotFoundError{}
+	}
+	return r.client.WorkflowStatus.Get(ctx, statusID)
 }
 
-// DeleteWorkflowStatus удаляет статус workflow по ID.
-func (r *EntRepository) DeleteWorkflowStatus(ctx context.Context, statusID uuid.UUID) error {
-	return r.client.WorkflowStatus.DeleteOneID(statusID).Exec(ctx)
+// DeleteWorkflowStatus удаляет статус workflow только внутри projectID (P1-BE-01).
+func (r *EntRepository) DeleteWorkflowStatus(ctx context.Context, projectID, statusID uuid.UUID) error {
+	affected, err := r.client.WorkflowStatus.Delete().
+		Where(
+			workflowstatus.IDEQ(statusID),
+			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // FindDefaultStatus возвращает дефолтный статус workflow для проекта.
@@ -61,6 +84,16 @@ func (r *EntRepository) FindDefaultStatus(ctx context.Context, projectID uuid.UU
 		Where(
 			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
 			workflowstatus.IsDefaultEQ(true),
+		).
+		Only(ctx)
+}
+
+// FindWorkflowStatusInProject возвращает статус по ID только внутри projectID (P1-BE-03).
+func (r *EntRepository) FindWorkflowStatusInProject(ctx context.Context, projectID, statusID uuid.UUID) (*ent.WorkflowStatus, error) {
+	return r.client.WorkflowStatus.Query().
+		Where(
+			workflowstatus.IDEQ(statusID),
+			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
 		).
 		Only(ctx)
 }
@@ -78,17 +111,48 @@ func (r *EntRepository) ListWorkflowTransitions(ctx context.Context, projectID u
 		All(ctx)
 }
 
-// CreateWorkflowTransition создаёт новый разрешённый переход между двумя статусами.
-func (r *EntRepository) CreateWorkflowTransition(ctx context.Context, fromStatusID, toStatusID uuid.UUID) (*ent.WorkflowTransition, error) {
+// CreateWorkflowTransition создаёт переход; оба статуса должны ∈ projectID (P1-BE-01).
+func (r *EntRepository) CreateWorkflowTransition(ctx context.Context, projectID, fromStatusID, toStatusID uuid.UUID) (*ent.WorkflowTransition, error) {
+	q := r.client.WorkflowStatus.Query().
+		Where(
+			workflowstatus.IDIn(fromStatusID, toStatusID),
+			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+		)
+	count, err := q.Count(ctx)
+	if err != nil {
+		return nil, err
+	}
+	expected := 2
+	if fromStatusID == toStatusID {
+		expected = 1
+	}
+	if count != expected {
+		return nil, &ent.NotFoundError{}
+	}
+
 	return r.client.WorkflowTransition.Create().
 		SetFromStatusID(fromStatusID).
 		SetToStatusID(toStatusID).
 		Save(ctx)
 }
 
-// DeleteWorkflowTransition удаляет переход workflow по ID.
-func (r *EntRepository) DeleteWorkflowTransition(ctx context.Context, transitionID uuid.UUID) error {
-	return r.client.WorkflowTransition.DeleteOneID(transitionID).Exec(ctx)
+// DeleteWorkflowTransition удаляет переход только если from_status ∈ projectID (P1-BE-01).
+func (r *EntRepository) DeleteWorkflowTransition(ctx context.Context, projectID, transitionID uuid.UUID) error {
+	affected, err := r.client.WorkflowTransition.Delete().
+		Where(
+			workflowtransition.IDEQ(transitionID),
+			workflowtransition.HasFromStatusWith(
+				workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+			),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // FindTransition проверяет существование разрешённого перехода между двумя статусами.

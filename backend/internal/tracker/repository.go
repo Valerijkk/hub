@@ -50,18 +50,20 @@ type WorkflowRepository interface {
 	ListWorkflowStatuses(ctx context.Context, projectID uuid.UUID) ([]*ent.WorkflowStatus, error)
 	// CreateWorkflowStatus создаёт новый статус workflow в проекте.
 	CreateWorkflowStatus(ctx context.Context, projectID uuid.UUID, name, category, color string, sortOrder int) (*ent.WorkflowStatus, error)
-	// UpdateWorkflowStatus применяет частичное обновление статуса workflow.
-	UpdateWorkflowStatus(ctx context.Context, statusID uuid.UUID, name, color *string, sortOrder *int) (*ent.WorkflowStatus, error)
-	// DeleteWorkflowStatus удаляет статус workflow по ID.
-	DeleteWorkflowStatus(ctx context.Context, statusID uuid.UUID) error
+	// UpdateWorkflowStatus применяет частичное обновление статуса workflow в рамках проекта (P1-BE-01).
+	UpdateWorkflowStatus(ctx context.Context, projectID, statusID uuid.UUID, name, color *string, sortOrder *int) (*ent.WorkflowStatus, error)
+	// DeleteWorkflowStatus удаляет статус workflow по ID в рамках проекта (P1-BE-01).
+	DeleteWorkflowStatus(ctx context.Context, projectID, statusID uuid.UUID) error
 	// FindDefaultStatus возвращает статус workflow по умолчанию для проекта.
 	FindDefaultStatus(ctx context.Context, projectID uuid.UUID) (*ent.WorkflowStatus, error)
+	// FindWorkflowStatusInProject возвращает статус по ID только внутри projectID (P1-BE-03).
+	FindWorkflowStatusInProject(ctx context.Context, projectID, statusID uuid.UUID) (*ent.WorkflowStatus, error)
 	// ListWorkflowTransitions возвращает все разрешённые переходы workflow проекта.
 	ListWorkflowTransitions(ctx context.Context, projectID uuid.UUID) ([]*ent.WorkflowTransition, error)
-	// CreateWorkflowTransition создаёт новый разрешённый переход между статусами.
-	CreateWorkflowTransition(ctx context.Context, fromStatusID, toStatusID uuid.UUID) (*ent.WorkflowTransition, error)
-	// DeleteWorkflowTransition удаляет переход workflow по ID.
-	DeleteWorkflowTransition(ctx context.Context, transitionID uuid.UUID) error
+	// CreateWorkflowTransition создаёт переход; оба статуса должны ∈ projectID (P1-BE-01).
+	CreateWorkflowTransition(ctx context.Context, projectID, fromStatusID, toStatusID uuid.UUID) (*ent.WorkflowTransition, error)
+	// DeleteWorkflowTransition удаляет переход workflow в рамках проекта (P1-BE-01).
+	DeleteWorkflowTransition(ctx context.Context, projectID, transitionID uuid.UUID) error
 	// FindTransition проверяет, разрешён ли переход между двумя статусами.
 	FindTransition(ctx context.Context, fromStatusID, toStatusID uuid.UUID) (*ent.WorkflowTransition, error)
 	// SeedDefaultWorkflow создаёт стандартные статусы и переходы workflow для нового проекта.
@@ -111,6 +113,8 @@ type LabelRepository interface {
 	ListLabels(ctx context.Context, projectID uuid.UUID) ([]*ent.Label, error)
 	// DeleteLabel удаляет метку по ID в рамках проекта (Block F IDOR).
 	DeleteLabel(ctx context.Context, projectID, labelID uuid.UUID) error
+	// CountLabelsInProject считает, сколько из labelIDs принадлежат проекту (P1-BE-03).
+	CountLabelsInProject(ctx context.Context, projectID uuid.UUID, labelIDs []uuid.UUID) (int, error)
 	// CreateLabelGroup создаёт новую группу меток в проекте.
 	CreateLabelGroup(ctx context.Context, projectID uuid.UUID, name string) (*ent.LabelGroup, error)
 	// ListLabelGroups возвращает все группы меток проекта с вложенными метками.
@@ -133,8 +137,8 @@ type CustomFieldRepository interface {
 	CreateCustomField(ctx context.Context, projectID uuid.UUID, input CreateCustomFieldInput) (*ent.CustomFieldDefinition, error)
 	// ListCustomFields возвращает все определения кастомных полей проекта.
 	ListCustomFields(ctx context.Context, projectID uuid.UUID) ([]*ent.CustomFieldDefinition, error)
-	// DeleteCustomField удаляет определение кастомного поля по ID.
-	DeleteCustomField(ctx context.Context, fieldID uuid.UUID) error
+	// DeleteCustomField удаляет определение кастомного поля по ID в рамках проекта (P1-BE-02).
+	DeleteCustomField(ctx context.Context, projectID, fieldID uuid.UUID) error
 }
 
 // IssueMessageLinkRepository управляет связями задача↔тред мессенджера (PROD-03).
@@ -144,6 +148,10 @@ type IssueMessageLinkRepository interface {
 	ListIssueMessageLinksByThread(ctx context.Context, channelID uuid.UUID, messageID string) ([]*ent.IssueMessageLink, error)
 	FindIssueMessageLink(ctx context.Context, linkID uuid.UUID) (*ent.IssueMessageLink, error)
 	DeleteIssueMessageLink(ctx context.Context, linkID, issueID uuid.UUID) error
+	// FindChannelInProject возвращает канал только если channel.project_id == projectID (P1-BE-04).
+	FindChannelInProject(ctx context.Context, projectID, channelID uuid.UUID) (*ent.Channel, error)
+	// IsChannelMember проверяет membership пользователя в канале (P1-BE-04).
+	IsChannelMember(ctx context.Context, channelID, userID uuid.UUID) (bool, error)
 }
 
 // AutomationRepository управляет правилами workflow-автоматизации (PROD-01).

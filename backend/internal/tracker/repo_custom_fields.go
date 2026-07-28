@@ -36,7 +36,19 @@ func (r *EntRepository) ListCustomFields(ctx context.Context, projectID uuid.UUI
 		All(ctx)
 }
 
-// DeleteCustomField удаляет определение кастомного поля по ID.
-func (r *EntRepository) DeleteCustomField(ctx context.Context, fieldID uuid.UUID) error {
-	return r.client.CustomFieldDefinition.DeleteOneID(fieldID).Exec(ctx)
+// DeleteCustomField удаляет определение кастомного поля только внутри projectID (P1-BE-02).
+func (r *EntRepository) DeleteCustomField(ctx context.Context, projectID, fieldID uuid.UUID) error {
+	affected, err := r.client.CustomFieldDefinition.Delete().
+		Where(
+			customfielddefinition.IDEQ(fieldID),
+			customfielddefinition.HasProjectWith(project.IDEQ(projectID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }

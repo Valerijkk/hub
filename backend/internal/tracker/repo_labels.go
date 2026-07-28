@@ -53,6 +53,19 @@ func (r *EntRepository) DeleteLabel(ctx context.Context, projectID, labelID uuid
 	return nil
 }
 
+// CountLabelsInProject считает, сколько из labelIDs принадлежат проекту (P1-BE-03).
+func (r *EntRepository) CountLabelsInProject(ctx context.Context, projectID uuid.UUID, labelIDs []uuid.UUID) (int, error) {
+	if len(labelIDs) == 0 {
+		return 0, nil
+	}
+	return r.client.Label.Query().
+		Where(
+			label.IDIn(labelIDs...),
+			label.HasProjectWith(project.IDEQ(projectID)),
+		).
+		Count(ctx)
+}
+
 // CreateLabelGroup создаёт новую группу меток в проекте.
 func (r *EntRepository) CreateLabelGroup(ctx context.Context, projectID uuid.UUID, name string) (*ent.LabelGroup, error) {
 	return r.client.LabelGroup.Create().

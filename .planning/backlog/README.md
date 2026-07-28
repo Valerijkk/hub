@@ -18,7 +18,7 @@
 | [TASK-010](TASK-010-promote-to-issue-rbac.md) | promote-to-issue без PermTaskCreate | **P0** | На проверке | be1 | W3-A2-001 |
 | [TASK-011](TASK-011-webhook-event-match.md) | webhook UI events ≠ NATS subjects | **P0** | На проверке | be1 | W4-A5-001 |
 | [TASK-012](TASK-012-webhook-project-scope.md) | webhook dispatch без project-scope | **P0** | На проверке | be1 | W4-A5-002 |
-| [TASK-013](TASK-013-tracker-project-scope-idor.md) | Tracker IDOR workflow/fields/refs | P1 | Открыта | be1 | W12 P1-BE-01..04 |
+| [TASK-013](TASK-013-tracker-project-scope-idor.md) | Tracker IDOR workflow/fields/refs | P1 | На проверке | be1 | W12 P1-BE-01..04 |
 | [TASK-014](TASK-014-project-acl-sprint-tx.md) | Project ACL + sprint atomic | P1 | Открыта | be1 | W12 P1-BE-05..09 |
 | [TASK-015](TASK-015-tms-project-scope-idor-refs.md) | TMS suite/env IDOR + FK | P1 | Открыта | be2 | W12 P1-BE-10..12 |
 | [TASK-016](TASK-016-tms-import-limits-steps.md) | TMS import limits + steps | P1 | Открыта | be2 | W12 P1-BE-13..14 |

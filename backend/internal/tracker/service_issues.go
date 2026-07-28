@@ -74,6 +74,33 @@ func (s *TrackerService) CreateIssue(ctx context.Context, projectID, userID uuid
 			input.Labels = labelIDs
 		}
 
+		// P1-BE-03: StatusID / ParentID / Labels должны принадлежать тому же projectID.
+		if input.StatusID != nil {
+			if _, err := s.repo.FindWorkflowStatusInProject(ctx, projectID, *input.StatusID); err != nil {
+				if ent.IsNotFound(err) {
+					return nil, apperrors.NewNotFound("статус не найден")
+				}
+				return nil, apperrors.NewInternal("ошибка проверки статуса")
+			}
+		}
+		if input.ParentID != nil {
+			if _, err := s.repo.FindIssueInProject(ctx, projectID, *input.ParentID); err != nil {
+				if ent.IsNotFound(err) {
+					return nil, apperrors.NewNotFound("родительская задача не найдена")
+				}
+				return nil, apperrors.NewInternal("ошибка проверки родителя")
+			}
+		}
+		if len(input.Labels) > 0 {
+			n, err := s.repo.CountLabelsInProject(ctx, projectID, input.Labels)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка проверки меток")
+			}
+			if n != len(input.Labels) {
+				return nil, apperrors.NewBadRequest("метка не принадлежит проекту")
+			}
+		}
+
 		created, err := s.repo.CreateIssue(ctx, projectID, input)
 		if err != nil {
 			return nil, err

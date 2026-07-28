@@ -1,6 +1,6 @@
 ﻿# TASK-013 — Tracker: IDOR workflow/custom-field/cross-project refs
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
 > Источник: TASK-008 W12 · Classes: P1-BE-01..04 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
 ## [OUTCOME]
