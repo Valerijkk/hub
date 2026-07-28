@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (fe2 · TASK-083 trash hard-delete API)
+
+- **Сделано:** «Удалить навсегда» → `DELETE /projects/:id/permanent` (`permanentDeleteProject` + `hardDeleteMutation`); BE route `PermanentDeleteProject`; fail → toast.error без success.
+- **Тесты:** vitest `trash-hard-delete-p1` (+ регрессия `trash-webhooks-p1`); mutation: stub reject → нет success toast.
+- **Docs:** `docs/wiki/API.md` (hard-delete), backlog TASK-083 → Исправлена.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.

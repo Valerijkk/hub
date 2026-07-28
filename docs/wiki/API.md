@@ -102,6 +102,7 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 | POST | `/projects/:projectId/unarchive` | Разархивировать проект |
 | DELETE | `/projects/:projectId` | Удалить проект (в корзину) |
 | POST | `/projects/:projectId/restore` | Восстановить из корзины |
+| DELETE | `/projects/:projectId/permanent` | Удалить проект навсегда (hard-delete из корзины) |
 
 ### Участники
 
