@@ -141,23 +141,20 @@ func (s *RBACService) DeleteCustomRole(ctx context.Context, projectID, roleID uu
 		return ErrRoleProjectMismatch
 	}
 
-	// P1-BE-33 / W6-A3-002: clear + invalidate с проверкой ошибок — иначе
-	// dangling custom_role edge и stale elevated cache после удаления роли.
+	// A2W6-A3-002: clear members + delete role атомарно; invalidate только после commit.
+	// Иначе partial clear + fail delete → dangling edges / inconsistency.
 	memberIDs, err := s.repo.ListRoleMemberIDs(ctx, roleID)
 	if err != nil {
 		return fmt.Errorf("list role members before delete: %w", err)
 	}
-	for _, id := range memberIDs {
-		if clearErr := s.repo.ClearMemberCustomRoleByID(ctx, id); clearErr != nil {
-			return fmt.Errorf("clear member custom role %s: %w", id, clearErr)
-		}
+	if err := s.repo.ClearMembersAndDeleteRole(ctx, roleID, memberIDs); err != nil {
+		return err
 	}
 
 	if invErr := s.cache.InvalidateProject(ctx, projectID.String()); invErr != nil {
-		return fmt.Errorf("invalidate project cache before delete role: %w", invErr)
+		return fmt.Errorf("invalidate project cache after delete role: %w", invErr)
 	}
-
-	return s.repo.DeleteRole(ctx, roleID)
+	return nil
 }
 
 // AssignCustomRole назначает кастомную роль участнику проекта.
@@ -211,7 +208,13 @@ func (s *RBACService) ClearCustomRole(ctx context.Context, projectID, userID, ro
 		return err
 	}
 
-	return s.cache.Invalidate(ctx, userID.String(), projectID.String())
+	// A2W6-A3-003: demotion в БД уже выполнен — не отдаём 500 на cache-only fail
+	// (иначе клиент думает, что unassign провалился, а роль уже снята).
+	// Best-effort: Invalidate → InvalidateProject при ошибке точечного ключа.
+	if invErr := s.cache.Invalidate(ctx, userID.String(), projectID.String()); invErr != nil {
+		_ = s.cache.InvalidateProject(ctx, projectID.String())
+	}
+	return nil
 }
 
 // permissionsFromNames конвертирует список имён разрешений в битовую маску.
@@ -237,12 +240,11 @@ func permissionNames(perm Permission) []string {
 }
 
 // validatePermissionNames отвергает запрос, в котором есть имя разрешения,
-// не зарегистрированное в реестре. Возвращает ошибку с информативным сообщением
-// — handler-слой должен превратить её в 400 Bad Request.
+// не зарегистрированное в реестре. Возвращает ErrUnknownPermission (handler → 400).
 func validatePermissionNames(names []string) error {
 	for _, n := range names {
 		if !ValidPermissionName(n) {
-			return fmt.Errorf("unknown permission name: %s", n)
+			return fmt.Errorf("%w: %s", ErrUnknownPermission, n)
 		}
 	}
 	return nil

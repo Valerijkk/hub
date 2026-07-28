@@ -11,17 +11,16 @@ import (
 	"github.com/valerii/hub/backend/internal/auth"
 )
 
-// RequireAuth возвращает middleware для валидации JWT-токенов и сохранения userID в Locals.
-// Детали валидации JWT (метод подписи, парсинг claims) реализованы в модуле auth.
-// Извлекает токен из заголовка Authorization и устанавливает "userID" в Locals.
-func RequireAuth() fiber.Handler {
+// CaptureBearerToken извлекает Bearer-токен из Authorization в Locals("token").
+// JWT НЕ валидирует и userID НЕ ставит — это делает auth.RequireAuth.
+// Не использовать как standalone auth: любой непустой Bearer пройдёт дальше (A2W6-A3-004).
+func CaptureBearerToken() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		authHeader := utils.CopyString(c.Get("Authorization"))
 		if authHeader == "" {
 			return fiber.NewError(fiber.StatusUnauthorized, "missing authorization header")
 		}
 
-		// Extract Bearer token — извлекаем Bearer-токен из Authorization.
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid authorization format")
@@ -32,14 +31,15 @@ func RequireAuth() fiber.Handler {
 			return fiber.NewError(fiber.StatusUnauthorized, "empty token")
 		}
 
-		// JWT валидация выполняется в auth.RequireAuth middleware.
-		// Здесь сохраняем токен для RBAC-проверок.
 		c.Locals("token", token)
-
-		// userID в Locals выставляет auth.RequireAuth; здесь только token для цепочки middleware.
-
 		return c.Next()
 	}
+}
+
+// RequireAuth — устаревший алиас CaptureBearerToken (misnomer: JWT не проверяется).
+// Deprecated: используйте CaptureBearerToken или auth.RequireAuth для реальной auth.
+func RequireAuth() fiber.Handler {
+	return CaptureBearerToken()
 }
 
 // RequireSystemRole возвращает middleware, проверяющий системную роль пользователя.

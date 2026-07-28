@@ -65,12 +65,10 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (be1 · TASK-114 Audit/GDPR residual)
+## Session note — 2026-07-28 (be2 · TASK-115 RBAC permission middleware hygiene)
 
-- **Закрыто 14 ID:** A2W6-A4-002..006/008 + A2W6-A5-001/003..009 (A5-002 / A4-001/007 → TASK-090).
-- **Код:** CheckLimit/Update fail-closed; GDPR `WithTx` rollback; RetentionStore; middleware recover; founder godoc.
-- **Тесты:** `go test -tags hubtest -race -count=1 ./testframework/audit/` PASS (~3.3s).
-- **Ветка:** `fix/audit/task-114-gdpr-residual` (worktree).
+- A2W6-A3-001..005 FIXED: unknown perm→400; Delete clear+delete Ent Tx; ClearCustomRole cache-fail≠500; `CaptureBearerToken` + extract-only tests.
+- Тесты: `go test -tags hubtest -race ./testframework/rbac/` PASS; статус README «Исправлена».
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
