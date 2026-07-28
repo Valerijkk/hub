@@ -228,6 +228,7 @@ func (s *ProjectService) UnarchiveProject(ctx context.Context, projectID uuid.UU
 
 // DeleteProject выполняет мягкое удаление проекта: статус = deleted, deleted_at = now.
 // Также удаляет кросс-проектные связи задач и уведомляет исполнителей.
+// A2W1-A5-001: cleanup + soft-delete атомарны (tx) и fail-closed.
 func (s *ProjectService) DeleteProject(ctx context.Context, projectID uuid.UUID) error {
 	p, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
@@ -237,56 +238,27 @@ func (s *ProjectService) DeleteProject(ctx context.Context, projectID uuid.UUID)
 		return apperrors.NewInternal("failed to find project")
 	}
 
-	// Удаляем кросс-проектные связи до soft-delete.
-	s.cleanupCrossProjectLinks(ctx, projectID, p.Name)
-
-	_, err = s.repo.UpdateStatus(ctx, projectID, project.StatusDeleted, true)
+	outgoing, incoming, err := s.repo.SoftDeleteWithCrossLinkCleanup(ctx, projectID)
 	if err != nil {
+		slog.ErrorContext(ctx, "delete project: soft-delete with link cleanup failed",
+			"project_id", projectID, "error", err)
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("project not found")
 		}
 		return apperrors.NewInternal("failed to delete project")
 	}
-	return nil
-}
 
-// cleanupCrossProjectLinks удаляет связи задач, где одна сторона принадлежит
-// удаляемому проекту, а другая — другому проекту. Отправляет NATS-уведомление
-// исполнителю задачи из другого проекта.
-func (s *ProjectService) cleanupCrossProjectLinks(ctx context.Context, projectID uuid.UUID, projectName string) {
-	// Связи, где source принадлежит этому проекту, а target — другому.
-	outgoing, err := s.repo.ListOutgoingCrossProjectLinks(ctx, projectID)
-	if err != nil {
-		slog.Error("ошибка поиска исходящих кросс-проектных связей", "error", err)
-	}
-
-	// Связи, где target принадлежит этому проекту, а source — другому.
-	incoming, err := s.repo.ListIncomingCrossProjectLinks(ctx, projectID)
-	if err != nil {
-		slog.Error("ошибка поиска входящих кросс-проектных связей", "error", err)
-	}
-
-	// Обрабатываем исходящие: уведомляем assignee target-задачи.
 	for _, link := range outgoing {
-		if dErr := s.repo.DeleteIssueLink(ctx, link.ID); dErr != nil {
-			slog.Error("ошибка удаления кросс-проектной связи", "link_id", link.ID, "error", dErr)
-			continue
-		}
 		if link.Edges.Source != nil && link.Edges.Target != nil {
-			s.notifyLinkDeleted(ctx, link.Edges.Target, link.Edges.Source.IssueKey, projectName)
+			s.notifyLinkDeleted(ctx, link.Edges.Target, link.Edges.Source.IssueKey, p.Name)
 		}
 	}
-
-	// Обрабатываем входящие: уведомляем assignee source-задачи.
 	for _, link := range incoming {
-		if dErr := s.repo.DeleteIssueLink(ctx, link.ID); dErr != nil {
-			slog.Error("ошибка удаления кросс-проектной связи", "link_id", link.ID, "error", dErr)
-			continue
-		}
 		if link.Edges.Target != nil && link.Edges.Source != nil {
-			s.notifyLinkDeleted(ctx, link.Edges.Source, link.Edges.Target.IssueKey, projectName)
+			s.notifyLinkDeleted(ctx, link.Edges.Source, link.Edges.Target.IssueKey, p.Name)
 		}
 	}
+	return nil
 }
 
 // notifyLinkDeleted отправляет NATS-уведомление исполнителю задачи о том,

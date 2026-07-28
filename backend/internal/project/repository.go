@@ -72,6 +72,9 @@ type Repository interface {
 	ListIncomingCrossProjectLinks(ctx context.Context, projectID uuid.UUID) ([]*ent.IssueLink, error)
 	// DeleteIssueLink удаляет связь между задачами по ID.
 	DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error
+	// SoftDeleteWithCrossLinkCleanup атомарно удаляет кросс-проектные связи
+	// и soft-delete'ит проект (A2W1-A5-001). Возвращает удалённые связи для уведомлений.
+	SoftDeleteWithCrossLinkCleanup(ctx context.Context, projectID uuid.UUID) (outgoing, incoming []*ent.IssueLink, err error)
 
 	// Операции с шаблонами проектов (используются в TemplateService)
 	ListTemplates(ctx context.Context) ([]*ent.ProjectTemplate, error)
@@ -520,6 +523,69 @@ func (r *EntRepository) ListIncomingCrossProjectLinks(ctx context.Context, proje
 // DeleteIssueLink удаляет связь между задачами по ID.
 func (r *EntRepository) DeleteIssueLink(ctx context.Context, linkID uuid.UUID) error {
 	return r.client.IssueLink.DeleteOneID(linkID).Exec(ctx)
+}
+
+// SoftDeleteWithCrossLinkCleanup атомарно удаляет кросс-проектные связи и
+// soft-delete'ит проект в одной Ent-транзакции (A2W1-A5-001).
+func (r *EntRepository) SoftDeleteWithCrossLinkCleanup(ctx context.Context, projectID uuid.UUID) (outgoing, incoming []*ent.IssueLink, err error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("begin soft-delete project tx: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	outgoing, err = tx.IssueLink.Query().
+		Where(
+			issuelink.HasSourceWith(issue.HasProjectWith(project.IDEQ(projectID))),
+			issuelink.HasTargetWith(issue.HasProjectWith(project.IDNEQ(projectID))),
+		).
+		WithSource().
+		WithTarget(func(q *ent.IssueQuery) { q.WithAssignee() }).
+		All(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("list outgoing cross-project links: %w", err)
+	}
+
+	incoming, err = tx.IssueLink.Query().
+		Where(
+			issuelink.HasTargetWith(issue.HasProjectWith(project.IDEQ(projectID))),
+			issuelink.HasSourceWith(issue.HasProjectWith(project.IDNEQ(projectID))),
+		).
+		WithTarget().
+		WithSource(func(q *ent.IssueQuery) { q.WithAssignee() }).
+		All(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("list incoming cross-project links: %w", err)
+	}
+
+	for _, link := range outgoing {
+		if err = tx.IssueLink.DeleteOneID(link.ID).Exec(ctx); err != nil {
+			return nil, nil, fmt.Errorf("delete outgoing cross-project link %s: %w", link.ID, err)
+		}
+	}
+	for _, link := range incoming {
+		if err = tx.IssueLink.DeleteOneID(link.ID).Exec(ctx); err != nil {
+			return nil, nil, fmt.Errorf("delete incoming cross-project link %s: %w", link.ID, err)
+		}
+	}
+
+	if _, err = tx.Project.UpdateOneID(projectID).
+		SetStatus(project.StatusDeleted).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx); err != nil {
+		return nil, nil, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, nil, fmt.Errorf("commit soft-delete project tx: %w", err)
+	}
+	committed = true
+	return outgoing, incoming, nil
 }
 
 // ListTemplates возвращает все шаблоны проектов, упорядоченные по дате создания.
