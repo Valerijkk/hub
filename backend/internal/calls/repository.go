@@ -242,6 +242,51 @@ func (r *EntRepository) IsChannelMember(ctx context.Context, channelID, userID u
 		Exist(ctx)
 }
 
+// ListChannelMemberIDs возвращает ID участников канала (для conflict mapping).
+func (r *EntRepository) ListChannelMemberIDs(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
+	members, err := r.db.ChannelMember.Query().
+		Where(
+			channelmember.ChannelID(channelID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]uuid.UUID, len(members))
+	for i, m := range members {
+		ids[i] = m.UserID
+	}
+	return ids, nil
+}
+
+// ShareActiveChannel — true, если a и b состоят в хотя бы одном общем активном канале.
+func (r *EntRepository) ShareActiveChannel(ctx context.Context, a, b uuid.UUID) (bool, error) {
+	aChannels, err := r.db.ChannelMember.Query().
+		Where(
+			channelmember.UserID(a),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
+		All(ctx)
+	if err != nil {
+		return false, err
+	}
+	if len(aChannels) == 0 {
+		return false, nil
+	}
+	channelIDs := make([]uuid.UUID, len(aChannels))
+	for i, m := range aChannels {
+		channelIDs[i] = m.ChannelID
+	}
+	return r.db.ChannelMember.Query().
+		Where(
+			channelmember.UserID(b),
+			channelmember.ChannelIDIn(channelIDs...),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
+		Exist(ctx)
+}
+
 // GetChannelMemberRole возвращает роль пользователя в канале ("", если не состоит).
 // HI-03: EndCall разрешён владельцу/админу канала; этот метод инкапсулирует
 // чтение роли без раскрытия Ent наружу.
@@ -370,7 +415,8 @@ func (r *EntRepository) GetScheduledCall(ctx context.Context, id uuid.UUID) (*en
 }
 
 // CreateScheduledCall создаёт запланированный звонок.
-func (r *EntRepository) CreateScheduledCall(ctx context.Context, title, description string, scheduledAt time.Time, rruleStr string, channelID, projectID, userID uuid.UUID) (*ent.ScheduledCall, error) {
+// W3-A5-010: персистит DurationMinutes, ReminderMinutes, ParticipantIDs.
+func (r *EntRepository) CreateScheduledCall(ctx context.Context, title, description string, scheduledAt time.Time, rruleStr string, channelID, projectID, userID uuid.UUID, durationMinutes int, reminderMinutes *int, participantIDs []uuid.UUID) (*ent.ScheduledCall, error) {
 	q := r.db.ScheduledCall.Create().
 		SetTitle(title).
 		SetScheduledAt(scheduledAt).
@@ -384,8 +430,25 @@ func (r *EntRepository) CreateScheduledCall(ctx context.Context, title, descript
 	if rruleStr != "" {
 		q = q.SetRrule(rruleStr)
 	}
+	if durationMinutes > 0 {
+		q = q.SetDurationMinutes(durationMinutes)
+	}
+	if reminderMinutes != nil {
+		q = q.SetReminderMinutes(*reminderMinutes)
+	}
+	if len(participantIDs) > 0 {
+		q = q.AddParticipantIDs(participantIDs...)
+	}
 
-	return q.Save(ctx)
+	sc, err := q.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Reload with participants for response DTO.
+	return r.db.ScheduledCall.Query().
+		Where(scheduledcall.IDEQ(sc.ID)).
+		WithParticipants().
+		Only(ctx)
 }
 
 // ListScheduledCalls возвращает активные запланированные звонки канала.
@@ -476,16 +539,16 @@ func (r *EntRepository) FindConflictingCalls(ctx context.Context, participantIDs
 		channelIDs = append(channelIDs, m.ChannelID)
 	}
 
-	// Ищем активные запланированные звонки в этих каналах, пересекающиеся с окном
-	// Пересечение: call_start < windowEnd AND call_start + duration > windowStart
-	// Поскольку у нас нет поля длительности в БД, считаем DEFAULT_DURATION = 60 мин
+	// Ищем активные запланированные звонки в этих каналах, пересекающиеся с окном.
+	// Нижняя граница: call_start + duration > windowStart ≈ call_start > windowStart - maxDuration.
+	// Берём запас 24h; точное пересечение — в CheckConflicts по DurationMinutes.
 	return r.db.ScheduledCall.Query().
 		Where(
 			scheduledcall.IsActive(true),
 			scheduledcall.DeletedAtIsNil(),
 			scheduledcall.ChannelIDIn(channelIDs...),
 			scheduledcall.ScheduledAtLT(windowEnd),
-			scheduledcall.ScheduledAtGTE(windowStart.Add(-60*time.Minute)),
+			scheduledcall.ScheduledAtGTE(windowStart.Add(-24*time.Hour)),
 		).
 		All(ctx)
 }

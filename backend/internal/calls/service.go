@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -83,7 +84,8 @@ func (s *CallService) CreateInstantCall(ctx context.Context, userID uuid.UUID, u
 	if err != nil {
 		return nil, err
 	}
-	inviteCode := uuid.New().String()[:8]
+	// W3-A5-008: 12 hex (~48 bit) вместо 8 (~32 bit); MaxLen(12) в schema Call.invite_code.
+	inviteCode := strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
 	if title == "" {
 		title = userName + " — быстрый звонок"
 	}
@@ -118,6 +120,27 @@ func (s *CallService) JoinByInviteCode(ctx context.Context, code string, userID 
 	resp := toCallResponse(callEnt, token)
 	resp.InviteCode = code
 	return resp, nil
+}
+
+// GuestJoin — гостевой вход без аккаунта (W3-A5-007: слой Service, не handler→repo).
+func (s *CallService) GuestJoin(ctx context.Context, inviteCode, guestName string) (*GuestJoinResponse, error) {
+	callEnt, err := s.repo.GetCallByInviteCode(ctx, inviteCode)
+	if err != nil {
+		return nil, ErrCallNotFound
+	}
+	if callEnt.Status != "active" {
+		return nil, ErrCallNotFound
+	}
+	_, token, err := s.room.GenerateGuestToken(callEnt.RoomName, guestName)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось сгенерировать гостевой токен: %w", err)
+	}
+	return &GuestJoinResponse{
+		ID:         callEnt.ID,
+		RoomName:   callEnt.RoomName,
+		Token:      token,
+		LivekitURL: s.room.cfg.URL,
+	}, nil
 }
 
 // JoinCall присоединяет к существующему звонку. HI-03: канальные — членство в канале;

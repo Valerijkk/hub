@@ -208,7 +208,7 @@ func TestScheduledCallService_CreateScheduledCall_Validation(t *testing.T) {
 
 func TestScheduledCallService_CheckConflicts_NoParticipants(t *testing.T) {
 	svc := calls.ExportNewScheduledCallServiceForTest(calls.NewEntRepository(newScheduledTestClient(t)))
-	resp, err := svc.CheckConflicts(context.Background(), time.Now(), 30, nil)
+	resp, err := svc.CheckConflicts(context.Background(), uuid.Nil, time.Now(), 30, nil)
 	require.NoError(t, err)
 	assert.False(t, resp.HasConflict)
 	assert.Empty(t, resp.Conflicts)

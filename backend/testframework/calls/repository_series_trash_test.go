@@ -23,7 +23,7 @@ func TestRepository_DeleteScheduledCall_SoftDeletesSeries(t *testing.T) {
 	require.NoError(t, err)
 
 	at := time.Now().UTC().Add(48 * time.Hour)
-	sc, err := f.repo.CreateScheduledCall(ctx, "Weekly sync", "desc", at, "FREQ=WEEKLY;COUNT=4", f.channel.ID, proj.ID, f.owner.ID)
+	sc, err := f.repo.CreateScheduledCall(ctx, "Weekly sync", "desc", at, "FREQ=WEEKLY;COUNT=4", f.channel.ID, proj.ID, f.owner.ID, 0, nil, nil)
 	require.NoError(t, err)
 
 	before, err := f.repo.ListScheduledCalls(ctx, f.channel.ID)

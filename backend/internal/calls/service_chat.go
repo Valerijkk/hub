@@ -78,6 +78,11 @@ func (s *CallChatService) SendMessage(ctx context.Context, callID, userID, userN
 		return nil, err
 	}
 
+	// W3-A5-006 / P2-BE-15: лимит 2000 рун до ветвления ephemeral/persist.
+	if len([]rune(text)) > 2000 {
+		return nil, fmt.Errorf("текст сообщения превышает 2000 символов")
+	}
+
 	var msg *CallChatMessage
 
 	if ephemeral {

@@ -26,7 +26,7 @@ func TestUpdateScheduledCall_SoftDeleted_W3A5011(t *testing.T) {
 	require.NoError(t, err)
 
 	at := time.Now().UTC().Add(48 * time.Hour)
-	sc, err := f.repo.CreateScheduledCall(ctx, "Standup", "", at, "", f.channel.ID, proj.ID, f.owner.ID)
+	sc, err := f.repo.CreateScheduledCall(ctx, "Standup", "", at, "", f.channel.ID, proj.ID, f.owner.ID, 0, nil, nil)
 	require.NoError(t, err)
 	require.NoError(t, f.repo.DeleteScheduledCall(ctx, sc.ID))
 

@@ -135,3 +135,10 @@ func (r *CallRoomService) GenerateToken(roomName, userID, userName string) (stri
 
 	return at.ToJWT()
 }
+
+// GenerateGuestToken выдаёт JWT гостю. Identity — полный UUID (W3-A5-008 entropy).
+func (r *CallRoomService) GenerateGuestToken(roomName, guestName string) (identity, token string, err error) {
+	identity = "guest-" + uuid.New().String()
+	token, err = r.GenerateToken(roomName, identity, guestName)
+	return identity, token, err
+}

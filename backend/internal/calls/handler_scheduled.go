@@ -187,6 +187,11 @@ func (h *Handler) DeleteScheduledCall(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/calls/conflicts [get]
 func (h *Handler) CheckConflicts(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+
 	timeStr := c.Query("time")
 	if timeStr == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "параметр time обязателен")
@@ -221,8 +226,11 @@ func (h *Handler) CheckConflicts(c fiber.Ctx) error {
 		return c.JSON(ConflictResponse{HasConflict: false, Conflicts: []ConflictDetail{}})
 	}
 
-	resp, err := h.scheduledSvc.CheckConflicts(c.Context(), requestedTime, duration, participantIDs)
+	resp, err := h.scheduledSvc.CheckConflicts(c.Context(), userID, requestedTime, duration, participantIDs)
 	if err != nil {
+		if errors.Is(err, ErrCallForbidden) {
+			return fiber.NewError(fiber.StatusForbidden, "нет доступа к календарю участника")
+		}
 		slog.Error("ошибка проверки конфликтов", "error", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось проверить конфликты")
 	}

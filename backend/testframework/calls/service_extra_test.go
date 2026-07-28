@@ -46,7 +46,7 @@ func TestScheduledCallService_CheckConflicts_WithOverlap(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	resp, err := scheduled.CheckConflicts(ctx, at.Add(15*time.Minute), 60, []uuid.UUID{f.owner.ID})
+	resp, err := scheduled.CheckConflicts(ctx, f.owner.ID, at.Add(15*time.Minute), 60, []uuid.UUID{f.owner.ID})
 	require.NoError(t, err)
 	assert.True(t, resp.HasConflict)
 	assert.NotEmpty(t, resp.Conflicts)
@@ -131,7 +131,7 @@ func TestRepository_FindConflictingCalls(t *testing.T) {
 	require.NoError(t, err)
 
 	at := time.Now().UTC().Add(2 * time.Hour)
-	_, err = f.repo.CreateScheduledCall(ctx, "Standup", "", at, "", f.channel.ID, proj.ID, f.owner.ID)
+	_, err = f.repo.CreateScheduledCall(ctx, "Standup", "", at, "", f.channel.ID, proj.ID, f.owner.ID, 0, nil, nil)
 	require.NoError(t, err)
 
 	windowStart := at.Add(-30 * time.Minute)

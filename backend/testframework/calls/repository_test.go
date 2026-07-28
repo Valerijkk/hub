@@ -147,7 +147,7 @@ func TestRepository_UpdateScheduledCallTime(t *testing.T) {
 	require.NoError(t, err)
 
 	at := time.Now().UTC().Add(2 * time.Hour)
-	scheduled, err := f.repo.CreateScheduledCall(ctx, "Daily", "", at, "", f.channel.ID, proj.ID, f.owner.ID)
+	scheduled, err := f.repo.CreateScheduledCall(ctx, "Daily", "", at, "", f.channel.ID, proj.ID, f.owner.ID, 0, nil, nil)
 	require.NoError(t, err)
 
 	next := at.Add(24 * time.Hour)

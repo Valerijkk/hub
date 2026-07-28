@@ -95,7 +95,7 @@ func (s *ScheduledCallService) CreateScheduledCall(ctx context.Context, projectI
 		}
 	}
 
-	sc, err := s.repo.CreateScheduledCall(ctx, req.Title, req.Description, scheduledAt, req.RRule, req.ChannelID, projectID, userID)
+	sc, err := s.repo.CreateScheduledCall(ctx, req.Title, req.Description, scheduledAt, req.RRule, req.ChannelID, projectID, userID, req.DurationMinutes, req.ReminderMinutes, req.ParticipantIDs)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось создать запланированный звонок: %w", err)
 	}
@@ -227,54 +227,96 @@ func (s *ScheduledCallService) ProcessDueScheduledCalls(ctx context.Context) err
 
 // toScheduledCallResponse конвертирует Ent ScheduledCall в DTO ответа.
 func toScheduledCallResponse(sc *ent.ScheduledCall) *ScheduledCallResponse {
-	return &ScheduledCallResponse{
-		ID:          sc.ID,
-		Title:       sc.Title,
-		Description: sc.Description,
-		ScheduledAt: sc.ScheduledAt,
-		RRule:       sc.Rrule,
-		ChannelID:   sc.ChannelID,
-		ProjectID:   sc.ProjectID,
-		CreatedBy:   sc.CreatedBy,
-		IsActive:    sc.IsActive,
-		CreatedAt:   sc.CreatedAt,
-		UpdatedAt:   sc.UpdatedAt,
+	resp := &ScheduledCallResponse{
+		ID:              sc.ID,
+		Title:           sc.Title,
+		Description:     sc.Description,
+		ScheduledAt:     sc.ScheduledAt,
+		DurationMinutes: sc.DurationMinutes,
+		RRule:           sc.Rrule,
+		ChannelID:       sc.ChannelID,
+		ProjectID:       sc.ProjectID,
+		CreatedBy:       sc.CreatedBy,
+		IsActive:        sc.IsActive,
+		CreatedAt:       sc.CreatedAt,
+		UpdatedAt:       sc.UpdatedAt,
 	}
+	if sc.ReminderMinutes != nil {
+		resp.ReminderMinutes = sc.ReminderMinutes
+	}
+	if len(sc.Edges.Participants) > 0 {
+		ids := make([]uuid.UUID, len(sc.Edges.Participants))
+		for i, u := range sc.Edges.Participants {
+			ids[i] = u.ID
+		}
+		resp.ParticipantIDs = ids
+	}
+	return resp
 }
 
 // CheckConflicts проверяет конфликты расписания для заданного времени и участников.
-func (s *ScheduledCallService) CheckConflicts(ctx context.Context, requestedTime time.Time, durationMinutes int, participantIDs []uuid.UUID) (*ConflictResponse, error) {
+// W3-A5-005 / P2-BE-15: только caller и участники общих с ним каналов; в conflict —
+// только PID, реально состоящие в канале найденного звонка.
+func (s *ScheduledCallService) CheckConflicts(ctx context.Context, callerID uuid.UUID, requestedTime time.Time, durationMinutes int, participantIDs []uuid.UUID) (*ConflictResponse, error) {
 	if len(participantIDs) == 0 {
 		return &ConflictResponse{HasConflict: false, Conflicts: []ConflictDetail{}}, nil
+	}
+	if durationMinutes <= 0 {
+		durationMinutes = 60
+	}
+
+	allowed, err := s.filterConflictParticipants(ctx, callerID, participantIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(allowed) == 0 {
+		return nil, ErrCallForbidden
+	}
+	// Любой stranger в исходном списке → 403 (не silent drop).
+	if len(allowed) != len(uniqueUUIDs(participantIDs)) {
+		return nil, ErrCallForbidden
 	}
 
 	windowStart := requestedTime
 	windowEnd := requestedTime.Add(time.Duration(durationMinutes) * time.Minute)
 
-	calls, err := s.repo.FindConflictingCalls(ctx, participantIDs, windowStart, windowEnd)
+	calls, err := s.repo.FindConflictingCalls(ctx, allowed, windowStart, windowEnd)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось проверить конфликты: %w", err)
 	}
 
-	// Находим каналы участников для маппинга
 	conflicts := make([]ConflictDetail, 0)
-
-	// Для каждого найденного звонка проверяем реальное пересечение
 	for _, sc := range calls {
+		callDur := sc.DurationMinutes
+		if callDur <= 0 {
+			callDur = 60
+		}
 		callStart := sc.ScheduledAt
-		callEnd := callStart.Add(60 * time.Minute) // Дефолтная длительность
+		callEnd := callStart.Add(time.Duration(callDur) * time.Minute)
 
-		// Проверяем пересечение
-		if callStart.Before(windowEnd) && callEnd.After(windowStart) {
-			// Определяем, какие из запрошенных участников в этом канале
-			for _, pid := range participantIDs {
-				conflicts = append(conflicts, ConflictDetail{
-					ParticipantID: pid,
-					CallTitle:     sc.Title,
-					ScheduledAt:   sc.ScheduledAt,
-					ChannelID:     sc.ChannelID,
-				})
+		if !(callStart.Before(windowEnd) && callEnd.After(windowStart)) {
+			continue
+		}
+
+		memberIDs, mErr := s.repo.ListChannelMemberIDs(ctx, sc.ChannelID)
+		if mErr != nil {
+			return nil, fmt.Errorf("участники канала конфликта: %w", mErr)
+		}
+		inChannel := make(map[uuid.UUID]struct{}, len(memberIDs))
+		for _, mid := range memberIDs {
+			inChannel[mid] = struct{}{}
+		}
+
+		for _, pid := range allowed {
+			if _, ok := inChannel[pid]; !ok {
+				continue
 			}
+			conflicts = append(conflicts, ConflictDetail{
+				ParticipantID: pid,
+				CallTitle:     sc.Title,
+				ScheduledAt:   sc.ScheduledAt,
+				ChannelID:     sc.ChannelID,
+			})
 		}
 	}
 
@@ -282,6 +324,39 @@ func (s *ScheduledCallService) CheckConflicts(ctx context.Context, requestedTime
 		HasConflict: len(conflicts) > 0,
 		Conflicts:   conflicts,
 	}, nil
+}
+
+// filterConflictParticipants оставляет caller и пользователей из общих каналов.
+func (s *ScheduledCallService) filterConflictParticipants(ctx context.Context, callerID uuid.UUID, participantIDs []uuid.UUID) ([]uuid.UUID, error) {
+	uniq := uniqueUUIDs(participantIDs)
+	out := make([]uuid.UUID, 0, len(uniq))
+	for _, pid := range uniq {
+		if pid == callerID {
+			out = append(out, pid)
+			continue
+		}
+		ok, err := s.repo.ShareActiveChannel(ctx, callerID, pid)
+		if err != nil {
+			return nil, fmt.Errorf("проверка общего канала: %w", err)
+		}
+		if ok {
+			out = append(out, pid)
+		}
+	}
+	return out, nil
+}
+
+func uniqueUUIDs(ids []uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{}, len(ids))
+	out := make([]uuid.UUID, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
 }
 
 // Подавление unused import — scheduledcall используется в repository

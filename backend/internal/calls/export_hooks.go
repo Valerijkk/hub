@@ -260,7 +260,7 @@ func ExportUserNameFromCtx(c fiber.Ctx) string {
 
 // ExportGenerateGuestToken генерирует JWT для гостевого входа для hubtest.
 func ExportGenerateGuestToken(h *Handler, roomName, identity, name string) (string, error) {
-	return h.generateGuestToken(roomName, identity, name)
+	return h.service.room.GenerateToken(roomName, identity, name)
 }
 
 type ExportMongoChatStore struct {
