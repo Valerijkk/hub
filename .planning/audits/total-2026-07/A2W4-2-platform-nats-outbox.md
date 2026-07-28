@@ -31,8 +31,8 @@
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|---------|-------------------|------------|
 | A2W4-2-001 | NEW | P2 | `outbox/worker.go:62-101`; `:123-145`; `:189-196` | `claimPending` держит `FOR UPDATE SKIP LOCKED` **на всё время** `PublishMsg`+`FlushTimeout` (до 50×5s) внутри одной tx до Commit | Долгие row-lock’и блокируют параллельных outbox-воркеров/реплики; рост latency БД под всплеском | Claim → `processing`+lease, Commit; publish вне lock; либо `PublishMsgAck` батчем с коротким claim |
-| A2W4-2-002 | RESIDUAL | P2 | `nats/client.go:116-127` vs `:135-146`; `worker.go:192` | Outbox идёт через core `PublishMsg`+Flush, хотя есть `PublishMsgAck` (JetStream PubAck). Flush закрывает crash-окно буфера (P1-BE-24), но **не** гарантирует запись в stream EVENTS | InterestPolicy / stream lag: «published» в outbox при отсутствии durable message — soft residual исходного W4-A2-001 | Worker → `PublishMsgAck(ctx, msg)` для subject’ов stream |
-| A2W4-2-003 | RESIDUAL | P3 | `client_test.go:15-27` | `TestStreamSubjects` — локальный слайс из **7** префиксов; prod `EnsureStreams` = 9 (`notification.>`, `calls.recording.>`) | Unit-тест не ловит удаление ME-07 subjects (integration покрывает notification, unit — нет) | Assert канон-список = subjects из `EnsureStreams` / export |
+| A2W4-2-002 | FIXED | P2 | `outbox/worker.go` → `PublishMsgAck` | JetStream PubAck до mark published | Evidence: TASK-112 | Worker → `PublishMsgAck(ctx, msg)` для subject’ов stream |
+| A2W4-2-003 | FIXED | P3 | `StreamSubjects` + `client_test.go` | Канон = EnsureStreams (9 subjects) | Evidence: TASK-112 | Assert канон-список = subjects из `EnsureStreams` / export |
 
 ## FIXED-OK
 

@@ -30,9 +30,9 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|---------|-------------------|------------|
-| A2W4-1-001 | RESIDUAL | P3 | `security_headers.go:7-14` | Нет `Strict-Transport-Security` (W4-A1-007 / P3-BE-U01) | При прямом expose API без Caddy — нет HSTS; продукт делегирует Caddy, но в коде/доке нет явного контракта | HSTS в prod **или** комментарий+доки «HSTS только на Caddy» + тест/ADR |
-| A2W4-1-002 | RESIDUAL | P3 | `helpers_test.go` (нет кейса); guard `helpers.go:46-48` | Нет `TestParseUUIDParam_RejectsNilUUID` (W4-A1-006) | Мутация «убрать `id == uuid.Nil`» не краснеет в `helpers_test` | Добавить кейс `00000000-…` → 400 |
-| A2W4-1-003 | RESIDUAL | P3 | `ratelimit.go:207-243` | Redis RL: ZAdd → ZCard → ZRem при 429 (фикс W4-A1-004). Узкое окно: параллельный запрос видит inflated card до ZRem | Кратковременные ложные 429 под burst; не полный bypass, но residual race vs атомарный Lua | Lua: ZCARD+ZADD условно; или ZADD только если card < Max |
+| A2W4-1-001 | FIXED | P3 | `security_headers.go` + `Caddyfile.prod` | HSTS на Caddy edge; Fiber без HSTS + комментарий + тест | Evidence: TASK-112 | HSTS в prod **или** комментарий+доки «HSTS только на Caddy» + тест/ADR |
+| A2W4-1-002 | FIXED | P3 | `helpers_test.go` | `TestParseUUIDParam_RejectsNilUUID` | Evidence: TASK-112 | Добавить кейс `00000000-…` → 400 |
+| A2W4-1-003 | FIXED | P3 | `ratelimit.go` Lua | Атомарный ZCARD+условный ZADD | Evidence: TASK-112 | Lua: ZCARD+ZADD условно; или ZADD только если card < Max |
 
 ## FIXED-OK (сверка Stage A)
 

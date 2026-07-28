@@ -29,7 +29,7 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|---------|-------------------|------------|
-| A2W4-3-001 | NEW | P3 | `W4-ASSIGNMENTS.md` A3 vs disk | Assignment всё ещё ссылает `metrics_allow_middleware_test.go`, файла нет | Дрейф периметра A2; агенты могут считать покрытие неполным | Обновить assignments / INDEX: файл removed с P3-BE-07 |
+| A2W4-3-001 | FIXED | P3 | `W4-ASSIGNMENTS.md` A3 | Удалённый `metrics_allow_middleware_test.go` убран из assignment; добавлен `metrics_route_deny_task059_test.go` | Evidence: TASK-112 | Обновить assignments / INDEX: файл removed с P3-BE-07 |
 
 Активных дефектов продукта в 14 файлах **не найдено** (кроме дрейфа assignment).
 

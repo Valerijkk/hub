@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-27T00:45:00.000Z"
-last_activity: 2026-07-27 · planning-audit PW waves · coverage 81.9% (2026-07-27)
+last_updated: "2026-07-28T23:50:00.000Z"
+last_activity: 2026-07-28 · be1 TASK-112 platform NATS/HSTS/AES/RL FIXED
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -64,6 +64,13 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-28 (be1 · TASK-112 platform NATS/HSTS/AES/RL)
+
+Закрыты 9 A2W4 residual: HSTS→Caddy, nil-UUID test, Redis RL Lua, outbox PubAck,
+StreamSubjects×9, W4-ASSIGNMENTS A3 drift, AES AAD API, docs CTC webhook, deliverWithRetry test.
+`go test -tags hubtest -race` platform/{http,middleware,nats,crypto,outbox}+apigateway → PASS.
+Статус backlog: Исправлена.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

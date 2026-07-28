@@ -122,10 +122,10 @@ alwaysApply: true
 | TanStack Router единственный роутер | `frontend/src/routes/` (**72** `.tsx` file routes, measured 2026-07-27; was claimed 39) |
 | Shadcn className-only | `frontend/src/components/ui/` |
 | `http.DefaultClient` запрещён / SSRF-guard | `backend/internal/platform/http/safedialer.go` — `ValidateOutboundURL`, `SafeDialContext`, `NewSafeHTTPClient`; используется в `apigateway/webhook.go`, `platform/http/opengraph.go`, `notification/push.go`, `ai/adapter_*.go` |
-| Webhook signature check без skip | `backend/internal/apigateway/webhook.go` (HMAC SHA-256, `X-Hub-Signature-256`), тест `backend/testframework/apigateway/webhook_test.go` |
+| Webhook signature check без skip | `backend/internal/apigateway/webhook.go` — **outbound** всегда `signPayload` + `X-Hub-Signature-256` (SEC-02); inbound CTC — `github/webhook_verify.go` / `gitlab/webhook_verify.go`, не apigateway |
 | WS membership/RBAC перед подпиской | `backend/internal/ws/handler.go` |
 | `*ent.Client` не в Handler/Service | layering-образец `backend/internal/tracker/{handler,service,repository,ent_repository}.go` |
-| `subtle.ConstantTimeCompare` для секретов | `backend/internal/auth/service_session.go`, `magiclink.go`, `apigateway/webhook.go`, `audit/handler_alerts.go`, `mail/internal_auth.go`, `gitlab/handler.go` |
+| `subtle.ConstantTimeCompare` для секретов | `backend/internal/auth/service_session.go`, `magiclink.go`, `github/webhook_verify.go`, `gitlab/webhook_verify.go`, `audit/handler_alerts.go`, `mail/internal_auth.go` |
 
 ## Примеры нарушений, которые уже находили и фиксили
 
