@@ -1,6 +1,6 @@
 # Total Audit 2026-07 — индекс
 
-> TASK-008 · A ✅ · **A2 🔄** ([A2-PLAN.md](A2-PLAN.md)) · B P0–P3 ✅ (W21) · C ⚠️ · FINAL: [00-FINAL.md](00-FINAL.md) · 2026-07-28
+> TASK-008 · A ✅ · **A2 ✅** ([A2-PLAN.md](A2-PLAN.md) · [00-STAGE-A2-COMPLETE.md](00-STAGE-A2-COMPLETE.md)) · B P0–P3 ✅ (W21) · C ⚠️ · FINAL: [00-FINAL.md](00-FINAL.md) · 2026-07-28
 
 | Волна | Зона | Статус | Файлов | P0 | P1 | P2 | P3 |
 |-------|------|--------|-------:|---:|---:|---:|---:|
@@ -24,19 +24,20 @@
 
 | Волна | Зона | Статус | Файлов | P0 | P1 | P2 | P3 | open Σ |
 |-------|------|--------|-------:|---:|---:|---:|---:|-------:|
-| A2-W1 | tracker+sprint+project | ✅ | 163 | 0 | 0 | 5 | 3 | **8** |
-| A2-W2 | tms+bases | ✅ | 109 | 0 | 0 | 23 | 5 | **28** |
-| A2-W3 | messenger+ws+calls | ✅ | 131 | 0 | 0 | 12 | 4 | **16** |
-| A2-W4 | platform+apigateway | ✅ | 83 | 0 | 1 | 4 | 8 | **13** |
-| A2-W5 | ai+search | ✅ | 96 | 0 | 1 | 18 | 13 | **32** |
-| A2-W6 | auth+rbac+audit | ✅ | 92 | 0 | 1 | 22 | 8 | **31** |
-| A2-W7 | remaining backend | 🔄 | | | | | | |
-| A2-W8 | ent/schema | 🔄 | | | | | | |
-| A2-W9 | frontend/components | ✅ | 127 | 0 | 0 | 4 | 7 | **11** |
-| A2-W10 | routes+modules | ✅ | 144 | 0 | 2 | 25 | 2 | **29** |
-| A2-W11 | api/stores/hooks/lib+docs | ✅ | 93 | 0 | 1 | 6 | 4 | **11** |
+| A2-W1 | tracker+sprint+project | OK | 163 | 0 | 0 | 5 | 3 | **8** |
+| A2-W2 | tms+bases | OK | 109 | 0 | 0 | 23 | 5 | **28** |
+| A2-W3 | messenger+ws+calls | OK | 131 | 0 | 0 | 12 | 4 | **16** |
+| A2-W4 | platform+apigateway | OK | 83 | 0 | 1 | 4 | 8 | **13** |
+| A2-W5 | ai+search | OK | 96 | 0 | 1 | 18 | 13 | **32** |
+| A2-W6 | auth+rbac+audit | OK | 92 | 0 | 1 | 22 | 8 | **31** |
+| A2-W7 | remaining backend | OK | 284 | 0 | 4 | 33 | 4 | **41** |
+| A2-W8 | ent/schema | OK | 83 | 0 | 14 | 29 | 1 | **44** |
+| A2-W9 | frontend/components | OK | 127 | 0 | 0 | 4 | 7 | **11** |
+| A2-W10 | routes+modules | OK | 144 | 0 | 2 | 25 | 2 | **29** |
+| A2-W11 | api/stores/hooks/lib+docs | OK | 93 | 0 | 1 | 6 | 4 | **11** |
 
-Сводки: W1–W6, W9–W11 ✅ · осталось **W7, W8**. Open Σ (без W7/W8): **179**.
+**Итого Stage A2:** файлов **1405** · open Σ (сырые, до дедупа) **264** (P0=0 · P1=24 · P2=181 · P3=59).  
+Сводки: `A2-W{n}-SUMMARY.md` · финал: [`00-STAGE-A2-COMPLETE.md`](00-STAGE-A2-COMPLETE.md).
 
 ## Стадии B/C
 
