@@ -183,7 +183,9 @@ func ExportSettingBotSystemPrompt() string {
 }
 
 func ExportNewOpenAIAdapterWithClient(client *http.Client) *OpenAIAdapter {
-	return &OpenAIAdapter{client: client}
+	// httptest → 127.0.0.1; ValidateOutboundURL блокирует loopback (SSRF).
+	// Custom client в hubtest = явный test transport, не user-controlled URL path.
+	return &OpenAIAdapter{client: client, skipOutboundURLValidate: true}
 }
 
 func ExportNewYandexGPTAdapterWithClient(client *http.Client) *YandexGPTAdapter {

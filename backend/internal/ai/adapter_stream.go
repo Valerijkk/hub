@@ -27,8 +27,10 @@ type ChatStreamAdapter interface {
 // ChatCompletionStream — POST {baseURL}/chat/completions со stream=true (SSE).
 func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKey, model string, req ChatCompletionRequest, onDelta func(StreamDelta) error) error {
 	base := strings.TrimRight(baseURL, "/")
-	if err := safehttp.ValidateOutboundURL(base); err != nil {
-		return fmt.Errorf("invalid provider URL: %w", err)
+	if !a.skipOutboundURLValidate {
+		if err := safehttp.ValidateOutboundURL(base); err != nil {
+			return fmt.Errorf("invalid provider URL: %w", err)
+		}
 	}
 	req.Model = model
 	req.Stream = true

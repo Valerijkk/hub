@@ -25,6 +25,9 @@ type ChatAdapter interface {
 // OpenAIAdapter — DeepSeek, Ollama, OpenRouter и др.
 type OpenAIAdapter struct {
 	client *http.Client
+	// skipOutboundURLValidate — только hubtest (ExportNewOpenAIAdapterWithClient + httptest).
+	// Production NewOpenAIAdapter всегда валидирует BaseURL (SSRF).
+	skipOutboundURLValidate bool
 }
 
 // NewOpenAIAdapter — adapter с SSRF-safe HTTP client.
@@ -38,8 +41,10 @@ func (a *OpenAIAdapter) ChatCompletion(ctx context.Context, baseURL, apiKey, mod
 		return nil, errors.New("use stream_id with stream=true for WebSocket delivery")
 	}
 	base := strings.TrimRight(baseURL, "/")
-	if err := safehttp.ValidateOutboundURL(base); err != nil {
-		return nil, fmt.Errorf("invalid provider URL: %w", err)
+	if !a.skipOutboundURLValidate {
+		if err := safehttp.ValidateOutboundURL(base); err != nil {
+			return nil, fmt.Errorf("invalid provider URL: %w", err)
+		}
 	}
 	req.Model = model
 	body, err := json.Marshal(req)
