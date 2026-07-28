@@ -259,23 +259,32 @@ func newMockMatcherRepo() *mockMatcherRepo {
 	}
 }
 
-func (m *mockMatcherRepo) FindTestCaseByExternalID(_ context.Context, _ uuid.UUID, externalID string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByExternalID(_ context.Context, projectID uuid.UUID, externalID string) (*ent.TestCase, error) {
 	if tc, ok := m.externalIDMap[externalID]; ok {
+		if tc.Edges.Project != nil && tc.Edges.Project.ID != projectID {
+			return nil, &ent.NotFoundError{}
+		}
 		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
 }
 
-func (m *mockMatcherRepo) FindTestCaseByFullName(_ context.Context, _ uuid.UUID, fullName string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByFullName(_ context.Context, projectID uuid.UUID, fullName string) (*ent.TestCase, error) {
 	if tc, ok := m.fullNameMap[fullName]; ok {
+		if tc.Edges.Project != nil && tc.Edges.Project.ID != projectID {
+			return nil, &ent.NotFoundError{}
+		}
 		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
 }
 
-func (m *mockMatcherRepo) FindTestCaseByClassMethod(_ context.Context, _ uuid.UUID, className, methodName string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByClassMethod(_ context.Context, projectID uuid.UUID, className, methodName string) (*ent.TestCase, error) {
 	key := className + "::" + methodName
 	if tc, ok := m.classMethodMap[key]; ok {
+		if tc.Edges.Project != nil && tc.Edges.Project.ID != projectID {
+			return nil, &ent.NotFoundError{}
+		}
 		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
@@ -290,15 +299,22 @@ func (m *mockMatcherRepo) CreateTestCase(_ context.Context, _ uuid.UUID, _ tms.C
 func (m *mockMatcherRepo) GetTestCase(_ context.Context, _ uuid.UUID) (*ent.TestCase, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) FindTestCaseByKey(_ context.Context, _ uuid.UUID, key string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByKey(_ context.Context, projectID uuid.UUID, key string) (*ent.TestCase, error) {
 	if tc, ok := m.caseKeyMap[key]; ok {
+		if tc.Edges.Project != nil && tc.Edges.Project.ID != projectID {
+			return nil, &ent.NotFoundError{}
+		}
 		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
 }
 
-func (m *mockMatcherRepo) FindTestCaseByAutomationID(_ context.Context, _ uuid.UUID, automationID string) (*ent.TestCase, error) {
+func (m *mockMatcherRepo) FindTestCaseByAutomationID(_ context.Context, projectID uuid.UUID, automationID string) (*ent.TestCase, error) {
 	if tc, ok := m.automationIDMap[automationID]; ok {
+		// A2W2-4-006: mock respects projectID — cross-project → NotFound.
+		if tc.Edges.Project != nil && tc.Edges.Project.ID != projectID {
+			return nil, &ent.NotFoundError{}
+		}
 		return tc, nil
 	}
 	return nil, &ent.NotFoundError{}
@@ -309,7 +325,7 @@ func (m *mockMatcherRepo) ListTestCases(_ context.Context, _ uuid.UUID, _ tms.Li
 func (m *mockMatcherRepo) UpdateTestCase(_ context.Context, _ uuid.UUID, _ tms.UpdateTestCaseInput) (*ent.TestCase, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) DeleteTestCase(_ context.Context, _ uuid.UUID) error { return nil }
+func (m *mockMatcherRepo) DeleteTestCase(_ context.Context, _, _ uuid.UUID) error { return nil }
 func (m *mockMatcherRepo) CreateTestCaseVersion(_ context.Context, _, _ uuid.UUID, _ int, _ map[string]interface{}, _ string) (*ent.TestCaseVersion, error) {
 	return nil, nil
 }

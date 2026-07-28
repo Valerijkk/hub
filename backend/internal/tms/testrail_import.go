@@ -270,6 +270,7 @@ func (s *TMSService) importTestRailCases(ctx context.Context, projectID uuid.UUI
 		result.Created++
 	}
 
+	result.Partial = result.Errors > 0 || result.Skipped > 0
 	return result, nil
 }
 
@@ -408,7 +409,9 @@ func (h *Handler) ImportTestRailCases(c fiber.Ctx) error {
 		result, err = h.service.ImportTestRailCSV(c.Context(), projectID, userID, data)
 	}
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		// A2W2-4-007: не отдаём internals парсера клиенту.
+		slog.Error("ошибка импорта TestRail", "error", err, "format", format)
+		return fiber.NewError(fiber.StatusBadRequest, "некорректный файл TestRail")
 	}
 
 	return c.JSON(result)

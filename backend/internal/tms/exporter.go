@@ -258,10 +258,8 @@ func ExportTestRunToPDF(writer io.Writer, data TestRunExportData) error {
 			statusColor = &props.Color{Red: 200, Green: 150}
 		}
 
-		comment := r.Comment
-		if len(comment) > 30 {
-			comment = comment[:30] + "..."
-		}
+		// A2W2-4-002: rune-safe truncate (не comment[:30] по байтам).
+		comment := truncate(r.Comment, 30)
 
 		m.AddRow(7,
 			text.NewCol(2, r.CaseKey, props.Text{Size: 7}),
