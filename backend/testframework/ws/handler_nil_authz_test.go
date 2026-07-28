@@ -18,13 +18,12 @@ import (
 // authz==nil → fail-closed (503), не allowAllAuthorizer.
 func TestWSHandler_NilAuthorizer_RefusesUpgrade(t *testing.T) {
 	hub := ws.NewHub()
-	svc, magic, _ := newWSAuthService(t)
-	token := wsAccessToken(t, svc, magic)
+	svc, _, _ := newWSAuthService(t)
 
 	app := fiber.New()
 	app.Get("/ws", ws.Handler(hub, svc, nil))
 
-	req := httptest.NewRequest(fiber.MethodGet, "/ws?token="+token, nil)
+	req := httptest.NewRequest(fiber.MethodGet, "/ws", nil)
 	resp, err := app.Test(req, 5*time.Second)
 	require.NoError(t, err)
 	defer resp.Body.Close()
