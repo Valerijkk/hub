@@ -89,16 +89,16 @@
 | W7-A2-001 | RESIDUAL | P1 | `intranet/service.go:167-178`; handler/dto/repo | FR-INTR-07/08: admin-only delete; нет `news_poll*`; restore poll невыполним | W12 U03 — greenfield scope; код без author-delete и polls |
 | W7-A2-002 | FIXED-OK | P1 | `coffee_service.go:230-258` | Нечётный N → unpaired | Закрыто TASK-024: `buildCoffeeMatches` → тройка, `UnpairedCount=0` |
 | W7-A2-003 | RESIDUAL | P2 | `intranet/repository.go:107-123`; `service.go:136-138` | Update news: нет `VersionEQ`; service сравнивает version только если `>0` | TOCTOU / omit version → LWW; TASK-038 вне scope |
-| W7-A2-004 | RESIDUAL | P2 | `coffee_service.go:140-175` | `CreateCoffeeRound` + пары/тройки без одной tx | Mid-fail → orphan round с частичными парами |
+| W7-A2-004 | FIXED | P2 | `coffee_service.go` / `CreateCoffeeRoundWithPairs` | `CreateCoffeeRound` + пары/тройки без одной tx | Закрыто TASK-118: WithTx round+pairs; mid-fail → orphan=0 |
 | W7-A2-005 | RESIDUAL | P2 | `crm/service.go:285-292` | `validateDealRefs`: `GetContact` без owner-scope | Member привязывает чужой contact UUID к своей сделке |
-| W7-A2-006 | RESIDUAL | P2 | `crm/repository.go` soft-delete vs audit trash | Нет типов `crm_contact`/`crm_deal` в admin trash | Soft-delete без restore/purge API |
+| W7-A2-006 | FIXED | P2 | `audit` trash `crm_contact`/`crm_deal` | Нет типов в admin trash | Закрыто TASK-118: list/restore/purge + API.md |
 | W7-A2-007 | RESIDUAL | P2 | `accounting/invoice_repository.go:44-57` | `nextInvoiceNumber` = Count+1 без serial/unique | Concurrent create → duplicate INV / 500 |
 | W7-A2-008 | RESIDUAL | P2 | `coffee_service.go:160-194` | FR-INTR-11: только `NotifyCoffeeMatch`, `_=`; нет auto-DM | W12 U05 — greenfield DM |
-| W7-A2-009 | RESIDUAL | P2 | `hr/repository.go:68-77` | `ListApprovedLeaveInRange` org-wide без viewer-scope | Footgun IDOR leave PII при reuse |
-| W7-A2-010 | RESIDUAL | P2 | `calendar/repository.go:55-65`, `:82-95` | Lists без `Limit`; `ListScheduledCalls` без `WithProject()` | Unbounded; `ProjectKey` у calls пуст (issues — WithProject есть) |
+| W7-A2-009 | FIXED | P2 | `hr/repository.go` viewer+project scope | `ListApprovedLeaveInRange` org-wide | Закрыто TASK-118: scope как calendar A6-005 |
+| W7-A2-010 | FIXED | P2 | `calendar/repository.go` Limit+WithProject | Lists без Limit; calls без WithProject | Закрыто TASK-118: MaxCalendarList=100 + WithProject |
 | W7-A2-011 | FIXED-OK | P3 | `hr/handler.go:151-153` | Cancel → «admin access required» | Закрыто TASK-063: `ErrAccessDenied` → «leave access denied» |
 | W7-A2-012 | FIXED-OK | P3 | `testframework/intranet/handler_test.go:23` | Shared SQLite DSN | Закрыто TASK-067: uuid DSN |
-| W7-A2-013 | RESIDUAL | P3 | `crm/repository.go` ListContacts/Deals | Без limit | Unbounded CRM-lite JSON |
+| W7-A2-013 | FIXED | P3 | `crm/repository.go` MaxCRMList | Без limit | Закрыто (MaxCRMList=100 + list_cap test) TASK-118 evidence |
 | W7-A2-014 | FIXED-OK | P3 | `coffee_dto.go:16-22` | Email в partner DTO | Закрыто TASK-067: email убран |
 | W7-A2-015 | FIXED-OK | P3 | `hr/service.go` notifier/export | `_ = notifier/export` | Закрыто TASK-057: slog на err |
 | W7-A2-016 | FIXED-OK | P3 | `intranet/repository.go:126-149` | Soft-delete без domain audit | Закрыто TASK-067: AuditLog в tx |

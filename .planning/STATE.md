@@ -65,6 +65,15 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be2 · TASK-118 v4 CRM/HR/calendar residual)
+
+- W7-A2-004: coffee `CreateCoffeeRoundWithPairs` atomic tx (mid-fail → orphan=0).
+- W7-A2-006: admin trash `crm_contact`/`crm_deal` (list/restore/purge) + API.md.
+- W7-A2-009: HR `ListApprovedLeaveInRange` viewer+project scope (как calendar A6-005).
+- W7-A2-010: calendar `MaxCalendarList=100` + `WithProject` на calls.
+- W7-A2-013: CRM `MaxCRMList` evidence (уже в коде) + test tag.
+- Tests: intranet/hr/calendar/crm/audit packages PASS hubtest. Статус «Исправлена».
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.
