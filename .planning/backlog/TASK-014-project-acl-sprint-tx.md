@@ -1,6 +1,7 @@
 ﻿# TASK-014 — Project ACL + CompleteSprint atomic tx
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
+> W18-C2 mutation (be1): **FAIL** — P1-BE-05 mid-fail только mock (drop Ent tx → GREEN); P1-BE-08 критерий AddTeamToProject без denial. Evidence: `.planning/audits/total-2026-07/W18-C2-MUTATION.md`  
 > Источник: TASK-008 W12 · Classes: P1-BE-05..09 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
 ## [OUTCOME]

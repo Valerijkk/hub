@@ -1,6 +1,7 @@
 ﻿# TASK-015 — TMS: suite/env/component IDOR + cross-project FK
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Исправлена  
+> W18-C2 mutation (be1): **PASS** — P1-BE-10/11/12 Ent RED→GREEN. Evidence: `.planning/audits/total-2026-07/W18-C2-MUTATION.md`  
 > Источник: TASK-008 W12 · Classes: P1-BE-10..12 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
 ## [OUTCOME]

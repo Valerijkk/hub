@@ -1,6 +1,7 @@
 ﻿# TASK-019 — Platform: SSRF IPv4-mapped, outbox PubAck, pool, prod defaults
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
+> W18-C2 mutation (be1): **FAIL** — P1-BE-23 drop To4() не краснеет (Go 1.25 Contains). 24/25/26 PASS. Evidence: `.planning/audits/total-2026-07/W18-C2-MUTATION.md`  
 > Источник: TASK-008 W12 · Classes: P1-BE-23..26 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-BACKEND.md`
 
 ## [OUTCOME]
