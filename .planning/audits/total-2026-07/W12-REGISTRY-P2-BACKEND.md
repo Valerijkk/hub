@@ -65,7 +65,7 @@ P0/P1 W1–W8 **не** в таблице (отдельные реестры): [`
 | P2-BE-U02 | W8-A1-008, W8-A2-005, W8-A2-011, W8-A3-004, W8-A3-005, W8-A3-007, W8-A3-009, W8-A3-010, W8-A3-011, W8-A3-012, W8-A3-014, W8-A3-015, W8-A4-004, W8-A4-008, W8-A4-009, W8-A5-001 | Системный gap `version`/`deleted_at` на mutable Ent (остаток P1-U06) | ADR VersionMixin + exclusion list. Unique/FK/CHECK — в BE-22; без списка scope задача бесконечна |
 | P2-BE-U03 | W8-A1-004, W8-A4-010 | `OnDelete` policy на `edge.To` (остаток P1-U05) | ADR Cascade vs SetNull vs app purge. Без политики нет канона «правильного» cascade-теста |
 | P2-BE-U04 | W7-A5-001, W7-A5-002 | Анонимный `/api/docs` + `/api/status` recon | Product: закрыть за auth/`!release` vs оставить V4-06. Без решения mutation неоднозначна |
-| P2-BE-U05 | W7-A2-008 | FR-INTR-11 coffee auto-DM не реализован | Scope: greenfield DM vs только notification. Без scope mutation на отсутствующем API | 
+| P2-BE-U05 | W7-A2-008 | FR-INTR-11 coffee — **FIXED** ADR-INTRANET-U05 notify-only (TASK-106) | Канон: notification; auto-DM deferred; mutation IT на `notifyCoffeeMatch` | 
 
 Покрытие сырых ID: все **257** входят ровно в один класс из P2-BE-01…22 или P2-BE-U01…U05.
 

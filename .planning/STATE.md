@@ -65,11 +65,11 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (docs-writer · TASK-105 G-07 wiki KPI)
+## Session note — 2026-07-28 (be2 · TASK-106 FR-INTR-11 notify-only)
 
-- **PO reconcile:** G-07 → **Partial** (INTR+CAL base shipped; US-WIKI planned). Не утверждать «US-WIKI реализованы».
-- **Docs:** `vision_and_scope.md` G-07 + KPI Wiki; `docs/wiki/API.md` / `HOME.md` (docs-wiki ≠ product wiki).
-- **Finding:** A2W11-5-001 → FIXED (docs+PO). Статус задачи → **Исправлена**. Код продукта не менялся.
+- ADR-INTRANET-U05: канон **notify-only** (auto-DM отложен; без spam DM / migrate).
+- `CoffeeMatchDeliveryMode`; `notifyCoffeeMatch` + slog вместо `_ =`; FR-INTR-11 в спеке синхронизирован.
+- IT: `coffee_notify_task106_test.go` (пара=2 notify, тройка=6). Статус TASK-106 → Исправлена.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

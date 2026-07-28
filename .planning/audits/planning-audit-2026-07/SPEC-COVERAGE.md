@@ -42,7 +42,7 @@
 | FR-INTR-08 | Restore from trash returns post + poll + counters | **Phase 126** (planned) | — | **planned** | Gap confirmed; PLAN: `.planning/phases/126-intranet-newspost-trash/PLAN.md`. Trash restore arms: `backend/internal/audit/service.go:226-237` (issue/test_case/file/project only). |
 | FR-INTR-09 | Kudos **leaderboard** by period month/quarter/all | **Phase 44** (Kudos) | W4.a | **partial** | Feed/received exist: `backend/internal/intranet/handler.go:28-29`, `service.go:250`, `268`. **No** `/kudos/leaderboard` route in `handler.go:27-30`. |
 | FR-INTR-10 | Weekly matching: pairs, odd→triple, anti-repeat | **Phase 47** (Random Coffee) | W4.a | **partial** | Matching: `backend/internal/intranet/coffee_service.go:114-137`, `buildCoffeePairs:201-229`. Pairs only (2-person); odd leftover → `unpaired`, **not** a triple. Anti-repeat via `prevPairs`. Manual admin `POST /coffee/run` (`handler.go:37`), not weekly cron. |
-| FR-INTR-11 | Auto-DM per pair; reuse DM; notifications | **Phase 47** | W4.a | **partial** | In-app notify: `coffee_service.go:158-162` (`NotifyCoffeeMatch`). `CoffeePair` schema has **no** `dm_channel_id`: `backend/ent/schema/coffeepair.go:16-41`. |
+| FR-INTR-11 | Notify-only per pair/triple (ADR-INTRANET-U05); auto-DM deferred | **Phase 47** | W4.a | **covered** | `CoffeeMatchDeliveryMode=notify_only`; `notifyCoffeeMatch` + slog; IT `coffee_notify_task106_test.go`. Auto-DM out of scope until new ADR. |
 
 ### Calendar (FR-CAL)
 
@@ -109,7 +109,7 @@ These have **July wave** references (US/spec/implementation bullets) but **zero*
 | FR-INTR-08 | 126 | planned |
 | FR-INTR-09 | 44 | partial |
 | FR-INTR-10 | 47 | partial |
-| FR-INTR-11 | 47 | partial |
+| FR-INTR-11 | 47 | covered (notify-only ADR-U05) |
 | FR-CAL-03 | 41 (+ calls scheduled) | partial |
 | FR-CAL-04 | 41 / calls | partial |
 | FR-CAL-05 | 127 | planned |
