@@ -8,7 +8,7 @@ import (
 // Pinger проверяет доступность компонента.
 type Pinger func(ctx context.Context) error
 
-// Service агрегирует health probes для публичной status page.
+// Service агрегирует health probes для status page.
 type Service struct {
 	postgres Pinger
 	redis    Pinger
@@ -26,8 +26,35 @@ func NewService(postgres, redis, mongo, nats Pinger) *Service {
 	}
 }
 
-// GetStatus возвращает агрегированный статус компонентов.
+// GetPublicStatus — W7-A5-002: только operational/degraded без id deps (anon-safe).
+// Один синтетический компонент «Hub» — чтобы публичная status page UI не была пустой.
+func (s *Service) GetPublicStatus(ctx context.Context) Response {
+	full := s.getFull(ctx)
+	return Response{
+		Status:    full.Status,
+		UpdatedAt: full.UpdatedAt,
+		Components: []ComponentStatus{
+			{
+				ID:          "hub",
+				Name:        "Hub",
+				Status:      full.Status,
+				Description: "Aggregate platform status",
+			},
+		},
+	}
+}
+
+// GetDetailedStatus — полный разбор по компонентам (auth).
+func (s *Service) GetDetailedStatus(ctx context.Context) Response {
+	return s.getFull(ctx)
+}
+
+// GetStatus — совместимость: полный ответ (используется детальным хендлером / тестами).
 func (s *Service) GetStatus(ctx context.Context) Response {
+	return s.getFull(ctx)
+}
+
+func (s *Service) getFull(ctx context.Context) Response {
 	checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 

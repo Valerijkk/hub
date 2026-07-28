@@ -65,13 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-29 (be2 · TASK-120 Git*/1C/imex secrets+trash)
+## Session note — 2026-07-29 (be1 · TASK-121 marketplace/status/docs exposure)
 
-- W7-A3-004: удалён `ListAllWebhookSecrets` + RAM-cache (github/gitlab); verify = FindByRepo/Path.
-- W7-A3-006: GitLab upstream body только в slog; клиенту HTTP status.
-- W7-A3-007: 1C BearerToken AES-GCM (`integrationCipher`); legacy plaintext через MaybeDecrypt.
-- W7-A3-008: `imex.ListProjectIssuesPlain` + `DeletedAtIsNil`.
-- Тесты: `*W7A3004*`, `*W7A3006*`, `*W7A3007*`, `*W7A3008*` + A5-008/009 binding PASS; статус «Исправлена».
+- W7-A5-001..006 FIXED: `/api/docs` admin-only; `/status` aggregate + `/status/details` auth;
+  marketplace pagination/`has_more`, atomic remoderation, no email on catalog, price/currency validation.
+- Тесты: `go test -tags hubtest -race ./testframework/{marketplace,status,dev}/` PASS.
+- Docs: `docs/wiki/API.md`, `docs/system_specification.md`; backlog «Исправлена».
+- Ветка: `fix/marketplace/task-121-exposure`.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

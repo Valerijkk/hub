@@ -168,14 +168,15 @@ func TestService_ListMineAndApproved(t *testing.T) {
 	_, err := svc.ApproveListing(ctx, adminID, created.ID, ReviewListingRequest{Version: created.Version})
 	require.NoError(t, err)
 
-	mine, err := svc.ListMine(ctx, memberID)
+	mine, err := svc.ListMine(ctx, memberID, 1, 25)
 	require.NoError(t, err)
-	assert.Len(t, mine, 1)
+	assert.Len(t, mine.Items, 1)
 
 	public, err := svc.ListApproved(ctx, string(CategoryEquipment), 1, 10)
 	require.NoError(t, err)
 	assert.Len(t, public.Items, 1)
 	assert.Equal(t, 1, public.Total)
+	assert.False(t, public.HasMore)
 }
 
 func TestService_DeleteListingPermissions(t *testing.T) {

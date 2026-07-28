@@ -54,7 +54,8 @@ func wireMessenger(d *serverDeps) {
 	api.Get("/health", readyHandler)
 
 	statusSvc := statusmod.NewService(pingPG, pingRedis, pingMongo, pingNATS)
-	statusmod.NewHandler(statusSvc).RegisterRoutes(api)
+	// W7-A5-002: публичный aggregate + /status/details за auth.
+	statusmod.NewHandler(statusSvc).RegisterRoutes(api, requireAuth)
 
 	messengerEntRepo := messengermod.NewEntRepository(d.db)
 	messengerMongoRepo := messengermod.NewMongoRepository(mongoDB)

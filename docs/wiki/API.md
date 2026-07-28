@@ -14,7 +14,7 @@ Hub предоставляет REST API под `/api/*`. Подсчёт:
 | **Итого (ориентир wiki)** | **~252 OpenAPI / ~286 route inventory** | См. `docs/system_specification.md` §Endpoint inventory |
 
 Полная спецификация: `docs/system_specification.md`, `docs/TECHNICAL.md`.  
-OpenAPI (dev): `GET /docs`, `GET /docs/doc.json`.
+OpenAPI: `GET /docs`, `GET /docs/doc.json` — **только system admin** (JWT + founder/admin; W7-A5-001).
 
 ---
 
@@ -885,11 +885,11 @@ HR-lite: заявки на отсутствие (отпуск, больничн�
 
 | Метод | Путь | Описание |
 |---|---|---|
-| GET | `/marketplace/listings` | Опубликованные объявления (`category?`, `page`, `per_page`) |
-| GET | `/marketplace/listings/mine` | Мои объявления |
-| GET | `/marketplace/listings/pending` | Очередь модерации (admin) |
-| POST | `/marketplace/listings` | Создать (`title`, `description`, `category`, `price_cents?`) |
-| PUT | `/marketplace/listings/:listingId` | Обновить (re-moderation если было approved) |
+| GET | `/marketplace/listings` | Опубликованные объявления (`category?`, `page`, `per_page`; ответ: `has_more`) |
+| GET | `/marketplace/listings/mine` | Мои объявления (`page`, `per_page`, `has_more`) |
+| GET | `/marketplace/listings/pending` | Очередь модерации (admin; `page`, `per_page`, `has_more`) |
+| POST | `/marketplace/listings` | Создать (`title`, `description`, `category`, `price_cents?≥0`, `currency?` allowlist) |
+| PUT | `/marketplace/listings/:listingId` | Обновить (approved → pending атомарно, W7-A5-004) |
 | POST | `/marketplace/listings/:listingId/approve` | Одобрить (`version`, `review_note?`) |
 | POST | `/marketplace/listings/:listingId/reject` | Отклонить |
 | POST | `/marketplace/listings/:listingId/sold` | Отметить проданным (author) |
@@ -897,7 +897,9 @@ HR-lite: заявки на отсутствие (отпуск, больничн�
 | DELETE | `/marketplace/listings/:listingId` | Soft delete (author или admin) |
 
 `category`: `equipment`, `books`, `services`, `furniture`, `other`.  
-`status`: `pending`, `approved`, `rejected`, `sold`, `withdrawn`.
+`status`: `pending`, `approved`, `rejected`, `sold`, `withdrawn`.  
+`currency` (если задана): `RUB`, `USD`, `EUR`, `GBP`, `CNY`, `KZT`, `BYN`.  
+`author_name` на витрине (`ListApproved`) не содержит email (W7-A5-005).
 
 ---
 
@@ -1069,10 +1071,11 @@ AI gateway, @hub-ai bot, ModelPicker, JQL assist. User routes требуют JWT
 | GET | `/live` | Liveness — процесс up → всегда 200 (K8s/Docker liveness; A14-001) |
 | GET | `/ready` | Readiness — Postgres/Redis/Mongo/NATS → 200 или 503 (Compose healthcheck) |
 | GET | `/health` | Alias `/ready` (обратная совместимость; не использовать как liveness) |
-| GET | `/status` | Public status page JSON (Postgres, Redis, Mongo, NATS, API) — V4-06 |
+| GET | `/status` | Public aggregate status (`status`, `updated_at`, один компонент `hub`) — V4-06 / W7-A5-002 |
+| GET | `/status/details` | Per-component postgres/redis/mongo/nats/api (JWT) |
 | GET | `/metrics` | Prometheus scrape; prod: `METRICS_ALLOWED_CIDRS` обязателен (fail-closed если пусто; compose default `127.0.0.1/32`; non-prod пусто = без IP-фильтра) |
-| GET | `/docs` | Swagger UI |
-| GET | `/docs/doc.json` | OpenAPI JSON |
+| GET | `/docs` | API docs HTML (system admin) |
+| GET | `/docs/doc.json` | API routes JSON (system admin) |
 
 ---
 

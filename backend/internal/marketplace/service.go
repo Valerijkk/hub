@@ -53,42 +53,63 @@ func (s *Service) ListApproved(ctx context.Context, category string, page, perPa
 	if err != nil {
 		return nil, fmt.Errorf("list approved listings: %w", err)
 	}
+	page, perPage = normalizePage(page, perPage)
 	resp := make([]ListingResponse, 0, len(items))
 	for _, item := range items {
 		resp = append(resp, toListingResponse(item))
 	}
-	return &ListingListResponse{Items: resp, Total: total, Page: page, PerPage: perPage}, nil
+	return &ListingListResponse{
+		Items:   resp,
+		Total:   total,
+		Page:    page,
+		PerPage: perPage,
+		HasMore: page*perPage < total,
+	}, nil
 }
 
-func (s *Service) ListMine(ctx context.Context, userID uuid.UUID) ([]ListingResponse, error) {
-	items, err := s.repo.ListListingsByAuthor(ctx, userID)
+func (s *Service) ListMine(ctx context.Context, userID uuid.UUID, page, perPage int) (*ListingListResponse, error) {
+	items, total, err := s.repo.ListListingsByAuthor(ctx, userID, page, perPage)
 	if err != nil {
 		return nil, fmt.Errorf("list my listings: %w", err)
 	}
+	page, perPage = normalizePage(page, perPage)
 	out := make([]ListingResponse, 0, len(items))
 	for _, item := range items {
-		out = append(out, toListingResponse(item))
+		out = append(out, toListingResponsePrivate(item))
 	}
-	return out, nil
+	return &ListingListResponse{
+		Items:   out,
+		Total:   total,
+		Page:    page,
+		PerPage: perPage,
+		HasMore: page*perPage < total,
+	}, nil
 }
 
-func (s *Service) ListPending(ctx context.Context, userID uuid.UUID) ([]ListingResponse, error) {
+func (s *Service) ListPending(ctx context.Context, userID uuid.UUID, page, perPage int) (*ListingListResponse, error) {
 	if err := s.requireAdmin(ctx, userID); err != nil {
 		return nil, err
 	}
-	items, err := s.repo.ListPendingListings(ctx)
+	items, total, err := s.repo.ListPendingListings(ctx, page, perPage)
 	if err != nil {
 		return nil, fmt.Errorf("list pending listings: %w", err)
 	}
+	page, perPage = normalizePage(page, perPage)
 	out := make([]ListingResponse, 0, len(items))
 	for _, item := range items {
-		out = append(out, toListingResponse(item))
+		out = append(out, toListingResponsePrivate(item))
 	}
-	return out, nil
+	return &ListingListResponse{
+		Items:   out,
+		Total:   total,
+		Page:    page,
+		PerPage: perPage,
+		HasMore: page*perPage < total,
+	}, nil
 }
 
 func (s *Service) CreateListing(ctx context.Context, userID uuid.UUID, req CreateListingRequest) (*ListingResponse, error) {
-	if err := validateListingInput(req.Title, req.Description, req.Category); err != nil {
+	if err := validateListingInput(req.Title, req.Description, req.Category, req.PriceCents, req.Currency); err != nil {
 		return nil, err
 	}
 	l, err := s.repo.CreateListing(ctx, userID, req)
@@ -99,7 +120,7 @@ func (s *Service) CreateListing(ctx context.Context, userID uuid.UUID, req Creat
 	if err != nil {
 		return nil, fmt.Errorf("reload listing: %w", err)
 	}
-	resp := toListingResponse(l)
+	resp := toListingResponsePrivate(l)
 	if s.notifier != nil {
 		adminIDs, aErr := s.repo.ListAdminUserIDs(ctx)
 		if aErr == nil {
@@ -126,42 +147,48 @@ func (s *Service) UpdateListing(ctx context.Context, userID, id uuid.UUID, req U
 	if req.Version < 1 {
 		return nil, ErrVersionConflict
 	}
-	if req.Title != nil || req.Description != nil || req.Category != nil {
-		title := current.Title
-		desc := current.Description
-		cat := ListingCategory(current.Category)
-		if req.Title != nil {
-			title = *req.Title
-		}
-		if req.Description != nil {
-			desc = *req.Description
-		}
-		if req.Category != nil {
-			cat = *req.Category
-		}
-		if err := validateListingInput(title, desc, cat); err != nil {
-			return nil, err
-		}
+	title := current.Title
+	desc := current.Description
+	cat := ListingCategory(current.Category)
+	price := current.PriceCents
+	currency := current.Currency
+	if req.Title != nil {
+		title = *req.Title
 	}
-	l, err := s.repo.UpdateListing(ctx, id, req)
+	if req.Description != nil {
+		desc = *req.Description
+	}
+	if req.Category != nil {
+		cat = *req.Category
+	}
+	if req.PriceCents != nil {
+		price = req.PriceCents
+	}
+	if req.Currency != nil {
+		currency = *req.Currency
+	}
+	if err := validateListingInput(title, desc, cat, price, currency); err != nil {
+		return nil, err
+	}
+
+	var l *ent.MarketplaceListing
+	if current.Status == marketplacelisting.StatusApproved {
+		// W7-A5-004: один UPDATE — поля + pending (без окна approved+новый контент).
+		l, err = s.repo.UpdateApprovedListingToPending(ctx, id, req)
+	} else {
+		l, err = s.repo.UpdateListing(ctx, id, req)
+	}
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, ErrVersionConflict
 		}
 		return nil, fmt.Errorf("update listing: %w", err)
 	}
-	if current.Status == marketplacelisting.StatusApproved {
-		// Re-moderation после edit — контент мог измениться.
-		l, err = s.repo.SetListingStatus(ctx, id, marketplacelisting.StatusPending, nil, "", l.Version)
-		if err != nil {
-			return nil, fmt.Errorf("reset pending: %w", err)
-		}
-	}
 	l, err = s.repo.GetListing(ctx, l.ID)
 	if err != nil {
 		return nil, fmt.Errorf("reload listing: %w", err)
 	}
-	resp := toListingResponse(l)
+	resp := toListingResponsePrivate(l)
 	return &resp, nil
 }
 
@@ -328,7 +355,7 @@ func (s *Service) requireAdmin(ctx context.Context, userID uuid.UUID) error {
 	return nil
 }
 
-func validateListingInput(title, description string, category ListingCategory) error {
+func validateListingInput(title, description string, category ListingCategory, priceCents *int64, currency string) error {
 	if strings.TrimSpace(title) == "" || strings.TrimSpace(description) == "" {
 		return ErrInvalidInput
 	}
@@ -337,6 +364,13 @@ func validateListingInput(title, description string, category ListingCategory) e
 		return ErrInvalidInput
 	}
 	if !isValidCategory(category) {
+		return ErrInvalidInput
+	}
+	// W7-A5-006: price ≥ 0; currency allowlist (пусто → default RUB в схеме).
+	if priceCents != nil && *priceCents < 0 {
+		return ErrInvalidInput
+	}
+	if currency != "" && !isValidCurrency(currency) {
 		return ErrInvalidInput
 	}
 	return nil
