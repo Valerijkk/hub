@@ -22,6 +22,7 @@ type githubMockRepo struct {
 	links              map[string]*ent.GitHubLink
 	webhookSecrets     []string
 	outdatedKeys       []string
+	denyMembership     bool
 }
 
 func (m *githubMockRepo) integrationKey(owner, repo string) string {
@@ -178,6 +179,13 @@ func (m *githubMockRepo) ListAllWebhookSecrets(context.Context) ([]string, error
 	return m.webhookSecrets, nil
 }
 
+func (m *githubMockRepo) IsProjectMember(_ context.Context, _, _ uuid.UUID) (bool, error) {
+	if m.denyMembership {
+		return false, nil
+	}
+	return true, nil
+}
+
 func (m *githubMockRepo) MarkTestCasesOutdatedByFiles(_ context.Context, changedFiles []string) ([]string, error) {
 	if len(changedFiles) == 0 {
 		return nil, nil
@@ -302,7 +310,7 @@ func TestHandleWebhook_UnknownEventIgnored(t *testing.T) {
 
 func TestListGitHubLinks_IssueNotFound(t *testing.T) {
 	svc := github.NewGitHubService(&githubMockRepo{}, nil)
-	_, err := svc.ListGitHubLinks(context.Background(), "MISSING-1")
+	_, err := svc.ListGitHubLinks(context.Background(), uuid.New(), "MISSING-1")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдена")
 }
@@ -383,10 +391,15 @@ func TestIssueEntityForWebhook(t *testing.T) {
 
 func TestListGitHubLinks_Success(t *testing.T) {
 	issueID := uuid.New()
+	projectID := uuid.New()
+	userID := uuid.New()
 	integrationID := uuid.New()
 	repo := &githubMockRepo{
 		issues: map[string]*ent.Issue{
-			"HUB-10": {ID: issueID, IssueKey: "HUB-10", Title: "Task"},
+			"HUB-10": {
+				ID: issueID, IssueKey: "HUB-10", Title: "Task",
+				Edges: ent.IssueEdges{Project: &ent.Project{ID: projectID}},
+			},
 		},
 		links: map[string]*ent.GitHubLink{
 			"7:pull_request:" + integrationID.String(): {
@@ -401,10 +414,35 @@ func TestListGitHubLinks_Success(t *testing.T) {
 	}
 	svc := github.NewGitHubService(repo, nil)
 
-	links, err := svc.ListGitHubLinks(context.Background(), "HUB-10")
+	links, err := svc.ListGitHubLinks(context.Background(), userID, "HUB-10")
 	require.NoError(t, err)
 	require.Len(t, links, 1)
 	assert.Equal(t, "7", links[0].ExternalID)
+}
+
+// TestListGitHubLinks_StrangerForbidden_P1_BE_37 — user вне project → 403.
+// Mutation: снять IsProjectMember check → err==nil FAIL.
+func TestListGitHubLinks_StrangerForbidden_P1_BE_37(t *testing.T) {
+	projectID := uuid.New()
+	repo := &githubMockRepo{
+		denyMembership: true,
+		issues: map[string]*ent.Issue{
+			"HUB-SEC": {
+				ID: uuid.New(), IssueKey: "HUB-SEC", Title: "Secret",
+				Edges: ent.IssueEdges{Project: &ent.Project{ID: projectID}},
+			},
+		},
+		links: map[string]*ent.GitHubLink{
+			"1:pull_request:" + uuid.New().String(): {
+				ID: uuid.New(), LinkType: githublink.LinkTypePullRequest, ExternalID: "1",
+			},
+		},
+	}
+	svc := github.NewGitHubService(repo, nil)
+
+	_, err := svc.ListGitHubLinks(context.Background(), uuid.New(), "HUB-SEC")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "недостаточно прав")
 }
 
 func TestListIntegrations_ReturnsItems(t *testing.T) {

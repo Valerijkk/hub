@@ -466,10 +466,22 @@ func toWorkflowRunResponse(run *gh.WorkflowRun) WorkflowRunResponse {
 // ---------------------------------------------------------------------------
 
 // ListGitHubLinks возвращает все GitHub-ссылки для задачи по ключу.
-func (s *GitHubService) ListGitHubLinks(ctx context.Context, issueKey string) ([]GitHubLinkResponse, error) {
+// W7-A3-002 / P1-BE-37: только участник проекта задачи.
+func (s *GitHubService) ListGitHubLinks(ctx context.Context, userID uuid.UUID, issueKey string) ([]GitHubLinkResponse, error) {
 	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
 	if err != nil {
 		return nil, apperrors.NewNotFound("задача не найдена")
+	}
+	if issue.Edges.Project == nil {
+		return nil, apperrors.NewInternal("задача без проекта")
+	}
+
+	ok, err := s.repo.IsProjectMember(ctx, userID, issue.Edges.Project.ID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки доступа к проекту")
+	}
+	if !ok {
+		return nil, apperrors.NewForbidden(apperrors.MsgForbidden)
 	}
 
 	links, err := s.repo.ListGitHubLinks(ctx, issue.ID)

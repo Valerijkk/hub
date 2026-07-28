@@ -24,7 +24,12 @@ func testGitHubHandlerApp(t *testing.T, repo *githubMockRepo) *fiber.App {
 
 	app := fiber.New()
 	app.Post("/github/webhook", h.HandleWebhook)
-	app.Get("/issues/:issueKey/github-links", func(c fiber.Ctx) error { return c.Next() }, h.ListGitHubLinks)
+	app.Get("/issues/:issueKey/github-links", func(c fiber.Ctx) error {
+		if c.Locals("userID") == nil {
+			c.Locals("userID", uuid.New().String())
+		}
+		return c.Next()
+	}, h.ListGitHubLinks)
 	app.Post("/projects/:projectId/issues/:issueKey/github/create-branch", func(c fiber.Ctx) error { return c.Next() }, h.CreateBranch)
 	app.Get("/projects/:projectId/github/workflows", func(c fiber.Ctx) error { return c.Next() }, h.ListWorkflowRuns)
 	app.Get("/projects/:projectId/github/workflows/:runId", func(c fiber.Ctx) error { return c.Next() }, h.GetWorkflowRunDetail)

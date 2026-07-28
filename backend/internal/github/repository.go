@@ -13,7 +13,9 @@ import (
 	"github.com/valerii/hub/backend/ent/githublink"
 	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
+	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/ent/testcase"
+	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 )
@@ -56,6 +58,9 @@ type Repository interface {
 
 	// ListAllWebhookSecrets возвращает все webhook-секреты зарегистрированных интеграций.
 	ListAllWebhookSecrets(ctx context.Context) ([]string, error)
+
+	// IsProjectMember — W7-A3-002 / P1-BE-37: ListGitHubLinks требует membership.
+	IsProjectMember(ctx context.Context, userID, projectID uuid.UUID) (bool, error)
 
 	// MarkTestCasesOutdatedByFiles находит test cases со статусом "synced",
 	// у которых ClassName/FullName совпадает с одним из переданных путей файлов
@@ -423,6 +428,16 @@ func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, er
 	out := make([]string, len(secrets))
 	copy(out, secrets)
 	return out, nil
+}
+
+// IsProjectMember — true, если userID состоит в projectID.
+func (r *EntRepository) IsProjectMember(ctx context.Context, userID, projectID uuid.UUID) (bool, error) {
+	return r.client.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(project.IDEQ(projectID)),
+			projectmember.HasUserWith(user.IDEQ(userID)),
+		).
+		Exist(ctx)
 }
 
 // MarkTestCasesOutdatedByFiles находит test cases со статусом "synced",

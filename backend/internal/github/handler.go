@@ -195,7 +195,16 @@ func (h *Handler) ListGitHubLinks(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "issue key обязателен")
 	}
 
-	resp, err := h.service.ListGitHubLinks(c.Context(), issueKey)
+	userIDStr, ok := c.Locals("userID").(string)
+	if !ok || userIDStr == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
+	}
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
+	}
+
+	resp, err := h.service.ListGitHubLinks(c.Context(), userID, issueKey)
 	if err != nil {
 		return err
 	}

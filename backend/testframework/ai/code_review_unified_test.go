@@ -229,6 +229,9 @@ func (m *githubReviewRepo) LogActivity(context.Context, uuid.UUID, string) error
 func (m *githubReviewRepo) ListAllWebhookSecrets(context.Context) ([]string, error) {
 	return nil, nil
 }
+func (m *githubReviewRepo) IsProjectMember(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+	return true, nil
+}
 func (m *githubReviewRepo) MarkTestCasesOutdatedByFiles(context.Context, []string) ([]string, error) {
 	return nil, nil
 }
