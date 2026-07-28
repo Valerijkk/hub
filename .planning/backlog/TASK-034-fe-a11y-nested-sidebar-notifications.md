@@ -1,6 +1,6 @@
 ﻿# TASK-034 — FE a11y nested interactive + aria-label
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
 > Источник: TASK-008 W12 · Classes: FE-P1-A11Y-CONTROLS · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-FRONTEND.md`
 
 ## [OUTCOME]

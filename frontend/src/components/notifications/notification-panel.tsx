@@ -272,52 +272,58 @@ const NotificationItem = memo(function NotificationItem({
 	const iconTextColor = TYPE_ICON_TEXT_COLORS[notification.type] ?? "text-t2";
 
 	return (
-		<button
-			type="button"
+		<div
 			className={`group flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-raised/50 ${
 				!notification.is_read
 					? "border-l-2 border-blue-500 bg-blue-500/[0.04]"
 					: ""
 			}`}
-			onClick={onClick}
 		>
-			<div
-				className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-				style={{ backgroundColor: iconBg }}
+			<button
+				type="button"
+				className="flex min-w-0 flex-1 gap-3 text-left"
+				onClick={onClick}
 			>
-				<Icon className={`h-4 w-4 ${iconTextColor}`} />
-			</div>
+				<div
+					className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+					style={{ backgroundColor: iconBg }}
+				>
+					<Icon className={`h-4 w-4 ${iconTextColor}`} aria-hidden="true" />
+				</div>
 
-			<div className="min-w-0 flex-1">
-				<div className="flex items-start justify-between gap-2">
-					<p className="text-sm font-medium leading-tight">
-						<span className="mr-1 text-xs text-t2">{typeLabel}</span>
-						{notification.title}
-					</p>
-					<div className="flex items-center gap-1 flex-shrink-0">
-						<button
-							type="button"
-							className="mt-0.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors"
-							onClick={onDelete}
-							title="Удалить"
-							aria-label="Удалить уведомление"
-						>
-							<X className="h-3 w-3" />
-						</button>
+				<div className="min-w-0 flex-1">
+					<div className="flex items-start justify-between gap-2">
+						<p className="text-sm font-medium leading-tight">
+							<span className="mr-1 text-xs text-t2">{typeLabel}</span>
+							{notification.title}
+						</p>
 						{!notification.is_read && (
-							<span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
+							<span
+								className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500"
+								role="img"
+								aria-label="Непрочитано"
+							/>
 						)}
 					</div>
-				</div>
-				{notification.body && (
-					<p className="mt-0.5 line-clamp-2 text-xs text-t2">
-						{notification.body}
+					{notification.body && (
+						<p className="mt-0.5 line-clamp-2 text-xs text-t2">
+							{notification.body}
+						</p>
+					)}
+					<p className="mt-1 text-xs text-t2">
+						{formatRelativeTime(notification.created_at)}
 					</p>
-				)}
-				<p className="mt-1 text-xs text-t2">
-					{formatRelativeTime(notification.created_at)}
-				</p>
-			</div>
-		</button>
+				</div>
+			</button>
+			<button
+				type="button"
+				className="mt-0.5 hidden group-hover:flex h-5 w-5 shrink-0 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors"
+				onClick={onDelete}
+				title="Удалить"
+				aria-label="Удалить уведомление"
+			>
+				<X className="h-3 w-3" aria-hidden="true" />
+			</button>
+		</div>
 	);
 });

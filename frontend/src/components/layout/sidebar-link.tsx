@@ -60,6 +60,14 @@ export function SidebarLink({
 		<Link
 			to={to}
 			params={params}
+			aria-label={
+				collapsed
+					? badge != null && badge > 0
+						? `${label}, ${badge} непрочитанных`
+						: label
+					: undefined
+			}
+			aria-current={isActive ? "page" : undefined}
 			className={cn(
 				"group relative flex items-center gap-[11px] rounded-[var(--r2)] px-3 py-[9px] text-[13.5px] font-medium transition-colors duration-200",
 				"text-sidebar-muted hover:bg-[var(--hover)] hover:text-sidebar-foreground",
