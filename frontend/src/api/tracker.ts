@@ -113,6 +113,8 @@ export interface IssueResponse {
 	parent?: IssueBriefResponse;
 	children_count: number;
 	labels: LabelResponse[];
+	/** ID спринта; null/absent — задача в бэклоге (без спринта). */
+	sprint_id?: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -274,9 +276,26 @@ export interface ListIssuesParams {
 	status?: string[];
 	priority?: string[];
 	assignee?: string;
+	/**
+	 * Фильтр по спринту: UUID — задачи спринта;
+	 * `"none"` / `"unassigned"` — только без спринта (бэклог).
+	 */
+	sprint_id?: string;
 	issue_type?: string;
 	search?: string;
 	order_by?: string;
+}
+
+/**
+ * Задачи без спринта (бэклог).
+ * Mutation: убрать вызов → UI снова показывает issues со sprint_id.
+ */
+export function filterIssuesWithoutSprint<
+	T extends { sprint_id?: string | null },
+>(issues: T[]): T[] {
+	return issues.filter(
+		(issue) => issue.sprint_id == null || issue.sprint_id === "",
+	);
 }
 
 /** Запрос на создание связи между задачами. */

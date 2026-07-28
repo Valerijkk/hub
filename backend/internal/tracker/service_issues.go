@@ -186,6 +186,18 @@ func (s *TrackerService) ListIssues(ctx context.Context, projectID uuid.UUID, re
 				params.Assignee = &id
 			}
 		}
+		if req.SprintID != "" {
+			switch req.SprintID {
+			case "none", "unassigned":
+				params.BacklogOnly = true
+			default:
+				id, err := uuid.Parse(req.SprintID)
+				if err != nil {
+					return nil, apperrors.NewBadRequest("некорректный sprint_id")
+				}
+				params.Sprint = &id
+			}
+		}
 
 		limit := req.Limit
 		if limit <= 0 || limit > 100 {

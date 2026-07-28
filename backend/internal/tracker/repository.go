@@ -239,9 +239,13 @@ type ListIssuesParams struct {
 	Priority       []string
 	Assignee       *uuid.UUID
 	UnassignedOnly bool
-	IssueType      string
-	Search         string
-	OrderBy        string
+	// BacklogOnly — только задачи без спринта (sprint_id=none|unassigned).
+	BacklogOnly bool
+	// Sprint — фильтр по конкретному спринту.
+	Sprint    *uuid.UUID
+	IssueType string
+	Search    string
+	OrderBy   string
 }
 
 // CreateCommentInput — распарсенные данные для создания комментария.

@@ -141,7 +141,7 @@ rate_limit:<key> → counter
 | POST | `/auth/refresh` | Refresh access token |
 | GET | `/projects` | List projects |
 | POST | `/projects/:id/issues` | Create issue |
-| GET | `/projects/:id/issues?offset=0&limit=50` | Paginated issues |
+| GET | `/projects/:id/issues?offset=0&limit=50` | Paginated issues (`sprint_id=none` = backlog) |
 | GET | `/channels/:id/messages?cursor=...` | Cursor pagination |
 | POST | `/tms/runs/:id/results` | Submit test result |
 | POST | `/calls/:id/join` | Get LiveKit token |
