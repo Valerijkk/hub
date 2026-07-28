@@ -20,6 +20,17 @@
 
 Финальный отчёт стадии A: [`00-STAGE-A-COMPLETE.md`](00-STAGE-A-COMPLETE.md)
 
+## Stage A2 (повтор после P3 W21)
+
+| Волна | Зона | Статус | Файлов | P0 | P1 | P2 | P3 | open Σ |
+|-------|------|--------|-------:|---:|---:|---:|---:|-------:|
+| A2-W1 | tracker+sprint+project | 🔄 | | | | | | |
+| A2-W2 | tms+bases | 🔄 | | | | | | |
+| A2-W3 | messenger+ws+calls | ✅ | 131 | 0 | 0 | 12 | 4 | **16** |
+| A2-W4…W11 | … | 🔄 | | | | | | |
+
+Сводка W3: [`A2-W3-SUMMARY.md`](A2-W3-SUMMARY.md) · NEW=2 · REGRESS=0 · RESIDUAL=14
+
 ## Стадии B/C
 
 | Волна | Статус |
