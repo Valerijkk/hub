@@ -339,7 +339,7 @@ func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*I
 	}
 	defer f.Close()
 
-	// P1-BE-13: LimitReader + явный 413 при превышении лимита (не полагаться только на Fiber BodyLimit).
+	// TASK-016 / P1-BE-13: LimitReader + явный 413 при превышении лимита (не полагаться только на Fiber BodyLimit).
 	data, err := io.ReadAll(io.LimitReader(f, maxImportFileBytes+1))
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка чтения файла")
@@ -422,7 +422,7 @@ func applyFieldToInput(input *CreateTestCaseInput, field, value string) {
 	case "precondition":
 		input.Precondition = value
 	case "steps":
-		// P1-BE-14: колонка Steps/Шаги больше не отбрасывается молча.
+		// TASK-016 / P1-BE-14: колонка Steps/Шаги больше не отбрасывается молча.
 		input.Steps = parseTestRailSteps(value, "")
 	case "priority":
 		input.Priority = strings.ToLower(value)
