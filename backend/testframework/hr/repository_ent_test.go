@@ -1,6 +1,6 @@
 ﻿package hr_test
+
 import (
-	"github.com/valerii/hub/backend/internal/hr"
 	"context"
 	"testing"
 	"time"
@@ -13,6 +13,7 @@ import (
 	"github.com/valerii/hub/backend/ent/enttest"
 	"github.com/valerii/hub/backend/ent/leaverequest"
 	"github.com/valerii/hub/backend/ent/user"
+	"github.com/valerii/hub/backend/internal/hr"
 )
 
 func newHRRepoEnv(t *testing.T) (*hr.EntRepository, context.Context, uuid.UUID, uuid.UUID) {
@@ -62,22 +63,78 @@ func TestEntRepository_ListLeaveByRequesterAndCancel(t *testing.T) {
 	assert.Contains(t, adminIDs, adminID)
 }
 
-func TestEntRepository_ListApprovedLeaveInRange(t *testing.T) {
-	repo, ctx, memberID, adminID := newHRRepoEnv(t)
+// TestEntRepository_ListApprovedLeaveInRange_ViewerScope_W7A2009 — не org-wide.
+// Mutation: убрать HasRequesterWith scope → stranger leave в списке.
+func TestEntRepository_ListApprovedLeaveInRange_ViewerScope_W7A2009(t *testing.T) {
+	dsn := "file:hr_scope_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
+	client := enttest.Open(t, "sqlite3", dsn)
+	t.Cleanup(func() { _ = client.Close() })
+	ctx := context.Background()
+	repo := hr.NewEntRepository(client)
+
+	viewer, err := client.User.Create().
+		SetEmail("v-" + uuid.New().String()[:8] + "@t.com").
+		SetSystemRole(user.SystemRoleMember).
+		Save(ctx)
+	require.NoError(t, err)
+	teammate, err := client.User.Create().
+		SetEmail("m-" + uuid.New().String()[:8] + "@t.com").
+		SetSystemRole(user.SystemRoleMember).
+		Save(ctx)
+	require.NoError(t, err)
+	stranger, err := client.User.Create().
+		SetEmail("s-" + uuid.New().String()[:8] + "@t.com").
+		SetSystemRole(user.SystemRoleMember).
+		Save(ctx)
+	require.NoError(t, err)
+	admin, err := client.User.Create().
+		SetEmail("a-" + uuid.New().String()[:8] + "@t.com").
+		SetSystemRole(user.SystemRoleAdmin).
+		Save(ctx)
+	require.NoError(t, err)
+
+	shared, err := client.Project.Create().SetName("Shared").SetKey("HRS").Save(ctx)
+	require.NoError(t, err)
+	foreign, err := client.Project.Create().SetName("Foreign").SetKey("HRF").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().SetUserID(viewer.ID).SetProjectID(shared.ID).SetProjectRole("developer").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().SetUserID(teammate.ID).SetProjectID(shared.ID).SetProjectRole("developer").Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ProjectMember.Create().SetUserID(stranger.ID).SetProjectID(foreign.ID).SetProjectRole("developer").Save(ctx)
+	require.NoError(t, err)
+
 	start := time.Now().UTC().AddDate(0, 0, 10)
 	end := start.AddDate(0, 0, 3)
-
-	created, err := repo.CreateLeaveRequest(ctx, memberID, leaverequest.LeaveTypeSick, start, end, "")
-	require.NoError(t, err)
-
-	_, err = repo.ApproveLeave(ctx, created.ID, adminID, "ok", created.Version)
-	require.NoError(t, err)
-
 	from := start.AddDate(0, 0, -1)
 	to := end.AddDate(0, 0, 1)
-	approved, err := repo.ListApprovedLeaveInRange(ctx, from, to)
+
+	own, err := repo.CreateLeaveRequest(ctx, viewer.ID, leaverequest.LeaveTypePersonal, start, end, "")
 	require.NoError(t, err)
-	require.Len(t, approved, 1)
+	_, err = repo.ApproveLeave(ctx, own.ID, admin.ID, "ok", own.Version)
+	require.NoError(t, err)
+
+	mate, err := repo.CreateLeaveRequest(ctx, teammate.ID, leaverequest.LeaveTypeVacation, start, end, "")
+	require.NoError(t, err)
+	_, err = repo.ApproveLeave(ctx, mate.ID, admin.ID, "ok", mate.Version)
+	require.NoError(t, err)
+
+	str, err := repo.CreateLeaveRequest(ctx, stranger.ID, leaverequest.LeaveTypeSick, start, end, "")
+	require.NoError(t, err)
+	_, err = repo.ApproveLeave(ctx, str.ID, admin.ID, "ok", str.Version)
+	require.NoError(t, err)
+
+	got, err := repo.ListApprovedLeaveInRange(ctx, viewer.ID, []uuid.UUID{shared.ID}, from, to)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	ids := map[uuid.UUID]bool{}
+	for _, lv := range got {
+		ids[lv.ID] = true
+		require.NotNil(t, lv.Edges.Requester)
+		assert.NotEqual(t, stranger.ID, lv.Edges.Requester.ID, "W7-A2-009: foreign leave must not leak")
+	}
+	assert.True(t, ids[own.ID])
+	assert.True(t, ids[mate.ID])
 }
 
 func TestEntRepository_IsSystemAdmin(t *testing.T) {
