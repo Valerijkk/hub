@@ -114,8 +114,10 @@ func (r *EntRepository) UpdateAPIKeyLastUsedAt(ctx context.Context, keyID uuid.U
 }
 
 func (r *EntRepository) ListActiveWebhookEndpoints(ctx context.Context) ([]*ent.WebhookEndpoint, error) {
+	// WithProject — нужен dispatchEvent для фильтрации по проекту эндпоинта (TASK-012).
 	return r.client.WebhookEndpoint.Query().
 		Where(webhookendpoint.IsActive(true)).
+		WithProject().
 		All(ctx)
 }
 

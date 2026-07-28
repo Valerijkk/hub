@@ -90,6 +90,25 @@ func ExportWebhookDispatcherJobAvailable(d *WebhookDispatcher) bool {
 	}
 }
 
+// ExportWebhookDispatcherDrainJobEndpointIDs снимает все jobs из очереди и
+// возвращает ID эндпоинтов (для denial/scope тестов).
+func ExportWebhookDispatcherDrainJobEndpointIDs(d *WebhookDispatcher) []uuid.UUID {
+	var ids []uuid.UUID
+	for {
+		select {
+		case job := <-d.jobs:
+			ids = append(ids, job.ep.ID)
+		default:
+			return ids
+		}
+	}
+}
+
+// ExportExtractEventProjectID извлекает project UUID из subject/payload для hubtest.
+func ExportExtractEventProjectID(subject string, payload map[string]interface{}) (uuid.UUID, bool) {
+	return extractEventProjectID(subject, payload)
+}
+
 // ExportWebhookDispatcherDispatchEvent вызывает dispatchEvent для hubtest.
 func ExportWebhookDispatcherDispatchEvent(d *WebhookDispatcher, ctx context.Context, eventType string, body []byte, payload map[string]interface{}) error {
 	return d.dispatchEvent(ctx, eventType, body, payload)

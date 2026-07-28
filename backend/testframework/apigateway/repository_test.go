@@ -62,6 +62,8 @@ func TestEntRepository_WebhookEndpointCRUD(t *testing.T) {
 	active, err := repo.ListActiveWebhookEndpoints(ctx)
 	require.NoError(t, err)
 	assert.Len(t, active, 1)
+	require.NotNil(t, active[0].Edges.Project, "ListActiveWebhookEndpoints must WithProject()")
+	assert.Equal(t, proj.ID, active[0].Edges.Project.ID)
 
 	isActive := false
 	updated, err := repo.UpdateWebhookEndpoint(ctx, ep.ID, apigateway.UpdateWebhookEndpointInput{IsActive: &isActive})

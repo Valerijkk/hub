@@ -12,6 +12,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -213,8 +214,22 @@ func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string,
 		return fmt.Errorf("получение активных вебхук-эндпоинтов: %w", err)
 	}
 
+	// TASK-012: project scope. Событие без extractable projectID не доставляем
+	// ни одному project-scoped эндпоинту (fail-closed). Все Hub webhook
+	// endpoints привязаны к проекту (edge Required); org-level hooks нет.
+	eventProjectID, hasProject := extractEventProjectID(eventType, payload)
+
 	for _, ep := range endpoints {
 		if !containsEvent(ep.Events, eventType) {
+			continue
+		}
+		if !hasProject {
+			// Subject без project UUID (tms.*, sprint.>, messenger.*, project.created)
+			// и без project_id в payload — не шлём в project hooks.
+			continue
+		}
+		epProjectID, ok := webhookEndpointProjectID(ep)
+		if !ok || epProjectID != eventProjectID {
 			continue
 		}
 		job := webhookJob{ep: ep, eventType: eventType, body: body, payload: payload}
@@ -321,14 +336,95 @@ func signPayload(payload []byte, secret string) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-// containsEvent проверяет наличие события в списке подписок.
+// webhookEventAliases — UI short names (AVAILABLE_EVENTS) → альтернативные
+// NATS subject / prefix, когда suffix-match недостаточен
+// (test_run.completed ↔ tms.testrun.completed / tms.run.completed.<id>).
+var webhookEventAliases = map[string][]string{
+	"test_run.completed": {
+		"tms.testrun.completed",
+		"tms.run.completed",
+	},
+	// Tracker публикует смену колонки/статуса как issue.moved.
+	"issue.status_changed": {
+		"issue.moved",
+	},
+}
+
+// containsEvent проверяет подписку эндпоинта на NATS subject / UI short name.
+// Match: exact, "*", suffix ("."+sub), first+last token (sprint.<id>.completed),
+// либо alias-таблица webhookEventAliases.
 func containsEvent(events []string, event string) bool {
-	for _, e := range events {
-		if e == event || e == "*" {
+	for _, sub := range events {
+		if eventMatchesSubscription(sub, event) {
 			return true
 		}
 	}
 	return false
+}
+
+func eventMatchesSubscription(sub, event string) bool {
+	if sub == "*" || sub == event {
+		return true
+	}
+	// project.<uuid>.issue.created ← issue.created
+	if strings.HasSuffix(event, "."+sub) {
+		return true
+	}
+	// sprint.<uuid>.completed ← sprint.completed (первый и последний токен)
+	subParts := strings.Split(sub, ".")
+	eventParts := strings.Split(event, ".")
+	if len(subParts) == 2 && len(eventParts) >= 3 &&
+		eventParts[0] == subParts[0] && eventParts[len(eventParts)-1] == subParts[1] {
+		return true
+	}
+	for _, alias := range webhookEventAliases[sub] {
+		if event == alias ||
+			strings.HasSuffix(event, "."+alias) ||
+			strings.HasPrefix(event, alias+".") {
+			return true
+		}
+	}
+	return false
+}
+
+// extractEventProjectID извлекает project UUID из subject
+// (project.<uuid>.… / tracker.<uuid>.…) либо из payload (project_id / projectId).
+// Если извлечь нельзя — ok=false (fail-closed для project-scoped delivery).
+func extractEventProjectID(subject string, payload map[string]interface{}) (uuid.UUID, bool) {
+	parts := strings.Split(subject, ".")
+	if len(parts) >= 2 && (parts[0] == "project" || parts[0] == "tracker") {
+		if id, err := uuid.Parse(parts[1]); err == nil {
+			return id, true
+		}
+	}
+	if payload == nil {
+		return uuid.Nil, false
+	}
+	for _, key := range []string{"project_id", "projectId"} {
+		raw, ok := payload[key]
+		if !ok || raw == nil {
+			continue
+		}
+		switch v := raw.(type) {
+		case string:
+			if id, err := uuid.Parse(v); err == nil {
+				return id, true
+			}
+		case uuid.UUID:
+			if v != uuid.Nil {
+				return v, true
+			}
+		}
+	}
+	return uuid.Nil, false
+}
+
+// webhookEndpointProjectID возвращает ID проекта эндпоинта из eager-loaded edge.
+func webhookEndpointProjectID(ep *ent.WebhookEndpoint) (uuid.UUID, bool) {
+	if ep == nil || ep.Edges.Project == nil {
+		return uuid.Nil, false
+	}
+	return ep.Edges.Project.ID, true
 }
 
 // --- CRUD вебхуков ---
