@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (be2 · TASK-106 FR-INTR-11 notify-only)
+
+- ADR-INTRANET-U05: канон **notify-only** (auto-DM отложен; без spam DM / migrate).
+- `CoffeeMatchDeliveryMode`; `notifyCoffeeMatch` + slog вместо `_ =`; FR-INTR-11 в спеке синхронизирован.
+- IT: `coffee_notify_task106_test.go` (пара=2 notify, тройка=6). Статус TASK-106 → Исправлена.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.

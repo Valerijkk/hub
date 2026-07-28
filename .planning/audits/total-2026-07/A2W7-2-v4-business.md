@@ -93,7 +93,7 @@
 | W7-A2-005 | RESIDUAL | P2 | `crm/service.go:285-292` | `validateDealRefs`: `GetContact` без owner-scope | Member привязывает чужой contact UUID к своей сделке |
 | W7-A2-006 | RESIDUAL | P2 | `crm/repository.go` soft-delete vs audit trash | Нет типов `crm_contact`/`crm_deal` в admin trash | Soft-delete без restore/purge API |
 | W7-A2-007 | RESIDUAL | P2 | `accounting/invoice_repository.go:44-57` | `nextInvoiceNumber` = Count+1 без serial/unique | Concurrent create → duplicate INV / 500 |
-| W7-A2-008 | RESIDUAL | P2 | `coffee_service.go:160-194` | FR-INTR-11: только `NotifyCoffeeMatch`, `_=`; нет auto-DM | W12 U05 — greenfield DM |
+| W7-A2-008 | FIXED-OK | P2 | `coffee_service.go` | FR-INTR-11: ADR-INTRANET-U05 notify-only; slog; IT task106 | Auto-DM deferred by ADR |
 | W7-A2-009 | RESIDUAL | P2 | `hr/repository.go:68-77` | `ListApprovedLeaveInRange` org-wide без viewer-scope | Footgun IDOR leave PII при reuse |
 | W7-A2-010 | RESIDUAL | P2 | `calendar/repository.go:55-65`, `:82-95` | Lists без `Limit`; `ListScheduledCalls` без `WithProject()` | Unbounded; `ProjectKey` у calls пуст (issues — WithProject есть) |
 | W7-A2-011 | FIXED-OK | P3 | `hr/handler.go:151-153` | Cancel → «admin access required» | Закрыто TASK-063: `ErrAccessDenied` → «leave access denied» |
