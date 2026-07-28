@@ -18,58 +18,79 @@ type purgeMockRepo struct {
 	mockAuditRepo
 	purgeCounts map[string]int
 	purgeErr    error
+	callCounts  map[string]int
+	cutoffs     map[string]time.Time
 }
 
-func (m *purgeMockRepo) PurgeExpiredIssues(_ context.Context, _ time.Time) (int, error) {
+func (m *purgeMockRepo) track(kind string, cutoff time.Time) {
+	if m.callCounts == nil {
+		m.callCounts = make(map[string]int)
+	}
+	if m.cutoffs == nil {
+		m.cutoffs = make(map[string]time.Time)
+	}
+	m.callCounts[kind]++
+	m.cutoffs[kind] = cutoff
+}
+
+func (m *purgeMockRepo) PurgeExpiredIssues(_ context.Context, cutoff time.Time) (int, error) {
+	m.track("issues", cutoff)
 	if m.purgeErr != nil {
 		return 0, m.purgeErr
 	}
 	return m.purgeCounts["issues"], nil
 }
 
-func (m *purgeMockRepo) PurgeExpiredTestCases(_ context.Context, _ time.Time) (int, error) {
+func (m *purgeMockRepo) PurgeExpiredTestCases(_ context.Context, cutoff time.Time) (int, error) {
+	m.track("test_cases", cutoff)
 	if m.purgeErr != nil {
 		return 0, m.purgeErr
 	}
 	return m.purgeCounts["test_cases"], nil
 }
 
-func (m *purgeMockRepo) PurgeExpiredFiles(_ context.Context, _ time.Time) (int, error) {
+func (m *purgeMockRepo) PurgeExpiredFiles(_ context.Context, cutoff time.Time) (int, error) {
+	m.track("files", cutoff)
 	if m.purgeErr != nil {
 		return 0, m.purgeErr
 	}
 	return m.purgeCounts["files"], nil
 }
 
-func (m *purgeMockRepo) PurgeExpiredProjects(_ context.Context, _ time.Time) (int, error) {
+func (m *purgeMockRepo) PurgeExpiredProjects(_ context.Context, cutoff time.Time) (int, error) {
+	m.track("projects", cutoff)
 	if m.purgeErr != nil {
 		return 0, m.purgeErr
 	}
 	return m.purgeCounts["projects"], nil
 }
 
-func (m *purgeMockRepo) PurgeExpiredNewsPosts(_ context.Context, _ time.Time) (int, error) {
+func (m *purgeMockRepo) PurgeExpiredNewsPosts(_ context.Context, cutoff time.Time) (int, error) {
+	m.track("newsposts", cutoff)
 	if m.purgeErr != nil {
 		return 0, m.purgeErr
 	}
 	return m.purgeCounts["newsposts"], nil
 }
 
-func (m *purgeMockRepo) PurgeExpiredScheduledCalls(_ context.Context, _ time.Time) (int, error) {
+func (m *purgeMockRepo) PurgeExpiredScheduledCalls(_ context.Context, cutoff time.Time) (int, error) {
+	m.track("scheduled_calls", cutoff)
 	if m.purgeErr != nil {
 		return 0, m.purgeErr
 	}
 	return m.purgeCounts["scheduled_calls"], nil
 }
 
-func (m *purgeMockRepo) PurgeExpiredCRMContacts(_ context.Context, _ time.Time) (int, error) {
+func (m *purgeMockRepo) PurgeExpiredCRMContacts(_ context.Context, cutoff time.Time) (int, error) {
+	m.track("crm_contacts", cutoff)
 	if m.purgeErr != nil {
 		return 0, m.purgeErr
 	}
 	return m.purgeCounts["crm_contacts"], nil
 }
 
-func (m *purgeMockRepo) PurgeExpiredCRMDeals(_ context.Context, _ time.Time) (int, error) {
+func (m *purgeMockRepo) PurgeExpiredCRMDeals(_ context.Context, cutoff time.Time) (int, error) {
+	m.track("crm_deals", cutoff)
 	if m.purgeErr != nil {
 		return 0, m.purgeErr
 	}
@@ -107,13 +128,17 @@ func TestAuditService_PurgeExpired_Succeeds(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestAuditService_PurgeExpired_LogsErrorsWithoutFailing проверяет отклонение при audit сервис очистка просроченный logs errors without failing.
-func TestAuditService_PurgeExpired_LogsErrorsWithoutFailing(t *testing.T) {
+// TestAuditService_PurgeExpired_PropagatesError — A2W6-A4-001 / A2W6-A5-002:
+// ошибка purge не глотается (fail-closed для cron).
+// Мутация: снова return nil после slog.Error в PurgeExpired → require.Error краснеет.
+func TestAuditService_PurgeExpired_PropagatesError(t *testing.T) {
 	repo := &purgeMockRepo{purgeErr: errors.New("db unavailable")}
 	svc := audit.NewAuditService(repo, nil)
 
 	err := svc.PurgeExpired(context.Background())
-	require.NoError(t, err)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "db unavailable")
+	assert.ErrorContains(t, err, "purge expired")
 }
 
 // TestAuditService_ListTrash_WithItems — W6-A5-007 / P3-BE-02: cutoff ≈ now−30d.
