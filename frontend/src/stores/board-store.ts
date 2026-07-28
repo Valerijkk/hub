@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 /** Фильтры доски для Kanban-представления. */
-interface BoardFilters {
+export interface BoardFilters {
 	/** Фильтр по статусам. */
 	status?: string[];
 	/** Фильтр по приоритетам. */

@@ -93,12 +93,6 @@ function TrashPage() {
 					</button>
 				</div>
 				<div className="flex-1" />
-				<button
-					type="button"
-					className="text-[13px] text-red font-semibold px-[14px] py-[7px] rounded-[var(--r2)] transition-colors duration-180 hover:bg-red/[0.06]"
-				>
-					Очистить все
-				</button>
 			</div>
 
 			{/* Вкладка элементов */}

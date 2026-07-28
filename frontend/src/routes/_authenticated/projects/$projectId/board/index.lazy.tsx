@@ -19,8 +19,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { filterBoardIssue } from "@/lib/board-filters";
 import { computeInsertRank } from "@/lib/board-rank";
 import { toastApiError } from "@/lib/format-api-error";
+import { useAuthStore } from "@/stores/auth-store";
 import { useBoardStore } from "@/stores/board-store";
 
 /**
@@ -35,6 +37,7 @@ function BoardPage() {
 	const queryClient = useQueryClient();
 	const { activeBoardId, setActiveBoard, filters, setFilters, resetFilters } =
 		useBoardStore();
+	const currentUserId = useAuthStore((s) => s.user?.id);
 
 	// Загрузка списка досок
 	const { data: boards } = useQuery({
@@ -131,32 +134,11 @@ function BoardPage() {
 		if (!boardData?.columns) return [];
 		return boardData.columns.map((col) => ({
 			...col,
-			issues: (col.issues ?? []).filter((issue) => {
-				if (filters.search) {
-					const q = filters.search.toLowerCase();
-					if (
-						!issue.title.toLowerCase().includes(q) &&
-						!issue.issue_key.toLowerCase().includes(q)
-					) {
-						return false;
-					}
-				}
-				if (
-					filters.priority?.length &&
-					!filters.priority.includes(issue.priority)
-				) {
-					return false;
-				}
-				if (filters.type && issue.issue_type !== filters.type) {
-					return false;
-				}
-				if (filters.assignee && issue.assignee?.id !== filters.assignee) {
-					return false;
-				}
-				return true;
-			}),
+			issues: (col.issues ?? []).filter((issue) =>
+				filterBoardIssue(issue, filters, currentUserId),
+			),
 		}));
-	}, [boardData?.columns, filters]);
+	}, [boardData?.columns, filters, currentUserId]);
 
 	const boardLoadingFallback = (
 		<div className="board-page-root flex flex-col">
@@ -225,7 +207,8 @@ function BoardPage() {
 
 				<button
 					type="button"
-					className="kanban-fchip"
+					className={`kanban-fchip${filters.myTasks ? " border-[var(--blue)] text-[var(--blue)] bg-[var(--gB)]" : ""}`}
+					aria-pressed={!!filters.myTasks}
 					onClick={() => setFilters({ myTasks: !filters.myTasks })}
 				>
 					Мои задачи

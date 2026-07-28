@@ -137,11 +137,14 @@ export function CaseTreePanel({
 	suites,
 	selectedSuiteId,
 	onSelectSuite,
+	onCreateSuite,
 	total,
 }: {
 	suites?: SuiteResponse[];
 	selectedSuiteId?: string;
 	onSelectSuite: (id: string | undefined) => void;
+	/** Если не передан — кнопка «+» скрыта (нет мёртвого no-op). */
+	onCreateSuite?: () => void;
 	total: number;
 }) {
 	return (
@@ -150,13 +153,16 @@ export function CaseTreePanel({
 				<span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-t4">
 					Тест-сьюты
 				</span>
-				<button
-					type="button"
-					className="w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-t3 text-[18px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:bg-[var(--active)] hover:text-t1 hover:scale-110"
-					aria-label="Создать сьют"
-				>
-					+
-				</button>
+				{onCreateSuite ? (
+					<button
+						type="button"
+						className="w-7 h-7 flex items-center justify-center rounded-[var(--r2)] text-t3 text-[18px] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200 hover:bg-[var(--active)] hover:text-t1 hover:scale-110"
+						aria-label="Создать сьют"
+						onClick={onCreateSuite}
+					>
+						+
+					</button>
+				) : null}
 			</div>
 			<div className="flex-1 overflow-y-auto p-2">
 				<button

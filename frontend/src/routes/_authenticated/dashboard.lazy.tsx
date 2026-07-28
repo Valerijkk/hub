@@ -4,18 +4,14 @@
  */
 
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-	Bell,
-	CalendarPlus,
-	MessageSquarePlus,
-	Plus,
-	Search,
-} from "lucide-react";
+import { CalendarPlus, MessageSquarePlus, Plus, Search } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { personalDefault } from "@/components/dashboard/dashboard-templates";
 import { WidgetGrid } from "@/components/dashboard/widget-grid";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { useAuthStore } from "@/stores/auth-store";
+import { useCommandStore } from "@/stores/command-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 
 /** Обёртка для изоляции рантайм-ошибок раздела «Главная» (FE-H4). */
@@ -67,6 +63,7 @@ function PersonalDashboard() {
 	const loading = useDashboardStore((s) => s.loading);
 	const error = useDashboardStore((s) => s.error);
 	const user = useAuthStore((s) => s.user);
+	const openCommand = useCommandStore((s) => s.setOpen);
 
 	const greeting = useMemo(() => getGreeting(), []);
 	const todayDate = useMemo(() => formatTodayDate(), []);
@@ -96,16 +93,11 @@ function PersonalDashboard() {
 						type="button"
 						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-colors"
 						aria-label="Поиск"
+						onClick={() => openCommand(true)}
 					>
 						<Search className="h-4 w-4" />
 					</button>
-					<button
-						type="button"
-						className="w-[34px] h-[34px] rounded-lg bg-transparent text-t2 hover:bg-white/[0.07] hover:text-white flex items-center justify-center transition-colors"
-						title="Уведомления"
-					>
-						<Bell className="h-4 w-4" />
-					</button>
+					<NotificationBell />
 					<button
 						type="button"
 						className="btn-glow bg-gradient-to-br from-blue-500 to-blue-600 text-white text-[13px] font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5"
@@ -185,6 +177,7 @@ function PersonalDashboard() {
 					<button
 						type="button"
 						className="dash-qa-btn flex items-center gap-2.5 px-[18px] py-[11px] rounded-[var(--r3)] text-[13px] font-semibold text-[var(--t2)] cursor-pointer transition-colors"
+						onClick={() => openCommand(true)}
 					>
 						<div
 							className="w-[34px] h-[34px] rounded-[var(--r2)] flex items-center justify-center"

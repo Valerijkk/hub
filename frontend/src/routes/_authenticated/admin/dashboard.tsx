@@ -100,19 +100,16 @@ function AdminDashboard() {
 									"\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0435\u0439"
 								}
 								value={adminData.total_users}
-								change={+5}
 								color="green"
 							/>
 							<KpiCard
 								label={"\u041F\u0440\u043E\u0435\u043A\u0442\u043E\u0432"}
 								value={adminData.total_projects}
-								change={+2}
 								color="blue"
 							/>
 							<KpiCard
 								label={"\u0417\u0430\u0434\u0430\u0447"}
 								value={adminData.total_issues}
-								change={-3}
 								color="purple"
 							/>
 							<KpiCard

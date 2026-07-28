@@ -1,11 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { completeOnboarding } from "@/api/auth";
+import { uploadFile } from "@/api/files";
 import { createProject, joinByInvite } from "@/api/projects";
+import {
+	ACCENT_COLORS,
+	type AccentColor,
+	useAccentColor,
+} from "@/components/theme-provider";
 import { FormField } from "@/components/ui/form-field";
 import { toastApiError } from "@/lib/format-api-error";
 import {
@@ -184,8 +190,15 @@ function OnboardingPage() {
 	const navigate = useNavigate();
 	const { t } = useTranslation(["common", "onboarding"]);
 	const { user, setUser } = useAuthStore();
+	const { accent, setAccent } = useAccentColor();
 	const [step, setStep] = useState(0);
 	const [loading, setLoading] = useState(false);
+	const [avatarUrl, setAvatarUrl] = useState<string | undefined>(
+		user?.avatar_url,
+	);
+	const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+	const [avatarUploading, setAvatarUploading] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const profileForm = useForm<OnboardingProfileValues>({
 		resolver: zodResolver(onboardingProfileSchema),
@@ -195,15 +208,13 @@ function OnboardingPage() {
 			surname: "",
 			position: user?.position ?? "",
 			department: user?.department ?? "",
+			timezone: user?.timezone || "Europe/Moscow",
 			language: (user?.language === "en" ? "en" : "ru") as LangOption,
 		},
 	});
 
 	/** Выбранная тема (шаг 3). */
 	const [theme, setTheme] = useState<ThemeOption>("dark");
-
-	/** Индекс выбранного accent-цвета. */
-	const [accent, setAccent] = useState(0);
 
 	/** Шаг 4: проект */
 	const [projectMode, setProjectMode] = useState<ProjectMode>("create");
@@ -321,7 +332,9 @@ function OnboardingPage() {
 					name: displayName,
 					position: profileValues.position?.trim() || undefined,
 					department: profileValues.department?.trim() || undefined,
+					timezone: profileValues.timezone,
 					language: profileValues.language,
+					avatar_url: avatarUrl,
 				},
 			});
 			setUser(updated);
@@ -334,13 +347,36 @@ function OnboardingPage() {
 		}
 	}
 
-	const accentColors = [
-		{ color: "var(--blue)", cssColor: "var(--blue)" },
-		{ color: "var(--purple)", cssColor: "var(--purple)" },
-		{ color: "var(--green)", cssColor: "var(--green)" },
-		{ color: "var(--orange)", cssColor: "var(--orange)" },
-		{ color: "var(--red)", cssColor: "var(--red)" },
-	];
+	const accentPreviews: Record<AccentColor, string> = {
+		red: "var(--red)",
+		blue: "var(--blue)",
+		green: "var(--green)",
+		purple: "var(--purple)",
+		orange: "var(--orange)",
+	};
+
+	async function handleAvatarUpload(file: File) {
+		if (file.size > 2 * 1024 * 1024) {
+			toast.error(t("common:validation.avatarMaxSize"));
+			return;
+		}
+		if (!file.type.startsWith("image/")) {
+			toast.error(t("common:validation.avatarImagesOnly"));
+			return;
+		}
+		setAvatarUploading(true);
+		try {
+			const preview = URL.createObjectURL(file);
+			setAvatarPreview(preview);
+			const fileId = await uploadFile(file, "", "avatar", "me");
+			setAvatarUrl(`/files/${fileId}/url`);
+		} catch (err: unknown) {
+			toastApiError(err, t("common:onboarding.completeError"));
+			setAvatarPreview(null);
+		} finally {
+			setAvatarUploading(false);
+		}
+	}
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-void">
@@ -409,21 +445,46 @@ function OnboardingPage() {
 
 						{/* Загрузка аватара */}
 						<div className="flex flex-col items-center mb-[30px]">
-							<div className="w-24 h-24 rounded-full bg-input border-2 border-dashed border-b2 flex items-center justify-center cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 mb-2 hover:border-blue hover:bg-blue/[0.04] hover:scale-105">
-								<svg
-									aria-hidden="true"
-									className="w-8 h-8 text-t3"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="1.5"
-								>
-									<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-									<circle cx="12" cy="13" r="4" />
-								</svg>
-							</div>
+							<input
+								ref={fileInputRef}
+								type="file"
+								accept="image/*"
+								className="hidden"
+								aria-label={t("onboarding:profile.uploadAvatar")}
+								onChange={(e) => {
+									const file = e.target.files?.[0];
+									if (file) void handleAvatarUpload(file);
+									e.target.value = "";
+								}}
+							/>
+							<button
+								type="button"
+								disabled={avatarUploading}
+								onClick={() => fileInputRef.current?.click()}
+								className="w-24 h-24 rounded-full bg-input border-2 border-dashed border-b2 flex items-center justify-center cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 mb-2 hover:border-blue hover:bg-blue/[0.04] hover:scale-105 overflow-hidden disabled:opacity-50"
+							>
+								{avatarPreview || avatarUrl ? (
+									<img
+										src={avatarPreview ?? avatarUrl}
+										alt=""
+										className="h-full w-full object-cover"
+									/>
+								) : (
+									<svg
+										aria-hidden="true"
+										className="w-8 h-8 text-t3"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.5"
+									>
+										<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+										<circle cx="12" cy="13" r="4" />
+									</svg>
+								)}
+							</button>
 							<span className="text-[12px] text-t3">
-								{t("onboarding:profile.uploadAvatar")}
+								{avatarUploading ? "…" : t("onboarding:profile.uploadAvatar")}
 							</span>
 						</div>
 
@@ -517,10 +578,12 @@ function OnboardingPage() {
 								</label>
 								<select
 									id="onb-timezone"
+									{...profileForm.register("timezone")}
 									className="w-full h-11 px-[14px] bg-input border border-b1 rounded-[var(--r2)] text-[14px] text-t1 appearance-none outline-none"
 								>
-									<option>Europe/Moscow (UTC+3)</option>
-									<option>Europe/Warsaw (UTC+1)</option>
+									<option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
+									<option value="Europe/Warsaw">Europe/Warsaw (UTC+1)</option>
+									<option value="UTC">UTC</option>
 								</select>
 							</div>
 							<div>
@@ -661,19 +724,22 @@ function OnboardingPage() {
 
 						{/* Точки accent-цветов */}
 						<div className="flex gap-4 justify-center mb-[30px]">
-							{accentColors.map((ac, idx) => (
+							{ACCENT_COLORS.map((color) => (
 								<button
-									key={ac.color}
+									key={color}
 									type="button"
-									aria-label={`Выбрать акцентный цвет ${ac.color}`}
-									aria-pressed={accent === idx}
+									aria-label={`Выбрать акцентный цвет ${color}`}
+									aria-pressed={accent === color}
 									className={`w-11 h-11 rounded-full cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 border-[3px] hover:scale-[1.18] ${
-										accent === idx
+										accent === color
 											? "border-white/40 shadow-[0_0_0_3px_currentColor,_0_0_20px_currentColor]"
 											: "border-transparent"
 									}`}
-									style={{ background: ac.color, color: ac.cssColor }}
-									onClick={() => setAccent(idx)}
+									style={{
+										background: accentPreviews[color],
+										color: accentPreviews[color],
+									}}
+									onClick={() => setAccent(color)}
 								/>
 							))}
 						</div>
