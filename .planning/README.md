@@ -42,7 +42,13 @@
 
 | Папка | Что внутри |
 |-------|------------|
+| [`backlog/`](backlog/) | **Задачи исполнителям** — [таблица со ссылками](backlog/README.md), формат по мастер-промпту |
 | [`active/august-2026/`](active/august-2026/) | Планы на август: [индекс](active/august-2026/00-AUGUST-PLAN.md), [микросервисы](active/august-2026/01-MICROSERVICES-SPLIT.md) |
+
+Задачи пишут **team-lead и architect**, по
+[мастер-промпту](../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
+Исполнитель задачу не сочиняет — выполняет и отчитывается.
+Правила: [`.cursor/rules/57-backlog-tasks.mdc`](../.cursor/rules/57-backlog-tasks.mdc).
 
 ### Решения и спецификации
 
