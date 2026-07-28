@@ -235,6 +235,7 @@ export function CallChat({ callId }: CallChatProps) {
 				<button
 					type="submit"
 					disabled={!text.trim()}
+					aria-label="Отправить"
 					className={cn(
 						"flex h-9 w-9 items-center justify-center rounded-xl transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-200",
 						text.trim()
@@ -242,7 +243,7 @@ export function CallChat({ callId }: CallChatProps) {
 							: "bg-white/5 text-white/20 cursor-not-allowed",
 					)}
 				>
-					<Send className="h-4 w-4" />
+					<Send className="h-4 w-4" aria-hidden="true" />
 				</button>
 			</form>
 		</div>

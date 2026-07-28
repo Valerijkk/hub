@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { Button } from "@/components/ui/button";
 
 /** Пропсы компонента FileUpload. */
@@ -21,6 +21,7 @@ export function FileUpload({
 	disabled = false,
 }: FileUploadProps) {
 	const inputRef = useRef<HTMLInputElement>(null);
+	const inputId = useId();
 
 	function handleClick() {
 		inputRef.current?.click();
@@ -60,10 +61,13 @@ export function FileUpload({
 			</Button>
 			<input
 				ref={inputRef}
+				id={inputId}
 				type="file"
 				accept={accept}
 				multiple={multiple}
 				onChange={handleChange}
+				aria-label="Загрузить файл"
+				tabIndex={-1}
 				className="hidden"
 			/>
 		</>

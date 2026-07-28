@@ -86,6 +86,10 @@ function MessageEditMode({
 	const [saving, setSaving] = useState(false);
 	const inputRef = useRef<HTMLTextAreaElement>(null);
 
+	useEffect(() => {
+		inputRef.current?.focus();
+	}, []);
+
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 			if (e.key === "Enter" && !e.shiftKey) {
@@ -116,22 +120,24 @@ function MessageEditMode({
 					type="button"
 					className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-t2 hover:text-t1 transition-colors"
 					title="Отменить (Esc)"
+					aria-label="Отменить редактирование"
 					onClick={onCancel}
 					disabled={saving}
 				>
-					<X className="h-3.5 w-3.5" />
+					<X className="h-3.5 w-3.5" aria-hidden="true" />
 				</button>
 				<button
 					type="button"
 					className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-accent text-primary hover:text-primary transition-colors"
 					title="Сохранить (Enter)"
+					aria-label="Сохранить сообщение"
 					onClick={() => {
 						setSaving(true);
 						onSave(editText);
 					}}
 					disabled={saving || !editText.trim()}
 				>
-					<Check className="h-3.5 w-3.5" />
+					<Check className="h-3.5 w-3.5" aria-hidden="true" />
 				</button>
 			</div>
 		</div>
@@ -546,7 +552,7 @@ function MessageItemInner({
 					<div
 						role="toolbar"
 						aria-label="Действия с сообщением"
-						className="pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
+						className="pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
 						onMouseLeave={() => setShowReactionPicker(false)}
 					>
 						<MessageActions

@@ -29,6 +29,9 @@ export function Dropzone({ projectId, entityType, entityId }: DropzoneProps) {
 	return (
 		<div
 			{...dropZoneProps}
+			role="region"
+			aria-label="Зона загрузки файлов"
+			aria-busy={isUploading}
 			className={cn(
 				"rounded-lg border-2 border-dashed p-8 text-center transition-colors",
 				isDragging
@@ -38,7 +41,7 @@ export function Dropzone({ projectId, entityType, entityId }: DropzoneProps) {
 			)}
 		>
 			{isUploading ? (
-				<div className="space-y-2">
+				<div className="space-y-2" aria-live="polite">
 					<div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-t2 border-t-primary" />
 					<p className="text-sm text-t2">Загрузка...</p>
 				</div>

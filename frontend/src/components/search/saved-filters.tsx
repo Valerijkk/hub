@@ -122,9 +122,10 @@ export function SavedFilters({
 							<button
 								type="button"
 								className="ml-1 text-t2 hover:text-primary"
+								aria-label={filter.shared ? "Сделать приватным" : "Расшарить"}
 								onClick={() => void handleToggleShare(filter)}
 							>
-								<Share2 className="h-3 w-3" />
+								<Share2 className="h-3 w-3" aria-hidden="true" />
 							</button>
 						</TooltipTrigger>
 						<TooltipContent>
@@ -136,9 +137,10 @@ export function SavedFilters({
 							<button
 								type="button"
 								className="text-t2 hover:text-destructive"
+								aria-label="Удалить фильтр"
 								onClick={() => void handleDelete(filter.id)}
 							>
-								<Trash2 className="h-3 w-3" />
+								<Trash2 className="h-3 w-3" aria-hidden="true" />
 							</button>
 						</TooltipTrigger>
 						<TooltipContent>Удалить фильтр</TooltipContent>

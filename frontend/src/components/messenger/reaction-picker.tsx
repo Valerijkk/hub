@@ -89,6 +89,7 @@ export function ReactionPicker({
 						<button
 							key={emoji}
 							type="button"
+							aria-label={emoji}
 							className="flex h-8 w-8 items-center justify-center rounded text-lg hover:bg-accent transition-colors"
 							onClick={() => void handleSelect(emoji)}
 						>

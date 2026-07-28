@@ -373,9 +373,10 @@ export function WidgetGrid({
 											<DropdownMenuTrigger asChild>
 												<button
 													type="button"
-													className="w-7 h-7 flex items-center justify-center rounded-[var(--r1)] text-[var(--t4)] text-base hover:bg-[var(--hover)] hover:text-[var(--t2)] transition-colors opacity-0 group-hover/widget:opacity-100"
+													aria-label={`Меню виджета ${name}`}
+													className="w-7 h-7 flex items-center justify-center rounded-[var(--r1)] text-[var(--t4)] text-base hover:bg-[var(--hover)] hover:text-[var(--t2)] transition-colors opacity-0 group-hover/widget:opacity-100 focus:opacity-100"
 												>
-													<Ellipsis className="h-4 w-4" />
+													<Ellipsis className="h-4 w-4" aria-hidden="true" />
 												</button>
 											</DropdownMenuTrigger>
 											<DropdownMenuContent align="end">

@@ -46,6 +46,7 @@ export function PinnedMessages({ channelId }: PinnedMessagesProps) {
 					size="icon"
 					className="h-8 w-8"
 					title="Закреплённые"
+					aria-label="Закреплённые сообщения"
 				>
 					<svg
 						aria-hidden="true"

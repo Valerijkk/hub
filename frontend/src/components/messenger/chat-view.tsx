@@ -363,6 +363,11 @@ export function ChatView({ channelId }: ChatViewProps) {
 						<button
 							type="button"
 							onClick={scrollToBottom}
+							aria-label={
+								unreadBelowCount > 0
+									? `Вниз, ${unreadBelowCount} новых`
+									: "К последним сообщениям"
+							}
 							className={cn(
 								"absolute bottom-20 right-6 z-20",
 								"flex items-center justify-center",

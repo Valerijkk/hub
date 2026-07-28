@@ -31,6 +31,8 @@ export function LanguageSwitcher({
 	if (compact) {
 		return (
 			<div
+				role="group"
+				aria-label="Язык"
 				className={cn(
 					"flex items-center gap-0.5 rounded-md border p-0.5",
 					className,
@@ -38,6 +40,8 @@ export function LanguageSwitcher({
 			>
 				<button
 					type="button"
+					aria-pressed={currentLang === "ru"}
+					aria-label="Русский"
 					onClick={() => handleChange("ru")}
 					className={cn(
 						"rounded px-1.5 py-0.5 text-xs font-medium transition-colors",
@@ -50,6 +54,8 @@ export function LanguageSwitcher({
 				</button>
 				<button
 					type="button"
+					aria-pressed={currentLang === "en"}
+					aria-label="English"
 					onClick={() => handleChange("en")}
 					className={cn(
 						"rounded px-1.5 py-0.5 text-xs font-medium transition-colors",

@@ -259,6 +259,7 @@ function InviteItem({
 					type="button"
 					className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-raised transition-colors"
 					title="Копировать ссылку"
+					aria-label="Копировать ссылку"
 					onClick={() => void handleCopy()}
 				>
 					{copied ? (
@@ -299,6 +300,7 @@ function InviteItem({
 					type="button"
 					className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors"
 					title="Отозвать"
+					aria-label="Отозвать"
 					disabled={revoking}
 					onClick={() => void handleRevoke()}
 				>
@@ -419,6 +421,7 @@ export function InviteLinkDialog({ channelId }: { channelId: string }) {
 					type="button"
 					className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-t2 hover:bg-raised hover:text-t1 transition-colors"
 					title="Пригласить в канал"
+					aria-label="Пригласить в канал"
 				>
 					<svg
 						aria-hidden="true"

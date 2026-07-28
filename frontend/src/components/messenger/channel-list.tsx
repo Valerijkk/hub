@@ -791,6 +791,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 						type="text"
 						className="w-full h-9 pl-[38px] pr-3.5 bg-[var(--input)] border border-transparent rounded-full text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] outline-none transition-all duration-250 focus:border-[rgba(52,211,153,.3)] focus:bg-[var(--card)] focus:shadow-[0_0_0_3px_rgba(52,211,153,.06)]"
 						placeholder="Поиск..."
+						aria-label="Поиск каналов"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 					/>

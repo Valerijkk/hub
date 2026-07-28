@@ -64,41 +64,47 @@ export function VelocityChartWidget({ data }: Props) {
 	}));
 
 	return (
-		<ResponsiveContainer width="100%" height="100%">
-			<BarChart
-				data={chartData}
-				margin={{ top: 4, right: 8, bottom: 0, left: -12 }}
-			>
-				<defs>
-					<linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
-						<stop offset="5%" stopColor="var(--green)" stopOpacity={0.8} />
-						<stop offset="95%" stopColor="var(--green)" stopOpacity={0.4} />
-					</linearGradient>
-				</defs>
-				<CartesianGrid
-					strokeDasharray="3 3"
-					strokeOpacity={0.15}
-					vertical={false}
-				/>
-				<XAxis
-					dataKey="week"
-					tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-					axisLine={false}
-					tickLine={false}
-				/>
-				<YAxis
-					tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-					axisLine={false}
-					tickLine={false}
-				/>
-				<Tooltip content={<ChartTooltip />} />
-				<Bar
-					dataKey="completed"
-					fill="url(#velocityGradient)"
-					name="Завершено"
-					radius={[6, 6, 0, 0]}
-				/>
-			</BarChart>
-		</ResponsiveContainer>
+		<div
+			role="img"
+			aria-label={`Velocity: ${chartData.map((p) => `${p.week} — ${p.completed}`).join("; ")}`}
+			className="h-full w-full"
+		>
+			<ResponsiveContainer width="100%" height="100%">
+				<BarChart
+					data={chartData}
+					margin={{ top: 4, right: 8, bottom: 0, left: -12 }}
+				>
+					<defs>
+						<linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
+							<stop offset="5%" stopColor="var(--green)" stopOpacity={0.8} />
+							<stop offset="95%" stopColor="var(--green)" stopOpacity={0.4} />
+						</linearGradient>
+					</defs>
+					<CartesianGrid
+						strokeDasharray="3 3"
+						strokeOpacity={0.15}
+						vertical={false}
+					/>
+					<XAxis
+						dataKey="week"
+						tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+						axisLine={false}
+						tickLine={false}
+					/>
+					<YAxis
+						tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+						axisLine={false}
+						tickLine={false}
+					/>
+					<Tooltip content={<ChartTooltip />} />
+					<Bar
+						dataKey="completed"
+						fill="url(#velocityGradient)"
+						name="Завершено"
+						radius={[6, 6, 0, 0]}
+					/>
+				</BarChart>
+			</ResponsiveContainer>
+		</div>
 	);
 }

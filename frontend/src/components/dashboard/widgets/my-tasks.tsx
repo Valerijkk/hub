@@ -74,6 +74,8 @@ export function MyTasksWidget({ data }: Props) {
 						{/* Точка статуса (8px) */}
 						<div
 							className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY_COLORS[task.priority] ?? "bg-slate-400"}`}
+							role="img"
+							aria-label={PRIORITY_LABELS[task.priority] ?? "Приоритет"}
 							title={PRIORITY_LABELS[task.priority] ?? ""}
 						/>
 						<span className="font-mono text-[11px] text-t2/70 shrink-0 tracking-wide">

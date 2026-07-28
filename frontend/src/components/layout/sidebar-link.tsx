@@ -100,7 +100,10 @@ export function SidebarLink({
 			>
 				{icon}
 				{collapsed && badge != null && badge > 0 && (
-					<span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500" />
+					<span
+						className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500"
+						aria-hidden="true"
+					/>
 				)}
 			</span>
 			{!collapsed && <span className="truncate leading-tight">{label}</span>}
