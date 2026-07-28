@@ -4,7 +4,7 @@
 > Входы: [`W18-SUMMARY.md`](W18-SUMMARY.md), [`W18-CATCHUP-PRODUCT.md`](W18-CATCHUP-PRODUCT.md),  
 > [`W19-A1-ORPHAN-P0P1.md`](W19-A1-ORPHAN-P0P1.md), [`W19-A2-EVIDENCE-GAPS.md`](W19-A2-EVIDENCE-GAPS.md),  
 > [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md), [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md)  
-> Re-verify входов: A1 (19:49) · A2 · A3 (19:52) · A4 (19:50) UTC+3.
+> Re-verify входов: A1 (19:54) · A2 (count=39) · A3 (19:52) · A4 (19:54) UTC+3.
 
 ## Контекст после W18
 
@@ -67,7 +67,8 @@ U\* не разблокировать без ADR/PO; держать в `backlog/
 Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055, 056  
 (не gap: FAIL 014, 019, 041, 042, 044, 045, 046, 052, 054).
 
-**Вердикт:** mutation-доказательства есть; SHA нигде не зафиксирован → «Исправлена» ≠ финальное закрытие Stage C по ACCEPTANCE.
+**Вердикт:** mutation-доказательства есть; SHA нигде не зафиксирован → «Исправлена» ≠ финальное закрытие Stage C по ACCEPTANCE.  
+Кандидаты SHA — приложение B в A2 (`git log --grep=TASK-0NN`); ещё не evidence.
 
 ---
 
@@ -96,18 +97,21 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 | **C-008** HIGH | Soft-delete project + webhooks ListActive без `deleted_at` | residual |
 | **C-009** HIGH | SQL soft-delete OK + Meili upsert orphans | **044** adjacent |
 
-MEDIUM (не top, но в матрице): C-004 (014 mid-fail proof), C-010 (014×041 blast), C-011 (042 via_invite), C-012 (search outage UX), C-013 (045 legacy entity).
+MEDIUM (не top, но в матрице): C-004 (014 mid-fail proof), C-010 (014×041 blast), C-011 (042 via_invite), C-012 (search outage UX), C-013 (045 legacy entity).  
+LOW: C-014 (052), C-015 (054/080), C-016 (073 CallChat).
 
 Все W18 FAIL 014/019/041/042/044/045/046/052/054 + TASK-079 в матрице A3.  
-Порядок фикса A3: **C-001/079 → C-002 (041+046) → C-003/004 (014) → C-007/013 (045) → C-005/006 (019/044)**.
+Порядок фикса A3: **C-001/079 → C-002 (041+046) → C-003/004 (014) → C-007/013 (045) → C-005/006 (019/044)**.  
+`verified: false` для чистого Stage C — CRITICAL/HIGH без mitigation.
 
 ---
 
 ## 4. Red team (auth non-admin) — top risks
 
-Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md) (re-verify 19:50)
+Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md) (re-verify 19:54)
 
-**Вердикт A4:** 0 новых CRITICAL как single-step non-admin exploit; CRITICAL combo **TASK-079** (admin erase + residual PII for members); остаточные Med/High → W18 FAIL.
+**Вердикт A4:** 0 новых CRITICAL как single-step non-admin exploit; CRITICAL combo **TASK-079** (admin erase + residual PII for members); остаточные Med/High → W18 FAIL.  
+`verified: true` = audit complete with file:line — **не** «product secure».
 
 ### Top 5 chains
 
@@ -149,7 +153,7 @@ Dual StartSprint (**041**) — residual #6 (Low–Med × Med); stacks with **046
 3. **CRITICAL combos (be):** **C-001 / TASK-079** (Mongo eraser fail-closed); **C-002** dual-sprint/unique (**041**/**046**).
 4. **HIGH combos (be):** team ACL (**014**), Confirm (**045**), SSRF/AI (**019**/**044**), soft-delete webhook/Meili (A3 C-008/009).
 5. **FE/docs:** 052, 054/080, CallChat empty+mutate (073 / C-016).
-6. **Evidence hygiene (optional, docs):** backfill SHA Stage B в 39 PASS TASK; thin 28 — имя RED-теста в тело TASK; Progress TASK-038.
+6. **Evidence hygiene (optional, docs):** backfill SHA Stage B в 39 PASS TASK (A2 app. B); thin 28 — имя RED-теста в тело TASK; Progress TASK-038.
 7. **U\* orphans:** не заводить TASK до ADR/PO; Blocked в README + FE U рядом с BE U01–U06.
 8. **TASK-080** (docs drift autotest) — не security-блокер; можно параллельно с W20 quality gate.
 9. **W20 входной критерий (рекомендация):** нет открытых CRITICAL combo; mutation-closed по **014, 079, 045**; hubtest green на затронутых пакетах; coverage baseline без регрессии.
