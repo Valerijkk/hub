@@ -91,27 +91,13 @@ function NavItem({
 	to,
 	icon: Icon,
 	label,
-	placeholder,
 }: {
 	to: string;
 	icon: LucideIcon;
 	label: string;
-	placeholder?: boolean;
 }) {
 	const matchRoute = useMatchRoute();
 	const isActive = matchRoute({ to, fuzzy: true });
-
-	if (placeholder) {
-		return (
-			<div
-				className="flex items-center gap-[10px] px-3 py-[9px] rounded-[var(--r2)] text-[14px] font-medium text-t3/50 cursor-not-allowed select-none mb-[1px]"
-				title={`${label} (\u0441\u043A\u043E\u0440\u043E)`}
-			>
-				<Icon className="w-[18px] h-[18px] opacity-50 shrink-0" />
-				<span className="truncate">{label}</span>
-			</div>
-		);
-	}
 
 	return (
 		<Link

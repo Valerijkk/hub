@@ -50,7 +50,6 @@ function IssueListPage() {
 	const { projectId } = Route.useParams();
 
 	const [search, setSearch] = useState("");
-	const [statusFilter, setStatusFilter] = useState<string>("");
 	const [priorityFilter, setPriorityFilter] = useState<string>("");
 	const [typeFilter, setTypeFilter] = useState<string>("");
 
@@ -58,11 +57,10 @@ function IssueListPage() {
 		(): Omit<ListIssuesParams, "cursor"> => ({
 			limit: 50,
 			search: search || undefined,
-			status: statusFilter ? [statusFilter] : undefined,
 			priority: priorityFilter ? [priorityFilter] : undefined,
 			issue_type: typeFilter || undefined,
 		}),
-		[search, statusFilter, priorityFilter, typeFilter],
+		[search, priorityFilter, typeFilter],
 	);
 
 	const issuesQuery = useInfiniteQuery({
@@ -82,7 +80,6 @@ function IssueListPage() {
 
 	const resetFilters = () => {
 		setSearch("");
-		setStatusFilter("");
 		setPriorityFilter("");
 		setTypeFilter("");
 	};
@@ -150,7 +147,7 @@ function IssueListPage() {
 					</SelectContent>
 				</Select>
 
-				{(search || statusFilter || priorityFilter || typeFilter) && (
+				{(search || priorityFilter || typeFilter) && (
 					<Button variant="ghost" size="sm" onClick={resetFilters}>
 						Сбросить
 					</Button>

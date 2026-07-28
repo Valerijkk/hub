@@ -118,7 +118,7 @@ export function IssueSidebarMeta({
 					Исполнитель
 				</div>
 				{issue.assignee ? (
-					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px]">
+					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] text-[14px]">
 						<Avatar className="h-7 w-7">
 							<AvatarImage src={issue.assignee.avatar_url} />
 							<AvatarFallback className="text-[11px] font-bold text-white bg-gradient-to-br from-[var(--blueS)] to-[var(--purpleS)]">
@@ -138,7 +138,7 @@ export function IssueSidebarMeta({
 					Автор
 				</div>
 				{issue.reporter ? (
-					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] cursor-pointer transition-colors duration-180 hover:bg-[var(--hover)] text-[14px]">
+					<div className="flex items-center gap-[9px] py-[7px] px-[10px] rounded-[var(--r2)] text-[14px]">
 						<Avatar className="h-7 w-7">
 							<AvatarImage src={issue.reporter.avatar_url} />
 							<AvatarFallback className="text-[11px] font-bold text-white bg-gradient-to-br from-[var(--greenS)] to-[#047857]">

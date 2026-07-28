@@ -190,9 +190,7 @@ export function IssueAttachments({
 			)}
 
 			{allAttachments.length === 0 && (
-				<p className="text-xs text-t2 py-2">
-					Перетащите файлы или нажмите "Добавить файл"
-				</p>
+				<p className="text-xs text-t2 py-2">Нажмите «Добавить файл»</p>
 			)}
 		</div>
 	);

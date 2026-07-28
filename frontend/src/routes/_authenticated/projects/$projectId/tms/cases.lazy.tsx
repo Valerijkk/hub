@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import {
 	createTestCase,
+	deleteTestCase,
 	type ListTestCasesParams,
 	listSuites,
 	listTestCases,
@@ -225,6 +226,26 @@ function TestCasesPage() {
 	const totalPages = Math.ceil(total / limit);
 	const currentPage = Math.floor(offset / limit) + 1;
 
+	const bulkDeleteMutation = useMutation({
+		mutationFn: async (ids: Set<string>) => {
+			const selected = cases.filter((tc) => ids.has(tc.id));
+			await Promise.all(
+				selected.map((tc) => deleteTestCase(projectId, tc.case_key)),
+			);
+			return selected.length;
+		},
+		onSuccess: (count) => {
+			void queryClient.invalidateQueries({
+				queryKey: ["tms-cases", projectId],
+			});
+			setSelectedIds(new Set());
+			toast.success(
+				count === 1 ? "Тест-кейс удалён" : `Удалено кейсов: ${count}`,
+			);
+		},
+		onError: (err) => toastApiError(err, "Ошибка удаления тест-кейсов"),
+	});
+
 	const toggleSelect = useCallback((id: string) => {
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
@@ -427,6 +448,23 @@ function TestCasesPage() {
 							<span className="text-xs font-medium text-purple">
 								Выбрано: {selectedIds.size}
 							</span>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-6 text-xs px-2 text-red-600"
+								disabled={bulkDeleteMutation.isPending}
+								onClick={() => {
+									if (
+										window.confirm(
+											`Удалить выбранные тест-кейсы (${selectedIds.size})?`,
+										)
+									) {
+										bulkDeleteMutation.mutate(selectedIds);
+									}
+								}}
+							>
+								Удалить
+							</Button>
 							<Button
 								variant="ghost"
 								size="sm"
