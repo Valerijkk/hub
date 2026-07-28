@@ -4,7 +4,7 @@ import { uploadFile } from "@/api/files";
 import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 
-interface Attachment {
+export interface IssueAttachmentItem {
 	file_id: string;
 	file_name: string;
 	file_size: number;
@@ -15,7 +15,8 @@ interface Attachment {
 interface IssueAttachmentsProps {
 	projectId: string;
 	issueId: string;
-	attachments: Attachment[];
+	/** Вложения с API (если BE отдаёт). После upload дополняются локально. */
+	attachments?: IssueAttachmentItem[];
 	onAttachmentAdded?: () => void;
 }
 
@@ -39,11 +40,15 @@ function getFileIcon(mimeType: string): string {
 export function IssueAttachments({
 	projectId,
 	issueId,
-	attachments,
+	attachments = [],
 	onAttachmentAdded,
 }: IssueAttachmentsProps) {
 	const [isUploading, setIsUploading] = useState(false);
+	/** Локальный список после upload — BE IssueResponse не отдаёт attachments (A11-008). */
+	const [uploaded, setUploaded] = useState<IssueAttachmentItem[]>([]);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const allAttachments = [...attachments, ...uploaded];
 
 	const handleFileChange = useCallback(
 		async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,9 +57,18 @@ export function IssueAttachments({
 
 			setIsUploading(true);
 			try {
+				const added: IssueAttachmentItem[] = [];
 				for (const file of Array.from(files)) {
-					await uploadFile(file, projectId, "issue", issueId);
+					const fileId = await uploadFile(file, projectId, "issue", issueId);
+					added.push({
+						file_id: fileId,
+						file_name: file.name,
+						file_size: file.size,
+						mime_type: file.type || "application/octet-stream",
+						url: `/files/${fileId}/url`,
+					});
 				}
+				setUploaded((prev) => [...prev, ...added]);
 				toast.success(
 					files.length === 1
 						? "Файл загружен"
@@ -76,9 +90,9 @@ export function IssueAttachments({
 			<div className="flex items-center justify-between">
 				<h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-t3">
 					Вложения
-					{attachments.length > 0 && (
+					{allAttachments.length > 0 && (
 						<span className="ml-1.5 text-[11px] text-t4">
-							({attachments.length})
+							({allAttachments.length})
 						</span>
 					)}
 				</h3>
@@ -135,9 +149,9 @@ export function IssueAttachments({
 				/>
 			</div>
 
-			{attachments.length > 0 && (
+			{allAttachments.length > 0 && (
 				<div className="flex gap-[10px] flex-wrap">
-					{attachments.map((att) => (
+					{allAttachments.map((att) => (
 						<a
 							key={att.file_id}
 							href={att.url || `/api/files/${att.file_id}/download`}
@@ -175,7 +189,7 @@ export function IssueAttachments({
 				</div>
 			)}
 
-			{attachments.length === 0 && (
+			{allAttachments.length === 0 && (
 				<p className="text-xs text-t2 py-2">
 					Перетащите файлы или нажмите "Добавить файл"
 				</p>

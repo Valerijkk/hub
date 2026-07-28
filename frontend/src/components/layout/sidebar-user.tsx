@@ -36,8 +36,9 @@ function AvatarVisual({
 				</span>
 			)}
 			<span
-				className="sb-on absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full bg-emerald-400 border-[2.5px] border-sidebar shadow-[0_0_8px_var(--gG)]"
+				className="sb-on absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full bg-[var(--t3)] border-[2.5px] border-sidebar opacity-70"
 				aria-hidden="true"
+				title="Статус присутствия недоступен"
 			/>
 		</span>
 	);
@@ -99,8 +100,7 @@ export function SidebarUserProfile({
 					<div className="text-[10px] font-semibold text-sidebar-subtle">
 						<span className="bg-[rgba(255,255,255,.04)] px-2 py-[2px] rounded-[var(--pill)]">
 							{user?.position || "Участник"}
-						</span>{" "}
-						<span className="text-emerald-400">Онлайн</span>
+						</span>
 					</div>
 				</div>
 			</Link>

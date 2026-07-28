@@ -156,8 +156,7 @@ function IssueDetailPage() {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Удалить задачу?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Задача {issue.issue_key} будет удалена. Это действие нельзя
-							отменить.
+							Задача {issue.issue_key} будет перемещена в корзину на 30 дней.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -215,11 +214,10 @@ function IssueDetailPage() {
 
 					<Separator />
 
-					{/* Вложения */}
+					{/* Вложения — список локально после upload (BE IssueResponse без attachments) */}
 					<IssueAttachments
 						projectId={projectId}
 						issueId={issue.id}
-						attachments={[]}
 						onAttachmentAdded={() =>
 							queryClient.invalidateQueries({
 								queryKey: ["issue", projectId, issueKey],

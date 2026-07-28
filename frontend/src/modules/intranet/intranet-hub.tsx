@@ -1,5 +1,4 @@
-import { useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { KudosFeed } from "@/modules/intranet/kudos-feed";
 import { NewsFeed } from "@/modules/intranet/news-feed";
@@ -15,8 +14,19 @@ function tabFromSearch(tab?: string): IntranetTab {
 
 /** Хаб intranet: новости + kudos + Random Coffee (MOD-01 + MOD-03 + V4-05). */
 export function IntranetHub() {
+	const navigate = useNavigate();
 	const search = useSearch({ strict: false }) as { tab?: string };
-	const [tab, setTab] = useState<IntranetTab>(tabFromSearch(search.tab));
+	const tab = tabFromSearch(search.tab);
+
+	const setTab = (next: IntranetTab) => {
+		void navigate({
+			to: "/intranet",
+			search: {
+				tab: next === "news" ? undefined : next,
+			} satisfies { tab: string | undefined },
+			replace: true,
+		});
+	};
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-4 px-4 py-6">

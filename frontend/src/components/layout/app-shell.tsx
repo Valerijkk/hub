@@ -66,6 +66,22 @@ export function AppShell() {
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+	// Закрыть mobile overlay при смене route / Escape (W9-A2-008).
+	useEffect(() => {
+		setMobileMenuOpen(false);
+	}, [pathname]);
+
+	useEffect(() => {
+		if (!mobileMenuOpen) return;
+		function onKeyDown(e: KeyboardEvent) {
+			if (e.key === "Escape") {
+				setMobileMenuOpen(false);
+			}
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [mobileMenuOpen]);
+
 	useEffect(() => {
 		function onKeyDown(e: KeyboardEvent) {
 			if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {

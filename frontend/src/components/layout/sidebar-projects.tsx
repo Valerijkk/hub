@@ -4,7 +4,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useMatchRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { listProjects } from "@/api/projects";
 
 import { cn } from "@/lib/utils";
@@ -146,9 +146,13 @@ export function SidebarProjects({
 }) {
 	const matchRoute = useMatchRoute();
 
-	/** ID раскрытого проекта в боковом меню. */
+	/** ID раскрытого проекта в боковом меню (ручной выбор). */
 	const [expandedProjectId, setExpandedProjectId] = useState<string | null>(
 		null,
+	);
+	/** Активный проект, который пользователь явно свернул (W9-A2-007). */
+	const [userCollapsedIds, setUserCollapsedIds] = useState<Set<string>>(
+		() => new Set(),
 	);
 
 	const { data: projects } = useQuery({
@@ -158,12 +162,57 @@ export function SidebarProjects({
 
 	const expandSidebar = useSidebarStore((s) => s.expand);
 
+	// При уходе с маршрута проекта — сбрасываем ручной collapse для него.
+	const activeProjectMatch = projects?.find((p) =>
+		matchRoute({
+			to: "/projects/$projectId",
+			fuzzy: true,
+			params: { projectId: p.id },
+		}),
+	);
+	const activeProjectId = activeProjectMatch?.id ?? null;
+
+	useEffect(() => {
+		if (!activeProjectId) return;
+		setUserCollapsedIds((prev) => {
+			if (!prev.has(activeProjectId) && prev.size === 0) return prev;
+			// Не трогаем collapse текущего — только чистим чужие id.
+			const next = new Set<string>();
+			if (prev.has(activeProjectId)) next.add(activeProjectId);
+			return next.size === prev.size && prev.has(activeProjectId) ? prev : next;
+		});
+	}, [activeProjectId]);
+
 	/** Переключение раскрытия подменю проекта. */
 	const toggleProject = (projectId: string) => {
 		if (collapsed) {
 			expandSidebar();
 		}
-		setExpandedProjectId((prev) => (prev === projectId ? null : projectId));
+		const isActive = Boolean(
+			matchRoute({
+				to: "/projects/$projectId",
+				fuzzy: true,
+				params: { projectId },
+			}),
+		);
+		const currentlyExpanded =
+			(expandedProjectId === projectId || isActive) &&
+			!userCollapsedIds.has(projectId);
+
+		if (currentlyExpanded) {
+			setExpandedProjectId(null);
+			if (isActive) {
+				setUserCollapsedIds((prev) => new Set(prev).add(projectId));
+			}
+		} else {
+			setExpandedProjectId(projectId);
+			setUserCollapsedIds((prev) => {
+				if (!prev.has(projectId)) return prev;
+				const next = new Set(prev);
+				next.delete(projectId);
+				return next;
+			});
+		}
 	};
 
 	return (
@@ -185,7 +234,8 @@ export function SidebarProjects({
 						params: { projectId: project.id },
 					});
 					const isExpanded =
-						expandedProjectId === project.id || isProjectActive;
+						(expandedProjectId === project.id || Boolean(isProjectActive)) &&
+						!userCollapsedIds.has(project.id);
 
 					return (
 						<div key={project.id}>

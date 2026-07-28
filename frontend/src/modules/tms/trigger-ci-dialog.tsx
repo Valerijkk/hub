@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { toastApiError } from "@/lib/format-api-error";
 import { cn } from "@/lib/utils";
 
+/** Лимит кейсов в UI запуска CI — без пагинации (W10-A2-015). */
+export const CI_CASES_FETCH_LIMIT = 500;
+
 interface Props {
 	projectId: string;
 }
@@ -32,11 +35,18 @@ export function TriggerCIPanel({ projectId }: Props) {
 
 	// Загружаем тест-кейсы
 	const { data: casesData, isLoading: casesLoading } = useQuery({
-		queryKey: ["tms-cases", projectId],
-		queryFn: () => listTestCases(projectId, { limit: 500, status: "active" }),
+		queryKey: ["tms-cases", projectId, "ci-trigger"],
+		queryFn: () =>
+			listTestCases(projectId, {
+				limit: CI_CASES_FETCH_LIMIT,
+				status: "active",
+			}),
 	});
 
 	const cases: TestCaseResponse[] = casesData?.items ?? [];
+	const casesTruncated =
+		typeof casesData?.total === "number" &&
+		casesData.total > CI_CASES_FETCH_LIMIT;
 
 	// Фильтрация
 	const filteredCases = useMemo(() => {
@@ -189,6 +199,19 @@ export function TriggerCIPanel({ projectId }: Props) {
 								: "Выбрать все"}
 						</button>
 					</div>
+
+					{(casesTruncated || cases.length >= CI_CASES_FETCH_LIMIT) && (
+						<div
+							className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+							role="status"
+						>
+							Показаны первые {CI_CASES_FETCH_LIMIT} активных тест-кейсов
+							{casesTruncated && casesData?.total
+								? ` из ${casesData.total}`
+								: ""}
+							. Остальные недоступны для выбора в этом диалоге.
+						</div>
+					)}
 
 					{/* Список кейсов */}
 					<div className="max-h-72 overflow-y-auto rounded-lg border">
