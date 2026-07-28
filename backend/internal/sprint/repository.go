@@ -3,6 +3,8 @@ package sprint
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -14,6 +16,15 @@ import (
 
 // ErrIssueNotInProject — RT-005: AddIssues получил UUID задачи вне projectID.
 var ErrIssueNotInProject = errors.New("issue not in project")
+
+// ErrActiveSprintConflict — W1-A4-009: в проекте уже есть другой active-спринт.
+type ErrActiveSprintConflict struct {
+	Name string
+}
+
+func (e *ErrActiveSprintConflict) Error() string {
+	return "active sprint exists: " + e.Name
+}
 
 // Repository определяет интерфейс доступа к данным для модуля спринтов.
 type Repository interface {
@@ -33,6 +44,11 @@ type Repository interface {
 	UpdateRetroNotes(ctx context.Context, sprintID uuid.UUID, notes map[string]interface{}) (*ent.Sprint, error)
 	// FindActiveSprint находит активный спринт в проекте (если есть).
 	FindActiveSprint(ctx context.Context, projectID uuid.UUID) (*ent.Sprint, error)
+	// StartSprintAtomic атомарно активирует спринт под row-lock проекта (W1-A4-009).
+	// При конфликте с другим active → *ErrActiveSprintConflict.
+	StartSprintAtomic(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error)
+	// IssueInProject проверяет, что задача принадлежит проекту (W1-A4-006).
+	IssueInProject(ctx context.Context, projectID, issueID uuid.UUID) error
 	// FindOrCreateNextPlanningSprint находит или создаёт следующий спринт в статусе planning.
 	FindOrCreateNextPlanningSprint(ctx context.Context, projectID uuid.UUID, afterSprint *ent.Sprint) (*ent.Sprint, error)
 
@@ -168,6 +184,76 @@ func (r *EntRepository) FindActiveSprint(ctx context.Context, projectID uuid.UUI
 			sprintEnt.HasProjectWith(project.ID(projectID)),
 		).
 		Only(ctx)
+}
+
+// StartSprintAtomic активирует спринт под row-lock проекта (паттерн StartTimer / A3-005).
+// Ent/SQLite отвергает SELECT FOR UPDATE; UPDATE project сериализует writers на PG и SQLite.
+func (r *EntRepository) StartSprintAtomic(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin start sprint tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if err := tx.Project.UpdateOneID(projectID).
+		SetUpdatedAt(time.Now().UTC()).
+		Exec(ctx); err != nil {
+		if ent.IsNotFound(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("lock project for start sprint: %w", err)
+	}
+
+	if _, err := tx.Sprint.Query().
+		Where(
+			sprintEnt.ID(sprintID),
+			sprintEnt.HasProjectWith(project.ID(projectID)),
+		).
+		Only(ctx); err != nil {
+		return nil, err
+	}
+
+	existing, err := tx.Sprint.Query().
+		Where(
+			sprintEnt.StatusEQ(sprintEnt.StatusActive),
+			sprintEnt.HasProjectWith(project.ID(projectID)),
+		).
+		Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("find active sprint: %w", err)
+	}
+	if err == nil && existing.ID != sprintID {
+		return nil, &ErrActiveSprintConflict{Name: existing.Name}
+	}
+
+	updated, err := tx.Sprint.UpdateOneID(sprintID).
+		SetStatus(sprintEnt.StatusActive).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("activate sprint: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit start sprint: %w", err)
+	}
+	return updated, nil
+}
+
+// IssueInProject возвращает ErrIssueNotInProject, если issue отсутствует или чужой проект.
+func (r *EntRepository) IssueInProject(ctx context.Context, projectID, issueID uuid.UUID) error {
+	n, err := r.client.Issue.Query().
+		Where(
+			issue.IDEQ(issueID),
+			issue.DeletedAtIsNil(),
+			issue.HasProjectWith(project.IDEQ(projectID)),
+		).
+		Count(ctx)
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return ErrIssueNotInProject
+	}
+	return nil
 }
 
 // FindOrCreateNextPlanningSprint находит или создаёт следующий спринт в статусе planning.

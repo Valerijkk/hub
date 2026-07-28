@@ -82,12 +82,25 @@ func (s *SprintService) ListSprints(ctx context.Context, projectID uuid.UUID) ([
 }
 
 // UpdateSprint обновляет спринт в рамках проекта (RT-005 / A3-001 sibling).
+// W1-A4-007: после merge дат — end не раньше start (как в CreateSprint).
 func (s *SprintService) UpdateSprint(ctx context.Context, projectID, sprintID uuid.UUID, req UpdateSprintRequest) (*SprintResponse, error) {
-	if _, err := s.repo.GetSprintInProject(ctx, projectID, sprintID); err != nil {
+	current, err := s.repo.GetSprintInProject(ctx, projectID, sprintID)
+	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")
 		}
 		return nil, apperrors.NewInternal("ошибка получения спринта")
+	}
+
+	start, end := current.StartDate, current.EndDate
+	if req.StartDate != nil {
+		start = *req.StartDate
+	}
+	if req.EndDate != nil {
+		end = *req.EndDate
+	}
+	if end.Before(start) {
+		return nil, apperrors.NewBadRequest("дата окончания должна быть после даты начала")
 	}
 
 	sp, err := s.repo.UpdateSprint(ctx, sprintID, req)
@@ -102,27 +115,15 @@ func (s *SprintService) UpdateSprint(ctx context.Context, projectID, sprintID uu
 }
 
 // StartSprint переводит спринт в статус active.
-// Возвращает ошибку если в проекте уже есть активный спринт.
+// W1-A4-009: check+activate атомарны в StartSprintAtomic (row-lock проекта).
+// A3-016: DB error при поиске active → fail closed.
 func (s *SprintService) StartSprint(ctx context.Context, projectID, sprintID uuid.UUID) (*SprintResponse, error) {
-	// A3-016 / RT-005 sibling: project-scope before status mutation (same as CompleteSprint).
-	if _, err := s.repo.GetSprintInProject(ctx, projectID, sprintID); err != nil {
-		if ent.IsNotFound(err) {
-			return nil, apperrors.NewNotFound("спринт не найден")
-		}
-		return nil, apperrors.NewInternal("ошибка получения спринта")
-	}
-
-	// A3-016: DB error from FindActiveSprint must fail closed (not skip conflict check).
-	existing, err := s.repo.FindActiveSprint(ctx, projectID)
-	if err != nil && !ent.IsNotFound(err) {
-		return nil, apperrors.NewInternal("ошибка поиска активного спринта")
-	}
-	if err == nil && existing.ID != sprintID {
-		return nil, apperrors.NewConflict("в проекте уже есть активный спринт: " + existing.Name)
-	}
-
-	sp, err := s.repo.UpdateSprintStatus(ctx, sprintID, sprintEnt.StatusActive)
+	sp, err := s.repo.StartSprintAtomic(ctx, projectID, sprintID)
 	if err != nil {
+		var conflict *ErrActiveSprintConflict
+		if errors.As(err, &conflict) {
+			return nil, apperrors.NewConflict("в проекте уже есть активный спринт: " + conflict.Name)
+		}
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")
 		}
@@ -130,6 +131,17 @@ func (s *SprintService) StartSprint(ctx context.Context, projectID, sprintID uui
 	}
 
 	return s.toSprintResponse(ctx, sp), nil
+}
+
+// EnsureIssueInProject проверяет принадлежность issue проекту (W1-A4-006, poker start).
+func (s *SprintService) EnsureIssueInProject(ctx context.Context, projectID, issueID uuid.UUID) error {
+	if err := s.repo.IssueInProject(ctx, projectID, issueID); err != nil {
+		if errors.Is(err, ErrIssueNotInProject) {
+			return apperrors.NewBadRequest("задача не принадлежит проекту")
+		}
+		return apperrors.NewInternal("ошибка проверки задачи")
+	}
+	return nil
 }
 
 // CompleteSprint завершает спринт и переносит незавершённые задачи (SCRM-04).

@@ -2,6 +2,7 @@
 import (
 	"github.com/valerii/hub/backend/internal/sprint"
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockRepository struct {
+	mu               sync.Mutex
 	sprints          map[uuid.UUID]*ent.Sprint
 	sprintProject    map[uuid.UUID]uuid.UUID
 	issues           map[uuid.UUID]*ent.Issue
@@ -90,6 +92,15 @@ func (m *mockRepository) UpdateSprint(_ context.Context, sprintID uuid.UUID, req
 	if req.Name != nil {
 		s.Name = *req.Name
 	}
+	if req.Goal != nil {
+		s.Goal = *req.Goal
+	}
+	if req.StartDate != nil {
+		s.StartDate = *req.StartDate
+	}
+	if req.EndDate != nil {
+		s.EndDate = *req.EndDate
+	}
 	return s, nil
 }
 
@@ -111,13 +122,40 @@ func (m *mockRepository) UpdateRetroNotes(_ context.Context, sprintID uuid.UUID,
 	return s, nil
 }
 
-func (m *mockRepository) FindActiveSprint(_ context.Context, _ uuid.UUID) (*ent.Sprint, error) {
-	for _, s := range m.sprints {
-		if s.Status == sprintEnt.StatusActive {
+func (m *mockRepository) FindActiveSprint(_ context.Context, projectID uuid.UUID) (*ent.Sprint, error) {
+	for id, s := range m.sprints {
+		if s.Status == sprintEnt.StatusActive && m.sprintProject[id] == projectID {
 			return s, nil
 		}
 	}
 	return nil, &ent.NotFoundError{}
+}
+
+// StartSprintAtomic — mock с mutex: два concurrent Start → один active (W1-A4-009).
+func (m *mockRepository) StartSprintAtomic(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if _, err := m.GetSprintInProject(ctx, projectID, sprintID); err != nil {
+		return nil, err
+	}
+	existing, err := m.FindActiveSprint(ctx, projectID)
+	if err != nil {
+		if !ent.IsNotFound(err) {
+			return nil, err
+		}
+	} else if existing.ID != sprintID {
+		return nil, &sprint.ErrActiveSprintConflict{Name: existing.Name}
+	}
+	return m.UpdateSprintStatus(ctx, sprintID, sprintEnt.StatusActive)
+}
+
+func (m *mockRepository) IssueInProject(_ context.Context, projectID, issueID uuid.UUID) error {
+	pid, ok := m.issueProject[issueID]
+	if !ok || pid != projectID {
+		return sprint.ErrIssueNotInProject
+	}
+	return nil
 }
 
 func (m *mockRepository) FindOrCreateNextPlanningSprint(_ context.Context, _ uuid.UUID, afterSprint *ent.Sprint) (*ent.Sprint, error) {

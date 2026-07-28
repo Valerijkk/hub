@@ -156,7 +156,7 @@ func TestPokerService_StartCastRevealGet(t *testing.T) {
 	issueID := uuid.New()
 	userID := uuid.New()
 
-	session, err := poker.StartPokerSession(ctx, sprintID, issueID)
+	session, err := poker.StartPokerSession(ctx, uuid.New(), sprintID, issueID)
 	require.NoError(t, err)
 	assert.False(t, session.Revealed)
 
@@ -184,7 +184,7 @@ func TestPokerService_GetSession_HiddenVotes(t *testing.T) {
 	poker := sprint.NewPokerService(rdb, nil)
 	ctx := context.Background()
 
-	session, err := poker.StartPokerSession(ctx, uuid.New(), uuid.New())
+	session, err := poker.StartPokerSession(ctx, uuid.New(), uuid.New(), uuid.New())
 	require.NoError(t, err)
 
 	userID := uuid.New()

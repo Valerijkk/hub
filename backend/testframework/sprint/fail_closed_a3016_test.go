@@ -24,6 +24,16 @@ func (m *errFindActiveRepo) FindActiveSprint(context.Context, uuid.UUID) (*ent.S
 	return nil, m.findErr
 }
 
+func (m *errFindActiveRepo) StartSprintAtomic(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error) {
+	if _, err := m.GetSprintInProject(ctx, projectID, sprintID); err != nil {
+		return nil, err
+	}
+	if _, err := m.FindActiveSprint(ctx, projectID); err != nil {
+		return nil, err
+	}
+	return m.UpdateSprintStatus(ctx, sprintID, sprintEnt.StatusActive)
+}
+
 // TestStartSprint_FailClosedOnFindError_A3_016 — DB error from FindActiveSprint
 // must not skip the active-sprint conflict check (mutation: ignore err → FAIL).
 func TestStartSprint_FailClosedOnFindError_A3_016(t *testing.T) {
@@ -45,7 +55,7 @@ func TestStartSprint_FailClosedOnFindError_A3_016(t *testing.T) {
 
 	_, err := svc.StartSprint(context.Background(), projectID, sprintID)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "активного спринта")
+	assert.Contains(t, err.Error(), "запуска спринта")
 	assert.Equal(t, sprintEnt.StatusPlanning, base.sprints[sprintID].Status,
 		"sprint must not start when FindActiveSprint fails")
 }

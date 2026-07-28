@@ -46,7 +46,7 @@
 | [TASK-038](TASK-038-be-p2-ol-softdelete-tx-lists.md) | BE OL/soft-mutate/tx/lists | P2 | Открыта | be1 | W12 P2-BE-03..06 |
 | [TASK-039](TASK-039-be-p2-soft-delete-secrets.md) | BE soft-delete + secrets | P2 | Открыта | be2 | W12 P2-BE-08,09 |
 | [TASK-040](TASK-040-be-p2-fail-closed-ratelimit.md) | BE fail-closed + rate-limit | P2 | Открыта | be1 | W12 P2-BE-10 |
-| [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | Открыта | be2 | W12 P2-BE-11 |
+| [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | На проверке | be1 | W12 P2-BE-11 |
 | [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | Открыта | be1 | W12 P2-BE-12..15 |
 | [TASK-043](TASK-043-be-p2-platform-outbox-obs.md) | BE platform outbox/obs | P2 | Открыта | be2 | W12 P2-BE-16 |
 | [TASK-044](TASK-044-be-p2-ai-search.md) | BE AI privacy + search | P2 | Открыта | be1 | W12 P2-BE-17,18 |
