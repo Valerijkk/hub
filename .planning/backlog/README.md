@@ -42,7 +42,7 @@
 | [TASK-034](TASK-034-fe-a11y-nested-sidebar-notifications.md) | FE a11y nested interactive | P1 | На проверке | fe2 | W12 FE-P1-A11Y-CONTROLS |
 | [TASK-035](TASK-035-fe-tms-compare-and-docs-testpath.md) | FE TMS compare + docs drift | P1 | На проверке | fe1 | W12 FE-P1-TMS-DOCS |
 | [TASK-036](TASK-036-be-p2-dto-error-contract.md) | BE DTO validator + error contract | P2 | На проверке | be2 | W12 P2-BE-01,07 |
-| [TASK-037](TASK-037-be-p2-authz-ent-negative-tests.md) | BE Ent-negative authz tests | P2 | Открыта | be2 | W12 P2-BE-02 |
+| [TASK-037](TASK-037-be-p2-authz-ent-negative-tests.md) | BE Ent-negative authz tests | P2 | На проверке | be2 | W12 P2-BE-02 |
 | [TASK-038](TASK-038-be-p2-ol-softdelete-tx-lists.md) | BE OL/soft-mutate/tx/lists | P2 | На проверке (partial) | be1 | W12 P2-BE-03..06 |
 | [TASK-039](TASK-039-be-p2-soft-delete-secrets.md) | BE soft-delete + secrets | P2 | На проверке | be2 | W12 P2-BE-08,09 |
 | [TASK-040](TASK-040-be-p2-fail-closed-ratelimit.md) | BE fail-closed + rate-limit | P2 | На проверке | be1 | W12 P2-BE-10 |
