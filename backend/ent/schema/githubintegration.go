@@ -31,6 +31,8 @@ func (GitHubIntegration) Fields() []ent.Field {
 			Sensitive().
 			Comment("GitHub Personal Access Token"),
 		field.String("webhook_secret").
+			Sensitive().
+			NotEmpty().
 			Comment("Секрет для валидации webhook подписей"),
 		field.UUID("merge_status_id", uuid.UUID{}).
 			Optional().

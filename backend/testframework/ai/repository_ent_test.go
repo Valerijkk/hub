@@ -13,6 +13,7 @@ import (
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/aiprovider"
 	"github.com/valerii/hub/backend/ent/enttest"
+	cryptopkg "github.com/valerii/hub/backend/internal/platform/crypto"
 )
 
 func newAIRepoEnv(t *testing.T) (*ai.EntRepository, *ent.Client, context.Context, uuid.UUID) {
@@ -28,7 +29,9 @@ func newAIRepoEnv(t *testing.T) (*ai.EntRepository, *ent.Client, context.Context
 		Save(ctx)
 	require.NoError(t, err)
 
-	return ai.NewEntRepository(client, nil), client, ctx, user.ID
+	cipher, err := cryptopkg.NewCipherFromKey(cryptopkg.DeriveDevKey())
+	require.NoError(t, err)
+	return ai.NewEntRepository(client, cipher), client, ctx, user.ID
 }
 
 func TestEntRepository_ProviderCRUDAndModels(t *testing.T) {
@@ -46,7 +49,7 @@ func TestEntRepository_ProviderCRUDAndModels(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "DeepSeek", created.Name)
-	assert.Equal(t, "sk-test", created.APIKeyEnc)
+	assert.NotEqual(t, "sk-test", created.APIKeyEnc, "api key must be encrypted at rest")
 
 	list, err := repo.ListProviders(ctx, "system")
 	require.NoError(t, err)

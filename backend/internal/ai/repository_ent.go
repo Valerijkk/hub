@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -28,19 +29,31 @@ func NewEntRepository(client *ent.Client, cipher *cryptopkg.Cipher) *EntReposito
 	return &EntRepository{client: client, cipher: cipher}
 }
 
+// ErrEncryptionRequired — cipher обязателен для записи/чтения непустого API-ключа (W5-A3-007).
+var ErrEncryptionRequired = errors.New("encryption required: api key cannot be stored without cipher")
+
 func (r *EntRepository) encryptField(v string) (string, error) {
-	if r.cipher == nil || v == "" {
-		return v, nil
+	if v == "" {
+		return "", nil
+	}
+	if r.cipher == nil {
+		return "", ErrEncryptionRequired
 	}
 	return r.cipher.EncryptString(v)
 }
 
-func (r *EntRepository) decryptField(v string) string {
-	if r.cipher == nil || v == "" {
-		return v
+func (r *EntRepository) decryptField(v string) (string, error) {
+	if v == "" {
+		return "", nil
 	}
-	pt, _ := r.cipher.MaybeDecryptString(v)
-	return pt
+	if r.cipher == nil {
+		return "", ErrEncryptionRequired
+	}
+	pt, err := r.cipher.DecryptString(v)
+	if err != nil {
+		return "", fmt.Errorf("decrypt api key: %w", err)
+	}
+	return pt, nil
 }
 
 func (r *EntRepository) ListProviders(ctx context.Context, scope string) ([]*ent.AIProvider, error) {
@@ -56,7 +69,11 @@ func (r *EntRepository) GetProvider(ctx context.Context, id uuid.UUID) (*ent.AIP
 	if err != nil {
 		return nil, err
 	}
-	p.APIKeyEnc = r.decryptField(p.APIKeyEnc)
+	key, err := r.decryptField(p.APIKeyEnc)
+	if err != nil {
+		return nil, err
+	}
+	p.APIKeyEnc = key
 	return p, nil
 }
 
@@ -160,8 +177,12 @@ func (r *EntRepository) ListProvidersForModel(ctx context.Context, userID uuid.U
 		}
 		for _, p := range userProviders {
 			if providerHasModel(p, model) {
+				key, err := r.decryptField(p.APIKeyEnc)
+				if err != nil {
+					return nil, err
+				}
 				cp := *p
-				cp.APIKeyEnc = r.decryptField(p.APIKeyEnc)
+				cp.APIKeyEnc = key
 				out = append(out, &cp)
 			}
 		}
@@ -175,8 +196,12 @@ func (r *EntRepository) ListProvidersForModel(ctx context.Context, userID uuid.U
 	}
 	for _, p := range systemProviders {
 		if providerHasModel(p, model) {
+			key, err := r.decryptField(p.APIKeyEnc)
+			if err != nil {
+				return nil, err
+			}
 			cp := *p
-			cp.APIKeyEnc = r.decryptField(p.APIKeyEnc)
+			cp.APIKeyEnc = key
 			out = append(out, &cp)
 		}
 	}

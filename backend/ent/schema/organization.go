@@ -32,6 +32,7 @@ func (Organization) Fields() []ent.Field {
 		field.String("invite_token").
 			Unique().
 			NotEmpty().
+			Sensitive().
 			Comment("Token for org-wide invite links"),
 		field.Time("created_at").
 			Default(nowUTC).

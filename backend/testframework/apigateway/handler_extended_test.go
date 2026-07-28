@@ -35,7 +35,7 @@ func TestHandler_RegisterRoutes_RevokeAPIKeySuccess(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	repo := apigateway.NewEntRepository(client)
+	repo := apigateway.NewEntRepository(client, apigatewayTestCipher(t))
 	apiKeySvc := apigateway.NewAPIKeyService(repo)
 	t.Cleanup(apiKeySvc.Close)
 	h := apigateway.NewHandler(apiKeySvc, apigateway.NewWebhookService(repo))

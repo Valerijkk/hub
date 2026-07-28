@@ -27,9 +27,11 @@ func (PushSubscription) Fields() []ent.Field {
 			Comment("Push endpoint URL (уникальный для каждого браузера)"),
 		field.String("p256dh_key").
 			NotEmpty().
+			Sensitive().
 			Comment("Публичный ключ клиента (base64url, RFC 8291)"),
 		field.String("auth_key").
 			NotEmpty().
+			Sensitive().
 			Comment("Shared auth secret (base64url, RFC 8291)"),
 		field.String("user_agent").
 			Optional().

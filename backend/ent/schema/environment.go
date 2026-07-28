@@ -30,6 +30,10 @@ func (Environment) Fields() []ent.Field {
 		field.JSON("config", map[string]interface{}{}).
 			Optional().
 			Comment("Конфигурация: {browser, os, version}"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -51,5 +55,7 @@ func (Environment) Edges() []ent.Edge {
 func (Environment) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("env_label"),
+		index.Fields("deleted_at"),
+		index.Edges("project").Fields("deleted_at"),
 	}
 }

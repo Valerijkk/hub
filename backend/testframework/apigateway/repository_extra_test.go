@@ -32,7 +32,7 @@ func TestEntRepository_CreateWebhookDeliveryAndList(t *testing.T) {
 	dsn := "file:whdel_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
 	client := enttest.Open(t, "sqlite3", dsn)
 	t.Cleanup(func() { _ = client.Close() })
-	repo := apigateway.NewEntRepository(client)
+	repo := apigateway.NewEntRepository(client, apigatewayTestCipher(t))
 	ctx := t.Context()
 
 	proj, err := client.Project.Create().SetName("Del Proj").SetKey("DEL").Save(ctx)

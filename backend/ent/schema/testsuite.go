@@ -26,6 +26,10 @@ func (TestSuite) Fields() []ent.Field {
 			Optional(),
 		field.Int("sort_order").
 			Default(0),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -53,5 +57,7 @@ func (TestSuite) Edges() []ent.Edge {
 func (TestSuite) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("name"),
+		index.Fields("deleted_at"),
+		index.Edges("project").Fields("deleted_at"),
 	}
 }

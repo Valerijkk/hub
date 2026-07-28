@@ -67,7 +67,7 @@ func newWebhookEnv(t *testing.T) *webhookEnv {
 		Save(ctx)
 	require.NoError(t, err)
 
-	repo := apigateway.NewEntRepository(client)
+	repo := apigateway.NewEntRepository(client, apigatewayTestCipher(t))
 	webhookSvc := apigateway.NewWebhookService(repo)
 	apiKeySvc := apigateway.NewAPIKeyService(repo)
 	t.Cleanup(apiKeySvc.Close)

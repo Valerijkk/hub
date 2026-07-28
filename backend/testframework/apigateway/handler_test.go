@@ -33,7 +33,7 @@ func newHandlerTestEnv(t *testing.T) (*apigateway.Handler, *apigateway.APIKeySer
 		Save(ctx)
 	require.NoError(t, err)
 
-	repo := apigateway.NewEntRepository(client)
+	repo := apigateway.NewEntRepository(client, apigatewayTestCipher(t))
 	apiKeySvc := apigateway.NewAPIKeyService(repo)
 	t.Cleanup(apiKeySvc.Close)
 
@@ -144,7 +144,7 @@ func TestAPIKeyService_VerifyInvalidKey(t *testing.T) {
 	client := enttest.Open(t, "sqlite3", dsn)
 	t.Cleanup(func() { _ = client.Close() })
 
-	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client))
+	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client, apigatewayTestCipher(t)))
 	t.Cleanup(svc.Close)
 
 	_, err := svc.VerifyAPIKey(context.Background(), "definitely-not-a-valid-key")
@@ -163,7 +163,7 @@ func TestAPIKeyService_ExpiredKeyRejected(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client))
+	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client, apigatewayTestCipher(t)))
 	t.Cleanup(svc.Close)
 
 	past := time.Now().Add(-time.Hour)

@@ -36,7 +36,7 @@ func newAPIKeyTestService(t *testing.T) (*apigateway.APIKeyService, uuid.UUID, s
 		Save(ctx)
 	require.NoError(t, err)
 
-	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client))
+	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client, apigatewayTestCipher(t)))
 	t.Cleanup(svc.Close)
 
 	resp, err := svc.CreateAPIKey(ctx, u.ID, "integration-test", nil)
@@ -59,7 +59,7 @@ func TestAPIKeyAuth_AlonePassesRequireAuth_A9012(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	apiKeySvc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client))
+	apiKeySvc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client, apigatewayTestCipher(t)))
 	t.Cleanup(apiKeySvc.Close)
 
 	keyResp, err := apiKeySvc.CreateAPIKey(ctx, u.ID, "a9012-ci", nil)
@@ -128,7 +128,7 @@ func TestAPIKeyAuth_DeactivatedUser_Rejected(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client))
+	svc := apigateway.NewAPIKeyService(apigateway.NewEntRepository(client, apigatewayTestCipher(t)))
 	t.Cleanup(svc.Close)
 
 	resp, err := svc.CreateAPIKey(ctx, u.ID, "deactivated-owner", nil)

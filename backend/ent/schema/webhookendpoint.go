@@ -24,12 +24,17 @@ func (WebhookEndpoint) Fields() []ent.Field {
 			Comment("URL для отправки POST-запросов"),
 		field.String("secret").
 			NotEmpty().
-			Comment("Секрет для HMAC-SHA256 подписи payload"),
+			Sensitive().
+			Comment("Секрет для HMAC-SHA256 подписи payload (at-rest encrypted)"),
 		field.JSON("events", []string{}).
 			Comment("Массив подписанных событий"),
 		field.Bool("is_active").
 			Default(true).
 			Comment("Активен ли вебхук"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -51,5 +56,6 @@ func (WebhookEndpoint) Edges() []ent.Edge {
 func (WebhookEndpoint) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("is_active"),
+		index.Fields("deleted_at"),
 	}
 }

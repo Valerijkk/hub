@@ -32,6 +32,7 @@ func (GitLabIntegration) Fields() []ent.Field {
 			Comment("GitLab Personal Access Token"),
 		field.String("webhook_secret").
 			Optional().
+			Sensitive().
 			Comment("Секрет для валидации GitLab webhook (X-Gitlab-Token)"),
 		field.Time("created_at").
 			Default(nowUTC).

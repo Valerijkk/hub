@@ -39,6 +39,10 @@ func (APIKey) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("Срок действия ключа"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления / revoke (корзина 30 дней)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -60,5 +64,6 @@ func (APIKey) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("key_hash"),
 		index.Fields("expires_at"),
+		index.Fields("deleted_at"),
 	}
 }

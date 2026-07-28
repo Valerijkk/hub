@@ -73,7 +73,7 @@ func wireAuth(d *serverDeps) {
 	d.requireAuth = requireAuth
 
 	// SEC-01: APIKeyAuth должен быть зарегистрирован ДО первого RegisterRoutes.
-	apigatewayRepo := apigatewaymod.NewEntRepository(d.db)
+	apigatewayRepo := apigatewaymod.NewEntRepository(d.db, d.integrationCipher)
 	d.apigatewayRepo = apigatewayRepo
 	apiKeySvc := apigatewaymod.NewAPIKeyService(apigatewayRepo)
 	// async-обновлений last_used_at. Без Close() workers + touchJobs
