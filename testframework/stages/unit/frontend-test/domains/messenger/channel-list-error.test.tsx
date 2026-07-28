@@ -14,7 +14,12 @@ vi.mock("@/hooks/use-unread", () => ({
 }));
 
 vi.mock("@/hooks/use-presence", () => ({
-	usePresence: () => ({ getStatus: () => "offline" }),
+	usePresence: () => ({
+		getStatus: () => "offline",
+		isError: false,
+		isLoading: false,
+		refetch: vi.fn(),
+	}),
 }));
 
 vi.mock("@tanstack/react-router", () => ({

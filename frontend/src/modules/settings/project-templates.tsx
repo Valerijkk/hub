@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/api/client";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Шаблон проекта. */
 interface ProjectTemplate {
@@ -23,9 +25,14 @@ export function TemplateSelector({
 	const [selected, setSelected] = useState<string | null>(null);
 
 	useEffect(() => {
-		api.get<ProjectTemplate[]>("/project-templates").then((data) => {
-			setTemplates(data ?? []);
-		});
+		api
+			.get<ProjectTemplate[]>("/project-templates")
+			.then((data) => {
+				setTemplates(data ?? []);
+			})
+			.catch((err: unknown) => {
+				toastApiError(err, "Не удалось загрузить шаблоны");
+			});
 	}, []);
 
 	const handleSelect = (id: string) => {
@@ -82,6 +89,7 @@ export function TemplateSelector({
 export function ProjectTemplatesPage() {
 	const [templates, setTemplates] = useState<ProjectTemplate[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
 
 	const fetchTemplates = useCallback(async () => {
@@ -89,18 +97,27 @@ export function ProjectTemplatesPage() {
 			setLoading(true);
 			const data = await api.get<ProjectTemplate[]>("/project-templates");
 			setTemplates(data ?? []);
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			setTemplates([]);
+			toastApiError(err, "Не удалось загрузить шаблоны проектов");
 		} finally {
 			setLoading(false);
 		}
 	}, []);
 
 	useEffect(() => {
-		fetchTemplates();
+		void fetchTemplates();
 	}, [fetchTemplates]);
 
 	const handleDelete = async (id: string) => {
-		await api.delete(`/project-templates/${id}`);
-		fetchTemplates();
+		try {
+			await api.delete(`/project-templates/${id}`);
+			void fetchTemplates();
+		} catch (err) {
+			toastApiError(err, "Не удалось удалить шаблон");
+		}
 	};
 
 	return (
@@ -109,6 +126,11 @@ export function ProjectTemplatesPage() {
 
 			{loading ? (
 				<p className="text-gray-500">Загрузка...</p>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить шаблоны проектов"
+					retry={() => void fetchTemplates()}
+				/>
 			) : (
 				<div className="space-y-3">
 					{templates.map((t) => (

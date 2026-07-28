@@ -6,6 +6,7 @@ import {
 	listGitHubLinks,
 	listIntegrations,
 } from "@/api/github";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import {
 	Select,
 	SelectContent,
@@ -13,6 +14,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toastApiError } from "@/lib/format-api-error";
 
 // ---------------------------------------------------------------------------
 // Типы
@@ -222,6 +224,7 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 	const [links, setLinks] = useState<GitHubLinkResponse[]>([]);
 	const [integrations, setIntegrations] = useState<IntegrationResponse[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [showBranchDialog, setShowBranchDialog] = useState(false);
 
 	const fetchData = useCallback(async () => {
@@ -232,15 +235,19 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 			]);
 			setLinks(linksData);
 			setIntegrations(integrationsData);
-		} catch {
-			// Ошибка загрузки -- показываем пустой список
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			setLinks([]);
+			setIntegrations([]);
+			toastApiError(err, "Не удалось загрузить связи GitHub");
 		} finally {
 			setLoading(false);
 		}
 	}, [issueKey, projectId]);
 
 	useEffect(() => {
-		fetchData();
+		void fetchData();
 	}, [fetchData]);
 
 	if (loading) {
@@ -249,6 +256,19 @@ export function GitHubLinks({ issueKey, projectId }: GitHubLinksProps) {
 				<div className="h-4 w-24 rounded bg-gray-200 dark:bg-gray-700" />
 				<div className="h-8 w-full rounded bg-gray-200 dark:bg-gray-700" />
 			</div>
+		);
+	}
+
+	if (loadError) {
+		return (
+			<QueryErrorAlert
+				compact
+				message="Не удалось загрузить связи GitHub"
+				retry={() => {
+					setLoading(true);
+					void fetchData();
+				}}
+			/>
 		);
 	}
 

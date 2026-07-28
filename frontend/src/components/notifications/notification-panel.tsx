@@ -317,7 +317,7 @@ const NotificationItem = memo(function NotificationItem({
 			</button>
 			<button
 				type="button"
-				className="mt-0.5 hidden group-hover:flex h-5 w-5 shrink-0 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors"
+				className="mt-0.5 hidden group-hover:flex group-focus-within:flex h-5 w-5 shrink-0 items-center justify-center rounded-md hover:bg-destructive/10 text-t2 hover:text-destructive transition-colors focus-visible:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue)]"
 				onClick={onDelete}
 				title="Удалить"
 				aria-label="Удалить уведомление"

@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-27T00:45:00.000Z"
-last_activity: 2026-07-27 · planning-audit PW waves · coverage 81.9% (2026-07-27)
+last_updated: "2026-07-28T22:55:00.000Z"
+last_activity: 2026-07-28 · fe1 TASK-093 error≠empty + a11y delete focus
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -64,6 +64,12 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-28 (fe1 · TASK-093 A2 error≠empty + a11y delete)
+
+- Residual A2W9/W10/W11: saved-filters toast+loadError; notification delete `group-focus-within`; usePresence `isError` ≠ offline; A2W10 modules/routes fail≠empty.
+- Vitest 7 PASS (saved-filters, notification-delete-focus, sprint-backlog-error, use-presence-error, channel-list-error); статус «Исправлена».
+- Ветка: `fix/frontend/task-093-error-empty-a11y`.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

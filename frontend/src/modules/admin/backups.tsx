@@ -6,7 +6,9 @@ import {
 	restoreBackup,
 	triggerBackup,
 } from "@/api/backup";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Форматирует размер файла в человекочитаемый вид. */
 function formatSize(bytes: number): string {
@@ -20,6 +22,7 @@ function formatSize(bytes: number): string {
 export function BackupsPage() {
 	const [backups, setBackups] = useState<BackupRecord[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [creating, setCreating] = useState(false);
 	const [restoreConfirm, setRestoreConfirm] = useState<string | null>(null);
 	const [restoreInput, setRestoreInput] = useState("");
@@ -30,20 +33,27 @@ export function BackupsPage() {
 			setLoading(true);
 			const data = await listBackups();
 			setBackups(data ?? []);
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			setBackups([]);
+			toastApiError(err, "Не удалось загрузить резервные копии");
 		} finally {
 			setLoading(false);
 		}
 	}, []);
 
 	useEffect(() => {
-		fetchBackups();
+		void fetchBackups();
 	}, [fetchBackups]);
 
 	const handleCreate = async () => {
 		setCreating(true);
 		try {
 			await triggerBackup();
-			fetchBackups();
+			void fetchBackups();
+		} catch (err) {
+			toastApiError(err, "Не удалось создать резервную копию");
 		} finally {
 			setCreating(false);
 		}
@@ -51,15 +61,23 @@ export function BackupsPage() {
 
 	const handleRestore = async (id: string) => {
 		if (restoreInput !== "RESTORE") return;
-		await restoreBackup(id);
-		setRestoreConfirm(null);
-		setRestoreInput("");
-		fetchBackups();
+		try {
+			await restoreBackup(id);
+			setRestoreConfirm(null);
+			setRestoreInput("");
+			void fetchBackups();
+		} catch (err) {
+			toastApiError(err, "Не удалось восстановить резервную копию");
+		}
 	};
 
 	const handleDelete = async (id: string) => {
-		await deleteBackup(id);
-		fetchBackups();
+		try {
+			await deleteBackup(id);
+			void fetchBackups();
+		} catch (err) {
+			toastApiError(err, "Не удалось удалить резервную копию");
+		}
 	};
 
 	const statusBadge = (status: BackupRecord["status"]) => {
@@ -135,6 +153,11 @@ export function BackupsPage() {
 
 			{loading ? (
 				<p className="text-t3 text-[13px]">Загрузка...</p>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить резервные копии"
+					retry={() => void fetchBackups()}
+				/>
 			) : backups.length === 0 ? (
 				<p className="text-t3 text-[13px]">Нет резервных копий</p>
 			) : (

@@ -10,6 +10,7 @@ import {
 	updateContact,
 } from "@/api/crm";
 import { listProjects } from "@/api/projects";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -38,7 +39,12 @@ export function CrmPage() {
 	const [editEmail, setEditEmail] = useState("");
 	const [deleteTarget, setDeleteTarget] = useState<CrmContact | null>(null);
 
-	const { data: contactsData } = useQuery({
+	const {
+		data: contactsData,
+		isError: contactsError,
+		isLoading: contactsLoading,
+		refetch: refetchContacts,
+	} = useQuery({
 		queryKey: ["crm", "contacts"],
 		queryFn: listContacts,
 	});
@@ -196,23 +202,37 @@ export function CrmPage() {
 						</Button>
 					</form>
 					<ul className="max-h-64 space-y-1 overflow-y-auto text-sm">
-						{contacts.map((c) => (
-							<li key={c.id}>
-								<button
-									type="button"
-									onClick={() => handleSelectContact(c)}
-									className={cn(
-										"w-full rounded-md px-2 py-1.5 text-left hover:bg-[var(--hover)]/40",
-										selectedContactId === c.id && "bg-[var(--hover)]/50",
-									)}
-								>
-									<p className="font-medium">{c.name}</p>
-									{c.email && <p className="text-xs text-t3">{c.email}</p>}
-								</button>
+						{contactsLoading ? (
+							<li className="text-xs text-t3">Загрузка...</li>
+						) : contactsError ? (
+							<li>
+								<QueryErrorAlert
+									compact
+									message="Не удалось загрузить контакты"
+									retry={() => void refetchContacts()}
+								/>
 							</li>
-						))}
-						{contacts.length === 0 && (
-							<li className="text-xs text-t3">Нет контактов</li>
+						) : (
+							<>
+								{contacts.map((c) => (
+									<li key={c.id}>
+										<button
+											type="button"
+											onClick={() => handleSelectContact(c)}
+											className={cn(
+												"w-full rounded-md px-2 py-1.5 text-left hover:bg-[var(--hover)]/40",
+												selectedContactId === c.id && "bg-[var(--hover)]/50",
+											)}
+										>
+											<p className="font-medium">{c.name}</p>
+											{c.email && <p className="text-xs text-t3">{c.email}</p>}
+										</button>
+									</li>
+								))}
+								{contacts.length === 0 && (
+									<li className="text-xs text-t3">Нет контактов</li>
+								)}
+							</>
 						)}
 					</ul>
 

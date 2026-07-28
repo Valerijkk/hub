@@ -10,7 +10,9 @@ import {
 	type WebhookDelivery,
 	type WebhookEndpoint,
 } from "@/api/webhooks";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toastApiError } from "@/lib/format-api-error";
 import { canMutateProject } from "@/lib/permissions";
 
 const AVAILABLE_EVENTS = [
@@ -32,6 +34,7 @@ export function WebhooksPage({
 }) {
 	const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [showCreate, setShowCreate] = useState(false);
 	const [url, setUrl] = useState("");
 	const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
@@ -55,29 +58,42 @@ export function WebhooksPage({
 		if (!projectId?.trim()) {
 			setEndpoints([]);
 			setLoading(false);
+			setLoadError(false);
 			return;
 		}
 		try {
 			setLoading(true);
 			const data = await listWebhooks(projectId);
 			setEndpoints(data ?? []);
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			setEndpoints([]);
+			toastApiError(err, "Не удалось загрузить вебхуки");
 		} finally {
 			setLoading(false);
 		}
 	}, [projectId]);
 
 	useEffect(() => {
-		fetchEndpoints();
+		void fetchEndpoints();
 	}, [fetchEndpoints]);
 
 	const handleCreate = async () => {
 		if (!projectId?.trim() || !url.trim() || selectedEvents.length === 0)
 			return;
-		await createWebhook(projectId, { url: url.trim(), events: selectedEvents });
-		setUrl("");
-		setSelectedEvents([]);
-		setShowCreate(false);
-		fetchEndpoints();
+		try {
+			await createWebhook(projectId, {
+				url: url.trim(),
+				events: selectedEvents,
+			});
+			setUrl("");
+			setSelectedEvents([]);
+			setShowCreate(false);
+			void fetchEndpoints();
+		} catch (err) {
+			toastApiError(err, "Не удалось создать вебхук");
+		}
 	};
 
 	if (!hasProjectId) {
@@ -184,6 +200,11 @@ export function WebhooksPage({
 
 			{loading ? (
 				<p className="text-t3 text-[13px]">Загрузка...</p>
+			) : loadError ? (
+				<QueryErrorAlert
+					message="Не удалось загрузить вебхуки"
+					retry={() => void fetchEndpoints()}
+				/>
 			) : endpoints.length === 0 ? (
 				<p className="text-t3 text-[13px]">Нет вебхуков</p>
 			) : (

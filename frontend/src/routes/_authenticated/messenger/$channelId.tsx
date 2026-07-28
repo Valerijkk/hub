@@ -14,9 +14,12 @@ import { useMessengerStore } from "@/stores/messenger-store";
  */
 class ChatErrorBoundary extends Component<
 	{ children: ReactNode },
-	{ error: Error | null }
+	{ error: Error | null; retryCount: number }
 > {
-	state: { error: Error | null } = { error: null };
+	state: { error: Error | null; retryCount: number } = {
+		error: null,
+		retryCount: 0,
+	};
 
 	static getDerivedStateFromError(error: Error) {
 		return { error };
@@ -52,7 +55,12 @@ class ChatErrorBoundary extends Component<
 						<button
 							type="button"
 							className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-							onClick={() => this.setState({ error: null })}
+							onClick={() =>
+								this.setState((s) => ({
+									error: null,
+									retryCount: s.retryCount + 1,
+								}))
+							}
 						>
 							Попробовать снова
 						</button>
@@ -60,7 +68,8 @@ class ChatErrorBoundary extends Component<
 				</div>
 			);
 		}
-		return this.props.children;
+		// A2W10-A4-001: remount children on retry via key
+		return <div key={this.state.retryCount}>{this.props.children}</div>;
 	}
 }
 

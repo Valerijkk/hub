@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { api } from "@/api/client";
+import { toastApiError } from "@/lib/format-api-error";
 
 /** Диалог импорта задач из CSV/JSON. */
 export function ImportExportToolbar({ projectId }: { projectId: string }) {
@@ -27,8 +28,8 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 				total: number;
 			}>(`/projects/${projectId}/import/issues?mode=preview`, formData);
 			setPreview(data);
-		} catch {
-			// Preview fail — оставляем форму без данных
+		} catch (err) {
+			toastApiError(err, "Не удалось выполнить предварительный просмотр");
 		}
 	};
 
@@ -45,8 +46,8 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 			);
 			setResult(data);
 			setPreview(null);
-		} catch {
-			// Commit fail — UI остаётся на preview
+		} catch (err) {
+			toastApiError(err, "Не удалось импортировать задачи");
 		} finally {
 			setImporting(false);
 		}
@@ -61,11 +62,13 @@ export function ImportExportToolbar({ projectId }: { projectId: string }) {
 			const a = document.createElement("a");
 			a.href = url;
 			a.download =
-				format === "excel" ? `issues-${projectId}.xlsx` : `issues-${projectId}.csv`;
+				format === "excel"
+					? `issues-${projectId}.xlsx`
+					: `issues-${projectId}.csv`;
 			a.click();
 			URL.revokeObjectURL(url);
-		} catch {
-			// Export fail — без silent window.open без JWT
+		} catch (err) {
+			toastApiError(err, "Не удалось экспортировать задачи");
 		}
 	};
 

@@ -30,7 +30,7 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-090](TASK-090-2026-07-28-audit-purge-error-contract.md) | 🔒 Audit purge fail-closed + errors | P2 | Открыта | be1 | A2W6 |
 | [TASK-091](TASK-091-2026-07-28-tms-createbug-reports-batch.md) | 🐛 TMS createBug + reports N+1 | P2 | Открыта | be2 | A2W2 |
 | [TASK-092](TASK-092-2026-07-28-search-filter-status-safedial.md) | 🔒 Search 403 + Meili SafeDial | P2 | Открыта | be2 | A2W5-A4 |
-| [TASK-093](TASK-093-2026-07-28-fe-a2-error-empty-a11y-sweep.md) | 🧹 FE A2 error≠empty + a11y | P2 | Открыта | fe1 | A2W9/W10/W11 |
+| [TASK-093](TASK-093-2026-07-28-fe-a2-error-empty-a11y-sweep.md) | 🧹 FE A2 error≠empty + a11y | P2 | Исправлена | fe1 | A2W9/W10/W11 |
 | [TASK-094](TASK-094-2026-07-28-coffee-pairs-triple-edge.md) | ☕ Coffee Pairs[] triple-edges | P3 | Открыта | be2 | A2W7-2-N01 |
 | [TASK-095](TASK-095-2026-07-28-ent-version-mixin-adr-rollout.md) | 📐 Ent VersionMixin ADR + rollout | **P1** | Открыта | arch→be1 | A2W8 · 19 rows |
 | [TASK-096](TASK-096-2026-07-28-ent-ondelete-cascade-adr.md) | 📐 Ent OnDelete/cascade ADR | **P1** | Открыта | arch→be1 | A2W8 · 4 |

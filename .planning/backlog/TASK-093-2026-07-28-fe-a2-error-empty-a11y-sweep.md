@@ -1,6 +1,6 @@
 # TASK-093 — 🧹 FE A2: error≠empty residual + a11y delete focus
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
 > Источник: A2W9/W10/W11 · Stage A2 dedup · TASK-008
 
 ## [OUTCOME]
@@ -54,3 +54,69 @@
 
 - Не закрывать соседние A2 ID «заодно» без evidence
 - Docs sync только если контракт API изменился
+
+---
+
+## Progress (fe1 · 2026-07-28)
+
+### Checklist ID
+
+| ID | Вердикт | Evidence |
+|----|---------|----------|
+| A2W9-4-001 | **FIXED** | `saved-filters.tsx` — `toastApiError` + `loadError`/`QueryErrorAlert` |
+| A2W9-4-002 | **FIXED** | `notification-panel.tsx` — `group-focus-within:flex` на delete |
+| A2W11-3-001 | **FIXED** | `use-presence.ts` — `isError`/`error`/`refetch`; channel-list → «Статус недоступен» |
+| A2W11-3-003 | **FIXED** | heartbeat `console.warn` + счётчик, не silent `catch {}` |
+| A2W10-A1-001 | **FIXED** | `accounting-page.tsx` — `isError` early return |
+| A2W10-A1-002 | **FIXED** | `backups.tsx` — catch + `QueryErrorAlert` + toast mutations |
+| A2W10-A1-003 | **FIXED** | `crm-page.tsx` — contacts `isError` ≠ «Нет контактов» |
+| A2W10-A1-004 | **FIXED** | `recordings-list.tsx` — load/download toast + alert |
+| A2W10-A1-005 | **FIXED** | `api-keys.tsx` — loadError + toast create/revoke |
+| A2W10-A1-006 | **FIXED** | `ai-privacy.tsx` — fail load ≠ default form `allowExternal` |
+| A2W10-A1-007 | **FIXED** | `project-templates.tsx` — loadError + toast |
+| A2W10-A2-001 | **FIXED** | `webhooks.tsx` — loadError + toast create |
+| A2W10-A2-002 | **FIXED** | `environments.tsx` — loadError + toast |
+| A2W10-A2-003 | **FIXED** | `github-links.tsx` — loadError ≠ empty PR list |
+| A2W10-A2-004 | **FIXED** | burndown store+chart error/retry |
+| A2W10-A2-005 | **FIXED** | `import-export.tsx` — toast preview/commit/export |
+| A2W10-A3-002 | **FIXED** | `sprint-backlog.tsx` — fail ≠ «Бэклог пуст» |
+| A2W10-A3-003 | **FIXED** | velocity store+chart error/retry |
+| A2W10-A3-009 | **FIXED** | checkbox `aria-label` на строках бэклога |
+| A2W10-A4-001 | **FIXED** | ChatErrorBoundary remount children via `retryCount` key |
+| A2W10-A4-002 | **FIXED** | `$issueKey.tsx` — `isError` ≠ not-found |
+| A2W10-A5-002 | **FIXED** | `cases_.$caseKey` — `isError` ≠ eternal shimmer |
+| A2W10-A5-003 | **FIXED** | `runs_.$runId` — `isError` ≠ eternal shimmer |
+| A2W10-A3-001 | **N/A** | TASK-082 |
+| A2W10-A5-001 | **N/A** | TASK-083 |
+| A2W11-3-002 | **N/A** | TASK-103 |
+| A2W9-4-003 | **WONTFIX** | P3 token drift (`border-blue-500`); не в REFERENCES 001/002; не error≠empty |
+| A2W10-A2-006 | **WONTFIX** | Plate `as Value` type-guard — не error≠empty |
+| A2W10-A2-007 | **WONTFIX** | coverage-report keyboard expand — a11y вне delete-focus |
+| A2W10-A2-008 | **WONTFIX** | CaseTreePanel dead export — не error≠empty |
+| A2W10-A3-004…008 | **WONTFIX** | nested interactive / Label / tabs a11y — вне OUTCOME delete-focus |
+
+### Тесты
+
+```
+cd frontend
+node scripts/link-testframework-node-modules.mjs
+npx tsc --noEmit   # PASS
+npx vitest run \
+  ../testframework/stages/unit/frontend-test/domains/platform/saved-filters-error.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/platform/notification-delete-focus.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/tracker/sprint-backlog-error.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/messenger/use-presence-error.test.tsx \
+  ../testframework/stages/unit/frontend-test/domains/messenger/channel-list-error.test.tsx
+# 5 files · 7 tests · PASS
+```
+
+### Mutation note
+
+- `saved-filters-error`: убрать `toastApiError` из `handleCreate` catch → тест «toasts on create failure» краснеет.
+- `sprint-backlog-error`: вернуть silent `catch {}` без `loadError` → снова «Бэклог пуст», alert пропадает.
+- `notification-delete-focus`: убрать `group-focus-within:flex` → className assertion FAIL.
+- `use-presence-error`: не прокидывать `isError` → assertion FAIL.
+
+### Ветка
+
+`fix/frontend/task-093-error-empty-a11y` (worktree)

@@ -7,6 +7,7 @@ import {
 	type SavedFilter,
 	shareFilter,
 } from "@/api/search";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -21,6 +22,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toastApiError } from "@/lib/format-api-error";
 
 interface SavedFiltersProps {
 	/** ID проекта для фильтрации. */
@@ -44,14 +46,17 @@ export function SavedFilters({
 	const [newFilterName, setNewFilterName] = useState("");
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [loading, setLoading] = useState(false);
+	const [loadError, setLoadError] = useState(false);
 
 	/** Загрузка списка фильтров. */
 	const loadFilters = useCallback(async () => {
 		try {
 			const response = await listSavedFilters(projectId);
 			setFilters(response.filters);
-		} catch {
-			// Игнорируем ошибки загрузки
+			setLoadError(false);
+		} catch (err) {
+			setLoadError(true);
+			toastApiError(err, "Не удалось загрузить сохранённые фильтры");
 		}
 	}, [projectId]);
 
@@ -72,8 +77,8 @@ export function SavedFilters({
 			setNewFilterName("");
 			setDialogOpen(false);
 			await loadFilters();
-		} catch {
-			// Ошибка создания
+		} catch (err) {
+			toastApiError(err, "Не удалось сохранить фильтр");
 		} finally {
 			setLoading(false);
 		}
@@ -84,8 +89,8 @@ export function SavedFilters({
 		try {
 			await deleteSavedFilter(id);
 			setFilters((prev) => prev.filter((f) => f.id !== id));
-		} catch {
-			// Ошибка удаления
+		} catch (err) {
+			toastApiError(err, "Не удалось удалить фильтр");
 		}
 	};
 
@@ -96,10 +101,20 @@ export function SavedFilters({
 			setFilters((prev) =>
 				prev.map((f) => (f.id === updated.id ? updated : f)),
 			);
-		} catch {
-			// Ошибка расшаривания
+		} catch (err) {
+			toastApiError(err, "Не удалось изменить доступ к фильтру");
 		}
 	};
+
+	if (loadError) {
+		return (
+			<QueryErrorAlert
+				compact
+				message="Не удалось загрузить сохранённые фильтры"
+				retry={() => void loadFilters()}
+			/>
+		);
+	}
 
 	return (
 		<div className="flex items-center gap-2">
