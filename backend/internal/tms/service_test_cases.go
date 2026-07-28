@@ -144,11 +144,10 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, projectID uuid.UUID, ca
 		return nil, apperrors.NewInternal("ошибка получения тест-кейса")
 	}
 
-	// Создаём снимок текущей версии перед обновлением
-	snapshot := buildSnapshot(existing)
-	_, err = s.repo.CreateTestCaseVersion(ctx, existing.ID, userID, existing.Version, snapshot, "")
+	// A2W2-2-002: snapshot + update в одной Ent tx (иначе orphan version при fail update).
+	snapshot, err := buildSnapshot(existing)
 	if err != nil {
-		return nil, apperrors.NewInternal("ошибка создания версии")
+		return nil, apperrors.NewInternal("ошибка создания снимка версии")
 	}
 
 	// Формируем input для обновления
@@ -219,7 +218,7 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, projectID uuid.UUID, ca
 		input.ComponentIDs = &ids
 	}
 
-	updated, err := s.repo.UpdateTestCase(ctx, existing.ID, input)
+	updated, err := s.snapshotAndUpdateTestCase(ctx, existing.ID, userID, existing.Version, snapshot, "", input)
 	if err != nil {
 		var appErr *apperrors.AppError
 		if errors.As(err, &appErr) {
@@ -240,7 +239,8 @@ func (s *TMSService) DeleteTestCase(ctx context.Context, projectID uuid.UUID, ca
 		}
 		return apperrors.NewInternal("ошибка получения тест-кейса")
 	}
-	return s.repo.DeleteTestCase(ctx, existing.ID)
+	// A2W2-3-003: soft-delete scoped by projectID (repo TOCTOU guard).
+	return s.repo.DeleteTestCase(ctx, projectID, existing.ID)
 }
 
 // RollbackTestCase откатывает тест-кейс к указанной версии.
@@ -262,9 +262,8 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, projectID uuid.UUID, 
 		return nil, apperrors.NewInternal("ошибка получения версии")
 	}
 
-	// Создаём снимок текущего состояния перед откатом
-	currentSnapshot := buildSnapshot(existing)
-	_, err = s.repo.CreateTestCaseVersion(ctx, existing.ID, userID, existing.Version, currentSnapshot, "перед откатом к версии")
+	// Создаём снимок текущего состояния перед откатом (A2W2-2-002: вместе с update в одной tx).
+	currentSnapshot, err := buildSnapshot(existing)
 	if err != nil {
 		return nil, apperrors.NewInternal("ошибка создания снимка перед откатом")
 	}
@@ -272,8 +271,13 @@ func (s *TMSService) RollbackTestCase(ctx context.Context, projectID uuid.UUID, 
 	// Применяем снимок как обновление (optimistic lock на текущей version)
 	input := snapshotToUpdateInput(version.Snapshot)
 	input.Version = existing.Version
-	updated, err := s.repo.UpdateTestCase(ctx, existing.ID, input)
+	updated, err := s.snapshotAndUpdateTestCase(ctx, existing.ID, userID, existing.Version, currentSnapshot, "перед откатом к версии", input)
 	if err != nil {
+		// A2W2-2-003: VersionEQ conflict → 409, не маскировать в 500.
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return nil, err
+		}
 		return nil, apperrors.NewInternal("ошибка применения отката")
 	}
 

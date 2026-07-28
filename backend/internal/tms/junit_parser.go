@@ -61,7 +61,12 @@ type JUnitSkipped struct {
 }
 
 // ParseJUnitXML парсит JUnit XML и преобразует в AllureResult для единого пайплайна.
+// A2W2-4-001: depth + len cap (как importer assertXMLMaxDepth / maxImportRecords).
 func ParseJUnitXML(data []byte) ([]AllureResult, error) {
+	if err := assertXMLMaxDepth(data, maxImportNestDepth); err != nil {
+		return nil, err
+	}
+
 	// Пробуем как <testsuites>
 	var suites JUnitTestSuites
 	if err := xml.Unmarshal(data, &suites); err != nil {
@@ -83,6 +88,9 @@ func ParseJUnitXML(data []byte) ([]AllureResult, error) {
 		for _, tc := range suite.TestCases {
 			result := junitTestCaseToAllure(suite.Name, tc)
 			results = append(results, result)
+			if len(results) > maxAllureParseResults {
+				return nil, fmt.Errorf("слишком много junit-результатов (макс. %d)", maxAllureParseResults)
+			}
 		}
 	}
 

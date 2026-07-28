@@ -417,6 +417,9 @@ func handleImport(svc *TMSService, c fiber.Ctx, projectID, userID uuid.UUID) (*I
 		result.Created++
 	}
 
+	// A2W2-4-004: явный partial — частичный импорт без скрытого «успеха».
+	result.Partial = result.Errors > 0 || result.Skipped > 0
+
 	return result, nil
 }
 
@@ -528,14 +531,25 @@ type ResultExportData struct {
 }
 
 // handleExportTestCases экспортирует тест-кейсы проекта.
+// A2W2-4-005: пагинация до конца (ListTestCases cap 100) — без тихой усечённой выгрузки.
 func handleExportTestCases(svc *TMSService, ctx context.Context, projectID uuid.UUID, format string) (io.Reader, string, error) {
-	items, _, err := svc.repo.ListTestCases(ctx, projectID, ListTestCasesParams{Limit: 1000})
-	if err != nil {
-		return nil, "", apperrors.NewInternal("ошибка получения тест-кейсов для экспорта")
+	const pageSize = 100
+	offset := 0
+	var all []*ent.TestCase
+	for {
+		items, total, err := svc.repo.ListTestCases(ctx, projectID, ListTestCasesParams{Offset: offset, Limit: pageSize})
+		if err != nil {
+			return nil, "", apperrors.NewInternal("ошибка получения тест-кейсов для экспорта")
+		}
+		all = append(all, items...)
+		offset += len(items)
+		if offset >= total || len(items) == 0 {
+			break
+		}
 	}
 
-	exportData := make([]TestCaseExportData, 0, len(items))
-	for _, tc := range items {
+	exportData := make([]TestCaseExportData, 0, len(all))
+	for _, tc := range all {
 		suite := ""
 		if tc.Edges.Suite != nil {
 			suite = tc.Edges.Suite.Name
@@ -553,6 +567,7 @@ func handleExportTestCases(svc *TMSService, ctx context.Context, projectID uuid.
 
 	var buf bytes.Buffer
 	var filename string
+	var err error
 
 	switch format {
 	case "csv":

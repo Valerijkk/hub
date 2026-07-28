@@ -2,6 +2,7 @@ package tms
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -300,7 +301,8 @@ func buildSuiteTree(suites []*ent.TestSuite) []SuiteResponse {
 // ---------------------------------------------------------------------------
 
 // buildSnapshot создаёт снимок тест-кейса для версионирования.
-func buildSnapshot(tc *ent.TestCase) map[string]interface{} {
+// A2W2-2-010: ошибки Marshal/Unmarshal steps не глотаются.
+func buildSnapshot(tc *ent.TestCase) (map[string]interface{}, error) {
 	snapshot := map[string]interface{}{
 		"title":         tc.Title,
 		"description":   tc.Description,
@@ -312,9 +314,14 @@ func buildSnapshot(tc *ent.TestCase) map[string]interface{} {
 		"version":       tc.Version,
 	}
 	if len(tc.Steps) > 0 {
-		stepsJSON, _ := json.Marshal(tc.Steps)
+		stepsJSON, err := json.Marshal(tc.Steps)
+		if err != nil {
+			return nil, fmt.Errorf("сериализация steps для snapshot: %w", err)
+		}
 		var steps interface{}
-		_ = json.Unmarshal(stepsJSON, &steps)
+		if err := json.Unmarshal(stepsJSON, &steps); err != nil {
+			return nil, fmt.Errorf("десериализация steps для snapshot: %w", err)
+		}
 		snapshot["steps"] = steps
 	}
 	if tc.FullName != "" {
@@ -329,7 +336,7 @@ func buildSnapshot(tc *ent.TestCase) map[string]interface{} {
 	if tc.ExternalID != "" {
 		snapshot["external_id"] = tc.ExternalID
 	}
-	return snapshot
+	return snapshot, nil
 }
 
 // snapshotToUpdateInput конвертирует снимок версии в UpdateTestCaseInput для rollback.

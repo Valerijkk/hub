@@ -42,6 +42,16 @@ func NewEntRepository(client *ent.Client) *EntRepository {
 	return &EntRepository{client: client}
 }
 
+// Hard caps для unbounded All / InsertMany (A2W2-3-001/002).
+const (
+	maxListTestResults       = 10000
+	maxListSuites            = 2000
+	maxListComponents        = 1000
+	maxListTestCaseVersions  = 500
+	maxBatchCreateTestResults = 5000
+	maxMongoAllureResults    = 5000
+)
+
 // ---------------------------------------------------------------------------
 // Счётчики
 // ---------------------------------------------------------------------------
@@ -348,13 +358,14 @@ func (r *EntRepository) UpdateTestCase(ctx context.Context, id uuid.UUID, input 
 	return r.GetTestCase(ctx, id)
 }
 
-// DeleteTestCase выполняет мягкое удаление тест-кейса (P3-BE-05 / W2-A3-009).
-// Mutation: UpdateOneID без DeletedAtIsNil → повторный delete «успешен».
-func (r *EntRepository) DeleteTestCase(ctx context.Context, id uuid.UUID) error {
+// DeleteTestCase выполняет мягкое удаление тест-кейса внутри projectID (A2W2-3-003 / W2-A3-009).
+// Mutation: снять HasProjectWith / projectID → soft-delete чужого кейса.
+func (r *EntRepository) DeleteTestCase(ctx context.Context, projectID, id uuid.UUID) error {
 	affected, err := r.client.TestCase.Update().
 		Where(
 			testcase.IDEQ(id),
 			testcase.DeletedAtIsNil(),
+			testCaseProjectIDEQ(projectID),
 		).
 		SetDeletedAt(time.Now().UTC()).
 		Save(ctx)
@@ -413,12 +424,13 @@ func (r *EntRepository) CreateTestCaseVersion(ctx context.Context, testCaseID, u
 	return create.Save(ctx)
 }
 
-// ListTestCaseVersions возвращает все версии тест-кейса.
+// ListTestCaseVersions возвращает все версии тест-кейса (A2W2-3-002: hard cap).
 func (r *EntRepository) ListTestCaseVersions(ctx context.Context, testCaseID uuid.UUID) ([]*ent.TestCaseVersion, error) {
 	return r.client.TestCaseVersion.Query().
 		Where(testcaseversion.HasTestCaseWith(testcase.ID(testCaseID))).
 		WithCreatedBy().
 		Order(ent.Desc(testcaseversion.FieldVersionNumber)).
+		Limit(maxListTestCaseVersions).
 		All(ctx)
 }
 
@@ -477,6 +489,7 @@ func (r *EntRepository) GetSuiteInProject(ctx context.Context, projectID, id uui
 }
 
 // ListSuites возвращает все папки проекта (для построения дерева).
+// A2W2-3-002: hard cap против unbounded All.
 func (r *EntRepository) ListSuites(ctx context.Context, projectID uuid.UUID) ([]*ent.TestSuite, error) {
 	return r.client.TestSuite.Query().
 		Where(
@@ -486,6 +499,7 @@ func (r *EntRepository) ListSuites(ctx context.Context, projectID uuid.UUID) ([]
 		WithParent().
 		WithChildren().
 		Order(ent.Asc(testsuite.FieldSortOrder)).
+		Limit(maxListSuites).
 		All(ctx)
 }
 
@@ -581,7 +595,7 @@ func (r *EntRepository) CreateComponent(ctx context.Context, projectID uuid.UUID
 	return create.Save(ctx)
 }
 
-// ListComponents возвращает все компоненты проекта.
+// ListComponents возвращает все компоненты проекта (A2W2-3-002: hard cap).
 func (r *EntRepository) ListComponents(ctx context.Context, projectID uuid.UUID) ([]*ent.Component, error) {
 	return r.client.Component.Query().
 		Where(
@@ -589,6 +603,7 @@ func (r *EntRepository) ListComponents(ctx context.Context, projectID uuid.UUID)
 			component.DeletedAtIsNil(),
 		).
 		Order(ent.Asc(component.FieldName)).
+		Limit(maxListComponents).
 		All(ctx)
 }
 
@@ -843,18 +858,23 @@ func (r *EntRepository) UpdateTestResult(ctx context.Context, runID, id uuid.UUI
 	return r.client.TestResult.Get(ctx, id)
 }
 
-// ListTestResults возвращает все результаты прогона.
+// ListTestResults возвращает все результаты прогона (A2W2-3-002: hard cap).
 func (r *EntRepository) ListTestResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error) {
 	return r.client.TestResult.Query().
 		Where(testresult.HasRunWith(testrun.ID(runID))).
 		WithTestCase().
 		WithExecutedBy().
 		Order(ent.Asc(testresult.FieldCreatedAt)).
+		Limit(maxListTestResults).
 		All(ctx)
 }
 
 // BatchCreateTestResults массово создаёт результаты (для импорта Allure).
+// A2W2-3-002: max batch size.
 func (r *EntRepository) BatchCreateTestResults(ctx context.Context, runID uuid.UUID, inputs []CreateTestResultInput) ([]*ent.TestResult, error) {
+	if len(inputs) > maxBatchCreateTestResults {
+		return nil, fmt.Errorf("слишком много результатов для batch (макс. %d)", maxBatchCreateTestResults)
+	}
 	bulk := make([]*ent.TestResultCreate, 0, len(inputs))
 	for _, input := range inputs {
 		create := r.client.TestResult.Create().
@@ -1087,6 +1107,7 @@ func (r *EntRepository) GetTestResult(ctx context.Context, resultID uuid.UUID) (
 }
 
 // ListTestRunResults возвращает результаты прогона с подгруженными тест-кейсами и файлами.
+// A2W2-3-002: hard cap.
 func (r *EntRepository) ListTestRunResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error) {
 	return r.client.TestResult.Query().
 		Where(testresult.HasRunWith(testrun.ID(runID))).
@@ -1094,6 +1115,7 @@ func (r *EntRepository) ListTestRunResults(ctx context.Context, runID uuid.UUID)
 		WithExecutedBy().
 		WithFiles().
 		Order(ent.Asc(testresult.FieldCreatedAt)).
+		Limit(maxListTestResults).
 		All(ctx)
 }
 

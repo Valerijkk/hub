@@ -144,12 +144,72 @@ func (r *EntRepository) UpdateBase(ctx context.Context, id uuid.UUID, req Update
 }
 
 func (r *EntRepository) SoftDeleteBase(ctx context.Context, id uuid.UUID) error {
+	// A2W2-5-001: cascade soft-delete tables/columns/records в одной tx.
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin soft-delete base tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	now := time.Now().UTC()
-	_, err := r.client.HubBase.UpdateOneID(id).
-		Where(hubbase.DeletedAtIsNil()).
+
+	tableIDs, err := tx.HubTable.Query().
+		Where(
+			hubtable.HasBaseWith(hubbase.ID(id)),
+			hubtable.DeletedAtIsNil(),
+		).
+		IDs(ctx)
+	if err != nil {
+		return fmt.Errorf("list tables for cascade soft-delete: %w", err)
+	}
+
+	if len(tableIDs) > 0 {
+		if _, err := tx.HubRecord.Update().
+			Where(
+				hubrecord.HasTableWith(hubtable.IDIn(tableIDs...)),
+				hubrecord.DeletedAtIsNil(),
+			).
+			SetDeletedAt(now).
+			Save(ctx); err != nil {
+			return fmt.Errorf("cascade soft-delete records: %w", err)
+		}
+		if _, err := tx.HubColumn.Update().
+			Where(
+				hubcolumn.HasTableWith(hubtable.IDIn(tableIDs...)),
+				hubcolumn.DeletedAtIsNil(),
+			).
+			SetDeletedAt(now).
+			Save(ctx); err != nil {
+			return fmt.Errorf("cascade soft-delete columns: %w", err)
+		}
+		if _, err := tx.HubTable.Update().
+			Where(
+				hubtable.IDIn(tableIDs...),
+				hubtable.DeletedAtIsNil(),
+			).
+			SetDeletedAt(now).
+			Save(ctx); err != nil {
+			return fmt.Errorf("cascade soft-delete tables: %w", err)
+		}
+	}
+
+	affected, err := tx.HubBase.Update().
+		Where(
+			hubbase.IDEQ(id),
+			hubbase.DeletedAtIsNil(),
+		).
 		SetDeletedAt(now).
 		Save(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit soft-delete base: %w", err)
+	}
+	return nil
 }
 
 func (r *EntRepository) CreateTable(ctx context.Context, baseID uuid.UUID, req CreateTableRequest) (*ent.HubTable, error) {

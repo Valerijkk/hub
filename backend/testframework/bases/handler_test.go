@@ -20,7 +20,7 @@ import (
 
 func setupBasesTest(t *testing.T) (*fiber.App, uuid.UUID) {
 	t.Helper()
-	client := enttest.Open(t, "sqlite3", "file:bases?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:bases_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 	ctx := context.Background()
 

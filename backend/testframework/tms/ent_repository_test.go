@@ -114,7 +114,7 @@ func TestEntRepository_ListUpdateDeleteTestCase(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, newTitle, updated.Title)
 
-	require.NoError(t, repo.DeleteTestCase(ctx, created.ID))
+	require.NoError(t, repo.DeleteTestCase(ctx, projectID, created.ID))
 	_, err = repo.GetTestCase(ctx, created.ID)
 	require.Error(t, err)
 }

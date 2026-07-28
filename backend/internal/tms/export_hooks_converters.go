@@ -35,7 +35,7 @@ func ExportToTestRunDetailResponse(run *ent.TestRun) *TestRunDetailResponse {
 }
 
 // ExportBuildSnapshot строит snapshot тест-кейса для hubtest.
-func ExportBuildSnapshot(tc *ent.TestCase) map[string]interface{} {
+func ExportBuildSnapshot(tc *ent.TestCase) (map[string]interface{}, error) {
 	return buildSnapshot(tc)
 }
 

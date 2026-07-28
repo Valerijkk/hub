@@ -15,7 +15,7 @@ import (
 
 func setupBasesService(t *testing.T) (*Service, uuid.UUID) {
 	t.Helper()
-	client := enttest.Open(t, "sqlite3", "file:bases_svc?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:bases_svc_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 
 	owner, err := client.User.Create().

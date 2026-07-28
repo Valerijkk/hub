@@ -24,8 +24,8 @@ func TestEntRepository_DeleteTestCase_IdempotentNotFound_P3BE05(t *testing.T) {
 		Title: "Once", CaseType: "classic", Priority: "medium", Status: "draft", CreatedByID: userID,
 	})
 	require.NoError(t, err)
-	require.NoError(t, repo.DeleteTestCase(ctx, tc.ID))
-	err = repo.DeleteTestCase(ctx, tc.ID)
+	require.NoError(t, repo.DeleteTestCase(ctx, projectID, tc.ID))
+	err = repo.DeleteTestCase(ctx, projectID, tc.ID)
 	require.Error(t, err)
 	assert.True(t, ent.IsNotFound(err))
 }
