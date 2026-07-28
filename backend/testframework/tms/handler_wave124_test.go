@@ -31,12 +31,14 @@ func TestHandler_Wave124_RollbackTestCase_Success(t *testing.T) {
 	var created tms.TestCaseResponse
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
 
-	updateBody := `{"title":"RB HTTP v2"}`
+	// A2W2-1-003: version обязателен (StructValidator / optimistic lock).
+	updateBody := fmt.Sprintf(`{"title":"RB HTTP v2","version":%d}`, created.Version)
 	req = httptest.NewRequest(http.MethodPut, base+"/"+created.CaseKey, bytes.NewReader([]byte(updateBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)
 	require.NoError(t, err)
 	resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	req = httptest.NewRequest(http.MethodGet, base+"/"+created.CaseKey+"/versions", nil)
 	resp, err = app.Test(req)
