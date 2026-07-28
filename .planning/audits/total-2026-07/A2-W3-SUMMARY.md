@@ -12,8 +12,8 @@
 | A2W3-2 | messenger services | 28 | 0 | 0 | 3 | 1 | **4** |
 | A2W3-3 | messenger repos | 20 | 0 | 0 | 4 | 0 | **4** |
 | A2W3-4 | ws | 15 | 0 | 0 | 1 | 1 | **2** |
-| A2W3-5 | calls | 42 | 0 | 0 | 2 | 1 | **3** |
-| **Σ** | | **131** | **0** | **0** | **12** | **4** | **16** |
+| A2W3-5 | calls | 42 | 0 | 0 | 0 | 0 | **0** |
+| **Σ** | | **131** | **0** | **0** | **10** | **3** | **13** |
 
 ## По тегам
 
@@ -21,7 +21,7 @@
 |-----|------:|
 | NEW | **2** |
 | REGRESS | **0** |
-| RESIDUAL | **14** |
+| RESIDUAL | **11** |
 | FIXED-OK (справочно, не в Σ open) | **~59** Stage A findings закрыты |
 
 ## NEW (2)
@@ -39,7 +39,7 @@
 
 1. **Invite Accept RMW + orphan CreateChannel/DM** (A2W3-2-001/002, A2W3-3-001) — TASK-038 messenger out-of-scope  
 2. **Unread TTL / unbounded Ent lists** (A2W3-3-002/003) — TASK-042 deferred  
-3. **Recording orphan egress + finalizeCreate** (A2W3-5-001/002) — TASK-038 remaining  
+3. **Recording orphan egress + finalizeCreate** (A2W3-5-001/002) — **FIXED TASK-110**  
 4. **WS revoke end-to-end** (A2W3-4-002): Hub Unregister готов, auth не публикует revoked  
 5. **JWT `?token=`** (A2W3-4-001) — product ADR  
 6. **GetPresence** без shared-channel scope (A2W3-1-001); **wave114** wrong poll URL (A2W3-1-002)
@@ -50,8 +50,8 @@
 |-----------|-----:|--------:|
 | P0 | 1 | **0** (promote RBAC FIXED) |
 | P1 | 17 | **0** |
-| P2 | 32 | **12** residual (+1 NEW P2) |
-| P3 | 18 | **4** residual (+1 NEW P3) |
+| P2 | 32 | **10** residual (+1 NEW P2) |
+| P3 | 18 | **3** residual (+1 NEW P3) |
 
 ## Пути артефактов
 

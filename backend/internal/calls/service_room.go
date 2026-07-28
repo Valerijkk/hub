@@ -26,15 +26,29 @@ func provisionRoom(ctx context.Context, room *CallRoomService) (string, error) {
 
 // finalizeCreate выдаёт токен создателю и регистрирует его первым участником.
 // Package-level helper для orchestrator-flow (CreateCall / CreateInstantCall).
+// A2W3-5-002: ошибка AddParticipant → rollback LiveKit room + hard-delete call, не 201+JWT без participant.
 func finalizeCreate(ctx context.Context, room *CallRoomService, repo *EntRepository, callEnt *ent.Call, userID uuid.UUID, userName string) (*CallResponse, error) {
 	token, err := room.GenerateToken(callEnt.RoomName, userID.String(), userName)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось сгенерировать токен: %w", err)
 	}
 	if err := repo.AddParticipant(ctx, callEnt.ID, userID); err != nil {
-		slog.Error("не удалось добавить создателя как участника", "error", err)
+		rollbackCreate(ctx, room, repo, callEnt)
+		return nil, fmt.Errorf("не удалось добавить создателя как участника: %w", err)
 	}
 	return toCallResponse(callEnt, token), nil
+}
+
+// rollbackCreate удаляет LiveKit-комнату и запись звонка после провала finalizeCreate.
+func rollbackCreate(ctx context.Context, room *CallRoomService, repo *EntRepository, callEnt *ent.Call) {
+	if delErr := room.DeleteRoom(ctx, callEnt.RoomName); delErr != nil {
+		slog.Error("finalizeCreate rollback: не удалось удалить комнату LiveKit",
+			"room", callEnt.RoomName, "error", delErr)
+	}
+	if delErr := repo.HardDeleteCall(ctx, callEnt.ID); delErr != nil {
+		slog.Error("finalizeCreate rollback: не удалось удалить звонок",
+			"call_id", callEnt.ID, "error", delErr)
+	}
 }
 
 // resolveParticipant находит звонок по комнате и парсит identity участника webhook'а.

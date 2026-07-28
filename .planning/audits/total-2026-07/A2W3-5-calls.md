@@ -16,13 +16,13 @@
 | `backend/internal/calls/handler_recording.go` | 199 | 0 | FIXED-OK nil RBAC → 500 |
 | `backend/internal/calls/handler_scheduled.go` | 214 | 0 | FIXED-OK userID+authz |
 | `backend/internal/calls/models.go` | 50 | 0 | чисто |
-| `backend/internal/calls/recording.go` | 303 | 1 | RESIDUAL orphan egress |
+| `backend/internal/calls/recording.go` | 303 | 0 | FIXED-OK orphan egress StopEgress (TASK-110) |
 | `backend/internal/calls/repository.go` | 507 | 0 | FIXED-OK soft-delete + member role |
 | `backend/internal/calls/scheduled.go` | 323 | 0 | FIXED-OK CRUD authz + conflicts |
-| `backend/internal/calls/service.go` | 287 | 1 | RESIDUAL invite entropy (partial) |
+| `backend/internal/calls/service.go` | 287 | 0 | FIXED-OK invite base62×12 (TASK-110; MaxLen UUID — ADR) |
 | `backend/internal/calls/service_chat.go` | 136 | 0 | FIXED-OK ephemeral ≤2000 |
 | `backend/internal/calls/service_events.go` | 69 | 0 | чисто |
-| `backend/internal/calls/service_room.go` | 130 | 1 | RESIDUAL finalizeCreate |
+| `backend/internal/calls/service_room.go` | 130 | 0 | FIXED-OK finalizeCreate rollback (TASK-110) |
 | `backend/testframework/calls/chat_authz_a2003_test.go` | 82 | 0 | чисто |
 | `backend/testframework/calls/chat_mem_test.go` | 101 | 0 | чисто |
 | `backend/testframework/calls/chat_mongo_wave103_test.go` | 35 | 0 | чисто |
@@ -56,19 +56,20 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
-| A2W3-5-001 | RESIDUAL | P2 | `recording.go:171-181` | После `StartRoomCompositeEgress` ошибка `CreateRecording` **не** вызывает `StopEgress` | W3-A5-009 / TASK-038 remaining: orphan LiveKit egress в S3 без row | Компенсация `StopEgress` или pending-row до Start |
-| A2W3-5-002 | RESIDUAL | P2 | `service_room.go:34-36` | `finalizeCreate`: ошибка `AddParticipant` только slog — 201 + JWT без participant | W3-A5-012 remaining: RaiseHand/WS chat authz 403 у создателя | Return err / rollback room+call |
-| A2W3-5-003 | RESIDUAL | P3 | `service.go:87-88` | Invite 12 hex (~48 bit) + guest RL; полный UUID отложен (Ent MaxLen) | W3-A5-008 partial (TASK-042): брутфорс смягчён RL, энтропия не UUID | Миграция MaxLen + полный UUID / longer code |
+| — | — | — | — | Нет открытых (A2W3-5-001..003 → TASK-110) | — | — |
 
 ## FIXED-OK
 
 | Stage A ID | Evidence |
 |------------|----------|
+| A2W3-5-001 | TASK-110: `compensateOrphanEgress` после fail `CreateRecording`; IT `recording_room_guest_task110_test.go` |
+| A2W3-5-002 | TASK-110: `finalizeCreate` → err + `DeleteRoom` + `HardDeleteCall`; IT task110 |
+| A2W3-5-003 | TASK-110: crypto/rand base62×12 (~71 bit) within MaxLen(12); IT task110 + guest_conflicts |
 | W3-A5-001…004 | scheduled Create/List/Update/Delete + membership/creator; `scheduled_authz_task018_test.go` |
 | W3-A5-005 | CheckConflicts filter shared channels + conflict PID∈channel |
 | W3-A5-006 | ephemeral rune limit до ветвления |
 | W3-A5-007 | `GuestJoin` на service; handler без repo |
-| W3-A5-008 (partial) | 12-hex + guest rate limit |
+| W3-A5-008 | guest RL + base62×12 entropy (TASK-110; full UUID needs MaxLen migrate) |
 | W3-A5-010 | DurationMinutes/Reminder/Participants persist |
 | W3-A5-011 | UpdateScheduledCall `DeletedAtIsNil` |
 | W3-A5-013 | nil rbac → 500 (`nil_rbac_recordings_task064`) |
@@ -85,8 +86,8 @@
 | Метрика | Значение |
 |---------|----------|
 | Файлов | 42/42/0 |
-| Открытых | **3** |
+| Открытых | **0** |
 | NEW | 0 |
 | REGRESS | 0 |
-| RESIDUAL | 3 (P2×2, P3×1) |
-| FIXED-OK | 16 |
+| RESIDUAL | 0 |
+| FIXED-OK | 19 (+A2W3-5-001..003 via TASK-110) |

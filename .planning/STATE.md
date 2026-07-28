@@ -65,6 +65,11 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (be2 · TASK-110 calls recording/room/guest)
+
+- A2W3-5-001..003 FIXED: StopEgress на fail CreateRecording; finalizeCreate rollback; invite base62×12.
+- IT: `recording_room_guest_task110_test.go`; `go test -tags hubtest ./testframework/calls/` PASS.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.
