@@ -1,4 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { updateBase, updateRecord } from "@/api/bases";
 import type { ActiveCallSession, GuestCallSession } from "@/api/calls";
 import { buildMessageFromWsEvent } from "@/api/messenger";
@@ -11,6 +14,8 @@ import { updateNews } from "@/api/intranet";
 import { updateMemberRole } from "@/api/projects";
 import { parsePlateValue } from "@/modules/tracker/issue-description";
 
+const here = path.dirname(fileURLToPath(import.meta.url));
+
 describe("API DTO gaps (P2-FE-08 / TASK-052)", () => {
 	it("updateBase/updateRecord require version (mutation: omit → TS fail)", () => {
 		expectTypeOf(updateBase).parameter(1).toMatchTypeOf<{
@@ -19,6 +24,20 @@ describe("API DTO gaps (P2-FE-08 / TASK-052)", () => {
 		expectTypeOf(updateRecord).parameter(3).toMatchTypeOf<{
 			version: number;
 		}>();
+	});
+
+	it("tsc fixture: omit version is @ts-expect-error (mutation optional → unused)", () => {
+		const tsconfig = path.join(here, "tsconfig.task052.json");
+		const tscBin = path.resolve(
+			here,
+			"../../../../../../frontend/node_modules/typescript/bin/tsc",
+		);
+		execFileSync(process.execPath, [tscBin, "-p", tsconfig, "--pretty", "false"], {
+			cwd: path.resolve(here, "../../../../../../frontend"),
+			stdio: "pipe",
+			encoding: "utf8",
+		});
+		expect(true).toBe(true);
 	});
 
 	it("exposes create/delete environment and updateNews/updateMemberRole", () => {
