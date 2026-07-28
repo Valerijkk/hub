@@ -37,6 +37,10 @@ type TestCaseRepository interface {
 	DeleteTestCase(ctx context.Context, id uuid.UUID) error
 	// IncrementTestCaseCounter атомарно увеличивает счётчик тест-кейсов проекта.
 	IncrementTestCaseCounter(ctx context.Context, projectID uuid.UUID) (int, error)
+	// CountTestCasesInProject считает тест-кейсы из ids, принадлежащие projectID (P1-BE-12).
+	CountTestCasesInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error)
+	// CountLabelsInProject считает метки из ids, принадлежащие projectID (P1-BE-12).
+	CountLabelsInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error)
 }
 
 // TestCaseVersionRepository управляет версиями (снимками) тест-кейсов.
@@ -55,12 +59,14 @@ type SuiteRepository interface {
 	CreateSuite(ctx context.Context, projectID uuid.UUID, input CreateSuiteInput) (*ent.TestSuite, error)
 	// GetSuite возвращает папку по ID.
 	GetSuite(ctx context.Context, id uuid.UUID) (*ent.TestSuite, error)
+	// GetSuiteInProject возвращает папку только если она принадлежит projectID (P1-BE-12).
+	GetSuiteInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.TestSuite, error)
 	// ListSuites возвращает все папки проекта (для построения дерева).
 	ListSuites(ctx context.Context, projectID uuid.UUID) ([]*ent.TestSuite, error)
-	// UpdateSuite обновляет папку.
-	UpdateSuite(ctx context.Context, id uuid.UUID, input UpdateSuiteInput) (*ent.TestSuite, error)
-	// DeleteSuite удаляет папку по ID.
-	DeleteSuite(ctx context.Context, id uuid.UUID) error
+	// UpdateSuite обновляет папку только внутри projectID (P1-BE-10).
+	UpdateSuite(ctx context.Context, projectID, id uuid.UUID, input UpdateSuiteInput) (*ent.TestSuite, error)
+	// DeleteSuite удаляет папку только внутри projectID (P1-BE-10).
+	DeleteSuite(ctx context.Context, projectID, id uuid.UUID) error
 	// MoveSuite перемещает папку к другому родителю.
 	MoveSuite(ctx context.Context, id uuid.UUID, parentID *uuid.UUID) (*ent.TestSuite, error)
 }
@@ -71,8 +77,10 @@ type ComponentRepository interface {
 	CreateComponent(ctx context.Context, projectID uuid.UUID, name, description string) (*ent.Component, error)
 	// ListComponents возвращает все компоненты проекта.
 	ListComponents(ctx context.Context, projectID uuid.UUID) ([]*ent.Component, error)
-	// DeleteComponent удаляет компонент по ID.
-	DeleteComponent(ctx context.Context, id uuid.UUID) error
+	// CountComponentsInProject считает компоненты из ids, принадлежащие projectID (P1-BE-12).
+	CountComponentsInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error)
+	// DeleteComponent удаляет компонент только внутри projectID (P1-BE-10).
+	DeleteComponent(ctx context.Context, projectID, id uuid.UUID) error
 }
 
 // TestRunRepository управляет прогонами тестов и назначением тестировщиков.
@@ -135,12 +143,14 @@ type EnvironmentRepository interface {
 	CreateEnvironment(ctx context.Context, projectID uuid.UUID, input CreateEnvironmentInput) (*ent.Environment, error)
 	// GetEnvironment возвращает окружение по ID.
 	GetEnvironment(ctx context.Context, envID uuid.UUID) (*ent.Environment, error)
+	// GetEnvironmentInProject возвращает окружение только если оно принадлежит projectID (P1-BE-11).
+	GetEnvironmentInProject(ctx context.Context, projectID, envID uuid.UUID) (*ent.Environment, error)
 	// ListEnvironmentsByProject возвращает все окружения проекта.
 	ListEnvironmentsByProject(ctx context.Context, projectID uuid.UUID) ([]*ent.Environment, error)
-	// UpdateEnvironment обновляет тестовое окружение.
-	UpdateEnvironment(ctx context.Context, envID uuid.UUID, input UpdateEnvironmentInput) (*ent.Environment, error)
-	// DeleteEnvironment удаляет тестовое окружение.
-	DeleteEnvironment(ctx context.Context, envID uuid.UUID) error
+	// UpdateEnvironment обновляет окружение только внутри projectID (P1-BE-11).
+	UpdateEnvironment(ctx context.Context, projectID, envID uuid.UUID, input UpdateEnvironmentInput) (*ent.Environment, error)
+	// DeleteEnvironment удаляет окружение только внутри projectID (P1-BE-11).
+	DeleteEnvironment(ctx context.Context, projectID, envID uuid.UUID) error
 	// GetLatestTestRunForEnvironment возвращает последний прогон проекта в указанном окружении.
 	// Если прогонов нет — возвращает (nil, nil) без ошибки.
 	GetLatestTestRunForEnvironment(ctx context.Context, projectID, envID uuid.UUID) (*ent.TestRun, error)

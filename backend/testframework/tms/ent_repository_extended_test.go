@@ -123,11 +123,11 @@ func TestEntRepository_Environments(t *testing.T) {
 	require.Len(t, envs, 1)
 
 	renamed := "Staging v2"
-	updated, err := repo.UpdateEnvironment(ctx, env.ID, tms.UpdateEnvironmentInput{Name: &renamed})
+	updated, err := repo.UpdateEnvironment(ctx, projectID, env.ID, tms.UpdateEnvironmentInput{Name: &renamed})
 	require.NoError(t, err)
 	assert.Equal(t, renamed, updated.Name)
 
-	require.NoError(t, repo.DeleteEnvironment(ctx, env.ID))
+	require.NoError(t, repo.DeleteEnvironment(ctx, projectID, env.ID))
 	_, err = repo.GetEnvironment(ctx, env.ID)
 	require.Error(t, err)
 }
@@ -219,7 +219,7 @@ func TestEntRepository_SuiteUpdateDeleteMove(t *testing.T) {
 	require.NoError(t, err)
 
 	renamed := "Child renamed"
-	updated, err := repo.UpdateSuite(ctx, child.ID, tms.UpdateSuiteInput{Name: &renamed})
+	updated, err := repo.UpdateSuite(ctx, projectID, child.ID, tms.UpdateSuiteInput{Name: &renamed})
 	require.NoError(t, err)
 	assert.Equal(t, renamed, updated.Name)
 
@@ -227,7 +227,7 @@ func TestEntRepository_SuiteUpdateDeleteMove(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, moved.Edges.Parent)
 
-	require.NoError(t, repo.DeleteSuite(ctx, child.ID))
+	require.NoError(t, repo.DeleteSuite(ctx, projectID, child.ID))
 	_, err = repo.GetSuite(ctx, child.ID)
 	require.Error(t, err)
 }
@@ -259,5 +259,5 @@ func TestEntRepository_DeleteComponent(t *testing.T) {
 
 	comp, err := repo.CreateComponent(ctx, projectID, "UI", "frontend")
 	require.NoError(t, err)
-	require.NoError(t, repo.DeleteComponent(ctx, comp.ID))
+	require.NoError(t, repo.DeleteComponent(ctx, projectID, comp.ID))
 }

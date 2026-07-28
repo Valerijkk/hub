@@ -70,6 +70,10 @@ func (h *Handler) ListSuites(c fiber.Ctx) error {
 // @Success 200 {object} SuiteResponse
 // @Router /api/projects/{projectId}/tms/suites/{suiteId} [put]
 func (h *Handler) UpdateSuite(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	suiteID, err := httputil.ParseUUIDParam(c, "suiteId")
 	if err != nil {
 		return err
@@ -80,7 +84,7 @@ func (h *Handler) UpdateSuite(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, apperr.MsgBadRequest)
 	}
 
-	resp, err := h.service.UpdateSuite(c.Context(), suiteID, req)
+	resp, err := h.service.UpdateSuite(c.Context(), projectID, suiteID, req)
 	if err != nil {
 		return err
 	}
@@ -96,12 +100,16 @@ func (h *Handler) UpdateSuite(c fiber.Ctx) error {
 // @Success 204
 // @Router /api/projects/{projectId}/tms/suites/{suiteId} [delete]
 func (h *Handler) DeleteSuite(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	suiteID, err := httputil.ParseUUIDParam(c, "suiteId")
 	if err != nil {
 		return err
 	}
 
-	if err := h.service.DeleteSuite(c.Context(), suiteID); err != nil {
+	if err := h.service.DeleteSuite(c.Context(), projectID, suiteID); err != nil {
 		return err
 	}
 
@@ -169,12 +177,16 @@ func (h *Handler) ListComponents(c fiber.Ctx) error {
 // @Success 204
 // @Router /api/projects/{projectId}/tms/components/{componentId} [delete]
 func (h *Handler) DeleteComponent(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return err
+	}
 	componentID, err := httputil.ParseUUIDParam(c, "componentId")
 	if err != nil {
 		return err
 	}
 
-	if err := h.service.DeleteComponent(c.Context(), componentID); err != nil {
+	if err := h.service.DeleteComponent(c.Context(), projectID, componentID); err != nil {
 		return err
 	}
 

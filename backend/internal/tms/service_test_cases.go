@@ -37,6 +37,12 @@ func (s *TMSService) CreateTestCase(ctx context.Context, projectID, userID uuid.
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный suite_id")
 		}
+		if _, err := s.repo.GetSuiteInProject(ctx, projectID, id); err != nil {
+			if ent.IsNotFound(err) {
+				return nil, apperrors.NewNotFound("папка не найдена")
+			}
+			return nil, apperrors.NewInternal("ошибка проверки папки")
+		}
 		input.SuiteID = &id
 	}
 	if len(req.Labels) > 0 {
@@ -44,12 +50,26 @@ func (s *TMSService) CreateTestCase(ctx context.Context, projectID, userID uuid.
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный label ID")
 		}
+		n, err := s.repo.CountLabelsInProject(ctx, projectID, ids)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки меток")
+		}
+		if n != len(ids) {
+			return nil, apperrors.NewNotFound("метка не найдена")
+		}
 		input.LabelIDs = ids
 	}
 	if len(req.Components) > 0 {
 		ids, err := parseUUIDs(req.Components)
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный component ID")
+		}
+		n, err := s.repo.CountComponentsInProject(ctx, projectID, ids)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки компонентов")
+		}
+		if n != len(ids) {
+			return nil, apperrors.NewNotFound("компонент не найден")
 		}
 		input.ComponentIDs = ids
 	}
@@ -157,6 +177,12 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, projectID uuid.UUID, ca
 			if err != nil {
 				return nil, apperrors.NewBadRequest("некорректный suite_id")
 			}
+			if _, err := s.repo.GetSuiteInProject(ctx, projectID, id); err != nil {
+				if ent.IsNotFound(err) {
+					return nil, apperrors.NewNotFound("папка не найдена")
+				}
+				return nil, apperrors.NewInternal("ошибка проверки папки")
+			}
 			input.SuiteID = &id
 		}
 	}
@@ -165,12 +191,30 @@ func (s *TMSService) UpdateTestCase(ctx context.Context, projectID uuid.UUID, ca
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный label ID")
 		}
+		if len(ids) > 0 {
+			n, err := s.repo.CountLabelsInProject(ctx, projectID, ids)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка проверки меток")
+			}
+			if n != len(ids) {
+				return nil, apperrors.NewNotFound("метка не найдена")
+			}
+		}
 		input.LabelIDs = &ids
 	}
 	if req.Components != nil {
 		ids, err := parseUUIDs(*req.Components)
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный component ID")
+		}
+		if len(ids) > 0 {
+			n, err := s.repo.CountComponentsInProject(ctx, projectID, ids)
+			if err != nil {
+				return nil, apperrors.NewInternal("ошибка проверки компонентов")
+			}
+			if n != len(ids) {
+				return nil, apperrors.NewNotFound("компонент не найден")
+			}
 		}
 		input.ComponentIDs = &ids
 	}

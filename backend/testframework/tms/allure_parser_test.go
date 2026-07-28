@@ -328,10 +328,10 @@ func (m *mockMatcherRepo) GetSuite(_ context.Context, _ uuid.UUID) (*ent.TestSui
 func (m *mockMatcherRepo) ListSuites(_ context.Context, _ uuid.UUID) ([]*ent.TestSuite, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) UpdateSuite(_ context.Context, _ uuid.UUID, _ tms.UpdateSuiteInput) (*ent.TestSuite, error) {
+func (m *mockMatcherRepo) UpdateSuite(_ context.Context, _, _ uuid.UUID, _ tms.UpdateSuiteInput) (*ent.TestSuite, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) DeleteSuite(_ context.Context, _ uuid.UUID) error { return nil }
+func (m *mockMatcherRepo) DeleteSuite(_ context.Context, _, _ uuid.UUID) error { return nil }
 func (m *mockMatcherRepo) MoveSuite(_ context.Context, _ uuid.UUID, _ *uuid.UUID) (*ent.TestSuite, error) {
 	return nil, nil
 }
@@ -341,7 +341,7 @@ func (m *mockMatcherRepo) CreateComponent(_ context.Context, _ uuid.UUID, _, _ s
 func (m *mockMatcherRepo) ListComponents(_ context.Context, _ uuid.UUID) ([]*ent.Component, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) DeleteComponent(_ context.Context, _ uuid.UUID) error { return nil }
+func (m *mockMatcherRepo) DeleteComponent(_ context.Context, _, _ uuid.UUID) error { return nil }
 func (m *mockMatcherRepo) CreateTestRun(_ context.Context, _ uuid.UUID, _ tms.CreateTestRunInput) (*ent.TestRun, error) {
 	return nil, nil
 }

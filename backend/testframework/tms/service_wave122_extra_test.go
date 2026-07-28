@@ -70,7 +70,10 @@ func TestService_Wave122_UpdateTestCase_ClearSuite(t *testing.T) {
 	userID := uuid.New()
 
 	suiteID := uuid.New()
-	repo.suites[suiteID] = &ent.TestSuite{ID: suiteID, Name: "S1"}
+	repo.suites[suiteID] = &ent.TestSuite{
+		ID: suiteID, Name: "S1",
+		Edges: ent.TestSuiteEdges{Project: &ent.Project{ID: projectID}},
+	}
 
 	created, err := svc.CreateTestCase(ctx, projectID, userID, tms.CreateTestCaseRequest{
 		Title: "In suite", CaseType: "classic", Priority: "medium",

@@ -24,6 +24,12 @@ func (s *TMSService) CreateSuite(ctx context.Context, projectID uuid.UUID, req C
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный parent_id")
 		}
+		if _, err := s.repo.GetSuiteInProject(ctx, projectID, id); err != nil {
+			if ent.IsNotFound(err) {
+				return nil, apperrors.NewNotFound("родительская папка не найдена")
+			}
+			return nil, apperrors.NewInternal("ошибка проверки родительской папки")
+		}
 		input.ParentID = &id
 	}
 
@@ -46,15 +52,15 @@ func (s *TMSService) ListSuites(ctx context.Context, projectID uuid.UUID) ([]Sui
 	return buildSuiteTree(suites), nil
 }
 
-// UpdateSuite обновляет папку.
-func (s *TMSService) UpdateSuite(ctx context.Context, suiteID uuid.UUID, req UpdateSuiteRequest) (*SuiteResponse, error) {
+// UpdateSuite обновляет папку только внутри projectID (P1-BE-10).
+func (s *TMSService) UpdateSuite(ctx context.Context, projectID, suiteID uuid.UUID, req UpdateSuiteRequest) (*SuiteResponse, error) {
 	input := UpdateSuiteInput{
 		Name:        req.Name,
 		Description: req.Description,
 		SortOrder:   req.SortOrder,
 	}
 
-	suite, err := s.repo.UpdateSuite(ctx, suiteID, input)
+	suite, err := s.repo.UpdateSuite(ctx, projectID, suiteID, input)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("папка не найдена")
@@ -65,9 +71,9 @@ func (s *TMSService) UpdateSuite(ctx context.Context, suiteID uuid.UUID, req Upd
 	return toSuiteResponse(suite), nil
 }
 
-// DeleteSuite удаляет папку.
-func (s *TMSService) DeleteSuite(ctx context.Context, suiteID uuid.UUID) error {
-	if err := s.repo.DeleteSuite(ctx, suiteID); err != nil {
+// DeleteSuite удаляет папку только внутри projectID (P1-BE-10).
+func (s *TMSService) DeleteSuite(ctx context.Context, projectID, suiteID uuid.UUID) error {
+	if err := s.repo.DeleteSuite(ctx, projectID, suiteID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("папка не найдена")
 		}
@@ -102,9 +108,9 @@ func (s *TMSService) ListComponents(ctx context.Context, projectID uuid.UUID) ([
 	return result, nil
 }
 
-// DeleteComponent удаляет компонент.
-func (s *TMSService) DeleteComponent(ctx context.Context, componentID uuid.UUID) error {
-	if err := s.repo.DeleteComponent(ctx, componentID); err != nil {
+// DeleteComponent удаляет компонент только внутри projectID (P1-BE-10).
+func (s *TMSService) DeleteComponent(ctx context.Context, projectID, componentID uuid.UUID) error {
+	if err := s.repo.DeleteComponent(ctx, projectID, componentID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("компонент не найден")
 		}

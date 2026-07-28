@@ -416,11 +416,11 @@ func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUI
 // CompareEnvironments сравнивает результаты тестов между двумя окружениями.
 // Для каждого окружения получает последний прогон и его результаты, затем объединяет по ключу тест-кейса.
 func (s *TMSService) CompareEnvironments(ctx context.Context, projectID uuid.UUID, envID1, envID2 uuid.UUID) (*EnvironmentComparisonResponse, error) {
-	env1, err := s.repo.GetEnvironment(ctx, envID1)
+	env1, err := s.repo.GetEnvironmentInProject(ctx, projectID, envID1)
 	if err != nil {
 		return nil, apperrors.NewNotFound("окружение 1 не найдено")
 	}
-	env2, err := s.repo.GetEnvironment(ctx, envID2)
+	env2, err := s.repo.GetEnvironmentInProject(ctx, projectID, envID2)
 	if err != nil {
 		return nil, apperrors.NewNotFound("окружение 2 не найдено")
 	}

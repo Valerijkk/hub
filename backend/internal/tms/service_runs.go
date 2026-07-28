@@ -149,6 +149,13 @@ func (s *TMSService) CreateTestResult(ctx context.Context, projectID, runID uuid
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный test_case_id")
 		}
+		n, err := s.repo.CountTestCasesInProject(ctx, projectID, []uuid.UUID{id})
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки тест-кейса")
+		}
+		if n != 1 {
+			return nil, apperrors.NewNotFound("тест-кейс не найден")
+		}
 		input.TestCaseID = &id
 	}
 
@@ -228,6 +235,15 @@ func (s *TMSService) AddTestCasesToRun(ctx context.Context, projectID, runID uui
 	caseIDs, err := parseUUIDs(req.CaseIDs)
 	if err != nil {
 		return nil, apperrors.NewBadRequest("некорректный ID тест-кейса")
+	}
+	if len(caseIDs) > 0 {
+		n, err := s.repo.CountTestCasesInProject(ctx, projectID, caseIDs)
+		if err != nil {
+			return nil, apperrors.NewInternal("ошибка проверки тест-кейсов")
+		}
+		if n != len(caseIDs) {
+			return nil, apperrors.NewNotFound("тест-кейс не найден")
+		}
 	}
 
 	if err := s.repo.AddTestCasesToRun(ctx, runID, caseIDs); err != nil {

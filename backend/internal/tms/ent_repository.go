@@ -11,6 +11,7 @@ import (
 	"github.com/valerii/hub/backend/ent/component"
 	"github.com/valerii/hub/backend/ent/environment"
 	entissue "github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/label"
 	"github.com/valerii/hub/backend/ent/predicate"
 	entproject "github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/testcase"
@@ -338,6 +339,33 @@ func (r *EntRepository) DeleteTestCase(ctx context.Context, id uuid.UUID) error 
 		Exec(ctx)
 }
 
+// CountTestCasesInProject считает тест-кейсы из ids внутри projectID (P1-BE-12).
+func (r *EntRepository) CountTestCasesInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	return r.client.TestCase.Query().
+		Where(
+			testcase.IDIn(ids...),
+			testCaseProjectIDEQ(projectID),
+			testcase.DeletedAtIsNil(),
+		).
+		Count(ctx)
+}
+
+// CountLabelsInProject считает метки из ids внутри projectID (P1-BE-12).
+func (r *EntRepository) CountLabelsInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	return r.client.Label.Query().
+		Where(
+			label.IDIn(ids...),
+			label.HasProjectWith(entproject.ID(projectID)),
+		).
+		Count(ctx)
+}
+
 // ---------------------------------------------------------------------------
 // Версионирование
 // ---------------------------------------------------------------------------
@@ -408,6 +436,17 @@ func (r *EntRepository) GetSuite(ctx context.Context, id uuid.UUID) (*ent.TestSu
 		Only(ctx)
 }
 
+// GetSuiteInProject возвращает папку только внутри projectID (P1-BE-12 ParentID/SuiteID FK).
+func (r *EntRepository) GetSuiteInProject(ctx context.Context, projectID, id uuid.UUID) (*ent.TestSuite, error) {
+	return r.client.TestSuite.Query().
+		Where(
+			testsuite.IDEQ(id),
+			testsuite.HasProjectWith(entproject.ID(projectID)),
+		).
+		WithParent().
+		Only(ctx)
+}
+
 // ListSuites возвращает все папки проекта (для построения дерева).
 func (r *EntRepository) ListSuites(ctx context.Context, projectID uuid.UUID) ([]*ent.TestSuite, error) {
 	return r.client.TestSuite.Query().
@@ -418,9 +457,10 @@ func (r *EntRepository) ListSuites(ctx context.Context, projectID uuid.UUID) ([]
 		All(ctx)
 }
 
-// UpdateSuite обновляет папку.
-func (r *EntRepository) UpdateSuite(ctx context.Context, id uuid.UUID, input UpdateSuiteInput) (*ent.TestSuite, error) {
-	update := r.client.TestSuite.UpdateOneID(id)
+// UpdateSuite обновляет папку только внутри projectID (P1-BE-10).
+func (r *EntRepository) UpdateSuite(ctx context.Context, projectID, id uuid.UUID, input UpdateSuiteInput) (*ent.TestSuite, error) {
+	update := r.client.TestSuite.UpdateOneID(id).
+		Where(testsuite.HasProjectWith(entproject.ID(projectID)))
 
 	if input.Name != nil {
 		update = update.SetName(*input.Name)
@@ -440,9 +480,21 @@ func (r *EntRepository) UpdateSuite(ctx context.Context, id uuid.UUID, input Upd
 	return r.GetSuite(ctx, id)
 }
 
-// DeleteSuite удаляет папку по ID.
-func (r *EntRepository) DeleteSuite(ctx context.Context, id uuid.UUID) error {
-	return r.client.TestSuite.DeleteOneID(id).Exec(ctx)
+// DeleteSuite удаляет папку только внутри projectID (P1-BE-10).
+func (r *EntRepository) DeleteSuite(ctx context.Context, projectID, id uuid.UUID) error {
+	affected, err := r.client.TestSuite.Delete().
+		Where(
+			testsuite.IDEQ(id),
+			testsuite.HasProjectWith(entproject.ID(projectID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // MoveSuite перемещает папку к другому родителю.
@@ -487,9 +539,34 @@ func (r *EntRepository) ListComponents(ctx context.Context, projectID uuid.UUID)
 		All(ctx)
 }
 
-// DeleteComponent удаляет компонент по ID.
-func (r *EntRepository) DeleteComponent(ctx context.Context, id uuid.UUID) error {
-	return r.client.Component.DeleteOneID(id).Exec(ctx)
+// CountComponentsInProject считает компоненты из ids внутри projectID (P1-BE-12).
+func (r *EntRepository) CountComponentsInProject(ctx context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	return r.client.Component.Query().
+		Where(
+			component.IDIn(ids...),
+			component.HasProjectWith(entproject.ID(projectID)),
+		).
+		Count(ctx)
+}
+
+// DeleteComponent удаляет компонент только внутри projectID (P1-BE-10).
+func (r *EntRepository) DeleteComponent(ctx context.Context, projectID, id uuid.UUID) error {
+	affected, err := r.client.Component.Delete().
+		Where(
+			component.IDEQ(id),
+			component.HasProjectWith(entproject.ID(projectID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -1030,6 +1107,17 @@ func (r *EntRepository) GetEnvironment(ctx context.Context, envID uuid.UUID) (*e
 	return r.client.Environment.Get(ctx, envID)
 }
 
+// GetEnvironmentInProject возвращает окружение только внутри projectID (P1-BE-11).
+func (r *EntRepository) GetEnvironmentInProject(ctx context.Context, projectID, envID uuid.UUID) (*ent.Environment, error) {
+	return r.client.Environment.Query().
+		Where(
+			environment.IDEQ(envID),
+			environment.HasProjectWith(entproject.ID(projectID)),
+		).
+		WithProject().
+		Only(ctx)
+}
+
 // ListEnvironmentsByProject возвращает все окружения проекта.
 func (r *EntRepository) ListEnvironmentsByProject(ctx context.Context, projectID uuid.UUID) ([]*ent.Environment, error) {
 	return r.client.Project.Query().
@@ -1038,9 +1126,10 @@ func (r *EntRepository) ListEnvironmentsByProject(ctx context.Context, projectID
 		All(ctx)
 }
 
-// UpdateEnvironment обновляет тестовое окружение.
-func (r *EntRepository) UpdateEnvironment(ctx context.Context, envID uuid.UUID, input UpdateEnvironmentInput) (*ent.Environment, error) {
-	builder := r.client.Environment.UpdateOneID(envID)
+// UpdateEnvironment обновляет окружение только внутри projectID (P1-BE-11).
+func (r *EntRepository) UpdateEnvironment(ctx context.Context, projectID, envID uuid.UUID, input UpdateEnvironmentInput) (*ent.Environment, error) {
+	builder := r.client.Environment.UpdateOneID(envID).
+		Where(environment.HasProjectWith(entproject.ID(projectID)))
 	if input.Name != nil {
 		builder.SetName(*input.Name)
 	}
@@ -1053,9 +1142,21 @@ func (r *EntRepository) UpdateEnvironment(ctx context.Context, envID uuid.UUID, 
 	return builder.Save(ctx)
 }
 
-// DeleteEnvironment удаляет тестовое окружение.
-func (r *EntRepository) DeleteEnvironment(ctx context.Context, envID uuid.UUID) error {
-	return r.client.Environment.DeleteOneID(envID).Exec(ctx)
+// DeleteEnvironment удаляет окружение только внутри projectID (P1-BE-11).
+func (r *EntRepository) DeleteEnvironment(ctx context.Context, projectID, envID uuid.UUID) error {
+	affected, err := r.client.Environment.Delete().
+		Where(
+			environment.IDEQ(envID),
+			environment.HasProjectWith(entproject.ID(projectID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // GetLatestTestRunForEnvironment возвращает последний прогон проекта в указанном окружении.

@@ -16,7 +16,7 @@ type notFoundSuiteDeleteRepo struct {
 	*mockRepository
 }
 
-func (r *notFoundSuiteDeleteRepo) DeleteSuite(_ context.Context, _ uuid.UUID) error {
+func (r *notFoundSuiteDeleteRepo) DeleteSuite(_ context.Context, _, _ uuid.UUID) error {
 	return &ent.NotFoundError{}
 }
 
@@ -24,7 +24,7 @@ type notFoundComponentDeleteRepo struct {
 	*mockRepository
 }
 
-func (r *notFoundComponentDeleteRepo) DeleteComponent(_ context.Context, _ uuid.UUID) error {
+func (r *notFoundComponentDeleteRepo) DeleteComponent(_ context.Context, _, _ uuid.UUID) error {
 	return &ent.NotFoundError{}
 }
 
@@ -138,7 +138,7 @@ func TestUpdateTestCase_InvalidLabels(t *testing.T) {
 func TestDeleteSuite_NotFound(t *testing.T) {
 	base := newMockRepo()
 	svc := tms.NewTMSService(&notFoundSuiteDeleteRepo{mockRepository: base}, nil)
-	err := svc.DeleteSuite(context.Background(), uuid.New())
+	err := svc.DeleteSuite(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найдена")
 }
@@ -147,7 +147,7 @@ func TestDeleteSuite_NotFound(t *testing.T) {
 func TestDeleteComponent_NotFound(t *testing.T) {
 	base := newMockRepo()
 	svc := tms.NewTMSService(&notFoundComponentDeleteRepo{mockRepository: base}, nil)
-	err := svc.DeleteComponent(context.Background(), uuid.New())
+	err := svc.DeleteComponent(context.Background(), uuid.New(), uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
 }

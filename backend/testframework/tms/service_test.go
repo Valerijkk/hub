@@ -67,6 +67,16 @@ func (m *mockRepository) GetEnvironment(_ context.Context, envID uuid.UUID) (*en
 	}
 	return env, nil
 }
+func (m *mockRepository) GetEnvironmentInProject(_ context.Context, projectID, envID uuid.UUID) (*ent.Environment, error) {
+	env, ok := m.environments[envID]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if env.Edges.Project == nil || env.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return env, nil
+}
 func (m *mockRepository) ListEnvironmentsByProject(_ context.Context, projectID uuid.UUID) ([]*ent.Environment, error) {
 	items := make([]*ent.Environment, 0)
 	for _, env := range m.environments {
@@ -76,9 +86,12 @@ func (m *mockRepository) ListEnvironmentsByProject(_ context.Context, projectID 
 	}
 	return items, nil
 }
-func (m *mockRepository) UpdateEnvironment(_ context.Context, envID uuid.UUID, input tms.UpdateEnvironmentInput) (*ent.Environment, error) {
+func (m *mockRepository) UpdateEnvironment(_ context.Context, projectID, envID uuid.UUID, input tms.UpdateEnvironmentInput) (*ent.Environment, error) {
 	env, ok := m.environments[envID]
 	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if env.Edges.Project == nil || env.Edges.Project.ID != projectID {
 		return nil, &ent.NotFoundError{}
 	}
 	if input.Name != nil {
@@ -92,8 +105,12 @@ func (m *mockRepository) UpdateEnvironment(_ context.Context, envID uuid.UUID, i
 	}
 	return env, nil
 }
-func (m *mockRepository) DeleteEnvironment(_ context.Context, envID uuid.UUID) error {
-	if _, ok := m.environments[envID]; !ok {
+func (m *mockRepository) DeleteEnvironment(_ context.Context, projectID, envID uuid.UUID) error {
+	env, ok := m.environments[envID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if env.Edges.Project == nil || env.Edges.Project.ID != projectID {
 		return &ent.NotFoundError{}
 	}
 	delete(m.environments, envID)
@@ -118,7 +135,7 @@ func newMockRepo() *mockRepository {
 	}
 }
 
-func (m *mockRepository) CreateTestCase(_ context.Context, _ uuid.UUID, input tms.CreateTestCaseInput) (*ent.TestCase, error) {
+func (m *mockRepository) CreateTestCase(_ context.Context, projectID uuid.UUID, input tms.CreateTestCaseInput) (*ent.TestCase, error) {
 	m.caseCounter++
 	id := uuid.New()
 	tc := &ent.TestCase{
@@ -140,6 +157,7 @@ func (m *mockRepository) CreateTestCase(_ context.Context, _ uuid.UUID, input tm
 		Version:    1,
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
+		Edges:      ent.TestCaseEdges{Project: &ent.Project{ID: projectID}},
 	}
 	m.testCases[id] = tc
 	return tc, nil
@@ -219,6 +237,25 @@ func (m *mockRepository) DeleteTestCase(_ context.Context, id uuid.UUID) error {
 	return nil
 }
 
+func (m *mockRepository) CountTestCasesInProject(_ context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	n := 0
+	for _, id := range ids {
+		tc, ok := m.testCases[id]
+		if !ok {
+			continue
+		}
+		if tc.Edges.Project != nil && tc.Edges.Project.ID == projectID {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (m *mockRepository) CountLabelsInProject(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (int, error) {
+	// Мок не хранит метки отдельно — для unit-тестов FK считаем валидными.
+	return len(ids), nil
+}
+
 func (m *mockRepository) CreateTestCaseVersion(_ context.Context, testCaseID, userID uuid.UUID, versionNumber int, snapshot map[string]interface{}, description string) (*ent.TestCaseVersion, error) {
 	id := uuid.New()
 	v := &ent.TestCaseVersion{
@@ -255,9 +292,15 @@ func (m *mockRepository) GetTestCaseVersion(_ context.Context, testCaseID, versi
 	return v, nil
 }
 
-func (m *mockRepository) CreateSuite(_ context.Context, _ uuid.UUID, input tms.CreateSuiteInput) (*ent.TestSuite, error) {
+func (m *mockRepository) CreateSuite(_ context.Context, projectID uuid.UUID, input tms.CreateSuiteInput) (*ent.TestSuite, error) {
 	id := uuid.New()
-	s := &ent.TestSuite{ID: id, Name: input.Name, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	s := &ent.TestSuite{
+		ID: id, Name: input.Name, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+		Edges: ent.TestSuiteEdges{Project: &ent.Project{ID: projectID}},
+	}
+	if input.ParentID != nil {
+		s.Edges.Parent = &ent.TestSuite{ID: *input.ParentID}
+	}
 	m.suites[id] = s
 	return s, nil
 }
@@ -270,17 +313,33 @@ func (m *mockRepository) GetSuite(_ context.Context, id uuid.UUID) (*ent.TestSui
 	return s, nil
 }
 
-func (m *mockRepository) ListSuites(_ context.Context, _ uuid.UUID) ([]*ent.TestSuite, error) {
+func (m *mockRepository) GetSuiteInProject(_ context.Context, projectID, id uuid.UUID) (*ent.TestSuite, error) {
+	s, ok := m.suites[id]
+	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if s.Edges.Project == nil || s.Edges.Project.ID != projectID {
+		return nil, &ent.NotFoundError{}
+	}
+	return s, nil
+}
+
+func (m *mockRepository) ListSuites(_ context.Context, projectID uuid.UUID) ([]*ent.TestSuite, error) {
 	items := make([]*ent.TestSuite, 0, len(m.suites))
 	for _, s := range m.suites {
-		items = append(items, s)
+		if s.Edges.Project != nil && s.Edges.Project.ID == projectID {
+			items = append(items, s)
+		}
 	}
 	return items, nil
 }
 
-func (m *mockRepository) UpdateSuite(_ context.Context, id uuid.UUID, input tms.UpdateSuiteInput) (*ent.TestSuite, error) {
+func (m *mockRepository) UpdateSuite(_ context.Context, projectID, id uuid.UUID, input tms.UpdateSuiteInput) (*ent.TestSuite, error) {
 	s, ok := m.suites[id]
 	if !ok {
+		return nil, &ent.NotFoundError{}
+	}
+	if s.Edges.Project == nil || s.Edges.Project.ID != projectID {
 		return nil, &ent.NotFoundError{}
 	}
 	if input.Name != nil {
@@ -289,7 +348,14 @@ func (m *mockRepository) UpdateSuite(_ context.Context, id uuid.UUID, input tms.
 	return s, nil
 }
 
-func (m *mockRepository) DeleteSuite(_ context.Context, id uuid.UUID) error {
+func (m *mockRepository) DeleteSuite(_ context.Context, projectID, id uuid.UUID) error {
+	s, ok := m.suites[id]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if s.Edges.Project == nil || s.Edges.Project.ID != projectID {
+		return &ent.NotFoundError{}
+	}
 	delete(m.suites, id)
 	return nil
 }
@@ -302,22 +368,48 @@ func (m *mockRepository) MoveSuite(_ context.Context, id uuid.UUID, _ *uuid.UUID
 	return s, nil
 }
 
-func (m *mockRepository) CreateComponent(_ context.Context, _ uuid.UUID, name, description string) (*ent.Component, error) {
+func (m *mockRepository) CreateComponent(_ context.Context, projectID uuid.UUID, name, description string) (*ent.Component, error) {
 	id := uuid.New()
-	c := &ent.Component{ID: id, Name: name, Description: description, CreatedAt: time.Now()}
+	c := &ent.Component{
+		ID: id, Name: name, Description: description, CreatedAt: time.Now(),
+		Edges: ent.ComponentEdges{Project: &ent.Project{ID: projectID}},
+	}
 	m.components[id] = c
 	return c, nil
 }
 
-func (m *mockRepository) ListComponents(_ context.Context, _ uuid.UUID) ([]*ent.Component, error) {
+func (m *mockRepository) ListComponents(_ context.Context, projectID uuid.UUID) ([]*ent.Component, error) {
 	items := make([]*ent.Component, 0, len(m.components))
 	for _, c := range m.components {
-		items = append(items, c)
+		if c.Edges.Project != nil && c.Edges.Project.ID == projectID {
+			items = append(items, c)
+		}
 	}
 	return items, nil
 }
 
-func (m *mockRepository) DeleteComponent(_ context.Context, id uuid.UUID) error {
+func (m *mockRepository) CountComponentsInProject(_ context.Context, projectID uuid.UUID, ids []uuid.UUID) (int, error) {
+	n := 0
+	for _, id := range ids {
+		c, ok := m.components[id]
+		if !ok {
+			continue
+		}
+		if c.Edges.Project != nil && c.Edges.Project.ID == projectID {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (m *mockRepository) DeleteComponent(_ context.Context, projectID, id uuid.UUID) error {
+	c, ok := m.components[id]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if c.Edges.Project == nil || c.Edges.Project.ID != projectID {
+		return &ent.NotFoundError{}
+	}
 	delete(m.components, id)
 	return nil
 }
@@ -863,11 +955,11 @@ func TestAddTestCasesToRun(t *testing.T) {
 	projectID := uuid.New()
 
 	// Комментарий к тесту (восстановлен после повреждения кодировки).
-	tc1, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	tc1, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title: "Кейс 1",
 	})
 	require.NoError(t, err)
-	tc2, err := svc.CreateTestCase(ctx, uuid.New(), uuid.New(), tms.CreateTestCaseRequest{
+	tc2, err := svc.CreateTestCase(ctx, projectID, uuid.New(), tms.CreateTestCaseRequest{
 		Title: "Кейс 2",
 	})
 	require.NoError(t, err)
