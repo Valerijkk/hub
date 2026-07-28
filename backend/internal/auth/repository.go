@@ -35,7 +35,6 @@ type Repository interface {
 	GetUser(ctx context.Context, userID uuid.UUID) (*ent.User, error)
 	UserExistsByEmail(ctx context.Context, email string) (bool, error)
 	GetUserByEmail(ctx context.Context, email string) (*ent.User, error)
-	GetUserByTelegramID(ctx context.Context, telegramID string) (*ent.User, error)
 	CountUsers(ctx context.Context) (int, error)
 	UpdateUserProfile(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) (*ent.User, error)
 	MarkOnboardingComplete(ctx context.Context, userID uuid.UUID) (*ent.User, error)
@@ -90,10 +89,6 @@ func (r *EntRepository) UserExistsByEmail(ctx context.Context, email string) (bo
 
 func (r *EntRepository) GetUserByEmail(ctx context.Context, email string) (*ent.User, error) {
 	return r.client.User.Query().Where(user.EmailEQ(email)).Only(ctx)
-}
-
-func (r *EntRepository) GetUserByTelegramID(ctx context.Context, telegramID string) (*ent.User, error) {
-	return r.client.User.Query().Where(user.TelegramIDEQ(telegramID)).Only(ctx)
 }
 
 func (r *EntRepository) CountUsers(ctx context.Context) (int, error) {

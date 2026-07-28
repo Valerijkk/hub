@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (be1 · TASK-102 Telegram login ADR-AUTH-01)
+
+- Удалены `internal/auth/telegram.go`, `telegram_bot.go`, export hooks login, `GetUserByTelegramID`.
+- Удалены позитивные login-тесты (polling/widget/VerifyCode); denial `telegram_login_removed_task102_test.go`.
+- Notification bind не тронут. Статус TASK-102 → Исправлена. Handoff: be-ver → code-reviewer.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.

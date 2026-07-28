@@ -87,7 +87,7 @@ P0 W1–W8 **не** в таблице (отдельный трек): W1-A5-001 �
 | ClassID | Source IDs | Суть | Чего не хватает для мутации / задачи |
 |---------|------------|------|--------------------------------------|
 | P1-BE-U01 | W5-A2-003 | Offline/Ollama помечен OK, `NewSafeHTTPClient` блокирует loopback — consent и SSRF противоречат | Product/ADR: trusted offline dialer vs sidecar vs запрет loopback BYOK. Пока нет выбранного поведения — нельзя написать «сломать X → красный тест» без ломания SSRF-инварианта |
-| P1-BE-U02 | W6-A2-001 | Позитивный тест `HandleLogin_StoresCode` держит мёртвый Telegram-login путь (ADR-AUTH-01) | Нужно решение: удалить только тест или ещё `handleLogin`+export. Мутация «сломать защиту» для запрещённой фичи нестандартна — критерий = «в suite нет assert на `tglogin:` после /login» |
+| P1-BE-U02 | W6-A2-001 | Позитивный тест `HandleLogin_StoresCode` держит мёртвый Telegram-login путь (ADR-AUTH-01) | **FIXED TASK-102:** login API+тесты удалены; denial `TestAuth_NoTelegramLoginSurface_Task102` |
 | P1-BE-U03 | W7-A2-001 | FR-INTR-07/08: author-delete + `news_poll*` + restore с опросом — модуль не реализован | Scope: полный greenfield polls vs только author-or-admin delete. Без scope нельзя зафиксировать mutation на несуществующем API |
 | P1-BE-U04 | W7-A4-003 | Backup maintenance gate — process-local; multi-replica не блокируется | Нужен тестовый harness multi-instance (или явный single-replica affinity ADR). Unit-мутация process flag не доказывает distributed gate |
 | P1-BE-U05 | W8-A4-002 | Project `PermanentDelete` / 25+ edges без OnDelete policy | ADR: staged soft→30d→tx cleanup vs explicit OnDelete per-edge. Без политики тест «правильного» cascade неоднозначен |

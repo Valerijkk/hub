@@ -12,5 +12,5 @@ type SessionCreatedEvent struct {
 type UserRegisteredEvent struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
-	Method string `json:"method"` // magic_link или telegram
+	Method string `json:"method"` // magic_link only (ADR-AUTH-01)
 }

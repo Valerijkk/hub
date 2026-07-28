@@ -61,7 +61,7 @@ P0/P1 W1–W8 **не** в таблице (отдельные реестры): [`
 
 | ClassID | Source IDs | Суть | Чего не хватает для мутации / задачи |
 |---------|------------|------|--------------------------------------|
-| P2-BE-U01 | W6-A1-001, W6-A1-002, W6-A2-002, W6-A2-003 | Legacy Telegram login API + suite (ADR-AUTH-01); рядом с P1-U02 | Решение: удалить `handleLogin`/`VerifyTelegramAuth`+тесты или quarantine. Мутация «сломать защиту» для запрещённой фичи нестандартна |
+| P2-BE-U01 | W6-A1-001, W6-A1-002, W6-A2-002, W6-A2-003 | Legacy Telegram login API + suite (ADR-AUTH-01); рядом с P1-U02 | **FIXED TASK-102:** `telegram.go`/`telegram_bot.go`+suite удалены; bind в notification |
 | P2-BE-U02 | W8-A1-008, W8-A2-005, W8-A2-011, W8-A3-004, W8-A3-005, W8-A3-007, W8-A3-009, W8-A3-010, W8-A3-011, W8-A3-012, W8-A3-014, W8-A3-015, W8-A4-004, W8-A4-008, W8-A4-009, W8-A5-001 | Системный gap `version`/`deleted_at` на mutable Ent (остаток P1-U06) | ADR VersionMixin + exclusion list. Unique/FK/CHECK — в BE-22; без списка scope задача бесконечна |
 | P2-BE-U03 | W8-A1-004, W8-A4-010 | `OnDelete` policy на `edge.To` (остаток P1-U05) | ADR Cascade vs SetNull vs app purge. Без политики нет канона «правильного» cascade-теста |
 | P2-BE-U04 | W7-A5-001, W7-A5-002 | Анонимный `/api/docs` + `/api/status` recon | Product: закрыть за auth/`!release` vs оставить V4-06. Без решения mutation неоднозначна |
