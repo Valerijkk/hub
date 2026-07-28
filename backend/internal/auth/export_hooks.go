@@ -100,6 +100,10 @@ func ExportSessionPublishSessionCreated(s *SessionService, userID, sessionID, de
 	s.publishSessionCreated(userID, sessionID, device, ip)
 }
 
+func ExportSessionPublishSessionEnded(s *SessionService, userID, sessionID, event string) {
+	s.publishSessionEnded(userID, sessionID, event)
+}
+
 func ExportGenerateCode() (string, error) { return generateCode() }
 
 func ExportNewSessionServiceForJWTTest(jwtSecret string, accessTTL time.Duration) *SessionService {

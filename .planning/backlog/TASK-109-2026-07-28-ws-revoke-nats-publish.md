@@ -1,11 +1,24 @@
 # TASK-109 — 🔒 WS: revoke/logout → UnregisterBySession
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: A2W3-4-002 · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]
 
 Logout/Revoke публикует auth.session.* и WS отключает сессию end-to-end.
+
+## [EVIDENCE — be1 2026-07-28]
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A2W3-4-002 | **FIXED** | `publishSessionEnded` в `Logout`/`RevokeSession` → `auth.session.{uid}.{logout\|revoked}` + `session_id`; IT: `session_revoke_nats_task109_test.go`, `revoke_nats_e2e_task109_test.go` |
+
+**Mutation:** убрать `publishSessionEnded` из Logout/Revoke → auth TASK109 RED; убрать `case "revoked","logout"` в bridge → ws TASK109 RED.
+
+**Команды (PASS):**
+```
+go test -tags hubtest -race -count=1 -timeout=300s ./testframework/auth/ ./testframework/ws/
+```
 
 ## [ROLE]
 
