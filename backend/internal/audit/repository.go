@@ -239,6 +239,7 @@ func (r *entRepository) GetSystemSettingsBatch(ctx context.Context, keys []strin
 }
 
 // UpsertSystemSetting создаёт или обновляет настройку.
+// W6-A4-012: при concurrent Create после Update n==0 — retry Update на unique conflict.
 func (r *entRepository) UpsertSystemSetting(ctx context.Context, key, value, description string) error {
 	n, err := r.client.SystemSetting.Update().
 		Where(systemsetting.KeyEQ(key)).
@@ -247,17 +248,27 @@ func (r *entRepository) UpsertSystemSetting(ctx context.Context, key, value, des
 	if err != nil {
 		return fmt.Errorf("обновление настройки %s: %w", key, err)
 	}
-	if n == 0 {
-		_, err = r.client.SystemSetting.Create().
-			SetKey(key).
-			SetValue(value).
-			SetDescription(description).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("создание настройки %s: %w", key, err)
-		}
+	if n > 0 {
+		return nil
 	}
-	return nil
+	_, err = r.client.SystemSetting.Create().
+		SetKey(key).
+		SetValue(value).
+		SetDescription(description).
+		Save(ctx)
+	if err == nil {
+		return nil
+	}
+	if ent.IsConstraintError(err) {
+		if _, retryErr := r.client.SystemSetting.Update().
+			Where(systemsetting.KeyEQ(key)).
+			SetValue(value).
+			Save(ctx); retryErr != nil {
+			return fmt.Errorf("обновление настройки %s (retry): %w", key, retryErr)
+		}
+		return nil
+	}
+	return fmt.Errorf("создание настройки %s: %w", key, err)
 }
 
 // ---------------------------------------------------------------------------

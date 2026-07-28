@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/json"
 	"strings"
@@ -43,18 +44,24 @@ func (h *Handler) RegisterAlertWebhook(api fiber.Router, secret string) {
 }
 
 func (h *Handler) alertWebhookAuth(secret string) fiber.Handler {
-	secretBytes := []byte(secret)
 	return func(c fiber.Ctx) error {
 		auth := c.Get("Authorization")
 		if !strings.HasPrefix(auth, alertWebhookAuthPrefix) {
 			return fiber.NewError(fiber.StatusUnauthorized, "missing alert webhook authorization")
 		}
 		token := strings.TrimPrefix(auth, alertWebhookAuthPrefix)
-		if subtle.ConstantTimeCompare([]byte(token), secretBytes) != 1 {
+		// W6-A4-010: сравниваем SHA-256 дайджесты — fixed-size, без length-oracle CTC.
+		if !constantTimeEqualDigest(token, secret) {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid alert webhook authorization")
 		}
 		return c.Next()
 	}
+}
+
+func constantTimeEqualDigest(a, b string) bool {
+	sumA := sha256.Sum256([]byte(a))
+	sumB := sha256.Sum256([]byte(b))
+	return subtle.ConstantTimeCompare(sumA[:], sumB[:]) == 1
 }
 
 // ReceiveAlertmanagerWebhook godoc

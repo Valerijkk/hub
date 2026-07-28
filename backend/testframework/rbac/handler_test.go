@@ -218,7 +218,7 @@ func TestClearCustomRole_Success(t *testing.T) {
 
 	require.NoError(t, f.svc.AssignCustomRole(ctx, f.projectID, f.strangerID, uuid.MustParse(role.ID)))
 
-	require.NoError(t, f.svc.ClearCustomRole(ctx, f.projectID, f.strangerID))
+	require.NoError(t, f.svc.ClearCustomRole(ctx, f.projectID, f.strangerID, uuid.MustParse(role.ID)))
 
 	perm, err := f.svc.GetEffectivePermissions(ctx, f.strangerID, f.projectID)
 	require.NoError(t, err)

@@ -183,11 +183,27 @@ func (s *RBACService) AssignCustomRole(ctx context.Context, projectID, userID, r
 	return s.cache.Invalidate(ctx, userID.String(), projectID.String())
 }
 
-// ClearCustomRole снимает кастомную роль с участника проекта (возвращает базовую роль).
-func (s *RBACService) ClearCustomRole(ctx context.Context, projectID, userID uuid.UUID) error {
-	mem, err := s.repo.GetProjectMember(ctx, projectID, userID)
+// ClearCustomRole снимает кастомную роль с участника, только если :roleId совпадает
+// с текущей назначенной ролью (W6-A3-012).
+func (s *RBACService) ClearCustomRole(ctx context.Context, projectID, userID, roleID uuid.UUID) error {
+	roleProj, err := s.repo.GetRoleProjectID(ctx, roleID)
+	if err != nil {
+		if IsNotFound(err) {
+			return ErrRoleProjectMismatch
+		}
+		return err
+	}
+	if roleProj != projectID {
+		return ErrRoleProjectMismatch
+	}
+
+	mem, err := s.repo.GetProjectMemberWithCustomRole(ctx, userID, projectID)
 	if err != nil {
 		return err
+	}
+	custom := mem.Edges.CustomRole
+	if custom == nil || custom.ID != roleID {
+		return ErrRoleProjectMismatch
 	}
 
 	err = s.repo.ClearMemberCustomRole(ctx, mem.ID)

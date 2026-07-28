@@ -214,12 +214,19 @@ func (h *CustomRoleHandler) UnassignRole(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	roleID, err := httputil.ParseUUIDParam(c, "roleId")
+	if err != nil {
+		return err
+	}
 	userID, err := httputil.ParseUUIDParam(c, "userId")
 	if err != nil {
 		return err
 	}
 
-	if err := h.svc.ClearCustomRole(c.Context(), projectID, userID); err != nil {
+	if err := h.svc.ClearCustomRole(c.Context(), projectID, userID, roleID); err != nil {
+		if errors.Is(err, ErrRoleProjectMismatch) {
+			return fiber.NewError(fiber.StatusNotFound, "роль не найдена")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка снятия роли")
 	}
 	return c.JSON(fiber.Map{"status": "unassigned"})

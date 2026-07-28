@@ -31,12 +31,15 @@ func (s *ProfileService) UpdateProfile(ctx context.Context, userID uuid.UUID, re
 	return s.repo.UpdateUserProfile(ctx, userID, req)
 }
 
-// CompleteOnboarding обновляет профиль и помечает онбординг как завершённый.
+// CompleteOnboarding обновляет профиль и помечает онбординг как завершённый в одной транзакции.
+// W6-A1-010: сбой MarkOnboardingComplete откатывает UpdateProfile.
 func (s *ProfileService) CompleteOnboarding(ctx context.Context, userID uuid.UUID, req OnboardingCompleteRequest) (*ent.User, error) {
-	if _, err := s.UpdateProfile(ctx, userID, req.ProfileData); err != nil {
-		return nil, err
-	}
-	return s.repo.MarkOnboardingComplete(ctx, userID)
+	return s.repo.WithEntTx(ctx, func(ctx context.Context, txRepo Repository) (*ent.User, error) {
+		if _, err := txRepo.UpdateUserProfile(ctx, userID, req.ProfileData); err != nil {
+			return nil, err
+		}
+		return txRepo.MarkOnboardingComplete(ctx, userID)
+	})
 }
 
 // UserToResponse конвертирует Ent User в DTO UserResponse.

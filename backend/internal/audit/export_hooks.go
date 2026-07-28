@@ -74,3 +74,8 @@ func ExportStripQuery(p string) string {
 func ExportRepositoryEntClient(repo Repository) *ent.Client {
 	return repo.(*entRepository).client
 }
+
+// ExportConstantTimeEqualDigest — hubtest: fixed-size digest compare (W6-A4-010).
+func ExportConstantTimeEqualDigest(a, b string) bool {
+	return constantTimeEqualDigest(a, b)
+}
