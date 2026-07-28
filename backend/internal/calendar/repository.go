@@ -15,6 +15,10 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 )
 
+// MaxCalendarList — W7-A2-010: hard cap на списки календаря (calls/issues/sprints/leave).
+// Mutation: снять Limit → unbounded All при N>cap.
+const MaxCalendarList = 100
+
 // Repository — доступ к данным календаря.
 type Repository interface {
 	ListUserProjectIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
@@ -62,6 +66,8 @@ func (r *EntRepository) ListScheduledCalls(ctx context.Context, projectIDs []uui
 			scheduledcall.IsActive(true),
 			scheduledcall.DeletedAtIsNil(),
 		).
+		WithProject().
+		Limit(MaxCalendarList).
 		All(ctx)
 }
 
@@ -76,6 +82,7 @@ func (r *EntRepository) ListSprintsInRange(ctx context.Context, projectIDs []uui
 			sprintEnt.EndDateGTE(from),
 		).
 		WithProject().
+		Limit(MaxCalendarList).
 		All(ctx)
 }
 
@@ -92,6 +99,7 @@ func (r *EntRepository) ListIssuesDueInRange(ctx context.Context, projectIDs []u
 			issue.DeletedAtIsNil(),
 		).
 		WithProject().
+		Limit(MaxCalendarList).
 		All(ctx)
 }
 
@@ -113,5 +121,6 @@ func (r *EntRepository) ListApprovedLeaveInRange(ctx context.Context, viewerID u
 			leaverequest.HasRequesterWith(requesterPred),
 		).
 		WithRequester().
+		Limit(MaxCalendarList).
 		All(ctx)
 }
