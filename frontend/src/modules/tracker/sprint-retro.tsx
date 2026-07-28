@@ -6,8 +6,10 @@ import {
 	ThumbsUp,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { toastApiError } from "@/lib/format-api-error";
 import { useSprintStore } from "@/stores/sprint-store";
 
 /** Пропсы компонента ретроспективы спринта. */
@@ -66,7 +68,10 @@ export function SprintRetro({
 					.filter(Boolean),
 			});
 			setSaved(true);
+			toast.success("Ретроспектива сохранена");
 			setTimeout(() => setSaved(false), 2000);
+		} catch (err) {
+			toastApiError(err, "Не удалось сохранить ретроспективу");
 		} finally {
 			setSaving(false);
 		}

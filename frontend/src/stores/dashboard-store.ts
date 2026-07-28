@@ -51,7 +51,7 @@ interface DashboardState {
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
-export const useDashboardStore = create<DashboardState>()((set) => ({
+export const useDashboardStore = create<DashboardState>()((set, get) => ({
 	personalData: null,
 	projectData: null,
 	adminData: null,
@@ -114,17 +114,26 @@ export const useDashboardStore = create<DashboardState>()((set) => ({
 		items: LayoutItem[],
 		projectId?: string,
 	) => {
+		const previous = get().layouts[type];
 		// Обновляем локально немедленно
 		set((state) => ({
 			layouts: { ...state.layouts, [type]: items },
+			error: null,
 		}));
 
 		// Дебаунс сохранения на сервер
 		if (saveTimeout) clearTimeout(saveTimeout);
 		saveTimeout = setTimeout(() => {
-			saveLayout(type, items, projectId).catch((err) =>
-				console.error("Ошибка сохранения раскладки", err),
-			);
+			saveLayout(type, items, projectId).catch((err) => {
+				console.error("Ошибка сохранения раскладки", err);
+				set((state) => ({
+					error: "Не удалось сохранить раскладку дашборда",
+					layouts:
+						previous !== undefined
+							? { ...state.layouts, [type]: previous }
+							: state.layouts,
+				}));
+			});
 		}, 500);
 	},
 

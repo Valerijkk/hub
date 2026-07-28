@@ -41,6 +41,9 @@ function CallsPage() {
 				},
 				duration: 15000,
 			});
+		} else {
+			const storeError = useCallStore.getState().error;
+			toast.error(storeError ?? "Не удалось создать звонок");
 		}
 	}, [startInstantCall]);
 

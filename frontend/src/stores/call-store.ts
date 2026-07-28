@@ -199,9 +199,11 @@ export const useCallStore = create<CallState>()((set, get) => ({
 		if (!activeCall) return;
 		try {
 			await callsApi.raiseHand(activeCall.id, !handRaised);
-			set({ handRaised: !handRaised });
-		} catch {
-			// Игнорируем ошибку
+			set({ handRaised: !handRaised, error: null });
+		} catch (err: unknown) {
+			set({
+				error: errorMessage(err, "Не удалось поднять/опустить руку"),
+			});
 		}
 	},
 

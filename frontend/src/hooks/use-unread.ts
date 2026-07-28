@@ -32,14 +32,17 @@ export function useUnread() {
 
 /**
  * useMarkRead возвращает функцию для пометки канала как прочитанного.
- * Сбрасывает локальный store и вызывает API.
+ * Optimistic resetUnread; при ошибке API — rollback badge (W11-A4-004).
  */
 export function useMarkRead() {
 	const resetUnread = useMessengerStore((s) => s.resetUnread);
+	const updateUnread = useMessengerStore((s) => s.updateUnread);
 	const queryClient = useQueryClient();
 
 	return useCallback(
 		async (channelId: string) => {
+			const previous =
+				useMessengerStore.getState().unreadCounts[channelId] ?? 0;
 			resetUnread(channelId);
 			try {
 				await markChannelRead(channelId);
@@ -47,9 +50,9 @@ export function useMarkRead() {
 					queryKey: ["messenger", "unread"],
 				});
 			} catch {
-				// Игнорируем ошибки -- локальный сброс уже выполнен.
+				updateUnread(channelId, previous);
 			}
 		},
-		[resetUnread, queryClient],
+		[resetUnread, updateUnread, queryClient],
 	);
 }

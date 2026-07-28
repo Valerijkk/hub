@@ -43,13 +43,22 @@ export function MarketplacePage() {
 		null,
 	);
 
-	const { data: browseData, isLoading: browseLoading } = useQuery({
+	const {
+		data: browseData,
+		isLoading: browseLoading,
+		isError: browseError,
+		refetch: refetchBrowse,
+	} = useQuery({
 		queryKey: ["marketplace", "browse", category],
 		queryFn: () => listMarketplaceListings(category || undefined, 1, 50),
 		enabled: tab === "browse",
 	});
 
-	const { data: mineData } = useQuery({
+	const {
+		data: mineData,
+		isError: mineError,
+		refetch: refetchMine,
+	} = useQuery({
 		queryKey: ["marketplace", "mine"],
 		queryFn: listMyListings,
 		enabled: tab === "mine",
@@ -80,6 +89,7 @@ export function MarketplacePage() {
 			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
 			toast.success("Объявление опубликовано");
 		},
+		onError: () => toast.error("Не удалось опубликовать объявление"),
 	});
 
 	const rejectMutation = useMutation({
@@ -89,6 +99,7 @@ export function MarketplacePage() {
 			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
 			toast.success("Объявление отклонено");
 		},
+		onError: () => toast.error("Не удалось отклонить объявление"),
 	});
 
 	const soldMutation = useMutation({
@@ -98,6 +109,7 @@ export function MarketplacePage() {
 			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
 			toast.success("Отмечено как проданное");
 		},
+		onError: () => toast.error("Не удалось отметить как проданное"),
 	});
 
 	const withdrawMutation = useMutation({
@@ -107,6 +119,7 @@ export function MarketplacePage() {
 			void queryClient.invalidateQueries({ queryKey: ["marketplace"] });
 			toast.success("Объявление снято");
 		},
+		onError: () => toast.error("Не удалось снять объявление"),
 	});
 
 	const updateMutation = useMutation({

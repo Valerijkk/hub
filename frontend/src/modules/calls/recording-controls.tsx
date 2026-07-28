@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as callsApi from "@/api/calls";
+import { toastApiError } from "@/lib/format-api-error";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCallStore } from "@/stores/call-store";
 
@@ -66,8 +67,8 @@ export function RecordingControls({ callId }: RecordingControlsProps) {
 		try {
 			const rec = await callsApi.startRecording(callId);
 			setRecordingState(true, rec.id, userId ?? "");
-		} catch {
-			// Ошибка обрабатывается в store
+		} catch (err) {
+			toastApiError(err, "Не удалось начать запись");
 		} finally {
 			setIsLoading(false);
 		}
@@ -80,8 +81,8 @@ export function RecordingControls({ callId }: RecordingControlsProps) {
 		try {
 			await callsApi.stopRecording(callId, recordingId);
 			setRecordingState(false, null, null);
-		} catch {
-			// Ошибка обрабатывается в store
+		} catch (err) {
+			toastApiError(err, "Не удалось остановить запись");
 		} finally {
 			setIsLoading(false);
 		}
