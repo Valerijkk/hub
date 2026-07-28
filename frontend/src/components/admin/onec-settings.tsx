@@ -7,6 +7,7 @@ import {
 	testOnecWebhook,
 	updateOnecSettings,
 } from "@/api/admin-onec";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,11 +28,13 @@ export function OnecSettingsPanel() {
 	const [employeeIDField, setEmployeeIDField] =
 		useState<OnecEmployeeIDField>("email");
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [testing, setTesting] = useState(false);
 
 	const refresh = useCallback(async () => {
 		setLoading(true);
+		setLoadError(false);
 		try {
 			const data = await getOnecSettings();
 			setSettings(data);
@@ -40,6 +43,7 @@ export function OnecSettingsPanel() {
 			setEmployeeIDField(data.employee_id_field);
 			setBearerToken("");
 		} catch (err) {
+			setLoadError(true);
 			toastApiError(err, "Не удалось загрузить настройки 1C");
 		} finally {
 			setLoading(false);
@@ -90,6 +94,16 @@ export function OnecSettingsPanel() {
 
 	if (loading) {
 		return <p className="text-[13px] text-t3 py-8 text-center">Загрузка...</p>;
+	}
+
+	// W9-A1-013: fail ≠ пустая панель 1C
+	if (loadError || !settings) {
+		return (
+			<QueryErrorAlert
+				message="Не удалось загрузить настройки 1C"
+				retry={() => void refresh()}
+			/>
+		);
 	}
 
 	return (

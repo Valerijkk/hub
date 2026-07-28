@@ -6,6 +6,7 @@ import {
 	sendMailBroadcast,
 	updateMailSettings,
 } from "@/api/admin-mail";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,10 +22,12 @@ export function MailSettingsPanel() {
 	const [broadcastSubject, setBroadcastSubject] = useState("");
 	const [broadcastBody, setBroadcastBody] = useState("");
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [saving, setSaving] = useState(false);
 
 	const refresh = useCallback(async () => {
 		setLoading(true);
+		setLoadError(false);
 		try {
 			const data = await getMailSettings();
 			setSettings(data);
@@ -33,6 +36,7 @@ export function MailSettingsPanel() {
 			setAlertsEnabled(data.alerts_enabled);
 			setDailyLimit(String(data.daily_limit));
 		} catch (err) {
+			setLoadError(true);
 			toastApiError(err, "Не удалось загрузить настройки почты");
 		} finally {
 			setLoading(false);
@@ -64,6 +68,16 @@ export function MailSettingsPanel() {
 
 	if (loading) {
 		return <p className="text-[13px] text-t3 py-8 text-center">Загрузка...</p>;
+	}
+
+	// W9-A1-010: fail ≠ пустая форма настроек
+	if (loadError || !settings) {
+		return (
+			<QueryErrorAlert
+				message="Не удалось загрузить настройки почты"
+				retry={() => void refresh()}
+			/>
+		);
 	}
 
 	return (
