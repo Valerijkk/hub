@@ -43,6 +43,10 @@ func (LeaveRequest) Fields() []ent.Field {
 		field.Time("updated_at").
 			Default(nowUTC).
 			UpdateDefault(nowUTC),
+		// A2W8-3-001 / ADR-ENT-SOFT-DELETE-GAPS-2026: HR-PII → soft-delete / GDPR.
+		field.Time("deleted_at").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -62,5 +66,6 @@ func (LeaveRequest) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("status", "start_date"),
 		index.Fields("start_date", "end_date"),
+		index.Fields("deleted_at"),
 	}
 }

@@ -53,6 +53,10 @@ func (Recording) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
+		// A2W8-4-005 / ADR-ENT-SOFT-DELETE-GAPS-2026: media metadata soft-delete / GDPR.
+		field.Time("deleted_at").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -83,5 +87,7 @@ func (Recording) Indexes() []ent.Index {
 		index.Fields("project_id", "created_at"),
 		index.Fields("call_id"),
 		index.Fields("egress_id"),
+		index.Fields("deleted_at"),
+		index.Fields("project_id", "deleted_at"),
 	}
 }

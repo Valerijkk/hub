@@ -40,6 +40,10 @@ func (Sprint) Fields() []ent.Field {
 		field.Time("updated_at").
 			Default(nowUTC).
 			UpdateDefault(nowUTC),
+		// A2W8-4-004 / ADR-ENT-SOFT-DELETE-GAPS-2026: sprint trash (version → TASK-095).
+		field.Time("deleted_at").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -61,5 +65,7 @@ func (Sprint) Indexes() []ent.Index {
 			Fields("status"),
 		index.Edges("project").
 			Fields("start_date"),
+		index.Fields("deleted_at"),
+		index.Edges("project").Fields("deleted_at"),
 	}
 }

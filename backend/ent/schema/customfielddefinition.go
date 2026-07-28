@@ -34,6 +34,13 @@ func (CustomFieldDefinition) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
+		// A2W8-2-004 / ADR-ENT-SOFT-DELETE-GAPS-2026 (version → TASK-095).
+		field.Time("updated_at").
+			Default(nowUTC).
+			UpdateDefault(nowUTC),
+		field.Time("deleted_at").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -53,5 +60,7 @@ func (CustomFieldDefinition) Indexes() []ent.Index {
 		index.Edges("project").
 			Fields("name").
 			Unique(),
+		index.Fields("deleted_at"),
+		index.Edges("project").Fields("deleted_at"),
 	}
 }
