@@ -1,11 +1,25 @@
 # TASK-117 — 📧 Notification/mail/push limits + tests
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: W7 notification · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]
 
 Push URL→400; mail daily limit; broadcast Failed count; layering; assert-free tests исправлены.
+
+## [EVIDENCE 2026-07-28 be2]
+
+| ID | Статус | Evidence |
+|----|--------|----------|
+| W7-A1-002 | FIXED | `ErrInvalidPushEndpoint` → handler 400; тест `PushSubscribe_InvalidEndpoint` |
+| W7-A1-003 | FIXED | `SendAlert` enforcement `alerts_enabled`/`daily_limit` (+ store); Status из policy |
+| W7-A1-004 | FIXED | `BroadcastResponse.Failed` + slog на err |
+| W7-A1-005 | FIXED | `AdminHandler` без `*ent.Client`; `ActiveUserEmailSource` |
+| W7-A1-006 | FIXED | assert NotPanics + format в `telegram_wave97_test.go` |
+| W7-A1-007 | FIXED | queue depth / empty recv asserts в lifecycle |
+| W7-A1-008 | FIXED | https-sub остаётся в БД после send fail |
+
+Tests: `go test -tags hubtest -race ./testframework/mail/... ./testframework/notification/` PASS (~20s)
 
 ## [ROLE]
 

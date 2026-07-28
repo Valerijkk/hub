@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/pushsubscription"
 	"github.com/valerii/hub/backend/internal/platform/config"
 )
 
@@ -26,15 +26,27 @@ func TestPushSender_sendToSubscription_ValidEndpointSendFails(t *testing.T) {
 	})
 	require.NotNil(t, push)
 
-	sub := &ent.PushSubscription{
-		ID:        uuid.New(),
-		UserID:    userID,
-		Endpoint:  "https://push.example.com/sub/wave95",
-		P256dhKey: "invalid-p256",
-		AuthKey:   "invalid-auth",
-	}
+	endpoint := "https://push.example.com/sub/wave95-" + uuid.New().String()
+	saved, err := notification.ExportRepositoryDB(repo).PushSubscription.Create().
+		SetUserID(userID).
+		SetEndpoint(endpoint).
+		SetP256dhKey("invalid-p256").
+		SetAuthKey("invalid-auth").
+		SetUserAgent("ua").
+		Save(ctx)
+	require.NoError(t, err)
+
 	payload := []byte(`{"title":"t","body":"b"}`)
-	notification.ExportPushSendToSubscription(push, ctx, sub, payload)
+	require.NotPanics(t, func() {
+		notification.ExportPushSendToSubscription(push, ctx, saved, payload)
+	})
+
+	// W7-A1-008: https-endpoint при ошибке отправки не удаляется.
+	exists, err := notification.ExportRepositoryDB(repo).PushSubscription.Query().
+		Where(pushsubscription.IDEQ(saved.ID)).
+		Exist(ctx)
+	require.NoError(t, err)
+	require.True(t, exists, "valid https subscription must remain after send failure")
 }
 
 // TestPushSender_sendToSubscription_UnsafeEndpointDeleted проверяет сценарий: push sender отправка to subscription unsafe endpoint deleted.

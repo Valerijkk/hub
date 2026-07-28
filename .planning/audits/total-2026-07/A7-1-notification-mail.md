@@ -84,19 +84,19 @@
 | Telegram bind ≠ login | **OK** | Routes только `/telegram/{bind,confirm,test,status}` + DELETE; bot: `/start bind_*`, `/link`, `/unlink`, `/test` — нет JWT/session/login |
 | Consumer Ack/Nak (A2-010) | **частично** | `processEvent`: success→Ack, err→Nak, unknown→Ack; тест `consumer_ack_a2010_test.go`. Gap: soft `return nil` на repo/DB err → Ack (W7-A1-001) |
 | Mail `ConstantTimeCompare` | **OK** | `internal_auth.go:26`; empty expected → 503; тесты header/Bearer/wrong/empty |
-| DailyLimit / AlertsEnabled | **дыра** | Админ пишет settings; `SendAlert` не читает лимит/флаг (W7-A1-003) |
+| DailyLimit / AlertsEnabled | **enforced** | TASK-117: SendAlert читает cfg/store (W7-A1-003 FIXED) |
 
 ## Находки
 | ID | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|----------|-------------|---------|-------------------|------------|
 | W7-A1-001 | P1 | `backend/internal/notification/consumer.go:253-254` (+448-450, 488-490, 547-548, 596-597, 331-332, 381-382) | При ошибке repo (`GetIssueAssignee`/`GetChannel`/`GetChannelMembers`/`GetProjectMembersWithUser`) handler возвращает `nil` → `processEvent` делает **Ack** | Transient DB/outage → событие навсегда потеряно; `MaxDeliver`/`Nak` бесполезны. A2-010 закрыл только явный `processErr`, не soft-nil | Различать not-found (`nil,nil` / `ent.IsNotFound`) → Ack; прочие `err` → return err → Nak |
-| W7-A1-002 | P2 | `backend/internal/notification/handler.go:318-325` | Ошибка `ValidateOutboundURL` из `SaveSubscription` мапится в **500**, не 400 | Клиент с `javascript:`/`file:` получает Internal Server Error; тест `handler_test.go:317` **закрепляет** 500 | `errors.Is`/`strings.Contains` на validation → 400; обновить тест |
-| W7-A1-003 | P2 | `backend/internal/mail/service.go:51-99` (+`Status` 103-110) | `DailyLimit` / `alerts_enabled` из admin settings **не enforcement** в `SendAlert`; `Status().AlertsEnabled` всегда `true` | Admin UI/API обещают лимит и выключатель; фактически unlimited send при наличии ключа | Читать лимит/флаг (Redis/DB counter per-day); при `alerts_enabled=false` — fail; Status из cfg/store |
-| W7-A1-004 | P2 | `backend/internal/mail/admin_broadcast.go:57-68` | Ошибка `sender.SendAlert` глотается (`continue`), в ответе только `Sent` без failed | Частичный фейл рассылки выглядит как успех; нет логов/счётчика ошибок | Логировать err; `Failed` в response; опционально abort после N ошибок |
-| W7-A1-005 | P2 | `backend/internal/mail/admin_handler.go:12-18` | `AdminHandler` держит `*ent.Client` и передаёт в `Broadcast` | TZ/layering: `*ent.Client` не в Handler | User-list через `SettingsStore`/repo interface; db только в store |
-| W7-A1-006 | P2 | `backend/testframework/notification/telegram_wave97_test.go:17-34` | Оба теста без assert (только `require.NotNil` + вызов) | Assert-free: проходят при сломанном cancel/format path | Assert: после cancel нет panic; format через `ExportFormatTelegramMessage` / err branch observable |
-| W7-A1-007 | P2 | `backend/testframework/notification/telegram_lifecycle_test.go:32-47,93-99` | `SendAndQueueOverflow`, `StartStopWithoutWorkerSend`, `SendTelegram_MissingUser` — без assert | Зелёные при регрессии drop/queue/nil-user | Assert queue depth / try-recv empty / NotPanics явно |
-| W7-A1-008 | P2 | `backend/testframework/notification/push_wave95_test.go:19-38` | `ValidEndpointSendFails` вызывает send без assert | Не ловит регрессию (panic/удаление валидной sub) | Assert sub остаётся в БД; err path не удаляет https-endpoint |
+| W7-A1-002 | P2 | `backend/internal/notification/handler.go` | Ошибка `ValidateOutboundURL` → **400** | TASK-117 FIXED | `ErrInvalidPushEndpoint` → 400; тест ожидает 400 |
+| W7-A1-003 | P2 | `backend/internal/mail/service.go` | DailyLimit / alerts_enabled **enforced** в SendAlert | TASK-117 FIXED | store+cfg policy; Status из effectivePolicy |
+| W7-A1-004 | P2 | `backend/internal/mail/admin_broadcast.go` | `Failed` в response + slog | TASK-117 FIXED | partial fail видим |
+| W7-A1-005 | P2 | `backend/internal/mail/admin_handler.go` | без `*ent.Client` | TASK-117 FIXED | ActiveUserEmailSource |
+| W7-A1-006 | P2 | `telegram_wave97_test.go` | meaningful asserts | TASK-117 FIXED | NotPanics + format |
+| W7-A1-007 | P2 | `telegram_lifecycle_test.go` | queue/empty asserts | TASK-117 FIXED | TryRecv depth |
+| W7-A1-008 | P2 | `push_wave95_test.go` | https-sub остаётся | TASK-117 FIXED | Exist after send fail |
 | W7-A1-009 | P3 | `backend/testframework/notification/service_extended_test.go:314-326` | `IsQuietHours_CrossMidnight`: `_ = ExportIsQuietHours(...)` | Имя обещает cross-midnight; значения не проверяются | Зафиксировать TZ/час clock или таблицу start/end → expected bool |
 | W7-A1-010 | P3 | `backend/internal/notification/telegram_bind.go:127,245` | `rdb.Del` после успешного bind/confirm без проверки err | Токен/код может остаться в Redis → повторное использование окна TTL | Проверять/логировать Del err; желательно Del до link или pipeline |
 

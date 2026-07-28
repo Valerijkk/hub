@@ -65,10 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (be2 · TASK-115 RBAC permission middleware hygiene)
+## Session note — 2026-07-28 (be2 · TASK-117 notification/mail/push limits)
 
-- A2W6-A3-001..005 FIXED: unknown perm→400; Delete clear+delete Ent Tx; ClearCustomRole cache-fail≠500; `CaptureBearerToken` + extract-only tests.
-- Тесты: `go test -tags hubtest -race ./testframework/rbac/` PASS; статус README «Исправлена».
+- W7-A1-002…008 FIXED: push invalid URL→400; mail DailyLimit/alerts_enabled enforcement;
+  broadcast `Failed`; AdminHandler без `*ent.Client`; assert-free telegram/push tests.
+- Tests: `go test -tags hubtest -race ./testframework/mail/... ./testframework/notification/` PASS (~20s).
+- Backlog TASK-117 → Исправлена.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

@@ -1,15 +1,18 @@
 ﻿package mail_test
+
 import (
-	"github.com/valerii/hub/backend/internal/mail"
 	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/mail"
 )
 
 func testHubMailApp(t *testing.T) *fiber.App {
@@ -77,7 +80,7 @@ func TestHubHandler_Send_AuthAndValidation(t *testing.T) {
 	req = httptest.NewRequest(http.MethodPost, "/v1/send", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(mail.ExportInternalTokenHeader(), "hub-mail-secret")
-	resp, err = app.Test(req)
+	resp, err = app.Test(req, 15*time.Second)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
