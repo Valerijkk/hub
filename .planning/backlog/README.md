@@ -1,14 +1,15 @@
 # Бэклог задач
 
 > Единый вход для агентов и владельца. Одна папка, одна таблица, один формат.
-> Обновлено: 2026-07-28 (A2 dedup → TASK-081…094 · naming `TASK-NNN-YYYY-MM-DD-slug`)
+> Обновлено: 2026-07-28 (A2: **все 254 → TASK-081…123** · naming `TASK-NNN-YYYY-MM-DD-slug`)
 
 Каждая задача — отдельный файл, написанный по
 [мастер-промпту](../../prompt-engineering/agents/templates/_MASTER-PROMPT-TEMPLATE.md).
 Правила ведения: [`.cursor/rules/57-backlog-tasks.mdc`](../../.cursor/rules/57-backlog-tasks.mdc)
 (с 2026-07-28: **`TASK-<NNN>-<YYYY-MM-DD>-<функциональный-слаг>.md`**, emoji в заголовке/таблице).
 
-Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../audits/total-2026-07/A2-DEDUP-2026-07-28.md) — сырые **254** open ≠ 254 задач; заведено **14** кластеров.
+Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../audits/total-2026-07/A2-DEDUP-2026-07-28.md) —
+**Owner lock: правим все 254** → TASK-081…123 (43 кластера, unmapped 0).
 
 ---
 
@@ -16,7 +17,7 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 
 | ID | Задача | Приоритет | Статус | Исполнитель | Источник |
 |----|--------|-----------|--------|-------------|----------|
-| [TASK-008](TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | В работе (A✅ · **A2✅** · dedup→081…094 · B P0–P3✅ · не закрывать) | Grok + субагенты | Owner 2026-07-28 |
+| [TASK-008](TASK-008-total-audit-program.md) | Тотальный пофайловый аудит | P1 | В работе (A✅ · **A2✅** · **254→TASK-081…123** · B P0–P3✅ · не закрывать) | Grok + субагенты | Owner 2026-07-28 |
 | [TASK-081](TASK-081-2026-07-28-tms-completerun-project-id-webhook.md) | ♻️🐛 TMS CompleteTestRun → webhook `project_id` | **P1** | Открыта | be1 | A2W4-5-001 REGRESS |
 | [TASK-082](TASK-082-2026-07-28-fe-sprint-backlog-without-sprint-filter.md) | 🐛 FE SprintBacklog без фильтра sprint | **P1** | Открыта | fe1 | A2W10-A3-001 |
 | [TASK-083](TASK-083-2026-07-28-fe-trash-hard-delete-api.md) | 🐛 FE Trash hard-delete без API | **P1** | Открыта | fe2 | A2W10-A5-001 |
@@ -31,6 +32,35 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-092](TASK-092-2026-07-28-search-filter-status-safedial.md) | 🔒 Search 403 + Meili SafeDial | P2 | Открыта | be2 | A2W5-A4 |
 | [TASK-093](TASK-093-2026-07-28-fe-a2-error-empty-a11y-sweep.md) | 🧹 FE A2 error≠empty + a11y | P2 | Открыта | fe1 | A2W9/W10/W11 |
 | [TASK-094](TASK-094-2026-07-28-coffee-pairs-triple-edge.md) | ☕ Coffee Pairs[] triple-edges | P3 | Открыта | be2 | A2W7-2-N01 |
+| [TASK-095](TASK-095-2026-07-28-ent-version-mixin-adr-rollout.md) | 📐 Ent VersionMixin ADR + rollout | **P1** | Открыта | arch→be1 | A2W8 · 19 rows |
+| [TASK-096](TASK-096-2026-07-28-ent-ondelete-cascade-adr.md) | 📐 Ent OnDelete/cascade ADR | **P1** | Открыта | arch→be1 | A2W8 · 4 |
+| [TASK-097](TASK-097-2026-07-28-ent-soft-delete-schema-gaps.md) | 📐 Ent soft-delete schema gaps | **P1** | Открыта | be2 | A2W8/W7 · 7 |
+| [TASK-098](TASK-098-2026-07-28-intranet-author-delete-polls-adr.md) | 📐 Intranet author-delete + polls U03 | **P1** | Открыта | product→be1 | W7-A2-001 |
+| [TASK-099](TASK-099-2026-07-28-storage-nf09-size-zero-adr.md) | 📐 Storage NF-09 size==0 | **P1** | Открыта | product→be2 | W7-A4-001 |
+| [TASK-100](TASK-100-2026-07-28-backup-maintenance-gate-distributed-adr.md) | 📐 Backup MaintenanceGate U04 | **P1** | Открыта | devops→be1 | W7-A4-003 |
+| [TASK-101](TASK-101-2026-07-28-ai-ollama-localhost-consent-adr.md) | 📐 AI Ollama localhost consent | **P1** | Открыта | product→be1 | A2W5-A2-005 |
+| [TASK-102](TASK-102-2026-07-28-telegram-login-removal-adr-auth01.md) | 📐 Telegram login cleanup ADR-AUTH-01 | **P1** | Открыта | be1 | A2W6 · 7 |
+| [TASK-103](TASK-103-2026-07-28-jwt-ws-handshake-adr.md) | 📐 JWT/WS handshake (no ?token=) | P2 | Открыта | arch→be+fe | A2W3/W11 · 3 |
+| [TASK-104](TASK-104-2026-07-28-docs-cursor-pagination-adr.md) | 📐 Docs/API cursor vs offset | P2 | Открыта | sa→be+docs | A2W11 · 2 |
+| [TASK-105](TASK-105-2026-07-28-docs-vision-g07-wiki-kpi-adr.md) | 📐 Docs G-07 wiki KPI | **P1** | Открыта | product→docs | A2W11-5-001 |
+| [TASK-106](TASK-106-2026-07-28-intranet-coffee-dm-notify-adr.md) | 📐 Intranet FR-INTR-11 DM/notify U05 | P2 | Открыта | product→be2 | W7-A2-008 |
+| [TASK-107](TASK-107-2026-07-28-ent-indexes-composite-fk-polymorphic.md) | 🔒 Ent indexes/FK/polymorphic | P2 | Открыта | be1 | A2W8 · 8 |
+| [TASK-108](TASK-108-2026-07-28-messenger-invite-dm-unread-scope.md) | 🔒 Messenger invite/DM/unread/bot | P2 | Открыта | be1 | A2W3 · 9 |
+| [TASK-109](TASK-109-2026-07-28-ws-revoke-nats-publish.md) | 🔒 WS revoke → UnregisterBySession | P2 | Открыта | be1 | A2W3-4-002 |
+| [TASK-110](TASK-110-2026-07-28-calls-recording-room-guest-code.md) | 📞 Calls recording/room/guest | P2 | Открыта | be2 | A2W3 · 3 |
+| [TASK-111](TASK-111-2026-07-28-tms-wave2-services-import-batch.md) | 🐛 TMS W2 residual batch | P2 | Открыта | be2 | A2W2 · 24 |
+| [TASK-112](TASK-112-2026-07-28-platform-outbox-nats-aes-hsts.md) | 🐛 Platform NATS/HSTS/AES/RL | P2 | Открыта | be1 | A2W4 · 9 |
+| [TASK-113](TASK-113-2026-07-28-ai-residual-sanitize-tests-policy.md) | 🔒 AI residual sanitize/tests | P2 | Открыта | be1 | A2W5 · 18 |
+| [TASK-114](TASK-114-2026-07-28-audit-gdpr-limits-layering-tests.md) | 🔒 Audit/GDPR residual | P2 | Открыта | be1 | A2W6 · 14 |
+| [TASK-115](TASK-115-2026-07-28-rbac-permission-middleware-hygiene.md) | 🔒 RBAC permission hygiene | P2 | Открыта | be2 | A2W6 · 5 |
+| [TASK-116](TASK-116-2026-07-28-auth-avatar-xss-validation-tests.md) | 🔒 Auth AvatarURL + session assert | P2 | Открыта | be1 | A2W6 · 2 |
+| [TASK-117](TASK-117-2026-07-28-notification-mail-push-limits-tests.md) | 📧 Notification/mail/push limits | P2 | Открыта | be2 | W7-A1 · 7 |
+| [TASK-118](TASK-118-2026-07-28-v4-crm-hr-calendar-lists-trash.md) | 💼 v4 CRM/HR/calendar residual | P2 | Открыта | be2 | W7-A2 · 5 |
+| [TASK-119](TASK-119-2026-07-28-storage-backup-dashboard-residual.md) | 🔒 Storage/backup/dashboard residual | P2 | Открыта | be1 | W7-A4 · 8 |
+| [TASK-120](TASK-120-2026-07-28-integrations-secrets-imex-trash.md) | 🔌 Git*/1C/imex secrets+trash | P2 | Открыта | be2 | W7-A3 · 4 |
+| [TASK-121](TASK-121-2026-07-28-marketplace-status-dev-exposure.md) | 🛒 Marketplace/status/docs gates | P2 | Открыта | be1 | W7-A5 · 6 |
+| [TASK-122](TASK-122-2026-07-28-tracker-project-jql-cleanup-links.md) | 🔒 Tracker JQL + DeleteProject links | P2 | Открыта | be1 | A2W1 · 2 |
+| [TASK-123](TASK-123-2026-07-28-fe-lib-dead-export-docs-drift.md) | 🧹 FE dead export + docs drift | P2 | Открыта | fe2+docs | A2W11 · 4 |
 | [TASK-009](TASK-009-project-routes-rbac.md) | project routes без RBAC | **P0** | Исправлена | be1 | W1-A5-001 |
 | [TASK-010](TASK-010-promote-to-issue-rbac.md) | promote-to-issue без PermTaskCreate | **P0** | Исправлена | be1 | W3-A2-001 |
 | [TASK-011](TASK-011-webhook-event-match.md) | webhook UI events ≠ NATS subjects | **P0** | Исправлена | be1 | W4-A5-001 |

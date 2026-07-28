@@ -47,8 +47,8 @@
 
 ## Следующие шаги оркестратора
 
-1. ~~**Дедуп**~~ → [`A2-DEDUP-2026-07-28.md`](A2-DEDUP-2026-07-28.md) · **14** code-TASK (**081…094**); сырые 254 ≠ 254 багов.
-2. **Fix wave** приоритет: P1 REGRESS **081** → P1 **082–084** → P2 **085…093** → P3 **094**.
-3. Deferred ADR/U* — **не** трогать без owner/ADR (VersionMixin, OnDelete, U03/U04, Telegram login, NF-09…).
-4. **Не закрывать TASK-008** до remediation path + method-comparable COV vs 81.9%.
-5. Naming задач: `TASK-<NNN>-<YYYY-MM-DD>-<slug>.md` — [`.cursor/rules/57-backlog-tasks.mdc`](../../.cursor/rules/57-backlog-tasks.mdc).
+1. ~~Дедуп~~ → [`A2-DEDUP-2026-07-28.md`](A2-DEDUP-2026-07-28.md): **254/254** в TASK-081…123.
+2. **Owner lock:** правим **все 254** (нет вечного WONTFIX). ADR-first: 095–106.
+3. **Fix wave:** 081 → 082–084 → ADR P1 → P2 085–123.
+4. **Не закрывать TASK-008** до закрытия 081…123 + method-comparable COV.
+5. Naming: `TASK-<NNN>-<YYYY-MM-DD>-<slug>.md` — rule `57-backlog-tasks.mdc`.
