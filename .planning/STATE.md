@@ -65,6 +65,11 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (fe1 · TASK-047 P2-FE-01 error≠empty)
+
+- Экспорт `QueryErrorAlert`; admin mail/ai/onec, bookmarks, bases, TMS reports/runs, user-picker, telegram, ai-store, leave/kudos/marketplace, call-calendar + `listScheduledCallsForChannels`.
+- Vitest 19 PASS (domains ai/admin/v4/messenger/tms); tsc PASS. Статус задачи «На проверке»; remaining Source IDs — в TASK-047.
+
 ## Session note — 2026-07-28 (fe2 · TASK-048 P2-FE-02 mutation feedback)
 
 - ConfirmDialog: close только после successful `onConfirm` (reject → open).
