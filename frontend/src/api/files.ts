@@ -24,11 +24,13 @@ export function getUploadUrl(
 	filename: string,
 	contentType: string,
 	projectId: string,
+	size: number,
 ) {
 	return api.post<UploadUrlResponse>("/files/upload-url", {
 		filename,
 		contentType,
 		projectId,
+		size,
 	});
 }
 
@@ -63,11 +65,12 @@ export async function uploadFile(
 	entityType: string,
 	entityId: string,
 ): Promise<string> {
-	// 1. Get presigned upload URL
+	// 1. Get presigned upload URL (size обязателен — NF-09 / ContentLength bind)
 	const { file_id, upload_url } = await getUploadUrl(
 		file.name,
 		file.type || "application/octet-stream",
 		projectId,
+		file.size,
 	);
 
 	// 2. PUT file directly to storage (presigned URL)
