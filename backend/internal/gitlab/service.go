@@ -420,14 +420,14 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 		return nil, apperrors.NewInternal("ошибка разбора ответа GitLab API")
 	}
 
-	// Публикуем NATS-событие о запуске пайплайна
+	// Публикуем NATS-событие о запуске пайплайна (W7-A3-001: values redact).
 	s.nats.PublishJSON("gitlab.pipeline.triggered", map[string]interface{}{
 		"pipeline_id":  pipeline.ID,
 		"status":       pipeline.Status,
 		"ref":          pipeline.Ref,
 		"web_url":      pipeline.WebURL,
 		"project_path": integration.ProjectPath,
-		"variables":    req.Variables,
+		"variables":    redactPipelineVariables(req.Variables),
 	})
 
 	return &TriggerPipelineResponse{
@@ -436,6 +436,18 @@ func (s *GitLabService) TriggerPipeline(ctx context.Context, projectID uuid.UUID
 		Status:     pipeline.Status,
 		Ref:        pipeline.Ref,
 	}, nil
+}
+
+// redactPipelineVariables — P1-BE-36: в NATS/outbox уходят только ключи CI vars, не plaintext values.
+func redactPipelineVariables(vars map[string]string) map[string]string {
+	if len(vars) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(vars))
+	for k := range vars {
+		out[k] = "***"
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------

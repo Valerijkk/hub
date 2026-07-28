@@ -37,3 +37,8 @@ func ExportParseGitLabMRURL(raw string) (host, projectPath string, iid int, err 
 func ExportMaxWebhookBodyBytes() int {
 	return maxWebhookBodyBytes
 }
+
+// ExportRedactPipelineVariables — P1-BE-36 redact helper для hubtest.
+func ExportRedactPipelineVariables(vars map[string]string) map[string]string {
+	return redactPipelineVariables(vars)
+}
