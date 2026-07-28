@@ -158,6 +158,19 @@ func (m *mockRepository) MoveIssuesToSprint(_ context.Context, issueIDs []uuid.U
 	return nil
 }
 
+func (m *mockRepository) CompleteSprintAtomic(ctx context.Context, projectID, sprintID uuid.UUID, afterSprint *ent.Sprint, incompleteIDs []uuid.UUID) (*ent.Sprint, error) {
+	if len(incompleteIDs) > 0 {
+		next, err := m.FindOrCreateNextPlanningSprint(ctx, projectID, afterSprint)
+		if err != nil {
+			return nil, err
+		}
+		if err := m.MoveIssuesToSprint(ctx, incompleteIDs, next.ID); err != nil {
+			return nil, err
+		}
+	}
+	return m.UpdateSprintStatus(ctx, sprintID, sprintEnt.StatusCompleted)
+}
+
 func (m *mockRepository) SetIssuesSprint(_ context.Context, projectID uuid.UUID, issueIDs []uuid.UUID, sprintID uuid.UUID) error {
 	for _, id := range issueIDs {
 		if pid, ok := m.issueProject[id]; ok && pid != projectID {

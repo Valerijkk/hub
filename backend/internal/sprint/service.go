@@ -152,32 +152,22 @@ func (s *SprintService) CompleteSprint(ctx context.Context, projectID, sprintID 
 		return nil, apperrors.NewInternal("ошибка поиска незавершённых задач")
 	}
 
-	// Переносим незавершённые задачи в следующий спринт
-	if len(incomplete) > 0 {
-		nextSprint, err := s.repo.FindOrCreateNextPlanningSprint(ctx, projectID, sp)
-		if err != nil {
-			return nil, apperrors.NewInternal("ошибка создания следующего спринта")
-		}
+	issueIDs := make([]uuid.UUID, len(incomplete))
+	for i, iss := range incomplete {
+		issueIDs[i] = iss.ID
+	}
 
-		issueIDs := make([]uuid.UUID, len(incomplete))
-		for i, iss := range incomplete {
-			issueIDs[i] = iss.ID
-		}
-		if err := s.repo.MoveIssuesToSprint(ctx, issueIDs, nextSprint.ID); err != nil {
-			return nil, apperrors.NewInternal("ошибка переноса задач")
-		}
+	// P1-BE-05: create-next + move + status=completed в одной tx (иначе рассинхрон при mid-fail).
+	updated, err := s.repo.CompleteSprintAtomic(ctx, projectID, sprintID, sp, issueIDs)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка завершения спринта")
+	}
 
+	if len(issueIDs) > 0 {
 		slog.Info("перенесены незавершённые задачи",
 			"count", len(issueIDs),
 			"from_sprint", sprintID,
-			"to_sprint", nextSprint.ID,
 		)
-	}
-
-	// Обновляем статус
-	updated, err := s.repo.UpdateSprintStatus(ctx, sprintID, sprintEnt.StatusCompleted)
-	if err != nil {
-		return nil, apperrors.NewInternal("ошибка завершения спринта")
 	}
 
 	return s.toSprintResponse(ctx, updated), nil

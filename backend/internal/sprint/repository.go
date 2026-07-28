@@ -38,6 +38,10 @@ type Repository interface {
 
 	// FindIncompleteIssues находит незавершённые задачи спринта (status.category != done).
 	FindIncompleteIssues(ctx context.Context, sprintID uuid.UUID) ([]*ent.Issue, error)
+	// CompleteSprintAtomic атомарно: next planning (при incomplete) + move issues + status=completed.
+	// P1-BE-05 / W1-A4-001: без одной tx при ошибке UpdateStatus задачи остаются в следующем спринте,
+	// а текущий — active.
+	CompleteSprintAtomic(ctx context.Context, projectID, sprintID uuid.UUID, afterSprint *ent.Sprint, incompleteIDs []uuid.UUID) (*ent.Sprint, error)
 	// MoveIssuesToSprint переносит задачи в целевой спринт.
 	MoveIssuesToSprint(ctx context.Context, issueIDs []uuid.UUID, targetSprintID uuid.UUID) error
 	// SetIssuesSprint устанавливает sprint_id для задач, принадлежащих projectID (RT-005).
@@ -206,6 +210,65 @@ func (r *EntRepository) FindIncompleteIssues(ctx context.Context, sprintID uuid.
 			),
 		).
 		All(ctx)
+}
+
+// CompleteSprintAtomic выполняет перенос незавершённых задач и смену статуса в одной Ent-tx.
+func (r *EntRepository) CompleteSprintAtomic(ctx context.Context, projectID, sprintID uuid.UUID, afterSprint *ent.Sprint, incompleteIDs []uuid.UUID) (*ent.Sprint, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if len(incompleteIDs) > 0 {
+		next, err := findOrCreateNextPlanningSprintTx(ctx, tx, projectID, afterSprint)
+		if err != nil {
+			return nil, err
+		}
+		if err := tx.Issue.Update().
+			Where(issue.IDIn(incompleteIDs...)).
+			SetSprintID(next.ID).
+			Exec(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	updated, err := tx.Sprint.UpdateOneID(sprintID).
+		SetStatus(sprintEnt.StatusCompleted).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return updated, nil
+}
+
+func findOrCreateNextPlanningSprintTx(ctx context.Context, tx *ent.Tx, projectID uuid.UUID, afterSprint *ent.Sprint) (*ent.Sprint, error) {
+	s, err := tx.Sprint.
+		Query().
+		Where(
+			sprintEnt.StatusEQ(sprintEnt.StatusPlanning),
+			sprintEnt.HasProjectWith(project.ID(projectID)),
+		).
+		Order(ent.Asc(sprintEnt.FieldStartDate)).
+		First(ctx)
+	if err == nil {
+		return s, nil
+	}
+	if !ent.IsNotFound(err) {
+		return nil, err
+	}
+	nextStart := afterSprint.EndDate
+	nextEnd := nextStart.AddDate(0, 0, 14)
+	return tx.Sprint.
+		Create().
+		SetName(afterSprint.Name + " (следующий)").
+		SetStartDate(nextStart).
+		SetEndDate(nextEnd).
+		SetProjectID(projectID).
+		Save(ctx)
 }
 
 // MoveIssuesToSprint переносит задачи в целевой спринт.
