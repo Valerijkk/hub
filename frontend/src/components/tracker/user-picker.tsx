@@ -77,7 +77,10 @@ export function UserPicker({
 							<UserRound className="h-4 w-4 shrink-0 text-t3" aria-hidden />
 							{selected ? memberLabel(selected) : label}
 						</span>
-						<ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+						<ChevronsUpDown
+							className="h-4 w-4 shrink-0 opacity-50"
+							aria-hidden="true"
+						/>
 					</Button>
 				</PopoverTrigger>
 				<PopoverContent
@@ -124,6 +127,7 @@ export function UserPicker({
 												}}
 											>
 												<Check
+													aria-hidden="true"
 													className={cn(
 														"mr-2 h-4 w-4",
 														value === m.user_id ? "opacity-100" : "opacity-0",

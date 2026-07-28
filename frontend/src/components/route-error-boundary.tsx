@@ -57,7 +57,11 @@ export class RouteErrorBoundary extends Component<
 		}
 
 		return (
-			<div className="flex flex-1 items-center justify-center p-8">
+			<div
+				role="alert"
+				aria-live="assertive"
+				className="flex flex-1 items-center justify-center p-8"
+			>
 				<div className="max-w-sm text-center">
 					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
 						<svg

@@ -73,11 +73,13 @@ export function TrashManager() {
 			<h2 className="text-xl font-semibold">Корзина</h2>
 
 			{/* Вкладки */}
-			<div className="flex gap-1 border-b">
+			<div role="tablist" aria-label="Категории корзины" className="flex gap-1 border-b">
 				{TRASH_TABS.map((tab) => (
 					<button
 						type="button"
+						role="tab"
 						key={tab.key}
+						aria-selected={activeTab === tab.key}
 						onClick={() => setActiveTab(tab.key)}
 						className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
 							activeTab === tab.key
