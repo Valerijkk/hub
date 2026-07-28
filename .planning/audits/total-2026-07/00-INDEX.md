@@ -27,9 +27,17 @@
 | A2-W1 | tracker+sprint+project | 🔄 | | | | | | |
 | A2-W2 | tms+bases | 🔄 | | | | | | |
 | A2-W3 | messenger+ws+calls | ✅ | 131 | 0 | 0 | 12 | 4 | **16** |
-| A2-W4…W11 | … | 🔄 | | | | | | |
+| A2-W4 | platform+apigateway | 🔄 | | | | | | |
+| A2-W5 | ai+search | ✅ | 96 | 0 | 1 | 18 | 13 | **32** |
+| A2-W6 | auth+rbac+audit | 🔄 | | | | | | |
+| A2-W7 | remaining backend | 🔄 | | | | | | |
+| A2-W8 | ent/schema | 🔄 | | | | | | |
+| A2-W9 | frontend/components | 🔄 | | | | | | |
+| A2-W10 | routes+modules | 🔄 | | | | | | |
+| A2-W11 | api/stores/hooks/lib+docs | 🔄 | | | | | | |
 
-Сводка W3: [`A2-W3-SUMMARY.md`](A2-W3-SUMMARY.md) · NEW=2 · REGRESS=0 · RESIDUAL=14
+Сводки: [`A2-W3-SUMMARY.md`](A2-W3-SUMMARY.md) · [`A2-W5-SUMMARY.md`](A2-W5-SUMMARY.md)  
+A2-W5: NEW=2 · **REGRESS=9** · RESIDUAL=21 (P1: adapter/RPM — см. summary)
 
 ## Стадии B/C
 
