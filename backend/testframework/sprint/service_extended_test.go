@@ -113,12 +113,13 @@ func TestAddAndRemoveIssuesFromSprint(t *testing.T) {
 	}
 	repo.sprintProject[sprintID] = projectID
 	issueID := uuid.New()
+	repo.issueProject[issueID] = projectID // W1-A4-015: mock guard требует project mapping
 
 	require.NoError(t, svc.AddIssuesToSprint(ctx, projectID, sprintID, []uuid.UUID{issueID}))
 	assert.Equal(t, sprintID, repo.movedToSprint)
 	assert.Equal(t, []uuid.UUID{issueID}, repo.movedIssueIDs)
 
-	require.NoError(t, svc.RemoveIssuesFromSprint(ctx, []uuid.UUID{issueID}))
+	require.NoError(t, svc.RemoveIssuesFromSprint(ctx, projectID, []uuid.UUID{issueID}))
 	assert.Equal(t, []uuid.UUID{issueID}, repo.clearedIssueIDs)
 }
 

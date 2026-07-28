@@ -64,7 +64,7 @@
 | [TASK-056](TASK-056-fe-p2-i18n-push-rooms.md) | FE i18n/push/rooms | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-15 |
 | [TASK-057](TASK-057-be-p3-silent-error-swallow.md) | BE silent error swallow | P3 | Исправлена | be1 | W12 P3-BE-01 |
 | [TASK-058](TASK-058-be-p3-assert-free-tests.md) | BE assert-free tests | P3 | Исправлена | be2 | W12 P3-BE-02 |
-| [TASK-059](TASK-059-be-p3-mutation-proof-gaps.md) | BE mutation-proof gaps | P3 | Открыта | be1 | W12 P3-BE-03 |
+| [TASK-059](TASK-059-be-p3-mutation-proof-gaps.md) | BE mutation-proof gaps | P3 | Исправлена | be1 | W12 P3-BE-03 |
 | [TASK-060](TASK-060-be-p3-utf8-rune-truncate.md) | BE UTF-8 rune truncate | P3 | Исправлена | be2 | W12 P3-BE-04 |
 | [TASK-061](TASK-061-be-p3-repo-lists-defense.md) | BE repo/lists defense | P3 | Открыта | be1 | W12 P3-BE-05,06 |
 | [TASK-062](TASK-062-be-p3-dead-code-layering.md) | BE dead code/layering | P3 | Исправлена | be2 | W12 P3-BE-07 |

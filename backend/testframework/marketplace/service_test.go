@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	_ "github.com/mattn/go-sqlite3"
 
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/enttest"
 	"github.com/valerii/hub/backend/ent/user"
 )
@@ -39,17 +40,17 @@ func (s *stubBroadcaster) BroadcastApprovedListing(_ context.Context, _ ListingR
 
 func setupMarketplaceService(t *testing.T) (*Service, uuid.UUID, uuid.UUID, *stubNotifier) {
 	t.Helper()
-	client := enttest.Open(t, "sqlite3", "file:mp_svc?mode=memory&cache=shared&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:mp_svc_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { client.Close() })
 
 	admin, err := client.User.Create().
-		SetEmail("mp-admin@hub.local").
+		SetEmail("mp-admin-" + uuid.New().String()[:8] + "@hub.local").
 		SetSystemRole(user.SystemRoleAdmin).
 		Save(context.Background())
 	require.NoError(t, err)
 
 	member, err := client.User.Create().
-		SetEmail("mp-member@hub.local").
+		SetEmail("mp-member-" + uuid.New().String()[:8] + "@hub.local").
 		SetSystemRole(user.SystemRoleMember).
 		Save(context.Background())
 	require.NoError(t, err)
@@ -57,6 +58,29 @@ func setupMarketplaceService(t *testing.T) (*Service, uuid.UUID, uuid.UUID, *stu
 	notifier := &stubNotifier{}
 	svc := NewService(NewEntRepository(client), notifier, &stubBroadcaster{})
 	return svc, admin.ID, member.ID, notifier
+}
+
+// setupMarketplaceServiceWithClient — как setupMarketplaceService, но отдаёт *ent.Client
+// для создания дополнительных пользователей (W7-A5-016 stranger denial).
+func setupMarketplaceServiceWithClient(t *testing.T) (*Service, uuid.UUID, uuid.UUID, *ent.Client) {
+	t.Helper()
+	client := enttest.Open(t, "sqlite3", "file:mp_svc_c_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
+	t.Cleanup(func() { client.Close() })
+
+	admin, err := client.User.Create().
+		SetEmail("mp-admin-c-" + uuid.New().String()[:8] + "@hub.local").
+		SetSystemRole(user.SystemRoleAdmin).
+		Save(context.Background())
+	require.NoError(t, err)
+
+	member, err := client.User.Create().
+		SetEmail("mp-member-c-" + uuid.New().String()[:8] + "@hub.local").
+		SetSystemRole(user.SystemRoleMember).
+		Save(context.Background())
+	require.NoError(t, err)
+
+	svc := NewService(NewEntRepository(client), &stubNotifier{}, &stubBroadcaster{})
+	return svc, admin.ID, member.ID, client
 }
 
 func createTestListing(t *testing.T, svc *Service, authorID uuid.UUID) ListingResponse {
@@ -155,13 +179,18 @@ func TestService_ListMineAndApproved(t *testing.T) {
 }
 
 func TestService_DeleteListingPermissions(t *testing.T) {
-	svc, adminID, memberID, _ := setupMarketplaceService(t)
+	svc, adminID, memberID, client := setupMarketplaceServiceWithClient(t)
 	ctx := context.Background()
 
 	created := createTestListing(t, svc, memberID)
 
-	stranger := uuid.New()
-	err := svc.DeleteListing(ctx, stranger, created.ID)
+	stranger, err := client.User.Create().
+		SetEmail("mp-stranger-" + uuid.New().String()[:8] + "@hub.local").
+		SetSystemRole(user.SystemRoleMember).
+		Save(ctx)
+	require.NoError(t, err)
+
+	err = svc.DeleteListing(ctx, stranger.ID, created.ID)
 	assert.ErrorIs(t, err, ErrForbidden)
 
 	err = svc.DeleteListing(ctx, memberID, created.ID)

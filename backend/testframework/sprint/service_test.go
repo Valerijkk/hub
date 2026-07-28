@@ -210,8 +210,10 @@ func (m *mockRepository) CompleteSprintAtomic(ctx context.Context, projectID, sp
 }
 
 func (m *mockRepository) SetIssuesSprint(_ context.Context, projectID uuid.UUID, issueIDs []uuid.UUID, sprintID uuid.UUID) error {
+	// W1-A4-015 / P3-BE-03: отсутствие в issueProject = как Ent n!=len → ErrIssueNotInProject.
 	for _, id := range issueIDs {
-		if pid, ok := m.issueProject[id]; ok && pid != projectID {
+		pid, ok := m.issueProject[id]
+		if !ok || pid != projectID {
 			return sprint.ErrIssueNotInProject
 		}
 	}
@@ -220,7 +222,7 @@ func (m *mockRepository) SetIssuesSprint(_ context.Context, projectID uuid.UUID,
 	return nil
 }
 
-func (m *mockRepository) ClearIssuesSprint(_ context.Context, issueIDs []uuid.UUID) error {
+func (m *mockRepository) ClearIssuesSprint(_ context.Context, _ uuid.UUID, issueIDs []uuid.UUID) error {
 	m.clearedIssueIDs = issueIDs
 	return nil
 }
