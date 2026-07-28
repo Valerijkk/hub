@@ -169,7 +169,9 @@ func (b *MessengerBot) handleCommand(
 		}
 		docCtx, err := b.docs.SearchContext(ctx, evt.SenderID, query)
 		if err != nil {
-			return b.replyError(ctx, evt, ch, "Ошибка поиска: "+err.Error())
+			// A2W5-A3-004: internals только в slog, в канал — фиксированная строка.
+			slog.WarnContext(ctx, "hub-ai docs search failed", "err", err, "user_id", evt.SenderID)
+			return b.replyError(ctx, evt, ch, "Поиск временно недоступен. Попробуйте позже.")
 		}
 		systemPrompt, userPrompt = buildDocsPrompt(docCtx, query)
 	case "sql":

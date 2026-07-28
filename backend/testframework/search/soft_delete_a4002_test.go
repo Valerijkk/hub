@@ -11,9 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestSearchSQL_ExcludesSoftDeleted_A4_002 — Ctrl+K shard SQL must exclude
-// soft-deleted rows (and pending files). Mutation: drop deleted_at / status → FAIL.
+// TestSearchSQL_ExcludesSoftDeleted_A4_002 — secondary static guard (A2W5-A5-003).
+// Primary evidence = soft_delete_a4002_runtime_test.go (Postgres behavior).
 func TestSearchSQL_ExcludesSoftDeleted_A4_002(t *testing.T) {
+	t.Log("A2W5-A5-003: static Contains is secondary; primary = runtime soft-delete tests")
+
 	_, thisFile, _, ok := runtime.Caller(0)
 	require.True(t, ok)
 	servicePath := filepath.Join(filepath.Dir(thisFile), "..", "..", "internal", "search", "service.go")
@@ -39,7 +41,6 @@ func TestSearchSQL_ExcludesSoftDeleted_A4_002(t *testing.T) {
 	assert.Contains(t, fileChunk, "status = 'confirmed'",
 		"A4-002: file search must require confirmed status")
 
-	// P1-BE-32: private/group discovery requires channel_members scope.
 	chIdx := strings.Index(body, "FROM channels")
 	require.Greater(t, chIdx, 0)
 	chChunk := body[chIdx:]
@@ -49,7 +50,6 @@ func TestSearchSQL_ExcludesSoftDeleted_A4_002(t *testing.T) {
 	assert.Contains(t, chChunk, "channel_members",
 		"P1-BE-32: private/group require channel membership")
 
-	// P1-BE-32 / W5-A4-003: Mongo message shard must exclude soft-deleted.
 	msgIdx := strings.Index(body, "func (s *SearchService) searchMessages")
 	require.Greater(t, msgIdx, 0)
 	msgChunk := body[msgIdx:]

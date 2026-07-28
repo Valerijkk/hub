@@ -29,12 +29,12 @@
 
 | ID | Sev | Tag | Файл:строка | Проблема | A1 / задача | Мутация |
 |----|-----|-----|-------------|----------|-------------|---------|
-| A2W5-A5-001 | P2 | RESIDUAL | `service_scope_test.go:184-198` | `UsesProjectScopeForIssues` — membership insert, **assert.Empty** без issues rows | W5-A5-001 · P2-BE-02 | Live+foreign issue → только allowed; drop `project_*=ANY` → FAIL |
-| A2W5-A5-002 | P2 | RESIDUAL | `soft_delete_a4002_runtime_test.go` | Runtime A4-002 всё ещё **только issues+files** | W5-A5-003 | Soft-deleted test_case/project → 0 hits |
-| A2W5-A5-003 | P2 | RESIDUAL | `soft_delete_a4002_test.go` | Static `strings.Contains("deleted_at IS NULL")` как evidence | W5-A5-004 | Primary = runtime behavior |
-| A2W5-A5-004 | P3 | RESIDUAL | wave100/108/114 + scope empty | Дубли empty `projectIDs` → empty | W5-A5-005 · P3-BE-02 | Один канон + foreign denial |
-| A2W5-A5-005 | P3 | RESIDUAL | `service_shard_errors` / wave109 | Дубль DeleteSavedFilter NotFound | W5-A5-006 | Один точный assert |
-| A2W5-A5-006 | P3 | RESIDUAL | wave106/115 sqlite Empty | Зелёные без entity tables — не NF-03 proof | W5-A5-007 | Не трактовать как scope proof |
+| A2W5-A5-001 | P2 | FIXED | `service_scope_test.go` | hollow → Postgres TASK037 | TASK-113 | `TestSearch_UsesProjectScopeForIssues` |
+| A2W5-A5-002 | P2 | FIXED | soft_delete runtime | + test_case/project | TASK-113 | `TestPostgresSearch_ExcludesSoftDeleted_A4_002` |
+| A2W5-A5-003 | P2 | FIXED | static Contains secondary | primary = runtime | TASK-113 | comment + runtime suite |
+| A2W5-A5-004 | P3 | FIXED | EmptyProjectIDs канон | дубли wave убраны | TASK-113 | `TestSearchScopedEntities_EmptyProjectIDsReturnNothing` |
+| A2W5-A5-005 | P3 | FIXED | wave109 | один DeleteSavedFilter NotFound | TASK-113 | `TestDeleteSavedFilter_FilterMissing` |
+| A2W5-A5-006 | P3 | FIXED | wave106/115 | sqlite Empty → ErrSearchUnavailable | TASK-113 | missing tables ≠ NF-03 |
 
 ## FIXED-OK
 

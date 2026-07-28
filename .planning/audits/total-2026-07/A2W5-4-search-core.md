@@ -39,7 +39,7 @@
 |----|-----|-----|-------------|----------|-------------|---------|
 | A2W5-A4-001 | P2 | RESIDUAL | `handler.go:204-206`; share аналогично | delete/share: ownership/not-found → **500** generic (не 403/404). `err.Error()` убран, **статус неверный** | W5-A4-006 · P2-BE-07 | Non-owner → 403; missing → 404 |
 | A2W5-A4-002 | P2 | RESIDUAL | `meilisearch_indexer.go:47` | После `validateMeiliHost`: client = **`&http.Client{Timeout:30s}`** без SafeDial | W5-A4-009 partial · P2-BE-18 | Redirect/DNS rebinding mid-flight; `NewSafeHTTPClient` |
-| A2W5-A4-003 | P3 | RESIDUAL | `service.go:178-180` | Все шарды failed → **partial+пусто**, не hard error (задокументированный follow-up) | W5-A4-007 residual | Total outage → error или explicit flag UX |
+| A2W5-A4-003 | P3 | FIXED | `ErrSearchUnavailable` | Все шарды failed → hard error | TASK-113 | `TestSearch_TotalOutageHardError_TASK113` |
 | A2W5-A4-004 | P3 | NEW | `handler.go:204-206` | Handler **не** `errors.Is(ErrFilterForbidden)` на delete/share — service возвращает plain `fmt.Errorf("доступ запрещён…")` | усиливает A2W5-A4-001 | Sentinel + map 403 |
 
 ## FIXED-OK

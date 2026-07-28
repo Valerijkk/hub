@@ -2,6 +2,7 @@
 import (
 	"github.com/valerii/hub/backend/internal/ai"
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -334,8 +335,10 @@ func TestMessengerBot_HandleCommand_ExplainTranslateSQL(t *testing.T) {
 }
 
 func TestMessengerBot_HandleCommand_DocsSearchError(t *testing.T) {
-	bot, _, userID, channelID, _ := setupHubAIBot(t, &mockAdapter{})
-	bot.SetDocSearch(searchDocStub{err: assert.AnError})
+	// A2W5-A3-004: канал получает fixed string, не err.Error().
+	bot, hookRepo, userID, channelID, _ := setupHubAIBot(t, &mockAdapter{})
+	leak := "super-secret-db-dsn=postgres://internal"
+	bot.SetDocSearch(searchDocStub{err: errors.New(leak)})
 
 	err := bot.OnMessageSent(context.Background(), messengermod.MessageHookEvent{
 		ChannelID:   channelID,
@@ -344,6 +347,21 @@ func TestMessengerBot_HandleCommand_DocsSearchError(t *testing.T) {
 		MessageID:   "m-docs-err",
 	})
 	require.NoError(t, err)
+
+	msgs, err := hookRepo.Repository().ListMessages(context.Background(), channelID, nil, 20)
+	require.NoError(t, err)
+	require.NotEmpty(t, msgs)
+	var botText string
+	for _, m := range msgs {
+		if m.ContentText != "" && m.ContentText != "/ai docs broken search" {
+			botText = m.ContentText
+			break
+		}
+	}
+	require.NotEmpty(t, botText)
+	assert.Contains(t, botText, "Поиск временно недоступен")
+	assert.NotContains(t, botText, leak)
+	assert.NotContains(t, botText, "Ошибка поиска:")
 }
 
 func TestMessengerBot_StreamReply_AIError(t *testing.T) {

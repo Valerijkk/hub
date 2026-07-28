@@ -29,9 +29,9 @@
 |----|-----|-----|-------------|----------|-------------|---------|
 | A2W5-A1-001 | P2 | REGRESS | `handler.go:126-130` | **AssistJQL** по-прежнему: только `ErrNoProvider`→503; остальное → **502 + `err.Error()`** (quota/consent/policy → Bad Gateway) | W5-A1-001 · P2-BE-07 «Исправлена» | Добавить ветки как SuggestComposer; снять → 502 на quota |
 | A2W5-A1-002 | P2 | REGRESS | `admin_handler.go:23`; `user_handler.go:20`; `wiring_audit_ai.go:65-68` | **AIRateLimit** всё ещё только на user `Handler`; admin `TestProvider` и `/ai/my` без AI RL | W5-A1-003 · P2-BE-17 | Прокинуть `rateLimitMw`; без MW TestProvider без 429 при burst |
-| A2W5-A1-003 | P2 | RESIDUAL | `admin_handler.go:69`; `:89`; `user_handler.go:55,79` | Create/Update отдают **`err.Error()`** клиенту (encrypt/base_url/repo) | W5-A1-004 · P2-BE-07 | Стабильные коды; inject cipher err → body без internals |
-| A2W5-A1-004 | P2 | RESIDUAL | `service.go:257-259` → `admin_handler.go:100-104` | `TestProvider` при fail кладёт **сырой `err.Error()`** в JSON `error` | W5-A1-005 | Санитизировать; assert body ≠ upstream URL/auth |
-| A2W5-A1-005 | P3 | RESIDUAL | `user_handler_test.go` / `admin_handler_test.go` | Create без assert «нет `api_key` в JSON» / только `has_api_key` | W5-A1-011 · P3-BE-03 | Create с `sk-test` → `NotContains` raw key |
+| A2W5-A1-003 | P2 | FIXED | `client_errors.go` + admin/user handlers | Create/Update → стабильные коды без internals | TASK-113 | `task113_sanitize_handlers_test.go` |
+| A2W5-A1-004 | P2 | FIXED | `sanitizeProviderTestError` | TestProvider JSON.error без upstream | TASK-113 | `TestSanitizeProviderTestError_NoUpstreamLeak_TASK113` |
+| A2W5-A1-005 | P3 | FIXED | Create admin/user responses | нет raw `api_key` в JSON | TASK-113 | `*_NoAPIKeyInJSON_TASK113` |
 
 ## FIXED-OK (выборочно vs A1)
 

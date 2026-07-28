@@ -112,6 +112,8 @@ func TestEntRepository_UserProviderAndPreferences(t *testing.T) {
 	gotUser, err := repo.GetUserProvider(ctx, userID, userProv.ID)
 	require.NoError(t, err)
 	assert.Equal(t, userProv.ID, gotUser.ID)
+	// A2W5-A3-009: GetUserProvider redacts API key (mutation: drop redact → FAIL).
+	assert.Empty(t, gotUser.APIKeyEnc)
 
 	model := "gpt-4o-mini"
 	require.NoError(t, repo.SaveUserPreference(ctx, userID, ai.SaveUserPreferenceInput{

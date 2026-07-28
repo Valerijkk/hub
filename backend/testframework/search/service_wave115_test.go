@@ -9,14 +9,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// A2W5-A5-006: sqlite Empty без entity tables — НЕ NF-03 proof.
+
 func TestSearch_UserShardOnly_Admin(t *testing.T) {
 	db := newScopeTestDB(t)
 	userID := uuid.New()
 	svc := search.NewSearchService(&adminSearchRepo{admin: true}, db, nil)
 
-	results, _, err := svc.Search(context.Background(), "alice", userID, []string{"user"}, 10)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	_, _, err := svc.Search(context.Background(), "alice", userID, []string{"user"}, 10)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearch_FileShardOnly(t *testing.T) {
@@ -30,9 +32,9 @@ func TestSearch_FileShardOnly(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, _, err := svc.Search(context.Background(), "readme", userID, []string{"file"}, 5)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	_, _, err = svc.Search(context.Background(), "readme", userID, []string{"file"}, 5)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearch_TestCaseShardOnly(t *testing.T) {
@@ -46,7 +48,7 @@ func TestSearch_TestCaseShardOnly(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, _, err := svc.Search(context.Background(), "login", userID, []string{"test_case"}, 5)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	_, _, err = svc.Search(context.Background(), "login", userID, []string{"test_case"}, 5)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }

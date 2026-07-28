@@ -55,7 +55,9 @@ func (h *UserHandler) CreateProvider(c fiber.Ctx) error {
 	}
 	resp, err := h.svc.CreateUserProvider(c.Context(), userID, req)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		// A2W5-A1-003: стабильные коды, без encrypt/base_url internals.
+		status, msg := mapProviderMutateError(err)
+		return fiber.NewError(status, msg)
 	}
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
@@ -79,7 +81,9 @@ func (h *UserHandler) UpdateProvider(c fiber.Ctx) error {
 		if ent.IsNotFound(err) {
 			return fiber.NewError(fiber.StatusNotFound, "provider not found")
 		}
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		// A2W5-A1-003: стабильные коды, без encrypt/base_url internals.
+		status, msg := mapProviderMutateError(err)
+		return fiber.NewError(status, msg)
 	}
 	return c.JSON(resp)
 }

@@ -20,11 +20,12 @@ func TestNewMeiliIndexerFromEnv_Unset(t *testing.T) {
 }
 
 func TestNewMeiliIndexerFromEnv_Configured(t *testing.T) {
-	t.Setenv("MEILI_HOST", "http://127.0.0.1:7700")
+	// Публичный host (не loopback): ValidateOutboundURL блокирует 127.0.0.1.
+	t.Setenv("MEILI_HOST", "https://meili.example.com")
 	t.Setenv("MEILI_MASTER_KEY", "test-key")
 	idx := search.NewMeiliIndexerFromEnv()
 	require.NotNil(t, idx)
-	assert.Equal(t, "http://127.0.0.1:7700", search.ExportMeiliIndexerHost(idx))
+	assert.Equal(t, "https://meili.example.com", search.ExportMeiliIndexerHost(idx))
 }
 
 func TestMeiliIndexer_IndexAllIssues_NilReceiver(t *testing.T) {

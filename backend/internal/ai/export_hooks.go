@@ -246,3 +246,18 @@ func ExportServiceStreamCompletionWithFallback(
 ) (*ent.AIProvider, time.Duration, error) {
 	return s.streamCompletionWithFallback(ctx, userID, model, req, onDelta)
 }
+
+// ExportSanitizeProviderTestError — hubtest для A2W5-A1-004.
+func ExportSanitizeProviderTestError(err error) string {
+	return sanitizeProviderTestError(err)
+}
+
+// ExportMapProviderMutateError — hubtest для A2W5-A1-003.
+func ExportMapProviderMutateError(err error) (int, string) {
+	return mapProviderMutateError(err)
+}
+
+// ExportNormalizePolicyText — hubtest для A2W5-A2-006.
+func ExportNormalizePolicyText(s string) string {
+	return normalizePolicyText(s)
+}

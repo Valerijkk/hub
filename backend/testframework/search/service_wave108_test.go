@@ -10,6 +10,7 @@ import (
 )
 
 func TestSearch_DefaultLimitWhenZero(t *testing.T) {
+	// A2W5-A5-006: без entity tables issue shard fails → total outage.
 	db := newScopeTestDB(t)
 	userID := uuid.New()
 	projectID := uuid.New()
@@ -20,9 +21,9 @@ func TestSearch_DefaultLimitWhenZero(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := search.NewSearchService(&mockSearchRepo{}, db, nil)
-	results, _, err := svc.Search(context.Background(), "query", userID, []string{"issue"}, 0)
-	require.NoError(t, err)
-	assert.Empty(t, results)
+	_, _, err = svc.Search(context.Background(), "query", userID, []string{"issue"}, 0)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, search.ErrSearchUnavailable)
 }
 
 func TestSearch_ProjectIDsFailure(t *testing.T) {

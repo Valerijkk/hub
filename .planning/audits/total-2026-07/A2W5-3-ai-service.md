@@ -47,12 +47,12 @@
 | A2W5-A3-001 | P2 | REGRESS | `composer_suggest.go:98-100` | Trim prefix через **`s[len(prefix):]`** после case-fold — байты ≠ руны → panic/битая руна | W5-A3-010 · P2-BE-17 | Prefix `Тест` / mixed case → без panic, корректный хвост |
 | A2W5-A3-002 | P2 | REGRESS | `repository_ent.go:248-273` | **IncrementUsage** check-then-act без upsert/tx | W5-A3-009 · P2-BE-17 | Parallel first-of-day → без duplicate/loss |
 | A2W5-A3-003 | P2 | REGRESS | `settings_store.go:42-59` | Upsert Update→Create race; value plaintext (контракт non-secret не enforced) | W5-A3-008 · P2-BE-17 | Concurrent Upsert одного key → 1 row |
-| A2W5-A3-004 | P2 | RESIDUAL | `messenger_bot.go:172` | `/ai docs` всё ещё **`"Ошибка поиска: "+err.Error()`** в канал | W5-A3-004 (review path FIXED) | Fixed user string; internals только slog |
-| A2W5-A3-005 | P2 | NEW | `code_review.go:71-72` | `authorizeReview`: **`access == nil` → allow** (fail-open). Wiring ставит checker, но API допускает nil | усиление W5-A3-003 | `access==nil` → deny / error «not configured» |
-| A2W5-A3-006 | P3 | RESIDUAL | `bot_user.go:24-44` | `EnsureBotUser` create без unique-conflict retry | W5-A3-015 · P3-BE-13 | Parallel Ensure → 1 user |
-| A2W5-A3-007 | P3 | RESIDUAL | `issue_lookup_test.go` | Нет Ent-negative foreign project denial на lookup | W5-A3-020 | Foreign key + no membership → NotFound |
-| A2W5-A3-008 | P3 | RESIDUAL | `audit_test.go` | LogAIChat success без assert «нет prompt в details» | W5-A3-019 | Read audit row: нет content keys |
-| A2W5-A3-009 | P3 | RESIDUAL | `repository_ent_test.go` | GetUserProvider без `assert.Empty(APIKeyEnc)` | W5-A3-018 | Снять redact → красный |
+| A2W5-A3-004 | P2 | FIXED | `messenger_bot.go` | `/ai docs` → fixed string + slog | TASK-113 | `TestMessengerBot_HandleCommand_DocsSearchError` |
+| A2W5-A3-005 | P2 | NEW | `code_review.go:71-72` | `authorizeReview`: **`access == nil` → allow** (fail-open). Wiring ставит checker, но API допускает nil | TASK-085 | `access==nil` → deny / error «not configured» |
+| A2W5-A3-006 | P3 | FIXED | `bot_user.go` conflict retry | Parallel Ensure → 1 user | TASK-113 | `TestEnsureBotUser_Parallel_TASK113` |
+| A2W5-A3-007 | P3 | FIXED | `issue_lookup_test.go` | foreign project → NotFound | TASK-113 | `TestTrackerIssueLookup_ForeignProjectNotFound_TASK113` |
+| A2W5-A3-008 | P3 | FIXED | `audit_test.go` | details без prompt/content keys | TASK-113 | assert в `TestAuditRepoLogger_LogAIChat` |
+| A2W5-A3-009 | P3 | FIXED | `repository_ent_test.go` | `assert.Empty(APIKeyEnc)` | TASK-113 | GetUserProvider redact |
 
 ## FIXED-OK
 
