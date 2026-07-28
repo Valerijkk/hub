@@ -31,7 +31,7 @@ func TestGetPersonalDashboardData_WithTasksDeadlinesAndTime(t *testing.T) {
 		Only(ctx)
 	require.NoError(t, err)
 
-	dueSoon := time.Now().Add(48 * time.Hour)
+	dueSoon := time.Now().UTC().Add(48 * time.Hour)
 	iss, err := client.Issue.Create().
 		SetProjectID(projectID).
 		SetStatusID(openStatus.ID).
@@ -46,7 +46,7 @@ func TestGetPersonalDashboardData_WithTasksDeadlinesAndTime(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	now := time.Now()
+	now := time.Now().UTC()
 	_, err = client.TimeLog.Create().
 		SetIssueID(iss.ID).
 		SetUserID(userID).
