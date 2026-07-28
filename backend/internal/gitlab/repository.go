@@ -115,21 +115,19 @@ func (r *EntRepository) CreateIntegration(ctx context.Context, projectID uuid.UU
 		return nil, err
 	}
 
-	q := r.client.GitLabIntegration.Create().
+	encSecret, err := r.encryptField(input.WebhookSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	// A2W8-2-007: webhook_secret обязателен на уровне схемы и репозитория.
+	created, err := r.client.GitLabIntegration.Create().
 		SetGitlabURL(gitlabURL).
 		SetProjectPath(input.ProjectPath).
 		SetAccessToken(encToken).
-		SetProjectID(projectID)
-
-	if input.WebhookSecret != "" {
-		encSecret, err := r.encryptField(input.WebhookSecret)
-		if err != nil {
-			return nil, err
-		}
-		q.SetWebhookSecret(encSecret)
-	}
-
-	created, err := q.Save(ctx)
+		SetWebhookSecret(encSecret).
+		SetProjectID(projectID).
+		Save(ctx)
 	if err != nil {
 		return nil, err
 	}

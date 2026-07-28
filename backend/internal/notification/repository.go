@@ -24,15 +24,24 @@ func NewRepository(db *ent.Client) *Repository {
 
 // CreateNotification создаёт новое уведомление. Дедупликация: если уведомление
 // с таким же (user_id, type, entity_id) было создано менее 2 секунд назад — пропускает.
+// A2W8-3-006: entity_id — UUID; невалидный/пустой entityID сохраняется как NULL.
 func (r *Repository) CreateNotification(ctx context.Context, userID uuid.UUID, notifType, title, body, entityType, entityID string, projectID, actorID *uuid.UUID, isUrgent bool) (*ent.Notification, error) {
-	// Дедупликация: проверяем наличие аналогичного уведомления за последние 2 секунды.
+	var entityUUID *uuid.UUID
 	if entityID != "" {
+		parsed, err := uuid.Parse(entityID)
+		if err == nil {
+			entityUUID = &parsed
+		}
+	}
+
+	// Дедупликация: проверяем наличие аналогичного уведомления за последние 2 секунды.
+	if entityUUID != nil {
 		cutoff := time.Now().Add(-2 * time.Second)
 		exists, err := r.db.Notification.Query().
 			Where(
 				notification.UserID(userID),
 				notification.Type(notifType),
-				notification.EntityID(entityID),
+				notification.EntityIDEQ(*entityUUID),
 				notification.CreatedAtGTE(cutoff),
 			).
 			Exist(ctx)
@@ -53,8 +62,8 @@ func (r *Repository) CreateNotification(ctx context.Context, userID uuid.UUID, n
 	if entityType != "" {
 		builder.SetEntityType(entityType)
 	}
-	if entityID != "" {
-		builder.SetEntityID(entityID)
+	if entityUUID != nil {
+		builder.SetEntityID(*entityUUID)
 	}
 	if projectID != nil {
 		builder.SetProjectID(*projectID)
@@ -95,6 +104,7 @@ func (r *Repository) ListByUser(ctx context.Context, userID uuid.UUID, page, per
 }
 
 // MarkRead помечает уведомление как прочитанное.
+// A2W8-3-006: инкремент version снижает lost-update на concurrent mark-read.
 func (r *Repository) MarkRead(ctx context.Context, notifID, userID uuid.UUID) error {
 	return r.db.Notification.Update().
 		Where(
@@ -102,6 +112,7 @@ func (r *Repository) MarkRead(ctx context.Context, notifID, userID uuid.UUID) er
 			notification.UserID(userID),
 		).
 		SetIsRead(true).
+		AddVersion(1).
 		Exec(ctx)
 }
 
@@ -113,6 +124,7 @@ func (r *Repository) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
 			notification.IsRead(false),
 		).
 		SetIsRead(true).
+		AddVersion(1).
 		Exec(ctx)
 }
 

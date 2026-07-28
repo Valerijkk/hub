@@ -11,7 +11,7 @@ type CreateIntegrationRequest struct {
 	GitLabURL   string `json:"gitlab_url,omitempty"`   // URL инстанса GitLab (по умолчанию https://gitlab.com)
 	ProjectPath string `json:"project_path" validate:"required"` // Путь проекта (group/repo)
 	AccessToken string `json:"access_token" validate:"required"` // Personal Access Token
-	WebhookSecret string `json:"webhook_secret,omitempty"`        // Секрет для валидации webhook
+	WebhookSecret string `json:"webhook_secret" validate:"required"` // Секрет для валидации webhook (A2W8-2-007)
 }
 
 // CreateBranchRequest -- запрос на создание ветки в GitLab.
