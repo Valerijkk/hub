@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (be2 · TASK-099 Storage NF-09 size==0)
+
+- **Сделано:** ADR-STORAGE-NF09-SIZE-2026 — `size<=0` reject; ContentLength всегда в PresignPutObject; FE `getUploadUrl` передаёт `file.size`; Confirm HEAD defense-in-depth без изменений.
+- **Тесты:** `go test -tags hubtest -race -count=1 ./testframework/storage/...` (W7-A4-001 FIXED).
+- **Docs:** `docs/tz_constraints.md`, `docs/wiki/API.md`, A2W7-4 residual → FIXED, backlog Исправлена.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.

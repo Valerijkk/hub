@@ -634,7 +634,7 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/files/upload-url` | Получить presigned URL для загрузки |
+| POST | `/files/upload-url` | Получить presigned URL для загрузки (`size` обязателен, 1…25 MiB; NF-09) |
 | POST | `/files/:fileId/confirm` | Подтвердить завершение загрузки |
 | GET | `/files/:fileId/url` | Получить URL для скачивания |
 | DELETE | `/files/:fileId` | Удалить файл |

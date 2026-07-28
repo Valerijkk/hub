@@ -30,7 +30,7 @@
 ## P1 open (приоритет handoff)
 
 1. **W7-A2-001** RESIDUAL — FR-INTR-07/08 author-delete + `news_poll*` (U03)
-2. **W7-A4-001** RESIDUAL — NF-09: `size==0` legacy без ContentLength
+2. **W7-A4-001** FIXED (TASK-099) — NF-09: `size==0` legacy reject + ContentLength always
 3. **W7-A4-002** RESIDUAL — Confirm entity scope неполный (non-issue types)
 4. **W7-A4-003** RESIDUAL — MaintenanceGate process-local (U04)
 
