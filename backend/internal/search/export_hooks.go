@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -99,7 +100,12 @@ func ExportIssuesIndex() string {
 }
 
 func ExportNewMeiliIndexerTest(host, apiKey string, client *http.Client) *MeiliIndexer {
-	return &MeiliIndexer{host: host, apiKey: apiKey, client: client}
+	return &MeiliIndexer{host: strings.TrimRight(host, "/"), apiKey: apiKey, client: client}
+}
+
+// ExportValidateMeiliHost — P2-BE-18 SSRF guard для hubtest.
+func ExportValidateMeiliHost(host string) error {
+	return validateMeiliHost(host)
 }
 
 func ExportMeiliIndexerHost(m *MeiliIndexer) string {
