@@ -30,6 +30,8 @@ func wireFiber(d *serverDeps) {
 		WriteTimeout:            cfg.Server.WriteTimeout,
 		Immutable:               cfg.Server.Immutable,
 		ErrorHandler:            middleware.ErrorHandler,
+		// P2-BE-01: исполняет теги validate:"…" на DTO после Bind().JSON/Body/Query.
+		StructValidator:         middleware.NewStructValidator(),
 		EnableTrustedProxyCheck: true,
 		TrustedProxies: []string{
 			"127.0.0.1",

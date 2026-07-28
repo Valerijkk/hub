@@ -86,6 +86,7 @@ require (
 	github.com/fasthttp/router v1.5.2 // indirect
 	github.com/frostbyte73/core v0.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/gammazero/deque v1.2.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -95,6 +96,9 @@ require (
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
 	github.com/go-openapi/spec v0.20.4 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-playground/validator/v10 v10.26.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/cel-go v0.27.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
@@ -113,6 +117,7 @@ require (
 	github.com/jxskiss/base62 v1.1.0 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lithammer/shortuuid/v4 v4.2.0 // indirect
 	github.com/livekit/mageutil v0.0.0-20250511045019-0f1ff63f7731 // indirect
 	github.com/livekit/mediatransportutil v0.0.0-20251128105421-19c7a7b81c22 // indirect

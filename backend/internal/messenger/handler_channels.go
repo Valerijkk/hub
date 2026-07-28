@@ -410,7 +410,8 @@ func (h *Handler) CreateInviteLink(c fiber.Ctx) error {
 	}
 	resp, err := h.service.CreateInviteLink(c.Context(), channelID, userID, req)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		// P2-BE-07: проброс AppError (403 Forbidden и т.д.), без err.Error() в теле.
+		return err
 	}
 	return c.Status(fiber.StatusCreated).JSON(resp)
 }
@@ -438,7 +439,7 @@ func (h *Handler) ListChannelInvites(c fiber.Ctx) error {
 	}
 	invites, err := h.service.ListChannelInvites(c.Context(), channelID, userID)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return err
 	}
 	return c.JSON(invites)
 }
@@ -461,7 +462,7 @@ func (h *Handler) ValidateInvite(c fiber.Ctx) error {
 	}
 	resp, err := h.service.ValidateInvite(c.Context(), token)
 	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, err.Error())
+		return err
 	}
 	return c.JSON(resp)
 }
@@ -488,7 +489,7 @@ func (h *Handler) AcceptInvite(c fiber.Ctx) error {
 	}
 	resp, err := h.service.AcceptInvite(c.Context(), token, userID)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return err
 	}
 	return c.JSON(resp)
 }
@@ -520,7 +521,7 @@ func (h *Handler) RevokeInvite(c fiber.Ctx) error {
 		return err
 	}
 	if err := h.service.RevokeInvite(c.Context(), channelID, inviteID, userID); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return err
 	}
 	return c.SendStatus(fiber.StatusOK)
 }

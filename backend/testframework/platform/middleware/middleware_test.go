@@ -91,6 +91,20 @@ func TestRequestID_UniquePerRequest(t *testing.T) {
 // Тесты middleware.ErrorHandler
 // ---------------------------------------------------------------------------
 
+func decodeTZError(t *testing.T, resp *http.Response) map[string]any {
+	t.Helper()
+	var body map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	_, hasCode := body["code"]
+	_, hasMessage := body["message"]
+	assert.False(t, hasCode, "TZ forbids JSON field code")
+	assert.False(t, hasMessage, "TZ forbids JSON field message")
+	assert.Contains(t, body, "error")
+	assert.Contains(t, body, "request_id")
+	assert.Len(t, body, 2, "ErrorHandler must emit only error+request_id")
+	return body
+}
+
 func TestErrorHandler_AppError(t *testing.T) {
 	app := fiber.New(fiber.Config{ErrorHandler: middleware.ErrorHandler})
 	app.Use(middleware.RequestID())
@@ -104,12 +118,9 @@ func TestErrorHandler_AppError(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, 400, resp.StatusCode)
-
-	var body apperrors.AppError
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, 400, body.Code)
-	assert.Equal(t, "invalid input", body.Message)
-	assert.NotEmpty(t, body.RequestID, "request_id must be populated")
+	body := decodeTZError(t, resp)
+	assert.Equal(t, "invalid input", body["error"])
+	assert.NotEmpty(t, body["request_id"], "request_id must be populated")
 }
 
 func TestErrorHandler_FiberError(t *testing.T) {
@@ -125,11 +136,8 @@ func TestErrorHandler_FiberError(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, 404, resp.StatusCode)
-
-	var body apperrors.AppError
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, 404, body.Code)
-	assert.Equal(t, "page not found", body.Message)
+	body := decodeTZError(t, resp)
+	assert.Equal(t, "page not found", body["error"])
 }
 
 func TestErrorHandler_GenericError(t *testing.T) {
@@ -145,11 +153,30 @@ func TestErrorHandler_GenericError(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, 500, resp.StatusCode)
+	body := decodeTZError(t, resp)
+	assert.Equal(t, "internal server error", body["error"])
+	assert.NotContains(t, body["error"], "something broke")
+}
 
-	var body apperrors.AppError
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, 500, body.Code)
-	assert.Equal(t, "internal server error", body.Message)
+func TestErrorHandler_ForbiddenNoInternals(t *testing.T) {
+	app := fiber.New(fiber.Config{ErrorHandler: middleware.ErrorHandler})
+	app.Use(middleware.RequestID())
+	app.Get("/", func(c fiber.Ctx) error {
+		return apperrors.NewForbidden("нет доступа к каналу")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 403, resp.StatusCode)
+	body := decodeTZError(t, resp)
+	assert.Equal(t, "нет доступа к каналу", body["error"])
+	errStr, _ := body["error"].(string)
+	assert.NotContains(t, errStr, "sql:")
+	assert.NotContains(t, errStr, "pq:")
+	assert.NotContains(t, errStr, "ent:")
 }
 
 // ---------------------------------------------------------------------------
@@ -373,10 +400,8 @@ func TestRateLimit_Middleware_Blocks(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, 429, resp.StatusCode)
 
-	var body apperrors.AppError
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, 429, body.Code)
-	assert.Contains(t, body.Message, "too many requests")
+	body := decodeTZError(t, resp)
+	assert.Contains(t, body["error"], "too many requests")
 }
 
 func TestRateLimitByUser_MessageSendRateLimit_Allows60Blocks61(t *testing.T) {
@@ -405,10 +430,7 @@ func TestRateLimitByUser_MessageSendRateLimit_Allows60Blocks61(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, 429, resp.StatusCode, "61st message in window should be rate-limited")
-
-	var body apperrors.AppError
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, 429, body.Code)
+	_ = decodeTZError(t, resp)
 }
 
 func TestRateLimitByUser_MessageSendRateLimit_PerUserIsolation(t *testing.T) {
@@ -788,3 +810,72 @@ func TestRateLimiter_CleanupStopsOnCancel(t *testing.T) {
 		t.Fatal("cleanup goroutine did not exit after context cancel")
 	}
 }
+
+// TestRateLimitRedis_RejectedDoesNotInflateZSET — W4-A1-004 / P2-BE-10:
+// 429 должен ZRem member; окно не раздувается отказами.
+func TestRateLimitRedis_RejectedDoesNotInflateZSET(t *testing.T) {
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	fixedClient := func(c fiber.Ctx) string { return "zset-client" }
+
+	app := fiber.New(fiber.Config{ErrorHandler: middleware.ErrorHandler})
+	app.Use(middleware.RateLimitRedis(t.Context(), rdb, middleware.RedisRateLimitConfig{
+		Max: 2, Window: time.Minute, KeyPrefix: "rl:zset:",
+	}, fixedClient))
+	app.Get("/", func(c fiber.Ctx) error {
+		return c.SendString("ok")
+	})
+
+	for i := 0; i < 2; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+		assert.Equal(t, 200, resp.StatusCode)
+	}
+
+	for i := 0; i < 5; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+		assert.Equal(t, 429, resp.StatusCode, "reject %d", i+1)
+	}
+
+	keys := mr.Keys()
+	require.Len(t, keys, 1)
+	card, err := rdb.ZCard(context.Background(), keys[0]).Result()
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), card, "ZSET must stay at Max after rejected bursts")
+}
+
+// TestRateLimiter_CleanupCompareAndDelete_PreservesLiveBucket — W4-A1-003:
+// cleanup не удаляет bucket, в который параллельно успели дописать timestamps.
+func TestRateLimiter_CleanupCompareAndDelete_PreservesLiveBucket(t *testing.T) {
+	rl := middleware.ExportNewRateLimiterForTest(middleware.RateLimitConfig{
+		Max: 10, Window: time.Millisecond, // короткое окно → timestamps сразу «просрочены»
+	})
+	key := "race-key"
+	require.True(t, middleware.ExportRateLimiterAllow(rl, key))
+	time.Sleep(2 * time.Millisecond) // timestamps вне окна
+
+	// Параллельно: cleanup видит пустое окно; allow дописывает новые timestamps
+	// до CompareAndDelete — живой pointer должен остаться в map.
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		middleware.ExportRateLimiterCleanupPass(rl)
+	}()
+	require.True(t, middleware.ExportRateLimiterAllow(rl, key))
+	<-done
+
+	assert.True(t, middleware.ExportRateLimiterHasKey(rl, key),
+		"CompareAndDelete must not drop a bucket that received new timestamps")
+	assert.True(t, middleware.ExportRateLimiterAllow(rl, key))
+}
+
