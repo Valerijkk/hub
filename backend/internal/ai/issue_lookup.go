@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -42,8 +43,9 @@ func (l *TrackerIssueLookup) SetAccessChecker(c ProjectAccessChecker) {
 
 // IssueContext — title и plain-text description issue (с authz по userID).
 func (l *TrackerIssueLookup) IssueContext(ctx context.Context, userID uuid.UUID, issueKey string) (string, string, error) {
+	// W5-A3-014: nil deps → явная ошибка, не тихий деград в пустые title/desc.
 	if l == nil || l.tracker == nil || l.projects == nil {
-		return "", "", nil
+		return "", "", fmt.Errorf("issue lookup not configured")
 	}
 	projectKey := projectKeyFromIssueKey(issueKey)
 	if projectKey == "" {

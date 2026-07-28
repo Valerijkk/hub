@@ -74,7 +74,7 @@ func (h *AdminHandler) CreateProvider(c fiber.Ctx) error {
 // UpdateProvider PATCH /admin/ai/providers/:id
 func (h *AdminHandler) UpdateProvider(c fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid id")
 	}
 	var req UpdateProviderRequest
@@ -83,6 +83,9 @@ func (h *AdminHandler) UpdateProvider(c fiber.Ctx) error {
 	}
 	resp, err := h.svc.UpdateProvider(c.Context(), id, req)
 	if err != nil {
+		if errors.Is(err, ErrProviderNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "provider not found")
+		}
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 	return c.JSON(resp)
@@ -91,7 +94,7 @@ func (h *AdminHandler) UpdateProvider(c fiber.Ctx) error {
 // TestProvider POST /admin/ai/providers/:id/test
 func (h *AdminHandler) TestProvider(c fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
-	if err != nil {
+	if err != nil || id == uuid.Nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid id")
 	}
 	resp, err := h.svc.TestProvider(c.Context(), id)

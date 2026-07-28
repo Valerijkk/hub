@@ -39,6 +39,10 @@ func EnsureBotUser(ctx context.Context, client *ent.Client) (uuid.UUID, error) {
 		SetOnboardingCompleted(true).
 		Save(ctx)
 	if err != nil {
+		// W5-A3-015: parallel EnsureBot — unique conflict / sqlite lock → re-query победителя.
+		if existing, qerr := client.User.Query().Where(user.EmailEQ(BotEmail)).Only(ctx); qerr == nil {
+			return existing.ID, nil
+		}
 		return uuid.Nil, fmt.Errorf("create bot user: %w", err)
 	}
 	return created.ID, nil

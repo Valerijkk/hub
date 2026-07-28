@@ -22,7 +22,7 @@ func TestUnifiedCodeReviewProvider_NoVCS(t *testing.T) {
 	p := ai.NewUnifiedCodeReviewProvider(nil, nil)
 	_, err := p.FetchReview(t.Context(), uuid.New(), "https://gitlab.com/g/p/-/merge_requests/5")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "no VCS")
+	assert.Contains(t, err.Error(), "GitLab not configured")
 }
 
 func TestGithubPRToReview(t *testing.T) {

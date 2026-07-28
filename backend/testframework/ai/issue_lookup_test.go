@@ -12,13 +12,15 @@ import (
 func TestTrackerIssueLookup_NilSafe(t *testing.T) {
 	var l *ai.TrackerIssueLookup
 	title, desc, err := l.IssueContext(context.Background(), uuid.New(), "HUB-1")
-	require.NoError(t, err)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "issue lookup not configured")
 	assert.Empty(t, title)
 	assert.Empty(t, desc)
 
 	l = ai.NewTrackerIssueLookup(nil, nil)
 	title, desc, err = l.IssueContext(context.Background(), uuid.New(), "HUB-1")
-	require.NoError(t, err)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "issue lookup not configured")
 	assert.Empty(t, title)
 }
 

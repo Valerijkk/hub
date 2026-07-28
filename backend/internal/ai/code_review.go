@@ -46,7 +46,11 @@ func (p *UnifiedCodeReviewProvider) FetchReview(ctx context.Context, userID uuid
 	if err := p.authorizeReview(ctx, userID, rawURL); err != nil {
 		return nil, err
 	}
-	if p.gitlab != nil && gitlabMRURLRe.MatchString(rawURL) {
+	// W5-A3-013: GitLab-like URL при nil gitlab — явная ошибка, не fallback на GitHub.
+	if gitlabMRURLRe.MatchString(rawURL) {
+		if p.gitlab == nil {
+			return nil, fmt.Errorf("GitLab not configured")
+		}
 		mr, err := p.gitlab.FetchMRForReview(ctx, rawURL)
 		if err != nil {
 			return nil, err
@@ -72,7 +76,10 @@ func (p *UnifiedCodeReviewProvider) authorizeReview(ctx context.Context, userID 
 		err       error
 	)
 	switch {
-	case p.gitlab != nil && gitlabMRURLRe.MatchString(rawURL):
+	case gitlabMRURLRe.MatchString(rawURL):
+		if p.gitlab == nil {
+			return fmt.Errorf("GitLab not configured")
+		}
 		projectID, err = p.gitlab.ProjectIDForMRURL(ctx, rawURL)
 	case p.github != nil:
 		projectID, err = p.github.ProjectIDForPRURL(ctx, rawURL)

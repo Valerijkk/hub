@@ -20,6 +20,7 @@ var (
 	ErrDailyQuotaExceeded     = fmt.Errorf("daily AI request quota exceeded")
 	ErrSettingsTooLong        = fmt.Errorf("system prompt too long")
 	ErrSettingsNotConfigured  = fmt.Errorf("settings store not configured")
+	ErrProviderNotFound       = fmt.Errorf("provider not found")
 )
 
 // DefaultDailyRequestLimit — requests/day на пользователя (M3-027).
@@ -214,8 +215,12 @@ func (s *Service) CreateProvider(ctx context.Context, req CreateProviderRequest)
 	return &resp, nil
 }
 
-// UpdateProvider патчит config провайдера.
+// UpdateProvider патчит config системного провайдера (admin).
+// W5-A1-010: user-scope BYOK недоступен через /admin/ai — 404.
 func (s *Service) UpdateProvider(ctx context.Context, id uuid.UUID, req UpdateProviderRequest) (*ProviderResponse, error) {
+	if _, err := s.requireSystemProvider(ctx, id); err != nil {
+		return nil, err
+	}
 	input := UpdateProviderInput{
 		Name: req.Name, BaseURL: req.BaseURL, Models: req.Models,
 		Enabled: req.Enabled, Priority: req.Priority, MaxRPM: req.MaxRPM, RuResident: req.RuResident,
@@ -231,9 +236,9 @@ func (s *Service) UpdateProvider(ctx context.Context, id uuid.UUID, req UpdatePr
 	return &resp, nil
 }
 
-// TestProvider — ping провайдера minimal chat request.
+// TestProvider — ping системного провайдера minimal chat request.
 func (s *Service) TestProvider(ctx context.Context, id uuid.UUID) (*TestProviderResponse, error) {
-	p, err := s.repo.GetProvider(ctx, id)
+	p, err := s.requireSystemProvider(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -256,6 +261,22 @@ func (s *Service) TestProvider(ctx context.Context, id uuid.UUID) (*TestProvider
 	return &TestProviderResponse{
 		OK: true, Provider: p.Name, Model: model, Latency: latency,
 	}, nil
+}
+
+// requireSystemProvider — admin-scope guard: user BYOK → ErrProviderNotFound (W5-A1-010).
+func (s *Service) requireSystemProvider(ctx context.Context, id uuid.UUID) (*ent.AIProvider, error) {
+	p, err := s.repo.GetProvider(ctx, id)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrProviderNotFound
+		}
+		return nil, err
+	}
+	// Пустой scope — legacy system (до появления BYOK).
+	if p.Scope != "" && p.Scope != aiprovider.ScopeSystem {
+		return nil, ErrProviderNotFound
+	}
+	return p, nil
 }
 
 // ListModels — enabled models для ModelPicker (system + BYOK).
