@@ -101,17 +101,20 @@ func (s *BackupService) PerformBackup(ctx context.Context) (*BackupResponse, err
 		return nil, fmt.Errorf("zip backup: %w", err)
 	}
 
-	// Загружаем в S3
-	if s.s3Client != nil {
-		_, err = s.s3Client.PutObject(ctx, &s3.PutObjectInput{
-			Bucket: &s.s3Bucket,
-			Key:    &s3Key,
-			Body:   bytes.NewReader(zipData),
-		})
-		if err != nil {
-			s.markFailed(ctx, record.ID, fmt.Errorf("ошибка загрузки в S3: %w", err))
-			return nil, fmt.Errorf("s3 upload: %w", err)
-		}
+	// Загружаем в S3 (W7-A4-004 / P1-BE-39: без S3 — fail-closed, не MarkCompleted).
+	if s.s3Client == nil {
+		err := fmt.Errorf("s3 client not configured")
+		s.markFailed(ctx, record.ID, err)
+		return nil, err
+	}
+	_, err = s.s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: &s.s3Bucket,
+		Key:    &s3Key,
+		Body:   bytes.NewReader(zipData),
+	})
+	if err != nil {
+		s.markFailed(ctx, record.ID, fmt.Errorf("ошибка загрузки в S3: %w", err))
+		return nil, fmt.Errorf("s3 upload: %w", err)
 	}
 
 	// Обновляем статус
