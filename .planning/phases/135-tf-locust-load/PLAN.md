@@ -8,7 +8,7 @@
 ## Goal
 
 Реализовать Locust hot-path сценарии v1 по каталогу
-[`TF-MIGRATE-E5-LOCUST.md`](../../planning-audit-2026-07/TF-MIGRATE-E5-LOCUST.md):
+[`TF-MIGRATE-E5-LOCUST.md`](../../audits/planning-audit-2026-07/TF-MIGRATE-E5-LOCUST.md):
 login, feed, search, issues + A13-001…006 baselines (board/bases/dashboard/sprint).
 
 ## Depends on

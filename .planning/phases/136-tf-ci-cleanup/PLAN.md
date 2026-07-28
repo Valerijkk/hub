@@ -14,7 +14,7 @@
 - `backend/testframework/` (если ещё не пуст после 132)
 - `frontend/e2e/` / TS Playwright node_modules paths
 
-Источник: [`02-TEST-FRAMEWORK-MIGRATION.md`](../../planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md) §Э7
+Источник: [`02-TEST-FRAMEWORK-MIGRATION.md`](../../audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md) §Э7
 
 ## Depends on
 

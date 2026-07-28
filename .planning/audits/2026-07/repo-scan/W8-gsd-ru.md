@@ -37,7 +37,7 @@
 
 ## 2. Покрытие P0 (21) ↔ gsd-ru
 
-Источник: `.planning/july-2026/ai-expansion/03-GSD-PORT-INVENTORY.md` §3 + `.cursor/GSD-INTEGRATION.md` § «P0/P1 port status mid-Aug».
+Источник: `.planning/archive/july-2026/ai-expansion/03-GSD-PORT-INVENTORY.md` §3 + `.cursor/GSD-INTEGRATION.md` § «P0/P1 port status mid-Aug».
 
 ### 2.1 Закрыто локальным gsd-ru skill (6 upstream P0 → 4 skills)
 
@@ -55,7 +55,7 @@ Hub-native (не из списка 21 P0, но в pack): `portable-kit`, `micros
 | Upstream P0 | in Hub? (inventory) | Port target до 15.08 | Риск без RU skill |
 |-------------|---------------------|----------------------|-------------------|
 | `gsd-discuss-phase`, `gsd-spec-phase` | practice · ba1/ba2 | agents ba* + PE | Lifecycle «типовой день» в README **стартует с phase-plan** — discuss/spec вне lite-цикла |
-| `gsd-plant-seed` | practice · `.planning/seeds/` | ba2/product | Низкий — практика seeds есть |
+| `gsd-plant-seed` | practice · `.planning/reference/seeds/` | ba2/product | Низкий — практика seeds есть |
 | `gsd-workstreams` | practice · team-workflow | PE wave-execution + team-lead | Частично в `wave-run` (streams be1∥be2); отдельного skill нет |
 | `gsd-quick`, `gsd-fast` | partial · route | be*/fe*/codex-micro | Без ~/.claude — только route в gsd-index |
 | `gsd-add-tests`, `gsd-validate-phase` | partial · route | qa-auto* | Nyquist/add-tests не в RU |
@@ -106,9 +106,9 @@ Hub-native (не из списка 21 P0, но в pack): `portable-kit`, `micros
 
 | Документ | Роль |
 |----------|------|
-| `.planning/july-2026/ai-expansion/03-GSD-PORT-INVENTORY.md` | Канон 79 / P0=21 |
+| `.planning/archive/july-2026/ai-expansion/03-GSD-PORT-INVENTORY.md` | Канон 79 / P0=21 |
 | `.cursor/GSD-INTEGRATION.md` | Маршрутизация + mid-Aug P0/P1 |
-| `.planning/july-2026/ai-expansion/07-ACCEPTANCE.md` | G4/M5/M6 |
+| `.planning/archive/july-2026/ai-expansion/07-ACCEPTANCE.md` | G4/M5/M6 |
 | `prompt-engineering/gsd-port/README.md` | PE-зеркало |
 | `.cursor/skills/gsd-index/SKILL.md` | Быстрый индекс |
 

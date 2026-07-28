@@ -2,7 +2,7 @@
 
 - **Status:** accepted (2026-07-02, продуктовое решение пользователя)
 - **Владелец:** arch · **Верифицирует:** arch-ver + security-auditor · **Оркестрация:** team-lead
-- **Источники:** A/B-планы `.planning/ab-microservices/PLAN-team-lead-opus.md` и `PLAN-team-lead-fable.md`, `.planning/research/MARKET-AND-NEEDS-2026-07-02.md`, `.planning/july-2026/EXPANSION-ANALYSIS-2026-07-02.md`.
+- **Источники:** A/B-планы `.planning/decisions/ab-microservices/PLAN-team-lead-opus.md` и `PLAN-team-lead-fable.md`, `.planning/research/MARKET-AND-NEEDS-2026-07-02.md`, `.planning/archive/july-2026/EXPANSION-ANALYSIS-2026-07-02.md`.
 - **Заменяет/уточняет:** `docs/tz_constraints.md` (deployment), помечавший микросервисный split как F2/v4.5.
 
 ---
@@ -42,7 +42,7 @@ Hub — качественный **модульный монолит** (Go/Fiber
 
 **Go/No-Go метрика после пилота (композит):** lead-time деплоя домена ↓, p95 API не хуже +10%, 0 инцидентов из-за split за 2 недели.
 
-**Прочие зафиксированные детали:** JWKS — HS256 допустим для пилота, JWKS обязателен до hub-ai; OTel-трейсинг через NATS-headers — жёсткий gate до пилота; rate-limits слоями (auth в core, доменные per-service, 100/с на Caddy); path-filtered CI обязателен в M0 (бюджет 3000 мин); переключения — Caddy route-flip; одна K3s-нода + local-path PVC; dev-профиль compose = split после приёмки каждого выноса; сироты UUID — consumer на `*.deleted` + reconcile-job; бэкапы при N схемах — решить на пилоте M2. Полный реестр: `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`.
+**Прочие зафиксированные детали:** JWKS — HS256 допустим для пилота, JWKS обязателен до hub-ai; OTel-трейсинг через NATS-headers — жёсткий gate до пилота; rate-limits слоями (auth в core, доменные per-service, 100/с на Caddy); path-filtered CI обязателен в M0 (бюджет 3000 мин); переключения — Caddy route-flip; одна K3s-нода + local-path PVC; dev-профиль compose = split после приёмки каждого выноса; сироты UUID — consumer на `*.deleted` + reconcile-job; бэкапы при N схемах — решить на пилоте M2. Полный реестр: `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md`.
 
 ### 4. Взаимодействие
 - Async — **NATS JetStream + outbox** (уже есть), идемпотентные consumers (`event_id` dedup), саги-хореография + компенсации.
@@ -65,4 +65,4 @@ Deployment-топология (много сервисов) — **этот ADR �
 - **−** операционная сложность (N деплоев/секретов/миграций), риск распределённого монолита, latency, сложнее отладка → митигируется постепенностью, observability-предусловием, обратимостью.
 
 ## Следствия для документации
-Обновить `docs/architecture.md` (целевая C4), `docs/stack_and_tools.md`, `docs/tz_constraints.md` (deployment-раздел), `deployments/` (K3s-манифесты, TD-04). Детальный roadmap — `.planning/roadmaps/MICROSERVICES-ROADMAP.md`.
+Обновить `docs/architecture.md` (целевая C4), `docs/stack_and_tools.md`, `docs/tz_constraints.md` (deployment-раздел), `deployments/` (K3s-манифесты, TD-04). Детальный roadmap — `.planning/archive/roadmaps/MICROSERVICES-ROADMAP.md`.

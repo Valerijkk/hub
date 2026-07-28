@@ -16,7 +16,7 @@ Hub — единая платформа для команд разработки
 
 ### Активные
 
-> **C6 reconcile 2026-07-27:** чекбоксы сверены с кодом (`file:line` / путь модуля). История формулировок сохранена; где scope сменился — пометка в скобках. Источник FR-матрицы: `.planning/planning-audit-2026-07/SPEC-COVERAGE.md`.
+> **C6 reconcile 2026-07-27:** чекбоксы сверены с кодом (`file:line` / путь модуля). История формулировок сохранена; где scope сменился — пометка в скобках. Источник FR-матрицы: `.planning/audits/planning-audit-2026-07/SPEC-COVERAGE.md`.
 
 **Авторизация и пользователи:**
 - [x] Magic Link (email) без паролей — `backend/internal/auth/handler.go:35-36,72,116`. ~~Telegram login~~ → Telegram только notify bind (ADR-AUTH-01), не вход

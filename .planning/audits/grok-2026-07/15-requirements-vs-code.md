@@ -3,7 +3,7 @@
 **Дата:** 2026-07-26  
 **Ветка:** `cursor-grok-4.5`  
 **Режим:** READ-ONLY (кроме этого отчёта)  
-**Источники:** `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/PROJECT.md`, `.planning/july-2026/ROADMAP-FINAL-2026-07-03.md`, `.planning/phases/`, `docs/tz_constraints.md`, код `frontend/` + `backend/`
+**Источники:** `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/PROJECT.md`, `.planning/archive/july-2026/ROADMAP-FINAL-2026-07-03.md`, `.planning/phases/`, `docs/tz_constraints.md`, код `frontend/` + `backend/`
 
 ## Scope
 

@@ -8,7 +8,7 @@
 ## Goal
 
 Перенести **15 mechanical** Playwright specs TS → Python с паритетом сценариев.
-Матрица: [`TF-MIGRATE-E3-PLAYWRIGHT.md`](../../planning-audit-2026-07/TF-MIGRATE-E3-PLAYWRIGHT.md)
+Матрица: [`TF-MIGRATE-E3-PLAYWRIGHT.md`](../../audits/planning-audit-2026-07/TF-MIGRATE-E3-PLAYWRIGHT.md)
 
 ## Depends on
 

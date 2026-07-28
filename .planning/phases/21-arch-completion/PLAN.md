@@ -1,7 +1,7 @@
 # Phase 21 — Architecture Completion (ARCH-01)
 
 > **Branch:** `feat/v2.5-trust` · **Depends on:** Phase 20 Milestone Gate  
-> **Ref:** `.planning/code-review-final/ARCHITECTURE.md` §6
+> **Ref:** `.planning/audits/code-review-final/ARCHITECTURE.md` §6
 
 ## Exit criteria
 

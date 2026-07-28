@@ -2,8 +2,8 @@
 
 **Status:** PLANNED (docs only — no production code in this phase artifact)  
 **Source:** `docs/system_specification.md` FR-INTR-08 (US-INTR-03), NFR-11  
-**Audit:** `.planning/planning-audit-2026-07/00-PLANNING-AUDIT.md` §4.3 · `01-PLANNING-FIXES.md` B1  
-**Index note:** `.planning/planning-audit-2026-07/PW4-D3-FR-PLANS.md`  
+**Audit:** `.planning/audits/planning-audit-2026-07/00-PLANNING-AUDIT.md` §4.3 · `01-PLANNING-FIXES.md` B1  
+**Index note:** `.planning/audits/planning-audit-2026-07/PW4-D3-FR-PLANS.md`  
 **Suggested branch (when implementing):** `feat/intranet/newspost-trash-restore`
 
 ## Goal

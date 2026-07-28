@@ -1,9 +1,9 @@
 # ADR-AI-AGENTS-MCP-2026: Agent-native AI, MCP-сервер и hub-ai по LiteLLM-паттерну
 
-- **Status:** accepted (2026-07-03, решения пользователя — `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2, батч 2)
+- **Status:** accepted (2026-07-03, решения пользователя — `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2, батч 2)
 - **Дата:** 2026-07-03
 - **Автор:** arch · **Верифицируют:** arch-ver + security-auditor
-- **Связанные:** GZ-SEC-09/10/20/21/22/23, `ADR-ARCH-MICROSERVICES-2026` §3 (hub-ai — вынос №1), `.planning/roadmaps/MICROSERVICES-ROADMAP.md` §3 (уточнение scope hub-ai), `.planning/specs/AI-PROVIDER-HUB-SPEC.md`, `docs/tz_constraints.md`
+- **Связанные:** GZ-SEC-09/10/20/21/22/23, `ADR-ARCH-MICROSERVICES-2026` §3 (hub-ai — вынос №1), `.planning/archive/roadmaps/MICROSERVICES-ROADMAP.md` §3 (уточнение scope hub-ai), `.planning/decisions/specs/AI-PROVIDER-HUB-SPEC.md`, `docs/tz_constraints.md`
 - **Расширяет:** текущий модуль `backend/internal/ai/` (5 адаптеров, BYOK, messenger-бот, fallback) до agent-native платформы
 
 ---

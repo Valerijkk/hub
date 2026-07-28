@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-22  
 **Scope:** Wave RU-1 (30 исполнителей) → Wave RU-V (10 верификаторов)  
-**Plan:** `.planning/tasks/TASKS-RU-COMMENTS-DOCS.md`
+**Plan:** `.planning/archive/tasks/TASKS-RU-COMMENTS-DOCS.md`
 
 **Pass criterion:** 0 английских комментариев/docs-прозы (исключения: `@swagger`, URL, имена полей API, `@example` JSON, `// biome-ignore`, generated files, product-name section headers).
 

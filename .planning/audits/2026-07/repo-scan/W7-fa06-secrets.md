@@ -4,7 +4,7 @@
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
 > **Роль:** devops-engineer + security-auditor (readonly) · **Дата:** 2026-07-23
-> **Scope:** `.planning/production/FA-06-EXECUTION-LOG.md`, PG-03 · **Код не менялся**
+> **Scope:** `.planning/ops/production/FA-06-EXECUTION-LOG.md`, PG-03 · **Код не менялся**
 
 ## Summary
 

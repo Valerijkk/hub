@@ -11,7 +11,7 @@
 Mongo, внешние интеграции через API), а не юнит — по мере выделения из бывшего
 `backend/testframework` и новых сценариев.
 
-Layout: [`TF-MIGRATE-E4-TESTS-LAYOUT.md`](../../planning-audit-2026-07/TF-MIGRATE-E4-TESTS-LAYOUT.md)
+Layout: [`TF-MIGRATE-E4-TESTS-LAYOUT.md`](../../audits/planning-audit-2026-07/TF-MIGRATE-E4-TESTS-LAYOUT.md)
 
 ## Depends on
 

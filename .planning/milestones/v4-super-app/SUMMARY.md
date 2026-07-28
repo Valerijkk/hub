@@ -2,7 +2,7 @@
 
 > **Shipped:** 2026-06-25 (code on `feat/v2.5-trust`, uncommitted)  
 > **Phases:** 39–57 (19 phases)  
-> **Vision:** `.planning/specs/PLATFORM-VISION-v4.md`
+> **Vision:** `.planning/decisions/specs/PLATFORM-VISION-v4.md`
 
 ---
 

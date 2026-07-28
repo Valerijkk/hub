@@ -82,7 +82,7 @@ tests/
 1. **Smoke** — `@smoke` tag, CI fast path (< 5 min)
 2. **Regression** — full suite nightly / pre-release
 3. **Contract** — handler response shape vs OpenAPI (Phase 15 swagger wave)
-4. **Security** — auth bypass, RBAC negative paths, rate limit (reuse `.planning/code-review-final/`)
+4. **Security** — auth bypass, RBAC negative paths, rate limit (reuse `.planning/audits/code-review-final/`)
 5. **A11y** — axe in E2E layer (Phase 15 Wave 6)
 6. **Flaky quarantine** — `@quarantine` + retry policy (Phase 16 prep)
 

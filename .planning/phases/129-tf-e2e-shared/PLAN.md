@@ -11,7 +11,7 @@
 fixtures, auth (seed + sessionStorage inject), env probes, POM, steps, a11y helper.
 
 Источник: `testframework/stages/e2e/shared/**`  
-План классов: [`TF-MIGRATE-E3-PLAYWRIGHT.md`](../../planning-audit-2026-07/TF-MIGRATE-E3-PLAYWRIGHT.md) §Shared
+План классов: [`TF-MIGRATE-E3-PLAYWRIGHT.md`](../../audits/planning-audit-2026-07/TF-MIGRATE-E3-PLAYWRIGHT.md) §Shared
 
 ## Depends on
 

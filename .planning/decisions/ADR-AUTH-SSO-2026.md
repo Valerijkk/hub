@@ -1,9 +1,9 @@
 # ADR-AUTH-SSO-2026: Корпоративный SSO — OIDC + LDAP/AD bind поверх Magic Link
 
-- **Status:** accepted (2026-07-03, решения пользователя — `.planning/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2, батч 2)
+- **Status:** accepted (2026-07-03, решения пользователя — `.planning/decisions/gray-zones/GRAY-ZONES-DECISIONS-2026-07-03.md` §2, батч 2)
 - **Дата:** 2026-07-03
 - **Автор:** arch · **Верифицируют:** arch-ver + security-auditor · **Личное ревью пользователя обязательно** (security/auth, правило 50)
-- **Связанные:** GZ-SEC-03/04/05/06/08/09/10, `docs/tz_constraints.md` (Authentication), `ADR-AUTH-01` (Magic Link only — уточняется этим ADR), `ADR-ARCH-MICROSERVICES-2026` §5 (JWKS), `.planning/roadmaps/MICROSERVICES-ROADMAP.md` §3
+- **Связанные:** GZ-SEC-03/04/05/06/08/09/10, `docs/tz_constraints.md` (Authentication), `ADR-AUTH-01` (Magic Link only — уточняется этим ADR), `ADR-ARCH-MICROSERVICES-2026` §5 (JWKS), `.planning/archive/roadmaps/MICROSERVICES-ROADMAP.md` §3
 - **Уточняет:** MANDATORY-раздел «Аутентификация» ТЗ — SSO переводится из FORBIDDEN в дополнительный корпоративный метод
 
 ---

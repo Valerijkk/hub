@@ -11,7 +11,7 @@
 `backend/internal/<domain>/` (рядом с кодом). Убрать ненужные `export_hooks.go`
 там, где тесты в том же пакете получают доступ к unexported API.
 
-Источник решения: [`02-TEST-FRAMEWORK-MIGRATION.md`](../../planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md) §Э3
+Источник решения: [`02-TEST-FRAMEWORK-MIGRATION.md`](../../audits/planning-audit-2026-07/02-TEST-FRAMEWORK-MIGRATION.md) §Э3
 
 ## Depends on
 

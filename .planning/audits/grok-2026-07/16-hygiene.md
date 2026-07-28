@@ -10,7 +10,7 @@
 |---------|--------|
 | Dead / unused FE | grep импортов `VelocityChart` / `modules/tracker/velocity`; API-клиенты `@/api/*`; `jsdom` vs `happy-dom` в `vite.config.ts` |
 | Дубликаты логики | `IsSystemAdmin` ×N репозиториев; maroto PDF `imex/pdf.go` ↔ `tms/exporter.go`; burndown/velocity в `modules/tracker` + `components/dashboard/widgets` |
-| TODO/FIXME/HACK | `backend/internal` (0), `frontend/src` (1), `docs/runbooks`, `.planning/edge-expansions` (каталог ECC) |
+| TODO/FIXME/HACK | `backend/internal` (0), `frontend/src` (1), `docs/runbooks`, `.planning/reference/edge-expansions` (каталог ECC) |
 | Deps | чтение `backend/go.mod`, `frontend/package.json` + lock; `npm outdated` (локально); go list -m -u — **не завершён** (скачивание toolchain go1.25) |
 | Naming / структура | `backend/internal/*` (33) ↔ `frontend/src/modules` / `api` / `stores`; layering gaps (`ws`, `mail`, `status`, `apigateway`) |
 | Docs drift | `README.md`, `AGENTS.md`, `docs/{vision,architecture,stack_and_tools}`, `.cursor/rules/{00-project,30-frontend}.mdc` vs filesystem counts |
@@ -38,7 +38,7 @@
 | A16-015 | P3 | `frontend/package.json:41` | `@types/react-grid-layout` в `dependencies` | Types не нужны в prod bundle metadata; засоряет runtime deps | Перенести в `devDependencies` |
 | A16-016 | P3 | `README.md:74-80` | Скриншоты → `docs/assets/screenshots/*.png`, каталога **нет** | Битые картинки на главной репо | Добавить ассеты или убрать секцию до появления |
 | A16-017 | P2 | `frontend/package.json` (npm outdated: 30+ pkgs, в т.ч. livekit, radix, tanstack, biome, vite-ecosystem) | Массовый outdated относительно registry | Накопление security/compat lag; нет регулярного bump-цикла | Dependabot/календарь bump; приоритет LiveKit/vite/biome |
-| A16-018 | P3 | `.planning/edge-expansions/**` (сотни строк `\| TODO \|`) | ECC-каталог помечен TODO как gap-статус тестов | Не code-debt, но засоряет grep TODO по репо | Отдельный статус-маркер (`GAP`/`OPEN`) ≠ `TODO` в code sense |
+| A16-018 | P3 | `.planning/reference/edge-expansions/**` (сотни строк `\| TODO \|`) | ECC-каталог помечен TODO как gap-статус тестов | Не code-debt, но засоряет grep TODO по репо | Отдельный статус-маркер (`GAP`/`OPEN`) ≠ `TODO` в code sense |
 | A16-019 | P3 | `backend/internal/{ws,mail,status,apigateway}` | Отклонение от канона handler/service/repository | `ws`: H без S/R; `mail`: S без H/R; `status`: без repository; `apigateway`: без service.go | Документировать исключения **или** выровнять имена файлов |
 | A16-020 | P3 | `AGENTS.md:13` vs `docs/vision_and_scope.md:38` | «82 Ent» ок, но «31 пакет» (vision) vs **33** dir в `internal/` | Мелкий drift модульного счёта (platform/testutil/integrations) | Унифицировать формулу подсчёта в KPI-таблицах |
 

@@ -1,10 +1,10 @@
 # Hub — Матрица покрытия требований
 
 > Phase 0 reconciliation: требование → код → тест.  
-> **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/code-review-final/SUMMARY.md`  
+> **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/audits/code-review-final/SUMMARY.md`  
 > **Верификация coverage gate:** **2026-07-27** (Docker `-tags hubtest`, overall **81.9%**)  
 > Historical package table: 2026-06-22 (see ## Historical baselines)  
-> **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/code-review-final/SUMMARY.md`
+> **Источники:** `.planning/PROJECT.md`, `docs/vision_and_scope.md`, `.planning/audits/code-review-final/SUMMARY.md`
 
 ---
 
@@ -45,7 +45,7 @@
 `go test -tags hubtest -count=1 -timeout=900s -covermode=atomic -coverpkg=./internal/... ./testframework/...`,  
 `go tool cover -func` → overall statements.
 
-**Evidence:** `.planning/planning-audit-2026-07/cov-2026-07-27-REPORT.md`, `cov-2026-07-27-total.txt`.
+**Evidence:** `.planning/audits/planning-audit-2026-07/cov-2026-07-27-REPORT.md`, `cov-2026-07-27-total.txt`.
 
 ### Packages that declined vs 2026-06-22
 

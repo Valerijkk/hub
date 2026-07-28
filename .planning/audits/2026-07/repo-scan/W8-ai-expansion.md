@@ -4,7 +4,7 @@
 > Embedded original verdict below = historical self-check only — **not** independent acceptance. See [`PROVENANCE.md`](./PROVENANCE.md).
 
 > **Роль:** product-ver (readonly) · **Дата:** 2026-07-23
-> **Scope:** `.planning/july-2026/ai-expansion/07-ACCEPTANCE.md` · **Код не менялся**
+> **Scope:** `.planning/archive/july-2026/ai-expansion/07-ACCEPTANCE.md` · **Код не менялся**
 
 ## Summary
 

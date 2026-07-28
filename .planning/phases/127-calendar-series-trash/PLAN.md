@@ -2,8 +2,8 @@
 
 **Status:** PLANNED (docs only — no production code in this phase artifact)  
 **Source:** `docs/system_specification.md` FR-CAL-05 (US-CAL-02), NFR-11 (and resource-conflict clause of FR-CAL-05 / NFR-33 where already in scope)  
-**Audit:** `.planning/planning-audit-2026-07/00-PLANNING-AUDIT.md` §4.3 · `01-PLANNING-FIXES.md` B2  
-**Index note:** `.planning/planning-audit-2026-07/PW4-D3-FR-PLANS.md`  
+**Audit:** `.planning/audits/planning-audit-2026-07/00-PLANNING-AUDIT.md` §4.3 · `01-PLANNING-FIXES.md` B2  
+**Index note:** `.planning/audits/planning-audit-2026-07/PW4-D3-FR-PLANS.md`  
 **Suggested branch (when implementing):** `feat/calendar/scheduledcall-series-trash`
 
 ## Goal

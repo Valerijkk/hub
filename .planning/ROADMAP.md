@@ -51,7 +51,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### v2.5+ Production & Super-app (Planned — PO LOCKED 2026-06-21)
 
-> Decisions: `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md` · Branch: `feat/v2.5-trust`
+> Decisions: `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md` · Branch: `feat/v2.5-trust`
 
 - [x] **Phase 15: Trust (v2.5)** - Magic Link only, organization, NOTIF TG bind, hub-mail, E2E FB-07..09, WCAG, run_failed, Biome, LiveKit CI, coverage ≥50% (2026-06-22)
 - [x] **Phase 16: Automate (v2.6)** - PROD automation, flaky, issue↔message, webhooks log, Gantt, webcam, email marketing, triage inbox, Meilisearch (2026-06-22)
@@ -2132,7 +2132,7 @@ Phases execute in numeric order (1 → 125). Decimal insertions (if any) slot be
 
 ### Honest counters (synced 2026-07-27 · C2)
 
-Sources: [`PHASE-STATUS-MATRIX.md`](planning-audit-2026-07/PHASE-STATUS-MATRIX.md) (live scan A3), [`00-PLANNING-AUDIT.md`](planning-audit-2026-07/00-PLANNING-AUDIT.md) §0, `STATE.md` (`total_phases: 125` — not yet rewritten by A4/`goals_verified`).
+Sources: [`PHASE-STATUS-MATRIX.md`](audits/planning-audit-2026-07/PHASE-STATUS-MATRIX.md) (live scan A3), [`00-PLANNING-AUDIT.md`](audits/planning-audit-2026-07/00-PLANNING-AUDIT.md) §0, `STATE.md` (`total_phases: 125` — not yet rewritten by A4/`goals_verified`).
 
 | Metric | Value | Source |
 |--------|------:|--------|

@@ -96,7 +96,7 @@ Per-file класс зафиксирован ниже (19 + 20 = **39** domain-�
 
 - Totals (**≈20 CRITICAL**, **≈45+ HIGH**) — **approximate**, с эхом и без полного code recheck.
 - Top-10 fix order — **рекомендация для triage**, не verified backlog.
-- Строки «AI-expansion Must PASS» / «Overall merge-ready» — **не независимая верификация** planning-артефактов; см. [`07-ACCEPTANCE.md`](../../july-2026/ai-expansion/07-ACCEPTANCE.md) (qualified).
+- Строки «AI-expansion Must PASS» / «Overall merge-ready» — **не независимая верификация** planning-артефактов; см. [`07-ACCEPTANCE.md`](../../../archive/july-2026/ai-expansion/07-ACCEPTANCE.md) (qualified).
 
 ## Связанные документы
 
@@ -104,7 +104,7 @@ Per-file класс зафиксирован ниже (19 + 20 = **39** domain-�
 |----------|------|
 | [`INDEX.md`](./INDEX.md) | Навигация по слотам + ссылка сюда |
 | [`SCORECARD.md`](./SCORECARD.md) | Non-authoritative aggregate |
-| [`../../july-2026/ai-expansion/07-ACCEPTANCE.md`](../../july-2026/ai-expansion/07-ACCEPTANCE.md) | Qualified Must PASS (structural gaps) |
+| [`../../july-2026/ai-expansion/07-ACCEPTANCE.md`](../../../archive/july-2026/ai-expansion/07-ACCEPTANCE.md) | Qualified Must PASS (structural gaps) |
 
 ## История (сохранена)
 

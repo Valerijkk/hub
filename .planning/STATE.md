@@ -28,8 +28,8 @@ deploy_blockers:
       - "63-production-gate (VERIFICATION: code PASS, deploy blocked)"
       - "67-production-gate (VERIFICATION: code PASS, deploy blocked)"
     docs:
-      - .planning/production/PG-03-SECRET-ROTATION.md
-      - .planning/production/FA-06-EXECUTION-LOG.md
+      - .planning/ops/production/PG-03-SECRET-ROTATION.md
+      - .planning/ops/production/FA-06-EXECUTION-LOG.md
       - docs/runbooks/fa06-secret-rotation.md
     progress:
       phase_0_git_scan: done
@@ -55,7 +55,7 @@ spec_coverage:
     decimal: 0.321
     percent: 32.1
     measured: "2026-07-27"
-    source: .planning/planning-audit-2026-07/SPEC-COVERAGE.md
+    source: .planning/audits/planning-audit-2026-07/SPEC-COVERAGE.md
 ---
 
 # Состояние проекта Hub
@@ -63,7 +63,7 @@ spec_coverage:
 ## История session notes
 
 Полный архив заметок **до 2026-07-23 включительно** и старых completion logs:
-[`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
+[`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
 ## Session note — 2026-07-28 (fe1 · A10-007 notifications Query)
@@ -348,14 +348,14 @@ spec_coverage:
 
 ## Справка
 
-См.: `.planning/PROJECT.md` · история session notes: [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md)
+См.: `.planning/PROJECT.md` · история session notes: [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md)
 
 **Ключевая ценность:** единая self-hosted среда для dev-команды — трекер, TMS, мессенджер, звонки, интранет, CRM, HR, учёт, AI — в одном интерфейсе.
 
 **Текущий фокус (2026-07-26):** Test Automation AI Quality Layer `0.1.0-alpha.1` —
 structural/package PASS · instructions RU-only · paired eval/ROI `NOT_RUN` ·
 July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
-Индекс июля: `.planning/july-2026/INDEX-JULY-2026.md`.
+Индекс июля: `.planning/archive/july-2026/INDEX-JULY-2026.md`.
 
 ## Текущая позиция (2026-07-26)
 
@@ -374,7 +374,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 | Backend tests | **515** files в `backend/testframework/` (measured 2026-07-27; was 499 on 2026-07-26) · **0** в `internal/*_test.go` |
 | Playwright E2E | **20** specs (`testframework/stages/e2e/domains/`) |
 | Frontend Vitest | **99/99** pass · 37 files `testframework/stages/unit/frontend-test/domains/` · 0 in `src/` |
-| Planning index | `.planning/july-2026/INDEX-JULY-2026.md` |
+| Planning index | `.planning/archive/july-2026/INDEX-JULY-2026.md` |
 
 ### Покрытие ключевых пакетов (2026-06-22 Docker baseline, Phase 125 / FA-11)
 
@@ -413,7 +413,7 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
 
 ## PO Decisions (locked)
 
-См.: `.planning/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
+См.: `.planning/archive/roadmaps/DISCUSS-ROADMAP-LOCKED.md`
 
 - **AUTH:** Magic Link only · org table v2.5 · founder role · Telegram только bind/delivery
 - **NOTIF:** TG bind · hub-mail Phase 15.2 · email marketing v2.6
@@ -429,9 +429,9 @@ July Rebuild product-code freeze · LiveKit канон · FA-06 manual.
   measured 2026-07-27; was 499 on 2026-07-26 / earlier migration note had 495) · `internal/` = **0** ·
   Vitest **99/99** · E2E **20** specs · CI `-tags hubtest`.
 - **Wave C FA-01–FA-12:** COMPLETE кроме **FA-06** (PG-03 secret rotation, manual).
-  FA-10 qa-gate PASS. Детали: `.planning/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`,
+  FA-10 qa-gate PASS. Детали: `.planning/archive/tasks/TASKS-PHASES-121-FINAL-AUDIT.md`,
   аудиты `.planning/audits/2026-06/`. Полные таблицы закрытия — в
-  [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md).
+  [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md).
 
 ---
 
@@ -473,7 +473,7 @@ package 172 files · smoke PARTIAL · paired eval/ROI NOT_RUN
 pilot; FA-06 manual; затем CAL-SYNC / QA-HARDENING / Redesign по приоритету.
 
 Исторические session notes (≤2026-07-23) и старые completion logs:
-[`history/STATE-HISTORY-THROUGH-2026-07-23.md`](history/STATE-HISTORY-THROUGH-2026-07-23.md)
+[`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md)
 
 ---
 
