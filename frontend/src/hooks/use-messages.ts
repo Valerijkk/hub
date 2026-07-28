@@ -48,6 +48,10 @@ export function useMessages(channelId: string | undefined) {
 	const handleEvent = useCallback(
 		(event: string, payload: unknown) => {
 			if (!channelId) return;
+			// W11-A3-010 / P2-FE-10: null/array payload не должен валить listener.
+			if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+				return;
+			}
 			const data = payload as Record<string, unknown>;
 			const msgChannelId = data.channel_id as string | undefined;
 
@@ -187,6 +191,10 @@ export function useThreadMessages(
 	const handleEvent = useCallback(
 		(event: string, payload: unknown) => {
 			if (!channelId || !messageId) return;
+			// W11-A3-010 / P2-FE-10: null/array payload не должен валить listener.
+			if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+				return;
+			}
 			const data = payload as Record<string, unknown>;
 			const threadId = data.thread_id as string | undefined;
 			if (threadId !== messageId) return;

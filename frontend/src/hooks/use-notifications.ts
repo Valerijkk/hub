@@ -284,9 +284,16 @@ export function useNotificationRealtime() {
 	};
 
 	const handler = useCallback((event: string, payload: unknown) => {
-		if (event === "notification.new" && payload) {
-			handleRef.current(payload as NotificationDTO);
+		if (event !== "notification.new") return;
+		// W11-A3-015 / P2-FE-10: мусорный payload не должен портить cache/toast.
+		if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+			return;
 		}
+		const data = payload as Record<string, unknown>;
+		if (typeof data.id !== "string" || typeof data.title !== "string") {
+			return;
+		}
+		handleRef.current(payload as NotificationDTO);
 	}, []);
 
 	useEffect(() => {
