@@ -8,6 +8,7 @@ import (
 	"github.com/valerii/hub/backend/internal/tracker"
 	"context"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -171,16 +172,17 @@ func (m *mockRepo) ListIssues(_ context.Context, _ uuid.UUID, params tracker.Lis
 
 	total := len(result)
 
-	// Курсорная пагинация
+	// Стабильный порядок по issue_key (канон курсора list-issues).
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].IssueKey < result[j].IssueKey
+	})
+
+	// Курсорная пагинация: строки строго после cursor по issue_key.
 	if params.Cursor != "" {
 		var filtered []*ent.Issue
-		found := false
 		for _, i := range result {
-			if found {
+			if i.IssueKey > params.Cursor {
 				filtered = append(filtered, i)
-			}
-			if i.IssueKey == params.Cursor {
-				found = true
 			}
 		}
 		result = filtered
@@ -1068,6 +1070,56 @@ func TestListIssuesPagination(t *testing.T) {
 	require.NoError(t, err)
 	assert.LessOrEqual(t, len(resp.Items), 2)
 	assert.Equal(t, 5, resp.Total)
+}
+
+// TestListIssuesCursorPagination_Task104 фиксирует канон NFR-14: cursor, не offset.
+// Mutation: смена ListIssuesRequest на Offset/Page или ответ без next_cursor/has_more → FAIL.
+func TestListIssuesCursorPagination_Task104(t *testing.T) {
+	svc, _ := newTestService()
+	ctx := context.Background()
+	projectID := uuid.New()
+	userID := uuid.New()
+
+	for i := 0; i < 5; i++ {
+		_, err := svc.CreateIssue(ctx, projectID, userID, tracker.CreateIssueRequest{
+			Title:     fmt.Sprintf("Cursor task %d", i+1),
+			IssueType: "task",
+			Priority:  "medium",
+		})
+		require.NoError(t, err)
+	}
+
+	page1, err := svc.ListIssues(ctx, projectID, tracker.ListIssuesRequest{Limit: 2})
+	require.NoError(t, err)
+	require.Len(t, page1.Items, 2)
+	assert.True(t, page1.HasMore)
+	assert.Equal(t, 5, page1.Total)
+	require.NotEmpty(t, page1.NextCursor)
+	assert.Equal(t, page1.Items[1].IssueKey, page1.NextCursor)
+
+	page2, err := svc.ListIssues(ctx, projectID, tracker.ListIssuesRequest{
+		Cursor: page1.NextCursor,
+		Limit:  2,
+	})
+	require.NoError(t, err)
+	require.Len(t, page2.Items, 2)
+	assert.True(t, page2.HasMore)
+
+	page1Keys := map[string]struct{}{
+		page1.Items[0].IssueKey: {},
+		page1.Items[1].IssueKey: {},
+	}
+	for _, item := range page2.Items {
+		assert.NotContains(t, page1Keys, item.IssueKey)
+	}
+
+	page3, err := svc.ListIssues(ctx, projectID, tracker.ListIssuesRequest{
+		Cursor: page2.NextCursor,
+		Limit:  2,
+	})
+	require.NoError(t, err)
+	require.Len(t, page3.Items, 1)
+	assert.False(t, page3.HasMore)
 }
 
 // TestCreateLabel проверяет сценарий: создание label.
