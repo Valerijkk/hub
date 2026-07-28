@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (be1 · TASK-100 MaintenanceGate Redis U04)
+
+- ADR-BACKUP-MAINTENANCE-GATE-2026: Redis key `hub:backup:maintenance` + TTL 2h lease.
+- `NewRedisMaintenanceGate` в `wiring_fiber`; multi-instance IT + TTL test.
+- W7-A4-003 / P1-BE-U04 → FIXED; backlog «Исправлена».
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.
