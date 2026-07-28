@@ -240,6 +240,10 @@ hub.example.com {
 - Cron: еженедельно PG dump + Mongo dump + S3 files → ZIP в SeaweedFS
 - API: `POST /api/admin/backups` (Admin)
 - Restore: `POST /api/admin/backups/:id/restore`
+- **Maintenance (U04 / ADR-BACKUP-MAINTENANCE-GATE-2026):** на время restore
+  все реплики читают Redis-ключ `hub:backup:maintenance` и отдают 503 на
+  non-health API (health/live/ready/metrics bypass). TTL lease 2h — safety
+  net при crash пода без `DEL`. Multi-replica K3s **не** требует affinity.
 - Retention: настраивается в admin limits
 
 ---
