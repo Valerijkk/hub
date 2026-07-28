@@ -65,6 +65,14 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-28 (be1 · TASK-098 FR-INTR-07/08 author-delete + news_poll*)
+
+- ADR-INTRANET-U03 Accepted (owner: ADR/migrate без отдельного approve).
+- `news_poll*` Ent + SQL migrate; soft-hide через `NewsPost.deleted_at` (30d без обхода).
+- `DeleteNews`: admin **или** автор; poll create/get/vote/update; restore счётчиков.
+- Тесты: `task098_author_delete_poll_test.go`; `./testframework/intranet/` race PASS.
+- Статус TASK-098 → **Исправлена**.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.

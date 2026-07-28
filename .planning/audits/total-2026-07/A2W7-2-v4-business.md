@@ -86,7 +86,7 @@
 
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект / статус |
 |----|-----|-----|-------------|---------|------------------------|
-| W7-A2-001 | RESIDUAL | P1 | `intranet/service.go:167-178`; handler/dto/repo | FR-INTR-07/08: admin-only delete; нет `news_poll*`; restore poll невыполним | W12 U03 — greenfield scope; код без author-delete и polls |
+| W7-A2-001 | **FIXED** | P1 | `intranet/` + `news_poll*` | FR-INTR-07/08: author-delete + polls + restore counters (TASK-098 / ADR-INTRANET-U03) |
 | W7-A2-002 | FIXED-OK | P1 | `coffee_service.go:230-258` | Нечётный N → unpaired | Закрыто TASK-024: `buildCoffeeMatches` → тройка, `UnpairedCount=0` |
 | W7-A2-003 | RESIDUAL | P2 | `intranet/repository.go:107-123`; `service.go:136-138` | Update news: нет `VersionEQ`; service сравнивает version только если `>0` | TOCTOU / omit version → LWW; TASK-038 вне scope |
 | W7-A2-004 | RESIDUAL | P2 | `coffee_service.go:140-175` | `CreateCoffeeRound` + пары/тройки без одной tx | Mid-fail → orphan round с частичными парами |
