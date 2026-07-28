@@ -138,7 +138,7 @@ func TestHandler_CreateEndpoint_Success(t *testing.T) {
 
 	body, _ := json.Marshal(apigateway.CreateWebhookRequest{
 		URL:    "https://example.com/hub-webhook",
-		Events: []string{"issue.created", "message.sent"},
+		Events: []string{"issue.created", "sprint.completed"},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/projects/"+env.projectID.String()+"/webhooks/", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

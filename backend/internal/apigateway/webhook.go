@@ -429,6 +429,31 @@ func webhookEndpointProjectID(ep *ent.WebhookEndpoint) (uuid.UUID, bool) {
 
 // --- CRUD вебхуков ---
 
+// allowedWebhookEvents — UI short names (AVAILABLE_EVENTS из
+// frontend/src/modules/settings/webhooks.tsx) + wildcard "*".
+// Bind validate-теги Fiber не enforce'ит — проверка в сервисе (P1-BE-28).
+var allowedWebhookEvents = map[string]struct{}{
+	"*":                    {},
+	"issue.created":        {},
+	"issue.updated":        {},
+	"issue.status_changed": {},
+	"test_run.completed":   {},
+	"sprint.completed":     {},
+}
+
+// validateWebhookEvents требует непустой список и только allowlist-имена.
+func validateWebhookEvents(events []string) error {
+	if len(events) == 0 {
+		return newInvalidInputError("events: требуется хотя бы одно событие")
+	}
+	for _, e := range events {
+		if _, ok := allowedWebhookEvents[e]; !ok {
+			return newInvalidInputError("events: неизвестное событие " + e)
+		}
+	}
+	return nil
+}
+
 // WebhookService управляет CRUD операциями для вебхук-эндпоинтов.
 type WebhookService struct {
 	repo WebhookRepository
@@ -443,9 +468,13 @@ func NewWebhookService(repo WebhookRepository) *WebhookService {
 // URL валидируется на схему (http/https) и отсутствие userinfo —
 // фактическая блокировка приватных IP происходит в SafeDialContext
 // (CR-03, защита от DNS-rebinding).
-func (s *WebhookService) CreateEndpoint(ctx context.Context, projectID uuid.UUID, req CreateWebhookRequest) (*WebhookResponse, error) {
+// Автогенерированный (или переданный) secret возвращается в ответе один раз.
+func (s *WebhookService) CreateEndpoint(ctx context.Context, projectID uuid.UUID, req CreateWebhookRequest) (*CreateWebhookResponse, error) {
 	if err := safehttp.ValidateOutboundURL(req.URL); err != nil {
 		return nil, newInvalidInputError("некорректный URL вебхука: " + err.Error())
+	}
+	if err := validateWebhookEvents(req.Events); err != nil {
+		return nil, err
 	}
 
 	secret := req.Secret
@@ -458,7 +487,10 @@ func (s *WebhookService) CreateEndpoint(ctx context.Context, projectID uuid.UUID
 		return nil, fmt.Errorf("не удалось создать вебхук-эндпоинт: %w", err)
 	}
 
-	return toWebhookResponse(ep), nil
+	return &CreateWebhookResponse{
+		WebhookResponse: *toWebhookResponse(ep),
+		Secret:          secret,
+	}, nil
 }
 
 // ListEndpoints возвращает вебхук-эндпоинты проекта.
@@ -486,6 +518,11 @@ func (s *WebhookService) UpdateEndpoint(ctx context.Context, endpointID uuid.UUI
 	if req.URL != nil {
 		if err := safehttp.ValidateOutboundURL(*req.URL); err != nil {
 			return nil, newInvalidInputError("некорректный URL вебхука: " + err.Error())
+		}
+	}
+	if req.Events != nil {
+		if err := validateWebhookEvents(req.Events); err != nil {
+			return nil, err
 		}
 	}
 

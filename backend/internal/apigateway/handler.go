@@ -190,7 +190,7 @@ func (h *Handler) RevokeAPIKey(c fiber.Ctx) error {
 // @Produce json
 // @Param projectId path string true "ID проекта"
 // @Param body body CreateWebhookRequest true "URL и события"
-// @Success 201 {object} WebhookResponse "Эндпоинт создан"
+// @Success 201 {object} CreateWebhookResponse "Эндпоинт создан (secret один раз)"
 // @Failure 400 {object} fiber.Error "Неверный запрос"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Security BearerAuth

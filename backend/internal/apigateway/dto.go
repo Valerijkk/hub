@@ -43,13 +43,20 @@ type UpdateWebhookRequest struct {
 	IsActive *bool    `json:"is_active,omitempty"`
 }
 
-// WebhookResponse — ответ с данными вебхук-эндпоинта.
+// WebhookResponse — ответ с данными вебхук-эндпоинта (без secret).
 type WebhookResponse struct {
 	ID       string   `json:"id"`
 	URL      string   `json:"url"`
 	Events   []string `json:"events"`
 	IsActive bool     `json:"is_active"`
 	Created  string   `json:"created_at"`
+}
+
+// CreateWebhookResponse — ответ при создании: secret возвращается ОДИН раз
+// (как API key `key`), list/update его не содержат (P1-BE-27 / W4-A5-003).
+type CreateWebhookResponse struct {
+	WebhookResponse
+	Secret string `json:"secret"`
 }
 
 // WebhookDeliveryResponse — ответ с данными доставки вебхука.
