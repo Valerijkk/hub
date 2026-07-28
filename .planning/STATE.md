@@ -65,6 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be1 · TASK-119 storage/backup/dashboard residual)
+
+- W7-A4-007/011/012/013/018 backup: sanitize ErrorMessage, 404 NotFound, RequireAdmin denial, PGPASSWORD/mongo --config, restored_at.
+- W7-A4-008/009 dashboard: ListTopProjectsByIssueCount aggregate; personal PG widgets fail-visible.
+- W7-A4-017 already RequireSystemAdmin (evidence test). Tests: `go test -tags hubtest ./testframework/{backup,dashboard}/` PASS.
+- Status: Исправлена. Branch: `fix/platform/task-119-storage-backup-dash`.
+
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 
 - Статические `--hub`/`--g*` badge maps вместо JIT `bg-${}`; messenger tokens.
