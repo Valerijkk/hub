@@ -9,14 +9,19 @@ last_activity: 2026-07-27 · planning-audit PW waves · coverage 81.9% (2026-07-
 progress:
     total_phases: 125
     tasks_completed: 125
-    goals_verified: 55
+    goals_verified: 63
     phases_percent: 100
     notes: >-
       tasks_completed = checkbox/legacy completed_phases claim.
-      goals_verified = VERIFIED_PASS in PHASE-STATUS-MATRIX.md (scanned 2026-07-27):
-      55 PASS / 5 PARTIAL / 2 CODE_GATE_DEPLOY_BLOCKED / 52 NO_VERIFICATION
-      among 114 dirs under .planning/phases/ (01–13 live in milestones/).
+      goals_verified = count of classification==VERIFIED_PASS in
+      PHASE-STATUS-MATRIX.md per-phase table (column classification only;
+      method documented in matrix header «How to count goals_verified»).
+      Recount 2026-07-28 (TASK-004): 63 VERIFIED_PASS / 5 VERIFIED_PARTIAL /
+      2 CODE_GATE_DEPLOY_BLOCKED / 54 NO_VERIFICATION = 124 dirs.
+      Prior STATE value 55 was wrong (naive full-file / notes drift).
       phases_percent remains tasks_completed/total_phases — NOT goals_verified.
+      Matrix scan date 2026-07-27; VERIFICATION for 126/127 added 2026-07-28
+      not yet folded into matrix (no silent re-write of phase verdicts).
 deploy_blockers:
   - id: PG-03
     aka: FA-06
@@ -65,6 +70,12 @@ spec_coverage:
 Полный архив заметок **до 2026-07-23 включительно** и старых completion logs:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
+
+## Session note — 2026-07-28 (team-lead · TASK-004 goals_verified reconcile)
+
+- Источник правды: колонка `classification` в PHASE-STATUS-MATRIX (не full-file grep).
+- `goals_verified`: 55 → **63** VERIFIED_PASS; NO_VERIFICATION 54 (было 52 в notes).
+- Метод подсчёта записан в шапке матрицы.
 
 ## Session note — 2026-07-28 (be1 · TASK-002 FR-CAL-05 series trash)
 

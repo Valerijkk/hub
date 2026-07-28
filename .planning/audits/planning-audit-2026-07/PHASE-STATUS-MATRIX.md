@@ -6,6 +6,28 @@
 > **Scope:** documentation only; no production code touched
 > **Note:** User expected ~113 dirs; live count at scan = **124** (includes backlog `999-test-framework` and any phases added after 125).
 
+## How to count `goals_verified` (TASK-004)
+
+**Единственный источник вердикта для агрегата:** колонка `classification`
+в таблице «Per-phase rows» ниже (не колонка `verdict_line` / примечания).
+
+```powershell
+# Из корня репо — только 7-е поле строки фазы (classification):
+Get-Content .planning/audits/planning-audit-2026-07/PHASE-STATUS-MATRIX.md |
+  Where-Object { $_ -match '^\| [0-9]' } |
+  ForEach-Object {
+    ($_ -split '\|' | ForEach-Object Trim | Where-Object { $_ })[6]
+  } | Group-Object | Sort-Object Name
+```
+
+- `goals_verified` в `STATE.md` = число строк с `classification == VERIFIED_PASS`.
+- **Нельзя** считать `Select-String VERIFIED_PASS` по всему файлу: слово
+  повторяется в `verdict_line` и в summary → завышение / путаница (находка
+  team-lead: «55 vs 63»).
+- Summary-таблица «Classification» выше — кэш того же подсчёта на дату скана.
+- Перескан матрицы (новые VERIFICATION.md после 2026-07-27) — отдельная задача;
+  вердикты фаз здесь не переписываются под удобное число.
+
 ## Summary counts
 
 | Metric | Count |
