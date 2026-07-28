@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/projectmember"
 	"github.com/valerii/hub/backend/internal/auth"
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
@@ -18,6 +19,14 @@ import (
 	"github.com/valerii/hub/backend/internal/tracker"
 	"github.com/valerii/hub/backend/internal/tms"
 )
+
+// repoLookupErr — W7-A1-001 / P1-BE-35: not-found → Ack (nil); transient DB/repo err → Nak.
+func repoLookupErr(err error) error {
+	if err == nil || ent.IsNotFound(err) {
+		return nil
+	}
+	return err
+}
 
 // Consumer — JetStream durable consumer для обработки событий всех модулей
 // и создания уведомлений.
@@ -250,7 +259,10 @@ func (c *Consumer) handleStatusChanged(ctx context.Context, data []byte, _ strin
 	}
 
 	assignee, err := c.repo.GetIssueAssignee(ctx, issueID)
-	if err != nil || assignee == nil {
+	if err := repoLookupErr(err); err != nil {
+		return err
+	}
+	if assignee == nil {
 		return nil
 	}
 
@@ -328,7 +340,10 @@ func (c *Consumer) handleCommentAdded(ctx context.Context, data []byte, _ string
 		return err
 	}
 	assignee, err := c.repo.GetIssueAssignee(ctx, issueID)
-	if err != nil || assignee == nil {
+	if err := repoLookupErr(err); err != nil {
+		return err
+	}
+	if assignee == nil {
 		return nil
 	}
 	if assignee.ID == actorID {
@@ -378,7 +393,10 @@ func (c *Consumer) handleBlockerAdded(ctx context.Context, data []byte, _ string
 		return err
 	}
 	assignee, err := c.repo.GetIssueAssignee(ctx, targetID)
-	if err != nil || assignee == nil {
+	if err := repoLookupErr(err); err != nil {
+		return err
+	}
+	if assignee == nil {
 		return nil
 	}
 
@@ -446,7 +464,10 @@ func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subje
 	}
 
 	ch, err := c.repo.GetChannel(ctx, channelID)
-	if err != nil {
+	if err := repoLookupErr(err); err != nil {
+		return err
+	}
+	if ch == nil {
 		return nil
 	}
 
@@ -486,8 +507,8 @@ func (c *Consumer) handleMessageReceived(ctx context.Context, data []byte, subje
 	}
 
 	members, err := c.repo.GetChannelMembers(ctx, channelID)
-	if err != nil {
-		return nil
+	if err := repoLookupErr(err); err != nil {
+		return err
 	}
 
 	for _, m := range members {
@@ -544,8 +565,8 @@ func (c *Consumer) handleCallStarted(ctx context.Context, data []byte, subject s
 	}
 
 	channelMembers, err := c.repo.GetChannelMembers(ctx, channelID)
-	if err != nil {
-		return nil
+	if err := repoLookupErr(err); err != nil {
+		return err
 	}
 
 	for _, m := range channelMembers {
@@ -593,8 +614,8 @@ func (c *Consumer) handleRunCompleted(ctx context.Context, data []byte, _ string
 	}
 
 	members, err := c.repo.GetProjectMembersWithUser(ctx, projectID)
-	if err != nil {
-		return nil
+	if err := repoLookupErr(err); err != nil {
+		return err
 	}
 
 	hasFailures := evt.Failed > 0
