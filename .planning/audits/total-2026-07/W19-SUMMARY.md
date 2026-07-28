@@ -3,7 +3,8 @@
 > 2026-07-28 · TASK-008 · агент **W19-A5** (синтез) · ветка `cursor-grok-4.5`  
 > Входы: [`W18-SUMMARY.md`](W18-SUMMARY.md), [`W18-CATCHUP-PRODUCT.md`](W18-CATCHUP-PRODUCT.md),  
 > [`W19-A1-ORPHAN-P0P1.md`](W19-A1-ORPHAN-P0P1.md), [`W19-A2-EVIDENCE-GAPS.md`](W19-A2-EVIDENCE-GAPS.md),  
-> [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md), [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md)
+> [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md), [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md)  
+> **Статус входов:** A1–A4 на диске, re-verify A1 / A3 (19:32) / A4 (19:35). **TODO по siblings: нет.**
 
 ## Контекст после W18
 
@@ -28,6 +29,7 @@
 | **P1 сироты (единицы реестра)** | **10** — все U-section |
 | Missed (готовы к TASK, забыты) | **0** |
 | Stage A P0/P1 вне W12 | **0** |
+| Сырые Source ID без задачи | **24** (20 BE U + 4 FE U) |
 
 **Вывод:** дыр постановки нет. Незамапленные P1 = блок «Требует уточнения» (ADR / PO / greenfield):
 
@@ -44,7 +46,7 @@
 | 9 | W11-A5-005 | Webcams docs vs TZ Phase 16 — решение PO |
 | 10 | W11-A5-006 | G-07 wiki KPI vs «планируется» — решение PO |
 
-U\* не разблокировать без ADR/PO; держать в `backlog/README.md` (Blocked ADR: U01–U06).  
+U\* не разблокировать без ADR/PO; держать в `backlog/README.md` (Blocked ADR: BE U01–U06; **добавить FE U** рядом).  
 Не путать с W18 FAIL (014, 019, 041…) — там задачи есть, это residual fix, не orphan.
 
 ---
@@ -71,7 +73,7 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 
 ## 3. Combinatorial defects
 
-Источник: [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md)
+Источник: [`W19-A3-COMBOS.md`](W19-A3-COMBOS.md) (re-verify path:line 19:32)
 
 | Severity | Count | Actionable |
 |----------|------:|-----------:|
@@ -79,7 +81,7 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 | HIGH | 6 | 6 |
 | MEDIUM | 5 | 5 |
 | LOW | 3 | 3 |
-| **Total** | **16** | **15** |
+| **Total** | **16** | **15** (C-016 = FE adjacent reference) |
 
 ### Top risks (CRITICAL + HIGH)
 
@@ -94,13 +96,14 @@ Gap IDs = все PASS: 009–013, 015–018, 020–040, 043, 047–051, 053, 055
 | **C-007** HIGH | Confirm empty entity + Confirm-without-object | **045** |
 | **C-008/009** HIGH | Soft-delete project/webhooks · SQL OK + Meili orphans | residual |
 
-Все W18 FAIL 014/019/041/042/044/045/046/052/054 + TASK-079 в матрице `W19-A3-COMBOS.md`.
+Все W18 FAIL 014/019/041/042/044/045/046/052/054 + TASK-079 в матрице A3.  
+Порядок фикса A3: **C-001/079 → C-002 (041+046) → C-003/004 (014) → C-007/013 (045) → C-005/006 (019/044)**.
 
 ---
 
 ## 4. Red team (auth non-admin)
 
-Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md)
+Источник: [`W19-A4-REDTEAM.md`](W19-A4-REDTEAM.md) (re-verify 19:35)
 
 **Вердикт A4:** 0 новых CRITICAL как single-step non-admin exploit; CRITICAL combo **TASK-079** (admin erase + residual PII for members); остаточные Med/High → W18 FAIL.
 
@@ -140,12 +143,12 @@ Dual StartSprint (**041**) — residual #6 (Low–Med × Med).
 Порядок — блокеры «mutation-closed» и CRITICAL combo первыми.
 
 1. **Не закрывать TASK-008.** W20 = FINAL + полный hubtest + coverage; W19 не гейтит закрытие программы.
-2. **Reopen / дожать mutation (be):** **014 → 079 → 045** (red-team blockers), затем **044, 019, 041, 042, 046**.
-3. **CRITICAL combos (be):** **C-001 / TASK-079** (Mongo eraser fail-closed); dual-sprint/unique (**041**/**046**) — next.
+2. **Reopen / дожать mutation (be):** **014 → 079 → 045** (red-team blockers), затем **044, 019, 041+046, 042**.
+3. **CRITICAL combos (be):** **C-001 / TASK-079** (Mongo eraser fail-closed); **C-002** dual-sprint/unique (**041**/**046**).
 4. **HIGH combos (be):** team ACL (**014**), Confirm (**045**), SSRF/AI (**019**/**044**), soft-delete webhook/Meili (A3 C-008/009).
-5. **FE/docs:** 052, 054/080, CallChat empty+mutate (073).
+5. **FE/docs:** 052, 054/080, CallChat empty+mutate (073 / C-016).
 6. **Evidence hygiene (optional, docs):** backfill SHA Stage B в 39 PASS TASK; thin 28 — имя RED-теста в тело TASK; Progress TASK-038.
-7. **U\* orphans:** не заводить TASK до ADR/PO; оставить Blocked в README.
+7. **U\* orphans:** не заводить TASK до ADR/PO; Blocked в README + FE U рядом с BE U01–U06.
 8. **TASK-080** (docs drift autotest) — не security-блокер; можно параллельно с W20 quality gate.
 9. **W20 входной критерий (рекомендация):** нет открытых CRITICAL combo; mutation-closed по **014, 079, 045**; hubtest green на затронутых пакетах; coverage baseline без регрессии.
 
