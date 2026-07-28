@@ -5,6 +5,7 @@ import {
 	createMyAIProvider,
 	listMyAIProviders,
 } from "@/api/ai-my";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toastApiError } from "@/lib/format-api-error";
@@ -12,16 +13,23 @@ import { toastApiError } from "@/lib/format-api-error";
 /** BYOK — AI-провайдеры пользователя (Phase 17 W4). */
 export function BYOKSettings({ onChanged }: { onChanged?: () => void }) {
 	const [providers, setProviders] = useState<AIProvider[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [name, setName] = useState("");
 	const [baseURL, setBaseURL] = useState("");
 	const [apiKey, setApiKey] = useState("");
 	const [models, setModels] = useState("");
 
 	const refresh = useCallback(async () => {
+		setLoading(true);
+		setLoadError(false);
 		try {
 			setProviders(await listMyAIProviders());
-		} catch {
-			/* опционально — ошибка не блокирует UI */
+		} catch (err) {
+			setLoadError(true);
+			toastApiError(err, "Не удалось загрузить BYOK провайдеры");
+		} finally {
+			setLoading(false);
 		}
 	}, []);
 
@@ -54,7 +62,19 @@ export function BYOKSettings({ onChanged }: { onChanged?: () => void }) {
 	return (
 		<div className="space-y-2 text-[12px]">
 			<p className="font-semibold text-[13px]">BYOK — ваш API ключ</p>
-			{providers.length > 0 && (
+			{loading && (
+				<p className="text-t3" aria-busy="true">
+					Загрузка…
+				</p>
+			)}
+			{!loading && loadError && (
+				<QueryErrorAlert
+					compact
+					message="Не удалось загрузить BYOK провайдеры"
+					retry={() => void refresh()}
+				/>
+			)}
+			{!loading && !loadError && providers.length > 0 && (
 				<ul className="text-t3 space-y-1">
 					{providers.map((p) => (
 						<li key={p.id}>
@@ -62,6 +82,9 @@ export function BYOKSettings({ onChanged }: { onChanged?: () => void }) {
 						</li>
 					))}
 				</ul>
+			)}
+			{!loading && !loadError && providers.length === 0 && (
+				<p className="text-t3">Нет BYOK провайдеров</p>
 			)}
 			<Input
 				placeholder="Название"

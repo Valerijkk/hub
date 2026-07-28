@@ -4,6 +4,8 @@ import {
 	deleteIssueMessageLink,
 	listIssueMessageLinks,
 } from "@/api/issue-message-links";
+import { QueryErrorAlert } from "@/components/query-state-view";
+import { toastApiError } from "@/lib/format-api-error";
 
 interface IssueMessageLinksPanelProps {
 	projectId: string;
@@ -16,7 +18,7 @@ export function IssueMessageLinksPanel({
 	issueKey,
 }: IssueMessageLinksPanelProps) {
 	const queryClient = useQueryClient();
-	const { data: links = [] } = useQuery({
+	const linksQuery = useQuery({
 		queryKey: ["issue-message-links", projectId, issueKey],
 		queryFn: () => listIssueMessageLinks(projectId, issueKey),
 	});
@@ -29,8 +31,28 @@ export function IssueMessageLinksPanel({
 				queryKey: ["issue-message-links", projectId, issueKey],
 			});
 		},
+		onError: (err) => toastApiError(err, "Не удалось отвязать тред"),
 	});
 
+	if (linksQuery.isPending) {
+		return (
+			<p className="text-xs text-t3" aria-busy="true">
+				Загрузка тредов…
+			</p>
+		);
+	}
+
+	if (linksQuery.isError) {
+		return (
+			<QueryErrorAlert
+				compact
+				message="Не удалось загрузить связанные треды"
+				retry={() => void linksQuery.refetch()}
+			/>
+		);
+	}
+
+	const links = linksQuery.data ?? [];
 	if (links.length === 0) {
 		return null;
 	}

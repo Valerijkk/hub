@@ -57,7 +57,12 @@ export function CallChat({ callId }: CallChatProps) {
 	const toggleChatLogging = useCallStore((s) => s.toggleChatLogging);
 
 	/** Загрузка истории сообщений. */
-	const { data: messages = [] } = useQuery({
+	const {
+		data: messages = [],
+		isPending,
+		isError,
+		refetch,
+	} = useQuery({
 		queryKey: ["call-chat", callId],
 		queryFn: () => listChatMessages(callId),
 		refetchInterval: false,
@@ -168,52 +173,74 @@ export function CallChat({ callId }: CallChatProps) {
 				ref={scrollRef}
 				className="flex-1 overflow-y-auto px-3 py-3 space-y-3"
 			>
-				{messages.length === 0 && (
+				{isPending && (
+					<p
+						className="text-center text-xs text-white/20 mt-8"
+						aria-busy="true"
+					>
+						Загрузка…
+					</p>
+				)}
+				{!isPending && isError && (
+					<div role="alert" className="mt-8 space-y-2 text-center">
+						<p className="text-xs text-red-400">Не удалось загрузить чат</p>
+						<button
+							type="button"
+							className="text-xs text-white/50 hover:text-white/80 underline"
+							onClick={() => void refetch()}
+						>
+							Попробовать снова
+						</button>
+					</div>
+				)}
+				{!isPending && !isError && messages.length === 0 && (
 					<p className="text-center text-xs text-white/20 mt-8">
 						Нет сообщений
 					</p>
 				)}
-				{messages.map((msg) => {
-					const own = isOwn(msg);
-					return (
-						<div
-							key={msg.id}
-							className={cn(
-								"flex flex-col gap-0.5",
-								own ? "items-end" : "items-start",
-							)}
-						>
-							{/* Имя + время */}
+				{!isPending &&
+					!isError &&
+					messages.map((msg) => {
+						const own = isOwn(msg);
+						return (
 							<div
+								key={msg.id}
 								className={cn(
-									"flex items-center gap-2 px-1",
-									own ? "flex-row-reverse" : "",
+									"flex flex-col gap-0.5",
+									own ? "items-end" : "items-start",
 								)}
 							>
-								<span className="text-[10px] font-medium text-white/40">
-									{own ? "Вы" : msg.user_name}
-								</span>
-								{msg.created_at && (
-									<span className="text-[10px] text-white/20">
-										{formatTime(msg.created_at)}
+								{/* Имя + время */}
+								<div
+									className={cn(
+										"flex items-center gap-2 px-1",
+										own ? "flex-row-reverse" : "",
+									)}
+								>
+									<span className="text-[10px] font-medium text-white/40">
+										{own ? "Вы" : msg.user_name}
 									</span>
-								)}
-							</div>
+									{msg.created_at && (
+										<span className="text-[10px] text-white/20">
+											{formatTime(msg.created_at)}
+										</span>
+									)}
+								</div>
 
-							{/* Пузырёк сообщения */}
-							<div
-								className={cn(
-									"max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
-									own
-										? "bg-blue-500/20 text-blue-100 rounded-br-md"
-										: "bg-white/[0.06] text-white/80 rounded-bl-md",
-								)}
-							>
-								{msg.text}
+								{/* Пузырёк сообщения */}
+								<div
+									className={cn(
+										"max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
+										own
+											? "bg-blue-500/20 text-blue-100 rounded-br-md"
+											: "bg-white/[0.06] text-white/80 rounded-bl-md",
+									)}
+								>
+									{msg.text}
+								</div>
 							</div>
-						</div>
-					);
-				})}
+						);
+					})}
 			</div>
 
 			{/* Ввод сообщения */}
