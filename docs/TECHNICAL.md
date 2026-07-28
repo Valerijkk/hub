@@ -9,7 +9,7 @@
 
 | Job | Команда / артефакт |
 |-----|-------------------|
-| `backend-test` | `go test -tags hubtest -race ./internal/... ./testframework/...` |
+| `backend-test` | `go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...` |
 | `frontend-test` | `tsc`, `vitest run`, `biome check` |
 | `build` | `go build -tags release`, `npm run build` |
 | `e2e-full` | Playwright 20 specs + `scripts/ci-e2e-backend.sh` |

@@ -1,6 +1,6 @@
 ﻿# TASK-035 — FE TMS compare cache + docs test-path drift
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: На проверке  
 > Источник: TASK-008 W12 · Classes: FE-P1-TMS-DOCS · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P1-FRONTEND.md`
 
 ## [OUTCOME]

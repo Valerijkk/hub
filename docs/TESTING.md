@@ -1,6 +1,6 @@
 # Hub — Тестовая документация
 
-> **Обновлено:** 2026-06-22 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md`  
+> **Обновлено:** 2026-07-28 · Стратегия: `docs/test_plan.md` · Coverage: `.planning/COVERAGE.md` · Quality audit: `.planning/audits/2026-06/AUDIT-2026-06-22-quality-processes.md`  
 > **Edge/Corner backlog:** [`.planning/archive/july-2026/EDGE-CORNER-CATALOG.md`](../.planning/archive/july-2026/EDGE-CORNER-CATALOG.md) — Happy/Neg/Edge/Corner по доменам (источник будущих TC; CAL-SYNC C1–C15)
 
 ---
@@ -26,13 +26,13 @@
 4. **E2E:** 20 spec files; config `frontend/playwright.config.ts` (см. `docs/test_plan.md`)
 5. **Triage:** spec-first — `.cursor/skills/test-triage/SKILL.md`
 
-### Актуальные счётчики (2026-06-22)
+### Актуальные счётчики (2026-07-28)
 
 | Слой | Метрика |
 |------|---------|
-| Backend test files (`testframework/`) | **499** `_test.go` (пересчёт: `find backend -name '*_test.go' | wc -l`) |
-| Backend `internal/*_test.go` | **0** (TF-M08) |
-| Frontend Vitest | **37** files, **99** tests |
+| Backend test files (`backend/testframework/`) | **~600** `_test.go` (0 в `internal/` после TF-M08) |
+| Backend `internal/*_test.go` | **0** |
+| Frontend Vitest | `testframework/stages/unit/frontend-test/domains/` |
 | Playwright | **20** spec files (`stages/e2e/domains/`) |
 | Overall `internal/` coverage | **83.0%** (2026-06-22 Docker baseline) |
 
@@ -40,66 +40,24 @@
 
 ## Backend-тесты (Go)
 
-### Покрытие по модулям — 33 тестовых файла, 32 пакета, 272 тестовых функции
+Все Go-тесты живут в `backend/testframework/{domain}/` (белый ящик через `export_hooks.go` с `//go:build hubtest`). В `backend/internal/` **нет** `*_test.go`. Каталог доменов и карта CI — `testframework/PIPELINE.md` / `docs/test_plan.md`.
 
-| # | Модуль | Файл | Что тестируется | Тестов |
-|---|--------|------|-----------------|--------|
-| 1 | apigateway | apikey_test.go | Генерация/валидация API-ключей, SHA-256 хеширование, подпись webhook | 7 |
-| 2 | audit | service_test.go | Аудит-логи, фильтрация, корзина, дни до удаления | 7 |
-| 3 | auth | handler_test.go | HTTP-обработчики: magic link, verify, telegram, refresh, logout, профиль | 6 |
-| 4 | auth | service_test.go | Telegram auth валидация, генерация кодов, JWT round-trip, expiry | 8 |
-| 5 | backup | service_test.go | Создание ZIP-бэкапов, пустые данные | 2 |
-| 6 | calls | service_test.go | LiveKit токены, NATS nil-safe publish, webhook signature | 5 |
-| 7 | calls | chat_test.go | Эфемерный чат: отправка, лимит длины, список, удаление, индексы | 5 |
-| 8 | calls | recording_test.go | Лимит записей, RRule parsing, scheduled call DTO | 7 |
-| 9 | dashboard | service_test.go | Раскладки, сериализация, дефолты, валидация | 6 |
-| 10 | dev | seed_test.go | Валидация seed-данных: пользователи, статусы, задачи, кейсы, каналы | 5 |
-| 11 | github | service_test.go | Issue key regex, webhook signature, slug, truncate | 4 |
-| 12 | gitlab | service_test.go | Issue key regex, slugify, truncate | 3 |
-| 13 | imex | service_test.go | Field mapping, get field, bounds check | 3 |
-| 14 | messenger | service_test.go | DM dedup, сообщения, read-only, реакции, треды, join, forward, поиск | 20 |
-| 15 | messenger | auto_channels_test.go | Автосоздание каналов, добавление участников | 2 |
-| 16 | messenger | presence_test.go | Heartbeat, online/away/offline, cleanup, custom status, bulk | 7 |
-| 17 | messenger | unread_test.go | Increment (skip sender), mark read, get all | 4 |
-| 18 | notification | service_test.go | Subject-to-type, time parsing, Markdown escape, Telegram format, dispatch | 6 |
-| 19 | platform/nats | client_test.go | Stream name, subjects, client struct | 3 |
-| 20 | project | service_test.go | Создание, дубликат ключа, архивирование, удаление, invite, участники | 7 |
-| 21 | rbac | permissions_test.go | Permission bit ops (Has/Add/Remove), idempotent, role defaults | 5 |
-| 22 | search | service_test.go | Merge results, limit, UUID array, saved filter DTO, defaults, types | 7 |
-| 23 | search | jql_test.go | JQL: simple, multi-condition, IN, NOT IN, order by, quoted, OR, predicates | 13 |
-| 24 | sprint | service_test.go | CRUD спринтов, start/complete, WIP-лимиты, burndown, velocity | 10 |
-| 25 | storage | service_test.go | Upload/download URL TTL, result fields | 3 |
-| 26 | tms | service_test.go | CRUD кейсов (classic/BDD), версии, rollback, прогоны, результаты, import/export, coverage | 18 |
-| 27 | tms | allure_parser_test.go | Парсинг Allure JSON, matching (annotation, link, ASID, fullName, className) | 14 |
-| 28 | tracker | service_test.go | CRUD задач, все типы, optimistic locking, workflow, связи, метки, доски, кастомные поля | 12 |
-| 29 | ws | protocol_test.go | Message type constants, JSON serialization, ping, NewClient | 5 |
-| 30 | platform/middleware | middleware_test.go | RequestID, ErrorHandler, CORS, RateLimit, Logger | 18 |
-| 31 | platform/errors | errors_test.go | AppError, все конструкторы (BadRequest..Internal), messages | 16 |
-| 32 | platform/http | helpers_test.go | UserIDFromCtx, ParseUUIDParam, ParseProjectID | 12 |
-| 33 | platform/outbox | outbox_test.go | NewWorker, NewPublisher, JSON marshal, constants | 9 |
-
-### Инфраструктурные пакеты без тестов
-
-Следующие пакеты не имеют `_test.go` файлов (конфигурация, подключения):
-
-- `platform/config` — загрузка env vars
-- `platform/database` — подключение к PostgreSQL/MongoDB
-- `platform/redis` — Redis-клиент
+Покрытие `internal/` меряется флагом `-coverpkg=./internal/...` при прогоне `./testframework/...` (job `coverage-gate`), не путём `./internal/...`.
 
 ### Запуск тестов
 
 ```bash
-# Backend — как CI
+# Backend — как CI (только testframework; в internal/ тестов нет)
 cd backend
 go generate ./ent
-go test -tags hubtest -race -count=1 -timeout=600s ./internal/... ./testframework/...
+go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
 
 # Конкретный модуль
-go test -tags hubtest ./internal/auth/...
-go test -tags hubtest -v ./internal/tms/...
+go test -tags hubtest ./testframework/auth/...
+go test -tags hubtest -v ./testframework/tms/...
 
-# С покрытием (профиль вне repo — rule 45)
-go test -tags hubtest -cover ./internal/auth/...
+# С покрытием кода internal (профиль вне repo — rule 45)
+go test -tags hubtest -coverpkg=./internal/auth/... -coverprofile="${TMPDIR:-/tmp}/hub-cov.out" ./testframework/auth/...
 
 # Prod build
 go build -tags release -o bin/server ./cmd/server

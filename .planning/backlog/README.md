@@ -40,7 +40,7 @@
 | [TASK-032](TASK-032-fe-trash-list-and-webhooks-project.md) | FE trash + webhooks projectId | P1 | Открыта | fe2 | W12 FE-P1-TRASH-WEBHOOKS |
 | [TASK-033](TASK-033-fe-error-empty-auth-race.md) | FE error≠empty + auth race | P1 | Открыта | fe1 | W12 FE-P1-ERROR-AS-EMPTY |
 | [TASK-034](TASK-034-fe-a11y-nested-sidebar-notifications.md) | FE a11y nested interactive | P1 | Открыта | fe2 | W12 FE-P1-A11Y-CONTROLS |
-| [TASK-035](TASK-035-fe-tms-compare-and-docs-testpath.md) | FE TMS compare + docs drift | P1 | Открыта | fe1 | W12 FE-P1-TMS-DOCS |
+| [TASK-035](TASK-035-fe-tms-compare-and-docs-testpath.md) | FE TMS compare + docs drift | P1 | На проверке | fe1 | W12 FE-P1-TMS-DOCS |
 
 ## Закрытые
 
