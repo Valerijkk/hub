@@ -65,8 +65,8 @@ describe("push dismiss TTL (P2-FE-15 / TASK-056)", () => {
 	});
 });
 
-describe("useRooms content compare (P2-FE-15 / TASK-056)", () => {
-	it("depends on roomsKey join, not rooms array reference", () => {
+describe("useRooms dead export removed (A2W11-4-002 / TASK-123)", () => {
+	it("does not export useRooms (0 call sites → deleted)", () => {
 		const src = readFileSync(
 			resolve(
 				__dirname,
@@ -74,8 +74,9 @@ describe("useRooms content compare (P2-FE-15 / TASK-056)", () => {
 			),
 			"utf8",
 		);
-		expect(src).toMatch(/roomsKey/);
-		expect(src).toMatch(/rooms\.join/);
-		expect(src).toMatch(/\[roomsKey, connected, subscribe, unsubscribe\]/);
+		expect(src).not.toMatch(/\bexport\s+function\s+useRooms\b/);
+		expect(src).not.toMatch(/\broomsKey\b/);
+		expect(src).toMatch(/\bexport\s+function\s+useWebSocket\b/);
+		expect(src).toMatch(/\bexport\s+function\s+useWsEventListener\b/);
 	});
 });
