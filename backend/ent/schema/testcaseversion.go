@@ -49,6 +49,7 @@ func (TestCaseVersion) Edges() []ent.Edge {
 // Индексы сущности TestCaseVersion.
 func (TestCaseVersion) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("version_number"),
+		// P2-BE-22: unique (test_case, version_number).
+		index.Edges("test_case").Fields("version_number").Unique(),
 	}
 }

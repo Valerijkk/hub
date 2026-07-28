@@ -76,6 +76,7 @@ func (Channel) Edges() []ent.Edge {
 		edge.To("polls", Poll.Type),
 		edge.To("invites", ChannelInvite.Type),
 		edge.To("issue_message_links", IssueMessageLink.Type),
+		edge.To("bookmarks", Bookmark.Type),
 	}
 }
 

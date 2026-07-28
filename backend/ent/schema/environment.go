@@ -55,6 +55,8 @@ func (Environment) Edges() []ent.Edge {
 func (Environment) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("env_label"),
+		// P2-BE-22: unique (project, name).
+		index.Edges("project").Fields("name").Unique(),
 		index.Fields("deleted_at"),
 		index.Edges("project").Fields("deleted_at"),
 	}

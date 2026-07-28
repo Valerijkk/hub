@@ -49,7 +49,8 @@ func (Component) Edges() []ent.Edge {
 // Индексы сущности Component.
 func (Component) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("name"),
+		// P2-BE-22 / W8-A2-006: unique (project, name).
+		index.Edges("project").Fields("name").Unique(),
 		index.Fields("deleted_at"),
 		index.Edges("project").Fields("deleted_at"),
 	}

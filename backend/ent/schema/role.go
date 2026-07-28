@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 )
 
@@ -44,5 +45,12 @@ func (Role) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("members", ProjectMember.Type),
+	}
+}
+
+// Indexes — P2-BE-22 / W8-A4-005: unique (project, name).
+func (Role) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Edges("project").Fields("name").Unique(),
 	}
 }

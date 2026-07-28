@@ -33,11 +33,17 @@ func (Bookmark) Fields() []ent.Field {
 }
 
 // Edges описывает связи сущности Bookmark.
+// P2-BE-22: FK edge на Channel (раньше только UUID без FK).
 func (Bookmark) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
 			Ref("bookmarks").
 			Field("user_id").
+			Required().
+			Unique(),
+		edge.From("channel", Channel.Type).
+			Ref("bookmarks").
+			Field("channel_id").
 			Required().
 			Unique(),
 	}
@@ -47,5 +53,6 @@ func (Bookmark) Edges() []ent.Edge {
 func (Bookmark) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("user_id", "message_id").Unique(),
+		index.Fields("channel_id"),
 	}
 }

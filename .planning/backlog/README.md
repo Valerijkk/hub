@@ -49,9 +49,9 @@
 | [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | На проверке | be1 | W12 P2-BE-11 |
 | [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | На проверке | be1 | W12 P2-BE-12..15 |
 | [TASK-043](TASK-043-be-p2-platform-outbox-obs.md) | BE platform outbox/obs | P2 | На проверке | be2 | W12 P2-BE-16 |
-| [TASK-044](TASK-044-be-p2-ai-search.md) | BE AI privacy + search | P2 | Открыта | be1 | W12 P2-BE-17,18 |
-| [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | Открыта | be2 | W12 P2-BE-19..21 |
-| [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Открыта | be1 | W12 P2-BE-22 |
+| [TASK-044](TASK-044-be-p2-ai-search.md) | BE AI privacy + search | P2 | На проверке | be1 | W12 P2-BE-17,18 |
+| [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | На проверке | be2 | W12 P2-BE-19..21 |
+| [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | На проверке | be1 | W12 P2-BE-22 |
 | [TASK-047](TASK-047-fe-p2-error-vs-empty.md) | FE error≠empty sweep | P2 | На проверке | fe1 | W12 P2-FE-01 |
 | [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | На проверке | fe2 | W12 P2-FE-02 |
 | [TASK-049](TASK-049-fe-p2-a11y-names-dialogs.md) | FE a11y names/dialogs | P2 | На проверке | fe1 | W12 P2-FE-03,04 |
