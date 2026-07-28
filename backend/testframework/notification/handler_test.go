@@ -314,7 +314,8 @@ func TestHandler_PushSubscribe_InvalidEndpoint(t *testing.T) {
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
+	// W7-A1-002: ValidateOutboundURL fail → 400 (не 500).
+	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
 }
 
 // TestHandler_PushSubscribe_Success проверяет HTTP-слой: HTTP-обработчик push subscribe успех.

@@ -34,16 +34,26 @@ func TestTelegramSender_SendAndQueueOverflow(t *testing.T) {
 	sender := notification.ExportNewTestTelegramSender(1)
 	sender.Send(100, "title", "body")
 	sender.Send(200, "drop", "me") // очередь переполнена — срабатывает ветка по умолчанию
+
+	// W7-A1-007: первая в очереди, вторая дропнута.
+	msg, ok := notification.ExportTelegramTryRecv(sender)
+	require.True(t, ok, "first message must be queued")
+	assert.Equal(t, int64(100), msg.ChatID)
+	assert.Equal(t, "title", msg.Title)
+	_, ok = notification.ExportTelegramTryRecv(sender)
+	assert.False(t, ok, "overflow message must be dropped")
 }
 
 // TestTelegramSender_StartStopWithoutWorkerSend проверяет сценарий: Telegram sender start stop without worker отправка.
 func TestTelegramSender_StartStopWithoutWorkerSend(t *testing.T) {
 	sender := notification.ExportNewTestTelegramSender(2)
 	ctx, cancel := context.WithCancel(context.Background())
-	sender.Start(ctx)
-	sender.Stop()
-	cancel()
-	time.Sleep(5 * time.Millisecond)
+	assert.NotPanics(t, func() {
+		sender.Start(ctx)
+		sender.Stop()
+		cancel()
+		time.Sleep(5 * time.Millisecond)
+	})
 }
 
 // TestNotificationService_SendTelegram проверяет бизнес-логику: notification сервис отправка Telegram.
@@ -95,5 +105,10 @@ func TestNotificationService_SendTelegram_MissingUser(t *testing.T) {
 	sender := notification.ExportNewTestTelegramSender(1)
 	svc = notification.NewNotificationService(repo, nil, sender, nil)
 
-	notification.ExportSendTelegram(svc, ctx, uuid.New(), "Alert", "Details")
+	assert.NotPanics(t, func() {
+		notification.ExportSendTelegram(svc, ctx, uuid.New(), "Alert", "Details")
+	})
+	// W7-A1-007: missing user → ничего не ставится в очередь.
+	_, ok := notification.ExportTelegramTryRecv(sender)
+	assert.False(t, ok, "no telegram message for missing user")
 }

@@ -322,6 +322,10 @@ func (h *Handler) PushSubscribe(c fiber.Ctx) error {
 		if errors.Is(err, ErrSubscriptionNotFound) {
 			return fiber.NewError(fiber.StatusNotFound, "подписка не найдена")
 		}
+		// W7-A1-002: NF-07 reject (javascript:/file:/…) → 400, не 500.
+		if errors.Is(err, ErrInvalidPushEndpoint) {
+			return fiber.NewError(fiber.StatusBadRequest, "некорректный endpoint")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "ошибка сохранения подписки")
 	}
 

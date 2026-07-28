@@ -21,6 +21,8 @@ import (
 var (
 	ErrSubscriptionNotFound  = errors.New("push subscription not found")
 	ErrSubscriptionForbidden = errors.New("push subscription access denied")
+	// ErrInvalidPushEndpoint — endpoint не проходит NF-07 ValidateOutboundURL (→ HTTP 400).
+	ErrInvalidPushEndpoint = errors.New("invalid push endpoint")
 )
 
 // pushHTTPClient — SafeHTTPClient с SafeDialContext, блокирующим SSRF на
@@ -223,7 +225,8 @@ func (p *PushSender) SaveSubscription(ctx context.Context, userID uuid.UUID, end
 	}
 
 	if err := safehttp.ValidateOutboundURL(endpoint); err != nil {
-		return fmt.Errorf("некорректный endpoint push-подписки: %w", err)
+		// W7-A1-002: sentinel → handler мапит в 400, не 500.
+		return fmt.Errorf("%w: %v", ErrInvalidPushEndpoint, err)
 	}
 
 	// Mutation: снять UserID из Where → чужой endpoint перезаписывается → FAIL (A2-005).
