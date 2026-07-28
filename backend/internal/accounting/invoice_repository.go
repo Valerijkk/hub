@@ -2,7 +2,10 @@ package accounting
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +15,9 @@ import (
 	"github.com/valerii/hub/backend/ent/journalentry"
 	"github.com/valerii/hub/backend/ent/ledgeraccount"
 )
+
+// invoiceNumberAllocAttempts — сколько раз пересчитать INV-YYYY-NNN при unique race (W7-A2-007).
+const invoiceNumberAllocAttempts = 8
 
 func (r *EntRepository) GetAccountByCode(ctx context.Context, code string) (*ent.LedgerAccount, error) {
 	return r.client.LedgerAccount.Query().
@@ -41,19 +47,26 @@ func (r *EntRepository) IncomeStatement(ctx context.Context) (*IncomeStatementRe
 	}, nil
 }
 
+// nextInvoiceNumber — MAX(suffix)+1 по префиксу года.
+// Unique index на number покрывает и soft-deleted, поэтому Count(DeletedAtIsNil)
+// давал коллизии; берём lexical max по всем строкам с префиксом.
 func (r *EntRepository) nextInvoiceNumber(ctx context.Context) (string, error) {
 	year := time.Now().UTC().Year()
 	prefix := fmt.Sprintf("INV-%d-", year)
-	n, err := r.client.Invoice.Query().
-		Where(
-			invoice.DeletedAtIsNil(),
-			invoice.NumberHasPrefix(prefix),
-		).
-		Count(ctx)
-	if err != nil {
+	last, err := r.client.Invoice.Query().
+		Where(invoice.NumberHasPrefix(prefix)).
+		Order(ent.Desc(invoice.FieldNumber)).
+		First(ctx)
+	seq := 0
+	if err == nil {
+		suffix := strings.TrimPrefix(last.Number, prefix)
+		if n, perr := strconv.Atoi(suffix); perr == nil {
+			seq = n
+		}
+	} else if !ent.IsNotFound(err) {
 		return "", err
 	}
-	return fmt.Sprintf("%s%03d", prefix, n+1), nil
+	return fmt.Sprintf("%s%03d", prefix, seq+1), nil
 }
 
 func (r *EntRepository) ListInvoices(ctx context.Context, limit int) ([]*ent.Invoice, error) {
@@ -70,6 +83,30 @@ func (r *EntRepository) ListInvoices(ctx context.Context, limit int) ([]*ent.Inv
 }
 
 func (r *EntRepository) CreateInvoice(ctx context.Context, userID uuid.UUID, req CreateInvoiceRequest, number string) (*ent.Invoice, error) {
+	if number != "" {
+		return r.createInvoiceOnce(ctx, userID, req, number)
+	}
+	// W7-A2-007: concurrent Count+1 → duplicate INV / unique 500.
+	// MAX+1 + retry на constraint (unique уже в schema); deal-lock A6-004 отдельно.
+	var lastErr error
+	for attempt := 0; attempt < invoiceNumberAllocAttempts; attempt++ {
+		inv, err := r.createInvoiceOnce(ctx, userID, req, "")
+		if err == nil {
+			return inv, nil
+		}
+		if errors.Is(err, ErrInvoiceExists) || errors.Is(err, ErrInvalidInput) {
+			return nil, err
+		}
+		if ent.IsConstraintError(err) {
+			lastErr = err
+			continue
+		}
+		return nil, err
+	}
+	return nil, fmt.Errorf("allocate invoice number: %w", lastErr)
+}
+
+func (r *EntRepository) createInvoiceOnce(ctx context.Context, userID uuid.UUID, req CreateInvoiceRequest, number string) (*ent.Invoice, error) {
 	if req.CrmDealID == nil {
 		return r.insertInvoice(ctx, r.client, userID, req, number)
 	}
