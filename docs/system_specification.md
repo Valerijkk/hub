@@ -65,7 +65,7 @@
 | NFR-19 | Search user-scope | Фильтрация по project/channel membership (NF-03) |
 | NFR-20 | Webhook signature | LiveKit/GitHub: body hash обязателен, skip запрещён (SEC-02) |
 | NFR-21 | Outbound HTTP safety | `SafeHTTPClient` + `ValidateOutboundURL` для user URLs (SSRF) |
-| NFR-22 | Security headers | CSP, HSTS, X-Frame-Options — ✅ `middleware.SecurityHeaders()` |
+| NFR-22 | Security headers | CSP, X-Frame-Options, nosniff — ✅ `middleware.SecurityHeaders()`; **HSTS** — только Caddy edge (`deployments/Caddyfile.prod`, A2W4-1-001) |
 | NFR-23 | Refresh token storage | Hash в Redis, не plaintext — ✅ |
 | NFR-24 | Optimistic locking | `version` int на каждой изменяемой Ent |
 | NFR-25 | Primary keys | UUID v4 only — string IDs запрещены |
