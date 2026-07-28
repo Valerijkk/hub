@@ -26,21 +26,61 @@ hotfix/<issue-id>/<description> — critical production fixes
 ## Commit Format (Conventional Commits)
 
 ```
-<type>(<scope>): <description>
+<type>(<scope>): <описание на русском>
 
 Types: feat | fix | refactor | test | docs | chore | perf | ci
 Scope: auth | tracker | messenger | tms | calls | dashboard |
        notification | search | ws | platform | frontend | infra | ent
-
-Examples:
-feat(tracker): add WIP limits to Kanban columns
-fix(ws): prevent send on closed channel panic
-refactor(auth): extract AuthRepository interface
-test(auth): add magic-link brute-force lockout test
-docs(api): add Swagger annotations for TMS endpoints
-chore(deps): update Go to 1.24.3
-ci(deploy): remove DEV_MODE=true from production workflow
 ```
+
+## Язык сообщения (решение пользователя 2026-07-28)
+
+**Тип и scope — только на английском.** Это ключевые слова формата,
+их парсят инструменты и changelog-генераторы.
+
+**Описание и тело — только на русском.** Команда русскоязычная; коммит
+читают люди, а не парсер.
+
+```
+Правильно:
+fix(auth): запретить выдачу JWT пользователям вне статуса active
+refactor(rbac): вынести проверку принадлежности роли проекту
+test(tms): покрыть optimistic lock на уровне репозитория
+docs(planning): перегруппировать папки по смыслу и истории
+
+Неправильно:
+fix(auth): deny JWT for non-active users          <- описание на английском
+исправление(auth): запретить выдачу JWT           <- тип на русском
+fix(авторизация): запретить выдачу JWT            <- scope на русском
+```
+
+Смешивать языки внутри описания нельзя. Технические термины и имена
+идентификаторов остаются как есть: `fix(ws): не отправлять в закрытый channel`.
+
+Историю до 2026-07-28 не переписываем — там английские описания.
+Правило действует для новых коммитов.
+
+## Связь с задачей (MANDATORY)
+
+Коммит, выполняющий задачу из бэклога, обязан ссылаться на её файл
+**в теле**, а не в subject:
+
+```
+fix(intranet): вернуть новость из корзины вместе с опросом
+
+Задача: .planning/backlog/TASK-001-fr-intr-08-newspost-trash.md
+Требование: FR-INTR-08 (docs/system_specification.md:231)
+
+<что и почему изменилось>
+```
+
+- Файл задачи указывается **путём**, а не номером — чтобы ссылка
+  открывалась из любого клиента без поиска.
+- Если задача покрывается несколькими коммитами — ссылка в каждом.
+- Коммит без задачи (мелкая правка, hotfix) ссылку не требует, но
+  тогда в теле объясняется, почему задачи нет.
+- Находки из аудитов ссылаются на свой ID дополнительно: `(A3-004)`,
+  `(RT-003)` — в subject, как уже принято в истории.
 
 ## FORBIDDEN commit trailers (ABSOLUTE — all models / agents / subagents)
 
