@@ -170,6 +170,8 @@ export function MarketplacePage() {
 	const mineItems = mineData?.items ?? [];
 	const pendingItems = pendingData?.items ?? [];
 	const displayItems = tab === "browse" ? browseItems : mineItems;
+	const listError = tab === "browse" ? browseError : mineError;
+	const refetchList = tab === "browse" ? refetchBrowse : refetchMine;
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
@@ -455,7 +457,21 @@ export function MarketplacePage() {
 					</li>
 				))}
 			</ul>
-			{displayItems.length === 0 && !browseLoading && (
+			{displayItems.length === 0 && !browseLoading && listError && (
+				<div role="alert" className="space-y-2 py-8 text-center">
+					<p className="text-sm text-[var(--red)]">
+						Не удалось загрузить объявления
+					</p>
+					<button
+						type="button"
+						className="text-sm font-semibold text-t2 hover:text-t1 hover:underline"
+						onClick={() => void refetchList()}
+					>
+						Попробовать снова
+					</button>
+				</div>
+			)}
+			{displayItems.length === 0 && !browseLoading && !listError && (
 				<p className="text-sm text-t3 text-center py-8">
 					{tab === "browse" ? "Объявлений пока нет" : "У вас нет объявлений"}
 				</p>

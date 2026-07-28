@@ -36,7 +36,12 @@ export function LeaveRequestsPage() {
 	const [endDate, setEndDate] = useState("");
 	const [reason, setReason] = useState("");
 
-	const { data: myData, isLoading } = useQuery({
+	const {
+		data: myData,
+		isLoading,
+		isError: myError,
+		refetch: refetchMy,
+	} = useQuery({
 		queryKey: ["hr", "leave", "my"],
 		queryFn: listMyLeave,
 	});
@@ -220,36 +225,52 @@ export function LeaveRequestsPage() {
 						Загрузка…
 					</p>
 				)}
-				<ul className="space-y-2">
-					{myItems.map((item) => (
-						<li
-							key={item.id}
-							className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-b1 p-3"
+				{/* W10-A1-017: fail ≠ «Заявок пока нет» */}
+				{!isLoading && myError && (
+					<div role="alert" className="space-y-2 py-2">
+						<p className="text-sm text-[var(--red)]">
+							Не удалось загрузить заявки
+						</p>
+						<button
+							type="button"
+							className="text-sm font-semibold text-t2 hover:text-t1 hover:underline"
+							onClick={() => void refetchMy()}
 						>
-							<div>
-								<p className="font-medium">
-									{LEAVE_TYPE_LABELS[item.leave_type]} ·{" "}
-									<span className={cn("text-sm", STATUS_COLOR[item.status])}>
-										{LEAVE_STATUS_LABELS[item.status]}
-									</span>
-								</p>
-								<p className="text-sm text-t2">
-									{item.start_date} — {item.end_date}
-								</p>
-							</div>
-							{item.status === "pending" && (
-								<Button
-									type="button"
-									size="sm"
-									variant="outline"
-									onClick={() => cancelMutation.mutate(item)}
-								>
-									Отменить
-								</Button>
-							)}
-						</li>
-					))}
-					{!isLoading && myItems.length === 0 && (
+							Попробовать снова
+						</button>
+					</div>
+				)}
+				<ul className="space-y-2">
+					{!myError &&
+						myItems.map((item) => (
+							<li
+								key={item.id}
+								className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-b1 p-3"
+							>
+								<div>
+									<p className="font-medium">
+										{LEAVE_TYPE_LABELS[item.leave_type]} ·{" "}
+										<span className={cn("text-sm", STATUS_COLOR[item.status])}>
+											{LEAVE_STATUS_LABELS[item.status]}
+										</span>
+									</p>
+									<p className="text-sm text-t2">
+										{item.start_date} — {item.end_date}
+									</p>
+								</div>
+								{item.status === "pending" && (
+									<Button
+										type="button"
+										size="sm"
+										variant="outline"
+										onClick={() => cancelMutation.mutate(item)}
+									>
+										Отменить
+									</Button>
+								)}
+							</li>
+						))}
+					{!isLoading && !myError && myItems.length === 0 && (
 						<li className="text-sm text-t3">Заявок пока нет</li>
 					)}
 				</ul>
