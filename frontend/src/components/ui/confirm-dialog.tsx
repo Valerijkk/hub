@@ -13,7 +13,11 @@
  *
  * Тексты передаёт call-site на русском —
  * компонент не локализует, чтобы формулировки были явными.
+ *
+ * W9-A5-003 / P2-FE-02: диалог закрывается только после успешного
+ * onConfirm; при reject остаётся open (повторный confirm возможен).
  */
+import { useState } from "react";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -34,7 +38,11 @@ export interface ConfirmDialogProps {
 	cancelLabel?: string;
 	/** true — кнопка подтверждения в destructive-стиле (красная). */
 	destructive?: boolean;
-	/** Вызывается при подтверждении; диалог закрывается после onConfirm. */
+	/**
+	 * Вызывается при подтверждении.
+	 * Диалог закрывается только при успешном завершении (resolve);
+	 * при reject остаётся открытым.
+	 */
 	onConfirm: () => void | Promise<void>;
 	/** Блокирует кнопку подтверждения (например, во время запроса). */
 	disabled?: boolean;
@@ -51,8 +59,18 @@ export function ConfirmDialog({
 	onConfirm,
 	disabled,
 }: ConfirmDialogProps) {
+	const [confirming, setConfirming] = useState(false);
+	const busy = Boolean(disabled) || confirming;
+
 	return (
-		<AlertDialog open={open} onOpenChange={onOpenChange}>
+		<AlertDialog
+			open={open}
+			onOpenChange={(next) => {
+				// Не закрывать по Escape/overlay, пока идёт async confirm.
+				if (confirming && !next) return;
+				onOpenChange(next);
+			}}
+		>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>{title}</AlertDialogTitle>
@@ -61,22 +79,28 @@ export function ConfirmDialog({
 					)}
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel disabled={disabled}>
-						{cancelLabel}
-					</AlertDialogCancel>
+					<AlertDialogCancel disabled={busy}>{cancelLabel}</AlertDialogCancel>
 					<AlertDialogAction
-						disabled={disabled}
+						disabled={busy}
 						className={
 							destructive
 								? undefined
 								: "bg-blue hover:bg-blue/90 focus:ring-blue/50"
 						}
 						onClick={(e) => {
-							// Блокируем auto-close Radix — onConfirm может быть async; закрываем вручную.
+							// Блокируем auto-close Radix — onConfirm может быть async.
 							e.preventDefault();
-							void Promise.resolve(onConfirm()).finally(() =>
-								onOpenChange(false),
-							);
+							setConfirming(true);
+							void (async () => {
+								try {
+									await onConfirm();
+									onOpenChange(false);
+								} catch {
+									// Ошибка — диалог остаётся open (W9-A5-003).
+								} finally {
+									setConfirming(false);
+								}
+							})();
 						}}
 					>
 						{confirmLabel}
