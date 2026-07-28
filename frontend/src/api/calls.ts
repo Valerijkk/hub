@@ -459,13 +459,24 @@ export async function listScheduledCallsForChannels(
 ): Promise<ScheduledCallResponse[]> {
 	if (channelIds.length === 0) return [];
 
-	const results = await Promise.all(
+	// W11-A1-004: не глотать все ошибки в [] — если все каналы упали, пробрасываем
+	const settled = await Promise.allSettled(
 		channelIds.map((id) =>
-			listScheduledCalls(id)
-				.then((res) => res.scheduled_calls ?? [])
-				.catch(() => [] as ScheduledCallResponse[]),
+			listScheduledCalls(id).then((res) => res.scheduled_calls ?? []),
 		),
 	);
 
-	return results.flat();
+	const ok = settled.filter(
+		(r): r is PromiseFulfilledResult<ScheduledCallResponse[]> =>
+			r.status === "fulfilled",
+	);
+	if (ok.length === 0) {
+		const first = settled[0];
+		if (first?.status === "rejected") {
+			throw first.reason;
+		}
+		throw new Error("failed to load scheduled calls");
+	}
+
+	return ok.flatMap((r) => r.value);
 }

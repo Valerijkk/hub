@@ -152,7 +152,12 @@ export function CallCalendar() {
 	);
 
 	// Загружаем запланированные звонки из всех каналов
-	const { data: scheduledCallsData } = useQuery({
+	const {
+		data: scheduledCallsData,
+		isLoading: scheduledLoading,
+		isError: scheduledError,
+		refetch: refetchScheduled,
+	} = useQuery({
 		queryKey: ["calls", "scheduled", channelIds],
 		queryFn: () => listScheduledCallsForChannels(channelIds),
 		enabled: channelIds.length > 0,
@@ -303,6 +308,26 @@ export function CallCalendar() {
 
 	return (
 		<div className="space-y-4">
+			{/* W10-A1-004: fail/сеть ≠ пустой календарь */}
+			{scheduledLoading && (
+				<p className="text-sm text-t3" role="status">
+					Загрузка запланированных звонков…
+				</p>
+			)}
+			{scheduledError && (
+				<div role="alert" className="space-y-2 rounded-[var(--r3)] border border-b1 bg-card/80 p-4 text-center">
+					<p className="text-sm text-[var(--red)]">
+						Не удалось загрузить запланированные звонки
+					</p>
+					<button
+						type="button"
+						className="text-sm font-semibold text-t2 hover:text-t1 hover:underline"
+						onClick={() => void refetchScheduled()}
+					>
+						Попробовать снова
+					</button>
+				</div>
+			)}
 			{/* Панель навигации */}
 			<div className="flex items-center gap-[14px] pt-[18px] pb-[14px]">
 				{view !== "agenda" && (

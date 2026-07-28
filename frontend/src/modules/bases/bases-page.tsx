@@ -14,6 +14,7 @@ import {
 	updateBase,
 	updateRecord,
 } from "@/api/bases";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,12 @@ export function BasesPage() {
 	const [newColType, setNewColType] = useState<ColumnType>("text");
 	const [newRowCells, setNewRowCells] = useState<Record<string, string>>({});
 
-	const { data: bases = [], isLoading } = useQuery({
+	const {
+		data: bases = [],
+		isLoading,
+		isError: basesError,
+		refetch: refetchBases,
+	} = useQuery({
 		queryKey: ["bases"],
 		queryFn: listBases,
 	});
@@ -230,6 +236,13 @@ export function BasesPage() {
 					</form>
 					{isLoading ? (
 						<p className="text-[13px] text-t3">Загрузка...</p>
+					) : basesError ? (
+						// W10-A1-006 / P2-FE-01: fail listBases ≠ «нет баз»
+						<QueryErrorAlert
+							compact
+							message="Не удалось загрузить базы"
+							retry={() => void refetchBases()}
+						/>
 					) : (
 						<ul className="space-y-1">
 							{bases.map((b) => (
