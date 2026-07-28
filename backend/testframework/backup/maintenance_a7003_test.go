@@ -67,9 +67,9 @@ func TestMaintenanceGate_BlocksAPI_AllowsHealth_A7_003(t *testing.T) {
 func TestSetMaintenanceMode_FlipsGate_A7_003(t *testing.T) {
 	gate := backup.NewMaintenanceGate()
 	svc := backup.ExportNewBackupServiceWithGate(t.Context(), nil, gate)
-	require.False(t, gate.Enabled())
+	require.False(t, gate.Enabled(t.Context()))
 	backup.ExportBackupSetMaintenanceMode(svc, true)
-	require.True(t, gate.Enabled())
+	require.True(t, gate.Enabled(t.Context()))
 	backup.ExportBackupSetMaintenanceMode(svc, false)
-	require.False(t, gate.Enabled())
+	require.False(t, gate.Enabled(t.Context()))
 }
