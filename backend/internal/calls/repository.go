@@ -359,6 +359,16 @@ func (r *EntRepository) ListRecordingsByProject(ctx context.Context, projectID u
 // ScheduledCall методы (CALL-02)
 // ---------------------------------------------------------------------------
 
+// GetScheduledCall возвращает активный (не в корзине) запланированный звонок по ID.
+func (r *EntRepository) GetScheduledCall(ctx context.Context, id uuid.UUID) (*ent.ScheduledCall, error) {
+	return r.db.ScheduledCall.Query().
+		Where(
+			scheduledcall.ID(id),
+			scheduledcall.DeletedAtIsNil(),
+		).
+		Only(ctx)
+}
+
 // CreateScheduledCall создаёт запланированный звонок.
 func (r *EntRepository) CreateScheduledCall(ctx context.Context, title, description string, scheduledAt time.Time, rruleStr string, channelID, projectID, userID uuid.UUID) (*ent.ScheduledCall, error) {
 	q := r.db.ScheduledCall.Create().

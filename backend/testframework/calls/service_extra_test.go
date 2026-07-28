@@ -40,6 +40,7 @@ func TestScheduledCallService_CheckConflicts_WithOverlap(t *testing.T) {
 
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
 	at := time.Now().UTC().Add(2 * time.Hour)
+	f.linkChannelToProject(t, proj.ID)
 	_, err = scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
 		Title: "Overlap", ChannelID: f.channel.ID, ScheduledAt: at,
 	})
@@ -59,6 +60,7 @@ func TestScheduledCallService_ProcessDueScheduledCalls(t *testing.T) {
 
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
 	past := time.Now().UTC().Add(-time.Minute)
+	f.linkChannelToProject(t, proj.ID)
 	_, err = scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
 		Title: "Past call", ChannelID: f.channel.ID, ScheduledAt: past,
 	})
@@ -74,13 +76,14 @@ func TestScheduledCallService_UpdateScheduledCall_InvalidRRule(t *testing.T) {
 	require.NoError(t, err)
 
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
+	f.linkChannelToProject(t, proj.ID)
 	created, err := scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
 		Title: "RR", ChannelID: f.channel.ID, ScheduledAt: time.Now().UTC().Add(time.Hour),
 	})
 	require.NoError(t, err)
 
 	bad := "NOT_VALID"
-	_, err = scheduled.UpdateScheduledCall(ctx, created.ID, calls.UpdateScheduledCallRequest{RRule: &bad})
+	_, err = scheduled.UpdateScheduledCall(ctx, created.ID, f.owner.ID, calls.UpdateScheduledCallRequest{RRule: &bad})
 	require.Error(t, err)
 }
 
@@ -93,6 +96,7 @@ func TestScheduledCallService_ProcessDueScheduledCalls_Recurring(t *testing.T) {
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
 	past := time.Now().UTC().Add(-time.Minute)
 	rruleStr := "FREQ=DAILY;BYHOUR=10;BYMINUTE=0;BYSECOND=0"
+	f.linkChannelToProject(t, proj.ID)
 	created, err := scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
 		Title: "Daily", ChannelID: f.channel.ID, ScheduledAt: past, RRule: rruleStr,
 	})

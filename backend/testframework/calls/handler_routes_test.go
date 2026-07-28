@@ -44,6 +44,7 @@ func TestHandler_UpdateScheduledCall_Success(t *testing.T) {
 	ctx := t.Context()
 	proj, err := f.client.Project.Create().SetName("Upd Proj").SetKey("UPD").Save(ctx)
 	require.NoError(t, err)
+	f.linkChannelToProject(t, proj.ID)
 
 	scheduledSvc := calls.NewScheduledCallService(f.repo, nil)
 	when := time.Now().UTC().Add(2 * time.Hour)
@@ -73,6 +74,7 @@ func TestHandler_DeleteScheduledCall_Success(t *testing.T) {
 	ctx := t.Context()
 	proj, err := f.client.Project.Create().SetName("Del Proj").SetKey("DEL").Save(ctx)
 	require.NoError(t, err)
+	f.linkChannelToProject(t, proj.ID)
 
 	scheduledSvc := calls.NewScheduledCallService(f.repo, nil)
 	created, err := scheduledSvc.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{

@@ -29,14 +29,56 @@ func NewScheduledCallService(repo *EntRepository, nc *natsclient.Client) *Schedu
 	}
 }
 
+// requireChannelMember — W3-A5-003/004: Create/List только для члена канала.
+func (s *ScheduledCallService) requireChannelMember(ctx context.Context, channelID, userID uuid.UUID) error {
+	ok, err := s.repo.IsChannelMember(ctx, channelID, userID)
+	if err != nil {
+		return fmt.Errorf("проверка членства в канале: %w", err)
+	}
+	if !ok {
+		return ErrCallForbidden
+	}
+	return nil
+}
+
+// authorizeScheduledCallMutate — W3-A5-001/002: Update/Delete — creator или owner/admin канала.
+func (s *ScheduledCallService) authorizeScheduledCallMutate(ctx context.Context, sc *ent.ScheduledCall, userID uuid.UUID) error {
+	if sc.CreatedBy == userID {
+		return nil
+	}
+	role, err := s.repo.GetChannelMemberRole(ctx, sc.ChannelID, userID)
+	if err != nil {
+		return fmt.Errorf("проверка роли в канале: %w", err)
+	}
+	if role == "owner" || role == "admin" {
+		return nil
+	}
+	return ErrCallForbidden
+}
+
 // CreateScheduledCall создаёт запланированный звонок.
 // Если задан RRULE, парсит его и вычисляет ближайшее время запланированного звонка.
+// W3-A5-003: требует членство в канале и совпадение channel.project_id с path projectID.
 func (s *ScheduledCallService) CreateScheduledCall(ctx context.Context, projectID uuid.UUID, userID uuid.UUID, req CreateScheduledCallRequest) (*ScheduledCallResponse, error) {
 	if req.Title == "" {
 		return nil, fmt.Errorf("название обязательно")
 	}
 	if req.ChannelID == uuid.Nil {
 		return nil, fmt.Errorf("channel_id обязателен")
+	}
+
+	if err := s.requireChannelMember(ctx, req.ChannelID, userID); err != nil {
+		return nil, err
+	}
+	chProjectID, err := s.repo.GetProjectIDByChannel(ctx, req.ChannelID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrCallForbidden
+		}
+		return nil, fmt.Errorf("проверка проекта канала: %w", err)
+	}
+	if chProjectID != projectID {
+		return nil, ErrCallForbidden
 	}
 
 	scheduledAt := req.ScheduledAt
@@ -63,7 +105,12 @@ func (s *ScheduledCallService) CreateScheduledCall(ctx context.Context, projectI
 
 // ListScheduledCalls возвращает список запланированных звонков канала.
 // Возвращает только активные звонки, отсортированные по времени.
-func (s *ScheduledCallService) ListScheduledCalls(ctx context.Context, channelID uuid.UUID) ([]*ScheduledCallResponse, error) {
+// W3-A5-004: только члены канала видят расписание.
+func (s *ScheduledCallService) ListScheduledCalls(ctx context.Context, channelID, userID uuid.UUID) ([]*ScheduledCallResponse, error) {
+	if err := s.requireChannelMember(ctx, channelID, userID); err != nil {
+		return nil, err
+	}
+
 	calls, err := s.repo.ListScheduledCalls(ctx, channelID)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить запланированные звонки: %w", err)
@@ -78,7 +125,19 @@ func (s *ScheduledCallService) ListScheduledCalls(ctx context.Context, channelID
 }
 
 // UpdateScheduledCall обновляет запланированный звонок.
-func (s *ScheduledCallService) UpdateScheduledCall(ctx context.Context, id uuid.UUID, req UpdateScheduledCallRequest) (*ScheduledCallResponse, error) {
+// W3-A5-001: только creator или owner/admin канала.
+func (s *ScheduledCallService) UpdateScheduledCall(ctx context.Context, id, userID uuid.UUID, req UpdateScheduledCallRequest) (*ScheduledCallResponse, error) {
+	sc, err := s.repo.GetScheduledCall(ctx, id)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, ErrCallNotFound
+		}
+		return nil, fmt.Errorf("получить запланированный звонок: %w", err)
+	}
+	if err := s.authorizeScheduledCallMutate(ctx, sc, userID); err != nil {
+		return nil, err
+	}
+
 	// Валидируем RRULE если обновляется
 	if req.RRule != nil && *req.RRule != "" {
 		if _, err := rrule.StrToRRule(*req.RRule); err != nil {
@@ -86,16 +145,28 @@ func (s *ScheduledCallService) UpdateScheduledCall(ctx context.Context, id uuid.
 		}
 	}
 
-	sc, err := s.repo.UpdateScheduledCall(ctx, id, req)
+	updated, err := s.repo.UpdateScheduledCall(ctx, id, req)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось обновить запланированный звонок: %w", err)
 	}
 
-	return toScheduledCallResponse(sc), nil
+	return toScheduledCallResponse(updated), nil
 }
 
 // DeleteScheduledCall удаляет запланированный звонок (деактивирует).
-func (s *ScheduledCallService) DeleteScheduledCall(ctx context.Context, id uuid.UUID) error {
+// W3-A5-002: только creator или owner/admin канала.
+func (s *ScheduledCallService) DeleteScheduledCall(ctx context.Context, id, userID uuid.UUID) error {
+	sc, err := s.repo.GetScheduledCall(ctx, id)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrCallNotFound
+		}
+		return fmt.Errorf("получить запланированный звонок: %w", err)
+	}
+	if err := s.authorizeScheduledCallMutate(ctx, sc, userID); err != nil {
+		return err
+	}
+
 	if err := s.repo.DeleteScheduledCall(ctx, id); err != nil {
 		return fmt.Errorf("не удалось удалить запланированный звонок: %w", err)
 	}

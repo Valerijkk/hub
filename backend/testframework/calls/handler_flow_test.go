@@ -138,6 +138,7 @@ func TestHandler_CreateScheduledCall_Success(t *testing.T) {
 	ctx := t.Context()
 	proj, err := f.client.Project.Create().SetName("Call Proj").SetKey("CLP").Save(ctx)
 	require.NoError(t, err)
+	f.linkChannelToProject(t, proj.ID)
 
 	scheduledSvc := calls.NewScheduledCallService(f.repo, nil)
 	h := calls.ExportNewHandlerWithServiceAndScheduled(f.svc, scheduledSvc, config.LiveKitConfig{
@@ -161,6 +162,7 @@ func TestHandler_ListScheduledCalls_Success(t *testing.T) {
 	ctx := t.Context()
 	proj, err := f.client.Project.Create().SetName("List Proj").SetKey("LSP").Save(ctx)
 	require.NoError(t, err)
+	f.linkChannelToProject(t, proj.ID)
 
 	scheduledSvc := calls.NewScheduledCallService(f.repo, nil)
 	when := time.Now().UTC().Add(time.Hour)

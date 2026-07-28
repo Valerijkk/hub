@@ -80,6 +80,13 @@ func newCallsTestFixture(t *testing.T) *callsTestFixture {
 	}
 }
 
+// linkChannelToProject привязывает fixture-канал к проекту (нужно для CreateScheduledCall authz).
+func (f *callsTestFixture) linkChannelToProject(t *testing.T, projectID uuid.UUID) {
+	t.Helper()
+	_, err := f.client.Channel.UpdateOneID(f.channel.ID).SetProjectID(projectID).Save(context.Background())
+	require.NoError(t, err)
+}
+
 func (f *callsTestFixture) createChannelCall(t *testing.T, creator *ent.User) *ent.Call {
 	t.Helper()
 	ctx := context.Background()
@@ -361,6 +368,7 @@ func TestScheduledCallService_UpdateScheduledCall_Success(t *testing.T) {
 	ctx := context.Background()
 	proj, err := f.client.Project.Create().SetName("Upd").SetKey("UPD").Save(ctx)
 	require.NoError(t, err)
+	f.linkChannelToProject(t, proj.ID)
 
 	scheduled := calls.NewScheduledCallService(f.repo, nil)
 	created, err := scheduled.CreateScheduledCall(ctx, proj.ID, f.owner.ID, calls.CreateScheduledCallRequest{
@@ -369,7 +377,7 @@ func TestScheduledCallService_UpdateScheduledCall_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	newTitle := "Updated"
-	updated, err := scheduled.UpdateScheduledCall(ctx, created.ID, calls.UpdateScheduledCallRequest{Title: &newTitle})
+	updated, err := scheduled.UpdateScheduledCall(ctx, created.ID, f.owner.ID, calls.UpdateScheduledCallRequest{Title: &newTitle})
 	require.NoError(t, err)
 	assert.Equal(t, newTitle, updated.Title)
 }
