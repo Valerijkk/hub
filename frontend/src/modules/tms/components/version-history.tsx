@@ -31,6 +31,8 @@ interface VersionHistoryProps {
 	onRollback: (versionId: string) => void;
 	/** Процесс отката в данный момент. */
 	isRollingBack: boolean;
+	/** Viewer — скрыть кнопку отката (P2-FE-16). */
+	canRollback?: boolean;
 }
 
 /** Панель истории версий тест-кейса с возможностью отката. */
@@ -40,6 +42,7 @@ export function VersionHistory({
 	versions,
 	onRollback,
 	isRollingBack,
+	canRollback = true,
 }: VersionHistoryProps) {
 	return (
 		<Card className="shadow-card">
@@ -73,15 +76,18 @@ export function VersionHistory({
 										<span className="text-xs font-semibold tabular-nums">
 											v{v.version_number}
 										</span>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-5 text-[10px] px-1.5"
-											disabled={isRollingBack}
-											onClick={() => onRollback(v.id)}
-										>
-											Откатить
-										</Button>
+										{canRollback ? (
+											<Button
+												variant="ghost"
+												size="sm"
+												className="h-5 text-[10px] px-1.5"
+												disabled={isRollingBack}
+												data-testid="version-rollback-btn"
+												onClick={() => onRollback(v.id)}
+											>
+												Откатить
+											</Button>
+										) : null}
 									</div>
 									{v.change_description && (
 										<p className="text-[11px] text-t2 mt-0.5">

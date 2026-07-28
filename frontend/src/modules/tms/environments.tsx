@@ -1,5 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/api/client";
+import { getProject } from "@/api/projects";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
 	Select,
@@ -8,6 +10,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { canMutateProject } from "@/lib/permissions";
 
 /** Тестовое окружение. */
 interface Environment {
@@ -21,7 +24,13 @@ interface Environment {
 const LABELS = ["dev", "staging", "prod", "custom"] as const;
 
 /** Страница управления тестовыми окружениями. */
-export function EnvironmentsPage({ projectId }: { projectId: string }) {
+export function EnvironmentsPage({
+	projectId,
+	canMutate: canMutateProp,
+}: {
+	projectId: string;
+	canMutate?: boolean;
+}) {
 	const [envs, setEnvs] = useState<Environment[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [showCreate, setShowCreate] = useState(false);
@@ -30,6 +39,13 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 	const [configBrowser, setConfigBrowser] = useState("");
 	const [configOS, setConfigOS] = useState("");
 	const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
+
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+		enabled: Boolean(projectId) && canMutateProp === undefined,
+	});
+	const canMutate = canMutateProp ?? canMutateProject(project?.my_role);
 
 	const fetchEnvs = useCallback(async () => {
 		try {
@@ -91,16 +107,19 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 		<div className="space-y-6 p-6">
 			<div className="flex items-center justify-between">
 				<h2 className="text-xl font-semibold">Тестовые окружения</h2>
-				<button
-					type="button"
-					onClick={() => setShowCreate(true)}
-					className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-				>
-					Создать окружение
-				</button>
+				{canMutate ? (
+					<button
+						type="button"
+						onClick={() => setShowCreate(true)}
+						data-testid="env-create-btn"
+						className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+					>
+						Создать окружение
+					</button>
+				) : null}
 			</div>
 
-			{showCreate && (
+			{showCreate && canMutate && (
 				<div className="rounded-md border p-4 dark:border-gray-700">
 					<h3 className="mb-3 font-medium">Новое окружение</h3>
 					<div className="space-y-3">
@@ -184,13 +203,18 @@ export function EnvironmentsPage({ projectId }: { projectId: string }) {
 										: "-"}
 								</td>
 								<td className="p-2">
-									<button
-										type="button"
-										onClick={() => setDeleteDialogId(env.id)}
-										className="text-red-600 hover:underline"
-									>
-										Удалить
-									</button>
+									{canMutate ? (
+										<button
+											type="button"
+											onClick={() => setDeleteDialogId(env.id)}
+											data-testid="env-delete-btn"
+											className="text-red-600 hover:underline"
+										>
+											Удалить
+										</button>
+									) : (
+										<span className="text-t3">—</span>
+									)}
 								</td>
 							</tr>
 						))}

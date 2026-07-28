@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { getProject } from "@/api/projects";
 import {
 	deleteIssue,
 	getIssue,
@@ -25,6 +26,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toastApiError } from "@/lib/format-api-error";
+import { canMutateProject } from "@/lib/permissions";
 import {
 	IssueDescription,
 	IssueTitle,
@@ -49,6 +51,12 @@ function IssueDetailPage() {
 		queryKey: ["issue", projectId, issueKey],
 		queryFn: () => getIssue(projectId, issueKey),
 	});
+
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+	});
+	const canDelete = canMutateProject(project?.my_role);
 
 	const { data: statuses } = useQuery({
 		queryKey: ["workflow-statuses", projectId],
@@ -172,6 +180,7 @@ function IssueDetailPage() {
 				issueType={issue.issue_type}
 				onDelete={() => setShowDeleteDialog(true)}
 				isDeleting={deleteMutation.isPending}
+				canDelete={canDelete}
 			/>
 
 			{/* Двухколоночная раскладка */}

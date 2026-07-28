@@ -39,3 +39,18 @@ export const Permission = {
 export function hasPermission(effective: bigint, perm: bigint): boolean {
 	return (effective & perm) === perm;
 }
+
+/**
+ * Роли проекта без права мутаций (create/update/delete).
+ * Viewer/guest видят UI, но кнопки мутаций скрываем (P2-FE-16).
+ */
+const READ_ONLY_PROJECT_ROLES = new Set(["viewer", "guest"]);
+
+/**
+ * Можно ли показывать кнопки мутаций проекта для данной роли.
+ * Неизвестная/пустая роль — не скрываем (роль ещё не загружена).
+ */
+export function canMutateProject(role: string | null | undefined): boolean {
+	if (!role) return true;
+	return !READ_ONLY_PROJECT_ROLES.has(role.toLowerCase());
+}

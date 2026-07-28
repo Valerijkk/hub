@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { getProject } from "@/api/projects";
 import {
 	getTestCase,
 	linkTestCaseToIssue,
@@ -25,6 +26,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { toastApiError } from "@/lib/format-api-error";
+import { canMutateProject } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { StepEditor } from "@/modules/tms/components/step-editor";
 import {
@@ -90,6 +92,12 @@ function TestCaseDetailPage() {
 		queryKey: ["tms-case", projectId, caseKey],
 		queryFn: () => getTestCase(projectId, caseKey),
 	});
+
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+	});
+	const canRollback = canMutateProject(project?.my_role);
 
 	// Инициализация формы после загрузки данных
 	useEffect(() => {
@@ -867,6 +875,7 @@ function TestCaseDetailPage() {
 						versions={versions}
 						onRollback={(versionId) => rollbackMutation.mutate(versionId)}
 						isRollingBack={rollbackMutation.isPending}
+						canRollback={canRollback}
 					/>
 				</div>
 			</div>
