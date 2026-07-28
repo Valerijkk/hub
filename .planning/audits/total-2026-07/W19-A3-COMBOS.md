@@ -5,7 +5,7 @@
 > Фокус: пары, где **finding/fix X + Y** на **текущем** коде после Stage B дают дефект тяжелее каждого по отдельности.  
 > Якоря: W18 FAILs **014, 019, 041, 042, 044, 045, 046, 052, 054** + catch-up [TASK-079](../../backlog/TASK-079-gdpr-mongo-eraser-fail-closed.md).  
 > Метод: readonly code review + W18 mutation evidence; product code не правим.  
-> **Re-verify:** 2026-07-28 19:40 UTC+3 — все `path:line` ниже сверены с HEAD `cursor-grok-4.5`.
+> **Re-verify:** 2026-07-28 19:58 UTC+3 — все `path:line` ниже сверены с HEAD `cursor-grok-4.5` (W19-A3 pass; Stage B residual confirmed).
 
 ## Сводка по severity
 
@@ -263,11 +263,11 @@ Actionable (не closed-reference): **15** (C-016 = FE adjacent reference). CRIT
 - [HIGH×6] C-003, C-005, C-006, C-007, C-008, C-009 — team ACL / SSRF / AI nil / Confirm / webhook / Meili
 - [MEDIUM×5] C-004, C-010, C-011, C-012, C-013
 - [LOW×3] C-014, C-015, C-016
-- Вердикт: `verified: false` — 2026-07-28 19:40 — открыты CRITICAL/HIGH без mitigation
+- Вердикт: `verified: false` — 2026-07-28 19:58 — открыты CRITICAL/HIGH без mitigation
 
 - Комбинаторных дефектов: **16** (CRITICAL **2** · HIGH **6** · MEDIUM **5** · LOW **3**).  
 - Все 9 W18 FAIL + TASK-079 покрыты матрицей.  
 - `verified: false` для чистого Stage C — открыты CRITICAL/HIGH без mitigation.  
-- Re-verify path:line: **2026-07-28 19:40** (UTC+3).
+- Re-verify path:line: **2026-07-28 19:58** (UTC+3).
 
 *Артефакт W19-A3 · TASK-008 · readonly product review · docs-only commit.*
