@@ -4,10 +4,11 @@
 > Задача: [TASK-008](../../backlog/TASK-008-total-audit-program.md) § Stage C / W19  
 > Фокус: задачи в статусе **«Исправлена»** без адекватного evidence  
 > Режим: read-only по product code; сверка task body ↔ `W18-*-MUTATION.md`  
-> Перепроверка (повтор W19-A2): README + тела TASK-009…056 + все 6 mutation-логов  
->   (`W18-C{1,2,2b,3,4,5}-MUTATION.md`) + сверка PASS/FAIL с [`W18-SUMMARY.md`](W18-SUMMARY.md)  
->   + `git log --grep=TASK-0NN` (SHA есть в истории, **не** в evidence)  
-> Итог перепроверки: **count=39** без изменений (все «Исправлена» = incomplete triad по SHA)
+> Перепроверка W19-A2 (2026-07-28 evening): README + тела TASK-009…056 + все 6  
+>   mutation-логов (`W18-C{1,2,2b,3,4,5}-MUTATION.md`) + PASS/FAIL  
+>   [`W18-SUMMARY.md`](W18-SUMMARY.md) + `git log --grep=TASK-0NN`  
+>   + воспроизводимый скан [`_w19_a2_scan.py`](_w19_a2_scan.py)  
+> Итог: **count=39** без изменений (все «Исправлена» = incomplete triad по SHA)
 
 ## Определение «адекватного evidence»
 
@@ -257,8 +258,9 @@ Stage B fix SHA нужно уточнять по пути файла / subject `
    `W18-C{1,2,2b,3,4,5}-MUTATION.md` (включая Vitest titles в колонке RED test).
 3. Сверка итога PASS/FAIL с [`W18-SUMMARY.md`](W18-SUMMARY.md) (39 / 9).
 4. Контроль: явные SHA-якоря в TASK + W18 mutation — пусто; naive hex
-   отфильтрован (word/date false positives).
+   отфильтрован (word/date false positives: `succeeded`→`cceeded`, даты `20260728`).
 5. Кандидаты SHA: `git log --grep=TASK-0NN` → приложение B (ещё не evidence).
+6. Автоскан: `python .planning/audits/total-2026-07/_w19_a2_scan.py` → assert 39/39.
 
 ---
 
