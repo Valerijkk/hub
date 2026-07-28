@@ -38,7 +38,7 @@ func (BackupRecord) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности BackupRecord.
+// Рёбра (edges) сущности BackupRecord.
 func (BackupRecord) Edges() []ent.Edge {
 	return nil // Системная сущность без связей
 }

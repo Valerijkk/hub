@@ -61,10 +61,10 @@ func (TestCase) Fields() []ent.Field {
 			Comment("Полное имя для Allure matching"),
 		field.String("class_name").
 			Optional().
-			Comment("Рмя класса для Allure matching"),
+			Comment("Имя класса для Allure matching"),
 		field.String("method_name").
 			Optional().
-			Comment("Рмя метода для Allure matching"),
+			Comment("Имя метода для Allure matching"),
 		field.String("external_id").
 			Optional().
 			Comment("Внешний ID для @TestCase аннотации"),
@@ -91,7 +91,7 @@ func (TestCase) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности TestCase.
+// Рёбра (edges) сущности TestCase.
 func (TestCase) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

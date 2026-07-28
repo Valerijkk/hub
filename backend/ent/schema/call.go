@@ -79,10 +79,9 @@ func (Call) Edges() []ent.Edge {
 }
 
 // Indexes описывает индексы сущности Call.
+// room_name и invite_code уже Unique() на field — не дублируем (P3-BE-17 / W8-A1-009).
 func (Call) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id", "status"),
-		index.Fields("room_name"),
-		index.Fields("invite_code"),
 	}
 }

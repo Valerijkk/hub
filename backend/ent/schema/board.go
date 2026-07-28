@@ -36,7 +36,7 @@ func (Board) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности Board.
+// Рёбра (edges) сущности Board.
 func (Board) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

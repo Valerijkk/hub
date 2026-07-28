@@ -73,7 +73,7 @@
 | [TASK-065](TASK-065-be-p3-platform-http-obs.md) | BE platform HTTP/obs | P3 | Открыта | be1 | W12 P3-BE-11,12 |
 | [TASK-066](TASK-066-be-p3-ai-auth-rbac-audit.md) | BE AI/auth/rbac/audit | P3 | Открыта | be2 | W12 P3-BE-13,14 |
 | [TASK-067](TASK-067-be-p3-v4-dev-storage.md) | BE v4/dev/storage | P3 | Открыта | be1 | W12 P3-BE-15,16 |
-| [TASK-068](TASK-068-be-p3-ent-hygiene-mojibake.md) | BE Ent hygiene/mojibake | P3 | Открыта | be2 | W12 P3-BE-17,18 |
+| [TASK-068](TASK-068-be-p3-ent-hygiene-mojibake.md) | BE Ent hygiene/mojibake | P3 | Исправлена | be2 | W12 P3-BE-17,18 |
 | [TASK-069](TASK-069-fe-p3-a11y-names.md) | FE a11y names residual | P3 | Открыта | fe1 | W12 P3-FE-01 |
 | [TASK-070](TASK-070-fe-p3-a11y-structure.md) | FE a11y structure | P3 | Открыта | fe2 | W12 P3-FE-02 |
 | [TASK-071](TASK-071-fe-p3-tokens-i18n.md) | FE tokens + i18n | P3 | Открыта | fe1 | W12 P3-FE-03,04 |

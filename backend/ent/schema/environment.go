@@ -40,7 +40,7 @@ func (Environment) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности Environment.
+// Рёбра (edges) сущности Environment.
 func (Environment) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

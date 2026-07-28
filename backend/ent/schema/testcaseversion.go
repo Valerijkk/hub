@@ -33,7 +33,7 @@ func (TestCaseVersion) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности TestCaseVersion.
+// Рёбра (edges) сущности TestCaseVersion.
 func (TestCaseVersion) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("test_case", TestCase.Type).

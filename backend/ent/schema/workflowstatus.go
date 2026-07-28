@@ -40,7 +40,7 @@ func (WorkflowStatus) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности WorkflowStatus.
+// Рёбра (edges) сущности WorkflowStatus.
 func (WorkflowStatus) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

@@ -52,7 +52,7 @@ func (Project) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности Project.
+// Рёбра (edges) сущности Project.
 func (Project) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("organization", Organization.Type).

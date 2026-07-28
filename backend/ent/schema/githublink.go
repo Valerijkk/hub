@@ -36,10 +36,10 @@ func (GitHubLink) Fields() []ent.Field {
 			Comment("Статус PR (для коммитов — none)"),
 		field.String("author").
 			Optional().
-			Comment("Рмя автора на GitHub"),
+			Comment("Имя автора на GitHub"),
 		field.String("branch").
 			Optional().
-			Comment("Рмя ветки (для PR)"),
+			Comment("Имя ветки (для PR)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -49,7 +49,7 @@ func (GitHubLink) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности GitHubLink.
+// Рёбра (edges) сущности GitHubLink.
 func (GitHubLink) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("issue", Issue.Type).

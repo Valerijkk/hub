@@ -44,7 +44,7 @@ func (TestRun) Fields() []ent.Field {
 			Default(0),
 		field.String("allure_run_id").
 			Optional().
-			Comment("Рдентификатор прогона Allure"),
+			Comment("Идентификатор прогона Allure"),
 		field.Time("started_at").
 			Optional().
 			Nillable(),
@@ -60,7 +60,7 @@ func (TestRun) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности TestRun.
+// Рёбра (edges) сущности TestRun.
 func (TestRun) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

@@ -26,9 +26,9 @@ func (Comment) Fields() []ent.Field {
 		field.Bool("is_internal").
 			Default(false).
 			Comment("Visible only to certain roles"),
-		field.JSON("mentions", []string{}).
+		field.JSON("mentions", []uuid.UUID{}).
 			Optional().
-			Comment("User IDs mentioned"),
+			Comment("User IDs mentioned (UUID)"),
 		field.Time("deleted_at").
 			Optional().
 			Nillable().

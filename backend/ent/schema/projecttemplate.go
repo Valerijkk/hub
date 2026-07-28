@@ -41,7 +41,7 @@ func (ProjectTemplate) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности ProjectTemplate.
+// Рёбра (edges) сущности ProjectTemplate.
 func (ProjectTemplate) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("created_by", User.Type).

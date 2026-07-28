@@ -77,7 +77,7 @@ func (Issue) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности Issue.
+// Рёбра (edges) сущности Issue.
 func (Issue) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

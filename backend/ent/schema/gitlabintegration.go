@@ -40,7 +40,7 @@ func (GitLabIntegration) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности GitLabIntegration.
+// Рёбра (edges) сущности GitLabIntegration.
 func (GitLabIntegration) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("project", Project.Type).

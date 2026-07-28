@@ -22,7 +22,9 @@ func (NewsPost) Fields() []ent.Field {
 			NotEmpty().
 			MaxLen(200),
 		field.Text("body").
-			NotEmpty(),
+			NotEmpty().
+			MaxLen(50000).
+			Comment("News body plain/markdown; MaxLen app-level DoS guard (TEXT column, no varchar migrate)"),
 		field.Bool("pinned").
 			Default(false),
 		field.Bool("published").

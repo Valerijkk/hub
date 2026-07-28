@@ -39,7 +39,7 @@ func (WebhookDelivery) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности WebhookDelivery.
+// Рёбра (edges) сущности WebhookDelivery.
 func (WebhookDelivery) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("endpoint", WebhookEndpoint.Type).

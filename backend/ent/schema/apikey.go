@@ -49,7 +49,7 @@ func (APIKey) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности APIKey.
+// Рёбра (edges) сущности APIKey.
 func (APIKey) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
@@ -60,9 +60,9 @@ func (APIKey) Edges() []ent.Edge {
 }
 
 // Индексы сущности APIKey.
+// key_hash уже Unique() на field — отдельный индекс не дублируем (P3-BE-17 / W8-A1-009).
 func (APIKey) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("key_hash"),
 		index.Fields("expires_at"),
 		index.Fields("deleted_at"),
 	}

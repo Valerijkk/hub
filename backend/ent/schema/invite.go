@@ -21,7 +21,9 @@ func (Invite) Fields() []ent.Field {
 			Immutable(),
 		field.String("code").
 			Unique().
-			NotEmpty(),
+			NotEmpty().
+			MaxLen(64).
+			Comment("Invite code (generator: 8 chars base32; MaxLen guard, DB varchar migrate needs owner approval)"),
 		field.Int("max_uses").
 			Default(0).
 			Comment("0 means unlimited"),

@@ -65,10 +65,10 @@ func (ChannelInvite) Edges() []ent.Edge {
 }
 
 // Indexes описывает индексы сущности ChannelInvite.
+// token уже Unique() на field — не дублируем Unique index (P3-BE-17 / W8-A1-009).
 func (ChannelInvite) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id"),
-		index.Fields("token").Unique(),
 		index.Fields("expires_at"),
 	}
 }

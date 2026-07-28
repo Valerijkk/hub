@@ -28,7 +28,15 @@ func (r *EntRepository) CreateComment(ctx context.Context, issueID, authorID uui
 		SetIsInternal(input.IsInternal)
 
 	if len(input.Mentions) > 0 {
-		create = create.SetMentions(input.Mentions)
+		mentionIDs := make([]uuid.UUID, 0, len(input.Mentions))
+		for _, raw := range input.Mentions {
+			id, err := uuid.Parse(raw)
+			if err != nil {
+				return nil, fmt.Errorf("создание комментария: invalid mention id %q: %w", raw, err)
+			}
+			mentionIDs = append(mentionIDs, id)
+		}
+		create = create.SetMentions(mentionIDs)
 	}
 
 	c, err := create.Save(ctx)
@@ -44,14 +52,15 @@ func (r *EntRepository) CreateComment(ctx context.Context, issueID, authorID uui
 			Only(ctx)
 		if err == nil && iss.Edges.Project != nil {
 			projectID := iss.Edges.Project.ID.String()
-			_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.comment_created", projectID), CommentCreatedEvent{
+			subj := fmt.Sprintf("project.%s.issue.comment_created", projectID)
+			logOutboxPublishErr(ctx, subj, r.publisher.Publish(ctx, r.client, subj, CommentCreatedEvent{
 				CommentID: c.ID.String(),
 				IssueID:   issueID.String(),
 				IssueKey:  iss.IssueKey,
 				ProjectID: projectID,
 				AuthorID:  authorID.String(),
 				Mentions:  input.Mentions,
-			})
+			}))
 		}
 	}
 

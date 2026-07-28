@@ -26,7 +26,7 @@ func (GitHubIntegration) Fields() []ent.Field {
 		field.String("repo_name").
 			NotEmpty().
 			MaxLen(255).
-			Comment("Рмя репозитория"),
+			Comment("Имя репозитория"),
 		field.String("access_token").
 			Sensitive().
 			Comment("GitHub Personal Access Token"),

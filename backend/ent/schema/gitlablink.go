@@ -36,10 +36,10 @@ func (GitLabLink) Fields() []ent.Field {
 			Comment("Статус MR (для коммитов — none)"),
 		field.String("author").
 			Optional().
-			Comment("Рмя автора на GitLab"),
+			Comment("Имя автора на GitLab"),
 		field.String("source_branch").
 			Optional().
-			Comment("Рмя исходной ветки (для MR)"),
+			Comment("Имя исходной ветки (для MR)"),
 		field.String("project_path").
 			Optional().
 			Comment("Путь проекта в GitLab (group/repo)"),
@@ -52,7 +52,7 @@ func (GitLabLink) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности GitLabLink.
+// Рёбра (edges) сущности GitLabLink.
 func (GitLabLink) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("issue", Issue.Type).

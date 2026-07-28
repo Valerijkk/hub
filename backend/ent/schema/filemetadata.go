@@ -46,7 +46,7 @@ func (FileMetadata) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности FileMetadata.
+// Рёбра (edges) сущности FileMetadata.
 func (FileMetadata) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("uploader", User.Type).

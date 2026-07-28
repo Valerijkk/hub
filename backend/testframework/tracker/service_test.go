@@ -402,12 +402,20 @@ func (m *mockRepo) SeedDefaultWorkflow(_ context.Context, _ uuid.UUID) error {
 
 func (m *mockRepo) CreateComment(_ context.Context, issueID, authorID uuid.UUID, input tracker.CreateCommentInput) (*ent.Comment, error) {
 	id := uuid.New()
+	mentions := make([]uuid.UUID, 0, len(input.Mentions))
+	for _, raw := range input.Mentions {
+		mid, err := uuid.Parse(raw)
+		if err != nil {
+			return nil, err
+		}
+		mentions = append(mentions, mid)
+	}
 	c := &ent.Comment{
 		ID:         id,
 		BodyJSON:   input.BodyJSON,
 		BodyText:   input.BodyText,
 		IsInternal: input.IsInternal,
-		Mentions:   input.Mentions,
+		Mentions:   mentions,
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
 		Edges: ent.CommentEdges{

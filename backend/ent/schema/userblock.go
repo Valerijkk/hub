@@ -31,7 +31,7 @@ func (UserBlock) Fields() []ent.Field {
 	}
 }
 
-// ибра (edges) сущности UserBlock.
+// Рёбра (edges) сущности UserBlock.
 func (UserBlock) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("blocker", User.Type).
