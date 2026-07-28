@@ -73,13 +73,18 @@ func (s *PresenceService) GetBulkStatus(ctx context.Context, userIDs []string) (
 	for i, uid := range userIDs {
 		cmds[i] = pipe.ZScore(ctx, presenceOnlineKey, uid)
 	}
-	_, _ = pipe.Exec(ctx)
+	// W3-A3-004: инфраструктурная ошибка pipeline → return err.
+	// redis.Nil от отсутствующих ZScore — норма (offline), не fail.
+	if _, err := pipe.Exec(ctx); err != nil && !errors.Is(err, redis.Nil) {
+		return nil, fmt.Errorf("presence bulk status: %w", err)
+	}
 
 	now := time.Now()
 	for i, uid := range userIDs {
 		score, err := cmds[i].Result()
 		if err != nil {
-			// err также покрывает redis.Nil (отсутствие записи) — оба случая = offline.
+			// redis.Nil / отсутствие записи = offline; прочие ошибки cmd уже
+			// покрыты fail Exec выше при инфраструктурном сбое.
 			result[uid] = "offline"
 			continue
 		}

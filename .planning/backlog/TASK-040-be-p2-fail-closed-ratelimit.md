@@ -1,6 +1,6 @@
 # TASK-040 — Fail-closed defaults + rate-limit ZSET
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: На проверке  
 > Источник: TASK-008 W12 · Classes: P2-BE-10 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]

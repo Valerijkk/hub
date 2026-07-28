@@ -72,7 +72,9 @@ func TestReady_DepFail503_A14_001(t *testing.T) {
 	assert.Contains(t, string(body), `"status":"degraded"`)
 }
 
-func TestReady_NilPingsSkipped_A14_001(t *testing.T) {
+// TestReady_NoProbesConfigured_503 — W4-A4-007 / P2-BE-10:
+// Deps{} (все nil) → 503 fail-closed, не 200 «ok».
+func TestReady_NoProbesConfigured_503(t *testing.T) {
 	app := fiber.New()
 	app.Get("/api/ready", health.Ready(health.Deps{}))
 
@@ -80,5 +82,7 @@ func TestReady_NilPingsSkipped_A14_001(t *testing.T) {
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+	body, _ := io.ReadAll(resp.Body)
+	assert.Contains(t, string(body), `"status":"degraded"`)
 }

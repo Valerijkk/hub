@@ -8,9 +8,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMetricsAllowMiddleware_EmptyCIDRsPassThrough(t *testing.T) {
+// TestMetricsAllowMiddleware_EmptyCIDRsForbidden — W4-A3-004: пусто → 403.
+func TestMetricsAllowMiddleware_EmptyCIDRsForbidden(t *testing.T) {
 	app := fiber.New()
 	app.Use(observability.MetricsAllowMiddleware(nil))
+	app.Get("/metrics", func(c fiber.Ctx) error {
+		return c.SendString("ok")
+	})
+
+	req := httptest.NewRequest(fiber.MethodGet, "/metrics", nil)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, fiber.StatusForbidden, resp.StatusCode)
+}
+
+func TestMetricsAllowMiddleware_AllowAllSentinel(t *testing.T) {
+	app := fiber.New()
+	app.Use(observability.MetricsAllowMiddleware(observability.MetricsAllowAllCIDRs))
 	app.Get("/metrics", func(c fiber.Ctx) error {
 		return c.SendString("ok")
 	})

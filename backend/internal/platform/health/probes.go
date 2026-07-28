@@ -24,6 +24,7 @@ func Live(c fiber.Ctx) error {
 }
 
 // Ready — зависимости; 503 при любой деградации (K8s readiness / Compose healthcheck).
+// W4-A4-007: ни одного ping → 503 (fail-closed miswiring), не 200 с пустым services.
 func Ready(deps Deps) fiber.Handler {
 	timeout := deps.Timeout
 	if timeout <= 0 {
@@ -35,11 +36,13 @@ func Ready(deps Deps) fiber.Handler {
 
 		services := fiber.Map{}
 		overall := "ok"
+		checked := 0
 
 		ping := func(name string, fn func(context.Context) error) {
 			if fn == nil {
 				return
 			}
+			checked++
 			if err := fn(healthCtx); err != nil {
 				services[name] = "error"
 				overall = "degraded"
@@ -52,6 +55,14 @@ func Ready(deps Deps) fiber.Handler {
 		ping("redis", deps.PingRedis)
 		ping("mongo", deps.PingMongo)
 		ping("nats", deps.PingNATS)
+
+		if checked == 0 {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"status":   "degraded",
+				"services": services,
+				"error":    "no readiness probes configured",
+			})
+		}
 
 		status := fiber.StatusOK
 		if overall != "ok" {

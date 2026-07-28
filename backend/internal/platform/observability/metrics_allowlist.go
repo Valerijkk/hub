@@ -6,10 +6,27 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// MetricsAllowMiddleware ограничивает /metrics CIDR (пусто = все).
+// MetricsAllowAllSentinel — явный opt-in на открытый /metrics (dev/tests).
+// Пустой список CIDR = fail-closed (W4-A3-004).
+const MetricsAllowAllSentinel = "*"
+
+// MetricsAllowAllCIDRs — явный allow-all для wiring/тестов (не пустой слайс).
+var MetricsAllowAllCIDRs = []string{MetricsAllowAllSentinel}
+
+func metricsAllowsAll(cidrs []string) bool {
+	return len(cidrs) == 1 && cidrs[0] == MetricsAllowAllSentinel
+}
+
+// MetricsAllowMiddleware ограничивает /metrics CIDR.
+// Пусто / без sentinel → 403 (fail-closed). Sentinel "*" → пропуск.
 func MetricsAllowMiddleware(cidrs []string) fiber.Handler {
-	if len(cidrs) == 0 {
+	if metricsAllowsAll(cidrs) {
 		return func(c fiber.Ctx) error { return c.Next() }
+	}
+	if len(cidrs) == 0 {
+		return func(c fiber.Ctx) error {
+			return fiber.NewError(fiber.StatusForbidden, "metrics endpoint forbidden")
+		}
 	}
 
 	nets := parseCIDRs(cidrs)
