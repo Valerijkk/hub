@@ -66,6 +66,13 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-28 (be1 · TASK-002 FR-CAL-05 series trash)
+
+- `deleted_at` в `scheduledcall`; `go generate ./ent` OK; Schema.Create auto-migrate.
+- Delete → soft-delete + is_active=false; calendar/calls/due фильтр `DeletedAtIsNil`.
+- Trash type `scheduled_call`; тесты audit/calls/calendar; мутация фильтра calendar (красный/зелёный).
+- Backlog: TASK-002 → Закрыта. **Ent-схема — личное ревью владельца перед мержем.**
+
 ## Session note — 2026-07-28 (be1 · TASK-001 FR-INTR-08 newspost trash)
 
 - Зарегистрирован тип `newspost` в audit ListTrash / RestoreItem / SoftDelete / PurgeExpired.

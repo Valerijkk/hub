@@ -16,6 +16,7 @@ import (
 	"github.com/valerii/hub/backend/ent/newspost"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/reaction"
+	"github.com/valerii/hub/backend/ent/scheduledcall"
 	"github.com/valerii/hub/backend/ent/session"
 	"github.com/valerii/hub/backend/ent/systemsetting"
 	"github.com/valerii/hub/backend/ent/testcase"
@@ -43,6 +44,7 @@ type Repository interface {
 	ListDeletedFiles(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 	ListDeletedProjects(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 	ListDeletedNewsPosts(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
+	ListDeletedScheduledCalls(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 
 	// Корзина — восстановление
 	RestoreIssue(ctx context.Context, id uuid.UUID) error
@@ -50,6 +52,7 @@ type Repository interface {
 	RestoreFile(ctx context.Context, id uuid.UUID) error
 	RestoreProject(ctx context.Context, id uuid.UUID) error
 	RestoreNewsPost(ctx context.Context, id uuid.UUID) error
+	RestoreScheduledCall(ctx context.Context, id uuid.UUID) error
 
 	// Корзина — мягкое удаление
 	SoftDeleteIssue(ctx context.Context, id uuid.UUID, when time.Time) error
@@ -57,6 +60,7 @@ type Repository interface {
 	SoftDeleteFile(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteProject(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteNewsPost(ctx context.Context, id uuid.UUID, when time.Time) error
+	SoftDeleteScheduledCall(ctx context.Context, id uuid.UUID, when time.Time) error
 
 	// Корзина — окончательное удаление
 	PurgeExpiredIssues(ctx context.Context, cutoff time.Time) (int, error)
@@ -64,6 +68,7 @@ type Repository interface {
 	PurgeExpiredFiles(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredProjects(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredNewsPosts(ctx context.Context, cutoff time.Time) (int, error)
+	PurgeExpiredScheduledCalls(ctx context.Context, cutoff time.Time) (int, error)
 
 	// Администрирование пользователей
 	DeactivateUser(ctx context.Context, userID uuid.UUID) error
@@ -483,6 +488,60 @@ func (r *entRepository) SoftDeleteNewsPost(ctx context.Context, id uuid.UUID, wh
 // PurgeExpiredNewsPosts окончательно удаляет новости старше retention.
 func (r *entRepository) PurgeExpiredNewsPosts(ctx context.Context, cutoff time.Time) (int, error) {
 	return r.client.NewsPost.Delete().Where(newspost.DeletedAtNotNil(), newspost.DeletedAtLT(cutoff)).Exec(ctx)
+}
+
+// ListDeletedScheduledCalls возвращает мягко удалённые серии/звонки в окне retention.
+func (r *entRepository) ListDeletedScheduledCalls(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
+	query := r.client.ScheduledCall.Query().
+		Where(scheduledcall.DeletedAtNotNil(), scheduledcall.DeletedAtGT(cutoff))
+	if projectID != nil {
+		query = query.Where(scheduledcall.ProjectIDEQ(*projectID))
+	}
+	total, err := query.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("подсчёт удалённых scheduled_call: %w", err)
+	}
+	items, err := query.
+		Order(ent.Desc(scheduledcall.FieldDeletedAt)).
+		Offset(offset).
+		Limit(limit).
+		All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("список удалённых scheduled_call: %w", err)
+	}
+	result := make([]TrashItem, 0, len(items))
+	for _, item := range items {
+		result = append(result, TrashItem{
+			ID:         item.ID,
+			Name:       item.Title,
+			EntityType: "scheduled_call",
+			DeletedAt:  *item.DeletedAt,
+		})
+	}
+	return result, total, nil
+}
+
+// RestoreScheduledCall сбрасывает deleted_at и возвращает серию в активные (FR-CAL-05).
+func (r *entRepository) RestoreScheduledCall(ctx context.Context, id uuid.UUID) error {
+	return r.client.ScheduledCall.UpdateOneID(id).
+		ClearDeletedAt().
+		SetIsActive(true).
+		Exec(ctx)
+}
+
+// SoftDeleteScheduledCall ставит deleted_at и деактивирует серию.
+func (r *entRepository) SoftDeleteScheduledCall(ctx context.Context, id uuid.UUID, when time.Time) error {
+	return r.client.ScheduledCall.UpdateOneID(id).
+		SetDeletedAt(when).
+		SetIsActive(false).
+		Exec(ctx)
+}
+
+// PurgeExpiredScheduledCalls окончательно удаляет серии старше retention.
+func (r *entRepository) PurgeExpiredScheduledCalls(ctx context.Context, cutoff time.Time) (int, error) {
+	return r.client.ScheduledCall.Delete().
+		Where(scheduledcall.DeletedAtNotNil(), scheduledcall.DeletedAtLT(cutoff)).
+		Exec(ctx)
 }
 
 // ---------------------------------------------------------------------------

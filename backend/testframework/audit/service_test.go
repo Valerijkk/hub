@@ -51,11 +51,15 @@ func (s *gdprStubRepo) ListDeletedProjects(context.Context, time.Time, int, int)
 func (s *gdprStubRepo) ListDeletedNewsPosts(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
 	return nil, 0, nil
 }
+func (s *gdprStubRepo) ListDeletedScheduledCalls(context.Context, *uuid.UUID, time.Time, int, int) ([]audit.TrashItem, int, error) {
+	return nil, 0, nil
+}
 func (s *gdprStubRepo) RestoreIssue(context.Context, uuid.UUID) error   { return nil }
 func (s *gdprStubRepo) RestoreTestCase(context.Context, uuid.UUID) error { return nil }
 func (s *gdprStubRepo) RestoreFile(context.Context, uuid.UUID) error    { return nil }
 func (s *gdprStubRepo) RestoreProject(context.Context, uuid.UUID) error { return nil }
 func (s *gdprStubRepo) RestoreNewsPost(context.Context, uuid.UUID) error { return nil }
+func (s *gdprStubRepo) RestoreScheduledCall(context.Context, uuid.UUID) error { return nil }
 func (s *gdprStubRepo) SoftDeleteIssue(context.Context, uuid.UUID, time.Time) error {
 	return nil
 }
@@ -71,6 +75,9 @@ func (s *gdprStubRepo) SoftDeleteProject(context.Context, uuid.UUID, time.Time) 
 func (s *gdprStubRepo) SoftDeleteNewsPost(context.Context, uuid.UUID, time.Time) error {
 	return nil
 }
+func (s *gdprStubRepo) SoftDeleteScheduledCall(context.Context, uuid.UUID, time.Time) error {
+	return nil
+}
 func (s *gdprStubRepo) PurgeExpiredIssues(context.Context, time.Time) (int, error) {
 	return 0, nil
 }
@@ -84,6 +91,9 @@ func (s *gdprStubRepo) PurgeExpiredProjects(context.Context, time.Time) (int, er
 	return 0, nil
 }
 func (s *gdprStubRepo) PurgeExpiredNewsPosts(context.Context, time.Time) (int, error) {
+	return 0, nil
+}
+func (s *gdprStubRepo) PurgeExpiredScheduledCalls(context.Context, time.Time) (int, error) {
 	return 0, nil
 }
 func (s *gdprStubRepo) DeactivateUser(context.Context, uuid.UUID) error { return nil }

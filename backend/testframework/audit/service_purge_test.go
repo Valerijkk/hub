@@ -55,6 +55,13 @@ func (m *purgeMockRepo) PurgeExpiredNewsPosts(_ context.Context, _ time.Time) (i
 	return m.purgeCounts["newsposts"], nil
 }
 
+func (m *purgeMockRepo) PurgeExpiredScheduledCalls(_ context.Context, _ time.Time) (int, error) {
+	if m.purgeErr != nil {
+		return 0, m.purgeErr
+	}
+	return m.purgeCounts["scheduled_calls"], nil
+}
+
 type trashListMockRepo struct {
 	mockAuditRepo
 	items []audit.TrashItem
@@ -133,7 +140,7 @@ func TestAuditService_SoftDelete_AllTypes(t *testing.T) {
 	ctx := context.Background()
 	id := uuid.New()
 
-	for _, entityType := range []string{"issue", "test_case", "file", "project", "newspost"} {
+	for _, entityType := range []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call"} {
 		require.NoError(t, svc.SoftDelete(ctx, entityType, id), entityType)
 	}
 }
@@ -145,7 +152,7 @@ func TestAuditService_RestoreItem_AllTypes(t *testing.T) {
 	ctx := context.Background()
 	id := uuid.New()
 
-	for _, entityType := range []string{"issue", "test_case", "file", "project", "newspost"} {
+	for _, entityType := range []string{"issue", "test_case", "file", "project", "newspost", "scheduled_call"} {
 		require.NoError(t, svc.RestoreItem(ctx, entityType, id), entityType)
 	}
 }

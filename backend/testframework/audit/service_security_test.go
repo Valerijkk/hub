@@ -142,11 +142,15 @@ func (m *mockAuditRepo) ListDeletedProjects(context.Context, time.Time, int, int
 func (m *mockAuditRepo) ListDeletedNewsPosts(context.Context, time.Time, int, int) ([]audit.TrashItem, int, error) {
 	return nil, 0, nil
 }
+func (m *mockAuditRepo) ListDeletedScheduledCalls(context.Context, *uuid.UUID, time.Time, int, int) ([]audit.TrashItem, int, error) {
+	return nil, 0, nil
+}
 func (m *mockAuditRepo) RestoreIssue(context.Context, uuid.UUID) error   { return nil }
 func (m *mockAuditRepo) RestoreTestCase(context.Context, uuid.UUID) error { return nil }
 func (m *mockAuditRepo) RestoreFile(context.Context, uuid.UUID) error    { return nil }
 func (m *mockAuditRepo) RestoreProject(context.Context, uuid.UUID) error { return nil }
 func (m *mockAuditRepo) RestoreNewsPost(context.Context, uuid.UUID) error { return nil }
+func (m *mockAuditRepo) RestoreScheduledCall(context.Context, uuid.UUID) error { return nil }
 func (m *mockAuditRepo) SoftDeleteIssue(context.Context, uuid.UUID, time.Time) error {
 	return nil
 }
@@ -160,11 +164,17 @@ func (m *mockAuditRepo) SoftDeleteProject(context.Context, uuid.UUID, time.Time)
 func (m *mockAuditRepo) SoftDeleteNewsPost(context.Context, uuid.UUID, time.Time) error {
 	return nil
 }
+func (m *mockAuditRepo) SoftDeleteScheduledCall(context.Context, uuid.UUID, time.Time) error {
+	return nil
+}
 func (m *mockAuditRepo) PurgeExpiredIssues(context.Context, time.Time) (int, error)    { return 0, nil }
 func (m *mockAuditRepo) PurgeExpiredTestCases(context.Context, time.Time) (int, error) { return 0, nil }
 func (m *mockAuditRepo) PurgeExpiredFiles(context.Context, time.Time) (int, error)     { return 0, nil }
 func (m *mockAuditRepo) PurgeExpiredProjects(context.Context, time.Time) (int, error)  { return 0, nil }
 func (m *mockAuditRepo) PurgeExpiredNewsPosts(context.Context, time.Time) (int, error) { return 0, nil }
+func (m *mockAuditRepo) PurgeExpiredScheduledCalls(context.Context, time.Time) (int, error) {
+	return 0, nil
+}
 func (m *mockAuditRepo) ReassignAssignedIssues(context.Context, uuid.UUID, uuid.UUID) (int, error) {
 	return 0, nil
 }

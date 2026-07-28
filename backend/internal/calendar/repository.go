@@ -60,6 +60,7 @@ func (r *EntRepository) ListScheduledCalls(ctx context.Context, projectIDs []uui
 		Where(
 			scheduledcall.ProjectIDIn(projectIDs...),
 			scheduledcall.IsActive(true),
+			scheduledcall.DeletedAtIsNil(),
 		).
 		All(ctx)
 }

@@ -384,6 +384,7 @@ func (r *EntRepository) ListScheduledCalls(ctx context.Context, channelID uuid.U
 		Where(
 			scheduledcall.ChannelID(channelID),
 			scheduledcall.IsActive(true),
+			scheduledcall.DeletedAtIsNil(),
 		).
 		Order(ent.Asc(scheduledcall.FieldScheduledAt)).
 		All(ctx)
@@ -412,9 +413,13 @@ func (r *EntRepository) UpdateScheduledCall(ctx context.Context, id uuid.UUID, r
 	return q.Save(ctx)
 }
 
-// DeleteScheduledCall деактивирует запланированный звонок.
+// DeleteScheduledCall мягко удаляет запланированный звонок/серию в корзину (FR-CAL-05).
+// Occurrences не материализованы — soft-delete родителя убирает всю RRULE-серию из выборок.
 func (r *EntRepository) DeleteScheduledCall(ctx context.Context, id uuid.UUID) error {
+	now := time.Now().UTC()
 	return r.db.ScheduledCall.UpdateOneID(id).
+		Where(scheduledcall.DeletedAtIsNil()).
+		SetDeletedAt(now).
 		SetIsActive(false).
 		Exec(ctx)
 }
@@ -424,6 +429,7 @@ func (r *EntRepository) GetDueScheduledCalls(ctx context.Context, now time.Time)
 	return r.db.ScheduledCall.Query().
 		Where(
 			scheduledcall.IsActive(true),
+			scheduledcall.DeletedAtIsNil(),
 			scheduledcall.ScheduledAtLTE(now),
 		).
 		All(ctx)
@@ -464,6 +470,7 @@ func (r *EntRepository) FindConflictingCalls(ctx context.Context, participantIDs
 	return r.db.ScheduledCall.Query().
 		Where(
 			scheduledcall.IsActive(true),
+			scheduledcall.DeletedAtIsNil(),
 			scheduledcall.ChannelIDIn(channelIDs...),
 			scheduledcall.ScheduledAtLT(windowEnd),
 			scheduledcall.ScheduledAtGTE(windowStart.Add(-60*time.Minute)),

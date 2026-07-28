@@ -1,6 +1,6 @@
 # Phase 127 — FR-CAL-05 ScheduledCall series soft-delete + trash
 
-**Status:** PLANNED (docs only — no production code in this phase artifact)  
+**Status:** IMPLEMENTED 2026-07-28 (TASK-002) — see `VERIFICATION.md`  
 **Source:** `docs/system_specification.md` FR-CAL-05 (US-CAL-02), NFR-11 (and resource-conflict clause of FR-CAL-05 / NFR-33 where already in scope)  
 **Audit:** `.planning/audits/planning-audit-2026-07/00-PLANNING-AUDIT.md` §4.3 · `01-PLANNING-FIXES.md` B2  
 **Index note:** `.planning/audits/planning-audit-2026-07/PW4-D3-FR-PLANS.md`  
@@ -25,13 +25,13 @@ Close confirmed gap **FR-CAL-05** for the **existing** recurring series entity `
 
 ## Tasks
 
-- [ ] Add `deleted_at` (optional/nillable timestamptz UTC) + index to `backend/ent/schema/scheduledcall.go`; generate Ent + Atlas migration.
-- [ ] Change delete path: soft-set `deleted_at` (and keep inactive / exclude from due-job queries). Prefer clearing or ignoring `is_active` consistently so soft-deleted series never fire reminders or LiveKit scheduling.
-- [ ] Register trash type `scheduled_call` (or `scheduledcall` — pick one string and document in API) in `backend/internal/audit/service.go` + `repository.go`: list / restore (clear `deleted_at`, re-activate if needed) / soft-delete / purge after `TrashRetentionDays` (30).
-- [ ] Ensure “all occurrences” semantics: occurrences are **not** materialized; soft-deleting the parent series removes them from `GET` calendar/calls listings and RRULE expansion filters (`deleted_at IS NULL`).
-- [ ] Calendar/calls list and `GetDueScheduledCalls` must exclude soft-deleted rows.
-- [ ] Tests in `backend/testframework/calls/` and `backend/testframework/audit/` (+ calendar aggregation if touched): create series with `rrule` → delete → absent from active lists → present in trash → restore → series and expanded occurrences visible again; purge past cutoff; restore after purge → 404.
-- [ ] Docs sync on implement: `docs/wiki/API.md` (trash type + scheduled-call delete semantics); `.planning/STATE.md` session note.
+- [x] Add `deleted_at` (optional/nillable timestamptz UTC) + index to `backend/ent/schema/scheduledcall.go`; generate Ent + Atlas migration.
+- [x] Change delete path: soft-set `deleted_at` (and keep inactive / exclude from due-job queries). Prefer clearing or ignoring `is_active` consistently so soft-deleted series never fire reminders or LiveKit scheduling.
+- [x] Register trash type `scheduled_call` (or `scheduledcall` — pick one string and document in API) in `backend/internal/audit/service.go` + `repository.go`: list / restore (clear `deleted_at`, re-activate if needed) / soft-delete / purge after `TrashRetentionDays` (30).
+- [x] Ensure “all occurrences” semantics: occurrences are **not** materialized; soft-deleting the parent series removes them from `GET` calendar/calls listings and RRULE expansion filters (`deleted_at IS NULL`).
+- [x] Calendar/calls list and `GetDueScheduledCalls` must exclude soft-deleted rows.
+- [x] Tests in `backend/testframework/calls/` and `backend/testframework/audit/` (+ calendar aggregation if touched): create series with `rrule` → delete → absent from active lists → present in trash → restore → series and expanded occurrences visible again; purge past cutoff; restore after purge → 404.
+- [x] Docs sync on implement: `docs/wiki/API.md` (trash type + scheduled-call delete semantics); `.planning/STATE.md` session note.
 
 ## Acceptance criteria
 

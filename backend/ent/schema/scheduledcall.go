@@ -49,7 +49,11 @@ func (ScheduledCall) Fields() []ent.Field {
 			Comment("ID РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ, СЃРѕР·РґР°РІС€РµРіРѕ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅС‹Р№ Р·РІРѕРЅРѕРє"),
 		field.Bool("is_active").
 			Default(true).
-			Comment("РђРєС‚РёРІРµРЅ Р»Рё Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅС‹Р№ Р·РІРѕРЅРѕРє"),
+			Comment("Активен ли запланированный звонок"),
+		field.Time("deleted_at").
+			Optional().
+			Nillable().
+			Comment("Время мягкого удаления (корзина 30 дней, FR-CAL-05 / NFR-11)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -87,5 +91,6 @@ func (ScheduledCall) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("channel_id", "scheduled_at"),
 		index.Fields("is_active", "scheduled_at"),
+		index.Fields("deleted_at"),
 	}
 }

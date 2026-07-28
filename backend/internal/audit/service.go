@@ -217,6 +217,8 @@ func (s *AuditService) ListTrash(ctx context.Context, entityType string, project
 		items, total, err = s.repo.ListDeletedProjects(ctx, cutoff, offset, perPage)
 	case "newspost":
 		items, total, err = s.repo.ListDeletedNewsPosts(ctx, cutoff, offset, perPage)
+	case "scheduled_call":
+		items, total, err = s.repo.ListDeletedScheduledCalls(ctx, projectID, cutoff, offset, perPage)
 	default:
 		return resp, nil
 	}
@@ -250,6 +252,8 @@ func (s *AuditService) RestoreItem(ctx context.Context, entityType string, entit
 		return s.repo.RestoreProject(ctx, entityID)
 	case "newspost":
 		return s.repo.RestoreNewsPost(ctx, entityID)
+	case "scheduled_call":
+		return s.repo.RestoreScheduledCall(ctx, entityID)
 	default:
 		return fmt.Errorf("неизвестный тип сущности: %s", entityType)
 	}
@@ -269,6 +273,8 @@ func (s *AuditService) SoftDelete(ctx context.Context, entityType string, entity
 		return s.repo.SoftDeleteProject(ctx, entityID, now)
 	case "newspost":
 		return s.repo.SoftDeleteNewsPost(ctx, entityID, now)
+	case "scheduled_call":
+		return s.repo.SoftDeleteScheduledCall(ctx, entityID, now)
 	default:
 		return fmt.Errorf("неизвестный тип сущности: %s", entityType)
 	}
@@ -294,6 +300,7 @@ func (s *AuditService) PurgeExpired(ctx context.Context) error {
 	purge("files", func() (int, error) { return s.repo.PurgeExpiredFiles(ctx, cutoff) })
 	purge("projects", func() (int, error) { return s.repo.PurgeExpiredProjects(ctx, cutoff) })
 	purge("newsposts", func() (int, error) { return s.repo.PurgeExpiredNewsPosts(ctx, cutoff) })
+	purge("scheduled_calls", func() (int, error) { return s.repo.PurgeExpiredScheduledCalls(ctx, cutoff) })
 
 	return nil
 }
