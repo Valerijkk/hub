@@ -92,6 +92,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 		startSprint,
 		completeSprint,
 		loading,
+		error,
 	} = useSprintStore();
 
 	const [confirmComplete, setConfirmComplete] = useState(false);
@@ -100,7 +101,7 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 	);
 
 	useEffect(() => {
-		fetchSprints(projectId);
+		void fetchSprints(projectId);
 	}, [projectId, fetchSprints]);
 
 	const handleStartSprint = async (e: React.MouseEvent, sprintId: string) => {
@@ -130,6 +131,20 @@ export function SprintBoard({ projectId }: SprintBoardProps) {
 					<div className="h-8 w-8 animate-spin rounded-full border-2 border-blue border-t-transparent" />
 					<p className="text-[13px] text-t2">Загрузка спринтов...</p>
 				</div>
+			</div>
+		);
+	}
+
+	if (error && sprints.length === 0) {
+		return (
+			<div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+				<p className="text-[14px] font-bold text-t1">{error}</p>
+				<p className="text-[13px] text-t2">
+					Проверьте сеть и попробуйте снова.
+				</p>
+				<Button type="button" onClick={() => void fetchSprints(projectId)}>
+					Повторить
+				</Button>
 			</div>
 		);
 	}

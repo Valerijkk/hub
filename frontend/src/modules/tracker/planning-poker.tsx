@@ -41,19 +41,28 @@ export function PlanningPoker({
 	const { pokerSession, setPokerSession } = useSprintStore();
 	const [selectedValue, setSelectedValue] = useState<string | null>(null);
 	const [voting, setVoting] = useState(false);
+	/** null до первого ответа — не путать с «сессия не найдена» (W10-A3-002). */
+	const [initialLoadDone, setInitialLoadDone] = useState(false);
+	const [loadFailed, setLoadFailed] = useState(false);
 
 	const loadSession = useCallback(async () => {
 		try {
 			const session = await pokerApi.getPokerSession(sessionId);
 			setPokerSession(session);
+			setLoadFailed(false);
 		} catch {
-			// сессия истекла
+			setLoadFailed(true);
+			setPokerSession(null);
+		} finally {
+			setInitialLoadDone(true);
 		}
 	}, [sessionId, setPokerSession]);
 
 	useEffect(() => {
-		loadSession();
-		const interval = setInterval(loadSession, 3000);
+		setInitialLoadDone(false);
+		setLoadFailed(false);
+		void loadSession();
+		const interval = setInterval(() => void loadSession(), 3000);
 		return () => clearInterval(interval);
 	}, [loadSession]);
 
@@ -62,7 +71,7 @@ export function PlanningPoker({
 		try {
 			await pokerApi.castVote(sessionId, { value });
 			setSelectedValue(value);
-			loadSession();
+			void loadSession();
 		} finally {
 			setVoting(false);
 		}
@@ -98,7 +107,17 @@ export function PlanningPoker({
 		return { avg: Math.round(avg * 10) / 10, median };
 	};
 
-	if (!pokerSession) {
+	if (!initialLoadDone) {
+		return (
+			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
+				<p className="text-[13px] text-t2 text-center py-8">
+					Загрузка сессии...
+				</p>
+			</div>
+		);
+	}
+
+	if (loadFailed || !pokerSession) {
 		return (
 			<div className="bg-gradient-to-b from-card to-raised border border-b1 rounded-[var(--r4)] p-5">
 				<p className="text-[13px] text-t2 text-center py-8">
@@ -109,7 +128,7 @@ export function PlanningPoker({
 	}
 
 	const stats =
-		pokerSession?.revealed && pokerSession?.votes
+		pokerSession.revealed && pokerSession.votes
 			? computeStats(pokerSession.votes)
 			: null;
 
@@ -126,7 +145,7 @@ export function PlanningPoker({
 							<button
 								type="button"
 								key={value}
-								onClick={() => handleVote(value)}
+								onClick={() => void handleVote(value)}
 								disabled={voting}
 								className={`flex h-16 w-12 items-center justify-center rounded-[var(--r3)] border transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-250 hover:border-b2 hover:-translate-y-1 ${
 									selectedValue === value
@@ -198,7 +217,7 @@ export function PlanningPoker({
 				{/* Кнопка раскрытия */}
 				{canReveal && !pokerSession.revealed && (
 					<Button
-						onClick={handleReveal}
+						onClick={() => void handleReveal()}
 						className="bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-md shadow-blue/20"
 					>
 						Раскрыть голоса
