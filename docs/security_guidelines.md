@@ -259,6 +259,7 @@ if expectedHash != "" { ... }
 | `pg_advisory_xact_lock` | ✅ Используется (`auth/service_registration_lock.go:47`) |
 | `safehttp.NewSafeHTTPClient` | ✅ `gitlab/service.go:55`, `platform/http/opengraph.go:30` |
 | `ValidateOutboundURL` | ✅ `gitlab:71`, `notification/push.go:157,218`, `opengraph:26` |
+| Offline AI loopback (Ollama) | ✅ ADR-AI-OLLAMA-LOOPBACK-2026: `ValidateOfflineAIURL` + `NewOfflineAIHTTPClient` только для host allowlist; глобальный SafeDial **не** ослаблен (P1-BE-U01 / TASK-101) |
 | `subtle.ConstantTimeCompare` | ✅ `auth/magiclink.go:135` |
 | ErrorBoundary usage | ✅ 7 модулей (messenger, dashboard, calls, tms, projects) |
 | BroadcastChannel | ✅ `stores/auth-store.ts:46-88` multi-tab sync |
