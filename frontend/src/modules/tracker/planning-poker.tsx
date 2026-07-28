@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import * as pokerApi from "@/api/sprint";
 import { Button } from "@/components/ui/button";
+import { toastApiError } from "@/lib/format-api-error";
 import { useSprintStore } from "@/stores/sprint-store";
 
 /** Значения Фибоначчи для голосования. */
@@ -72,6 +73,8 @@ export function PlanningPoker({
 			await pokerApi.castVote(sessionId, { value });
 			setSelectedValue(value);
 			void loadSession();
+		} catch (err) {
+			toastApiError(err, "Не удалось отправить голос");
 		} finally {
 			setVoting(false);
 		}
@@ -81,8 +84,8 @@ export function PlanningPoker({
 		try {
 			const revealed = await pokerApi.revealVotes(sessionId);
 			setPokerSession(revealed);
-		} catch {
-			// ошибка раскрытия
+		} catch (err) {
+			toastApiError(err, "Не удалось раскрыть голоса");
 		}
 	};
 

@@ -146,6 +146,14 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 
+	// Очистка debounce при unmount — иначе setState после закрытия (W9-A3-006).
+	useEffect(
+		() => () => {
+			if (debounceRef.current) clearTimeout(debounceRef.current);
+		},
+		[],
+	);
+
 	/** При открытии поповера -- загружаем trending. */
 	const handleOpenChange = useCallback(
 		(isOpen: boolean) => {

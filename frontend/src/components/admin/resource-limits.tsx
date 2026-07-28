@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getLimits, type ResourceLimit, updateLimit } from "@/api/admin";
 import { toastApiError } from "@/lib/format-api-error";
 
@@ -16,14 +16,23 @@ const LIMIT_LABELS: Record<string, string> = {
 export function ResourceLimits() {
 	const [limits, setLimits] = useState<ResourceLimit[]>([]);
 	const [values, setValues] = useState<Record<string, string>>({});
-	const [loading, setLoading] = useState(false);
+	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [toast, setToast] = useState("");
+	const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const showToast = (msg: string) => {
+		setToast(msg);
+		if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+		toastTimerRef.current = setTimeout(() => setToast(""), 3000);
+	};
 
 	useEffect(() => {
+		let cancelled = false;
 		setLoading(true);
 		getLimits()
 			.then((data) => {
+				if (cancelled) return;
 				setLimits(data);
 				const vals: Record<string, string> = {};
 				for (const l of data) {
@@ -31,8 +40,16 @@ export function ResourceLimits() {
 				}
 				setValues(vals);
 			})
-			.catch((err) => toastApiError(err, "Не удалось загрузить лимиты"))
-			.finally(() => setLoading(false));
+			.catch((err) => {
+				if (!cancelled) toastApiError(err, "Не удалось загрузить лимиты");
+			})
+			.finally(() => {
+				if (!cancelled) setLoading(false);
+			});
+		return () => {
+			cancelled = true;
+			if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+		};
 	}, []);
 
 	/** Сохранить все изменённые лимиты. */
@@ -44,15 +61,13 @@ export function ResourceLimits() {
 					await updateLimit(limit.key, values[limit.key] ?? limit.value);
 				}
 			}
-			setToast("Лимиты сохранены");
-			setTimeout(() => setToast(""), 3000);
+			showToast("Лимиты сохранены");
 			// Обновляем
 			const data = await getLimits();
 			setLimits(data);
 		} catch (err) {
 			toastApiError(err, "Ошибка сохранения лимитов");
-			setToast("Ошибка сохранения");
-			setTimeout(() => setToast(""), 3000);
+			showToast("Ошибка сохранения");
 		} finally {
 			setSaving(false);
 		}
@@ -97,13 +112,17 @@ export function ResourceLimits() {
 			<div className="flex items-center gap-3 mt-2">
 				<button
 					type="button"
-					onClick={handleSave}
+					onClick={() => void handleSave()}
 					disabled={saving}
 					className="inline-flex items-center gap-[7px] px-5 py-[9px] rounded-[var(--r2)] text-[13px] font-bold bg-gradient-to-br from-[var(--blueS)] to-[#2563EB] text-white shadow-[0_0_16px_var(--gB)] transition-[color,background-color,border-color,box-shadow,transform,filter,opacity] duration-220 hover:shadow-[0_0_28px_rgba(91,156,245,0.3)] hover:-translate-y-px active:scale-[0.96] disabled:opacity-50"
 				>
 					{saving ? "Сохранение..." : "Сохранить"}
 				</button>
-				{toast && <span className="text-[13px] text-green">{toast}</span>}
+				{toast && (
+					<span className="text-[13px] text-green" role="status">
+						{toast}
+					</span>
+				)}
 			</div>
 		</div>
 	);

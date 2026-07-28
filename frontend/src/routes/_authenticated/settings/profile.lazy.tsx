@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { SessionResponse } from "@/api/auth";
 import {
@@ -81,9 +81,10 @@ function ProfilePage() {
 	/** Длительность кастомного статуса. */
 	const [statusDuration] = useState("1d");
 
-	/* Синхронизация формы при загрузке данных пользователя */
+	/* Синхронизация формы при загрузке данных пользователя (не setState в render). */
 	const [initialized, setInitialized] = useState(false);
-	if (user && !initialized) {
+	useEffect(() => {
+		if (!user || initialized) return;
 		setForm({
 			name: user.name ?? "",
 			display_name: user.display_name ?? "",
@@ -95,7 +96,7 @@ function ProfilePage() {
 			birthday: birthdayForDateInput(user.birthday),
 		});
 		setInitialized(true);
-	}
+	}, [user, initialized]);
 
 	const profileMutation = useMutation({
 		mutationFn: updateProfile,

@@ -91,23 +91,30 @@ export function AuditLogViewer() {
 		per_page: 25,
 	});
 
-	const fetchLogs = useCallback(async () => {
+	const fetchLogs = useCallback(async (signal?: { cancelled: boolean }) => {
 		setLoading(true);
 		try {
 			const resp = await getAuditLogs({ ...filters, page });
+			if (signal?.cancelled) return;
 			setEntries(resp.items);
 			setTotal(resp.total);
 		} catch (err) {
-			toastApiError(err, "Не удалось загрузить журнал аудита");
+			if (!signal?.cancelled) {
+				toastApiError(err, "Не удалось загрузить журнал аудита");
+			}
 		} finally {
-			setLoading(false);
+			if (!signal?.cancelled) setLoading(false);
 		}
 	}, [filters, page]);
 
 	useEffect(() => {
-		fetchLogs();
-		const interval = setInterval(fetchLogs, 30000);
-		return () => clearInterval(interval);
+		const signal = { cancelled: false };
+		void fetchLogs(signal);
+		const interval = setInterval(() => void fetchLogs(signal), 30000);
+		return () => {
+			signal.cancelled = true;
+			clearInterval(interval);
+		};
 	}, [fetchLogs]);
 
 	const exportCSV = () => {

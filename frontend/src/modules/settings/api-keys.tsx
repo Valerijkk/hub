@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	type APIKeyInfo,
 	createAPIKey,
@@ -16,6 +16,14 @@ export function APIKeysPage() {
 	const [createdKey, setCreatedKey] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 	const [revokeDialogId, setRevokeDialogId] = useState<string | null>(null);
+	const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(
+		() => () => {
+			if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+		},
+		[],
+	);
 
 	const fetchKeys = useCallback(async () => {
 		try {
@@ -47,9 +55,10 @@ export function APIKeysPage() {
 
 	const handleCopy = () => {
 		if (createdKey) {
-			navigator.clipboard.writeText(createdKey);
+			void navigator.clipboard.writeText(createdKey);
 			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
+			if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+			copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
 		}
 	};
 

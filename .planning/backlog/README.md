@@ -56,7 +56,7 @@
 | [TASK-048](TASK-048-fe-p2-mutation-feedback.md) | FE mutation feedback | P2 | На проверке | fe2 | W12 P2-FE-02 |
 | [TASK-049](TASK-049-fe-p2-a11y-names-dialogs.md) | FE a11y names/dialogs | P2 | На проверке | fe1 | W12 P2-FE-03,04 |
 | [TASK-050](TASK-050-fe-p2-tokens-dead-ui.md) | FE tokens/dead UI/authz | P2 | На проверке | fe1 | W12 P2-FE-05,06,16 |
-| [TASK-051](TASK-051-fe-p2-effects-hooks-race.md) | FE effects/hooks race | P2 | Открыта | fe1 | W12 P2-FE-07 |
+| [TASK-051](TASK-051-fe-p2-effects-hooks-race.md) | FE effects/hooks race | P2 | На проверке | fe2 | W12 P2-FE-07 |
 | [TASK-052](TASK-052-fe-p2-api-dto-gaps.md) | FE API DTO gaps | P2 | Открыта | fe2 | W12 P2-FE-08 |
 | [TASK-053](TASK-053-fe-p2-auth-ws-upload.md) | FE auth/WS/upload | P2 | На проверке | fe2 | W12 P2-FE-09..11 |
 | [TASK-054](TASK-054-fe-p2-docs-metrics-drift.md) | Docs metrics/wiring drift | P2 | На проверке | docs-writer | W12 P2-FE-12 |

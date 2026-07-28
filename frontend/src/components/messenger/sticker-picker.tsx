@@ -196,11 +196,14 @@ interface StickerPickerProps {
  */
 export function StickerPicker({ onSelect }: StickerPickerProps) {
 	const [open, setOpen] = useState(false);
+	// Хуки до любого early throw — иначе Rules of Hooks (W9-A3-005 / P2-FE-07).
+	const [activePackId, setActivePackId] = useState(
+		() => STICKER_PACKS[0]?.id ?? "",
+	);
 	const defaultPack = STICKER_PACKS[0];
 	if (!defaultPack) {
 		throw new Error("STICKER_PACKS must not be empty");
 	}
-	const [activePackId, setActivePackId] = useState(defaultPack.id);
 
 	const activePack =
 		STICKER_PACKS.find((p) => p.id === activePackId) ?? defaultPack;

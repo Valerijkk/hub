@@ -1,5 +1,6 @@
 import type { Value } from "@udecode/plate";
 import { Plate, PlateContent, usePlateEditor } from "@udecode/plate/react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /** Пропсы компонента PlateEditor. */
@@ -33,12 +34,23 @@ export function PlateEditor({
 	const editor = usePlateEditor({
 		value: value ?? DEFAULT_VALUE,
 	});
+	const lastExternalValue = useRef(JSON.stringify(value ?? DEFAULT_VALUE));
+
+	// Синхронизация внешнего value после mount (смена issue/комментария) — W9-A4-005.
+	useEffect(() => {
+		const next = value ?? DEFAULT_VALUE;
+		const serialized = JSON.stringify(next);
+		if (serialized === lastExternalValue.current) return;
+		lastExternalValue.current = serialized;
+		editor.tf.setValue(next);
+	}, [value, editor]);
 
 	return (
 		<div className={cn("rounded-md border", className)}>
 			<Plate
 				editor={editor}
 				onValueChange={({ value: newValue }) => {
+					lastExternalValue.current = JSON.stringify(newValue);
 					onChange?.(newValue);
 				}}
 				readOnly={readOnly}
