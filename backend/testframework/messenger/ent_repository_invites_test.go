@@ -41,7 +41,7 @@ func TestEntRepository_ChannelInvites_CRUD(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 
-	require.NoError(t, env.repo.RevokeChannelInvite(env.ctx, inv.ID))
+	require.NoError(t, env.repo.RevokeChannelInvite(env.ctx, inv.ChannelID, inv.ID))
 	list, err = env.repo.ListChannelInvites(env.ctx, inv.ChannelID)
 	require.NoError(t, err)
 	assert.Empty(t, list)

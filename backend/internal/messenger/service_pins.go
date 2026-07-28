@@ -9,17 +9,32 @@ import (
 
 // TogglePin закрепляет или открепляет сообщение.
 // Возвращает true, если закреплено, false — если откреплено.
+// Требуется membership; сообщение должно принадлежать каналу (P1-BE-16).
 func (s *MessengerService) TogglePin(ctx context.Context, channelID uuid.UUID, messageID string, userID uuid.UUID) (bool, error) {
+	isMember, err := s.repo.IsMember(ctx, channelID, userID)
+	if err != nil {
+		return false, apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !isMember {
+		return false, apperrors.NewForbidden("вы не являетесь участником канала")
+	}
+
+	msg, err := s.repo.FindMessageByID(ctx, messageID)
+	if err != nil {
+		return false, apperrors.NewNotFound("сообщение не найдено")
+	}
+	if msg.ChannelID != channelID {
+		return false, apperrors.NewNotFound("сообщение не найдено")
+	}
+
 	existing, err := s.repo.FindPin(ctx, channelID, messageID)
 	if err == nil && existing != nil {
-		// Открепление
 		if err := s.repo.RemovePin(ctx, channelID, messageID); err != nil {
 			return false, apperrors.NewInternal("ошибка открепления сообщения")
 		}
 		return false, nil
 	}
 
-	// Закрепление
 	if err := s.repo.AddPin(ctx, channelID, messageID, userID); err != nil {
 		return false, apperrors.NewInternal("ошибка закрепления сообщения")
 	}

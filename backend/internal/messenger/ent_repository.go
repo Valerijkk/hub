@@ -342,9 +342,22 @@ func (r *EntRepository) AddBookmark(ctx context.Context, userID uuid.UUID, messa
 		Save(ctx)
 }
 
-// RemoveBookmark удаляет закладку по ID.
-func (r *EntRepository) RemoveBookmark(ctx context.Context, bookmarkID uuid.UUID) error {
-	return r.client.Bookmark.DeleteOneID(bookmarkID).Exec(ctx)
+// RemoveBookmark удаляет закладку только владельца (userID + bookmarkID).
+// Чужой bookmarkID → NotFound (IDOR-safe).
+func (r *EntRepository) RemoveBookmark(ctx context.Context, userID, bookmarkID uuid.UUID) error {
+	n, err := r.client.Bookmark.Delete().
+		Where(
+			bookmark.IDEQ(bookmarkID),
+			bookmark.UserIDEQ(userID),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // ListBookmarks возвращает все закладки пользователя.
@@ -460,12 +473,23 @@ func (r *EntRepository) IncrementInviteUses(ctx context.Context, inviteID uuid.U
 	return err
 }
 
-// RevokeChannelInvite отзывает приглашение (is_revoked=true).
-func (r *EntRepository) RevokeChannelInvite(ctx context.Context, inviteID uuid.UUID) error {
-	_, err := r.client.ChannelInvite.UpdateOneID(inviteID).
+// RevokeChannelInvite отзывает приглашение в рамках канала (ChannelIDEQ).
+// inviteID другого канала → NotFound (IDOR-safe).
+func (r *EntRepository) RevokeChannelInvite(ctx context.Context, channelID, inviteID uuid.UUID) error {
+	n, err := r.client.ChannelInvite.Update().
+		Where(
+			channelinvite.IDEQ(inviteID),
+			channelinvite.ChannelIDEQ(channelID),
+		).
 		SetIsRevoked(true).
 		Save(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // ListChannelInvites возвращает активные (не отозванные) приглашения канала.

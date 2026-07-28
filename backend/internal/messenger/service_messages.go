@@ -158,19 +158,24 @@ func (s *MessengerService) EditMessage(ctx context.Context, messageID string, us
 
 // DeleteMessage выполняет мягкое удаление сообщения.
 // Автор удаляет своё; admin/owner — любое сообщение.
+// URL-канал должен совпадать с каналом сообщения (P1-BE-17); роль — по msg.ChannelID.
 func (s *MessengerService) DeleteMessage(ctx context.Context, messageID string, userID uuid.UUID, channelID string, isAdmin bool) error {
 	existing, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
 		return apperrors.NewNotFound("сообщение не найдено")
 	}
 
-	// Проверка авторства или прав администратора
+	chID, err := uuid.Parse(channelID)
+	if err != nil {
+		return apperrors.NewBadRequest("некорректный channel ID")
+	}
+	if existing.ChannelID != chID {
+		return apperrors.NewNotFound("сообщение не найдено")
+	}
+
+	// Проверка авторства или прав администратора (роль по каналу сообщения).
 	if existing.SenderID != userID && !isAdmin {
-		chID, err := uuid.Parse(channelID)
-		if err != nil {
-			return apperrors.NewBadRequest("некорректный channel ID")
-		}
-		role, _ := s.repo.GetMemberRole(ctx, chID, userID)
+		role, _ := s.repo.GetMemberRole(ctx, existing.ChannelID, userID)
 		if role != "owner" && role != "admin" {
 			return apperrors.NewForbidden("нет прав на удаление этого сообщения")
 		}

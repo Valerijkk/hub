@@ -315,6 +315,11 @@ func (m *mockRepository) AddReaction(_ context.Context, messageID, userID, emoji
 	}
 	for i, r := range doc.Reactions {
 		if r.Emoji == emoji {
+			for _, uid := range r.UserIDs {
+				if uid == userID {
+					return nil
+				}
+			}
 			doc.Reactions[i].UserIDs = append(doc.Reactions[i].UserIDs, userID)
 			return nil
 		}
@@ -446,10 +451,10 @@ func (m *mockRepository) AddBookmark(_ context.Context, userID uuid.UUID, messag
 	return b, nil
 }
 
-func (m *mockRepository) RemoveBookmark(_ context.Context, bookmarkID uuid.UUID) error {
+func (m *mockRepository) RemoveBookmark(_ context.Context, userID, bookmarkID uuid.UUID) error {
 	b, ok := m.bookmarksByID[bookmarkID]
-	if !ok {
-		return nil
+	if !ok || b.UserID != userID {
+		return &ent.NotFoundError{}
 	}
 	delete(m.bookmarksByID, bookmarkID)
 	if list, ok := m.bookmarks[b.UserID]; ok {
@@ -564,9 +569,9 @@ func (m *mockRepository) IncrementInviteUses(_ context.Context, inviteID uuid.UU
 	return nil
 }
 
-func (m *mockRepository) RevokeChannelInvite(_ context.Context, inviteID uuid.UUID) error {
+func (m *mockRepository) RevokeChannelInvite(_ context.Context, channelID, inviteID uuid.UUID) error {
 	inv, ok := m.invites[inviteID]
-	if !ok {
+	if !ok || inv.ChannelID != channelID {
 		return &ent.NotFoundError{}
 	}
 	inv.IsRevoked = true

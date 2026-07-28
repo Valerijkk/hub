@@ -22,7 +22,7 @@
 | [TASK-014](TASK-014-project-acl-sprint-tx.md) | Project ACL + sprint atomic | P1 | На проверке | be2 | W12 P1-BE-05..09 |
 | [TASK-015](TASK-015-tms-project-scope-idor-refs.md) | TMS suite/env IDOR + FK | P1 | На проверке | be2 | W12 P1-BE-10..12 |
 | [TASK-016](TASK-016-tms-import-limits-steps.md) | TMS import limits + steps | P1 | Открыта | be2 | W12 P1-BE-13..14 |
-| [TASK-017](TASK-017-messenger-membership-idor.md) | Messenger membership IDOR | P1 | Открыта | be1 | W12 P1-BE-15..20 |
+| [TASK-017](TASK-017-messenger-membership-idor.md) | Messenger membership IDOR | P1 | На проверке | be1 | W12 P1-BE-15..20 |
 | [TASK-018](TASK-018-ws-calls-authz-race.md) | WS race + scheduled calls authz | P1 | Открыта | be2 | W12 P1-BE-21..22 |
 | [TASK-019](TASK-019-platform-ssrf-outbox-pool-config.md) | Platform SSRF/outbox/pool/config | P1 | Открыта | be1 | W12 P1-BE-23..26 |
 | [TASK-020](TASK-020-apigateway-webhook-create-contract.md) | Webhook secret once + allowlist | P1 | Открыта | be2 | W12 P1-BE-27..28 |

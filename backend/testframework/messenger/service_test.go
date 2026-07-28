@@ -186,7 +186,7 @@ func TestToggleReaction_AddRemove(t *testing.T) {
 	svc, repo, _ := newTestService()
 	ctx := context.Background()
 	userID := uuid.New()
-	channelID := uuid.New()
+	channelID := setupChannelWithMembers(repo, "public", false, userID)
 
 	doc := &messenger.MessageDocument{
 		ID:        uuid.New().String(),
@@ -196,12 +196,10 @@ func TestToggleReaction_AddRemove(t *testing.T) {
 	}
 	repo.messages[doc.ID] = doc
 
-	// Только admin удаляет канал (не member).
 	added, err := svc.ToggleReaction(ctx, doc.ID, userID, "thumbsup")
 	require.NoError(t, err)
 	assert.True(t, added, "первый toggle должен добавить реакцию")
 
-	// Owner может удалить канал после повышения роли.
 	added, err = svc.ToggleReaction(ctx, doc.ID, userID, "thumbsup")
 	require.NoError(t, err)
 	assert.False(t, added, "второй toggle должен удалить реакцию")

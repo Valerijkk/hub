@@ -107,8 +107,8 @@ type PinRepository interface {
 type BookmarkRepository interface {
 	// AddBookmark добавляет закладку пользователя.
 	AddBookmark(ctx context.Context, userID uuid.UUID, messageID string, channelID uuid.UUID) (*ent.Bookmark, error)
-	// RemoveBookmark удаляет закладку.
-	RemoveBookmark(ctx context.Context, bookmarkID uuid.UUID) error
+	// RemoveBookmark удаляет закладку владельца (userID + bookmarkID).
+	RemoveBookmark(ctx context.Context, userID, bookmarkID uuid.UUID) error
 	// ListBookmarks возвращает все закладки пользователя.
 	ListBookmarks(ctx context.Context, userID uuid.UUID) ([]*ent.Bookmark, error)
 }
@@ -131,8 +131,8 @@ type ChannelInviteRepository interface {
 	FindChannelInviteByToken(ctx context.Context, token string) (*ent.ChannelInvite, error)
 	// IncrementInviteUses атомарно увеличивает счётчик использований.
 	IncrementInviteUses(ctx context.Context, inviteID uuid.UUID) error
-	// RevokeChannelInvite ставит is_revoked=true для приглашения.
-	RevokeChannelInvite(ctx context.Context, inviteID uuid.UUID) error
+	// RevokeChannelInvite ставит is_revoked=true для приглашения в рамках канала.
+	RevokeChannelInvite(ctx context.Context, channelID, inviteID uuid.UUID) error
 	// ListChannelInvites возвращает активные (не отозванные) приглашения канала.
 	ListChannelInvites(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelInvite, error)
 }

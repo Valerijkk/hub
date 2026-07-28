@@ -214,8 +214,8 @@ func (s *MessengerService) RevokeInvite(ctx context.Context, channelID, inviteID
 		return apperrors.NewForbidden("только owner или admin может отзывать приглашения")
 	}
 
-	// Отзываем приглашение через репозиторий.
-	if err := s.repo.RevokeChannelInvite(ctx, inviteID); err != nil {
+	// Отзыв только invite этого канала (P1-BE-19); чужой inviteID → 404.
+	if err := s.repo.RevokeChannelInvite(ctx, channelID, inviteID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("приглашение не найдено")
 		}

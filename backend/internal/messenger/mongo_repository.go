@@ -220,22 +220,24 @@ func (r *MongoRepository) AddReaction(ctx context.Context, messageID, userID, em
 		return err
 	}
 
-	// Если запись для emoji не найдена — создаём новую
-	if result.ModifiedCount == 0 {
-		filter = bson.M{"_id": messageID}
-		update = bson.M{
-			"$push": bson.M{
-				"reactions": ReactionEntry{
-					Emoji:   emoji,
-					UserIDs: []string{userID},
-				},
-			},
-		}
-		_, err = r.messages().UpdateOne(ctx, filter, update)
-		return err
+	// MatchedCount>0: emoji уже есть — $addToSet либо добавил userID, либо no-op
+	// при повторном клике (ModifiedCount==0). Нельзя $push второй ReactionEntry.
+	if result.MatchedCount > 0 {
+		return nil
 	}
 
-	return nil
+	// Emoji ещё нет — создаём новую запись реакции.
+	filter = bson.M{"_id": messageID}
+	update = bson.M{
+		"$push": bson.M{
+			"reactions": ReactionEntry{
+				Emoji:   emoji,
+				UserIDs: []string{userID},
+			},
+		},
+	}
+	_, err = r.messages().UpdateOne(ctx, filter, update)
+	return err
 }
 
 // RemoveReaction удаляет реакцию пользователя с сообщения.

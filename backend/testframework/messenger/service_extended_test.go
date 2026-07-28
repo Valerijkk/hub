@@ -155,10 +155,10 @@ func TestAcceptInvite_AlreadyMember(t *testing.T) {
 
 // TestBookmarks_AddListRemove проверяет сценарий: bookmarks add список remove.
 func TestBookmarks_AddListRemove(t *testing.T) {
-	svc, _, _ := newTestService()
+	svc, repo, _ := newTestService()
 	ctx := context.Background()
 	userID := uuid.New()
-	channelID := uuid.New()
+	channelID := setupChannelWithMembers(repo, "public", false, userID)
 	messageID := "msg-bookmark"
 
 	require.NoError(t, svc.AddBookmark(ctx, userID, messageID, channelID))
@@ -170,7 +170,7 @@ func TestBookmarks_AddListRemove(t *testing.T) {
 	assert.Equal(t, channelID.String(), list[0].ChannelID)
 
 	bookmarkID := uuid.MustParse(list[0].ID)
-	require.NoError(t, svc.RemoveBookmark(ctx, bookmarkID))
+	require.NoError(t, svc.RemoveBookmark(ctx, userID, bookmarkID))
 
 	list, err = svc.ListBookmarks(ctx, userID)
 	require.NoError(t, err)
@@ -179,11 +179,17 @@ func TestBookmarks_AddListRemove(t *testing.T) {
 
 // TestTogglePin_AddAndRemove проверяет сценарий: toggle pin add and remove.
 func TestTogglePin_AddAndRemove(t *testing.T) {
-	svc, _, _ := newTestService()
+	svc, repo, _ := newTestService()
 	ctx := context.Background()
 	userID := uuid.New()
-	channelID := uuid.New()
+	channelID := setupChannelWithMembers(repo, "public", false, userID)
 	messageID := "pin-msg"
+	repo.messages[messageID] = &messenger.MessageDocument{
+		ID:        messageID,
+		ChannelID: channelID,
+		SenderID:  userID,
+		CreatedAt: time.Now(),
+	}
 
 	pinned, err := svc.TogglePin(ctx, channelID, messageID, userID)
 	require.NoError(t, err)
@@ -449,6 +455,12 @@ func TestListPins_ReturnsPinnedMessages(t *testing.T) {
 	ownerID := uuid.New()
 	channelID := setupChannelWithMembers(repo, "public", false, ownerID)
 	messageID := "pinned-msg"
+	repo.messages[messageID] = &messenger.MessageDocument{
+		ID:        messageID,
+		ChannelID: channelID,
+		SenderID:  ownerID,
+		CreatedAt: time.Now(),
+	}
 
 	_, err := svc.TogglePin(ctx, channelID, messageID, ownerID)
 	require.NoError(t, err)

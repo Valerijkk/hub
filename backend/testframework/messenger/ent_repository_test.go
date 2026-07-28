@@ -205,7 +205,7 @@ func TestEntRepository_PinsAndBookmarks(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, bookmarks, 1)
 
-	require.NoError(t, env.repo.RemoveBookmark(env.ctx, bm.ID))
+	require.NoError(t, env.repo.RemoveBookmark(env.ctx, env.owner.ID, bm.ID))
 	bookmarks, err = env.repo.ListBookmarks(env.ctx, env.owner.ID)
 	require.NoError(t, err)
 	assert.Empty(t, bookmarks)

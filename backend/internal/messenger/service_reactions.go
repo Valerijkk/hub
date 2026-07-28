@@ -10,15 +10,24 @@ import (
 
 // ToggleReaction добавляет или удаляет реакцию (toggle).
 // Возвращает true, если реакция добавлена, false — если удалена.
+// Требуется membership в канале сообщения (P1-BE-16).
 func (s *MessengerService) ToggleReaction(ctx context.Context, messageID string, userID uuid.UUID, emoji string) (bool, error) {
-	exists, err := s.repo.FindReaction(ctx, messageID, userID.String(), emoji)
-	if err != nil {
-		return false, apperrors.NewInternal("ошибка проверки реакции")
-	}
-
 	msg, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
 		return false, apperrors.NewNotFound("сообщение не найдено")
+	}
+
+	isMember, err := s.repo.IsMember(ctx, msg.ChannelID, userID)
+	if err != nil {
+		return false, apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !isMember {
+		return false, apperrors.NewForbidden("вы не являетесь участником канала")
+	}
+
+	exists, err := s.repo.FindReaction(ctx, messageID, userID.String(), emoji)
+	if err != nil {
+		return false, apperrors.NewInternal("ошибка проверки реакции")
 	}
 
 	if exists {

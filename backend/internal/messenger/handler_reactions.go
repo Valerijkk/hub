@@ -196,8 +196,12 @@ func (h *Handler) RemoveBookmark(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "некорректный bookmark ID")
 	}
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 
-	if err := h.service.RemoveBookmark(c.Context(), id); err != nil {
+	if err := h.service.RemoveBookmark(c.Context(), userID, id); err != nil {
 		return err
 	}
 
