@@ -284,11 +284,13 @@ func (s *Service) authorizeDealWrite(ctx context.Context, actorID, dealID uuid.U
 
 func (s *Service) validateDealRefs(ctx context.Context, userID uuid.UUID, contactID, projectID *uuid.UUID) error {
 	if contactID != nil {
-		if _, err := s.repo.GetContact(ctx, *contactID); err != nil {
-			if ent.IsNotFound(err) {
+		// W7-A2-005: contact ref только owner-scope (или admin) — иначе member
+		// привязывает чужой UUID к своей сделке и обходит RT-003 list-scope.
+		if _, err := s.authorizeContactWrite(ctx, userID, *contactID); err != nil {
+			if errors.Is(err, ErrNotFound) {
 				return ErrInvalidInput
 			}
-			return fmt.Errorf("validate contact: %w", err)
+			return err
 		}
 	}
 	if projectID != nil {
