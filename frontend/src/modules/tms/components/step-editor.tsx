@@ -88,6 +88,7 @@ export function StepEditor(props: StepEditorProps) {
 												: "text-t2 hover:text-t1 hover:bg-raised",
 										)}
 										title="Переместить вверх"
+										aria-label="Переместить вверх"
 									>
 										▲
 									</button>
@@ -105,6 +106,7 @@ export function StepEditor(props: StepEditorProps) {
 												: "text-t2 hover:text-t1 hover:bg-raised",
 										)}
 										title="Переместить вниз"
+										aria-label="Переместить вниз"
 									>
 										▼
 									</button>
@@ -132,6 +134,8 @@ export function StepEditor(props: StepEditorProps) {
 									size="sm"
 									className="mt-1 h-6 w-6 p-0 text-t2 hover:text-destructive"
 									onClick={() => props.onRemoveStep(idx)}
+									aria-label="Удалить шаг"
+									title="Удалить шаг"
 								>
 									<svg
 										aria-hidden="true"

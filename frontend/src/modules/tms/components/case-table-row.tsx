@@ -158,6 +158,7 @@ export function CaseTableRow({
 				{hasAutotest ? (
 					<span
 						title="Автоматизирован"
+						aria-label="Автоматизирован"
 						className="text-[var(--green)] opacity-70 group-hover:opacity-100 transition-opacity"
 					>
 						<svg
@@ -176,7 +177,11 @@ export function CaseTableRow({
 						</svg>
 					</span>
 				) : (
-					<span title="Ручной" className="text-[var(--t4)]">
+					<span
+						title="Ручной"
+						aria-label="Ручной"
+						className="text-[var(--t4)]"
+					>
 						<svg
 							aria-hidden="true"
 							className="h-4 w-4"

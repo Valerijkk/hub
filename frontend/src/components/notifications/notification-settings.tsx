@@ -9,6 +9,7 @@ import {
 import { TelegramLinkCard } from "@/components/notifications/telegram-link-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toastApiError } from "@/lib/format-api-error";
 
 /** Карточка настройки тихих часов с сохранением в профиль. */
@@ -39,28 +40,38 @@ function QuietHoursCard() {
 				Несрочные уведомления подавляются в указанный период
 			</p>
 			<div className="flex items-center gap-3">
-				<Input
-					id="quiet-start"
-					type="time"
-					className="h-[38px] px-3 bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 [color-scheme:dark] w-auto"
-					value={start}
-					onChange={(e) => setStart(e.target.value)}
-					placeholder="23:00"
-				/>
-				<span className="text-t4">-</span>
-				<Input
-					id="quiet-end"
-					type="time"
-					className="h-[38px] px-3 bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 [color-scheme:dark] w-auto"
-					value={end}
-					onChange={(e) => setEnd(e.target.value)}
-					placeholder="07:00"
-				/>
+				<div className="space-y-1">
+					<Label htmlFor="quiet-start" className="text-[12px] text-t3">
+						Начало
+					</Label>
+					<Input
+						id="quiet-start"
+						type="time"
+						className="h-[38px] px-3 bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 [color-scheme:dark] w-auto"
+						value={start}
+						onChange={(e) => setStart(e.target.value)}
+						placeholder="23:00"
+					/>
+				</div>
+				<span className="text-t4 self-end pb-2">-</span>
+				<div className="space-y-1">
+					<Label htmlFor="quiet-end" className="text-[12px] text-t3">
+						Конец
+					</Label>
+					<Input
+						id="quiet-end"
+						type="time"
+						className="h-[38px] px-3 bg-[var(--input)] border border-b1 rounded-[var(--r2)] text-[14px] text-t1 [color-scheme:dark] w-auto"
+						value={end}
+						onChange={(e) => setEnd(e.target.value)}
+						placeholder="07:00"
+					/>
+				</div>
 				<Button
 					size="sm"
 					onClick={() => void handleSave()}
 					disabled={saving || (!start && !end)}
-					className="text-[12px]"
+					className="text-[12px] self-end"
 				>
 					{saving ? "..." : "OK"}
 				</Button>

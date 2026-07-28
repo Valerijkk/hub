@@ -138,7 +138,10 @@ export function MobileNav() {
 						aria-label="Закрыть меню"
 						onClick={() => setMoreOpen(false)}
 					/>
-					<div className="fixed inset-x-0 bottom-14 z-50 mx-4 mb-1 rounded-lg border border-b1 bg-card p-3 shadow-lg md:hidden">
+					<div
+						id="mobile-nav-more-panel"
+						className="fixed inset-x-0 bottom-14 z-50 mx-4 mb-1 rounded-lg border border-b1 bg-card p-3 shadow-lg md:hidden"
+					>
 						<div className="space-y-1">
 							<Link
 								to="/settings/profile"
@@ -201,6 +204,8 @@ export function MobileNav() {
 				<button
 					type="button"
 					onClick={() => setMoreOpen((v) => !v)}
+					aria-expanded={moreOpen}
+					aria-controls="mobile-nav-more-panel"
 					className={cn(
 						"flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
 						moreOpen ? "text-primary" : "text-t3",

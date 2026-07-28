@@ -232,6 +232,8 @@ function WorkflowSettingsPage() {
 											className={`h-6 w-6 rounded-full border-2 ${statusColor === color ? "border-foreground" : "border-transparent"}`}
 											style={{ backgroundColor: color }}
 											onClick={() => setStatusColor(color)}
+											aria-label={color}
+											aria-pressed={statusColor === color}
 										/>
 									))}
 								</div>

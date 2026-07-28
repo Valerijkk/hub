@@ -297,6 +297,8 @@ function LabelsSettingsPage() {
 										className={`h-6 w-6 rounded-full border-2 ${labelColor === color ? "border-foreground" : "border-transparent"}`}
 										style={{ backgroundColor: color }}
 										onClick={() => setLabelColor(color)}
+										aria-label={color}
+										aria-pressed={labelColor === color}
 									/>
 								))}
 							</div>

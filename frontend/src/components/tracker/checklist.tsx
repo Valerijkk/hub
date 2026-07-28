@@ -130,6 +130,7 @@ export function Checklist({ items, onChange, disabled }: ChecklistProps) {
 							disabled={disabled}
 							className="opacity-0 group-hover:opacity-100 text-t2 hover:text-destructive transition-opacity text-sm px-1"
 							title="Удалить"
+							aria-label="Удалить пункт"
 						>
 							&times;
 						</button>

@@ -246,6 +246,7 @@ export function GifPicker({ onSelect }: GifPickerProps) {
 							value={query}
 							onChange={(e) => handleSearchInput(e.target.value)}
 							placeholder="Поиск GIF..."
+							aria-label="Поиск GIF"
 							className={cn(
 								"w-full rounded-lg border border-input bg-base px-3 py-2 text-sm",
 								"placeholder:text-t2/50",

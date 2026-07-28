@@ -191,6 +191,7 @@ export function CreatePollDialog({
 											disabled={submitting}
 											className="shrink-0 h-8 w-8 flex items-center justify-center rounded-md text-t2 hover:text-destructive hover:bg-destructive/10 transition-colors"
 											title="Удалить вариант"
+											aria-label="Удалить вариант"
 										>
 											<Trash2 className="h-4 w-4" />
 										</button>

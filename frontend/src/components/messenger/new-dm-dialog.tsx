@@ -122,6 +122,7 @@ export function NewDmDialog() {
 				<div className="space-y-3 pt-1">
 					<Input
 						placeholder="Поиск по имени или email..."
+						aria-label="Поиск пользователей"
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						autoFocus
