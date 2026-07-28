@@ -30,9 +30,10 @@
 
 | Слой | Метрика |
 |------|---------|
-| Backend test files (`backend/testframework/`) | **~600** `_test.go` (0 в `internal/` после TF-M08) |
+| Backend test files (`backend/testframework/`) | **618** `_test.go` (0 в `internal/` после TF-M08; measured 2026-07-28) |
+| Backend `export_hooks.go` | **37** (`//go:build hubtest`; measured 2026-07-28) |
 | Backend `internal/*_test.go` | **0** |
-| Frontend Vitest | `testframework/stages/unit/frontend-test/domains/` |
+| Frontend Vitest | **94** files (`testframework/stages/unit/frontend-test/`; measured 2026-07-28) |
 | Playwright | **20** spec files (`stages/e2e/domains/`) |
 | Overall `internal/` coverage | **83.0%** (2026-06-22 Docker baseline) |
 
@@ -429,7 +430,7 @@ Vite build проверяет: импорты, tree-shaking, Tailwind 4, TanStac
 - [ ] Профиль: имя, timezone, язык
 - [ ] Сессии: список, отзыв
 - [ ] Logout: POST /auth/logout
-- [ ] Онбординг: 3 шага
+- [ ] Онбординг: 4 шага (профиль → тур → тема → проект)
 - [ ] Telegram: **только** привязка уведомлений (не login)
 
 ### Проекты

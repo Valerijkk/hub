@@ -36,7 +36,7 @@
 | [runbooks/](runbooks/README.md) | **Эксплуатация прода:** инцидент, алерты, деплой/откат, БД, бэкапы, ротация секретов |
 | [onboarding/](onboarding/README.md) | Онбординг-листы по ролям (BE/FE/QA-manual/QA-auto/PM+ops) |
 | [wiki/HOME.md](wiki/HOME.md) | Точка входа wiki |
-| [wiki/API.md](wiki/API.md) | Справочник REST API (число endpoints требует пересчёта: грубый счёт регистраций маршрутов даёт ~393, но пути относительны группам) |
+| [wiki/API.md](wiki/API.md) | Справочник REST API (OpenAPI **252** paths в `swagger.json`; исторический route inventory ~286 — см. таблицу в API.md) |
 | [wiki/DEPLOY.md](wiki/DEPLOY.md) | Установка, Docker, CI/CD |
 | [wiki/QUICKSTART.md](wiki/QUICKSTART.md) | Быстрый старт для пользователей |
 | [wiki/SHORTCUTS.md](wiki/SHORTCUTS.md) | Горячие клавиши |
@@ -81,7 +81,7 @@
 # Полный backend regression
 cd backend && go generate ./ent && go build -tags release ./... \
   && go test -tags hubtest -race -count=1 -timeout=600s ./testframework/...
-# (в backend/internal/ нет *_test.go — все 515 тестов в backend/testframework/, measured 2026-07-27;
+# (в backend/internal/ нет *_test.go — все 618 тестов в backend/testframework/, measured 2026-07-28;
 #  покрытие internal меряется флагом -coverpkg=./internal/...)
 
 # Frontend regression
