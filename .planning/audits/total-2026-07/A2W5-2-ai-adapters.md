@@ -40,9 +40,9 @@
 | A2W5-A2-003 | P2 | REGRESS | `adapter_openai.go:35` (+ anthropic/giga/yandex) | `NewSafeHTTPClient(90s)` — **Timeout на весь SSE** | W5-A2-008 · P2-BE-17 | Stream >90s не рвётся клиентским Timeout |
 | A2W5-A2-004 | P2 | REGRESS | `fallback.go:161-188` | Stream fallback при retryable err **без учёта** уже отданных deltas | W5-A2-005 · P2-BE-17 | После 1-го delta — no provider switch / restart marker |
 | A2W5-A2-005 | P1 | RESIDUAL | `fallback.go:51-84` + SafeDial | **Offline loopback OK для consent**, dial всё ещё блокирует localhost (A4-005 / P1-BE-U01) | W5-A2-003 | Product/ADR; не ослаблять SSRF |
-| A2W5-A2-006 | P3 | RESIDUAL | `content_policy.go:12-18` | Узкий EN denylist; ZW*/опечатки обходят | W5-A2-009 · P3-BE-U03 | NFKC + расширенные паттерны (product) |
-| A2W5-A2-007 | P3 | RESIDUAL | `provider_rpm_test.go` | Нет miniredis fail-closed / ZSET inflate кейсов | W5-A2-015 | maxRPM>0 + dead Redis → expected policy |
-| A2W5-A2-008 | P3 | RESIDUAL | `adapter_openai_test.go:21-28` | SSRF-тест тонкий (`://bad`); нет loopback/link-local | W5-A2-017 | `127.0.0.1` / `169.254.169.254` → error |
+| A2W5-A2-006 | P3 | FIXED | `content_policy.go` NFKC+ZW+RU | denylist после нормализации | TASK-113 | `TestCheckContentPolicy_ZWAndNFKCBypass_TASK113` |
+| A2W5-A2-007 | P3 | FIXED | `provider_rpm.go` fail-closed + ZRem | dead Redis → ErrProviderRPMUnavailable; no ZSET inflate | TASK-113 | `TestRedisProviderRPMLimiter_FailClosedAndNoZSETInflate_TASK113` |
+| A2W5-A2-008 | P3 | FIXED | OpenAI adapter SSRF | loopback / link-local → error | TASK-113 | `TestOpenAIAdapter_ChatCompletion_LoopbackAndLinkLocal_TASK113` |
 
 ## FIXED-OK
 
