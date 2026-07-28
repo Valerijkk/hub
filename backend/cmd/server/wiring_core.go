@@ -19,13 +19,12 @@ func wireCore(d *serverDeps) {
 	api := d.api
 	requireAuth := d.requireAuth
 
-	// Маршруты project
+	// Маршруты project + RBAC (RegisterRoutes project требует rbacSvc).
 	rbacCache := rbac.NewPermissionCache(d.rdb)
 	outboxPublisher := outbox.NewPublisher()
 	projectRepo := projectmod.NewEntRepository(d.db, outboxPublisher)
 	projectSvc := projectmod.NewProjectService(projectRepo, rbacCache, d.nc)
 	projectHandler := projectmod.NewHandler(projectSvc)
-	projectHandler.RegisterRoutes(api, requireAuth)
 	d.rbacCache = rbacCache
 	d.outboxPublisher = outboxPublisher
 	d.projectRepo = projectRepo
@@ -34,6 +33,7 @@ func wireCore(d *serverDeps) {
 	// RBAC service (проверка прав с Redis cache)
 	rbacRepo := rbac.NewEntRepository(d.db)
 	rbacSvc := rbac.NewRBACService(rbacRepo, rbacCache)
+	projectHandler.RegisterRoutes(api, requireAuth, rbacSvc)
 	// Обработчик кастомных RBAC-ролей — admin CRUD поверх системных ролей.
 	customRoleHandler := rbac.NewCustomRoleHandler(rbacSvc)
 	customRoleHandler.RegisterRoutes(api, requireAuth)

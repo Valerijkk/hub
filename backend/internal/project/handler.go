@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
+	"github.com/valerii/hub/backend/internal/rbac"
 )
 
 // Handler предоставляет HTTP-обработчики модуля project.
@@ -19,42 +20,42 @@ func NewHandler(service *ProjectService) *Handler {
 
 // RegisterRoutes регистрирует все маршруты project.
 // authMw — middleware аутентификации.
-// requirePerm — фабрика middleware проверки прав RBAC.
-func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler) {
+// rbacSvc — проверка прав на маршрутах с :projectId (Fiber v3: RBAC после handler в сигнатуре).
+func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc *rbac.RBACService) {
 	projects := api.Group("/projects", authMw)
 
 	// CRUD проектов
 	projects.Post("/", h.CreateProject)
 	projects.Get("/", h.ListProjects)
 	projects.Get("/trash", h.ListTrash) // до :projectId, чтобы избежать конфликта маршрутов
-	projects.Get("/:projectId", h.GetProject)
-	projects.Put("/:projectId", h.UpdateProject)
-	projects.Post("/:projectId/archive", h.ArchiveProject)
-	projects.Post("/:projectId/unarchive", h.UnarchiveProject)
-	projects.Delete("/:projectId", h.DeleteProject)
-	projects.Post("/:projectId/restore", h.RestoreProject)
+	projects.Get("/:projectId", h.GetProject, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	projects.Put("/:projectId", h.UpdateProject, rbac.RequirePermission(rbac.PermProjectEdit, rbacSvc))
+	projects.Post("/:projectId/archive", h.ArchiveProject, rbac.RequirePermission(rbac.PermProjectEdit, rbacSvc))
+	projects.Post("/:projectId/unarchive", h.UnarchiveProject, rbac.RequirePermission(rbac.PermProjectEdit, rbacSvc))
+	projects.Delete("/:projectId", h.DeleteProject, rbac.RequirePermission(rbac.PermProjectDelete, rbacSvc))
+	projects.Post("/:projectId/restore", h.RestoreProject, rbac.RequirePermission(rbac.PermProjectDelete, rbacSvc))
 
 	// Участники
-	projects.Get("/:projectId/members", h.ListMembers)
-	projects.Post("/:projectId/members", h.AddMember)
-	projects.Put("/:projectId/members/:userId", h.UpdateMemberRole)
-	projects.Delete("/:projectId/members/:userId", h.RemoveMember)
+	projects.Get("/:projectId/members", h.ListMembers, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	projects.Post("/:projectId/members", h.AddMember, rbac.RequirePermission(rbac.PermProjectManageMembers, rbacSvc))
+	projects.Put("/:projectId/members/:userId", h.UpdateMemberRole, rbac.RequirePermission(rbac.PermProjectManageMembers, rbacSvc))
+	projects.Delete("/:projectId/members/:userId", h.RemoveMember, rbac.RequirePermission(rbac.PermProjectManageMembers, rbacSvc))
 
 	// Приглашения
-	projects.Post("/:projectId/invites", h.CreateInvite)
-	projects.Get("/:projectId/invites", h.ListInvites)
-	projects.Delete("/:projectId/invites/:inviteId", h.RevokeInvite)
+	projects.Post("/:projectId/invites", h.CreateInvite, rbac.RequirePermission(rbac.PermInviteCreate, rbacSvc))
+	projects.Get("/:projectId/invites", h.ListInvites, rbac.RequirePermission(rbac.PermProjectView, rbacSvc))
+	projects.Delete("/:projectId/invites/:inviteId", h.RevokeInvite, rbac.RequirePermission(rbac.PermInviteManage, rbacSvc))
 
 	// Join — только auth, без project RBAC (invite-код сам определяет проект).
 	api.Post("/invites/join", authMw, h.JoinByInvite)
 
-	// Команды
+	// Команды (орг-уровень без :projectId — auth; привязка к проекту — RBAC).
 	teams := api.Group("/teams", authMw)
 	teams.Post("/", h.CreateTeam)
 	teams.Get("/", h.ListTeams)
 	teams.Post("/:teamId/members", h.AddTeamMember)
 	teams.Delete("/:teamId/members/:userId", h.RemoveTeamMember)
-	teams.Post("/:teamId/projects/:projectId", h.AddTeamToProject)
+	teams.Post("/:teamId/projects/:projectId", h.AddTeamToProject, rbac.RequirePermission(rbac.PermTeamManage, rbacSvc))
 }
 
 // CreateProject — Создать проект

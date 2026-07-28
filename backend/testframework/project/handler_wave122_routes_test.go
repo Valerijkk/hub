@@ -53,6 +53,7 @@ func newProjectRoutesEnv(t *testing.T) projectRoutesEnv {
 	repo := project.NewEntRepository(client, nil)
 	svc := project.NewProjectService(repo, nil, nil)
 	h := project.NewHandler(svc)
+	rbacSvc := newRBACServiceForClient(t, client)
 
 	app := fiber.New()
 	api := app.Group("/api")
@@ -60,7 +61,7 @@ func newProjectRoutesEnv(t *testing.T) projectRoutesEnv {
 		c.Locals("userID", owner.ID.String())
 		return c.Next()
 	}
-	h.RegisterRoutes(api, authMw)
+	h.RegisterRoutes(api, authMw, rbacSvc)
 
 	return projectRoutesEnv{app: app, ownerID: owner.ID, memberID: member.ID, repo: repo, ctx: ctx}
 }
