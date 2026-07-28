@@ -32,18 +32,21 @@ func TestCheckContentPolicy_ZWAndNFKCBypass_TASK113(t *testing.T) {
 }
 
 func TestOpenAIAdapter_ChatCompletion_LoopbackAndLinkLocal_TASK113(t *testing.T) {
-	// A2W5-A2-008: SSRF — loopback / link-local metadata.
+	// A2W5-A2-008: link-local metadata → invalid URL.
+	// 127.0.0.1:11434 — после TASK-101 / ADR-AI-OLLAMA идёт OfflineAI dialer (не «invalid provider URL»).
 	a := ai.NewOpenAIAdapter()
-	for _, base := range []string{
-		"http://127.0.0.1:11434/v1",
-		"http://169.254.169.254/latest/meta-data",
-	} {
-		_, err := a.ChatCompletion(context.Background(), base, "key", "m", ai.ChatCompletionRequest{
-			Messages: []ai.ChatMessage{{Role: "user", Content: "hi"}},
-		})
-		require.Error(t, err, "base=%s", base)
-		assert.Contains(t, err.Error(), "invalid provider URL")
-	}
+
+	_, err := a.ChatCompletion(context.Background(), "http://169.254.169.254/latest/meta-data", "key", "m", ai.ChatCompletionRequest{
+		Messages: []ai.ChatMessage{{Role: "user", Content: "hi"}},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid provider URL")
+
+	_, err = a.ChatCompletion(context.Background(), "http://127.0.0.1:11434/v1", "key", "m", ai.ChatCompletionRequest{
+		Messages: []ai.ChatMessage{{Role: "user", Content: "hi"}},
+	})
+	require.Error(t, err, "loopback without live Ollama must still error")
+	assert.NotContains(t, err.Error(), "invalid provider URL", "ollama loopback uses OfflineAI path, not outbound block")
 }
 
 func TestRedisProviderRPMLimiter_FailClosedAndNoZSETInflate_TASK113(t *testing.T) {

@@ -6,7 +6,6 @@ package tms_test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
@@ -51,7 +50,7 @@ func TestCompleteTestRun_PublishesProjectID_TASK081(t *testing.T) {
 	_, err = svc.StartTestRun(ctx, projectA, runID)
 	require.NoError(t, err)
 
-	subject := fmt.Sprintf(tms.SubjectTestRunCompleted, runID.String())
+	subject := tms.EventTestRunCompleted
 	got := make(chan []byte, 1)
 	sub, err := nc.Subscribe(subject, func(msg *nats.Msg) {
 		got <- append([]byte(nil), msg.Data...)
@@ -68,7 +67,7 @@ func TestCompleteTestRun_PublishesProjectID_TASK081(t *testing.T) {
 	select {
 	case raw = <-got:
 	case <-time.After(2 * time.Second):
-		t.Fatal("timeout waiting for tms.run.completed NATS event")
+		t.Fatal("timeout waiting for tms.testrun.completed NATS event")
 	}
 
 	var payload map[string]interface{}

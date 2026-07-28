@@ -20,10 +20,8 @@ func TestValidateMeiliHost_BlocksMetadata_P2BE18(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorIs(t, err, safehttp.ErrBlockedAddress)
 
-	// SafeDial: loopback тоже private — не whitelist для Meili host.
-	err = search.ExportValidateMeiliHost("http://127.0.0.1:7700")
-	require.Error(t, err)
-	assert.ErrorIs(t, err, safehttp.ErrBlockedAddress)
+	// Operator Meili: loopback/RFC1918 IP-литерал разрешён (meiliAllowsOperatorPrivate).
+	require.NoError(t, search.ExportValidateMeiliHost("http://127.0.0.1:7700"))
 
 	require.NoError(t, search.ExportValidateMeiliHost("https://meili.example.com"))
 }

@@ -25,7 +25,7 @@ type ChatStreamAdapter interface {
 // ChatCompletionStream — POST {baseURL}/chat/completions со stream=true (SSE).
 func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKey, model string, req ChatCompletionRequest, onDelta func(StreamDelta) error) error {
 	base := strings.TrimRight(baseURL, "/")
-	httpClient, err := a.resolveHTTPClient(base)
+	httpClient, err := a.resolveStreamHTTPClient(base)
 	if err != nil {
 		return err
 	}

@@ -354,12 +354,14 @@ func (s *TMSService) CompleteTestRun(ctx context.Context, projectID, runID uuid.
 		return nil, err
 	}
 
-	// Публикуем событие завершения прогона для уведомлений.
+	// Публикуем событие завершения прогона для уведомлений / webhooks.
+	// A2W4-5-001 / TASK-081: project_id обязателен для project-scoped dispatch.
 	s.nats.PublishJSON(EventTestRunCompleted, map[string]interface{}{
-		"run_id": runID,
-		"title":  resp.Title,
-		"total":  resp.TotalCount,
-		"passed": resp.PassedCount,
+		"run_id":     runID.String(),
+		"project_id": projectID.String(),
+		"title":      resp.Title,
+		"total":      resp.TotalCount,
+		"passed":     resp.PassedCount,
 	})
 
 	return resp, nil

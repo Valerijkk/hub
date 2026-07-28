@@ -25,6 +25,9 @@ type ChatAdapter interface {
 // OpenAIAdapter — DeepSeek, Ollama, OpenRouter и др.
 type OpenAIAdapter struct {
 	client *http.Client
+	// streamClient — SSE без Client.Timeout на весь запрос (TASK-085 / W5-A2-003).
+	// nil → fallback на client.
+	streamClient *http.Client
 	// offlineClient — loopback-only dialer (ADR-AI-OLLAMA-LOOPBACK / P1-BE-U01).
 	// nil в hubtest с ExportNewOpenAIAdapterWithClient (custom transport).
 	offlineClient *http.Client
@@ -37,6 +40,7 @@ type OpenAIAdapter struct {
 func NewOpenAIAdapter() *OpenAIAdapter {
 	return &OpenAIAdapter{
 		client:        safehttp.NewSafeHTTPClient(90 * time.Second),
+		streamClient:  newSafeStreamHTTPClient(),
 		offlineClient: safehttp.NewOfflineAIHTTPClient(90 * time.Second),
 	}
 }
@@ -57,6 +61,25 @@ func (a *OpenAIAdapter) resolveHTTPClient(base string) (*http.Client, error) {
 		return nil, fmt.Errorf("invalid provider URL: %w", err)
 	}
 	return a.client, nil
+}
+
+// resolveStreamHTTPClient — как resolveHTTPClient, но предпочитает streamClient (без whole-request Timeout).
+func (a *OpenAIAdapter) resolveStreamHTTPClient(base string) (*http.Client, error) {
+	c, err := a.resolveHTTPClient(base)
+	if err != nil {
+		return nil, err
+	}
+	if a.skipOutboundURLValidate {
+		if a.streamClient != nil {
+			return a.streamClient, nil
+		}
+		return c, nil
+	}
+	// offline / SafeDial path: streamClient только для cloud SafeDial client
+	if c == a.client && a.streamClient != nil {
+		return a.streamClient, nil
+	}
+	return c, nil
 }
 
 // ChatCompletion POST {baseURL}/chat/completions

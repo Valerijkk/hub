@@ -1,4 +1,4 @@
-﻿package apigateway_test
+package apigateway_test
 import (
 	"github.com/valerii/hub/backend/internal/apigateway"
 	"context"
@@ -53,6 +53,18 @@ func localTestURL(srv *httptest.Server) string {
 	return u.String()
 }
 
+// localServerURL — alias для TASK-086 tests.
+func localServerURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil { return raw }
+	host, port, err := net.SplitHostPort(u.Host)
+	if err != nil { return raw }
+	if host == "127.0.0.1" || host == "::1" {
+		u.Host = net.JoinHostPort("localhost", port)
+	}
+	return u.String()
+}
+
 // TestSendWebhook_BlocksLoopbackSSRF проверяет, что dispatcher отказывается
 // дёргать loopback-адрес. Это гард-тест для CR-03: даже если злоумышленник
 // (project owner) укажет http://127.0.0.1:<port>/ в качестве webhook URL,
@@ -77,7 +89,7 @@ func TestSendWebhook_BlocksLoopbackSSRF(t *testing.T) {
 
 	for _, u := range cases {
 		t.Run(u, func(t *testing.T) {
-			status, body, err := apigateway.ExportWebhookSendWebhook(d, u, []byte(`{"ping":true}`), "sig", "test.event")
+			status, body, err := apigateway.ExportWebhookSendWebhook(d, context.Background(), u, []byte(`{"ping":true}`), "sig", "test.event")
 
 			require := assert.New(t)
 			require.Error(err, "ожидалась ошибка для %s", u)
@@ -109,7 +121,7 @@ func TestSendWebhook_RejectsBadScheme(t *testing.T) {
 
 	for _, u := range cases {
 		t.Run(u, func(t *testing.T) {
-			status, _, err := apigateway.ExportWebhookSendWebhook(d, u, []byte("{}"), "sig", "evt")
+			status, _, err := apigateway.ExportWebhookSendWebhook(d, context.Background(), u, []byte("{}"), "sig", "evt")
 			assert.Error(t, err)
 			assert.Zero(t, status)
 		})
@@ -149,7 +161,7 @@ func TestSendWebhook_AllowsPublicURL_200(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	d := &apigateway.WebhookDispatcher{}
-	status, body, err := apigateway.ExportWebhookSendWebhook(d, localTestURL(srv), []byte(`{"ping":true}`), "sig", "test.event")
+	status, body, err := apigateway.ExportWebhookSendWebhook(d, context.Background(), localTestURL(srv), []byte(`{"ping":true}`), "sig", "test.event")
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, status)
 	assert.Equal(t, `{"ok":true}`, body)
@@ -225,7 +237,7 @@ func TestSendWebhook_SignatureHeaderPresent(t *testing.T) {
 
 	d := &apigateway.WebhookDispatcher{}
 	sig := apigateway.ExportSignPayload(body, secret)
-	_, _, err := apigateway.ExportWebhookSendWebhook(d, localTestURL(srv), body, sig, "issue.created")
+	_, _, err := apigateway.ExportWebhookSendWebhook(d, context.Background(), localTestURL(srv), body, sig, "issue.created")
 	require.NoError(t, err)
 
 	assert.Equal(t, expected, receivedHeader, "X-Hub-Signature-256 mismatch")
@@ -250,7 +262,7 @@ func TestSendWebhook_ResponseBodyTruncated(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	d := &apigateway.WebhookDispatcher{}
-	status, body, err := apigateway.ExportWebhookSendWebhook(d, localTestURL(srv), []byte(`{}`), "sig", "evt")
+	status, body, err := apigateway.ExportWebhookSendWebhook(d, context.Background(), localTestURL(srv), []byte(`{}`), "sig", "evt")
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, status)
 	assert.LessOrEqual(t, len(body), apigateway.ExportMaxWebhookResponseBodyBytes(),

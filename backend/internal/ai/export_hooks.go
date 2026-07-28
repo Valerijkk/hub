@@ -232,7 +232,10 @@ func ExportOpenAIAdapterStreamClient(a *OpenAIAdapter) *http.Client {
 	if a == nil {
 		return nil
 	}
-	return a.streamClient
+	if a.streamClient != nil {
+		return a.streamClient
+	}
+	return a.client
 }
 
 // ExportServiceStreamCompletionWithFallback — hubtest hook для W5-A2-005 / TASK-085.

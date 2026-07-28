@@ -8,6 +8,7 @@ import (
 	"github.com/valerii/hub/backend/internal/tracker"
 	"context"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -44,6 +45,7 @@ type mockRepo struct {
 	customFields    map[uuid.UUID]*ent.CustomFieldDefinition
 	projectCounters map[uuid.UUID]int
 	issueMessageLinks []*ent.IssueMessageLink
+	projectMembers    map[uuid.UUID]map[uuid.UUID]bool // projectID -> userID -> member?
 
 	// Для проверки update с оптимистичной блокировкой
 	updateVersionError bool
@@ -67,14 +69,15 @@ func newMockRepo() *mockRepo {
 		statuses: map[uuid.UUID]*ent.WorkflowStatus{
 			defaultStatusID: defaultStatus,
 		},
-		transitions:     make(map[string]*ent.WorkflowTransition),
-		comments:        make(map[uuid.UUID]*ent.Comment),
-		timeLogs:        make(map[uuid.UUID]*ent.TimeLog),
-		labels:          make(map[uuid.UUID]*ent.Label),
-		labelGroups:     make(map[uuid.UUID]*ent.LabelGroup),
-		boards:          make(map[uuid.UUID]*ent.Board),
-		customFields:    make(map[uuid.UUID]*ent.CustomFieldDefinition),
-		projectCounters: make(map[uuid.UUID]int),
+		transitions:      make(map[string]*ent.WorkflowTransition),
+		comments:         make(map[uuid.UUID]*ent.Comment),
+		timeLogs:         make(map[uuid.UUID]*ent.TimeLog),
+		labels:           make(map[uuid.UUID]*ent.Label),
+		labelGroups:      make(map[uuid.UUID]*ent.LabelGroup),
+		boards:           make(map[uuid.UUID]*ent.Board),
+		customFields:     make(map[uuid.UUID]*ent.CustomFieldDefinition),
+		projectCounters:  make(map[uuid.UUID]int),
+		projectMembers:   make(map[uuid.UUID]map[uuid.UUID]bool),
 	}
 }
 
@@ -172,31 +175,82 @@ func (m *mockRepo) ListIssues(_ context.Context, _ uuid.UUID, params tracker.Lis
 
 	total := len(result)
 
-	// Курсорная пагинация
-	if params.Cursor != "" {
-		var filtered []*ent.Issue
-		found := false
-		for _, i := range result {
-			if found {
-				filtered = append(filtered, i)
+	// Стабильный порядок как в EntRepository.ListIssues (map iteration нестабилен).
+	sort.SliceStable(result, func(a, b int) bool {
+		ia, ib := result[a], result[b]
+		switch params.OrderBy {
+		case "priority":
+			if ia.Priority != ib.Priority {
+				return ia.Priority < ib.Priority
 			}
+		case "updated_at":
+			if !ia.UpdatedAt.Equal(ib.UpdatedAt) {
+				return ia.UpdatedAt.After(ib.UpdatedAt)
+			}
+		default:
+			if !ia.CreatedAt.Equal(ib.CreatedAt) {
+				return ia.CreatedAt.After(ib.CreatedAt)
+			}
+		}
+		return ia.IssueKey < ib.IssueKey
+	})
+
+	// Курсорная пагинация — семантика Ent applyListIssuesCursorFilter.
+	if params.Cursor != "" {
+		var cursorIssue *ent.Issue
+		for _, i := range result {
 			if i.IssueKey == params.Cursor {
-				found = true
+				cursorIssue = i
+				break
+			}
+		}
+		if cursorIssue == nil {
+			return []*ent.Issue{}, total, nil
+		}
+		var filtered []*ent.Issue
+		for _, i := range result {
+			switch params.OrderBy {
+			case "priority":
+				if i.Priority > cursorIssue.Priority ||
+					(i.Priority == cursorIssue.Priority && i.IssueKey > params.Cursor) {
+					filtered = append(filtered, i)
+				}
+			case "updated_at":
+				if i.UpdatedAt.Before(cursorIssue.UpdatedAt) ||
+					(i.UpdatedAt.Equal(cursorIssue.UpdatedAt) && i.IssueKey > params.Cursor) {
+					filtered = append(filtered, i)
+				}
+			default:
+				if i.CreatedAt.Before(cursorIssue.CreatedAt) ||
+					(i.CreatedAt.Equal(cursorIssue.CreatedAt) && i.IssueKey > params.Cursor) {
+					filtered = append(filtered, i)
+				}
 			}
 		}
 		result = filtered
 	}
 
-	// Лимит
 	limit := params.Limit
-	if limit <= 0 || limit > 100 {
+	if limit <= 0 {
 		limit = 50
 	}
 	if len(result) > limit {
 		result = result[:limit]
 	}
-
 	return result, total, nil
+}
+
+func (m *mockRepo) IsProjectMember(_ context.Context, projectID, userID uuid.UUID) (bool, error) {
+	// Opt-in: если для проекта карта не заведена — membership не проверяем (legacy тесты).
+	// Когда тест явно seed'ит projectMembers[projectID] — enforce.
+	if m.projectMembers == nil {
+		return true, nil
+	}
+	members, ok := m.projectMembers[projectID]
+	if !ok {
+		return true, nil
+	}
+	return members[userID], nil
 }
 
 func (m *mockRepo) UpdateIssue(_ context.Context, issueID uuid.UUID, input tracker.UpdateIssueInput) (*ent.Issue, error) {
