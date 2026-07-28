@@ -1,6 +1,6 @@
 ﻿package mail_test
+
 import (
-	"github.com/valerii/hub/backend/internal/mail"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -16,18 +16,23 @@ import (
 
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/enttest"
+	"github.com/valerii/hub/backend/internal/mail"
 )
 
 type mockBroadcastSender struct {
-	sent int
+	sent   int
+	failOn int // 1-based call index to fail; 0 = never
 }
 
 func (m *mockBroadcastSender) SendAlert(_ context.Context, _ mail.SendRequest) error {
 	m.sent++
+	if m.failOn > 0 && m.sent == m.failOn {
+		return mail.ErrInvalidRequest
+	}
 	return nil
 }
 
-func testAdminMailApp(t *testing.T, isAdmin bool) (*fiber.App, *ent.Client) {
+func testAdminMailApp(t *testing.T, isAdmin bool) (*fiber.App, *ent.Client, *mockBroadcastSender) {
 	t.Helper()
 	dsn := "file:mailadmin_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
 	client := enttest.Open(t, "sqlite3", dsn)
@@ -45,7 +50,7 @@ func testAdminMailApp(t *testing.T, isAdmin bool) (*fiber.App, *ent.Client) {
 	isAdminFn := func(_ fiber.Ctx, id uuid.UUID) (bool, error) {
 		return isAdmin && id == adminUser.ID, nil
 	}
-	h := mail.NewAdminHandler(adminSvc, client, sender, isAdminFn)
+	h := mail.NewAdminHandler(adminSvc, store, sender, isAdminFn)
 
 	app := fiber.New()
 	api := app.Group("/api")
@@ -54,11 +59,11 @@ func testAdminMailApp(t *testing.T, isAdmin bool) (*fiber.App, *ent.Client) {
 		return c.Next()
 	}
 	h.RegisterRoutes(api, authMw)
-	return app, client
+	return app, client, sender
 }
 
 func TestAdminHandler_SettingsCRUD(t *testing.T) {
-	app, _ := testAdminMailApp(t, true)
+	app, _, _ := testAdminMailApp(t, true)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/admin/mail/settings", nil)
 	resp, err := app.Test(req)
@@ -88,7 +93,7 @@ func TestAdminHandler_SettingsCRUD(t *testing.T) {
 }
 
 func TestAdminHandler_BroadcastDryRun(t *testing.T) {
-	app, client := testAdminMailApp(t, true)
+	app, client, _ := testAdminMailApp(t, true)
 	ctx := context.Background()
 
 	_, err := client.User.Create().
@@ -112,10 +117,38 @@ func TestAdminHandler_BroadcastDryRun(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
 	assert.True(t, result.DryRun)
 	assert.GreaterOrEqual(t, result.Recipients, 2)
+	assert.Equal(t, 0, result.Failed)
+}
+
+func TestAdminHandler_BroadcastFailedCount(t *testing.T) {
+	// W7-A1-004: partial SendAlert failure → Failed > 0, Sent for successes.
+	app, client, sender := testAdminMailApp(t, true)
+	ctx := context.Background()
+	_, err := client.User.Create().
+		SetEmail("member-" + uuid.New().String()[:6] + "@test.com").
+		Save(ctx)
+	require.NoError(t, err)
+	sender.failOn = 1
+
+	body, _ := json.Marshal(mail.BroadcastRequest{
+		Subject:  "Team update",
+		HTMLBody: "<p>Hello team</p>",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/mail/broadcast", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result mail.BroadcastResponse
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+	assert.Equal(t, 1, result.Failed)
+	assert.Equal(t, result.Recipients-1, result.Sent)
 }
 
 func TestAdminHandler_ForbiddenNonAdmin(t *testing.T) {
-	app, _ := testAdminMailApp(t, false)
+	app, _, _ := testAdminMailApp(t, false)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/admin/mail/settings", nil)
 	resp, err := app.Test(req)
@@ -129,7 +162,7 @@ func TestAdminHandler_Unauthorized(t *testing.T) {
 	t.Cleanup(func() { _ = client.Close() })
 
 	store := mail.NewEntSettingsStore(client)
-	h := mail.NewAdminHandler(mail.NewAdminService(store, "", "", false), client, nil, func(_ fiber.Ctx, _ uuid.UUID) (bool, error) {
+	h := mail.NewAdminHandler(mail.NewAdminService(store, "", "", false), store, nil, func(_ fiber.Ctx, _ uuid.UUID) (bool, error) {
 		return true, nil
 	})
 

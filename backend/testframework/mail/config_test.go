@@ -16,6 +16,7 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	assert.Equal(t, 3001, cfg.Port)
 	assert.Equal(t, 20, cfg.DailyLimit)
 	assert.Equal(t, "alerts@hub.local", cfg.FromAlerts)
+	assert.True(t, cfg.AlertsEnabled)
 }
 
 func TestLoadConfig_CustomEnv(t *testing.T) {

@@ -57,6 +57,45 @@ func TestService_SendAlert_Invalid(t *testing.T) {
 	assert.ErrorIs(t, err, mail.ErrInvalidRequest)
 }
 
+// TestService_SendAlert_AlertsDisabled_W7_A1_003 — alerts_enabled=false → ErrAlertsDisabled.
+func TestService_SendAlert_AlertsDisabled_W7_A1_003(t *testing.T) {
+	svc := mail.NewService(mail.Config{})
+	svc.SetAlertsEnabled(false)
+	err := svc.SendAlert(context.Background(), mail.SendRequest{
+		To: "user@test.local", Subject: "Test",
+	})
+	assert.ErrorIs(t, err, mail.ErrAlertsDisabled)
+	assert.False(t, svc.Status().AlertsEnabled)
+}
+
+// TestService_SendAlert_DailyLimit_W7_A1_003 — превышение daily_limit на получателя.
+func TestService_SendAlert_DailyLimit_W7_A1_003(t *testing.T) {
+	svc := mail.NewService(mail.Config{DailyLimit: 2})
+	ctx := context.Background()
+	req := mail.SendRequest{To: "user@test.local", Subject: "Test"}
+	require.NoError(t, svc.SendAlert(ctx, req))
+	require.NoError(t, svc.SendAlert(ctx, req))
+	err := svc.SendAlert(ctx, req)
+	assert.ErrorIs(t, err, mail.ErrDailyLimitExceeded)
+}
+
+// TestService_SendAlert_StorePolicy_W7_A1_003 — admin store overrides cfg.
+func TestService_SendAlert_StorePolicy_W7_A1_003(t *testing.T) {
+	dsn := "file:mail_policy_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
+	client := enttest.Open(t, "sqlite3", dsn)
+	t.Cleanup(func() { _ = client.Close() })
+
+	store := mail.NewEntSettingsStore(client)
+	ctx := context.Background()
+	require.NoError(t, store.Upsert(ctx, "mail.alerts_enabled", "false", "test"))
+
+	svc := mail.NewService(mail.Config{})
+	svc.SetSettingsStore(store)
+	err := svc.SendAlert(ctx, mail.SendRequest{To: "a@b.com", Subject: "x"})
+	assert.ErrorIs(t, err, mail.ErrAlertsDisabled)
+	assert.False(t, svc.Status().AlertsEnabled)
+}
+
 func TestAdminService_Broadcast(t *testing.T) {
 	dsn := "file:mail_broadcast_" + uuid.New().String() + "?mode=memory&cache=shared&_fk=1"
 	client := enttest.Open(t, "sqlite3", dsn)
@@ -77,12 +116,12 @@ func TestAdminService_Broadcast(t *testing.T) {
 	svc := mail.NewAdminService(store, "", "", false)
 
 	t.Run("invalid request", func(t *testing.T) {
-		_, err := svc.Broadcast(ctx, client, nil, mail.BroadcastRequest{})
+		_, err := svc.Broadcast(ctx, store, nil, mail.BroadcastRequest{})
 		require.ErrorIs(t, err, mail.ErrInvalidRequest)
 	})
 
 	t.Run("dry run", func(t *testing.T) {
-		resp, err := svc.Broadcast(ctx, client, nil, mail.BroadcastRequest{
+		resp, err := svc.Broadcast(ctx, store, nil, mail.BroadcastRequest{
 			Subject:  "Hi",
 			HTMLBody: "<p>Hello</p>",
 			DryRun:   true,
@@ -94,21 +133,35 @@ func TestAdminService_Broadcast(t *testing.T) {
 	})
 
 	sender := &broadcastStub{}
-	resp, err := svc.Broadcast(ctx, client, sender, mail.BroadcastRequest{
+	resp, err := svc.Broadcast(ctx, store, sender, mail.BroadcastRequest{
 		Subject:  "Ship",
 		HTMLBody: "<p>Go</p>",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 2, resp.Recipients)
 	assert.Equal(t, 2, resp.Sent)
+	assert.Equal(t, 0, resp.Failed)
 	assert.Equal(t, 2, sender.calls)
+
+	failSender := &broadcastStub{failAll: true}
+	resp, err = svc.Broadcast(ctx, store, failSender, mail.BroadcastRequest{
+		Subject:  "Ship",
+		HTMLBody: "<p>Go</p>",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 2, resp.Failed)
+	assert.Equal(t, 0, resp.Sent)
 }
 
 type broadcastStub struct {
-	calls int
+	calls    int
+	failAll  bool
 }
 
 func (b *broadcastStub) SendAlert(_ context.Context, _ mail.SendRequest) error {
 	b.calls++
+	if b.failAll {
+		return mail.ErrDailyLimitExceeded
+	}
 	return nil
 }
