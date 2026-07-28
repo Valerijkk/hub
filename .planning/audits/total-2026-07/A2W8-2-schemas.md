@@ -63,7 +63,7 @@
 | A2W8-2-001 | RESIDUAL (W8-A2-001) | P1 | `comment.go:17-42` | Нет `version` при `updated_at` + soft-delete | TZ OL; concurrent edit body → LWW | VersionMixin + VersionEQ в tracker UpdateComment |
 | A2W8-2-002 | RESIDUAL (W8-A2-002) | P1 | `dashboardlayout.go:17-39` | Нет `version` при mutable `items` JSON | Concurrent SaveLayout LWW | `version` + CAS в dashboard Save |
 | A2W8-2-003 | RESIDUAL (W8-A2-004∩version) | P1 | `component.go`; `environment.go` | Soft-delete есть, `version` нет | Mutable TMS catalog без CAS | `version` + VersionEQ на Update |
-| A2W8-2-004 | RESIDUAL (W8-A2-005) | P2 | `customfielddefinition.go:17-37` | Нет version/updated_at/deleted_at | Config mutate + hard delete | version + soft-delete **или** ADR hard-delete |
+| A2W8-2-004 | **FIXED** (TASK-097) | P2 | `customfielddefinition.go` | soft-delete + list filter (version → TASK-095) | tracker/soft_delete_task097_test.go |
 | A2W8-2-005 | RESIDUAL (W8-A2-008/009) | P2 | `crmcontact.go:62-66`; `crmdeal.go:69-73` | Нет email index; нет owner+deleted_at | Lookup/list hot-path full scan | `index.Fields("email")`; `Edges("owner").Fields("deleted_at")` |
 | A2W8-2-006 | RESIDUAL (W8-A2-010/011) | P2 | `filemetadata.go:17-46` | `entity_id` String; нет version; size/uploader | TZ UUID; soft без OL; отрицательный size | UUID entity_id; version; Min(0); uploader Required |
 | A2W8-2-007 | RESIDUAL (W8-A2-013) | P2 | `gitlabintegration.go:33-36` | `webhook_secret` Optional после Sensitive | Схема разрешает интеграцию без секрета | Required/NotEmpty (как GitHub) |

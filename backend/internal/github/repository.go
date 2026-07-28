@@ -197,10 +197,14 @@ func (r *EntRepository) CreateIntegration(ctx context.Context, projectID uuid.UU
 	return created, nil
 }
 
-// ListIntegrations возвращает все интеграции проекта.
+// ListIntegrations возвращает все интеграции проекта (без корзины).
+// W7-A3-010: DeletedAtIsNil.
 func (r *EntRepository) ListIntegrations(ctx context.Context, projectID uuid.UUID) ([]*ent.GitHubIntegration, error) {
 	list, err := r.client.GitHubIntegration.Query().
-		Where(githubintegration.HasProjectWith(project.ID(projectID))).
+		Where(
+			githubintegration.HasProjectWith(project.ID(projectID)),
+			githubintegration.DeletedAtIsNil(),
+		).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -211,9 +215,11 @@ func (r *EntRepository) ListIntegrations(ctx context.Context, projectID uuid.UUI
 	return list, nil
 }
 
-// GetIntegration возвращает интеграцию по ID.
+// GetIntegration возвращает интеграцию по ID (без корзины).
 func (r *EntRepository) GetIntegration(ctx context.Context, id uuid.UUID) (*ent.GitHubIntegration, error) {
-	ig, err := r.client.GitHubIntegration.Get(ctx, id)
+	ig, err := r.client.GitHubIntegration.Query().
+		Where(githubintegration.IDEQ(id), githubintegration.DeletedAtIsNil()).
+		Only(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -228,6 +234,7 @@ func (r *EntRepository) GetIntegrationInProject(ctx context.Context, projectID, 
 	ig, err := r.client.GitHubIntegration.Query().
 		Where(
 			githubintegration.IDEQ(id),
+			githubintegration.DeletedAtIsNil(),
 			githubintegration.HasProjectWith(project.ID(projectID)),
 		).
 		Only(ctx)
@@ -238,15 +245,18 @@ func (r *EntRepository) GetIntegrationInProject(ctx context.Context, projectID, 
 	return ig, nil
 }
 
-// DeleteIntegration удаляет интеграцию по ID только в рамках projectID (A5-003).
+// DeleteIntegration мягко удаляет интеграцию по ID только в рамках projectID (A5-003 / W7-A3-010).
 // Чужой projectId в URL при UUID интеграции другого проекта → NotFound (0 rows).
+// Mutation: hard Delete().Exec → row gone → FAIL.
 func (r *EntRepository) DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error {
-	affected, err := r.client.GitHubIntegration.Delete().
+	affected, err := r.client.GitHubIntegration.Update().
 		Where(
 			githubintegration.IDEQ(id),
 			githubintegration.HasProjectWith(project.ID(projectID)),
+			githubintegration.DeletedAtIsNil(),
 		).
-		Exec(ctx)
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
 	if err != nil {
 		return err
 	}
@@ -258,12 +268,13 @@ func (r *EntRepository) DeleteIntegration(ctx context.Context, projectID, id uui
 	return nil
 }
 
-// FindIntegrationByRepo ищет интеграцию по owner и repo name.
+// FindIntegrationByRepo ищет интеграцию по owner и repo name (без корзины).
 func (r *EntRepository) FindIntegrationByRepo(ctx context.Context, owner, repo string) (*ent.GitHubIntegration, error) {
 	ig, err := r.client.GitHubIntegration.Query().
 		Where(
 			githubintegration.RepoOwner(owner),
 			githubintegration.RepoName(repo),
+			githubintegration.DeletedAtIsNil(),
 		).
 		WithProject().
 		Only(ctx)
@@ -400,6 +411,7 @@ func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, er
 	// промаха выполнят по одному запросу к БД, но это много лучше,
 	// чем sync.Mutex на весь хот-путь HMAC-сверки.
 	integrations, err := r.client.GitHubIntegration.Query().
+		Where(githubintegration.DeletedAtIsNil()).
 		Select(githubintegration.FieldWebhookSecret).
 		All(ctx)
 	if err != nil {

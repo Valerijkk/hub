@@ -341,15 +341,18 @@ func (r *EntRepository) CreateRecording(ctx context.Context, egressID string, ca
 		Save(ctx)
 }
 
-// GetRecording возвращает запись по ID.
+// GetRecording возвращает активную (не в корзине) запись по ID.
+// A2W8-4-005: DeletedAtIsNil.
 func (r *EntRepository) GetRecording(ctx context.Context, id uuid.UUID) (*ent.Recording, error) {
-	return r.db.Recording.Get(ctx, id)
+	return r.db.Recording.Query().
+		Where(recording.IDEQ(id), recording.DeletedAtIsNil()).
+		Only(ctx)
 }
 
 // GetRecordingByEgressID возвращает запись по ID egress-процесса LiveKit.
 func (r *EntRepository) GetRecordingByEgressID(ctx context.Context, egressID string) (*ent.Recording, error) {
 	return r.db.Recording.Query().
-		Where(recording.EgressID(egressID)).
+		Where(recording.EgressID(egressID), recording.DeletedAtIsNil()).
 		Only(ctx)
 }
 
@@ -358,6 +361,7 @@ func (r *EntRepository) CountActiveRecordings(ctx context.Context, callID uuid.U
 	return r.db.Recording.Query().
 		Where(
 			recording.CallID(callID),
+			recording.DeletedAtIsNil(),
 			recording.StatusEQ(recording.StatusRecording),
 		).
 		Count(ctx)
@@ -366,6 +370,7 @@ func (r *EntRepository) CountActiveRecordings(ctx context.Context, callID uuid.U
 // UpdateRecordingStatus обновляет статус записи.
 func (r *EntRepository) UpdateRecordingStatus(ctx context.Context, id uuid.UUID, status recording.Status) error {
 	return r.db.Recording.UpdateOneID(id).
+		Where(recording.DeletedAtIsNil()).
 		SetStatus(status).
 		Exec(ctx)
 }
@@ -373,6 +378,7 @@ func (r *EntRepository) UpdateRecordingStatus(ctx context.Context, id uuid.UUID,
 // UpdateRecordingCompleted обновляет запись как завершённую (статус ready, размер, длительность).
 func (r *EntRepository) UpdateRecordingCompleted(ctx context.Context, id uuid.UUID, fileSize int64, duration int, endedAt time.Time) error {
 	return r.db.Recording.UpdateOneID(id).
+		Where(recording.DeletedAtIsNil()).
 		SetStatus(recording.StatusReady).
 		SetFileSize(fileSize).
 		SetDurationSeconds(duration).
@@ -380,10 +386,11 @@ func (r *EntRepository) UpdateRecordingCompleted(ctx context.Context, id uuid.UU
 		Exec(ctx)
 }
 
-// ListRecordingsByProject возвращает записи проекта с пагинацией.
+// ListRecordingsByProject возвращает записи проекта с пагинацией (без корзины).
+// A2W8-4-005: DeletedAtIsNil. Mutation: снять фильтр → soft-deleted в списке → FAIL.
 func (r *EntRepository) ListRecordingsByProject(ctx context.Context, projectID uuid.UUID, offset, limit int) ([]*ent.Recording, int, error) {
 	query := r.db.Recording.Query().
-		Where(recording.ProjectID(projectID))
+		Where(recording.ProjectID(projectID), recording.DeletedAtIsNil())
 
 	total, err := query.Count(ctx)
 	if err != nil {
@@ -400,6 +407,21 @@ func (r *EntRepository) ListRecordingsByProject(ctx context.Context, projectID u
 	}
 
 	return recordings, total, nil
+}
+
+// SoftDeleteRecording — A2W8-4-005 / ADR-ENT-SOFT-DELETE-GAPS-2026: media metadata soft-delete.
+func (r *EntRepository) SoftDeleteRecording(ctx context.Context, id uuid.UUID) error {
+	affected, err := r.db.Recording.Update().
+		Where(recording.IDEQ(id), recording.DeletedAtIsNil()).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------

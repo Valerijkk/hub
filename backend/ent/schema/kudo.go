@@ -26,6 +26,10 @@ func (Kudo) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
+		// A2W8-3-004 / ADR-ENT-SOFT-DELETE-GAPS-2026: GDPR soft-path для kudos.
+		field.Time("deleted_at").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -46,5 +50,6 @@ func (Kudo) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("is_public", "created_at"),
 		index.Fields("created_at"),
+		index.Fields("deleted_at"),
 	}
 }

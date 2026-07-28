@@ -11,6 +11,8 @@ import (
 )
 
 // JournalLine — строка дебета/кредита в проводке журнала.
+// Soft-delete: join-filter через JournalEntry.deleted_at (ADR-ENT-SOFT-DELETE-GAPS-2026 /
+// A2W8-3-004) — отдельный deleted_at на line запрещён (двойная запись).
 type JournalLine struct {
 	ent.Schema
 }

@@ -36,6 +36,8 @@ type Repository interface {
 	GetSprintInProject(ctx context.Context, projectID, sprintID uuid.UUID) (*ent.Sprint, error)
 	// ListSprints возвращает все спринты проекта.
 	ListSprints(ctx context.Context, projectID uuid.UUID) ([]*ent.Sprint, error)
+	// SoftDeleteSprint помечает спринт deleted_at (A2W8-4-004 / ADR-ENT-SOFT-DELETE-GAPS-2026).
+	SoftDeleteSprint(ctx context.Context, projectID, sprintID uuid.UUID) error
 	// UpdateSprint обновляет спринт.
 	UpdateSprint(ctx context.Context, sprintID uuid.UUID, req UpdateSprintRequest) (*ent.Sprint, error)
 	// UpdateSprintStatus изменяет статус спринта.
@@ -107,10 +109,11 @@ func (r *EntRepository) CreateSprint(ctx context.Context, projectID uuid.UUID, r
 const MaxSprintIssues = 500
 
 // GetSprint возвращает спринт по ID с загруженными issues (capped).
+// A2W8-4-004: DeletedAtIsNil — корзина не отдаётся.
 func (r *EntRepository) GetSprint(ctx context.Context, sprintID uuid.UUID) (*ent.Sprint, error) {
 	return r.client.Sprint.
 		Query().
-		Where(sprintEnt.ID(sprintID)).
+		Where(sprintEnt.ID(sprintID), sprintEnt.DeletedAtIsNil()).
 		WithIssues(func(q *ent.IssueQuery) {
 			q.Limit(MaxSprintIssues)
 		}).
@@ -123,6 +126,7 @@ func (r *EntRepository) GetSprintInProject(ctx context.Context, projectID, sprin
 		Query().
 		Where(
 			sprintEnt.ID(sprintID),
+			sprintEnt.DeletedAtIsNil(),
 			sprintEnt.HasProjectWith(project.ID(projectID)),
 		).
 		WithIssues(func(q *ent.IssueQuery) {
@@ -133,12 +137,35 @@ func (r *EntRepository) GetSprintInProject(ctx context.Context, projectID, sprin
 
 // ListSprints возвращает все спринты проекта отсортированные по дате начала.
 // A13-006: без WithIssues() — issue_count через GetSprintIssueCounts в ListSprints (service).
+// A2W8-4-004: DeletedAtIsNil. Mutation: снять фильтр → soft-deleted в списке → FAIL.
 func (r *EntRepository) ListSprints(ctx context.Context, projectID uuid.UUID) ([]*ent.Sprint, error) {
 	return r.client.Sprint.
 		Query().
-		Where(sprintEnt.HasProjectWith(project.ID(projectID))).
+		Where(
+			sprintEnt.HasProjectWith(project.ID(projectID)),
+			sprintEnt.DeletedAtIsNil(),
+		).
 		Order(ent.Desc(sprintEnt.FieldStartDate)).
 		All(ctx)
+}
+
+// SoftDeleteSprint — A2W8-4-004 / ADR-ENT-SOFT-DELETE-GAPS-2026: SetDeletedAt, не hard Delete.
+func (r *EntRepository) SoftDeleteSprint(ctx context.Context, projectID, sprintID uuid.UUID) error {
+	affected, err := r.client.Sprint.Update().
+		Where(
+			sprintEnt.IDEQ(sprintID),
+			sprintEnt.HasProjectWith(project.ID(projectID)),
+			sprintEnt.DeletedAtIsNil(),
+		).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // UpdateSprint обновляет спринт.
@@ -184,6 +211,7 @@ func (r *EntRepository) FindActiveSprint(ctx context.Context, projectID uuid.UUI
 		Query().
 		Where(
 			sprintEnt.StatusEQ(sprintEnt.StatusActive),
+			sprintEnt.DeletedAtIsNil(),
 			sprintEnt.HasProjectWith(project.ID(projectID)),
 		).
 		Only(ctx)
@@ -210,6 +238,7 @@ func (r *EntRepository) StartSprintAtomic(ctx context.Context, projectID, sprint
 	if _, err := tx.Sprint.Query().
 		Where(
 			sprintEnt.ID(sprintID),
+			sprintEnt.DeletedAtIsNil(),
 			sprintEnt.HasProjectWith(project.ID(projectID)),
 		).
 		Only(ctx); err != nil {
@@ -219,6 +248,7 @@ func (r *EntRepository) StartSprintAtomic(ctx context.Context, projectID, sprint
 	existing, err := tx.Sprint.Query().
 		Where(
 			sprintEnt.StatusEQ(sprintEnt.StatusActive),
+			sprintEnt.DeletedAtIsNil(),
 			sprintEnt.HasProjectWith(project.ID(projectID)),
 		).
 		Only(ctx)
@@ -265,6 +295,7 @@ func (r *EntRepository) FindOrCreateNextPlanningSprint(ctx context.Context, proj
 		Query().
 		Where(
 			sprintEnt.StatusEQ(sprintEnt.StatusPlanning),
+			sprintEnt.DeletedAtIsNil(),
 			sprintEnt.HasProjectWith(project.ID(projectID)),
 		).
 		Order(ent.Asc(sprintEnt.FieldStartDate)).
@@ -344,6 +375,7 @@ func findOrCreateNextPlanningSprintTx(ctx context.Context, tx *ent.Tx, projectID
 		Query().
 		Where(
 			sprintEnt.StatusEQ(sprintEnt.StatusPlanning),
+			sprintEnt.DeletedAtIsNil(),
 			sprintEnt.HasProjectWith(project.ID(projectID)),
 		).
 		Order(ent.Asc(sprintEnt.FieldStartDate)).
@@ -499,6 +531,7 @@ func (r *EntRepository) GetVelocityData(ctx context.Context, projectID uuid.UUID
 		Query().
 		Where(
 			sprintEnt.StatusEQ(sprintEnt.StatusCompleted),
+			sprintEnt.DeletedAtIsNil(),
 			sprintEnt.HasProjectWith(project.ID(projectID)),
 		).
 		Order(ent.Asc(sprintEnt.FieldStartDate)).

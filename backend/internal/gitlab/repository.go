@@ -139,10 +139,14 @@ func (r *EntRepository) CreateIntegration(ctx context.Context, projectID uuid.UU
 	return created, nil
 }
 
-// ListIntegrations возвращает все GitLab-интеграции проекта.
+// ListIntegrations возвращает все GitLab-интеграции проекта (без корзины).
+// W7-A3-010: DeletedAtIsNil.
 func (r *EntRepository) ListIntegrations(ctx context.Context, projectID uuid.UUID) ([]*ent.GitLabIntegration, error) {
 	list, err := r.client.GitLabIntegration.Query().
-		Where(gitlabintegration.HasProjectWith(project.ID(projectID))).
+		Where(
+			gitlabintegration.HasProjectWith(project.ID(projectID)),
+			gitlabintegration.DeletedAtIsNil(),
+		).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -153,9 +157,11 @@ func (r *EntRepository) ListIntegrations(ctx context.Context, projectID uuid.UUI
 	return list, nil
 }
 
-// GetIntegration возвращает интеграцию по ID.
+// GetIntegration возвращает интеграцию по ID (без корзины).
 func (r *EntRepository) GetIntegration(ctx context.Context, id uuid.UUID) (*ent.GitLabIntegration, error) {
-	ig, err := r.client.GitLabIntegration.Get(ctx, id)
+	ig, err := r.client.GitLabIntegration.Query().
+		Where(gitlabintegration.IDEQ(id), gitlabintegration.DeletedAtIsNil()).
+		Only(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -169,6 +175,7 @@ func (r *EntRepository) GetIntegrationInProject(ctx context.Context, projectID, 
 	ig, err := r.client.GitLabIntegration.Query().
 		Where(
 			gitlabintegration.IDEQ(id),
+			gitlabintegration.DeletedAtIsNil(),
 			gitlabintegration.HasProjectWith(project.ID(projectID)),
 		).
 		Only(ctx)
@@ -179,15 +186,17 @@ func (r *EntRepository) GetIntegrationInProject(ctx context.Context, projectID, 
 	return ig, nil
 }
 
-// DeleteIntegration удаляет интеграцию по ID только в рамках projectID (A5-004).
+// DeleteIntegration мягко удаляет интеграцию по ID только в рамках projectID (A5-004 / W7-A3-010).
 // Чужой projectId в URL при UUID интеграции другого проекта → NotFound (0 rows).
 func (r *EntRepository) DeleteIntegration(ctx context.Context, projectID, id uuid.UUID) error {
-	affected, err := r.client.GitLabIntegration.Delete().
+	affected, err := r.client.GitLabIntegration.Update().
 		Where(
 			gitlabintegration.IDEQ(id),
 			gitlabintegration.HasProjectWith(project.ID(projectID)),
+			gitlabintegration.DeletedAtIsNil(),
 		).
-		Exec(ctx)
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
 	if err != nil {
 		return err
 	}
@@ -199,10 +208,13 @@ func (r *EntRepository) DeleteIntegration(ctx context.Context, projectID, id uui
 	return nil
 }
 
-// FindIntegrationByProjectPath ищет интеграцию по пути проекта GitLab.
+// FindIntegrationByProjectPath ищет интеграцию по пути проекта GitLab (без корзины).
 func (r *EntRepository) FindIntegrationByProjectPath(ctx context.Context, projectPath string) (*ent.GitLabIntegration, error) {
 	ig, err := r.client.GitLabIntegration.Query().
-		Where(gitlabintegration.ProjectPath(projectPath)).
+		Where(
+			gitlabintegration.ProjectPath(projectPath),
+			gitlabintegration.DeletedAtIsNil(),
+		).
 		WithProject().
 		Only(ctx)
 	if err != nil {
@@ -256,6 +268,7 @@ func (r *EntRepository) ListAllWebhookSecrets(ctx context.Context) ([]string, er
 	r.secretsMu.RUnlock()
 
 	integrations, err := r.client.GitLabIntegration.Query().
+		Where(gitlabintegration.DeletedAtIsNil()).
 		Select(gitlabintegration.FieldWebhookSecret).
 		All(ctx)
 	if err != nil {

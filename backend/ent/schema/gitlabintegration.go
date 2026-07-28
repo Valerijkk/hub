@@ -37,6 +37,10 @@ func (GitLabIntegration) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
+		// W7-A3-010 / ADR-ENT-SOFT-DELETE-GAPS-2026: soft-delete интеграций (токены/links).
+		field.Time("deleted_at").
+			Optional().
+			Nillable(),
 	}
 }
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
@@ -64,5 +68,7 @@ func (GitLabIntegration) Indexes() []ent.Index {
 		index.Fields("project_path").
 			Edges("project").
 			Unique(),
+		index.Fields("deleted_at"),
+		index.Edges("project").Fields("deleted_at"),
 	}
 }

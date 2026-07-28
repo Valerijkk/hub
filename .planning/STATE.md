@@ -65,16 +65,13 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (be1 · TASK-096 Ent OnDelete/cascade)
+## Session note — 2026-07-28 (be2 · TASK-097 Ent soft-delete schema gaps)
 
-- ADR-ENT-ONDELETE-CASCADE-2026 Accepted (owner: апрув migrate не требуется).
-- Schema: `entsql.OnDelete` на Channel/Call/Poll/Project/Org/Issue/IssueLink;
-  IssueLink unique `(source,target,link_type)`; enum без parent/child.
-- Migrate SQL: `backend/migrations/20260728_task096_ondelete_cascade.sql`.
-- Тесты: `go test -tags hubtest ./testframework/ent/ -run TASK096` PASS;
-  tracker/messenger PASS; project DeleteHard → CascadesMembers.
-- Findings FIXED: A2W8-1-003, A2W8-4-002, A2W8-4-006, A2W8-3-003.
-- Ветка: `fix/ent/task-096-ondelete` (worktree).
+- ADR-ENT-SOFT-DELETE-GAPS-2026 Accepted; migrate `20260728_task097_soft_delete_gaps.sql`.
+- `deleted_at` + list filters: LeaveRequest, Label/LabelGroup, CustomField, Sprint, Recording, Kudo, GitHub/GitLab Integration; JournalLine = join-filter via entry.
+- Soft-delete repos: DeleteLabel/CustomField/Integration → SetDeletedAt; SoftDeleteSprint/Leave/Recording/Kudo/JournalEntry.
+- Tests: `*soft_delete*task097*` + `schema_soft_delete_task097` — PASS (hubtest -race). GitLab handler SSRF 127.0.0.1 — pre-existing residual, не регрессия soft-delete.
+- Статус TASK-097 → **Исправлена**. Version на Label/CFD/Sprint — зона TASK-095 (без конфликта Mixin).
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

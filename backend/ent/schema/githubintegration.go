@@ -41,6 +41,10 @@ func (GitHubIntegration) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
+		// W7-A3-010 / ADR-ENT-SOFT-DELETE-GAPS-2026: soft-delete интеграций (токены/links).
+		field.Time("deleted_at").
+			Optional().
+			Nillable(),
 	}
 }
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
@@ -68,5 +72,7 @@ func (GitHubIntegration) Indexes() []ent.Index {
 		index.Fields("repo_owner", "repo_name").
 			Edges("project").
 			Unique(),
+		index.Fields("deleted_at"),
+		index.Edges("project").Fields("deleted_at"),
 	}
 }
