@@ -52,8 +52,22 @@ func TestHandler_ConfirmUpload_AlreadyConfirmed_409_A4_006(t *testing.T) {
 	app, projectID, userID, client := newStorageRoutesEnv(t)
 	ctx := context.Background()
 
+	ch, err := client.Channel.Create().
+		SetName("a4006").
+		SetChannelType("public").
+		SetProjectID(projectID).
+		SetCreatedBy(userID).
+		Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ChannelMember.Create().
+		SetChannelID(ch.ID).
+		SetUserID(userID).
+		SetRole("member").
+		Save(ctx)
+	require.NoError(t, err)
+
 	fileID := uuid.New()
-	_, err := client.FileMetadata.Create().
+	_, err = client.FileMetadata.Create().
 		SetID(fileID).
 		SetFilename("already.pdf").
 		SetContentType("application/pdf").
@@ -66,7 +80,7 @@ func TestHandler_ConfirmUpload_AlreadyConfirmed_409_A4_006(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	body := `{"entityType":"message","entityId":"MSG-1"}`
+	body := `{"entityType":"message","entityId":"` + ch.ID.String() + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/files/"+fileID.String()+"/confirm", bytes.NewReader([]byte(body)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
@@ -85,6 +99,6 @@ func TestHandler_ConfirmUpload_AlreadyConfirmed_409_A4_006(t *testing.T) {
 
 	got, err := client.FileMetadata.Get(ctx, fileID)
 	require.NoError(t, err)
-	assert.Equal(t, "MSG-1", got.EntityID, "entity must not rebind on HTTP re-confirm")
+	assert.Equal(t, ch.ID.String(), got.EntityID, "entity must not rebind on HTTP re-confirm")
 	assert.Equal(t, filemetadata.StatusConfirmed, got.Status)
 }

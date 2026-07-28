@@ -150,9 +150,23 @@ func TestConfirmUpload_UpdatesMetadata(t *testing.T) {
 	client, ctx, userID, projectID := newStorageTestClient(t)
 	svc := storage.ExportNewStorageServiceForTest(storageRepo(client), "hub-files")
 
+	ch, err := client.Channel.Create().
+		SetName("attach").
+		SetChannelType("public").
+		SetProjectID(projectID).
+		SetCreatedBy(userID).
+		Save(ctx)
+	require.NoError(t, err)
+	_, err = client.ChannelMember.Create().
+		SetChannelID(ch.ID).
+		SetUserID(userID).
+		SetRole("member").
+		Save(ctx)
+	require.NoError(t, err)
+
 	fileID := uuid.New()
 	s3Key := projectID.String() + "/files/" + fileID.String() + "/report.pdf"
-	_, err := client.FileMetadata.Create().
+	_, err = client.FileMetadata.Create().
 		SetID(fileID).
 		SetFilename("report.pdf").
 		SetContentType("application/pdf").
@@ -165,13 +179,13 @@ func TestConfirmUpload_UpdatesMetadata(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.ConfirmUpload(ctx, fileID, "message", "msg-123"))
+	require.NoError(t, svc.ConfirmUpload(ctx, fileID, "message", ch.ID.String()))
 
 	meta, err := client.FileMetadata.Get(ctx, fileID)
 	require.NoError(t, err)
 	assert.Equal(t, filemetadata.StatusConfirmed, meta.Status)
 	assert.Equal(t, "message", meta.EntityType)
-	assert.Equal(t, "msg-123", meta.EntityID)
+	assert.Equal(t, ch.ID.String(), meta.EntityID)
 }
 
 func TestFileProjectID_ReturnsOwnerProject(t *testing.T) {

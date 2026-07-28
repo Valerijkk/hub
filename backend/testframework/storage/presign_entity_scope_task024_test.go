@@ -96,9 +96,9 @@ func TestValidateEntityScope_IssueSameProject_P1_BE_38(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 
-	err = storage.ExportValidateEntityScope(svc, context.Background(), projectID, "issue", iss.ID.String())
+	err = storage.ExportValidateEntityScope(svc, context.Background(), projectID, userID, "issue", iss.ID.String())
 	require.NoError(t, err)
 
-	err = storage.ExportValidateEntityScope(svc, context.Background(), projectID, "issue", "not-a-uuid")
+	err = storage.ExportValidateEntityScope(svc, context.Background(), projectID, userID, "issue", "not-a-uuid")
 	assert.ErrorIs(t, err, storage.ErrInvalidEntity)
 }

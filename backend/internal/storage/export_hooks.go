@@ -58,8 +58,8 @@ func ExportMaxUploadBytes() int64 {
 }
 
 // ExportValidateEntityScope вызывает validateEntityScope для hubtest.
-func ExportValidateEntityScope(s *StorageService, ctx context.Context, fileProjectID uuid.UUID, entityType, entityID string) error {
-	return s.validateEntityScope(ctx, fileProjectID, entityType, entityID)
+func ExportValidateEntityScope(s *StorageService, ctx context.Context, fileProjectID, uploaderID uuid.UUID, entityType, entityID string) error {
+	return s.validateEntityScope(ctx, fileProjectID, uploaderID, entityType, entityID)
 }
 
 // ExportValidateUploadContentType — W7-A4-006 MIME guard для hubtest.

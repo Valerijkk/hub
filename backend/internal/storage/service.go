@@ -166,7 +166,11 @@ func (s *StorageService) ConfirmUpload(ctx context.Context, fileID uuid.UUID, en
 	if err != nil {
 		return fmt.Errorf("file project: %w", err)
 	}
-	if err := s.validateEntityScope(ctx, projectID, entityType, entityID); err != nil {
+	uploaderID, err := s.repo.UploaderIDForActiveFile(ctx, fileID)
+	if err != nil {
+		return fmt.Errorf("file uploader: %w", err)
+	}
+	if err := s.validateEntityScope(ctx, projectID, uploaderID, entityType, entityID); err != nil {
 		return err
 	}
 
@@ -229,8 +233,9 @@ func isS3NotFound(err error) bool {
 		strings.Contains(msg, "status code: 404")
 }
 
-// validateEntityScope — W7-A4-002: allowlist + для issue UUID и project match.
-func (s *StorageService) validateEntityScope(ctx context.Context, fileProjectID uuid.UUID, entityType, entityID string) error {
+// validateEntityScope — W7-A4-002: allowlist + ownership/membership per type.
+// Mutation: вернуть только entityID!="" для message/avatar/voice/channel → denial RED.
+func (s *StorageService) validateEntityScope(ctx context.Context, fileProjectID, uploaderID uuid.UUID, entityType, entityID string) error {
 	switch entityType {
 	case "issue":
 		entityUUID, err := uuid.Parse(entityID)
@@ -248,18 +253,57 @@ func (s *StorageService) validateEntityScope(ctx context.Context, fileProjectID 
 			return ErrEntityProjectMismatch
 		}
 		return nil
-	case "message", "avatar", "voice", "channel":
-		// Не project-scoped в том же смысле / legacy callers — достаточно allowlist.
+	case "avatar":
+		// Avatar — только свой: "me" (FE) или UUID uploader'а.
 		if entityID == "" {
 			return ErrInvalidEntity
 		}
-		return nil
+		if entityID == "me" || entityID == uploaderID.String() {
+			return nil
+		}
+		return ErrInvalidEntity
+	case "channel", "message", "voice":
+		// entityID = channel UUID; uploader обязан быть членом активного канала.
+		// voice "temp" — отложенная привязка до send (FE voice-recorder).
+		if entityID == "" {
+			return ErrInvalidEntity
+		}
+		if entityType == "voice" && entityID == "temp" {
+			return nil
+		}
+		return s.validateChannelMembership(ctx, fileProjectID, uploaderID, entityID)
 	default:
 		if entityType == "" && entityID == "" {
 			return nil
 		}
 		return ErrInvalidEntityType
 	}
+}
+
+// validateChannelMembership — channel/message/voice: UUID + membership + project match.
+func (s *StorageService) validateChannelMembership(ctx context.Context, fileProjectID, uploaderID uuid.UUID, entityID string) error {
+	channelID, err := uuid.Parse(entityID)
+	if err != nil {
+		return ErrInvalidEntity
+	}
+	chProjectID, err := s.repo.ActiveChannelProjectID(ctx, channelID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrInvalidEntity
+		}
+		return fmt.Errorf("channel project: %w", err)
+	}
+	if chProjectID != nil && *chProjectID != fileProjectID {
+		return ErrEntityProjectMismatch
+	}
+	ok, err := s.repo.IsChannelMember(ctx, channelID, uploaderID)
+	if err != nil {
+		return fmt.Errorf("channel membership: %w", err)
+	}
+	if !ok {
+		return ErrInvalidEntity
+	}
+	return nil
 }
 
 // FileProjectID возвращает ID проекта, которому принадлежит файл.
