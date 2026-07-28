@@ -1,7 +1,8 @@
 # TASK-096 — 📐 Ent OnDelete/cascade: ADR + FK policy
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P1** · Статус: **Исправлена**  
 > Источник: A2W8 OnDelete · ADR-first · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
+> Закрыто: 2026-07-28 · be1 · ADR-ENT-ONDELETE-CASCADE-2026 Accepted (owner: апрув migrate не требуется)
 
 ## [OUTCOME]
 
@@ -23,7 +24,7 @@ Parent→child FK имеют явную OnDelete/purge-политику по ADR
 - Do not touch:
   - слепой CASCADE без ADR
 - Constraints: Conventional Commits RU; no Co-authored-by; Ent migrate только с owner approve
-- Approval record: требуется ADR/owner approve перед кодом/migrate
+- Approval record: **Owner 2026-07-28: апрув ADR/migrate НЕ требуется** (выполнено)
 
 ## [REFERENCES]
 

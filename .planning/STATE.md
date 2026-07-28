@@ -65,13 +65,16 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (be1 · TASK-095 Ent VersionMixin)
+## Session note — 2026-07-28 (be1 · TASK-096 Ent OnDelete/cascade)
 
-- ADR-ENT-VERSION-MIXIN-2026 → **Accepted** (owner); unclear-12 exclusion.
-- `mixin_version.go` + Mixin на 45 `mutable_needs_version`; migrate SQL `20260728_task095_version_mixin.sql`.
-- VersionEQ: sprint update, intranet news (W7-A2-003), pilot project/channel/comment.
-- Tests PASS: ent/intranet/sprint/project/messenger/tracker + tms/bases/crm.
-- TASK-095 → **Исправлена**. Ветка: `fix/ent/task-095-version-mixin`.
+- ADR-ENT-ONDELETE-CASCADE-2026 Accepted (owner: апрув migrate не требуется).
+- Schema: `entsql.OnDelete` на Channel/Call/Poll/Project/Org/Issue/IssueLink;
+  IssueLink unique `(source,target,link_type)`; enum без parent/child.
+- Migrate SQL: `backend/migrations/20260728_task096_ondelete_cascade.sql`.
+- Тесты: `go test -tags hubtest ./testframework/ent/ -run TASK096` PASS;
+  tracker/messenger PASS; project DeleteHard → CascadesMembers.
+- Findings FIXED: A2W8-1-003, A2W8-4-002, A2W8-4-006, A2W8-3-003.
+- Ветка: `fix/ent/task-096-ondelete` (worktree).
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

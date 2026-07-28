@@ -298,7 +298,7 @@ backend/internal/
 | Колонка | Тип | Описание |
 |---------|-----|----------|
 | id | UUID | PK |
-| link_type | ENUM(blocks, blocked_by, relates_to, duplicates, duplicated_by, clones, cloned_from, causes, caused_by, parent, child) | |
+| link_type | ENUM(blocks, blocked_by, relates_to, duplicates, duplicated_by, clones, cloned_from, causes, caused_by) | Иерархия epic/sub_task — только Issue.self-edge parent/children (ADR-ENT-ONDELETE-CASCADE-2026) |
 | custom_type | STRING | Для пользовательских типов связей |
 | created_at | TIME | Immutable |
 
