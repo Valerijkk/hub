@@ -92,7 +92,7 @@
 | NEW-03 | LOW | ✅ **FIXED** | `backup/service.go:173,237` | `LimitReader` 512 MiB cap |
 | NEW-04 | INFO | ✅ **PASS** | `audit/middleware.go` | Async recorder, skip health/docs |
 | NEW-05 | INFO | ✅ **PASS** | `audit/handler.go:284-305` | `BanUser` требует admin + audit log |
-| NEW-06 | INFO | ✅ **PASS** | `middleware/security_headers.go` | X-Frame-Options, CSP, nosniff |
+| NEW-06 | INFO | ✅ **PASS** | `middleware/security_headers.go` + `Caddyfile.prod` | X-Frame-Options, CSP, nosniff; **HSTS на Caddy** (не Fiber) |
 | NEW-07 | INFO | ✅ **PASS** | `observability/timing.go` | Timed wrapper, no secrets logged |
 | NEW-08 | INFO | ✅ **PASS** | `storage/filename.go` | `sanitizeFilename` 200-char cap |
 | NF-10 | MEDIUM | ⚠️ **ACCEPTED** | `auth/magiclink.go:46-52` | 6-digit (~10⁶ entropy) + rate-limit 3/10m |
@@ -332,6 +332,8 @@ if expectedHash != "" { ... }
 - ✅ `audit/middleware.go`: Async recorder, proper skip logic
 - ✅ `audit/handler.go:284` BanUser: Admin check + audit log
 - ✅ `middleware/security_headers.go`: X-Frame-Options, CSP, nosniff
+- ✅ HSTS (`Strict-Transport-Security`): `deployments/Caddyfile.prod` — TLS edge only (A2W4-1-001); Fiber не дублирует HSTS за reverse-proxy
+- ✅ AES-GCM AAD: `crypto.EncryptWithAAD` / `DecryptWithAAD` — привязка ciphertext к entityID (A2W4-4-001); legacy `Encrypt`/`MaybeDecryptString` — migration window без AAD
 - ✅ `observability/timing.go`: No secret logging
 - ✅ `storage/filename.go`: Path traversal mitigation
 - ✅ `platform/http/opengraph.go`: SafeHTTP + ValidateOutboundURL + LimitReader

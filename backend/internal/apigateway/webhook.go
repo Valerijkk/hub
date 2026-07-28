@@ -34,6 +34,12 @@ var errWebhookQueueFull = errors.New("webhook delivery queue full")
 // разгрести очередь до следующей попытки и предотвращает busy-loop.
 const webhookRedeliverDelay = 5 * time.Second
 
+// defaultWebhookRetryDelays — prod backoff для deliverWithRetry.
+var defaultWebhookRetryDelays = []time.Duration{0, time.Second, 5 * time.Second, 30 * time.Second}
+
+// webhookRetryDelays — активный backoff (hubtest может подменить на короткие).
+var webhookRetryDelays = append([]time.Duration(nil), defaultWebhookRetryDelays...)
+
 // webhookHTTPClient — общий безопасный HTTP-клиент для исходящих
 // вебхук-запросов. Использует SafeDialContext, который блокирует RFC1918,
 // loopback, link-local и метаданные облачных провайдеров (защита от SSRF).
@@ -252,7 +258,10 @@ func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string,
 // deliverWithRetry отправляет вебхук с повторами (1s, 5s, 30s). Тело уже
 // сериализовано в job.body, повторного json.Marshal нет (HI-08).
 func (d *WebhookDispatcher) deliverWithRetry(ctx context.Context, job webhookJob) {
-	delays := []time.Duration{0, time.Second, 5 * time.Second, 30 * time.Second}
+	delays := webhookRetryDelays
+	if len(delays) == 0 {
+		delays = defaultWebhookRetryDelays
+	}
 
 	sig := signPayload(job.body, job.ep.Secret)
 

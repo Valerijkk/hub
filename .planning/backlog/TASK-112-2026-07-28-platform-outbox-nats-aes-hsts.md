@@ -1,6 +1,6 @@
 # TASK-112 — 🐛 Platform: NATS/HSTS/AES-AAD/RL/webhook tests
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Исправлена**  
 > Источник: A2W4 residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
 
 ## [OUTCOME]
@@ -50,3 +50,19 @@
 
 - Не оставлять ID «WONTFIX» без явного owner cancel в задаче
 - ADR-first: код только после approve в Approval record
+
+## [EVIDENCE] 2026-07-28 be1
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A2W4-1-001 | FIXED | HSTS в `Caddyfile.prod`; Fiber без HSTS + тест |
+| A2W4-1-002 | FIXED | `TestParseUUIDParam_RejectsNilUUID` |
+| A2W4-1-003 | FIXED | Redis RL Lua atomic ZADD; `TestRateLimitRedis_LuaRejectDoesNotAddMember` |
+| A2W4-2-002 | FIXED | outbox → `PublishMsgAck`; `TestProcessEvent_PubAckFailure_StaysPending` |
+| A2W4-2-003 | FIXED | `StreamSubjects` канон + `TestStreamSubjects` (9) |
+| A2W4-3-001 | FIXED | `W4-ASSIGNMENTS.md` A3 без deleted middleware test |
+| A2W4-4-001 | FIXED | `EncryptWithAAD`/`DecryptWithAAD` + mismatch test |
+| A2W4-5-004 | FIXED | `60-tz-constraints.mdc`: CTC inbound github/gitlab |
+| A2W4-5-005 | FIXED | `TestSendWebhook_5xxRetries` → `DeliverWithRetry` |
+
+Tests: `go test -tags hubtest -race -count=1 ./testframework/platform/{http,middleware,nats,crypto,outbox}/ ./testframework/apigateway/` → PASS.

@@ -16,6 +16,20 @@ import (
 // StreamName — единый JetStream stream для всех модулей.
 const StreamName = "EVENTS"
 
+// StreamSubjects — канонический список subjects для EVENTS (ME-07).
+// EnsureStreams и unit-тесты сверяются только с этим слайсом (A2W4-2-003).
+var StreamSubjects = []string{
+	"project.>",
+	"tracker.>",
+	"messenger.channel.>",
+	"tms.>",
+	"calls.channel.>",
+	"calls.recording.>",
+	"auth.session.>",
+	"sprint.>",
+	"notification.>",
+}
+
 // WebhookFilterSubjects — JetStream filter для durable consumer webhook-dispatcher.
 // Только subject'ы, которые могут триггерить исходящие webhook (см. UI AVAILABLE_EVENTS).
 // Исключает notification.*, auth.session.*, calls.* — они не доставляются наружу (APIGW-03).
@@ -168,18 +182,8 @@ func (c *Client) PublishWithTraceContext(ctx context.Context, subject string, da
 //     real-time, реплей не нужен (см. handleCallChatEvent в ws/bridge.go).
 func (c *Client) EnsureStreams(ctx context.Context) error {
 	_, err := c.JetStream.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-		Name: StreamName,
-		Subjects: []string{
-			"project.>",
-			"tracker.>",
-			"messenger.channel.>",
-			"tms.>",
-			"calls.channel.>",
-			"calls.recording.>",
-			"auth.session.>",
-			"sprint.>",
-			"notification.>",
-		},
+		Name:      StreamName,
+		Subjects:  append([]string(nil), StreamSubjects...),
 		Retention: jetstream.InterestPolicy,
 		MaxAge:    7 * 24 * time.Hour,
 	})

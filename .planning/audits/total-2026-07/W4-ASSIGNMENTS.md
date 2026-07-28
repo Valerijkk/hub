@@ -40,7 +40,7 @@
 - `backend/testframework/platform/outbox/trace_context_test.go`
 - `backend/testframework/platform/outbox/worker_wave101_test.go`
 
-## A3 — platform observability (14)
+## A3 — platform observability (14 → metrics_allow_middleware_test **removed** P3-BE-07 / A2W4-3-001)
 Отчёт: `A4-3-platform-obs.md`
 
 - `backend/internal/platform/observability/consumer.go`
@@ -50,8 +50,8 @@
 - `backend/internal/platform/observability/otel.go`
 - `backend/internal/platform/observability/prometheus.go`
 - `backend/internal/platform/observability/timing.go`
-- `backend/testframework/platform/observability/metrics_allow_middleware_test.go`
 - `backend/testframework/platform/observability/metrics_allowlist_test.go`
+- `backend/testframework/platform/observability/metrics_route_deny_task059_test.go`
 - `backend/testframework/platform/observability/metrics_test.go`
 - `backend/testframework/platform/observability/otel_test.go`
 - `backend/testframework/platform/observability/prometheus_test.go`

@@ -202,10 +202,11 @@ func (w *Worker) processEvent(ctx context.Context, evt *ent.OutboxEvent) {
 	natsclient.InjectTraceContext(msgCtx, msg.Header)
 	msg.Header.Set(natsclient.HeaderEventID, evt.ID.String())
 
-	// P1-BE-24: PublishMsg ждёт FlushTimeout (серверный ack буфера) до возврата.
-	// status=published выставляем только после успешного Confirm — иначе crash/
-	// разрыв между Publish и Flush оставляет «published» в БД без события в NATS.
-	if err := w.nats.PublishMsg(msg); err != nil {
+	// A2W4-2-002 / P1-BE-24: JetStream PubAck гарантирует запись в stream EVENTS
+	// (Flush буфера core NATS этого не даёт при InterestPolicy). status=published
+	// только после успешного PubAck — иначе crash/разрыв оставляет «published»
+	// в БД без durable сообщения.
+	if err := w.nats.PublishMsgAck(ctx, msg); err != nil {
 		slog.Warn("outbox: publish failed", "event_type", evt.EventType, "error", err)
 		w.recordPublishFailure(ctx, evt, err)
 		return

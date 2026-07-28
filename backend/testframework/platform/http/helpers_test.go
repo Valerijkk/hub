@@ -146,6 +146,25 @@ func TestParseUUIDParam_InvalidUUID(t *testing.T) {
 	testRequest(t, app,"GET", "/items/not-valid")
 }
 
+func TestParseUUIDParam_RejectsNilUUID(t *testing.T) {
+	// A2W4-1-002 / ME-12: мутация «убрать id == uuid.Nil» краснеет здесь.
+	app := fiber.New()
+
+	app.Get("/items/:itemId", func(c fiber.Ctx) error {
+		id, err := httputil.ParseUUIDParam(c, "itemId")
+		require.Error(t, err)
+		assert.Equal(t, uuid.Nil, id)
+		var fiberErr *fiber.Error
+		require.ErrorAs(t, err, &fiberErr)
+		assert.Equal(t, fiber.StatusBadRequest, fiberErr.Code)
+		assert.Contains(t, fiberErr.Message, "invalid")
+		return c.SendStatus(200)
+	})
+
+	resp := testRequest(t, app, "GET", "/items/00000000-0000-0000-0000-000000000000")
+	assert.Equal(t, 200, resp.StatusCode)
+}
+
 func TestParseProjectID_Success(t *testing.T) {
 	app := fiber.New()
 	expected := uuid.New()

@@ -237,13 +237,19 @@ func TestProcessEvent_NilNATS_RecoversWithoutLosingRow(t *testing.T) {
 
 func startTestNATSServer(t *testing.T) *natsclient.Client {
 	t.Helper()
-	opts := &server.Options{Port: -1}
+	// A2W4-2-002: outbox публикует через JetStream PubAck — нужен JS + EnsureStreams.
+	opts := &server.Options{
+		JetStream: true,
+		StoreDir:  t.TempDir(),
+		Port:      -1,
+	}
 	s := natsserver.RunServer(opts)
 	t.Cleanup(s.Shutdown)
 
 	client, err := natsclient.NewClient(context.Background(), s.ClientURL())
 	require.NoError(t, err)
 	t.Cleanup(client.Close)
+	require.NoError(t, client.EnsureStreams(context.Background()))
 	return client
 }
 
@@ -253,7 +259,7 @@ func TestProcessEvent_PublishSuccess_MarksPublished(t *testing.T) {
 	w := outbox.NewWorker(client, nats)
 	ctx := context.Background()
 
-	evt := insertOutboxEvent(t, client, "test.published", []byte(`{"ok":true}`))
+	evt := insertOutboxEvent(t, client, "project.outbox.published", []byte(`{"ok":true}`))
 	outbox.ExportWorkerProcessEvent(w, ctx, evt)
 
 	reloaded, err := client.OutboxEvent.Get(ctx, evt.ID)
@@ -262,28 +268,23 @@ func TestProcessEvent_PublishSuccess_MarksPublished(t *testing.T) {
 	assert.NotNil(t, reloaded.PublishedAt)
 }
 
-// P1-BE-24: drop соединения между Publish и Flush → status остаётся pending.
-// Мутация «убрать Flush из PublishMsg» → Publish вернёт nil после Close и
-// событие ошибочно станет published — этот тест краснеет.
-func TestProcessEvent_DropBeforeFlush_StaysPending_P1_BE_24(t *testing.T) {
+// A2W4-2-002: PubAck failure (closed conn) → status остаётся pending.
+// Мутация «вернуть PublishMsg без ack / игнорировать ошибку» → published.
+func TestProcessEvent_PubAckFailure_StaysPending_A2W4_2_002(t *testing.T) {
 	client := newTestEntClient(t)
 	nc := startTestNATSServer(t)
 	w := outbox.NewWorker(client, nc)
 	ctx := context.Background()
 
-	natsclient.ExportSetAfterCorePublishHook(func() {
-		// ForceClose: без Drain, иначе Flush успеет и тест не поймает drop.
-		nc.ForceClose()
-	})
-	t.Cleanup(func() { natsclient.ExportSetAfterCorePublishHook(nil) })
+	nc.ForceClose()
 
-	evt := insertOutboxEvent(t, client, "test.drop.flush", []byte(`{"ok":false}`))
+	evt := insertOutboxEvent(t, client, "project.outbox.drop", []byte(`{"ok":false}`))
 	outbox.ExportWorkerProcessEvent(w, ctx, evt)
 
 	reloaded, err := client.OutboxEvent.Get(ctx, evt.ID)
 	require.NoError(t, err)
 	assert.Equal(t, outboxevent.StatusPending, reloaded.Status,
-		"event must stay pending when Flush fails after Publish")
+		"event must stay pending when JetStream PubAck fails")
 	assert.Equal(t, 1, reloaded.Attempts)
 	assert.NotEmpty(t, reloaded.LastError)
 }
@@ -316,7 +317,7 @@ func TestProcessBatch_CancelMidBatch_Stops_P3BE12(t *testing.T) {
 	w := outbox.NewWorker(client, nc)
 
 	for i := 0; i < 5; i++ {
-		insertOutboxEvent(t, client, "test.batch.cancel", []byte(`{"i":1}`))
+		insertOutboxEvent(t, client, "project.outbox.batch.cancel", []byte(`{"i":1}`))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

@@ -2,6 +2,9 @@
 # Замените домен на свой; Caddy автоматически получит TLS-сертификат Let's Encrypt.
 
 770470.cloud4box.ru {
+	# A2W4-1-001 / NFR-22: HSTS только на TLS edge (Caddy), не в Fiber SecurityHeaders.
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
 	# REST API Hub
 	handle /api/* {
 		reverse_proxy backend:3000

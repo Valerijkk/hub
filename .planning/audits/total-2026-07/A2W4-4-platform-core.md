@@ -34,7 +34,7 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|---------|-------------------|------------|
-| A2W4-4-001 | RESIDUAL | P3 | `aesgcm.go:124`; `:153`; `:169-178` | `Seal/Open` с `additionalData=nil`; `MaybeDecryptString` soft-passthrough legacy (W4-A4-013 / P3-BE-U02) | Ciphertext не привязан к entity-id (swap между rows не детектится crypto-слоем); soft decrypt ок для migration, но callers часто игнорируют `ok` | ADR rollout: AAD=`entityID`; сузить MaybeDecrypt после миграции |
+| A2W4-4-001 | FIXED | P3 | `aesgcm.go` EncryptWithAAD/DecryptWithAAD | AAD API + тест mismatch; legacy Encrypt/MaybeDecrypt без AAD для migration | Evidence: TASK-112 | ADR rollout: AAD=`entityID`; сузить MaybeDecrypt после миграции |
 
 ## FIXED-OK
 

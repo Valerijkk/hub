@@ -313,6 +313,9 @@ func TestSecurityHeaders_SetsExpectedHeaders(t *testing.T) {
 	assert.Equal(t, "DENY", resp.Header.Get("X-Frame-Options"))
 	assert.Equal(t, "strict-origin-when-cross-origin", resp.Header.Get("Referrer-Policy"))
 	assert.Equal(t, "default-src 'self'", resp.Header.Get("Content-Security-Policy"))
+	// A2W4-1-001: HSTS только на Caddy edge, не в Fiber (API за TLS-proxy).
+	assert.Empty(t, resp.Header.Get("Strict-Transport-Security"),
+		"HSTS must not be set by Fiber SecurityHeaders — see deployments/Caddyfile.prod")
 }
 
 // ---------------------------------------------------------------------------

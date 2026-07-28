@@ -61,6 +61,51 @@ func TestRateLimitRedis_RejectedDoesNotInflateZSET(t *testing.T) {
 	assert.Equal(t, int64(2), card, "ZSET must stay at Max after rejected bursts")
 }
 
+// TestRateLimitRedis_LuaRejectDoesNotAddMember — A2W4-1-003:
+// атомарный Lua не делает ZADD при card>=Max (нет окна inflated card).
+func TestRateLimitRedis_LuaRejectDoesNotAddMember(t *testing.T) {
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	t.Cleanup(mr.Close)
+
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	fixedClient := func(c fiber.Ctx) string { return "lua-client" }
+
+	app := fiber.New(fiber.Config{ErrorHandler: middleware.ErrorHandler})
+	app.Use(middleware.RateLimitRedis(t.Context(), rdb, middleware.RedisRateLimitConfig{
+		Max: 1, Window: time.Minute, KeyPrefix: "rl:lua:",
+	}, fixedClient))
+	app.Get("/", func(c fiber.Ctx) error {
+		return c.SendString("ok")
+	})
+
+	reqOK := httptest.NewRequest(http.MethodGet, "/", nil)
+	respOK, err := app.Test(reqOK)
+	require.NoError(t, err)
+	respOK.Body.Close()
+	assert.Equal(t, 200, respOK.StatusCode)
+
+	keys := mr.Keys()
+	require.Len(t, keys, 1)
+	before, err := rdb.ZCard(context.Background(), keys[0]).Result()
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), before)
+
+	for i := 0; i < 20; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		resp, err := app.Test(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+		assert.Equal(t, 429, resp.StatusCode)
+	}
+
+	after, err := rdb.ZCard(context.Background(), keys[0]).Result()
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), after, "rejected requests must not ZADD (Lua gate)")
+}
+
 // TestRateLimiter_CleanupCompareAndDelete_PreservesLiveBucket — W4-A1-003:
 // cleanup не удаляет bucket, в который параллельно успели дописать timestamps.
 func TestRateLimiter_CleanupCompareAndDelete_PreservesLiveBucket(t *testing.T) {
