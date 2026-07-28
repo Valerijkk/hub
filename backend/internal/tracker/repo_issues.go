@@ -384,20 +384,22 @@ func (r *EntRepository) UpdateIssue(ctx context.Context, issueID uuid.UUID, inpu
 	// Публикуем outbox-событие обновления задачи.
 	if r.publisher != nil && updated.Edges.Project != nil {
 		projectID := updated.Edges.Project.ID.String()
-		_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.updated", projectID), IssueUpdatedEvent{
+		subj := fmt.Sprintf("project.%s.issue.updated", projectID)
+		logOutboxPublishErr(ctx, subj, r.publisher.Publish(ctx, r.client, subj, IssueUpdatedEvent{
 			IssueID:   issueID.String(),
 			IssueKey:  updated.IssueKey,
 			ProjectID: projectID,
-		})
+		}))
 
 		// Отдельное событие при смене назначенного.
 		if input.AssigneeID != nil {
-			_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.assigned", projectID), IssueAssignedEvent{
+			subj = fmt.Sprintf("project.%s.issue.assigned", projectID)
+			logOutboxPublishErr(ctx, subj, r.publisher.Publish(ctx, r.client, subj, IssueAssignedEvent{
 				IssueID:    issueID.String(),
 				IssueKey:   updated.IssueKey,
 				ProjectID:  projectID,
 				AssigneeID: input.AssigneeID.String(),
-			})
+			}))
 		}
 	}
 
@@ -459,14 +461,15 @@ func (r *EntRepository) MoveIssue(ctx context.Context, issueID uuid.UUID, status
 	// Публикуем outbox-событие перемещения задачи.
 	if r.publisher != nil && moved.Edges.Project != nil {
 		projectID := moved.Edges.Project.ID.String()
-		_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.moved", projectID), IssueMovedEvent{
+		subj := fmt.Sprintf("project.%s.issue.moved", projectID)
+		logOutboxPublishErr(ctx, subj, r.publisher.Publish(ctx, r.client, subj, IssueMovedEvent{
 			IssueID:     issueID.String(),
 			IssueKey:    moved.IssueKey,
 			ProjectID:   projectID,
 			OldStatusID: oldStatusID,
 			NewStatusID: statusID.String(),
 			NewRank:     rank,
-		})
+		}))
 	}
 
 	return moved, nil

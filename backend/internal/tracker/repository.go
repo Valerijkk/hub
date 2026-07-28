@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -274,6 +275,14 @@ type OutboxPublisher interface {
 	PublishInTx(ctx context.Context, tx *ent.Tx, eventType string, payload any) error
 	// Publish записывает событие в outbox-таблицу без внешней транзакции.
 	Publish(ctx context.Context, client *ent.Client, eventType string, payload any) error
+}
+
+// logOutboxPublishErr — P3-BE-01 / W1-A3-008: post-commit Publish не откатывает
+// уже сохранённую сущность, но молчаливый `_ =` скрывает сбой outbox от ops.
+func logOutboxPublishErr(ctx context.Context, eventType string, err error) {
+	if err != nil {
+		slog.WarnContext(ctx, "outbox publish failed", "event_type", eventType, "error", err)
+	}
 }
 
 // EntRepository реализует Repository на основе Ent ORM с публикацией событий через outbox.

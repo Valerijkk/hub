@@ -55,12 +55,13 @@ func (r *EntRepository) CreateIssueLink(ctx context.Context, sourceID, targetID 
 			Only(ctx)
 		if qErr == nil && source.Edges.Project != nil {
 			projectID := source.Edges.Project.ID.String()
-			_ = r.publisher.Publish(ctx, r.client, fmt.Sprintf("project.%s.issue.link_created", projectID), IssueLinkCreatedEvent{
+			subj := fmt.Sprintf("project.%s.issue.link_created", projectID)
+			logOutboxPublishErr(ctx, subj, r.publisher.Publish(ctx, r.client, subj, IssueLinkCreatedEvent{
 				SourceID:  sourceID.String(),
 				TargetID:  targetID.String(),
 				LinkType:  linkType,
 				ProjectID: projectID,
-			})
+			}))
 		}
 	}
 

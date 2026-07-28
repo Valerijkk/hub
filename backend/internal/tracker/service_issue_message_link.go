@@ -3,6 +3,7 @@ package tracker
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -227,6 +228,9 @@ func (s *TrackerService) mirrorIssueCommentsToThreads(
 	}
 	links, err := s.repo.ListIssueMessageLinksByIssue(ctx, issueID)
 	if err != nil {
+		// W1-A2-013 / P3-BE-01: не глотать сбой списка связей без сигнала в ops.
+		slog.WarnContext(ctx, "mirror comments: list issue-message links failed",
+			"issue_id", issueID, "error", err)
 		return
 	}
 	text := fmt.Sprintf("[Hub sync] Комментарий к задаче:\n%s", bodyText)
@@ -235,6 +239,8 @@ func (s *TrackerService) mirrorIssueCommentsToThreads(
 			continue
 		}
 		if err := s.threadMirror.MirrorIssueComment(ctx, link.ChannelID, userID, link.MessageID, text); err != nil {
+			slog.WarnContext(ctx, "mirror comments: thread mirror failed",
+				"issue_id", issueID, "channel_id", link.ChannelID, "error", err)
 			continue
 		}
 	}

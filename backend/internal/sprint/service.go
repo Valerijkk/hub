@@ -71,7 +71,8 @@ func (s *SprintService) ListSprints(ctx context.Context, projectID uuid.UUID) ([
 	}
 	counts, err := s.repo.GetSprintIssueCounts(ctx, ids)
 	if err != nil {
-		counts = make(map[uuid.UUID]int) // запасной вариант: нули (как project.MemberCountBatch)
+		// W1-A4-012 / P3-BE-01: fail-closed — не отдавать 200 с ложным issue_count=0.
+		return nil, apperrors.NewInternal("ошибка получения счётчиков задач спринтов")
 	}
 
 	result := make([]SprintResponse, 0, len(sprints))

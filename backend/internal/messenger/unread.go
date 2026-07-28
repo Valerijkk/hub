@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"context"
+	"log/slog"
 	"strconv"
 
 	"github.com/redis/go-redis/v9"
@@ -54,7 +55,13 @@ func (s *UnreadService) GetAll(ctx context.Context, userID string) (map[string]i
 
 	result := make(map[string]int64, len(raw))
 	for k, v := range raw {
-		n, _ := strconv.ParseInt(v, 10, 64)
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			// W3-A3-010 / P3-BE-01: битые значения Redis не маскировать в 0 без сигнала.
+			slog.WarnContext(ctx, "unread counter corrupt",
+				"channel_id", k, "raw", v, "error", err)
+			continue
+		}
 		result[k] = n
 	}
 	return result, nil

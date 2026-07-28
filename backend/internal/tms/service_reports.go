@@ -3,6 +3,8 @@ package tms
 import (
 	"context"
 
+	"log/slog"
+
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
@@ -256,6 +258,9 @@ func (s *TMSService) GetFlakyTests(ctx context.Context, projectID uuid.UUID) (*F
 	for _, run := range runs {
 		results, err := s.repo.ListTestResults(ctx, run.ID)
 		if err != nil {
+			// W2-A2-020 / P3-BE-01: частичный flaky-отчёт без сигнала в ops.
+			slog.WarnContext(ctx, "flaky report: list test results failed",
+				"run_id", run.ID, "error", err)
 			continue
 		}
 		for _, r := range results {
@@ -372,6 +377,9 @@ func (s *TMSService) GetDefectCategories(ctx context.Context, projectID uuid.UUI
 	for _, run := range runs {
 		results, err := s.repo.ListTestResults(ctx, run.ID)
 		if err != nil {
+			// W2-A2-020 / P3-BE-01
+			slog.WarnContext(ctx, "defect categories: list test results failed",
+				"run_id", run.ID, "error", err)
 			continue
 		}
 		for _, r := range results {

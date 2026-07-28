@@ -371,7 +371,8 @@ func (s *AuditService) BanUser(ctx context.Context, targetUserID, adminUserID uu
 		}
 		if _, err := s.repo.CreateAuditLog(ctx, "ban", "user", targetUserID.String(),
 			&adminUserID, nil, details, ipAddress, userAgent); err != nil {
-			slog.Error("audit ban log", "error", err, "user_id", targetUserID)
+			// W6-A4-015 / P3-BE-01: ban без audit trail — fail-closed для caller.
+			return fmt.Errorf("audit ban log: %w", err)
 		}
 
 		return nil

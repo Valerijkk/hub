@@ -23,6 +23,7 @@ type mockAuditRepo struct {
 	logs           []*ent.AuditLog
 	lastListFilter audit.AuditLogFilters
 	createCalls    []createAuditLogCall
+	createErr      error
 	deactivateErr  error
 	deactivateIDs  []uuid.UUID
 	deleteSessIDs  []uuid.UUID
@@ -40,6 +41,9 @@ func (m *mockAuditRepo) CreateAuditLog(_ context.Context, action, entityType, en
 		action: action, entityType: entityType, entityID: entityID,
 		userID: userID, details: details, ipAddress: ipAddress, userAgent: userAgent,
 	})
+	if m.createErr != nil {
+		return nil, m.createErr
+	}
 	log := &ent.AuditLog{
 		ID: uuid.New(), Action: action, EntityType: entityType, EntityID: entityID,
 		Details: details, IPAddress: ipAddress, UserAgent: userAgent, CreatedAt: time.Now().UTC(),
@@ -212,15 +216,16 @@ func TestBanUser(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name       string
-		reason     string
-		target     uuid.UUID
-		admin      uuid.UUID
-		deactErr   error
-		wantErr       string
-		wantDeact     bool
+		name           string
+		reason         string
+		target         uuid.UUID
+		admin          uuid.UUID
+		deactErr       error
+		createErr      error
+		wantErr        string
+		wantDeact      bool
 		wantSessRevoke bool
-		wantAudit     bool
+		wantAudit      bool
 	}{
 		{
 			name:    "empty reason rejected",
@@ -254,11 +259,21 @@ func TestBanUser(t *testing.T) {
 			wantSessRevoke: true,
 			wantAudit:      true,
 		},
+		{
+			// W6-A4-015 / P3-BE-01: CreateAuditLog fail после deactivate → err caller.
+			name:      "audit log failure after ban",
+			reason:    "spam",
+			target:    targetID,
+			admin:     adminID,
+			createErr: errors.New("audit db down"),
+			wantErr:   "audit ban log",
+			wantDeact: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &mockAuditRepo{deactivateErr: tt.deactErr}
+			repo := &mockAuditRepo{deactivateErr: tt.deactErr, createErr: tt.createErr}
 			svc := audit.NewAuditService(repo, nil)
 
 			err := svc.BanUser(ctx, tt.target, tt.admin, tt.reason, "10.0.0.1", "test-agent")

@@ -95,7 +95,8 @@ func TestBuildAPIDocsHTMLAndJSON(t *testing.T) {
 	assert.Contains(t, html, "Notifications")
 	assert.Contains(t, html, "GET")
 
-	jsonStr := dev.BuildAPIDocsJSON(app)
+	jsonStr, err := dev.BuildAPIDocsJSON(app)
+	require.NoError(t, err)
 	var routes []dev.ExportRouteEntry
 	require.NoError(t, json.Unmarshal([]byte(jsonStr), &routes))
 	assert.NotEmpty(t, routes)

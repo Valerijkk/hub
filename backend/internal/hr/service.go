@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -97,7 +98,12 @@ func (s *Service) CreateLeave(ctx context.Context, userID uuid.UUID, req CreateL
 	if s.notifier != nil {
 		adminIDs, err := s.repo.ListSystemAdminIDs(ctx)
 		if err == nil && len(adminIDs) > 0 {
-			_ = s.notifier.NotifyLeaveSubmitted(ctx, adminIDs, resp, userID)
+			if err := s.notifier.NotifyLeaveSubmitted(ctx, adminIDs, resp, userID); err != nil {
+				// W7-A2-015 / P3-BE-01
+				slog.WarnContext(ctx, "hr: notify leave submitted failed", "leave_id", l.ID, "error", err)
+			}
+		} else if err != nil {
+			slog.WarnContext(ctx, "hr: list system admins failed", "error", err)
 		}
 	}
 	return &resp, nil
@@ -124,12 +130,14 @@ func (s *Service) ApproveLeave(ctx context.Context, reviewerID, leaveID uuid.UUI
 	}
 	resp := toLeaveResponse(l)
 	if s.notifier != nil {
-		_ = s.notifier.NotifyLeaveDecision(ctx, resp.RequesterID, true, resp, reviewerID)
+		if err := s.notifier.NotifyLeaveDecision(ctx, resp.RequesterID, true, resp, reviewerID); err != nil {
+			slog.WarnContext(ctx, "hr: notify leave approved failed", "leave_id", leaveID, "error", err)
+		}
 	}
 	if s.exporter != nil {
 		if err := s.exporter.ExportApprovedLeave(ctx, resp, reviewerID); err != nil {
-			// Export failure не откатывает approval — лог exporter.
-			_ = err
+			// Export failure не откатывает approval — но сигнал в ops обязателен (W7-A2-015).
+			slog.WarnContext(ctx, "hr: export approved leave failed", "leave_id", leaveID, "error", err)
 		}
 	}
 	return &resp, nil
@@ -156,7 +164,9 @@ func (s *Service) RejectLeave(ctx context.Context, reviewerID, leaveID uuid.UUID
 	}
 	resp := toLeaveResponse(l)
 	if s.notifier != nil {
-		_ = s.notifier.NotifyLeaveDecision(ctx, resp.RequesterID, false, resp, reviewerID)
+		if err := s.notifier.NotifyLeaveDecision(ctx, resp.RequesterID, false, resp, reviewerID); err != nil {
+			slog.WarnContext(ctx, "hr: notify leave rejected failed", "leave_id", leaveID, "error", err)
+		}
 	}
 	return &resp, nil
 }

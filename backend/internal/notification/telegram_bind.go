@@ -124,7 +124,10 @@ func (s *TelegramBindService) ConfirmLinkCode(ctx context.Context, userID uuid.U
 	if err := s.linkTelegramID(ctx, userID, tgID); err != nil {
 		return err
 	}
-	s.rdb.Del(ctx, key)
+	// W7-A1-010 / P3-BE-01: не глотать Del — токен может остаться в Redis.
+	if err := s.rdb.Del(ctx, key).Err(); err != nil {
+		slog.WarnContext(ctx, "telegram bind: del link code failed", "error", err)
+	}
 	return nil
 }
 
@@ -242,7 +245,10 @@ func (s *TelegramBindService) handleStartBind(ctx context.Context, chatID int64,
 		s.reply(chatID, "Не удалось привязать аккаунт. Попробуйте позже.")
 		return
 	}
-	s.rdb.Del(ctx, key)
+	// W7-A1-010 / P3-BE-01
+	if err := s.rdb.Del(ctx, key).Err(); err != nil {
+		slog.WarnContext(ctx, "telegram bind: del pending token failed", "error", err)
+	}
 	s.reply(chatID, "Telegram успешно привязан к Hub ✅")
 }
 

@@ -139,3 +139,8 @@ func ExportConfigString(m map[string]interface{}, key string) string {
 func ExportSwimlaneKeyLabel(iss *ent.Issue, swimlane string) (string, string) {
 	return swimlaneKeyLabel(iss, swimlane)
 }
+
+// ExportLogOutboxPublishErr — P3-BE-01 / TASK-057: slog при ошибке post-commit Publish.
+func ExportLogOutboxPublishErr(ctx context.Context, eventType string, err error) {
+	logOutboxPublishErr(ctx, eventType, err)
+}

@@ -62,7 +62,7 @@
 | [TASK-054](TASK-054-fe-p2-docs-metrics-drift.md) | Docs metrics drift | P2 | Исправлена | docs→rework | W12 P2-FE-12 · inventory script |
 | [TASK-055](TASK-055-fe-p2-shell-tracker-ux.md) | FE shell + tracker UX | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-13,14 |
 | [TASK-056](TASK-056-fe-p2-i18n-push-rooms.md) | FE i18n/push/rooms | P2 | Исправлена · W18-C5 | fe2 | W12 P2-FE-15 |
-| [TASK-057](TASK-057-be-p3-silent-error-swallow.md) | BE silent error swallow | P3 | Открыта | be1 | W12 P3-BE-01 |
+| [TASK-057](TASK-057-be-p3-silent-error-swallow.md) | BE silent error swallow | P3 | Исправлена | be1 | W12 P3-BE-01 |
 | [TASK-058](TASK-058-be-p3-assert-free-tests.md) | BE assert-free tests | P3 | Открыта | be2 | W12 P3-BE-02 |
 | [TASK-059](TASK-059-be-p3-mutation-proof-gaps.md) | BE mutation-proof gaps | P3 | Открыта | be1 | W12 P3-BE-03 |
 | [TASK-060](TASK-060-be-p3-utf8-rune-truncate.md) | BE UTF-8 rune truncate | P3 | Исправлена | be2 | W12 P3-BE-04 |

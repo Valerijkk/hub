@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -538,21 +539,27 @@ func (r *EntRepository) GetTemplate(ctx context.Context, id uuid.UUID) (*ent.Pro
 
 // GetProjectWithWorkflowStatusesAndLabels возвращает проект и имена его
 // workflow_statuses и labels — используется при сохранении проекта как шаблона.
-// Возвращает (project, statusNames, labelNames, err). Ошибки получения списков
-// статусов/меток не считаются фатальными (возвращаются пустые срезы).
+// Возвращает (project, statusNames, labelNames, err).
+// W1-A5-010 / P3-BE-01: ошибки загрузки статусов/меток — fail-closed (не пустой шаблон).
 func (r *EntRepository) GetProjectWithWorkflowStatusesAndLabels(ctx context.Context, projectID uuid.UUID) (*ent.Project, []string, []string, error) {
 	proj, err := r.client.Project.Get(ctx, projectID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	statuses, _ := r.client.Project.QueryWorkflowStatuses(proj).All(ctx)
+	statuses, err := r.client.Project.QueryWorkflowStatuses(proj).All(ctx)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("query workflow statuses: %w", err)
+	}
 	statusNames := make([]string, 0, len(statuses))
 	for _, st := range statuses {
 		statusNames = append(statusNames, st.Name)
 	}
 
-	labels, _ := r.client.Project.QueryLabels(proj).All(ctx)
+	labels, err := r.client.Project.QueryLabels(proj).All(ctx)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("query labels: %w", err)
+	}
 	labelNames := make([]string, 0, len(labels))
 	for _, l := range labels {
 		labelNames = append(labelNames, l.Name)
@@ -617,8 +624,14 @@ func (r *EntRepository) AddTeamToProject(ctx context.Context, teamID, projectID 
 		if m.Edges.User == nil {
 			continue
 		}
-		// Игнорируем ошибки ограничений (пользователь уже участник проекта)
-		_, _ = r.AddMember(ctx, projectID, m.Edges.User.ID, projectmember.ProjectRoleDeveloper)
+		// W1-A5-009 / P3-BE-01: игнорировать только constraint (уже участник);
+		// прочие ошибки БД — fail-closed, не частичный membership без err клиенту.
+		if _, err := r.AddMember(ctx, projectID, m.Edges.User.ID, projectmember.ProjectRoleDeveloper); err != nil {
+			if ent.IsConstraintError(err) {
+				continue
+			}
+			return fmt.Errorf("add team member %s to project: %w", m.Edges.User.ID, err)
+		}
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -127,7 +128,11 @@ func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, conten
 
 	presignResult, err := s.presignClient.PresignPutObject(ctx, putInput, s3.WithPresignExpires(uploadURLTTL))
 	if err != nil {
-		_ = s.repo.DeleteByID(ctx, fileMeta.ID)
+		if delErr := s.repo.DeleteByID(ctx, fileMeta.ID); delErr != nil {
+			// W7-A4-019 / P3-BE-01: cleanup fail после ошибка presign.
+			slog.WarnContext(ctx, "storage: cleanup pending file after presign fail",
+				"file_id", fileMeta.ID, "error", delErr)
+		}
 		return nil, fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
 
@@ -183,11 +188,17 @@ func (s *StorageService) assertObjectWithinLimit(ctx context.Context, fileMeta *
 		return fmt.Errorf("head object: %w", err)
 	}
 	if out.ContentLength != nil && *out.ContentLength > maxUploadBytes {
-		_, _ = s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		if _, delErr := s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 			Bucket: aws.String(fileMeta.S3Bucket),
 			Key:    aws.String(fileMeta.S3Key),
-		})
-		_ = s.repo.DeleteByID(ctx, fileMeta.ID)
+		}); delErr != nil {
+			slog.WarnContext(ctx, "storage: delete oversized s3 object failed",
+				"file_id", fileMeta.ID, "error", delErr)
+		}
+		if delErr := s.repo.DeleteByID(ctx, fileMeta.ID); delErr != nil {
+			slog.WarnContext(ctx, "storage: delete oversized file meta failed",
+				"file_id", fileMeta.ID, "error", delErr)
+		}
 		return ErrFileTooLarge
 	}
 	return nil

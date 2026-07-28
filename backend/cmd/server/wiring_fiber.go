@@ -83,7 +83,11 @@ func wireFiber(d *serverDeps) {
 	})
 	api.Get("/docs/doc.json", func(c fiber.Ctx) error {
 		c.Set("Content-Type", "application/json")
-		return c.SendString(devmod.BuildAPIDocsJSON(app))
+		body, err := devmod.BuildAPIDocsJSON(app)
+		if err != nil {
+			return err
+		}
+		return c.SendString(body)
 	})
 
 	d.api = api

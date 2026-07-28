@@ -208,7 +208,10 @@ func (s *BackupService) RestoreBackup(ctx context.Context, backupID uuid.UUID) e
 	}
 
 	// Обновляем статус записи бэкапа — фиксируем факт восстановления.
-	_ = s.repo.SetRestoredNote(ctx, backupID, "restored at "+time.Now().UTC().Format(time.RFC3339))
+	if err := s.repo.SetRestoredNote(ctx, backupID, "restored at "+time.Now().UTC().Format(time.RFC3339)); err != nil {
+		// W7-A4-019 / P3-BE-01: восстановление прошло, но audit note потерян.
+		slog.WarnContext(ctx, "backup: set restored note failed", "backup_id", backupID, "error", err)
+	}
 
 	slog.Info("восстановление завершено", "s3_key", record.S3Key)
 	return nil

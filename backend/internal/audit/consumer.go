@@ -73,6 +73,8 @@ func (c *AuditConsumer) processEvent(ctx context.Context, msg jetstream.Msg) {
 	action, entityType := c.mapSubjectToAction(subject)
 	if action == "" {
 		// Неизвестный subject — Ack, чтобы не крутить шум в очереди.
+		// W6-A4-013 / P3-BE-01: логируем misrouted/filter drift.
+		slog.Warn("audit consumer: unknown subject", "subject", subject)
 		if err := msg.Ack(); err != nil {
 			slog.Error("ack audit event failed", "error", err, "subject", subject)
 		}

@@ -485,18 +485,25 @@ func (r *EntRepository) GetVelocityData(ctx context.Context, projectID uuid.UUID
 
 	points := make([]VelocityPoint, 0, len(sprints))
 	for _, s := range sprints {
-		committed, _ := r.client.Issue.
+		// W1-A4-010 / P3-BE-01: Count err → fail-closed, не маскировать нулями.
+		committed, err := r.client.Issue.
 			Query().
 			Where(issue.HasSprintWith(sprintEnt.ID(s.ID))).
 			Count(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("velocity committed count sprint %s: %w", s.ID, err)
+		}
 
-		completed, _ := r.client.Issue.
+		completed, err := r.client.Issue.
 			Query().
 			Where(
 				issue.HasSprintWith(sprintEnt.ID(s.ID)),
 				issue.HasStatusWith(workflowstatus.CategoryEQ(workflowstatus.CategoryDone)),
 			).
 			Count(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("velocity completed count sprint %s: %w", s.ID, err)
+		}
 
 		points = append(points, VelocityPoint{
 			SprintName: s.Name,

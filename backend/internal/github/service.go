@@ -279,8 +279,12 @@ func (s *GitHubService) handlePRWebhook(ctx context.Context, payload []byte) err
 							"issue", key, "error", updateErr)
 					} else {
 						// Записываем активность автосмены статуса.
-						_ = s.repo.LogActivity(ctx, issue.ID,
-							fmt.Sprintf("Статус изменён автоматически (PR #%s merged)", prNumber))
+						if logErr := s.repo.LogActivity(ctx, issue.ID,
+							fmt.Sprintf("Статус изменён автоматически (PR #%s merged)", prNumber)); logErr != nil {
+							// W7-A3-011 / P3-BE-01
+							slog.WarnContext(ctx, "github: log activity failed",
+								"issue", key, "error", logErr)
+						}
 					}
 				}
 
