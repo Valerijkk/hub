@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	natsclient "github.com/valerii/hub/backend/internal/platform/nats"
 )
@@ -13,17 +14,22 @@ func TestStreamNameConstant(t *testing.T) {
 }
 
 func TestStreamSubjects(t *testing.T) {
-	expectedPrefixes := []string{
+	// A2W4-2-003: unit assert = канон EnsureStreams, не локальный устаревший слайс.
+	require.Equal(t, natsclient.StreamSubjects, []string{
 		"project.>",
 		"tracker.>",
 		"messenger.channel.>",
 		"tms.>",
 		"calls.channel.>",
+		"calls.recording.>",
 		"auth.session.>",
 		"sprint.>",
-	}
-
-	assert.Equal(t, 7, len(expectedPrefixes), "should have 7 subject prefixes in EVENTS stream")
+		"notification.>",
+	})
+	assert.Equal(t, 9, len(natsclient.StreamSubjects),
+		"EVENTS stream must keep ME-07 subjects (notification.>, calls.recording.>)")
+	assert.Contains(t, natsclient.StreamSubjects, "notification.>")
+	assert.Contains(t, natsclient.StreamSubjects, "calls.recording.>")
 }
 
 func TestClientStructFields(t *testing.T) {

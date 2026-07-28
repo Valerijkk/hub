@@ -100,13 +100,13 @@ func TestProcessEvent_PublishesTraceparentHeader(t *testing.T) {
 	w := outbox.NewWorker(client, nc)
 	ctx := context.Background()
 
-	sub, err := nc.Conn.SubscribeSync("trace.headers")
+	sub, err := nc.Conn.SubscribeSync("project.outbox.trace.headers")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sub.Unsubscribe() })
 
 	// Событие с сохранённым trace-context (как его записал бы Publisher).
 	evt, err := client.OutboxEvent.Create().
-		SetEventType("trace.headers").
+		SetEventType("project.outbox.trace.headers").
 		SetPayload([]byte(`{"ok":true}`)).
 		SetTraceContext(natsclient.TraceContextMap(spanCtx(t))).
 		Save(ctx)
@@ -138,11 +138,11 @@ func TestProcessEvent_NoTraceContext_PublishesWithoutTraceparent(t *testing.T) {
 	w := outbox.NewWorker(client, nc)
 	ctx := context.Background()
 
-	sub, err := nc.Conn.SubscribeSync("trace.none")
+	sub, err := nc.Conn.SubscribeSync("project.outbox.trace.none")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sub.Unsubscribe() })
 
-	evt := insertOutboxEvent(t, client, "trace.none", []byte(`{"ok":true}`))
+	evt := insertOutboxEvent(t, client, "project.outbox.trace.none", []byte(`{"ok":true}`))
 	outbox.ExportWorkerProcessEvent(w, ctx, evt)
 
 	msg, err := sub.NextMsg(2 * time.Second)
