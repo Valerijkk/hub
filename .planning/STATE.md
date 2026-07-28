@@ -71,6 +71,11 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-28 (qa-auto1 · TASK-003 A14-002 granular)
+
+- `TestLoad_productionRejectsEachDevDefault_A14_002` — 5 subtests (JWT/S3×2/LiveKit×2).
+- Мутация: снятие `S3_SECRET_KEY` / `LIVEKIT_API_KEY` из `devDefaults` → краснеет только свой кейс.
+
 ## Session note — 2026-07-28 (team-lead · TASK-005 august phase deps)
 
 - ROADMAP: фазы 126–136 + граф Depends on; 133 BLOCKS MS Э3.

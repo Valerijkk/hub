@@ -118,7 +118,37 @@ func TestLoad_productionRejectsEmptyMetricsCIDRs_A14_005(t *testing.T) {
 	}
 }
 
-// A14-002: SeaweedFS hub/hubsecret must fail-closed when DEV_MODE=false.
+// A14-002: каждый ключ из devDefaults должен fail-closed по отдельности (DEV_MODE=false).
+// Гранулярность: снятие одного guard'а в config.go краснеет ровно в своём subtest.
+func TestLoad_productionRejectsEachDevDefault_A14_002(t *testing.T) {
+	cases := []struct {
+		envKey   string
+		devValue string
+		errSubstr string
+	}{
+		{"JWT_SECRET", "dev-secret-change-in-production", "JWT_SECRET"},
+		{"S3_ACCESS_KEY", "hub", "S3_ACCESS_KEY"},
+		{"S3_SECRET_KEY", "hubsecret", "S3_SECRET_KEY"},
+		{"LIVEKIT_API_KEY", "devkey", "LIVEKIT_API_KEY"},
+		{"LIVEKIT_API_SECRET", "devsecret", "LIVEKIT_API_SECRET"},
+	}
+	for _, tt := range cases {
+		t.Run(tt.envKey, func(t *testing.T) {
+			setProductionBaseEnv(t)
+			t.Setenv(tt.envKey, tt.devValue)
+
+			_, err := config.Load()
+			if err == nil {
+				t.Fatalf("expected error when %s is dev default %q", tt.envKey, tt.devValue)
+			}
+			if !strings.Contains(err.Error(), tt.errSubstr) {
+				t.Errorf("error must mention %s, got: %v", tt.errSubstr, err)
+			}
+		})
+	}
+}
+
+// A14-002 legacy: оба S3-ключа сразу (парный кейс остаётся как smoke).
 func TestLoad_productionRejectsDefaultSeaweedFSKeys_A14_002(t *testing.T) {
 	setProductionBaseEnv(t)
 	t.Setenv("S3_ACCESS_KEY", "hub")
