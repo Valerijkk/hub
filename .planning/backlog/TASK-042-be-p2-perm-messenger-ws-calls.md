@@ -1,11 +1,11 @@
 # TASK-042 — Weak perm + messenger + WS revoke + calls guest
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: TASK-008 W12 · Classes: P2-BE-12..15 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-BACKEND.md`
 
 ## [OUTCOME]
 
-Дефекты P2-BE-12..15 закрыты.
+Дефекты P2-BE-12..15 закрыты (mutation-ready в scope модулей); остаток — out-of-scope / ADR.
 
 ## [ROLE]
 
@@ -43,3 +43,32 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [PROGRESS 2026-07-28 be1]
+
+### Fixed (mutation-ready в scope)
+
+| Class | Source IDs closed | Что сделано |
+|-------|-------------------|-------------|
+| P2-BE-12 | W1-A1-006, W1-A2-009, W1-A5-006, W1-A5-007, W3-A1-004, W3-A1-007 | CreateBoard→`PermTaskEdit`; status∈project; Get deleted→404; avatar http(s)/`/…`; EditMessage+channel; presence cap 50 |
+| P2-BE-13 | W3-A2-010, W3-A2-012, W3-A2-013, W3-A2-014, W3-A3-003 | `via_invite:true`+invite_id; last owner Leave→400; Forward unread++; mention∩members; away/stale thresholds |
+| P2-BE-14 | W3-A4-002 (уже), W3-A4-004 (WS side) | late Subscribe guard уже был; revoke/logout→`UnregisterBySession` |
+| P2-BE-15 | W3-A5-005..008, W3-A5-010 | guest 12-hex + RL; GuestJoin service; conflicts authz; ephemeral ≤2000; DurationMinutes persist |
+
+### Remaining (не в files allowed / нужен ADR/миграция)
+
+| Source ID | Почему осталось |
+|-----------|-----------------|
+| W2-A1-004 | `tms` — вне scope |
+| W2-A2-015 | `tms` — вне scope |
+| W6-A1-005 | `auth` avatar — вне scope (project avatar закрыт W1-A5-007) |
+| W7-A2-005 | `crm` — вне scope |
+| W7-A2-009 | `hr` — вне scope |
+| W3-A2-015 | bot/internal read guard — deferred |
+| W3-A3-005 | unread hash TTL / leave cleanup — deferred |
+| W3-A4-004 (auth publish) | `auth` должен публиковать `auth.session.{uid}.revoked` на Logout/Revoke — вне files allowed; WS Unregister готов |
+| W3-A5-008 (full UUID) | `Call.invite_code` MaxLen(12) — полная UUID потребует Ent migration (approval) |
+
+### Evidence
+
+- `go test -tags hubtest -race` packages: tracker/project/messenger/ws/calls (P2_BE_* filters) — PASS
