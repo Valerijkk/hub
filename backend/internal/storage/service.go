@@ -29,7 +29,7 @@ const (
 var (
 	// ErrFileTooLarge — размер загрузки превышает maxUploadBytes.
 	ErrFileTooLarge = errors.New("file too large")
-	// ErrInvalidFileSize — size <= 0 при явном указании.
+	// ErrInvalidFileSize — size <= 0 (legacy omit / zero запрещены, ADR-STORAGE-NF09-SIZE-2026).
 	ErrInvalidFileSize = errors.New("invalid file size")
 	// ErrInvalidEntityType — entityType вне allowlist.
 	ErrInvalidEntityType = errors.New("invalid entity type")
@@ -85,10 +85,11 @@ func NewStorageService(cfg config.S3Config, repo Repository) (*StorageService, e
 }
 
 // GenerateUploadURL создаёт presigned PUT URL для загрузки файла.
-// size > 0 — ContentLength в presign (NF-09); size == 0 — legacy без bind (клиент без size).
-// size > maxUploadBytes → ErrFileTooLarge.
+// size обязателен: 1…maxUploadBytes; ContentLength всегда в presign (NF-09 / ADR-STORAGE-NF09-SIZE-2026).
+// size <= 0 → ErrInvalidFileSize; size > maxUploadBytes → ErrFileTooLarge.
 func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, contentType string, uploaderID, projectID uuid.UUID, size int64) (*UploadResult, error) {
-	if size < 0 {
+	// W7-A4-001: legacy size==0 без ContentLength запрещён — иначе oversized PUT в SeaweedFS.
+	if size <= 0 {
 		return nil, ErrInvalidFileSize
 	}
 	if size > maxUploadBytes {
@@ -117,13 +118,10 @@ func (s *StorageService) GenerateUploadURL(ctx context.Context, filename, conten
 	}
 
 	putInput := &s3.PutObjectInput{
-		Bucket:      aws.String(s.bucket),
-		Key:         aws.String(s3Key),
-		ContentType: aws.String(contentType),
-	}
-	// W7-A4-001: при известном size подписываем ContentLength — oversized PUT отклонит S3.
-	if size > 0 {
-		putInput.ContentLength = aws.Int64(size)
+		Bucket:        aws.String(s.bucket),
+		Key:           aws.String(s3Key),
+		ContentType:   aws.String(contentType),
+		ContentLength: aws.Int64(size), // NF-09: exact bind — oversized PUT отклонит S3
 	}
 
 	presignResult, err := s.presignClient.PresignPutObject(ctx, putInput, s3.WithPresignExpires(uploadURLTTL))

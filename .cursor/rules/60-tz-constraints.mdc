@@ -39,7 +39,7 @@ alwaysApply: true
 ### File Storage
 - SeaweedFS (S3-compatible) через `aws-sdk-go-v2` — не minio-go
 - Presigned URLs для прямой загрузки (не через backend buffer)
-- Max file: 25 MB через Fiber BodyLimit (но presigned PUT без ограничения — баг NF-09)
+- Max file: 25 MB через Fiber BodyLimit + presigned PUT `size`/`ContentLength` bind (ADR-STORAGE-NF09-SIZE-2026; NF-09 closed)
 
 ### Frontend
 - TanStack Router — единственный роутер

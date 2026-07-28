@@ -70,7 +70,7 @@
 | NFR-24 | Optimistic locking | `version` int на каждой изменяемой Ent |
 | NFR-25 | Primary keys | UUID v4 only — string IDs запрещены |
 | NFR-26 | Pub/sub transport | NATS JetStream only — Redis pub/sub запрещён |
-| NFR-27 | File upload path | Presigned PUT в SeaweedFS; backend buffer max 25 MB |
+| NFR-27 | File upload path | Presigned PUT в SeaweedFS; обязательный `size` + ContentLength bind ≤25 MB (ADR-STORAGE-NF09-SIZE-2026); backend buffer max 25 MB |
 | NFR-28 | Tenancy | Single-tenant (1 instance = 1 team) |
 | NFR-29 | Test coverage gate | ≥50% overall ✅ **83.0%** (2026-06-22 Docker baseline); ≥80% security-critical ✅ **6/6** |
 | NFR-30 | Frontend test gate | Vitest **99+** tests; Playwright **20** E2E specs ✅ |

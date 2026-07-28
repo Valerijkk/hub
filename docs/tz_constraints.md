@@ -57,7 +57,7 @@
 |---------|--------|
 | Backend | **SeaweedFS** (S3-compatible) через `aws-sdk-go-v2` — не minio-go |
 | Загрузка | Presigned URLs (не через буфер backend) |
-| Лимит | Max **25 MB** через Fiber BodyLimit (presigned PUT без лимита — известный баг NF-09) |
+| Лимит | Max **25 MB**: Fiber BodyLimit + presigned PUT через обязательный `size` и `ContentLength` bind (ADR-STORAGE-NF09-SIZE-2026; NF-09 closed) |
 | Версия образа | `chrislusf/seaweedfs:3.97` (pinned), не `latest` |
 
 ### Frontend

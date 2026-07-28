@@ -65,13 +65,11 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (be1 · TASK-098 FR-INTR-07/08 author-delete + news_poll*)
+## Session note — 2026-07-28 (be2 · TASK-099 Storage NF-09 size==0)
 
-- ADR-INTRANET-U03 Accepted (owner: ADR/migrate без отдельного approve).
-- `news_poll*` Ent + SQL migrate; soft-hide через `NewsPost.deleted_at` (30d без обхода).
-- `DeleteNews`: admin **или** автор; poll create/get/vote/update; restore счётчиков.
-- Тесты: `task098_author_delete_poll_test.go`; `./testframework/intranet/` race PASS.
-- Статус TASK-098 → **Исправлена**.
+- **Сделано:** ADR-STORAGE-NF09-SIZE-2026 — `size<=0` reject; ContentLength всегда в PresignPutObject; FE `getUploadUrl` передаёт `file.size`; Confirm HEAD defense-in-depth без изменений.
+- **Тесты:** `go test -tags hubtest -race -count=1 ./testframework/storage/...` (W7-A4-001 FIXED).
+- **Docs:** `docs/tz_constraints.md`, `docs/wiki/API.md`, A2W7-4 residual → FIXED, backlog Исправлена.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

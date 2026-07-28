@@ -35,8 +35,8 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-095](TASK-095-2026-07-28-ent-version-mixin-adr-rollout.md) | 📐 Ent VersionMixin ADR + rollout | **P1** | Открыта | arch→be1 | A2W8 · 19 rows |
 | [TASK-096](TASK-096-2026-07-28-ent-ondelete-cascade-adr.md) | 📐 Ent OnDelete/cascade ADR | **P1** | Открыта | arch→be1 | A2W8 · 4 |
 | [TASK-097](TASK-097-2026-07-28-ent-soft-delete-schema-gaps.md) | 📐 Ent soft-delete schema gaps | **P1** | Открыта | be2 | A2W8/W7 · 7 |
-| [TASK-098](TASK-098-2026-07-28-intranet-author-delete-polls-adr.md) | 📐 Intranet author-delete + polls U03 | **P1** | Исправлена | be1 | W7-A2-001 |
-| [TASK-099](TASK-099-2026-07-28-storage-nf09-size-zero-adr.md) | 📐 Storage NF-09 size==0 | **P1** | Открыта | product→be2 | W7-A4-001 |
+| [TASK-098](TASK-098-2026-07-28-intranet-author-delete-polls-adr.md) | 📐 Intranet author-delete + polls U03 | **P1** | Открыта | product→be1 | W7-A2-001 |
+| [TASK-099](TASK-099-2026-07-28-storage-nf09-size-zero-adr.md) | 📐 Storage NF-09 size==0 | **P1** | Исправлена | be2 | W7-A4-001 |
 | [TASK-100](TASK-100-2026-07-28-backup-maintenance-gate-distributed-adr.md) | 📐 Backup MaintenanceGate U04 | **P1** | Открыта | devops→be1 | W7-A4-003 |
 | [TASK-101](TASK-101-2026-07-28-ai-ollama-localhost-consent-adr.md) | 📐 AI Ollama localhost consent | **P1** | Открыта | product→be1 | A2W5-A2-005 |
 | [TASK-102](TASK-102-2026-07-28-telegram-login-removal-adr-auth01.md) | 📐 Telegram login cleanup ADR-AUTH-01 | **P1** | Открыта | be1 | A2W6 · 7 |
