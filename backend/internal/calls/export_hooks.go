@@ -259,8 +259,10 @@ func ExportUserNameFromCtx(c fiber.Ctx) string {
 }
 
 // ExportGenerateGuestToken генерирует JWT для гостевого входа для hubtest.
+// Использует cfg хендлера (ExportNewHandlerWithCfg не поднимает CallService).
 func ExportGenerateGuestToken(h *Handler, roomName, identity, name string) (string, error) {
-	return h.service.room.GenerateToken(roomName, identity, name)
+	room := &CallRoomService{cfg: h.cfg}
+	return room.GenerateToken(roomName, identity, name)
 }
 
 type ExportMongoChatStore struct {
