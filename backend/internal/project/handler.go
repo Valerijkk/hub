@@ -695,7 +695,11 @@ func (h *Handler) AddTeamToProject(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid project ID")
 	}
-	if err := h.service.AddTeamToProject(c.Context(), teamID, projectID); err != nil {
+	actorID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	if err := h.service.AddTeamToProject(c.Context(), teamID, projectID, actorID); err != nil {
 		return err
 	}
 	return c.JSON(fiber.Map{"message": "team added to project"})

@@ -93,3 +93,38 @@ func TestCompleteSprintAtomic_Ent_MovesAndCompletes(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, nextCount)
 }
+
+// TestCompleteSprintAtomic_Ent_FailAfterMove_RollsBack — P1-BE-05: mid-fail на Ent tx.
+// Мутация: убрать tx из CompleteSprintAtomic → issue уедет в next при ошибке → RED.
+func TestCompleteSprintAtomic_Ent_FailAfterMove_RollsBack(t *testing.T) {
+	env := newSprintRepoEnv(t)
+	start := time.Now().UTC().Truncate(time.Second)
+	end := start.AddDate(0, 0, 14)
+
+	sp, err := env.repo.CreateSprint(env.ctx, env.projectID, sprint.CreateSprintRequest{
+		Name: "Rollback Sprint", StartDate: start, EndDate: end,
+	})
+	require.NoError(t, err)
+	_, err = env.repo.UpdateSprintStatus(env.ctx, sp.ID, sprintEnt.StatusActive)
+	require.NoError(t, err)
+	sp, err = env.repo.GetSprint(env.ctx, sp.ID)
+	require.NoError(t, err)
+
+	iss := env.createIssue(t, 2, env.todoID, &sp.ID)
+
+	sprint.CompleteSprintAfterMoveHook = func(context.Context) error {
+		return errors.New("injected mid-fail after move")
+	}
+	t.Cleanup(func() { sprint.CompleteSprintAfterMoveHook = nil })
+
+	_, err = env.repo.CompleteSprintAtomic(env.ctx, env.projectID, sp.ID, sp, []uuid.UUID{iss.ID})
+	require.Error(t, err)
+
+	got, err := env.repo.GetSprint(env.ctx, sp.ID)
+	require.NoError(t, err)
+	assert.Equal(t, sprintEnt.StatusActive, got.Status, "status должен остаться active после Rollback")
+
+	count, err := env.repo.GetSprintIssueCount(env.ctx, sp.ID)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count, "issue должна остаться в исходном sprint (tx rollback)")
+}

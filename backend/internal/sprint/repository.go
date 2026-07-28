@@ -319,6 +319,11 @@ func (r *EntRepository) CompleteSprintAtomic(ctx context.Context, projectID, spr
 		}
 	}
 
+	// P1-BE-05: hubtest может инжектить fail после move — Rollback откатывает partial.
+	if err := completeSprintAfterMoveHook(ctx); err != nil {
+		return nil, err
+	}
+
 	updated, err := tx.Sprint.UpdateOneID(sprintID).
 		SetStatus(sprintEnt.StatusCompleted).
 		Save(ctx)

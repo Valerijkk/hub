@@ -569,7 +569,11 @@ func (s *ProjectService) RemoveTeamMember(ctx context.Context, teamID, actorID, 
 }
 
 // AddTeamToProject привязывает команду к проекту и bulk-добавляет участников.
-func (s *ProjectService) AddTeamToProject(ctx context.Context, teamID, projectID uuid.UUID) error {
+// P1-BE-08: только участник команды (actor) — stranger → 403, даже при PermTeamManage.
+func (s *ProjectService) AddTeamToProject(ctx context.Context, teamID, projectID, actorID uuid.UUID) error {
+	if err := s.requireTeamMember(ctx, teamID, actorID); err != nil {
+		return err
+	}
 	if err := s.repo.AddTeamToProject(ctx, teamID, projectID); err != nil {
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("team or project not found")

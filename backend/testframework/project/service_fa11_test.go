@@ -120,7 +120,9 @@ func TestService_FA11_AddTeamToProject_NotFound(t *testing.T) {
 
 	team, err := env.repo.CreateTeam(env.ctx, "FA11 Team", "")
 	require.NoError(t, err)
+	_, err = env.repo.AddTeamMember(env.ctx, team.ID, env.owner.ID)
+	require.NoError(t, err)
 
-	err = svc.AddTeamToProject(env.ctx, team.ID, uuid.New())
+	err = svc.AddTeamToProject(env.ctx, team.ID, uuid.New(), env.owner.ID)
 	require.Error(t, err)
 }

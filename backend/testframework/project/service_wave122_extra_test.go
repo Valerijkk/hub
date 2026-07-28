@@ -154,8 +154,10 @@ func TestService_Wave122_AddTeamToProject(t *testing.T) {
 
 	team, err := env.repo.CreateTeam(env.ctx, "Platform", "")
 	require.NoError(t, err)
+	_, err = env.repo.AddTeamMember(env.ctx, team.ID, env.owner.ID)
+	require.NoError(t, err)
 
-	require.NoError(t, svc.AddTeamToProject(env.ctx, team.ID, created.ID))
+	require.NoError(t, svc.AddTeamToProject(env.ctx, team.ID, created.ID, env.owner.ID))
 
 	members, err := svc.ListMembers(env.ctx, created.ID)
 	require.NoError(t, err)

@@ -97,6 +97,49 @@ func TestTeams_StrangerCannotAddMember(t *testing.T) {
 	require.Len(t, mine, 1)
 }
 
+// TestTeams_StrangerCannotAddTeamToProject — P1-BE-08: stranger AddTeamToProject → 403.
+func TestTeams_StrangerCannotAddTeamToProject(t *testing.T) {
+	svc, _, _ := newTestService()
+	ctx := context.Background()
+
+	creatorID := uuid.New()
+	strangerID := uuid.New()
+	team, err := svc.CreateTeam(ctx, creatorID, "ACL Team", "")
+	require.NoError(t, err)
+	teamID, err := uuid.Parse(team.ID)
+	require.NoError(t, err)
+
+	proj, err := svc.CreateProject(ctx, creatorID, "ACL Proj", "ACP", "")
+	require.NoError(t, err)
+	projectID, err := uuid.Parse(proj.ID)
+	require.NoError(t, err)
+
+	err = svc.AddTeamToProject(ctx, teamID, projectID, strangerID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not a team member")
+
+	require.NoError(t, svc.AddTeamToProject(ctx, teamID, projectID, creatorID))
+}
+
+// TestAddTeamToProject_Ent_RejectsStranger — P1-BE-08 на Ent+service.
+func TestAddTeamToProject_Ent_RejectsStranger(t *testing.T) {
+	env := newProjectRepoEnv(t)
+	svc := project.NewProjectService(env.repo, nil, nil)
+
+	proj, err := env.repo.Create(env.ctx, "Bind", "BND", "", env.owner.ID)
+	require.NoError(t, err)
+	team, err := env.repo.CreateTeam(env.ctx, "EntACL", "")
+	require.NoError(t, err)
+	_, err = env.repo.AddTeamMember(env.ctx, team.ID, env.owner.ID)
+	require.NoError(t, err)
+
+	err = svc.AddTeamToProject(env.ctx, team.ID, proj.ID, env.member.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not a team member")
+
+	require.NoError(t, svc.AddTeamToProject(env.ctx, team.ID, proj.ID, env.owner.ID))
+}
+
 // TestDeleteTemplate_ForeignUser_Forbidden — P1-BE-09.
 func TestDeleteTemplate_ForeignUser_Forbidden(t *testing.T) {
 	repo := newTemplateMockRepo()

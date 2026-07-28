@@ -123,7 +123,7 @@ func TestAddTeamToProject_NotFound(t *testing.T) {
 	repo := &crossLinkRepo{mockRepo: *newMockRepo(), teamErr: notFoundErr()}
 	svc := project.NewProjectService(repo, &mockCache{}, nil)
 
-	err := svc.AddTeamToProject(context.Background(), uuid.New(), uuid.New())
+	err := svc.AddTeamToProject(context.Background(), uuid.New(), uuid.New(), uuid.New())
 	require.Error(t, err)
 }
 
@@ -143,7 +143,7 @@ func TestAddTeamToProject_Success(t *testing.T) {
 	teamID, err := uuid.Parse(team.ID)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.AddTeamToProject(ctx, teamID, projectID))
+	require.NoError(t, svc.AddTeamToProject(ctx, teamID, projectID, ownerID))
 }
 
 // TestNotifyLinkDeleted_NoNatsNoOp проверяет сценарий: notify link deleted no nats no op.
