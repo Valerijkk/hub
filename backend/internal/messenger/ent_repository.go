@@ -131,10 +131,14 @@ func (r *EntRepository) GetMemberRole(ctx context.Context, channelID, userID uui
 	return string(m.Role), nil
 }
 
-// GetChannelMemberIDs возвращает ID всех участников канала.
+// GetChannelMemberIDs возвращает ID участников активного (не soft-deleted) канала.
+// P3-BE-05 / W3-A3-008: тот же soft-delete predicate, что у IsMember.
 func (r *EntRepository) GetChannelMemberIDs(ctx context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
 	members, err := r.client.ChannelMember.Query().
-		Where(channelmember.ChannelID(channelID)).
+		Where(
+			channelmember.ChannelID(channelID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
+		).
 		All(ctx)
 	if err != nil {
 		return nil, err

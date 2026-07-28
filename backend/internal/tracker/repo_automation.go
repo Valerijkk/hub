@@ -52,8 +52,14 @@ func (r *EntRepository) FindAutomationRule(ctx context.Context, projectID, ruleI
 		Only(ctx)
 }
 
-func (r *EntRepository) UpdateAutomationRule(ctx context.Context, ruleID uuid.UUID, input UpdateAutomationRuleInput) (*ent.AutomationRule, error) {
-	upd := r.client.AutomationRule.UpdateOneID(ruleID)
+// UpdateAutomationRule обновляет правило только внутри projectID (P3-BE-05 / W1-A3-009).
+// Mutation: UpdateOneID без ProjectIDEQ → чужой project UUID обновляет правило.
+func (r *EntRepository) UpdateAutomationRule(ctx context.Context, projectID, ruleID uuid.UUID, input UpdateAutomationRuleInput) (*ent.AutomationRule, error) {
+	upd := r.client.AutomationRule.Update().
+		Where(
+			automationrule.IDEQ(ruleID),
+			automationrule.ProjectIDEQ(projectID),
+		)
 	if input.Name != nil {
 		upd.SetName(*input.Name)
 	}
@@ -66,7 +72,14 @@ func (r *EntRepository) UpdateAutomationRule(ctx context.Context, ruleID uuid.UU
 	if input.ActionConfig != nil {
 		upd.SetActionConfig(input.ActionConfig)
 	}
-	return upd.Save(ctx)
+	n, err := upd.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if n == 0 {
+		return nil, &ent.NotFoundError{}
+	}
+	return r.FindAutomationRule(ctx, projectID, ruleID)
 }
 
 func (r *EntRepository) DeleteAutomationRule(ctx context.Context, projectID, ruleID uuid.UUID) error {

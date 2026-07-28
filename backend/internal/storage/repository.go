@@ -143,11 +143,24 @@ func (r *EntRepository) GetActiveByID(ctx context.Context, fileID uuid.UUID) (*e
 		Only(ctx)
 }
 
+// SoftDelete — P3-BE-05 / W7-A4-014: только active (DeletedAtIsNil); повторный delete → NotFound.
+// Mutation: UpdateOneID без Where → повторный soft-delete «успешен».
 func (r *EntRepository) SoftDelete(ctx context.Context, fileID uuid.UUID, at time.Time) error {
-	return r.client.FileMetadata.UpdateOneID(fileID).
+	affected, err := r.client.FileMetadata.Update().
+		Where(
+			filemetadata.IDEQ(fileID),
+			filemetadata.DeletedAtIsNil(),
+		).
 		SetStatus(filemetadata.StatusDeleted).
 		SetDeletedAt(at).
-		Exec(ctx)
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 func (r *EntRepository) ListOrphanPending(ctx context.Context, olderThan time.Time, limit int) ([]*ent.FileMetadata, error) {

@@ -300,8 +300,15 @@ func (s *SprintService) AddIssuesToSprint(ctx context.Context, projectID, sprint
 }
 
 // RemoveIssuesFromSprint убирает задачи из спринта (возвращает в бэклог).
-func (s *SprintService) RemoveIssuesFromSprint(ctx context.Context, issueIDs []uuid.UUID) error {
-	return s.repo.ClearIssuesSprint(ctx, issueIDs)
+// projectID обязателен — иначе cross-project clear (P3-BE-05 / W1-A4-013).
+func (s *SprintService) RemoveIssuesFromSprint(ctx context.Context, projectID uuid.UUID, issueIDs []uuid.UUID) error {
+	if err := s.repo.ClearIssuesSprint(ctx, projectID, issueIDs); err != nil {
+		if errors.Is(err, ErrIssueNotInProject) {
+			return apperrors.NewBadRequest("задачи не принадлежат проекту")
+		}
+		return apperrors.NewInternal("ошибка удаления задач из спринта")
+	}
+	return nil
 }
 
 // CheckWIPLimit проверяет WIP-лимит для целевого статуса (KANB-02).

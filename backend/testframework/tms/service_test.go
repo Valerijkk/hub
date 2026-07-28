@@ -360,7 +360,7 @@ func (m *mockRepository) DeleteSuite(_ context.Context, projectID, id uuid.UUID)
 	return nil
 }
 
-func (m *mockRepository) MoveSuite(_ context.Context, id uuid.UUID, _ *uuid.UUID) (*ent.TestSuite, error) {
+func (m *mockRepository) MoveSuite(_ context.Context, _ uuid.UUID, id uuid.UUID, _ *uuid.UUID) (*ent.TestSuite, error) {
 	s, ok := m.suites[id]
 	if !ok {
 		return nil, &ent.NotFoundError{}
@@ -724,7 +724,7 @@ func (m *mockRepository) GetTestRunWithResultsInProject(_ context.Context, proje
 	return run, nil
 }
 
-func (m *mockRepository) AddFilesToResult(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+func (m *mockRepository) AddFilesToResult(_ context.Context, _, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
 }
 

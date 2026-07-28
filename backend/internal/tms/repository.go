@@ -67,8 +67,8 @@ type SuiteRepository interface {
 	UpdateSuite(ctx context.Context, projectID, id uuid.UUID, input UpdateSuiteInput) (*ent.TestSuite, error)
 	// DeleteSuite удаляет папку только внутри projectID (P1-BE-10).
 	DeleteSuite(ctx context.Context, projectID, id uuid.UUID) error
-	// MoveSuite перемещает папку к другому родителю.
-	MoveSuite(ctx context.Context, id uuid.UUID, parentID *uuid.UUID) (*ent.TestSuite, error)
+	// MoveSuite перемещает папку к другому родителю внутри projectID (P3-BE-05).
+	MoveSuite(ctx context.Context, projectID, id uuid.UUID, parentID *uuid.UUID) (*ent.TestSuite, error)
 }
 
 // ComponentRepository управляет компонентами проекта.
@@ -123,8 +123,8 @@ type TestResultRepository interface {
 	GetTestResult(ctx context.Context, resultID uuid.UUID) (*ent.TestResult, error)
 	// ListTestRunResults возвращает результаты прогона с подгруженными тест-кейсами и файлами.
 	ListTestRunResults(ctx context.Context, runID uuid.UUID) ([]*ent.TestResult, error)
-	// AddFilesToResult привязывает файлы к результату теста.
-	AddFilesToResult(ctx context.Context, resultID uuid.UUID, fileIDs []uuid.UUID) error
+	// AddFilesToResult привязывает файлы к результату внутри run (P3-BE-05).
+	AddFilesToResult(ctx context.Context, runID, resultID uuid.UUID, fileIDs []uuid.UUID) error
 	// GetLastResultForTestCase возвращает последний результат для тест-кейса.
 	GetLastResultForTestCase(ctx context.Context, testCaseID uuid.UUID) (*ent.TestResult, error)
 }

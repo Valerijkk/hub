@@ -332,7 +332,7 @@ func (m *mockMatcherRepo) UpdateSuite(_ context.Context, _, _ uuid.UUID, _ tms.U
 	return nil, nil
 }
 func (m *mockMatcherRepo) DeleteSuite(_ context.Context, _, _ uuid.UUID) error { return nil }
-func (m *mockMatcherRepo) MoveSuite(_ context.Context, _ uuid.UUID, _ *uuid.UUID) (*ent.TestSuite, error) {
+func (m *mockMatcherRepo) MoveSuite(_ context.Context, _, _ uuid.UUID, _ *uuid.UUID) (*ent.TestSuite, error) {
 	return nil, nil
 }
 func (m *mockMatcherRepo) CreateComponent(_ context.Context, _ uuid.UUID, _, _ string) (*ent.Component, error) {
@@ -403,7 +403,7 @@ func (m *mockMatcherRepo) GetTestRunWithResults(_ context.Context, _ uuid.UUID) 
 func (m *mockMatcherRepo) GetTestRunWithResultsInProject(_ context.Context, _, _ uuid.UUID) (*ent.TestRun, error) {
 	return nil, nil
 }
-func (m *mockMatcherRepo) AddFilesToResult(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+func (m *mockMatcherRepo) AddFilesToResult(_ context.Context, _, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
 }
 func (m *mockMatcherRepo) StoreAllureResults(_ context.Context, _ uuid.UUID, _ []tms.AllureResult) error {

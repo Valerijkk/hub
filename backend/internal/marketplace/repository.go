@@ -19,7 +19,7 @@ type Repository interface {
 	ListPendingListings(ctx context.Context) ([]*ent.MarketplaceListing, error)
 	UpdateListing(ctx context.Context, id uuid.UUID, req UpdateListingRequest) (*ent.MarketplaceListing, error)
 	SetListingStatus(ctx context.Context, id uuid.UUID, status marketplacelisting.Status, reviewerID *uuid.UUID, reviewNote string, expectedVersion int) (*ent.MarketplaceListing, error)
-	SoftDeleteListing(ctx context.Context, id uuid.UUID) error
+	SoftDeleteListing(ctx context.Context, id uuid.UUID, version int) error
 	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 	ListAdminUserIDs(ctx context.Context) ([]uuid.UUID, error)
 }
@@ -159,11 +159,17 @@ func (r *EntRepository) SetListingStatus(ctx context.Context, id uuid.UUID, stat
 	return upd.Save(ctx)
 }
 
-func (r *EntRepository) SoftDeleteListing(ctx context.Context, id uuid.UUID) error {
+// SoftDeleteListing — P3-BE-05 / W7-A5-011: VersionEQ + DeletedAtIsNil (optimistic lock soft-delete).
+// Mutation: без VersionEQ → concurrent update+delete TOCTOU; без DeletedAtIsNil → повторный delete «успешен».
+func (r *EntRepository) SoftDeleteListing(ctx context.Context, id uuid.UUID, version int) error {
 	now := time.Now().UTC()
 	_, err := r.client.MarketplaceListing.UpdateOneID(id).
-		Where(marketplacelisting.DeletedAtIsNil()).
+		Where(
+			marketplacelisting.DeletedAtIsNil(),
+			marketplacelisting.VersionEQ(version),
+		).
 		SetDeletedAt(now).
+		AddVersion(1).
 		Save(ctx)
 	return err
 }

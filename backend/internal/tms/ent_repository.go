@@ -348,11 +348,23 @@ func (r *EntRepository) UpdateTestCase(ctx context.Context, id uuid.UUID, input 
 	return r.GetTestCase(ctx, id)
 }
 
-// DeleteTestCase выполняет мягкое удаление тест-кейса (устанавливает deleted_at).
+// DeleteTestCase выполняет мягкое удаление тест-кейса (P3-BE-05 / W2-A3-009).
+// Mutation: UpdateOneID без DeletedAtIsNil → повторный delete «успешен».
 func (r *EntRepository) DeleteTestCase(ctx context.Context, id uuid.UUID) error {
-	return r.client.TestCase.UpdateOneID(id).
+	affected, err := r.client.TestCase.Update().
+		Where(
+			testcase.IDEQ(id),
+			testcase.DeletedAtIsNil(),
+		).
 		SetDeletedAt(time.Now().UTC()).
-		Exec(ctx)
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // CountTestCasesInProject считает тест-кейсы из ids внутри projectID (P1-BE-12).
@@ -526,18 +538,27 @@ func (r *EntRepository) DeleteSuite(ctx context.Context, projectID, id uuid.UUID
 	return nil
 }
 
-// MoveSuite перемещает папку к другому родителю.
-func (r *EntRepository) MoveSuite(ctx context.Context, id uuid.UUID, parentID *uuid.UUID) (*ent.TestSuite, error) {
-	update := r.client.TestSuite.UpdateOneID(id)
+// MoveSuite перемещает папку к другому родителю только внутри projectID (P3-BE-05 / W2-A3-009).
+// Mutation: UpdateOneID без HasProjectWith → чужой project UUID двигает suite.
+func (r *EntRepository) MoveSuite(ctx context.Context, projectID, id uuid.UUID, parentID *uuid.UUID) (*ent.TestSuite, error) {
+	update := r.client.TestSuite.Update().
+		Where(
+			testsuite.IDEQ(id),
+			testsuite.DeletedAtIsNil(),
+			testsuite.HasProjectWith(entproject.ID(projectID)),
+		)
 	if parentID != nil {
 		update = update.SetParentID(*parentID)
 	} else {
 		update = update.ClearParent()
 	}
 
-	_, err := update.Save(ctx)
+	affected, err := update.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("перемещение папки: %w", err)
+	}
+	if affected == 0 {
+		return nil, &ent.NotFoundError{}
 	}
 
 	return r.GetSuite(ctx, id)
@@ -937,10 +958,14 @@ func (r *EntRepository) GetIssueLinkedTestCases(ctx context.Context, issueID uui
 	return issue.Edges.LinkedTestCases, nil
 }
 
-// GetProjectIssuesWithTestCases возвращает задачи проекта с привязанными тест-кейсами.
+// GetProjectIssuesWithTestCases возвращает живые задачи проекта с привязанными тест-кейсами.
+// P3-BE-05 / W2-A3-010: DeletedAtIsNil — coverage не включает корзину.
 func (r *EntRepository) GetProjectIssuesWithTestCases(ctx context.Context, projectID uuid.UUID) ([]*ent.Issue, error) {
 	return r.client.Issue.Query().
-		Where(entissue.HasProjectWith(entproject.ID(projectID))).
+		Where(
+			entissue.HasProjectWith(entproject.ID(projectID)),
+			entissue.DeletedAtIsNil(),
+		).
 		WithLinkedTestCases().
 		All(ctx)
 }
@@ -1114,11 +1139,23 @@ func (r *EntRepository) GetTestRunWithResultsInProject(ctx context.Context, proj
 		Only(ctx)
 }
 
-// AddFilesToResult привязывает файлы к результату теста.
-func (r *EntRepository) AddFilesToResult(ctx context.Context, resultID uuid.UUID, fileIDs []uuid.UUID) error {
-	return r.client.TestResult.UpdateOneID(resultID).
+// AddFilesToResult привязывает файлы к результату только внутри run (P3-BE-05 / W2-A3-009).
+// Mutation: UpdateOneID без HasRunWith → чужой resultID принимает файлы.
+func (r *EntRepository) AddFilesToResult(ctx context.Context, runID, resultID uuid.UUID, fileIDs []uuid.UUID) error {
+	affected, err := r.client.TestResult.Update().
+		Where(
+			testresult.IDEQ(resultID),
+			testresult.HasRunWith(testrun.IDEQ(runID)),
+		).
 		AddFileIDs(fileIDs...).
-		Exec(ctx)
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------

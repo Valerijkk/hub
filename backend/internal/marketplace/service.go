@@ -252,7 +252,7 @@ func (s *Service) DeleteListing(ctx context.Context, userID, id uuid.UUID) error
 	if !isOwner && !isAdmin {
 		return ErrForbidden
 	}
-	if err := s.repo.SoftDeleteListing(ctx, id); err != nil {
+	if err := s.repo.SoftDeleteListing(ctx, id, current.Version); err != nil {
 		if ent.IsNotFound(err) {
 			return ErrNotFound
 		}

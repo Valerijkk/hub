@@ -99,13 +99,16 @@ func (s *AutomationService) UpdateRule(ctx context.Context, projectID, ruleID uu
 	if err := validateAutomationRuleRequest(triggerType, actionType, triggerCfg, actionCfg); err != nil {
 		return nil, apperrors.NewBadRequest(err.Error())
 	}
-	updated, err := s.repo.UpdateAutomationRule(ctx, ruleID, UpdateAutomationRuleInput{
+	updated, err := s.repo.UpdateAutomationRule(ctx, projectID, ruleID, UpdateAutomationRuleInput{
 		Name:          req.Name,
 		Enabled:       req.Enabled,
 		TriggerConfig: req.TriggerConfig,
 		ActionConfig:  req.ActionConfig,
 	})
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("automation rule not found")
+		}
 		return nil, apperrors.NewInternal("failed to update rule")
 	}
 	resp := toAutomationRuleResponse(updated)

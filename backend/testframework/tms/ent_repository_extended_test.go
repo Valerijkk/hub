@@ -223,7 +223,7 @@ func TestEntRepository_SuiteUpdateDeleteMove(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, renamed, updated.Name)
 
-	moved, err := repo.MoveSuite(ctx, child.ID, nil)
+	moved, err := repo.MoveSuite(ctx, projectID, child.ID, nil)
 	require.NoError(t, err)
 	assert.Nil(t, moved.Edges.Parent)
 

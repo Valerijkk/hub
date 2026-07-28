@@ -287,14 +287,16 @@ func (r *EntRepository) ShareActiveChannel(ctx context.Context, a, b uuid.UUID) 
 		Exist(ctx)
 }
 
-// GetChannelMemberRole возвращает роль пользователя в канале ("", если не состоит).
+// GetChannelMemberRole возвращает роль пользователя в активном канале ("", если не состоит / soft-deleted).
 // HI-03: EndCall разрешён владельцу/админу канала; этот метод инкапсулирует
 // чтение роли без раскрытия Ent наружу.
+// P3-BE-05 / W3-A5-014: HasChannelWith(DeletedAtIsNil) как у IsChannelMember.
 func (r *EntRepository) GetChannelMemberRole(ctx context.Context, channelID, userID uuid.UUID) (string, error) {
 	m, err := r.db.ChannelMember.Query().
 		Where(
 			channelmember.ChannelID(channelID),
 			channelmember.UserID(userID),
+			channelmember.HasChannelWith(channel.DeletedAtIsNil()),
 		).
 		Only(ctx)
 	if err != nil {

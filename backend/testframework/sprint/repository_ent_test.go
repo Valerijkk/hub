@@ -193,7 +193,7 @@ func TestEntRepository_IssueSprintOperations(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, env.repo.MoveIssuesToSprint(env.ctx, []uuid.UUID{open.ID}, sprint2.ID))
 
-	require.NoError(t, env.repo.ClearIssuesSprint(env.ctx, []uuid.UUID{done.ID}))
+	require.NoError(t, env.repo.ClearIssuesSprint(env.ctx, env.projectID, []uuid.UUID{done.ID}))
 	count, err = env.repo.GetSprintIssueCount(env.ctx, sp.ID)
 	require.NoError(t, err)
 	assert.Equal(t, 0, count)

@@ -731,7 +731,7 @@ func (m *mockRepo) CreateAutomationRule(context.Context, uuid.UUID, uuid.UUID, t
 func (m *mockRepo) FindAutomationRule(context.Context, uuid.UUID, uuid.UUID) (*ent.AutomationRule, error) {
 	return nil, &ent.NotFoundError{}
 }
-func (m *mockRepo) UpdateAutomationRule(context.Context, uuid.UUID, tracker.UpdateAutomationRuleInput) (*ent.AutomationRule, error) {
+func (m *mockRepo) UpdateAutomationRule(context.Context, uuid.UUID, uuid.UUID, tracker.UpdateAutomationRuleInput) (*ent.AutomationRule, error) {
 	return nil, nil
 }
 func (m *mockRepo) DeleteAutomationRule(context.Context, uuid.UUID, uuid.UUID) error {

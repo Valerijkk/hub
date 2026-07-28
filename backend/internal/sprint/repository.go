@@ -63,8 +63,8 @@ type Repository interface {
 	// SetIssuesSprint устанавливает sprint_id для задач, принадлежащих projectID (RT-005).
 	// Возвращает ErrIssueNotInProject, если хотя бы один UUID чужой/отсутствует.
 	SetIssuesSprint(ctx context.Context, projectID uuid.UUID, issueIDs []uuid.UUID, sprintID uuid.UUID) error
-	// ClearIssuesSprint убирает sprint_id у задач (возврат в бэклог).
-	ClearIssuesSprint(ctx context.Context, issueIDs []uuid.UUID) error
+	// ClearIssuesSprint убирает sprint_id только у задач проекта (P3-BE-05 / W1-A4-013).
+	ClearIssuesSprint(ctx context.Context, projectID uuid.UUID, issueIDs []uuid.UUID) error
 
 	// GetSprintIssueCount возвращает количество задач в спринте.
 	GetSprintIssueCount(ctx context.Context, sprintID uuid.UUID) (int, error)
@@ -401,11 +401,32 @@ func (r *EntRepository) SetIssuesSprint(ctx context.Context, projectID uuid.UUID
 		Exec(ctx)
 }
 
-// ClearIssuesSprint убирает sprint_id у задач.
-func (r *EntRepository) ClearIssuesSprint(ctx context.Context, issueIDs []uuid.UUID) error {
+// ClearIssuesSprint убирает sprint_id только у задач проекта (P3-BE-05 / W1-A4-013).
+// Mutation: без HasProjectWith → чужой project UUID очищает sprint_id.
+func (r *EntRepository) ClearIssuesSprint(ctx context.Context, projectID uuid.UUID, issueIDs []uuid.UUID) error {
+	if len(issueIDs) == 0 {
+		return nil
+	}
+	n, err := r.client.Issue.Query().
+		Where(
+			issue.IDIn(issueIDs...),
+			issue.DeletedAtIsNil(),
+			issue.HasProjectWith(project.IDEQ(projectID)),
+		).
+		Count(ctx)
+	if err != nil {
+		return err
+	}
+	if n != len(issueIDs) {
+		return ErrIssueNotInProject
+	}
 	return r.client.Issue.
 		Update().
-		Where(issue.IDIn(issueIDs...)).
+		Where(
+			issue.IDIn(issueIDs...),
+			issue.DeletedAtIsNil(),
+			issue.HasProjectWith(project.IDEQ(projectID)),
+		).
 		ClearSprint().
 		Exec(ctx)
 }
