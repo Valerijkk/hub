@@ -231,7 +231,11 @@ func RateLimitRedis(ctx context.Context, rdb *redis.Client, cfg RedisRateLimitCo
 			return c.Next()
 		}
 
+		// W4-A1-004: при 429 удаляем member — иначе отклонённые запросы раздувают ZSET.
 		if cardCmd.Val() > int64(cfg.Max) {
+			if remErr := rdb.ZRem(ctx, key, member).Err(); remErr != nil {
+				slog.Warn("RateLimitRedis: ZRem after reject failed", "key", key, "error", remErr)
+			}
 			sec := int(cfg.Window.Seconds())
 			if sec < 1 {
 				sec = 1
@@ -337,7 +341,10 @@ func (rl *rateLimiter) cleanup(ctx context.Context) {
 
 				if len(entry.timestamps) == 0 {
 					entry.mu.Unlock()
-					rl.entries.Delete(key)
+					// W4-A1-003: CompareAndDelete — иначе параллельный allow мог
+					// LoadOrStore тот же pointer, дописать timestamps, а Delete
+					// выкинул бы живой bucket (сброс счётчика / bypass).
+					rl.entries.CompareAndDelete(key, entry)
 					return true
 				}
 
