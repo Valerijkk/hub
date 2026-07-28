@@ -50,7 +50,7 @@ type ServerConfig struct {
 	Immutable    bool   // true в dev для отлова повторного использования Fiber RequestCtx (Pitfall 1)
 	DevMode             bool     // DevMode включает dev-эндпоинты (seed, login без Magic Link)
 	Environment         string   // ENVIRONMENT: production, staging, development (по умолчанию)
-	MetricsAllowedCIDRs []string // METRICS_ALLOWED_CIDRS — пусто = open (non-prod); production validate fail-closed
+	MetricsAllowedCIDRs []string // METRICS_ALLOWED_CIDRS — пусто non-prod → "*"; production validate fail-closed
 	AlertWebhookSecret  string   // ALERT_WEBHOOK_SECRET — Bearer для Alertmanager webhook
 }
 
@@ -206,6 +206,13 @@ func Load() (*Config, error) {
 		AI: AIConfig{
 			OfflineOnly: getEnvBool("AI_OFFLINE_ONLY", false),
 		},
+	}
+
+	// W4-A3-004: MetricsEndpoint fail-closed на пустом CIDR. Non-prod пустой
+	// METRICS_ALLOWED_CIDRS → явный sentinel "*", иначе /metrics сразу 403.
+	if len(cfg.Server.MetricsAllowedCIDRs) == 0 &&
+		!strings.EqualFold(cfg.Server.Environment, "production") {
+		cfg.Server.MetricsAllowedCIDRs = []string{"*"}
 	}
 
 	if err := cfg.validate(); err != nil {

@@ -31,6 +31,7 @@ func setProductionBaseEnv(t *testing.T) {
 func TestLoad_devModeAllowsDefaults(t *testing.T) {
 	t.Setenv("DEV_MODE", "true")
 	t.Setenv("ENVIRONMENT", "development")
+	t.Setenv("METRICS_ALLOWED_CIDRS", "")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -41,6 +42,10 @@ func TestLoad_devModeAllowsDefaults(t *testing.T) {
 	}
 	if cfg.JWT.Secret == "" {
 		t.Error("expected JWT secret fallback in dev")
+	}
+	// W4-A3-004: non-prod пустой CIDR → явный sentinel "*", не fail-open nil-slice.
+	if len(cfg.Server.MetricsAllowedCIDRs) != 1 || cfg.Server.MetricsAllowedCIDRs[0] != "*" {
+		t.Errorf("MetricsAllowedCIDRs = %v, want [*]", cfg.Server.MetricsAllowedCIDRs)
 	}
 }
 
