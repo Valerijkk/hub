@@ -2,6 +2,7 @@ package intranet
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
