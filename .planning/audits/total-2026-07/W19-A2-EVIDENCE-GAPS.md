@@ -4,7 +4,8 @@
 > Задача: [TASK-008](../../backlog/TASK-008-total-audit-program.md) § Stage C / W19  
 > Фокус: задачи в статусе **«Исправлена»** без адекватного evidence  
 > Режим: read-only по product code; сверка task body ↔ `W18-*-MUTATION.md`  
-> Перепроверка: повторный проход по README + телам TASK-009…056 + всем 6 mutation-логам
+> Перепроверка: повторный проход README + тела TASK-009…056 + все 6 mutation-логов  
+>   + `git log --grep=TASK-0NN` (SHA есть в истории, **не** в evidence)
 
 ## Определение «адекватного evidence»
 
@@ -17,7 +18,7 @@
 | 2 | **SHA коммита** фикса | тело TASK и/или mutation-лог |
 | 3 | **Mutation log** (RED→restore→GREEN) | тело TASK и/или `W18-C{1,2,2b,3,4,5}-MUTATION.md` |
 
-**Evidence-gap** = статус README/файла ∈ {«Исправлена», «На проверке»}
+**Evidence-gap** = статус README ∈ {«Исправлена»…}
 **и** отсутствует **хотя бы один** элемент триады при union(task body, W18 mutation).
 
 «Закрыта без evidence» (формулировка TASK-008 W19) трактуется так же:
@@ -30,8 +31,10 @@
 - FE (C4/C5): имя RED-теста = **Vitest title** в backticks, не `Test…`.
 - Строка ACCEPTANCE `Evidence: … SHA коммитов` — **шаблон**, не доказательство;
   в счёт SHA не входит.
-- Фактических hex SHA (`[0-9a-f]{7,40}` привязанных к fix-коммиту) в телах
-  TASK-009…056 и во всех `W18-*-MUTATION.md` — **0**.
+- Наивный `[0-9a-f]{7,40}` даёт **ложные** совпадения (`succeeded`→`cceeded`,
+  `feedback`→`feedbac`, дата миграции `20260728`) — это **не** SHA коммита.
+- Фактических hex SHA фикса (`SHA: <hex>` / `` `abcdef1` `` / `commit <hex>`)
+  в телах TASK-009…056 и во всех `W18-*-MUTATION.md` — **0**.
 
 ## Сводка
 
@@ -46,6 +49,7 @@
 | Gap: нет имени теста (union) | **0** |
 | Gap: нет mutation log (union) | **0** |
 | Нет имени теста **в теле TASK** (есть только в W18) | **28** |
+| Thin notes в теле (PASS + ссылка на W18, без test name) | **28** |
 | Полностью пустая триада (union) | **0** |
 
 **Вердикт:** все 39 задач, помеченных «Исправлена» после W18 PASS, имеют
@@ -93,6 +97,9 @@ TASK-051, TASK-053, TASK-055, TASK-056
 ACCEPTANCE типовой задачи Stage B требует: *«Evidence: вывод тестов, SHA коммитов»*.
 W18 фиксирует RED/GREEN и имя теста, но **не** SHA Stage B коммита.
 
+SHA **восстанавливаются** из `git log --grep=TASK-0NN` (см. приложение B),
+но пока не записаны в task body / mutation — gap остаётся.
+
 ### 2. Имя теста только в mutation-логе, не в теле TASK — 28
 
 Протокол W18: PASS → «Исправлена» **(+ evidence в task file)**.
@@ -127,9 +134,9 @@ SHA по-прежнему нет → в общем счётчике gap.
 
 ---
 
-## Приложение: gap × RED test (для дописывания в TASK)
+## Приложение A: gap × RED test (для дописывания в TASK)
 
-SHA у всех = **нет**. Колонка «в теле» = есть ли `Test…`/Vitest title в файле задачи.
+SHA у всех = **нет** (в evidence). Колонка «в теле» = есть ли `Test…`/Vitest title в файле задачи.
 
 | ID | В теле | W18 | RED test (из mutation-лога) |
 |----|:------:|-----|------------------------------|
@@ -175,6 +182,49 @@ SHA у всех = **нет**. Колонка «в теле» = есть ли `Te
 
 ---
 
+## Приложение B: кандидаты SHA из git (ещё не в evidence)
+
+Первый релевантный hit `git log --grep=TASK-0NN` (исключены только
+`docs(planning): W19-*`). Для C1 часто всплывает W18 mutation-коммит —
+Stage B fix SHA нужно уточнять по пути файла / subject `fix(…)`.
+
+| ID | Кандидат | Subject (сокр.) |
+|----|----------|-----------------|
+| 009–013,017,018,021 | `6973c156` | W18-C1 mutation log (не Stage B fix) |
+| TASK-015 | `c11413e9` | fix(tms): IDOR suite/env/FK |
+| TASK-016 | `b26ffb70` | fix(tms): import limits |
+| TASK-020 | `9e892d74` | fix(apigateway): secret once |
+| TASK-022 | `22456c7c` | fix(search): soft-delete/private |
+| TASK-023 | `4cc54065` | fix(audit): MongoMessageEraser |
+| TASK-024 | `372b8b2d` | fix(intranet): Random Coffee |
+| TASK-025 | `29ee1991` | fix(ent): unique/O2O |
+| TASK-026 | `9cd07194` | W18-C4 mutation (уточнить fix) |
+| TASK-027 | `15dd222e` | fix(frontend): CallChat WS |
+| TASK-028 | `70905c77` | fix(frontend): calls lifecycle |
+| TASK-029 | `2a2d575a` | fix(frontend): messenger |
+| TASK-030 | `c981d77e` | fix(frontend): board DnD |
+| TASK-031 | `3ffe8251` | fix(frontend): sprint UI |
+| TASK-032 | `1e953cf1` | fix(frontend): ListTrash |
+| TASK-033 | `b9b3e8e3` | fix(frontend): error≠empty |
+| TASK-034 | `3e06d582` | fix(frontend): a11y nested |
+| TASK-035 | `d314e6fd` | fix(frontend): TMS compare |
+| TASK-036 | `8d4f166c` | fix(platform): StructValidator |
+| TASK-037 | `2c718dd4` | test(backend): Ent-negative |
+| TASK-038 | `c5003ddb` | test(tms): soft-delete guard |
+| TASK-039 | `84158842` | fix(apigateway): import cleanup |
+| TASK-040 | `d579bb39` | fix(platform): fail-closed |
+| TASK-043 | `8d8774f7` | fix(platform): P2-BE-16 |
+| TASK-047 | `6e19b098` | fix(ai): bot info retry |
+| TASK-048 | `01a44d58` | test(frontend): mutation feedback |
+| TASK-049 | `014b58d3` | fix(frontend): accessible names |
+| TASK-050 | `a6ee4862` | test(frontend): TASK-050 |
+| TASK-051 | `3560a180` | fix(frontend): effects/hooks |
+| TASK-053 | `81261872` | fix(platform): drag/paste |
+| TASK-055 | `ade5eed9` | fix(frontend): shell/nav |
+| TASK-056 | `f9fdef4f` | fix(frontend): i18n/push/rooms |
+
+---
+
 ## Не gap (контроль)
 
 | Группа | IDs | Почему не evidence-gap |
@@ -189,8 +239,8 @@ SHA у всех = **нет**. Колонка «в теле» = есть ли `Te
 ## Рекомендации (handoff)
 
 1. **Дописать SHA** Stage B коммитов в тела 39 TASK (или таблицу в W18-SUMMARY) —
-   один проход `git log --grep=TASK-0NN`.
-2. Для 28 «thin» TASK — скопировать **имя RED-теста** из приложения выше
+   старт: приложение B + `git log --grep=TASK-0NN` / path фильтрация.
+2. Для 28 «thin» TASK — скопировать **имя RED-теста** из приложения A
    (или из W18) в секцию evidence файла.
 3. TASK-038: либо убрать «На проверке» из Progress, либо вернуть README в
    «На проверке (partial)» до закрытия residual Source IDs.
@@ -204,7 +254,9 @@ SHA у всех = **нет**. Колонка «в теле» = есть ли `Te
 2. Триада: regex по телу TASK + строки/секции `TASK-NNN` / короткий `NNN` во всех
    `W18-C{1,2,2b,3,4,5}-MUTATION.md` (включая Vitest titles в колонке RED test).
 3. Сверка итога PASS/FAIL с [`W18-SUMMARY.md`](W18-SUMMARY.md) (39 / 9).
-4. Контроль: grep hex SHA по TASK + W18 mutation — пусто (кроме шаблона «SHA коммитов»).
+4. Контроль: явные SHA-якоря в TASK + W18 mutation — пусто; naive hex
+   отфильтрован (word/date false positives).
+5. Кандидаты SHA: `git log --grep=TASK-0NN` → приложение B (ещё не evidence).
 
 ---
 
