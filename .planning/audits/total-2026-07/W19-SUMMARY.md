@@ -44,7 +44,8 @@
 | 9 | W11-A5-005 | Webcams docs vs TZ Phase 16 — решение PO |
 | 10 | W11-A5-006 | G-07 wiki KPI vs «планируется» — решение PO |
 
-U\* не разблокировать без ADR/PO; держать в `backlog/README.md` (Blocked ADR: U01–U06).
+U\* не разблокировать без ADR/PO; держать в `backlog/README.md` (Blocked ADR: U01–U06).  
+Не путать с W18 FAIL (014, 019, 041…) — там задачи есть, это residual fix, не orphan.
 
 ---
 
@@ -130,6 +131,8 @@ Dual StartSprint (**041**) — residual #6 (Low–Med × Med).
 | 052 | LOW | hygiene |
 | 054 | NO (exploit) | docs → TASK-080 |
 
+Порядок reopen-fix (A4): **014 → 079 → 045 → 044/019 → 041**.
+
 ---
 
 ## 5. Recommended actions before W20
@@ -139,7 +142,7 @@ Dual StartSprint (**041**) — residual #6 (Low–Med × Med).
 1. **Не закрывать TASK-008.** W20 = FINAL + полный hubtest + coverage; W19 не гейтит закрытие программы.
 2. **Reopen / дожать mutation (be):** **014 → 079 → 045** (red-team blockers), затем **044, 019, 041, 042, 046**.
 3. **CRITICAL combos (be):** **C-001 / TASK-079** (Mongo eraser fail-closed); dual-sprint/unique (**041**/**046**) — next.
-4. **HIGH combos (be):** team ACL (**014**), Confirm (**045**), SSRF/AI (**019**/**044**), soft-delete webhook/Meili (A3).
+4. **HIGH combos (be):** team ACL (**014**), Confirm (**045**), SSRF/AI (**019**/**044**), soft-delete webhook/Meili (A3 C-008/009).
 5. **FE/docs:** 052, 054/080, CallChat empty+mutate (073).
 6. **Evidence hygiene (optional, docs):** backfill SHA Stage B в 39 PASS TASK; thin 28 — имя RED-теста в тело TASK; Progress TASK-038.
 7. **U\* orphans:** не заводить TASK до ADR/PO; оставить Blocked в README.
@@ -155,9 +158,9 @@ Dual StartSprint (**041**) — residual #6 (Low–Med × Med).
 | W19-A1 | `W19-A1-ORPHAN-P0P1.md` | P0=0 · P1 orphans=10 (U only) · missed=0 |
 | W19-A2 | `W19-A2-EVIDENCE-GAPS.md` | 39 SHA-gaps · triad иначе OK |
 | W19-A3 | `W19-A3-COMBOS.md` | 16 combos · 2 CRITICAL · 6 HIGH |
-| W19-A4 | `W19-A4-REDTEAM.md` | top-5 · blockers 014/041/045 |
+| W19-A4 | `W19-A4-REDTEAM.md` | top-5 · blockers 014/079/045 |
 | W19-A5 | **этот файл** | синтез + handoff → W20 |
 
 ---
 
-*Синтез W19-A5 · 2026-07-28 · TASK-008*
+*Синтез W19-A5 · 2026-07-28 · TASK-008 · не закрывать*
