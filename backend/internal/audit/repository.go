@@ -13,6 +13,7 @@ import (
 	"github.com/valerii/hub/backend/ent/comment"
 	"github.com/valerii/hub/backend/ent/filemetadata"
 	"github.com/valerii/hub/backend/ent/issue"
+	"github.com/valerii/hub/backend/ent/newspost"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/reaction"
 	"github.com/valerii/hub/backend/ent/session"
@@ -41,24 +42,28 @@ type Repository interface {
 	ListDeletedTestCases(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 	ListDeletedFiles(ctx context.Context, projectID *uuid.UUID, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 	ListDeletedProjects(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
+	ListDeletedNewsPosts(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error)
 
 	// Корзина — восстановление
 	RestoreIssue(ctx context.Context, id uuid.UUID) error
 	RestoreTestCase(ctx context.Context, id uuid.UUID) error
 	RestoreFile(ctx context.Context, id uuid.UUID) error
 	RestoreProject(ctx context.Context, id uuid.UUID) error
+	RestoreNewsPost(ctx context.Context, id uuid.UUID) error
 
 	// Корзина — мягкое удаление
 	SoftDeleteIssue(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteTestCase(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteFile(ctx context.Context, id uuid.UUID, when time.Time) error
 	SoftDeleteProject(ctx context.Context, id uuid.UUID, when time.Time) error
+	SoftDeleteNewsPost(ctx context.Context, id uuid.UUID, when time.Time) error
 
 	// Корзина — окончательное удаление
 	PurgeExpiredIssues(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredTestCases(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredFiles(ctx context.Context, cutoff time.Time) (int, error)
 	PurgeExpiredProjects(ctx context.Context, cutoff time.Time) (int, error)
+	PurgeExpiredNewsPosts(ctx context.Context, cutoff time.Time) (int, error)
 
 	// Администрирование пользователей
 	DeactivateUser(ctx context.Context, userID uuid.UUID) error
@@ -432,6 +437,52 @@ func (r *entRepository) PurgeExpiredFiles(ctx context.Context, cutoff time.Time)
 // PurgeExpiredProjects окончательно удаляет просроченные проекты.
 func (r *entRepository) PurgeExpiredProjects(ctx context.Context, cutoff time.Time) (int, error) {
 	return r.client.Project.Delete().Where(project.DeletedAtNotNil(), project.DeletedAtLT(cutoff)).Exec(ctx)
+}
+
+// ListDeletedNewsPosts возвращает мягко удалённые новости в окне retention (NFR-11).
+// Org-level: project_id не фильтруется (как у project).
+func (r *entRepository) ListDeletedNewsPosts(ctx context.Context, cutoff time.Time, offset, limit int) ([]TrashItem, int, error) {
+	query := r.client.NewsPost.Query().
+		Where(newspost.DeletedAtNotNil(), newspost.DeletedAtGT(cutoff))
+	total, err := query.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("подсчёт удалённых новостей: %w", err)
+	}
+	items, err := query.
+		Order(ent.Desc(newspost.FieldDeletedAt)).
+		Offset(offset).
+		Limit(limit).
+		All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("список удалённых новостей: %w", err)
+	}
+	result := make([]TrashItem, 0, len(items))
+	for _, item := range items {
+		result = append(result, TrashItem{
+			ID:         item.ID,
+			Name:       item.Title,
+			EntityType: "newspost",
+			DeletedAt:  *item.DeletedAt,
+		})
+	}
+	return result, total, nil
+}
+
+// RestoreNewsPost сбрасывает deleted_at у новости (FR-INTR-08).
+// Связанный опрос/голоса (когда появятся news_poll*) скрываются через soft-delete поста
+// и снова видны после ClearDeletedAt без отдельной операции.
+func (r *entRepository) RestoreNewsPost(ctx context.Context, id uuid.UUID) error {
+	return r.client.NewsPost.UpdateOneID(id).ClearDeletedAt().Exec(ctx)
+}
+
+// SoftDeleteNewsPost ставит deleted_at у новости (админ-путь корзины).
+func (r *entRepository) SoftDeleteNewsPost(ctx context.Context, id uuid.UUID, when time.Time) error {
+	return r.client.NewsPost.UpdateOneID(id).SetDeletedAt(when).Exec(ctx)
+}
+
+// PurgeExpiredNewsPosts окончательно удаляет новости старше retention.
+func (r *entRepository) PurgeExpiredNewsPosts(ctx context.Context, cutoff time.Time) (int, error) {
+	return r.client.NewsPost.Delete().Where(newspost.DeletedAtNotNil(), newspost.DeletedAtLT(cutoff)).Exec(ctx)
 }
 
 // ---------------------------------------------------------------------------

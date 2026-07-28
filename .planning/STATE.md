@@ -66,6 +66,14 @@ spec_coverage:
 [`history/STATE-HISTORY-THROUGH-2026-07-23.md`](archive/history/STATE-HISTORY-THROUGH-2026-07-23.md).
 Ниже — только live-сигнал для resume.
 
+## Session note — 2026-07-28 (be1 · TASK-001 FR-INTR-08 newspost trash)
+
+- Зарегистрирован тип `newspost` в audit ListTrash / RestoreItem / SoftDelete / PurgeExpired.
+- Repo: `ListDeletedNewsPosts`, `RestoreNewsPost`, `SoftDeleteNewsPost`, `PurgeExpiredNewsPosts`.
+- Тесты: `repository_newspost_trash_test.go` + мутация RestoreItem (красный/зелёный).
+- FE: вкладка «Новости» в admin trash; wiki API types; phase 126 VERIFICATION PASS (poll schemas deferred).
+- Backlog: TASK-001 → Закрыта.
+
 ## Session note — 2026-07-28 (fe1 · A10-007 notifications Query)
 
 - Deleted `stores/notification-store.ts` (zustand server-state + silent warn).

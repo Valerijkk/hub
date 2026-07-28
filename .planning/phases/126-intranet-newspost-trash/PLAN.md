@@ -1,6 +1,6 @@
 # Phase 126 — FR-INTR-08 NewsPost trash restore
 
-**Status:** PLANNED (docs only — no production code in this phase artifact)  
+**Status:** IMPLEMENTED 2026-07-28 (TASK-001) — see `VERIFICATION.md`  
 **Source:** `docs/system_specification.md` FR-INTR-08 (US-INTR-03), NFR-11  
 **Audit:** `.planning/audits/planning-audit-2026-07/00-PLANNING-AUDIT.md` §4.3 · `01-PLANNING-FIXES.md` B1  
 **Index note:** `.planning/audits/planning-audit-2026-07/PW4-D3-FR-PLANS.md`  
@@ -23,13 +23,13 @@ Close confirmed gap **FR-INTR-08**: restoring a soft-deleted news post from the 
 
 ## Tasks
 
-- [ ] Register trash type `newspost` in `backend/internal/audit/service.go` switch arms: `ListTrash`, `RestoreItem`, `SoftDelete`, `PurgeExpired` (retention = `TrashRetentionDays` = 30, NFR-11).
-- [ ] Extend `backend/internal/audit/repository.go` (+ Ent impl): `ListDeletedNewsPosts`, `RestoreNewsPost` (clear `deleted_at`), `SoftDeleteNewsPost` (if not already shared), `PurgeExpiredNewsPosts` (`deleted_at <= cutoff` hard delete).
-- [ ] Ensure restore is **poll-aware** per FR-INTR-08: after restore, GET news (+ poll endpoints when present) returns the same poll options and denormalized `votes_count` / vote rows as before delete. Soft-delete of the post must continue to hide poll/votes from public reads (FR-INTR-07 cascade hide — one trash entry for the post).
-- [ ] Wire intranet delete path so soft-deleted posts are visible to trash listing (`deleted_at` set, published list filters unchanged). Prefer reusing audit SoftDelete/register pattern rather than a second restore API.
-- [ ] Audit log on delete/restore (actor, post_id) — align with FR-INTR-07 wording; emit `hub.intranet.news.restored` when outbox/NATS pattern already used for `hub.intranet.news.deleted` (spec events table).
-- [ ] Tests under `backend/testframework/audit/` and/or `backend/testframework/intranet/`: soft-delete → appears in `GET /admin/trash?type=newspost` → `POST .../restore` → post (+ poll/votes if fixture has poll) readable again; purge after 30d cutoff; unknown type still errors; non-admin → 403.
-- [ ] Docs sync on implement: `docs/wiki/API.md` trash type list; session note in `.planning/STATE.md`; mark FR-INTR-08 covered in planning index / this PLAN checkboxes.
+- [x] Register trash type `newspost` in `backend/internal/audit/service.go` switch arms: `ListTrash`, `RestoreItem`, `SoftDelete`, `PurgeExpired` (retention = `TrashRetentionDays` = 30, NFR-11).
+- [x] Extend `backend/internal/audit/repository.go` (+ Ent impl): `ListDeletedNewsPosts`, `RestoreNewsPost` (clear `deleted_at`), `SoftDeleteNewsPost` (if not already shared), `PurgeExpiredNewsPosts` (`deleted_at <= cutoff` hard delete).
+- [x] Ensure restore is **poll-aware** per FR-INTR-08: after restore, GET news (+ poll endpoints when present) returns the same poll options and denormalized `votes_count` / vote rows as before delete. Soft-delete of the post must continue to hide poll/votes from public reads (FR-INTR-07 cascade hide — one trash entry for the post). *(poll schemas absent — contract ready via ClearDeletedAt only)*
+- [x] Wire intranet delete path so soft-deleted posts are visible to trash listing (`deleted_at` set, published list filters unchanged). Prefer reusing audit SoftDelete/register pattern rather than a second restore API.
+- [ ] Audit log on delete/restore (actor, post_id) — align with FR-INTR-07 wording; emit `hub.intranet.news.restored` when outbox/NATS pattern already used for `hub.intranet.news.deleted` (spec events table). *(deferred: no existing news.deleted outbox in intranet)*
+- [x] Tests under `backend/testframework/audit/` and/or `backend/testframework/intranet/`: soft-delete → appears in `GET /admin/trash?type=newspost` → `POST .../restore` → post (+ poll/votes if fixture has poll) readable again; purge after 30d cutoff; unknown type still errors; non-admin → 403.
+- [x] Docs sync on implement: `docs/wiki/API.md` trash type list; session note in `.planning/STATE.md`; mark FR-INTR-08 covered in planning index / this PLAN checkboxes.
 
 ## Acceptance criteria
 

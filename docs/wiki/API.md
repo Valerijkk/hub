@@ -725,8 +725,8 @@ API-ключи для программного доступа, webhook-подп�
 |---|---|---|
 | GET | `/admin/limits` | Лимиты ресурсов (проекты, участники и др.) |
 | PUT | `/admin/limits/:key` | Обновить лимит |
-| GET | `/admin/trash` | Корзина (удалённые сущности) |
-| POST | `/admin/trash/:type/:id/restore` | Восстановить из корзины |
+| GET | `/admin/trash` | Корзина (удалённые сущности). Query `type`: `issue` \| `test_case` \| `file` \| `project` \| `newspost` (retention 30 дней, NFR-11) |
+| POST | `/admin/trash/:type/:id/restore` | Восстановить из корзины (`newspost` — FR-INTR-08: пост + опрос/голоса, когда `news_poll*` есть) |
 
 ### Управление пользователями
 

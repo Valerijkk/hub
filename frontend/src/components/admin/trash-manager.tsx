@@ -9,6 +9,7 @@ const TRASH_TABS = [
 	{ key: "test_case", label: "Тест-кейсы" },
 	{ key: "file", label: "Файлы" },
 	{ key: "project", label: "Проекты" },
+	{ key: "newspost", label: "Новости" },
 ] as const;
 
 /**
