@@ -34,15 +34,15 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
-| A2W3-3-001 | RESIDUAL | P2 | `ent_repository.go:466-477` | `IncrementInviteUses` — read-modify-write без `UseCountLT` | W3-A3-007 / TASK-038 messenger out-of-scope | `Update().Where(IDEQ, UseCountLT(max)).AddUseCount(1)` |
-| A2W3-3-002 | RESIDUAL | P2 | `ent_repository.go` (~10× `.All(ctx)`) | ListMembers / pins / bookmarks / invites / votes / project members — без Limit/cap | W3-A3-006: unbounded memory на больших каналах | Limit/cursor или hard cap |
-| A2W3-3-003 | RESIDUAL | P2 | `unread.go:11-40` | Ключи `unread:{userID}` без TTL; нет HDel при leave/delete канала | W3-A3-005 deferred (TASK-042): orphan hash fields навсегда | TTL/refresh; cleanup на leave/soft-delete |
-| A2W3-3-004 | NEW | P2 | `mongo_repository.go:205-240` | После фикса MatchedCount: два concurrent first-react на один emoji оба видят `MatchedCount==0` → двойной `$push` | Гонка TOCTOU между check и push; sequential retry закрыт, concurrent — нет | Unique compound / pipeline `$addToSet` на emoji array; или findAndModify |
+| A2W3-3-004 | NEW | P2 | `mongo_repository.go:205-240` | После фикса MatchedCount: два concurrent first-react на один emoji оба видят `MatchedCount==0` → двойной `$push` | Гонка TOCTOU между check и push; sequential retry закрыт, concurrent — нет | Unique compound / pipeline `$addToSet` на emoji array; или findAndModify (TASK-089) |
 
 ## FIXED-OK
 
 | Stage A ID | Evidence |
 |------------|----------|
+| A2W3-3-001 | TASK-108: `Update().Where(IDEQ, UseCountLT(max)).AddUseCount(1)` → `ErrInviteUsesExhausted` |
+| A2W3-3-002 | TASK-108: hard caps Limit на ListMembers/pins/invites/bookmarks/votes/project members |
+| A2W3-3-003 | TASK-108: unread TTL (Expire 30d) + HDel на leave/DeleteChannel |
 | W3-A3-001 | `RemoveBookmark(userID, bookmarkID)` + UserIDEQ |
 | W3-A3-002 | sequential: `MatchedCount>0` → return (не `$push` duplicate) |
 | W3-A3-003 | away=90s, stale=10m |

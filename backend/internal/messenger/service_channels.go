@@ -34,9 +34,13 @@ func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, 
 		return nil, apperrors.NewInternal("ошибка создания канала")
 	}
 
-	// Создатель всегда owner — иначе канал останется без управляющего.
+	// Создатель всегда owner — иначе канал останется без управляющего (A2W3-2-002).
 	if err := s.repo.AddMembers(ctx, ch.ID, []uuid.UUID{userID}, "owner"); err != nil {
-		slog.Error("не удалось добавить создателя в канал", "error", err)
+		slog.Error("не удалось добавить создателя в канал", "error", err, "channel_id", ch.ID)
+		if delErr := s.repo.DeleteChannel(ctx, ch.ID); delErr != nil {
+			slog.Error("не удалось удалить orphan-канал", "error", delErr, "channel_id", ch.ID)
+		}
+		return nil, apperrors.NewInternal("ошибка создания канала")
 	}
 
 	// Добавление дополнительных участников
@@ -53,7 +57,8 @@ func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, 
 		}
 		if len(memberUUIDs) > 0 {
 			if err := s.repo.AddMembers(ctx, ch.ID, memberUUIDs, "member"); err != nil {
-				slog.Error("не удалось добавить участников в канал", "error", err)
+				slog.Error("не удалось добавить участников в канал", "error", err, "channel_id", ch.ID)
+				return nil, apperrors.NewInternal("ошибка добавления участников канала")
 			}
 		}
 	}
@@ -147,6 +152,7 @@ func (s *MessengerService) UpdateChannel(ctx context.Context, channelID, userID 
 }
 
 // DeleteChannel удаляет канал (только owner).
+// A2W3-3-003: чистит unread hash fields у всех участников до soft-delete.
 func (s *MessengerService) DeleteChannel(ctx context.Context, channelID, userID uuid.UUID) error {
 	role, err := s.repo.GetMemberRole(ctx, channelID, userID)
 	if err != nil {
@@ -154,6 +160,18 @@ func (s *MessengerService) DeleteChannel(ctx context.Context, channelID, userID 
 	}
 	if role != "owner" {
 		return apperrors.NewForbidden("только owner может удалить канал")
+	}
+	if s.unread != nil {
+		memberIDs, mErr := s.repo.GetChannelMemberIDs(ctx, channelID)
+		if mErr == nil && len(memberIDs) > 0 {
+			strs := make([]string, len(memberIDs))
+			for i, id := range memberIDs {
+				strs[i] = id.String()
+			}
+			if cErr := s.unread.ClearChannelForUsers(ctx, channelID.String(), strs); cErr != nil {
+				slog.Error("не удалось очистить unread при удалении канала", "error", cErr, "channel_id", channelID)
+			}
+		}
 	}
 	return s.repo.DeleteChannel(ctx, channelID)
 }
@@ -222,6 +240,13 @@ func (s *MessengerService) LeaveChannel(ctx context.Context, channelID, userID u
 
 	if err := s.repo.RemoveMember(ctx, channelID, userID); err != nil {
 		return apperrors.NewInternal("ошибка выхода из канала")
+	}
+
+	// A2W3-3-003: убрать orphan unread field при leave.
+	if s.unread != nil {
+		if mErr := s.unread.MarkRead(ctx, userID.String(), channelID.String()); mErr != nil {
+			slog.Error("не удалось очистить unread при leave", "error", mErr, "channel_id", channelID)
+		}
 	}
 
 	s.nats.PublishJSON(fmt.Sprintf(SubjectMemberLeft, channelID.String()), map[string]interface{}{

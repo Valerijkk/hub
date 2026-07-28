@@ -42,15 +42,16 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|----------|-------------|----------|---------------|------------|
-| A2W3-2-001 | RESIDUAL | P2 | `service_channel_invites.go:178-188`; `ent_repository.go:466-477` | Accept: `IncrementInviteUses` (RMW) затем `AddMembers` **не** в одной tx; fail AddMembers сжигает слот; нет `UseCountLT` | W3-A2-009 / TASK-038 out-of-scope messenger — гонка >MaxUses и burned slot | Атомарный `WHERE use_count < max_uses`; rollback/декремент при fail AddMembers |
-| A2W3-2-002 | RESIDUAL | P2 | `service_channels.go:37-57`; `service_dm.go:41-44` | Ошибка `AddMembers` только `slog.Error` — канал/DM возвращается клиенту | W3-A2-011: orphan channel без owner/members | Fail create / cleanup канала при ошибке members |
-| A2W3-2-003 | RESIDUAL | P2 | `service_bot.go:131-148` | `FindMessageForBot` / `GetChannelEntity` / `GetChannelMemberIDsInternal` без `systemBotID != Nil` (List*ForBot — с guard) | W3-A2-015 deferred (TASK-042): holder `*MessengerService` читает без bot-gate | Единый `systemBotID` guard на все bot/internal read API |
-| A2W3-2-004 | NEW | P3 | `service_channel_invites.go:168` | `isMember, _ := s.repo.IsMember` — ошибка IsMember проглочена | При сбое БД Accept идёт как «не member» → лишний Increment/AddMembers | Проверять `err`; при err → 500 |
+| — | — | — | — | Нет открытых (TASK-108) | — | — |
 
 ## FIXED-OK
 
 | Stage A ID | Evidence |
 |------------|----------|
+| A2W3-2-001 | TASK-108: `IncrementInviteUses(…, maxUses)` + `UseCountLT` + `DecrementInviteUses` при fail AddMembers |
+| A2W3-2-002 | TASK-108: CreateChannel/DM — fail AddMembers → DeleteChannel + error |
+| A2W3-2-003 | TASK-108: `systemBotID` guard на FindMessageForBot / GetChannelEntity / GetChannelMemberIDsInternal |
+| A2W3-2-004 | TASK-108: AcceptInvite проверяет `IsMember` err → 500 |
 | W3-A2-001 P0 | `promoteCheck` вызывается; nil → 403; wiring `SetPromotePermissionChecker` (TASK-010) |
 | W3-A2-002 | DeleteMessage: `existing.ChannelID == path` + role по msg channel |
 | W3-A2-003/004/005/006/007 | Reaction/Pin/PollResults/Bookmarks membership+owner |

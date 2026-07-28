@@ -38,6 +38,9 @@ type ChannelRepository interface {
 	FindDMChannel(ctx context.Context, dmKey string) (*ent.Channel, error)
 	// ListMembers возвращает всех участников канала.
 	ListMembers(ctx context.Context, channelID uuid.UUID) ([]*ent.ChannelMember, error)
+	// FilterUsersSharingChannel возвращает подмножество candidateIDs,
+	// которые состоят хотя бы в одном активном канале вместе с callerID (A2W3-1-001).
+	FilterUsersSharingChannel(ctx context.Context, callerID uuid.UUID, candidateIDs []uuid.UUID) ([]uuid.UUID, error)
 }
 
 // StarMuteRepository управляет закреплением (starred) и мьютом каналов (Ent/PG).
@@ -130,7 +133,10 @@ type ChannelInviteRepository interface {
 	// FindChannelInviteByToken ищет приглашение по токену.
 	FindChannelInviteByToken(ctx context.Context, token string) (*ent.ChannelInvite, error)
 	// IncrementInviteUses атомарно увеличивает счётчик использований.
-	IncrementInviteUses(ctx context.Context, inviteID uuid.UUID) error
+	// maxUses>0 → WHERE use_count < maxUses; при 0 затронутых строк — ErrInviteUsesExhausted.
+	IncrementInviteUses(ctx context.Context, inviteID uuid.UUID, maxUses int) error
+	// DecrementInviteUses откатывает слот использования (после fail AddMembers).
+	DecrementInviteUses(ctx context.Context, inviteID uuid.UUID) error
 	// RevokeChannelInvite ставит is_revoked=true для приглашения в рамках канала.
 	RevokeChannelInvite(ctx context.Context, channelID, inviteID uuid.UUID) error
 	// ListChannelInvites возвращает активные (не отозванные) приглашения канала.

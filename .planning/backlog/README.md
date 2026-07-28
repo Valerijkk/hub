@@ -44,8 +44,8 @@ Stage A2 dedup: [`.planning/audits/total-2026-07/A2-DEDUP-2026-07-28.md`](../aud
 | [TASK-104](TASK-104-2026-07-28-docs-cursor-pagination-adr.md) | 📐 Docs/API cursor vs offset | P2 | Открыта | sa→be+docs | A2W11 · 2 |
 | [TASK-105](TASK-105-2026-07-28-docs-vision-g07-wiki-kpi-adr.md) | 📐 Docs G-07 wiki KPI | **P1** | Открыта | product→docs | A2W11-5-001 |
 | [TASK-106](TASK-106-2026-07-28-intranet-coffee-dm-notify-adr.md) | 📐 Intranet FR-INTR-11 DM/notify U05 | P2 | Открыта | product→be2 | W7-A2-008 |
-| [TASK-107](TASK-107-2026-07-28-ent-indexes-composite-fk-polymorphic.md) | 🔒 Ent indexes/FK/polymorphic | P2 | Исправлена | be1 | A2W8 · 8 |
-| [TASK-108](TASK-108-2026-07-28-messenger-invite-dm-unread-scope.md) | 🔒 Messenger invite/DM/unread/bot | P2 | Открыта | be1 | A2W3 · 9 |
+| [TASK-107](TASK-107-2026-07-28-ent-indexes-composite-fk-polymorphic.md) | 🔒 Ent indexes/FK/polymorphic | P2 | Открыта | be1 | A2W8 · 8 |
+| [TASK-108](TASK-108-2026-07-28-messenger-invite-dm-unread-scope.md) | 🔒 Messenger invite/DM/unread/bot | P2 | Исправлена | be2 | A2W3 · 9 |
 | [TASK-109](TASK-109-2026-07-28-ws-revoke-nats-publish.md) | 🔒 WS revoke → UnregisterBySession | P2 | Открыта | be1 | A2W3-4-002 |
 | [TASK-110](TASK-110-2026-07-28-calls-recording-room-guest-code.md) | 📞 Calls recording/room/guest | P2 | Открыта | be2 | A2W3 · 3 |
 | [TASK-111](TASK-111-2026-07-28-tms-wave2-services-import-batch.md) | 🐛 TMS W2 residual batch | P2 | Открыта | be2 | A2W2 · 24 |

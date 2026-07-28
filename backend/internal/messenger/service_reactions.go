@@ -11,9 +11,13 @@ import (
 // ToggleReaction добавляет или удаляет реакцию (toggle).
 // Возвращает true, если реакция добавлена, false — если удалена.
 // Требуется membership в канале сообщения (P1-BE-16).
-func (s *MessengerService) ToggleReaction(ctx context.Context, messageID string, userID uuid.UUID, emoji string) (bool, error) {
+// A2W3-1-003: path channelID обязан совпадать с msg.ChannelID.
+func (s *MessengerService) ToggleReaction(ctx context.Context, channelID uuid.UUID, messageID string, userID uuid.UUID, emoji string) (bool, error) {
 	msg, err := s.repo.FindMessageByID(ctx, messageID)
 	if err != nil {
+		return false, apperrors.NewNotFound("сообщение не найдено")
+	}
+	if msg.ChannelID != channelID {
 		return false, apperrors.NewNotFound("сообщение не найдено")
 	}
 

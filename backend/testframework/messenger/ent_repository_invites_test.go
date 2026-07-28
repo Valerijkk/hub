@@ -32,7 +32,7 @@ func TestEntRepository_ChannelInvites_CRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, inv.ID, found.ID)
 
-	require.NoError(t, env.repo.IncrementInviteUses(env.ctx, inv.ID))
+	require.NoError(t, env.repo.IncrementInviteUses(env.ctx, inv.ID, inv.MaxUses))
 	updated, err := env.repo.FindChannelInviteByToken(env.ctx, inv.Token)
 	require.NoError(t, err)
 	assert.Equal(t, 1, updated.UseCount)

@@ -65,12 +65,15 @@ spec_coverage:
 
 # Состояние проекта Hub
 
-## Session note — 2026-07-28 (be1 · TASK-107 Ent indexes/FK/polymorphic)
+## Session note — 2026-07-28 (be2 · TASK-108 messenger invite/DM/unread/presence/bot)
 
-- 8 findings A2W8-1-004/005, A2W8-2-005/007/008/009, A2W8-3-002/006: indexes/FK/UUID/version/soft-revoke.
-- Migrate: `backend/migrations/20260728_task107_ent_indexes_fk_polymorphic.sql` (owner: approve не требуется).
-- Тесты: `testframework/ent/schema_task107_*` + notification/gitlab/project/ai/tracker/bases/crm/github PASS.
-- Ветка `fix/ent/task-107-indexes-fk`; backlog → **Исправлена**.
+- Закрыты A2W3-2-001..004, A2W3-3-001..003, A2W3-1-001/003 (9 ID).
+- AcceptInvite: атомарный `UseCountLT` + rollback use_count; IsMember err → 500.
+- CreateChannel/DM: fail AddMembers → soft-delete orphan.
+- Unread: TTL 30d + cleanup на leave/DeleteChannel; Ent list hard caps.
+- GetPresence: shared-channel filter; ToggleReaction: path channel match; bot guards.
+- Тесты: `go test -tags hubtest -race ./testframework/messenger/` PASS.
+- Ветка: `fix/messenger/task-108-invite-dm`.
 
 ## Session note — 2026-07-28 (fe1 · TASK-050 P2-FE-05/06/16 tokens/dead UI/authz)
 

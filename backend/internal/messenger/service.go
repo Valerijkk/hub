@@ -52,7 +52,8 @@ func (s *MessengerService) Heartbeat(ctx context.Context, userID string) error {
 
 // GetPresence возвращает статусы присутствия для списка пользователей.
 // W3-A1-007 / P2-BE-12: cap длины списка (DoS/enumeration).
-func (s *MessengerService) GetPresence(ctx context.Context, userIDs []string) (map[string]string, error) {
+// A2W3-1-001: только пользователи, с которыми caller делит ≥1 активный канал.
+func (s *MessengerService) GetPresence(ctx context.Context, callerID uuid.UUID, userIDs []string) (map[string]string, error) {
 	if s.presence == nil {
 		return map[string]string{}, nil
 	}
@@ -60,7 +61,34 @@ func (s *MessengerService) GetPresence(ctx context.Context, userIDs []string) (m
 	if len(userIDs) > maxPresenceQueryIDs {
 		return nil, apperrors.NewBadRequest("слишком много user_ids (макс. 50)")
 	}
-	return s.presence.GetBulkStatus(ctx, userIDs)
+	candidates := make([]uuid.UUID, 0, len(userIDs))
+	seen := make(map[uuid.UUID]struct{}, len(userIDs))
+	for _, raw := range userIDs {
+		id, err := uuid.Parse(raw)
+		if err != nil || id == uuid.Nil || id == callerID {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		candidates = append(candidates, id)
+	}
+	if len(candidates) == 0 {
+		return map[string]string{}, nil
+	}
+	allowed, err := s.repo.FilterUsersSharingChannel(ctx, callerID, candidates)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки общих каналов")
+	}
+	if len(allowed) == 0 {
+		return map[string]string{}, nil
+	}
+	allowedStrs := make([]string, len(allowed))
+	for i, id := range allowed {
+		allowedStrs[i] = id.String()
+	}
+	return s.presence.GetBulkStatus(ctx, allowedStrs)
 }
 
 // SetCustomStatus устанавливает кастомный текст статуса пользователя.

@@ -76,7 +76,7 @@ func TestHeartbeat_NilPresenceNoOp(t *testing.T) {
 // TestGetPresence_NilServiceReturnsEmpty проверяет бизнес-логику: получение присутствие nil сервис returns пустой.
 func TestGetPresence_NilServiceReturnsEmpty(t *testing.T) {
 	svc, _, _ := newTestService()
-	statuses, err := svc.GetPresence(t.Context(), []string{uuid.New().String()})
+	statuses, err := svc.GetPresence(t.Context(), uuid.New(), []string{uuid.New().String()})
 	require.NoError(t, err)
 	assert.Empty(t, statuses)
 }
