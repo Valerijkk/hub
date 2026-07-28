@@ -101,7 +101,7 @@ function TestRunsPage() {
 		status: (statusFilter || undefined) as ListTestRunsParams["status"],
 	};
 
-	const { data, isLoading } = useQuery({
+	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["tms-runs", projectId, params],
 		queryFn: () => listTestRuns(projectId, params),
 	});
@@ -270,6 +270,23 @@ function TestRunsPage() {
 							</div>
 						</div>
 					))}
+				</div>
+			) : isError ? (
+				// W10-A5-007: fail ≠ «Нет тестовых прогонов»
+				<div
+					role="alert"
+					className="flex flex-col items-center justify-center py-20 flex-1 gap-3"
+				>
+					<p className="text-[14px] font-medium text-t1">
+						Не удалось загрузить прогоны
+					</p>
+					<button
+						type="button"
+						className="text-[13px] text-blue font-semibold hover:underline"
+						onClick={() => void refetch()}
+					>
+						Попробовать снова
+					</button>
 				</div>
 			) : runs.length === 0 ? (
 				<div className="flex flex-col items-center justify-center py-20 flex-1 animate-[enterUp_450ms_var(--spring)_both]">

@@ -101,13 +101,35 @@ function IssueCoverageRow({ issue }: { issue: IssueCoverage }) {
  */
 /** Отчёт о покрытии задач тестами с раскрывающимися строками и прогресс-барами. */
 export function CoverageReport({ projectId }: { projectId: string }) {
-	const { data, isLoading } = useQuery({
+	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["tms-coverage", projectId],
 		queryFn: () => getCoverageReport(projectId),
 	});
 
 	if (isLoading) {
 		return <div className="py-8 text-center text-t2">Загрузка отчёта...</div>;
+	}
+
+	// W10-A2-007: fail ≠ empty «Нет задач…»
+	if (isError) {
+		return (
+			<Card>
+				<CardContent className="py-8">
+					<div role="alert" className="space-y-3 text-center">
+						<p className="text-sm text-[var(--red)]">
+							Не удалось загрузить отчёт о покрытии
+						</p>
+						<button
+							type="button"
+							className="text-sm font-semibold text-t2 hover:text-t1 hover:underline"
+							onClick={() => void refetch()}
+						>
+							Попробовать снова
+						</button>
+					</div>
+				</CardContent>
+			</Card>
+		);
 	}
 
 	if (!data || data.issues.length === 0) {
