@@ -504,13 +504,17 @@ func (h *Handler) ListInvites(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/invites/{inviteId} [delete]
 func (h *Handler) RevokeInvite(c fiber.Ctx) error {
+	projectID, err := httputil.ParseProjectID(c)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid project ID")
+	}
 	inviteIDStr := utils.CopyString(c.Params("inviteId"))
 	inviteUUID, err := uuid.Parse(inviteIDStr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid invite ID")
 	}
 
-	if err := h.service.RevokeInvite(c.Context(), inviteUUID); err != nil {
+	if err := h.service.RevokeInvite(c.Context(), projectID, inviteUUID); err != nil {
 		return err
 	}
 
@@ -561,6 +565,10 @@ func (h *Handler) JoinByInvite(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/teams [post]
 func (h *Handler) CreateTeam(c fiber.Ctx) error {
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	var req CreateTeamRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
@@ -568,7 +576,7 @@ func (h *Handler) CreateTeam(c fiber.Ctx) error {
 	if req.Name == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "team name is required")
 	}
-	resp, err := h.service.CreateTeam(c.Context(), req.Name, req.Description)
+	resp, err := h.service.CreateTeam(c.Context(), userID, req.Name, req.Description)
 	if err != nil {
 		return err
 	}
@@ -585,7 +593,11 @@ func (h *Handler) CreateTeam(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/teams [get]
 func (h *Handler) ListTeams(c fiber.Ctx) error {
-	resp, err := h.service.ListTeams(c.Context())
+	userID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
+	resp, err := h.service.ListTeams(c.Context(), userID)
 	if err != nil {
 		return err
 	}
@@ -606,6 +618,10 @@ func (h *Handler) ListTeams(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/teams/{teamId}/members [post]
 func (h *Handler) AddTeamMember(c fiber.Ctx) error {
+	actorID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	teamIDStr := utils.CopyString(c.Params("teamId"))
 	teamID, err := uuid.Parse(teamIDStr)
 	if err != nil {
@@ -619,7 +635,7 @@ func (h *Handler) AddTeamMember(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
 	}
-	if err := h.service.AddTeamMember(c.Context(), teamID, userID); err != nil {
+	if err := h.service.AddTeamMember(c.Context(), teamID, actorID, userID); err != nil {
 		return err
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "member added to team"})
@@ -637,6 +653,10 @@ func (h *Handler) AddTeamMember(c fiber.Ctx) error {
 // @Security BearerAuth
 // @Router /api/teams/{teamId}/members/{userId} [delete]
 func (h *Handler) RemoveTeamMember(c fiber.Ctx) error {
+	actorID, err := httputil.UserIDFromCtx(c)
+	if err != nil {
+		return err
+	}
 	teamIDStr := utils.CopyString(c.Params("teamId"))
 	teamID, err := uuid.Parse(teamIDStr)
 	if err != nil {
@@ -647,7 +667,7 @@ func (h *Handler) RemoveTeamMember(c fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
 	}
-	if err := h.service.RemoveTeamMember(c.Context(), teamID, userID); err != nil {
+	if err := h.service.RemoveTeamMember(c.Context(), teamID, actorID, userID); err != nil {
 		return err
 	}
 	return c.SendStatus(fiber.StatusNoContent)

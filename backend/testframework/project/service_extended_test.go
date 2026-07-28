@@ -279,9 +279,11 @@ func TestToInviteResponse(t *testing.T) {
 // TestCreateTeam проверяет сценарий: создание team.
 func TestCreateTeam(t *testing.T) {
 	svc, _, _ := newTestService()
-	team, err := svc.CreateTeam(context.Background(), "Platform", "infra team")
+	creatorID := uuid.New()
+	team, err := svc.CreateTeam(context.Background(), creatorID, "Platform", "infra team")
 	require.NoError(t, err)
 	assert.Equal(t, "Platform", team.Name)
+	assert.Equal(t, 1, team.MemberCount)
 }
 
 // TestListTeams_AndMembers проверяет сценарий: список teams and members.
@@ -289,17 +291,19 @@ func TestListTeams_AndMembers(t *testing.T) {
 	svc, _, _ := newTestService()
 	ctx := context.Background()
 
-	team, err := svc.CreateTeam(ctx, "QA", "quality")
+	creatorID := uuid.New()
+	team, err := svc.CreateTeam(ctx, creatorID, "QA", "quality")
 	require.NoError(t, err)
 	teamID, err := uuid.Parse(team.ID)
 	require.NoError(t, err)
 
 	userID := uuid.New()
-	require.NoError(t, svc.AddTeamMember(ctx, teamID, userID))
+	require.NoError(t, svc.AddTeamMember(ctx, teamID, creatorID, userID))
 
-	teams, err := svc.ListTeams(ctx)
+	teams, err := svc.ListTeams(ctx, creatorID)
 	require.NoError(t, err)
-	assert.Empty(t, teams) // mock ListTeams returns nil — service path still exercised
+	require.Len(t, teams, 1)
+	assert.Equal(t, "QA", teams[0].Name)
 }
 
 // TestListTrash_ShowsDeletedProjects проверяет сценарий: список корзина shows deleted projects.

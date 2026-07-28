@@ -102,7 +102,14 @@ func TestService_FA11_RemoveTeamMember_RepoError(t *testing.T) {
 	svc, repo, _ := newTestService()
 	repo.removeTeamMemberErr = errors.New("delete failed")
 
-	err := svc.RemoveTeamMember(context.Background(), uuid.New(), uuid.New())
+	ctx := context.Background()
+	actorID := uuid.New()
+	team, err := svc.CreateTeam(ctx, actorID, "FA11", "")
+	require.NoError(t, err)
+	teamID, err := uuid.Parse(team.ID)
+	require.NoError(t, err)
+
+	err = svc.RemoveTeamMember(ctx, teamID, actorID, uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to remove team member")
 }

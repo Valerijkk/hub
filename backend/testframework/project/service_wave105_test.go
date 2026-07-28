@@ -105,7 +105,7 @@ func TestCreateTeam_ConstraintConflict(t *testing.T) {
 	repo := &teamConstraintRepo{mockRepo: *newMockRepo()}
 	svc := project.NewProjectService(repo, &mockCache{}, nil)
 
-	_, err := svc.CreateTeam(context.Background(), "Duplicate", "team")
+	_, err := svc.CreateTeam(context.Background(), uuid.New(), "Duplicate", "team")
 	require.Error(t, err)
 }
 
@@ -123,6 +123,6 @@ func TestCreateTeam_InternalError(t *testing.T) {
 	repo := &teamFailRepo{mockRepo: *newMockRepo(), err: fmt.Errorf("db down")}
 	svc := project.NewProjectService(repo, &mockCache{}, nil)
 
-	_, err := svc.CreateTeam(context.Background(), "Squad", "desc")
+	_, err := svc.CreateTeam(context.Background(), uuid.New(), "Squad", "desc")
 	require.Error(t, err)
 }

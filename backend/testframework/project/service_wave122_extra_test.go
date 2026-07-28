@@ -75,7 +75,7 @@ func TestService_Wave122_ListTeams_WithMember(t *testing.T) {
 	_, err = env.repo.AddTeamMember(env.ctx, team.ID, env.owner.ID)
 	require.NoError(t, err)
 
-	teams, err := svc.ListTeams(env.ctx)
+	teams, err := svc.ListTeams(env.ctx, env.owner.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, teams)
 
@@ -100,7 +100,7 @@ func TestService_Wave122_RemoveTeamMember(t *testing.T) {
 	_, err = env.repo.AddTeamMember(env.ctx, team.ID, env.owner.ID)
 	require.NoError(t, err)
 
-	require.NoError(t, svc.RemoveTeamMember(env.ctx, team.ID, env.owner.ID))
+	require.NoError(t, svc.RemoveTeamMember(env.ctx, team.ID, env.owner.ID, env.owner.ID))
 
 	members, err := env.repo.ListTeamMembers(env.ctx, team.ID)
 	require.NoError(t, err)

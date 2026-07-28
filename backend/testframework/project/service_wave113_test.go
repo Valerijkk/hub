@@ -27,15 +27,29 @@ func TestAddTeamMember_AlreadyMember(t *testing.T) {
 	repo := &teamConflictRepo{mockRepo: *newMockRepo()}
 	svc := project.NewProjectService(repo, &mockCache{}, nil)
 
-	err := svc.AddTeamMember(context.Background(), uuid.New(), uuid.New())
+	teamID := uuid.New()
+	actorID := uuid.New()
+	repo.teams[teamID] = &ent.Team{ID: teamID}
+	repo.teamMembers[teamID] = map[uuid.UUID]struct{}{actorID: {}}
+
+	err := svc.AddTeamMember(context.Background(), teamID, actorID, uuid.New())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "already a member")
 }
 
 // TestRemoveTeamMember_Success проверяет сценарий: remove team участник успех.
 func TestRemoveTeamMember_Success(t *testing.T) {
-	svc, _, _ := newTestService()
-	require.NoError(t, svc.RemoveTeamMember(context.Background(), uuid.New(), uuid.New()))
+	svc, repo, _ := newTestService()
+	ctx := context.Background()
+	actorID := uuid.New()
+	team, err := svc.CreateTeam(ctx, actorID, "T", "")
+	require.NoError(t, err)
+	teamID, err := uuid.Parse(team.ID)
+	require.NoError(t, err)
+	memberID := uuid.New()
+	require.NoError(t, svc.AddTeamMember(ctx, teamID, actorID, memberID))
+	require.NoError(t, svc.RemoveTeamMember(ctx, teamID, actorID, memberID))
+	_ = repo
 }
 
 // TestUpdateMemberRole_NotFound проверяет сценарий: обновление участник role not found.

@@ -45,12 +45,15 @@ type Repository interface {
 	// (race-condition safe — см. HI-06).
 	TryConsumeInvite(ctx context.Context, inviteID uuid.UUID, maxUses int) (bool, error)
 	ListInvites(ctx context.Context, projectID uuid.UUID) ([]*ent.Invite, error)
-	DeleteInvite(ctx context.Context, inviteID uuid.UUID) error
+	// DeleteInvite удаляет invite только внутри projectID (P1-BE-06 IDOR).
+	DeleteInvite(ctx context.Context, projectID, inviteID uuid.UUID) error
 
 	// Операции с командами
 	CreateTeam(ctx context.Context, name, description string) (*ent.Team, error)
-	ListTeams(ctx context.Context) ([]*ent.Team, error)
+	// ListTeamsByUserID возвращает команды, где userID — участник (P1-BE-08 ACL).
+	ListTeamsByUserID(ctx context.Context, userID uuid.UUID) ([]*ent.Team, error)
 	FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Team, error)
+	FindTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error)
 	AddTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error)
 	RemoveTeamMember(ctx context.Context, teamID, userID uuid.UUID) error
 	TeamMemberCount(ctx context.Context, teamID uuid.UUID) (int, error)
@@ -78,6 +81,8 @@ type Repository interface {
 	CreateTemplate(ctx context.Context, name, description string, templateType projecttemplate.TemplateType, config map[string]interface{}, createdByID *uuid.UUID, isSystem bool) (*ent.ProjectTemplate, error)
 	DeleteTemplate(ctx context.Context, id uuid.UUID) error
 	CountSystemTemplates(ctx context.Context) (int, error)
+	// IsSystemAdmin — founder/admin (P1-BE-09 DeleteTemplate).
+	IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
 // CacheInvalidator абстрагирует инвалидацию RBAC-кэша для тестируемости.
@@ -399,9 +404,21 @@ func (r *EntRepository) ListInvites(ctx context.Context, projectID uuid.UUID) ([
 		All(ctx)
 }
 
-// DeleteInvite удаляет приглашение по ID.
-func (r *EntRepository) DeleteInvite(ctx context.Context, inviteID uuid.UUID) error {
-	return r.client.Invite.DeleteOneID(inviteID).Exec(ctx)
+// DeleteInvite удаляет приглашение только если оно принадлежит projectID (P1-BE-06).
+func (r *EntRepository) DeleteInvite(ctx context.Context, projectID, inviteID uuid.UUID) error {
+	n, err := r.client.Invite.Delete().
+		Where(
+			invite.IDEQ(inviteID),
+			invite.HasProjectWith(project.IDEQ(projectID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
 }
 
 // CreateTeam создаёт команду с указанным именем и описанием.
@@ -413,9 +430,12 @@ func (r *EntRepository) CreateTeam(ctx context.Context, name, description string
 	return create.Save(ctx)
 }
 
-// ListTeams возвращает все команды с eager-loaded участниками.
-func (r *EntRepository) ListTeams(ctx context.Context) ([]*ent.Team, error) {
-	return r.client.Team.Query().WithMembers().All(ctx)
+// ListTeamsByUserID возвращает команды, в которых состоит пользователь.
+func (r *EntRepository) ListTeamsByUserID(ctx context.Context, userID uuid.UUID) ([]*ent.Team, error) {
+	return r.client.Team.Query().
+		Where(team.HasMembersWith(teammember.HasUserWith(user.IDEQ(userID)))).
+		WithMembers().
+		All(ctx)
 }
 
 // FindTeamByID возвращает команду по ID с eager-loaded участниками.
@@ -423,6 +443,16 @@ func (r *EntRepository) FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Te
 	return r.client.Team.Query().
 		Where(team.IDEQ(id)).
 		WithMembers().
+		Only(ctx)
+}
+
+// FindTeamMember возвращает членство пользователя в команде.
+func (r *EntRepository) FindTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error) {
+	return r.client.TeamMember.Query().
+		Where(
+			teammember.HasTeamWith(team.IDEQ(teamID)),
+			teammember.HasUserWith(user.IDEQ(userID)),
+		).
 		Only(ctx)
 }
 
@@ -498,9 +528,12 @@ func (r *EntRepository) ListTemplates(ctx context.Context) ([]*ent.ProjectTempla
 		All(ctx)
 }
 
-// GetTemplate возвращает шаблон проекта по ID.
+// GetTemplate возвращает шаблон проекта по ID (с created_by для ownership).
 func (r *EntRepository) GetTemplate(ctx context.Context, id uuid.UUID) (*ent.ProjectTemplate, error) {
-	return r.client.ProjectTemplate.Get(ctx, id)
+	return r.client.ProjectTemplate.Query().
+		Where(projecttemplate.IDEQ(id)).
+		WithCreatedBy().
+		Only(ctx)
 }
 
 // GetProjectWithWorkflowStatusesAndLabels возвращает проект и имена его
@@ -553,6 +586,15 @@ func (r *EntRepository) CountSystemTemplates(ctx context.Context) (int, error) {
 	return r.client.ProjectTemplate.Query().
 		Where(projecttemplate.IsSystem(true)).
 		Count(ctx)
+}
+
+// IsSystemAdmin возвращает true для founder/admin.
+func (r *EntRepository) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
+	u, err := r.client.User.Get(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+	return u.SystemRole == user.SystemRoleFounder || u.SystemRole == user.SystemRoleAdmin, nil
 }
 
 // AddTeamToProject привязывает команду к проекту и bulk-добавляет участников.

@@ -58,14 +58,16 @@ func TestService_Wave124_RemoveTeamMember(t *testing.T) {
 
 	team, err := env.repo.CreateTeam(env.ctx, "Squad", "")
 	require.NoError(t, err)
+	_, err = env.repo.AddTeamMember(env.ctx, team.ID, env.owner.ID)
+	require.NoError(t, err)
 	require.NoError(t, env.repo.AddTeamToProject(env.ctx, team.ID, proj.ID))
 
-	require.NoError(t, svc.AddTeamMember(env.ctx, team.ID, env.member.ID))
-	require.NoError(t, svc.RemoveTeamMember(env.ctx, team.ID, env.member.ID))
+	require.NoError(t, svc.AddTeamMember(env.ctx, team.ID, env.owner.ID, env.member.ID))
+	require.NoError(t, svc.RemoveTeamMember(env.ctx, team.ID, env.owner.ID, env.member.ID))
 
 	count, err := env.repo.TeamMemberCount(env.ctx, team.ID)
 	require.NoError(t, err)
-	assert.Equal(t, 0, count)
+	assert.Equal(t, 1, count) // owner remains
 }
 
 // TestService_Wave124_DeleteProject_NotFound проверяет бизнес-логику: сервис wave 124 удаление project not found.

@@ -207,7 +207,7 @@ func TestEntRepository_InviteFlow(t *testing.T) {
 
 	require.NoError(t, env.repo.IncrementInviteUseCount(env.ctx, inv.ID))
 
-	require.NoError(t, env.repo.DeleteInvite(env.ctx, inv.ID))
+	require.NoError(t, env.repo.DeleteInvite(env.ctx, proj.ID, inv.ID))
 	list, err = env.repo.ListInvites(env.ctx, proj.ID)
 	require.NoError(t, err)
 	assert.Empty(t, list)
@@ -231,7 +231,7 @@ func TestEntRepository_TeamFlow(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, members, 1)
 
-	teams, err := env.repo.ListTeams(env.ctx)
+	teams, err := env.repo.ListTeamsByUserID(env.ctx, env.owner.ID)
 	require.NoError(t, err)
 	require.Len(t, teams, 1)
 

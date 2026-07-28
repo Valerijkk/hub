@@ -362,9 +362,29 @@ func (s *ProjectService) RemoveMember(ctx context.Context, projectID, userID uui
 }
 
 // UpdateMemberRole меняет роль участника проекта.
+// P1-BE-07: нельзя демоутить последнего owner (как в RemoveMember).
 func (s *ProjectService) UpdateMemberRole(ctx context.Context, projectID, userID uuid.UUID, role string) (*MemberResponse, error) {
 	prole := projectmember.ProjectRole(role)
-	mem, err := s.repo.UpdateMemberRole(ctx, projectID, userID, prole)
+
+	mem, err := s.repo.FindMember(ctx, projectID, userID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, apperrors.NewNotFound("member not found")
+		}
+		return nil, apperrors.NewInternal("failed to find member")
+	}
+
+	if mem.ProjectRole == projectmember.ProjectRoleOwner && prole != projectmember.ProjectRoleOwner {
+		ownerCount, err := s.repo.CountOwners(ctx, projectID)
+		if err != nil {
+			return nil, apperrors.NewInternal("failed to count owners")
+		}
+		if ownerCount <= 1 {
+			return nil, apperrors.NewBadRequest("cannot demote the last owner of a project")
+		}
+	}
+
+	mem, err = s.repo.UpdateMemberRole(ctx, projectID, userID, prole)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("member not found")
@@ -441,8 +461,8 @@ func toInviteResponse(inv *ent.Invite, frontendURL string) *InviteResponse {
 	}
 }
 
-// CreateTeam создаёт команду и возвращает DTO.
-func (s *ProjectService) CreateTeam(ctx context.Context, name, description string) (*TeamResponse, error) {
+// CreateTeam создаёт команду; создатель сразу становится участником (ownership без миграции Team).
+func (s *ProjectService) CreateTeam(ctx context.Context, creatorID uuid.UUID, name, description string) (*TeamResponse, error) {
 	t, err := s.repo.CreateTeam(ctx, name, description)
 	if err != nil {
 		if ent.IsConstraintError(err) {
@@ -450,12 +470,15 @@ func (s *ProjectService) CreateTeam(ctx context.Context, name, description strin
 		}
 		return nil, apperrors.NewInternal("failed to create team")
 	}
-	return toTeamResponse(t, 0), nil
+	if _, err := s.repo.AddTeamMember(ctx, t.ID, creatorID); err != nil {
+		return nil, apperrors.NewInternal("failed to add team creator")
+	}
+	return toTeamResponse(t, 1), nil
 }
 
-// ListTeams возвращает все команды с количеством участников.
-func (s *ProjectService) ListTeams(ctx context.Context) ([]TeamResponse, error) {
-	teams, err := s.repo.ListTeams(ctx)
+// ListTeams возвращает команды, в которых состоит пользователь (P1-BE-08).
+func (s *ProjectService) ListTeams(ctx context.Context, userID uuid.UUID) ([]TeamResponse, error) {
+	teams, err := s.repo.ListTeamsByUserID(ctx, userID)
 	if err != nil {
 		return nil, apperrors.NewInternal("failed to list teams")
 	}
@@ -466,8 +489,22 @@ func (s *ProjectService) ListTeams(ctx context.Context) ([]TeamResponse, error) 
 	return result, nil
 }
 
-// AddTeamMember добавляет пользователя в команду.
-func (s *ProjectService) AddTeamMember(ctx context.Context, teamID, userID uuid.UUID) error {
+// requireTeamMember — ACL: мутации команды только для её участников.
+func (s *ProjectService) requireTeamMember(ctx context.Context, teamID, actorID uuid.UUID) error {
+	if _, err := s.repo.FindTeamMember(ctx, teamID, actorID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewForbidden("not a team member")
+		}
+		return apperrors.NewInternal("failed to check team membership")
+	}
+	return nil
+}
+
+// AddTeamMember добавляет пользователя в команду (только участник команды).
+func (s *ProjectService) AddTeamMember(ctx context.Context, teamID, actorID, userID uuid.UUID) error {
+	if err := s.requireTeamMember(ctx, teamID, actorID); err != nil {
+		return err
+	}
 	_, err := s.repo.AddTeamMember(ctx, teamID, userID)
 	if err != nil {
 		if ent.IsConstraintError(err) {
@@ -478,8 +515,11 @@ func (s *ProjectService) AddTeamMember(ctx context.Context, teamID, userID uuid.
 	return nil
 }
 
-// RemoveTeamMember удаляет пользователя из команды.
-func (s *ProjectService) RemoveTeamMember(ctx context.Context, teamID, userID uuid.UUID) error {
+// RemoveTeamMember удаляет пользователя из команды (только участник команды).
+func (s *ProjectService) RemoveTeamMember(ctx context.Context, teamID, actorID, userID uuid.UUID) error {
+	if err := s.requireTeamMember(ctx, teamID, actorID); err != nil {
+		return err
+	}
 	if err := s.repo.RemoveTeamMember(ctx, teamID, userID); err != nil {
 		return apperrors.NewInternal("failed to remove team member")
 	}
@@ -520,8 +560,14 @@ func (s *ProjectService) ListInvites(ctx context.Context, projectID uuid.UUID) (
 	return result, nil
 }
 
-// RevokeInvite отзывает приглашение.
-func (s *ProjectService) RevokeInvite(ctx context.Context, inviteID uuid.UUID) error {
-	return s.repo.DeleteInvite(ctx, inviteID)
+// RevokeInvite отзывает приглашение в рамках projectID (P1-BE-06).
+func (s *ProjectService) RevokeInvite(ctx context.Context, projectID, inviteID uuid.UUID) error {
+	if err := s.repo.DeleteInvite(ctx, projectID, inviteID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("invite not found")
+		}
+		return apperrors.NewInternal("failed to revoke invite")
+	}
+	return nil
 }
 

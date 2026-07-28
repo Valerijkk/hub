@@ -138,7 +138,7 @@ func TestAddTeamToProject_Success(t *testing.T) {
 	projectID, err := uuid.Parse(created.ID)
 	require.NoError(t, err)
 
-	team, err := svc.CreateTeam(ctx, "Squad", "devs")
+	team, err := svc.CreateTeam(ctx, ownerID, "Squad", "devs")
 	require.NoError(t, err)
 	teamID, err := uuid.Parse(team.ID)
 	require.NoError(t, err)
