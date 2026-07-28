@@ -217,7 +217,7 @@ export function RunResultsTable({
 									Время
 								</th>
 								<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-5 py-[14px] border-b border-b2 w-28">
-									Испол��итель
+									Исполнитель
 								</th>
 							</tr>
 						</thead>

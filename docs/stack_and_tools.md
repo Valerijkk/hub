@@ -57,7 +57,7 @@ go build -tags release -o bin/server ./cmd/server
 | TypeScript | **~5.7.0** | Типизация |
 | TanStack Router | **^1.0.0** | File-based routing |
 | TanStack Query | **^5.0.0** | Server state |
-| Zustand | **^5.0.0** | Client state (**12** stores в `frontend/src/stores/`) |
+| Zustand | **^5.0.0** | Client state (**12** stores в `frontend/src/stores/`, measured 2026-07-28) |
 | Tailwind CSS | **^4.0.0** | Styling (`@tailwindcss/vite`) |
 | Shadcn/ui + Radix | pinned | UI primitives |
 | Plate (`@udecode/plate`) | **^48.0.5** | Rich-text |

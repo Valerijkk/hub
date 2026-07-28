@@ -113,8 +113,20 @@ export function MessageBubble({
 		? renderPlateContent(contentJson)
 		: contentText;
 
-	// Извлечение URL для превью (мемоизировано)
-	const urls = useMemo(() => extractUrls(contentText), [contentText]);
+	// URL из видимого текста и сырого contentText (Plate JSON может держать URL только в одном)
+	const urls = useMemo(() => {
+		const fromDisplay = extractUrls(displayText);
+		const fromContent = extractUrls(contentText);
+		const seen = new Set<string>();
+		const merged: string[] = [];
+		for (const u of [...fromDisplay, ...fromContent]) {
+			if (seen.has(u)) continue;
+			seen.add(u);
+			merged.push(u);
+			if (merged.length >= MAX_PREVIEWS) break;
+		}
+		return merged;
+	}, [displayText, contentText]);
 
 	// Форматирование времени
 	const time = useMemo(() => {

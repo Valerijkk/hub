@@ -174,7 +174,7 @@ function TrashPage() {
 										Название
 									</th>
 									<th className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2">
-										Удалил
+										Удалено
 									</th>
 									<th
 										className="sticky top-0 z-[5] bg-base text-left text-[10px] font-bold text-t4 uppercase tracking-[0.08em] px-[18px] py-[14px] border-b border-b2"

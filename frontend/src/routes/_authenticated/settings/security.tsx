@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shield } from "lucide-react";
 
 /**
@@ -55,12 +55,12 @@ function SecurityPage() {
 				<div className="px-[18px] py-[18px] bg-gradient-to-br from-[var(--card)] to-[var(--raised)] border border-b1 rounded-[var(--r3)]">
 					<p className="text-[13px] text-t2 leading-[1.5]">
 						Управление сессиями доступно в разделе{" "}
-						<a
-							href="/settings/profile"
+						<Link
+							to="/settings/profile"
 							className="text-[var(--blue)] font-semibold hover:underline"
 						>
 							Профиль
-						</a>
+						</Link>
 						.
 					</p>
 				</div>

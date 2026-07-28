@@ -1,6 +1,6 @@
 # TASK-078 — Docs/SPA copy/UTF-8 + link-preview URLs
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P3** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P3-FE-13,P3-FE-14,P3-FE-15 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P3-FRONTEND.md`
 
 ## [OUTCOME]

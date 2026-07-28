@@ -70,18 +70,18 @@ X-API-Key: <api_key>
 ### Пример: Magic Link
 
 ```bash
-# 1. Запрос кода (backend напрямую :3000; через Caddy — :8080)
-curl -sS -X POST http://localhost:3000/api/auth/magic-link \
+# 1. Запрос кода (через Caddy :8080 — канон локального UX; backend напрямую — :3000)
+curl -sS -X POST http://localhost:8080/api/auth/magic-link \
   -H 'Content-Type: application/json' \
   -d '{"email":"user@company.com"}'
 
 # 2. Верификация
-curl -sS -X POST http://localhost:3000/api/auth/magic-link/verify \
+curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
   -H 'Content-Type: application/json' \
   -d '{"email":"user@company.com","code":"123456"}'
 ```
 
-> Локальный UX-путь — Caddy `:8080` (см. QUICKSTART/DEPLOY); `:3000` — прямой backend.
+> Локальный UX-путь — Caddy `:8080` (см. QUICKSTART/DEPLOY). Прямой backend без прокси — `:3000`.
 
 ---
 
