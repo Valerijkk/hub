@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"net/mail"
 	"strings"
 	"unicode/utf8"
@@ -9,6 +10,7 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 	httputil "github.com/valerii/hub/backend/internal/platform/http"
 )
 
@@ -242,6 +244,10 @@ func (h *Handler) UpdateProfile(c fiber.Ctx) error {
 
 	u, err := h.service.UpdateProfile(c.Context(), userID, req)
 	if err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return err
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "update profile failed")
 	}
 
@@ -273,6 +279,10 @@ func (h *Handler) CompleteOnboarding(c fiber.Ctx) error {
 
 	u, err := h.service.CompleteOnboarding(c.Context(), userID, req)
 	if err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) {
+			return err
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "onboarding failed")
 	}
 

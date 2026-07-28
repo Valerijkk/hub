@@ -48,8 +48,8 @@
 | W6-A1-002 | RESIDUAL | жив | `telegram.go` — `VerifyTelegramAuth` без prod-callers |
 | W6-A1-003 | FIXED-OK | закрыт | `service_registration.go:47-50` — err → `ErrRegistrationInviteOnly` (TASK-040) |
 | W6-A1-004 | FIXED-OK | закрыт | `wiring_fiber.go` `StructValidator`; DTO tags исполняются |
-| W6-A1-005 | RESIDUAL | жив | `repository.go:111-112` — AvatarURL без whitelist схемы |
-| W6-A1-006 | RESIDUAL | жив | `handler_extra_test.go:21-40` — нет decode/`is_current` |
+| W6-A1-005 | FIXED-OK | закрыт | `service_profile.go` `validateProfileAvatarURL` http(s)+`/…` (TASK-116) |
+| W6-A1-006 | FIXED-OK | закрыт | `ListSessions_MarksCurrent` decode + assert `is_current` (TASK-116) |
 | W6-A1-007 | RESIDUAL | жив | `events.go:15` — комментарий «или telegram» |
 | W6-A1-008 | RESIDUAL | жив | `GetUserByTelegramID` в Repository |
 | W6-A1-009 | FIXED-OK | закрыт | `CreateOrganizationWithFounder(ctx, email)` — мёртвый `inviteToken` убран |
@@ -63,8 +63,8 @@ REGRESS: **0**.
 |----|-----|-----|-------------|----------|---------------|------------|
 | A2W6-A1-001 | RESIDUAL | P2 | `telegram_bot.go:28-162` | Legacy Telegram login-бот (`tglogin:`, `handleLogin`, `VerifyCode`) | ADR-AUTH-01 / TZ; P2-BE-U01 unresolved | Удалить/quarantine login API; bind оставить в notification |
 | A2W6-A1-002 | RESIDUAL | P2 | `telegram.go:26-120` | `VerifyTelegramAuth` (Login Widget + WebApp) без prod-callers | Мёртвый login-контракт рядом с Magic Link only | Удалить или перенести в notification-bind |
-| A2W6-A1-003 | RESIDUAL | P2 | `repository.go:111-112` | `AvatarURL` без проверки схемы | `javascript:`/`data:` → stored XSS risk; TASK-042 out-of-scope | Whitelist `https:` / relative `/…` |
-| A2W6-A1-004 | RESIDUAL | P2 | `handler_extra_test.go:21-40` | `ListSessions_MarksCurrent` не assert'ит `is_current` | Сломанный IsCurrent → зелёный тест | Decode body; ровно один current = session JWT |
+| A2W6-A1-003 | FIXED-OK | P2 | `service_profile.go` | AvatarURL whitelist http(s)+relative | Закрыто TASK-116: `validateProfileAvatarURL` + тест | — |
+| A2W6-A1-004 | FIXED-OK | P2 | `handler_extra_test.go` | ListSessions assert `is_current` | Закрыто TASK-116: decode + ровно один current = JWT sid | — |
 | A2W6-A1-005 | RESIDUAL | P3 | `events.go:15` | Комментарий Method допускает telegram | Drift AUTH-01 | Убрать telegram из комментария / удалить мёртвый event |
 | A2W6-A1-006 | RESIDUAL | P3 | `repository.go:38,95-97` | `GetUserByTelegramID` без login-callers в auth | Остаток Telegram-login data path | Оставить только для bind; иначе удалить из auth |
 
@@ -84,9 +84,9 @@ REGRESS: **0**.
 |--|--:|
 | NEW | 0 |
 | REGRESS | 0 |
-| RESIDUAL | 6 |
-| FIXED-OK | 4 |
-| P0 / P1 / P2 / P3 (open) | 0 / 0 / 4 / 2 |
-| **Σ open** | **6** |
+| RESIDUAL | 4 |
+| FIXED-OK | 6 |
+| P0 / P1 / P2 / P3 (open) | 0 / 0 / 2 / 2 |
+| **Σ open** | **4** |
 
 Файлов: **30/30**.

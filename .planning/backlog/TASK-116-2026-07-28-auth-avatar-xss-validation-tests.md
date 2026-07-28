@@ -1,7 +1,18 @@
 # TASK-116 — 🔒 Auth: AvatarURL scheme + ListSessions assert
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: A2W6 auth residual · **Owner lock: правим ВСЕ 254 A2 open** · TASK-008
+
+## Evidence (be1 · 2026-07-28)
+
+| ID | Статус | Evidence |
+|----|--------|----------|
+| A2W6-A1-003 | FIXED | `validateProfileAvatarURL` в `service_profile.go`; `TestProfileService_UpdateProfile_AvatarURL_SchemeWhitelist_A2W6_A1_003` |
+| A2W6-A1-004 | FIXED | `TestHandler_ListSessions_MarksCurrent` decode + ровно один `is_current` = JWT sid |
+
+**Mutation:** убрать вызов `validateProfileAvatarURL` → whitelist-тест красный; `IsCurrent: false` в handler → MarksCurrent красный.
+
+**Тесты:** `go test -tags hubtest -race -count=1 ./testframework/auth/` → PASS (~4.2s)
 
 ## [OUTCOME]
 
