@@ -29,9 +29,11 @@ func TestHandler_Wave123_MuteChannel_Success(t *testing.T) {
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		req = httptest.NewRequest(http.MethodDelete, "/api/messenger/channels/"+channelID.String()+"/mute", nil)
+		// W3-A1-012 / P3-BE-02: unmute = POST /unmute (DELETE /mute маршрута нет).
+		req = httptest.NewRequest(http.MethodPost, "/api/messenger/channels/"+channelID.String()+"/unmute", nil)
 		resp, err = app.Test(req)
 		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		resp.Body.Close()
 	}
 }

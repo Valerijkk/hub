@@ -20,13 +20,17 @@ import (
 )
 
 type mockAuditRepo struct {
-	logs           []*ent.AuditLog
-	lastListFilter audit.AuditLogFilters
-	createCalls    []createAuditLogCall
-	createErr      error
-	deactivateErr  error
-	deactivateIDs  []uuid.UUID
-	deleteSessIDs  []uuid.UUID
+	logs                   []*ent.AuditLog
+	lastListFilter         audit.AuditLogFilters
+	createCalls            []createAuditLogCall
+	createErr              error
+	deactivateErr          error
+	deactivateIDs          []uuid.UUID
+	deleteSessIDs          []uuid.UUID
+	reassignAssignedCalls  [][2]uuid.UUID
+	reassignReportedCalls  [][2]uuid.UUID
+	reassignAssignedN      int
+	reassignErr            error
 }
 
 type createAuditLogCall struct {
@@ -179,10 +183,15 @@ func (m *mockAuditRepo) PurgeExpiredNewsPosts(context.Context, time.Time) (int, 
 func (m *mockAuditRepo) PurgeExpiredScheduledCalls(context.Context, time.Time) (int, error) {
 	return 0, nil
 }
-func (m *mockAuditRepo) ReassignAssignedIssues(context.Context, uuid.UUID, uuid.UUID) (int, error) {
-	return 0, nil
+func (m *mockAuditRepo) ReassignAssignedIssues(_ context.Context, from, to uuid.UUID) (int, error) {
+	m.reassignAssignedCalls = append(m.reassignAssignedCalls, [2]uuid.UUID{from, to})
+	if m.reassignAssignedN != 0 {
+		return m.reassignAssignedN, m.reassignErr
+	}
+	return 0, m.reassignErr
 }
-func (m *mockAuditRepo) ReassignReportedIssues(context.Context, uuid.UUID, uuid.UUID) (int, error) {
+func (m *mockAuditRepo) ReassignReportedIssues(_ context.Context, from, to uuid.UUID) (int, error) {
+	m.reassignReportedCalls = append(m.reassignReportedCalls, [2]uuid.UUID{from, to})
 	return 0, nil
 }
 func (m *mockAuditRepo) ClearUserAssignments(context.Context, uuid.UUID) (int, error) { return 0, nil }
@@ -447,15 +456,19 @@ func TestListAuditLogs_SlowOnly(t *testing.T) {
 	assert.True(t, repo.lastListFilter.SlowOnly)
 }
 
-// TestRecordHTTPRequest_SkipsOnCreateError проверяет сценарий: record http request skips on создание ошибка.
+// TestRecordHTTPRequest_SkipsOnCreateError — W6-A5-009 / P3-BE-02: inject createErr,
+// create вызван ровно 1 раз, no panic (ошибка глотается после slog).
 func TestRecordHTTPRequest_SkipsOnCreateError(t *testing.T) {
-	repo := &mockAuditRepo{}
+	repo := &mockAuditRepo{createErr: errors.New("db down")}
 	svc := audit.NewAuditService(repo, nil)
 
-	svc.RecordHTTPRequest(context.Background(), audit.HTTPAuditEntry{
-		Method: "POST", Path: "/api/x", Status: 201, DurationMS: 10,
+	assert.NotPanics(t, func() {
+		svc.RecordHTTPRequest(context.Background(), audit.HTTPAuditEntry{
+			Method: "POST", Path: "/api/x", Status: 201, DurationMS: 10,
+		})
 	})
 	require.Len(t, repo.createCalls, 1)
+	assert.Empty(t, repo.logs, "failed Create must not append to in-memory logs")
 }
 
 // TestRecordHTTPRequest_NilUserID проверяет сценарий: record http request nil user id.

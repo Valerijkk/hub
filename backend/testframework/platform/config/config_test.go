@@ -341,7 +341,19 @@ func TestGetEnvHelpers(t *testing.T) {
 	}
 }
 
+// TestLoad_clearsEnvBetweenTests — W4-A4-011 / P3-BE-02: был assert-free Unsetenv.
+// Явно задаём DEV_MODE=true и ассертим Load → DevMode (ловит регрессию чтения env).
 func TestLoad_clearsEnvBetweenTests(t *testing.T) {
-	// Убеждаемся, что нет утечки из прошлых тестов — config.Load не должен паниковать.
 	os.Unsetenv("DEV_MODE")
+	t.Setenv("DEV_MODE", "true")
+	t.Setenv("ENVIRONMENT", "development")
+	t.Setenv("METRICS_ALLOWED_CIDRS", "")
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("config.Load() error = %v", err)
+	}
+	if !cfg.Server.DevMode {
+		t.Error("expected DevMode=true when DEV_MODE=true")
+	}
 }

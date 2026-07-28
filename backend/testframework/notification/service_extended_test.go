@@ -311,18 +311,36 @@ func TestRemoveSubscription_DeletesByEndpoint(t *testing.T) {
 	assert.Equal(t, 0, count)
 }
 
-// TestIsQuietHours_CrossMidnight проверяет сценарий: is quiet hours cross midnight.
+// TestIsQuietHours_CrossMidnight — W7-A1-009 / P3-BE-02: фиксируем expected bool
+// для cross-midnight ветки (start>end), не `_ = ExportIsQuietHours`.
 func TestIsQuietHours_CrossMidnight(t *testing.T) {
 	svc, repo, ctx, userID := newNotificationTestEnv(t)
+
+	now := time.Now().UTC()
+	// start на 7ч вперёд, end на 1ч вперёд → startMinutes > endMinutes (cross-midnight),
+	// current < end → всегда quiet.
+	inStart := now.Add(7 * time.Hour).Format("15:04")
+	inEnd := now.Add(1 * time.Hour).Format("15:04")
 	_, err := notification.ExportRepositoryDB(repo).User.UpdateOneID(userID).
-		SetQuietHoursStart("22:00").
-		SetQuietHoursEnd("06:00").
+		SetQuietHoursStart(inStart).
+		SetQuietHoursEnd(inEnd).
 		SetTimezone("UTC").
 		Save(ctx)
 	require.NoError(t, err)
+	assert.True(t, notification.ExportIsQuietHours(svc, ctx, userID),
+		"now must be inside cross-midnight quiet window %s–%s", inStart, inEnd)
 
-	// Прогоняет ветку перехода через полночь без проверки реального времени.
-	_ = notification.ExportIsQuietHours(svc, ctx, userID)
+	// start на 1ч вперёд, end на 1ч назад → quiet только вне [end, start); now вне → false.
+	outStart := now.Add(1 * time.Hour).Format("15:04")
+	outEnd := now.Add(-1 * time.Hour).Format("15:04")
+	_, err = notification.ExportRepositoryDB(repo).User.UpdateOneID(userID).
+		SetQuietHoursStart(outStart).
+		SetQuietHoursEnd(outEnd).
+		SetTimezone("UTC").
+		Save(ctx)
+	require.NoError(t, err)
+	assert.False(t, notification.ExportIsQuietHours(svc, ctx, userID),
+		"now must be outside cross-midnight quiet window %s–%s", outStart, outEnd)
 }
 
 // TestPushSender_sendToUser_UnsafeEndpointRemoved проверяет сценарий: push sender отправка to user unsafe endpoint removed.

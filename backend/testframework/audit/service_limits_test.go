@@ -264,15 +264,18 @@ func TestAuditService_DeactivateUser(t *testing.T) {
 	assert.Equal(t, user.StatusDeactivated, updated.Status)
 }
 
-// TestAuditService_ReassignTasks проверяет бизнес-логику: audit сервис reassign tasks.
+// TestAuditService_ReassignTasks — W6-A5-008 / P3-BE-02: mock counters assigned calls.
 func TestAuditService_ReassignTasks(t *testing.T) {
 	ctx := context.Background()
 	from := uuid.New()
 	to := uuid.New()
-	repo := &mockAuditRepo{}
+	repo := &mockAuditRepo{reassignAssignedN: 3}
 	svc := audit.NewAuditService(repo, nil)
 
 	count, err := svc.ReassignTasks(ctx, from, to)
 	require.NoError(t, err)
-	assert.Equal(t, 0, count)
+	assert.Equal(t, 3, count)
+	require.Len(t, repo.reassignAssignedCalls, 1)
+	assert.Equal(t, from, repo.reassignAssignedCalls[0][0])
+	assert.Equal(t, to, repo.reassignAssignedCalls[0][1])
 }

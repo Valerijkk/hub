@@ -64,11 +64,15 @@ func (m *purgeMockRepo) PurgeExpiredScheduledCalls(_ context.Context, _ time.Tim
 
 type trashListMockRepo struct {
 	mockAuditRepo
-	items []audit.TrashItem
-	total int
+	items        []audit.TrashItem
+	total        int
+	lastCutoff   time.Time
+	cutoffCalled bool
 }
 
-func (m *trashListMockRepo) ListDeletedIssues(_ context.Context, _ *uuid.UUID, _ time.Time, _, _ int) ([]audit.TrashItem, int, error) {
+func (m *trashListMockRepo) ListDeletedIssues(_ context.Context, _ *uuid.UUID, cutoff time.Time, _, _ int) ([]audit.TrashItem, int, error) {
+	m.lastCutoff = cutoff
+	m.cutoffCalled = true
 	return m.items, m.total, nil
 }
 
@@ -98,7 +102,7 @@ func TestAuditService_PurgeExpired_LogsErrorsWithoutFailing(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestAuditService_ListTrash_WithItems проверяет бизнес-логику: audit сервис список корзина with items.
+// TestAuditService_ListTrash_WithItems — W6-A5-007 / P3-BE-02: cutoff ≈ now−30d.
 func TestAuditService_ListTrash_WithItems(t *testing.T) {
 	deletedAt := time.Now().Add(-5 * 24 * time.Hour)
 	itemID := uuid.New()
@@ -113,8 +117,13 @@ func TestAuditService_ListTrash_WithItems(t *testing.T) {
 	}
 	svc := audit.NewAuditService(repo, nil)
 
+	before := time.Now().Add(-audit.TrashRetentionDays*24*time.Hour - time.Minute)
 	resp, err := svc.ListTrash(context.Background(), "issue", nil, 1, 50)
+	after := time.Now().Add(-audit.TrashRetentionDays*24*time.Hour + time.Minute)
 	require.NoError(t, err)
+	require.True(t, repo.cutoffCalled, "ListDeletedIssues must receive cutoff")
+	assert.True(t, !repo.lastCutoff.Before(before) && !repo.lastCutoff.After(after),
+		"cutoff %v must be within ±1m of now-%dd", repo.lastCutoff, audit.TrashRetentionDays)
 	require.Len(t, resp.Items, 1)
 	assert.Equal(t, itemID.String(), resp.Items[0].ID)
 	assert.Equal(t, "BUG-42", resp.Items[0].Name)

@@ -2,6 +2,7 @@ package rbac_test
 
 // Тесты middleware RBAC: интеграционные и unit-сценарии testframework.
 import (
+	"io"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -56,8 +57,10 @@ func TestRequireAuth_EmptyBearerToken(t *testing.T) {
 	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
 }
 
-// TestRequireAuth_ValidBearerNext проверяет сценарий: require auth корректный bearer next.
-func TestRequireAuth_ValidBearerNext(t *testing.T) {
+// TestRequireAuth_ExtractsBearerTokenWithoutJWTValidation — rbac.RequireAuth только
+// извлекает Bearer в Locals("token"); JWT-валидация — в auth.RequireAuth (fail-closed suite).
+// W6-A3-015 / P3-BE-02: имя ValidBearerNext цементировало отсутствие проверки JWT.
+func TestRequireAuth_ExtractsBearerTokenWithoutJWTValidation(t *testing.T) {
 	app := fiber.New()
 	app.Get("/", func(c fiber.Ctx) error {
 		token, _ := c.Locals("token").(string)
@@ -70,6 +73,9 @@ func TestRequireAuth_ValidBearerNext(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024))
+	require.NoError(t, err)
+	assert.Equal(t, "jwt-token-123", string(body))
 }
 
 // TestUserIDFromCtx проверяет сценарий: user id from ctx.

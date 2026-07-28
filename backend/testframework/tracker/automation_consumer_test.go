@@ -84,7 +84,8 @@ func TestAutomationConsumer_StartStop_WithJetStream(t *testing.T) {
 	c.Stop()
 }
 
-// TestAutomationConsumer_processMessage_Events проверяет сценарий: автоматизация consumer process message events.
+// TestAutomationConsumer_processMessage_Events — valid events Ack; unknown/bad JSON Nak.
+// W1-A3-011 / P3-BE-02: без Ack/Nak counts suite остаётся зелёным при сломанном consumer.
 func TestAutomationConsumer_processMessage_Events(t *testing.T) {
 	repo := newMockRepo()
 	engine := tracker.NewAutomationEngine(repo, nil, nil)
@@ -96,37 +97,37 @@ func TestAutomationConsumer_processMessage_Events(t *testing.T) {
 		IssueID: uuid.New().String(), IssueKey: "HUB-1", ProjectID: pid,
 	})
 	require.NoError(t, err)
-	tracker.ExportAutomationConsumerProcessMessage(c, ctx, &stubAutomationJSMsg{
-		subject: "project." + pid + ".issue.moved",
-		data:    moved,
-	})
+	movedMsg := &countingAutomationJSMsg{subject: "project." + pid + ".issue.moved", data: moved}
+	tracker.ExportAutomationConsumerProcessMessage(c, ctx, movedMsg)
+	assert.Equal(t, 1, movedMsg.acks)
+	assert.Equal(t, 0, movedMsg.naks)
 
 	created, err := json.Marshal(tracker.IssueCreatedEvent{
 		IssueID: uuid.New().String(), IssueKey: "HUB-2", ProjectID: pid,
 	})
 	require.NoError(t, err)
-	tracker.ExportAutomationConsumerProcessMessage(c, ctx, &stubAutomationJSMsg{
-		subject: "project." + pid + ".issue.created",
-		data:    created,
-	})
+	createdMsg := &countingAutomationJSMsg{subject: "project." + pid + ".issue.created", data: created}
+	tracker.ExportAutomationConsumerProcessMessage(c, ctx, createdMsg)
+	assert.Equal(t, 1, createdMsg.acks)
+	assert.Equal(t, 0, createdMsg.naks)
 
 	assigned, err := json.Marshal(tracker.IssueAssignedEvent{
 		IssueID: uuid.New().String(), IssueKey: "HUB-3", ProjectID: pid,
 		AssigneeID: uuid.New().String(),
 	})
 	require.NoError(t, err)
-	tracker.ExportAutomationConsumerProcessMessage(c, ctx, &stubAutomationJSMsg{
-		subject: "project." + pid + ".issue.assigned",
-		data:    assigned,
-	})
+	assignedMsg := &countingAutomationJSMsg{subject: "project." + pid + ".issue.assigned", data: assigned}
+	tracker.ExportAutomationConsumerProcessMessage(c, ctx, assignedMsg)
+	assert.Equal(t, 1, assignedMsg.acks)
+	assert.Equal(t, 0, assignedMsg.naks)
 
-	tracker.ExportAutomationConsumerProcessMessage(c, ctx, &stubAutomationJSMsg{
-		subject: "project." + pid + ".issue.unknown",
-		data:    []byte(`{}`),
-	})
+	unknown := &countingAutomationJSMsg{subject: "project." + pid + ".issue.unknown", data: []byte(`{}`)}
+	tracker.ExportAutomationConsumerProcessMessage(c, ctx, unknown)
+	assert.Equal(t, 1, unknown.acks, "unknown kind is noop + Ack")
+	assert.Equal(t, 0, unknown.naks)
 
-	tracker.ExportAutomationConsumerProcessMessage(c, ctx, &stubAutomationJSMsg{
-		subject: "project." + pid + ".issue.moved",
-		data:    []byte(`not-json`),
-	})
+	badJSON := &countingAutomationJSMsg{subject: "project." + pid + ".issue.moved", data: []byte(`not-json`)}
+	tracker.ExportAutomationConsumerProcessMessage(c, ctx, badJSON)
+	assert.Equal(t, 1, badJSON.naks, "corrupt payload must Nak")
+	assert.Equal(t, 0, badJSON.acks)
 }

@@ -135,6 +135,7 @@ func TestGetUserProjectIDs_ReturnsOnlyUserMemberships(t *testing.T) {
 }
 
 func TestSearchScopedEntities_EmptyProjectIDsReturnNothing(t *testing.T) {
+	// W5-A5-005 / P3-BE-02: канонический empty-scope (дубли wave100/108/109/114 удалены).
 	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
 	ctx := context.Background()
 

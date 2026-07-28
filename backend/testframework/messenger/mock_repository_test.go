@@ -1,13 +1,17 @@
 ﻿package messenger_test
 
 // Тесты репозитория мессенджера: интеграционные и unit-сценарии testframework.
+// W3-A3-011 / P3-BE-02: файл — mock-фикстура + контрактный Test* (не assert-free «мёртвый» *_test.go).
 
 import (
 	"context"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/ent/channel"
 	"github.com/valerii/hub/backend/ent/channelmember"
@@ -168,6 +172,9 @@ func (m *mockRepository) GetMemberRole(_ context.Context, channelID, userID uuid
 }
 
 func (m *mockRepository) GetChannelMemberIDs(_ context.Context, channelID uuid.UUID) ([]uuid.UUID, error) {
+	if ch, ok := m.channels[channelID]; !ok || ch.DeletedAt != nil {
+		return nil, nil
+	}
 	members, ok := m.members[channelID]
 	if !ok {
 		return nil, nil
@@ -665,3 +672,34 @@ func (m *mockRepository) VotePoll(_ context.Context, pollID, userID uuid.UUID, o
 func (m *mockRepository) ListVotes(_ context.Context, pollID uuid.UUID) ([]*ent.PollVote, error) {
 	return m.pollVotes[pollID], nil
 }
+
+// TestMockRepository_AddReactionContract — W3-A3-011: missing message → NotFound;
+// existing message → reaction appended (mutation: no-op AddReaction → FAIL).
+func TestMockRepository_AddReactionContract(t *testing.T) {
+	repo := newMockRepository()
+	ctx := context.Background()
+	msgID := uuid.New().String()
+	userID := uuid.New()
+	channelID := uuid.New()
+
+	err := repo.AddReaction(ctx, msgID, userID.String(), "👍")
+	require.Error(t, err)
+	assert.True(t, ent.IsNotFound(err))
+
+	_, err = repo.InsertMessage(ctx, &messenger.MessageDocument{
+		ID: msgID, ChannelID: channelID, SenderID: userID, ContentText: "hi",
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, repo.AddReaction(ctx, msgID, userID.String(), "👍"))
+	doc, err := repo.FindMessageByID(ctx, msgID)
+	require.NoError(t, err)
+	require.Len(t, doc.Reactions, 1)
+	assert.Equal(t, "👍", doc.Reactions[0].Emoji)
+	assert.Equal(t, []string{userID.String()}, doc.Reactions[0].UserIDs)
+
+	list, err := repo.ListMessages(ctx, channelID, nil, 10)
+	require.NoError(t, err)
+	assert.Len(t, list, 1)
+}
+

@@ -4,6 +4,7 @@ package auth_test
 import (
 	"github.com/valerii/hub/backend/internal/auth"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,7 @@ func TestOrganizationService_ValidateInviteToken(t *testing.T) {
 	require.ErrorIs(t, svc.ValidateInviteToken(ctx, ""), auth.ErrInvalidInviteToken)
 	require.ErrorIs(t, svc.ValidateInviteToken(ctx, "bad"), auth.ErrInvalidInviteToken)
 
-	_, err := repo.CreateOrganizationWithFounder(ctx, "founder-"+uuid.New().String()[:6]+"@test.com", "")
+	_, err := repo.CreateOrganizationWithFounder(ctx, "founder-"+uuid.New().String()[:6]+"@test.com")
 	require.NoError(t, err)
 	org, err := repo.GetOrganization(ctx)
 	require.NoError(t, err)
@@ -37,7 +38,7 @@ func TestOrganizationService_HasAndGetOrganization(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, has)
 
-	_, err = repo.CreateOrganizationWithFounder(ctx, "founder@test.com", "")
+	_, err = repo.CreateOrganizationWithFounder(ctx, "founder@test.com")
 	require.NoError(t, err)
 
 	has, err = svc.HasOrganization(ctx)
@@ -49,12 +50,13 @@ func TestOrganizationService_HasAndGetOrganization(t *testing.T) {
 	assert.Equal(t, "Hub", org.Name)
 }
 
-// TestOrganizationService_PendingUsersCRUD проверяет бизнес-логику: организация сервис pending users crud.
+// TestOrganizationService_PendingUsersCRUD проверяет Approve→Active и Reject→NotFound.
+// W6-A2-004 / P3-BE-02: только NoError пропускал no-op service.
 func TestOrganizationService_PendingUsersCRUD(t *testing.T) {
-	repo, _, ctx := newAuthRepoEnv(t)
+	repo, client, ctx := newAuthRepoEnv(t)
 	svc := auth.NewOrganizationService(repo)
 
-	_, err := repo.CreateOrganizationWithFounder(ctx, "founder@test.com", "")
+	_, err := repo.CreateOrganizationWithFounder(ctx, "founder@test.com")
 	require.NoError(t, err)
 	org, err := repo.GetOrganization(ctx)
 	require.NoError(t, err)
@@ -67,13 +69,19 @@ func TestOrganizationService_PendingUsersCRUD(t *testing.T) {
 	require.Len(t, list, 1)
 
 	require.NoError(t, svc.ApprovePendingUser(ctx, pending.ID))
+	approved, err := client.User.Get(ctx, pending.ID)
+	require.NoError(t, err)
+	assert.Equal(t, user.StatusActive, approved.Status)
 
 	toReject, err := repo.CreatePendingMember(ctx, "reject@test.com", org.ID)
 	require.NoError(t, err)
 	require.NoError(t, svc.RejectPendingUser(ctx, toReject.ID))
+	_, err = client.User.Get(ctx, toReject.ID)
+	assert.True(t, auth.IsNotFound(err))
 }
 
-// TestOrganizationService_PurgeExpiredPending проверяет отклонение при организация сервис очистка просроченный pending.
+// TestOrganizationService_PurgeExpiredPending — expired (−8d) purged, fresh остаётся.
+// W6-A2-005 / P3-BE-02: только fresh→n==0 не ловил сломанный cutoff.
 func TestOrganizationService_PurgeExpiredPending(t *testing.T) {
 	repo, client, ctx := newAuthRepoEnv(t)
 	svc := auth.NewOrganizationService(repo)
@@ -81,12 +89,27 @@ func TestOrganizationService_PurgeExpiredPending(t *testing.T) {
 	org, err := client.Organization.Create().SetName("Hub").SetSlug("hub").SetInviteToken("purge-tok").Save(ctx)
 	require.NoError(t, err)
 
+	oldTime := time.Now().UTC().Add(-8 * 24 * time.Hour)
+	_, err = client.User.Create().
+		SetEmail("expired-" + uuid.New().String()[:6] + "@test.com").
+		SetSystemRole(user.SystemRoleMember).
+		SetStatus(user.StatusPending).
+		SetOrganizationID(org.ID).
+		SetPendingSince(oldTime).
+		Save(ctx)
+	require.NoError(t, err)
+
 	_, err = repo.CreatePendingMember(ctx, "fresh@test.com", org.ID)
 	require.NoError(t, err)
 
 	n, err := svc.PurgeExpiredPending(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, 0, n)
+	assert.Equal(t, 1, n)
+
+	remaining, err := svc.ListPendingUsers(ctx)
+	require.NoError(t, err)
+	require.Len(t, remaining, 1)
+	assert.Equal(t, "fresh@test.com", remaining[0].Email)
 }
 
 // TestIsSystemAdmin проверяет сценарий: is system админ.

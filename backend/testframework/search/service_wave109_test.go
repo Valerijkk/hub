@@ -1,7 +1,6 @@
 ﻿package search_test
+
 import (
-	"github.com/valerii/hub/backend/internal/search"
-	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -9,28 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSearchIssues_EmptyProjectIDs(t *testing.T) {
-	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchIssues(svc, context.Background(), "bug", nil)
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
-
-func TestSearchTestCases_EmptyProjectIDs(t *testing.T) {
-	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchTestCases(svc, context.Background(), "login", nil)
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
-
-func TestSearchChannels_EmptyProjectIDs(t *testing.T) {
-	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchChannels(svc, context.Background(), "general", nil, uuid.Nil)
-	require.NoError(t, err)
-	assert.Nil(t, results)
-}
+// Empty-scope duplicates removed (W5-A5-005) — канон: TestSearchScopedEntities_EmptyProjectIDsReturnNothing.
 
 func TestDeleteSavedFilter_FilterMissing(t *testing.T) {
+	// W5-A5-006 / P3-BE-02: единственный NotFound assert с Contains("не найден").
 	svc, _, ctx, userID, _ := newSearchServiceTestEnv(t)
 	err := svc.DeleteSavedFilter(ctx, userID, uuid.New())
 	require.Error(t, err)

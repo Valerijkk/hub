@@ -13,6 +13,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/valerii/hub/backend/internal/platform/middleware"
 )
 
 func setupSprintHandlerApp(t *testing.T) (*fiber.App, *mockRepository, uuid.UUID, uuid.UUID) {
@@ -25,7 +27,7 @@ func setupSprintHandlerApp(t *testing.T) (*fiber.App, *mockRepository, uuid.UUID
 	projectID := uuid.New()
 	userID := uuid.New()
 
-	app := fiber.New()
+	app := fiber.New(fiber.Config{ErrorHandler: middleware.ErrorHandler})
 	api := app.Group("/api")
 	authMw := func(c fiber.Ctx) error {
 		c.Locals("userID", userID.String())

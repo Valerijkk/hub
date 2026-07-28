@@ -23,12 +23,19 @@ func TestRenderAutomationTemplate(t *testing.T) {
 	assert.Equal(t, "HUB-1 / Rule A / Fix bug", got)
 }
 
-// TestAutomationEngine_InvalidProjectID_NoOp проверяет отклонение при автоматизация engine некорректный project id no op.
+// TestAutomationEngine_InvalidProjectID_NoOp — bad UUID → no panic, no side effects.
+// W1-A3-011 / P3-BE-02: assert-free вызов не ловил регрессию.
 func TestAutomationEngine_InvalidProjectID_NoOp(t *testing.T) {
-	engine := tracker.NewAutomationEngine(nil, &stubMessenger{}, &stubNotifier{})
-	engine.HandleStatusChanged(context.Background(), tracker.IssueMovedEvent{ProjectID: "bad"})
-	engine.HandleIssueCreated(context.Background(), tracker.IssueCreatedEvent{ProjectID: "bad"})
-	engine.HandleIssueAssigned(context.Background(), tracker.IssueAssignedEvent{ProjectID: "bad"})
+	messenger := &stubMessenger{}
+	notifier := &stubNotifier{}
+	engine := tracker.NewAutomationEngine(nil, messenger, notifier)
+	assert.NotPanics(t, func() {
+		engine.HandleStatusChanged(context.Background(), tracker.IssueMovedEvent{ProjectID: "bad"})
+		engine.HandleIssueCreated(context.Background(), tracker.IssueCreatedEvent{ProjectID: "bad"})
+		engine.HandleIssueAssigned(context.Background(), tracker.IssueAssignedEvent{ProjectID: "bad"})
+	})
+	assert.Empty(t, messenger.posts)
+	assert.Equal(t, 0, notifier.count)
 }
 
 // TestAutomationEngine_StatusChanged_WrongStatusSkips проверяет отклонение при автоматизация engine status changed неверный status skips.
@@ -151,7 +158,8 @@ func (stubMessengerFail) PostAutomationMessage(_ context.Context, _, _ uuid.UUID
 	return fmt.Errorf("post failed")
 }
 
-// TestAutomationEngine_PostMessageError проверяет сценарий: автоматизация engine post message ошибка.
+// TestAutomationEngine_PostMessageError — post fail must not panic (error swallowed/logged).
+// W1-A3-011 / P3-BE-02.
 func TestAutomationEngine_PostMessageError(t *testing.T) {
 	client := enttest.Open(t, "sqlite3", "file:auto_postfail_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { _ = client.Close() })
@@ -173,9 +181,11 @@ func TestAutomationEngine_PostMessageError(t *testing.T) {
 	require.NoError(t, err)
 
 	engine := tracker.NewAutomationEngine(repo, stubMessengerFail{}, nil)
-	engine.HandleIssueCreated(ctx, tracker.IssueCreatedEvent{
-		IssueKey: "PF-1", IssueID: uuid.New().String(), ProjectID: proj.ID.String(),
-		CreatedByID: user.ID.String(), IssueType: "task", Title: "x",
+	assert.NotPanics(t, func() {
+		engine.HandleIssueCreated(ctx, tracker.IssueCreatedEvent{
+			IssueKey: "PF-1", IssueID: uuid.New().String(), ProjectID: proj.ID.String(),
+			CreatedByID: user.ID.String(), IssueType: "task", Title: "x",
+		})
 	})
 }
 
@@ -212,7 +222,8 @@ func TestAutomationEngine_NotifyInvalidAssignee(t *testing.T) {
 	assert.Equal(t, 0, notifier.count)
 }
 
-// TestAutomationEngine_NilMessengerAndNotifier проверяет сценарий: автоматизация engine nil мессенджер and notifier.
+// TestAutomationEngine_NilMessengerAndNotifier — nil deps: no panic when rules fire.
+// W1-A3-011 / P3-BE-02.
 func TestAutomationEngine_NilMessengerAndNotifier(t *testing.T) {
 	client := enttest.Open(t, "sqlite3", "file:auto_nil_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { _ = client.Close() })
@@ -239,12 +250,14 @@ func TestAutomationEngine_NilMessengerAndNotifier(t *testing.T) {
 	require.NoError(t, err)
 
 	engine := tracker.NewAutomationEngine(repo, nil, nil)
-	engine.HandleIssueCreated(ctx, tracker.IssueCreatedEvent{
-		IssueKey: "NIL-1", IssueID: uuid.New().String(), ProjectID: proj.ID.String(),
-		CreatedByID: user.ID.String(), IssueType: "task", Title: "x",
-	})
-	engine.HandleIssueAssigned(ctx, tracker.IssueAssignedEvent{
-		IssueKey: "NIL-1", IssueID: uuid.New().String(), ProjectID: proj.ID.String(),
-		AssignedByID: user.ID.String(), AssigneeID: assignee.ID.String(),
+	assert.NotPanics(t, func() {
+		engine.HandleIssueCreated(ctx, tracker.IssueCreatedEvent{
+			IssueKey: "NIL-1", IssueID: uuid.New().String(), ProjectID: proj.ID.String(),
+			CreatedByID: user.ID.String(), IssueType: "task", Title: "x",
+		})
+		engine.HandleIssueAssigned(ctx, tracker.IssueAssignedEvent{
+			IssueKey: "NIL-1", IssueID: uuid.New().String(), ProjectID: proj.ID.String(),
+			AssignedByID: user.ID.String(), AssigneeID: assignee.ID.String(),
+		})
 	})
 }

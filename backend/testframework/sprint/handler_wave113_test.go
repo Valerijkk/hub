@@ -28,6 +28,7 @@ func TestHandler_CreateSprint_InvalidJSON(t *testing.T) {
 }
 
 func TestHandler_StartSprint_NotFound(t *testing.T) {
+	// W1-A4-016 / P3-BE-02: точный 404 + тело error; NotEqual(OK) пропускал 500/400.
 	app, _, projectID, _ := setupSprintHandlerApp(t)
 	base := "/api/projects/" + projectID.String() + "/sprints"
 
@@ -35,7 +36,10 @@ func TestHandler_StartSprint_NotFound(t *testing.T) {
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, fiber.StatusNotFound, resp.StatusCode)
+	var body map[string]string
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.Contains(t, body["error"], "не найден")
 }
 
 func TestHandler_UpdateRetroNotes_InvalidJSON(t *testing.T) {

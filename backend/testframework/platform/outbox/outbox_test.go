@@ -98,22 +98,10 @@ func TestPayloadMarshal_NilPayload(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestWorkerConstants(t *testing.T) {
-	// Эти значения зашиты в worker.go и являются частью
-	// контракта пакета. Если кто-то меняет их намеренно,
-	// тесты тоже должны обновиться — это защищает от случайных правок.
+	// W4-A2-008 / P3-BE-02: ассертим package const через export_hooks, не локальные копии.
 	t.Run("MaxAttempts", func(t *testing.T) {
-		const maxAttempts = 10
-		assert.Equal(t, 10, maxAttempts, "max retry attempts should be 10")
-	})
-
-	t.Run("BatchSize", func(t *testing.T) {
-		const batchSize = 50
-		assert.Equal(t, 50, batchSize, "batch size should be 50")
-	})
-
-	t.Run("PollInterval", func(t *testing.T) {
-		const pollMs = 100
-		assert.Equal(t, 100, pollMs, "poll interval should be 100ms")
+		assert.Equal(t, 10, outbox.ExportMaxPublishAttempts(),
+			"maxPublishAttempts must stay 10 (dead-letter threshold)")
 	})
 }
 
@@ -216,13 +204,11 @@ func TestProcessBatch_OneFailedEventDoesNotBlockOthers(t *testing.T) {
 	assert.Equal(t, 3, pending, "all three events still queryable as pending")
 }
 
-// TestProcessEvent_SuccessIsTracked — sanity-check, что happy-path работает.
-// Здесь мы создаём worker с nil-NATS, который панизует. Поэтому сам тест
-// проверяет НЕ позитивный сценарий публикации (он невозможен без живого
-// NATS), а *структурную* инвариантность: после processEvent событие
-// остаётся в БД и query'и не валятся (т.е. defer recover не повредил БД-
-	// состояние БД).
-func TestProcessEvent_SuccessIsTracked(t *testing.T) {
+// TestProcessEvent_NilNATS_RecoversWithoutLosingRow — nil-NATS паникует в Publish;
+// defer recover оставляет событие в БД (не happy-path publish).
+// W4-A2-008 / P3-BE-02: прежнее имя SuccessIsTracked вводило в заблуждение.
+// Реальный success — TestProcessEvent_PublishSuccess_MarksPublished.
+func TestProcessEvent_NilNATS_RecoversWithoutLosingRow(t *testing.T) {
 	client := newTestEntClient(t)
 	w := outbox.NewWorker(client, nil)
 	ctx := context.Background()
@@ -233,7 +219,11 @@ func TestProcessEvent_SuccessIsTracked(t *testing.T) {
 		outbox.ExportWorkerProcessEvent(w, ctx, evt)
 	})
 
-	// Запись на месте, и client не сломан транзакцией.
+	reloaded, err := client.OutboxEvent.Get(ctx, evt.ID)
+	require.NoError(t, err)
+	assert.Equal(t, outboxevent.StatusPending, reloaded.Status,
+		"nil-NATS panic must not mark event published")
+
 	cnt, err := client.OutboxEvent.Query().Count(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, 1, cnt)

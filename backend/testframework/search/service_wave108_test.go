@@ -34,17 +34,3 @@ func TestSearch_ProjectIDsFailure(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "проекты")
 }
-
-func TestSearchFiles_NoProjectsReturnsEmpty(t *testing.T) {
-	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchFiles(svc, context.Background(), "doc", nil)
-	require.NoError(t, err)
-	assert.Empty(t, results)
-}
-
-func TestSearchProjects_NoProjectsReturnsEmpty(t *testing.T) {
-	svc := search.ExportNewSearchServiceSQL(newScopeTestDB(t))
-	results, err := search.ExportSearchProjects(svc, context.Background(), "hub", nil)
-	require.NoError(t, err)
-	assert.Empty(t, results)
-}

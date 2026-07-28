@@ -48,8 +48,3 @@ func TestSearchMessages_NoChannelMembership(t *testing.T) {
 	assert.Nil(t, results)
 }
 
-func TestDeleteSavedFilter_NotFound(t *testing.T) {
-	svc, _, ctx, userID, _ := newSearchServiceTestEnv(t)
-	err := svc.DeleteSavedFilter(ctx, userID, uuid.New())
-	require.Error(t, err)
-}
