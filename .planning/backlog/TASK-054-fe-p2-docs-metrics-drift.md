@@ -1,6 +1,6 @@
 # TASK-054 — Docs metrics/wiring/SSO drift
 
-> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-28 · Автор: team-lead · Приоритет: **P2** · Статус: Исправлена  
 > Источник: TASK-008 W12 · Classes: P2-FE-12 · Реестр: `.planning/audits/total-2026-07/W12-REGISTRY-P2-FRONTEND.md`
 
 ## [OUTCOME]
@@ -43,6 +43,10 @@
 
 - Guard тестировать на реальном слое, не только mock
 - Co-authored-by запрещён
+
+## [REWORK 2026-07-28]
+
+counts→652 + scripts/check-docs-inventory.mjs (TASK-080).
 
 ## [W18-C5 EVIDENCE]
 

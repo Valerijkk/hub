@@ -1,6 +1,6 @@
 # TASK-080 — Docs metrics drift autotest
 
-> Заведено: 2026-07-28 · Автор: W18-C5 (auditor) · Приоритет: **P2** · Статус: Открыта  
+> Заведено: 2026-07-28 · Автор: W18-C5 (auditor) · Приоритет: **P2** · Статус: Исправлена  
 > Источник: TASK-008 W18-C5 mutation FAIL TASK-054 · Class: P2-FE-12  
 > Отчёт: `.planning/audits/total-2026-07/W18-C5-MUTATION.md`
 

@@ -73,7 +73,7 @@ Go-тесты физически живут в `backend/testframework/` (не в
 
 | Метрика | Значение |
 |---------|----------|
-| Backend test files | **618** `_test.go` (0 в `internal/`; measured 2026-07-28; was 515 → 580) |
+| Backend test files | **652** `_test.go` (0 в `internal/`; measured 2026-07-28; was 515 → 580) |
 | Backend `export_hooks.go` | **37** (`//go:build hubtest`; measured 2026-07-28) |
 | Frontend Vitest | 37 файлов, 99 тестов |
 | Playwright E2E | 20 spec (smoke: 3) |

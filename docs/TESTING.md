@@ -30,7 +30,7 @@
 
 | Слой | Метрика |
 |------|---------|
-| Backend test files (`backend/testframework/`) | **618** `_test.go` (0 в `internal/` после TF-M08; measured 2026-07-28) |
+| Backend test files (`backend/testframework/`) | **652** `_test.go` (0 в `internal/` после TF-M08; measured 2026-07-28) |
 | Backend `export_hooks.go` | **37** (`//go:build hubtest`; measured 2026-07-28) |
 | Backend `internal/*_test.go` | **0** |
 | Frontend Vitest | **94** files (`testframework/stages/unit/frontend-test/`; measured 2026-07-28) |
