@@ -46,8 +46,8 @@ func (h *Handler) RegisterRoutes(api fiber.Router, authMw fiber.Handler, rbacSvc
 	// GitHub ссылки для задачи
 	api.Get("/issues/:issueKey/github-links", authMw, h.ListGitHubLinks)
 
-	// Превью ссылок (MSG-11)
-	api.Get("/link-preview", authMw, h.GetLinkPreview)
+	// Превью ссылок (MSG-11). Fiber v3: handler первым, authMw как middleware после него (chain = auth → handler).
+	api.Get("/link-preview", h.GetLinkPreview, authMw)
 }
 
 // HandleWebhook godoc
@@ -325,7 +325,16 @@ func (h *Handler) GetLinkPreview(c fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "параметр url обязателен")
 	}
 
-	resp, err := h.preview.GetLinkPreview(c.Context(), rawURL)
+	userIDStr, ok := c.Locals("userID").(string)
+	if !ok || userIDStr == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "user not authenticated")
+	}
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "invalid user")
+	}
+
+	resp, err := h.preview.GetLinkPreview(c.Context(), userID, rawURL)
 	if err != nil {
 		return err
 	}

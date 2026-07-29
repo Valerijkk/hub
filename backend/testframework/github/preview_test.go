@@ -67,6 +67,8 @@ func (m *previewMockRepo) MarkTestCasesOutdatedByFiles(context.Context, []string
 }
 
 func TestGetLinkPreview_IssueURL(t *testing.T) {
+	projectID := uuid.New()
+	userID := uuid.New()
 	repo := &previewMockRepo{
 		issues: map[string]*ent.Issue{
 			"HUB-42": {
@@ -75,6 +77,7 @@ func TestGetLinkPreview_IssueURL(t *testing.T) {
 				Title:     "Login bug",
 				IssueType: issue.IssueTypeBug,
 				Edges: ent.IssueEdges{
+					Project:  &ent.Project{ID: projectID},
 					Status:   &ent.WorkflowStatus{Name: "Open"},
 					Assignee: &ent.User{Name: "Alice", AvatarURL: "a.png"},
 				},
@@ -84,7 +87,7 @@ func TestGetLinkPreview_IssueURL(t *testing.T) {
 	svc := github.NewLinkPreviewService(repo, nil)
 	ctx := context.Background()
 
-	resp, err := svc.GetLinkPreview(ctx, "https://hub.local/projects/x/issues/HUB-42")
+	resp, err := svc.GetLinkPreview(ctx, userID, "https://hub.local/projects/x/issues/HUB-42")
 	require.NoError(t, err)
 	assert.Equal(t, "issue", resp.Type)
 	assert.Equal(t, "Login bug", resp.Title)
@@ -95,7 +98,7 @@ func TestGetLinkPreview_IssueURL(t *testing.T) {
 
 func TestGetLinkPreview_TestCaseURL(t *testing.T) {
 	svc := github.NewLinkPreviewService(&previewMockRepo{issues: map[string]*ent.Issue{}}, nil)
-	resp, err := svc.GetLinkPreview(context.Background(), "https://hub.local/projects/x/tms/cases/test-cases/HUB-TC-99")
+	resp, err := svc.GetLinkPreview(context.Background(), uuid.New(), "https://hub.local/projects/x/tms/cases/test-cases/HUB-TC-99")
 	require.NoError(t, err)
 	assert.Equal(t, "test_case", resp.Type)
 	assert.Equal(t, "HUB-TC-99", resp.Title)
@@ -108,20 +111,21 @@ func TestGetLinkPreview_CacheHit(t *testing.T) {
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	t.Cleanup(func() { _ = rdb.Close() })
 
+	userID := uuid.New()
 	rawURL := "https://hub.local/projects/x/tms/cases/test-cases/HUB-TC-1"
 	cached := github.LinkPreviewResponse{URL: rawURL, Type: "test_case", Title: "HUB-TC-1"}
 	data, _ := json.Marshal(cached)
-	require.NoError(t, rdb.Set(context.Background(), "link_preview:"+rawURL, string(data), time.Hour).Err())
+	require.NoError(t, rdb.Set(context.Background(), "link_preview:"+userID.String()+":"+rawURL, string(data), time.Hour).Err())
 
 	svc := github.NewLinkPreviewService(&previewMockRepo{}, rdb)
-	resp, err := svc.GetLinkPreview(context.Background(), rawURL)
+	resp, err := svc.GetLinkPreview(context.Background(), userID, rawURL)
 	require.NoError(t, err)
 	assert.Equal(t, "test_case", resp.Type)
 }
 
 func TestGetLinkPreview_FallbackExternal(t *testing.T) {
 	svc := github.NewLinkPreviewService(&previewMockRepo{}, nil)
-	resp, err := svc.GetLinkPreview(context.Background(), "not-a-valid-url-scheme")
+	resp, err := svc.GetLinkPreview(context.Background(), uuid.New(), "not-a-valid-url-scheme")
 	require.NoError(t, err)
 	assert.Equal(t, "external", resp.Type)
 	assert.NotEmpty(t, resp.Title)

@@ -2,14 +2,15 @@ package github
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"encoding/json"
 
 	safehttp "github.com/valerii/hub/backend/internal/platform/http"
 )
@@ -36,9 +37,10 @@ func NewLinkPreviewService(repo Repository, redis *redis.Client) *LinkPreviewSer
 }
 
 // GetLinkPreview определяет тип ссылки и возвращает превью-данные.
-func (s *LinkPreviewService) GetLinkPreview(ctx context.Context, rawURL string) (*LinkPreviewResponse, error) {
-	// Проверяем кеш
-	cacheKey := "link_preview:" + rawURL
+// userID обязателен для issue-path membership (A3W7-3-003); кеш scoped по userID.
+func (s *LinkPreviewService) GetLinkPreview(ctx context.Context, userID uuid.UUID, rawURL string) (*LinkPreviewResponse, error) {
+	// Кеш per-user — иначе member-preview утечёт non-member через общий ключ.
+	cacheKey := "link_preview:" + userID.String() + ":" + rawURL
 	if s.redis != nil {
 		cached, err := s.redis.Get(ctx, cacheKey).Result()
 		if err == nil && cached != "" {
@@ -53,7 +55,7 @@ func (s *LinkPreviewService) GetLinkPreview(ctx context.Context, rawURL string) 
 
 	// Проверяем внутреннюю ссылку на задачу
 	if matches := issueURLRegex.FindStringSubmatch(rawURL); len(matches) > 1 {
-		resp = s.resolveIssuePreview(ctx, matches[1])
+		resp = s.resolveIssuePreview(ctx, userID, matches[1])
 	}
 
 	// Проверяем внутреннюю ссылку на тест-кейс
@@ -92,9 +94,18 @@ func (s *LinkPreviewService) GetLinkPreview(ctx context.Context, rawURL string) 
 }
 
 // resolveIssuePreview загружает данные задачи из БД для превью.
-func (s *LinkPreviewService) resolveIssuePreview(ctx context.Context, issueKey string) *LinkPreviewResponse {
+// A3W7-3-003: только участник проекта; denial → nil (generic external), без title/status/assignee.
+// Mutation: убрать IsProjectMember → foreign key утекает полями.
+func (s *LinkPreviewService) resolveIssuePreview(ctx context.Context, userID uuid.UUID, issueKey string) *LinkPreviewResponse {
 	issue, err := s.repo.FindIssueByKey(ctx, issueKey)
 	if err != nil {
+		return nil
+	}
+	if issue.Edges.Project == nil {
+		return nil
+	}
+	ok, err := s.repo.IsProjectMember(ctx, userID, issue.Edges.Project.ID)
+	if err != nil || !ok {
 		return nil
 	}
 

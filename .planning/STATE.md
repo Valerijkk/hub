@@ -65,6 +65,12 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be2 · TASK-164 A3W7-3 integrations)
+
+- **3/3 FIXED** (A3W7-3-001…003): `ListSprintIssues` + GH/GL `FindIssue*` → `DeletedAtIsNil`; `/link-preview` issue path → `IsProjectMember` + per-user cache + Fiber v3 handler/auth order.
+- **Hubtest (isolated worktree):** `./testframework/imex/` `./testframework/github/` `./testframework/gitlab/` PASS; mutation 001/002/003 FAIL as expected.
+- **Статус:** На проверке → be-ver → code-reviewer. README не трогали (owner: только SCOPE).
+
 ## Session note — 2026-07-29 (be1 · TASK-155 A3W5-3 ai service)
 
 - **9/9 FIXED** (A3W5-3-001…009): UTF-8 composer trim; IncrementUsage/settings upsert; issue_lookup fail-closed; preference consent false; VersionEQ+409; WS `AI stream failed`; BotUserRepository; flow asserts.

@@ -186,8 +186,11 @@ func (r *EntRepository) GetSprintInProject(ctx context.Context, projectID, sprin
 		Only(ctx)
 }
 
+// ListSprintIssues — задачи спринта без soft-deleted (A3W7-3-001 / TASK-164).
+// Mutation: убрать issue.DeletedAtIsNil() → trash попадает в sprint PDF.
 func (r *EntRepository) ListSprintIssues(ctx context.Context, sp *ent.Sprint) ([]*ent.Issue, error) {
 	return r.client.Sprint.QueryIssues(sp).
+		Where(issue.DeletedAtIsNil()).
 		WithStatus().
 		WithAssignee().
 		All(ctx)

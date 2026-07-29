@@ -200,9 +200,13 @@ func (r *EntRepository) FindIntegrationByProjectPath(ctx context.Context, projec
 }
 
 // FindIssueByKey ищет задачу по ключу (например "HUB-1").
+// A3W7-3-002: soft-deleted (trash) → NotFound. Mutation: убрать DeletedAtIsNil → trash находится.
 func (r *EntRepository) FindIssueByKey(ctx context.Context, issueKey string) (*ent.Issue, error) {
 	return r.client.Issue.Query().
-		Where(issue.IssueKey(issueKey)).
+		Where(
+			issue.IssueKey(issueKey),
+			issue.DeletedAtIsNil(),
+		).
 		WithStatus().
 		WithAssignee().
 		WithProject().
@@ -211,10 +215,12 @@ func (r *EntRepository) FindIssueByKey(ctx context.Context, issueKey string) (*e
 
 // FindIssueByKeyInProject ищет задачу по ключу только внутри projectID (A5-007).
 // Mutation: снять HasProjectWith → cross-project issue key IDOR.
+// A3W7-3-002: soft-deleted → NotFound.
 func (r *EntRepository) FindIssueByKeyInProject(ctx context.Context, projectID uuid.UUID, issueKey string) (*ent.Issue, error) {
 	return r.client.Issue.Query().
 		Where(
 			issue.IssueKey(issueKey),
+			issue.DeletedAtIsNil(),
 			issue.HasProjectWith(project.IDEQ(projectID)),
 		).
 		WithStatus().
