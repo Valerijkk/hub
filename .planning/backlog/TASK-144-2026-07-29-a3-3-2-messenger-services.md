@@ -1,6 +1,6 @@
 # 🔒 A3 messenger services Join/Create/Bookmark
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Исполнитель: **be1** · Источник: A3 Stage FINAL · `A3W3-2-messenger-services.md` · TASK-008  
 > Finding IDs: **A3W3-2-001** … **A3W3-2-006** · ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)  
 > Owner lock: правим **все** 6 open ID; WONTFIX запрещён без явного owner cancel в этом файле
@@ -142,3 +142,18 @@
 - Docs sync: wiki только если меняется user-visible API-контракт ClosePoll/star; иначе STATE one-liner + статус backlog.
 - Read-only audit; writes — только allowed files.
 - Claim CONFIRMED только с observed evidence.
+
+## Progress (be1 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W3-2-001 | FIXED | `service_channels.go` JoinChannel: IsMember err → Internal; тест `TestJoinChannel_IsMemberError_A3W3_2_001` |
+| A3W3-2-002 | FIXED | CreateChannel extra members fail → DeleteChannel; тест `TestCreateChannel_ExtraMembersFailRollsBack_A3W3_2_002` |
+| A3W3-2-003 | FIXED | `service_bookmarks.go` FindMessageByID + ChannelID match; тест `TestAddBookmark_RejectsCrossChannel_A3W3_2_003` |
+| A3W3-2-004 | FIXED | ToggleStar/Mute/Unmute: NotFound → Forbidden; тест `TestToggleStarMuteUnmute_NonMemberForbidden_A3W3_2_004` |
+| A3W3-2-005 | FIXED | ClosePoll IsMember до Close; тест `TestClosePoll_CreatorLeftForbiddenBeforeClose_A3W3_2_005` |
+| A3W3-2-006 | FIXED | AddMembers/DeleteChannel AppError wrap; тест `TestAddMembers_DeleteChannel_WrapAppError_A3W3_2_006` |
+
+Observed: `go test -tags hubtest -count=1 ./testframework/messenger/ -run A3W3_2` → **PASS** (`ok … 2.817s`).  
+Full `./testframework/messenger/` после этого — BLOCKED sandbox: broken Go 1.25 toolchain (`no such tool "link"` / incomplete std) + parallel Ent soft-delete drift (`workflowstatus.FieldDeletedAt`).  
+Handoff: **be-ver → code-reviewer**. README не трогали (указание owner).

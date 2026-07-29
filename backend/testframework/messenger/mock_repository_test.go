@@ -48,9 +48,12 @@ type mockRepository struct {
 	// Состояние избранного/мьюта с ключом channelID:userID
 	starred map[string]bool
 	muted   map[string]*time.Time
-	// Инъекция ошибок для тестов TASK-108.
-	addMembersErr error
-	isMemberErr   error
+	// Инъекция ошибок для тестов TASK-108 / TASK-144.
+	addMembersErr            error
+	addMembersErrExceptOwner error // fail только role != "owner" (A3W3-2-002)
+	isMemberErr              error
+	deleteChannelErr         error
+	addMembersCalls          int // счётчик вызовов AddMembers (для denial Join)
 }
 
 func newMockRepository() *mockRepository {
@@ -144,6 +147,9 @@ func (m *mockRepository) UpdateChannel(_ context.Context, channelID uuid.UUID, i
 }
 
 func (m *mockRepository) DeleteChannel(_ context.Context, channelID uuid.UUID) error {
+	if m.deleteChannelErr != nil {
+		return m.deleteChannelErr
+	}
 	ch, ok := m.channels[channelID]
 	if !ok {
 		return &ent.NotFoundError{}
@@ -201,8 +207,12 @@ func (m *mockRepository) GetChannelMemberIDs(_ context.Context, channelID uuid.U
 }
 
 func (m *mockRepository) AddMembers(_ context.Context, channelID uuid.UUID, userIDs []uuid.UUID, role string) error {
+	m.addMembersCalls++
 	if m.addMembersErr != nil {
 		return m.addMembersErr
+	}
+	if m.addMembersErrExceptOwner != nil && role != "owner" {
+		return m.addMembersErrExceptOwner
 	}
 	if _, ok := m.members[channelID]; !ok {
 		m.members[channelID] = make(map[uuid.UUID]*ent.ChannelMember)
@@ -531,13 +541,30 @@ func memberKey(channelID, userID uuid.UUID) string {
 	return channelID.String() + ":" + userID.String()
 }
 
+func (m *mockRepository) requireMember(channelID, userID uuid.UUID) error {
+	members, ok := m.members[channelID]
+	if !ok {
+		return &ent.NotFoundError{}
+	}
+	if _, ok := members[userID]; !ok {
+		return &ent.NotFoundError{}
+	}
+	return nil
+}
+
 func (m *mockRepository) ToggleStar(_ context.Context, channelID, userID uuid.UUID) (bool, error) {
+	if err := m.requireMember(channelID, userID); err != nil {
+		return false, err
+	}
 	key := memberKey(channelID, userID)
 	m.starred[key] = !m.starred[key]
 	return m.starred[key], nil
 }
 
 func (m *mockRepository) MuteChannel(_ context.Context, channelID, userID uuid.UUID, duration string) (time.Time, error) {
+	if err := m.requireMember(channelID, userID); err != nil {
+		return time.Time{}, err
+	}
 	until := time.Now().Add(time.Hour)
 	if duration == "forever" {
 		until = time.Now().Add(365 * 24 * time.Hour)
@@ -547,6 +574,9 @@ func (m *mockRepository) MuteChannel(_ context.Context, channelID, userID uuid.U
 }
 
 func (m *mockRepository) UnmuteChannel(_ context.Context, channelID, userID uuid.UUID) error {
+	if err := m.requireMember(channelID, userID); err != nil {
+		return err
+	}
 	delete(m.muted, memberKey(channelID, userID))
 	return nil
 }

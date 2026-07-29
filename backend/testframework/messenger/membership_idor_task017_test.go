@@ -54,6 +54,9 @@ func TestRemoveBookmark_ServiceRejectsForeignOwner_P1BE15(t *testing.T) {
 	ownerID := uuid.New()
 	outsiderID := uuid.New()
 	channelID := setupChannelWithMembers(repo, "public", false, ownerID)
+	repo.messages["msg-a"] = &messenger.MessageDocument{
+		ID: "msg-a", ChannelID: channelID, SenderID: ownerID, CreatedAt: time.Now(),
+	}
 
 	require.NoError(t, svc.AddBookmark(ctx, ownerID, "msg-a", channelID))
 	list, err := svc.ListBookmarks(ctx, ownerID)

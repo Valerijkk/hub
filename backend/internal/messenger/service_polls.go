@@ -165,6 +165,7 @@ func (s *MessengerService) VotePoll(ctx context.Context, pollID, userID uuid.UUI
 }
 
 // ClosePoll закрывает опрос. Только создатель может закрыть свой опрос.
+// A3W3-2-005: membership проверяется ДО Close — иначе creator-left → closed в БД + 403 клиенту.
 func (s *MessengerService) ClosePoll(ctx context.Context, pollID, userID uuid.UUID) (*PollResponse, error) {
 	p, err := s.repo.GetPoll(ctx, pollID)
 	if err != nil {
@@ -177,6 +178,14 @@ func (s *MessengerService) ClosePoll(ctx context.Context, pollID, userID uuid.UU
 
 	if p.IsClosed {
 		return nil, apperrors.NewBadRequest("опрос уже закрыт")
+	}
+
+	isMember, err := s.repo.IsMember(ctx, p.ChannelID, userID)
+	if err != nil {
+		return nil, apperrors.NewInternal("ошибка проверки участия")
+	}
+	if !isMember {
+		return nil, apperrors.NewForbidden("вы не являетесь участником канала")
 	}
 
 	if err := s.repo.ClosePoll(ctx, pollID); err != nil {

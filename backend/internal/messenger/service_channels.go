@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -57,7 +58,11 @@ func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, 
 		}
 		if len(memberUUIDs) > 0 {
 			if err := s.repo.AddMembers(ctx, ch.ID, memberUUIDs, "member"); err != nil {
+				// A3W3-2-002: после успешного owner partial fail → rollback канала (симметрия orphan-owner).
 				slog.Error("не удалось добавить участников в канал", "error", err, "channel_id", ch.ID)
+				if delErr := s.repo.DeleteChannel(ctx, ch.ID); delErr != nil {
+					slog.Error("не удалось удалить канал после fail доп. участников", "error", delErr, "channel_id", ch.ID)
+				}
 				return nil, apperrors.NewInternal("ошибка добавления участников канала")
 			}
 		}
@@ -173,7 +178,18 @@ func (s *MessengerService) DeleteChannel(ctx context.Context, channelID, userID 
 			}
 		}
 	}
-	return s.repo.DeleteChannel(ctx, channelID)
+	// A3W3-2-006: сырой repo/Ent err не утекает — только AppError.
+	if err := s.repo.DeleteChannel(ctx, channelID); err != nil {
+		var ae *apperrors.AppError
+		if errors.As(err, &ae) {
+			return ae
+		}
+		if ent.IsNotFound(err) {
+			return apperrors.NewNotFound("канал не найден")
+		}
+		return apperrors.NewInternal("ошибка удаления канала")
+	}
+	return nil
 }
 
 // JoinChannel позволяет вступить в публичный канал.
@@ -196,8 +212,11 @@ func (s *MessengerService) JoinChannel(ctx context.Context, channelID, userID uu
 		return apperrors.NewForbidden("можно присоединиться только к публичному каналу")
 	}
 
-	// Уже member — идempotent OK
-	isMember, _ := s.repo.IsMember(ctx, channelID, userID)
+	// Уже member — идемpotent OK (A3W3-2-001: err IsMember не глотать — зеркало AcceptInvite).
+	isMember, err := s.repo.IsMember(ctx, channelID, userID)
+	if err != nil {
+		return apperrors.NewInternal("ошибка проверки участия")
+	}
 	if isMember {
 		return nil
 	}
@@ -276,7 +295,15 @@ func (s *MessengerService) AddMembers(ctx context.Context, channelID, userID uui
 		uuids = append(uuids, uid)
 	}
 
-	return s.repo.AddMembers(ctx, channelID, uuids, "member")
+	// A3W3-2-006: wrap repo err → AppError.
+	if err := s.repo.AddMembers(ctx, channelID, uuids, "member"); err != nil {
+		var ae *apperrors.AppError
+		if errors.As(err, &ae) {
+			return ae
+		}
+		return apperrors.NewInternal("ошибка добавления участников")
+	}
+	return nil
 }
 
 // AddMembersInternal добавляет участников без проверки прав.
@@ -286,9 +313,13 @@ func (s *MessengerService) AddMembersInternal(ctx context.Context, channelID uui
 }
 
 // ToggleStar переключает флаг is_starred для пользователя в канале.
+// A3W3-2-004: non-member (repo NotFound) → 403, не 500 Internal.
 func (s *MessengerService) ToggleStar(ctx context.Context, channelID, userID uuid.UUID) (bool, error) {
 	starred, err := s.repo.ToggleStar(ctx, channelID, userID)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, apperrors.NewForbidden("вы не являетесь участником канала")
+		}
 		return false, apperrors.NewInternal("ошибка переключения закрепления")
 	}
 	return starred, nil
@@ -296,17 +327,25 @@ func (s *MessengerService) ToggleStar(ctx context.Context, channelID, userID uui
 
 // MuteChannel устанавливает muted_until для пользователя в канале.
 // duration: "1h", "2h", "8h", "1d", "forever" (значения API).
+// A3W3-2-004: non-member (repo NotFound) → 403, не 500 Internal.
 func (s *MessengerService) MuteChannel(ctx context.Context, channelID, userID uuid.UUID, duration string) (string, error) {
 	mutedUntil, err := s.repo.MuteChannel(ctx, channelID, userID, duration)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return "", apperrors.NewForbidden("вы не являетесь участником канала")
+		}
 		return "", apperrors.NewInternal("ошибка мьюта канала")
 	}
 	return mutedUntil.Format("2006-01-02T15:04:05Z07:00"), nil
 }
 
 // UnmuteChannel сбрасывает muted_until для пользователя в канале.
+// A3W3-2-004: non-member (repo NotFound) → 403, не 500 Internal.
 func (s *MessengerService) UnmuteChannel(ctx context.Context, channelID, userID uuid.UUID) error {
 	if err := s.repo.UnmuteChannel(ctx, channelID, userID); err != nil {
+		if ent.IsNotFound(err) {
+			return apperrors.NewForbidden("вы не являетесь участником канала")
+		}
 		return apperrors.NewInternal("ошибка снятия мьюта канала")
 	}
 	return nil
