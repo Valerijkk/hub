@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T19:20:00.000Z"
-last_activity: 2026-07-29 · be1 TASK-189 calendar trash + draft poll IDOR · На проверке
+last_updated: "2026-07-29T19:25:00.000Z"
+last_activity: 2026-07-29 · be1 TASK-191 AutomationRule soft-delete · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -67,6 +67,14 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-29 (be1 · TASK-191 EA-001 AutomationRule soft-delete)
+
+- **FIXED** EA-001: `AutomationRule.deleted_at` + indexes; `DeleteAutomationRule` → `SetDeletedAt` (не hard `Delete`); list/count/find/update/ListEnabled → `DeletedAtIsNil`.
+- **Migrate:** `backend/migrations/20260729_task191_automationrule_soft_delete.sql` marker `needs-owner-apply` — **BLOCKED waiting owner** (SQL в репо, не применён на prod).
+- **Тесты:** `automation_soft_delete_task191_test.go` + `schema_automationrule_task191_test.go`; source-guard `.Delete().` banned; mutation hard Delete → RED; restore → GREEN. `./testframework/{tracker,ent}/ -run TASK191` PASS; automation regression PASS.
+- Не трогали: SEC-02 / VersionEQ webhook (TASK-152), RemoveTeamMember (184), calendar (189). TASK-008 не закрывали.
+- Статус: **На проверке**. Handoff: be-ver → code-reviewer.
 
 ## Session note — 2026-07-29 (be1 · TASK-189 BE-V4 calendar trash + draft poll)
 
