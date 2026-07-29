@@ -27,9 +27,9 @@ func TestChatCompletionStream_CancelMidRead_P2BE17(t *testing.T) {
 		}
 		fmt.Fprintf(w, "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\n")
 		flusher.Flush()
+		// Не выходим по r.Context().Done(): HTTP request отвязан от cancel ctx
+		// (WithoutCancel), иначе mid-loop ctx.Err() не единственный путь остановки.
 		select {
-		case <-r.Context().Done():
-			return
 		case <-blockSecond:
 			fmt.Fprintf(w, "data: {\"choices\":[{\"delta\":{\"content\":\"late\"}}]}\n\n")
 			flusher.Flush()

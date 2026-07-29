@@ -235,6 +235,9 @@ func (m *githubReviewRepo) ListGitHubLinks(context.Context, uuid.UUID) ([]*ent.G
 	return nil, nil
 }
 func (m *githubReviewRepo) FindIssueByKey(context.Context, string) (*ent.Issue, error) { return nil, nil }
+func (m *githubReviewRepo) FindTestCaseByKey(context.Context, string) (*ent.TestCase, error) {
+	return nil, &ent.NotFoundError{}
+}
 func (m *githubReviewRepo) FindIssueByKeyInProject(context.Context, uuid.UUID, string) (*ent.Issue, error) {
 	return nil, &ent.NotFoundError{}
 }

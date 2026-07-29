@@ -63,3 +63,8 @@ Meili SSRF hubtest + stream cancel mid-read IT. Status → Исправлена.
 
 - Meili SSRF: validateMeiliHost allow-all → TestValidateMeiliHost_BlocksMetadata_P2BE18 / TestNewMeiliIndexerFromEnv_RejectsMetadataHost_P2BE18 RED
 - Stream cancel: drop ctx.Err mid-loop → TestChatCompletionStream_CancelMidRead_P2BE17 stays GREEN (HTTP request ctx). Gap → Открыта.
+
+
+## [REWORK 2026-07-29 stream mutation-proof]
+
+HTTP request uses context.WithoutCancel(ctx); cancel stop = mid-loop ctx.Err. Status → На проверке.

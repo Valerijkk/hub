@@ -35,7 +35,10 @@ func (a *OpenAIAdapter) ChatCompletionStream(ctx context.Context, baseURL, apiKe
 	if err != nil {
 		return fmt.Errorf("marshal request: %w", err)
 	}
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/chat/completions", bytes.NewReader(body))
+	// Request ctx не должен быть тем же cancel, что mid-stream stop:
+	// иначе Body.Read сам отдаёт Canceled и mid-loop ctx.Err() не mutation-proof
+	// (P2-BE-17 / TASK-044). Отмена стрима — явная проверка ctx в цикле Scan.
+	httpReq, err := http.NewRequestWithContext(context.WithoutCancel(ctx), http.MethodPost, base+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("build request: %w", err)
 	}
