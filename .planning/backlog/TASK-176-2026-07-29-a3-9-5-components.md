@@ -1,8 +1,9 @@
 # 🧹 A3 FE avatar/popover/select hub tokens
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W9-5  
-> Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
+> Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)  
+> Исполнитель: **fe2** · Handoff: **fe-ver → code-reviewer**
 
 ## [OUTCOME]
 
@@ -109,3 +110,22 @@
 - Docs sync: только если меняется user-visible контракт wiki — для этих P3 token-фиксов обычно достаточно STATUS backlog; wiki не трогать.
 - Read-only audit; правки кода — по контракту задачи.
 - Shadcn: **className-only** — не патчить Radix props/behavior.
+
+## Progress (fe2 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W9-5-001 | FIXED | `avatar.tsx:34` — `bg-[var(--green)]`, нет `bg-emerald-500` |
+| A3W9-5-002 | FIXED | `popover.tsx:22` — `rounded-[var(--r2)] border border-b1 bg-base text-t1` |
+| A3W9-5-003 | FIXED | `select.tsx:119/140` — Item `rounded-[var(--r1)] focus:bg-[var(--hover)] focus:text-t1`; Separator `bg-b1`; Trigger+Content без изменений |
+
+**Тесты:** `a3w9-5-hub-tokens-p3.test.tsx` 3/3 PASS; `tokens-i18n-p3` 6/6; a11y Avatar locale pin → 7/7.
+
+**Mutation notes:**
+- 001: `bg-[var(--green)]` → `bg-emerald-500` → FAIL online-dot assert
+- 002: вернуть `bg-popover`/`rounded-md` → FAIL PopoverContent asserts
+- 003: вернуть `focus:bg-accent` / `bg-muted` → FAIL SelectItem/Separator asserts
+
+**tsc:** файлы задачи чисты; полный `tsc --noEmit` на ветке красный из-за чужого WIP (`runs.lazy.tsx` unused `canMutate`) — вне scope.
+
+**Verdict:** 3/3 FIXED · статус **На проверке** · README не трогали (инструкция оркестратора).

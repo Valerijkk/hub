@@ -65,6 +65,32 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (fe1 · TASK-174 A3W9-3 LinkPreview XSS/a11y/pins/tokens)
+
+- **Сделано:** LinkPreview + extract URL → `@/lib/safe-url` whitelist; channel-list collapse `aria-expanded`/`aria-controls`; pins preview из message cache; rgba brand/void → `var(--*)`/`color-mix`.
+- **ID:** A3W9-3-001…004 → FIXED; задача «На проверке» (README не трогали).
+- **Тесты:** vitest link-preview-xss / channel-list-collapse-a11y / pinned-messages-preview — 9/9; tsc PASS.
+
+## Session note — 2026-07-29 (fe1 · TASK-131 A3W11-3 loadLayout + reaction guard)
+
+- **Сделано:** `dashboard-store.loadLayout` → `error` + rethrow; dashboard/admin consumers без default поверх fail + alert/retry; `use-messages` `reaction_toggled` → `Array.isArray(reactions)`.
+- **ID:** A3W11-3-001, A3W11-3-002 → FIXED; задача «На проверке» (README не трогали).
+- **Тесты:** `layout-load-error.test.ts` + `reaction-toggled-guard.test.tsx`; mutation red/green.
+- **Overlap:** `sprint-store` не трогали (TASK-126).
+
+## Session note — 2026-07-29 (fe2 · TASK-176 A3W9-5 hub tokens)
+
+- **Сделано:** className-only — Avatar online-dot `var(--green)`; PopoverContent floating-surface; SelectItem/Separator как Dropdown.
+- **ID:** A3W9-5-001/002/003 → FIXED; задача «На проверке» (README не трогали).
+- **Тесты:** `a3w9-5-hub-tokens-p3.test.tsx` 3/3 + tokens-i18n; a11y Avatar `changeLanguage("ru")`.
+
+## Session note — 2026-07-29 (fe1 · TASK-125 A3W10-2 sanitize/authz/burndown)
+
+- **Сделано:** shared `@/lib/safe-url` (`sanitizeUrl`/`isSafeUrl`); github/gitlab href sanitize; Trigger CI + Create branch `canMutate`; CI `window.open` noopener+scheme; delete dead `ImportExportToolbar`; burndown loading≠empty.
+- **ID:** A3W10-2-001…005 → FIXED; задача «На проверке» (README не трогали).
+- **Тесты:** vitest tracker/tms/messenger **139/139**; mutation notes в Progress TASK-125.
+- **004:** delete (0 call-sites), не wire.
+
 ## Session note — 2026-07-29 (fe1 · TASK-172 A3W9-1 admin error≠empty)
 
 - **Сделано:** `loadError` + `QueryErrorAlert`/retry в pending-users, resource-limits, trash-manager, audit-log; CallChat logging toggle — `aria-label` + `aria-pressed`.

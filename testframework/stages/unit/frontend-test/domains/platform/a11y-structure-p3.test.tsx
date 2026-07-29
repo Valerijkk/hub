@@ -65,7 +65,9 @@ describe("P3-FE-02 · a11y structure residual (TASK-070)", () => {
 		expect(iconWrap).toBeTruthy();
 	});
 
-	it("Avatar announces online status when data-online", () => {
+	it("Avatar announces online status when data-online", async () => {
+		const { default: i18n } = await import("@/i18n");
+		await i18n.changeLanguage("ru");
 		render(<Avatar data-online="true" />);
 		expect(screen.getByText("В сети")).toBeInTheDocument();
 	});

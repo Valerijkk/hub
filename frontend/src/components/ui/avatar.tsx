@@ -31,7 +31,7 @@ const Avatar = React.forwardRef<
 		>
 			{children}
 			<span
-				className="absolute bottom-0 right-0 z-10 h-2.5 w-2.5 rounded-full border-2 border-[var(--base)] bg-emerald-500 opacity-0 pointer-events-none transition-opacity group-data-[online=true]:opacity-100 group-data-[online=true]:shadow-[0_0_8px_var(--gG)] group-data-[online=true]:animate-pulse-online"
+				className="absolute bottom-0 right-0 z-10 h-2.5 w-2.5 rounded-full border-2 border-[var(--base)] bg-[var(--green)] opacity-0 pointer-events-none transition-opacity group-data-[online=true]:opacity-100 group-data-[online=true]:shadow-[0_0_8px_var(--gG)] group-data-[online=true]:animate-pulse-online"
 				aria-hidden="true"
 			/>
 			{isOnline && <AvatarOnlineLabel />}
