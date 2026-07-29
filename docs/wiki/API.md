@@ -249,10 +249,10 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 | POST | `/projects/:projectId/sprints/` | Создать спринт |
 | GET | `/projects/:projectId/sprints/` | Список спринтов проекта |
 | GET | `/projects/:projectId/sprints/:sprintId` | Получить спринт |
-| PUT | `/projects/:projectId/sprints/:sprintId` | Обновить спринт |
+| PUT | `/projects/:projectId/sprints/:sprintId` | Обновить спринт (`version` ≥1; 409 при conflict) |
 | POST | `/projects/:projectId/sprints/:sprintId/start` | Стартовать спринт |
-| POST | `/projects/:projectId/sprints/:sprintId/complete` | Завершить спринт |
-| PUT | `/projects/:projectId/sprints/:sprintId/retro` | Обновить ретро-заметки |
+| POST | `/projects/:projectId/sprints/:sprintId/complete` | Завершить спринт (soft-deleted incomplete не переносятся) |
+| PUT | `/projects/:projectId/sprints/:sprintId/retro` | Обновить ретро-заметки (`version` ≥1; 409 при conflict) |
 | GET | `/projects/:projectId/sprints/:sprintId/burndown` | Данные burndown-графика |
 | POST | `/projects/:projectId/sprints/:sprintId/issues` | Добавить задачи в спринт |
 | POST | `/projects/:projectId/sprints/:sprintId/poker` | Начать сессию Planning Poker |

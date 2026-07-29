@@ -10,6 +10,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { useChannels } from "@/hooks/use-channels";
 
 /**
@@ -19,10 +20,11 @@ import { useChannels } from "@/hooks/use-channels";
  * чтобы не показывать пустой экран без способа выбрать канал. Если каналов
  * нет (новый пользователь) — показываем welcoming empty state с CTA на
  * создание канала. На мобилке также даём гамбургер открыть drawer.
+ * A3W10-4-001: fail load ≠ welcoming empty.
  */
-function MessengerIndex() {
+export function MessengerIndex() {
 	const navigate = useNavigate();
-	const { data: channels, isLoading } = useChannels();
+	const { data: channels, isLoading, isError, refetch } = useChannels();
 	const { setOpen: setDrawerOpen } = useChannelDrawer();
 	const [createOpen, setCreateOpen] = useState(false);
 
@@ -52,7 +54,19 @@ function MessengerIndex() {
 		);
 	}
 
-	// Каналов нет — приветственный экран с CTA.
+	// A3W10-4-001: сеть/4xx/5xx ≠ «нет каналов».
+	if (isError) {
+		return (
+			<div className="flex h-full flex-1 items-center justify-center bg-base px-4">
+				<QueryErrorAlert
+					message="Не удалось загрузить каналы. Попробовать снова?"
+					retry={() => void refetch()}
+				/>
+			</div>
+		);
+	}
+
+	// Каналов нет — приветственный экран с CTA (только success + empty).
 	return (
 		<div className="flex h-full flex-1 flex-col bg-base">
 			{/* Mobile: мини-шапка с гамбургером — на случай если каналы появятся позже. */}

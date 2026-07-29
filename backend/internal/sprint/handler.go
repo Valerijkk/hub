@@ -252,9 +252,10 @@ func (h *Handler) CompleteSprint(c fiber.Ctx) error {
 // @Param sprintId path string true "ID спринта"
 // @Param body body RetroNotesRequest true "Заметки ретро"
 // @Success 200 {object} SprintResponse "Ретро обновлено"
-// @Failure 400 {object} fiber.Error "Неверный запрос"
+// @Failure 400 {object} fiber.Error "Неверный запрос (в т.ч. version < 1)"
 // @Failure 401 {object} fiber.Error "Не авторизован"
 // @Failure 403 {object} fiber.Error "Нет доступа"
+// @Failure 409 {object} fiber.Error "version mismatch (optimistic lock)"
 // @Security BearerAuth
 // @Router /api/projects/{projectId}/sprints/{sprintId}/retro [put]
 func (h *Handler) UpdateRetroNotes(c fiber.Ctx) error {

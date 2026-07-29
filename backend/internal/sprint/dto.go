@@ -24,10 +24,12 @@ type UpdateSprintRequest struct {
 }
 
 // RetroNotesRequest — тело запроса на обновление заметок ретроспективы.
+// Version — optimistic lock (A3W1-A4-003 / TASK-136); stale → 409.
 type RetroNotesRequest struct {
 	WentWell  []string `json:"went_well"`
 	ToImprove []string `json:"to_improve"`
 	Actions   []string `json:"actions"`
+	Version   int      `json:"version" validate:"required,min=1"`
 }
 
 // VoteRequest — тело запроса на голосование в Planning Poker.

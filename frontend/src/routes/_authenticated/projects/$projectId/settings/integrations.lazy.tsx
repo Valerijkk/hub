@@ -14,6 +14,7 @@ import {
 	type GitLabIntegrationResponse,
 	listGitLabIntegrations,
 } from "@/api/gitlab";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,14 +27,15 @@ import { WebhooksPage } from "@/modules/settings/webhooks";
 // Секция GitHub
 // ---------------------------------------------------------------------------
 
-function GitHubSection({ projectId }: { projectId: string }) {
+/** A3W10-4-006: list fail ≠ empty «Нет подключённых…». */
+export function GitHubSection({ projectId }: { projectId: string }) {
 	const queryClient = useQueryClient();
 	const [repoOwner, setRepoOwner] = useState("");
 	const [repoName, setRepoName] = useState("");
 	const [accessToken, setAccessToken] = useState("");
 	const [webhookSecret, setWebhookSecret] = useState("");
 
-	const { data: integrations, isLoading } = useQuery({
+	const { data: integrations, isLoading, isError, refetch } = useQuery({
 		queryKey: ["github-integrations", projectId],
 		queryFn: () => listGitHubIntegrations(projectId),
 	});
@@ -86,13 +88,23 @@ function GitHubSection({ projectId }: { projectId: string }) {
 						</div>
 					)}
 
-					{!isLoading && (!integrations || integrations.length === 0) && (
-						<p className="text-sm text-t2">
-							Нет подключённых GitHub-репозиториев
-						</p>
+					{isError && (
+						<QueryErrorAlert
+							message="Не удалось загрузить GitHub-интеграции. Попробовать снова?"
+							retry={() => void refetch()}
+							compact
+						/>
 					)}
 
-					{integrations && integrations.length > 0 && (
+					{!isLoading &&
+						!isError &&
+						(!integrations || integrations.length === 0) && (
+							<p className="text-sm text-t2">
+								Нет подключённых GitHub-репозиториев
+							</p>
+						)}
+
+					{!isError && integrations && integrations.length > 0 && (
 						<div className="space-y-2">
 							{integrations.map((ig: GitHubIntegrationResponse) => (
 								<div
@@ -121,7 +133,8 @@ function GitHubSection({ projectId }: { projectId: string }) {
 				</CardContent>
 			</Card>
 
-			{/* Форма подключения */}
+			{/* Форма подключения — не поверх failed fetch */}
+			{!isError && (
 			<Card>
 				<CardHeader>
 					<CardTitle className="text-base">Подключить репозиторий</CardTitle>
@@ -251,6 +264,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
 					</Button>
 				</CardContent>
 			</Card>
+			)}
 		</div>
 	);
 }
@@ -259,14 +273,15 @@ function GitHubSection({ projectId }: { projectId: string }) {
 // Секция GitLab
 // ---------------------------------------------------------------------------
 
-function GitLabSection({ projectId }: { projectId: string }) {
+/** A3W10-4-006 twin: GitLab list fail ≠ empty. */
+export function GitLabSection({ projectId }: { projectId: string }) {
 	const queryClient = useQueryClient();
 	const [gitlabUrl, setGitlabUrl] = useState("https://gitlab.com");
 	const [projectPath, setProjectPath] = useState("");
 	const [accessToken, setAccessToken] = useState("");
 	const [webhookSecret, setWebhookSecret] = useState("");
 
-	const { data: integrations, isLoading } = useQuery({
+	const { data: integrations, isLoading, isError, refetch } = useQuery({
 		queryKey: ["gitlab-integrations", projectId],
 		queryFn: () => listGitLabIntegrations(projectId),
 	});
@@ -318,13 +333,23 @@ function GitLabSection({ projectId }: { projectId: string }) {
 						</div>
 					)}
 
-					{!isLoading && (!integrations || integrations.length === 0) && (
-						<p className="text-sm text-t2">
-							Нет подключённых GitLab-репозиториев
-						</p>
+					{isError && (
+						<QueryErrorAlert
+							message="Не удалось загрузить GitLab-интеграции. Попробовать снова?"
+							retry={() => void refetch()}
+							compact
+						/>
 					)}
 
-					{integrations && integrations.length > 0 && (
+					{!isLoading &&
+						!isError &&
+						(!integrations || integrations.length === 0) && (
+							<p className="text-sm text-t2">
+								Нет подключённых GitLab-репозиториев
+							</p>
+						)}
+
+					{!isError && integrations && integrations.length > 0 && (
 						<div className="space-y-2">
 							{integrations.map((ig: GitLabIntegrationResponse) => (
 								<div
@@ -356,7 +381,8 @@ function GitLabSection({ projectId }: { projectId: string }) {
 				</CardContent>
 			</Card>
 
-			{/* Форма подключения */}
+			{/* Форма подключения — не поверх failed fetch */}
+			{!isError && (
 			<Card>
 				<CardHeader>
 					<CardTitle className="text-base">Подключить репозиторий</CardTitle>
@@ -488,6 +514,7 @@ function GitLabSection({ projectId }: { projectId: string }) {
 					</Button>
 				</CardContent>
 			</Card>
+			)}
 		</div>
 	);
 }

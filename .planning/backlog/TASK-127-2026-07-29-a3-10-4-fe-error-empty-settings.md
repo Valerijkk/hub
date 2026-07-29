@@ -1,6 +1,6 @@
 # 🧹 A3 FE routes A4: error≠empty messenger/project/TMS/settings
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3 open** · TASK-008 · кластер A3W10-4  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
@@ -122,3 +122,33 @@
 - Docs sync: только если меняется user-visible контракт wiki — для этих P2 UI-фиксов обычно достаточно STATE one-liner + статус backlog; wiki не трогать без изменения API.
 - Read-only audit; правки кода — по контракту задачи.
 - Не регрессировать FIXED-OK cascade (ChatErrorBoundary remount, `$issueKey` isError, board DnD/QueryStateView, `$sprintId`).
+
+## Progress (fe1 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W10-4-001 | FIXED | `messenger/index.tsx` isError→QueryErrorAlert; `messenger-index-error.test.tsx` |
+| A3W10-4-002 | FIXED | `projects/$projectId/index.lazy.tsx` isError до not-found; `project-overview-error.test.tsx` |
+| A3W10-4-003 | FIXED | `tms/cases.lazy.tsx` isError до empty; `cases-list-error.test.tsx` |
+| A3W10-4-004 | FIXED | `settings/labels.tsx` alert+create hide; `settings-labels-error.test.tsx` |
+| A3W10-4-005 | FIXED | `settings/workflow.tsx` statuses/transitions isError+create block; `settings-workflow-error.test.tsx` |
+| A3W10-4-006 | FIXED | `settings/integrations.lazy.tsx` GH+GL; `settings-integrations-error.test.tsx` |
+
+**Mutation notes:** убрать `isError`-ветку → соответствующий тест краснеет (alert отсутствует / появляется empty CTA).
+**Verification:** `tsc --noEmit` PASS; vitest domains messenger+tracker+tms 156/156 PASS.
+**Handoff:** fe-ver → code-reviewer · статус **На проверке**.
+
+## Progress (fe1 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W10-4-001 | FIXED | `messenger/index.tsx` isError→QueryErrorAlert; `messenger-index-error.test.tsx` |
+| A3W10-4-002 | FIXED | `projects/$projectId/index.lazy.tsx` isError до not-found; `project-overview-error.test.tsx` |
+| A3W10-4-003 | FIXED | `tms/cases.lazy.tsx` isError до empty; `cases-list-error.test.tsx` |
+| A3W10-4-004 | FIXED | `settings/labels.tsx` alert+create hide; `settings-labels-error.test.tsx` |
+| A3W10-4-005 | FIXED | `settings/workflow.tsx` statuses/transitions isError+create block; `settings-workflow-error.test.tsx` |
+| A3W10-4-006 | FIXED | `settings/integrations.lazy.tsx` GH+GL; `settings-integrations-error.test.tsx` |
+
+**Mutation notes:** убрать `isError`-ветку → соответствующий тест краснеет (alert отсутствует / появляется empty CTA).
+**Verification:** `tsc --noEmit` PASS; vitest domains messenger+tracker+tms 156/156 PASS.
+**Handoff:** fe-ver → code-reviewer · статус **На проверке**.

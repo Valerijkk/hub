@@ -42,8 +42,8 @@ type Repository interface {
 	UpdateSprint(ctx context.Context, sprintID uuid.UUID, req UpdateSprintRequest) (*ent.Sprint, error)
 	// UpdateSprintStatus изменяет статус спринта.
 	UpdateSprintStatus(ctx context.Context, sprintID uuid.UUID, status sprintEnt.Status) (*ent.Sprint, error)
-	// UpdateRetroNotes сохраняет заметки ретроспективы.
-	UpdateRetroNotes(ctx context.Context, sprintID uuid.UUID, notes map[string]interface{}) (*ent.Sprint, error)
+	// UpdateRetroNotes сохраняет заметки ретроспективы (VersionEQ + AddVersion).
+	UpdateRetroNotes(ctx context.Context, sprintID uuid.UUID, notes map[string]interface{}, version int) (*ent.Sprint, error)
 	// FindActiveSprint находит активный спринт в проекте (если есть).
 	FindActiveSprint(ctx context.Context, projectID uuid.UUID) (*ent.Sprint, error)
 	// StartSprintAtomic атомарно активирует спринт под row-lock проекта (W1-A4-009).
@@ -110,12 +110,13 @@ const MaxSprintIssues = 500
 
 // GetSprint возвращает спринт по ID с загруженными issues (capped).
 // A2W8-4-004: DeletedAtIsNil — корзина не отдаётся.
+// A3W1-A4-002: WithIssues без soft-deleted issues.
 func (r *EntRepository) GetSprint(ctx context.Context, sprintID uuid.UUID) (*ent.Sprint, error) {
 	return r.client.Sprint.
 		Query().
 		Where(sprintEnt.ID(sprintID), sprintEnt.DeletedAtIsNil()).
 		WithIssues(func(q *ent.IssueQuery) {
-			q.Limit(MaxSprintIssues)
+			q.Where(issue.DeletedAtIsNil()).Limit(MaxSprintIssues)
 		}).
 		Only(ctx)
 }
@@ -130,7 +131,7 @@ func (r *EntRepository) GetSprintInProject(ctx context.Context, projectID, sprin
 			sprintEnt.HasProjectWith(project.ID(projectID)),
 		).
 		WithIssues(func(q *ent.IssueQuery) {
-			q.Limit(MaxSprintIssues)
+			q.Where(issue.DeletedAtIsNil()).Limit(MaxSprintIssues)
 		}).
 		Only(ctx)
 }
@@ -198,9 +199,12 @@ func (r *EntRepository) UpdateSprintStatus(ctx context.Context, sprintID uuid.UU
 }
 
 // UpdateRetroNotes сохраняет заметки ретроспективы.
-func (r *EntRepository) UpdateRetroNotes(ctx context.Context, sprintID uuid.UUID, notes map[string]interface{}) (*ent.Sprint, error) {
+// A3W1-A4-003 / TASK-136: VersionEQ + AddVersion — concurrent PUT /retro → 409.
+func (r *EntRepository) UpdateRetroNotes(ctx context.Context, sprintID uuid.UUID, notes map[string]interface{}, version int) (*ent.Sprint, error) {
 	return r.client.Sprint.
 		UpdateOneID(sprintID).
+		Where(sprintEnt.VersionEQ(version)).
+		AddVersion(1).
 		SetRetroNotes(notes).
 		Save(ctx)
 }
@@ -320,10 +324,12 @@ func (r *EntRepository) FindOrCreateNextPlanningSprint(ctx context.Context, proj
 }
 
 // FindIncompleteIssues находит незавершённые задачи спринта.
+// A3W1-A4-001 / TASK-136: DeletedAtIsNil — soft-deleted не переносятся в next planning.
 func (r *EntRepository) FindIncompleteIssues(ctx context.Context, sprintID uuid.UUID) ([]*ent.Issue, error) {
 	return r.client.Issue.
 		Query().
 		Where(
+			issue.DeletedAtIsNil(),
 			issue.HasSprintWith(sprintEnt.ID(sprintID)),
 			issue.HasStatusWith(
 				workflowstatus.CategoryNEQ(workflowstatus.CategoryDone),
@@ -345,8 +351,12 @@ func (r *EntRepository) CompleteSprintAtomic(ctx context.Context, projectID, spr
 		if err != nil {
 			return nil, err
 		}
+		// A3W1-A4-001: move только non-trash (DeletedAtIsNil) — defense-in-depth.
 		if err := tx.Issue.Update().
-			Where(issue.IDIn(incompleteIDs...)).
+			Where(
+				issue.IDIn(incompleteIDs...),
+				issue.DeletedAtIsNil(),
+			).
 			SetSprintID(next.ID).
 			Exec(ctx); err != nil {
 			return nil, err
@@ -467,15 +477,20 @@ func (r *EntRepository) ClearIssuesSprint(ctx context.Context, projectID uuid.UU
 }
 
 // GetSprintIssueCount возвращает количество задач в спринте.
+// A3W1-A4-002: DeletedAtIsNil — trash не завышает issue_count.
 func (r *EntRepository) GetSprintIssueCount(ctx context.Context, sprintID uuid.UUID) (int, error) {
 	return r.client.Issue.
 		Query().
-		Where(issue.HasSprintWith(sprintEnt.ID(sprintID))).
+		Where(
+			issue.DeletedAtIsNil(),
+			issue.HasSprintWith(sprintEnt.ID(sprintID)),
+		).
 		Count(ctx)
 }
 
 // GetSprintIssueCounts возвращает количество задач для нескольких спринтов одним запросом.
 // Паттерн как project.MemberCountBatch — GROUP BY FK, без N× Count.
+// A3W1-A4-002: DeletedAtIsNil.
 func (r *EntRepository) GetSprintIssueCounts(ctx context.Context, sprintIDs []uuid.UUID) (map[uuid.UUID]int, error) {
 	if len(sprintIDs) == 0 {
 		return make(map[uuid.UUID]int), nil
@@ -486,7 +501,10 @@ func (r *EntRepository) GetSprintIssueCounts(ctx context.Context, sprintIDs []uu
 		Count    int       `json:"count"`
 	}
 	err := r.client.Issue.Query().
-		Where(issue.HasSprintWith(sprintEnt.IDIn(sprintIDs...))).
+		Where(
+			issue.DeletedAtIsNil(),
+			issue.HasSprintWith(sprintEnt.IDIn(sprintIDs...)),
+		).
 		GroupBy(issue.SprintColumn).
 		Aggregate(ent.Count()).
 		Scan(ctx, &rows)
@@ -502,10 +520,14 @@ func (r *EntRepository) GetSprintIssueCounts(ctx context.Context, sprintIDs []uu
 }
 
 // GetBurndownData возвращает общее количество задач и количество завершённых.
+// A3W1-A4-002: DeletedAtIsNil — trash не завышает remaining.
 func (r *EntRepository) GetBurndownData(ctx context.Context, sprintID uuid.UUID) (int, int, error) {
 	total, err := r.client.Issue.
 		Query().
-		Where(issue.HasSprintWith(sprintEnt.ID(sprintID))).
+		Where(
+			issue.DeletedAtIsNil(),
+			issue.HasSprintWith(sprintEnt.ID(sprintID)),
+		).
 		Count(ctx)
 	if err != nil {
 		return 0, 0, err
@@ -514,6 +536,7 @@ func (r *EntRepository) GetBurndownData(ctx context.Context, sprintID uuid.UUID)
 	done, err := r.client.Issue.
 		Query().
 		Where(
+			issue.DeletedAtIsNil(),
 			issue.HasSprintWith(sprintEnt.ID(sprintID)),
 			issue.HasStatusWith(workflowstatus.CategoryEQ(workflowstatus.CategoryDone)),
 		).
@@ -543,9 +566,13 @@ func (r *EntRepository) GetVelocityData(ctx context.Context, projectID uuid.UUID
 	points := make([]VelocityPoint, 0, len(sprints))
 	for _, s := range sprints {
 		// W1-A4-010 / P3-BE-01: Count err → fail-closed, не маскировать нулями.
+		// A3W1-A4-002: DeletedAtIsNil — trash не завышает committed/completed.
 		committed, err := r.client.Issue.
 			Query().
-			Where(issue.HasSprintWith(sprintEnt.ID(s.ID))).
+			Where(
+				issue.DeletedAtIsNil(),
+				issue.HasSprintWith(sprintEnt.ID(s.ID)),
+			).
 			Count(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("velocity committed count sprint %s: %w", s.ID, err)
@@ -554,6 +581,7 @@ func (r *EntRepository) GetVelocityData(ctx context.Context, projectID uuid.UUID
 		completed, err := r.client.Issue.
 			Query().
 			Where(
+				issue.DeletedAtIsNil(),
 				issue.HasSprintWith(sprintEnt.ID(s.ID)),
 				issue.HasStatusWith(workflowstatus.CategoryEQ(workflowstatus.CategoryDone)),
 			).

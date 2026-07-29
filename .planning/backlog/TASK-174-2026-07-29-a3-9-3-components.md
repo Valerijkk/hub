@@ -1,6 +1,6 @@
 # 🔒 A3 FE LinkPreview XSS whitelist
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3 · **Owner lock: правим ВСЕ A3W9-3 open** · TASK-008 · слот A3W9-3  
 > Исполнитель: **fe1** · Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)
 
@@ -118,3 +118,32 @@
 - Docs sync: user-visible security behavior — при необходимости one-liner в `.planning/STATE.md`; wiki не трогать без изменения API контракта.
 - Read-only audit; правки кода — по контракту задачи.
 - Source of truth для XSS — runtime whitelist в FE DOM path preview, не «BE уже фильтрует».
+
+## Progress (fe1 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W9-3-001 | FIXED | `channel-list.tsx` ChannelSection: `aria-expanded={!collapsed}` + `aria-controls` + `id={panelId}` + `hidden={collapsed}`; RTL `channel-list-collapse-a11y.test.tsx` |
+| A3W9-3-002 | FIXED | `pinned-messages.tsx` `resolvePinPreview` — `content_text` из cache messages, иначе «Закреплённое сообщение» (не `ID: uuid`); `pinned-messages-preview.test.ts` |
+| A3W9-3-003 | FIXED | `link-preview.tsx` early `isSafeUrl` → null + `sanitizeUrl` на href; `message-item` extract фильтрует `isSafeUrl`; shared `@/lib/safe-url`; Vitest `link-preview-xss-whitelist.test.tsx` |
+| A3W9-3-004 | FIXED | grep `rgba(52,211,153` / `rgba(13,14,18` в listed files = 0; `var(--gG)` / `var(--green)` / `var(--void)` + `color-mix` |
+
+### Mutation notes
+
+| ID | Откат в prod | Assert краснеет |
+|----|--------------|-----------------|
+| 003 | убрать `if (!isSafeUrl(url)) return null` в LinkPreview | `does not render preview card for javascript:` |
+| 003 | убрать `isSafeUrl` в extract `addUrl` | mutation case `extracted` empty → leak |
+| 001 | убрать `aria-expanded` / `aria-controls` | collapse a11y test FAIL |
+| 002 | вернуть `ID: {pin.message_id}` | `falls back to neutral label` / notContain uuid |
+
+### Regression
+
+```
+cd frontend && node scripts/link-testframework-node-modules.mjs
+npx tsc --noEmit  # PASS
+npx vitest run …/link-preview-xss-whitelist …/channel-list-collapse-a11y …/pinned-messages-preview
+# 3 files · 9 tests PASS
+```
+
+Handoff: **fe-ver → code-reviewer** (003 whitelist path).

@@ -191,7 +191,11 @@ func (s *SprintService) CompleteSprint(ctx context.Context, projectID, sprintID 
 }
 
 // UpdateRetroNotes сохраняет заметки ретроспективы (SCRM-03; RT-005 / A3-001 sibling).
+// A3W1-A4-003 / TASK-136: version обязателен; VersionEQ в repo → 409 при conflict.
 func (s *SprintService) UpdateRetroNotes(ctx context.Context, projectID, sprintID uuid.UUID, req RetroNotesRequest) (*SprintResponse, error) {
+	if req.Version < 1 {
+		return nil, apperrors.NewBadRequest("version обязателен и должен быть ≥ 1")
+	}
 	if _, err := s.repo.GetSprintInProject(ctx, projectID, sprintID); err != nil {
 		if ent.IsNotFound(err) {
 			return nil, apperrors.NewNotFound("спринт не найден")
@@ -205,10 +209,10 @@ func (s *SprintService) UpdateRetroNotes(ctx context.Context, projectID, sprintI
 		"actions":    req.Actions,
 	}
 
-	sp, err := s.repo.UpdateRetroNotes(ctx, sprintID, notes)
+	sp, err := s.repo.UpdateRetroNotes(ctx, sprintID, notes, req.Version)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, apperrors.NewNotFound("спринт не найден")
+			return nil, apperrors.NewConflict("version mismatch: спринт был изменён другим пользователем")
 		}
 		return nil, apperrors.NewInternal("ошибка сохранения заметок ретроспективы")
 	}

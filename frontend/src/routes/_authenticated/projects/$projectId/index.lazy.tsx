@@ -37,6 +37,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import i18n from "@/i18n";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { toastApiError } from "@/lib/format-api-error";
 
 const NAME_MAX = 100;
@@ -45,8 +46,9 @@ const DESC_MAX = 500;
 /**
  * Страница обзора проекта.
  * Отображает основную информацию, участников, файлы и настройки.
+ * A3W10-4-002: fail load ≠ «Проект не найден».
  */
-function ProjectPage() {
+export function ProjectPage() {
 	const { projectId } = Route.useParams();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
@@ -56,7 +58,7 @@ function ProjectPage() {
 	const [editName, setEditName] = useState("");
 	const [editDescription, setEditDescription] = useState("");
 
-	const { data: project, isLoading } = useQuery({
+	const { data: project, isLoading, isError, refetch } = useQuery({
 		queryKey: ["project", projectId],
 		queryFn: () => getProject(projectId),
 	});
@@ -140,6 +142,17 @@ function ProjectPage() {
 						</div>
 					))}
 				</div>
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div className="flex items-center justify-center py-12 px-4">
+				<QueryErrorAlert
+					message="Не удалось загрузить проект. Попробовать снова?"
+					retry={() => void refetch()}
+				/>
 			</div>
 		);
 	}

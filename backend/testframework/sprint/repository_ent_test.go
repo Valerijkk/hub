@@ -130,10 +130,11 @@ func TestEntRepository_SprintCRUD(t *testing.T) {
 	assert.Equal(t, created.ID, found.ID)
 
 	notes := map[string]interface{}{"went_well": []string{"tests"}}
-	withNotes, err := env.repo.UpdateRetroNotes(env.ctx, created.ID, notes)
+	withNotes, err := env.repo.UpdateRetroNotes(env.ctx, created.ID, notes, updated.Version)
 	require.NoError(t, err)
 	require.NotNil(t, withNotes.RetroNotes)
 	assert.NotEmpty(t, withNotes.RetroNotes["went_well"])
+	assert.Equal(t, updated.Version+1, withNotes.Version)
 }
 
 func TestEntRepository_FindOrCreateNextPlanningSprint(t *testing.T) {

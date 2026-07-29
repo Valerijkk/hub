@@ -131,12 +131,16 @@ func (m *mockRepository) UpdateSprintStatus(_ context.Context, sprintID uuid.UUI
 	return s, nil
 }
 
-func (m *mockRepository) UpdateRetroNotes(_ context.Context, sprintID uuid.UUID, notes map[string]interface{}) (*ent.Sprint, error) {
+func (m *mockRepository) UpdateRetroNotes(_ context.Context, sprintID uuid.UUID, notes map[string]interface{}, version int) (*ent.Sprint, error) {
 	s, ok := m.sprints[sprintID]
 	if !ok {
 		return nil, &ent.NotFoundError{}
 	}
+	if version < 1 || s.Version != version {
+		return nil, &ent.NotFoundError{}
+	}
 	s.RetroNotes = notes
+	s.Version++
 	return s, nil
 }
 
@@ -440,12 +444,13 @@ func TestUpdateRetroNotes_RejectsForeignProject_RT005(t *testing.T) {
 	repo.sprints[sprintID] = &ent.Sprint{
 		ID: sprintID, Name: "Retro victim", Status: sprintEnt.StatusCompleted,
 		StartDate: time.Now().AddDate(0, 0, -14), EndDate: time.Now(),
-		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+		Version: 1, CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
 	repo.sprintProject[sprintID] = ownerProject
 
 	_, err := svc.UpdateRetroNotes(ctx, attackerProject, sprintID, sprint.RetroNotesRequest{
 		WentWell: []string{"leak"},
+		Version:  1,
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "не найден")
@@ -453,6 +458,7 @@ func TestUpdateRetroNotes_RejectsForeignProject_RT005(t *testing.T) {
 
 	resp, err := svc.UpdateRetroNotes(ctx, ownerProject, sprintID, sprint.RetroNotesRequest{
 		WentWell: []string{"ok"},
+		Version:  1,
 	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, resp.RetroNotes["went_well"])

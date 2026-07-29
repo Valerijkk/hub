@@ -135,7 +135,7 @@ func TestHandler_VelocityAndRetro(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&sp))
 	resp.Body.Close()
 
-	retroBody := `{"went_well":["fast tests"],"to_improve":["coverage"],"actions":["add handlers"]}`
+	retroBody := fmt.Sprintf(`{"went_well":["fast tests"],"to_improve":["coverage"],"actions":["add handlers"],"version":%d}`, sp.Version)
 	req = httptest.NewRequest(http.MethodPut, base+"/"+sp.ID+"/retro", bytes.NewReader([]byte(retroBody)))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = app.Test(req)

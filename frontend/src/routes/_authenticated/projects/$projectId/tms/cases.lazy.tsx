@@ -34,8 +34,9 @@ import { useTmsStore } from "@/stores/tms-store";
 
 /**
  * Список тест-кейсов — UI уровня Allure TestOps.
+ * A3W10-4-003: fail list ≠ empty «Нет тест-кейсов».
  */
-function TestCasesPage() {
+export function TestCasesPage() {
 	const { projectId } = Route.useParams();
 	const queryClient = useQueryClient();
 	const { filters, updateFilter, resetFilters } = useTmsStore();
@@ -58,7 +59,7 @@ function TestCasesPage() {
 		search: filters.search,
 	};
 
-	const { data, isLoading } = useQuery({
+	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["tms-cases", projectId, params],
 		queryFn: () => listTestCases(projectId, params),
 	});
@@ -438,6 +439,23 @@ function TestCasesPage() {
 								))}
 							</tbody>
 						</table>
+					</div>
+				) : isError ? (
+					// A3W10-4-003: fail ≠ «Нет тест-кейсов»
+					<div
+						role="alert"
+						className="flex flex-col items-center justify-center py-20 flex-1 gap-3"
+					>
+						<p className="text-[14px] font-medium text-t1">
+							Не удалось загрузить тест-кейсы
+						</p>
+						<button
+							type="button"
+							className="text-[13px] text-blue font-semibold hover:underline"
+							onClick={() => void refetch()}
+						>
+							Попробовать снова
+						</button>
 					</div>
 				) : cases.length === 0 ? (
 					<div className="flex flex-col items-center justify-center py-20 flex-1 animate-[enterUp_450ms_var(--spring)_both]">

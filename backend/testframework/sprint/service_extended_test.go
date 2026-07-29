@@ -86,7 +86,7 @@ func TestUpdateRetroNotes(t *testing.T) {
 	repo.sprints[sprintID] = &ent.Sprint{
 		ID: sprintID, Name: "Retro", Status: sprintEnt.StatusCompleted,
 		StartDate: time.Now().AddDate(0, 0, -14), EndDate: time.Now(),
-		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+		Version: 1, CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
 	repo.sprintProject[sprintID] = projectID
 
@@ -94,6 +94,7 @@ func TestUpdateRetroNotes(t *testing.T) {
 		WentWell:  []string{"good deploy"},
 		ToImprove: []string{"estimates"},
 		Actions:   []string{"refine poker"},
+		Version:   1,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, resp.RetroNotes)
