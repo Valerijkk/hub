@@ -80,6 +80,8 @@ func (r *EntRepository) ListSprintsInRange(ctx context.Context, projectIDs []uui
 			sprintEnt.HasProjectWith(project.IDIn(projectIDs...)),
 			sprintEnt.StartDateLTE(to),
 			sprintEnt.EndDateGTE(from),
+			// BE-V4-002 / TASK-189: корзина не в /events и .ics.
+			sprintEnt.DeletedAtIsNil(),
 		).
 		WithProject().
 		Limit(MaxCalendarList).
@@ -119,6 +121,8 @@ func (r *EntRepository) ListApprovedLeaveInRange(ctx context.Context, viewerID u
 			leaverequest.StartDateLTE(to),
 			leaverequest.EndDateGTE(from),
 			leaverequest.HasRequesterWith(requesterPred),
+			// BE-V4-001 / TASK-189: как hr/repository — GDPR soft-delete не в календаре.
+			leaverequest.DeletedAtIsNil(),
 		).
 		WithRequester().
 		Limit(MaxCalendarList).
