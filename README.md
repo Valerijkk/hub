@@ -10,7 +10,7 @@
 <p>
   <!-- Бейджи-плейсхолдеры: заменить на реальные URL CI после публикации -->
   <img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build" />
-  <img src="https://img.shields.io/badge/coverage-83%25_(2026--06--22)-brightgreen" alt="Coverage 83% (2026-06-22 Docker baseline)" />
+  <img src="https://img.shields.io/badge/coverage-80.2%25_(2026--07--29)-yellow" alt="Coverage 80.2% (2026-07-29)" />
   <img src="https://img.shields.io/badge/license-proprietary-red" alt="License" />
   <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=flat&logo=go&logoColor=white" alt="Go" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black" alt="React" />
@@ -21,8 +21,8 @@
 </p>
 
 <p>
-  <strong>286+ API endpoints</strong> · <strong>82 Ent-схемы</strong> · <strong>72 frontend route files</strong> · <strong>515 backend-тестов</strong> · <strong>Product score 89/100</strong>
-  <!-- inventory measured 2026-07-27; was 39+/495 -->
+  <strong>286+ API endpoints</strong> · <strong>87 Ent-схем</strong> · <strong>77 frontend route files</strong> · <strong>824 backend-теста</strong> · <strong>coverage 80.2%</strong>
+  <!-- inventory measured 2026-07-29 -->
 </p>
 
 </div>
