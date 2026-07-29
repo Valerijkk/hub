@@ -51,7 +51,7 @@ describe("FE-P1-SPRINT-UI · poker loading vs empty (W10-A3-002)", () => {
 		});
 	});
 
-	it("shows not-found only after failed fetch", async () => {
+	it("shows alert+retry after failed fetch, not «не найдена»", async () => {
 		getPokerSession.mockRejectedValue(new Error("gone"));
 
 		renderWithProviders(
@@ -59,7 +59,12 @@ describe("FE-P1-SPRINT-UI · poker loading vs empty (W10-A3-002)", () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByText(/Сессия не найдена/)).toBeInTheDocument();
+			expect(screen.getByRole("alert")).toHaveTextContent(
+				/не удалось загрузить сессию/i,
+			);
 		});
+		expect(
+			screen.queryByText(/Сессия не найдена/),
+		).not.toBeInTheDocument();
 	});
 });
