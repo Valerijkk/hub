@@ -30,7 +30,8 @@ interface StepEditorEditProps {
 interface StepEditorReadProps {
 	editing: false;
 	tc: TestCaseResponse;
-	onStartEditing: () => void;
+	/** Без callback — read-only (viewer/guest, P2-FE-16). */
+	onStartEditing?: () => void;
 }
 
 export type StepEditorProps = StepEditorEditProps | StepEditorReadProps;
@@ -242,9 +243,11 @@ export function StepEditor(props: StepEditorProps) {
 				/>
 			</svg>
 			<p className="text-sm text-t2 mb-2">Шаги не заданы</p>
-			<Button variant="outline" size="sm" onClick={onStartEditing}>
-				Добавить шаги
-			</Button>
+			{onStartEditing ? (
+				<Button variant="outline" size="sm" onClick={onStartEditing}>
+					Добавить шаги
+				</Button>
+			) : null}
 		</div>
 	);
 }

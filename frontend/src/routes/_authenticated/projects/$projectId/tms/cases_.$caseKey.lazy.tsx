@@ -68,7 +68,8 @@ const STATUS_LABELS: Record<string, string> = {
  * Шапка с key и статусами, вкладки Steps / Linked Issues / Autotest,
  * правый sidebar: метаданные и история версий.
  */
-function TestCaseDetailPage() {
+/** Страница деталей тест-кейса (экспорт для Vitest authz UI). */
+export function TestCaseDetailPage() {
 	const { projectId, caseKey } = Route.useParams();
 	const queryClient = useQueryClient();
 	const [activeTab, setActiveTab] = useState<"steps" | "links" | "autotest">(
@@ -102,7 +103,9 @@ function TestCaseDetailPage() {
 		queryKey: ["project", projectId],
 		queryFn: () => getProject(projectId),
 	});
-	const canRollback = canMutateProject(project?.my_role);
+	/** Edit / link / unlink / rollback — скрыты для viewer/guest (P2-FE-16). */
+	const canMutate = canMutateProject(project?.my_role);
+	const canRollback = canMutate;
 
 	// Инициализация формы после загрузки данных
 	useEffect(() => {
@@ -388,7 +391,7 @@ function TestCaseDetailPage() {
 								{updateMutation.isPending ? "Сохранение..." : "Сохранить"}
 							</Button>
 						</>
-					) : (
+					) : canMutate ? (
 						<Button variant="outline" size="sm" onClick={startEditing}>
 							<svg
 								aria-hidden="true"
@@ -406,7 +409,7 @@ function TestCaseDetailPage() {
 							</svg>
 							Редактировать
 						</Button>
-					)}
+					) : null}
 				</div>
 			</div>
 
@@ -588,7 +591,7 @@ function TestCaseDetailPage() {
 								<StepEditor
 									editing={false}
 									tc={tc}
-									onStartEditing={startEditing}
+									onStartEditing={canMutate ? startEditing : undefined}
 								/>
 							)}
 
@@ -653,28 +656,31 @@ function TestCaseDetailPage() {
 													</td>
 													<td className="px-3 py-2.5 text-sm">{issue.title}</td>
 													<td className="px-3 py-2.5">
-														<Button
-															variant="ghost"
-															size="sm"
-															className="h-6 w-6 p-0 text-t2 hover:text-destructive"
-															disabled={unlinkMutation.isPending}
-															onClick={() => unlinkMutation.mutate(issue.id)}
-														>
-															<svg
-																aria-hidden="true"
-																className="h-3.5 w-3.5"
-																fill="none"
-																viewBox="0 0 24 24"
-																stroke="currentColor"
-																strokeWidth={2}
+														{canMutate ? (
+															<Button
+																variant="ghost"
+																size="sm"
+																className="h-6 w-6 p-0 text-t2 hover:text-destructive"
+																aria-label="Отвязать задачу"
+																disabled={unlinkMutation.isPending}
+																onClick={() => unlinkMutation.mutate(issue.id)}
 															>
-																<path
-																	strokeLinecap="round"
-																	strokeLinejoin="round"
-																	d="M6 18L18 6M6 6l12 12"
-																/>
-															</svg>
-														</Button>
+																<svg
+																	aria-hidden="true"
+																	className="h-3.5 w-3.5"
+																	fill="none"
+																	viewBox="0 0 24 24"
+																	stroke="currentColor"
+																	strokeWidth={2}
+																>
+																	<path
+																		strokeLinecap="round"
+																		strokeLinejoin="round"
+																		d="M6 18L18 6M6 6l12 12"
+																	/>
+																</svg>
+															</Button>
+														) : null}
 													</td>
 												</tr>
 											))}
@@ -701,42 +707,44 @@ function TestCaseDetailPage() {
 								</div>
 							)}
 
-							<div className="flex gap-2">
-								<Input
-									placeholder="ID или ключ задачи"
-									className="flex-1 h-8 text-sm"
-									value={linkIssueId}
-									onChange={(e) => setLinkIssueId(e.target.value)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" && linkIssueId.trim()) {
-											linkMutation.mutate(linkIssueId.trim());
-										}
-									}}
-								/>
-								<Button
-									variant="outline"
-									size="sm"
-									className="h-8"
-									disabled={!linkIssueId.trim() || linkMutation.isPending}
-									onClick={() => linkMutation.mutate(linkIssueId.trim())}
-								>
-									<svg
-										aria-hidden="true"
-										className="mr-1 h-3 w-3"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										strokeWidth={2}
+							{canMutate ? (
+								<div className="flex gap-2">
+									<Input
+										placeholder="ID или ключ задачи"
+										className="flex-1 h-8 text-sm"
+										value={linkIssueId}
+										onChange={(e) => setLinkIssueId(e.target.value)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" && linkIssueId.trim()) {
+												linkMutation.mutate(linkIssueId.trim());
+											}
+										}}
+									/>
+									<Button
+										variant="outline"
+										size="sm"
+										className="h-8"
+										disabled={!linkIssueId.trim() || linkMutation.isPending}
+										onClick={() => linkMutation.mutate(linkIssueId.trim())}
 									>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-										/>
-									</svg>
-									Привязать
-								</Button>
-							</div>
+										<svg
+											aria-hidden="true"
+											className="mr-1 h-3 w-3"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											strokeWidth={2}
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+											/>
+										</svg>
+										Привязать
+									</Button>
+								</div>
+							) : null}
 						</div>
 					)}
 

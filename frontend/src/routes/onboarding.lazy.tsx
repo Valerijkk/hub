@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -200,6 +200,15 @@ function OnboardingPage() {
 	const [avatarUploading, setAvatarUploading] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
+	// Revoke blob URL при смене preview и на unmount (A3W10-5-005).
+	useEffect(() => {
+		return () => {
+			if (avatarPreview) {
+				URL.revokeObjectURL(avatarPreview);
+			}
+		};
+	}, [avatarPreview]);
+
 	const profileForm = useForm<OnboardingProfileValues>({
 		resolver: zodResolver(onboardingProfileSchema),
 		mode: "onChange",
@@ -366,8 +375,8 @@ function OnboardingPage() {
 		}
 		setAvatarUploading(true);
 		try {
-			const preview = URL.createObjectURL(file);
-			setAvatarPreview(preview);
+			// Старый blob отзовёт cleanup useEffect при смене avatarPreview.
+			setAvatarPreview(URL.createObjectURL(file));
 			const fileId = await uploadFile(file, "", "avatar", "me");
 			setAvatarUrl(`/files/${fileId}/url`);
 		} catch (err: unknown) {

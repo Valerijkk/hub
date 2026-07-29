@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { DevLoginPanel } from "@/components/auth/dev-login-panel";
 import { MagicLinkForm } from "@/components/auth/magic-link-form";
@@ -165,5 +165,13 @@ export const Route = createFileRoute("/login")({
 	validateSearch: (search: Record<string, unknown>): LoginSearch => ({
 		invite: typeof search.invite === "string" ? search.invite : undefined,
 	}),
+	beforeLoad: () => {
+		const { isAuthenticated, user } = useAuthStore.getState();
+		if (!isAuthenticated) return;
+		if (user && !user.onboarding_completed) {
+			throw redirect({ to: "/onboarding" });
+		}
+		throw redirect({ to: "/projects" });
+	},
 	component: LoginPage,
 });

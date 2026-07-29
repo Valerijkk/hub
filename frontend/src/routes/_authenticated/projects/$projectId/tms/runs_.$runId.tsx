@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { getProject } from "@/api/projects";
 import {
 	addCasesToRun,
 	completeRun,
@@ -19,6 +20,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { toastApiError } from "@/lib/format-api-error";
+import { canMutateProject } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { RunExecutionPanel } from "@/modules/tms/components/run-execution-panel";
 import { RunHeader } from "@/modules/tms/components/run-header";
@@ -47,11 +49,17 @@ function TestRunDetailPage() {
 		queryFn: () => getTestRunDetail(projectId, runId),
 	});
 
+	const { data: project } = useQuery({
+		queryKey: ["project", projectId],
+		queryFn: () => getProject(projectId),
+	});
+	const canMutate = canMutateProject(project?.my_role);
+
 	// Загрузка тест-кейсов для диалога добавления
 	const { data: casesData } = useQuery({
 		queryKey: ["tms-cases-for-run", projectId],
 		queryFn: () => listTestCases(projectId, { limit: 100 }),
-		enabled: addCasesOpen,
+		enabled: addCasesOpen && canMutate,
 	});
 
 	// Мутации управления прогоном
@@ -217,6 +225,7 @@ function TestRunDetailPage() {
 			<RunHeader
 				projectId={projectId}
 				run={run}
+				canMutate={canMutate}
 				onStart={() => startMutation.mutate()}
 				onComplete={() => completeMutation.mutate()}
 				onReopen={() => reopenMutation.mutate()}
@@ -266,7 +275,7 @@ function TestRunDetailPage() {
 						runStatus={run.status}
 						executingResultId={executingResultId}
 						onSelectResult={(id) => setExecutingResultId(id)}
-						onAddCases={() => setAddCasesOpen(true)}
+						onAddCases={canMutate ? () => setAddCasesOpen(true) : undefined}
 					/>
 				</div>
 
