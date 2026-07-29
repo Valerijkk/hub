@@ -60,8 +60,8 @@
 
 | ID | Tag | Sev | Файл:строка | Проблема | Почему дефект | Как чинить |
 |----|-----|-----|-------------|---------|---------------|------------|
-| A3W8-3-001 | NEW | P2 | `hubtable.go:51-52` | `To("columns")` / `To("records")` без `entsql.OnDelete(Cascade)`; у `HubColumn`/`HubRecord` From тоже нет | ADR-ENT-ONDELETE-CASCADE-2026: owned_child → CASCADE на PermanentDelete/GDPR hard-purge; soft-delete app (TASK-111) OnDelete не вызывает — hard path FK trap / orphans | `Annotations(entsql.OnDelete(entsql.Cascade))` на To (и/или From); migrate FK; (HubBase→tables — слот A2 / part2) |
-| A3W8-3-002 | NEW | P2 | `journalentry.go:60` | `To("lines", JournalLine.Type)` без OnDelete Cascade; `journalline` From без Cascade | ADR soft-delete §B: hard-delete line только через GDPR cascade родителя; TASK-096 закрыл IssueLink/Poll/Project/Channel, **не** accounting lines → hard DELETE entry = FK trap | Cascade на `entry→lines` (как Issue→comments); тест PermanentDelete/purge |
+| A3W8-3-001 | FIXED | P2 | `hubtable.go` | было: `To("columns"/"records")` без Cascade → hard-purge FK trap | TASK-169: `Annotations(entsql.OnDelete(entsql.Cascade))` + migrate SQL + hubtest | evidence: `cascade_hubtable_journalentry_task169_test.go` |
+| A3W8-3-002 | FIXED | P2 | `journalentry.go` | было: `To("lines")` без Cascade → hard DELETE entry FK trap | TASK-169: Cascade на lines + migrate SQL + hubtest | evidence: `cascade_hubtable_journalentry_task169_test.go` |
 
 ## Чисто (подтверждено после remediation)
 

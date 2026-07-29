@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -34,6 +35,7 @@ func (HubTable) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
 func (HubTable) Mixin() []ent.Mixin {
 	return []ent.Mixin{
@@ -41,15 +43,17 @@ func (HubTable) Mixin() []ent.Mixin {
 	}
 }
 
-
+// Edges — owned children CASCADE на PermanentDelete/GDPR hard-purge
+// (ADR-ENT-ONDELETE-CASCADE-2026 / A3W8-3-001). Soft-delete OnDelete не вызывает.
 func (HubTable) Edges() []ent.Edge {
+	cascade := entsql.OnDelete(entsql.Cascade)
 	return []ent.Edge{
 		edge.From("base", HubBase.Type).
 			Ref("tables").
 			Unique().
 			Required(),
-		edge.To("columns", HubColumn.Type),
-		edge.To("records", HubRecord.Type),
+		edge.To("columns", HubColumn.Type).Annotations(cascade),
+		edge.To("records", HubRecord.Type).Annotations(cascade),
 	}
 }
 

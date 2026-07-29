@@ -5,7 +5,7 @@ milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
 last_updated: "2026-07-29T13:00:00.000Z"
-last_activity: 2026-07-29 · be1 TASK-144 A3W3-2 messenger services · На проверке
+last_activity: 2026-07-29 · be1 TASK-169 A3W8-3 HubTable/JournalEntry Cascade · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -64,6 +64,13 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-29 (be1 · TASK-169 A3W8-3 HubTable/JournalEntry Cascade)
+
+- **2/2 FIXED** A3W8-3-001/002: `entsql.OnDelete(Cascade)` на HubTable→columns/records и JournalEntry→lines.
+- Migrate SQL (needs-owner-apply): `backend/migrations/20260729_task169_hubtable_journalentry_cascade.sql`.
+- Тесты: `testframework/accounting/cascade_hubtable_journalentry_task169_test.go` (hard CASCADE + soft unchanged).
+- `go test -tags hubtest ./testframework/accounting/ -run TASK169` PASS. Handoff: be-ver → code-reviewer. Статус: На проверке.
 
 ## Session note — 2026-07-29 (be1 · TASK-144 A3W3-2 messenger services)
 
