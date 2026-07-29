@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -46,13 +47,13 @@ func (Sprint) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
 func (Sprint) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		VersionMixin{},
 	}
 }
-
 
 // Edges определяет связи сущности Sprint.
 func (Sprint) Edges() []ent.Edge {
@@ -61,7 +62,9 @@ func (Sprint) Edges() []ent.Edge {
 			Ref("sprints").
 			Unique().
 			Required(),
-		edge.To("issues", Issue.Type),
+		// A3W8-4-002 / ADR-ENT-ONDELETE optional_ref: Issue.sprint optional → SET NULL.
+		edge.To("issues", Issue.Type).
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 
@@ -74,5 +77,9 @@ func (Sprint) Indexes() []ent.Index {
 			Fields("start_date"),
 		index.Fields("deleted_at"),
 		index.Edges("project").Fields("deleted_at"),
+		// A3W8-4-001: ≤1 non-deleted active sprint per project (app-guard + DB).
+		index.Edges("project").
+			Unique().
+			Annotations(entsql.IndexWhere("status = 'active' AND deleted_at IS NULL")),
 	}
 }
