@@ -137,11 +137,13 @@ func (r *EntRepository) CreateIssue(ctx context.Context, projectID uuid.UUID, in
 }
 
 // findDefaultStatusTx ищет дефолтный статус проекта внутри транзакции.
+// AUDIT-TM-001: DeletedAtIsNil — иначе CreateIssue привяжет задачу к soft-deleted default.
 func (r *EntRepository) findDefaultStatusTx(ctx context.Context, tx *ent.Tx, projectID uuid.UUID) (*ent.WorkflowStatus, error) {
 	return tx.WorkflowStatus.Query().
 		Where(
 			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
 			workflowstatus.IsDefaultEQ(true),
+			workflowstatus.DeletedAtIsNil(),
 		).
 		Only(ctx)
 }

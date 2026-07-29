@@ -70,6 +70,8 @@ func (r *EntRepository) GetBoardData(ctx context.Context, projectID, boardID uui
 		).
 		WithProject(func(q *ent.ProjectQuery) {
 			q.WithWorkflowStatuses(func(sq *ent.WorkflowStatusQuery) {
+				// AUDIT-TM-002: не поднимать soft-deleted колонки на Kanban.
+				sq.Where(workflowstatus.DeletedAtIsNil())
 				sq.Order(ent.Asc(workflowstatus.FieldSortOrder))
 				sq.WithIssues(func(iq *ent.IssueQuery) {
 					iq.Where(issue.DeletedAtIsNil())
