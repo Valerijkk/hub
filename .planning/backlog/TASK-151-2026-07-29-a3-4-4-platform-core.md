@@ -20,20 +20,18 @@
 ### Tests
 
 ```text
-docker run --rm -v …/backend:/app -w /app golang:1.25-bookworm \
-  go test -tags hubtest -vet=off -count=1 -timeout=90s \
+# Isolated worktree (HEAD + SCOPE) — shared tree был бит concurrent ent regen
+go test -tags hubtest -race -count=1 -timeout=120s \
   ./testframework/platform/database/ ./testframework/platform/cron/
-→ ok database 7.017s · ok cron 0.242s · exit 0
+→ ok database 6.866s · ok cron 3.308s · exit 0
 ```
-
-Local Windows: cron green; database intermittently blocked by parallel `ent` regen on shared tree (не дефект фикса).
 
 ### Mutation
 
 | ID | Сломать | Результат |
 |----|---------|-----------|
-| A3W4-4-001 | убрать `PingContext` | Логика: Open-only → `err==nil` → `require.Error` краснеет. Live RED на shared tree мешала concurrent ent regenerate (build fail); green с Ping доказан Docker |
-| A3W4-4-002 | убрать `WithTimeout` из `runTick` (`fn(ctx)`) | **RED** `cron_test.go:82: tick should have been cancelled by timeout` · `MUTATION002_EXIT=1` |
+| A3W4-4-001 | убрать `PingContext` (Open-only + slog connected) | **RED** `An error is expected but got nil` + slog `connected to PostgreSQL` · MUT1_EXIT=1 |
+| A3W4-4-002 | убрать `WithTimeout` из `runTick` (`fn(ctx)`) | **RED** `tick should have been cancelled by timeout` · MUT2_EXIT=1 |
 
 ### Assumptions
 
