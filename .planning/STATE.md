@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T18:40:00.000Z"
-last_activity: 2026-07-29 · docs-writer TASK-183 inventory recount 812/179 · На проверке
+last_updated: "2026-07-29T18:55:00.000Z"
+last_activity: 2026-07-29 · be2 TASK-188 PushSender layering + Telegram RL · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -67,6 +67,13 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-29 (be2 · TASK-188 ASN-001/002 PushSender + Telegram RL)
+
+- **FIXED** ASN-001: `PushSender` → `PushSubscriptionStore` (CRUD в `Repository`); `push.go` без `*ent.Client` / ent import; wiring `NewPushSender(notifRepo, …)`.
+- **FIXED** ASN-002: `ConfirmLinkCode` Redis fails `tg:linkcode:fails:<user>` max 5 / TTL 5m (как HI-04); HTTP → 429 `ErrTelegramConfirmLimited`.
+- **Тесты:** `push_layering_asn001_test.go`, `telegram_linkcode_rl_asn002_test.go`; `./testframework/notification/...` PASS; mutation (убрать fails/record) → RED. NF-07 / Magic Link rate не трогали. TASK-008 не закрывали.
+- Статус: **На проверке**. Handoff: be-ver → code-reviewer.
 
 ## Session note — 2026-07-29 (fe1 · TASK-192 FE settings/AI version OL)
 

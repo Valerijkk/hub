@@ -127,7 +127,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-185](TASK-185-2026-07-29-c-w19-allure-existingrun-partial.md) | 🐛 C-W19 Allure ExistingRun silent partial | P2 | На проверке | be2 | C-W19-TT-002 · 1 |
 | [TASK-186](TASK-186-2026-07-29-audit-fe-calls-error-empty.md) | 🧹 Audit FE calls calendar/dialog error≠empty | P2 | На проверке | fe2 | FE-MC-001…003 · 3 |
 | [TASK-187](TASK-187-2026-07-29-audit-fe-pipeline-sanitize.md) | 🔒 Audit FE pipeline-status sanitizeUrl | P2 | На проверке | fe1 | FE-TA-001 · 1 |
-| [TASK-188](TASK-188-2026-07-29-audit-be-push-telegram-rl.md) | 🔒 Audit BE PushSender layering + Telegram RL | P2 | Открыта | be2 | ASN-001…002 · 2 |
+| [TASK-188](TASK-188-2026-07-29-audit-be-push-telegram-rl.md) | 🔒 Audit BE PushSender layering + Telegram RL | P2 | На проверке | be2 | ASN-001…002 · 2 |
 | [TASK-189](TASK-189-2026-07-29-audit-be-v4-calendar-poll.md) | 🔒 Audit BE calendar trash + draft poll IDOR | P2 | Открыта | be1 | BE-V4-001…003 · 3 |
 | [TASK-190](TASK-190-2026-07-29-audit-be-tracker-messenger-softdelete.md) | 🔒 Audit BE tracker/messenger soft-delete + CreateChannel | P2 | Открыта | be1+be2 | AUDIT-TM-001…004 · 4 |
 | [TASK-191](TASK-191-2026-07-29-audit-ent-automationrule-softdelete.md) | 🔒 Audit ent AutomationRule soft-delete | P2 | Открыта | be1 | EA-001 · 1 |

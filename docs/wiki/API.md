@@ -51,7 +51,8 @@ X-API-Key: <api_key>
 ## Auth — Magic Link only (v2.5+)
 
 > **ADR-AUTH-01:** единственный login — Magic Link. Telegram — **только** notify bind (`/notifications/telegram/*`), не login.  
-> Удалено v2.5: `POST /auth/telegram`, `POST /auth/telegram-code`.
+> Удалено v2.5: `POST /auth/telegram`, `POST /auth/telegram-code`.  
+> **ASN-002 / TASK-188:** `POST /notifications/telegram/confirm` — Redis fails-counter 5/5m на user (как HI-04 magic-link verify); lockout → **429**.
 
 | Метод | Путь | Auth | Описание |
 |---|---|---|---|
