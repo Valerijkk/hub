@@ -128,6 +128,24 @@ func ExportMeiliIndexerClient(m *MeiliIndexer) *http.Client {
 	return m.client
 }
 
+// ExportMeiliAllowsOperatorPrivate — A3W5-4-001 hubtest.
+func ExportMeiliAllowsOperatorPrivate(raw string) bool {
+	return meiliAllowsOperatorPrivate(raw)
+}
+
+// ExportSetMeiliIndexBatchSize — A3W5-4-003: уменьшить batch в hubtest (mutation pagination).
+// Возвращает previous; restore через defer.
+func ExportSetMeiliIndexBatchSize(n int) int {
+	prev := meiliIndexBatchSize
+	meiliIndexBatchSize = n
+	return prev
+}
+
+// ExportValidateJQLCondition — A3W5-4-002 hubtest.
+func ExportValidateJQLCondition(c JQLCondition) error {
+	return validateJQLCondition(c)
+}
+
 type ExportMeiliIssueDoc struct {
 	ID        string
 	IssueKey  string

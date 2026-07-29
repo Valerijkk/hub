@@ -1,6 +1,7 @@
 package search
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +13,10 @@ import (
 	"github.com/valerii/hub/backend/ent/user"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
+
+// ErrUnsupportedJQLOperator — comparison op на поле без поддержки (A3W5-4-002).
+// Fail-closed: не silent-nil → unfiltered Ent query.
+var ErrUnsupportedJQLOperator = errors.New("unsupported JQL operator for field")
 
 // JQLQuery представляет разобранный JQL-запрос.
 type JQLQuery struct {
@@ -45,9 +50,18 @@ func ParseJQL(input string) (*JQLQuery, error) {
 
 // ToEntPredicates конвертирует JQLQuery в предикаты Ent для фильтрации задач.
 // W5-A4-005 / P2-BE-18: учитывает Logic AND/OR между условиями (раньше всё было AND).
+// A3W5-4-002: unsupported comparison на priority/type/status → never-match
+// (не silent-nil / unfiltered); ParseJQL уже возвращает ErrUnsupportedJQLOperator.
 func ToEntPredicates(q *JQLQuery, currentUserID uuid.UUID) []predicate.Issue {
 	if q == nil || len(q.Conditions) == 0 {
 		return nil
+	}
+
+	for _, cond := range q.Conditions {
+		if err := validateJQLCondition(cond); err != nil {
+			// Fail-closed: пустой результат вместо полного списка issues.
+			return []predicate.Issue{issue.IDEQ(uuid.Nil)}
+		}
 	}
 
 	var andGroup []predicate.Issue
@@ -86,6 +100,21 @@ func ToEntPredicates(q *JQLQuery, currentUserID uuid.UUID) []predicate.Issue {
 	return []predicate.Issue{issue.Or(orParts...)}
 }
 
+// validateJQLCondition — comparison ops (>, <, >=, <=) только для date-полей.
+// A3W5-4-002: priority/type/status + comparison → error (не silent drop).
+func validateJQLCondition(c JQLCondition) error {
+	switch c.Operator {
+	case ">", "<", ">=", "<=":
+		switch strings.ToLower(c.Field) {
+		case "created", "updated":
+			return nil
+		default:
+			return fmt.Errorf("%w: %s %s", ErrUnsupportedJQLOperator, c.Field, c.Operator)
+		}
+	}
+	return nil
+}
+
 // conditionToPredicate конвертирует одно условие JQL в Ent predicate.
 func conditionToPredicate(c JQLCondition, currentUserID uuid.UUID) predicate.Issue {
 	value := c.Value
@@ -104,6 +133,9 @@ func conditionToPredicate(c JQLCondition, currentUserID uuid.UUID) predicate.Iss
 			return issue.HasStatusWith(workflowstatus.NameIn(c.Values...))
 		case "NOT IN":
 			return issue.HasStatusWith(workflowstatus.NameNotIn(c.Values...))
+		case ">", "<", ">=", "<=":
+			// A3W5-4-002: не silent-nil → unfiltered list.
+			return issue.IDEQ(uuid.Nil)
 		}
 	case "priority":
 		switch c.Operator {
@@ -117,6 +149,9 @@ func conditionToPredicate(c JQLCondition, currentUserID uuid.UUID) predicate.Iss
 				vals = append(vals, issue.Priority(v))
 			}
 			return issue.PriorityIn(vals...)
+		case ">", "<", ">=", "<=":
+			// A3W5-4-002: не silent-nil → unfiltered list.
+			return issue.IDEQ(uuid.Nil)
 		}
 	case "type":
 		switch c.Operator {
@@ -130,6 +165,9 @@ func conditionToPredicate(c JQLCondition, currentUserID uuid.UUID) predicate.Iss
 				vals = append(vals, issue.IssueType(v))
 			}
 			return issue.IssueTypeIn(vals...)
+		case ">", "<", ">=", "<=":
+			// A3W5-4-002: не silent-nil → unfiltered list.
+			return issue.IDEQ(uuid.Nil)
 		}
 	case "assignee":
 		// A4-001: filter by concrete assignee, not merely "has any assignee".
@@ -285,6 +323,11 @@ func (p *jqlParser) parse() (*JQLQuery, error) {
 				return nil, err
 			}
 			cond.Value = value
+		}
+
+		// A3W5-4-002: fail-closed на unsupported field+op до ToEnt.
+		if err := validateJQLCondition(cond); err != nil {
+			return nil, err
 		}
 
 		q.Conditions = append(q.Conditions, cond)

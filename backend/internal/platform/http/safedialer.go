@@ -262,3 +262,74 @@ func NewOfflineAIHTTPClient(timeout time.Duration) *http.Client {
 		},
 	}
 }
+
+// isOperatorPrivateIP — loopback или RFC1918 (не link-local / metadata 169.254).
+// A3W5-4-001 / TASK-156: dial allowlist для operator Meili после validate.
+func isOperatorPrivateIP(ip net.IP) bool {
+	ip = normalizeIPForBlocklist(ip)
+	if ip == nil {
+		return false
+	}
+	if ip.IsLoopback() {
+		return true
+	}
+	v4 := ip.To4()
+	if v4 == nil {
+		return false
+	}
+	if v4[0] == 10 {
+		return true
+	}
+	if v4[0] == 172 && v4[1] >= 16 && v4[1] <= 31 {
+		return true
+	}
+	if v4[0] == 192 && v4[1] == 168 {
+		return true
+	}
+	return false
+}
+
+// SafeDialContextAllowOperatorPrivate — dial к loopback/RFC1918.
+// Metadata/link-local и публичные IP — ErrBlockedAddress.
+// Использовать ТОЛЬКО после meiliAllowsOperatorPrivate / validateMeiliHost OK.
+// Не ослабляет публичный SafeDialContext.
+func SafeDialContextAllowOperatorPrivate() func(ctx context.Context, network, addr string) (net.Conn, error) {
+	d := &net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid addr %q: %w", addr, err)
+		}
+		ips, err := (&net.Resolver{}).LookupIPAddr(ctx, host)
+		if err != nil {
+			return nil, fmt.Errorf("resolve %s: %w", host, err)
+		}
+		if len(ips) == 0 {
+			return nil, fmt.Errorf("resolve %s: no addresses", host)
+		}
+		for _, ip := range ips {
+			if !isOperatorPrivateIP(ip.IP) {
+				return nil, fmt.Errorf("%w: operator Meili dial requires loopback/RFC1918, %s -> %s", ErrBlockedAddress, host, ip.IP.String())
+			}
+		}
+		return d.DialContext(ctx, network, net.JoinHostPort(ips[0].IP.String(), port))
+	}
+}
+
+// NewOperatorMeiliHTTPClient — HTTP client для operator Meili (loopback/RFC1918 IP).
+// Не использовать для публичных MEILI_HOST (там NewSafeHTTPClient) и не для
+// user-controlled URL (webhook/OG).
+func NewOperatorMeiliHTTPClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			DialContext:           SafeDialContextAllowOperatorPrivate(),
+			TLSHandshakeTimeout:   5 * time.Second,
+			ResponseHeaderTimeout: 10 * time.Second,
+			IdleConnTimeout:       60 * time.Second,
+		},
+	}
+}

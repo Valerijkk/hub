@@ -23,6 +23,12 @@ import (
 
 const issuesIndex = "hub_issues"
 
+// defaultMeiliIndexBatchSize — размер страницы IndexAllIssues (ECC-SRCH-303 / A3W5-4-003).
+const defaultMeiliIndexBatchSize = 5000
+
+// meiliIndexBatchSize переопределяется в hubtest (export_hooks) для mutation-теста пагинации.
+var meiliIndexBatchSize = defaultMeiliIndexBatchSize
+
 // MeiliIndexer отправляет документы в Meilisearch при наличии MEILI_HOST.
 type MeiliIndexer struct {
 	host   string
@@ -31,10 +37,10 @@ type MeiliIndexer struct {
 }
 
 // NewMeiliIndexerFromEnv возвращает nil без MEILI_HOST — Meili опционален.
-// W5-A4-009 / P2-BE-18 / A2W5-A4-002: ValidateOutboundURL + NewSafeHTTPClient
-// (DNS-rebinding mid-flight). RFC1918/loopback IP-литералы для operator Meili
-// допускаются на этапе validate; dial SafeDial по-прежнему режет private
-// (тот же класс, что Ollama↔SafeDial U01) — hostname→metadata блокируется.
+// W5-A4-009 / P2-BE-18 / A2W5-A4-002 / A3W5-4-001: ValidateOutboundURL +
+// SafeDial для публичных host; operator loopback/RFC1918 — dial allowlist
+// (NewOperatorMeiliHTTPClient) только после meiliAllowsOperatorPrivate.
+// Metadata / link-local по-прежнему → nil indexer.
 func NewMeiliIndexerFromEnv() *MeiliIndexer {
 	host := strings.TrimSpace(os.Getenv("MEILI_HOST"))
 	if host == "" {
@@ -44,11 +50,15 @@ func NewMeiliIndexerFromEnv() *MeiliIndexer {
 		slog.Warn("MEILI_HOST rejected (SSRF guard)", "host", host, "error", err)
 		return nil
 	}
+	client := safehttp.NewSafeHTTPClient(30 * time.Second)
+	if meiliAllowsOperatorPrivate(host) {
+		// A3W5-4-001: SafeDial режет loopback/RFC1918; operator path — отдельно.
+		client = safehttp.NewOperatorMeiliHTTPClient(30 * time.Second)
+	}
 	return &MeiliIndexer{
 		host:   strings.TrimRight(host, "/"),
 		apiKey: os.Getenv("MEILI_MASTER_KEY"),
-		// A2W5-A4-002: не plain http.Client — SafeDial против DNS-rebinding.
-		client: safehttp.NewSafeHTTPClient(30 * time.Second),
+		client: client,
 	}
 }
 
@@ -120,35 +130,58 @@ type meiliIssueDoc struct {
 }
 
 // IndexAllIssues загружает активные issues из Ent и upsert в Meili.
+// A3W5-4-003 / ECC-SRCH-303: offset-пагинация по meiliIndexBatchSize — без
+// тихой обрезки на Limit(5000).
 func (m *MeiliIndexer) IndexAllIssues(ctx context.Context, db *ent.Client) (int, error) {
 	if m == nil {
 		return 0, fmt.Errorf("meilisearch not configured")
 	}
-	issues, err := db.Issue.Query().
-		Where(issue.DeletedAtIsNil()).
-		WithProject().
-		Limit(5000).
-		All(ctx)
-	if err != nil {
-		return 0, err
+	batchSize := meiliIndexBatchSize
+	if batchSize <= 0 {
+		batchSize = defaultMeiliIndexBatchSize
 	}
-	docs := make([]meiliIssueDoc, 0, len(issues))
-	for _, iss := range issues {
-		pid := ""
-		if iss.Edges.Project != nil {
-			pid = iss.Edges.Project.ID.String()
+
+	total := 0
+	offset := 0
+	for {
+		issues, err := db.Issue.Query().
+			Where(issue.DeletedAtIsNil()).
+			WithProject().
+			Order(issue.ByID()).
+			Offset(offset).
+			Limit(batchSize).
+			All(ctx)
+		if err != nil {
+			return total, err
 		}
-		docs = append(docs, meiliIssueDoc{
-			ID:        iss.ID.String(),
-			IssueKey:  iss.IssueKey,
-			Title:     iss.Title,
-			ProjectID: pid,
-		})
+		if len(issues) == 0 {
+			break
+		}
+
+		docs := make([]meiliIssueDoc, 0, len(issues))
+		for _, iss := range issues {
+			pid := ""
+			if iss.Edges.Project != nil {
+				pid = iss.Edges.Project.ID.String()
+			}
+			docs = append(docs, meiliIssueDoc{
+				ID:        iss.ID.String(),
+				IssueKey:  iss.IssueKey,
+				Title:     iss.Title,
+				ProjectID: pid,
+			})
+		}
+		if err := m.upsertDocuments(ctx, issuesIndex, docs); err != nil {
+			return total, err
+		}
+		total += len(docs)
+
+		if len(issues) < batchSize {
+			break
+		}
+		offset += batchSize
 	}
-	if err := m.upsertDocuments(ctx, issuesIndex, docs); err != nil {
-		return 0, err
-	}
-	return len(docs), nil
+	return total, nil
 }
 
 func (m *MeiliIndexer) upsertDocuments(ctx context.Context, index string, docs any) error {

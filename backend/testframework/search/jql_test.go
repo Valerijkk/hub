@@ -97,16 +97,17 @@ func TestParseJQLNotIN(t *testing.T) {
 	assert.Equal(t, []string{"low", "trivial"}, q.Conditions[0].Values)
 }
 
-// TestParseJQLComparisonOps проверяет операторы сравнения.
+// TestParseJQLComparisonOps проверяет операторы сравнения на date-полях.
+// A3W5-4-002: priority/type/status + >/</>=/<= → error (не silent parse).
 func TestParseJQLComparisonOps(t *testing.T) {
 	tests := []struct {
 		input string
 		op    string
 	}{
-		{"priority >= high", ">="},
-		{"priority <= low", "<="},
-		{"priority > medium", ">"},
-		{"priority < high", "<"},
+		{"created >= 2024-01-01", ">="},
+		{"updated <= 2024-12-31", "<="},
+		{"created > 2024-06-01", ">"},
+		{"updated < 2024-12-31", "<"},
 	}
 
 	for _, tt := range tests {

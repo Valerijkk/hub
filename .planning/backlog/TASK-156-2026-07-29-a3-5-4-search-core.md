@@ -1,12 +1,41 @@
 # ♻️🔒 A3 Meili operator dial REGRESS + JQL
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3W5-4-001..003 · Stage A3 FINAL · TASK-008  
 > Исполнитель: **be2**
 
 ## [OUTCOME]
 
 Operator Meili (`127.0.0.1` / RFC1918 после `meiliAllowsOperatorPrivate`) снова дозванивается через dial allowlist без ослабления metadata/SSRF SafeDial; JQL comparison ops (`>`, `<`, `>=`, `<=`) на неподдерживаемых полях fail-closed (error, не silent-nil); `IndexAllIssues` не тихо обрезает org >5000 issues без warn/pagination/flag.
+
+## Evidence (be2 · 2026-07-29)
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W5-4-001 | FIXED | `NewOperatorMeiliHTTPClient` / `SafeDialContextAllowOperatorPrivate` после `meiliAllowsOperatorPrivate`; публичный host — `NewSafeHTTPClient`. Тест: `TestNewMeiliIndexerFromEnv_OperatorLoopbackDial_A3W54_001` |
+| A3W5-4-002 | FIXED | `validateJQLCondition` в ParseJQL → `ErrUnsupportedJQLOperator`; `conditionToPredicate` never-match вместо silent-nil. Тест: `TestParseJQL_UnsupportedComparison_A3W54_002` |
+| A3W5-4-003 | FIXED | offset-пагинация `meiliIndexBatchSize` (default 5000). Тест: `TestIndexAllIssues_PaginatesBeyondBatch_A3W54_003` (batch=2, 3 issues) |
+
+```
+cd backend && go test -tags hubtest -race -count=1 ./testframework/search/
+→ ok  (worktree isolated ent generate; ~33s)
+```
+
+### Mutation notes
+| ID | Сломать | Ожидание |
+|----|---------|----------|
+| A3W5-4-001 | только `NewSafeHTTPClient` без operator dial | DialContext loopback → ErrBlockedAddress → RED |
+| A3W5-4-002 | `return nil` в conditionToPredicate для `>` на priority | hand-built ToEnt / Parse error assert → RED |
+| A3W5-4-003 | голый `Limit(5000)` без loop | batch=2 + 3 issues → count≠3 → RED |
+
+### Assumptions
+- Dial helper: `NewOperatorMeiliHTTPClient` (аналог Offline AI), не inline.
+- JQL: fail-closed error (не поддержка ordinal priority).
+- IndexAllIssues: full pagination, не warn+truncate.
+
+### Risks
+- Docker hostname→RFC1918 без IP-литерала в MEILI_HOST по-прежнему на SafeDial (operator allow только IP-литерал) — ops residual, не открывает SSRF.
+- Параллельная генерация `backend/ent/*` в основном worktree ломала сборку; регрессия прогнана в `.worktrees/task156-search`.
 
 ## [ROLE]
 
