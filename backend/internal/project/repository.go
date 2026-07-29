@@ -16,6 +16,7 @@ import (
 	"github.com/valerii/hub/backend/ent/team"
 	"github.com/valerii/hub/backend/ent/teammember"
 	"github.com/valerii/hub/backend/ent/user"
+	"github.com/valerii/hub/backend/ent/workflowstatus"
 )
 
 // Repository определяет интерфейс доступа к данным модуля project.
@@ -59,6 +60,8 @@ type Repository interface {
 	CreateTeamWithCreator(ctx context.Context, creatorID uuid.UUID, name, description string) (*ent.Team, error)
 	// ListTeamsByUserID возвращает команды, где userID — участник (P1-BE-08 ACL).
 	ListTeamsByUserID(ctx context.Context, userID uuid.UUID) ([]*ent.Team, error)
+	// SoftDeleteTeam мягко удаляет команду (A3W8-5-001 / TASK-171).
+	SoftDeleteTeam(ctx context.Context, teamID uuid.UUID) error
 	FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Team, error)
 	FindTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error)
 	AddTeamMember(ctx context.Context, teamID, userID uuid.UUID) (*ent.TeamMember, error)
@@ -510,18 +513,42 @@ func (r *EntRepository) CreateTeamWithCreator(ctx context.Context, creatorID uui
 // afterCreateTeamHook — опциональная инъекция после CreateTeam внутри tx (только hubtest).
 var afterCreateTeamHook func(ctx context.Context) error
 
-// ListTeamsByUserID возвращает команды, в которых состоит пользователь.
+// ListTeamsByUserID возвращает активные команды, в которых состоит пользователь.
 func (r *EntRepository) ListTeamsByUserID(ctx context.Context, userID uuid.UUID) ([]*ent.Team, error) {
 	return r.client.Team.Query().
-		Where(team.HasMembersWith(teammember.HasUserWith(user.IDEQ(userID)))).
+		Where(
+			team.DeletedAtIsNil(),
+			team.HasMembersWith(teammember.HasUserWith(user.IDEQ(userID))),
+		).
 		WithMembers().
 		All(ctx)
 }
 
-// FindTeamByID возвращает команду по ID с eager-loaded участниками.
+// SoftDeleteTeam мягко удаляет команду (A3W8-5-001 / TASK-171).
+func (r *EntRepository) SoftDeleteTeam(ctx context.Context, teamID uuid.UUID) error {
+	n, err := r.client.Team.Update().
+		Where(
+			team.IDEQ(teamID),
+			team.DeletedAtIsNil(),
+		).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return &ent.NotFoundError{}
+	}
+	return nil
+}
+
+// FindTeamByID возвращает активную команду по ID с eager-loaded участниками.
 func (r *EntRepository) FindTeamByID(ctx context.Context, id uuid.UUID) (*ent.Team, error) {
 	return r.client.Team.Query().
-		Where(team.IDEQ(id)).
+		Where(
+			team.IDEQ(id),
+			team.DeletedAtIsNil(),
+		).
 		WithMembers().
 		Only(ctx)
 }
@@ -689,7 +716,9 @@ func (r *EntRepository) GetProjectWithWorkflowStatusesAndLabels(ctx context.Cont
 		return nil, nil, nil, err
 	}
 
-	statuses, err := r.client.Project.QueryWorkflowStatuses(proj).All(ctx)
+	statuses, err := r.client.Project.QueryWorkflowStatuses(proj).
+		Where(workflowstatus.DeletedAtIsNil()).
+		All(ctx)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("query workflow statuses: %w", err)
 	}

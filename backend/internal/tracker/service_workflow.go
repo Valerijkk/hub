@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
@@ -49,9 +50,13 @@ func (s *TrackerService) UpdateWorkflowStatus(ctx context.Context, projectID, st
 	return toWorkflowStatusResponse(st), nil
 }
 
-// DeleteWorkflowStatus удаляет статус workflow в рамках проекта (P1-BE-01).
+// DeleteWorkflowStatus мягко удаляет статус workflow в рамках проекта (P1-BE-01 / A3W8-5-002).
 func (s *TrackerService) DeleteWorkflowStatus(ctx context.Context, projectID, statusID uuid.UUID) error {
 	if err := s.repo.DeleteWorkflowStatus(ctx, projectID, statusID); err != nil {
+		var ae *apperrors.AppError
+		if errors.As(err, &ae) {
+			return ae
+		}
 		if ent.IsNotFound(err) {
 			return apperrors.NewNotFound("статус не найден")
 		}

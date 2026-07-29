@@ -3,22 +3,28 @@ package tracker
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/valerii/hub/backend/ent"
+	"github.com/valerii/hub/backend/ent/issue"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/workflowstatus"
 	"github.com/valerii/hub/backend/ent/workflowtransition"
+	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
 )
 
 // ---------------------------------------------------------------------------
 // Рабочий процесс
 // ---------------------------------------------------------------------------
 
-// ListWorkflowStatuses возвращает все статусы workflow проекта, отсортированные по sort_order.
+// ListWorkflowStatuses возвращает активные (не soft-deleted) статусы workflow проекта.
 func (r *EntRepository) ListWorkflowStatuses(ctx context.Context, projectID uuid.UUID) ([]*ent.WorkflowStatus, error) {
 	return r.client.WorkflowStatus.Query().
-		Where(workflowstatus.HasProjectWith(project.IDEQ(projectID))).
+		Where(
+			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+			workflowstatus.DeletedAtIsNil(),
+		).
 		Order(ent.Asc(workflowstatus.FieldSortOrder)).
 		All(ctx)
 }
@@ -41,6 +47,7 @@ func (r *EntRepository) UpdateWorkflowStatus(ctx context.Context, projectID, sta
 		Where(
 			workflowstatus.IDEQ(statusID),
 			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+			workflowstatus.DeletedAtIsNil(),
 		)
 	if name != nil {
 		update = update.SetName(*name)
@@ -61,16 +68,55 @@ func (r *EntRepository) UpdateWorkflowStatus(ctx context.Context, projectID, sta
 	return r.client.WorkflowStatus.Get(ctx, statusID)
 }
 
-// DeleteWorkflowStatus удаляет статус workflow только внутри projectID (P1-BE-01).
+// DeleteWorkflowStatus мягко удаляет статус workflow (A3W8-5-002): SetDeletedAt, не hard Delete.
+// При живых issues — Conflict (FK Required + UX). Перед soft-delete чистит transitions (to/from).
 func (r *EntRepository) DeleteWorkflowStatus(ctx context.Context, projectID, statusID uuid.UUID) error {
-	affected, err := r.client.WorkflowStatus.Delete().
+	st, err := r.client.WorkflowStatus.Query().
 		Where(
 			workflowstatus.IDEQ(statusID),
 			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+			workflowstatus.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	if err != nil {
+		return err
+	}
+
+	nIssues, err := r.client.Issue.Query().
+		Where(
+			issue.HasStatusWith(workflowstatus.IDEQ(st.ID)),
+			issue.DeletedAtIsNil(),
+		).
+		Count(ctx)
+	if err != nil {
+		return fmt.Errorf("count issues for workflow status: %w", err)
+	}
+	if nIssues > 0 {
+		return apperrors.NewConflict("нельзя удалить статус, пока на нём есть задачи")
+	}
+
+	// App purge transitions (from + to) до soft-delete — A3W8-5-007 политика to_status.
+	_, err = r.client.WorkflowTransition.Delete().
+		Where(
+			workflowtransition.Or(
+				workflowtransition.HasFromStatusWith(workflowstatus.IDEQ(st.ID)),
+				workflowtransition.HasToStatusWith(workflowstatus.IDEQ(st.ID)),
+			),
 		).
 		Exec(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("purge workflow transitions: %w", err)
+	}
+
+	affected, err := r.client.WorkflowStatus.Update().
+		Where(
+			workflowstatus.IDEQ(st.ID),
+			workflowstatus.DeletedAtIsNil(),
+		).
+		SetDeletedAt(time.Now().UTC()).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("soft-delete workflow status: %w", err)
 	}
 	if affected == 0 {
 		return &ent.NotFoundError{}
@@ -84,6 +130,7 @@ func (r *EntRepository) FindDefaultStatus(ctx context.Context, projectID uuid.UU
 		Where(
 			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
 			workflowstatus.IsDefaultEQ(true),
+			workflowstatus.DeletedAtIsNil(),
 		).
 		Only(ctx)
 }
@@ -94,6 +141,7 @@ func (r *EntRepository) FindWorkflowStatusInProject(ctx context.Context, project
 		Where(
 			workflowstatus.IDEQ(statusID),
 			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+			workflowstatus.DeletedAtIsNil(),
 		).
 		Only(ctx)
 }
@@ -104,6 +152,7 @@ func (r *EntRepository) ListWorkflowTransitions(ctx context.Context, projectID u
 		Where(
 			workflowtransition.HasFromStatusWith(
 				workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+				workflowstatus.DeletedAtIsNil(),
 			),
 		).
 		WithFromStatus().
@@ -117,6 +166,7 @@ func (r *EntRepository) CreateWorkflowTransition(ctx context.Context, projectID,
 		Where(
 			workflowstatus.IDIn(fromStatusID, toStatusID),
 			workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+			workflowstatus.DeletedAtIsNil(),
 		)
 	count, err := q.Count(ctx)
 	if err != nil {
@@ -143,6 +193,7 @@ func (r *EntRepository) DeleteWorkflowTransition(ctx context.Context, projectID,
 			workflowtransition.IDEQ(transitionID),
 			workflowtransition.HasFromStatusWith(
 				workflowstatus.HasProjectWith(project.IDEQ(projectID)),
+				workflowstatus.DeletedAtIsNil(),
 			),
 		).
 		Exec(ctx)

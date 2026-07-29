@@ -385,7 +385,7 @@ func (m *mockRepo) ListTeamsByUserID(_ context.Context, userID uuid.UUID) ([]*en
 			continue
 		}
 		t := m.teams[teamID]
-		if t == nil {
+		if t == nil || t.DeletedAt != nil {
 			continue
 		}
 		cp := *t
@@ -400,9 +400,19 @@ func (m *mockRepo) ListTeamsByUserID(_ context.Context, userID uuid.UUID) ([]*en
 	return out, nil
 }
 
+func (m *mockRepo) SoftDeleteTeam(_ context.Context, teamID uuid.UUID) error {
+	t, ok := m.teams[teamID]
+	if !ok || t.DeletedAt != nil {
+		return notFoundErr()
+	}
+	now := time.Now().UTC()
+	t.DeletedAt = &now
+	return nil
+}
+
 func (m *mockRepo) FindTeamByID(_ context.Context, id uuid.UUID) (*ent.Team, error) {
 	t, ok := m.teams[id]
-	if !ok {
+	if !ok || t.DeletedAt != nil {
 		return nil, notFoundErr()
 	}
 	return t, nil
