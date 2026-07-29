@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T17:25:00.000Z"
-last_activity: 2026-07-29 · be1 TASK-177 C-W19 deactivate/ban WS kill · На проверке
+last_updated: "2026-07-29T17:35:00.000Z"
+last_activity: 2026-07-29 · be2 TASK-185 Allure ExistingRun fail-closed · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125
@@ -64,6 +64,18 @@ spec_coverage:
 ---
 
 # Состояние проекта Hub
+
+## Session note — 2026-07-29 (fe2 · TASK-182 HR pending leave error≠empty)
+
+- **FIXED** C-W19-FE-005: admin `listPendingLeave` fail → секция + QueryErrorAlert/retry (не silent empty); empty queue только success+len0.
+- Тест: `domains/hr/leave-pending-error.test.tsx` 2/2 PASS · mutation (убрать `pendingError` из gate) → RED · restore GREEN.
+- Статус TASK-182 → **На проверке**. Handoff: fe-ver → code-reviewer. TASK-008 не закрывать.
+
+## Session note — 2026-07-29 (be2 · TASK-185 C-W19-TT-002 Allure ExistingRun)
+
+- **FIXED** C-W19-TT-002 path A: ExistingRun Allure — fail-closed на Mongo `StoreAllureResults` и match infra err (≠ NotFound); порядок match→Mongo→PG; create-path Mongo best-effort без изменений.
+- **Тесты:** `testframework/tms/allure_existingrun_partial_c_w19_test.go`; mutation slog-only+continue → RED; `./testframework/tms/` hubtest+race OK.
+- **Docs:** `docs/wiki/API.md`. Статус: **На проверке**. Handoff: be-ver → code-reviewer. TASK-008 не закрывали.
 
 ## Session note — 2026-07-29 (be1 · TASK-177 C-W19 deactivate/ban WS kill)
 
