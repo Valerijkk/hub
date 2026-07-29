@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"fmt"
+
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -13,6 +15,22 @@ type FileMetadata struct {
 	ent.Schema
 }
 
+// validateFileEntityID — UUID или sentinel storage («me»/«temp»).
+// Пустая строка допустима: поле Optional (entity ещё не привязан).
+func validateFileEntityID(s string) error {
+	if s == "" {
+		return nil
+	}
+	switch s {
+	case "me", "temp":
+		return nil
+	}
+	if _, err := uuid.Parse(s); err != nil {
+		return fmt.Errorf("entity_id must be UUID or sentinel me/temp: %w", err)
+	}
+	return nil
+}
+
 // Поля сущности FileMetadata.
 func (FileMetadata) Fields() []ent.Field {
 	return []ent.Field{
@@ -23,7 +41,9 @@ func (FileMetadata) Fields() []ent.Field {
 			NotEmpty(),
 		field.String("content_type").
 			NotEmpty(),
-		field.Int64("size"),
+		// A3W8-2-001: size >= 0 (defense-in-depth к storage/service).
+		field.Int64("size").
+			NonNegative(),
 		field.String("s3_key").
 			NotEmpty(),
 		field.String("s3_bucket").
@@ -31,15 +51,17 @@ func (FileMetadata) Fields() []ent.Field {
 		field.String("entity_type").
 			Optional().
 			Comment("task, message, testcase, avatar, etc."),
+		// A3W8-2-001: UUID или sentinel me/temp (storage avatar/voice).
 		field.String("entity_id").
-			Optional(),
+			Optional().
+			Validate(validateFileEntityID),
 		field.Enum("status").
 			Values("pending", "confirmed", "deleted").
 			Default("pending"),
 		field.Time("deleted_at").
 			Optional().
 			Nillable().
-			Comment("Время мягкого удаления (корзина 30 дней)"),
+			Comment("Soft-delete timestamp (30-day trash)"),
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
@@ -49,9 +71,11 @@ func (FileMetadata) Fields() []ent.Field {
 // Рёбра (edges) сущности FileMetadata.
 func (FileMetadata) Edges() []ent.Edge {
 	return []ent.Edge{
+		// A3W8-2-001: uploader обязателен.
 		edge.From("uploader", User.Type).
 			Ref("files").
-			Unique(),
+			Unique().
+			Required(),
 		edge.From("project", Project.Type).
 			Ref("files").
 			Unique(),

@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -34,7 +35,9 @@ func (CoffeeRound) Edges() []ent.Edge {
 			Ref("coffee_rounds_triggered").
 			Unique().
 			Required(),
-		edge.To("pairs", CoffeePair.Type),
+		// A3W8-2-002: owned_child Cascade (ADR-ENT-ONDELETE-CASCADE).
+		edge.To("pairs", CoffeePair.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

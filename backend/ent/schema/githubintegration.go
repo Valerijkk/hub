@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -27,8 +28,10 @@ func (GitHubIntegration) Fields() []ent.Field {
 			NotEmpty().
 			MaxLen(255).
 			Comment("Имя репозитория"),
+		// A3W8-2-006: PAT обязателен (симметрия webhook_secret NotEmpty).
 		field.String("access_token").
 			Sensitive().
+			NotEmpty().
 			Comment("GitHub Personal Access Token"),
 		field.String("webhook_secret").
 			Sensitive().
@@ -41,19 +44,19 @@ func (GitHubIntegration) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
-		// W7-A3-010 / ADR-ENT-SOFT-DELETE-GAPS-2026: soft-delete интеграций (токены/links).
+		// W7-A3-010 / ADR-ENT-SOFT-DELETE-GAPS-2026: soft-delete интеграций.
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
 	}
 }
+
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
 func (GitHubIntegration) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		VersionMixin{},
 	}
 }
-
 
 // Рёбра (edges) сущности GitHubIntegration.
 func (GitHubIntegration) Edges() []ent.Edge {
@@ -62,7 +65,9 @@ func (GitHubIntegration) Edges() []ent.Edge {
 			Ref("github_integrations").
 			Unique().
 			Required(),
-		edge.To("github_links", GitHubLink.Type),
+		// A3W8-2-004: owned_child Cascade Integration→links.
+		edge.To("github_links", GitHubLink.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

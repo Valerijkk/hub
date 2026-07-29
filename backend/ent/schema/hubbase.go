@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -34,6 +35,7 @@ func (HubBase) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
 func (HubBase) Mixin() []ent.Mixin {
 	return []ent.Mixin{
@@ -41,14 +43,15 @@ func (HubBase) Mixin() []ent.Mixin {
 	}
 }
 
-
 func (HubBase) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("owner", User.Type).
 			Ref("hub_bases").
 			Unique().
 			Required(),
-		edge.To("tables", HubTable.Type),
+		// A3W8-2-003: owned_child Cascade. HubTable children — TASK-169.
+		edge.To("tables", HubTable.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

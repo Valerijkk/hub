@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -41,13 +42,13 @@ func (Comment) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
 func (Comment) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		VersionMixin{},
 	}
 }
-
 
 // Рёбра (edges) сущности Comment.
 func (Comment) Edges() []ent.Edge {
@@ -60,7 +61,9 @@ func (Comment) Edges() []ent.Edge {
 			Ref("comments").
 			Unique().
 			Required(),
-		edge.To("reactions", Reaction.Type),
+		// A3W8-2-005: owned_child Cascade comment→reactions.
+		edge.To("reactions", Reaction.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

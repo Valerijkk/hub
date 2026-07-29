@@ -62,9 +62,11 @@
 
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|----------|-------------------|------------|
-| A3W2-3-001 | RESIDUAL (A2W2-3-002 / W2-A3-007) | P2 | `ent_repository.go:872-883`, `:1091-1102`, `:995-1004`, `:1274-1281`, `:1123-1137`, `:1188-1217` | После TASK-111 остались unbounded: `ListTestResultsByRunIDs` / `GetLastResultsForTestCases` (весь history → map) / `GetProjectIssuesWithTestCases` / `ListEnvironmentsByProject` / `AddTestCasesToRun` CreateBulk без cap / `GetTestRunWithResults*` nested `WithResults` без Limit | Hot path отчётов (coverage/compare) и add-cases/import twin `BatchCreate` уже capped → OOM / долгий All; false-close A2W2-3-002 | `Limit(maxListTestResults)` (+ per-run cap на ByRunIDs); `GetLastResults` — DISTINCT ON / window Limit 1 per case; env/issues caps; `AddTestCasesToRun` → `maxBatchCreateTestResults`; WithResults `.Limit(...)` |
-| A3W2-3-002 | NEW | P3 | `ent_repository.go:395-405` | `CountLabelsInProject` — `IDIn` + `HasProjectWith`, **без** `label.DeletedAtIsNil()` | Soft-deleted метки всё ещё «считаются» в проекте → service authz/count может принять label из корзины | Добавить `label.DeletedAtIsNil()`; Ent-тест: soft-delete label → Count=0 |
-| A3W2-3-003 | NEW | P3 | `ent_repository.go:971-992` | `GetTestCaseLinkedIssues` / `GetIssueLinkedTestCases` — `WithLinked*` без `DeletedAtIsNil` на edge | Traceability/UI показывают issue/TC из корзины; `GetProjectIssuesWithTestCases` уже фильтрует Issue soft-delete — асимметрия | Edge query filter `DeletedAtIsNil` (или post-filter); regression twin `repo_defense_task061` |
+| A3W2-3-001 | FIXED | P2 | `ent_repository.go` | Unbounded ByRunIDs / LastResults / AddCases / WithResults / env·issues | OOM / долгий All | TASK-140: Limit / First / batch err — см. backlog |
+| A3W2-3-002 | FIXED | P3 | `ent_repository.go` CountLabels | без `label.DeletedAtIsNil()` | trash labels в count | TASK-140: DeletedAtIsNil |
+| A3W2-3-003 | FIXED | P3 | `ent_repository.go` linked edges | `WithLinked*` без soft-delete | trash в traceability | TASK-140: edge DeletedAtIsNil |
+
+Remediation: `.planning/backlog/TASK-140-2026-07-29-a3-2-3-tms-repos.md` · статус **На проверке** · hubtest `TestTask140_*` PASS.
 
 ## Чисто (подтверждено после remediation)
 

@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -27,8 +28,10 @@ func (GitLabIntegration) Fields() []ent.Field {
 			NotEmpty().
 			MaxLen(500).
 			Comment("Путь к проекту в GitLab (например group/repo)"),
+		// A3W8-2-006: PAT обязателен (симметрия webhook_secret NotEmpty).
 		field.String("access_token").
 			Sensitive().
+			NotEmpty().
 			Comment("GitLab Personal Access Token"),
 		// A2W8-2-007: секрет обязателен (симметрия с GitHubIntegration).
 		field.String("webhook_secret").
@@ -38,19 +41,19 @@ func (GitLabIntegration) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(nowUTC).
 			Immutable(),
-		// W7-A3-010 / ADR-ENT-SOFT-DELETE-GAPS-2026: soft-delete интеграций (токены/links).
+		// W7-A3-010 / ADR-ENT-SOFT-DELETE-GAPS-2026: soft-delete интеграций.
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
 	}
 }
+
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
 func (GitLabIntegration) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		VersionMixin{},
 	}
 }
-
 
 // Рёбра (edges) сущности GitLabIntegration.
 func (GitLabIntegration) Edges() []ent.Edge {
@@ -59,7 +62,9 @@ func (GitLabIntegration) Edges() []ent.Edge {
 			Ref("gitlab_integrations").
 			Unique().
 			Required(),
-		edge.To("gitlab_links", GitLabLink.Type),
+		// A3W8-2-004: owned_child Cascade Integration→links.
+		edge.To("gitlab_links", GitLabLink.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
