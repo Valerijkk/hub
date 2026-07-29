@@ -73,9 +73,9 @@ Go-тесты физически живут в `backend/testframework/` (не в
 
 | Метрика | Значение |
 |---------|----------|
-| Backend test files | **652** `_test.go` (0 в `internal/`; measured 2026-07-28; was 515 → 580) |
-| Backend `export_hooks.go` | **37** (`//go:build hubtest`; measured 2026-07-28) |
-| Frontend Vitest | 37 файлов, 99 тестов |
+| Backend test files | **760** `_test.go` (0 в `internal/`; measured 2026-07-29; was 515 → 580 → 652) |
+| Backend `export_hooks.go` | **39** (`//go:build hubtest`; measured 2026-07-29) |
+| Frontend Vitest | **129** files (`testframework/stages/unit/frontend-test/`; measured 2026-07-29; 56 `.ts` + 73 `.tsx`) |
 | Playwright E2E | 20 spec (smoke: 3) |
 | Statement coverage `internal/` | **83.0%** (2026-06-22 Docker baseline) при gate ≥82% |
 | Security-пакеты (auth/ws/rbac/audit/calls + platform) | 6/6 ≥80% |

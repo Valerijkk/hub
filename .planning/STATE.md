@@ -65,6 +65,27 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (fe1 · TASK-126 A3W10-3 sprint backlog/store)
+
+- **Сделано:** восстановлен фильтр бэклога `sprint_id:"none"` + `filterIssuesWithoutSprint`; `velocityLoading` (empty≠loading); сброс `sprints`/`velocity` при старте fetch; clear `selectedIssues` на смене `projectId`.
+- **ID:** A3W10-3-001/002/003/004 — FIXED.
+- **Тесты:** vitest sprint filter/selection-leak/velocity-loading/stale-clear/error; mutation proofs PASS→FAIL→restore.
+- **Docs:** backlog TASK-126 → На проверке (README — оркестратор).
+
+## Session note — 2026-07-29 (docs-writer · TASK-132 A3W11-4 docs inventory/webcam/HEAD)
+
+- **Сделано:** recount BE `*_test.go` = **760** (measured 2026-07-29) → `docs/README.md` + siblings; `competitive_audit` gap Calls webcam shipped + HEAD без `bbdaf16`.
+- **ID:** A3W11-4-001/002/003 → FIXED; задача «На проверке» (README бэклога не трогали).
+- **Evidence:** shell count 760; `rg` anti-stale `618|bbdaf16|webcams — Phase 16 IN` пусто в целевых файлах.
+- **Assumption:** inventory снова устареет — дата measure в комментарии обязательна.
+
+## Session note — 2026-07-29 (fe1 · TASK-130 A3W11-2 projects/sprint version)
+
+- **Сделано:** `projects.ts` / `sprint.ts` — `version` в response + required на update; `index.lazy.tsx` передаёт `project.version`.
+- **ID:** A3W11-2-001, A3W11-2-002 → FIXED; задача «На проверке».
+- **Тесты:** Vitest `projects-sprint-version.test.ts` + tsc fixture omit → `@ts-expect-error`.
+- **Assumption:** sprint edit UI нет — DTO sync достаточна.
+
 ## Session note — 2026-07-29 (fe1 · TASK-129 A3W11-1-001 wire→ApiError)
 
 - **Сделано:** `client.ts` — `mapWireToApiError` (`error`→`message`, `request_id`, 429 `Retry-After`); `request` + `getBlob`.

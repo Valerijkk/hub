@@ -18,7 +18,7 @@
 vet.exe: testframework\accounting\fixtures_test.go:58:20: undefined: accounting.ExportMapServiceError
 ```
 
-**Причина.** Тесты в `backend/testframework/` — белый ящик: они обращаются к внутренностям модулей через хуки `backend/internal/<module>/export_hooks.go`. Все **37** таких файлов (`export_hooks.go`, measured 2026-07-28) помечены `//go:build hubtest`, то есть **компилируются только с этим build-тегом**. Без тега символы не существуют.
+**Причина.** Тесты в `backend/testframework/` — белый ящик: они обращаются к внутренностям модулей через хуки `backend/internal/<module>/export_hooks.go`. Все **39** таких файлов (`export_hooks.go`, measured 2026-07-29) помечены `//go:build hubtest`, то есть **компилируются только с этим build-тегом**. Без тега символы не существуют.
 
 **Решение — всегда прогонять backend-тесты с `-tags hubtest`:**
 
@@ -45,7 +45,7 @@ test:
 	cd frontend && npm test -- --run
 ```
 
-Здесь **нет `-tags hubtest`**, поэтому пакеты `testframework/*` не компилируются (см. §1.1). Дополнительно: в `backend/internal/` **ноль** файлов `*_test.go` — все **652** тестовых файлов лежат в `backend/testframework/` (measured 2026-07-28; was 515 → 580). То есть даже без ошибки компиляции `./...` не нашёл бы там тестов.
+Здесь **нет `-tags hubtest`**, поэтому пакеты `testframework/*` не компилируются (см. §1.1). Дополнительно: в `backend/internal/` **ноль** файлов `*_test.go` — все **760** тестовых файлов лежат в `backend/testframework/` (measured 2026-07-29; was 515 → 580 → 652). То есть даже без ошибки компиляции `./...` не нашёл бы там тестов.
 
 **Решение сейчас** — не полагаться на `make test` для backend, использовать канонические команды:
 

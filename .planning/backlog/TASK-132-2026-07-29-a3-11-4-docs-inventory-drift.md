@@ -1,8 +1,19 @@
 # 🧹 A3 docs README inventory + webcam/competitive HEAD drift
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3 W11-4 fe-lib-docs · Stage A3 FINAL · TASK-008  
 > Исполнитель: **docs-writer** · Finding IDs: `A3W11-4-001`, `A3W11-4-002`, `A3W11-4-003`
+
+## [EXECUTION REPORT]
+
+- **Verdict:** три ID **FIXED** (CONFIRMED)
+- **Recount:** `(Get-ChildItem -Recurse -Filter *_test.go backend/testframework).Count` = **760** (2026-07-29); audit имел 759 — канон = 760
+- **A3W11-4-001:** `docs/README.md` + siblings (`test_plan`, `TROUBLESHOOTING`, `TESTING`, `testframework_strategy`) → **760** / measured 2026-07-29
+- **A3W11-4-002:** gap Calls → webcams ✅ shipped; polish — backlog (согласовано с `:132` / BUSINESS)
+- **A3W11-4-003:** строка ветка — snapshot 2026-06-23 без SHA / без претензии на live tip
+- **Anti-stale:** `rg -n "618|bbdaf16|webcams — Phase 16 IN" docs/README.md docs/competitive_audit.md` → пусто
+- **Backlog README:** не трогали (owner: статус только в файле задачи → «На проверке»)
+- **Handoff:** docs-ver / code-reviewer docs-diff
 
 ## [OUTCOME]
 

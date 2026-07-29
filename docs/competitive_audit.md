@@ -1,6 +1,6 @@
 # Hub — Конкурентный аудит и backlog фич
 
-> **Обновлено:** 2026-06-23  
+> **Обновлено:** 2026-07-29 (A3W11-4 inventory/webcam/HEAD drift) · исходный снимок позиции 2026-06-23  
 > **Связанные документы:** [competitive_analysis_2026.md](./competitive_analysis_2026.md) · [user_needs_analysis_2026.md](./user_needs_analysis_2026.md) · [.planning/decisions/specs/PLATFORM-VISION-v4.md](../.planning/decisions/specs/PLATFORM-VISION-v4.md)  
 > **Цель:** best practices от лидеров рынка + приоритизированный backlog для Hub v2.5–v4.5+.
 
@@ -19,7 +19,7 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 | Security-critical пакеты ≥80% | **6/6** ✅ |
 | REST API endpoints | **286+** |
 | Product score (AUDIT-SCORECARD / AGENTS) | **89/100** |
-| Ветка | `master` · HEAD `bbdaf16` |
+| Ветка (snapshot 2026-06-23) | `master` — конкретный SHA не фиксируем; не live tip аудита |
 | CI | ✅ green (coverage-gate, e2e-full 20 specs, lighthouse artifact) |
 
 **Стратегия:** не конкурировать с Jira в enterprise workflow; побеждать по **TCO + интеграция + self-host + RU-friendly AI** для команд с data residency.
@@ -33,7 +33,7 @@ Hub — **self-hosted corporate super-app** для команд 10–50 чело
 | Task Tracker | Jira, Linear, Asana | JQL deep, cycles, roadmap, automations | Automation UI есть (v2.6); triage inbox — polish |
 | Messenger | Slack, Discord, Teams | Threads, bots, marketplace | Bot framework ограничен (Telegram); AI v3.0 ✅ |
 | TMS | TestRail, Allure TestOps | Flaky ML, CI gates, run diff | Allure import ✅; flaky detection — partial |
-| Calls | Zoom, Meet, Discord | Breakout, noise cancel, webcams | LiveKit voice+screen ✅; webcams — Phase 16 IN |
+| Calls | Zoom, Meet, Discord | Breakout, noise cancel, webcams | LiveKit voice+screen ✅; webcams ✅ shipped (`CallControls` / LiveKit); polish — backlog |
 | Dashboards | Grafana, Datadog | Custom panels, alerting | Статичные виджеты; OBS stack ✅ (Prometheus/Loki) |
 | Corp super-app | Mighty, Bitrix24, Lark | News, HR, CRM, calendar | **v4 закрыто** — intranet, HR, CRM, bases |
 | Admin/Observability | Datadog, Sentry, Auth0 | APM, audit, ban | ✅ Audit UI + HTTP timing + OTel + Alertmanager |

@@ -26,14 +26,14 @@
 4. **E2E:** 20 spec files; config `frontend/playwright.config.ts` (см. `docs/test_plan.md`)
 5. **Triage:** spec-first — `.cursor/skills/test-triage/SKILL.md`
 
-### Актуальные счётчики (2026-07-28)
+### Актуальные счётчики (2026-07-29)
 
 | Слой | Метрика |
 |------|---------|
-| Backend test files (`backend/testframework/`) | **652** `_test.go` (0 в `internal/` после TF-M08; measured 2026-07-28) |
-| Backend `export_hooks.go` | **37** (`//go:build hubtest`; measured 2026-07-28) |
+| Backend test files (`backend/testframework/`) | **760** `_test.go` (0 в `internal/` после TF-M08; measured 2026-07-29) |
+| Backend `export_hooks.go` | **39** (`//go:build hubtest`; measured 2026-07-29) |
 | Backend `internal/*_test.go` | **0** |
-| Frontend Vitest | **94** files (`testframework/stages/unit/frontend-test/`; measured 2026-07-28) |
+| Frontend Vitest | **129** files (`testframework/stages/unit/frontend-test/`; measured 2026-07-29; 56 `.ts` + 73 `.tsx`) |
 | Playwright | **20** spec files (`stages/e2e/domains/`) |
 | Overall `internal/` coverage | **83.0%** (2026-06-22 Docker baseline) |
 
@@ -508,4 +508,4 @@ WCAG 2.1 AA (целевой для v2.0 Redesign)
 
 ---
 
-*Последнее обновление: 2026-06-21 — Magic Link auth, CI Go 1.25, coverage 82%+, e2e testframework/*
+*Последнее обновление: 2026-07-29 — inventory **760** BE `*_test.go` / **39** export_hooks / Vitest **129** files; COV 83% остаётся baseline прогона 2026-06-22*
