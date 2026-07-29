@@ -105,8 +105,13 @@ func TestService_Wave122_ExecuteTestResult_WithFiles(t *testing.T) {
 
 	resultID := uuid.New()
 	repo.results[resultID] = &ent.TestResult{ID: resultID, Status: testresult.StatusUnknown, CreatedAt: time.Now()}
+	repo.runResults[runID] = []uuid.UUID{resultID}
 
 	fileID := uuid.New()
+	repo.files[fileID] = &ent.FileMetadata{
+		ID: fileID,
+		Edges: ent.FileMetadataEdges{Project: &ent.Project{ID: projectID}},
+	}
 	passed := "passed"
 	resp, err := svc.ExecuteTestResult(ctx, projectID, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
 		Status:  &passed,

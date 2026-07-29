@@ -80,6 +80,7 @@ func TestAssignTestersToRun_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	testerID := uuid.New()
+	repo.projectMembers[projectID] = map[uuid.UUID]bool{testerID: true}
 	detail, err := svc.AssignTestersToRun(ctx, projectID, runID, tms.AssignTestersRequest{
 		UserIDs: []string{testerID.String()},
 	})

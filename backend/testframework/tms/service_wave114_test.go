@@ -58,6 +58,7 @@ func TestExecuteTestResult_InvalidFileID(t *testing.T) {
 	}
 	resultID := uuid.New()
 	repo.results[resultID] = &ent.TestResult{ID: resultID, Status: "unknown"}
+	repo.runResults[runID] = []uuid.UUID{resultID}
 
 	status := "passed"
 	_, err := svc.ExecuteTestResult(ctx, projectID, runID, resultID, uuid.New(), tms.UpdateTestResultRequest{
