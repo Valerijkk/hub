@@ -53,11 +53,13 @@ type mockRepository struct {
 	listResultsByRunIDsCalls  int
 	getLastResultSingleCalls  int
 
-	// Inject hooks for A3W2-2-003 / A3W2-2-006.
+	// Inject hooks for A3W2-2-003 / A3W2-2-006 / C-W19-TT-002.
 	failUpdateStats   bool
 	deleteCaseErr     error
 	linkIssueErr      error
 	unlinkIssueErr    error
+	storeAllureErr    error // C-W19-TT-002: Mongo StoreAllureResults fail
+	findMatchErr      error // C-W19-TT-002: matcher Find* infra err (≠ NotFound)
 }
 
 func (m *mockRepository) CreateEnvironment(_ context.Context, projectID uuid.UUID, input tms.CreateEnvironmentInput) (*ent.Environment, error) {
@@ -199,18 +201,30 @@ func (m *mockRepository) FindTestCaseByKey(_ context.Context, projectID uuid.UUI
 }
 
 func (m *mockRepository) FindTestCaseByExternalID(_ context.Context, _ uuid.UUID, _ string) (*ent.TestCase, error) {
+	if m.findMatchErr != nil {
+		return nil, m.findMatchErr
+	}
 	return nil, &ent.NotFoundError{}
 }
 
 func (m *mockRepository) FindTestCaseByAutomationID(_ context.Context, _ uuid.UUID, _ string) (*ent.TestCase, error) {
+	if m.findMatchErr != nil {
+		return nil, m.findMatchErr
+	}
 	return nil, &ent.NotFoundError{}
 }
 
 func (m *mockRepository) FindTestCaseByFullName(_ context.Context, _ uuid.UUID, _ string) (*ent.TestCase, error) {
+	if m.findMatchErr != nil {
+		return nil, m.findMatchErr
+	}
 	return nil, &ent.NotFoundError{}
 }
 
 func (m *mockRepository) FindTestCaseByClassMethod(_ context.Context, _ uuid.UUID, _, _ string) (*ent.TestCase, error) {
+	if m.findMatchErr != nil {
+		return nil, m.findMatchErr
+	}
 	return nil, &ent.NotFoundError{}
 }
 
@@ -938,6 +952,9 @@ func (m *mockRepository) AddFilesToResult(_ context.Context, _, _ uuid.UUID, _ [
 }
 
 func (m *mockRepository) StoreAllureResults(_ context.Context, _ uuid.UUID, _ []tms.AllureResult) error {
+	if m.storeAllureErr != nil {
+		return m.storeAllureErr
+	}
 	return nil
 }
 
