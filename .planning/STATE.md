@@ -4,8 +4,8 @@ milestone: v4
 milestone_name: Hub One Super-app
 status: planning-audit-pw-in-progress
 stopped_at: Planning audit 2026-07 PW1–PW5 · coverage remeasured · phase matrix live
-last_updated: "2026-07-29T17:00:00.000Z"
-last_activity: 2026-07-29 · fe1 TASK-179 C-W19 FE sprint.completed trim · На проверке
+last_updated: "2026-07-29T17:10:00.000Z"
+last_activity: 2026-07-29 · be2 TASK-181 C-W19 webhook soft-delete deactivate · На проверке
 progress:
     total_phases: 125
     tasks_completed: 125

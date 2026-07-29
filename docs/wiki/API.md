@@ -100,7 +100,7 @@ curl -sS -X POST http://localhost:8080/api/auth/magic-link/verify \
 | PUT | `/projects/:projectId` | Обновить проект |
 | POST | `/projects/:projectId/archive` | Архивировать проект (`active` → `archived`; soft-deleted → 404) |
 | POST | `/projects/:projectId/unarchive` | Разархивировать проект (`archived` → `active`; soft-deleted → 404) |
-| DELETE | `/projects/:projectId` | Удалить проект (в корзину) |
+| DELETE | `/projects/:projectId` | Удалить проект (в корзину); в той же tx гасит webhook endpoints (`is_active=false`, C-W19-004) |
 | POST | `/projects/:projectId/restore` | Восстановить из корзины (`deleted` → `active`, сбрасывает `deleted_at`) |
 | DELETE | `/projects/:projectId/permanent` | Hard-delete только из корзины (`status=deleted`) + system admin/founder; иначе 400/403 |
 
@@ -689,7 +689,7 @@ API-ключи для программного доступа, webhook-подп�
 | POST | `/projects/:projectId/webhooks/` | Создать endpoint для проекта |
 | GET | `/projects/:projectId/webhooks/` | Список endpoints проекта |
 
-Allowlist событий: `issue.created`, `issue.updated`, `issue.status_changed`, `test_run.completed`, `*` (wildcard). `sprint.completed` снят до появления NATS producer (A3W4-5-003). Soft-deleted project (корзина) не получает outbound POST.
+Allowlist событий: `issue.created`, `issue.updated`, `issue.status_changed`, `test_run.completed`, `*` (wildcard). `sprint.completed` снят до появления NATS producer (A3W4-5-003). Soft-deleted project (корзина): outbound POST не уходит (`ListActive` + `HasProjectWith(DeletedAtIsNil)`); `SoftDeleteWithCrossLinkCleanup` в той же tx ставит `is_active=false` на endpoints (C-W19-004 / TASK-181); `GET …/webhooks/` для trash-project пуст (`project.DeletedAtIsNil`).
 
 Ответ endpoint: `{ id, url, events, is_active, version, created_at }` (+ `secret` только при Create, one-time).
 
