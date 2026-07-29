@@ -181,6 +181,7 @@ function ChannelSection({
 	children: React.ReactNode;
 }) {
 	const [collapsed, setCollapsed] = useState(false);
+	const panelId = `channel-section-panel-${type}`;
 
 	return (
 		<div>
@@ -188,6 +189,8 @@ function ChannelSection({
 				<button
 					type="button"
 					className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--t4)] hover:text-[var(--t3)] transition-colors"
+					aria-expanded={!collapsed}
+					aria-controls={panelId}
 					onClick={() => setCollapsed(!collapsed)}
 				>
 					<svg
@@ -213,7 +216,9 @@ function ChannelSection({
 					<SectionAddButton type={type} />
 				</div>
 			</div>
-			{!collapsed && <div className="space-y-px">{children}</div>}
+			<div id={panelId} hidden={collapsed} className="space-y-px">
+				{children}
+			</div>
 		</div>
 	);
 }
@@ -553,7 +558,7 @@ function ChannelItem({
 				params={{ channelId: channel.id }}
 				className={cn(
 					"group/item flex items-center gap-[11px] py-2.5 px-3.5 cursor-pointer transition-colors border-l-2 border-transparent",
-					isActive && "bg-[rgba(52,211,153,.04)] border-l-[var(--green)]",
+					isActive && "bg-[var(--gG)] border-l-[var(--green)]",
 					!isActive && "hover:bg-[var(--hover)]",
 				)}
 				onClick={onSelect}
@@ -796,7 +801,7 @@ export function ChannelList({ onChannelSelect }: ChannelListProps = {}) {
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[var(--t3)] pointer-events-none" />
 					<input
 						type="text"
-						className="w-full h-9 pl-[38px] pr-3.5 bg-[var(--input)] border border-transparent rounded-full text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] outline-none transition-all duration-250 focus:border-[rgba(52,211,153,.3)] focus:bg-[var(--card)] focus:shadow-[0_0_0_3px_rgba(52,211,153,.06)]"
+						className="w-full h-9 pl-[38px] pr-3.5 bg-[var(--input)] border border-transparent rounded-full text-[13px] text-[var(--t1)] placeholder:text-[var(--t3)] outline-none transition-all duration-250 focus:border-[color-mix(in_srgb,var(--green)_30%,transparent)] focus:bg-[var(--card)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--green)_6%,transparent)]"
 						placeholder="Поиск..."
 						aria-label="Поиск каналов"
 						value={searchQuery}

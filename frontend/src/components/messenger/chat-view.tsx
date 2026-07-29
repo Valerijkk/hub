@@ -220,7 +220,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
 			{/* Заголовок канала */}
-			<div className="h-[58px] shrink-0 flex items-center px-4 md:px-[22px] gap-2.5 md:gap-3.5 border-b border-[var(--b1)] bg-[rgba(13,14,18,.7)] backdrop-blur-[24px] backdrop-saturate-[180%] relative z-20">
+			<div className="h-[58px] shrink-0 flex items-center px-4 md:px-[22px] gap-2.5 md:gap-3.5 border-b border-[var(--b1)] bg-[color-mix(in_srgb,var(--void)_70%,transparent)] backdrop-blur-[24px] backdrop-saturate-[180%] relative z-20">
 				{/* Mobile: гамбургер для открытия списка каналов */}
 				<button
 					type="button"
@@ -233,7 +233,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 				</button>
 				<div className="flex items-center gap-3.5 min-w-0 flex-1">
 					{channel && (
-						<div className="w-[34px] h-[34px] rounded-full bg-[rgba(52,211,153,.08)] text-[var(--green)] flex items-center justify-center text-sm font-extrabold shadow-[0_0_12px_rgba(52,211,153,.06)] hover:scale-110 transition-transform">
+						<div className="w-[34px] h-[34px] rounded-full bg-[var(--gG)] text-[var(--green)] flex items-center justify-center text-sm font-extrabold shadow-[0_0_12px_color-mix(in_srgb,var(--green)_6%,transparent)] hover:scale-110 transition-transform">
 							<ChannelHeaderIcon type={channel.channel_type} />
 						</div>
 					)}
@@ -261,7 +261,7 @@ export function ChatView({ channelId }: ChatViewProps) {
 					<PinnedMessages channelId={channelId} />
 				</div>
 				{/* Градиентная линия под заголовком */}
-				<div className="absolute bottom-[-1px] left-[5%] right-[5%] h-px bg-gradient-to-r from-transparent via-[rgba(52,211,153,.06)] to-transparent" />
+				<div className="absolute bottom-[-1px] left-[5%] right-[5%] h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--green)_6%,transparent)] to-transparent" />
 			</div>
 
 			{/* Область сообщений */}
