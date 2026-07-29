@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -34,13 +35,13 @@ func (AIUserPreference) Fields() []ent.Field {
 			UpdateDefault(nowUTC),
 	}
 }
+
 // Mixin подключает VersionMixin (NFR-24 / ADR-ENT-VERSION-MIXIN-2026).
 func (AIUserPreference) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		VersionMixin{},
 	}
 }
-
 
 // Рёбра (edges) сущности AIUserPreference.
 func (AIUserPreference) Edges() []ent.Edge {
@@ -49,9 +50,11 @@ func (AIUserPreference) Edges() []ent.Edge {
 			Ref("ai_preference").
 			Unique().
 			Required(),
+		// A3W8-1-001 / TASK-167: optional_ref → явный SetNull (migrate TASK-107 уже ON DELETE SET NULL).
 		edge.To("default_provider", AIProvider.Type).
 			Field("default_provider_id").
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 

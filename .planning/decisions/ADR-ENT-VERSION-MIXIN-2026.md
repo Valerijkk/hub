@@ -28,6 +28,11 @@ TZ/NFR-24 требуют `version` на изменяемых Ent. Сейчас �
 3. Exclusion (документировать здесь):
    - **append_only**: ActivityLog, AuditLog, OutboxEvent, и аналоги
    - **immutable_link**: ChannelMember, IssueLink, Reaction, и аналоги
+     - **Amendment 2026-07-29 (TASK-167 / A3W8-1-002):** ChannelMember junction
+       identity остаётся `immutable_link`; preference updates (`is_starred` /
+       `muted_until`) — **LWW accepted** (см. ADR-ENT-CHANNELMEMBER-LWW-2026).
+       VersionMixin на `channel_members` отложен (параллельный schema-wave /
+       codegen approve).
 4. **Unclear (12)** — exclusion до owner reclassify (не добавляем version):
    apikey, call, channelinvite, coffeeenrollment, coffeeround, filemetadata,
    invite, notification, pushsubscription, recording, session, timelog.
