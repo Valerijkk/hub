@@ -72,12 +72,12 @@
 | ID | Tag | Severity | Файл:строка | Проблема | Почему это дефект | Как чинить |
 |----|-----|----------|-------------|----------|-------------------|------------|
 | A2W1-A5-003 | RESIDUAL | P3 | `service.go:565-573` | `RemoveTeamMember`: любой member удаляет любого; нет запрета «последний участник» | Пустая команда → никто не проходит `requireTeamMember` → orphan team навсегда; тест `service_wave122_extra_test.go:103-107` закрепляет empty как success | Перед remove: `TeamMemberCount`; если ≤1 → 400; либо admin override |
-| A3W1-A5-001 | NEW | P2 | `repository.go:229-237`, `service.go:215-224`, `service.go:227-236`, `service.go:304-313` | `UpdateStatus(..., setDeletedAt=false)` всегда `ClearDeletedAt`; Archive/Unarchive/Restore идут этим путём | Soft-deleted проект можно «воскресить» через `POST …/archive` или `…/unarchive` (`PermProjectEdit`), минуя `Restore` (`PermProjectDelete`); `deleted_at` сбрасывается | Guard: Archive/Unarchive — только `active`/`archived`; на `deleted` → 404/400; `ClearDeletedAt` только в Restore |
-| A3W1-A5-002 | NEW | P2 | `service.go:316-325`, `handler.go:292-302` | `PermanentDelete` / `DELETE …/permanent` не требуют `status=deleted`; нет `IsSystemAdmin` | TZ: soft-delete → корзина; hard delete — Admin/GDPR. Owner (`^0` perms) hard-delete'ит **active** проект без trash; комментарий «Только admin» не enforced | Разрешить hard-delete только `status=deleted` + system admin/founder; иначе 400/403 |
-| A3W1-A5-003 | NEW | P3 | `service.go:511-523` | `CreateTeam`: `CreateTeam` + `AddTeamMember(creator)` не в одной tx | При fail второго шага — команда без участников (тот же orphan-класс, что A2W1-A5-003) | Одна Ent-tx: create team + add creator; rollback целиком |
-| A3W1-A5-004 | NEW | P3 | `invite.go:110` | `JoinByInvite`: `count, _ := s.repo.MemberCount(...)` глотает err | При ошибке count клиент получает `member_count: 0` после успешного join (ложный UI) | Как `memberCountOrZero` / warn+fallback, или return internal |
-| A3W1-A5-005 | NEW | P3 | `templates.go:238-242`, `template_export.go:109-111` | `ListTemplates` / `ExportTemplateHandler` отдают `err.Error()` в `fiber.NewError` | Внутренний текст/обёртки утекают в API вместо `{"error","request_id"}` | `return err` / `apperrors.NewInternal` без raw `err.Error()` |
-| A3W1-A5-006 | NEW | P3 | `template_multipart_test.go:12-19` | Файл — только helper `multipartWriter`, нет `Test*` на body > `maxTemplateImportBytes` | Регрессия 413/`LimitReader` (хвост W1-A5-012) не ловится; happy-path import есть в routes-тесте | Handler-тест: payload > 25MB → 413 |
+| A3W1-A5-001 | FIXED | P2 | `repository.go` / `service.go` Archive/Unarchive/Restore | ~~ClearDeletedAt на любом UpdateStatus(false)~~ | Soft-deleted resurrect через archive | TASK-137: guard deleted + `RestoreFromTrash` |
+| A3W1-A5-002 | FIXED | P2 | `service.go` PermanentDelete / `handler.go` | ~~hard-delete active без admin~~ | TZ Admin/GDPR | TASK-137: `status=deleted` + `IsSystemAdmin` |
+| A3W1-A5-003 | FIXED | P3 | `repository.go` CreateTeamWithCreator | ~~CreateTeam+AddMember вне tx~~ | orphan team | TASK-137: Ent-tx + mid-fail hook |
+| A3W1-A5-004 | FIXED | P3 | `invite.go` JoinByInvite | ~~MemberCount err → 0~~ | ложный UI | TASK-137: slog + NewInternal |
+| A3W1-A5-005 | FIXED | P3 | `templates.go` / `template_export.go` | ~~err.Error() в Fiber~~ | leak internals | TASK-137: `apperr.NewInternal` |
+| A3W1-A5-006 | FIXED | P3 | `a3w1_a5_task137_test.go` | ~~нет Test* >25MB~~ | регрессия 413 | TASK-137: oversize → 413 |
 
 ## Чисто (подтверждено после remediation)
 
@@ -88,6 +88,7 @@
 - Template DeleteTemplate — author/admin; SaveAsTemplate — membership; import `LimitReader` + size check.
 - HI-06 `TryConsumeInvite` атомарный; statuses/labels fail-closed; invite Link + `resolveFrontendURL`.
 - A2W1-A5-001/002 evidence: tx cleanup + AddTeam tx + unit/Ent tests PASS-пути в wave101 / TASK-088.
+- **TASK-137 (2026-07-29):** A3W1-A5-001…006 FIXED — hubtest `./testframework/project/` PASS; evidence в `.planning/backlog/TASK-137-2026-07-29-a3-1-5-project.md`.
 
 ### Сводка counts (активные)
 
@@ -95,10 +96,11 @@
 |----------|------:|
 | P0 | 0 |
 | P1 | 0 |
-| P2 | 2 |
-| P3 | 5 |
-| **Total** | **7** |
+| P2 | 0 |
+| P3 | 1 (A2 residual) |
+| **Total active** | **1** |
+| FIXED (TASK-137) | **6** |
 
-A2 baseline: 3 активных → FIXED-OK 2 · RESIDUAL 1 · NEW 6 · REGRESS 0.
+A2 baseline: 3 активных → FIXED-OK 2 · RESIDUAL 1 · NEW 6 → FIXED 6 (TASK-137) · REGRESS 0.
 
-**Топ ID:** A3W1-A5-001 (trash resurrect via archive) · A3W1-A5-002 (hard-delete active / no admin) · A2W1-A5-003 (orphan team last member).
+**Топ ID (осталось):** A2W1-A5-003 (orphan team last member) — вне TASK-137.
