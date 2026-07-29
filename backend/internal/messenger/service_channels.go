@@ -27,6 +27,14 @@ func (s *MessengerService) CreateChannel(ctx context.Context, userID uuid.UUID, 
 		if err != nil {
 			return nil, apperrors.NewBadRequest("некорректный project_id")
 		}
+		// AUDIT-TM-004: канал с project_id только для участников проекта (fail-closed IDOR).
+		ok, mErr := s.repo.IsProjectMember(ctx, pid, userID)
+		if mErr != nil {
+			return nil, apperrors.NewInternal("ошибка проверки участия в проекте")
+		}
+		if !ok {
+			return nil, apperrors.NewForbidden("нет доступа к проекту")
+		}
 		input.ProjectID = &pid
 	}
 

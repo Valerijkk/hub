@@ -119,6 +119,8 @@ type BookmarkRepository interface {
 // MentionsRepository обеспечивает разрешение групповых упоминаний (@role) и lookup
 // отображаемых имён пользователей для типинг-индикатора (Ent/PG).
 type MentionsRepository interface {
+	// IsProjectMember проверяет, состоит ли userID в проекте (AUDIT-TM-004).
+	IsProjectMember(ctx context.Context, projectID, userID uuid.UUID) (bool, error)
 	// ListProjectMembersByRole возвращает user IDs участников проекта с указанной project_role.
 	ListProjectMembersByRole(ctx context.Context, projectID uuid.UUID, role string) ([]uuid.UUID, error)
 	// GetUserDisplayName возвращает display_name (с fallback на name) пользователя.

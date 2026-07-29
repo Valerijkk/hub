@@ -38,6 +38,7 @@ type mockRepository struct {
 	// Упоминания
 	displayNames         map[uuid.UUID]string
 	projectMembersByRole map[uuid.UUID]map[string][]uuid.UUID
+	projectMembers       map[uuid.UUID]map[uuid.UUID]bool // projectID -> userID
 	// Состояние избранного/mute по ключу channelID:userID
 	starred map[string]bool
 	muted   map[string]*time.Time
@@ -62,6 +63,7 @@ func newMockRepository() *mockRepository {
 		pollVotes:            make(map[uuid.UUID][]*ent.PollVote),
 		displayNames:         make(map[uuid.UUID]string),
 		projectMembersByRole: make(map[uuid.UUID]map[string][]uuid.UUID),
+		projectMembers:       make(map[uuid.UUID]map[uuid.UUID]bool),
 		starred:              make(map[string]bool),
 		muted:                make(map[string]*time.Time),
 	}
@@ -278,7 +280,7 @@ func (m *mockRepository) InsertMessage(_ context.Context, doc *MessageDocument) 
 
 func (m *mockRepository) FindMessageByID(_ context.Context, messageID string) (*MessageDocument, error) {
 	doc, ok := m.messages[messageID]
-	if !ok {
+	if !ok || doc.DeletedAt != nil {
 		return nil, &ent.NotFoundError{}
 	}
 	return doc, nil
@@ -299,7 +301,7 @@ func (m *mockRepository) ListMessages(_ context.Context, channelID uuid.UUID, _ 
 
 func (m *mockRepository) UpdateMessage(_ context.Context, messageID string, contentJSON map[string]interface{}, contentText string) (*MessageDocument, error) {
 	doc, ok := m.messages[messageID]
-	if !ok {
+	if !ok || doc.DeletedAt != nil {
 		return nil, &ent.NotFoundError{}
 	}
 	now := time.Now()
@@ -572,6 +574,14 @@ func (m *mockRepository) ListProjectMembersByRole(_ context.Context, projectID u
 		return nil, nil
 	}
 	return byRole[role], nil
+}
+
+func (m *mockRepository) IsProjectMember(_ context.Context, projectID, userID uuid.UUID) (bool, error) {
+	members, ok := m.projectMembers[projectID]
+	if !ok {
+		return false, nil
+	}
+	return members[userID], nil
 }
 
 func (m *mockRepository) GetUserDisplayName(_ context.Context, userID uuid.UUID) (string, error) {

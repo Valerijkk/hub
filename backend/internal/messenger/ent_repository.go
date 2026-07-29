@@ -17,6 +17,7 @@ import (
 	"github.com/valerii/hub/backend/ent/pollvote"
 	"github.com/valerii/hub/backend/ent/project"
 	"github.com/valerii/hub/backend/ent/projectmember"
+	"github.com/valerii/hub/backend/ent/user"
 )
 
 // EntRepository реализует Ent/PG-часть интерфейса Repository.
@@ -467,6 +468,16 @@ func (r *EntRepository) GetProjectByID(ctx context.Context, projectID uuid.UUID)
 // ---------------------------------------------------------------------------
 // MentionsRepository — разрешение групповых упоминаний и поиск отображаемых имён
 // ---------------------------------------------------------------------------
+
+// IsProjectMember проверяет участие userID в проекте (AUDIT-TM-004).
+func (r *EntRepository) IsProjectMember(ctx context.Context, projectID, userID uuid.UUID) (bool, error) {
+	return r.client.ProjectMember.Query().
+		Where(
+			projectmember.HasProjectWith(project.IDEQ(projectID)),
+			projectmember.HasUserWith(user.IDEQ(userID)),
+		).
+		Exist(ctx)
+}
 
 // ListProjectMembersByRole возвращает user IDs участников проекта с указанной project_role.
 func (r *EntRepository) ListProjectMembersByRole(ctx context.Context, projectID uuid.UUID, role string) ([]uuid.UUID, error) {

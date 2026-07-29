@@ -467,10 +467,11 @@ func TestAddMembers_AdminAllowed(t *testing.T) {
 
 // TestCreateChannel_WithProjectID проверяет сценарий: создание channel with project id.
 func TestCreateChannel_WithProjectID(t *testing.T) {
-	svc, _, _ := newTestService()
+	svc, repo, _ := newTestService()
 	ctx := context.Background()
 	userID := uuid.New()
 	projectID := uuid.New()
+	repo.projectMembers[projectID] = map[uuid.UUID]bool{userID: true}
 
 	resp, err := svc.CreateChannel(ctx, userID, messenger.CreateChannelRequest{
 		ChannelType: "public",
@@ -480,6 +481,22 @@ func TestCreateChannel_WithProjectID(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, projectID.String(), resp.ProjectID, "канал должен быть привязан к проекту")
 	assert.Equal(t, "#project-hub", resp.Name)
+}
+
+// TestCreateChannel_RejectsForeignProject_AUDIT_TM_004 — чужой project_id → 403.
+// Mutation: убрать IsProjectMember check → тест краснеет.
+func TestCreateChannel_RejectsForeignProject_AUDIT_TM_004(t *testing.T) {
+	svc, _, _ := newTestService()
+	ctx := context.Background()
+	userID := uuid.New()
+	foreignProject := uuid.New()
+
+	_, err := svc.CreateChannel(ctx, userID, messenger.CreateChannelRequest{
+		ChannelType: "public",
+		Name:        "#idor",
+		ProjectID:   foreignProject.String(),
+	})
+	requireMessengerAppErrorCode(t, err, 403)
 }
 
 // TestCreateChannel_ReadOnlyFlag проверяет сценарий: создание channel read only flag.

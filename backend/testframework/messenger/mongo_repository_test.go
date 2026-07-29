@@ -80,4 +80,10 @@ func TestMongoRepository_MessageLifecycle(t *testing.T) {
 	assert.NotEmpty(t, searchHits)
 
 	require.NoError(t, repo.SoftDeleteMessage(ctx, msgID))
+
+	// AUDIT-TM-003: soft-deleted не находится и не обновляется.
+	_, err = repo.FindMessageByID(ctx, msgID)
+	require.Error(t, err)
+	_, err = repo.UpdateMessage(ctx, msgID, map[string]interface{}{"text": "x"}, "x")
+	require.Error(t, err)
 }

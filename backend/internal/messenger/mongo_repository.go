@@ -81,9 +81,13 @@ func (r *MongoRepository) InsertMessage(ctx context.Context, doc *MessageDocumen
 }
 
 // FindMessageByID возвращает сообщение по ID.
+// AUDIT-TM-003: только живые (deleted_at nil) — иначе Edit/React/Pin мутируют trash.
 func (r *MongoRepository) FindMessageByID(ctx context.Context, messageID string) (*MessageDocument, error) {
 	var doc MessageDocument
-	err := r.messages().FindOne(ctx, bson.M{"_id": messageID}).Decode(&doc)
+	err := r.messages().FindOne(ctx, bson.M{
+		"_id":        messageID,
+		"deleted_at": nil,
+	}).Decode(&doc)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +127,13 @@ func (r *MongoRepository) ListMessages(ctx context.Context, channelID uuid.UUID,
 }
 
 // UpdateMessage обновляет контент сообщения и устанавливает edited_at.
+// AUDIT-TM-003: $set только при deleted_at nil — soft-deleted не редактируются.
 func (r *MongoRepository) UpdateMessage(ctx context.Context, messageID string, contentJSON map[string]interface{}, contentText string) (*MessageDocument, error) {
 	now := time.Now()
+	filter := bson.M{
+		"_id":        messageID,
+		"deleted_at": nil,
+	}
 	update := bson.M{
 		"$set": bson.M{
 			"content_json": contentJSON,
@@ -133,9 +142,12 @@ func (r *MongoRepository) UpdateMessage(ctx context.Context, messageID string, c
 		},
 	}
 
-	_, err := r.messages().UpdateByID(ctx, messageID, update)
+	res, err := r.messages().UpdateOne(ctx, filter, update)
 	if err != nil {
 		return nil, err
+	}
+	if res.MatchedCount == 0 {
+		return nil, mongo.ErrNoDocuments
 	}
 
 	return r.FindMessageByID(ctx, messageID)
