@@ -158,8 +158,9 @@ func (stubMessengerFail) PostAutomationMessage(_ context.Context, _, _ uuid.UUID
 	return fmt.Errorf("post failed")
 }
 
-// TestAutomationEngine_PostMessageError — post fail must not panic (error swallowed/logged).
-// W1-A3-011 / P3-BE-02.
+// TestAutomationEngine_PostMessageError — A3W1-A3-002: post fail propagates (не swallow).
+// Mutation: return nil / slog-only в executeRule → require.Error FAIL.
+// (Ранее W1-A3-011 закреплял silent swallow — перевёрнут TASK-135.)
 func TestAutomationEngine_PostMessageError(t *testing.T) {
 	client := enttest.Open(t, "sqlite3", "file:auto_postfail_"+uuid.New().String()+"?mode=memory&cache=shared&_fk=1")
 	t.Cleanup(func() { _ = client.Close() })
@@ -181,12 +182,12 @@ func TestAutomationEngine_PostMessageError(t *testing.T) {
 	require.NoError(t, err)
 
 	engine := tracker.NewAutomationEngine(repo, stubMessengerFail{}, nil)
-	assert.NotPanics(t, func() {
-		engine.HandleIssueCreated(ctx, tracker.IssueCreatedEvent{
-			IssueKey: "PF-1", IssueID: uuid.New().String(), ProjectID: proj.ID.String(),
-			CreatedByID: user.ID.String(), IssueType: "task", Title: "x",
-		})
+	err = engine.HandleIssueCreated(ctx, tracker.IssueCreatedEvent{
+		IssueKey: "PF-1", IssueID: uuid.New().String(), ProjectID: proj.ID.String(),
+		CreatedByID: user.ID.String(), IssueType: "task", Title: "x",
 	})
+	require.Error(t, err, "PostAutomationMessage fail must propagate")
+	assert.Contains(t, err.Error(), "post message")
 }
 
 // TestAutomationEngine_NotifyInvalidAssignee проверяет отклонение при автоматизация engine notify некорректный assignee.

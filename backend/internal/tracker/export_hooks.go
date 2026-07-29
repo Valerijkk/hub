@@ -36,8 +36,8 @@ func ExportValidateAutomationRuleRequest(triggerType, actionType string, trigger
 }
 
 // ExportAutomationEngineExecuteRule вызывает executeRule для white-box тестов.
-func ExportAutomationEngineExecuteRule(e *AutomationEngine, ctx context.Context, rule *ent.AutomationRule, issueKey, issueID, projectID, actorID, extra string) {
-	e.executeRule(ctx, rule, issueKey, issueID, projectID, actorID, extra)
+func ExportAutomationEngineExecuteRule(e *AutomationEngine, ctx context.Context, rule *ent.AutomationRule, issueKey, issueID, projectID, actorID, extra string) error {
+	return e.executeRule(ctx, rule, issueKey, issueID, projectID, actorID, extra)
 }
 
 // ExportToAutomationRuleResponse конвертирует ent.AutomationRule в AutomationRuleResponse для hubtest.

@@ -38,7 +38,9 @@ func (e *AutomationEngine) HandleStatusChanged(ctx context.Context, evt IssueMov
 		if configString(rule.TriggerConfig, "to_status_id") != evt.NewStatusID {
 			continue
 		}
-		e.executeRule(ctx, rule, evt.IssueKey, evt.IssueID, evt.ProjectID, evt.MovedByID, "")
+		if err := e.executeRule(ctx, rule, evt.IssueKey, evt.IssueID, evt.ProjectID, evt.MovedByID, ""); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -59,7 +61,9 @@ func (e *AutomationEngine) HandleIssueCreated(ctx context.Context, evt IssueCrea
 		if filterType != "" && filterType != evt.IssueType {
 			continue
 		}
-		e.executeRule(ctx, rule, evt.IssueKey, evt.IssueID, evt.ProjectID, evt.CreatedByID, evt.Title)
+		if err := e.executeRule(ctx, rule, evt.IssueKey, evt.IssueID, evt.ProjectID, evt.CreatedByID, evt.Title); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -76,22 +80,26 @@ func (e *AutomationEngine) HandleIssueAssigned(ctx context.Context, evt IssueAss
 		return fmt.Errorf("list automation rules: %w", err)
 	}
 	for _, rule := range rules {
-		e.executeRule(ctx, rule, evt.IssueKey, evt.IssueID, evt.ProjectID, evt.AssignedByID, evt.AssigneeID)
+		if err := e.executeRule(ctx, rule, evt.IssueKey, evt.IssueID, evt.ProjectID, evt.AssignedByID, evt.AssigneeID); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (e *AutomationEngine) executeRule(ctx context.Context, rule *ent.AutomationRule, issueKey, issueID, projectID, actorID, extra string) {
+// executeRule выполняет действие правила. A3W1-A3-002: ошибка Post/Notify
+// пробрасывается → consumer Nak (не silent Ack).
+func (e *AutomationEngine) executeRule(ctx context.Context, rule *ent.AutomationRule, issueKey, issueID, projectID, actorID, extra string) error {
 	switch string(rule.ActionType) {
 	case ActionPostToChannel:
 		if e.messenger == nil {
-			return
+			return nil
 		}
 		channelIDStr := configString(rule.ActionConfig, "channel_id")
 		channelID, err := uuid.Parse(channelIDStr)
 		if err != nil {
 			slog.Warn("automation: invalid channel_id", "rule_id", rule.ID)
-			return
+			return nil
 		}
 		senderID := rule.CreatedByID
 		if actorUUID, err := uuid.Parse(actorID); err == nil {
@@ -104,18 +112,19 @@ func (e *AutomationEngine) executeRule(ctx context.Context, rule *ent.Automation
 		text := renderAutomationTemplate(template, issueKey, rule.Name, extra)
 		if err := e.messenger.PostAutomationMessage(ctx, channelID, senderID, text); err != nil {
 			slog.Warn("automation: post message failed", "rule_id", rule.ID, "error", err)
+			return fmt.Errorf("automation post message: %w", err)
 		}
 	case ActionNotifyUser:
 		if e.notifier == nil {
-			return
+			return nil
 		}
 		targetIDStr := extra
 		if targetIDStr == "" {
-			return
+			return nil
 		}
 		userID, err := uuid.Parse(targetIDStr)
 		if err != nil {
-			return
+			return nil
 		}
 		projUUID, _ := uuid.Parse(projectID)
 		var projPtr *uuid.UUID
@@ -130,8 +139,10 @@ func (e *AutomationEngine) executeRule(ctx context.Context, rule *ent.Automation
 		body := fmt.Sprintf("Задача %s — сработало правило «%s»", issueKey, rule.Name)
 		if err := e.notifier.NotifyAutomation(ctx, userID, title, body, "issue", issueID, projPtr, actorPtr); err != nil {
 			slog.Warn("automation: notify failed", "rule_id", rule.ID, "error", err)
+			return fmt.Errorf("automation notify: %w", err)
 		}
 	}
+	return nil
 }
 
 func renderAutomationTemplate(tmpl, issueKey, ruleName, extra string) string {
