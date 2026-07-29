@@ -1,6 +1,5 @@
 ﻿package middleware_test
 import (
-	"github.com/valerii/hub/backend/internal/platform/middleware"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -9,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apperrors "github.com/valerii/hub/backend/internal/platform/errors"
+	"github.com/valerii/hub/backend/internal/platform/middleware"
 )
 
 // ---------------------------------------------------------------------------
@@ -85,6 +86,82 @@ func TestRequestID_UniquePerRequest(t *testing.T) {
 		ids[string(body)] = true
 	}
 	assert.Equal(t, 50, len(ids), "all generated IDs must be unique")
+}
+
+// TestRequestID_RejectsInvalid — A3W4-1-001: невалидный клиентский X-Request-ID
+// (пробелы / <> / вне алфавита) заменяется на UUID; Locals и response header совпадают.
+// Mutation: validRequestID → всегда true (или убрать pattern) → тест краснеет.
+func TestRequestID_RejectsInvalid(t *testing.T) {
+	cases := []struct {
+		name   string
+		header string
+	}{
+		{"spaces", "bad id with spaces"},
+		{"angle_brackets", "evil<script>"},
+		{"slash", "path/like-id"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := fiber.New()
+			app.Use(middleware.RequestID())
+			app.Get("/", func(c fiber.Ctx) error {
+				return c.SendString(c.Locals("requestID").(string))
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("X-Request-ID", tc.header)
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			id := string(body)
+
+			_, parseErr := uuid.Parse(id)
+			assert.NoError(t, parseErr, "invalid client ID must be replaced with UUID")
+			assert.NotEqual(t, tc.header, id, "generated ID must not equal rejected client value")
+			assert.Equal(t, id, resp.Header.Get("X-Request-ID"))
+		})
+	}
+}
+
+// TestRequestID_RejectsOversized — A3W4-1-001: header >128 рун → UUID ≠ client.
+// Mutation: убрать maxRequestIDLen / ослабить validRequestID → тест краснеет.
+func TestRequestID_RejectsOversized(t *testing.T) {
+	cases := []struct {
+		name   string
+		header string
+	}{
+		{"ascii_129", strings.Repeat("x", 129)},
+		{"rune_cyrillic_129", strings.Repeat("я", 129)}, // rune-safe: 129 рун, не байты
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := fiber.New()
+			app.Use(middleware.RequestID())
+			app.Get("/", func(c fiber.Ctx) error {
+				return c.SendString(c.Locals("requestID").(string))
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("X-Request-ID", tc.header)
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			id := string(body)
+
+			_, parseErr := uuid.Parse(id)
+			assert.NoError(t, parseErr, "oversized client ID must be replaced with UUID")
+			assert.NotEqual(t, tc.header, id, "generated ID must not equal oversized client value")
+			assert.Equal(t, id, resp.Header.Get("X-Request-ID"))
+		})
+	}
 }
 
 // ---------------------------------------------------------------------------
