@@ -1,7 +1,8 @@
 # TASK-135 — 🐛 A3 tracker repos/automation residual
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
-> Источник: A3W1-3-tracker-repos.md · Stage A3 FINAL · TASK-008
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
+> Источник: A3W1-3-tracker-repos.md · Stage A3 FINAL · TASK-008  
+> Исполнитель: be1 · 2026-07-29
 
 ## [OUTCOME]
 
@@ -90,3 +91,68 @@ Automation consumer не Nak-штормит на known no-op issue subjects; act
 - Не ослаблять TASK-088: engine list-rules err → Nak; unknown garbage → Nak+metric
 - Docs sync только если изменился user-visible API contract
 - Conventional Commits RU; no Co-authored-by / AI trailers
+
+---
+
+## Evidence (be1 · 2026-07-29)
+
+### Verdict
+
+**3/3 FIXED** · статус задачи: **На проверке** (README по координации с TASK-134 не трогали).
+
+### Changes
+
+| Path | Что |
+|------|-----|
+| `backend/internal/tracker/automation_consumer.go` | `AutomationFilterSubjects` (moved/created/assigned); known-ignore Ack для updated/comment_created/link_created; garbage → Nak+metric |
+| `backend/internal/tracker/automation_engine.go` | `executeRule` → `error`; Post/Notify fail пробрасывается; Handle* return err |
+| `backend/internal/tracker/export_hooks.go` | `ExportAutomationEngineExecuteRule` возвращает `error` |
+| `backend/internal/tracker/repo_time.go` | StartTimer lock: `Where(issue.DeletedAtIsNil())` |
+| `backend/testframework/tracker/a3w1_3_tracker_repos_task135_test.go` | hubtest evidence 001/002/003 |
+| `backend/testframework/tracker/automation_engine_wave100_test.go` | `PostMessageError` перевёрнут на require.Error |
+
+### Checklist ID → evidence
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W1-A3-001 | FIXED | `TestAutomationConsumer_AckKnownNoOpSubjects_A3W1_A3_001`, `TestAutomationConsumer_FilterSubjects_A3W1_A3_001` |
+| A3W1-A3-002 | FIXED | `TestAutomationConsumer_NakOnPostMessageFail_A3W1_A3_002`, `TestAutomationEngine_PostMessageError` (flipped) |
+| A3W1-A3-003 | FIXED | `TestEntRepository_StartTimer_SoftDeleted_A3W1_A3_003`, `TestStartTimer_LockUsesDeletedAtIsNil_Source_A3W1_A3_003` |
+
+### Test commands + PASS
+
+```text
+# worktree (HEAD + только файлы TASK-135; параллельный dirty tree TASK-134 не мешал сборке)
+go test -tags hubtest -race -count=1 -timeout=240s ./testframework/tracker/ \
+  -run "A3W1_A3_00|PostMessageError|NakOnUnknown|NakOnEngine|StartTimer_Rejects|processMessage_Events|FilterSubjects|AckKnown"
+# → ok  ~10.3s
+
+go test -tags hubtest -race -count=1 -timeout=600s ./testframework/tracker/
+# → ok  ~19.3s
+```
+
+### Mutation notes
+
+| ID | Сломать | Тест краснеет |
+|----|---------|---------------|
+| A3W1-A3-001 | убрать known-ignore / широкий `issue.>` + default Nak | `AckKnownNoOpSubjects` / `FilterSubjects` |
+| A3W1-A3-002 | `return nil` + slog-only при Post err | `NakOnPostMessageFail` / `PostMessageError` |
+| A3W1-A3-003 | убрать `DeletedAtIsNil` с StartTimer lock | `StartTimer_SoftDeleted` / source guard |
+
+### Assumptions / unresolved
+
+- README backlog не обновляли (явная координация: «не README»; stage только своё).
+- Параллельный TASK-134 держит dirty `repo_workflow`/services — регрессия прогнана в clean worktree.
+- User-visible API contract не менялся → docs wiki не трогали.
+
+### Risks
+
+| Risk | Mitigation |
+|------|------------|
+| CreateOrUpdateConsumer смена FilterSubject→FilterSubjects на существующем durable | JetStream Update поддерживает FilterSubjects; smoke в `FilterSubjects` IT |
+| Action fail → Nak redelivery: правила должны быть идемпотентны | существующий MaxDeliver=5; повтор Post возможен — residual product risk |
+| Параллельный dirty tree ломает локальную сборку main worktree | тесты в worktree; коммитятся только файлы SCOPE 135 |
+
+### Handoff
+
+→ **be-ver** → **code-reviewer**
