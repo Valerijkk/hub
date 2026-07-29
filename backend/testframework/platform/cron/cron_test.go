@@ -1,4 +1,6 @@
-﻿package cron_test
+﻿//go:build hubtest
+
+package cron_test
 
 import (
 	"context"
@@ -63,4 +65,30 @@ func TestSchedule_LogsErrorWithoutStopping(t *testing.T) {
 	require.Eventually(t, func() bool {
 		return calls.Load() >= 2
 	}, time.Second, 10*time.Millisecond)
+}
+
+// TestRunTick_TimeoutCancelsHang_A3W44002 — hang > budget → ctx cancel (assigned suite mutation).
+// Mutation: убрать WithTimeout из runTick → тест краснеет / зависает до Fatal.
+func TestRunTick_TimeoutCancelsHang_A3W44002(t *testing.T) {
+	require.Equal(t, 10*time.Minute, cron.ExportDefaultTickTimeout())
+
+	var sawDeadline atomic.Bool
+	cron.ExportRunTick(context.Background(), 30*time.Millisecond, "hang-job", func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			sawDeadline.Store(true)
+			return ctx.Err()
+		case <-time.After(2 * time.Second):
+			t.Fatal("tick should have been cancelled by timeout")
+			return nil
+		}
+	})
+	require.True(t, sawDeadline.Load(), "fn must observe context deadline")
+
+	var second atomic.Bool
+	cron.ExportRunTick(context.Background(), time.Second, "next-job", func(ctx context.Context) error {
+		second.Store(true)
+		return nil
+	})
+	require.True(t, second.Load(), "subsequent tick must still run")
 }
