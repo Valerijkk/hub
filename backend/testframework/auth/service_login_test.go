@@ -65,6 +65,31 @@ func TestLoginWithMagicLink_PendingUserDenied(t *testing.T) {
 	assert.Equal(t, 0, sessions)
 }
 
+// TestLoginWithMagicLink_DeactivatedUserDenied — A3W6-2-001 / ORG-06 / ECC-AUTH-224:
+// deactivated не получает JWT; мутация guard на == Pending должна краснеть.
+func TestLoginWithMagicLink_DeactivatedUserDenied(t *testing.T) {
+	login, client, magic := newLoginTestEnv(t)
+	ctx := context.Background()
+	email := "deactivated-" + uuid.New().String()[:8] + "@example.com"
+
+	_, err := client.User.Create().
+		SetEmail(email).
+		SetStatus(user.StatusDeactivated).
+		Save(ctx)
+	require.NoError(t, err)
+
+	code, err := magic.SendMagicLink(ctx, email)
+	require.NoError(t, err)
+
+	pair, err := login.LoginWithMagicLink(ctx, email, code, "", "browser", "127.0.0.1")
+	require.ErrorIs(t, err, auth.ErrAccountNotActive)
+	assert.Nil(t, pair)
+
+	sessions, err := client.Session.Query().Count(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 0, sessions)
+}
+
 // TestLoginWithMagicLink_Success проверяет сценарий: вход with magic link успех.
 func TestLoginWithMagicLink_Success(t *testing.T) {
 	login, client, magic := newLoginTestEnv(t)

@@ -371,7 +371,7 @@ func TestListSessions_ReturnsUserSessions(t *testing.T) {
 	assert.Equal(t, "browser", sessions[0].Device)
 }
 
-// TestInvalidateUserSessions_ClearsMultiple проверяет сценарий: invalidate user sessions clears multiple.
+// TestInvalidateUserSessions_ClearsMultiple — A3W6-2-003: DB sessions==0 и оба Redis refresh keys удалены.
 func TestInvalidateUserSessions_ClearsMultiple(t *testing.T) {
 	svc, client, mr := newSessionTestEnv(t)
 	ctx := context.Background()
@@ -379,9 +379,11 @@ func TestInvalidateUserSessions_ClearsMultiple(t *testing.T) {
 	u, err := client.User.Create().SetEmail("multi-" + uuid.New().String()[:8] + "@example.com").Save(ctx)
 	require.NoError(t, err)
 
+	plains := make([]string, 2)
 	for i := 0; i < 2; i++ {
 		sessionID := uuid.New()
 		plain := uuid.New().String()
+		plains[i] = plain
 		tokenHash := auth.ExportHashRefreshToken(plain)
 		payload, err := json.Marshal(auth.ExportRefreshPayload{
 			UserID: u.ID.String(), SessionID: sessionID.String(), Device: "dev",
@@ -403,6 +405,9 @@ func TestInvalidateUserSessions_ClearsMultiple(t *testing.T) {
 	count, err := client.Session.Query().Count(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, 0, count)
+	for _, plain := range plains {
+		assert.False(t, mr.Exists(auth.ExportRefreshRedisKey(plain)), "redis refresh key must be deleted")
+	}
 }
 
 // TestPublishSessionCreated_WithNATS проверяет сценарий: publish сессия created with nats.
