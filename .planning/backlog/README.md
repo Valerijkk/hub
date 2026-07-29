@@ -63,7 +63,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-121](TASK-121-2026-07-28-marketplace-status-dev-exposure.md) | 🛒 Marketplace/status/docs gates | P2 | На проверке | be1 | W7-A5 · 6 |
 | [TASK-122](TASK-122-2026-07-28-tracker-project-jql-cleanup-links.md) | 🔒 Tracker JQL + DeleteProject links | P2 | На проверке | be1 | A2W1 · 2 |
 | [TASK-123](TASK-123-2026-07-28-fe-lib-dead-export-docs-drift.md) | 🧹 FE dead export + docs drift | P2 | На проверке | fe2+docs | A2W11 · 4 |
-| [TASK-124](TASK-124-2026-07-29-a3-10-1-fe-routes-modules.md) | 🧹 A3 FE routes A1: accounting/marketplace/bases error≠empty + noopener | P3 | Открыта | fe1 | A3W10-1 · 5 |
+| [TASK-124](TASK-124-2026-07-29-a3-10-1-fe-routes-modules.md) | 🧹 A3 FE routes A1: accounting/marketplace/bases error≠empty + noopener | P3 | На проверке | fe1 | A3W10-1 · 5 |
 | [TASK-125](TASK-125-2026-07-29-a3-10-2-fe-routes-modules.md) | 🔒🧹 A3 FE routes A2: github/gitlab sanitizeUrl + canMutate CI | P2 | На проверке | fe1 | A3W10-2 · 5 |
 | [TASK-126](TASK-126-2026-07-29-a3-10-3-fe-sprint-backlog-regress.md) | ♻️🔒 A3 FE SprintBacklog filter REGRESS + sprint-store leaks | P1 | Закрыта · MUTATION-2026-07-29-W2-fe-p1 | fe1 | A3W10-3 · 4 |
 | [TASK-127](TASK-127-2026-07-29-a3-10-4-fe-error-empty-settings.md) | 🧹 A3 FE routes A4: error≠empty messenger/project/TMS/settings | P2 | На проверке | fe1 | A3W10-4 · 6 |
@@ -111,15 +111,15 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-169](TASK-169-2026-07-29-a3-8-3-schemas.md) | 🐛 A3 HubTable/JournalEntry Cascade | P2 | Открыта | be1 | A3W8-3 · 2 |
 | [TASK-170](TASK-170-2026-07-29-a3-8-4-schemas.md) | 🐛 A3 sprint active unique + SetNull issues | P2 | На проверке | be1 | A3W8-4 · 2 |
 | [TASK-171](TASK-171-2026-07-29-a3-8-5-schemas.md) | 🔒 A3 Team/WorkflowStatus soft-delete + OnDelete Cascades | P1 | На проверке | be1 | A3W8-5 · 7 |
-| [TASK-172](TASK-172-2026-07-29-a3-9-1-components.md) | 🧹 A3 FE admin error≠empty pending/limits/trash | P2 | Открыта | fe1 | A3W9-1 · 5 |
+| [TASK-172](TASK-172-2026-07-29-a3-9-1-components.md) | 🧹 A3 FE admin error≠empty pending/limits/trash | P2 | На проверке | fe1 | A3W9-1 · 5 |
 | [TASK-173](TASK-173-2026-07-29-a3-9-2-components.md) | 🧹 A3 FE bookmarks UUID + deadlines links | P2 | На проверке | fe1 | A3W9-2 · 5 |
 | [TASK-174](TASK-174-2026-07-29-a3-9-3-components.md) | 🔒 A3 FE LinkPreview XSS whitelist | P2 | На проверке | fe1 | A3W9-3 · 4 |
-| [TASK-175](TASK-175-2026-07-29-a3-9-4-components.md) | 🧹 A3 FE checklist/automation/comment error UI | P2 | Открыта | fe2 | A3W9-4 · 6 |
-| [TASK-176](TASK-176-2026-07-29-a3-9-5-components.md) | 🧹 A3 FE avatar/popover/select hub tokens | P3 | Открыта | fe2 | A3W9-5 · 3 |
+| [TASK-175](TASK-175-2026-07-29-a3-9-4-components.md) | 🧹 A3 FE checklist/automation/comment error UI | P2 | На проверке | fe2 | A3W9-4 · 6 |
+| [TASK-176](TASK-176-2026-07-29-a3-9-5-components.md) | 🧹 A3 FE avatar/popover/select hub tokens | P3 | На проверке | fe2 | A3W9-5 · 3 |
 | [TASK-177](TASK-177-2026-07-29-c-w19-deactivate-ban-ws-kill.md) | 🔒 C-W19 Deactivate/Ban не рвёт живой WS | P2 | На проверке | be1 | C-W19-001 · 2 |
 | [TASK-178](TASK-178-2026-07-29-c-w19-gdpr-mongo-erase-retry.md) | 🔒 C-W19 GDPR Mongo erase retry после Commit | P2 | На проверке | be1 | C-W19-002 · 1 |
 | [TASK-179](TASK-179-2026-07-29-c-w19-fe-webhook-sprint-completed.md) | 🐛 C-W19 FE sprint.completed после BE trim | P2 | На проверке | fe1 | C-W19-FE-001 · 1 |
-| [TASK-180](TASK-180-2026-07-29-c-w19-link-preview-modules-tc.md) | 🔒 C-W19 modules LinkPreview XSS + TC membership | P2 | Открыта | fe1+be2 | C-W19-FE-002 · 2 |
+| [TASK-180](TASK-180-2026-07-29-c-w19-link-preview-modules-tc.md) | 🔒 C-W19 modules LinkPreview XSS + TC membership | P2 | На проверке | fe1+be2 | C-W19-FE-002 · 2 |
 | [TASK-181](TASK-181-2026-07-29-c-w19-webhook-softdelete-deactivate.md) | 🔒 C-W19 soft-delete project гасит webhooks | P2 | На проверке | be2 | C-W19-FE-004 · 1 |
 | [TASK-182](TASK-182-2026-07-29-c-w19-hr-pending-leave-error.md) | 🧹 C-W19 HR pending leave error≠empty | P3 | На проверке | fe2 | C-W19-FE-005 · 1 |
 | [TASK-183](TASK-183-2026-07-29-c-w19-docs-inventory-drift.md) | 🧹 C-W19 docs inventory + AGENTS/spec drift | P2 | На проверке | docs-writer | C-W19-DOC-001 · 1 |
@@ -167,7 +167,7 @@ Stage A2 (brief): [A2-DEDUP-2026-07-28.md](../audits/total-2026-07/A2-DEDUP-2026
 | [TASK-041](TASK-041-be-p2-sprint-poker-start.md) | BE sprint poker/start | P2 | Закрыта · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-11 · second Start conflict |
 | [TASK-042](TASK-042-be-p2-perm-messenger-ws-calls.md) | BE perm/messenger/ws/calls | P2 | Закрыта · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-12..15 · NATS via_invite |
 | [TASK-043](TASK-043-be-p2-platform-outbox-obs.md) | BE platform outbox/obs | P2 | Закрыта | be2 | W12 P2-BE-16 |
-| [TASK-044](TASK-044-be-p2-ai-search.md) | AI stream/privacy + search JQL/SSRF | P2 | На проверке | be1→rework | W12 P2-BE-17/18 · Meili+cancel IT |
+| [TASK-044](TASK-044-be-p2-ai-search.md) | AI stream/privacy + search JQL/SSRF | P2 | Закрыта · MUTATION-2026-07-29-W2-044 | be1→rework · W2-044 PASS | W12 P2-BE-17/18 · Meili+cancel IT |
 | [TASK-045](TASK-045-be-p2-rbac-gdpr-integrations-storage.md) | BE rbac/gdpr/imex/storage | P2 | Закрыта · MUTATION-2026-07-29-W1-be1 | be2→rework · W1-be1 PASS | W12 P2-BE-19..21 · MUTATION-2026-07-29-W1-be1 |
 | [TASK-046](TASK-046-be-p2-ent-unique-fk-check.md) | BE Ent unique/FK/CHECK | P2 | Закрыта · MUTATION-2026-07-29-W1-be2 | be1→rework | W12 P2-BE-22 · enttest runtime |
 | [TASK-047](TASK-047-fe-p2-error-vs-empty.md) | FE error≠empty sweep | P2 | Закрыта | fe1 | W12 P2-FE-01 |
