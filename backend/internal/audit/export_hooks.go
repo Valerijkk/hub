@@ -79,3 +79,8 @@ func ExportRepositoryEntClient(repo Repository) *ent.Client {
 func ExportConstantTimeEqualDigest(a, b string) bool {
 	return constantTimeEqualDigest(a, b)
 }
+
+// ExportMongoEraseRetryProcessMsg — hubtest: C-W19-002 consumer path (Ack/Nak/Term).
+func ExportMongoEraseRetryProcessMsg(c *MongoEraseRetryConsumer, ctx context.Context, msg jetstream.Msg) {
+	c.processMsg(ctx, msg)
+}

@@ -29,6 +29,7 @@ func NewMongoMessageEraser(db *mongo.Database) *MongoMessageEraser {
 
 // DeleteMessagesBySender удаляет документы messages с данным sender_id.
 // W18-C5-001: nil eraser/coll → error (GDPR cascade не считает шаг успешным).
+// Идемпотентен: повторный вызов (sync + JetStream retry C-W19-002) безопасен.
 func (e *MongoMessageEraser) DeleteMessagesBySender(ctx context.Context, senderID uuid.UUID) (int64, error) {
 	if e == nil || e.coll == nil {
 		return 0, ErrMongoMessageEraserUnavailable

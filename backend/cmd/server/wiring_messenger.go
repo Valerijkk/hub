@@ -63,8 +63,16 @@ func wireMessenger(d *serverDeps) {
 		slog.Error("failed to ensure messenger indexes", "error", err)
 	}
 	// P1-BE-34 / TASK-023: GDPR erase стирает Mongo-сообщения по sender_id.
+	// C-W19-002 / TASK-178: post-Commit fail → JetStream compensating retry (идемпотентный DeleteMany).
 	if d.auditSvc != nil {
-		d.auditSvc.SetMessageEraser(auditmod.NewMongoMessageEraser(mongoDB))
+		eraser := auditmod.NewMongoMessageEraser(mongoDB)
+		d.auditSvc.SetMessageEraser(eraser)
+		d.auditSvc.SetMongoEraseRetry(auditmod.NewJetStreamMongoEraseRetry(d.nc))
+		eraseRetryCons := auditmod.NewMongoEraseRetryConsumer(d.nc, eraser)
+		if err := eraseRetryCons.Start(d.rootCtx); err != nil {
+			slog.Error("failed to start gdpr mongo erase retry consumer", "error", err)
+		}
+		d.addCleanup(eraseRetryCons.Stop)
 	}
 	messengerRepo := messengermod.NewCombinedRepository(messengerEntRepo, messengerMongoRepo)
 	presenceSvc := messengermod.NewPresenceService(d.rdb)

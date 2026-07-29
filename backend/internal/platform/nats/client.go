@@ -28,6 +28,7 @@ var StreamSubjects = []string{
 	"auth.session.>",
 	"sprint.>",
 	"notification.>",
+	"audit.>", // C-W19-002 / TASK-178: GDPR Mongo erase retry (audit.gdpr.mongo_erase)
 }
 
 // WebhookFilterSubjects — JetStream filter для durable consumer webhook-dispatcher.
@@ -184,6 +185,8 @@ func (c *Client) PublishWithTraceContext(ctx context.Context, subject string, da
 //     теряет очередь между рестартами и pending события не доедут.
 //   - calls.recording.> — события готовности/завершения записи звонка
 //     должны быть durable, чтобы webhook-диспатчер и аудит их видели.
+//   - audit.> — C-W19-002 / TASK-178: compensating GDPR Mongo erase retry
+//     (audit.gdpr.mongo_erase) после post-Commit fail eraser.
 //   - calls.chat.> — намеренно НЕ durable: чат внутри звонка — это
 //     real-time, реплей не нужен (см. handleCallChatEvent в ws/bridge.go).
 func (c *Client) EnsureStreams(ctx context.Context) error {

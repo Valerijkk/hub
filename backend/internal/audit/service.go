@@ -63,6 +63,7 @@ type AuditService struct {
 	redis      *redis.Client // optional — используется для инвалидации auth-кэшей (ME-13).
 	msgEraser  MessageEraser // optional — Mongo messages by sender_id (P1-BE-34).
 	sessions   SessionRevoker // optional — C-W19-001: Redis+NATS session kill on deactivate/ban.
+	eraseRetry MongoEraseRetryEnqueuer // optional — C-W19-002: JetStream retry after post-Commit fail.
 }
 
 // MessageEraser удаляет персональные сообщения пользователя (Mongo messenger).
@@ -95,6 +96,12 @@ func (s *AuditService) SetMessageEraser(e MessageEraser) {
 // C-W19-001: без этого живой WS жертвы не рвётся. Wiring: wireAuth → authSvc.Sessions.
 func (s *AuditService) SetSessionRevoker(r SessionRevoker) {
 	s.sessions = r
+}
+
+// SetMongoEraseRetry подключает JetStream compensating retry для Mongo erase после GDPR Commit.
+// C-W19-002: sync eraser fail → user уже HardDelete; retry по sender_id (идемпотентный DeleteMany).
+func (s *AuditService) SetMongoEraseRetry(e MongoEraseRetryEnqueuer) {
+	s.eraseRetry = e
 }
 
 // IsSystemAdmin возвращает true, если пользователь — системный администратор.
@@ -509,7 +516,8 @@ func (s *AuditService) ReassignTasks(ctx context.Context, fromUserID, toUserID u
 // A2W6-A4-003 / A3W6-4-001: все Ent-шаги (включая HardDelete) — одна транзакция;
 // mid-cascade fail → Rollback. Mongo eraser — строго ПОСЛЕ Commit: иначе Mongo ok +
 // Ent Rollback → user жив, chat-история уже стёрта (cross-store partial erasure).
-// Trade-off: Mongo fail после Commit → user удалён, orphan messages (retry erase по sender_id).
+// C-W19-002 / TASK-178: Mongo fail после Commit → enqueue JetStream retry (sender_id);
+// orphan window до MaxDeliver, dual erase идемпотентен. Mongo НЕ внутрь WithTx.
 func (s *AuditService) DeleteUserGDPR(ctx context.Context, actorID, userID uuid.UUID, reassignTo *uuid.UUID) error {
 	role, err := s.repo.GetUserSystemRole(ctx, userID)
 	if err != nil {

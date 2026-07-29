@@ -25,11 +25,13 @@ func TestStreamSubjects(t *testing.T) {
 		"auth.session.>",
 		"sprint.>",
 		"notification.>",
+		"audit.>",
 	})
-	assert.Equal(t, 9, len(natsclient.StreamSubjects),
-		"EVENTS stream must keep ME-07 subjects (notification.>, calls.recording.>)")
+	assert.Equal(t, 10, len(natsclient.StreamSubjects),
+		"EVENTS stream must keep ME-07 subjects + audit.> (GDPR mongo erase retry)")
 	assert.Contains(t, natsclient.StreamSubjects, "notification.>")
 	assert.Contains(t, natsclient.StreamSubjects, "calls.recording.>")
+	assert.Contains(t, natsclient.StreamSubjects, "audit.>")
 }
 
 func TestClientStructFields(t *testing.T) {
