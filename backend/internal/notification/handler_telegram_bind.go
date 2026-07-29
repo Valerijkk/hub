@@ -42,6 +42,7 @@ func (h *Handler) TelegramBind(c fiber.Ctx) error {
 // @Success 200 {object} map[string]string "telegram linked"
 // @Failure 400 {object} fiber.Error "Неверный или просроченный код"
 // @Failure 409 {object} fiber.Error "Telegram уже привязан к другому аккаунту"
+// @Failure 429 {object} fiber.Error "Слишком много попыток confirm"
 // @Router /notifications/telegram/confirm [post]
 func (h *Handler) TelegramConfirm(c fiber.Ctx) error {
 	userID, err := getUserID(c)
@@ -55,6 +56,9 @@ func (h *Handler) TelegramConfirm(c fiber.Ctx) error {
 	if err := h.telegramBind.ConfirmLinkCode(c.Context(), userID, req.Code); err != nil {
 		if errors.Is(err, ErrTelegramInvalidCode) {
 			return fiber.NewError(fiber.StatusBadRequest, "invalid or expired code")
+		}
+		if errors.Is(err, ErrTelegramConfirmLimited) {
+			return fiber.NewError(fiber.StatusTooManyRequests, "too many verification attempts, try again later")
 		}
 		if errors.Is(err, ErrTelegramIDTaken) {
 			return fiber.NewError(fiber.StatusConflict, "telegram already linked to another account")

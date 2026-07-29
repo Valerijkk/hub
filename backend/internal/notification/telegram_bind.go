@@ -21,10 +21,12 @@ import (
 )
 
 const (
-	tgBindPrefix     = "tg:bind:"
-	tgLinkCodePrefix = "tg:linkcode:"
-	tgBindTTL        = 10 * time.Minute
-	tgLinkCodeTTL    = 5 * time.Minute
+	tgBindPrefix          = "tg:bind:"
+	tgLinkCodePrefix      = "tg:linkcode:"
+	tgLinkCodeFailsPrefix = "tg:linkcode:fails:" // ASN-002: per-user fails, как magiclink:fails:
+	tgBindTTL             = 10 * time.Minute
+	tgLinkCodeTTL         = 5 * time.Minute
+	tgLinkCodeVerifyMax   = 5 // лимит неудачных ConfirmLinkCode на user в окне TTL (как HI-04)
 )
 
 // TelegramBindService управляет привязкой Telegram для уведомлений (NOTIF-02).
@@ -105,17 +107,27 @@ func (s *TelegramBindService) CreateBindToken(ctx context.Context, userID uuid.U
 }
 
 // ConfirmLinkCode завершает bind по 6-значному коду из команды /link.
+// ASN-002: после tgLinkCodeVerifyMax неудач в окне TTL — ErrTelegramConfirmLimited (как HI-04).
 func (s *TelegramBindService) ConfirmLinkCode(ctx context.Context, userID uuid.UUID, code string) error {
 	if s == nil {
 		return ErrTelegramBindUnavailable
 	}
+	failsKey := tgLinkCodeFailsPrefix + userID.String()
+	if cnt, err := s.rdb.Get(ctx, failsKey).Int(); err == nil && cnt >= tgLinkCodeVerifyMax {
+		return ErrTelegramConfirmLimited
+	} else if err != nil && !errors.Is(err, redis.Nil) {
+		slog.Warn("telegram linkcode fails counter read error", "user_id", userID, "error", err)
+	}
+
 	code = strings.TrimSpace(code)
 	if len(code) != 6 {
+		s.recordLinkCodeFailure(ctx, failsKey)
 		return ErrTelegramInvalidCode
 	}
 	key := tgLinkCodePrefix + code
 	tgID, err := s.rdb.Get(ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
+		s.recordLinkCodeFailure(ctx, failsKey)
 		return ErrTelegramInvalidCode
 	}
 	if err != nil {
@@ -128,7 +140,25 @@ func (s *TelegramBindService) ConfirmLinkCode(ctx context.Context, userID uuid.U
 	if err := s.rdb.Del(ctx, key).Err(); err != nil {
 		slog.WarnContext(ctx, "telegram bind: del link code failed", "error", err)
 	}
+	if err := s.rdb.Del(ctx, failsKey).Err(); err != nil {
+		slog.WarnContext(ctx, "telegram bind: del fails counter failed", "error", err)
+	}
 	return nil
+}
+
+// recordLinkCodeFailure увеличивает счётчик неудач user; TTL = tgLinkCodeTTL при первой ошибке.
+// Mutation (ASN-002): убрать вызовы recordLinkCodeFailure / проверку failsKey → brute-force без 429 → RED.
+func (s *TelegramBindService) recordLinkCodeFailure(ctx context.Context, failsKey string) {
+	cnt, err := s.rdb.Incr(ctx, failsKey).Result()
+	if err != nil {
+		slog.Warn("telegram linkcode fails counter incr error", "key", failsKey, "error", err)
+		return
+	}
+	if cnt == 1 {
+		if expErr := s.rdb.Expire(ctx, failsKey, tgLinkCodeTTL).Err(); expErr != nil {
+			slog.Warn("telegram linkcode fails counter expire error", "key", failsKey, "error", expErr)
+		}
+	}
 }
 
 // Unlink удаляет telegram_id из профиля пользователя.
@@ -336,6 +366,7 @@ func generateLinkCode() (string, error) {
 var (
 	ErrTelegramBindUnavailable = fmt.Errorf("telegram bind not configured")
 	ErrTelegramInvalidCode     = fmt.Errorf("invalid or expired link code")
+	ErrTelegramConfirmLimited  = fmt.Errorf("too many verification attempts, try again later")
 	ErrTelegramNotLinked       = fmt.Errorf("telegram not linked")
 	ErrTelegramIDTaken         = fmt.Errorf("telegram id already linked to another user")
 )
