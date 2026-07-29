@@ -85,6 +85,33 @@ class ApiClient {
 	}
 
 	/**
+	 * Wire TZ/NFR-13: `{"error","request_id"}` → клиентский ApiError.
+	 * `message` = поле `error`; без/невалидный JSON → statusText.
+	 */
+	private async mapWireToApiError(response: Response): Promise<ApiError> {
+		try {
+			const body = (await response.json()) as {
+				error?: unknown;
+				request_id?: unknown;
+			};
+			const message =
+				typeof body.error === "string" && body.error.length > 0
+					? body.error
+					: response.statusText;
+			const error: ApiError = {
+				code: response.status,
+				message,
+			};
+			if (typeof body.request_id === "string" && body.request_id.length > 0) {
+				error.request_id = body.request_id;
+			}
+			return error;
+		} catch {
+			return { code: response.status, message: response.statusText };
+		}
+	}
+
+	/**
 	 * Выполняет HTTP-запрос к API.
 	 * При 401 пытается обновить токены и повторить запрос **один раз**
 	 * (`_retried`): повторный 401 после refresh → logout, без рекурсии.
@@ -126,13 +153,7 @@ class ApiClient {
 		}
 
 		if (!response.ok) {
-			let error: ApiError;
-			try {
-				error = await response.json();
-				if (!error.code) error.code = response.status;
-			} catch {
-				error = { code: response.status, message: response.statusText };
-			}
+			const error = await this.mapWireToApiError(response);
 			if (response.status === 429) {
 				const retryHeader = response.headers.get("Retry-After");
 				if (retryHeader) {
@@ -228,14 +249,7 @@ class ApiClient {
 
 		const response = await doFetch();
 		if (!response.ok) {
-			let error: ApiError;
-			try {
-				error = await response.json();
-				if (!error.code) error.code = response.status;
-			} catch {
-				error = { code: response.status, message: response.statusText };
-			}
-			throw error;
+			throw await this.mapWireToApiError(response);
 		}
 		return response.blob();
 	}
