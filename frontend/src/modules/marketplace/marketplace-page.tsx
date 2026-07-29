@@ -59,6 +59,7 @@ export function MarketplacePage() {
 		data: mineData,
 		isError: mineError,
 		refetch: refetchMine,
+		isPending: mineLoading,
 	} = useQuery({
 		queryKey: ["marketplace", "mine"],
 		queryFn: listMyListings,
@@ -177,6 +178,7 @@ export function MarketplacePage() {
 	const pendingItems = pendingData?.items ?? [];
 	const displayItems = tab === "browse" ? browseItems : mineItems;
 	const listError = tab === "browse" ? browseError : mineError;
+	const listLoading = tab === "browse" ? browseLoading : mineLoading;
 	const refetchList = tab === "browse" ? refetchBrowse : refetchMine;
 
 	return (
@@ -345,9 +347,7 @@ export function MarketplacePage() {
 				)}
 			</div>
 
-			{browseLoading && tab === "browse" && (
-				<p className="text-sm text-t3">Загрузка…</p>
-			)}
+			{listLoading && <p className="text-sm text-t3">Загрузка…</p>}
 
 			<ul className="grid gap-3 sm:grid-cols-2">
 				{displayItems.map((item) => (
@@ -476,7 +476,7 @@ export function MarketplacePage() {
 					</li>
 				))}
 			</ul>
-			{displayItems.length === 0 && !browseLoading && listError && (
+			{displayItems.length === 0 && !listLoading && listError && (
 				<div role="alert" className="space-y-2 py-8 text-center">
 					<p className="text-sm text-[var(--red)]">
 						Не удалось загрузить объявления
@@ -490,7 +490,7 @@ export function MarketplacePage() {
 					</button>
 				</div>
 			)}
-			{displayItems.length === 0 && !browseLoading && !listError && (
+			{displayItems.length === 0 && !listLoading && !listError && (
 				<p className="text-sm text-t3 text-center py-8">
 					{tab === "browse" ? "Объявлений пока нет" : "У вас нет объявлений"}
 				</p>
