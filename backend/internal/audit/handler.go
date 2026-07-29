@@ -10,7 +10,6 @@ import (
 	"github.com/gofiber/utils/v2"
 	"github.com/google/uuid"
 
-	"github.com/valerii/hub/backend/ent"
 	"github.com/valerii/hub/backend/internal/platform/observability"
 )
 
@@ -55,8 +54,8 @@ func (h *Handler) requireAdmin() fiber.Handler {
 
 		isAdmin, err := h.service.IsSystemAdmin(c.Context(), userID)
 		if err != nil {
-			// P3-BE-08 / W6-A4-011: DB outage → 500; 401 только при отсутствии пользователя.
-			if ent.IsNotFound(err) {
+			// P3-BE-08 / W6-A4-011 / A3W6-4-003: DB outage → 500; 401 только при отсутствии пользователя.
+			if errors.Is(err, ErrUserNotFound) {
 				return fiber.NewError(fiber.StatusUnauthorized, "пользователь не найден")
 			}
 			slog.Error("IsSystemAdmin failed", "error", err, "user_id", userID)
@@ -338,10 +337,9 @@ func (h *Handler) BanUser(c fiber.Ctx) error {
 		if errors.Is(err, ErrCannotModifyFounder) {
 			return fiber.NewError(fiber.StatusForbidden, "cannot ban or deactivate founder account")
 		}
-		// Валидация сервиса — безопасные user-facing сообщения; infra — fixed 500.
-		msg := err.Error()
-		if msg == "укажите причину блокировки" || msg == "нельзя заблокировать самого себя" {
-			return fiber.NewError(fiber.StatusBadRequest, msg)
+		// A3W6-4-002: validation через typed sentinels, не string match по err.Error().
+		if errors.Is(err, ErrBanReasonRequired) || errors.Is(err, ErrCannotBanSelf) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 		slog.Error("BanUser failed", "error", err, "target_id", targetID)
 		return fiber.NewError(fiber.StatusInternalServerError, "не удалось заблокировать пользователя")
