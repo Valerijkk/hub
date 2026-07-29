@@ -1,6 +1,6 @@
 # 🧹 A3 obs cancel→Error + UUID cardinality
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P3** · Статус: **На проверке**  
 > Источник: A3W4-3-001 NEW · A3W4-3-002 RESIDUAL · Stage A3 FINAL · TASK-008  
 > Исполнитель: **be1**
 
@@ -115,3 +115,38 @@
 - Source of truth — runtime observability helpers, не правка audit markdown «под код».
 - Docs sync: N/A unless user-visible API/contract changed (внутренняя obs hygiene — обычно только STATE one-liner при wave handoff).
 - Conventional Commits RU; no Co-authored-by / AI trailers.
+
+## [EVIDENCE — be1 2026-07-29]
+
+### Verdict
+
+**2/2 FIXED** · статус задачи: **На проверке** · handoff: be-ver → code-reviewer
+
+### Checklist ID → FIXED
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A3W4-3-001 | FIXED | `otel.go` `isBenignContextError` + carve-out в `finishOperationSpan`; `timing.go` `failed=false` + slog.Debug на cancel/deadline; tests `cancel_span_task150_test.go` |
+| A3W4-3-002 | FIXED | `operation_label.go` сегменты `[A-Za-z][A-Za-z0-9_]*` (без `-`); `tracker.<uuid>` → `other`; tests `operation_label_uuid_task150_test.go` |
+
+### Assumptions
+
+- slog на cancel/deadline: **Debug** (`operation canceled`), не silent и не Error — caller по-прежнему получает `err`.
+
+### Risks
+
+- Cancel mid-write: span/metrics не Error, но бизнес-ошибка остаётся у caller — мониторинг error-rate не шумит, алерт по бизнес-логике не заменяется span-status.
+
+### Mutation
+
+| ID | Сломать | Тест краснеет |
+|----|---------|---------------|
+| A3W4-3-001 | убрать carve-out в `finishOperationSpan`; Timed снова `failed = err != nil` | `TestTimed_CancelNotErrorStatus_A3W4_3_001` / `TestEndConsumerSpan_CancelNotErrorStatus_A3W4_3_001` |
+| A3W4-3-002 | вернуть charset с `-` в rest без segment check | `TestSanitizeOperationLabel_DomainUUIDToOther_A3W4_3_002` |
+
+### Tests
+
+```text
+cd backend && go test -tags hubtest -race -count=1 ./testframework/platform/observability/
+# ok  github.com/valerii/hub/backend/testframework/platform/observability  ~2.7s  EXIT=0
+```
