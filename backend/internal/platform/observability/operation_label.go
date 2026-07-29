@@ -42,11 +42,29 @@ func sanitizeOperationLabel(operation string) string {
 		return unknownOperationLabel
 	}
 	rest := op[dot+1:]
-	for _, r := range rest {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '.' || r == '_' || r == '-' {
-			continue
+	// A3W4-3-002: сегменты [A-Za-z][A-Za-z0-9_]* — без hyphen-hex UUID (cardinality).
+	for _, seg := range strings.Split(rest, ".") {
+		if !isValidOperationSegment(seg) {
+			return unknownOperationLabel
 		}
-		return unknownOperationLabel
 	}
 	return op
+}
+
+// isValidOperationSegment — имя операции без UUID/hyphen-runs (tracker.<uuid> → other).
+func isValidOperationSegment(seg string) bool {
+	if seg == "" {
+		return false
+	}
+	rs := []rune(seg)
+	if !unicode.IsLetter(rs[0]) {
+		return false
+	}
+	for _, r := range rs[1:] {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' {
+			continue
+		}
+		return false
+	}
+	return true
 }
