@@ -13,6 +13,7 @@ import {
 	listPendingLeave,
 	rejectLeave,
 } from "@/api/hr";
+import { QueryErrorAlert } from "@/components/query-state-view";
 import { Button } from "@/components/ui/button";
 import { isSystemAdmin } from "@/lib/is-system-admin";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,12 @@ export function LeaveRequestsPage() {
 		queryFn: listMyLeave,
 	});
 
-	const { data: pendingData } = useQuery({
+	const {
+		data: pendingData,
+		isError: pendingError,
+		refetch: refetchPending,
+		isPending: pendingLoading,
+	} = useQuery({
 		queryKey: ["hr", "leave", "pending"],
 		queryFn: listPendingLeave,
 		enabled: isAdmin,
@@ -174,47 +180,64 @@ export function LeaveRequestsPage() {
 				</Button>
 			</form>
 
-			{isAdmin && pendingItems.length > 0 && (
-				<section className="space-y-3">
-					<h2 className="text-sm font-semibold uppercase tracking-wide text-t2">
-						Очередь согласования ({pendingItems.length})
-					</h2>
-					<ul className="space-y-2">
-						{pendingItems.map((item) => (
-							<li
-								key={item.id}
-								className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-b1 p-3"
-							>
-								<div>
-									<p className="font-medium">
-										{item.requester_name} · {LEAVE_TYPE_LABELS[item.leave_type]}
-									</p>
-									<p className="text-sm text-t2">
-										{item.start_date} — {item.end_date}
-									</p>
-								</div>
-								<div className="flex gap-2">
-									<Button
-										type="button"
-										size="sm"
-										onClick={() => approveMutation.mutate(item)}
+			{/* C-W19-FE-005 / TASK-182: pending fail ≠ скрытая очередь («нет заявок») */}
+			{isAdmin &&
+				(pendingError || pendingItems.length > 0 || pendingLoading) && (
+					<section className="space-y-3">
+						<h2 className="text-sm font-semibold uppercase tracking-wide text-t2">
+							Очередь согласования
+							{!pendingError && !pendingLoading
+								? ` (${pendingItems.length})`
+								: ""}
+						</h2>
+						{pendingLoading ? (
+							<p className="text-sm text-t3" role="status">
+								Загрузка…
+							</p>
+						) : pendingError ? (
+							<QueryErrorAlert
+								message="Не удалось загрузить очередь согласования"
+								retry={() => void refetchPending()}
+							/>
+						) : (
+							<ul className="space-y-2">
+								{pendingItems.map((item) => (
+									<li
+										key={item.id}
+										className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-b1 p-3"
 									>
-										Одобрить
-									</Button>
-									<Button
-										type="button"
-										size="sm"
-										variant="outline"
-										onClick={() => rejectMutation.mutate(item)}
-									>
-										Отклонить
-									</Button>
-								</div>
-							</li>
-						))}
-					</ul>
-				</section>
-			)}
+										<div>
+											<p className="font-medium">
+												{item.requester_name} ·{" "}
+												{LEAVE_TYPE_LABELS[item.leave_type]}
+											</p>
+											<p className="text-sm text-t2">
+												{item.start_date} — {item.end_date}
+											</p>
+										</div>
+										<div className="flex gap-2">
+											<Button
+												type="button"
+												size="sm"
+												onClick={() => approveMutation.mutate(item)}
+											>
+												Одобрить
+											</Button>
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												onClick={() => rejectMutation.mutate(item)}
+											>
+												Отклонить
+											</Button>
+										</div>
+									</li>
+								))}
+							</ul>
+						)}
+					</section>
+				)}
 
 			<section className="space-y-3">
 				<h2 className="text-sm font-semibold uppercase tracking-wide text-t2">
