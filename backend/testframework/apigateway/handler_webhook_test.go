@@ -138,7 +138,7 @@ func TestHandler_CreateEndpoint_Success(t *testing.T) {
 
 	body, _ := json.Marshal(apigateway.CreateWebhookRequest{
 		URL:    "https://example.com/hub-webhook",
-		Events: []string{"issue.created", "sprint.completed"},
+		Events: []string{"issue.created", "issue.updated"},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/projects/"+env.projectID.String()+"/webhooks/", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -229,7 +229,7 @@ func TestHandler_Webhook_IDOR_ByEndpointID(t *testing.T) {
 
 	t.Run("update forbidden", func(t *testing.T) {
 		newURL := "https://attacker.example.com/hook"
-		body, _ := json.Marshal(apigateway.UpdateWebhookRequest{URL: &newURL})
+		body, _ := json.Marshal(apigateway.UpdateWebhookRequest{URL: &newURL, Version: created.Version})
 		req := httptest.NewRequest(http.MethodPut, "/api/webhooks/"+created.ID, bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := app.Test(req)
@@ -298,7 +298,8 @@ func TestWebhookService_UpdateEndpoint_InvalidURL(t *testing.T) {
 
 	badURL := "file:///etc/passwd"
 	_, err = env.webhookSvc.UpdateEndpoint(env.ctx, uuid.MustParse(created.ID), apigateway.UpdateWebhookRequest{
-		URL: &badURL,
+		URL:     &badURL,
+		Version: created.Version,
 	})
 	require.Error(t, err)
 	assert.ErrorIs(t, err, apigateway.ErrInvalidInput)

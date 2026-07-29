@@ -33,13 +33,14 @@ var StreamSubjects = []string{
 // WebhookFilterSubjects — JetStream filter для durable consumer webhook-dispatcher.
 // Только subject'ы, которые могут триггерить исходящие webhook (см. UI AVAILABLE_EVENTS).
 // Исключает notification.*, auth.session.*, calls.* — они не доставляются наружу (APIGW-03).
+// A3W4-5-003 (trim): sprint.> убран — sprint.completed нет в allowlist и нет
+// NATS producer sprint.*; вернуть вместе с producer + allowlist.
 var WebhookFilterSubjects = []string{
 	"project.*.issue.>",
 	"tracker.*.issue.>",
 	"project.created",
 	"tms.run.completed.>",
 	"tms.testrun.completed",
-	"sprint.>",
 	"messenger.channel.*.message_sent",
 }
 

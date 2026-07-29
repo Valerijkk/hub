@@ -66,7 +66,10 @@ func TestEntRepository_WebhookEndpointCRUD(t *testing.T) {
 	assert.Equal(t, proj.ID, active[0].Edges.Project.ID)
 
 	isActive := false
-	updated, err := repo.UpdateWebhookEndpoint(ctx, ep.ID, apigateway.UpdateWebhookEndpointInput{IsActive: &isActive})
+	updated, err := repo.UpdateWebhookEndpoint(ctx, ep.ID, apigateway.UpdateWebhookEndpointInput{
+		IsActive: &isActive,
+		Version:  ep.Version,
+	})
 	require.NoError(t, err)
 	assert.False(t, updated.IsActive)
 

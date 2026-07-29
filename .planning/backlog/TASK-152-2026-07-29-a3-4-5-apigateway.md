@@ -1,9 +1,10 @@
 # 🔒 A3 apigateway soft-delete webhooks + VersionEQ
 
-> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **Открыта**  
+> Заведено: 2026-07-29 · Автор: team-lead · Приоритет: **P2** · Статус: **На проверке**  
 > Источник: A3W4-5-apigateway.md · Stage A3 FINAL · TASK-008 · кластер A3W4-5  
 > Ветка исполнения: `cursor-grok-4.5` (не пушить в `master`)  
-> Finding IDs: **A3W4-5-001** … **A3W4-5-004**
+> Finding IDs: **A3W4-5-001** … **A3W4-5-004**  
+> Исполнитель: be2 · Handoff: be-ver → code-reviewer
 
 ## [OUTCOME]
 
@@ -142,3 +143,20 @@
 - Schema migrate / новые Ent fields — STOP + Approval record; VersionMixin/MaxLen уже в schema — только application path.
 - Docs sync: если меняется user-visible webhook update contract (`version` в PUT) или allowlist events — обновить `docs/wiki/API.md` / system_specification в той же сессии; иначе STATE one-liner + backlog status.
 - Read-only audit; правки кода — по контракту задачи.
+
+## Progress (be2 · 2026-07-29)
+
+**Путь A3W4-5-003:** trim (не publish) — `sprint.completed` убран из allowlist + `sprint.>` из `WebhookFilterSubjects`.
+
+| ID | Статус | Evidence |
+|----|--------|----------|
+| A3W4-5-001 | FIXED | `repository.go` `HasProjectWith(project.DeletedAtIsNil())`; IT `TestListActiveWebhookEndpoints_SoftDeletedProject_Excluded` |
+| A3W4-5-002 | FIXED | DTO `version`; repo `VersionEQ`+`AddVersion(1)` → `ErrVersionConflict`/409; IT `TestUpdateWebhookEndpoint_VersionEQ_*` |
+| A3W4-5-003 | FIXED | trim: allowlist + `WebhookFilterSubjects` без sprint; IT `TestValidateWebhookEvents_SprintCompleted_Rejected` |
+| A3W4-5-004 | FIXED | `handler.go` rune MaxLen 255 → 400; IT `TestCreateAPIKey_NameMaxLen_400` |
+
+**Mutation notes:** см. ACCEPTANCE таблицу — IT написаны под мутацию (убрать filter / VersionEQ / вернуть allowlist / убрать rune guard).
+
+**Регрессия:** `go test -tags hubtest -race -count=1 ./testframework/apigateway/`
+
+**OOS / risks:** FE `webhooks.tsx` ещё показывает `sprint.completed` и PUT без `version` — UI сломается до FE-фиксов (вне SCOPE be2). README не трогали (инструкция сессии).

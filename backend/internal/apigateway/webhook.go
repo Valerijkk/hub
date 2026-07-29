@@ -230,7 +230,7 @@ func (d *WebhookDispatcher) dispatchEvent(ctx context.Context, eventType string,
 			continue
 		}
 		if !hasProject {
-			// Subject без project UUID (tms.*, sprint.>, messenger.*, project.created)
+			// Subject без project UUID (tms.*, messenger.*, project.created)
 			// и без project_id в payload — не шлём в project hooks.
 			continue
 		}
@@ -448,13 +448,15 @@ func webhookEndpointProjectID(ep *ent.WebhookEndpoint) (uuid.UUID, bool) {
 // allowedWebhookEvents — UI short names (AVAILABLE_EVENTS из
 // frontend/src/modules/settings/webhooks.tsx) + wildcard "*".
 // Bind validate-теги Fiber не enforce'ит — проверка в сервисе (P1-BE-28).
+// A3W4-5-003 (trim): sprint.completed убран из allowlist — sprint-сервис
+// не публикует NATS subject sprint.* (только poker.*); подписка была мёртвой.
+// Вернуть в allowlist только вместе с producer sprint.<id>.completed + project_id.
 var allowedWebhookEvents = map[string]struct{}{
 	"*":                    {},
 	"issue.created":        {},
 	"issue.updated":        {},
 	"issue.status_changed": {},
 	"test_run.completed":   {},
-	"sprint.completed":     {},
 }
 
 // validateWebhookEvents требует непустой список и только allowlist-имена.
@@ -524,12 +526,17 @@ func (s *WebhookService) ListEndpoints(ctx context.Context, projectID uuid.UUID)
 }
 
 // UpdateEndpoint обновляет вебхук-эндпоинт.
+// A3W4-5-002: version обязателен; VersionEQ в repo → 409 при conflict.
 func (s *WebhookService) UpdateEndpoint(ctx context.Context, endpointID uuid.UUID, req UpdateWebhookRequest) (*WebhookResponse, error) {
+	if req.Version < 1 {
+		return nil, newInvalidInputError("version обязателен и должен быть ≥ 1")
+	}
 	input := UpdateWebhookEndpointInput{
 		URL:      req.URL,
 		Secret:   req.Secret,
 		Events:   req.Events,
 		IsActive: req.IsActive,
+		Version:  req.Version,
 	}
 	if req.URL != nil {
 		if err := safehttp.ValidateOutboundURL(*req.URL); err != nil {
@@ -544,6 +551,9 @@ func (s *WebhookService) UpdateEndpoint(ctx context.Context, endpointID uuid.UUI
 
 	ep, err := s.repo.UpdateWebhookEndpoint(ctx, endpointID, input)
 	if err != nil {
+		if errors.Is(err, ErrVersionConflict) {
+			return nil, ErrVersionConflict
+		}
 		if IsNotFound(err) {
 			return nil, ErrWebhookEndpointNotFound
 		}
@@ -604,6 +614,7 @@ func toWebhookResponse(ep *ent.WebhookEndpoint) *WebhookResponse {
 		URL:      ep.URL,
 		Events:   ep.Events,
 		IsActive: ep.IsActive,
+		Version:  ep.Version,
 		Created:  ep.CreatedAt.Format(time.RFC3339),
 	}
 }

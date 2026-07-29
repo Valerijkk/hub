@@ -689,13 +689,19 @@ API-ключи для программного доступа, webhook-подп�
 | POST | `/projects/:projectId/webhooks/` | Создать endpoint для проекта |
 | GET | `/projects/:projectId/webhooks/` | Список endpoints проекта |
 
+Allowlist событий: `issue.created`, `issue.updated`, `issue.status_changed`, `test_run.completed`, `*` (wildcard). `sprint.completed` снят до появления NATS producer (A3W4-5-003). Soft-deleted project (корзина) не получает outbound POST.
+
+Ответ endpoint: `{ id, url, events, is_active, version, created_at }` (+ `secret` только при Create, one-time).
+
 ### Webhook-подписки (по ID)
 
 | Метод | Путь | Описание |
 |---|---|---|
-| PUT | `/webhooks/:id` | Обновить endpoint |
+| PUT | `/webhooks/:id` | Обновить endpoint; body обязан содержать `version` (≥1); stale → **409** |
 | DELETE | `/webhooks/:id` | Удалить endpoint |
 | GET | `/webhooks/:id/deliveries` | История доставок |
+
+Create API key: `name` ≤255 рун; иначе **400** (не 500).
 
 ---
 

@@ -117,7 +117,7 @@ func TestWebhookService_CreateEndpoint_SecretAndEvents(t *testing.T) {
 
 	created, err := env.webhookSvc.CreateEndpoint(env.ctx, env.projectID, apigateway.CreateWebhookRequest{
 		URL:    "https://hooks.example.com/svc",
-		Events: []string{"sprint.completed"},
+		Events: []string{"issue.created"},
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, created.Secret)
@@ -132,6 +132,13 @@ func TestWebhookService_CreateEndpoint_SecretAndEvents(t *testing.T) {
 	_, err = env.webhookSvc.CreateEndpoint(env.ctx, env.projectID, apigateway.CreateWebhookRequest{
 		URL:    "https://hooks.example.com/svc-bad",
 		Events: []string{"not.a.real.event"},
+	})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, apigateway.ErrInvalidInput)
+
+	_, err = env.webhookSvc.CreateEndpoint(env.ctx, env.projectID, apigateway.CreateWebhookRequest{
+		URL:    "https://hooks.example.com/svc-sprint",
+		Events: []string{"sprint.completed"},
 	})
 	require.Error(t, err)
 	assert.ErrorIs(t, err, apigateway.ErrInvalidInput)

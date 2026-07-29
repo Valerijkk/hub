@@ -24,7 +24,7 @@ func TestContainsEvent_UIShortName_MatchesProjectSubject(t *testing.T) {
 	assert.False(t, apigateway.ExportContainsEvent(events, "project."+projectID.String()+".issue.updated"))
 }
 
-func TestContainsEvent_Aliases_TMSAndSprint(t *testing.T) {
+func TestContainsEvent_Aliases_TMSAndFirstLastToken(t *testing.T) {
 	t.Parallel()
 
 	assert.True(t, apigateway.ExportContainsEvent(
@@ -34,6 +34,7 @@ func TestContainsEvent_Aliases_TMSAndSprint(t *testing.T) {
 	assert.False(t, apigateway.ExportContainsEvent(
 		[]string{"test_run.completed"}, "tms.testrun.created"))
 
+	// first+last token match (legacy sprint.completed pattern / generic a.b.c).
 	assert.True(t, apigateway.ExportContainsEvent(
 		[]string{"sprint.completed"}, "sprint.completed"))
 	assert.True(t, apigateway.ExportContainsEvent(

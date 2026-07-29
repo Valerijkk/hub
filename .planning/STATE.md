@@ -65,6 +65,18 @@ spec_coverage:
 
 # Состояние проекта Hub
 
+## Session note — 2026-07-29 (be2 · TASK-152 A3W4-5 apigateway)
+
+- **Сделано:** ListActive + `project.DeletedAtIsNil`; Update webhook VersionEQ/409; trim `sprint.completed` allowlist + `WebhookFilterSubjects`; CreateAPIKey name MaxLen→400; docs `wiki/API.md`; статус задачи **На проверке**.
+- **Тесты:** `testframework/apigateway/task152_a3w4_5_test.go` (+ правки существующих).
+- **Риск:** FE `webhooks.tsx` ещё показывает `sprint.completed` / PUT без `version` (вне SCOPE).
+
+## Session note — 2026-07-29 (be1 · TASK-161 A3W6-5 audit tests)
+
+- **Сделано:** CRM purge/retention/soft-restore call-maps; Deactivate cache Del assert; hollow NoError siblings удалены.
+- **ID:** A3W6-5-001…007 → FIXED; задача «На проверке» (README не трогали).
+- **Тесты:** `./testframework/audit/` hubtest -race PASS (10.3s, isolated worktree).
+
 ## Session note — 2026-07-29 (fe1 · TASK-173 A3W9-2 bookmarks/widgets)
 
 - **Сделано:** bookmarks `channel_name`/`content_preview` (BE+FE); deadlines/my-tasks `Link`+`project_id`; tokens system-health/unread/priority.

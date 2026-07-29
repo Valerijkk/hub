@@ -39,11 +39,13 @@ type CreateWebhookDeliveryInput struct {
 }
 
 // UpdateWebhookEndpointInput — частичное обновление webhook-эндпоинта.
+// Version — optimistic lock (NFR-24 / A3W4-5-002); обязателен ≥1.
 type UpdateWebhookEndpointInput struct {
 	URL      *string
 	Secret   *string
 	Events   []string
 	IsActive *bool
+	Version  int
 }
 
 // WebhookRepository — webhook endpoints и delivery logs (ARCH-01).
@@ -167,10 +169,12 @@ func (r *EntRepository) UpdateAPIKeyLastUsedAt(ctx context.Context, keyID uuid.U
 
 func (r *EntRepository) ListActiveWebhookEndpoints(ctx context.Context) ([]*ent.WebhookEndpoint, error) {
 	// WithProject — нужен dispatchEvent для фильтрации по проекту эндпоинта (TASK-012).
+	// A3W4-5-001: soft-deleted project (корзина) не получает outbound webhook POST.
 	eps, err := r.client.WebhookEndpoint.Query().
 		Where(
 			webhookendpoint.IsActive(true),
 			webhookendpoint.DeletedAtIsNil(),
+			webhookendpoint.HasProjectWith(project.DeletedAtIsNil()),
 		).
 		WithProject().
 		All(ctx)
@@ -224,8 +228,14 @@ func (r *EntRepository) ListWebhookEndpointsByProject(ctx context.Context, proje
 }
 
 func (r *EntRepository) UpdateWebhookEndpoint(ctx context.Context, endpointID uuid.UUID, input UpdateWebhookEndpointInput) (*ent.WebhookEndpoint, error) {
+	// A3W4-5-002: VersionEQ + AddVersion — иначе concurrent PUT last-write-wins.
 	b := r.client.WebhookEndpoint.Update().
-		Where(webhookendpoint.IDEQ(endpointID), webhookendpoint.DeletedAtIsNil())
+		Where(
+			webhookendpoint.IDEQ(endpointID),
+			webhookendpoint.DeletedAtIsNil(),
+			webhookendpoint.VersionEQ(input.Version),
+		).
+		AddVersion(1)
 	if input.URL != nil {
 		b.SetURL(*input.URL)
 	}
@@ -247,7 +257,16 @@ func (r *EntRepository) UpdateWebhookEndpoint(ctx context.Context, endpointID uu
 		return nil, err
 	}
 	if affected == 0 {
-		return nil, &ent.NotFoundError{}
+		alive, existErr := r.client.WebhookEndpoint.Query().
+			Where(webhookendpoint.IDEQ(endpointID), webhookendpoint.DeletedAtIsNil()).
+			Exist(ctx)
+		if existErr != nil {
+			return nil, existErr
+		}
+		if !alive {
+			return nil, &ent.NotFoundError{}
+		}
+		return nil, ErrVersionConflict
 	}
 	return r.client.WebhookEndpoint.Query().
 		Where(webhookendpoint.IDEQ(endpointID), webhookendpoint.DeletedAtIsNil()).
